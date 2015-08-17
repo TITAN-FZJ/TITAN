@@ -271,11 +271,11 @@ endif
 all: $(FILENAME)
 
 $(FILENAME): $(OBJ)
-	@echo Creating executable $@
+	@echo Creating executable $@ $(and $(strip $(DEBUG) $(PARALLEL)), with $(strip $(DEBUG) $(PARALLEL)))
 	@$(FC) $^ -o $@ $(LLIBS)
 
 $(OBJDIR)/%.o $(OBJDIR)/%.mod: $(SRCDIR)/%.F90
-	@echo Compiling file $< to $(addprefix $(OBJDIR)/,$(notdir $(patsubst %.F90,%.o,$<)))
+	@echo Compiling file $< to $(addprefix $(OBJDIR)/,$(notdir $(patsubst %.F90,%.o,$<))) $(and $(strip $(DEBUG) $(PARALLEL)), with $(strip $(DEBUG) $(PARALLEL)))
 	@$(FC) $(FFLAGS) $(CPP) -c $< -o $(addprefix $(OBJDIR)/,$(notdir $(patsubst %.F90,%.o,$<)))
 
 ####################################################
