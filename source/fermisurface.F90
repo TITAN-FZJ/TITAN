@@ -78,14 +78,14 @@ subroutine fermisurface()
 
   ! Writing on files
   do i=1,Npl
-    write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsu_layer',I0,'_magaxis=',A,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,i,magaxis,ncp,eta,U,hwx,hwy,hwz
+    write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsu_layer',I0,'_magaxis=',A,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,i,magaxis,ncp,eta,Utype,hwx,hwy,hwz
     open (unit=17+i, file=varm,status='unknown')
-    write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsd_layer',I0,'_magaxis=',A,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,i,magaxis,ncp,eta,U,hwx,hwy,hwz
+    write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsd_layer',I0,'_magaxis=',A,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,i,magaxis,ncp,eta,Utype,hwx,hwy,hwz
     open (unit=57+i, file=varm,status='unknown')
   end do
-  write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsu_total_magaxis=',A,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,magaxis,ncp,eta,U,hwx,hwy,hwz
+  write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsu_total_magaxis=',A,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,magaxis,ncp,eta,Utype,hwx,hwy,hwz
   open (unit=97, file=varm,status='unknown')
-  write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsd_total_magaxis=',A,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,magaxis,ncp,eta,U,hwx,hwy,hwz
+  write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsd_total_magaxis=',A,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,magaxis,ncp,eta,Utype,hwx,hwy,hwz
   open (unit=98, file=varm,status='unknown')
 
   writing_fermi_surface: do iz=1,nkpoints

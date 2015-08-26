@@ -1,5 +1,5 @@
 ! ---------- Parallel spin current: Energy integration ---------
-subroutine eintsheprllsc(e,ttchiorbiikl_hf,Lxttchiorbiikl_hf,Lyttchiorbiikl_hf,Lzttchiorbiikl_hf)
+subroutine eintsheprllsc(e,ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl)
 	use mod_constants
 	use mod_parameters
 	use mod_lattice
@@ -12,7 +12,7 @@ subroutine eintsheprllsc(e,ttchiorbiikl_hf,Lxttchiorbiikl_hf,Lyttchiorbiikl_hf,L
 	integer						:: i
 	real(double)							:: start_time,elapsed_time,sizemat,speed
 	real(double),intent(in)		:: e
-	complex(double), dimension(n0sc1:n0sc2,dim,dimNpl),intent(out)	:: ttchiorbiikl_hf,Lxttchiorbiikl_hf,Lyttchiorbiikl_hf,Lzttchiorbiikl_hf
+	complex(double), dimension(n0sc1:n0sc2,dim,dimNpl),intent(out)	:: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl
 	complex(double), dimension(:,:,:), allocatable  			:: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
 !--------------------- begin MPI vars --------------------
 	integer :: ix,ix2,itask,masterrank=0
@@ -36,10 +36,10 @@ subroutine eintsheprllsc(e,ttchiorbiikl_hf,Lxttchiorbiikl_hf,Lyttchiorbiikl_hf,L
 ! Starting to calculate energy integral
 	if (myrank_row.eq.masterrank) then ! Process 0 calculates one point, receives results from others and send new tasks if necessary
 		call sumkprllsc(e,y(ix),ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,0)
-		ttchiorbiikl_hf = ttFintiikl*wght(ix)
-		Lxttchiorbiikl_hf = LxttFintiikl*wght(ix)
-		Lyttchiorbiikl_hf = LyttFintiikl*wght(ix)
-		Lzttchiorbiikl_hf = LzttFintiikl*wght(ix)
+		ttchiorbiikl = ttFintiikl*wght(ix)
+		Lxttchiorbiikl = LxttFintiikl*wght(ix)
+		Lyttchiorbiikl = LyttFintiikl*wght(ix)
+		Lzttchiorbiikl = LzttFintiikl*wght(ix)
 		if(index(runoptions,"verbose").gt.0) write(*,"('[eintsheprllsc] Finished point ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,myrank_row,myrank_col,trim(host)
 
 		do i=2,nepoints
@@ -56,10 +56,10 @@ subroutine eintsheprllsc(e,ttchiorbiikl_hf,Lxttchiorbiikl_hf,Lyttchiorbiikl_hf,L
 				write(*,"('Average speed: ',f11.4,' Mbps / ',f9.4,' Gbps ')") speed,speed/1024
 			end if
 
-			ttchiorbiikl_hf = ttchiorbiikl_hf + ttFintiikl
-			Lxttchiorbiikl_hf = Lxttchiorbiikl_hf + LxttFintiikl
-			Lyttchiorbiikl_hf = Lyttchiorbiikl_hf + LyttFintiikl
-			Lzttchiorbiikl_hf = Lzttchiorbiikl_hf + LzttFintiikl
+			ttchiorbiikl = ttchiorbiikl + ttFintiikl
+			Lxttchiorbiikl = Lxttchiorbiikl + LxttFintiikl
+			Lyttchiorbiikl = Lyttchiorbiikl + LyttFintiikl
+			Lzttchiorbiikl = Lzttchiorbiikl + LzttFintiikl
 
 			! If the number of processors is less than the total number of points, sends
 			! the rest of the points to the ones that finish first
@@ -109,7 +109,7 @@ end subroutine eintsheprllsc
 
 
 ! ---------- Parallel spin current: Energy integration ---------
-subroutine eintsheprllsc_uff(e,ttchiorbiikl_hf,Lxttchiorbiikl_hf,Lyttchiorbiikl_hf,Lzttchiorbiikl_hf)
+subroutine eintsheprllsc_uff(e,ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl)
 	use mod_constants
 	use mod_parameters
 	use mod_lattice
@@ -122,7 +122,7 @@ subroutine eintsheprllsc_uff(e,ttchiorbiikl_hf,Lxttchiorbiikl_hf,Lyttchiorbiikl_
 	integer						:: i,neighbor
 	real(double)							:: start_time,elapsed_time,sizemat,speed
 	real(double),intent(in)		:: e
-	complex(double), dimension(n0sc1:n0sc2,dim,dimNpl),intent(out)	:: ttchiorbiikl_hf,Lxttchiorbiikl_hf,Lyttchiorbiikl_hf,Lzttchiorbiikl_hf
+	complex(double), dimension(n0sc1:n0sc2,dim,dimNpl),intent(out)	:: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl
 	complex(double), dimension(:,:,:), allocatable  			:: ttFintiikl,temp,LxttFintiikl,LyttFintiikl,LzttFintiikl
 !--------------------- begin MPI vars --------------------
 	integer :: ix,ix2,itask,masterrank=0
@@ -146,10 +146,10 @@ subroutine eintsheprllsc_uff(e,ttchiorbiikl_hf,Lxttchiorbiikl_hf,Lyttchiorbiikl_
 ! Starting to calculate energy integral
 	if (myrank_row.eq.masterrank) then ! Process 0 calculates one point, receives results from others and send new tasks if necessary
 		call sumkprllsc(e,y(ix),ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,0)
-		ttchiorbiikl_hf = ttFintiikl*wght(ix)
-		Lxttchiorbiikl_hf = LxttFintiikl*wght(ix)
-		Lyttchiorbiikl_hf = LyttFintiikl*wght(ix)
-		Lzttchiorbiikl_hf = LzttFintiikl*wght(ix)
+		ttchiorbiikl = ttFintiikl*wght(ix)
+		Lxttchiorbiikl = LxttFintiikl*wght(ix)
+		Lyttchiorbiikl = LyttFintiikl*wght(ix)
+		Lzttchiorbiikl = LzttFintiikl*wght(ix)
 		if(index(runoptions,"verbose").gt.0) write(*,"('[eintsheprllsc] Finished point ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,myrank_row,myrank_col,trim(host)
 
 		do i=2,nepoints
@@ -175,10 +175,10 @@ subroutine eintsheprllsc_uff(e,ttchiorbiikl_hf,Lxttchiorbiikl_hf,Lyttchiorbiikl_
 				write(*,"('Average speed: ',f11.4,' Mbps / ',f9.4,' Gbps ')") speed,speed/1024
 			end if
 
-			ttchiorbiikl_hf = ttchiorbiikl_hf + ttFintiikl
-			Lxttchiorbiikl_hf = Lxttchiorbiikl_hf + LxttFintiikl
-			Lyttchiorbiikl_hf = Lyttchiorbiikl_hf + LyttFintiikl
-			Lzttchiorbiikl_hf = Lzttchiorbiikl_hf + LzttFintiikl
+			ttchiorbiikl = ttchiorbiikl + ttFintiikl
+			Lxttchiorbiikl = Lxttchiorbiikl + LxttFintiikl
+			Lyttchiorbiikl = Lyttchiorbiikl + LyttFintiikl
+			Lzttchiorbiikl = Lzttchiorbiikl + LzttFintiikl
 
 			! If the number of processors is less than the total number of points, sends
 			! the rest of the points to the ones that finish first

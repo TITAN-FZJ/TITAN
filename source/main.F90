@@ -24,6 +24,8 @@ program SHE
   complex(double),allocatable   :: schi(:,:,:),schihf(:,:,:)
   complex(double),allocatable   :: sdx(:),sdy(:),sdz(:),chd(:),ldx(:),ldy(:),ldz(:)
   complex(double),allocatable   :: Ich(:,:),Isx(:,:),Isy(:,:),Isz(:,:),Ilx(:,:),Ily(:,:),Ilz(:,:)
+  complex(double),allocatable   :: rsdx(:),rsdy(:),rsdz(:),rchd(:),rldx(:),rldy(:),rldz(:)
+  complex(double),allocatable   :: rIch(:,:),rIsx(:,:),rIsy(:,:),rIsz(:,:),rIlx(:,:),rIly(:,:),rIlz(:,:)
   complex(double),allocatable   :: sdl(:)
 
   ! Self consistency variables
@@ -140,11 +142,18 @@ program SHE
 !   qzmax = 3.d0*pi/(2.d0*a0)
 
 !----------- Creating bi-dimensional matrix of MPI processes  -----------
+  ! Bidimensional array should look like:
+  !      0 1 2 3 ... pnt-1
+  !    0
+  !    1
+  !    2
+  !   ...
+  ! MPIpts-1
   if((itype.ge.5).and.(itype.le.8)) then ! Create matrix only when energy integration is involved
     MPIpts = ceiling(dble(numprocs)/dble(pnt)) ! Number of rows to be used
     MPIdims = [MPIpts,pnt]
     if(numprocs.le.pnt) then  ! If number of processes is less than necessary for 1 energy integral
-      MPIdims  = [MPIpts,numprocs]  ! Create only one array of processes
+      MPIdims  = [MPIpts,numprocs]  ! Create only one array of processes, i.e., MPIpts = 1
       MPIsteps = npt1
     else
       if(mod(numprocs,pnt).ne.0) then
@@ -178,14 +187,14 @@ program SHE
         end if
       end if
     end if
-    ! Calculating variations of energy
-    MPIdelta = (emax - emin)/MPIsteps  ! variation of energy between MPI steps
     if(npt1.ne.1) then
       npts = npt1-1
     else
       npts = npt1
     end if
-    deltae = (emax - emin)/npts
+    ! Calculating variations of energy
+    deltae = (emax - emin)/npts      ! variation of energy between each point
+    MPIdelta = deltae*MPIpts         ! variation of energy between MPI steps
 
     ! Creating bidimensiontal Grid of tasks
     lperiodic = [.false.,.false.]
@@ -1250,6 +1259,13 @@ program SHE
         if(myrank.eq.0) write(*,"('[main] Not enough memory for: Ich,Isx,Isy,Isz,Ilx,Ily,Ilz')")
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
+      if(renorm) then
+        allocate( rIch(n0sc1:n0sc2,Npl),rIsx(n0sc1:n0sc2,Npl),rIsy(n0sc1:n0sc2,Npl),rIsz(n0sc1:n0sc2,Npl),rIlx(n0sc1:n0sc2,Npl),rIly(n0sc1:n0sc2,Npl),rIlz(n0sc1:n0sc2,Npl), STAT = AllocateStatus )
+        if (AllocateStatus.ne.0) then
+          if(myrank.eq.0) write(*,"('[main] Not enough memory for: rIch,rIsx,rIsy,rIsz,rIlx,rIly,rIlz')")
+          call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+        end if
+      end if
       allocate( chiorb(dim,dim), STAT = AllocateStatus  )
       if (AllocateStatus.ne.0) then
         write(*,"('[main] Not enough memory for: chiorb')")
@@ -1285,6 +1301,10 @@ program SHE
 
       if(myrank.eq.0) write(*,"('[main] Calculating pre-factor to use in current calculation ')")
       call eintshechi(e,chiorb_hf)
+
+      ! Broadcast chiorb_hf to all processors of the same row
+      call MPI_Bcast(chiorb_hf,dim*dim,MPI_DOUBLE_COMPLEX,0,MPIComm_Row,ierr)
+
       ! prefactor = (1 + chi_hf*Umat)^-1
       call zgemm('n','n',dim,dim,dim,zum,chiorb_hf,dim,Umatorb,dim,zero,prefactor,dim) !prefactor = chi_hf*Umat
       prefactor = identt + prefactor
@@ -1343,13 +1363,13 @@ program SHE
             end do; end do; end do; end do; end do; end do
           end do neighbor_loop_calculate_sc
         end do plane_loop_calculate_sc
-        Ich = Ich
+!         Ich = Ich
         Isx = -0.5d0*Isx
         Isy = -0.5d0*Isy/zi
         Isz = -0.5d0*Isz
-        Ilx = Ilx
-        Ily = Ily
-        Ilz = Ilz
+!         Ilx = Ilx
+!         Ily = Ily
+!         Ilz = Ilz
 
         ! Sending results to myrank_row = myrank_col = 0 and writing on file
         if(myrank_col.eq.0) then
@@ -1403,6 +1423,20 @@ program SHE
               do i=1,nmaglayers
                 write(unit=1990+i,fmt=varm) e,(real(evecr(j,i)),aimag(evecr(j,i)),j=1,nmaglayers)
               end do
+            end if
+
+            ! Renormalizing currents by the charge current in plane 1
+            if(renorm) then
+              ! Obtaining current for renormalization
+              Icabs  = abs(Ich(renormnb,1))
+
+              rIch = Ich/Icabs
+              rIsx = Isx/Icabs
+              rIsy = Isy/Icabs
+              rIsz = Isz/Icabs
+              rIlx = Ilx/Icabs
+              rIly = Ily/Icabs
+              rIlz = Ilz/Icabs
             end if
 
             ! WRITING CURRENTS
@@ -1466,35 +1500,27 @@ program SHE
                 ! Writing z-component orbital angular momentum current
                 write(unit=iw+7,fmt="(7(e16.9,2x))") e,abs(Ilz(neighbor,i)),real(Ilz(neighbor,i)),aimag(Ilz(neighbor,i)),atan2(aimag(Ilz(neighbor,i)),real(Ilz(neighbor,i))),real(Ilz(neighbor,i))/abs(Ilz(neighbor,i)),aimag(Ilz(neighbor,i))/abs(Ilz(neighbor,i))
 
-                ! Renormalizing spin currents with the charge current
+                ! Writing renormalized currents
                 if(renorm) then
-                  Ich = Ich/Icabs
-                  Isx = Isx/Icabs
-                  Isy = Isy/Icabs
-                  Isz = Isz/Icabs
-                  Ilx = Ilx/Icabs
-                  Ily = Ily/Icabs
-                  Ilz = Ilz/Icabs
-
                   ! CHARGE CURRENT
                   ! Writing renormalized charge current
-                  write(unit=iw+1001,fmt="(7(e16.9,2x))") e,abs(Ich(neighbor,i)),real(Ich(neighbor,i)),aimag(Ich(neighbor,i)),atan2(aimag(Ich(neighbor,i)),real(Ich(neighbor,i))),real(Ich(neighbor,i))/abs(Ich(neighbor,i)),aimag(Ich(neighbor,i))/abs(Ich(neighbor,i))
+                  write(unit=iw+1001,fmt="(7(e16.9,2x))") e,abs(rIch(neighbor,i)),real(rIch(neighbor,i)),aimag(rIch(neighbor,i)),atan2(aimag(rIch(neighbor,i)),real(rIch(neighbor,i))),real(rIch(neighbor,i))/abs(rIch(neighbor,i)),aimag(rIch(neighbor,i))/abs(rIch(neighbor,i))
 
                   ! SPIN CURRENTS
                   ! Writing renormalized x-component spin current
-                  write(unit=iw+1002,fmt="(7(e16.9,2x))") e,abs(Isx(neighbor,i)),real(Isx(neighbor,i)),aimag(Isx(neighbor,i)),atan2(aimag(Isx(neighbor,i)),real(Isx(neighbor,i))),real(Isx(neighbor,i))/abs(Isx(neighbor,i)),aimag(Isx(neighbor,i))/abs(Isx(neighbor,i))
+                  write(unit=iw+1002,fmt="(7(e16.9,2x))") e,abs(rIsx(neighbor,i)),real(rIsx(neighbor,i)),aimag(rIsx(neighbor,i)),atan2(aimag(rIsx(neighbor,i)),real(rIsx(neighbor,i))),real(rIsx(neighbor,i))/abs(rIsx(neighbor,i)),aimag(rIsx(neighbor,i))/abs(rIsx(neighbor,i))
                   ! Writing renormalized y-component spin current
-                  write(unit=iw+1003,fmt="(7(e16.9,2x))") e,abs(Isy(neighbor,i)),real(Isy(neighbor,i)),aimag(Isy(neighbor,i)),atan2(aimag(Isy(neighbor,i)),real(Isy(neighbor,i))),real(Isy(neighbor,i))/abs(Isy(neighbor,i)),aimag(Isy(neighbor,i))/abs(Isy(neighbor,i))
+                  write(unit=iw+1003,fmt="(7(e16.9,2x))") e,abs(rIsy(neighbor,i)),real(rIsy(neighbor,i)),aimag(rIsy(neighbor,i)),atan2(aimag(rIsy(neighbor,i)),real(rIsy(neighbor,i))),real(rIsy(neighbor,i))/abs(rIsy(neighbor,i)),aimag(rIsy(neighbor,i))/abs(rIsy(neighbor,i))
                   ! Writing renormalized z-component spin current
-                  write(unit=iw+1004,fmt="(7(e16.9,2x))") e,abs(Isz(neighbor,i)),real(Isz(neighbor,i)),aimag(Isz(neighbor,i)),atan2(aimag(Isz(neighbor,i)),real(Isz(neighbor,i))),real(Isz(neighbor,i))/abs(Isz(neighbor,i)),aimag(Isz(neighbor,i))/abs(Isz(neighbor,i))
+                  write(unit=iw+1004,fmt="(7(e16.9,2x))") e,abs(rIsz(neighbor,i)),real(rIsz(neighbor,i)),aimag(rIsz(neighbor,i)),atan2(aimag(rIsz(neighbor,i)),real(rIsz(neighbor,i))),real(rIsz(neighbor,i))/abs(rIsz(neighbor,i)),aimag(rIsz(neighbor,i))/abs(rIsz(neighbor,i))
 
                   ! ORBITAL ANGULAR MOMENTUM CURRENTS
                   ! Writing x-component orbital angular momentum current
-                  write(unit=iw+1005,fmt="(7(e16.9,2x))") e,abs(Ilx(neighbor,i)),real(Ilx(neighbor,i)),aimag(Ilx(neighbor,i)),atan2(aimag(Ilx(neighbor,i)),real(Ilx(neighbor,i))),real(Ilx(neighbor,i))/abs(Ilx(neighbor,i)),aimag(Ilx(neighbor,i))/abs(Ilx(neighbor,i))
+                  write(unit=iw+1005,fmt="(7(e16.9,2x))") e,abs(rIlx(neighbor,i)),real(rIlx(neighbor,i)),aimag(rIlx(neighbor,i)),atan2(aimag(rIlx(neighbor,i)),real(rIlx(neighbor,i))),real(rIlx(neighbor,i))/abs(rIlx(neighbor,i)),aimag(rIlx(neighbor,i))/abs(rIlx(neighbor,i))
                   ! Writing y-component orbital angular momentum current
-                  write(unit=iw+1006,fmt="(7(e16.9,2x))") e,abs(Ily(neighbor,i)),real(Ily(neighbor,i)),aimag(Ily(neighbor,i)),atan2(aimag(Ily(neighbor,i)),real(Ily(neighbor,i))),real(Ily(neighbor,i))/abs(Ily(neighbor,i)),aimag(Ily(neighbor,i))/abs(Ily(neighbor,i))
+                  write(unit=iw+1006,fmt="(7(e16.9,2x))") e,abs(rIly(neighbor,i)),real(rIly(neighbor,i)),aimag(rIly(neighbor,i)),atan2(aimag(rIly(neighbor,i)),real(rIly(neighbor,i))),real(rIly(neighbor,i))/abs(rIly(neighbor,i)),aimag(rIly(neighbor,i))/abs(rIly(neighbor,i))
                   ! Writing z-component orbital angular momentum current
-                  write(unit=iw+1007,fmt="(7(e16.9,2x))") e,abs(Ilz(neighbor,i)),real(Ilz(neighbor,i)),aimag(Ilz(neighbor,i)),atan2(aimag(Ilz(neighbor,i)),real(Ilz(neighbor,i))),real(Ilz(neighbor,i))/abs(Ilz(neighbor,i)),aimag(Ilz(neighbor,i))/abs(Ilz(neighbor,i))
+                  write(unit=iw+1007,fmt="(7(e16.9,2x))") e,abs(rIlz(neighbor,i)),real(rIlz(neighbor,i)),aimag(rIlz(neighbor,i)),atan2(aimag(rIlz(neighbor,i)),real(rIlz(neighbor,i))),real(rIlz(neighbor,i))/abs(rIlz(neighbor,i)),aimag(rIlz(neighbor,i))/abs(rIlz(neighbor,i))
                 end if
               end do neighbor_loop_write_sc
             end do plane_loop_write_sc
@@ -1541,6 +1567,7 @@ program SHE
       end if
       deallocate(identt,Umatorb,chiorb)
       deallocate(schi,schihf)
+      deallocate(rIch,rIsx,rIsy,rIsz,rIlx,rIly,rIlz)
       deallocate(Ich,Isx,Isy,Isz,Ilx,Ily,Ilz)
     end if
 !-----------------------------------------------------------------------
@@ -1558,6 +1585,18 @@ program SHE
       if (AllocateStatus.ne.0) then
         if(myrank.eq.0) write(*,"('[main] Not enough memory for: Ich,Isx,Isy,Isz,Ilx,Ily,Ilz')")
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+      end if
+      if(renorm) then
+        allocate( rsdx(Npl),rsdy(Npl),rsdz(Npl),rchd(Npl),rldx(Npl),rldy(Npl),rldz(Npl), STAT = AllocateStatus )
+        if (AllocateStatus.ne.0) then
+          if(myrank.eq.0) write(*,"('[main] Not enough memory for: rsdx,rsdy,rsdz,rchd,rldx,rldy,rldz')")
+          call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+        end if
+        allocate( rIch(n0sc1:n0sc2,Npl),rIsx(n0sc1:n0sc2,Npl),rIsy(n0sc1:n0sc2,Npl),rIsz(n0sc1:n0sc2,Npl),rIlx(n0sc1:n0sc2,Npl),rIly(n0sc1:n0sc2,Npl),rIlz(n0sc1:n0sc2,Npl), STAT = AllocateStatus )
+        if (AllocateStatus.ne.0) then
+          if(myrank.eq.0) write(*,"('[main] Not enough memory for: rIch,rIsx,rIsy,rIsz,rIlx,rIly,rIlz')")
+          call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+        end if
       end if
       allocate( templd(Npl,9,9,9,9),chiorb(dim,dim), STAT = AllocateStatus  )
       if (AllocateStatus.ne.0) then
@@ -1595,6 +1634,10 @@ program SHE
 
       if(myrank.eq.0) write(*,"('[main] Calculating pre-factor to use in current calculation ')")
       call eintshechi(e,chiorb_hf)
+
+      ! Broadcast chiorb_hf to all processors of the same row
+      call MPI_Bcast(chiorb_hf,dim*dim,MPI_DOUBLE_COMPLEX,0,MPIComm_Row,ierr)
+
       ! prefactor = (1 + chi_hf*Umat)^-1
       call zgemm('n','n',dim,dim,dim,zum,chiorb_hf,dim,Umatorb,dim,zero,prefactor,dim) !prefactor = chi_hf*Umat
       prefactor = identt + prefactor
@@ -1679,17 +1722,17 @@ program SHE
         sdx = 0.5d0*sdx
         sdy = 0.5d0*sdy/zi
         sdz = 0.5d0*sdz
-        chd = chd
-        ldx = ldx
-        ldy = ldy
-        ldz = ldz
-        Ich = Ich
+!         chd = chd
+!         ldx = ldx
+!         ldy = ldy
+!         ldz = ldz
+!         Ich = Ich
         Isx = -0.5d0*Isx
         Isy = -0.5d0*Isy/zi
         Isz = -0.5d0*Isz
-        Ilx = Ilx
-        Ily = Ily
-        Ilz = Ilz
+!         Ilx = Ilx
+!         Ily = Ily
+!         Ilz = Ilz
 
         ! Sending results to myrank_row = myrank_col = 0 and writing on file
         if(myrank_col.eq.0) then
@@ -1753,6 +1796,28 @@ program SHE
               end do
             end if
 
+            ! Renormalizing disturbances and currents by the charge current in plane 1
+            if(renorm) then
+              ! Obtaining current for renormalization
+              Icabs  = abs(Ich(renormnb,1))
+
+              rsdx = sdx/Icabs
+              rsdy = sdy/Icabs
+              rsdz = sdz/Icabs
+              rchd = chd/Icabs
+              rldx = ldx/Icabs
+              rldy = ldy/Icabs
+              rldz = ldz/Icabs
+
+              rIch = Ich/Icabs
+              rIsx = Isx/Icabs
+              rIsy = Isy/Icabs
+              rIsz = Isz/Icabs
+              rIlx = Ilx/Icabs
+              rIly = Ily/Icabs
+              rIlz = Ilz/Icabs
+            end if
+
             ! WRITING DISTURBANCES AND CURRENTS
             plane_loop_write_all: do i=1,Npl
               write(*,"('|--------------- Plane: ',i0,' , Energy = ',e11.4,' ---------------|')") i,e
@@ -1811,34 +1876,23 @@ program SHE
               ! Writing z-component orbital disturbance
               write(unit=iw+7,fmt="(7(e16.9,2x))") e,abs(ldz(i)),real(ldz(i)),aimag(ldz(i)),atan2(aimag(ldz(i)),real(ldz(i))),real(ldz(i))/abs(ldz(i)),aimag(ldz(i))/abs(ldz(i))
 
-              ! Renormalizing spin currents with the charge current
+              ! Writing renormalized disturbances
               if(renorm) then
-                ! Obtaining current for renormalization
-                Icabs  = abs(Ich(renormnb,1))
-
-                sdx = sdx/Icabs
-                sdy = sdy/Icabs
-                sdz = sdz/Icabs
-                chd = chd/Icabs
-                ldx = ldx/Icabs
-                ldy = ldy/Icabs
-                ldz = ldz/Icabs
-
                 ! Writing renormalized charge disturbance
-                write(unit=iw+1001,fmt="(7(e16.9,2x))") e,abs(chd(i)),real(chd(i)),aimag(chd(i)),atan2(aimag(chd(i)),real(chd(i))),real(chd(i))/abs(chd(i)),aimag(chd(i))/abs(chd(i))
+                write(unit=iw+1001,fmt="(7(e16.9,2x))") e,abs(rchd(i)),real(rchd(i)),aimag(rchd(i)),atan2(aimag(rchd(i)),real(rchd(i))),real(rchd(i))/abs(rchd(i)),aimag(rchd(i))/abs(rchd(i))
                 ! Writing renormalized x-component spin disturbance
-                write(unit=iw+1002,fmt="(7(e16.9,2x))") e,abs(sdx(i)),real(sdx(i)),aimag(sdx(i)),atan2(aimag(sdx(i)),real(sdx(i))),real(sdx(i))/abs(sdx(i)),aimag(sdx(i))/abs(sdx(i))
+                write(unit=iw+1002,fmt="(7(e16.9,2x))") e,abs(rsdx(i)),real(rsdx(i)),aimag(rsdx(i)),atan2(aimag(rsdx(i)),real(rsdx(i))),real(rsdx(i))/abs(rsdx(i)),aimag(rsdx(i))/abs(rsdx(i))
                 ! Writing renormalized y-component spin disturbance
-                write(unit=iw+1003,fmt="(7(e16.9,2x))") e,abs(sdy(i)),real(sdy(i)),aimag(sdy(i)),atan2(aimag(sdy(i)),real(sdy(i))),real(sdy(i))/abs(sdy(i)),aimag(sdy(i))/abs(sdy(i))
+                write(unit=iw+1003,fmt="(7(e16.9,2x))") e,abs(rsdy(i)),real(rsdy(i)),aimag(rsdy(i)),atan2(aimag(rsdy(i)),real(rsdy(i))),real(rsdy(i))/abs(rsdy(i)),aimag(rsdy(i))/abs(rsdy(i))
                 ! Writing renormalized z-component spin disturbance
-                write(unit=iw+1004,fmt="(7(e16.9,2x))") e,abs(sdz(i)),real(sdz(i)),aimag(sdz(i)),atan2(aimag(sdz(i)),real(sdz(i))),real(sdz(i))/abs(sdz(i)),aimag(sdz(i))/abs(sdz(i))
+                write(unit=iw+1004,fmt="(7(e16.9,2x))") e,abs(rsdz(i)),real(rsdz(i)),aimag(rsdz(i)),atan2(aimag(rsdz(i)),real(rsdz(i))),real(rsdz(i))/abs(rsdz(i)),aimag(rsdz(i))/abs(rsdz(i))
 
                 ! Writing renormalized x-component orbital disturbance
-                write(unit=iw+1005,fmt="(7(e16.9,2x))") e,abs(ldx(i)),real(ldx(i)),aimag(ldx(i)),atan2(aimag(ldx(i)),real(ldx(i))),real(ldx(i))/abs(ldx(i)),aimag(ldx(i))/abs(ldx(i))
+                write(unit=iw+1005,fmt="(7(e16.9,2x))") e,abs(rldx(i)),real(rldx(i)),aimag(rldx(i)),atan2(aimag(rldx(i)),real(rldx(i))),real(rldx(i))/abs(rldx(i)),aimag(rldx(i))/abs(rldx(i))
                 ! Writing renormalized y-component orbital disturbance
-                write(unit=iw+1006,fmt="(7(e16.9,2x))") e,abs(ldy(i)),real(ldy(i)),aimag(ldy(i)),atan2(aimag(ldy(i)),real(ldy(i))),real(ldy(i))/abs(ldy(i)),aimag(ldy(i))/abs(ldy(i))
+                write(unit=iw+1006,fmt="(7(e16.9,2x))") e,abs(rldy(i)),real(rldy(i)),aimag(rldy(i)),atan2(aimag(rldy(i)),real(rldy(i))),real(rldy(i))/abs(rldy(i)),aimag(rldy(i))/abs(rldy(i))
                 ! Writing renormalized z-component orbital disturbance
-                write(unit=iw+1007,fmt="(7(e16.9,2x))") e,abs(ldz(i)),real(ldz(i)),aimag(ldz(i)),atan2(aimag(ldz(i)),real(ldz(i))),real(ldz(i))/abs(ldz(i)),aimag(ldz(i))/abs(ldz(i))
+                write(unit=iw+1007,fmt="(7(e16.9,2x))") e,abs(rldz(i)),real(rldz(i)),aimag(rldz(i)),atan2(aimag(rldz(i)),real(rldz(i))),real(rldz(i))/abs(rldz(i)),aimag(rldz(i))/abs(rldz(i))
               end if
 
               neighbor_loop_write_all: do neighbor=n0sc1,n0sc2
@@ -1896,35 +1950,27 @@ program SHE
                 ! Writing z-component orbital angular momentum current
                 write(unit=iw+7,fmt="(7(e16.9,2x))") e,abs(Ilz(neighbor,i)),real(Ilz(neighbor,i)),aimag(Ilz(neighbor,i)),atan2(aimag(Ilz(neighbor,i)),real(Ilz(neighbor,i))),real(Ilz(neighbor,i))/abs(Ilz(neighbor,i)),aimag(Ilz(neighbor,i))/abs(Ilz(neighbor,i))
 
-                ! Renormalizing spin currents with the charge current
+                ! Writing renormalized currents
                 if(renorm) then
-                  Ich = Ich/Icabs
-                  Isx = Isx/Icabs
-                  Isy = Isy/Icabs
-                  Isz = Isz/Icabs
-                  Ilx = Ilx/Icabs
-                  Ily = Ily/Icabs
-                  Ilz = Ilz/Icabs
-
                   ! CHARGE CURRENT
                   ! Writing renormalized charge current
-                  write(unit=iw+1001,fmt="(7(e16.9,2x))") e,abs(Ich(neighbor,i)),real(Ich(neighbor,i)),aimag(Ich(neighbor,i)),atan2(aimag(Ich(neighbor,i)),real(Ich(neighbor,i))),real(Ich(neighbor,i))/abs(Ich(neighbor,i)),aimag(Ich(neighbor,i))/abs(Ich(neighbor,i))
+                  write(unit=iw+1001,fmt="(7(e16.9,2x))") e,abs(rIch(neighbor,i)),real(rIch(neighbor,i)),aimag(rIch(neighbor,i)),atan2(aimag(rIch(neighbor,i)),real(rIch(neighbor,i))),real(rIch(neighbor,i))/abs(rIch(neighbor,i)),aimag(rIch(neighbor,i))/abs(rIch(neighbor,i))
 
                   ! SPIN CURRENTS
                   ! Writing renormalized x-component spin current
-                  write(unit=iw+1002,fmt="(7(e16.9,2x))") e,abs(Isx(neighbor,i)),real(Isx(neighbor,i)),aimag(Isx(neighbor,i)),atan2(aimag(Isx(neighbor,i)),real(Isx(neighbor,i))),real(Isx(neighbor,i))/abs(Isx(neighbor,i)),aimag(Isx(neighbor,i))/abs(Isx(neighbor,i))
+                  write(unit=iw+1002,fmt="(7(e16.9,2x))") e,abs(rIsx(neighbor,i)),real(rIsx(neighbor,i)),aimag(rIsx(neighbor,i)),atan2(aimag(rIsx(neighbor,i)),real(rIsx(neighbor,i))),real(rIsx(neighbor,i))/abs(rIsx(neighbor,i)),aimag(rIsx(neighbor,i))/abs(rIsx(neighbor,i))
                   ! Writing renormalized y-component spin current
-                  write(unit=iw+1003,fmt="(7(e16.9,2x))") e,abs(Isy(neighbor,i)),real(Isy(neighbor,i)),aimag(Isy(neighbor,i)),atan2(aimag(Isy(neighbor,i)),real(Isy(neighbor,i))),real(Isy(neighbor,i))/abs(Isy(neighbor,i)),aimag(Isy(neighbor,i))/abs(Isy(neighbor,i))
+                  write(unit=iw+1003,fmt="(7(e16.9,2x))") e,abs(rIsy(neighbor,i)),real(rIsy(neighbor,i)),aimag(rIsy(neighbor,i)),atan2(aimag(rIsy(neighbor,i)),real(rIsy(neighbor,i))),real(rIsy(neighbor,i))/abs(rIsy(neighbor,i)),aimag(rIsy(neighbor,i))/abs(rIsy(neighbor,i))
                   ! Writing renormalized z-component spin current
-                  write(unit=iw+1004,fmt="(7(e16.9,2x))") e,abs(Isz(neighbor,i)),real(Isz(neighbor,i)),aimag(Isz(neighbor,i)),atan2(aimag(Isz(neighbor,i)),real(Isz(neighbor,i))),real(Isz(neighbor,i))/abs(Isz(neighbor,i)),aimag(Isz(neighbor,i))/abs(Isz(neighbor,i))
+                  write(unit=iw+1004,fmt="(7(e16.9,2x))") e,abs(rIsz(neighbor,i)),real(rIsz(neighbor,i)),aimag(rIsz(neighbor,i)),atan2(aimag(rIsz(neighbor,i)),real(rIsz(neighbor,i))),real(rIsz(neighbor,i))/abs(rIsz(neighbor,i)),aimag(rIsz(neighbor,i))/abs(rIsz(neighbor,i))
 
                   ! ORBITAL ANGULAR MOMENTUM CURRENTS
                   ! Writing x-component orbital angular momentum current
-                  write(unit=iw+1005,fmt="(7(e16.9,2x))") e,abs(Ilx(neighbor,i)),real(Ilx(neighbor,i)),aimag(Ilx(neighbor,i)),atan2(aimag(Ilx(neighbor,i)),real(Ilx(neighbor,i))),real(Ilx(neighbor,i))/abs(Ilx(neighbor,i)),aimag(Ilx(neighbor,i))/abs(Ilx(neighbor,i))
+                  write(unit=iw+1005,fmt="(7(e16.9,2x))") e,abs(rIlx(neighbor,i)),real(rIlx(neighbor,i)),aimag(rIlx(neighbor,i)),atan2(aimag(rIlx(neighbor,i)),real(rIlx(neighbor,i))),real(rIlx(neighbor,i))/abs(rIlx(neighbor,i)),aimag(rIlx(neighbor,i))/abs(rIlx(neighbor,i))
                   ! Writing y-component orbital angular momentum current
-                  write(unit=iw+1006,fmt="(7(e16.9,2x))") e,abs(Ily(neighbor,i)),real(Ily(neighbor,i)),aimag(Ily(neighbor,i)),atan2(aimag(Ily(neighbor,i)),real(Ily(neighbor,i))),real(Ily(neighbor,i))/abs(Ily(neighbor,i)),aimag(Ily(neighbor,i))/abs(Ily(neighbor,i))
+                  write(unit=iw+1006,fmt="(7(e16.9,2x))") e,abs(rIly(neighbor,i)),real(rIly(neighbor,i)),aimag(rIly(neighbor,i)),atan2(aimag(rIly(neighbor,i)),real(rIly(neighbor,i))),real(rIly(neighbor,i))/abs(rIly(neighbor,i)),aimag(rIly(neighbor,i))/abs(rIly(neighbor,i))
                   ! Writing z-component orbital angular momentum current
-                  write(unit=iw+1007,fmt="(7(e16.9,2x))") e,abs(Ilz(neighbor,i)),real(Ilz(neighbor,i)),aimag(Ilz(neighbor,i)),atan2(aimag(Ilz(neighbor,i)),real(Ilz(neighbor,i))),real(Ilz(neighbor,i))/abs(Ilz(neighbor,i)),aimag(Ilz(neighbor,i))/abs(Ilz(neighbor,i))
+                  write(unit=iw+1007,fmt="(7(e16.9,2x))") e,abs(rIlz(neighbor,i)),real(rIlz(neighbor,i)),aimag(rIlz(neighbor,i)),atan2(aimag(rIlz(neighbor,i)),real(rIlz(neighbor,i))),real(rIlz(neighbor,i))/abs(rIlz(neighbor,i)),aimag(rIlz(neighbor,i))/abs(rIlz(neighbor,i))
                 end if
               end do neighbor_loop_write_all
             end do plane_loop_write_all
@@ -1978,6 +2024,8 @@ program SHE
         end if
       end if
       deallocate(templd,identt,Umatorb,chiorb)
+      deallocate(rIch,rIsx,rIsy,rIsz,rIlx,rIly,rIlz)
+      deallocate(rsdx,rsdy,rsdz,rchd,rldx,rldy,rldz)
       deallocate(Ich,Isx,Isy,Isz,Ilx,Ily,Ilz)
       deallocate(schi,schihf,sdx,sdy,sdz,chd,ldx,ldy,ldz)
     end if
