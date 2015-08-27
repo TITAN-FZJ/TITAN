@@ -1,0 +1,12 @@
+
+*.o
+
+*.dep
+
+*.mod
+
+*.exe
+
+*.dat
+
+old_files/*

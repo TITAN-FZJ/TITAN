@@ -1,0 +1,100 @@
+1Co/Pt(001)(1 monolayer of Co on Pt(001) surface 
+(No relaxation, WITHOUT Spin-orbit coupling, with hoh term in Hamiltonian)
+
+considered layers in the self-consist. calc.
+
+__________ Empty Sphere1
+__________ Co (S)
+__________ Pt(S-1)
+__________ Pt(S-2)
+__________ Pt(S-3)
+
+
+
+Experimental lattice parameter of Pt a= 3.92 \AA
+Fermi Level: E_F= -0.05529 Ry
+
+Parameters  (for each layer)
+Non-mag system up=down
+Notation: bar= Parameters at Thigh Binding base of the LMTO
+          ort= Parameters at Orthogonal base of the LMTO
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+bulk
+
+Orbital    Occupation      C_bar   Delta_bar^1/2
+s-up       0.399        -0.523644   0.371978   
+p-up       0.441         0.193450   0.233302   
+d-up       4.160        -0.303302   0.151575   
+
+Orbital                  C_ortog       Delta_ortog^1/2                         
+ s-up                   -0.52062844    0.38736493    
+ p-up                    0.60622535    0.39778479    
+ d-up                   -0.30330401    0.15156316    
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Empty Sphere
+
+Orbital    Occupation      C_bar   Delta_bar^1/2
+ s-up      0.0301           0.24564797    0.23712713 
+ p-up      0.0328           0.37056673    0.12927482 
+ d-up      0.0159           0.15181117    0.03894704 
+
+Orbital                  C_ortog       Delta_ortog^1/2                         
+  s-up                    0.02943149    0.37579750    
+  p-up                    0.99865904    0.39933182    
+  d-up                    2.43518168    0.42709341    
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Co(S)
+
+Orbital    Occupation      C_bar   Delta_bar^1/2
+ s-up      0.2982         -0.26851717    0.35605769 
+ p-up      0.2603          0.26004029    0.22665604 
+ d-up      3.8686         -0.10677846    0.09570896 
+
+
+Orbital                  C_ortog       Delta_ortog^1/2                         
+ s-up                    -0.41644908    0.37499902   
+ p-up                     0.44261695    0.36824596   
+ d-up                    -0.26009543    0.09301234   
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Pt(S-1)
+
+Orbital    Occupation      C_bar   Delta_bar^1/2
+ s-up       0.4130       -0.50976104    0.37954151  
+ p-up       0.4208        0.23571278    0.23937890  
+ d-up       4.1600       -0.29429756    0.15128375  
+
+Orbital                  C_ortog       Delta_ortog^1/2                         
+ s-up                    -0.51961616    0.38695479  
+ p-up                     0.60434768    0.39646105  
+ d-up                    -0.30485581    0.15132097  
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Pt(S-2)
+
+Orbital    Occupation      C_bar   Delta_bar^1/2
+ s-up       0.4019         -0.52359992    0.37285715 
+ p-up       0.4405          0.19479415    0.23361646 
+ d-up       4.1576         -0.30413744    0.15151997 
+
+Orbital                  C_ortog       Delta_ortog^1/2                         
+ s-up                   -0.52096271    0.38731090  
+ p-up                    0.60572419    0.39770293  
+ d-up                   -0.30416645    0.15151201  
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Pt(S-3)
+
+Orbital    Occupation      C_bar   Delta_bar^1/2
+ s-up       0.3991          -0.52276751    0.37189534
+ p-up       0.4405           0.19382565    0.23320324
+ d-up       4.1608          -0.30216556    0.15159747
+
+Orbital                  C_ortog       Delta_ortog^1/2                         
+ s-up                   -0.52043991    0.38738172
+ p-up                    0.60646170    0.39781407
+ d-up                   -0.30289365    0.15158493
+

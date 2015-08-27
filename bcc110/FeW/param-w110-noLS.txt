@@ -1,0 +1,84 @@
+W(110) surface (No relaxation, No Spin-orbit couplinig)
+
+considered layers in the self-consist. calc.
+
+__________ Empty Sphere
+__________ W (S)
+__________ W(S-1)
+__________ W(S-2)
+__________ W(S-3)
+
+Experimental lattice parameter of W a= 3.165 \AA
+Fermi Level: E_F= 0.03313mRy
+
+Parameters  (for each layer)
+Non-mag system up=down
+Notation: bar= Parameters at Thight Binding base of the LMTO
+          ort= Parameters at Orthogonal base of the LMTO
+
+Empty Sphere
+   Orbital    Occupation      C_bar        Delta_barˆ1/2
+    s-up        0.045      0.298842       0.239901
+    p-up        0.048      0.420951       0.130442
+    d-up        0.023      0.221018       0.041150
+
+   Orbital                  C_ortog       Delta_ortogˆ1/2
+    s-up                  -0.00649443     0.36953380  
+    p-up                   0.92907559     0.39281758  
+    d-up                   2.31562212     0.41988460  
+                       
+W(S) 
+   Orbital    Occupation      C_bar        Delta_barˆ1/2
+    s-up        0.413     -0.317014       0.400275 
+    p-up        0.342      0.420629       0.234706 
+    d-up        2.091      0.026219       0.181658 
+
+   Orbital                  C_ortog       Delta_ortogˆ1/2
+     s-up                 -0.31923450    0.40473197   
+     p-up                  0.84254832    0.40770215   
+     d-up                  0.03538781    0.19296136   
+
+W(S-1) 
+   Orbital    Occupation      C_bar        Delta_barˆ1/2
+     s-up       0.429    -0.357662       0.387063
+     p-up       0.488     0.374054       0.233989
+     d-up       2.126     0.001349       0.181245
+
+   Orbital                  C_ortog       Delta_ortogˆ1/2
+      s-up               -0.31943923    0.40704971  
+      p-up                0.84308686    0.40977848  
+      d-up                0.05507815    0.19729412  
+
+W(S-2) 
+   Orbital    Occupation      C_bar       Delta_barˆ1/2
+      s-up      0.422     -0.337268      0.384590
+      p-up      0.477      0.384353      0.231537
+      d-up      2.089      0.011980      0.179818    
+
+   Orbital                  C_ortog       Delta_ortogˆ1/2
+      s-up               -0.32885989    0.40629836  
+      p-up                0.83395538    0.40959958  
+      d-up                0.03552894    0.19608482  
+
+W(S-3) 
+   Orbital    Occupation      C_bar         Delta_barˆ1/2
+       s-up     0.443   -0.335601        0.382509
+       p-up     0.483    0.392339        0.232667
+       d-up     2.077    0.015465        0.179847
+
+   Orbital                  C_ortog        Delta_ortogˆ1/2
+       s-up              -0.32932672    0.40648561  
+       p-up               0.83282434    0.40947828  
+       d-up               0.03597702    0.19625827  
+
+bulk
+
+   Orbital    Occupation      C_bar         Delta_barˆ1/2
+      s-up      0.423     -0.332984       0.385482   
+      p-up      0.486      0.395000       0.232944   
+      d-up      2.091      0.017591       0.180038   
+  
+   Orbital                  C_ortog        Delta_ortogˆ1/2
+      s-up                -0.32766102     0.40642203  
+      p-up                 0.83455975     0.40943060  
+      d-up                 0.03841926     0.19629882  
