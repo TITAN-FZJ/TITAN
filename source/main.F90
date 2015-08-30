@@ -541,8 +541,8 @@ program SHE
     splus = zero
     ! Variables used in the hamiltonian
     do i=1,Npl
-      hdel(i)    = 0.5d0*U(i)*mag(i)
-      usplus(i)  = U(i)*splus(i)
+      hdel(i)    = 0.5d0*U(i+1)*mag(i)
+      usplus(i)  = U(i+1)*splus(i)
     end do
     usplus = zero
     usminus = conjg(usplus)
@@ -625,8 +625,8 @@ program SHE
     splus = zero
     ! Variables used in the hamiltonian
     do i=1,Npl
-      hdel(i)    = 0.5d0*U(i)*mag(i)
-      usplus(i)  = U(i)*splus(i)
+      hdel(i)    = 0.5d0*U(i+1)*mag(i)
+      usplus(i)  = U(i+1)*splus(i)
     end do
     usminus = conjg(usplus)
   end select sc_file_status
@@ -657,12 +657,12 @@ program SHE
       end if
       ! Using calculated values in the hamiltonian
 !       do i=1,Npl
-!         hdel(i)    = 0.25d0*U(i)*(mag(i)+mag_0(i))
-!         usplus(i)  = 0.5d0*U(i)*(splus(i)+splus_0(i))
+!         hdel(i)    = 0.25d0*U(i+1)*(mag(i)+mag_0(i))
+!         usplus(i)  = 0.5d0*U(i+1)*(splus(i)+splus_0(i))
 !       end do
       do i=1,Npl
-        hdel(i)    = 0.5d0*U(i)*mag(i)
-        usplus(i)  = U(i)*splus(i)
+        hdel(i)    = 0.5d0*U(i+1)*mag(i)
+        usplus(i)  = U(i+1)*splus(i)
       end do
       usminus = conjg(usplus)
       ! Calculating differences between steps
@@ -678,11 +678,11 @@ program SHE
         write(*,"('sdif = ',e16.9)") sdif
       end if
 
-!       ! Writing new eps1 and mag to file during self-consistency
-!       if(myrank.eq.0) then
-!         iflag = 1
-!         call readwritesc(iflag,err)
-!       end if
+      ! Writing new eps1 and mag to file during self-consistency
+      if(myrank.eq.0) then
+        iflag = 1
+        call readwritesc(iflag,err)
+      end if
 
     end do self_consistency
 

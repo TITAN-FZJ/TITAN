@@ -31,8 +31,8 @@ subroutine readwritesc(iflag,err)
 			end do
 			splus	 = Sx + zi*Sy
 	    do i=1,Npl
-	      hdel(i)    = 0.5d0*U(i)*mag(i)
-	      usplus(i)  = U(i)*splus(i)
+	      hdel(i)    = 0.5d0*U(i+1)*mag(i)
+	      usplus(i)  = U(i+1)*splus(i)
 	    end do
       usminus = conjg(usplus)
 			iflag   = 1 ! something was read
@@ -58,8 +58,8 @@ subroutine readwritesc(iflag,err)
 				end do
 				splus	 = Sx + zi*Sy
 		    do i=1,Npl
-		      hdel(i)    = 0.5d0*U(i)*mag(i)
-		      usplus(i)  = U(i)*splus(i)
+		      hdel(i)    = 0.5d0*U(i+1)*mag(i)
+		      usplus(i)  = U(i+1)*splus(i)
 		    end do
 	      usminus = conjg(usplus)
 				iflag = 1 ! something was read

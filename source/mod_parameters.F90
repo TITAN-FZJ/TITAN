@@ -598,7 +598,7 @@ contains
 		stop
 	end if
 !-------------------------------------------------------------------------------
-!   User addition / modifications in the input file
+!*********** User manual additions / modifications in the input file **********!
 ! 	Npl = 4
 ! 	ncp = 6
 ! 	SOC = .true.
@@ -607,9 +607,9 @@ contains
 ! 	scfile = "results/selfconsistency/selfconsistency_Npl=4_dfttype=T_parts=2_U= 0.7E-01_hwx= 0.0E+00_hwy= 0.0E+00_hwz= 0.0E+00_ncp=6_eta= 0.5E-03.dat"
 !-------------------------------------------------------------------------------
 	Utype = 2
-  if(index(runoptions,"noUonall").eq.0) then
+  if(index(runoptions,"noUonall").ne.0) then
   	Utype = 0
-  else if(index(runoptions,"noUonNM").eq.0) then
+  else if(index(runoptions,"noUonNM").ne.0) then
   	Utype = 1
   end if
 	if((itype.ne.7).and.(itype.ne.8)) renorm = .false.
