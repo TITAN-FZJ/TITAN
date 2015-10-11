@@ -1,5 +1,5 @@
-!   Calculates magnetic LDOS
-subroutine fermisurface()
+!   Calculates iso-energy surface (e=Ef for Fermi surface)
+subroutine fermisurface(e)
 	use mod_f90_kind
 	use mod_constants
 	use mod_parameters
@@ -12,6 +12,7 @@ subroutine fermisurface()
   character(len=400) :: varm
 	integer         	 :: i,j,mu,nu,iz
 	real(double)    	 :: fsu_layer(Npl,nkpoints),fsd_layer(Npl,nkpoints),fsu_total(nkpoints),fsd_total(nkpoints)
+  real(double),intent(in)    :: e
 	real(double)    	 :: kp(3)
 	complex(double),dimension(Npl,Npl,18,18)    :: gf
 
@@ -26,7 +27,7 @@ subroutine fermisurface()
 
 !$omp parallel default(none) &
 !$omp& private(mythread,iz,kp,gf,i,j,mu,nu) &
-!$omp& shared(prog,elapsed_time,start_time,progbar,kbz,kbz2d,nkpoints,Ef,eta,Npl,nthreads,pi,fsu_layer,fsd_layer,fsu_total,fsd_total)
+!$omp& shared(prog,elapsed_time,start_time,progbar,e,kbz,kbz2d,nkpoints,Ef,eta,Npl,nthreads,pi,fsu_layer,fsd_layer,fsu_total,fsd_total)
 !$  mythread = omp_get_thread_num()
 !$  if(mythread.eq.0) then
 !$    nthreads = omp_get_num_threads()
@@ -59,7 +60,7 @@ subroutine fermisurface()
     kp = kbz(iz,:)
 
     ! Green function on energy Ef + ieta, and wave vector kp
-    call green(Ef,eta,kp,gf)
+    call green(e,eta,kp,gf)
 
     do mu=1,9; do i=1,Npl
       nu=mu+9

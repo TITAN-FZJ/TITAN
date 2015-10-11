@@ -17,7 +17,7 @@ contains
     use mod_parameters, only: Npl,set1,set2
     use mod_mpi_pars, only: myrank
   implicit none
-  integer :: i,j,ios
+  integer :: i,j,ios,set1g,set2g
 
   if((set1.eq.9).or.(set2.eq.9)) then
     open(unit=112358, file="system.dat", status='old', iostat=ios)
@@ -33,21 +33,21 @@ contains
     return
   end if
 
-  set1 = (set1-1)*6
-  set2 = (set2-1)*6
+  set1g = (set1-1)*6
+  set2g = (set2-1)*6
 
   i = ceiling((Npl+2)/2.d0)
   do j=1,i
     if(j.le.6) then
-      mmlayer(j) = j + set1
+      mmlayer(j) = j + set1g
     else !bulk
-      mmlayer(j) = 6 + set1
+      mmlayer(j) = 6 + set1g
     end if
   end do
   do j=i+1,Npl+2
-    mmlayer(j) = Npl + 3 - j + set2
-    if(mmlayer(j).gt.(6+set2)) then ! bulk
-      mmlayer(j) = 6 + set2
+    mmlayer(j) = Npl + 3 - j + set2g
+    if(mmlayer(j).gt.(6+set2g)) then ! bulk
+      mmlayer(j) = 6 + set2g
     end if
   end do
 

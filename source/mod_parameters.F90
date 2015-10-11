@@ -12,7 +12,7 @@ module mod_parameters
 !========================================================================================!
 ! Lattice and surface direction
 	character(len=6) :: lattice
-	integer 			:: Npl
+	integer 			:: Npl,Nplini,Nplfinal
 !	Lattice parameter (define the units of distance in the program)
 	real(double) :: a0
 !========================================================================================!
@@ -28,8 +28,10 @@ module mod_parameters
 	logical	:: SOC
 !========================================================================================!
 !	Number of parts to divide energy integral I1+I2 and I3
+	integer :: pn1,pn2,pnt
 	integer :: parts,parts3
 	integer :: n1gl,n3gl
+	real(double) :: tol
 !========================================================================================!
 !	Band structure
 	character(len=2)  :: kdirection
@@ -82,6 +84,7 @@ contains
 	subroutine ioread()
 		use mod_f90_kind
 		use mod_mpi_pars
+		use mod_magnet, only: hhwx,hhwy,hhwz
 		use MPI
 		implicit none
 		integer, parameter 			:: iomax=20 					! Maximum number of elements in one line
@@ -202,15 +205,20 @@ contains
 !===============================================================================
 				case("Npl")
 					if(istring1(i+1).eq."=") then ! If after keyword there's an '='
-						read(unit=istring1(i+2),fmt=*,iostat=ios) Npl
+						read(unit=istring1(i+2),fmt=*,iostat=ios) Nplini
+						read(unit=istring1(i+3),fmt=*,iostat=ios) Nplfinal
 					else ! If there's no '=' after keyword, get from next line
-						read(unit=istring2(i),fmt=*,iostat=ios) Npl
+						read(unit=istring2(i),fmt=*,iostat=ios) Nplini
+						read(unit=istring2(i+1),fmt=*,iostat=ios) Nplfinal
 					end if
-! 					write(*,"('Npl = ',i0)") Npl
+! 					write(*,"('Nplini = ',i0)") Nplini
+! 					write(*,"('Nplfinal = ',i0)") Nplfinal
 					nparams = nparams-1
 				case("Npl=")
-					read(unit=istring1(i+1),fmt=*,iostat=ios) Npl
-! 					write(*,"('Npl = ',i0)") Npl
+					read(unit=istring1(i+1),fmt=*,iostat=ios) Nplini
+					read(unit=istring1(i+2),fmt=*,iostat=ios) Nplfinal
+! 					write(*,"('Nplini = ',i0)") Nplini
+! 					write(*,"('Nplfinal = ',i0)") Nplfinal
 					nparams = nparams-1
 !===============================================================================
 				case("a0")
@@ -599,7 +607,8 @@ contains
 	end if
 !-------------------------------------------------------------------------------
 !*********** User manual additions / modifications in the input file **********!
-! 	Npl = 4
+! 	Nplini  = 4
+! 	Nplfinal = 4
 ! 	ncp = 6
 ! 	SOC = .true.
 ! 	magaxis = "5"
@@ -616,5 +625,24 @@ contains
 	n0sc=n0sc2-n0sc1+1
 	deltae = (emax - emin)/npts
 	if(deltae.le.1.d-14) npt1 = 1
+	if((itype.ne.1).and.(itype.ne.10)) then
+		Nplfinal = Nplini
+	else
+		if(Nplfinal.lt.Nplini) then
+			if(myrank.eq.0) then
+				write(*,"('[ioread] Invalid number of planes for exchange calculations: ')")
+				write(*,"('[ioread] Nplini = ',i0,' , Nplfinal = ',i0)") Nplini,Nplfinal
+				write(*,"('[ioread] Using Npl = ',i0)") Nplini
+			end if
+			Nplfinal = Nplini
+		end if
+	end if
+  hhwx  = 0.5d0*hwx
+  hhwy  = 0.5d0*hwy
+  hhwz  = 0.5d0*hwz
+  tol   = 1.d-8
+  pn1=parts*n1gl
+  pn2=parts3*n3gl
+  pnt=pn1+pn2
 	end subroutine ioread
 end module mod_parameters

@@ -4,15 +4,16 @@
 !   0 - Test before SC                                                          !
 !   1 - Self consistency only                                                   !
 !   2 - Test after SC                                                           !
-!   3 - LDOS                                                                    !
+!   3 - LDOS and exchange interactions as a function of energy                  !
 !   4 - Band structure                                                          !
 !   5 - Local susceptibility as a function of energy                            !
 !   6 - Disturbances and local susceptibility as a function of energy           !
 !   7 - Parallel currents and local susceptibility as a function of energy      !
 !   8 - Parallel currents, disturbances and local susc. as a function of energy !
 !   9 - Fermi surface                                                           !
-!  10 - Probability of spin-flip as a function of position                      !
--> itype = 6
+!  10 - Exhange interactions and anisotropies (full tensor)                     !
+!  11 - Probability of spin-flip as a function of position                      !
+-> itype = 3
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
 !   noUonall    - set U=0 on all layers                                         !
@@ -25,7 +26,7 @@
 !   addresults  - Add results to existing files, instead of creating new ones   !
 !                 (files MUST exist)                                            !
 !   slatec      - Use non-linear root finder dnsqe from Slatec library          !
--> Options: slatec verbose createfiles GSL ! noUonNM ! addresults
+-> Options: slatec ! noUonNM ! addresults
 !===============================================================================!
 !                               SYSTEM VARIABLES                                !
 ! Lattice and surface direction:                                                !
@@ -33,7 +34,8 @@
 ! Lattice parameter:
 -> a0 = 3.165d0
 ! Number of planes:                                                             !
--> Npl = 5
+!(For SC and exchange calculation, use initial and final number of layers)
+-> Npl = 4
 ! Small imaginary part of the Green function:                                   !
 -> eta = 5.0E-04
 !===============================================================================!
@@ -75,10 +77,10 @@
 !                              PLOTTING VARIABLES                               !
 !           PLOTTING VARIABLES         !             BAND STRUCTURE             !
 ! Minimum and maximum value of energy: ! High symmetry direction                !
--> emin = 0.00E-00 , emax =  1.00E-03   -> kdirection = GH
+-> emin = -0.50E-00 , emax =  0.50E-00   -> kdirection = GH
 !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -!
 !                              Number of points:                                !
--> npts = 4
+-> npts = 1000
 !===============================================================================!
 !                              SELF-CONSISTENCY                                 !
 !        (Finding center of the bands for the given number of particles)        !

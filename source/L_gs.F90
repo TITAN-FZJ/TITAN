@@ -30,6 +30,7 @@ subroutine L_gs()
 
 		do i=2,pn1
 			call MPI_Recv(gupgd,ncount,MPI_DOUBLE_COMPLEX,MPI_ANY_SOURCE,8999,MPI_COMM_WORLD,stat,ierr)
+			write(*,"('[L_gs] Point ',i0,' received from ',i0)") i,stat(MPI_SOURCE)
 
 			gupgdint = gupgdint + gupgd
 

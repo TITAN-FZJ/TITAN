@@ -4,14 +4,15 @@
 !   0 - Test before SC                                                          !
 !   1 - Self consistency only                                                   !
 !   2 - Test after SC                                                           !
-!   3 - LDOS                                                                    !
+!   3 - LDOS and exchange interactions as a function of energy                  !
 !   4 - Band structure                                                          !
 !   5 - Local susceptibility as a function of energy                            !
 !   6 - Disturbances and local susceptibility as a function of energy           !
 !   7 - Parallel currents and local susceptibility as a function of energy      !
 !   8 - Parallel currents, disturbances and local susc. as a function of energy !
 !   9 - Fermi surface                                                           !
-!  10 - Probability of spin-flip as a function of position                      !
+!  10 - Exhange interactions and anisotropies (full tensor)                     !
+!  11 - Probability of spin-flip as a function of position                      !
 -> itype = 5
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
@@ -33,6 +34,7 @@
 ! Lattice parameter:
 -> a0 = 3.165d0
 ! Number of planes:
+!(For SC and exchange calculation, use initial and final number of layers)
 -> Npl = 5
 ! Small imaginary part of the Green function:
 -> eta = 5.0E-04

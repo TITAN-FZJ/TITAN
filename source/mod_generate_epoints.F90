@@ -1,11 +1,11 @@
 module mod_generate_epoints
 	use mod_f90_kind
-	use mod_parameters, only: parts, parts3, eta, Ef, n1gl, n3gl
+	use mod_parameters, only: parts, parts3, eta, Ef, n1gl, n3gl, pn1, pn2, pnt
 	implicit none
 !========================================================================================!
 !	Energy integration variables
 !	Number of parts to divide energy integral I1+I2 and I3
-	integer :: pn1,pn2,pnt,nepoints
+	integer :: nepoints
 	real(double),allocatable      :: x2(:),p2(:)
 	real(double),allocatable			:: y(:),wght(:)
 

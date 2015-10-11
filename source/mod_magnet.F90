@@ -1,6 +1,5 @@
 module mod_magnet
 	use mod_f90_kind
-	use mod_parameters
 	implicit none
 	real(double),allocatable 		:: mag(:),hdel(:)			! Magnetization and exchange split delta/2
 	real(double),allocatable 		:: lxm(:),lym(:),lzm(:),lxpm(:),lypm(:),lzpm(:)
