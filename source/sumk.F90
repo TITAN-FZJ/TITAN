@@ -4,7 +4,6 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
   use mod_parameters
   use mod_constants
   use mod_lattice
-  use mod_magnet, only: lxp, lyp, lzp
   use mod_generate_kpoints
   use mod_tight_binding
   use mod_currents
@@ -15,7 +14,7 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
   implicit none
 !$  integer       :: nthreads,mythread
   integer         :: AllocateStatus
-  integer         :: i,j,l,alpha,mu,nu,gamma,xi,sigma,sigmap
+  integer         :: i,j,l,mu,nu,gamma,xi,sigma,sigmap
   integer         :: iz,neighbor
   integer,      intent(in) :: iflag
   real(double), intent(in) :: e,ep
@@ -26,23 +25,7 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
   complex(double),dimension(n0sc1:n0sc2,dim,dimNpl),  intent(out) :: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
   complex(double),dimension(dim,dimNpl),              intent(out) :: tFintiikl
   complex(double) :: expikr(n0sc1:n0sc2)
-  complex(double),dimension(Npl,n0sc1:n0sc2,9,9) ::lxpt,lypt,lzpt,tlxp,tlyp,tlzp,prett,preLxtt,preLytt,preLztt
-
-  ! Matrices for orbital angular momentum currents
-  lxpt = zero
-  lypt = zero
-  lzpt = zero
-  tlxp = zero
-  tlyp = zero
-  tlzp = zero
-  do nu=1,9 ; do mu=1,9 ; do neighbor=n0sc1,n0sc2 ; do i=1,Npl ; do alpha=1,9
-      lxpt(i,neighbor,mu,nu) = lxpt(i,neighbor,mu,nu) + lxp(mu,alpha)*t00(i+1,neighbor,alpha,nu)
-      lypt(i,neighbor,mu,nu) = lypt(i,neighbor,mu,nu) + lyp(mu,alpha)*t00(i+1,neighbor,alpha,nu)
-      lzpt(i,neighbor,mu,nu) = lzpt(i,neighbor,mu,nu) + lzp(mu,alpha)*t00(i+1,neighbor,alpha,nu)
-      tlxp(i,neighbor,mu,nu) = tlxp(i,neighbor,mu,nu) + t00(i+1,neighbor,alpha,mu)*lxp(alpha,nu)
-      tlyp(i,neighbor,mu,nu) = tlyp(i,neighbor,mu,nu) + t00(i+1,neighbor,alpha,mu)*lyp(alpha,nu)
-      tlzp(i,neighbor,mu,nu) = tlzp(i,neighbor,mu,nu) + t00(i+1,neighbor,alpha,mu)*lzp(alpha,nu)
-  end do ; end do ; end do ; end do ; end do
+  complex(double),dimension(Npl,n0sc1:n0sc2,9,9) ::prett,preLxtt,preLytt,preLztt
 
   tFintiikl    = zero
   ttFintiikl   = zero
@@ -51,8 +34,8 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
   LzttFintiikl = zero
 
 !$omp parallel default(none) &
-!$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,kp,df1iikl,pfdf1iikl,prett,preLxtt,preLytt,preLztt,dtdk,gf,gfmat,expikr,gfuu,gfud,gfdu,gfdd,sigma,sigmap,i,j,l,alpha,mu,nu,gamma,xi,neighbor) &
-!$omp& shared(tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,prog,runoptions,myrank,kbz,wkbz,iflag,e,ep,nkpoints,r0,Ef,eta,nthreads,sigmaimunu2i,sigmaijmunu2i,dim,dimNpl,Npl,n0sc1,n0sc2,plnn,t00,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
+!$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,kp,df1iikl,pfdf1iikl,prett,preLxtt,preLytt,preLztt,dtdk,gf,gfmat,expikr,gfuu,gfud,gfdu,gfdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &
+!$omp& shared(tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,prog,spiner,runoptions,myrank,kbz,wkbz,iflag,e,ep,nkpoints,r0,Ef,eta,nthreads,sigmaimunu2i,sigmaijmunu2i,dim,dimNpl,Npl,n0sc1,n0sc2,plnn,t00,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread.eq.0).and.(myrank.eq.0)) then
 !$    nthreads = omp_get_num_threads()
@@ -70,16 +53,7 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
 !$  if((mythread.eq.0)) then
       if((myrank.eq.0).and.(index(runoptions,"verbose").gt.0)) then
         prog = floor(iz*100.d0/nkpoints)
-        progress_bar: select case (mod(iz,4))
-        case(0)
-          write(*,"(a1,2x,i3,'% of k-sum on rank 0',a1,$)") '|',prog,char(13)
-        case(1)
-          write(*,"(a1,2x,i3,'% of k-sum on rank 0',a1,$)") '/',prog,char(13)
-        case(2)
-          write(*,"(a1,2x,i3,'% of k-sum on rank 0',a1,$)") '-',prog,char(13)
-        case(3)
-          write(*,"(a1,2x,i3,'% of k-sum on rank 0',a1,$)") '\',prog,char(13)
-        end select progress_bar
+        write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of k-sum on rank ',i0,a1,$)") spiner(mod(iz,4)+1),prog,iz,nkpoints,myrank,char(13)
       end if
 !$   end if
 
@@ -144,7 +118,7 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
       end do ; end do ; end do ; end do
 
       !$omp critical
-      tFintiikl = tFintiikl + pfdf1iikl
+      call ZAXPY(dim*dimNpl,zum,pfdf1iikl,1,tFintiikl,1)  !       tFintiikl = tFintiikl + pfdf1iikl
       do xi=1,9 ; do gamma=1,9 ; do l=1,Npl ; do j=1,Npl ; do sigmap=1,4 ; do nu=1,9 ; do mu=1,9 ; do i=1,Npl ; do sigma=1,4
         if(abs(j-l).gt.plnn) cycle
         ! Currents
@@ -213,7 +187,7 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
       end do ; end do ; end do ; end do
 
       !$omp critical
-      tFintiikl = tFintiikl + pfdf1iikl
+      call ZAXPY(dim*dimNpl,zum,pfdf1iikl,1,tFintiikl,1)  !       tFintiikl = tFintiikl + pfdf1iikl
       do xi=1,9 ; do gamma=1,9 ; do l=1,Npl ; do j=1,Npl ; do sigmap=1,4 ; do nu=1,9 ; do mu=1,9 ; do i=1,Npl ; do sigma=1,4
         if(abs(j-l).gt.plnn) cycle
         ! Currents

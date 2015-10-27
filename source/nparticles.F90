@@ -54,16 +54,7 @@ subroutine nparticles(N,eps,npart,iflag)
 			! Progress bar
       prog = floor(i*100.d0/pn1)
 #ifdef _JUQUEEN
-      energy_progress_bar: select case (mod(i,4))
-      case(0)
-        write(*,"(a1,2x,i3,'% of nparticles energy sum',a1,$)") '|',prog,char(13)
-      case(1)
-        write(*,"(a1,2x,i3,'% of nparticles energy sum',a1,$)") '/',prog,char(13)
-      case(2)
-        write(*,"(a1,2x,i3,'% of nparticles energy sum',a1,$)") '-',prog,char(13)
-      case(3)
-        write(*,"(a1,2x,i3,'% of nparticles energy sum',a1,$)") '\',prog,char(13)
-      end select energy_progress_bar
+       write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of nparticles e-sum on rank ',i0,a1,$)") spiner(mod(i,4)+1),prog,iz,nkpoints,myrank,char(13)
 #else
 			elapsed_time = MPI_Wtime() - start_time
 			write(progbar,fmt="( a,i0,a )") "(1h+' ','Total time=',i2,'h:',i2,'m:',i2,'s  ',",1+(i+1)*20/pn1, "a,' ',i0,'%')"
@@ -189,16 +180,7 @@ subroutine nparticlesjac(N,eps,npart,npartjac,ldfjac,iflag)
 			! Progress bar
       prog = floor(i*100.d0/pn1)
 #ifdef _JUQUEEN
-      energy_progress_bar: select case (mod(i,4))
-      case(0)
-        write(*,"(a1,2x,i3,'% of jacobian energy sum',a1,$)") '|',prog,char(13)
-      case(1)
-        write(*,"(a1,2x,i3,'% of jacobian energy sum',a1,$)") '/',prog,char(13)
-      case(2)
-        write(*,"(a1,2x,i3,'% of jacobian energy sum',a1,$)") '-',prog,char(13)
-      case(3)
-        write(*,"(a1,2x,i3,'% of jacobian energy sum',a1,$)") '\',prog,char(13)
-      end select energy_progress_bar
+       write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of jacobian e-sum on rank ',i0,a1,$)") spiner(mod(i,4)+1),prog,iz,nkpoints,myrank,char(13)
 #else
 			elapsed_time = MPI_Wtime() - start_time
 			write(progbar,fmt="( a,i0,a )") "(1h+' ','Total time=',i2,'h:',i2,'m:',i2,'s  ',",1+(i+1)*20/pn1, "a,' ',i0,'%')"
@@ -303,16 +285,7 @@ subroutine nparticlesjacnag(N,eps,npart,npartjac,ldfjac,iflag)
 				! Progress bar
 	      prog = floor(i*100.d0/pn1)
 #ifdef _JUQUEEN
-	      npart_energy_progress_bar: select case (mod(i,4))
-	      case(0)
-	        write(*,"(a1,2x,i3,'% of nparticles energy sum',a1,$)") '|',prog,char(13)
-	      case(1)
-	        write(*,"(a1,2x,i3,'% of nparticles energy sum',a1,$)") '/',prog,char(13)
-	      case(2)
-	        write(*,"(a1,2x,i3,'% of nparticles energy sum',a1,$)") '-',prog,char(13)
-	      case(3)
-	        write(*,"(a1,2x,i3,'% of nparticles energy sum',a1,$)") '\',prog,char(13)
-	      end select npart_energy_progress_bar
+       write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of nparticles e-sum on rank ',i0,a1,$)") spiner(mod(i,4)+1),prog,iz,nkpoints,myrank,char(13)
 #else
 				elapsed_time = MPI_Wtime() - start_time
 				write(progbar,fmt="( a,i0,a )") "(1h+' ','Total time=',i2,'h:',i2,'m:',i2,'s  ',",1+(i+1)*20/pn1, "a,' ',i0,'%')"
@@ -407,16 +380,7 @@ subroutine nparticlesjacnag(N,eps,npart,npartjac,ldfjac,iflag)
 				! Progress bar
 	      prog = floor(i*100.d0/pn1)
 #ifdef _JUQUEEN
-	      jac_energy_progress_bar: select case (mod(i,4))
-	      case(0)
-	        write(*,"(a1,2x,i3,'% of jacobian energy sum',a1,$)") '|',prog,char(13)
-	      case(1)
-	        write(*,"(a1,2x,i3,'% of jacobian energy sum',a1,$)") '/',prog,char(13)
-	      case(2)
-	        write(*,"(a1,2x,i3,'% of jacobian energy sum',a1,$)") '-',prog,char(13)
-	      case(3)
-	        write(*,"(a1,2x,i3,'% of jacobian energy sum',a1,$)") '\',prog,char(13)
-	      end select jac_energy_progress_bar
+       write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of jacobian e-sum on rank ',i0,a1,$)") spiner(mod(i,4)+1),prog,iz,nkpoints,myrank,char(13)
 #else
 				elapsed_time = MPI_Wtime() - start_time
 				write(progbar,fmt="( a,i0,a )") "(1h+' ','Total time=',i2,'h:',i2,'m:',i2,'s  ',",1+(i+1)*20/pn1, "a,' ',i0,'%')"

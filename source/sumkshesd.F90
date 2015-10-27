@@ -28,7 +28,7 @@ subroutine sumkshesd(e,ep,Fint,tFintiikl,iflag)
 
 !$omp parallel default(none) &
 !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,kp,df1iikl,dtdk,gf,gfmat,l,gfuu,gfud,gfdu,gfdd,sigma,sigmap,i,j,mu,nu,gamma,xi,df1) &
-!$omp& shared(prog,runoptions,kbz,wkbz,e,ep,iflag,Fint,tFintiikl,nkpoints,Ef,eta,nthreads,myrank,Npl,plnn,dim,dimNpl,sigmaimunu2i,sigmaijmunu2i)
+!$omp& shared(prog,spiner,runoptions,kbz,wkbz,e,ep,iflag,Fint,tFintiikl,nkpoints,Ef,eta,nthreads,myrank,Npl,plnn,dim,dimNpl,sigmaimunu2i,sigmaijmunu2i)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread.eq.0).and.(myrank.eq.0)) then
 !$    nthreads = omp_get_num_threads()
@@ -45,18 +45,9 @@ subroutine sumkshesd(e,ep,Fint,tFintiikl,iflag)
 !$  if((mythread.eq.0)) then
       if((myrank.eq.0).and.(index(runoptions,"verbose").gt.0)) then
         prog = floor(iz*100.d0/nkpoints)
-        progress_bar: select case (mod(iz,4))
-        case(0)
-          write(*,"(a1,2x,i3,'% of k-sum on rank 0',a1,$)") '|',prog,char(13)
-        case(1)
-          write(*,"(a1,2x,i3,'% of k-sum on rank 0',a1,$)") '/',prog,char(13)
-        case(2)
-          write(*,"(a1,2x,i3,'% of k-sum on rank 0',a1,$)") '-',prog,char(13)
-        case(3)
-          write(*,"(a1,2x,i3,'% of k-sum on rank 0',a1,$)") '\',prog,char(13)
-        end select progress_bar
+        write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of k-sum on rank ',i0,a1,$)") spiner(mod(iz,4)+1),prog,iz,nkpoints,myrank,char(13)
       end if
-!$  end if
+!$   end if
 
     kp = kbz(iz,:)
 
@@ -140,10 +131,8 @@ subroutine sumkshesd(e,ep,Fint,tFintiikl,iflag)
       call zgeadd(Fint,dim,'N',df1,dim,'N',Fint,dim,dim,dim)
       call zgeadd(tFintiikl,dim,'N',df1iikl,dim,'N',tFintiikl,dim,dim,dimNpl)
 #else
-      Fint      = Fint + df1
-      tFintiikl = tFintiikl + df1iikl
-!       call AXPY(dim*dim,zum,df1,Fint)
-!       call AXPY(dim*dimNpl,zum,df1iikl,tFintiikl)
+      call ZAXPY(dim*dim,zum,df1,1,Fint,1)              !       Fint      = Fint + df1
+      call ZAXPY(dim*dimNpl,zum,df1iikl,1,tFintiikl,1)  !       tFintiikl = tFintiikl + df1iikl
 #endif
       !$omp end critical
     else
@@ -226,10 +215,8 @@ subroutine sumkshesd(e,ep,Fint,tFintiikl,iflag)
       call zgeadd(Fint,dim,'N',df1,dim,'N',Fint,dim,dim,dim)
       call zgeadd(tFintiikl,dim,'N',df1iikl,dim,'N',tFintiikl,dim,dim,dimNpl)
 #else
-      Fint      = Fint + df1
-      tFintiikl = tFintiikl + df1iikl
-!       call AXPY(dim*dim,zum,df1,Fint)
-!       call AXPY(dim*dimNpl,zum,df1iikl,tFintiikl)
+      call ZAXPY(dim*dim,zum,df1,1,Fint,1)              !       Fint      = Fint + df1
+      call ZAXPY(dim*dimNpl,zum,df1iikl,1,tFintiikl,1)  !       tFintiikl = tFintiikl + df1iikl
 #endif
       !$omp end critical
     end if

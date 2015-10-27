@@ -294,6 +294,7 @@ endif
 ####################################################
 clean:
 	@echo Deleting executable $(FILENAME) and cleaning folder $(OBJDIR)/
+	@rm -f *.i90
 	@rm -f $(OBJDIR)/*
 	@rm -f $(FILENAME).ld* $(FILENAME)
 

@@ -5,7 +5,7 @@
 		use mod_parameters
 		use mod_magnet
 		use mod_generate_epoints
-		use mod_tight_binding, only: nmaglayers,mmlayermag
+		use mod_tight_binding, only: nmaglayers
 		use mod_mpi_pars
 		use mod_progress
 		use MPI
@@ -33,16 +33,7 @@
 			! Progress bar
       prog = floor(i*100.d0/pn1)
 #ifdef _JUQUEEN
-      energy_progress_bar: select case (mod(i,4))
-      case(0)
-        write(*,"(a1,2x,i3,'% of coupling energy sum',a1,$)") '|',prog,char(13)
-      case(1)
-        write(*,"(a1,2x,i3,'% of coupling energy sum',a1,$)") '/',prog,char(13)
-      case(2)
-        write(*,"(a1,2x,i3,'% of coupling energy sum',a1,$)") '-',prog,char(13)
-      case(3)
-        write(*,"(a1,2x,i3,'% of coupling energy sum',a1,$)") '\',prog,char(13)
-      end select energy_progress_bar
+			write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of energy sum on rank ',i0,a1,$)") spiner(mod(i,4)),prog,iz,nkpoints,myrank,char(13)
 #else
 			elapsed_time = MPI_Wtime() - start_time
 			write(progbar,fmt="( a,i0,a )") "(1h+' ','Total time=',i2,'h:',i2,'m:',i2,'s  ',",1+(i+1)*20/pn1, "a,' ',i0,'%')"

@@ -18,7 +18,7 @@ program SHE
   character(len=10)             :: time
   character(len=5)              :: zone
   integer                       :: i,j,l,iw,pos,err,sigma,mu,nu,gamma,xi,inn,neighbor,iflag
-  integer                       :: AllocateStatus,values(8),lwa
+  integer                       :: AllocateStatus,values(8),lwa,ifail=0
   real(double)                  :: e,sdl2,Icabs
   complex(double),allocatable   :: schi(:,:,:),schihf(:,:,:)
   complex(double),allocatable   :: sdx(:),sdy(:),sdz(:),chd(:),ldx(:),ldy(:),ldz(:)
@@ -36,7 +36,6 @@ program SHE
 
   ! Self consistency variables
   logical                       :: selfcon
-  integer                       :: ifail
   real(double)                  :: mdif,sdif
   real(double),allocatable      :: npart(:),jac(:,:),wa(:),mag_0(:),eps1_solu(:)
   complex(double),allocatable   :: splus_0(:)
@@ -96,8 +95,8 @@ program SHE
 !------------------------- Reading parameters --------------------------
   if(myrank.eq.0) then
     call date_and_time(date, time, zone, values)
-    write(*,"('Started on: ',i0,'/',i0,'/',i0,' at ',i2.2,':',i2.2,'h')") values(3),values(2),values(1),values(5),values(6)
-    start_time = MPI_Wtime()
+    write(*,"('[main] Started on: ',i0,'/',i0,'/',i0,' at ',i2.2,'h',i2.2,'m',i2.2,'s')") values(3),values(2),values(1),values(5),values(6),values(7)
+    start_program = MPI_Wtime()
   end if
   call ioread()
 !---------------------------- Getting hostname -------------------------
@@ -573,8 +572,8 @@ program SHE
   !   Finalizing program
       if(myrank.eq.0) then
         call date_and_time(date, time, zone, values)
-        write(*,"('[main] Finished on: ',i0,'/',i0,'/',i0,' at ',i2.2,':',i2.2,'h')") values(3),values(2),values(1),values(5),values(6)
-        elapsed_time = MPI_Wtime() - start_time
+        write(*,"('[main] Finished on: ',i0,'/',i0,'/',i0,' at ',i2.2,'h',i2.2,'m',i2.2,'s')") values(3),values(2),values(1),values(5),values(6),values(7)
+        elapsed_time = MPI_Wtime() - start_program
         write(*,"('[main] Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
       end if
       call MPI_Finalize(ierr)
@@ -728,7 +727,7 @@ program SHE
         end do
       end if
       write(*,"('|---------------------------------------------------------------------------|')")
-      elapsed_time = MPI_Wtime() - start_time
+      elapsed_time = MPI_Wtime() - start_program
       write(*,"('[main] Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
     end if
 
@@ -736,8 +735,8 @@ program SHE
       ! Finalizing program
       if(myrank.eq.0) then
         call date_and_time(date, time, zone, values)
-        write(*,"('[main] Finished on: ',i0,'/',i0,'/',i0,' at ',i2.2,':',i2.2,'h')") values(3),values(2),values(1),values(5),values(6)
-        elapsed_time = MPI_Wtime() - start_time
+        write(*,"('[main] Finished on: ',i0,'/',i0,'/',i0,' at ',i2.2,'h',i2.2,'m',i2.2,'s')") values(3),values(2),values(1),values(5),values(6),values(7)
+        elapsed_time = MPI_Wtime() - start_program
         write(*,"('[main] Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
       end if
       call MPI_Finalize(ierr)
@@ -976,7 +975,7 @@ program SHE
 
 #ifdef _JUQUEEN
                 call zgeevx('N','N','V','N',nmaglayers,chimag,nmaglayers,eval,evecl,1,evecr,nmaglayers,ilo,ihi,dscale,abnrm,rconde,rcondv,work,lwork,rwork,ifail)
-  #else
+#else
                 call zgeev('N','V',nmaglayers,chimag,nmaglayers,eval,evecl,1,evecr,nmaglayers,work,lwork,rwork,ifail)
 #endif
 
@@ -997,7 +996,9 @@ program SHE
             call openclosechifiles(2)
 
             call date_and_time(date, time, zone, values)
-            write(*,"('Time after step ',i0,': ',i0,'/',i0,'/',i0,'  at ',i2.2,':',i2.2,'h')") count,values(3),values(2),values(1),values(5),values(6)
+            write(*,"('[main] Time after step ',i0,': ',i0,'/',i0,'/',i0,' at ',i2.2,'h',i2.2,'m',i2.2,'s')") count,values(3),values(2),values(1),values(5),values(6),values(7)
+            elapsed_time = MPI_Wtime() - start_program
+            write(*,"('[main] Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
 
             ! Emergency stop
             open(unit=911, file="stop", status='old', iostat=iw)
@@ -1163,7 +1164,7 @@ program SHE
 
 #ifdef _JUQUEEN
                 call zgeevx('N','N','V','N',nmaglayers,chimag,nmaglayers,eval,evecl,1,evecr,nmaglayers,ilo,ihi,dscale,abnrm,rconde,rcondv,work,lwork,rwork,ifail)
-  #else
+#else
                 call zgeev('N','V',nmaglayers,chimag,nmaglayers,eval,evecl,1,evecr,nmaglayers,work,lwork,rwork,ifail)
 #endif
 
@@ -1245,7 +1246,9 @@ program SHE
             call openclosesdfiles(2)
 
             call date_and_time(date, time, zone, values)
-            write(*,"('Time after step ',i0,': ',i0,'/',i0,'/',i0,'  at ',i2.2,':',i2.2,'h')") count,values(3),values(2),values(1),values(5),values(6)
+            write(*,"('[main] Time after step ',i0,': ',i0,'/',i0,'/',i0,' at ',i2.2,'h',i2.2,'m',i2.2,'s')") count,values(3),values(2),values(1),values(5),values(6),values(7)
+            elapsed_time = MPI_Wtime() - start_program
+            write(*,"('[main] Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
 
             ! Emergency stop
             open(unit=911, file="stop", status='old', iostat=iw)
@@ -1333,6 +1336,9 @@ program SHE
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
 
+      ! Calculates matrices hopping x angular momentum matrix for orbital angular momentum current calculation
+      call OAM_curr_hopping_times_L()
+
       sc_energy_loop: do count=1,MPIsteps
         e = emin + deltae*myrank_col + MPIdelta*(count-1)
         if(myrank_row.eq.0) then
@@ -1350,18 +1356,18 @@ program SHE
         prefactor = identt + prefactor
         call invers(prefactor,dim)
         if(myrank.eq.0) then
-          elapsed_time = MPI_Wtime() - start_time
+          elapsed_time = MPI_Wtime() - start_program
           write(*,"('[main] Calculated prefactor after: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
         end if
 
         ! Start parallelized processes to calculate chiorb_hf and chiorbi0_hf for energy e
 #ifdef _UFF
         call eintsheprllsc_uff(e,ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl)
-  #else
+#else
         call eintsheprllsc(e,ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl)
 #endif
         if(myrank.eq.0) then
-          elapsed_time = MPI_Wtime() - start_time
+          elapsed_time = MPI_Wtime() - start_program
           write(*,"('[main] Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
         end if
 
@@ -1448,7 +1454,7 @@ program SHE
 
 #ifdef _JUQUEEN
                 call zgeevx('N','N','V','N',nmaglayers,chimag,nmaglayers,eval,evecl,1,evecr,nmaglayers,ilo,ihi,dscale,abnrm,rconde,rcondv,work,lwork,rwork,ifail)
-  #else
+#else
                 call zgeev('N','V',nmaglayers,chimag,nmaglayers,eval,evecl,1,evecr,nmaglayers,work,lwork,rwork,ifail)
 #endif
 
@@ -1570,7 +1576,9 @@ program SHE
             call openclosescfiles(2)
 
             call date_and_time(date, time, zone, values)
-            write(*,"('Time after step ',i0,': ',i0,'/',i0,'/',i0,'  at ',i2.2,':',i2.2,'h')") count,values(3),values(2),values(1),values(5),values(6)
+            write(*,"('[main] Time after step ',i0,': ',i0,'/',i0,'/',i0,' at ',i2.2,'h',i2.2,'m',i2.2,'s')") count,values(3),values(2),values(1),values(5),values(6),values(7)
+            elapsed_time = MPI_Wtime() - start_program
+            write(*,"('[main] Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
 
             ! Emergency stop
             open(unit=911, file="stop", status='old', iostat=iw)
@@ -1666,6 +1674,9 @@ program SHE
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
 
+      ! Calculates matrices hopping x angular momentum matrix for orbital angular momentum current calculation
+      call OAM_curr_hopping_times_L()
+
       all_energy_loop: do count=1,MPIsteps
         e = emin + deltae*myrank_col + MPIdelta*(count-1)
         if(myrank_row.eq.0) then
@@ -1683,18 +1694,18 @@ program SHE
         prefactor = identt + prefactor
         call invers(prefactor,dim)
         if(myrank.eq.0) then
-          elapsed_time = MPI_Wtime() - start_time
+          elapsed_time = MPI_Wtime() - start_program
           write(*,"('[main] Calculated prefactor after: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
         end if
 
         ! Start parallelized processes to calculate disturbances and currents for energy e
 #ifdef _UFF
         call eintshe_uff(e,tchiorbiikl,ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl)
-  #else
+#else
         call eintshe(e,tchiorbiikl,ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl)
 #endif
         if(myrank.eq.0) then
-          elapsed_time = MPI_Wtime() - start_time
+          elapsed_time = MPI_Wtime() - start_program
           write(*,"('[main] Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
         end if
 
@@ -1819,7 +1830,7 @@ program SHE
 
 #ifdef _JUQUEEN
                 call zgeevx('N','N','V','N',nmaglayers,chimag,nmaglayers,eval,evecl,1,evecr,nmaglayers,ilo,ihi,dscale,abnrm,rconde,rcondv,work,lwork,rwork,ifail)
-  #else
+#else
                 call zgeev('N','V',nmaglayers,chimag,nmaglayers,eval,evecl,1,evecr,nmaglayers,work,lwork,rwork,ifail)
 #endif
 
@@ -2021,7 +2032,9 @@ program SHE
             call openclosescfiles(2)
 
             call date_and_time(date, time, zone, values)
-            write(*,"('Time after step ',i0,': ',i0,'/',i0,'/',i0,'  at ',i2.2,':',i2.2,'h')") count,values(3),values(2),values(1),values(5),values(6)
+            write(*,"('[main] Time after step ',i0,': ',i0,'/',i0,'/',i0,' at ',i2.2,'h',i2.2,'m',i2.2,'s')") count,values(3),values(2),values(1),values(5),values(6),values(7)
+            elapsed_time = MPI_Wtime() - start_program
+            write(*,"('[main] Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
 
             ! Emergency stop
             open(unit=911, file="stop", status='old', iostat=iw)
@@ -2064,8 +2077,7 @@ program SHE
           end if
         end if
         deallocate(templd,chiorb)
-        deallocate(rIch,rIsx,rIsy,rIsz,rIlx,rIly,rIlz)
-        deallocate(rsdx,rsdy,rsdz,rchd,rldx,rldy,rldz)
+        if(renorm) deallocate(rIch,rIsx,rIsy,rIsz,rIlx,rIly,rIlz,rsdx,rsdy,rsdz,rchd,rldx,rldy,rldz)
         deallocate(Ich,Isx,Isy,Isz,Ilx,Ily,Ilz)
         deallocate(schi,schihf,sdx,sdy,sdz,chd,ldx,ldy,ldz)
       end if
@@ -2245,8 +2257,8 @@ program SHE
 !----------------------- Finalizing the program ------------------------
   if(myrank.eq.0) then
     call date_and_time(date, time, zone, values)
-    write(*,"('[main] Finished on: ',i0,'/',i0,'/',i0,' at ',i2.2,':',i2.2,'h')") values(3),values(2),values(1),values(5),values(6)
-    elapsed_time = MPI_Wtime() - start_time
+    write(*,"('[main] Finished on: ',i0,'/',i0,'/',i0,' at ',i2.2,'h',i2.2,'m',i2.2,'s')") values(3),values(2),values(1),values(5),values(6),values(7)
+    elapsed_time = MPI_Wtime() - start_program
     write(*,"('[main] Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
   end if
   call MPI_Finalize(ierr)
