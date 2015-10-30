@@ -7,7 +7,7 @@ subroutine debugging()
 	use mod_parameters
 	use mod_magnet
 	use mod_tight_binding
-	use mod_currents
+	use mod_prefactors
 	use mod_generate_kpoints
 	use mod_generate_epoints
 	implicit none

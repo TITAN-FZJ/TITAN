@@ -4,7 +4,7 @@ program SHE
   use mod_parameters
   use mod_magnet
   use mod_tight_binding
-  use mod_currents
+  use mod_prefactors
   use mod_generate_epoints
   use mod_generate_kpoints
   use mod_lattice
@@ -17,7 +17,7 @@ program SHE
   character(len=8)              :: date
   character(len=10)             :: time
   character(len=5)              :: zone
-  integer                       :: i,j,l,iw,pos,err,sigma,mu,nu,gamma,xi,inn,neighbor,iflag
+  integer                       :: i,j,iw,pos,err,sigma,mu,nu,gamma,xi,inn,neighbor,iflag
   integer                       :: AllocateStatus,values(8),lwa,ifail=0
   real(double)                  :: e,sdl2,Icabs
   complex(double),allocatable   :: schi(:,:,:),schihf(:,:,:)
@@ -51,11 +51,10 @@ program SHE
   real(double),allocatable      :: dscale(:),rconde(:),rcondv(:)
 #endif
 
-  complex(double), dimension(:,:,:,:,:),allocatable       :: templd
-  complex(double), dimension(:,:), allocatable            :: identt,temp,Umatorb
-  complex(double), dimension(:,:), allocatable            :: chiorb_hf,chiorb
-  complex(double), dimension(:,:), allocatable            :: tchiorbiikl_hf,tchiorbiikl
-  complex(double), dimension(:,:,:), allocatable          :: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl
+  complex(double), dimension(:,:),   allocatable :: identt,temp,Umatorb
+  complex(double), dimension(:,:),   allocatable :: chiorb_hf,chiorb,tchiorbiikl
+  complex(double), dimension(:,:,:), allocatable :: templd
+  complex(double), dimension(:,:,:), allocatable :: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl
 !---------------------------- begin MPI vars ---------------------------
 #ifndef _UFF
 !$  integer :: provided
@@ -124,7 +123,7 @@ program SHE
   number_of_planes: do Npl = Nplini,Nplfinal
 !--------------- Allocating variables that depend on Npl ---------------
     lwa=Npl*(3*Npl+13)/2
-    allocate( sigmaimunu2i(4,Npl,9,9),sigmaijmunu2i(4,Npl,Npl,9,9),eps1(Npl),eps1_solu(Npl), STAT = AllocateStatus )
+    allocate( sigmai2i(4,Npl),sigmaimunu2i(4,Npl,9,9),sigmaijmunu2i(4,Npl,Npl,9,9),eps1(Npl),eps1_solu(Npl), STAT = AllocateStatus )
     if (AllocateStatus.ne.0) then
       if(myrank.eq.0) write(*,"('[main] Not enough memory for: sigmaimunu2i,sigmaijmunu2i,eps1,eps1_solu')")
       call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
@@ -140,8 +139,8 @@ program SHE
       call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
     end if
 !--------------------- Dimensions and identities- --------------------
-    dim = 4*Npl*9*9
-    dimNpl = 4*Npl*Npl*9*9
+    dimsigmaNpl = 4*Npl
+    dim = dimsigmaNpl*9*9
     allocate( identt(dim,dim), STAT = AllocateStatus )
     if (AllocateStatus.ne.0) then
       if(myrank.eq.0) write(*,"('[main] Not enough memory for: identt')")
@@ -228,6 +227,9 @@ program SHE
         sigmaijmunu2i(sigma,i,j,mu,nu)= (sigma-1)*Npl*Npl*9*9+(i-1)*Npl*9*9+(j-1)*9*9+(mu-1)*9+nu
       end do
     end do ; end do ; end do ; end do
+    do i=1,Npl ; do sigma=1,4
+      sigmai2i(sigma,i) = (sigma-1)*Npl+i
+    end do ; end do
 !---------------------- Tight Binding parameters -----------------------
     call rs_hoppings()
 !------------------------- Mounting U matrix ---------------------------
@@ -1034,15 +1036,16 @@ program SHE
 
 !-----------------------------------------------------------------------
     case (6)
+      q     = [0.d0, 0.d0]
       if(myrank_row.eq.0) then
         allocate( schi(Npl,Npl,4),schihf(Npl,Npl,4),sdx(Npl),sdy(Npl),sdz(Npl),chd(Npl),ldx(Npl),ldy(Npl),ldz(Npl), STAT = AllocateStatus )
         if (AllocateStatus.ne.0) then
           if(myrank.eq.0) write(*,"('[main] Not enough memory for: schi,schihf,sdx,sdy,sdz,chd,ldx,ldy,ldz')")
           call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
         end if
-        allocate( templd(Npl,9,9,9,9),temp(dim,dim),chiorb(dim,dim),tchiorbiikl(dim,dimNpl), STAT = AllocateStatus )
+        allocate( templd(Npl,9,9),chiorb(dim,dim), STAT = AllocateStatus )
         if (AllocateStatus.ne.0) then
-          write(*,"('[main] Not enough memory for: templd,temp,chiorb,tchiorbiikl')")
+          write(*,"('[main] Not enough memory for: templd,chiorb')")
           call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
         end if
         if(myrank_col.eq.0) then
@@ -1062,38 +1065,52 @@ program SHE
           end if
         end if
       end if
-      allocate( chiorb_hf(dim,dim),tchiorbiikl_hf(dim,dimNpl), STAT = AllocateStatus )
+      allocate( chiorb_hf(dim,dim),prefactor(dim,dim),tchiorbiikl(dim,4), STAT = AllocateStatus )
       if (AllocateStatus.ne.0) then
+        write(*,"('[main] Not enough memory for: chiorb_hf,prefactor,tchiorbiikl')")
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
 
-      q     = [0.d0, 0.d0]
       sd_energy_loop: do count=1,MPIsteps
         e = emin + deltae*myrank_col + MPIdelta*(count-1)
         if(myrank_row.eq.0) then
           write(*,"(i0,' of ',i0,' points',', e = ',e10.3,' in myrank_col ',i0)") ((count-1)*MPIpts+myrank_col+1),npt1,e,myrank_col
         end if
 
-        ! Start parallelized processes to calculate chiorb_hf and chiorbi0_hf for energy e
-        call eintshesd(e,chiorb_hf,tchiorbiikl_hf)
+        if(myrank.eq.0) write(*,"('[main] Calculating pre-factor to use in disturbances calculation ')")
+        call eintshechi(e,chiorb_hf)
+
+        ! Broadcast chiorb_hf to all processors of the same row
+        call MPI_Bcast(chiorb_hf,dim*dim,MPI_DOUBLE_COMPLEX,0,MPIComm_Row,ierr)
+
+        ! prefactor = (1 + chi_hf*Umat)^-1
+        call zgemm('n','n',dim,dim,dim,zum,chiorb_hf,dim,Umatorb,dim,zero,prefactor,dim) !prefactor = chi_hf*Umat
+        prefactor = identt + prefactor
+        call invers(prefactor,dim)
+        if(myrank.eq.0) then
+          elapsed_time = MPI_Wtime() - start_program
+          write(*,"('[main] Calculated prefactor after: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
+        end if
+
+        ! Start parallelized processes to calculate disturbances for energy e
+        call eintshesd(e,tchiorbiikl)
+
+        if(myrank.eq.0) then
+          elapsed_time = MPI_Wtime() - start_program
+          write(*,"('[main] Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
+        end if
 
         if(myrank_row.eq.0) then
-          ! (1 + chi_hf*Umat)^-1
-          call zgemm('n','n',dim,dim,dim,zum,chiorb_hf,dim,Umatorb,dim,zero,temp,dim)
-          temp = identt + temp
-          call invers(temp,dim)
-          call zgemm('n','n',dim,dim,dim,zum,temp,dim,chiorb_hf,dim,zero,chiorb,dim)
-          call zgemm('n','n',dim,dimNpl,dim,zum,temp,dim,tchiorbiikl_hf,dim,zero,tchiorbiikl,dim)
+          ! Calculating the full matrix of RPA and HF susceptibilities for energy e
+          call zgemm('n','n',dim,dim,dim,zum,prefactor,dim,chiorb_hf,dim,zero,chiorb,dim) ! (1+chi_hf*Umat)^-1 * chi_hf
 
           schi = zero
           schihf = zero
-          calculate_susceptibility_sd: do sigma=1,4 ; do j=1,Npl ; do i=1,Npl
-            ! Calculating RPA and HF susceptibilities
-            do nu=5,9 ; do mu=5,9
-              schi(i,j,sigma) = schi(i,j,sigma) + chiorb(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(4,j,nu,nu)) ! +- , up- , down- , --
-              schihf(i,j,sigma) = schihf(i,j,sigma) + chiorb_hf(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(4,j,nu,nu)) ! +- , up- , down- , --
-            end do ; end do
-          end do ; end do ; end do calculate_susceptibility_sd
+          ! Calculating RPA and HF susceptibilities
+          calculate_susceptibility_sd: do nu=5,9 ; do mu=5,9 ; do sigma=1,4 ; do j=1,Npl ; do i=1,Npl
+            schi(i,j,sigma) = schi(i,j,sigma) + chiorb(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(4,j,nu,nu)) ! +- , up- , down- , --
+            schihf(i,j,sigma) = schihf(i,j,sigma) + chiorb_hf(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(4,j,nu,nu)) ! +- , up- , down- , --
+          end do ; end do ; end do ; end do ; end do calculate_susceptibility_sd
 
           sdx = zero
           sdy = zero
@@ -1104,28 +1121,24 @@ program SHE
           ldz = zero
           calculate_sd: do i=1,Npl
             ! Spin and charge disturbances
-            do xi=1,9; do gamma=1,9; do mu=1,9; do l=1,Npl; do j=1,Npl
-              sdx(i) = sdx(i) + (tchiorbiikl(sigmaimunu2i(1,i,mu,mu),sigmaijmunu2i(2,j,l,gamma,xi))+tchiorbiikl(sigmaimunu2i(1,i,mu,mu),sigmaijmunu2i(3,j,l,gamma,xi))+tchiorbiikl(sigmaimunu2i(4,i,mu,mu),sigmaijmunu2i(2,j,l,gamma,xi))+tchiorbiikl(sigmaimunu2i(4,i,mu,mu),sigmaijmunu2i(3,j,l,gamma,xi)))
-              sdy(i) = sdy(i) + (tchiorbiikl(sigmaimunu2i(1,i,mu,mu),sigmaijmunu2i(2,j,l,gamma,xi))+tchiorbiikl(sigmaimunu2i(1,i,mu,mu),sigmaijmunu2i(3,j,l,gamma,xi))-tchiorbiikl(sigmaimunu2i(4,i,mu,mu),sigmaijmunu2i(2,j,l,gamma,xi))-tchiorbiikl(sigmaimunu2i(4,i,mu,mu),sigmaijmunu2i(3,j,l,gamma,xi)))
-              sdz(i) = sdz(i) + (tchiorbiikl(sigmaimunu2i(2,i,mu,mu),sigmaijmunu2i(2,j,l,gamma,xi))+tchiorbiikl(sigmaimunu2i(2,i,mu,mu),sigmaijmunu2i(3,j,l,gamma,xi))-tchiorbiikl(sigmaimunu2i(3,i,mu,mu),sigmaijmunu2i(2,j,l,gamma,xi))-tchiorbiikl(sigmaimunu2i(3,i,mu,mu),sigmaijmunu2i(3,j,l,gamma,xi)))
-              chd(i) = chd(i) + (tchiorbiikl(sigmaimunu2i(2,i,mu,mu),sigmaijmunu2i(2,j,l,gamma,xi))+tchiorbiikl(sigmaimunu2i(2,i,mu,mu),sigmaijmunu2i(3,j,l,gamma,xi))+tchiorbiikl(sigmaimunu2i(3,i,mu,mu),sigmaijmunu2i(2,j,l,gamma,xi))+tchiorbiikl(sigmaimunu2i(3,i,mu,mu),sigmaijmunu2i(3,j,l,gamma,xi)))
-            end do; end do; end do; end do; end do
+            do mu=1,9
+              sdx(i) = sdx(i) + (tchiorbiikl(sigmaimunu2i(1,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,mu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,mu),3))
+              sdy(i) = sdy(i) + (tchiorbiikl(sigmaimunu2i(1,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,mu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,mu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,mu),3))
+              sdz(i) = sdz(i) + (tchiorbiikl(sigmaimunu2i(2,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,mu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,mu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,mu),3))
+              chd(i) = chd(i) + (tchiorbiikl(sigmaimunu2i(2,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,mu),3)+tchiorbiikl(sigmaimunu2i(3,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(3,i,mu,mu),3))
+            end do
 
             ! Orbital angular momentum disturbance
-            do xi=1,9; do gamma=1,9; do nu=1,9; do mu=1,9; do l=1,Npl; do j=1,Npl
-              templd(i,mu,nu,gamma,xi) = tchiorbiikl(sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi))+tchiorbiikl(sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+tchiorbiikl(sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi))
-              ldx(i) = ldx(i) + lxp(mu,nu)*templd(i,mu,nu,gamma,xi)
-              ldy(i) = ldy(i) + lyp(mu,nu)*templd(i,mu,nu,gamma,xi)
-              ldz(i) = ldz(i) + lzp(mu,nu)*templd(i,mu,nu,gamma,xi)
-            end do; end do; end do; end do; end do; end do
+            do nu=1,9; do mu=1,9
+              templd(i,mu,nu) = tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3)
+              ldx(i) = ldx(i) + lxp(mu,nu)*templd(i,mu,nu)
+              ldy(i) = ldy(i) + lyp(mu,nu)*templd(i,mu,nu)
+              ldz(i) = ldz(i) + lzp(mu,nu)*templd(i,mu,nu)
+            end do; end do
           end do calculate_sd
           sdx = 0.5d0*sdx
           sdy = 0.5d0*sdy/zi
           sdz = 0.5d0*sdz
-          chd = chd
-          ldx = ldx
-          ldy = ldy
-          ldz = ldz
 
           ! Sending results to myrank_row = myrank_col = 0 and writing on file
           if(myrank_col.eq.0) then
@@ -1273,7 +1286,7 @@ program SHE
         end if
       end do sd_energy_loop
 
-      deallocate(chiorb_hf,tchiorbiikl_hf)
+      deallocate(chiorb_hf,prefactor,tchiorbiikl)
       if(myrank_row.eq.0) then
         if(myrank_col.eq.0) then
           if(nmaglayers.gt.1) then
@@ -1283,7 +1296,7 @@ program SHE
 #endif
           end if
         end if
-        deallocate(templd,temp,chiorb,tchiorbiikl)
+        deallocate(templd,chiorb)
         deallocate(schi,schihf,sdx,sdy,sdz,chd,ldx,ldy,ldz)
       end if
 !-----------------------------------------------------------------------
@@ -1330,7 +1343,7 @@ program SHE
           end if
         end if
       end if
-      allocate( chiorb_hf(dim,dim),prefactor(dim,dim),ttchiorbiikl(n0sc1:n0sc2,dim,dimNpl),Lxttchiorbiikl(n0sc1:n0sc2,dim,dimNpl),Lyttchiorbiikl(n0sc1:n0sc2,dim,dimNpl),Lzttchiorbiikl(n0sc1:n0sc2,dim,dimNpl), STAT = AllocateStatus )
+      allocate( chiorb_hf(dim,dim),prefactor(dim,dim),ttchiorbiikl(n0sc1:n0sc2,dimsigmaNpl,4),Lxttchiorbiikl(n0sc1:n0sc2,dimsigmaNpl,4),Lyttchiorbiikl(n0sc1:n0sc2,dimsigmaNpl,4),Lzttchiorbiikl(n0sc1:n0sc2,dimsigmaNpl,4), STAT = AllocateStatus )
       if (AllocateStatus.ne.0) then
         write(*,"('[main] Not enough memory for: chiorb_hf,prefactor,ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl')")
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
@@ -1361,11 +1374,8 @@ program SHE
         end if
 
         ! Start parallelized processes to calculate chiorb_hf and chiorbi0_hf for energy e
-#ifdef _UFF
-        call eintsheprllsc_uff(e,ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl)
-#else
         call eintsheprllsc(e,ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl)
-#endif
+
         if(myrank.eq.0) then
           elapsed_time = MPI_Wtime() - start_program
           write(*,"('[main] Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
@@ -1392,21 +1402,19 @@ program SHE
           Ilx = zero
           Ily = zero
           Ilz = zero
+          ! Calculating spin and charge current for each neighbor
           plane_loop_calculate_sc: do i=1,Npl
             neighbor_loop_calculate_sc: do neighbor=n0sc1,n0sc2
-              ! Calculating spin and charge current for each neighbor
-              do xi=1,9; do gamma=1,9; do nu=1,9; do mu=1,9; do l=1,Npl; do j=1,Npl
-                ! Charge current
-                Ich(neighbor,i) = Ich(neighbor,i) + (ttchiorbiikl(neighbor,sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+ttchiorbiikl(neighbor,sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi))+ttchiorbiikl(neighbor,sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+ttchiorbiikl(neighbor,sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi)))
-                ! Spin currents
-                Isx(neighbor,i) = Isx(neighbor,i) + (ttchiorbiikl(neighbor,sigmaimunu2i(1,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+ttchiorbiikl(neighbor,sigmaimunu2i(1,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi))+ttchiorbiikl(neighbor,sigmaimunu2i(4,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+ttchiorbiikl(neighbor,sigmaimunu2i(4,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi)))
-                Isy(neighbor,i) = Isy(neighbor,i) + (ttchiorbiikl(neighbor,sigmaimunu2i(1,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+ttchiorbiikl(neighbor,sigmaimunu2i(1,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi))-ttchiorbiikl(neighbor,sigmaimunu2i(4,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))-ttchiorbiikl(neighbor,sigmaimunu2i(4,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi)))
-                Isz(neighbor,i) = Isz(neighbor,i) + (ttchiorbiikl(neighbor,sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+ttchiorbiikl(neighbor,sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi))-ttchiorbiikl(neighbor,sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))-ttchiorbiikl(neighbor,sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi)))
-                ! Orbital Angular Momentum currents
-                Ilx(neighbor,i) = Ilx(neighbor,i) + (Lxttchiorbiikl(neighbor,sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+Lxttchiorbiikl(neighbor,sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi))+Lxttchiorbiikl(neighbor,sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+Lxttchiorbiikl(neighbor,sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi)))
-                Ily(neighbor,i) = Ily(neighbor,i) + (Lyttchiorbiikl(neighbor,sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+Lyttchiorbiikl(neighbor,sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi))+Lyttchiorbiikl(neighbor,sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+Lyttchiorbiikl(neighbor,sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi)))
-                Ilz(neighbor,i) = Ilz(neighbor,i) + (Lzttchiorbiikl(neighbor,sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+Lzttchiorbiikl(neighbor,sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi))+Lzttchiorbiikl(neighbor,sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+Lzttchiorbiikl(neighbor,sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi)))
-              end do; end do; end do; end do; end do; end do
+              ! Charge current
+              Ich(neighbor,i) = Ich(neighbor,i) + (ttchiorbiikl  (neighbor,sigmai2i(2,i),2)+ttchiorbiikl  (neighbor,sigmai2i(2,i),3)+ttchiorbiikl  (neighbor,sigmai2i(3,i),2)+ttchiorbiikl  (neighbor,sigmai2i(3,i),3))
+              ! Spin currents
+              Isx(neighbor,i) = Isx(neighbor,i) + (ttchiorbiikl  (neighbor,sigmai2i(1,i),2)+ttchiorbiikl  (neighbor,sigmai2i(1,i),3)+ttchiorbiikl  (neighbor,sigmai2i(4,i),2)+ttchiorbiikl  (neighbor,sigmai2i(4,i),3))
+              Isy(neighbor,i) = Isy(neighbor,i) + (ttchiorbiikl  (neighbor,sigmai2i(1,i),2)+ttchiorbiikl  (neighbor,sigmai2i(1,i),3)-ttchiorbiikl  (neighbor,sigmai2i(4,i),2)-ttchiorbiikl  (neighbor,sigmai2i(4,i),3))
+              Isz(neighbor,i) = Isz(neighbor,i) + (ttchiorbiikl  (neighbor,sigmai2i(2,i),2)+ttchiorbiikl  (neighbor,sigmai2i(2,i),3)-ttchiorbiikl  (neighbor,sigmai2i(3,i),2)-ttchiorbiikl  (neighbor,sigmai2i(3,i),3))
+              ! Orbital Angular Momentum currents
+              Ilx(neighbor,i) = Ilx(neighbor,i) + (Lxttchiorbiikl(neighbor,sigmai2i(2,i),2)+Lxttchiorbiikl(neighbor,sigmai2i(2,i),3)+Lxttchiorbiikl(neighbor,sigmai2i(3,i),2)+Lxttchiorbiikl(neighbor,sigmai2i(3,i),3))
+              Ily(neighbor,i) = Ily(neighbor,i) + (Lyttchiorbiikl(neighbor,sigmai2i(2,i),2)+Lyttchiorbiikl(neighbor,sigmai2i(2,i),3)+Lyttchiorbiikl(neighbor,sigmai2i(3,i),2)+Lyttchiorbiikl(neighbor,sigmai2i(3,i),3))
+              Ilz(neighbor,i) = Ilz(neighbor,i) + (Lzttchiorbiikl(neighbor,sigmai2i(2,i),2)+Lzttchiorbiikl(neighbor,sigmai2i(2,i),3)+Lzttchiorbiikl(neighbor,sigmai2i(3,i),2)+Lzttchiorbiikl(neighbor,sigmai2i(3,i),3))
             end do neighbor_loop_calculate_sc
           end do plane_loop_calculate_sc
   !         Ich = Ich
@@ -1615,7 +1623,7 @@ program SHE
         end if
         deallocate(chiorb)
         deallocate(schi,schihf)
-        deallocate(rIch,rIsx,rIsy,rIsz,rIlx,rIly,rIlz)
+        if(renorm) deallocate(rIch,rIsx,rIsy,rIsz,rIlx,rIly,rIlz)
         deallocate(Ich,Isx,Isy,Isz,Ilx,Ily,Ilz)
       end if
 !-----------------------------------------------------------------------
@@ -1646,7 +1654,7 @@ program SHE
             call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
           end if
         end if
-        allocate( templd(Npl,9,9,9,9),chiorb(dim,dim), STAT = AllocateStatus  )
+        allocate( templd(Npl,9,9),chiorb(dim,dim), STAT = AllocateStatus  )
         if (AllocateStatus.ne.0) then
           write(*,"('[main] Not enough memory for: templd,chiorb')")
           call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
@@ -1668,7 +1676,7 @@ program SHE
           end if
         end if
       end if
-      allocate( chiorb_hf(dim,dim),prefactor(dim,dim),tchiorbiikl(dim,dimNpl),ttchiorbiikl(n0sc1:n0sc2,dim,dimNpl),Lxttchiorbiikl(n0sc1:n0sc2,dim,dimNpl),Lyttchiorbiikl(n0sc1:n0sc2,dim,dimNpl),Lzttchiorbiikl(n0sc1:n0sc2,dim,dimNpl), STAT = AllocateStatus  )
+      allocate( chiorb_hf(dim,dim),prefactor(dim,dim),tchiorbiikl(dim,4),ttchiorbiikl(n0sc1:n0sc2,dimsigmaNpl,4),Lxttchiorbiikl(n0sc1:n0sc2,dimsigmaNpl,4),Lyttchiorbiikl(n0sc1:n0sc2,dimsigmaNpl,4),Lzttchiorbiikl(n0sc1:n0sc2,dimsigmaNpl,4), STAT = AllocateStatus  )
       if (AllocateStatus.ne.0) then
         write(*,"('[main] Not enough memory for: chiorb_hf,prefactor,tchiorbiikl,ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl')")
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
@@ -1683,7 +1691,7 @@ program SHE
           write(*,"(i0,' of ',i0,' points',', e = ',e10.3,' in myrank_col ',i0)") ((count-1)*MPIpts+myrank_col+1),npt1,e,myrank_col
         end if
 
-        if(myrank.eq.0) write(*,"('[main] Calculating pre-factor to use in current calculation ')")
+        if(myrank.eq.0) write(*,"('[main] Calculating pre-factor to use in currents and disturbances calculation ')")
         call eintshechi(e,chiorb_hf)
 
         ! Broadcast chiorb_hf to all processors of the same row
@@ -1699,11 +1707,8 @@ program SHE
         end if
 
         ! Start parallelized processes to calculate disturbances and currents for energy e
-#ifdef _UFF
-        call eintshe_uff(e,tchiorbiikl,ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl)
-#else
         call eintshe(e,tchiorbiikl,ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl)
-#endif
+
         if(myrank.eq.0) then
           elapsed_time = MPI_Wtime() - start_program
           write(*,"('[main] Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
@@ -1739,51 +1744,41 @@ program SHE
           Ilz = zero
           plane_loop_calculate_all: do i=1,Npl
             ! Spin and charge disturbances
-            do xi=1,9; do gamma=1,9; do mu=1,9; do l=1,Npl; do j=1,Npl
-              sdx(i) = sdx(i) + (tchiorbiikl(sigmaimunu2i(1,i,mu,mu),sigmaijmunu2i(2,j,l,gamma,xi))+tchiorbiikl(sigmaimunu2i(1,i,mu,mu),sigmaijmunu2i(3,j,l,gamma,xi))+tchiorbiikl(sigmaimunu2i(4,i,mu,mu),sigmaijmunu2i(2,j,l,gamma,xi))+tchiorbiikl(sigmaimunu2i(4,i,mu,mu),sigmaijmunu2i(3,j,l,gamma,xi)))
-              sdy(i) = sdy(i) + (tchiorbiikl(sigmaimunu2i(1,i,mu,mu),sigmaijmunu2i(2,j,l,gamma,xi))+tchiorbiikl(sigmaimunu2i(1,i,mu,mu),sigmaijmunu2i(3,j,l,gamma,xi))-tchiorbiikl(sigmaimunu2i(4,i,mu,mu),sigmaijmunu2i(2,j,l,gamma,xi))-tchiorbiikl(sigmaimunu2i(4,i,mu,mu),sigmaijmunu2i(3,j,l,gamma,xi)))
-              sdz(i) = sdz(i) + (tchiorbiikl(sigmaimunu2i(2,i,mu,mu),sigmaijmunu2i(2,j,l,gamma,xi))+tchiorbiikl(sigmaimunu2i(2,i,mu,mu),sigmaijmunu2i(3,j,l,gamma,xi))-tchiorbiikl(sigmaimunu2i(3,i,mu,mu),sigmaijmunu2i(2,j,l,gamma,xi))-tchiorbiikl(sigmaimunu2i(3,i,mu,mu),sigmaijmunu2i(3,j,l,gamma,xi)))
-              chd(i) = chd(i) + (tchiorbiikl(sigmaimunu2i(2,i,mu,mu),sigmaijmunu2i(2,j,l,gamma,xi))+tchiorbiikl(sigmaimunu2i(2,i,mu,mu),sigmaijmunu2i(3,j,l,gamma,xi))+tchiorbiikl(sigmaimunu2i(3,i,mu,mu),sigmaijmunu2i(2,j,l,gamma,xi))+tchiorbiikl(sigmaimunu2i(3,i,mu,mu),sigmaijmunu2i(3,j,l,gamma,xi)))
-            end do; end do; end do; end do; end do
+            do mu=1,9
+              sdx(i) = sdx(i) + (tchiorbiikl(sigmaimunu2i(1,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,mu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,mu),3))
+              sdy(i) = sdy(i) + (tchiorbiikl(sigmaimunu2i(1,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,mu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,mu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,mu),3))
+              sdz(i) = sdz(i) + (tchiorbiikl(sigmaimunu2i(2,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,mu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,mu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,mu),3))
+              chd(i) = chd(i) + (tchiorbiikl(sigmaimunu2i(2,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,mu),3)+tchiorbiikl(sigmaimunu2i(3,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(3,i,mu,mu),3))
+            end do
 
             ! Orbital angular momentum disturbance
-            do xi=1,9; do gamma=1,9; do nu=1,9; do mu=1,9; do l=1,Npl; do j=1,Npl
-              templd(i,mu,nu,gamma,xi) = tchiorbiikl(sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi))+tchiorbiikl(sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+tchiorbiikl(sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi))
-              ldx(i) = ldx(i) + lxp(mu,nu)*templd(i,mu,nu,gamma,xi)
-              ldy(i) = ldy(i) + lyp(mu,nu)*templd(i,mu,nu,gamma,xi)
-              ldz(i) = ldz(i) + lzp(mu,nu)*templd(i,mu,nu,gamma,xi)
-            end do; end do; end do; end do; end do; end do
+            do nu=1,9; do mu=1,9
+              templd(i,mu,nu) = tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3)
+              ldx(i) = ldx(i) + lxp(mu,nu)*templd(i,mu,nu)
+              ldy(i) = ldy(i) + lyp(mu,nu)*templd(i,mu,nu)
+              ldz(i) = ldz(i) + lzp(mu,nu)*templd(i,mu,nu)
+            end do; end do
 
+            ! Calculating spin and charge current for each neighbor
             neighbor_loop_calculate_all: do neighbor=n0sc1,n0sc2
-              ! Calculating spin and charge current for each neighbor
-              do xi=1,9; do gamma=1,9; do nu=1,9; do mu=1,9; do l=1,Npl; do j=1,Npl
-                ! Charge current
-                Ich(neighbor,i) = Ich(neighbor,i) + (ttchiorbiikl(neighbor,sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+ttchiorbiikl(neighbor,sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi))+ttchiorbiikl(neighbor,sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+ttchiorbiikl(neighbor,sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi)))
-                ! Spin currents
-                Isx(neighbor,i) = Isx(neighbor,i) + (ttchiorbiikl(neighbor,sigmaimunu2i(1,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+ttchiorbiikl(neighbor,sigmaimunu2i(1,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi))+ttchiorbiikl(neighbor,sigmaimunu2i(4,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+ttchiorbiikl(neighbor,sigmaimunu2i(4,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi)))
-                Isy(neighbor,i) = Isy(neighbor,i) + (ttchiorbiikl(neighbor,sigmaimunu2i(1,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+ttchiorbiikl(neighbor,sigmaimunu2i(1,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi))-ttchiorbiikl(neighbor,sigmaimunu2i(4,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))-ttchiorbiikl(neighbor,sigmaimunu2i(4,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi)))
-                Isz(neighbor,i) = Isz(neighbor,i) + (ttchiorbiikl(neighbor,sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+ttchiorbiikl(neighbor,sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi))-ttchiorbiikl(neighbor,sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))-ttchiorbiikl(neighbor,sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi)))
-                ! Orbital Angular Momentum currents
-                Ilx(neighbor,i) = Ilx(neighbor,i) + (Lxttchiorbiikl(neighbor,sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+Lxttchiorbiikl(neighbor,sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi))+Lxttchiorbiikl(neighbor,sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+Lxttchiorbiikl(neighbor,sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi)))
-                Ily(neighbor,i) = Ily(neighbor,i) + (Lyttchiorbiikl(neighbor,sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+Lyttchiorbiikl(neighbor,sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi))+Lyttchiorbiikl(neighbor,sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+Lyttchiorbiikl(neighbor,sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi)))
-                Ilz(neighbor,i) = Ilz(neighbor,i) + (Lzttchiorbiikl(neighbor,sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+Lzttchiorbiikl(neighbor,sigmaimunu2i(2,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi))+Lzttchiorbiikl(neighbor,sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(2,j,l,gamma,xi))+Lzttchiorbiikl(neighbor,sigmaimunu2i(3,i,mu,nu),sigmaijmunu2i(3,j,l,gamma,xi)))
-              end do; end do; end do; end do; end do; end do
+              ! Charge current
+              Ich(neighbor,i) = Ich(neighbor,i) + (ttchiorbiikl  (neighbor,sigmai2i(2,i),2)+ttchiorbiikl  (neighbor,sigmai2i(2,i),3)+ttchiorbiikl  (neighbor,sigmai2i(3,i),2)+ttchiorbiikl  (neighbor,sigmai2i(3,i),3))
+              ! Spin currents
+              Isx(neighbor,i) = Isx(neighbor,i) + (ttchiorbiikl  (neighbor,sigmai2i(1,i),2)+ttchiorbiikl  (neighbor,sigmai2i(1,i),3)+ttchiorbiikl  (neighbor,sigmai2i(4,i),2)+ttchiorbiikl  (neighbor,sigmai2i(4,i),3))
+              Isy(neighbor,i) = Isy(neighbor,i) + (ttchiorbiikl  (neighbor,sigmai2i(1,i),2)+ttchiorbiikl  (neighbor,sigmai2i(1,i),3)-ttchiorbiikl  (neighbor,sigmai2i(4,i),2)-ttchiorbiikl  (neighbor,sigmai2i(4,i),3))
+              Isz(neighbor,i) = Isz(neighbor,i) + (ttchiorbiikl  (neighbor,sigmai2i(2,i),2)+ttchiorbiikl  (neighbor,sigmai2i(2,i),3)-ttchiorbiikl  (neighbor,sigmai2i(3,i),2)-ttchiorbiikl  (neighbor,sigmai2i(3,i),3))
+              ! Orbital Angular Momentum currents
+              Ilx(neighbor,i) = Ilx(neighbor,i) + (Lxttchiorbiikl(neighbor,sigmai2i(2,i),2)+Lxttchiorbiikl(neighbor,sigmai2i(2,i),3)+Lxttchiorbiikl(neighbor,sigmai2i(3,i),2)+Lxttchiorbiikl(neighbor,sigmai2i(3,i),3))
+              Ily(neighbor,i) = Ily(neighbor,i) + (Lyttchiorbiikl(neighbor,sigmai2i(2,i),2)+Lyttchiorbiikl(neighbor,sigmai2i(2,i),3)+Lyttchiorbiikl(neighbor,sigmai2i(3,i),2)+Lyttchiorbiikl(neighbor,sigmai2i(3,i),3))
+              Ilz(neighbor,i) = Ilz(neighbor,i) + (Lzttchiorbiikl(neighbor,sigmai2i(2,i),2)+Lzttchiorbiikl(neighbor,sigmai2i(2,i),3)+Lzttchiorbiikl(neighbor,sigmai2i(3,i),2)+Lzttchiorbiikl(neighbor,sigmai2i(3,i),3))
             end do neighbor_loop_calculate_all
           end do plane_loop_calculate_all
           sdx = 0.5d0*sdx
           sdy = 0.5d0*sdy/zi
           sdz = 0.5d0*sdz
-  !         chd = chd
-  !         ldx = ldx
-  !         ldy = ldy
-  !         ldz = ldz
-  !         Ich = Ich
           Isx = -0.5d0*Isx
           Isy = -0.5d0*Isy/zi
           Isz = -0.5d0*Isz
-  !         Ilx = Ilx
-  !         Ily = Ily
-  !         Ilz = Ilz
 
           ! Sending results to myrank_row = myrank_col = 0 and writing on file
           if(myrank_col.eq.0) then
@@ -1906,7 +1901,7 @@ program SHE
                 ! Writing z-component spin disturbance
                 write(unit=iw+4,fmt="(7(e16.9,2x))") e,abs(sdz(i)),real(sdz(i)),aimag(sdz(i)),atan2(aimag(sdz(i)),real(sdz(i))),real(sdz(i))/abs(sdz(i)),aimag(sdz(i))/abs(sdz(i))
 
-                write(*,"('    ################ Orbital disturbances: ################')")
+                write(*,"(' ################ Orbital disturbances: ################')")
 
                 write(*,"('     Ldx  = (',e16.9,') + i(',e16.9,')')") real(ldx(i)),aimag(ldx(i))
                 write(*,"(' abs(Ldx) = ',e16.9)") abs(ldx(i))

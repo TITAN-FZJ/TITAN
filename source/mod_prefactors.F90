@@ -1,4 +1,4 @@
-module mod_currents
+module mod_prefactors
 	use mod_f90_kind
 	implicit none
 	complex(double), dimension(:,:), allocatable	:: prefactor
@@ -33,4 +33,4 @@ contains
 
 	end subroutine
 
-end module mod_currents
+end module mod_prefactors

@@ -38,6 +38,7 @@ subroutine sumkshechi(e,ep,Fint,iflag)
 
 !$omp do schedule(static)
 	do iz=1,nkpoints
+!    Progress bar
 !$  if((mythread.eq.0)) then
       if((myrank.eq.0).and.(index(runoptions,"verbose").gt.0)) then
         prog = floor(iz*100.d0/nkpoints)

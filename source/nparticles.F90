@@ -26,6 +26,7 @@ subroutine nparticles(N,eps,npart,iflag)
 	open(6,carriagecontrol ='fortran')
 #endif
 
+	iflag=0
 	eps1 = eps
 
 	n_orb_u = 0.d0
@@ -164,7 +165,9 @@ subroutine nparticlesjac(N,eps,npart,npartjac,ldfjac,iflag)
 	open(6,carriagecontrol ='fortran')
 #endif
 
+	iflag=0
  	eps1 = eps
+ 	npart=npart
 
 	ix = myrank+1
 	itask = numprocs ! Number of tasks done initially

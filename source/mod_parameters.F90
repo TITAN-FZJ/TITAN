@@ -4,7 +4,7 @@ module mod_parameters
 	integer 			:: ncp
 	real(double)	:: eta,hwx,hwy,hwz
 	real(double)	:: Ef,q(2)
-	integer 			:: dim,dimNpl
+	integer 			:: dimsigmaNpl,dim
 !========================================================================================!
 ! Effective intra-site electron electron interaction
 	real(double),allocatable	:: U(:)
@@ -42,7 +42,7 @@ module mod_parameters
 	real(double)		:: qxmin,qxmax,qzmin,qzmax
 !========================================================================================!
 !	Conversion arrays
-	integer,allocatable	:: sigmaimunu2i(:,:,:,:),sigmaijmunu2i(:,:,:,:,:)
+	integer,allocatable	:: sigmaimunu2i(:,:,:,:),sigmaijmunu2i(:,:,:,:,:),sigmai2i(:,:)
 !========================================================================================!
 ! Run options are stored in this string
 	character(len=100)      		:: runoptions
@@ -598,7 +598,7 @@ contains
 		end if
 		if(myrank.eq.0) write(*,"('[ioread] Finished reading from ""',a,'"" file')") trim(filename)
 	deallocate(string1,stringt)
-	if((renormnb.lt.n0sc1).or.(renormnb.gt.n0sc2)) then
+	if((renorm).and.((renormnb.lt.n0sc1).or.(renormnb.gt.n0sc2))) then
 		if(myrank.eq.0) then
 			write(*,"('[ioread] Invalid neighbor for renormalization: ',i0,'!')") renormnb
 			write(*,"('[ioread] Choose a value between ',i0,' and ',i0,'.')") n0sc1,n0sc2
