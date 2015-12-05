@@ -1,0 +1,19 @@
+#!/bin/bash
+#PBS -N tbguimar
+#PBS -q funsilab
+#PBS -l nodes=11:ppn=12
+
+ulimit -s hard
+ulimit -n hard
+
+echo $PBS_O_WORKDIR
+cd $PBS_O_WORKDIR
+
+export OMP_NUM_THREADS=1
+#export MKL_NUM_THREADS=12
+#echo $MKL_NUM_THREADS
+
+mpirun -r ssh -np 128 main.exe > saida_Npl3-10_noU_parts3_magaxis9_Jij.out
+
+exit 0
+

@@ -88,7 +88,7 @@ subroutine sumk_L_gs(e,ep,gupgd)
 	use mod_constants, only: pi, zero
 	use mod_parameters
 	use mod_generate_kpoints
-	use mod_mpi_pars, only: myrank
+!$  use mod_mpi_pars, only: myrank
 !$ 	use omp_lib
 	implicit none
 !$	integer				:: nthreads,mythread

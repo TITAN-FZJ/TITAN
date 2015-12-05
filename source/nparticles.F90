@@ -55,11 +55,11 @@ subroutine nparticles(N,eps,npart,iflag)
 			! Progress bar
       prog = floor(i*100.d0/pn1)
 #ifdef _JUQUEEN
-       write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of nparticles e-sum on rank ',i0,a1,$)") spiner(mod(i,4)+1),prog,iz,nkpoints,myrank,char(13)
+      write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of nparticles e-sum on rank ',i0,a1,$)") spiner(mod(i,4)+1),prog,i,pn1,myrank,char(13)
 #else
-			elapsed_time = MPI_Wtime() - start_time
+			elapsed_time = MPI_Wtime() - start_program
 			write(progbar,fmt="( a,i0,a )") "(1h+' ','Total time=',i2,'h:',i2,'m:',i2,'s  ',",1+(i+1)*20/pn1, "a,' ',i0,'%')"
-      write(6,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(i+1)*20/pn1),100*(i+1)/pn1
+      write(6,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(i+1)*20/pn1),prog
 #endif
 
 			call MPI_Recv(gdiaguur,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,9999,MPI_COMM_WORLD,stat,ierr)
@@ -183,11 +183,11 @@ subroutine nparticlesjac(N,eps,npart,npartjac,ldfjac,iflag)
 			! Progress bar
       prog = floor(i*100.d0/pn1)
 #ifdef _JUQUEEN
-       write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of jacobian e-sum on rank ',i0,a1,$)") spiner(mod(i,4)+1),prog,iz,nkpoints,myrank,char(13)
+       write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of jacobian e-sum on rank ',i0,a1,$)") spiner(mod(i,4)+1),prog,i,pn1,myrank,char(13)
 #else
-			elapsed_time = MPI_Wtime() - start_time
+			elapsed_time = MPI_Wtime() - start_program
 			write(progbar,fmt="( a,i0,a )") "(1h+' ','Total time=',i2,'h:',i2,'m:',i2,'s  ',",1+(i+1)*20/pn1, "a,' ',i0,'%')"
-      write(6,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(i+1)*20/pn1),100*(i+1)/pn1
+      write(6,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(i+1)*20/pn1),prog
 #endif
 
 			call MPI_Recv(ggr,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,3333,MPI_COMM_WORLD,stat,ierr)
@@ -288,11 +288,11 @@ subroutine nparticlesjacnag(N,eps,npart,npartjac,ldfjac,iflag)
 				! Progress bar
 	      prog = floor(i*100.d0/pn1)
 #ifdef _JUQUEEN
-       write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of nparticles e-sum on rank ',i0,a1,$)") spiner(mod(i,4)+1),prog,iz,nkpoints,myrank,char(13)
+       write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of nparticles e-sum on rank ',i0,a1,$)") spiner(mod(i,4)+1),prog,i,pn1,myrank,char(13)
 #else
-				elapsed_time = MPI_Wtime() - start_time
+				elapsed_time = MPI_Wtime() - start_program
 				write(progbar,fmt="( a,i0,a )") "(1h+' ','Total time=',i2,'h:',i2,'m:',i2,'s  ',",1+(i+1)*20/pn1, "a,' ',i0,'%')"
-	      write(6,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(i+1)*20/pn1),100*(i+1)/pn1
+	      write(6,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(i+1)*20/pn1),prog
 #endif
 
 				call MPI_Recv(gdiaguur,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,9999,MPI_COMM_WORLD,stat,ierr)
@@ -383,11 +383,11 @@ subroutine nparticlesjacnag(N,eps,npart,npartjac,ldfjac,iflag)
 				! Progress bar
 	      prog = floor(i*100.d0/pn1)
 #ifdef _JUQUEEN
-       write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of jacobian e-sum on rank ',i0,a1,$)") spiner(mod(i,4)+1),prog,iz,nkpoints,myrank,char(13)
+       write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of jacobian e-sum on rank ',i0,a1,$)") spiner(mod(i,4)+1),prog,i,pn1,myrank,char(13)
 #else
-				elapsed_time = MPI_Wtime() - start_time
+				elapsed_time = MPI_Wtime() - start_program
 				write(progbar,fmt="( a,i0,a )") "(1h+' ','Total time=',i2,'h:',i2,'m:',i2,'s  ',",1+(i+1)*20/pn1, "a,' ',i0,'%')"
-	      write(6,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(i+1)*20/pn1),100*(i+1)/pn1
+	      write(6,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(i+1)*20/pn1),prog
 #endif
 
 				call MPI_Recv(ggr,ncount2,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,3333,MPI_COMM_WORLD,stat,ierr)
@@ -426,7 +426,7 @@ subroutine nparticlesjacnag(N,eps,npart,npartjac,ldfjac,iflag)
 
 		npartjac = npartjac/pi
 	case default
-		write(*,"('[nparticles] Problem in self-consistency! iflag = ',I0)") iflag
+		write(*,"('[nparticlesjacnag] Problem in self-consistency! iflag = ',I0)") iflag
 		stop
 	end select flag
 

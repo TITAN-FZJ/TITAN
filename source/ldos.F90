@@ -4,7 +4,6 @@ subroutine ldos(e,ldosu,ldosd,Jijint)
   use mod_constants
   use mod_parameters
   use mod_generate_kpoints
-  use mod_tight_binding, only: nmaglayers,mmlayermag
   use mod_progress
   use mod_magnet, only: hdel,mag
   use mod_mpi_pars
@@ -54,7 +53,7 @@ subroutine ldos(e,ldosu,ldosd,Jijint)
 
 !$omp parallel default(none) &
 !$omp& private(mythread,iz,kp,gf,gij,gji,paulia,paulib,i,j,mu,nu,alpha,gfdiagu,gfdiagd,Jijk,Jijkan,temp1,temp2) &
-!$omp& shared(prog,elapsed_time,start_time,progbar,kbz,nkpoints,wkbz,e,eta,Npl,hdel,mag,nmaglayers,mmlayermag,pauli,paulimatan,ldosu,ldosd,Jijint,myrank,nthreads)
+!$omp& shared(prog,spiner,elapsed_time,start_time,progbar,kbz,nkpoints,wkbz,e,eta,Npl,hdel,mag,nmaglayers,mmlayermag,pauli,paulimatan,ldosu,ldosd,Jijint,myrank,nthreads)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread.eq.0).and.(myrank.eq.0)) then
 !$    nthreads = omp_get_num_threads()
@@ -147,6 +146,7 @@ subroutine ldos_es(e)
   integer         :: i,j,mu,nu,iz
   real(double)    :: ldosu(Npl+2,9),ldosd(Npl+2,9)
   real(double)    :: e,kp(3)
+  complex(double),dimension(Npl,9)                :: gfdiagu,gfdiagd
   complex(double),dimension(Npl+2,Npl+2,18,18)    :: gf
 
 #ifndef _JUQUEEN
@@ -158,7 +158,7 @@ subroutine ldos_es(e)
 
 !$omp parallel default(none) &
 !$omp& private(mythread,iz,kp,gf,i,j,mu,nu,nthreads) &
-!$omp& shared(prog,elapsed_time,start_time,progbar,kbz,nkpoints,wkbz,e,eta,Npl,ldosu,ldosd,myrank)
+!$omp& shared(prog,spiner,elapsed_time,start_time,progbar,kbz,nkpoints,wkbz,e,eta,Npl,gfdiagu,gfdiagd,ldosu,ldosd,myrank)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread.eq.0).and.(myrank.eq.0)) then
 !$    nthreads = omp_get_num_threads()
@@ -167,8 +167,8 @@ subroutine ldos_es(e)
 
 !$omp do reduction(+:ldosu,ldosd)
   kpoints: do iz=1,nkpoints
+    ! Progress bar
 !$  if((mythread.eq.0)) then
-      ! Progress bar
       prog = floor(iz*100.d0/nkpoints)
 #ifdef _JUQUEEN
       write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of k-sum ',a1,$)") spiner(mod(iz,4)+1),prog,iz,nkpoints,char(13)
@@ -178,27 +178,36 @@ subroutine ldos_es(e)
       write(6,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(iz+1)*20/nkpoints),100*(iz+1)/nkpoints
 #endif
 !$   end if
+
     kp = kbz(iz,:)
 
     ! Green function on energy E + ieta, and wave vector kp
     call green_es(e,eta,kp,gf)
+
     do mu=1,9; do i=1,Npl+2
       nu=mu+9
-      ldosu(i,mu) = ldosu(i,mu) - aimag(gf(i,i,mu,mu))*wkbz(iz)
-      ldosd(i,mu) = ldosd(i,mu) - aimag(gf(i,i,nu,nu))*wkbz(iz)
+      gfdiagu(i,mu) = - aimag(gf(i,i,mu,mu))*wkbz(iz)
+      gfdiagd(i,mu) = - aimag(gf(i,i,nu,nu))*wkbz(iz)
     end do ; end do
+
+    ldosu = ldosu + gfdiagu
+    ldosd = ldosd + gfdiagd
+
   end do kpoints
 !$omp end do
 !$omp end parallel
 
-  ldosu  = ldosu/pi
-  ldosd  = ldosd/pi
+  ldosu  = ldosu/(pi*ry2ev)
+  ldosd  = ldosd/(pi*ry2ev)
+
+  ! Transform energy to eV if runoption is on
+  e = e*ry2ev
 
   !Writing on files
   do i=1,Npl+2
-    write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/LDOS/ldosu_layer',I0,'_magaxis=',A,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,i,magaxis,ncp,eta,Utype,hwx,hwy,hwz
+    write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/LDOS/ldosu_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,i,magaxis,socscale,ncp,eta,Utype,hwx,hwy,hwz
     open (unit=117+i, file=varm,status='unknown')
-    write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/LDOS/ldosd_layer',I0,'_magaxis=',A,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,i,magaxis,ncp,eta,Utype,hwx,hwy,hwz
+    write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/LDOS/ldosd_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,i,magaxis,socscale,ncp,eta,Utype,hwx,hwy,hwz
     open (unit=517+i, file=varm,status='unknown')
   end do
   ldos_writing_plane_loop: do i=1,Npl+2

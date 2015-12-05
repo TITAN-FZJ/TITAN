@@ -4,7 +4,6 @@ subroutine sumk_jij(er,ei,Jijint)
   use mod_constants
   use mod_parameters
   use mod_generate_kpoints
-  use mod_tight_binding, only: nmaglayers,mmlayermag
   use mod_progress
   use mod_magnet, only: hdel,mag
   use mod_mpi_pars
@@ -50,7 +49,7 @@ subroutine sumk_jij(er,ei,Jijint)
 
 !$omp parallel default(none) &
 !$omp& private(mythread,iz,kp,gf,gij,gji,paulia,paulib,i,j,mu,nu,alpha,Jijk,Jijkan,temp1,temp2) &
-!$omp& shared(prog,elapsed_time,start_time,progbar,kbz,wkbz,nkpoints,er,ei,Jijint,pauli,paulimatan,Npl,hdel,mag,nmaglayers,mmlayermag,myrank,nthreads)
+!$omp& shared(prog,spiner,elapsed_time,start_time,progbar,kbz,wkbz,nkpoints,er,ei,Jijint,pauli,paulimatan,Npl,hdel,mag,nmaglayers,mmlayermag,myrank,nthreads)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread.eq.0).and.(myrank.eq.0)) then
 !$    nthreads = omp_get_num_threads()

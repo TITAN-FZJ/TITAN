@@ -15,7 +15,11 @@ while (( "$#" )); do
         debug="DEBUG=$1"
         shift
         ;;
-      (clean|cleanall)
+      (scalasca)
+        perform="PERFORM=$1"
+        shift
+        ;;
+      (cleandep|cleandebug|cleanobj|cleanmod|cleanexe|clean|cleanall|recompile)
         rule="$1"
         shift
         ;;
@@ -49,6 +53,6 @@ lattice="LATTICE=$(pwd | awk -F/ '{print $(NF-1)}')"
 system="SYSTEM=$(pwd | awk -F/ '{print $(NF)}')"
 
 cd ../../
-echo "make $lattice $system $rule $platform $parallel $debug $filename $verbose"
-make $lattice $system $rule $platform $parallel $debug $filename $verbose
+echo "make $lattice $system $rule $platform $parallel $debug $perform $filename $verbose"
+make $lattice $system $rule $platform $parallel $debug $perform $filename $verbose
 # cd -

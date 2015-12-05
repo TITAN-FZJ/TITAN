@@ -1,0 +1,106 @@
+!*******************************************************************************!
+!                           CHOOSE WHAT TO CALCULATE                            !
+!  Options:                                                                     !
+!   0 - Test before SC                                                          !
+!   1 - Self consistency only                                                   !
+!   2 - Test after SC                                                           !
+!   3 - LDOS and exchange interactions as a function of energy                  !
+!   4 - Band structure                                                          !
+!   5 - Local susceptibility as a function of energy                            !
+!   6 - Disturbances, susceptibilities and eff. field as a function of e        !
+!   7 - Parallel currents and susceptibilities as a function of e               !
+!   8 - Parall. currents, disturb., susc. and eff. fields as a function of e    !
+!   9 - Fermi surface                                                           !
+!  10 - Exhange interactions and anisotropies (full tensor)                     !
+!  11 - Probability of spin-flip as a function of position                      !
+-> itype = 8
+!===============================================================================!
+!                         OPTIONAL RUNNING VARIABLES                            !
+!   noUonall    - set U=0 on all layers                                         !
+!   noUonNM     - set U=0 on NM layers                                          !
+!   GSL         - Calculate ground state of Orbital Angular Momentum L          !
+!   verbose     - write intermediate steps                                      !
+!   ry2ev       - convert energy units to eV                                    !
+!   idebug      - turn on to use this optional variable for debugging           !
+!   createfiles - Just create files (WARNING: overwrite existing files!)        !
+!   addresults  - Add results to existing files, instead of creating new ones   !
+!                 (files MUST exist)                                            !
+!   slatec      - Use non-linear root finder dnsqe from Slatec library          !
+!   kpoints     - Write kpoints and weights into files                          !
+-> Options: slatec addresults ! noUonNM ! verbose ! addresults
+!===============================================================================!
+!                               SYSTEM VARIABLES                                !
+! Lattice and surface direction:                                                !
+-> lattice = fcc100
+! Lattice parameter:
+-> a0 = 3.92
+! Number of planes:
+!(For SC and exchange calculation, use initial and final number of layers)
+-> Npl = 5
+! Small imaginary part of the Green function:
+-> eta = 5.0E-04
+!===============================================================================!
+!                   STATIC MAGNETIC FIELD IN EACH DIRECTION                     !
+-> hwx = 0.0E+00 , hwy = 0.0E+00 , hwz = 0.0E+00
+!===============================================================================!
+!                             SPIN ORBIT COUPLING                               !
+-> SOC = T        ! Spin Orbit Coupling on (T) or off (F)
+!-------------------------------------------------------------------------------!
+! In the following, choose the direction of one of the neighbors                !
+!                  (1-4) - 1 n.n. ; (5-8) 2 n.n.                                !
+!              (use 9 for out-of-plane z, x // dirEfield)                       !
+!                               6                                               !
+!                               |                                               !
+!                            2  |  1                                            !
+!                             \ | /                                             !
+!                   ------7-----|-----5-------                                  !
+!                             / | \                                             !
+!                            3  |  4                                            !
+!                               |                                               !
+!                               8                                               !
+! Magnetization axis:                                                           !
+-> magaxis = 9
+!===============================================================================!
+!                   DIRECTION OF IN-PLANE ELECTRIC FIELD                        !
+-> dirEfield = 1
+!===============================================================================!
+!                        IN-PLANE CURRENTS TO CALCULATE                         !
+-> n0sc1 = 1   ! First neighbor
+-> n0sc2 = 6   ! Last neighbor
+!
+!                    CURRENT AND DISTURBANCE RENORMALIZATION                    !
+!          (only used when currents are calculated - itype=7 and 8)             !
+-> renorm = T        ! Turn renormalization on (T) or off (F)
+-> renormnb = 1      ! Reference neighbor (where the charge current will be 1)
+!===============================================================================!
+!                           INTEGRATION VARIABLES                               !
+! Number of Cunningham k-vector generators: (ncp > 0)                           !
+-> ncp = 6
+! Number of parts to divide energy integral in complex plane:                   !
+-> parts = 2 , n1gl = 64
+!  Number of parts to divide energy integral in real axis:                      !
+-> parts3 = 1 , n3gl = 64
+!===============================================================================!
+!                              PLOTTING VARIABLES                               !
+!           PLOTTING VARIABLES         !             BAND STRUCTURE             !
+! Minimum and maximum value of energy: ! High symmetry direction                !
+-> emin = 3.50E-03 , emax =  4.50E-03   -> kdirection = GH
+!- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -!
+!                              Number of points:                                !
+-> npts = 15
+!===============================================================================!
+!                              SELF-CONSISTENCY                                 !
+!        (Finding center of the bands for the given number of particles)        !
+-> skipsc = T ! skip self-consistency calculation when it finds previous results
+! File to use as starting point:
+!-> scfile: Resultados/selfconsistency/selfconsistency_Npl=4_parts=2_U= 0.7E-01_hwx= 0.0E+00_hwy= 0.0E+00_hwz= 0.0E+00_ncp=6_eta= 0.5E-03.dat
+!===============================================================================!
+!                                DFT PARAMETERS                                 !
+!          (Choose between (T)ight-binding or (O)rthogonal parameters)          !
+-> dfttype = T
+! Set of tight-binding parameters to be used (EF is obtained from the 1st half) !
+! First half of the slab:
+-> set1 = 3
+! Second half of the slab:
+-> set2 = 3
+!*******************************************************************************!

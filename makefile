@@ -55,6 +55,13 @@ OBJ = $(addprefix $(OBJDIR)/,$(notdir $(SRC:.F90=.o)))
 ####################################################
 DEP = $(OBJ:.o=.dep)
 
+####################################################
+# Performance tool                                #
+####################################################
+ifeq ($(PERFORM),scalasca)
+	PREP = scorep
+endif
+
 #=======================================================================
 #============================ DEFAULT VALUES ===========================
 #=======================================================================
@@ -67,12 +74,12 @@ FC = mpif90
 ####################################################
 #  Libraries                                       #
 ####################################################
-LLIBS =-mkl -shared-intel -lnag
+LLIBS =-mkl -lnag
 
 ####################################################
 #  Flags                                           #
 ####################################################
-FFLAGS =-O3 -xSSE4.2
+FFLAGS =-O3 -xHost
 
 ####################################################
 #  Preprocessor                                    #
@@ -135,9 +142,9 @@ FC = /usr/local/impi/bin/mpif90
 # Preprocessor
 CPP = -fpp
 # Libraries
-LLIBS =-mkl -shared-intel -L$(HOME)/lib -lkibe
+LLIBS =-mkl -L$(HOME)/lib -lkibe
 #Flags
-FFLAGS =-O3 -xSSE4.2
+FFLAGS =-O3 -xHost
 #Debugger
 ifeq ($(DEBUG),debug)
 FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0
@@ -158,7 +165,7 @@ FC = mpiifort
 # Preprocessor
 CPP = -fpp
 # Libraries
-LLIBS =-mkl -shared-intel -L$(HOME)/lib -lnag
+LLIBS =-mkl -L$(HOME)/lib -lnag
 # Flags
 FFLAGS =-O3 -xSSE4.2
 # Debugger
@@ -181,7 +188,7 @@ FC = mpif90
 # Preprocessor
 CPP = -fpp
 # Libraries
-LLIBS =-mkl -shared-intel -L$(HOME)/lib -lkibe
+LLIBS =-mkl -L$(HOME)/lib -lkibe
 #Flags
 FFLAGS =-O3 -xSSE4.2
 # Debugger
@@ -204,7 +211,7 @@ FC = mpif90
 # Preprocessor
 CPP = -fpp
 # Libraries
-LLIBS =-mkl -shared-intel -L$(HOME)/lib -lkibe
+LLIBS =-mkl -L$(HOME)/lib -lkibe
 #Flags
 FFLAGS =-O3 -xSSE4.2
 #Debugger
@@ -223,13 +230,13 @@ endif
 ####################################################
 ifeq ($(PLATFORM),jureca)
 # Compiler
-FC = mpiifort
+FC = $(PREP) mpif90
 # Preprocessor
 CPP = -fpp
 # Libraries
-LLIBS =-mkl -shared-intel -L$(HOME)/lib -lkibe
+LLIBS =-mkl -L$(HOME)/lib -lkibe
 #Flags
-FFLAGS =-O3 -xSSE4.2
+FFLAGS =-O3 -xHost
 #Debugger
 ifeq ($(DEBUG),debug)
 FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0
@@ -246,14 +253,14 @@ endif
 ####################################################
 ifeq ($(PLATFORM),juqueen)
 # Compiler
-FC = mpif90
+FC = $(PREP) mpif90
 # Preprocessor
 CPP = -WF,-D_JUQUEEN
 # Libraries
 LLIBS =$(ND)/lib/libnag_essl.a -L/bgsys/local/lib -lesslbg
 #LLIBS =-L/opt/ibmmath/essl/5.1/lib64 -lesslbg -L$(HOME)/lib -lkibe
 #Flags
-FFLAGS =-O3 -qstrict -qnoescape -qnosave
+FFLAGS =-O3 -qstrict -qnoescape -qnosave #-O5 -qarch=qp -qtune=qp
 #Debugger
 ifeq ($(DEBUG),debug)
 FFLAGS =-C -g -O0 -qflttrap -qinitauto=7FF7FFFF -qnoescape
@@ -271,11 +278,11 @@ endif
 all: $(FILENAME)
 
 $(FILENAME): $(OBJ)
-	@echo Creating executable $@ $(and $(strip $(DEBUG) $(PARALLEL)), with $(strip $(DEBUG) $(PARALLEL)))
+	@echo Creating executable $@ $(and $(strip $(DEBUG) $(PARALLEL) $(PERFORM)), with $(strip $(DEBUG) $(PARALLEL) $(PERFORM)))
 	@$(FC) $^ -o $@ $(LLIBS)
 
 $(OBJDIR)/%.o $(OBJDIR)/%.mod: $(SRCDIR)/%.F90
-	@echo Compiling file $< to $(addprefix $(OBJDIR)/,$(notdir $(patsubst %.F90,%.o,$<))) $(and $(strip $(DEBUG) $(PARALLEL)), with $(strip $(DEBUG) $(PARALLEL)))
+	@echo Compiling file $< to $(addprefix $(OBJDIR)/,$(notdir $(patsubst %.F90,%.o,$<))) $(and $(strip $(DEBUG) $(PARALLEL) $(PERFORM)), with $(strip $(DEBUG) $(PARALLEL) $(PERFORM)))
 	@$(FC) $(FFLAGS) $(CPP) -c $< -o $(addprefix $(OBJDIR)/,$(notdir $(patsubst %.F90,%.o,$<)))
 
 ####################################################
@@ -292,15 +299,30 @@ endif
 ####################################################
 # Clean up                                         #
 ####################################################
-clean:
-	@echo Deleting executable $(FILENAME) and cleaning folder $(OBJDIR)/
-	@rm -f *.i90
-	@rm -f $(OBJDIR)/*
-	@rm -f $(FILENAME).ld* $(FILENAME)
+cleandep:
+	@echo Removing dependency files...
+	@rm -f $(DEP)
 
-# cleanall:
-# 	rm -f $(SRCDIR)/*.dep
-# 	rm -f $(LATDIR)/*.dep
-# 	rm -f $(SYSDIR)/*.dep
-# 	rm -f $(OBJDIR)/*
-# 	rm -f $(FILENAME).ld* $(FILENAME)
+cleandebug:
+	@echo Removing debug files...
+	@rm -f $(OBJDIR)/*genmod*
+	@rm -f *prep.opari*
+	@rm -f *.i90
+
+cleanobj:
+	@echo Removing object files...
+	@rm -f $(OBJDIR)/*.o
+
+cleanmod:
+	@echo Removing module files...
+	@rm -f $(OBJDIR)/*.mod
+
+cleanexe:
+	@echo Removing executable $(FILENAME)...
+	@rm -f $(FILENAME)
+
+clean: cleandebug cleanobj cleanmod
+
+cleanall: cleandep cleandebug cleanobj cleanmod cleanexe
+
+recompile: clean all

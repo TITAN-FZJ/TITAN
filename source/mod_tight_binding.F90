@@ -37,13 +37,7 @@
 
 module mod_tight_binding
   use mod_f90_kind
-  use mod_define_system
   implicit none
-! Number and list of magnetic layers
-  integer :: nmaglayers
-  integer, dimension(:), allocatable       :: mmlayermag
-! Layer type: 1 - Empty Sphere; 2 - Magnetic ; 3 - Bulk ; 0 - Other
-  integer, dimension(:), allocatable       :: layertype
 ! SOC parameters
   real(double), dimension(:), allocatable  :: lambda
 ! Total cccupations per layer
@@ -57,9 +51,8 @@ contains
 
   subroutine DFT_parameters(cs,cp,cd,ds,dp,dd)
     use mod_f90_kind
-    use mod_parameters, only: Npl, Ef, SOC, dfttype, U, Utype
+    use mod_parameters, only: Npl, Ef, SOC, dfttype, U, Utype, layertype, mmlayer
     use mod_mpi_pars
-    use mod_define_system
     use MPI
   integer       :: i,j
   integer, parameter :: mmmax=24
@@ -686,7 +679,7 @@ contains
 
   subroutine rs_hoppings()
     use mod_f90_kind
-    use mod_parameters, only: Npl,Utype
+    use mod_parameters, only: Npl, Utype, mmlayer, nmaglayers, mmlayermag, layertype
     use mod_define_system
     use mod_lattice
     use mod_mpi_pars, only: myrank

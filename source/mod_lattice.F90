@@ -256,4 +256,102 @@ contains
 
 	return
 	end subroutine fcc100
+
+!	FCC(111)
+!	The direction perpendicular to the layers is z'
+!
+!	n01,n02   = # of 1st. and 2nd. in-plane n.n. respectively
+!	n1,n2     = # of 1st. and 2nd. inter-plane n.n. respectively
+!	r0( i, l) = coord. of the in-plane (first & second n.n.)
+!				(i=1,n0; l = 1,3 (x,y,z);
+!				a0 = latt. const.
+!	c0( i, l) = direction cosines of r0
+!	r1( i, l) = coord. of the inter-plane 1st. n.n. (i=1,n1)
+!	c1( i, l) = direction cosines of r1
+!	r2( i, l) = coord. of the inter-plane 2nd. n.n. (i=1,n2)
+!	c2( i, l) = direction cosines of r2
+
+	subroutine fcc111()
+		use mod_f90_kind
+		use mod_constants
+		use mod_parameters, only: a0
+	real(double)	:: aux
+
+	n01=6
+	n02=0
+	n0=n01+n02
+	plnn=1
+	n1=3
+	n2=3
+
+	allocate(r0(n0,3),c0(n0,3),r1(n1,3),c1(n1,3),r2(n2,3),c2(n2,3))
+
+! FCC (1 1 1)
+! ! in-plane 1st. n.n. (there are no 2nd. n.n.)
+	r0(1,1) =-0.5d0
+	r0(1,2) = 0.5d0
+	r0(1,3) = 0.0d0
+
+	r0(2,1) =-0.5d0
+	r0(2,2) = 0.0d0
+	r0(2,3) = 0.5d0
+
+	r0(3,1) = 0.0d0
+	r0(3,2) =-0.5d0
+	r0(3,3) = 0.5d0
+
+	r0(4,1) = 0.5d0
+	r0(4,2) =-0.5d0
+	r0(4,3) = 0.0d0
+
+	r0(5,1) = 0.5d0
+	r0(5,2) = 0.0d0
+	r0(5,3) =-0.5d0
+
+	r0(6,1) = 0.0d0
+	r0(6,2) = 0.5d0
+	r0(6,3) =-0.5d0
+
+	aux = sq2
+	c0 = aux*r0
+
+	r0 = r0*a0
+
+!  inter-plane 1st. n.n.
+	r1(1,1) = 0.0d0
+	r1(1,2) = 0.5d0
+	r1(1,3) = 0.5d0
+
+	r1(2,1) = 0.5d0
+	r1(2,2) = 0.0d0
+	r1(2,3) = 0.5d0
+
+	r1(3,1) = 0.5d0
+	r1(3,2) = 0.5d0
+	r1(3,3) = 0.0d0
+
+	c1 = aux*r1
+
+	r1 = r1*a0
+
+!  inter-plane 2nd. n.n.
+	r2(1,1) = 0.d0
+	r2(1,2) = 0.d0
+	r2(1,3) = 1.d0
+
+	r2(2,1) = 1.d0
+	r2(2,2) = 0.d0
+	r2(2,3) = 0.d0
+
+	r2(3,1) = 0.d0
+	r2(3,2) = 1.d0
+	r2(3,3) = 0.d0
+
+	c2 = r2
+
+	r2 = r2*a0
+
+	return
+	end subroutine fcc111
+
 end module mod_lattice

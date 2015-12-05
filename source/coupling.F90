@@ -5,7 +5,6 @@
 		use mod_parameters
 		use mod_magnet
 		use mod_generate_epoints
-		use mod_tight_binding, only: nmaglayers
 		use mod_mpi_pars
 		use mod_progress
 		use MPI

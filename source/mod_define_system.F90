@@ -8,13 +8,11 @@
 module mod_define_system
   use mod_f90_kind
   implicit none
-! Layer conversion
-  integer, dimension(:), allocatable         :: mmlayer
 
 contains
 
   subroutine define_system()
-    use mod_parameters, only: Npl,set1,set2
+    use mod_parameters, only: Npl,mmlayer,set1,set2
     use mod_mpi_pars, only: myrank
   implicit none
   integer :: i,j,ios,set1g,set2g

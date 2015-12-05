@@ -80,7 +80,7 @@ contains
 
 		wkbz(:) = 1.d0/dble(nkpoints)
 
-		if((myrank.eq.0).and.((index(runoptions,"verbose").gt.0).or.(index(runoptions,"idebug").gt.0)))  write(*,"('[mod_generate_kpoints] ',i0,' k-points generated.')") nkpoints
+		if((myrank.eq.0))  write(*,"('[mod_generate_kpoints] ',i0,' k-points generated.')") nkpoints
 
 		return
 	end subroutine generate_kpoints_bcc110
@@ -103,7 +103,7 @@ contains
 		nkpoints = 8*(2**(ncp-1))*(1+2**ncp)
 		allocate( kbz(nkpoints,3),wkbz(nkpoints),kbz2d(nkpoints,2), stat=AllocateStatus )
 		if (AllocateStatus.ne.0) then
-	    write(*,"('[mod_generate_kpoints] Not enough memory for: kbz,wkbz')")
+	    write(*,"('[mod_generate_kpoints] Not enough memory for: kbz,wkbz,kbz2d')")
 			call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
 		end if
 		nkmax = 2**ncp
@@ -161,8 +161,131 @@ contains
 			 if(myrank.eq.0) write(*,"('[mod_generate_kpoints] Incorrect number of points: icount = ',i0,', nkpoints = ',i0)") icount,nkpoints
 			 call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
 		end if
-		if((myrank.eq.0).and.((index(runoptions,"verbose").gt.0).or.(index(runoptions,"idebug").gt.0)))  write(*,"('[mod_generate_kpoints] ',i0,' k-points generated.')") icount
+		if((myrank.eq.0))  write(*,"('[mod_generate_kpoints] ',i0,' k-points generated.')") nkpoints
 
 		return
 	end subroutine generate_kpoints_fcc100
+
+  subroutine generate_kpoints_fcc111()
+		use MPI
+		use mod_mpi_pars
+    implicit none
+    integer         :: iz,AllocateStatus
+    integer         :: ki,kj
+    real(double), dimension(3,3) :: rm2,rm3
+    real(double), dimension(2,2) :: rphi
+    real(double)    :: phil
+    real(double)    :: b(2,2),nx,ny,weight,dnkpoints
+    real(double)    :: kv(2),kvl(2)
+    real(double), dimension(100000) :: wk
+    real(double), dimension(100000,2) :: kvm
+    real(double), dimension(3) :: qvl,k2anx
+
+!   Generation of the monkhorst-pack points for an hexagonal
+!   lattice. The generated k-points units are chosen using a0.
+
+		! Rotation matrices to transform 2D BZ to 3D BZ
+	  rm2 = 0.d0
+	  rm2(1,1) = 1.d0/sq3
+	  rm2(1,3) = sq2/sq3
+	  rm2(3,1) = -sq2/sq3
+	  rm2(2,2) = 1.d0
+	  rm2(3,3) = 1.d0/sq3
+
+	  rm3 = 0.d0
+	  rm3(1,1) = 1.d0/sq2
+	  rm3(1,2) = -1.d0/sq2
+	  rm3(2,1) = 1.d0/sq2
+	  rm3(2,2) = 1.d0/sq2
+	  rm3(3,3) = 1.d0
+
+    b(1,:) = [ sq2/sq3, sq2 ]
+    b(2,:) = [ 2.d0*sq2/sq3, 0.d0 ]
+
+    nkpoints = 0
+    dnkpoints = 0.d0
+
+!     ! Gamma point
+! 		nkpoints = nkpoints + 1
+! 		weight = 1.d0/6.d0
+! 		kvm(nkpoints,:) = [ 0.d0,0.d0 ]
+! 		wk(nkpoints) = weight
+
+    kvm = 0.d0
+    do ki=1,ncp
+      nx = 2.d0*pi*dble(2*ki-ncp-1)/dble(2*ncp*a0)
+      do kj=ki,ncp
+        ny = 2.d0*pi*dble(2*kj-ncp-1)/dble(2*ncp*a0)
+
+        kv = nx*b(1,:) + ny*b(2,:)
+
+        if ((kv(2).gt.0).and.(kv(1).lt.(2.d0*pi*sq2)/(sq3*a0))) then
+
+          if (kj==ki) then
+            weight = 0.5d0
+          else
+            weight = 1.d0
+          end if
+
+          dnkpoints = dnkpoints + weight
+          nkpoints = nkpoints + 1
+          kvm(nkpoints,:) = kv
+          wk(nkpoints) = weight
+
+          dnkpoints = dnkpoints + weight
+          nkpoints = nkpoints + 1
+          kvm(nkpoints,1) = kv(1)
+          kvm(nkpoints,2) = -kv(2)
+          wk(nkpoints) = weight
+
+          do iz=1,5
+            phil = dble(iz)*pi/3.d0
+            rphi(1,1) = cos(phil)
+            rphi(1,2) = -sin(phil)
+            rphi(2,1) = sin(phil)
+            rphi(2,2) = cos(phil)
+
+            dnkpoints = dnkpoints + weight
+            nkpoints = nkpoints + 1
+            kvm(nkpoints,:) = matmul(rphi,kv)
+            wk(nkpoints) = weight
+
+            dnkpoints = dnkpoints + weight
+            nkpoints = nkpoints + 1
+            kvl(1) = kv(1)
+            kvl(2) = -kv(2)
+            kvm(nkpoints,:) = matmul(rphi,kvl)
+            wk(nkpoints) = weight
+          end do
+
+        end if
+      end do
+    end do
+
+		allocate( kbz(nkpoints,3),wkbz(nkpoints),kbz2d(nkpoints,2), stat=AllocateStatus )
+		if (AllocateStatus.ne.0) then
+	    write(*,"('[mod_generate_kpoints] Not enough memory for: kbz,wkbz,kbz2d')")
+			call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+		end if
+
+    weight = 0.d0
+    do iz = 1,nkpoints
+    	kbz2d(iz,:) = kvm(iz,:)
+      k2anx(1) = kvm(iz,1)
+      k2anx(2) = kvm(iz,2)
+      k2anx(3) = 0.d0
+      qvl = matmul(rm2,k2anx)
+      kbz(iz,:) = matmul(rm3,qvl)
+      wkbz(iz) = wk(iz)/dnkpoints
+      weight = weight + wkbz(iz)
+    end do
+
+		if((myrank.eq.0))  write(*,"('[mod_generate_kpoints] ',i0,' k-points generated.')") nkpoints
+
+!     write(*,"('[mod_generate_kpoints] ',i0,' k-points generated.')") nkpoints
+!     write(*,"('[mod_generate_kpoints] ',e9.2,' total weight.')") weight
+!     write(*,"('[mod_generate_kpoints] ',f15.2,' dnkpoints.')") dnkpoints
+
+    return
+  end subroutine generate_kpoints_fcc111
 end module mod_generate_kpoints

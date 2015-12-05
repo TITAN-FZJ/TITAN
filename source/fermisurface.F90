@@ -27,7 +27,7 @@ subroutine fermisurface(e)
 
 !$omp parallel default(none) &
 !$omp& private(mythread,iz,kp,gf,i,j,mu,nu) &
-!$omp& shared(prog,elapsed_time,start_time,progbar,e,kbz,kbz2d,nkpoints,Ef,eta,Npl,nthreads,pi,fsu_layer,fsd_layer,fsu_total,fsd_total)
+!$omp& shared(prog,spiner,elapsed_time,start_time,progbar,e,kbz,kbz2d,nkpoints,Ef,eta,Npl,nthreads,pi,fsu_layer,fsd_layer,fsu_total,fsd_total)
 !$  mythread = omp_get_thread_num()
 !$  if(mythread.eq.0) then
 !$    nthreads = omp_get_num_threads()
@@ -70,24 +70,24 @@ subroutine fermisurface(e)
 
   ! Writing on files
   do i=1,Npl
-    write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsu_layer',I0,'_magaxis=',A,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,i,magaxis,ncp,eta,Utype,hwx,hwy,hwz
+    write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsu_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,i,magaxis,socscale,ncp,eta,Utype,hwx,hwy,hwz
     open (unit=17+i, file=varm,status='unknown')
-    write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsd_layer',I0,'_magaxis=',A,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,i,magaxis,ncp,eta,Utype,hwx,hwy,hwz
+    write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsd_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,i,magaxis,socscale,ncp,eta,Utype,hwx,hwy,hwz
     open (unit=57+i, file=varm,status='unknown')
   end do
-  write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsu_total_magaxis=',A,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,magaxis,ncp,eta,Utype,hwx,hwy,hwz
+  write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsu_total_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,magaxis,socscale,ncp,eta,Utype,hwx,hwy,hwz
   open (unit=97, file=varm,status='unknown')
-  write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsd_total_magaxis=',A,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,magaxis,ncp,eta,Utype,hwx,hwy,hwz
+  write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsd_total_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,magaxis,socscale,ncp,eta,Utype,hwx,hwy,hwz
   open (unit=98, file=varm,status='unknown')
 
   writing_fermi_surface: do iz=1,nkpoints
     write_plane_loop_fs: do i=1,Npl
-      write(unit=17+i,fmt="(3(f16.11,2x))") kbz2d(iz,1),kbz2d(iz,2),fsu_layer(i,iz)
-      write(unit=57+i,fmt="(3(f16.11,2x))") kbz2d(iz,1),kbz2d(iz,2),fsd_layer(i,iz)
+      write(unit=17+i,fmt="(3(f16.11,2x))") kbz2d(iz,1),kbz2d(iz,2),fsu_layer(i,iz)/ry2ev
+      write(unit=57+i,fmt="(3(f16.11,2x))") kbz2d(iz,1),kbz2d(iz,2),fsd_layer(i,iz)/ry2ev
     end do write_plane_loop_fs
 
-    write(unit=97,fmt="(3(f16.11,2x))") kbz2d(iz,1),kbz2d(iz,2),fsu_total(iz)
-    write(unit=98,fmt="(3(f16.11,2x))") kbz2d(iz,1),kbz2d(iz,2),fsd_total(iz)
+    write(unit=97,fmt="(3(f16.11,2x))") kbz2d(iz,1),kbz2d(iz,2),fsu_total(iz)/ry2ev
+    write(unit=98,fmt="(3(f16.11,2x))") kbz2d(iz,1),kbz2d(iz,2),fsd_total(iz)/ry2ev
   end do writing_fermi_surface
 
   do i=1,Npl

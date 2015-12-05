@@ -23,7 +23,7 @@ subroutine helphbccsoc(kp,h00so,h01so,h10so,mm)
 	use mod_constants
 	use mod_lattice
 	use mod_tight_binding
-	use mod_parameters, only: Npl
+	use mod_parameters, only: Npl, socscale
 	implicit none
 	integer			:: i
 	integer, 			intent(in)	:: mm
@@ -46,7 +46,7 @@ subroutine helphbccsoc(kp,h00so,h01so,h10so,mm)
 	h00so	= zero
 	h00so(1:9,1:9)      = h00
 	h00so(10:18,10:18)  = h00
-	h00so = h00so + (lambda(mm)*ls)
+	h00so = h00so + (socscale*lambda(mm)*ls)
 
 !	inter-plane hoppings h01
 	if(mm.gt.Npl+1) then
@@ -106,7 +106,7 @@ subroutine helphfccsoc(kp,h00so,h01so,h10so,h02so,h20so,mm)
 	use mod_constants
 	use mod_lattice
 	use mod_tight_binding
-	use mod_parameters, only: Npl
+	use mod_parameters, only: Npl, socscale
 	implicit none
 	integer			:: i
 	integer, 			intent(in)	:: mm
@@ -129,7 +129,7 @@ subroutine helphfccsoc(kp,h00so,h01so,h10so,h02so,h20so,mm)
 	h00so	= zero
 	h00so(1:9,1:9)      = h00
 	h00so(10:18,10:18)  = h00
-	h00so = h00so + (lambda(mm)*ls)
+	h00so = h00so + (socscale*lambda(mm)*ls)
 
 !	inter-plane hoppings h01
 	if(mm.gt.Npl+1) then

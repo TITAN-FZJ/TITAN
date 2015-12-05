@@ -101,7 +101,7 @@ subroutine bandstructure()
 
   end select
 
-  write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/BS/bandstructure_kdir=',A2,'_magaxis=',A,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_es.dat')") SOC,Npl,kdirection,magaxis,ncp,eta,Utype,hwx,hwy,hwz
+  write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/BS/bandstructure_kdir=',A2,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_es.dat')") SOC,Npl,kdirection,magaxis,socscale,ncp,eta,Utype,hwx,hwy,hwz
   open (unit=666, file=varm,status='unknown')
 
   deltak = (kmax - kmin)/npts
@@ -121,6 +121,8 @@ subroutine bandstructure()
 !       else
 !         write(*,*) ' optimal lwork = ',work(1),' lwork = ',lwork
     end if
+    ! Transform energy to eV if runoption is on
+    eval = eval*ry2ev
     write(666,'(1000(es16.8))') dble((count-1.d0)/npts),(real(eval(j)),j=1,dimbs)
   end do band_structure_loop
   close(666)

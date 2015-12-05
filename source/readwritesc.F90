@@ -13,7 +13,7 @@ subroutine readwritesc(iflag,err)
 	if(iflag.eq.0) then
 		if(trim(scfile).eq."") then ! If a filename is not given in inputcard, use the default one
 			if(SOC) then
-				write(file,"('./results/selfconsistency/selfconsistency_Npl=',I0,'_dfttype=',A,'_parts=',I0,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_ncp=',I0,'_eta=',E8.1,'_magaxis=',A,'.dat')") Npl,dfttype,parts,Utype,hwx,hwy,hwz,ncp,eta,magaxis
+				write(file,"('./results/selfconsistency/selfconsistency_Npl=',I0,'_dfttype=',A,'_parts=',I0,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_ncp=',I0,'_eta=',E8.1,'_magaxis=',A,'_socscale=',f5.2,'.dat')") Npl,dfttype,parts,Utype,hwx,hwy,hwz,ncp,eta,magaxis,socscale
 			else
 				write(file,"('./results/selfconsistency/selfconsistency_Npl=',I0,'_dfttype=',A,'_parts=',I0,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_ncp=',I0,'_eta=',E8.1,'.dat')") Npl,dfttype,parts,Utype,hwx,hwy,hwz,ncp,eta
 			end if
@@ -40,7 +40,7 @@ subroutine readwritesc(iflag,err)
 			! If file does not exist, try to read for parts-1
 			close(99)
 			if(SOC) then
-				write(file,"('./results/selfconsistency/selfconsistency_Npl=',I0,'_dfttype=',A,'_parts=',I0,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_ncp=',I0,'_eta=',E8.1,'_magaxis=',A,'.dat')") Npl,dfttype,parts-1,Utype,hwx,hwy,hwz,ncp,eta,magaxis
+				write(file,"('./results/selfconsistency/selfconsistency_Npl=',I0,'_dfttype=',A,'_parts=',I0,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_ncp=',I0,'_eta=',E8.1,'_magaxis=',A,'_socscale=',f5.2,'.dat')") Npl,dfttype,parts-1,Utype,hwx,hwy,hwz,ncp,eta,magaxis,socscale
 			else
 				write(file,"('./results/selfconsistency/selfconsistency_Npl=',I0,'_dfttype=',A,'_parts=',I0,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_ncp=',I0,'_eta=',E8.1,'.dat')") Npl,dfttype,parts-1,Utype,hwx,hwy,hwz,ncp,eta
 			end if
@@ -71,7 +71,7 @@ subroutine readwritesc(iflag,err)
 	else
 		if(myrank.eq.0) write(*,"('[readwritesc] Writing new eps1, Sx, Sy and mag to file...')")
 		if(SOC) then
-			write(file,"('./results/selfconsistency/selfconsistency_Npl=',I0,'_dfttype=',A,'_parts=',I0,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_ncp=',I0,'_eta=',E8.1,'_magaxis=',A,'.dat')") Npl,dfttype,parts,Utype,hwx,hwy,hwz,ncp,eta,magaxis
+			write(file,"('./results/selfconsistency/selfconsistency_Npl=',I0,'_dfttype=',A,'_parts=',I0,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_ncp=',I0,'_eta=',E8.1,'_magaxis=',A,'_socscale=',f5.2,'.dat')") Npl,dfttype,parts,Utype,hwx,hwy,hwz,ncp,eta,magaxis,socscale
 		else
 			write(file,"('./results/selfconsistency/selfconsistency_Npl=',I0,'_dfttype=',A,'_parts=',I0,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_ncp=',I0,'_eta=',E8.1,'.dat')") Npl,dfttype,parts,Utype,hwx,hwy,hwz,ncp,eta
 		end if

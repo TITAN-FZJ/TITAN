@@ -1,9 +1,5 @@
-subroutine openclosechifiles(iflag)
+subroutine openclose_chi_files(iflag)
 	use mod_parameters
-	use mod_magnet
-	use mod_lattice
-	use mod_generate_epoints
-	use mod_tight_binding, only: nmaglayers
 	implicit none
 
 	character(len=500)	:: varm
@@ -19,25 +15,25 @@ subroutine openclosechifiles(iflag)
 		do sigma=1,4 ; do j=1,Npl ; do i=1,Npl
 			! RPA SUSCEPTIBILITIES
 			iw = 1000+(sigma-1)*Npl*Npl+(j-1)*Npl+i
-			write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/RPA/',a2,'/chi_',i0,'_',i0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_qx=',E10.3,'_qz=',E10.3,'.dat')") SOC,Npl,spin(sigma),i,j,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,q(1),q(2)
+			write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/RPA/',a2,'/chi_',i0,'_',i0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_socscale=',f5.2,'_qx=',E10.3,'_qz=',E10.3,'.dat')") SOC,Npl,spin(sigma),i,j,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,socscale,q(1),q(2)
 			open (unit=iw, file=varm, status='unknown', form='formatted')
 			write(unit=iw, fmt="('#   energy  ,  real part of chi ',a,'  ,  imaginary part of chi ',a,'  ,  amplitude of chi ',a,'  ')") spin(sigma),spin(sigma),spin(sigma)
 			close(unit=iw)
 			! HF SUSCEPTIBILITIES
 			iw = iw+1000
- 			write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/HF/',a2,'/chihf_',i0,'_',i0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_qx=',E10.3,'_qz=',E10.3,'.dat')") SOC,Npl,spin(sigma),i,j,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,q(1),q(2)
+ 			write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/HF/',a2,'/chihf_',i0,'_',i0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_socscale=',f5.2,'_qx=',E10.3,'_qz=',E10.3,'.dat')") SOC,Npl,spin(sigma),i,j,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,socscale,q(1),q(2)
  			open (unit=iw, file=varm, status='unknown', form='formatted')
 			write(unit=iw, fmt="('#   energy  ,  real part of chi ',a,' HF ,  imaginary part of chi ',a,' HF  ,  amplitude of chi ',a,' HF  ')") spin(sigma),spin(sigma),spin(sigma)
 			close(unit=iw)
 		end do ; end do ; end do
 		! RPA DIAGONALIZATION
 		if(nmaglayers.gt.1) then
-			write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/RPA/pm/chi_eval_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_qx=',E10.3,'_qz=',E10.3,'.dat')") SOC,Npl,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,q(1),q(2)
+			write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/RPA/pm/chi_eval_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_socscale=',f5.2,'_qx=',E10.3,'_qz=',E10.3,'.dat')") SOC,Npl,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,socscale,q(1),q(2)
 			open (unit=1990, file=varm,status='unknown', form='formatted')
 			write(unit=1990,fmt="('#   energy  ,  real part of 1st eigenvalue  ,  imaginary part of 1st eigenvalue  ,  real part of 2nd eigenvalue  ,  imaginary part of 2nd eigenvalue  , ... ')")
 			close (unit=1990)
 			do i=1,nmaglayers
-				write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/RPA/pm/chi_evec',i0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_qx=',E10.3,'_qz=',E10.3,'.dat')") SOC,Npl,i,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,q(1),q(2)
+				write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/RPA/pm/chi_evec',i0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_socscale=',f5.2,'_qx=',E10.3,'_qz=',E10.3,'.dat')") SOC,Npl,i,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,socscale,q(1),q(2)
 				open (unit=1990+i, file=varm,status='unknown', form='formatted')
 				write(unit=1990+i,fmt="('#   energy  ,  real part of 1st component  ,  imaginary part of 1st component  ,  real part of 2nd component  ,  imaginary part of 2nd component  , ...   ')")
 				close (unit=1990+i)
@@ -48,19 +44,19 @@ subroutine openclosechifiles(iflag)
 		do sigma=1,4 ; do j=1,Npl ; do i=1,Npl
 			! RPA SUSCEPTIBILITIES
 			iw = 1000+(sigma-1)*Npl*Npl+(j-1)*Npl+i
-			write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/RPA/',a2,'/chi_',i0,'_',i0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_qx=',E10.3,'_qz=',E10.3,'.dat')") SOC,Npl,spin(sigma),i,j,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,q(1),q(2)
+			write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/RPA/',a2,'/chi_',i0,'_',i0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_socscale=',f5.2,'_qx=',E10.3,'_qz=',E10.3,'.dat')") SOC,Npl,spin(sigma),i,j,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,socscale,q(1),q(2)
 			open (unit=iw, file=varm, status='old', position='append', form='formatted')
  			! HF SUSCEPTIBILITIES
 			iw = iw+1000
- 			write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/HF/',a2,'/chihf_',i0,'_',i0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_qx=',E10.3,'_qz=',E10.3,'.dat')") SOC,Npl,spin(sigma),i,j,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,q(1),q(2)
+ 			write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/HF/',a2,'/chihf_',i0,'_',i0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_socscale=',f5.2,'_qx=',E10.3,'_qz=',E10.3,'.dat')") SOC,Npl,spin(sigma),i,j,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,socscale,q(1),q(2)
  			open (unit=iw, file=varm, status='old', position='append', form='formatted')
 		end do ; end do ; end do
 		! RPA DIAGONALIZATION
 		if(nmaglayers.gt.1) then
-			write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/RPA/pm/chi_eval_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_qx=',E10.3,'_qz=',E10.3,'.dat')") SOC,Npl,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,q(1),q(2)
+			write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/RPA/pm/chi_eval_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_socscale=',f5.2,'_qx=',E10.3,'_qz=',E10.3,'.dat')") SOC,Npl,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,socscale,q(1),q(2)
 			open (unit=1990, file=varm, status='old', position='append', form='formatted')
 			do i=1,nmaglayers
-				write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/RPA/pm/chi_evec',i0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_qx=',E10.3,'_qz=',E10.3,'.dat')") SOC,Npl,i,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,q(1),q(2)
+				write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/RPA/pm/chi_evec',i0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_socscale=',f5.2,'_qx=',E10.3,'_qz=',E10.3,'.dat')") SOC,Npl,i,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,socscale,q(1),q(2)
 				open (unit=1990+i, file=varm, status='old', position='append', form='formatted')
 			end do
 		end if
@@ -84,13 +80,10 @@ subroutine openclosechifiles(iflag)
 	end if
 
 	return
-end subroutine openclosechifiles
+end subroutine openclose_chi_files
 
-subroutine openclosesdfiles(iflag)
+subroutine openclose_sd_files(iflag)
 	use mod_parameters
-	use mod_magnet
-	use mod_lattice
-	use mod_generate_epoints
 	implicit none
 
 	character(len=500)	:: varm
@@ -117,13 +110,13 @@ subroutine openclosesdfiles(iflag)
 	if(iflag.eq.0) then
 		do i=1,Npl ; do j=1,7
 			iw = 3000+(i-1)*7+j
-			write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/',a,'/',a,'_pos=',I0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_dirEfield=',A,'.dat')") SOC,Npl,folder(j),filename(j),i,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,dirEfield
+			write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/',a,'/',a,'_pos=',I0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_socscale=',f5.2,'_dirEfield=',A,'.dat')") SOC,Npl,folder(j),filename(j),i,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,socscale,dirEfield
 			open (unit=iw, file=varm, status='unknown', form='formatted')
 			write(unit=iw, fmt="('#   energy  ,  amplitude of ',a,'  ,  real part of ',a,'  ,  imaginary part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
 			close(unit=iw)
 			if(renorm) then
 				iw = iw+1000
-				write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/',a,'/r',a,'_pos=',I0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_dirEfield=',A,'_renormnb=',i0,'.dat')") SOC,Npl,folder(j),filename(j),i,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,dirEfield,renormnb
+				write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/',a,'/r',a,'_pos=',I0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_socscale=',f5.2,'_dirEfield=',A,'_renormnb=',i0,'.dat')") SOC,Npl,folder(j),filename(j),i,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,socscale,dirEfield,renormnb
 				open (unit=iw, file=varm, status='unknown', form='formatted')
 				write(unit=iw, fmt="('#   energy  ,  amplitude of ',a,'  ,  real part of ',a,'  ,  imaginary part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
 				close(unit=iw)
@@ -132,11 +125,11 @@ subroutine openclosesdfiles(iflag)
 	else if (iflag.eq.1) then
 		do i=1,Npl ; do j=1,7
 			iw = 3000+(i-1)*7+j
-			write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/',a,'/',a,'_pos=',I0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_dirEfield=',A,'.dat')") SOC,Npl,folder(j),filename(j),i,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,dirEfield
+			write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/',a,'/',a,'_pos=',I0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_socscale=',f5.2,'_dirEfield=',A,'.dat')") SOC,Npl,folder(j),filename(j),i,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,socscale,dirEfield
 			open (unit=iw, file=varm, status='old', position='append', form='formatted')
 			if(renorm) then
 				iw = iw+1000
-				write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/',a,'/r',a,'_pos=',I0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_dirEfield=',A,'_renormnb=',i0,'.dat')") SOC,Npl,folder(j),filename(j),i,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,dirEfield,renormnb
+				write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/',a,'/r',a,'_pos=',I0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_socscale=',f5.2,'_dirEfield=',A,'_renormnb=',i0,'.dat')") SOC,Npl,folder(j),filename(j),i,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,socscale,dirEfield,renormnb
 				open (unit=iw, file=varm, status='old', position='append', form='formatted')
 			end if
 		end do ; end do
@@ -153,12 +146,10 @@ subroutine openclosesdfiles(iflag)
 	end if
 
 	return
-end subroutine openclosesdfiles
+end subroutine openclose_sd_files
 
-subroutine openclosescfiles(iflag)
+subroutine openclose_sc_files(iflag)
 	use mod_parameters
-	use mod_magnet
-	use mod_generate_epoints
 	implicit none
 
 	character(len=500)	:: varm
@@ -182,18 +173,17 @@ subroutine openclosescfiles(iflag)
 	filename(6) = "Ily"
 	filename(7) = "Ilz"
 
-
 	if(iflag.eq.0) then
 		 do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
 			iw = 5000+(i-1)*n0sc2*7+(neighbor-1)*7+j
-			write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/',a,'/prll',a,'_neighbor=',I0,'_pos=',I0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_dirEfield=',A,'.dat')") SOC,Npl,folder(j),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,dirEfield
+			write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/',a,'/prll',a,'_neighbor=',I0,'_pos=',I0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_socscale=',f5.2,'_dirEfield=',A,'.dat')") SOC,Npl,folder(j),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,socscale,dirEfield
 			open (unit=iw, file=varm, status='unknown', form='formatted')
 			write(unit=iw, fmt="('#   energy  ,  amplitude of ',a,'  ,  real part of ',a,'  ,  imaginary part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
 			close(unit=iw)
 
 			if(renorm) then
 				iw = iw+1000
-				write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/',a,'/rprll',a,'_neighbor=',I0,'_pos=',I0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_dirEfield=',A,'_renormnb=',i0,'.dat')") SOC,Npl,folder(j),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,dirEfield,renormnb
+				write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/',a,'/rprll',a,'_neighbor=',I0,'_pos=',I0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_socscale=',f5.2,'_dirEfield=',A,'_renormnb=',i0,'.dat')") SOC,Npl,folder(j),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,socscale,dirEfield,renormnb
 				open (unit=iw, file=varm, status='unknown', form='formatted')
 				write(unit=iw, fmt="('#   energy  ,  amplitude of ',a,'  ,  real part of ',a,'  ,  imaginary part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
 				close(unit=iw)
@@ -202,12 +192,12 @@ subroutine openclosescfiles(iflag)
 	else if(iflag.eq.1) then
 		 do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
 			iw = 5000+(i-1)*n0sc2*7+(neighbor-1)*7+j
-			write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/',a,'/prll',a,'_neighbor=',I0,'_pos=',I0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_dirEfield=',A,'.dat')") SOC,Npl,folder(j),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,dirEfield
+			write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/',a,'/prll',a,'_neighbor=',I0,'_pos=',I0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_socscale=',f5.2,'_dirEfield=',A,'.dat')") SOC,Npl,folder(j),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,socscale,dirEfield
 			open (unit=iw, file=varm, status='old', position='append', form='formatted')
 
 			if(renorm) then
 				iw = iw+1000
-				write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/',a,'/rprll',a,'_neighbor=',I0,'_pos=',I0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_dirEfield=',A,'_renormnb=',i0,'.dat')") SOC,Npl,folder(j),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,dirEfield,renormnb
+				write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/',a,'/rprll',a,'_neighbor=',I0,'_pos=',I0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_socscale=',f5.2,'_dirEfield=',A,'_renormnb=',i0,'.dat')") SOC,Npl,folder(j),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,socscale,dirEfield,renormnb
 				open (unit=iw, file=varm, status='old', position='append', form='formatted')
 			end if
 		end do ; end do ; end do
@@ -224,4 +214,42 @@ subroutine openclosescfiles(iflag)
 	end if
 
 	return
-end subroutine openclosescfiles
+end subroutine openclose_sc_files
+
+
+subroutine openclose_beff_files(iflag)
+	use mod_parameters
+	implicit none
+
+	character(len=500)	:: varm
+	character(len=1)	  :: direction(4)
+	integer :: i,sigma,iw,iflag
+
+	direction(1) = "0"
+	direction(2) = "x"
+	direction(3) = "y"
+	direction(4) = "z"
+
+	if(iflag.eq.0) then
+		do sigma=1,4 ; do i=1,Npl
+			iw = 7000+(sigma-1)*Npl+i
+			write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/Beff/Beff',a,'_pos=',I0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_socscale=',f5.2,'_dirEfield=',A,'.dat')") SOC,Npl,direction(sigma),i,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,socscale,dirEfield
+			open (unit=iw, file=varm, status='unknown', form='formatted')
+			write(unit=iw, fmt="('#   energy  , amplitude of Beff_',a,' , real part of Beff_',a,' , imaginary part of Beff_',a,' , phase of Beff_',a,' , cosine of Beff_',a,'  ,  sine of ',a,'  ')") direction(sigma),direction(sigma),direction(sigma),direction(sigma),direction(sigma),direction(sigma)
+			close(unit=iw)
+		end do ; end do
+	else if (iflag.eq.1) then
+		do sigma=1,4 ; do i=1,Npl
+			iw = 7000+(sigma-1)*Npl+i
+			write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/Beff/Beff',a,'_pos=',I0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_magaxis=',A,'_socscale=',f5.2,'_dirEfield=',A,'.dat')") SOC,Npl,direction(sigma),i,parts,parts3,ncp,eta,Utype,hwx,hwy,hwz,magaxis,socscale,dirEfield
+			open (unit=iw, file=varm, status='old', position='append', form='formatted')
+		end do ; end do
+	else
+		do sigma=1,4 ; do i=1,Npl
+			iw = 7000+(sigma-1)*Npl+i
+			close(unit=iw)
+		end do ; end do
+	end if
+
+	return
+end subroutine openclose_beff_files

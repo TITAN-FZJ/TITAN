@@ -93,25 +93,25 @@ subroutine sumkprllsc(e,ep,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,ifl
 
       do xi=1,9 ; do gamma=1,9 ; do l=1,Npl ; do j=1,Npl ; do nu=1,9 ; do mu=1,9 ; do i=1,Npl
         if(abs(j-l).gt.plnn) cycle
-        df1iikl(sigmaimunu2i(1,i,mu,nu),1) = df1iikl(sigmaimunu2i(1,i,mu,nu),1) + (gfdu(1,i,j,nu,gamma)*gfdu(2,l,i,xi,mu) + conjg(gfud(2,i,l,mu,xi)*gfud(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
+        df1iikl(sigmaimunu2i(1,i,mu,nu),1) = df1iikl(sigmaimunu2i(1,i,mu,nu),1) + (gfdd(1,i,j,nu,gamma)*gfuu(2,l,i,xi,mu) + conjg(gfuu(2,i,l,mu,xi)*gfdd(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(1,i,mu,nu),2) = df1iikl(sigmaimunu2i(1,i,mu,nu),2) + (gfdu(1,i,j,nu,gamma)*gfuu(2,l,i,xi,mu) + conjg(gfuu(2,i,l,mu,xi)*gfud(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(1,i,mu,nu),3) = df1iikl(sigmaimunu2i(1,i,mu,nu),3) + (gfdd(1,i,j,nu,gamma)*gfdu(2,l,i,xi,mu) + conjg(gfud(2,i,l,mu,xi)*gfdd(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
-        df1iikl(sigmaimunu2i(1,i,mu,nu),4) = df1iikl(sigmaimunu2i(1,i,mu,nu),4) + (gfdd(1,i,j,nu,gamma)*gfuu(2,l,i,xi,mu) + conjg(gfuu(2,i,l,mu,xi)*gfdd(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
+        df1iikl(sigmaimunu2i(1,i,mu,nu),4) = df1iikl(sigmaimunu2i(1,i,mu,nu),4) + (gfdu(1,i,j,nu,gamma)*gfdu(2,l,i,xi,mu) + conjg(gfud(2,i,l,mu,xi)*gfud(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
 
-        df1iikl(sigmaimunu2i(2,i,mu,nu),1) = df1iikl(sigmaimunu2i(2,i,mu,nu),1) + (gfuu(1,i,j,nu,gamma)*gfdu(2,l,i,xi,mu) + conjg(gfud(2,i,l,mu,xi)*gfuu(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
+        df1iikl(sigmaimunu2i(2,i,mu,nu),1) = df1iikl(sigmaimunu2i(2,i,mu,nu),1) + (gfud(1,i,j,nu,gamma)*gfuu(2,l,i,xi,mu) + conjg(gfuu(2,i,l,mu,xi)*gfdu(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(2,i,mu,nu),2) = df1iikl(sigmaimunu2i(2,i,mu,nu),2) + (gfuu(1,i,j,nu,gamma)*gfuu(2,l,i,xi,mu) + conjg(gfuu(2,i,l,mu,xi)*gfuu(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(2,i,mu,nu),3) = df1iikl(sigmaimunu2i(2,i,mu,nu),3) + (gfud(1,i,j,nu,gamma)*gfdu(2,l,i,xi,mu) + conjg(gfud(2,i,l,mu,xi)*gfdu(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
-        df1iikl(sigmaimunu2i(2,i,mu,nu),4) = df1iikl(sigmaimunu2i(2,i,mu,nu),4) + (gfud(1,i,j,nu,gamma)*gfuu(2,l,i,xi,mu) + conjg(gfuu(2,i,l,mu,xi)*gfdu(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
+        df1iikl(sigmaimunu2i(2,i,mu,nu),4) = df1iikl(sigmaimunu2i(2,i,mu,nu),4) + (gfuu(1,i,j,nu,gamma)*gfdu(2,l,i,xi,mu) + conjg(gfud(2,i,l,mu,xi)*gfuu(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
 
-        df1iikl(sigmaimunu2i(3,i,mu,nu),1) = df1iikl(sigmaimunu2i(3,i,mu,nu),1) + (gfdu(1,i,j,nu,gamma)*gfdd(2,l,i,xi,mu) + conjg(gfdd(2,i,l,mu,xi)*gfud(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
+        df1iikl(sigmaimunu2i(3,i,mu,nu),1) = df1iikl(sigmaimunu2i(3,i,mu,nu),1) + (gfdd(1,i,j,nu,gamma)*gfud(2,l,i,xi,mu) + conjg(gfdu(2,i,l,mu,xi)*gfdd(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(3,i,mu,nu),2) = df1iikl(sigmaimunu2i(3,i,mu,nu),2) + (gfdu(1,i,j,nu,gamma)*gfud(2,l,i,xi,mu) + conjg(gfdu(2,i,l,mu,xi)*gfud(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(3,i,mu,nu),3) = df1iikl(sigmaimunu2i(3,i,mu,nu),3) + (gfdd(1,i,j,nu,gamma)*gfdd(2,l,i,xi,mu) + conjg(gfdd(2,i,l,mu,xi)*gfdd(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
-        df1iikl(sigmaimunu2i(3,i,mu,nu),4) = df1iikl(sigmaimunu2i(3,i,mu,nu),4) + (gfdd(1,i,j,nu,gamma)*gfud(2,l,i,xi,mu) + conjg(gfdu(2,i,l,mu,xi)*gfdd(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
+        df1iikl(sigmaimunu2i(3,i,mu,nu),4) = df1iikl(sigmaimunu2i(3,i,mu,nu),4) + (gfdu(1,i,j,nu,gamma)*gfdd(2,l,i,xi,mu) + conjg(gfdd(2,i,l,mu,xi)*gfud(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
 
-        df1iikl(sigmaimunu2i(4,i,mu,nu),1) = df1iikl(sigmaimunu2i(4,i,mu,nu),1) + (gfuu(1,i,j,nu,gamma)*gfdd(2,l,i,xi,mu) + conjg(gfdd(2,i,l,mu,xi)*gfuu(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
+        df1iikl(sigmaimunu2i(4,i,mu,nu),1) = df1iikl(sigmaimunu2i(4,i,mu,nu),1) + (gfud(1,i,j,nu,gamma)*gfud(2,l,i,xi,mu) + conjg(gfdu(2,i,l,mu,xi)*gfdu(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(4,i,mu,nu),2) = df1iikl(sigmaimunu2i(4,i,mu,nu),2) + (gfuu(1,i,j,nu,gamma)*gfud(2,l,i,xi,mu) + conjg(gfdu(2,i,l,mu,xi)*gfuu(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(4,i,mu,nu),3) = df1iikl(sigmaimunu2i(4,i,mu,nu),3) + (gfud(1,i,j,nu,gamma)*gfdd(2,l,i,xi,mu) + conjg(gfdd(2,i,l,mu,xi)*gfdu(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
-        df1iikl(sigmaimunu2i(4,i,mu,nu),4) = df1iikl(sigmaimunu2i(4,i,mu,nu),4) + (gfud(1,i,j,nu,gamma)*gfud(2,l,i,xi,mu) + conjg(gfdu(2,i,l,mu,xi)*gfdu(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
+        df1iikl(sigmaimunu2i(4,i,mu,nu),4) = df1iikl(sigmaimunu2i(4,i,mu,nu),4) + (gfuu(1,i,j,nu,gamma)*gfdd(2,l,i,xi,mu) + conjg(gfdd(2,i,l,mu,xi)*gfuu(1,j,i,gamma,nu)))*dtdk(j,l,gamma,xi)
       end do ; end do ; end do ; end do ; end do ; end do ; end do
 
     else
@@ -133,25 +133,25 @@ subroutine sumkprllsc(e,ep,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,ifl
 
       do xi=1,9 ; do gamma=1,9 ; do l=1,Npl ; do j=1,Npl ; do nu=1,9 ; do mu=1,9 ; do i=1,Npl
         if(abs(j-l).gt.plnn) cycle
-        df1iikl(sigmaimunu2i(1,i,mu,nu),1) = df1iikl(sigmaimunu2i(1,i,mu,nu),1)-zi*(gfdu(1,i,j,nu,gamma)-conjg(gfud(1,j,i,gamma,nu)))*conjg(gfud(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
+        df1iikl(sigmaimunu2i(1,i,mu,nu),1) = df1iikl(sigmaimunu2i(1,i,mu,nu),1)-zi*(gfdd(1,i,j,nu,gamma)-conjg(gfdd(1,j,i,gamma,nu)))*conjg(gfuu(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(1,i,mu,nu),2) = df1iikl(sigmaimunu2i(1,i,mu,nu),2)-zi*(gfdu(1,i,j,nu,gamma)-conjg(gfud(1,j,i,gamma,nu)))*conjg(gfuu(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(1,i,mu,nu),3) = df1iikl(sigmaimunu2i(1,i,mu,nu),3)-zi*(gfdd(1,i,j,nu,gamma)-conjg(gfdd(1,j,i,gamma,nu)))*conjg(gfud(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
-        df1iikl(sigmaimunu2i(1,i,mu,nu),4) = df1iikl(sigmaimunu2i(1,i,mu,nu),4)-zi*(gfdd(1,i,j,nu,gamma)-conjg(gfdd(1,j,i,gamma,nu)))*conjg(gfuu(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
+        df1iikl(sigmaimunu2i(1,i,mu,nu),4) = df1iikl(sigmaimunu2i(1,i,mu,nu),4)-zi*(gfdu(1,i,j,nu,gamma)-conjg(gfud(1,j,i,gamma,nu)))*conjg(gfud(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
 
-        df1iikl(sigmaimunu2i(2,i,mu,nu),1) = df1iikl(sigmaimunu2i(2,i,mu,nu),1)-zi*(gfuu(1,i,j,nu,gamma)-conjg(gfuu(1,j,i,gamma,nu)))*conjg(gfud(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
+        df1iikl(sigmaimunu2i(2,i,mu,nu),1) = df1iikl(sigmaimunu2i(2,i,mu,nu),1)-zi*(gfud(1,i,j,nu,gamma)-conjg(gfdu(1,j,i,gamma,nu)))*conjg(gfuu(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(2,i,mu,nu),2) = df1iikl(sigmaimunu2i(2,i,mu,nu),2)-zi*(gfuu(1,i,j,nu,gamma)-conjg(gfuu(1,j,i,gamma,nu)))*conjg(gfuu(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(2,i,mu,nu),3) = df1iikl(sigmaimunu2i(2,i,mu,nu),3)-zi*(gfud(1,i,j,nu,gamma)-conjg(gfdu(1,j,i,gamma,nu)))*conjg(gfud(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
-        df1iikl(sigmaimunu2i(2,i,mu,nu),4) = df1iikl(sigmaimunu2i(2,i,mu,nu),4)-zi*(gfud(1,i,j,nu,gamma)-conjg(gfdu(1,j,i,gamma,nu)))*conjg(gfuu(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
+        df1iikl(sigmaimunu2i(2,i,mu,nu),4) = df1iikl(sigmaimunu2i(2,i,mu,nu),4)-zi*(gfuu(1,i,j,nu,gamma)-conjg(gfuu(1,j,i,gamma,nu)))*conjg(gfud(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
 
-        df1iikl(sigmaimunu2i(3,i,mu,nu),1) = df1iikl(sigmaimunu2i(3,i,mu,nu),1)-zi*(gfdu(1,i,j,nu,gamma)-conjg(gfud(1,j,i,gamma,nu)))*conjg(gfdd(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
+        df1iikl(sigmaimunu2i(3,i,mu,nu),1) = df1iikl(sigmaimunu2i(3,i,mu,nu),1)-zi*(gfdd(1,i,j,nu,gamma)-conjg(gfdd(1,j,i,gamma,nu)))*conjg(gfdu(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(3,i,mu,nu),2) = df1iikl(sigmaimunu2i(3,i,mu,nu),2)-zi*(gfdu(1,i,j,nu,gamma)-conjg(gfud(1,j,i,gamma,nu)))*conjg(gfdu(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(3,i,mu,nu),3) = df1iikl(sigmaimunu2i(3,i,mu,nu),3)-zi*(gfdd(1,i,j,nu,gamma)-conjg(gfdd(1,j,i,gamma,nu)))*conjg(gfdd(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
-        df1iikl(sigmaimunu2i(3,i,mu,nu),4) = df1iikl(sigmaimunu2i(3,i,mu,nu),4)-zi*(gfdd(1,i,j,nu,gamma)-conjg(gfdd(1,j,i,gamma,nu)))*conjg(gfdu(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
+        df1iikl(sigmaimunu2i(3,i,mu,nu),4) = df1iikl(sigmaimunu2i(3,i,mu,nu),4)-zi*(gfdu(1,i,j,nu,gamma)-conjg(gfud(1,j,i,gamma,nu)))*conjg(gfdd(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
 
-        df1iikl(sigmaimunu2i(4,i,mu,nu),1) = df1iikl(sigmaimunu2i(4,i,mu,nu),1)-zi*(gfuu(1,i,j,nu,gamma)-conjg(gfuu(1,j,i,gamma,nu)))*conjg(gfdd(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
+        df1iikl(sigmaimunu2i(4,i,mu,nu),1) = df1iikl(sigmaimunu2i(4,i,mu,nu),1)-zi*(gfud(1,i,j,nu,gamma)-conjg(gfdu(1,j,i,gamma,nu)))*conjg(gfdu(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(4,i,mu,nu),2) = df1iikl(sigmaimunu2i(4,i,mu,nu),2)-zi*(gfuu(1,i,j,nu,gamma)-conjg(gfuu(1,j,i,gamma,nu)))*conjg(gfdu(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(4,i,mu,nu),3) = df1iikl(sigmaimunu2i(4,i,mu,nu),3)-zi*(gfud(1,i,j,nu,gamma)-conjg(gfdu(1,j,i,gamma,nu)))*conjg(gfdd(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
-        df1iikl(sigmaimunu2i(4,i,mu,nu),4) = df1iikl(sigmaimunu2i(4,i,mu,nu),4)-zi*(gfud(1,i,j,nu,gamma)-conjg(gfdu(1,j,i,gamma,nu)))*conjg(gfdu(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
+        df1iikl(sigmaimunu2i(4,i,mu,nu),4) = df1iikl(sigmaimunu2i(4,i,mu,nu),4)-zi*(gfuu(1,i,j,nu,gamma)-conjg(gfuu(1,j,i,gamma,nu)))*conjg(gfdd(2,i,l,mu,xi))*dtdk(j,l,gamma,xi)
       end do ; end do ; end do ; end do ; end do ; end do ; end do
 
     end if
