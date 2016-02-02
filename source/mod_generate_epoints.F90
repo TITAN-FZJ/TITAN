@@ -75,12 +75,12 @@ contains
 	!	This subroutine returns the N points in the abcissae x and its weight w using Gauss-Legendre
 	subroutine gauleg(x1,x2,x,w,n)
 	  implicit none
-	  integer, intent(in) :: n
-	  double precision, intent(in) :: x1, x2
-	  double precision, dimension(n), intent(out) :: x, w
+	  integer, 			intent(in) :: n
+	  real(double), intent(in) :: x1, x2
+	  real(double), dimension(n), intent(out) :: x, w
 	  integer :: i, j, m
-	  double precision :: p1, p2, p3, pp, xl, xm, z, z1
-	  double precision, parameter :: eps=3.d-14
+	  real(double) :: p1, p2, p3, pp, xl, xm, z, z1
+	  real(double), parameter :: eps=3.d-14
 
 	  m = (n+1)/2
 	  xm = 0.5d0*(x2+x1)

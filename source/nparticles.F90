@@ -283,7 +283,7 @@ subroutine nparticlesjacnag(N,eps,npart,npartjac,ldfjac,iflag)
 				splus(j) = (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
 			end do
 
-	 		if(index(runoptions,"verbose").gt.0) write(*,"('[nparticlesjacnag] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
+	 		if(index(runoptions,"verbose").gt.0) write(*,"('[nparticlesjacnag1] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
 			do i=2,pn1
 				! Progress bar
 	      prog = floor(i*100.d0/pn1)
@@ -316,7 +316,7 @@ subroutine nparticlesjacnag(N,eps,npart,npartjac,ldfjac,iflag)
 					call MPI_Send(0,1,MPI_INTEGER,stat(MPI_SOURCE),0,MPI_COMM_WORLD,ierr)
 				end if
 			end do
-		else
+		else ! myrank
 			! Other processors calculate each point of the integral and waits for new points
 			do
 				if(ix.gt.pn1) exit
@@ -328,7 +328,7 @@ subroutine nparticlesjacnag(N,eps,npart,npartjac,ldfjac,iflag)
 				gdiagud = wght(ix)*gdiagud
 				gdiagdu = wght(ix)*gdiagdu
 
-	 			if(index(runoptions,"verbose").gt.0) write(*,"('[nparticlesjacnag] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
+	 			if(index(runoptions,"verbose").gt.0) write(*,"('[nparticlesjacnag1] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
 				! Sending results to process 0
 				call MPI_Send(gdiaguur,ncount,MPI_DOUBLE_PRECISION,0,9999,MPI_COMM_WORLD,ierr)
 				call MPI_Send(gdiagddr,ncount,MPI_DOUBLE_PRECISION,0,9998,MPI_COMM_WORLD,ierr)
@@ -338,7 +338,7 @@ subroutine nparticlesjacnag(N,eps,npart,npartjac,ldfjac,iflag)
 				call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_COMM_WORLD,stat,ierr)
 				if(ix.eq.0) exit
 			end do
-		end if
+		end if ! myrank
 
 		! Send results to all processors
 		call MPI_Bcast(n_orb_u,ncount,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
@@ -378,7 +378,7 @@ subroutine nparticlesjacnag(N,eps,npart,npartjac,ldfjac,iflag)
 			call sumk_npartjac(Ef,y(ix),ggr)
 			npartjac = wght(ix)*ggr
 
-	 		if(index(runoptions,"verbose").gt.0) write(*,"('[nparticlesjacnag] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
+	 		if(index(runoptions,"verbose").gt.0) write(*,"('[nparticlesjacnag2] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
 			do i=2,pn1
 				! Progress bar
 	      prog = floor(i*100.d0/pn1)
@@ -412,7 +412,7 @@ subroutine nparticlesjacnag(N,eps,npart,npartjac,ldfjac,iflag)
 				call sumk_npartjac(Ef,y(ix),ggr)
 				ggr = wght(ix)*ggr
 
-	 			if(index(runoptions,"verbose").gt.0) write(*,"('[nparticlesjacnag] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
+	 			if(index(runoptions,"verbose").gt.0) write(*,"('[nparticlesjacnag2] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
 				! Sending results to process 0
 				call MPI_Send(ggr,ncount2,MPI_DOUBLE_PRECISION,0,3333,MPI_COMM_WORLD,ierr)
 				! Receiving new point or signal to exit

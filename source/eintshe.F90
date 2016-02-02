@@ -36,7 +36,11 @@ subroutine eintshe(e,tchiorbiikl,ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lztt
 
 ! Starting to calculate energy integral
 	if (myrank_row.eq.masterrank) then ! Process 0 calculates one point, receives results from others and send new tasks if necessary
-		call sumk(e,y(ix),tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,0)
+		if(llinearsoc) then
+			call sumklinearsoc(e,y(ix),tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,0)
+		else
+			call sumk(e,y(ix),tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,0)
+		end if
 		tchiorbiikl     = tFintiikl   *wght(ix)
 		ttchiorbiikl    = ttFintiikl  *wght(ix)
 		Lxttchiorbiikl  = LxttFintiikl*wght(ix)
@@ -78,7 +82,11 @@ subroutine eintshe(e,tchiorbiikl,ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lztt
 		! Other processors calculate each point of the integral and waits for new points
 		do
 			if (ix.le.pn1) then ! First and second integrations (in the complex plane)
-				call sumk(e,y(ix),tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,0)
+				if(llinearsoc) then
+					call sumklinearsoc(e,y(ix),tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,0)
+				else
+					call sumk(e,y(ix),tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,0)
+				end if
 				tFintiikl    = tFintiikl   *wght(ix)
 				ttFintiikl   = ttFintiikl  *wght(ix)
 				LxttFintiikl = LxttFintiikl*wght(ix)
@@ -86,7 +94,11 @@ subroutine eintshe(e,tchiorbiikl,ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lztt
 				LzttFintiikl = LzttFintiikl*wght(ix)
 			else if ((ix.gt.pn1).and.(ix.le.nepoints)) then ! Third integration (on the real axis)
 				ix2 = ix-pn1
-				call sumk(e,x2(ix2),tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,1)
+				if(llinearsoc) then
+					call sumklinearsoc(e,x2(ix2),tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,1)
+				else
+					call sumk(e,x2(ix2),tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,1)
+				end if
 				tFintiikl    = tFintiikl   *p2(ix2)
 				ttFintiikl   = ttFintiikl  *p2(ix2)
 				LxttFintiikl = LxttFintiikl*p2(ix2)

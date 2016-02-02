@@ -24,31 +24,3 @@ subroutine invers(matriz,nn)
 
 	return
 end subroutine invers
-
-! !	This subroutine calculates the inverse of NNxNN matrix 'matriz'
-
-! subroutine invers(matriz,nn)
-! 	use mod_f90_kind
-! 	use mod_constants
-! 	implicit none
-! 	integer :: nn,info,i
-! 	integer, dimension(nn) :: ipiv
-! 	complex(double), dimension(nn,nn) :: matriz
-! 	complex(double), dimension(nn,nn) :: work
-
-! 	work = zero
-! 	do i=1,nn
-! 	 work(i,i) = zum
-! 	end do
-
-! 	call zgesv(nn,nn,matriz,nn,ipiv,work,nn,info)
-
-! 	if (info/=0) then
-! 		write(*,*)'info=',info
-! 		stop '[invers] Singular matrix!'
-! 	end if
-
-! 	matriz = work
-
-! 	return
-! end subroutine invers

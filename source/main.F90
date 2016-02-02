@@ -1,4 +1,4 @@
-program SHE
+program DHE
   use mod_f90_kind
   use mod_constants
   use mod_parameters
@@ -57,7 +57,7 @@ program SHE
 #endif
 
   complex(double), dimension(:,:),   allocatable :: identt,temp,Umatorb
-  complex(double), dimension(:,:),   allocatable :: chiorb_hf,chiorb,tchiorbiikl
+  complex(double), dimension(:,:),   allocatable :: chiorb_hf,chiorb_hflsoc,chiorb,tchiorbiikl
   complex(double), dimension(:,:,:), allocatable :: templd
   complex(double), dimension(:,:,:), allocatable :: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl
 !---------------------------- begin MPI vars ---------------------------
@@ -370,6 +370,35 @@ program SHE
       end if
       stop
     end if
+!------------------------ Check if files exist -------------------------
+    if(index(runoptions,"addresults").ne.0) then
+      check_files: select case (itype)
+      case (5)
+        call openclose_chi_files(1)
+        call openclose_chi_files(2)
+      case (6)
+        call openclose_chi_files(1)
+        call openclose_chi_files(2)
+        call openclose_sd_files(1)
+        call openclose_sd_files(2)
+        call openclose_beff_files(1)
+        call openclose_beff_files(2)
+      case (7)
+        call openclose_chi_files(1)
+        call openclose_chi_files(2)
+        call openclose_sc_files(1)
+        call openclose_sc_files(2)
+      case (8)
+        call openclose_chi_files(1)
+        call openclose_chi_files(2)
+        call openclose_sd_files(1)
+        call openclose_sd_files(2)
+        call openclose_sc_files(1)
+        call openclose_sc_files(2)
+        call openclose_beff_files(1)
+        call openclose_beff_files(2)
+      end select check_files
+    end if
 !-------------------------- Begin first test part ----------------------
     if((myrank.eq.0).and.(itype.eq.0)) then
       write(*,"('FIRST TEST PART')")
@@ -517,11 +546,11 @@ program SHE
 
       end do self_consistency
 
-      ! Writing new eps1 and mag to file after self-consistency
-      if(myrank.eq.0) then
-        iflag = 1
-        call readwritesc(iflag,err)
-      end if
+!       ! Writing new eps1 and mag to file after self-consistency
+!       if(myrank.eq.0) then
+!         iflag = 1
+!         call readwritesc(iflag,err)
+!       end if
 
     end if
 
@@ -916,8 +945,8 @@ program SHE
         call MPI_Bcast(chiorb_hf,dim*dim,MPI_DOUBLE_COMPLEX,0,MPIComm_Row,ierr)
 
         ! prefactor = (1 + chi_hf*Umat)^-1
-        call zgemm('n','n',dim,dim,dim,zum,chiorb_hf,dim,Umatorb,dim,zero,prefactor,dim) !prefactor = chi_hf*Umat
-        prefactor = identt + prefactor
+        prefactor = identt
+        call zgemm('n','n',dim,dim,dim,zum,chiorb_hf,dim,Umatorb,dim,zum,prefactor,dim) !prefactor = 1+chi_hf*Umat
         call invers(prefactor,dim)
         if(myrank.eq.0) then
           elapsed_time = MPI_Wtime() - start_program
@@ -1240,8 +1269,8 @@ program SHE
         call MPI_Bcast(chiorb_hf,dim*dim,MPI_DOUBLE_COMPLEX,0,MPIComm_Row,ierr)
 
         ! prefactor = (1 + chi_hf*Umat)^-1
-        call zgemm('n','n',dim,dim,dim,zum,chiorb_hf,dim,Umatorb,dim,zero,prefactor,dim) !prefactor = chi_hf*Umat
-        prefactor = identt + prefactor
+        prefactor = identt
+        call zgemm('n','n',dim,dim,dim,zum,chiorb_hf,dim,Umatorb,dim,zum,prefactor,dim) !prefactor = 1+chi_hf*Umat
         call invers(prefactor,dim)
         if(myrank.eq.0) then
           elapsed_time = MPI_Wtime() - start_program
@@ -1563,6 +1592,13 @@ program SHE
         write(*,"('[main] Not enough memory for: chiorb_hf,prefactor,tchiorbiikl,ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl')")
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
+      if(llinearsoc) then
+        allocate( chiorb_hflsoc(dim,dim),prefactorlsoc(dim,dim), STAT = AllocateStatus  )
+        if (AllocateStatus.ne.0) then
+          write(*,"('[main] Not enough memory for: chiorb_hflsoc,prefactorlsoc')")
+          call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+        end if
+      end if
 
       ! Calculates matrices hopping x angular momentum matrix for orbital angular momentum current calculation
       call OAM_curr_hopping_times_L()
@@ -1574,15 +1610,29 @@ program SHE
         end if
 
         if(myrank.eq.0) write(*,"('[main] Calculating pre-factor to use in currents and disturbances calculation ')")
-        call eintshechi(e,chiorb_hf)
+        if(llinearsoc) then
+          call eintshechilinearsoc(e,chiorb_hf,chiorb_hflsoc) ! Note: chiorb_hflsoc = lambda*dchi_hf/dlambda(lambda=0)
+          ! Broadcast chiorb_hflsoc to all processors of the same row
+          call MPI_Bcast(chiorb_hflsoc,dim*dim,MPI_DOUBLE_COMPLEX,0,MPIComm_Row,ierr)
+        else
+          call eintshechi(e,chiorb_hf)
+        end if
 
         ! Broadcast chiorb_hf to all processors of the same row
         call MPI_Bcast(chiorb_hf,dim*dim,MPI_DOUBLE_COMPLEX,0,MPIComm_Row,ierr)
 
         ! prefactor = (1 + chi_hf*Umat)^-1
-        call zgemm('n','n',dim,dim,dim,zum,chiorb_hf,dim,Umatorb,dim,zero,prefactor,dim) !prefactor = chi_hf*Umat
-        prefactor = identt + prefactor
+        prefactor     = identt
+        call zgemm('n','n',dim,dim,dim,zum,chiorb_hf,dim,Umatorb,dim,zum,prefactor,dim) ! prefactor = 1+chi_hf*Umat
         call invers(prefactor,dim)
+        if(llinearsoc) then
+          prefactorlsoc = identt
+          if (.not. allocated(chiorb)) allocate(chiorb(dim,dim))
+          chiorb = chiorb_hf-chiorb_hflsoc ! the array chiorb will be used as a temporary array
+          call zgemm('n','n',dim,dim,dim,zum,chiorb,dim,Umatorb,dim,zum,prefactorlsoc,dim) ! prefactorlsoc = 1+chiorb*Umat = 1+(chi_hf + dchi_hf/dlambda)*Umat
+          call zgemm('n','n',dim,dim,dim,zum,prefactor,dim,prefactorlsoc,dim,zero,chiorb,dim) ! chiorb = prefactor*prefactorlsoc
+          call zgemm('n','n',dim,dim,dim,zum,chiorb,dim,prefactor,dim,zero,prefactorlsoc,dim) ! prefactorlsoc = chiorb*prefactor = prefactor*prefactorlsoc*prefactor
+        end if
         if(myrank.eq.0) then
           elapsed_time = MPI_Wtime() - start_program
           write(*,"('[main] Calculated prefactor after: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
@@ -1598,7 +1648,14 @@ program SHE
 
         if(myrank_row.eq.0) then
           ! Calculating the full matrix of RPA and HF susceptibilities for energy e
-          call zgemm('n','n',dim,dim,dim,zum,prefactor,dim,chiorb_hf,dim,zero,chiorb,dim) ! (1+chi_hf*Umat)^-1 * chi_hf
+          if(llinearsoc) then
+            ! chiorb = prefactorlsoc*chi_hf + prefactor*chi_hflsoc
+            call zgemm('n','n',dim,dim,dim,zum,prefactorlsoc,dim,chiorb_hf,dim,zero,chiorb,dim)
+            call zgemm('n','n',dim,dim,dim,zum,prefactor,dim,chiorb_hflsoc,dim,zum,chiorb,dim)
+          else
+            ! chiorb = prefactor*chi_hf
+            call zgemm('n','n',dim,dim,dim,zum,prefactor,dim,chiorb_hf,dim,zero,chiorb,dim) ! (1+chi_hf*Umat)^-1 * chi_hf
+          end if
 
           chiinv = zero
           ! Calculating susceptibility to use on Beff calculation
@@ -1992,6 +2049,8 @@ program SHE
         end if
       end do all_energy_loop
 
+      if(llinearsoc) deallocate(chiorb_hflsoc,prefactorlsoc)
+      if(allocated(chiorb)) deallocate(chiorb)
       deallocate(chiorb_hf,prefactor,tchiorbiikl,ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl)
       if(myrank_row.eq.0) then
         if(myrank_col.eq.0) then
@@ -2002,7 +2061,7 @@ program SHE
 #endif
           end if
         end if
-        deallocate(templd,chiorb)
+        deallocate(templd)
         if(renorm) deallocate(rIch,rIsx,rIsy,rIsz,rIlx,rIly,rIlz,rsdx,rsdy,rsdz,rchd,rldx,rldy,rldz)
         deallocate(Ich,Isx,Isy,Isz,Ilx,Ily,Ilz)
         deallocate(schi,schihf,sdx,sdy,sdz,chd,ldx,ldy,ldz)
@@ -2206,4 +2265,4 @@ program SHE
   end if
 !=======================================================================
   stop
-end program SHE
+end program DHE

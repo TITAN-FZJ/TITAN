@@ -13,21 +13,24 @@
 !   9 - Fermi surface                                                           !
 !  10 - Exhange interactions and anisotropies (full tensor)                     !
 !  11 - Probability of spin-flip as a function of position                      !
--> itype = 8
+-> itype = 1
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
 !   noUonall    - set U=0 on all layers                                         !
 !   noUonNM     - set U=0 on NM layers                                          !
 !   GSL         - Calculate ground state of Orbital Angular Momentum L          !
 !   verbose     - write intermediate steps                                      !
-!   ry2ev       - convert energy units to eV (NOT FULLY IMPLEMENTED YET)        !
+!   ry2ev       - convert energy units to eV                                    !
+!   tesla       - read values of static magnetic field in tesla                 !
 !   idebug      - turn on to use this optional variable for debugging           !
 !   createfiles - Just create files (WARNING: overwrite existing files!)        !
 !   addresults  - Add results to existing files, instead of creating new ones   !
 !                 (files MUST exist)                                            !
 !   slatec      - Use non-linear root finder dnsqe from Slatec library          !
 !   kpoints     - Write kpoints and weights into files                          !
--> Options: ! slatec ! verbose GSL ! noUonPt ! addresults
+!   lineargfsoc - Adds linear order SOC in the GF                               !
+!   linearsoc   - Adds linear order SOC in the susceptibility                   !
+-> Options: linearsoc GSL verbose ! slatec ! verbose GSL ! noUonPt ! addresults
 !===============================================================================!
 !                               SYSTEM VARIABLES                                !
 ! Lattice and surface direction:                                                !
@@ -36,11 +39,16 @@
 -> a0 = 3.92
 ! Number of planes:
 !(For SC and exchange calculation, use initial and final number of layers)
--> Npl = 9
+-> Npl = 6
 ! Small imaginary part of the Green function:
 -> eta = 5.0E-04
 !===============================================================================!
-!                   STATIC MAGNETIC FIELD IN EACH DIRECTION                     !
+!                          STATIC MAGNETIC ZEEMAN FIELD                         !
+!                         (in the spin reference system)                        !
+-> FIELD = F  ! Magnetic field on (T) or off (F) (choose one form below)
+! Spherical coordinates (default, angles in units of pi)                        !
+-> hwabs = 0.2E-03 , hwtheta = 0.0E+00 , hwphi = 0.0E+00
+! Cartesian coordinates                                                         !
 -> hwx = 0.0E+00 , hwy = 0.0E+00 , hwz = 0.0E+00
 !===============================================================================!
 !                             SPIN ORBIT COUPLING                               !
@@ -60,7 +68,7 @@
 !                               |                                               !
 !                               8                                               !
 ! Magnetization axis:                                                           !
--> magaxis = 9
+-> magaxis = 6
 !===============================================================================!
 !                   DIRECTION OF IN-PLANE ELECTRIC FIELD                        !
 -> dirEfield = 1
@@ -76,23 +84,23 @@
 !===============================================================================!
 !                           INTEGRATION VARIABLES                               !
 ! Number of Cunningham k-vector generators: (ncp > 0)                           !
--> ncp = 6
+-> ncp = 1
 ! Number of parts to divide energy integral in complex plane:                   !
--> parts = 2 , n1gl = 64
+-> parts = 2 , n1gl = 1
 !  Number of parts to divide energy integral in real axis:                      !
--> parts3 = 1 , n3gl = 64
+-> parts3 = 1 , n3gl = 2
 !===============================================================================!
 !                              PLOTTING VARIABLES                               !
 !           PLOTTING VARIABLES         !             BAND STRUCTURE             !
 ! Minimum and maximum value of energy: ! High symmetry direction                !
--> emin = 1.00E-06 , emax =  5.00E-04   -> kdirection = GH
+-> emin = 1.00E-06 , emax =  1.00E-06   -> kdirection = GH
 !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -!
 !                              Number of points:                                !
--> npts = 15
+-> npts = 1
 !===============================================================================!
 !                              SELF-CONSISTENCY                                 !
 !        (Finding center of the bands for the given number of particles)        !
--> skipsc = T ! skip self-consistency calculation when it finds previous results
+-> skipsc = F ! skip self-consistency calculation when it finds previous results
 ! File to use as starting point:
 !-> scfile: Resultados/selfconsistency/selfconsistency_Npl=4_parts=2_U= 0.7E-01_hwx= 0.0E+00_hwy= 0.0E+00_hwz= 0.0E+00_ncp=6_eta= 0.5E-03.dat
 !===============================================================================!
@@ -104,4 +112,10 @@
 -> set1 = 3
 ! Second half of the slab:
 -> set2 = 4
+!*******************************************************************************!
+! To stop the program:                                                          !
+! - after an energy step, just create a file called 'stop'                      !
+! (e.g., in terminal: touch stop)                                               !
+! - after any layer calculation, just create a file called 'stopNpl'            !
+! (e.g., in terminal: touch stopNpl)                                            !
 !*******************************************************************************!

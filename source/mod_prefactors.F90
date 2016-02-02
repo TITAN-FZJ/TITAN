@@ -1,7 +1,7 @@
 module mod_prefactors
 	use mod_f90_kind
 	implicit none
-	complex(double), dimension(:,:), allocatable	:: prefactor
+	complex(double), dimension(:,:), allocatable	:: prefactor,prefactorlsoc
   complex(double),dimension(:,:,:,:), allocatable :: lxpt,lypt,lzpt,tlxp,tlyp,tlzp
 
 contains

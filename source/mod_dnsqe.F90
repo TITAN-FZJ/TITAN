@@ -360,7 +360,7 @@ contains
          XTOL = TOL
          ML = N - 1
          MU = N - 1
-         EPSFCN = TINY(X(1))
+         EPSFCN = D1MACH(4)
 !          EPSFCN = ZERO
          MODE = 2
          DO 10 J = 1, N
@@ -847,8 +847,8 @@ contains
          NFEV = 1
 !     ...EXIT
          IF (IFLAG .LT. 0) GO TO 320
-         CALL DENORMSUB(N,FVEC,FNORM)
-!          FNORM = DENORM(N,FVEC)
+!          CALL DENORMSUB(N,FVEC,FNORM)
+         FNORM = DENORM(N,FVEC)
 !
 !        INITIALIZE ITERATION COUNTER AND MONITORS.
 !
@@ -908,8 +908,8 @@ contains
                DO 80 J = 1, N
                   WA3(J) = DIAG(J)*X(J)
    80          CONTINUE
-               CALL DENORMSUB(N,WA3,XNORM)
-!                XNORM = DENORM(N,WA3)
+!                CALL DENORMSUB(N,WA3,XNORM)
+               XNORM = DENORM(N,WA3)
                DELTA = FACTOR*XNORM
                IF (DELTA .EQ. ZERO) DELTA = FACTOR
    90       CONTINUE
@@ -985,8 +985,8 @@ contains
                   WA2(J) = X(J) + WA1(J)
                   WA3(J) = DIAG(J)*WA1(J)
   220          CONTINUE
-               CALL DENORMSUB(N,WA3,PNORM)
-!                PNORM = DENORM(N,WA3)
+!                CALL DENORMSUB(N,WA3,PNORM)
+               PNORM = DENORM(N,WA3)
 !
 !              ON THE FIRST ITERATION, ADJUST THE INITIAL STEP BOUND.
 !
@@ -999,8 +999,8 @@ contains
                NFEV = NFEV + 1
 !     .........EXIT
                IF (IFLAG .LT. 0) GO TO 320
-               CALL DENORMSUB(N,WA4,FNORM1)
-!                FNORM1 = DENORM(N,WA4)
+!                CALL DENORMSUB(N,WA4,FNORM1)
+               FNORM1 = DENORM(N,WA4)
 !
 !              COMPUTE THE SCALED ACTUAL REDUCTION.
 !
@@ -1018,8 +1018,8 @@ contains
   230             CONTINUE
                   WA3(I) = QTF(I) + SUM
   240          CONTINUE
-               CALL DENORMSUB(N,WA3,TEMP)
-!                TEMP = DENORM(N,WA3)
+!                CALL DENORMSUB(N,WA3,TEMP)
+               TEMP = DENORM(N,WA3)
                PRERED = ZERO
                IF (TEMP .LT. FNORM) PRERED = ONE - (TEMP/FNORM)**2
 !
@@ -1055,8 +1055,8 @@ contains
                      WA2(J) = DIAG(J)*X(J)
                      FVEC(J) = WA4(J)
   270             CONTINUE
-                  CALL DENORMSUB(N,WA2,XNORM)
-!                   XNORM = DENORM(N,WA2)
+!                   CALL DENORMSUB(N,WA2,XNORM)
+                  XNORM = DENORM(N,WA2)
                   FNORM = FNORM1
                   ITER = ITER + 1
   280          CONTINUE
@@ -1070,7 +1070,7 @@ contains
 !
 !              TEST FOR CONVERGENCE.
 !
-               IF (DELTA .LE. XTOL*XNORM .OR. FNORM .EQ. ZERO) INFO = 1
+               IF (DELTA .LE. XTOL*XNORM .OR. FNORM .LE. N*EPSMCH) INFO = 1
 !     .........EXIT
                IF (INFO .NE. 0) GO TO 320
 !
@@ -1175,7 +1175,7 @@ contains
 
       IMPLICIT NONE
       INTEGER :: I
-      DOUBLE PRECISION :: D1MACH, B, X = 1.D0
+      REAL(DOUBLE) :: D1MACH, B, X = 1.D0
 
       B = RADIX(X)
 
@@ -1621,8 +1621,8 @@ contains
          WA1(J) = ZERO
          WA2(J) = DIAG(J)*X(J)
    60    CONTINUE
-      CALL DENORMSUB(N,WA2,QNORM)
-!       QNORM = DENORM(N,WA2)
+!       CALL DENORMSUB(N,WA2,QNORM)
+      QNORM = DENORM(N,WA2)
       IF (QNORM .LE. DELTA) GO TO 140
 !
 !     THE GAUSS-NEWTON DIRECTION IS NOT ACCEPTABLE.
@@ -1641,8 +1641,8 @@ contains
 !     CALCULATE THE NORM OF THE SCALED GRADIENT AND TEST FOR
 !     THE SPECIAL CASE IN WHICH THE SCALED GRADIENT IS ZERO.
 !
-      CALL DENORMSUB(N,WA1,GNORM)
-!       GNORM = DENORM(N,WA1)
+!       CALL DENORMSUB(N,WA1,GNORM)
+      GNORM = DENORM(N,WA1)
       SGNORM = ZERO
       ALPHA = DELTA/QNORM
       IF (GNORM .EQ. ZERO) GO TO 120
@@ -1662,8 +1662,8 @@ contains
   100       CONTINUE
          WA2(J) = SUM
   110    CONTINUE
-      CALL DENORMSUB(N,WA2,TEMP)
-!       TEMP = DENORM(N,WA2)
+!       CALL DENORMSUB(N,WA2,TEMP)
+      TEMP = DENORM(N,WA2)
       SGNORM = (GNORM/TEMP)/TEMP
 !
 !     TEST WHETHER THE SCALED GRADIENT DIRECTION IS ACCEPTABLE.
@@ -1675,8 +1675,8 @@ contains
 !     FINALLY, CALCULATE THE POINT ALONG THE DOGLEG
 !     AT WHICH THE QUADRATIC IS MINIMIZED.
 !
-      CALL DENORMSUB(N,QTB,BNORM)
-!       BNORM = DENORM(N,QTB)
+!       CALL DENORMSUB(N,QTB,BNORM)
+      BNORM = DENORM(N,QTB)
       TEMP = (BNORM/GNORM)*(BNORM/QNORM)*(SGNORM/DELTA)
       TEMP = TEMP - (DELTA/QNORM)*(SGNORM/DELTA)**2 &
              + SQRT((TEMP-(DELTA/QNORM))**2 &
@@ -1698,7 +1698,7 @@ contains
 !
       END SUBROUTINE DDOGLG
 
-      SUBROUTINE DENORMSUB (N, X, DENORM)
+      FUNCTION DENORM (N, X)
 !***BEGIN PROLOGUE  DENORM
 !***SUBSIDIARY
 !***PURPOSE  Subsidiary to DNSQ and DNSQE
@@ -1813,7 +1813,7 @@ contains
 !
 !     LAST CARD OF FUNCTION DENORM.
 !
-      END SUBROUTINE DENORMSUB
+      END FUNCTION DENORM
 
       SUBROUTINE DFDJC1 (FCN, N, X, FVEC, FJAC, LDFJAC, IFLAG, ML, MU, EPSFCN, WA1, WA2)
 !***BEGIN PROLOGUE  DFDJC1
@@ -2173,8 +2173,8 @@ contains
 !     COMPUTE THE INITIAL COLUMN NORMS AND INITIALIZE SEVERAL ARRAYS.
 !
       DO 10 J = 1, N
-         CALL DENORMSUB(M,A(1,J),ACNORM(J))
-!          ACNORM(J) = DENORM(M,A(1,J))
+!          CALL DENORMSUB(M,A(1,J),ACNORM(J))
+         ACNORM(J) = DENORM(M,A(1,J))
          SIGMA(J) = ACNORM(J)
          WA(J) = SIGMA(J)
          IF (PIVOT) IPVT(J) = J
@@ -2208,8 +2208,8 @@ contains
 !        COMPUTE THE HOUSEHOLDER TRANSFORMATION TO REDUCE THE
 !        J-TH COLUMN OF A TO A MULTIPLE OF THE J-TH UNIT VECTOR.
 !
-         CALL DENORMSUB(M-J+1,A(J,J),AJNORM)
-!          AJNORM = DENORM(M-J+1,A(J,J))
+!          CALL DENORMSUB(M-J+1,A(J,J),AJNORM)
+         AJNORM = DENORM(M-J+1,A(J,J))
          IF (AJNORM .EQ. ZERO) GO TO 100
          IF (A(J,J) .LT. ZERO) AJNORM = -AJNORM
          DO 50 I = J, M
@@ -2235,8 +2235,8 @@ contains
             TEMP = A(J,K)/SIGMA(K)
             SIGMA(K) = SIGMA(K)*SQRT(MAX(ZERO,ONE-TEMP**2))
             IF (P05*(SIGMA(K)/WA(K))**2 .GT. EPSMCH) GO TO 80
-            CALL DENORMSUB(M-J,A(JP1,K),SIGMA(K))
-!             SIGMA(K) = DENORM(M-J,A(JP1,K))
+!             CALL DENORMSUB(M-J,A(JP1,K),SIGMA(K))
+            SIGMA(K) = DENORM(M-J,A(JP1,K))
             WA(K) = SIGMA(K)
    80       CONTINUE
    90       CONTINUE
@@ -2344,7 +2344,7 @@ contains
       IMPLICIT NONE
       INTEGER :: I
       REAL :: X_single  = 1.0
-      DOUBLE PRECISION :: X_double = 1.D0
+      REAL(DOUBLE) :: X_double = 1.D0
 
       SELECT CASE (I)
         CASE (1)

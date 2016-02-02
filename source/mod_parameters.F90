@@ -2,7 +2,7 @@ module mod_parameters
   use mod_f90_kind
   implicit none
   integer       :: ncp
-  real(double)  :: eta,hwx,hwy,hwz
+  real(double)  :: eta
   real(double)  :: Ef,q(2)
   integer       :: dimsigmaNpl,dim
 !========================================================================================!
@@ -26,8 +26,16 @@ module mod_parameters
 !========================================================================================!
 ! Turn on/off SOC
   logical :: SOC
+! Linear SOC
+  logical :: llineargfsoc,llinearsoc
 ! Rescale of SOC parameter
   real(double) :: socscale
+!========================================================================================!
+! Turn on/off static magnetic field, option to give in magnetic field in tesla
+  logical :: FIELD
+! Values of magnetic field in cartesian or spherical coordinates
+  real(double)  :: hwx,hwy,hwz,tesla
+  real(double)  :: hwtheta,hwphi,hwabs=0.d0
 !========================================================================================!
 ! Number of parts to divide energy integral I1+I2 and I3
   integer      :: pn1,pn2,pnt
@@ -47,7 +55,7 @@ module mod_parameters
   integer,allocatable :: sigmaimunu2i(:,:,:,:),sigmaijmunu2i(:,:,:,:,:),sigmai2i(:,:)
 !========================================================================================!
 ! Run options are stored in this string
-  character(len=100)          :: runoptions
+  character(len=200)          :: runoptions
   real(double)                :: ry2ev              ! Optional conversion of ry to eV
 !========================================================================================!
 ! Activate debug options

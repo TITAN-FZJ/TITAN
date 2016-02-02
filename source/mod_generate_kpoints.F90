@@ -167,22 +167,86 @@ contains
 	end subroutine generate_kpoints_fcc100
 
   subroutine generate_kpoints_fcc111()
+    ! Generation of the k-points points for an hexagonal lattice.
+    ! The generated k-points units are chosen using a0.
 		use MPI
 		use mod_mpi_pars
+		use mod_constants, only: pi,sq3
     implicit none
     integer         :: iz,AllocateStatus
     integer         :: ki,kj
+    real(kind=8)    :: a1(2),a2(2),b1(2),b2(2),c1(2),c2(2)
+    real(kind=8)    :: weight,dnkpoints
+    real(kind=8)    :: kv(2),angle,rm(2,2)
     real(double), dimension(3,3) :: rm2,rm3
-    real(double), dimension(2,2) :: rphi
-    real(double)    :: phil
-    real(double)    :: b(2,2),nx,ny,weight,dnkpoints
-    real(double)    :: kv(2),kvl(2)
-    real(double), dimension(100000) :: wk
-    real(double), dimension(100000,2) :: kvm
-    real(double), dimension(3) :: qvl,k2anx
+    real(kind=8), dimension(100000) 	:: wk
+    real(kind=8), dimension(100000,2) :: kvm
+		real(double), dimension(3) :: qvl,k2anx
 
-!   Generation of the monkhorst-pack points for an hexagonal
-!   lattice. The generated k-points units are chosen using a0.
+!		Lattice vetors in real space
+		a1 = [0.5d0, sqrt(3.d0)/2.d0]*a0
+		a2 = [0.5d0,-sqrt(3.d0)/2.d0]*a0
+
+!		Reciprocal lattice determination
+		b1 =         [a2(2),-a2(1)]
+		b1 = 2.d0*pi*[a2(2),-a2(1)]/dot_product(a1,b1)
+		b2 =         [a1(2),-a1(1)]
+		b2 = 2.d0*pi*[a1(2),-a1(1)]/dot_product(a2,b2)
+
+    angle = -pi/6.d0
+    rm(1,1) = cos(angle)
+    rm(2,1) = sin(angle)
+    rm(1,2) = -rm(2,1)
+    rm(2,2) = rm(1,1)
+
+    c1 = (b1+b2)/3.d0
+    c2 = b1-c1
+    c1 = matmul(rm,c1)
+    c2 = matmul(rm,c2)
+
+    kvm = 0.d0
+
+    ! Gamma point
+    nkpoints = 1
+    kvm(nkpoints,:) = [ 0.d0,0.d0 ]
+    wk(nkpoints) = 1.d0
+    dnkpoints = wk(nkpoints)
+
+    do ki=1,ncp
+      do kj=1,ncp
+        weight = 1.d0
+        kv = ( ki*c1 + (kj-1.d0)*c2 ) / DBLE(ncp)
+
+        if(kv(1).gt.2.d0*pi/sq3) cycle
+        if(kv(1).eq.2.d0*pi/sq3) weight = 0.5d0
+
+        if((ki.eq.ncp).and.(kj.eq.1)) weight = 1.d0/3.d0
+
+        dnkpoints = dnkpoints + weight
+        nkpoints = nkpoints + 1
+        kvm(nkpoints,:) = kv
+        wk(nkpoints) = weight
+
+        do iz=1,5
+          angle = dble(iz)*pi/3.d0
+          rm(1,1) = cos(angle)
+          rm(1,2) = -sin(angle)
+          rm(2,1) = sin(angle)
+          rm(2,2) = cos(angle)
+
+          dnkpoints = dnkpoints + weight
+          nkpoints = nkpoints + 1
+          kvm(nkpoints,:) = matmul(rm,kv)
+          wk(nkpoints) = weight
+        end do
+      end do
+    end do
+
+		allocate( kbz(nkpoints,3),wkbz(nkpoints),kbz2d(nkpoints,2), stat=AllocateStatus )
+		if (AllocateStatus.ne.0) then
+	    write(*,"('[mod_generate_kpoints] Not enough memory for: kbz,wkbz,kbz2d')")
+			call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+		end if
 
 		! Rotation matrices to transform 2D BZ to 3D BZ
 	  rm2 = 0.d0
@@ -199,78 +263,9 @@ contains
 	  rm3(2,2) = 1.d0/sq2
 	  rm3(3,3) = 1.d0
 
-    b(1,:) = [ sq2/sq3, sq2 ]
-    b(2,:) = [ 2.d0*sq2/sq3, 0.d0 ]
-
-    nkpoints = 0
-    dnkpoints = 0.d0
-
-!     ! Gamma point
-! 		nkpoints = nkpoints + 1
-! 		weight = 1.d0/6.d0
-! 		kvm(nkpoints,:) = [ 0.d0,0.d0 ]
-! 		wk(nkpoints) = weight
-
-    kvm = 0.d0
-    do ki=1,ncp
-      nx = 2.d0*pi*dble(2*ki-ncp-1)/dble(2*ncp*a0)
-      do kj=ki,ncp
-        ny = 2.d0*pi*dble(2*kj-ncp-1)/dble(2*ncp*a0)
-
-        kv = nx*b(1,:) + ny*b(2,:)
-
-        if ((kv(2).gt.0).and.(kv(1).lt.(2.d0*pi*sq2)/(sq3*a0))) then
-
-          if (kj==ki) then
-            weight = 0.5d0
-          else
-            weight = 1.d0
-          end if
-
-          dnkpoints = dnkpoints + weight
-          nkpoints = nkpoints + 1
-          kvm(nkpoints,:) = kv
-          wk(nkpoints) = weight
-
-          dnkpoints = dnkpoints + weight
-          nkpoints = nkpoints + 1
-          kvm(nkpoints,1) = kv(1)
-          kvm(nkpoints,2) = -kv(2)
-          wk(nkpoints) = weight
-
-          do iz=1,5
-            phil = dble(iz)*pi/3.d0
-            rphi(1,1) = cos(phil)
-            rphi(1,2) = -sin(phil)
-            rphi(2,1) = sin(phil)
-            rphi(2,2) = cos(phil)
-
-            dnkpoints = dnkpoints + weight
-            nkpoints = nkpoints + 1
-            kvm(nkpoints,:) = matmul(rphi,kv)
-            wk(nkpoints) = weight
-
-            dnkpoints = dnkpoints + weight
-            nkpoints = nkpoints + 1
-            kvl(1) = kv(1)
-            kvl(2) = -kv(2)
-            kvm(nkpoints,:) = matmul(rphi,kvl)
-            wk(nkpoints) = weight
-          end do
-
-        end if
-      end do
-    end do
-
-		allocate( kbz(nkpoints,3),wkbz(nkpoints),kbz2d(nkpoints,2), stat=AllocateStatus )
-		if (AllocateStatus.ne.0) then
-	    write(*,"('[mod_generate_kpoints] Not enough memory for: kbz,wkbz,kbz2d')")
-			call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-		end if
-
     weight = 0.d0
     do iz = 1,nkpoints
-    	kbz2d(iz,:) = kvm(iz,:)
+      kbz2d(iz,:) = kvm(iz,:)
       k2anx(1) = kvm(iz,1)
       k2anx(2) = kvm(iz,2)
       k2anx(3) = 0.d0

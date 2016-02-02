@@ -20,7 +20,9 @@ SHELL = /bin/sh
 #
 # make clean    			     -  removes *.o *.mod *__genmod* *.exe files
 #
-# make cleanall  			     -  also remove dependency files .dep
+# make cleanall  			     -  also removes dependency files .dep and executable
+#
+# make recompile  			   -  removes all objects and modules and recompile
 #
 ####################################################
 # Filename and folders configuration               #
@@ -144,7 +146,7 @@ CPP = -fpp
 # Libraries
 LLIBS =-mkl -L$(HOME)/lib -lkibe
 #Flags
-FFLAGS =-O3 -xHost
+FFLAGS =-O3 -xHost -qoverride-limits #-guide -parallel # -vec-threshold0
 #Debugger
 ifeq ($(DEBUG),debug)
 FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0
@@ -167,7 +169,7 @@ CPP = -fpp
 # Libraries
 LLIBS =-mkl -L$(HOME)/lib -lnag
 # Flags
-FFLAGS =-O3 -xSSE4.2
+FFLAGS =-O3 -xHost -qoverride-limits
 # Debugger
 ifeq ($(DEBUG),debug)
 FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0
@@ -236,7 +238,7 @@ CPP = -fpp
 # Libraries
 LLIBS =-mkl -L$(HOME)/lib -lkibe
 #Flags
-FFLAGS =-O3 -xHost
+FFLAGS =-O3 -xHost -qoverride-limits
 #Debugger
 ifeq ($(DEBUG),debug)
 FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0
@@ -308,6 +310,7 @@ cleandebug:
 	@rm -f $(OBJDIR)/*genmod*
 	@rm -f *prep.opari*
 	@rm -f *.i90
+	@rm -f $(OBJDIR)/*.optrpt
 
 cleanobj:
 	@echo Removing object files...

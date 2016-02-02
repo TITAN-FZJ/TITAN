@@ -7,9 +7,10 @@ contains
     use mod_f90_kind
     use mod_mpi_pars
     use mod_magnet, only: hhwx,hhwy,hhwz
+    use mod_constants, only: pi
     implicit none
     integer, parameter      :: iomax=20           ! Maximum number of elements in one line
-    integer                 :: nparams=26         ! Number of required parameters to be read
+    integer                 :: nparams=24         ! Number of required parameters to be read
     integer                 :: nparams2=0         ! Number of secondary parameters required
     integer                 :: ifile,ios,i,j,n,nlines,nlinest
     character(len=20)       :: istring1(iomax),istring2(iomax),stringtemp,filename
@@ -85,7 +86,7 @@ contains
           do n=i+1,iomax
             if(istring1(n).eq."") cycle
             options: select case (istring1(n))
-            case ("ry2ev","verbose","idebug","addresults","createfiles","noUonall","noUonNM","slatec","GSL","kpoints")
+            case ("ry2ev","tesla","verbose","idebug","addresults","createfiles","noUonall","noUonNM","slatec","GSL","kpoints","lineargfsoc","linearsoc")
               runoptions = trim(runoptions) // " " // trim(istring1(n))
 !               write(*,"('Option ""',a,'"" activated.')") trim(istring1(n))
 !             case default
@@ -98,6 +99,21 @@ contains
             ry2ev = 13.6d0
           else
             ry2ev = 1.d0
+          end if
+          if(index(runoptions,"tesla").gt.0) then
+            tesla = 5.7883817555d-5/13.6d0
+          else
+            tesla = 1.d0
+          end if
+          if(index(runoptions,"lineargfsoc").gt.0) then
+            llineargfsoc = .true.
+          else
+            llineargfsoc = .false.
+          end if
+          if(index(runoptions,"linearsoc").gt.0) then
+            llinearsoc = .true.
+          else
+            llinearsoc = .false.
           end if
 !           write(*,*) (istring1(n),n=i+1,iomax)
           exit
@@ -208,6 +224,68 @@ contains
 !           write(*,"('magaxis = ',a2)") magaxis
           nparams2 = nparams2-1
 !===============================================================================
+        case("FIELD")
+          if(istring1(i+1).eq."=") then ! If after keyword there's an '='
+            read(unit=istring1(i+2),fmt=*,iostat=ios) FIELD
+          else ! If there's no '=' after keyword, get from next line
+            read(unit=istring2(i),fmt=*,iostat=ios) FIELD
+          end if
+          if(FIELD) then
+!             write(*,"('Static Magnetic field: ACTIVATED')")
+            nparams2 = nparams2+3 ! magaxis and socscale
+          else
+!             write(*,"('Static Magnetic field: DEACTIVATED')")
+          end if
+          nparams = nparams-1
+        case("FIELD=")
+          read(unit=istring1(i+1),fmt=*,iostat=ios) FIELD
+          if(FIELD) then
+!             write(*,"('Static Magnetic field: ACTIVATED')")
+            nparams2 = nparams2+3 ! magaxis and socscale
+          else
+!             write(*,"('Static Magnetic field: DEACTIVATED')")
+          end if
+          nparams = nparams-1
+!-------------------------------------------------------------------------------
+        case("hwabs")
+          if(istring1(i+1).eq."=") then ! If after keyword there's an '='
+            read(unit=istring1(i+2),fmt=*,iostat=ios) hwabs
+          else ! If there's no '=' after keyword, get from next line
+            read(unit=istring2(i),fmt=*,iostat=ios) hwabs
+          end if
+!           write(*,"('hwx = ',f8.5)") hwabs
+          nparams2 = nparams2-1
+        case("hwabs=")
+          read(unit=istring1(i+1),fmt=*,iostat=ios) hwabs
+!           write(*,"('hwx = ',f8.5)") hwabs
+          nparams2 = nparams2-1
+!-------------------------------------------------------------------------------
+        case("hwtheta")
+          if(istring1(i+1).eq."=") then ! If after keyword there's an '='
+            read(unit=istring1(i+2),fmt=*,iostat=ios) hwtheta
+          else ! If there's no '=' after keyword, get from next line
+            read(unit=istring2(i),fmt=*,iostat=ios) hwtheta
+          end if
+!           write(*,"('hwx = ',f8.5)") hwtheta
+          nparams2 = nparams2-1
+        case("hwtheta=")
+          read(unit=istring1(i+1),fmt=*,iostat=ios) hwtheta
+!           write(*,"('hwx = ',f8.5)") hwtheta
+          nparams2 = nparams2-1
+!-------------------------------------------------------------------------------
+        case("hwphi")
+          if(istring1(i+1).eq."=") then ! If after keyword there's an '='
+            read(unit=istring1(i+2),fmt=*,iostat=ios) hwphi
+          else ! If there's no '=' after keyword, get from next line
+            read(unit=istring2(i),fmt=*,iostat=ios) hwphi
+          end if
+!           write(*,"('hwx = ',f8.5)") hwphi
+          nparams2 = nparams2-1
+        case("hwphi=")
+          read(unit=istring1(i+1),fmt=*,iostat=ios) hwphi
+!           write(*,"('hwx = ',f8.5)") hwphi
+          nparams2 = nparams2-1
+!-------------------------------------------------------------------------------
         case("hwx")
           if(istring1(i+1).eq."=") then ! If after keyword there's an '='
             read(unit=istring1(i+2),fmt=*,iostat=ios) hwx
@@ -215,11 +293,11 @@ contains
             read(unit=istring2(i),fmt=*,iostat=ios) hwx
           end if
 !           write(*,"('hwx = ',f8.5)") hwx
-          nparams = nparams-1
+          nparams2 = nparams2-1
         case("hwx=")
           read(unit=istring1(i+1),fmt=*,iostat=ios) hwx
 !           write(*,"('hwx = ',f8.5)") hwx
-          nparams = nparams-1
+          nparams2 = nparams2-1
 !-------------------------------------------------------------------------------
         case("hwy")
           if(istring1(i+1).eq."=") then ! If after keyword there's an '='
@@ -228,11 +306,11 @@ contains
             read(unit=istring2(i),fmt=*,iostat=ios) hwy
           end if
 !           write(*,"('hwy = ',f8.5)") hwy
-          nparams = nparams-1
+          nparams2 = nparams2-1
         case("hwy=")
           read(unit=istring1(i+1),fmt=*,iostat=ios) hwy
 !           write(*,"('hwy = ',f8.5)") hwy
-          nparams = nparams-1
+          nparams2 = nparams2-1
 !-------------------------------------------------------------------------------
         case("hwz")
           if(istring1(i+1).eq."=") then ! If after keyword there's an '='
@@ -241,11 +319,11 @@ contains
             read(unit=istring2(i),fmt=*,iostat=ios) hwz
           end if
 !           write(*,"('hwz = ',f8.5)") hwz
-          nparams = nparams-1
+          nparams2 = nparams2-1
         case("hwz=")
           read(unit=istring1(i+1),fmt=*,iostat=ios) hwz
 !           write(*,"('hwz = ',f8.5)") hwz
-          nparams = nparams-1
+          nparams2 = nparams2-1
 !===============================================================================
         case("dirEfield")
           if(istring1(i+1).eq."=") then ! If after keyword there's an '='
@@ -535,53 +613,59 @@ contains
       stop
     end if
     if(myrank.eq.0) write(*,"('[ioread] Finished reading from ""',a,'"" file')") trim(filename)
-  deallocate(string1,stringt)
-  if((renorm).and.((renormnb.lt.n0sc1).or.(renormnb.gt.n0sc2))) then
-    if(myrank.eq.0) then
-      write(*,"('[ioread] Invalid neighbor for renormalization: ',i0,'!')") renormnb
-      write(*,"('[ioread] Choose a value between ',i0,' and ',i0,'.')") n0sc1,n0sc2
+    deallocate(string1,stringt)
+    if((renorm).and.((renormnb.lt.n0sc1).or.(renormnb.gt.n0sc2))) then
+      if(myrank.eq.0) then
+        write(*,"('[ioread] Invalid neighbor for renormalization: ',i0,'!')") renormnb
+        write(*,"('[ioread] Choose a value between ',i0,' and ',i0,'.')") n0sc1,n0sc2
+      end if
+      stop
     end if
-    stop
-  end if
 !-------------------------------------------------------------------------------
 !*********** User manual additions / modifications in the input file **********!
-!   Nplini  = 4
-!   Nplfinal = 4
-!   ncp = 6
-!   SOC = .true.
-!   magaxis = "5"
-!   runoptions = trim(runoptions) // " noUonNM"
-!   scfile = "results/selfconsistency/selfconsistency_Npl=4_dfttype=T_parts=2_U= 0.7E-01_hwx= 0.0E+00_hwy= 0.0E+00_hwz= 0.0E+00_ncp=6_eta= 0.5E-03.dat"
+!     Nplini  = 4
+!     Nplfinal = 4
+!     ncp = 6
+!     SOC = .true.
+!     magaxis = "5"
+!     runoptions = trim(runoptions) // " noUonNM"
+!     scfile = "results/selfconsistency/selfconsistency_Npl=4_dfttype=T_parts=2_U= 0.7E-01_hwx= 0.0E+00_hwy= 0.0E+00_hwz= 0.0E+00_ncp=6_eta= 0.5E-03.dat"
 !-------------------------------------------------------------------------------
-  Utype = 2
-  if(index(runoptions,"noUonall").ne.0) then
-    Utype = 0
-  else if(index(runoptions,"noUonNM").ne.0) then
-    Utype = 1
-  end if
-  if((itype.ne.7).and.(itype.ne.8)) renorm = .false.
-  n0sc=n0sc2-n0sc1+1
-  deltae = (emax - emin)/npts
-  if(deltae.le.1.d-14) npt1 = 1
-!   if((itype.ne.1).and.(itype.ne.10)) then
-!     Nplfinal = Nplini
-!   else
+    Utype = 2
+    if(index(runoptions,"noUonall").ne.0) then
+      Utype = 0
+    else if(index(runoptions,"noUonNM").ne.0) then
+      Utype = 1
+    end if
+    if((itype.ne.7).and.(itype.ne.8)) renorm = .false.
+    n0sc=n0sc2-n0sc1+1
+    deltae = (emax - emin)/npts
+    if(deltae.le.1.d-14) npt1 = 1
     if(Nplfinal.lt.Nplini) then
-!       if(myrank.eq.0) then
-!         write(*,"('[ioread] Invalid number of planes for exchange calculations: ')")
-!         write(*,"('[ioread] Nplini = ',i0,' , Nplfinal = ',i0)") Nplini,Nplfinal
-!         write(*,"('[ioread] Using Npl = ',i0)") Nplini
-!       end if
       Nplfinal = Nplini
     end if
-!   end if
-  hhwx  = 0.5d0*hwx
-  hhwy  = 0.5d0*hwy
-  hhwz  = 0.5d0*hwz
-  tol   = 1.d-8
-  pn1=parts*n1gl
-  pn2=parts3*n3gl
-  pnt=pn1+pn2
+    hhwx  = 0.d0
+    hhwy  = 0.d0
+    hhwz  = 0.d0
+    if(FIELD) then
+      if(abs(hwabs).gt.1.d-8) then  ! Spherical coordinates on spin system of reference
+        hwtheta = hwtheta*pi
+        hwphi   = hwphi*pi
+        hwx  = hwabs*sin(hwtheta)*cos(hwphi)
+        hwy  = hwabs*sin(hwtheta)*sin(hwphi)
+        hwz  = hwabs*cos(hwtheta)
+      else
+        hwabs = sqrt(hwx**2+hwy**2+hwz**2)
+        if(abs(hwabs).lt.1.d-8) FIELD = .false.
+      end if
+      hhwx  = 0.5d0*hwx*tesla
+      hhwy  = 0.5d0*hwy*tesla
+      hhwz  = 0.5d0*hwz*tesla
+    end if
+    tol   = 1.d-8
+    pn1=parts*n1gl
+    pn2=parts3*n3gl
+    pnt=pn1+pn2
   end subroutine ioread
 
   subroutine iowrite()
@@ -665,9 +749,14 @@ contains
     write(*,"(8x,'parts = ',i0,'x',i0)") parts,n1gl
     write(*,"(7x,'parts3 = ',i0,'x',i0)") parts3,n3gl
     write(*,"(10x,'eta =',e9.2)") eta
-    write(*,"(10x,'hwx =',e9.2)") hwx
-    write(*,"(10x,'hwy =',e9.2)") hwy
-    write(*,"(10x,'hwz =',e9.2)") hwz
+    if(FIELD) then
+      write(*,"(1x,'Static magnetic field: ACTIVATED')")
+      write(*,"(10x,'hwx =',e9.2)") hwx
+      write(*,"(10x,'hwy =',e9.2)") hwy
+      write(*,"(10x,'hwz =',e9.2)") hwz
+    else
+      write(*,"(1x,'Static magnetic field: DEACTIVATED')")
+    end if
     if(runoptions.ne."") write(*,"(6x,'Activated options:',/,4x,a)") trim(runoptions)
 
     write(*,"('|------------------------------ TO CALCULATE: ------------------------------|')")

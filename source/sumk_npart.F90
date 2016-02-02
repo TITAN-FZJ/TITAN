@@ -28,7 +28,7 @@ subroutine sumk_npart(er,ei,gdiaguur,gdiagddr,gdiagud,gdiagdu)
 
 !$omp parallel default(none) &
 !$omp& private(mythread,iz,kp,gf,i,j,mu,mup) &
-!$omp& shared(prog,spiner,elapsed_time,start_program,progbar,runoptions,kbz,wkbz,nkpoints,er,ei,gdiaguur,gdiagddr,gdiagud,gdiagdu,Npl,myrank,nthreads)
+!$omp& shared(llineargfsoc,llinearsoc,prog,spiner,elapsed_time,start_program,progbar,runoptions,kbz,wkbz,nkpoints,er,ei,gdiaguur,gdiagddr,gdiagud,gdiagdu,Npl,myrank,nthreads)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread.eq.0).and.(myrank.eq.0)) then
 !$    nthreads = omp_get_num_threads()
@@ -54,7 +54,11 @@ subroutine sumk_npart(er,ei,gdiaguur,gdiagddr,gdiagud,gdiagdu)
     kp = kbz(iz,:)
 
     ! Green function on energy Ef + iy, and wave vector kp
-    call green(er,ei,kp,gf)
+    if((llineargfsoc).or.(llinearsoc)) then
+      call greenlineargfsoc(er,ei,kp,gf)
+    else
+      call green(er,ei,kp,gf)
+    end if
     !$omp critical
     planes: do i=1,Npl
       orbital_index: do mu=1,9
@@ -69,7 +73,6 @@ subroutine sumk_npart(er,ei,gdiaguur,gdiagddr,gdiagud,gdiagdu)
   end do kpoints
 !$omp end do
 !$omp end parallel
-
   return
 end subroutine sumk_npart
 
@@ -89,7 +92,7 @@ subroutine sumk_npartjac(er,ei,ggr)
   real(double)  :: kp(3)
   real(double),intent(in)  :: er,ei
   real(double),dimension(Npl,Npl),intent(out)  :: ggr
-  complex(double),dimension(Npl,Npl,18,18)     :: gf
+  complex(double),dimension(Npl,Npl,18,18)     :: gf,gvg
 
 #ifndef _JUQUEEN
   open(6,carriagecontrol ='fortran')
@@ -97,8 +100,8 @@ subroutine sumk_npartjac(er,ei,ggr)
 
   ggr    = 0.d0
 !$omp parallel default(none) &
-!$omp& private(mythread,iz,kp,gf,i,j,mu,nu) &
-!$omp& shared(prog,spiner,elapsed_time,start_program,progbar,runoptions,kbz,wkbz,nkpoints,er,ei,ggr,Npl,myrank,nthreads)
+!$omp& private(mythread,iz,kp,gf,gvg,i,j,mu,nu) &
+!$omp& shared(llineargfsoc,llinearsoc,prog,spiner,elapsed_time,start_program,progbar,runoptions,kbz,wkbz,nkpoints,er,ei,ggr,Npl,myrank,nthreads)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread.eq.0).and.(myrank.eq.0)) then
 !$    nthreads = omp_get_num_threads()
@@ -124,7 +127,12 @@ subroutine sumk_npartjac(er,ei,ggr)
     kp = kbz(iz,:)
 
     ! Green function on energy Ef + iy, and wave vector kp
-    call green(er,ei,kp,gf)
+    if((llineargfsoc).or.(llinearsoc)) then
+      call greenlinearsoc(er,ei,kp,gf,gvg)
+      gf = gf + gvg
+    else
+      call green(er,ei,kp,gf)
+    end if
     !$omp critical
     planes_i: do i=1,Npl
       planes_j: do j=1,Npl
@@ -132,6 +140,7 @@ subroutine sumk_npartjac(er,ei,ggr)
           second_orbital_index: do nu=1,18
             if ((mod(nu-1,9)+1).lt.5) cycle
             ggr(i,j) = ggr(i,j) + real(gf(i,j,mu,nu)*gf(j,i,nu,mu)*wkbz(iz))
+            if((llineargfsoc).or.(llinearsoc)) ggr(i,j) = ggr(i,j) - real(gvg(i,j,mu,nu)*gvg(j,i,nu,mu)*wkbz(iz))
           end do second_orbital_index
         end do first_orbital_index
       end do planes_j
