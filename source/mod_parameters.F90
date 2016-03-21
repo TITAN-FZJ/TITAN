@@ -8,7 +8,9 @@ module mod_parameters
 !========================================================================================!
 ! Effective intra-site electron electron interaction
   real(double),allocatable  :: U(:)
-  integer       :: Utype
+  integer       :: Utype = 2
+! Use HF susceptibilities to calculate currents, disturbances and accumulations (don't renormalize)
+  logical       :: lnorenorm = .false.
 !========================================================================================!
 ! Lattice and surface direction
   character(len=6) :: lattice
@@ -27,14 +29,14 @@ module mod_parameters
 ! Turn on/off SOC
   logical :: SOC
 ! Linear SOC
-  logical :: llineargfsoc,llinearsoc
+  logical :: llineargfsoc = .false.,llinearsoc = .false.
 ! Rescale of SOC parameter
   real(double) :: socscale
 !========================================================================================!
 ! Turn on/off static magnetic field, option to give in magnetic field in tesla
   logical :: FIELD
 ! Values of magnetic field in cartesian or spherical coordinates
-  real(double)  :: hwx,hwy,hwz,tesla
+  real(double)  :: hwx,hwy,hwz,tesla = 1.d0
   real(double)  :: hwtheta,hwphi,hwabs=0.d0
 !========================================================================================!
 ! Number of parts to divide energy integral I1+I2 and I3
@@ -50,17 +52,29 @@ module mod_parameters
   integer      :: npts,npt1
   real(double) :: emin,emax,deltae
   real(double) :: qxmin,qxmax,qzmin,qzmax
+! Number of steps to skip from the beginning
+! (useful to get the same points after a calculation has stopped)
+  integer :: skip_steps = 0
 !========================================================================================!
 ! Conversion arrays
   integer,allocatable :: sigmaimunu2i(:,:,:,:),sigmaijmunu2i(:,:,:,:,:),sigmai2i(:,:)
 !========================================================================================!
 ! Run options are stored in this string
   character(len=200)          :: runoptions
-  real(double)                :: ry2ev              ! Optional conversion of ry to eV
+  real(double)                :: ry2ev=1.d0              ! Optional conversion of ry to eV
+!========================================================================================!
+! Logical variables for runoptions
+  logical :: lkpoints     = .false.
+  logical :: ltesla       = .false.
+  logical :: lcreatefiles = .false.
+  logical :: laddresults  = .false.
+  logical :: lGSL         = .false.
+  logical :: lslatec      = .false.
+  logical :: lnojac       = .false.
 !========================================================================================!
 ! Activate debug options
-  logical :: verbose
-  logical :: idebug
+  logical :: lverbose = .false.
+  logical :: ldebug = .false.
 !========================================================================================!
 ! n0sc1 - first neighbor to calculate the in-plane spin and charge current
 ! n0sc2 - last neighbor to calculate the in-plane spin and charge current
@@ -81,7 +95,7 @@ module mod_parameters
   character(len=1)  :: dfttype
 !========================================================================================!
 ! Layer conversion
-  integer, dimension(:), allocatable         :: mmlayer
+  integer, dimension(:), allocatable       :: mmlayer
 ! Number and list of magnetic layers
   integer :: nmaglayers
   integer, dimension(:), allocatable       :: mmlayermag

@@ -2,7 +2,7 @@
 ! orbitals for plane sites, 1st n.n.
 ! input:
 !   kp = in-plane wave vector k
-!   mm = layer
+!   ly = layer
 !
 ! in common:
 !   pi, sq2, sq3, zi, zero
@@ -19,7 +19,7 @@
 ! output:
 !   h00 = q-parallel in-plane hoppings
 !   h01 = q-parallel inter-plane hoppings
-subroutine helpdtdk(kp,h00,h01,h10,mm)
+subroutine helpdtdk(kp,h00,h01,h10,ly)
   use mod_f90_kind
   use mod_parameters, only: dirEfieldvec,lattice
   use mod_constants
@@ -27,7 +27,7 @@ subroutine helpdtdk(kp,h00,h01,h10,mm)
   use mod_tight_binding
   implicit none
   integer         :: i
-  integer,      intent(in)  :: mm
+  integer,      intent(in)  :: ly
   real(double), intent(in)  :: kp(3)
   real(double)    :: kr0,kr1,kr2,dirEr0,dirEr1,dirEr2
   complex(double) :: expikr0,expikr1,expikr2
@@ -42,7 +42,7 @@ subroutine helpdtdk(kp,h00,h01,h10,mm)
     expikr0 = exp(zi*kr0)
     ! term from derivative related to the direction of applied field i.u.r0(i); i=1,n0
     dirEr0   = (dirEfieldvec(1)*r0(i,1))+(dirEfieldvec(2)*r0(i,2))+(dirEfieldvec(3)*r0(i,3))
-    h00 = h00 + (zi*dirEr0*expikr0*t00(mm,i,:,:))
+    h00 = h00 + (zi*dirEr0*expikr0*t00(ly,i,:,:))
   end do
 
 ! inter-plane hoppings h01 and h10
@@ -54,7 +54,7 @@ subroutine helpdtdk(kp,h00,h01,h10,mm)
     expikr1 = exp(zi*kr1)
     ! term from derivative related to the direction of applied field i.u.r1(i); i=1,n1
     dirEr1  = (dirEfieldvec(1)*r1(i,1))+(dirEfieldvec(2)*r1(i,2))+(dirEfieldvec(3)*r1(i,3))
-    h01   = h01 + (zi*dirEr1*expikr1*t01(mm,i,:,:))
+    h01   = h01 + (zi*dirEr1*expikr1*t01(ly,i,:,:))
   end do
 
   select case (lattice)
@@ -66,7 +66,7 @@ subroutine helpdtdk(kp,h00,h01,h10,mm)
       expikr2 = exp(zi*kr2)
       ! term from derivative related to the direction of applied field i.u.r2(i); i=1,n2
       dirEr2  = (dirEfieldvec(1)*r2(i,1))+(dirEfieldvec(2)*r2(i,2))+(dirEfieldvec(3)*r2(i,3))
-      h01   = h01 + (zi*dirEr2*expikr2*t01(mm,n1+i,:,:))
+      h01   = h01 + (zi*dirEr2*expikr2*t01(ly,n1+i,:,:))
     end do
     h10 = transpose(conjg(h01))
   case("fcc100")

@@ -31,7 +31,7 @@ contains
 !
 !       SUBROUTINE DNSQE(FCN,JAC,IOPT,N,X,FVEC,TOL,NPRINT,INFO,
 !      *                  WA,LWA)
-!       INTEGER :: IOPT,N,NPRINT,INFO,LWA
+!       INTEGER      :: IOPT,N,NPRINT,INFO,LWA
 !       REAL(DOUBLE) :: TOL
 !       REAL(DOUBLE) :: X(N),FVEC(N),WA(LWA)
 !       EXTERNAL FCN,JAC
@@ -48,7 +48,7 @@ contains
 !         in the user calling program, and should be written as follows.
 !
 !         SUBROUTINE FCN(N,X,FVEC,IFLAG)
-!         INTEGER :: N,IFLAG
+!         INTEGER      :: N,IFLAG
 !         REAL(DOUBLE) :: X(N),FVEC(N)
 !         ----------
 !         Calculate the functions at X and
@@ -67,7 +67,7 @@ contains
 !         written as follows.
 !
 !         SUBROUTINE JAC(N,X,FVEC,FJAC,LDFJAC,IFLAG)
-!         INTEGER :: N,LDFJAC,IFLAG
+!         INTEGER      :: N,LDFJAC,IFLAG
 !         REAL(DOUBLE) :: X(N),FVEC(N),FJAC(LDFJAC,N)
 !         ----------
 !         Calculate the Jacobian at X and return this
@@ -257,7 +257,7 @@ contains
 ! C
 ! C     DRIVER FOR DNSQE EXAMPLE.
 ! C
-!       INTEGER :: J,N,IOPT,NPRINT,INFO,LWA,NWRITE
+!       INTEGER      :: J,N,IOPT,NPRINT,INFO,LWA,NWRITE
 !       REAL(DOUBLE) :: TOL,FNORM
 !       REAL(DOUBLE) :: X(9),FVEC(9),WA(180)
 !       REAL(DOUBLE) :: DENORM,D1MACH
@@ -291,9 +291,9 @@ contains
 !      *        5X,' FINAL APPROXIMATE SOLUTION' // (5X,3E15.7))
 !       END
 !       SUBROUTINE FCN(N,X,FVEC,IFLAG)
-!       INTEGER :: N,IFLAG
+!       INTEGER      :: N,IFLAG
 !       REAL(DOUBLE) :: X(N),FVEC(N)
-!       INTEGER :: K
+!       INTEGER      :: K
 !       REAL(DOUBLE) :: ONE,TEMP,TEMP1,TEMP2,THREE,TWO,ZERO
 !       DATA ZERO,ONE,TWO,THREE /0.E0,1.E0,2.E0,3.E0/
 ! C
@@ -335,7 +335,7 @@ contains
 !   900315  CALLs to XERROR changed to CALLs to XERMSG.  (THJ)
 !   920501  Reformatted the REFERENCES section.  (WRB)
 !***END PROLOGUE  DNSQE
-      INTEGER :: INDEX, INFO, IOPT, J, LR, LWA, MAXFEV, ML, MODE, MU, N, &
+      INTEGER      :: INDEX, INFO, IOPT, J, LR, LWA, MAXFEV, ML, MODE, MU, N, &
            NFEV, NJEV, NPRINT
       REAL(DOUBLE) :: EPSFCN, FACTOR, FVEC(*), ONE, TOL, WA(*), &
            X(*), XTOL, ZERO
@@ -409,7 +409,7 @@ contains
 !       SUBROUTINE DNSQ(FCN,JAC,IOPT,N,X,FVEC,FJAC,LDFJAC,XTOL,MAXFEV,
 !      *                 ML,MU,EPSFCN,DIAG,MODE,FACTOR,NPRINT,INFO,NFEV,
 !      *                 NJEV,R,LR,QTF,WA1,WA2,WA3,WA4)
-!       INTEGER :: IOPT,N,MAXFEV,ML,MU,MODE,NPRINT,INFO,NFEV,LDFJAC,NJEV,LR
+!       INTEGER      :: IOPT,N,MAXFEV,ML,MU,MODE,NPRINT,INFO,NFEV,LDFJAC,NJEV,LR
 !       REAL(DOUBLE) :: XTOL,EPSFCN,FACTOR
 !       REAL(DOUBLE)
 !       X(N),FVEC(N),DIAG(N),FJAC(LDFJAC,N),R(LR),QTF(N),
@@ -428,7 +428,7 @@ contains
 !         in the user calling program, and should be written as follows.
 !
 !         SUBROUTINE FCN(N,X,FVEC,IFLAG)
-!         INTEGER :: N,IFLAG
+!         INTEGER      :: N,IFLAG
 !         REAL(DOUBLE) :: X(N),FVEC(N)
 !         ----------
 !         CALCULATE THE FUNCTIONS AT X AND
@@ -447,7 +447,7 @@ contains
 !         written as follows.
 !
 !         SUBROUTINE JAC(N,X,FVEC,FJAC,LDFJAC,IFLAG)
-!         INTEGER :: N,LDFJAC,IFLAG
+!         INTEGER      :: N,LDFJAC,IFLAG
 !         REAL(DOUBLE) :: X(N),FVEC(N),FJAC(LDFJAC,N)
 !         ----------
 !         Calculate the Jacobian at X and return this
@@ -698,7 +698,7 @@ contains
 ! C
 ! C     Driver for DNSQ example.
 ! C
-!       INTEGER :: J,IOPT,N,MAXFEV,ML,MU,MODE,NPRINT,INFO,NFEV,LDFJAC,LR,
+!       INTEGER      :: J,IOPT,N,MAXFEV,ML,MU,MODE,NPRINT,INFO,NFEV,LDFJAC,LR,
 !      *        NWRITE
 !       REAL(DOUBLE) :: XTOL,EPSFCN,FACTOR,FNORM
 !       REAL(DOUBLE) :: X(9),FVEC(9),DIAG(9),FJAC(9,9),R(45),QTF(9),
@@ -748,9 +748,9 @@ contains
 !      *        5X,' FINAL APPROXIMATE SOLUTION' // (5X,3E15.7))
 !       END
 !       SUBROUTINE FCN(N,X,FVEC,IFLAG)
-!       INTEGER :: N,IFLAG
+!       INTEGER      :: N,IFLAG
 !       REAL(DOUBLE) :: X(N),FVEC(N)
-!       INTEGER :: K
+!       INTEGER      :: K
 !       REAL(DOUBLE) :: ONE,TEMP,TEMP1,TEMP2,THREE,TWO,ZERO
 !       DATA ZERO,ONE,TWO,THREE /0.E0,1.E0,2.E0,3.E0/
 ! C
@@ -802,7 +802,7 @@ contains
 !   920501  Reformatted the REFERENCES section.  (WRB)
 !***END PROLOGUE  DNSQ
 !       REAL(DOUBLE) :: D1MACH,DENORM
-      INTEGER :: I, IFLAG, INFO, IOPT, ITER, IWA(1), J, JM1, L, LDFJAC, &
+      INTEGER      :: I, IFLAG, INFO, IOPT, ITER, IWA(1), J, JM1, L, LDFJAC, &
            LR, MAXFEV, ML, MODE, MU, N, NCFAIL, NCSUC, NFEV, NJEV, &
            NPRINT, NSLOW1, NSLOW2
       REAL(DOUBLE) :: ACTRED, DELTA, DIAG(*), EPSFCN, EPSMCH, FACTOR, &
@@ -810,7 +810,7 @@ contains
            P1, P5, PNORM, PRERED, QTF(*), R(*), RATIO, SUM, TEMP, &
            WA1(*), WA2(*), WA3(*), WA4(*), X(*), XNORM, XTOL, ZERO
       EXTERNAL FCN, JAC
-      LOGICAL JEVAL,SING
+      LOGICAL      :: JEVAL,SING
       SAVE ONE, P1, P5, P001, P0001, ZERO
       DATA ONE,P1,P5,P001,P0001,ZERO &
            /1.0D0,1.0D-1,5.0D-1,1.0D-3,1.0D-4,0.0D0/
@@ -1174,7 +1174,7 @@ contains
 !   --------------------------------------------------------------------
 
       IMPLICIT NONE
-      INTEGER :: I
+      INTEGER      :: I
       REAL(DOUBLE) :: D1MACH, B, X = 1.D0
 
       B = RADIX(X)
@@ -1254,7 +1254,7 @@ contains
 !           (WRB)
 !   900328  Added TYPE section.  (WRB)
 !***END PROLOGUE  D1MPYQ
-      INTEGER :: I, J, LDA, M, N, NM1, NMJ
+      INTEGER      :: I, J, LDA, M, N, NM1, NMJ
       REAL(DOUBLE) :: A(LDA,*), COS, ONE, SIN, TEMP, V(*), W(*)
       SAVE ONE
       DATA ONE /1.0D0/
@@ -1355,7 +1355,7 @@ contains
 !         necessary to recover the Givens rotation GW(I) described
 !         above.
 !
-!       SING is a LOGICAL output variable. SING is set TRUE if any
+!       SING is a LOGICAL      :: output variable. SING is set TRUE if any
 !         of the diagonal elements of the output S are zero. Otherwise
 !         SING is set FALSE.
 !
@@ -1371,10 +1371,10 @@ contains
 !   900328  Added TYPE section.  (WRB)
 !***END PROLOGUE  D1UPDT
 !       REAL(DOUBLE) :: D1MACH
-      INTEGER :: I, J, JJ, L, M, N, NM1, NMJ
+      INTEGER      :: I, J, JJ, L, M, N, NM1, NMJ
       REAL(DOUBLE) :: COS, COTAN, GIANT, ONE, P25, P5, S(*), &
            SIN, TAN, TAU, TEMP, U(*), V(*), W(*), ZERO
-      LOGICAL SING
+      LOGICAL      :: SING
       SAVE ONE, P5, P25, ZERO
       DATA ONE,P5,P25,ZERO /1.0D0,5.0D-1,2.5D-1,0.0D0/
 !
@@ -1574,7 +1574,7 @@ contains
 !   900328  Added TYPE section.  (WRB)
 !***END PROLOGUE  DDOGLG
 !       REAL(DOUBLE) :: D1MACH,DENORM
-      INTEGER :: I, J, JJ, JP1, K, L, N
+      INTEGER      :: I, J, JJ, JP1, K, L, N
       REAL(DOUBLE) :: ALPHA, BNORM, DELTA, DIAG(*), EPSMCH, GNORM, &
            ONE, QNORM, QTB(*), R(*), SGNORM, SUM, TEMP, WA1(*), &
            WA2(*), X(*), ZERO
@@ -1744,7 +1744,7 @@ contains
 !   900328  Added TYPE section.  (WRB)
 !***END PROLOGUE  DENORM
       REAL(DOUBLE) :: DENORM
-      INTEGER :: I, N
+      INTEGER      :: I, N
       REAL(DOUBLE) :: AGIANT, FLOATN, ONE, RDWARF, RGIANT, S1, S2, S3, &
            X(*), X1MAX, X3MAX, XABS, ZERO
       SAVE ONE, ZERO, RDWARF, RGIANT
@@ -1843,7 +1843,7 @@ contains
 !         program, and should be written as follows.
 !
 !         SUBROUTINE FCN(N,X,FVEC,IFLAG)
-!         INTEGER :: N,IFLAG
+!         INTEGER      :: N,IFLAG
 !         REAL(DOUBLE) :: X(N),FVEC(N)
 !         ----------
 !         Calculate the functions at X and
@@ -1906,7 +1906,7 @@ contains
 !   900328  Added TYPE section.  (WRB)
 !***END PROLOGUE  DFDJC1
 !       REAL(DOUBLE) :: D1MACH
-      INTEGER :: I, IFLAG, J, K, LDFJAC, ML, MSUM, MU, N
+      INTEGER      :: I, IFLAG, J, K, LDFJAC, ML, MSUM, MU, N
       REAL(DOUBLE) :: EPS, EPSFCN, EPSMCH, FJAC(LDFJAC,*), &
            FVEC(*), H, TEMP, WA1(*), WA2(*), X(*), ZERO
       EXTERNAL FCN
@@ -2016,7 +2016,7 @@ contains
 !           (WRB)
 !   900328  Added TYPE section.  (WRB)
 !***END PROLOGUE  DQFORM
-      INTEGER :: I, J, JM1, K, L, LDQ, M, MINMN, N, NP1
+      INTEGER      :: I, J, JM1, K, L, LDQ, M, MINMN, N, NP1
       REAL(DOUBLE) :: ONE, Q(LDQ,*), SUM, TEMP, WA(*), ZERO
       SAVE ONE, ZERO
       DATA ONE,ZERO /1.0D0,0.0D0/
@@ -2122,7 +2122,7 @@ contains
 !       LDA is a positive integer input variable not less than M
 !         which specifies the leading dimension of the array A.
 !
-!       PIVOT is a logical input variable. If pivot is set .TRUE.,
+!       PIVOT is a LOGICAL      :: input variable. If pivot is set .TRUE.,
 !         then column pivoting is enforced. If pivot is set .FALSE.,
 !         then no column pivoting is done.
 !
@@ -2157,12 +2157,12 @@ contains
 !           (WRB)
 !   900328  Added TYPE section.  (WRB)
 !***END PROLOGUE  DQRFAC
-      INTEGER :: M,N,LDA
-      INTEGER :: IPVT(*)
-      LOGICAL PIVOT
+      INTEGER      :: M,N,LDA
+      INTEGER      :: IPVT(*)
+      LOGICAL      :: PIVOT
       SAVE ONE, P05, ZERO
       REAL(DOUBLE) :: A(LDA,*),SIGMA(*),ACNORM(*),WA(*)
-      INTEGER :: I,J,JP1,K,KMAX,MINMN
+      INTEGER      :: I,J,JP1,K,KMAX,MINMN
       REAL(DOUBLE) :: AJNORM,EPSMCH,ONE,P05,SUM,TEMP,ZERO
 !       REAL(DOUBLE) :: D1MACH,DENORM
       DATA ONE,P05,ZERO /1.0D0,5.0D-2,0.0D0/
@@ -2342,7 +2342,7 @@ contains
 ! --------------------------------------------------------------------
 
       IMPLICIT NONE
-      INTEGER :: I
+      INTEGER      :: I
       REAL :: X_single  = 1.0
       REAL(DOUBLE) :: X_double = 1.D0
 
@@ -2392,7 +2392,7 @@ contains
 !***PURPOSE  Save or recall global variables needed by error
 !            handling routines.
 !***LIBRARY   SLATEC (XERROR)
-!***TYPE      INTEGER :: (J4SAVE-I)
+!***TYPE      INTEGER      :: (J4SAVE-I)
 !***KEYWORDS  ERROR MESSAGES, ERROR NUMBER, RECALL, SAVE, XERROR
 !***AUTHOR  Jones, R. E., (SNLA)
 !***DESCRIPTION
@@ -2439,9 +2439,9 @@ contains
 !   910411  Added KEYWORDS section.  (WRB)
 !   920501  Reformatted the REFERENCES section.  (WRB)
 !***END PROLOGUE  J4SAVE
-      LOGICAL ISET
-      INTEGER :: IWHICH, IVALUE, J4SAVE
-      INTEGER :: IPARAM(9)
+      LOGICAL      :: ISET
+      INTEGER      :: IWHICH, IVALUE, J4SAVE
+      INTEGER      :: IPARAM(9)
       SAVE IPARAM
       DATA IPARAM(1),IPARAM(2),IPARAM(3),IPARAM(4)/0,2,0,10/
       DATA IPARAM(5)/1/
@@ -2858,7 +2858,7 @@ contains
 !***DESCRIPTION
 !
 ! This routine sends one or more lines to each of the (up to five)
-! logical units to which error messages are to be sent.  This routine
+! LOGICAL      :: units to which error messages are to be sent.  This routine
 ! is called several times by XERMSG, sometimes with a single line to
 ! print and sometimes with a (potentially very long) message that may
 ! wrap around into multiple lines.
@@ -2922,16 +2922,16 @@ contains
 !   920501  Reformatted the REFERENCES section.  (WRB)
 !***END PROLOGUE  XERPRN
       CHARACTER*(*) PREFIX, MESSG
-      INTEGER :: NPREF, NWRAP, N, I, LPREF, LWRAP, LENMSG, NEXTC, LPIECE
-      INTEGER :: IDELTA
+      INTEGER      :: NPREF, NWRAP, N, I, LPREF, LWRAP, LENMSG, NEXTC, LPIECE
+      INTEGER      :: IDELTA
       CHARACTER*148 CBUFF
-      INTEGER :: IU(5), NUNIT
+      INTEGER      :: IU(5), NUNIT
       CHARACTER*2 NEWLIN
       PARAMETER (NEWLIN = '$$')
 !***FIRST EXECUTABLE STATEMENT  XERPRN
       CALL XGETUA(IU,NUNIT)
 !
-!       A ZERO VALUE FOR A LOGICAL UNIT NUMBER MEANS TO USE THE STANDARD
+!       A ZERO VALUE FOR A LOGICAL      :: UNIT NUMBER MEANS TO USE THE STANDARD
 !       ERROR MESSAGE UNIT INSTEAD.  I1MACH(4) RETRIEVES THE STANDARD
 !       ERROR MESSAGE UNIT.
 !
@@ -3088,7 +3088,7 @@ contains
 !
 ! *Usage:
 !
-!        INTEGER ::  KFLAG, NERR, LEVEL, ICOUNT
+!        INTEGER      ::  KFLAG, NERR, LEVEL, ICOUNT
 !        CHARACTER * (len) LIBRAR, SUBROU, MESSG
 !
 !        CALL XERSVE (LIBRAR, SUBROU, MESSG, KFLAG, NERR, LEVEL, ICOUNT)
@@ -3134,9 +3134,9 @@ contains
 !***END PROLOGUE  XERSVE
       INTEGER LENTAB
       PARAMETER (LENTAB=10)
-      INTEGER :: LUN(5)
-      INTEGER :: KFLAG, NERR, LEVEL, ICOUNT, KOUNT, KOUNTX, NMSG, NUNIT
-      INTEGER :: KUNIT, IUNIT, I, NERTAB, LEVTAB
+      INTEGER      :: LUN(5)
+      INTEGER      :: KFLAG, NERR, LEVEL, ICOUNT, KOUNT, KOUNTX, NMSG, NUNIT
+      INTEGER      :: KUNIT, IUNIT, I, NERTAB, LEVTAB
       CHARACTER*(*) LIBRAR, SUBROU, MESSG
       CHARACTER*8  LIBTAB(LENTAB), SUBTAB(LENTAB), LIB, SUB
       CHARACTER*20 MESTAB(LENTAB), MES

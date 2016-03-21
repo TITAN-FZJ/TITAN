@@ -27,7 +27,7 @@
 		call sumk_jij(Ef,y(ix),Jijint)
 		Jij = Jijint*wght(ix)/pi
 
- 		if(index(runoptions,"verbose").gt.0) write(*,"('[coupling] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
+ 		if(lverbose) write(*,"('[coupling] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
 		do i=2,pn1
 			! Progress bar
       prog = floor(i*100.d0/pn1)
@@ -61,7 +61,7 @@
 			call sumk_jij(Ef,y(ix),Jijint)
 			Jijint = Jijint*wght(ix)/pi
 
- 			if(index(runoptions,"verbose").gt.0) write(*,"('[coupling] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
+ 			if(lverbose) write(*,"('[coupling] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
 			! Sending results to process 0
 			call MPI_Send(Jijint,ncount,MPI_DOUBLE_PRECISION,0,11235,MPI_COMM_WORLD,ierr)
 			! Receiving new point or signal to exit

@@ -169,7 +169,7 @@ CPP = -fpp
 # Libraries
 LLIBS =-mkl -L$(HOME)/lib -lnag
 # Flags
-FFLAGS =-O3 -xHost -qoverride-limits
+FFLAGS =-O3 -xHost
 # Debugger
 ifeq ($(DEBUG),debug)
 FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0

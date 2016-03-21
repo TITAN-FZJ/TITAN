@@ -5,7 +5,7 @@ subroutine ldos(e,ldosu,ldosd,Jijint)
   use mod_parameters
   use mod_generate_kpoints
   use mod_progress
-  use mod_magnet, only: hdel,mag
+  use mod_magnet, only: hdel,mz
   use mod_mpi_pars
 !$  use omp_lib
   implicit none
@@ -53,7 +53,7 @@ subroutine ldos(e,ldosu,ldosd,Jijint)
 
 !$omp parallel default(none) &
 !$omp& private(mythread,iz,kp,gf,gij,gji,paulia,paulib,i,j,mu,nu,alpha,gfdiagu,gfdiagd,Jijk,Jijkan,temp1,temp2) &
-!$omp& shared(prog,spiner,elapsed_time,start_time,progbar,kbz,nkpoints,wkbz,e,eta,Npl,hdel,mag,nmaglayers,mmlayermag,pauli,paulimatan,ldosu,ldosd,Jijint,myrank,nthreads)
+!$omp& shared(prog,spiner,elapsed_time,start_time,progbar,kbz,nkpoints,wkbz,e,eta,Npl,hdel,mz,nmaglayers,mmlayermag,pauli,paulimatan,ldosu,ldosd,Jijint,myrank,nthreads)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread.eq.0).and.(myrank.eq.0)) then
 !$    nthreads = omp_get_num_threads()
@@ -93,7 +93,7 @@ subroutine ldos(e,ldosu,ldosd,Jijint)
         Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + real(temp1(alpha,alpha))
       end do
 
-      Jijk(i,j,mu,nu) = -hdel(mmlayermag(i)-1)*hdel(mmlayermag(j)-1)*Jijk(i,j,mu,nu)*wkbz(iz)/(mag(mmlayermag(i)-1)*mag(mmlayermag(j)-1))
+      Jijk(i,j,mu,nu) = -hdel(mmlayermag(i)-1)*hdel(mmlayermag(j)-1)*Jijk(i,j,mu,nu)*wkbz(iz)/(mz(mmlayermag(i)-1)*mz(mmlayermag(j)-1))
 
       ! Anisotropy (on-site) term
       if(i.eq.j) then
@@ -105,7 +105,7 @@ subroutine ldos(e,ldosu,ldosd,Jijint)
           Jijkan(i,mu,nu) = Jijkan(i,mu,nu) + real(temp1(alpha,alpha))
         end do
 
-        Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + hdel(mmlayermag(i)-1)*Jijkan(i,mu,nu)*wkbz(iz)/(mag(mmlayermag(i)-1)**2)
+        Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + hdel(mmlayermag(i)-1)*Jijkan(i,mu,nu)*wkbz(iz)/(mz(mmlayermag(i)-1)**2)
       end if
     end do ; end do ; end do ; end do
 

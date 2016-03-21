@@ -20,7 +20,7 @@ while (( "$#" )); do
         shift
         ;;
       (cleandep|cleandebug|cleanobj|cleanmod|cleanexe|clean|cleanall|recompile)
-        rule="$1"
+        rule="$1 ${rule}"
         shift
         ;;
       (*.exe)
@@ -53,6 +53,30 @@ lattice="LATTICE=$(pwd | awk -F/ '{print $(NF-1)}')"
 system="SYSTEM=$(pwd | awk -F/ '{print $(NF)}')"
 
 cd ../../
-echo "make $lattice $system $rule $platform $parallel $debug $perform $filename $verbose"
+
+# Test if "recompile"  was used before
+if [[ "$rule" =~ "recompile" && ! -z `grep "recompile" last_compilation` ]] ; then
+  while true; do
+    read -n 1 -p "Last compilation used \"recompile\". Use again? " yn
+    echo ' '
+    # read -n 1 -e -p "Last compilation used \"recompile\". Use again? \n" yn
+    case $yn in
+      ([Yy]*)
+        break
+        ;;
+      ([Nn]*)
+        exit
+        ;;
+      (*)
+        echo "Please answer yes or no." ;;
+    esac
+  done
+fi
+
+echo "make $lattice $system $rule $platform $parallel $debug $perform $filename $verbose" | tee last_compilation
+
 make $lattice $system $rule $platform $parallel $debug $perform $filename $verbose
-# cd -
+
+# echo "error = " $?
+
+exit

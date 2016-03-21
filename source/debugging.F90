@@ -16,6 +16,21 @@ subroutine debugging()
 ! 	complex(double),dimension((Npl+2)*18,(Npl+2)*18)	:: hk,test,test2
 ! 	complex(double),dimension(Npl+2,Npl+2,18,18)	:: gf
 
+! 	write(*,*) 'Hamiltonian:'
+	mz		= 2.d0
+	mp	= zero
+	mm	= conjg(mp)
+	! Variables used in the hamiltonian
+	eps1 = 0.d0
+	hdel	= 0.d0
+	hdelp = zero
+	hdelm = zero
+	hdel(1:Npl)  	= 0.5d0*U*mz
+	hdelp(1:Npl)  = 0.5d0*U*mp
+	hdelm(1:Npl)	= 0.5d0*U*mm
+! 	lambda=0.d0
+	call eintidiag()
+
 ! 	write(*,*) 'Real space hoppings:'
 ! 	write(*,*) '*********************'
 ! 	write(*,*) sum(abs(t00(1,:,:,:))),sum(t00(1,:,:,:))
@@ -63,17 +78,17 @@ subroutine debugging()
 
 
 ! 	write(*,*) 'Hamiltonian:'
-! 	mag		= 0.5d0
-! 	splus	= zero
-! 	sminus	= conjg(splus)
+! 	mz		= 0.5d0
+! 	mp	= zero
+! 	mm	= conjg(mp)
 ! 	! Variables used in the hamiltonian
 ! 	eps1 = 0.d0
 ! 	hdel	= 0.d0
-! 	usplus = zero
-! 	usminus = zero
-! 	hdel(2:Npl+1)  		= 0.5d0*U*mag
-! 	usplus(2:Npl+1)		= U*splus
-! 	usminus(2:Npl+1)	= U*sminus
+! 	hdelp = zero
+! 	hdelm = zero
+! 	hdel(2:Npl+1)  	= 0.5d0*U*mz
+! 	hdelp(2:Npl+1)  = 0.5d0*U*mp
+! 	hdelm(2:Npl+1)	= 0.5d0*U*mm
 ! 	lambda=0.d0
 
 ! 	kp = 0.d0!kbz(1,:)

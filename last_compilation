@@ -1,0 +1,1 @@
+make LATTICE=fcc100 SYSTEM=CoPt  PLATFORM=osx PARALLEL=omp   FILE=main.exe 

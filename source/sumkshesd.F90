@@ -27,7 +27,7 @@ subroutine sumkshesd(e,ep,tFintiikl,iflag)
 
 !$omp parallel default(none) &
 !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,wkbzc,kp,df1iikl,pfdf1iikl,dtdk,gf,gfmat,gfuu,gfud,gfdu,gfdd,i,j,l,mu,nu,gamma,xi) &
-!$omp& shared(prog,spiner,runoptions,kbz,wkbz,e,ep,iflag,prefactor,tFintiikl,nkpoints,Ef,eta,nthreads,myrank,Npl,plnn,dim,sigmaimunu2i,sigmaijmunu2i)
+!$omp& shared(prog,spiner,lverbose,kbz,wkbz,e,ep,iflag,prefactor,tFintiikl,nkpoints,Ef,eta,nthreads,myrank,Npl,plnn,dim,sigmaimunu2i,sigmaijmunu2i)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread.eq.0).and.(myrank.eq.0)) then
 !$    nthreads = omp_get_num_threads()
@@ -43,7 +43,7 @@ subroutine sumkshesd(e,ep,tFintiikl,iflag)
   do iz=1,nkpoints
 !    Progress bar
 !$  if((mythread.eq.0)) then
-      if((myrank.eq.0).and.(index(runoptions,"verbose").gt.0)) then
+      if((myrank.eq.0).and.(lverbose)) then
         prog = floor(iz*100.d0/nkpoints)
         write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of k-sum on rank ',i0,a1,$)") spiner(mod(iz,4)+1),prog,iz,nkpoints,myrank,char(13)
       end if

@@ -1,10 +1,11 @@
 ! ---------- Parallel spin current: Energy integration ---------
-subroutine eintsheprllsc(e,ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl)
+subroutine eintsheprllsc(e)
+	use mod_f90_kind
 	use mod_constants
 	use mod_parameters
 	use mod_lattice
 	use mod_generate_epoints
-	use mod_f90_kind
+	use mod_currents, only: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl
 	use mod_mpi_pars
 	use MPI
 	implicit none
@@ -12,7 +13,6 @@ subroutine eintsheprllsc(e,ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorb
 	integer						:: i
 	real(double)							:: start_time,elapsed_time,sizemat,speed
 	real(double),intent(in)		:: e
-	complex(double), dimension(n0sc1:n0sc2,dimsigmaNpl,4),intent(out)	:: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl
 	complex(double), dimension(:,:,:), allocatable  			:: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
 !--------------------- begin MPI vars --------------------
 	integer :: ix,ix2,itask,masterrank=0
@@ -39,15 +39,15 @@ subroutine eintsheprllsc(e,ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorb
 		Lxttchiorbiikl = LxttFintiikl*wght(ix)
 		Lyttchiorbiikl = LyttFintiikl*wght(ix)
 		Lzttchiorbiikl = LzttFintiikl*wght(ix)
-		if(index(runoptions,"verbose").gt.0) write(*,"('[eintsheprllsc] Finished point ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,myrank_row,myrank_col,trim(host)
+		if(lverbose) write(*,"('[eintsheprllsc] Finished point ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,myrank_row,myrank_col,trim(host)
 
 		do i=2,nepoints
-			if(index(runoptions,"verbose").gt.0) start_time = MPI_Wtime()
+			if(lverbose) start_time = MPI_Wtime()
 			call MPI_Recv(ttFintiikl  ,ncountkl,MPI_DOUBLE_COMPLEX,MPI_ANY_SOURCE,21212121+count,MPIComm_Row,stat,ierr)
 			call MPI_Recv(LxttFintiikl,ncountkl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),32323232+count,MPIComm_Row,stat,ierr)
 			call MPI_Recv(LyttFintiikl,ncountkl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),43434343+count,MPIComm_Row,stat,ierr)
 			call MPI_Recv(LzttFintiikl,ncountkl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),54545454+count,MPIComm_Row,stat,ierr)
-			if(index(runoptions,"verbose").gt.0) then
+			if(lverbose) then
 				elapsed_time = MPI_Wtime() - start_time
 				write(*,"('Point ',i0,' received from ',i0,'. Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes ')") i,stat(MPI_SOURCE),elapsed_time,elapsed_time/60.d0
 				sizemat = 4.d0*ncountkl*16.d0/(1024.d0**2)
@@ -89,7 +89,7 @@ subroutine eintsheprllsc(e,ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorb
 				exit
 			end if
 
-			if(index(runoptions,"verbose").gt.0) write(*,"('[eintsheprllsc] Finished point ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,myrank_row,myrank_col,trim(host)
+			if(lverbose) write(*,"('[eintsheprllsc] Finished point ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,myrank_row,myrank_col,trim(host)
 			! Sending results to process 0
 			call MPI_Send(ttFintiikl  ,ncountkl,MPI_DOUBLE_COMPLEX,masterrank,21212121+count,MPIComm_Row,ierr)
 			call MPI_Send(LxttFintiikl,ncountkl,MPI_DOUBLE_COMPLEX,masterrank,32323232+count,MPIComm_Row,ierr)

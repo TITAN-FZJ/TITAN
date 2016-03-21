@@ -47,10 +47,10 @@ subroutine nparticles(N,eps,npart,iflag)
 		n_orb_d = gdiagddr
 
 		do j=1,Npl
-			splus(j) = (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
+			mp(j) = (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
 		end do
 
- 		if(index(runoptions,"verbose").gt.0) write(*,"('[nparticles] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
+ 		if(lverbose) write(*,"('[nparticles] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
 		do i=2,pn1
 			! Progress bar
       prog = floor(i*100.d0/pn1)
@@ -71,7 +71,7 @@ subroutine nparticles(N,eps,npart,iflag)
 			n_orb_d = n_orb_d + gdiagddr
 
 			do j=1,Npl
-				splus(j) = splus(j) + (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
+				mp(j) = mp(j) + (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
 			end do
 
 			! If the number of processors is less than the total number of points, sends
@@ -95,7 +95,7 @@ subroutine nparticles(N,eps,npart,iflag)
 			gdiagud = wght(ix)*gdiagud
 			gdiagdu = wght(ix)*gdiagdu
 
- 			if(index(runoptions,"verbose").gt.0) write(*,"('[nparticles] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
+ 			if(lverbose) write(*,"('[nparticles] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
 			! Sending results to process 0
 			call MPI_Send(gdiaguur,ncount,MPI_DOUBLE_PRECISION,0,9999,MPI_COMM_WORLD,ierr)
 			call MPI_Send(gdiagddr,ncount,MPI_DOUBLE_PRECISION,0,9998,MPI_COMM_WORLD,ierr)
@@ -110,29 +110,29 @@ subroutine nparticles(N,eps,npart,iflag)
 	! Send results to all processors
 	call MPI_Bcast(n_orb_u,ncount,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
 	call MPI_Bcast(n_orb_d,ncount,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-	call MPI_Bcast(splus,Npl,MPI_DOUBLE_COMPLEX,0,MPI_COMM_WORLD,ierr)
+	call MPI_Bcast(mp,Npl,MPI_DOUBLE_COMPLEX,0,MPI_COMM_WORLD,ierr)
 
 	n_orb_u = 0.5d0 + n_orb_u/pi
 	n_orb_d = 0.5d0 + n_orb_d/pi
 	n_orb_t = n_orb_u + n_orb_d
 	mag_orb = n_orb_u - n_orb_d
-	splus  = splus/tpi
-	sminus = conjg(splus)
+	mp = mp/pi
+	mm = conjg(mp)
 
 	!	Number of particles and magnetization:
 	do i=1,Npl
-		n_t(i)    = sum(n_orb_t(i,:))
-		mag(i)    = sum(mag_orb(i,5:9))
-		npart(i)  = n_t(i) - npart0(i+1)
+		n_t(i)   = sum(n_orb_t(i,:))
+		mz(i)    = sum(mag_orb(i,5:9))
+		npart(i) = n_t(i) - npart0(i+1)
 	end do
 
 	if(myrank.eq.0) then
-		if(index(runoptions,"verbose").gt.0)  then
+		if(lverbose)  then
 			do i=1,Npl
-				write(*,"('plane ',I0,', eps1(',I0,')=',e16.9,4x,'mag(',I0,')=',e16.9)") i,i,eps1(i),i,mag(i)
+				write(*,"('plane ',I0,', eps1(',I0,')=',e16.9,4x,'mz(',I0,')=',e16.9)") i,i,eps1(i),i,mz(i)
 				write(*,"('n_t = ',e16.9,', npart0 = ',e16.9,', npart = ',e16.9)") n_t(i),npart0(i+1),npart(i)
-				if(abs(splus(i)).gt.1.d-10) then
-					write(*,"(30x,'Sx(',I0,')=',e16.9,4x,'Sy(',I0,')=',e16.9)") i,real(splus(i)),i,aimag(splus(i))
+				if(abs(mp(i)).gt.1.d-10) then
+					write(*,"(30x,'Mx(',I0,')=',e16.9,4x,'My(',I0,')=',e16.9)") i,real(mp(i)),i,aimag(mp(i))
 				end if
 			end do
 			write(*,"(24x,'----')")
@@ -178,7 +178,7 @@ subroutine nparticlesjac(N,eps,npart,npartjac,ldfjac,iflag)
 		call sumk_npartjac(Ef,y(ix),ggr)
 		npartjac = wght(ix)*ggr
 
- 		if(index(runoptions,"verbose").gt.0) write(*,"('[nparticlesjac] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
+ 		if(lverbose) write(*,"('[nparticlesjac] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
 		do i=2,pn1
 			! Progress bar
       prog = floor(i*100.d0/pn1)
@@ -212,7 +212,7 @@ subroutine nparticlesjac(N,eps,npart,npartjac,ldfjac,iflag)
 			call sumk_npartjac(Ef,y(ix),ggr)
 			ggr = wght(ix)*ggr
 
- 			if(index(runoptions,"verbose").gt.0) write(*,"('[nparticlesjac] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
+ 			if(lverbose) write(*,"('[nparticlesjac] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
 			! Sending results to process 0
 			call MPI_Send(ggr,ncount,MPI_DOUBLE_PRECISION,0,3333,MPI_COMM_WORLD,ierr)
 			! Receiving new point or signal to exit
@@ -280,10 +280,10 @@ subroutine nparticlesjacnag(N,eps,npart,npartjac,ldfjac,iflag)
 			n_orb_d = gdiagddr
 
 			do j=1,Npl
-				splus(j) = (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
+				mp(j) = (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
 			end do
 
-	 		if(index(runoptions,"verbose").gt.0) write(*,"('[nparticlesjacnag1] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
+	 		if(lverbose) write(*,"('[nparticlesjacnag1] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
 			do i=2,pn1
 				! Progress bar
 	      prog = floor(i*100.d0/pn1)
@@ -304,7 +304,7 @@ subroutine nparticlesjacnag(N,eps,npart,npartjac,ldfjac,iflag)
 				n_orb_d = n_orb_d + gdiagddr
 
 				do j=1,Npl
-					splus(j) = splus(j) + (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
+					mp(j) = mp(j) + (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
 				end do
 
 				! If the number of processors is less than the total number of points, sends
@@ -328,7 +328,7 @@ subroutine nparticlesjacnag(N,eps,npart,npartjac,ldfjac,iflag)
 				gdiagud = wght(ix)*gdiagud
 				gdiagdu = wght(ix)*gdiagdu
 
-	 			if(index(runoptions,"verbose").gt.0) write(*,"('[nparticlesjacnag1] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
+	 			if(lverbose) write(*,"('[nparticlesjacnag1] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
 				! Sending results to process 0
 				call MPI_Send(gdiaguur,ncount,MPI_DOUBLE_PRECISION,0,9999,MPI_COMM_WORLD,ierr)
 				call MPI_Send(gdiagddr,ncount,MPI_DOUBLE_PRECISION,0,9998,MPI_COMM_WORLD,ierr)
@@ -343,29 +343,29 @@ subroutine nparticlesjacnag(N,eps,npart,npartjac,ldfjac,iflag)
 		! Send results to all processors
 		call MPI_Bcast(n_orb_u,ncount,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
 		call MPI_Bcast(n_orb_d,ncount,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-		call MPI_Bcast(splus,Npl,MPI_DOUBLE_COMPLEX,0,MPI_COMM_WORLD,ierr)
+		call MPI_Bcast(mp,Npl,MPI_DOUBLE_COMPLEX,0,MPI_COMM_WORLD,ierr)
 
 		n_orb_u = 0.5d0 + n_orb_u/pi
 		n_orb_d = 0.5d0 + n_orb_d/pi
 		n_orb_t = n_orb_u + n_orb_d
 		mag_orb = n_orb_u - n_orb_d
-		splus  = splus/tpi
-		sminus = conjg(splus)
+		mp = mp/pi
+		mm = conjg(mp)
 
 		!	Number of particles and magnetization:
 		do i=1,Npl
-			n_t(i)    = sum(n_orb_t(i,:))
-			mag(i)    = sum(mag_orb(i,5:9))
-			npart(i)  = n_t(i) - npart0(i+1)
+			n_t(i)   = sum(n_orb_t(i,:))
+			mz(i)    = sum(mag_orb(i,5:9))
+			npart(i) = n_t(i) - npart0(i+1)
 		end do
 
 		if(myrank.eq.0) then
-			if(index(runoptions,"verbose").gt.0)  then
+			if(lverbose)  then
 				do i=1,Npl
-					write(*,"('plane ',I0,', eps1(',I0,')=',e16.9,4x,'mag(',I0,')=',e16.9)") i,i,eps1(i),i,mag(i)
+					write(*,"('plane ',I0,', eps1(',I0,')=',e16.9,4x,'mz(',I0,')=',e16.9)") i,i,eps1(i),i,mz(i)
 					write(*,"('n_t = ',e16.9,', npart0 = ',e16.9,', npart = ',e16.9)") n_t(i),npart0(i+1),npart(i)
-					if(abs(splus(i)).gt.1.d-10) then
-						write(*,"(30x,'Sx(',I0,')=',e16.9,4x,'Sy(',I0,')=',e16.9)") i,real(splus(i)),i,aimag(splus(i))
+					if(abs(mp(i)).gt.1.d-10) then
+						write(*,"(30x,'Mx(',I0,')=',e16.9,4x,'My(',I0,')=',e16.9)") i,real(mp(i)),i,aimag(mp(i))
 					end if
 				end do
 				write(*,"(24x,'----')")
@@ -378,7 +378,7 @@ subroutine nparticlesjacnag(N,eps,npart,npartjac,ldfjac,iflag)
 			call sumk_npartjac(Ef,y(ix),ggr)
 			npartjac = wght(ix)*ggr
 
-	 		if(index(runoptions,"verbose").gt.0) write(*,"('[nparticlesjacnag2] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
+	 		if(lverbose) write(*,"('[nparticlesjacnag2] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
 			do i=2,pn1
 				! Progress bar
 	      prog = floor(i*100.d0/pn1)
@@ -412,7 +412,7 @@ subroutine nparticlesjacnag(N,eps,npart,npartjac,ldfjac,iflag)
 				call sumk_npartjac(Ef,y(ix),ggr)
 				ggr = wght(ix)*ggr
 
-	 			if(index(runoptions,"verbose").gt.0) write(*,"('[nparticlesjacnag2] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
+	 			if(lverbose) write(*,"('[nparticlesjacnag2] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
 				! Sending results to process 0
 				call MPI_Send(ggr,ncount2,MPI_DOUBLE_PRECISION,0,3333,MPI_COMM_WORLD,ierr)
 				! Receiving new point or signal to exit

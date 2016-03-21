@@ -1,7 +1,7 @@
 !	Mounts the hoppings between orbitals for plane sites, 1st n.n. (with SOC)
 !	input:
 !		kp = in-plane wave vector k
-!		mm = layer
+!		ly = layer
 !
 !	in common:
 !		pi, sq2, sq3, zi, zero
@@ -18,7 +18,7 @@
 !	output:
 !		h00 = q-parallel in-plane hoppings
 !		h01 = q-parallel inter-plane hoppings
-subroutine helphbccsoc(kp,h00so,h01so,h10so,mm)
+subroutine helphbccsoc(kp,h00so,h01so,h10so,ly)
 	use mod_f90_kind
 	use mod_constants
 	use mod_lattice
@@ -26,7 +26,7 @@ subroutine helphbccsoc(kp,h00so,h01so,h10so,mm)
 	use mod_parameters, only: Npl
 	implicit none
 	integer			:: i
-	integer, 			intent(in)	:: mm
+	integer, 			intent(in)	:: ly
 	real(double),	intent(in)	:: kp(3)
 	real(double)	:: kr0,kr1,kr2
 	complex(double)	:: expikr0,expikr1,expikr2
@@ -35,20 +35,20 @@ subroutine helphbccsoc(kp,h00so,h01so,h10so,mm)
 
 !	in-plane hoppings h00
 ! on-site
-	h00	 = t00(mm,0,:,:)
+	h00	 = t00(ly,0,:,:)
 !	First and second nearest neighbors
 	do i=1,n0
 !		exponential of i.k.r0(i); i=1,n0
 		kr0		= (kp(1)*r0(i,1))+(kp(2)*r0(i,2))+(kp(3)*r0(i,3))
 		expikr0	= exp(zi*kr0)
-		h00	= h00 + (expikr0*t00(mm,i,:,:))
+		h00	= h00 + (expikr0*t00(ly,i,:,:))
 	end do
 	h00so	= zero
 	h00so(1:9,1:9)      = h00
 	h00so(10:18,10:18)  = h00
 
 !	inter-plane hoppings h01
-	if(mm.gt.Npl+1) then
+	if(ly.gt.Npl+1) then
 		h01so = zero
 		h10so = zero
 		return
@@ -60,14 +60,14 @@ subroutine helphbccsoc(kp,h00so,h01so,h10so,mm)
 !		exp(i.k.r1(i)) ; i=1,n1
 		kr1		= (kp(1)*r1(i,1)) + (kp(2)*r1(i,2)) + (kp(3)*r1(i,3))
 		expikr1	= exp(zi*kr1)
-		h01		= h01 + (expikr1*t01(mm,i,:,:))
+		h01		= h01 + (expikr1*t01(ly,i,:,:))
 	end do
 !	Second nearest neighbors
 	do i=1,n2
 !		exp(i.k.r2(i)) ; i=1,n2
 		kr2		= (kp(1)*r2(i,1)) + (kp(2)*r2(i,2)) + (kp(3)*r2(i,3))
 		expikr2	= exp(zi*kr2)
-		h01		= h01 + (expikr2*t01(mm,n1+i,:,:))
+		h01		= h01 + (expikr2*t01(ly,n1+i,:,:))
 	end do
 	h01so	= zero
 	h01so(1:9,1:9)      = h01
@@ -82,7 +82,7 @@ end subroutine helphbccsoc
 !	Mounts the hoppings between orbitals for plane sites, 1st n.n. and 2nd n.n.(with SOC)
 !	input:
 !		kp = in-plane wave vector k
-!		mm = layer
+!		ly = layer
 !
 !	in common:
 !		pi, sq2, sq3, zi, zero
@@ -100,7 +100,7 @@ end subroutine helphbccsoc
 !		h00 = q-parallel in-plane hoppings
 !		h01 = q-parallel inter-plane hoppings
 !		h02 = q-parallel inter-plane hoppings
-subroutine helphfccsoc(kp,h00so,h01so,h10so,h02so,h20so,mm)
+subroutine helphfccsoc(kp,h00so,h01so,h10so,h02so,h20so,ly)
 	use mod_f90_kind
 	use mod_constants
 	use mod_lattice
@@ -108,7 +108,7 @@ subroutine helphfccsoc(kp,h00so,h01so,h10so,h02so,h20so,mm)
 	use mod_parameters, only: Npl
 	implicit none
 	integer			:: i
-	integer, 			intent(in)	:: mm
+	integer, 			intent(in)	:: ly
 	real(double),	intent(in)	:: kp(3)
 	real(double)	:: kr0,kr1,kr2
 	complex(double)	:: expikr0,expikr1,expikr2
@@ -117,20 +117,20 @@ subroutine helphfccsoc(kp,h00so,h01so,h10so,h02so,h20so,mm)
 
 !	in-plane hoppings h00
 ! on-site
-	h00	 = t00(mm,0,:,:)
+	h00	 = t00(ly,0,:,:)
 !	First and second nearest neighbors
 	do i=1,n0
 !		exponential of i.k.r0(i); i=1,n0
 		kr0		= (kp(1)*r0(i,1))+(kp(2)*r0(i,2))+(kp(3)*r0(i,3))
 		expikr0	= exp(zi*kr0)
-		h00	= h00 + (expikr0*t00(mm,i,:,:))
+		h00	= h00 + (expikr0*t00(ly,i,:,:))
 	end do
 	h00so	= zero
 	h00so(1:9,1:9)      = h00
 	h00so(10:18,10:18)  = h00
 
 !	inter-plane hoppings h01
-	if(mm.gt.Npl+1) then
+	if(ly.gt.Npl+1) then
 		h01so = zero
 		h10so = zero
 		return
@@ -142,7 +142,7 @@ subroutine helphfccsoc(kp,h00so,h01so,h10so,h02so,h20so,mm)
 !		exp(i.k.r1(i)) ; i=1,n1
 		kr1		= (kp(1)*r1(i,1)) + (kp(2)*r1(i,2)) + (kp(3)*r1(i,3))
 		expikr1	= exp(zi*kr1)
-		h01		= h01 + (expikr1*t01(mm,i,:,:))
+		h01		= h01 + (expikr1*t01(ly,i,:,:))
 	end do
 	h01so	= zero
 	h01so(1:9,1:9)      = h01
@@ -150,7 +150,7 @@ subroutine helphfccsoc(kp,h00so,h01so,h10so,h02so,h20so,mm)
 	h10so = transpose(conjg(h01so))
 
 !	inter-plane hoppings h02
-	if(mm.gt.Npl) then
+	if(ly.gt.Npl) then
 		h02so = zero
 		h20so = zero
 		return
@@ -162,7 +162,7 @@ subroutine helphfccsoc(kp,h00so,h01so,h10so,h02so,h20so,mm)
 !		exp(i.k.r2(i)) ; i=1,n2
 		kr2		= (kp(1)*r2(i,1)) + (kp(2)*r2(i,2)) + (kp(3)*r2(i,3))
 		expikr2	= exp(zi*kr2)
-		h02		= h02 + (expikr2*t02(mm,i,:,:))
+		h02		= h02 + (expikr2*t02(ly,i,:,:))
 	end do
 	h02so = zero
 	h02so(1:9,1:9)      = h02

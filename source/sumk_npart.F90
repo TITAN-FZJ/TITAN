@@ -28,7 +28,7 @@ subroutine sumk_npart(er,ei,gdiaguur,gdiagddr,gdiagud,gdiagdu)
 
 !$omp parallel default(none) &
 !$omp& private(mythread,iz,kp,gf,i,j,mu,mup) &
-!$omp& shared(llineargfsoc,llinearsoc,prog,spiner,elapsed_time,start_program,progbar,runoptions,kbz,wkbz,nkpoints,er,ei,gdiaguur,gdiagddr,gdiagud,gdiagdu,Npl,myrank,nthreads)
+!$omp& shared(llineargfsoc,llinearsoc,prog,spiner,elapsed_time,start_program,progbar,lverbose,kbz,wkbz,nkpoints,er,ei,gdiaguur,gdiagddr,gdiagud,gdiagdu,Npl,myrank,nthreads)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread.eq.0).and.(myrank.eq.0)) then
 !$    nthreads = omp_get_num_threads()
@@ -38,7 +38,7 @@ subroutine sumk_npart(er,ei,gdiaguur,gdiagddr,gdiagud,gdiagdu)
 !$omp do
   kpoints: do iz=1,nkpoints
 !$  if((mythread.eq.0)) then
-      if((myrank.eq.0).and.(index(runoptions,"verbose").gt.0)) then
+      if((myrank.eq.0).and.(lverbose)) then
         ! Progress bar
         prog = floor(iz*100.d0/nkpoints)
 #ifdef _JUQUEEN
@@ -101,7 +101,7 @@ subroutine sumk_npartjac(er,ei,ggr)
   ggr    = 0.d0
 !$omp parallel default(none) &
 !$omp& private(mythread,iz,kp,gf,gvg,i,j,mu,nu) &
-!$omp& shared(llineargfsoc,llinearsoc,prog,spiner,elapsed_time,start_program,progbar,runoptions,kbz,wkbz,nkpoints,er,ei,ggr,Npl,myrank,nthreads)
+!$omp& shared(llineargfsoc,llinearsoc,prog,spiner,elapsed_time,start_program,progbar,lverbose,kbz,wkbz,nkpoints,er,ei,ggr,Npl,myrank,nthreads)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread.eq.0).and.(myrank.eq.0)) then
 !$    nthreads = omp_get_num_threads()
@@ -111,7 +111,7 @@ subroutine sumk_npartjac(er,ei,ggr)
 !$omp do
   kpoints: do iz=1,nkpoints
 !$  if((mythread.eq.0)) then
-      if((myrank.eq.0).and.(index(runoptions,"verbose").gt.0)) then
+      if((myrank.eq.0).and.(lverbose)) then
         ! Progress bar
         prog = floor(iz*100.d0/nkpoints)
 #ifdef _JUQUEEN

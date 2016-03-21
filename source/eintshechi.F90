@@ -1,9 +1,10 @@
 ! ---------- Spin disturbance: Energy integration ---------
-subroutine eintshechi(e,chiorb_hf)
+subroutine eintshechi(e)
+	use mod_f90_kind
 	use mod_constants
 	use mod_parameters
 	use mod_generate_epoints
-	use mod_f90_kind
+	use mod_susceptibilities, only: chiorb_hf
 	use mod_mpi_pars
 	use MPI
 	implicit none
@@ -11,7 +12,6 @@ subroutine eintshechi(e,chiorb_hf)
 	integer						:: i
 	real(double)								:: start_time,elapsed_time,sizemat,speed
 	real(double), intent(in)		:: e
-	complex(double), dimension(dim,dim),		intent(out) :: chiorb_hf
 	complex(double), dimension(:,:),allocatable					:: Fint
 !--------------------- begin MPI vars --------------------
 	integer :: ix,ix2,itask
@@ -36,12 +36,12 @@ subroutine eintshechi(e,chiorb_hf)
 		call sumkshechi(e,y(ix),Fint,0)
 		chiorb_hf       = Fint*wght(ix)
 
-		if(index(runoptions,"verbose").gt.0) write(*,"('[eintshechi] Finished point ',i0,' of step ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,count,myrank_row,myrank_col,trim(host)
+		if(lverbose) write(*,"('[eintshechi] Finished point ',i0,' of step ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,count,myrank_row,myrank_col,trim(host)
 
 		do i=2,nepoints
-			if(index(runoptions,"verbose").gt.0) start_time = MPI_Wtime()
+			if(lverbose) start_time = MPI_Wtime()
 			call MPI_Recv(Fint,ncount,MPI_DOUBLE_COMPLEX,MPI_ANY_SOURCE,32323232+count,MPIComm_Row,stat,ierr)
-			if(index(runoptions,"verbose").gt.0) then
+			if(lverbose) then
 				elapsed_time = MPI_Wtime() - start_time
 				write(*,"('Point ',i0,' received from ',i0,'. Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes ')") i,stat(MPI_SOURCE),elapsed_time,elapsed_time/60.d0
 				sizemat = ncount*16.d0/(1024.d0**2)
@@ -74,7 +74,7 @@ subroutine eintshechi(e,chiorb_hf)
 				exit
 			end if
 
-			if(index(runoptions,"verbose").gt.0) write(*,"('[eintshechi] Finished point ',i0,' of step ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,count,myrank_row,myrank_col,trim(host)
+			if(lverbose) write(*,"('[eintshechi] Finished point ',i0,' of step ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,count,myrank_row,myrank_col,trim(host)
 			! Sending results to process 0
 			call MPI_Send(Fint,ncount,MPI_DOUBLE_COMPLEX,0,32323232+count,MPIComm_Row,ierr)
 			! Receiving new point or signal to exit
@@ -90,11 +90,12 @@ end subroutine eintshechi
 
 ! -------------------- Spin disturbance: Energy integration --------------------
 ! -------------- to be used in the calculation of linear SOC chi ---------------
-subroutine eintshechilinearsoc(e,chiorb_hf,chiorb_hflsoc)
+subroutine eintshechilinearsoc(e)
+	use mod_f90_kind
 	use mod_constants
 	use mod_parameters
 	use mod_generate_epoints
-	use mod_f90_kind
+	use mod_susceptibilities, only: chiorb_hf,chiorb_hflsoc
 	use mod_mpi_pars
 	use MPI
 	implicit none
@@ -102,7 +103,6 @@ subroutine eintshechilinearsoc(e,chiorb_hf,chiorb_hflsoc)
 	integer						:: i
 	real(double)								:: start_time,elapsed_time,sizemat,speed
 	real(double), intent(in)		:: e
-	complex(double), dimension(dim,dim),		intent(out) :: chiorb_hf,chiorb_hflsoc
 	complex(double), dimension(:,:),allocatable					:: Fint,Fintlsoc
 !--------------------- begin MPI vars --------------------
 	integer :: ix,ix2,itask
@@ -128,13 +128,13 @@ subroutine eintshechilinearsoc(e,chiorb_hf,chiorb_hflsoc)
 		chiorb_hf       = Fint*wght(ix)
 		chiorb_hflsoc   = Fintlsoc*wght(ix)
 
-		if(index(runoptions,"verbose").gt.0) write(*,"('[eintshechilinearsoc] Finished point ',i0,' of step ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,count,myrank_row,myrank_col,trim(host)
+		if(lverbose) write(*,"('[eintshechilinearsoc] Finished point ',i0,' of step ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,count,myrank_row,myrank_col,trim(host)
 
 		do i=2,nepoints
-			if(index(runoptions,"verbose").gt.0) start_time = MPI_Wtime()
+			if(lverbose) start_time = MPI_Wtime()
 			call MPI_Recv(Fint,ncount,MPI_DOUBLE_COMPLEX,MPI_ANY_SOURCE,32323232+count,MPIComm_Row,stat,ierr)
 			call MPI_Recv(Fintlsoc,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),32323233+count,MPIComm_Row,stat,ierr)
-			if(index(runoptions,"verbose").gt.0) then
+			if(lverbose) then
 				elapsed_time = MPI_Wtime() - start_time
 				write(*,"('Point ',i0,' received from ',i0,'. Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes ')") i,stat(MPI_SOURCE),elapsed_time,elapsed_time/60.d0
 				sizemat = ncount*32.d0/(1024.d0**2)
@@ -170,7 +170,7 @@ subroutine eintshechilinearsoc(e,chiorb_hf,chiorb_hflsoc)
 				exit
 			end if
 
-			if(index(runoptions,"verbose").gt.0) write(*,"('[eintshechilinearsoc] Finished point ',i0,' of step ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,count,myrank_row,myrank_col,trim(host)
+			if(lverbose) write(*,"('[eintshechilinearsoc] Finished point ',i0,' of step ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,count,myrank_row,myrank_col,trim(host)
 			! Sending results to process 0
 			call MPI_Send(Fint,ncount,MPI_DOUBLE_COMPLEX,0,32323232+count,MPIComm_Row,ierr)
 			call MPI_Send(Fintlsoc,ncount,MPI_DOUBLE_COMPLEX,0,32323233+count,MPIComm_Row,ierr)
