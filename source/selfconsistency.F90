@@ -75,10 +75,10 @@ subroutine selfconsistency(N,x,fvec,iflag)
       write(6,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(i+1)*20/pn1),prog
 #endif
 
-      call MPI_Recv(gdiaguur,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,9999,MPI_COMM_WORLD,stat,ierr)
-      call MPI_Recv(gdiagddr,ncount,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),9998,MPI_COMM_WORLD,stat,ierr)
-      call MPI_Recv(gdiagud,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),9997,MPI_COMM_WORLD,stat,ierr)
-      call MPI_Recv(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),9996,MPI_COMM_WORLD,stat,ierr)
+      call MPI_Recv(gdiaguur,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,9999+iter+mpitag,MPI_COMM_WORLD,stat,ierr)
+      call MPI_Recv(gdiagddr,ncount,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),9998+iter+mpitag,MPI_COMM_WORLD,stat,ierr)
+      call MPI_Recv(gdiagud,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),9997+iter+mpitag,MPI_COMM_WORLD,stat,ierr)
+      call MPI_Recv(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),9996+iter+mpitag,MPI_COMM_WORLD,stat,ierr)
 
       n_orb_u = n_orb_u + gdiaguur
       n_orb_d = n_orb_d + gdiagddr
@@ -110,10 +110,10 @@ subroutine selfconsistency(N,x,fvec,iflag)
 
       if(lverbose) write(*,"('[selfconsistency] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
       ! Sending results to process 0
-      call MPI_Send(gdiaguur,ncount,MPI_DOUBLE_PRECISION,0,9999,MPI_COMM_WORLD,ierr)
-      call MPI_Send(gdiagddr,ncount,MPI_DOUBLE_PRECISION,0,9998,MPI_COMM_WORLD,ierr)
-      call MPI_Send(gdiagud,ncount,MPI_DOUBLE_COMPLEX,0,9997,MPI_COMM_WORLD,ierr)
-      call MPI_Send(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,0,9996,MPI_COMM_WORLD,ierr)
+      call MPI_Send(gdiaguur,ncount,MPI_DOUBLE_PRECISION,0,9999+iter+mpitag,MPI_COMM_WORLD,ierr)
+      call MPI_Send(gdiagddr,ncount,MPI_DOUBLE_PRECISION,0,9998+iter+mpitag,MPI_COMM_WORLD,ierr)
+      call MPI_Send(gdiagud,ncount,MPI_DOUBLE_COMPLEX,0,9997+iter+mpitag,MPI_COMM_WORLD,ierr)
+      call MPI_Send(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,0,9996+iter+mpitag,MPI_COMM_WORLD,ierr)
       ! Receiving new point or signal to exit
       call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_COMM_WORLD,stat,ierr)
       if(ix.eq.0) exit
@@ -130,6 +130,8 @@ subroutine selfconsistency(N,x,fvec,iflag)
   n_orb_t = n_orb_u + n_orb_d
   mag_orb = n_orb_u - n_orb_d
   mp      = mp/pi
+  mx      = real(mp)
+  my      = aimag(mp)
 
   do i=1,Npl
     ! Number of particles
@@ -137,10 +139,10 @@ subroutine selfconsistency(N,x,fvec,iflag)
     fvec(i)   = n_t(i) - npart0(i+1)
     ! x-component of magnetization
     j = i+Npl
-    fvec(j)  = real(mp(i)) - mx_in(i)
+    fvec(j)  = mx(i) - mx_in(i)
     ! y-component of magnetization
     j = j+Npl
-    fvec(j)  = aimag(mp(i)) - my_in(i)
+    fvec(j)  = my(i) - my_in(i)
     ! z-component of magnetization
     j = j+Npl
     mz(i)    = sum(mag_orb(i,5:9))
@@ -150,19 +152,22 @@ subroutine selfconsistency(N,x,fvec,iflag)
   if(myrank.eq.0) then
     do i=1,Npl
       if(abs(mp(i)).gt.1.d-10) then
-        write(*,"('Plane ',I2,': eps1(',I2,')=',e16.9,4x,'Mx(',I2,')=',e16.9,4x,'My(',I2,')=',e16.9,4x,'Mz(',I2,')=',e16.9)") i,i,eps1(i),i,real(mp(i)),i,aimag(mp(i)),i,mz(i)
-        write(*,"(10x,'fvec(',I2,')=',e16.9,2x,'fvec(',I2,')=',e16.9,2x,'fvec(',I2,')=',e16.9,2x,'fvec(',I2,')=',e16.9)") i,fvec(i),i+Npl,fvec(i+Npl),i+2*Npl,fvec(i+2*Npl),i+3*Npl,fvec(i+3*Npl)
+        write(*,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i)
+        write(*,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+Npl,fvec(i+Npl),i+2*Npl,fvec(i+2*Npl),i+3*Npl,fvec(i+3*Npl)
       else
-        write(*,"('Plane ',I2,': eps1(',I2,')=',e16.9,4x,'Mz(',I2,')=',e16.9)") i,i,eps1(i),i,mz(i)
-        write(*,"(10x,'fvec(',I2,')=',e16.9,2x,'fvec(',I2,')=',e16.9)") i,fvec(i),i+3*Npl,fvec(i+3*Npl)
+        write(*,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz(i)
+        write(*,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*Npl,fvec(i+3*Npl)
       end if
     end do
   end if
 
-  ! Writing new eps1 and mz to file while performing self-consistency
-  if(myrank.eq.0) then
-    iflagrw = 1
-    call readwritesc(iflagrw,err)
+  if(lontheflysc) then
+    ! Writing new eps1 and mz to file while performing self-consistency
+    if(myrank.eq.0) then
+      iflagrw = 1
+      call readwritesc(iflagrw,err)
+    end if
+    call MPI_Bcast(scfile,len(scfile),MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
   end if
 
   iter = iter + 1
@@ -232,7 +237,7 @@ subroutine selfconsistencyjac(N,x,fvec,selfconjac,ldfjac,iflag)
       write(6,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(i+1)*20/pn1),prog
 #endif
 
-      call MPI_Recv(ggr,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,3333,MPI_COMM_WORLD,stat,ierr)
+      call MPI_Recv(ggr,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,3333+iter+mpitag,MPI_COMM_WORLD,stat,ierr)
 
       selfconjac = selfconjac + ggr
 
@@ -256,7 +261,7 @@ subroutine selfconsistencyjac(N,x,fvec,selfconjac,ldfjac,iflag)
 
       if(lverbose) write(*,"('[selfconsistencyjac] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
       ! Sending results to process 0
-      call MPI_Send(ggr,ncount,MPI_DOUBLE_PRECISION,0,3333,MPI_COMM_WORLD,ierr)
+      call MPI_Send(ggr,ncount,MPI_DOUBLE_PRECISION,0,3333+iter+mpitag,MPI_COMM_WORLD,ierr)
       ! Receiving new point or signal to exit
       call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_COMM_WORLD,stat,ierr)
       if(ix.eq.0) exit
@@ -286,21 +291,21 @@ subroutine selfconsistencyjacnag(N,x,fvec,selfconjac,ldfjac,iflag)
   use mod_mpi_pars
   use MPI
   implicit none
-  integer         :: N,ldfjac,i,j,iflag,err,iflagrw
-  real(double),dimension(N)           :: x,fvec
-  real(double),dimension(ldfjac,N)    :: selfconjac
-  real(double),dimension(Npl)         :: n_t,mx_in,my_in,mz_in
-  complex(double),dimension(Npl)      :: mp_in
-  real(double),dimension(N,N)         :: ggr
-  real(double),dimension(Npl,9)       :: n_orb_u,n_orb_d,n_orb_t,mag_orb
-  real(double),dimension(Npl,9)       :: gdiaguur,gdiagddr
-  complex(double),dimension(Npl,9)    :: gdiagud,gdiagdu
+  integer         :: N,i,j,iflag,err,ldfjac,iflagrw
+  real(double),dimension(N)        :: x,fvec
+  real(double),dimension(ldfjac,N) :: selfconjac
+  real(double),dimension(Npl)      :: n_t,mx_in,my_in,mz_in
+  complex(double),dimension(Npl)   :: mp_in
+  real(double),dimension(N,N)      :: ggr
+  real(double),dimension(Npl,9)    :: n_orb_u,n_orb_d,n_orb_t,mag_orb
+  real(double),dimension(Npl,9)    :: gdiaguur,gdiagddr
+  complex(double),dimension(Npl,9) :: gdiagud,gdiagdu
   !--------------------- begin MPI vars --------------------
   integer :: ix,itask
   integer :: ncount,ncount2
   !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
   ncount=Npl*9
-  ncount2=16*Npl*Npl
+  ncount2=N*N
 
 #ifndef _JUQUEEN
   open(6,carriagecontrol ='fortran')
@@ -353,10 +358,11 @@ subroutine selfconsistencyjacnag(N,x,fvec,selfconjac,ldfjac,iflag)
         write(6,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(i+1)*20/pn1),prog
 #endif
 
-        call MPI_Recv(gdiaguur,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,9999+iter,MPI_COMM_WORLD,stat,ierr)
-        call MPI_Recv(gdiagddr,ncount,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),8998+iter,MPI_COMM_WORLD,stat,ierr)
-        call MPI_Recv(gdiagud,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),7997+iter,MPI_COMM_WORLD,stat,ierr)
-        call MPI_Recv(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),6996+iter,MPI_COMM_WORLD,stat,ierr)
+        call MPI_Recv(gdiaguur,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,9999+iter+mpitag,MPI_COMM_WORLD,stat,ierr)
+        call MPI_Recv(gdiagddr,ncount,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),8998+iter+mpitag,MPI_COMM_WORLD,stat,ierr)
+        call MPI_Recv(gdiagud,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),7997+iter+mpitag,MPI_COMM_WORLD,stat,ierr)
+        call MPI_Recv(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),6996+iter+mpitag,MPI_COMM_WORLD,stat,ierr)
+        if(lverbose) write(*,"('[selfconsistencyjacnag1] Point ',i0,' received from ',i0)") i,stat(MPI_SOURCE)
 
         n_orb_u = n_orb_u + gdiaguur
         n_orb_d = n_orb_d + gdiagddr
@@ -388,10 +394,10 @@ subroutine selfconsistencyjacnag(N,x,fvec,selfconjac,ldfjac,iflag)
 
         if(lverbose) write(*,"('[selfconsistencyjacnag1] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
         ! Sending results to process 0
-        call MPI_Send(gdiaguur,ncount,MPI_DOUBLE_PRECISION,0,9999+iter,MPI_COMM_WORLD,ierr)
-        call MPI_Send(gdiagddr,ncount,MPI_DOUBLE_PRECISION,0,8998+iter,MPI_COMM_WORLD,ierr)
-        call MPI_Send(gdiagud,ncount,MPI_DOUBLE_COMPLEX,0,7997+iter,MPI_COMM_WORLD,ierr)
-        call MPI_Send(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,0,6996+iter,MPI_COMM_WORLD,ierr)
+        call MPI_Send(gdiaguur,ncount,MPI_DOUBLE_PRECISION,0,9999+iter+mpitag,MPI_COMM_WORLD,ierr)
+        call MPI_Send(gdiagddr,ncount,MPI_DOUBLE_PRECISION,0,8998+iter+mpitag,MPI_COMM_WORLD,ierr)
+        call MPI_Send(gdiagud,ncount,MPI_DOUBLE_COMPLEX,0,7997+iter+mpitag,MPI_COMM_WORLD,ierr)
+        call MPI_Send(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,0,6996+iter+mpitag,MPI_COMM_WORLD,ierr)
         ! Receiving new point or signal to exit
         call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_COMM_WORLD,stat,ierr)
         if(ix.eq.0) exit
@@ -408,6 +414,8 @@ subroutine selfconsistencyjacnag(N,x,fvec,selfconjac,ldfjac,iflag)
     n_orb_t = n_orb_u + n_orb_d
     mag_orb = n_orb_u - n_orb_d
     mp      = mp/pi
+    mx      = real(mp)
+    my      = aimag(mp)
 
     do i=1,Npl
       ! Number of particles
@@ -415,10 +423,10 @@ subroutine selfconsistencyjacnag(N,x,fvec,selfconjac,ldfjac,iflag)
       fvec(i)   = n_t(i) - npart0(i+1)
       ! x-component of magnetization
       j = i+Npl
-      fvec(j)  = real(mp(i)) - mx_in(i)
+      fvec(j)  = mx(i) - mx_in(i)
       ! y-component of magnetization
       j = j+Npl
-      fvec(j)  = aimag(mp(i)) - my_in(i)
+      fvec(j)  = my(i) - my_in(i)
       ! z-component of magnetization
       j = j+Npl
       mz(i)    = sum(mag_orb(i,5:9))
@@ -428,19 +436,22 @@ subroutine selfconsistencyjacnag(N,x,fvec,selfconjac,ldfjac,iflag)
     if(myrank.eq.0) then
       do i=1,Npl
         if(abs(mp(i)).gt.1.d-10) then
-          write(*,"('Plane ',I2,': eps1(',I2,')=',e16.9,4x,'Mx(',I2,')=',e16.9,4x,'My(',I2,')=',e16.9,4x,'Mz(',I2,')=',e16.9)") i,i,eps1(i),i,real(mp(i)),i,aimag(mp(i)),i,mz(i)
-          write(*,"(10x,'fvec(',I2,')=',e16.9,2x,'fvec(',I2,')=',e16.9,2x,'fvec(',I2,')=',e16.9,2x,'fvec(',I2,')=',e16.9)") i,fvec(i),i+Npl,fvec(i+Npl),i+2*Npl,fvec(i+2*Npl),i+3*Npl,fvec(i+3*Npl)
+          write(*,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i)
+          write(*,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+Npl,fvec(i+Npl),i+2*Npl,fvec(i+2*Npl),i+3*Npl,fvec(i+3*Npl)
         else
-          write(*,"('Plane ',I2,': eps1(',I2,')=',e16.9,4x,'Mz(',I2,')=',e16.9)") i,i,eps1(i),i,mz(i)
-          write(*,"(10x,'fvec(',I2,')=',e16.9,2x,'fvec(',I2,')=',e16.9)") i,fvec(i),i+3*Npl,fvec(i+3*Npl)
+          write(*,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz(i)
+          write(*,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*Npl,fvec(i+3*Npl)
         end if
       end do
     end if
 
-    ! Writing new eps1 and mz to file while performing self-consistency
-    if(myrank.eq.0) then
-      iflagrw = 1
-      call readwritesc(iflagrw,err)
+    if(lontheflysc) then
+      ! Writing new eps1 and mz to file while performing self-consistency
+      if(myrank.eq.0) then
+        iflagrw = 1
+        call readwritesc(iflagrw,err)
+      end if
+      call MPI_Bcast(scfile,len(scfile),MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
     end if
 
   case(2)
@@ -463,7 +474,8 @@ subroutine selfconsistencyjacnag(N,x,fvec,selfconjac,ldfjac,iflag)
         write(6,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(i+1)*20/pn1),prog
 #endif
 
-        call MPI_Recv(ggr,ncount2,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,3333+iter,MPI_COMM_WORLD,stat,ierr)
+        call MPI_Recv(ggr,ncount2,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,3333+iter+mpitag,MPI_COMM_WORLD,stat,ierr)
+        if(lverbose) write(*,"('[selfconsistencyjacnag2] Point ',i0,' received from ',i0)") i,stat(MPI_SOURCE)
 
         selfconjac = selfconjac + ggr
 
@@ -487,7 +499,7 @@ subroutine selfconsistencyjacnag(N,x,fvec,selfconjac,ldfjac,iflag)
 
         if(lverbose) write(*,"('[selfconsistencyjacnag2] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
         ! Sending results to process 0
-        call MPI_Send(ggr,ncount2,MPI_DOUBLE_PRECISION,0,3333+iter,MPI_COMM_WORLD,ierr)
+        call MPI_Send(ggr,ncount2,MPI_DOUBLE_PRECISION,0,3333+iter+mpitag,MPI_COMM_WORLD,ierr)
         ! Receiving new point or signal to exit
         call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_COMM_WORLD,stat,ierr)
         if(ix.eq.0) exit

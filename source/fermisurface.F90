@@ -27,7 +27,7 @@ subroutine fermisurface(e)
 
 !$omp parallel default(none) &
 !$omp& private(mythread,iz,kp,gf,i,j,mu,nu) &
-!$omp& shared(prog,spiner,elapsed_time,start_time,progbar,e,kbz,kbz2d,nkpoints,Ef,eta,Npl,nthreads,pi,fsu_layer,fsd_layer,fsu_total,fsd_total)
+!$omp& shared(prog,spiner,elapsed_time,start_program,progbar,e,kbz,kbz2d,nkpoints,Ef,eta,Npl,nthreads,pi,fsu_layer,fsd_layer,fsu_total,fsd_total)
 !$  mythread = omp_get_thread_num()
 !$  if(mythread.eq.0) then
 !$    nthreads = omp_get_num_threads()
@@ -42,7 +42,7 @@ subroutine fermisurface(e)
 #ifdef _JUQUEEN
     write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of kpoints done ',a1,$)") spiner(mod(iz,4)+1),prog,iz,nkpoints,char(13)
 #else
-    elapsed_time = MPI_Wtime() - start_time
+    elapsed_time = MPI_Wtime() - start_program
     write(progbar,fmt="( a,i0,a )") "(1h+' ','Total time=',i2,'h:',i2,'m:',i2,'s  ',",1+(iz+1)*20/nkpoints, "a,' ',i0,'%')"
     write(6,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(iz+1)*20/nkpoints),100*(iz+1)/nkpoints
 #endif
@@ -70,14 +70,14 @@ subroutine fermisurface(e)
 
   ! Writing on files
   do i=1,Npl
-    write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsu_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,i,magaxis,socscale,ncp,eta,Utype,hwx,hwy,hwz
+    write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsu_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,i,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
     open (unit=17+i, file=varm,status='unknown')
-    write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsd_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,i,magaxis,socscale,ncp,eta,Utype,hwx,hwy,hwz
+    write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsd_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,i,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
     open (unit=57+i, file=varm,status='unknown')
   end do
-  write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsu_total_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,magaxis,socscale,ncp,eta,Utype,hwx,hwy,hwz
+  write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsu_total_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
   open (unit=97, file=varm,status='unknown')
-  write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsd_total_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'.dat')") SOC,Npl,magaxis,socscale,ncp,eta,Utype,hwx,hwy,hwz
+  write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsd_total_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
   open (unit=98, file=varm,status='unknown')
 
   writing_fermi_surface: do iz=1,nkpoints

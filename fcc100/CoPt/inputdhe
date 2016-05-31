@@ -12,13 +12,13 @@
 !   8 - Parall. currents, disturb., susc. and eff. fields as a function of e    !
 !   9 - Fermi surface                                                           !
 !  10 - Exhange interactions and anisotropies (full tensor)                     !
-!  11 - Probability of spin-flip as a function of position                      !
--> itype = 2
+!  11 - dc-limit as a function of magnetic field (abs, theta or phi)            !
+-> itype = 10
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
 !   noUonall    - set U=0 on all layers                                         !
 !   noUonNM     - set U=0 on NM layers                                          !
-!   norenorm    - Use HF responses for all quantities                           !
+!   hfresponses - Use HF responses for all quantities                           !
 !   GSL         - Calculate ground state of Orbital Angular Momentum L          !
 !   verbose     - write intermediate steps                                      !
 !   ry2ev       - convert energy units to eV                                    !
@@ -32,24 +32,27 @@
 !   lineargfsoc - Adds linear order SOC in the GF                               !
 !   linearsoc   - Adds linear order SOC in the susceptibility                   !
 !   nojac       - Use only the values of the function on the selfconsistency    !
--> Options: ! nojac ! GSL verbose ! slatec verbose ! addresults
+!   ontheflysc  - Update sc files at every iteration (not only at the end)      !
+-> Options:
 !===============================================================================!
 !                               SYSTEM VARIABLES                                !
 ! Lattice and surface direction:                                                !
 -> lattice = fcc100
-! Lattice parameter:
+! Lattice parameter:                                                            !
 -> a0 = 3.92
-! Number of planes:
-!(For SC and exchange calculation, use initial and final number of layers)
--> Npl = 5
-! Small imaginary part of the Green function:
+! Number of planes:                                                             !
+! (For SC and exchange calculation, may use initial and final number of layers) !
+-> Npl = 3
+! Small imaginary part of the Green function:                                   !
 -> eta = 5.0E-04
 !===============================================================================!
 !                          STATIC MAGNETIC ZEEMAN FIELD                         !
 !                         (in the spin reference system)                        !
 -> FIELD = F  ! Magnetic field on (T) or off (F) (choose one form below)
 ! Spherical coordinates (default, angles in units of pi)                        !
--> hwabs = 2.0E-04 , hwtheta = 0.0E+00 , hwphi = 0.0E+00
+-> hwa   = 2.0E-04
+-> hwt   = 0.0E+00 1.95E+00 39
+-> hwp   = 0.E+00
 ! Cartesian coordinates                                                         !
 -> hwx = 0.0E+00 , hwy = 0.0E+00 , hwz = 0.0E+00
 !===============================================================================!
@@ -86,11 +89,11 @@
 !===============================================================================!
 !                           INTEGRATION VARIABLES                               !
 ! Number of Cunningham k-vector generators: (ncp > 0)                           !
--> ncp = 6
+-> ncp = 1
 ! Number of parts to divide energy integral in complex plane:                   !
--> parts = 2 , n1gl = 64
+-> parts = 2 , n1gl = 1
 !  Number of parts to divide energy integral in real axis:                      !
--> parts3 = 1 , n3gl = 64
+-> parts3 = 1 , n3gl = 2
 !===============================================================================!
 !                              PLOTTING VARIABLES                               !
 !           PLOTTING VARIABLES         !             BAND STRUCTURE             !
@@ -105,8 +108,8 @@
 !        (Finding center of the bands for the given number of particles)        !
 -> skipsc = T ! skip self-consistency calculation when it finds previous results
 ! File to use as starting point:
-!-> scfile: results/selfconsistency/selfconsistency_Npl=6_dfttype=T_parts=2_Utype=2_hwx= 0.0E+00_hwy= 0.0E+00_hwz= 0.2E-03_ncp=6_eta= 0.5E-03.dat
-!-> scfile: results/selfconsistency/selfconsistency_Npl=4_parts=2_U= 0.7E-01_hwx= 0.0E+00_hwy= 0.0E+00_hwz= 0.0E+00_ncp=6_eta= 0.5E-03.dat
+!-> scfile: results/selfconsistency/selfconsistency_Npl=6_dfttype=T_parts=2_Utype=2_hwa= 0.00E+00_hwt= 0.00E+00_hwp= 0.20E-03_ncp=6_eta= 0.5E-03.dat
+!-> scfile: results/selfconsistency/selfconsistency_Npl=4_parts=2_U= 0.7E-01_hwa= 0.00E+00_hwt= 0.00E+00_hwp= 0.00E+00_ncp=6_eta= 0.5E-03.dat
 !===============================================================================!
 !                                DFT PARAMETERS                                 !
 !          (Choose between (T)ight-binding or (O)rthogonal parameters)          !

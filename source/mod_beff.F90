@@ -46,6 +46,7 @@ contains
     character(len=500)  :: varm
     character(len=50)   :: fieldpart,socpart
     character(len=7)    :: folder
+    character(len=4)    :: filename
     character(len=1)    :: direction(4),SOCc
     integer :: i,sigma,iw,iflag,err,errt=0
 
@@ -62,12 +63,13 @@ contains
       SOCc = "F"
     end if
     if(FIELD) then
-      write(fieldpart,"('_hwx=',e8.1,'_hwy=',e8.1,'_hwz=',e8.1)") hwx,hwy,hwz
+      write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hwa,hwt,hwp
       if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
     end if
 
     folder = "Beff"
-    if(lnorenorm) folder = trim(folder) // "_HF"
+    if(lhfresponses) folder = trim(folder) // "_HF"
+    filename = "Beff"
 
     direction(1) = "0"
     direction(2) = "x"
@@ -76,16 +78,16 @@ contains
 
     if(iflag.eq.0) then
       do sigma=1,4 ; do i=1,Npl
-        iw = 7000+(sigma-1)*Npl+i
-        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/Beff',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',e8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'.dat')") SOCc,Npl,trim(folder),direction(sigma),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        iw = 8000+(sigma-1)*Npl+i
+        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder),trim(filename),direction(sigma),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
         open (unit=iw, file=varm, status='unknown', form='formatted')
-        write(unit=iw, fmt="('#   energy  , amplitude of Beff_',a,' , real part of Beff_',a,' , imaginary part of Beff_',a,' , phase of Beff_',a,' , cosine of Beff_',a,'  ,  sine of ',a,'  ')") direction(sigma),direction(sigma),direction(sigma),direction(sigma),direction(sigma),direction(sigma)
+        write(unit=iw, fmt="('#   energy  , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma)
         close(unit=iw)
       end do ; end do
     else if (iflag.eq.1) then
       do sigma=1,4 ; do i=1,Npl
-        iw = 7000+(sigma-1)*Npl+i
-        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/Beff',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',e8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'.dat')") SOCc,Npl,trim(folder),direction(sigma),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        iw = 8000+(sigma-1)*Npl+i
+        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder),trim(filename),direction(sigma),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
       end do ; end do
@@ -96,7 +98,7 @@ contains
       end if
     else
       do sigma=1,4 ; do i=1,Npl
-        iw = 7000+(sigma-1)*Npl+i
+        iw = 8000+(sigma-1)*Npl+i
         close(unit=iw)
       end do ; end do
     end if
@@ -106,7 +108,7 @@ contains
 
   ! This subroutine write all the effective fields into files
   ! (already opened with openclose_beff_files(1))
-  ! Some information is also written on the screen
+  ! Some information may also be written on the screen
   subroutine write_beff(e)
     use mod_f90_kind
     use mod_parameters, only: Npl,sigmai2i
@@ -115,12 +117,104 @@ contains
     real(double),intent(in) :: e
 
     do sigma=1,4 ; do i=1,Npl
-      iw = 7000+(sigma-1)*Npl+i
+      iw = 8000+(sigma-1)*Npl+i
 
-      write(unit=iw,fmt="(7(e16.9,2x))") e,abs(Beff_cart(sigmai2i(sigma,i))),real(Beff_cart(sigmai2i(sigma,i))),aimag(Beff_cart(sigmai2i(sigma,i))),atan2(aimag(Beff_cart(sigmai2i(sigma,i))),real(Beff_cart(sigmai2i(sigma,i)))),real(Beff_cart(sigmai2i(sigma,i)))/abs(Beff_cart(sigmai2i(sigma,i))),aimag(Beff_cart(sigmai2i(sigma,i)))/abs(Beff_cart(sigmai2i(sigma,i)))
+      write(unit=iw,fmt="(7(es16.9,2x))") e,abs(Beff_cart(sigmai2i(sigma,i))),real(Beff_cart(sigmai2i(sigma,i))),aimag(Beff_cart(sigmai2i(sigma,i))),atan2(aimag(Beff_cart(sigmai2i(sigma,i))),real(Beff_cart(sigmai2i(sigma,i)))),real(Beff_cart(sigmai2i(sigma,i)))/abs(Beff_cart(sigmai2i(sigma,i))),aimag(Beff_cart(sigmai2i(sigma,i)))/abs(Beff_cart(sigmai2i(sigma,i)))
     end do ; end do
 
     return
   end subroutine write_beff
+
+
+  ! This subroutine opens and closes all the files needed for the effective field
+  subroutine openclose_dclimit_beff_files(iflag)
+    use mod_parameters
+    implicit none
+
+    character(len=500)  :: varm
+    character(len=50)   :: fieldpart,socpart
+    character(len=7)    :: folder
+    character(len=4)    :: filename
+    character(len=1)    :: direction(4),SOCc
+    integer :: i,sigma,iw,iflag,err,errt=0
+
+    fieldpart = ""
+    socpart   = ""
+    if(SOC) then
+      if(llinearsoc) then
+        SOCc = "L"
+      else
+        SOCc = "T"
+      end if
+      write(socpart,"('_magaxis=',a,'_socscale=',f5.2)") magaxis,socscale
+    else
+      SOCc = "F"
+    end if
+    if(FIELD) then
+      if(dcfield_dependence.ne.1) write(fieldpart,"(a,'_hwa=',es9.2)") trim(fieldpart),hwa
+      if(dcfield_dependence.ne.2) write(fieldpart,"(a,'_hwt=',f5.2)") trim(fieldpart),hwt
+      if(dcfield_dependence.ne.3) write(fieldpart,"(a,'_hwp=',f5.2)") trim(fieldpart),hwp
+      if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
+    end if
+
+    folder = "Beff"
+    if(lhfresponses) folder = trim(folder) // "_HF"
+    filename = "Beff"
+
+    direction(1) = "0"
+    direction(2) = "x"
+    direction(3) = "y"
+    direction(4) = "z"
+
+    if(iflag.eq.0) then
+      do sigma=1,4 ; do i=1,Npl
+        iw = 80000+(sigma-1)*Npl+i
+        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/dc',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder),trim(filename),direction(sigma),dcfield(dcfield_dependence),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        open (unit=iw, file=varm, status='unknown', form='formatted')
+        write(unit=iw, fmt="('#   field  , imaginary part of ',a,a,' , real part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma)
+        close(unit=iw)
+      end do ; end do
+    else if (iflag.eq.1) then
+      do sigma=1,4 ; do i=1,Npl
+        iw = 80000+(sigma-1)*Npl+i
+        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/dc',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder),trim(filename),direction(sigma),dcfield(dcfield_dependence),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+        errt = errt + err
+      end do ; end do
+      ! Stop if some file does not exist
+      if(errt.ne.0) then
+        write(*,"(a,i0,a)") "[openclose_dclimit_beff_files] Some file(s) do(es) not exist! Stopping before starting calculations..."
+        stop
+      end if
+    else
+      do sigma=1,4 ; do i=1,Npl
+        iw = 80000+(sigma-1)*Npl+i
+        close(unit=iw)
+      end do ; end do
+    end if
+
+    return
+  end subroutine openclose_dclimit_beff_files
+
+  ! This subroutine write all the effective fields into files
+  ! (already opened with openclose_beff_files(1))
+  ! Some information may also be written on the screen
+  subroutine write_dclimit_beff(dcfield_variable)
+    use mod_f90_kind
+    use mod_constants, only: pi
+    use mod_parameters, only: Npl,sigmai2i
+    use mod_magnet, only: mtheta,mphi
+    implicit none
+    integer  :: i,iw,sigma
+    real(double),intent(in) :: dcfield_variable
+
+    do sigma=1,4 ; do i=1,Npl
+      iw = 80000+(sigma-1)*Npl+i
+
+      write(unit=iw,fmt="(8(es16.9,2x))") dcfield_variable,aimag(Beff_cart(sigmai2i(sigma,i))),real(Beff_cart(sigmai2i(sigma,i))),atan2(aimag(Beff_cart(sigmai2i(sigma,i))),real(Beff_cart(sigmai2i(sigma,i)))),real(Beff_cart(sigmai2i(sigma,i)))/abs(Beff_cart(sigmai2i(sigma,i))),aimag(Beff_cart(sigmai2i(sigma,i)))/abs(Beff_cart(sigmai2i(sigma,i))),mtheta(i)*pi,mphi(i)*pi
+    end do ; end do
+
+    return
+  end subroutine write_dclimit_beff
 
 end module mod_beff

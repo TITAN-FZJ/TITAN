@@ -104,8 +104,8 @@ FFLAGS += -module $(OBJDIR)/ -I$(OBJDIR)/
 #  Parallelization                                 #
 ####################################################
 ifeq ($(PARALLEL),omp)
-LLIBS +=-openmp
-FFLAGS +=-openmp
+LLIBS +=-qopenmp
+FFLAGS +=-qopenmp
 endif
 
 #=======================================================================
@@ -154,8 +154,8 @@ endif
 FFLAGS += -module $(OBJDIR)/ -I$(OBJDIR)/
 # Parallelization
 ifeq ($(PARALLEL),omp)
-LLIBS +=-openmp
-FFLAGS +=-openmp
+LLIBS +=-qopenmp
+FFLAGS +=-qopenmp
 endif
 endif
 ####################################################
@@ -236,7 +236,8 @@ FC = $(PREP) mpif90
 # Preprocessor
 CPP = -fpp
 # Libraries
-LLIBS =-mkl -L$(HOME)/lib -lkibe
+# LLIBS =-mkl -L$(HOME)/lib -lkibe
+LLIBS = -mkl -I$(ND)/nag_interface_blocks -lnag
 #Flags
 FFLAGS =-O3 -xHost -qoverride-limits
 #Debugger
@@ -246,8 +247,8 @@ endif
 FFLAGS += -module $(OBJDIR)/ -I$(OBJDIR)/
 # Parallelization
 ifeq ($(PARALLEL),omp)
-LLIBS +=-openmp
-FFLAGS +=-openmp
+LLIBS +=-qopenmp
+FFLAGS +=-qopenmp
 endif
 endif
 ####################################################

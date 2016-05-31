@@ -50,11 +50,11 @@ subroutine eintshe(e)
 
     do i=2,nepoints
       if(lverbose) start_time = MPI_Wtime()
-      call MPI_Recv(tFintiikl   ,ncountkl ,MPI_DOUBLE_COMPLEX,MPI_ANY_SOURCE,545454+count,MPIComm_Row,stat,ierr)
-      call MPI_Recv(ttFintiikl  ,nncountkl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),656565+count,MPIComm_Row,stat,ierr)
-      call MPI_Recv(LxttFintiikl,nncountkl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),767676+count,MPIComm_Row,stat,ierr)
-      call MPI_Recv(LyttFintiikl,nncountkl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),878787+count,MPIComm_Row,stat,ierr)
-      call MPI_Recv(LzttFintiikl,nncountkl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),989898+count,MPIComm_Row,stat,ierr)
+      call MPI_Recv(tFintiikl   ,ncountkl ,MPI_DOUBLE_COMPLEX,MPI_ANY_SOURCE,545454+mpitag,MPIComm_Row,stat,ierr)
+      call MPI_Recv(ttFintiikl  ,nncountkl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),656565+mpitag,MPIComm_Row,stat,ierr)
+      call MPI_Recv(LxttFintiikl,nncountkl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),767676+mpitag,MPIComm_Row,stat,ierr)
+      call MPI_Recv(LyttFintiikl,nncountkl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),878787+mpitag,MPIComm_Row,stat,ierr)
+      call MPI_Recv(LzttFintiikl,nncountkl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),989898+mpitag,MPIComm_Row,stat,ierr)
       if(lverbose) then
         elapsed_time = MPI_Wtime() - start_time
         write(*,"('Point ',i0,' received from ',i0,'. Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes ')") i,stat(MPI_SOURCE),elapsed_time,elapsed_time/60.d0
@@ -110,11 +110,11 @@ subroutine eintshe(e)
 
       if(lverbose) write(*,"('[eintshe] Finished point ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,myrank_row,myrank_col,trim(host)
       ! Sending results to process 0
-      call MPI_Send(tFintiikl   ,ncountkl ,MPI_DOUBLE_COMPLEX,masterrank,545454+count,MPIComm_Row,ierr)
-      call MPI_Send(ttFintiikl  ,nncountkl,MPI_DOUBLE_COMPLEX,masterrank,656565+count,MPIComm_Row,ierr)
-      call MPI_Send(LxttFintiikl,nncountkl,MPI_DOUBLE_COMPLEX,masterrank,767676+count,MPIComm_Row,ierr)
-      call MPI_Send(LyttFintiikl,nncountkl,MPI_DOUBLE_COMPLEX,masterrank,878787+count,MPIComm_Row,ierr)
-      call MPI_Send(LzttFintiikl,nncountkl,MPI_DOUBLE_COMPLEX,masterrank,989898+count,MPIComm_Row,ierr)
+      call MPI_Send(tFintiikl   ,ncountkl ,MPI_DOUBLE_COMPLEX,masterrank,545454+mpitag,MPIComm_Row,ierr)
+      call MPI_Send(ttFintiikl  ,nncountkl,MPI_DOUBLE_COMPLEX,masterrank,656565+mpitag,MPIComm_Row,ierr)
+      call MPI_Send(LxttFintiikl,nncountkl,MPI_DOUBLE_COMPLEX,masterrank,767676+mpitag,MPIComm_Row,ierr)
+      call MPI_Send(LyttFintiikl,nncountkl,MPI_DOUBLE_COMPLEX,masterrank,878787+mpitag,MPIComm_Row,ierr)
+      call MPI_Send(LzttFintiikl,nncountkl,MPI_DOUBLE_COMPLEX,masterrank,989898+mpitag,MPIComm_Row,ierr)
       ! Receiving new point or signal to exit
       call MPI_Recv(ix,1,MPI_INTEGER,masterrank,MPI_ANY_TAG,MPIComm_Row,stat,ierr)
       if(ix.eq.0) exit

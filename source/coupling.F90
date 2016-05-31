@@ -34,7 +34,7 @@
 #ifdef _JUQUEEN
 			write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of energy sum on rank ',i0,a1,$)") spiner(mod(i,4)),prog,iz,nkpoints,myrank,char(13)
 #else
-			elapsed_time = MPI_Wtime() - start_time
+			elapsed_time = MPI_Wtime() - start_program
 			write(progbar,fmt="( a,i0,a )") "(1h+' ','Total time=',i2,'h:',i2,'m:',i2,'s  ',",1+(i+1)*20/pn1, "a,' ',i0,'%')"
       write(6,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(i+1)*20/pn1),100*(i+1)/pn1
 #endif

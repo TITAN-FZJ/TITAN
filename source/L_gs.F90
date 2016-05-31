@@ -29,8 +29,8 @@ subroutine L_gs()
     if(lverbose) write(*,"('[L_gs] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
 
     do i=2,pn1
-      call MPI_Recv(gupgd,ncount,MPI_DOUBLE_COMPLEX,MPI_ANY_SOURCE,8999,MPI_COMM_WORLD,stat,ierr)
-      write(*,"('[L_gs] Point ',i0,' received from ',i0)") i,stat(MPI_SOURCE)
+      call MPI_Recv(gupgd,ncount,MPI_DOUBLE_COMPLEX,MPI_ANY_SOURCE,8999+mpitag,MPI_COMM_WORLD,stat,ierr)
+      if(lverbose) write(*,"('[L_gs] Point ',i0,' received from ',i0)") i,stat(MPI_SOURCE)
 
       gupgdint = gupgdint + gupgd
 
@@ -51,7 +51,7 @@ subroutine L_gs()
       gupgd = gupgd*wght(ix)
 
       if(lverbose) write(*,"('[L_gs] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
-      call MPI_Send(gupgd,ncount,MPI_DOUBLE_COMPLEX,0,8999,MPI_COMM_WORLD,ierr)
+      call MPI_Send(gupgd,ncount,MPI_DOUBLE_COMPLEX,0,8999+mpitag,MPI_COMM_WORLD,ierr)
       call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_COMM_WORLD,stat,ierr)
       if(ix.eq.0) exit
     end do

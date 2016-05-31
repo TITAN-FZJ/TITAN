@@ -14,8 +14,6 @@ contains
 		use mod_constants, only: zero
   integer         :: i,mu,nu,neighbor,alpha
 
-  allocate(lxpt(Npl,n0sc1:n0sc2,9,9),lypt(Npl,n0sc1:n0sc2,9,9),lzpt(Npl,n0sc1:n0sc2,9,9),tlxp(Npl,n0sc1:n0sc2,9,9),tlyp(Npl,n0sc1:n0sc2,9,9),tlzp(Npl,n0sc1:n0sc2,9,9))
-
   lxpt = zero
   lypt = zero
   lzpt = zero
@@ -31,6 +29,17 @@ contains
       tlzp(i,neighbor,mu,nu) = tlzp(i,neighbor,mu,nu) + t00(i+1,neighbor,alpha,mu)*lzp(alpha,nu)
   end do ; end do ; end do ; end do ; end do
 
-	end subroutine
+	end subroutine OAM_curr_hopping_times_L
+
+  subroutine allocate_prefactors()
+    use mod_parameters, only: Npl, n0sc1, n0sc2
+    use mod_constants, only: zero
+
+    allocate(lxpt(Npl,n0sc1:n0sc2,9,9),lypt(Npl,n0sc1:n0sc2,9,9),lzpt(Npl,n0sc1:n0sc2,9,9),tlxp(Npl,n0sc1:n0sc2,9,9),tlyp(Npl,n0sc1:n0sc2,9,9),tlzp(Npl,n0sc1:n0sc2,9,9))
+  end subroutine allocate_prefactors
+
+  subroutine deallocate_prefactors()
+    deallocate(lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
+  end subroutine deallocate_prefactors
 
 end module mod_prefactors

@@ -10,11 +10,11 @@ module mod_parameters
   real(double),allocatable  :: U(:)
   integer       :: Utype = 2
 ! Use HF susceptibilities to calculate currents, disturbances and accumulations (don't renormalize)
-  logical       :: lnorenorm = .false.
+  logical       :: lhfresponses = .false.
 !========================================================================================!
 ! Lattice and surface direction
   character(len=6) :: lattice
-  integer          :: Npl,Nplini,Nplfinal
+  integer          :: Npl,Npl_i,Npl_f
 ! Lattice parameter (define the units of distance in the program)
   real(double)     :: a0
 !========================================================================================!
@@ -36,8 +36,16 @@ module mod_parameters
 ! Turn on/off static magnetic field, option to give in magnetic field in tesla
   logical :: FIELD
 ! Values of magnetic field in cartesian or spherical coordinates
-  real(double)  :: hwx,hwy,hwz,tesla = 1.d0
-  real(double)  :: hwtheta,hwphi,hwabs=0.d0
+  character(len=3),dimension(3)  :: dcfield = ["hwa","hwt","hwp"]
+  integer       :: dcfield_dependence=0
+  real(double)  :: dclimit_field_dependence(3)!,MPIdelta_field(3)
+  real(double)  :: hwx=0.d0,hwy=0.d0,hwz=0.d0,tesla=1.d0
+  real(double)  :: hwa,hwa_i=0.d0,hwa_f=0.d0,hwa_s
+  integer       :: hwa_npts,hwa_npt1=1,hwa_count
+  real(double)  :: hwt,hwt_i=0.d0,hwt_f=0.d0,hwt_s
+  integer       :: hwt_npts,hwt_npt1=1,hwt_count
+  real(double)  :: hwp,hwp_i=0.d0,hwp_f=0.d0,hwp_s
+  integer       :: hwp_npts,hwp_npt1=1,hwp_count
 !========================================================================================!
 ! Number of parts to divide energy integral I1+I2 and I3
   integer      :: pn1,pn2,pnt
@@ -71,6 +79,7 @@ module mod_parameters
   logical :: lGSL         = .false.
   logical :: lslatec      = .false.
   logical :: lnojac       = .false.
+  logical :: lontheflysc  = .false.
 !========================================================================================!
 ! Activate debug options
   logical :: lverbose = .false.

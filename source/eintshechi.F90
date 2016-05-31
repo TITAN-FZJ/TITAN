@@ -40,7 +40,7 @@ subroutine eintshechi(e)
 
 		do i=2,nepoints
 			if(lverbose) start_time = MPI_Wtime()
-			call MPI_Recv(Fint,ncount,MPI_DOUBLE_COMPLEX,MPI_ANY_SOURCE,32323232+count,MPIComm_Row,stat,ierr)
+			call MPI_Recv(Fint,ncount,MPI_DOUBLE_COMPLEX,MPI_ANY_SOURCE,32323232+mpitag,MPIComm_Row,stat,ierr)
 			if(lverbose) then
 				elapsed_time = MPI_Wtime() - start_time
 				write(*,"('Point ',i0,' received from ',i0,'. Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes ')") i,stat(MPI_SOURCE),elapsed_time,elapsed_time/60.d0
@@ -76,7 +76,7 @@ subroutine eintshechi(e)
 
 			if(lverbose) write(*,"('[eintshechi] Finished point ',i0,' of step ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,count,myrank_row,myrank_col,trim(host)
 			! Sending results to process 0
-			call MPI_Send(Fint,ncount,MPI_DOUBLE_COMPLEX,0,32323232+count,MPIComm_Row,ierr)
+			call MPI_Send(Fint,ncount,MPI_DOUBLE_COMPLEX,0,32323232+mpitag,MPIComm_Row,ierr)
 			! Receiving new point or signal to exit
 			call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPIComm_Row,stat,ierr)
 			if(ix.eq.0) exit
@@ -132,8 +132,8 @@ subroutine eintshechilinearsoc(e)
 
 		do i=2,nepoints
 			if(lverbose) start_time = MPI_Wtime()
-			call MPI_Recv(Fint,ncount,MPI_DOUBLE_COMPLEX,MPI_ANY_SOURCE,32323232+count,MPIComm_Row,stat,ierr)
-			call MPI_Recv(Fintlsoc,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),32323233+count,MPIComm_Row,stat,ierr)
+			call MPI_Recv(Fint,ncount,MPI_DOUBLE_COMPLEX,MPI_ANY_SOURCE,32323232+mpitag,MPIComm_Row,stat,ierr)
+			call MPI_Recv(Fintlsoc,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),32323233+mpitag,MPIComm_Row,stat,ierr)
 			if(lverbose) then
 				elapsed_time = MPI_Wtime() - start_time
 				write(*,"('Point ',i0,' received from ',i0,'. Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes ')") i,stat(MPI_SOURCE),elapsed_time,elapsed_time/60.d0
@@ -172,8 +172,8 @@ subroutine eintshechilinearsoc(e)
 
 			if(lverbose) write(*,"('[eintshechilinearsoc] Finished point ',i0,' of step ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,count,myrank_row,myrank_col,trim(host)
 			! Sending results to process 0
-			call MPI_Send(Fint,ncount,MPI_DOUBLE_COMPLEX,0,32323232+count,MPIComm_Row,ierr)
-			call MPI_Send(Fintlsoc,ncount,MPI_DOUBLE_COMPLEX,0,32323233+count,MPIComm_Row,ierr)
+			call MPI_Send(Fint,ncount,MPI_DOUBLE_COMPLEX,0,32323232+mpitag,MPIComm_Row,ierr)
+			call MPI_Send(Fintlsoc,ncount,MPI_DOUBLE_COMPLEX,0,32323233+mpitag,MPIComm_Row,ierr)
 			! Receiving new point or signal to exit
 			call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPIComm_Row,stat,ierr)
 			if(ix.eq.0) exit

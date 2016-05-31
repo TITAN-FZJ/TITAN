@@ -278,7 +278,7 @@ contains
 		if((myrank.eq.0))  write(*,"('[mod_generate_kpoints] ',i0,' k-points generated.')") nkpoints
 
 !     write(*,"('[mod_generate_kpoints] ',i0,' k-points generated.')") nkpoints
-!     write(*,"('[mod_generate_kpoints] ',e9.2,' total weight.')") weight
+!     write(*,"('[mod_generate_kpoints] ',es9.2,' total weight.')") weight
 !     write(*,"('[mod_generate_kpoints] ',f15.2,' dnkpoints.')") dnkpoints
 
     return

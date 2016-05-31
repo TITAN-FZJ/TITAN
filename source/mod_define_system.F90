@@ -32,6 +32,7 @@ contains
   end if
 
   set1g = (set1-1)*6
+  if(Npl.eq.1) set2 = set1
   set2g = (set2-1)*6
 
   i = ceiling((Npl+2)/2.d0)

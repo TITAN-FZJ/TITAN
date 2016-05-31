@@ -101,7 +101,7 @@ subroutine bandstructure()
 
   end select
 
-  write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/BS/bandstructure_kdir=',A2,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',E8.1,'_Utype=',i0,'_hwx=',E8.1,'_hwy=',E8.1,'_hwz=',E8.1,'_es.dat')") SOC,Npl,kdirection,magaxis,socscale,ncp,eta,Utype,hwx,hwy,hwz
+  write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/BS/bandstructure_kdir=',A2,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'_es.dat')") SOC,Npl,kdirection,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
   open (unit=666, file=varm,status='unknown')
 
   deltak = (kmax - kmin)/npts
@@ -111,7 +111,7 @@ subroutine bandstructure()
   end do
 
   band_structure_loop: do count=1,npt1
-    write(*,"(i0,' of ',i0,' points',', i = ',e10.3)") count,npt1,dble((count-1.d0)/npts)
+    write(*,"(i0,' of ',i0,' points',', i = ',es10.3)") count,npt1,dble((count-1.d0)/npts)
     call hamiltk(kpoints(count,:),hk)
 
     call zgeev('N','N',dimbs,hk,dimbs,eval,evecl,1,evecr,1,work,lwork,rwork,ifail)

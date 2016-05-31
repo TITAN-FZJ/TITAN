@@ -6,8 +6,6 @@ contains
   subroutine ioread()
     use mod_f90_kind
     use mod_mpi_pars
-    use mod_magnet, only: hhwx,hhwy,hhwz
-    use mod_constants, only: pi
     implicit none
     integer, parameter      :: iomax=20           ! Maximum number of elements in one line
     integer                 :: nparams=24         ! Number of required parameters to be read
@@ -92,62 +90,53 @@ contains
             if(istring1(n).eq."") cycle
             options: select case (istring1(n))
             case ("ry2ev")
-              runoptions = trim(runoptions) // " " // trim(istring1(n))
               ry2ev = 13.6d0
             case ("tesla")
-              runoptions = trim(runoptions) // " " // trim(istring1(n))
               tesla = 5.7883817555d-5/13.6d0
               ltesla = .true.
             case ("verbose")
-              runoptions = trim(runoptions) // " " // trim(istring1(n))
               lverbose = .true.
             case ("debug")
-              runoptions = trim(runoptions) // " " // trim(istring1(n))
               ldebug = .true.
             case ("addresults")
-              runoptions = trim(runoptions) // " " // trim(istring1(n))
               laddresults = .true.
             case ("createfiles")
-              runoptions = trim(runoptions) // " " // trim(istring1(n))
               lcreatefiles = .true.
             case ("noUonall")
-              runoptions = trim(runoptions) // " " // trim(istring1(n))
               if(Utype.eq.1) then
                 if(myrank.eq.0) write(*,"('[ioread] Runoption ""noUonNM"" is already active')")
               else
                 Utype = 0
               end if
             case ("noUonNM")
-              runoptions = trim(runoptions) // " " // trim(istring1(n))
               if(Utype.eq.0) then
                 if(myrank.eq.0) write(*,"('[ioread] Runoption ""noUonall"" is already active')")
               else
                 Utype = 1
               end if
             case ("slatec")
-              runoptions = trim(runoptions) // " " // trim(istring1(n))
               lslatec = .true.
             case ("GSL")
-              runoptions = trim(runoptions) // " " // trim(istring1(n))
               lGSL = .true.
             case ("kpoints")
-              runoptions = trim(runoptions) // " " // trim(istring1(n))
               lkpoints = .true.
             case ("lineargfsoc")
-              runoptions = trim(runoptions) // " " // trim(istring1(n))
               llineargfsoc = .true.
             case ("linearsoc")
-              runoptions = trim(runoptions) // " " // trim(istring1(n))
               llinearsoc = .true.
             case ("nojac")
-              runoptions = trim(runoptions) // " " // trim(istring1(n))
               lnojac = .true.
-            case ("norenorm")
-              runoptions = trim(runoptions) // " " // trim(istring1(n))
-              lnorenorm = .true.
+            case ("hfresponses")
+              lhfresponses  = .true.
+            case ("ontheflysc")
+              lontheflysc = .true.
             case("!")
               exit
+            case default
+              if(myrank.eq.0) write(*,"('[ioread] Runoption ""',a,'"" not found!')") trim(istring1(n))
+              cycle
             end select options
+            runoptions  = trim(runoptions) // " " // trim(istring1(n))
           end do
 !           write(*,*) (istring1(n),n=i+1,iomax)
           exit
@@ -180,20 +169,20 @@ contains
 !===============================================================================
         case("Npl")
           if(istring1(i+1).eq."=") then ! If after keyword there's an '='
-            read(unit=istring1(i+2),fmt=*,iostat=ios) Nplini
-            read(unit=istring1(i+3),fmt=*,iostat=ios) Nplfinal
+            read(unit=istring1(i+2),fmt=*,iostat=ios) Npl_i
+            read(unit=istring1(i+3),fmt=*,iostat=ios) Npl_f
           else ! If there's no '=' after keyword, get from next line
-            read(unit=istring2(i),fmt=*,iostat=ios) Nplini
-            read(unit=istring2(i+1),fmt=*,iostat=ios) Nplfinal
+            read(unit=istring2(i),fmt=*,iostat=ios) Npl_i
+            read(unit=istring2(i+1),fmt=*,iostat=ios) Npl_f
           end if
-!           write(*,"('Nplini = ',i0)") Nplini
-!           write(*,"('Nplfinal = ',i0)") Nplfinal
+!           write(*,"('Npl_i = ',i0)") Npl_i
+!           write(*,"('Npl_f = ',i0)") Npl_f
           nparams = nparams-1
         case("Npl=")
-          read(unit=istring1(i+1),fmt=*,iostat=ios) Nplini
-          read(unit=istring1(i+2),fmt=*,iostat=ios) Nplfinal
-!           write(*,"('Nplini = ',i0)") Nplini
-!           write(*,"('Nplfinal = ',i0)") Nplfinal
+          read(unit=istring1(i+1),fmt=*,iostat=ios) Npl_i
+          read(unit=istring1(i+2),fmt=*,iostat=ios) Npl_f
+!           write(*,"('Npl_i = ',i0)") Npl_i
+!           write(*,"('Npl_f = ',i0)") Npl_f
           nparams = nparams-1
 !===============================================================================
         case("a0")
@@ -281,43 +270,79 @@ contains
           end if
           nparams = nparams-1
 !-------------------------------------------------------------------------------
-        case("hwabs")
+        case("hwa")
           if(istring1(i+1).eq."=") then ! If after keyword there's an '='
-            read(unit=istring1(i+2),fmt=*,iostat=ios) hwabs
+            read(unit=istring1(i+2),fmt=*,iostat=ios) hwa_i
+            read(unit=istring1(i+3),fmt=*,iostat=ios) hwa_f
+            read(unit=istring1(i+4),fmt=*,iostat=ios) hwa_npts
           else ! If there's no '=' after keyword, get from next line
-            read(unit=istring2(i),fmt=*,iostat=ios) hwabs
+            read(unit=istring2(i),fmt=*,iostat=ios) hwa_i
+            read(unit=istring2(i+1),fmt=*,iostat=ios) hwa_f
+            read(unit=istring2(i+2),fmt=*,iostat=ios) hwa_npts
           end if
-!           write(*,"('hwx = ',f8.5)") hwabs
+!           write(*,"('hwa_i = ',f8.5)") hwa_i
+!           write(*,"('hwa_f = ',f8.5)") hwa_f
+!           write(*,"('hwa_npts = ',f8.5)") hwa_npts
+          hwa_npt1 = hwa_npts + 1
           nparams2 = nparams2-1
-        case("hwabs=")
-          read(unit=istring1(i+1),fmt=*,iostat=ios) hwabs
-!           write(*,"('hwx = ',f8.5)") hwabs
+        case("hwa=")
+          read(unit=istring1(i+1),fmt=*,iostat=ios) hwa_i
+          read(unit=istring1(i+2),fmt=*,iostat=ios) hwa_f
+          read(unit=istring1(i+3),fmt=*,iostat=ios) hwa_npts
+!           write(*,"('hwa_i = ',f8.5)") hwa_i
+!           write(*,"('hwa_f = ',f8.5)") hwa_f
+!           write(*,"('hwa_npts = ',f8.5)") hwa_npts
+          hwa_npt1 = hwa_npts + 1
           nparams2 = nparams2-1
 !-------------------------------------------------------------------------------
-        case("hwtheta")
+        case("hwt")
           if(istring1(i+1).eq."=") then ! If after keyword there's an '='
-            read(unit=istring1(i+2),fmt=*,iostat=ios) hwtheta
+            read(unit=istring1(i+2),fmt=*,iostat=ios) hwt_i
+            read(unit=istring1(i+3),fmt=*,iostat=ios) hwt_f
+            read(unit=istring1(i+4),fmt=*,iostat=ios) hwt_npts
           else ! If there's no '=' after keyword, get from next line
-            read(unit=istring2(i),fmt=*,iostat=ios) hwtheta
+            read(unit=istring2(i),fmt=*,iostat=ios) hwt_i
+            read(unit=istring2(i+1),fmt=*,iostat=ios) hwt_f
+            read(unit=istring2(i+2),fmt=*,iostat=ios) hwt_npts
           end if
-!           write(*,"('hwx = ',f8.5)") hwtheta
+!           write(*,"('hwt_i = ',f8.5)") hwt_i
+!           write(*,"('hwt_f = ',f8.5)") hwt_f
+!           write(*,"('hwt_npts = ',f8.5)") hwt_npts
+          hwt_npt1 = hwt_npts + 1
           nparams2 = nparams2-1
-        case("hwtheta=")
-          read(unit=istring1(i+1),fmt=*,iostat=ios) hwtheta
-!           write(*,"('hwx = ',f8.5)") hwtheta
+        case("hwt=")
+          read(unit=istring1(i+1),fmt=*,iostat=ios) hwt_i
+          read(unit=istring1(i+2),fmt=*,iostat=ios) hwt_f
+          read(unit=istring1(i+3),fmt=*,iostat=ios) hwt_npts
+!           write(*,"('hwt_i = ',f8.5)") hwt_i
+!           write(*,"('hwt_f = ',f8.5)") hwt_f
+!           write(*,"('hwt_npts = ',f8.5)") hwt_npts
+          hwt_npt1 = hwt_npts + 1
           nparams2 = nparams2-1
 !-------------------------------------------------------------------------------
-        case("hwphi")
+        case("hwp")
           if(istring1(i+1).eq."=") then ! If after keyword there's an '='
-            read(unit=istring1(i+2),fmt=*,iostat=ios) hwphi
+            read(unit=istring1(i+2),fmt=*,iostat=ios) hwp_i
+            read(unit=istring1(i+3),fmt=*,iostat=ios) hwp_f
+            read(unit=istring1(i+4),fmt=*,iostat=ios) hwp_npts
           else ! If there's no '=' after keyword, get from next line
-            read(unit=istring2(i),fmt=*,iostat=ios) hwphi
+            read(unit=istring2(i),fmt=*,iostat=ios) hwp_i
+            read(unit=istring2(i+1),fmt=*,iostat=ios) hwp_f
+            read(unit=istring2(i+2),fmt=*,iostat=ios) hwp_npts
           end if
-!           write(*,"('hwx = ',f8.5)") hwphi
+!           write(*,"('hwp_i = ',f8.5)") hwp_i
+!           write(*,"('hwp_f = ',f8.5)") hwp_f
+!           write(*,"('hwp_s = ',f8.5)") hwp_npts
+          hwp_npt1 = hwp_npts + 1
           nparams2 = nparams2-1
-        case("hwphi=")
-          read(unit=istring1(i+1),fmt=*,iostat=ios) hwphi
-!           write(*,"('hwx = ',f8.5)") hwphi
+        case("hwp=")
+          read(unit=istring1(i+1),fmt=*,iostat=ios) hwp_i
+          read(unit=istring1(i+2),fmt=*,iostat=ios) hwp_f
+          read(unit=istring1(i+3),fmt=*,iostat=ios) hwp_npts
+!           write(*,"('hwp_i = ',f8.5)") hwp_i
+!           write(*,"('hwp_f = ',f8.5)") hwp_f
+!           write(*,"('hwp_s = ',f8.5)") hwp_npts
+          hwp_npt1 = hwp_npts + 1
           nparams2 = nparams2-1
 !-------------------------------------------------------------------------------
         case("hwx")
@@ -663,11 +688,6 @@ contains
       call MPI_Finalize(ierr)
       stop
     end if
-    if((nmaglayers.eq.0).and.(itype.eq.10)) then
-      write(*,"(1x,'[main] No magnetic layers!')")
-      call MPI_Finalize(ierr)
-      stop
-    end if
     if(skip_steps.lt.0) then
       if(myrank.eq.0) write(*,"('[ioread] Invalid number of steps to skip: ',i0)") skip_steps
       call MPI_Finalize(ierr)
@@ -675,48 +695,121 @@ contains
     end if
 !-------------------------------------------------------------------------------
 !*********** User manual additions / modifications in the input file **********!
-!     Nplini  = 4
-!     Nplfinal = 4
+!     Npl_i  = 4
+!     Npl_f = 4
 !     ncp = 6
 !     SOC = .true.
 !     magaxis = "5"
 !     runoptions = trim(runoptions) // " noUonNM"
-!     scfile = "results/selfconsistency/selfconsistency_Npl=4_dfttype=T_parts=2_U= 0.7E-01_hwx= 0.0E+00_hwy= 0.0E+00_hwz= 0.0E+00_ncp=6_eta= 0.5E-03.dat"
+!     scfile = "results/selfconsistency/selfconsistency_Npl=4_dfttype=T_parts=2_U= 0.7E-01_hwa= 0.00E+00_hwt= 0.00E+00_hwp= 0.00E+00_ncp=6_eta= 0.5E-03.dat"
 !-------------------------------------------------------------------------------
+    ! Turning off renormalization for non-current calculations
     if((itype.ne.7).and.(itype.ne.8)) renorm = .false.
-    n0sc=n0sc2-n0sc1+1
+    n0sc=n0sc2-n0sc1+1 ! Total number of neighbors
+    ! Energy loop step
     deltae = (emax - emin)/npts
     if(deltae.le.1.d-14) npt1 = 1
-    if(Nplfinal.lt.Nplini) then
-      Nplfinal = Nplini
+    ! Check number of planes
+    if(Npl_f.lt.Npl_i) then
+      Npl_f = Npl_i
     end if
-    hhwx  = 0.d0
-    hhwy  = 0.d0
-    hhwz  = 0.d0
+
     if(FIELD) then
-      if(abs(hwabs).gt.1.d-8) then  ! Spherical coordinates on spin system of reference
-        hwtheta = hwtheta*pi
-        hwphi   = hwphi*pi
-        hwx  = hwabs*sin(hwtheta)*cos(hwphi)
-        hwy  = hwabs*sin(hwtheta)*sin(hwphi)
-        hwz  = hwabs*cos(hwtheta)
-        if(abs(hwx).lt.1.d-10) hwx = 0.d0
-        if(abs(hwy).lt.1.d-10) hwy = 0.d0
-        if(abs(hwz).lt.1.d-10) hwz = 0.d0
-      else
-        hwabs   = sqrt(hwx**2+hwy**2+hwz**2)
-        if(abs(hwabs).lt.1.d-8) then
+      if (hwa_npts.eq.0) then
+        hwa_f = hwa_i
+        hwa_npts = 1
+      end if
+      if((abs(hwa_i)+abs(hwa_f)).gt.1.d-8) then
+!         if(myrank.eq.0) then
+!           write(*,*) "hwa_i = ", hwa_i
+!           write(*,*) "hwa_f = ", hwa_f
+!           write(*,*) "hwa_npts = ", hwa_npts
+!           write(*,*) "hwa_npt1 = ", hwa_npt1
+!           write(*,*) "hwt_i = ", hwt_i
+!           write(*,*) "hwt_f = ", hwt_f
+!           write(*,*) "hwt_npts = ", hwt_npts
+!           write(*,*) "hwt_npt1 = ", hwt_npt1
+!           write(*,*) "hwp_i = ", hwp_i
+!           write(*,*) "hwp_f = ", hwp_f
+!           write(*,*) "hwp_npts = ", hwp_npts
+!           write(*,*) "hwp_npt1 = ", hwp_npt1
+!         end if
+        if (hwt_npts.eq.0) then
+          hwt_f = hwt_i
+          hwt_npts = 1
+        end if
+        if (hwp_npts.eq.0) then
+          hwp_f = hwp_i
+          hwp_npts = 1
+        end if
+        ! External field angular loops steps
+        hwa_s = (hwa_f - hwa_i)/hwa_npts
+        if(abs(hwa_s).le.1.d-10) hwa_npt1 = 1
+        hwt_s = (hwt_f - hwt_i)/hwt_npts
+        if(abs(hwt_s).le.1.d-10) hwt_npt1 = 1
+        hwp_s = (hwp_f - hwp_i)/hwp_npts
+        if(abs(hwp_s).le.1.d-10) hwp_npt1 = 1
+      else ! hwa_i and hwa_f = 0
+        ! Cartesian coordinates on spin system of reference
+        hwa_i   = sqrt(hwx**2+hwy**2+hwz**2)
+        hwa_f   = hwa_i
+        if(abs(hwa_i).lt.1.d-8) then
           FIELD = .false.
         else
-          hwtheta = acos(hwz/hwabs)
-          hwphi   = atan2(hwy,hwx)
+          hwt_i    = acos(hwz/hwa_i)
+          hwt_s    = 0.d0
+          hwt_npt1 = 1
+          hwp_i    = atan2(hwy,hwx)
+          hwp_s    = 0.d0
+          hwp_npt1 = 1
         end if
       end if
-      hhwx  = 0.5d0*hwx*tesla
-      hhwy  = 0.5d0*hwy*tesla
-      hhwz  = 0.5d0*hwz*tesla
+    else ! FIELD
+      hwa_i    = 0.d0
+      hwa_f    = 0.d0
+      hwa_s    = 0.d0
+      hwa_npt1 = 1
+      hwt_i    = 0.d0
+      hwt_f    = 0.d0
+      hwt_s    = 0.d0
+      hwt_npt1 = 1
+      hwp_i    = 0.d0
+      hwp_f    = 0.d0
+      hwp_s    = 0.d0
+      hwp_npt1 = 1
     end if
-    tol   = 1.d-5
+    if(itype.eq.11) then
+      emin = 1.d-6
+      if(.not.FIELD) then
+        if(myrank.eq.0) write(*,"('[ioread] External Field is off! Calculation of dc-limit needs external field dependence!')")
+        call MPI_Finalize(ierr)
+        stop
+      end if
+      if(hwa_npt1.gt.1) then
+        dcfield_dependence = 1
+      else if (hwt_npt1.gt.1) then
+        if(dcfield_dependence.ne.0) then
+          if(myrank.eq.0) write(*,"('[ioread] Choose only one field dependence (abs, theta or phi)!')")
+          call MPI_Finalize(ierr)
+          stop
+        end if
+        dcfield_dependence = 2
+      else if (hwp_npt1.gt.1) then
+        if(dcfield_dependence.ne.0) then
+          if(myrank.eq.0) write(*,"('[ioread] Choose only one field dependence (abs, theta or phi)!')")
+          call MPI_Finalize(ierr)
+          stop
+        end if
+        dcfield_dependence = 3
+      end if
+      if(dcfield_dependence.eq.0) then
+        if(myrank.eq.0) write(*,"('[ioread] dc-limit calculation needs variation of one field variable (abs, theta or phi)!')")
+        call MPI_Finalize(ierr)
+        stop
+      end if
+    end if
+
+    tol   = 1.d-8
     pn1=parts*n1gl
     pn2=parts3*n3gl
     pnt=pn1+pn2
@@ -745,7 +838,7 @@ contains
     end select dft_type
     if(SOC) then
       write(*,"(1x,'Spin Orbit Coupling: ACTIVATED')")
-      write(*,"(5x,'socscale =',e9.2)") socscale
+      write(*,"(5x,'socscale =',es9.2)") socscale
     else
       write(*,"(1x,'Spin Orbit Coupling: DEACTIVATED')")
     end if
@@ -763,8 +856,8 @@ contains
       case default
         write(*,"(11x,'Other')")
       end select write_magnetization_axis_bcc110
-      write(*,"(10x,'phi =',e9.2,'pi')") phi/pi
-      write(*,"(8x,'theta =',e9.2,'pi')") theta/pi
+      write(*,"(10x,'phi =',es9.2,'pi')") phi/pi
+      write(*,"(8x,'theta =',es9.2,'pi')") theta/pi
       write(*,"(1x,'Electric field direction: ',$)")
       write_direction_E_field_bcc110: select case (dirEfield)
       case ("L")
@@ -783,8 +876,8 @@ contains
       case (9)
         write(*,"('Out-of-plane')")
       end select write_magnetization_axis_fcc100
-      write(*,"(10x,'phi =',e9.2,'pi')") phi/pi
-      write(*,"(8x,'theta =',e9.2,'pi')") theta/pi
+      write(*,"(10x,'phi =',es9.2,'pi')") phi/pi
+      write(*,"(8x,'theta =',es9.2,'pi')") theta/pi
       write(*,"(1x,'Electric field direction: ',$)")
       read(unit=dirEfield,fmt=*) j
       write_direction_E_field_fcc100: select case (j)
@@ -803,12 +896,12 @@ contains
     write(*,"(10x,'ncp = ',i0)") ncp
     write(*,"(8x,'parts = ',i0,'x',i0)") parts,n1gl
     write(*,"(7x,'parts3 = ',i0,'x',i0)") parts3,n3gl
-    write(*,"(10x,'eta =',e9.2)") eta
+    write(*,"(10x,'eta =',es9.2)") eta
     if(FIELD) then
       write(*,"(1x,'Static magnetic field: ACTIVATED')")
-      write(*,"(10x,'hwx =',e9.2)") hwx
-      write(*,"(10x,'hwy =',e9.2)") hwy
-      write(*,"(10x,'hwz =',e9.2)") hwz
+      write(*,"(10x,'hwx =',es9.2,5x,'|',5x,'hwa =',es9.2)") hwx,hwa
+      write(*,"(10x,'hwy =',es9.2,5x,'|',5x,'hwt =',f6.3)") hwy,hwt
+      write(*,"(10x,'hwz =',es9.2,5x,'|',5x,'hwp =',f6.3)") hwz,hwp
     else
       write(*,"(1x,'Static magnetic field: DEACTIVATED')")
     end if
@@ -820,8 +913,8 @@ contains
       write(*,"(1x,'Test before SC')")
       write(*,"(8x,'n0sc1 = ',i0)") n0sc1
       write(*,"(8x,'n0sc2 = ',i0)") n0sc2
-      write(*,"(9x,'emin =',e9.2)") emin
-      write(*,"(9x,'emax =',e9.2)") emax
+      write(*,"(9x,'emin =',es9.2)") emin
+      write(*,"(9x,'emax =',es9.2)") emax
       write(*,"(1x,'Number of points to calculate: ',i0)") npt1
     case (1)
       write(*,"(1x,'Self-consistency only')")
@@ -829,13 +922,13 @@ contains
       write(*,"(1x,'Test after SC')")
       write(*,"(8x,'n0sc1 = ',i0)") n0sc1
       write(*,"(8x,'n0sc2 = ',i0)") n0sc2
-      write(*,"(9x,'emin =',e9.2)") emin
-      write(*,"(9x,'emax =',e9.2)") emax
+      write(*,"(9x,'emin =',es9.2)") emin
+      write(*,"(9x,'emax =',es9.2)") emax
       write(*,"(1x,'Number of points to calculate: ',i0)") npt1
     case (3)
       write(*,"(1x,'LDOS and exchange interactions as a function of energy')")
-      write(*,"(9x,'emin =',e9.2)") emin
-      write(*,"(9x,'emax =',e9.2)") emax
+      write(*,"(9x,'emin =',es9.2)") emin
+      write(*,"(9x,'emax =',es9.2)") emax
       write(*,"(1x,'Number of points to calculate: ',i0)") npt1
     case (4)
       write(*,"(1x,'Band structure')")
@@ -843,36 +936,36 @@ contains
       write(*,"(9x,'Number of points to calculate: ',i0)") npt1
     case (5)
       write(*,"(1x,'Local susceptibility as a function of energy')")
-      write(*,"(9x,'emin =',e9.2)") emin
-      write(*,"(9x,'emax =',e9.2)") emax
-      write(*,"(1x,i0,' points divided into ',i0,' steps of size',e10.3,' each calculating ',i0,' points')") npt1,MPIsteps,MPIdelta,MPIpts
+      write(*,"(9x,'emin =',es9.2)") emin
+      write(*,"(9x,'emax =',es9.2)") emax
+      write(*,"(1x,i0,' points divided into ',i0,' steps of size',es10.3,' each calculating ',i0,' points')") npt1,MPIsteps,MPIdelta,MPIpts
     case (6)
       write(*,"(1x,'Disturbances and local susceptibility as a function of energy')")
-      write(*,"(9x,'emin =',e9.2)") emin
-      write(*,"(9x,'emax =',e9.2)") emax
-      write(*,"(1x,i0,' points divided into ',i0,' steps of size',e10.3,' each calculating ',i0,' points')") npt1,MPIsteps,MPIdelta,MPIpts
+      write(*,"(9x,'emin =',es9.2)") emin
+      write(*,"(9x,'emax =',es9.2)") emax
+      write(*,"(1x,i0,' points divided into ',i0,' steps of size',es10.3,' each calculating ',i0,' points')") npt1,MPIsteps,MPIdelta,MPIpts
     case (7)
       write(*,"(1x,'Parallel currents and local susceptibility as a function of energy')")
       write(*,"(8x,'n0sc1 = ',i0)") n0sc1
       write(*,"(8x,'n0sc2 = ',i0)") n0sc2
-      write(*,"(9x,'emin =',e9.2)") emin
-      write(*,"(9x,'emax =',e9.2)") emax
-      write(*,"(1x,i0,' points divided into ',i0,' steps of size',e10.3,' each calculating ',i0,' points')") npt1,MPIsteps,MPIdelta,MPIpts
+      write(*,"(9x,'emin =',es9.2)") emin
+      write(*,"(9x,'emax =',es9.2)") emax
+      write(*,"(1x,i0,' points divided into ',i0,' steps of size',es10.3,' each calculating ',i0,' points')") npt1,MPIsteps,MPIdelta,MPIpts
     case (8)
       write(*,"(1x,'Parallel currents, disturbances and local susc. as a function of energy')")
       write(*,"(8x,'n0sc1 = ',i0)") n0sc1
       write(*,"(8x,'n0sc2 = ',i0)") n0sc2
-      write(*,"(9x,'emin =',e9.2)") emin
-      write(*,"(9x,'emax =',e9.2)") emax
-      write(*,"(1x,i0,' points divided into ',i0,' steps of size',e10.3,' each calculating ',i0,' points')") npt1,MPIsteps,MPIdelta,MPIpts
+      write(*,"(9x,'emin =',es9.2)") emin
+      write(*,"(9x,'emax =',es9.2)") emax
+      write(*,"(1x,i0,' points divided into ',i0,' steps of size',es10.3,' each calculating ',i0,' points')") npt1,MPIsteps,MPIdelta,MPIpts
     case (9)
       write(*,"(1x,'Fermi surface')")
     case (10)
       write(*,"(1x,'Exhange interactions and anisotropies (full tensor)')")
       if(nmaglayers.eq.1) write(*,"(1x,'Only 1 magnetic layer: calculating only anisotropies')")
-      write(*,"(8x,'from Npl = ',i0,' to ',i0)") Nplini,Nplfinal
+      write(*,"(8x,'from Npl = ',i0,' to ',i0)") Npl_i,Npl_f
     case (11)
-      write(*,"(1x,'Probability of spin-flip as a function of position')")
+      write(*,"(1x,'dc limit calculations as a function of ',a)") dcfield(dcfield_dependence)
     end select write_itype
     write(*,"('|---------------------------------------------------------------------------|')")
     return
