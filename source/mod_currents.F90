@@ -128,14 +128,14 @@ contains
       ! Header for currents per plane per neighbor
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 5000+(i-1)*n0sc2*7+(neighbor-1)*7+j
-        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/prll',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/prll',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
         open (unit=iw, file=varm, status='unknown', form='formatted')
         write(unit=iw, fmt="('#   energy  ,  amplitude of ',a,'  ,  real part of ',a,'  ,  imaginary part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
 
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/rprll',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/rprll',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
           open (unit=iw, file=varm, status='unknown', form='formatted')
           write(unit=iw, fmt="('#   energy  ,  amplitude of ',a,'  ,  real part of ',a,'  ,  imaginary part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
@@ -144,14 +144,14 @@ contains
       ! Header for total currents for each neighbor direction
       do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 7000+(neighbor-1)*7+j
-        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/prll',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/prll',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
         open (unit=iw, file=varm, status='unknown', form='formatted')
         write(unit=iw, fmt="('#   energy  ,  amplitude of ',a,'  ,  real part of ',a,'  ,  imaginary part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
 
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/rprll',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/rprll',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
           open (unit=iw, file=varm, status='unknown', form='formatted')
           write(unit=iw, fmt="('#   energy  ,  amplitude of ',a,'  ,  real part of ',a,'  ,  imaginary part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
@@ -161,12 +161,12 @@ contains
       ! Currents per plane per neighbor
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 5000+(i-1)*n0sc2*7+(neighbor-1)*7+j
-        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/prll',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/prll',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/rprll',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/rprll',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
         end if
@@ -175,12 +175,12 @@ contains
       ! Total currents for each neighbor direction
       do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 7000+(neighbor-1)*7+j
-        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/prll',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/prll',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/rprll',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/rprll',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
         end if
@@ -401,14 +401,14 @@ contains
       ! Header for currents per plane per neighbor
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 50000+(i-1)*n0sc2*7+(neighbor-1)*7+j
-        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/dcprll',a,'_',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/dcprll',a,'_',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
         open (unit=iw, file=varm, status='unknown', form='formatted')
         write(unit=iw, fmt="('#   field  ,  imaginary part of ',a,'  ,   real part of ',a,'   ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
 
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/dcrprll',a,'_',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/dcrprll',a,'_',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
           open (unit=iw, file=varm, status='unknown', form='formatted')
           write(unit=iw, fmt="('#   field  ,  imaginary part of ',a,'  ,   real part of ',a,'   ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
@@ -417,14 +417,14 @@ contains
       ! Header for total currents for each neighbor direction
       do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 70000+(neighbor-1)*7+j
-        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/dcprll',a,'_',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/dcprll',a,'_',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
         open (unit=iw, file=varm, status='unknown', form='formatted')
         write(unit=iw, fmt="('#   field  ,  imaginary part of ',a,'  ,   real part of ',a,'   ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
 
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/dcrprll',a,'_',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/dcrprll',a,'_',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
           open (unit=iw, file=varm, status='unknown', form='formatted')
           write(unit=iw, fmt="('#   field  ,  imaginary part of ',a,'  ,   real part of ',a,'   ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
@@ -434,12 +434,12 @@ contains
       ! Currents per plane per neighbor
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 50000+(i-1)*n0sc2*7+(neighbor-1)*7+j
-        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/dcprll',a,'_',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/dcprll',a,'_',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/dcrprll',a,'_',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/dcrprll',a,'_',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
         end if
@@ -448,12 +448,12 @@ contains
       ! Total currents for each neighbor direction
       do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 70000+(neighbor-1)*7+j
-        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/dcprll',a,'_',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/dcprll',a,'_',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/dcrprll',a,'_',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/dcrprll',a,'_',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
         end if

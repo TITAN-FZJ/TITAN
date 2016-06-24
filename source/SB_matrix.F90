@@ -6,15 +6,16 @@ subroutine sb_matrix()
 	implicit none
 	integer	:: mu,nu
 
-!	The minus sign takes into account the fact that we are considering negative
+!	There is an extra  minus sign in the definition of hhwx,hhwy,hhwz
+! to take into account the fact that we are considering negative
 !	external fields to get the peak in positive energies
 	sb = zero
 	do mu=1,9
 		nu=mu+9
-		sb(mu,mu) = -hhwz
-		sb(nu,nu) =  hhwz
-		sb(mu,nu) = -(hhwx-zi*hhwy)
-		sb(nu,mu) = -(hhwx+zi*hhwy)
+		sb(mu,mu) = hhwz
+		sb(nu,nu) =-hhwz
+		sb(mu,nu) = hhwx-zi*hhwy
+		sb(nu,mu) = hhwx+zi*hhwy
 	end do
 
 	return

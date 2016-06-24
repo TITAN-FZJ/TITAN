@@ -28,8 +28,8 @@ SHELL = /bin/sh
 # Filename and folders configuration               #
 ####################################################
 SRCDIR = ./source
-BINDIR = ./$(LATTICE)/$(SYSTEM)
-OBJDIR = ./$(LATTICE)/$(SYSTEM)/build
+BINDIR = .
+OBJDIR = ./build/$(PLATFORM)
 ifdef FILE
 	FILENAME = $(BINDIR)/$(FILE)
 else
@@ -140,7 +140,7 @@ endif
 ####################################################
 ifeq ($(PLATFORM),osx)
 # Compiler
-FC = /usr/local/impi/bin/mpif90
+FC = mpif90
 # Preprocessor
 CPP = -fpp
 # Libraries

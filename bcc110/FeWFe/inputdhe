@@ -6,14 +6,12 @@
 !   2 - Test after SC                                                           !
 !   3 - LDOS and exchange interactions as a function of energy                  !
 !   4 - Band structure                                                          !
-!   5 - Local susceptibility as a function of energy                            !
-!   6 - Disturbances, susceptibilities and eff. field as a function of e        !
-!   7 - Parallel currents and susceptibilities as a function of e               !
+!   5 - Fermi surface                                                           !
+!   6 - Exhange interactions and anisotropies (full tensor)                     !
+!   7 - Local susceptibility as a function of energy                            !
 !   8 - Parall. currents, disturb., susc. and eff. fields as a function of e    !
-!   9 - Fermi surface                                                           !
-!  10 - Exhange interactions and anisotropies (full tensor)                     !
-!  11 - Probability of spin-flip as a function of position                      !
--> itype = 6
+!   9 - dc-limit as a function of magnetic field (abs, theta or phi)            !
+-> itype = 1
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
 !   noUonall    - set U=0 on all layers                                         !
@@ -21,16 +19,13 @@
 !   GSL         - Calculate ground state of Orbital Angular Momentum L          !
 !   verbose     - write intermediate steps                                      !
 !   ry2ev       - convert energy units to eV                                    !
-!   tesla       - read values of static magnetic field in tesla                 !
 !   idebug      - turn on to use this optional variable for debugging           !
 !   createfiles - Just create files (WARNING: overwrite existing files!)        !
 !   addresults  - Add results to existing files, instead of creating new ones   !
 !                 (files MUST exist)                                            !
 !   slatec      - Use non-linear root finder dnsqe from Slatec library          !
 !   kpoints     - Write kpoints and weights into files                          !
-!   lineargfsoc - Adds linear order SOC in the GF                               !
-!   linearsoc   - Adds linear order SOC in the susceptibility                   !
--> Options: slatec ! noUonNM ! addresults
+-> Options: GSL ! slatec ! noUonNM ! addresults
 !===============================================================================!
 !                               SYSTEM VARIABLES                                !
 ! Lattice and surface direction:                                                !
@@ -47,13 +42,14 @@
 !                         (in the spin reference system)                        !
 -> FIELD = F  ! Magnetic field on (T) or off (F) (choose one form below)
 ! Spherical coordinates (default, angles in units of pi)                        !
--> hwabs = 0.2E-03 , hwtheta = 0.0E+00 , hwphi = 0.0E+00
+-> hwa   = 2.0E-04
+-> hwt   = 0.0E+00
+-> hwp   = 0.0E+00
 ! Cartesian coordinates                                                         !
 -> hwx = 0.0E+00 , hwy = 0.0E+00 , hwz = 0.0E+00
 !===============================================================================!
 !                             SPIN ORBIT COUPLING                               !
 -> SOC = T        ! Spin Orbit Coupling on (T) or off (F)
--> socscale = 1.00d0
 !-------------------------------------------------------------------------------!
 ! Magnetization axis:                                                           !
 ! L - long axis                                                                 !
@@ -69,7 +65,7 @@
 !===============================================================================!
 !                        IN-PLANE CURRENTS TO CALCULATE                         !
 -> n0sc1 = 1   ! First neighbor
--> n0sc2 = 1   ! Last neighbor
+-> n0sc2 = 6   ! Last neighbor
 !
 !                    CURRENT AND DISTURBANCE RENORMALIZATION                    !
 !          (only used when currents are calculated - itype=7 and 8)             !
@@ -78,11 +74,11 @@
 !===============================================================================!
 !                           INTEGRATION VARIABLES                               !
 ! Number of Cunningham k-vector generators:                                     !
--> ncp = 1
+-> ncp = 6
 ! Number of parts to divide energy integral in complex plane:                   !
--> parts = 2 , n1gl = 2
+-> parts = 2 , n1gl = 63
 !  Number of parts to divide energy integral in real axis:                      !
--> parts3 = 1 , n3gl = 4
+-> parts3 = 1 , n3gl = 63
 !===============================================================================!
 !                              PLOTTING VARIABLES                               !
 !           PLOTTING VARIABLES         !             BAND STRUCTURE             !
@@ -91,10 +87,11 @@
 !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -!
 !                              Number of points:                                !
 -> npts = 4
+-> skip_steps = 0
 !===============================================================================!
 !                              SELF-CONSISTENCY                                 !
 !        (Finding center of the bands for the given number of particles)        !
--> skipsc = T ! skip self-consistency calculation when it finds previous results
+-> skipsc = F ! skip self-consistency calculation when it finds previous results
 ! File to use as starting point:
 !-> scfile: Resultados/selfconsistency/selfconsistency_Npl=4_parts=2_U= 0.7E-01_hwx= 0.0E+00_hwy= 0.0E+00_hwz= 0.0E+00_ncp=6_eta= 0.5E-03.dat
 !===============================================================================!
@@ -110,6 +107,6 @@
 ! To stop the program:                                                          !
 ! - after an energy step, just create a file called 'stop'                      !
 ! (e.g., in terminal: touch stop)                                               !
-! - after any layer calculation, just create a file called 'stopNpl'            !
-! (e.g., in terminal: touch stopNpl)                                            !
+! - after any layer/field calculation, just create a file called 'stopout'      !
+! (e.g., in terminal: touch stopout)                                            !
 !*******************************************************************************!

@@ -12,11 +12,12 @@ including first and second nearest neighbours hopping matrices.
 We apply an AC electric field (described by a time-dependent potential
 vector) that couples to the current density, and we calculate the
 response of:
- - local spin densities in each layer;
- - local orbital momentum densities in each layer;
+ - local spin accumulations in each layer;
+ - local orbital momentum accumulations in each layer;
  - spin currents that flow parallel to the layers;
  - orbital momentum currents that flow parallel to the layers;
  - charge currents that flow parallel to the layers;
+ - spin-orbit, exchange and external torques;
  - effective magnetic fields.
 
 We can also calculate LDOS in each layer, band structure, Fermi surface,

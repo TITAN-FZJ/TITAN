@@ -129,13 +129,13 @@ contains
     if(iflag.eq.0) then
       do i=1,Npl ; do j=1,7
         iw = 3000+(i-1)*7+j
-        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
         open (unit=iw, file=varm, status='unknown', form='formatted')
         write(unit=iw, fmt="('#   energy  ,  amplitude of ',a,'  ,  real part of ',a,'  ,  imaginary part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/r',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/r',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
           open (unit=iw, file=varm, status='unknown', form='formatted')
           write(unit=iw, fmt="('#   energy  ,  amplitude of ',a,'  ,  real part of ',a,'  ,  imaginary part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
@@ -144,12 +144,12 @@ contains
     else if (iflag.eq.1) then
       do i=1,Npl ; do j=1,7
         iw = 3000+(i-1)*7+j
-        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/r',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/r',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
         end if
@@ -312,13 +312,13 @@ contains
     if(iflag.eq.0) then
       do i=1,Npl ; do j=1,7
         iw = 30000+(i-1)*7+j
-        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/dc',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/dc',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
         open (unit=iw, file=varm, status='unknown', form='formatted')
         write(unit=iw, fmt="('#   field  ,  imaginary part of ',a,'  ,  real part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/dcr',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/dcr',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
           open (unit=iw, file=varm, status='unknown', form='formatted')
           write(unit=iw, fmt="('#   field  ,  imaginary part of ',a,'  ,  real part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
@@ -327,12 +327,12 @@ contains
     else if (iflag.eq.1) then
       do i=1,Npl ; do j=1,7
         iw = 30000+(i-1)*7+j
-        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/dc',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/dc',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/',a,'/dcr',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/dcr',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),dcfield(dcfield_dependence),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
         end if

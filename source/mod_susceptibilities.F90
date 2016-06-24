@@ -157,25 +157,25 @@ contains
       do sigma=1,4 ; do j=1,Npl ; do i=1,Npl
         ! RPA SUSCEPTIBILITIES
         iw = 1000+(sigma-1)*Npl*Npl+(j-1)*Npl+i
-        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/RPA/',a2,'/chi_',i0,'_',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,spin(sigma),i,j,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/RPA/',a2,'/chi_',i0,'_',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,spin(sigma),i,j,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart)
         open (unit=iw, file=varm, status='unknown', form='formatted')
         write(unit=iw, fmt="('#   energy  ,  real part of chi ',a,'  ,  imaginary part of chi ',a,'  ,  amplitude of chi ',a,'  ')") spin(sigma),spin(sigma),spin(sigma)
         close(unit=iw)
         ! HF SUSCEPTIBILITIES
         iw = iw+1000
-        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/HF/',a2,'/chihf_',i0,'_',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,spin(sigma),i,j,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/HF/',a2,'/chihf_',i0,'_',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,spin(sigma),i,j,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart)
         open (unit=iw, file=varm, status='unknown', form='formatted')
         write(unit=iw, fmt="('#   energy  ,  real part of chi ',a,' HF ,  imaginary part of chi ',a,' HF  ,  amplitude of chi ',a,' HF  ')") spin(sigma),spin(sigma),spin(sigma)
         close(unit=iw)
       end do ; end do ; end do
       ! RPA DIAGONALIZATION
       if(nmaglayers.gt.1) then
-        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/RPA/pm/chi_eval_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/RPA/pm/chi_eval_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart)
         open (unit=1990, file=varm,status='unknown', form='formatted')
         write(unit=1990,fmt="('#   energy  ,  real part of 1st eigenvalue  ,  imaginary part of 1st eigenvalue  ,  real part of 2nd eigenvalue  ,  imaginary part of 2nd eigenvalue  , ... ')")
         close (unit=1990)
         do i=1,nmaglayers
-          write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/RPA/pm/chi_evec',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+          write(varm,"('./results/',a1,'SOC/',i0,'Npl/RPA/pm/chi_evec',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart)
           open (unit=1990+i, file=varm,status='unknown', form='formatted')
           write(unit=1990+i,fmt="('#   energy  ,  real part of 1st component  ,  imaginary part of 1st component  ,  real part of 2nd component  ,  imaginary part of 2nd component  , ...   ')")
           close (unit=1990+i)
@@ -186,22 +186,22 @@ contains
       do sigma=1,4 ; do j=1,Npl ; do i=1,Npl
         ! RPA SUSCEPTIBILITIES
         iw = 1000+(sigma-1)*Npl*Npl+(j-1)*Npl+i
-        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/RPA/',a2,'/chi_',i0,'_',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,spin(sigma),i,j,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/RPA/',a2,'/chi_',i0,'_',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,spin(sigma),i,j,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         ! HF SUSCEPTIBILITIES
         iw = iw+1000
-        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/HF/',a2,'/chihf_',i0,'_',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,spin(sigma),i,j,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/HF/',a2,'/chihf_',i0,'_',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,spin(sigma),i,j,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
       end do ; end do ; end do
       ! RPA DIAGONALIZATION
       if(nmaglayers.gt.1) then
-        write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/RPA/pm/chi_eval_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/RPA/pm/chi_eval_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart)
         open (unit=1990, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         do i=1,nmaglayers
-          write(varm,"('./results/SOC=',a1,'/Npl=',i0,'/RPA/pm/chi_evec',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+          write(varm,"('./results/',a1,'SOC/',i0,'Npl/RPA/pm/chi_evec',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart)
           open (unit=1990+i, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
         end do

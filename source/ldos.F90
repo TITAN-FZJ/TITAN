@@ -124,9 +124,9 @@ subroutine ldos(e,ldosu,ldosd,Jijint)
 !$omp end do
 !$omp end parallel
 
-  ldosu  = ldosu/(pi*ry2ev)
-  ldosd  = ldosd/(pi*ry2ev)
-  Jijint = Jijint*ry2ev/pi
+  ldosu  = ldosu/pi
+  ldosd  = ldosd/pi
+  Jijint = Jijint/pi
 
   return
 end subroutine ldos
@@ -197,17 +197,17 @@ subroutine ldos_es(e)
 !$omp end do
 !$omp end parallel
 
-  ldosu  = ldosu/(pi*ry2ev)
-  ldosd  = ldosd/(pi*ry2ev)
+  ldosu  = ldosu/pi
+  ldosd  = ldosd/pi
 
   ! Transform energy to eV if runoption is on
-  e = e*ry2ev
+  e = e
 
   !Writing on files
   do i=1,Npl+2
-    write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/LDOS/ldosu_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,i,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
+    write(varm,"('./results/',l1,'SOC/',i0,'Npl/LDOS/ldosu_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,i,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
     open (unit=117+i, file=varm,status='unknown')
-    write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/LDOS/ldosd_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,i,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
+    write(varm,"('./results/',l1,'SOC/',i0,'Npl/LDOS/ldosd_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,i,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
     open (unit=517+i, file=varm,status='unknown')
   end do
   ldos_writing_plane_loop: do i=1,Npl+2

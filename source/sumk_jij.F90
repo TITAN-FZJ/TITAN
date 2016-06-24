@@ -13,10 +13,10 @@ subroutine sumk_jij(er,ei,Jijint)
   integer       :: iz,i,j,mu,nu,alpha
   real(double),intent(in)   :: er,ei
   real(double),intent(out)  :: Jijint(nmaglayers,nmaglayers,3,3)
-  real(double)  :: kp(3),evec(nmaglayers,3),mvec(nmaglayers,3),Jijk(nmaglayers,nmaglayers,3,3),Jijkan(nmaglayers,3,3)
+  real(double)  :: kp(3),evec(nmaglayers,3),Jijk(nmaglayers,nmaglayers,3,3),Jijkan(nmaglayers,3,3)
   complex(double) :: pauli(3,18,18),dbxcdm(nmaglayers,3,18,18),d2bxcdm2(nmaglayers,3,3,18,18),paulievec(nmaglayers,18,18)
   complex(double),dimension(18,18)             :: gij,gji,temp1,temp2,paulia,paulib
-  complex(double),dimension(Npl,Npl,18,18)     :: gf
+  complex(double),dimension(Npl,Npl,18,18)     :: gf,gfq
 
 #ifndef _JUQUEEN
   open(6,carriagecontrol ='fortran')
@@ -38,8 +38,9 @@ subroutine sumk_jij(er,ei,Jijint)
   end do
 
   do iz=1,nmaglayers
-    mvec(iz,:) = [ mx(mmlayermag(iz)-1), my(mmlayermag(iz)-1), mz(mmlayermag(iz)-1) ]
-    evec(iz,:) = mvec(iz,:)/mabs(mmlayermag(iz)-1)
+    ! Unit vector along the direction of the magnetization of each magnetic plane
+    evec(iz,:) = [ mx(mmlayermag(iz)-1), my(mmlayermag(iz)-1), mz(mmlayermag(iz)-1) ]/mabs(mmlayermag(iz)-1)
+    ! Inner product of pauli matrix in spin and orbital space and unit vector evec
     paulievec(iz,:,:) = pauli(1,:,:)*evec(iz,1)+pauli(2,:,:)*evec(iz,2)+pauli(3,:,:)*evec(iz,3)
   end do
 
@@ -58,15 +59,15 @@ subroutine sumk_jij(er,ei,Jijint)
   Jijint = 0.d0
 
 !$omp parallel default(none) &
-!$omp& private(mythread,iz,kp,gf,gij,gji,paulia,paulib,i,j,mu,nu,alpha,Jijk,Jijkan,temp1,temp2) &
-!$omp& shared(prog,spiner,elapsed_time,start_program,progbar,kbz,wkbz,nkpoints,er,ei,Jijint,dbxcdm,d2bxcdm2,pauli,Npl,hdel,mz,nmaglayers,mmlayermag,myrank,nthreads,pi)
+!$omp& private(mythread,iz,kp,gf,gfq,gij,gji,paulia,paulib,i,j,mu,nu,alpha,Jijk,Jijkan,temp1,temp2) &
+!$omp& shared(prog,spiner,elapsed_time,start_program,progbar,kbz,q,wkbz,nkpoints,er,ei,Jijint,dbxcdm,d2bxcdm2,pauli,Npl,hdel,mz,nmaglayers,mmlayermag,myrank,nthreads,pi)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread.eq.0).and.(myrank.eq.0)) then
 !$    nthreads = omp_get_num_threads()
 !$    write(*,"('Number of threads: ',i0)") nthreads
 !$  end if
 
-!$omp do
+!$omp do reduction(+:Jijint)
   kpoints: do iz=1,nkpoints
 !$  if((mythread.eq.0)) then
       if(myrank.eq.0) then
@@ -87,42 +88,47 @@ subroutine sumk_jij(er,ei,Jijint)
     ! Green function on energy Ef + iy, and wave vector kp
     call green(er,ei,kp,gf)
 
+    ! Green function on energy Ef + iy, and wave vector kp-q
+    call green(er,ei,kp-q,gfq)
+
     Jijk   = 0.d0
     Jijkan = 0.d0
     do nu = 1,3 ; do mu = 1,3 ; do j = 1,nmaglayers ; do i = 1,nmaglayers
       paulia = dbxcdm(i,mu,:,:)
       gij = gf(mmlayermag(i)-1,mmlayermag(j)-1,:,:)
       paulib = dbxcdm(j,nu,:,:)
-      gji = gf(mmlayermag(j)-1,mmlayermag(i)-1,:,:)
+      gji = gfq(mmlayermag(j)-1,mmlayermag(i)-1,:,:)
       call zgemm('n','n',18,18,18,zum,paulia,18,gij,18,zero,temp1,18)
       call zgemm('n','n',18,18,18,zum,temp1,18,paulib,18,zero,temp2,18)
       call zgemm('n','n',18,18,18,zum,temp2,18,gji,18,zero,temp1,18)
+      ! Trace over orbitals and spins
       do alpha = 1,18
         Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + real(temp1(alpha,alpha))
       end do
-
-      Jijk(i,j,mu,nu) = -Jijk(i,j,mu,nu)*wkbz(iz)/pi
 
       ! Anisotropy (on-site) term
       if(i.eq.j) then
         gij = gf(mmlayermag(i)-1,mmlayermag(i)-1,:,:)
         paulia = d2bxcdm2(i,mu,nu,:,:)
         call zgemm('n','n',18,18,18,zum,gij,18,paulia,18,zero,temp1,18)
-
+        ! Trace over orbitals and spins
         do alpha = 1,18
           Jijkan(i,mu,nu) = Jijkan(i,mu,nu) + real(temp1(alpha,alpha))
         end do
 
-        Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) - Jijkan(i,mu,nu)*wkbz(iz)/pi
+        Jijk(i,i,mu,nu) = Jijk(i,i,mu,nu) + Jijkan(i,mu,nu)
       end if
     end do ; end do ; end do ; end do
 
-    !$omp critical
+    Jijk = Jijk*wkbz(iz)
+
     Jijint = Jijint + Jijk
-    !$omp end critical
+
   end do kpoints
 !$omp end do
 !$omp end parallel
+
+  Jijint = -Jijint/pi
 
 !   write(*,"('  ******************** *******  ********************')")
 !   do i=1,nmaglayers ; do j=1,nmaglayers

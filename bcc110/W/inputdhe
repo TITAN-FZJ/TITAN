@@ -6,13 +6,11 @@
 !   2 - Test after SC                                                           !
 !   3 - LDOS and exchange interactions as a function of energy                  !
 !   4 - Band structure                                                          !
-!   5 - Local susceptibility as a function of energy                            !
-!   6 - Disturbances, susceptibilities and eff. field as a function of e        !
-!   7 - Parallel currents and susceptibilities as a function of e               !
+!   5 - Fermi surface                                                           !
+!   6 - Exhange interactions and anisotropies (full tensor)                     !
+!   7 - Local susceptibility as a function of energy                            !
 !   8 - Parall. currents, disturb., susc. and eff. fields as a function of e    !
-!   9 - Fermi surface                                                           !
-!  10 - Exhange interactions and anisotropies (full tensor)                     !
-!  11 - Probability of spin-flip as a function of position                      !
+!   9 - dc-limit as a function of magnetic field (abs, theta or phi)            !
 -> itype = 4
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
@@ -47,7 +45,9 @@
 !                         (in the spin reference system)                        !
 -> FIELD = F  ! Magnetic field on (T) or off (F) (choose one form below)
 ! Spherical coordinates (default, angles in units of pi)                        !
--> hwabs = 0.2E-03 , hwtheta = 0.0E+00 , hwphi = 0.0E+00
+-> hwa   = 2.0E-04
+-> hwt   = 0.0E+00
+-> hwp   = 0.0E+00
 ! Cartesian coordinates                                                         !
 -> hwx = 0.0E+00 , hwy = 0.0E+00 , hwz = 0.0E+00
 !===============================================================================!
@@ -91,6 +91,7 @@
 !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -!
 !                              Number of points:                                !
 -> npts = 999
+-> skip_steps = 0
 !===============================================================================!
 !                              SELF-CONSISTENCY                                 !
 !        (Finding center of the bands for the given number of particles)        !
@@ -110,6 +111,6 @@
 ! To stop the program:                                                          !
 ! - after an energy step, just create a file called 'stop'                      !
 ! (e.g., in terminal: touch stop)                                               !
-! - after any layer calculation, just create a file called 'stopNpl'            !
-! (e.g., in terminal: touch stopNpl)                                            !
+! - after any layer/field calculation, just create a file called 'stopout'      !
+! (e.g., in terminal: touch stopout)                                            !
 !*******************************************************************************!

@@ -70,24 +70,24 @@ subroutine fermisurface(e)
 
   ! Writing on files
   do i=1,Npl
-    write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsu_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,i,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
+    write(varm,"('./results/',l1,'SOC/',i0,'Npl/FS/fsu_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,i,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
     open (unit=17+i, file=varm,status='unknown')
-    write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsd_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,i,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
+    write(varm,"('./results/',l1,'SOC/',i0,'Npl/FS/fsd_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,i,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
     open (unit=57+i, file=varm,status='unknown')
   end do
-  write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsu_total_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
+  write(varm,"('./results/',l1,'SOC/',i0,'Npl/FS/fsu_total_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
   open (unit=97, file=varm,status='unknown')
-  write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/FS/fsd_total_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
+  write(varm,"('./results/',l1,'SOC/',i0,'Npl/FS/fsd_total_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
   open (unit=98, file=varm,status='unknown')
 
   writing_fermi_surface: do iz=1,nkpoints
     write_plane_loop_fs: do i=1,Npl
-      write(unit=17+i,fmt="(3(f16.11,2x))") kbz2d(iz,1),kbz2d(iz,2),fsu_layer(i,iz)/ry2ev
-      write(unit=57+i,fmt="(3(f16.11,2x))") kbz2d(iz,1),kbz2d(iz,2),fsd_layer(i,iz)/ry2ev
+      write(unit=17+i,fmt="(3(f16.11,2x))") kbz2d(iz,1),kbz2d(iz,2),fsu_layer(i,iz)
+      write(unit=57+i,fmt="(3(f16.11,2x))") kbz2d(iz,1),kbz2d(iz,2),fsd_layer(i,iz)
     end do write_plane_loop_fs
 
-    write(unit=97,fmt="(3(f16.11,2x))") kbz2d(iz,1),kbz2d(iz,2),fsu_total(iz)/ry2ev
-    write(unit=98,fmt="(3(f16.11,2x))") kbz2d(iz,1),kbz2d(iz,2),fsd_total(iz)/ry2ev
+    write(unit=97,fmt="(3(f16.11,2x))") kbz2d(iz,1),kbz2d(iz,2),fsu_total(iz)
+    write(unit=98,fmt="(3(f16.11,2x))") kbz2d(iz,1),kbz2d(iz,2),fsd_total(iz)
   end do writing_fermi_surface
 
   do i=1,Npl

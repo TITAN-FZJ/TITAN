@@ -4,7 +4,7 @@
 ! rotation matrix (A) is different than the right one (B).
 ! iflag = 1 calculates A
 ! iflag = 2 calculates B
-subroutine build_rotation_matrices(theta,phi,rotmat,iflag)
+subroutine build_rotation_matrices_chi(theta,phi,rotmat,iflag)
   use mod_f90_kind
   use mod_constants, only: zi
   implicit none
@@ -65,4 +65,38 @@ subroutine build_rotation_matrices(theta,phi,rotmat,iflag)
   rotmat = 0.5d0*rotmat
 
   return
-end subroutine build_rotation_matrices
+end subroutine build_rotation_matrices_chi
+
+! Rotation matrix of an angle theta around y axis
+subroutine build_rotation_matrix_ry(theta,ry)
+  use mod_f90_kind
+  implicit none
+  real(double),                intent(in)  :: theta
+  real(double),dimension(3,3), intent(out) :: ry
+
+  ry = 0.d0
+  ry(1,1) = cos(theta)
+  ry(1,3) = sin(theta)
+  ry(2,2) = 1.d0
+  ry(3,1) =-sin(theta)
+  ry(3,3) = cos(theta)
+
+  return
+end subroutine build_rotation_matrix_ry
+
+! Rotation matrix of an angle phi around z axis
+subroutine build_rotation_matrix_rz(phi,rz)
+  use mod_f90_kind
+  implicit none
+  real(double),                intent(in)  :: phi
+  real(double),dimension(3,3), intent(out) :: rz
+
+  rz = 0.d0
+  rz(1,1) = cos(phi)
+  rz(1,2) =-sin(phi)
+  rz(2,1) = sin(phi)
+  rz(2,2) = cos(phi)
+  rz(3,3) = 1.d0
+
+  return
+end subroutine build_rotation_matrix_rz

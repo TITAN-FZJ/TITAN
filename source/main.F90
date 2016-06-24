@@ -147,9 +147,12 @@ program DHE
       if(abs(hwy).lt.1.d-8) hwy = 0.d0
       if(abs(hwz).lt.1.d-8) hwz = 0.d0
       ! Variables of the hamiltonian
-      hhwx  = 0.5d0*hwx*tesla
-      hhwy  = 0.5d0*hwy*tesla
-      hhwz  = 0.5d0*hwz*tesla
+      ! There is an extra  minus sign in the definition of hhwx,hhwy,hhwz
+      ! to take into account the fact that we are considering negative
+      ! external fields to get the peak in positive energies
+      hhwx  =-0.5d0*hwx*tesla
+      hhwy  =-0.5d0*hwy*tesla
+      hhwz  =-0.5d0*hwz*tesla
     else
       if((hwt_count.ge.2).or.(hwp_count.ge.2)) exit
     end if
@@ -198,10 +201,10 @@ program DHE
      identt(i,i) = zum
     end do
 !----------- Creating bi-dimensional matrix of MPI processes  ----------
-    if((itype.ge.5).and.(itype.le.8)) then ! Create matrix only when energy integration is involved
+    if((itype.ge.7).and.(itype.le.8)) then ! Create matrix only when energy integration is involved
       call build_cartesian_grid()
     end if
-    if(itype.eq.11) then ! Create matrix for dclimit - only one line of processes
+    if(itype.eq.9) then ! Create matrix for dclimit - only one line of processes
       if(numprocs.le.pnt) then
         call build_cartesian_grid()
       else
@@ -377,18 +380,9 @@ program DHE
     if(lcreatefiles) then
       if(myrank.eq.0) then
         create_files: select case (itype)
-        case (5)
-          call openclose_chi_files(0)
-          write(*,"('[main] Susceptibilities files created/overwritten!')")
-        case (6)
-          call openclose_chi_files(0)
-          call openclose_disturbances_files(0)
-          call openclose_beff_files(0)
-          write(*,"('[main] Susceptibilities, disturbances and effective field files created/overwritten!')")
         case (7)
           call openclose_chi_files(0)
-          call openclose_currents_files(0)
-          write(*,"('[main] Susceptibilities and currents files created/overwritten!')")
+          write(*,"('[main] Susceptibilities files created/overwritten!')")
         case (8)
           call openclose_chi_files(0)
           call openclose_disturbances_files(0)
@@ -408,21 +402,9 @@ program DHE
 !----------------- Check if files exist to add results -----------------
     if(laddresults) then
       check_files: select case (itype)
-      case (5)
-        call openclose_chi_files(1)
-        call openclose_chi_files(2)
-      case (6)
-        call openclose_chi_files(1)
-        call openclose_chi_files(2)
-        call openclose_disturbances_files(1)
-        call openclose_disturbances_files(2)
-        call openclose_beff_files(1)
-        call openclose_beff_files(2)
       case (7)
         call openclose_chi_files(1)
         call openclose_chi_files(2)
-        call openclose_currents_files(1)
-        call openclose_currents_files(2)
       case (8)
         if(.not.lhfresponses) then
           call openclose_chi_files(1)
@@ -436,7 +418,7 @@ program DHE
         call openclose_beff_files(2)
         call openclose_torques_files(1)
         call openclose_torques_files(2)
-      case (11)
+      case (9)
         if(hwa_count*hwt_count*hwp_count.eq.1) then
           FIELD = .true.
           call openclose_dclimit_disturbances_files(1)
@@ -475,7 +457,6 @@ program DHE
       npt1 = npts+1
       test1_energy_loop2: do count=1,npt1
         e = emin + (count-1)*deltae
-        e = (e/ry2ev)!+Ef ! Transform to Ry
         write(*,"(i0,' of ',i0,' points',', e = ',es10.3)") count,npt1,e
 
         ! Turning off SOC
@@ -695,7 +676,7 @@ program DHE
 
 !         test2_energy_loop: do count=1,npt1
 !           e = emin + (count-1)*deltae
-!           write(*,"(i0,' of ',i0,' points',', e = ',es10.3)") count,npt1,e*ry2ev
+!           write(*,"(i0,' of ',i0,' points',', e = ',es10.3)") count,npt1,e
 
 
 !         end do test2_energy_loop
@@ -715,10 +696,10 @@ program DHE
         ! LDOS
         do i=1,Npl
           iw = 17+(i-1)*2
-          write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/LDOS/ldosu_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,i,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
+          write(varm,"('./results/',l1,'SOC/',i0,'Npl/LDOS/ldosu_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,i,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
           open (unit=iw, file=varm,status='unknown')
           iw = iw+1
-          write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/LDOS/ldosd_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,i,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
+          write(varm,"('./results/',l1,'SOC/',i0,'Npl/LDOS/ldosd_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,i,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
           open (unit=iw, file=varm,status='unknown')
         end do
         ! Exchange interactions
@@ -726,18 +707,18 @@ program DHE
           iw = 99+(j-1)*nmaglayers*2+(i-1)*2
           if(i.eq.j) then
             iw = iw + 1
-            write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/Jij/Jii_',i0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,mmlayermag(i)-1,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
+            write(varm,"('./results/',l1,'SOC/',i0,'Npl/Jij/Jii_',i0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,mmlayermag(i)-1,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
             open (unit=iw, file=varm,status='unknown')
             write(unit=iw, fmt="('#   energy      ,  Jii_xx           ,   Jii_yy  ')")
             iw = iw + 1
             ! TODO : Check how to write the anisotropy term here
           else
             iw = iw + 1
-            write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/Jij/J_',i0,'_',i0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,mmlayermag(i)-1,mmlayermag(j)-1,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
+            write(varm,"('./results/',l1,'SOC/',i0,'Npl/Jij/J_',i0,'_',i0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,mmlayermag(i)-1,mmlayermag(j)-1,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
             open (unit=iw, file=varm,status='unknown')
             write(unit=iw, fmt="('#   energy      ,   isotropic Jij    ,   anisotropic Jij_xx    ,   anisotropic Jij_yy     ')")
             iw = iw + 1
-            write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/Jij/Dz_',i0,'_',i0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,mmlayermag(i)-1,mmlayermag(j)-1,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
+            write(varm,"('./results/',l1,'SOC/',i0,'Npl/Jij/Dz_',i0,'_',i0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,mmlayermag(i)-1,mmlayermag(j)-1,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
             open (unit=iw, file=varm,status='unknown')
             write(unit=iw, fmt="('#   energy      , Dz = (Jxy - Jyx)/2       ')")
           end if
@@ -745,7 +726,7 @@ program DHE
 
         ldos_energy_loop: do count=1,npt1
           e = emin + (count-1)*deltae
-          write(*,"(i0,' of ',i0,' points',', e = ',es10.3)") count,npt1,e*ry2ev
+          write(*,"(i0,' of ',i0,' points',', e = ',es10.3)") count,npt1,e
 
           call ldos(e,ldosu,ldosd,Jij)
 
@@ -757,9 +738,6 @@ program DHE
               Jijs(i,j,mu,mu) = Jijs(i,j,mu,mu) - trJij(i,j)
             end do
           end do ; end do
-
-          ! Transform energy to eV if runoption is on
-          e = e*ry2ev
 
           ! Writing into files
           ! LDOS
@@ -827,6 +805,142 @@ program DHE
 
 !-----------------------------------------------------------------------
     case (5)
+      if(myrank.eq.0) then
+        write(*,"('CALCULATING FERMI SURFACE')")
+
+        call fermisurface(Ef)
+
+      end if
+!-----------------------------------------------------------------------
+
+
+!-----------------------------------------------------------------------
+    case (6)
+      allocate(Jij(nmaglayers,nmaglayers,3,3),trJij(nmaglayers,nmaglayers),Jijs(nmaglayers,nmaglayers,3,3),Jija(nmaglayers,nmaglayers,3,3))
+
+      if(myrank.eq.0) write(*,"('CALCULATING FULL TENSOR OF EXHANGE INTERACTIONS AND ANISOTROPIES AS A FUNCTION OF POSITION')")
+
+      if(nmaglayers.eq.0) then
+        if(myrank.eq.0) write(*,"(1x,'[main] No magnetic layers!')")
+        call MPI_Finalize(ierr)
+        stop
+      end if
+
+      ! Opening files for position dependence
+      if((myrank.eq.0).and.(Npl.eq.Npl_i)) then
+        ! Exchange interactions
+        do j=1,nmaglayers ; do i=1,nmaglayers
+          iw = 199+(j-1)*nmaglayers*2+(i-1)*2
+          if(i.eq.j) then
+            iw = iw + 1
+            write(varm,"('./results/',l1,'SOC/Jij/Jii_',i0,'_magaxis=',A,'_socscale=',f5.2,'_parts=',I0,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,i,magaxis,socscale,parts,ncp,eta,Utype,hwa,hwt,hwp
+            open (unit=iw, file=varm,status='unknown')
+            write(unit=iw, fmt="('#  Npl ,  Jii_xx           ,   Jii_yy  ')")
+            iw = iw + 1
+            ! TODO : Check how to write the anisotropy term here
+          else
+            iw = iw + 1
+            write(varm,"('./results/',l1,'SOC/Jij/J_',i0,'_',i0,'_magaxis=',A,'_socscale=',f5.2,'_parts=',I0,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,i,j,magaxis,socscale,parts,ncp,eta,Utype,hwa,hwt,hwp
+            open (unit=iw, file=varm,status='unknown')
+            write(unit=iw, fmt="('#  Npl ,   isotropic Jij    ,   anisotropic Jij_xx    ,   anisotropic Jij_yy     ')")
+            iw = iw + 1
+            write(varm,"('./results/',l1,'SOC/Jij/Dz_',i0,'_',i0,'_magaxis=',A,'_socscale=',f5.2,'_parts=',I0,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,i,j,magaxis,socscale,parts,ncp,eta,Utype,hwa,hwt,hwp
+            open (unit=iw, file=varm,status='unknown')
+            write(unit=iw, fmt="('#  Npl , Dz = (Jxy - Jyx)/2       ')")
+          end if
+        end do ; end do
+      end if
+
+      q = [ 0.d0 , 0.d0 , 0.d0 ]
+      call coupling(Jij)
+
+      if(myrank.eq.0) then
+        do i=1,nmaglayers ; do j=1,nmaglayers
+          trJij(i,j)    = 0.5d0*(Jij(i,j,1,1)+Jij(i,j,2,2))
+          Jija(i,j,:,:) = 0.5d0*(Jij(i,j,:,:) - transpose(Jij(i,j,:,:)))
+          Jijs(i,j,:,:) = 0.5d0*(Jij(i,j,:,:) + transpose(Jij(i,j,:,:)))
+          do mu=1,3
+            Jijs(i,j,mu,mu) = Jijs(i,j,mu,mu) - trJij(i,j)
+          end do
+        end do ; end do
+
+        ! Writing exchange couplings and anisotropies
+        write(*,"('  ************************* Full tensor Jij:  *************************')")
+        do i=1,nmaglayers ; do j=1,nmaglayers
+        ! Writing on screen
+        ! Writing original full tensor Jij
+        ! Only the transverse components are "reliable" (e.g., for m //z, only Jxx,Jxy,Jyx,Jyy are correct)
+        ! Relation between J_ii calculated and the position of the peak in the susceptibility:
+        ! w_res = 2*gamma*mz*sqrt( (K_z-K_x)*(K_z-K_y) )  - for m // z
+        ! where K_x = J_ii^xx ; K_y = J_ii^yy ; K_z = J_ii^zz
+          if(i.eq.j) then
+            write(*,"(3x,' ******** Magnetization components: (magaxis = ',a,') *******')") magaxis
+            write(*,"(4x,'Mx (',i2.0,')=',f11.8,4x,'My (',i2.0,')=',f11.8,4x,'Mz (',i2.0,')=',f11.8)") i,mx(i),i,my(i),i,mz(i)
+            write(*,"(' |--------------- i = ',i0,'   j = ',i0,': anisotropies ---------------|')") mmlayermag(i),mmlayermag(j)
+          else
+            write(*,"(' |----------- i = ',i0,'   j = ',i0,': exchange couplings -------------|')") mmlayermag(i),mmlayermag(j)
+          end if
+          write(*,"('             x                  y                  z')")
+          write(*,"('  x  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,1,1),Jij(i,j,1,2),Jij(i,j,1,3)
+          write(*,"('  y  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,2,1),Jij(i,j,2,2),Jij(i,j,2,3)
+          write(*,"('  z  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,3,1),Jij(i,j,3,2),Jij(i,j,3,3)
+        end do ; end do
+        if(nmaglayers.gt.1) write(*,"('  *** Symmetric and antisymmetric exchange interactions:  ***')")
+        do i=1,nmaglayers ; do j=1,nmaglayers
+          if(i.eq.j) cycle
+          write(*,"(' |--------------------- i = ',i0,'   j = ',i0,' -----------------------|')") mmlayermag(i),mmlayermag(j)
+        ! Writing Heisenberg exchange interactions
+          write(*,"('     Isotropic:     J     = ',es16.9)") trJij(i,j)
+          write(*,"('   Anisotropic:     Js_xx = ',es16.9)") Jijs(i,j,1,1)
+          write(*,"('                    Js_yy = ',es16.9)") Jijs(i,j,2,2)
+          write(*,"('  DMI: Dz = (Jxy - Jyx)/2 = ',es16.9)") Jija(i,j,1,2)
+          write(*,"(' --- z components of Jij (not physically correct) ---')")
+          write(*,"('  Anisotropic:  Js_zz = ',es16.9)") Jijs(i,j,3,3)
+          write(*,"('  DMI: Dy = (Jzx - Jxz)/2 = ',es16.9)") -Jija(i,j,1,3)
+          write(*,"('  DMI: Dx = (Jyz - Jzy)/2 = ',es16.9)") Jija(i,j,2,3)
+        end do ; end do
+
+        ! Writing into files
+        ! Exchange interactions
+        exchange_writing_loop: do j=1,nmaglayers ; do i=1,nmaglayers
+          iw = 199+(j-1)*nmaglayers*2+(i-1)*2
+          if(i.eq.j) then
+            iw = iw + 1
+            write(unit=iw,fmt="(4x,i3,13x,2(es16.9,2x))") Npl,Jij(i,j,1,1),Jij(i,j,2,2)
+            iw = iw + 1
+          else
+            iw = iw + 1
+            write(unit=iw,fmt="(4x,i3,13x,3(es16.9,2x))") Npl,trJij(i,j),Jijs(i,j,1,1),Jijs(i,j,2,2)
+            iw = iw + 1
+            write(unit=iw,fmt="(4x,i3,13x,es16.9,2x)") Npl,Jija(i,j,1,2)
+          end if
+        end do ; end do exchange_writing_loop
+
+        ! Closing files
+        if(Npl.eq.Npl_f) then
+          ! Closing files
+          do j=1,nmaglayers ; do i=1,nmaglayers
+            iw = 199+(j-1)*nmaglayers*2+(i-1)*2
+            if(i.eq.j) then
+              iw = iw + 1
+              close (iw)
+              iw = iw + 1
+            else
+              iw = iw + 1
+              close (iw)
+              iw = iw + 1
+              close (iw)
+            end if
+          end do ; end do
+        end if
+      end if
+
+      deallocate(trJij,Jij,Jijs,Jija)
+!-----------------------------------------------------------------------
+
+
+!-----------------------------------------------------------------------
+    case (7)
       call allocate_susceptibilities()
       if(myrank_row.eq.0) then
         allocate( temp(dim,dim), STAT = AllocateStatus )
@@ -836,7 +950,7 @@ program DHE
         end if
         if(myrank_col.eq.0) then
           write(*,"('CALCULATING LOCAL SUSCEPTIBILITY AS A FUNCTION OF ENERGY')")
-          write(*,"('Qx = ',es10.3,', Qz = ',es10.3)") q(1),q(2)
+!           write(*,"('Qx = ',es10.3,', Qz = ',es10.3)") q(1),q(3)
           ! Creating files and writing headers
           if(.not.laddresults) then
             call openclose_chi_files(0)
@@ -844,14 +958,14 @@ program DHE
         end if
       end if
 
-      q     = [0.d0, 0.d0]
+!       q     = [ 0.d0 , 0.d0 , 0.d0]
       if((myrank.eq.0).and.(skip_steps.gt.0)) write(*,"('[main] Skipping first ',i0,' step(s)...')") skip_steps
 
       chi_energy_loop: do count=1+skip_steps,MPIsteps
         mpitag = (hwa_count-1)*hwp_npt1*hwt_npt1*npt1+(hwp_count-1)*hwt_npt1*npt1+(hwt_count-1)*npt1+count
         e = emin + deltae*myrank_col + MPIdelta*(count-1)
         if(myrank_row.eq.0) then
-          write(*,"(i0,' of ',i0,' points',', e = ',es10.3,' in myrank_col ',i0)") ((count-1)*MPIpts+myrank_col+1),npt1,e*ry2ev,myrank_col
+          write(*,"(i0,' of ',i0,' points',', e = ',es10.3,' in myrank_col ',i0)") ((count-1)*MPIpts+myrank_col+1),npt1,e,myrank_col
         end if
 
         ! Start parallelized processes to calculate chiorb_hf and chiorbi0_hf for energy e
@@ -872,14 +986,12 @@ program DHE
             schi  (sigma,sigmap,i,j) = schi(sigma,sigmap,i,j)   + chiorb(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
             schihf(sigma,sigmap,i,j) = schihf(sigma,sigmap,i,j) + chiorb_hf(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
           end do ; end do ; end do ; end do ; end do ; end do calculate_susceptibility_chi
-          schi   = schi/ry2ev
-          schihf = schihf/ry2ev
           ! Rotating susceptibilities to the magnetization direction
           if(lrot) then
             do i=1,Npl
-              call build_rotation_matrices(mtheta(i),mphi(i),rottemp,1)
+              call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,1)
               rotmat_i(:,:,i) = rottemp
-              call build_rotation_matrices(mtheta(i),mphi(i),rottemp,2)
+              call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,2)
               rotmat_j(:,:,i) = rottemp
             end do
             rotate_susceptibility_chi: do j=1,Npl ; do i=1,Npl
@@ -907,9 +1019,6 @@ program DHE
                 call MPI_Recv(schi,Npl*Npl*4,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),1100,MPIComm_Col,stat,ierr)
                 call MPI_Recv(schihf,Npl*Npl*4,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),1200,MPIComm_Col,stat,ierr)
               end if
-
-              ! Transform energy to eV if runoption is on
-              e = e*ry2ev
 
               ! DIAGONALIZING SUSCEPTIBILITY
               call diagonalize_susceptibilities()
@@ -953,395 +1062,6 @@ program DHE
 
 
 !-----------------------------------------------------------------------
-    case (6)
-      q     = [0.d0, 0.d0]
-      call allocate_susceptibilities()
-      call allocate_disturbances()
-      call allocate_beff()
-      if(myrank_row.eq.0) then
-        if(myrank_col.eq.0) then
-          write(*,"('CALCULATING DISTURBANCES AND LOCAL SUSCEPTIBILITY AS A FUNCTION OF ENERGY')")
-          write(*,"('Qx = ',es10.3,', Qz = ',es10.3)") q(1),q(2)
-          ! Creating files and writing headers
-          if(.not.laddresults) then
-            call openclose_chi_files(0)
-            call openclose_disturbances_files(0)
-            call openclose_beff_files(0)
-          end if
-        end if
-      end if
-
-      if((myrank.eq.0).and.(skip_steps.gt.0)) write(*,"('[main] Skipping first ',i0,' step(s)...')") skip_steps
-
-      disturbances_energy_loop: do count=1+skip_steps,MPIsteps
-        mpitag = (hwa_count-1)*hwp_npt1*hwt_npt1*npt1+(hwp_count-1)*hwt_npt1*npt1+(hwt_count-1)*npt1+count
-        e = emin + deltae*myrank_col + MPIdelta*(count-1)
-        if(myrank_row.eq.0) then
-          write(*,"(i0,' of ',i0,' points',', e = ',es10.3,' in myrank_col ',i0)") ((count-1)*MPIpts+myrank_col+1),npt1,e*ry2ev,myrank_col
-        end if
-
-        if(myrank.eq.0) write(*,"('[main] Calculating prefactor to use in disturbances calculation ')")
-        call eintshechi(e)
-
-        ! Broadcast chiorb_hf to all processors of the same row
-        call MPI_Bcast(chiorb_hf,dim*dim,MPI_DOUBLE_COMPLEX,0,MPIComm_Row,ierr)
-
-        ! prefactor = (1 + chi_hf*Umat)^-1
-        prefactor = identt
-        call zgemm('n','n',dim,dim,dim,zum,chiorb_hf,dim,Umatorb,dim,zum,prefactor,dim) !prefactor = 1+chi_hf*Umat
-        call invers(prefactor,dim)
-        if(myrank.eq.0) then
-          elapsed_time = MPI_Wtime() - start_program
-          write(*,"('[main] Calculated prefactor after: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
-        end if
-
-        ! Start parallelized processes to calculate disturbances for energy e
-        call eintshesd(e)
-
-        if(myrank.eq.0) then
-          elapsed_time = MPI_Wtime() - start_program
-          write(*,"('[main] Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
-        end if
-
-        if(myrank_row.eq.0) then
-          ! Calculating the full matrix of RPA and HF susceptibilities for energy e
-          call zgemm('n','n',dim,dim,dim,zum,prefactor,dim,chiorb_hf,dim,zero,chiorb,dim) ! (1+chi_hf*Umat)^-1 * chi_hf
-
-          chiinv = zero
-          ! Calculating susceptibility to use on Beff calculation
-          calculate_susceptibility_Beff_sd: do nu=1,9 ; do j=1,Npl ; do sigmap=1,4 ; do mu=1,9 ; do i=1,Npl ; do sigma=1,4
-            chiinv(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = chiinv(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + chiorb(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))    ! +- , up- , down- , --
-          end do ; end do ; end do ; end do ; end do ; end do calculate_susceptibility_Beff_sd
-
-          schi = zero
-          schihf = zero
-          ! Calculating RPA and HF susceptibilities
-          calculate_susceptibility_sd: do j=1,Npl ; do nu=1,9 ; do i=1,Npl ; do mu=1,9 ; do sigmap=1,4 ; do sigma=1,4
-            schi  (sigma,sigmap,i,j) = schi(sigma,sigmap,i,j)   + chiorb(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
-            schihf(sigma,sigmap,i,j) = schihf(sigma,sigmap,i,j) + chiorb_hf(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
-          end do ; end do ; end do ; end do ; end do ; end do calculate_susceptibility_sd
-          schi   = schi/ry2ev
-          schihf = schihf/ry2ev
-          ! Rotating susceptibilities to the magnetization direction
-          if(lrot) then
-            do i=1,Npl
-              call build_rotation_matrices(mtheta(i),mphi(i),rottemp,1)
-              rotmat_i(:,:,i) = rottemp
-              call build_rotation_matrices(mtheta(i),mphi(i),rottemp,2)
-              rotmat_j(:,:,i) = rottemp
-            end do
-            rotate_susceptibility_sd: do j=1,Npl ; do i=1,Npl
-              rottemp  = rotmat_i(:,:,i)
-              schitemp = schi(:,:,i,j)
-              call zgemm('n','n',4,4,4,zum,rottemp,4,schitemp,4,zero,schirot,4)
-              rottemp  = rotmat_j(:,:,j)
-              call zgemm('n','n',4,4,4,zum,schirot,4,rottemp,4,zero,schitemp,4)
-              schi(:,:,i,j) = schitemp
-
-              rottemp  = rotmat_i(:,:,i)
-              schitemp = schihf(:,:,i,j)
-              call zgemm('n','n',4,4,4,zum,rottemp,4,schitemp,4,zero,schirot,4)
-              rottemp  = rotmat_j(:,:,j)
-              call zgemm('n','n',4,4,4,zum,schirot,4,rottemp,4,zero,schitemp,4)
-              schihf(:,:,i,j) = schitemp
-            end do ; end do rotate_susceptibility_sd
-          end if
-
-          disturbances = zero
-          calculate_sd: do i=1,Npl
-            ! Spin and charge disturbances
-            do mu=1,9
-              disturbances(1,i) = disturbances(1,i) + (tchiorbiikl(sigmaimunu2i(2,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,mu),3)+tchiorbiikl(sigmaimunu2i(3,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(3,i,mu,mu),3))
-              disturbances(2,i) = disturbances(2,i) + (tchiorbiikl(sigmaimunu2i(1,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,mu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,mu),3))
-              disturbances(3,i) = disturbances(3,i) + (tchiorbiikl(sigmaimunu2i(1,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,mu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,mu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,mu),3))
-              disturbances(4,i) = disturbances(4,i) + (tchiorbiikl(sigmaimunu2i(2,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,mu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,mu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,mu),3))
-            end do
-
-            ! Spin disturbance matrix to calculate effective field
-            sdmat(sigmai2i(1,i)) = disturbances(2,i) + zi*disturbances(3,i) ! +    = x + iy
-            sdmat(sigmai2i(2,i)) = disturbances(1,i) + disturbances(4,i)    ! up   = 0 + z
-            sdmat(sigmai2i(3,i)) = disturbances(1,i) - disturbances(4,i)    ! down = 0 - z
-            sdmat(sigmai2i(4,i)) = disturbances(2,i) - zi*disturbances(3,i) ! -    = x - iy
-
-            ! Orbital angular momentum disturbance
-            do nu=1,9; do mu=1,9
-              ldmat(i,mu,nu) = tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3)
-              disturbances(5,i) = disturbances(5,i) + lxp(mu,nu)*ldmat(i,mu,nu)
-              disturbances(6,i) = disturbances(6,i) + lyp(mu,nu)*ldmat(i,mu,nu)
-              disturbances(7,i) = disturbances(7,i) + lzp(mu,nu)*ldmat(i,mu,nu)
-            end do; end do
-          end do calculate_sd
-          disturbances(2:4,:) = 0.5d0*disturbances(2:4,:)
-          disturbances(3,:)   = disturbances(3,:)/zi
-          sdmat = 0.5d0*sdmat
-
-          ! Effective field calculation
-          call invers(chiinv,dimsigmaNpl) ! Inverse of the susceptibility chi^(-1)
-          call zgemm('n','n',dimsigmaNpl,1,dimsigmaNpl,zum,chiinv,dimsigmaNpl,sdmat,dimsigmaNpl,zero,Beff,dimsigmaNpl) ! Beff = chi^(-1)*SD
-          Beff = Beff*ry2ev
-
-          plane_loop_effective_field_sd: do i=1,Npl
-            Beff_cart(sigmai2i(1,i)) =          (Beff(sigmai2i(2,i)) + Beff(sigmai2i(3,i))) ! 0
-            Beff_cart(sigmai2i(2,i)) = 0.5d0*   (Beff(sigmai2i(1,i)) + Beff(sigmai2i(4,i))) ! x
-            Beff_cart(sigmai2i(3,i)) =-0.5d0*zi*(Beff(sigmai2i(1,i)) - Beff(sigmai2i(4,i))) ! y
-            Beff_cart(sigmai2i(4,i)) = 0.5d0*   (Beff(sigmai2i(2,i)) - Beff(sigmai2i(3,i))) ! z
-          end do plane_loop_effective_field_sd
-
-          ! Sending results to myrank_row = myrank_col = 0 and writing on file
-          if(myrank_col.eq.0) then
-            MPI_points_sd: do mcount=1,MPIpts
-              if (mcount.ne.1) then
-                call MPI_Recv(e,1,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,2000,MPIComm_Col,stat,ierr)
-                call MPI_Recv(schi,Npl*Npl*4,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),2010,MPIComm_Col,stat,ierr)
-                call MPI_Recv(schihf,Npl*Npl*4,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),2020,MPIComm_Col,stat,ierr)
-                call MPI_Recv(disturbances,7*Npl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),2030,MPIComm_Col,stat,ierr)
-                call MPI_Recv(Beff_cart,dimsigmaNpl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),2100,MPIComm_Col,stat,ierr)
-              end if
-
-              ! Transform energy to eV if runoption is on
-              e = e*ry2ev
-
-              ! DIAGONALIZING SUSCEPTIBILITY
-              call diagonalize_susceptibilities()
-
-              ! WRITING RPA AND HF SUSCEPTIBILITIES
-              ! Opening chi and diag files
-              call openclose_chi_files(1)
-              ! Writing susceptibilities
-              call write_susceptibilities(e)
-              ! Closing chi and diag files
-              call openclose_chi_files(2)
-
-
-              ! WRITING DISTURBANCES
-              ! Opening disturbance files
-              call openclose_disturbances_files(1)
-              ! Writing disturbances
-              call write_disturbances(e)
-              ! Closing disturbance files
-              call openclose_disturbances_files(2)
-
-              ! Opening B effective files
-              call openclose_beff_files(1)
-              ! Writing effective fields
-              call write_beff(e)
-              ! Closing B effective files
-              call openclose_beff_files(2)
-            end do MPI_points_sd
-
-            call date_and_time(date, time, zone, values)
-            write(*,"('[main] Time after step ',i0,': ',i0,'/',i0,'/',i0,' at ',i2.2,'h',i2.2,'m',i2.2,'s')") count,values(3),values(2),values(1),values(5),values(6),values(7)
-            elapsed_time = MPI_Wtime() - start_program
-            write(*,"('[main] Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
-
-            ! Emergency stop
-            open(unit=911, file="stop", status='old', iostat=iw)
-            if(iw.eq.0) then
-              close(911)
-              write(*,"(a,i0,a)") "[main] Emergency 'stop' file found! Stopping after step ",count," ..."
-              call system ('rm stop')
-              write(*,"(a)") "[main] ('stop' file deleted!)"
-              call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-            end if
-          else
-            call MPI_Send(e,1,MPI_DOUBLE_PRECISION,0,2000,MPIComm_Col,ierr)
-            call MPI_Send(schi,Npl*Npl*4,MPI_DOUBLE_COMPLEX,0,2010,MPIComm_Col,ierr)
-            call MPI_Send(schihf,Npl*Npl*4,MPI_DOUBLE_COMPLEX,0,2020,MPIComm_Col,ierr)
-            call MPI_Send(disturbances,7*Npl,MPI_DOUBLE_COMPLEX,0,2030,MPIComm_Col,ierr)
-            call MPI_Send(Beff_cart,dimsigmaNpl,MPI_DOUBLE_COMPLEX,0,2100,MPIComm_Col,ierr)
-          end if
-        end if
-      end do disturbances_energy_loop
-
-      call deallocate_susceptibilities()
-      call deallocate_disturbances()
-      call deallocate_beff()
-!-----------------------------------------------------------------------
-
-
-!-----------------------------------------------------------------------
-    case (7)
-      call allocate_susceptibilities()
-      call allocate_currents()
-      if(myrank_row.eq.0) then
-        if(myrank_col.eq.0) then
-          write(*,"('CALCULATING CURRENTS AND LOCAL SUSCEPTIBILITY AS A FUNCTION OF ENERGY')")
-          ! Creating files and writing headers
-          if(.not.laddresults) then
-            call openclose_chi_files(0)
-            call openclose_currents_files(0)
-          end if
-        end if
-      end if
-
-      ! Calculates matrices hopping x angular momentum matrix for orbital angular momentum current calculation
-      call allocate_prefactors()
-      call OAM_curr_hopping_times_L()
-
-      if((myrank.eq.0).and.(skip_steps.gt.0)) write(*,"('[main] Skipping first ',i0,' step(s)...')") skip_steps
-
-      currents_energy_loop: do count=1+skip_steps,MPIsteps
-        mpitag = (hwa_count-1)*hwp_npt1*hwt_npt1*npt1+(hwp_count-1)*hwt_npt1*npt1+(hwt_count-1)*npt1+count
-        e = emin + deltae*myrank_col + MPIdelta*(count-1)
-        if(myrank_row.eq.0) then
-          write(*,"(i0,' of ',i0,' points',', e = ',es10.3,' in myrank_col ',i0)") ((count-1)*MPIpts+myrank_col+1),npt1,e*ry2ev,myrank_col
-        end if
-
-        if(myrank.eq.0) write(*,"('[main] Calculating prefactor to use in current calculation ')")
-        call eintshechi(e)
-
-        ! Broadcast chiorb_hf to all processors of the same row
-        call MPI_Bcast(chiorb_hf,dim*dim,MPI_DOUBLE_COMPLEX,0,MPIComm_Row,ierr)
-
-        ! prefactor = (1 + chi_hf*Umat)^-1
-        prefactor = identt
-        call zgemm('n','n',dim,dim,dim,zum,chiorb_hf,dim,Umatorb,dim,zum,prefactor,dim) !prefactor = 1+chi_hf*Umat
-        call invers(prefactor,dim)
-        if(myrank.eq.0) then
-          elapsed_time = MPI_Wtime() - start_program
-          write(*,"('[main] Calculated prefactor after: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
-        end if
-
-        ! Start parallelized processes to calculate chiorb_hf and chiorbi0_hf for energy e
-        call eintsheprllsc(e)
-
-        if(myrank.eq.0) then
-          elapsed_time = MPI_Wtime() - start_program
-          write(*,"('[main] Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
-        end if
-
-        if(myrank_row.eq.0) then
-          ! Calculating the full matrix of RPA and HF susceptibilities for energy e
-          call zgemm('n','n',dim,dim,dim,zum,prefactor,dim,chiorb_hf,dim,zero,chiorb,dim) ! (1+chi_hf*Umat)^-1 * chi_hf
-
-          schi = zero
-          schihf = zero
-          ! Calculating RPA and HF susceptibilities
-          calculate_susceptibility_sc: do j=1,Npl ; do nu=1,9 ; do i=1,Npl ; do mu=1,9 ; do sigmap=1,4 ; do sigma=1,4
-            schi  (sigma,sigmap,i,j) = schi(sigma,sigmap,i,j)   + chiorb(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
-            schihf(sigma,sigmap,i,j) = schihf(sigma,sigmap,i,j) + chiorb_hf(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
-          end do ; end do ; end do ; end do ; end do ; end do calculate_susceptibility_sc
-          schi   = schi/ry2ev
-          schihf = schihf/ry2ev
-          ! Rotating susceptibilities to the magnetization direction
-          if(lrot) then
-            do i=1,Npl
-              call build_rotation_matrices(mtheta(i),mphi(i),rottemp,1)
-              rotmat_i(:,:,i) = rottemp
-              call build_rotation_matrices(mtheta(i),mphi(i),rottemp,2)
-              rotmat_j(:,:,i) = rottemp
-            end do
-            rotate_susceptibility_sc: do j=1,Npl ; do i=1,Npl
-              rottemp  = rotmat_i(:,:,i)
-              schitemp = schi(:,:,i,j)
-              call zgemm('n','n',4,4,4,zum,rottemp,4,schitemp,4,zero,schirot,4)
-              rottemp  = rotmat_j(:,:,j)
-              call zgemm('n','n',4,4,4,zum,schirot,4,rottemp,4,zero,schitemp,4)
-              schi(:,:,i,j) = schitemp
-
-              rottemp  = rotmat_i(:,:,i)
-              schitemp = schihf(:,:,i,j)
-              call zgemm('n','n',4,4,4,zum,rottemp,4,schitemp,4,zero,schirot,4)
-              rottemp  = rotmat_j(:,:,j)
-              call zgemm('n','n',4,4,4,zum,schirot,4,rottemp,4,zero,schitemp,4)
-              schihf(:,:,i,j) = schitemp
-            end do ; end do rotate_susceptibility_sc
-          end if
-
-          ! Calculating spin and charge current for each neighbor
-          plane_loop_calculate_sc: do i=1,Npl
-            neighbor_loop_calculate_sc: do neighbor=n0sc1,n0sc2
-              ! Charge current
-              currents(1,neighbor,i) = ttchiorbiikl  (neighbor,sigmai2i(2,i),2)+ttchiorbiikl  (neighbor,sigmai2i(2,i),3)+ttchiorbiikl  (neighbor,sigmai2i(3,i),2)+ttchiorbiikl  (neighbor,sigmai2i(3,i),3)
-              ! Spin currents
-              currents(2,neighbor,i) = ttchiorbiikl  (neighbor,sigmai2i(1,i),2)+ttchiorbiikl  (neighbor,sigmai2i(1,i),3)+ttchiorbiikl  (neighbor,sigmai2i(4,i),2)+ttchiorbiikl  (neighbor,sigmai2i(4,i),3)
-              currents(3,neighbor,i) = ttchiorbiikl  (neighbor,sigmai2i(1,i),2)+ttchiorbiikl  (neighbor,sigmai2i(1,i),3)-ttchiorbiikl  (neighbor,sigmai2i(4,i),2)-ttchiorbiikl  (neighbor,sigmai2i(4,i),3)
-              currents(4,neighbor,i) = ttchiorbiikl  (neighbor,sigmai2i(2,i),2)+ttchiorbiikl  (neighbor,sigmai2i(2,i),3)-ttchiorbiikl  (neighbor,sigmai2i(3,i),2)-ttchiorbiikl  (neighbor,sigmai2i(3,i),3)
-              ! Orbital Angular Momentum currents
-              currents(5,neighbor,i) = Lxttchiorbiikl(neighbor,sigmai2i(2,i),2)+Lxttchiorbiikl(neighbor,sigmai2i(2,i),3)+Lxttchiorbiikl(neighbor,sigmai2i(3,i),2)+Lxttchiorbiikl(neighbor,sigmai2i(3,i),3)
-              currents(6,neighbor,i) = Lyttchiorbiikl(neighbor,sigmai2i(2,i),2)+Lyttchiorbiikl(neighbor,sigmai2i(2,i),3)+Lyttchiorbiikl(neighbor,sigmai2i(3,i),2)+Lyttchiorbiikl(neighbor,sigmai2i(3,i),3)
-              currents(7,neighbor,i) = Lzttchiorbiikl(neighbor,sigmai2i(2,i),2)+Lzttchiorbiikl(neighbor,sigmai2i(2,i),3)+Lzttchiorbiikl(neighbor,sigmai2i(3,i),2)+Lzttchiorbiikl(neighbor,sigmai2i(3,i),3)
-            end do neighbor_loop_calculate_sc
-          end do plane_loop_calculate_sc
-          currents = currents*ry2ev
-          currents(2:4,:,:) = -0.5d0*currents(2:4,:,:)
-          currents(3,:,:) = currents(3,:,:)/zi
-          ! Total currents for each neighbor direction (Sum of currents over all planes)
-          total_currents = sum(currents,dim=3)
-
-          ! Sending results to myrank_row = myrank_col = 0 and writing on file
-          if(myrank_col.eq.0) then
-            MPI_points_sc: do mcount=1,MPIpts
-              if (mcount.ne.1) then
-                call MPI_Recv(e,1,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,3000,MPIComm_Col,stat,ierr)
-                call MPI_Recv(schi,Npl*Npl*4,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),3100,MPIComm_Col,stat,ierr)
-                call MPI_Recv(schihf,Npl*Npl*4,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),3200,MPIComm_Col,stat,ierr)
-                call MPI_Recv(currents,7*n0sc*Npl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),3300,MPIComm_Col,stat,ierr)
-                call MPI_Recv(total_currents,7*n0sc,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),3400,MPIComm_Col,stat,ierr)
-              end if
-
-              ! Transform energy to eV if runoption is on
-              e = e*ry2ev
-
-              ! DIAGONALIZING SUSCEPTIBILITY
-              call diagonalize_susceptibilities()
-
-              ! WRITING RPA AND HF SUSCEPTIBILITIES
-              ! Opening chi and diag files
-              call openclose_chi_files(1)
-              ! Writing susceptibilities
-              call write_susceptibilities(e)
-              ! Closing chi and diag files
-              call openclose_chi_files(2)
-
-              ! Renormalizing disturbances and currents by the total charge current to neighbor renormnb
-              if(renorm) then
-                ! Obtaining current for renormalization
-                Icabs  = abs(total_currents(1,renormnb))
-                rcurrents = currents/Icabs
-                rtotal_currents = total_currents/Icabs
-              end if
-
-              ! WRITING CURRENTS
-              ! Opening current files
-              call openclose_currents_files(1)
-              ! Writing currents
-              call write_currents(e)
-              ! Closing current files
-              call openclose_currents_files(2)
-            end do MPI_points_sc
-
-            call date_and_time(date, time, zone, values)
-            write(*,"('[main] Time after step ',i0,': ',i0,'/',i0,'/',i0,' at ',i2.2,'h',i2.2,'m',i2.2,'s')") count,values(3),values(2),values(1),values(5),values(6),values(7)
-            elapsed_time = MPI_Wtime() - start_program
-            write(*,"('[main] Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes / ',f7.4,' hours')") elapsed_time,elapsed_time/60.d0,elapsed_time/3600.d0
-
-            ! Emergency stop
-            open(unit=911, file="stop", status='old', iostat=iw)
-            if(iw.eq.0) then
-              close(911)
-              write(*,"(a,i0,a)") "[main] Emergency 'stop' file found! Stopping after step ",count," ..."
-              call system ('rm stop')
-              write(*,"(a)") "[main] ('stop' file deleted!)"
-              call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-            end if
-          else
-            call MPI_Send(e,1,MPI_DOUBLE_PRECISION,0,3000,MPIComm_Col,ierr)
-            call MPI_Send(schi,Npl*Npl*4,MPI_DOUBLE_COMPLEX,0,3100,MPIComm_Col,ierr)
-            call MPI_Send(schihf,Npl*Npl*4,MPI_DOUBLE_COMPLEX,0,3200,MPIComm_Col,ierr)
-            call MPI_Send(currents,7*n0sc*Npl,MPI_DOUBLE_COMPLEX,0,3300,MPIComm_Col,ierr)
-            call MPI_Send(total_currents,7*n0sc,MPI_DOUBLE_COMPLEX,0,3400,MPIComm_Col,ierr)
-          end if
-        end if
-      end do currents_energy_loop
-
-      call deallocate_susceptibilities()
-      call deallocate_currents()
-      call deallocate_prefactors()
-!-----------------------------------------------------------------------
-
-
-!-----------------------------------------------------------------------
     case (8)
       call allocate_susceptibilities()
       call allocate_disturbances()
@@ -1372,7 +1092,7 @@ program DHE
         mpitag = (hwa_count-1)*hwp_npt1*hwt_npt1*npt1+(hwp_count-1)*hwt_npt1*npt1+(hwt_count-1)*npt1+count
         e = emin + deltae*myrank_col + MPIdelta*(count-1)
         if(myrank_row.eq.0) then
-          write(*,"(i0,' of ',i0,' points',', e = ',es10.3,' in myrank_col ',i0)") ((count-1)*MPIpts+myrank_col+1),npt1,e*ry2ev,myrank_col
+          write(*,"(i0,' of ',i0,' points',', e = ',es10.3,' in myrank_col ',i0)") ((count-1)*MPIpts+myrank_col+1),npt1,e,myrank_col
         end if
 
         if(lhfresponses) then
@@ -1444,14 +1164,14 @@ program DHE
               schi  (sigma,sigmap,i,j) = schi(sigma,sigmap,i,j)   + chiorb(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
               schihf(sigma,sigmap,i,j) = schihf(sigma,sigmap,i,j) + chiorb_hf(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
             end do ; end do ; end do ; end do ; end do ; end do calculate_susceptibility_all
-            schi   = schi/ry2ev
-            schihf = schihf/ry2ev
+            schi   = schi
+            schihf = schihf
             ! Rotating susceptibilities to the magnetization direction
             if(lrot) then
               do i=1,Npl
-                call build_rotation_matrices(mtheta(i),mphi(i),rottemp,1)
+                call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,1)
                 rotmat_i(:,:,i) = rottemp
-                call build_rotation_matrices(mtheta(i),mphi(i),rottemp,2)
+                call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,2)
                 rotmat_j(:,:,i) = rottemp
               end do
               rotate_susceptibility_all: do j=1,Npl ; do i=1,Npl
@@ -1497,24 +1217,31 @@ program DHE
               disturbances(7,i) = disturbances(7,i) + lzp(mu,nu)*ldmat(i,mu,nu)
             end do; end do
 
-            ! Spin-orbit torques
+            ! Spin-orbit torques (calculated in the spin frame of reference)
             do nu=1,9; do mu=1,9
-              ! x component: Ly*Sz - Lz*Sy
+              ! x component: (Ly*Sz - Lz*Sy)/2
               torques(1,1,i) = torques(1,1,i) + (   lyp(mu,nu)*(tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3))) &
                                           + (zi*lzp(mu,nu)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
-              ! y component: Lz*Sx - Lx*Sz
+              ! y component: (Lz*Sx - Lx*Sz)/2
               torques(1,2,i) = torques(1,2,i) + (   lzp(mu,nu)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3))) &
                                           - (   lxp(mu,nu)*(tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3)))
-              ! z component: Lx*Sy - Ly*Sx
+              ! z component: (Lx*Sy - Ly*Sx)/2
               torques(1,3,i) = torques(1,3,i) - (zi*lxp(mu,nu)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3))) &
                                           - (   lyp(mu,nu)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
             end do; end do
-            torques(1,:,i) = lambda(i+1)*torques(1,:,i)
+            torques(1,:,i) = 0.5d0*lambda(i+1)*torques(1,:,i)
 
-            ! Exchange-correlation torques
+            ! Exchange-correlation torques (calculated in the spin frame of reference)
             torques(2,1,i) = U(i+1)*(mz(i)*disturbances(3,i)-my(i)*disturbances(4,i))
             torques(2,2,i) = U(i+1)*(mx(i)*disturbances(4,i)-mz(i)*disturbances(2,i))
             torques(2,3,i) = U(i+1)*(my(i)*disturbances(2,i)-mx(i)*disturbances(3,i))
+
+            ! External torques (calculated in the spin frame of reference)
+            if(FIELD) then
+              torques(3,1,i) = 2.d0*(hhwy*disturbances(4,i)-hhwz*disturbances(3,i))
+              torques(3,2,i) = 2.d0*(hhwz*disturbances(2,i)-hhwx*disturbances(4,i))
+              torques(3,3,i) = 2.d0*(hhwx*disturbances(3,i)-hhwy*disturbances(2,i))
+            end if
 
             ! Calculating spin and charge current for each neighbor
             neighbor_loop_calculate_all: do neighbor=n0sc1,n0sc2
@@ -1531,9 +1258,7 @@ program DHE
             end do neighbor_loop_calculate_all
           end do plane_loop_calculate_all
           disturbances(2:4,:) = 0.5d0*disturbances(2:4,:)
-          torques  = 0.5d0*torques
           sdmat    = 0.5d0*sdmat
-          currents = currents*ry2ev
           currents(2:4,:,:) = -0.5d0*currents(2:4,:,:)
           currents(3,:,:)   = currents(3,:,:)/zi
           ! Total currents for each neighbor direction (Sum of currents over all planes)
@@ -1543,7 +1268,6 @@ program DHE
             ! Effective field calculation
             call invers(chiinv,dimsigmaNpl) ! Inverse of the susceptibility chi^(-1)
             call zgemm('n','n',dimsigmaNpl,1,dimsigmaNpl,zum,chiinv,dimsigmaNpl,sdmat,dimsigmaNpl,zero,Beff,dimsigmaNpl) ! Beff = chi^(-1)*SD
-            Beff = Beff*ry2ev
 
             plane_loop_effective_field_all: do i=1,Npl
               Beff_cart(sigmai2i(1,i)) =          (Beff(sigmai2i(2,i)) + Beff(sigmai2i(3,i))) ! 0
@@ -1566,11 +1290,8 @@ program DHE
                 call MPI_Recv(disturbances,7*Npl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),4030,MPIComm_Col,stat,ierr)
                 call MPI_Recv(currents,7*n0sc*Npl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),4100,MPIComm_Col,stat,ierr)
                 call MPI_Recv(total_currents,7*n0sc,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),4110,MPIComm_Col,stat,ierr)
-                call MPI_Recv(torques,6*Npl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),4120,MPIComm_Col,stat,ierr)
+                call MPI_Recv(torques,ntypetorque*3*Npl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),4120,MPIComm_Col,stat,ierr)
               end if
-
-              ! Transform energy to eV if runoption is on
-              e = e*ry2ev
 
               if(.not.lhfresponses) then
                 ! DIAGONALIZING SUSCEPTIBILITY
@@ -1655,7 +1376,7 @@ program DHE
             call MPI_Send(disturbances,7*Npl,MPI_DOUBLE_COMPLEX,0,4030,MPIComm_Col,ierr)
             call MPI_Send(currents,7*n0sc*Npl,MPI_DOUBLE_COMPLEX,0,4100,MPIComm_Col,ierr)
             call MPI_Send(total_currents,7*n0sc,MPI_DOUBLE_COMPLEX,0,4110,MPIComm_Col,ierr)
-            call MPI_Send(torques,6*Npl,MPI_DOUBLE_COMPLEX,0,4120,MPIComm_Col,ierr)
+            call MPI_Send(torques,ntypetorque*3*Npl,MPI_DOUBLE_COMPLEX,0,4120,MPIComm_Col,ierr)
           end if
         end if
       end do all_energy_loop
@@ -1671,139 +1392,6 @@ program DHE
 
 !-----------------------------------------------------------------------
     case (9)
-      if(myrank.eq.0) then
-        write(*,"('CALCULATING FERMI SURFACE')")
-
-        call fermisurface(Ef)
-
-      end if
-!-----------------------------------------------------------------------
-
-
-!-----------------------------------------------------------------------
-    case (10)
-      allocate(Jij(nmaglayers,nmaglayers,3,3),trJij(nmaglayers,nmaglayers),Jijs(nmaglayers,nmaglayers,3,3),Jija(nmaglayers,nmaglayers,3,3))
-
-      if(myrank.eq.0) write(*,"('CALCULATING FULL TENSOR OF EXHANGE INTERACTIONS AND ANISOTROPIES AS A FUNCTION OF POSITION')")
-
-      if(nmaglayers.eq.0) then
-        if(myrank.eq.0) write(*,"(1x,'[main] No magnetic layers!')")
-        call MPI_Finalize(ierr)
-        stop
-      end if
-
-      ! Opening files for position dependence
-      if((myrank.eq.0).and.(Npl.eq.Npl_i)) then
-        ! Exchange interactions
-        do j=1,nmaglayers ; do i=1,nmaglayers
-          iw = 199+(j-1)*nmaglayers*2+(i-1)*2
-          if(i.eq.j) then
-            iw = iw + 1
-            write(varm,"('./results/SOC=',L1,'/Jij/Jii_',i0,'_magaxis=',A,'_socscale=',f5.2,'_parts=',I0,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,i,magaxis,socscale,parts,ncp,eta,Utype,hwa,hwt,hwp
-            open (unit=iw, file=varm,status='unknown')
-            write(unit=iw, fmt="('#  Npl ,  Jii_xx           ,   Jii_yy  ')")
-            iw = iw + 1
-            ! TODO : Check how to write the anisotropy term here
-          else
-            iw = iw + 1
-            write(varm,"('./results/SOC=',L1,'/Jij/J_',i0,'_',i0,'_magaxis=',A,'_socscale=',f5.2,'_parts=',I0,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,i,j,magaxis,socscale,parts,ncp,eta,Utype,hwa,hwt,hwp
-            open (unit=iw, file=varm,status='unknown')
-            write(unit=iw, fmt="('#  Npl ,   isotropic Jij    ,   anisotropic Jij_xx    ,   anisotropic Jij_yy     ')")
-            iw = iw + 1
-            write(varm,"('./results/SOC=',L1,'/Jij/Dz_',i0,'_',i0,'_magaxis=',A,'_socscale=',f5.2,'_parts=',I0,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,i,j,magaxis,socscale,parts,ncp,eta,Utype,hwa,hwt,hwp
-            open (unit=iw, file=varm,status='unknown')
-            write(unit=iw, fmt="('#  Npl , Dz = (Jxy - Jyx)/2       ')")
-          end if
-        end do ; end do
-      end if
-
-      call coupling(Jij)
-
-      if(myrank.eq.0) then
-        Jij = Jij*ry2ev
-
-        do i=1,nmaglayers ; do j=1,nmaglayers
-          trJij(i,j)    = 0.5d0*(Jij(i,j,1,1)+Jij(i,j,2,2))
-          Jija(i,j,:,:) = 0.5d0*(Jij(i,j,:,:) - transpose(Jij(i,j,:,:)))
-          Jijs(i,j,:,:) = 0.5d0*(Jij(i,j,:,:) + transpose(Jij(i,j,:,:)))
-          do mu=1,3
-            Jijs(i,j,mu,mu) = Jijs(i,j,mu,mu) - trJij(i,j)
-          end do
-        end do ; end do
-
-        ! Writing exchange couplings and anisotropies
-        write(*,"('  ************************* Full tensor Jij:  *************************')")
-        do i=1,nmaglayers ; do j=1,nmaglayers
-        ! Writing on screen
-        ! Writing original full tensor Jij
-          if(i.eq.j) then
-            write(*,"(3x,' ******** Magnetization components: (magaxis = ',a,') *******')") magaxis
-            write(*,"(4x,'Mx (',i2.0,')=',f11.8,4x,'My (',i2.0,')=',f11.8,4x,'Mz (',i2.0,')=',f11.8)") i,mx(i),i,my(i),i,mz(i)
-            write(*,"(' |--------------- i = ',i0,'   j = ',i0,': anisotropies ---------------|')") mmlayermag(i),mmlayermag(j)
-          else
-            write(*,"(' |----------- i = ',i0,'   j = ',i0,': exchange couplings -------------|')") mmlayermag(i),mmlayermag(j)
-          end if
-          write(*,"('             x                  y                  z')")
-          write(*,"('  x  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,1,1),Jij(i,j,1,2),Jij(i,j,1,3)
-          write(*,"('  y  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,2,1),Jij(i,j,2,2),Jij(i,j,2,3)
-          write(*,"('  z  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,3,1),Jij(i,j,3,2),Jij(i,j,3,3)
-        end do ; end do
-        if(nmaglayers.gt.1) write(*,"('  *** Symmetric and antisymmetric exchange interactions:  ***')")
-        do i=1,nmaglayers ; do j=1,nmaglayers
-          if(i.eq.j) cycle
-          write(*,"(' |--------------------- i = ',i0,'   j = ',i0,' -----------------------|')") mmlayermag(i),mmlayermag(j)
-        ! Writing Heisenberg exchange interactions
-          write(*,"('     Isotropic:     J     = ',es16.9)") trJij(i,j)
-          write(*,"('   Anisotropic:     Js_xx = ',es16.9)") Jijs(i,j,1,1)
-          write(*,"('                    Js_yy = ',es16.9)") Jijs(i,j,2,2)
-          write(*,"('  DMI: Dz = (Jxy - Jyx)/2 = ',es16.9)") Jija(i,j,1,2)
-          write(*,"(' --- z components of Jij (not physically correct) ---')")
-          write(*,"('  Anisotropic:  Js_zz = ',es16.9)") Jijs(i,j,3,3)
-          write(*,"('  DMI: Dy = (Jzx - Jxz)/2 = ',es16.9)") -Jija(i,j,1,3)
-          write(*,"('  DMI: Dx = (Jyz - Jzy)/2 = ',es16.9)") Jija(i,j,2,3)
-        end do ; end do
-
-        ! Writing into files
-        ! Exchange interactions
-        exchange_writing_loop: do j=1,nmaglayers ; do i=1,nmaglayers
-          iw = 199+(j-1)*nmaglayers*2+(i-1)*2
-          if(i.eq.j) then
-            iw = iw + 1
-            write(unit=iw,fmt="(4x,i3,13x,2(es16.9,2x))") Npl,Jij(i,j,1,1),Jij(i,j,2,2)
-            iw = iw + 1
-          else
-            iw = iw + 1
-            write(unit=iw,fmt="(4x,i3,13x,3(es16.9,2x))") Npl,trJij(i,j),Jijs(i,j,1,1),Jijs(i,j,2,2)
-            iw = iw + 1
-            write(unit=iw,fmt="(4x,i3,13x,es16.9,2x)") Npl,Jija(i,j,1,2)
-          end if
-        end do ; end do exchange_writing_loop
-
-        ! Closing files
-        if(Npl.eq.Npl_f) then
-          ! Closing files
-          do j=1,nmaglayers ; do i=1,nmaglayers
-            iw = 199+(j-1)*nmaglayers*2+(i-1)*2
-            if(i.eq.j) then
-              iw = iw + 1
-              close (iw)
-              iw = iw + 1
-            else
-              iw = iw + 1
-              close (iw)
-              iw = iw + 1
-              close (iw)
-            end if
-          end do ; end do
-        end if
-      end if
-
-      deallocate(trJij,Jij,Jijs,Jija)
-!-----------------------------------------------------------------------
-
-
-!-----------------------------------------------------------------------
-    case (11)
       FIELD = .true. ! To use the correct file when hwa=0 (otherwise it does not write the "fieldpart" of the filename)
       call allocate_susceptibilities()
       call allocate_disturbances()
@@ -1898,14 +1486,12 @@ program DHE
 !             schi  (sigma,sigmap,i,j) = schi(sigma,sigmap,i,j)   + chiorb(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
 !             schihf(sigma,sigmap,i,j) = schihf(sigma,sigmap,i,j) + chiorb_hf(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
 !           end do ; end do ; end do ; end do ; end do ; end do calculate_susceptibility_dclimit
-!           schi   = schi/ry2ev
-!           schihf = schihf/ry2ev
 !           ! Rotating susceptibilities to the magnetization direction
 !           if(lrot) then
 !             do i=1,Npl
-!               call build_rotation_matrices(mtheta(i),mphi(i),rottemp,1)
+!               call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,1)
 !               rotmat_i(:,:,i) = rottemp
-!               call build_rotation_matrices(mtheta(i),mphi(i),rottemp,2)
+!               call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,2)
 !               rotmat_j(:,:,i) = rottemp
 !             end do
 !             rotate_susceptibility_dclimit: do j=1,Npl ; do i=1,Npl
@@ -1951,24 +1537,31 @@ program DHE
             disturbances(7,i) = disturbances(7,i) + lzp(mu,nu)*ldmat(i,mu,nu)
           end do; end do
 
-          ! Spin-orbit torques
+          ! Spin-orbit torques (calculated in the spin frame of reference)
           do nu=1,9; do mu=1,9
-            ! x component: Ly*Sz - Lz*Sy
+            ! x component: (Ly*Sz - Lz*Sy)/2
             torques(1,1,i) = torques(1,1,i) + (   lyp(mu,nu)*(tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3))) &
                                         + (zi*lzp(mu,nu)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
-            ! y component: Lz*Sx - Lx*Sz
+            ! y component: (Lz*Sx - Lx*Sz)/2
             torques(1,2,i) = torques(1,2,i) + (   lzp(mu,nu)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3))) &
                                         - (   lxp(mu,nu)*(tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3)))
-            ! z component: Lx*Sy - Ly*Sx
+            ! z component: (Lx*Sy - Ly*Sx)/2
             torques(1,3,i) = torques(1,3,i) - (zi*lxp(mu,nu)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3))) &
                                         - (   lyp(mu,nu)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
           end do; end do
-          torques(1,:,i) = lambda(i+1)*torques(1,:,i)
+          torques(1,:,i) = 0.5d0*lambda(i+1)*torques(1,:,i)
 
-          ! Exchange-correlation torques
+          ! Exchange-correlation torques (calculated in the spin frame of reference)
           torques(2,1,i) = U(i+1)*(mz(i)*disturbances(3,i)-my(i)*disturbances(4,i))
           torques(2,2,i) = U(i+1)*(mx(i)*disturbances(4,i)-mz(i)*disturbances(2,i))
           torques(2,3,i) = U(i+1)*(my(i)*disturbances(2,i)-mx(i)*disturbances(3,i))
+
+          ! External torques (calculated in the spin frame of reference)
+          if(FIELD) then
+            torques(3,1,i) = 2.d0*(hhwy*disturbances(4,i)-hhwz*disturbances(3,i))
+            torques(3,2,i) = 2.d0*(hhwz*disturbances(2,i)-hhwx*disturbances(4,i))
+            torques(3,3,i) = 2.d0*(hhwx*disturbances(3,i)-hhwy*disturbances(2,i))
+          end if
 
           ! Calculating spin and charge current for each neighbor
           neighbor_loop_calculate_dclimit: do neighbor=n0sc1,n0sc2
@@ -1986,7 +1579,7 @@ program DHE
         end do plane_loop_calculate_dclimit
         disturbances(2:4,:) = 0.5d0*disturbances(2:4,:)
         disturbances = disturbances/e
-        torques  = 0.5d0*torques/e
+        torques  = torques/e
         sdmat    = 0.5d0*sdmat/e
         currents = currents/e
         currents(2:4,:,:) = -0.5d0*currents(2:4,:,:)
@@ -1997,7 +1590,6 @@ program DHE
           ! Effective field calculation
           call invers(chiinv,dimsigmaNpl) ! Inverse of the susceptibility chi^(-1)
           call zgemm('n','n',dimsigmaNpl,1,dimsigmaNpl,zum,chiinv,dimsigmaNpl,sdmat,dimsigmaNpl,zero,Beff,dimsigmaNpl) ! Beff = chi^(-1)*SD
-          Beff = Beff*ry2ev
 
           plane_loop_effective_field_dclimit: do i=1,Npl
             Beff_cart(sigmai2i(1,i)) =       (Beff(sigmai2i(2,i)) + Beff(sigmai2i(3,i)))    ! 0
@@ -2020,7 +1612,7 @@ program DHE
               call MPI_Recv(disturbances,7*Npl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),44030,MPIComm_Col,stat,ierr)
               call MPI_Recv(currents,7*n0sc*Npl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),44100,MPIComm_Col,stat,ierr)
               call MPI_Recv(total_currents,7*n0sc,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),44110,MPIComm_Col,stat,ierr)
-              call MPI_Recv(torques,6*Npl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),44120,MPIComm_Col,stat,ierr)
+              call MPI_Recv(torques,ntypetorque*3*Npl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),44120,MPIComm_Col,stat,ierr)
             end if
 
 !             if(.not.lhfresponses) then
@@ -2106,7 +1698,7 @@ program DHE
           call MPI_Send(disturbances,7*Npl,MPI_DOUBLE_COMPLEX,0,44030,MPIComm_Col,ierr)
           call MPI_Send(currents,7*n0sc*Npl,MPI_DOUBLE_COMPLEX,0,44100,MPIComm_Col,ierr)
           call MPI_Send(total_currents,7*n0sc,MPI_DOUBLE_COMPLEX,0,44110,MPIComm_Col,ierr)
-          call MPI_Send(torques,6*Npl,MPI_DOUBLE_COMPLEX,0,44120,MPIComm_Col,ierr)
+          call MPI_Send(torques,ntypetorque*3*Npl,MPI_DOUBLE_COMPLEX,0,44120,MPIComm_Col,ierr)
         end if
       end if
 
@@ -2129,7 +1721,7 @@ program DHE
 
 !         write(*,"('CALCULATING PROBABILITY OF SPIN FLIP AS A FUNCTION OF POSITION')")
 !         do i=1,Npl
-!           write(varm,"('./results/SOC=',L1,'/Npl=',I0,'/sdl_pos=',I0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'_magaxis=',A,'_socscale=',f5.2,'.dat')") SOC,Npl,i,parts,parts3,ncp,eta,Utype,hwa,hwt,hwp,magaxis,socscale
+!           write(varm,"('./results/',l1,'SOC/',i0,'Npl/sdl_pos=',I0,'_parts=',I0,'_parts3=',I0,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'_magaxis=',A,'_socscale=',f5.2,'.dat')") SOC,Npl,i,parts,parts3,ncp,eta,Utype,hwa,hwt,hwp,magaxis,socscale
 !           open (unit=555+i, file=varm,status='unknown')
 !         end do
 
@@ -2166,12 +1758,12 @@ program DHE
 
     ! Emergency stop after the calculation for certain Npl is finished
     if(Npl_f.ne.Npl_i) then
-      open(unit=911, file="stopNpl", status='old', iostat=iw)
+      open(unit=911, file="stopout", status='old', iostat=iw)
       if(iw.eq.0) then
         close(911)
-        write(*,"(a,i0,a)") "[main] Emergency 'stopNpl' file found! Stopping after Npl = ",Npl," ..."
-        call system ('rm stopNpl')
-        write(*,"(a)") "[main] ('stopNpl' file deleted!)"
+        write(*,"(a,i0,a)") "[main] Emergency 'stopout' file found! Stopping after Npl = ",Npl," ..."
+        call system ('rm stopout')
+        write(*,"(a)") "[main] ('stopout' file deleted!)"
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
     end if

@@ -3,11 +3,16 @@
 *.mod
 *.exe
 *.dat
+*.dat*
 old_files/*
 *.err
 *.out
 *.txt
 *.pdf
+*.agr
 error*
 output*
 *optrpt
+*.pbs
+tbshe*
+

@@ -6,6 +6,7 @@ contains
   subroutine ioread()
     use mod_f90_kind
     use mod_mpi_pars
+    use mod_torques, only: ntypetorque
     implicit none
     integer, parameter      :: iomax=20           ! Maximum number of elements in one line
     integer                 :: nparams=24         ! Number of required parameters to be read
@@ -138,7 +139,6 @@ contains
             end select options
             runoptions  = trim(runoptions) // " " // trim(istring1(n))
           end do
-!           write(*,*) (istring1(n),n=i+1,iomax)
           exit
 !===============================================================================
         case("eta")
@@ -494,10 +494,10 @@ contains
           else ! If there's no '=' after keyword, get from next line
             read(unit=istring2(i),fmt=*,iostat=ios) skip_steps
           end if
-!           write(*,"('itype = ',i0)") skip_steps
+!           write(*,"('skip_steps = ',i0)") skip_steps
         case("skip_steps=")
           read(unit=istring1(i+1),fmt=*,iostat=ios) skip_steps
-!           write(*,"('itype = ',i0)") skip_steps
+!           write(*,"('skip_steps = ',i0)") skip_steps
 !===============================================================================
         case("npts")
           if(istring1(i+1).eq."=") then ! If after keyword there's an '='
@@ -703,8 +703,11 @@ contains
 !     runoptions = trim(runoptions) // " noUonNM"
 !     scfile = "results/selfconsistency/selfconsistency_Npl=4_dfttype=T_parts=2_U= 0.7E-01_hwa= 0.00E+00_hwt= 0.00E+00_hwp= 0.00E+00_ncp=6_eta= 0.5E-03.dat"
 !-------------------------------------------------------------------------------
+    ! Adjusting zeeman energy to Ry or eV
+    tesla = tesla*ry2ev
+
     ! Turning off renormalization for non-current calculations
-    if((itype.ne.7).and.(itype.ne.8)) renorm = .false.
+    if(itype.ne.8) renorm = .false.
     n0sc=n0sc2-n0sc1+1 ! Total number of neighbors
     ! Energy loop step
     deltae = (emax - emin)/npts
@@ -714,6 +717,7 @@ contains
       Npl_f = Npl_i
     end if
 
+    ! Setting up external field variables and loops
     if(FIELD) then
       if (hwa_npts.eq.0) then
         hwa_f = hwa_i
@@ -778,7 +782,8 @@ contains
       hwp_s    = 0.d0
       hwp_npt1 = 1
     end if
-    if(itype.eq.11) then
+    ! Checking dependency for dc-limit
+    if(itype.eq.9) then
       emin = 1.d-6
       if(.not.FIELD) then
         if(myrank.eq.0) write(*,"('[ioread] External Field is off! Calculation of dc-limit needs external field dependence!')")
@@ -808,6 +813,8 @@ contains
         stop
       end if
     end if
+    ! Turning off external torque if static field is zero
+    if(.not.FIELD) ntypetorque=2
 
     tol   = 1.d-8
     pn1=parts*n1gl
@@ -935,19 +942,13 @@ contains
       write(*,"(3x,'kdirection = ',a)") kdirection
       write(*,"(9x,'Number of points to calculate: ',i0)") npt1
     case (5)
-      write(*,"(1x,'Local susceptibility as a function of energy')")
-      write(*,"(9x,'emin =',es9.2)") emin
-      write(*,"(9x,'emax =',es9.2)") emax
-      write(*,"(1x,i0,' points divided into ',i0,' steps of size',es10.3,' each calculating ',i0,' points')") npt1,MPIsteps,MPIdelta,MPIpts
+      write(*,"(1x,'Fermi surface')")
     case (6)
-      write(*,"(1x,'Disturbances and local susceptibility as a function of energy')")
-      write(*,"(9x,'emin =',es9.2)") emin
-      write(*,"(9x,'emax =',es9.2)") emax
-      write(*,"(1x,i0,' points divided into ',i0,' steps of size',es10.3,' each calculating ',i0,' points')") npt1,MPIsteps,MPIdelta,MPIpts
+      write(*,"(1x,'Exhange interactions and anisotropies (full tensor)')")
+      if(nmaglayers.eq.1) write(*,"(1x,'Only 1 magnetic layer: calculating only anisotropies')")
+      write(*,"(8x,'from Npl = ',i0,' to ',i0)") Npl_i,Npl_f
     case (7)
-      write(*,"(1x,'Parallel currents and local susceptibility as a function of energy')")
-      write(*,"(8x,'n0sc1 = ',i0)") n0sc1
-      write(*,"(8x,'n0sc2 = ',i0)") n0sc2
+      write(*,"(1x,'Local susceptibility as a function of energy')")
       write(*,"(9x,'emin =',es9.2)") emin
       write(*,"(9x,'emax =',es9.2)") emax
       write(*,"(1x,i0,' points divided into ',i0,' steps of size',es10.3,' each calculating ',i0,' points')") npt1,MPIsteps,MPIdelta,MPIpts
@@ -959,12 +960,6 @@ contains
       write(*,"(9x,'emax =',es9.2)") emax
       write(*,"(1x,i0,' points divided into ',i0,' steps of size',es10.3,' each calculating ',i0,' points')") npt1,MPIsteps,MPIdelta,MPIpts
     case (9)
-      write(*,"(1x,'Fermi surface')")
-    case (10)
-      write(*,"(1x,'Exhange interactions and anisotropies (full tensor)')")
-      if(nmaglayers.eq.1) write(*,"(1x,'Only 1 magnetic layer: calculating only anisotropies')")
-      write(*,"(8x,'from Npl = ',i0,' to ',i0)") Npl_i,Npl_f
-    case (11)
       write(*,"(1x,'dc limit calculations as a function of ',a)") dcfield(dcfield_dependence)
     end select write_itype
     write(*,"('|---------------------------------------------------------------------------|')")

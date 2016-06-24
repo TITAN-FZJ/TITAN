@@ -1,1 +1,1 @@
-make LATTICE=fcc100 SYSTEM=CoPt  PLATFORM=osx PARALLEL=omp   FILE=main.exe 
+make recompile  PLATFORM=jureca PARALLEL=omp   FILE=main_jureca.exe 

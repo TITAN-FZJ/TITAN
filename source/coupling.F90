@@ -8,7 +8,7 @@
 		use mod_mpi_pars
 		use mod_progress
 		use MPI
-	integer			:: i,j
+	integer			    :: i,j
 	real(double),dimension(nmaglayers,nmaglayers,3,3) :: Jijint
 	real(double),dimension(nmaglayers,nmaglayers,3,3),intent(out) :: Jij
 !--------------------- begin MPI vars --------------------

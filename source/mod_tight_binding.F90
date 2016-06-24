@@ -51,7 +51,7 @@ contains
 
   subroutine DFT_parameters(cs,cp,cd,ds,dp,dd)
     use mod_f90_kind
-    use mod_parameters, only: Npl, Ef, SOC, dfttype, U, Utype, layertype, mmlayer
+    use mod_parameters, only: Npl, Ef, SOC, dfttype, U, Utype, layertype, mmlayer, ry2ev
     use mod_mpi_pars
     use MPI
   integer       :: i,j
@@ -619,12 +619,12 @@ contains
 
 !-------------------------- END OF PARAMETERS --------------------------
   ! Fermi level is obtained for layer 1
-  Ef = Ef_dft(mmlayer(1))
+  Ef = Ef_dft(mmlayer(1))*ry2ev
 
   do j=1,Npl+2
     i = mmlayer(j)
     ! Shift in the Fermi level
-    shft = Ef - Ef_dft(i)
+    shft = Ef - Ef_dft(i)*ry2ev
     ! Layer type: 1 - Empty Sphere; 2 - Magnetic ; 0 - Other
     layertype(j) = layertype_dft(i)
     ! Effective intra-site coulomb interaction U (in Ryd)
@@ -633,15 +633,15 @@ contains
       U(j) = 0.d0
     case(1)
       if(layertype(j).eq.2) then
-        U(j) = U_dft(i)/13.6d0
+        U(j) = U_dft(i)*ry2ev/13.6d0
       else
         U(j) = 0.d0
       end if
     case(2)
-      U(j) = U_dft(i)/13.6d0
+      U(j) = U_dft(i)*ry2ev/13.6d0
     end select
     ! SOC parameters
-    lambda(j) = lambdasoc_dft(i)
+    lambda(j) = lambdasoc_dft(i)*ry2ev
     ! Occupations
     npart0(j) = n0s(i)+n0p(i)+n0d(i)
     ! C's and Delta's for hopping calculations
@@ -673,6 +673,13 @@ contains
       call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
     end select dft_type
   end do
+
+  cs = cs*ry2ev
+  cp = cp*ry2ev
+  cd = cd*ry2ev
+  ds = ds*sqrt(ry2ev)
+  dp = dp*sqrt(ry2ev)
+  dd = dd*sqrt(ry2ev)
 
   return
   end subroutine DFT_parameters

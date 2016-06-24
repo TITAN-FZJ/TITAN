@@ -3,7 +3,7 @@ module mod_parameters
   implicit none
   integer       :: ncp
   real(double)  :: eta
-  real(double)  :: Ef,q(2)
+  real(double)  :: Ef,q(3)
   integer       :: dimsigmaNpl,dim
 !========================================================================================!
 ! Effective intra-site electron electron interaction
