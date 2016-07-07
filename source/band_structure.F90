@@ -1,26 +1,25 @@
 !   Calculates magnetic LDOS
-subroutine bandstructure()
+subroutine band_structure()
 	use mod_f90_kind
 	use mod_constants, only: pi,sq2,tpi
 	use mod_parameters
-	use mod_mpi_pars
+	use mod_mpi_pars, only: mpitag
 	implicit none
   character(len=400) :: varm
-	integer         	 :: j,ifail,AllocateStatus
+  character(len=50)  :: fieldpart,socpart
+  character(len=1)   :: SOCc
+	integer         	 :: j,count,ifail
   integer                       :: lwork,dimbs
   real(double)                  :: kmin(3),kmax(3),deltak(3)
   real(double),allocatable      :: rwork(:),kpoints(:,:)
   complex(double),allocatable   :: eval(:),evecl(:,:),evecr(:,:),work(:)
   complex(double),allocatable   :: hk(:,:)
 
-  !------------ Allocating variables ------------
   dimbs = (Npl+2)*18
   lwork = 33*dimbs
-  allocate( hk(dimbs,dimbs),rwork(2*dimbs),eval(dimbs),evecl(1,dimbs),evecr(1,dimbs),work(lwork), STAT = AllocateStatus )
-  if (AllocateStatus.ne.0) then
-    write(*,"('[bandstructure] Not enough memory for: hk,rwork,eval,evecl,evecr,work')")
-    call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-  end if
+  allocate( hk(dimbs,dimbs),rwork(2*dimbs),eval(dimbs),evecl(1,dimbs),evecr(1,dimbs),work(lwork) )
+
+  write(outputunit_loop,"('CALCULATING THE BAND STRUCTURE')")
 
   select case (lattice)
   case("bcc110")
@@ -50,8 +49,8 @@ subroutine bandstructure()
       kmin = [ 0.d0 , 0.d0 , 0.d0 ]             ! Gamma
       kmax = [ pi*sq2/a0 , 0.d0 , 0.d0 ]        ! N
     case default
-      write(*,"('[bandstructure] Choose one of the following directions in k space:')")
-      write(*,"('[bandstructure] GH, HP, PN, NG (or the opposite HG, PH, NP, GN)')")
+      write(outputunit_loop,"('[band_structure] Choose one of the following directions in k space:')")
+      write(outputunit_loop,"('[band_structure] GH, HP, PN, NG (or the opposite HG, PH, NP, GN)')")
       stop
     end select band_struct_direction_bcc110
     ! Transformation to cartesian axis
@@ -83,8 +82,8 @@ subroutine bandstructure()
       kmin = [ 1.d0 , 0.d0 , 0.d0 ]*tpi/a0      ! M
       kmax = [ 0.d0 , 0.d0 , 0.d0 ]             ! Gamma
     case default
-      write(*,"('[bandstructure] Choose one of the following directions in k space:')")
-      write(*,"('[bandstructure] GM, MX, XG (or the opposite GX, XM, MG)')")
+      write(outputunit_loop,"('[band_structure] Choose one of the following directions in k space:')")
+      write(outputunit_loop,"('[band_structure] GM, MX, XG (or the opposite GX, XM, MG)')")
       stop
     end select band_struct_direction_fcc100
 
@@ -101,8 +100,25 @@ subroutine bandstructure()
 
   end select
 
-  write(varm,"('./results/',l1,'SOC/',i0,'Npl/BS/bandstructure_kdir=',A2,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'_es.dat')") SOC,Npl,kdirection,magaxis,socscale,ncp,eta,Utype,hwa,hwt,hwp
-  open (unit=666, file=varm,status='unknown')
+  fieldpart = ""
+  socpart   = ""
+  if(SOC) then
+    if(llinearsoc) then
+      SOCc = "L"
+    else
+      SOCc = "T"
+    end if
+    write(socpart,"('_magaxis=',a,'_socscale=',f5.2)") magaxis,socscale
+  else
+    SOCc = "F"
+  end if
+  if(lfield) then
+    write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
+    if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
+  end if
+
+  write(varm,"('./results/',a1,'SOC/',i0,'Npl/BS/bandstructure_kdir=',a2,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,kdirection,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+  open (unit=666+mpitag, file=varm,status='unknown')
 
   deltak = (kmax - kmin)/npts
   allocate( kpoints(npt1,3) )
@@ -111,22 +127,22 @@ subroutine bandstructure()
   end do
 
   band_structure_loop: do count=1,npt1
-    write(*,"(i0,' of ',i0,' points',', i = ',es10.3)") count,npt1,dble((count-1.d0)/npts)
+    write(outputunit_loop,"('[band_structure] ',i0,' of ',i0,' points',', i = ',es10.3)") count,npt1,dble((count-1.d0)/npts)
     call hamiltk(kpoints(count,:),hk)
 
     call zgeev('N','N',dimbs,hk,dimbs,eval,evecl,1,evecr,1,work,lwork,rwork,ifail)
     if(ifail.ne.0) then
-      write(*,*) '[bandstructure] Problem with diagonalization. ifail = ',ifail
+      write(outputunit_loop,"('[band_structure] Problem with diagonalization. ifail = ',i0)") ifail
       stop
 !       else
-!         write(*,*) ' optimal lwork = ',work(1),' lwork = ',lwork
+!         write(outputunit_loop,"('[band_structure] optimal lwork = ',i0,' lwork = ',i0)") work(1),lwork
     end if
     ! Transform energy to eV if runoption is on
     eval = eval
-    write(666,'(1000(es16.8))') dble((count-1.d0)/npts),(real(eval(j)),j=1,dimbs)
+    write(666+mpitag,'(1000(es16.8))') dble((count-1.d0)/npts),(real(eval(j)),j=1,dimbs)
   end do band_structure_loop
-  close(666)
+  close(666+mpitag)
   deallocate(hk,rwork,eval,evecl,evecr,work)
 
 	return
-end subroutine bandstructure
+end subroutine band_structure

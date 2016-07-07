@@ -29,6 +29,84 @@ of the mean field counterparts. These ones are written in terms of the
 monoeletronic Green functions. The integration in k<sub>//</sub> is calculated
 using the generation of 2D points by Cunningham.
 It is parallelized using openMP. The number of points in the energy
-can be set in the input file (usually, it uses a set of 128 points
+can be set in the input file - usually, it uses a set of 128 points
 in the imaginary axis and 64 points in the real axis (for &#969;&#8800;0)
 and it is parallelized with MPI.
+
+!*******************************************************************************!
+!                           CHOOSE WHAT TO CALCULATE                            !
+!  Options:                                                                     !
+!   0 - Test before SC                                                          !
+!   1 - Self consistency only                                                   !
+!   2 - Test after SC                                                           !
+!   3 - LDOS and exchange interactions as a function of energy                  !
+!   4 - Band structure                                                          !
+!   5 - Fermi surface                                                           !
+!   6 - Exhange interactions and anisotropies (full tensor)                     !
+!   7 - Local susceptibility as a function of energy                            !
+!   8 - Parallel currents, disturbances, susceptibilities, torques and          !
+!       effective fields as a function of energy                                !
+!   9 - dc-limit as a function of magnetic field (abs, theta or phi)            !
+!       (use 'emin' as frequency)                                               !
+!===============================================================================!
+!                         OPTIONAL RUNNING VARIABLES                            !
+!   noUonall    - set U=0 on all layers                                         !
+!   noUonNM     - set U=0 on NM layers                                          !
+!   GSL         - Calculate ground state of Orbital Angular Momentum L          !
+!   verbose     - write intermediate steps                                      !
+!   ry2ev       - convert energy units to eV                                    !
+!   tesla       - read values of static magnetic field in tesla                 !
+!   idebug      - turn on to use this optional variable for debugging           !
+!   createfiles - Just create files (WARNING: overwrite existing files!)        !
+!   addresults  - Add results to existing files, instead of creating new ones   !
+!                 (files MUST exist)                                            !
+!   slatec      - Use non-linear root finder dnsqe from Slatec library          !
+!   kpoints     - Write kpoints and weights into files                          !
+!   lineargfsoc - Adds linear order SOC in the GF                               !
+!   linearsoc   - Adds linear order SOC in the susceptibility                   !
+!   rotatemag   - Rotate the magnetization to the direction of the field        !
+!===============================================================================!
+!                             LATTICE DEFINITIONS                               !
+!         For spin quantization and direction of in-plane electric field        !
+!---------------------------------- BCC (110) ----------------------------------!
+! L - long axis (x - short axis; y - out-of-plane)                              !
+! S - short axis (x - long axis; y - out-of-plane)                              !
+! P - perpendicular out-of plane (x - short axis; y - long axis)                !
+!                                         (only for quantization)               !
+! O - other (specify in main program)     (only for external field)             !
+!---------------------------------- FCC (100) ----------------------------------!
+! In the following, choose the direction of one of the neighbors                !
+!                  (1-4) - 1 n.n. ; (5-8) 2 n.n.                                !
+!              (use 9 for out-of-plane z, x // dirEfield)                       !
+!                               6                                               !
+!                               |                                               !
+!                            2  |  1                                            !
+!                             \ | /                                             !
+!                   ------7-----|-----5-------                                  !
+!                             / | \                                             !
+!                            3  |  4                                            !
+!                               |                                               !
+!                               8                                               !
+!===============================================================================!
+!                           INTEGRATION VARIABLES                               !
+! k-points are obtained using Cunningham special points for BCC110 and FCC100   !
+! Ref.: S. Cunningham, Phys. Rev. B 10, 4988 (1974)                             !
+!                                                                               !
+! Energy integration use Gauss-Legendre quadrature                              !
+!===============================================================================!
+!                                BAND STRUCTURE                                 !
+! Choose one of the following high symmetry direction in k space:               !
+!---------------------------------- BCC (110) ----------------------------------!
+! GH - HP - PN - NG  (or the opposite HG - PH - NP - GN)                        !
+!---------------------------------- FCC (100) ----------------------------------!
+! GM - MX - XG  (or the opposite GX - XM - MG)                                  !
+!===============================================================================!
+!                                DFT PARAMETERS                                 !
+! Ref.:	O. K. Andersen and O. Jepsen, Phys. Rev. Lett. 53, 2571 (1984).         !
+!*******************************************************************************!
+! To stop the program:                                                          !
+! - after an energy step, just create a file called 'stop'                      !
+! (e.g., in terminal: touch stop)                                               !
+! - after any layer/field calculation, just create a file called 'stopout'      !
+! (e.g., in terminal: touch stopout)                                            !
+!*******************************************************************************!

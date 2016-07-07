@@ -45,6 +45,7 @@ contains
 			wght(k)	= et1*p1(k)/xx
 		end do
 		deallocate(x1,p1)
+		return
 	end subroutine generate_imag_epoints
 
 	! Generating energy points in the real axis for third integration
@@ -70,6 +71,7 @@ contains
 		else
 			nepoints = pn1
 		end if
+		return
 	end subroutine generate_real_epoints
 
 	!	This subroutine returns the N points in the abcissae x and its weight w using Gauss-Legendre
@@ -105,6 +107,7 @@ contains
 	    w(i) = (2.0d0*xl)/((1.0d0-z*z)*pp*pp)
 	    w(n+1-i) = w(i)
 	  end do
+	  return
 	end subroutine gauleg
 
 end module mod_generate_epoints

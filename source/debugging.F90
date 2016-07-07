@@ -1,4 +1,4 @@
-!	This subroutine may be used to debug the program
+!	This subroutine may be used to do tests on the program
 
 subroutine debugging()
 	use mod_f90_kind
@@ -10,7 +10,11 @@ subroutine debugging()
 	use mod_prefactors
 	use mod_generate_kpoints
 	use mod_generate_epoints
+	use mod_mpi_pars
 	implicit none
+
+  if(myrank.eq.0) write(outputunit,"('[debugging] Starting to debug...')")
+
 ! 	integer 	:: i,i0,i1,j,j0,j1
 ! 	real(double)	:: kp(3)
 ! 	complex(double),dimension((Npl+2)*18,(Npl+2)*18)	:: hk,test,test2
@@ -29,7 +33,7 @@ subroutine debugging()
 	hdelp(1:Npl)  = 0.5d0*U*mp
 	hdelm(1:Npl)	= 0.5d0*U*mm
 ! 	lambda=0.d0
-	call eintidiag()
+	call diamagnetic_current()
 
 ! 	write(*,*) 'Real space hoppings:'
 ! 	write(*,*) '*********************'

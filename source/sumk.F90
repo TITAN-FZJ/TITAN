@@ -9,7 +9,6 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
   use mod_prefactors
   use mod_progress
   use mod_mpi_pars
-  use MPI
 !$  use omp_lib
   implicit none
 !$  integer       :: nthreads,mythread
@@ -35,15 +34,15 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
 
 !$omp parallel default(none) &
 !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,wkbzc,kp,df1iikl,pfdf1iikl,prett,preLxtt,preLytt,preLztt,dtdk,gf,expikr,gfuu,gfud,gfdu,gfdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &
-!$omp& shared(llineargfsoc,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,prog,spiner,lverbose,myrank,kbz,wkbz,iflag,e,ep,nkpoints,r0,Ef,eta,nthreads,sigmai2i,sigmaimunu2i,sigmaijmunu2i,dim,Npl,n0sc1,n0sc2,plnn,t00,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
+!$omp& shared(llineargfsoc,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,prog,spiner,lverbose,myrank_row_hw,kbz,wkbz,iflag,e,ep,nkpoints,r0,Ef,eta,nthreads,sigmai2i,sigmaimunu2i,sigmaijmunu2i,dim,Npl,n0sc1,n0sc2,plnn,t00,lxpt,lypt,lzpt,tlxp,tlyp,tlzp,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
-!$  if((mythread.eq.0).and.(myrank.eq.0)) then
+!$  if((mythread.eq.0).and.(myrank_row_hw.eq.0)) then
 !$    nthreads = omp_get_num_threads()
-!$    write(*,"('Number of threads: ',i0)") nthreads
+!$    write(outputunit_loop,"('[sumk] Number of threads: ',i0)") nthreads
 !$  end if
   allocate( df1iikl(dim,4),pfdf1iikl(dim,4),gf(Npl,Npl,18,18),dtdk(Npl,Npl,9,9),gfuu(Npl,Npl,9,9,2),gfud(Npl,Npl,9,9,2),gfdu(Npl,Npl,9,9,2),gfdd(Npl,Npl,9,9,2), STAT = AllocateStatus  )
   if (AllocateStatus.ne.0) then
-    write(*,"('[sumk] Not enough memory for: df1iikl,pfdf1iikl,gf,dtdk,gfuu,gfud,gfdu,gfdd')")
+    write(outputunit,"('[sumk] Not enough memory for: df1iikl,pfdf1iikl,gf,dtdk,gfuu,gfud,gfdu,gfdd')")
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
 
@@ -51,9 +50,9 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
   do iz=1,nkpoints
 !    Progress bar
 !$  if((mythread.eq.0)) then
-      if((myrank.eq.0).and.(lverbose)) then
+      if((myrank_row_hw.eq.0).and.(lverbose)) then
         prog = floor(iz*100.d0/nkpoints)
-        write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of k-sum on rank ',i0,a1,$)") spiner(mod(iz,4)+1),prog,iz,nkpoints,myrank,char(13)
+        write(outputunit_loop,"(a1,2x,i3,'% (',i0,'/',i0,') of k-sum on rank ',i0,a1,$)") spiner(mod(iz,4)+1),prog,iz,nkpoints,myrank_row_hw,char(13)
       end if
 !$   end if
 
@@ -223,7 +222,6 @@ subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,Lzt
   use mod_prefactors
   use mod_progress
   use mod_mpi_pars
-  use MPI
 !$  use omp_lib
   implicit none
 !$  integer       :: nthreads,mythread
@@ -249,20 +247,20 @@ subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,Lzt
 
 !$omp parallel default(none) &
 !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,wkbzc,kp,df1iikl,pfdf1iikl,df1lsoc,prett,preLxtt,preLytt,preLztt,dtdk,expikr,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &
-!$omp& shared(tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,prefactorlsoc,prog,spiner,lverbose,myrank,kbz,wkbz,iflag,e,ep,nkpoints,r0,Ef,eta,nthreads,sigmai2i,sigmaimunu2i,sigmaijmunu2i,dim,Npl,n0sc1,n0sc2,plnn,t00,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
+!$omp& shared(tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,prefactorlsoc,prog,spiner,lverbose,myrank_row_hw,kbz,wkbz,iflag,e,ep,nkpoints,r0,Ef,eta,nthreads,sigmai2i,sigmaimunu2i,sigmaijmunu2i,dim,Npl,n0sc1,n0sc2,plnn,t00,lxpt,lypt,lzpt,tlxp,tlyp,tlzp,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
-!$  if((mythread.eq.0).and.(myrank.eq.0)) then
+!$  if((mythread.eq.0).and.(myrank_row_hw.eq.0)) then
 !$    nthreads = omp_get_num_threads()
-!$    write(*,"('Number of threads: ',i0)") nthreads
+!$    write(outputunit_loop,"('[sumklinearsoc] Number of threads: ',i0)") nthreads
 !$  end if
   allocate( df1iikl(dim,4),pfdf1iikl(dim,4),df1lsoc(dim,4),gf(Npl,Npl,18,18),dtdk(Npl,Npl,9,9),gfuu(Npl,Npl,9,9,2),gfud(Npl,Npl,9,9,2),gfdu(Npl,Npl,9,9,2),gfdd(Npl,Npl,9,9,2), STAT = AllocateStatus  )
   if (AllocateStatus.ne.0) then
-    write(*,"('[sumklinearsoc] Not enough memory for: df1iikl,pfdf1iikl,df1lsoc,gf,dtdk,gfuu,gfud,gfdu,gfdd')")
+    write(outputunit,"('[sumklinearsoc] Not enough memory for: df1iikl,pfdf1iikl,df1lsoc,gf,dtdk,gfuu,gfud,gfdu,gfdd')")
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
   allocate( gvg(Npl,Npl,18,18),gvguu(Npl,Npl,9,9,2),gvgud(Npl,Npl,9,9,2),gvgdu(Npl,Npl,9,9,2),gvgdd(Npl,Npl,9,9,2), STAT = AllocateStatus  )
   if (AllocateStatus.ne.0) then
-    write(*,"('[sumklinearsoc] Not enough memory for: gvg,gvguu,gvgud,gvgdu,gvgdd')")
+    write(outputunit,"('[sumklinearsoc] Not enough memory for: gvg,gvguu,gvgud,gvgdu,gvgdd')")
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
 
@@ -270,9 +268,9 @@ subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,Lzt
   do iz=1,nkpoints
 !    Progress bar
 !$  if((mythread.eq.0)) then
-      if((myrank.eq.0).and.(lverbose)) then
+      if((myrank_row_hw.eq.0).and.(lverbose)) then
         prog = floor(iz*100.d0/nkpoints)
-        write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of k-sum on rank ',i0,a1,$)") spiner(mod(iz,4)+1),prog,iz,nkpoints,myrank,char(13)
+        write(outputunit_loop,"(a1,2x,i3,'% (',i0,'/',i0,') of k-sum on rank ',i0,a1,$)") spiner(mod(iz,4)+1),prog,iz,nkpoints,myrank_row_hw,char(13)
       end if
 !$   end if
 

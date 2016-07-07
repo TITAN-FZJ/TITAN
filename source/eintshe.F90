@@ -24,7 +24,7 @@ subroutine eintshe(e)
 
   allocate( tFintiikl(dim,4),ttFintiikl(n0sc1:n0sc2,dimsigmaNpl,4),LxttFintiikl(n0sc1:n0sc2,dimsigmaNpl,4),LyttFintiikl(n0sc1:n0sc2,dimsigmaNpl,4),LzttFintiikl(n0sc1:n0sc2,dimsigmaNpl,4), STAT = AllocateStatus )
   if (AllocateStatus.ne.0) then
-    write(*,"('[eintshe] Not enough memory for: tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl')")
+    write(outputunit,"('[eintshe] Not enough memory for: tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl')")
     call MPI_Abort(MPIComm_Row,errorcode,ierr)
   end if
 
@@ -46,7 +46,7 @@ subroutine eintshe(e)
     Lxttchiorbiikl  = LxttFintiikl*wght(ix)
     Lyttchiorbiikl  = LyttFintiikl*wght(ix)
     Lzttchiorbiikl  = LzttFintiikl*wght(ix)
-    if(lverbose) write(*,"('[eintshe] Finished point ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,myrank_row,myrank_col,trim(host)
+    if(lverbose) write(outputunit_loop,"('[eintshe] Finished point ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,myrank_row,myrank_col,trim(host)
 
     do i=2,nepoints
       if(lverbose) start_time = MPI_Wtime()
@@ -57,10 +57,10 @@ subroutine eintshe(e)
       call MPI_Recv(LzttFintiikl,nncountkl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),989898+mpitag,MPIComm_Row,stat,ierr)
       if(lverbose) then
         elapsed_time = MPI_Wtime() - start_time
-        write(*,"('Point ',i0,' received from ',i0,'. Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes ')") i,stat(MPI_SOURCE),elapsed_time,elapsed_time/60.d0
+        write(outputunit_loop,"('[eintshe] Point ',i0,' received from ',i0,'. Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes ')") i,stat(MPI_SOURCE),elapsed_time,elapsed_time/60.d0
         sizemat = (ncountkl+4.d0*nncountkl)*16.d0/(1024.d0**2)
         speed   = sizemat/elapsed_time
-        write(*,"('Average speed: ',f11.4,' Mbps / ',f9.4,' Gbps ')") speed,speed/1024
+        write(outputunit_loop,"('[eintshe] Average speed: ',f11.4,' Mbps / ',f9.4,' Gbps ')") speed,speed/1024
       end if
 
       tchiorbiikl     = tchiorbiikl    + tFintiikl
@@ -108,7 +108,7 @@ subroutine eintshe(e)
         exit
       end if
 
-      if(lverbose) write(*,"('[eintshe] Finished point ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,myrank_row,myrank_col,trim(host)
+!       if(lverbose) write(outputunit_loop,"('[eintshe] Finished point ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,myrank_row,myrank_col,trim(host)
       ! Sending results to process 0
       call MPI_Send(tFintiikl   ,ncountkl ,MPI_DOUBLE_COMPLEX,masterrank,545454+mpitag,MPIComm_Row,ierr)
       call MPI_Send(ttFintiikl  ,nncountkl,MPI_DOUBLE_COMPLEX,masterrank,656565+mpitag,MPIComm_Row,ierr)

@@ -6,27 +6,30 @@
 ! The Fermi level is determined by the parameter of the first layer
 !
 module mod_define_system
-  use mod_f90_kind
   implicit none
 
 contains
 
   subroutine define_system()
-    use mod_parameters, only: Npl,mmlayer,set1,set2
-    use mod_mpi_pars, only: myrank
+    use mod_parameters, only: Npl,mmlayer,set1,set2,outputunit
+    use mod_mpi_pars
   implicit none
   integer :: i,j,ios,set1g,set2g
 
   if((set1.eq.9).or.(set2.eq.9)) then
     open(unit=112358, file="system.dat", status='old', iostat=ios)
-    if(myrank.eq.0) then
-      if (ios.ne.0) stop "[define_system] File 'system.dat' does not exist. "
+    if (ios.ne.0) then
+      if(myrank.eq.0) write(outputunit,"('[define_system] File ""system.dat"" does not exist. ')")
+      call MPI_Finalize(ierr)
+      stop
     end if
     read(unit=112358,fmt=*,iostat=ios) (mmlayer(i),i=1,Npl+2)
-    if(myrank.eq.0) then
-      if (ios.ne.0) stop "[define_system] Problem defining system from file 'system.dat'. "
+    if (ios.ne.0) then
+      if(myrank.eq.0) write(outputunit,"('[define_system] Problem defining system from file ""system.dat"".')")
+      call MPI_Finalize(ierr)
+      stop
     end if
-!     write(*,"(20(2x,i0))") (mmlayer(i),i=1,Npl+2)
+!     write(outputunit,"(20(2x,i0))") (mmlayer(i),i=1,Npl+2)
 !     stop
     return
   end if
@@ -50,7 +53,7 @@ contains
     end if
   end do
 
-!   write(*,"(20(2x,i0))") (mmlayer(i),i=1,Npl+2)
+!   write(outputunit,"(20(2x,i0))") (mmlayer(i),i=1,Npl+2)
 !   stop
 
   return

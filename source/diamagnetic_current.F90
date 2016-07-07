@@ -1,5 +1,5 @@
 ! ---------- Diamagnetic current: Energy integration ---------
-subroutine eintidiag()
+subroutine diamagnetic_current()
   use mod_f90_kind
   use mod_constants
   use mod_parameters
@@ -17,7 +17,7 @@ subroutine eintidiag()
 !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
 #ifndef _JUQUEEN
-open(6,carriagecontrol ='fortran')
+open(outputunit,carriagecontrol ='fortran')
 #endif
 
   ix = myrank+1
@@ -25,19 +25,19 @@ open(6,carriagecontrol ='fortran')
 
   ! Calculating the number of particles for each spin and orbital using a complex integral
   if (myrank.eq.0) then ! Process 0 receives all results and send new tasks if necessary
-    call sumk_idiad(Ef,y(ix),Idia)
+    call sumk_idia(Ef,y(ix),Idia)
     Idia_total = wght(ix)*Idia
 
-    if(lverbose) write(*,"('[eintidiag] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
+    if(lverbose) write(outputunit,"('[diamagnetic_current] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
     do i=2,pn1
       ! Progress bar
       prog = floor(i*100.d0/pn1)
 #ifdef _JUQUEEN
-      write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of nparticles e-sum on rank ',i0,a1,$)") spiner(mod(i,4)+1),prog,i,pn1,myrank,char(13)
+      write(outputunit,"(a1,2x,i3,'% (',i0,'/',i0,') of nparticles e-sum on rank ',i0,a1,$)") spiner(mod(i,4)+1),prog,i,pn1,myrank,char(13)
 #else
       elapsed_time = MPI_Wtime() - start_program
       write(progbar,fmt="( a,i0,a )") "(1h+' ','Total time=',i2,'h:',i2,'m:',i2,'s  ',",1+(i+1)*20/pn1, "a,' ',i0,'%')"
-      write(6,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(i+1)*20/pn1),prog
+      write(outputunit,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(i+1)*20/pn1),prog
 #endif
 
       call MPI_Recv(Idia,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,1604,MPI_COMM_WORLD,stat,ierr)
@@ -59,10 +59,10 @@ open(6,carriagecontrol ='fortran')
       if(ix.gt.pn1) exit
 
       ! First and second integrations (in the complex plane)
-      call sumk_idiad(Ef,y(ix),Idia)
+      call sumk_idia(Ef,y(ix),Idia)
       Idia = wght(ix)*Idia
 
-      if(lverbose) write(*,"('[eintidiag] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
+!       if(lverbose) write(outputunit,"('[diamagnetic_current] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
       ! Sending results to process 0
       call MPI_Send(Idia,ncount,MPI_DOUBLE_PRECISION,0,1604,MPI_COMM_WORLD,ierr)
       ! Receiving new point or signal to exit
@@ -73,11 +73,11 @@ open(6,carriagecontrol ='fortran')
 
   if(myrank.eq.0) then
     do j=n0sc1,n0sc2
-      write(*,*) (Idia_total(j,i),i=1,Npl)
+      write(outputunit,*) (Idia_total(j,i),i=1,Npl)
     end do
   end if
   return
-end subroutine eintidiag
+end subroutine diamagnetic_current
 
 !   !   Calculates k-sum for diamagnetic current
 !   subroutine sumk_diamag(e,ep,Idia)
@@ -105,7 +105,7 @@ end subroutine eintidiag
 ! !$  mythread = omp_get_thread_num()
 ! !$  if((mythread.eq.0).and.(myrank.eq.0)) then
 ! !$    nthreads = omp_get_num_threads()
-! !$    write(*,"('Number of threads: ',i0)") nthreads
+! !$    write(outputunit,"('[sumk_diamag] Number of threads: ',i0)") nthreads
 ! !$  end if
 
 ! !$omp do reduction(+:Idia)
@@ -137,7 +137,7 @@ end subroutine eintidiag
 !   end subroutine sumk_diamag
 
 !   Calculates the momentum matrix in real space
-subroutine sumk_idiad(e,ep,Idia)
+subroutine sumk_idia(e,ep,Idia)
   use mod_f90_kind
   use mod_parameters, only: Npl,n0sc1,n0sc2,llineargfsoc
   use mod_lattice
@@ -162,11 +162,11 @@ subroutine sumk_idiad(e,ep,Idia)
 
 !$omp parallel default(none) &
 !$omp& private(mythread,neighbor,iz,kp,i,dtdk,expikr,gf) &
-!$omp& shared(kbz,nkpoints,wkbz,myrank,nthreads,n0sc1,n0sc2,llineargfsoc,Npl,r0,e,ep,pji,gij,gji)
+!$omp& shared(kbz,nkpoints,wkbz,myrank,nthreads,n0sc1,n0sc2,llineargfsoc,Npl,r0,e,ep,pji,gij,gji,outputunit)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread.eq.0).and.(myrank.eq.0)) then
 !$    nthreads = omp_get_num_threads()
-!$    write(*,"('Number of threads: ',i0)") nthreads
+!$    write(outputunit,"('[sumk_idia] Number of threads: ',i0)") nthreads
 !$  end if
 
 !$omp do reduction(+:pji,gij,gji)
@@ -208,19 +208,19 @@ subroutine sumk_idiad(e,ep,Idia)
 !$omp end parallel
 
 !     if(myrank.eq.0) then
-!       write(*,*) "pij"
+!       write(outputunit,*) "pij"
 !       do neighbor=n0sc1,n0sc2
-!         write(*,*) (sum(pji(neighbor,iz,:,:)),iz=1,Npl)
+!         write(outputunit,*) (sum(pji(neighbor,iz,:,:)),iz=1,Npl)
 !       end do
 
-!       write(*,*) "gij"
+!       write(outputunit,*) "gij"
 !       do neighbor=n0sc1,n0sc2
-!         write(*,*) (sum(gij(neighbor,iz,:,:)),iz=1,Npl)
+!         write(outputunit,*) (sum(gij(neighbor,iz,:,:)),iz=1,Npl)
 !       end do
 
-!       write(*,*) "gji"
+!       write(outputunit,*) "gji"
 !       do neighbor=n0sc1,n0sc2
-!         write(*,*) (sum(gij(neighbor,iz,:,:)),iz=1,Npl)
+!         write(outputunit,*) (sum(gij(neighbor,iz,:,:)),iz=1,Npl)
 !       end do
 !     end if
 !     call MPI_Finalize(ierr)
@@ -234,4 +234,4 @@ subroutine sumk_idiad(e,ep,Idia)
   end do ; end do ; end do ; end do
 
   return
-end subroutine sumk_idiad
+end subroutine sumk_idia

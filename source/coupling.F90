@@ -1,74 +1,147 @@
 ! Calculates the full 3x3 J tensor (including coupling, DMI and anisotropic pair interactions)
-	subroutine coupling(Jij)
+	subroutine coupling()
 		use mod_f90_kind
-		use mod_constants, only: pi
 		use mod_parameters
 		use mod_magnet
-		use mod_generate_epoints
-		use mod_mpi_pars
-		use mod_progress
-		use MPI
-	integer			    :: i,j
-	real(double),dimension(nmaglayers,nmaglayers,3,3) :: Jijint
-	real(double),dimension(nmaglayers,nmaglayers,3,3),intent(out) :: Jij
-!--------------------- begin MPI vars --------------------
-	integer :: ix,itask,ncount
-!^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
+		use mod_mpi_pars,only: myrank
+  character(len=400) :: varm
+  character(len=50)  :: fieldpart,socpart
+  character(len=1)   :: SOCc
+	integer            :: i,j,mu,iw
+  real(double),dimension(:,:),allocatable     :: trJij
+  real(double),dimension(:,:,:,:),allocatable :: Jij,Jijs,Jija
 
-	ncount=nmaglayers*nmaglayers*3*3
+  allocate(Jij(nmaglayers,nmaglayers,3,3),trJij(nmaglayers,nmaglayers),Jijs(nmaglayers,nmaglayers,3,3),Jija(nmaglayers,nmaglayers,3,3))
 
-	Jij = 0.d0
+	if(myrank.eq.0) write(outputunit,"('CALCULATING FULL TENSOR OF EXHANGE INTERACTIONS AND ANISOTROPIES AS A FUNCTION OF THICKNESS')")
 
-	ix = myrank+1
-	itask = numprocs ! Number of tasks done initially
+  fieldpart = ""
+  socpart   = ""
+  if(SOC) then
+    if(llinearsoc) then
+      SOCc = "L"
+    else
+      SOCc = "T"
+    end if
+    write(socpart,"('_magaxis=',a,'_socscale=',f5.2)") magaxis,socscale
+  else
+    SOCc = "F"
+  end if
+  if(lfield) then
+    write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
+    if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
+  end if
 
-	! Calculating the number of particles for each spin and orbital using a complex integral
-	if (myrank.eq.0) then ! Process 0 receives all results and send new tasks if necessary
-		call sumk_jij(Ef,y(ix),Jijint)
-		Jij = Jijint*wght(ix)/pi
+  ! Opening files for position dependence
+  if((myrank.eq.0).and.(Npl.eq.Npl_i)) then
+    ! Exchange interactions
+    do j=1,nmaglayers ; do i=1,nmaglayers
+      iw = 199+(j-1)*nmaglayers*2+(i-1)*2
+      if(i.eq.j) then
+        iw = iw + 1
+        write(varm,"('./results/',a1,'SOC/Jij/Jii_',i0,'_parts=',I0,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,parts,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+        open (unit=iw, file=varm,status='unknown')
+        write(unit=iw, fmt="('#  Npl ,      Jii_xx       ,       Jii_yy  ')")
+        iw = iw + 1
+        ! TODO : Check how to write the anisotropy term here
+      else
+        iw = iw + 1
+        write(varm,"('./results/',a1,'SOC/Jij/J_',i0,'_',i0,'_parts=',I0,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,j,parts,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+        open (unit=iw, file=varm,status='unknown')
+        write(unit=iw, fmt="('#  Npl ,   isotropic Jij    ,   anisotropic Jij_xx    ,   anisotropic Jij_yy     ')")
+        iw = iw + 1
+        write(varm,"('./results/',a1,'SOC/Jij/Dz_',i0,'_',i0,'_parts=',I0,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,j,parts,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+        open (unit=iw, file=varm,status='unknown')
+        write(unit=iw, fmt="('#  Npl , Dz = (Jxy - Jyx)/2       ')")
+      end if
+    end do ; end do
+  end if
 
- 		if(lverbose) write(*,"('[coupling] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
-		do i=2,pn1
-			! Progress bar
-      prog = floor(i*100.d0/pn1)
-#ifdef _JUQUEEN
-			write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of energy sum on rank ',i0,a1,$)") spiner(mod(i,4)),prog,iz,nkpoints,myrank,char(13)
-#else
-			elapsed_time = MPI_Wtime() - start_program
-			write(progbar,fmt="( a,i0,a )") "(1h+' ','Total time=',i2,'h:',i2,'m:',i2,'s  ',",1+(i+1)*20/pn1, "a,' ',i0,'%')"
-      write(6,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(i+1)*20/pn1),100*(i+1)/pn1
-#endif
+  q = [ 0.d0 , 0.d0 , 0.d0 ]
+  call jij_energy(Jij)
 
-			call MPI_Recv(Jijint,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,11235,MPI_COMM_WORLD,stat,ierr)
+  if(myrank.eq.0) then
+    do i=1,nmaglayers ; do j=1,nmaglayers
+      trJij(i,j)    = 0.5d0*(Jij(i,j,1,1)+Jij(i,j,2,2))
+      Jija(i,j,:,:) = 0.5d0*(Jij(i,j,:,:) - transpose(Jij(i,j,:,:)))
+      Jijs(i,j,:,:) = 0.5d0*(Jij(i,j,:,:) + transpose(Jij(i,j,:,:)))
+      do mu=1,3
+        Jijs(i,j,mu,mu) = Jijs(i,j,mu,mu) - trJij(i,j)
+      end do
+    end do ; end do
 
-			Jij = Jij + Jijint
+    ! Writing exchange couplings and anisotropies
+    write(outputunit,"('  ************************* Full tensor Jij:  *************************')")
+    do i=1,nmaglayers ; do j=1,nmaglayers
+    ! Writing on screen
+    ! Writing original full tensor Jij
+    ! Only the transverse components are "reliable" (e.g., for m //z, only Jxx,Jxy,Jyx,Jyy are correct)
+    ! Relation between J_ii calculated and the position of the peak in the susceptibility:
+    ! w_res = 2*gamma*mz*sqrt( (K_z-K_x)*(K_z-K_y) )  - for m // z
+    ! where K_x = J_ii^xx ; K_y = J_ii^yy ; K_z = J_ii^zz
+      if(i.eq.j) then
+        write(outputunit,"(3x,' ******** Magnetization components: (magaxis = ',a,') *******')") magaxis
+        write(outputunit,"(4x,'Mx (',i2.0,')=',f11.8,4x,'My (',i2.0,')=',f11.8,4x,'Mz (',i2.0,')=',f11.8)") i,mx(i),i,my(i),i,mz(i)
+        write(outputunit,"(' |--------------- i = ',i0,'   j = ',i0,': anisotropies ---------------|')") mmlayermag(i),mmlayermag(j)
+      else
+        write(outputunit,"(' |----------- i = ',i0,'   j = ',i0,': exchange couplings -------------|')") mmlayermag(i),mmlayermag(j)
+      end if
+      write(outputunit,"('             x                  y                  z')")
+      write(outputunit,"('  x  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,1,1),Jij(i,j,1,2),Jij(i,j,1,3)
+      write(outputunit,"('  y  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,2,1),Jij(i,j,2,2),Jij(i,j,2,3)
+      write(outputunit,"('  z  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,3,1),Jij(i,j,3,2),Jij(i,j,3,3)
+    end do ; end do
+    if(nmaglayers.gt.1) write(outputunit,"('  *** Symmetric and antisymmetric exchange interactions:  ***')")
+    do i=1,nmaglayers ; do j=1,nmaglayers
+      if(i.eq.j) cycle
+      write(outputunit,"(' |--------------------- i = ',i0,'   j = ',i0,' -----------------------|')") mmlayermag(i),mmlayermag(j)
+    ! Writing Heisenberg exchange interactions
+      write(outputunit,"('     Isotropic:     J     = ',es16.9)") trJij(i,j)
+      write(outputunit,"('   Anisotropic:     Js_xx = ',es16.9)") Jijs(i,j,1,1)
+      write(outputunit,"('                    Js_yy = ',es16.9)") Jijs(i,j,2,2)
+      write(outputunit,"('  DMI: Dz = (Jxy - Jyx)/2 = ',es16.9)") Jija(i,j,1,2)
+      write(outputunit,"(' --- z components of Jij (not physically correct) ---')")
+      write(outputunit,"('  Anisotropic:  Js_zz = ',es16.9)") Jijs(i,j,3,3)
+      write(outputunit,"('  DMI: Dy = (Jzx - Jxz)/2 = ',es16.9)") -Jija(i,j,1,3)
+      write(outputunit,"('  DMI: Dx = (Jyz - Jzy)/2 = ',es16.9)") Jija(i,j,2,3)
+    end do ; end do
 
-			! If the number of processors is less than the total number of points, sends
-			! the rest of the points to the ones that finish first
-			if (itask.lt.pn1) then
-				itask = itask + 1
-				call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_COMM_WORLD,ierr)
-			else
-				call MPI_Send(0,1,MPI_INTEGER,stat(MPI_SOURCE),0,MPI_COMM_WORLD,ierr)
-			end if
-		end do
-	else
-		! Other processors calculate each point of the integral and waits for new points
-		do
-			if(ix.gt.pn1) exit
+    ! Writing into files
+    ! Exchange interactions
+    exchange_writing_loop: do j=1,nmaglayers ; do i=1,nmaglayers
+      iw = 199+(j-1)*nmaglayers*2+(i-1)*2
+      if(i.eq.j) then
+        iw = iw + 1
+        write(unit=iw,fmt="(4x,i3,3x,2(es16.9,2x))") Npl,Jij(i,j,1,1),Jij(i,j,2,2)
+        iw = iw + 1
+      else
+        iw = iw + 1
+        write(unit=iw,fmt="(4x,i3,3x,3(es16.9,2x))") Npl,trJij(i,j),Jijs(i,j,1,1),Jijs(i,j,2,2)
+        iw = iw + 1
+        write(unit=iw,fmt="(4x,i3,3x,es16.9,2x)") Npl,Jija(i,j,1,2)
+      end if
+    end do ; end do exchange_writing_loop
 
-			! First and second integrations (in the complex plane)
-			call sumk_jij(Ef,y(ix),Jijint)
-			Jijint = Jijint*wght(ix)/pi
+    ! Closing files
+    if(Npl.eq.Npl_f) then
+      ! Closing files
+      do j=1,nmaglayers ; do i=1,nmaglayers
+        iw = 199+(j-1)*nmaglayers*2+(i-1)*2
+        if(i.eq.j) then
+          iw = iw + 1
+          close (iw)
+          iw = iw + 1
+        else
+          iw = iw + 1
+          close (iw)
+          iw = iw + 1
+          close (iw)
+        end if
+      end do ; end do
+    end if
+  end if
 
- 			if(lverbose) write(*,"('[coupling] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
-			! Sending results to process 0
-			call MPI_Send(Jijint,ncount,MPI_DOUBLE_PRECISION,0,11235,MPI_COMM_WORLD,ierr)
-			! Receiving new point or signal to exit
-			call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_COMM_WORLD,stat,ierr)
-			if(ix.eq.0) exit
-		end do
-	end if
+  deallocate(trJij,Jij,Jijs,Jija)
 
 	return
 	end subroutine coupling

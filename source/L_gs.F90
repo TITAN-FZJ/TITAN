@@ -17,20 +17,23 @@ subroutine L_gs()
   ncount=Npl*9*9
 !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
+  allocate( lxm(Npl),lym(Npl),lzm(Npl),lxpm(Npl),lypm(Npl),lzpm(Npl) )
+  if(myrank_row_hw.eq.0) write(outputunit_loop,"('[L_gs] Calculating Orbital Angular Momentum ground state... ')")
+
   gupgdint  = zero
 
-  ix = myrank+1
+  ix = myrank_row_hw+1
   itask = numprocs ! Number of tasks done initially
 
 !   Calculating the number of particles for each spin and orbital using a complex integral
-  if (myrank.eq.0) then ! Process 0 receives all results and send new tasks if necessary
+  if (myrank_row_hw.eq.0) then ! Process 0 receives all results and send new tasks if necessary
     call sumk_L_gs(Ef,y(ix),gupgd)
     gupgdint = gupgd*wght(ix)
-    if(lverbose) write(*,"('[L_gs] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
+    if(lverbose) write(outputunit_loop,"('[L_gs] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
 
     do i=2,pn1
-      call MPI_Recv(gupgd,ncount,MPI_DOUBLE_COMPLEX,MPI_ANY_SOURCE,8999+mpitag,MPI_COMM_WORLD,stat,ierr)
-      if(lverbose) write(*,"('[L_gs] Point ',i0,' received from ',i0)") i,stat(MPI_SOURCE)
+      call MPI_Recv(gupgd,ncount,MPI_DOUBLE_COMPLEX,MPI_ANY_SOURCE,8999+mpitag,MPIComm_Row_hw,stat,ierr)
+      if(lverbose) write(outputunit_loop,"('[L_gs] Point ',i0,' received from ',i0)") i,stat(MPI_SOURCE)
 
       gupgdint = gupgdint + gupgd
 
@@ -38,9 +41,9 @@ subroutine L_gs()
       ! the rest of the points to the ones that finish first
       if (itask.lt.pn1) then
         itask = itask + 1
-        call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_COMM_WORLD,ierr)
+        call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPIComm_Row_hw,ierr)
       else
-        call MPI_Send(0,1,MPI_INTEGER,stat(MPI_SOURCE),0,MPI_COMM_WORLD,ierr)
+        call MPI_Send(0,1,MPI_INTEGER,stat(MPI_SOURCE),0,MPIComm_Row_hw,ierr)
       end if
     end do
   else
@@ -50,14 +53,14 @@ subroutine L_gs()
       call sumk_L_gs(Ef,y(ix),gupgd)
       gupgd = gupgd*wght(ix)
 
-      if(lverbose) write(*,"('[L_gs] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
-      call MPI_Send(gupgd,ncount,MPI_DOUBLE_COMPLEX,0,8999+mpitag,MPI_COMM_WORLD,ierr)
-      call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_COMM_WORLD,stat,ierr)
+!       if(lverbose) write(outputunit_loop,"('[L_gs] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
+      call MPI_Send(gupgd,ncount,MPI_DOUBLE_COMPLEX,0,8999+mpitag,MPIComm_Row_hw,ierr)
+      call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPIComm_Row_hw,stat,ierr)
       if(ix.eq.0) exit
     end do
   end if
 
-  if(myrank.ne.0) then
+  if(myrank_row_hw.ne.0) then
     return
   end if
 
@@ -78,6 +81,16 @@ subroutine L_gs()
     lzm(i)  = lzm(i)  + real(lz (mu,nu)*gupgdint(i,nu,mu))
   end do ; end do ; end do
 
+  ! Calculating angles of GS OAM
+  do i = 1,Npl
+    labs(i)   = sqrt((lxm(i)**2)+(lym(i)**2)+(lzm(i)**2))
+    ltheta(i) = acos(lzm(i)/sqrt(lxm(i)**2+lym(i)**2+lzm(i)**2))
+    lphi(i)   = atan2(lym(i),lxm(i))
+    lpabs(i)  = sqrt((lxpm(i)**2)+(lypm(i)**2)+(lzpm(i)**2))
+    lptheta(i)= acos(lzpm(i)/sqrt(lxpm(i)**2+lypm(i)**2+lzpm(i)**2))
+    lpphi(i)  = atan2(lypm(i),lxpm(i))
+  end do
+
   return
 end subroutine L_gs
 
@@ -88,7 +101,7 @@ subroutine sumk_L_gs(e,ep,gupgd)
   use mod_constants, only: pi, zero
   use mod_parameters
   use mod_generate_kpoints
-!$  use mod_mpi_pars, only: myrank
+!$  use mod_mpi_pars, only: myrank_row_hw
 !$  use omp_lib
   implicit none
 !$  integer       :: nthreads,mythread
@@ -102,11 +115,11 @@ subroutine sumk_L_gs(e,ep,gupgd)
 
 !$omp parallel default(none) &
 !$omp& private(mythread,iz,kp,gf,i,mu,nu,mup,nup) &
-!$omp& shared(kbz,nkpoints,wkbz,e,ep,Npl,gupgd,myrank,nthreads)
+!$omp& shared(kbz,nkpoints,wkbz,e,ep,Npl,gupgd,myrank_row_hw,nthreads,outputunit_loop)
 !$  mythread = omp_get_thread_num()
-!$  if((mythread.eq.0).and.(myrank.eq.0)) then
+!$  if((mythread.eq.0).and.(myrank_row_hw.eq.0)) then
 !$    nthreads = omp_get_num_threads()
-!$    write(*,"('Number of threads: ',i0)") nthreads
+!$    write(outputunit_loop,"('[L_gs] Number of threads: ',i0)") nthreads
 !$  end if
 
 !$omp do reduction(+:gupgd)

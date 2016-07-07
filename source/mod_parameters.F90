@@ -34,11 +34,13 @@ module mod_parameters
   real(double) :: socscale
 !========================================================================================!
 ! Turn on/off static magnetic field, option to give in magnetic field in tesla
-  logical :: FIELD
+  logical :: lfield
 ! Values of magnetic field in cartesian or spherical coordinates
-  character(len=3),dimension(3)  :: dcfield = ["hwa","hwt","hwp"]
+  character(len=9),dimension(7)  :: dcfield = ["hwa      ","hwt      ","hwp      ","hwahwt   ","hwahwp   ","hwthwp   ","hwahwthwp"]
+  character(len=60)              :: dc_header,dcprefix
+  character(len=60),allocatable  :: dc_fields(:)
+  real(double)     ,allocatable  :: hw_list(:,:)
   integer       :: dcfield_dependence=0
-  real(double)  :: dclimit_field_dependence(3)!,MPIdelta_field(3)
   real(double)  :: hwx=0.d0,hwy=0.d0,hwz=0.d0,tesla=1.d0
   real(double)  :: hwa,hwa_i=0.d0,hwa_f=0.d0,hwa_s
   integer       :: hwa_npts,hwa_npt1=1,hwa_count
@@ -46,6 +48,7 @@ module mod_parameters
   integer       :: hwt_npts,hwt_npt1=1,hwt_count
   real(double)  :: hwp,hwp_i=0.d0,hwp_f=0.d0,hwp_s
   integer       :: hwp_npts,hwp_npt1=1,hwp_count
+  integer       :: hw_count,total_hw_npt1
 !========================================================================================!
 ! Number of parts to divide energy integral I1+I2 and I3
   integer      :: pn1,pn2,pnt
@@ -80,6 +83,7 @@ module mod_parameters
   logical :: lslatec      = .false.
   logical :: lnojac       = .false.
   logical :: lontheflysc  = .false.
+  logical :: lrotatemag   = .false.
 !========================================================================================!
 ! Activate debug options
   logical :: lverbose = .false.
@@ -95,10 +99,13 @@ module mod_parameters
   integer :: renormnb
 !========================================================================================!
 ! Skip self-consistency
-  logical :: skipsc
+  logical :: skipsc,lselfcon
 ! Give a file to start self-consistency
   character(len=200) :: scfile
-  integer            :: scfileini
+!========================================================================================!
+! Output file
+  integer            :: outputunit=123456789,outputunit_loop
+  character(len=200) :: outputdhe,outputdhe_loop
 !========================================================================================!
 ! Choose between tight-binding (T) or orthogonal (O) DFT parameters
   character(len=1)  :: dfttype

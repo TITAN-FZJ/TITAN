@@ -1,6 +1,6 @@
 module mod_generate_kpoints
 	use mod_f90_kind
-	use mod_parameters, only: a0, ncp, runoptions
+	use mod_parameters, only: a0, ncp, runoptions, outputunit
 	use mod_constants
 	implicit none
 !========================================================================================!
@@ -11,21 +11,16 @@ module mod_generate_kpoints
 contains
 	!-- Generating integration points in the Brillouin Zone --
 	subroutine generate_kpoints_bcc110()
-		use MPI
 		use mod_mpi_pars
 		implicit none
-		integer         :: i,j,AllocateStatus
+		integer         :: i,j
 		integer					:: m0,m1,imax,ki,jmax,kj,iz
 		real(double)    :: beta,beta2,fact
 		real(double)    :: akxp(4),akzp(4),akxt,akzt,akx,aky,akz
 		!   Generation of the Cunningham points for a centred rectangular
 		!   lattice. The units are chosen with the lattice parameter a0.
 
-		allocate( kbz(4**(ncp+1),3),wkbz(4**(ncp+1)),kbz2d(4**(ncp+1),2), STAT=AllocateStatus )
-		if (AllocateStatus.ne.0) then
-	    write(*,"('[mod_generate_kpoints] Not enough memory for: kbz,wkbz,kbz2d')")
-			call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-		end if
+		allocate( kbz(4**(ncp+1),3),wkbz(4**(ncp+1)),kbz2d(4**(ncp+1),2) )
 
 !--- k integration parameters ------
 		beta  = 0.5d0*sq2
@@ -80,16 +75,15 @@ contains
 
 		wkbz(:) = 1.d0/dble(nkpoints)
 
-		if((myrank.eq.0))  write(*,"('[mod_generate_kpoints] ',i0,' k-points generated.')") nkpoints
+		if((myrank.eq.0))  write(outputunit,"('[mod_generate_kpoints] ',i0,' k-points generated.')") nkpoints
 
 		return
 	end subroutine generate_kpoints_bcc110
 
 	subroutine generate_kpoints_fcc100()
-		use MPI
 		use mod_mpi_pars
 		implicit none
-		integer         :: iz,AllocateStatus
+		integer         :: iz
 		integer					:: ki,kj,nkmax,icount
 		real(double)		:: auxk,auxw
 		real(double)    :: akp(8,2)
@@ -97,15 +91,11 @@ contains
 !   the units are chosen using the variable for the lattice parameter a0.
 
 		if(ncp.le.0) then
-	    write(*,"('[mod_generate_kpoints] ncp must be greater than 0')")
+	    if(myrank.eq.0) write(outputunit,"('[mod_generate_kpoints] ncp must be greater than 0')")
 			call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
 		end if
 		nkpoints = 8*(2**(ncp-1))*(1+2**ncp)
-		allocate( kbz(nkpoints,3),wkbz(nkpoints),kbz2d(nkpoints,2), stat=AllocateStatus )
-		if (AllocateStatus.ne.0) then
-	    write(*,"('[mod_generate_kpoints] Not enough memory for: kbz,wkbz,kbz2d')")
-			call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-		end if
+		allocate( kbz(nkpoints,3),wkbz(nkpoints),kbz2d(nkpoints,2) )
 		nkmax = 2**ncp
 		auxk  = dble(2*nkmax)
 		auxw  = 8.d0*dble(2**(ncp+ncp-1))
@@ -158,10 +148,10 @@ contains
 		end do
 
 		if(icount.ne.nkpoints) then
-			 if(myrank.eq.0) write(*,"('[mod_generate_kpoints] Incorrect number of points: icount = ',i0,', nkpoints = ',i0)") icount,nkpoints
+			 if(myrank.eq.0) write(outputunit,"('[mod_generate_kpoints] Incorrect number of points: icount = ',i0,', nkpoints = ',i0)") icount,nkpoints
 			 call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
 		end if
-		if((myrank.eq.0))  write(*,"('[mod_generate_kpoints] ',i0,' k-points generated.')") nkpoints
+		if((myrank.eq.0))  write(outputunit,"('[mod_generate_kpoints] ',i0,' k-points generated.')") nkpoints
 
 		return
 	end subroutine generate_kpoints_fcc100
@@ -169,11 +159,10 @@ contains
   subroutine generate_kpoints_fcc111()
     ! Generation of the k-points points for an hexagonal lattice.
     ! The generated k-points units are chosen using a0.
-		use MPI
 		use mod_mpi_pars
 		use mod_constants, only: pi,sq3
     implicit none
-    integer         :: iz,AllocateStatus
+    integer         :: iz
     integer         :: ki,kj
     real(kind=8)    :: a1(2),a2(2),b1(2),b2(2),c1(2),c2(2)
     real(kind=8)    :: weight,dnkpoints
@@ -242,11 +231,7 @@ contains
       end do
     end do
 
-		allocate( kbz(nkpoints,3),wkbz(nkpoints),kbz2d(nkpoints,2), stat=AllocateStatus )
-		if (AllocateStatus.ne.0) then
-	    write(*,"('[mod_generate_kpoints] Not enough memory for: kbz,wkbz,kbz2d')")
-			call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-		end if
+		allocate( kbz(nkpoints,3),wkbz(nkpoints),kbz2d(nkpoints,2) )
 
 		! Rotation matrices to transform 2D BZ to 3D BZ
 	  rm2 = 0.d0
@@ -275,12 +260,30 @@ contains
       weight = weight + wkbz(iz)
     end do
 
-		if((myrank.eq.0))  write(*,"('[mod_generate_kpoints] ',i0,' k-points generated.')") nkpoints
+		if((myrank.eq.0))  write(outputunit,"('[mod_generate_kpoints] ',i0,' k-points generated.')") nkpoints
 
-!     write(*,"('[mod_generate_kpoints] ',i0,' k-points generated.')") nkpoints
-!     write(*,"('[mod_generate_kpoints] ',es9.2,' total weight.')") weight
-!     write(*,"('[mod_generate_kpoints] ',f15.2,' dnkpoints.')") dnkpoints
+!     write(outputunit,"('[mod_generate_kpoints] ',i0,' k-points generated.')") nkpoints
+!     write(outputunit,"('[mod_generate_kpoints] ',es9.2,' total weight.')") weight
+!     write(outputunit,"('[mod_generate_kpoints] ',f15.2,' dnkpoints.')") dnkpoints
 
     return
   end subroutine generate_kpoints_fcc111
+
+  subroutine write_kpoints_to_file()
+  	integer :: i
+
+    open (unit=2222, file='kpoints2d',status='unknown')
+    write(unit=2222,fmt="(a)") ' #      kx            ky            wk'
+    open (unit=3333, file='kpoints3d',status='unknown')
+    write(unit=3333,fmt="(a)") ' #      kx            ky            kz            wk'
+    do i=1,nkpoints
+      write(unit=2222,fmt="(3(f12.9,2x))") kbz2d(i,1),kbz2d(i,2),wkbz(i)
+      write(unit=3333,fmt="(4(f12.9,2x))") kbz(i,1),kbz(i,2),kbz(i,3),wkbz(i)
+    end do
+    close(2222)
+    close(3333)
+
+    return
+  end subroutine write_kpoints_to_file
+
 end module mod_generate_kpoints

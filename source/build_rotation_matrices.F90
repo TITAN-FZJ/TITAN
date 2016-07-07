@@ -4,15 +4,18 @@
 ! rotation matrix (A) is different than the right one (B).
 ! iflag = 1 calculates A
 ! iflag = 2 calculates B
-subroutine build_rotation_matrices_chi(theta,phi,rotmat,iflag)
+subroutine build_rotation_matrices_chi(theta_in,phi_in,rotmat,iflag)
   use mod_f90_kind
-  use mod_constants, only: zi
+  use mod_constants, only: zi,pi
   implicit none
   integer,                        intent(in)  :: iflag
-  real(double),                   intent(in)  :: theta,phi
-  real(double)                                :: onepluscos,oneminuscos,sintheta
+  real(double),                   intent(in)  :: theta_in,phi_in
+  real(double)                                :: theta,phi,onepluscos,oneminuscos,sintheta
   complex(double)                             :: expphi,expmphi
   complex(double),dimension(4,4), intent(out) :: rotmat
+
+  theta = theta_in*pi
+  phi   = phi_in*pi
 
   expphi      = exp(zi*phi)
   expmphi     = conjg(expphi)

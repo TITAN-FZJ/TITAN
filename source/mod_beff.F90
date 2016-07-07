@@ -10,14 +10,14 @@ contains
   subroutine allocate_beff()
     use mod_f90_kind
     use mod_mpi_pars
-    use mod_parameters, only: dimsigmaNpl
+    use mod_parameters, only: dimsigmaNpl,outputunit
     implicit none
     integer           :: AllocateStatus
 
     if(myrank_row.eq.0) then
       allocate( Beff(dimsigmaNpl),Beff_cart(dimsigmaNpl),chiinv(dimsigmaNpl,dimsigmaNpl), STAT = AllocateStatus )
       if (AllocateStatus.ne.0) then
-        if(myrank.eq.0) write(*,"('[allocate_beff] Not enough memory for: Beff,Beff_cart,chiinv')")
+        write(outputunit,"('[allocate_beff] Not enough memory for: Beff,Beff_cart,chiinv')")
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
     end if
@@ -41,6 +41,7 @@ contains
   ! This subroutine opens and closes all the files needed for the effective field
   subroutine openclose_beff_files(iflag)
     use mod_parameters
+    use mod_mpi_pars
     implicit none
 
     character(len=500)  :: varm
@@ -62,8 +63,8 @@ contains
     else
       SOCc = "F"
     end if
-    if(FIELD) then
-      write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hwa,hwt,hwp
+    if(lfield) then
+      write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
       if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
     end if
 
@@ -93,8 +94,8 @@ contains
       end do ; end do
       ! Stop if some file does not exist
       if(errt.ne.0) then
-        write(*,"(a,i0,a)") "[openclose_beff_files] Some file(s) do(es) not exist! Stopping before starting calculations..."
-        stop
+        write(outputunit,"(a,i0,a)") "[openclose_beff_files] Some file(s) do(es) not exist! Stopping before starting calculations..."
+        call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
     else
       do sigma=1,4 ; do i=1,Npl
@@ -127,8 +128,9 @@ contains
 
 
   ! This subroutine opens and closes all the files needed for the effective field
-  subroutine openclose_dclimit_beff_files(iflag)
+  subroutine openclose_dc_beff_files(iflag)
     use mod_parameters
+    use mod_mpi_pars
     implicit none
 
     character(len=500)  :: varm
@@ -150,12 +152,13 @@ contains
     else
       SOCc = "F"
     end if
-    if(FIELD) then
-      if(dcfield_dependence.ne.1) write(fieldpart,"(a,'_hwa=',es9.2)") trim(fieldpart),hwa
-      if(dcfield_dependence.ne.2) write(fieldpart,"(a,'_hwt=',f5.2)") trim(fieldpart),hwt
-      if(dcfield_dependence.ne.3) write(fieldpart,"(a,'_hwp=',f5.2)") trim(fieldpart),hwp
-      if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
+
+    if(dcfield_dependence.ne.7) then
+      if((dcfield_dependence.ne.1).and.(dcfield_dependence.ne.4).and.(dcfield_dependence.ne.5)) write(fieldpart,"(a,'_hwa=',es9.2)") trim(fieldpart),hwa
+      if((dcfield_dependence.ne.2).and.(dcfield_dependence.ne.4).and.(dcfield_dependence.ne.6)) write(fieldpart,"(a,'_hwt=',f5.2)") trim(fieldpart),hwt
+      if((dcfield_dependence.ne.3).and.(dcfield_dependence.ne.5).and.(dcfield_dependence.ne.6)) write(fieldpart,"(a,'_hwp=',f5.2)") trim(fieldpart),hwp
     end if
+    if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
 
     folder = "Beff"
     if(lhfresponses) folder = trim(folder) // "_HF"
@@ -169,22 +172,22 @@ contains
     if(iflag.eq.0) then
       do sigma=1,4 ; do i=1,Npl
         iw = 80000+(sigma-1)*Npl+i
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/dc',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder),trim(filename),direction(sigma),dcfield(dcfield_dependence),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder),trim(dcprefix),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
         open (unit=iw, file=varm, status='unknown', form='formatted')
-        write(unit=iw, fmt="('#   field  , imaginary part of ',a,a,' , real part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma)
+        write(unit=iw, fmt="('#',a,' imaginary part of ',a,a,' , real part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma)
         close(unit=iw)
       end do ; end do
     else if (iflag.eq.1) then
       do sigma=1,4 ; do i=1,Npl
         iw = 80000+(sigma-1)*Npl+i
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/dc',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder),trim(filename),direction(sigma),dcfield(dcfield_dependence),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder),trim(dcprefix),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
       end do ; end do
       ! Stop if some file does not exist
       if(errt.ne.0) then
-        write(*,"(a,i0,a)") "[openclose_dclimit_beff_files] Some file(s) do(es) not exist! Stopping before starting calculations..."
-        stop
+        write(outputunit,"(a,i0,a)") "[openclose_dc_beff_files] Some file(s) do(es) not exist! Stopping before starting calculations..."
+        call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
     else
       do sigma=1,4 ; do i=1,Npl
@@ -194,27 +197,25 @@ contains
     end if
 
     return
-  end subroutine openclose_dclimit_beff_files
+  end subroutine openclose_dc_beff_files
 
   ! This subroutine write all the effective fields into files
   ! (already opened with openclose_beff_files(1))
   ! Some information may also be written on the screen
-  subroutine write_dclimit_beff(dcfield_variable)
+  subroutine write_dc_beff()
     use mod_f90_kind
-    use mod_constants, only: pi
-    use mod_parameters, only: Npl,sigmai2i
+    use mod_parameters, only: Npl,sigmai2i,dc_fields,hw_count
     use mod_magnet, only: mtheta,mphi
     implicit none
     integer  :: i,iw,sigma
-    real(double),intent(in) :: dcfield_variable
 
     do sigma=1,4 ; do i=1,Npl
       iw = 80000+(sigma-1)*Npl+i
 
-      write(unit=iw,fmt="(8(es16.9,2x))") dcfield_variable,aimag(Beff_cart(sigmai2i(sigma,i))),real(Beff_cart(sigmai2i(sigma,i))),atan2(aimag(Beff_cart(sigmai2i(sigma,i))),real(Beff_cart(sigmai2i(sigma,i)))),real(Beff_cart(sigmai2i(sigma,i)))/abs(Beff_cart(sigmai2i(sigma,i))),aimag(Beff_cart(sigmai2i(sigma,i)))/abs(Beff_cart(sigmai2i(sigma,i))),mtheta(i)*pi,mphi(i)*pi
+      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),aimag(Beff_cart(sigmai2i(sigma,i))),real(Beff_cart(sigmai2i(sigma,i))),atan2(aimag(Beff_cart(sigmai2i(sigma,i))),real(Beff_cart(sigmai2i(sigma,i)))),real(Beff_cart(sigmai2i(sigma,i)))/abs(Beff_cart(sigmai2i(sigma,i))),aimag(Beff_cart(sigmai2i(sigma,i)))/abs(Beff_cart(sigmai2i(sigma,i))),mtheta(i),mphi(i)
     end do ; end do
 
     return
-  end subroutine write_dclimit_beff
+  end subroutine write_dc_beff
 
 end module mod_beff

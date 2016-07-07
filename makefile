@@ -28,7 +28,7 @@ SHELL = /bin/sh
 # Filename and folders configuration               #
 ####################################################
 SRCDIR = ./source
-BINDIR = .
+BINDIR = ./bin
 OBJDIR = ./build/$(PLATFORM)
 ifdef FILE
 	FILENAME = $(BINDIR)/$(FILE)
@@ -281,18 +281,18 @@ endif
 all: $(FILENAME)
 
 $(FILENAME): $(OBJ)
-	@echo Creating executable $@ $(and $(strip $(DEBUG) $(PARALLEL) $(PERFORM)), with $(strip $(DEBUG) $(PARALLEL) $(PERFORM)))
+	@echo Creating executable $(addprefix $(BINDIR)/,$(notdir $@)) $(and $(strip $(DEBUG) $(PARALLEL) $(PERFORM)), with $(strip $(DEBUG) $(PARALLEL) $(PERFORM)))
 	@$(FC) $^ -o $@ $(LLIBS)
 
 $(OBJDIR)/%.o $(OBJDIR)/%.mod: $(SRCDIR)/%.F90
-	@echo Compiling file $< to $(addprefix $(OBJDIR)/,$(notdir $(patsubst %.F90,%.o,$<))) $(and $(strip $(DEBUG) $(PARALLEL) $(PERFORM)), with $(strip $(DEBUG) $(PARALLEL) $(PERFORM)))
+	@echo Compiling file $(addprefix $(SRCDIR)/,$(notdir $<)) to $(addprefix $(OBJDIR)/,$(notdir $(patsubst %.F90,%.o,$<))) $(and $(strip $(DEBUG) $(PARALLEL) $(PERFORM)), with $(strip $(DEBUG) $(PARALLEL) $(PERFORM)))
 	@$(FC) $(FFLAGS) $(CPP) -c $< -o $(addprefix $(OBJDIR)/,$(notdir $(patsubst %.F90,%.o,$<)))
 
 ####################################################
 # Dependencies                                     #
 ####################################################
 $(OBJDIR)/%.dep: $(SRCDIR)/%.F90 f90_mod_deps.py
-	@echo Building dependency of file $<
+	@echo Building dependency of file $(addprefix $(SRCDIR)/,$(notdir $<))
 	@./f90_mod_deps.py -o $@ -d "(mod_.*)" -D "$(OBJDIR)/\1.mod" -m "(.*)" -M "$(OBJDIR)/\1.mod" -O "$(OBJDIR)/\1.o" $<
 
 ifeq ($(filter $(MAKECMDGOALS),clean cleanall),)

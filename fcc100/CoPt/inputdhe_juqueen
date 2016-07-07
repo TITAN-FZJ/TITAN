@@ -1,37 +1,8 @@
 !*******************************************************************************!
 !                           CHOOSE WHAT TO CALCULATE                            !
-!  Options:                                                                     !
-!   0 - Test before SC                                                          !
-!   1 - Self consistency only                                                   !
-!   2 - Test after SC                                                           !
-!   3 - LDOS and exchange interactions as a function of energy                  !
-!   4 - Band structure                                                          !
-!   5 - Fermi surface                                                           !
-!   6 - Exhange interactions and anisotropies (full tensor)                     !
-!   7 - Local susceptibility as a function of energy                            !
-!   8 - Parallel currents, disturbances, susceptibilities, torques and          !
-!       effective fields as a function of energy                                !
-!   9 - dc-limit as a function of magnetic field (abs, theta or phi)            !
 -> itype = 8
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
-!   noUonall    - set U=0 on all layers                                         !
-!   noUonNM     - set U=0 on NM layers                                          !
-!   norenorm    - Use HF responses for all quantities                           !
-!   GSL         - Calculate ground state of Orbital Angular Momentum L          !
-!   verbose     - write intermediate steps                                      !
-!   ry2ev       - convert energy units to eV                                    !
-!   tesla       - read values of static magnetic field in tesla                 !
-!   debug       - turn on debugging mode                                        !
-!   createfiles - Just create files (WARNING: overwrite existing files!)        !
-!   addresults  - Add results to existing files, instead of creating new ones   !
-!                 (files MUST exist)                                            !
-!   slatec      - Use non-linear root finder dnsqe from Slatec library          !
-!   kpoints     - Write kpoints and weights into files                          !
-!   lineargfsoc - Adds linear order SOC in the GF                               !
-!   linearsoc   - Adds linear order SOC in the susceptibility                   !
-!   nojac       - Use only the values of the function on the selfconsistency    !
-!   ontheflysc  - Update sc files at every iteration (not only at the end)      !
 -> Options:
 !===============================================================================!
 !                               SYSTEM VARIABLES                                !
@@ -59,20 +30,8 @@
 -> SOC = T        ! Spin Orbit Coupling on (T) or off (F)
 -> socscale = 1.00d0
 !-------------------------------------------------------------------------------!
-! In the following, choose the direction of one of the neighbors                !
-!                  (1-4) - 1 n.n. ; (5-8) 2 n.n.                                !
-!              (use 9 for out-of-plane z, x // dirEfield)                       !
-!                               6                                               !
-!                               |                                               !
-!                            2  |  1                                            !
-!                             \ | /                                             !
-!                   ------7-----|-----5-------                                  !
-!                             / | \                                             !
-!                            3  |  4                                            !
-!                               |                                               !
-!                               8                                               !
 ! Magnetization axis:                                                           !
--> magaxis = 9
+-> magaxis = 6
 !===============================================================================!
 !                   DIRECTION OF IN-PLANE ELECTRIC FIELD                        !
 -> dirEfield = 1
@@ -118,10 +77,4 @@
 -> set1 = 3
 ! Second half of the slab:
 -> set2 = 4
-!*******************************************************************************!
-! To stop the program:                                                          !
-! - after an energy step, just create a file called 'stop'                      !
-! (e.g., in terminal: touch stop)                                               !
-! - after any layer/field calculation, just create a file called 'stopout'      !
-! (e.g., in terminal: touch stopout)                                            !
 !*******************************************************************************!

@@ -1,36 +1,8 @@
 !*******************************************************************************!
 !                           CHOOSE WHAT TO CALCULATE                            !
-!  Options:                                                                     !
-!   0 - Test before SC                                                          !
-!   1 - Self consistency only                                                   !
-!   2 - Test after SC                                                           !
-!   3 - LDOS and exchange interactions as a function of energy                  !
-!   4 - Band structure                                                          !
-!   5 - Fermi surface                                                           !
-!   6 - Exhange interactions and anisotropies (full tensor)                     !
-!   7 - Local susceptibility as a function of energy                            !
-!   8 - Parall. currents, disturb., susc. and eff. fields as a function of e    !
-!   9 - dc-limit as a function of magnetic field (abs, theta or phi)            !
 -> itype = 10
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
-!   noUonall    - set U=0 on all layers                                         !
-!   noUonNM     - set U=0 on NM layers                                          !
-!   norenorm    - Use HF responses for all quantities                           !
-!   GSL         - Calculate ground state of Orbital Angular Momentum L          !
-!   verbose     - write intermediate steps                                      !
-!   ry2ev       - convert energy units to eV                                    !
-!   tesla       - read values of static magnetic field in tesla                 !
-!   debug       - turn on debugging mode                                        !
-!   createfiles - Just create files (WARNING: overwrite existing files!)        !
-!   addresults  - Add results to existing files, instead of creating new ones   !
-!                 (files MUST exist)                                            !
-!   slatec      - Use non-linear root finder dnsqe from Slatec library          !
-!   kpoints     - Write kpoints and weights into files                          !
-!   lineargfsoc - Adds linear order SOC in the GF                               !
-!   linearsoc   - Adds linear order SOC in the susceptibility                   !
-!   nojac       - Use only the values of the function on the selfconsistency    !
-!   ontheflysc  - Update sc files at every iteration (not only at the end)      !
 -> Options: noUonNM ! GSL ! addresults ! verbose ! norenorm ! slatec ! GSL
 !===============================================================================!
 !                               SYSTEM VARIABLES                                !
@@ -59,15 +31,9 @@
 -> socscale = 1.0
 !-------------------------------------------------------------------------------!
 ! Magnetization axis:                                                           !
-! L - long axis (x - short axis; y - out-of-plane)                              !
-! S - short axis (x - long axis; y - out-of-plane)                              !
-! P - perpendicular out-of plane (x - short axis; y - long axis)                !
 -> magaxis = P
 !===============================================================================!
 !                   DIRECTION OF IN-PLANE ELECTRIC FIELD                        !
-! L - long axis                                                                 !
-! S - short axis                                                                !
-! O - other (specify in main program)                                           !
 -> dirEfield = L
 !===============================================================================!
 !                        IN-PLANE CURRENTS TO CALCULATE                         !
@@ -110,10 +76,4 @@
 -> set1 = 1
 ! Second half of the slab:
 -> set2 = 2
-!*******************************************************************************!
-! To stop the program:                                                          !
-! - after an energy step, just create a file called 'stop'                      !
-! (e.g., in terminal: touch stop)                                               !
-! - after any layer/field calculation, just create a file called 'stopout'      !
-! (e.g., in terminal: touch stopout)                                            !
 !*******************************************************************************!

@@ -73,9 +73,9 @@ if [[ ! -z "$addvariable" ]] ; then
 fi
 
 # Test if "recompile"  was used before
-if [[ "$rule" =~ "recompile" && ! -z `grep "recompile" last_compilation` ]] ; then
+if [[ "$rule" =~ "recompile" && ! -z `grep "recompile" build/${addplatform}/last_compilation` ]] ; then
   while true; do
-    read -n 1 -p "Last compilation used \"recompile\". Use again? " yn
+    read -n 1 -p "Last compilation on ${addplatform} used \"recompile\". Use again? " yn
     echo ' '
     # read -n 1 -e -p "Last compilation used \"recompile\". Use again? \n" yn
     case $yn in
@@ -91,7 +91,7 @@ if [[ "$rule" =~ "recompile" && ! -z `grep "recompile" last_compilation` ]] ; th
   done
 fi
 
-echo "make $rule $platform $parallel $debug $perform $filename $verbose" | tee last_compilation
+echo "make $rule $platform $parallel $debug $perform $filename $verbose" | tee build/${addplatform}/last_compilation
 
 make $rule $platform $parallel $debug $perform $filename $verbose
 
