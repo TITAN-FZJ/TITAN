@@ -16,8 +16,7 @@ contains
 
     call read_write_sc_results(0,err,lsuccess)
 
-    sc_file_status: select case (lsuccess)
-    case(.true.)
+    if(lsuccess) then
       if(err.eq.0) then ! Same parameters
         if(skipsc) then ! Skip option ON
           if(myrank_row_hw.eq.0) write(outputunit_loop,"('[read_previous_results] Existing results for the same parameters were read. Skipping self-consistency...')")
@@ -30,26 +29,37 @@ contains
         if(myrank_row_hw.eq.0) write(outputunit_loop,"('[read_previous_results] Existing results for other parameters were read. Updating values...')")
         lselfcon = .true.
       end if
-      ! Calculating angles of GS magnetization in units of pi
+      ! Calculating angles of GS magnetization in units of pi and magnetization vector
       do i = 1,Npl
         mabs(i)   = sqrt((mx(i)**2)+(my(i)**2)+(mz(i)**2))
         mtheta(i) = acos(mz(i)/mabs(i))/pi
-        mphi(i)   = atan2(my(i),mx(i))/pi
+        if(abs(mtheta(i)).gt.1.d-8) then
+          if(abs(abs(mtheta(i))-1.d0).gt.1.d-8) then
+            mphi(i)   = atan2(my(i),mx(i))/pi
+          else
+            mphi(i) = 0.d0
+          end if
+          lrot = .true. ! Susceptibilities need to be rotated
+        else
+          mphi(i) = 0.d0
+        end if
+        mvec_cartesian(i,1) = mx(i)
+        mvec_cartesian(i,2) = my(i)
+        mvec_cartesian(i,3) = mz(i)
+        mvec_spherical(i,1) = mabs(i)
+        mvec_spherical(i,2) = mtheta(i)
+        mvec_spherical(i,3) = mphi(i)
       end do
-      if(sum(abs(mtheta)).gt.1.d-8) then
-        mphi = 0.d0
-        lrot = .true. ! Susceptibilities need to be rotated
-      end if
-    case(.false.) !  If file doesn't exist
+    else !  If file doesn't exist
       if(myrank_row_hw.eq.0) write(outputunit_loop,"('[read_previous_results] Self-consistency file does not exist.')")
       lselfcon = .true.
       ! Parameters: center of band, magnetization, exchange split
       eps1 = 0.d0
       mx = 0.d0
       my = 0.d0
-      mz = 0.5d0
+      mz = sign(0.5d0,hw_list(hw_count,1))
       do i=1,Npl
-        if(layertype(i+1).eq.2) mz(i) = 2.d0
+        if(layertype(i+1).eq.2) mz(i) = sign(2.d0,hw_list(hw_count,1))
       end do
       mp = zero
       if(lfield) then
@@ -64,7 +74,7 @@ contains
         hdelp(i)  = 0.5d0*U(i+1)*mp(i)
       end do
       hdelm = conjg(hdelp)
-    end select sc_file_status
+    end if
 
     return
   end subroutine read_previous_results
@@ -75,20 +85,42 @@ contains
     use mod_magnet
     use mod_parameters
     use mod_mpi_pars, only: myrank_row_hw
+    use mod_tight_binding
+    use mod_lattice, only: plnn
     implicit none
-    integer :: i,err
+    integer :: i,err,sign
     logical :: lsuccess
+    real(double) :: mdotb
+
+    if(myrank_row_hw.eq.0) write(outputunit_loop,"('[rotate_magnetization_to_field] Rotating previous magnetization to the direction of the field...')")
 
     do i=1,Npl
+      mdotb   = hwx*mx(i)+hwy*my(i)+hwz*mz(i)
+      sign    = dble(mdotb/abs(mdotb))
       mabs(i) = sqrt(abs(mp(i))**2+(mz(i)**2))
-      mx(i)   = mabs(i)*sin(hw_list(hw_count,2)*pi)*cos(hw_list(hw_count,3)*pi)
-      my(i)   = mabs(i)*sin(hw_list(hw_count,2)*pi)*sin(hw_list(hw_count,3)*pi)
-      mz(i)   = mz(i)  *cos(hw_list(hw_count,2)*pi)
+      mx(i)   = sign*mabs(i)*sin(hw_list(hw_count,2)*pi)*cos(hw_list(hw_count,3)*pi)
+      my(i)   = sign*mabs(i)*sin(hw_list(hw_count,2)*pi)*sin(hw_list(hw_count,3)*pi)
+      mz(i)   = sign*mabs(i)*cos(hw_list(hw_count,2)*pi)
       mp(i)   = cmplx(mx(i),my(i),double)
     end do
 
     ! Writing new eps1 and rotated mag to file (without self-consistency)
     if(myrank_row_hw.eq.0) call read_write_sc_results(1,err,lsuccess)
+
+    ! Writing self-consistency results on screen
+    if(myrank_row_hw.eq.0)  call write_sc_results_on_screen()
+
+    deallocate(sigmai2i,sigmaimunu2i,sigmaijmunu2i,eps1)
+    deallocate(mx,my,mz,mvec_cartesian,mvec_spherical,hdel,mp,hdelp,mm,hdelm)
+    deallocate(mabs,mtheta,mphi,labs,ltheta,lphi,lpabs,lptheta,lpphi)
+    if(lGSL) deallocate(lxm,lym,lzm,lxpm,lypm,lzpm)
+    deallocate(mmlayer,layertype,U,mmlayermag,lambda,npart0)
+    select case (plnn)
+    case(1)
+      deallocate(t00,t01)
+    case(2)
+      deallocate(t00,t01,t02)
+    end select
 
     return
   end subroutine rotate_magnetization_to_field
@@ -154,30 +186,45 @@ contains
 
     deallocate(sc_solu,diag,qtf,w,fvec,jac,wa)
 
-    ! Calculating new angles of GS magnetization in units of pi
+    ! Calculating new angles of GS magnetization in units of pi and magnetization vector
     do i = 1,Npl
       mabs(i)   = sqrt((mx(i)**2)+(my(i)**2)+(mz(i)**2))
       mtheta(i) = acos(mz(i)/mabs(i))/pi
-      mphi(i)   = atan2(my(i),mx(i))/pi
+      if(abs(mtheta(i)).gt.1.d-8) then
+        if(abs(abs(mtheta(i))-1.d0).gt.1.d-8) then
+          mphi(i)   = atan2(my(i),mx(i))/pi
+        else
+          mphi(i) = 0.d0
+        end if
+        lrot = .true. ! Susceptibilities need to be rotated
+      else
+        mphi(i) = 0.d0
+      end if
+      mvec_cartesian(i,1) = mx(i)
+      mvec_cartesian(i,2) = my(i)
+      mvec_cartesian(i,3) = mz(i)
+      mvec_spherical(i,1) = mabs(i)
+      mvec_spherical(i,2) = mtheta(i)
+      mvec_spherical(i,3) = mphi(i)
     end do
-    if(sum(abs(mtheta)).gt.1.d-8) then
-      mphi = 0.d0
-      lrot = .true. ! Susceptibilities need to be rotated
-    end if
 
     return
   end subroutine do_self_consistency
 
   ! Writes the self-consistency results into files
   subroutine write_sc_results()
-    use mod_parameters, only: scfile
+    use mod_parameters, only: scfile,hw_count,total_hw_npt1
     use mod_mpi_pars
     implicit none
     integer :: err
     logical :: lsuccess
 
     if(myrank_row_hw.eq.0) call read_write_sc_results(1,err,lsuccess)
-    call MPI_Bcast(scfile,len(scfile),MPI_CHARACTER,0,MPIComm_Row_hw,ierr)
+    if(hw_count.ne.total_hw_npt1) then
+      call MPI_Bcast(scfile,len(scfile),MPI_CHARACTER,0,MPIComm_Row_hw,ierr)
+    else
+      scfile = ""
+    end if
 
     return
   end subroutine write_sc_results
@@ -257,6 +304,7 @@ contains
     if(lfield) then
       write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
       if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
+      if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
     end if
     if(SOC) then
       write(socpart,"('_magaxis=',A,'_socscale=',f5.2)") magaxis,socscale
@@ -403,10 +451,6 @@ contains
     ncount=Npl*9
     ncount2=N*N
 
-! #ifndef _JUQUEEN
-!     open(outputunit_loop,carriagecontrol ='fortran')
-! #endif
-
   ! Values used in the hamiltonian
     eps1  = x(1:Npl)
     mx_in = x(Npl+1:2*Npl)
@@ -444,15 +488,7 @@ contains
 
         if(lverbose) write(outputunit_loop,"('[sc_equations_and_jacobian1] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
         do i=2,pn1
-          ! Progress bar
-          prog = floor(i*100.d0/pn1)
-! #ifdef _JUQUEEN
-          write(outputunit_loop,"(a1,2x,i3,'% (',i0,'/',i0,') of nparticles e-sum on rank ',i0,a1,$)") spiner(mod(i,4)+1),prog,i,pn1,myrank_row_hw,char(13)
-! #else
-!           elapsed_time = MPI_Wtime() - start_program
-!           write(progbar,fmt="( a,i0,a )") "(1h+' ','Total time=',i2,'h:',i2,'m:',i2,'s  ',",1+(i+1)*20/pn1, "a,' ',i0,'%')"
-!           write(outputunit_loop,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(i+1)*20/pn1),prog
-! #endif
+          if(lverbose) call progress_bar(outputunit_loop,"densities energy points",i,pn1)
 
           call MPI_Recv(gdiaguur,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,9999+iter+mpitag,MPIComm_Row_hw,stat,ierr)
           call MPI_Recv(gdiagddr,ncount,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),8998+iter+mpitag,MPIComm_Row_hw,stat,ierr)
@@ -551,15 +587,7 @@ contains
 
         if(lverbose) write(outputunit_loop,"('[sc_equations_and_jacobian2] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
         do i=2,pn1
-          ! Progress bar
-          prog = floor(i*100.d0/pn1)
-! #ifdef _JUQUEEN
-           write(outputunit_loop,"(a1,2x,i3,'% (',i0,'/',i0,') of jacobian e-sum on rank ',i0,a1,$)") spiner(mod(i,4)+1),prog,i,pn1,myrank_row_hw,char(13)
-! #else
-!           elapsed_time = MPI_Wtime() - start_program
-!           write(progbar,fmt="( a,i0,a )") "(1h+' ','Total time=',i2,'h:',i2,'m:',i2,'s  ',",1+(i+1)*20/pn1, "a,' ',i0,'%')"
-!           write(outputunit_loop,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(i+1)*20/pn1),prog
-! #endif
+          if(lverbose) call progress_bar(outputunit_loop,"jacobian energy points",i,pn1)
 
           call MPI_Recv(ggr,ncount2,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,3333+iter+mpitag,MPIComm_Row_hw,stat,ierr)
           if(lverbose) write(outputunit_loop,"('[sc_equations_and_jacobian2] Point ',i0,' received from ',i0)") i,stat(MPI_SOURCE)
@@ -635,10 +663,6 @@ contains
     ncount=Npl*9
     !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
-! #ifndef _JUQUEEN
-!     open(outputunit_loop,carriagecontrol ='fortran')
-! #endif
-
     iflag=0
   ! Values used in the hamiltonian
     eps1  = x(1:Npl)
@@ -676,15 +700,7 @@ contains
 
       if(lverbose) write(outputunit_loop,"('[sc_equations] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
       do i=2,pn1
-        ! Progress bar
-        prog = floor(i*100.d0/pn1)
-! #ifdef _JUQUEEN
-        write(outputunit_loop,"(a1,2x,i3,'% (',i0,'/',i0,') of nparticles e-sum on rank ',i0,a1,$)") spiner(mod(i,4)+1),prog,i,pn1,myrank_row_hw,char(13)
-! #else
-!         elapsed_time = MPI_Wtime() - start_program
-!         write(progbar,fmt="( a,i0,a )") "(1h+' ','Total time=',i2,'h:',i2,'m:',i2,'s  ',",1+(i+1)*20/pn1, "a,' ',i0,'%')"
-!         write(outputunit_loop,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(i+1)*20/pn1),prog
-! #endif
+        if(lverbose) call progress_bar(outputunit_loop,"densities energy points",i,pn1)
 
         call MPI_Recv(gdiaguur,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,9999+iter+mpitag,MPIComm_Row_hw,stat,ierr)
         call MPI_Recv(gdiagddr,ncount,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),9998+iter+mpitag,MPIComm_Row_hw,stat,ierr)
@@ -799,10 +815,6 @@ contains
     !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
     ncount=16*Npl*Npl
 
-! #ifndef _JUQUEEN
-!     open(outputunit_loop,carriagecontrol ='fortran')
-! #endif
-
     iflag=0
   ! Values used in the hamiltonian
     eps1  = x(1:Npl)
@@ -830,15 +842,8 @@ contains
 
       if(lverbose) write(outputunit_loop,"('[sc_jacobian] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
       do i=2,pn1
+        if(lverbose) call progress_bar(outputunit_loop,"jacobian energy points",i,pn1)
         ! Progress bar
-        prog = floor(i*100.d0/pn1)
-! #ifdef _JUQUEEN
-         write(outputunit_loop,"(a1,2x,i3,'% (',i0,'/',i0,') of jacobian e-sum on rank ',i0,a1,$)") spiner(mod(i,4)+1),prog,i,pn1,myrank_row_hw,char(13)
-! #else
-!         elapsed_time = MPI_Wtime() - start_program
-!         write(progbar,fmt="( a,i0,a )") "(1h+' ','Total time=',i2,'h:',i2,'m:',i2,'s  ',",1+(i+1)*20/pn1, "a,' ',i0,'%')"
-!         write(outputunit_loop,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(i+1)*20/pn1),prog
-! #endif
 
         call MPI_Recv(ggr,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,3333+iter+mpitag,MPIComm_Row_hw,stat,ierr)
 
@@ -899,10 +904,6 @@ contains
     complex(double),dimension(Npl,9),intent(out) :: gdiagud,gdiagdu
     complex(double),dimension(Npl,Npl,18,18)     :: gf
 
-! #ifndef _JUQUEEN
-!     open(outputunit_loop,carriagecontrol ='fortran')
-! #endif
-
     gdiaguur= 0.d0
     gdiagddr= 0.d0
     gdiagud = zero
@@ -910,7 +911,7 @@ contains
 
   !$omp parallel default(none) &
   !$omp& private(mythread,iz,kp,gf,i,mu,mup) &
-  !$omp& shared(llineargfsoc,llinearsoc,prog,spiner,elapsed_time,start_program,progbar,lverbose,kbz,wkbz,nkpoints,er,ei,gdiaguur,gdiagddr,gdiagud,gdiagdu,Npl,myrank_row_hw,nthreads,outputunit_loop)
+  !$omp& shared(llineargfsoc,llinearsoc,lverbose,kbz,wkbz,nkpoints,er,ei,gdiaguur,gdiagddr,gdiagud,gdiagdu,Npl,myrank_row_hw,nthreads,outputunit_loop)
   !$  mythread = omp_get_thread_num()
   !$  if((mythread.eq.0).and.(myrank_row_hw.eq.0)) then
   !$    nthreads = omp_get_num_threads()
@@ -920,17 +921,7 @@ contains
   !$omp do
     kpoints: do iz=1,nkpoints
   !$  if((mythread.eq.0)) then
-        if((myrank_row_hw.eq.0).and.(lverbose)) then
-          ! Progress bar
-          prog = floor(iz*100.d0/nkpoints)
-! #ifdef _JUQUEEN
-          write(outputunit_loop,"(a1,2x,i3,'% (',i0,'/',i0,') of nparticles k-sum on rank ',i0,a1,$)") spiner(mod(iz,4)+1),prog,iz,nkpoints,myrank_row_hw,char(13)
-! #else
-!           elapsed_time = MPI_Wtime() - start_program
-!           write(progbar,fmt="( a,i0,a )") "(1h+' ','Total time=',i2,'h:',i2,'m:',i2,'s  ',",1+(iz+1)*20/nkpoints, "a,' ',i0,'%')"
-!           write(outputunit_loop,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(iz+1)*20/nkpoints),100*(iz+1)/nkpoints
-! #endif
-        end if
+        if((myrank_row_hw.eq.0).and.(lverbose)) call progress_bar(outputunit_loop,"densities kpoints",iz,nkpoints)
   !$   end if
 
       kp = kbz(iz,:)
@@ -971,12 +962,12 @@ contains
     implicit none
 !$  integer                  :: nthreads,mythread
     integer                  :: AllocateStatus
-    integer                  :: iz,i,j,i0,j0,mu,nu,sigma,sigmap
+    integer                  :: iz,i,j,i0,j0,mu,sigma,sigmap
     real(double)             :: kp(3)
     real(double),intent(in)  :: er,ei
     real(double),dimension(4*Npl,4*Npl),intent(out) :: ggr
     complex(double)                                 :: mhalfU(4,Npl),wkbzc
-    complex(double),dimension(4,18,18)              :: pauli,paulid,temp1,temp2
+    complex(double),dimension(4,18,18)              :: pauli_components1,pauli_components2,temp1,temp2
     complex(double),dimension(18,18)                :: gij,gji,temp,paulitemp
     complex(double),dimension(:,:,:,:,:,:),allocatable    :: gdHdxg,gvgdHdxgvg
     complex(double),dimension(Npl,Npl,18,18)        :: gf,gvg
@@ -985,30 +976,15 @@ contains
 !     open(outputunit_loop,carriagecontrol ='fortran')
 ! #endif
 
-  ! Pauli matrices in spin and orbital space
-    pauli  = zero
-    paulid = zero
-    do mu = 1,9
-      nu = mu+9
-      ! identity
-      pauli(1,mu,mu) = zum
-      pauli(1,nu,nu) = zum
-      if (mu.lt.5) cycle     ! Pauli matrices for d orbitals only
-      ! paulid matrix x
-      pauli(2,mu,nu) = zum
-      pauli(2,nu,mu) = zum
-      ! paulid matrix y
-      pauli(3,mu,nu) = -zi
-      pauli(3,nu,mu) = zi
-      ! paulid matrix z
-      pauli(4,mu,mu) = zum
-      pauli(4,nu,nu) = -zum
-
-      ! identity
-      paulid(1,mu,mu) = zum
-      paulid(1,nu,nu) = zum
-    end do
-    paulid(2:4,:,:) = pauli(2:4,:,:)
+    pauli_components1 = zero
+    pauli_components2 = zero
+!   Includes d orbitals in the charge component
+    pauli_components1(1,:,:)   = identorb18(:,:)
+    pauli_components1(2:4,:,:) = pauli_dorb(:,:,:)
+!   Excludes d orbitals in the charge component
+    pauli_components2(1, 5: 9, 5: 9) = identorb18( 5: 9, 5: 9)
+    pauli_components2(1,14:18,14:18) = identorb18(14:18,14:18)
+    pauli_components2(2:4,:,:) = pauli_dorb(:,:,:)
 
   ! Prefactor -U/2 in dH/dm and 1 in dH/deps1
     do j=1,Npl
@@ -1019,8 +995,8 @@ contains
     ggr    = 0.d0
 
 !$omp parallel default(none) &
-!$omp& private(mythread,AllocateStatus,errorcode,ierr,iz,kp,wkbzc,gf,gvg,temp,temp1,temp2,gij,gji,paulitemp,gdHdxg,gvgdHdxgvg,i,j,i0,j0,mu,nu,sigma) &
-!$omp& shared(llineargfsoc,llinearsoc,prog,spiner,elapsed_time,start_program,progbar,lverbose,kbz,wkbz,nkpoints,er,ei,ggr,mhalfU,pauli,paulid,Npl,myrank_row_hw,nthreads,outputunit,outputunit_loop)
+!$omp& private(mythread,AllocateStatus,errorcode,ierr,iz,kp,wkbzc,gf,gvg,temp,temp1,temp2,gij,gji,paulitemp,gdHdxg,gvgdHdxgvg,i,j,i0,j0,mu,sigma) &
+!$omp& shared(llineargfsoc,llinearsoc,lverbose,kbz,wkbz,nkpoints,er,ei,ggr,mhalfU,pauli_components1,pauli_components2,Npl,myrank_row_hw,nthreads,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread.eq.0).and.(myrank_row_hw.eq.0)) then
 !$    nthreads = omp_get_num_threads()
@@ -1035,17 +1011,7 @@ contains
 !$omp do reduction(+:ggr)
     kpoints: do iz=1,nkpoints
 !$  if((mythread.eq.0)) then
-        if((myrank_row_hw.eq.0).and.(lverbose)) then
-          ! Progress bar
-          prog = floor(iz*100.d0/nkpoints)
-! #ifdef _JUQUEEN
-          write(outputunit_loop,"(a1,2x,i3,'% (',i0,'/',i0,') of jacobian k-sum on rank ',i0,a1,$)") spiner(mod(iz,4)+1),prog,iz,nkpoints,myrank_row_hw,char(13)
-! #else
-!           elapsed_time = MPI_Wtime() - start_program
-!           write(progbar,fmt="( a,i0,a )") "(1h+' ','Total time=',i2,'h:',i2,'m:',i2,'s  ',",1+(iz+1)*20/nkpoints, "a,' ',i0,'%')"
-!           write(outputunit_loop,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(iz+1)*20/nkpoints),100*(iz+1)/nkpoints
-! #endif
-        end if
+        if((myrank_row_hw.eq.0).and.(lverbose)) call progress_bar(outputunit_loop,"jacobian kpoints",iz,nkpoints)
 !$   end if
 
       kp = kbz(iz,:)
@@ -1065,14 +1031,14 @@ contains
 
         do sigma = 1,4
           ! temp1 =  pauli*g_ij
-          paulitemp = pauli(sigma,:,:)
+          paulitemp = pauli_components1(sigma,:,:)
           call zgemm('n','n',18,18,18,zum,paulitemp,18,gij,18,zero,temp,18)
           temp1(sigma,:,:) = temp
         end do
 
         do sigmap = 1,4
           ! temp2 = (-U/2) * sigma* g_ji
-          paulitemp = paulid(sigmap,:,:)
+          paulitemp = pauli_components2(sigmap,:,:)
           call zgemm('n','n',18,18,18,mhalfU(sigmap,j),paulitemp,18,gji,18,zero,temp,18)
           temp2(sigmap,:,:) = temp
         end do
@@ -1092,14 +1058,14 @@ contains
 
           do sigma = 1,4
             ! temp1 = wkbz* pauli*gvg_ij
-            paulitemp = pauli(sigma,:,:)
+            paulitemp = pauli_components1(sigma,:,:)
             call zgemm('n','n',18,18,18,zum,paulitemp,18,gij,18,zero,temp,18)
             temp1(sigma,:,:) = temp
           end do
 
           do sigmap = 1,4
             ! temp2 = (-U/2) * sigma* gvg_ji
-            paulitemp = paulid(sigmap,:,:)
+            paulitemp = pauli_components2(sigmap,:,:)
             call zgemm('n','n',18,18,18,mhalfU(sigmap,j),paulitemp,18,gji,18,zero,temp,18)
             temp2(sigmap,:,:) = temp
           end do

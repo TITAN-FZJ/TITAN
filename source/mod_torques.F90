@@ -6,7 +6,7 @@ module mod_torques
   complex(double),allocatable   :: torques(:,:,:),rtorques(:,:,:)
 contains
 
-  ! This subroutine allocates variables related to the disturbance calculation
+  ! This subroutine allocates variables related to the torques calculation
   subroutine allocate_torques()
     use mod_f90_kind
     use mod_mpi_pars
@@ -15,10 +15,10 @@ contains
     integer           :: AllocateStatus
 
     ! Turning off external torque if static field is zero
-    if(.not.lfield) then
-      ntypetorque=2
-    else
+    if(lfield) then
       ntypetorque=3
+    else
+      ntypetorque=2
     end if
 
     if(myrank_row.eq.0) then
@@ -39,7 +39,7 @@ contains
     return
   end subroutine allocate_torques
 
-  ! This subroutine allocates variables related to the disturbance calculation
+  ! This subroutine deallocates variables related to the torques calculation
   subroutine deallocate_torques()
     use mod_f90_kind
     use mod_mpi_pars
@@ -82,6 +82,7 @@ contains
     if(lfield) then
       write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
       if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
+      if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
     end if
 
     folder = "SOT"
@@ -150,17 +151,39 @@ contains
     use mod_parameters, only: Npl,renorm
     implicit none
     integer  :: i,iw,sigma,typetorque
+    real(double) :: phase,sine,cosine
     real(double),intent(in) :: e
 
     do typetorque=1,ntypetorque ; do sigma=1,3 ; do i=1,Npl
       iw = 9000+(typetorque-1)*Npl*3+(sigma-1)*Npl+i
 
-      write(unit=iw,fmt="(7(es16.9,2x))") e,abs(torques(typetorque,sigma,i)),real(torques(typetorque,sigma,i)),aimag(torques(typetorque,sigma,i)),atan2(aimag(torques(typetorque,sigma,i)),real(torques(typetorque,sigma,i))),real(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i)),aimag(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
+      if(abs(torques(typetorque,sigma,i)).ge.1.d-10) then
+        phase  = atan2(aimag(torques(typetorque,sigma,i)),real(torques(typetorque,sigma,i)))
+        sine   = real(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
+        cosine = aimag(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
+      else
+        phase  = 0.d0
+        sine   = 0.d0
+        cosine = 0.d0
+      end if
+
+      write(unit=iw,fmt="(7(es16.9,2x))") e , abs(torques(typetorque,sigma,i)) , real(torques(typetorque,sigma,i)) , aimag(torques(typetorque,sigma,i)) , phase , sine , cosine
 
       ! Writing renormalized torques
       if(renorm) then
         iw = iw+1000
-        write(unit=iw,fmt="(7(es16.9,2x))") e,abs(rtorques(typetorque,sigma,i)),real(rtorques(typetorque,sigma,i)),aimag(rtorques(typetorque,sigma,i)),atan2(aimag(rtorques(typetorque,sigma,i)),real(rtorques(typetorque,sigma,i))),real(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i)),aimag(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
+
+        if(abs(rtorques(typetorque,sigma,i)).ge.1.d-10) then
+          phase  = atan2(aimag(rtorques(typetorque,sigma,i)),real(rtorques(typetorque,sigma,i)))
+          sine   = real(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
+          cosine = aimag(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
+        else
+          phase  = 0.d0
+          sine   = 0.d0
+          cosine = 0.d0
+        end if
+
+        write(unit=iw,fmt="(7(es16.9,2x))") e , abs(rtorques(typetorque,sigma,i)) , real(rtorques(typetorque,sigma,i)) , aimag(rtorques(typetorque,sigma,i)) , phase , sine , cosine
       end if
     end do ; end do ; end do
 
@@ -199,6 +222,7 @@ contains
       if((dcfield_dependence.ne.3).and.(dcfield_dependence.ne.5).and.(dcfield_dependence.ne.6)) write(fieldpart,"(a,'_hwp=',f5.2)") trim(fieldpart),hwp
     end if
     if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
+    if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
 
     folder = "SOT"
     if(lhfresponses) folder = trim(folder) // "_HF"
@@ -264,19 +288,40 @@ contains
   subroutine write_dc_torques()
     use mod_f90_kind
     use mod_parameters, only: Npl,renorm,dc_fields,hw_count
-    use mod_magnet, only: mtheta,mphi
+    use mod_magnet, only: mvec_spherical
     implicit none
-    integer  :: i,iw,sigma,typetorque
+    integer      :: i,iw,sigma,typetorque
+    real(double) :: phase,sine,cosine
 
     do typetorque=1,ntypetorque ; do sigma=1,3 ; do i=1,Npl
       iw = 90000+(typetorque-1)*Npl*3+(sigma-1)*Npl+i
 
-      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(torques(typetorque,sigma,i)) , real(torques(typetorque,sigma,i)) , atan2(aimag(torques(typetorque,sigma,i)),real(torques(typetorque,sigma,i))) , real(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i)) , aimag(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i)) , mtheta(i) , mphi(i)
+      if(abs(torques(typetorque,sigma,i)).ge.1.d-10) then
+        phase  = atan2(aimag(torques(typetorque,sigma,i)),real(torques(typetorque,sigma,i)))
+        sine   = real(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
+        cosine = aimag(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
+      else
+        phase  = 0.d0
+        sine   = 0.d0
+        cosine = 0.d0
+      end if
+      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(torques(typetorque,sigma,i)) , real(torques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
 
       ! Writing renormalized torques
       if(renorm) then
         iw = iw+1000
-        write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(rtorques(typetorque,sigma,i)) , real(rtorques(typetorque,sigma,i)) , atan2(aimag(rtorques(typetorque,sigma,i)),real(rtorques(typetorque,sigma,i))) , real(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i)) , aimag(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i)) , mtheta(i) , mphi(i)
+
+        if(abs(rtorques(typetorque,sigma,i)).ge.1.d-10) then
+          phase  = atan2(aimag(rtorques(typetorque,sigma,i)),real(rtorques(typetorque,sigma,i)))
+          sine   = real(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
+          cosine = aimag(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
+        else
+          phase  = 0.d0
+          sine   = 0.d0
+          cosine = 0.d0
+        end if
+
+        write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(rtorques(typetorque,sigma,i)) , real(rtorques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
       end if
     end do ; end do ; end do
 

@@ -34,7 +34,7 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
 
 !$omp parallel default(none) &
 !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,wkbzc,kp,df1iikl,pfdf1iikl,prett,preLxtt,preLytt,preLztt,dtdk,gf,expikr,gfuu,gfud,gfdu,gfdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &
-!$omp& shared(llineargfsoc,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,prog,spiner,lverbose,myrank_row_hw,kbz,wkbz,iflag,e,ep,nkpoints,r0,Ef,eta,nthreads,sigmai2i,sigmaimunu2i,sigmaijmunu2i,dim,Npl,n0sc1,n0sc2,plnn,t00,lxpt,lypt,lzpt,tlxp,tlyp,tlzp,outputunit,outputunit_loop)
+!$omp& shared(llineargfsoc,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,lverbose,myrank_row_hw,kbz,wkbz,iflag,e,ep,nkpoints,r0,Ef,eta,nthreads,sigmai2i,sigmaimunu2i,sigmaijmunu2i,dim,Npl,n0sc1,n0sc2,plnn,t00,lxpt,lypt,lzpt,tlxp,tlyp,tlzp,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread.eq.0).and.(myrank_row_hw.eq.0)) then
 !$    nthreads = omp_get_num_threads()
@@ -50,10 +50,7 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
   do iz=1,nkpoints
 !    Progress bar
 !$  if((mythread.eq.0)) then
-      if((myrank_row_hw.eq.0).and.(lverbose)) then
-        prog = floor(iz*100.d0/nkpoints)
-        write(outputunit_loop,"(a1,2x,i3,'% (',i0,'/',i0,') of k-sum on rank ',i0,a1,$)") spiner(mod(iz,4)+1),prog,iz,nkpoints,myrank_row_hw,char(13)
-      end if
+      if((myrank_row_hw.eq.0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,nkpoints)
 !$   end if
 
     kp = kbz(iz,:)
@@ -221,7 +218,8 @@ subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,Lzt
   use mod_tight_binding, only: t00
   use mod_prefactors
   use mod_progress
-  use mod_mpi_pars
+  use mod_mpi_pars, only: myrank_row_hw,errorcode,ierr
+  use MPI
 !$  use omp_lib
   implicit none
 !$  integer       :: nthreads,mythread
@@ -247,7 +245,7 @@ subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,Lzt
 
 !$omp parallel default(none) &
 !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,wkbzc,kp,df1iikl,pfdf1iikl,df1lsoc,prett,preLxtt,preLytt,preLztt,dtdk,expikr,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &
-!$omp& shared(tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,prefactorlsoc,prog,spiner,lverbose,myrank_row_hw,kbz,wkbz,iflag,e,ep,nkpoints,r0,Ef,eta,nthreads,sigmai2i,sigmaimunu2i,sigmaijmunu2i,dim,Npl,n0sc1,n0sc2,plnn,t00,lxpt,lypt,lzpt,tlxp,tlyp,tlzp,outputunit,outputunit_loop)
+!$omp& shared(tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,prefactorlsoc,lverbose,myrank_row_hw,kbz,wkbz,iflag,e,ep,nkpoints,r0,Ef,eta,nthreads,sigmai2i,sigmaimunu2i,sigmaijmunu2i,dim,Npl,n0sc1,n0sc2,plnn,t00,lxpt,lypt,lzpt,tlxp,tlyp,tlzp,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread.eq.0).and.(myrank_row_hw.eq.0)) then
 !$    nthreads = omp_get_num_threads()
@@ -268,10 +266,7 @@ subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,Lzt
   do iz=1,nkpoints
 !    Progress bar
 !$  if((mythread.eq.0)) then
-      if((myrank_row_hw.eq.0).and.(lverbose)) then
-        prog = floor(iz*100.d0/nkpoints)
-        write(outputunit_loop,"(a1,2x,i3,'% (',i0,'/',i0,') of k-sum on rank ',i0,a1,$)") spiner(mod(iz,4)+1),prog,iz,nkpoints,myrank_row_hw,char(13)
-      end if
+      if((myrank_row_hw.eq.0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,nkpoints)
 !$   end if
 
     kp = kbz(iz,:)

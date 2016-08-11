@@ -115,6 +115,7 @@ subroutine band_structure()
   if(lfield) then
     write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
     if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
+    if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
   end if
 
   write(varm,"('./results/',a1,'SOC/',i0,'Npl/BS/bandstructure_kdir=',a2,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,kdirection,ncp,eta,Utype,trim(fieldpart),trim(socpart)

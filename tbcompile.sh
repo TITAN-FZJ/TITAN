@@ -13,6 +13,7 @@ while (( "$#" )); do
         shift
         ;;
       (debug)
+        adddebug=${adddebug}"_$1"
         debug="DEBUG=$1"
         shift
         ;;
@@ -34,7 +35,7 @@ while (( "$#" )); do
         ;;
       (*=*)
         addvariable="$1 ; "${addvariable}
-        addvariablefilename=${addvariablefilename}"_$1"
+        addtofilename=${addtofilename}"_$1"
         shift
         ;;
       (verbose)
@@ -69,7 +70,12 @@ if [[ ! -z "$addvariable" ]] ; then
   echo "${addvariable}"
   nl=$'\n'
   sed -i.bak -e "/User manual additions/a\ ${nl}${addvariable}" source/mod_io.F90
-  filename="${filename:0:${#filename}-4}"${addvariablefilename}".exe"
+  filename="${filename:0:${#filename}-4}"${addtofilename}".exe"
+fi
+
+# Adding "debug" to filename
+if [[ ! -z "$adddebug" ]] ; then
+  filename="${filename:0:${#filename}-4}"${adddebug}".exe"
 fi
 
 # Test if "recompile"  was used before

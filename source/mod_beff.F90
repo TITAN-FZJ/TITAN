@@ -25,7 +25,7 @@ contains
     return
   end subroutine allocate_beff
 
-  ! This subroutine allocates variables related to the effective field calculation
+  ! This subroutine deallocates variables related to the effective field calculation
   subroutine deallocate_beff()
     use mod_f90_kind
     use mod_mpi_pars
@@ -66,6 +66,7 @@ contains
     if(lfield) then
       write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
       if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
+      if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
     end if
 
     folder = "Beff"
@@ -114,13 +115,24 @@ contains
     use mod_f90_kind
     use mod_parameters, only: Npl,sigmai2i
     implicit none
-    integer  :: i,iw,sigma
+    integer      :: i,iw,sigma
+    real(double) :: phase,sine,cosine
     real(double),intent(in) :: e
 
     do sigma=1,4 ; do i=1,Npl
       iw = 8000+(sigma-1)*Npl+i
 
-      write(unit=iw,fmt="(7(es16.9,2x))") e,abs(Beff_cart(sigmai2i(sigma,i))),real(Beff_cart(sigmai2i(sigma,i))),aimag(Beff_cart(sigmai2i(sigma,i))),atan2(aimag(Beff_cart(sigmai2i(sigma,i))),real(Beff_cart(sigmai2i(sigma,i)))),real(Beff_cart(sigmai2i(sigma,i)))/abs(Beff_cart(sigmai2i(sigma,i))),aimag(Beff_cart(sigmai2i(sigma,i)))/abs(Beff_cart(sigmai2i(sigma,i)))
+      if(abs(Beff_cart(sigmai2i(sigma,i))).ge.1.d-10) then
+        phase  = atan2(aimag(Beff_cart(sigmai2i(sigma,i))),real(Beff_cart(sigmai2i(sigma,i))))
+        sine   = real(Beff_cart(sigmai2i(sigma,i)))/abs(Beff_cart(sigmai2i(sigma,i)))
+        cosine = aimag(Beff_cart(sigmai2i(sigma,i)))/abs(Beff_cart(sigmai2i(sigma,i)))
+      else
+        phase  = 0.d0
+        sine   = 0.d0
+        cosine = 0.d0
+      end if
+
+      write(unit=iw,fmt="(7(es16.9,2x))") e , abs(Beff_cart(sigmai2i(sigma,i))) , real(Beff_cart(sigmai2i(sigma,i))) , aimag(Beff_cart(sigmai2i(sigma,i))) , phase , sine , cosine
     end do ; end do
 
     return
@@ -159,6 +171,7 @@ contains
       if((dcfield_dependence.ne.3).and.(dcfield_dependence.ne.5).and.(dcfield_dependence.ne.6)) write(fieldpart,"(a,'_hwp=',f5.2)") trim(fieldpart),hwp
     end if
     if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
+    if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
 
     folder = "Beff"
     if(lhfresponses) folder = trim(folder) // "_HF"
@@ -200,19 +213,30 @@ contains
   end subroutine openclose_dc_beff_files
 
   ! This subroutine write all the effective fields into files
-  ! (already opened with openclose_beff_files(1))
+  ! (already opened with openclose_dc_beff_files(1))
   ! Some information may also be written on the screen
   subroutine write_dc_beff()
     use mod_f90_kind
     use mod_parameters, only: Npl,sigmai2i,dc_fields,hw_count
-    use mod_magnet, only: mtheta,mphi
+    use mod_magnet, only: mvec_spherical
     implicit none
-    integer  :: i,iw,sigma
+    integer      :: i,iw,sigma
+    real(double) :: phase,sine,cosine
 
     do sigma=1,4 ; do i=1,Npl
       iw = 80000+(sigma-1)*Npl+i
 
-      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),aimag(Beff_cart(sigmai2i(sigma,i))),real(Beff_cart(sigmai2i(sigma,i))),atan2(aimag(Beff_cart(sigmai2i(sigma,i))),real(Beff_cart(sigmai2i(sigma,i)))),real(Beff_cart(sigmai2i(sigma,i)))/abs(Beff_cart(sigmai2i(sigma,i))),aimag(Beff_cart(sigmai2i(sigma,i)))/abs(Beff_cart(sigmai2i(sigma,i))),mtheta(i),mphi(i)
+      if(abs(Beff_cart(sigmai2i(sigma,i))).ge.1.d-10) then
+        phase  = atan2(aimag(Beff_cart(sigmai2i(sigma,i))),real(Beff_cart(sigmai2i(sigma,i))))
+        sine   = real(Beff_cart(sigmai2i(sigma,i)))/abs(Beff_cart(sigmai2i(sigma,i)))
+        cosine = aimag(Beff_cart(sigmai2i(sigma,i)))/abs(Beff_cart(sigmai2i(sigma,i)))
+      else
+        phase  = 0.d0
+        sine   = 0.d0
+        cosine = 0.d0
+      end if
+
+      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(Beff_cart(sigmai2i(sigma,i))) , real(Beff_cart(sigmai2i(sigma,i))) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
     end do ; end do
 
     return

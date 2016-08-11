@@ -13,9 +13,9 @@ subroutine calculate_all()
   use mod_currents
   use mod_beff
   use mod_torques
-  use mod_timing
+  use mod_vdc
   implicit none
-  character(len=20) :: time
+  character(len=50) :: time
   integer           :: i,j,iw,sigma,sigmap,mu,nu,neighbor
   real(double)      :: e,Icabs
 
@@ -24,15 +24,17 @@ subroutine calculate_all()
   call allocate_currents()
   call allocate_beff()
   call allocate_torques()
+  call allocate_vdc()
   if(myrank.eq.0) then
-    write(outputunit_loop,"('CALCULATING PARALLEL CURRENTS, DISTURBANCES, LOCAL SUSCEPTIBILITY, EFFECTIVE FIELDS AND SO-TORQUES AS A FUNCTION OF ENERGY')")
+    write(outputunit_loop,"('CALCULATING PARALLEL CURRENTS, DISTURBANCES, LOCAL SUSCEPTIBILITY, EFFECTIVE FIELDS, SO-TORQUES AND V_DC AS A FUNCTION OF ENERGY')")
     ! Creating files and writing headers
     if(.not.laddresults) then
-      if(.not.lhfresponses) call openclose_chi_files(0)
+      call openclose_chi_files(0)
       call openclose_disturbance_files(0)
       call openclose_currents_files(0)
       call openclose_beff_files(0)
       call openclose_torque_files(0)
+      call openclose_vdc_files(0)
     end if
   end if
 
@@ -48,15 +50,14 @@ subroutine calculate_all()
   all_energy_loop: do count=1+skip_steps,MPIsteps
     mpitag = (Npl-Npl_i)*total_hw_npt1*MPIsteps + (hw_count-1)*MPIsteps + count
     e = emin + deltae*myrank_col + MPIdelta*(count-1)
-    if(myrank_row_hw.eq.0) then
-!             write(outputunit_loop,"(i0,' of ',i0,' points',', e = ',es10.3,' in myrank_col ',i0)") ((count-1)*MPIpts+myrank_col+1),npt1,e,myrank_col
-      write(outputunit_loop,"('[calculate_all] Starting MPI step ',i0,' of ',i0)") count,MPIsteps
-    end if
+    if(myrank_row_hw.eq.0) write(outputunit_loop,"('[calculate_all] Starting MPI step ',i0,' of ',i0)") count,MPIsteps
 
     if(lhfresponses) then
-      if(myrank_row_hw.eq.0) write(outputunit_loop,"('[calculate_all] No renormalization will be done. Setting prefactors to identity. ')")
+      if(myrank_row_hw.eq.0) write(outputunit_loop,"('[calculate_all] No renormalization will be done. Setting prefactors to identity and calculating HF susceptibilities... ')")
       prefactor     = identt
       if(llinearsoc) prefactorlsoc = identt
+      call eintshechi(e)
+      if(myrank_row_hw.eq.0) call write_time(outputunit_loop,'[calculate_all] Time after susceptibility calculation: ')
     else
       if(myrank_row_hw.eq.0) write(outputunit_loop,"('[calculate_all] Calculating prefactor to use in currents and disturbances calculation. ')")
       if(llinearsoc) then
@@ -103,12 +104,6 @@ subroutine calculate_all()
           call zgemm('n','n',dim,dim,dim,zum,prefactor,dim,chiorb_hf,dim,zero,chiorb,dim) ! (1+chi_hf*Umat)^-1 * chi_hf
         end if
 
-        chiinv = zero
-        ! Calculating susceptibility to use on Beff calculation
-        calculate_susceptibility_Beff_all: do nu=1,9 ; do j=1,Npl ; do sigmap=1,4 ; do mu=1,9 ; do i=1,Npl ; do sigma=1,4
-          chiinv(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = chiinv(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + chiorb(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))    ! +- , up- , down- , --
-        end do ; end do ; end do ; end do ; end do ; end do calculate_susceptibility_Beff_all
-
         schi = zero
         schihf = zero
         ! Calculating RPA and HF susceptibilities
@@ -116,8 +111,7 @@ subroutine calculate_all()
           schi  (sigma,sigmap,i,j) = schi(sigma,sigmap,i,j)   + chiorb(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
           schihf(sigma,sigmap,i,j) = schihf(sigma,sigmap,i,j) + chiorb_hf(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
         end do ; end do ; end do ; end do ; end do ; end do calculate_susceptibility_all
-        schi   = schi
-        schihf = schihf
+
         ! Rotating susceptibilities to the magnetization direction
         if(lrot) then
           do i=1,Npl
@@ -142,7 +136,46 @@ subroutine calculate_all()
             schihf(:,:,i,j) = schitemp
           end do ; end do rotate_susceptibility_all
         end if
-      end if ! lhfresponses
+      else
+        ! Calculating HF susceptibilities for energy e
+        if(llinearsoc) then
+          chiorb = chiorb_hf + chiorb_hflsoc
+        else
+          chiorb = chiorb_hf
+        end if
+
+        schihf = zero
+        ! Calculating RPA and HF susceptibilities
+        calculate_hfsusceptibility_all: do j=1,Npl ; do nu=1,9 ; do i=1,Npl ; do mu=1,9 ; do sigmap=1,4 ; do sigma=1,4
+          schihf(sigma,sigmap,i,j) = schihf(sigma,sigmap,i,j) + chiorb_hf(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
+        end do ; end do ; end do ; end do ; end do ; end do calculate_hfsusceptibility_all
+
+        ! Rotating susceptibilities to the magnetization direction
+        if(lrot) then
+          do i=1,Npl
+            call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,1)
+            rotmat_i(:,:,i) = rottemp
+            call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,2)
+            rotmat_j(:,:,i) = rottemp
+          end do
+          rotate_hfsusceptibility_all: do j=1,Npl ; do i=1,Npl
+            rottemp  = rotmat_i(:,:,i)
+            schitemp = schihf(:,:,i,j)
+            call zgemm('n','n',4,4,4,zum,rottemp,4,schitemp,4,zero,schirot,4)
+            rottemp  = rotmat_j(:,:,j)
+            call zgemm('n','n',4,4,4,zum,schirot,4,rottemp,4,zero,schitemp,4)
+            schihf(:,:,i,j) = schitemp
+          end do ; end do rotate_hfsusceptibility_all
+        end if
+
+      end if ! .not.lhfresponses
+
+      ! Calculating inverse susceptibility to use on Beff calculation
+      chiinv = zero
+      calculate_susceptibility_Beff_all: do nu=1,9 ; do j=1,Npl ; do sigmap=1,4 ; do mu=1,9 ; do i=1,Npl ; do sigma=1,4
+        chiinv(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = chiinv(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + chiorb(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))    ! +- , up- , down- , --
+      end do ; end do ; end do ; end do ; end do ; end do calculate_susceptibility_Beff_all
+      call invers(chiinv,dimsigmaNpl) ! Inverse of the susceptibility chi^(-1)
 
       disturbances = zero
       torques      = zero
@@ -217,47 +250,65 @@ subroutine calculate_all()
       ! Total currents for each neighbor direction (Sum of currents over all planes)
       total_currents = sum(currents,dim=3)
 
-      if(.not.lhfresponses) then
-        ! Effective field calculation
-        call invers(chiinv,dimsigmaNpl) ! Inverse of the susceptibility chi^(-1)
-        call zgemm('n','n',dimsigmaNpl,1,dimsigmaNpl,zum,chiinv,dimsigmaNpl,sdmat,dimsigmaNpl,zero,Beff,dimsigmaNpl) ! Beff = chi^(-1)*SD
+      ! DC voltage generated by oscillatory fields (second order)
+      if((lvdc).and.(e.gt.1.d-8)) then
+        plane_loop_vdc_all: do i=1,Npl
+          ! Longitudinal voltage (AMR)
+          if(vdcneighbor(1).ne.0) vdc(1,i) = mvec_cartesian(i,mvdcvector(2))*abs(disturbances(mvdcvector(2)+1,i))*abs(currents(1,vdcneighbor(1),i))*sin(atan2(aimag(currents(1,vdcneighbor(1),i)),real(currents(1,vdcneighbor(1),i))) - atan2(aimag(disturbances(mvdcvector(2)+1,i)),real(disturbances(mvdcvector(2)+1,i))))/((mabs(i))**2)
+          ! Transverse voltage (AHE and PHE)
+          if(vdcneighbor(2).ne.0) then
+            vdc(2,i) =-abs(disturbances(mvdcvector(3)+1,i))*abs(currents(1,vdcneighbor(2),i))*sin(atan2(aimag(currents(1,vdcneighbor(2),i)),real(currents(1,vdcneighbor(2),i))) - atan2(aimag(disturbances(mvdcvector(3)+1,i)),real(disturbances(mvdcvector(3)+1,i))))/(mabs(i))
+            vdc(3,i) =-(mvec_cartesian(i,mvdcvector(2))*abs(disturbances(mvdcvector(1)+1,i))*sin(atan2(aimag(currents(1,vdcneighbor(2),i)),real(currents(1,vdcneighbor(2),i))) - atan2(aimag(disturbances(mvdcvector(1)+1,i)),real(disturbances(mvdcvector(1)+1,i))))+mvec_cartesian(i,mvdcvector(1))*abs(disturbances(mvdcvector(2)+1,i))*sin(atan2(aimag(currents(1,vdcneighbor(2),i)),real(currents(1,vdcneighbor(2),i))) - atan2(aimag(disturbances(mvdcvector(2)+1,i)),real(disturbances(mvdcvector(2)+1,i)))))*abs(currents(1,vdcneighbor(2),i))/((mabs(i))**2)
+          end if
+        end do plane_loop_vdc_all
+        total_vdc = sum(vdc,dim=2)
+      end if
 
-        plane_loop_effective_field_all: do i=1,Npl
-          Beff_cart(sigmai2i(1,i)) =          (Beff(sigmai2i(2,i)) + Beff(sigmai2i(3,i))) ! 0
-          Beff_cart(sigmai2i(2,i)) = 0.5d0*   (Beff(sigmai2i(1,i)) + Beff(sigmai2i(4,i))) ! x
-          Beff_cart(sigmai2i(3,i)) =-0.5d0*zi*(Beff(sigmai2i(1,i)) - Beff(sigmai2i(4,i))) ! y
-          Beff_cart(sigmai2i(4,i)) = 0.5d0*   (Beff(sigmai2i(2,i)) - Beff(sigmai2i(3,i))) ! z
-        end do plane_loop_effective_field_all
-      end if ! lhfresponses
+      ! DC spin current (second order)
+      dc_currents = zero
+      plane_loop_dc_current_all: do i=1,Npl
+        do j=1,3 ; do mu = 1,3 ; do nu = 1,3
+          dc_currents(j,i) = dc_currents(j,i) + levi_civita(j,mu,nu)*abs(disturbances(mu+1,i))*abs(disturbances(nu+1,i))*sin(atan2(aimag(disturbances(nu+1,i)),real(disturbances(nu+1,i))) - atan2(aimag(disturbances(mu+1,i)),real(disturbances(mu+1,i))))
+        end do ; end do ; end do
+      end do plane_loop_dc_current_all
+
+      ! Effective field in cartesian coordinates
+      call zgemm('n','n',dimsigmaNpl,1,dimsigmaNpl,zum,chiinv,dimsigmaNpl,sdmat,dimsigmaNpl,zero,Beff,dimsigmaNpl) ! Beff = chi^(-1)*SD
+      plane_loop_effective_field_all: do i=1,Npl
+        Beff_cart(sigmai2i(1,i)) =          (Beff(sigmai2i(2,i)) + Beff(sigmai2i(3,i))) ! 0
+        Beff_cart(sigmai2i(2,i)) = 0.5d0*   (Beff(sigmai2i(1,i)) + Beff(sigmai2i(4,i))) ! x
+        Beff_cart(sigmai2i(3,i)) =-0.5d0*zi*(Beff(sigmai2i(1,i)) - Beff(sigmai2i(4,i))) ! y
+        Beff_cart(sigmai2i(4,i)) = 0.5d0*   (Beff(sigmai2i(2,i)) - Beff(sigmai2i(3,i))) ! z
+      end do plane_loop_effective_field_all
 
       ! Sending results to myrank_row = myrank_col = 0 and writing on file
       if(myrank_col.eq.0) then
         MPI_points_all: do mcount=1,MPIpts
           if (mcount.ne.1) then
             call MPI_Recv(e,1,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,4000,MPIComm_Col,stat,ierr)
-            if(.not.lhfresponses) then
-              call MPI_Recv(schi,Npl*Npl*4,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),4010,MPIComm_Col,stat,ierr)
-              call MPI_Recv(schihf,Npl*Npl*4,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),4020,MPIComm_Col,stat,ierr)
-              call MPI_Recv(Beff_cart,dimsigmaNpl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),4170,MPIComm_Col,stat,ierr)
-            end if
-            call MPI_Recv(disturbances,7*Npl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),4030,MPIComm_Col,stat,ierr)
-            call MPI_Recv(currents,7*n0sc*Npl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),4100,MPIComm_Col,stat,ierr)
-            call MPI_Recv(total_currents,7*n0sc,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),4110,MPIComm_Col,stat,ierr)
-            call MPI_Recv(torques,ntypetorque*3*Npl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),4120,MPIComm_Col,stat,ierr)
+            call MPI_Recv(mvec_spherical,3*Npl,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,4100,MPIComm_Col,stat,ierr)
+            if(.not.lhfresponses) call MPI_Recv(schi,Npl*Npl*4,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),4200,MPIComm_Col,stat,ierr)
+            call MPI_Recv(schihf,Npl*Npl*4,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),4300,MPIComm_Col,stat,ierr)
+            call MPI_Recv(Beff_cart,dimsigmaNpl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),4400,MPIComm_Col,stat,ierr)
+            call MPI_Recv(disturbances,7*Npl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),4500,MPIComm_Col,stat,ierr)
+            call MPI_Recv(currents,7*n0sc*Npl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),4600,MPIComm_Col,stat,ierr)
+            call MPI_Recv(total_currents,7*n0sc,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),4700,MPIComm_Col,stat,ierr)
+            call MPI_Recv(torques,ntypetorque*3*Npl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),4800,MPIComm_Col,stat,ierr)
+            call MPI_Recv(vdc,3*Npl,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),4900,MPIComm_Col,stat,ierr)
+            call MPI_Recv(total_vdc,3,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),5000,MPIComm_Col,stat,ierr)
+            call MPI_Recv(dc_currents,3*Npl,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),5100,MPIComm_Col,stat,ierr)
           end if
 
-          if(.not.lhfresponses) then
-            ! DIAGONALIZING SUSCEPTIBILITY
-            call diagonalize_susceptibilities()
+          ! DIAGONALIZING SUSCEPTIBILITY
+          if(.not.lhfresponses) call diagonalize_susceptibilities()
 
-            ! WRITING RPA AND HF SUSCEPTIBILITIES
-            ! Opening chi and diag files
-            call openclose_chi_files(1)
-            ! Writing susceptibilities
-            call write_susceptibilities(e)
-            ! Closing chi and diag files
-            call openclose_chi_files(2)
-          end if
+          ! WRITING SUSCEPTIBILITIES
+          ! Opening chi and diag files
+          call openclose_chi_files(1)
+          ! Writing susceptibilities
+          call write_susceptibilities(e)
+          ! Closing chi and diag files
+          call openclose_chi_files(2)
 
           ! Renormalizing disturbances and currents by the total charge current to neighbor renormnb
           if(renorm) then
@@ -286,14 +337,12 @@ subroutine calculate_all()
           ! Closing current files
           call openclose_currents_files(2)
 
-          if(.not.lhfresponses) then
-            ! Opening B effective files
-            call openclose_beff_files(1)
-            ! Writing effective fields
-            call write_beff(e)
-            ! Closing B effective files
-            call openclose_beff_files(2)
-          end if
+          ! Opening B effective files
+          call openclose_beff_files(1)
+          ! Writing effective fields
+          call write_beff(e)
+          ! Closing B effective files
+          call openclose_beff_files(2)
 
           ! WRITING TORQUES
           ! Opening torque files
@@ -302,6 +351,16 @@ subroutine calculate_all()
           call write_torques(e)
           ! Closing torque files
           call openclose_torque_files(2)
+
+          if((lvdc).and.(e.gt.1.d-8)) then
+            ! WRITING DC VOLTAGE
+            ! Opening V_dc files
+            call openclose_vdc_files(1)
+            ! Writing V_dc
+            call write_vdc(e)
+            ! Closing V_dc files
+            call openclose_vdc_files(2)
+          end if
 
         end do MPI_points_all
 
@@ -319,15 +378,17 @@ subroutine calculate_all()
         end if
       else
         call MPI_Send(e,1,MPI_DOUBLE_PRECISION,0,4000,MPIComm_Col,ierr)
-        if(.not.lhfresponses) then
-          call MPI_Send(schi,Npl*Npl*4,MPI_DOUBLE_COMPLEX,0,4010,MPIComm_Col,ierr)
-          call MPI_Send(schihf,Npl*Npl*4,MPI_DOUBLE_COMPLEX,0,4020,MPIComm_Col,ierr)
-          call MPI_Send(Beff_cart,dimsigmaNpl,MPI_DOUBLE_COMPLEX,0,4170,MPIComm_Col,ierr)
-        end if
-        call MPI_Send(disturbances,7*Npl,MPI_DOUBLE_COMPLEX,0,4030,MPIComm_Col,ierr)
-        call MPI_Send(currents,7*n0sc*Npl,MPI_DOUBLE_COMPLEX,0,4100,MPIComm_Col,ierr)
-        call MPI_Send(total_currents,7*n0sc,MPI_DOUBLE_COMPLEX,0,4110,MPIComm_Col,ierr)
-        call MPI_Send(torques,ntypetorque*3*Npl,MPI_DOUBLE_COMPLEX,0,4120,MPIComm_Col,ierr)
+        call MPI_Send(mvec_spherical,3*Npl,MPI_DOUBLE_PRECISION,0,4100,MPIComm_Col,ierr)
+        if(.not.lhfresponses) call MPI_Send(schi,Npl*Npl*4,MPI_DOUBLE_COMPLEX,0,4200,MPIComm_Col,ierr)
+        call MPI_Send(schihf,Npl*Npl*4,MPI_DOUBLE_COMPLEX,0,4300,MPIComm_Col,ierr)
+        call MPI_Send(Beff_cart,dimsigmaNpl,MPI_DOUBLE_COMPLEX,0,4400,MPIComm_Col,ierr)
+        call MPI_Send(disturbances,7*Npl,MPI_DOUBLE_COMPLEX,0,4500,MPIComm_Col,ierr)
+        call MPI_Send(currents,7*n0sc*Npl,MPI_DOUBLE_COMPLEX,0,4600,MPIComm_Col,ierr)
+        call MPI_Send(total_currents,7*n0sc,MPI_DOUBLE_COMPLEX,0,4700,MPIComm_Col,ierr)
+        call MPI_Send(torques,ntypetorque*3*Npl,MPI_DOUBLE_COMPLEX,0,4800,MPIComm_Col,ierr)
+        call MPI_Send(vdc,3*Npl,MPI_DOUBLE_PRECISION,0,4900,MPIComm_Col,ierr)
+        call MPI_Send(total_vdc,3,MPI_DOUBLE_PRECISION,0,5000,MPIComm_Col,ierr)
+        call MPI_Send(dc_currents,3*Npl,MPI_DOUBLE_PRECISION,0,5100,MPIComm_Col,ierr)
       end if
     end if
   end do all_energy_loop
@@ -338,6 +399,7 @@ subroutine calculate_all()
   call deallocate_currents()
   call deallocate_beff()
   call deallocate_torques()
+  call deallocate_vdc()
 
   return
 end subroutine calculate_all

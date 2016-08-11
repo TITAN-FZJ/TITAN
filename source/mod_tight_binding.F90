@@ -109,7 +109,7 @@ contains
   ! Effective intra-site coulomb interaction U (in eV)
   U_dft(2:6) = 1.d0
 
-  ! SOC parameters
+  ! SOC parameters (in Ry)
   if(SOC) then
     lambdasoc_dft(2)   = 0.004d0  ! Fe
     lambdasoc_dft(3:6) = 0.019d0  ! W
@@ -241,7 +241,7 @@ contains
   ! Effective intra-site coulomb interaction U (in eV)
   U_dft(8:12) = 1.d0
 
-  ! SOC parameters
+  ! SOC parameters (in Ry)
   if(SOC) then
     lambdasoc_dft(8:12) = 0.019d0  ! W
   end if
@@ -377,7 +377,7 @@ contains
   U_dft(14)    = 1.d0
   U_dft(15:18) = 0.6d0
 
-  ! SOC parameters
+  ! SOC parameters (in Ry)
   if(SOC) then
     lambdasoc_dft(14) = 0.005666d0 ! Co
     lambdasoc_dft(15:18) = 0.044d0  ! Pt
@@ -509,7 +509,7 @@ contains
   ! Effective intra-site coulomb interaction U (in eV)
   U_dft(20:24) = 0.6d0
 
-  ! SOC parameters
+  ! SOC parameters (in Ry)
   if(SOC) then
     lambdasoc_dft(20:24) = 0.044d0  ! Pt
   end if
@@ -707,8 +707,10 @@ contains
     call MPI_Finalize(ierr)
     stop
   end if
-  write(formatvar,fmt="(a,i0,a)") '(a,',Npl+2,'(i0,2x))'
-  if(myrank_row_hw.eq.0) write(outputunit_loop,fmt=formatvar) '[rs_hoppings] Layer type: ',(mmlayer(i),i=1,Npl+2)
+  if(myrank_row_hw.eq.0) then
+    write(formatvar,fmt="(a,i0,a)") '(a,',Npl+2,'(i0,2x))'
+    write(outputunit_loop,fmt=formatvar) '[rs_hoppings] Layer type: ',(mmlayer(i),i=1,Npl+2)
+  end if
 
   ! Obtaining the number and list of magnetic layers
   nmaglayers = 0

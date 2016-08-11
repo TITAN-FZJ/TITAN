@@ -199,6 +199,8 @@ contains
               lontheflysc = .true.
             case ("rotatemag")
               lrotatemag = .true.
+            case ("nolb")
+              lnolb = .true.
             case("!")
               exit
             case default
@@ -238,10 +240,10 @@ contains
         case("Npl")
           if(istring1(i+1).eq."=") then ! If after keyword there's an '='
             read(unit=istring1(i+2),fmt=*,iostat=ios) Npl_i
-            read(unit=istring1(i+3),fmt=*,iostat=ios) Npl_f
+            if(index(istring1(i+3),"!").eq.0) read(unit=istring1(i+3),fmt=*,iostat=ios) Npl_f
           else ! If there's no '=' after keyword, get from next line
             read(unit=istring2(i),fmt=*,iostat=ios) Npl_i
-            read(unit=istring2(i+1),fmt=*,iostat=ios) Npl_f
+            if(index(istring2(i+1),"!").eq.0) read(unit=istring2(i+1),fmt=*,iostat=ios) Npl_f
           end if
 !           write(outputunit,"('Npl_i = ',i0)") Npl_i
 !           write(outputunit,"('Npl_f = ',i0)") Npl_f
@@ -341,12 +343,16 @@ contains
         case("hwa")
           if(istring1(i+1).eq."=") then ! If after keyword there's an '='
             read(unit=istring1(i+2),fmt=*,iostat=ios) hwa_i
-            read(unit=istring1(i+3),fmt=*,iostat=ios) hwa_f
-            read(unit=istring1(i+4),fmt=*,iostat=ios) hwa_npts
+            if(index(istring1(i+3),"!").eq.0) then
+              read(unit=istring1(i+3),fmt=*,iostat=ios) hwa_f
+              read(unit=istring1(i+4),fmt=*,iostat=ios) hwa_npts
+            end if
           else ! If there's no '=' after keyword, get from next line
             read(unit=istring2(i),fmt=*,iostat=ios) hwa_i
-            read(unit=istring2(i+1),fmt=*,iostat=ios) hwa_f
-            read(unit=istring2(i+2),fmt=*,iostat=ios) hwa_npts
+            if(index(istring1(i+1),"!").eq.0) then
+              read(unit=istring2(i+1),fmt=*,iostat=ios) hwa_f
+              read(unit=istring2(i+2),fmt=*,iostat=ios) hwa_npts
+            end if
           end if
 !           write(outputunit,"('hwa_i = ',f8.5)") hwa_i
 !           write(outputunit,"('hwa_f = ',f8.5)") hwa_f
@@ -355,8 +361,10 @@ contains
           nparams2 = nparams2-1
         case("hwa=")
           read(unit=istring1(i+1),fmt=*,iostat=ios) hwa_i
-          read(unit=istring1(i+2),fmt=*,iostat=ios) hwa_f
-          read(unit=istring1(i+3),fmt=*,iostat=ios) hwa_npts
+          if(index(istring1(i+2),"!").eq.0) then
+            read(unit=istring1(i+2),fmt=*,iostat=ios) hwa_f
+            read(unit=istring1(i+3),fmt=*,iostat=ios) hwa_npts
+          end if
 !           write(outputunit,"('hwa_i = ',f8.5)") hwa_i
 !           write(outputunit,"('hwa_f = ',f8.5)") hwa_f
 !           write(outputunit,"('hwa_npts = ',f8.5)") hwa_npts
@@ -366,12 +374,16 @@ contains
         case("hwt")
           if(istring1(i+1).eq."=") then ! If after keyword there's an '='
             read(unit=istring1(i+2),fmt=*,iostat=ios) hwt_i
-            read(unit=istring1(i+3),fmt=*,iostat=ios) hwt_f
-            read(unit=istring1(i+4),fmt=*,iostat=ios) hwt_npts
+            if(index(istring1(i+3),"!").eq.0) then
+              read(unit=istring1(i+3),fmt=*,iostat=ios) hwt_f
+              read(unit=istring1(i+4),fmt=*,iostat=ios) hwt_npts
+            end if
           else ! If there's no '=' after keyword, get from next line
             read(unit=istring2(i),fmt=*,iostat=ios) hwt_i
-            read(unit=istring2(i+1),fmt=*,iostat=ios) hwt_f
-            read(unit=istring2(i+2),fmt=*,iostat=ios) hwt_npts
+            if(index(istring1(i+1),"!").eq.0) then
+              read(unit=istring2(i+1),fmt=*,iostat=ios) hwt_f
+              read(unit=istring2(i+2),fmt=*,iostat=ios) hwt_npts
+            end if
           end if
 !           write(outputunit,"('hwt_i = ',f8.5)") hwt_i
 !           write(outputunit,"('hwt_f = ',f8.5)") hwt_f
@@ -380,8 +392,10 @@ contains
           nparams2 = nparams2-1
         case("hwt=")
           read(unit=istring1(i+1),fmt=*,iostat=ios) hwt_i
-          read(unit=istring1(i+2),fmt=*,iostat=ios) hwt_f
-          read(unit=istring1(i+3),fmt=*,iostat=ios) hwt_npts
+          if(index(istring1(i+2),"!").eq.0) then
+            read(unit=istring1(i+2),fmt=*,iostat=ios) hwt_f
+            read(unit=istring1(i+3),fmt=*,iostat=ios) hwt_npts
+          end if
 !           write(outputunit,"('hwt_i = ',f8.5)") hwt_i
 !           write(outputunit,"('hwt_f = ',f8.5)") hwt_f
 !           write(outputunit,"('hwt_npts = ',f8.5)") hwt_npts
@@ -391,12 +405,16 @@ contains
         case("hwp")
           if(istring1(i+1).eq."=") then ! If after keyword there's an '='
             read(unit=istring1(i+2),fmt=*,iostat=ios) hwp_i
-            read(unit=istring1(i+3),fmt=*,iostat=ios) hwp_f
-            read(unit=istring1(i+4),fmt=*,iostat=ios) hwp_npts
+            if(index(istring1(i+3),"!").eq.0) then
+              read(unit=istring1(i+3),fmt=*,iostat=ios) hwp_f
+              read(unit=istring1(i+4),fmt=*,iostat=ios) hwp_npts
+            end if
           else ! If there's no '=' after keyword, get from next line
             read(unit=istring2(i),fmt=*,iostat=ios) hwp_i
-            read(unit=istring2(i+1),fmt=*,iostat=ios) hwp_f
-            read(unit=istring2(i+2),fmt=*,iostat=ios) hwp_npts
+            if(index(istring1(i+1),"!").eq.0) then
+              read(unit=istring2(i+1),fmt=*,iostat=ios) hwp_f
+              read(unit=istring2(i+2),fmt=*,iostat=ios) hwp_npts
+            end if
           end if
 !           write(outputunit,"('hwp_i = ',f8.5)") hwp_i
 !           write(outputunit,"('hwp_f = ',f8.5)") hwp_f
@@ -405,8 +423,10 @@ contains
           nparams2 = nparams2-1
         case("hwp=")
           read(unit=istring1(i+1),fmt=*,iostat=ios) hwp_i
-          read(unit=istring1(i+2),fmt=*,iostat=ios) hwp_f
-          read(unit=istring1(i+3),fmt=*,iostat=ios) hwp_npts
+          if(index(istring1(i+2),"!").eq.0) then
+            read(unit=istring1(i+2),fmt=*,iostat=ios) hwp_f
+            read(unit=istring1(i+3),fmt=*,iostat=ios) hwp_npts
+          end if
 !           write(outputunit,"('hwp_i = ',f8.5)") hwp_i
 !           write(outputunit,"('hwp_f = ',f8.5)") hwp_f
 !           write(outputunit,"('hwp_s = ',f8.5)") hwp_npts
@@ -497,11 +517,11 @@ contains
           else ! If there's no '=' after keyword, get from next line
             read(unit=istring2(i),fmt=*,iostat=ios) n1gl
           end if
-!           write(outputunit,"('n1gl = ',i0)") parts
+!           write(outputunit,"('n1gl = ',i0)") n1gl
           nparams = nparams-1
         case("n1gl=")
           read(unit=istring1(i+1),fmt=*,iostat=ios) n1gl
-!           write(outputunit,"('n1gl = ',i0)") parts
+!           write(outputunit,"('n1gl = ',i0)") n1gl
           nparams = nparams-1
 !===============================================================================
         case("parts3")
@@ -523,11 +543,11 @@ contains
           else ! If there's no '=' after keyword, get from next line
             read(unit=istring2(i),fmt=*,iostat=ios) n3gl
           end if
-!           write(outputunit,"('n3gl = ',i0)") parts
+!           write(outputunit,"('n3gl = ',i0)") n3gl
           nparams = nparams-1
         case("n3gl=")
           read(unit=istring1(i+1),fmt=*,iostat=ios) n3gl
-!           write(outputunit,"('n3gl = ',i0)") parts
+!           write(outputunit,"('n3gl = ',i0)") n3gl
           nparams = nparams-1
 !===============================================================================
         case("emin")
@@ -778,6 +798,16 @@ contains
     ! Turning off renormalization for non-current calculations
     if(itype.ne.8) renorm = .false.
     n0sc=n0sc2-n0sc1+1 ! Total number of neighbors
+
+    ! Setting up external field variables and loops
+    call prepare_field()
+
+    ! Preparing dc-limit calculation
+    if(itype.eq.9) then
+      emax = emin
+      call prepare_dclimit()
+    end if
+
     ! Energy loop step
     deltae = (emax - emin)/npts
     if(deltae.le.1.d-14) npt1 = 1
@@ -786,15 +816,8 @@ contains
       Npl_f = Npl_i
     end if
 
-    ! Setting up external field variables and loops
-    call prepare_field()
 
-    ! Preparing dc-limit calculation
-    if(itype.eq.9) then
-      call prepare_dclimit()
-    end if
-
-    tol   = 1.d-8
+    tol   = 1.d-10
     pn1=parts*n1gl
     pn2=parts3*n3gl
     pnt=pn1+pn2
@@ -805,7 +828,7 @@ contains
     use mod_mpi_pars
     use mod_constants, only: pi
     implicit none
-    integer :: j
+    integer :: j,err
 
 #ifdef _OPENMP
     write(outputunit_loop,"(10x,'Running on ',i0,' MPI process(es) WITH openMP')") numprocs
@@ -844,14 +867,24 @@ contains
       write(outputunit_loop,"(10x,'phi =',es9.2,'pi')") phi/pi
       write(outputunit_loop,"(8x,'theta =',es9.2,'pi')") theta/pi
       write(outputunit_loop,"(1x,'Electric field direction: ',$)")
-      write_direction_E_field_bcc110: select case (dirEfield)
-      case ("L")
-        write(outputunit_loop,"('Long axis')")
-      case ("S")
-        write(outputunit_loop,"('Short axis')")
-      case ("O")
-        write(outputunit_loop,"('Other',/,1x,' E = (',f6.3,',',f6.3,',',f6.3,')')") dirEfieldvec(1),dirEfieldvec(2),dirEfieldvec(3)
-      end select write_direction_E_field_bcc110
+      read(dirEfield,fmt=*,iostat=err) j
+      if(err.eq.0) then
+        write_direction_E_field_bcc110: select case (j)
+        case (1:6)
+          write(outputunit_loop,"('Neighbor ',i0)") j
+        case default
+          write(outputunit_loop,"('Other',/,1x,' E = (',f6.3,',',f6.3,',',f6.3,')')") dirEfieldvec(1),dirEfieldvec(2),dirEfieldvec(3)
+        end select write_direction_E_field_bcc110
+      else
+        write_direction_E_field_bcc110_axis: select case (dirEfield)
+        case ("L")
+          write(outputunit_loop,"('Long axis')")
+        case ("S")
+          write(outputunit_loop,"('Short axis')")
+        case ("O")
+          write(outputunit_loop,"('Other',/,1x,' E = (',f6.3,',',f6.3,',',f6.3,')')") dirEfieldvec(1),dirEfieldvec(2),dirEfieldvec(3)
+        end select write_direction_E_field_bcc110_axis
+      end if
     case("fcc100")
       write(outputunit_loop,"(1x,'Spin quantization direction: ',$)")
       read(unit=magaxis,fmt=*) j
@@ -920,7 +953,7 @@ contains
       write(outputunit_loop,"(3x,'kdirection = ',a)") kdirection
       write(outputunit_loop,"(9x,'Number of points to calculate: ',i0)") npt1
     case (5)
-      write(outputunit_loop,"(1x,'Fermi surface')")
+      write(outputunit_loop,"(1x,'Charge and spin density at Fermi surface')")
     case (6)
       write(outputunit_loop,"(1x,'Exhange interactions and anisotropies (full tensor)')")
       if(nmaglayers.eq.1) write(outputunit_loop,"(1x,'Only 1 magnetic layer: calculating only anisotropies')")
@@ -936,16 +969,26 @@ contains
       write(outputunit_loop,"(8x,'n0sc2 = ',i0)") n0sc2
       write(outputunit_loop,"(9x,'emin =',es9.2)") emin
       write(outputunit_loop,"(9x,'emax =',es9.2)") emax
+      if(lvdc) then
+        write(outputunit_loop,"(7x,'DC voltage calculation: ')")
+        if(vdcneighbor(1).ne.0) write(outputunit_loop,"(4x,'Longitudinal neighbor = ',i0)") vdcneighbor(1)
+        if(vdcneighbor(2).ne.0) write(outputunit_loop,"(4x,'  Transverse neighbor = ',i0)") vdcneighbor(2)
+      end if
       write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps of size',es10.3,' each calculating ',i0,' points')") npt1,MPIsteps,MPIdelta,MPIpts
     case (9)
       write(outputunit_loop,"(1x,'dc limit calculations as a function of ',a)") trim(dcfield(dcfield_dependence))
       write(outputunit_loop,"(1x,'e =',es9.2)") emin
       write(outputunit_loop,"(1x,'hwa_min =',es9.2)") hw_list(1,1)
       write(outputunit_loop,"(1x,'hwa_max =',es9.2)") hw_list(total_hw_npt1,1)
-      write(outputunit_loop,"(1x,'hwt_min =',es9.2)") hw_list(1,2)
-      write(outputunit_loop,"(1x,'hwt_max =',es9.2)") hw_list(total_hw_npt1,2)
-      write(outputunit_loop,"(1x,'hwp_min =',es9.2)") hw_list(1,3)
-      write(outputunit_loop,"(1x,'hwp_max =',es9.2)") hw_list(total_hw_npt1,3)
+      write(outputunit_loop,"(1x,'hwt_min =',f6.3)") hw_list(1,2)
+      write(outputunit_loop,"(1x,'hwt_max =',f6.3)") hw_list(total_hw_npt1,2)
+      write(outputunit_loop,"(1x,'hwp_min =',f6.3)") hw_list(1,3)
+      write(outputunit_loop,"(1x,'hwp_max =',f6.3)") hw_list(total_hw_npt1,3)
+      if(lvdc) then
+        write(outputunit_loop,"(7x,'DC voltage calculation: ')")
+        if(vdcneighbor(1).ne.0) write(outputunit_loop,"(8x,'Longitudinal neighbor = ',i0)") vdcneighbor(1)
+        if(vdcneighbor(2).ne.0) write(outputunit_loop,"(8x,'  Transverse neighbor = ',i0)") vdcneighbor(2)
+      end if
       write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps, each calculating ',i0,' points')") total_hw_npt1,MPIsteps_hw,MPIpts_hw
     end select write_itype
     write(outputunit_loop,"('|---------------------------------------------------------------------------|')")

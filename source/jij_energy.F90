@@ -8,7 +8,7 @@
 		use mod_mpi_pars
 		use mod_progress
 		use MPI
-	integer			    :: i,j
+	integer			    :: i
 	real(double),dimension(nmaglayers,nmaglayers,3,3) :: Jijint
 	real(double),dimension(nmaglayers,nmaglayers,3,3),intent(out) :: Jij
 !--------------------- begin MPI vars --------------------
@@ -32,15 +32,7 @@
 
  		if(lverbose) write(outputunit,"('[coupling] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
 		do i=2,pn1
-			! Progress bar
-      prog = floor(i*100.d0/pn1)
-#ifdef _JUQUEEN
-			write(outputunit,"(a1,2x,i3,'% (',i0,'/',i0,') of energy sum on rank ',i0,a1,$)") spiner(mod(i,4)),prog,iz,nkpoints,myrank,char(13)
-#else
-			elapsed_time = MPI_Wtime() - start_program
-			write(progbar,fmt="( a,i0,a )") "(1h+' ','Total time=',i2,'h:',i2,'m:',i2,'s  ',",1+(i+1)*20/pn1, "a,' ',i0,'%')"
-      write(outputunit,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(i+1)*20/pn1),100*(i+1)/pn1
-#endif
+			if(lverbose) call progress_bar(outputunit,"energy points",i,pn1)
 
 			call MPI_Recv(Jijint,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,11235,MPI_COMM_WORLD,stat,ierr)
 

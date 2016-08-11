@@ -2,7 +2,7 @@ module mod_currents
   use mod_f90_kind
   implicit none
   ! Currents, total currents and renormalized currents: Ich, Isx, Isy, Isz, Ilx, Ily,Ilz
-  complex(double),allocatable   :: currents(:,:,:),total_currents(:,:),rcurrents(:,:,:),rtotal_currents(:,:)
+  complex(double),allocatable   :: currents(:,:,:),total_currents(:,:),dc_currents(:,:),rcurrents(:,:,:),rtotal_currents(:,:)
   ! Full response functions
   complex(double), dimension(:,:,:), allocatable :: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl
 contains
@@ -17,9 +17,9 @@ contains
     integer           :: AllocateStatus
 
     if(myrank_row.eq.0) then
-      allocate( currents(7,n0sc1:n0sc2,Npl),total_currents(7,n0sc1:n0sc2), STAT = AllocateStatus )
+      allocate( currents(7,n0sc1:n0sc2,Npl),total_currents(7,n0sc1:n0sc2),dc_currents(3,Npl), STAT = AllocateStatus )
       if (AllocateStatus.ne.0) then
-         write(outputunit,"('[allocate_currents] Not enough memory for: currents,total_currents')")
+         write(outputunit,"('[allocate_currents] Not enough memory for: currents,total_currents,dc_currents')")
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
       if(renorm) then
@@ -64,7 +64,7 @@ contains
     implicit none
 
     if(myrank_row.eq.0) then
-      deallocate(currents,total_currents)
+      deallocate(currents,total_currents,dc_currents)
       if(renorm) deallocate(rcurrents,rtotal_currents)
     end if
     deallocate(ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl)
@@ -102,6 +102,7 @@ contains
     if(lfield) then
       write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
       if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
+      if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
     end if
 
     folder(1) = "CC"
@@ -158,6 +159,14 @@ contains
           close(unit=iw)
         end if
       end do ; end do
+      ! Header for DC spin current
+      do i=1,Npl ; do j=2,4
+        iw = 8100+(i-1)*3+j-1
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/SC/',a,'pumpdc_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        open (unit=iw, file=varm, status='unknown', form='formatted')
+        write(unit=iw, fmt="('#      energy     ,   |',a,'pumpdc|  ,  Re(',a,'pumpdc)  ,  Im(',a,'pumpdc)  , phase of ',a,'pumpdc , cos(',a,'pumpdc) , sin(',a,'pumpdc) ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
+        close(unit=iw)
+      end do ; end do
     else if(iflag.eq.1) then
       ! Currents per plane per neighbor
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
@@ -187,6 +196,14 @@ contains
         end if
       end do ; end do
 
+      ! DC spin current
+      do i=1,Npl ; do j=2,4
+        iw = 8100+(i-1)*3+j-1
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/SC/',a,'pumpdc_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+        errt = errt + err
+      end do ; end do
+
       ! Stop if some file does not exist
       if(errt.ne.0) then
         write(outputunit,"(a,i0,a)") "[openclose_currents_files] Some file(s) do(es) not exist! Stopping before starting calculations..."
@@ -214,6 +231,12 @@ contains
           close(unit=iw)
         end if
       end do ; end do
+
+      ! Closing DC spin currents
+      do i=1,Npl ; do j=2,4
+        iw = 8100+(i-1)*3+j-1
+        close(unit=iw)
+      end do ; end do
     end if
 
     return
@@ -226,7 +249,7 @@ contains
     use mod_f90_kind
     use mod_parameters, only: Npl,renorm,n0sc1,n0sc2,outputunit_loop
     implicit none
-    integer  :: neighbor,i,iw
+    integer  :: neighbor,i,j,iw
     real(double),intent(in) :: e
 
     write(outputunit_loop,"(' ################# Currents: #################')")
@@ -264,83 +287,89 @@ contains
       ! Total currents for each neighbor direction
       ! Writing charge current
       iw = 7000+(neighbor-1)*7
-      write(unit=iw+1,fmt="(7(es16.9,2x))") e,abs(total_currents(1,neighbor)),real(total_currents(1,neighbor)),aimag(total_currents(1,neighbor)),atan2(aimag(total_currents(1,neighbor)),real(total_currents(1,neighbor))),real(total_currents(1,neighbor))/abs(total_currents(1,neighbor)),aimag(total_currents(1,neighbor))/abs(total_currents(1,neighbor))
+      write(unit=iw+1,fmt="(7(es16.9,2x))") e , abs(total_currents(1,neighbor)) , real(total_currents(1,neighbor)) , aimag(total_currents(1,neighbor)) , atan2(aimag(total_currents(1,neighbor)),real(total_currents(1,neighbor))) , real(total_currents(1,neighbor))/abs(total_currents(1,neighbor)) , aimag(total_currents(1,neighbor))/abs(total_currents(1,neighbor))
 
       ! Writing x-component spin current
-      write(unit=iw+2,fmt="(7(es16.9,2x))") e,abs(total_currents(2,neighbor)),real(total_currents(2,neighbor)),aimag(total_currents(2,neighbor)),atan2(aimag(total_currents(2,neighbor)),real(total_currents(2,neighbor))),real(total_currents(2,neighbor))/abs(total_currents(2,neighbor)),aimag(total_currents(2,neighbor))/abs(total_currents(2,neighbor))
+      write(unit=iw+2,fmt="(7(es16.9,2x))") e , abs(total_currents(2,neighbor)) , real(total_currents(2,neighbor)) , aimag(total_currents(2,neighbor)) , atan2(aimag(total_currents(2,neighbor)),real(total_currents(2,neighbor))) , real(total_currents(2,neighbor))/abs(total_currents(2,neighbor)) , aimag(total_currents(2,neighbor))/abs(total_currents(2,neighbor))
       ! Writing y-component spin current
-      write(unit=iw+3,fmt="(7(es16.9,2x))") e,abs(total_currents(3,neighbor)),real(total_currents(3,neighbor)),aimag(total_currents(3,neighbor)),atan2(aimag(total_currents(3,neighbor)),real(total_currents(3,neighbor))),real(total_currents(3,neighbor))/abs(total_currents(3,neighbor)),aimag(total_currents(3,neighbor))/abs(total_currents(3,neighbor))
+      write(unit=iw+3,fmt="(7(es16.9,2x))") e , abs(total_currents(3,neighbor)) , real(total_currents(3,neighbor)) , aimag(total_currents(3,neighbor)) , atan2(aimag(total_currents(3,neighbor)),real(total_currents(3,neighbor))) , real(total_currents(3,neighbor))/abs(total_currents(3,neighbor)) , aimag(total_currents(3,neighbor))/abs(total_currents(3,neighbor))
       ! Writing z-component spin current
-      write(unit=iw+4,fmt="(7(es16.9,2x))") e,abs(total_currents(4,neighbor)),real(total_currents(4,neighbor)),aimag(total_currents(4,neighbor)),atan2(aimag(total_currents(4,neighbor)),real(total_currents(4,neighbor))),real(total_currents(4,neighbor))/abs(total_currents(4,neighbor)),aimag(total_currents(4,neighbor))/abs(total_currents(4,neighbor))
+      write(unit=iw+4,fmt="(7(es16.9,2x))") e , abs(total_currents(4,neighbor)) , real(total_currents(4,neighbor)) , aimag(total_currents(4,neighbor)) , atan2(aimag(total_currents(4,neighbor)),real(total_currents(4,neighbor))) , real(total_currents(4,neighbor))/abs(total_currents(4,neighbor)) , aimag(total_currents(4,neighbor))/abs(total_currents(4,neighbor))
 
       ! Writing x-component orbital angular momentum current
-      write(unit=iw+5,fmt="(7(es16.9,2x))") e,abs(total_currents(5,neighbor)),real(total_currents(5,neighbor)),aimag(total_currents(5,neighbor)),atan2(aimag(total_currents(5,neighbor)),real(total_currents(5,neighbor))),real(total_currents(5,neighbor))/abs(total_currents(5,neighbor)),aimag(total_currents(5,neighbor))/abs(total_currents(5,neighbor))
+      write(unit=iw+5,fmt="(7(es16.9,2x))") e , abs(total_currents(5,neighbor)) , real(total_currents(5,neighbor)) , aimag(total_currents(5,neighbor)) , atan2(aimag(total_currents(5,neighbor)),real(total_currents(5,neighbor))) , real(total_currents(5,neighbor))/abs(total_currents(5,neighbor)) , aimag(total_currents(5,neighbor))/abs(total_currents(5,neighbor))
       ! Writing y-component orbital angular momentum current
-      write(unit=iw+6,fmt="(7(es16.9,2x))") e,abs(total_currents(6,neighbor)),real(total_currents(6,neighbor)),aimag(total_currents(6,neighbor)),atan2(aimag(total_currents(6,neighbor)),real(total_currents(6,neighbor))),real(total_currents(6,neighbor))/abs(total_currents(6,neighbor)),aimag(total_currents(6,neighbor))/abs(total_currents(6,neighbor))
+      write(unit=iw+6,fmt="(7(es16.9,2x))") e , abs(total_currents(6,neighbor)) , real(total_currents(6,neighbor)) , aimag(total_currents(6,neighbor)) , atan2(aimag(total_currents(6,neighbor)),real(total_currents(6,neighbor))) , real(total_currents(6,neighbor))/abs(total_currents(6,neighbor)) , aimag(total_currents(6,neighbor))/abs(total_currents(6,neighbor))
       ! Writing z-component orbital angular momentum current
-      write(unit=iw+7,fmt="(7(es16.9,2x))") e,abs(total_currents(7,neighbor)),real(total_currents(7,neighbor)),aimag(total_currents(7,neighbor)),atan2(aimag(total_currents(7,neighbor)),real(total_currents(7,neighbor))),real(total_currents(7,neighbor))/abs(total_currents(7,neighbor)),aimag(total_currents(7,neighbor))/abs(total_currents(7,neighbor))
+      write(unit=iw+7,fmt="(7(es16.9,2x))") e , abs(total_currents(7,neighbor)) , real(total_currents(7,neighbor)) , aimag(total_currents(7,neighbor)) , atan2(aimag(total_currents(7,neighbor)),real(total_currents(7,neighbor))) , real(total_currents(7,neighbor))/abs(total_currents(7,neighbor)) , aimag(total_currents(7,neighbor))/abs(total_currents(7,neighbor))
 
       ! Writing renormalized currents
       if(renorm) then
         ! Writing renormalized charge current
-        write(unit=iw+1001,fmt="(7(es16.9,2x))") e,abs(rtotal_currents(1,neighbor)),real(rtotal_currents(1,neighbor)),aimag(rtotal_currents(1,neighbor)),atan2(aimag(rtotal_currents(1,neighbor)),real(rtotal_currents(1,neighbor))),real(rtotal_currents(1,neighbor))/abs(rtotal_currents(1,neighbor)),aimag(rtotal_currents(1,neighbor))/abs(rtotal_currents(1,neighbor))
+        write(unit=iw+1001,fmt="(7(es16.9,2x))") e , abs(rtotal_currents(1,neighbor)) , real(rtotal_currents(1,neighbor)) , aimag(rtotal_currents(1,neighbor)) , atan2(aimag(rtotal_currents(1,neighbor)),real(rtotal_currents(1,neighbor))) , real(rtotal_currents(1,neighbor))/abs(rtotal_currents(1,neighbor)) , aimag(rtotal_currents(1,neighbor))/abs(rtotal_currents(1,neighbor))
 
         ! Writing renormalized x-component spin current
-        write(unit=iw+1002,fmt="(7(es16.9,2x))") e,abs(rtotal_currents(2,neighbor)),real(rtotal_currents(2,neighbor)),aimag(rtotal_currents(2,neighbor)),atan2(aimag(rtotal_currents(2,neighbor)),real(rtotal_currents(2,neighbor))),real(rtotal_currents(2,neighbor))/abs(rtotal_currents(2,neighbor)),aimag(rtotal_currents(2,neighbor))/abs(rtotal_currents(2,neighbor))
+        write(unit=iw+1002,fmt="(7(es16.9,2x))") e , abs(rtotal_currents(2,neighbor)) , real(rtotal_currents(2,neighbor)) , aimag(rtotal_currents(2,neighbor)) , atan2(aimag(rtotal_currents(2,neighbor)),real(rtotal_currents(2,neighbor))) , real(rtotal_currents(2,neighbor))/abs(rtotal_currents(2,neighbor)) , aimag(rtotal_currents(2,neighbor))/abs(rtotal_currents(2,neighbor))
         ! Writing renormalized y-component spin current
-        write(unit=iw+1003,fmt="(7(es16.9,2x))") e,abs(rtotal_currents(3,neighbor)),real(rtotal_currents(3,neighbor)),aimag(rtotal_currents(3,neighbor)),atan2(aimag(rtotal_currents(3,neighbor)),real(rtotal_currents(3,neighbor))),real(rtotal_currents(3,neighbor))/abs(rtotal_currents(3,neighbor)),aimag(rtotal_currents(3,neighbor))/abs(rtotal_currents(3,neighbor))
+        write(unit=iw+1003,fmt="(7(es16.9,2x))") e , abs(rtotal_currents(3,neighbor)) , real(rtotal_currents(3,neighbor)) , aimag(rtotal_currents(3,neighbor)) , atan2(aimag(rtotal_currents(3,neighbor)),real(rtotal_currents(3,neighbor))) , real(rtotal_currents(3,neighbor))/abs(rtotal_currents(3,neighbor)) , aimag(rtotal_currents(3,neighbor))/abs(rtotal_currents(3,neighbor))
         ! Writing renormalized z-component spin current
-        write(unit=iw+1004,fmt="(7(es16.9,2x))") e,abs(rtotal_currents(4,neighbor)),real(rtotal_currents(4,neighbor)),aimag(rtotal_currents(4,neighbor)),atan2(aimag(rtotal_currents(4,neighbor)),real(rtotal_currents(4,neighbor))),real(rtotal_currents(4,neighbor))/abs(rtotal_currents(4,neighbor)),aimag(rtotal_currents(4,neighbor))/abs(rtotal_currents(4,neighbor))
+        write(unit=iw+1004,fmt="(7(es16.9,2x))") e , abs(rtotal_currents(4,neighbor)) , real(rtotal_currents(4,neighbor)) , aimag(rtotal_currents(4,neighbor)) , atan2(aimag(rtotal_currents(4,neighbor)),real(rtotal_currents(4,neighbor))) , real(rtotal_currents(4,neighbor))/abs(rtotal_currents(4,neighbor)) , aimag(rtotal_currents(4,neighbor))/abs(rtotal_currents(4,neighbor))
 
         ! Writing x-component orbital angular momentum current
-        write(unit=iw+1005,fmt="(7(es16.9,2x))") e,abs(rtotal_currents(5,neighbor)),real(rtotal_currents(5,neighbor)),aimag(rtotal_currents(5,neighbor)),atan2(aimag(rtotal_currents(5,neighbor)),real(rtotal_currents(5,neighbor))),real(rtotal_currents(5,neighbor))/abs(rtotal_currents(5,neighbor)),aimag(rtotal_currents(5,neighbor))/abs(rtotal_currents(5,neighbor))
+        write(unit=iw+1005,fmt="(7(es16.9,2x))") e , abs(rtotal_currents(5,neighbor)) , real(rtotal_currents(5,neighbor)) , aimag(rtotal_currents(5,neighbor)) , atan2(aimag(rtotal_currents(5,neighbor)),real(rtotal_currents(5,neighbor))) , real(rtotal_currents(5,neighbor))/abs(rtotal_currents(5,neighbor)) , aimag(rtotal_currents(5,neighbor))/abs(rtotal_currents(5,neighbor))
         ! Writing y-component orbital angular momentum current
-        write(unit=iw+1006,fmt="(7(es16.9,2x))") e,abs(rtotal_currents(6,neighbor)),real(rtotal_currents(6,neighbor)),aimag(rtotal_currents(6,neighbor)),atan2(aimag(rtotal_currents(6,neighbor)),real(rtotal_currents(6,neighbor))),real(rtotal_currents(6,neighbor))/abs(rtotal_currents(6,neighbor)),aimag(rtotal_currents(6,neighbor))/abs(rtotal_currents(6,neighbor))
+        write(unit=iw+1006,fmt="(7(es16.9,2x))") e , abs(rtotal_currents(6,neighbor)) , real(rtotal_currents(6,neighbor)) , aimag(rtotal_currents(6,neighbor)) , atan2(aimag(rtotal_currents(6,neighbor)),real(rtotal_currents(6,neighbor))) , real(rtotal_currents(6,neighbor))/abs(rtotal_currents(6,neighbor)) , aimag(rtotal_currents(6,neighbor))/abs(rtotal_currents(6,neighbor))
         ! Writing z-component orbital angular momentum current
-        write(unit=iw+1007,fmt="(7(es16.9,2x))") e,abs(rtotal_currents(7,neighbor)),real(rtotal_currents(7,neighbor)),aimag(rtotal_currents(7,neighbor)),atan2(aimag(rtotal_currents(7,neighbor)),real(rtotal_currents(7,neighbor))),real(rtotal_currents(7,neighbor))/abs(rtotal_currents(7,neighbor)),aimag(rtotal_currents(7,neighbor))/abs(rtotal_currents(7,neighbor))
+        write(unit=iw+1007,fmt="(7(es16.9,2x))") e , abs(rtotal_currents(7,neighbor)) , real(rtotal_currents(7,neighbor)) , aimag(rtotal_currents(7,neighbor)) , atan2(aimag(rtotal_currents(7,neighbor)),real(rtotal_currents(7,neighbor))) , real(rtotal_currents(7,neighbor))/abs(rtotal_currents(7,neighbor)) , aimag(rtotal_currents(7,neighbor))/abs(rtotal_currents(7,neighbor))
       end if
 
       ! Writing currents per plane
       do i=1,Npl
         ! Writing charge current
         iw = 5000+(i-1)*n0sc2*7+(neighbor-1)*7
-        write(unit=iw+1,fmt="(7(es16.9,2x))") e,abs(currents(1,neighbor,i)),real(currents(1,neighbor,i)),aimag(currents(1,neighbor,i)),atan2(aimag(currents(1,neighbor,i)),real(currents(1,neighbor,i))),real(currents(1,neighbor,i))/abs(currents(1,neighbor,i)),aimag(currents(1,neighbor,i))/abs(currents(1,neighbor,i))
+        write(unit=iw+1,fmt="(7(es16.9,2x))") e , abs(currents(1,neighbor,i)) , real(currents(1,neighbor,i)) , aimag(currents(1,neighbor,i)) , atan2(aimag(currents(1,neighbor,i)),real(currents(1,neighbor,i))) , real(currents(1,neighbor,i))/abs(currents(1,neighbor,i)) , aimag(currents(1,neighbor,i))/abs(currents(1,neighbor,i))
 
         ! Writing x-component spin current
-        write(unit=iw+2,fmt="(7(es16.9,2x))") e,abs(currents(2,neighbor,i)),real(currents(2,neighbor,i)),aimag(currents(2,neighbor,i)),atan2(aimag(currents(2,neighbor,i)),real(currents(2,neighbor,i))),real(currents(2,neighbor,i))/abs(currents(2,neighbor,i)),aimag(currents(2,neighbor,i))/abs(currents(2,neighbor,i))
+        write(unit=iw+2,fmt="(7(es16.9,2x))") e , abs(currents(2,neighbor,i)) , real(currents(2,neighbor,i)) , aimag(currents(2,neighbor,i)) , atan2(aimag(currents(2,neighbor,i)),real(currents(2,neighbor,i))) , real(currents(2,neighbor,i))/abs(currents(2,neighbor,i)) , aimag(currents(2,neighbor,i))/abs(currents(2,neighbor,i))
         ! Writing y-component spin current
-        write(unit=iw+3,fmt="(7(es16.9,2x))") e,abs(currents(3,neighbor,i)),real(currents(3,neighbor,i)),aimag(currents(3,neighbor,i)),atan2(aimag(currents(3,neighbor,i)),real(currents(3,neighbor,i))),real(currents(3,neighbor,i))/abs(currents(3,neighbor,i)),aimag(currents(3,neighbor,i))/abs(currents(3,neighbor,i))
+        write(unit=iw+3,fmt="(7(es16.9,2x))") e , abs(currents(3,neighbor,i)) , real(currents(3,neighbor,i)) , aimag(currents(3,neighbor,i)) , atan2(aimag(currents(3,neighbor,i)),real(currents(3,neighbor,i))) , real(currents(3,neighbor,i))/abs(currents(3,neighbor,i)) , aimag(currents(3,neighbor,i))/abs(currents(3,neighbor,i))
         ! Writing z-component spin current
-        write(unit=iw+4,fmt="(7(es16.9,2x))") e,abs(currents(4,neighbor,i)),real(currents(4,neighbor,i)),aimag(currents(4,neighbor,i)),atan2(aimag(currents(4,neighbor,i)),real(currents(4,neighbor,i))),real(currents(4,neighbor,i))/abs(currents(4,neighbor,i)),aimag(currents(4,neighbor,i))/abs(currents(4,neighbor,i))
+        write(unit=iw+4,fmt="(7(es16.9,2x))") e , abs(currents(4,neighbor,i)) , real(currents(4,neighbor,i)) , aimag(currents(4,neighbor,i)) , atan2(aimag(currents(4,neighbor,i)),real(currents(4,neighbor,i))) , real(currents(4,neighbor,i))/abs(currents(4,neighbor,i)) , aimag(currents(4,neighbor,i))/abs(currents(4,neighbor,i))
 
         ! Writing x-component orbital angular momentum current
-        write(unit=iw+5,fmt="(7(es16.9,2x))") e,abs(currents(5,neighbor,i)),real(currents(5,neighbor,i)),aimag(currents(5,neighbor,i)),atan2(aimag(currents(5,neighbor,i)),real(currents(5,neighbor,i))),real(currents(5,neighbor,i))/abs(currents(5,neighbor,i)),aimag(currents(5,neighbor,i))/abs(currents(5,neighbor,i))
+        write(unit=iw+5,fmt="(7(es16.9,2x))") e , abs(currents(5,neighbor,i)) , real(currents(5,neighbor,i)) , aimag(currents(5,neighbor,i)) , atan2(aimag(currents(5,neighbor,i)),real(currents(5,neighbor,i))) , real(currents(5,neighbor,i))/abs(currents(5,neighbor,i)) , aimag(currents(5,neighbor,i))/abs(currents(5,neighbor,i))
         ! Writing y-component orbital angular momentum current
-        write(unit=iw+6,fmt="(7(es16.9,2x))") e,abs(currents(6,neighbor,i)),real(currents(6,neighbor,i)),aimag(currents(6,neighbor,i)),atan2(aimag(currents(6,neighbor,i)),real(currents(6,neighbor,i))),real(currents(6,neighbor,i))/abs(currents(6,neighbor,i)),aimag(currents(6,neighbor,i))/abs(currents(6,neighbor,i))
+        write(unit=iw+6,fmt="(7(es16.9,2x))") e , abs(currents(6,neighbor,i)) , real(currents(6,neighbor,i)) , aimag(currents(6,neighbor,i)) , atan2(aimag(currents(6,neighbor,i)),real(currents(6,neighbor,i))) , real(currents(6,neighbor,i))/abs(currents(6,neighbor,i)) , aimag(currents(6,neighbor,i))/abs(currents(6,neighbor,i))
         ! Writing z-component orbital angular momentum current
-        write(unit=iw+7,fmt="(7(es16.9,2x))") e,abs(currents(7,neighbor,i)),real(currents(7,neighbor,i)),aimag(currents(7,neighbor,i)),atan2(aimag(currents(7,neighbor,i)),real(currents(7,neighbor,i))),real(currents(7,neighbor,i))/abs(currents(7,neighbor,i)),aimag(currents(7,neighbor,i))/abs(currents(7,neighbor,i))
+        write(unit=iw+7,fmt="(7(es16.9,2x))") e , abs(currents(7,neighbor,i)) , real(currents(7,neighbor,i)) , aimag(currents(7,neighbor,i)) , atan2(aimag(currents(7,neighbor,i)),real(currents(7,neighbor,i))) , real(currents(7,neighbor,i))/abs(currents(7,neighbor,i)) , aimag(currents(7,neighbor,i))/abs(currents(7,neighbor,i))
 
         ! Writing renormalized currents
         if(renorm) then
           ! Writing renormalized charge current
-          write(unit=iw+1001,fmt="(7(es16.9,2x))") e,abs(rcurrents(1,neighbor,i)),real(rcurrents(1,neighbor,i)),aimag(rcurrents(1,neighbor,i)),atan2(aimag(rcurrents(1,neighbor,i)),real(rcurrents(1,neighbor,i))),real(rcurrents(1,neighbor,i))/abs(rcurrents(1,neighbor,i)),aimag(rcurrents(1,neighbor,i))/abs(rcurrents(1,neighbor,i))
+          write(unit=iw+1001,fmt="(7(es16.9,2x))") e , abs(rcurrents(1,neighbor,i)) , real(rcurrents(1,neighbor,i)) , aimag(rcurrents(1,neighbor,i)) , atan2(aimag(rcurrents(1,neighbor,i)),real(rcurrents(1,neighbor,i))) , real(rcurrents(1,neighbor,i))/abs(rcurrents(1,neighbor,i)) , aimag(rcurrents(1,neighbor,i))/abs(rcurrents(1,neighbor,i))
 
           ! Writing renormalized x-component spin current
-          write(unit=iw+1002,fmt="(7(es16.9,2x))") e,abs(rcurrents(2,neighbor,i)),real(rcurrents(2,neighbor,i)),aimag(rcurrents(2,neighbor,i)),atan2(aimag(rcurrents(2,neighbor,i)),real(rcurrents(2,neighbor,i))),real(rcurrents(2,neighbor,i))/abs(rcurrents(2,neighbor,i)),aimag(rcurrents(2,neighbor,i))/abs(rcurrents(2,neighbor,i))
+          write(unit=iw+1002,fmt="(7(es16.9,2x))") e , abs(rcurrents(2,neighbor,i)) , real(rcurrents(2,neighbor,i)) , aimag(rcurrents(2,neighbor,i)) , atan2(aimag(rcurrents(2,neighbor,i)),real(rcurrents(2,neighbor,i))) , real(rcurrents(2,neighbor,i))/abs(rcurrents(2,neighbor,i)) , aimag(rcurrents(2,neighbor,i))/abs(rcurrents(2,neighbor,i))
           ! Writing renormalized y-component spin current
-          write(unit=iw+1003,fmt="(7(es16.9,2x))") e,abs(rcurrents(3,neighbor,i)),real(rcurrents(3,neighbor,i)),aimag(rcurrents(3,neighbor,i)),atan2(aimag(rcurrents(3,neighbor,i)),real(rcurrents(3,neighbor,i))),real(rcurrents(3,neighbor,i))/abs(rcurrents(3,neighbor,i)),aimag(rcurrents(3,neighbor,i))/abs(rcurrents(3,neighbor,i))
+          write(unit=iw+1003,fmt="(7(es16.9,2x))") e , abs(rcurrents(3,neighbor,i)) , real(rcurrents(3,neighbor,i)) , aimag(rcurrents(3,neighbor,i)) , atan2(aimag(rcurrents(3,neighbor,i)),real(rcurrents(3,neighbor,i))) , real(rcurrents(3,neighbor,i))/abs(rcurrents(3,neighbor,i)) , aimag(rcurrents(3,neighbor,i))/abs(rcurrents(3,neighbor,i))
           ! Writing renormalized z-component spin current
-          write(unit=iw+1004,fmt="(7(es16.9,2x))") e,abs(rcurrents(4,neighbor,i)),real(rcurrents(4,neighbor,i)),aimag(rcurrents(4,neighbor,i)),atan2(aimag(rcurrents(4,neighbor,i)),real(rcurrents(4,neighbor,i))),real(rcurrents(4,neighbor,i))/abs(rcurrents(4,neighbor,i)),aimag(rcurrents(4,neighbor,i))/abs(rcurrents(4,neighbor,i))
+          write(unit=iw+1004,fmt="(7(es16.9,2x))") e , abs(rcurrents(4,neighbor,i)) , real(rcurrents(4,neighbor,i)) , aimag(rcurrents(4,neighbor,i)) , atan2(aimag(rcurrents(4,neighbor,i)),real(rcurrents(4,neighbor,i))) , real(rcurrents(4,neighbor,i))/abs(rcurrents(4,neighbor,i)) , aimag(rcurrents(4,neighbor,i))/abs(rcurrents(4,neighbor,i))
 
           ! Writing x-component orbital angular momentum current
-          write(unit=iw+1005,fmt="(7(es16.9,2x))") e,abs(rcurrents(5,neighbor,i)),real(rcurrents(5,neighbor,i)),aimag(rcurrents(5,neighbor,i)),atan2(aimag(rcurrents(5,neighbor,i)),real(rcurrents(5,neighbor,i))),real(rcurrents(5,neighbor,i))/abs(rcurrents(5,neighbor,i)),aimag(rcurrents(5,neighbor,i))/abs(rcurrents(5,neighbor,i))
+          write(unit=iw+1005,fmt="(7(es16.9,2x))") e , abs(rcurrents(5,neighbor,i)) , real(rcurrents(5,neighbor,i)) , aimag(rcurrents(5,neighbor,i)) , atan2(aimag(rcurrents(5,neighbor,i)),real(rcurrents(5,neighbor,i))) , real(rcurrents(5,neighbor,i))/abs(rcurrents(5,neighbor,i)) , aimag(rcurrents(5,neighbor,i))/abs(rcurrents(5,neighbor,i))
           ! Writing y-component orbital angular momentum current
-          write(unit=iw+1006,fmt="(7(es16.9,2x))") e,abs(rcurrents(6,neighbor,i)),real(rcurrents(6,neighbor,i)),aimag(rcurrents(6,neighbor,i)),atan2(aimag(rcurrents(6,neighbor,i)),real(rcurrents(6,neighbor,i))),real(rcurrents(6,neighbor,i))/abs(rcurrents(6,neighbor,i)),aimag(rcurrents(6,neighbor,i))/abs(rcurrents(6,neighbor,i))
+          write(unit=iw+1006,fmt="(7(es16.9,2x))") e , abs(rcurrents(6,neighbor,i)) , real(rcurrents(6,neighbor,i)) , aimag(rcurrents(6,neighbor,i)) , atan2(aimag(rcurrents(6,neighbor,i)),real(rcurrents(6,neighbor,i))) , real(rcurrents(6,neighbor,i))/abs(rcurrents(6,neighbor,i)) , aimag(rcurrents(6,neighbor,i))/abs(rcurrents(6,neighbor,i))
           ! Writing z-component orbital angular momentum current
-          write(unit=iw+1007,fmt="(7(es16.9,2x))") e,abs(rcurrents(7,neighbor,i)),real(rcurrents(7,neighbor,i)),aimag(rcurrents(7,neighbor,i)),atan2(aimag(rcurrents(7,neighbor,i)),real(rcurrents(7,neighbor,i))),real(rcurrents(7,neighbor,i))/abs(rcurrents(7,neighbor,i)),aimag(rcurrents(7,neighbor,i))/abs(rcurrents(7,neighbor,i))
+          write(unit=iw+1007,fmt="(7(es16.9,2x))") e , abs(rcurrents(7,neighbor,i)) , real(rcurrents(7,neighbor,i)) , aimag(rcurrents(7,neighbor,i)) , atan2(aimag(rcurrents(7,neighbor,i)),real(rcurrents(7,neighbor,i))) , real(rcurrents(7,neighbor,i))/abs(rcurrents(7,neighbor,i)) , aimag(rcurrents(7,neighbor,i))/abs(rcurrents(7,neighbor,i))
         end if
       end do
     end do
+
+    ! Writing DC spin currents
+    do i=1,Npl ; do j=1,3
+      iw = 8100+(i-1)*3+j
+      write(unit=iw,fmt="(7(es16.9,2x))") e , abs(dc_currents(j,i)) , real(dc_currents(j,i)) , aimag(dc_currents(j,i)) , atan2(aimag(dc_currents(j,i)),real(dc_currents(j,i))) , real(dc_currents(j,i))/abs(dc_currents(j,i)) , aimag(dc_currents(j,i))/abs(dc_currents(j,i))
+    end do ; end do
 
     return
   end subroutine write_currents
@@ -378,6 +407,7 @@ contains
       if((dcfield_dependence.ne.3).and.(dcfield_dependence.ne.5).and.(dcfield_dependence.ne.6)) write(fieldpart,"(a,'_hwp=',f5.2)") trim(fieldpart),hwp
     end if
     if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
+    if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
 
     folder(1) = "CC"
     folder(2) = "SC"
@@ -433,6 +463,15 @@ contains
           close(unit=iw)
         end if
       end do ; end do
+      ! Header for DC spin current
+      do i=1,Npl ; do j=2,4
+        iw = 81000+(i-1)*3+j-1
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/SC/',a,a,'pumpdc_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(dcprefix),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        open (unit=iw, file=varm, status='unknown', form='formatted')
+        write(unit=iw, fmt="('#',a,'  Re(',a,'pumpdc)  ,  Im(',a,'pumpdc)  , phase of ',a,'pumpdc , cos(',a,'pumpdc) , sin(',a,'pumpdc) , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
+        close(unit=iw)
+      end do ; end do
+
     else if(iflag.eq.1) then
       ! Currents per plane per neighbor
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
@@ -462,6 +501,14 @@ contains
         end if
       end do ; end do
 
+      ! DC spin current
+      do i=1,Npl ; do j=2,4
+        iw = 81000+(i-1)*3+j-1
+        write(varm,"('./results/',a1,'SOC/',i0,'Npl/SC/',a,a,'pumpdc_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(dcprefix),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+        errt = errt + err
+      end do ; end do
+
       ! Stop if some file does not exist
       if(errt.ne.0) then
         write(outputunit,"(a,i0,a)") "[openclose_dc_currents_files] Some file(s) do(es) not exist! Stopping before starting calculations..."
@@ -489,6 +536,12 @@ contains
           close(unit=iw)
         end if
       end do ; end do
+
+      ! Closing DC spin currents
+      do i=1,Npl ; do j=2,4
+        iw = 81000+(i-1)*3+j-1
+        close(unit=iw)
+      end do ; end do
     end if
 
     return
@@ -505,9 +558,9 @@ contains
   subroutine write_dc_currents()
     use mod_f90_kind
     use mod_parameters
-    use mod_magnet, only: mtheta,mphi
+    use mod_magnet, only: mvec_spherical
     implicit none
-    integer  :: neighbor,i,iw
+    integer  :: neighbor,i,j,iw
 
     write(outputunit_loop,"(' ################# Currents: #################')")
     do neighbor=n0sc1,n0sc2
@@ -544,83 +597,89 @@ contains
       ! Total currents for each neighbor direction
       ! Writing charge current
       iw = 70000+(neighbor-1)*7
-      write(unit=iw+1,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(total_currents(1,neighbor)),aimag(total_currents(1,neighbor)),atan2(aimag(total_currents(1,neighbor)),real(total_currents(1,neighbor))),real(total_currents(1,neighbor))/abs(total_currents(1,neighbor)),aimag(total_currents(1,neighbor))/abs(total_currents(1,neighbor)),mtheta(mmlayermag(1)-1),mphi(mmlayermag(1)-1)
+      write(unit=iw+1,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_currents(1,neighbor)) , aimag(total_currents(1,neighbor)) , atan2(aimag(total_currents(1,neighbor)),real(total_currents(1,neighbor))) , real(total_currents(1,neighbor))/abs(total_currents(1,neighbor)) , aimag(total_currents(1,neighbor))/abs(total_currents(1,neighbor)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
 
       ! Writing x-component spin current
-      write(unit=iw+2,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(total_currents(2,neighbor)),aimag(total_currents(2,neighbor)),atan2(aimag(total_currents(2,neighbor)),real(total_currents(2,neighbor))),real(total_currents(2,neighbor))/abs(total_currents(2,neighbor)),aimag(total_currents(2,neighbor))/abs(total_currents(2,neighbor)),mtheta(mmlayermag(1)-1),mphi(mmlayermag(1)-1)
+      write(unit=iw+2,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_currents(2,neighbor)) , aimag(total_currents(2,neighbor)) , atan2(aimag(total_currents(2,neighbor)),real(total_currents(2,neighbor))) , real(total_currents(2,neighbor))/abs(total_currents(2,neighbor)) , aimag(total_currents(2,neighbor))/abs(total_currents(2,neighbor)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
       ! Writing y-component spin current
-      write(unit=iw+3,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(total_currents(3,neighbor)),aimag(total_currents(3,neighbor)),atan2(aimag(total_currents(3,neighbor)),real(total_currents(3,neighbor))),real(total_currents(3,neighbor))/abs(total_currents(3,neighbor)),aimag(total_currents(3,neighbor))/abs(total_currents(3,neighbor)),mtheta(mmlayermag(1)-1),mphi(mmlayermag(1)-1)
+      write(unit=iw+3,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_currents(3,neighbor)) , aimag(total_currents(3,neighbor)) , atan2(aimag(total_currents(3,neighbor)),real(total_currents(3,neighbor))) , real(total_currents(3,neighbor))/abs(total_currents(3,neighbor)) , aimag(total_currents(3,neighbor))/abs(total_currents(3,neighbor)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
       ! Writing z-component spin current
-      write(unit=iw+4,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(total_currents(4,neighbor)),aimag(total_currents(4,neighbor)),atan2(aimag(total_currents(4,neighbor)),real(total_currents(4,neighbor))),real(total_currents(4,neighbor))/abs(total_currents(4,neighbor)),aimag(total_currents(4,neighbor))/abs(total_currents(4,neighbor)),mtheta(mmlayermag(1)-1),mphi(mmlayermag(1)-1)
+      write(unit=iw+4,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_currents(4,neighbor)) , aimag(total_currents(4,neighbor)) , atan2(aimag(total_currents(4,neighbor)),real(total_currents(4,neighbor))) , real(total_currents(4,neighbor))/abs(total_currents(4,neighbor)) , aimag(total_currents(4,neighbor))/abs(total_currents(4,neighbor)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
 
       ! Writing x-component orbital angular momentum current
-      write(unit=iw+5,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(total_currents(5,neighbor)),aimag(total_currents(5,neighbor)),atan2(aimag(total_currents(5,neighbor)),real(total_currents(5,neighbor))),real(total_currents(5,neighbor))/abs(total_currents(5,neighbor)),aimag(total_currents(5,neighbor))/abs(total_currents(5,neighbor)),mtheta(mmlayermag(1)-1),mphi(mmlayermag(1)-1)
+      write(unit=iw+5,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_currents(5,neighbor)) , aimag(total_currents(5,neighbor)) , atan2(aimag(total_currents(5,neighbor)),real(total_currents(5,neighbor))) , real(total_currents(5,neighbor))/abs(total_currents(5,neighbor)) , aimag(total_currents(5,neighbor))/abs(total_currents(5,neighbor)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
       ! Writing y-component orbital angular momentum current
-      write(unit=iw+6,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(total_currents(6,neighbor)),aimag(total_currents(6,neighbor)),atan2(aimag(total_currents(6,neighbor)),real(total_currents(6,neighbor))),real(total_currents(6,neighbor))/abs(total_currents(6,neighbor)),aimag(total_currents(6,neighbor))/abs(total_currents(6,neighbor)),mtheta(mmlayermag(1)-1),mphi(mmlayermag(1)-1)
+      write(unit=iw+6,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_currents(6,neighbor)) , aimag(total_currents(6,neighbor)) , atan2(aimag(total_currents(6,neighbor)),real(total_currents(6,neighbor))) , real(total_currents(6,neighbor))/abs(total_currents(6,neighbor)) , aimag(total_currents(6,neighbor))/abs(total_currents(6,neighbor)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
       ! Writing z-component orbital angular momentum current
-      write(unit=iw+7,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(total_currents(7,neighbor)),aimag(total_currents(7,neighbor)),atan2(aimag(total_currents(7,neighbor)),real(total_currents(7,neighbor))),real(total_currents(7,neighbor))/abs(total_currents(7,neighbor)),aimag(total_currents(7,neighbor))/abs(total_currents(7,neighbor)),mtheta(mmlayermag(1)-1),mphi(mmlayermag(1)-1)
+      write(unit=iw+7,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_currents(7,neighbor)) , aimag(total_currents(7,neighbor)) , atan2(aimag(total_currents(7,neighbor)),real(total_currents(7,neighbor))) , real(total_currents(7,neighbor))/abs(total_currents(7,neighbor)) , aimag(total_currents(7,neighbor))/abs(total_currents(7,neighbor)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
 
       ! Writing renormalized currents
       if(renorm) then
         ! Writing renormalized charge current
-        write(unit=iw+1001,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(rtotal_currents(1,neighbor)),aimag(rtotal_currents(1,neighbor)),atan2(aimag(rtotal_currents(1,neighbor)),real(rtotal_currents(1,neighbor))),real(rtotal_currents(1,neighbor))/abs(rtotal_currents(1,neighbor)),aimag(rtotal_currents(1,neighbor))/abs(rtotal_currents(1,neighbor)),mtheta(mmlayermag(1)-1),mphi(mmlayermag(1)-1)
+        write(unit=iw+1001,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rtotal_currents(1,neighbor)) , aimag(rtotal_currents(1,neighbor)) , atan2(aimag(rtotal_currents(1,neighbor)),real(rtotal_currents(1,neighbor))) , real(rtotal_currents(1,neighbor))/abs(rtotal_currents(1,neighbor)) , aimag(rtotal_currents(1,neighbor))/abs(rtotal_currents(1,neighbor)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
 
         ! Writing renormalized x-component spin current
-        write(unit=iw+1002,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(rtotal_currents(2,neighbor)),aimag(rtotal_currents(2,neighbor)),atan2(aimag(rtotal_currents(2,neighbor)),real(rtotal_currents(2,neighbor))),real(rtotal_currents(2,neighbor))/abs(rtotal_currents(2,neighbor)),aimag(rtotal_currents(2,neighbor))/abs(rtotal_currents(2,neighbor)),mtheta(mmlayermag(1)-1),mphi(mmlayermag(1)-1)
+        write(unit=iw+1002,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rtotal_currents(2,neighbor)) , aimag(rtotal_currents(2,neighbor)) , atan2(aimag(rtotal_currents(2,neighbor)),real(rtotal_currents(2,neighbor))) , real(rtotal_currents(2,neighbor))/abs(rtotal_currents(2,neighbor)) , aimag(rtotal_currents(2,neighbor))/abs(rtotal_currents(2,neighbor)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
         ! Writing renormalized y-component spin current
-        write(unit=iw+1003,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(rtotal_currents(3,neighbor)),aimag(rtotal_currents(3,neighbor)),atan2(aimag(rtotal_currents(3,neighbor)),real(rtotal_currents(3,neighbor))),real(rtotal_currents(3,neighbor))/abs(rtotal_currents(3,neighbor)),aimag(rtotal_currents(3,neighbor))/abs(rtotal_currents(3,neighbor)),mtheta(mmlayermag(1)-1),mphi(mmlayermag(1)-1)
+        write(unit=iw+1003,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rtotal_currents(3,neighbor)) , aimag(rtotal_currents(3,neighbor)) , atan2(aimag(rtotal_currents(3,neighbor)),real(rtotal_currents(3,neighbor))) , real(rtotal_currents(3,neighbor))/abs(rtotal_currents(3,neighbor)) , aimag(rtotal_currents(3,neighbor))/abs(rtotal_currents(3,neighbor)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
         ! Writing renormalized z-component spin current
-        write(unit=iw+1004,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(rtotal_currents(4,neighbor)),aimag(rtotal_currents(4,neighbor)),atan2(aimag(rtotal_currents(4,neighbor)),real(rtotal_currents(4,neighbor))),real(rtotal_currents(4,neighbor))/abs(rtotal_currents(4,neighbor)),aimag(rtotal_currents(4,neighbor))/abs(rtotal_currents(4,neighbor)),mtheta(mmlayermag(1)-1),mphi(mmlayermag(1)-1)
+        write(unit=iw+1004,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rtotal_currents(4,neighbor)) , aimag(rtotal_currents(4,neighbor)) , atan2(aimag(rtotal_currents(4,neighbor)),real(rtotal_currents(4,neighbor))) , real(rtotal_currents(4,neighbor))/abs(rtotal_currents(4,neighbor)) , aimag(rtotal_currents(4,neighbor))/abs(rtotal_currents(4,neighbor)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
 
         ! Writing x-component orbital angular momentum current
-        write(unit=iw+1005,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(rtotal_currents(5,neighbor)),aimag(rtotal_currents(5,neighbor)),atan2(aimag(rtotal_currents(5,neighbor)),real(rtotal_currents(5,neighbor))),real(rtotal_currents(5,neighbor))/abs(rtotal_currents(5,neighbor)),aimag(rtotal_currents(5,neighbor))/abs(rtotal_currents(5,neighbor)),mtheta(mmlayermag(1)-1),mphi(mmlayermag(1)-1)
+        write(unit=iw+1005,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rtotal_currents(5,neighbor)) , aimag(rtotal_currents(5,neighbor)) , atan2(aimag(rtotal_currents(5,neighbor)),real(rtotal_currents(5,neighbor))) , real(rtotal_currents(5,neighbor))/abs(rtotal_currents(5,neighbor)) , aimag(rtotal_currents(5,neighbor))/abs(rtotal_currents(5,neighbor)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
         ! Writing y-component orbital angular momentum current
-        write(unit=iw+1006,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(rtotal_currents(6,neighbor)),aimag(rtotal_currents(6,neighbor)),atan2(aimag(rtotal_currents(6,neighbor)),real(rtotal_currents(6,neighbor))),real(rtotal_currents(6,neighbor))/abs(rtotal_currents(6,neighbor)),aimag(rtotal_currents(6,neighbor))/abs(rtotal_currents(6,neighbor)),mtheta(mmlayermag(1)-1),mphi(mmlayermag(1)-1)
+        write(unit=iw+1006,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rtotal_currents(6,neighbor)) , aimag(rtotal_currents(6,neighbor)) , atan2(aimag(rtotal_currents(6,neighbor)),real(rtotal_currents(6,neighbor))) , real(rtotal_currents(6,neighbor))/abs(rtotal_currents(6,neighbor)) , aimag(rtotal_currents(6,neighbor))/abs(rtotal_currents(6,neighbor)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
         ! Writing z-component orbital angular momentum current
-        write(unit=iw+1007,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(rtotal_currents(7,neighbor)),aimag(rtotal_currents(7,neighbor)),atan2(aimag(rtotal_currents(7,neighbor)),real(rtotal_currents(7,neighbor))),real(rtotal_currents(7,neighbor))/abs(rtotal_currents(7,neighbor)),aimag(rtotal_currents(7,neighbor))/abs(rtotal_currents(7,neighbor)),mtheta(mmlayermag(1)-1),mphi(mmlayermag(1)-1)
+        write(unit=iw+1007,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rtotal_currents(7,neighbor)) , aimag(rtotal_currents(7,neighbor)) , atan2(aimag(rtotal_currents(7,neighbor)),real(rtotal_currents(7,neighbor))) , real(rtotal_currents(7,neighbor))/abs(rtotal_currents(7,neighbor)) , aimag(rtotal_currents(7,neighbor))/abs(rtotal_currents(7,neighbor)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
       end if
 
       ! Writing currents per plane
       do i=1,Npl
         ! Writing charge current
         iw = 50000+(i-1)*n0sc2*7+(neighbor-1)*7
-        write(unit=iw+1,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(currents(1,neighbor,i)),aimag(currents(1,neighbor,i)),atan2(aimag(currents(1,neighbor,i)),real(currents(1,neighbor,i))),real(currents(1,neighbor,i))/abs(currents(1,neighbor,i)),aimag(currents(1,neighbor,i))/abs(currents(1,neighbor,i)),mtheta(i),mphi(i)
+        write(unit=iw+1,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(currents(1,neighbor,i)) , aimag(currents(1,neighbor,i)) , atan2(aimag(currents(1,neighbor,i)),real(currents(1,neighbor,i))) , real(currents(1,neighbor,i))/abs(currents(1,neighbor,i)) , aimag(currents(1,neighbor,i))/abs(currents(1,neighbor,i)) , mvec_spherical(i,2) , mvec_spherical(i,3)
 
         ! Writing x-component spin current
-        write(unit=iw+2,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(currents(2,neighbor,i)),aimag(currents(2,neighbor,i)),atan2(aimag(currents(2,neighbor,i)),real(currents(2,neighbor,i))),real(currents(2,neighbor,i))/abs(currents(2,neighbor,i)),aimag(currents(2,neighbor,i))/abs(currents(2,neighbor,i)),mtheta(i),mphi(i)
+        write(unit=iw+2,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(currents(2,neighbor,i)) , aimag(currents(2,neighbor,i)) , atan2(aimag(currents(2,neighbor,i)),real(currents(2,neighbor,i))) , real(currents(2,neighbor,i))/abs(currents(2,neighbor,i)) , aimag(currents(2,neighbor,i))/abs(currents(2,neighbor,i)) , mvec_spherical(i,2) , mvec_spherical(i,3)
         ! Writing y-component spin current
-        write(unit=iw+3,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(currents(3,neighbor,i)),aimag(currents(3,neighbor,i)),atan2(aimag(currents(3,neighbor,i)),real(currents(3,neighbor,i))),real(currents(3,neighbor,i))/abs(currents(3,neighbor,i)),aimag(currents(3,neighbor,i))/abs(currents(3,neighbor,i)),mtheta(i),mphi(i)
+        write(unit=iw+3,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(currents(3,neighbor,i)) , aimag(currents(3,neighbor,i)) , atan2(aimag(currents(3,neighbor,i)),real(currents(3,neighbor,i))) , real(currents(3,neighbor,i))/abs(currents(3,neighbor,i)) , aimag(currents(3,neighbor,i))/abs(currents(3,neighbor,i)) , mvec_spherical(i,2) , mvec_spherical(i,3)
         ! Writing z-component spin current
-        write(unit=iw+4,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(currents(4,neighbor,i)),aimag(currents(4,neighbor,i)),atan2(aimag(currents(4,neighbor,i)),real(currents(4,neighbor,i))),real(currents(4,neighbor,i))/abs(currents(4,neighbor,i)),aimag(currents(4,neighbor,i))/abs(currents(4,neighbor,i)),mtheta(i),mphi(i)
+        write(unit=iw+4,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(currents(4,neighbor,i)) , aimag(currents(4,neighbor,i)) , atan2(aimag(currents(4,neighbor,i)),real(currents(4,neighbor,i))) , real(currents(4,neighbor,i))/abs(currents(4,neighbor,i)) , aimag(currents(4,neighbor,i))/abs(currents(4,neighbor,i)) , mvec_spherical(i,2) , mvec_spherical(i,3)
 
         ! Writing x-component orbital angular momentum current
-        write(unit=iw+5,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(currents(5,neighbor,i)),aimag(currents(5,neighbor,i)),atan2(aimag(currents(5,neighbor,i)),real(currents(5,neighbor,i))),real(currents(5,neighbor,i))/abs(currents(5,neighbor,i)),aimag(currents(5,neighbor,i))/abs(currents(5,neighbor,i)),mtheta(i),mphi(i)
+        write(unit=iw+5,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(currents(5,neighbor,i)) , aimag(currents(5,neighbor,i)) , atan2(aimag(currents(5,neighbor,i)),real(currents(5,neighbor,i))) , real(currents(5,neighbor,i))/abs(currents(5,neighbor,i)) , aimag(currents(5,neighbor,i))/abs(currents(5,neighbor,i)) , mvec_spherical(i,2) , mvec_spherical(i,3)
         ! Writing y-component orbital angular momentum current
-        write(unit=iw+6,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(currents(6,neighbor,i)),aimag(currents(6,neighbor,i)),atan2(aimag(currents(6,neighbor,i)),real(currents(6,neighbor,i))),real(currents(6,neighbor,i))/abs(currents(6,neighbor,i)),aimag(currents(6,neighbor,i))/abs(currents(6,neighbor,i)),mtheta(i),mphi(i)
+        write(unit=iw+6,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(currents(6,neighbor,i)) , aimag(currents(6,neighbor,i)) , atan2(aimag(currents(6,neighbor,i)),real(currents(6,neighbor,i))) , real(currents(6,neighbor,i))/abs(currents(6,neighbor,i)) , aimag(currents(6,neighbor,i))/abs(currents(6,neighbor,i)) , mvec_spherical(i,2) , mvec_spherical(i,3)
         ! Writing z-component orbital angular momentum current
-        write(unit=iw+7,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(currents(7,neighbor,i)),aimag(currents(7,neighbor,i)),atan2(aimag(currents(7,neighbor,i)),real(currents(7,neighbor,i))),real(currents(7,neighbor,i))/abs(currents(7,neighbor,i)),aimag(currents(7,neighbor,i))/abs(currents(7,neighbor,i)),mtheta(i),mphi(i)
+        write(unit=iw+7,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(currents(7,neighbor,i)) , aimag(currents(7,neighbor,i)) , atan2(aimag(currents(7,neighbor,i)),real(currents(7,neighbor,i))) , real(currents(7,neighbor,i))/abs(currents(7,neighbor,i)) , aimag(currents(7,neighbor,i))/abs(currents(7,neighbor,i)) , mvec_spherical(i,2) , mvec_spherical(i,3)
 
         ! Writing renormalized currents
         if(renorm) then
           ! Writing renormalized charge current
-          write(unit=iw+1001,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(rcurrents(1,neighbor,i)),aimag(rcurrents(1,neighbor,i)),atan2(aimag(rcurrents(1,neighbor,i)),real(rcurrents(1,neighbor,i))),real(rcurrents(1,neighbor,i))/abs(rcurrents(1,neighbor,i)),aimag(rcurrents(1,neighbor,i))/abs(rcurrents(1,neighbor,i)),mtheta(i),mphi(i)
+          write(unit=iw+1001,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rcurrents(1,neighbor,i)) , aimag(rcurrents(1,neighbor,i)) , atan2(aimag(rcurrents(1,neighbor,i)),real(rcurrents(1,neighbor,i))) , real(rcurrents(1,neighbor,i))/abs(rcurrents(1,neighbor,i)) , aimag(rcurrents(1,neighbor,i))/abs(rcurrents(1,neighbor,i)) , mvec_spherical(i,2) , mvec_spherical(i,3)
 
           ! Writing renormalized x-component spin current
-          write(unit=iw+1002,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(rcurrents(2,neighbor,i)),aimag(rcurrents(2,neighbor,i)),atan2(aimag(rcurrents(2,neighbor,i)),real(rcurrents(2,neighbor,i))),real(rcurrents(2,neighbor,i))/abs(rcurrents(2,neighbor,i)),aimag(rcurrents(2,neighbor,i))/abs(rcurrents(2,neighbor,i)),mtheta(i),mphi(i)
+          write(unit=iw+1002,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rcurrents(2,neighbor,i)) , aimag(rcurrents(2,neighbor,i)) , atan2(aimag(rcurrents(2,neighbor,i)),real(rcurrents(2,neighbor,i))) , real(rcurrents(2,neighbor,i))/abs(rcurrents(2,neighbor,i)) , aimag(rcurrents(2,neighbor,i))/abs(rcurrents(2,neighbor,i)) , mvec_spherical(i,2) , mvec_spherical(i,3)
           ! Writing renormalized y-component spin current
-          write(unit=iw+1003,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(rcurrents(3,neighbor,i)),aimag(rcurrents(3,neighbor,i)),atan2(aimag(rcurrents(3,neighbor,i)),real(rcurrents(3,neighbor,i))),real(rcurrents(3,neighbor,i))/abs(rcurrents(3,neighbor,i)),aimag(rcurrents(3,neighbor,i))/abs(rcurrents(3,neighbor,i)),mtheta(i),mphi(i)
+          write(unit=iw+1003,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rcurrents(3,neighbor,i)) , aimag(rcurrents(3,neighbor,i)) , atan2(aimag(rcurrents(3,neighbor,i)),real(rcurrents(3,neighbor,i))) , real(rcurrents(3,neighbor,i))/abs(rcurrents(3,neighbor,i)) , aimag(rcurrents(3,neighbor,i))/abs(rcurrents(3,neighbor,i)) , mvec_spherical(i,2) , mvec_spherical(i,3)
           ! Writing renormalized z-component spin current
-          write(unit=iw+1004,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(rcurrents(4,neighbor,i)),aimag(rcurrents(4,neighbor,i)),atan2(aimag(rcurrents(4,neighbor,i)),real(rcurrents(4,neighbor,i))),real(rcurrents(4,neighbor,i))/abs(rcurrents(4,neighbor,i)),aimag(rcurrents(4,neighbor,i))/abs(rcurrents(4,neighbor,i)),mtheta(i),mphi(i)
+          write(unit=iw+1004,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rcurrents(4,neighbor,i)) , aimag(rcurrents(4,neighbor,i)) , atan2(aimag(rcurrents(4,neighbor,i)),real(rcurrents(4,neighbor,i))) , real(rcurrents(4,neighbor,i))/abs(rcurrents(4,neighbor,i)) , aimag(rcurrents(4,neighbor,i))/abs(rcurrents(4,neighbor,i)) , mvec_spherical(i,2) , mvec_spherical(i,3)
 
           ! Writing x-component orbital angular momentum current
-          write(unit=iw+1005,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(rcurrents(5,neighbor,i)),aimag(rcurrents(5,neighbor,i)),atan2(aimag(rcurrents(5,neighbor,i)),real(rcurrents(5,neighbor,i))),real(rcurrents(5,neighbor,i))/abs(rcurrents(5,neighbor,i)),aimag(rcurrents(5,neighbor,i))/abs(rcurrents(5,neighbor,i)),mtheta(i),mphi(i)
+          write(unit=iw+1005,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rcurrents(5,neighbor,i)) , aimag(rcurrents(5,neighbor,i)) , atan2(aimag(rcurrents(5,neighbor,i)),real(rcurrents(5,neighbor,i))) , real(rcurrents(5,neighbor,i))/abs(rcurrents(5,neighbor,i)) , aimag(rcurrents(5,neighbor,i))/abs(rcurrents(5,neighbor,i)) , mvec_spherical(i,2) , mvec_spherical(i,3)
           ! Writing y-component orbital angular momentum current
-          write(unit=iw+1006,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(rcurrents(6,neighbor,i)),aimag(rcurrents(6,neighbor,i)),atan2(aimag(rcurrents(6,neighbor,i)),real(rcurrents(6,neighbor,i))),real(rcurrents(6,neighbor,i))/abs(rcurrents(6,neighbor,i)),aimag(rcurrents(6,neighbor,i))/abs(rcurrents(6,neighbor,i)),mtheta(i),mphi(i)
+          write(unit=iw+1006,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rcurrents(6,neighbor,i)) , aimag(rcurrents(6,neighbor,i)) , atan2(aimag(rcurrents(6,neighbor,i)),real(rcurrents(6,neighbor,i))) , real(rcurrents(6,neighbor,i))/abs(rcurrents(6,neighbor,i)) , aimag(rcurrents(6,neighbor,i))/abs(rcurrents(6,neighbor,i)) , mvec_spherical(i,2) , mvec_spherical(i,3)
           ! Writing z-component orbital angular momentum current
-          write(unit=iw+1007,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)),real(rcurrents(7,neighbor,i)),aimag(rcurrents(7,neighbor,i)),atan2(aimag(rcurrents(7,neighbor,i)),real(rcurrents(7,neighbor,i))),real(rcurrents(7,neighbor,i))/abs(rcurrents(7,neighbor,i)),aimag(rcurrents(7,neighbor,i))/abs(rcurrents(7,neighbor,i)),mtheta(i),mphi(i)
+          write(unit=iw+1007,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rcurrents(7,neighbor,i)) , aimag(rcurrents(7,neighbor,i)) , atan2(aimag(rcurrents(7,neighbor,i)),real(rcurrents(7,neighbor,i))) , real(rcurrents(7,neighbor,i))/abs(rcurrents(7,neighbor,i)) , aimag(rcurrents(7,neighbor,i))/abs(rcurrents(7,neighbor,i)) , mvec_spherical(i,2) , mvec_spherical(i,3)
         end if
       end do
     end do
+
+    ! Writing DC spin currents
+    do i=1,Npl ; do j=1,3
+      iw = 81000+(i-1)*3+j
+      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(dc_currents(j,i)) , aimag(dc_currents(j,i)) , atan2(aimag(dc_currents(j,i)),real(dc_currents(j,i))) , real(dc_currents(j,i))/abs(dc_currents(j,i)) , aimag(dc_currents(j,i))/abs(dc_currents(j,i)) , mvec_spherical(i,2) , mvec_spherical(i,3)
+    end do ; end do
 
     return
   end subroutine write_dc_currents

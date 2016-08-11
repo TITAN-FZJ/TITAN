@@ -1,12 +1,12 @@
 !*******************************************************************************!
 !                           CHOOSE WHAT TO CALCULATE                            !
--> itype = 9
+-> itype = 1
 !===============================================================================!
 !                                OUTPUT FILE                                    !
 -> output: saida_Npl3_ncp6
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
--> Options:
+-> Options: nolb
 !===============================================================================!
 !                               SYSTEM VARIABLES                                !
 ! Lattice and surface direction:                                                !
@@ -23,9 +23,9 @@
 !                         (in the spin reference system)                        !
 -> FIELD = T  ! Magnetic field on (T) or off (F) (choose one form below)
 ! Spherical coordinates (default, angles in units of pi)                        !
--> hwa   = 2.7E-04 2.8E-04 1
--> hwt   = 0.0E+00
--> hwp   = 0.0E+00
+-> hwa   = -0.80E-03 1.75E-03 31
+-> hwt   = 0.45E+00 ! 1.00E+00 20
+-> hwp   = 0.30E+00 ! 1.40E+00 7
 ! Cartesian coordinates                                                         !
 -> hwx = 0.0E+00 , hwy = 0.0E+00 , hwz = 0.0E+00
 !===============================================================================!
@@ -37,7 +37,7 @@
 -> magaxis = 9
 !===============================================================================!
 !                   DIRECTION OF IN-PLANE ELECTRIC FIELD                        !
--> dirEfield = 1
+-> dirEfield = 3
 !===============================================================================!
 !                        IN-PLANE CURRENTS TO CALCULATE                         !
 -> n0sc1 = 3   ! First neighbor
@@ -59,7 +59,7 @@
 !                              PLOTTING VARIABLES                               !
 !           PLOTTING VARIABLES         !             BAND STRUCTURE             !
 ! Minimum and maximum value of energy: ! High symmetry direction                !
--> emin = 2.50E-04 , emax =  4.00E-04   -> kdirection = GH
+-> emin = 1.00E-03 , emax =  2.00E-04   -> kdirection = GH
 !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -!
 !                              Number of points:                                !
 -> npts = 31

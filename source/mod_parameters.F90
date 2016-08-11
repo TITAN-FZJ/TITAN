@@ -43,11 +43,11 @@ module mod_parameters
   integer       :: dcfield_dependence=0
   real(double)  :: hwx=0.d0,hwy=0.d0,hwz=0.d0,tesla=1.d0
   real(double)  :: hwa,hwa_i=0.d0,hwa_f=0.d0,hwa_s
-  integer       :: hwa_npts,hwa_npt1=1,hwa_count
+  integer       :: hwa_npts=0,hwa_npt1=1,hwa_count
   real(double)  :: hwt,hwt_i=0.d0,hwt_f=0.d0,hwt_s
-  integer       :: hwt_npts,hwt_npt1=1,hwt_count
+  integer       :: hwt_npts=0,hwt_npt1=1,hwt_count
   real(double)  :: hwp,hwp_i=0.d0,hwp_f=0.d0,hwp_s
-  integer       :: hwp_npts,hwp_npt1=1,hwp_count
+  integer       :: hwp_npts=0,hwp_npt1=1,hwp_count
   integer       :: hw_count,total_hw_npt1
 !========================================================================================!
 ! Number of parts to divide energy integral I1+I2 and I3
@@ -84,10 +84,16 @@ module mod_parameters
   logical :: lnojac       = .false.
   logical :: lontheflysc  = .false.
   logical :: lrotatemag   = .false.
+  logical :: lnolb        = .false.
 !========================================================================================!
 ! Activate debug options
   logical :: lverbose = .false.
   logical :: ldebug = .false.
+!========================================================================================!
+! DC voltage calculations
+  logical :: lvdc = .false.
+  integer :: vdcneighbor(2)=0 ! Longitudinal (1) and transverse (2) neighbor to calculate Vdc
+  integer :: mvdcvector(3)    ! Mapping of the magnetization direction for the selected applied field/magnetization frame of reference
 !========================================================================================!
 ! n0sc1 - first neighbor to calculate the in-plane spin and charge current
 ! n0sc2 - last neighbor to calculate the in-plane spin and charge current

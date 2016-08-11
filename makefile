@@ -29,7 +29,7 @@ SHELL = /bin/sh
 ####################################################
 SRCDIR = ./source
 BINDIR = ./bin
-OBJDIR = ./build/$(PLATFORM)
+OBJDIR = ./build/$(PLATFORM)$(addprefix /,$(DEBUG))
 ifdef FILE
 	FILENAME = $(BINDIR)/$(FILE)
 else
@@ -126,7 +126,7 @@ LLIBS =-mkl -static-intel -L$(HOME)/lib -lnag
 FFLAGS =-O3 -xSSE4.2
 #Debugger
 ifeq ($(DEBUG),debug)
-FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0
+FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0 -fpe0
 endif
 FFLAGS += -module $(OBJDIR)/ -I$(OBJDIR)/
 # Parallelization
@@ -149,7 +149,7 @@ LLIBS =-mkl -L$(HOME)/lib -lkibe
 FFLAGS =-O3 -xHost -qoverride-limits #-guide -parallel # -vec-threshold0
 #Debugger
 ifeq ($(DEBUG),debug)
-FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0
+FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0 -fpe0
 endif
 FFLAGS += -module $(OBJDIR)/ -I$(OBJDIR)/
 # Parallelization
@@ -172,7 +172,7 @@ LLIBS =-mkl -L$(HOME)/lib -lnag
 FFLAGS =-O3 -xHost
 # Debugger
 ifeq ($(DEBUG),debug)
-FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0
+FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0 -fpe0
 endif
 FFLAGS += -module $(OBJDIR)/ -I$(OBJDIR)/
 # Parallelization
@@ -195,7 +195,7 @@ LLIBS =-mkl -L$(HOME)/lib -lkibe
 FFLAGS =-O3 -xSSE4.2
 # Debugger
 ifeq ($(DEBUG),debug)
-FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0
+FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0 -fpe0
 endif
 FFLAGS += -module $(OBJDIR)/ -I$(OBJDIR)/
 # Parallelization
@@ -218,7 +218,7 @@ LLIBS =-mkl -L$(HOME)/lib -lkibe
 FFLAGS =-O3 -xSSE4.2
 #Debugger
 ifeq ($(DEBUG),debug)
-FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0
+FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0 -fpe0
 endif
 FFLAGS += -module $(OBJDIR)/ -I$(OBJDIR)/
 # Parallelization
@@ -242,7 +242,7 @@ LLIBS = -mkl -I$(ND)/nag_interface_blocks -lnag
 FFLAGS =-O3 -xHost -qoverride-limits
 #Debugger
 ifeq ($(DEBUG),debug)
-FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0
+FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0 -fpe0
 endif
 FFLAGS += -module $(OBJDIR)/ -I$(OBJDIR)/
 # Parallelization
@@ -266,7 +266,7 @@ LLIBS =$(ND)/lib/libnag_essl.a -L/bgsys/local/lib -lesslbg
 FFLAGS =-O3 -qstrict -qnoescape -qnosave #-O5 -qarch=qp -qtune=qp
 #Debugger
 ifeq ($(DEBUG),debug)
-FFLAGS =-C -g -O0 -qflttrap -qinitauto=7FF7FFFF -qnoescape
+FFLAGS =-C -g -qfullpath -O0 -qflttrap=enable:invalid:overflow:underflow:zerodivide -qinitauto=7FF7FFFF -qnoescape -qkeepparm
 endif
 FFLAGS += -qmoddir=$(OBJDIR)/ -I$(OBJDIR)/
 # Parallelization

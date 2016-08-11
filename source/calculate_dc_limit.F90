@@ -13,30 +13,35 @@ subroutine calculate_dc_limit()
   use mod_currents
   use mod_beff
   use mod_torques
-  use mod_timing
+  use mod_vdc
   implicit none
   character(len=50) :: time
   integer           :: i,j,iw,sigma,sigmap,mu,nu,neighbor,hw_count_temp
   real(double)      :: e,Icabs
 
-  call MPI_COMM_DUP(MPIComm_Col_hw,MPIComm_Col,ierr)
-  call MPI_COMM_DUP(MPIComm_Row_hw,MPIComm_Row,ierr)
-  myrank_col = myrank_col_hw
-  myrank_row = myrank_row_hw
+  e = emin
 
   call allocate_susceptibilities()
   call allocate_disturbances()
   call allocate_currents()
   call allocate_beff()
   call allocate_torques()
-  if(myrank_row.eq.0)  write(outputunit_loop,"('CALCULATING DC-LIMIT QUANTITIES AS A FUNCTION OF EXTERNAL FIELD (',a,')')") trim(dcfield(dcfield_dependence))
+  call allocate_vdc()
+  if(myrank_row.eq.0) then
+    if(emin.le.2.d-6) then
+      write(outputunit_loop,"('CALCULATING DC-LIMIT QUANTITIES AS A FUNCTION OF EXTERNAL FIELD (',a,')')") trim(dcfield(dcfield_dependence))
+    else
+      write(outputunit_loop,"('CALCULATING QUANTITIES AT FIXED FREQUENCY ',es9.2,' AS A FUNCTION OF EXTERNAL FIELD (',a,')')") e,trim(dcfield(dcfield_dependence))
+    end if
+  end if
   ! Creating files and writing headers
   if((.not.laddresults).and.(myrank.eq.0).and.(hw_count.eq.1)) then
-    if(.not.lhfresponses) call openclose_dc_chi_files(0)
+    call openclose_dc_chi_files(0)
     call openclose_dc_disturbance_files(0)
     call openclose_dc_currents_files(0)
     call openclose_dc_beff_files(0)
     call openclose_dc_torque_files(0)
+    call openclose_dc_vdc_files(0)
   end if
 
   ! Mounting U and identity matrix
@@ -46,12 +51,12 @@ subroutine calculate_dc_limit()
   call allocate_prefactors()
   call OAM_curr_hopping_times_L()
 
-  e = emin
-
   if(lhfresponses) then
-    if(myrank_row_hw.eq.0) write(outputunit_loop,"('[calculate_dc_limit] No renormalization will be done. Setting prefactors to identity. ')")
+    if(myrank_row_hw.eq.0) write(outputunit_loop,"('[calculate_dc_limit] No renormalization will be done. Setting prefactors to identity and calculating HF susceptibilities... ')")
     prefactor     = identt
     if(llinearsoc) prefactorlsoc = identt
+    call eintshechi(e)
+    if(myrank_row_hw.eq.0) call write_time(outputunit_loop,'[calculate_dc_limit] Time after susceptibility calculation: ')
   else
     if(myrank_row_hw.eq.0) write(outputunit_loop,"('[calculate_dc_limit] Calculating prefactor to use in currents and disturbances calculation. ')")
     if(llinearsoc) then
@@ -98,12 +103,6 @@ subroutine calculate_dc_limit()
         call zgemm('n','n',dim,dim,dim,zum,prefactor,dim,chiorb_hf,dim,zero,chiorb,dim) ! (1+chi_hf*Umat)^-1 * chi_hf
       end if
 
-      chiinv = zero
-      ! Calculating susceptibility to use on Beff calculation
-      calculate_susceptibility_Beff_dclimit: do nu=1,9 ; do j=1,Npl ; do sigmap=1,4 ; do mu=1,9 ; do i=1,Npl ; do sigma=1,4
-        chiinv(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = chiinv(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + chiorb(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))    ! +- , up- , down- , --
-      end do ; end do ; end do ; end do ; end do ; end do calculate_susceptibility_Beff_dclimit
-
       schi = zero
       schihf = zero
       ! Calculating RPA and HF susceptibilities
@@ -135,7 +134,45 @@ subroutine calculate_dc_limit()
           schihf(:,:,i,j) = schitemp
         end do ; end do rotate_susceptibility_dclimit
       end if
-    end if ! lhfresponses
+    else
+      ! Calculating the full matrix of RPA and HF susceptibilities for energy e
+      if(llinearsoc) then
+        chiorb = chiorb_hf + chiorb_hflsoc
+      else
+        chiorb = chiorb_hf
+      end if
+
+      schihf = zero
+      ! Calculating RPA and HF susceptibilities
+      calculate_hfsusceptibility_dclimit: do j=1,Npl ; do nu=1,9 ; do i=1,Npl ; do mu=1,9 ; do sigmap=1,4 ; do sigma=1,4
+        schihf(sigma,sigmap,i,j) = schihf(sigma,sigmap,i,j) + chiorb_hf(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
+      end do ; end do ; end do ; end do ; end do ; end do calculate_hfsusceptibility_dclimit
+      ! Rotating susceptibilities to the magnetization direction
+      if(lrot) then
+        do i=1,Npl
+          call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,1)
+          rotmat_i(:,:,i) = rottemp
+          call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,2)
+          rotmat_j(:,:,i) = rottemp
+        end do
+        rotate_hfsusceptibility_dclimit: do j=1,Npl ; do i=1,Npl
+          rottemp  = rotmat_i(:,:,i)
+          schitemp = schihf(:,:,i,j)
+          call zgemm('n','n',4,4,4,zum,rottemp,4,schitemp,4,zero,schirot,4)
+          rottemp  = rotmat_j(:,:,j)
+          call zgemm('n','n',4,4,4,zum,schirot,4,rottemp,4,zero,schitemp,4)
+          schihf(:,:,i,j) = schitemp
+        end do ; end do rotate_hfsusceptibility_dclimit
+      end if
+
+    end if ! .not.lhfresponses
+
+    ! Calculating inverse susceptibility to use on Beff calculation
+    chiinv = zero
+    calculate_susceptibility_Beff_dclimit: do nu=1,9 ; do j=1,Npl ; do sigmap=1,4 ; do mu=1,9 ; do i=1,Npl ; do sigma=1,4
+      chiinv(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = chiinv(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + chiorb(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))    ! +- , up- , down- , --
+    end do ; end do ; end do ; end do ; end do ; end do calculate_susceptibility_Beff_dclimit
+    call invers(chiinv,dimsigmaNpl) ! Inverse of the susceptibility chi^(-1)
 
     disturbances = zero
     torques      = zero
@@ -211,18 +248,36 @@ subroutine calculate_dc_limit()
     ! Total currents for each neighbor direction (Sum of currents over all planes)
     total_currents = sum(currents,dim=3)
 
-    if(.not.lhfresponses) then
-      ! Effective field calculation
-      call invers(chiinv,dimsigmaNpl) ! Inverse of the susceptibility chi^(-1)
-      call zgemm('n','n',dimsigmaNpl,1,dimsigmaNpl,zum,chiinv,dimsigmaNpl,sdmat,dimsigmaNpl,zero,Beff,dimsigmaNpl) ! Beff = chi^(-1)*SD
+    ! DC voltage generated by oscillatory fields (second order)
+    if(lvdc) then
+      plane_loop_vdc_dclimit: do i=1,Npl
+        ! Longitudinal voltage (AMR)
+        if(vdcneighbor(1).ne.0) vdc(1,i) = mvec_cartesian(i,mvdcvector(2))*abs(disturbances(mvdcvector(2)+1,i))*abs(currents(1,vdcneighbor(1),i))*sin(atan2(aimag(currents(1,vdcneighbor(1),i)),real(currents(1,vdcneighbor(1),i))) - atan2(aimag(disturbances(mvdcvector(2)+1,i)),real(disturbances(mvdcvector(2)+1,i))))/((mabs(i))**2)
+        ! Transverse voltage (AHE and PHE)
+        if(vdcneighbor(2).ne.0) then
+          vdc(2,i) =-abs(disturbances(mvdcvector(3)+1,i))*abs(currents(1,vdcneighbor(2),i))*sin(atan2(aimag(currents(1,vdcneighbor(2),i)),real(currents(1,vdcneighbor(2),i))) - atan2(aimag(disturbances(mvdcvector(3)+1,i)),real(disturbances(mvdcvector(3)+1,i))))/(mabs(i))
+          vdc(3,i) =-(mvec_cartesian(i,mvdcvector(2))*abs(disturbances(mvdcvector(1)+1,i))*sin(atan2(aimag(currents(1,vdcneighbor(2),i)),real(currents(1,vdcneighbor(2),i))) - atan2(aimag(disturbances(mvdcvector(1)+1,i)),real(disturbances(mvdcvector(1)+1,i))))+mvec_cartesian(i,mvdcvector(1))*abs(disturbances(mvdcvector(2)+1,i))*sin(atan2(aimag(currents(1,vdcneighbor(2),i)),real(currents(1,vdcneighbor(2),i))) - atan2(aimag(disturbances(mvdcvector(2)+1,i)),real(disturbances(mvdcvector(2)+1,i)))))*abs(currents(1,vdcneighbor(2),i))/((mabs(i))**2)
+        end if
+      end do plane_loop_vdc_dclimit
+      total_vdc = sum(vdc,dim=2)
+    end if
 
-      plane_loop_effective_field_dclimit: do i=1,Npl
-        Beff_cart(sigmai2i(1,i)) =       (Beff(sigmai2i(2,i)) + Beff(sigmai2i(3,i)))    ! 0
-        Beff_cart(sigmai2i(2,i)) = 0.5d0*(Beff(sigmai2i(1,i)) + Beff(sigmai2i(4,i)))    ! x
-        Beff_cart(sigmai2i(3,i)) = 0.5d0*(Beff(sigmai2i(1,i)) - Beff(sigmai2i(4,i)))/zi ! y
-        Beff_cart(sigmai2i(4,i)) = 0.5d0*(Beff(sigmai2i(2,i)) - Beff(sigmai2i(3,i)))    ! z
-      end do plane_loop_effective_field_dclimit
-    end if ! lhfresponses
+    ! DC spin current (second order)
+    dc_currents = zero
+    plane_loop_dc_current_all: do i=1,Npl
+      do j=1,3 ; do mu = 1,3 ; do nu = 1,3
+        dc_currents(j,i) = dc_currents(j,i) + levi_civita(j,mu,nu)*abs(disturbances(mu+1,i))*abs(disturbances(nu+1,i))*sin(atan2(aimag(disturbances(nu+1,i)),real(disturbances(nu+1,i))) - atan2(aimag(disturbances(mu+1,i)),real(disturbances(mu+1,i))))/(tpi*e)
+      end do ; end do ; end do
+    end do plane_loop_dc_current_all
+
+    ! Effective field calculation
+    call zgemm('n','n',dimsigmaNpl,1,dimsigmaNpl,zum,chiinv,dimsigmaNpl,sdmat,dimsigmaNpl,zero,Beff,dimsigmaNpl) ! Beff = chi^(-1)*SD
+    plane_loop_effective_field_dclimit: do i=1,Npl
+      Beff_cart(sigmai2i(1,i)) =       (Beff(sigmai2i(2,i)) + Beff(sigmai2i(3,i)))    ! 0
+      Beff_cart(sigmai2i(2,i)) = 0.5d0*(Beff(sigmai2i(1,i)) + Beff(sigmai2i(4,i)))    ! x
+      Beff_cart(sigmai2i(3,i)) = 0.5d0*(Beff(sigmai2i(1,i)) - Beff(sigmai2i(4,i)))/zi ! y
+      Beff_cart(sigmai2i(4,i)) = 0.5d0*(Beff(sigmai2i(2,i)) - Beff(sigmai2i(3,i)))    ! z
+    end do plane_loop_effective_field_dclimit
 
     ! Sending results to myrank_row = myrank_col = 0 and writing on file
     if(myrank_col.eq.0) then
@@ -230,30 +285,30 @@ subroutine calculate_dc_limit()
       hw_count_temp = hw_count
       MPI_points_dclimit: do mcount=1,MPIpts_hw
         if (mcount.ne.1) then
-          call MPI_Recv(hw_count,1,MPI_INTEGER,MPI_ANY_SOURCE,44000,MPIComm_Col,stat,ierr)
-          if(.not.lhfresponses) then
-            call MPI_Recv(schi,Npl*Npl*4,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),44010,MPIComm_Col,stat,ierr)
-            call MPI_Recv(schihf,Npl*Npl*4,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),44020,MPIComm_Col,stat,ierr)
-            call MPI_Recv(Beff_cart,dimsigmaNpl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),44170,MPIComm_Col,stat,ierr)
-          end if
-          call MPI_Recv(disturbances,7*Npl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),44030,MPIComm_Col,stat,ierr)
-          call MPI_Recv(currents,7*n0sc*Npl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),44100,MPIComm_Col,stat,ierr)
-          call MPI_Recv(total_currents,7*n0sc,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),44110,MPIComm_Col,stat,ierr)
-          call MPI_Recv(torques,ntypetorque*3*Npl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),44120,MPIComm_Col,stat,ierr)
+          call MPI_Recv(hw_count,1,MPI_INTEGER,MPI_ANY_SOURCE,44000+Npl,MPIComm_Col,stat,ierr)
+          call MPI_Recv(mvec_spherical,3*Npl,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,44100+Npl,MPIComm_Col,stat,ierr)
+          if(.not.lhfresponses) call MPI_Recv(schi,Npl*Npl*4,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),44200+Npl,MPIComm_Col,stat,ierr)
+          call MPI_Recv(schihf,Npl*Npl*4,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),44300+Npl,MPIComm_Col,stat,ierr)
+          call MPI_Recv(Beff_cart,dimsigmaNpl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),44400+Npl,MPIComm_Col,stat,ierr)
+          call MPI_Recv(disturbances,7*Npl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),44500+Npl,MPIComm_Col,stat,ierr)
+          call MPI_Recv(currents,7*n0sc*Npl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),44600+Npl,MPIComm_Col,stat,ierr)
+          call MPI_Recv(total_currents,7*n0sc,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),44700+Npl,MPIComm_Col,stat,ierr)
+          call MPI_Recv(torques,ntypetorque*3*Npl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),44800+Npl,MPIComm_Col,stat,ierr)
+          call MPI_Recv(vdc,3*Npl,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),44900+Npl,MPIComm_Col,stat,ierr)
+          call MPI_Recv(total_vdc,3,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),45000+Npl,MPIComm_Col,stat,ierr)
+          call MPI_Recv(dc_currents,3*Npl,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),45100+Npl,MPIComm_Col,stat,ierr)
         end if
 
-        if(.not.lhfresponses) then
-          ! DIAGONALIZING SUSCEPTIBILITY
-          call diagonalize_susceptibilities()
+        ! DIAGONALIZING SUSCEPTIBILITY
+        if(.not.lhfresponses) call diagonalize_susceptibilities()
 
-          ! WRITING RPA AND HF SUSCEPTIBILITIES
-          ! Opening chi and diag files
-          call openclose_dc_chi_files(1)
-          ! Writing susceptibilities
-          call write_dc_susceptibilities()
-          ! Closing chi and diag files
-          call openclose_dc_chi_files(2)
-        end if
+        ! WRITING SUSCEPTIBILITIES
+        ! Opening chi and diag files
+        call openclose_dc_chi_files(1)
+        ! Writing susceptibilities
+        call write_dc_susceptibilities()
+        ! Closing chi and diag files
+        call openclose_dc_chi_files(2)
 
         ! Renormalizing disturbances and currents by the total charge current to neighbor renormnb
         if(renorm) then
@@ -282,14 +337,12 @@ subroutine calculate_dc_limit()
         ! Closing current files
         call openclose_dc_currents_files(2)
 
-        if(.not.lhfresponses) then
-          ! Opening B effective files
-          call openclose_dc_beff_files(1)
-          ! Writing effective fields
-          call write_dc_beff()
-          ! Closing B effective files
-          call openclose_dc_beff_files(2)
-        end if
+        ! Opening B effective files
+        call openclose_dc_beff_files(1)
+        ! Writing effective fields
+        call write_dc_beff()
+        ! Closing B effective files
+        call openclose_dc_beff_files(2)
 
         ! WRITING TORQUES
         ! Opening torque files
@@ -298,6 +351,17 @@ subroutine calculate_dc_limit()
         call write_dc_torques()
         ! Closing torque files
         call openclose_dc_torque_files(2)
+
+        if((lvdc).and.(e.gt.1.d-8)) then
+          ! WRITING DC VOLTAGE
+          ! Opening V_dc files
+          call openclose_dc_vdc_files(1)
+          ! Writing V_dc
+          call write_dc_vdc()
+          ! Closing V_dc files
+          call openclose_dc_vdc_files(2)
+        end if
+
       end do MPI_points_dclimit
 
       write(time,"('[calculate_dc_limit] Time after step ',i0,': ')") count
@@ -316,16 +380,18 @@ subroutine calculate_dc_limit()
       hw_count = hw_count_temp
     else
       if(myrank_row_hw.eq.0) write(outputunit_loop,"('[calculate_dc_limit] Sending results to process zero... ')")
-      call MPI_Send(hw_count,1,MPI_INTEGER,0,44000,MPIComm_Col,ierr)
-      if(.not.lhfresponses) then
-        call MPI_Send(schi,Npl*Npl*4,MPI_DOUBLE_COMPLEX,0,44010,MPIComm_Col,ierr)
-        call MPI_Send(schihf,Npl*Npl*4,MPI_DOUBLE_COMPLEX,0,44020,MPIComm_Col,ierr)
-        call MPI_Send(Beff_cart,dimsigmaNpl,MPI_DOUBLE_COMPLEX,0,44170,MPIComm_Col,ierr)
-      end if
-      call MPI_Send(disturbances,7*Npl,MPI_DOUBLE_COMPLEX,0,44030,MPIComm_Col,ierr)
-      call MPI_Send(currents,7*n0sc*Npl,MPI_DOUBLE_COMPLEX,0,44100,MPIComm_Col,ierr)
-      call MPI_Send(total_currents,7*n0sc,MPI_DOUBLE_COMPLEX,0,44110,MPIComm_Col,ierr)
-      call MPI_Send(torques,ntypetorque*3*Npl,MPI_DOUBLE_COMPLEX,0,44120,MPIComm_Col,ierr)
+      call MPI_Send(hw_count,1,MPI_INTEGER,0,44000+Npl,MPIComm_Col,ierr)
+      call MPI_Send(mvec_spherical,3*Npl,MPI_DOUBLE_PRECISION,0,44100+Npl,MPIComm_Col,ierr)
+      if(.not.lhfresponses) call MPI_Send(schi,Npl*Npl*4,MPI_DOUBLE_COMPLEX,0,44200+Npl,MPIComm_Col,ierr)
+      call MPI_Send(schihf,Npl*Npl*4,MPI_DOUBLE_COMPLEX,0,44300+Npl,MPIComm_Col,ierr)
+      call MPI_Send(Beff_cart,dimsigmaNpl,MPI_DOUBLE_COMPLEX,0,44400+Npl,MPIComm_Col,ierr)
+      call MPI_Send(disturbances,7*Npl,MPI_DOUBLE_COMPLEX,0,44500+Npl,MPIComm_Col,ierr)
+      call MPI_Send(currents,7*n0sc*Npl,MPI_DOUBLE_COMPLEX,0,44600+Npl,MPIComm_Col,ierr)
+      call MPI_Send(total_currents,7*n0sc,MPI_DOUBLE_COMPLEX,0,44700+Npl,MPIComm_Col,ierr)
+      call MPI_Send(torques,ntypetorque*3*Npl,MPI_DOUBLE_COMPLEX,0,44800+Npl,MPIComm_Col,ierr)
+      call MPI_Send(vdc,3*Npl,MPI_DOUBLE_PRECISION,0,44900+Npl,MPIComm_Col,ierr)
+      call MPI_Send(total_vdc,3,MPI_DOUBLE_PRECISION,0,45000+Npl,MPIComm_Col,ierr)
+      call MPI_Send(dc_currents,3*Npl,MPI_DOUBLE_PRECISION,0,45100+Npl,MPIComm_Col,ierr)
 
       write(time,"('[calculate_dc_limit] Time after step ',i0,': ')") count
       call write_time(outputunit_loop,time)
@@ -338,5 +404,6 @@ subroutine calculate_dc_limit()
   call deallocate_currents()
   call deallocate_beff()
   call deallocate_torques()
+  call deallocate_vdc()
   return
 end subroutine calculate_dc_limit

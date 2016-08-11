@@ -5,7 +5,8 @@ subroutine sumkshechi(e,ep,Fint,iflag)
   use mod_constants
   use mod_generate_kpoints
   use mod_progress
-  use mod_mpi_pars
+  use mod_mpi_pars, only: myrank_row_hw,errorcode,ierr
+  use MPI
 !$  use omp_lib
   implicit none
 !$  integer         :: nthreads,mythread
@@ -23,7 +24,7 @@ subroutine sumkshechi(e,ep,Fint,iflag)
 
 !$omp parallel default(none) &
 !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,kp,gf,gfuu,gfud,gfdu,gfdd,i,j,mu,nu,gamma,xi,df1) &
-!$omp& shared(llineargfsoc,prog,spiner,lverbose,kbz,wkbz,e,ep,iflag,Fint,nkpoints,Ef,eta,nthreads,myrank_row_hw,Npl,dim,sigmaimunu2i,sigmaijmunu2i,outputunit,outputunit_loop)
+!$omp& shared(llineargfsoc,lverbose,kbz,wkbz,e,ep,iflag,Fint,nkpoints,Ef,eta,nthreads,myrank_row_hw,Npl,dim,sigmaimunu2i,sigmaijmunu2i,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread.eq.0).and.(myrank_row_hw.eq.0)) then
 !$    nthreads = omp_get_num_threads()
@@ -39,10 +40,7 @@ subroutine sumkshechi(e,ep,Fint,iflag)
   kpoints: do iz=1,nkpoints
     ! Progress bar
 !$  if((mythread.eq.0)) then
-      if((myrank_row_hw.eq.0).and.(lverbose)) then
-        prog = floor(iz*100.d0/nkpoints)
-        write(outputunit_loop,"(a1,2x,i3,'% (',i0,'/',i0,') of k-sum on rank ',i0,a1,$)") spiner(mod(iz,4)+1),prog,iz,nkpoints,myrank_row_hw,char(13)
-      end if
+      if((myrank_row_hw.eq.0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,nkpoints)
 !$   end if
 
     kp = kbz(iz,:)
@@ -188,7 +186,7 @@ subroutine sumkshechilinearsoc(e,ep,Fint,Fintlsoc,iflag)
 
 !$omp parallel default(none) &
 !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,kp,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,i,j,mu,nu,gamma,xi,df1,df1lsoc) &
-!$omp& shared(llineargfsoc,prog,spiner,lverbose,kbz,wkbz,e,ep,iflag,Fint,Fintlsoc,nkpoints,Ef,eta,nthreads,myrank_row_hw,Npl,dim,sigmaimunu2i,sigmaijmunu2i,outputunit,outputunit_loop)
+!$omp& shared(llineargfsoc,lverbose,kbz,wkbz,e,ep,iflag,Fint,Fintlsoc,nkpoints,Ef,eta,nthreads,myrank_row_hw,Npl,dim,sigmaimunu2i,sigmaijmunu2i,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread.eq.0).and.(myrank_row_hw.eq.0)) then
 !$    nthreads = omp_get_num_threads()
@@ -209,10 +207,7 @@ subroutine sumkshechilinearsoc(e,ep,Fint,Fintlsoc,iflag)
   kpoints: do iz=1,nkpoints
     ! Progress bar
 !$  if((mythread.eq.0)) then
-      if((myrank_row_hw.eq.0).and.(lverbose)) then
-        prog = floor(iz*100.d0/nkpoints)
-        write(outputunit_loop,"(a1,2x,i3,'% (',i0,'/',i0,') of k-sum on rank ',i0,a1,$)") spiner(mod(iz,4)+1),prog,iz,nkpoints,myrank_row_hw,char(13)
-      end if
+      if((myrank_row_hw.eq.0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,nkpoints)
 !$   end if
 
     kp = kbz(iz,:)

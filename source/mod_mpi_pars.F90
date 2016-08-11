@@ -11,7 +11,7 @@ module mod_mpi_pars
   real(double) :: MPIdelta
   ! Grid for field loop calculation
   integer :: myrank_row_hw,myrank_col_hw
-  integer :: MPIsteps_hw,MPIpts_hw
+  integer :: MPIsteps_hw,MPIpts_hw=1
   integer :: MPIComm_Grid_hw,MPIComm_Row_hw,MPIComm_Col_hw
 
 
@@ -145,9 +145,9 @@ contains
             write(outputunit,"('[build_cartesian_grid_field]    Complete ',i0,' points with more ',i0,' points not to waste computing time. ')") total_hw_npt1,MPIsteps_hw*MPIpts_hw-total_hw_npt1
             write(outputunit,"('[build_cartesian_grid_field] ************************************************************************************')")
           end if
+          call MPI_Finalize(ierr)
+          stop
         end if
-        call MPI_Finalize(ierr)
-        stop
       end if
     end if
 

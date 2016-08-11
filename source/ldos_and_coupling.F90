@@ -34,6 +34,7 @@ subroutine ldos_and_coupling()
   if(lfield) then
     write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
     if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
+    if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
   end if
 
   ! Opening files
@@ -55,7 +56,9 @@ subroutine ldos_and_coupling()
       open (unit=iw, file=varm,status='unknown')
       write(unit=iw, fmt="('#   energy      ,  Jii_xx           ,   Jii_yy  ')")
       iw = iw + 1
-      ! TODO : Check how to write the anisotropy term here
+      ! Anisotropy energy is given by K^a = 2*J_ii^aa
+      ! omega_res ~ gamma*m_i*J_ii (*2?) ,
+      ! where J_ii is the one calculated here
     else
       iw = iw + 1
       write(varm,"('./results/',a1,'SOC/',i0,'Npl/Jij/J_',i0,'_',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,mmlayermag(i)-1,mmlayermag(j)-1,ncp,eta,Utype,trim(fieldpart),trim(socpart)

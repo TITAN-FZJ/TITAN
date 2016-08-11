@@ -2,6 +2,9 @@
 !                           CHOOSE WHAT TO CALCULATE                            !
 -> itype = 6
 !===============================================================================!
+!                                OUTPUT FILE                                    !
+-> output: saida_Npl3_ncp6
+!===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
 -> Options:
 !===============================================================================!
@@ -11,7 +14,7 @@
 ! Lattice parameter:
 -> a0 = 3.92
 ! Number of planes:
-!(For SC and exchange calculation, use initial and final number of layers)
+! (For SC and exchange calculation, use initial and final number of layers)
 -> Npl = 3 12
 ! Small imaginary part of the Green function:
 -> eta = 5.0E-04

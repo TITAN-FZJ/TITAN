@@ -6,9 +6,8 @@ subroutine calculate_chi()
   use mod_magnet, only: mtheta,mphi
   use mod_progress
   use mod_susceptibilities
-  use mod_timing
   implicit none
-  character(len=20) :: time
+  character(len=50) :: time
   integer           :: i,j,iw,sigma,sigmap,mu,nu
   real(double)      :: e
   complex(double), dimension(:,:),   allocatable :: temp

@@ -41,8 +41,8 @@ and it is parallelized with MPI.
 !   2 - Test after SC                                                           !
 !   3 - LDOS and exchange interactions as a function of energy                  !
 !   4 - Band structure                                                          !
-!   5 - Fermi surface                                                           !
-!   6 - Exhange interactions and anisotropies (full tensor)                     !
+!   5 - Charge and spin density at Fermi surface                                !
+!   6 - Exhange interactions and anisotropies (full tensor Jij)                 !
 !   7 - Local susceptibility as a function of energy                            !
 !   8 - Parallel currents, disturbances, susceptibilities, torques and          !
 !       effective fields as a function of energy                                !
@@ -64,7 +64,10 @@ and it is parallelized with MPI.
 !   kpoints     - Write kpoints and weights into files                          !
 !   lineargfsoc - Adds linear order SOC in the GF                               !
 !   linearsoc   - Adds linear order SOC in the susceptibility                   !
+!   hfresponses - Use Hartree-Fock response functions                           !
+!   ontheflysc  - Writes intermediate self-consistency steps to file            !
 !   rotatemag   - Rotate the magnetization to the direction of the field        !
+!   nolb        - Remove Orbital Zeeman from the hamiltonian                    !
 !===============================================================================!
 !                             LATTICE DEFINITIONS                               !
 !         For spin quantization and direction of in-plane electric field        !
@@ -72,11 +75,21 @@ and it is parallelized with MPI.
 ! L - long axis (x - short axis; y - out-of-plane)                              !
 ! S - short axis (x - long axis; y - out-of-plane)                              !
 ! P - perpendicular out-of plane (x - short axis; y - long axis)                !
-!                                         (only for quantization)               !
-! O - other (specify in main program)     (only for external field)             !
+!                                        ^(only for quantization)               !
+! O - other (specify in main program)  -> (only for external field)             !
+! or choose the direction of one of the neighbors                               !
+!                           L direction                                         !
+!                               |                                               !
+!                            1  |  4                                            !
+!                             \ | /                                             !
+!       S direction ------5-----|-----6-------                                  !
+!                             / | \                                             !
+!                            2  |  3                                            !
+!                               |                                               !
+!                                                                               !
 !---------------------------------- FCC (100) ----------------------------------!
 ! In the following, choose the direction of one of the neighbors                !
-!                  (1-4) - 1 n.n. ; (5-8) 2 n.n.                                !
+!                (1-4) - first n.n. ; (5-8) second n.n.                         !
 !              (use 9 for out-of-plane z, x // dirEfield)                       !
 !                               6                                               !
 !                               |                                               !

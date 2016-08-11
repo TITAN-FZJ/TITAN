@@ -30,6 +30,7 @@
   if(lfield) then
     write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
     if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
+    if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
   end if
 
   ! Opening files for position dependence
@@ -43,7 +44,6 @@
         open (unit=iw, file=varm,status='unknown')
         write(unit=iw, fmt="('#  Npl ,      Jii_xx       ,       Jii_yy  ')")
         iw = iw + 1
-        ! TODO : Check how to write the anisotropy term here
       else
         iw = iw + 1
         write(varm,"('./results/',a1,'SOC/Jij/J_',i0,'_',i0,'_parts=',I0,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,j,parts,ncp,eta,Utype,trim(fieldpart),trim(socpart)
@@ -75,10 +75,11 @@
     do i=1,nmaglayers ; do j=1,nmaglayers
     ! Writing on screen
     ! Writing original full tensor Jij
-    ! Only the transverse components are "reliable" (e.g., for m //z, only Jxx,Jxy,Jyx,Jyy are correct)
+    ! Only the transverse components are supposed to be non-zero (e.g., for m //z, only Jxx,Jxy,Jyx,Jyy)
     ! Relation between J_ii calculated and the position of the peak in the susceptibility:
     ! w_res = 2*gamma*mz*sqrt( (K_z-K_x)*(K_z-K_y) )  - for m // z
-    ! where K_x = J_ii^xx ; K_y = J_ii^yy ; K_z = J_ii^zz
+    ! where K_x = J_ii^xx/2 ; K_y = J_ii^yy/2 ; K_z = J_ii^zz/2
+    ! K > 0 - easy axis ; K < 0 - hard axis
       if(i.eq.j) then
         write(outputunit,"(3x,' ******** Magnetization components: (magaxis = ',a,') *******')") magaxis
         write(outputunit,"(4x,'Mx (',i2.0,')=',f11.8,4x,'My (',i2.0,')=',f11.8,4x,'Mz (',i2.0,')=',f11.8)") i,mx(i),i,my(i),i,mz(i)

@@ -13,7 +13,6 @@ program DHE
   use mod_lattice
   use mod_progress
   use mod_mpi_pars
-  use mod_timing
   implicit none
   integer           :: i,j,iw,sigma,mu,nu
   integer           :: AllocateStatus
@@ -57,7 +56,7 @@ program DHE
 !------------------------- Reading parameters --------------------------
   call get_parameters()
 !----------- Creating bi-dimensional matrix of MPI processes  ----------
-  if(itype.eq.1) then ! Create column for field loop (no energy integration)
+  if((itype.eq.1).or.(itype.eq.6)) then ! Create column for field loop (no energy integration)
     call build_cartesian_grid_field(pn1)
   end if
   if((itype.ge.3).and.(itype.le.5)) then ! Create column for field loop (no energy integration)
@@ -69,6 +68,10 @@ program DHE
   end if
   if(itype.eq.9) then ! Create matrix for dclimit
     call build_cartesian_grid_field(pnt)
+    call MPI_COMM_DUP(MPIComm_Col_hw,MPIComm_Col,ierr)
+    call MPI_COMM_DUP(MPIComm_Row_hw,MPIComm_Row,ierr)
+    myrank_col = myrank_col_hw
+    myrank_row = myrank_row_hw
   end if
 !-------------------- Define the lattice structure ---------------------
 !-------------------- Generating k points in 2D BZ ---------------------
@@ -110,6 +113,7 @@ program DHE
 !---------------------- Turning off field for hwa=0 --------------------
       if(abs(hw_list(hw_count,1)).lt.1.d-8) then
         lfield = .false.
+        if((llinearsoc).or.(.not.SOC).and.(myrank_row_hw.eq.0)) write(outputdhe_loop,"('[main] WARNING: No external magnetic field is applied and SOC is off/linear order: Goldstone mode is present!')")
       else
         lfield = .true.
       end if
@@ -128,8 +132,8 @@ program DHE
         hhwx  =-0.5d0*hwx*tesla
         hhwy  =-0.5d0*hwy*tesla
         hhwz  =-0.5d0*hwz*tesla
-      else
-        if(hw_count.ge.2) exit
+!       else
+!         if(hw_count.ge.2) exit hw_loop
       end if
 !--------------- Allocating variables that depend on Npl ---------------
       allocate( sigmai2i(4,Npl),sigmaimunu2i(4,Npl,9,9),sigmaijmunu2i(4,Npl,Npl,9,9),eps1(Npl), STAT = AllocateStatus )
@@ -137,9 +141,9 @@ program DHE
         write(outputunit,"('[main] Not enough memory for: sigmai2i,sigmaimunu2i,sigmaijmunu2i,eps1')")
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
-      allocate( mx(Npl),my(Npl),mz(Npl),hdel(Npl),mp(Npl),hdelp(Npl),mm(Npl),hdelm(Npl), STAT = AllocateStatus )
+      allocate( mx(Npl),my(Npl),mz(Npl),mvec_cartesian(Npl,3),mvec_spherical(Npl,3),hdel(Npl),mp(Npl),hdelp(Npl),mm(Npl),hdelm(Npl), STAT = AllocateStatus )
       if (AllocateStatus.ne.0) then
-        write(outputunit,"('[main] Not enough memory for: mx,my,mz,hdel,mp,hdelp,mm,hdelm')")
+        write(outputunit,"('[main] Not enough memory for: mx,my,mz,mvec_cartesian,mvec_spherical,hdel,mp,hdelp,mm,hdelm')")
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
       allocate( mabs(Npl),mtheta(Npl),mphi(Npl),labs(Npl),ltheta(Npl),lphi(Npl),lpabs(Npl),lptheta(Npl),lpphi(Npl), STAT = AllocateStatus )
@@ -183,112 +187,7 @@ program DHE
         end if
       end if
 !---------------------- Lattice specific variables ---------------------
-      select case (lattice)
-      case("bcc110")
-!------------------- Spin quantization direction -----------------------
-        magnetization_axis_bcc110: select case (magaxis)
-        case ("L")
-      !   In-plane long axis: (x - short axis; y - out-of-plane; z - long axis)
-          phi   = pi/4.d0 ! around z (counter-clockwise from the top X->Y)
-          theta = pi/2.d0 ! around y' (counter-clockwise from the top Z->X')
-        case ("P")
-      !   Out-of-plane: (x - short axis; y - long axis; z - out-of-plane)
-          phi   = -pi/4.d0 ! around z (counter-clockwise from the top X->Y)
-          theta = pi/2.d0 ! around y' (counter-clockwise from the top Z->X')
-        case ("S")
-      !   In-plane short axis: (x - long axis; y - out-of-plane; z - short axis)
-          phi   = pi/4.d0 ! around z (counter-clockwise from the top X->Y)
-          theta = 0.d0 ! around y' (counter-clockwise from the top Z->X')
-        case default
-          if(myrank.eq.0) write(outputunit,"('[main] Choose a correct magnetization axis!')")
-          call MPI_Finalize(ierr)
-          stop
-      !     phi   = 0.d0 ! around z (counter-clockwise from the top X->Y)
-      !     theta = 0.d0 ! around y' (counter-clockwise from the top Z->X')
-        end select magnetization_axis_bcc110
-!----------- Direction of applied in-plane electric field --------------
-        direction_E_field_bcc110: select case (dirEfield)
-        case ("L")
-      !   In-plane long axis:
-          dirEfieldvec = [hsq2,hsq2,0.d0]
-        case ("S")
-      !   In-plane short axis
-          dirEfieldvec = [0.d0,0.d0,1.d0]
-        case ("O")
-      !   Other direction:
-      !     dirEfieldvec = [1.d0/sq3,1.d0/sq3,1.d0/sq3] ! In the direction of the 1st n.n.
-          dirEfieldvec = [1.d0/(sq2*sq3),1.d0/(sq2*sq3),-sq2/sq3] ! In-plane, Perpendicular to the 1st n.n.
-        end select direction_E_field_bcc110
-      case("fcc100")
-!----------- Direction of applied in-plane electric field --------------
-        read(unit=dirEfield,fmt=*) i
-        direction_E_field_fcc100: select case (i)
-        case (1:8)   !    In plane neighbors:
-          dirEfieldvec = r0(i,:)
-        case default !    Other direction:
-          dirEfieldvec = [1.d0,0.d0,0.d0] ! In-plane
-        end select direction_E_field_fcc100
-!------------------- Spin quantization direction -----------------------
-        read(unit=magaxis,fmt=*) j
-        magnetization_axis_fcc100: select case (j)
-        case (1:4)
-      !   In-plane 1st n.n.:
-          phi   = dble(2*j-1)*pi/4.d0 ! around z (counter-clockwise from the top X->Y)
-          theta = pi/2.d0             ! around y' (counter-clockwise from the top Z->X')
-        case (5:8)
-      !   In-plane 2nd n.n.:
-          phi   = dble(j-5)*pi/2.d0   ! around z (counter-clockwise from the top X->Y)
-          theta = pi/2.d0             ! around y' (counter-clockwise from the top Z->X')
-        case (9)
-      !   Out-of-plane: (x in the direction of dirEfield)
-          select case (i)             ! around z (counter-clockwise from the top X->Y)
-          case (1:4)
-            phi = dble(2*i-1)*pi/4.d0
-          case (5:8)
-            phi = dble(i-5)*pi/2.d0
-          case default
-            phi = 0.d0
-          end select
-          theta = 0.d0                ! around y' (counter-clockwise from the top Z->X')
-        case default
-          if(myrank.eq.0) write(outputunit,"('[main] Choose a correct magnetization axis!')")
-          call MPI_Finalize(ierr)
-          stop
-      !     phi   = 0.d0 ! around z (counter-clockwise from the top X->Y)
-      !     theta = 0.d0 ! around y' (counter-clockwise from the top Z->X')
-        end select magnetization_axis_fcc100
-      case("fcc111")
-!------------------- Spin quantization direction -----------------------
-        read(unit=magaxis,fmt=*) j
-        magnetization_axis_fcc111: select case (j)
-!         case (1:4)
-!       !   In-plane 1st n.n.:
-!           phi   = dble(2*j-1)*pi/4.d0 ! around z (counter-clockwise from the top X->Y)
-!           theta = pi/2.d0             ! around y' (counter-clockwise from the top Z->X')
-!         case (5:8)
-!       !   In-plane 2nd n.n.:
-!           phi   = dble(j-5)*pi/2.d0   ! around z (counter-clockwise from the top X->Y)
-!           theta = pi/2.d0             ! around y' (counter-clockwise from the top Z->X')
-!         case (9)
-!       !   Out-of-plane:
-!           phi   = pi/4.d0             ! around z (counter-clockwise from the top X->Y)
-!           theta = 0.d0                ! around y' (counter-clockwise from the top Z->X')
-        case default
-          if(myrank.eq.0) write(outputunit,"('[main] Choose a correct magnetization axis!')")
-          call MPI_Finalize(ierr)
-          stop
-      !     phi   = 0.d0 ! around z (counter-clockwise from the top X->Y)
-      !     theta = 0.d0 ! around y' (counter-clockwise from the top Z->X')
-        end select magnetization_axis_fcc111
-!----------- Direction of applied in-plane electric field --------------
-        read(unit=dirEfield,fmt=*) j
-        direction_E_field_fcc111: select case (j)
-  !       case (1:8)   !    In plane neighbors:
-  !         dirEfieldvec = r0(j,:)
-  !       case default !    Other direction:
-  !         dirEfieldvec = [1.d0,0.d0,0.d0] ! In-plane
-        end select direction_E_field_fcc111
-      end select
+      call lattice_definitions()
 !------- Writing parameters and data to be calculated on screen --------
       if(myrank_row_hw.eq.0) call iowrite()
 !---- L matrix in spin coordinates for given quantization direction ----
@@ -403,7 +302,7 @@ program DHE
 !---------------------------- End test part ----------------------------
 
       case (3)
-        if(myrank_row_hw.eq.0)call ldos_and_coupling()
+        if(myrank_row_hw.eq.0) call ldos_and_coupling()
       case (4)
         if(myrank_row_hw.eq.0) call band_structure()
       case (5)
@@ -419,7 +318,7 @@ program DHE
       end select main_program
 !-------------- Deallocating variables that depend on Npl --------------
       deallocate(sigmai2i,sigmaimunu2i,sigmaijmunu2i,eps1)
-      deallocate(mx,my,mz,hdel,mp,hdelp,mm,hdelm)
+      deallocate(mx,my,mz,mvec_cartesian,mvec_spherical,hdel,mp,hdelp,mm,hdelm)
       deallocate(mabs,mtheta,mphi,labs,ltheta,lphi,lpabs,lptheta,lpphi)
       if(lGSL) deallocate(lxm,lym,lzm,lxpm,lypm,lzpm)
       deallocate(mmlayer,layertype,U,mmlayermag,lambda,npart0)
@@ -442,7 +341,7 @@ program DHE
         end if
       end if
 !---------------------------- Closing loops ----------------------------
-      if((total_hw_npt1.ne.1).and.(myrank_row_hw.eq.0)) close(outputunit_loop)
+      if(((total_hw_npt1.ne.1).and.(itype.ne.6)).and.(myrank_row_hw.eq.0)) close(outputunit_loop)
     end do hw_loop
   end do number_of_planes
 !----------------------- Deallocating variables ------------------------
