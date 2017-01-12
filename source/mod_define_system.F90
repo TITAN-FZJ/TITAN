@@ -11,7 +11,7 @@ module mod_define_system
 contains
 
   subroutine define_system()
-    use mod_parameters, only: Npl,mmlayer,set1,set2,outputunit
+    use mod_parameters, only: Npl,mmlayer,set1,set2,outputunit,naddlayers,addlayers,Npl_input,Npl_folder
     use mod_mpi_pars
   implicit none
   integer :: i,j,ios,set1g,set2g
@@ -35,10 +35,10 @@ contains
   end if
 
   set1g = (set1-1)*6
-  if(Npl.eq.1) set2 = set1
+  if(Npl_input.eq.1) set2 = set1
   set2g = (set2-1)*6
 
-  i = ceiling((Npl+2)/2.d0)
+  i = ceiling((Npl_input+2)/2.d0)
   do j=1,i
     if(j.le.6) then
       mmlayer(j) = j + set1g
@@ -46,11 +46,18 @@ contains
       mmlayer(j) = 6 + set1g
     end if
   end do
-  do j=i+1,Npl+2
-    mmlayer(j) = Npl + 3 - j + set2g
+  do j=i+1,Npl_input+2
+    mmlayer(j) = Npl_input + 3 - j + set2g
     if(mmlayer(j).gt.(6+set2g)) then ! bulk
       mmlayer(j) = 6 + set2g
     end if
+  end do
+
+  write(Npl_folder,fmt="(i0,'Npl')") Npl_input
+
+  do i=1,naddlayers
+    mmlayer(Npl_input+i+1) = addlayers(i)
+    write(Npl_folder,fmt="(a,'_',i0)") trim(Npl_folder),addlayers(i)
   end do
 
 !   write(outputunit,"(20(2x,i0))") (mmlayer(i),i=1,Npl+2)

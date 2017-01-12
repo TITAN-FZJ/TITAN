@@ -36,8 +36,10 @@ subroutine fermi_surface(e)
   end if
   if(lfield) then
     write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
-    if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
-    if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
+    if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
+    if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
+    if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
+    if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
   end if
   if(abs(e-ef).gt.1.d-6) then
     write(epart,fmt="('e=',es8.1,'_')") e
@@ -45,16 +47,16 @@ subroutine fermi_surface(e)
     write(epart,fmt="('fs_')")
   end if
   do i=1,Npl
-    write(varm,"('./results/',a1,'SOC/',i0,'Npl/FS/',a,'layer',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,trim(epart),i,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+    write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'layer',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(epart),i,ncp,eta,Utype,trim(fieldpart),trim(socpart)
     open (unit=17+(mpitag-1)*Npl+i, file=varm,status='unknown')
   end do
-  write(varm,"('./results/',a1,'SOC/',i0,'Npl/FS/',a,'s_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,trim(epart),ncp,eta,Utype,trim(fieldpart),trim(socpart)
+  write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'s_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(epart),ncp,eta,Utype,trim(fieldpart),trim(socpart)
   open (unit=96+mpitag, file=varm,status='unknown')
-  write(varm,"('./results/',a1,'SOC/',i0,'Npl/FS/',a,'p_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,trim(epart),ncp,eta,Utype,trim(fieldpart),trim(socpart)
+  write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'p_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(epart),ncp,eta,Utype,trim(fieldpart),trim(socpart)
   open (unit=97+mpitag, file=varm,status='unknown')
-  write(varm,"('./results/',a1,'SOC/',i0,'Npl/FS/',a,'d_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,trim(epart),ncp,eta,Utype,trim(fieldpart),trim(socpart)
+  write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'d_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(epart),ncp,eta,Utype,trim(fieldpart),trim(socpart)
   open (unit=98+mpitag, file=varm,status='unknown')
-  write(varm,"('./results/',a1,'SOC/',i0,'Npl/FS/',a,'total_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,trim(epart),ncp,eta,Utype,trim(fieldpart),trim(socpart)
+  write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'total_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(epart),ncp,eta,Utype,trim(fieldpart),trim(socpart)
   open (unit=99+mpitag, file=varm,status='unknown')
 
   fs_layer = 0.d0

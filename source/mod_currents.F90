@@ -2,9 +2,11 @@ module mod_currents
   use mod_f90_kind
   implicit none
   ! Currents, total currents and renormalized currents: Ich, Isx, Isy, Isz, Ilx, Ily,Ilz
-  complex(double),allocatable   :: currents(:,:,:),total_currents(:,:),dc_currents(:,:),rcurrents(:,:,:),rtotal_currents(:,:)
+  complex(double),allocatable   :: currents(:,:,:),total_currents(:,:),rcurrents(:,:,:),rtotal_currents(:,:)
+  real(double),allocatable      :: dc_currents(:,:)
   ! Full response functions
   complex(double), dimension(:,:,:), allocatable :: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl
+
 contains
 
   ! This subroutine allocates variables related to the current calculation
@@ -101,8 +103,10 @@ contains
     end if
     if(lfield) then
       write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
-      if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
-      if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
+      if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
+      if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
+      if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
+      if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
     end if
 
     folder(1) = "CC"
@@ -130,53 +134,54 @@ contains
       ! Header for currents per plane per neighbor
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 5000+(i-1)*n0sc2*7+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/prll',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='unknown', form='formatted')
-        write(unit=iw, fmt="('#   energy  ,  amplitude of ',a,'  ,  real part of ',a,'  ,  imaginary part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
+        write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
 
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/rprll',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
           open (unit=iw, file=varm, status='unknown', form='formatted')
-          write(unit=iw, fmt="('#   energy  ,  amplitude of ',a,'  ,  real part of ',a,'  ,  imaginary part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
+          write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
         end if
       end do ; end do ; end do
       ! Header for total currents for each neighbor direction
       do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 7000+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/prll',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='unknown', form='formatted')
-        write(unit=iw, fmt="('#   energy  ,  amplitude of ',a,'  ,  real part of ',a,'  ,  imaginary part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
+        write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
 
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/rprll',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
           open (unit=iw, file=varm, status='unknown', form='formatted')
-          write(unit=iw, fmt="('#   energy  ,  amplitude of ',a,'  ,  real part of ',a,'  ,  imaginary part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
+          write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
         end if
       end do ; end do
       ! Header for DC spin current
       do i=1,Npl ; do j=2,4
         iw = 8100+(i-1)*3+j-1
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/SC/',a,'pumpdc_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'pumpdc_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(3)),filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='unknown', form='formatted')
-        write(unit=iw, fmt="('#      energy     ,   |',a,'pumpdc|  ,  Re(',a,'pumpdc)  ,  Im(',a,'pumpdc)  , phase of ',a,'pumpdc , cos(',a,'pumpdc) , sin(',a,'pumpdc) ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
+        write(unit=iw, fmt="('#      energy     ,    ',a,'pumpdc   ')") filename(j)
         close(unit=iw)
       end do ; end do
+
     else if(iflag.eq.1) then
       ! Currents per plane per neighbor
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 5000+(i-1)*n0sc2*7+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/prll',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/rprll',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
         end if
@@ -185,12 +190,12 @@ contains
       ! Total currents for each neighbor direction
       do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 7000+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/prll',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/rprll',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
         end if
@@ -199,7 +204,7 @@ contains
       ! DC spin current
       do i=1,Npl ; do j=2,4
         iw = 8100+(i-1)*3+j-1
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/SC/',a,'pumpdc_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'pumpdc_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(3)),filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
       end do ; end do
@@ -247,42 +252,44 @@ contains
   ! Some information is also written on the screen
   subroutine write_currents(e)
     use mod_f90_kind
-    use mod_parameters, only: Npl,renorm,n0sc1,n0sc2,outputunit_loop
+    use mod_parameters, only: Npl,renorm,n0sc1,n0sc2,outputunit_loop,lwriteonscreen
     implicit none
     integer  :: neighbor,i,j,iw
     real(double),intent(in) :: e
 
-    write(outputunit_loop,"(' ################# Currents: #################')")
+    if(lwriteonscreen) write(outputunit_loop,"(' ################# Currents: #################')")
     do neighbor=n0sc1,n0sc2
-      write(outputunit_loop,"('|--------- Neighbor: ',i0,' , Energy = ',es11.4,' ---------|')") neighbor,e
+      if(lwriteonscreen) then
+        write(outputunit_loop,"('|--------- Neighbor: ',i0,' , Energy = ',es11.4,' ---------|')") neighbor,e
 
-      write(outputunit_loop,"('     Ich = (',es16.9,') + i(',es16.9,')')") real(total_currents(1,neighbor)),aimag(total_currents(1,neighbor))
-      write(outputunit_loop,"(' abs(Ich) = ',es16.9)") abs(total_currents(1,neighbor))
-      write(outputunit_loop,"('atan(Ich) = ',es16.9)") atan2(aimag(total_currents(1,neighbor)),real(total_currents(1,neighbor)))
+        write(outputunit_loop,"('     Ich = (',es16.9,') + i(',es16.9,')')") real(total_currents(1,neighbor)),aimag(total_currents(1,neighbor))
+        write(outputunit_loop,"(' abs(Ich) = ',es16.9)") abs(total_currents(1,neighbor))
+        write(outputunit_loop,"('atan(Ich) = ',es16.9)") atan2(aimag(total_currents(1,neighbor)),real(total_currents(1,neighbor)))
 
-      write(outputunit_loop,"('     Isx  = (',es16.9,') + i(',es16.9,')')") real(total_currents(2,neighbor)),aimag(total_currents(2,neighbor))
-      write(outputunit_loop,"(' abs(Isx) = ',es16.9)") abs(total_currents(2,neighbor))
-      write(outputunit_loop,"('atan(Isx) = ',es16.9)") atan2(aimag(total_currents(2,neighbor)),real(total_currents(2,neighbor)))
+        write(outputunit_loop,"('     Isx  = (',es16.9,') + i(',es16.9,')')") real(total_currents(2,neighbor)),aimag(total_currents(2,neighbor))
+        write(outputunit_loop,"(' abs(Isx) = ',es16.9)") abs(total_currents(2,neighbor))
+        write(outputunit_loop,"('atan(Isx) = ',es16.9)") atan2(aimag(total_currents(2,neighbor)),real(total_currents(2,neighbor)))
 
-      write(outputunit_loop,"('     Isy  = (',es16.9,') + i(',es16.9,')')") real(total_currents(3,neighbor)),aimag(total_currents(3,neighbor))
-      write(outputunit_loop,"(' abs(Isy) = ',es16.9)") abs(total_currents(3,neighbor))
-      write(outputunit_loop,"('atan(Isy) = ',es16.9)") atan2(aimag(total_currents(3,neighbor)),real(total_currents(3,neighbor)))
+        write(outputunit_loop,"('     Isy  = (',es16.9,') + i(',es16.9,')')") real(total_currents(3,neighbor)),aimag(total_currents(3,neighbor))
+        write(outputunit_loop,"(' abs(Isy) = ',es16.9)") abs(total_currents(3,neighbor))
+        write(outputunit_loop,"('atan(Isy) = ',es16.9)") atan2(aimag(total_currents(3,neighbor)),real(total_currents(3,neighbor)))
 
-      write(outputunit_loop,"('     Isz  = (',es16.9,') + i(',es16.9,')')") real(total_currents(4,neighbor)),aimag(total_currents(4,neighbor))
-      write(outputunit_loop,"(' abs(Isz) = ',es16.9)") abs(total_currents(4,neighbor))
-      write(outputunit_loop,"('atan(Isz) = ',es16.9)") atan2(aimag(total_currents(4,neighbor)),real(total_currents(4,neighbor)))
+        write(outputunit_loop,"('     Isz  = (',es16.9,') + i(',es16.9,')')") real(total_currents(4,neighbor)),aimag(total_currents(4,neighbor))
+        write(outputunit_loop,"(' abs(Isz) = ',es16.9)") abs(total_currents(4,neighbor))
+        write(outputunit_loop,"('atan(Isz) = ',es16.9)") atan2(aimag(total_currents(4,neighbor)),real(total_currents(4,neighbor)))
 
-      write(outputunit_loop,"('     Ilx  = (',es16.9,') + i(',es16.9,')')") real(total_currents(5,neighbor)),aimag(total_currents(5,neighbor))
-      write(outputunit_loop,"(' abs(Ilx) = ',es16.9)") abs(total_currents(5,neighbor))
-      write(outputunit_loop,"('atan(Ilx) = ',es16.9)") atan2(aimag(total_currents(5,neighbor)),real(total_currents(5,neighbor)))
+        write(outputunit_loop,"('     Ilx  = (',es16.9,') + i(',es16.9,')')") real(total_currents(5,neighbor)),aimag(total_currents(5,neighbor))
+        write(outputunit_loop,"(' abs(Ilx) = ',es16.9)") abs(total_currents(5,neighbor))
+        write(outputunit_loop,"('atan(Ilx) = ',es16.9)") atan2(aimag(total_currents(5,neighbor)),real(total_currents(5,neighbor)))
 
-      write(outputunit_loop,"('     Ily  = (',es16.9,') + i(',es16.9,')')") real(total_currents(6,neighbor)),aimag(total_currents(6,neighbor))
-      write(outputunit_loop,"(' abs(Ily) = ',es16.9)") abs(total_currents(6,neighbor))
-      write(outputunit_loop,"('atan(Ily) = ',es16.9)") atan2(aimag(total_currents(6,neighbor)),real(total_currents(6,neighbor)))
+        write(outputunit_loop,"('     Ily  = (',es16.9,') + i(',es16.9,')')") real(total_currents(6,neighbor)),aimag(total_currents(6,neighbor))
+        write(outputunit_loop,"(' abs(Ily) = ',es16.9)") abs(total_currents(6,neighbor))
+        write(outputunit_loop,"('atan(Ily) = ',es16.9)") atan2(aimag(total_currents(6,neighbor)),real(total_currents(6,neighbor)))
 
-      write(outputunit_loop,"('     Ilz  = (',es16.9,') + i(',es16.9,')')") real(total_currents(7,neighbor)),aimag(total_currents(7,neighbor))
-      write(outputunit_loop,"(' abs(Ilz) = ',es16.9)") abs(total_currents(7,neighbor))
-      write(outputunit_loop,"('atan(Ilz) = ',es16.9)") atan2(aimag(total_currents(7,neighbor)),real(total_currents(7,neighbor)))
+        write(outputunit_loop,"('     Ilz  = (',es16.9,') + i(',es16.9,')')") real(total_currents(7,neighbor)),aimag(total_currents(7,neighbor))
+        write(outputunit_loop,"(' abs(Ilz) = ',es16.9)") abs(total_currents(7,neighbor))
+        write(outputunit_loop,"('atan(Ilz) = ',es16.9)") atan2(aimag(total_currents(7,neighbor)),real(total_currents(7,neighbor)))
+      end if
 
       ! Total currents for each neighbor direction
       ! Writing charge current
@@ -368,12 +375,11 @@ contains
     ! Writing DC spin currents
     do i=1,Npl ; do j=1,3
       iw = 8100+(i-1)*3+j
-      write(unit=iw,fmt="(7(es16.9,2x))") e , abs(dc_currents(j,i)) , real(dc_currents(j,i)) , aimag(dc_currents(j,i)) , atan2(aimag(dc_currents(j,i)),real(dc_currents(j,i))) , real(dc_currents(j,i))/abs(dc_currents(j,i)) , aimag(dc_currents(j,i))/abs(dc_currents(j,i))
+      write(unit=iw,fmt="(2(es16.9,2x))") e , dc_currents(j,i)
     end do ; end do
 
     return
   end subroutine write_currents
-
 
   ! This subroutine opens and closes all the files needed for the currents
   subroutine openclose_dc_currents_files(iflag)
@@ -406,8 +412,10 @@ contains
       if((dcfield_dependence.ne.2).and.(dcfield_dependence.ne.4).and.(dcfield_dependence.ne.6)) write(fieldpart,"(a,'_hwt=',f5.2)") trim(fieldpart),hwt
       if((dcfield_dependence.ne.3).and.(dcfield_dependence.ne.5).and.(dcfield_dependence.ne.6)) write(fieldpart,"(a,'_hwp=',f5.2)") trim(fieldpart),hwp
     end if
-    if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
-    if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
+    if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
+    if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
+    if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
+    if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
 
     folder(1) = "CC"
     folder(2) = "SC"
@@ -434,41 +442,42 @@ contains
       ! Header for currents per plane per neighbor
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 50000+(i-1)*n0sc2*7+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),trim(dcprefix),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='unknown', form='formatted')
-        write(unit=iw, fmt="('#',a,'  real part of ',a,'  ,   imaginary part of ',a,'   ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
+        write(unit=iw, fmt="('#',a,' real part of ',a,' ,  imag part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
 
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),trim(dcprefix),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
           open (unit=iw, file=varm, status='unknown', form='formatted')
-          write(unit=iw, fmt="('#',a,'  real part of ',a,'  ,   imaginary part of ',a,'   ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
+          write(unit=iw, fmt="('#',a,' real part of ',a,' ,  imag part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
         end if
       end do ; end do ; end do
       ! Header for total currents for each neighbor direction
       do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 70000+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),trim(dcprefix),filename(j),trim(dcfield(dcfield_dependence)),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='unknown', form='formatted')
-        write(unit=iw, fmt="('#',a,'  real part of ',a,'  ,   imaginary part of ',a,'   ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
+        write(unit=iw, fmt="('#',a,' real part of ',a,' ,  imag part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
 
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),trim(dcprefix),filename(j),trim(dcfield(dcfield_dependence)),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
           open (unit=iw, file=varm, status='unknown', form='formatted')
-          write(unit=iw, fmt="('#',a,'  real part of ',a,'  ,   imaginary part of ',a,'   ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
+          write(unit=iw, fmt="('#',a,' real part of ',a,' ,  imag part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
         end if
       end do ; end do
+
       ! Header for DC spin current
       do i=1,Npl ; do j=2,4
         iw = 81000+(i-1)*3+j-1
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/SC/',a,a,'pumpdc_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(dcprefix),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'pumpdc_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(3)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='unknown', form='formatted')
-        write(unit=iw, fmt="('#',a,'  Re(',a,'pumpdc)  ,  Im(',a,'pumpdc)  , phase of ',a,'pumpdc , cos(',a,'pumpdc) , sin(',a,'pumpdc) , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
+        write(unit=iw, fmt="('#',a,'    ',a,'pumpdc    , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j)
         close(unit=iw)
       end do ; end do
 
@@ -476,12 +485,12 @@ contains
       ! Currents per plane per neighbor
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 50000+(i-1)*n0sc2*7+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),trim(dcprefix),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),trim(dcprefix),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
         end if
@@ -490,12 +499,12 @@ contains
       ! Total currents for each neighbor direction
       do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 70000+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder(j)),trim(dcprefix),filename(j),trim(dcfield(dcfield_dependence)),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),trim(dcprefix),filename(j),trim(dcfield(dcfield_dependence)),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
         end if
@@ -504,7 +513,7 @@ contains
       ! DC spin current
       do i=1,Npl ; do j=2,4
         iw = 81000+(i-1)*3+j-1
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/SC/',a,a,'pumpdc_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(dcprefix),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'pumpdc_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(3)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
       end do ; end do
@@ -562,37 +571,39 @@ contains
     implicit none
     integer  :: neighbor,i,j,iw
 
-    write(outputunit_loop,"(' ################# Currents: #################')")
+    if(lwriteonscreen) write(outputunit_loop,"(' ################# Currents: #################')")
     do neighbor=n0sc1,n0sc2
-      write(outputunit_loop,"('|--------- Neighbor: ',i0,' , ',a,' = ',a,' ---------|')") neighbor,trim(dcfield(dcfield_dependence)),trim(dc_fields(hw_count))
+      if(lwriteonscreen) then
+        write(outputunit_loop,"('|--------- Neighbor: ',i0,' , ',a,' = ',a,' ---------|')") neighbor,trim(dcfield(dcfield_dependence)),trim(dc_fields(hw_count))
 
-      write(outputunit_loop,"('     Ich = (',es16.9,') + i(',es16.9,')')") real(total_currents(1,neighbor)),aimag(total_currents(1,neighbor))
-      write(outputunit_loop,"(' abs(Ich) = ',es16.9)") abs(total_currents(1,neighbor))
-      write(outputunit_loop,"('atan(Ich) = ',es16.9)") atan2(aimag(total_currents(1,neighbor)),real(total_currents(1,neighbor)))
+        write(outputunit_loop,"('     Ich = (',es16.9,') + i(',es16.9,')')") real(total_currents(1,neighbor)),aimag(total_currents(1,neighbor))
+        write(outputunit_loop,"(' abs(Ich) = ',es16.9)") abs(total_currents(1,neighbor))
+        write(outputunit_loop,"('atan(Ich) = ',es16.9)") atan2(aimag(total_currents(1,neighbor)),real(total_currents(1,neighbor)))
 
-      write(outputunit_loop,"('     Isx  = (',es16.9,') + i(',es16.9,')')") real(total_currents(2,neighbor)),aimag(total_currents(2,neighbor))
-      write(outputunit_loop,"(' abs(Isx) = ',es16.9)") abs(total_currents(2,neighbor))
-      write(outputunit_loop,"('atan(Isx) = ',es16.9)") atan2(aimag(total_currents(2,neighbor)),real(total_currents(2,neighbor)))
+        write(outputunit_loop,"('     Isx  = (',es16.9,') + i(',es16.9,')')") real(total_currents(2,neighbor)),aimag(total_currents(2,neighbor))
+        write(outputunit_loop,"(' abs(Isx) = ',es16.9)") abs(total_currents(2,neighbor))
+        write(outputunit_loop,"('atan(Isx) = ',es16.9)") atan2(aimag(total_currents(2,neighbor)),real(total_currents(2,neighbor)))
 
-      write(outputunit_loop,"('     Isy  = (',es16.9,') + i(',es16.9,')')") real(total_currents(3,neighbor)),aimag(total_currents(3,neighbor))
-      write(outputunit_loop,"(' abs(Isy) = ',es16.9)") abs(total_currents(3,neighbor))
-      write(outputunit_loop,"('atan(Isy) = ',es16.9)") atan2(aimag(total_currents(3,neighbor)),real(total_currents(3,neighbor)))
+        write(outputunit_loop,"('     Isy  = (',es16.9,') + i(',es16.9,')')") real(total_currents(3,neighbor)),aimag(total_currents(3,neighbor))
+        write(outputunit_loop,"(' abs(Isy) = ',es16.9)") abs(total_currents(3,neighbor))
+        write(outputunit_loop,"('atan(Isy) = ',es16.9)") atan2(aimag(total_currents(3,neighbor)),real(total_currents(3,neighbor)))
 
-      write(outputunit_loop,"('     Isz  = (',es16.9,') + i(',es16.9,')')") real(total_currents(4,neighbor)),aimag(total_currents(4,neighbor))
-      write(outputunit_loop,"(' abs(Isz) = ',es16.9)") abs(total_currents(4,neighbor))
-      write(outputunit_loop,"('atan(Isz) = ',es16.9)") atan2(aimag(total_currents(4,neighbor)),real(total_currents(4,neighbor)))
+        write(outputunit_loop,"('     Isz  = (',es16.9,') + i(',es16.9,')')") real(total_currents(4,neighbor)),aimag(total_currents(4,neighbor))
+        write(outputunit_loop,"(' abs(Isz) = ',es16.9)") abs(total_currents(4,neighbor))
+        write(outputunit_loop,"('atan(Isz) = ',es16.9)") atan2(aimag(total_currents(4,neighbor)),real(total_currents(4,neighbor)))
 
-      write(outputunit_loop,"('     Ilx  = (',es16.9,') + i(',es16.9,')')") real(total_currents(5,neighbor)),aimag(total_currents(5,neighbor))
-      write(outputunit_loop,"(' abs(Ilx) = ',es16.9)") abs(total_currents(5,neighbor))
-      write(outputunit_loop,"('atan(Ilx) = ',es16.9)") atan2(aimag(total_currents(5,neighbor)),real(total_currents(5,neighbor)))
+        write(outputunit_loop,"('     Ilx  = (',es16.9,') + i(',es16.9,')')") real(total_currents(5,neighbor)),aimag(total_currents(5,neighbor))
+        write(outputunit_loop,"(' abs(Ilx) = ',es16.9)") abs(total_currents(5,neighbor))
+        write(outputunit_loop,"('atan(Ilx) = ',es16.9)") atan2(aimag(total_currents(5,neighbor)),real(total_currents(5,neighbor)))
 
-      write(outputunit_loop,"('     Ily  = (',es16.9,') + i(',es16.9,')')") real(total_currents(6,neighbor)),aimag(total_currents(6,neighbor))
-      write(outputunit_loop,"(' abs(Ily) = ',es16.9)") abs(total_currents(6,neighbor))
-      write(outputunit_loop,"('atan(Ily) = ',es16.9)") atan2(aimag(total_currents(6,neighbor)),real(total_currents(6,neighbor)))
+        write(outputunit_loop,"('     Ily  = (',es16.9,') + i(',es16.9,')')") real(total_currents(6,neighbor)),aimag(total_currents(6,neighbor))
+        write(outputunit_loop,"(' abs(Ily) = ',es16.9)") abs(total_currents(6,neighbor))
+        write(outputunit_loop,"('atan(Ily) = ',es16.9)") atan2(aimag(total_currents(6,neighbor)),real(total_currents(6,neighbor)))
 
-      write(outputunit_loop,"('     Ilz  = (',es16.9,') + i(',es16.9,')')") real(total_currents(7,neighbor)),aimag(total_currents(7,neighbor))
-      write(outputunit_loop,"(' abs(Ilz) = ',es16.9)") abs(total_currents(7,neighbor))
-      write(outputunit_loop,"('atan(Ilz) = ',es16.9)") atan2(aimag(total_currents(7,neighbor)),real(total_currents(7,neighbor)))
+        write(outputunit_loop,"('     Ilz  = (',es16.9,') + i(',es16.9,')')") real(total_currents(7,neighbor)),aimag(total_currents(7,neighbor))
+        write(outputunit_loop,"(' abs(Ilz) = ',es16.9)") abs(total_currents(7,neighbor))
+        write(outputunit_loop,"('atan(Ilz) = ',es16.9)") atan2(aimag(total_currents(7,neighbor)),real(total_currents(7,neighbor)))
+      end if
 
       ! Total currents for each neighbor direction
       ! Writing charge current
@@ -678,9 +689,73 @@ contains
     ! Writing DC spin currents
     do i=1,Npl ; do j=1,3
       iw = 81000+(i-1)*3+j
-      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(dc_currents(j,i)) , aimag(dc_currents(j,i)) , atan2(aimag(dc_currents(j,i)),real(dc_currents(j,i))) , real(dc_currents(j,i))/abs(dc_currents(j,i)) , aimag(dc_currents(j,i))/abs(dc_currents(j,i)) , mvec_spherical(i,2) , mvec_spherical(i,3)
+      write(unit=iw,fmt="(a,2x,3(es16.9,2x))") trim(dc_fields(hw_count)) , dc_currents(j,i) , mvec_spherical(i,2) , mvec_spherical(i,3)
     end do ; end do
 
     return
   end subroutine write_dc_currents
+
+  ! This subroutine sorts current files
+  subroutine sort_currents()
+    use mod_f90_kind
+    use mod_parameters, only: Npl,renorm,n0sc1,n0sc2,itype
+    use mod_tools, only: sort_file
+    implicit none
+    integer  :: neighbor,i,j,iw,idc=1
+
+    ! Opening current files
+    if(itype.eq.9) then
+      idc=10
+      call openclose_dc_currents_files(1)
+    else
+      call openclose_currents_files(1)
+    end if
+
+    do neighbor=n0sc1,n0sc2
+      ! Sorting total current files
+      iw = 7000*idc+(neighbor-1)*7
+      do j=1,7
+        call sort_file(iw+j,.true.)
+      end do
+
+      ! Sorting renormalized total currents
+      if(renorm) then
+        do j=1001,1007
+          call sort_file(iw+j,.true.)
+        end do
+      end if
+
+      ! Sorting currents per plane
+      do i=1,Npl
+        ! Sorting current files
+        iw = 5000*idc+(i-1)*n0sc2*7+(neighbor-1)*7
+        do j=1,7
+          call sort_file(iw+j,.true.)
+        end do
+
+        ! Sorting renormalized currents
+        if(renorm) then
+          do j=1001,1007
+            call sort_file(iw+j,.true.)
+          end do
+        end if
+      end do
+    end do
+
+    ! Sorting DC spin currents
+    do i=1,Npl ; do j=1,3
+      iw = 8100*idc+(i-1)*3+j
+      call sort_file(iw,.true.)
+    end do ; end do
+
+    ! Closing current files
+    if(itype.eq.9) then
+      call openclose_dc_currents_files(2)
+    else
+      call openclose_currents_files(2)
+    end if
+
+    return
+  end subroutine sort_currents
+
 end module mod_currents

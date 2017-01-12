@@ -685,7 +685,7 @@ contains
 
   subroutine rs_hoppings()
     use mod_f90_kind
-    use mod_parameters, only: Npl, Utype, mmlayer, nmaglayers, mmlayermag, layertype, outputunit, outputunit_loop
+    use mod_parameters, only: Npl, Utype, mmlayer, nmaglayers, mmlayermag, layertype, outputunit, outputunit_loop, Npl_input,  naddlayers
     use mod_lattice
     use mod_mpi_pars
   character(len=30) :: formatvar
@@ -701,15 +701,19 @@ contains
   call DFT_parameters(cs,cp,cd,ds,dp,dd)
   if((layertype(1).ne.1).or.(layertype(Npl+2).ne.1)) then
     if(myrank.eq.0) then
-      write(outputunit,"('[mod_tight_binding] Problem defining the system: first or last layer is not Empty Spheres!')")
-      write(outputunit,"('[mod_tight_binding] First layer type: ',i0,' , last layer type: ',i0,'.')") layertype(1),layertype(Npl+2)
+      write(outputunit,"('[rs_hoppings] Problem defining the system: first or last layer is not Empty Spheres!')")
+      write(outputunit,"('[rs_hoppings] First layer type: ',i0,' , last layer type: ',i0,'.')") layertype(1),layertype(Npl+2)
     end if
     call MPI_Finalize(ierr)
     stop
   end if
   if(myrank_row_hw.eq.0) then
-    write(formatvar,fmt="(a,i0,a)") '(a,',Npl+2,'(i0,2x))'
-    write(outputunit_loop,fmt=formatvar) '[rs_hoppings] Layer type: ',(mmlayer(i),i=1,Npl+2)
+    if(naddlayers.eq.0) then
+      write(formatvar,fmt="(a,i0,a)") '(a,',Npl+2,'(2x,i0))'
+    else
+      write(formatvar,fmt="(a,i0,a,i0,a)") '(a,',Npl_input+1,'(2x,i0),'' | ''',naddlayers,'(i0,2x))'
+    end if
+    write(outputunit_loop,fmt=trim(formatvar)) '[rs_hoppings] Layer type:',(mmlayer(i),i=1,Npl+2)
   end if
 
   ! Obtaining the number and list of magnetic layers
@@ -734,9 +738,9 @@ contains
   ! Allocating real space hoppings
   inter_plane_hoppings: select case (plnn)
   case(1) ! If inter-plane second nearest neighbors are in n.n. plane
-    allocate( t00(Npl+2,0:n0,9,9),t01(Npl+1,n1+n2,9,9) )
+    if(.not.allocated(t00)) allocate( t00(Npl+2,0:n0,9,9),t01(Npl+1,n1+n2,9,9) )
   case(2) ! If inter-plane second nearest neighbors are in 2nd. n.n. plane
-    allocate( t00(Npl+2,0:n0,9,9),t01(Npl+1,n1,9,9),t02(Npl,n2,9,9) )
+    if(.not.allocated(t00)) allocate( t00(Npl+2,0:n0,9,9),t01(Npl+1,n1,9,9),t02(Npl,n2,9,9) )
   case default
     if(myrank.eq.0) write(outputunit,"('[rs_hoppings] System not defined for more than 2 n.n. planes!')")
     call MPI_Finalize(ierr)

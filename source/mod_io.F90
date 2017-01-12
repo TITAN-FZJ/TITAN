@@ -14,31 +14,18 @@ contains
   subroutine read_input_file()
     use mod_f90_kind
     use mod_mpi_pars
+    use mod_tools, only: number_of_lines
     implicit none
     integer                 :: ios,i,j,nlinest
-    character(len=20)       :: stringtemp
 
-    open(unit=ifile, file=filename, status='old', iostat=ios)
+    open(unit=ifile, file=trim(filename), status='old', iostat=ios)
     if(ios.ne.0) then
-      if(myrank.eq.0) write(outputunit,"('[read_input_file] File ""',a,'"" not found!')") filename
+      if(myrank.eq.0) write(outputunit,"('[read_input_file] File ""',a,'"" not found!')") trim(filename)
       call MPI_Finalize(ierr)
       stop
     end if
 
-    ! Counting the number of lines
-    nlines  = 0
-    nlinest = 0
-    do
-      read (ifile,*,iostat=ios) stringtemp
-      if (ios.ne.0) exit
-      if (stringtemp.eq."") cycle ! If the line is blank, ignore
-      ! Total number of non-empty lines
-      nlinest = nlinest + 1
-
-      ! Getting the number of non-commented lines
-      if ((stringtemp(1:1).eq."#").or.(stringtemp(1:1).eq."!")) cycle
-      nlines = nlines + 1
-    end do
+    call number_of_lines(ifile,nlinest,nlines)
 !     write(outputunit,"('[get_parameters] ""',a,'"" file has ',i0,' non-commented lines and ',i0,' in total (non-blank only)')") trim(filename),nlines,nlinest
     allocate(string1(nlines),stringt(nlinest))
 
@@ -159,7 +146,7 @@ contains
             case ("ry2ev")
               ry2ev = 13.6d0
             case ("tesla")
-              tesla = 5.7883817555d-5/13.6d0
+              tesla = 5.7883817555d-5/13.6d0 ! Ry/T
               ltesla = .true.
             case ("verbose")
               lverbose = .true.
@@ -201,6 +188,14 @@ contains
               lrotatemag = .true.
             case ("nolb")
               lnolb = .true.
+            case ("nodiag")
+              lnodiag = .true.
+            case ("sha")
+              lsha = .true.
+            case ("writeonscreen")
+              lwriteonscreen = .true.
+            case ("sortfiles")
+              lsortfiles = .true.
             case("!")
               exit
             case default
@@ -472,6 +467,30 @@ contains
 !           write(outputunit,"('hwz = ',f8.5)") hwz
           nparams2 = nparams2-1
 !===============================================================================
+        case("hwscale","hwscale:","hwscale=")
+          do n=i,iomax
+            read(unit=istring1(n+1),fmt=*,iostat=ios) hwscale(n-i+1)
+            if(ios.ne.0) exit
+          end do
+!           write(outputunit,"('hwscale = ',20(es9.2,2x))") hwscale
+          exit
+!===============================================================================
+        case("hwtrotate","hwtrotate:","hwtrotate=")
+          do n=i,iomax
+            read(unit=istring1(n+1),fmt=*,iostat=ios) hwtrotate(n-i+1)
+            if(ios.ne.0) exit
+          end do
+!           write(outputunit,"('hwtrotate = ',20(es9.2,2x))") hwtrotate
+          exit
+!===============================================================================
+        case("hwprotate","hwprotate:","hwprotate=")
+          do n=i,iomax
+            read(unit=istring1(n+1),fmt=*,iostat=ios) hwprotate(n-i+1)
+            if(ios.ne.0) exit
+          end do
+!           write(outputunit,"('hwtrotate = ',20(es9.2,2x))") hwprotate
+          exit
+!===============================================================================
         case("dirEfield")
           if(istring1(i+1).eq."=") then ! If after keyword there's an '='
             dirEfield = istring1(i+2)
@@ -586,6 +605,17 @@ contains
         case("skip_steps=")
           read(unit=istring1(i+1),fmt=*,iostat=ios) skip_steps
 !           write(outputunit,"('skip_steps = ',i0)") skip_steps
+!===============================================================================
+        case("skip_steps_hw")
+          if(istring1(i+1).eq."=") then ! If after keyword there's an '='
+            read(unit=istring1(i+2),fmt=*,iostat=ios) skip_steps_hw
+          else ! If there's no '=' after keyword, get from next line
+            read(unit=istring2(i),fmt=*,iostat=ios) skip_steps_hw
+          end if
+!           write(outputunit,"('skip_steps_hw = ',i0)") skip_steps_hw
+        case("skip_steps_hw=")
+          read(unit=istring1(i+1),fmt=*,iostat=ios) skip_steps_hw
+!           write(outputunit,"('skip_steps_hw = ',i0)") skip_steps_hw
 !===============================================================================
         case("npts")
           if(istring1(i+1).eq."=") then ! If after keyword there's an '='
@@ -747,6 +777,25 @@ contains
 !           write(outputunit,"('set2 = ',i0)") set2
           nparams = nparams-1
 !===============================================================================
+        case("addlayers","addlayers:")
+          do n=i+1,iomax
+            read(unit=istring1(n),fmt=*,iostat=ios) addlayers(naddlayers+1)
+            if(ios.ne.0) exit
+            naddlayers = naddlayers+1
+          end do
+!           write(outputunit,"('naddlayers = ',i0,' addlayers = ',10(i0,2x))") naddlayers,addlayers
+          exit
+!===============================================================================
+        case("suffix","suffix:","suffix=")
+          if ((index(string1(j),"suffix:").gt.0).or.(index(string1(j),"suffix=").gt.0)) then
+            filenameini = index(string1(j),"suffix")+8
+          else if (index(string1(j),"suffix =").gt.0) then
+            filenameini = index(string1(j),"suffix")+9
+          else
+            filenameini = index(string1(j),"suffix")+7
+          end if
+          suffix = string1(j)(filenameini:)
+!===============================================================================
         case("!")
           exit
         end select ioparams
@@ -787,7 +836,12 @@ contains
       stop
     end if
     if(skip_steps.lt.0) then
-      if(myrank.eq.0) write(outputunit,"('[get_parameters] Invalid number of steps to skip: ',i0)") skip_steps
+      if(myrank.eq.0) write(outputunit,"('[get_parameters] Invalid number of energy steps to skip: ',i0)") skip_steps
+      call MPI_Finalize(ierr)
+      stop
+    end if
+    if(skip_steps_hw.lt.0) then
+      if(myrank.eq.0) write(outputunit,"('[get_parameters] Invalid number of field steps to skip: ',i0)") skip_steps_hw
       call MPI_Finalize(ierr)
       stop
     end if
@@ -802,20 +856,26 @@ contains
     ! Setting up external field variables and loops
     call prepare_field()
 
-    ! Preparing dc-limit calculation
-    if(itype.eq.9) then
-      emax = emin
-      call prepare_dclimit()
-    end if
-
     ! Energy loop step
     deltae = (emax - emin)/npts
     if(deltae.le.1.d-14) npt1 = 1
+
+    ! Preparing dc-limit calculation
+    if(itype.eq.9) call prepare_dclimit()
+
     ! Check number of planes
     if(Npl_f.lt.Npl_i) then
       Npl_f = Npl_i
     end if
-
+    ! Add 'naddlayers' to Npl
+    if((naddlayers.eq.1).and.(myrank.eq.0)) write(outputunit,"('[get_parameters] WARNING: Added layers must include empty spheres! Only including one layer: naddlayers = ',i0)") naddlayers
+    if((set1.eq.9).or.(set2.eq.9)) then
+      naddlayers = 0
+    end if
+    if(naddlayers.ne.0) then
+      Npl_i = Npl_i+naddlayers-1
+      Npl_f = Npl_f+naddlayers-1
+    end if
 
     tol   = 1.d-10
     pn1=parts*n1gl
@@ -974,7 +1034,7 @@ contains
         if(vdcneighbor(1).ne.0) write(outputunit_loop,"(4x,'Longitudinal neighbor = ',i0)") vdcneighbor(1)
         if(vdcneighbor(2).ne.0) write(outputunit_loop,"(4x,'  Transverse neighbor = ',i0)") vdcneighbor(2)
       end if
-      write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps of size',es10.3,' each calculating ',i0,' points')") npt1,MPIsteps,MPIdelta,MPIpts
+      write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps of energy size',es10.3,' each calculating ',i0,' points')") total_hw_npt1*npt1,MPIsteps*MPIsteps_hw,MPIdelta,MPIpts_hw*MPIpts
     case (9)
       write(outputunit_loop,"(1x,'dc limit calculations as a function of ',a)") trim(dcfield(dcfield_dependence))
       write(outputunit_loop,"(1x,'e =',es9.2)") emin
@@ -989,7 +1049,7 @@ contains
         if(vdcneighbor(1).ne.0) write(outputunit_loop,"(8x,'Longitudinal neighbor = ',i0)") vdcneighbor(1)
         if(vdcneighbor(2).ne.0) write(outputunit_loop,"(8x,'  Transverse neighbor = ',i0)") vdcneighbor(2)
       end if
-      write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps, each calculating ',i0,' points')") total_hw_npt1,MPIsteps_hw,MPIpts_hw
+      write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps, each calculating ',i0,' points')") total_hw_npt1*npt1,MPIsteps*MPIsteps_hw,MPIpts_hw*MPIpts
     end select write_itype
     write(outputunit_loop,"('|---------------------------------------------------------------------------|')")
     return

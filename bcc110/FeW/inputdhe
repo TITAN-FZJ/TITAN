@@ -1,9 +1,13 @@
 !*******************************************************************************!
 !                           CHOOSE WHAT TO CALCULATE                            !
--> itype = 10
+-> itype = 8
+!===============================================================================!
+!                                OUTPUT FILE                                    !
+-> output: output/saida8_Npl8-10_sha
+! -> suffix: _-M
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
--> Options: noUonNM ! GSL ! addresults ! verbose ! norenorm ! slatec ! GSL
+-> Options:
 !===============================================================================!
 !                               SYSTEM VARIABLES                                !
 ! Lattice and surface direction:                                                !
@@ -12,9 +16,9 @@
 -> a0 = 3.165d0
 ! Number of planes:
 !(For SC and exchange calculation, use initial and final number of layers)
--> Npl = 3
+-> Npl = 8 10
 ! Small imaginary part of the Green function:
--> eta = 5.0E-04
+-> eta = 5.0E-03
 !===============================================================================!
 !                          STATIC MAGNETIC ZEEMAN FIELD                         !
 !                         (in the spin reference system)                        !
@@ -23,6 +27,7 @@
 -> hwa   = 0.00E+00 5.0E-04 50
 -> hwt   = 0.50E+00
 -> hwp   = 0.00E+00
+-> skip_steps_hw = 0
 ! Cartesian coordinates                                                         !
 -> hwx = 0.0E+00 , hwy = 0.0E+00 , hwz = 0.0E+00
 !===============================================================================!
@@ -31,7 +36,7 @@
 -> socscale = 1.0
 !-------------------------------------------------------------------------------!
 ! Magnetization axis:                                                           !
--> magaxis = P
+-> magaxis = L
 !===============================================================================!
 !                   DIRECTION OF IN-PLANE ELECTRIC FIELD                        !
 -> dirEfield = L
@@ -47,11 +52,11 @@
 !===============================================================================!
 !                           INTEGRATION VARIABLES                               !
 ! Number of Cunningham k-vector generators:                                     !
--> ncp = 7
+-> ncp = 6
 ! Number of parts to divide energy integral in complex plane:                   !
--> parts = 2 , n1gl = 63
+-> parts = 2 , n1gl = 64
 !  Number of parts to divide energy integral in real axis:                      !
--> parts3 = 1 , n3gl = 63
+-> parts3 = 1 , n3gl = 64
 !===============================================================================!
 !                              PLOTTING VARIABLES                               !
 !           PLOTTING VARIABLES         !             BAND STRUCTURE             !
@@ -64,7 +69,7 @@
 !===============================================================================!
 !                              SELF-CONSISTENCY                                 !
 !        (Finding center of the bands for the given number of particles)        !
--> skipsc = F ! skip self-consistency calculation when it finds previous results
+-> skipsc = T ! skip self-consistency calculation when it finds previous results
 ! File to use as starting point:
 !-> scfile: Resultados/selfconsistency/selfconsistency_Npl=4_parts=2_Utype=2_hwx= 0.0E+00_hwy= 0.0E+00_hwz= 0.0E+00_ncp=6_eta= 0.5E-03.dat
 !===============================================================================!

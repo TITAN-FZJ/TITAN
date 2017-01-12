@@ -1,14 +1,14 @@
 !   Calculates magnetic LDOS
 subroutine band_structure()
-	use mod_f90_kind
-	use mod_constants, only: pi,sq2,tpi
-	use mod_parameters
-	use mod_mpi_pars, only: mpitag
-	implicit none
+  use mod_f90_kind
+  use mod_constants, only: pi,sq2,tpi
+  use mod_parameters
+  use mod_mpi_pars, only: mpitag
+  implicit none
   character(len=400) :: varm
   character(len=50)  :: fieldpart,socpart
   character(len=1)   :: SOCc
-	integer         	 :: j,count,ifail
+  integer            :: j,ifail
   integer                       :: lwork,dimbs
   real(double)                  :: kmin(3),kmax(3),deltak(3)
   real(double),allocatable      :: rwork(:),kpoints(:,:)
@@ -114,11 +114,13 @@ subroutine band_structure()
   end if
   if(lfield) then
     write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
-    if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
-    if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
+    if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
+    if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
+    if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
+    if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
   end if
 
-  write(varm,"('./results/',a1,'SOC/',i0,'Npl/BS/bandstructure_kdir=',a2,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,Npl,kdirection,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+  write(varm,"('./results/',a1,'SOC/',a,'/BS/bandstructure_kdir=',a2,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),kdirection,ncp,eta,Utype,trim(fieldpart),trim(socpart)
   open (unit=666+mpitag, file=varm,status='unknown')
 
   deltak = (kmax - kmin)/npts
@@ -145,5 +147,5 @@ subroutine band_structure()
   close(666+mpitag)
   deallocate(hk,rwork,eval,evecl,evecr,work)
 
-	return
+  return
 end subroutine band_structure

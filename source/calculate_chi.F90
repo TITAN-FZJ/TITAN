@@ -83,13 +83,13 @@ subroutine calculate_chi()
       if(myrank_col.eq.0) then
         MPI_points_chi: do mcount=1,MPIpts
           if (mcount.ne.1) then
-            call MPI_Recv(e,1,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,1000,MPIComm_Col,stat,ierr)
-            call MPI_Recv(schi,Npl*Npl*4,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),1100,MPIComm_Col,stat,ierr)
-            call MPI_Recv(schihf,Npl*Npl*4,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),1200,MPIComm_Col,stat,ierr)
+            call MPI_Recv(e,1,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,1000,MPI_Comm_Col,stat,ierr)
+            call MPI_Recv(schi,Npl*Npl*16,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),1100,MPI_Comm_Col,stat,ierr)
+            call MPI_Recv(schihf,Npl*Npl*16,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),1200,MPI_Comm_Col,stat,ierr)
           end if
 
           ! DIAGONALIZING SUSCEPTIBILITY
-          call diagonalize_susceptibilities()
+          if(.not.lnodiag) call diagonalize_susceptibilities()
 
           ! WRITING RPA AND HF SUSCEPTIBILITIES
           ! Opening chi and diag files
@@ -113,12 +113,17 @@ subroutine calculate_chi()
           call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
         end if
       else
-        call MPI_Send(e,1,MPI_DOUBLE_PRECISION,0,1000,MPIComm_Col,ierr)
-        call MPI_Send(schi,Npl*Npl*4,MPI_DOUBLE_COMPLEX,0,1100,MPIComm_Col,ierr)
-        call MPI_Send(schihf,Npl*Npl*4,MPI_DOUBLE_COMPLEX,0,1200,MPIComm_Col,ierr)
+        call MPI_Send(e,1,MPI_DOUBLE_PRECISION,0,1000,MPI_Comm_Col,ierr)
+        call MPI_Send(schi,Npl*Npl*16,MPI_DOUBLE_COMPLEX,0,1100,MPI_Comm_Col,ierr)
+        call MPI_Send(schihf,Npl*Npl*16,MPI_DOUBLE_COMPLEX,0,1200,MPI_Comm_Col,ierr)
       end if
     end if
   end do chi_energy_loop
+
+  ! Sorting results on files
+  if(myrank.eq.0) then
+    call sort_all_files()
+  end if
 
   call deallocate_susceptibilities()
   if(myrank_row.eq.0) then

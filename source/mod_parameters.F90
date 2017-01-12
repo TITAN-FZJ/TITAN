@@ -1,9 +1,18 @@
 module mod_parameters
   use mod_f90_kind
   implicit none
+!========================================================================================!
+! Maximum dimension for Npl-dependent quantities that must be read from input
+  integer,parameter :: dmax=20
+! Number of k-point generation vectors (S. Cunningham, Phys. Rev. B 10, 4988 (1974))
   integer       :: ncp
+! Small imaginary part included in the energy z = E + i.eta
   real(double)  :: eta
-  real(double)  :: Ef,q(3)
+! Fermi energy (read from mod_tight_binding)
+  real(double)  :: Ef
+! q-vector for the dependence of response functions (not used yet)
+  real(double)  :: q(3)
+! Dimensions
   integer       :: dimsigmaNpl,dim
 !========================================================================================!
 ! Effective intra-site electron electron interaction
@@ -14,7 +23,7 @@ module mod_parameters
 !========================================================================================!
 ! Lattice and surface direction
   character(len=6) :: lattice
-  integer          :: Npl,Npl_i,Npl_f
+  integer          :: Npl,Npl_i,Npl_f,Npl_input
 ! Lattice parameter (define the units of distance in the program)
   real(double)     :: a0
 !========================================================================================!
@@ -37,10 +46,10 @@ module mod_parameters
   logical :: lfield
 ! Values of magnetic field in cartesian or spherical coordinates
   character(len=9),dimension(7)  :: dcfield = ["hwa      ","hwt      ","hwp      ","hwahwt   ","hwahwp   ","hwthwp   ","hwahwthwp"]
-  character(len=60)              :: dc_header,dcprefix
-  character(len=60),allocatable  :: dc_fields(:)
+  character(len=60)              :: dc_header
+  character(len=60),allocatable  :: dc_fields(:),dcprefix(:)
   real(double)     ,allocatable  :: hw_list(:,:)
-  integer       :: dcfield_dependence=0
+  integer       :: dcfield_dependence=0,dc_count=0
   real(double)  :: hwx=0.d0,hwy=0.d0,hwz=0.d0,tesla=1.d0
   real(double)  :: hwa,hwa_i=0.d0,hwa_f=0.d0,hwa_s
   integer       :: hwa_npts=0,hwa_npt1=1,hwa_count
@@ -49,6 +58,11 @@ module mod_parameters
   real(double)  :: hwp,hwp_i=0.d0,hwp_f=0.d0,hwp_s
   integer       :: hwp_npts=0,hwp_npt1=1,hwp_count
   integer       :: hw_count,total_hw_npt1
+! Layer-resolved scale of magnetic field (including empty spheres)
+  logical       :: lhwscale        = .false.
+  real(double)  :: hwscale(dmax)   = 1.d0
+  logical       :: lhwrotate       = .false.
+  real(double)  :: hwtrotate(dmax) = 0.d0, hwprotate(dmax) = 0.d0
 !========================================================================================!
 ! Number of parts to divide energy integral I1+I2 and I3
   integer      :: pn1,pn2,pnt
@@ -60,12 +74,12 @@ module mod_parameters
   character(len=2)  :: kdirection
 !========================================================================================!
 ! Number of points and interval of energy/wave vector/position calculations
-  integer      :: npts,npt1
+  integer      :: npts,npt1,count
   real(double) :: emin,emax,deltae
   real(double) :: qxmin,qxmax,qzmin,qzmax
 ! Number of steps to skip from the beginning
 ! (useful to get the same points after a calculation has stopped)
-  integer :: skip_steps = 0
+  integer :: skip_steps = 0, skip_steps_hw = 0
 !========================================================================================!
 ! Conversion arrays
   integer,allocatable :: sigmaimunu2i(:,:,:,:),sigmaijmunu2i(:,:,:,:,:),sigmai2i(:,:)
@@ -75,20 +89,27 @@ module mod_parameters
   real(double)                :: ry2ev=1.d0              ! Optional conversion of ry to eV
 !========================================================================================!
 ! Logical variables for runoptions
-  logical :: lkpoints     = .false.
-  logical :: ltesla       = .false.
-  logical :: lcreatefiles = .false.
-  logical :: laddresults  = .false.
-  logical :: lGSL         = .false.
-  logical :: lslatec      = .false.
-  logical :: lnojac       = .false.
-  logical :: lontheflysc  = .false.
-  logical :: lrotatemag   = .false.
-  logical :: lnolb        = .false.
+  logical :: lkpoints       = .false.
+  logical :: ltesla         = .false.
+  logical :: lcreatefiles   = .false.
+  logical :: laddresults    = .false.
+  logical :: lGSL           = .false.
+  logical :: lslatec        = .false.
+  logical :: lnojac         = .false.
+  logical :: lontheflysc    = .false.
+  logical :: lrotatemag     = .false.
+  logical :: lnolb          = .false.
+  logical :: lnodiag        = .false.
+  logical :: lwriteonscreen = .false.
+  logical :: lsortfiles     = .false.
+  logical :: lsha           = .false.
 !========================================================================================!
 ! Activate debug options
   logical :: lverbose = .false.
-  logical :: ldebug = .false.
+  logical :: ldebug   = .false.
+!========================================================================================!
+! Spin Hall Angle calculation
+  integer, dimension(:),  allocatable :: sha_longitudinal,sha_transverse ! In-plane longitudinal and transverse neighbors
 !========================================================================================!
 ! DC voltage calculations
   logical :: lvdc = .false.
@@ -108,6 +129,9 @@ module mod_parameters
   logical :: skipsc,lselfcon
 ! Give a file to start self-consistency
   character(len=200) :: scfile
+!========================================================================================!
+! Suffix to use on filenames (to avoid overwriting while comparing different results)
+  character(len=50)  :: suffix=""
 !========================================================================================!
 ! Output file
   integer            :: outputunit=123456789,outputunit_loop
@@ -131,5 +155,8 @@ module mod_parameters
 ! in the first half (set1) and second half (set2) of the slab
 ! NOTE: the Fermi energy is obtained from the first half.
   integer :: set1,set2
+  ! Layers to add after set2 (maximum of 10) - Must include empty spheres on the list
+  integer :: addlayers(10),naddlayers=0
+  character(len=50) :: Npl_folder
 !========================================================================================!
 end module mod_parameters

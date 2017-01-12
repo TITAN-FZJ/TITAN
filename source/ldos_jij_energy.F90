@@ -123,10 +123,6 @@ end subroutine ldos_jij_energy
 !   complex(double),dimension(Npl,9)                :: gfdiagu,gfdiagd
 !   complex(double),dimension(Npl+2,Npl+2,18,18)    :: gf
 
-! #ifndef _JUQUEEN
-!   open(outputunit_loop,carriagecontrol ='fortran')
-! #endif
-
 !   ldosu = 0.d0
 !   ldosd = 0.d0
 
@@ -141,17 +137,9 @@ end subroutine ldos_jij_energy
 
 ! !$omp do reduction(+:ldosu,ldosd)
 !   kpoints: do iz=1,nkpoints
-!     ! Progress bar
 ! !$  if((mythread.eq.0)) then
-!       prog = floor(iz*100.d0/nkpoints)
-! #ifdef _JUQUEEN
-!       write(outputunit_loop,"(a1,2x,i3,'% (',i0,'/',i0,') of k-sum ',a1,$)") spiner(mod(iz,4)+1),prog,iz,nkpoints,char(13)
-! #else
-!       elapsed_time = MPI_Wtime() - start_program
-!       write(progbar,fmt="( a,i0,a )") "(1h+' ','Total time=',i2,'h:',i2,'m:',i2,'s  ',",1+(iz+1)*20/nkpoints, "a,' ',i0,'%')"
-!       write(outputunit_loop,fmt=progbar) int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),("|",j=1,1+(iz+1)*20/nkpoints),100*(iz+1)/nkpoints
-! #endif
-! !$   end if
+!       if(lverbose) call progress_bar(outputunit_loop,"kpoints",iz,nkpoints)
+! !$  end if
 
 !     kp = kbz(iz,:)
 
@@ -179,9 +167,9 @@ end subroutine ldos_jij_energy
 
 !   !Writing on files
 !   do i=1,Npl+2
-!     write(varm,"('./results/',l1,'SOC/',i0,'Npl/LDOS/ldosu_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,i,magaxis,socscale,ncp,eta,Utype,hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
+!     write(varm,"('./results/',l1,'SOC/',a,'/LDOS/ldosu_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,trim(Npl_folder),i,magaxis,socscale,ncp,eta,Utype,hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
 !     open (unit=117+i, file=varm,status='unknown')
-!     write(varm,"('./results/',l1,'SOC/',i0,'Npl/LDOS/ldosd_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,Npl,i,magaxis,socscale,ncp,eta,Utype,hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
+!     write(varm,"('./results/',l1,'SOC/',a,'/LDOS/ldosd_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,trim(Npl_folder),i,magaxis,socscale,ncp,eta,Utype,hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
 !     open (unit=517+i, file=varm,status='unknown')
 !   end do
 !   ldos_writing_plane_loop: do i=1,Npl+2

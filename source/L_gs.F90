@@ -1,7 +1,7 @@
 ! Calculates the orbital angular momentum ground state
 subroutine L_gs()
   use mod_f90_kind
-  use mod_constants, only: zero
+  use mod_constants, only: zero,pi
   use mod_parameters
   use mod_magnet
   use mod_generate_epoints
@@ -32,7 +32,7 @@ subroutine L_gs()
     if(lverbose) write(outputunit_loop,"('[L_gs] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
 
     do i=2,pn1
-      call MPI_Recv(gupgd,ncount,MPI_DOUBLE_COMPLEX,MPI_ANY_SOURCE,8999+mpitag,MPIComm_Row_hw,stat,ierr)
+      call MPI_Recv(gupgd,ncount,MPI_DOUBLE_COMPLEX,MPI_ANY_SOURCE,8999+mpitag,MPI_Comm_Row_hw,stat,ierr)
       if(lverbose) write(outputunit_loop,"('[L_gs] Point ',i0,' received from ',i0)") i,stat(MPI_SOURCE)
 
       gupgdint = gupgdint + gupgd
@@ -41,9 +41,9 @@ subroutine L_gs()
       ! the rest of the points to the ones that finish first
       if (itask.lt.pn1) then
         itask = itask + 1
-        call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPIComm_Row_hw,ierr)
+        call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_Comm_Row_hw,ierr)
       else
-        call MPI_Send(0,1,MPI_INTEGER,stat(MPI_SOURCE),0,MPIComm_Row_hw,ierr)
+        call MPI_Send(0,1,MPI_INTEGER,stat(MPI_SOURCE),0,MPI_Comm_Row_hw,ierr)
       end if
     end do
   else
@@ -54,8 +54,8 @@ subroutine L_gs()
       gupgd = gupgd*wght(ix)
 
 !       if(lverbose) write(outputunit_loop,"('[L_gs] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
-      call MPI_Send(gupgd,ncount,MPI_DOUBLE_COMPLEX,0,8999+mpitag,MPIComm_Row_hw,ierr)
-      call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPIComm_Row_hw,stat,ierr)
+      call MPI_Send(gupgd,ncount,MPI_DOUBLE_COMPLEX,0,8999+mpitag,MPI_Comm_Row_hw,ierr)
+      call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_Comm_Row_hw,stat,ierr)
       if(ix.eq.0) exit
     end do
   end if
@@ -81,14 +81,14 @@ subroutine L_gs()
     lzm(i)  = lzm(i)  + real(lz (mu,nu)*gupgdint(i,nu,mu))
   end do ; end do ; end do
 
-  ! Calculating angles of GS OAM
+  ! Calculating angles of GS OAM (in units of pi)
   do i = 1,Npl
     labs(i)   = sqrt((lxm(i)**2)+(lym(i)**2)+(lzm(i)**2))
-    ltheta(i) = acos(lzm(i)/sqrt(lxm(i)**2+lym(i)**2+lzm(i)**2))
-    lphi(i)   = atan2(lym(i),lxm(i))
+    ltheta(i) = acos(lzm(i)/sqrt(lxm(i)**2+lym(i)**2+lzm(i)**2))/pi
+    lphi(i)   = atan2(lym(i),lxm(i))/pi
     lpabs(i)  = sqrt((lxpm(i)**2)+(lypm(i)**2)+(lzpm(i)**2))
-    lptheta(i)= acos(lzpm(i)/sqrt(lxpm(i)**2+lypm(i)**2+lzpm(i)**2))
-    lpphi(i)  = atan2(lypm(i),lxpm(i))
+    lptheta(i)= acos(lzpm(i)/sqrt(lxpm(i)**2+lypm(i)**2+lzpm(i)**2))/pi
+    lpphi(i)  = atan2(lypm(i),lxpm(i))/pi
   end do
 
   return

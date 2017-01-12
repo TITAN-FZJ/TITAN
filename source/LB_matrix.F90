@@ -1,25 +1,22 @@
 ! Orbital Zeeman hamiltonian
 subroutine lb_matrix()
-	use mod_f90_kind
-	use mod_constants
-	use mod_parameters
-	use mod_magnet
-	implicit none
+  use mod_f90_kind
+  use mod_constants
+  use mod_parameters
+  use mod_magnet
+  implicit none
+  integer :: i
+  complex(double), dimension(Npl+2,9,9) :: lbsigma
 
-! 	complex(double), dimension(18,18),intent(out) :: lb
-	complex(double), dimension(9,9) :: lbsigma
-
-	lb = zero
-
-	if(lnolb) return
-
-!	There is an extra  minus sign in the definition of hhwx,hhwy,hhwz
+! There is an extra  minus sign in the definition of hhwx,hhwy,hhwz
 ! to take into account the fact that we are considering negative
-!	external fields to get the peak in positive energies
-	lbsigma = 0.5d0*(lxp*hhwx + lyp*hhwy + lzp*hhwz)
+! external fields to get the peak at positive energies
+  lb = zero
+  do i=1,Npl+2
+    lbsigma(i,:,:) = 0.5d0*(lxp*hhwx(i) + lyp*hhwy(i) + lzp*hhwz(i))
+    lb(i, 1: 9, 1: 9) = lbsigma(i,:,:)
+    lb(i,10:18,10:18) = lbsigma(i,:,:)
+  end do
 
-	lb( 1: 9, 1: 9) = lbsigma(:,:)
-	lb(10:18,10:18) = lbsigma(:,:)
-
-	return
+  return
 end subroutine lb_matrix

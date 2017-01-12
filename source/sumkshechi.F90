@@ -92,7 +92,7 @@ subroutine sumkshechi(e,ep,Fint,iflag)
       end do ; end do ; end do ; end do ; end do ; end do
 
     else
-      ! Green function at (k+q,E_F+E+iy)
+      ! Green function at (k+q,E'+E+i.eta)
       if(llineargfsoc) then
         call greenlineargfsoc(ep+e,eta,kp,gf)
       else
@@ -103,7 +103,7 @@ subroutine sumkshechi(e,ep,Fint,iflag)
       gfdu(:,:,:,:,1) = gf(:,:,10:18, 1: 9)
       gfdd(:,:,:,:,1) = gf(:,:,10:18,10:18)
 
-      ! Green function at (k,E_F+iy)
+      ! Green function at (k,E'+i.eta)
       if(llineargfsoc) then
         call greenlineargfsoc(ep,eta,kp,gf)
       else

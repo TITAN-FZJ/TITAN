@@ -4,6 +4,7 @@ subroutine prepare_dclimit()
   use mod_parameters
   use mod_mpi_pars, only: myrank,ierr
   implicit none
+  real(double) :: e
 
   ! Inicial checks
   if(.not.lfield) then
@@ -19,14 +20,17 @@ subroutine prepare_dclimit()
   end if
 
   ! Allocating variable to write value of the fields on file
-  allocate(dc_fields(total_hw_npt1))
+  allocate(dc_fields(total_hw_npt1),dcprefix(npt1))
 
-  ! Small Energy to use as limit close to 0
-  if(emin.lt.2.d-6) then
-    write(dcprefix,fmt="('dc')")
-  else
-    write(dcprefix,fmt="('hw=',es8.1,'_')") emin
-  end if
+  ! Prefix for filenames containing the frequency/energy
+  do count=1,npt1
+    e = emin + deltae*(count-1)
+    if(e.lt.2.d-6) then
+      write(dcprefix(count),fmt="('dc')")
+    else
+      write(dcprefix(count),fmt="('hw=',es8.1,'_')") e
+    end if
+  end do
 
   if((hwa_npt1.gt.1).and.(hwt_npt1.eq.1).and.(hwp_npt1.eq.1)) then
     dcfield_dependence = 1

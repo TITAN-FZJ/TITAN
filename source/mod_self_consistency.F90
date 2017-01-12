@@ -1,5 +1,6 @@
 module mod_self_consistency
   implicit none
+  character(len=300)  :: default_file
 
 contains
   ! Tries to read eps1 and m if available - includes hdel, hdelp and hdelm calculations
@@ -51,7 +52,10 @@ contains
         mvec_spherical(i,3) = mphi(i)
       end do
     else !  If file doesn't exist
-      if(myrank_row_hw.eq.0) write(outputunit_loop,"('[read_previous_results] Self-consistency file does not exist.')")
+      if(myrank_row_hw.eq.0) then
+        write(outputunit_loop,"('[read_previous_results] Self-consistency file does not exist:')")
+        write(outputunit_loop,"('[read_previous_results] ',a)") trim(default_file)
+      end if
       lselfcon = .true.
       ! Parameters: center of band, magnetization, exchange split
       eps1 = 0.d0
@@ -95,7 +99,7 @@ contains
     if(myrank_row_hw.eq.0) write(outputunit_loop,"('[rotate_magnetization_to_field] Rotating previous magnetization to the direction of the field...')")
 
     do i=1,Npl
-      mdotb   = hwx*mx(i)+hwy*my(i)+hwz*mz(i)
+      mdotb   = hhwx(i)*mx(i)+hhwy(i)*my(i)+hhwz(i)*mz(i)
       sign    = dble(mdotb/abs(mdotb))
       mabs(i) = sqrt(abs(mp(i))**2+(mz(i)**2))
       mx(i)   = sign*mabs(i)*sin(hw_list(hw_count,2)*pi)*cos(hw_list(hw_count,3)*pi)
@@ -152,7 +156,6 @@ contains
     sc_solu(3*Npl+1:4*Npl) = mz
 
     iter  = 1
-    ifail = 0
     mpitag = (Npl-Npl_i)*total_hw_npt1 + hw_count
     if(myrank_row_hw.eq.0) write(outputunit_loop,"('[self_consistency] Starting self-consistency:')")
 
@@ -221,7 +224,7 @@ contains
 
     if(myrank_row_hw.eq.0) call read_write_sc_results(1,err,lsuccess)
     if(hw_count.ne.total_hw_npt1) then
-      call MPI_Bcast(scfile,len(scfile),MPI_CHARACTER,0,MPIComm_Row_hw,ierr)
+      call MPI_Bcast(scfile,len(scfile),MPI_CHARACTER,0,MPI_Comm_Row_hw,ierr)
     else
       scfile = ""
     end if
@@ -229,7 +232,7 @@ contains
     return
   end subroutine write_sc_results
 
-  ! Writes the self-consistency results into files
+  ! Writes the self-consistency results on the screen
   subroutine write_sc_results_on_screen()
     use mod_parameters, only: Npl,outputunit_loop,lGSL
     use mod_mpi_pars
@@ -303,8 +306,10 @@ contains
     socpart   = ""
     if(lfield) then
       write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
-      if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
-      if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
+      if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
+      if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
+      if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
+      if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
     end if
     if(SOC) then
       write(socpart,"('_magaxis=',A,'_socscale=',f5.2)") magaxis,socscale
@@ -315,11 +320,13 @@ contains
   !   Reading previous results (mx, my, mz and eps1) from files (if available)
     if(iflag.eq.0) then
       if(trim(scfile).eq."") then ! If a filename is not given in inputcard (or don't exist), use the default one
-        write(file,"(a,a,'Npl=',i0,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_ncp=',i0,'_eta=',es8.1,a,'.dat')") trim(folder),trim(prefix),Npl,dfttype,parts,Utype,trim(fieldpart),ncp,eta,trim(socpart)
+        write(file,"(a,a,a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_ncp=',i0,'_eta=',es8.1,a,'.dat')") trim(folder),trim(prefix),trim(Npl_folder),dfttype,parts,Utype,trim(fieldpart),ncp,eta,trim(socpart)
         open(unit=99,file=file,status="old",iostat=err)
         if((err.eq.0).and.(myrank_row_hw.eq.0)) then
           write(outputunit_loop,"('[read_write_sc_results] Self-consistency file already exists. Reading it now...')")
           write(outputunit_loop,"(a)") trim(file)
+        else
+          default_file = trim(file)
         end if
       else ! If filename in inputcard exists or 2nd+ angular iteration
         if(((hw_count).eq.1).and.(Npl.eq.Npl_i)) then ! Filename in inputcard (1st iteration on loop)
@@ -329,7 +336,7 @@ contains
             write(outputunit_loop,"(a)") trim(scfile)
           end if
         else ! 2nd+ iteration, cheking if default file exists
-          write(file,"(a,a,'Npl=',i0,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_ncp=',i0,'_eta=',es8.1,a,'.dat')") trim(folder),trim(prefix),Npl,dfttype,parts,Utype,trim(fieldpart),ncp,eta,trim(socpart)
+          write(file,"(a,a,a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_ncp=',i0,'_eta=',es8.1,a,'.dat')") trim(folder),trim(prefix),trim(Npl_folder),dfttype,parts,Utype,trim(fieldpart),ncp,eta,trim(socpart)
           open(unit=99,file=file,status="old",iostat=err)
           if(err.eq.0) then ! Reading file for the same parameters
             if(myrank_row_hw.eq.0) then
@@ -355,7 +362,7 @@ contains
             read(99,fmt=*) previous_results(i,4)
           end do
         end if
-        call MPI_Bcast(previous_results,4*Npl,MPI_DOUBLE_PRECISION,0,MPIComm_Row_hw,ierr)
+        call MPI_Bcast(previous_results,4*Npl,MPI_DOUBLE_PRECISION,0,MPI_Comm_Row_hw,ierr)
         eps1(:) = previous_results(:,1)
         mx  (:) = previous_results(:,2)
         my  (:) = previous_results(:,3)
@@ -374,7 +381,7 @@ contains
       else
         ! If file does not exist, try to read for parts-1
         close(99)
-        write(file,"(a,a,'Npl=',i0,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_ncp=',i0,'_eta=',es8.1,a,'.dat')") trim(folder),trim(prefix),Npl,dfttype,parts-1,Utype,trim(fieldpart),ncp,eta,trim(socpart)
+        write(file,"(a,a,a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_ncp=',i0,'_eta=',es8.1,a,'.dat')") trim(folder),trim(prefix),trim(Npl_folder),dfttype,parts-1,Utype,trim(fieldpart),ncp,eta,trim(socpart)
         open(unit=99,file=file,status="old",iostat=err)
         if(err.eq.0) then
           if(myrank_row_hw.eq.0) then
@@ -406,7 +413,7 @@ contains
 !     Writing new results (mx, my, mz and eps1) and mz to file
     else
       write(outputunit_loop,"('[read_write_sc_results] Writing new eps1, mx, my and mz to file...')")
-      write(scfile,"(a,a,'Npl=',i0,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_ncp=',i0,'_eta=',es8.1,a,'.dat')") trim(folder),trim(prefix),Npl,dfttype,parts,Utype,trim(fieldpart),ncp,eta,trim(socpart)
+      write(scfile,"(a,a,a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_ncp=',i0,'_eta=',es8.1,a,'.dat')") trim(folder),trim(prefix),trim(Npl_folder),dfttype,parts,Utype,trim(fieldpart),ncp,eta,trim(socpart)
       open (unit=99,status="unknown",file=scfile)
       do i=1,Npl
         write(99,"(es21.11,2x,'! eps1')") eps1(i)
@@ -463,13 +470,22 @@ contains
     end do
     hdelm = conjg(hdelp)
 
+    if((myrank_row_hw.eq.0).and.(iter.eq.1)) then
+      write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
+      do i=1,Npl
+        if(abs(mp(i)).gt.1.d-10) then
+          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
+        else
+          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz_in(i)
+        end if
+      end do
+    end if
+
     ix = myrank_row_hw+1
     itask = numprocs ! Number of tasks done initially
 
     flag: select case (iflag)
     case(1)
-      n_orb_u = 0.d0
-      n_orb_d = 0.d0
       ! Calculating the number of particles for each spin and orbital using a complex integral
       if (myrank_row_hw.eq.0) then ! Process 0 receives all results and send new tasks if necessary
         write(outputunit_loop,"('|------------------- Iteration ',i4,' (densities) ------------------|')") iter
@@ -490,10 +506,10 @@ contains
         do i=2,pn1
           if(lverbose) call progress_bar(outputunit_loop,"densities energy points",i,pn1)
 
-          call MPI_Recv(gdiaguur,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,9999+iter+mpitag,MPIComm_Row_hw,stat,ierr)
-          call MPI_Recv(gdiagddr,ncount,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),8998+iter+mpitag,MPIComm_Row_hw,stat,ierr)
-          call MPI_Recv(gdiagud,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),7997+iter+mpitag,MPIComm_Row_hw,stat,ierr)
-          call MPI_Recv(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),6996+iter+mpitag,MPIComm_Row_hw,stat,ierr)
+          call MPI_Recv(gdiaguur,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,9999+iter+mpitag,MPI_Comm_Row_hw,stat,ierr)
+          call MPI_Recv(gdiagddr,ncount,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),8998+iter+mpitag,MPI_Comm_Row_hw,stat,ierr)
+          call MPI_Recv(gdiagud,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),7997+iter+mpitag,MPI_Comm_Row_hw,stat,ierr)
+          call MPI_Recv(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),6996+iter+mpitag,MPI_Comm_Row_hw,stat,ierr)
           if(lverbose) write(outputunit_loop,"('[sc_equations_and_jacobian1] Point ',i0,' received from ',i0)") i,stat(MPI_SOURCE)
 
           n_orb_u = n_orb_u + gdiaguur
@@ -507,9 +523,9 @@ contains
           ! the rest of the points to the ones that finish first
           if (itask.lt.pn1) then
             itask = itask + 1
-            call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPIComm_Row_hw,ierr)
+            call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_Comm_Row_hw,ierr)
           else
-            call MPI_Send(0,1,MPI_INTEGER,stat(MPI_SOURCE),0,MPIComm_Row_hw,ierr)
+            call MPI_Send(0,1,MPI_INTEGER,stat(MPI_SOURCE),0,MPI_Comm_Row_hw,ierr)
           end if
         end do
       else
@@ -526,20 +542,20 @@ contains
 
   !         if(lverbose) write(outputunit_loop,"('[selfconsistencyjacnag1] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
           ! Sending results to process 0
-          call MPI_Send(gdiaguur,ncount,MPI_DOUBLE_PRECISION,0,9999+iter+mpitag,MPIComm_Row_hw,ierr)
-          call MPI_Send(gdiagddr,ncount,MPI_DOUBLE_PRECISION,0,8998+iter+mpitag,MPIComm_Row_hw,ierr)
-          call MPI_Send(gdiagud,ncount,MPI_DOUBLE_COMPLEX,0,7997+iter+mpitag,MPIComm_Row_hw,ierr)
-          call MPI_Send(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,0,6996+iter+mpitag,MPIComm_Row_hw,ierr)
+          call MPI_Send(gdiaguur,ncount,MPI_DOUBLE_PRECISION,0,9999+iter+mpitag,MPI_Comm_Row_hw,ierr)
+          call MPI_Send(gdiagddr,ncount,MPI_DOUBLE_PRECISION,0,8998+iter+mpitag,MPI_Comm_Row_hw,ierr)
+          call MPI_Send(gdiagud,ncount,MPI_DOUBLE_COMPLEX,0,7997+iter+mpitag,MPI_Comm_Row_hw,ierr)
+          call MPI_Send(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,0,6996+iter+mpitag,MPI_Comm_Row_hw,ierr)
           ! Receiving new point or signal to exit
-          call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPIComm_Row_hw,stat,ierr)
+          call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_Comm_Row_hw,stat,ierr)
           if(ix.eq.0) exit
         end do
       end if
 
       ! Send results to all processors
-      call MPI_Bcast(n_orb_u,ncount,MPI_DOUBLE_PRECISION,0,MPIComm_Row_hw,ierr)
-      call MPI_Bcast(n_orb_d,ncount,MPI_DOUBLE_PRECISION,0,MPIComm_Row_hw,ierr)
-      call MPI_Bcast(mp,Npl,MPI_DOUBLE_COMPLEX,0,MPIComm_Row_hw,ierr)
+      call MPI_Bcast(n_orb_u,ncount,MPI_DOUBLE_PRECISION,0,MPI_Comm_Row_hw,ierr)
+      call MPI_Bcast(n_orb_d,ncount,MPI_DOUBLE_PRECISION,0,MPI_Comm_Row_hw,ierr)
+      call MPI_Bcast(mp,Npl,MPI_DOUBLE_COMPLEX,0,MPI_Comm_Row_hw,ierr)
 
       n_orb_u = 0.5d0 + n_orb_u/pi
       n_orb_d = 0.5d0 + n_orb_d/pi
@@ -589,7 +605,7 @@ contains
         do i=2,pn1
           if(lverbose) call progress_bar(outputunit_loop,"jacobian energy points",i,pn1)
 
-          call MPI_Recv(ggr,ncount2,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,3333+iter+mpitag,MPIComm_Row_hw,stat,ierr)
+          call MPI_Recv(ggr,ncount2,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,3333+iter+mpitag,MPI_Comm_Row_hw,stat,ierr)
           if(lverbose) write(outputunit_loop,"('[sc_equations_and_jacobian2] Point ',i0,' received from ',i0)") i,stat(MPI_SOURCE)
 
           selfconjac = selfconjac + ggr
@@ -598,9 +614,9 @@ contains
           ! the rest of the points to the ones that finish first
           if (itask.lt.pn1) then
             itask = itask + 1
-            call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPIComm_Row_hw,ierr)
+            call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_Comm_Row_hw,ierr)
           else
-            call MPI_Send(0,1,MPI_INTEGER,stat(MPI_SOURCE),0,MPIComm_Row_hw,ierr)
+            call MPI_Send(0,1,MPI_INTEGER,stat(MPI_SOURCE),0,MPI_Comm_Row_hw,ierr)
           end if
         end do
       else
@@ -614,15 +630,15 @@ contains
 
   !         if(lverbose) write(outputunit_loop,"('[sc_equations_and_jacobian2] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
           ! Sending results to process 0
-          call MPI_Send(ggr,ncount2,MPI_DOUBLE_PRECISION,0,3333+iter+mpitag,MPIComm_Row_hw,ierr)
+          call MPI_Send(ggr,ncount2,MPI_DOUBLE_PRECISION,0,3333+iter+mpitag,MPI_Comm_Row_hw,ierr)
           ! Receiving new point or signal to exit
-          call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPIComm_Row_hw,stat,ierr)
+          call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_Comm_Row_hw,stat,ierr)
           if(ix.eq.0) exit
         end do
       end if
 
       ! Send results to all processors
-      call MPI_Bcast(selfconjac,ncount2,MPI_DOUBLE_PRECISION,0,MPIComm_Row_hw,ierr)
+      call MPI_Bcast(selfconjac,ncount2,MPI_DOUBLE_PRECISION,0,MPI_Comm_Row_hw,ierr)
 
       selfconjac = selfconjac/pi
       do i = Npl+1,4*Npl
@@ -676,6 +692,17 @@ contains
     end do
     hdelm = conjg(hdelp)
 
+    if((myrank_row_hw.eq.0).and.(iter.eq.1)) then
+      write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
+      do i=1,Npl
+        if(abs(mp(i)).gt.1.d-10) then
+          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
+        else
+          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz_in(i)
+        end if
+      end do
+    end if
+
     n_orb_u = 0.d0
     n_orb_d = 0.d0
 
@@ -702,10 +729,10 @@ contains
       do i=2,pn1
         if(lverbose) call progress_bar(outputunit_loop,"densities energy points",i,pn1)
 
-        call MPI_Recv(gdiaguur,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,9999+iter+mpitag,MPIComm_Row_hw,stat,ierr)
-        call MPI_Recv(gdiagddr,ncount,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),9998+iter+mpitag,MPIComm_Row_hw,stat,ierr)
-        call MPI_Recv(gdiagud,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),9997+iter+mpitag,MPIComm_Row_hw,stat,ierr)
-        call MPI_Recv(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),9996+iter+mpitag,MPIComm_Row_hw,stat,ierr)
+        call MPI_Recv(gdiaguur,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,9999+iter+mpitag,MPI_Comm_Row_hw,stat,ierr)
+        call MPI_Recv(gdiagddr,ncount,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),9998+iter+mpitag,MPI_Comm_Row_hw,stat,ierr)
+        call MPI_Recv(gdiagud,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),9997+iter+mpitag,MPI_Comm_Row_hw,stat,ierr)
+        call MPI_Recv(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),9996+iter+mpitag,MPI_Comm_Row_hw,stat,ierr)
 
         n_orb_u = n_orb_u + gdiaguur
         n_orb_d = n_orb_d + gdiagddr
@@ -718,9 +745,9 @@ contains
         ! the rest of the points to the ones that finish first
         if (itask.lt.pn1) then
           itask = itask + 1
-          call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPIComm_Row_hw,ierr)
+          call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_Comm_Row_hw,ierr)
         else
-          call MPI_Send(0,1,MPI_INTEGER,stat(MPI_SOURCE),0,MPIComm_Row_hw,ierr)
+          call MPI_Send(0,1,MPI_INTEGER,stat(MPI_SOURCE),0,MPI_Comm_Row_hw,ierr)
         end if
       end do
     else
@@ -737,20 +764,20 @@ contains
 
   !       if(lverbose) write(outputunit_loop,"('[sc_equations] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
         ! Sending results to process 0
-        call MPI_Send(gdiaguur,ncount,MPI_DOUBLE_PRECISION,0,9999+iter+mpitag,MPIComm_Row_hw,ierr)
-        call MPI_Send(gdiagddr,ncount,MPI_DOUBLE_PRECISION,0,9998+iter+mpitag,MPIComm_Row_hw,ierr)
-        call MPI_Send(gdiagud,ncount,MPI_DOUBLE_COMPLEX,0,9997+iter+mpitag,MPIComm_Row_hw,ierr)
-        call MPI_Send(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,0,9996+iter+mpitag,MPIComm_Row_hw,ierr)
+        call MPI_Send(gdiaguur,ncount,MPI_DOUBLE_PRECISION,0,9999+iter+mpitag,MPI_Comm_Row_hw,ierr)
+        call MPI_Send(gdiagddr,ncount,MPI_DOUBLE_PRECISION,0,9998+iter+mpitag,MPI_Comm_Row_hw,ierr)
+        call MPI_Send(gdiagud,ncount,MPI_DOUBLE_COMPLEX,0,9997+iter+mpitag,MPI_Comm_Row_hw,ierr)
+        call MPI_Send(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,0,9996+iter+mpitag,MPI_Comm_Row_hw,ierr)
         ! Receiving new point or signal to exit
-        call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPIComm_Row_hw,stat,ierr)
+        call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_Comm_Row_hw,stat,ierr)
         if(ix.eq.0) exit
       end do
     end if
 
     ! Send results to all processors
-    call MPI_Bcast(n_orb_u,ncount,MPI_DOUBLE_PRECISION,0,MPIComm_Row_hw,ierr)
-    call MPI_Bcast(n_orb_d,ncount,MPI_DOUBLE_PRECISION,0,MPIComm_Row_hw,ierr)
-    call MPI_Bcast(mp,Npl,MPI_DOUBLE_COMPLEX,0,MPIComm_Row_hw,ierr)
+    call MPI_Bcast(n_orb_u,ncount,MPI_DOUBLE_PRECISION,0,MPI_Comm_Row_hw,ierr)
+    call MPI_Bcast(n_orb_d,ncount,MPI_DOUBLE_PRECISION,0,MPI_Comm_Row_hw,ierr)
+    call MPI_Bcast(mp,Npl,MPI_DOUBLE_COMPLEX,0,MPI_Comm_Row_hw,ierr)
 
     n_orb_u = 0.5d0 + n_orb_u/pi
     n_orb_d = 0.5d0 + n_orb_d/pi
@@ -833,7 +860,6 @@ contains
     ix = myrank_row_hw+1
     itask = numprocs ! Number of tasks done initially
 
-    selfconjac = 0.d0
     ! Calculating the jacobian
     if (myrank_row_hw.eq.0) then ! Process 0 receives all results and send new tasks if necessary
       write(outputunit_loop,"('|------------------- Iteration ',i4,' (jacobian) -------------------|')") iter
@@ -845,7 +871,7 @@ contains
         if(lverbose) call progress_bar(outputunit_loop,"jacobian energy points",i,pn1)
         ! Progress bar
 
-        call MPI_Recv(ggr,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,3333+iter+mpitag,MPIComm_Row_hw,stat,ierr)
+        call MPI_Recv(ggr,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,3333+iter+mpitag,MPI_Comm_Row_hw,stat,ierr)
 
         selfconjac = selfconjac + ggr
 
@@ -853,9 +879,9 @@ contains
         ! the rest of the points to the ones that finish first
         if (itask.lt.pn1) then
           itask = itask + 1
-          call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPIComm_Row_hw,ierr)
+          call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_Comm_Row_hw,ierr)
         else
-          call MPI_Send(0,1,MPI_INTEGER,stat(MPI_SOURCE),0,MPIComm_Row_hw,ierr)
+          call MPI_Send(0,1,MPI_INTEGER,stat(MPI_SOURCE),0,MPI_Comm_Row_hw,ierr)
         end if
       end do
     else
@@ -869,17 +895,20 @@ contains
 
   !       if(lverbose) write(outputunit_loop,"('[sc_jacobian] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
         ! Sending results to process 0
-        call MPI_Send(ggr,ncount,MPI_DOUBLE_PRECISION,0,3333+iter+mpitag,MPIComm_Row_hw,ierr)
+        call MPI_Send(ggr,ncount,MPI_DOUBLE_PRECISION,0,3333+iter+mpitag,MPI_Comm_Row_hw,ierr)
         ! Receiving new point or signal to exit
-        call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPIComm_Row_hw,stat,ierr)
+        call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_Comm_Row_hw,stat,ierr)
         if(ix.eq.0) exit
       end do
     end if
 
     ! Send results to all processors
-    call MPI_Bcast(selfconjac,ncount,MPI_DOUBLE_PRECISION,0,MPIComm_Row_hw,ierr)
+    call MPI_Bcast(selfconjac,ncount,MPI_DOUBLE_PRECISION,0,MPI_Comm_Row_hw,ierr)
 
     selfconjac = selfconjac/pi
+    do i = Npl+1,4*Npl
+      selfconjac(i,i) = selfconjac(i,i) - 1.d0
+    end do
 
     iter = iter + 1
 
@@ -971,10 +1000,6 @@ contains
     complex(double),dimension(18,18)                :: gij,gji,temp,paulitemp
     complex(double),dimension(:,:,:,:,:,:),allocatable    :: gdHdxg,gvgdHdxgvg
     complex(double),dimension(Npl,Npl,18,18)        :: gf,gvg
-
-! #ifndef _JUQUEEN
-!     open(outputunit_loop,carriagecontrol ='fortran')
-! #endif
 
     pauli_components1 = zero
     pauli_components2 = zero

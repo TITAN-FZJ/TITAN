@@ -11,7 +11,7 @@ module mod_magnet
   real(double),allocatable    :: labs(:),ltheta(:),lphi(:)
   real(double),allocatable    :: lpabs(:),lptheta(:),lpphi(:)
   real(double),allocatable    :: eps1(:)                                ! Center of the bands for each l - eps(Npl)
-  real(double)                :: hhwx=0.d0,hhwy=0.d0,hhwz=0.d0          ! Static magnetic fields in each direction
-  complex(double), dimension(18,18) :: lb,sb                            ! Zeeman matrices
+  real(double),allocatable    :: hhwx(:),hhwy(:),hhwz(:)                ! Static magnetic fields in each direction
+  complex(double),allocatable :: lb(:,:,:),sb(:,:,:)                    ! Zeeman matrices
   complex(double), dimension(9,9)   :: lxp,lyp,lzp                      ! Angular momentum matrices in spin coordinate system
 end module mod_magnet

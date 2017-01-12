@@ -1,12 +1,12 @@
 !*******************************************************************************!
 !                           CHOOSE WHAT TO CALCULATE                            !
--> itype = 6
+-> itype = 9
 !===============================================================================!
 !                                OUTPUT FILE                                    !
--> output: saida_Npl3_ncp6
+-> output: output/saida_test
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
--> Options:
+-> Options: nolb verbose
 !===============================================================================!
 !                               SYSTEM VARIABLES                                !
 ! Lattice and surface direction:                                                !
@@ -15,17 +15,17 @@
 -> a0 = 3.92
 ! Number of planes:
 ! (For SC and exchange calculation, use initial and final number of layers)
--> Npl = 3 12
+-> Npl = 3
 ! Small imaginary part of the Green function:
--> eta = 5.0E-04
+-> eta = 5.0E-03
 !===============================================================================!
 !                          STATIC MAGNETIC ZEEMAN FIELD                         !
 !                         (in the spin reference system)                        !
--> FIELD = F  ! Magnetic field on (T) or off (F) (choose one form below)
+-> FIELD = T  ! Magnetic field on (T) or off (F) (choose one form below)
 ! Spherical coordinates (default, angles in units of pi)                        !
--> hwa   = 2.0E-04
--> hwt   = 0.0E+00
--> hwp   = 0.0E+00
+-> hwa   = 0.d0 9.5d-3 95
+-> hwt   = 0.5E+00
+-> hwp   = 0.25E+00
 ! Cartesian coordinates                                                         !
 -> hwx = 0.0E+00 , hwy = 0.0E+00 , hwz = 0.0E+00
 !===============================================================================!
@@ -37,24 +37,24 @@
 -> magaxis = 9
 !===============================================================================!
 !                   DIRECTION OF IN-PLANE ELECTRIC FIELD                        !
--> dirEfield = 1
+-> dirEfield = 3
 !===============================================================================!
 !                        IN-PLANE CURRENTS TO CALCULATE                         !
--> n0sc1 = 1   ! First neighbor
+-> n0sc1 = 3   ! First neighbor
 -> n0sc2 = 6   ! Last neighbor
 !
 !                    CURRENT AND DISTURBANCE RENORMALIZATION                    !
 !          (only used when currents are calculated - itype=7 and 8)             !
 -> renorm = T        ! Turn renormalization on (T) or off (F)
--> renormnb = 1      ! Reference neighbor (where the charge current will be 1)
+-> renormnb = 3      ! Reference neighbor (where the charge current will be 1)
 !===============================================================================!
 !                           INTEGRATION VARIABLES                               !
 ! Number of Cunningham k-vector generators: (ncp > 0)                           !
--> ncp = 6
+-> ncp = 1
 ! Number of parts to divide energy integral in complex plane:                   !
--> parts = 2 , n1gl = 64
+-> parts = 2 , n1gl = 1
 !  Number of parts to divide energy integral in real axis:                      !
--> parts3 = 1 , n3gl = 64
+-> parts3 = 1 , n3gl = 2
 !===============================================================================!
 !                              PLOTTING VARIABLES                               !
 !           PLOTTING VARIABLES         !             BAND STRUCTURE             !
@@ -67,9 +67,9 @@
 !===============================================================================!
 !                              SELF-CONSISTENCY                                 !
 !        (Finding center of the bands for the given number of particles)        !
--> skipsc = F ! skip self-consistency calculation when it finds previous results
+-> skipsc = T ! skip self-consistency calculation when it finds previous results
 ! File to use as starting point:
-!-> scfile: Resultados/selfconsistency/selfconsistency_Npl=4_parts=2_U= 0.7E-01_hwx= 0.0E+00_hwy= 0.0E+00_hwz= 0.0E+00_ncp=6_eta= 0.5E-03.dat
+!-> scfile: results/selfconsistency/selfconsistency
 !===============================================================================!
 !                                DFT PARAMETERS                                 !
 !          (Choose between (T)ight-binding or (O)rthogonal parameters)          !

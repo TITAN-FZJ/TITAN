@@ -66,8 +66,10 @@ contains
     end if
     if(lfield) then
       write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
-      if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
-      if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
+      if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
+      if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
+      if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
+      if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
     end if
 
     folder = "Vdc"
@@ -81,28 +83,28 @@ contains
     if(iflag.eq.0) then
       do sigma=1,3 ; do i=1,Npl
         iw = 10000+(sigma-1)*Npl+i
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder),trim(filename),effect(sigma),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename),effect(sigma),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='unknown', form='formatted')
-        write(unit=iw, fmt="('#   energy  , ',a,a)") trim(filename),effect(sigma)
+        write(unit=iw, fmt="('#     energy    , ',a,a)") trim(filename),effect(sigma)
         close(unit=iw)
       end do ; end do
       do sigma=1,3
         iw = 11000+sigma
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,a,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder),trim(filename),effect(sigma),parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename),effect(sigma),parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='unknown', form='formatted')
-        write(unit=iw, fmt="('#   energy  , ',a,a)") trim(filename),effect(sigma)
+        write(unit=iw, fmt="('#     energy    , ',a,a)") trim(filename),effect(sigma)
         close(unit=iw)
       end do
     else if (iflag.eq.1) then
       do sigma=1,3 ; do i=1,Npl
         iw = 10000+(sigma-1)*Npl+i
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder),trim(filename),effect(sigma),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename),effect(sigma),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
       end do ; end do
       do sigma=1,3
         iw = 11000+sigma
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,a,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder),trim(filename),effect(sigma),parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename),effect(sigma),parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
       end do
@@ -149,7 +151,6 @@ contains
     return
   end subroutine write_vdc
 
-
   ! This subroutine opens and closes all the files needed for V_dc in the dc limit/fixed frequency
   subroutine openclose_dc_vdc_files(iflag)
     use mod_parameters
@@ -181,8 +182,10 @@ contains
       if((dcfield_dependence.ne.2).and.(dcfield_dependence.ne.4).and.(dcfield_dependence.ne.6)) write(fieldpart,"(a,'_hwt=',f5.2)") trim(fieldpart),hwt
       if((dcfield_dependence.ne.3).and.(dcfield_dependence.ne.5).and.(dcfield_dependence.ne.6)) write(fieldpart,"(a,'_hwp=',f5.2)") trim(fieldpart),hwp
     end if
-    if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
-    if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
+    if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
+    if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
+    if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
+    if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
 
     folder = "Vdc"
     if(lhfresponses) folder = trim(folder) // "_HF"
@@ -195,14 +198,14 @@ contains
     if(iflag.eq.0) then
       do sigma=1,3 ; do i=1,Npl
         iw = 100000+(sigma-1)*Npl+i
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder),trim(dcprefix),trim(filename),effect(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename),effect(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='unknown', form='formatted')
         write(unit=iw, fmt="('#',a,'  ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename),effect(sigma)
         close(unit=iw)
       end do ; end do
       do sigma=1,3
         iw = 110000+sigma
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,a,a,'_',a,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder),trim(dcprefix),trim(filename),effect(sigma),trim(dcfield(dcfield_dependence)),parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename),effect(sigma),trim(dcfield(dcfield_dependence)),parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='unknown', form='formatted')
         write(unit=iw, fmt="('#',a,'  ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename),effect(sigma)
         close(unit=iw)
@@ -210,13 +213,13 @@ contains
     else if (iflag.eq.1) then
       do sigma=1,3 ; do i=1,Npl
         iw = 100000+(sigma-1)*Npl+i
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder),trim(dcprefix),trim(filename),effect(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename),effect(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
       end do ; end do
       do sigma=1,3
         iw = 110000+sigma
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,a,a,'_',a,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder),trim(dcprefix),trim(filename),effect(sigma),trim(dcfield(dcfield_dependence)),parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_total_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename),effect(sigma),trim(dcfield(dcfield_dependence)),parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
       end do
@@ -263,5 +266,42 @@ contains
 
     return
   end subroutine write_dc_vdc
+
+  ! This subroutine sorts V_dc files
+  subroutine sort_vdc()
+    use mod_f90_kind
+    use mod_parameters, only: Npl,itype
+    use mod_tools, only: sort_file
+    implicit none
+    integer :: i,sigma,iw,idc=1
+
+    ! Opening V_dc files
+    if(itype.eq.9) then
+      idc=10
+      call openclose_dc_vdc_files(1)
+    else
+      call openclose_vdc_files(1)
+    end if
+
+    do sigma=1,3 ; do i=1,Npl
+      iw = 10000*idc+(sigma-1)*Npl+i
+      ! Sorting V_dc files
+      call sort_file(iw,.true.)
+    end do ; end do
+    do sigma=1,3
+      iw = 11000*idc+sigma
+      ! Sorting total V_dc files
+      call sort_file(iw,.true.)
+    end do
+
+    ! Closing V_dc files
+    if(itype.eq.9) then
+      call openclose_dc_vdc_files(2)
+    else
+      call openclose_vdc_files(2)
+    end if
+
+    return
+  end subroutine sort_vdc
 
 end module mod_vdc

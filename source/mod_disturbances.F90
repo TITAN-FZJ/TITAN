@@ -103,8 +103,10 @@ contains
     end if
     if(lfield) then
       write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
-      if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
-      if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
+      if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
+      if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
+      if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
+      if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
     end if
 
     folder(1) = "CD"
@@ -131,27 +133,27 @@ contains
     if(iflag.eq.0) then
       do i=1,Npl ; do j=1,7
         iw = 3000+(i-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='unknown', form='formatted')
-        write(unit=iw, fmt="('#   energy  ,  amplitude of ',a,'  ,  real part of ',a,'  ,  imaginary part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
+        write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/r',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
           open (unit=iw, file=varm, status='unknown', form='formatted')
-          write(unit=iw, fmt="('#   energy  ,  amplitude of ',a,'  ,  real part of ',a,'  ,  imaginary part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
+          write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
         end if
       end do ; end do
     else if (iflag.eq.1) then
       do i=1,Npl ; do j=1,7
         iw = 3000+(i-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/r',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
         end if
@@ -181,31 +183,45 @@ contains
   ! Some information may also be written on the screen
   subroutine write_disturbances(e)
     use mod_f90_kind
-    use mod_parameters, only: Npl,renorm,outputunit_loop
+    use mod_parameters, only: Npl,renorm,outputunit_loop,lwriteonscreen
     implicit none
     integer  :: i,iw
     real(double),intent(in) :: e
 
-    write(outputunit_loop,"(' ################# Disturbances: #################')")
+    if(lwriteonscreen) write(outputunit_loop,"(' ################# Disturbances: #################')")
     ! Writing Spin, Charge and Orbital disturbances
     do i=1,Npl
-      write(outputunit_loop,"('|--------------- Energy = ',es11.4,' , Plane: ',i0,' ---------------|')") e,i
+      if(lwriteonscreen) then
+        write(outputunit_loop,"('|--------------- Energy = ',es11.4,' , Plane: ',i0,' ---------------|')") e,i
 
-      write(outputunit_loop,"('     Cd  = (',es16.9,') + i(',es16.9,')')") real(disturbances(1,i)),aimag(disturbances(1,i))
-      write(outputunit_loop,"(' abs(Cd) = ',es16.9)") abs(disturbances(1,i))
-      write(outputunit_loop,"('atan(Cd) = ',es16.9)") atan2(aimag(disturbances(1,i)),real(disturbances(1,i)))
+        write(outputunit_loop,"('     Cd  = (',es16.9,') + i(',es16.9,')')") real(disturbances(1,i)),aimag(disturbances(1,i))
+        write(outputunit_loop,"(' abs(Cd) = ',es16.9)") abs(disturbances(1,i))
+        write(outputunit_loop,"('atan(Cd) = ',es16.9)") atan2(aimag(disturbances(1,i)),real(disturbances(1,i)))
 
-      write(outputunit_loop,"('     Sdx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(2,i)),aimag(disturbances(2,i))
-      write(outputunit_loop,"(' abs(Sdx) = ',es16.9)") abs(disturbances(2,i))
-      write(outputunit_loop,"('atan(Sdx) = ',es16.9)") atan2(aimag(disturbances(2,i)),real(disturbances(2,i)))
+        write(outputunit_loop,"('     Sdx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(2,i)),aimag(disturbances(2,i))
+        write(outputunit_loop,"(' abs(Sdx) = ',es16.9)") abs(disturbances(2,i))
+        write(outputunit_loop,"('atan(Sdx) = ',es16.9)") atan2(aimag(disturbances(2,i)),real(disturbances(2,i)))
 
-      write(outputunit_loop,"('     Sdy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(3,i)),aimag(disturbances(3,i))
-      write(outputunit_loop,"(' abs(Sdy) = ',es16.9)") abs(disturbances(3,i))
-      write(outputunit_loop,"('atan(Sdy) = ',es16.9)") atan2(aimag(disturbances(3,i)),real(disturbances(3,i)))
+        write(outputunit_loop,"('     Sdy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(3,i)),aimag(disturbances(3,i))
+        write(outputunit_loop,"(' abs(Sdy) = ',es16.9)") abs(disturbances(3,i))
+        write(outputunit_loop,"('atan(Sdy) = ',es16.9)") atan2(aimag(disturbances(3,i)),real(disturbances(3,i)))
 
-      write(outputunit_loop,"('     Sdz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(4,i)),aimag(disturbances(4,i))
-      write(outputunit_loop,"(' abs(Sdz) = ',es16.9)") abs(disturbances(4,i))
-      write(outputunit_loop,"('atan(Sdz) = ',es16.9)") atan2(aimag(disturbances(4,i)),real(disturbances(4,i)))
+        write(outputunit_loop,"('     Sdz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(4,i)),aimag(disturbances(4,i))
+        write(outputunit_loop,"(' abs(Sdz) = ',es16.9)") abs(disturbances(4,i))
+        write(outputunit_loop,"('atan(Sdz) = ',es16.9)") atan2(aimag(disturbances(4,i)),real(disturbances(4,i)))
+
+        write(outputunit_loop,"('     Ldx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(5,i)),aimag(disturbances(5,i))
+        write(outputunit_loop,"(' abs(Ldx) = ',es16.9)") abs(disturbances(5,i))
+        write(outputunit_loop,"('atan(Ldx) = ',es16.9)") atan2(aimag(disturbances(5,i)),real(disturbances(5,i)))
+
+        write(outputunit_loop,"('     Ldy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(6,i)),aimag(disturbances(6,i))
+        write(outputunit_loop,"(' abs(Ldy) = ',es16.9)") abs(disturbances(6,i))
+        write(outputunit_loop,"('atan(Ldy) = ',es16.9)") atan2(aimag(disturbances(6,i)),real(disturbances(6,i)))
+
+        write(outputunit_loop,"('     Ldz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(7,i)),aimag(disturbances(7,i))
+        write(outputunit_loop,"(' abs(Ldz) = ',es16.9)") abs(disturbances(7,i))
+        write(outputunit_loop,"('atan(Ldz) = ',es16.9)") atan2(aimag(disturbances(7,i)),real(disturbances(7,i)))
+      end if
 
       ! Writing charge disturbance
       iw = 3000+(i-1)*7
@@ -216,18 +232,6 @@ contains
       write(unit=iw+3,fmt="(7(es16.9,2x))") e,abs(disturbances(3,i)),real(disturbances(3,i)),aimag(disturbances(3,i)),atan2(aimag(disturbances(3,i)),real(disturbances(3,i))),real(disturbances(3,i))/abs(disturbances(3,i)),aimag(disturbances(3,i))/abs(disturbances(3,i))
       ! Writing z-component spin disturbance
       write(unit=iw+4,fmt="(7(es16.9,2x))") e,abs(disturbances(4,i)),real(disturbances(4,i)),aimag(disturbances(4,i)),atan2(aimag(disturbances(4,i)),real(disturbances(4,i))),real(disturbances(4,i))/abs(disturbances(4,i)),aimag(disturbances(4,i))/abs(disturbances(4,i))
-
-      write(outputunit_loop,"('     Ldx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(5,i)),aimag(disturbances(5,i))
-      write(outputunit_loop,"(' abs(Ldx) = ',es16.9)") abs(disturbances(5,i))
-      write(outputunit_loop,"('atan(Ldx) = ',es16.9)") atan2(aimag(disturbances(5,i)),real(disturbances(5,i)))
-
-      write(outputunit_loop,"('     Ldy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(6,i)),aimag(disturbances(6,i))
-      write(outputunit_loop,"(' abs(Ldy) = ',es16.9)") abs(disturbances(6,i))
-      write(outputunit_loop,"('atan(Ldy) = ',es16.9)") atan2(aimag(disturbances(6,i)),real(disturbances(6,i)))
-
-      write(outputunit_loop,"('     Ldz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(7,i)),aimag(disturbances(7,i))
-      write(outputunit_loop,"(' abs(Ldz) = ',es16.9)") abs(disturbances(7,i))
-      write(outputunit_loop,"('atan(Ldz) = ',es16.9)") atan2(aimag(disturbances(7,i)),real(disturbances(7,i)))
 
       ! Writing x-component orbital disturbance
       write(unit=iw+5,fmt="(7(es16.9,2x))") e,abs(disturbances(5,i)),real(disturbances(5,i)),aimag(disturbances(5,i)),atan2(aimag(disturbances(5,i)),real(disturbances(5,i))),real(disturbances(5,i))/abs(disturbances(5,i)),aimag(disturbances(5,i))/abs(disturbances(5,i))
@@ -290,8 +294,10 @@ contains
       if((dcfield_dependence.ne.2).and.(dcfield_dependence.ne.4).and.(dcfield_dependence.ne.6)) write(fieldpart,"(a,'_hwt=',f5.2)") trim(fieldpart),hwt
       if((dcfield_dependence.ne.3).and.(dcfield_dependence.ne.5).and.(dcfield_dependence.ne.6)) write(fieldpart,"(a,'_hwp=',f5.2)") trim(fieldpart),hwp
     end if
-    if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
-    if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
+    if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
+    if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
+    if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
+    if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
 
     folder(1) = "CD"
     folder(2) = "SD"
@@ -317,27 +323,27 @@ contains
     if(iflag.eq.0) then
       do i=1,Npl ; do j=1,7
         iw = 30000+(i-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'.dat')") SOCc,Npl,trim(folder(j)),trim(dcprefix),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='unknown', form='formatted')
-        write(unit=iw, fmt="('#',a,'  imaginary part of ',a,'  ,  real part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
+        write(unit=iw, fmt="('#',a,' imag part of ',a,' , real part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,'r',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),trim(dcprefix),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
           open (unit=iw, file=varm, status='unknown', form='formatted')
-          write(unit=iw, fmt="('#',a,'  imaginary part of ',a,'  ,  real part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
+          write(unit=iw, fmt="('#',a,' imag part of ',a,' , real part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
         end if
       end do ; end do
     else if (iflag.eq.1) then
       do i=1,Npl ; do j=1,7
         iw = 30000+(i-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'.dat')") SOCc,Npl,trim(folder(j)),trim(dcprefix),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,'r',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'_renormnb=',i0,'.dat')") SOCc,Npl,trim(folder(j)),trim(dcprefix),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
         end if
@@ -367,31 +373,45 @@ contains
   ! Some information may also be written on the screen
   subroutine write_dc_disturbances()
     use mod_f90_kind
-    use mod_parameters, only: Npl,renorm,dcfield,dcfield_dependence,dc_fields,hw_count,outputunit_loop
+    use mod_parameters, only: Npl,renorm,dcfield,dcfield_dependence,dc_fields,hw_count,outputunit_loop,lwriteonscreen
     use mod_magnet, only: mvec_spherical
     implicit none
     integer  :: i,iw
 
-    write(outputunit_loop,"(' ################# Disturbances: #################')")
+    if(lwriteonscreen) write(outputunit_loop,"(' ################# Disturbances: #################')")
     ! Writing Spin, Charge and Orbital disturbances
     do i=1,Npl
-      write(outputunit_loop,"('|--------------- ',a,' = ',a,' , Plane: ',i0,' ---------------|')") trim(dcfield(dcfield_dependence)),trim(dc_fields(hw_count)),i
+      if(lwriteonscreen) then
+        write(outputunit_loop,"('|--------------- ',a,' = ',a,' , Plane: ',i0,' ---------------|')") trim(dcfield(dcfield_dependence)),trim(dc_fields(hw_count)),i
 
-      write(outputunit_loop,"('     Cd  = (',es16.9,') + i(',es16.9,')')") real(disturbances(1,i)),aimag(disturbances(1,i))
-      write(outputunit_loop,"(' abs(Cd) = ',es16.9)") abs(disturbances(1,i))
-      write(outputunit_loop,"('atan(Cd) = ',es16.9)") atan2(aimag(disturbances(1,i)),real(disturbances(1,i)))
+        write(outputunit_loop,"('     Cd  = (',es16.9,') + i(',es16.9,')')") real(disturbances(1,i)),aimag(disturbances(1,i))
+        write(outputunit_loop,"(' abs(Cd) = ',es16.9)") abs(disturbances(1,i))
+        write(outputunit_loop,"('atan(Cd) = ',es16.9)") atan2(aimag(disturbances(1,i)),real(disturbances(1,i)))
 
-      write(outputunit_loop,"('     Sdx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(2,i)),aimag(disturbances(2,i))
-      write(outputunit_loop,"(' abs(Sdx) = ',es16.9)") abs(disturbances(2,i))
-      write(outputunit_loop,"('atan(Sdx) = ',es16.9)") atan2(aimag(disturbances(2,i)),real(disturbances(2,i)))
+        write(outputunit_loop,"('     Sdx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(2,i)),aimag(disturbances(2,i))
+        write(outputunit_loop,"(' abs(Sdx) = ',es16.9)") abs(disturbances(2,i))
+        write(outputunit_loop,"('atan(Sdx) = ',es16.9)") atan2(aimag(disturbances(2,i)),real(disturbances(2,i)))
 
-      write(outputunit_loop,"('     Sdy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(3,i)),aimag(disturbances(3,i))
-      write(outputunit_loop,"(' abs(Sdy) = ',es16.9)") abs(disturbances(3,i))
-      write(outputunit_loop,"('atan(Sdy) = ',es16.9)") atan2(aimag(disturbances(3,i)),real(disturbances(3,i)))
+        write(outputunit_loop,"('     Sdy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(3,i)),aimag(disturbances(3,i))
+        write(outputunit_loop,"(' abs(Sdy) = ',es16.9)") abs(disturbances(3,i))
+        write(outputunit_loop,"('atan(Sdy) = ',es16.9)") atan2(aimag(disturbances(3,i)),real(disturbances(3,i)))
 
-      write(outputunit_loop,"('     Sdz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(4,i)),aimag(disturbances(4,i))
-      write(outputunit_loop,"(' abs(Sdz) = ',es16.9)") abs(disturbances(4,i))
-      write(outputunit_loop,"('atan(Sdz) = ',es16.9)") atan2(aimag(disturbances(4,i)),real(disturbances(4,i)))
+        write(outputunit_loop,"('     Sdz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(4,i)),aimag(disturbances(4,i))
+        write(outputunit_loop,"(' abs(Sdz) = ',es16.9)") abs(disturbances(4,i))
+        write(outputunit_loop,"('atan(Sdz) = ',es16.9)") atan2(aimag(disturbances(4,i)),real(disturbances(4,i)))
+
+        write(outputunit_loop,"('     Ldx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(5,i)),aimag(disturbances(5,i))
+        write(outputunit_loop,"(' abs(Ldx) = ',es16.9)") abs(disturbances(5,i))
+        write(outputunit_loop,"('atan(Ldx) = ',es16.9)") atan2(aimag(disturbances(5,i)),real(disturbances(5,i)))
+
+        write(outputunit_loop,"('     Ldy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(6,i)),aimag(disturbances(6,i))
+        write(outputunit_loop,"(' abs(Ldy) = ',es16.9)") abs(disturbances(6,i))
+        write(outputunit_loop,"('atan(Ldy) = ',es16.9)") atan2(aimag(disturbances(6,i)),real(disturbances(6,i)))
+
+        write(outputunit_loop,"('     Ldz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(7,i)),aimag(disturbances(7,i))
+        write(outputunit_loop,"(' abs(Ldz) = ',es16.9)") abs(disturbances(7,i))
+        write(outputunit_loop,"('atan(Ldz) = ',es16.9)") atan2(aimag(disturbances(7,i)),real(disturbances(7,i)))
+      end if
 
       ! Writing charge disturbance
       iw = 30000+(i-1)*7
@@ -402,18 +422,6 @@ contains
       write(unit=iw+3,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(disturbances(3,i)) , real(disturbances(3,i)) , atan2(aimag(disturbances(3,i)),real(disturbances(3,i))) , real(disturbances(3,i))/abs(disturbances(3,i)) , aimag(disturbances(3,i))/abs(disturbances(3,i)) , mvec_spherical(i,2) , mvec_spherical(i,3)
       ! Writing z-component spin disturbance
       write(unit=iw+4,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(disturbances(4,i)) , real(disturbances(4,i)) , atan2(aimag(disturbances(4,i)),real(disturbances(4,i))) , real(disturbances(4,i))/abs(disturbances(4,i)) , aimag(disturbances(4,i))/abs(disturbances(4,i)) , mvec_spherical(i,2) , mvec_spherical(i,3)
-
-      write(outputunit_loop,"('     Ldx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(5,i)),aimag(disturbances(5,i))
-      write(outputunit_loop,"(' abs(Ldx) = ',es16.9)") abs(disturbances(5,i))
-      write(outputunit_loop,"('atan(Ldx) = ',es16.9)") atan2(aimag(disturbances(5,i)),real(disturbances(5,i)))
-
-      write(outputunit_loop,"('     Ldy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(6,i)),aimag(disturbances(6,i))
-      write(outputunit_loop,"(' abs(Ldy) = ',es16.9)") abs(disturbances(6,i))
-      write(outputunit_loop,"('atan(Ldy) = ',es16.9)") atan2(aimag(disturbances(6,i)),real(disturbances(6,i)))
-
-      write(outputunit_loop,"('     Ldz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(7,i)),aimag(disturbances(7,i))
-      write(outputunit_loop,"(' abs(Ldz) = ',es16.9)") abs(disturbances(7,i))
-      write(outputunit_loop,"('atan(Ldz) = ',es16.9)") atan2(aimag(disturbances(7,i)),real(disturbances(7,i)))
 
       ! Writing x-component orbital disturbance
       write(unit=iw+5,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(disturbances(5,i)) , real(disturbances(5,i)) , atan2(aimag(disturbances(5,i)),real(disturbances(5,i))) , real(disturbances(5,i))/abs(disturbances(5,i)) , aimag(disturbances(5,i))/abs(disturbances(5,i)) , mvec_spherical(i,2) , mvec_spherical(i,3)
@@ -444,5 +452,46 @@ contains
 
     return
   end subroutine write_dc_disturbances
+
+  ! This subroutine sorts disturbance files
+  subroutine sort_disturbances()
+    use mod_f90_kind
+    use mod_parameters, only: Npl,renorm,itype
+    use mod_tools, only: sort_file
+    implicit none
+    integer :: i,j,iw,idc=1
+
+    ! Opening disturbance files
+    if(itype.eq.9) then
+      idc=10
+      call openclose_dc_disturbance_files(1)
+    else
+      call openclose_disturbance_files(1)
+    end if
+
+    do i=1,Npl
+      ! Sorting disturbance files
+      iw = 3000*idc+(i-1)*7
+      do j=1,7
+        call sort_file(iw+j,.true.)
+      end do
+
+      ! Sorting renormalized disturbances
+      if(renorm) then
+        do j=1001,1007
+          call sort_file(iw+j,.true.)
+        end do
+      end if
+    end do
+
+    ! Closing disturbance files
+    if(itype.eq.9) then
+      call openclose_dc_disturbance_files(2)
+    else
+      call openclose_disturbance_files(2)
+    end if
+
+    return
+  end subroutine sort_disturbances
 
 end module mod_disturbances

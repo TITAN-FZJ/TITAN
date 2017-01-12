@@ -10,12 +10,12 @@ contains
   subroutine allocate_torques()
     use mod_f90_kind
     use mod_mpi_pars
-    use mod_parameters, only: Npl,renorm,outputunit,lfield
+    use mod_parameters
     implicit none
     integer           :: AllocateStatus
 
     ! Turning off external torque if static field is zero
-    if(lfield) then
+    if((lfield).or.(total_hw_npt1.ne.1)) then
       ntypetorque=3
     else
       ntypetorque=2
@@ -81,15 +81,17 @@ contains
     end if
     if(lfield) then
       write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
-      if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
-      if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
+      if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
+      if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
+      if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
+      if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
     end if
 
     folder = "SOT"
     if(lhfresponses) folder = trim(folder) // "_HF"
     filename(1) = "SOT"
     filename(2) = "XCT"
-    if(lfield) filename(3) = "EXT"
+    if((lfield).or.(total_hw_npt1.ne.1)) filename(3) = "EXT"
 
     direction(1) = "x"
     direction(2) = "y"
@@ -98,29 +100,29 @@ contains
     if(iflag.eq.0) then
       do typetorque=1,ntypetorque ; do sigma=1,3 ; do i=1,Npl
         iw = 9000+(typetorque-1)*Npl*3+(sigma-1)*Npl+i
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'.dat')") SOCc,Npl,trim(folder),trim(filename(typetorque)),direction(sigma),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename(typetorque)),direction(sigma),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='unknown', form='formatted')
-        write(unit=iw, fmt="('#   energy  , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
+        write(unit=iw, fmt="('#     energy    , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
         close(unit=iw)
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/r',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'.dat')") SOCc,Npl,trim(folder),trim(filename(typetorque)),direction(sigma),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename(typetorque)),direction(sigma),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
           open (unit=iw, file=varm, status='unknown', form='formatted')
-          write(unit=iw, fmt="('#   energy  , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
+          write(unit=iw, fmt="('#     energy    , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
           close(unit=iw)
         end if
       end do ; end do ; end do
     else if (iflag.eq.1) then
       do typetorque=1,ntypetorque ; do sigma=1,3 ; do i=1,Npl
         iw = 9000+(typetorque-1)*Npl*3+(sigma-1)*Npl+i
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'.dat')") SOCc,Npl,trim(folder),trim(filename(typetorque)),direction(sigma),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename(typetorque)),direction(sigma),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(renorm) then
           iw = iw+1000
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/r',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'.dat')") SOCc,Npl,trim(folder),trim(filename(typetorque)),direction(sigma),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
-        open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
-        errt = errt + err
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename(typetorque)),direction(sigma),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
+          open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+          errt = errt + err
         end if
       end do ; end do ; end do
       ! Stop if some file does not exist
@@ -221,14 +223,16 @@ contains
       if((dcfield_dependence.ne.2).and.(dcfield_dependence.ne.4).and.(dcfield_dependence.ne.6)) write(fieldpart,"(a,'_hwt=',f5.2)") trim(fieldpart),hwt
       if((dcfield_dependence.ne.3).and.(dcfield_dependence.ne.5).and.(dcfield_dependence.ne.6)) write(fieldpart,"(a,'_hwp=',f5.2)") trim(fieldpart),hwp
     end if
-    if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
-    if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
+    if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
+    if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
+    if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
+    if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
 
     folder = "SOT"
     if(lhfresponses) folder = trim(folder) // "_HF"
     filename(1) = "SOT"
     filename(2) = "XCT"
-    if(lfield) filename(3) = "EXT"
+    if((lfield).or.(total_hw_npt1.ne.1)) filename(3) = "EXT"
 
     direction(1) = "x"
     direction(2) = "y"
@@ -237,13 +241,13 @@ contains
     if(iflag.eq.0) then
       do typetorque=1,ntypetorque ; do sigma=1,3 ; do i=1,Npl
         iw = 90000+(typetorque-1)*Npl*3+(sigma-1)*Npl+i
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'.dat')") SOCc,Npl,trim(folder),trim(dcprefix),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='unknown', form='formatted')
         write(unit=iw, fmt="('#',a,'  imaginary part of ',a,a,' ,  real part of ',a,a,'  , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
         close(unit=iw)
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,'r',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'.dat')") SOCc,Npl,trim(folder),trim(dcprefix),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
           open (unit=iw, file=varm, status='unknown', form='formatted')
           write(unit=iw, fmt="('#',a,'  imaginary part of ',a,a,' ,  real part of ',a,a,'  , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
           close(unit=iw)
@@ -252,14 +256,14 @@ contains
     else if (iflag.eq.1) then
       do typetorque=1,ntypetorque ; do sigma=1,3 ; do i=1,Npl
         iw = 90000+(typetorque-1)*Npl*3+(sigma-1)*Npl+i
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'.dat')") SOCc,Npl,trim(folder),trim(dcprefix),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(renorm) then
           iw = iw+1000
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,'r',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'.dat')") SOCc,Npl,trim(folder),trim(dcprefix),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
-        open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
-        errt = errt + err
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
+          open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+          errt = errt + err
         end if
       end do ; end do ; end do
       ! Stop if some file does not exist
@@ -327,5 +331,44 @@ contains
 
     return
   end subroutine write_dc_torques
+
+  ! This subroutine sorts torque files
+  subroutine sort_torques()
+    use mod_f90_kind
+    use mod_parameters, only: Npl,renorm,itype
+    use mod_tools, only: sort_file
+    implicit none
+    integer  :: i,iw,sigma,typetorque,idc=1
+
+    ! Opening torque files
+    if(itype.eq.9) then
+      idc=10
+      call openclose_dc_torque_files(1)
+    else
+      call openclose_torque_files(1)
+    end if
+
+    do typetorque=1,ntypetorque ; do sigma=1,3 ; do i=1,Npl
+      iw = 9000*idc+(typetorque-1)*Npl*3+(sigma-1)*Npl+i
+
+      ! Sorting torque files
+      call sort_file(iw,.true.)
+
+      ! Sorting renormalized torque files
+      if(renorm) then
+        iw = iw+1000
+        call sort_file(iw,.true.)
+      end if
+    end do ; end do ; end do
+
+    ! Closing torque files
+    if(itype.eq.9) then
+      call openclose_dc_torque_files(2)
+    else
+      call openclose_torque_files(2)
+    end if
+
+    return
+  end subroutine sort_torques
 
 end module mod_torques

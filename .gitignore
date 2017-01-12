@@ -17,4 +17,8 @@ output*
 *.pbs
 tbshe*
 last_compilation
+*.py
+*.png
+*.jpg
+*.nb
 

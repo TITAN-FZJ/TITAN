@@ -3,7 +3,7 @@ module mod_beff
   implicit none
   ! Effective field
   complex(double),dimension(:,:),allocatable :: chiinv
-  complex(double),dimension(:),allocatable   :: Beff,Beff_cart
+  complex(double),dimension(:)  ,allocatable :: Beff,Beff_cart
 contains
 
   ! This subroutine allocates variables related to the effective field calculation
@@ -12,7 +12,7 @@ contains
     use mod_mpi_pars
     use mod_parameters, only: dimsigmaNpl,outputunit
     implicit none
-    integer           :: AllocateStatus
+    integer :: AllocateStatus
 
     if(myrank_row.eq.0) then
       allocate( Beff(dimsigmaNpl),Beff_cart(dimsigmaNpl),chiinv(dimsigmaNpl,dimsigmaNpl), STAT = AllocateStatus )
@@ -65,8 +65,10 @@ contains
     end if
     if(lfield) then
       write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
-      if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
-      if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
+      if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
+      if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
+      if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
+      if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
     end if
 
     folder = "Beff"
@@ -81,15 +83,15 @@ contains
     if(iflag.eq.0) then
       do sigma=1,4 ; do i=1,Npl
         iw = 8000+(sigma-1)*Npl+i
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder),trim(filename),direction(sigma),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename),direction(sigma),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='unknown', form='formatted')
-        write(unit=iw, fmt="('#   energy  , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma)
+        write(unit=iw, fmt="('#     energy    , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma)
         close(unit=iw)
       end do ; end do
     else if (iflag.eq.1) then
       do sigma=1,4 ; do i=1,Npl
         iw = 8000+(sigma-1)*Npl+i
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder),trim(filename),direction(sigma),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename),direction(sigma),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
       end do ; end do
@@ -138,7 +140,6 @@ contains
     return
   end subroutine write_beff
 
-
   ! This subroutine opens and closes all the files needed for the effective field
   subroutine openclose_dc_beff_files(iflag)
     use mod_parameters
@@ -170,8 +171,10 @@ contains
       if((dcfield_dependence.ne.2).and.(dcfield_dependence.ne.4).and.(dcfield_dependence.ne.6)) write(fieldpart,"(a,'_hwt=',f5.2)") trim(fieldpart),hwt
       if((dcfield_dependence.ne.3).and.(dcfield_dependence.ne.5).and.(dcfield_dependence.ne.6)) write(fieldpart,"(a,'_hwp=',f5.2)") trim(fieldpart),hwp
     end if
-    if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
-    if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
+    if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
+    if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
+    if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
+    if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
 
     folder = "Beff"
     if(lhfresponses) folder = trim(folder) // "_HF"
@@ -185,7 +188,7 @@ contains
     if(iflag.eq.0) then
       do sigma=1,4 ; do i=1,Npl
         iw = 80000+(sigma-1)*Npl+i
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder),trim(dcprefix),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='unknown', form='formatted')
         write(unit=iw, fmt="('#',a,' imaginary part of ',a,a,' , real part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma)
         close(unit=iw)
@@ -193,7 +196,7 @@ contains
     else if (iflag.eq.1) then
       do sigma=1,4 ; do i=1,Npl
         iw = 80000+(sigma-1)*Npl+i
-        write(varm,"('./results/',a1,'SOC/',i0,'Npl/',a,'/',a,a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'.dat')") SOCc,Npl,trim(folder),trim(dcprefix),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
       end do ; end do
@@ -241,5 +244,37 @@ contains
 
     return
   end subroutine write_dc_beff
+
+  ! This subroutine sorts effective field files
+  subroutine sort_beff()
+    use mod_f90_kind
+    use mod_parameters, only: Npl,itype
+    use mod_tools, only: sort_file
+    implicit none
+    integer :: i,sigma,iw,idc=1
+
+    ! Opening effective field files
+    if(itype.eq.9) then
+      idc=10
+      call openclose_dc_beff_files(1)
+    else
+      call openclose_beff_files(1)
+    end if
+
+    do sigma=1,4 ; do i=1,Npl
+      iw = 8000*idc+(sigma-1)*Npl+i
+      ! Sorting effective field files
+      call sort_file(iw,.true.)
+    end do ; end do
+
+    ! Closing effective field files
+    if(itype.eq.9) then
+      call openclose_dc_beff_files(2)
+    else
+      call openclose_beff_files(2)
+    end if
+
+    return
+  end subroutine sort_beff
 
 end module mod_beff

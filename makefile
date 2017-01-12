@@ -126,7 +126,7 @@ LLIBS =-mkl -static-intel -L$(HOME)/lib -lnag
 FFLAGS =-O3 -xSSE4.2
 #Debugger
 ifeq ($(DEBUG),debug)
-FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0 -fpe0
+FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0
 endif
 FFLAGS += -module $(OBJDIR)/ -I$(OBJDIR)/
 # Parallelization
@@ -149,7 +149,7 @@ LLIBS =-mkl -L$(HOME)/lib -lkibe
 FFLAGS =-O3 -xHost -qoverride-limits #-guide -parallel # -vec-threshold0
 #Debugger
 ifeq ($(DEBUG),debug)
-FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0 -fpe0
+FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0
 endif
 FFLAGS += -module $(OBJDIR)/ -I$(OBJDIR)/
 # Parallelization
@@ -172,7 +172,7 @@ LLIBS =-mkl -L$(HOME)/lib -lnag
 FFLAGS =-O3 -xHost
 # Debugger
 ifeq ($(DEBUG),debug)
-FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0 -fpe0
+FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0
 endif
 FFLAGS += -module $(OBJDIR)/ -I$(OBJDIR)/
 # Parallelization
@@ -195,7 +195,7 @@ LLIBS =-mkl -L$(HOME)/lib -lkibe
 FFLAGS =-O3 -xSSE4.2
 # Debugger
 ifeq ($(DEBUG),debug)
-FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0 -fpe0
+FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0
 endif
 FFLAGS += -module $(OBJDIR)/ -I$(OBJDIR)/
 # Parallelization
@@ -218,7 +218,7 @@ LLIBS =-mkl -L$(HOME)/lib -lkibe
 FFLAGS =-O3 -xSSE4.2
 #Debugger
 ifeq ($(DEBUG),debug)
-FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0 -fpe0
+FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0
 endif
 FFLAGS += -module $(OBJDIR)/ -I$(OBJDIR)/
 # Parallelization
@@ -242,7 +242,7 @@ LLIBS = -mkl -I$(ND)/nag_interface_blocks -lnag
 FFLAGS =-O3 -xHost -qoverride-limits
 #Debugger
 ifeq ($(DEBUG),debug)
-FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0 -fpe0
+FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0
 endif
 FFLAGS += -module $(OBJDIR)/ -I$(OBJDIR)/
 # Parallelization

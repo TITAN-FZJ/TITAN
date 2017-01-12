@@ -1,19 +1,20 @@
 ! Calculates the full 3x3 J tensor (including coupling, DMI and anisotropic pair interactions)
-	subroutine coupling()
-		use mod_f90_kind
-		use mod_parameters
-		use mod_magnet
-		use mod_mpi_pars,only: myrank
+subroutine coupling()
+  use mod_f90_kind
+  use mod_parameters
+  use mod_magnet
+  use mod_mpi_pars,only: myrank
+  implicit none
   character(len=400) :: varm
   character(len=50)  :: fieldpart,socpart
   character(len=1)   :: SOCc
-	integer            :: i,j,mu,iw
+  integer            :: i,j,mu,iw
   real(double),dimension(:,:),allocatable     :: trJij
   real(double),dimension(:,:,:,:),allocatable :: Jij,Jijs,Jija
 
   allocate(Jij(nmaglayers,nmaglayers,3,3),trJij(nmaglayers,nmaglayers),Jijs(nmaglayers,nmaglayers,3,3),Jija(nmaglayers,nmaglayers,3,3))
 
-	if(myrank.eq.0) write(outputunit,"('CALCULATING FULL TENSOR OF EXHANGE INTERACTIONS AND ANISOTROPIES AS A FUNCTION OF THICKNESS')")
+  if(myrank.eq.0) write(outputunit,"('CALCULATING FULL TENSOR OF EXHANGE INTERACTIONS AND ANISOTROPIES AS A FUNCTION OF THICKNESS')")
 
   fieldpart = ""
   socpart   = ""
@@ -29,8 +30,10 @@
   end if
   if(lfield) then
     write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
-    if(ltesla) fieldpart = trim(fieldpart) // "_tesla"
-    if(lnolb)   fieldpart = trim(fieldpart) // "_nolb"
+    if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
+    if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
+    if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
+    if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
   end if
 
   ! Opening files for position dependence
@@ -113,13 +116,13 @@
       iw = 199+(j-1)*nmaglayers*2+(i-1)*2
       if(i.eq.j) then
         iw = iw + 1
-        write(unit=iw,fmt="(4x,i3,3x,2(es16.9,2x))") Npl,Jij(i,j,1,1),Jij(i,j,2,2)
+        write(unit=iw,fmt="(4x,i3,3x,2(es16.9,2x))") Npl_input,Jij(i,j,1,1),Jij(i,j,2,2)
         iw = iw + 1
       else
         iw = iw + 1
-        write(unit=iw,fmt="(4x,i3,3x,3(es16.9,2x))") Npl,trJij(i,j),Jijs(i,j,1,1),Jijs(i,j,2,2)
+        write(unit=iw,fmt="(4x,i3,3x,3(es16.9,2x))") Npl_input,trJij(i,j),Jijs(i,j,1,1),Jijs(i,j,2,2)
         iw = iw + 1
-        write(unit=iw,fmt="(4x,i3,3x,es16.9,2x)") Npl,Jija(i,j,1,2)
+        write(unit=iw,fmt="(4x,i3,3x,es16.9,2x)") Npl_input,Jija(i,j,1,2)
       end if
     end do ; end do exchange_writing_loop
 
@@ -144,5 +147,5 @@
 
   deallocate(trJij,Jij,Jijs,Jija)
 
-	return
-	end subroutine coupling
+  return
+end subroutine coupling

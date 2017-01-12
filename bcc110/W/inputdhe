@@ -1,9 +1,12 @@
 !*******************************************************************************!
 !                           CHOOSE WHAT TO CALCULATE                            !
--> itype = 4
+-> itype = 8
+!===============================================================================!
+!                                OUTPUT FILE                                    !
+-> output: saida8_Npl10_ncp6_sha
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
--> Options: slatec ! noUonall  ! addresults
+-> Options: sha
 !===============================================================================!
 !                               SYSTEM VARIABLES                                !
 ! Lattice and surface direction:                                                !
@@ -12,9 +15,9 @@
 -> a0 = 3.165d0
 ! Number of planes:
 !(For SC and exchange calculation, use initial and final number of layers)
--> Npl = 4
+-> Npl = 3 8
 ! Small imaginary part of the Green function:
--> eta = 5.0E-04
+-> eta = 5.0E-03
 !===============================================================================!
 !                          STATIC MAGNETIC ZEEMAN FIELD                         !
 !                         (in the spin reference system)                        !
@@ -59,7 +62,7 @@
 -> emin = -1.00E-00 , emax =  1.00E-00   -> kdirection = NG
 !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -!
 !                              Number of points:                                !
--> npts = 999
+-> npts = 15
 -> skip_steps = 0
 !===============================================================================!
 !                              SELF-CONSISTENCY                                 !

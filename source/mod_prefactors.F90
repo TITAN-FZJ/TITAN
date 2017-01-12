@@ -1,17 +1,17 @@
 module mod_prefactors
-	use mod_f90_kind
-	implicit none
-	complex(double), dimension(:,:), allocatable	:: prefactor,prefactorlsoc
+  use mod_f90_kind
+  implicit none
+  complex(double), dimension(:,:), allocatable  :: prefactor,prefactorlsoc
   complex(double),dimension(:,:,:,:), allocatable :: lxpt,lypt,lzpt,tlxp,tlyp,tlzp
 
 contains
 
   ! Calculates matrices hopping x angular momentum matrix for orbital angular momentum current calculation
-	subroutine OAM_curr_hopping_times_L()
-	  use mod_magnet, only: lxp, lyp, lzp
+  subroutine OAM_curr_hopping_times_L()
+    use mod_magnet, only: lxp, lyp, lzp
     use mod_tight_binding
-		use mod_parameters, only: Npl, n0sc1, n0sc2
-		use mod_constants, only: zero
+    use mod_parameters, only: Npl, n0sc1, n0sc2
+    use mod_constants, only: zero
     integer         :: i,mu,nu,neighbor,alpha
 
     lxpt = zero
@@ -29,7 +29,7 @@ contains
         tlzp(i,neighbor,mu,nu) = tlzp(i,neighbor,mu,nu) + t00(i+1,neighbor,alpha,mu)*lzp(alpha,nu)
     end do ; end do ; end do ; end do ; end do
     return
-	end subroutine OAM_curr_hopping_times_L
+  end subroutine OAM_curr_hopping_times_L
 
   subroutine allocate_prefactors()
     use mod_parameters, only: Npl, n0sc1, n0sc2

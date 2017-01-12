@@ -16,6 +16,13 @@ module mod_lattice
   integer :: plnn
   real(double), dimension(:,:), allocatable :: r0,c0,r1,c1,r2,c2
 
+! Out-of-plane unit vector
+  real(double), dimension(3) :: versor_oop
+! In-plane unit vector perpendicular to current direction
+  integer :: transverse_neighbors
+  integer :: longitudinal_neighbors
+  real(double), dimension(3) :: versor_Eperp
+
 contains
 
 ! BCC(110)
@@ -47,6 +54,7 @@ contains
     use mod_f90_kind
     use mod_constants
     use mod_parameters, only: a0
+    implicit none
     real(double)  :: aux
 
     n01=4
@@ -58,8 +66,8 @@ contains
 
     allocate(r0(n0,3),c0(n0,3),r1(n1,3),c1(n1,3),r2(n2,3),c2(n2,3))
 
-  ! BCC (1 -1 0)
-  ! ! in-plane 1st. and 2nd. n.n.
+    ! BCC (1 -1 0)
+    ! ! in-plane 1st. and 2nd. n.n.
     r0(1,1) = 0.5d0
     r0(1,2) = 0.5d0
     r0(1,3) = 0.5d0
@@ -112,7 +120,7 @@ contains
     c0(6,2) = 0.d0
     c0(6,3) =-1.d0
 
-  !  inter-plane 1st. n.n.
+    !  inter-plane 1st. n.n.
 
     r1(1,1) =-0.5d0
     r1(1,2) = 0.5d0
@@ -132,7 +140,7 @@ contains
     c1(2,2) = aux
     c1(2,3) =-aux
 
-  !  inter-plane 2nd. n.n.
+    !  inter-plane 2nd. n.n.
 
     r2(1,1) = 0.d0
     r2(1,2) = 1.d0
@@ -173,6 +181,7 @@ contains
     use mod_f90_kind
     use mod_constants
     use mod_parameters, only: a0
+    implicit none
     real(double)  :: aux
 
     n01=4
@@ -184,8 +193,8 @@ contains
 
     allocate(r0(n0,3),c0(n0,3),r1(n1,3),c1(n1,3),r2(n2,3),c2(n2,3))
 
-  ! FCC (1 0 0)
-  ! ! in-plane 1st. n.n.
+    ! FCC (1 0 0)
+    ! ! in-plane 1st. n.n.
     r0(1,1) = 0.5d0
     r0(1,2) = 0.5d0
     r0(1,3) = 0.0d0
@@ -224,7 +233,7 @@ contains
 
     r0 = r0*a0
 
-  !  inter-plane 1st. n.n.
+    !  inter-plane 1st. n.n.
     r1(1,1) = 0.5d0
     r1(1,2) = 0.0d0
     r1(1,3) = 0.5d0
@@ -245,7 +254,7 @@ contains
 
     r1 = r1*a0
 
-  !  inter-plane 2nd. n.n.
+    !  inter-plane 2nd. n.n.
     r2(1,1) = 0.d0
     r2(1,2) = 0.d0
     r2(1,3) = 1.d0
@@ -275,6 +284,7 @@ contains
     use mod_f90_kind
     use mod_constants
     use mod_parameters, only: a0
+    implicit none
     real(double)  :: aux
 
     n01=6
@@ -286,8 +296,8 @@ contains
 
     allocate(r0(n0,3),c0(n0,3),r1(n1,3),c1(n1,3),r2(n2,3),c2(n2,3))
 
-  ! FCC (1 1 1)
-  ! ! in-plane 1st. n.n. (there are no 2nd. n.n.)
+    ! FCC (1 1 1)
+    ! ! in-plane 1st. n.n. (there are no 2nd. n.n.)
     r0(1,1) =-0.5d0
     r0(1,2) = 0.5d0
     r0(1,3) = 0.0d0
@@ -317,7 +327,7 @@ contains
 
     r0 = r0*a0
 
-  !  inter-plane 1st. n.n.
+    !  inter-plane 1st. n.n.
     r1(1,1) = 0.0d0
     r1(1,2) = 0.5d0
     r1(1,3) = 0.5d0
@@ -334,7 +344,7 @@ contains
 
     r1 = r1*a0
 
-  !  inter-plane 2nd. n.n.
+    !  inter-plane 2nd. n.n.
     r2(1,1) = 0.d0
     r2(1,2) = 0.d0
     r2(1,3) = 1.d0
@@ -353,5 +363,4 @@ contains
 
     return
   end subroutine fcc111
-
 end module mod_lattice

@@ -1,10 +1,10 @@
 module mod_constants
   use mod_f90_kind
   implicit none
-  real(double) :: pi, tpi, sq2, hsq2, sq3
   complex(double), parameter :: zero=(0.d0,0.d0), zum=(1.d0,0.d0), zi=(0.d0,1.d0)
-  complex(double) :: identorb18(18,18),identorb9(9,9)
-  complex(double) :: pauli_orb(3,18,18),pauli_dorb(3,18,18),levi_civita(3,3,3)
+  real(double)    :: pi, tpi, sq2, hsq2, sq3
+  real(double)    :: levi_civita(3,3,3)
+  complex(double) :: identorb18(18,18),identorb9(9,9),pauli_orb(3,18,18),pauli_dorb(3,18,18)
 
 contains
   subroutine define_constants()
@@ -52,15 +52,15 @@ contains
       pauli_dorb(3,nu,nu) = -zum
     end do
 
-    levi_civita(1,1,:) = [ zero , zero , zero ]
-    levi_civita(1,2,:) = [ zero , zero , zum ]
-    levi_civita(1,3,:) = [ zero ,-zum , zero ]
-    levi_civita(2,1,:) = [ zero , zero ,-zum ]
-    levi_civita(2,2,:) = [ zero , zero , zero ]
-    levi_civita(2,3,:) = [ zum , zero , zero ]
-    levi_civita(3,1,:) = [ zero , zum , zero ]
-    levi_civita(3,2,:) = [-zum , zero , zero ]
-    levi_civita(3,3,:) = [ zero , zero , zero ]
+    levi_civita(1,1,:) = [ 0.d0 , 0.d0 , 0.d0 ]
+    levi_civita(1,2,:) = [ 0.d0 , 0.d0 , 1.d0 ]
+    levi_civita(1,3,:) = [ 0.d0 ,-1.d0 , 0.d0 ]
+    levi_civita(2,1,:) = [ 0.d0 , 0.d0 ,-1.d0 ]
+    levi_civita(2,2,:) = [ 0.d0 , 0.d0 , 0.d0 ]
+    levi_civita(2,3,:) = [ 1.d0 , 0.d0 , 0.d0 ]
+    levi_civita(3,1,:) = [ 0.d0 , 1.d0 , 0.d0 ]
+    levi_civita(3,2,:) = [-1.d0 , 0.d0 , 0.d0 ]
+    levi_civita(3,3,:) = [ 0.d0 , 0.d0 , 0.d0 ]
 
 !   ! Pauli matrices in spin and orbital space
 !     pauli  = zero
