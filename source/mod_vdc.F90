@@ -132,7 +132,8 @@ contains
   ! Some information may also be written on the screen
   subroutine write_vdc(e)
     use mod_f90_kind
-    use mod_parameters, only: Npl
+    use mod_parameters, only: Npl, mmlayermag
+    use mod_magnet, only: mvec_spherical
     implicit none
     integer  :: i,iw,sigma
     real(double),intent(in) :: e
@@ -140,12 +141,12 @@ contains
     do sigma=1,3 ; do i=1,Npl
       iw = 10000+(sigma-1)*Npl+i
 
-      write(unit=iw,fmt="(2(es16.9,2x))") e , vdc(sigma,i)
+      write(unit=iw,fmt="(2(es16.9,2x))") e , vdc(sigma,i) , mvec_spherical(i,2) , mvec_spherical(i,3)
     end do ; end do
     do sigma=1,3
       iw = 11000+sigma
 
-      write(unit=iw,fmt="(2(es16.9,2x))") e , total_vdc(sigma)
+      write(unit=iw,fmt="(2(es16.9,2x))") e , total_vdc(sigma) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
     end do
 
     return

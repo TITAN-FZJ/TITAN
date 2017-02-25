@@ -116,6 +116,7 @@ contains
   subroutine write_beff(e)
     use mod_f90_kind
     use mod_parameters, only: Npl,sigmai2i
+    use mod_magnet, only: mvec_spherical
     implicit none
     integer      :: i,iw,sigma
     real(double) :: phase,sine,cosine
@@ -134,7 +135,7 @@ contains
         cosine = 0.d0
       end if
 
-      write(unit=iw,fmt="(7(es16.9,2x))") e , abs(Beff_cart(sigmai2i(sigma,i))) , real(Beff_cart(sigmai2i(sigma,i))) , aimag(Beff_cart(sigmai2i(sigma,i))) , phase , sine , cosine
+      write(unit=iw,fmt="(9(es16.9,2x))") e , abs(Beff_cart(sigmai2i(sigma,i))) , real(Beff_cart(sigmai2i(sigma,i))) , aimag(Beff_cart(sigmai2i(sigma,i))) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
     end do ; end do
 
     return

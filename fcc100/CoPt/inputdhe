@@ -3,11 +3,11 @@
 -> itype = 8
 !===============================================================================!
 !                                OUTPUT FILE                                    !
--> output: output/saida8_Npl3_ncp6
+-> output: output/saida8_Npl5_ncp6
 ! -> suffix: _-M
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
--> Options:
+-> Options: lgtv
 !===============================================================================!
 !                               SYSTEM VARIABLES                                !
 ! Lattice and surface direction:                                                !
@@ -24,9 +24,9 @@
 !                         (in the spin reference system)                        !
 -> FIELD = T  ! Magnetic field on (T) or off (F) (choose one form below)
 ! Spherical coordinates (default, angles in units of pi)                        !
--> hwa   = 2.00E-04 ! 1.75E-03 1
--> hwt   = 0.00E+00  1.00E+00 15
--> hwp   = 0.00E+00 ! 1.40E+00 7
+-> hwa   = 0.0E+00 1.00E-04 10 ! 1.75E-03 1
+-> hwt   = 0.00E+00 ! 1.00E+00 15
+-> hwp   = 0.00E+00 ! 2.00E+00 31
 -> skip_steps_hw = 0
 ! Cartesian coordinates                                                         !
 -> hwx = 0.0E+00 , hwy = 0.0E+00 , hwz = 0.0E+00
@@ -59,15 +59,15 @@
 ! Number of parts to divide energy integral in complex plane:                   !
 -> parts = 2 , n1gl = 64
 !  Number of parts to divide energy integral in real axis:                      !
--> parts3 = 1 , n3gl = 64
+-> parts3 = 2 , n3gl = 64
 !===============================================================================!
 !                              PLOTTING VARIABLES                               !
 !           PLOTTING VARIABLES         !             BAND STRUCTURE             !
 ! Minimum and maximum value of energy: ! High symmetry direction                !
--> emin = 1.00E-06 , emax =  5.00E-04   -> kdirection = GH
+-> emin = 1.00E-06 , emax =  5.0E-04   -> kdirection = GH
 !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -!
 !                              Number of points:                                !
--> npts = 1
+-> npts = 63
 -> skip_steps = 0
 !===============================================================================!
 !                              SELF-CONSISTENCY                                 !

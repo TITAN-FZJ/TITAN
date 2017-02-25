@@ -81,7 +81,7 @@ LLIBS =-mkl -lnag
 ####################################################
 #  Flags                                           #
 ####################################################
-FFLAGS =-O3 -xHost
+FFLAGS =-O3 -xHost -module $(OBJDIR)/ -I$(OBJDIR)/
 
 ####################################################
 #  Preprocessor                                    #
@@ -142,7 +142,7 @@ ifeq ($(PLATFORM),osx)
 # Compiler
 FC = mpif90
 # Preprocessor
-CPP = -fpp
+CPP = -fpp -D _OSX
 # Libraries
 LLIBS =-mkl -L$(HOME)/lib -lkibe
 #Flags

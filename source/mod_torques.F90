@@ -151,6 +151,7 @@ contains
   subroutine write_torques(e)
     use mod_f90_kind
     use mod_parameters, only: Npl,renorm
+    use mod_magnet, only: mvec_spherical
     implicit none
     integer  :: i,iw,sigma,typetorque
     real(double) :: phase,sine,cosine
@@ -185,7 +186,7 @@ contains
           cosine = 0.d0
         end if
 
-        write(unit=iw,fmt="(7(es16.9,2x))") e , abs(rtorques(typetorque,sigma,i)) , real(rtorques(typetorque,sigma,i)) , aimag(rtorques(typetorque,sigma,i)) , phase , sine , cosine
+        write(unit=iw,fmt="(7(es16.9,2x))") e , abs(rtorques(typetorque,sigma,i)) , real(rtorques(typetorque,sigma,i)) , aimag(rtorques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
       end if
     end do ; end do ; end do
 

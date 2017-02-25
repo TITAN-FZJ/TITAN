@@ -685,7 +685,7 @@ contains
 
   subroutine rs_hoppings()
     use mod_f90_kind
-    use mod_parameters, only: Npl, Utype, mmlayer, nmaglayers, mmlayermag, layertype, outputunit, outputunit_loop, Npl_input,  naddlayers
+    use mod_parameters, only: Npl, Utype, mmlayer, nmaglayers, mmlayermag, layertype, outputunit, Npl_input,  naddlayers
     use mod_lattice
     use mod_mpi_pars
   character(len=30) :: formatvar
@@ -713,7 +713,7 @@ contains
     else
       write(formatvar,fmt="(a,i0,a,i0,a)") '(a,',Npl_input+1,'(2x,i0),'' | ''',naddlayers,'(i0,2x))'
     end if
-    write(outputunit_loop,fmt=trim(formatvar)) '[rs_hoppings] Layer type:',(mmlayer(i),i=1,Npl+2)
+    if(myrank.eq.0) write(outputunit,fmt=trim(formatvar)) '[rs_hoppings] Layer type:',(mmlayer(i),i=1,Npl+2)
   end if
 
   ! Obtaining the number and list of magnetic layers
@@ -727,9 +727,9 @@ contains
   if(myrank_row_hw.eq.0) then
     if(nmaglayers.ge.1) then
       write(formatvar,fmt="(a,i0,a)") '(a,i0,a,',nmaglayers,'(i0,2x))'
-      write(outputunit_loop,fmt=formatvar) '[rs_hoppings] ',nmaglayers,' magnetic layer(s) in the system: ',(mmlayermag(i),i=1,nmaglayers)
+      if(myrank.eq.0) write(outputunit,fmt=formatvar) '[rs_hoppings] ',nmaglayers,' magnetic layer(s) in the system: ',(mmlayermag(i),i=1,nmaglayers)
     else
-      write(outputunit_loop,fmt="('[rs_hoppings] No magnetic layer in the system. ')")
+      if(myrank.eq.0) write(outputunit,fmt="('[rs_hoppings] No magnetic layer in the system. ')")
     end if
   end if
   ! Unifying Utype = 0 and 1 To Utype = 0 if there is no magnetic layer

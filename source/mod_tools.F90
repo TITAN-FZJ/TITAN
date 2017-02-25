@@ -35,7 +35,7 @@ contains
     cross_unit(2) = a(3) * b(1) - a(1) * b(3)
     cross_unit(3) = a(1) * b(2) - a(2) * b(1)
 
-    cross_unit = cross_unit/dot_product(cross_unit,cross_unit)
+    cross_unit = cross_unit/sqrt(dot_product(cross_unit,cross_unit))
     return
   end function cross_unit
 

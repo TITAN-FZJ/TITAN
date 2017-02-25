@@ -74,6 +74,7 @@ and it is parallelized with MPI.
 !   sortfiles     - Only sort files (no calculation is done)                    !
 !   writeonscreen - Also write some results on output files                     !
 !   sha           - Only calculate the SHA for input parameters                 !
+!   lgtv          - Only calculate total longitudinal and transverse currents   !
 !===============================================================================!
 !                             LATTICE DEFINITIONS                               !
 !         For spin quantization and direction of in-plane electric field        !

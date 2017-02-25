@@ -254,7 +254,8 @@ subroutine calculate_dc_limit()
       torques  = torques/e
       sdmat    = 0.5d0*sdmat/e
       currents = currents/e
-      currents(2:4,:,:) = -0.5d0*currents(2:4,:,:)
+      currents(2:4,:,:) =-0.5d0*currents(2:4,:,:)
+      currents(3,:,:)   = currents(3,:,:)/zi
       ! Total currents for each neighbor direction (Sum of currents over all planes)
       total_currents = sum(currents,dim=3)
 
@@ -300,8 +301,8 @@ subroutine calculate_dc_limit()
 
         MPI_points_dclimit: do mcount=1,MPIpts_hw
           if (mcount.ne.1) then ! Receive all points except the first (that was calculated at myrank_row_hw)
-            call MPI_Recv(hw_count         ,1                ,MPI_INTEGER         ,MPI_ANY_SOURCE  ,44000+mpitag2,MPI_Comm_Col,stat,ierr)
-            call MPI_Recv(count            ,1                ,MPI_INTEGER         ,stat(MPI_SOURCE),44100+mpitag2,MPI_Comm_Col,stat,ierr)
+            call MPI_Recv(hw_count         ,1                ,MPI_INTEGER         ,MPI_ANY_SOURCE  ,44000+mpitag2,MPI_Comm_Col,stat,ierr) ! hw_count needed to get correct values of fields on hw_list
+            call MPI_Recv(count            ,1                ,MPI_INTEGER         ,stat(MPI_SOURCE),44100+mpitag2,MPI_Comm_Col,stat,ierr) ! count needed to write correct energy on the filename
             call MPI_Recv(mvec_spherical   ,3*Npl            ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),44200+mpitag2,MPI_Comm_Col,stat,ierr)
             if(.not.lhfresponses) &
             call MPI_Recv(schi             ,Npl*Npl*16       ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44300+mpitag2,MPI_Comm_Col,stat,ierr)
@@ -433,6 +434,10 @@ subroutine calculate_dc_limit()
     end if
   end do dclimit_energy_loop
 
+  ! Sorting results on files
+  if(myrank_row_hw.eq.0) then
+    call sort_all_files()
+  end if
   call deallocate_prefactors()
   call deallocate_susceptibilities()
   call deallocate_disturbances()

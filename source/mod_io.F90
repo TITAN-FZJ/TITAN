@@ -196,6 +196,8 @@ contains
               lwriteonscreen = .true.
             case ("sortfiles")
               lsortfiles = .true.
+            case ("lgtv")
+              llgtv = .true.
             case("!")
               exit
             case default

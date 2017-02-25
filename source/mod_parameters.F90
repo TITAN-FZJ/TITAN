@@ -103,13 +103,15 @@ module mod_parameters
   logical :: lwriteonscreen = .false.
   logical :: lsortfiles     = .false.
   logical :: lsha           = .false.
+  logical :: llgtv          = .false.
 !========================================================================================!
 ! Activate debug options
   logical :: lverbose = .false.
   logical :: ldebug   = .false.
 !========================================================================================!
-! Spin Hall Angle calculation
+! Longitudinal and transverse, and Spin Hall Angle calculation
   integer, dimension(:),  allocatable :: sha_longitudinal,sha_transverse ! In-plane longitudinal and transverse neighbors
+  real(double), dimension(:),  allocatable :: long_cos(:),transv_cos(:)  ! In-plane longitudinal and transverse cosines
 !========================================================================================!
 ! DC voltage calculations
   logical :: lvdc = .false.

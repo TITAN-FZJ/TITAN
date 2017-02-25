@@ -26,7 +26,7 @@ contains
   !     MPIpts-1
   !(number inside a col)
   subroutine build_cartesian_grid()
-    use mod_parameters, only: total_hw_npt1, Npl_i, Npl_f, pnt, npt1, npts, deltae, emin, emax, outputunit
+    use mod_parameters, only: total_hw_npt1, pnt, npt1, npts, deltae, emin, emax, outputunit
     implicit none
     logical :: lreorder,lperiodic(2),lrow(2),lcol(2)
     integer :: MPIdims(2)
@@ -72,7 +72,20 @@ contains
           end if
         end if
       else
-        MPIpts  = npt1
+        if(npt1*pnt.lt.numprocs) then
+          MPIpts  = npt1
+        else
+          MPIsteps = ceiling(dble(npt1)/dble(MPIpts))
+          if(mod(npt1,MPIpts).ne.0) then
+            if(myrank.eq.0) then
+              write(outputunit,"('[build_cartesian_grid] ************************************* WARNING: *************************************')")
+              write(outputunit,"('[build_cartesian_grid]    Number of points to be calculated is not commensurable with processes used!')")
+              write(outputunit,"('[build_cartesian_grid]   Completing ',i0,' points with more ',i0,' points not to waste computing time. ')") npt1,MPIsteps*MPIpts-npt1
+              write(outputunit,"('[build_cartesian_grid] ************************************************************************************')")
+            end if
+            npt1 = MPIsteps*MPIpts
+          end if
+        end if
       end if
     end if
     if(npt1.ne.1) then

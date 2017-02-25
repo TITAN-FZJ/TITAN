@@ -3,11 +3,11 @@
 -> itype = 8
 !===============================================================================!
 !                                OUTPUT FILE                                    !
--> output: output/saida8_Npl8-10_sha
+-> output: output/saida8_Npl5_lgtv
 ! -> suffix: _-M
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
--> Options:
+-> Options: lgtv
 !===============================================================================!
 !                               SYSTEM VARIABLES                                !
 ! Lattice and surface direction:                                                !
@@ -16,17 +16,17 @@
 -> a0 = 3.165d0
 ! Number of planes:
 !(For SC and exchange calculation, use initial and final number of layers)
--> Npl = 8 10
+-> Npl = 5
 ! Small imaginary part of the Green function:
 -> eta = 5.0E-03
 !===============================================================================!
 !                          STATIC MAGNETIC ZEEMAN FIELD                         !
 !                         (in the spin reference system)                        !
--> FIELD = F  ! Magnetic field on (T) or off (F) (choose one form below)
+-> FIELD = T  ! Magnetic field on (T) or off (F) (choose one form below)
 ! Spherical coordinates (default, angles in units of pi)                        !
--> hwa   = 0.00E+00 5.0E-04 50
--> hwt   = 0.50E+00
--> hwp   = 0.00E+00
+-> hwa   = 5.0E-04
+-> hwt   = 0.00E+00  1.00E+00 15
+-> hwp   = 0.50E+00 ! 2.00E+00 127
 -> skip_steps_hw = 0
 ! Cartesian coordinates                                                         !
 -> hwx = 0.0E+00 , hwy = 0.0E+00 , hwz = 0.0E+00
@@ -36,7 +36,7 @@
 -> socscale = 1.0
 !-------------------------------------------------------------------------------!
 ! Magnetization axis:                                                           !
--> magaxis = L
+-> magaxis = P
 !===============================================================================!
 !                   DIRECTION OF IN-PLANE ELECTRIC FIELD                        !
 -> dirEfield = L
@@ -61,10 +61,10 @@
 !                              PLOTTING VARIABLES                               !
 !           PLOTTING VARIABLES         !             BAND STRUCTURE             !
 ! Minimum and maximum value of energy: ! High symmetry direction                !
--> emin = 1.00d-06 , emax =  5.00d-04   -> kdirection = GH
+-> emin = 1.00d-06 , emax =  5.0d-04   -> kdirection = GH
 !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -!
 !                              Number of points:                                !
--> npts = 15
+-> npts = 31
 -> skip_steps = 0
 !===============================================================================!
 !                              SELF-CONSISTENCY                                 !

@@ -33,7 +33,7 @@ subroutine allocate_Npl_variables()
     write(outputunit,"('[main] Not enough memory for: hhwx,hhwy,hhwz,sb,lb')")
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
-  allocate(sha_longitudinal(n0),sha_transverse(n0))
+  allocate(sha_longitudinal(n0),sha_transverse(n0),long_cos(n0),transv_cos(n0))
 
   return
 end subroutine allocate_Npl_variables
@@ -58,7 +58,7 @@ subroutine deallocate_Npl_variables()
   case(2)
     deallocate(t00,t01,t02)
   end select
-  deallocate(sha_longitudinal,sha_transverse)
+  deallocate(sha_longitudinal,sha_transverse,long_cos,transv_cos)
 
   return
 end subroutine deallocate_Npl_variables

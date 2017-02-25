@@ -13,9 +13,11 @@ program DHE
   use mod_lattice
   use mod_progress
   use mod_mpi_pars
+  use mod_lgtv_currents
+  use mod_sha
   use mod_torques, only: ntypetorque
   implicit none
-  integer           :: i,j,iw,sigma,mu,nu,count_hw
+  integer           :: i,j,sigma,mu,nu,count_hw
   logical           :: lsuccess
 
 #ifndef _UFF
@@ -43,8 +45,6 @@ program DHE
   if(myrank.eq.0) then
     open (unit=outputunit, file=trim(outputdhe), status='unknown')
     call write_time(outputunit,'[main] Started on: ')
-!     call date_and_time(date, time, zone, values)
-!     write(outputunit,"('[main] Started on: ',i0,'/',i0,'/',i0,' at ',i2.2,'h',i2.2,'m',i2.2,'s')") values(3),values(2),values(1),values(5),values(6),values(7)
   end if
 !---------------------------- Getting hostname -------------------------
 #ifdef _JUQUEEN
@@ -97,20 +97,34 @@ program DHE
   end if
 !---- Generating integration points of the complex energy integral -----
   call generate_imag_epoints()
-!------------------------- NUMBER OF PLANE LOOP ------------------------
+!------------------------ NUMBER OF PLANES LOOP ------------------------
   number_of_planes: do Npl = Npl_i,Npl_f
 !--------------- Allocating variables that depend on Npl ---------------
     call allocate_Npl_variables()
 !----------------------------- Dimensions ------------------------------
     dimsigmaNpl = 4*Npl
     dim = dimsigmaNpl*9*9
+!------------------------- Conversion arrays  --------------------------
+    do nu=1,9 ; do mu=1,9 ; do i=1,Npl ; do sigma=1,4
+      sigmaimunu2i(sigma,i,mu,nu)= (sigma-1)*Npl*9*9+(i-1)*9*9+(mu-1)*9+nu
+      do j=1,Npl
+        sigmaijmunu2i(sigma,i,j,mu,nu)= (sigma-1)*Npl*Npl*9*9+(i-1)*Npl*9*9+(j-1)*9*9+(mu-1)*9+nu
+      end do
+    end do ; end do ; end do ; end do
+    do i=1,Npl ; do sigma=1,4
+      sigmai2i(sigma,i) = (sigma-1)*Npl+i
+    end do ; end do
 !------------------------- Defining the system -------------------------
     if(naddlayers.ne.0) then
-      Npl_input = Npl-naddlayers+1
+      Npl_input = Npl-naddlayers+1 ! Npl is the total number of layers, including the added layers listed on inputcard
     else
       Npl_input = Npl
     end if
     call define_system()
+!---------------------- Tight Binding parameters -----------------------
+    call rs_hoppings()
+!---------------------- Lattice specific variables ---------------------
+    call lattice_definitions()
 !------------------------- MAGNETIC FIELD LOOP -------------------------
     if((myrank.eq.0).and.(skip_steps_hw.gt.0)) write(outputunit,"('[main] Skipping first ',i0,' field step(s)...')") skip_steps_hw
     hw_loop: do count_hw=1+skip_steps_hw,MPIsteps_hw
@@ -158,20 +172,6 @@ program DHE
         ! Testing if hwrotate is used
         lhwrotate = (any(abs(hwtrotate(1:Npl)).gt.1.d-8).or.any(abs(hwprotate(1:Npl)).gt.1.d-8))
       end if
-!------------------------- Conversion arrays  --------------------------
-      do nu=1,9 ; do mu=1,9 ; do i=1,Npl ; do sigma=1,4
-        sigmaimunu2i(sigma,i,mu,nu)= (sigma-1)*Npl*9*9+(i-1)*9*9+(mu-1)*9+nu
-        do j=1,Npl
-          sigmaijmunu2i(sigma,i,j,mu,nu)= (sigma-1)*Npl*Npl*9*9+(i-1)*Npl*9*9+(j-1)*9*9+(mu-1)*9+nu
-        end do
-      end do ; end do ; end do ; end do
-      do i=1,Npl ; do sigma=1,4
-        sigmai2i(sigma,i) = (sigma-1)*Npl+i
-      end do ; end do
-!---------------------- Tight Binding parameters -----------------------
-      call rs_hoppings()
-!---------------------- Lattice specific variables ---------------------
-      call lattice_definitions()
 !------------------- Tests for coupling calculation --------------------
       if(itype.eq.6) then
         if(nmaglayers.eq.0) then
@@ -217,9 +217,16 @@ program DHE
         if(myrank.eq.0) call sort_all_files()
         cycle
       end if
+! !---- Only calculate long. and transv. currents from existing files ----
+!       if(llgtv) then
+!         if(myrank.eq.0) call read_calculate_lgtv_currents()
+!         if(itype.eq.9) exit
+!         cycle
+!       end if
 !---------------- Only calculate SHA from existing files ---------------
       if(lsha) then
         if(myrank.eq.0) call read_currents_and_calculate_sha()
+        if(itype.eq.9) exit
         cycle
       end if
 !-------------------------- Begin first test part ----------------------
@@ -247,6 +254,12 @@ program DHE
       if(myrank_row_hw.eq.0)  call write_sc_results_on_screen()
       ! Time now
       if(myrank_row_hw.eq.0)  call write_time(outputunit_loop,'[main] Time after self-consistency: ')
+!---- Only calculate long. and transv. currents from existing files ----
+      if(llgtv) then
+        if(myrank.eq.0) call read_calculate_lgtv_currents()
+        if(itype.eq.9) exit
+        cycle
+      end if
 !============================= MAIN PROGRAM ============================
       main_program: select case (itype)
       case (2)

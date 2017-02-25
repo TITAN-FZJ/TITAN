@@ -71,6 +71,7 @@ subroutine prepare_field()
 
   ! Total number of points in the loops
   total_hw_npt1 = hwa_npt1*hwt_npt1*hwp_npt1
+  if(total_hw_npt1.eq.1) skip_steps_hw = 0
   allocate(hw_list(total_hw_npt1,3))
 
   ! Creating list of magnetic fields (in spherical coordinates)
