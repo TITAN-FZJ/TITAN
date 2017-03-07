@@ -145,9 +145,7 @@ contains
     integer                       :: i,neq,maxfev,ml,mr,mode,nfev,njev,lwa,iuser(1),ifail=0
 
     neq = 4*Npl
-!     lwa=neq*(3*neq+13)/2
-    lwa=neq*(neq+1)/2
-    allocate( sc_solu(neq),diag(neq),qtf(neq),fvec(neq),jac(neq,neq),wa(lwa) )
+    allocate( sc_solu(neq),diag(neq),qtf(neq),fvec(neq),jac(neq,neq) )
 
     ! Putting read eps1 existing solutions into esp1_solu (first guess of the subroutine)
     sc_solu(1:Npl)         = eps1
@@ -159,8 +157,10 @@ contains
     mpitag = (Npl-Npl_i)*total_hw_npt1 + hw_count
     if(myrank_row_hw.eq.0) write(outputunit_loop,"('[self_consistency] Starting self-consistency:')")
 
-#ifndef _OSX
+#if .not. defined(_OSX) .and. .not. defined(_LINUX)
     if(lslatec) then
+      lwa=neq*(3*neq+13)/2
+      allocate( wa(lwa) )
       if(lnojac) then
         call dnsqe(sc_equations_slatec,sc_jacobian,2,neq,sc_solu,fvec,tol,0,ifail,wa,lwa)
       else
@@ -168,6 +168,8 @@ contains
       end if
       ifail = ifail-1
     else
+      lwa=neq*(neq+1)/2
+      allocate( wa(lwa) )
       if(lnojac) then
         maxfev = 200*(neq+1)
         ml = neq-1
@@ -186,6 +188,8 @@ contains
       end if
     end if
 #else
+    lwa=neq*(3*neq+13)/2
+    allocate( wa(lwa) )
     if(lnojac) then
       call dnsqe(sc_equations_slatec,sc_jacobian,2,neq,sc_solu,fvec,tol,0,ifail,wa,lwa)
     else

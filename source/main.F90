@@ -91,6 +91,20 @@ program DHE
     call MPI_Finalize(ierr)
     stop
   end select
+  write(*,*) "r0"
+  do i=1,n0
+    write(*,*) r0(i,:)
+  end do
+  write(*,*) "r1"
+  do i=1,n1
+    write(*,*) r1(i,:)
+  end do
+  write(*,*) "r2"
+  do i=1,n2
+    write(*,*) r2(i,:)
+  end do
+  write(*,*) n01, n02, n0, n1, n1, plnn
+  stop
   ! Writing BZ points and weights into files
   if((lkpoints).and.(myrank.eq.0)) then
     call write_kpoints_to_file()

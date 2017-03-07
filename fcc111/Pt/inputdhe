@@ -2,6 +2,10 @@
 !                           CHOOSE WHAT TO CALCULATE                            !
 -> itype = 6
 !===============================================================================!
+!                                OUTPUT FILE                                    !
+-> output: output/saida8_Npl5_ncp6
+! -> suffix: _-M
+!===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
 -> Options: slatec verbose GSL ! noUonPt ! addresults
 !===============================================================================!
