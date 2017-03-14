@@ -107,7 +107,7 @@ contains
     use mod_mpi_pars
     implicit none
     integer, parameter      :: iomax=20           ! Maximum number of elements in one line
-    integer                 :: nparams=24         ! Number of required parameters to be read
+    integer                 :: nparams=25         ! Number of required parameters to be read
     integer                 :: nparams2=0         ! Number of secondary parameters required
     integer                 :: ios,i,j,n,filenameini
     character(len=20)       :: istring1(iomax),istring2(iomax)
@@ -229,10 +229,67 @@ contains
           end if
 !           write(outputunit,"('lattice = ',a2)") lattice
           nparams = nparams-1
+
+          select case(lattice)
+          case("bcc")
+            a1 = [-0.5d0,  0.5d0,  0.5d0]
+            a2 = [ 0.5d0, -0.5d0,  0.5d0]
+            a3 = [ 0.5d0,  0.5d0, -0.5d0]
+          case("fcc")
+            a1 = [0.0d0, 0.5d0, 0.5d0]
+            a2 = [0.5d0, 0.0d0, 0.5d0]
+            a3 = [0.5d0, 0.5d0, 0.0d0]
+          case("cubic")
+            a1 = [1.0d0, 0.0d0, 0.0d0]
+            a2 = [0.0d0, 1.0d0, 0.0d0]
+            a3 = [0.0d0, 0.0d0, 1.0d0]
+          case("hcp")
+            a1 = [1.0d0, 0.0d0, 0.0d0]
+            a2 = [0.5d0, sqrt(3.0d0)*0.5d0, 0.0d0]
+            a3 = [0.0d0, 0.0d0, sqrt(8.0d0 / 3.0d0)]
+          case default
+            nparams = nparams + 1
+          end select
         case("lattice=")
           lattice = istring1(i+1)
 !           write(outputunit,"('lattice = ',a2)") lattice
           nparams = nparams-1
+          select case(lattice)
+          case("bcc")
+            a1 = [-0.5d0,  0.5d0,  0.5d0]
+            a2 = [ 0.5d0, -0.5d0,  0.5d0]
+            a3 = [ 0.5d0,  0.5d0, -0.5d0]
+          case("fcc")
+            a1 = [0.0d0, 0.5d0, 0.5d0]
+            a2 = [0.5d0, 0.0d0, 0.5d0]
+            a3 = [0.5d0, 0.5d0, 0.0d0]
+          case("cubic")
+            a1 = [1.0d0, 0.0d0, 0.0d0]
+            a2 = [0.0d0, 1.0d0, 0.0d0]
+            a3 = [0.0d0, 0.0d0, 1.0d0]
+          case("hcp")
+            a1 = [1.0d0, 0.0d0, 0.0d0]
+            a2 = [0.5d0, sqrt(3.0d0)*0.5d0, 0.0d0]
+            a3 = [0.0d0, 0.0d0, sqrt(8.0d0 / 3.0d0)]
+          case default
+            nparams = nparams + 1
+          end select
+!===============================================================================
+        case("plane")
+          if(istring1(i+1).eq."=") then ! If after keyword there's an '='
+            read(unit=istring1(i+2),fmt=*,iostat=ios) pln_dir(1)
+            read(unit=istring1(i+3),fmt=*,iostat=ios) pln_dir(2)
+            read(unit=istring1(i+4),fmt=*,iostat=ios) pln_dir(3)
+          else ! If there's no '=' after keyword, get from next line
+            read(unit=istring2(i+0),fmt=*,iostat=ios) pln_dir(1)
+            read(unit=istring2(i+1),fmt=*,iostat=ios) pln_dir(2)
+            read(unit=istring2(i+2),fmt=*,iostat=ios) pln_dir(3)
+          end if
+!           write(outputunit,"('lattice = ',a2)") lattice
+          nparams = nparams-1
+
+
+!===============================================================================
 !===============================================================================
         case("Npl")
           if(istring1(i+1).eq."=") then ! If after keyword there's an '='
@@ -506,18 +563,33 @@ contains
 !           write(outputunit,"('dirEfield = ',a2)") dirEfield
           nparams = nparams-1
 !===============================================================================
-        case("ncp")
+!         case("ncp")
+!           if(istring1(i+1).eq."=") then ! If after keyword there's an '='
+!             read(unit=istring1(i+2),fmt=*,iostat=ios) ncp
+!           else ! If there's no '=' after keyword, get from next line
+!             read(unit=istring2(i),fmt=*,iostat=ios) ncp
+!           end if
+! !           write(outputunit,"('ncp = ',i0,' x ',i0)") ncp
+!           nparams = nparams-1
+!         case("ncp=")
+!             read(unit=istring1(i+1),fmt=*,iostat=ios) ncp
+! !           write(outputunit,"('ncp = ',i0,' x ',i0)") ncp
+!           nparams = nparams-1
+!
+!===============================================================================
+        case("nkpt")
           if(istring1(i+1).eq."=") then ! If after keyword there's an '='
-            read(unit=istring1(i+2),fmt=*,iostat=ios) ncp
+            read(unit=istring1(i+2),fmt=*,iostat=ios) nkpt
           else ! If there's no '=' after keyword, get from next line
-            read(unit=istring2(i),fmt=*,iostat=ios) ncp
+            read(unit=istring2(i),fmt=*,iostat=ios) nkpt
           end if
 !           write(outputunit,"('ncp = ',i0,' x ',i0)") ncp
           nparams = nparams-1
-        case("ncp=")
-            read(unit=istring1(i+1),fmt=*,iostat=ios) ncp
+        case("nkpt=")
+            read(unit=istring1(i+1),fmt=*,iostat=ios) nkpt
 !           write(outputunit,"('ncp = ',i0,' x ',i0)") ncp
           nparams = nparams-1
+
 !===============================================================================
         case("parts")
           if(istring1(i+1).eq."=") then ! If after keyword there's an '='
