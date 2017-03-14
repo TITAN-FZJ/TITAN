@@ -6,6 +6,8 @@ module mod_parameters
   integer,parameter :: dmax=20
 ! Number of k-point generation vectors (S. Cunningham, Phys. Rev. B 10, 4988 (1974))
   integer       :: ncp
+! Approximate number of k-points
+  integer       :: nkpt
 ! Small imaginary part included in the energy z = E + i.eta
   real(double)  :: eta
 ! Fermi energy (read from mod_tight_binding)
@@ -24,6 +26,10 @@ module mod_parameters
 ! Lattice and surface direction
   character(len=6) :: lattice
   integer          :: Npl,Npl_i,Npl_f,Npl_input
+  real(double)     :: a1(3)
+  real(double)     :: a2(3)
+  real(double)     :: a3(3)
+  real(double)     :: pln_dir(3)
 ! Lattice parameter (define the units of distance in the program)
   real(double)     :: a0
 !========================================================================================!
