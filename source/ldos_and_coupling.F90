@@ -43,10 +43,10 @@ subroutine ldos_and_coupling()
   ! LDOS
   do i=1,Npl
     iw = 1000+(mpitag-1)*Npl*2 + (i-1)*2 + 1
-    write(varm,"('./results/',a1,'SOC/',a,'/LDOS/ldosu_layer',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),i,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+    write(varm,"('./results/',a1,'SOC/',a,'/LDOS/ldosu_layer',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),i,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
     open (unit=iw, file=varm,status='unknown')
     iw = iw+1
-    write(varm,"('./results/',a1,'SOC/',a,'/LDOS/ldosd_layer',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),i,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+    write(varm,"('./results/',a1,'SOC/',a,'/LDOS/ldosd_layer',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),i,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
     open (unit=iw, file=varm,status='unknown')
   end do
   ! Exchange interactions
@@ -54,7 +54,7 @@ subroutine ldos_and_coupling()
     iw = 2000+(mpitag-1)*nmaglayers*nmaglayers*2+(j-1)*nmaglayers*2+(i-1)*2
     if(i.eq.j) then
       iw = iw + 1
-      write(varm,"('./results/',a1,'SOC/',a,'/Jij/Jii_',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),mmlayermag(i)-1,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+      write(varm,"('./results/',a1,'SOC/',a,'/Jij/Jii_',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),mmlayermag(i)-1,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
       open (unit=iw, file=varm,status='unknown')
       write(unit=iw, fmt="('#   energy      ,  Jii_xx           ,   Jii_yy  ')")
       iw = iw + 1
@@ -63,11 +63,11 @@ subroutine ldos_and_coupling()
       ! where J_ii is the one calculated here
     else
       iw = iw + 1
-      write(varm,"('./results/',a1,'SOC/',a,'/Jij/J_',i0,'_',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),mmlayermag(i)-1,mmlayermag(j)-1,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+      write(varm,"('./results/',a1,'SOC/',a,'/Jij/J_',i0,'_',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),mmlayermag(i)-1,mmlayermag(j)-1,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
       open (unit=iw, file=varm,status='unknown')
       write(unit=iw, fmt="('#   energy      ,   isotropic Jij    ,   anisotropic Jij_xx    ,   anisotropic Jij_yy     ')")
       iw = iw + 1
-      write(varm,"('./results/',a1,'SOC/',a,'/Jij/Dz_',i0,'_',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),mmlayermag(i)-1,mmlayermag(j)-1,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+      write(varm,"('./results/',a1,'SOC/',a,'/Jij/Dz_',i0,'_',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),mmlayermag(i)-1,mmlayermag(j)-1,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
       open (unit=iw, file=varm,status='unknown')
       write(unit=iw, fmt="('#   energy      , Dz = (Jxy - Jyx)/2       ')")
     end if

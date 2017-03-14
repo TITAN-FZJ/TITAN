@@ -167,9 +167,9 @@ end subroutine ldos_jij_energy
 
 !   !Writing on files
 !   do i=1,Npl+2
-!     write(varm,"('./results/',l1,'SOC/',a,'/LDOS/ldosu_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,trim(Npl_folder),i,magaxis,socscale,ncp,eta,Utype,hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
+!     write(varm,"('./results/',l1,'SOC/',a,'/LDOS/ldosu_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,trim(Npl_folder),i,magaxis,socscale,nkpt,eta,Utype,hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
 !     open (unit=117+i, file=varm,status='unknown')
-!     write(varm,"('./results/',l1,'SOC/',a,'/LDOS/ldosd_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_ncp=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,trim(Npl_folder),i,magaxis,socscale,ncp,eta,Utype,hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
+!     write(varm,"('./results/',l1,'SOC/',a,'/LDOS/ldosd_layer',I0,'_magaxis=',A,'_socscale=',f5.2,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,'_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2,'.dat')") SOC,trim(Npl_folder),i,magaxis,socscale,nkpt,eta,Utype,hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
 !     open (unit=517+i, file=varm,status='unknown')
 !   end do
 !   ldos_writing_plane_loop: do i=1,Npl+2

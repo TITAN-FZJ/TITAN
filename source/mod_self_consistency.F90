@@ -331,7 +331,7 @@ contains
   !   Reading previous results (mx, my, mz and eps1) from files (if available)
     if(iflag.eq.0) then
       if(trim(scfile).eq."") then ! If a filename is not given in inputcard (or don't exist), use the default one
-        write(file,"(a,a,a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_ncp=',i0,'_eta=',es8.1,a,'.dat')") trim(folder),trim(prefix),trim(Npl_folder),dfttype,parts,Utype,trim(fieldpart),ncp,eta,trim(socpart)
+        write(file,"(a,a,a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") trim(folder),trim(prefix),trim(Npl_folder),dfttype,parts,Utype,trim(fieldpart),nkpt,eta,trim(socpart)
         open(unit=99,file=file,status="old",iostat=err)
         if((err.eq.0).and.(myrank_row_hw.eq.0)) then
           write(outputunit_loop,"('[read_write_sc_results] Self-consistency file already exists. Reading it now...')")
@@ -347,7 +347,7 @@ contains
             write(outputunit_loop,"(a)") trim(scfile)
           end if
         else ! 2nd+ iteration, cheking if default file exists
-          write(file,"(a,a,a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_ncp=',i0,'_eta=',es8.1,a,'.dat')") trim(folder),trim(prefix),trim(Npl_folder),dfttype,parts,Utype,trim(fieldpart),ncp,eta,trim(socpart)
+          write(file,"(a,a,a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") trim(folder),trim(prefix),trim(Npl_folder),dfttype,parts,Utype,trim(fieldpart),nkpt,eta,trim(socpart)
           open(unit=99,file=file,status="old",iostat=err)
           if(err.eq.0) then ! Reading file for the same parameters
             if(myrank_row_hw.eq.0) then
@@ -392,7 +392,7 @@ contains
       else
         ! If file does not exist, try to read for parts-1
         close(99)
-        write(file,"(a,a,a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_ncp=',i0,'_eta=',es8.1,a,'.dat')") trim(folder),trim(prefix),trim(Npl_folder),dfttype,parts-1,Utype,trim(fieldpart),ncp,eta,trim(socpart)
+        write(file,"(a,a,a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") trim(folder),trim(prefix),trim(Npl_folder),dfttype,parts-1,Utype,trim(fieldpart),nkpt,eta,trim(socpart)
         open(unit=99,file=file,status="old",iostat=err)
         if(err.eq.0) then
           if(myrank_row_hw.eq.0) then
@@ -424,7 +424,7 @@ contains
 !     Writing new results (mx, my, mz and eps1) and mz to file
     else
       write(outputunit_loop,"('[read_write_sc_results] Writing new eps1, mx, my and mz to file...')")
-      write(scfile,"(a,a,a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_ncp=',i0,'_eta=',es8.1,a,'.dat')") trim(folder),trim(prefix),trim(Npl_folder),dfttype,parts,Utype,trim(fieldpart),ncp,eta,trim(socpart)
+      write(scfile,"(a,a,a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") trim(folder),trim(prefix),trim(Npl_folder),dfttype,parts,Utype,trim(fieldpart),nkpt,eta,trim(socpart)
       open (unit=99,status="unknown",file=scfile)
       do i=1,Npl
         write(99,"(es21.11,2x,'! eps1')") eps1(i)
