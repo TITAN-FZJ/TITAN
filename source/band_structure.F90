@@ -120,7 +120,7 @@ subroutine band_structure()
     if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
   end if
 
-  write(varm,"('./results/',a1,'SOC/',a,'/BS/bandstructure_kdir=',a2,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),kdirection,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+  write(varm,"('./results/',a1,'SOC/',a,'/BS/bandstructure_kdir=',a2,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),kdirection,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
   open (unit=666+mpitag, file=varm,status='unknown')
 
   deltak = (kmax - kmin)/npts
