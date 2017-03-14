@@ -417,28 +417,16 @@ contains
     real(double), allocatable :: cnt(:,:)            !> @var Contains distance and stage informations for all elements in tmp
     integer, allocatable :: on_plane_aux(:)          !> @var on_plane_aux(i) contains the first element of the i-1 -th neighbour stage
     integer, allocatable :: off_plane_aux(:)
-    integer :: nn_stages
-    integer :: nn_size
-    integer :: nnt
-    integer :: on_cnt
-    integer :: off_cnt
-    integer :: i
-    integer :: j
-    integer :: l
-    integer :: m
-    integer :: n
-    !integer :: plnn
+    integer :: nn_stages, nn_size, nnt, on_cnt, off_cnt
+    integer :: i, j, l, m, n
     logical :: pl_flag
 
     nn_stages = 2
     nnt = 2 * nn_stages
 
     allocate(tmp(3, 2, (2*nnt+1)**3))
-    allocate(dist((2*nnt+1)**3))
-
-    allocate(cnt(2, nn_stages+2))
-    allocate(on_plane_aux(nn_stages+2))
-    allocate(off_plane_aux(nn_stages+2))
+    allocate(dist((2*nnt+1)**3), cnt(2, nn_stages+2))
+    allocate(on_plane_aux(nn_stages+2), off_plane_aux(nn_stages+2))
 
     ! Generate neighbours up to 2 * nn_stages the number of wanted neighbours
     ! Insertion sort approach
@@ -477,7 +465,6 @@ contains
     end do
 
     nn_size = cnt(1, nn_stages+2) - 1
-    !print *, nn_size
 
     ! Sort into on and off plane of interest
     allocate(on_plane(3,2,nn_size), off_plane(3,2,nn_size))
@@ -526,27 +513,6 @@ contains
       end if
     end do
 
-    ! ! Output for debugging
-    ! print *, "On-plane elements"
-    ! print *, on_cnt, on_plane_aux
-    ! do i=1, nn_stages+1
-    !   print *, i-1, "neighbour"
-    !   do j=on_plane_aux(i), on_plane_aux(i+1)-1
-    !     print *, j, on_plane(:,1,j), on_plane(:,2,j)
-    !     print *, on_plane_dist(j)
-    !   end do
-    ! end do
-    ! print *, "Off-plane elements"
-    ! print *, off_cnt, off_plane_aux
-    ! print *, "plnn", plnn
-    ! do i=1, nn_stages+1
-    !   print *, i-1, "neighbour"
-    !   do j=off_plane_aux(i), off_plane_aux(i+1)-1
-    !     print *, j, off_plane(:,1,j), off_plane(:,2,j)
-    !     print *, off_plane_dist(1,j), off_plane_dist(2,j)
-    !   end do
-    ! end do
-
     n01 = on_plane_aux(3) - on_plane_aux(2)
     n02 = on_plane_aux(4) - on_plane_aux(3)
     n0  = n01 + n02
@@ -570,15 +536,8 @@ contains
       c2(i,:) = off_plane(:, 2, off_plane_aux(3) + i - 1)
     end do
 
-    deallocate(tmp)
-    deallocate(dist)
-    deallocate(on_plane)
-    deallocate(on_plane_dist)
-    deallocate(on_plane_aux)
-    deallocate(off_plane)
-    deallocate(off_plane_dist)
-    deallocate(off_plane_aux)
-    deallocate(cnt)
+    deallocate(tmp, dist, on_plane ,on_plane_dist, on_plane_aux)
+    deallocate(off_plane, off_plane_dist, off_plane_aux, cnt)
 
     return
   end subroutine
