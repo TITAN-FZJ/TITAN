@@ -17,6 +17,14 @@ while (( "$#" )); do
         debug="DEBUG=$1"
         shift
         ;;
+      (documentation)
+        doc=true
+        shift
+        ;;
+      (latex)
+        tex=true
+        shift
+        ;;
       (scalasca)
         perform="PERFORM=$1"
         shift
@@ -101,6 +109,16 @@ fi
 echo "make $rule $platform $parallel $debug $perform $filename $verbose" | tee build/${addplatform}/last_compilation
 
 make -j8 $rule $platform $parallel $debug $perform $filename $verbose
+
+if [ "$doc" = true ]; then
+  doxygen Doxyfile
+fi
+
+if [ "$tex" = true ]; then
+  cd latex
+  make
+  cd ..
+fi
 
 # Removing added lines to mod_io.F90
 if [[ ! -z "$addvariable" ]] ; then
