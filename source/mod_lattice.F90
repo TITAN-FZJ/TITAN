@@ -1,402 +1,56 @@
+!-------------------------------------------------------------------------------
+! DHE, official name pending
+!-------------------------------------------------------------------------------
+!
+! MODULE: mod_lattice
+!
+!> @author
+!> Filipe Guimaraes, PGI-1/IAS-1, Peter-Grünberg-Institut,FZ Jülich
+!
+! DESCRIPTION:
+!> Calculation of next nearest neighbours in plane and out of plane.
+!
+! REVISION HISTORY:
+! 12 August 2015 - Initial Version
+! 14 March 2017 - Last revision
+!-------------------------------------------------------------------------------
 module mod_lattice
   use mod_f90_kind
   implicit none
-! n01 - number of in-plane 1st nearest neighbors
-! n02 - number of in-plane 2nd nearest neighbors
-! n1 - number of inter-plane 1st nearest neighbors
-! n2 - number of inter-plane 2nd nearest neighbors
-! r0 - position of in-plane 1st and 2nd nearest neighbors
-! c0 - direction cosines of in-plane 1st and 2nd nearest neighbors
-! r1 - position of inter-plane 1st nearest neighbors
-! c1 - direction cosines of inter-plane 1st nearest neighbors
-! r2 - position of inter-plane 1st nearest neighbors
-! c2 - direction cosines of inter-plane 1st nearest neighbors
-  integer :: n01,n02,n0,n1,n2
-! plnn - number of nearest neighbors planes - to mount (tri-)diagonal matrices
-  integer :: plnn
-  real(double), dimension(:,:), allocatable :: r0,c0,r1,c1,r2,c2
 
-! Out-of-plane unit vector
-  real(double), dimension(3) :: versor_oop
-! In-plane unit vector perpendicular to current direction
-  integer :: transverse_neighbors
-  integer :: longitudinal_neighbors
-  real(double), dimension(3) :: versor_Eperp
+  integer :: n01      !< Number of in-plane 1st nearest neighbors
+  integer :: n02      !< Number of in-plane 2nd nearest neighbors
+  integer :: n0       !< Number of all in-plane nearest neighbours
+  integer :: n1       !< Number of inter-plane 1st nearest neighbors
+  integer :: n2       !< Number of inter-plane 2nd nearest neighbors
+  integer :: plnn     !< Number of nearest neighbors planes - to mount (tri-)diagonal matrices
+  real(double), dimension(:,:), allocatable :: r0 !< Position of in-plane 1st and 2nd nearest neighbors
+  real(double), dimension(:,:), allocatable :: c0 !< Direction cosines of in-plane 1st and 2nd nearest neighbors
+  real(double), dimension(:,:), allocatable :: r1 !< Position of inter-plane 1st nearest neighbors
+  real(double), dimension(:,:), allocatable :: c1 !< Direction cosines of inter-plane 1st nearest neighbors
+  real(double), dimension(:,:), allocatable :: r2 !< Position of inter-plane 1st nearest neighbors
+  real(double), dimension(:,:), allocatable :: c2 !< Direction cosines of inter-plane 1st nearest neighbors
+
+  real(double), dimension(3) :: versor_oop   !< Out-of-plane unit vector
+  integer :: transverse_neighbors            !< TBD.
+  integer :: longitudinal_neighbors          !< TBD.
+  real(double), dimension(3) :: versor_Eperp !< In-plane unit vector perpendicular to current direction
 
 contains
-
-! BCC(110)
-! To calculate the sum over the BZ,
-! the cubic axis are rotated are chosen such as
-!   z=z'|
-!       |  /y'
-!       | /\ a
-!       |/__|________y
-!       /\
-!      /__\
-!    x/ a  \x'
-!
-!   a = pi/4
-! The direction perpendicular to the layers is y'
-!
-! n01,n02   = # of 1st. and 2nd. in-plane n.n. respectively
-! n1,n2     = # of 1st. and 2nd. inter-plane n.n. respectively
-! r0( i, l) = coord. of the in-plane (first & second n.n.)
-!       (i=1,n0; l = 1,3 (x,y,z);
-!       a0 = latt. const.
-! c0( i, l) = direction cosines of r0
-! r1( i, l) = coord. of the inter-plane 1st. n.n. (i=1,n1)
-! c1( i, l) = direction cosines of r1
-! r2( i, l) = coord. of the inter-plane 2nd. n.n. (i=1,n2)
-! c2( i, l) = direction cosines of r2
-
-  subroutine bcc110()
-    use mod_f90_kind
-    use mod_constants
-    use mod_parameters, only: a0
-    implicit none
-    real(double)  :: aux
-    real(double) :: a1(3)
-    real(double) :: a2(3)
-    real(double) :: a3(3)
-    real(double) :: p(3)
-
-    p  = [ 1.0d0, -1.0d0,  0.0d0] / sqrt(2.d0)
-    a1 = [-0.5d0,  0.5d0,  0.5d0] * a0
-    a2 = [ 0.5d0, -0.5d0,  0.5d0] * a0
-    a3 = [ 0.5d0,  0.5d0, -0.5d0] * a0
-
-    call next_neighbour_init(a1, a2, a3, p)
-
-    ! n01=4
-    ! n02=2
-    ! n0=n01+n02
-    ! plnn=1
-    ! n1=2
-    ! n2=2
-    !
-    ! allocate(r0(n0,3),c0(n0,3),r1(n1,3),c1(n1,3),r2(n2,3),c2(n2,3))
-    !
-    ! ! BCC (1 -1 0)
-    ! ! ! in-plane 1st. and 2nd. n.n.
-    ! r0(1,1) = 0.5d0
-    ! r0(1,2) = 0.5d0
-    ! r0(1,3) = 0.5d0
-    !
-    ! r0(2,1) =-0.5d0
-    ! r0(2,2) =-0.5d0
-    ! r0(2,3) = 0.5d0
-    !
-    ! r0(3,1) =-0.5d0
-    ! r0(3,2) =-0.5d0
-    ! r0(3,3) =-0.5d0
-    !
-    ! r0(4,1) = 0.5d0
-    ! r0(4,2) = 0.5d0
-    ! r0(4,3) =-0.5d0
-    !
-    ! r0(5,1) = 0.d0
-    ! r0(5,2) = 0.d0
-    ! r0(5,3) = 1.d0
-    !
-    ! r0(6,1) = 0.d0
-    ! r0(6,2) = 0.d0
-    ! r0(6,3) =-1.d0
-    !
-    ! r0 = r0*a0
-    !
-    ! aux = 1.d0/sq3
-    !
-    ! c0(1,1) = aux
-    ! c0(1,2) = aux
-    ! c0(1,3) = aux
-    !
-    ! c0(2,1) =-aux
-    ! c0(2,2) =-aux
-    ! c0(2,3) = aux
-    !
-    ! c0(3,1) =-aux
-    ! c0(3,2) =-aux
-    ! c0(3,3) =-aux
-    !
-    ! c0(4,1) = aux
-    ! c0(4,2) = aux
-    ! c0(4,3) =-aux
-    !
-    ! c0(5,1) = 0.d0
-    ! c0(5,2) = 0.d0
-    ! c0(5,3) = 1.d0
-    !
-    ! c0(6,1) = 0.d0
-    ! c0(6,2) = 0.d0
-    ! c0(6,3) =-1.d0
-    !
-    ! !  inter-plane 1st. n.n.
-    !
-    ! r1(1,1) =-0.5d0
-    ! r1(1,2) = 0.5d0
-    ! r1(1,3) = 0.5d0
-    !
-    ! r1(2,1) =-0.5d0
-    ! r1(2,2) = 0.5d0
-    ! r1(2,3) =-0.5d0
-    !
-    ! r1 = r1*a0
-    !
-    ! c1(1,1) =-aux
-    ! c1(1,2) = aux
-    ! c1(1,3) = aux
-    !
-    ! c1(2,1) =-aux
-    ! c1(2,2) = aux
-    ! c1(2,3) =-aux
-    !
-    ! !  inter-plane 2nd. n.n.
-    !
-    ! r2(1,1) = 0.d0
-    ! r2(1,2) = 1.d0
-    ! r2(1,3) = 0.d0
-    !
-    ! r2(2,1) =-1.d0
-    ! r2(2,2) = 0.d0
-    ! r2(2,3) = 0.d0
-    !
-    ! r2 = r2*a0
-    !
-    ! c2(1,1) = 0.d0
-    ! c2(1,2) = 1.d0
-    ! c2(1,3) = 0.d0
-    !
-    ! c2(2,1) =-1.d0
-    ! c2(2,2) = 0.d0
-    ! c2(2,3) = 0.d0
-
-    return
-  end subroutine bcc110
-
-! FCC(100)
-! The direction perpendicular to the layers is z'
-!
-! n01,n02   = # of 1st. and 2nd. in-plane n.n. respectively
-! n1,n2     = # of 1st. and 2nd. inter-plane n.n. respectively
-! r0( i, l) = coord. of the in-plane (first & second n.n.)
-!       (i=1,n0; l = 1,3 (x,y,z);
-!       a0 = latt. const.
-! c0( i, l) = direction cosines of r0
-! r1( i, l) = coord. of the inter-plane 1st. n.n. (i=1,n1)
-! c1( i, l) = direction cosines of r1
-! r2( i, l) = coord. of the inter-plane 2nd. n.n. (i=1,n2)
-! c2( i, l) = direction cosines of r2
-
-  subroutine fcc100()
-    use mod_f90_kind
-    use mod_constants
-    use mod_parameters, only: a0
-    implicit none
-    real(double)  :: aux
-    real(double) :: a1(3)
-    real(double) :: a2(3)
-    real(double) :: a3(3)
-    real(double) :: p(3)
-
-    p  = [ 0.0d0,  0.0d0,  -1.0d0]
-    a1 = [ 0.0d0,  0.5d0,  0.5d0] * a0
-    a2 = [ 0.5d0,  0.0d0,  0.5d0] * a0
-    a3 = [ 0.5d0,  0.5d0,  0.0d0] * a0
-
-    call next_neighbour_init(a1, a2, a3, p)
-
-    ! n01=4
-    ! n02=4
-    ! n0=n01+n02
-    ! plnn=2
-    ! n1=4
-    ! n2=1
-    !
-    ! allocate(r0(n0,3),c0(n0,3),r1(n1,3),c1(n1,3),r2(n2,3),c2(n2,3))
-    !
-    ! ! FCC (1 0 0)
-    ! ! ! in-plane 1st. n.n.
-    ! r0(1,1) = 0.5d0
-    ! r0(1,2) = 0.5d0
-    ! r0(1,3) = 0.0d0
-    !
-    ! r0(2,1) =-0.5d0
-    ! r0(2,2) = 0.5d0
-    ! r0(2,3) = 0.0d0
-    !
-    ! r0(3,1) =-0.5d0
-    ! r0(3,2) =-0.5d0
-    ! r0(3,3) = 0.0d0
-    !
-    ! r0(4,1) = 0.5d0
-    ! r0(4,2) =-0.5d0
-    ! r0(4,3) = 0.0d0
-    !
-    ! r0(5,1) = 1.0d0
-    ! r0(5,2) = 0.0d0
-    ! r0(5,3) = 0.0d0
-    !
-    ! r0(6,1) = 0.0d0
-    ! r0(6,2) = 1.0d0
-    ! r0(6,3) = 0.0d0
-    !
-    ! r0(7,1) =-1.0d0
-    ! r0(7,2) = 0.0d0
-    ! r0(7,3) = 0.0d0
-    !
-    ! r0(8,1) = 0.0d0
-    ! r0(8,2) =-1.0d0
-    ! r0(8,3) = 0.0d0
-    !
-    ! aux = sq2
-    ! c0(1:4,:) = r0(1:4,:)*aux
-    ! c0(5:8,:) = r0(5:8,:)
-    !
-    ! r0 = r0*a0
-    !
-    ! !  inter-plane 1st. n.n.
-    ! r1(1,1) = 0.5d0
-    ! r1(1,2) = 0.0d0
-    ! r1(1,3) = 0.5d0
-    !
-    ! r1(2,1) = 0.0d0
-    ! r1(2,2) = 0.5d0
-    ! r1(2,3) = 0.5d0
-    !
-    ! r1(3,1) =-0.5d0
-    ! r1(3,2) = 0.0d0
-    ! r1(3,3) = 0.5d0
-    !
-    ! r1(4,1) = 0.0d0
-    ! r1(4,2) =-0.5d0
-    ! r1(4,3) = 0.5d0
-    !
-    ! c1 = r1*aux
-    !
-    ! r1 = r1*a0
-    !
-    ! !  inter-plane 2nd. n.n.
-    ! r2(1,1) = 0.d0
-    ! r2(1,2) = 0.d0
-    ! r2(1,3) = 1.d0
-    !
-    ! c2 = r2
-    !
-    ! r2 = r2*a0
-
-    return
-  end subroutine fcc100
-
-! FCC(111)
-! The direction perpendicular to the layers is z'
-!
-! n01,n02   = # of 1st. and 2nd. in-plane n.n. respectively
-! n1,n2     = # of 1st. and 2nd. inter-plane n.n. respectively
-! r0( i, l) = coord. of the in-plane (first & second n.n.)
-!       (i=1,n0; l = 1,3 (x,y,z);
-!       a0 = latt. const.
-! c0( i, l) = direction cosines of r0
-! r1( i, l) = coord. of the inter-plane 1st. n.n. (i=1,n1)
-! c1( i, l) = direction cosines of r1
-! r2( i, l) = coord. of the inter-plane 2nd. n.n. (i=1,n2)
-! c2( i, l) = direction cosines of r2
-
-  subroutine fcc111()
-    use mod_f90_kind
-    use mod_constants
-    use mod_parameters, only: a0
-    implicit none
-    real(double)  :: aux
-    real(double) :: a1(3)
-    real(double) :: a2(3)
-    real(double) :: a3(3)
-    real(double) :: p(3)
-
-    p  = -1.d0 * [ 1.0d0,  1.0d0,  1.0d0] / sqrt(3.d0)
-    a1 = [ 0.0d0,  0.5d0,  0.5d0] * a0
-    a2 = [ 0.5d0,  0.0d0,  0.5d0] * a0
-    a3 = [ 0.5d0,  0.5d0,  0.0d0] * a0
-
-    call next_neighbour_init(a1, a2, a3, p)
-
-    ! n01=6
-    ! n02=0
-    ! n0=n01+n02
-    ! plnn=1
-    ! n1=3
-    ! n2=3
-    !
-    ! allocate(r0(n0,3),c0(n0,3),r1(n1,3),c1(n1,3),r2(n2,3),c2(n2,3))
-    !
-    ! ! FCC (1 1 1)
-    ! ! ! in-plane 1st. n.n. (there are no 2nd. n.n.)
-    ! r0(1,1) =-0.5d0
-    ! r0(1,2) = 0.5d0
-    ! r0(1,3) = 0.0d0
-    !
-    ! r0(2,1) =-0.5d0
-    ! r0(2,2) = 0.0d0
-    ! r0(2,3) = 0.5d0
-    !
-    ! r0(3,1) = 0.0d0
-    ! r0(3,2) =-0.5d0
-    ! r0(3,3) = 0.5d0
-    !
-    ! r0(4,1) = 0.5d0
-    ! r0(4,2) =-0.5d0
-    ! r0(4,3) = 0.0d0
-    !
-    ! r0(5,1) = 0.5d0
-    ! r0(5,2) = 0.0d0
-    ! r0(5,3) =-0.5d0
-    !
-    ! r0(6,1) = 0.0d0
-    ! r0(6,2) = 0.5d0
-    ! r0(6,3) =-0.5d0
-    !
-    ! aux = sq2
-    ! c0 = aux*r0
-    !
-    ! r0 = r0*a0
-    !
-    ! !  inter-plane 1st. n.n.
-    ! r1(1,1) = 0.0d0
-    ! r1(1,2) = 0.5d0
-    ! r1(1,3) = 0.5d0
-    !
-    ! r1(2,1) = 0.5d0
-    ! r1(2,2) = 0.0d0
-    ! r1(2,3) = 0.5d0
-    !
-    ! r1(3,1) = 0.5d0
-    ! r1(3,2) = 0.5d0
-    ! r1(3,3) = 0.0d0
-    !
-    ! c1 = aux*r1
-    !
-    ! r1 = r1*a0
-    !
-    ! !  inter-plane 2nd. n.n.
-    ! r2(1,1) = 0.d0
-    ! r2(1,2) = 0.d0
-    ! r2(1,3) = 1.d0
-    !
-    ! r2(2,1) = 1.d0
-    ! r2(2,2) = 0.d0
-    ! r2(2,3) = 0.d0
-    !
-    ! r2(3,1) = 0.d0
-    ! r2(3,2) = 1.d0
-    ! r2(3,3) = 0.d0
-    !
-    ! c2 = r2
-    !
-    ! r2 = r2*a0
-
-    return
-  end subroutine fcc111
-
+  !-----------------------------------------------------------------------------
+  !> @author
+  !> Jens Renè Suckert, PGI-1/IAS-1, Peter-Grünberg-Institut
+  !
+  ! DESCRIPTION:
+  !> Calculation of next nearest neighbours in plane and out of plane.
+  !
+  ! REVISION HISTORY:
+  ! 14 March 2017 - Current Revision
+  !> @param[in] a1 Lattice unit vector
+  !> @param[in] a2 Lattice unit vector
+  !> @param[in] a3 Lattice unit vector
+  !> @param[in] p  Plane direction vector
+  !-----------------------------------------------------------------------------
   subroutine next_neighbour_init(a1,a2,a3,p)
     use mod_f90_kind
     use mod_constants
@@ -405,17 +59,17 @@ contains
     real(double), intent(in) :: a2(3)
     real(double), intent(in) :: a3(3)
     real(double), intent(in) :: p(3)
-    real(double), allocatable :: tmp(:,:,:)          !> @var Array contains all neighbours in the ellipsoid 2*nn_stages*(a1,a2,a3)
-    real(double), allocatable :: dist(:)             !> @var Contains all distances in the ellipsoid 2*nn_stages*(a1,a2,a3)
-    real(double), allocatable :: on_plane(:,:,:)     !> @var Array of type (3,2,on_cnt), all coordinates and directional cosines of neighbours in plane described by vector
-    real(double), allocatable :: off_plane(:,:,:)    !> @var Array of type (3,2,off_cnt), containing half the intra-plane elements
-    real(double), allocatable :: on_plane_dist(:)    !> @var Contains the distance of each point to the Origin
-    real(double), allocatable :: off_plane_dist(:,:) !> @var Contains the distance of each point to the Origin and to the plane
+    real(double), allocatable :: tmp(:,:,:)          ! Array contains all neighbours in the ellipsoid 2*nn_stages*(a1,a2,a3)
+    real(double), allocatable :: dist(:)             ! Contains all distances in the ellipsoid 2*nn_stages*(a1,a2,a3)
+    real(double), allocatable :: on_plane(:,:,:)     ! Array of type (3,2,on_cnt), all coordinates and directional cosines of neighbours in plane described by vector
+    real(double), allocatable :: off_plane(:,:,:)    ! Array of type (3,2,off_cnt), containing half the intra-plane elements
+    real(double), allocatable :: on_plane_dist(:)    ! Contains the distance of each point to the Origin
+    real(double), allocatable :: off_plane_dist(:,:) ! Contains the distance of each point to the Origin and to the plane
     real(double) :: dist_tmp
     real(double) :: pos_tmp(3)
     real(double) :: cos_tmp(3)
-    real(double), allocatable :: cnt(:,:)            !> @var Contains distance and stage informations for all elements in tmp
-    integer, allocatable :: on_plane_aux(:)          !> @var on_plane_aux(i) contains the first element of the i-1 -th neighbour stage
+    real(double), allocatable :: cnt(:,:)            ! Contains distance and stage informations for all elements in tmp
+    integer, allocatable :: on_plane_aux(:)          ! on_plane_aux(i) contains the first element of the i-1 -th neighbour stage
     integer, allocatable :: off_plane_aux(:)
     integer :: nn_stages, nn_size, nnt, on_cnt, off_cnt
     integer :: i, j, l, m, n
@@ -541,5 +195,4 @@ contains
 
     return
   end subroutine
-
 end module mod_lattice
