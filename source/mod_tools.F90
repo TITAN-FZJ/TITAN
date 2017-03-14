@@ -21,6 +21,44 @@ contains
   end function cross
 
 ! --------------------------------------------------------------------
+! logical function is_perpendicular(a,b):
+!  This subroutines return whether a and b are perpendicular or not
+! --------------------------------------------------------------------
+
+  function is_parallel(a,b)
+    use mod_f90_kind
+    implicit none
+    logical :: is_parallel
+    real(double), dimension(3) :: crs
+    real(double), dimension(3), intent(in) :: a, b
+
+    is_parallel = .false.
+    crs = cross(a,b)
+    if( 1.d-9 > crs(1)*crs(1) + crs(2)*crs(2) + crs(3)*crs(3) ) then
+      is_parallel = .true.
+    end if
+    return
+  end function is_parallel
+
+  ! --------------------------------------------------------------------
+  ! logical function is_parallel(a,b):
+  !  This subroutines return whether a and b are parallel or not
+  ! --------------------------------------------------------------------
+
+    function is_perpendicular(a,b)
+      use mod_f90_kind
+      implicit none
+      logical :: is_perpendicular
+      real(double), dimension(3), intent(in) :: a, b
+
+      is_perpendicular = .false.
+      if( 1.d-9 > abs(dot_product(a,b)) ) then
+        is_perpendicular = .true.
+      end if
+      return
+    end function is_perpendicular
+
+! --------------------------------------------------------------------
 ! double precision function cross_unit():
 !    This subroutine calculates the unit vector in the direction
 ! of the cross product of arrays a and b
