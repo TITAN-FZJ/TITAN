@@ -2,26 +2,19 @@ module mod_parameters
   use mod_f90_kind
   implicit none
 !========================================================================================!
-! Maximum dimension for Npl-dependent quantities that must be read from input
-  integer,parameter :: dmax=20
-! Number of k-point generation vectors (S. Cunningham, Phys. Rev. B 10, 4988 (1974))
-  integer       :: ncp
-! Approximate number of k-points
-  integer       :: nkpt
-! Small imaginary part included in the energy z = E + i.eta
-  real(double)  :: eta
-! Fermi energy (read from mod_tight_binding)
-  real(double)  :: Ef
-! q-vector for the dependence of response functions (not used yet)
-  real(double)  :: q(3)
+  integer,parameter :: dmax=20 !< Maximum dimension for Npl-dependent quantities that must be read from input
+  integer       :: ncp         !< Number of k-point generation vectors (S. Cunningham, Phys. Rev. B 10, 4988 (1974))
+  integer       :: nkpt        !< Approximate number of k-points
+  real(double)  :: eta         !< Small imaginary part included in the energy z = E + i.eta
+  real(double)  :: Ef          !< Fermi energy (read from mod_tight_binding)
+  real(double)  :: q(3)        !< q-vector for the dependence of response functions (not used yet)
 ! Dimensions
-  integer       :: dimsigmaNpl,dim
+  integer       :: dimsigmaNpl !< Dimensions (Maybe enhance description?)
+  integer       :: dim         !< Dimensions (Maybe enhance description?)
 !========================================================================================!
-! Effective intra-site electron electron interaction
-  real(double),allocatable  :: U(:)
-  integer       :: Utype = 2
-! Use HF susceptibilities to calculate currents, disturbances and accumulations (don't renormalize)
-  logical       :: lhfresponses = .false.
+  real(double),allocatable  :: U(:)       !< Effective intra-site electron electron interaction
+  integer       :: Utype = 2              !< Description missing
+  logical       :: lhfresponses = .false. !< Use HF susceptibilities to calculate currents, disturbances and accumulations (don't renormalize)
 !========================================================================================!
 ! Lattice and surface direction
   character(len=6) :: lattice
