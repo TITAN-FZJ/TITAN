@@ -11,7 +11,8 @@
 !===============================================================================!
 !                               SYSTEM VARIABLES                                !
 ! Lattice and surface direction:                                                !
--> lattice = fcc100
+-> lattice = fcc
+-> plane = 0.0 0.0 -1.0
 ! Lattice parameter:                                                            !
 -> a0 = 3.92
 ! Number of planes:                                                             !
