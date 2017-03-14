@@ -282,7 +282,7 @@ program DHE
   end do number_of_planes
 !----------------------- Deallocating variables ------------------------
   deallocate(r0,c0,r1,c1,r2,c2)
-  deallocate(kbz,wkbz,kbz2d)
+  deallocate(kbz,wkbz) !,kbz2d)
 !----------------------- Finalizing the program ------------------------
   if(myrank.eq.0) call write_time(outputunit,'[main] Finished on: ')
   if(myrank.eq.0) close(unit=outputunit)
