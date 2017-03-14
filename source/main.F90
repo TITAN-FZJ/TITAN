@@ -75,40 +75,17 @@ program DHE
     myrank_row = myrank_row_hw
   end if
 !-------------------- Define the lattice structure ---------------------
+  call next_neighbour_init(a0*a1, a0*a2, a0*a3, pln_dir)
 !-------------------- Generating k points in 2D BZ ---------------------
-  select case (lattice)
-  case("bcc110")
-    call bcc110()
-    call generate_kpoints_bcc110()
-  case("fcc100")
-    call fcc100()
-    call generate_kpoints_fcc100()
-  case("fcc111")
-    call fcc111()
-    call generate_kpoints_fcc111()
-  case default
-    if(myrank.eq.0) write(outputunit,"('[main] Lattice not defined: ',a,'!')") lattice
-    call MPI_Finalize(ierr)
-    stop
-  end select
-  write(*,*) "r0"
-  do i=1,n0
-    write(*,*) r0(i,:)
-  end do
-  write(*,*) "r1"
-  do i=1,n1
-    write(*,*) r1(i,:)
-  end do
-  write(*,*) "r2"
-  do i=1,n2
-    write(*,*) r2(i,:)
-  end do
-  write(*,*) n01, n02, n0, n1, n1, plnn
-  stop
+  call generate_kpoints(pln_dir)
+
   ! Writing BZ points and weights into files
   if((lkpoints).and.(myrank.eq.0)) then
     call write_kpoints_to_file()
   end if
+
+  stop
+
 !---- Generating integration points of the complex energy integral -----
   call generate_imag_epoints()
 !------------------------ NUMBER OF PLANES LOOP ------------------------
