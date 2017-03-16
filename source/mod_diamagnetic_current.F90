@@ -137,7 +137,7 @@ contains
       kp = kbz(iz,:)
 
       do neighbor=n0sc1,n0sc2
-        expikr(neighbor) = exp(-zi*(kp(1)*r0(neighbor,1)+kp(2)*r0(neighbor,2)+kp(3)*r0(neighbor,3)))
+        expikr(neighbor) = exp(-zi*dot_product(kp, r0(neighbor,:)))
       end do
 
       ! Calculating derivative of in-plane and n.n. inter-plane hoppings
