@@ -61,7 +61,7 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
     call dtdksub(kp,dtdk)
 
     do neighbor=n0sc1,n0sc2
-      expikr(neighbor) = exp(zi*(kp(1)*r0(neighbor,1)+kp(2)*r0(neighbor,2)+kp(3)*r0(neighbor,3)))
+      expikr(neighbor) = exp(zi * dot_product(kp, r0(neighbor,:)))
     end do
 
     ! Calculating the prefactor (L).t.exp - t.(L).exp
@@ -278,7 +278,7 @@ subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,Lzt
     call dtdksub(kp,dtdk)
 
     do neighbor=n0sc1,n0sc2
-      expikr(neighbor) = exp(zi*(kp(1)*r0(neighbor,1)+kp(2)*r0(neighbor,2)+kp(3)*r0(neighbor,3)))
+      expikr(neighbor) = exp(zi*dot_product(kp, r0(neighbor,:)))
     end do
 
     ! Calculating the prefactor (L).t.exp - t.(L).exp
