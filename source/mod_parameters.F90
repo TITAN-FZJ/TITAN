@@ -12,15 +12,16 @@ module mod_parameters
   integer       :: dimsigmaNpl !< Dimensions (Maybe enhance description?)
   integer       :: dim         !< Dimensions (Maybe enhance description?)
   !========================================================================================!
-  real(double),allocatable  :: U(:)       !< Effective intra-site electron electron interaction
+  real(double), allocatable  :: U(:)       !< Effective intra-site electron electron interaction
   integer       :: Utype = 2              !< Description missing
   logical       :: lhfresponses = .false. !< Use HF susceptibilities to calculate currents, disturbances and accumulations (don't renormalize)
   !========================================================================================!
   ! Lattice and surface direction
-  character(len=6) :: lattice                   !< Lattice description; general(not implemented) or bcc, fcc, hcp
+  character(len=6) :: lattice                   !< Lattice description; general(not implemented) or bcc, fcc, hcp, cubic
   integer          :: Npl,Npl_i,Npl_f,Npl_input !< Description missing.
   real(double)     :: a1(3), a2(3), a3(3)       !< Lattice unit vectors
   real(double)     :: pln_dir(3)                !< Plane vector describing the layer in the unit cell described by a1,a2,a3
+  logical          :: bulk = .false.            !< Flag turning on/off bulk calculations, default: .false., not used yet
   real(double)     :: a0                        !< Lattice parameter (define the units of distance in the program)
   !========================================================================================!
   character(len=1)   :: magaxis         !< Equilibrium magnetization
