@@ -39,7 +39,7 @@ subroutine helphbccsoc(kp,h00so,h01so,h10so,ly)
 ! First and second nearest neighbors
   do i=1,n0
 !   exponential of i.k.r0(i); i=1,n0
-    kr0   = (kp(1)*r0(i,1))+(kp(2)*r0(i,2))+(kp(3)*r0(i,3))
+    kr0   = dot_product(kp,r0(i,:))
     expikr0 = exp(zi*kr0)
     h00 = h00 + (expikr0*t00(ly,i,:,:))
   end do
@@ -58,14 +58,14 @@ subroutine helphbccsoc(kp,h00so,h01so,h10so,ly)
 ! First nearest neighbors
   do i=1,n1
 !   exp(i.k.r1(i)) ; i=1,n1
-    kr1   = (kp(1)*r1(i,1)) + (kp(2)*r1(i,2)) + (kp(3)*r1(i,3))
+    kr1   = dot_product(kp, r1(i,:))
     expikr1 = exp(zi*kr1)
     h01   = h01 + (expikr1*t01(ly,i,:,:))
   end do
 ! Second nearest neighbors
   do i=1,n2
 !   exp(i.k.r2(i)) ; i=1,n2
-    kr2   = (kp(1)*r2(i,1)) + (kp(2)*r2(i,2)) + (kp(3)*r2(i,3))
+    kr2   = dot_product(kp, r2(i,:))
     expikr2 = exp(zi*kr2)
     h01   = h01 + (expikr2*t01(ly,n1+i,:,:))
   end do
@@ -121,7 +121,7 @@ subroutine helphfccsoc(kp,h00so,h01so,h10so,h02so,h20so,ly)
 ! First and second nearest neighbors
   do i=1,n0
 !   exponential of i.k.r0(i); i=1,n0
-    kr0   = (kp(1)*r0(i,1))+(kp(2)*r0(i,2))+(kp(3)*r0(i,3))
+    kr0   = dot_product(kp, r0(i,:))
     expikr0 = exp(zi*kr0)
     h00 = h00 + (expikr0*t00(ly,i,:,:))
   end do
@@ -140,7 +140,7 @@ subroutine helphfccsoc(kp,h00so,h01so,h10so,h02so,h20so,ly)
 ! First nearest neighbors
   do i=1,n1
 !   exp(i.k.r1(i)) ; i=1,n1
-    kr1   = (kp(1)*r1(i,1)) + (kp(2)*r1(i,2)) + (kp(3)*r1(i,3))
+    kr1   = dot_product(kp, r1(i,:))
     expikr1 = exp(zi*kr1)
     h01   = h01 + (expikr1*t01(ly,i,:,:))
   end do
@@ -160,7 +160,7 @@ subroutine helphfccsoc(kp,h00so,h01so,h10so,h02so,h20so,ly)
 ! Second nearest neighbors
   do i=1,n2
 !   exp(i.k.r2(i)) ; i=1,n2
-    kr2   = (kp(1)*r2(i,1)) + (kp(2)*r2(i,2)) + (kp(3)*r2(i,3))
+    kr2   = dot_product(kp, r2(i,:))
     expikr2 = exp(zi*kr2)
     h02   = h02 + (expikr2*t02(ly,i,:,:))
   end do
