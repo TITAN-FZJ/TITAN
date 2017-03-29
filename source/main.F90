@@ -1,3 +1,8 @@
+!> Main program:
+!! Initialize MPI, reads input, define lattice quantities then
+!! loops over number of planes and magnetic field to do the
+!! magnetic self-consistency and calculate either ground state
+!! quantities or response functions
 program DHE
   use mod_f90_kind
   use mod_constants
@@ -28,7 +33,6 @@ program DHE
 #ifdef _UFF
   call MPI_Init(ierr)
 #else
-!   call MPI_Init_thread(MPI_THREAD_MULTIPLE,provided,ierr)
   call MPI_Init_thread(MPI_THREAD_FUNNELED,provided,ierr)
 #endif
   call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ierr)
@@ -89,7 +93,6 @@ program DHE
   case default
     if(myrank.eq.0) write(outputunit,"('[main] Lattice not defined: ',a,'!')") lattice
     call MPI_Finalize(ierr)
-    stop
   end select
   ! Writing BZ points and weights into files
   if((lkpoints).and.(myrank.eq.0)) then

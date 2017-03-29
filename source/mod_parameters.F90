@@ -40,7 +40,7 @@ module mod_parameters
 ! Linear SOC
   logical :: llineargfsoc = .false.,llinearsoc = .false.
 ! Rescale of SOC parameter
-  real(double) :: socscale
+  real(double) :: socscale = 1.d0
 !========================================================================================!
 ! Turn on/off static magnetic field, option to give in magnetic field in tesla
   logical :: lfield

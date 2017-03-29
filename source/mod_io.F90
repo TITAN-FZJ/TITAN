@@ -247,7 +247,7 @@ contains
           nparams = nparams-1
         case("Npl=")
           read(unit=istring1(i+1),fmt=*,iostat=ios) Npl_i
-          read(unit=istring1(i+2),fmt=*,iostat=ios) Npl_f
+          if(index(istring1(i+2),"!").eq.0) read(unit=istring1(i+2),fmt=*,iostat=ios) Npl_f
 !           write(outputunit,"('Npl_i = ',i0)") Npl_i
 !           write(outputunit,"('Npl_f = ',i0)") Npl_f
           nparams = nparams-1
@@ -273,7 +273,7 @@ contains
           end if
           if(SOC) then
 !             write(outputunit,"('Spin Orbit Coupling: ACTIVATED')")
-            nparams2 = nparams2+2 ! magaxis and socscale
+            nparams2 = nparams2+1 ! magaxis
           else
 !             write(outputunit,"('Spin Orbit Coupling: DEACTIVATED')")
           end if
@@ -282,7 +282,7 @@ contains
           read(unit=istring1(i+1),fmt=*,iostat=ios) SOC
           if(SOC) then
 !             write(outputunit,"('Spin Orbit Coupling: ACTIVATED')")
-            nparams2 = nparams2+2 ! magaxis and socscale
+            nparams2 = nparams2+1 ! magaxis
           else
 !             write(outputunit,"('Spin Orbit Coupling: DEACTIVATED')")
           end if
@@ -322,7 +322,7 @@ contains
           end if
           if(lfield) then
 !             write(outputunit,"('Static Magnetic field: ACTIVATED')")
-            nparams2 = nparams2+3 ! magaxis and socscale
+            nparams2 = nparams2+3 ! hwx,hwy,hwz or hwa,hwt,hwt
           else
 !             write(outputunit,"('Static Magnetic field: DEACTIVATED')")
           end if
@@ -331,7 +331,7 @@ contains
           read(unit=istring1(i+1),fmt=*,iostat=ios) lfield
           if(lfield) then
 !             write(outputunit,"('Static Magnetic field: ACTIVATED')")
-            nparams2 = nparams2+3 ! magaxis and socscale
+            nparams2 = nparams2+3 !  hwx,hwy,hwz or hwa,hwt,hwt
           else
 !             write(outputunit,"('Static Magnetic field: DEACTIVATED')")
           end if
