@@ -4,7 +4,7 @@
 *.exe
 *.dat
 *.dat*
-old_files/*
+old_files*
 *.err
 *.out
 *.txt
@@ -21,5 +21,5 @@ last_compilation
 *.png
 *.jpg
 *.nb
-results/*
+results*
 

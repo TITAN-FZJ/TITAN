@@ -111,7 +111,7 @@ contains
 
     if(.not. get_parameter("SOC", SOC)) call log_error("[get_parameters] 'SOC' missing.", outputunit)
     if(SOC == .true.) then
-       if(.not. get_parameter("socscale", socscale)) call log_error("[get_parameters] 'socscale' missing.", outputunit)
+       if(.not. get_parameter("socscale", socscale)) call log_warning("[get_parameters] 'socscale' missing.", outputunit)
        if(.not. get_parameter("magaxis", magaxis)) call log_error("[get_parameters] 'magaxis' missing.", outputunit)
     end if
 

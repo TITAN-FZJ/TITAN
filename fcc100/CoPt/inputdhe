@@ -12,7 +12,7 @@
 !                               SYSTEM VARIABLES                                !
 ! Lattice and surface direction:                                                !
 -> lattice = fcc
--> plane = 0.0 0.0 -1.0
+-> plane = 0.0 0.0 1.0
 ! Lattice parameter:                                                            !
 -> a0 = 3.92
 ! Number of planes:                                                             !
@@ -39,12 +39,9 @@
 !===============================================================================!
 !                             SPIN ORBIT COUPLING                               !
 -> SOC = T        ! Spin Orbit Coupling on (T) or off (F)
--> socscale = 1.00d0
 !-------------------------------------------------------------------------------!
-! Magnetization axis:                                                           !
--> magaxis = 9
-!===============================================================================!
 !                   DIRECTION OF IN-PLANE ELECTRIC FIELD                        !
+-> ebasis = cartesian / neighbor / bravais
 -> dirEfield = 1
 !===============================================================================!
 !                        IN-PLANE CURRENTS TO CALCULATE                         !
@@ -82,6 +79,9 @@
 !                              SELF-CONSISTENCY                                 !
 !        (Finding center of the bands for the given number of particles)        !
 -> skipsc = F ! skip self-consistency calculation when it finds previous results
+! Direction of starting magnetization                                           !
+-> magbasis = cartesian / neighbor / bravais
+-> magaxis = 9
 ! File to use as starting point:
 !-> scfile = results/selfconsistency/selfconsistency_Npl=3_dfttype=T_parts=2_Utype=2_hwa= 2.70E-04_hwt= 0.00_hwp= 0.00_ncp=6_eta= 5.0E-03_magaxis=9_socscale= 1.00.dat
 !===============================================================================!

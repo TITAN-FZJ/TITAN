@@ -39,7 +39,7 @@
 -> SOC = T        ! Spin Orbit Coupling on (T) or off (F)
 !-------------------------------------------------------------------------------!
 ! Magnetization axis:                                                           !
--> magaxis = P
+-> magaxis = L
 !===============================================================================!
 !                   DIRECTION OF IN-PLANE ELECTRIC FIELD                        !
 -> dirEfield = L

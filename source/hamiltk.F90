@@ -26,8 +26,8 @@ subroutine hamiltk(kp,hk)
     i0 = (i-1)*18+1
     i1 = i0+17
 
-    select case (lattice)
-    case("bcc110")
+    select case (plnn)
+    case( 1 )
       call helphbccsoc(kp,h00,h01,h10,i)
 
       hk(i0:i1,i0:i1) = h00 + lb(i,:,:) + sb(i,:,:) + hee(i,:,:) + (socscale*lambda(i)*ls)
@@ -37,7 +37,7 @@ subroutine hamiltk(kp,hk)
         hk(i0:i1,j0:j1) = h01(:,:)
         hk(j0:j1,i0:i1) = h10(:,:)
       end if
-    case("fcc100")
+    case( 2 )
       call helphfccsoc(kp,h00,h01,h10,h02,h20,i)
 
       hk(i0:i1,i0:i1) = h00 + lb(i,:,:) + sb(i,:,:) + hee(i,:,:) + (socscale*lambda(i)*ls)
