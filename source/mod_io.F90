@@ -63,22 +63,22 @@ contains
 
     if(myrank.eq.0) write(outputunit,"('[get_parameters] Reading parameters from ""',a,'"" file...')") trim(filename)
 
-    if(.not. get_int("itype", itype)) call log_error("[get_parameters] 'itype' missing.", outputunit)
+    if(.not. get_parameter("itype", itype)) call log_error("[get_parameters] 'itype' missing.", outputunit)
 
-    if(.not. get_string("lattice", lattice)) call log_error("[get_parameters] 'lattice' missing.", outputunit)
+    if(.not. get_parameter("lattice", lattice)) call log_error("[get_parameters] 'lattice' missing.", outputunit)
     select case(lattice)
     case("general")
-       if(.not. get_real_array("a1", vector, cnt)) call log_error("[get_parameters] 'a1' missing.", outputunit)
+       if(.not. get_parameter("a1", vector, cnt)) call log_error("[get_parameters] 'a1' missing.", outputunit)
        if(cnt /= 3) call log_error("[get_parameters] 'a1' has wrong size (size 3 required).", outputunit)
        a1 = vector
        deallocate(vector)
 
-       if(.not. get_real_array("a2", vector, cnt)) call log_error("[get_parameters] 'a2' missing.", outputunit)
+       if(.not. get_parameter("a2", vector, cnt)) call log_error("[get_parameters] 'a2' missing.", outputunit)
        if(cnt /= 3) call log_error("[get_parameters] 'a3' has wrong size (size 3 required).", outputunit)
        a2 = vector
        deallocate(vector)
 
-       if(.not. get_real_array("a3", vector, cnt)) call log_error("[get_parameters] 'a3' missing.", outputunit)
+       if(.not. get_parameter("a3", vector, cnt)) call log_error("[get_parameters] 'a3' missing.", outputunit)
        if(cnt /= 3) call log_error("[get_parameters] 'a3' has wrong size (size 3 required).", outputunit)
        a3 = vector
        deallocate(vector)
@@ -102,27 +102,27 @@ contains
        call log_error("[get_parameters] Unknown 'lattice' option.", outputunit)
     end select
 
-    if(.not. get_real_array("plane", vector, cnt)) call log_error("[get_parameters] 'plane' missing.", outputunit)
+    if(.not. get_parameter("plane", vector, cnt)) call log_error("[get_parameters] 'plane' missing.", outputunit)
     print *, cnt
     if(cnt /= 3) call log_error("[get_parameters] 'plane' has wrong size (size 3 required).", outputunit)
     pln_dir = vector
     deallocate(vector)
 
-    if(.not. get_real("a0", a0)) call log_error("[get_parameters] 'a0' missing.", outputunit)
+    if(.not. get_parameter("a0", a0)) call log_error("[get_parameters] 'a0' missing.", outputunit)
 
-    if(.not. get_logical("SOC", SOC)) call log_error("[get_parameters] 'SOC' missing.", outputunit)
+    if(.not. get_parameter("SOC", SOC)) call log_error("[get_parameters] 'SOC' missing.", outputunit)
     if(SOC == .true.) then
-       if(.not. get_real("socscale", socscale)) call log_error("[get_parameters] 'socscale' missing.", outputunit)
-       if(.not. get_string("magaxis", magaxis)) call log_error("[get_parameters] 'magaxis' missing.", outputunit)
+       if(.not. get_parameter("socscale", socscale)) call log_error("[get_parameters] 'socscale' missing.", outputunit)
+       if(.not. get_parameter("magaxis", magaxis)) call log_error("[get_parameters] 'magaxis' missing.", outputunit)
     end if
 
-    if(.not. get_int_array("Npl", i_vector, cnt)) call log_error("[get_parameters] 'Npl' missing.", outputunit)
+    if(.not. get_parameter("Npl", i_vector, cnt)) call log_error("[get_parameters] 'Npl' missing.", outputunit)
     if(cnt < 1) call log_error("[get_parameters] 'Npl' doesn't contain any parameters.", outputunit)
     Npl_i = i_vector(1)
     if(cnt >= 2) Npl_f = i_vector(2)
     deallocate(i_vector)
 
-    if(.not. get_string_array("Options", s_vector, cnt)) call log_error("[get_parameters] 'Options' missing.", outputunit)
+    if(.not. get_parameter("Options", s_vector, cnt)) call log_error("[get_parameters] 'Options' missing.", outputunit)
     print *, cnt, s_vector
     runoptions = ""
     do i = 1, cnt
@@ -192,11 +192,11 @@ contains
     end do
     deallocate(s_vector)
 
-    if(.not. get_real("eta", eta)) call log_error("[get_parameters] 'eta' missing.", outputunit)
+    if(.not. get_parameter("eta", eta)) call log_error("[get_parameters] 'eta' missing.", outputunit)
 
-    if(.not. get_logical("FIELD", lfield)) call log_error("[get_parameters] 'lfield' missing.", outputunit)
+    if(.not. get_parameter("FIELD", lfield)) call log_error("[get_parameters] 'lfield' missing.", outputunit)
     if(lfield) then
-        if(.not. get_real_array("hwa", vector, cnt)) call log_error("[get_parameters] 'hwa' missing.", outputunit)
+        if(.not. get_parameter("hwa", vector, cnt)) call log_error("[get_parameters] 'hwa' missing.", outputunit)
         if(cnt < 1) call log_error("[get_parameters] 'hwa' doesn't contain any parameters.")
         hwa_i = vector(1)
         if(cnt >= 2) hwa_f = vector(2)
@@ -204,7 +204,7 @@ contains
         deallocate(vector)
         hwa_npt1 = hwa_npts + 1
 
-        if(.not. get_real_array("hwt", vector, cnt)) call log_error("[get_parameters] 'hwt' missing.", outputunit)
+        if(.not. get_parameter("hwt", vector, cnt)) call log_error("[get_parameters] 'hwt' missing.", outputunit)
         if(cnt < 1) call log_error("[get_parameters] 'hwt' doesn't contain any parameters.")
         hwt_i = vector(1)
         if(cnt >= 2) hwt_f = vector(2)
@@ -212,7 +212,7 @@ contains
         deallocate(vector)
         hwt_npt1 = hwt_npts + 1
 
-        if(.not. get_real_array("hwp", vector, cnt)) call log_error("[get_parameters] 'hwp' missing.", outputunit)
+        if(.not. get_parameter("hwp", vector, cnt)) call log_error("[get_parameters] 'hwp' missing.", outputunit)
         if(cnt < 1) call log_error("[get_parameters] 'hwp' doesn't contain any parameters.")
         hwp_i = vector(1)
         if(cnt >= 2) hwp_f = vector(2)
@@ -220,74 +220,74 @@ contains
         deallocate(vector)
         hwp_npt1 = hwp_npts + 1
 
-        if(.not. get_real("hwx", hwx)) call log_error("[get_parameters] 'hwx' missing.", outputunit)
-        if(.not. get_real("hwy", hwy)) call log_error("[get_parameters] 'hwy' missing.", outputunit)
-        if(.not. get_real("hwz", hwz)) call log_error("[get_parameters] 'hwz' missing.", outputunit)
+        if(.not. get_parameter("hwx", hwx)) call log_error("[get_parameters] 'hwx' missing.", outputunit)
+        if(.not. get_parameter("hwy", hwy)) call log_error("[get_parameters] 'hwy' missing.", outputunit)
+        if(.not. get_parameter("hwz", hwz)) call log_error("[get_parameters] 'hwz' missing.", outputunit)
       end if
 
-      if(get_real_array("hwscale", vector, cnt)) then
+      if(get_parameter("hwscale", vector, cnt)) then
         if(cnt < dmax)  hwscale(1:cnt)  = vector(1:cnt)
         if(cnt >= dmax) hwscale(1:dmax) = vector(1:dmax)
       end if
       if(allocated(vector)) deallocate(vector)
 
-      if(get_real_array("hwtrotate", vector, cnt)) then
+      if(get_parameter("hwtrotate", vector, cnt)) then
         if(cnt < dmax)  hwtrotate(1:cnt)  = vector(1:cnt)
         if(cnt >= dmax) hwtrotate(1:dmax) = vector(1:dmax)
       end if
       if(allocated(vector)) deallocate(vector)
 
-      if(get_real_array("hwprotate", vector, cnt)) then
+      if(get_parameter("hwprotate", vector, cnt)) then
         if(cnt < dmax)  hwprotate(1:cnt)  = vector(1:cnt)
         if(cnt >= dmax) hwprotate(1:dmax) = vector(1:dmax)
       end if
       if(allocated(vector)) deallocate(vector)
 
-      if(.not. get_string("dirEfield", dirEfield)) call log_error("[get_parameters] 'dirEfield' missing.", outputunit)
+      if(.not. get_parameter("dirEfield", dirEfield)) call log_error("[get_parameters] 'dirEfield' missing.", outputunit)
 
-      if(.not. get_int("nkpt", nkpt)) call log_error("[get_parameters] 'nkpt' missing.", outputunit)
+      if(.not. get_parameter("nkpt", nkpt)) call log_error("[get_parameters] 'nkpt' missing.", outputunit)
 
-      if(.not. get_int("parts", parts)) call log_error("[get_parameters] 'parts' missing.", outputunit)
+      if(.not. get_parameter("parts", parts)) call log_error("[get_parameters] 'parts' missing.", outputunit)
 
-      if(.not. get_int("parts3", parts3)) call log_error("[get_parameters] 'parts3' missing.", outputunit)
+      if(.not. get_parameter("parts3", parts3)) call log_error("[get_parameters] 'parts3' missing.", outputunit)
 
-      if(.not. get_int("n1gl", n1gl)) call log_error("[get_parameters] 'n1gl' missing.", outputunit)
+      if(.not. get_parameter("n1gl", n1gl)) call log_error("[get_parameters] 'n1gl' missing.", outputunit)
 
-      if(.not. get_int("n3gl", n3gl)) call log_error("[get_parameters] 'n3gl' missing.", outputunit)
+      if(.not. get_parameter("n3gl", n3gl)) call log_error("[get_parameters] 'n3gl' missing.", outputunit)
 
-      if(.not. get_real("emin", emin)) call log_error("[get_parameters] 'emin' missing.", outputunit)
+      if(.not. get_parameter("emin", emin)) call log_error("[get_parameters] 'emin' missing.", outputunit)
 
-      if(.not. get_real("emax", emax)) call log_error("[get_parameters] 'emax' missing.", outputunit)
+      if(.not. get_parameter("emax", emax)) call log_error("[get_parameters] 'emax' missing.", outputunit)
 
-      if(.not. get_int("skip_steps", skip_steps)) call log_warning("[get_parameters] 'skip_steps' missing.", outputunit)
+      if(.not. get_parameter("skip_steps", skip_steps)) call log_warning("[get_parameters] 'skip_steps' missing.", outputunit)
 
-      if(.not. get_int("skip_steps_hw", skip_steps_hw)) call log_warning("[get_parameters] 'skip_steps_hw' missing.", outputunit)
+      if(.not. get_parameter("skip_steps_hw", skip_steps_hw)) call log_warning("[get_parameters] 'skip_steps_hw' missing.", outputunit)
 
-      if(.not. get_int("npts", npts)) call log_error("[get_parameters] 'npts' missing.", outputunit)
+      if(.not. get_parameter("npts", npts)) call log_error("[get_parameters] 'npts' missing.", outputunit)
       npt1 = npts + 1
 
-      if(.not. get_int("n0sc1", n0sc1)) call log_error("[get_parameters] 'n0sc1' missing.", outputunit)
+      if(.not. get_parameter("n0sc1", n0sc1)) call log_error("[get_parameters] 'n0sc1' missing.", outputunit)
 
-      if(.not. get_int("n0sc2", n0sc2)) call log_error("[get_parameters] 'n0sc2' missing.", outputunit)
+      if(.not. get_parameter("n0sc2", n0sc2)) call log_error("[get_parameters] 'n0sc2' missing.", outputunit)
 
-      if(.not. get_logical("renorm", renorm)) call log_error("[get_parameters] 'renorm' missing.", outputunit)
+      if(.not. get_parameter("renorm", renorm)) call log_error("[get_parameters] 'renorm' missing.", outputunit)
       if(renorm) then
-        if(.not. get_int("renormnb", renormnb)) call log_error("[get_parameters] 'renormnb' missing.", outputunit)
+        if(.not. get_parameter("renormnb", renormnb)) call log_error("[get_parameters] 'renormnb' missing.", outputunit)
       end if
 
-      if(.not. get_string("kdirection", kdirection)) call log_error("[get_parameters] 'kdirection' missing.", outputunit)
+      if(.not. get_parameter("kdirection", kdirection)) call log_error("[get_parameters] 'kdirection' missing.", outputunit)
 
-      if(.not. get_logical("skipsc", skipsc)) call log_error("[get_parameters] 'skipsc' missing.", outputunit)
+      if(.not. get_parameter("skipsc", skipsc)) call log_error("[get_parameters] 'skipsc' missing.", outputunit)
 
-      if(.not. get_string("scfile", scfile)) call log_warning("[get_parameters] 'scfile' missing.", outputunit)
+      if(.not. get_parameter("scfile", scfile)) call log_warning("[get_parameters] 'scfile' missing.", outputunit)
 
-      if(.not. get_string("dfttype", dfttype)) call log_error("[get_parameters] 'dfttype' missing.", outputunit)
+      if(.not. get_parameter("dfttype", dfttype)) call log_error("[get_parameters] 'dfttype' missing.", outputunit)
 
-      if(.not. get_int("set1", set1)) call log_error("[get_parameters] 'set1' missing.", outputunit)
+      if(.not. get_parameter("set1", set1)) call log_error("[get_parameters] 'set1' missing.", outputunit)
 
-      if(.not. get_int("set2", set2)) call log_error("[get_parameters] 'set2' missing.", outputunit)
+      if(.not. get_parameter("set2", set2)) call log_error("[get_parameters] 'set2' missing.", outputunit)
 
-      if(get_int_array("addlayers", i_vector, cnt)) then
+      if(get_parameter("addlayers", i_vector, cnt)) then
         if(cnt < 10) then
           addlayers(1:cnt) = i_vector(1:cnt)
           naddlayers = cnt
@@ -298,7 +298,7 @@ contains
       end if
       if(allocated(i_vector)) deallocate(i_vector)
 
-      if(.not. get_string("set1", suffix)) call log_warning("[get_parameters] 'suffix' missing.", outputunit)
+      if(.not. get_parameter("set1", suffix)) call log_warning("[get_parameters] 'suffix' missing.", outputunit)
 
     if(myrank.eq.0) write(outputunit,"('[get_parameters] Finished reading from ""',a,'"" file')") trim(filename)
 
