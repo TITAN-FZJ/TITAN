@@ -42,6 +42,7 @@ program DHE
   start_program = MPI_Wtime()
   call read_input_file()
   call read_output_filename()
+  print *, outputdhe
   if(myrank.eq.0) then
     open (unit=outputunit, file=trim(outputdhe), status='unknown')
     call write_time(outputunit,'[main] Started on: ')
@@ -75,26 +76,18 @@ program DHE
     myrank_row = myrank_row_hw
   end if
 !-------------------- Define the lattice structure ---------------------
+  call next_neighbour_init()
+  print *, n2
 !-------------------- Generating k points in 2D BZ ---------------------
-  select case (lattice)
-  case("bcc110")
-    call bcc110()
-    call generate_kpoints_bcc110()
-  case("fcc100")
-    call fcc100()
-    call generate_kpoints_fcc100()
-  case("fcc111")
-    call fcc111()
-    call generate_kpoints_fcc111()
-  case default
-    if(myrank.eq.0) write(outputunit,"('[main] Lattice not defined: ',a,'!')") lattice
-    call MPI_Finalize(ierr)
-    stop
-  end select
+  call generate_kpoints(pln_dir)
+
   ! Writing BZ points and weights into files
   if((lkpoints).and.(myrank.eq.0)) then
     call write_kpoints_to_file()
   end if
+
+  stop
+
 !---- Generating integration points of the complex energy integral -----
   call generate_imag_epoints()
 !------------------------ NUMBER OF PLANES LOOP ------------------------
@@ -291,7 +284,7 @@ program DHE
   end do number_of_planes
 !----------------------- Deallocating variables ------------------------
   deallocate(r0,c0,r1,c1,r2,c2)
-  deallocate(kbz,wkbz,kbz2d)
+  deallocate(kbz,wkbz) !,kbz2d)
 !----------------------- Finalizing the program ------------------------
   if(myrank.eq.0) call write_time(outputunit,'[main] Finished on: ')
   if(myrank.eq.0) close(unit=outputunit)

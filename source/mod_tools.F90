@@ -1,15 +1,14 @@
 module mod_tools
-  use mod_f90_kind
   implicit none
 
 contains
 
-! --------------------------------------------------------------------
-! double precision function cross():
-!    This subroutine calculates the cross product of arrays a and b
-! --------------------------------------------------------------------
+  ! --------------------------------------------------------------------
+  ! double precision function cross():
+  !    This subroutine calculates the cross product of arrays a and b
+  ! --------------------------------------------------------------------
   function cross(a, b)
-    use mod_f90_kind
+    use mod_f90_kind, only: double
     implicit none
     real(double), dimension(3) :: cross
     real(double), dimension(3), intent(in) :: a, b
@@ -20,13 +19,51 @@ contains
     return
   end function cross
 
-! --------------------------------------------------------------------
-! double precision function cross_unit():
-!    This subroutine calculates the unit vector in the direction
-! of the cross product of arrays a and b
-! --------------------------------------------------------------------
+  ! --------------------------------------------------------------------
+  ! logical function is_perpendicular(a,b):
+  !  This subroutines return whether a and b are perpendicular or not
+  ! --------------------------------------------------------------------
+
+  function is_parallel(a,b)
+    use mod_f90_kind, only: double
+    implicit none
+    logical :: is_parallel
+    real(double), dimension(3) :: crs
+    real(double), dimension(3), intent(in) :: a, b
+
+    is_parallel = .false.
+    crs = cross(a,b)
+    if( 1.d-9 > crs(1)*crs(1) + crs(2)*crs(2) + crs(3)*crs(3) ) then
+       is_parallel = .true.
+    end if
+    return
+  end function is_parallel
+
+  ! --------------------------------------------------------------------
+  ! logical function is_parallel(a,b):
+  !  This subroutines return whether a and b are parallel or not
+  ! --------------------------------------------------------------------
+
+  function is_perpendicular(a,b)
+    use mod_f90_kind, only: double
+    implicit none
+    logical :: is_perpendicular
+    real(double), dimension(3), intent(in) :: a, b
+
+    is_perpendicular = .false.
+    if( 1.d-9 > abs(dot_product(a,b)) ) then
+       is_perpendicular = .true.
+    end if
+    return
+  end function is_perpendicular
+
+  ! --------------------------------------------------------------------
+  ! double precision function cross_unit():
+  !    This subroutine calculates the unit vector in the direction
+  ! of the cross product of arrays a and b
+  ! --------------------------------------------------------------------
   function cross_unit(a, b)
-    use mod_f90_kind
+    use mod_f90_kind, only: double
     implicit none
     real(double), dimension(3) :: cross_unit
     real(double), dimension(3), intent(in) :: a, b
@@ -39,36 +76,36 @@ contains
     return
   end function cross_unit
 
-! --------------------------------------------------------------------
-! subroutine Sort():
-!    This subroutine receives an array x() and returns an integer array
-!  'order' with the positions of ascending numbers of x.
-! --------------------------------------------------------------------
+  ! --------------------------------------------------------------------
+  ! subroutine Sort():
+  !    This subroutine receives an array x() and returns an integer array
+  !  'order' with the positions of ascending numbers of x.
+  ! --------------------------------------------------------------------
   subroutine sort(x, size, order)
+    use mod_f90_kind, only: double
     implicit  none
     integer, intent(in)                        :: size
-    double precision, dimension(size), intent(in)  :: x
+    real(double), dimension(size), intent(in)  :: x
     integer     , dimension(size), intent(out) :: order
     integer                                    :: i
     logical, dimension(size) :: mask
 
     mask = .true.
     do i = 1,size
-      order(i) = minloc(x,1,mask)
-      mask(order(i)) = .false.
+       order(i) = minloc(x,1,mask)
+       mask(order(i)) = .false.
     end do
 
     return
   end subroutine sort
 
-! --------------------------------------------------------------------
-! subroutine number_of_lines():
-!    this subroutine returns the number of lines (commented and
-! not commented) on a file (given by "unit", already opened).
-! Blank lines are ignored.
-! --------------------------------------------------------------------
+  ! --------------------------------------------------------------------
+  ! subroutine number_of_lines():
+  !    this subroutine returns the number of lines (commented and
+  ! not commented) on a file (given by "unit", already opened).
+  ! Blank lines are ignored.
+  ! --------------------------------------------------------------------
   subroutine number_of_lines(unit,total_lines,non_commented)
-    use mod_f90_kind
     implicit  none
     integer, intent(out) :: total_lines, non_commented
     integer, intent(in)  :: unit
@@ -81,28 +118,27 @@ contains
     non_commented  = 0
     total_lines    = 0
     do
-      read (unit=unit,fmt=*,iostat=ios) stringtemp
-      if (ios.ne.0) exit
-      if (stringtemp.eq."") cycle ! If the line is blank, ignore
-      ! Total number of non-empty lines
-      total_lines = total_lines + 1
+       read (unit=unit,fmt=*,iostat=ios) stringtemp
+       if (ios.ne.0) exit
+       if (stringtemp.eq."") cycle ! If the line is blank, ignore
+       ! Total number of non-empty lines
+       total_lines = total_lines + 1
 
-      ! Getting the number of non-commented lines
-      if ((stringtemp(1:1).eq."#").or.(stringtemp(1:1).eq."!")) cycle
-      non_commented = non_commented + 1
+       ! Getting the number of non-commented lines
+       if ((stringtemp(1:1).eq."#").or.(stringtemp(1:1).eq."!")) cycle
+       non_commented = non_commented + 1
     end do
 
     return
   end subroutine number_of_lines
 
 
-! --------------------------------------------------------------------
-! subroutine number_of_rows_cols():
-!    this subroutine returns the number of rows and cols of a data file
-! (given by "unit", already opened).
-! --------------------------------------------------------------------
+  ! --------------------------------------------------------------------
+  ! subroutine number_of_rows_cols():
+  !    this subroutine returns the number of rows and cols of a data file
+  ! (given by "unit", already opened).
+  ! --------------------------------------------------------------------
   subroutine number_of_rows_cols(unit,rows,cols)
-    use mod_f90_kind
     implicit  none
     integer, intent(out) :: rows, cols
     integer, intent(in)  :: unit
@@ -113,11 +149,11 @@ contains
     ! Counting the number of lines
     rows  = 0
     do
-      read (unit=unit,fmt='(A)',iostat=ios) stringtemp
-      if (ios.ne.0) exit
-      ! Getting the number of rows
-      if ((stringtemp(1:1).eq."#").or.(stringtemp(1:1).eq."!").or.(stringtemp.eq."")) cycle
-      rows = rows + 1
+       read (unit=unit,fmt='(A)',iostat=ios) stringtemp
+       if (ios.ne.0) exit
+       ! Getting the number of rows
+       if ((stringtemp(1:1).eq."#").or.(stringtemp(1:1).eq."!").or.(stringtemp.eq."")) cycle
+       rows = rows + 1
     end do
     cols = count([( stringtemp(i:i), i=1,len(stringtemp) )] == "E")
 
@@ -125,14 +161,14 @@ contains
   end subroutine number_of_rows_cols
 
 
-! --------------------------------------------------------------------
-! subroutine number_of_lines():
-!    this subroutine returns the number of lines (commented and
-! not commented) on a file (given by "unit", already opened).
-! Blank lines are ignored.
-! --------------------------------------------------------------------
+  ! --------------------------------------------------------------------
+  ! subroutine number_of_lines():
+  !    this subroutine returns the number of lines (commented and
+  ! not commented) on a file (given by "unit", already opened).
+  ! Blank lines are ignored.
+  ! --------------------------------------------------------------------
   subroutine read_data(unit,rows,cols,data)
-    use mod_f90_kind
+    use mod_f90_kind, only: double
     implicit  none
     integer     , intent(in)  :: unit,rows,cols
     real(double), intent(out) :: data(rows,cols)
@@ -142,11 +178,11 @@ contains
     rewind unit
     i = 0
     do
-      read(unit=unit,fmt='(A)',iostat=ios) stringtemp
-      if (ios.ne.0) exit
-      if ((stringtemp(1:1).eq."#").or.(stringtemp(1:1).eq."!").or.(stringtemp.eq."")) cycle
-      i=i+1
-      read(unit=stringtemp,fmt=*,iostat=ios) (data(i,j),j=1,cols)
+       read(unit=unit,fmt='(A)',iostat=ios) stringtemp
+       if (ios.ne.0) exit
+       if ((stringtemp(1:1).eq."#").or.(stringtemp(1:1).eq."!").or.(stringtemp.eq."")) cycle
+       i=i+1
+       read(unit=stringtemp,fmt=*,iostat=ios) (data(i,j),j=1,cols)
     end do
     ! Writing data
     ! do i=1,rows
@@ -156,13 +192,13 @@ contains
     return
   end subroutine read_data
 
-! --------------------------------------------------------------------
-! subroutine sort_file():
-!    This subroutine sorts the lines of file 'unit'
-! option to skip first line: header = .true.
-! --------------------------------------------------------------------
+  ! --------------------------------------------------------------------
+  ! subroutine sort_file():
+  !    This subroutine sorts the lines of file 'unit'
+  ! option to skip first line: header = .true.
+  ! --------------------------------------------------------------------
   subroutine sort_file(unit,header)
-    use mod_f90_kind
+    use mod_f90_kind, only: double
     implicit  none
     integer, intent(in) :: unit
     logical, intent(in) :: header
@@ -191,7 +227,7 @@ contains
     ! Rewriting data, now sorted
     write(colformat,fmt="(a,i0,a)") '(',cols,'(es16.9,2x))'
     do i=1,rows
-      write(unit=unit,fmt=trim(colformat)) (data(order(i),j),j=1,cols)
+       write(unit=unit,fmt=trim(colformat)) (data(order(i),j),j=1,cols)
     end do
 
     deallocate(data,x,order)

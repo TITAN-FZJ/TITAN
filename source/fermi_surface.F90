@@ -47,16 +47,16 @@ subroutine fermi_surface(e)
     write(epart,fmt="('fs_')")
   end if
   do i=1,Npl
-    write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'layer',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(epart),i,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+    write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'layer',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(epart),i,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
     open (unit=17+(mpitag-1)*Npl+i, file=varm,status='unknown')
   end do
-  write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'s_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(epart),ncp,eta,Utype,trim(fieldpart),trim(socpart)
+  write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'s_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(epart),nkpt,eta,Utype,trim(fieldpart),trim(socpart)
   open (unit=96+mpitag, file=varm,status='unknown')
-  write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'p_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(epart),ncp,eta,Utype,trim(fieldpart),trim(socpart)
+  write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'p_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(epart),nkpt,eta,Utype,trim(fieldpart),trim(socpart)
   open (unit=97+mpitag, file=varm,status='unknown')
-  write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'d_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(epart),ncp,eta,Utype,trim(fieldpart),trim(socpart)
+  write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'d_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(epart),nkpt,eta,Utype,trim(fieldpart),trim(socpart)
   open (unit=98+mpitag, file=varm,status='unknown')
-  write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'total_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(epart),ncp,eta,Utype,trim(fieldpart),trim(socpart)
+  write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'total_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(epart),nkpt,eta,Utype,trim(fieldpart),trim(socpart)
   open (unit=99+mpitag, file=varm,status='unknown')
 
   fs_layer = 0.d0
@@ -65,7 +65,7 @@ subroutine fermi_surface(e)
 
 !$omp parallel default(none) &
 !$omp& private(mythread,iz,kp,gf,i,mu,nu,sigma,temp1,temp2) &
-!$omp& shared(lverbose,llineargfsoc,llinearsoc,e,kbz,kbz2d,nkpoints,Ef,eta,Npl,nthreads,pi,pauli_orb,pauli_gf,fs_layer,fs_orb,fs_total,outputunit_loop)
+!$omp& shared(lverbose,llineargfsoc,llinearsoc,e,kbz,nkpoints,Ef,eta,Npl,nthreads,pi,pauli_orb,pauli_gf,fs_layer,fs_orb,fs_total,outputunit_loop)
 !$  mythread = omp_get_thread_num()
 !$  if(mythread.eq.0) then
 !$    nthreads = omp_get_num_threads()
@@ -119,13 +119,13 @@ subroutine fermi_surface(e)
   ! Writing on files
   writing_fermi_surface: do iz=1,nkpoints
     write_plane_loop_fs: do i=1,Npl
-      write(unit=17+(mpitag-1)*Npl+i,fmt="(6(es16.9,2x))") kbz2d(iz,1),kbz2d(iz,2),(fs_layer(i,iz,sigma),sigma=1,4)
+      write(unit=17+(mpitag-1)*Npl+i,fmt="(6(es16.9,2x))") kbz(iz,1),kbz(iz,2), kbz(iz,3), (fs_layer(i,iz,sigma),sigma=1,4)
     end do write_plane_loop_fs
 
-    write(unit=96+mpitag,fmt="(6(es16.9,2x))") kbz2d(iz,1),kbz2d(iz,2),(fs_orb(1,iz,sigma),sigma=1,4)
-    write(unit=97+mpitag,fmt="(6(es16.9,2x))") kbz2d(iz,1),kbz2d(iz,2),(fs_orb(2,iz,sigma),sigma=1,4)
-    write(unit=98+mpitag,fmt="(6(es16.9,2x))") kbz2d(iz,1),kbz2d(iz,2),(fs_orb(3,iz,sigma),sigma=1,4)
-    write(unit=99+mpitag,fmt="(6(es16.9,2x))") kbz2d(iz,1),kbz2d(iz,2),(fs_total(iz,sigma),sigma=1,4)
+    write(unit=96+mpitag,fmt="(6(es16.9,2x))") kbz(iz,1),kbz(iz,2),kbz(iz,3),(fs_orb(1,iz,sigma),sigma=1,4)
+    write(unit=97+mpitag,fmt="(6(es16.9,2x))") kbz(iz,1),kbz(iz,2),kbz(iz,3),(fs_orb(2,iz,sigma),sigma=1,4)
+    write(unit=98+mpitag,fmt="(6(es16.9,2x))") kbz(iz,1),kbz(iz,2),kbz(iz,3),(fs_orb(3,iz,sigma),sigma=1,4)
+    write(unit=99+mpitag,fmt="(6(es16.9,2x))") kbz(iz,1),kbz(iz,2),kbz(iz,3),(fs_total(iz,sigma),sigma=1,4)
   end do writing_fermi_surface
   ! Closing files
   do i=1,Npl

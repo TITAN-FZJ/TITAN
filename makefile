@@ -113,6 +113,31 @@ endif
 #=======================================================================
 
 ####################################################
+#                      Linux                       #
+####################################################
+ifeq ($(PLATFORM),linux)
+ # Compiler
+ NAG = /opt/NAG/fll6i26dcl
+ FC = mpiifort -no-wrap-margin
+ # Preprocessor
+ CPP = -fpp -D _LINUX -g
+ # Libraries
+ LLIBS =$(NAG)/lib/libnag_nag.a -mkl -static-intel -L$(HOME)/lib -L$(LD_LIBRARY_PATH)
+ #Flags
+ FFLAGS =-O3 -I$(NAG)/c_headers
+ #Debugger
+ ifeq ($(DEBUG),debug)
+  FFLAGS =-CB -check all -check uninit -ftrapuv -debug all -traceback -g -warn all -O0
+ endif
+ FFLAGS += -module $(OBJDIR)/ -I$(OBJDIR)/
+ # Parallelization
+ ifeq ($(PARALLEL),omp)
+  LLIBS +=-openmp
+  FFLAGS +=-openmp
+ endif
+endif
+
+####################################################
 #                       UFF                        #
 ####################################################
 ifeq ($(PLATFORM),uff)

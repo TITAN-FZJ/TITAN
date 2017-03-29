@@ -3,7 +3,7 @@
 # Get optional flags
 while (( "$#" )); do
    case $1 in
-      (uff|iff|osx|juropa|juropatest|jureca|juqueen)
+      (uff|iff|osx|juropa|juropatest|jureca|juqueen|linux)
         addplatform="$1"
         platform="PLATFORM=$1"
         shift
@@ -15,6 +15,14 @@ while (( "$#" )); do
       (debug)
         adddebug=${adddebug}"_$1"
         debug="DEBUG=$1"
+        shift
+        ;;
+      (documentation)
+        doc=true
+        shift
+        ;;
+      (latex)
+        tex=true
         shift
         ;;
       (scalasca)
@@ -39,7 +47,8 @@ while (( "$#" )); do
         shift
         ;;
       (verbose)
-        verbose="--debug=$1"
+#        verbose="--debug=$1"
+	 verbose="-n"
         shift
         ;;
       (*)
@@ -99,7 +108,17 @@ fi
 
 echo "make $rule $platform $parallel $debug $perform $filename $verbose" | tee build/${addplatform}/last_compilation
 
-make $rule $platform $parallel $debug $perform $filename $verbose
+make -j8 $rule $platform $parallel $debug $perform $filename $verbose
+
+if [ "$doc" = true ]; then
+  doxygen Doxyfile
+fi
+
+if [ "$tex" = true ]; then
+  cd latex
+  make
+  cd ..
+fi
 
 # Removing added lines to mod_io.F90
 if [[ ! -z "$addvariable" ]] ; then

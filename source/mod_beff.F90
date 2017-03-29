@@ -83,7 +83,7 @@ contains
     if(iflag.eq.0) then
       do sigma=1,4 ; do i=1,Npl
         iw = 8000+(sigma-1)*Npl+i
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename),direction(sigma),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename),direction(sigma),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='unknown', form='formatted')
         write(unit=iw, fmt="('#     energy    , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma)
         close(unit=iw)
@@ -91,7 +91,7 @@ contains
     else if (iflag.eq.1) then
       do sigma=1,4 ; do i=1,Npl
         iw = 8000+(sigma-1)*Npl+i
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename),direction(sigma),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename),direction(sigma),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
       end do ; end do
@@ -189,7 +189,7 @@ contains
     if(iflag.eq.0) then
       do sigma=1,4 ; do i=1,Npl
         iw = 80000+(sigma-1)*Npl+i
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='unknown', form='formatted')
         write(unit=iw, fmt="('#',a,' imaginary part of ',a,a,' , real part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma)
         close(unit=iw)
@@ -197,7 +197,7 @@ contains
     else if (iflag.eq.1) then
       do sigma=1,4 ; do i=1,Npl
         iw = 80000+(sigma-1)*Npl+i
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
       end do ; end do

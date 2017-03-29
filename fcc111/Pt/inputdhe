@@ -2,12 +2,17 @@
 !                           CHOOSE WHAT TO CALCULATE                            !
 -> itype = 6
 !===============================================================================!
+!                                OUTPUT FILE                                    !
+-> output: output/saida8_Npl5_ncp6
+! -> suffix: _-M
+!===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
--> Options: slatec verbose GSL ! noUonPt ! addresults
+-> Options: slatec kpoints verbose GSL ! noUonPt ! addresults
 !===============================================================================!
 !                               SYSTEM VARIABLES                                !
 ! Lattice and surface direction:                                                !
--> lattice = fcc111
+-> lattice = fcc
+-> plane = -1.0 -1.0 -1.0
 ! Lattice parameter:
 -> a0 = 3.92
 ! Number of planes:
@@ -46,8 +51,8 @@
 -> renormnb = 1      ! Reference neighbor (where the charge current will be 1)
 !===============================================================================!
 !                           INTEGRATION VARIABLES                               !
-! Number of Cunningham k-vector generators: (ncp > 0)                           !
--> ncp = 100
+! Approxiamte number of k-points: (nkpt > 0)                                    !
+-> nkpt = 100
 ! Number of parts to divide energy integral in complex plane:                   !
 -> parts = 2 , n1gl = 64
 !  Number of parts to divide energy integral in real axis:                      !

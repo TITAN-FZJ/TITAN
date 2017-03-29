@@ -38,10 +38,10 @@ subroutine helpdtdk(kp,h00,h01,h10,ly)
 ! First nearest neighbors
   do i=1,n0
 !   exponential of i.k.r0(i); i=1,n0
-    kr0   = (kp(1)*r0(i,1))+(kp(2)*r0(i,2))+(kp(3)*r0(i,3))
+    kr0   = dot_product(kp, r0(i,:))
     expikr0 = exp(zi*kr0)
     ! term from derivative related to the direction of applied field i.u.r0(i); i=1,n0
-    dirEr0   = (dirEfieldvec(1)*r0(i,1))+(dirEfieldvec(2)*r0(i,2))+(dirEfieldvec(3)*r0(i,3))
+    dirEr0   = dot_product(dirEfieldvec, r0(i,:))
     h00 = h00 + (zi*dirEr0*expikr0*t00(ly,i,:,:))
   end do
 
@@ -50,30 +50,25 @@ subroutine helpdtdk(kp,h00,h01,h10,ly)
 ! First nearest neighbors
   do i=1,n1
 !   exp(i.k.r1(i)) ; i=1,n1
-    kr1   = (kp(1)*r1(i,1)) + (kp(2)*r1(i,2)) + (kp(3)*r1(i,3))
+    kr1   = dot_product(kp, r1(i,:))
     expikr1 = exp(zi*kr1)
     ! term from derivative related to the direction of applied field i.u.r1(i); i=1,n1
-    dirEr1  = (dirEfieldvec(1)*r1(i,1))+(dirEfieldvec(2)*r1(i,2))+(dirEfieldvec(3)*r1(i,3))
+    dirEr1  = dot_product(dirEfieldvec, r1(i,:))
     h01   = h01 + (zi*dirEr1*expikr1*t01(ly,i,:,:))
   end do
 
-  select case (lattice)
-  case("bcc110")
   ! Second nearest neighbors
-    do i=1,n2
+  do i=1,n2
   !   exp(i.k.r2(i)) ; i=1,n2
-      kr2   = (kp(1)*r2(i,1)) + (kp(2)*r2(i,2)) + (kp(3)*r2(i,3))
-      expikr2 = exp(zi*kr2)
-      ! term from derivative related to the direction of applied field i.u.r2(i); i=1,n2
-      dirEr2  = (dirEfieldvec(1)*r2(i,1))+(dirEfieldvec(2)*r2(i,2))+(dirEfieldvec(3)*r2(i,3))
-      h01   = h01 + (zi*dirEr2*expikr2*t01(ly,n1+i,:,:))
-    end do
-    h10 = transpose(conjg(h01))
-  case("fcc100")
-    h10 = transpose(conjg(h01))
-  ! NOTE: The derivative of h02 is always zero because
+    kr2   = dot_product(kp, r2(i,:))
+    expikr2 = exp(zi*kr2)
+    ! term from derivative related to the direction of applied field i.u.r2(i); i=1,n2
+    dirEr2  = dot_product(dirEfieldvec, r2(i,:))
+    h01   = h01 + (zi*dirEr2*expikr2*t01(ly,n1+i,:,:))
+  end do
+  h10 = transpose(conjg(h01))
+  ! NOTE: The derivative of h02 is always zero for fcc because
   ! dirEfield is in-plane and r2 is perpendicular to the plane
-  end select
 
   return
 end subroutine helpdtdk
