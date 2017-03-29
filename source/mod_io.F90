@@ -300,6 +300,8 @@ contains
 
       if(.not. get_parameter("set1", suffix)) call log_warning("[get_parameters] 'suffix' missing.", outputunit)
 
+      if(.not. get_parameter("nn_stages", nn_stages)) call log_warning("[get_parameters] 'nn_stages' missing.", outputunit)
+
     if(myrank.eq.0) write(outputunit,"('[get_parameters] Finished reading from ""',a,'"" file')") trim(filename)
 
 !-------------------------------------------------------------------------------

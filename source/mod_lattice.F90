@@ -53,7 +53,7 @@ contains
   !-----------------------------------------------------------------------------
   subroutine next_neighbour_init()
     use mod_f90_kind, only: double
-    use mod_parameters, only: a1, a2, a3, pln_dir
+    use mod_parameters, only: a1, a2, a3, pln_dir, nn_stages
     implicit none
     real(double), dimension(:,:,:), allocatable :: nn                      ! Array contains all neighbours in the ellipsoid 2*nn_stages*(a1,a2,a3)
     real(double), dimension(:),     allocatable :: dist                    ! Contains all distances in the ellipsoid 2*nn_stages*(a1,a2,a3)
@@ -66,12 +66,11 @@ contains
     integer,      dimension(:),     allocatable :: off_plane_aux
     real(double), dimension(3)                  :: pos_tmp, cos_tmp
     real(double)                                :: dist_tmp
-    integer                                     :: nn_stages, nn_size, nnt
+    integer                                     :: nn_size, nnt
     integer                                     :: on_cnt, off_cnt
     integer                                     :: i, j, l, m, n
     logical                                     :: pl_flag
 
-    nn_stages = 2   ! TODO: Change to input parameter
     nnt = 2 * nn_stages
 
     allocate(nn(3, 2, (2*nnt+1)**3))

@@ -20,6 +20,7 @@ module mod_parameters
   character(len=6) :: lattice                   !< Lattice description; general(not implemented) or bcc, fcc, hcp, cubic
   integer          :: Npl,Npl_i,Npl_f,Npl_input !< Description missing.
   real(double)     :: a1(3), a2(3), a3(3)       !< Lattice unit vectors
+  integer          :: nn_stages = 2             !< Number of next neighbor stages. (Default = 2)
   real(double)     :: pln_dir(3)                !< Plane vector describing the layer in the unit cell described by a1,a2,a3
   logical          :: bulk = .false.            !< Flag turning on/off bulk calculations, default: .false., not used yet
   real(double)     :: a0                        !< Lattice parameter (define the units of distance in the program)
