@@ -21,4 +21,5 @@ last_compilation
 *.png
 *.jpg
 *.nb
+results/*
 

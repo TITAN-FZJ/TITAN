@@ -3,11 +3,11 @@
 -> itype = 8
 !===============================================================================!
 !                                OUTPUT FILE                                    !
--> output: output/saida8_Npl5_ncp6
-! -> suffix: _-M
+-> output = output/saida8_Npl5_ncp6
+! -> suffix = _-M
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
--> Options: lgtv
+-> Options =
 !===============================================================================!
 !                               SYSTEM VARIABLES                                !
 ! Lattice and surface direction:                                                !
@@ -30,10 +30,12 @@
 -> hwp   = 0.00E+00 ! 2.00E+00 31
 -> skip_steps_hw = 0
 ! Cartesian coordinates                                                         !
--> hwx = 0.0E+00 , hwy = 0.0E+00 , hwz = 0.0E+00
--> hwscale:
--> hwtrotate:
--> hwprotate:
+-> hwx = 0.0E+00
+-> hwy = 0.0E+00
+-> hwz = 0.0E+00
+!-> hwscale =
+!-> hwtrotate =
+!-> hwprotate =
 !===============================================================================!
 !                             SPIN ORBIT COUPLING                               !
 -> SOC = T        ! Spin Orbit Coupling on (T) or off (F)
@@ -58,14 +60,20 @@
 ! Number of Cunningham k-vector generators: (ncp > 0)                           !
 -> ncp = 6
 ! Number of parts to divide energy integral in complex plane:                   !
--> parts = 2 , n1gl = 64
+-> parts = 2
+-> n1gl = 64
 !  Number of parts to divide energy integral in real axis:                      !
--> parts3 = 2 , n3gl = 64
+-> parts3 = 2
+-> n3gl = 64
 !===============================================================================!
 !                              PLOTTING VARIABLES                               !
-!           PLOTTING VARIABLES         !             BAND STRUCTURE             !
-! Minimum and maximum value of energy: ! High symmetry direction                !
--> emin = 1.00E-06 , emax =  5.0E-04   -> kdirection = GH
+! Minimum and maximum value of energy:                                          !
+-> emin = 1.00E-06
+-> emax = 5.0E-04
+!- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -!
+!                                BAND STRUCTURE                                 !
+! High symmetry direction
+-> kdirection = GH
 !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -!
 !                              Number of points:                                !
 -> npts = 63
@@ -73,9 +81,9 @@
 !===============================================================================!
 !                              SELF-CONSISTENCY                                 !
 !        (Finding center of the bands for the given number of particles)        !
--> skipsc = T ! skip self-consistency calculation when it finds previous results
+-> skipsc = F ! skip self-consistency calculation when it finds previous results
 ! File to use as starting point:
-!-> scfile: results/selfconsistency/selfconsistency_Npl=3_dfttype=T_parts=2_Utype=2_hwa= 2.70E-04_hwt= 0.00_hwp= 0.00_ncp=6_eta= 5.0E-03_magaxis=9_socscale= 1.00.dat
+!-> scfile = results/selfconsistency/selfconsistency_Npl=3_dfttype=T_parts=2_Utype=2_hwa= 2.70E-04_hwt= 0.00_hwp= 0.00_ncp=6_eta= 5.0E-03_magaxis=9_socscale= 1.00.dat
 !===============================================================================!
 !                                DFT PARAMETERS                                 !
 !          (Choose between (T)ight-binding or (O)rthogonal parameters)          !
@@ -85,5 +93,5 @@
 -> set1 = 3
 ! Second half of the slab:
 -> set2 = 4
--> addlayers:
+!-> addlayers =
 !*******************************************************************************!

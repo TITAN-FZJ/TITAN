@@ -62,7 +62,6 @@ contains
     integer :: i, cnt
 
     if(myrank.eq.0) write(outputunit,"('[get_parameters] Reading parameters from ""',a,'"" file...')") trim(filename)
-
     if(.not. get_parameter("itype", itype)) call log_error("[get_parameters] 'itype' missing.", outputunit)
 
     if(.not. get_parameter("lattice", lattice)) call log_error("[get_parameters] 'lattice' missing.", outputunit)
