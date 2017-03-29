@@ -42,6 +42,7 @@ program DHE
   start_program = MPI_Wtime()
   call read_input_file()
   call read_output_filename()
+  print *, outputdhe
   if(myrank.eq.0) then
     open (unit=outputunit, file=trim(outputdhe), status='unknown')
     call write_time(outputunit,'[main] Started on: ')
@@ -75,7 +76,8 @@ program DHE
     myrank_row = myrank_row_hw
   end if
 !-------------------- Define the lattice structure ---------------------
-  call next_neighbour_init(a0*a1, a0*a2, a0*a3, pln_dir)
+  call next_neighbour_init()
+  print *, n2
 !-------------------- Generating k points in 2D BZ ---------------------
   call generate_kpoints(pln_dir)
 
