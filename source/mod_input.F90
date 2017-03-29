@@ -7,6 +7,13 @@ module mod_input
   integer, parameter :: max_elements = 20
   character(len=line_length), dimension(max_lines) :: key, val
 
+interface get_parameter
+  module procedure get_int, get_int_array, &
+                   get_real, get_real_array, &
+                   get_string, get_string_array, &
+                   get_complex, get_complex_array, &
+                   get_logical
+end interface
 contains
   function read_file(filename) result(success)
     implicit none
