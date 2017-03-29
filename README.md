@@ -33,7 +33,7 @@ It is parallelized using openMP. The number of points in the energy
 can be set in the input file - usually, it uses a set of 128 points
 in the imaginary axis and 64 points in the real axis (for &#969;&#8800;0)
 and it is parallelized with MPI.
-
+```
 !*******************************************************************************!
 !                           CHOOSE WHAT TO CALCULATE                            !
 !  Options:                                                                     !
@@ -131,3 +131,4 @@ and it is parallelized with MPI.
 ! - after any layer/field calculation, just create a file called 'stopout'      !
 ! (e.g., in terminal: touch stopout)                                            !
 !*******************************************************************************!
+```
