@@ -25,10 +25,10 @@ module mod_parameters
   logical          :: bulk = .false.            !< Flag turning on/off bulk calculations, default: .false., not used yet
   real(double)     :: a0                        !< Lattice parameter (define the units of distance in the program)
   !========================================================================================!
-  character(len=1)   :: magaxis         !< Equilibrium magnetization
-  character(len=1)   :: dirEfield       !< Direction of in-plane applied electric field
-  real(double)       :: theta,phi       !< Euler Angles for the magnetization direction
-  real(double)       :: dirEfieldvec(3) !< Direction vector of the electric field
+  character(len=1)   :: magaxis                   !< Equilibrium magnetization
+  character(len=1)   :: dirEfield                 !< Direction of in-plane applied electric field
+  real(double)       :: theta=0.d0,phi=0.d0       !< Euler Angles for the magnetization frame of reference
+  real(double)       :: dirEfieldvec(3)           !< Direction vector of the electric field
   !========================================================================================!
   integer :: itype  !< type of calculation - defined in input file 'inputdhe'
   !========================================================================================!
@@ -105,11 +105,6 @@ module mod_parameters
   ! Longitudinal and transverse, and Spin Hall Angle calculation
   integer, dimension(:),  allocatable :: sha_longitudinal,sha_transverse ! In-plane longitudinal and transverse neighbors
   real(double), dimension(:),  allocatable :: long_cos(:),transv_cos(:)  ! In-plane longitudinal and transverse cosines
-  !========================================================================================!
-  ! DC voltage calculations
-  logical :: lvdc = .false.
-  integer :: vdcneighbor(2)=0 ! Longitudinal (1) and transverse (2) neighbor to calculate Vdc
-  integer :: mvdcvector(3)    ! Mapping of the magnetization direction for the selected applied field/magnetization frame of reference
   !========================================================================================!
   ! n0sc1 - first neighbor to calculate the in-plane spin and charge current
   ! n0sc2 - last neighbor to calculate the in-plane spin and charge current

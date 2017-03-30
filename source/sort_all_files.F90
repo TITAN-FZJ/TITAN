@@ -1,12 +1,11 @@
 ! Sort all files
 subroutine sort_all_files()
-  use mod_parameters, only: itype,lvdc,hw_count,count,npt1,outputunit_loop
+  use mod_parameters, only: itype,hw_count,count,npt1,outputunit_loop
   use mod_susceptibilities
   use mod_disturbances
   use mod_currents
   use mod_beff
   use mod_torques
-  use mod_vdc
   use mod_sha
   implicit none
 
@@ -26,8 +25,6 @@ subroutine sort_all_files()
     call sort_beff()
     ! SORTING TORQUES
     call sort_torques()
-    ! SORTING DC VOLTAGE
-    if(lvdc) call sort_vdc()
     ! SORTING SHA
     call sort_sha()
   case (9)
@@ -43,8 +40,6 @@ subroutine sort_all_files()
         call sort_beff()
         ! SORTING TORQUES
         call sort_torques()
-        ! SORTING DC VOLTAGE
-        if(lvdc) call sort_vdc()
         ! SORTING SHA
         call sort_sha()
       end do energy_loop

@@ -400,19 +400,6 @@ contains
     write(outputunit_loop,"(8x,'Utype = ',i0)") Utype
     select case (lattice)
     case("bcc110")
-      write(outputunit_loop,"(1x,'Spin quantization direction: ',$)")
-      write_magnetization_axis_bcc110: select case (magaxis)
-      case ("L")
-        write(outputunit_loop,"('Long axis')")
-      case ("S")
-        write(outputunit_loop,"('Short axis')")
-      case ("P")
-        write(outputunit_loop,"('Perpendicular out-of-plane')")
-      case default
-        write(outputunit_loop,"(11x,'Other')")
-      end select write_magnetization_axis_bcc110
-      write(outputunit_loop,"(10x,'phi =',es9.2,'pi')") phi/pi
-      write(outputunit_loop,"(8x,'theta =',es9.2,'pi')") theta/pi
       write(outputunit_loop,"(1x,'Electric field direction: ',$)")
       read(dirEfield,fmt=*,iostat=err) j
       if(err.eq.0) then
@@ -433,16 +420,6 @@ contains
         end select write_direction_E_field_bcc110_axis
       end if
     case("fcc100")
-      write(outputunit_loop,"(1x,'Spin quantization direction: ',$)")
-      read(unit=magaxis,fmt=*) j
-      write_magnetization_axis_fcc100: select case (j)
-      case (1:8)   !    In plane neighbors:
-        write(outputunit_loop,"('Neighbor ',i0)") j
-      case (9)
-        write(outputunit_loop,"('Out-of-plane')")
-      end select write_magnetization_axis_fcc100
-      write(outputunit_loop,"(10x,'phi =',es9.2,'pi')") phi/pi
-      write(outputunit_loop,"(8x,'theta =',es9.2,'pi')") theta/pi
       write(outputunit_loop,"(1x,'Electric field direction: ',$)")
       read(unit=dirEfield,fmt=*) j
       write_direction_E_field_fcc100: select case (j)
@@ -516,11 +493,6 @@ contains
       write(outputunit_loop,"(8x,'n0sc2 = ',i0)") n0sc2
       write(outputunit_loop,"(9x,'emin =',es9.2)") emin
       write(outputunit_loop,"(9x,'emax =',es9.2)") emax
-      if(lvdc) then
-        write(outputunit_loop,"(7x,'DC voltage calculation: ')")
-        if(vdcneighbor(1).ne.0) write(outputunit_loop,"(4x,'Longitudinal neighbor = ',i0)") vdcneighbor(1)
-        if(vdcneighbor(2).ne.0) write(outputunit_loop,"(4x,'  Transverse neighbor = ',i0)") vdcneighbor(2)
-      end if
       write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps of energy size',es10.3,' each calculating ',i0,' points')") total_hw_npt1*npt1,MPIsteps*MPIsteps_hw,MPIdelta,MPIpts_hw*MPIpts
     case (9)
       write(outputunit_loop,"(1x,'dc limit calculations as a function of ',a)") trim(dcfield(dcfield_dependence))
@@ -531,11 +503,6 @@ contains
       write(outputunit_loop,"(1x,'hwt_max =',f6.3)") hw_list(total_hw_npt1,2)
       write(outputunit_loop,"(1x,'hwp_min =',f6.3)") hw_list(1,3)
       write(outputunit_loop,"(1x,'hwp_max =',f6.3)") hw_list(total_hw_npt1,3)
-      if(lvdc) then
-        write(outputunit_loop,"(7x,'DC voltage calculation: ')")
-        if(vdcneighbor(1).ne.0) write(outputunit_loop,"(8x,'Longitudinal neighbor = ',i0)") vdcneighbor(1)
-        if(vdcneighbor(2).ne.0) write(outputunit_loop,"(8x,'  Transverse neighbor = ',i0)") vdcneighbor(2)
-      end if
       write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps, each calculating ',i0,' points')") total_hw_npt1*npt1,MPIsteps*MPIsteps_hw,MPIpts_hw*MPIpts
     end select write_itype
     write(outputunit_loop,"('|---------------------------------------------------------------------------|')")

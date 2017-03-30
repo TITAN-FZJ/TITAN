@@ -1,12 +1,11 @@
 ! Create files with headers
 subroutine create_files()
-  use mod_parameters, only: itype,outputunit,count,npt1,lvdc
+  use mod_parameters, only: itype,outputunit,count,npt1
   use mod_susceptibilities
   use mod_disturbances
   use mod_currents
   use mod_beff
   use mod_torques
-  use mod_vdc
   use mod_sha
   implicit none
 
@@ -20,7 +19,6 @@ subroutine create_files()
     call openclose_currents_files(0)
     call openclose_beff_files(0)
     call openclose_torque_files(0)
-    if(lvdc) call openclose_vdc_files(0)
     call openclose_sha_files(0)
     write(outputunit,"('[create_files] Susceptibilities, disturbances, current, SHA, effective field, torque and DC voltage files created/overwritten!')")
   case (9)
@@ -30,7 +28,6 @@ subroutine create_files()
       call openclose_dc_currents_files(0)
       call openclose_dc_beff_files(0)
       call openclose_dc_torque_files(0)
-      if(lvdc) call openclose_dc_vdc_files(0)
       call openclose_dc_sha_files(0)
     end do energy_loop
     write(outputunit,"('[create_files] Susceptibilities, disturbances, current, SHA, effective field, torque and DC voltage files created/overwritten!')")
