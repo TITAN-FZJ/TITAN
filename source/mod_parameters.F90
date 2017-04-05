@@ -20,13 +20,16 @@ module mod_parameters
   character(len=6) :: lattice                   !< Lattice description; general(not implemented) or bcc, fcc, hcp, cubic
   integer          :: Npl,Npl_i,Npl_f,Npl_input !< Description missing.
   real(double)     :: a1(3), a2(3), a3(3)       !< Lattice unit vectors
+  real(double)     :: a1_pln(3), a2_pln(3)      !< In-plane lattice unit vectors
   integer          :: nn_stages = 2             !< Number of next neighbor stages. (Default = 2)
   real(double)     :: pln_dir(3)                !< Plane vector describing the layer in the unit cell described by a1,a2,a3
   logical          :: bulk = .false.            !< Flag turning on/off bulk calculations, default: .false., not used yet
   real(double)     :: a0                        !< Lattice parameter (define the units of distance in the program)
   !========================================================================================!
-  character(len=1)   :: magaxis                   !< Equilibrium magnetization
-  character(len=1)   :: dirEfield                 !< Direction of in-plane applied electric field
+  integer            :: magaxis                   !< Initial guess for magnetization
+  !character(len=1)   :: magaxis                   !< Equilibrium magnetization
+  integer            :: dirEfield                 !< Direction of in-plane applied electric field
+  !character(len=1)   :: dirEfield                 !< Direction of in-plane applied electric field
   real(double)       :: theta=0.d0,phi=0.d0       !< Euler Angles for the magnetization frame of reference
   real(double)       :: dirEfieldvec(3)           !< Direction vector of the electric field
   !========================================================================================!
