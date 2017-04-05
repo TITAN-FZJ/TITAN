@@ -60,6 +60,7 @@ contains
     real(double), allocatable :: vector(:)
     integer, allocatable :: i_vector(:)
     integer :: i, cnt
+    character(len=20) :: tmp_string
 
     if(myrank.eq.0) write(outputunit,"('[get_parameters] Reading parameters from ""',a,'"" file...')") trim(filename)
     if(.not. get_parameter("itype", itype)) call log_error("[get_parameters] 'itype' missing.", outputunit)
@@ -112,8 +113,26 @@ contains
     if(.not. get_parameter("SOC", SOC)) call log_error("[get_parameters] 'SOC' missing.", outputunit)
     if(SOC == .true.) then
        if(.not. get_parameter("socscale", socscale)) call log_warning("[get_parameters] 'socscale' missing.", outputunit)
-       if(.not. get_parameter("magaxis", magaxis)) call log_error("[get_parameters] 'magaxis' missing.", outputunit)
+       if(.not. get_parameter("magaxis", magaxis)) call log_warning("[get_parameters] 'magaxis' missing.", outputunit)
     end if
+
+    if(.not. get_parameter("ebasis", tmp_string)) call log_error("[get_parameters] 'ebasis' missing.", outputunit)
+    select case (tmp_string)
+    case("cartesian")
+      if(.not. get_parameter("dirEfield", vector, cnt)) call log_error("[get_parameters] 'dirEfield' missing.", outputunit)
+      if(cnt /= 3) call log_error("[get_parameters] 'dirEfield' has wrong size (size 3 required).", outputunit)
+      dirEfield = -1 ! TODO: Set it to a value if not determined otherwise?
+      dirEfieldvec(1:3) = vector(1:3)
+      deallocate(vector)
+    case("neighbor")
+      if(.not. get_parameter("dirEfield", dirEfield)) call log_error("[get_parameters] 'dirEfield' missing.", outputunit)
+    case("bravais")
+      if(.not. get_parameter("dirEfield", i_vector, cnt)) call log_error("[get_parameters] 'dirEfield' missing.", outputunit)
+      if(cnt /= 2) call log_error("[get_parameters] 'dirEfield' has wrong size (size 2 required).", outputunit)
+      dirEfield = -2 ! TODO: Add options to evaluate these values.
+      dirEfieldvec(1:2) = i_vector(1:2)
+      deallocate(i_vector)
+    end select
 
     if(.not. get_parameter("Npl", i_vector, cnt)) call log_error("[get_parameters] 'Npl' missing.", outputunit)
     if(cnt < 1) call log_error("[get_parameters] 'Npl' doesn't contain any parameters.", outputunit)
@@ -409,15 +428,15 @@ contains
         case default
           write(outputunit_loop,"('Other',/,1x,' E = (',f6.3,',',f6.3,',',f6.3,')')") dirEfieldvec(1),dirEfieldvec(2),dirEfieldvec(3)
         end select write_direction_E_field_bcc110
-      else
-        write_direction_E_field_bcc110_axis: select case (dirEfield)
-        case ("L")
-          write(outputunit_loop,"('Long axis')")
-        case ("S")
-          write(outputunit_loop,"('Short axis')")
-        case ("O")
-          write(outputunit_loop,"('Other',/,1x,' E = (',f6.3,',',f6.3,',',f6.3,')')") dirEfieldvec(1),dirEfieldvec(2),dirEfieldvec(3)
-        end select write_direction_E_field_bcc110_axis
+      ! else
+      !   write_direction_E_field_bcc110_axis: select case (dirEfield)
+      !   case ("L")
+      !     write(outputunit_loop,"('Long axis')")
+      !   case ("S")
+      !     write(outputunit_loop,"('Short axis')")
+      !   case ("O")
+      !     write(outputunit_loop,"('Other',/,1x,' E = (',f6.3,',',f6.3,',',f6.3,')')") dirEfieldvec(1),dirEfieldvec(2),dirEfieldvec(3)
+      !   end select write_direction_E_field_bcc110_axis
       end if
     case("fcc100")
       write(outputunit_loop,"(1x,'Electric field direction: ',$)")
