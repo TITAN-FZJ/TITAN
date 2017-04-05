@@ -13,17 +13,17 @@ subroutine invers(matriz,nn)
   lwork = 4*nn
   info = 0
   call zgetrf(nn,nn,matriz,nn,ipiv,info)
-  if (info.gt.0) then
+  if (info>0) then
     write(outputunit,"('[invers] Singular matrix! info = ',i0,' on rank ',i0)") info,myrank
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
-  if (info.lt.0) then
+  if (info<0) then
     write(outputunit,"('[invers] Illegal value of argument ',i0,' on rank ',i0)") -info,myrank
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
   call zgetri(nn,matriz,nn,ipiv,work,lwork,info)
 
-  if (info.ne.0) then
+  if (info/=0) then
     write(outputunit,"('[invers] Singular matrix! info = ',i0,' on rank ',i0)") info,myrank
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
@@ -52,17 +52,17 @@ end subroutine invers
 
 !   info = 0
 !   call zgetrf(nn,nn,matriz,nn,ipiv,info)
-!   if (info.gt.0) then
+!   if (info>0) then
 !     write(outputunit,"('[invers] Singular matrix! info = ',i0,' on rank ',i0)") info,myrank
 !     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
 !   end if
-!   if (info.lt.0) then
+!   if (info<0) then
 !     write(outputunit,"('[invers] Illegal value of argument ',i0,' on rank ',i0)") -info,myrank
 !     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
 !   end if
 !   call zgetrs('N',nn,nn,matriz,nn,ipiv,ident,nn,info)
 
-!   if (info.ne.0) then
+!   if (info/=0) then
 !     write(outputunit,"('[invers] Singular matrix! info = ',i0,' on rank ',i0)") info,myrank
 !     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
 !   end if

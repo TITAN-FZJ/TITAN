@@ -14,9 +14,9 @@ contains
     implicit none
     integer           :: AllocateStatus
 
-    if(myrank_row.eq.0) then
+    if(myrank_row==0) then
       allocate( long_currents(7,Npl),total_long_currents(7),transv_currents(7,Npl),total_transv_currents(7), STAT = AllocateStatus )
-      if (AllocateStatus.ne.0) then
+      if (AllocateStatus/=0) then
          write(outputunit,"('[allocate_lgtv_currents] Not enough memory for: long_currents,total_long_currents,transv_currents,total_transv_currents')")
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
@@ -31,7 +31,7 @@ contains
     use mod_mpi_pars
     implicit none
 
-    if(myrank_row.eq.0) deallocate(long_currents,total_long_currents,transv_currents,total_transv_currents)
+    if(myrank_row==0) deallocate(long_currents,total_long_currents,transv_currents,total_transv_currents)
 
     return
   end subroutine deallocate_lgtv_currents
@@ -57,7 +57,7 @@ contains
       else
         SOCc = "T"
       end if
-      write(socpart,"('_magaxis=',a,'_socscale=',f5.2)") magaxis,socscale
+      if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
     else
       SOCc = "F"
     end if
@@ -93,7 +93,7 @@ contains
     typec(1) = "longit"
     typec(2) = "transv"
 
-    if(iflag.eq.0) then
+    if(iflag==0) then
       ! Header for longitudinal and transverse currents per plane
       do i=1,Npl ; do j=1,7 ; do k=1,2
         iw = 8300+(i-1)*7*2+(j-1)*2+k
@@ -110,7 +110,7 @@ contains
         write(unit=iw, fmt="('#     energy     , real part of ',a,', imag part of ',a,',   phase of ',a,'  ')") filename(j),filename(j),filename(j)
         close(unit=iw)
       end do ; end do
-    else if(iflag.eq.1) then
+    else if(iflag==1) then
       ! Longitudinal and transverse currents per plane
       do i=1,Npl ; do j=1,7 ; do k=1,2
         iw = 8300+(i-1)*7*2+(j-1)*2+k
@@ -126,7 +126,7 @@ contains
         errt = errt + err
       end do ; end do
       ! Stop if some file does not exist
-      if(errt.ne.0) then
+      if(errt/=0) then
         write(outputunit,"(a,i0,a)") "[openclose_lgtv_files] Some file(s) do(es) not exist! Stopping before starting calculations..."
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
@@ -166,15 +166,15 @@ contains
       else
         SOCc = "T"
       end if
-      write(socpart,"('_magaxis=',a,'_socscale=',f5.2)") magaxis,socscale
+      if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
     else
       SOCc = "F"
     end if
 
-    if(dcfield_dependence.ne.7) then
-      if((dcfield_dependence.ne.1).and.(dcfield_dependence.ne.4).and.(dcfield_dependence.ne.5)) write(fieldpart,"(a,'_hwa=',es9.2)") trim(fieldpart),hwa
-      if((dcfield_dependence.ne.2).and.(dcfield_dependence.ne.4).and.(dcfield_dependence.ne.6)) write(fieldpart,"(a,'_hwt=',f5.2)") trim(fieldpart),hwt
-      if((dcfield_dependence.ne.3).and.(dcfield_dependence.ne.5).and.(dcfield_dependence.ne.6)) write(fieldpart,"(a,'_hwp=',f5.2)") trim(fieldpart),hwp
+    if(dcfield_dependence/=7) then
+      if((dcfield_dependence/=1).and.(dcfield_dependence/=4).and.(dcfield_dependence/=5)) write(fieldpart,"(a,'_hwa=',es9.2)") trim(fieldpart),hwa
+      if((dcfield_dependence/=2).and.(dcfield_dependence/=4).and.(dcfield_dependence/=6)) write(fieldpart,"(a,'_hwt=',f5.2)") trim(fieldpart),hwt
+      if((dcfield_dependence/=3).and.(dcfield_dependence/=5).and.(dcfield_dependence/=6)) write(fieldpart,"(a,'_hwp=',f5.2)") trim(fieldpart),hwp
     end if
     if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
     if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
@@ -205,7 +205,7 @@ contains
     typec(1) = "longit"
     typec(2) = "transv"
 
-    if(iflag.eq.0) then
+    if(iflag==0) then
       ! Header for longitudinal and transverse currents per plane
       do i=1,Npl ; do j=1,7 ; do k=1,2
         iw = 83000+(i-1)*7*2+(j-1)*2+k
@@ -222,7 +222,7 @@ contains
         write(unit=iw, fmt="('#',a,' real part of ',a,', imag part of ',a,',   phase of ',a,'  , mag angle theta ,  mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j)
         close(unit=iw)
       end do ; end do
-    else if(iflag.eq.1) then
+    else if(iflag==1) then
       ! Header for longitudinal and transverse currents per plane
       do i=1,Npl ; do j=1,7 ; do k=1,2
         iw = 83000+(i-1)*7*2+(j-1)*2+k
@@ -239,7 +239,7 @@ contains
       end do ; end do
 
       ! Stop if some file does not exist
-      if(errt.ne.0) then
+      if(errt/=0) then
         write(outputunit,"(a,i0,a)") "[openclose_dc_sha_files] Some file(s) do(es) not exist! Stopping before starting calculations..."
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
@@ -321,7 +321,7 @@ contains
     integer  :: i,j,k,iw,idc=1
 
     ! Opening longitudinal and transverse currents files
-    if(itype.eq.9) then
+    if(itype==9) then
       idc=10
       call openclose_dc_lgtv_files(1)
     else
@@ -339,7 +339,7 @@ contains
     end do ; end do
 
     ! Closing longitudinal and transverse currents files
-    if(itype.eq.9) then
+    if(itype==9) then
       call openclose_dc_lgtv_files(2)
     else
       call openclose_lgtv_files(2)
@@ -403,14 +403,14 @@ contains
           call read_data(iw,rows,cols,data)
 
           ! Checking if energy list is the same
-          if(sum(abs(e(:)-data(:,1))).gt.1.d-8) then
+          if(sum(abs(e(:)-data(:,1)))>1.d-8) then
             write(outputunit,"('[read_calculate_lgtv_currents] Different energies on current files!')")
             call MPI_Finalize(ierr)
             stop
           end if
         end if
         ! Obtaining diamagnetic current (if the minimum energy is small enough)
-        if(e(iemin).le.1.d-5) then
+        if(e(iemin)<=1.d-5) then
           idia = data(iemin,4)
           data(:,4) = data(:,4) - idia
         else
@@ -428,13 +428,13 @@ contains
         call read_data(iw,rows,cols,data)
 
         ! Checking if energy list is the same
-        if(sum(abs(e(:)-data(:,1))).gt.1.d-8) then
+        if(sum(abs(e(:)-data(:,1)))>1.d-8) then
           write(outputunit,"('[read_calculate_lgtv_currents] Different energies on current files!')")
           call MPI_Finalize(ierr)
           stop
         end if
         ! Obtaining diamagnetic current (if the minimum energy is small enough)
-        if(e(iemin).le.1.d-5) then
+        if(e(iemin)<=1.d-5) then
           idia = data(iemin,4)
           data(:,4) = data(:,4) - idia
         else
@@ -468,7 +468,7 @@ contains
       call deallocate_currents()
       call deallocate_lgtv_currents()
     case(9)
-      if(hw_count.eq.1) then
+      if(hw_count==1) then
 
         ! Allocating current and longitudinal and transverse currents variables
         call allocate_currents()
@@ -493,7 +493,7 @@ contains
               call number_of_rows_cols(iw,rows,cols)
 
               ! If number of rows is different than total_hw_npt1, correct dimensions
-              if(rows.ne.total_hw_npt1) then
+              if(rows/=total_hw_npt1) then
                 write(outputunit,"('[read_calculate_lgtv_currents] WARNING: Number of rows different than field values!')")
                 deallocate(dc_fields)
                 allocate(dc_fields(rows))
@@ -516,15 +516,15 @@ contains
               call read_data(iw,rows,cols,data)
 
               ! Checking if fields list is the same
-              if(sum(abs(x(:,1:idc)-data(:,1:idc))).gt.1.d-8) then
+              if(sum(abs(x(:,1:idc)-data(:,1:idc)))>1.d-8) then
                 write(outputunit,"('[read_calculate_lgtv_currents] Different fields on current files!')")
                 call MPI_Finalize(ierr)
                 stop
               end if
 
               ! Checking if angles are the same or getting next plane values
-              if(sum(abs(mangles(:,i,:))).lt.10.d0) then
-                if(sum(abs(mangles(:,i,:)-data(:,cols-1:cols))).gt.1.d-8) then
+              if(sum(abs(mangles(:,i,:)))<10.d0) then
+                if(sum(abs(mangles(:,i,:)-data(:,cols-1:cols)))>1.d-8) then
                   write(outputunit,"('[read_calculate_lgtv_currents] Different angles on current files!')")
                   call MPI_Finalize(ierr)
                   stop
@@ -546,14 +546,14 @@ contains
             call read_data(iw,rows,cols,data)
 
             ! Checking if fields list is the same
-            if(sum(abs(x(:,1:idc)-data(:,1:idc))).gt.1.d-8) then
+            if(sum(abs(x(:,1:idc)-data(:,1:idc)))>1.d-8) then
               write(outputunit,"('[read_calculate_lgtv_currents] Different fields on current files!')")
               call MPI_Finalize(ierr)
               stop
             end if
 
             ! Checking if angles are the same
-            if(sum(abs(mangles(:,mmlayermag(1)-1,:)-data(:,cols-1:cols))).gt.1.d-8) then
+            if(sum(abs(mangles(:,mmlayermag(1)-1,:)-data(:,cols-1:cols)))>1.d-8) then
               write(outputunit,"('[read_calculate_lgtv_currents] Different angles on current files!')")
               call MPI_Finalize(ierr)
               stop
@@ -616,7 +616,7 @@ contains
     total_transv_currents = zero
     do neighbor=n0sc1,n0sc2
       ! Summing currents flowing on longitudinal direction
-      if(any(neighbor.eq.sha_longitudinal(1:longitudinal_neighbors))) then
+      if(any(neighbor==sha_longitudinal(1:longitudinal_neighbors))) then
         do j=1,7
           do i=1,Npl
             long_currents(j,i) = long_currents(j,i) + currents(j,neighbor,i)*long_cos(neighbor)
@@ -626,7 +626,7 @@ contains
       end if
 
       ! Summing currents flowing on transverse direction
-      if(any(neighbor.eq.sha_transverse(1:transverse_neighbors))) then
+      if(any(neighbor==sha_transverse(1:transverse_neighbors))) then
         do j=1,7
           do i=1,Npl
             transv_currents(j,i) = transv_currents(j,i) + currents(j,neighbor,i)*transv_cos(neighbor)

@@ -13,8 +13,8 @@ subroutine calculate_chi()
   complex(double), dimension(:,:),   allocatable :: temp
 
   call allocate_susceptibilities()
-  if(myrank_row.eq.0) allocate(temp(dim,dim))
-  if(myrank.eq.0) then
+  if(myrank_row==0) allocate(temp(dim,dim))
+  if(myrank==0) then
     write(outputunit_loop,"('CALCULATING LOCAL SUSCEPTIBILITY AS A FUNCTION OF ENERGY')")
 !           write(outputunit_loop,"('Qx = ',es10.3,', Qz = ',es10.3)") q(1),q(3)
     ! Creating files and writing headers
@@ -26,12 +26,12 @@ subroutine calculate_chi()
   ! Mounting U and identity matrix
   call build_identity_and_U_matrix()
 
-  if((myrank.eq.0).and.(skip_steps.gt.0)) write(outputunit_loop,"('[calculate_chi] Skipping first ',i0,' step(s)...')") skip_steps
+  if((myrank==0).and.(skip_steps>0)) write(outputunit_loop,"('[calculate_chi] Skipping first ',i0,' step(s)...')") skip_steps
 
   chi_energy_loop: do count=1+skip_steps,MPIsteps
     mpitag = (Npl-Npl_i)*total_hw_npt1*MPIsteps + (hw_count-1)*MPIsteps + count
     e = emin + deltae*myrank_col + MPIdelta*(count-1)
-    if(myrank.eq.0) then
+    if(myrank==0) then
 !             write(outputunit_loop,"(i0,' of ',i0,' points',', e = ',es10.3,' in myrank_col ',i0)") ((count-1)*MPIpts+myrank_col+1),npt1,e,myrank_col
       write(outputunit_loop,"('[calculate_chi] Starting MPI step ',i0,' of ',i0)") count,MPIsteps
     end if
@@ -39,7 +39,7 @@ subroutine calculate_chi()
     ! Start parallelized processes to calculate chiorb_hf and chiorbi0_hf for energy e
     call eintshechi(e)
 
-    if(myrank_row.eq.0) then
+    if(myrank_row==0) then
       ! (1 + chi_hf*Umat)^-1
       temp = identt
       call zgemm('n','n',dim,dim,dim,zum,chiorb_hf,dim,Umatorb,dim,zum,temp,dim)
@@ -80,9 +80,9 @@ subroutine calculate_chi()
       end if
 
       ! Sending results to myrank_row = myrank_col = 0 and writing on file
-      if(myrank_col.eq.0) then
+      if(myrank_col==0) then
         MPI_points_chi: do mcount=1,MPIpts
-          if (mcount.ne.1) then
+          if (mcount/=1) then
             call MPI_Recv(e,1,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,1000,MPI_Comm_Col,stat,ierr)
             call MPI_Recv(schi,Npl*Npl*16,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),1100,MPI_Comm_Col,stat,ierr)
             call MPI_Recv(schihf,Npl*Npl*16,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),1200,MPI_Comm_Col,stat,ierr)
@@ -105,7 +105,7 @@ subroutine calculate_chi()
 
         ! Emergency stop
         open(unit=911, file="stop", status='old', iostat=iw)
-        if(iw.eq.0) then
+        if(iw==0) then
           close(911)
           write(outputunit,"('[calculate_chi] Emergency ""stop"" file found! Stopping after step ',i0,'...')") count
           call system ('rm stop')
@@ -121,12 +121,12 @@ subroutine calculate_chi()
   end do chi_energy_loop
 
   ! Sorting results on files
-  if(myrank.eq.0) then
+  if(myrank==0) then
     call sort_all_files()
   end if
 
   call deallocate_susceptibilities()
-  if(myrank_row.eq.0) then
+  if(myrank_row==0) then
     deallocate(temp)
   end if
 

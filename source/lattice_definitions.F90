@@ -12,7 +12,7 @@ subroutine lattice_definitions()
   case("bcc110")
 !----------- Direction of applied in-plane electric field --------------
     read(dirEfield,fmt=*,iostat=err) i
-    if(err.eq.0) then
+    if(err==0) then
       direction_E_field_bcc110_neighbors: select case (i)
       case (1:6)   !    In plane neighbors:
         dirEfieldvec = c0(i,:)
@@ -67,17 +67,17 @@ subroutine lattice_definitions()
   transverse_neighbors = 0
   do i=1,n0
     long_cos(i) = dot_product(c0(i,:),dirEfieldvec)
-    if(long_cos(i).gt.1.d-8) then
+    if(long_cos(i)>1.d-8) then
       longitudinal_neighbors = longitudinal_neighbors+1
       sha_longitudinal(longitudinal_neighbors) = i
     end if
     transv_cos(i) = dot_product(c0(i,:),versor_Eperp)
-    if(transv_cos(i).gt.1.d-8) then
+    if(transv_cos(i)>1.d-8) then
       transverse_neighbors = transverse_neighbors+1
       sha_transverse(transverse_neighbors) = i
     end if
   end do
-  if(myrank.eq.0) then
+  if(myrank==0) then
     write(outputunit,"('[lattice_definitions] Longitudinal neighbors: ',10(i0,2x))") (sha_longitudinal(i),i=1,longitudinal_neighbors)
     write(outputunit,"('[lattice_definitions]   Transverse neighbors: ',10(i0,2x))") (sha_transverse(i),i=1,transverse_neighbors)
   end if

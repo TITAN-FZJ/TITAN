@@ -28,7 +28,7 @@ contains
     character(len=*), intent(in) :: message
     integer, intent(in), optional :: out_unit
 
-    if(myrank .eq. 0) then
+    if(myrank == 0) then
        if(present(out_unit)) then
           write(out_unit, "('[Error] ""',a,'""')") trim(message)
        else
@@ -43,7 +43,7 @@ contains
     implicit none
     character(len=*), intent(in) :: message
     integer, intent(in), optional :: out_unit
-    if(myrank .eq. 0) then
+    if(myrank == 0) then
        if(present(out_unit)) then
           write(out_unit, "('[Warning] ""',a,'""')") trim(message)
        else
@@ -61,7 +61,7 @@ contains
     integer, allocatable :: i_vector(:)
     integer :: i, cnt
 
-    if(myrank.eq.0) write(outputunit,"('[get_parameters] Reading parameters from ""',a,'"" file...')") trim(filename)
+    if(myrank==0) write(outputunit,"('[get_parameters] Reading parameters from ""',a,'"" file...')") trim(filename)
     if(.not. get_parameter("itype", itype)) call log_error("[get_parameters] 'itype' missing.", outputunit)
 
     if(.not. get_parameter("lattice", lattice)) call log_error("[get_parameters] 'lattice' missing.", outputunit)
@@ -140,14 +140,14 @@ contains
        case ("createfiles")
           lcreatefiles = .true.
        case ("noUonall")
-          if(Utype.eq.1) then
-             if(myrank.eq.0) call log_warning("[get_parameters] Runoption 'noUonNM' is already active.", outputunit)
+          if(Utype==1) then
+             if(myrank==0) call log_warning("[get_parameters] Runoption 'noUonNM' is already active.", outputunit)
           else
              Utype = 0
           end if
        case ("noUonNM")
-          if(Utype.eq.0) then
-             if(myrank.eq.0) call log_warning("[get_parameters] Runoption 'noUonall' is already active.", outputunit)
+          if(Utype==0) then
+             if(myrank==0) call log_warning("[get_parameters] Runoption 'noUonall' is already active.", outputunit)
           else
              Utype = 1
           end if
@@ -301,43 +301,43 @@ contains
 
       if(.not. get_parameter("nn_stages", nn_stages)) call log_warning("[get_parameters] 'nn_stages' missing.", outputunit)
 
-    if(myrank.eq.0) write(outputunit,"('[get_parameters] Finished reading from ""',a,'"" file')") trim(filename)
+    if(myrank==0) write(outputunit,"('[get_parameters] Finished reading from ""',a,'"" file')") trim(filename)
 
 !-------------------------------------------------------------------------------
 !*********** User manual additions / modifications in the input file **********!
 !     Npl_i  = 4
 !     Npl_f = 4
-!     ncp = 6
+!     nkpt = 6
 !     SOC = .true.
 !     magaxis = "5"
 !     runoptions = trim(runoptions) // " noUonNM"
-!     scfile = "results/selfconsistency/selfconsistency_Npl=4_dfttype=T_parts=2_U= 0.7E-01_hwa= 0.00E+00_hwt= 0.00E+00_hwp= 0.00E+00_ncp=6_eta= 0.5E-03.dat"
+!     scfile = "results/selfconsistency/selfconsistency_Npl=4_dfttype=T_parts=2_U= 0.7E-01_hwa= 0.00E+00_hwt= 0.00E+00_hwp= 0.00E+00_nkpt=6_eta= 0.5E-03.dat"
 !-------------------------------------------------------------------------------
     ! Some consistency checks
-    if((renorm).and.((renormnb.lt.n0sc1).or.(renormnb.gt.n0sc2))) then
-      if(myrank.eq.0) then
+    if((renorm).and.((renormnb<n0sc1).or.(renormnb>n0sc2))) then
+      if(myrank==0) then
         write(outputunit,"('[get_parameters] Invalid neighbor for renormalization: ',i0,'!')") renormnb
         write(outputunit,"('[get_parameters] Choose a value between ',i0,' and ',i0,'.')") n0sc1,n0sc2
       end if
       call MPI_Finalize(ierr)
       stop
     end if
-    if(skip_steps.lt.0) then
-      if(myrank.eq.0) write(outputunit,"('[get_parameters] Invalid number of energy steps to skip: ',i0)") skip_steps
+    if(skip_steps<0) then
+      if(myrank==0) write(outputunit,"('[get_parameters] Invalid number of energy steps to skip: ',i0)") skip_steps
       call MPI_Finalize(ierr)
       stop
     end if
-    if(skip_steps_hw.lt.0) then
-      if(myrank.eq.0) write(outputunit,"('[get_parameters] Invalid number of field steps to skip: ',i0)") skip_steps_hw
+    if(skip_steps_hw<0) then
+      if(myrank==0) write(outputunit,"('[get_parameters] Invalid number of field steps to skip: ',i0)") skip_steps_hw
       call MPI_Finalize(ierr)
       stop
     end if
-    if((lhfresponses).and.(itype.eq.7).and.(myrank.eq.0)) write(outputunit,"('[get_parameters] Susceptibility calculations already include HF responses. Ignoring ""hfresponses"" runoption')")
+    if((lhfresponses).and.(itype==7).and.(myrank==0)) write(outputunit,"('[get_parameters] Susceptibility calculations already include HF responses. Ignoring ""hfresponses"" runoption')")
     ! Adjusting zeeman energy to Ry or eV
     tesla = tesla*ry2ev
 
     ! Turning off renormalization for non-current calculations
-    if(itype.ne.8) renorm = .false.
+    if(itype/=8) renorm = .false.
     n0sc=n0sc2-n0sc1+1 ! Total number of neighbors
 
     ! Setting up external field variables and loops
@@ -345,21 +345,21 @@ contains
 
     ! Energy loop step
     deltae = (emax - emin)/npts
-    if(deltae.le.1.d-14) npt1 = 1
+    if(deltae<=1.d-14) npt1 = 1
 
     ! Preparing dc-limit calculation
-    if(itype.eq.9) call prepare_dclimit()
+    if(itype==9) call prepare_dclimit()
 
     ! Check number of planes
-    if(Npl_f.lt.Npl_i) then
+    if(Npl_f<Npl_i) then
       Npl_f = Npl_i
     end if
     ! Add 'naddlayers' to Npl
-    if((naddlayers.eq.1).and.(myrank.eq.0)) write(outputunit,"('[get_parameters] WARNING: Added layers must include empty spheres! Only including one layer: naddlayers = ',i0)") naddlayers
-    if((set1.eq.9).or.(set2.eq.9)) then
+    if((naddlayers==1).and.(myrank==0)) write(outputunit,"('[get_parameters] WARNING: Added layers must include empty spheres! Only including one layer: naddlayers = ',i0)") naddlayers
+    if((set1==9).or.(set2==9)) then
       naddlayers = 0
     end if
-    if(naddlayers.ne.0) then
+    if(naddlayers/=0) then
       Npl_i = Npl_i+naddlayers-1
       Npl_f = Npl_f+naddlayers-1
     end if
@@ -402,7 +402,7 @@ contains
     case("bcc110")
       write(outputunit_loop,"(1x,'Electric field direction: ',$)")
       read(dirEfield,fmt=*,iostat=err) j
-      if(err.eq.0) then
+      if(err==0) then
         write_direction_E_field_bcc110: select case (j)
         case (1:6)
           write(outputunit_loop,"('Neighbor ',i0)") j
@@ -435,7 +435,7 @@ contains
     else
       write(outputunit_loop,"(1x,'Current renormalization: DEACTIVATED')")
     end if
-    write(outputunit_loop,"(10x,'ncp = ',i0)") ncp
+    write(outputunit_loop,"(10x,'nkpt = ',i0)") nkpt
     write(outputunit_loop,"(8x,'parts = ',i0,'x',i0)") parts,n1gl
     write(outputunit_loop,"(7x,'parts3 = ',i0,'x',i0)") parts3,n3gl
     write(outputunit_loop,"(10x,'eta =',es9.2)") eta
@@ -447,7 +447,7 @@ contains
     else
       write(outputunit_loop,"(1x,'Static magnetic field: DEACTIVATED')")
     end if
-    if(runoptions.ne."") write(outputunit_loop,"(6x,'Activated options:',/,4x,a)") trim(runoptions)
+    if(runoptions/="") write(outputunit_loop,"(6x,'Activated options:',/,4x,a)") trim(runoptions)
 
     write(outputunit_loop,"('|------------------------------ TO CALCULATE: ------------------------------|')")
     write_itype: select case (itype)
@@ -480,7 +480,7 @@ contains
       write(outputunit_loop,"(1x,'Charge and spin density at Fermi surface')")
     case (6)
       write(outputunit_loop,"(1x,'Exhange interactions and anisotropies (full tensor)')")
-      if(nmaglayers.eq.1) write(outputunit_loop,"(1x,'Only 1 magnetic layer: calculating only anisotropies')")
+      if(nmaglayers==1) write(outputunit_loop,"(1x,'Only 1 magnetic layer: calculating only anisotropies')")
       write(outputunit_loop,"(8x,'from Npl = ',i0,' to ',i0)") Npl_i,Npl_f
     case (7)
       write(outputunit_loop,"(1x,'Local susceptibility as a function of energy')")

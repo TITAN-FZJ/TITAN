@@ -14,7 +14,7 @@ subroutine debugging()
   use mod_diamagnetic_current
   implicit none
 
-  if(myrank.eq.0) write(outputunit,"('[debugging] Starting to debug...')")
+  if(myrank==0) write(outputunit,"('[debugging] Starting to debug...')")
 
 !   integer   :: i,i0,i1,j,j0,j1
 !   real(double)  :: kp(3)
@@ -101,7 +101,7 @@ subroutine debugging()
 
 !   test = transpose(conjg(hk))
 !   test2 = hk-test
-!   if(sum(abs((test2))).gt.1.d-10) then
+!   if(sum(abs((test2)))>1.d-10) then
 !     write(*,*) 'Hamiltonian is not hermitian!'
 !   else
 !     write(*,*) 'Hamiltonian is hermitian'
@@ -109,10 +109,10 @@ subroutine debugging()
 
 !   test = transpose(hk)
 !   test2 = hk-test
-!   if(sum(abs((test2))).gt.1.d-10) then
+!   if(sum(abs((test2)))>1.d-10) then
 !     write(*,*) 'Hamiltonian is not symmetric!'
 !     do i=1,(Npl+2)*18 ; do j=1,(Npl+2)*18
-!       if(abs(test2(i,j)).gt.1.d-10) write(*,*) i,j,test2(i,j)
+!       if(abs(test2(i,j))>1.d-10) write(*,*) i,j,test2(i,j)
 !     end do ; end do
 !   else
 !     write(*,*) 'Hamiltonian is symmetric'
@@ -249,117 +249,117 @@ subroutine debugging()
 !   write(*,*) '*********************'
 
 !   do i=1,Npl+2 ; do j=1,Npl+2
-!     if (abs(i-j).gt.plnn) then
+!     if (abs(i-j)>plnn) then
 !       i0 = (i-1)*18+1
 !       i1 = i0+17
 !       j0 = (j-1)*18+1
 !       j1 = j0+17
-!       if(sum(abs(hk(i0:i1,j0:j1))).gt.1.d-10) then
+!       if(sum(abs(hk(i0:i1,j0:j1)))>1.d-10) then
 !         write(*,*) 'Non zero values out-of tri-diagonal part!'
 !       end if
 !     end if
 !   end do ; end do
 
 ! !   do i=1,(Npl+2)*18 ; do j=1,(Npl+2)*18
-! !     if((mod(i,9).eq.1).and.(mod(j,9).eq.1)) hk(i,j) = zero !ss
+! !     if((mod(i,9)==1).and.(mod(j,9)==1)) hk(i,j) = zero !ss
 
-! !     if((mod(i,9).eq.1).and.(mod(j,9).eq.2)) hk(i,j) = zero !sp
-! !     if((mod(i,9).eq.1).and.(mod(j,9).eq.3)) hk(i,j) = zero !sp
-! !     if((mod(i,9).eq.1).and.(mod(j,9).eq.4)) hk(i,j) = zero !sp
+! !     if((mod(i,9)==1).and.(mod(j,9)==2)) hk(i,j) = zero !sp
+! !     if((mod(i,9)==1).and.(mod(j,9)==3)) hk(i,j) = zero !sp
+! !     if((mod(i,9)==1).and.(mod(j,9)==4)) hk(i,j) = zero !sp
 
-! !     if((mod(i,9).eq.2).and.(mod(j,9).eq.1)) hk(i,j) = zero !ps
-! !     if((mod(i,9).eq.3).and.(mod(j,9).eq.1)) hk(i,j) = zero !ps
-! !     if((mod(i,9).eq.4).and.(mod(j,9).eq.1)) hk(i,j) = zero !ps
+! !     if((mod(i,9)==2).and.(mod(j,9)==1)) hk(i,j) = zero !ps
+! !     if((mod(i,9)==3).and.(mod(j,9)==1)) hk(i,j) = zero !ps
+! !     if((mod(i,9)==4).and.(mod(j,9)==1)) hk(i,j) = zero !ps
 
-! !     if((mod(i,9).eq.2).and.(mod(j,9).eq.2)) hk(i,j) = zero !pp
-! !     if((mod(i,9).eq.2).and.(mod(j,9).eq.3)) hk(i,j) = zero !pp
-! !     if((mod(i,9).eq.2).and.(mod(j,9).eq.4)) hk(i,j) = zero !pp
+! !     if((mod(i,9)==2).and.(mod(j,9)==2)) hk(i,j) = zero !pp
+! !     if((mod(i,9)==2).and.(mod(j,9)==3)) hk(i,j) = zero !pp
+! !     if((mod(i,9)==2).and.(mod(j,9)==4)) hk(i,j) = zero !pp
 
-! !     if((mod(i,9).eq.3).and.(mod(j,9).eq.2)) hk(i,j) = zero !pp
-! !     if((mod(i,9).eq.3).and.(mod(j,9).eq.3)) hk(i,j) = zero !pp
-! !     if((mod(i,9).eq.3).and.(mod(j,9).eq.4)) hk(i,j) = zero !pp
+! !     if((mod(i,9)==3).and.(mod(j,9)==2)) hk(i,j) = zero !pp
+! !     if((mod(i,9)==3).and.(mod(j,9)==3)) hk(i,j) = zero !pp
+! !     if((mod(i,9)==3).and.(mod(j,9)==4)) hk(i,j) = zero !pp
 
-! !     if((mod(i,9).eq.4).and.(mod(j,9).eq.2)) hk(i,j) = zero !pp
-! !     if((mod(i,9).eq.4).and.(mod(j,9).eq.3)) hk(i,j) = zero !pp
-! !     if((mod(i,9).eq.4).and.(mod(j,9).eq.4)) hk(i,j) = zero !pp
+! !     if((mod(i,9)==4).and.(mod(j,9)==2)) hk(i,j) = zero !pp
+! !     if((mod(i,9)==4).and.(mod(j,9)==3)) hk(i,j) = zero !pp
+! !     if((mod(i,9)==4).and.(mod(j,9)==4)) hk(i,j) = zero !pp
 
-! !     if((mod(i,9).eq.1).and.(mod(j,9).eq.5)) hk(i,j) = zero !sd
-! !     if((mod(i,9).eq.1).and.(mod(j,9).eq.6)) hk(i,j) = zero !sd
-! !     if((mod(i,9).eq.1).and.(mod(j,9).eq.7)) hk(i,j) = zero !sd
-! !     if((mod(i,9).eq.1).and.(mod(j,9).eq.8)) hk(i,j) = zero !sd
-! !     if((mod(i,9).eq.1).and.(mod(j,9).eq.0)) hk(i,j) = zero !sd
+! !     if((mod(i,9)==1).and.(mod(j,9)==5)) hk(i,j) = zero !sd
+! !     if((mod(i,9)==1).and.(mod(j,9)==6)) hk(i,j) = zero !sd
+! !     if((mod(i,9)==1).and.(mod(j,9)==7)) hk(i,j) = zero !sd
+! !     if((mod(i,9)==1).and.(mod(j,9)==8)) hk(i,j) = zero !sd
+! !     if((mod(i,9)==1).and.(mod(j,9)==0)) hk(i,j) = zero !sd
 
-! !     if((mod(i,9).eq.5).and.(mod(j,9).eq.1)) hk(i,j) = zero !ds
-! !     if((mod(i,9).eq.6).and.(mod(j,9).eq.1)) hk(i,j) = zero !ds
-! !     if((mod(i,9).eq.7).and.(mod(j,9).eq.1)) hk(i,j) = zero !ds
-! !     if((mod(i,9).eq.8).and.(mod(j,9).eq.1)) hk(i,j) = zero !ds
-! !     if((mod(i,9).eq.0).and.(mod(j,9).eq.1)) hk(i,j) = zero !ds
+! !     if((mod(i,9)==5).and.(mod(j,9)==1)) hk(i,j) = zero !ds
+! !     if((mod(i,9)==6).and.(mod(j,9)==1)) hk(i,j) = zero !ds
+! !     if((mod(i,9)==7).and.(mod(j,9)==1)) hk(i,j) = zero !ds
+! !     if((mod(i,9)==8).and.(mod(j,9)==1)) hk(i,j) = zero !ds
+! !     if((mod(i,9)==0).and.(mod(j,9)==1)) hk(i,j) = zero !ds
 
-! !     if((mod(i,9).eq.2).and.(mod(j,9).eq.5)) hk(i,j) = zero !pd
-! !     if((mod(i,9).eq.2).and.(mod(j,9).eq.6)) hk(i,j) = zero !pd
-! !     if((mod(i,9).eq.2).and.(mod(j,9).eq.7)) hk(i,j) = zero !pd
-! !     if((mod(i,9).eq.2).and.(mod(j,9).eq.8)) hk(i,j) = zero !pd
-! !     if((mod(i,9).eq.2).and.(mod(j,9).eq.0)) hk(i,j) = zero !pd
+! !     if((mod(i,9)==2).and.(mod(j,9)==5)) hk(i,j) = zero !pd
+! !     if((mod(i,9)==2).and.(mod(j,9)==6)) hk(i,j) = zero !pd
+! !     if((mod(i,9)==2).and.(mod(j,9)==7)) hk(i,j) = zero !pd
+! !     if((mod(i,9)==2).and.(mod(j,9)==8)) hk(i,j) = zero !pd
+! !     if((mod(i,9)==2).and.(mod(j,9)==0)) hk(i,j) = zero !pd
 
-! !     if((mod(i,9).eq.3).and.(mod(j,9).eq.5)) hk(i,j) = zero !pd
-! !     if((mod(i,9).eq.3).and.(mod(j,9).eq.6)) hk(i,j) = zero !pd
-! !     if((mod(i,9).eq.3).and.(mod(j,9).eq.7)) hk(i,j) = zero !pd
-! !     if((mod(i,9).eq.3).and.(mod(j,9).eq.8)) hk(i,j) = zero !pd
-! !     if((mod(i,9).eq.3).and.(mod(j,9).eq.0)) hk(i,j) = zero !pd
+! !     if((mod(i,9)==3).and.(mod(j,9)==5)) hk(i,j) = zero !pd
+! !     if((mod(i,9)==3).and.(mod(j,9)==6)) hk(i,j) = zero !pd
+! !     if((mod(i,9)==3).and.(mod(j,9)==7)) hk(i,j) = zero !pd
+! !     if((mod(i,9)==3).and.(mod(j,9)==8)) hk(i,j) = zero !pd
+! !     if((mod(i,9)==3).and.(mod(j,9)==0)) hk(i,j) = zero !pd
 
-! !     if((mod(i,9).eq.4).and.(mod(j,9).eq.5)) hk(i,j) = zero !pd
-! !     if((mod(i,9).eq.4).and.(mod(j,9).eq.6)) hk(i,j) = zero !pd
-! !     if((mod(i,9).eq.4).and.(mod(j,9).eq.7)) hk(i,j) = zero !pd
-! !     if((mod(i,9).eq.4).and.(mod(j,9).eq.8)) hk(i,j) = zero !pd
-! !     if((mod(i,9).eq.4).and.(mod(j,9).eq.0)) hk(i,j) = zero !pd
+! !     if((mod(i,9)==4).and.(mod(j,9)==5)) hk(i,j) = zero !pd
+! !     if((mod(i,9)==4).and.(mod(j,9)==6)) hk(i,j) = zero !pd
+! !     if((mod(i,9)==4).and.(mod(j,9)==7)) hk(i,j) = zero !pd
+! !     if((mod(i,9)==4).and.(mod(j,9)==8)) hk(i,j) = zero !pd
+! !     if((mod(i,9)==4).and.(mod(j,9)==0)) hk(i,j) = zero !pd
 
-! !     if((mod(i,9).eq.5).and.(mod(j,9).eq.2)) hk(i,j) = zero !dp
-! !     if((mod(i,9).eq.6).and.(mod(j,9).eq.2)) hk(i,j) = zero !dp
-! !     if((mod(i,9).eq.7).and.(mod(j,9).eq.2)) hk(i,j) = zero !dp
-! !     if((mod(i,9).eq.8).and.(mod(j,9).eq.2)) hk(i,j) = zero !dp
-! !     if((mod(i,9).eq.0).and.(mod(j,9).eq.2)) hk(i,j) = zero !dp
+! !     if((mod(i,9)==5).and.(mod(j,9)==2)) hk(i,j) = zero !dp
+! !     if((mod(i,9)==6).and.(mod(j,9)==2)) hk(i,j) = zero !dp
+! !     if((mod(i,9)==7).and.(mod(j,9)==2)) hk(i,j) = zero !dp
+! !     if((mod(i,9)==8).and.(mod(j,9)==2)) hk(i,j) = zero !dp
+! !     if((mod(i,9)==0).and.(mod(j,9)==2)) hk(i,j) = zero !dp
 
-! !     if((mod(i,9).eq.5).and.(mod(j,9).eq.3)) hk(i,j) = zero !dp
-! !     if((mod(i,9).eq.6).and.(mod(j,9).eq.3)) hk(i,j) = zero !dp
-! !     if((mod(i,9).eq.7).and.(mod(j,9).eq.3)) hk(i,j) = zero !dp
-! !     if((mod(i,9).eq.8).and.(mod(j,9).eq.3)) hk(i,j) = zero !dp
-! !     if((mod(i,9).eq.0).and.(mod(j,9).eq.3)) hk(i,j) = zero !dp
+! !     if((mod(i,9)==5).and.(mod(j,9)==3)) hk(i,j) = zero !dp
+! !     if((mod(i,9)==6).and.(mod(j,9)==3)) hk(i,j) = zero !dp
+! !     if((mod(i,9)==7).and.(mod(j,9)==3)) hk(i,j) = zero !dp
+! !     if((mod(i,9)==8).and.(mod(j,9)==3)) hk(i,j) = zero !dp
+! !     if((mod(i,9)==0).and.(mod(j,9)==3)) hk(i,j) = zero !dp
 
-! !     if((mod(i,9).eq.5).and.(mod(j,9).eq.4)) hk(i,j) = zero !dp
-! !     if((mod(i,9).eq.6).and.(mod(j,9).eq.4)) hk(i,j) = zero !dp
-! !     if((mod(i,9).eq.7).and.(mod(j,9).eq.4)) hk(i,j) = zero !dp
-! !     if((mod(i,9).eq.8).and.(mod(j,9).eq.4)) hk(i,j) = zero !dp
-! !     if((mod(i,9).eq.0).and.(mod(j,9).eq.4)) hk(i,j) = zero !dp
+! !     if((mod(i,9)==5).and.(mod(j,9)==4)) hk(i,j) = zero !dp
+! !     if((mod(i,9)==6).and.(mod(j,9)==4)) hk(i,j) = zero !dp
+! !     if((mod(i,9)==7).and.(mod(j,9)==4)) hk(i,j) = zero !dp
+! !     if((mod(i,9)==8).and.(mod(j,9)==4)) hk(i,j) = zero !dp
+! !     if((mod(i,9)==0).and.(mod(j,9)==4)) hk(i,j) = zero !dp
 
-! !     if((mod(i,9).eq.5).and.(mod(j,9).eq.5)) hk(i,j) = zero !dd
-! !     if((mod(i,9).eq.5).and.(mod(j,9).eq.6)) hk(i,j) = zero !dd
-! !     if((mod(i,9).eq.5).and.(mod(j,9).eq.7)) hk(i,j) = zero !dd
-! !     if((mod(i,9).eq.5).and.(mod(j,9).eq.8)) hk(i,j) = zero !dd
-! !     if((mod(i,9).eq.5).and.(mod(j,9).eq.0)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==5).and.(mod(j,9)==5)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==5).and.(mod(j,9)==6)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==5).and.(mod(j,9)==7)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==5).and.(mod(j,9)==8)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==5).and.(mod(j,9)==0)) hk(i,j) = zero !dd
 
-! !     if((mod(i,9).eq.6).and.(mod(j,9).eq.5)) hk(i,j) = zero !dd
-! !     if((mod(i,9).eq.6).and.(mod(j,9).eq.6)) hk(i,j) = zero !dd
-! !     if((mod(i,9).eq.6).and.(mod(j,9).eq.7)) hk(i,j) = zero !dd
-! !     if((mod(i,9).eq.6).and.(mod(j,9).eq.8)) hk(i,j) = zero !dd
-! !     if((mod(i,9).eq.6).and.(mod(j,9).eq.0)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==6).and.(mod(j,9)==5)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==6).and.(mod(j,9)==6)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==6).and.(mod(j,9)==7)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==6).and.(mod(j,9)==8)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==6).and.(mod(j,9)==0)) hk(i,j) = zero !dd
 
-! !     if((mod(i,9).eq.7).and.(mod(j,9).eq.5)) hk(i,j) = zero !dd
-! !     if((mod(i,9).eq.7).and.(mod(j,9).eq.6)) hk(i,j) = zero !dd
-! !     if((mod(i,9).eq.7).and.(mod(j,9).eq.7)) hk(i,j) = zero !dd
-! !     if((mod(i,9).eq.7).and.(mod(j,9).eq.8)) hk(i,j) = zero !dd
-! !     if((mod(i,9).eq.7).and.(mod(j,9).eq.0)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==7).and.(mod(j,9)==5)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==7).and.(mod(j,9)==6)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==7).and.(mod(j,9)==7)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==7).and.(mod(j,9)==8)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==7).and.(mod(j,9)==0)) hk(i,j) = zero !dd
 
-! !     if((mod(i,9).eq.8).and.(mod(j,9).eq.5)) hk(i,j) = zero !dd
-! !     if((mod(i,9).eq.8).and.(mod(j,9).eq.6)) hk(i,j) = zero !dd
-! !     if((mod(i,9).eq.8).and.(mod(j,9).eq.7)) hk(i,j) = zero !dd
-! !     if((mod(i,9).eq.8).and.(mod(j,9).eq.8)) hk(i,j) = zero !dd
-! !     if((mod(i,9).eq.8).and.(mod(j,9).eq.0)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==8).and.(mod(j,9)==5)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==8).and.(mod(j,9)==6)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==8).and.(mod(j,9)==7)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==8).and.(mod(j,9)==8)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==8).and.(mod(j,9)==0)) hk(i,j) = zero !dd
 
-! !     if((mod(i,9).eq.0).and.(mod(j,9).eq.5)) hk(i,j) = zero !dd
-! !     if((mod(i,9).eq.0).and.(mod(j,9).eq.6)) hk(i,j) = zero !dd
-! !     if((mod(i,9).eq.0).and.(mod(j,9).eq.7)) hk(i,j) = zero !dd
-! !     if((mod(i,9).eq.0).and.(mod(j,9).eq.8)) hk(i,j) = zero !dd
-! !     if((mod(i,9).eq.0).and.(mod(j,9).eq.0)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==0).and.(mod(j,9)==5)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==0).and.(mod(j,9)==6)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==0).and.(mod(j,9)==7)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==0).and.(mod(j,9)==8)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==0).and.(mod(j,9)==0)) hk(i,j) = zero !dd
 ! !   end do ; end do
 
 
@@ -397,7 +397,7 @@ subroutine debugging()
 
 ! !   test = transpose(conjg(hk))
 ! !   test2 = hk-test
-! !   if(sum(abs((test2))).gt.1.d-10) then
+! !   if(sum(abs((test2)))>1.d-10) then
 ! !     write(*,*) 'Green function is not hermitian!'
 ! !   else
 ! !     write(*,*) 'Green function is hermitian'
@@ -405,10 +405,10 @@ subroutine debugging()
 
 ! !   test = transpose(hk)
 ! !   test2 = hk-test
-! !   if(sum(abs((test2))).gt.1.d-10) then
+! !   if(sum(abs((test2)))>1.d-10) then
 ! !     write(*,*) 'Green function is not symmetric!'
 ! !     do i=1,(Npl+2)*18 ; do j=1,(Npl+2)*18
-! !       if(abs(test2(i,j)).gt.1.d-10) write(*,*) i,j,test2(i,j)
+! !       if(abs(test2(i,j))>1.d-10) write(*,*) i,j,test2(i,j)
 ! !     end do ; end do
 ! !   else
 ! !     write(*,*) 'Green function is symmetric'
@@ -430,10 +430,10 @@ subroutine debugging()
 ! !   write(*,*) sum(abs(hk(i0:i1,i0:i1))),sum(hk(i0:i1,i0:i1))
 ! !   write(*,*) sum(abs(hk(j0:j1,j0:j1))),sum(hk(j0:j1,j0:j1))
 ! !   test(1:18,1:18) = hk(i0:i1,i0:i1) - hk(j0:j1,j0:j1)
-! !   if(sum(abs(test(1:18,1:18))).gt.1.d-10) then
+! !   if(sum(abs(test(1:18,1:18)))>1.d-10) then
 ! !     write(*,*) '11 e 77 diferentes'
 ! !     do i=1,18 ; do j=1,18
-! !       if(abs(test(i,j)).gt.1.d-10) write(*,*) i,j,test(i,j)
+! !       if(abs(test(i,j))>1.d-10) write(*,*) i,j,test(i,j)
 ! !     end do ; end do
 ! !   end if
 
@@ -509,9 +509,9 @@ subroutine debugging()
 ! !   write(*,*) '*********************'
 
 !   Finalizing program
-  if(myrank.eq.0) call write_time(outputunit,'[main] Finished on: ')
+  if(myrank==0) call write_time(outputunit,'[main] Finished on: ')
   call MPI_Finalize(ierr)
-  if ((ierr.ne.0).and.(myrank.eq.0)) write(outputunit,"('[main] Something went wrong in the parallelization! ierr = ',i0)") ierr
+  if ((ierr/=0).and.(myrank==0)) write(outputunit,"('[main] Something went wrong in the parallelization! ierr = ',i0)") ierr
   stop
 
   return

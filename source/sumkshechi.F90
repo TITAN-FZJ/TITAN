@@ -26,12 +26,12 @@ subroutine sumkshechi(e,ep,Fint,iflag)
 !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,kp,gf,gfuu,gfud,gfdu,gfdd,i,j,mu,nu,gamma,xi,df1) &
 !$omp& shared(llineargfsoc,lverbose,kbz,wkbz,e,ep,iflag,Fint,nkpoints,Ef,eta,nthreads,myrank_row_hw,Npl,dim,sigmaimunu2i,sigmaijmunu2i,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
-!$  if((mythread.eq.0).and.(myrank_row_hw.eq.0)) then
+!$  if((mythread==0).and.(myrank_row_hw==0)) then
 !$    nthreads = omp_get_num_threads()
 !$    write(outputunit_loop,"('[sumkshechi] Number of threads: ',i0)") nthreads
 !$  end if
   allocate(df1(dim,dim),gf(Npl,Npl,18,18),gfuu(Npl,Npl,9,9,2),gfud(Npl,Npl,9,9,2),gfdu(Npl,Npl,9,9,2),gfdd(Npl,Npl,9,9,2), STAT = AllocateStatus  )
-  if (AllocateStatus.ne.0) then
+  if (AllocateStatus/=0) then
     write(outputunit,"('[sumkshechi] Not enough memory for: df1,gf,gfuu,gfud,gfdu,gfdd')")
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
@@ -39,13 +39,13 @@ subroutine sumkshechi(e,ep,Fint,iflag)
 !$omp do schedule(auto)
   kpoints: do iz=1,nkpoints
     ! Progress bar
-!$  if((mythread.eq.0)) then
-      if((myrank_row_hw.eq.0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,nkpoints)
+!$  if((mythread==0)) then
+      if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,nkpoints)
 !$   end if
 
     kp = kbz(iz,:)
 
-    if(iflag.eq.0)then
+    if(iflag==0)then
       ! Green function at (k+q,E_F+E+iy)
       if(llineargfsoc) then
         call greenlineargfsoc(Ef+e,ep,kp,gf)
@@ -188,17 +188,17 @@ subroutine sumkshechilinearsoc(e,ep,Fint,Fintlsoc,iflag)
 !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,kp,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,i,j,mu,nu,gamma,xi,df1,df1lsoc) &
 !$omp& shared(llineargfsoc,lverbose,kbz,wkbz,e,ep,iflag,Fint,Fintlsoc,nkpoints,Ef,eta,nthreads,myrank_row_hw,Npl,dim,sigmaimunu2i,sigmaijmunu2i,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
-!$  if((mythread.eq.0).and.(myrank_row_hw.eq.0)) then
+!$  if((mythread==0).and.(myrank_row_hw==0)) then
 !$    nthreads = omp_get_num_threads()
 !$    write(outputunit_loop,"('[sumkshechilinearsoc] Number of threads: ',i0)") nthreads
 !$  end if
   allocate(df1(dim,dim),gf(Npl,Npl,18,18),gfuu(Npl,Npl,9,9,2),gfud(Npl,Npl,9,9,2),gfdu(Npl,Npl,9,9,2),gfdd(Npl,Npl,9,9,2), STAT = AllocateStatus  )
-  if (AllocateStatus.ne.0) then
+  if (AllocateStatus/=0) then
     write(outputunit,"('[sumkshechilinearsoc] Not enough memory for: df1,gf,gfuu,gfud,gfdu,gfdd')")
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
   allocate( df1lsoc(dim,dim),gvg(Npl,Npl,18,18),gvguu(Npl,Npl,9,9,2),gvgud(Npl,Npl,9,9,2),gvgdu(Npl,Npl,9,9,2),gvgdd(Npl,Npl,9,9,2), STAT = AllocateStatus  )
-  if (AllocateStatus.ne.0) then
+  if (AllocateStatus/=0) then
     write(outputunit,"('[sumkshechilinearsoc] Not enough memory for: df1lsoc,gvg,gvguu,gvgud,gvgdu,gvgdd')")
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
@@ -206,13 +206,13 @@ subroutine sumkshechilinearsoc(e,ep,Fint,Fintlsoc,iflag)
 !$omp do schedule(auto)
   kpoints: do iz=1,nkpoints
     ! Progress bar
-!$  if((mythread.eq.0)) then
-      if((myrank_row_hw.eq.0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,nkpoints)
+!$  if((mythread==0)) then
+      if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,nkpoints)
 !$   end if
 
     kp = kbz(iz,:)
 
-    if(iflag.eq.0)then
+    if(iflag==0)then
       ! Green function at (k+q,E_F+E+iy)
       call greenlinearsoc(Ef+e,ep,kp,gf,gvg)
       gfuu(:,:,:,:,1) = gf(:,:, 1: 9, 1: 9)

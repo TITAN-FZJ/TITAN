@@ -36,12 +36,12 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
 !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,wkbzc,kp,df1iikl,pfdf1iikl,prett,preLxtt,preLytt,preLztt,dtdk,gf,expikr,gfuu,gfud,gfdu,gfdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &
 !$omp& shared(llineargfsoc,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,lverbose,myrank_row_hw,kbz,wkbz,iflag,e,ep,nkpoints,r0,Ef,eta,nthreads,sigmai2i,sigmaimunu2i,sigmaijmunu2i,dim,Npl,n0sc1,n0sc2,plnn,t00,lxpt,lypt,lzpt,tlxp,tlyp,tlzp,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
-!$  if((mythread.eq.0).and.(myrank_row_hw.eq.0)) then
+!$  if((mythread==0).and.(myrank_row_hw==0)) then
 !$    nthreads = omp_get_num_threads()
 !$    write(outputunit_loop,"('[sumk] Number of threads: ',i0)") nthreads
 !$  end if
   allocate( df1iikl(dim,4),pfdf1iikl(dim,4),gf(Npl,Npl,18,18),dtdk(Npl,Npl,9,9),gfuu(Npl,Npl,9,9,2),gfud(Npl,Npl,9,9,2),gfdu(Npl,Npl,9,9,2),gfdd(Npl,Npl,9,9,2), STAT = AllocateStatus  )
-  if (AllocateStatus.ne.0) then
+  if (AllocateStatus/=0) then
     write(outputunit,"('[sumk] Not enough memory for: df1iikl,pfdf1iikl,gf,dtdk,gfuu,gfud,gfdu,gfdd')")
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
@@ -49,8 +49,8 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
 !$omp do schedule(auto)
   do iz=1,nkpoints
 !    Progress bar
-!$  if((mythread.eq.0)) then
-      if((myrank_row_hw.eq.0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,nkpoints)
+!$  if((mythread==0)) then
+      if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,nkpoints)
 !$   end if
 
     kp = kbz(iz,:)
@@ -72,7 +72,7 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
       preLztt(neighbor,i,mu,nu) = lzpt(i,neighbor,mu,nu)*expikr(neighbor)-(tlzp(i,neighbor,mu,nu)*conjg(expikr(neighbor)))
     end do ; end do ; end do ; end do
 
-    if(iflag.eq.0)then
+    if(iflag==0)then
       ! Green function at (k+q,E_F+E+iy)
       if(llineargfsoc) then
         call greenlineargfsoc(Ef+e,ep,kp,gf)
@@ -96,7 +96,7 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
       gfdd(:,:,:,:,2) = gf(:,:,10:18,10:18)
 
       do nu=1,9 ; do mu=1,9 ; do i=1,Npl; do xi=1,9 ; do gamma=1,9 ; do l=1,Npl ; do j=1,Npl
-        if(abs(j-l).gt.plnn) cycle
+        if(abs(j-l)>plnn) cycle
         df1iikl(sigmaimunu2i(1,i,mu,nu),1) = df1iikl(sigmaimunu2i(1,i,mu,nu),1) + (gfdd(i,j,nu,gamma,1)*gfuu(l,i,xi,mu,2) + conjg(gfuu(i,l,mu,xi,2)*gfdd(j,i,gamma,nu,1)))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(1,i,mu,nu),2) = df1iikl(sigmaimunu2i(1,i,mu,nu),2) + (gfdu(i,j,nu,gamma,1)*gfuu(l,i,xi,mu,2) + conjg(gfuu(i,l,mu,xi,2)*gfud(j,i,gamma,nu,1)))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(1,i,mu,nu),3) = df1iikl(sigmaimunu2i(1,i,mu,nu),3) + (gfdd(i,j,nu,gamma,1)*gfdu(l,i,xi,mu,2) + conjg(gfud(i,l,mu,xi,2)*gfdd(j,i,gamma,nu,1)))*dtdk(j,l,gamma,xi)
@@ -143,7 +143,7 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
       gfdd(:,:,:,:,2) = gf(:,:,10:18,10:18)
 
       do nu=1,9 ; do gamma=1,9 ; do mu=1,9 ; do i=1,Npl ; do xi=1,9 ; do l=1,Npl ; do j=1,Npl
-        if(abs(j-l).gt.plnn) cycle
+        if(abs(j-l)>plnn) cycle
         df1iikl(sigmaimunu2i(1,i,mu,nu),1) = df1iikl(sigmaimunu2i(1,i,mu,nu),1)-zi*(gfdd(i,j,nu,gamma,1)-conjg(gfdd(j,i,gamma,nu,1)))*conjg(gfuu(i,l,mu,xi,2))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(1,i,mu,nu),2) = df1iikl(sigmaimunu2i(1,i,mu,nu),2)-zi*(gfdu(i,j,nu,gamma,1)-conjg(gfud(j,i,gamma,nu,1)))*conjg(gfuu(i,l,mu,xi,2))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(1,i,mu,nu),3) = df1iikl(sigmaimunu2i(1,i,mu,nu),3)-zi*(gfdd(i,j,nu,gamma,1)-conjg(gfdd(j,i,gamma,nu,1)))*conjg(gfud(i,l,mu,xi,2))*dtdk(j,l,gamma,xi)
@@ -247,17 +247,17 @@ subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,Lzt
 !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,wkbzc,kp,df1iikl,pfdf1iikl,df1lsoc,prett,preLxtt,preLytt,preLztt,dtdk,expikr,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &
 !$omp& shared(tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,prefactorlsoc,lverbose,myrank_row_hw,kbz,wkbz,iflag,e,ep,nkpoints,r0,Ef,eta,nthreads,sigmai2i,sigmaimunu2i,sigmaijmunu2i,dim,Npl,n0sc1,n0sc2,plnn,t00,lxpt,lypt,lzpt,tlxp,tlyp,tlzp,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
-!$  if((mythread.eq.0).and.(myrank_row_hw.eq.0)) then
+!$  if((mythread==0).and.(myrank_row_hw==0)) then
 !$    nthreads = omp_get_num_threads()
 !$    write(outputunit_loop,"('[sumklinearsoc] Number of threads: ',i0)") nthreads
 !$  end if
   allocate( df1iikl(dim,4),pfdf1iikl(dim,4),df1lsoc(dim,4),gf(Npl,Npl,18,18),dtdk(Npl,Npl,9,9),gfuu(Npl,Npl,9,9,2),gfud(Npl,Npl,9,9,2),gfdu(Npl,Npl,9,9,2),gfdd(Npl,Npl,9,9,2), STAT = AllocateStatus  )
-  if (AllocateStatus.ne.0) then
+  if (AllocateStatus/=0) then
     write(outputunit,"('[sumklinearsoc] Not enough memory for: df1iikl,pfdf1iikl,df1lsoc,gf,dtdk,gfuu,gfud,gfdu,gfdd')")
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
   allocate( gvg(Npl,Npl,18,18),gvguu(Npl,Npl,9,9,2),gvgud(Npl,Npl,9,9,2),gvgdu(Npl,Npl,9,9,2),gvgdd(Npl,Npl,9,9,2), STAT = AllocateStatus  )
-  if (AllocateStatus.ne.0) then
+  if (AllocateStatus/=0) then
     write(outputunit,"('[sumklinearsoc] Not enough memory for: gvg,gvguu,gvgud,gvgdu,gvgdd')")
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
@@ -265,8 +265,8 @@ subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,Lzt
 !$omp do schedule(auto)
   do iz=1,nkpoints
 !    Progress bar
-!$  if((mythread.eq.0)) then
-      if((myrank_row_hw.eq.0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,nkpoints)
+!$  if((mythread==0)) then
+      if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,nkpoints)
 !$   end if
 
     kp = kbz(iz,:)
@@ -289,7 +289,7 @@ subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,Lzt
       preLztt(neighbor,i,mu,nu) = lzpt(i,neighbor,mu,nu)*expikr(neighbor)-(tlzp(i,neighbor,mu,nu)*conjg(expikr(neighbor)))
     end do ; end do ; end do ; end do
 
-    if(iflag.eq.0)then
+    if(iflag==0)then
       ! Green function at (k+q,E_F+E+iy)
       call greenlinearsoc(Ef+e,ep,kp,gf,gvg)
       gfuu(:,:,:,:,1) = gf(:,:, 1: 9, 1: 9)
@@ -313,7 +313,7 @@ subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,Lzt
       gvgdd(:,:,:,:,2) = gvg(:,:,10:18,10:18)
 
       do nu=1,9 ; do mu=1,9 ; do i=1,Npl; do xi=1,9 ; do gamma=1,9 ; do l=1,Npl ; do j=1,Npl
-        if(abs(j-l).gt.plnn) cycle
+        if(abs(j-l)>plnn) cycle
         df1iikl(sigmaimunu2i(1,i,mu,nu),1) = df1iikl(sigmaimunu2i(1,i,mu,nu),1) + (gfdd(i,j,nu,gamma,1)*gfuu(l,i,xi,mu,2) + conjg(gfuu(i,l,mu,xi,2)*gfdd(j,i,gamma,nu,1)))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(1,i,mu,nu),2) = df1iikl(sigmaimunu2i(1,i,mu,nu),2) + (gfdu(i,j,nu,gamma,1)*gfuu(l,i,xi,mu,2) + conjg(gfuu(i,l,mu,xi,2)*gfud(j,i,gamma,nu,1)))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(1,i,mu,nu),3) = df1iikl(sigmaimunu2i(1,i,mu,nu),3) + (gfdd(i,j,nu,gamma,1)*gfdu(l,i,xi,mu,2) + conjg(gfud(i,l,mu,xi,2)*gfdd(j,i,gamma,nu,1)))*dtdk(j,l,gamma,xi)
@@ -382,7 +382,7 @@ subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,Lzt
       gvgdd(:,:,:,:,2) = gvg(:,:,10:18,10:18)
 
       do nu=1,9 ; do gamma=1,9 ; do mu=1,9 ; do i=1,Npl ; do xi=1,9 ; do l=1,Npl ; do j=1,Npl
-        if(abs(j-l).gt.plnn) cycle
+        if(abs(j-l)>plnn) cycle
         df1iikl(sigmaimunu2i(1,i,mu,nu),1) = df1iikl(sigmaimunu2i(1,i,mu,nu),1)-zi*(gfdd(i,j,nu,gamma,1)-conjg(gfdd(j,i,gamma,nu,1)))*conjg(gfuu(i,l,mu,xi,2))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(1,i,mu,nu),2) = df1iikl(sigmaimunu2i(1,i,mu,nu),2)-zi*(gfdu(i,j,nu,gamma,1)-conjg(gfud(j,i,gamma,nu,1)))*conjg(gfuu(i,l,mu,xi,2))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(1,i,mu,nu),3) = df1iikl(sigmaimunu2i(1,i,mu,nu),3)-zi*(gfdd(i,j,nu,gamma,1)-conjg(gfdd(j,i,gamma,nu,1)))*conjg(gfud(i,l,mu,xi,2))*dtdk(j,l,gamma,xi)

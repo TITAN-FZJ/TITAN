@@ -33,7 +33,7 @@ subroutine sumk_jij(er,ei,Jijint)
 ! Second derivative of Bxc w.r.t. m_i (Bxc = -U.m/2)
   do j=1,3 ; do i = 1,3 ; do iz=1,nmaglayers
     d2bxcdm2(iz,i,j,:,:) = evec(iz,i)*pauli_dorb(j,:,:) + pauli_dorb(i,:,:)*evec(iz,j) - 3*paulievec(iz,:,:)*evec(iz,i)*evec(iz,j)
-    if(i.eq.j) d2bxcdm2(iz,i,j,:,:) = d2bxcdm2(iz,i,j,:,:) + paulievec(iz,:,:)
+    if(i==j) d2bxcdm2(iz,i,j,:,:) = d2bxcdm2(iz,i,j,:,:) + paulievec(iz,:,:)
     d2bxcdm2(iz,i,j,:,:) = 0.5d0*U(mmlayermag(iz))*d2bxcdm2(iz,i,j,:,:)/(mabs(mmlayermag(iz)-1))
   end do ; end do ; end do
 
@@ -43,15 +43,15 @@ subroutine sumk_jij(er,ei,Jijint)
 !$omp& private(mythread,iz,kp,gf,gfq,gij,gji,paulia,paulib,i,j,mu,nu,alpha,kminusq,Jijk,Jijkan,temp1,temp2) &
 !$omp& shared(lverbose,kbz,q,wkbz,nkpoints,er,ei,Jijint,dbxcdm,d2bxcdm2,Npl,mz,nmaglayers,mmlayermag,myrank,nthreads,pi,outputunit)
 !$  mythread = omp_get_thread_num()
-!$  if((mythread.eq.0).and.(myrank.eq.0)) then
+!$  if((mythread==0).and.(myrank==0)) then
 !$    nthreads = omp_get_num_threads()
 !$    write(outputunit,"('[jij_energy] Number of threads: ',i0)") nthreads
 !$  end if
 
 !$omp do reduction(+:Jijint)
   kpoints: do iz=1,nkpoints
-!$  if((mythread.eq.0)) then
-      if((myrank.eq.0).and.(lverbose)) call progress_bar(outputunit,"kpoints",iz,nkpoints)
+!$  if((mythread==0)) then
+      if((myrank==0).and.(lverbose)) call progress_bar(outputunit,"kpoints",iz,nkpoints)
 !$   end if
 
     kp = kbz(iz,:)
@@ -79,7 +79,7 @@ subroutine sumk_jij(er,ei,Jijint)
       end do
 
       ! Anisotropy (on-site) term
-      if(i.eq.j) then
+      if(i==j) then
         gij = gf(mmlayermag(i)-1,mmlayermag(i)-1,:,:)
         paulia = d2bxcdm2(i,mu,nu,:,:)
         call zgemm('n','n',18,18,18,zum,gij,18,paulia,18,zero,temp1,18)
@@ -105,7 +105,7 @@ subroutine sumk_jij(er,ei,Jijint)
 !   write(outputunit,"('  ******************** *******  ********************')")
 !   do i=1,nmaglayers ; do j=1,nmaglayers
 !   ! Writing original full tensor Jij
-!     if(i.eq.j) then
+!     if(i==j) then
 !       write(outputunit,"(' |--------------- i = ',i0,'   j = ',i0,': anisotropies ---------------|')") i,j
 !     else
 !       write(outputunit,"(' |----------- i = ',i0,'   j = ',i0,': exchange couplings -------------|')") i,j

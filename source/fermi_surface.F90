@@ -30,7 +30,7 @@ subroutine fermi_surface(e)
     else
       SOCc = "T"
     end if
-    write(socpart,"('_magaxis=',a,'_socscale=',f5.2)") magaxis,socscale
+    if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
   else
     SOCc = "F"
   end if
@@ -41,7 +41,7 @@ subroutine fermi_surface(e)
     if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
     if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
   end if
-  if(abs(e-ef).gt.1.d-6) then
+  if(abs(e-ef)>1.d-6) then
     write(epart,fmt="('e=',es8.1,'_')") e
   else
     write(epart,fmt="('fs_')")
@@ -67,14 +67,14 @@ subroutine fermi_surface(e)
 !$omp& private(mythread,iz,kp,gf,i,mu,nu,sigma,temp1,temp2) &
 !$omp& shared(lverbose,llineargfsoc,llinearsoc,e,kbz,nkpoints,Ef,eta,Npl,nthreads,pi,pauli_orb,pauli_gf,fs_layer,fs_orb,fs_total,outputunit_loop)
 !$  mythread = omp_get_thread_num()
-!$  if(mythread.eq.0) then
+!$  if(mythread==0) then
 !$    nthreads = omp_get_num_threads()
 !$    write(outputunit_loop,"('[fermi_surface] Number of threads: ',i0)") nthreads
 !$  end if
 
 !$omp do
   fermi_surface_kpoints: do iz=1,nkpoints
-!$  if((mythread.eq.0)) then
+!$  if((mythread==0)) then
     if(lverbose) call progress_bar(outputunit_loop,"kpoints",iz,nkpoints)
 !$   end if
 
@@ -88,7 +88,7 @@ subroutine fermi_surface(e)
     end if
 
     do sigma=1,4 ; do i=1,Npl
-      if(sigma.eq.1) then
+      if(sigma==1) then
         pauli_gf = gf(i,i,:,:)
       else
         temp1 = pauli_orb(sigma-1,:,:)
@@ -97,13 +97,13 @@ subroutine fermi_surface(e)
       end if
       do mu=1,9
         nu = mu + 9
-        if(mu.eq.1) then
+        if(mu==1) then
           fs_orb  (1,iz,sigma) = fs_orb  (1,iz,sigma) - aimag(pauli_gf(mu,mu)+pauli_gf(nu,nu))/pi
           fs_layer(i,iz,sigma) = fs_layer(i,iz,sigma) - aimag(pauli_gf(mu,mu)+pauli_gf(nu,nu))/pi
-        else if ((mu.ge.2).and.(mu.le.4)) then
+        else if ((mu>=2).and.(mu<=4)) then
           fs_orb  (2,iz,sigma) = fs_orb  (2,iz,sigma) - aimag(pauli_gf(mu,mu)+pauli_gf(nu,nu))/pi
           fs_layer(i,iz,sigma) = fs_layer(i,iz,sigma) - aimag(pauli_gf(mu,mu)+pauli_gf(nu,nu))/pi
-        else if ((mu.ge.5).and.(mu.le.9)) then
+        else if ((mu>=5).and.(mu<=9)) then
           fs_orb  (3,iz,sigma) = fs_orb  (3,iz,sigma) - aimag(pauli_gf(mu,mu)+pauli_gf(nu,nu))/pi
           fs_layer(i,iz,sigma) = fs_layer(i,iz,sigma) - aimag(pauli_gf(mu,mu)+pauli_gf(nu,nu))/pi
         end if

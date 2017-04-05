@@ -48,7 +48,7 @@ subroutine helphbccsoc(kp,h00so,h01so,h10so,ly)
   h00so(10:18,10:18)  = h00
 
 ! inter-plane hoppings h01
-  if(ly.gt.Npl+1) then
+  if(ly>Npl+1) then
     h01so = zero
     h10so = zero
     return
@@ -130,7 +130,7 @@ subroutine helphfccsoc(kp,h00so,h01so,h10so,h02so,h20so,ly)
   h00so(10:18,10:18)  = h00
 
 ! inter-plane hoppings h01
-  if(ly.gt.Npl+1) then
+  if(ly>Npl+1) then
     h01so = zero
     h10so = zero
     return
@@ -150,7 +150,7 @@ subroutine helphfccsoc(kp,h00so,h01so,h10so,h02so,h20so,ly)
   h10so = transpose(conjg(h01so))
 
 ! inter-plane hoppings h02
-  if(ly.gt.Npl) then
+  if(ly>Npl) then
     h02so = zero
     h20so = zero
     return

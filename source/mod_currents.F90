@@ -18,28 +18,28 @@ contains
     implicit none
     integer           :: AllocateStatus
 
-    if(myrank_row.eq.0) then
+    if(myrank_row==0) then
       allocate( currents(7,n0sc1:n0sc2,Npl),total_currents(7,n0sc1:n0sc2),dc_currents(3,Npl), STAT = AllocateStatus )
-      if (AllocateStatus.ne.0) then
+      if (AllocateStatus/=0) then
          write(outputunit,"('[allocate_currents] Not enough memory for: currents,total_currents,dc_currents')")
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
       if(renorm) then
         allocate( rcurrents(7,n0sc1:n0sc2,Npl),rtotal_currents(7,n0sc1:n0sc2), STAT = AllocateStatus )
-        if (AllocateStatus.ne.0) then
+        if (AllocateStatus/=0) then
           write(outputunit,"('[allocate_currents] Not enough memory for: rcurrents,rtotal_currents')")
           call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
         end if
       end if
     end if
     allocate( ttchiorbiikl(n0sc1:n0sc2,dimsigmaNpl,4),Lxttchiorbiikl(n0sc1:n0sc2,dimsigmaNpl,4),Lyttchiorbiikl(n0sc1:n0sc2,dimsigmaNpl,4),Lzttchiorbiikl(n0sc1:n0sc2,dimsigmaNpl,4), STAT = AllocateStatus  )
-    if (AllocateStatus.ne.0) then
+    if (AllocateStatus/=0) then
       write(outputunit,"('[allocate_currents] Not enough memory for: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl')")
       call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
     end if
     if (.not. allocated(prefactor)) then
       allocate(prefactor(dim,dim), STAT = AllocateStatus  )
-      if (AllocateStatus.ne.0) then
+      if (AllocateStatus/=0) then
         write(outputunit,"('[allocate_currents] Not enough memory for: prefactor')")
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
@@ -47,7 +47,7 @@ contains
     if (.not. allocated(prefactorlsoc)) then
       if(llinearsoc) then
         allocate(prefactorlsoc(dim,dim), STAT = AllocateStatus  )
-        if (AllocateStatus.ne.0) then
+        if (AllocateStatus/=0) then
           write(outputunit,"('[allocate_currents] Not enough memory for: prefactorlsoc')")
           call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
         end if
@@ -65,7 +65,7 @@ contains
     use mod_parameters, only: renorm
     implicit none
 
-    if(myrank_row.eq.0) then
+    if(myrank_row==0) then
       deallocate(currents,total_currents,dc_currents)
       if(renorm) deallocate(rcurrents,rtotal_currents)
     end if
@@ -97,7 +97,7 @@ contains
       else
         SOCc = "T"
       end if
-      write(socpart,"('_magaxis=',a,'_socscale=',f5.2)") magaxis,socscale
+      if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
     else
       SOCc = "F"
     end if
@@ -130,7 +130,7 @@ contains
     filename(6) = "Ily"
     filename(7) = "Ilz"
 
-    if(iflag.eq.0) then
+    if(iflag==0) then
       ! Header for currents per plane per neighbor
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 5000+(i-1)*n0sc2*7+(neighbor-1)*7+j
@@ -172,7 +172,7 @@ contains
         close(unit=iw)
       end do ; end do
 
-    else if(iflag.eq.1) then
+    else if(iflag==1) then
       ! Currents per plane per neighbor
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 5000+(i-1)*n0sc2*7+(neighbor-1)*7+j
@@ -210,7 +210,7 @@ contains
       end do ; end do
 
       ! Stop if some file does not exist
-      if(errt.ne.0) then
+      if(errt/=0) then
         write(outputunit,"(a,i0,a)") "[openclose_currents_files] Some file(s) do(es) not exist! Stopping before starting calculations..."
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
@@ -403,15 +403,15 @@ contains
       else
         SOCc = "T"
       end if
-      write(socpart,"('_magaxis=',a,'_socscale=',f5.2)") magaxis,socscale
+      if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
     else
       SOCc = "F"
     end if
 
-    if(dcfield_dependence.ne.7) then
-      if((dcfield_dependence.ne.1).and.(dcfield_dependence.ne.4).and.(dcfield_dependence.ne.5)) write(fieldpart,"(a,'_hwa=',es9.2)") trim(fieldpart),hwa
-      if((dcfield_dependence.ne.2).and.(dcfield_dependence.ne.4).and.(dcfield_dependence.ne.6)) write(fieldpart,"(a,'_hwt=',f5.2)") trim(fieldpart),hwt
-      if((dcfield_dependence.ne.3).and.(dcfield_dependence.ne.5).and.(dcfield_dependence.ne.6)) write(fieldpart,"(a,'_hwp=',f5.2)") trim(fieldpart),hwp
+    if(dcfield_dependence/=7) then
+      if((dcfield_dependence/=1).and.(dcfield_dependence/=4).and.(dcfield_dependence/=5)) write(fieldpart,"(a,'_hwa=',es9.2)") trim(fieldpart),hwa
+      if((dcfield_dependence/=2).and.(dcfield_dependence/=4).and.(dcfield_dependence/=6)) write(fieldpart,"(a,'_hwt=',f5.2)") trim(fieldpart),hwt
+      if((dcfield_dependence/=3).and.(dcfield_dependence/=5).and.(dcfield_dependence/=6)) write(fieldpart,"(a,'_hwp=',f5.2)") trim(fieldpart),hwp
     end if
     if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
     if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
@@ -439,7 +439,7 @@ contains
     filename(6) = "Ily"
     filename(7) = "Ilz"
 
-    if(iflag.eq.0) then
+    if(iflag==0) then
       ! Header for currents per plane per neighbor
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 50000+(i-1)*n0sc2*7+(neighbor-1)*7+j
@@ -482,7 +482,7 @@ contains
         close(unit=iw)
       end do ; end do
 
-    else if(iflag.eq.1) then
+    else if(iflag==1) then
       ! Currents per plane per neighbor
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 50000+(i-1)*n0sc2*7+(neighbor-1)*7+j
@@ -520,7 +520,7 @@ contains
       end do ; end do
 
       ! Stop if some file does not exist
-      if(errt.ne.0) then
+      if(errt/=0) then
         write(outputunit,"(a,i0,a)") "[openclose_dc_currents_files] Some file(s) do(es) not exist! Stopping before starting calculations..."
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
@@ -705,7 +705,7 @@ contains
     integer  :: neighbor,i,j,iw,idc=1
 
     ! Opening current files
-    if(itype.eq.9) then
+    if(itype==9) then
       idc=10
       call openclose_dc_currents_files(1)
     else
@@ -750,7 +750,7 @@ contains
     end do ; end do
 
     ! Closing current files
-    if(itype.eq.9) then
+    if(itype==9) then
       call openclose_dc_currents_files(2)
     else
       call openclose_currents_files(2)

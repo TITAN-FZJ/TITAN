@@ -12,7 +12,7 @@ contains
     use mod_parameters, only: n0sc1,n0sc2,Npl
     implicit none
 
-    if(myrank.eq.0) allocate( Idia_total(n0sc1:n0sc2,Npl) )
+    if(myrank==0) allocate( Idia_total(n0sc1:n0sc2,Npl) )
 
     return
   end subroutine allocate_idia
@@ -22,7 +22,7 @@ contains
     use mod_mpi_pars
     implicit none
 
-    if(myrank.eq.0) deallocate( Idia_total )
+    if(myrank==0) deallocate( Idia_total )
 
     return
   end subroutine deallocate_idia
@@ -45,12 +45,12 @@ contains
     ncount=n0sc*Npl
   !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
-    if(myrank.eq.0) write(outputunit,"('[diamagnetic_current] Calculating diamagnetic current... ',$)")
+    if(myrank==0) write(outputunit,"('[diamagnetic_current] Calculating diamagnetic current... ',$)")
     ix = myrank+1
     itask = numprocs ! Number of tasks done initially
 
     ! Calculating the number of particles for each spin and orbital using a complex integral
-    if (myrank.eq.0) then ! Process 0 receives all results and send new tasks if necessary
+    if (myrank==0) then ! Process 0 receives all results and send new tasks if necessary
       call sumk_idia(Ef,y(ix),Idia)
       Idia_total = wght(ix)*Idia
 
@@ -64,7 +64,7 @@ contains
 
         ! If the number of processors is less than the total number of points, sends
         ! the rest of the points to the ones that finish first
-        if (itask.lt.pn1) then
+        if (itask<pn1) then
           itask = itask + 1
           call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_COMM_WORLD,ierr)
         else
@@ -74,7 +74,7 @@ contains
     else
       ! Other processors calculate each point of the integral and waits for new points
       do
-        if(ix.gt.pn1) exit
+        if(ix>pn1) exit
 
         ! First and second integrations (in the complex plane)
         call sumk_idia(Ef,y(ix),Idia)
@@ -85,11 +85,11 @@ contains
         call MPI_Send(Idia,ncount,MPI_DOUBLE_PRECISION,0,1604,MPI_COMM_WORLD,ierr)
         ! Receiving new point or signal to exit
         call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_COMM_WORLD,stat,ierr)
-        if(ix.eq.0) exit
+        if(ix==0) exit
       end do
     end if
 
-    if(myrank.eq.0) then
+    if(myrank==0) then
       write(outputunit,"('Finished!')")
       do i=1,Npl
         write(outputunit,fmt="(10(es11.4,2x))") (Idia_total(j,i),j=n0sc1,n0sc2)
@@ -127,7 +127,7 @@ contains
 !$omp& private(mythread,neighbor,iz,kp,i,dtdk,expikr,gf) &
 !$omp& shared(kbz,nkpoints,wkbz,myrank,nthreads,n0sc1,n0sc2,llineargfsoc,Npl,r0,e,ep,pij,gij,gji,outputunit)
 !$  mythread = omp_get_thread_num()
-!$  if((mythread.eq.0).and.(myrank.eq.0)) then
+!$  if((mythread==0).and.(myrank==0)) then
 !$    nthreads = omp_get_num_threads()
 !$    write(outputunit,"('[sumk_idia] Number of threads: ',i0)") nthreads
 !$  end if
@@ -170,7 +170,7 @@ contains
 !$omp end do
 !$omp end parallel
 
-      ! if(myrank.eq.0) then
+      ! if(myrank==0) then
       !   write(outputunit,*) "pij"
       !   do neighbor=n0sc1,n0sc2
       !     write(outputunit,*) (sum(pij(neighbor,iz,:,:)),iz=1,Npl)

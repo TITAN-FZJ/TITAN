@@ -19,11 +19,11 @@ contains
 
     allocate( x1(pn1),p1(pn1),y(pn1),wght(pn1), STAT = AllocateStatus )
     do k=parts,1,-1
-      if(parts.ne.1)then
-        if(k.eq.1) then
+      if(parts/=1)then
+        if(k==1) then
           e1 = 10.d0**(-2)
           e2 = 1.d0
-        else if(k.ne.parts) then
+        else if(k/=parts) then
           e1 = 10.d0**(-k-1)
           e2 = 10.d0**(-k)
         else
@@ -57,7 +57,7 @@ contains
 
     allocate( x2(pn2),p2(pn2), STAT = AllocateStatus )
 
-    if (abs(e).ge.1.d-10) then
+    if (abs(e)>=1.d-10) then
       nepoints = pnt
       do k=1,parts3
         e1 = Ef-((parts3-(k-1))*e/parts3)
@@ -90,7 +90,7 @@ contains
     do i=1,m
       z = cos(3.141592654d0*(i-0.25d0)/(n+0.5d0))
       z1 = 0.0
-      do while(abs(z-z1).gt. eps)
+      do while(abs(z-z1)> eps)
         p1 = 1.0d0
         p2 = 0.0d0
         do j=1,n

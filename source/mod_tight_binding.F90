@@ -631,7 +631,7 @@ contains
        case(0)
           U(j) = 0.d0
        case(1)
-          if(layertype(j).eq.2) then
+          if(layertype(j)==2) then
              U(j) = U_dft(i)*ry2ev/13.6d0
           else
              U(j) = 0.d0
@@ -646,8 +646,8 @@ contains
        ! C's and Delta's for hopping calculations
        dft_type: select case (dfttype)
        case ("T")
-          if((cs_bar(i)+cp_bar(i)+cd_bar(i)+ds_bar(i)+dp_bar(i)+dd_bar(i)).gt.900.d0) then
-             if(myrank.eq.0) write(outputunit,"('[DFT_parameters] Missing Tight-binding basis parameters!')")
+          if((cs_bar(i)+cp_bar(i)+cd_bar(i)+ds_bar(i)+dp_bar(i)+dd_bar(i))>900.d0) then
+             if(myrank==0) write(outputunit,"('[DFT_parameters] Missing Tight-binding basis parameters!')")
              call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
           end if
           cs(j) = cs_bar(i) + shft
@@ -657,8 +657,8 @@ contains
           dp(j) = dp_bar(i)
           dd(j) = dd_bar(i)
        case ("O")
-          if((cs_ort(i)+cp_ort(i)+cd_ort(i)+ds_ort(i)+dp_ort(i)+dd_ort(i)).gt.900.d0) then
-             if(myrank.eq.0) write(outputunit,"('[DFT_parameters] Missing Orthogonal basis parameters!')")
+          if((cs_ort(i)+cp_ort(i)+cd_ort(i)+ds_ort(i)+dp_ort(i)+dd_ort(i))>900.d0) then
+             if(myrank==0) write(outputunit,"('[DFT_parameters] Missing Orthogonal basis parameters!')")
              call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
           end if
           cs(j) = cs_ort(i) + shft
@@ -668,7 +668,7 @@ contains
           dp(j) = dp_ort(i)
           dd(j) = dd_ort(i)
        case default
-          if(myrank.eq.0) write(outputunit,"('[DFT_parameters] Choose between (T)ight-binding or (O)rthogonal DFT parameters!')")
+          if(myrank==0) write(outputunit,"('[DFT_parameters] Choose between (T)ight-binding or (O)rthogonal DFT parameters!')")
           call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
        end select dft_type
     end do
@@ -699,41 +699,41 @@ contains
     real(double) :: sss,sps,pps,ppp,sds,pds,pdp,dds,ddp,ddd
 
     call DFT_parameters(cs,cp,cd,ds,dp,dd)
-    if((layertype(1).ne.1).or.(layertype(Npl+2).ne.1)) then
-       if(myrank.eq.0) then
+    if((layertype(1)/=1).or.(layertype(Npl+2)/=1)) then
+       if(myrank==0) then
           write(outputunit,"('[rs_hoppings] Problem defining the system: first or last layer is not Empty Spheres!')")
           write(outputunit,"('[rs_hoppings] First layer type: ',i0,' , last layer type: ',i0,'.')") layertype(1),layertype(Npl+2)
        end if
        call MPI_Finalize(ierr)
        stop
     end if
-    if(myrank_row_hw.eq.0) then
-       if(naddlayers.eq.0) then
+    if(myrank_row_hw==0) then
+       if(naddlayers==0) then
           write(formatvar,fmt="(a,i0,a)") '(a,',Npl+2,'(2x,i0))'
        else
           write(formatvar,fmt="(a,i0,a,i0,a)") '(a,',Npl_input+1,'(2x,i0),'' | ''',naddlayers,'(i0,2x))'
        end if
-       if(myrank.eq.0) write(outputunit,fmt=trim(formatvar)) '[rs_hoppings] Layer type:',(mmlayer(i),i=1,Npl+2)
+       if(myrank==0) write(outputunit,fmt=trim(formatvar)) '[rs_hoppings] Layer type:',(mmlayer(i),i=1,Npl+2)
     end if
 
     ! Obtaining the number and list of magnetic layers
     nmaglayers = 0
     do i=1,Npl+2
-       if(layertype(i).eq.2) then
+       if(layertype(i)==2) then
           nmaglayers = nmaglayers + 1
           mmlayermag(nmaglayers) = i
        end if
     end do
-    if(myrank_row_hw.eq.0) then
-       if(nmaglayers.ge.1) then
+    if(myrank_row_hw==0) then
+       if(nmaglayers>=1) then
           write(formatvar,fmt="(a,i0,a)") '(a,i0,a,',nmaglayers,'(i0,2x))'
-          if(myrank.eq.0) write(outputunit,fmt=formatvar) '[rs_hoppings] ',nmaglayers,' magnetic layer(s) in the system: ',(mmlayermag(i),i=1,nmaglayers)
+          if(myrank==0) write(outputunit,fmt=formatvar) '[rs_hoppings] ',nmaglayers,' magnetic layer(s) in the system: ',(mmlayermag(i),i=1,nmaglayers)
        else
-          if(myrank.eq.0) write(outputunit,fmt="('[rs_hoppings] No magnetic layer in the system. ')")
+          if(myrank==0) write(outputunit,fmt="('[rs_hoppings] No magnetic layer in the system. ')")
        end if
     end if
     ! Unifying Utype = 0 and 1 To Utype = 0 if there is no magnetic layer
-    if((Utype.le.1).and.(nmaglayers.eq.0)) Utype = 0
+    if((Utype<=1).and.(nmaglayers==0)) Utype = 0
 
     ! Allocating real space hoppings
     inter_plane_hoppings: select case (plnn)
@@ -742,7 +742,7 @@ contains
     case(2) ! If inter-plane second nearest neighbors are in 2nd. n.n. plane
        if(.not.allocated(t00)) allocate( t00(Npl+2,0:n0,9,9),t01(Npl+1,n1,9,9),t02(Npl,n2,9,9) )
     case default
-       if(myrank.eq.0) write(outputunit,"('[rs_hoppings] System not defined for more than 2 n.n. planes!')")
+       if(myrank==0) write(outputunit,"('[rs_hoppings] System not defined for more than 2 n.n. planes!')")
        call MPI_Finalize(ierr)
        stop
     end select inter_plane_hoppings

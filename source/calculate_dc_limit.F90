@@ -27,8 +27,8 @@ subroutine calculate_dc_limit()
   call allocate_beff()
   call allocate_torques()
   call allocate_sha()
-  if(myrank_row.eq.0) then
-    if(emin.le.2.d-6) then
+  if(myrank_row==0) then
+    if(emin<=2.d-6) then
       write(outputunit_loop,"('CALCULATING DC-LIMIT QUANTITIES AS A FUNCTION OF EXTERNAL FIELD (',a,')')") trim(dcfield(dcfield_dependence))
     else
       write(outputunit_loop,"('CALCULATING QUANTITIES AT FIXED FREQUENCY ',es9.2,' AS A FUNCTION OF EXTERNAL FIELD (',a,')')") e,trim(dcfield(dcfield_dependence))
@@ -49,7 +49,7 @@ subroutine calculate_dc_limit()
     mpitag  = (hw_count-1)*(Npl_f-Npl_i)*npt1 + mpitag2
 
     ! Creating files and writing headers
-    if((.not.laddresults).and.(myrank.eq.0).and.(hw_count.eq.1)) then
+    if((.not.laddresults).and.(myrank==0).and.(hw_count==1)) then
       call openclose_dc_chi_files(0)
       call openclose_dc_disturbance_files(0)
       call openclose_dc_currents_files(0)
@@ -59,13 +59,13 @@ subroutine calculate_dc_limit()
     end if
 
     if(lhfresponses) then
-      if(myrank_row_hw.eq.0) write(outputunit_loop,"('[calculate_dc_limit] No renormalization will be done. Setting prefactors to identity and calculating HF susceptibilities... ')")
+      if(myrank_row_hw==0) write(outputunit_loop,"('[calculate_dc_limit] No renormalization will be done. Setting prefactors to identity and calculating HF susceptibilities... ')")
       prefactor     = identt
       if(llinearsoc) prefactorlsoc = identt
       call eintshechi(e)
-      if(myrank_row_hw.eq.0) call write_time(outputunit_loop,'[calculate_dc_limit] Time after susceptibility calculation: ')
+      if(myrank_row_hw==0) call write_time(outputunit_loop,'[calculate_dc_limit] Time after susceptibility calculation: ')
     else
-      if(myrank_row_hw.eq.0) write(outputunit_loop,"('[calculate_dc_limit] Calculating prefactor to use in currents and disturbances calculation. ')")
+      if(myrank_row_hw==0) write(outputunit_loop,"('[calculate_dc_limit] Calculating prefactor to use in currents and disturbances calculation. ')")
       if(llinearsoc) then
         call eintshechilinearsoc(e) ! Note: chiorb_hflsoc = lambda*dchi_hf/dlambda(lambda=0)
         ! Broadcast chiorb_hflsoc to all processors of the same row
@@ -89,15 +89,15 @@ subroutine calculate_dc_limit()
         call zgemm('n','n',dim,dim,dim,zum,prefactor,dim,prefactorlsoc,dim,zero,chiorb,dim) ! chiorb = prefactor*prefactorlsoc
         call zgemm('n','n',dim,dim,dim,zum,chiorb,dim,prefactor,dim,zero,prefactorlsoc,dim) ! prefactorlsoc = chiorb*prefactor = prefactor*prefactorlsoc*prefactor
       end if
-      if(myrank_row_hw.eq.0) call write_time(outputunit_loop,'[calculate_dc_limit] Time after prefactor calculation: ')
+      if(myrank_row_hw==0) call write_time(outputunit_loop,'[calculate_dc_limit] Time after prefactor calculation: ')
     end if
 
     ! Start parallelized processes to calculate disturbances and currents for energy e
     call eintshe(e)
 
-    if(myrank_row_hw.eq.0) call write_time(outputunit_loop,'[calculate_dc_limit] Time after energy integral: ')
+    if(myrank_row_hw==0) call write_time(outputunit_loop,'[calculate_dc_limit] Time after energy integral: ')
 
-    if(myrank_row.eq.0) then
+    if(myrank_row==0) then
 
       if(.not.lhfresponses) then
         ! Calculating the full matrix of RPA and HF susceptibilities for energy e
@@ -277,13 +277,13 @@ subroutine calculate_dc_limit()
       end do plane_loop_effective_field_dclimit
 
       ! Sending results to myrank_row = myrank_col = 0 and writing on file
-      if(myrank_col.eq.0) then
+      if(myrank_col==0) then
         ! Storing rank 0 counter and magnetization direction to recover later
         hw_count_temp       = hw_count
         mvec_spherical_temp = mvec_spherical
 
         MPI_points_dclimit: do mcount=1,MPIpts_hw
-          if (mcount.ne.1) then ! Receive all points except the first (that was calculated at myrank_row_hw)
+          if (mcount/=1) then ! Receive all points except the first (that was calculated at myrank_row_hw)
             call MPI_Recv(hw_count         ,1                ,MPI_INTEGER         ,MPI_ANY_SOURCE  ,44000+mpitag2,MPI_Comm_Col,stat,ierr) ! hw_count needed to get correct values of fields on hw_list
             call MPI_Recv(count            ,1                ,MPI_INTEGER         ,stat(MPI_SOURCE),44100+mpitag2,MPI_Comm_Col,stat,ierr) ! count needed to write correct energy on the filename
             call MPI_Recv(mvec_spherical   ,3*Npl            ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),44200+mpitag2,MPI_Comm_Col,stat,ierr)
@@ -369,7 +369,7 @@ subroutine calculate_dc_limit()
 
         ! Emergency stop
         open(unit=911, file="stop", status='old', iostat=iw)
-        if(iw.eq.0) then
+        if(iw==0) then
           close(911)
             write(outputunit,"('[calculate_dc_limit] Emergency ""stop"" file found! Stopping after step ',i0,'...')") dc_count
             call system ('rm stop')
@@ -380,7 +380,7 @@ subroutine calculate_dc_limit()
         hw_count       = hw_count_temp
         mvec_spherical = mvec_spherical_temp
       else
-        if(myrank_row_hw.eq.0) write(outputunit_loop,"('[calculate_dc_limit] Sending results to process zero... ')")
+        if(myrank_row_hw==0) write(outputunit_loop,"('[calculate_dc_limit] Sending results to process zero... ')")
         call MPI_Send(hw_count         ,1                ,MPI_INTEGER         ,0,44000+mpitag2,MPI_Comm_Col,ierr)
         call MPI_Send(count_temp       ,1                ,MPI_INTEGER         ,0,44100+mpitag2,MPI_Comm_Col,ierr)
         call MPI_Send(mvec_spherical   ,3*Npl            ,MPI_DOUBLE_PRECISION,0,44200+mpitag2,MPI_Comm_Col,ierr)
@@ -404,7 +404,7 @@ subroutine calculate_dc_limit()
   end do dclimit_energy_loop
 
   ! Sorting results on files
-  if(myrank_row_hw.eq.0) then
+  if(myrank_row_hw==0) then
     call sort_all_files()
   end if
   call deallocate_prefactors()

@@ -40,7 +40,7 @@ contains
       pauli_orb(3,mu,mu) = zum
       pauli_orb(3,nu,nu) = -zum
 
-      if (mu.lt.5) cycle     ! Pauli matrices for d orbitals only
+      if (mu<5) cycle     ! Pauli matrices for d orbitals only
       ! pauli matrix x
       pauli_dorb(1,mu,nu) = zum
       pauli_dorb(1,nu,mu) = zum
@@ -70,7 +70,7 @@ contains
 !       ! identity
 !       pauli(1,mu,mu) = zum
 !       pauli(1,nu,nu) = zum
-!       if (mu.lt.5) cycle     ! Pauli matrices for d orbitals only
+!       if (mu<5) cycle     ! Pauli matrices for d orbitals only
 !       ! paulid matrix x
 !       pauli(2,mu,nu) = zum
 !       pauli(2,nu,mu) = zum

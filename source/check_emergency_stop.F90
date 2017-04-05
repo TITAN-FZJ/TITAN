@@ -14,11 +14,11 @@ subroutine check_emergency_stop()
   integer           :: ios,istop
 
   open(unit=911, file=trim(stopfilename), status='old', iostat=ios)
-  if(ios.eq.0) then
+  if(ios==0) then
     read(unit=911,fmt=*,iostat=ios) istop ! Checking number of iterations to be made before stopping
     close(911)
-    if((istop.le.1).or.(ios.ne.0)) then
-      if(myrank.eq.0) then
+    if((istop<=1).or.(ios/=0)) then
+      if(myrank==0) then
         write(outputunit,"('[main] Emergency ""stopout"" file found! Stopping after Npl = ',i0,', hwa = ',es9.2,' hwt=',f5.2,' hwp=',f5.2,'...')") Npl,hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
         open(unit=911, file=trim(stopfilename), status='unknown')
         write(911,"(i0)") istop-1 ! Removing one iteration of the file
@@ -32,12 +32,12 @@ subroutine check_emergency_stop()
     else
       ! Generating a unique filename at myrank=0 (to be able to run more than one version of the program at the same time)
       call date_and_time(date, time, zone, values)
-      if(trim(stopfilename).eq."stopout") then
-        if(myrank.eq.0) write(stopfilename,fmt="(a,'_',i0,i0,i0,i2.2,i2.2,i2.2)") trim(stopfilename),values(3),values(2),values(1),values(5),values(6),values(7)
+      if(trim(stopfilename)=="stopout") then
+        if(myrank==0) write(stopfilename,fmt="(a,'_',i0,i0,i0,i2.2,i2.2,i2.2)") trim(stopfilename),values(3),values(2),values(1),values(5),values(6),values(7)
         call MPI_Bcast(stopfilename,30,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
       end if
 
-      if(myrank.eq.0) then
+      if(myrank==0) then
         write(outputunit,"('[main] Emergency ""stopout"" file found! ',i0,' more iterations before stopping...')") istop-1
         open(unit=911, file=trim(stopfilename), status='unknown')
         write(911,"(i0)") istop-1 ! Removing one iteration of the file

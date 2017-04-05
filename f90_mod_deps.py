@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python
 # Copyright (C) 2006-2007 Matthew West
 # Licensed under the GNU General Public License version 2 or (at your
 # option) any later version. See the file COPYING for details.
