@@ -23,51 +23,6 @@ subroutine lattice_definitions()
     stop
   end if
 
-!   lattice_dependent_definitions: select case (lattice)
-!   case("bcc110")
-! !----------- Direction of applied in-plane electric field --------------
-!     read(dirEfield,fmt=*,iostat=err) i
-!     if(err.eq.0) then
-!       direction_E_field_bcc110_neighbors: select case (i)
-!       case (1:6)   !    In plane neighbors:
-!         dirEfieldvec = c0(i,:)
-!       case default !    Other direction:
-!         dirEfieldvec = [1.d0/(sq2*sq3),1.d0/(sq2*sq3),-sq2/sq3] ! In-plane, Perpendicular to the 1st n.n.
-!       end select direction_E_field_bcc110_neighbors
-!     else
-!       direction_E_field_bcc110_axis: select case (dirEfield)
-!       case ("L")
-!     !   In-plane long axis:
-!         dirEfieldvec = [hsq2,hsq2,0.d0]
-!       case ("S")16,1
-!     !   In-plane short axis
-!         dirEfieldvec = [0.d0,0.d0,1.d0]
-!       case ("O")
-!     !   Other direction:
-!     !     dirEfieldvec = [1.d0/sq3,1.d0/sq3,1.d0/sq3] ! In the direction of the 1st n.n.
-!         dirEfieldvec = [1.d0/(sq2*sq3),1.d0/(sq2*sq3),-sq2/sq3] ! In-plane, Perpendicular to the 1st n.n.
-!       end select direction_E_field_bcc110_axis
-!     end if
-!   case("fcc100")
-! !----------- Direction of applied in-plane electric field --------------
-!     read(unit=dirEfield,fmt=*) i
-!     direction_E_field_fcc100: select case (i)
-!     case (1:8)   !    In plane neighbors:
-!       dirEfieldvec = c0(i,:)
-!     case default !    Other direction:
-!       dirEfieldvec = [1.d0,0.d0,0.d0] ! In-plane
-!     end select direction_E_field_fcc100
-!   case("fcc111")
-! !----------- Direction of applied in-plane electric field --------------
-!     read(unit=dirEfield,fmt=*) j
-!     direction_E_field_fcc111: select case (j)
-! !       case (1:8)   !    In plane neighbors:
-! !         dirEfieldvec = c0(j,:)
-! !       case default !    Other direction:
-! !         dirEfieldvec = [1.d0,0.d0,0.d0] ! In-plane
-!     end select direction_E_field_fcc111
-!   end select lattice_dependent_definitions
-
   ! Calculating out-of-plane unit vector
   vec1 = r0(1,:)
   vec2 = r0(2,:)
