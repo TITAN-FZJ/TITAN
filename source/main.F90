@@ -81,15 +81,12 @@ program DHE
   end if
 !-------------------- Define the lattice structure ---------------------
   call next_neighbour_init()
-  print *, n2
 !-------------------- Generating k points in 2D BZ ---------------------
   call generate_kpoints(pln_dir)
   ! Writing BZ points and weights into files
   if((lkpoints).and.(myrank.eq.0)) then
     call write_kpoints_to_file()
   end if
-
-  stop
 
 !---- Generating integration points of the complex energy integral -----
   call generate_imag_epoints()
