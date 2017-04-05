@@ -53,7 +53,11 @@ contains
   !-----------------------------------------------------------------------------
   subroutine next_neighbour_init()
     use mod_f90_kind, only: double
-    use mod_parameters, only: a1, a2, a3, pln_dir, nn_stages
+    use mod_mpi_pars
+    use mod_tools
+    use mod_parameters, only: a1, a2, a3, &
+                              a1_pln, a2_pln, pln_dir, &
+                              nn_stages, outputunit
     implicit none
     real(double), dimension(:,:,:), allocatable :: nn                      ! Array contains all neighbours in the ellipsoid 2*nn_stages*(a1,a2,a3)
     real(double), dimension(:),     allocatable :: dist                    ! Contains all distances in the ellipsoid 2*nn_stages*(a1,a2,a3)
@@ -118,6 +122,8 @@ contains
     ! Sort into on and off plane of interest
     allocate( on_plane(3,2,nn_size),  on_plane_dist(   nn_size))
     allocate(off_plane(3,2,nn_size), off_plane_dist(2, nn_size))
+
+    pln_dir = pln_dir / sqrt(dot_product(pln_dir, pln_dir))
 
     on_cnt = 0
     off_cnt = 0
@@ -184,6 +190,23 @@ contains
        r2(i,:) = off_plane(:, 1, off_plane_aux(3) + i - 1)
        c2(i,:) = off_plane(:, 2, off_plane_aux(3) + i - 1)
     end do
+
+    ! Definition of in-plane basis
+    a1_pln = r0(1,:)
+    a2_pln = 0.d0
+
+    do i = 2, n0
+       if( .not. is_parallel(r0(1,:), r0(i,:))) then
+          a2_pln = r0(i,:)
+          exit
+       end if
+    end do
+    if(0.d0 == dot_product(a2_pln, a2_pln)) then
+       if(myrank.eq.0) write(outputunit,"('[next_neighbour_init] No non-collinear in-plane vectors found')")
+       call MPI_Finalize(ierr)
+       stop
+    end if
+    ! end in-plane basis
 
     deallocate(nn, dist, on_plane ,on_plane_dist, on_plane_aux)
     deallocate(off_plane, off_plane_dist, off_plane_aux, cnt)
