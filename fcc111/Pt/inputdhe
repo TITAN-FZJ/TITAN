@@ -3,11 +3,11 @@
 -> itype = 6
 !===============================================================================!
 !                                OUTPUT FILE                                    !
--> output: output/saida8_Npl5_ncp6
-! -> suffix: _-M
+-> output =  output/saida8_Npl5_ncp6
+! -> suffix = _-M
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
--> Options: slatec kpoints verbose GSL ! noUonPt ! addresults
+-> Options = slatec kpoints verbose GSL ! noUonPt ! addresults
 !===============================================================================!
 !                               SYSTEM VARIABLES                                !
 ! Lattice and surface direction:                                                !
