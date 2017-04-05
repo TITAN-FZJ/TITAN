@@ -18,28 +18,28 @@ contains
     implicit none
     integer           :: AllocateStatus
 
-    if(myrank_row.eq.0) then
+    if(myrank_row==0) then
       allocate( disturbances(7,Npl),sdmat(dimsigmaNpl),ldmat(Npl,9,9), STAT = AllocateStatus )
-      if (AllocateStatus.ne.0) then
+      if (AllocateStatus/=0) then
         write(outputunit,"('[allocate_disturbances] Not enough memory for: disturbances,sdmat,ldmat')")
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
       if(renorm) then
         allocate( rdisturbances(7,Npl), STAT = AllocateStatus )
-        if (AllocateStatus.ne.0) then
+        if (AllocateStatus/=0) then
           write(outputunit,"('[allocate_disturbances] Not enough memory for: rdisturbances')")
           call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
         end if
       end if
     end if
     allocate( tchiorbiikl(dim,4), STAT = AllocateStatus  )
-    if (AllocateStatus.ne.0) then
+    if (AllocateStatus/=0) then
       write(outputunit,"('[allocate_disturbances] Not enough memory for: tchiorbiikl')")
       call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
     end if
     if (.not. allocated(prefactor)) then
       allocate(prefactor(dim,dim), STAT = AllocateStatus  )
-      if (AllocateStatus.ne.0) then
+      if (AllocateStatus/=0) then
         write(outputunit,"('[allocate_disturbances] Not enough memory for: prefactor')")
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
@@ -47,7 +47,7 @@ contains
     if (.not. allocated(prefactorlsoc)) then
       if(llinearsoc) then
         allocate(prefactorlsoc(dim,dim), STAT = AllocateStatus  )
-        if (AllocateStatus.ne.0) then
+        if (AllocateStatus/=0) then
           write(outputunit,"('[allocate_disturbances] Not enough memory for: prefactorlsoc')")
           call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
         end if
@@ -65,7 +65,7 @@ contains
     use mod_parameters, only: renorm
     implicit none
 
-    if(myrank_row.eq.0) then
+    if(myrank_row==0) then
       deallocate(disturbances,sdmat,ldmat)
       if(renorm) deallocate(rdisturbances)
     end if
@@ -97,7 +97,7 @@ contains
       else
         SOCc = "T"
       end if
-      write(socpart,"('_magaxis=',a,'_socscale=',f5.2)") magaxis,socscale
+      if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
     else
       SOCc = "F"
     end if
@@ -130,36 +130,36 @@ contains
     filename(6) = "Ly"
     filename(7) = "Lz"
 
-    if(iflag.eq.0) then
+    if(iflag==0) then
       do i=1,Npl ; do j=1,7
         iw = 3000+(i-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='unknown', form='formatted')
         write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
           open (unit=iw, file=varm, status='unknown', form='formatted')
           write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
         end if
       end do ; end do
-    else if (iflag.eq.1) then
+    else if (iflag==1) then
       do i=1,Npl ; do j=1,7
         iw = 3000+(i-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',A,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
         end if
       end do ; end do
       ! Stop if some file does not exist
-      if(errt.ne.0) then
+      if(errt/=0) then
         write(outputunit,"(a,i0,a)") "[openclose_disturbance_files] Some file(s) do(es) not exist! Stopping before starting calculations..."
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
@@ -285,15 +285,15 @@ contains
       else
         SOCc = "T"
       end if
-      write(socpart,"('_magaxis=',a,'_socscale=',f5.2)") magaxis,socscale
+      if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
     else
       SOCc = "F"
     end if
 
-    if(dcfield_dependence.ne.7) then
-      if((dcfield_dependence.ne.1).and.(dcfield_dependence.ne.4).and.(dcfield_dependence.ne.5)) write(fieldpart,"(a,'_hwa=',es9.2)") trim(fieldpart),hwa
-      if((dcfield_dependence.ne.2).and.(dcfield_dependence.ne.4).and.(dcfield_dependence.ne.6)) write(fieldpart,"(a,'_hwt=',f5.2)") trim(fieldpart),hwt
-      if((dcfield_dependence.ne.3).and.(dcfield_dependence.ne.5).and.(dcfield_dependence.ne.6)) write(fieldpart,"(a,'_hwp=',f5.2)") trim(fieldpart),hwp
+    if(dcfield_dependence/=7) then
+      if((dcfield_dependence/=1).and.(dcfield_dependence/=4).and.(dcfield_dependence/=5)) write(fieldpart,"(a,'_hwa=',es9.2)") trim(fieldpart),hwa
+      if((dcfield_dependence/=2).and.(dcfield_dependence/=4).and.(dcfield_dependence/=6)) write(fieldpart,"(a,'_hwt=',f5.2)") trim(fieldpart),hwt
+      if((dcfield_dependence/=3).and.(dcfield_dependence/=5).and.(dcfield_dependence/=6)) write(fieldpart,"(a,'_hwp=',f5.2)") trim(fieldpart),hwp
     end if
     if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
     if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
@@ -321,36 +321,36 @@ contains
     filename(6) = "Ly"
     filename(7) = "Lz"
 
-    if(iflag.eq.0) then
+    if(iflag==0) then
       do i=1,Npl ; do j=1,7
         iw = 30000+(i-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='unknown', form='formatted')
         write(unit=iw, fmt="('#',a,' imag part of ',a,' , real part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
           open (unit=iw, file=varm, status='unknown', form='formatted')
           write(unit=iw, fmt="('#',a,' imag part of ',a,' , real part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
         end if
       end do ; end do
-    else if (iflag.eq.1) then
+    else if (iflag==1) then
       do i=1,Npl ; do j=1,7
         iw = 30000+(i-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,ncp,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
         end if
       end do ; end do
       ! Stop if some file does not exist
-      if(errt.ne.0) then
+      if(errt/=0) then
         write(outputunit,"(a,i0,a)") "[openclose_dc_disturbance_files] Some file(s) do(es) not exist! Stopping before starting calculations..."
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
@@ -463,7 +463,7 @@ contains
     integer :: i,j,iw,idc=1
 
     ! Opening disturbance files
-    if(itype.eq.9) then
+    if(itype==9) then
       idc=10
       call openclose_dc_disturbance_files(1)
     else
@@ -486,7 +486,7 @@ contains
     end do
 
     ! Closing disturbance files
-    if(itype.eq.9) then
+    if(itype==9) then
       call openclose_dc_disturbance_files(2)
     else
       call openclose_disturbance_files(2)

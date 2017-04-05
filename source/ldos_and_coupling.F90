@@ -27,7 +27,7 @@ subroutine ldos_and_coupling()
     else
       SOCc = "T"
     end if
-    write(socpart,"('_magaxis=',a,'_socscale=',f5.2)") magaxis,socscale
+    if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
   else
     SOCc = "F"
   end if
@@ -52,7 +52,7 @@ subroutine ldos_and_coupling()
   ! Exchange interactions
   do j=1,nmaglayers ; do i=1,nmaglayers
     iw = 2000+(mpitag-1)*nmaglayers*nmaglayers*2+(j-1)*nmaglayers*2+(i-1)*2
-    if(i.eq.j) then
+    if(i==j) then
       iw = iw + 1
       write(varm,"('./results/',a1,'SOC/',a,'/Jij/Jii_',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),mmlayermag(i)-1,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
       open (unit=iw, file=varm,status='unknown')
@@ -100,7 +100,7 @@ subroutine ldos_and_coupling()
     ! Exchange interactions
     jij_writing_loop: do j=1,nmaglayers ; do i=1,nmaglayers
       iw = 2000+(mpitag-1)*nmaglayers*nmaglayers*2+(j-1)*nmaglayers*2+(i-1)*2
-      if(i.eq.j) then
+      if(i==j) then
         iw = iw + 1
         write(unit=iw,fmt="(3(es16.9,2x))") e,Jij(i,j,1,1),Jij(i,j,2,2)
         iw = iw + 1
@@ -123,7 +123,7 @@ subroutine ldos_and_coupling()
   end do
   do j=1,nmaglayers ; do i=1,nmaglayers
     iw = 2000+(mpitag-1)*nmaglayers*nmaglayers*2+(j-1)*nmaglayers*2+(i-1)*2
-    if(i.eq.j) then
+    if(i==j) then
       iw = iw + 1
       close (iw)
       iw = iw + 1

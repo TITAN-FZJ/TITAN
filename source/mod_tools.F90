@@ -119,13 +119,13 @@ contains
     total_lines    = 0
     do
        read (unit=unit,fmt=*,iostat=ios) stringtemp
-       if (ios.ne.0) exit
-       if (stringtemp.eq."") cycle ! If the line is blank, ignore
+       if (ios/=0) exit
+       if (stringtemp=="") cycle ! If the line is blank, ignore
        ! Total number of non-empty lines
        total_lines = total_lines + 1
 
        ! Getting the number of non-commented lines
-       if ((stringtemp(1:1).eq."#").or.(stringtemp(1:1).eq."!")) cycle
+       if ((stringtemp(1:1)=="#").or.(stringtemp(1:1)=="!")) cycle
        non_commented = non_commented + 1
     end do
 
@@ -150,9 +150,9 @@ contains
     rows  = 0
     do
        read (unit=unit,fmt='(A)',iostat=ios) stringtemp
-       if (ios.ne.0) exit
+       if (ios/=0) exit
        ! Getting the number of rows
-       if ((stringtemp(1:1).eq."#").or.(stringtemp(1:1).eq."!").or.(stringtemp.eq."")) cycle
+       if ((stringtemp(1:1)=="#").or.(stringtemp(1:1)=="!").or.(stringtemp=="")) cycle
        rows = rows + 1
     end do
     cols = count([( stringtemp(i:i), i=1,len(stringtemp) )] == "E")
@@ -179,8 +179,8 @@ contains
     i = 0
     do
        read(unit=unit,fmt='(A)',iostat=ios) stringtemp
-       if (ios.ne.0) exit
-       if ((stringtemp(1:1).eq."#").or.(stringtemp(1:1).eq."!").or.(stringtemp.eq."")) cycle
+       if (ios/=0) exit
+       if ((stringtemp(1:1)=="#").or.(stringtemp(1:1)=="!").or.(stringtemp=="")) cycle
        i=i+1
        read(unit=stringtemp,fmt=*,iostat=ios) (data(i,j),j=1,cols)
     end do

@@ -22,7 +22,7 @@ subroutine eintshe(e)
 !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
   allocate( tFintiikl(dim,4),ttFintiikl(n0sc1:n0sc2,dimsigmaNpl,4),LxttFintiikl(n0sc1:n0sc2,dimsigmaNpl,4),LyttFintiikl(n0sc1:n0sc2,dimsigmaNpl,4),LzttFintiikl(n0sc1:n0sc2,dimsigmaNpl,4), STAT = AllocateStatus )
-  if (AllocateStatus.ne.0) then
+  if (AllocateStatus/=0) then
     write(outputunit,"('[eintshe] Not enough memory for: tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl')")
     call MPI_Abort(MPI_Comm_Row,errorcode,ierr)
   end if
@@ -34,7 +34,7 @@ subroutine eintshe(e)
   itask = numprocs ! Number of tasks done initially
 
 ! Starting to calculate energy integral
-  if (myrank_row.eq.masterrank) then ! Process 0 calculates one point, receives results from others and send new tasks if necessary
+  if (myrank_row==masterrank) then ! Process 0 calculates one point, receives results from others and send new tasks if necessary
     if(llinearsoc) then
       call sumklinearsoc(e,y(ix),tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,0)
     else
@@ -45,16 +45,16 @@ subroutine eintshe(e)
     Lxttchiorbiikl  = LxttFintiikl*wght(ix)
     Lyttchiorbiikl  = LyttFintiikl*wght(ix)
     Lzttchiorbiikl  = LzttFintiikl*wght(ix)
-    if((lverbose).and.(myrank_row_hw.eq.0)) write(outputunit_loop,"('[eintshe] Finished point ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,myrank_row,myrank_col,trim(host)
+    if((lverbose).and.(myrank_row_hw==0)) write(outputunit_loop,"('[eintshe] Finished point ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,myrank_row,myrank_col,trim(host)
 
     do i=2,nepoints
-      if((lverbose).and.(myrank_row_hw.eq.0)) start_time = MPI_Wtime()
+      if((lverbose).and.(myrank_row_hw==0)) start_time = MPI_Wtime()
       call MPI_Recv(tFintiikl   ,ncountkl ,MPI_DOUBLE_COMPLEX,MPI_ANY_SOURCE  ,545454+mpitag,MPI_Comm_Row,stat,ierr)
       call MPI_Recv(ttFintiikl  ,nncountkl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),656565+mpitag,MPI_Comm_Row,stat,ierr)
       call MPI_Recv(LxttFintiikl,nncountkl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),767676+mpitag,MPI_Comm_Row,stat,ierr)
       call MPI_Recv(LyttFintiikl,nncountkl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),878787+mpitag,MPI_Comm_Row,stat,ierr)
       call MPI_Recv(LzttFintiikl,nncountkl,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),989898+mpitag,MPI_Comm_Row,stat,ierr)
-      if((lverbose).and.(myrank_row_hw.eq.0)) then
+      if((lverbose).and.(myrank_row_hw==0)) then
         elapsed_time = MPI_Wtime() - start_time
         write(outputunit_loop,"('[eintshe] Point ',i0,' received from ',i0,'. Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes ')") i,stat(MPI_SOURCE),elapsed_time,elapsed_time/60.d0
         sizemat = (ncountkl+4.d0*nncountkl)*16.d0/(1024.d0**2)
@@ -70,7 +70,7 @@ subroutine eintshe(e)
 
       ! If the number of processors is less than the total number of points, sends
       ! the rest of the points to the ones that finish first
-      if (itask.lt.nepoints) then
+      if (itask<nepoints) then
         itask = itask + 1
         call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_Comm_Row,ierr)
       else
@@ -80,7 +80,7 @@ subroutine eintshe(e)
   else
     ! Other processors calculate each point of the integral and waits for new points
     do
-      if (ix.le.pn1) then ! First and second integrations (in the complex plane)
+      if (ix<=pn1) then ! First and second integrations (in the complex plane)
         if(llinearsoc) then
           call sumklinearsoc(e,y(ix),tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,0)
         else
@@ -91,7 +91,7 @@ subroutine eintshe(e)
         LxttFintiikl = LxttFintiikl*wght(ix)
         LyttFintiikl = LyttFintiikl*wght(ix)
         LzttFintiikl = LzttFintiikl*wght(ix)
-      else if ((ix.gt.pn1).and.(ix.le.nepoints)) then ! Third integration (on the real axis)
+      else if ((ix>pn1).and.(ix<=nepoints)) then ! Third integration (on the real axis)
         ix2 = ix-pn1
         if(llinearsoc) then
           call sumklinearsoc(e,x2(ix2),tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,1)
@@ -107,7 +107,7 @@ subroutine eintshe(e)
         exit
       end if
 
-!       if((lverbose).and.(myrank_row_hw.eq.0)) write(outputunit_loop,"('[eintshe] Finished point ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,myrank_row,myrank_col,trim(host)
+!       if((lverbose).and.(myrank_row_hw==0)) write(outputunit_loop,"('[eintshe] Finished point ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,myrank_row,myrank_col,trim(host)
       ! Sending results to process 0
       call MPI_Send(tFintiikl   ,ncountkl ,MPI_DOUBLE_COMPLEX,masterrank,545454+mpitag,MPI_Comm_Row,ierr)
       call MPI_Send(ttFintiikl  ,nncountkl,MPI_DOUBLE_COMPLEX,masterrank,656565+mpitag,MPI_Comm_Row,ierr)
@@ -116,7 +116,7 @@ subroutine eintshe(e)
       call MPI_Send(LzttFintiikl,nncountkl,MPI_DOUBLE_COMPLEX,masterrank,989898+mpitag,MPI_Comm_Row,ierr)
       ! Receiving new point or signal to exit
       call MPI_Recv(ix,1,MPI_INTEGER,masterrank,MPI_ANY_TAG,MPI_Comm_Row,stat,ierr)
-      if(ix.eq.0) exit
+      if(ix==0) exit
     end do
   end if
 

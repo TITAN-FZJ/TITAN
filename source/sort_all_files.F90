@@ -28,7 +28,7 @@ subroutine sort_all_files()
     ! SORTING SHA
     call sort_sha()
   case (9)
-    if(hw_count.eq.1) then
+    if(hw_count==1) then
       energy_loop: do count=1,npt1
         ! SORTING SUSCEPTIBILITIES
         call sort_susceptibilities()

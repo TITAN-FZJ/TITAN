@@ -23,7 +23,7 @@
   itask = numprocs ! Number of tasks done initially
 
   ! Calculating the number of particles for each spin and orbital using a complex integral
-  if (myrank.eq.0) then ! Process 0 receives all results and send new tasks if necessary
+  if (myrank==0) then ! Process 0 receives all results and send new tasks if necessary
     call sumk_jij(Ef,y(ix),Jijint)
     Jij = Jijint*wght(ix)/pi
 
@@ -37,7 +37,7 @@
 
       ! If the number of processors is less than the total number of points, sends
       ! the rest of the points to the ones that finish first
-      if (itask.lt.pn1) then
+      if (itask<pn1) then
         itask = itask + 1
         call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_COMM_WORLD,ierr)
       else
@@ -47,7 +47,7 @@
   else
     ! Other processors calculate each point of the integral and waits for new points
     do
-      if(ix.gt.pn1) exit
+      if(ix>pn1) exit
 
       ! First and second integrations (in the complex plane)
       call sumk_jij(Ef,y(ix),Jijint)
@@ -58,7 +58,7 @@
       call MPI_Send(Jijint,ncount,MPI_DOUBLE_PRECISION,0,11235,MPI_COMM_WORLD,ierr)
       ! Receiving new point or signal to exit
       call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_COMM_WORLD,stat,ierr)
-      if(ix.eq.0) exit
+      if(ix==0) exit
     end do
   end if
 

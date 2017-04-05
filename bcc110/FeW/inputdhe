@@ -55,7 +55,7 @@
 !===============================================================================!
 !                           INTEGRATION VARIABLES                               !
 ! Number of Cunningham k-vector generators:                                     !
--> ncp = 6
+-> nkpt = 130
 ! Number of parts to divide energy integral in complex plane:                   !
 -> parts = 2 , n1gl = 64
 !  Number of parts to divide energy integral in real axis:                      !
@@ -78,7 +78,7 @@
 !        (Finding center of the bands for the given number of particles)        !
 -> skipsc = T ! skip self-consistency calculation when it finds previous results
 ! File to use as starting point:
-!-> scfile = Resultados/selfconsistency/selfconsistency_Npl=4_parts=2_Utype=2_hwx= 0.0E+00_hwy= 0.0E+00_hwz= 0.0E+00_ncp=6_eta= 0.5E-03.dat
+!-> scfile = Resultados/selfconsistency/selfconsistency_Npl=4_parts=2_Utype=2_hwx= 0.0E+00_hwy= 0.0E+00_hwz= 0.0E+00_nkpt=6_eta= 0.5E-03.dat
 !===============================================================================!
 !                                DFT PARAMETERS                                 !
 !          (Choose between (T)ight-binding or (O)rthogonal parameters)          !

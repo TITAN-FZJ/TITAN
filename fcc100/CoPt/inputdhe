@@ -3,7 +3,7 @@
 -> itype = 8
 !===============================================================================!
 !                                OUTPUT FILE                                    !
--> output = output/saida8_Npl5_ncp6
+-> output = output/saida8_Npl5_nkpt6
 ! -> suffix = _-M
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
@@ -54,8 +54,8 @@
 -> renormnb = 1      ! Reference neighbor (where the charge current will be 1)
 !===============================================================================!
 !                           INTEGRATION VARIABLES                               !
-! Number of Cunningham k-vector generators: (ncp > 0)                           !
--> ncp = 6
+! Number of Cunningham k-vector generators: (nkpt > 0)                           !
+-> nkpt = 6
 ! Number of parts to divide energy integral in complex plane:                   !
 -> parts = 2
 -> n1gl = 64
@@ -83,7 +83,7 @@
 -> magbasis = cartesian / neighbor / bravais
 -> magaxis = 9
 ! File to use as starting point:
-!-> scfile = results/selfconsistency/selfconsistency_Npl=3_dfttype=T_parts=2_Utype=2_hwa= 2.70E-04_hwt= 0.00_hwp= 0.00_ncp=6_eta= 5.0E-03_magaxis=9_socscale= 1.00.dat
+!-> scfile = results/selfconsistency/selfconsistency_Npl=3_dfttype=T_parts=2_Utype=2_hwa= 2.70E-04_hwt= 0.00_hwp= 0.00_nkpt=6_eta= 5.0E-03_magaxis=9_socscale= 1.00.dat
 !===============================================================================!
 !                                DFT PARAMETERS                                 !
 !          (Choose between (T)ight-binding or (O)rthogonal parameters)          !

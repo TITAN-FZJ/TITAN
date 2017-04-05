@@ -16,16 +16,16 @@ contains
   implicit none
   integer :: i,j,ios,set1g,set2g
 
-  if((set1.eq.9).or.(set2.eq.9)) then
+  if((set1==9).or.(set2==9)) then
     open(unit=112358, file="system.dat", status='old', iostat=ios)
-    if (ios.ne.0) then
-      if(myrank.eq.0) write(outputunit,"('[define_system] File ""system.dat"" does not exist. ')")
+    if (ios/=0) then
+      if(myrank==0) write(outputunit,"('[define_system] File ""system.dat"" does not exist. ')")
       call MPI_Finalize(ierr)
       stop
     end if
     read(unit=112358,fmt=*,iostat=ios) (mmlayer(i),i=1,Npl+2)
-    if (ios.ne.0) then
-      if(myrank.eq.0) write(outputunit,"('[define_system] Problem defining system from file ""system.dat"".')")
+    if (ios/=0) then
+      if(myrank==0) write(outputunit,"('[define_system] Problem defining system from file ""system.dat"".')")
       call MPI_Finalize(ierr)
       stop
     end if
@@ -35,12 +35,12 @@ contains
   end if
 
   set1g = (set1-1)*6
-  if(Npl_input.eq.1) set2 = set1
+  if(Npl_input==1) set2 = set1
   set2g = (set2-1)*6
 
   i = ceiling((Npl_input+2)/2.d0)
   do j=1,i
-    if(j.le.6) then
+    if(j<=6) then
       mmlayer(j) = j + set1g
     else !bulk
       mmlayer(j) = 6 + set1g
@@ -48,7 +48,7 @@ contains
   end do
   do j=i+1,Npl_input+2
     mmlayer(j) = Npl_input + 3 - j + set2g
-    if(mmlayer(j).gt.(6+set2g)) then ! bulk
+    if(mmlayer(j)>(6+set2g)) then ! bulk
       mmlayer(j) = 6 + set2g
     end if
   end do

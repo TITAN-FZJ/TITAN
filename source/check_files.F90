@@ -28,7 +28,7 @@ subroutine check_files()
     call openclose_sha_files(1)
     call openclose_sha_files(2)
   case (9)
-    if(hw_count.eq.1) then
+    if(hw_count==1) then
       energy_loop: do count=1,npt1
         call openclose_dc_chi_files(1)
         call openclose_dc_chi_files(2)

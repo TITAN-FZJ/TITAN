@@ -14,7 +14,7 @@ subroutine coupling()
 
   allocate(Jij(nmaglayers,nmaglayers,3,3),trJij(nmaglayers,nmaglayers),Jijs(nmaglayers,nmaglayers,3,3),Jija(nmaglayers,nmaglayers,3,3))
 
-  if(myrank.eq.0) write(outputunit,"('CALCULATING FULL TENSOR OF EXHANGE INTERACTIONS AND ANISOTROPIES AS A FUNCTION OF THICKNESS')")
+  if(myrank==0) write(outputunit,"('CALCULATING FULL TENSOR OF EXHANGE INTERACTIONS AND ANISOTROPIES AS A FUNCTION OF THICKNESS')")
 
   fieldpart = ""
   socpart   = ""
@@ -24,7 +24,7 @@ subroutine coupling()
     else
       SOCc = "T"
     end if
-    write(socpart,"('_magaxis=',a,'_socscale=',f5.2)") magaxis,socscale
+    if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
   else
     SOCc = "F"
   end if
@@ -37,11 +37,11 @@ subroutine coupling()
   end if
 
   ! Opening files for position dependence
-  if((myrank.eq.0).and.(Npl.eq.Npl_i)) then
+  if((myrank==0).and.(Npl==Npl_i)) then
     ! Exchange interactions
     do j=1,nmaglayers ; do i=1,nmaglayers
       iw = 199+(j-1)*nmaglayers*2+(i-1)*2
-      if(i.eq.j) then
+      if(i==j) then
         iw = iw + 1
         write(varm,"('./results/',a1,'SOC/Jij/Jii_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,parts,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
         open (unit=iw, file=varm,status='unknown')
@@ -63,7 +63,7 @@ subroutine coupling()
   q = [ 0.d0 , 0.d0 , 0.d0 ]
   call jij_energy(Jij)
 
-  if(myrank.eq.0) then
+  if(myrank==0) then
     do i=1,nmaglayers ; do j=1,nmaglayers
       trJij(i,j)    = 0.5d0*(Jij(i,j,1,1)+Jij(i,j,2,2))
       Jija(i,j,:,:) = 0.5d0*(Jij(i,j,:,:) - transpose(Jij(i,j,:,:)))
@@ -83,8 +83,8 @@ subroutine coupling()
     ! w_res = 2*gamma*mz*sqrt( (K_z-K_x)*(K_z-K_y) )  - for m // z
     ! where K_x = J_ii^xx/2 ; K_y = J_ii^yy/2 ; K_z = J_ii^zz/2
     ! K > 0 - easy axis ; K < 0 - hard axis
-      if(i.eq.j) then
-        write(outputunit,"(3x,' ******** Magnetization components: (magaxis = ',a,') *******')") magaxis
+      if(i==j) then
+        write(outputunit,"(3x,' ************** Magnetization components: ) *************')")
         write(outputunit,"(4x,'Mx (',i2.0,')=',f11.8,4x,'My (',i2.0,')=',f11.8,4x,'Mz (',i2.0,')=',f11.8)") i,mx(i),i,my(i),i,mz(i)
         write(outputunit,"(' |--------------- i = ',i0,'   j = ',i0,': anisotropies ---------------|')") mmlayermag(i),mmlayermag(j)
       else
@@ -95,9 +95,9 @@ subroutine coupling()
       write(outputunit,"('  y  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,2,1),Jij(i,j,2,2),Jij(i,j,2,3)
       write(outputunit,"('  z  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,3,1),Jij(i,j,3,2),Jij(i,j,3,3)
     end do ; end do
-    if(nmaglayers.gt.1) write(outputunit,"('  *** Symmetric and antisymmetric exchange interactions:  ***')")
+    if(nmaglayers>1) write(outputunit,"('  *** Symmetric and antisymmetric exchange interactions:  ***')")
     do i=1,nmaglayers ; do j=1,nmaglayers
-      if(i.eq.j) cycle
+      if(i==j) cycle
       write(outputunit,"(' |--------------------- i = ',i0,'   j = ',i0,' -----------------------|')") mmlayermag(i),mmlayermag(j)
     ! Writing Heisenberg exchange interactions
       write(outputunit,"('     Isotropic:     J     = ',es16.9)") trJij(i,j)
@@ -114,7 +114,7 @@ subroutine coupling()
     ! Exchange interactions
     exchange_writing_loop: do j=1,nmaglayers ; do i=1,nmaglayers
       iw = 199+(j-1)*nmaglayers*2+(i-1)*2
-      if(i.eq.j) then
+      if(i==j) then
         iw = iw + 1
         write(unit=iw,fmt="(4x,i3,3x,2(es16.9,2x))") Npl_input,Jij(i,j,1,1),Jij(i,j,2,2)
         iw = iw + 1
@@ -127,11 +127,11 @@ subroutine coupling()
     end do ; end do exchange_writing_loop
 
     ! Closing files
-    if(Npl.eq.Npl_f) then
+    if(Npl==Npl_f) then
       ! Closing files
       do j=1,nmaglayers ; do i=1,nmaglayers
         iw = 199+(j-1)*nmaglayers*2+(i-1)*2
-        if(i.eq.j) then
+        if(i==j) then
           iw = iw + 1
           close (iw)
           iw = iw + 1

@@ -3,7 +3,7 @@ module mod_parameters
   implicit none
   !========================================================================================!
   integer,parameter :: dmax=20 !< Maximum dimension for Npl-dependent quantities that must be read from input
-  integer       :: ncp         !< Number of k-point generation vectors (S. Cunningham, Phys. Rev. B 10, 4988 (1974))
+  integer       :: nkpt         !< Number of k-point generation vectors (S. Cunningham, Phys. Rev. B 10, 4988 (1974))
   integer       :: nkpt        !< Approximate number of k-points
   real(double)  :: eta         !< Small imaginary part included in the energy z = E + i.eta
   real(double)  :: Ef          !< Fermi energy (read from mod_tight_binding)

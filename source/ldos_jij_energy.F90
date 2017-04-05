@@ -37,14 +37,14 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
 !$omp& private(mythread,iz,kp,gf,gij,gji,paulia,paulib,i,j,mu,nu,alpha,gfdiagu,gfdiagd,Jijk,Jijkan,temp1,temp2) &
 !$omp& shared(lverbose,kbz,nkpoints,wkbz,e,eta,Npl,hdel,mz,nmaglayers,mmlayermag,pauli_dorb,paulimatan,ldosu,ldosd,Jijint,nthreads,outputunit_loop)
 !$  mythread = omp_get_thread_num()
-!$  if(mythread.eq.0) then
+!$  if(mythread==0) then
 !$    nthreads = omp_get_num_threads()
 !$    write(outputunit_loop,"('[ldos_jij_energy] Number of threads: ',i0)") nthreads
 !$  end if
 
 !$omp do reduction(+:ldosu,ldosd,Jijint)
   kpoints: do iz=1,nkpoints
-!$  if((mythread.eq.0)) then
+!$  if((mythread==0)) then
       if(lverbose) call progress_bar(outputunit_loop,"kpoints",iz,nkpoints)
 !$  end if
     kp = kbz(iz,:)
@@ -70,7 +70,7 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
       Jijk(i,j,mu,nu) = -hdel(mmlayermag(i)-1)*hdel(mmlayermag(j)-1)*Jijk(i,j,mu,nu)*wkbz(iz)/(mz(mmlayermag(i)-1)*mz(mmlayermag(j)-1))
 
       ! Anisotropy (on-site) term
-      if(i.eq.j) then
+      if(i==j) then
         gij = gf(mmlayermag(i)-1,mmlayermag(i)-1,:,:)
         paulia = paulimatan(mu,nu,:,:)
         call zgemm('n','n',18,18,18,zum,gij,18,paulia,18,zero,temp1,18)

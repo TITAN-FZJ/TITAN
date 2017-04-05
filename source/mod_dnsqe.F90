@@ -160,7 +160,7 @@ contains
 !       Convergence Test.  If DENORM(Z) denotes the Euclidean norm of a
 !         vector Z, then this test attempts to guarantee that
 !
-!               DENORM(X-XSOL) .LE. TOL*DENORM(XSOL).
+!               DENORM(X-XSOL) <= TOL*DENORM(XSOL).
 !
 !         If this condition is satisfied with TOL = 10**(-K), then the
 !         larger components of X have K significant decimal digits and
@@ -175,9 +175,9 @@ contains
 !       function evaluations, errors in the functions, or lack of good
 !       progress.
 !
-!       Improper Input Parameters.  INFO is set to 0 if IOPT .LT. 1, or
-!         IOPT .GT. 2, or N .LE. 0, or TOL .LT. 0.E0, or
-!         LWA .LT. (3*N**2+13*N)/2.
+!       Improper Input Parameters.  INFO is set to 0 if IOPT < 1, or
+!         IOPT > 2, or N <= 0, or TOL < 0.E0, or
+!         LWA < (3*N**2+13*N)/2.
 !
 !       Arithmetic Interrupts.  If these interrupts occur in the FCN
 !         subroutine during an early stage of the computation, they may
@@ -300,9 +300,9 @@ contains
 !       DO 10 K = 1, N
 !          TEMP = (THREE - TWO*X(K))*X(K)
 !          TEMP1 = ZERO
-!          IF (K .NE. 1) TEMP1 = X(K-1)
+!          IF (K /= 1) TEMP1 = X(K-1)
 !          TEMP2 = ZERO
-!          IF (K .NE. N) TEMP2 = X(K+1)
+!          IF (K /= N) TEMP2 = X(K+1)
 !          FVEC(K) = TEMP - TEMP1 - TWO*TEMP2 + ONE
 !    10    CONTINUE
 !       RETURN
@@ -349,14 +349,14 @@ contains
 !        CHECK THE INPUT PARAMETERS FOR ERRORS.
 !
 !     ...EXIT
-         IF (IOPT .LT. 1 .OR. IOPT .GT. 2 .OR. N .LE. 0 &
-             .OR. TOL .LT. ZERO .OR. LWA .LT. (3*N**2 + 13*N)/2) &
+         IF (IOPT < 1 .OR. IOPT > 2 .OR. N <= 0 &
+             .OR. TOL < ZERO .OR. LWA < (3*N**2 + 13*N)/2) &
             GO TO 20
 !
 !        CALL DNSQ.
 !
          MAXFEV = 100*(N + 1)
-         IF (IOPT .EQ. 2) MAXFEV = 2*MAXFEV
+         IF (IOPT == 2) MAXFEV = 2*MAXFEV
          XTOL = TOL
          ML = N - 1
          MU = N - 1
@@ -372,9 +372,9 @@ contains
                    MU,EPSFCN,WA(1),MODE,FACTOR,NPRINT,INFO,NFEV,NJEV, &
                    WA(6*N+1),LR,WA(N+1),WA(2*N+1),WA(3*N+1),WA(4*N+1), &
                    WA(5*N+1))
-         IF (INFO .EQ. 5) INFO = 4
+         IF (INFO == 5) INFO = 4
    20 CONTINUE
-      IF (INFO .EQ. 0) CALL XERMSG ('SLATEC', 'DNSQE', 'INVALID INPUT PARAMETER.', 2, 1)
+      IF (INFO == 0) CALL XERMSG ('SLATEC', 'DNSQE', 'INVALID INPUT PARAMETER.', 2, 1)
       RETURN
 !
 !     LAST CARD OF SUBROUTINE DNSQE.
@@ -607,7 +607,7 @@ contains
 !         defined by the array DIAG, then this test attempts to
 !         guarantee that
 !
-!               DENORM(D*(X-XSOL)) .LE. XTOL*DENORM(D*XSOL).
+!               DENORM(D*(X-XSOL)) <= XTOL*DENORM(D*XSOL).
 !
 !         If this condition is satisfied with XTOL = 10**(-K), then the
 !         larger components of D*X have K significant decimal digits and
@@ -625,9 +625,9 @@ contains
 !       function evaluations, or lack of good progress.
 !
 !       Improper Input Parameters.  INFO is set to 0 if IOPT .LT .1,
-!         or IOPT .GT. 2, or N .LE. 0, or LDFJAC .LT. N, or
-!         XTOL .LT. 0.E0, or MAXFEV .LE. 0, or ML .LT. 0, or MU .LT. 0,
-!         or FACTOR .LE. 0.E0, or LR .LT. (N*(N+1))/2.
+!         or IOPT > 2, or N <= 0, or LDFJAC < N, or
+!         XTOL < 0.E0, or MAXFEV <= 0, or ML < 0, or MU < 0,
+!         or FACTOR <= 0.E0, or LR < (N*(N+1))/2.
 !
 !       Arithmetic Interrupts.  If these interrupts occur in the FCN
 !         subroutine during an early stage of the computation, they may
@@ -754,7 +754,7 @@ contains
 !       REAL(DOUBLE) :: ONE,TEMP,TEMP1,TEMP2,THREE,TWO,ZERO
 !       DATA ZERO,ONE,TWO,THREE /0.E0,1.E0,2.E0,3.E0/
 ! C
-!       IF (IFLAG .NE. 0) GO TO 5
+!       IF (IFLAG /= 0) GO TO 5
 ! C
 ! C     INSERT PRINT STATEMENTS HERE WHEN NPRINT IS POSITIVE.
 ! C
@@ -763,9 +763,9 @@ contains
 !       DO 10 K = 1, N
 !          TEMP = (THREE - TWO*X(K))*X(K)
 !          TEMP1 = ZERO
-!          IF (K .NE. 1) TEMP1 = X(K-1)
+!          IF (K /= 1) TEMP1 = X(K-1)
 !          TEMP2 = ZERO
-!          IF (K .NE. N) TEMP2 = X(K+1)
+!          IF (K /= N) TEMP2 = X(K+1)
 !          FVEC(K) = TEMP - TEMP1 - TWO*TEMP2 + ONE
 !    10    CONTINUE
 !       RETURN
@@ -828,14 +828,14 @@ contains
 !        CHECK THE INPUT PARAMETERS FOR ERRORS.
 !
 !     ...EXIT
-         IF (IOPT .LT. 1 .OR. IOPT .GT. 2 .OR. N .LE. 0 &
-             .OR. XTOL .LT. ZERO .OR. MAXFEV .LE. 0 .OR. ML .LT. 0 &
-             .OR. MU .LT. 0 .OR. FACTOR .LE. ZERO .OR. LDFJAC .LT. N &
-             .OR. LR .LT. (N*(N + 1))/2) GO TO 320
-         IF (MODE .NE. 2) GO TO 20
+         IF (IOPT < 1 .OR. IOPT > 2 .OR. N <= 0 &
+             .OR. XTOL < ZERO .OR. MAXFEV <= 0 .OR. ML < 0 &
+             .OR. MU < 0 .OR. FACTOR <= ZERO .OR. LDFJAC < N &
+             .OR. LR < (N*(N + 1))/2) GO TO 320
+         IF (MODE /= 2) GO TO 20
             DO 10 J = 1, N
 !     .........EXIT
-               IF (DIAG(J) .LE. ZERO) GO TO 320
+               IF (DIAG(J) <= ZERO) GO TO 320
    10       CONTINUE
    20    CONTINUE
 !
@@ -846,7 +846,7 @@ contains
          CALL FCN(N,X,FVEC,IFLAG)
          NFEV = 1
 !     ...EXIT
-         IF (IFLAG .LT. 0) GO TO 320
+         IF (IFLAG < 0) GO TO 320
 !          CALL DENORMSUB(N,FVEC,FNORM)
          FNORM = DENORM(N,FVEC)
 !
@@ -866,7 +866,7 @@ contains
 !
 !              CALCULATE THE JACOBIAN MATRIX.
 !
-               IF (IOPT .EQ. 2) GO TO 40
+               IF (IOPT == 2) GO TO 40
 !
 !                 USER SUPPLIES JACOBIAN
 !
@@ -884,7 +884,7 @@ contains
    50          CONTINUE
 !
 !     .........EXIT
-               IF (IFLAG .LT. 0) GO TO 320
+               IF (IFLAG < 0) GO TO 320
 !
 !              COMPUTE THE QR FACTORIZATION OF THE JACOBIAN.
 !
@@ -894,11 +894,11 @@ contains
 !              TO THE NORMS OF THE COLUMNS OF THE INITIAL JACOBIAN.
 !
 !           ...EXIT
-               IF (ITER .NE. 1) GO TO 90
-               IF (MODE .EQ. 2) GO TO 70
+               IF (ITER /= 1) GO TO 90
+               IF (MODE == 2) GO TO 70
                   DO 60 J = 1, N
                      DIAG(J) = WA2(J)
-                     IF (WA2(J) .EQ. ZERO) DIAG(J) = ONE
+                     IF (WA2(J) == ZERO) DIAG(J) = ONE
    60             CONTINUE
    70          CONTINUE
 !
@@ -911,7 +911,7 @@ contains
 !                CALL DENORMSUB(N,WA3,XNORM)
                XNORM = DENORM(N,WA3)
                DELTA = FACTOR*XNORM
-               IF (DELTA .EQ. ZERO) DELTA = FACTOR
+               IF (DELTA == ZERO) DELTA = FACTOR
    90       CONTINUE
 !
 !           FORM (Q TRANSPOSE)*FVEC AND STORE IN QTF.
@@ -920,7 +920,7 @@ contains
                QTF(I) = FVEC(I)
   100       CONTINUE
             DO 140 J = 1, N
-               IF (FJAC(J,J) .EQ. ZERO) GO TO 130
+               IF (FJAC(J,J) == ZERO) GO TO 130
                   SUM = ZERO
                   DO 110 I = J, N
                      SUM = SUM + FJAC(I,J)*QTF(I)
@@ -938,14 +938,14 @@ contains
             DO 170 J = 1, N
                L = J
                JM1 = J - 1
-               IF (JM1 .LT. 1) GO TO 160
+               IF (JM1 < 1) GO TO 160
                DO 150 I = 1, JM1
                   R(L) = FJAC(I,J)
                   L = L + N - I
   150          CONTINUE
   160          CONTINUE
                R(L) = WA1(J)
-               IF (WA1(J) .EQ. ZERO) SING = .TRUE.
+               IF (WA1(J) == ZERO) SING = .TRUE.
   170       CONTINUE
 !
 !           ACCUMULATE THE ORTHOGONAL FACTOR IN FJAC.
@@ -954,7 +954,7 @@ contains
 !
 !           RESCALE IF NECESSARY.
 !
-            IF (MODE .EQ. 2) GO TO 190
+            IF (MODE == 2) GO TO 190
                DO 180 J = 1, N
                   DIAG(J) = MAX(DIAG(J),WA2(J))
   180          CONTINUE
@@ -966,12 +966,12 @@ contains
 !
 !              IF REQUESTED, CALL FCN TO ENABLE PRINTING OF ITERATES.
 !
-               IF (NPRINT .LE. 0) GO TO 210
+               IF (NPRINT <= 0) GO TO 210
                   IFLAG = 0
-                  IF (MOD(ITER-1,NPRINT) .EQ. 0) &
+                  IF (MOD(ITER-1,NPRINT) == 0) &
                      CALL FCN(N,X,FVEC,IFLAG)
 !     ............EXIT
-                  IF (IFLAG .LT. 0) GO TO 320
+                  IF (IFLAG < 0) GO TO 320
   210          CONTINUE
 !
 !              DETERMINE THE DIRECTION P.
@@ -990,7 +990,7 @@ contains
 !
 !              ON THE FIRST ITERATION, ADJUST THE INITIAL STEP BOUND.
 !
-               IF (ITER .EQ. 1) DELTA = MIN(DELTA,PNORM)
+               IF (ITER == 1) DELTA = MIN(DELTA,PNORM)
 !
 !              EVALUATE THE FUNCTION AT X + P AND CALCULATE ITS NORM.
 !
@@ -998,14 +998,14 @@ contains
                CALL FCN(N,WA2,WA4,IFLAG)
                NFEV = NFEV + 1
 !     .........EXIT
-               IF (IFLAG .LT. 0) GO TO 320
+               IF (IFLAG < 0) GO TO 320
 !                CALL DENORMSUB(N,WA4,FNORM1)
                FNORM1 = DENORM(N,WA4)
 !
 !              COMPUTE THE SCALED ACTUAL REDUCTION.
 !
                ACTRED = -ONE
-               IF (FNORM1 .LT. FNORM) ACTRED = ONE - (FNORM1/FNORM)**2
+               IF (FNORM1 < FNORM) ACTRED = ONE - (FNORM1/FNORM)**2
 !
 !              COMPUTE THE SCALED PREDICTED REDUCTION.
 !
@@ -1021,17 +1021,17 @@ contains
 !                CALL DENORMSUB(N,WA3,TEMP)
                TEMP = DENORM(N,WA3)
                PRERED = ZERO
-               IF (TEMP .LT. FNORM) PRERED = ONE - (TEMP/FNORM)**2
+               IF (TEMP < FNORM) PRERED = ONE - (TEMP/FNORM)**2
 !
 !              COMPUTE THE RATIO OF THE ACTUAL TO THE PREDICTED
 !              REDUCTION.
 !
                RATIO = ZERO
-               IF (PRERED .GT. ZERO) RATIO = ACTRED/PRERED
+               IF (PRERED > ZERO) RATIO = ACTRED/PRERED
 !
 !              UPDATE THE STEP BOUND.
 !
-               IF (RATIO .GE. P1) GO TO 250
+               IF (RATIO >= P1) GO TO 250
                   NCSUC = 0
                   NCFAIL = NCFAIL + 1
                   DELTA = P5*DELTA
@@ -1039,14 +1039,14 @@ contains
   250          CONTINUE
                   NCFAIL = 0
                   NCSUC = NCSUC + 1
-                  IF (RATIO .GE. P5 .OR. NCSUC .GT. 1) &
+                  IF (RATIO >= P5 .OR. NCSUC > 1) &
                      DELTA = MAX(DELTA,PNORM/P5)
-                  IF (ABS(RATIO-ONE) .LE. P1) DELTA = PNORM/P5
+                  IF (ABS(RATIO-ONE) <= P1) DELTA = PNORM/P5
   260          CONTINUE
 !
 !              TEST FOR SUCCESSFUL ITERATION.
 !
-               IF (RATIO .LT. P0001) GO TO 280
+               IF (RATIO < P0001) GO TO 280
 !
 !                 SUCCESSFUL ITERATION. UPDATE X, FVEC, AND THEIR NORMS.
 !
@@ -1064,29 +1064,29 @@ contains
 !              DETERMINE THE PROGRESS OF THE ITERATION.
 !
                NSLOW1 = NSLOW1 + 1
-               IF (ACTRED .GE. P001) NSLOW1 = 0
+               IF (ACTRED >= P001) NSLOW1 = 0
                IF (JEVAL) NSLOW2 = NSLOW2 + 1
-               IF (ACTRED .GE. P1) NSLOW2 = 0
+               IF (ACTRED >= P1) NSLOW2 = 0
 !
 !              TEST FOR CONVERGENCE.
 !
-               IF (DELTA .LE. XTOL*XNORM .OR. FNORM .LE. N*EPSMCH) INFO = 1
+               IF (DELTA <= XTOL*XNORM .OR. FNORM <= N*EPSMCH) INFO = 1
 !     .........EXIT
-               IF (INFO .NE. 0) GO TO 320
+               IF (INFO /= 0) GO TO 320
 !
 !              TESTS FOR TERMINATION AND STRINGENT TOLERANCES.
 !
-               IF (NFEV .GE. MAXFEV) INFO = 2
-               IF (P1*MAX(P1*DELTA,PNORM) .LE. EPSMCH*XNORM) INFO = 3
-               IF (NSLOW2 .EQ. 5) INFO = 4
-               IF (NSLOW1 .EQ. 10) INFO = 5
+               IF (NFEV >= MAXFEV) INFO = 2
+               IF (P1*MAX(P1*DELTA,PNORM) <= EPSMCH*XNORM) INFO = 3
+               IF (NSLOW2 == 5) INFO = 4
+               IF (NSLOW1 == 10) INFO = 5
 !     .........EXIT
-               IF (INFO .NE. 0) GO TO 320
+               IF (INFO /= 0) GO TO 320
 !
 !              CRITERION FOR RECALCULATING JACOBIAN
 !
 !           ...EXIT
-               IF (NCFAIL .EQ. 2) GO TO 310
+               IF (NCFAIL == 2) GO TO 310
 !
 !              CALCULATE THE RANK ONE MODIFICATION TO THE JACOBIAN
 !              AND UPDATE QTF IF NECESSARY.
@@ -1098,7 +1098,7 @@ contains
   290             CONTINUE
                   WA2(J) = (SUM - WA3(J))/PNORM
                   WA1(J) = DIAG(J)*((DIAG(J)*WA1(J))/PNORM)
-                  IF (RATIO .GE. P0001) QTF(J) = SUM
+                  IF (RATIO >= P0001) QTF(J) = SUM
   300          CONTINUE
 !
 !              COMPUTE THE QR FACTORIZATION OF THE UPDATED JACOBIAN.
@@ -1120,14 +1120,14 @@ contains
 !
 !     TERMINATION, EITHER NORMAL OR USER IMPOSED.
 !
-      IF (IFLAG .LT. 0) INFO = IFLAG
+      IF (IFLAG < 0) INFO = IFLAG
       IFLAG = 0
-      IF (NPRINT .GT. 0) CALL FCN(N,X,FVEC,IFLAG)
-      IF (INFO .LT. 0) CALL XERMSG ('SLATEC', 'DNSQ', 'EXECUTION TERMINATED BECAUSE USER SET IFLAG NEGATIVE.', 1, 1)
-      IF (INFO .EQ. 0) CALL XERMSG ('SLATEC', 'DNSQ', 'INVALID INPUT PARAMETER.', 2, 1)
-      IF (INFO .EQ. 2) CALL XERMSG ('SLATEC', 'DNSQ', 'TOO MANY FUNCTION EVALUATIONS.', 9, 1)
-      IF (INFO .EQ. 3) CALL XERMSG ('SLATEC', 'DNSQ', 'XTOL TOO SMALL. NO FURTHER IMPROVEMENT POSSIBLE.', 3, 1)
-      IF (INFO .GT. 4) CALL XERMSG ('SLATEC', 'DNSQ', 'ITERATION NOT MAKING GOOD PROGRESS.', 1, 1)
+      IF (NPRINT > 0) CALL FCN(N,X,FVEC,IFLAG)
+      IF (INFO < 0) CALL XERMSG ('SLATEC', 'DNSQ', 'EXECUTION TERMINATED BECAUSE USER SET IFLAG NEGATIVE.', 1, 1)
+      IF (INFO == 0) CALL XERMSG ('SLATEC', 'DNSQ', 'INVALID INPUT PARAMETER.', 2, 1)
+      IF (INFO == 2) CALL XERMSG ('SLATEC', 'DNSQ', 'TOO MANY FUNCTION EVALUATIONS.', 9, 1)
+      IF (INFO == 3) CALL XERMSG ('SLATEC', 'DNSQ', 'XTOL TOO SMALL. NO FURTHER IMPROVEMENT POSSIBLE.', 3, 1)
+      IF (INFO > 4) CALL XERMSG ('SLATEC', 'DNSQ', 'ITERATION NOT MAKING GOOD PROGRESS.', 1, 1)
       RETURN
 !
 !     LAST CARD OF SUBROUTINE DNSQ.
@@ -1263,13 +1263,13 @@ contains
 !
 !***FIRST EXECUTABLE STATEMENT  D1MPYQ
       NM1 = N - 1
-      IF (NM1 .LT. 1) GO TO 50
+      IF (NM1 < 1) GO TO 50
       DO 20 NMJ = 1, NM1
          J = N - NMJ
-         IF (ABS(V(J)) .GT. ONE) COS = ONE/V(J)
-         IF (ABS(V(J)) .GT. ONE) SIN = SQRT(ONE-COS**2)
-         IF (ABS(V(J)) .LE. ONE) SIN = V(J)
-         IF (ABS(V(J)) .LE. ONE) COS = SQRT(ONE-SIN**2)
+         IF (ABS(V(J)) > ONE) COS = ONE/V(J)
+         IF (ABS(V(J)) > ONE) SIN = SQRT(ONE-COS**2)
+         IF (ABS(V(J)) <= ONE) SIN = V(J)
+         IF (ABS(V(J)) <= ONE) COS = SQRT(ONE-SIN**2)
          DO 10 I = 1, M
             TEMP = COS*A(I,J) - SIN*A(I,N)
             A(I,N) = SIN*A(I,J) + COS*A(I,N)
@@ -1280,10 +1280,10 @@ contains
 !     APPLY THE SECOND SET OF GIVENS ROTATIONS TO A.
 !
       DO 40 J = 1, NM1
-         IF (ABS(W(J)) .GT. ONE) COS = ONE/W(J)
-         IF (ABS(W(J)) .GT. ONE) SIN = SQRT(ONE-COS**2)
-         IF (ABS(W(J)) .LE. ONE) SIN = W(J)
-         IF (ABS(W(J)) .LE. ONE) COS = SQRT(ONE-SIN**2)
+         IF (ABS(W(J)) > ONE) COS = ONE/W(J)
+         IF (ABS(W(J)) > ONE) SIN = SQRT(ONE-COS**2)
+         IF (ABS(W(J)) <= ONE) SIN = W(J)
+         IF (ABS(W(J)) <= ONE) COS = SQRT(ONE-SIN**2)
          DO 30 I = 1, M
             TEMP = COS*A(I,J) + SIN*A(I,N)
             A(I,N) = -SIN*A(I,J) + COS*A(I,N)
@@ -1400,22 +1400,22 @@ contains
 !     IN SUCH A WAY THAT A SPIKE IS INTRODUCED INTO W.
 !
       NM1 = N - 1
-      IF (NM1 .LT. 1) GO TO 70
+      IF (NM1 < 1) GO TO 70
       DO 60 NMJ = 1, NM1
          J = N - NMJ
          JJ = JJ - (M - J + 1)
          W(J) = ZERO
-         IF (V(J) .EQ. ZERO) GO TO 50
+         IF (V(J) == ZERO) GO TO 50
 !
 !        DETERMINE A GIVENS ROTATION WHICH ELIMINATES THE
 !        J-TH ELEMENT OF V.
 !
-         IF (ABS(V(N)) .GE. ABS(V(J))) GO TO 20
+         IF (ABS(V(N)) >= ABS(V(J))) GO TO 20
             COTAN = V(N)/V(J)
             SIN = P5/SQRT(P25+P25*COTAN**2)
             COS = SIN*COTAN
             TAU = ONE
-            IF (ABS(COS)*GIANT .GT. ONE) TAU = ONE/COS
+            IF (ABS(COS)*GIANT > ONE) TAU = ONE/COS
             GO TO 30
    20    CONTINUE
             TAN = V(J)/V(N)
@@ -1452,19 +1452,19 @@ contains
 !     ELIMINATE THE SPIKE.
 !
       SING = .FALSE.
-      IF (NM1 .LT. 1) GO TO 140
+      IF (NM1 < 1) GO TO 140
       DO 130 J = 1, NM1
-         IF (W(J) .EQ. ZERO) GO TO 120
+         IF (W(J) == ZERO) GO TO 120
 !
 !        DETERMINE A GIVENS ROTATION WHICH ELIMINATES THE
 !        J-TH ELEMENT OF THE SPIKE.
 !
-         IF (ABS(S(JJ)) .GE. ABS(W(J))) GO TO 90
+         IF (ABS(S(JJ)) >= ABS(W(J))) GO TO 90
             COTAN = S(JJ)/W(J)
             SIN = P5/SQRT(P25+P25*COTAN**2)
             COS = SIN*COTAN
             TAU = ONE
-            IF (ABS(COS)*GIANT .GT. ONE) TAU = ONE/COS
+            IF (ABS(COS)*GIANT > ONE) TAU = ONE/COS
             GO TO 100
    90    CONTINUE
             TAN = W(J)/S(JJ)
@@ -1491,7 +1491,7 @@ contains
 !
 !        TEST FOR ZERO DIAGONAL ELEMENTS IN THE OUTPUT S.
 !
-         IF (S(JJ) .EQ. ZERO) SING = .TRUE.
+         IF (S(JJ) == ZERO) SING = .TRUE.
          JJ = JJ + (M - J + 1)
   130    CONTINUE
   140 CONTINUE
@@ -1503,7 +1503,7 @@ contains
          S(L) = W(I)
          L = L + 1
   150    CONTINUE
-      IF (S(JJ) .EQ. ZERO) SING = .TRUE.
+      IF (S(JJ) == ZERO) SING = .TRUE.
       RETURN
 !
 !     LAST CARD OF SUBROUTINE D1UPDT.
@@ -1596,21 +1596,21 @@ contains
          JJ = JJ - K
          L = JJ + 1
          SUM = ZERO
-         IF (N .LT. JP1) GO TO 20
+         IF (N < JP1) GO TO 20
          DO 10 I = JP1, N
             SUM = SUM + R(L)*X(I)
             L = L + 1
    10       CONTINUE
    20    CONTINUE
          TEMP = R(JJ)
-         IF (TEMP .NE. ZERO) GO TO 40
+         IF (TEMP /= ZERO) GO TO 40
          L = J
          DO 30 I = 1, J
             TEMP = MAX(TEMP,ABS(R(L)))
             L = L + N - I
    30       CONTINUE
          TEMP = EPSMCH*TEMP
-         IF (TEMP .EQ. ZERO) TEMP = EPSMCH
+         IF (TEMP == ZERO) TEMP = EPSMCH
    40    CONTINUE
          X(J) = (QTB(J) - SUM)/TEMP
    50    CONTINUE
@@ -1623,7 +1623,7 @@ contains
    60    CONTINUE
 !       CALL DENORMSUB(N,WA2,QNORM)
       QNORM = DENORM(N,WA2)
-      IF (QNORM .LE. DELTA) GO TO 140
+      IF (QNORM <= DELTA) GO TO 140
 !
 !     THE GAUSS-NEWTON DIRECTION IS NOT ACCEPTABLE.
 !     NEXT, CALCULATE THE SCALED GRADIENT DIRECTION.
@@ -1645,7 +1645,7 @@ contains
       GNORM = DENORM(N,WA1)
       SGNORM = ZERO
       ALPHA = DELTA/QNORM
-      IF (GNORM .EQ. ZERO) GO TO 120
+      IF (GNORM == ZERO) GO TO 120
 !
 !     CALCULATE THE POINT ALONG THE SCALED GRADIENT
 !     AT WHICH THE QUADRATIC IS MINIMIZED.
@@ -1669,7 +1669,7 @@ contains
 !     TEST WHETHER THE SCALED GRADIENT DIRECTION IS ACCEPTABLE.
 !
       ALPHA = ZERO
-      IF (SGNORM .GE. DELTA) GO TO 120
+      IF (SGNORM >= DELTA) GO TO 120
 !
 !     THE SCALED GRADIENT DIRECTION IS NOT ACCEPTABLE.
 !     FINALLY, CALCULATE THE POINT ALONG THE DOGLEG
@@ -1759,12 +1759,12 @@ contains
       AGIANT = RGIANT/FLOATN
       DO 90 I = 1, N
          XABS = ABS(X(I))
-         IF (XABS .GT. RDWARF .AND. XABS .LT. AGIANT) GO TO 70
-            IF (XABS .LE. RDWARF) GO TO 30
+         IF (XABS > RDWARF .AND. XABS < AGIANT) GO TO 70
+            IF (XABS <= RDWARF) GO TO 30
 !
 !              SUM FOR LARGE COMPONENTS.
 !
-               IF (XABS .LE. X1MAX) GO TO 10
+               IF (XABS <= X1MAX) GO TO 10
                   S1 = ONE + S1*(X1MAX/XABS)**2
                   X1MAX = XABS
                   GO TO 20
@@ -1776,12 +1776,12 @@ contains
 !
 !              SUM FOR SMALL COMPONENTS.
 !
-               IF (XABS .LE. X3MAX) GO TO 40
+               IF (XABS <= X3MAX) GO TO 40
                   S3 = ONE + S3*(X3MAX/XABS)**2
                   X3MAX = XABS
                   GO TO 50
    40          CONTINUE
-                  IF (XABS .NE. ZERO) S3 = S3 + (XABS/X3MAX)**2
+                  IF (XABS /= ZERO) S3 = S3 + (XABS/X3MAX)**2
    50          CONTINUE
    60       CONTINUE
             GO TO 80
@@ -1795,14 +1795,14 @@ contains
 !
 !     CALCULATION OF NORM.
 !
-      IF (S1 .EQ. ZERO) GO TO 100
+      IF (S1 == ZERO) GO TO 100
          DENORM = X1MAX*SQRT(S1+(S2/X1MAX)/X1MAX)
          GO TO 130
   100 CONTINUE
-         IF (S2 .EQ. ZERO) GO TO 110
-            IF (S2 .GE. X3MAX) &
+         IF (S2 == ZERO) GO TO 110
+            IF (S2 >= X3MAX) &
                DENORM = SQRT(S2*(ONE+(X3MAX/S2)*(X3MAX*S3)))
-            IF (S2 .LT. X3MAX) &
+            IF (S2 < X3MAX) &
                DENORM = SQRT(X3MAX*((S2/X3MAX)+(X3MAX*S3)))
             GO TO 120
   110    CONTINUE
@@ -1921,17 +1921,17 @@ contains
 !
       EPS = SQRT(MAX(EPSFCN,EPSMCH))
       MSUM = ML + MU + 1
-      IF (MSUM .LT. N) GO TO 40
+      IF (MSUM < N) GO TO 40
 !
 !        COMPUTATION OF DENSE APPROXIMATE JACOBIAN.
 !
          DO 20 J = 1, N
             TEMP = X(J)
             H = EPS*ABS(TEMP)
-            IF (H .EQ. ZERO) H = EPS
+            IF (H == ZERO) H = EPS
             X(J) = TEMP + H
             CALL FCN(N,X,WA1,IFLAG)
-            IF (IFLAG .LT. 0) GO TO 30
+            IF (IFLAG < 0) GO TO 30
             X(J) = TEMP
             DO 10 I = 1, N
                FJAC(I,J) = (WA1(I) - FVEC(I))/H
@@ -1947,18 +1947,18 @@ contains
             DO 60 J = K, N, MSUM
                WA2(J) = X(J)
                H = EPS*ABS(WA2(J))
-               IF (H .EQ. ZERO) H = EPS
+               IF (H == ZERO) H = EPS
                X(J) = WA2(J) + H
    60          CONTINUE
             CALL FCN(N,X,WA1,IFLAG)
-            IF (IFLAG .LT. 0) GO TO 100
+            IF (IFLAG < 0) GO TO 100
             DO 80 J = K, N, MSUM
                X(J) = WA2(J)
                H = EPS*ABS(WA2(J))
-               IF (H .EQ. ZERO) H = EPS
+               IF (H == ZERO) H = EPS
                DO 70 I = 1, N
                   FJAC(I,J) = ZERO
-                  IF (I .GE. J - MU .AND. I .LE. J + ML) &
+                  IF (I >= J - MU .AND. I <= J + ML) &
                      FJAC(I,J) = (WA1(I) - FVEC(I))/H
    70             CONTINUE
    80          CONTINUE
@@ -2025,7 +2025,7 @@ contains
 !
 !***FIRST EXECUTABLE STATEMENT  DQFORM
       MINMN = MIN(M,N)
-      IF (MINMN .LT. 2) GO TO 30
+      IF (MINMN < 2) GO TO 30
       DO 20 J = 2, MINMN
          JM1 = J - 1
          DO 10 I = 1, JM1
@@ -2037,7 +2037,7 @@ contains
 !     INITIALIZE REMAINING COLUMNS TO THOSE OF THE IDENTITY MATRIX.
 !
       NP1 = N + 1
-      IF (M .LT. NP1) GO TO 60
+      IF (M < NP1) GO TO 60
       DO 50 J = NP1, M
          DO 40 I = 1, M
             Q(I,J) = ZERO
@@ -2055,7 +2055,7 @@ contains
             Q(I,K) = ZERO
    70       CONTINUE
          Q(K,K) = ONE
-         IF (WA(K) .EQ. ZERO) GO TO 110
+         IF (WA(K) == ZERO) GO TO 110
          DO 100 J = K, M
             SUM = ZERO
             DO 80 I = K, M
@@ -2190,9 +2190,9 @@ contains
 !
          KMAX = J
          DO 20 K = J, N
-            IF (SIGMA(K) .GT. SIGMA(KMAX)) KMAX = K
+            IF (SIGMA(K) > SIGMA(KMAX)) KMAX = K
    20       CONTINUE
-         IF (KMAX .EQ. J) GO TO 40
+         IF (KMAX == J) GO TO 40
          DO 30 I = 1, M
             TEMP = A(I,J)
             A(I,J) = A(I,KMAX)
@@ -2210,8 +2210,8 @@ contains
 !
 !          CALL DENORMSUB(M-J+1,A(J,J),AJNORM)
          AJNORM = DENORM(M-J+1,A(J,J))
-         IF (AJNORM .EQ. ZERO) GO TO 100
-         IF (A(J,J) .LT. ZERO) AJNORM = -AJNORM
+         IF (AJNORM == ZERO) GO TO 100
+         IF (A(J,J) < ZERO) AJNORM = -AJNORM
          DO 50 I = J, M
             A(I,J) = A(I,J)/AJNORM
    50       CONTINUE
@@ -2221,7 +2221,7 @@ contains
 !        AND UPDATE THE NORMS.
 !
          JP1 = J + 1
-         IF (N .LT. JP1) GO TO 100
+         IF (N < JP1) GO TO 100
          DO 90 K = JP1, N
             SUM = ZERO
             DO 60 I = J, M
@@ -2231,10 +2231,10 @@ contains
             DO 70 I = J, M
                A(I,K) = A(I,K) - TEMP*A(I,J)
    70          CONTINUE
-            IF (.NOT.PIVOT .OR. SIGMA(K) .EQ. ZERO) GO TO 80
+            IF (.NOT.PIVOT .OR. SIGMA(K) == ZERO) GO TO 80
             TEMP = A(J,K)/SIGMA(K)
             SIGMA(K) = SIGMA(K)*SQRT(MAX(ZERO,ONE-TEMP**2))
-            IF (P05*(SIGMA(K)/WA(K))**2 .GT. EPSMCH) GO TO 80
+            IF (P05*(SIGMA(K)/WA(K))**2 > EPSMCH) GO TO 80
 !             CALL DENORMSUB(M-J,A(JP1,K),SIGMA(K))
             SIGMA(K) = DENORM(M-J,A(JP1,K))
             WA(K) = SIGMA(K)
@@ -2313,7 +2313,7 @@ contains
 !     base-B form
 !                sign (B**E)*( (X(1)/B) + ... + (X(T)/B**T) )
 !
-!     where 0 <= X(I) .LT. B for I=1,...,T; 0 < X(1); and EMIN <= E <= EMAX.
+!     where 0 <= X(I) < B for I=1,...,T; 0 < X(1); and EMIN <= E <= EMAX.
 !
 !     I1MACH(10) = B, the base.
 !
@@ -2672,7 +2672,7 @@ contains
 !   891013  REVISED TO CORRECT COMMENTS.
 !   891214  Prologue converted to Version 4.0 format.  (WRB)
 !   900510  Changed test on NERR to be -9999999 < NERR < 99999999, but
-!           NERR .ne. 0, and on LEVEL to be -2 < LEVEL < 3.  Added
+!           NERR /= 0, and on LEVEL to be -2 < LEVEL < 3.  Added
 !           LEVEL=-1 logic, changed calls to XERSAV to XERSVE, and
 !           XERCTL to XERCNT.  (RWC)
 !   920501  Reformatted the REFERENCES section.  (WRB)
@@ -2693,8 +2693,8 @@ contains
 !          CALLING XERMSG.  THE ERROR NUMBER SHOULD BE POSITIVE,
 !          AND THE LEVEL SHOULD BE BETWEEN 0 AND 2.
 !
-      IF (NERR.LT.-9999999 .OR. NERR.GT.99999999 .OR. NERR.EQ.0 .OR. &
-         LEVEL.LT.-1 .OR. LEVEL.GT.2) THEN
+      IF (NERR<-9999999 .OR. NERR>99999999 .OR. NERR==0 .OR. &
+         LEVEL<-1 .OR. LEVEL>2) THEN
          CALL XERPRN (' ***', -1, 'FATAL ERROR IN...$$ ' // &
             'XERMSG -- INVALID ERROR NUMBER OR LEVEL$$ '// &
             'JOB ABORT DUE TO FATAL ERROR.', 72)
@@ -2710,7 +2710,7 @@ contains
 !
 !       HANDLE PRINT-ONCE WARNING MESSAGES.
 !
-      IF (LEVEL.EQ.-1 .AND. KOUNT.GT.1) RETURN
+      IF (LEVEL==-1 .AND. KOUNT>1) RETURN
 
       LKNTRL = MAX(-2, MIN(2,LKNTRL))
       MKNTRL = ABS(LKNTRL)
@@ -2718,17 +2718,17 @@ contains
 !       SKIP PRINTING IF THE CONTROL FLAG VALUE AS RESET IN XERCNT IS
 !       ZERO AND THE ERROR IS NOT FATAL.
 !
-      IF (LEVEL.LT.2 .AND. LKNTRL.EQ.0) GO TO 30
-      IF (LEVEL.EQ.0 .AND. KOUNT.GT.MAXMES) GO TO 30
-      IF (LEVEL.EQ.1 .AND. KOUNT.GT.MAXMES .AND. MKNTRL.EQ.1) GO TO 30
-      IF (LEVEL.EQ.2 .AND. KOUNT.GT.MAX(1,MAXMES)) GO TO 30
+      IF (LEVEL<2 .AND. LKNTRL==0) GO TO 30
+      IF (LEVEL==0 .AND. KOUNT>MAXMES) GO TO 30
+      IF (LEVEL==1 .AND. KOUNT>MAXMES .AND. MKNTRL==1) GO TO 30
+      IF (LEVEL==2 .AND. KOUNT>MAX(1,MAXMES)) GO TO 30
 !
 !       ANNOUNCE THE NAMES OF THE LIBRARY AND SUBROUTINE BY BUILDING A
 !       MESSAGE IN CHARACTER VARIABLE TEMP (NOT EXCEEDING 66 CHARACTERS)
 !       AND SENDING IT OUT VIA XERPRN.  PRINT ONLY IF CONTROL FLAG
 !       IS NOT ZERO.
 !
-      IF (LKNTRL .NE. 0) THEN
+      IF (LKNTRL /= 0) THEN
          TEMP(1:21) = 'MESSAGE FROM ROUTINE '
          I = MIN(LEN(SUBROU), 16)
          TEMP(22:21+I) = SUBROU(1:I)
@@ -2760,14 +2760,14 @@ contains
 !       EXCEED 74 CHARACTERS.
 !       WE SKIP THE NEXT BLOCK IF THE INTRODUCTORY LINE IS NOT NEEDED.
 !
-      IF (LKNTRL .GT. 0) THEN
+      IF (LKNTRL > 0) THEN
 !
 !       THE FIRST PART OF THE MESSAGE TELLS ABOUT THE LEVEL.
 !
-         IF (LEVEL .LE. 0) THEN
+         IF (LEVEL <= 0) THEN
             TEMP(1:20) = 'INFORMATIVE MESSAGE,'
             LTEMP = 20
-         ELSEIF (LEVEL .EQ. 1) THEN
+         ELSEIF (LEVEL == 1) THEN
             TEMP(1:30) = 'POTENTIALLY RECOVERABLE ERROR,'
             LTEMP = 30
          ELSE
@@ -2777,8 +2777,8 @@ contains
 !
 !       THEN WHETHER THE PROGRAM WILL CONTINUE.
 !
-         IF ((MKNTRL.EQ.2 .AND. LEVEL.GE.1) .OR. &
-             (MKNTRL.EQ.1 .AND. LEVEL.EQ.2)) THEN
+         IF ((MKNTRL==2 .AND. LEVEL>=1) .OR. &
+             (MKNTRL==1 .AND. LEVEL==2)) THEN
             TEMP(LTEMP+1:LTEMP+14) = ' PROG ABORTED,'
             LTEMP = LTEMP + 14
          ELSE
@@ -2788,7 +2788,7 @@ contains
 !
 !       FINALLY TELL WHETHER THERE SHOULD BE A TRACEBACK.
 !
-         IF (LKNTRL .GT. 0) THEN
+         IF (LKNTRL > 0) THEN
             TEMP(LTEMP+1:LTEMP+20) = ' TRACEBACK REQUESTED'
             LTEMP = LTEMP + 20
          ELSE
@@ -2805,10 +2805,10 @@ contains
 !       IF LKNTRL IS POSITIVE, WRITE THE ERROR NUMBER AND REQUEST A
 !          TRACEBACK.
 !
-      IF (LKNTRL .GT. 0) THEN
+      IF (LKNTRL > 0) THEN
          WRITE (TEMP, '(''ERROR NUMBER = '', I8)') NERR
          DO 10 I=16,22
-            IF (TEMP(I:I) .NE. ' ') GO TO 20
+            IF (TEMP(I:I) /= ' ') GO TO 20
    10    CONTINUE
 !
    20    CALL XERPRN (' *  ', -1, TEMP(1:15) // TEMP(I:23), 72)
@@ -2817,7 +2817,7 @@ contains
 !
 !       IF LKNTRL IS NOT ZERO, PRINT A BLANK LINE AND AN END OF MESSAGE.
 !
-      IF (LKNTRL .NE. 0) THEN
+      IF (LKNTRL /= 0) THEN
          CALL XERPRN (' *  ', -1, ' ', 72)
          CALL XERPRN (' ***', -1, 'END OF MESSAGE', 72)
          CALL XERPRN ('    ',  0, ' ', 72)
@@ -2826,14 +2826,14 @@ contains
 !       IF THE ERROR IS NOT FATAL OR THE ERROR IS RECOVERABLE AND THE
 !       CONTROL FLAG IS SET FOR RECOVERY, THEN RETURN.
 !
-   30 IF (LEVEL.LE.0 .OR. (LEVEL.EQ.1 .AND. MKNTRL.LE.1)) RETURN
+   30 IF (LEVEL<=0 .OR. (LEVEL==1 .AND. MKNTRL<=1)) RETURN
 !
 !       THE PROGRAM WILL BE STOPPED DUE TO AN UNRECOVERED ERROR OR A
 !       FATAL ERROR.  PRINT THE REASON FOR THE ABORT AND THE ERROR
 !       SUMMARY IF THE CONTROL FLAG AND THE MAXIMUM ERROR COUNT PERMIT.
 !
-      IF (LKNTRL.GT.0 .AND. KOUNT.LT.MAX(1,MAXMES)) THEN
-         IF (LEVEL .EQ. 1) THEN
+      IF (LKNTRL>0 .AND. KOUNT<MAX(1,MAXMES)) THEN
+         IF (LEVEL == 1) THEN
             CALL XERPRN (' ***', -1, 'JOB ABORT DUE TO UNRECOVERED ERROR.', 72)
          ELSE
             CALL XERPRN(' ***', -1, 'JOB ABORT DUE TO FATAL ERROR.', 72)
@@ -2937,20 +2937,20 @@ contains
 !
       N = I1MACH(4)
       DO 10 I=1,NUNIT
-         IF (IU(I) .EQ. 0) IU(I) = N
+         IF (IU(I) == 0) IU(I) = N
    10 CONTINUE
 !
 !       LPREF IS THE LENGTH OF THE PREFIX.  THE PREFIX IS PLACED AT THE
 !       BEGINNING OF CBUFF, THE CHARACTER BUFFER, AND KEPT THERE DURING
 !       THE REST OF THIS ROUTINE.
 !
-      IF ( NPREF .LT. 0 ) THEN
+      IF ( NPREF < 0 ) THEN
          LPREF = LEN(PREFIX)
       ELSE
          LPREF = NPREF
       ENDIF
       LPREF = MIN(16, LPREF)
-      IF (LPREF .NE. 0) CBUFF(1:LPREF) = PREFIX
+      IF (LPREF /= 0) CBUFF(1:LPREF) = PREFIX
 !
 !       LWRAP IS THE MAXIMUM NUMBER OF CHARACTERS WE WANT TO TAKE AT ONE
 !       TIME FROM MESSG TO PRINT ON ONE LINE.
@@ -2962,14 +2962,14 @@ contains
       LENMSG = LEN(MESSG)
       N = LENMSG
       DO 20 I=1,N
-         IF (MESSG(LENMSG:LENMSG) .NE. ' ') GO TO 30
+         IF (MESSG(LENMSG:LENMSG) /= ' ') GO TO 30
          LENMSG = LENMSG - 1
    20 CONTINUE
    30 CONTINUE
 !
 !       IF THE MESSAGE IS ALL BLANKS, THEN PRINT ONE BLANK LINE.
 !
-      IF (LENMSG .EQ. 0) THEN
+      IF (LENMSG == 0) THEN
          CBUFF(LPREF+1:LPREF+1) = ' '
          DO 40 I=1,NUNIT
             WRITE(IU(I), '(A)') CBUFF(1:LPREF+1)
@@ -2992,12 +2992,12 @@ contains
 !       OF CHARACTERS THAT SHOULD BE TAKEN FROM MESSG STARTING AT
 !       POSITION NEXTC.
 !
-!       LPIECE .EQ. 0   THE NEW LINE SENTINEL DOES NOT OCCUR IN THE
+!       LPIECE == 0   THE NEW LINE SENTINEL DOES NOT OCCUR IN THE
 !                       REMAINDER OF THE CHARACTER STRING.  LPIECE
 !                       SHOULD BE SET TO LWRAP OR LENMSG+1-NEXTC,
 !                       WHICHEVER IS LESS.
 !
-!       LPIECE .EQ. 1   THE NEW LINE SENTINEL STARTS AT MESSG(NEXTC:
+!       LPIECE == 1   THE NEW LINE SENTINEL STARTS AT MESSG(NEXTC:
 !                       NEXTC).  LPIECE IS EFFECTIVELY ZERO, AND WE
 !                       PRINT NOTHING TO AVOID PRODUCING UNNECESSARY
 !                       BLANK LINES.  THIS TAKES CARE OF THE SITUATION
@@ -3006,25 +3006,25 @@ contains
 !                       SENTINEL FOLLOWED BY MORE CHARACTERS.  NEXTC
 !                       SHOULD BE INCREMENTED BY 2.
 !
-!       LPIECE .GT. LWRAP+1  REDUCE LPIECE TO LWRAP.
+!       LPIECE > LWRAP+1  REDUCE LPIECE TO LWRAP.
 !
-!       ELSE            THIS LAST CASE MEANS 2 .LE. LPIECE .LE. LWRAP+1
+!       ELSE            THIS LAST CASE MEANS 2 <= LPIECE <= LWRAP+1
 !                       RESET LPIECE = LPIECE-1.  NOTE THAT THIS
-!                       PROPERLY HANDLES THE END CASE WHERE LPIECE .EQ.
+!                       PROPERLY HANDLES THE END CASE WHERE LPIECE ==
 !                       LWRAP+1.  THAT IS, THE SENTINEL FALLS EXACTLY
 !                       AT THE END OF A LINE.
 !
       NEXTC = 1
    50 LPIECE = INDEX(MESSG(NEXTC:LENMSG), NEWLIN)
-      IF (LPIECE .EQ. 0) THEN
+      IF (LPIECE == 0) THEN
 !
 !       THERE WAS NO NEW LINE SENTINEL FOUND.
 !
          IDELTA = 0
          LPIECE = MIN(LWRAP, LENMSG+1-NEXTC)
-         IF (LPIECE .LT. LENMSG+1-NEXTC) THEN
+         IF (LPIECE < LENMSG+1-NEXTC) THEN
             DO 52 I=LPIECE+1,2,-1
-               IF (MESSG(NEXTC+I-1:NEXTC+I-1) .EQ. ' ') THEN
+               IF (MESSG(NEXTC+I-1:NEXTC+I-1) == ' ') THEN
                   LPIECE = I-1
                   IDELTA = 1
                   GOTO 54
@@ -3033,21 +3033,21 @@ contains
          ENDIF
    54    CBUFF(LPREF+1:LPREF+LPIECE) = MESSG(NEXTC:NEXTC+LPIECE-1)
          NEXTC = NEXTC + LPIECE + IDELTA
-      ELSEIF (LPIECE .EQ. 1) THEN
+      ELSEIF (LPIECE == 1) THEN
 !
 !       WE HAVE A NEW LINE SENTINEL AT MESSG(NEXTC:NEXTC+1).
 !       DON'T PRINT A BLANK LINE.
 !
          NEXTC = NEXTC + 2
          GO TO 50
-      ELSEIF (LPIECE .GT. LWRAP+1) THEN
+      ELSEIF (LPIECE > LWRAP+1) THEN
 !
 !       LPIECE SHOULD BE SET DOWN TO LWRAP.
 !
          IDELTA = 0
          LPIECE = LWRAP
          DO 56 I=LPIECE+1,2,-1
-            IF (MESSG(NEXTC+I-1:NEXTC+I-1) .EQ. ' ') THEN
+            IF (MESSG(NEXTC+I-1:NEXTC+I-1) == ' ') THEN
                LPIECE = I-1
                IDELTA = 1
                GOTO 58
@@ -3057,7 +3057,7 @@ contains
          NEXTC = NEXTC + LPIECE + IDELTA
       ELSE
 !
-!       IF WE ARRIVE HERE, IT MEANS 2 .LE. LPIECE .LE. LWRAP+1.
+!       IF WE ARRIVE HERE, IT MEANS 2 <= LPIECE <= LWRAP+1.
 !       WE SHOULD DECREMENT LPIECE BY ONE.
 !
          LPIECE = LPIECE - 1
@@ -3071,7 +3071,7 @@ contains
          WRITE(IU(I), '(A)') CBUFF(1:LPREF+LPIECE)
    60 CONTINUE
 !
-      IF (NEXTC .LE. LENMSG) GO TO 50
+      IF (NEXTC <= LENMSG) GO TO 50
       RETURN
       END SUBROUTINE XERPRN
 
@@ -3145,18 +3145,18 @@ contains
       DATA KOUNTX/0/, NMSG/0/
 !***FIRST EXECUTABLE STATEMENT  XERSVE
 !
-      IF (KFLAG.LE.0) THEN
+      IF (KFLAG<=0) THEN
 !
 !        Dump the table.
 !
-         IF (NMSG.EQ.0) RETURN
+         IF (NMSG==0) RETURN
 !
 !        Print to each unit.
 !
          CALL XGETUA (LUN, NUNIT)
          DO 20 KUNIT = 1,NUNIT
             IUNIT = LUN(KUNIT)
-            IF (IUNIT.EQ.0) IUNIT = I1MACH(4)
+            IF (IUNIT==0) IUNIT = I1MACH(4)
 !
 !           Print the table header.
 !
@@ -3170,13 +3170,13 @@ contains
 !
 !           Print number of other errors.
 !
-            IF (KOUNTX.NE.0) WRITE (IUNIT,9020) KOUNTX
+            IF (KOUNTX/=0) WRITE (IUNIT,9020) KOUNTX
             WRITE (IUNIT,9030)
    20    CONTINUE
 !
 !        Clear the error tables.
 !
-         IF (KFLAG.EQ.0) THEN
+         IF (KFLAG==0) THEN
             NMSG = 0
             KOUNTX = 0
          ENDIF
@@ -3190,14 +3190,14 @@ contains
          SUB = SUBROU
          MES = MESSG
          DO 30 I = 1,NMSG
-            IF (LIB.EQ.LIBTAB(I) .AND. SUB.EQ.SUBTAB(I) .AND. MES.EQ.MESTAB(I) .AND. NERR.EQ.NERTAB(I) .AND. LEVEL.EQ.LEVTAB(I)) THEN
+            IF (LIB==LIBTAB(I) .AND. SUB==SUBTAB(I) .AND. MES==MESTAB(I) .AND. NERR==NERTAB(I) .AND. LEVEL==LEVTAB(I)) THEN
                   KOUNT(I) = KOUNT(I) + 1
                   ICOUNT = KOUNT(I)
                   RETURN
             ENDIF
    30    CONTINUE
 !
-         IF (NMSG.LT.LENTAB) THEN
+         IF (NMSG<LENTAB) THEN
 !
 !           Empty slot found for new message.
 !
@@ -3251,7 +3251,7 @@ contains
 !                default unit, as defined by the I1MACH machine
 !                constant routine.  Only IUNIT(1),...,IUNIT(N) are
 !                defined by XGETUA.  The values of IUNIT(N+1),...,
-!                IUNIT(5) are not defined (for N .LT. 5) or altered
+!                IUNIT(5) are not defined (for N < 5) or altered
 !                in any way by XGETUA.
 !        N     - the number of units to which copies of the
 !                error messages are being sent.  N will be in the
@@ -3273,7 +3273,7 @@ contains
       N = J4SAVE(5,0,.FALSE.)
       DO 30 I=1,N
          INDEX = I+4
-         IF (I.EQ.1) INDEX = 3
+         IF (I==1) INDEX = 3
          IUNITA(I) = J4SAVE(INDEX,0,.FALSE.)
    30 CONTINUE
       RETURN

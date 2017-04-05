@@ -19,7 +19,7 @@ subroutine eintshechi(e)
 !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
   allocate( Fint(dim,dim), STAT = AllocateStatus )
-  if (AllocateStatus.ne.0) then
+  if (AllocateStatus/=0) then
     write(outputunit,"('[eintshechi] Not enough memory for: Fint')")
     call MPI_Abort(MPI_Comm_Row,errorcode,ierr)
   end if
@@ -31,16 +31,16 @@ subroutine eintshechi(e)
   itask = numprocs ! Number of tasks done initially
 
 ! Starting to calculate energy integral
-  if (myrank_row.eq.0) then ! Process 0 receives all results and send new tasks if necessary
+  if (myrank_row==0) then ! Process 0 receives all results and send new tasks if necessary
     call sumkshechi(e,y(ix),Fint,0)
     chiorb_hf       = Fint*wght(ix)
 
-    if((lverbose).and.(myrank_row_hw.eq.0)) write(outputunit_loop,"('[eintshechi] Finished point ',i0,' of step ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,count,myrank_row,myrank_col,trim(host)
+    if((lverbose).and.(myrank_row_hw==0)) write(outputunit_loop,"('[eintshechi] Finished point ',i0,' of step ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,count,myrank_row,myrank_col,trim(host)
 
     do i=2,nepoints
-      if((lverbose).and.(myrank_row_hw.eq.0)) start_time = MPI_Wtime()
+      if((lverbose).and.(myrank_row_hw==0)) start_time = MPI_Wtime()
       call MPI_Recv(Fint,ncount,MPI_DOUBLE_COMPLEX,MPI_ANY_SOURCE,323232+mpitag,MPI_Comm_Row,stat,ierr)
-      if((lverbose).and.(myrank_row_hw.eq.0)) then
+      if((lverbose).and.(myrank_row_hw==0)) then
         elapsed_time = MPI_Wtime() - start_time
         write(outputunit_loop,"('[eintshechi] Point ',i0,' received from ',i0,'. Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes ')") i,stat(MPI_SOURCE),elapsed_time,elapsed_time/60.d0
         sizemat = ncount*16.d0/(1024.d0**2)
@@ -52,7 +52,7 @@ subroutine eintshechi(e)
 
       ! If the number of processors is less than the total number of points, sends
       ! the rest of the points to the ones that finish first
-      if (itask.lt.nepoints) then
+      if (itask<nepoints) then
         itask = itask + 1
         call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_Comm_Row,ierr)
       else
@@ -62,10 +62,10 @@ subroutine eintshechi(e)
   else
     ! Other processors calculate each point of the integral and waits for new points
     do
-      if (ix.le.pn1) then ! First and second integrations (in the complex plane)
+      if (ix<=pn1) then ! First and second integrations (in the complex plane)
         call sumkshechi(e,y(ix),Fint,0)
         Fint     = Fint*wght(ix)
-      else if ((ix.gt.pn1).and.(ix.le.nepoints)) then ! Third integration (on the real axis)
+      else if ((ix>pn1).and.(ix<=nepoints)) then ! Third integration (on the real axis)
         ix2 = ix-pn1
         call sumkshechi(e,x2(ix2),Fint,1)
         Fint   = Fint*p2(ix2)
@@ -73,12 +73,12 @@ subroutine eintshechi(e)
         exit
       end if
 
-!       if((lverbose).and.(myrank_row_hw.eq.0)) write(outputunit_loop,"('[eintshechi] Finished point ',i0,' of step ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,count,myrank_row,myrank_col,trim(host)
+!       if((lverbose).and.(myrank_row_hw==0)) write(outputunit_loop,"('[eintshechi] Finished point ',i0,' of step ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,count,myrank_row,myrank_col,trim(host)
       ! Sending results to process 0
       call MPI_Send(Fint,ncount,MPI_DOUBLE_COMPLEX,0,323232+mpitag,MPI_Comm_Row,ierr)
       ! Receiving new point or signal to exit
       call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_Comm_Row,stat,ierr)
-      if(ix.eq.0) exit
+      if(ix==0) exit
     end do
   end if
 
@@ -110,7 +110,7 @@ subroutine eintshechilinearsoc(e)
 !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
   allocate( Fint(dim,dim),Fintlsoc(dim,dim), STAT = AllocateStatus )
-  if (AllocateStatus.ne.0) then
+  if (AllocateStatus/=0) then
     write(outputunit,"('[eintshechilinearsoc] Not enough memory for: Fint,Fintlsoc')")
     call MPI_Abort(MPI_Comm_Row,errorcode,ierr)
   end if
@@ -122,18 +122,18 @@ subroutine eintshechilinearsoc(e)
   itask = numprocs ! Number of tasks done initially
 
 ! Starting to calculate energy integral
-  if (myrank_row.eq.0) then ! Process 0 receives all results and send new tasks if necessary
+  if (myrank_row==0) then ! Process 0 receives all results and send new tasks if necessary
     call sumkshechilinearsoc(e,y(ix),Fint,Fintlsoc,0)
     chiorb_hf       = Fint*wght(ix)
     chiorb_hflsoc   = Fintlsoc*wght(ix)
 
-    if((lverbose).and.(myrank_row_hw.eq.0)) write(outputunit_loop,"('[eintshechilinearsoc] Finished point ',i0,' of step ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,count,myrank_row,myrank_col,trim(host)
+    if((lverbose).and.(myrank_row_hw==0)) write(outputunit_loop,"('[eintshechilinearsoc] Finished point ',i0,' of step ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,count,myrank_row,myrank_col,trim(host)
 
     do i=2,nepoints
-      if((lverbose).and.(myrank_row_hw.eq.0)) start_time = MPI_Wtime()
+      if((lverbose).and.(myrank_row_hw==0)) start_time = MPI_Wtime()
       call MPI_Recv(Fint,ncount,MPI_DOUBLE_COMPLEX,MPI_ANY_SOURCE,2323232+mpitag,MPI_Comm_Row,stat,ierr)
       call MPI_Recv(Fintlsoc,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),32323232+mpitag,MPI_Comm_Row,stat,ierr)
-      if((lverbose).and.(myrank_row_hw.eq.0)) then
+      if((lverbose).and.(myrank_row_hw==0)) then
         elapsed_time = MPI_Wtime() - start_time
         write(outputunit_loop,"('[eintshechilinearsoc] Point ',i0,' received from ',i0,'. Elapsed time: ',f11.4,' seconds / ',f9.4,' minutes ')") i,stat(MPI_SOURCE),elapsed_time,elapsed_time/60.d0
         sizemat = ncount*32.d0/(1024.d0**2)
@@ -146,7 +146,7 @@ subroutine eintshechilinearsoc(e)
 
       ! If the number of processors is less than the total number of points, sends
       ! the rest of the points to the ones that finish first
-      if (itask.lt.nepoints) then
+      if (itask<nepoints) then
         itask = itask + 1
         call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_Comm_Row,ierr)
       else
@@ -156,11 +156,11 @@ subroutine eintshechilinearsoc(e)
   else
     ! Other processors calculate each point of the integral and waits for new points
     do
-      if (ix.le.pn1) then ! First and second integrations (in the complex plane)
+      if (ix<=pn1) then ! First and second integrations (in the complex plane)
         call sumkshechilinearsoc(e,y(ix),Fint,Fintlsoc,0)
         Fint     = Fint*wght(ix)
         Fintlsoc = Fintlsoc*wght(ix)
-      else if ((ix.gt.pn1).and.(ix.le.nepoints)) then ! Third integration (on the real axis)
+      else if ((ix>pn1).and.(ix<=nepoints)) then ! Third integration (on the real axis)
         ix2 = ix-pn1
         call sumkshechilinearsoc(e,x2(ix2),Fint,Fintlsoc,1)
         Fint     = Fint*p2(ix2)
@@ -169,13 +169,13 @@ subroutine eintshechilinearsoc(e)
         exit
       end if
 
-!       if((lverbose).and.(myrank_row_hw.eq.0)) write(outputunit_loop,"('[eintshechilinearsoc] Finished point ',i0,' of step ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,count,myrank_row,myrank_col,trim(host)
+!       if((lverbose).and.(myrank_row_hw==0)) write(outputunit_loop,"('[eintshechilinearsoc] Finished point ',i0,' of step ',i0,' in myrank_row ',i0,' myrank_col ',i0,' (',a,')')") ix,count,myrank_row,myrank_col,trim(host)
       ! Sending results to process 0
       call MPI_Send(Fint,ncount,MPI_DOUBLE_COMPLEX,0,2323232+mpitag,MPI_Comm_Row,ierr)
       call MPI_Send(Fintlsoc,ncount,MPI_DOUBLE_COMPLEX,0,32323232+mpitag,MPI_Comm_Row,ierr)
       ! Receiving new point or signal to exit
       call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_Comm_Row,stat,ierr)
-      if(ix.eq.0) exit
+      if(ix==0) exit
     end do
   end if
 

@@ -108,7 +108,7 @@ subroutine band_structure()
     else
       SOCc = "T"
     end if
-    write(socpart,"('_magaxis=',a,'_socscale=',f5.2)") magaxis,socscale
+    if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
   else
     SOCc = "F"
   end if
@@ -134,7 +134,7 @@ subroutine band_structure()
     call hamiltk(kpoints(count,:),hk)
 
     call zgeev('N','N',dimbs,hk,dimbs,eval,evecl,1,evecr,1,work,lwork,rwork,ifail)
-    if(ifail.ne.0) then
+    if(ifail/=0) then
       write(outputunit_loop,"('[band_structure] Problem with diagonalization. ifail = ',i0)") ifail
       stop
 !       else

@@ -18,24 +18,24 @@ contains
     call read_write_sc_results(0,err,lsuccess)
 
     if(lsuccess) then
-      if(err.eq.0) then ! Same parameters
+      if(err==0) then ! Same parameters
         if(skipsc) then ! Skip option ON
-          if(myrank_row_hw.eq.0) write(outputunit_loop,"('[read_previous_results] Existing results for the same parameters were read. Skipping self-consistency...')")
+          if(myrank_row_hw==0) write(outputunit_loop,"('[read_previous_results] Existing results for the same parameters were read. Skipping self-consistency...')")
           lselfcon = .false.
         else ! Skip option OFF
-          if(myrank_row_hw.eq.0) write(outputunit_loop,"('[read_previous_results] Existing results for the same parameters were read. Updating values...')")
+          if(myrank_row_hw==0) write(outputunit_loop,"('[read_previous_results] Existing results for the same parameters were read. Updating values...')")
           lselfcon = .true.
         end if
       else ! Other parameters
-        if(myrank_row_hw.eq.0) write(outputunit_loop,"('[read_previous_results] Existing results for other parameters were read. Updating values...')")
+        if(myrank_row_hw==0) write(outputunit_loop,"('[read_previous_results] Existing results for other parameters were read. Updating values...')")
         lselfcon = .true.
       end if
       ! Calculating angles of GS magnetization in units of pi and magnetization vector
       do i = 1,Npl
         mabs(i)   = sqrt((mx(i)**2)+(my(i)**2)+(mz(i)**2))
         mtheta(i) = acos(mz(i)/mabs(i))/pi
-        if(abs(mtheta(i)).gt.1.d-8) then
-          if(abs(abs(mtheta(i))-1.d0).gt.1.d-8) then
+        if(abs(mtheta(i))>1.d-8) then
+          if(abs(abs(mtheta(i))-1.d0)>1.d-8) then
             mphi(i)   = atan2(my(i),mx(i))/pi
           else
             mphi(i) = 0.d0
@@ -52,7 +52,7 @@ contains
         mvec_spherical(i,3) = mphi(i)
       end do
     else !  If file doesn't exist
-      if(myrank_row_hw.eq.0) then
+      if(myrank_row_hw==0) then
         write(outputunit_loop,"('[read_previous_results] Self-consistency file does not exist:')")
         write(outputunit_loop,"('[read_previous_results] ',a)") trim(default_file)
       end if
@@ -63,7 +63,7 @@ contains
       my = 0.d0
       mz = sign(0.5d0,hw_list(hw_count,1))
       do i=1,Npl
-        if(layertype(i+1).eq.2) mz(i) = sign(2.d0,hw_list(hw_count,1))
+        if(layertype(i+1)==2) mz(i) = sign(2.d0,hw_list(hw_count,1))
       end do
       mp = zero
       if(lfield) then
@@ -96,7 +96,7 @@ contains
     logical :: lsuccess
     real(double) :: mdotb
 
-    if(myrank_row_hw.eq.0) write(outputunit_loop,"('[rotate_magnetization_to_field] Rotating previous magnetization to the direction of the field...')")
+    if(myrank_row_hw==0) write(outputunit_loop,"('[rotate_magnetization_to_field] Rotating previous magnetization to the direction of the field...')")
 
     do i=1,Npl
       mdotb   = hhwx(i)*mx(i)+hhwy(i)*my(i)+hhwz(i)*mz(i)
@@ -109,10 +109,10 @@ contains
     end do
 
     ! Writing new eps1 and rotated mag to file (without self-consistency)
-    if(myrank_row_hw.eq.0) call read_write_sc_results(1,err,lsuccess)
+    if(myrank_row_hw==0) call read_write_sc_results(1,err,lsuccess)
 
     ! Writing self-consistency results on screen
-    if(myrank_row_hw.eq.0)  call write_sc_results_on_screen()
+    if(myrank_row_hw==0)  call write_sc_results_on_screen()
 
     deallocate(sigmai2i,sigmaimunu2i,sigmaijmunu2i,eps1)
     deallocate(mx,my,mz,mvec_cartesian,mvec_spherical,hdel,mp,hdelp,mm,hdelm)
@@ -155,7 +155,7 @@ contains
 
     iter  = 1
     mpitag = (Npl-Npl_i)*total_hw_npt1 + hw_count
-    if(myrank_row_hw.eq.0) write(outputunit_loop,"('[self_consistency] Starting self-consistency:')")
+    if(myrank_row_hw==0) write(outputunit_loop,"('[self_consistency] Starting self-consistency:')")
 
 #if defined(_OSX) .or. defined(_JUQUEEN)
     if(lslatec) then
@@ -228,8 +228,8 @@ contains
     do i = 1,Npl
       mabs(i)   = sqrt((mx(i)**2)+(my(i)**2)+(mz(i)**2))
       mtheta(i) = acos(mz(i)/mabs(i))/pi
-      if(abs(mtheta(i)).gt.1.d-8) then
-        if(abs(abs(mtheta(i))-1.d0).gt.1.d-8) then
+      if(abs(mtheta(i))>1.d-8) then
+        if(abs(abs(mtheta(i))-1.d0)>1.d-8) then
           mphi(i)   = atan2(my(i),mx(i))/pi
         else
           mphi(i) = 0.d0
@@ -257,8 +257,8 @@ contains
     integer :: err
     logical :: lsuccess
 
-    if(myrank_row_hw.eq.0) call read_write_sc_results(1,err,lsuccess)
-    if(hw_count.ne.total_hw_npt1) then
+    if(myrank_row_hw==0) call read_write_sc_results(1,err,lsuccess)
+    if(hw_count/=total_hw_npt1) then
       call MPI_Bcast(scfile,len(scfile),MPI_CHARACTER,0,MPI_Comm_Row_hw,ierr)
     else
       scfile = ""
@@ -283,13 +283,13 @@ contains
     write(outputunit_loop,"(11x,' *********** Magnetization components: **********')")
     do i=1,Npl
       write(outputunit_loop,"(4x,'Mx (',i2.0,')=',f11.8,4x,'My (',i2.0,')=',f11.8,4x,'Mz (',i2.0,')=',f11.8)") i,mx(i),i,my(i),i,mz(i)
-      if(abs(mp(i)).ne.0) write(outputunit_loop,"(12x,'theta =',f11.8,' pi',4x,'phi =',f11.8,' pi')") mtheta(i),mphi(i)
+      if(abs(mp(i))/=0) write(outputunit_loop,"(12x,'theta =',f11.8,' pi',4x,'phi =',f11.8,' pi')") mtheta(i),mphi(i)
     end do
     if(lGSL) then
       write(outputunit_loop,"(11x,' *** Orbital components in spin coordinates:  ***')")
       do i=1,Npl
         write(outputunit_loop,"(4x,'Lxp(',i2.0,')=',f11.8,4x,'Lyp(',i2.0,')=',f11.8,4x,'Lzp(',i2.0,')=',f11.8)") i,lxpm(i),i,lypm(i),i,lzpm(i)
-        if(sqrt(lxpm(i)**2+lypm(i)**2).ne.0) write(outputunit_loop,"(12x,'theta =',f11.8,' pi',4x,'phi =',f11.8,' pi')") lptheta(i),lpphi(i)
+        if(sqrt(lxpm(i)**2+lypm(i)**2)/=0) write(outputunit_loop,"(12x,'theta =',f11.8,' pi',4x,'phi =',f11.8,' pi')") lptheta(i),lpphi(i)
       end do
       write(outputunit_loop,"(11x,' *** Orbital components in cubic coordinates: ***')")
       do i=1,Npl
@@ -326,10 +326,10 @@ contains
     integer             :: i
     real(double)        :: previous_results(Npl,4)
 
-    if((trim(scfile).ne."").and.(iflag.eq.0)) then
+    if((trim(scfile)/="").and.(iflag==0)) then
       open(unit=99,file=scfile,status="old",iostat=err)
-      if(err.ne.0) then
-        if(myrank_row_hw.eq.0) write(outputunit_loop,"('*** WARNING: Self-consistency file given on input file does not exist! Using default... ***')")
+      if(err/=0) then
+        if(myrank_row_hw==0) write(outputunit_loop,"('*** WARNING: Self-consistency file given on input file does not exist! Using default... ***')")
         scfile = " "
       end if
       close(99)
@@ -347,40 +347,40 @@ contains
       if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
     end if
     if(SOC) then
-      write(socpart,"('_magaxis=',A,'_socscale=',f5.2)") magaxis,socscale
+      if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
       if((llineargfsoc).or.(llinearsoc)) socpart = trim(socpart) // "_linearsoc"
     end if
 
     lsuccess = .false.
   !   Reading previous results (mx, my, mz and eps1) from files (if available)
-    if(iflag.eq.0) then
-      if(trim(scfile).eq."") then ! If a filename is not given in inputcard (or don't exist), use the default one
+    if(iflag==0) then
+      if(trim(scfile)=="") then ! If a filename is not given in inputcard (or don't exist), use the default one
         write(file,"(a,a,a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") trim(folder),trim(prefix),trim(Npl_folder),dfttype,parts,Utype,trim(fieldpart),nkpt,eta,trim(socpart)
         open(unit=99,file=file,status="old",iostat=err)
-        if((err.eq.0).and.(myrank_row_hw.eq.0)) then
+        if((err==0).and.(myrank_row_hw==0)) then
           write(outputunit_loop,"('[read_write_sc_results] Self-consistency file already exists. Reading it now...')")
           write(outputunit_loop,"(a)") trim(file)
         else
           default_file = trim(file)
         end if
       else ! If filename in inputcard exists or 2nd+ angular iteration
-        if(((hw_count).eq.1).and.(Npl.eq.Npl_i)) then ! Filename in inputcard (1st iteration on loop)
+        if(((hw_count)==1).and.(Npl==Npl_i)) then ! Filename in inputcard (1st iteration on loop)
           open(unit=99,file=scfile,status="old",iostat=err)
-          if((err.eq.0).and.(myrank_row_hw.eq.0)) then
+          if((err==0).and.(myrank_row_hw==0)) then
             write(outputunit_loop,"('[read_write_sc_results] Using filename given in input file for self-consistency:')")
             write(outputunit_loop,"(a)") trim(scfile)
           end if
         else ! 2nd+ iteration, cheking if default file exists
           write(file,"(a,a,a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") trim(folder),trim(prefix),trim(Npl_folder),dfttype,parts,Utype,trim(fieldpart),nkpt,eta,trim(socpart)
           open(unit=99,file=file,status="old",iostat=err)
-          if(err.eq.0) then ! Reading file for the same parameters
-            if(myrank_row_hw.eq.0) then
+          if(err==0) then ! Reading file for the same parameters
+            if(myrank_row_hw==0) then
               write(outputunit_loop,"('[read_write_sc_results] Self-consistency file already exists. Reading it now...')")
               write(outputunit_loop,"(a)") trim(file)
             end if
           else ! Reading results from previous iteration
             open(unit=99,file=scfile,status="old",iostat=err)
-            if((err.eq.0).and.(myrank_row_hw.eq.0)) then
+            if((err==0).and.(myrank_row_hw==0)) then
               write(outputunit_loop,"('[read_write_sc_results] Using results from previous iteration as input for self-consistency:')")
               write(outputunit_loop,"(a)") trim(scfile)
             end if
@@ -388,8 +388,8 @@ contains
           end if
         end if
       end if
-      if(err.eq.0) then
-        if(myrank_row_hw.eq.0) then
+      if(err==0) then
+        if(myrank_row_hw==0) then
           do i=1,Npl
             read(99,fmt=*) previous_results(i,1)
             read(99,fmt=*) previous_results(i,2)
@@ -418,8 +418,8 @@ contains
         close(99)
         write(file,"(a,a,a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") trim(folder),trim(prefix),trim(Npl_folder),dfttype,parts-1,Utype,trim(fieldpart),nkpt,eta,trim(socpart)
         open(unit=99,file=file,status="old",iostat=err)
-        if(err.eq.0) then
-          if(myrank_row_hw.eq.0) then
+        if(err==0) then
+          if(myrank_row_hw==0) then
             write(outputunit_loop,"('[read_write_sc_results] Self-consistency file does not exist. Reading results for parts-1 now...')")
             write(outputunit_loop,"('[read_write_sc_results] Updating values obtained for parts-1...')")
             write(outputunit_loop,"(a)") file
@@ -441,7 +441,7 @@ contains
         end if
       end if
       close(99)
-!       if((iflag.eq.0).and.(myrank_row_hw.eq.0)) then
+!       if((iflag==0).and.(myrank_row_hw==0)) then
 !         write(outputunit_loop,"('[read_write_sc_results] File not found:')")
 !         write(outputunit_loop,"(a)") trim(scfile)
 !       end if
@@ -507,10 +507,10 @@ contains
     end do
     hdelm = conjg(hdelp)
 
-    if((myrank_row_hw.eq.0).and.(iter.eq.1)) then
+    if((myrank_row_hw==0).and.(iter==1)) then
       write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
       do i=1,Npl
-        if(abs(mp(i)).gt.1.d-10) then
+        if(abs(mp(i))>1.d-10) then
           write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
         else
           write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz_in(i)
@@ -524,7 +524,7 @@ contains
     flag: select case (iflag)
     case(1)
       ! Calculating the number of particles for each spin and orbital using a complex integral
-      if (myrank_row_hw.eq.0) then ! Process 0 receives all results and send new tasks if necessary
+      if (myrank_row_hw==0) then ! Process 0 receives all results and send new tasks if necessary
         write(outputunit_loop,"('|------------------- Iteration ',i4,' (densities) ------------------|')") iter
         call sumk_npart(Ef,y(ix),gdiaguur,gdiagddr,gdiagud,gdiagdu)
         gdiaguur = wght(ix)*gdiaguur
@@ -558,7 +558,7 @@ contains
 
           ! If the number of processors is less than the total number of points, sends
           ! the rest of the points to the ones that finish first
-          if (itask.lt.pn1) then
+          if (itask<pn1) then
             itask = itask + 1
             call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_Comm_Row_hw,ierr)
           else
@@ -568,7 +568,7 @@ contains
       else
         ! Other processors calculate each point of the integral and waits for new points
         do
-          if(ix.gt.pn1) exit
+          if(ix>pn1) exit
 
           ! First and second integrations (in the complex plane)
           call sumk_npart(Ef,y(ix),gdiaguur,gdiagddr,gdiagud,gdiagdu)
@@ -585,7 +585,7 @@ contains
           call MPI_Send(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,0,6996+iter+mpitag,MPI_Comm_Row_hw,ierr)
           ! Receiving new point or signal to exit
           call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_Comm_Row_hw,stat,ierr)
-          if(ix.eq.0) exit
+          if(ix==0) exit
         end do
       end if
 
@@ -618,9 +618,9 @@ contains
         fvec(j)  = mz(i) - mz_in(i)
       end do
 
-      if(myrank_row_hw.eq.0) then
+      if(myrank_row_hw==0) then
         do i=1,Npl
-          if(abs(mp(i)).gt.1.d-10) then
+          if(abs(mp(i))>1.d-10) then
             write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i)
             write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+Npl,fvec(i+Npl),i+2*Npl,fvec(i+2*Npl),i+3*Npl,fvec(i+3*Npl)
           else
@@ -633,7 +633,7 @@ contains
     case(2)
       selfconjac = 0.d0
       ! Calculating the jacobian
-      if (myrank_row_hw.eq.0) then ! Process 0 receives all results and send new tasks if necessary
+      if (myrank_row_hw==0) then ! Process 0 receives all results and send new tasks if necessary
         write(outputunit_loop,"('|------------------- Iteration ',i4,' (jacobian) -------------------|')") iter
         call sumk_jacobian(Ef,y(ix),ggr)
         selfconjac = wght(ix)*ggr
@@ -649,7 +649,7 @@ contains
 
           ! If the number of processors is less than the total number of points, sends
           ! the rest of the points to the ones that finish first
-          if (itask.lt.pn1) then
+          if (itask<pn1) then
             itask = itask + 1
             call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_Comm_Row_hw,ierr)
           else
@@ -659,7 +659,7 @@ contains
       else
         ! Other processors calculate each point of the integral and waits for new points
         do
-          if(ix.gt.pn1) exit
+          if(ix>pn1) exit
 
           ! First and second integrations (in the complex plane)
           call sumk_jacobian(Ef,y(ix),ggr)
@@ -670,7 +670,7 @@ contains
           call MPI_Send(ggr,ncount2,MPI_DOUBLE_PRECISION,0,3333+iter+mpitag,MPI_Comm_Row_hw,ierr)
           ! Receiving new point or signal to exit
           call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_Comm_Row_hw,stat,ierr)
-          if(ix.eq.0) exit
+          if(ix==0) exit
         end do
       end if
 
@@ -736,10 +736,10 @@ contains
     end do
     hdelm = conjg(hdelp)
 
-    if((myrank_row_hw.eq.0).and.(iter.eq.1)) then
+    if((myrank_row_hw==0).and.(iter==1)) then
       write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
       do i=1,Npl
-        if(abs(mp(i)).gt.1.d-10) then
+        if(abs(mp(i))>1.d-10) then
           write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
         else
           write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz_in(i)
@@ -753,7 +753,7 @@ contains
     flag: select case (iflag)
     case(1)
       ! Calculating the number of particles for each spin and orbital using a complex integral
-      if (myrank_row_hw.eq.0) then ! Process 0 receives all results and send new tasks if necessary
+      if (myrank_row_hw==0) then ! Process 0 receives all results and send new tasks if necessary
         write(outputunit_loop,"('|------------------- Iteration ',i4,' (densities) ------------------|')") iter
         call sumk_npart(Ef,y(ix),gdiaguur,gdiagddr,gdiagud,gdiagdu)
         gdiaguur = wght(ix)*gdiaguur
@@ -787,7 +787,7 @@ contains
 
           ! If the number of processors is less than the total number of points, sends
           ! the rest of the points to the ones that finish first
-          if (itask.lt.pn1) then
+          if (itask<pn1) then
             itask = itask + 1
             call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_Comm_Row_hw,ierr)
           else
@@ -797,7 +797,7 @@ contains
       else
         ! Other processors calculate each point of the integral and waits for new points
         do
-          if(ix.gt.pn1) exit
+          if(ix>pn1) exit
 
           ! First and second integrations (in the complex plane)
           call sumk_npart(Ef,y(ix),gdiaguur,gdiagddr,gdiagud,gdiagdu)
@@ -814,7 +814,7 @@ contains
           call MPI_Send(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,0,6996+iter+mpitag,MPI_Comm_Row_hw,ierr)
           ! Receiving new point or signal to exit
           call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_Comm_Row_hw,stat,ierr)
-          if(ix.eq.0) exit
+          if(ix==0) exit
         end do
       end if
 
@@ -847,9 +847,9 @@ contains
         fvec(j)  = mz(i) - mz_in(i)
       end do
 
-      if(myrank_row_hw.eq.0) then
+      if(myrank_row_hw==0) then
         do i=1,Npl
-          if(abs(mp(i)).gt.1.d-10) then
+          if(abs(mp(i))>1.d-10) then
             write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i)
             write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+Npl,fvec(i+Npl),i+2*Npl,fvec(i+2*Npl),i+3*Npl,fvec(i+3*Npl)
           else
@@ -862,7 +862,7 @@ contains
     case(2)
       selfconjac = 0.d0
       ! Calculating the jacobian
-      if (myrank_row_hw.eq.0) then ! Process 0 receives all results and send new tasks if necessary
+      if (myrank_row_hw==0) then ! Process 0 receives all results and send new tasks if necessary
         write(outputunit_loop,"('|------------------- Iteration ',i4,' (jacobian) -------------------|')") iter
         call sumk_jacobian(Ef,y(ix),ggr)
         selfconjac = wght(ix)*ggr
@@ -878,7 +878,7 @@ contains
 
           ! If the number of processors is less than the total number of points, sends
           ! the rest of the points to the ones that finish first
-          if (itask.lt.pn1) then
+          if (itask<pn1) then
             itask = itask + 1
             call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_Comm_Row_hw,ierr)
           else
@@ -888,7 +888,7 @@ contains
       else
         ! Other processors calculate each point of the integral and waits for new points
         do
-          if(ix.gt.pn1) exit
+          if(ix>pn1) exit
 
           ! First and second integrations (in the complex plane)
           call sumk_jacobian(Ef,y(ix),ggr)
@@ -899,7 +899,7 @@ contains
           call MPI_Send(ggr,ncount2,MPI_DOUBLE_PRECISION,0,3333+iter+mpitag,MPI_Comm_Row_hw,ierr)
           ! Receiving new point or signal to exit
           call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_Comm_Row_hw,stat,ierr)
-          if(ix.eq.0) exit
+          if(ix==0) exit
         end do
       end if
 
@@ -960,10 +960,10 @@ contains
     end do
     hdelm = conjg(hdelp)
 
-    if((myrank_row_hw.eq.0).and.(iter.eq.1)) then
+    if((myrank_row_hw==0).and.(iter==1)) then
       write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
       do i=1,Npl
-        if(abs(mp(i)).gt.1.d-10) then
+        if(abs(mp(i))>1.d-10) then
           write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
         else
           write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz_in(i)
@@ -978,7 +978,7 @@ contains
     itask = numprocs ! Number of tasks done initially
 
     ! Calculating the number of particles for each spin and orbital using a complex integral
-    if (myrank_row_hw.eq.0) then ! Process 0 receives all results and send new tasks if necessary
+    if (myrank_row_hw==0) then ! Process 0 receives all results and send new tasks if necessary
       write(outputunit_loop,"('|------------------- Iteration ',i4,' (densities) ------------------|')") iter
       call sumk_npart(Ef,y(ix),gdiaguur,gdiagddr,gdiagud,gdiagdu)
       gdiaguur = wght(ix)*gdiaguur
@@ -1011,7 +1011,7 @@ contains
 
         ! If the number of processors is less than the total number of points, sends
         ! the rest of the points to the ones that finish first
-        if (itask.lt.pn1) then
+        if (itask<pn1) then
           itask = itask + 1
           call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_Comm_Row_hw,ierr)
         else
@@ -1021,7 +1021,7 @@ contains
     else
       ! Other processors calculate each point of the integral and waits for new points
       do
-        if(ix.gt.pn1) exit
+        if(ix>pn1) exit
 
         ! First and second integrations (in the complex plane)
         call sumk_npart(Ef,y(ix),gdiaguur,gdiagddr,gdiagud,gdiagdu)
@@ -1038,7 +1038,7 @@ contains
         call MPI_Send(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,0,9996+iter+mpitag,MPI_Comm_Row_hw,ierr)
         ! Receiving new point or signal to exit
         call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_Comm_Row_hw,stat,ierr)
-        if(ix.eq.0) exit
+        if(ix==0) exit
       end do
     end if
 
@@ -1071,9 +1071,9 @@ contains
       fvec(j)  = mz(i) - mz_in(i)
     end do
 
-    if(myrank_row_hw.eq.0) then
+    if(myrank_row_hw==0) then
       do i=1,Npl
-        if(abs(mp(i)).gt.1.d-10) then
+        if(abs(mp(i))>1.d-10) then
           write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i)
           write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+Npl,fvec(i+Npl),i+2*Npl,fvec(i+2*Npl),i+3*Npl,fvec(i+3*Npl)
         else
@@ -1128,10 +1128,10 @@ contains
     end do
     hdelm = conjg(hdelp)
 
-    if((myrank_row_hw.eq.0).and.(iter.eq.1)) then
+    if((myrank_row_hw==0).and.(iter==1)) then
       write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
       do i=1,Npl
-        if(abs(mp(i)).gt.1.d-10) then
+        if(abs(mp(i))>1.d-10) then
           write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
         else
           write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz_in(i)
@@ -1146,7 +1146,7 @@ contains
     itask = numprocs ! Number of tasks done initially
 
     ! Calculating the number of particles for each spin and orbital using a complex integral
-    if (myrank_row_hw.eq.0) then ! Process 0 receives all results and send new tasks if necessary
+    if (myrank_row_hw==0) then ! Process 0 receives all results and send new tasks if necessary
       write(outputunit_loop,"('|------------------- Iteration ',i4,' (densities) ------------------|')") iter
       call sumk_npart(Ef,y(ix),gdiaguur,gdiagddr,gdiagud,gdiagdu)
       gdiaguur = wght(ix)*gdiaguur
@@ -1179,7 +1179,7 @@ contains
 
         ! If the number of processors is less than the total number of points, sends
         ! the rest of the points to the ones that finish first
-        if (itask.lt.pn1) then
+        if (itask<pn1) then
           itask = itask + 1
           call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_Comm_Row_hw,ierr)
         else
@@ -1189,7 +1189,7 @@ contains
     else
       ! Other processors calculate each point of the integral and waits for new points
       do
-        if(ix.gt.pn1) exit
+        if(ix>pn1) exit
 
         ! First and second integrations (in the complex plane)
         call sumk_npart(Ef,y(ix),gdiaguur,gdiagddr,gdiagud,gdiagdu)
@@ -1206,7 +1206,7 @@ contains
         call MPI_Send(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,0,9996+iter+mpitag,MPI_Comm_Row_hw,ierr)
         ! Receiving new point or signal to exit
         call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_Comm_Row_hw,stat,ierr)
-        if(ix.eq.0) exit
+        if(ix==0) exit
       end do
     end if
 
@@ -1239,9 +1239,9 @@ contains
       fvec(j)  = mz(i) - mz_in(i)
     end do
 
-    if(myrank_row_hw.eq.0) then
+    if(myrank_row_hw==0) then
       do i=1,Npl
-        if(abs(mp(i)).gt.1.d-10) then
+        if(abs(mp(i))>1.d-10) then
           write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i)
           write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+Npl,fvec(i+Npl),i+2*Npl,fvec(i+2*Npl),i+3*Npl,fvec(i+3*Npl)
         else
@@ -1297,7 +1297,7 @@ contains
     itask = numprocs ! Number of tasks done initially
 
     ! Calculating the jacobian
-    if (myrank_row_hw.eq.0) then ! Process 0 receives all results and send new tasks if necessary
+    if (myrank_row_hw==0) then ! Process 0 receives all results and send new tasks if necessary
       write(outputunit_loop,"('|------------------- Iteration ',i4,' (jacobian) -------------------|')") iter
       call sumk_jacobian(Ef,y(ix),ggr)
       selfconjac = wght(ix)*ggr
@@ -1313,7 +1313,7 @@ contains
 
         ! If the number of processors is less than the total number of points, sends
         ! the rest of the points to the ones that finish first
-        if (itask.lt.pn1) then
+        if (itask<pn1) then
           itask = itask + 1
           call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_Comm_Row_hw,ierr)
         else
@@ -1323,7 +1323,7 @@ contains
     else
       ! Other processors calculate each point of the integral and waits for new points
       do
-        if(ix.gt.pn1) exit
+        if(ix>pn1) exit
 
         ! First and second integrations (in the complex plane)
         call sumk_jacobian(Ef,y(ix),ggr)
@@ -1334,7 +1334,7 @@ contains
         call MPI_Send(ggr,ncount,MPI_DOUBLE_PRECISION,0,3333+iter+mpitag,MPI_Comm_Row_hw,ierr)
         ! Receiving new point or signal to exit
         call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_Comm_Row_hw,stat,ierr)
-        if(ix.eq.0) exit
+        if(ix==0) exit
       end do
     end if
 
@@ -1378,15 +1378,15 @@ contains
   !$omp& private(mythread,iz,kp,gf,i,mu,mup) &
   !$omp& shared(llineargfsoc,llinearsoc,lverbose,kbz,wkbz,nkpoints,er,ei,gdiaguur,gdiagddr,gdiagud,gdiagdu,Npl,myrank_row_hw,nthreads,outputunit_loop)
   !$  mythread = omp_get_thread_num()
-  !$  if((mythread.eq.0).and.(myrank_row_hw.eq.0)) then
+  !$  if((mythread==0).and.(myrank_row_hw==0)) then
   !$    nthreads = omp_get_num_threads()
   !$    write(outputunit_loop,"('[sumk_npart] Number of threads: ',i0)") nthreads
   !$  end if
 
   !$omp do
     kpoints: do iz=1,nkpoints
-  !$  if((mythread.eq.0)) then
-        if((myrank_row_hw.eq.0).and.(lverbose)) call progress_bar(outputunit_loop,"densities kpoints",iz,nkpoints)
+  !$  if((mythread==0)) then
+        if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"densities kpoints",iz,nkpoints)
   !$   end if
 
       kp = kbz(iz,:)
@@ -1459,20 +1459,20 @@ contains
 !$omp& private(mythread,AllocateStatus,errorcode,ierr,iz,kp,wkbzc,gf,gvg,temp,temp1,temp2,gij,gji,paulitemp,gdHdxg,gvgdHdxgvg,i,j,i0,j0,mu,sigma) &
 !$omp& shared(llineargfsoc,llinearsoc,lverbose,kbz,wkbz,nkpoints,er,ei,ggr,mhalfU,pauli_components1,pauli_components2,Npl,myrank_row_hw,nthreads,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
-!$  if((mythread.eq.0).and.(myrank_row_hw.eq.0)) then
+!$  if((mythread==0).and.(myrank_row_hw==0)) then
 !$    nthreads = omp_get_num_threads()
 !$    write(outputunit_loop,"('[sumk_jacobian] Number of threads: ',i0)") nthreads
 !$  end if
     allocate( gdHdxg(4,4,Npl,Npl,18,18),gvgdHdxgvg(4,4,Npl,Npl,18,18) , STAT = AllocateStatus  )
-    if (AllocateStatus.ne.0) then
+    if (AllocateStatus/=0) then
       write(outputunit,"('[sumk_jacobian] Not enough memory for: gdHdxg,gvgdHdxgvg')")
       call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
     end if
 
 !$omp do reduction(+:ggr)
     kpoints: do iz=1,nkpoints
-!$  if((mythread.eq.0)) then
-        if((myrank_row_hw.eq.0).and.(lverbose)) call progress_bar(outputunit_loop,"jacobian kpoints",iz,nkpoints)
+!$  if((mythread==0)) then
+        if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"jacobian kpoints",iz,nkpoints)
 !$   end if
 
       kp = kbz(iz,:)

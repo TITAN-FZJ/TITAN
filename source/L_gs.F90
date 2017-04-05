@@ -18,7 +18,7 @@ subroutine L_gs()
 !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
   allocate( lxm(Npl),lym(Npl),lzm(Npl),lxpm(Npl),lypm(Npl),lzpm(Npl) )
-  if(myrank_row_hw.eq.0) write(outputunit_loop,"('[L_gs] Calculating Orbital Angular Momentum ground state... ')")
+  if(myrank_row_hw==0) write(outputunit_loop,"('[L_gs] Calculating Orbital Angular Momentum ground state... ')")
 
   gupgdint  = zero
 
@@ -26,7 +26,7 @@ subroutine L_gs()
   itask = numprocs ! Number of tasks done initially
 
 !   Calculating the number of particles for each spin and orbital using a complex integral
-  if (myrank_row_hw.eq.0) then ! Process 0 receives all results and send new tasks if necessary
+  if (myrank_row_hw==0) then ! Process 0 receives all results and send new tasks if necessary
     call sumk_L_gs(Ef,y(ix),gupgd)
     gupgdint = gupgd*wght(ix)
     if(lverbose) write(outputunit_loop,"('[L_gs] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
@@ -39,7 +39,7 @@ subroutine L_gs()
 
       ! If the number of processors is less than the total number of points, sends
       ! the rest of the points to the ones that finish first
-      if (itask.lt.pn1) then
+      if (itask<pn1) then
         itask = itask + 1
         call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_Comm_Row_hw,ierr)
       else
@@ -49,18 +49,18 @@ subroutine L_gs()
   else
     ! Other processors calculate each point of the integral and waits for new points
     do
-      if(ix.gt.pn1) exit
+      if(ix>pn1) exit
       call sumk_L_gs(Ef,y(ix),gupgd)
       gupgd = gupgd*wght(ix)
 
 !       if(lverbose) write(outputunit_loop,"('[L_gs] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
       call MPI_Send(gupgd,ncount,MPI_DOUBLE_COMPLEX,0,8999+mpitag,MPI_Comm_Row_hw,ierr)
       call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_Comm_Row_hw,stat,ierr)
-      if(ix.eq.0) exit
+      if(ix==0) exit
     end do
   end if
 
-  if(myrank_row_hw.ne.0) then
+  if(myrank_row_hw/=0) then
     return
   end if
 
@@ -117,7 +117,7 @@ subroutine sumk_L_gs(e,ep,gupgd)
 !$omp& private(mythread,iz,kp,gf,i,mu,nu,mup,nup) &
 !$omp& shared(kbz,nkpoints,wkbz,e,ep,Npl,gupgd,myrank_row_hw,nthreads,outputunit_loop)
 !$  mythread = omp_get_thread_num()
-!$  if((mythread.eq.0).and.(myrank_row_hw.eq.0)) then
+!$  if((mythread==0).and.(myrank_row_hw==0)) then
 !$    nthreads = omp_get_num_threads()
 !$    write(outputunit_loop,"('[L_gs] Number of threads: ',i0)") nthreads
 !$  end if

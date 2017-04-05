@@ -23,7 +23,7 @@ subroutine dtdksub(kp,dtdk)
 
     dtdk(i,i,:,:) = h00
 
-    if (i.ne.Npl) then
+    if (i/=Npl) then
       dtdk(i,i+1,:,:) = h01(:,:)
       dtdk(i+1,i,:,:) = h10(:,:)
     end if

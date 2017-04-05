@@ -27,7 +27,7 @@ subroutine calculate_all()
   call allocate_torques()
   call allocate_sha()
 ! call allocate_idia()
-  if(myrank_row_hw.eq.0) then
+  if(myrank_row_hw==0) then
     write(outputunit_loop,"('CALCULATING PARALLEL CURRENTS, DISTURBANCES, LOCAL SUSCEPTIBILITY, EFFECTIVE FIELDS, SO-TORQUES AND V_DC AS A FUNCTION OF ENERGY')")
     ! Creating files and writing headers
     if(.not.laddresults) then
@@ -52,21 +52,21 @@ subroutine calculate_all()
 ! call MPI_Finalize(ierr)
 ! stop
 
-  if((myrank.eq.0).and.(skip_steps.gt.0)) write(outputunit,"('[calculate_all] Skipping first ',i0,' step(s)...')") skip_steps
+  if((myrank==0).and.(skip_steps>0)) write(outputunit,"('[calculate_all] Skipping first ',i0,' step(s)...')") skip_steps
 
   all_energy_loop: do count=1+skip_steps,MPIsteps
     mpitag = (myrank_col-1)*Npl_f*total_hw_npt1*MPIsteps+(Npl-Npl_i)*total_hw_npt1*MPIsteps + (hw_count-1)*MPIsteps + count
     e = emin + deltae*mod(myrank_col,npt1) + MPIdelta*(count-1)
-    if(myrank_row_hw.eq.0) write(outputunit_loop,"('[calculate_all] Starting MPI step ',i0,' of ',i0)") count,MPIsteps
+    if(myrank_row_hw==0) write(outputunit_loop,"('[calculate_all] Starting MPI step ',i0,' of ',i0)") count,MPIsteps
 
     if(lhfresponses) then
-      if(myrank_row_hw.eq.0) write(outputunit_loop,"('[calculate_all] No renormalization will be done. Setting prefactors to identity and calculating HF susceptibilities... ')")
+      if(myrank_row_hw==0) write(outputunit_loop,"('[calculate_all] No renormalization will be done. Setting prefactors to identity and calculating HF susceptibilities... ')")
       prefactor     = identt
       if(llinearsoc) prefactorlsoc = identt
       call eintshechi(e)
-      if(myrank_row_hw.eq.0) call write_time(outputunit_loop,'[calculate_all] Time after susceptibility calculation: ')
+      if(myrank_row_hw==0) call write_time(outputunit_loop,'[calculate_all] Time after susceptibility calculation: ')
     else
-      if(myrank_row_hw.eq.0) write(outputunit_loop,"('[calculate_all] Calculating prefactor to use in currents and disturbances calculation. ')")
+      if(myrank_row_hw==0) write(outputunit_loop,"('[calculate_all] Calculating prefactor to use in currents and disturbances calculation. ')")
       if(llinearsoc) then
         call eintshechilinearsoc(e) ! Note: chiorb_hflsoc = lambda*dchi_hf/dlambda(lambda=0)
         ! Broadcast chiorb_hflsoc to all processors of the same row
@@ -90,15 +90,15 @@ subroutine calculate_all()
         call zgemm('n','n',dim,dim,dim,zum,prefactor,dim,prefactorlsoc,dim,zero,chiorb,dim) ! chiorb = prefactor*prefactorlsoc
         call zgemm('n','n',dim,dim,dim,zum,chiorb,dim,prefactor,dim,zero,prefactorlsoc,dim) ! prefactorlsoc = chiorb*prefactor = prefactor*prefactorlsoc*prefactor
       end if
-      if(myrank_row_hw.eq.0) call write_time(outputunit_loop,'[calculate_all] Time after prefactor calculation: ')
+      if(myrank_row_hw==0) call write_time(outputunit_loop,'[calculate_all] Time after prefactor calculation: ')
     end if
 
     ! Start parallelized processes to calculate all quantities for energy e
     call eintshe(e)
 
-    if(myrank_row_hw.eq.0) call write_time(outputunit_loop,'[calculate_all] Time after energy integral: ')
+    if(myrank_row_hw==0) call write_time(outputunit_loop,'[calculate_all] Time after energy integral: ')
 
-    if(myrank_row.eq.0) then
+    if(myrank_row==0) then
 
       if(.not.lhfresponses) then
         ! Calculating the full matrix of RPA and HF susceptibilities for energy e
@@ -279,9 +279,9 @@ subroutine calculate_all()
       end do plane_loop_effective_field_all
 
       ! Sending results to myrank_row_hw = 0 (first process of each field calculation) and writing on files
-      if(myrank_row_hw.eq.0) then
+      if(myrank_row_hw==0) then
         MPI_points_all: do mcount=1,MPIpts
-          if (mcount.ne.1) then ! Receive all points except the first (that was calculated at myrank_row_hw)
+          if (mcount/=1) then ! Receive all points except the first (that was calculated at myrank_row_hw)
             call MPI_Recv(e                ,1                ,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE  ,4000,MPI_Comm_Row_hw,stat,ierr)
             call MPI_Recv(mvec_spherical   ,3*Npl            ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),4100,MPI_Comm_Row_hw,stat,ierr)
             if(.not.lhfresponses) &
@@ -367,7 +367,7 @@ subroutine calculate_all()
 
         ! Emergency stop
         open(unit=911, file="stop", status='old', iostat=iw)
-        if(iw.eq.0) then
+        if(iw==0) then
           close(911)
           write(outputunit,"('[calculate_all] Emergency ""stop"" file found! Stopping after step ',i0,'...')") count
           call system ('rm stop')
@@ -395,7 +395,7 @@ subroutine calculate_all()
   end do all_energy_loop
 
   ! Sorting results on files
-  if(myrank_row_hw.eq.0) then
+  if(myrank_row_hw==0) then
     call sort_all_files()
   end if
   call deallocate_prefactors()

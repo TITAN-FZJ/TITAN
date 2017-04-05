@@ -5,12 +5,12 @@ subroutine prepare_field()
   integer       :: i
 
   if(lfield) then
-    if (hwa_npts.eq.0) then
+    if (hwa_npts==0) then
       hwa_f = hwa_i
       hwa_npts = 1
     end if
-    if((abs(hwa_i)+abs(hwa_f)).gt.1.d-8) then
-!         if(myrank.eq.0) then
+    if((abs(hwa_i)+abs(hwa_f))>1.d-8) then
+!         if(myrank==0) then
 !           write(outputunit,*) "hwa_i = ", hwa_i
 !           write(outputunit,*) "hwa_f = ", hwa_f
 !           write(outputunit,*) "hwa_npts = ", hwa_npts
@@ -24,26 +24,26 @@ subroutine prepare_field()
 !           write(outputunit,*) "hwp_npts = ", hwp_npts
 !           write(outputunit,*) "hwp_npt1 = ", hwp_npt1
 !         end if
-      if (hwt_npts.eq.0) then
+      if (hwt_npts==0) then
         hwt_f = hwt_i
         hwt_npts = 1
       end if
-      if (hwp_npts.eq.0) then
+      if (hwp_npts==0) then
         hwp_f = hwp_i
         hwp_npts = 1
       end if
       ! External field angular loops steps
       hwa_s = (hwa_f - hwa_i)/hwa_npts
-      if(abs(hwa_s).le.1.d-10) hwa_npt1 = 1
+      if(abs(hwa_s)<=1.d-10) hwa_npt1 = 1
       hwt_s = (hwt_f - hwt_i)/hwt_npts
-      if(abs(hwt_s).le.1.d-10) hwt_npt1 = 1
+      if(abs(hwt_s)<=1.d-10) hwt_npt1 = 1
       hwp_s = (hwp_f - hwp_i)/hwp_npts
-      if(abs(hwp_s).le.1.d-10) hwp_npt1 = 1
+      if(abs(hwp_s)<=1.d-10) hwp_npt1 = 1
     else ! hwa_i and hwa_f = 0
       ! Cartesian coordinates on spin system of reference
       hwa_i   = sqrt(hwx**2+hwy**2+hwz**2)
       hwa_f   = hwa_i
-      if(abs(hwa_i).lt.1.d-8) then
+      if(abs(hwa_i)<1.d-8) then
         lfield = .false.
       else
         hwt_i    = acos(hwz/hwa_i)
@@ -71,7 +71,7 @@ subroutine prepare_field()
 
   ! Total number of points in the loops
   total_hw_npt1 = hwa_npt1*hwt_npt1*hwp_npt1
-  if(total_hw_npt1.eq.1) skip_steps_hw = 0
+  if(total_hw_npt1==1) skip_steps_hw = 0
   allocate(hw_list(total_hw_npt1,3))
 
   ! Creating list of magnetic fields (in spherical coordinates)

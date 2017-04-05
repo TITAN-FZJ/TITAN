@@ -55,7 +55,7 @@ contains
        call generate_kpoints_3d()
     end if
 
-    if((myrank.eq.0))  write(outputunit,"('[mod_generate_kpoints] ',i0,' k-points generated.')") nkpoints
+    if((myrank==0))  write(outputunit,"('[mod_generate_kpoints] ',i0,' k-points generated.')") nkpoints
 
     return
   end subroutine generate_kpoints
@@ -102,7 +102,7 @@ contains
     end do
 
     if(0.d0 == dot_product(b1,b1)) then
-       if(myrank.eq.0) write(outputunit,"('[generate_kpoints_2d] No non-collinear in-plane vector found')")
+       if(myrank==0) write(outputunit,"('[generate_kpoints_2d] No non-collinear in-plane vector found')")
        call MPI_Finalize(ierr)
        stop
     end if
@@ -136,7 +136,7 @@ contains
        do j=1, 4
           diff=inikbz(l,:)-BZ(j,:)
           distance=sqrt(DOT_product(diff,diff))
-          if(distance.lt.smallest_dist) then
+          if(distance<smallest_dist) then
              smallest_dist=distance
              smallest_indice=j
           end if
@@ -147,14 +147,14 @@ contains
        do j=1, 4
           diff=inikbz(l,:)-BZ(j,:)
           distance=sqrt(DOT_product(diff,diff))
-          if( ( abs(distance-smallest_dist) .lt. 1.d-12 ) .and. &
-               j.ne.smallest_indice ) then
+          if( ( abs(distance-smallest_dist) < 1.d-12 ) .and. &
+               j/=smallest_indice ) then
              m=m+1
              numextrakbz=numextrakbz+1
              extrakbz(numextrakbz,:)=inikbz(l,:)-BZ(j,:)
           end if
        end do
-       if(m.ne.0) then
+       if(m/=0) then
           !The weight of the kpoint in the border is shared with
           ! its clones.
           iniwkbz(l)=1.d0/dble(m+1)
@@ -169,7 +169,7 @@ contains
     ! of the ones in the border between BZ's.
     kbz (1:nkpoints,:)=inikbz (:,:)
     wkbz(1:nkpoints)  =iniwkbz(:)
-    if(numextrakbz.ne.0) then
+    if(numextrakbz/=0) then
        kbz(nkpoints+1:nkpoints+numextrakbz,:)=extrakbz(1:numextrakbz,:)
        wkbz(nkpoints+1:nkpoints+numextrakbz) =extrawkbz(1:numextrakbz)
     end if
@@ -246,7 +246,7 @@ contains
        do j=1, 8
           diff=inikbz(l,:)-BZ(j,:)
           distance=sqrt(DOT_product(diff,diff))
-          if(distance.lt.smallest_dist) then
+          if(distance<smallest_dist) then
              smallest_dist=distance
              smallest_indice=j
           end if
@@ -257,14 +257,14 @@ contains
        do j=1, 8
           diff=inikbz(l,:)-BZ(j,:)
           distance=sqrt(DOT_product(diff,diff))
-          if( ( abs(distance-smallest_dist) .lt. 1.d-12 ) .and. &
-               j.ne.smallest_indice ) then
+          if( ( abs(distance-smallest_dist) < 1.d-12 ) .and. &
+               j/=smallest_indice ) then
              m=m+1
              numextrakbz=numextrakbz+1
              extrakbz(numextrakbz,:)=inikbz(l,:)-BZ(j,:)
           end if
        end do
-       if(m.ne.0) then
+       if(m/=0) then
           !The weight of the kpoint in the border is shared with
           ! its clones.
           iniwkbz(l)=1.d0/dble(m+1)
@@ -279,7 +279,7 @@ contains
     ! of the ones in the border between BZ's.
     kbz (1:nkpoints,:)=inikbz (:,:)
     wkbz(1:nkpoints)  =iniwkbz(:)
-    if(numextrakbz.ne.0) then
+    if(numextrakbz/=0) then
        kbz(nkpoints+1:nkpoints+numextrakbz,:)=extrakbz(1:numextrakbz,:)
        wkbz(nkpoints+1:nkpoints+numextrakbz) =extrawkbz(1:numextrakbz)
     end if

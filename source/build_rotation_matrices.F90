@@ -23,7 +23,7 @@ subroutine build_rotation_matrices_chi(theta_in,phi_in,rotmat,iflag)
   oneminuscos = 1.d0 - cos(theta)
   sintheta    = sin(theta)
 
-  if(iflag.eq.1) then ! left matrix
+  if(iflag==1) then ! left matrix
     rotmat(1,1) = expmphi*onepluscos
     rotmat(1,2) =-sintheta
     rotmat(1,3) = sintheta
