@@ -48,16 +48,16 @@ subroutine fermi_surface(e)
   end if
   do i=1,Npl
     write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'layer',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(epart),i,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-    open (unit=17+(mpitag-1)*Npl+i, file=varm,status='unknown')
+    open (unit=17+(mpitag-1)*Npl+i, file=varm,status='replace')
   end do
   write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'s_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(epart),nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-  open (unit=96+mpitag, file=varm,status='unknown')
+  open (unit=96+mpitag, file=varm,status='replace')
   write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'p_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(epart),nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-  open (unit=97+mpitag, file=varm,status='unknown')
+  open (unit=97+mpitag, file=varm,status='replace')
   write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'d_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(epart),nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-  open (unit=98+mpitag, file=varm,status='unknown')
+  open (unit=98+mpitag, file=varm,status='replace')
   write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'total_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(epart),nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-  open (unit=99+mpitag, file=varm,status='unknown')
+  open (unit=99+mpitag, file=varm,status='replace')
 
   fs_layer = 0.d0
   fs_orb   = 0.d0

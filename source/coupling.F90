@@ -44,17 +44,17 @@ subroutine coupling()
       if(i==j) then
         iw = iw + 1
         write(varm,"('./results/',a1,'SOC/Jij/Jii_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,parts,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-        open (unit=iw, file=varm,status='unknown')
+        open (unit=iw, file=varm,status='replace')
         write(unit=iw, fmt="('#  Npl ,      Jii_xx       ,       Jii_yy  ')")
         iw = iw + 1
       else
         iw = iw + 1
         write(varm,"('./results/',a1,'SOC/Jij/J_',i0,'_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,j,parts,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-        open (unit=iw, file=varm,status='unknown')
+        open (unit=iw, file=varm,status='replace')
         write(unit=iw, fmt="('#  Npl ,   isotropic Jij    ,   anisotropic Jij_xx    ,   anisotropic Jij_yy     ')")
         iw = iw + 1
         write(varm,"('./results/',a1,'SOC/Jij/Dz_',i0,'_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,j,parts,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-        open (unit=iw, file=varm,status='unknown')
+        open (unit=iw, file=varm,status='replace')
         write(unit=iw, fmt="('#  Npl , Dz = (Jxy - Jyx)/2       ')")
       end if
     end do ; end do

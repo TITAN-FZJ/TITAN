@@ -44,10 +44,10 @@ subroutine ldos_and_coupling()
   do i=1,Npl
     iw = 1000+(mpitag-1)*Npl*2 + (i-1)*2 + 1
     write(varm,"('./results/',a1,'SOC/',a,'/LDOS/ldosu_layer',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),i,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-    open (unit=iw, file=varm,status='unknown')
+    open (unit=iw, file=varm,status='replace')
     iw = iw+1
     write(varm,"('./results/',a1,'SOC/',a,'/LDOS/ldosd_layer',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),i,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-    open (unit=iw, file=varm,status='unknown')
+    open (unit=iw, file=varm,status='replace')
   end do
   ! Exchange interactions
   do j=1,nmaglayers ; do i=1,nmaglayers
@@ -55,7 +55,7 @@ subroutine ldos_and_coupling()
     if(i==j) then
       iw = iw + 1
       write(varm,"('./results/',a1,'SOC/',a,'/Jij/Jii_',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),mmlayermag(i)-1,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-      open (unit=iw, file=varm,status='unknown')
+      open (unit=iw, file=varm,status='replace')
       write(unit=iw, fmt="('#   energy      ,  Jii_xx           ,   Jii_yy  ')")
       iw = iw + 1
       ! Anisotropy energy is given by K^a = 2*J_ii^aa
@@ -64,11 +64,11 @@ subroutine ldos_and_coupling()
     else
       iw = iw + 1
       write(varm,"('./results/',a1,'SOC/',a,'/Jij/J_',i0,'_',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),mmlayermag(i)-1,mmlayermag(j)-1,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-      open (unit=iw, file=varm,status='unknown')
+      open (unit=iw, file=varm,status='replace')
       write(unit=iw, fmt="('#   energy      ,   isotropic Jij    ,   anisotropic Jij_xx    ,   anisotropic Jij_yy     ')")
       iw = iw + 1
       write(varm,"('./results/',a1,'SOC/',a,'/Jij/Dz_',i0,'_',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),mmlayermag(i)-1,mmlayermag(j)-1,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-      open (unit=iw, file=varm,status='unknown')
+      open (unit=iw, file=varm,status='replace')
       write(unit=iw, fmt="('#   energy      , Dz = (Jxy - Jyx)/2       ')")
     end if
   end do ; end do

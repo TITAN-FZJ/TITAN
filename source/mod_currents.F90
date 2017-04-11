@@ -135,14 +135,14 @@ contains
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 5000+(i-1)*n0sc2*7+(neighbor-1)*7+j
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
-        open (unit=iw, file=varm, status='unknown', form='formatted')
+        open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
 
         if(renorm) then
           iw = iw+1000
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
-          open (unit=iw, file=varm, status='unknown', form='formatted')
+          open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
         end if
@@ -151,14 +151,14 @@ contains
       do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 7000+(neighbor-1)*7+j
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
-        open (unit=iw, file=varm, status='unknown', form='formatted')
+        open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
 
         if(renorm) then
           iw = iw+1000
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
-          open (unit=iw, file=varm, status='unknown', form='formatted')
+          open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
         end if
@@ -167,7 +167,7 @@ contains
       do i=1,Npl ; do j=2,4
         iw = 8100+(i-1)*3+j-1
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'pumpdc_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(3)),filename(j),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
-        open (unit=iw, file=varm, status='unknown', form='formatted')
+        open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#      energy     ,    ',a,'pumpdc   ')") filename(j)
         close(unit=iw)
       end do ; end do
@@ -444,14 +444,14 @@ contains
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 50000+(i-1)*n0sc2*7+(neighbor-1)*7+j
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
-        open (unit=iw, file=varm, status='unknown', form='formatted')
+        open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,' real part of ',a,' ,  imag part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
 
         if(renorm) then
           iw = iw+1000
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
-          open (unit=iw, file=varm, status='unknown', form='formatted')
+          open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#',a,' real part of ',a,' ,  imag part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
         end if
@@ -460,14 +460,14 @@ contains
       do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 70000+(neighbor-1)*7+j
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
-        open (unit=iw, file=varm, status='unknown', form='formatted')
+        open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,' real part of ',a,' ,  imag part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
 
         if(renorm) then
           iw = iw+1000
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,renormnb,trim(suffix)
-          open (unit=iw, file=varm, status='unknown', form='formatted')
+          open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#',a,' real part of ',a,' ,  imag part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
         end if
@@ -477,7 +477,7 @@ contains
       do i=1,Npl ; do j=2,4
         iw = 81000+(i-1)*3+j-1
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'pumpdc_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(3)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
-        open (unit=iw, file=varm, status='unknown', form='formatted')
+        open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,'    ',a,'pumpdc    , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j)
         close(unit=iw)
       end do ; end do

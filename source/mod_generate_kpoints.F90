@@ -302,18 +302,19 @@ contains
   ! 14 March 2017 - Current Revision
   !-----------------------------------------------------------------------------
   subroutine write_kpoints_to_file()
+    use mod_io, only: out_dir
     implicit none
     integer :: i
 
-    !open (unit=2222, file='kpoints2d',status='unknown')
+    !open (unit=2222, file='kpoints2d',status='replace')
     !write(unit=2222,fmt="(a)") ' #      kx            ky            wk'
-    open (unit=3333, file='kpoints3d',status='unknown')
+    open (unit=3333, file='kpoints3d',status='replace')
     write(unit=3333,fmt="(a)") ' #      kx            ky            kz            wk'
     do i=1,nkpoints
        !write(unit=2222,fmt="(3(f12.9,2x))") kbz2d(i,1),kbz2d(i,2),wkbz(i)
        write(unit=3333,fmt="(4(f12.9,2x))") kbz(i,1),kbz(i,2),kbz(i,3),wkbz(i)
     end do
-    close(2222)
+    !close(2222)
     close(3333)
 
     return

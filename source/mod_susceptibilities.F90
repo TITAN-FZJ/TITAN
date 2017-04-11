@@ -198,26 +198,26 @@ contains
         ! RPA SUSCEPTIBILITIES
         if(.not.lhfresponses) then
           write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a2,'/chi_',i0,'_',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),i,j,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-          open (unit=iw, file=varm, status='unknown', form='formatted')
+          open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#     energy    ,  real part of chi ',a,'  ,  imaginary part of chi ',a,'  ,  amplitude of chi ',a,'  ')") spin(sigma),spin(sigma),spin(sigma)
           close(unit=iw)
         end if
         iw = iw+1000
         ! HF SUSCEPTIBILITIES
         write(varm,"('./results/',a1,'SOC/',a,'/HF/',a2,'/chihf_',i0,'_',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),i,j,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-        open (unit=iw, file=varm, status='unknown', form='formatted')
+        open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#     energy    ,  real part of chi ',a,' HF ,  imaginary part of chi ',a,' HF  ,  amplitude of chi ',a,' HF  ')") spin(sigma),spin(sigma),spin(sigma)
         close(unit=iw)
       end do ; end do ; end do
       ! RPA DIAGONALIZATION
       if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
         write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_eval_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-        open (unit=1990, file=varm,status='unknown', form='formatted')
+        open (unit=1990, file=varm,status='replace', form='formatted')
         write(unit=1990,fmt="('#     energy    ,  real part of 1st eigenvalue  ,  imaginary part of 1st eigenvalue  ,  real part of 2nd eigenvalue  ,  imaginary part of 2nd eigenvalue  , ... ')")
         close (unit=1990)
         do i=1,nmaglayers
           write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_evec',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-          open (unit=1990+i, file=varm,status='unknown', form='formatted')
+          open (unit=1990+i, file=varm,status='replace', form='formatted')
           write(unit=1990+i,fmt="('#     energy    ,  real part of 1st component  ,  imaginary part of 1st component  ,  real part of 2nd component  ,  imaginary part of 2nd component  , ...   ')")
           close (unit=1990+i)
         end do
@@ -357,26 +357,26 @@ contains
         ! RPA SUSCEPTIBILITIES
         if(.not.lhfresponses) then
           write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a2,'/',a,'chi_',a,'_',i0,'_',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-          open (unit=iw, file=varm, status='unknown', form='formatted')
+          open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#',a,'  real part of chi ',a,'  ,  imaginary part of chi ',a,'  ,  amplitude of chi ',a,' ')") trim(dc_header),spin(sigma),spin(sigma),spin(sigma)
           close(unit=iw)
         end if
         iw = iw+1000
         ! HF SUSCEPTIBILITIES
         write(varm,"('./results/',a1,'SOC/',a,'/HF/',a2,'/',a,'chihf_',a,'_',i0,'_',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-        open (unit=iw, file=varm, status='unknown', form='formatted')
+        open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,'  real part of chi ',a,' HF ,  imaginary part of chi ',a,' HF  ,  amplitude of chi ',a,' HF ')") trim(dc_header),spin(sigma),spin(sigma),spin(sigma)
         close(unit=iw)
       end do ; end do ; end do
       ! RPA DIAGONALIZATION
       if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
         write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/',a,'chi_eval_',a,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-        open (unit=19900, file=varm,status='unknown', form='formatted')
+        open (unit=19900, file=varm,status='replace', form='formatted')
         write(unit=19900,fmt="('#',a,'  real part of 1st eigenvalue  ,  imaginary part of 1st eigenvalue  ,  real part of 2nd eigenvalue  ,  imaginary part of 2nd eigenvalue  , ...')") trim(dc_header)
         close (unit=19900)
         do i=1,nmaglayers
           write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/',a,'chi_evec',i0,'_',a,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(dcprefix(count)),i,trim(dcfield(dcfield_dependence)),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-          open (unit=19900+i, file=varm,status='unknown', form='formatted')
+          open (unit=19900+i, file=varm,status='replace', form='formatted')
           write(unit=19900+i,fmt="('#',a,'  real part of 1st component  ,  imaginary part of 1st component  ,  real part of 2nd component  ,  imaginary part of 2nd component  , ...')") trim(dc_header)
           close (unit=19900+i)
         end do

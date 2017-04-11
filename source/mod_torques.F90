@@ -101,13 +101,13 @@ contains
       do typetorque=1,ntypetorque ; do sigma=1,3 ; do i=1,Npl
         iw = 9000+(typetorque-1)*Npl*3+(sigma-1)*Npl+i
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename(typetorque)),direction(sigma),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
-        open (unit=iw, file=varm, status='unknown', form='formatted')
+        open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#     energy    , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
         close(unit=iw)
         if(renorm) then
           iw = iw+1000
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename(typetorque)),direction(sigma),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
-          open (unit=iw, file=varm, status='unknown', form='formatted')
+          open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#     energy    , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
           close(unit=iw)
         end if
@@ -243,13 +243,13 @@ contains
       do typetorque=1,ntypetorque ; do sigma=1,3 ; do i=1,Npl
         iw = 90000+(typetorque-1)*Npl*3+(sigma-1)*Npl+i
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
-        open (unit=iw, file=varm, status='unknown', form='formatted')
+        open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,'  imaginary part of ',a,a,' ,  real part of ',a,a,'  , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
         close(unit=iw)
         if(renorm) then
           iw = iw+1000
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_dirEfield=',a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),dirEfield,trim(suffix)
-          open (unit=iw, file=varm, status='unknown', form='formatted')
+          open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#',a,'  imaginary part of ',a,a,' ,  real part of ',a,a,'  , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
           close(unit=iw)
         end if

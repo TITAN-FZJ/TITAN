@@ -449,7 +449,7 @@ contains
     else
       write(outputunit_loop,"('[read_write_sc_results] Writing new eps1, mx, my and mz to file...')")
       write(scfile,"(a,a,a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") trim(folder),trim(prefix),trim(Npl_folder),dfttype,parts,Utype,trim(fieldpart),nkpt,eta,trim(socpart)
-      open (unit=99,status="unknown",file=scfile)
+      open (unit=99,status='replace',file=scfile)
       do i=1,Npl
         write(99,"(es21.11,2x,'! eps1')") eps1(i)
         write(99,"(es21.11,2x,'! mx  ')") mx(i)

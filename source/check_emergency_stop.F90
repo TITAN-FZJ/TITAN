@@ -20,7 +20,7 @@ subroutine check_emergency_stop()
     if((istop<=1).or.(ios/=0)) then
       if(myrank==0) then
         write(outputunit,"('[main] Emergency ""stopout"" file found! Stopping after Npl = ',i0,', hwa = ',es9.2,' hwt=',f5.2,' hwp=',f5.2,'...')") Npl,hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
-        open(unit=911, file=trim(stopfilename), status='unknown')
+        open(unit=911, file=trim(stopfilename), status='replace')
         write(911,"(i0)") istop-1 ! Removing one iteration of the file
         close(911)
         ! call system ('rm stopout')
@@ -39,7 +39,7 @@ subroutine check_emergency_stop()
 
       if(myrank==0) then
         write(outputunit,"('[main] Emergency ""stopout"" file found! ',i0,' more iterations before stopping...')") istop-1
-        open(unit=911, file=trim(stopfilename), status='unknown')
+        open(unit=911, file=trim(stopfilename), status='replace')
         write(911,"(i0)") istop-1 ! Removing one iteration of the file
         close(911)
       end if
