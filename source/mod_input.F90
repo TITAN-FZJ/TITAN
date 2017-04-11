@@ -5,6 +5,8 @@ module mod_input
   integer, parameter :: line_length = 300
   integer, parameter :: max_lines   = 100
   integer, parameter :: max_elements = 20
+  character(line_length) :: out_file = ""
+  integer :: out_unit = -1
   character(len=line_length), dimension(max_lines) :: key, val
 
 interface get_parameter
@@ -15,6 +17,47 @@ interface get_parameter
                    get_logical
 end interface
 contains
+
+  function enable_input_logging(filename) result(success)
+    implicit none
+    character(len=*), intent(in) :: filename
+    logical :: success
+    integer :: eof
+    success = .false.
+    open(unit = 123456788, file=trim(filename), status='replace', iostat=eof)
+    if(eof /= 0) return
+    out_unit = 123456788
+    success = .true.
+
+    return
+  end function
+
+  function disable_input_logging() result(success)
+    implicit none
+    logical :: success
+    integer :: eof
+    success = .true.
+    if(out_unit < 0) return
+    success = .false.
+    close(unit=out_unit, iostat=eof)
+    if(eof /= 0) return
+    success = .true.
+    return
+  end function
+
+  subroutine log_parameter(key_string, val_string)
+    use mod_mpi_pars
+    implicit none
+    character(len=*), intent(in) :: key_string, val_string
+
+    if(myrank /= 0) return
+    if(out_unit < 0) return
+
+    write(out_unit, "(' 'a' = 'a' ')") trim(adjustl(key_string)), trim(adjustl(val_string))
+
+    return
+  end subroutine
+
   function read_file(filename) result(success)
     implicit none
     character(len=*), intent(in) :: filename
@@ -65,9 +108,12 @@ contains
        if(trim(key_val) == trim(key(i))) then
           ind = i
           success = .true.
+          call log_parameter(key(i), val(i))
           exit
+        else
        end if
     end do
+    
   end function find_val
 
   function get_int(key_val, ret_val) result(success)
