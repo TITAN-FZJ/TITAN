@@ -12,9 +12,15 @@ subroutine lattice_definitions()
 
   if(dirEfield == -1) then
     dirEfieldvec = dirEfieldvec / sqrt(dot_product(dirEfieldvec, dirEfieldvec))
+    EFp = atan(dirEfieldvec(2) / dirEfieldvec(1))
+    EFt = acos(dirEfieldvec(3))
   else if(dirEfield == -2) then
     dirEfieldvec = dirEfieldvec(1) * a1_pln + dirEfieldvec(2) * a2_pln
     dirEfieldvec = dirEfieldvec / sqrt(dot_product(dirEfieldvec, dirEfieldvec))
+    EFp = atan(dirEfieldvec(2) / dirEfieldvec(1))
+    EFt = acos(dirEfieldvec(3))
+  else if(dirEfield == -3) then 
+    dirEfieldvec = [cos(EFp)*sin(EFt), sin(EFp)*sin(EFt), cos(EFt)]
   else if(dirEfield >=1 .and. dirEfield <= n0) then
     dirEfieldvec = c0(dirEfield,:)
   else
