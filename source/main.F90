@@ -89,8 +89,11 @@ program DHE
     call write_kpoints_to_file()
   end if
 
-  stop
+  if( lpositions .and. (myrank==0)) then
+    call write_positions_to_file()
+  end if
 
+  
 
 !---- Generating integration points of the complex energy integral -----
   call generate_imag_epoints()
