@@ -3,8 +3,8 @@ module mod_parameters
   implicit none
   !========================================================================================!
   integer,parameter :: dmax=20 !< Maximum dimension for Npl-dependent quantities that must be read from input
-  integer       :: nkpt         !< Number of k-point generation vectors (S. Cunningham, Phys. Rev. B 10, 4988 (1974))
-  integer       :: nkpt        !< Approximate number of k-points
+!  integer       :: nkpt         !< Number of k-point generation vectors (S. Cunningham, Phys. Rev. B 10, 4988 (1974))
+  integer       :: nkpt        !< Number of generated k-points
   real(double)  :: eta         !< Small imaginary part included in the energy z = E + i.eta
   real(double)  :: Ef          !< Fermi energy (read from mod_tight_binding)
   real(double)  :: q(3)        !< q-vector for the dependence of response functions (not used yet)
@@ -32,8 +32,9 @@ module mod_parameters
   !character(len=1)   :: dirEfield                 !< Direction of in-plane applied electric field
   real(double)       :: theta=0.d0,phi=0.d0       !< Euler Angles for the magnetization frame of reference
   real(double)       :: dirEfieldvec(3)           !< Direction vector of the electric field
+  real(double)       :: EFp = 0.d0, EFt = 0.d0    !< Phi and Theta angles of the electric field in spherical coordinates
   !========================================================================================!
-  integer :: itype  !< type of calculation - defined in input file 'inputdhe'
+  integer :: itype  !< type of calculation - defined in input file 'input'
   !========================================================================================!
   logical :: SOC                                          !< Turn on/off SOC
   logical :: llineargfsoc = .false.,llinearsoc = .false.  !< Linear SOC
@@ -86,6 +87,7 @@ module mod_parameters
   !========================================================================================!
   ! Logical variables for runoptions
   logical :: lkpoints       = .false.
+  logical :: lpositions     = .false.
   logical :: ltesla         = .false.
   logical :: lcreatefiles   = .false.
   logical :: laddresults    = .false.
@@ -128,7 +130,7 @@ module mod_parameters
   !========================================================================================!
   ! Output file
   integer            :: outputunit=123456789,outputunit_loop
-  character(len=200) :: outputdhe,outputdhe_loop
+  character(len=200) :: outputfile,outputfile_loop
   !========================================================================================!
   ! Choose between tight-binding (T) or orthogonal (O) DFT parameters
   character(len=1)  :: dfttype
