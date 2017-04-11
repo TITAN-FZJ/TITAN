@@ -3,7 +3,7 @@
 !! loops over number of planes and magnetic field to do the
 !! magnetic self-consistency and calculate either ground state
 !! quantities or response functions
-program DHE
+program TITAN
   use mod_f90_kind
   use mod_constants
   use mod_parameters
@@ -82,19 +82,13 @@ program DHE
   call next_neighbour_init()
 !-------------------- Generating k points in 2D BZ ---------------------
   call generate_kpoints(pln_dir)
-
-
   ! Writing BZ points and weights into files
   if((lkpoints).and.(myrank==0)) then
     call write_kpoints_to_file()
   end if
-
   if( lpositions .and. (myrank==0)) then
     call write_positions_to_file()
   end if
-
-  
-
 !---- Generating integration points of the complex energy integral -----
   call generate_imag_epoints()
 !------------------------ NUMBER OF PLANES LOOP ------------------------
@@ -299,4 +293,4 @@ program DHE
   if((ierr/=0).and.(myrank==0)) write(outputunit,"('[main] Something went wrong in the parallelization! ierr = ',i0)") ierr
 !=======================================================================
   stop
-end program DHE
+end program TITAN

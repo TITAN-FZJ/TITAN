@@ -8,7 +8,7 @@ module mod_io
 #else
   character(len=20) :: filename="input"
 #endif
-  integer :: log_unit = -1
+  logical :: log_unit = .false.
 
 contains
 
@@ -19,10 +19,10 @@ contains
     character(len=*), intent(in) :: message
 
     if(myrank == 0) then
-       if(log_unit >= 0) then
-         write(log_unit, "('['a'] 'a'')") procedure, trim(message)
+       if(log_unit) then
+          write(outputunit, "('[',a,'] ',a,'')") procedure, trim(message)
        else
-          write(*, "('['a'] 'a'')") procedure, trim(message)
+          write(*, "('[',a,'] ',a,'')") procedure, trim(message)
        end if
     end if
   end subroutine log_message
@@ -34,10 +34,10 @@ contains
     character(len=*), intent(in) :: message
 
     if(myrank == 0) then
-      if(log_unit >= 0) then
-        write(log_unit, "('[Error] ['a'] 'a'')") procedure, trim(message)
+      if(log_unit) then
+        write(outputunit, "('[Error] [',a,'] ',a,'')") procedure, trim(message)
       else
-        write(*, "('[Error] ['a'] 'a'')") procedure, trim(message)
+        write(*, "('[Error] [',a,'] ',a,'')") procedure, trim(message)
       end if
     end if
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
@@ -51,10 +51,10 @@ contains
     character(len=*), intent(in) :: message
 
     if(myrank == 0) then
-       if(log_unit >= 0) then
-         write(log_unit, "('[Warning] ['a'] 'a'')") procedure, trim(message)
+       if(log_unit) then
+         write(outputunit, "('[Warning] [',a,'] ',a,'')") procedure, trim(message)
        else
-         write(*, "('[Warning] ['a'] 'a'')") procedure, trim(message)
+         write(*, "('[Warning] [',a,'] ',a,'')") procedure, trim(message)
        end if
     end if
   end subroutine log_warning
@@ -80,7 +80,7 @@ contains
     if(myrank==0) then
        open (unit=outputunit, file=trim(outputfile), status='replace')
     end if
-    log_unit = outputunit
+    log_unit = .true.
 
     if(myrank==0) write(outputunit,"('[get_parameters] Reading parameters from ""',a,'"" file...')") trim(filename)
     if(.not. get_parameter("itype", itype)) call log_error("get_parameters","'itype' missing.")
@@ -123,6 +123,7 @@ contains
     end select
 
     if(.not. get_parameter("plane", vector, cnt)) call log_error("get_parameters","'plane' missing.")
+
     if(cnt /= 3) call log_error("get_parameters","'plane' has wrong size (size 3 required).")
     pln_dir = vector
     deallocate(vector)
@@ -130,7 +131,7 @@ contains
     if(.not. get_parameter("a0", a0)) call log_error("get_parameters","'a0' missing.")
 
     if(.not. get_parameter("SOC", SOC)) call log_error("get_parameters","'SOC' missing.")
-    if(SOC == .true.) then
+    if(SOC) then
        if(.not. get_parameter("socscale", socscale)) call log_warning("get_parameters","'socscale' missing.")
     end if
 
@@ -442,9 +443,7 @@ contains
 
   subroutine iowrite()
     use mod_mpi_pars
-    use mod_constants, only: pi
     implicit none
-    integer :: j,err
 
 #ifdef _OPENMP
     write(outputunit_loop,"(10x,'Running on ',i0,' MPI process(es) WITH openMP')") numprocs

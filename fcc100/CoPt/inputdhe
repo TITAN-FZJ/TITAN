@@ -41,7 +41,7 @@
 -> SOC = T        ! Spin Orbit Coupling on (T) or off (F)
 !-------------------------------------------------------------------------------!
 !                   DIRECTION OF IN-PLANE ELECTRIC FIELD                        !
--> ebasis = cartesian / neighbor / bravais
+-> ebasis = cartesian / neighbor / bravais / spherical
 -> dirEfield = 1
 !===============================================================================!
 !                        IN-PLANE CURRENTS TO CALCULATE                         !

@@ -83,7 +83,7 @@ contains
     real(kind=8) :: BZ(4,3), smallest_dist, distance, diff(3), ini_smallest_dist
     real(kind=8), allocatable :: inikbz(:,:), iniwkbz(:)
     real(kind=8) :: extrakbz(nkpt*10,3), extrawkbz(nkpt*10)
-    integer :: i,l,j,m,k, smallest_indice, numextrakbz
+    integer :: i,l,j,m, smallest_indice, numextrakbz
     integer :: nkpt_perdim
 
     nkpt_perdim = ceiling(sqrt(dble(nkpt)) / 6.d0)

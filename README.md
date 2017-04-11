@@ -1,4 +1,10 @@
-<h1> PROGRAM DHE (Dynamical Hall Effects) </h1>
+<h1> TITAN </h1>
+
+**T**ime-dependent description of
+**I**tinerant electrons:
+**T**ransport and
+**A**ngular momentum properties of
+**N**anostructures
 
 This program calculates the intrinsic Spin and Orbital Momentum Hall
 Effects (including the Anomalous and Planar Hall effects) for

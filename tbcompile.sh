@@ -57,7 +57,7 @@ while (( "$#" )); do
    esac
 done
 
-cd ../../
+cd ../
 
 # echo "make $rule $platform $parallel $debug $perform $filename $verbose"
 

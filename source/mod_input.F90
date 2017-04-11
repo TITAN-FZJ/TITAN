@@ -53,7 +53,7 @@ contains
     if(myrank /= 0) return
     if(out_unit < 0) return
 
-    write(out_unit, "(' 'a' = 'a' ')") trim(adjustl(key_string)), trim(adjustl(val_string))
+    write(out_unit, "(' ',a,' = ',a,' ')") trim(adjustl(key_string)), trim(adjustl(val_string))
 
     return
   end subroutine
@@ -72,6 +72,7 @@ contains
 
     nlines = 0
 
+    val = " "
     open(unit=iunit, file=trim(filename), iostat=eof)
     if(eof /= 0) return
     do while(eof == 0)
@@ -113,7 +114,7 @@ contains
         else
        end if
     end do
-    
+
   end function find_val
 
   function get_int(key_val, ret_val) result(success)
@@ -136,16 +137,19 @@ contains
     integer, allocatable, intent(out) :: ret_val(:)
     integer, intent(out) :: ret_cnt
     logical :: success
-    integer :: ind , ios, tmp, i
+    integer :: ind , ios, i
     integer :: tmp_arr(max_elements)
     character(len=word_length) :: str_arr(max_elements)
 
     success = find_val(key_val, ind)
     ret_cnt = 0
+    do i=1,max_elements
+      str_arr(i) = ""
+    end do
     if(success) then
        read(unit=val(ind), fmt=*, iostat=ios) (str_arr(i), i=1,max_elements)
        do i = 1, max_elements
-          if(len_trim(str_arr(i)) == word_length) cycle
+          if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
           ret_cnt = ret_cnt + 1
           read(unit=str_arr(i), fmt=*,iostat=ios ) tmp_arr(ret_cnt)
        end do
@@ -180,10 +184,13 @@ contains
 
     success = find_val(key_val, ind)
     ret_cnt = 0
+    do i=1,max_elements
+      str_arr(i) = ""
+    end do
     if(success) then
        read(unit=val(ind), fmt=*, iostat=ios) (str_arr(i), i=1,max_elements)
        do i = 1, max_elements
-          if(len_trim(str_arr(i)) == word_length) cycle
+          if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
           ret_cnt = ret_cnt + 1
           read(unit=str_arr(i), fmt=*,iostat=ios ) tmp_arr(ret_cnt)
        end do
@@ -218,10 +225,13 @@ contains
 
     success = find_val(key_val, ind)
     ret_cnt = 0
+    do i=1,max_elements
+      str_arr(i) = ""
+    end do
     if(success) then
        read(unit=val(ind), fmt=*, iostat=ios) (str_arr(i), i=1,max_elements)
        do i = 1, max_elements
-          if(len_trim(str_arr(i)) == word_length) cycle
+          if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
           ret_cnt = ret_cnt + 1
           read(unit=str_arr(i), fmt=*,iostat=ios ) tmp_arr(ret_cnt)
        end do
@@ -253,8 +263,10 @@ contains
     integer :: ind , ios, i
     character(len=word_length) :: tmp_arr(max_elements)
     character(len=word_length) :: str_arr(max_elements)
-    str_arr = ""
-    tmp_arr = ""
+    do i=1,max_elements
+      str_arr(i) = ""
+      tmp_arr(i) = ""
+    end do
     success = find_val(key_val, ind)
     ret_cnt = 0
 

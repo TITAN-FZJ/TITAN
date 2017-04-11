@@ -5,10 +5,8 @@ subroutine lattice_definitions()
   use mod_lattice
   use mod_parameters
   use mod_tools, only: cross_unit
-  integer :: i,j,err
+  integer :: i
   real(double),dimension(3) :: vec1,vec2
-
-
 
   if(dirEfield == -1) then
     dirEfieldvec = dirEfieldvec / sqrt(dot_product(dirEfieldvec, dirEfieldvec))
@@ -19,7 +17,7 @@ subroutine lattice_definitions()
     dirEfieldvec = dirEfieldvec / sqrt(dot_product(dirEfieldvec, dirEfieldvec))
     EFp = atan(dirEfieldvec(2) / dirEfieldvec(1))
     EFt = acos(dirEfieldvec(3))
-  else if(dirEfield == -3) then 
+  else if(dirEfield == -3) then
     dirEfieldvec = [cos(EFp)*sin(EFt), sin(EFp)*sin(EFt), cos(EFt)]
   else if(dirEfield >=1 .and. dirEfield <= n0) then
     dirEfieldvec = c0(dirEfield,:)

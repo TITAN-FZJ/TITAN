@@ -21,7 +21,7 @@
 !   h01 = q-parallel inter-plane hoppings
 subroutine helpdtdk(kp,h00,h01,h10,ly)
   use mod_f90_kind
-  use mod_parameters, only: dirEfieldvec,lattice
+  use mod_parameters, only: dirEfieldvec
   use mod_constants
   use mod_lattice
   use mod_tight_binding

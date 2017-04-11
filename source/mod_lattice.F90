@@ -220,23 +220,23 @@ contains
     integer :: i
 
     open(unit = 5675, file='positions', status='replace')
-    write(5675, "('In plane basis: '3(f12.9,2x)' '3(f12.9,2x))") a1_pln, a2_pln
+    write(5675, "('In plane basis: ',3(f12.9,2x),' ',3(f12.9,2x))") a1_pln, a2_pln
 
     write(5675, *) "# Number   Position   Dir. Cosine"
     write(5675, *) "# In-plane neighbors"
 
     do i=1,n0
-       write(5675, "(''I0' '3(f12.9,2x)' '3(f12.9,2x)'')") i, r0(i,:), c0(i,:)
+       write(5675, "('',I0,' ',3(f12.9,2x),' ',3(f12.9,2x),'')") i, r0(i,:), c0(i,:)
     end do
 
     write(5675, *) "# 1st out-of-plane neighbors"
     do i=1,n1
-       write(5675, "(''I0' '3(f12.9,2x)' '3(f12.9,2x)'')") i, r1(i,:), c1(i,:)
+       write(5675, "('',I0,' ',3(f12.9,2x),' ',3(f12.9,2x),'')") i, r1(i,:), c1(i,:)
     end do
 
     write(5675, *) "# 2nd out-of-plane neighbors"
     do i=1,n2
-       write(5675, "(''I0' '3(f12.9,2x)' '3(f12.9,2x)'')") i, r2(i,:), c2(i,:)
+       write(5675, "('',I0,' ',3(f12.9,2x),' ',3(f12.9,2x),'')") i, r2(i,:), c2(i,:)
     end do
 
     close(unit = 5675)

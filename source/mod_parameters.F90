@@ -123,7 +123,7 @@ module mod_parameters
   ! Skip self-consistency
   logical :: skipsc,lselfcon
   ! Give a file to start self-consistency
-  character(len=200) :: scfile
+  character(len=200) :: scfile=""
   !========================================================================================!
   ! Suffix to use on filenames (to avoid overwriting while comparing different results)
   character(len=50)  :: suffix=""
