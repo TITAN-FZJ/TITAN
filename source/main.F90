@@ -44,11 +44,11 @@ program DHE
 #endif
 !--------------------------- Starting program --------------------------
   start_program = MPI_Wtime()
-  call read_input_file()
-  call read_output_filename()
-  print *, outputdhe
+
+!------------------------- Reading parameters --------------------------
+  call get_parameters()
+
   if(myrank==0) then
-    open (unit=outputunit, file=trim(outputdhe), status='unknown')
     call write_time(outputunit,'[main] Started on: ')
   end if
 !---------------------------- Getting hostname -------------------------
@@ -59,8 +59,7 @@ program DHE
 #endif
 !-------------------- Useful constants and matrices --------------------
   call define_constants()
-!------------------------- Reading parameters --------------------------
-  call get_parameters()
+
 !----------- Creating bi-dimensional matrix of MPI processes  ----------
   if((itype==1).or.(itype==6)) then ! Create column for field loop (no energy integration)
     call build_cartesian_grid_field(pn1)
@@ -83,10 +82,15 @@ program DHE
   call next_neighbour_init()
 !-------------------- Generating k points in 2D BZ ---------------------
   call generate_kpoints(pln_dir)
+
+
   ! Writing BZ points and weights into files
   if((lkpoints).and.(myrank==0)) then
     call write_kpoints_to_file()
   end if
+
+  stop
+
 
 !---- Generating integration points of the complex energy integral -----
   call generate_imag_epoints()
@@ -125,19 +129,19 @@ program DHE
 !------------ Opening files (general and one for each field) -----------
       if(myrank_row_hw==0) then
         if((total_hw_npt1==1).or.(itype==6)) then
-          outputdhe_loop  = outputdhe
+          outputfile_loop  = outputfile
           outputunit_loop = outputunit
         else
-          write(outputdhe_loop,fmt="(a,a,i0)") trim(outputdhe),'.',hw_count
+          write(outputfile_loop,fmt="(a,a,i0)") trim(outputfile),'.',hw_count
           outputunit_loop = outputunit+hw_count
-          open (unit=outputunit_loop, file=trim(outputdhe_loop), status='unknown')
+          open (unit=outputunit_loop, file=trim(outputfile_loop), status='replace')
         end if
       end if
 !---------------------- Turning off field for hwa=0 --------------------
       if(abs(hw_list(hw_count,1))<1.d-8) then
         lfield = .false.
         ntypetorque = 2
-        if((llinearsoc).or.(.not.SOC).and.(myrank_row_hw==0)) write(outputdhe_loop,"('[main] WARNING: No external magnetic field is applied and SOC is off/linear order: Goldstone mode is present!')")
+        if((llinearsoc).or.(.not.SOC).and.(myrank_row_hw==0)) write(outputfile_loop,"('[main] WARNING: No external magnetic field is applied and SOC is off/linear order: Goldstone mode is present!')")
       else
         lfield = .true.
       end if
