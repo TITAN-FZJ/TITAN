@@ -285,7 +285,7 @@ contains
     end if
     wkbz=wkbz/dble(nkpoints)
     nkpoints=nkpoints+numextrakbz
-
+    nkpt = nkpoints
     !PRINT *, "firstBZ = ", firstBZ
     !PRINT "(a,i0,a,i0)", "nkpt=",nkpoints,"  nkpt_perdim=",nkpt_perdim
     return
@@ -302,7 +302,6 @@ contains
   ! 14 March 2017 - Current Revision
   !-----------------------------------------------------------------------------
   subroutine write_kpoints_to_file()
-    use mod_io, only: out_dir
     implicit none
     integer :: i
 
