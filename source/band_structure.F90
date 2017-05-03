@@ -4,6 +4,7 @@ subroutine band_structure()
   use mod_constants, only: pi,sq2,tpi
   use mod_parameters
   use mod_mpi_pars, only: mpitag
+  use mod_system, only: a0, nkpt
   implicit none
   character(len=400) :: varm
   character(len=50)  :: fieldpart,socpart
