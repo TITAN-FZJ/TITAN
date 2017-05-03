@@ -159,6 +159,7 @@ contains
   subroutine openclose_chi_files(iflag)
     use mod_parameters
     use mod_mpi_pars
+    use mod_system, only:nkpt
     implicit none
 
     character(len=500)  :: varm
@@ -315,6 +316,7 @@ contains
   subroutine openclose_dc_chi_files(iflag)
     use mod_parameters
     use mod_mpi_pars
+    use mod_system, only:nkpt
     implicit none
 
     character(len=500)  :: varm
