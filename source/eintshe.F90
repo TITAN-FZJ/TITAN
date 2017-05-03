@@ -21,7 +21,11 @@ subroutine eintshe(e)
   nncountkl=n0sc*dimsigmaNpl*4
 !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
-  allocate( tFintiikl(dim,4),ttFintiikl(n0sc1:n0sc2,dimsigmaNpl,4),LxttFintiikl(n0sc1:n0sc2,dimsigmaNpl,4),LyttFintiikl(n0sc1:n0sc2,dimsigmaNpl,4),LzttFintiikl(n0sc1:n0sc2,dimsigmaNpl,4), STAT = AllocateStatus )
+  allocate( tFintiikl(dim,4), &
+            ttFintiikl   (n0sc1:n0sc2, dimsigmaNpl, 4), &
+            LxttFintiikl (n0sc1:n0sc2, dimsigmaNpl, 4), &
+            LyttFintiikl (n0sc1:n0sc2, dimsigmaNpl, 4), &
+            LzttFintiikl (n0sc1:n0sc2, dimsigmaNpl, 4), STAT = AllocateStatus )
   if (AllocateStatus/=0) then
     write(outputunit,"('[eintshe] Not enough memory for: tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl')")
     call MPI_Abort(MPI_Comm_Row,errorcode,ierr)
