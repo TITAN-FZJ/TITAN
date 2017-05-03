@@ -3,6 +3,7 @@ subroutine ldos_and_coupling()
   use mod_f90_kind
   use mod_parameters
   use mod_mpi_pars, only: mpitag
+  use mod_system, only: nkpt
   implicit none
   character(len=400) :: varm
   character(len=50)  :: fieldpart,socpart
