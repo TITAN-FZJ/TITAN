@@ -3,7 +3,7 @@ subroutine fermi_surface(e)
   use mod_f90_kind
   use mod_constants
   use mod_parameters
-  use mod_generate_kpoints
+  use mod_system, only: nkpt, kbz
   use mod_progress
   use mod_mpi_pars
 !$  use omp_lib
@@ -13,7 +13,7 @@ subroutine fermi_surface(e)
   character(len=50)  :: fieldpart,socpart,epart
   character(len=1)   :: SOCc
   integer            :: i,mu,nu,iz,sigma
-  real(double)       :: fs_layer(Npl,nkpoints,4),fs_orb(3,nkpoints,4),fs_total(nkpoints,4)
+  real(double)       :: fs_layer(Npl,nkpt,4),fs_orb(3,nkpt,4),fs_total(nkpt,4)
   real(double)       :: kp(3)
   real(double),intent(in)    :: e
   complex(double),dimension(Npl,Npl,18,18)    :: gf
@@ -73,12 +73,12 @@ subroutine fermi_surface(e)
 !$  end if
 
 !$omp do
-  fermi_surface_kpoints: do iz=1,nkpoints
+  fermi_surface_kpoints: do iz=1,nkpt
 !$  if((mythread==0)) then
-    if(lverbose) call progress_bar(outputunit_loop,"kpoints",iz,nkpoints)
+    if(lverbose) call progress_bar(outputunit_loop,"kpoints",iz,nkpt)
 !$   end if
 
-    kp = kbz(iz,:)
+    kp = kbz(:,iz)
 
     ! Green function on energy Ef + ieta, and wave vector kp
     if((llinearsoc).or.(llineargfsoc)) then
@@ -117,15 +117,15 @@ subroutine fermi_surface(e)
 !$omp end parallel
 
   ! Writing on files
-  writing_fermi_surface: do iz=1,nkpoints
+  writing_fermi_surface: do iz=1,nkpt
     write_plane_loop_fs: do i=1,Npl
-      write(unit=17+(mpitag-1)*Npl+i,fmt="(6(es16.9,2x))") kbz(iz,1),kbz(iz,2), kbz(iz,3), (fs_layer(i,iz,sigma),sigma=1,4)
+      write(unit=17+(mpitag-1)*Npl+i,fmt="(6(es16.9,2x))") kbz(1,iz),kbz(2,iz), kbz(3,iz), (fs_layer(i,iz,sigma),sigma=1,4)
     end do write_plane_loop_fs
 
-    write(unit=96+mpitag,fmt="(6(es16.9,2x))") kbz(iz,1),kbz(iz,2),kbz(iz,3),(fs_orb(1,iz,sigma),sigma=1,4)
-    write(unit=97+mpitag,fmt="(6(es16.9,2x))") kbz(iz,1),kbz(iz,2),kbz(iz,3),(fs_orb(2,iz,sigma),sigma=1,4)
-    write(unit=98+mpitag,fmt="(6(es16.9,2x))") kbz(iz,1),kbz(iz,2),kbz(iz,3),(fs_orb(3,iz,sigma),sigma=1,4)
-    write(unit=99+mpitag,fmt="(6(es16.9,2x))") kbz(iz,1),kbz(iz,2),kbz(iz,3),(fs_total(iz,sigma),sigma=1,4)
+    write(unit=96+mpitag,fmt="(6(es16.9,2x))") kbz(1,iz),kbz(2,iz),kbz(3,iz),(fs_orb(1,iz,sigma),sigma=1,4)
+    write(unit=97+mpitag,fmt="(6(es16.9,2x))") kbz(1,iz),kbz(2,iz),kbz(3,iz),(fs_orb(2,iz,sigma),sigma=1,4)
+    write(unit=98+mpitag,fmt="(6(es16.9,2x))") kbz(1,iz),kbz(2,iz),kbz(3,iz),(fs_orb(3,iz,sigma),sigma=1,4)
+    write(unit=99+mpitag,fmt="(6(es16.9,2x))") kbz(1,iz),kbz(2,iz),kbz(3,iz),(fs_total(iz,sigma),sigma=1,4)
   end do writing_fermi_surface
   ! Closing files
   do i=1,Npl
