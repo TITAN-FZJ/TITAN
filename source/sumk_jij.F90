@@ -3,10 +3,10 @@ subroutine sumk_jij(er,ei,Jijint)
   use mod_f90_kind
   use mod_constants
   use mod_parameters
-  use mod_generate_kpoints
   use mod_progress
   use mod_magnet, only: mx,my,mz,mabs
   use mod_mpi_pars
+  use mod_system, only: nkpt, kbz, wkbz
 !$  use omp_lib
   implicit none
 !$  integer     :: nthreads,mythread
@@ -49,12 +49,12 @@ subroutine sumk_jij(er,ei,Jijint)
 !$  end if
 
 !$omp do reduction(+:Jijint)
-  kpoints: do iz=1,nkpoints
+  kpoints: do iz=1,nkpt
 !$  if((mythread==0)) then
-      if((myrank==0).and.(lverbose)) call progress_bar(outputunit,"kpoints",iz,nkpoints)
+      if((myrank==0).and.(lverbose)) call progress_bar(outputunit,"kpoints",iz,nkpt)
 !$   end if
 
-    kp = kbz(iz,:)
+    kp = kbz(:,iz)
 
     ! Green function on energy Ef + iy, and wave vector kp
     call green(er,ei,kp,gf)
