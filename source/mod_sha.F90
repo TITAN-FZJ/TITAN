@@ -6,6 +6,7 @@ module mod_sha
   real(double) :: sha_re_total(4)
   complex(double), allocatable :: sha_complex(:,:)
   complex(double) :: sha_complex_total(4)
+
 contains
 
   ! This subroutine allocates variables related to the sha calculation
@@ -42,6 +43,7 @@ contains
   subroutine openclose_sha_files(iflag)
     use mod_parameters
     use mod_mpi_pars
+    use mod_system, only: nkpt
     implicit none
 
     character(len=500)  :: varm
@@ -170,7 +172,8 @@ contains
   ! This subroutine opens and closes all the files needed for the sha
   subroutine openclose_dc_sha_files(iflag)
     use mod_parameters
-    use mod_mpi_pars
+    use mod_mpi_pars, only: errorcode, ierr, MPI_COMM_WORLD
+    use mod_system, only: nkpt
     implicit none
 
     character(len=500)  :: varm
@@ -344,7 +347,7 @@ contains
     use mod_progress
     use mod_currents
     use mod_mpi_pars
-    use mod_lattice
+    use mod_system, only: l_nn
     use mod_tools
     implicit none
     character(len=50) :: formatvar
@@ -376,7 +379,10 @@ contains
           ! Obtaining number of rows and cols in the file
           call number_of_rows_cols(iw,rows,cols)
           ! Allocating variables to read and store data
-          allocate(data(rows,cols),e(rows),currents_from_file(7,n0sc1:n0sc2,Npl,rows),total_currents_from_file(7,n0sc1:n0sc2,rows))
+          allocate(data (rows,cols), &
+                   e (rows), &
+                   currents_from_file       (7,n0sc1:n0sc2,Npl,rows), &
+                   total_currents_from_file (7,n0sc1:n0sc2,rows))
 
           ! Reading data and storing to variable 'data'
           call read_data(iw,rows,cols,data)
@@ -479,7 +485,11 @@ contains
               end if
 
               ! Allocating variables to read and sort data
-              allocate(data(rows,cols),x(rows,idc),currents_from_file(7,n0sc1:n0sc2,Npl,rows),total_currents_from_file(7,n0sc1:n0sc2,rows),mangles(rows,Npl,2))
+              allocate(data (rows,cols), &
+                       x (rows,idc), &
+                       currents_from_file       (7,n0sc1:n0sc2,Npl,rows), &
+                       total_currents_from_file (7,n0sc1:n0sc2,rows), &
+                       mangles (rows,Npl,2))
               ! Reading data and storing to variable 'data'
               call read_data(iw,rows,cols,data)
               ! Getting fields list
@@ -586,7 +596,7 @@ contains
     use mod_parameters
     use mod_constants, only: zero
     use mod_currents
-    use mod_lattice
+    use mod_system, only: l_nn
     implicit none
     integer      :: i,j,neighbor
 
