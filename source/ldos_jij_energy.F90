@@ -3,8 +3,8 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
   use mod_f90_kind
   use mod_constants
   use mod_parameters
-  use mod_generate_kpoints
   use mod_progress
+  use mod_system, only: nkpt, kbz, wkbz
   use mod_magnet, only: hdel,mz
   use mod_mpi_pars
 !$  use omp_lib
@@ -43,11 +43,11 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
 !$  end if
 
 !$omp do reduction(+:ldosu,ldosd,Jijint)
-  kpoints: do iz=1,nkpoints
+  kpoints: do iz=1,nkpt
 !$  if((mythread==0)) then
-      if(lverbose) call progress_bar(outputunit_loop,"kpoints",iz,nkpoints)
+      if(lverbose) call progress_bar(outputunit_loop,"kpoints",iz,nkpt)
 !$  end if
-    kp = kbz(iz,:)
+    kp = kbz(:,iz)
 
     ! Green function on energy E + ieta, and wave vector kp
     call green(e,eta,kp,gf)
