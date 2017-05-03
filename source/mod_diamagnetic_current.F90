@@ -1,6 +1,5 @@
 module mod_diamagnetic_current
-  use mod_f90_kind
-  use mod_parameters
+  use mod_f90_kind, only: double
   implicit none
 
   ! Diamagnetic current for each neighbor and each plane
@@ -8,8 +7,9 @@ module mod_diamagnetic_current
 contains
   ! This subroutine allocates variables related to the diamagnetic current
   subroutine allocate_idia()
-    use mod_mpi_pars, only: myrank
+    use mod_mpi_pars,   only: myrank
     use mod_parameters, only: n0sc1,n0sc2,Npl
+    use mod_system,     only: l_nn
     implicit none
 
     if(myrank==0) allocate( Idia_total(n0sc1:n0sc2,Npl) )
@@ -19,27 +19,27 @@ contains
 
   ! This subroutine deallocates variables related to the diamagnetic current
   subroutine deallocate_idia()
-    use mod_mpi_pars
+    use mod_mpi_pars, only: myrank
     implicit none
-
     if(myrank==0) deallocate( Idia_total )
-
     return
   end subroutine deallocate_idia
 
   ! ---------- Diamagnetic current: Energy integration ---------
   subroutine calculate_idia()
-    use mod_f90_kind
-    use mod_constants
+    use mod_f90_kind,         only: double
+    use MPI,                  only: MPI_INTEGER, MPI_DOUBLE_PRECISION, MPI_SOURCE, MPI_ANY_TAG, MPI_ANY_SOURCE, MPI_COMM_WORLD
+    use mod_mpi_pars,         only: myrank, numprocs, stat, ierr
+    use mod_generate_epoints, only: y, wght
+    use mod_progress,         only: progress_bar
+    use mod_system,           only: l_nn
     use mod_parameters
-    use mod_generate_epoints
-    use mod_progress
-    use mod_mpi_pars
-    use MPI
+
     implicit none
+
     integer           :: i,j
     real(double),dimension(n0sc1:n0sc2,Npl) :: Idia
-  !--------------------- begin MPI vars --------------------
+    !--------------------- begin MPI vars --------------------
     integer :: ix,itask
     integer :: ncount
     ncount=n0sc*Npl
@@ -103,8 +103,8 @@ contains
     use mod_f90_kind
     use mod_constants
     use mod_parameters, only: Npl,n0sc1,n0sc2,llineargfsoc
-    use mod_lattice
-    use mod_generate_kpoints
+    use mod_system, only: l_nn, r_nn, nkpt, kbz, wkbz
+    !use mod_generate_kpoints
     use mod_mpi_pars
 !$  use omp_lib
     implicit none
@@ -133,11 +133,11 @@ contains
 !$  end if
 
 !$omp do reduction(+:pij,gij,gji)
-    kpoints: do iz=1,nkpoints
-      kp = kbz(iz,:)
+    kpoints: do iz=1,nkpt
+      kp = kbz(:,iz)
 
       do neighbor=n0sc1,n0sc2
-        expikr(neighbor) = exp(-zi*dot_product(kp, r0(neighbor,:)))
+        expikr(neighbor) = exp(-zi*dot_product(kp, r_nn(:,neighbor)))
       end do
 
       ! Calculating derivative of in-plane and n.n. inter-plane hoppings
@@ -150,11 +150,13 @@ contains
         call green(e,ep,kp,gf)
       end if
 
-      do neighbor=n0sc1,n0sc2 ; do i=1,Npl
-        pij(neighbor,i,:,:) = pij(neighbor,i,:,:) + expikr(neighbor)*dtdk(i,i,:,:)*wkbz(iz)
-        gij(neighbor,i,:,:) = gij(neighbor,i,:,:) + expikr(neighbor)*gf(i,i,:,:)*wkbz(iz)
-        gji(neighbor,i,:,:) = gji(neighbor,i,:,:) + conjg(expikr(neighbor))*gf(i,i,:,:)*wkbz(iz)
-      end do ; end do
+      do neighbor=n0sc1,n0sc2
+        do i=1,Npl
+          pij(neighbor,i,:,:) = pij(neighbor,i,:,:) + expikr(neighbor)*dtdk(i,i,:,:)*wkbz(iz)
+          gij(neighbor,i,:,:) = gij(neighbor,i,:,:) + expikr(neighbor)*gf(i,i,:,:)*wkbz(iz)
+          gji(neighbor,i,:,:) = gji(neighbor,i,:,:) + conjg(expikr(neighbor))*gf(i,i,:,:)*wkbz(iz)
+        end do
+      end do
 
   !       !$omp critical
   !       do neighbor=n0sc1,n0sc2 ; do i=1,Npl ; do mu=1,9 ; do nu=1,9
@@ -190,12 +192,18 @@ contains
       ! stop
 
     Idia = 0.d0
-    do neighbor=n0sc1,n0sc2 ; do i=1,Npl ; do mu=1,9 ; do nu=1,9
-      mup = mu+9
-      nup = nu+9
-      ! Idia(neighbor,i) = Idia(neighbor,i) + zi*pij(neighbor,i,mu,nu)*aimag(gij(neighbor,i,nu,mu)+gji(neighbor,i,mu,nu)+gij(neighbor,i,nup,mup)+gji(neighbor,i,mup,nup))
-      Idia(neighbor,i) = Idia(neighbor,i) + real(pij(neighbor,i,mu,nu)*( (gji(neighbor,i,nu,mu)+gij(neighbor,i,mu,nu)) + (gji(neighbor,i,nup,mup)+gij(neighbor,i,mup,nup)) ))/pi
-    end do ; end do ; end do ; end do
+    do neighbor=n0sc1,n0sc2
+      do i=1,Npl
+        do mu=1,9
+          do nu=1,9
+            mup = mu+9
+            nup = nu+9
+            ! Idia(neighbor,i) = Idia(neighbor,i) + zi*pij(neighbor,i,mu,nu)*aimag(gij(neighbor,i,nu,mu)+gji(neighbor,i,mu,nu)+gij(neighbor,i,nup,mup)+gji(neighbor,i,mup,nup))
+            Idia(neighbor,i) = Idia(neighbor,i) + real(pij(neighbor,i,mu,nu)*( (gji(neighbor,i,nu,mu)+gij(neighbor,i,mu,nu)) + (gji(neighbor,i,nup,mup)+gij(neighbor,i,mup,nup)) ))/pi
+          end do
+        end do
+      end do
+    end do
 
     return
   end subroutine sumk_idia
