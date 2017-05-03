@@ -19,20 +19,26 @@ contains
     integer           :: AllocateStatus
 
     if(myrank_row==0) then
-      allocate( currents(7,n0sc1:n0sc2,Npl),total_currents(7,n0sc1:n0sc2),dc_currents(3,Npl), STAT = AllocateStatus )
+      allocate( currents       (7, n0sc1:n0sc2, Npl), &
+                total_currents (7, n0sc1:n0sc2), &
+                dc_currents    (3, Npl), STAT = AllocateStatus )
       if (AllocateStatus/=0) then
          write(outputunit,"('[allocate_currents] Not enough memory for: currents,total_currents,dc_currents')")
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
       if(renorm) then
-        allocate( rcurrents(7,n0sc1:n0sc2,Npl),rtotal_currents(7,n0sc1:n0sc2), STAT = AllocateStatus )
+        allocate( rcurrents       (7, n0sc1:n0sc2, Npl), &
+                  rtotal_currents (7, n0sc1:n0sc2), STAT = AllocateStatus )
         if (AllocateStatus/=0) then
           write(outputunit,"('[allocate_currents] Not enough memory for: rcurrents,rtotal_currents')")
           call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
         end if
       end if
     end if
-    allocate( ttchiorbiikl(n0sc1:n0sc2,dimsigmaNpl,4),Lxttchiorbiikl(n0sc1:n0sc2,dimsigmaNpl,4),Lyttchiorbiikl(n0sc1:n0sc2,dimsigmaNpl,4),Lzttchiorbiikl(n0sc1:n0sc2,dimsigmaNpl,4), STAT = AllocateStatus  )
+    allocate( ttchiorbiikl   (n0sc1:n0sc2, dimsigmaNpl,4), &
+              Lxttchiorbiikl (n0sc1:n0sc2, dimsigmaNpl,4), &
+              Lyttchiorbiikl (n0sc1:n0sc2, dimsigmaNpl,4), &
+              Lzttchiorbiikl (n0sc1:n0sc2, dimsigmaNpl,4), STAT = AllocateStatus  )
     if (AllocateStatus/=0) then
       write(outputunit,"('[allocate_currents] Not enough memory for: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl')")
       call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
@@ -80,6 +86,7 @@ contains
   subroutine openclose_currents_files(iflag)
     use mod_parameters
     use mod_mpi_pars
+    use mod_system, only: nkpt
     implicit none
 
     character(len=500)  :: varm
@@ -386,6 +393,7 @@ contains
   subroutine openclose_dc_currents_files(iflag)
     use mod_parameters
     use mod_mpi_pars
+    use mod_system, only:nkpt
     implicit none
 
     character(len=500)  :: varm
