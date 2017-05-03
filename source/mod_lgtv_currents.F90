@@ -40,6 +40,7 @@ contains
   subroutine openclose_lgtv_files(iflag)
     use mod_parameters
     use mod_mpi_pars
+    use mod_system, only: nkpt
     implicit none
 
     character(len=500)  :: varm
@@ -149,6 +150,7 @@ contains
   subroutine openclose_dc_lgtv_files(iflag)
     use mod_parameters
     use mod_mpi_pars
+    use mod_system, only: nkpt
     implicit none
 
     character(len=500)  :: varm
@@ -357,7 +359,7 @@ contains
     use mod_progress
     use mod_currents
     use mod_mpi_pars
-    use mod_lattice
+    use mod_system, only: l_nn
     use mod_tools
     implicit none
     character(len=50) :: formatvar
@@ -389,7 +391,10 @@ contains
           ! Obtaining number of rows and cols in the file
           call number_of_rows_cols(iw,rows,cols)
           ! Allocating variables to read and store data
-          allocate(data(rows,cols),e(rows),currents_from_file(7,n0sc1:n0sc2,Npl,rows),total_currents_from_file(7,n0sc1:n0sc2,rows))
+          allocate(data (rows,cols), &
+                   e (rows), &
+                   currents_from_file       (7,n0sc1:n0sc2,Npl,rows), &
+                   total_currents_from_file (7,n0sc1:n0sc2,rows))
 
           ! Reading data and storing to variable 'data'
           call read_data(iw,rows,cols,data)
@@ -501,7 +506,11 @@ contains
               end if
 
               ! Allocating variables to read and sort data
-              allocate(data(rows,cols),x(rows,idc),currents_from_file(7,n0sc1:n0sc2,Npl,rows),total_currents_from_file(7,n0sc1:n0sc2,rows),mangles(rows,Npl,2))
+              allocate(data(rows,cols), &
+                       x(rows,idc), &
+                       currents_from_file       (7,n0sc1:n0sc2,Npl,rows), &
+                       total_currents_from_file (7,n0sc1:n0sc2,rows), &
+                       mangles(rows,Npl,2))
               mangles = 999.d0
               ! Reading data and storing to variable 'data'
               call read_data(iw,rows,cols,data)
@@ -606,7 +615,7 @@ contains
     use mod_parameters
     use mod_constants, only: zero
     use mod_currents
-    use mod_lattice
+    use mod_system, only: l_nn
     implicit none
     integer      :: i,j,neighbor
 
