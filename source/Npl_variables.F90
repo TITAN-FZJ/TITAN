@@ -4,7 +4,7 @@ subroutine allocate_Npl_variables()
   use mod_magnet
   use mod_tight_binding
   use mod_mpi_pars
-  use mod_lattice, only: n0
+  use mod_system, only: pln_cnt
   implicit none
   integer           :: AllocateStatus
 
@@ -33,7 +33,7 @@ subroutine allocate_Npl_variables()
     write(outputunit,"('[main] Not enough memory for: hhwx,hhwy,hhwz,sb,lb')")
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
-  allocate(sha_longitudinal(n0),sha_transverse(n0),long_cos(n0),transv_cos(n0))
+  allocate(sha_longitudinal(pln_cnt(1)),sha_transverse(pln_cnt(1)),long_cos(pln_cnt(1)),transv_cos(pln_cnt(1)))
 
   return
 end subroutine allocate_Npl_variables
@@ -43,7 +43,7 @@ subroutine deallocate_Npl_variables()
   use mod_parameters
   use mod_magnet
   use mod_tight_binding
-  use mod_lattice
+  use mod_system, only: npln
   implicit none
 
   deallocate(sigmai2i,sigmaimunu2i,sigmaijmunu2i,eps1)
@@ -52,7 +52,7 @@ subroutine deallocate_Npl_variables()
   if(lGSL) deallocate(lxm,lym,lzm,lxpm,lypm,lzpm)
   deallocate(mmlayer,layertype,U,mmlayermag,lambda,npart0)
   deallocate(hhwx,hhwy,hhwz,sb,lb)
-  select case (plnn)
+  select case (npln)
   case(1)
     deallocate(t00,t01)
   case(2)
