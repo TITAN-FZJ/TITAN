@@ -10,7 +10,8 @@ contains
   subroutine OAM_curr_hopping_times_L()
     use mod_magnet, only: lxp, lyp, lzp
     use mod_tight_binding
-    use mod_parameters, only: Npl, n0sc1, n0sc2
+    use mod_parameters, only: Npl
+    use mod_system, only: n0sc1, n0sc2
     use mod_constants, only: zero
     integer         :: i,mu,nu,neighbor,alpha
 
@@ -32,8 +33,9 @@ contains
   end subroutine OAM_curr_hopping_times_L
 
   subroutine allocate_prefactors()
-    use mod_parameters, only: Npl, n0sc1, n0sc2
+    use mod_parameters, only: Npl
     use mod_constants, only: zero
+    use mod_system, only: n0sc1, n0sc2
 
     allocate(lxpt(Npl,n0sc1:n0sc2,9,9),lypt(Npl,n0sc1:n0sc2,9,9),lzpt(Npl,n0sc1:n0sc2,9,9),tlxp(Npl,n0sc1:n0sc2,9,9),tlyp(Npl,n0sc1:n0sc2,9,9),tlzp(Npl,n0sc1:n0sc2,9,9))
     return
