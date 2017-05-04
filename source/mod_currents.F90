@@ -7,6 +7,11 @@ module mod_currents
   ! Full response functions
   complex(double), dimension(:,:,:), allocatable :: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl
 
+  integer :: n0sc1 !< first neighbor to calculate the in-plane spin and charge current
+  integer :: n0sc2 !< last neighbor to calculate the in-plane spin and charge current
+  integer :: n0sc  !< Number of neighbors to calculate currents
+
+
 contains
 
   ! This subroutine allocates variables related to the current calculation
@@ -14,7 +19,7 @@ contains
     use mod_f90_kind
     use mod_mpi_pars
     use mod_prefactors,only: prefactor,prefactorlsoc
-    use mod_parameters, only: n0sc1,n0sc2,Npl,dimsigmaNpl,renorm,llinearsoc,dim,outputunit
+    use mod_parameters, only: Npl,dimsigmaNpl,renorm,llinearsoc,dim,outputunit
     implicit none
     integer           :: AllocateStatus
 
@@ -259,7 +264,7 @@ contains
   ! Some information is also written on the screen
   subroutine write_currents(e)
     use mod_f90_kind
-    use mod_parameters, only: Npl,renorm,n0sc1,n0sc2,outputunit_loop,lwriteonscreen,mmlayermag
+    use mod_parameters, only: Npl,renorm,outputunit_loop,lwriteonscreen,mmlayermag
     use mod_magnet, only: mvec_spherical
     implicit none
     integer  :: neighbor,i,j,iw
@@ -707,7 +712,7 @@ contains
   ! This subroutine sorts current files
   subroutine sort_currents()
     use mod_f90_kind
-    use mod_parameters, only: Npl,renorm,n0sc1,n0sc2,itype
+    use mod_parameters, only: Npl,renorm,itype
     use mod_tools, only: sort_file
     implicit none
     integer  :: neighbor,i,j,iw,idc=1
