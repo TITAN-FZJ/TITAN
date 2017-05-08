@@ -347,7 +347,7 @@ contains
     use mod_progress
     use mod_currents
     use mod_mpi_pars
-    use mod_system, only: l_nn
+    use mod_system, only: n0sc1, n0sc2
     use mod_tools
     implicit none
     character(len=50) :: formatvar
@@ -596,7 +596,7 @@ contains
     use mod_parameters
     use mod_constants, only: zero
     use mod_currents
-    use mod_system, only: l_nn
+    use mod_system, only: n0sc1, n0sc2
     implicit none
     integer      :: i,j,neighbor
 
