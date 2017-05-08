@@ -15,6 +15,7 @@ contains
     integer             :: i,err
     logical,intent(out) :: lsuccess
 
+    lsuccess = .false.
     call read_write_sc_results(0,err,lsuccess)
 
     if(lsuccess) then
@@ -90,7 +91,7 @@ contains
     use mod_parameters
     use mod_mpi_pars, only: myrank_row_hw
     use mod_tight_binding
-    use mod_lattice, only: plnn
+    use mod_system, only: npln
     implicit none
     integer :: i,err,sign
     logical :: lsuccess
@@ -119,7 +120,7 @@ contains
     deallocate(mabs,mtheta,mphi,labs,ltheta,lphi,lpabs,lptheta,lpphi)
     if(lGSL) deallocate(lxm,lym,lzm,lxpm,lypm,lzpm)
     deallocate(mmlayer,layertype,U,mmlayermag,lambda,npart0)
-    select case (plnn)
+    select case (npln)
     case(1)
       deallocate(t00,t01)
     case(2)
@@ -317,15 +318,15 @@ contains
     use mod_parameters
     use mod_magnet
     use mod_mpi_pars
+    use mod_system, only: nkpt
     implicit none
-    character(len=300)  :: file
+    character(len=300)  :: file = ""
     character(len=100)  :: fieldpart,socpart,folder,prefix
     integer,intent(in)  :: iflag
     integer,intent(out) :: err
     logical,intent(out) :: lsuccess
     integer             :: i
     real(double)        :: previous_results(Npl,4)
-
     if((trim(scfile)/="").and.(iflag==0)) then
       open(unit=99,file=scfile,status="old",iostat=err)
       if(err/=0) then
@@ -334,7 +335,6 @@ contains
       end if
       close(99)
     end if
-
     folder    = "./results/selfconsistency/"
     prefix    = "selfconsistency_"
     fieldpart = ""
@@ -350,7 +350,6 @@ contains
       if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
       if((llineargfsoc).or.(llinearsoc)) socpart = trim(socpart) // "_linearsoc"
     end if
-
     lsuccess = .false.
   !   Reading previous results (mx, my, mz and eps1) from files (if available)
     if(iflag==0) then
@@ -1356,9 +1355,9 @@ contains
     use mod_f90_kind
     use mod_constants
     use mod_parameters
-    use mod_generate_kpoints
     use mod_progress
     use mod_mpi_pars
+    use mod_system, only: nkpt, kbz, wkbz
   !$  use omp_lib
     implicit none
   !$  integer     :: nthreads,mythread
@@ -1384,12 +1383,12 @@ contains
   !$  end if
 
   !$omp do
-    kpoints: do iz=1,nkpoints
+    kpoints: do iz=1,nkpt
   !$  if((mythread==0)) then
-        if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"densities kpoints",iz,nkpoints)
+        if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"densities kpoints",iz,nkpt)
   !$   end if
 
-      kp = kbz(iz,:)
+      kp = kbz(:,iz)
 
       ! Green function on energy Ef + iy, and wave vector kp
       if((llineargfsoc).or.(llinearsoc)) then
@@ -1420,9 +1419,9 @@ contains
     use mod_f90_kind
     use mod_constants
     use mod_parameters
-    use mod_generate_kpoints
     use mod_progress
     use mod_mpi_pars
+    use mod_system, only: nkpt, kbz, wkbz
 !$  use omp_lib
     implicit none
 !$  integer                  :: nthreads,mythread
@@ -1470,12 +1469,12 @@ contains
     end if
 
 !$omp do reduction(+:ggr)
-    kpoints: do iz=1,nkpoints
+    kpoints: do iz=1,nkpt
 !$  if((mythread==0)) then
-        if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"jacobian kpoints",iz,nkpoints)
+        if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"jacobian kpoints",iz,nkpt)
 !$   end if
 
-      kp = kbz(iz,:)
+      kp = kbz(:,iz)
       wkbzc = cmplx(wkbz(iz),0.d0)
 
       ! Green function on energy Ef + iy, and wave vector kp
