@@ -1,12 +1,12 @@
 ! ---------- Parallel spin current: Energy integration ---------
 subroutine eintshe(e)
-  use mod_constants
-  use mod_parameters
-  use mod_generate_epoints
-  use mod_f90_kind
+  use mod_system,           only: n0sc1, n0sc2, n0sc
+  use mod_f90_kind,         only: double
+  use mod_currents,         only: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl
+  use mod_parameters,       only: outputunit, outputunit_loop, llinearsoc, lverbose, dim, dimsigmanpl, host, pn1
+  use mod_disturbances,     only: tchiorbiikl
+  use mod_generate_epoints, only: y, wght, nepoints, x2, p2, generate_real_epoints
   use mod_mpi_pars
-  use mod_disturbances, only: tchiorbiikl
-  use mod_currents, only: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl
   implicit none
   integer           :: AllocateStatus
   integer           :: i
