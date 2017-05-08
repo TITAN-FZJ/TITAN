@@ -22,4 +22,9 @@ last_compilation
 *.jpg
 *.nb
 results*
-
+fcc111*
+bcc110*
+fcc100*
+source/legacy*
+bin/*
+build/*
