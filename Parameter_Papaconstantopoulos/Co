@@ -1,0 +1,28 @@
+6.54
+0.005666
+0.7010
+0 1 11
+s on-site	 1.1294561625      1                            Co
+  p on-site	 1.7526212931      2                            Co
+  t2g on-site	 0.6054722667      3                            Co
+   eg on-site	 0.6044489145      4                            Co
+  sss 1st nn	-0.0904335380      5                            Co
+  pps 1st nn	 0.2374771684      6                            Co
+  ppp 1st nn	-0.0014205084      7                            Co
+  dds 1st nn	-0.0421276167      8                            Co
+  ddp 1st nn	 0.0297612343      9                            Co
+  ddd 1st nn	-0.0068388805     10                            Co
+  sps 1st nn	 0.1364858747     11                            Co
+  sds 1st nn	-0.0380593911     12                            Co
+  pds 1st nn	-0.0406895205     13                            Co
+  pdp 1st nn	 0.0279652234     14                            Co
+  sss 2nd nn	-0.0033726902     15                            Co
+  pps 2nd nn	 0.0284892824     16                            Co
+  ppp 2nd nn	 0.0109884273     17                            Co
+  dds 2nd nn	-0.0075941500     18                            Co
+  ddp 2nd nn	 0.0049518463     19                            Co
+  ddd 2nd nn	-0.0001581584     20                            Co
+  sps 2nd nn	 0.0013494873     21                            Co
+  sds 2nd nn	-0.0111941742     22                            Co
+  pds 2nd nn	-0.0106077287     23                            Co
+  pdp 2nd nn	 0.0113362744     24                            Co

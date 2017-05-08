@@ -1,0 +1,38 @@
+5.98
+0.019
+0.8320
+0.86 0.40 4.74
+s on-site	 0.9986051321      1                             W
+  p on-site	 1.6852056980      2                             W
+  t2g on-site	 0.9681258202      3                             W
+   eg on-site	 0.8572018147      4                             W
+  sss 1st nn	-0.1125815958      5                             W
+  pps 1st nn	 0.1933122426      6                             W
+  ppp 1st nn	 0.0478738360      7                             W
+  dds 1st nn	-0.1183714643      8                             W
+  ddp 1st nn	 0.0519373268      9                             W
+  ddd 1st nn	 0.0024849051     10                             W
+  sps 1st nn	 0.0994478017     11                             W
+  sds 1st nn	-0.1130102500     12                             W
+  pds 1st nn	-0.1813566983     13                             W
+  pdp 1st nn	 0.0242393967     14                             W
+  sss 2nd nn	-0.0249815378     15                             W
+  pps 2nd nn	 0.2270370275     16                             W
+  ppp 2nd nn	-0.0084842788     17                             W
+  dds 2nd nn	-0.0731276721     18                             W
+  ddp 2nd nn	-0.0126434723     19                             W
+  ddd 2nd nn	 0.0090760300     20                             W
+  sps 2nd nn	 0.0800095573     21                             W
+  sds 2nd nn	-0.0503944121     22                             W
+  pds 2nd nn	-0.1054989621     23                             W
+  pdp 2nd nn	-0.0074986517     24                             W
+  sss 3rd nn	 0.0114324428     25                             W
+  pps 3rd nn	 0.0422814526     26                             W
+  ppp 3rd nn	-0.0082206232     27                             W
+  dds 3rd nn	 0.0128193293     28                             W
+  ddp 3rd nn	-0.0031320085     29                             W
+  ddd 3rd nn	 0.0011763247     30                             W
+  sps 3rd nn	-0.0028549053     31                             W
+  sds 3rd nn	 0.0099670077     32                             W
+  pds 3rd nn	-0.0041427002     33                             W
+  pdp 3rd nn	 0.0014605124     34                             W
