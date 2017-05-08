@@ -1,13 +1,13 @@
 ! -------- sum over wave vectors to calculate parallel spin current --------
 subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,iflag)
-  use mod_f90_kind
-  use mod_parameters
-  use mod_constants
-  use mod_system, only: l_nn, r_nn, npln, nkpt, kbz, wkbz
+  use mod_system,        only: r_nn, npln, nkpt, kbz, wkbz, n0sc1, n0sc2
+  use mod_mpi_pars,      only: myrank_row_hw, MPI_COMM_WORLD, errorcode, ierr
+  use mod_f90_kind,      only: double
+  use mod_constants,     only: zero, zum, zi, tpi
+  use mod_prefactors,    only: prefactor, lxpt, lypt, lzpt, tlxp, tlyp, tlzp
+  use mod_parameters,    only: outputunit, outputunit_loop, dim, dimsigmaNpl, lverbose, llineargfsoc, ef, sigmaimunu2i, Npl, eta, sigmai2i
   use mod_tight_binding, only: t00
-  use mod_prefactors
   use mod_progress
-  use mod_mpi_pars
 !$  use omp_lib
   implicit none
 !$  integer       :: nthreads,mythread
@@ -209,10 +209,10 @@ end subroutine sumk
 
 ! -------- sum over wave vectors to calculate parallel spin current --------
 subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,iflag)
-  use mod_f90_kind
+  use mod_f90_kind, only: double
   use mod_parameters
   use mod_constants
-  use mod_system, only: l_nn, r_nn, npln, nkpt, kbz, wkbz
+  use mod_system, only: r_nn, npln, nkpt, kbz, wkbz, n0sc1, n0sc2
   use mod_tight_binding, only: t00
   use mod_prefactors
   use mod_progress
