@@ -1,5 +1,5 @@
 module mod_prefactors
-  use mod_f90_kind
+  use mod_f90_kind, only: double
   implicit none
   complex(double), dimension(:,:), allocatable  :: prefactor,prefactorlsoc
   complex(double),dimension(:,:,:,:), allocatable :: lxpt,lypt,lzpt,tlxp,tlyp,tlzp
@@ -8,11 +8,12 @@ contains
 
   ! Calculates matrices hopping x angular momentum matrix for orbital angular momentum current calculation
   subroutine OAM_curr_hopping_times_L()
-    use mod_magnet, only: lxp, lyp, lzp
-    use mod_tight_binding
-    use mod_parameters, only: Npl
-    use mod_system, only: n0sc1, n0sc2
-    use mod_constants, only: zero
+    use mod_magnet,        only: lxp, lyp, lzp
+    use mod_tight_binding, only: t00
+    use mod_parameters,    only: Npl
+    use mod_system,        only: n0sc1, n0sc2
+    use mod_constants,     only: zero
+    implicit none
     integer         :: i,mu,nu,neighbor,alpha
 
     lxpt = zero
@@ -36,13 +37,13 @@ contains
     use mod_parameters, only: Npl
     use mod_constants, only: zero
     use mod_system, only: n0sc1, n0sc2
-
+    implicit none
     allocate(lxpt(Npl,n0sc1:n0sc2,9,9),lypt(Npl,n0sc1:n0sc2,9,9),lzpt(Npl,n0sc1:n0sc2,9,9),tlxp(Npl,n0sc1:n0sc2,9,9),tlyp(Npl,n0sc1:n0sc2,9,9),tlzp(Npl,n0sc1:n0sc2,9,9))
     return
   end subroutine allocate_prefactors
 
   subroutine deallocate_prefactors()
-
+    implicit none
     deallocate(lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
     return
   end subroutine deallocate_prefactors
