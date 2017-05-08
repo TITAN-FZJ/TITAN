@@ -8,8 +8,8 @@ contains
   ! This subroutine allocates variables related to the diamagnetic current
   subroutine allocate_idia()
     use mod_mpi_pars,   only: myrank
-    use mod_parameters, only: n0sc1,n0sc2,Npl
-    use mod_system,     only: l_nn
+    use mod_parameters, only: Npl
+    use mod_system,     only: n0sc1, n0sc2
     implicit none
 
     if(myrank==0) allocate( Idia_total(n0sc1:n0sc2,Npl) )
@@ -32,7 +32,7 @@ contains
     use mod_mpi_pars,         only: myrank, numprocs, stat, ierr
     use mod_generate_epoints, only: y, wght
     use mod_progress,         only: progress_bar
-    use mod_system,           only: l_nn
+    use mod_system,           only: n0sc1, n0sc2, n0sc
     use mod_parameters
 
     implicit none
@@ -102,8 +102,8 @@ contains
   subroutine sumk_idia(e,ep,Idia)
     use mod_f90_kind
     use mod_constants
-    use mod_parameters, only: Npl,n0sc1,n0sc2,llineargfsoc
-    use mod_system, only: l_nn, r_nn, nkpt, kbz, wkbz
+    use mod_parameters, only: Npl,llineargfsoc
+    use mod_system, only: n0sc1, n0sc2, r_nn, nkpt, kbz, wkbz
     !use mod_generate_kpoints
     use mod_mpi_pars
 !$  use omp_lib
