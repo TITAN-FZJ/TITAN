@@ -131,7 +131,7 @@ contains
   end subroutine
 
   subroutine Papa_2C_param()
-    use mod_parameters, only: Npl, nmaglayers, U
+    use mod_parameters, only: Npl, nmaglayers, U, Ef
     use mod_system, only: nstages, npln, c_nn, l_nn
     use mod_f90_kind, only: double
     implicit none
@@ -171,6 +171,7 @@ contains
       end do
     end do
 
+    Ef = fermi(fermi_layer)
     ! Inter-plane hopping
     do i = 1, Npl
 
