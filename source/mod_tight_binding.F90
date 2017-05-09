@@ -80,7 +80,8 @@ contains
     character(200) :: line
     character(50) :: words(10)
     open(unit=995594, file=trim(name), iostat=ios)
-    if(ios == 0) return
+    if(ios /= 0) return
+    line_count = 0
 
     ! Counting lines to determine whether the parameter are available for nn_stages next neighbours
     read(unit=995594, fmt='(A)', iostat=ios) line
@@ -182,7 +183,7 @@ contains
 
       do k = 1, loc_pln
         do j = 1, nstages
-          mix_t = sqrt(hopping(:, j, i)) * sqrt(hopping(:, j, i+k-1))
+          mix_t(1:10) = 0.5d0 * ( hopping(1:10, j, i) + hopping(1:10, j, i+k-1) ) ! sqrt(hopping(1:10, j, i)) * sqrt(hopping(1:10, j, i+k-1))
           do l = l_nn(j,k), l_nn(j+1,k)-1
             w = c_nn(:,l)
             call intd(mix_t(1), mix_t(2), mix_t(3), &
