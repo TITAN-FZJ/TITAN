@@ -117,7 +117,7 @@ program TITAN
     else
       Npl_input = Npl
     end if
-    call define_system()
+    if(tbmode == 2) call define_system()
 !---------------------- Tight Binding parameters -----------------------
     call tb_hopping()
 !---------------------- Lattice specific variables ---------------------
