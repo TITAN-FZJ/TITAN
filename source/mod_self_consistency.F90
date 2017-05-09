@@ -1445,6 +1445,7 @@ contains
     use mod_f90_kind
     use mod_constants
     use mod_parameters
+    use mod_tight_binding, only: tbmode
     use mod_progress
     use mod_mpi_pars
     use mod_system, only: nkpt, kbz, wkbz
@@ -1452,7 +1453,7 @@ contains
     implicit none
 !$  integer                  :: nthreads,mythread
     integer                  :: AllocateStatus
-    integer                  :: iz,i,j,i0,j0,mu,sigma,sigmap
+    integer                  :: iz,i,j,i0,j0,mu,sigma,sigmap, offset
     real(double)             :: kp(3)
     real(double),intent(in)  :: er,ei
     real(double),dimension(4*Npl,4*Npl),intent(out) :: ggr
@@ -1473,9 +1474,11 @@ contains
     pauli_components2(2:4,:,:) = pauli_dorb(:,:,:)
 
   ! Prefactor -U/2 in dH/dm and 1 in dH/deps1
+    offset = 0
+    if(tbmode == 2) offset = 1
     do j=1,Npl
       mhalfU(1,j) = zum
-      mhalfU(2:4,j) = -0.5d0*U(j+1)
+      mhalfU(2:4,j) = -0.5d0*U(j+offset)
     end do
 
     ggr    = 0.d0
