@@ -492,7 +492,7 @@ contains
     use mod_progress
     use mod_mpi_pars
     implicit none
-    integer  :: N,i,j,iflag
+    integer  :: N,i,j,iflag, offset
     integer,           intent(inout) :: iuser(*)
     real(double),      intent(inout) :: ruser(*)
     real(double),dimension(N)        :: x,fvec
@@ -625,10 +625,12 @@ contains
       mx      = real(mp)
       my      = aimag(mp)
 
+      offset = 0
+      if(tbmode == 2) offset = 1
       do i=1,Npl
         ! Number of particles
         n_t(i) = sum(n_orb_t(i,:))
-        fvec(i)   = n_t(i) - npart0(i+1)
+        fvec(i)   = n_t(i) - npart0(i+offset)
         ! x-component of magnetization
         j = i+Npl
         fvec(j)  = mx(i) - mx_in(i)
