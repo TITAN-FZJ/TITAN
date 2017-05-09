@@ -57,7 +57,7 @@ while (( "$#" )); do
    esac
 done
 
-cd ../
+cd $( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 # echo "make $rule $platform $parallel $debug $perform $filename $verbose"
 
