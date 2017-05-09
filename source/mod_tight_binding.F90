@@ -75,6 +75,7 @@ contains
     real(double), intent(out), dimension(4) :: on_site
     real(double), intent(out), dimension(10, nstages) :: hopping
     real(double), intent(out) :: lambda
+    real(double), dimension(3) :: dens
     integer :: i, j, k, ios, line_count = 0
     integer :: exponent(10)
     character(200) :: line
@@ -105,6 +106,8 @@ contains
     read(unit= line, fmt=*, iostat=ios) fermi
 
     read(unit=995594, fmt='(A)', iostat = ios) line
+    read(unit= line, fmt=*, iostat=ios) dens(1), dens(2), dens(3)
+    npart0 = dens(1)+dens(2)+dens(3)
     !TODO: Densities
 
     a0_param = a0_param / a0  ! Scaling law by Andersen et al. O.K. Andersen, O. Jepsen, Physica 91B, 317 (1977); O.K. Andersen, W. Close. H. Nohl, Phys. Rev. B17, 1209 (1978)
