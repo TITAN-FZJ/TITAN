@@ -70,7 +70,7 @@ contains
     allocate( cube_pos(3,(4*nstages+1)**3-1))
     allocate(cube_dist(2,(4*nstages+1)**3-1))
     allocate(stages_list(4*nstages))
-    allocate(planes_list(nstages))
+    allocate(planes_list(4*nstages))
 
     stages_list = 0.d0
     planes_list = 0.d0
