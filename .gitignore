@@ -11,7 +11,7 @@ old_files*
 *.pdf
 *.agr
 error*
-output*
+output/*
 *optrpt
 *genmod*
 *.pbs
@@ -21,7 +21,7 @@ last_compilation
 *.png
 *.jpg
 *.nb
-results*
+results/*
 fcc111*
 bcc110*
 fcc100*
