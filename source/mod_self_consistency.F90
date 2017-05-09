@@ -9,6 +9,7 @@ contains
     use mod_constants
     use mod_magnet
     use mod_parameters
+    use mod_tight_binding, only: tbmode
     use mod_mpi_pars, only: myrank_row_hw
     use mod_susceptibilities, only: lrot
     implicit none
@@ -63,9 +64,17 @@ contains
       mx = 0.d0
       my = 0.d0
       mz = sign(0.5d0,hw_list(hw_count,1))
-      do i=1,Npl
-        if(layertype(i+1)==2) mz(i) = sign(2.d0,hw_list(hw_count,1))
-      end do
+
+      if(tbmode == 2) then
+        do i=1,Npl
+          if(layertype(i+1)==2) mz(i) = sign(2.d0,hw_list(hw_count,1))
+        end do
+      else
+        do i=1,Npl
+          if(layertype(i) == 2) mz(i) = sign(2.d0, hw_list(hw_count,1))
+        end do
+      end if
+
       mp = zero
       if(lfield) then
         mx = mz*sin(hw_list(hw_count,2)*pi)*cos(hw_list(hw_count,3)*pi)
@@ -74,10 +83,17 @@ contains
         mp = cmplx(mx,my,double)
       end if
       ! Variables used in the hamiltonian
-      do i=1,Npl
-        hdel(i)   = 0.5d0*U(i+1)*mz(i)
-        hdelp(i)  = 0.5d0*U(i+1)*mp(i)
-      end do
+      if(tbmode == 2) then
+        do i=1,Npl
+          hdel(i)   = 0.5d0*U(i+1)*mz(i)
+          hdelp(i)  = 0.5d0*U(i+1)*mp(i)
+        end do
+      else
+        do i=1,Npl
+          hdel(i)  = 0.5d0 * U(i)*mz(i)
+          hdelp(i) = 0.5d0 * U(i)*mp(i)
+        end do
+      end if
       hdelm = conjg(hdelp)
     end if
 
@@ -472,7 +488,7 @@ contains
     use mod_f90_kind
     use mod_generate_epoints
     use mod_magnet
-    use mod_tight_binding, only: npart0
+    use mod_tight_binding, only: npart0, tbmode
     use mod_progress
     use mod_mpi_pars
     implicit none
@@ -500,10 +516,18 @@ contains
     my_in = x(2*Npl+1:3*Npl)
     mz_in = x(3*Npl+1:4*Npl)
     mp_in = mx_in+zi*my_in
-    do i=1,Npl
-      hdel(i)   = 0.5d0*U(i+1)*mz_in(i)
-      hdelp(i)  = 0.5d0*U(i+1)*mp_in(i)
-    end do
+
+    if(tbmode == 2) then
+      do i=1,Npl
+        hdel(i)   = 0.5d0*U(i+1)*mz_in(i)
+        hdelp(i)  = 0.5d0*U(i+1)*mp_in(i)
+      end do
+    else
+      do i=1,Npl
+        hdel(i)  = 0.5d0*U(i)*mz_in(i)
+        hdelp(i) = 0.5d0*U(i)*mp_in(i)
+      end do
+    end if
     hdelm = conjg(hdelp)
 
     if((myrank_row_hw==0).and.(iter==1)) then
