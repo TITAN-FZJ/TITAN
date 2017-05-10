@@ -4,7 +4,7 @@ subroutine allocate_Npl_variables()
   use mod_magnet
   use mod_tight_binding
   use mod_mpi_pars
-  use mod_lattice, only: n0
+  use mod_system, only: pln_cnt
   implicit none
   integer           :: AllocateStatus
 
@@ -23,17 +23,17 @@ subroutine allocate_Npl_variables()
     write(outputunit,"('[main] Not enough memory for: mabs,mtheta,mphi,labs,ltheta,lphi,lpabs,lptheta,lpphi')")
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
-  allocate( mmlayer(Npl+2),layertype(Npl+2),U(Npl+2),mmlayermag(Npl+2),lambda(Npl+2),npart0(Npl+2), STAT = AllocateStatus )
+  allocate( mmlayer(Npl_total),layertype(Npl_total),U(Npl_total),mmlayermag(Npl_total),lambda(Npl_total),npart0(Npl_total), STAT = AllocateStatus )
   if (AllocateStatus/=0) then
     write(outputunit,"('[main] Not enough memory for: mmlayer,layertype,U,mmlayermag,lambda,npart0')")
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
-  allocate( hhwx(Npl+2),hhwy(Npl+2),hhwz(Npl+2),sb(Npl+2,18,18),lb(Npl+2,18,18), STAT = AllocateStatus )
+  allocate( hhwx(Npl_total),hhwy(Npl_total),hhwz(Npl_total),sb(Npl_total,18,18),lb(Npl_total,18,18), STAT = AllocateStatus )
   if (AllocateStatus/=0) then
     write(outputunit,"('[main] Not enough memory for: hhwx,hhwy,hhwz,sb,lb')")
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
-  allocate(sha_longitudinal(n0),sha_transverse(n0),long_cos(n0),transv_cos(n0))
+  allocate(sha_longitudinal(pln_cnt(1)),sha_transverse(pln_cnt(1)),long_cos(pln_cnt(1)),transv_cos(pln_cnt(1)))
 
   return
 end subroutine allocate_Npl_variables
@@ -43,7 +43,6 @@ subroutine deallocate_Npl_variables()
   use mod_parameters
   use mod_magnet
   use mod_tight_binding
-  use mod_lattice
   implicit none
 
   deallocate(sigmai2i,sigmaimunu2i,sigmaijmunu2i,eps1)
@@ -52,12 +51,7 @@ subroutine deallocate_Npl_variables()
   if(lGSL) deallocate(lxm,lym,lzm,lxpm,lypm,lzpm)
   deallocate(mmlayer,layertype,U,mmlayermag,lambda,npart0)
   deallocate(hhwx,hhwy,hhwz,sb,lb)
-  select case (plnn)
-  case(1)
-    deallocate(t00,t01)
-  case(2)
-    deallocate(t00,t01,t02)
-  end select
+  deallocate(t0, t0i)
   deallocate(sha_longitudinal,sha_transverse,long_cos,transv_cos)
 
   return

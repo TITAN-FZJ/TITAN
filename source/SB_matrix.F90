@@ -2,7 +2,7 @@
 subroutine sb_matrix()
   use mod_f90_kind
   use mod_constants
-  use mod_parameters, only: Npl
+  use mod_parameters, only: Npl_total
   use mod_magnet
   implicit none
   integer :: i,mu,nu
@@ -11,7 +11,7 @@ subroutine sb_matrix()
 ! to take into account the fact that we are considering negative
 ! external fields to get the peak at positive energies
   sb = zero
-  do i=1,Npl+2 ; do mu=1,9
+  do i=1,Npl_total ; do mu=1,9
     nu=mu+9
     sb(i,mu,mu) = hhwz(i)
     sb(i,nu,nu) =-hhwz(i)

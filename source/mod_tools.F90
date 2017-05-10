@@ -33,7 +33,7 @@ contains
 
     is_parallel = .false.
     crs = cross(a,b)
-    if( 1.d-9 > crs(1)*crs(1) + crs(2)*crs(2) + crs(3)*crs(3) ) then
+    if( 1d-9 > dot_product(crs(1:3),crs(1:3)) ) then
        is_parallel = .true.
     end if
     return

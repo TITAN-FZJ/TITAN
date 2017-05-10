@@ -4,7 +4,7 @@ module mod_parameters
   !========================================================================================!
   integer,parameter :: dmax=20 !< Maximum dimension for Npl-dependent quantities that must be read from input
 !  integer       :: nkpt         !< Number of k-point generation vectors (S. Cunningham, Phys. Rev. B 10, 4988 (1974))
-  integer       :: nkpt        !< Number of generated k-points
+  !XXX: integer       :: nkpt        !< Number of generated k-points
   real(double)  :: eta         !< Small imaginary part included in the energy z = E + i.eta
   real(double)  :: Ef          !< Fermi energy (read from mod_tight_binding)
   real(double)  :: q(3)        !< q-vector for the dependence of response functions (not used yet)
@@ -17,14 +17,15 @@ module mod_parameters
   logical       :: lhfresponses = .false. !< Use HF susceptibilities to calculate currents, disturbances and accumulations (don't renormalize)
   !========================================================================================!
   ! Lattice and surface direction
-  character(len=6) :: lattice                   !< Lattice description; general(not implemented) or bcc, fcc, hcp, cubic
+  character(len=6) :: lattice                   !< Lattice description; general or bcc, fcc, hcp, cubic
   integer          :: Npl,Npl_i,Npl_f,Npl_input !< Description missing.
-  real(double)     :: a1(3), a2(3), a3(3)       !< Lattice unit vectors
-  real(double)     :: a1_pln(3), a2_pln(3)      !< In-plane lattice unit vectors
-  integer          :: nn_stages = 2             !< Number of next neighbor stages. (Default = 2)
-  real(double)     :: pln_dir(3)                !< Plane vector describing the layer in the unit cell described by a1,a2,a3
+  integer          :: Npl_total
+  !XXX: real(double)     :: a1(3), a2(3), a3(3)       !< Lattice unit vectors
+  !XXX: real(double)     :: a1_pln(3), a2_pln(3)      !< In-plane lattice unit vectors
+  !XXX: integer          :: nn_stages = 2             !< Number of next neighbor stages. (Default = 2)
+  !XXX: real(double)     :: pln_dir(3)                !< Plane vector describing the layer in the unit cell described by a1,a2,a3
   logical          :: bulk = .false.            !< Flag turning on/off bulk calculations, default: .false., not used yet
-  real(double)     :: a0                        !< Lattice parameter (define the units of distance in the program)
+  !XXX: real(double)     :: a0                        !< Lattice parameter (define the units of distance in the program)
   !========================================================================================!
   integer            :: magaxis                   !< Initial guess for magnetization
   !character(len=1)   :: magaxis                   !< Equilibrium magnetization
@@ -110,11 +111,14 @@ module mod_parameters
   ! Longitudinal and transverse, and Spin Hall Angle calculation
   integer, dimension(:),  allocatable :: sha_longitudinal,sha_transverse ! In-plane longitudinal and transverse neighbors
   real(double), dimension(:),  allocatable :: long_cos(:),transv_cos(:)  ! In-plane longitudinal and transverse cosines
+  integer :: longitudinal_neighbors
+  integer :: transverse_neighbors
+
   !========================================================================================!
   ! n0sc1 - first neighbor to calculate the in-plane spin and charge current
   ! n0sc2 - last neighbor to calculate the in-plane spin and charge current
   ! n0sc  - Number of neighbors to calculate currents
-  integer :: n0sc1,n0sc2,n0sc
+  ! integer :: n0sc1,n0sc2,n0sc
   !========================================================================================!
   ! Current renormalization
   logical :: renorm
@@ -154,4 +158,5 @@ module mod_parameters
   integer :: addlayers(10),naddlayers=0
   character(len=50) :: Npl_folder
   !========================================================================================!
+  integer :: offset = 0
 end module mod_parameters

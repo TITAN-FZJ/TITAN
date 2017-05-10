@@ -7,6 +7,8 @@ module mod_currents
   ! Full response functions
   complex(double), dimension(:,:,:), allocatable :: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl
 
+
+
 contains
 
   ! This subroutine allocates variables related to the current calculation
@@ -14,25 +16,32 @@ contains
     use mod_f90_kind
     use mod_mpi_pars
     use mod_prefactors,only: prefactor,prefactorlsoc
-    use mod_parameters, only: n0sc1,n0sc2,Npl,dimsigmaNpl,renorm,llinearsoc,dim,outputunit
+    use mod_parameters, only: Npl,dimsigmaNpl,renorm,llinearsoc,dim,outputunit
+    use mod_system, only: n0sc1, n0sc2
     implicit none
     integer           :: AllocateStatus
 
     if(myrank_row==0) then
-      allocate( currents(7,n0sc1:n0sc2,Npl),total_currents(7,n0sc1:n0sc2),dc_currents(3,Npl), STAT = AllocateStatus )
+      allocate( currents       (7, n0sc1:n0sc2, Npl), &
+                total_currents (7, n0sc1:n0sc2), &
+                dc_currents    (3, Npl), STAT = AllocateStatus )
       if (AllocateStatus/=0) then
          write(outputunit,"('[allocate_currents] Not enough memory for: currents,total_currents,dc_currents')")
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
       if(renorm) then
-        allocate( rcurrents(7,n0sc1:n0sc2,Npl),rtotal_currents(7,n0sc1:n0sc2), STAT = AllocateStatus )
+        allocate( rcurrents       (7, n0sc1:n0sc2, Npl), &
+                  rtotal_currents (7, n0sc1:n0sc2), STAT = AllocateStatus )
         if (AllocateStatus/=0) then
           write(outputunit,"('[allocate_currents] Not enough memory for: rcurrents,rtotal_currents')")
           call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
         end if
       end if
     end if
-    allocate( ttchiorbiikl(n0sc1:n0sc2,dimsigmaNpl,4),Lxttchiorbiikl(n0sc1:n0sc2,dimsigmaNpl,4),Lyttchiorbiikl(n0sc1:n0sc2,dimsigmaNpl,4),Lzttchiorbiikl(n0sc1:n0sc2,dimsigmaNpl,4), STAT = AllocateStatus  )
+    allocate( ttchiorbiikl   (n0sc1:n0sc2, dimsigmaNpl,4), &
+              Lxttchiorbiikl (n0sc1:n0sc2, dimsigmaNpl,4), &
+              Lyttchiorbiikl (n0sc1:n0sc2, dimsigmaNpl,4), &
+              Lzttchiorbiikl (n0sc1:n0sc2, dimsigmaNpl,4), STAT = AllocateStatus  )
     if (AllocateStatus/=0) then
       write(outputunit,"('[allocate_currents] Not enough memory for: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl')")
       call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
@@ -80,6 +89,7 @@ contains
   subroutine openclose_currents_files(iflag)
     use mod_parameters
     use mod_mpi_pars
+    use mod_system, only: nkpt, n0sc1, n0sc2
     implicit none
 
     character(len=500)  :: varm
@@ -252,8 +262,9 @@ contains
   ! Some information is also written on the screen
   subroutine write_currents(e)
     use mod_f90_kind
-    use mod_parameters, only: Npl,renorm,n0sc1,n0sc2,outputunit_loop,lwriteonscreen,mmlayermag
+    use mod_parameters, only: Npl,renorm,outputunit_loop,lwriteonscreen,mmlayermag
     use mod_magnet, only: mvec_spherical
+    use mod_system, only: n0sc1, n0sc2
     implicit none
     integer  :: neighbor,i,j,iw
     real(double),intent(in) :: e
@@ -386,6 +397,7 @@ contains
   subroutine openclose_dc_currents_files(iflag)
     use mod_parameters
     use mod_mpi_pars
+    use mod_system, only:nkpt, n0sc1, n0sc2
     implicit none
 
     character(len=500)  :: varm
@@ -569,6 +581,7 @@ contains
     use mod_f90_kind
     use mod_parameters
     use mod_magnet, only: mvec_spherical
+    use mod_system, only: n0sc1, n0sc2
     implicit none
     integer  :: neighbor,i,j,iw
 
@@ -699,8 +712,9 @@ contains
   ! This subroutine sorts current files
   subroutine sort_currents()
     use mod_f90_kind
-    use mod_parameters, only: Npl,renorm,n0sc1,n0sc2,itype
+    use mod_parameters, only: Npl,renorm,itype
     use mod_tools, only: sort_file
+    use mod_system, only: n0sc1, n0sc2
     implicit none
     integer  :: neighbor,i,j,iw,idc=1
 

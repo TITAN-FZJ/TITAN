@@ -15,6 +15,7 @@ contains
     integer             :: i,err
     logical,intent(out) :: lsuccess
 
+    lsuccess = .false.
     call read_write_sc_results(0,err,lsuccess)
 
     if(lsuccess) then
@@ -62,9 +63,11 @@ contains
       mx = 0.d0
       my = 0.d0
       mz = sign(0.5d0,hw_list(hw_count,1))
+
       do i=1,Npl
-        if(layertype(i+1)==2) mz(i) = sign(2.d0,hw_list(hw_count,1))
+        if(layertype(i+offset)==2) mz(i) = sign(2.d0,hw_list(hw_count,1))
       end do
+
       mp = zero
       if(lfield) then
         mx = mz*sin(hw_list(hw_count,2)*pi)*cos(hw_list(hw_count,3)*pi)
@@ -74,8 +77,8 @@ contains
       end if
       ! Variables used in the hamiltonian
       do i=1,Npl
-        hdel(i)   = 0.5d0*U(i+1)*mz(i)
-        hdelp(i)  = 0.5d0*U(i+1)*mp(i)
+        hdel(i)   = 0.5d0*U(i+offset)*mz(i)
+        hdelp(i)  = 0.5d0*U(i+offset)*mp(i)
       end do
       hdelm = conjg(hdelp)
     end if
@@ -90,7 +93,7 @@ contains
     use mod_parameters
     use mod_mpi_pars, only: myrank_row_hw
     use mod_tight_binding
-    use mod_lattice, only: plnn
+    use mod_system, only: npln
     implicit none
     integer :: i,err,sign
     logical :: lsuccess
@@ -119,7 +122,7 @@ contains
     deallocate(mabs,mtheta,mphi,labs,ltheta,lphi,lpabs,lptheta,lpphi)
     if(lGSL) deallocate(lxm,lym,lzm,lxpm,lypm,lzpm)
     deallocate(mmlayer,layertype,U,mmlayermag,lambda,npart0)
-    select case (plnn)
+    select case (npln)
     case(1)
       deallocate(t00,t01)
     case(2)
@@ -317,15 +320,15 @@ contains
     use mod_parameters
     use mod_magnet
     use mod_mpi_pars
+    use mod_system, only: nkpt
     implicit none
-    character(len=300)  :: file
+    character(len=300)  :: file = ""
     character(len=100)  :: fieldpart,socpart,folder,prefix
     integer,intent(in)  :: iflag
     integer,intent(out) :: err
     logical,intent(out) :: lsuccess
     integer             :: i
     real(double)        :: previous_results(Npl,4)
-
     if((trim(scfile)/="").and.(iflag==0)) then
       open(unit=99,file=scfile,status="old",iostat=err)
       if(err/=0) then
@@ -334,7 +337,6 @@ contains
       end if
       close(99)
     end if
-
     folder    = "./results/selfconsistency/"
     prefix    = "selfconsistency_"
     fieldpart = ""
@@ -350,7 +352,6 @@ contains
       if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
       if((llineargfsoc).or.(llinearsoc)) socpart = trim(socpart) // "_linearsoc"
     end if
-
     lsuccess = .false.
   !   Reading previous results (mx, my, mz and eps1) from files (if available)
     if(iflag==0) then
@@ -404,8 +405,8 @@ contains
         mz  (:) = previous_results(:,4)
         mp  = mx + zi*my
         do i=1,Npl
-          hdel(i)   = 0.5d0*U(i+1)*mz(i)
-          hdelp(i)  = 0.5d0*U(i+1)*mp(i)
+          hdel(i)   = 0.5d0*U(i+offset)*mz(i)
+          hdelp(i)  = 0.5d0*U(i+offset)*mp(i)
         end do
         hdelm = conjg(hdelp)
         if(lsuccess) then
@@ -501,9 +502,10 @@ contains
     my_in = x(2*Npl+1:3*Npl)
     mz_in = x(3*Npl+1:4*Npl)
     mp_in = mx_in+zi*my_in
+
     do i=1,Npl
-      hdel(i)   = 0.5d0*U(i+1)*mz_in(i)
-      hdelp(i)  = 0.5d0*U(i+1)*mp_in(i)
+      hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
+      hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
     end do
     hdelm = conjg(hdelp)
 
@@ -605,7 +607,7 @@ contains
       do i=1,Npl
         ! Number of particles
         n_t(i) = sum(n_orb_t(i,:))
-        fvec(i)   = n_t(i) - npart0(i+1)
+        fvec(i)   = n_t(i) - npart0(i+offset)
         ! x-component of magnetization
         j = i+Npl
         fvec(j)  = mx(i) - mx_in(i)
@@ -1356,9 +1358,9 @@ contains
     use mod_f90_kind
     use mod_constants
     use mod_parameters
-    use mod_generate_kpoints
     use mod_progress
     use mod_mpi_pars
+    use mod_system, only: nkpt, kbz, wkbz
   !$  use omp_lib
     implicit none
   !$  integer     :: nthreads,mythread
@@ -1384,12 +1386,12 @@ contains
   !$  end if
 
   !$omp do
-    kpoints: do iz=1,nkpoints
+    kpoints: do iz=1,nkpt
   !$  if((mythread==0)) then
-        if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"densities kpoints",iz,nkpoints)
+        if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"densities kpoints",iz,nkpt)
   !$   end if
 
-      kp = kbz(iz,:)
+      kp = kbz(:,iz)
 
       ! Green function on energy Ef + iy, and wave vector kp
       if((llineargfsoc).or.(llinearsoc)) then
@@ -1420,9 +1422,9 @@ contains
     use mod_f90_kind
     use mod_constants
     use mod_parameters
-    use mod_generate_kpoints
     use mod_progress
     use mod_mpi_pars
+    use mod_system, only: nkpt, kbz, wkbz
 !$  use omp_lib
     implicit none
 !$  integer                  :: nthreads,mythread
@@ -1450,7 +1452,7 @@ contains
   ! Prefactor -U/2 in dH/dm and 1 in dH/deps1
     do j=1,Npl
       mhalfU(1,j) = zum
-      mhalfU(2:4,j) = -0.5d0*U(j+1)
+      mhalfU(2:4,j) = -0.5d0*U(j+offset)
     end do
 
     ggr    = 0.d0
@@ -1470,12 +1472,12 @@ contains
     end if
 
 !$omp do reduction(+:ggr)
-    kpoints: do iz=1,nkpoints
+    kpoints: do iz=1,nkpt
 !$  if((mythread==0)) then
-        if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"jacobian kpoints",iz,nkpoints)
+        if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"jacobian kpoints",iz,nkpt)
 !$   end if
 
-      kp = kbz(iz,:)
+      kp = kbz(:,iz)
       wkbzc = cmplx(wkbz(iz),0.d0)
 
       ! Green function on energy Ef + iy, and wave vector kp

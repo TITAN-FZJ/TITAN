@@ -3,8 +3,8 @@ subroutine sumkshechi(e,ep,Fint,iflag)
   use mod_f90_kind
   use mod_parameters
   use mod_constants
-  use mod_generate_kpoints
   use mod_progress
+  use mod_system, only: nkpt, kbz, wkbz
   use mod_mpi_pars, only: myrank_row_hw,errorcode,ierr
   use MPI
 !$  use omp_lib
@@ -37,13 +37,13 @@ subroutine sumkshechi(e,ep,Fint,iflag)
   end if
 
 !$omp do schedule(auto)
-  kpoints: do iz=1,nkpoints
+  kpoints: do iz=1,nkpt
     ! Progress bar
 !$  if((mythread==0)) then
-      if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,nkpoints)
+      if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,nkpt)
 !$   end if
 
-    kp = kbz(iz,:)
+    kp = kbz(:,iz)
 
     if(iflag==0)then
       ! Green function at (k+q,E_F+E+iy)
@@ -164,9 +164,9 @@ subroutine sumkshechilinearsoc(e,ep,Fint,Fintlsoc,iflag)
   use mod_f90_kind
   use mod_parameters
   use mod_constants
-  use mod_generate_kpoints
   use mod_progress
   use mod_mpi_pars
+  use mod_system, only: nkpt, kbz, wkbz
   use MPI
 !$  use omp_lib
   implicit none
@@ -204,13 +204,13 @@ subroutine sumkshechilinearsoc(e,ep,Fint,Fintlsoc,iflag)
   end if
 
 !$omp do schedule(auto)
-  kpoints: do iz=1,nkpoints
+  kpoints: do iz=1,nkpt
     ! Progress bar
 !$  if((mythread==0)) then
-      if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,nkpoints)
+      if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,nkpt)
 !$   end if
 
-    kp = kbz(iz,:)
+    kp = kbz(:,iz)
 
     if(iflag==0)then
       ! Green function at (k+q,E_F+E+iy)

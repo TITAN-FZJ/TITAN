@@ -100,7 +100,7 @@ subroutine sumk_L_gs(e,ep,gupgd)
   use mod_f90_kind
   use mod_constants, only: pi, zero
   use mod_parameters
-  use mod_generate_kpoints
+  use mod_system, only: nkpt, kbz, wkbz
 !$  use mod_mpi_pars, only: myrank_row_hw
 !$  use omp_lib
   implicit none
@@ -123,8 +123,8 @@ subroutine sumk_L_gs(e,ep,gupgd)
 !$  end if
 
 !$omp do reduction(+:gupgd)
-  kpoints: do iz=1,nkpoints
-    kp = kbz(iz,:)
+  kpoints: do iz=1,nkpt
+    kp = kbz(:,iz)
 
     !Green function on energy Ef + iy, and wave vector kp
     call green(e,ep,kp,gf)

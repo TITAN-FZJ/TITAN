@@ -1,14 +1,13 @@
 ! -------- sum over wave vectors to calculate parallel spin current --------
 subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,iflag)
-  use mod_f90_kind
-  use mod_parameters
-  use mod_constants
-  use mod_lattice
-  use mod_generate_kpoints
+  use mod_system,        only: r_nn, npln, nkpt, kbz, wkbz, n0sc1, n0sc2
+  use mod_mpi_pars,      only: myrank_row_hw, MPI_COMM_WORLD, errorcode, ierr
+  use mod_f90_kind,      only: double
+  use mod_constants,     only: zero, zum, zi, tpi
+  use mod_prefactors,    only: prefactor, lxpt, lypt, lzpt, tlxp, tlyp, tlzp
+  use mod_parameters,    only: outputunit, outputunit_loop, dim, dimsigmaNpl, lverbose, llineargfsoc, ef, sigmaimunu2i, Npl, eta, sigmai2i
   use mod_tight_binding, only: t00
-  use mod_prefactors
   use mod_progress
-  use mod_mpi_pars
 !$  use omp_lib
   implicit none
 !$  integer       :: nthreads,mythread
@@ -34,7 +33,7 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
 
 !$omp parallel default(none) &
 !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,wkbzc,kp,df1iikl,pfdf1iikl,prett,preLxtt,preLytt,preLztt,dtdk,gf,expikr,gfuu,gfud,gfdu,gfdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &
-!$omp& shared(llineargfsoc,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,lverbose,myrank_row_hw,kbz,wkbz,iflag,e,ep,nkpoints,r0,Ef,eta,nthreads,sigmai2i,sigmaimunu2i,sigmaijmunu2i,dim,Npl,n0sc1,n0sc2,plnn,t00,lxpt,lypt,lzpt,tlxp,tlyp,tlzp,outputunit,outputunit_loop)
+!$omp& shared(llineargfsoc,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,lverbose,myrank_row_hw,kbz,wkbz,iflag,e,ep,nkpoints,r0,Ef,eta,nthreads,sigmai2i,sigmaimunu2i,sigmaijmunu2i,dim,Npl,n0sc1,n0sc2,npln,t00,lxpt,lypt,lzpt,tlxp,tlyp,tlzp,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread==0).and.(myrank_row_hw==0)) then
 !$    nthreads = omp_get_num_threads()
@@ -47,13 +46,13 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
   end if
 
 !$omp do schedule(auto)
-  do iz=1,nkpoints
+  do iz=1,nkpt
 !    Progress bar
 !$  if((mythread==0)) then
-      if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,nkpoints)
+      if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,nkpt)
 !$   end if
 
-    kp = kbz(iz,:)
+    kp = kbz(:,iz)
 
     df1iikl = zero
 
@@ -61,7 +60,7 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
     call dtdksub(kp,dtdk)
 
     do neighbor=n0sc1,n0sc2
-      expikr(neighbor) = exp(zi * dot_product(kp, r0(neighbor,:)))
+      expikr(neighbor) = exp(zi * dot_product(kp, r_nn(:,neighbor)))
     end do
 
     ! Calculating the prefactor (L).t.exp - t.(L).exp
@@ -96,7 +95,7 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
       gfdd(:,:,:,:,2) = gf(:,:,10:18,10:18)
 
       do nu=1,9 ; do mu=1,9 ; do i=1,Npl; do xi=1,9 ; do gamma=1,9 ; do l=1,Npl ; do j=1,Npl
-        if(abs(j-l)>plnn) cycle
+        if(abs(j-l) > npln) cycle
         df1iikl(sigmaimunu2i(1,i,mu,nu),1) = df1iikl(sigmaimunu2i(1,i,mu,nu),1) + (gfdd(i,j,nu,gamma,1)*gfuu(l,i,xi,mu,2) + conjg(gfuu(i,l,mu,xi,2)*gfdd(j,i,gamma,nu,1)))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(1,i,mu,nu),2) = df1iikl(sigmaimunu2i(1,i,mu,nu),2) + (gfdu(i,j,nu,gamma,1)*gfuu(l,i,xi,mu,2) + conjg(gfuu(i,l,mu,xi,2)*gfud(j,i,gamma,nu,1)))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(1,i,mu,nu),3) = df1iikl(sigmaimunu2i(1,i,mu,nu),3) + (gfdd(i,j,nu,gamma,1)*gfdu(l,i,xi,mu,2) + conjg(gfud(i,l,mu,xi,2)*gfdd(j,i,gamma,nu,1)))*dtdk(j,l,gamma,xi)
@@ -143,7 +142,7 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
       gfdd(:,:,:,:,2) = gf(:,:,10:18,10:18)
 
       do nu=1,9 ; do gamma=1,9 ; do mu=1,9 ; do i=1,Npl ; do xi=1,9 ; do l=1,Npl ; do j=1,Npl
-        if(abs(j-l)>plnn) cycle
+        if(abs(j-l) > npln) cycle
         df1iikl(sigmaimunu2i(1,i,mu,nu),1) = df1iikl(sigmaimunu2i(1,i,mu,nu),1)-zi*(gfdd(i,j,nu,gamma,1)-conjg(gfdd(j,i,gamma,nu,1)))*conjg(gfuu(i,l,mu,xi,2))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(1,i,mu,nu),2) = df1iikl(sigmaimunu2i(1,i,mu,nu),2)-zi*(gfdu(i,j,nu,gamma,1)-conjg(gfud(j,i,gamma,nu,1)))*conjg(gfuu(i,l,mu,xi,2))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(1,i,mu,nu),3) = df1iikl(sigmaimunu2i(1,i,mu,nu),3)-zi*(gfdd(i,j,nu,gamma,1)-conjg(gfdd(j,i,gamma,nu,1)))*conjg(gfud(i,l,mu,xi,2))*dtdk(j,l,gamma,xi)
@@ -210,11 +209,10 @@ end subroutine sumk
 
 ! -------- sum over wave vectors to calculate parallel spin current --------
 subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,iflag)
-  use mod_f90_kind
+  use mod_f90_kind, only: double
   use mod_parameters
   use mod_constants
-  use mod_lattice
-  use mod_generate_kpoints
+  use mod_system, only: r_nn, npln, nkpt, kbz, wkbz, n0sc1, n0sc2
   use mod_tight_binding, only: t00
   use mod_prefactors
   use mod_progress
@@ -245,7 +243,7 @@ subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,Lzt
 
 !$omp parallel default(none) &
 !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,wkbzc,kp,df1iikl,pfdf1iikl,df1lsoc,prett,preLxtt,preLytt,preLztt,dtdk,expikr,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &
-!$omp& shared(tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,prefactorlsoc,lverbose,myrank_row_hw,kbz,wkbz,iflag,e,ep,nkpoints,r0,Ef,eta,nthreads,sigmai2i,sigmaimunu2i,sigmaijmunu2i,dim,Npl,n0sc1,n0sc2,plnn,t00,lxpt,lypt,lzpt,tlxp,tlyp,tlzp,outputunit,outputunit_loop)
+!$omp& shared(tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,prefactorlsoc,lverbose,myrank_row_hw,kbz,wkbz,iflag,e,ep,nkpoints,r0,Ef,eta,nthreads,sigmai2i,sigmaimunu2i,sigmaijmunu2i,dim,Npl,n0sc1,n0sc2,npln,t00,lxpt,lypt,lzpt,tlxp,tlyp,tlzp,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread==0).and.(myrank_row_hw==0)) then
 !$    nthreads = omp_get_num_threads()
@@ -263,13 +261,13 @@ subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,Lzt
   end if
 
 !$omp do schedule(auto)
-  do iz=1,nkpoints
+  do iz=1,nkpt
 !    Progress bar
 !$  if((mythread==0)) then
-      if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,nkpoints)
+      if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,nkpt)
 !$   end if
 
-    kp = kbz(iz,:)
+    kp = kbz(:,iz)
 
     df1iikl = zero
     df1lsoc = zero
@@ -278,7 +276,7 @@ subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,Lzt
     call dtdksub(kp,dtdk)
 
     do neighbor=n0sc1,n0sc2
-      expikr(neighbor) = exp(zi*dot_product(kp, r0(neighbor,:)))
+      expikr(neighbor) = exp(zi*dot_product(kp, r_nn(:,neighbor)))
     end do
 
     ! Calculating the prefactor (L).t.exp - t.(L).exp
@@ -313,7 +311,7 @@ subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,Lzt
       gvgdd(:,:,:,:,2) = gvg(:,:,10:18,10:18)
 
       do nu=1,9 ; do mu=1,9 ; do i=1,Npl; do xi=1,9 ; do gamma=1,9 ; do l=1,Npl ; do j=1,Npl
-        if(abs(j-l)>plnn) cycle
+        if(abs(j-l) > npln) cycle
         df1iikl(sigmaimunu2i(1,i,mu,nu),1) = df1iikl(sigmaimunu2i(1,i,mu,nu),1) + (gfdd(i,j,nu,gamma,1)*gfuu(l,i,xi,mu,2) + conjg(gfuu(i,l,mu,xi,2)*gfdd(j,i,gamma,nu,1)))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(1,i,mu,nu),2) = df1iikl(sigmaimunu2i(1,i,mu,nu),2) + (gfdu(i,j,nu,gamma,1)*gfuu(l,i,xi,mu,2) + conjg(gfuu(i,l,mu,xi,2)*gfud(j,i,gamma,nu,1)))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(1,i,mu,nu),3) = df1iikl(sigmaimunu2i(1,i,mu,nu),3) + (gfdd(i,j,nu,gamma,1)*gfdu(l,i,xi,mu,2) + conjg(gfud(i,l,mu,xi,2)*gfdd(j,i,gamma,nu,1)))*dtdk(j,l,gamma,xi)
@@ -382,7 +380,7 @@ subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,Lzt
       gvgdd(:,:,:,:,2) = gvg(:,:,10:18,10:18)
 
       do nu=1,9 ; do gamma=1,9 ; do mu=1,9 ; do i=1,Npl ; do xi=1,9 ; do l=1,Npl ; do j=1,Npl
-        if(abs(j-l)>plnn) cycle
+        if(abs(j-l) > npln) cycle
         df1iikl(sigmaimunu2i(1,i,mu,nu),1) = df1iikl(sigmaimunu2i(1,i,mu,nu),1)-zi*(gfdd(i,j,nu,gamma,1)-conjg(gfdd(j,i,gamma,nu,1)))*conjg(gfuu(i,l,mu,xi,2))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(1,i,mu,nu),2) = df1iikl(sigmaimunu2i(1,i,mu,nu),2)-zi*(gfdu(i,j,nu,gamma,1)-conjg(gfud(j,i,gamma,nu,1)))*conjg(gfuu(i,l,mu,xi,2))*dtdk(j,l,gamma,xi)
         df1iikl(sigmaimunu2i(1,i,mu,nu),3) = df1iikl(sigmaimunu2i(1,i,mu,nu),3)-zi*(gfdd(i,j,nu,gamma,1)-conjg(gfdd(j,i,gamma,nu,1)))*conjg(gfud(i,l,mu,xi,2))*dtdk(j,l,gamma,xi)

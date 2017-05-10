@@ -3,6 +3,7 @@ subroutine coupling()
   use mod_f90_kind
   use mod_parameters
   use mod_magnet
+  use mod_system, only: nkpt
   use mod_mpi_pars,only: myrank
   implicit none
   character(len=400) :: varm

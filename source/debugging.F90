@@ -2,12 +2,10 @@
 subroutine debugging()
   use mod_f90_kind
   use mod_constants
-  use mod_lattice
   use mod_parameters
   use mod_magnet
   use mod_tight_binding
   use mod_prefactors
-  use mod_generate_kpoints
   use mod_generate_epoints
   use mod_mpi_pars
   use mod_progress

@@ -14,8 +14,7 @@ program TITAN
   use mod_self_consistency
   use mod_prefactors
   use mod_generate_epoints
-  use mod_generate_kpoints
-  use mod_lattice
+  use mod_system
   use mod_progress
   use mod_mpi_pars
   use mod_lgtv_currents
@@ -23,7 +22,7 @@ program TITAN
   use mod_torques, only: ntypetorque
   implicit none
   integer           :: i,j,sigma,mu,nu,count_hw
-  logical           :: lsuccess
+  logical           :: lsuccess = .false.
 
 #ifndef _UFF
 !$  integer :: provided
@@ -48,9 +47,8 @@ program TITAN
 !------------------------- Reading parameters --------------------------
   call get_parameters()
 
-  if(myrank==0) then
-    call write_time(outputunit,'[main] Started on: ')
-  end if
+  if(myrank==0) call write_time(outputunit,'[main] Started on: ')
+
 !---------------------------- Getting hostname -------------------------
 #ifdef _JUQUEEN
   call hostnm_(host)
@@ -64,7 +62,7 @@ program TITAN
   if((itype==1).or.(itype==6)) then ! Create column for field loop (no energy integration)
     call build_cartesian_grid_field(pn1)
   end if
-  if((itype>=3).and.(itype<=5)) then ! Create column for field loop (no energy integration)
+  if( ((itype>=3).and.(itype<=5)) .or. itype==0) then ! Create column for field loop (no energy integration)
     call build_cartesian_grid_field(1)
   end if
   if((itype>=7).and.(itype<=8)) then ! Create matrix for energy dependence and integration
@@ -79,20 +77,25 @@ program TITAN
     myrank_row = myrank_row_hw
   end if
 !-------------------- Define the lattice structure ---------------------
-  call next_neighbour_init()
+  call generate_neighbors()
+  ! Writing Positions into file
+  if( lpositions .and. (myrank==0)) then
+    call write_neighbors_to_file()
+  end if
 !-------------------- Generating k points in 2D BZ ---------------------
-  call generate_kpoints(pln_dir)
+  call generate_kpoints()
   ! Writing BZ points and weights into files
   if((lkpoints).and.(myrank==0)) then
     call write_kpoints_to_file()
-  end if
-  if( lpositions .and. (myrank==0)) then
-    call write_positions_to_file()
   end if
 !---- Generating integration points of the complex energy integral -----
   call generate_imag_epoints()
 !------------------------ NUMBER OF PLANES LOOP ------------------------
   number_of_planes: do Npl = Npl_i,Npl_f
+
+    ! DFT tight binding mode has two additional vacuum layers
+    Npl_total = Npl
+    if(tbmode == 2) Npl_total = Npl + 2
 !--------------- Allocating variables that depend on Npl ---------------
     call allocate_Npl_variables()
 !----------------------------- Dimensions ------------------------------
@@ -114,11 +117,13 @@ program TITAN
     else
       Npl_input = Npl
     end if
-    call define_system()
+    write(Npl_folder,fmt="(i0,'Npl')") Npl_input
+    if(tbmode == 2) call define_system()
 !---------------------- Tight Binding parameters -----------------------
-    call rs_hoppings()
+    call tb_hopping()
 !---------------------- Lattice specific variables ---------------------
     call lattice_definitions()
+
 !------------------------- MAGNETIC FIELD LOOP -------------------------
     if((myrank==0).and.(skip_steps_hw>0)) write(outputunit,"('[main] Skipping first ',i0,' field step(s)...')") skip_steps_hw
     hw_loop: do count_hw=1+skip_steps_hw,MPIsteps_hw
@@ -153,7 +158,7 @@ program TITAN
         ! There is an extra  minus sign in the definition of hhwx,hhwy,hhwz
         ! to take into account the fact that we are considering negative
         ! external fields to get the peak at positive energies
-        do i=1,Npl+2
+        do i=1,Npl_total
           hhwx(i)  =-0.5d0*hwscale(i)*hw_list(hw_count,1)*sin((hw_list(hw_count,2)+hwtrotate(i))*pi)*cos((hw_list(hw_count,3)+hwprotate(i))*pi)*tesla
           hhwy(i)  =-0.5d0*hwscale(i)*hw_list(hw_count,1)*sin((hw_list(hw_count,2)+hwtrotate(i))*pi)*sin((hw_list(hw_count,3)+hwprotate(i))*pi)*tesla
           hhwz(i)  =-0.5d0*hwscale(i)*hw_list(hw_count,1)*cos((hw_list(hw_count,2)+hwtrotate(i))*pi)*tesla
@@ -239,6 +244,7 @@ program TITAN
         cycle
       end if
       ! Self-consistency
+
       if(lselfcon) call do_self_consistency()
       ! Writing new eps1 and mz to file after self-consistency is done
       if(.not.lontheflysc) call write_sc_results()
@@ -247,7 +253,7 @@ program TITAN
       ! Writing self-consistency results on screen
       if(myrank_row_hw==0)  call write_sc_results_on_screen()
       ! Time now
-      if(myrank_row_hw==0)  call write_time(outputunit_loop,'[main] Time after self-consistency: ')
+        if(myrank_row_hw==0)  call write_time(outputunit_loop,'[main] Time after self-consistency: ')
 !---- Only calculate long. and transv. currents from existing files ----
       if(llgtv) then
         if(myrank==0) call read_calculate_lgtv_currents()
@@ -284,7 +290,7 @@ program TITAN
     call deallocate_Npl_variables()
   end do number_of_planes
 !----------------------- Deallocating variables ------------------------
-  deallocate(r0,c0,r1,c1,r2,c2)
+  deallocate(r_nn, c_nn, l_nn)
   deallocate(kbz,wkbz) !,kbz2d)
 !----------------------- Finalizing the program ------------------------
   if(myrank==0) call write_time(outputunit,'[main] Finished on: ')

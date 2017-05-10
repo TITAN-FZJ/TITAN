@@ -4,6 +4,7 @@ subroutine band_structure()
   use mod_constants, only: pi,sq2,tpi
   use mod_parameters
   use mod_mpi_pars, only: mpitag
+  use mod_system, only: a0, nkpt
   implicit none
   character(len=400) :: varm
   character(len=50)  :: fieldpart,socpart
@@ -15,7 +16,7 @@ subroutine band_structure()
   complex(double),allocatable   :: eval(:),evecl(:,:),evecr(:,:),work(:)
   complex(double),allocatable   :: hk(:,:)
 
-  dimbs = (Npl+2)*18
+  dimbs = (Npl_total)*18
   lwork = 33*dimbs
   allocate( hk(dimbs,dimbs),rwork(2*dimbs),eval(dimbs),evecl(1,dimbs),evecr(1,dimbs),work(lwork) )
 

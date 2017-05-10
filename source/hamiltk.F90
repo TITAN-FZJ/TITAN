@@ -5,58 +5,47 @@
 !  1     2     3     4      Npl-1   Npl  Npl+1  Npl+2
 !         <-S-> <S-1>           <S-1> <-S->
 subroutine hamiltk(kp,hk)
-  use mod_f90_kind
-  use mod_constants
-  use mod_parameters
-  use mod_lattice, only: plnn
-  use mod_tight_binding, only: lambda, ls
-  use mod_magnet
+  use mod_f90_kind,      only: double
+  use mod_constants,     only: zi, zero
+  use mod_parameters,    only: Npl_total, socscale
+  use mod_system,        only: npln, r_nn, l_nn
+  use mod_tight_binding, only: lambda, ls, t0, t0i
+  use mod_magnet,        only: lb, sb
   implicit none
-  integer     :: i,i0,i1,j0,j1
-  real(double), intent(in)  :: kp(3)
-  complex(double) :: hee(Npl+2,18,18)
-  complex(double),dimension(18,18)    :: h00,h01,h10,h20,h02
-  complex(double),dimension((Npl+2)*18,(Npl+2)*18),intent(out)  :: hk
+  integer :: i, j, l, loc_pln
+  integer :: i0, i1, j0, j1
+  real(double), intent(in) :: kp(3)
+  complex(double) :: hee(Npl_total,18,18)
+  complex(double), dimension((Npl_total)*18,(Npl_total)*18), intent(out) :: hk
 
   hk = zero
 
   call U_matrix(hee)
 
-! Mouting slab hamiltonian
-  do i=1,Npl+2
-    i0 = (i-1)*18+1
-    i1 = i0+17
+  ! Mouting slab hamiltonian
+  do i=1, Npl_total
+     i0 = (i-1)*18+1
+     i1 = i0+9
 
-    select case (plnn)
-    case( 1 )
-      call helphbccsoc(kp,h00,h01,h10,i)
+     loc_pln = npln
+     if(Npl_total < i + npln) loc_pln = Npl_total - i + 1
 
-      hk(i0:i1,i0:i1) = h00 + lb(i,:,:) + sb(i,:,:) + hee(i,:,:) + (socscale*lambda(i)*ls)
-      if (i/=(Npl+2)) then
-        j0 = i0+18
-        j1 = i1+18
-        hk(i0:i1,j0:j1) = h01(:,:)
-        hk(j0:j1,i0:i1) = h10(:,:)
-      end if
-    case( 2 )
-      call helphfccsoc(kp,h00,h01,h10,h02,h20,i)
+     hk(i0:i0+8,i0:i0+8) = t0(i,:,:) ! + sb hee +socscale*lambda*ls
+     hk(i1:i1+8,i1:i1+8) = t0(i,:,:) ! + sb hee +socscale*lambda*ls
 
-      hk(i0:i1,i0:i1) = h00 + lb(i,:,:) + sb(i,:,:) + hee(i,:,:) + (socscale*lambda(i)*ls)
-      if (i/=(Npl+2)) then
-        j0 = i0+18
-        j1 = i1+18
-        hk(i0:i1,j0:j1) = h01(:,:)
-        hk(j0:j1,i0:i1) = h10(:,:)
-        if (i/=(Npl+1)) then
-          j0 = j0+18
-          j1 = j1+18
-          hk(i0:i1,j0:j1) = h02(:,:)
-          hk(j0:j1,i0:i1) = h20(:,:)
-        end if
-      end if
-    end select
+     hk(i0:i0+17, i0:i0+17) = hk(i0:i0+17, i0:i0+17) + lb(i,:,:) + sb(i,:,:) + hee(i,:,:) + (socscale*lambda(i)*ls)
+
+     do j = 1, loc_pln
+        j0 = i0 + 18 * (j-1)
+        j1 = i0 + 18 * (j-1) + 9
+        do l = l_nn(1,j), l_nn(1,j+1)-1
+          hk(i0:i0+8, j0:j0+8) = hk(i0:i0+8, j0:j0+8) + t0i(i,l,:,:)*exp(zi*dot_product(kp,r_nn(:,l)))
+          hk(i1:i1+8, j1:j1+8) = hk(i1:i1+8, j1:j1+8) + t0i(i,l,:,:)*exp(zi*dot_product(kp,r_nn(:,l)))
+          
+        end do
+        hk(j0:j0+17, i0:i0+17) = transpose(conjg(hk(i0:i0+17, j0:j0+17)))
+     end do
   end do
-
   return
 end subroutine hamiltk
 
@@ -67,60 +56,47 @@ end subroutine hamiltk
 !  1     2     3     4      Npl-1   Npl  Npl+1  Npl+2
 !         <-S-> <S-1>           <S-1> <-S->
 subroutine hamiltklinearsoc(kp,hk,vsoc)
-  use mod_f90_kind
-  use mod_constants
-  use mod_parameters
-  use mod_lattice, only: plnn
-  use mod_tight_binding, only: lambda, ls
-  use mod_magnet
+  use mod_f90_kind, only: double
+  use mod_constants, only: zero, zi
+  use mod_parameters, only: socscale, Npl_total
+  use mod_system, only: npln, r_nn, l_nn
+  use mod_tight_binding, only: lambda, ls, t0, t0i
+  use mod_magnet, only: lb, sb
   implicit none
-  integer     :: i,i0,i1,j0,j1
+  integer :: i,j,l, loc_pln
+  integer :: i0,i1,j0,j1
   real(double), intent(in)  :: kp(3)
-  complex(double) :: hee(Npl+2,18,18)
-  complex(double),dimension(18,18)    :: h00,h01,h10,h20,h02
-  complex(double),dimension((Npl+2)*18,(Npl+2)*18),intent(out)  :: hk,vsoc
+  complex(double) :: hee(Npl_total,18,18)
+  complex(double),dimension((Npl_total)*18,(Npl_total)*18),intent(out)  :: hk,vsoc
 
   hk = zero
   vsoc = zero
 
   call U_matrix(hee)
 
-! Mouting slab hamiltonian
-  do i=1,Npl+2
-    i0 = (i-1)*18+1
-    i1 = i0+17
+  ! Mouting slab hamiltonian
+  do i=1,Npl_total
+     i0 = (i-1)*18+1
+     i1 = i0+9
 
-    select case (plnn)
-    case( 1 )
-      call helphbccsoc(kp,h00,h01,h10,i)
+     loc_pln = npln
+     if( Npl_total < i + npln ) loc_pln = Npl_total - i + 1
 
-      hk(i0:i1,i0:i1)   = h00 + lb(i,:,:) + sb(i,:,:) + hee(i,:,:)
-      vsoc(i0:i1,i0:i1) = socscale*lambda(i)*ls
-      if (i/=(Npl+2)) then
-        j0 = i0+18
-        j1 = i1+18
-        hk(i0:i1,j0:j1) = h01(:,:)
-        hk(j0:j1,i0:i1) = h10(:,:)
-      end if
-    case( 2 )
-      call helphfccsoc(kp,h00,h01,h10,h02,h20,i)
+     hk(i0:i0+8,i0:i0+8) = t0(i,:,:) ! + sb hee +socscale*lambda*ls
+     hk(i1:i1+8,i1:i1+8) = t0(i,:,:) ! + sb hee +socscale*lambda*ls
 
-      hk(i0:i1,i0:i1)   = h00 + lb(i,:,:) + sb(i,:,:) + hee(i,:,:)
-      vsoc(i0:i1,i0:i1) = socscale*lambda(i)*ls
-      if (i/=(Npl+2)) then
-        j0 = i0+18
-        j1 = i1+18
-        hk(i0:i1,j0:j1) = h01(:,:)
-        hk(j0:j1,i0:i1) = h10(:,:)
-        if (i/=(Npl+1)) then
-          j0 = j0+18
-          j1 = j1+18
-          hk(i0:i1,j0:j1) = h02(:,:)
-          hk(j0:j1,i0:i1) = h20(:,:)
-        end if
-      end if
-    end select
+     hk  (i0:i0+17, i0:i0+17) = hk(i0:i0+17, i0:i0+17) + lb(i,:,:) + sb(i,:,:) + hee(i,:,:)
+     vsoc(i0:i0+17, i0:i0+17) = socscale*lambda(i)*ls
+
+     do j = 1, loc_pln
+        j0 = i0 + 18 * (j-1)
+        j1 = i0 + 18 * (j-1) + 9
+        do l = l_nn(1,j), l_nn(1,j+1)-1
+           hk(i0:i0+8, j0:j0+8) = hk(i0:i0+8, j0:j0+8) + t0i(i,l,:,:)*exp(zi*dot_product(kp,r_nn(:,l)))
+           hk(i1:i1+8, j1:j1+8) = hk(i1:i1+8, j1:j1+8) + t0i(i,l,:,:)*exp(zi*dot_product(kp,r_nn(:,l)))
+        end do
+        hk(j0:j0+17, i0:i0+17) = transpose(conjg(hk(i0:i0+17, j0:j0+17)))
+     end do
   end do
-
   return
 end subroutine hamiltklinearsoc

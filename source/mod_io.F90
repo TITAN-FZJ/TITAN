@@ -1,12 +1,11 @@
 module mod_io
-  use mod_f90_kind
+  use mod_f90_kind, only: double
   use mod_parameters
-  use mod_input
   implicit none
 #ifdef _JUQUEEN
-  character(len=20) :: filename="input_juqueen"
+  character(len=200) :: filename="input_juqueen"
 #else
-  character(len=20) :: filename="input"
+  character(len=200) :: filename="input"
 #endif
   logical :: log_unit = .false.
 
@@ -34,11 +33,11 @@ contains
     character(len=*), intent(in) :: message
 
     if(myrank == 0) then
-      if(log_unit) then
-        write(outputunit, "('[Error] [',a,'] ',a,'')") procedure, trim(message)
-      else
-        write(*, "('[Error] [',a,'] ',a,'')") procedure, trim(message)
-      end if
+       if(log_unit) then
+          write(outputunit, "('[Error] [',a,'] ',a,'')") procedure, trim(message)
+       else
+          write(*, "('[Error] [',a,'] ',a,'')") procedure, trim(message)
+       end if
     end if
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
     stop
@@ -52,9 +51,9 @@ contains
 
     if(myrank == 0) then
        if(log_unit) then
-         write(outputunit, "('[Warning] [',a,'] ',a,'')") procedure, trim(message)
+          write(outputunit, "('[Warning] [',a,'] ',a,'')") procedure, trim(message)
        else
-         write(*, "('[Warning] [',a,'] ',a,'')") procedure, trim(message)
+          write(*, "('[Warning] [',a,'] ',a,'')") procedure, trim(message)
        end if
     end if
   end subroutine log_warning
@@ -62,6 +61,9 @@ contains
   subroutine get_parameters()
     use mod_f90_kind
     use mod_mpi_pars
+    use mod_input
+    use mod_system, only: a0, a1, a2, a3, pln_normal, nkpt, nstages, n0sc1, n0sc2
+    use mod_tight_binding, only: layers, tbmode, fermi_layer
     implicit none
     character(len=20), allocatable :: s_vector(:)
     real(double), allocatable :: vector(:)
@@ -69,28 +71,36 @@ contains
     integer :: i, cnt
     character(len=20) :: tmp_string
 
-    if(.not. read_file(filename)) call log_error("get_parameters", "File " // trim(filename) // " not found!")
+    if(.not. read_file(filename)) &
+         call log_error("get_parameters", "File " // trim(filename) // " not found!")
 
     if(myrank == 0) then
-      if(.not. enable_input_logging("parameter.in")) call log_warning("get_parameters", "couldn't enable logging.")
+       if(.not. enable_input_logging("parameter.in")) &
+            call log_warning("get_parameters", "couldn't enable logging.")
     end if
+    if(.not. get_parameter("output", outputfile)) &
+         call log_error("get_parameters", "Output filename not given!")
 
-    if(.not. get_parameter("output", outputfile)) call log_error("get_parameters", "Output filename not given!")
-
-    if(myrank==0) then
-       open (unit=outputunit, file=trim(outputfile), status='replace')
-    end if
+    if(myrank==0) open (unit=outputunit, file=trim(outputfile), status='replace')
     log_unit = .true.
 
-    if(myrank==0) write(outputunit,"('[get_parameters] Reading parameters from ""',a,'"" file...')") trim(filename)
-    if(.not. get_parameter("itype", itype)) call log_error("get_parameters","'itype' missing.")
+    if(myrank==0) &
+         write(outputunit,"('[get_parameters] Reading parameters from ""',a,'"" file...')") trim(filename)
+
+    !===============================================================================================
+    !============= System configuration (Lattice + Reciprocal lattice) =============================
+    !===============================================================================================
+
+    if(.not. get_parameter("a0", a0)) call log_error("get_parameters","'a0' missing.")
 
     if(.not. get_parameter("lattice", lattice)) call log_error("get_parameters","'lattice' missing.")
+
     select case(lattice)
     case("general")
-       if(.not. get_parameter("a1", vector, cnt)) call log_error("get_parameters"," 'a1' missing.")
+       if(.not. get_parameter("a1", vector, cnt)) &
+            call log_error("get_parameters"," 'a1' missing.")
        if(cnt /= 3) call log_error("get_parameters","'a1' has wrong size (size 3 required).")
-       a1 = vector
+       a1 = vector(1:3) * a0 / sqrt(dot_product(vector(1:3), vector(1:3)))
        deallocate(vector)
 
        if(.not. get_parameter("a2", vector, cnt)) call log_error("get_parameters","'a2' missing.")
@@ -103,32 +113,46 @@ contains
        a3 = vector
        deallocate(vector)
     case("bcc")
-       a1 = [-0.5d0,  0.5d0,  0.5d0]
-       a2 = [ 0.5d0, -0.5d0,  0.5d0]
-       a3 = [ 0.5d0,  0.5d0, -0.5d0]
+       a1 = [-0.5d0,  0.5d0,  0.5d0] * a0 !/ sqrt(0.75d0)
+       a2 = [ 0.5d0, -0.5d0,  0.5d0] * a0 !/ sqrt(0.75d0)
+       a3 = [ 0.5d0,  0.5d0, -0.5d0] * a0 !/ sqrt(0.75d0)
     case("fcc")
-       a1 = [0.0d0, 0.5d0, 0.5d0]
-       a2 = [0.5d0, 0.0d0, 0.5d0]
-       a3 = [0.5d0, 0.5d0, 0.0d0]
-    case("cubic")
-       a1 = [1.0d0, 0.0d0, 0.0d0]
-       a2 = [0.0d0, 1.0d0, 0.0d0]
-       a3 = [0.0d0, 0.0d0, 1.0d0]
+       a1 = [0.0d0, 0.5d0, 0.5d0] * a0 !/ sqrt(0.5d0)
+       a2 = [0.5d0, 0.0d0, 0.5d0] * a0 !/ sqrt(0.5d0)
+       a3 = [0.5d0, 0.5d0, 0.0d0] * a0 !/ sqrt(0.5d0)
+    case("sc")
+       a1 = [1.0d0, 0.0d0, 0.0d0] * a0
+       a2 = [0.0d0, 1.0d0, 0.0d0] * a0
+       a3 = [0.0d0, 0.0d0, 1.0d0] * a0
     case("hcp")
-       a1 = [1.0d0, 0.0d0, 0.0d0]
-       a2 = [0.5d0, sqrt(3.0d0)*0.5d0, 0.0d0]
-       a3 = [0.0d0, 0.0d0, sqrt(8.0d0 / 3.0d0)]
+       a1 = [1.0d0, 0.0d0, 0.0d0] * a0
+       a2 = [0.5d0, sqrt(3.0d0)*0.5d0, 0.0d0] * a0
+       a3 = [0.0d0, 0.0d0, sqrt(8.0d0 / 3.0d0)] * a0 / sqrt( 8.0d0 / 3.0d0 )
     case default
        call log_error("get_parameters","Unknown 'lattice' option.")
     end select
 
-    if(.not. get_parameter("plane", vector, cnt)) call log_error("get_parameters","'plane' missing.")
+    if(get_parameter("plane", vector, cnt)) then
+      if(cnt /= 3) call log_error("get_parameters","'plane' has wrong size (size 3 required).")
+      pln_normal = vector(1:3) / sqrt(dot_product(vector(1:3),vector(1:3)))
+      deallocate(vector)
+    else
+      pln_normal = 0.d0
+      call log_warning("get_parameters","'plane' missing.")
+    end if
 
-    if(cnt /= 3) call log_error("get_parameters","'plane' has wrong size (size 3 required).")
-    pln_dir = vector
-    deallocate(vector)
+    if(.not. get_parameter("nkpt", nkpt)) call log_error("get_parameters","'nkpt' missing.")
 
-    if(.not. get_parameter("a0", a0)) call log_error("get_parameters","'a0' missing.")
+    if(.not. get_parameter("nn_stages", nstages)) call log_warning("get_parameters","'nn_stages' missing.")
+
+    if(.not. get_parameter("n0sc1", n0sc1)) call log_warning("get_parameters","'n0sc1' missing.")
+
+    if(.not. get_parameter("n0sc2", n0sc2)) call log_warning("get_parameters","'n0sc2' missing.")
+
+    !===============================================================================================
+    !===============================================================================================
+
+    if(.not. get_parameter("itype", itype)) call log_error("get_parameters","'itype' missing.")
 
     if(.not. get_parameter("SOC", SOC)) call log_error("get_parameters","'SOC' missing.")
     if(SOC) then
@@ -153,6 +177,7 @@ contains
           dirEfield = -2 ! TODO: Add options to evaluate these values.
           dirEfieldvec(1:2) = i_vector(1:2)
           deallocate(i_vector)
+       case("spherical")  ! TODO
        end select
     end if
 
@@ -172,7 +197,7 @@ contains
        dirEfield = -2 ! TODO: Add options to evaluate these values.
        dirEfieldvec(1:2) = i_vector(1:2)
        deallocate(i_vector)
-     case("spherical")
+    case("spherical")
        if(.not. get_parameter("dirEfield", vector, cnt)) call log_error("get_parameters", "'dirEfield' missing.")
        if(cnt /= 2) call log_error("get_parameters", "'dirEfield' has wrong size (size 2 required).")
        dirEfield = -3
@@ -180,12 +205,6 @@ contains
        EFt = vector(2)
        deallocate(vector)
     end select
-
-    if(.not. get_parameter("Npl", i_vector, cnt)) call log_error("get_parameters","'Npl' missing.")
-    if(cnt < 1) call log_error("get_parameters","'Npl' doesn't contain any parameters.")
-    Npl_i = i_vector(1)
-    if(cnt >= 2) Npl_f = i_vector(2)
-    deallocate(i_vector)
 
     if(.not. get_parameter("Options", s_vector, cnt)) call log_error("get_parameters","'Options' missing.")
     runoptions = ""
@@ -257,7 +276,6 @@ contains
        runoptions  = trim(runoptions) // " " // trim(s_vector(i))
     end do
     deallocate(s_vector)
-
     if(.not. get_parameter("eta", eta)) call log_error("get_parameters","'eta' missing.")
 
     if(.not. get_parameter("FIELD", lfield)) call log_error("get_parameters","'lfield' missing.")
@@ -309,8 +327,6 @@ contains
     end if
     if(allocated(vector)) deallocate(vector)
 
-    if(.not. get_parameter("nkpt", nkpt)) call log_error("get_parameters","'nkpt' missing.")
-
     if(.not. get_parameter("parts", parts)) call log_error("get_parameters","'parts' missing.")
 
     if(.not. get_parameter("parts3", parts3)) call log_error("get_parameters","'parts3' missing.")
@@ -330,10 +346,6 @@ contains
     if(.not. get_parameter("npts", npts)) call log_error("get_parameters","'npts' missing.")
     npt1 = npts + 1
 
-    if(.not. get_parameter("n0sc1", n0sc1)) call log_error("get_parameters","'n0sc1' missing.")
-
-    if(.not. get_parameter("n0sc2", n0sc2)) call log_error("get_parameters","'n0sc2' missing.")
-
     if(.not. get_parameter("renorm", renorm)) call log_error("get_parameters","'renorm' missing.")
     if(renorm) then
        if(.not. get_parameter("renormnb", renormnb)) call log_error("get_parameters","'renormnb' missing.")
@@ -345,29 +357,90 @@ contains
 
     if(.not. get_parameter("scfile", scfile)) call log_warning("get_parameters","'scfile' missing.")
 
-    if(.not. get_parameter("dfttype", dfttype)) call log_error("get_parameters","'dfttype' missing.")
+    !==============================================================================================!
+    !================================Tight-Binding Mode============================================!
+    if(.not. get_parameter("tbmode", tbmode)) call log_error("get_parameters", "'tbmode' missing.")
 
-    if(.not. get_parameter("set1", set1)) call log_error("get_parameters","'set1' missing.")
 
-    if(.not. get_parameter("set2", set2)) call log_error("get_parameters","'set2' missing.")
 
-    if(get_parameter("addlayers", i_vector, cnt)) then
-       if(cnt < 10) then
-          addlayers(1:cnt) = i_vector(1:cnt)
-          naddlayers = cnt
-       else if(cnt >= 10) then
-          addlayers(1:10) = i_vector(1:10)
-          naddlayers = 10
+    if(1 == tbmode) then
+       !-----Slater-Koster--------------------------------------------------------------------------!
+       dfttype = "S"
+
+       if(.not. get_parameter("layers", layers, cnt)) call log_error("get_parameters", "'layers' missing.")
+       if(cnt <= 0) call log_error("get_parameters", "'layers' No layers given.")
+       Npl = cnt
+
+       if(get_parameter("Npl", i_vector, cnt)) then
+         if(cnt < 1) call log_error("get_parameters","'Npl' doesn't contain any parameters.")
+         Npl_i = i_vector(1)
+         Npl_f = i_vector(1)
+         if(cnt >= 2) Npl_f = i_vector(2)
+         if(Npl_f < Npl_i) Npl_f = Npl_i
+         deallocate(i_vector)
+         if(Npl < Npl_f) call log_error("get_parameters", "'Npl' larger than amount of given layers")
+       else
+         call log_warning("get_parameters","'Npl' missing.")
+         Npl_i = Npl
+         Npl_f = Npl
        end if
+       if(.not. get_parameter("fermi_layer", fermi_layer)) call log_warning("get_parameters", "'fermi_layer' not given. Using fermi_layer = 1")
+       if(fermi_layer <= 0 .or. fermi_layer > Npl) call log_error("get_parameters", "'fermi_layer' out of range.")
+
+    else if(2 == tbmode) then
+       !-----DFT------------------------------------------------------------------------------------!
+       offset = 1
+       if(nstages /= 2) call log_error("get_parameters", "'tbmode' DFT Mode only supports nstages = 2")
+
+       if(.not. get_parameter("dfttype", dfttype)) call log_error("get_parameters","'dfttype' missing.")
+
+       if(.not. get_parameter("Npl", i_vector, cnt)) call log_error("get_parameters","'Npl' missing.")
+       if(cnt < 1) call log_error("get_parameters","'Npl' doesn't contain any parameters.")
+       Npl_i = i_vector(1)
+       Npl_f = i_vector(1)
+       if(cnt >= 2) Npl_f = i_vector(2)
+       deallocate(i_vector)
+
+       ! Check number of planes
+       if(Npl_f < Npl_i) Npl_f = Npl_i
+
+       if(.not. get_parameter("set1", set1)) call log_error("get_parameters","'set1' missing.")
+
+       if(.not. get_parameter("set2", set2)) call log_error("get_parameters","'set2' missing.")
+
+       if(get_parameter("addlayers", i_vector, cnt)) then
+          if(cnt < 10) then
+             addlayers(1:cnt) = i_vector(1:cnt)
+             naddlayers = cnt
+          else if(cnt >= 10) then
+             addlayers(1:10) = i_vector(1:10)
+             naddlayers = 10
+          end if
+       end if
+       if(allocated(i_vector)) deallocate(i_vector)
+
+       ! Add 'naddlayers' to Npl
+       if((naddlayers==1).and.(myrank==0)) write(outputunit,"('[get_parameters] WARNING: Added layers must include empty spheres! Only including one layer: naddlayers = ',i0)") naddlayers
+       if((set1==9).or.(set2==9)) then
+          naddlayers = 0
+       end if
+       if(naddlayers/=0) then
+          Npl_i = Npl_i+naddlayers-1
+          Npl_f = Npl_f+naddlayers-1
+       end if
+
+
+    else
+       call log_error("get_parameters", "'tbmode' Unknown mode selected. (Choose either 1 or 2)0")
     end if
-    if(allocated(i_vector)) deallocate(i_vector)
+    !==============================================================================================!
+    !==============================================================================================!
 
-    if(.not. get_parameter("set1", suffix)) call log_warning("get_parameters","'suffix' missing.")
+    if(.not. get_parameter("suffix", suffix)) call log_warning("get_parameters","'suffix' missing.")
 
-    if(.not. get_parameter("nn_stages", nn_stages)) call log_warning("get_parameters","'nn_stages' missing.")
 
     if(myrank == 0) then
-      if(.not. disable_input_logging()) call log_warning("get_parameters", "couldn't disable logging.")
+       if(.not. disable_input_logging()) call log_warning("get_parameters", "couldn't disable logging.")
     end if
 
 
@@ -408,7 +481,6 @@ contains
 
     ! Turning off renormalization for non-current calculations
     if(itype/=8) renorm = .false.
-    n0sc=n0sc2-n0sc1+1 ! Total number of neighbors
 
     ! Setting up external field variables and loops
     call prepare_field()
@@ -420,19 +492,6 @@ contains
     ! Preparing dc-limit calculation
     if(itype==9) call prepare_dclimit()
 
-    ! Check number of planes
-    if(Npl_f<Npl_i) then
-       Npl_f = Npl_i
-    end if
-    ! Add 'naddlayers' to Npl
-    if((naddlayers==1).and.(myrank==0)) write(outputunit,"('[get_parameters] WARNING: Added layers must include empty spheres! Only including one layer: naddlayers = ',i0)") naddlayers
-    if((set1==9).or.(set2==9)) then
-       naddlayers = 0
-    end if
-    if(naddlayers/=0) then
-       Npl_i = Npl_i+naddlayers-1
-       Npl_f = Npl_f+naddlayers-1
-    end if
 
     tol   = 1.d-10
     pn1=parts*n1gl
@@ -443,6 +502,7 @@ contains
 
   subroutine iowrite()
     use mod_mpi_pars
+    use mod_system, only: nkpt, n0sc1, n0sc2
     implicit none
 
 #ifdef _OPENMP
@@ -470,13 +530,13 @@ contains
     write(outputunit_loop,"(1x,'Electric field direction: ',$)")
     select case(dirEfield)
     case(-3)
-      write(outputunit_loop,"('Spherical phi=',es8.1,' theta=',es8.1)") EFp, EFt
+       write(outputunit_loop,"('Spherical phi=',es8.1,' theta=',es8.1)") EFp, EFt
     case(-2)
-      write(outputunit_loop,"('Bravais ')")
+       write(outputunit_loop,"('Bravais ')")
     case(-1)
-      write(outputunit_loop,"('Cartesian')")
+       write(outputunit_loop,"('Cartesian')")
     case(1:99)
-      write(outputunit_loop, "('Neighbor ',i0)") dirEfield
+       write(outputunit_loop, "('Neighbor ',i0)") dirEfield
     end select
     write(outputunit_loop,"('Direction ',/,1x,' E = (',f6.3,',',f6.3,',',f6.3,')')") dirEfieldvec(1),dirEfieldvec(2),dirEfieldvec(3)
 

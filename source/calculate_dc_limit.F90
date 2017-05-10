@@ -1,19 +1,20 @@
 ! This is the main subroutine to calculate the fixed-frequency
 ! (in particular, the dc-limit) response functions
 subroutine calculate_dc_limit()
-  use mod_parameters
-  use mod_constants
-  use mod_tight_binding, only: lambda
-  use mod_mpi_pars
-  use mod_magnet
-  use mod_progress
-  use mod_prefactors
-  use mod_susceptibilities
-  use mod_disturbances
-  use mod_currents
-  use mod_beff
-  use mod_torques
   use mod_sha
+  use mod_beff
+  use mod_magnet,          only: mtheta, mphi, lxp, lyp, lzp, mx, my, mz, mvec_spherical, hhwx, hhwy, hhwz
+  use mod_system,          only: n0sc1, n0sc2, n0sc
+  use mod_torques
+  use mod_mpi_pars
+  use mod_currents
+  use mod_progress,        only: write_time
+  use mod_constants,       only: zero, zum, zi, levi_civita, tpi
+  use mod_parameters
+  use mod_prefactors
+  use mod_disturbances
+  use mod_tight_binding,   only: lambda
+  use mod_susceptibilities
   implicit none
   character(len=50) :: time
   integer           :: i,j,iw,sigma,sigmap,mu,nu,neighbor,hw_count_temp,count_temp,mpitag2

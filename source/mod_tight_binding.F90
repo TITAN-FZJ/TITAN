@@ -36,23 +36,181 @@
 !------------------------
 
 module mod_tight_binding
-  use mod_f90_kind
+  use mod_f90_kind, only: double
+  use mod_parameters, only: Npl
   implicit none
+
+  integer :: tbmode ! (1) Slater-Koster, (2) DFT
+  integer :: fermi_layer
+  character(len=10), dimension(:), allocatable :: layers   ! How to get them????
+
   ! SOC parameters
   real(double), dimension(:), allocatable  :: lambda
   ! Total cccupations per layer
   real(double), dimension(:), allocatable  :: npart0
   ! real-space hoppings
   real(double),allocatable  :: t00(:,:,:,:),t01(:,:,:,:),t02(:,:,:,:)
+  real(double),allocatable  :: t0(:,:,:)
+  real(double),allocatable  :: t0i(:,:,:,:)
   ! SOC L.S matrix
   complex(double), dimension(18,18) :: ls
 
 contains
 
+  subroutine tb_hopping()
+    implicit none
+    if(tbmode == 1) then
+      call Papa_2C_param()
+    else if(tbmode == 2) then
+      call rs_hoppings()
+    end if
+  end subroutine tb_hopping
+
+  subroutine read_Papa_2C_param(name, on_site, hopping, lambda, fermi, npart)
+    use mod_system, only: nstages, a0
+    implicit none
+    character(len=*), intent(in) :: name
+    real(double) :: a0_param
+    real(double), intent(out) :: fermi
+    real(double), intent(out), dimension(4) :: on_site
+    real(double), intent(out), dimension(10, nstages) :: hopping
+    real(double), intent(out) :: lambda
+    real(double), intent(out) :: npart
+    real(double), dimension(3) :: dens
+    integer :: i, j, k, ios, line_count = 0
+    integer :: exponent(10)
+    character(200) :: line
+    character(50) :: words(10)
+    open(unit=995594, file=trim(name), iostat=ios)
+    if(ios /= 0) return
+    line_count = 0
+
+    ! Counting lines to determine whether the parameter are available for nn_stages next neighbours
+    read(unit=995594, fmt='(A)', iostat=ios) line
+    do while (ios == 0)
+      if(len_trim(line) > 0 .and. len_trim(line) < 200) line_count = line_count + 1
+      read(unit=995594, fmt='(A)', iostat=ios) line
+    end do
+    rewind(995594)
+
+    if(line_count < 10*nstages) then
+      !TODO : Abort + error message
+    end if
+
+    read(unit=995594, fmt='(A)', iostat = ios) line
+    read(unit=line, fmt=*, iostat=ios) a0_param
+
+    read(unit=995594, fmt='(A)', iostat = ios) line
+    read(unit= line, fmt=*, iostat=ios) lambda
+
+    read(unit=995594, fmt='(A)', iostat = ios) line
+    read(unit= line, fmt=*, iostat=ios) fermi
+
+    read(unit=995594, fmt='(A)', iostat = ios) line
+    read(unit= line, fmt=*, iostat=ios) dens(1), dens(2), dens(3)
+    npart = dens(1)+dens(2)+dens(3)
+    !TODO: Densities
+
+    a0_param = a0_param / a0  ! Scaling law by Andersen et al. O.K. Andersen, O. Jepsen, Physica 91B, 317 (1977); O.K. Andersen, W. Close. H. Nohl, Phys. Rev. B17, 1209 (1978)
+                             ! Distance dependence of tight binding matrix elements is given by V = C * d^(-[l+l'+1])
+                             ! e.g for ss hopping distance dependence is d^-1, for sp hopping d^-2
+    exponent = [1, 3, 3, 5, 5, 5, 2, 3, 4, 4]
+
+    do i = 1, 4
+      read(unit=995594, fmt='(A)', iostat = ios) line
+      read(unit=line, fmt=*, iostat=ios) (words(j), j=1,10)
+      read(unit=words(3), fmt=*, iostat=ios) on_site(i)
+    end do
+
+    do i = 1, nstages
+      do j = 1, 10
+        read(unit=995594, fmt='(A)', iostat = ios) line
+        read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
+        read(unit=words(4), fmt=*, iostat=ios) hopping(j,i)
+        hopping(j,i) = hopping(j,i) * (a0_param ** exponent(j)) ! Correction of hopping parameter by scaling law.
+      end do
+    end do
+
+    close(995594)
+  end subroutine
+
+  subroutine Papa_2C_param()
+    use mod_parameters, only: Npl, nmaglayers, U, Ef, mmlayermag
+    use mod_system, only: nstages, npln, c_nn, l_nn
+    use mod_f90_kind, only: double
+    implicit none
+    real(double), dimension(4, Npl) :: on_site
+    real(double), dimension(Npl) :: fermi
+    real(double), dimension(10, nstages, Npl) :: hopping
+    real(double), dimension(10) :: mix_t
+    real(double) :: w(3), bp(9,9)
+    integer :: i,j,k,l
+    integer :: loc_pln
+    ! TODO : Allocate t arrays
+    allocate(t0(Npl, 9,9))
+    allocate(t0i(Npl, l_nn(1,npln+1)-1, 9, 9))
+    !allocate(lambda(Npl))
+
+    t0     = 0
+    t0i    = 0
+    lambda = 0
+
+    !TODO : nmaglayers, U
+    nmaglayers = Npl
+    do i = 1, nmaglayers
+      mmlayermag(i) = i+1
+    end do
+    U = 0.9d0
+
+    do i = 1, Npl
+      call read_Papa_2C_param(layers(i), on_site(:,i), hopping(:,:,i), lambda(i), fermi(i), npart0(i))
+      ! On-site Term
+      t0(i,1,1)  = on_site(1,i)
+      do j=2,4
+         t0(i,j,j) = on_site(2,i)
+      end do
+      do j=5,7
+         t0(i,j,j) = on_site(3,i)
+      end do
+      do j=8,9
+         t0(i,j,j) = on_site(4,i)
+      end do
+    end do
+    print *, npart0
+    Ef = fermi(fermi_layer)
+    ! Inter-plane hopping
+    do i = 1, Npl
+
+      do j = 1, 9
+        t0(i,j,j) = t0(i,j,j) - fermi(i) + fermi(fermi_layer)
+      end do
+
+      loc_pln = npln
+      if(Npl < i + npln) loc_pln = Npl - i + 1
+
+      do k = 1, loc_pln
+        do j = 1, nstages
+          mix_t(1:10) = 0.5d0 * ( hopping(1:10, j, i) + hopping(1:10, j, i+k-1) ) ! sqrt(hopping(1:10, j, i)) * sqrt(hopping(1:10, j, i+k-1))
+          do l = l_nn(j,k), l_nn(j+1,k)-1
+            w = c_nn(:,l)
+            call intd(mix_t(1), mix_t(7), mix_t(2), &
+                      mix_t(3), mix_t(8), mix_t(9), &
+                      mix_t(10), mix_t(4), mix_t(5), &
+                      mix_t(6), w, bp)
+            t0i(i,l,:,:) = bp
+          end do
+        end do
+
+      end do
+    end do
+
+  end subroutine
+
   subroutine DFT_parameters(cs,cp,cd,ds,dp,dd)
     use mod_f90_kind
     use mod_parameters, only: Npl, Ef, SOC, dfttype, U, Utype, layertype, mmlayer, ry2ev, outputunit
     use mod_mpi_pars
+    implicit none
     integer       :: i,j
     integer, parameter :: mmmax=24
     integer, dimension(mmmax) :: layertype_dft
@@ -685,11 +843,11 @@ contains
 
   subroutine rs_hoppings()
     use mod_f90_kind
-    use mod_parameters, only: Npl, Utype, mmlayer, nmaglayers, mmlayermag, layertype, outputunit, Npl_input,  naddlayers
-    use mod_lattice
+    use mod_parameters, only: Npl, Utype, mmlayer, nmaglayers, mmlayermag, layertype, outputunit, Npl_input,  naddlayers, lattice
+    use mod_system, only: c_nn, l_nn, npln, nstages
     use mod_mpi_pars
     character(len=30) :: formatvar
-    integer       :: i,mu,neighbor
+    integer       :: i,j,k,l,hop
     real(double),dimension(Npl+2) :: cs,cp,cd,ds,dp,dd
     real(double) :: dst,dpt,ddt,w(3),bp(9,9)
     real(double) :: ds2,dsp,dsd,dp2,dpd,dd2
@@ -697,6 +855,35 @@ contains
     real(double) :: s0,p0,d0t,d0e
     ! off-site integrals
     real(double) :: sss,sps,pps,ppp,sds,pds,pdp,dds,ddp,ddd
+
+    real(double), dimension(4,3) :: loc_onsite !< Localized on-site two-center integrals
+    real(double), dimension(10,2,3) :: hopping !< 10 parameters for 1st & 2nd nn for sc bcc fcc
+    integer :: loc_pln
+    !===============================================================================================
+    !============ https://doi.org/10.1103/PhysRevLett.53.2571 ======================================
+    !===============================================================================================
+    loc_onsite(:,1) = [3.72d0, 3.71d0, 1.42d0, 5.89d0]
+    loc_onsite(:,2) = [3.09d0, 2.79d0, 2.71d0, 1.30d0]
+    loc_onsite(:,3) = [3.05d0, 2.74d0, 2.37d0, 1.67d0]
+
+    hopping(:,1,1) = [-0.961d0, 1.84d0, 3.62d0, -0.76d0, -2.10d0, -4.41d0, 1.61d0, -6.17d0, 3.52d0, -0.54d0]
+    hopping(:,2,1) = [-0.057d0, 0.12d0, 0.26d0, -0.03d0, -0.15d0, -0.34d0, 0.06d0, -0.50d0, 0.11d0, -0.02d0]
+
+    hopping(:,1,2) = [-0.593d0, 1.18d0, 2.36d0, -0.36d0, -1.42d0, -2.93d0, 0.82d0, -3.84d0, 1.85d0, -0.19d0]
+    hopping(:,2,2) = [-0.203d0, 0.44d0, 0.93d0, -0.05d0, -0.60d0, -1.29d0, 0.13d0, -1.76d0, 0.36d0, -0.02d0]
+
+    hopping(:,1,3) = [-0.484d0, 0.98d0, 2.00d0, -0.25d0, -1.22d0, -2.52d0,  0.60d0, -3.32d0,  1.42d0, -0.13d0]
+    hopping(:,2,3) = [-0.020d0, 0.05d0, 0.09d0,  0.00d0, -0.06d0, -0.14d0, -0.01d0, -0.23d0, -0.02d0, -0.00d0]
+    !===============================================================================================
+    select case(trim(lattice))
+    case("sc")
+      hop = 1
+    case("bcc")
+      hop = 2
+    case("fcc")
+      hop = 3
+    end select
+    !===============================================================================================
 
     call DFT_parameters(cs,cp,cd,ds,dp,dd)
     if((layertype(1)/=1).or.(layertype(Npl+2)/=1)) then
@@ -736,22 +923,16 @@ contains
     ! Unifying Utype = 0 and 1 To Utype = 0 if there is no magnetic layer
     if((Utype<=1).and.(nmaglayers==0)) Utype = 0
 
-    ! Allocating real space hoppings
-    inter_plane_hoppings: select case (plnn)
-    case(1) ! If inter-plane second nearest neighbors are in n.n. plane
-       if(.not.allocated(t00)) allocate( t00(Npl+2,0:n0,9,9),t01(Npl+1,n1+n2,9,9) )
-    case(2) ! If inter-plane second nearest neighbors are in 2nd. n.n. plane
-       if(.not.allocated(t00)) allocate( t00(Npl+2,0:n0,9,9),t01(Npl+1,n1,9,9),t02(Npl,n2,9,9) )
-    case default
-       if(myrank==0) write(outputunit,"('[rs_hoppings] System not defined for more than 2 n.n. planes!')")
-       call MPI_Finalize(ierr)
-       stop
-    end select inter_plane_hoppings
+    allocate(t0(Npl+2, 9,9))
+    allocate(t0i(Npl+2, l_nn(nstages+1,npln)-1,9,9))
 
-    t00 = 0.d0
+
+    t0 = 0.d0
+    t0i = 0.d0
     ! In plane hoppings
     do i=1,Npl+2
 
+      ! on site
        ds2 = ds(i)*ds(i)
        dsp = ds(i)*dp(i)
        dsd = ds(i)*dd(i)
@@ -759,162 +940,61 @@ contains
        dpd = dp(i)*dd(i)
        dd2 = dd(i)*dd(i)
 
-       ! on site
-       s0  = cs(i) + ds2*3.09d0
-       p0  = cp(i) + dp2*2.79d0
-       d0t = cd(i) + dd2*2.71d0
-       d0e = cd(i) + dd2*1.30d0
+       s0  = cs(i) + ds2*loc_onsite(1,hop)
+       p0  = cp(i) + dp2*loc_onsite(2,hop)
+       d0t = cd(i) + dd2*loc_onsite(3,hop)
+       d0e = cd(i) + dd2*loc_onsite(4,hop)
 
-       t00(i,0,1,1)  = s0
-       do mu=2,4
-          t00(i,0,mu,mu) = p0
+       t0(i,1,1)  = s0
+       do j=2,4
+          t0(i,j,j) = p0
        end do
-       do mu=5,7
-          t00(i,0,mu,mu) = d0t
+       do j=5,7
+          t0(i,j,j) = d0t
        end do
-       do mu=8,9
-          t00(i,0,mu,mu) = d0e
-       end do
-
-       ! first n.n.
-       sss = -ds2*0.593d0
-       sps =  dsp*1.18d0
-       pps =  dp2*2.36d0
-       ppp = -dp2*0.36d0
-       sds = -dsd*1.42d0
-       pds = -dpd*2.93d0
-       pdp =  dpd*0.82d0
-       dds = -dd2*3.84d0
-       ddp =  dd2*1.85d0
-       ddd = -dd2*0.19d0
-       do neighbor=1,n01
-          w = c0(neighbor,:)
-          call intd(sss,sps,pps,ppp,sds,pds,pdp,dds,ddp,ddd,w,bp)
-          t00(i,neighbor,:,:) = bp
+       do j=8,9
+          t0(i,j,j) = d0e
        end do
 
-       ! second n.n.
-       sss = -ds2*0.203d0
-       sps =  dsp*0.44d0
-       pps =  dp2*0.93d0
-       ppp = -dp2*0.05d0
-       sds = -dsd*0.60d0
-       pds = -dpd*1.29d0
-       pdp =  dpd*0.13d0
-       dds = -dd2*1.76d0
-       ddp =  dd2*0.36d0
-       ddd = -dd2*0.02d0
-       do neighbor=n01+1,n0
-          w = c0(neighbor,:)
-          call intd(sss,sps,pps,ppp,sds,pds,pdp,dds,ddp,ddd,w,bp)
-          t00(i,neighbor,:,:) = bp
-       end do
-    end do
+       ! hopping
+       loc_pln = npln
+       if(Npl+2 < i+npln) loc_pln = Npl+2 - i +1
+       do k = 1, loc_pln
+         do j = 1, nstages
+           dst = sqrt(ds(i)*ds(i+k-1))
+           dpt = sqrt(dp(i)*dp(i+k-1))
+           ddt = sqrt(dd(i)*dd(i+k-1))
 
-    t01 = 0.d0
-    ! Inter plane hoppings
-    do i=1,Npl+1
+           ds2 = dst*dst
+           dsp = dst*dpt
+           dsd = dst*ddt
+           dp2 = dpt*dpt
+           dpd = dpt*ddt
+           dd2 = ddt*ddt
 
-       dst = sqrt(ds(i)*ds(i+1))
-       dpt = sqrt(dp(i)*dp(i+1))
-       ddt = sqrt(dd(i)*dd(i+1))
-
-       ds2 = dst*dst
-       dsp = dst*dpt
-       dsd = dst*ddt
-       dp2 = dpt*dpt
-       dpd = dpt*ddt
-       dd2 = ddt*ddt
-
-       ! first n.n.
-       sss = -ds2*0.593d0
-       sps =  dsp*1.18d0
-       pps =  dp2*2.36d0
-       ppp = -dp2*0.36d0
-       sds = -dsd*1.42d0
-       pds = -dpd*2.93d0
-       pdp =  dpd*0.82d0
-       dds = -dd2*3.84d0
-       ddp =  dd2*1.85d0
-       ddd = -dd2*0.19d0
-       do neighbor=1,n1
-          w = c1(neighbor,:)
-          call intd(sss,sps,pps,ppp,sds,pds,pdp,dds,ddp,ddd,w,bp)
-          t01(i,neighbor,:,:) = bp
-       end do
-    end do
-
-    second_neighbor_inter_plane_hopping: select case (plnn)
-    case(1) ! If inter-plane second nearest neighbors are in n.n. plane
-       do i=1,Npl+1
-
-          dst = sqrt(ds(i)*ds(i+1))
-          dpt = sqrt(dp(i)*dp(i+1))
-          ddt = sqrt(dd(i)*dd(i+1))
-
-          ds2 = dst*dst
-          dsp = dst*dpt
-          dsd = dst*ddt
-          dp2 = dpt*dpt
-          dpd = dpt*ddt
-          dd2 = ddt*ddt
-
-          ! second n.n.
-          sss = -ds2*0.203d0
-          sps =  dsp*0.44d0
-          pps =  dp2*0.93d0
-          ppp = -dp2*0.05d0
-          sds = -dsd*0.60d0
-          pds = -dpd*1.29d0
-          pdp =  dpd*0.13d0
-          dds = -dd2*1.76d0
-          ddp =  dd2*0.36d0
-          ddd = -dd2*0.02d0
-          do neighbor=1,n2
-             w = c2(neighbor,:)
+           sss = ds2*hopping(1 ,j,hop)
+           sps = dsp*hopping(2 ,j,hop)
+           pps = dp2*hopping(3 ,j,hop)
+           ppp = dp2*hopping(4 ,j,hop)
+           sds = dsd*hopping(5 ,j,hop)
+           pds = dpd*hopping(6 ,j,hop)
+           pdp = dpd*hopping(7 ,j,hop)
+           dds = dd2*hopping(8 ,j,hop)
+           ddp = dd2*hopping(9 ,j,hop)
+           ddd = dd2*hopping(10,j,hop)
+           do l = l_nn(j,k), l_nn(j+1,k)-1
+             w = c_nn(:,l)
              call intd(sss,sps,pps,ppp,sds,pds,pdp,dds,ddp,ddd,w,bp)
-             t01(i,n1+neighbor,:,:) = bp
-          end do
+             t0i(i,l,:,:) = bp
+           end do
+         end do
        end do
-    case(2) ! If inter-plane second nearest neighbors are in 2nd. n.n. plane
-       t02 = 0.d0
-       do i=1,Npl
-
-          dst = sqrt(ds(i)*ds(i+2))
-          dpt = sqrt(dp(i)*dp(i+2))
-          ddt = sqrt(dd(i)*dd(i+2))
-
-          ds2 = dst*dst
-          dsp = dst*dpt
-          dsd = dst*ddt
-          dp2 = dpt*dpt
-          dpd = dpt*ddt
-          dd2 = ddt*ddt
-
-          ! second n.n.
-          sss = -ds2*0.203d0
-          sps =  dsp*0.44d0
-          pps =  dp2*0.93d0
-          ppp = -dp2*0.05d0
-          sds = -dsd*0.60d0
-          pds = -dpd*1.29d0
-          pdp =  dpd*0.13d0
-          dds = -dd2*1.76d0
-          ddp =  dd2*0.36d0
-          ddd = -dd2*0.02d0
-          do neighbor=1,n2
-             w = c2(neighbor,:)
-             call intd(sss,sps,pps,ppp,sds,pds,pdp,dds,ddp,ddd,w,bp)
-             t02(i,neighbor,:,:) = bp
-          end do
-       end do
-    end select second_neighbor_inter_plane_hopping
-
+     end do
     return
   end subroutine rs_hoppings
 
   pure subroutine intd(sss,sps,pps,ppp,ss,ps,pp,ds,dp,dd,w,b)
-    use mod_f90_kind
+    use mod_f90_kind, only: double
     use mod_constants
     implicit none
     real(double), intent(in)  :: sss,sps,pps,ppp,ss,ps,pp,ds,dp,dd,w(3)

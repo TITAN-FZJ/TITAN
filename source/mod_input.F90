@@ -9,13 +9,13 @@ module mod_input
   integer :: out_unit = -1
   character(len=line_length), dimension(max_lines) :: key, val
 
-interface get_parameter
-  module procedure get_int, get_int_array, &
-                   get_real, get_real_array, &
-                   get_string, get_string_array, &
-                   get_complex, get_complex_array, &
-                   get_logical
-end interface
+  interface get_parameter
+     module procedure get_int, get_int_array, &
+          get_real, get_real_array, &
+          get_string, get_string_array, &
+          get_complex, get_complex_array, &
+          get_logical
+  end interface get_parameter
 contains
 
   function enable_input_logging(filename) result(success)
@@ -30,7 +30,7 @@ contains
     success = .true.
 
     return
-  end function
+  end function enable_input_logging
 
   function disable_input_logging() result(success)
     implicit none
@@ -43,7 +43,7 @@ contains
     if(eof /= 0) return
     success = .true.
     return
-  end function
+  end function disable_input_logging
 
   subroutine log_parameter(key_string, val_string)
     use mod_mpi_pars
@@ -56,11 +56,11 @@ contains
     write(out_unit, "(' ',a,' = ',a,' ')") trim(adjustl(key_string)), trim(adjustl(val_string))
 
     return
-  end subroutine
+  end subroutine log_parameter
 
   function read_file(filename) result(success)
     implicit none
-    character(len=*), intent(in) :: filename
+    character(len=200), intent(in) :: filename
     character(len=line_length) :: line
     integer :: eof, iunit
     logical :: success
@@ -111,7 +111,7 @@ contains
           success = .true.
           call log_parameter(key(i), val(i))
           exit
-        else
+       else
        end if
     end do
 
@@ -144,7 +144,7 @@ contains
     success = find_val(key_val, ind)
     ret_cnt = 0
     do i=1,max_elements
-      str_arr(i) = ""
+       str_arr(i) = ""
     end do
     if(success) then
        read(unit=val(ind), fmt=*, iostat=ios) (str_arr(i), i=1,max_elements)
@@ -159,9 +159,10 @@ contains
   end function get_int_array
 
   function get_real(key_val, ret_val) result(success)
+    use mod_f90_kind, only:double
     implicit none
     character(len=*), intent(in) :: key_val
-    real(kind=8), intent(out) :: ret_val
+    real(double), intent(out) :: ret_val
     logical :: success
     integer :: ind , ios
 
@@ -173,19 +174,20 @@ contains
   end function get_real
 
   function get_real_array(key_val, ret_val, ret_cnt) result(success)
+    use mod_f90_kind, only: double
     implicit none
     character(len=*), intent(in) :: key_val
-    real(kind=8), allocatable, intent(out) :: ret_val(:)
+    real(double), allocatable, intent(out) :: ret_val(:)
     integer, intent(out) :: ret_cnt
     logical :: success
     integer :: ind , ios, i
-    real(kind=8) :: tmp_arr(max_elements)
+    real(double) :: tmp_arr(max_elements)
     character(len=word_length) :: str_arr(max_elements)
 
     success = find_val(key_val, ind)
     ret_cnt = 0
     do i=1,max_elements
-      str_arr(i) = ""
+       str_arr(i) = ""
     end do
     if(success) then
        read(unit=val(ind), fmt=*, iostat=ios) (str_arr(i), i=1,max_elements)
@@ -226,7 +228,7 @@ contains
     success = find_val(key_val, ind)
     ret_cnt = 0
     do i=1,max_elements
-      str_arr(i) = ""
+       str_arr(i) = ""
     end do
     if(success) then
        read(unit=val(ind), fmt=*, iostat=ios) (str_arr(i), i=1,max_elements)
@@ -264,8 +266,8 @@ contains
     character(len=word_length) :: tmp_arr(max_elements)
     character(len=word_length) :: str_arr(max_elements)
     do i=1,max_elements
-      str_arr(i) = ""
-      tmp_arr(i) = ""
+       str_arr(i) = ""
+       tmp_arr(i) = ""
     end do
     success = find_val(key_val, ind)
     ret_cnt = 0
@@ -278,7 +280,7 @@ contains
           read(unit=str_arr(i), fmt=*,iostat=ios ) tmp_arr(ret_cnt)
        end do
        allocate(ret_val(ret_cnt))
-       ret_val = tmp_arr(:ret_cnt)
+       ret_val(1:ret_cnt) = tmp_arr(1:ret_cnt)
     end if
   end function get_string_array
 
