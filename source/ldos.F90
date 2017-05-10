@@ -2,6 +2,7 @@
 subroutine ldos()
   use mod_f90_kind
   use mod_parameters
+  use mod_system, only: nkpt
   use mod_mpi_pars, only: mpitag
   implicit none
   character(len=400) :: varm
@@ -23,7 +24,7 @@ subroutine ldos()
     else
       SOCc = "T"
     end if
-    write(socpart,"('_magaxis=',a,'_socscale=',f5.2)") magaxis,socscale
+    if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
   else
     SOCc = "F"
   end if
@@ -39,10 +40,10 @@ subroutine ldos()
   ! LDOS
   do i=1,Npl
     iw = 1000+(mpitag-1)*Npl*2 + (i-1)*2 + 1
-    write(varm,"('./results/',a1,'SOC/',a,'/LDOS/ldosu_layer',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),i,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+    write(varm,"('./results/',a1,'SOC/',a,'/LDOS/ldosu_layer',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),i,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
     open (unit=iw, file=varm,status='unknown')
     iw = iw+1
-    write(varm,"('./results/',a1,'SOC/',a,'/LDOS/ldosd_layer',i0,'_ncp=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),i,ncp,eta,Utype,trim(fieldpart),trim(socpart)
+    write(varm,"('./results/',a1,'SOC/',a,'/LDOS/ldosd_layer',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),i,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
     open (unit=iw, file=varm,status='unknown')
   end do
 
@@ -50,7 +51,7 @@ subroutine ldos()
     e = emin + (count-1)*deltae
     write(outputunit_loop,"('[ldos] ',i0,' of ',i0,' points',', e = ',es10.3)") count,npt1,e
 
-    call ldos_jij_energy(e,ldosu,ldosd)
+    call ldos_energy(e,ldosu,ldosd)
 
     ! Writing into files
     ! LDOS

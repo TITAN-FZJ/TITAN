@@ -3,13 +3,13 @@ subroutine ldos_energy(e,ldosu,ldosd)
   use mod_f90_kind
   use mod_constants
   use mod_parameters
-  use mod_generate_kpoints
+  use mod_system, only: kbz, wkbz, nkpt
   use mod_progress
   use mod_mpi_pars
 !$  use omp_lib
   implicit none
 !$  integer           :: nthreads,mythread
-  integer             :: i,j,mu,nu,iz
+  integer             :: i,mu,nu,iz
   real(double)        :: kp(3)
   real(double),intent(in)     :: e
   real(double),intent(out)    :: ldosu(Npl,9),ldosd(Npl,9)
@@ -29,9 +29,9 @@ subroutine ldos_energy(e,ldosu,ldosd)
 !$  end if
 
 !$omp do reduction(+:ldosu,ldosd)
-  kpoints: do iz=1,nkpoints
+  kpoints: do iz=1,nkpt
 !$  if((mythread.eq.0)) then
-      if(lverbose) call progress_bar(outputunit_loop,"kpoints",iz,nkpoints)
+      if(lverbose) call progress_bar(outputunit_loop,"kpoints",iz,nkpt)
 !$  end if
     kp = kbz(iz,:)
 
