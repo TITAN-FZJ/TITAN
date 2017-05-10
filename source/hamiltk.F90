@@ -28,7 +28,7 @@ subroutine hamiltk(kp,hk)
      i1 = i0+9
 
      loc_pln = npln
-     if(Npl_total < i + npln) loc_pln = Npl_total - i
+     if(Npl_total < i + npln) loc_pln = Npl_total - i + 1
 
      hk(i0:i0+8,i0:i0+8) = t0(i,:,:) ! + sb hee +socscale*lambda*ls
      hk(i1:i1+8,i1:i1+8) = t0(i,:,:) ! + sb hee +socscale*lambda*ls
@@ -40,7 +40,8 @@ subroutine hamiltk(kp,hk)
         j1 = i0 + 18 * (j-1) + 9
         do l = l_nn(1,j), l_nn(1,j+1)-1
           hk(i0:i0+8, j0:j0+8) = hk(i0:i0+8, j0:j0+8) + t0i(i,l,:,:)*exp(zi*dot_product(kp,r_nn(:,l)))
-          hk(i1:i1+8, j1:j1+8) = hk(i0:i0+8, j0:j0+8)
+          hk(i1:i1+8, j1:j1+8) = hk(i1:i1+8, j1:j1+8) + t0i(i,l,:,:)*exp(zi*dot_product(kp,r_nn(:,l)))
+          
         end do
         hk(j0:j0+17, i0:i0+17) = transpose(conjg(hk(i0:i0+17, j0:j0+17)))
      end do
@@ -79,12 +80,12 @@ subroutine hamiltklinearsoc(kp,hk,vsoc)
      i1 = i0+9
 
      loc_pln = npln
-     if( Npl_total < i + npln ) loc_pln = Npl_total - i
+     if( Npl_total < i + npln ) loc_pln = Npl_total - i + 1
 
      hk(i0:i0+8,i0:i0+8) = t0(i,:,:) ! + sb hee +socscale*lambda*ls
      hk(i1:i1+8,i1:i1+8) = t0(i,:,:) ! + sb hee +socscale*lambda*ls
 
-     hk  (i0:i0+17, i0:i0+17) = hk(i0:i0+17, i0:i0+17) + lb(i,:,:) + sb(i,:,:) + hee(i,:,:) + (socscale*lambda(i)*ls)
+     hk  (i0:i0+17, i0:i0+17) = hk(i0:i0+17, i0:i0+17) + lb(i,:,:) + sb(i,:,:) + hee(i,:,:)
      vsoc(i0:i0+17, i0:i0+17) = socscale*lambda(i)*ls
 
      do j = 1, loc_pln
@@ -92,7 +93,7 @@ subroutine hamiltklinearsoc(kp,hk,vsoc)
         j1 = i0 + 18 * (j-1) + 9
         do l = l_nn(1,j), l_nn(1,j+1)-1
            hk(i0:i0+8, j0:j0+8) = hk(i0:i0+8, j0:j0+8) + t0i(i,l,:,:)*exp(zi*dot_product(kp,r_nn(:,l)))
-           hk(i1:i1+8, j1:j1+8) = hk(i0:i0+8, j0:j0+8)
+           hk(i1:i1+8, j1:j1+8) = hk(i1:i1+8, j1:j1+8) + t0i(i,l,:,:)*exp(zi*dot_product(kp,r_nn(:,l)))
         end do
         hk(j0:j0+17, i0:i0+17) = transpose(conjg(hk(i0:i0+17, j0:j0+17)))
      end do
