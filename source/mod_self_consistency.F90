@@ -9,7 +9,6 @@ contains
     use mod_constants
     use mod_magnet
     use mod_parameters
-    use mod_tight_binding, only: tbmode
     use mod_mpi_pars, only: myrank_row_hw
     use mod_susceptibilities, only: lrot
     implicit none
@@ -65,15 +64,9 @@ contains
       my = 0.d0
       mz = sign(0.5d0,hw_list(hw_count,1))
 
-      if(tbmode == 2) then
-        do i=1,Npl
-          if(layertype(i+1)==2) mz(i) = sign(2.d0,hw_list(hw_count,1))
-        end do
-      else
-        do i=1,Npl
-          if(layertype(i) == 2) mz(i) = sign(2.d0, hw_list(hw_count,1))
-        end do
-      end if
+      do i=1,Npl
+        if(layertype(i+offset)==2) mz(i) = sign(2.d0,hw_list(hw_count,1))
+      end do
 
       mp = zero
       if(lfield) then
@@ -83,17 +76,10 @@ contains
         mp = cmplx(mx,my,double)
       end if
       ! Variables used in the hamiltonian
-      if(tbmode == 2) then
-        do i=1,Npl
-          hdel(i)   = 0.5d0*U(i+1)*mz(i)
-          hdelp(i)  = 0.5d0*U(i+1)*mp(i)
-        end do
-      else
-        do i=1,Npl
-          hdel(i)  = 0.5d0 * U(i)*mz(i)
-          hdelp(i) = 0.5d0 * U(i)*mp(i)
-        end do
-      end if
+      do i=1,Npl
+        hdel(i)   = 0.5d0*U(i+offset)*mz(i)
+        hdelp(i)  = 0.5d0*U(i+offset)*mp(i)
+      end do
       hdelm = conjg(hdelp)
     end if
 
@@ -419,8 +405,8 @@ contains
         mz  (:) = previous_results(:,4)
         mp  = mx + zi*my
         do i=1,Npl
-          hdel(i)   = 0.5d0*U(i+1)*mz(i)
-          hdelp(i)  = 0.5d0*U(i+1)*mp(i)
+          hdel(i)   = 0.5d0*U(i+offset)*mz(i)
+          hdelp(i)  = 0.5d0*U(i+offset)*mp(i)
         end do
         hdelm = conjg(hdelp)
         if(lsuccess) then
@@ -488,11 +474,11 @@ contains
     use mod_f90_kind
     use mod_generate_epoints
     use mod_magnet
-    use mod_tight_binding, only: npart0, tbmode
+    use mod_tight_binding, only: npart0
     use mod_progress
     use mod_mpi_pars
     implicit none
-    integer  :: N,i,j,iflag, offset
+    integer  :: N,i,j,iflag
     integer,           intent(inout) :: iuser(*)
     real(double),      intent(inout) :: ruser(*)
     real(double),dimension(N)        :: x,fvec
@@ -517,17 +503,10 @@ contains
     mz_in = x(3*Npl+1:4*Npl)
     mp_in = mx_in+zi*my_in
 
-    if(tbmode == 2) then
-      do i=1,Npl
-        hdel(i)   = 0.5d0*U(i+1)*mz_in(i)
-        hdelp(i)  = 0.5d0*U(i+1)*mp_in(i)
-      end do
-    else
-      do i=1,Npl
-        hdel(i)  = 0.5d0*U(i)*mz_in(i)
-        hdelp(i) = 0.5d0*U(i)*mp_in(i)
-      end do
-    end if
+    do i=1,Npl
+      hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
+      hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
+    end do
     hdelm = conjg(hdelp)
 
     if((myrank_row_hw==0).and.(iter==1)) then
@@ -625,8 +604,6 @@ contains
       mx      = real(mp)
       my      = aimag(mp)
 
-      offset = 0
-      if(tbmode == 2) offset = 1
       do i=1,Npl
         ! Number of particles
         n_t(i) = sum(n_orb_t(i,:))
@@ -1445,7 +1422,6 @@ contains
     use mod_f90_kind
     use mod_constants
     use mod_parameters
-    use mod_tight_binding, only: tbmode
     use mod_progress
     use mod_mpi_pars
     use mod_system, only: nkpt, kbz, wkbz
@@ -1453,7 +1429,7 @@ contains
     implicit none
 !$  integer                  :: nthreads,mythread
     integer                  :: AllocateStatus
-    integer                  :: iz,i,j,i0,j0,mu,sigma,sigmap, offset
+    integer                  :: iz,i,j,i0,j0,mu,sigma,sigmap
     real(double)             :: kp(3)
     real(double),intent(in)  :: er,ei
     real(double),dimension(4*Npl,4*Npl),intent(out) :: ggr
@@ -1474,8 +1450,6 @@ contains
     pauli_components2(2:4,:,:) = pauli_dorb(:,:,:)
 
   ! Prefactor -U/2 in dH/dm and 1 in dH/deps1
-    offset = 0
-    if(tbmode == 2) offset = 1
     do j=1,Npl
       mhalfU(1,j) = zum
       mhalfU(2:4,j) = -0.5d0*U(j+offset)
