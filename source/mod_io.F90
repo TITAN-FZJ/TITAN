@@ -113,13 +113,13 @@ contains
        a3 = vector
        deallocate(vector)
     case("bcc")
-       a1 = [-0.5d0,  0.5d0,  0.5d0] * a0 / sqrt(0.75d0)
-       a2 = [ 0.5d0, -0.5d0,  0.5d0] * a0 / sqrt(0.75d0)
-       a3 = [ 0.5d0,  0.5d0, -0.5d0] * a0 / sqrt(0.75d0)
+       a1 = [-0.5d0,  0.5d0,  0.5d0] * a0 !/ sqrt(0.75d0)
+       a2 = [ 0.5d0, -0.5d0,  0.5d0] * a0 !/ sqrt(0.75d0)
+       a3 = [ 0.5d0,  0.5d0, -0.5d0] * a0 !/ sqrt(0.75d0)
     case("fcc")
-       a1 = [0.0d0, 0.5d0, 0.5d0] * a0 / sqrt(0.5d0)
-       a2 = [0.5d0, 0.0d0, 0.5d0] * a0 / sqrt(0.5d0)
-       a3 = [0.5d0, 0.5d0, 0.0d0] * a0 / sqrt(0.5d0)
+       a1 = [0.0d0, 0.5d0, 0.5d0] * a0 !/ sqrt(0.5d0)
+       a2 = [0.5d0, 0.0d0, 0.5d0] * a0 !/ sqrt(0.5d0)
+       a3 = [0.5d0, 0.5d0, 0.0d0] * a0 !/ sqrt(0.5d0)
     case("sc")
        a1 = [1.0d0, 0.0d0, 0.0d0] * a0
        a2 = [0.0d0, 1.0d0, 0.0d0] * a0
@@ -132,10 +132,14 @@ contains
        call log_error("get_parameters","Unknown 'lattice' option.")
     end select
 
-    if(.not. get_parameter("plane", vector, cnt)) call log_error("get_parameters","'plane' missing.")
-    if(cnt /= 3) call log_error("get_parameters","'plane' has wrong size (size 3 required).")
-    pln_normal = vector(1:3) / sqrt(dot_product(vector(1:3),vector(1:3)))
-    deallocate(vector)
+    if(get_parameter("plane", vector, cnt)) then
+      if(cnt /= 3) call log_error("get_parameters","'plane' has wrong size (size 3 required).")
+      pln_normal = vector(1:3) / sqrt(dot_product(vector(1:3),vector(1:3)))
+      deallocate(vector)
+    else
+      pln_normal = 0.d0
+      call log_warning("get_parameters","'plane' missing.")
+    end if
 
     if(.not. get_parameter("nkpt", nkpt)) call log_error("get_parameters","'nkpt' missing.")
 
@@ -379,7 +383,7 @@ contains
          call log_warning("get_parameters","'Npl' missing.")
          Npl_i = Npl
          Npl_f = Npl
-       end if 
+       end if
        if(.not. get_parameter("fermi_layer", fermi_layer)) call log_warning("get_parameters", "'fermi_layer' not given. Using fermi_layer = 1")
        if(fermi_layer <= 0 .or. fermi_layer > Npl) call log_error("get_parameters", "'fermi_layer' out of range.")
 
