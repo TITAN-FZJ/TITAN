@@ -159,7 +159,7 @@ contains
     do i = 1, nmaglayers
       mmlayermag(i) = i+1
     end do
-    U = 1.0d0
+    U = 0.9d0
 
     do i = 1, Npl
       call read_Papa_2C_param(layers(i), on_site(:,i), hopping(:,:,i), lambda(i), fermi(i))
