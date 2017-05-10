@@ -45,13 +45,13 @@ subroutine coupling()
         iw = iw + 1
         write(varm,"('./results/',a1,'SOC/Jij/Jii_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,parts,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
         open (unit=iw, file=varm,status='replace')
-        write(unit=iw, fmt="('#  Npl ,      Jii_xx       ,       Jii_yy  ')")
+        write(unit=iw, fmt="('#  Npl ,      Jii_xx       ,      Jii_yy       ,      Jii_zz       ')")
         iw = iw + 1
       else
         iw = iw + 1
         write(varm,"('./results/',a1,'SOC/Jij/J_',i0,'_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,j,parts,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
         open (unit=iw, file=varm,status='replace')
-        write(unit=iw, fmt="('#  Npl ,   isotropic Jij    ,   anisotropic Jij_xx    ,   anisotropic Jij_yy     ')")
+        write(unit=iw, fmt="('#  Npl ,   isotropic Jij    ,   anisotropic Jij_xx    ,   anisotropic Jij_yy    ,   anisotropic Jij_zz    ')")
         iw = iw + 1
         write(varm,"('./results/',a1,'SOC/Jij/Dz_',i0,'_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,j,parts,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
         open (unit=iw, file=varm,status='replace')
@@ -104,7 +104,7 @@ subroutine coupling()
       write(outputunit,"('   Anisotropic:     Js_xx = ',es16.9)") Jijs(i,j,1,1)
       write(outputunit,"('                    Js_yy = ',es16.9)") Jijs(i,j,2,2)
       write(outputunit,"('  DMI: Dz = (Jxy - Jyx)/2 = ',es16.9)") Jija(i,j,1,2)
-      write(outputunit,"(' --- z components of Jij (not physically correct) ---')")
+      write(outputunit,"(' --------- z components of Jij  ---------')")
       write(outputunit,"('  Anisotropic:  Js_zz = ',es16.9)") Jijs(i,j,3,3)
       write(outputunit,"('  DMI: Dy = (Jzx - Jxz)/2 = ',es16.9)") -Jija(i,j,1,3)
       write(outputunit,"('  DMI: Dx = (Jyz - Jzy)/2 = ',es16.9)") Jija(i,j,2,3)
@@ -116,11 +116,11 @@ subroutine coupling()
       iw = 199+(j-1)*nmaglayers*2+(i-1)*2
       if(i==j) then
         iw = iw + 1
-        write(unit=iw,fmt="(4x,i3,3x,2(es16.9,2x))") Npl_input,Jij(i,j,1,1),Jij(i,j,2,2)
+        write(unit=iw,fmt="(4x,i3,3x,3(es16.9,2x))") Npl_input,Jij(i,j,1,1),Jij(i,j,2,2),Jij(i,j,3,3)
         iw = iw + 1
       else
         iw = iw + 1
-        write(unit=iw,fmt="(4x,i3,3x,3(es16.9,2x))") Npl_input,trJij(i,j),Jijs(i,j,1,1),Jijs(i,j,2,2)
+        write(unit=iw,fmt="(4x,i3,3x,4(es16.9,2x))") Npl_input,trJij(i,j),Jijs(i,j,1,1),Jijs(i,j,2,2),Jijs(i,j,3,3)
         iw = iw + 1
         write(unit=iw,fmt="(4x,i3,3x,es16.9,2x)") Npl_input,Jija(i,j,1,2)
       end if

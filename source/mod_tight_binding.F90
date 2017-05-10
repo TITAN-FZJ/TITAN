@@ -718,6 +718,7 @@ contains
 
     ! Obtaining the number and list of magnetic layers
     nmaglayers = 0
+    mmlayermag = 2
     do i=1,Npl+2
        if(layertype(i)==2) then
           nmaglayers = nmaglayers + 1
