@@ -389,7 +389,7 @@ contains
 
     else if(2 == tbmode) then
        !-----DFT------------------------------------------------------------------------------------!
-
+       offset = 1
        if(nstages /= 2) call log_error("get_parameters", "'tbmode' DFT Mode only supports nstages = 2")
 
        if(.not. get_parameter("dfttype", dfttype)) call log_error("get_parameters","'dfttype' missing.")
