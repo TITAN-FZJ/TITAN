@@ -158,4 +158,5 @@ module mod_parameters
   integer :: addlayers(10),naddlayers=0
   character(len=50) :: Npl_folder
   !========================================================================================!
+  integer :: offset = 0
 end module mod_parameters
