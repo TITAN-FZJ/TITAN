@@ -53,7 +53,7 @@ contains
     end if
   end do
 
-  write(Npl_folder,fmt="(i0,'Npl')") Npl_input
+!  write(Npl_folder,fmt="(i0,'Npl')") Npl_input
 
   do i=1,naddlayers
     mmlayer(Npl_input+i+1) = addlayers(i)
