@@ -43,7 +43,6 @@ subroutine deallocate_Npl_variables()
   use mod_parameters
   use mod_magnet
   use mod_tight_binding
-  use mod_system, only: npln
   implicit none
 
   deallocate(sigmai2i,sigmaimunu2i,sigmaijmunu2i,eps1)
@@ -52,12 +51,7 @@ subroutine deallocate_Npl_variables()
   if(lGSL) deallocate(lxm,lym,lzm,lxpm,lypm,lzpm)
   deallocate(mmlayer,layertype,U,mmlayermag,lambda,npart0)
   deallocate(hhwx,hhwy,hhwz,sb,lb)
-  select case (npln)
-  case(1)
-    deallocate(t00,t01)
-  case(2)
-    deallocate(t00,t01,t02)
-  end select
+  deallocate(t0, t0i)
   deallocate(sha_longitudinal,sha_transverse,long_cos,transv_cos)
 
   return
