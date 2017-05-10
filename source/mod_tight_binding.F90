@@ -66,7 +66,7 @@ contains
     end if
   end subroutine tb_hopping
 
-  subroutine read_Papa_2C_param(name, on_site, hopping, lambda, fermi)
+  subroutine read_Papa_2C_param(name, on_site, hopping, lambda, fermi, npart)
     use mod_system, only: nstages, a0
     implicit none
     character(len=*), intent(in) :: name
@@ -75,6 +75,7 @@ contains
     real(double), intent(out), dimension(4) :: on_site
     real(double), intent(out), dimension(10, nstages) :: hopping
     real(double), intent(out) :: lambda
+    real(double), intent(out) :: npart
     real(double), dimension(3) :: dens
     integer :: i, j, k, ios, line_count = 0
     integer :: exponent(10)
@@ -107,7 +108,7 @@ contains
 
     read(unit=995594, fmt='(A)', iostat = ios) line
     read(unit= line, fmt=*, iostat=ios) dens(1), dens(2), dens(3)
-    npart0 = dens(1)+dens(2)+dens(3)
+    npart = dens(1)+dens(2)+dens(3)
     !TODO: Densities
 
     a0_param = a0_param / a0  ! Scaling law by Andersen et al. O.K. Andersen, O. Jepsen, Physica 91B, 317 (1977); O.K. Andersen, W. Close. H. Nohl, Phys. Rev. B17, 1209 (1978)
@@ -162,8 +163,7 @@ contains
     U = 0.9d0
 
     do i = 1, Npl
-      call read_Papa_2C_param(layers(i), on_site(:,i), hopping(:,:,i), lambda(i), fermi(i))
-
+      call read_Papa_2C_param(layers(i), on_site(:,i), hopping(:,:,i), lambda(i), fermi(i), npart0(i))
       ! On-site Term
       t0(i,1,1)  = on_site(1,i)
       do j=2,4
@@ -176,7 +176,7 @@ contains
          t0(i,j,j) = on_site(4,i)
       end do
     end do
-
+    print *, npart0
     Ef = fermi(fermi_layer)
     ! Inter-plane hopping
     do i = 1, Npl
