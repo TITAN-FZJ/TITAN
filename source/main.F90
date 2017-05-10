@@ -62,7 +62,7 @@ program TITAN
   if((itype==1).or.(itype==6)) then ! Create column for field loop (no energy integration)
     call build_cartesian_grid_field(pn1)
   end if
-  if((itype>=3).and.(itype<=5)) then ! Create column for field loop (no energy integration)
+  if( ((itype>=3).and.(itype<=5)) .or. itype==0) then ! Create column for field loop (no energy integration)
     call build_cartesian_grid_field(1)
   end if
   if((itype>=7).and.(itype<=8)) then ! Create matrix for energy dependence and integration
@@ -117,6 +117,7 @@ program TITAN
     else
       Npl_input = Npl
     end if
+    write(Npl_folder,fmt="(i0,'Npl')") Npl_input
     if(tbmode == 2) call define_system()
 !---------------------- Tight Binding parameters -----------------------
     call tb_hopping()
