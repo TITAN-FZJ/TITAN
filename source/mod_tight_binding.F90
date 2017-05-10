@@ -134,7 +134,7 @@ contains
   end subroutine
 
   subroutine Papa_2C_param()
-    use mod_parameters, only: Npl, nmaglayers, U, Ef
+    use mod_parameters, only: Npl, nmaglayers, U, Ef, mmlayermag
     use mod_system, only: nstages, npln, c_nn, l_nn
     use mod_f90_kind, only: double
     implicit none
@@ -156,6 +156,9 @@ contains
 
     !TODO : nmaglayers, U
     nmaglayers = Npl
+    do i = 1, nmaglayers
+      mmlayermag(i) = i+1
+    end do
     U = 1.0d0
 
     do i = 1, Npl
@@ -183,17 +186,17 @@ contains
       end do
 
       loc_pln = npln
-      if(Npl < i + npln) loc_pln = Npl - i
+      if(Npl < i + npln) loc_pln = Npl - i + 1
 
       do k = 1, loc_pln
         do j = 1, nstages
           mix_t(1:10) = 0.5d0 * ( hopping(1:10, j, i) + hopping(1:10, j, i+k-1) ) ! sqrt(hopping(1:10, j, i)) * sqrt(hopping(1:10, j, i+k-1))
           do l = l_nn(j,k), l_nn(j+1,k)-1
             w = c_nn(:,l)
-            call intd(mix_t(1), mix_t(2), mix_t(3), &
-                      mix_t(4), mix_t(5), mix_t(6), &
-                      mix_t(7), mix_t(8), mix_t(9), &
-                      mix_t(10), w, bp)
+            call intd(mix_t(1), mix_t(7), mix_t(2), &
+                      mix_t(3), mix_t(8), mix_t(9), &
+                      mix_t(10), mix_t(4), mix_t(5), &
+                      mix_t(6), w, bp)
             t0i(i,l,:,:) = bp
           end do
         end do
@@ -954,14 +957,12 @@ contains
 
        ! hopping
        loc_pln = npln
-       do while(i+loc_pln-1 > Npl)
-         loc_pln = loc_pln - 1
-       end do
+       if(Npl+2 < i+npln) loc_pln = Npl+2 - i +1
        do k = 1, loc_pln
          do j = 1, nstages
-           dst = sqrt(ds(i)*ds(i+loc_pln-1))
-           dpt = sqrt(dp(i)*dp(i+loc_pln-1))
-           ddt = sqrt(dd(i)*dd(i+loc_pln-1))
+           dst = sqrt(ds(i)*ds(i+k-1))
+           dpt = sqrt(dp(i)*dp(i+k-1))
+           ddt = sqrt(dd(i)*dd(i+k-1))
 
            ds2 = dst*dst
            dsp = dst*dpt
