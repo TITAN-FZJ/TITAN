@@ -24,7 +24,7 @@ subroutine dtdksub(kp,dtdk)
 
   do i=1, Npl
      loc_pln = npln
-     if( Npl < i + npln ) loc_pln = Npl - i
+     if( Npl < i + npln ) loc_pln = Npl - i + 1
 
      do j = 1, loc_pln
         do l = l_nn(1,j), l_nn(1,j+1)-1
