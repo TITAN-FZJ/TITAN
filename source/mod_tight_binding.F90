@@ -160,7 +160,7 @@ contains
     do i = 1, nmaglayers
       mmlayermag(i) = i+1
     end do
-    U = 0.9d0
+    U = 1.d0 / 13.6d0
 
     do i = 1, Npl
       call read_Papa_2C_param(layers(i), on_site(:,i), hopping(:,:,i), lambda(i), fermi(i), npart0(i))
@@ -190,7 +190,7 @@ contains
 
       do k = 1, loc_pln
         do j = 1, nstages
-          mix_t(1:10) = 0.5d0 * ( hopping(1:10, j, i) + hopping(1:10, j, i+k-1) ) ! sqrt(hopping(1:10, j, i)) * sqrt(hopping(1:10, j, i+k-1))
+          mix_t(1:10) = 0.5d0 * ( hopping(1:10, j, i) + hopping(1:10, j, i+k-1) ) ! TODO: XXX: TODO: sqrt(hopping(1:10, j, i)) * sqrt(hopping(1:10, j, i+k-1))
           do l = l_nn(j,k), l_nn(j+1,k)-1
             w = c_nn(:,l)
             call intd(mix_t(1), mix_t(7), mix_t(2), &
