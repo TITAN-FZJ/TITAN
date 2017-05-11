@@ -102,7 +102,7 @@ contains
   subroutine sumk_idia(e,ep,Idia)
     use mod_f90_kind
     use mod_constants
-    use mod_parameters, only: Npl,llineargfsoc
+    use mod_parameters, only: Npl,llineargfsoc, outputunit
     use mod_system,     only: n0sc1, n0sc2, r_nn, nkpt, kbz, wkbz
     !use mod_generate_kpoints
     use mod_mpi_pars
