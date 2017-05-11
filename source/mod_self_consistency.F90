@@ -144,8 +144,12 @@ contains
     implicit none
     real(double),allocatable      :: fvec(:),jac(:,:),wa(:),sc_solu(:)
     real(double),allocatable      :: diag(:),qtf(:),w(:,:)
-    real(double)                  :: epsfcn,factor,ruser(1)
-    integer                       :: i,neq,maxfev,ml,mr,mode,nfev,njev,lwa,iuser(1),ifail=0
+    real(double)                  :: epsfcn,factor
+#if !defined(_OSX) .and. !defined(_JUQUEEN)
+    real(double)                  :: ruser(1)
+    integer                       :: iuser(1)
+#endif
+    integer                       :: i,neq,maxfev,ml,mr,mode,nfev,njev,lwa,ifail=0
 
     neq = 4*Npl
     allocate( sc_solu(neq),diag(neq),qtf(neq),fvec(neq),jac(neq,neq) )
@@ -165,9 +169,9 @@ contains
       lwa=neq*(3*neq+13)/2
       allocate( wa(lwa),w(neq,4) )
       if(lnojac) then
-        call dnsqe(sc_eqs_old,sc_jacobian,2,neq,sc_solu,fvec,tol,0,ifail,wa,lwa)
+        call dnsqe(sc_eqs_old,sc_jac_old,2,neq,sc_solu,fvec,tol,0,ifail,wa,lwa)
       else
-        call dnsqe(sc_eqs_old,sc_jacobian,1,neq,sc_solu,fvec,tol,0,ifail,wa,lwa)
+        call dnsqe(sc_eqs_old,sc_jac_old,1,neq,sc_solu,fvec,tol,0,ifail,wa,lwa)
       end if
       ifail = ifail-1
     else
@@ -198,9 +202,9 @@ contains
       lwa=neq*(3*neq+13)/2
       allocate( wa(lwa) )
       if(lnojac) then
-        call dnsqe(sc_eqs_old,sc_jacobian,2,neq,sc_solu,fvec,tol,0,ifail,wa,lwa)
+        call dnsqe(sc_eqs_old,sc_jac_old,2,neq,sc_solu,fvec,tol,0,ifail,wa,lwa)
       else
-        call dnsqe(sc_eqs_old,sc_jacobian,1,neq,sc_solu,fvec,tol,0,ifail,wa,lwa)
+        call dnsqe(sc_eqs_old,sc_jac_old,1,neq,sc_solu,fvec,tol,0,ifail,wa,lwa)
       end if
       ifail = ifail-1
     else
@@ -468,6 +472,7 @@ contains
   !  my - my_in = 0
   !  mz - mz_in = 0
   ! and the correspondent jacobian
+#if !defined(_OSX) .and. !defined(_JUQUEEN)
   subroutine sc_equations_and_jacobian(N,x,fvec,selfconjac,iuser,ruser,iflag)
     use mod_constants
     use mod_parameters
@@ -693,6 +698,177 @@ contains
     return
   end subroutine sc_equations_and_jacobian
 
+  ! For a given value of center of band eps1 it calculates the
+  ! occupation number and the magnetic moment
+  subroutine sc_equations(N,x,fvec,iuser,ruser,iflag)
+    use mod_constants
+    use mod_parameters
+    use mod_f90_kind
+    use mod_generate_epoints
+    use mod_magnet
+    use mod_tight_binding, only: npart0
+    use mod_progress
+    use mod_mpi_pars
+    implicit none
+    integer  :: N,i,j,iflag
+    integer     , intent(inout)         :: iuser(*)
+    real(double), intent(inout)         :: ruser(*)
+    real(double),dimension(N)           :: x,fvec
+    real(double),dimension(Npl,9)       :: n_orb_u,n_orb_d,n_orb_t,mag_orb
+    real(double),dimension(Npl)         :: n_t,mx_in,my_in,mz_in
+    complex(double),dimension(Npl)      :: mp_in
+    real(double),dimension(Npl,9)       :: gdiaguur,gdiagddr
+    complex(double),dimension(Npl,9)    :: gdiagud,gdiagdu
+    !--------------------- begin MPI vars --------------------
+    integer :: ix,itask
+    integer :: ncount
+    ncount=Npl*9
+    !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
+
+    iflag=0
+  ! Values used in the hamiltonian
+    eps1  = x(1:Npl)
+    mx_in = x(Npl+1:2*Npl)
+    my_in = x(2*Npl+1:3*Npl)
+    mz_in = x(3*Npl+1:4*Npl)
+    mp_in = mx_in+zi*my_in
+    do i=1,Npl
+      hdel(i)   = 0.5d0*U(i+1)*mz_in(i)
+      hdelp(i)  = 0.5d0*U(i+1)*mp_in(i)
+    end do
+    hdelm = conjg(hdelp)
+
+    if((myrank_row_hw==0).and.(iter==1)) then
+      write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
+      do i=1,Npl
+        if(abs(mp(i))>1.d-10) then
+          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
+        else
+          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz_in(i)
+        end if
+      end do
+    end if
+
+    n_orb_u = 0.d0
+    n_orb_d = 0.d0
+
+    ix = myrank_row_hw+1
+    itask = numprocs ! Number of tasks done initially
+
+    ! Calculating the number of particles for each spin and orbital using a complex integral
+    if (myrank_row_hw==0) then ! Process 0 receives all results and send new tasks if necessary
+      write(outputunit_loop,"('|------------------- Iteration ',i4,' (densities) ------------------|')") iter
+      call sumk_npart(Ef,y(ix),gdiaguur,gdiagddr,gdiagud,gdiagdu)
+      gdiaguur = wght(ix)*gdiaguur
+      gdiagddr = wght(ix)*gdiagddr
+      gdiagud = wght(ix)*gdiagud
+      gdiagdu = wght(ix)*gdiagdu
+
+      n_orb_u = gdiaguur
+      n_orb_d = gdiagddr
+
+      do j=1,Npl
+        mp(j) = (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
+      end do
+
+      if(lverbose) write(outputunit_loop,"('[sc_equations] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
+      do i=2,pn1
+        if(lverbose) call progress_bar(outputunit_loop,"densities energy points",i,pn1)
+
+        call MPI_Recv(gdiaguur,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,9999+iter+mpitag,MPI_Comm_Row_hw,stat,ierr)
+        call MPI_Recv(gdiagddr,ncount,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),9998+iter+mpitag,MPI_Comm_Row_hw,stat,ierr)
+        call MPI_Recv(gdiagud,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),9997+iter+mpitag,MPI_Comm_Row_hw,stat,ierr)
+        call MPI_Recv(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),9996+iter+mpitag,MPI_Comm_Row_hw,stat,ierr)
+
+        n_orb_u = n_orb_u + gdiaguur
+        n_orb_d = n_orb_d + gdiagddr
+
+        do j=1,Npl
+          mp(j) = mp(j) + (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
+        end do
+
+        ! If the number of processors is less than the total number of points, sends
+        ! the rest of the points to the ones that finish first
+        if (itask<pn1) then
+          itask = itask + 1
+          call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_Comm_Row_hw,ierr)
+        else
+          call MPI_Send(0,1,MPI_INTEGER,stat(MPI_SOURCE),0,MPI_Comm_Row_hw,ierr)
+        end if
+      end do
+    else
+      ! Other processors calculate each point of the integral and waits for new points
+      do
+        if(ix>pn1) exit
+
+        ! First and second integrations (in the complex plane)
+        call sumk_npart(Ef,y(ix),gdiaguur,gdiagddr,gdiagud,gdiagdu)
+        gdiaguur = wght(ix)*gdiaguur
+        gdiagddr = wght(ix)*gdiagddr
+        gdiagud = wght(ix)*gdiagud
+        gdiagdu = wght(ix)*gdiagdu
+
+  !       if(lverbose) write(outputunit_loop,"('[sc_equations] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
+        ! Sending results to process 0
+        call MPI_Send(gdiaguur,ncount,MPI_DOUBLE_PRECISION,0,9999+iter+mpitag,MPI_Comm_Row_hw,ierr)
+        call MPI_Send(gdiagddr,ncount,MPI_DOUBLE_PRECISION,0,9998+iter+mpitag,MPI_Comm_Row_hw,ierr)
+        call MPI_Send(gdiagud,ncount,MPI_DOUBLE_COMPLEX,0,9997+iter+mpitag,MPI_Comm_Row_hw,ierr)
+        call MPI_Send(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,0,9996+iter+mpitag,MPI_Comm_Row_hw,ierr)
+        ! Receiving new point or signal to exit
+        call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_Comm_Row_hw,stat,ierr)
+        if(ix==0) exit
+      end do
+    end if
+
+    ! Send results to all processors
+    call MPI_Bcast(n_orb_u,ncount,MPI_DOUBLE_PRECISION,0,MPI_Comm_Row_hw,ierr)
+    call MPI_Bcast(n_orb_d,ncount,MPI_DOUBLE_PRECISION,0,MPI_Comm_Row_hw,ierr)
+    call MPI_Bcast(mp,Npl,MPI_DOUBLE_COMPLEX,0,MPI_Comm_Row_hw,ierr)
+
+    n_orb_u = 0.5d0 + n_orb_u/pi
+    n_orb_d = 0.5d0 + n_orb_d/pi
+    n_orb_t = n_orb_u + n_orb_d
+    mag_orb = n_orb_u - n_orb_d
+    mp      = mp/pi
+    mx      = real(mp)
+    my      = aimag(mp)
+
+    do i=1,Npl
+      ! Number of particles
+      n_t(i) = sum(n_orb_t(i,:))
+      fvec(i)   = n_t(i) - npart0(i+1)
+      ! x-component of magnetization
+      j = i+Npl
+      fvec(j)  = mx(i) - mx_in(i)
+      ! y-component of magnetization
+      j = j+Npl
+      fvec(j)  = my(i) - my_in(i)
+      ! z-component of magnetization
+      j = j+Npl
+      mz(i)    = sum(mag_orb(i,5:9))
+      fvec(j)  = mz(i) - mz_in(i)
+    end do
+
+    if(myrank_row_hw==0) then
+      do i=1,Npl
+        if(abs(mp(i))>1.d-10) then
+          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i)
+          write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+Npl,fvec(i+Npl),i+2*Npl,fvec(i+2*Npl),i+3*Npl,fvec(i+3*Npl)
+        else
+          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz(i)
+          write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*Npl,fvec(i+3*Npl)
+        end if
+      end do
+    end if
+
+    if(lontheflysc) call write_sc_results()
+
+    iter = iter + 1
+
+    return
+  end subroutine sc_equations
+
+#endif
 
   ! This subroutine calculates the self-consistency equations
   !  n  - n0    = 0
@@ -924,176 +1100,6 @@ contains
 
   ! For a given value of center of band eps1 it calculates the
   ! occupation number and the magnetic moment
-  subroutine sc_equations(N,x,fvec,iuser,ruser,iflag)
-    use mod_constants
-    use mod_parameters
-    use mod_f90_kind
-    use mod_generate_epoints
-    use mod_magnet
-    use mod_tight_binding, only: npart0
-    use mod_progress
-    use mod_mpi_pars
-    implicit none
-    integer  :: N,i,j,iflag
-    integer     , intent(inout)         :: iuser(*)
-    real(double), intent(inout)         :: ruser(*)
-    real(double),dimension(N)           :: x,fvec
-    real(double),dimension(Npl,9)       :: n_orb_u,n_orb_d,n_orb_t,mag_orb
-    real(double),dimension(Npl)         :: n_t,mx_in,my_in,mz_in
-    complex(double),dimension(Npl)      :: mp_in
-    real(double),dimension(Npl,9)       :: gdiaguur,gdiagddr
-    complex(double),dimension(Npl,9)    :: gdiagud,gdiagdu
-    !--------------------- begin MPI vars --------------------
-    integer :: ix,itask
-    integer :: ncount
-    ncount=Npl*9
-    !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
-
-    iflag=0
-  ! Values used in the hamiltonian
-    eps1  = x(1:Npl)
-    mx_in = x(Npl+1:2*Npl)
-    my_in = x(2*Npl+1:3*Npl)
-    mz_in = x(3*Npl+1:4*Npl)
-    mp_in = mx_in+zi*my_in
-    do i=1,Npl
-      hdel(i)   = 0.5d0*U(i+1)*mz_in(i)
-      hdelp(i)  = 0.5d0*U(i+1)*mp_in(i)
-    end do
-    hdelm = conjg(hdelp)
-
-    if((myrank_row_hw==0).and.(iter==1)) then
-      write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
-      do i=1,Npl
-        if(abs(mp(i))>1.d-10) then
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
-        else
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz_in(i)
-        end if
-      end do
-    end if
-
-    n_orb_u = 0.d0
-    n_orb_d = 0.d0
-
-    ix = myrank_row_hw+1
-    itask = numprocs ! Number of tasks done initially
-
-    ! Calculating the number of particles for each spin and orbital using a complex integral
-    if (myrank_row_hw==0) then ! Process 0 receives all results and send new tasks if necessary
-      write(outputunit_loop,"('|------------------- Iteration ',i4,' (densities) ------------------|')") iter
-      call sumk_npart(Ef,y(ix),gdiaguur,gdiagddr,gdiagud,gdiagdu)
-      gdiaguur = wght(ix)*gdiaguur
-      gdiagddr = wght(ix)*gdiagddr
-      gdiagud = wght(ix)*gdiagud
-      gdiagdu = wght(ix)*gdiagdu
-
-      n_orb_u = gdiaguur
-      n_orb_d = gdiagddr
-
-      do j=1,Npl
-        mp(j) = (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
-      end do
-
-      if(lverbose) write(outputunit_loop,"('[sc_equations] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
-      do i=2,pn1
-        if(lverbose) call progress_bar(outputunit_loop,"densities energy points",i,pn1)
-
-        call MPI_Recv(gdiaguur,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,9999+iter+mpitag,MPI_Comm_Row_hw,stat,ierr)
-        call MPI_Recv(gdiagddr,ncount,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),9998+iter+mpitag,MPI_Comm_Row_hw,stat,ierr)
-        call MPI_Recv(gdiagud,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),9997+iter+mpitag,MPI_Comm_Row_hw,stat,ierr)
-        call MPI_Recv(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),9996+iter+mpitag,MPI_Comm_Row_hw,stat,ierr)
-
-        n_orb_u = n_orb_u + gdiaguur
-        n_orb_d = n_orb_d + gdiagddr
-
-        do j=1,Npl
-          mp(j) = mp(j) + (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
-        end do
-
-        ! If the number of processors is less than the total number of points, sends
-        ! the rest of the points to the ones that finish first
-        if (itask<pn1) then
-          itask = itask + 1
-          call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_Comm_Row_hw,ierr)
-        else
-          call MPI_Send(0,1,MPI_INTEGER,stat(MPI_SOURCE),0,MPI_Comm_Row_hw,ierr)
-        end if
-      end do
-    else
-      ! Other processors calculate each point of the integral and waits for new points
-      do
-        if(ix>pn1) exit
-
-        ! First and second integrations (in the complex plane)
-        call sumk_npart(Ef,y(ix),gdiaguur,gdiagddr,gdiagud,gdiagdu)
-        gdiaguur = wght(ix)*gdiaguur
-        gdiagddr = wght(ix)*gdiagddr
-        gdiagud = wght(ix)*gdiagud
-        gdiagdu = wght(ix)*gdiagdu
-
-  !       if(lverbose) write(outputunit_loop,"('[sc_equations] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
-        ! Sending results to process 0
-        call MPI_Send(gdiaguur,ncount,MPI_DOUBLE_PRECISION,0,9999+iter+mpitag,MPI_Comm_Row_hw,ierr)
-        call MPI_Send(gdiagddr,ncount,MPI_DOUBLE_PRECISION,0,9998+iter+mpitag,MPI_Comm_Row_hw,ierr)
-        call MPI_Send(gdiagud,ncount,MPI_DOUBLE_COMPLEX,0,9997+iter+mpitag,MPI_Comm_Row_hw,ierr)
-        call MPI_Send(gdiagdu,ncount,MPI_DOUBLE_COMPLEX,0,9996+iter+mpitag,MPI_Comm_Row_hw,ierr)
-        ! Receiving new point or signal to exit
-        call MPI_Recv(ix,1,MPI_INTEGER,0,MPI_ANY_TAG,MPI_Comm_Row_hw,stat,ierr)
-        if(ix==0) exit
-      end do
-    end if
-
-    ! Send results to all processors
-    call MPI_Bcast(n_orb_u,ncount,MPI_DOUBLE_PRECISION,0,MPI_Comm_Row_hw,ierr)
-    call MPI_Bcast(n_orb_d,ncount,MPI_DOUBLE_PRECISION,0,MPI_Comm_Row_hw,ierr)
-    call MPI_Bcast(mp,Npl,MPI_DOUBLE_COMPLEX,0,MPI_Comm_Row_hw,ierr)
-
-    n_orb_u = 0.5d0 + n_orb_u/pi
-    n_orb_d = 0.5d0 + n_orb_d/pi
-    n_orb_t = n_orb_u + n_orb_d
-    mag_orb = n_orb_u - n_orb_d
-    mp      = mp/pi
-    mx      = real(mp)
-    my      = aimag(mp)
-
-    do i=1,Npl
-      ! Number of particles
-      n_t(i) = sum(n_orb_t(i,:))
-      fvec(i)   = n_t(i) - npart0(i+1)
-      ! x-component of magnetization
-      j = i+Npl
-      fvec(j)  = mx(i) - mx_in(i)
-      ! y-component of magnetization
-      j = j+Npl
-      fvec(j)  = my(i) - my_in(i)
-      ! z-component of magnetization
-      j = j+Npl
-      mz(i)    = sum(mag_orb(i,5:9))
-      fvec(j)  = mz(i) - mz_in(i)
-    end do
-
-    if(myrank_row_hw==0) then
-      do i=1,Npl
-        if(abs(mp(i))>1.d-10) then
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i)
-          write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+Npl,fvec(i+Npl),i+2*Npl,fvec(i+2*Npl),i+3*Npl,fvec(i+3*Npl)
-        else
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz(i)
-          write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*Npl,fvec(i+3*Npl)
-        end if
-      end do
-    end if
-
-    if(lontheflysc) call write_sc_results()
-
-    iter = iter + 1
-
-    return
-  end subroutine sc_equations
-
-  ! For a given value of center of band eps1 it calculates the
-  ! occupation number and the magnetic moment
   subroutine sc_eqs_old(N,x,fvec,iflag)
     use mod_constants
     use mod_parameters
@@ -1260,7 +1266,7 @@ contains
     return
   end subroutine sc_eqs_old
 
-  subroutine sc_jacobian(N,x,fvec,selfconjac,ldfjac,iflag)
+  subroutine sc_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
     use mod_constants
     use mod_parameters
     use mod_f90_kind
@@ -1304,7 +1310,7 @@ contains
       call sumk_jacobian(Ef,y(ix),ggr)
       selfconjac = wght(ix)*ggr
 
-      if(lverbose) write(outputunit_loop,"('[sc_jacobian] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
+      if(lverbose) write(outputunit_loop,"('[sc_jac_old] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
       do i=2,pn1
         if(lverbose) call progress_bar(outputunit_loop,"jacobian energy points",i,pn1)
         ! Progress bar
@@ -1331,7 +1337,7 @@ contains
         call sumk_jacobian(Ef,y(ix),ggr)
         ggr = wght(ix)*ggr
 
-  !       if(lverbose) write(outputunit_loop,"('[sc_jacobian] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
+  !       if(lverbose) write(outputunit_loop,"('[sc_jac_old] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
         ! Sending results to process 0
         call MPI_Send(ggr,ncount,MPI_DOUBLE_PRECISION,0,3333+iter+mpitag,MPI_Comm_Row_hw,ierr)
         ! Receiving new point or signal to exit
@@ -1351,7 +1357,7 @@ contains
     iter = iter + 1
 
     return
-  end subroutine sc_jacobian
+  end subroutine sc_jac_old
 
   ! Integration of Green functions over k values to calculate the number of particles
   subroutine sumk_npart(er,ei,gdiaguur,gdiagddr,gdiagud,gdiagdu)

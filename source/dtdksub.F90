@@ -11,7 +11,7 @@ subroutine dtdksub(kp,dtdk)
   use mod_parameters,    only: Npl, dirEfieldvec
   use mod_tight_binding, only: t0i, tbmode
   implicit none
-  integer     :: i, j, l, loc_pln, loc_layers, offset
+  integer     :: i, j, l, loc_pln, offset
   real(double), intent(in)  :: kp(3)
   complex(double),dimension(Npl,Npl,9,9),intent(out)  :: dtdk
 

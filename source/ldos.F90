@@ -8,7 +8,7 @@ subroutine ldos()
   character(len=400) :: varm
   character(len=50)  :: fieldpart,socpart
   character(len=1)   :: SOCc
-  integer            :: i,iw,j,mu
+  integer            :: i,iw
   real(double)       :: e
   real(double),dimension(:,:),allocatable :: ldosu,ldosd
 

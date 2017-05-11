@@ -224,8 +224,8 @@ contains
 
     allocate(extrakbz(3,nkpt*10))
     allocate(extrawkbz(nkpt*10))
-    nkpt_perdim = ceiling(sqrt(dble(nkpt)) / 6.d0)
-    nkpt_perdim = nkpt_perdim * 6
+    nkpt_perdim = ceiling(sqrt(dble(nkpt)))
+    nkpt_perdim = nkpt_perdim
     nkpt = nkpt_perdim**2
 
     allocate(iniwkbz(nkpt), inikbz(3,nkpt))
@@ -238,7 +238,7 @@ contains
     BZ(:,2) = b1
     BZ(:,3) = b2
     BZ(:,4) = b1 + b2
-    !call abort
+
     !Generate k-points in the paralelogram determined by b1 and b2
     iniwkbz = 1.d0
     m = 0
@@ -289,7 +289,7 @@ contains
        !Translate the kpoint to the 1st BZ
        inikbz(:, l) = inikbz(:, l) - BZ(:, smallest_index)
     end do
-    !print *, "test"
+
     allocate( wkbz(nkpt + numextrakbz), kbz(3, nkpt + numextrakbz) )
     !The final array of kpoints will be the initial one by the clones
     ! of the ones in the border between BZ's.
@@ -321,8 +321,8 @@ contains
     integer :: l,j,m, k, smallest_index, numextrakbz
     integer :: nkpt_perdim !n. of k point per dimension
 
-    nkpt_perdim=ceiling((dble(nkpt))**(1.d0/3.d0)/6.d0)
-    nkpt_perdim=nkpt_perdim*6
+    nkpt_perdim=ceiling((dble(nkpt))**(1.d0/3.d0))
+    nkpt_perdim=nkpt_perdim
     nkpt = nkpt_perdim**3
     allocate( iniwkbz(nkpt), inikbz(3, nkpt) )
 
