@@ -33,7 +33,7 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
 
 !$omp parallel default(none) &
 !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,wkbzc,kp,df1iikl,pfdf1iikl,prett,preLxtt,preLytt,preLztt,dtdk,gf,expikr,gfuu,gfud,gfdu,gfdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &
-!$omp& shared(llineargfsoc,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,lverbose,myrank_row_hw,kbz,wkbz,iflag,e,ep,nkpoints,r0,Ef,eta,nthreads,sigmai2i,sigmaimunu2i,sigmaijmunu2i,dim,Npl,n0sc1,n0sc2,npln,t00,lxpt,lypt,lzpt,tlxp,tlyp,tlzp,outputunit,outputunit_loop)
+!$omp& shared(llineargfsoc,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,lverbose,myrank_row_hw,kbz,wkbz,iflag,e,ep,nkpt,r_nn,Ef,eta,nthreads,sigmai2i,sigmaimunu2i,dim,Npl,n0sc1,n0sc2,npln,t00,lxpt,lypt,lzpt,tlxp,tlyp,tlzp,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread==0).and.(myrank_row_hw==0)) then
 !$    nthreads = omp_get_num_threads()
@@ -243,7 +243,7 @@ subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,Lzt
 
 !$omp parallel default(none) &
 !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,wkbzc,kp,df1iikl,pfdf1iikl,df1lsoc,prett,preLxtt,preLytt,preLztt,dtdk,expikr,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &
-!$omp& shared(tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,prefactorlsoc,lverbose,myrank_row_hw,kbz,wkbz,iflag,e,ep,nkpoints,r0,Ef,eta,nthreads,sigmai2i,sigmaimunu2i,sigmaijmunu2i,dim,Npl,n0sc1,n0sc2,npln,t00,lxpt,lypt,lzpt,tlxp,tlyp,tlzp,outputunit,outputunit_loop)
+!$omp& shared(tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,prefactorlsoc,lverbose,myrank_row_hw,kbz,wkbz,iflag,e,ep,nkpt,r_nn,Ef,eta,nthreads,sigmai2i,sigmaimunu2i,dim,Npl,n0sc1,n0sc2,npln,t00,lxpt,lypt,lzpt,tlxp,tlyp,tlzp,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread==0).and.(myrank_row_hw==0)) then
 !$    nthreads = omp_get_num_threads()

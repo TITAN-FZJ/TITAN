@@ -24,7 +24,7 @@ subroutine sumkshechi(e,ep,Fint,iflag)
 
 !$omp parallel default(none) &
 !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,kp,gf,gfuu,gfud,gfdu,gfdd,i,j,mu,nu,gamma,xi,df1) &
-!$omp& shared(llineargfsoc,lverbose,kbz,wkbz,e,ep,iflag,Fint,nkpoints,Ef,eta,nthreads,myrank_row_hw,Npl,dim,sigmaimunu2i,sigmaijmunu2i,outputunit,outputunit_loop)
+!$omp& shared(llineargfsoc,lverbose,kbz,wkbz,e,ep,iflag,Fint,nkpt,Ef,eta,nthreads,myrank_row_hw,Npl,dim,sigmaimunu2i,sigmaijmunu2i,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread==0).and.(myrank_row_hw==0)) then
 !$    nthreads = omp_get_num_threads()
@@ -186,7 +186,7 @@ subroutine sumkshechilinearsoc(e,ep,Fint,Fintlsoc,iflag)
 
 !$omp parallel default(none) &
 !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,kp,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,i,j,mu,nu,gamma,xi,df1,df1lsoc) &
-!$omp& shared(llineargfsoc,lverbose,kbz,wkbz,e,ep,iflag,Fint,Fintlsoc,nkpoints,Ef,eta,nthreads,myrank_row_hw,Npl,dim,sigmaimunu2i,sigmaijmunu2i,outputunit,outputunit_loop)
+!$omp& shared(llineargfsoc,lverbose,kbz,wkbz,e,ep,iflag,Fint,Fintlsoc,nkpt,Ef,eta,nthreads,myrank_row_hw,Npl,dim,sigmaimunu2i,sigmaijmunu2i,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread==0).and.(myrank_row_hw==0)) then
 !$    nthreads = omp_get_num_threads()

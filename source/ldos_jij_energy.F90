@@ -35,7 +35,7 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
 
 !$omp parallel default(none) &
 !$omp& private(mythread,iz,kp,gf,gij,gji,paulia,paulib,i,j,mu,nu,alpha,gfdiagu,gfdiagd,Jijk,Jijkan,temp1,temp2) &
-!$omp& shared(lverbose,kbz,nkpoints,wkbz,e,eta,Npl,hdel,mz,nmaglayers,mmlayermag,pauli_dorb,paulimatan,ldosu,ldosd,Jijint,nthreads,outputunit_loop)
+!$omp& shared(lverbose,kbz,nkpt,wkbz,e,eta,Npl,hdel,mz,nmaglayers,mmlayermag,pauli_dorb,paulimatan,ldosu,ldosd,Jijint,nthreads,outputunit_loop)
 !$  mythread = omp_get_thread_num()
 !$  if(mythread==0) then
 !$    nthreads = omp_get_num_threads()

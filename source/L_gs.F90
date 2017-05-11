@@ -115,7 +115,7 @@ subroutine sumk_L_gs(e,ep,gupgd)
 
 !$omp parallel default(none) &
 !$omp& private(mythread,iz,kp,gf,i,mu,nu,mup,nup) &
-!$omp& shared(kbz,nkpoints,wkbz,e,ep,Npl,gupgd,myrank_row_hw,nthreads,outputunit_loop)
+!$omp& shared(kbz,nkpt,wkbz,e,ep,Npl,gupgd,myrank_row_hw,nthreads,outputunit_loop)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread==0).and.(myrank_row_hw==0)) then
 !$    nthreads = omp_get_num_threads()

@@ -102,7 +102,7 @@ contains
   subroutine sumk_idia(e,ep,Idia)
     use mod_f90_kind
     use mod_constants
-    use mod_parameters, only: Npl,llineargfsoc
+    use mod_parameters, only: Npl,llineargfsoc, outputunit
     use mod_system, only: n0sc1, n0sc2, r_nn, nkpt, kbz, wkbz
     !use mod_generate_kpoints
     use mod_mpi_pars
@@ -125,7 +125,7 @@ contains
 
 !$omp parallel default(none) &
 !$omp& private(mythread,neighbor,iz,kp,i,dtdk,expikr,gf) &
-!$omp& shared(kbz,nkpoints,wkbz,myrank,nthreads,n0sc1,n0sc2,llineargfsoc,Npl,r0,e,ep,pij,gij,gji,outputunit)
+!$omp& shared(kbz,nkpt,wkbz,myrank,nthreads,n0sc1,n0sc2,llineargfsoc,Npl,r_nn,e,ep,pij,gij,gji, outputunit)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread==0).and.(myrank==0)) then
 !$    nthreads = omp_get_num_threads()

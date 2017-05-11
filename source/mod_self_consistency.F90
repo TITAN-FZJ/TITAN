@@ -1378,7 +1378,7 @@ contains
 
   !$omp parallel default(none) &
   !$omp& private(mythread,iz,kp,gf,i,mu,mup) &
-  !$omp& shared(llineargfsoc,llinearsoc,lverbose,kbz,wkbz,nkpoints,er,ei,gdiaguur,gdiagddr,gdiagud,gdiagdu,Npl,myrank_row_hw,nthreads,outputunit_loop)
+  !$omp& shared(llineargfsoc,llinearsoc,lverbose,kbz,wkbz,nkpt,er,ei,gdiaguur,gdiagddr,gdiagud,gdiagdu,Npl,myrank_row_hw,nthreads,outputunit_loop)
   !$  mythread = omp_get_thread_num()
   !$  if((mythread==0).and.(myrank_row_hw==0)) then
   !$    nthreads = omp_get_num_threads()
@@ -1459,7 +1459,7 @@ contains
 
 !$omp parallel default(none) &
 !$omp& private(mythread,AllocateStatus,errorcode,ierr,iz,kp,wkbzc,gf,gvg,temp,temp1,temp2,gij,gji,paulitemp,gdHdxg,gvgdHdxgvg,i,j,i0,j0,mu,sigma) &
-!$omp& shared(llineargfsoc,llinearsoc,lverbose,kbz,wkbz,nkpoints,er,ei,ggr,mhalfU,pauli_components1,pauli_components2,Npl,myrank_row_hw,nthreads,outputunit,outputunit_loop)
+!$omp& shared(llineargfsoc,llinearsoc,lverbose,kbz,wkbz,nkpt,er,ei,ggr,mhalfU,pauli_components1,pauli_components2,Npl,myrank_row_hw,nthreads,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread==0).and.(myrank_row_hw==0)) then
 !$    nthreads = omp_get_num_threads()

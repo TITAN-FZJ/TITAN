@@ -20,8 +20,8 @@ subroutine ldos_energy(e,ldosu,ldosd)
   ldosd = 0.d0
 
 !$omp parallel default(none) &
-!$omp& private(mythread,iz,kp,gf,i,j,mu,nu,gfdiagu,gfdiagd) &
-!$omp& shared(lverbose,kbz,nkpoints,wkbz,e,eta,Npl,ldosu,ldosd,nthreads,outputunit_loop)
+!$omp& private(mythread,iz,kp,gf,i,mu,nu,gfdiagu,gfdiagd) &
+!$omp& shared(lverbose,kbz,nkpt,wkbz,e,eta,Npl,ldosu,ldosd,nthreads,outputunit_loop)
 !$  mythread = omp_get_thread_num()
 !$  if(mythread.eq.0) then
 !$    nthreads = omp_get_num_threads()

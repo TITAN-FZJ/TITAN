@@ -65,7 +65,7 @@ subroutine fermi_surface(e)
 
 !$omp parallel default(none) &
 !$omp& private(mythread,iz,kp,gf,i,mu,nu,sigma,temp1,temp2) &
-!$omp& shared(lverbose,llineargfsoc,llinearsoc,e,kbz,nkpoints,Ef,eta,Npl,nthreads,pi,pauli_orb,pauli_gf,fs_layer,fs_orb,fs_total,outputunit_loop)
+!$omp& shared(lverbose,llineargfsoc,llinearsoc,e,kbz,nkpt,Ef,eta,Npl,nthreads,pi,pauli_orb,pauli_gf,fs_layer,fs_orb,fs_total,outputunit_loop)
 !$  mythread = omp_get_thread_num()
 !$  if(mythread==0) then
 !$    nthreads = omp_get_num_threads()
