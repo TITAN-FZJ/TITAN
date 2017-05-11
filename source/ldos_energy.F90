@@ -33,7 +33,7 @@ subroutine ldos_energy(e,ldosu,ldosd)
 !$  if((mythread.eq.0)) then
       if(lverbose) call progress_bar(outputunit_loop,"kpoints",iz,nkpt)
 !$  end if
-    kp = kbz(iz,:)
+    kp = kbz(:,iz)
 
     ! Green function on energy E + ieta, and wave vector kp
     call green(e,eta,kp,gf)
