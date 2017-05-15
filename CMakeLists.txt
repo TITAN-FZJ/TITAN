@@ -33,20 +33,20 @@ add_executable(${EXEC_NAME} ${SOURCE_TITAN})
 target_compile_options(${EXEC_NAME} PRIVATE -no-wrap-margin
                                         -fpp
                                         -D _LINUX
-                                        -g
-                                        -O0
-                                        -warn all
-                                        -I${NAG}/c_headers)
+                                        -O3
+                                        -I${NAG}/c_headers
+                      )
 if(DEBUG)
 target_compile_options(${EXEC_NAME} PRIVATE -CB
-                                            -check-all
                                             -check uninit
-                                            -ftrapuv
+                                            -check-all
                                             -debug all
+                                            -warn all
+                                            -ftrapuv
                                             -traceback
                                             -g
-                                            -warn all
-                                            -O0)
+                                            -O0
+                      )
 endif(DEBUG)
 
 target_link_libraries(${EXEC_NAME} ${NAG}/lib/libnag_nag.a)
