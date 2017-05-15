@@ -1,0 +1,40 @@
+4.7377  7.6885
+0.005666
+0.6882
+0.73 0.40 7.87
+  s   on-site	 1.00263      1                            Co
+  p   on-site	 1.38462      2                            Co
+  d0  on-site  0.58496      3                            Co
+  t2g on-site	 0.58345      4                            Co
+  eg  on-site	 0.58651      5                            Co
+  pd  on-site -0.01555      6                            Co
+  sss 1st nn	-0.07879      7                            Co
+  pps 1st nn	 0.15771      8                            Co
+  ppp 1st nn	-0.00092      9                            Co
+  dds 1st nn	-0.04111     10                            Co
+  ddp 1st nn	 0.02543     11                            Co
+  ddd 1st nn	-0.00407     12                            Co
+  sps 1st nn	 0.11154     13                            Co
+  sds 1st nn	 0.04839     14                            Co
+  pds 1st nn	 0.05816     15                            Co
+  pdp 1st nn	-0.01975     16                            Co
+  sss 2nd nn	-0.00681     17                            Co
+  pps 2nd nn	 0.05683     18                            Co
+  ppp 2nd nn	 0.00039     19                            Co
+  dds 2nd nn	-0.00717     20                            Co
+  ddp 2nd nn	 0.00181     21                            Co
+  ddd 2nd nn	-0.00022     22                            Co
+  sps 2nd nn	 0.02067     23                            Co
+  sds 2nd nn	 0.00916     24                            Co
+  pds 2nd nn	 0.01689     25                            Co
+  pdp 2nd nn	-0.00285     26                            Co
+  sss 3rd nn  -0.00178     27                            Co
+  pps 3rd nn   0.00505     28                            Co
+  ppp 3rd nn   0.00313     29                            Co
+  dds 3rd nn  -0.00068     30                            Co
+  ddp 3rd nn   0.00035     31                            Co
+  ddd 3rd nn   0.00010     32                            Co
+  sps 3rd nn   0.00454     33                            Co
+  sds 3rd nn  -0.00055     34                            Co
+  pds 3rd nn  -0.00318     35                            Co
+  pdp 3rd nn   0.00097     36                            Co
