@@ -8,7 +8,6 @@ subroutine green(er,ei,kp,gf)
   use mod_constants
   use mod_parameters
   use mod_magnet
-  use mod_tight_binding, only: tbmode
   implicit none
   integer     :: i,j,i0,i1,j0,j1,d
   real(double), intent(in)  :: er,ei,kp(3)
@@ -32,28 +31,15 @@ subroutine green(er,ei,kp,gf)
   call invers(gslab,d)
 
   ! Put the slab Green's function [A(Npl*18,Npl*18)] in the A(i,j,mu,nu) form
-  if(tbmode == 2) then
-    do j=1,Npl
-      do i=1,Npl
-        ! TODO: Don't start at second for SK
-        i0 = i*18+1
-        i1 = i0+17
-        j0 = j*18+1
-        j1 = j0+17
-        gf(i,j,:,:) = gslab(i0:i1,j0:j1)
-      end do
-    end do
-  else
     do j=1, Npl
       do i=1, Npl
-        i0 = (i-1)*18 + 1
+        i0 = (i-1+offset)*18 + 1
         i1 = i0 + 17
-        j0 = (j-1)*18 + 1
+        j0 = (j-1+offset)*18 + 1
         j1 = j0 + 17
         gf(i,j,:,:) = gslab(i0:i1,j0:j1)
       end do
     end do
-  end if
 
   return
 end subroutine green
@@ -69,7 +55,6 @@ subroutine greenlinearsoc(er,ei,kp,g0,g0vsocg0)
   use mod_constants
   use mod_parameters
   use mod_magnet
-  use mod_tight_binding, only: tbmode
   implicit none
   integer     :: i,j,i0,i1,j0,j1,d
   real(double), intent(in)  :: er,ei,kp(3)
@@ -97,29 +82,16 @@ subroutine greenlinearsoc(er,ei,kp,g0,g0vsocg0)
   call zgemm('n','n',d,d,d,zum,gslab0,d,temp,d,zero,temp2,d) ! temp2 = gslab0*vsoc*gslab0
 
   ! Put the slab Green's function [A(Npl*18,Npl*18)] in the A(i,j,mu,nu) form
-  if(tbmode == 2) then
-    do j=1,Npl
-      do i=1,Npl
-        i0 = i*18+1
-        i1 = i0+17
-        j0 = j*18+1
-        j1 = j0+17
-        g0(i,j,:,:) = gslab0(i0:i1,j0:j1)
-        g0vsocg0(i,j,:,:) = temp2(i0:i1,j0:j1)
-      end do
+  do j=1,Npl
+    do i=1,Npl
+      i0 = (i-1+offset)*18+1
+      i1 = i0+17
+      j0 = (j-1+offset)*18+1
+      j1 = j0+17
+      g0(i,j,:,:) = gslab0(i0:i1,j0:j1)
+      g0vsocg0(i,j,:,:) = temp2(i0:i1,j0:j1)
     end do
-  else
-    do j=1,Npl
-      do i=1,Npl
-        i0 = (i-1)*18+1
-        i1 = i0+17
-        j0 = (j-1)*18+1
-        j1 = j0+17
-        g0(i,j,:,:) = gslab0(i0:i1,j0:j1)
-        g0vsocg0(i,j,:,:) = temp2(i0:i1,j0:j1)
-      end do
-    end do
-  end if
+  end do
   return
 end subroutine greenlinearsoc
 
@@ -134,7 +106,6 @@ subroutine greenlineargfsoc(er,ei,kp,gf)
   use mod_constants
   use mod_parameters
   use mod_magnet
-  use mod_tight_binding, only: tbmode
   implicit none
   integer     :: i,j,i0,i1,j0,j1,d
   real(double), intent(in)  :: er,ei,kp(3)
@@ -164,27 +135,15 @@ subroutine greenlineargfsoc(er,ei,kp,gf)
   call zgemm('n','n',d,d,d,zum,gslab0,d,temp,d,zero,gslab,d) ! gslab = gslab0(1+vsoc*gslab0)
 
   ! Put the slab Green's function [A(Npl*18,Npl*18)] in the A(i,j,mu,nu) form
-  if(tbmode == 2) then
-    do j=1,Npl
-      do i=1,Npl
-        i0 = i*18+1
-        i1 = i0+17
-        j0 = j*18+1
-        j1 = j0+17
-        gf(i,j,:,:) = gslab(i0:i1,j0:j1)
-      end do
+  do j=1,Npl
+    do i=1,Npl
+      i0 = (i-1+offset)*18+1
+      i1 = i0+17
+      j0 = (j-1+offset)*18+1
+      j1 = j0+17
+      gf(i,j,:,:) = gslab(i0:i1,j0:j1)
     end do
-  else
-    do j=1,Npl
-      do i=1,Npl
-        i0 = (i-1)*18+1
-        i1 = i0+17
-        j0 = (j-1)*18+1
-        j1 = j0+17
-        gf(i,j,:,:) = gslab(i0:i1,j0:j1)
-      end do
-    end do
-  end if
+  end do
   return
 end subroutine greenlineargfsoc
 
