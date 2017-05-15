@@ -176,7 +176,6 @@ contains
          t0(i,j,j) = on_site(4,i)
       end do
     end do
-    print *, npart0
     Ef = fermi(fermi_layer)
     ! Inter-plane hopping
     do i = 1, Npl

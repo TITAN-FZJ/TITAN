@@ -262,7 +262,6 @@ contains
        do j = 1, 4
           diff = inikbz(:,l) - BZ(:,j)
           distance = sqrt(dot_product(diff, diff))
-          !print *, distance, smallest_dist, diff, inikbz(:,l)
           if(distance < smallest_dist) then
              smallest_dist = distance
              smallest_index = j
