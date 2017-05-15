@@ -35,6 +35,7 @@ target_compile_options(${EXEC_NAME} PRIVATE -no-wrap-margin
                                         -D _LINUX
                                         -O3
                                         -I${NAG}/c_headers
+					-qopenmp
                       )
 if(DEBUG)
 target_compile_options(${EXEC_NAME} PRIVATE -CB
