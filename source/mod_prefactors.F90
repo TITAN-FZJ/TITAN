@@ -9,8 +9,8 @@ contains
   ! Calculates matrices hopping x angular momentum matrix for orbital angular momentum current calculation
   subroutine OAM_curr_hopping_times_L()
     use mod_magnet,        only: lxp, lyp, lzp
-    use mod_tight_binding, only: t00
-    use mod_parameters,    only: Npl
+    use mod_tight_binding, only: t0i
+    use mod_parameters,    only: Npl, offset
     use mod_system,        only: n0sc1, n0sc2
     use mod_constants,     only: zero
     implicit none
@@ -23,12 +23,12 @@ contains
     tlyp = zero
     tlzp = zero
     do nu=1,9 ; do mu=1,9 ; do neighbor=n0sc1,n0sc2 ; do i=1,Npl ; do alpha=1,9
-        lxpt(i,neighbor,mu,nu) = lxpt(i,neighbor,mu,nu) + lxp(mu,alpha)*t00(i+1,neighbor,alpha,nu)
-        lypt(i,neighbor,mu,nu) = lypt(i,neighbor,mu,nu) + lyp(mu,alpha)*t00(i+1,neighbor,alpha,nu)
-        lzpt(i,neighbor,mu,nu) = lzpt(i,neighbor,mu,nu) + lzp(mu,alpha)*t00(i+1,neighbor,alpha,nu)
-        tlxp(i,neighbor,mu,nu) = tlxp(i,neighbor,mu,nu) + t00(i+1,neighbor,alpha,mu)*lxp(alpha,nu)
-        tlyp(i,neighbor,mu,nu) = tlyp(i,neighbor,mu,nu) + t00(i+1,neighbor,alpha,mu)*lyp(alpha,nu)
-        tlzp(i,neighbor,mu,nu) = tlzp(i,neighbor,mu,nu) + t00(i+1,neighbor,alpha,mu)*lzp(alpha,nu)
+        lxpt(i,neighbor,mu,nu) = lxpt(i,neighbor,mu,nu) + lxp(mu,alpha)*t0i(i+offset,neighbor,alpha,nu)
+        lypt(i,neighbor,mu,nu) = lypt(i,neighbor,mu,nu) + lyp(mu,alpha)*t0i(i+offset,neighbor,alpha,nu)
+        lzpt(i,neighbor,mu,nu) = lzpt(i,neighbor,mu,nu) + lzp(mu,alpha)*t0i(i+offset,neighbor,alpha,nu)
+        tlxp(i,neighbor,mu,nu) = tlxp(i,neighbor,mu,nu) + t0i(i+offset,neighbor,alpha,mu)*lxp(alpha,nu)
+        tlyp(i,neighbor,mu,nu) = tlyp(i,neighbor,mu,nu) + t0i(i+offset,neighbor,alpha,mu)*lyp(alpha,nu)
+        tlzp(i,neighbor,mu,nu) = tlzp(i,neighbor,mu,nu) + t0i(i+offset,neighbor,alpha,mu)*lzp(alpha,nu)
     end do ; end do ; end do ; end do ; end do
     return
   end subroutine OAM_curr_hopping_times_L

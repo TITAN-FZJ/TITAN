@@ -5,8 +5,8 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
   use mod_f90_kind,      only: double
   use mod_constants,     only: zero, zum, zi, tpi
   use mod_prefactors,    only: prefactor, lxpt, lypt, lzpt, tlxp, tlyp, tlzp
-  use mod_parameters,    only: outputunit, outputunit_loop, dim, dimsigmaNpl, lverbose, llineargfsoc, ef, sigmaimunu2i, Npl, eta, sigmai2i
-  use mod_tight_binding, only: t00
+  use mod_parameters,    only: outputunit, outputunit_loop, dim, dimsigmaNpl, lverbose, llineargfsoc, ef, sigmaimunu2i, Npl, eta, sigmai2i, offset
+  use mod_tight_binding, only: t0i
   use mod_progress
 !$  use omp_lib
   implicit none
@@ -33,7 +33,7 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
 
 !$omp parallel default(none) &
 !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,wkbzc,kp,df1iikl,pfdf1iikl,prett,preLxtt,preLytt,preLztt,dtdk,gf,expikr,gfuu,gfud,gfdu,gfdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &
-!$omp& shared(llineargfsoc,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,lverbose,myrank_row_hw,kbz,wkbz,iflag,e,ep,nkpt,r_nn,Ef,eta,nthreads,sigmai2i,sigmaimunu2i,dim,Npl,n0sc1,n0sc2,npln,t00,lxpt,lypt,lzpt,tlxp,tlyp,tlzp,outputunit,outputunit_loop)
+!$omp& shared(llineargfsoc,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,lverbose,myrank_row_hw,kbz,wkbz,iflag,e,ep,nkpt,r_nn,Ef,eta,nthreads,sigmai2i,sigmaimunu2i,dim,Npl,n0sc1,n0sc2,npln,t0i,offset,lxpt,lypt,lzpt,tlxp,tlyp,tlzp,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread==0).and.(myrank_row_hw==0)) then
 !$    nthreads = omp_get_num_threads()
@@ -65,7 +65,7 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
 
     ! Calculating the prefactor (L).t.exp - t.(L).exp
     do nu=1,9 ; do mu=1,9 ; do neighbor=n0sc1,n0sc2 ; do i=1,Npl
-      prett  (neighbor,i,mu,nu) = t00(i+1,neighbor,mu,nu)*expikr(neighbor)-(t00(i+1,neighbor,nu,mu)*conjg(expikr(neighbor)))
+      prett  (neighbor,i,mu,nu) = t0i(i+offset,neighbor,mu,nu)*expikr(neighbor)-(t0i(i+offset,neighbor,nu,mu)*conjg(expikr(neighbor)))
       preLxtt(neighbor,i,mu,nu) = lxpt(i,neighbor,mu,nu)*expikr(neighbor)-(tlxp(i,neighbor,mu,nu)*conjg(expikr(neighbor)))
       preLytt(neighbor,i,mu,nu) = lypt(i,neighbor,mu,nu)*expikr(neighbor)-(tlyp(i,neighbor,mu,nu)*conjg(expikr(neighbor)))
       preLztt(neighbor,i,mu,nu) = lzpt(i,neighbor,mu,nu)*expikr(neighbor)-(tlzp(i,neighbor,mu,nu)*conjg(expikr(neighbor)))
@@ -213,7 +213,7 @@ subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,Lzt
   use mod_parameters
   use mod_constants
   use mod_system, only: r_nn, npln, nkpt, kbz, wkbz, n0sc1, n0sc2
-  use mod_tight_binding, only: t00
+  use mod_tight_binding, only: t0i
   use mod_prefactors
   use mod_progress
   use mod_mpi_pars, only: myrank_row_hw,errorcode,ierr
@@ -243,7 +243,7 @@ subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,Lzt
 
 !$omp parallel default(none) &
 !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,wkbzc,kp,df1iikl,pfdf1iikl,df1lsoc,prett,preLxtt,preLytt,preLztt,dtdk,expikr,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &
-!$omp& shared(tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,prefactorlsoc,lverbose,myrank_row_hw,kbz,wkbz,iflag,e,ep,nkpt,r_nn,Ef,eta,nthreads,sigmai2i,sigmaimunu2i,dim,Npl,n0sc1,n0sc2,npln,t00,lxpt,lypt,lzpt,tlxp,tlyp,tlzp,outputunit,outputunit_loop)
+!$omp& shared(tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,prefactor,prefactorlsoc,lverbose,myrank_row_hw,kbz,wkbz,iflag,e,ep,nkpt,r_nn,Ef,eta,nthreads,sigmai2i,sigmaimunu2i,dim,Npl,n0sc1,n0sc2,npln,t0i,offset,lxpt,lypt,lzpt,tlxp,tlyp,tlzp,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread==0).and.(myrank_row_hw==0)) then
 !$    nthreads = omp_get_num_threads()
@@ -281,7 +281,7 @@ subroutine sumklinearsoc(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,Lzt
 
     ! Calculating the prefactor (L).t.exp - t.(L).exp
     do nu=1,9 ; do mu=1,9 ; do neighbor=n0sc1,n0sc2 ; do i=1,Npl
-      prett  (neighbor,i,mu,nu) = t00(i+1,neighbor,mu,nu)*expikr(neighbor)-(t00(i+1,neighbor,nu,mu)*conjg(expikr(neighbor)))
+      prett  (neighbor,i,mu,nu) = t0i(i+offset,neighbor,mu,nu)*expikr(neighbor)-(t0i(i+offset,neighbor,nu,mu)*conjg(expikr(neighbor)))
       preLxtt(neighbor,i,mu,nu) = lxpt(i,neighbor,mu,nu)*expikr(neighbor)-(tlxp(i,neighbor,mu,nu)*conjg(expikr(neighbor)))
       preLytt(neighbor,i,mu,nu) = lypt(i,neighbor,mu,nu)*expikr(neighbor)-(tlyp(i,neighbor,mu,nu)*conjg(expikr(neighbor)))
       preLztt(neighbor,i,mu,nu) = lzpt(i,neighbor,mu,nu)*expikr(neighbor)-(tlzp(i,neighbor,mu,nu)*conjg(expikr(neighbor)))

@@ -49,7 +49,6 @@ module mod_tight_binding
   ! Total cccupations per layer
   real(double), dimension(:), allocatable  :: npart0
   ! real-space hoppings
-  real(double),allocatable  :: t00(:,:,:,:),t01(:,:,:,:),t02(:,:,:,:)
   real(double),allocatable  :: t0(:,:,:)
   real(double),allocatable  :: t0i(:,:,:,:)
   ! SOC L.S matrix

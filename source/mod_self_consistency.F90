@@ -93,7 +93,6 @@ contains
     use mod_parameters
     use mod_mpi_pars, only: myrank_row_hw
     use mod_tight_binding
-    use mod_system, only: npln
     implicit none
     integer :: i,err,sign
     logical :: lsuccess
@@ -122,12 +121,7 @@ contains
     deallocate(mabs,mtheta,mphi,labs,ltheta,lphi,lpabs,lptheta,lpphi)
     if(lGSL) deallocate(lxm,lym,lzm,lxpm,lypm,lzpm)
     deallocate(mmlayer,layertype,U,mmlayermag,lambda,npart0)
-    select case (npln)
-    case(1)
-      deallocate(t00,t01)
-    case(2)
-      deallocate(t00,t01,t02)
-    end select
+    deallocate(t0, t0i)
 
     return
   end subroutine rotate_magnetization_to_field
