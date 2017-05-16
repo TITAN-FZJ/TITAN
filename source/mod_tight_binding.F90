@@ -134,7 +134,7 @@ contains
   end subroutine
 
   subroutine Papa_2C_param()
-    use mod_parameters, only: Npl, nmaglayers, U, Ef, mmlayermag, SOC
+    use mod_parameters, only: Npl, nmaglayers, U, Ef, mmlayermag, SOC, layertype
     use mod_system, only: nstages, npln, c_nn, l_nn
     use mod_f90_kind, only: double
     implicit none
@@ -156,6 +156,7 @@ contains
 
     !TODO : nmaglayers, U
     nmaglayers = Npl
+    layertype = 2
     do i = 1, nmaglayers
       mmlayermag(i) = i+1
     end do
