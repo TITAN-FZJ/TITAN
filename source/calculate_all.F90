@@ -223,18 +223,18 @@ subroutine calculate_all()
           torques(1,3,i) = torques(1,3,i) - (zi*lxp(mu,nu)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3))) &
                                       - (   lyp(mu,nu)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
         end do; end do
-        torques(1,:,i) = 0.5d0*lambda(i+1)*torques(1,:,i)
+        torques(1,:,i) = 0.5d0*lambda(i+offset)*torques(1,:,i)
 
         ! Exchange-correlation torques (calculated in the spin frame of reference)
-        torques(2,1,i) = U(i+1)*(mz(i)*disturbances(3,i)-my(i)*disturbances(4,i))
-        torques(2,2,i) = U(i+1)*(mx(i)*disturbances(4,i)-mz(i)*disturbances(2,i))
-        torques(2,3,i) = U(i+1)*(my(i)*disturbances(2,i)-mx(i)*disturbances(3,i))
+        torques(2,1,i) = U(i+offset)*(mz(i)*disturbances(3,i)-my(i)*disturbances(4,i))
+        torques(2,2,i) = U(i+offset)*(mx(i)*disturbances(4,i)-mz(i)*disturbances(2,i))
+        torques(2,3,i) = U(i+offset)*(my(i)*disturbances(2,i)-mx(i)*disturbances(3,i))
 
         ! External torques (calculated in the spin frame of reference)
         if(lfield) then
-          torques(3,1,i) = 2.d0*(hhwy(i+1)*disturbances(4,i)-hhwz(i+1)*disturbances(3,i))
-          torques(3,2,i) = 2.d0*(hhwz(i+1)*disturbances(2,i)-hhwx(i+1)*disturbances(4,i))
-          torques(3,3,i) = 2.d0*(hhwx(i+1)*disturbances(3,i)-hhwy(i+1)*disturbances(2,i))
+          torques(3,1,i) = 2.d0*(hhwy(i+offset)*disturbances(4,i)-hhwz(i+offset)*disturbances(3,i))
+          torques(3,2,i) = 2.d0*(hhwz(i+offset)*disturbances(2,i)-hhwx(i+offset)*disturbances(4,i))
+          torques(3,3,i) = 2.d0*(hhwx(i+offset)*disturbances(3,i)-hhwy(i+offset)*disturbances(2,i))
         end if
 
         ! Calculating spin and charge current for each neighbor
