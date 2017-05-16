@@ -134,7 +134,7 @@ contains
   end subroutine
 
   subroutine Papa_2C_param()
-    use mod_parameters, only: Npl, nmaglayers, U, Ef, mmlayermag
+    use mod_parameters, only: Npl, nmaglayers, U, Ef, mmlayermag, SOC
     use mod_system, only: nstages, npln, c_nn, l_nn
     use mod_f90_kind, only: double
     implicit none
@@ -163,6 +163,7 @@ contains
 
     do i = 1, Npl
       call read_Papa_2C_param(layers(i), on_site(:,i), hopping(:,:,i), lambda(i), fermi(i), npart0(i))
+      if(.not. SOC) lambda = 0.d0
       ! On-site Term
       t0(i,1,1)  = on_site(1,i)
       do j=2,4
