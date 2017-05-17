@@ -100,6 +100,7 @@ end subroutine band_structure
 
 subroutine read_band_points(kbands)
   use mod_parameters, only: bands, band_cnt
+  use mod_system, only: b1, b2, b3
   use mod_f90_kind, only: double
   implicit none
   real(double), dimension(:,:), allocatable, intent(out) :: kbands
@@ -145,7 +146,7 @@ subroutine read_band_points(kbands)
     do j = 1, line_count
       if(trim(kband(j)%name) == bands(i)) then
         found = .true.
-        kbands(1:3,i) = kband(j)%kp(1:3)
+        kbands(1:3,i) = kband(j)%kp(1) * b1 + kband(j)%kp(2) * b2 + kband(j)%kp(3) * b3 
         exit
       endif
     end do
