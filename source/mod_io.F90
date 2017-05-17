@@ -357,6 +357,11 @@ contains
 
     if(.not. get_parameter("scfile", scfile)) call log_warning("get_parameters","'scfile' missing.")
 
+    if(itype == 4) then
+      if(.not. get_parameter("band", bands, band_cnt)) call log_error("get_parameters", "'bands' missing.")
+      if(band_cnt < 2) call log_error("get_parameters", "Need at least to Points for Band Structure")
+    endif
+
     !==============================================================================================!
     !================================Tight-Binding Mode============================================!
     if(.not. get_parameter("tbmode", tbmode)) call log_error("get_parameters", "'tbmode' missing.")

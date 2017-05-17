@@ -70,6 +70,8 @@ module mod_parameters
   !========================================================================================!
   ! Band structure
   character(len=2)  :: kdirection
+  character(len=5), dimension(:), allocatable :: bands
+  integer :: band_cnt
   !========================================================================================!
   ! Number of points and interval of energy/wave vector/position calculations
   integer      :: npts,npt1,count

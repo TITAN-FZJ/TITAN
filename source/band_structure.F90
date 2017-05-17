@@ -9,12 +9,14 @@ subroutine band_structure()
   character(len=400) :: varm
   character(len=50)  :: fieldpart,socpart
   character(len=1)   :: SOCc
-  integer            :: j,ifail
+  integer            :: i, j,ifail
   integer                       :: lwork,dimbs
-  real(double)                  :: kmin(3),kmax(3),deltak(3)
+  real(double)                  :: kmin(3),kmax(3), dir(3), deltak
   real(double),allocatable      :: rwork(:),kpoints(:,:)
   complex(double),allocatable   :: eval(:),evecl(:,:),evecr(:,:),work(:)
   complex(double),allocatable   :: hk(:,:)
+  real(double), dimension(:,:), allocatable :: band_points
+  real(double) :: total_length
 
   dimbs = (Npl_total)*18
   lwork = 33*dimbs
@@ -22,84 +24,11 @@ subroutine band_structure()
 
   write(outputunit_loop,"('CALCULATING THE BAND STRUCTURE')")
 
-  select case (lattice)
-  case("bcc110")
-    band_struct_direction_bcc110: select case (kdirection)
-    case ("GH")
-      kmin = [ 0.d0 , 0.d0 , 0.d0 ]             ! Gamma
-      kmax = [ 0.d0 , 0.d0 , 1.5d0*pi/a0 ]      ! H
-    case ("HP")
-      kmin = [ 0.d0 , 0.d0 , 1.5d0*pi/a0 ]      ! H
-      kmax = [ pi*sq2/a0 , 0.d0 , 0.5d0*pi/a0 ] ! P
-    case ("PN")
-      kmin = [ pi*sq2/a0 , 0.d0 , 0.5d0*pi/a0 ] ! P
-      kmax = [ pi*sq2/a0 , 0.d0 , 0.d0 ]        ! N
-    case ("NG")
-      kmin = [ pi*sq2/a0 , 0.d0 , 0.d0 ]        ! N
-      kmax = [ 0.d0 , 0.d0 , 0.d0 ]             ! Gamma
-    case ("HG")
-      kmin = [ 0.d0 , 0.d0 , 1.5d0*pi/a0 ]      ! H
-      kmax = [ 0.d0 , 0.d0 , 0.d0 ]             ! Gamma
-    case ("PH")
-      kmin = [ pi*sq2/a0 , 0.d0 , 0.5d0*pi/a0 ] ! P
-      kmax = [ 0.d0 , 0.d0 , 1.5d0*pi/a0 ]      ! H
-    case ("NP")
-      kmin = [ pi*sq2/a0 , 0.d0 , 0.d0 ]        ! N
-      kmax = [ pi*sq2/a0 , 0.d0 , 0.5d0*pi/a0 ] ! P
-    case ("GN")
-      kmin = [ 0.d0 , 0.d0 , 0.d0 ]             ! Gamma
-      kmax = [ pi*sq2/a0 , 0.d0 , 0.d0 ]        ! N
-    case default
-      write(outputunit_loop,"('[band_structure] Choose one of the following directions in k space:')")
-      write(outputunit_loop,"('[band_structure] GH, HP, PN, NG (or the opposite HG, PH, NP, GN)')")
-      stop
-    end select band_struct_direction_bcc110
-    ! Transformation to cartesian axis
-    kmin(1) = kmin(1)*0.5d0*sq2
-    kmin(2) = kmin(1)
-    kmin(3) = kmin(3)
-
-    kmax(1) = kmax(1)*0.5d0*sq2
-    kmax(2) = kmax(1)
-    kmax(3) = kmax(3)
-  case("fcc100")
-    band_struct_direction_fcc100: select case (kdirection)
-    case ("GM")
-      kmin = [ 0.d0 , 0.d0 , 0.d0 ]             ! Gamma
-      kmax = [ 1.d0 , 0.d0 , 0.d0 ]*tpi/a0      ! M
-    case ("MX")
-      kmin = [ 1.d0 , 0.d0 , 0.d0 ]*tpi/a0      ! M
-      kmax = [ 1.d0 , 1.d0 , 0.d0 ]*pi/a0       ! X
-    case ("XG")
-      kmin = [ 1.d0 , 1.d0 , 0.d0 ]*pi/a0       ! X
-      kmax = [ 0.d0 , 0.d0 , 0.d0 ]             ! Gamma
-    case ("GX")
-      kmin = [ 0.d0 , 0.d0 , 0.d0 ]             ! Gamma
-      kmax = [ 1.d0 , 1.d0 , 0.d0 ]*pi/a0       ! X
-    case ("XM")
-      kmin = [ 1.d0 , 1.d0 , 0.d0 ]*pi/a0       ! X
-      kmax = [ 1.d0 , 0.d0 , 0.d0 ]*tpi/a0      ! M
-    case ("MG")
-      kmin = [ 1.d0 , 0.d0 , 0.d0 ]*tpi/a0      ! M
-      kmax = [ 0.d0 , 0.d0 , 0.d0 ]             ! Gamma
-    case default
-      write(outputunit_loop,"('[band_structure] Choose one of the following directions in k space:')")
-      write(outputunit_loop,"('[band_structure] GM, MX, XG (or the opposite GX, XM, MG)')")
-      stop
-    end select band_struct_direction_fcc100
-
-    ! Transformation to cartesian axis
-    kmin(3) = kmin(1)+kmin(2) ! using kmin(3) as a temporary variable
-    kmin(2) =-kmin(1)+kmin(2)
-    kmin(1) = kmin(3)
-    kmin(3) = 0.d0
-
-    kmax(3) = kmax(1)+kmax(2) ! using kmax(3) as a temporary variable
-    kmax(2) =-kmax(1)+kmax(2)
-    kmax(1) = kmax(3)
-    kmax(3) = 0.d0
-
-  end select
+  call read_band_points(band_points)
+  total_length = 0.d0
+  do i = 1, band_cnt - 1
+    total_length = total_length + sqrt(dot_product(band_points(:,i)-band_points(:,i+1), band_points(:,i)-band_points(:,i+1)))
+  end do
 
   fieldpart = ""
   socpart   = ""
@@ -124,15 +53,33 @@ subroutine band_structure()
   write(varm,"('./results/',a1,'SOC/',a,'/BS/bandstructure_kdir=',a2,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),kdirection,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
   open (unit=666+mpitag, file=varm,status='replace')
 
-  deltak = (kmax - kmin)/npts
-  allocate( kpoints(npt1,3) )
-  do count=1,npt1
-    kpoints(count,:) = kmin + (count-1)*deltak
+  deltak = total_length / npts
+  allocate(kpoints(3,npt1))
+
+  total_length = 0.d0
+  count = 0
+  i = 0
+  do count = 1, npt1
+    if(deltak*count >= total_length) then
+      i = i + 1
+      total_length = total_length + sqrt(dot_product(band_points(:,i)-band_points(:,i+1), band_points(:,i)-band_points(:,i+1)))
+      j = 0
+      dir = (band_points(:,i+1) - band_points(:,i))
+      dir = dir / sqrt(dot_product(dir,dir))
+    end if
+    kpoints(:,count) = band_points(:,i) + dir * j * deltak
+    print *, kpoints(:,count)
   end do
+
+  ! deltak = (kmax - kmin)/npts
+  ! allocate( kpoints(npt1,3) )
+  ! do count=1,npt1
+  !   kpoints(count,:) = kmin + (count-1)*deltak
+  ! end do
 
   band_structure_loop: do count=1,npt1
     write(outputunit_loop,"('[band_structure] ',i0,' of ',i0,' points',', i = ',es10.3)") count,npt1,dble((count-1.d0)/npts)
-    call hamiltk(kpoints(count,:),hk)
+    call hamiltk(kpoints(:,count),hk)
 
     call zgeev('N','N',dimbs,hk,dimbs,eval,evecl,1,evecr,1,work,lwork,rwork,ifail)
     if(ifail/=0) then
@@ -143,10 +90,70 @@ subroutine band_structure()
     end if
     ! Transform energy to eV if runoption is on
     eval = eval
-    write(666+mpitag,'(1000(es16.8))') dble((count-1.d0)/npts),(real(eval(j)),j=1,dimbs)
+    write(666+mpitag,'(1000(es16.8))') dble((count-1.d0)*deltak), (real(eval(j)),j=1,dimbs)
   end do band_structure_loop
   close(666+mpitag)
   deallocate(hk,rwork,eval,evecl,evecr,work)
 
   return
 end subroutine band_structure
+
+subroutine read_band_points(kbands)
+  use mod_parameters, only: bands, band_cnt
+  use mod_f90_kind, only: double
+  implicit none
+  real(double), dimension(:,:), allocatable, intent(out) :: kbands
+  character(len=40) :: band_file = "kbands"
+  character(len=200) :: line
+  integer :: ios, line_count, i, j
+  logical :: found
+  type :: band_point
+    character(len=5) :: name
+    real(double), dimension(3) :: kp
+  end type
+  type(band_point), dimension(:), allocatable :: kband
+
+  line_count = 0
+  open(unit = 666999, file = trim(band_file), status='old', iostat=ios)
+  if(ios /= 0) then
+    !TODO: Call upon hell
+  endif
+
+  ! Count non commented lines
+  read(unit=666999, fmt='(A)', iostat=ios) line
+  do while (ios == 0)
+    if(len_trim(line) > 0 .and. len_trim(line) < 200 .and. index(adjustl(line), "#") /= 1) line_count = line_count + 1
+    read(unit=666999, fmt='(A)', iostat=ios) line
+  end do
+  rewind(666999)
+  print *, line_count
+
+  allocate(kband(line_count))
+  i = 0
+  read(unit=666999, fmt='(A)', iostat=ios) line
+  do while (ios == 0)
+    if(len_trim(line) <= 0 .or. len_trim(line) >= 200 .or. index(adjustl(line),"#") == 1) cycle
+    if(index(line, "#") > 0) line = line(1:index(line, "#")-1)
+    i = i + 1
+    read(unit = line, fmt = *, iostat=ios) kband(i)%name, (kband(i)%kp(j), j = 1,3)
+    read(unit=666999, fmt='(A)', iostat=ios) line
+  end do
+
+  allocate(kbands(3,band_cnt))
+  do i = 1, band_cnt
+    found = .false.
+    do j = 1, line_count
+      if(trim(kband(j)%name) == bands(i)) then
+        found = .true.
+        kbands(1:3,i) = kband(j)%kp(1:3)
+        exit
+      endif
+    end do
+    if(.not. found) then
+      print *, "read_bands went wrong"
+      stop
+    endif
+  end do
+
+  close(666999)
+end subroutine read_band_points
