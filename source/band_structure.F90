@@ -68,6 +68,7 @@ subroutine band_structure()
       dir = dir / sqrt(dot_product(dir,dir))
     end if
     kpoints(:,count) = band_points(:,i) + dir * j * deltak
+    j = j + 1
     print *, kpoints(:,count)
   end do
 
@@ -146,7 +147,7 @@ subroutine read_band_points(kbands)
     do j = 1, line_count
       if(trim(kband(j)%name) == bands(i)) then
         found = .true.
-        kbands(1:3,i) = kband(j)%kp(1) * b1 + kband(j)%kp(2) * b2 + kband(j)%kp(3) * b3 
+        kbands(1:3,i) = kband(j)%kp(1) * b1 + kband(j)%kp(2) * b2 + kband(j)%kp(3) * b3
         exit
       endif
     end do
