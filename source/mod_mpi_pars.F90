@@ -2,7 +2,7 @@ module mod_mpi_pars
   use mod_f90_kind
   use MPI
   implicit none
-  integer :: myrank,numprocs,errorcode,ierr,mcount,mpitag
+  integer :: myrank,numprocs,errorcode,ierr,mcount,mpitag, numprocs_row
   integer, dimension(MPI_STATUS_SIZE) :: stat
   ! Grid for energy loop calculations
   integer :: myrank_row,myrank_col
@@ -181,6 +181,7 @@ contains
 
     ! Obtaining process rank inside its row and column
     call MPI_Comm_rank(MPI_Comm_Row_hw,myrank_row_hw,ierr) ! Obtaining rank number inside its row
+    call MPI_Comm_size(MPI_Comm_Row_hw, numprocs_row,ierr)      ! Obtain size of row
     call MPI_Comm_rank(MPI_Comm_Col_hw,myrank_col_hw,ierr) ! Obtaining rank number inside its column
 
     if(myrank==0) write(outputunit,"('[build_cartesian_grid_field] Created grid with ',i0,' rows (myrank_col_hw) x ',i0,' columns (myrank_row_hw)')") MPIdims(1),MPIdims(2)

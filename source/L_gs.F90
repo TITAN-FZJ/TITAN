@@ -31,21 +31,23 @@ subroutine L_gs()
     gupgdint = gupgd*wght(ix)
     if(lverbose) write(outputunit_loop,"('[L_gs] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank_row_hw,trim(host)
 
-    do i=2,pn1
-      call MPI_Recv(gupgd,ncount,MPI_DOUBLE_COMPLEX,MPI_ANY_SOURCE,8999+mpitag,MPI_Comm_Row_hw,stat,ierr)
-      if(lverbose) write(outputunit_loop,"('[L_gs] Point ',i0,' received from ',i0)") i,stat(MPI_SOURCE)
+    if(numprocs_row > 1) then 
+      do i=2,pn1
+        call MPI_Recv(gupgd,ncount,MPI_DOUBLE_COMPLEX,MPI_ANY_SOURCE,8999+mpitag,MPI_Comm_Row_hw,stat,ierr)
+        if(lverbose) write(outputunit_loop,"('[L_gs] Point ',i0,' received from ',i0)") i,stat(MPI_SOURCE)
 
-      gupgdint = gupgdint + gupgd
+        gupgdint = gupgdint + gupgd
 
-      ! If the number of processors is less than the total number of points, sends
-      ! the rest of the points to the ones that finish first
-      if (itask<pn1) then
-        itask = itask + 1
-        call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_Comm_Row_hw,ierr)
-      else
-        call MPI_Send(0,1,MPI_INTEGER,stat(MPI_SOURCE),0,MPI_Comm_Row_hw,ierr)
-      end if
-    end do
+        ! If the number of processors is less than the total number of points, sends
+        ! the rest of the points to the ones that finish first
+        if (itask<pn1) then
+          itask = itask + 1
+          call MPI_Send(itask,1,MPI_INTEGER,stat(MPI_SOURCE),itask,MPI_Comm_Row_hw,ierr)
+        else
+          call MPI_Send(0,1,MPI_INTEGER,stat(MPI_SOURCE),0,MPI_Comm_Row_hw,ierr)
+        end if
+      end do
+    endif
   else
     ! Other processors calculate each point of the integral and waits for new points
     do
