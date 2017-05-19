@@ -439,8 +439,8 @@ contains
           end do
           mp  = mx + zi*my
           do i=1,Npl
-            hdel(i)   = 0.5d0*U(i+1)*mz(i)
-            hdelp(i)  = 0.5d0*U(i+1)*mp(i)
+            hdel(i)   = 0.5d0*U(i+offset)*mz(i)
+            hdelp(i)  = 0.5d0*U(i+offset)*mp(i)
           end do
           hdelm = conjg(hdelp)
           lsuccess = .true. ! Read...
@@ -735,8 +735,8 @@ contains
     mz_in = x(3*Npl+1:4*Npl)
     mp_in = mx_in+zi*my_in
     do i=1,Npl
-      hdel(i)   = 0.5d0*U(i+1)*mz_in(i)
-      hdelp(i)  = 0.5d0*U(i+1)*mp_in(i)
+      hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
+      hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
     end do
     hdelm = conjg(hdelp)
 
@@ -838,7 +838,7 @@ contains
     do i=1,Npl
       ! Number of particles
       n_t(i) = sum(n_orb_t(i,:))
-      fvec(i)   = n_t(i) - npart0(i+1)
+      fvec(i)   = n_t(i) - npart0(i+offset)
       ! x-component of magnetization
       j = i+Npl
       fvec(j)  = mx(i) - mx_in(i)
@@ -911,8 +911,8 @@ contains
     mz_in = x(3*Npl+1:4*Npl)
     mp_in = mx_in+zi*my_in
     do i=1,Npl
-      hdel(i)   = 0.5d0*U(i+1)*mz_in(i)
-      hdelp(i)  = 0.5d0*U(i+1)*mp_in(i)
+      hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
+      hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
     end do
     hdelm = conjg(hdelp)
 
@@ -1014,7 +1014,7 @@ contains
       do i=1,Npl
         ! Number of particles
         n_t(i) = sum(n_orb_t(i,:))
-        fvec(i)   = n_t(i) - npart0(i+1)
+        fvec(i)   = n_t(i) - npart0(i+offset)
         ! x-component of magnetization
         j = i+Npl
         fvec(j)  = mx(i) - mx_in(i)
@@ -1133,8 +1133,8 @@ contains
     mz_in = x(3*Npl+1:4*Npl)
     mp_in = mx_in+zi*my_in
     do i=1,Npl
-      hdel(i)   = 0.5d0*U(i+1)*mz_in(i)
-      hdelp(i)  = 0.5d0*U(i+1)*mp_in(i)
+      hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
+      hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
     end do
     hdelm = conjg(hdelp)
 
@@ -1236,7 +1236,7 @@ contains
     do i=1,Npl
       ! Number of particles
       n_t(i) = sum(n_orb_t(i,:))
-      fvec(i)   = n_t(i) - npart0(i+1)
+      fvec(i)   = n_t(i) - npart0(i+offset)
       ! x-component of magnetization
       j = i+Npl
       fvec(j)  = mx(i) - mx_in(i)
@@ -1296,8 +1296,8 @@ contains
     mz_in = x(3*Npl+1:4*Npl)
     mp_in = mx_in+zi*my_in
     do i=1,Npl
-      hdel(i)   = 0.5d0*U(i+1)*mz_in(i)
-      hdelp(i)  = 0.5d0*U(i+1)*mp_in(i)
+      hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
+      hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
     end do
     hdelm = conjg(hdelp)
 
