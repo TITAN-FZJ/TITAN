@@ -164,7 +164,6 @@ contains
 
     do i = 1, Npl
       call read_Papa_2C_param(layers(i), on_site(:,i), hopping(:,:,i), lambda(i), fermi(i), npart0(i))
-      if(.not. SOC) lambda = 0.d0
       ! On-site Term
       t0(i,1,1)  = on_site(1,i)
       do j=2,4
@@ -177,6 +176,8 @@ contains
          t0(i,j,j) = on_site(4,i)
       end do
     end do
+
+    if(.not. SOC) lambda = 0.d0
     Ef = fermi(fermi_layer)
     ! Inter-plane hopping
     do i = 1, Npl
