@@ -28,7 +28,7 @@ subroutine allocate_Npl_variables()
     write(outputunit,"('[main] Not enough memory for: mmlayer,layertype,U,mmlayermag,lambda,npart0')")
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
-  allocate( hhwx(Npl_total),hhwy(Npl_total),hhwz(Npl_total),sb(Npl_total,18,18),lb(Npl_total,18,18), STAT = AllocateStatus )
+  allocate( hhwx(Npl_total),hhwy(Npl_total),hhwz(Npl_total),sb(18,18,Npl_total),lb(18,18,Npl_total), STAT = AllocateStatus )
   if (AllocateStatus/=0) then
     write(outputunit,"('[main] Not enough memory for: hhwx,hhwy,hhwz,sb,lb')")
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)

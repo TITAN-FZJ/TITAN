@@ -5,18 +5,15 @@
 !        1     2     3       Npl-2 Npl-1  Npl
 !         <-S-> <S-1>           <S-1> <-S->
 subroutine dtdksub(kp,dtdk)
-  use mod_system,        only: r_nn, l_nn, npln
-  use mod_f90_kind,      only: double
+  use mod_tight_binding, only: t0i
+  use mod_parameters,    only: Npl, dirEfieldvec, offset
   use mod_constants,     only: zero, zi
-  use mod_parameters,    only: Npl, dirEfieldvec
-  use mod_tight_binding, only: t0i, tbmode
+  use mod_f90_kind,      only: double
+  use mod_system,        only: r_nn, l_nn, npln
   implicit none
-  integer     :: i, j, l, loc_pln, offset
+  integer     :: i, j, l, loc_pln
   real(double), intent(in)  :: kp(3)
   complex(double),dimension(Npl,Npl,9,9),intent(out)  :: dtdk
-
-  offset = 0
-  if(tbmode == 2) offset = 1
 
   dtdk = zero
 
@@ -28,7 +25,7 @@ subroutine dtdksub(kp,dtdk)
 
      do j = 1, loc_pln
         do l = l_nn(1,j), l_nn(1,j+1)-1
-           dtdk(i,i+j-1,:,:) = dtdk(i,i+j-1,:,:) + zi * dot_product(dirEfieldvec, r_nn(:, l)) * t0i(i+offset,l,:,:) * exp(zi * dot_product(kp, r_nn(:,l)))
+           dtdk(i,i+j-1,:,:) = dtdk(i,i+j-1,:,:) + zi * dot_product(dirEfieldvec, r_nn(:, l)) * t0i(:,:,l,i+offset) * exp(zi * dot_product(kp, r_nn(:,l)))
         end do
         if(j > 1) dtdk(i+j-1,i,:,:) = transpose(conjg(dtdk(i,i+j-1,:,:)))
      end do

@@ -6,7 +6,7 @@ subroutine U_matrix(hee)
   use mod_parameters,    only: Npl, Npl_total, offset
   implicit none
   integer :: i,mu,nu
-  complex(double), dimension(Npl_total,18,18), intent(out) :: hee
+  complex(double), dimension(18,18,Npl_total), intent(out) :: hee
 
   ! the effective electronic interaction matrix
   hee = zero
@@ -15,10 +15,10 @@ subroutine U_matrix(hee)
     do i=1,Npl
       do mu=5,9
         nu=mu+9
-        hee(i+offset,mu,mu) = eps1(i)-hdel(i)
-        hee(i+offset,nu,nu) = eps1(i)+hdel(i)
-        hee(i+offset,mu,nu) = -hdelm(i)
-        hee(i+offset,nu,mu) = -hdelp(i)
+        hee(mu,mu,i+offset) = eps1(i)-hdel(i)
+        hee(nu,nu,i+offset) = eps1(i)+hdel(i)
+        hee(nu,mu,i+offset) = -hdelm(i)
+        hee(mu,nu,i+offset) = -hdelp(i)
       end do
     end do
   return

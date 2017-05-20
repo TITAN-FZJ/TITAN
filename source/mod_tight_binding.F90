@@ -146,8 +146,8 @@ contains
     integer :: i,j,k,l
     integer :: loc_pln
     ! TODO : Allocate t arrays
-    allocate(t0(Npl, 9,9))
-    allocate(t0i(Npl, l_nn(1,npln+1)-1, 9, 9))
+    allocate(t0(9,9, Npl))
+    allocate(t0i(9, 9, l_nn(1,npln+1)-1, Npl))
     !allocate(lambda(Npl))
 
     t0     = 0
@@ -165,15 +165,15 @@ contains
     do i = 1, Npl
       call read_Papa_2C_param(layers(i), on_site(:,i), hopping(:,:,i), lambda(i), fermi(i), npart0(i))
       ! On-site Term
-      t0(i,1,1)  = on_site(1,i)
+      t0(1,1,i)  = on_site(1,i)
       do j=2,4
-         t0(i,j,j) = on_site(2,i)
+         t0(j,j,i) = on_site(2,i)
       end do
       do j=5,7
-         t0(i,j,j) = on_site(3,i)
+         t0(j,j,i) = on_site(3,i)
       end do
       do j=8,9
-         t0(i,j,j) = on_site(4,i)
+         t0(j,j,i) = on_site(4,i)
       end do
     end do
 
@@ -183,7 +183,7 @@ contains
     do i = 1, Npl
 
       do j = 1, 9
-        t0(i,j,j) = t0(i,j,j) - fermi(i) + fermi(fermi_layer)
+        t0(j,j,i) = t0(j,j,i) - fermi(i) + fermi(fermi_layer)
       end do
 
       loc_pln = npln
@@ -198,7 +198,7 @@ contains
                       mix_t(3), mix_t(8), mix_t(9), &
                       mix_t(10), mix_t(4), mix_t(5), &
                       mix_t(6), w, bp)
-            t0i(i,l,:,:) = bp
+            t0i(:,:,l,i) = bp
           end do
         end do
 
@@ -291,7 +291,7 @@ contains
     !   dp_ort(1) =
     !   dd_ort(1) =
 
-    ! Fe (S)
+    ! Fe (S)i,l,
     n0s(2)    = 0.722d0
     n0p(2)    = 0.630d0
     n0d(2)    = 6.569d0
@@ -924,8 +924,8 @@ contains
     ! Unifying Utype = 0 and 1 To Utype = 0 if there is no magnetic layer
     if((Utype<=1).and.(nmaglayers==0)) Utype = 0
 
-    allocate(t0(Npl+2, 9,9))
-    allocate(t0i(Npl+2, l_nn(nstages+1,npln)-1,9,9))
+    allocate(t0(9,9,Npl+2))
+    allocate(t0i(9,9,l_nn(nstages+1,npln)-1, Npl+2))
 
 
     t0 = 0.d0
@@ -946,15 +946,15 @@ contains
        d0t = cd(i) + dd2*loc_onsite(3,hop)
        d0e = cd(i) + dd2*loc_onsite(4,hop)
 
-       t0(i,1,1)  = s0
+       t0(1,1,i)  = s0
        do j=2,4
-          t0(i,j,j) = p0
+          t0(j,j,i) = p0
        end do
        do j=5,7
-          t0(i,j,j) = d0t
+          t0(j,j,i) = d0t
        end do
        do j=8,9
-          t0(i,j,j) = d0e
+          t0(j,j,i) = d0e
        end do
 
        ! hopping
@@ -986,7 +986,7 @@ contains
            do l = l_nn(j,k), l_nn(j+1,k)-1
              w = c_nn(:,l)
              call intd(sss,sps,pps,ppp,sds,pds,pdp,dds,ddp,ddd,w,bp)
-             t0i(i,l,:,:) = bp
+             t0i(:,:,l,i) = bp
            end do
          end do
        end do
