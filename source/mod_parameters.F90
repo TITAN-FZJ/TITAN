@@ -20,12 +20,7 @@ module mod_parameters
   character(len=6) :: lattice                   !< Lattice description; general or bcc, fcc, hcp, cubic
   integer          :: Npl,Npl_i,Npl_f,Npl_input !< Description missing.
   integer          :: Npl_total
-  !XXX: real(double)     :: a1(3), a2(3), a3(3)       !< Lattice unit vectors
-  !XXX: real(double)     :: a1_pln(3), a2_pln(3)      !< In-plane lattice unit vectors
-  !XXX: integer          :: nn_stages = 2             !< Number of next neighbor stages. (Default = 2)
-  !XXX: real(double)     :: pln_dir(3)                !< Plane vector describing the layer in the unit cell described by a1,a2,a3
   logical          :: bulk = .false.            !< Flag turning on/off bulk calculations, default: .false., not used yet
-  !XXX: real(double)     :: a0                        !< Lattice parameter (define the units of distance in the program)
   !========================================================================================!
   integer            :: magaxis                   !< Initial guess for magnetization
   !character(len=1)   :: magaxis                   !< Equilibrium magnetization
@@ -69,7 +64,6 @@ module mod_parameters
   real(double) :: tol
   !========================================================================================!
   ! Band structure
-  character(len=2)  :: kdirection
   character(len=5), dimension(:), allocatable :: bands
   integer :: band_cnt
   !========================================================================================!

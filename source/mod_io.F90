@@ -351,8 +351,6 @@ contains
        if(.not. get_parameter("renormnb", renormnb)) call log_error("get_parameters","'renormnb' missing.")
     end if
 
-    if(.not. get_parameter("kdirection", kdirection)) call log_error("get_parameters","'kdirection' missing.")
-
     if(.not. get_parameter("skipsc", skipsc)) call log_error("get_parameters","'skipsc' missing.")
 
     if(.not. get_parameter("scfile", scfile)) call log_warning("get_parameters","'scfile' missing.")
@@ -590,7 +588,6 @@ contains
        write(outputunit_loop,"(1x,'Number of points to calculate: ',i0)") npt1
     case (4)
        write(outputunit_loop,"(1x,'Band structure')")
-       write(outputunit_loop,"(3x,'kdirection = ',a)") kdirection
        write(outputunit_loop,"(9x,'Number of points to calculate: ',i0)") npt1
     case (5)
        write(outputunit_loop,"(1x,'Charge and spin density at Fermi surface')")

@@ -76,6 +76,7 @@ subroutine band_structure()
   real(double),allocatable      :: rwork(:),kpoints(:,:)
   complex(double),allocatable   :: eval(:),evecl(:,:),evecr(:,:),work(:)
   complex(double),allocatable   :: hk(:,:)
+  character(len=20)  :: kdirection
   real(double), dimension(:,:), allocatable :: band_points
   real(double) :: total_length
 
@@ -117,10 +118,11 @@ subroutine band_structure()
     if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
     if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
   end if
-
-  write(varm,"('./results/',a1,'SOC/',a,'/BS/bandstructure_kdir=',a2,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),kdirection,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+  write(kdirection,*) (trim(adjustl(bands(i))), i = 1,band_cnt)
+  write(varm,"('./results/',a1,'SOC/',a,'/BS/bandstructure_kdir=',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(adjustl(kdirection)),nkpt,eta,Utype,trim(fieldpart),trim(socpart)
   open (unit=666+mpitag, file=varm,status='replace')
-
+  write(unit=666+mpitag, fmt=*) band_cnt, npts
+  write(unit=666+mpitag, fmt=*) Ef
   deltak = total_length / npts
   allocate(kpoints(3,npt1))
 
@@ -130,6 +132,7 @@ subroutine band_structure()
   do count = 1, npt1
     if(deltak*count >= total_length .and. i < band_cnt - 1) then
       i = i + 1
+      write(unit=666+mpitag, fmt=*) bands(i), total_length
       total_length = total_length + sqrt(dot_product(band_points(1:3,i)-band_points(1:3,i+1), band_points(1:3,i)-band_points(1:3,i+1)))
       j = 0
       dir = (band_points(1:3,i+1) - band_points(1:3,i))
@@ -138,6 +141,8 @@ subroutine band_structure()
     kpoints(:,count) = band_points(:,i) + dir * j * deltak
     j = j + 1
   end do
+  i = i+1
+  write(unit=666+mpitag, fmt=*) bands(i), total_length
 
   ! deltak = (kmax - kmin)/npts
   ! allocate( kpoints(npt1,3) )
