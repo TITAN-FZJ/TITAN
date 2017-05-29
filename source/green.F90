@@ -4,10 +4,9 @@
 !  1     2     3       Npl-2 Npl-1  Npl
 !   <-1-> <-2->           <-2-> <-1->
 subroutine green(er,ei,kp,gf)
-  use mod_f90_kind
-  use mod_constants
-  use mod_parameters
-  use mod_magnet
+  use mod_f90_kind, only: double
+  use mod_constants, only: zero
+  use mod_parameters, only: Npl, Npl_total, offset
   implicit none
   integer     :: i,j,i0,i1,j0,j1,d
   real(double), intent(in)  :: er,ei,kp(3)
