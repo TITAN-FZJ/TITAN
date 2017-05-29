@@ -9,7 +9,7 @@ subroutine sort_all_files()
   use mod_sha
   implicit none
 
-  write(outputunit_loop,"('[sort_all_files] Sorting files... ',$)")
+  write(outputunit_loop,"('[sort_all_files] Sorting files... ')", advance='no')
   select case (itype)
   case (7)
     ! SORTING SUSCEPTIBILITIES
