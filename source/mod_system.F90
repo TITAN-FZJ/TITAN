@@ -315,10 +315,12 @@ contains
     real(double) :: smallest_dist, distance, ini_smallest_dist
     real(double), dimension(3) ::  diff
     real(double), allocatable :: inikbz(:,:), iniwkbz(:)
-    real(double), dimension(3,nkpt*10) :: extrakbz
-    real(double), dimension(nkpt*10) :: extrawkbz
+    real(double), allocatable, dimension(:,:) :: extrakbz
+    real(double), allocatable, dimension(:) :: extrawkbz
     integer :: l,j,m, k, smallest_index, numextrakbz
     integer :: nkpt_perdim !n. of k point per dimension
+
+    allocate(extrakbz(3,nkpt*10), extrawkbz(nkpt*10))
 
     nkpt_perdim=ceiling((dble(nkpt))**(1.d0/3.d0))
     nkpt_perdim=nkpt_perdim
@@ -403,6 +405,9 @@ contains
     end if
     wkbz=wkbz/dble(nkpt)
     nkpt=nkpt + numextrakbz
+
+    deallocate(extrakbz, extrawkbz)
+
     return
   end subroutine generate_kpoints_bulk
 
