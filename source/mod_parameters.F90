@@ -23,6 +23,7 @@ module mod_parameters
   logical          :: bulk = .false.            !< Flag turning on/off bulk calculations, default: .false., not used yet
   !========================================================================================!
   integer            :: magaxis                   !< Initial guess for magnetization
+  real(double)       :: magaxisvec(3)
   !character(len=1)   :: magaxis                   !< Equilibrium magnetization
   integer            :: dirEfield                 !< Direction of in-plane applied electric field
   !character(len=1)   :: dirEfield                 !< Direction of in-plane applied electric field
@@ -99,6 +100,7 @@ module mod_parameters
   logical :: lsortfiles     = .false.
   logical :: lsha           = .false.
   logical :: llgtv          = .false.
+  logical :: ltestcharge    = .false.
   !========================================================================================!
   ! Activate debug options
   logical :: lverbose = .false.
