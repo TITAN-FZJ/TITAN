@@ -4,7 +4,7 @@ module mod_input
   integer, parameter :: word_length = 50
   integer, parameter :: line_length = 300
   integer, parameter :: max_lines   = 100
-  integer, parameter :: max_elements = 20
+  integer, parameter :: max_elements = 50
   character(line_length) :: out_file = ""
   integer :: out_unit = -1
   character(len=line_length), dimension(max_lines) :: key, val
@@ -202,9 +202,10 @@ contains
   end function get_real_array
 
   function get_complex(key_val, ret_val) result(success)
+    use mod_f90_kind, only: double
     implicit none
     character(len=*), intent(in) :: key_val
-    double complex, intent(out) :: ret_val
+    complex(double), intent(out) :: ret_val
     logical :: success
     integer :: ind , ios
 
@@ -216,13 +217,14 @@ contains
   end function get_complex
 
   function get_complex_array(key_val, ret_val, ret_cnt) result(success)
+    use mod_f90_kind, only: double
     implicit none
     character(len=*), intent(in) :: key_val
-    double complex, allocatable, intent(out) :: ret_val(:)
+    complex(double), allocatable, intent(out) :: ret_val(:)
     integer, intent(out) :: ret_cnt
     logical :: success
     integer :: ind , ios, i
-    double complex :: tmp_arr(max_elements)
+    complex(double) :: tmp_arr(max_elements)
     character(len=word_length) :: str_arr(max_elements)
 
     success = find_val(key_val, ind)
