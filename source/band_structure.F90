@@ -62,10 +62,9 @@ end subroutine read_band_points
 !   Calculates magnetic LDOS
 subroutine band_structure()
   use mod_f90_kind
-  use mod_constants, only: pi,sq2,tpi
   use mod_parameters
   use mod_mpi_pars, only: mpitag
-  use mod_system, only: a0, nkpt
+  use mod_system, only: nkpt
   implicit none
   character(len=400) :: varm
   character(len=50)  :: fieldpart,socpart
