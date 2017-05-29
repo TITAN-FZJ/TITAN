@@ -9,7 +9,8 @@ contains
     use mod_constants
     use mod_magnet
     use mod_parameters
-    use mod_mpi_pars, only: myrank_row_hw
+    use mod_system, only: pln_a1, pln_a2, c_nn, pln_cnt
+    use mod_mpi_pars, only: myrank_row_hw, ierr, myrank
     use mod_susceptibilities, only: lrot
     implicit none
     integer             :: i,err
@@ -60,21 +61,46 @@ contains
       lselfcon = .true.
       ! Parameters: center of band, magnetization, exchange split
       eps1 = 0.d0
-      mx = 0.d0
-      my = 0.d0
-      mz = sign(0.5d0,hw_list(hw_count,1))
+      if(magaxis == -1) then
+        magaxisvec = magaxisvec / sqrt(dot_product(magaxisvec, magaxisvec))
+      else if(magaxis == -2) then
+        magaxisvec = magaxisvec(1) * pln_a1 + magaxisvec(2) * pln_a2
+        magaxisvec = magaxisvec / sqrt(dot_product(magaxisvec, magaxisvec))
+      else if(magaxis == -3) then
+        magaxisvec = [cos(magaxisvec(1))*sin(magaxisvec(2)), sin(magaxisvec(1))*sin(magaxisvec(2)), cos(magaxisvec(2))]
+      else if(magaxis == 0) then
+        magaxisvec = [0.d0, 0.d0, sign(1.0d0, hw_list(hw_count,1))]
+      else if(magaxis >=1 .and. magaxis <= pln_cnt(1)) then
+        magaxisvec(1:3) = c_nn(1:3, magaxis)
+      else
+        if(myrank.eq.0) write(outputunit,"('[read_previous_results] Unknown magnetization direction!')")
+        call MPI_Finalize(ierr)
+        stop
+      end if
+
+      magaxisvec = magaxisvec * 0.5d0
+
+      mx = magaxisvec(1)
+      my = magaxisvec(2)
+      mz = magaxisvec(3)
+
 
       do i=1,Npl
-        if(layertype(i+offset)==2) mz(i) = sign(2.d0,hw_list(hw_count,1))
+        if(layertype(i+offset)==2) then
+          mx = mx * sign(4.d0,hw_list(hw_count,1))
+          my = my * sign(4.d0,hw_list(hw_count,1))
+          mz = mz * sign(4.d0,hw_list(hw_count,1))
+        endif
       end do
 
       mp = zero
-      if(lfield) then
+      if(lfield .and. magaxis == 0) then
         mx = mz*sin(hw_list(hw_count,2)*pi)*cos(hw_list(hw_count,3)*pi)
         my = mz*sin(hw_list(hw_count,2)*pi)*sin(hw_list(hw_count,3)*pi)
         mz = mz*cos(hw_list(hw_count,2)*pi)
-        mp = cmplx(mx,my,double)
       end if
+      mp = cmplx(mx,my,double)
+
       ! Variables used in the hamiltonian
       do i=1,Npl
         hdel(i)   = 0.5d0*U(i+offset)*mz(i)
@@ -139,7 +165,7 @@ contains
     real(double),allocatable      :: fvec(:),jac(:,:),wa(:),sc_solu(:)
     real(double),allocatable      :: diag(:),qtf(:),w(:,:)
     real(double)                  :: epsfcn,factor
-#if !defined(_OSX) .and. !defined(_JUQUEEN)
+#if !defined(_OSX) && !defined(_JUQUEEN)
     real(double)                  :: ruser(1)
     integer                       :: iuser(1)
 #endif
@@ -158,7 +184,7 @@ contains
     mpitag = (Npl-Npl_i)*total_hw_npt1 + hw_count
     if(myrank_row_hw==0) write(outputunit_loop,"('[self_consistency] Starting self-consistency:')")
 
-#if defined(_OSX) .or. defined(_JUQUEEN)
+#if defined(_OSX) || defined(_JUQUEEN)
     if(lslatec) then
       lwa=neq*(3*neq+13)/2
       allocate( wa(lwa),w(neq,4) )
@@ -474,7 +500,7 @@ contains
   !  my - my_in = 0
   !  mz - mz_in = 0
   ! and the correspondent jacobian
-#if !defined(_OSX) .and. !defined(_JUQUEEN)
+#if !defined(_OSX) && !defined(_JUQUEEN)
   subroutine sc_equations_and_jacobian(N,x,fvec,selfconjac,iuser,ruser,iflag)
     use mod_constants
     use mod_parameters
