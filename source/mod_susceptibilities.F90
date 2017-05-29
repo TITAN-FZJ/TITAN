@@ -2,10 +2,11 @@ module mod_susceptibilities
   use mod_f90_kind
   implicit none
   ! Spin susceptibilities
-  complex(double),allocatable   :: schi(:,:,:,:),schihf(:,:,:,:)
+  complex(double), dimension(:,:,:,:), allocatable   :: schi, schihf, shirhoz
   ! Rotation of spin susceptibilities
   logical                       :: lrot = .false.
-  complex(double),allocatable   :: rotmat_i(:,:,:),rotmat_j(:,:,:),rottemp(:,:),schitemp(:,:),schirot(:,:)
+  complex(double), dimension(:,:,:), allocatable   :: rotmat_i, rotmat_j
+  complex(double), dimension(:,:), allocatable     :: rottemp, schitemp, schirot
   ! Susceptibility diagonalization
   integer                       :: lwork
   real(double),allocatable      :: rwork(:)
@@ -250,6 +251,11 @@ contains
           errt = errt + err
         end do
       end if
+      if(ltestcharge) then
+        write(varm, "('./results/',a1,'SOC/',a,'/RPA/testcharge_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+        open (unit=17964, file=varm, status='replace', form='formatted', iostat=err)
+        errt = errt + err
+      end if
       ! Stop if some file does not exist
       if(errt/=0) then
         write(outputunit,"(a,i0,a)") "[openclose_chi_files] Some file(s) do(es) not exist! Stopping before starting calculations..."
@@ -273,6 +279,9 @@ contains
           close (unit=1990+i)
         end do
       end if
+      if(ltestcharge) then
+        close(unit=17964)
+      end if
     end if
 
     return
@@ -290,16 +299,20 @@ contains
     real(double),intent(in) :: e
 
     if(lwriteonscreen) write(outputunit_loop,"(' #################  Susceptibilities:  #################')")
-    do j=1,Npl ; do i=1,Npl ; do sigma=1,4
-      iw = 1000+(sigma-1)*Npl*Npl+(j-1)*Npl+i
-      if(.not.lhfresponses) then
-        write(unit=iw,fmt="(4(es16.9,2x))") e,real(schi(sigma,1,i,j)),aimag(schi(sigma,1,i,j)),abs(schi(sigma,1,i,j))
-        if(((sigma==1).and.(i==j)).and.(lwriteonscreen)) write(outputunit_loop,"('E = ',es11.4,', Plane: ',i0,' Chi+- = (',es16.9,') + i(',es16.9,')')") e,i,real(schi(sigma,1,i,j)),aimag(schi(sigma,1,i,j))
-      end if
+    do j=1,Npl
+      do i=1,Npl
+        do sigma=1,4
+          iw = 1000+(sigma-1)*Npl*Npl+(j-1)*Npl+i
+          if(.not.lhfresponses) then
+            write(unit=iw,fmt="(4(es16.9,2x))") e,real(schi(sigma,1,i,j)),aimag(schi(sigma,1,i,j)),abs(schi(sigma,1,i,j))
+            if(((sigma==1).and.(i==j)).and.(lwriteonscreen)) write(outputunit_loop,"('E = ',es11.4,', Plane: ',i0,' Chi+- = (',es16.9,') + i(',es16.9,')')") e,i,real(schi(sigma,1,i,j)),aimag(schi(sigma,1,i,j))
+          end if
 
-      iw = iw+1000
-      write(unit=iw,fmt="(4(es16.9,2x))") e,real(schihf(sigma,1,i,j)),aimag(schihf(sigma,1,i,j)),abs(schihf(sigma,1,i,j))
-    end do ; end do ; end do
+          iw = iw+1000
+          write(unit=iw,fmt="(4(es16.9,2x))") e,real(schihf(sigma,1,i,j)),aimag(schihf(sigma,1,i,j)),abs(schihf(sigma,1,i,j))
+        end do
+      end do
+    end do
 
     if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
       write(varm,fmt="(a,i0,a)") '(',2*nmaglayers+1,'(es16.9,2x))'
@@ -308,6 +321,14 @@ contains
         write(unit=1990+i,fmt=varm) e,(real(evecr(j,i)),aimag(evecr(j,i)),j=1,nmaglayers)
       end do
     end if ! nmaglayers
+
+    if(ltestcharge) then
+      do j=1,Npl
+        do i=1,Npl
+          write(unit=17964, fmt="(1(es16.9,2x),i0,i0,'(',es16.9,') + i(',es16.9,')')") e, i, j, real(schi(2,2,i,j)+schi(3,2,i,j)-schi(2,3,i,j)-schi(3,3,i,j)), aimag(schi(2,2,i,j)+schi(3,2,i,j)-schi(2,3,i,j)-schi(3,3,i,j))
+        end do
+      end do
+    end if
 
     return
   end subroutine write_susceptibilities
