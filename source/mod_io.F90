@@ -161,24 +161,30 @@ contains
 
     if(.not. get_parameter("magbasis", tmp_string)) then
        call log_warning("get_parameters","'magbasis' missing.")
+       magaxis = 0
     else
        select case (tmp_string)
        case("cartesian")
           if(.not. get_parameter("magaxis", vector, cnt)) call log_error("get_parameters","'magaxis' missing.")
           if(cnt /= 3) call log_error("get_parameters","'magaxis' has wrong size (size 3 required).")
-          dirEfield = -1 ! TODO: Set it to a value if not determined otherwise?
-          dirEfieldvec(1:3) = vector(1:3)
+          magaxis = -1 ! TODO: Set it to a value if not determined otherwise?
+          magaxisvec(1:3) = vector(1:3)
           deallocate(vector)
        case("neighbor")
-          if(.not. get_parameter("dirEfield", dirEfield)) call log_error("get_parameters","'dirEfield' missing.")
+          if(.not. get_parameter("magaxis", magaxis)) call log_error("get_parameters","'magaxis' missing.")
        case("bravais")
-          if(.not. get_parameter("dirEfield", i_vector, cnt)) call log_error("get_parameters","'dirEfield' missing.")
-          if(cnt /= 2) call log_error("get_parameters","'dirEfield' has wrong size (size 2 required).")
-          dirEfield = -2 ! TODO: Add options to evaluate these values.
-          dirEfieldvec(1:2) = i_vector(1:2)
+          if(.not. get_parameter("magaxis", i_vector, cnt)) call log_error("get_parameters","'magaxis' missing.")
+          if(cnt /= 2) call log_error("get_parameters","'magaxis' has wrong size (size 2 required).")
+          magaxis = -2 ! TODO: Add options to evaluate these values.
+          magaxisvec(1:2) = i_vector(1:2)
           deallocate(i_vector)
-       case("spherical")  ! TODO
-       end select
+        case("spherical")
+           if(.not. get_parameter("magaxis", vector, cnt)) call log_error("get_parameters", "'magaxis' missing.")
+           if(cnt /= 2) call log_error("get_parameters", "'magaxis' has wrong size (size 2 required).")
+           dirEfield = -3
+           magaxisvec(1:2) = vector(1:2)
+           deallocate(vector)
+        end select
     end if
 
     if(.not. get_parameter("ebasis", tmp_string)) call log_error("get_parameters","'ebasis' missing.")
@@ -267,6 +273,8 @@ contains
           lsortfiles = .true.
        case ("lgtv")
           llgtv = .true.
+       case ("testcharge")
+          ltestcharge = .true.
        case("!")
           exit
        case default
@@ -515,7 +523,7 @@ contains
 #endif
     write(outputunit_loop,"('|------------------------------- PARAMETERS: -------------------------------|')")
     write(outputunit_loop,"(10x,'Npl = ',i0)") Npl
-    write(outputunit_loop,"(1x,'DFT parameters: ',$)")
+    write(outputunit_loop,"(1x,'DFT parameters: ')", advance='no')
     dft_type: select case (dfttype)
     case ("T")
        write(outputunit_loop,"('Tight-binding basis')")
@@ -530,7 +538,7 @@ contains
     end if
     write(outputunit_loop,"(8x,'Utype = ',i0)") Utype
 
-    write(outputunit_loop,"(1x,'Electric field direction: ',$)")
+    write(outputunit_loop,"(1x,'Electric field direction: ')", advance='no')
     select case(dirEfield)
     case(-3)
        write(outputunit_loop,"('Spherical phi=',es8.1,' theta=',es8.1)") EFp, EFt
@@ -549,7 +557,7 @@ contains
     else
        write(outputunit_loop,"(1x,'Current renormalization: DEACTIVATED')")
     end if
-    write(outputunit_loop,"(10x,'nkpt = ',i0)") nkpt
+    write(outputunit_loop,"(9x,'nkpt = ',i0)") nkpt
     write(outputunit_loop,"(8x,'parts = ',i0,'x',i0)") parts,n1gl
     write(outputunit_loop,"(7x,'parts3 = ',i0,'x',i0)") parts3,n3gl
     write(outputunit_loop,"(10x,'eta =',es9.2)") eta
