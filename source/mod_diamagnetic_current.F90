@@ -45,7 +45,7 @@ contains
     ncount=n0sc*Npl
   !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
-    if(myrank==0) write(outputunit,"('[diamagnetic_current] Calculating diamagnetic current... ',$)")
+    if(myrank==0) write(outputunit,"('[diamagnetic_current] Calculating diamagnetic current... ')", advance='no')
     ix = myrank+1
     itask = numprocs ! Number of tasks done initially
 
