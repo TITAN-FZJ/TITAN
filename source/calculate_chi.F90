@@ -100,8 +100,8 @@ subroutine calculate_chi()
           end do
           call invers(temp2, 4*Npl)
           do i = 1, Npl
-            axx = 0.25d0   *(temp2(sigmai2i(1,i),sigmai2i(1,i)) + temp2(sigmai2i(1,i),sigmai2i(4,i)) + temp2(sigmai2i(4,i),sigmai2i(1,i)) + temp2(sigmai2i(4,i),sigmai2i(4,i)))
-            axy = 0.25d0*zi*(temp2(sigmai2i(1,i),sigmai2i(1,i)) - temp2(sigmai2i(1,i),sigmai2i(4,i)) + temp2(sigmai2i(4,i),sigmai2i(1,i)) - temp2(sigmai2i(4,i),sigmai2i(4,i)))
+            axx = 0.5d0   *(temp2(sigmai2i(1,i),sigmai2i(4,i)) + temp2(sigmai2i(1,i),sigmai2i(1,i)) + temp2(sigmai2i(4,i),sigmai2i(4,i)) + temp2(sigmai2i(4,i),sigmai2i(1,i)))
+            axy = 0.5d0*zi*(temp2(sigmai2i(1,i),sigmai2i(4,i)) - temp2(sigmai2i(1,i),sigmai2i(1,i)) + temp2(sigmai2i(4,i),sigmai2i(4,i)) - temp2(sigmai2i(4,i),sigmai2i(1,i)))
             print *, e, i, -1.d0 * aimag(axy)/aimag(axx)
           end do
           ! DIAGONALIZING SUSCEPTIBILITY
