@@ -10,10 +10,11 @@ subroutine calculate_chi()
   character(len=50) :: time
   integer           :: i,j,iw,sigma,sigmap,mu,nu
   real(double)      :: e
-  complex(double), dimension(:,:),   allocatable :: temp
-
+  complex(double), dimension(:,:),   allocatable :: temp, temp2
+  complex(double) :: axx,axy
   call allocate_susceptibilities()
   if(myrank_row==0) allocate(temp(dim,dim))
+  if(myrank_col==0) allocate(temp2(4*Npl,4*Npl))
   if(myrank==0) then
     write(outputunit_loop,"('CALCULATING LOCAL SUSCEPTIBILITY AS A FUNCTION OF ENERGY')")
 !           write(outputunit_loop,"('Qx = ',es10.3,', Qz = ',es10.3)") q(1),q(3)
@@ -88,6 +89,21 @@ subroutine calculate_chi()
             call MPI_Recv(schihf,Npl*Npl*16,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),1200,MPI_Comm_Col,stat,ierr)
           end if
 
+          do i = 1, Npl
+            do j = 1, Npl
+              do sigma = 1, 4
+                do sigmap = 1, 4
+                  temp2(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schi(sigma,sigmap,i,j)
+                end do
+              end do
+            end do
+          end do
+          call invers(temp2, 4*Npl)
+          do i = 1, Npl
+            axx = 0.25d0   *(temp2(sigmai2i(1,i),sigmai2i(1,i)) + temp2(sigmai2i(1,i),sigmai2i(4,i)) + temp2(sigmai2i(4,i),sigmai2i(1,i)) + temp2(sigmai2i(4,i),sigmai2i(4,i)))
+            axy = 0.25d0*zi*(temp2(sigmai2i(1,i),sigmai2i(1,i)) - temp2(sigmai2i(1,i),sigmai2i(4,i)) + temp2(sigmai2i(4,i),sigmai2i(1,i)) - temp2(sigmai2i(4,i),sigmai2i(4,i)))
+            print *, e, i, -1.d0 * aimag(axy)/aimag(axx)
+          end do
           ! DIAGONALIZING SUSCEPTIBILITY
           if(.not.lnodiag) call diagonalize_susceptibilities()
 
