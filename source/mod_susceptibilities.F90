@@ -224,6 +224,11 @@ contains
           close (unit=1990+i)
         end do
       end if
+      if(ltestcharge) then
+        write(varm, "('./results/',a1,'SOC/',a,'/RPA/testcharge_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+        open (unit=17964, file=varm, status='replace', form='formatted', iostat=err)
+        close(unit=17964)
+      end if
 
     else if(iflag==1) then
       do sigma=1,4 ; do j=1,Npl ; do i=1,Npl
@@ -253,7 +258,7 @@ contains
       end if
       if(ltestcharge) then
         write(varm, "('./results/',a1,'SOC/',a,'/RPA/testcharge_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-        open (unit=17964, file=varm, status='replace', form='formatted', iostat=err)
+        open (unit=17964, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
       end if
       ! Stop if some file does not exist
@@ -325,7 +330,8 @@ contains
     if(ltestcharge) then
       do j=1,Npl
         do i=1,Npl
-          write(unit=17964, fmt="(1(es16.9,2x),i0,i0,'(',es16.9,') + i(',es16.9,')')") e, i, j, real(schi(2,2,i,j)+schi(3,2,i,j)-schi(2,3,i,j)-schi(3,3,i,j)), aimag(schi(2,2,i,j)+schi(3,2,i,j)-schi(2,3,i,j)-schi(3,3,i,j))
+          write(unit=outputunit, fmt=*) schi(2,2,i,j), schi(3,2,i,j), schi(2,3,i,j), schi(3,3,i,j)
+          write(unit=17964, fmt="(es16.9,' ',i0,' ',i0,' ',es16.9,' ',es16.9)") e, i, j, real(schi(2,2,i,j)+schi(3,2,i,j)-schi(2,3,i,j)-schi(3,3,i,j)), aimag(schi(2,2,i,j)+schi(3,2,i,j)-schi(2,3,i,j)-schi(3,3,i,j))
         end do
       end do
     end if
