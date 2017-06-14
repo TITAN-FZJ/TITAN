@@ -123,7 +123,6 @@ program TITAN
     call tb_hopping()
 !---------------------- Lattice specific variables ---------------------
     call lattice_definitions()
-
 !------------------------- MAGNETIC FIELD LOOP -------------------------
     if((myrank==0).and.(skip_steps_hw>0)) write(outputunit,"('[main] Skipping first ',i0,' field step(s)...')") skip_steps_hw
     hw_loop: do count_hw=1+skip_steps_hw,MPIsteps_hw

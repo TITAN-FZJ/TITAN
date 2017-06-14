@@ -541,7 +541,7 @@ contains
     write(outputunit_loop,"(1x,'Electric field direction: ')", advance='no')
     select case(dirEfield)
     case(-3)
-       write(outputunit_loop,"('Spherical theta=',es8.1,' phi=',es8.1)") EFt, EFp
+       write(outputunit_loop,"('Spherical theta=',f7.3,' phi=',f7.3)") EFt, EFp
     case(-2)
        write(outputunit_loop,"('Bravais ')")
     case(-1)

@@ -1,10 +1,11 @@
 subroutine lattice_definitions()
   use mod_f90_kind, only: double
-!  use mod_constants
+  use mod_constants, only: pi
   use mod_mpi_pars
   use mod_system, only: l_nn, r_nn, c_nn, pln_a1, pln_a2, pln_normal, pln_cnt
   use mod_parameters
   use mod_tools, only: cross_unit, is_parallel
+  implicit none
   integer :: i
   real(double),dimension(3) :: versor_Eperp
 
