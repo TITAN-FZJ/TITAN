@@ -330,7 +330,6 @@ contains
     if(ltestcharge) then
       do j=1,Npl
         do i=1,Npl
-          write(unit=outputunit, fmt=*) schi(2,2,i,j), schi(3,2,i,j), schi(2,3,i,j), schi(3,3,i,j)
           write(unit=17964, fmt="(es16.9,' ',i0,' ',i0,' ',es16.9,' ',es16.9)") e, i, j, real(schi(2,2,i,j)+schi(3,2,i,j)-schi(2,3,i,j)-schi(3,3,i,j)), aimag(schi(2,2,i,j)+schi(3,2,i,j)-schi(2,3,i,j)-schi(3,3,i,j))
         end do
       end do

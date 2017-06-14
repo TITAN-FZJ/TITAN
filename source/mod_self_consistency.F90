@@ -84,7 +84,6 @@ contains
       my = magaxisvec(2)
       mz = magaxisvec(3)
 
-
       do i=1,Npl
         if(layertype(i+offset)==2) then
           mx = mx * sign(4.d0,hw_list(hw_count,1))
@@ -93,7 +92,6 @@ contains
         endif
       end do
 
-      mp = zero
       if(lfield .and. magaxis == 0) then
         mx = mz*sin(hw_list(hw_count,2)*pi)*cos(hw_list(hw_count,3)*pi)
         my = mz*sin(hw_list(hw_count,2)*pi)*sin(hw_list(hw_count,3)*pi)
@@ -914,7 +912,7 @@ contains
     use mod_progress
     use mod_mpi_pars
     implicit none
-    integer  :: N,i,j,iflag
+    integer  :: N,i,j,iflag,ldfjac
     real(double),dimension(N)        :: x,fvec
     real(double),dimension(ldfjac,N) :: selfconjac
     real(double),dimension(Npl)      :: n_t,mx_in,my_in,mz_in
