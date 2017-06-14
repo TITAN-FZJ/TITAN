@@ -181,7 +181,7 @@ contains
         case("spherical")
            if(.not. get_parameter("magaxis", vector, cnt)) call log_error("get_parameters", "'magaxis' missing.")
            if(cnt /= 2) call log_error("get_parameters", "'magaxis' has wrong size (size 2 required).")
-           dirEfield = -3
+           magaxis = -3
            magaxisvec(1:2) = vector(1:2)
            deallocate(vector)
         end select
@@ -207,8 +207,8 @@ contains
        if(.not. get_parameter("dirEfield", vector, cnt)) call log_error("get_parameters", "'dirEfield' missing.")
        if(cnt /= 2) call log_error("get_parameters", "'dirEfield' has wrong size (size 2 required).")
        dirEfield = -3
-       EFp = vector(1)
-       EFt = vector(2)
+       EFt = vector(1)
+       EFp = vector(2)
        deallocate(vector)
     end select
 
@@ -541,7 +541,7 @@ contains
     write(outputunit_loop,"(1x,'Electric field direction: ')", advance='no')
     select case(dirEfield)
     case(-3)
-       write(outputunit_loop,"('Spherical phi=',es8.1,' theta=',es8.1)") EFp, EFt
+       write(outputunit_loop,"('Spherical theta=',es8.1,' phi=',es8.1)") EFt, EFp
     case(-2)
        write(outputunit_loop,"('Bravais ')")
     case(-1)

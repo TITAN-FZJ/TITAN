@@ -67,7 +67,7 @@ contains
         magaxisvec = magaxisvec(1) * pln_a1 + magaxisvec(2) * pln_a2
         magaxisvec = magaxisvec / sqrt(dot_product(magaxisvec, magaxisvec))
       else if(magaxis == -3) then
-        magaxisvec = [cos(magaxisvec(1))*sin(magaxisvec(2)), sin(magaxisvec(1))*sin(magaxisvec(2)), cos(magaxisvec(2))]
+        magaxisvec = [cos(magaxisvec(2))*sin(magaxisvec(1)), sin(magaxisvec(2))*sin(magaxisvec(1)), cos(magaxisvec(1))]
       else if(magaxis == 0) then
         magaxisvec = [0.d0, 0.d0, sign(1.0d0, hw_list(hw_count,1))]
       else if(magaxis >=1 .and. magaxis <= pln_cnt(1)) then
