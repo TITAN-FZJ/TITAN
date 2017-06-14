@@ -18,7 +18,7 @@ subroutine lattice_definitions()
     EFp = atan(dirEfieldvec(2) / dirEfieldvec(1))
     EFt = acos(dirEfieldvec(3))
   else if(dirEfield == -3) then
-    dirEfieldvec = [cos(EFp)*sin(EFt), sin(EFp)*sin(EFt), cos(EFt)]
+    dirEfieldvec = [cos(EFp*pi/180)*sin(EFt*pi/180), sin(EFp*pi/180)*sin(EFt*pi/180), cos(EFt*pi/180)]
   else if(dirEfield >=1 .and. dirEfield <= pln_cnt(1)) then
     dirEfieldvec = c_nn(:, dirEfield)
   else
