@@ -904,7 +904,7 @@ contains
   !  my - my_in = 0
   !  mz - mz_in = 0
   ! and the correspondent jacobian
-  subroutine sc_eqs_and_jac_old(N,x,fvec,selfconjac,iflag)
+  subroutine sc_eqs_and_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
     use mod_constants
     use mod_parameters
     use mod_f90_kind
@@ -916,7 +916,7 @@ contains
     implicit none
     integer  :: N,i,j,iflag
     real(double),dimension(N)        :: x,fvec
-    real(double),dimension(N,N)      :: selfconjac
+    real(double),dimension(ldfjac,N) :: selfconjac
     real(double),dimension(Npl)      :: n_t,mx_in,my_in,mz_in
     complex(double),dimension(Npl)   :: mp_in
     real(double),dimension(N,N)      :: ggr
