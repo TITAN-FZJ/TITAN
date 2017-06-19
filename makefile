@@ -132,8 +132,8 @@ ifeq ($(PLATFORM),linux)
  FFLAGS += -module $(OBJDIR)/ -I$(OBJDIR)/
  # Parallelization
  ifeq ($(PARALLEL),omp)
-  LLIBS +=-openmp
-  FFLAGS +=-openmp
+  LLIBS +=-qopenmp
+  FFLAGS +=-qopenmp
  endif
 endif
 
