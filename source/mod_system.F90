@@ -92,8 +92,8 @@ contains
              l = l + 1
 
              do while(1 <= m)
-                if(abs(cube_dist(2,m)) < abs(tmp_dist(2))) exit
-                if(abs(cube_dist(2,m)) == abs(tmp_dist(2)) .and. cube_dist(1,m) <= tmp_dist(1)) exit
+                if(abs(tmp_dist(2)) - abs(cube_dist(2,m)) > 1.0d-9 ) exit
+                if(abs(abs(tmp_dist(2)) - abs(cube_dist(2,m))) < 1.0d-9 .and. cube_dist(1,m) <= tmp_dist(1)) exit
                 cube_pos(:, m+1) = cube_pos(:, m)
                 cube_dist(:,m+1) = cube_dist(:,m)
                 m = m - 1
@@ -108,7 +108,7 @@ contains
     do i = 1, l
        flag = .false.
        do k = 1, j
-          if(abs(cube_dist(1,i) - stages_list(k)) <= 1d-9) flag = .true.
+          if(abs(cube_dist(1,i) - stages_list(k)) <= 1.0d-9) flag = .true.
        end do
        if(.not. flag) then
           if(j > nstages .and. cube_dist(1,i) > stages_list(nstages)) cycle
@@ -122,7 +122,6 @@ contains
           stages_list(m+1) = cube_dist(1,i)
        end if
     end do
-
     ! Find amount of available planes
     npln = 0
     j = 0
@@ -176,7 +175,7 @@ contains
     end do
 
     if(dot_product(pln_normal, pln_normal) > 1d-9) then
-       if(l_nn(1,1) - l_nn(1,2) == 0) stop !TODO: Error message
+       if(l_nn(1,1) - l_nn(1,2) == 0.d0) stop !TODO: Error message
        pln_a1 = r_nn(:,l_nn(1,1))
        do i = l_nn(1,1)+1, l_nn(1,2) - 1
           if(.not. is_parallel(pln_a1, r_nn(1:3,i))) then
