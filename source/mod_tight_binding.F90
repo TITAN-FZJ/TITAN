@@ -208,9 +208,9 @@ contains
   end subroutine
 
   subroutine DFT_parameters(cs,cp,cd,ds,dp,dd)
-    use mod_f90_kind
+    use mod_f90_kind, only: double
     use mod_parameters, only: Npl, Ef, SOC, dfttype, U, Utype, layertype, mmlayer, ry2ev, outputunit
-    use mod_mpi_pars
+    use mod_mpi_pars, only: MPI_COMM_WORLD, myrank, errorcode, ierr
     implicit none
     integer       :: i,j
     integer, parameter :: mmmax=24
@@ -845,10 +845,10 @@ contains
   subroutine rs_hoppings()
     use mod_f90_kind
     use mod_parameters, only: Npl, Utype, mmlayer, nmaglayers, mmlayermag, layertype, outputunit, Npl_input,  naddlayers, lattice
-    use mod_system, only: c_nn, l_nn, npln, nstages
-    use mod_mpi_pars
+    use mod_system, only: c_nn, l_nn, npln, nstages, r_nn
+    use mod_mpi_pars, only: MPI_COMM_WORLD, ierr, myrank, myrank_row_hw, errorcode, MPI_Abort
     character(len=30) :: formatvar
-    integer       :: i,j,k,l,hop
+    integer       :: i,j,k,l
     real(double),dimension(Npl+2) :: cs,cp,cd,ds,dp,dd
     real(double) :: dst,dpt,ddt,w(3),bp(9,9)
     real(double) :: ds2,dsp,dsd,dp2,dpd,dd2
@@ -857,32 +857,33 @@ contains
     ! off-site integrals
     real(double) :: sss,sps,pps,ppp,sds,pds,pdp,dds,ddp,ddd
 
-    real(double), dimension(4,3) :: loc_onsite !< Localized on-site two-center integrals
-    real(double), dimension(10,2,3) :: hopping !< 10 parameters for 1st & 2nd nn for sc bcc fcc
+    real(double), dimension(4) :: loc_onsite !< Localized on-site two-center integrals
+    real(double), dimension(10,2) :: hopping !< 10 parameters for 1st & 2nd nn for sc bcc fcc
     integer :: loc_pln
+
+    allocate(t0(9,9,Npl+2), t0i(9,9,l_nn(nstages+1,npln)-1, Npl+2))
+
     !===============================================================================================
     !============ https://doi.org/10.1103/PhysRevLett.53.2571 ======================================
     !===============================================================================================
-    loc_onsite(:,1) = [3.72d0, 3.71d0, 1.42d0, 5.89d0]
-    loc_onsite(:,2) = [3.09d0, 2.79d0, 2.71d0, 1.30d0]
-    loc_onsite(:,3) = [3.05d0, 2.74d0, 2.37d0, 1.67d0]
-
-    hopping(:,1,1) = [-0.961d0, 1.84d0, 3.62d0, -0.76d0, -2.10d0, -4.41d0, 1.61d0, -6.17d0, 3.52d0, -0.54d0]
-    hopping(:,2,1) = [-0.057d0, 0.12d0, 0.26d0, -0.03d0, -0.15d0, -0.34d0, 0.06d0, -0.50d0, 0.11d0, -0.02d0]
-
-    hopping(:,1,2) = [-0.593d0, 1.18d0, 2.36d0, -0.36d0, -1.42d0, -2.93d0, 0.82d0, -3.84d0, 1.85d0, -0.19d0]
-    hopping(:,2,2) = [-0.203d0, 0.44d0, 0.93d0, -0.05d0, -0.60d0, -1.29d0, 0.13d0, -1.76d0, 0.36d0, -0.02d0]
-
-    hopping(:,1,3) = [-0.484d0, 0.98d0, 2.00d0, -0.25d0, -1.22d0, -2.52d0,  0.60d0, -3.32d0,  1.42d0, -0.13d0]
-    hopping(:,2,3) = [-0.020d0, 0.05d0, 0.09d0,  0.00d0, -0.06d0, -0.14d0, -0.01d0, -0.23d0, -0.02d0, -0.00d0]
-    !===============================================================================================
     select case(trim(lattice))
     case("sc")
-      hop = 1
+      loc_onsite(1:4) = [3.72d0, 3.71d0, 1.42d0, 5.89d0]
+      hopping(1:10,1) = [-0.961d0, 1.84d0, 3.62d0, -0.76d0, -2.10d0, -4.41d0, 1.61d0, -6.17d0, 3.52d0, -0.54d0]
+      hopping(1:10,2) = [-0.057d0, 0.12d0, 0.26d0, -0.03d0, -0.15d0, -0.34d0, 0.06d0, -0.50d0, 0.11d0, -0.02d0]
     case("bcc")
-      hop = 2
+      loc_onsite(1:4) = [3.09d0, 2.79d0, 2.71d0, 1.30d0]
+      hopping(1:10,1) = [-0.593d0, 1.18d0, 2.36d0, -0.36d0, -1.42d0, -2.93d0, 0.82d0, -3.84d0, 1.85d0, -0.19d0]
+      hopping(1:10,2) = [-0.203d0, 0.44d0, 0.93d0, -0.05d0, -0.60d0, -1.29d0, 0.13d0, -1.76d0, 0.36d0, -0.02d0]
     case("fcc")
-      hop = 3
+      loc_onsite(1:4) = [3.05d0, 2.74d0, 2.37d0, 1.67d0]
+      hopping(1:10,1) = [-0.484d0, 0.98d0, 2.00d0, -0.25d0, -1.22d0, -2.52d0,  0.60d0, -3.32d0,  1.42d0, -0.13d0]
+      hopping(1:10,2) = [-0.020d0, 0.05d0, 0.09d0,  0.00d0, -0.06d0, -0.14d0, -0.01d0, -0.23d0, -0.02d0, -0.00d0]
+    case default
+      if(myrank == 0) then
+        write(outputunit, *) "[rs_hopping] DFT parameter only available for sc, bcc or fcc lattices"
+        call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+      endif
     end select
     !===============================================================================================
 
@@ -891,9 +892,8 @@ contains
        if(myrank==0) then
           write(outputunit,"('[rs_hoppings] Problem defining the system: first or last layer is not Empty Spheres!')")
           write(outputunit,"('[rs_hoppings] First layer type: ',i0,' , last layer type: ',i0,'.')") layertype(1),layertype(Npl+2)
+          call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
        end if
-       call MPI_Finalize(ierr)
-       stop
     end if
     if(myrank_row_hw==0) then
        if(naddlayers==0) then
@@ -924,8 +924,6 @@ contains
     ! Unifying Utype = 0 and 1 To Utype = 0 if there is no magnetic layer
     if((Utype<=1).and.(nmaglayers==0)) Utype = 0
 
-    allocate(t0(9,9,Npl+2))
-    allocate(t0i(9,9,l_nn(nstages+1,npln)-1, Npl+2))
 
 
     t0 = 0.d0
@@ -941,10 +939,10 @@ contains
        dpd = dp(i)*dd(i)
        dd2 = dd(i)*dd(i)
 
-       s0  = cs(i) + ds2*loc_onsite(1,hop)
-       p0  = cp(i) + dp2*loc_onsite(2,hop)
-       d0t = cd(i) + dd2*loc_onsite(3,hop)
-       d0e = cd(i) + dd2*loc_onsite(4,hop)
+       s0  = cs(i) + ds2*loc_onsite(1)
+       p0  = cp(i) + dp2*loc_onsite(2)
+       d0t = cd(i) + dd2*loc_onsite(3)
+       d0e = cd(i) + dd2*loc_onsite(4)
 
        t0(1,1,i)  = s0
        do j=2,4
@@ -973,20 +971,21 @@ contains
            dpd = dpt*ddt
            dd2 = ddt*ddt
 
-           sss = ds2*hopping(1 ,j,hop)
-           sps = dsp*hopping(2 ,j,hop)
-           pps = dp2*hopping(3 ,j,hop)
-           ppp = dp2*hopping(4 ,j,hop)
-           sds = dsd*hopping(5 ,j,hop)
-           pds = dpd*hopping(6 ,j,hop)
-           pdp = dpd*hopping(7 ,j,hop)
-           dds = dd2*hopping(8 ,j,hop)
-           ddp = dd2*hopping(9 ,j,hop)
-           ddd = dd2*hopping(10,j,hop)
+           sss = ds2*hopping(1 ,j)
+           sps = dsp*hopping(2 ,j)
+           pps = dp2*hopping(3 ,j)
+           ppp = dp2*hopping(4 ,j)
+           sds = dsd*hopping(5 ,j)
+           pds = dpd*hopping(6 ,j)
+           pdp = dpd*hopping(7 ,j)
+           dds = dd2*hopping(8 ,j)
+           ddp = dd2*hopping(9 ,j)
+           ddd = dd2*hopping(10,j)
            do l = l_nn(j,k), l_nn(j+1,k)-1
-             w = c_nn(:,l)
-             call intd(sss,sps,pps,ppp,sds,pds,pdp,dds,ddp,ddd,w,bp)
-             t0i(:,:,l,i) = bp
+             !w(1:3) = c_nn(1:3,l)
+             call intd(sss,sps,pps,ppp,sds,pds,pdp,dds,ddp,ddd,c_nn(1:3,l),bp)
+             t0i(1:9,1:9,l,i) = bp(1:9,1:9)
+             write(*,*) i,l,r_nn(1:3,l),sum(abs(t0i(:,:,l,i)))
            end do
          end do
        end do
@@ -996,7 +995,7 @@ contains
 
   pure subroutine intd(sss,sps,pps,ppp,ss,ps,pp,ds,dp,dd,w,b)
     use mod_f90_kind, only: double
-    use mod_constants
+    use mod_constants, only: sq3
     implicit none
     real(double), intent(in)  :: sss,sps,pps,ppp,ss,ps,pp,ds,dp,dd,w(3)
     real(double), intent(out) :: b(9,9)
