@@ -36,7 +36,9 @@ target_compile_options(${EXEC_NAME} PRIVATE -no-wrap-margin
                                         -O3
                                         -I${NAG}/c_headers
 					-qopenmp
-                      )
+					-mkl
+					-xHost
+)
 if(DEBUG)
 target_compile_options(${EXEC_NAME} PRIVATE -CB
                                             -check uninit
@@ -50,4 +52,4 @@ target_compile_options(${EXEC_NAME} PRIVATE -CB
                       )
 endif(DEBUG)
 
-target_link_libraries(${EXEC_NAME} ${NAG}/lib/libnag_nag.a)
+target_link_libraries(${EXEC_NAME} ${NAG}/lib/libnag_nag.a -qopenmp)
