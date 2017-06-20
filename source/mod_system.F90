@@ -175,7 +175,7 @@ contains
     end do
 
     if(dot_product(pln_normal, pln_normal) > 1d-9) then
-       if(l_nn(1,1) - l_nn(1,2) == 0.d0) stop !TODO: Error message
+       if(l_nn(1,1) - l_nn(1,2) == 0) stop !TODO: Error message
        pln_a1 = r_nn(:,l_nn(1,1))
        do i = l_nn(1,1)+1, l_nn(1,2) - 1
           if(.not. is_parallel(pln_a1, r_nn(1:3,i))) then

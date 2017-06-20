@@ -86,9 +86,9 @@ contains
 
       do i=1,Npl
         if(layertype(i+offset)==2) then
-          mx = mx * sign(4.d0,hw_list(hw_count,1))
-          my = my * sign(4.d0,hw_list(hw_count,1))
-          mz = mz * sign(4.d0,hw_list(hw_count,1))
+          mx(i) = mx(i) * sign(4.d0,hw_list(hw_count,1))
+          my(i) = my(i) * sign(4.d0,hw_list(hw_count,1))
+          mz(i) = mz(i) * sign(4.d0,hw_list(hw_count,1))
         endif
       end do
 

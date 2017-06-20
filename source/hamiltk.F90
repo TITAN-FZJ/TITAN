@@ -11,7 +11,6 @@ subroutine hamiltk(kp,hk)
   use mod_f90_kind,      only: double
   use mod_system,        only: npln, r_nn, l_nn
   use mod_magnet,        only: lb, sb
-use mod_mpi_pars
   implicit none
   integer :: i, j, l, loc_pln
   integer :: i0, i1, j0, j1
@@ -33,7 +32,6 @@ use mod_mpi_pars
 
      hk(i0:i0+8,i0:i0+8) = t0(:,:,i) ! + sb hee +socscale*lambda*ls
      hk(i1:i1+8,i1:i1+8) = t0(:,:,i) ! + sb hee +socscale*lambda*ls
-if (myrank.eq.0)  write(*,"(i0,2x,i0,2x,10(es16.9,2x))") i,0,kp,sum(abs(t0(:,:,i)))
 
      hk(i0:i0+17, i0:i0+17) = hk(i0:i0+17, i0:i0+17) + lb(:,:,i) + sb(:,:,i) + hee(:,:,i) + (socscale*lambda(i)*ls)
 
@@ -43,13 +41,10 @@ if (myrank.eq.0)  write(*,"(i0,2x,i0,2x,10(es16.9,2x))") i,0,kp,sum(abs(t0(:,:,i
         do l = l_nn(1,j), l_nn(1,j+1)-1
           hk(j0:j0+8, i0:i0+8) = hk(j0:j0+8, i0:i0+8) + t0i(:,:,l,i)*exp(zi*dot_product(kp,r_nn(:,l)))
           hk(j1:j1+8, i1:i1+8) = hk(j1:j1+8, i1:i1+8) + t0i(:,:,l,i)*exp(zi*dot_product(kp,r_nn(:,l)))
-if ((j==1).and.(myrank.eq.0))  write(*,"(i0,2x,i0,2x,10(es16.9,2x))") i,l,r_nn(:,l),real(exp(zi*dot_product(kp,r_nn(:,l)))),aimag(exp(zi*dot_product(kp,r_nn(:,l)))),sum(abs(t0i(:,:,l,i)))
         end do
         if(j > 1) hk(i0:i0+17, j0:j0+17) = transpose(conjg(hk(j0:j0+17, i0:i0+17)))
      end do
   end do
-call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-stop
 
   return
 end subroutine hamiltk

@@ -257,7 +257,7 @@ endif
 ####################################################
 ifeq ($(PLATFORM),jureca)
 # Compiler
-FC = $(PREP) mpif90
+FC = $(PREP) mpiifort
 # Preprocessor
 CPP = -fpp
 # Libraries
