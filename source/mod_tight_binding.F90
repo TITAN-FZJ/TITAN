@@ -985,7 +985,6 @@ contains
              !w(1:3) = c_nn(1:3,l)
              call intd(sss,sps,pps,ppp,sds,pds,pdp,dds,ddp,ddd,c_nn(1:3,l),bp)
              t0i(1:9,1:9,l,i) = bp(1:9,1:9)
-             write(*,*) i,l,r_nn(1:3,l),sum(abs(t0i(:,:,l,i)))
            end do
          end do
        end do
