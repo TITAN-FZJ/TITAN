@@ -17,8 +17,8 @@ subroutine U_matrix(hee)
         nu=mu+9
         hee(mu,mu,i+offset) = eps1(i)-hdel(i)
         hee(nu,nu,i+offset) = eps1(i)+hdel(i)
-        hee(nu,mu,i+offset) = -hdelm(i)
-        hee(mu,nu,i+offset) = -hdelp(i)
+        hee(mu,nu,i+offset) = -hdelm(i)
+        hee(nu,mu,i+offset) = -hdelp(i)
       end do
     end do
   return
