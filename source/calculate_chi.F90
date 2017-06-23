@@ -4,17 +4,16 @@ subroutine calculate_chi()
   use mod_constants
   use mod_mpi_pars
   use mod_magnet, only: mtheta,mphi
+  use mod_alpha, only: open_alpha_files, close_alpha_files, write_alpha
   use mod_progress
   use mod_susceptibilities
   implicit none
   character(len=50) :: time
   integer           :: i,j,iw,sigma,sigmap,mu,nu
   real(double)      :: e
-  complex(double), dimension(:,:),   allocatable :: temp, temp2, temp3, temp4, temp5
-  complex(double) :: axx,axy,axx_hf, axy_hf, axx_n, axy_n, axx_hf_n, axy_hf_n
+  complex(double), dimension(:,:),   allocatable :: temp
   call allocate_susceptibilities()
   if(myrank_row==0) allocate(temp(dim,dim))
-  if(myrank_col==0) allocate(temp2(4*Npl,4*Npl), temp3(4*Npl,4*Npl), temp4(4*Npl,4*Npl), temp5(4*Npl,4*Npl))
   if(myrank==0) then
     write(outputunit_loop,"('CALCULATING LOCAL SUSCEPTIBILITY AS A FUNCTION OF ENERGY')")
 !           write(outputunit_loop,"('Qx = ',es10.3,', Qz = ',es10.3)") q(1),q(3)
@@ -22,6 +21,7 @@ subroutine calculate_chi()
     if(.not.laddresults) then
       call openclose_chi_files(0)
     end if
+    call open_alpha_files()
   end if
 
   ! Mounting U and identity matrix
@@ -89,34 +89,11 @@ subroutine calculate_chi()
             call MPI_Recv(schihf,Npl*Npl*16,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),1200,MPI_Comm_Col,stat,ierr)
           end if
 
-          do i = 1, Npl
-            do j = 1, Npl
-              do sigma = 1, 4
-                do sigmap = 1, 4
-                  temp2(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schi(sigma,sigmap,i,j)
-                  temp3(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schihf(sigma,sigmap,i,j)
-                end do
-              end do
-            end do
-          end do
-          temp4 = temp2
-          temp5 = temp3
-          call invers(temp2, 4*Npl)
-          call invers(temp3, 4*Npl)
-          do i = 1, Npl
-            axx =      0.5d0   *(temp2(sigmai2i(1,i),sigmai2i(4,i)) + temp2(sigmai2i(1,i),sigmai2i(1,i)) + temp2(sigmai2i(4,i),sigmai2i(4,i)) + temp2(sigmai2i(4,i),sigmai2i(1,i)))
-            axy =      0.5d0*zi*(temp2(sigmai2i(1,i),sigmai2i(4,i)) - temp2(sigmai2i(1,i),sigmai2i(1,i)) + temp2(sigmai2i(4,i),sigmai2i(4,i)) - temp2(sigmai2i(4,i),sigmai2i(1,i)))
-            axx_hf =   0.5d0   *(temp3(sigmai2i(1,i),sigmai2i(4,i)) + temp3(sigmai2i(1,i),sigmai2i(1,i)) + temp3(sigmai2i(4,i),sigmai2i(4,i)) + temp3(sigmai2i(4,i),sigmai2i(1,i)))
-            axy_hf =   0.5d0*zi*(temp3(sigmai2i(1,i),sigmai2i(4,i)) - temp3(sigmai2i(1,i),sigmai2i(1,i)) + temp3(sigmai2i(4,i),sigmai2i(4,i)) - temp3(sigmai2i(4,i),sigmai2i(1,i)))
-            axx_n =    0.5d0   *(temp4(sigmai2i(1,i),sigmai2i(4,i)) + temp4(sigmai2i(1,i),sigmai2i(1,i)) + temp4(sigmai2i(4,i),sigmai2i(4,i)) + temp4(sigmai2i(4,i),sigmai2i(1,i)))
-            axy_n =    0.5d0*zi*(temp4(sigmai2i(1,i),sigmai2i(4,i)) - temp4(sigmai2i(1,i),sigmai2i(1,i)) + temp4(sigmai2i(4,i),sigmai2i(4,i)) - temp4(sigmai2i(4,i),sigmai2i(1,i)))
-            axx_hf_n = 0.5d0   *(temp5(sigmai2i(1,i),sigmai2i(4,i)) + temp5(sigmai2i(1,i),sigmai2i(1,i)) + temp5(sigmai2i(4,i),sigmai2i(4,i)) + temp5(sigmai2i(4,i),sigmai2i(1,i)))
-            axy_hf_n = 0.5d0*zi*(temp5(sigmai2i(1,i),sigmai2i(4,i)) - temp5(sigmai2i(1,i),sigmai2i(1,i)) + temp5(sigmai2i(4,i),sigmai2i(4,i)) - temp5(sigmai2i(4,i),sigmai2i(1,i)))
-            print *, e, i, -1.d0 * aimag(axx)/aimag(axy), -1.d0 * aimag(axx_hf)/aimag(axy_hf), -1.d0 * aimag(axx_n)/aimag(axy_n), -1.d0 * aimag(axx_hf_n)/aimag(axy_hf_n)
-          end do
           ! DIAGONALIZING SUSCEPTIBILITY
           if(.not.lnodiag) call diagonalize_susceptibilities()
 
+          ! WRITING GILBERT DAMPING
+          call write_alpha(e)
           ! WRITING RPA AND HF SUSCEPTIBILITIES
           ! Opening chi and diag files
           call openclose_chi_files(1)
@@ -148,6 +125,7 @@ subroutine calculate_chi()
 
   ! Sorting results on files
   if(myrank==0) then
+    call close_alpha_files()
     call sort_all_files()
   end if
 
