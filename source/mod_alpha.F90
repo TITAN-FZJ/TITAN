@@ -103,10 +103,10 @@ contains
       axx_hf     = 0.5d0   *(m_chi_hf(sigmai2i(1,i),sigmai2i(4,i)) + m_chi_hf(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_hf(sigmai2i(4,i),sigmai2i(4,i)) + m_chi_hf(sigmai2i(4,i),sigmai2i(1,i)))
       axy_hf     = 0.5d0*zi*(m_chi_hf(sigmai2i(1,i),sigmai2i(4,i)) - m_chi_hf(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_hf(sigmai2i(4,i),sigmai2i(4,i)) - m_chi_hf(sigmai2i(4,i),sigmai2i(1,i)))
 
-      write(55 +       i,*) e, i, -1.d0 * aimag(axx       )/aimag(axy       ), 1.d0 / (mabs(i) * aimag(axy       )), -mabs(i)*aimag(axx       )
-      write(55 +   Npl+i,*) e, i, -1.d0 * aimag(axx_hf    )/aimag(axy_hf    ), 1.d0 / (mabs(i) * aimag(axy_hf    )), -mabs(i)*aimag(axx_hf    )
-      write(55 + 2*Npl+i,*) e, i, -1.d0 * aimag(axx_inv   )/aimag(axy_inv   ), 1.d0 / (mabs(i) * aimag(axy_inv   )), -mabs(i)*aimag(axx_inv   )
-      write(55 + 3*Npl+i,*) e, i, -1.d0 * aimag(axx_hf_inv)/aimag(axy_hf_inv), 1.d0 / (mabs(i) * aimag(axy_hf_inv)), -mabs(i)*aimag(axx_hf_inv)
+      write(55 +       i,*) e, -1.d0 * aimag(axx       )/aimag(axy       ), e / (mabs(i) * aimag(axy       )), -e*mabs(i)*aimag(axx       )
+      write(55 +   Npl+i,*) e, -1.d0 * aimag(axx_hf    )/aimag(axy_hf    ), e / (mabs(i) * aimag(axy_hf    )), -e*mabs(i)*aimag(axx_hf    )
+      write(55 + 2*Npl+i,*) e, -1.d0 * aimag(axx_inv   )/aimag(axy_inv   ), e / (mabs(i) * aimag(axy_inv   )), -e*mabs(i)*aimag(axx_inv   )
+      write(55 + 3*Npl+i,*) e, -1.d0 * aimag(axx_hf_inv)/aimag(axy_hf_inv), e / (mabs(i) * aimag(axy_hf_inv)), -e*mabs(i)*aimag(axx_hf_inv)
 
     end do
 
