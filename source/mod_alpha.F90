@@ -13,7 +13,7 @@ contains
     character(len=500)  :: varm
     character(len=50)   :: fieldpart,socpart
     character(len=1)    :: SOCc
-    integer :: i,j,sigma,iw,iflag,err,errt=0
+    integer :: i
 
     fieldpart = ""
     socpart   = ""
@@ -44,10 +44,10 @@ contains
       write(unit=55+Npl+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ')")
       write(varm,"('./results/',a1,'SOC/',a,'/A/chi_inv',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
       open (unit=55+2*Npl+i, file=varm, status='replace', form='formatted')
-      write(unit=55+2*Npl+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ')")
+      write(unit=55+2*Npl+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ,  A+-  ,  A++')")
       write(varm,"('./results/',a1,'SOC/',a,'/A/chi_hf_inv',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
       open (unit=55+3*Npl+i, file=varm, status='replace', form='formatted')
-      write(unit=55+3*Npl+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ')")
+      write(unit=55+3*Npl+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ,  A+-  ,  A++')")
     end do
 
     allocate(m_chi(4*Npl,4*Npl), m_chi_hf(4*Npl,4*Npl), m_chi_inv(4*Npl,4*Npl), m_chi_hf_inv(4*Npl,4*Npl))
@@ -103,11 +103,10 @@ contains
       axx_hf     = 0.5d0   *(m_chi_hf(sigmai2i(1,i),sigmai2i(4,i)) + m_chi_hf(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_hf(sigmai2i(4,i),sigmai2i(4,i)) + m_chi_hf(sigmai2i(4,i),sigmai2i(1,i)))
       axy_hf     = 0.5d0*zi*(m_chi_hf(sigmai2i(1,i),sigmai2i(4,i)) - m_chi_hf(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_hf(sigmai2i(4,i),sigmai2i(4,i)) - m_chi_hf(sigmai2i(4,i),sigmai2i(1,i)))
 
-      write(55 +       i,*) e, -1.d0 * aimag(axx       )/aimag(axy       ), e / (mabs(i) * aimag(axy       )), -e*mabs(i)*aimag(axx       )
-      write(55 +   Npl+i,*) e, -1.d0 * aimag(axx_hf    )/aimag(axy_hf    ), e / (mabs(i) * aimag(axy_hf    )), -e*mabs(i)*aimag(axx_hf    )
-      write(55 + 2*Npl+i,*) e, -1.d0 * aimag(axx_inv   )/aimag(axy_inv   ), e / (mabs(i) * aimag(axy_inv   )), -e*mabs(i)*aimag(axx_inv   )
-      write(55 + 3*Npl+i,*) e, -1.d0 * aimag(axx_hf_inv)/aimag(axy_hf_inv), e / (mabs(i) * aimag(axy_hf_inv)), -e*mabs(i)*aimag(axx_hf_inv)
-
+      write(55 +       i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx       )/aimag(axy       ), e / (mabs(i) * aimag(axy       )), -mabs(i)*aimag(axx       ) / e
+      write(55 +   Npl+i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx_hf    )/aimag(axy_hf    ), e / (mabs(i) * aimag(axy_hf    )), -mabs(i)*aimag(axx_hf    ) / e
+      write(55 + 2*Npl+i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx_inv   )/aimag(axy_inv   ), e / (mabs(i) * aimag(axy_inv   )), -mabs(i)*aimag(axx_inv   ) / e, m_chi_inv(sigmai2i(1,i),sigmai2i(1,i)), m_chi_inv(sigmai2i(1,i),sigmai2i(4,i))
+      write(55 + 3*Npl+i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx_hf_inv)/aimag(axy_hf_inv), e / (mabs(i) * aimag(axy_hf_inv)), -mabs(i)*aimag(axx_hf_inv) / e, m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)), m_chi_hf_inv(sigmai2i(1,i),sigmai2i(4,i))
     end do
 
   end subroutine write_alpha
