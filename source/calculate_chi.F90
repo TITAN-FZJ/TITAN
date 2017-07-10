@@ -16,7 +16,7 @@ subroutine calculate_chi()
   if(myrank_row==0) allocate(temp(dim,dim))
   if(myrank==0) then
     write(outputunit_loop,"('CALCULATING LOCAL SUSCEPTIBILITY AS A FUNCTION OF ENERGY')")
-!           write(outputunit_loop,"('Qx = ',es10.3,', Qz = ',es10.3)") q(1),q(3)
+    ! write(outputunit_loop,"('Qx = ',es10.3,', Qz = ',es10.3)") q(1),q(3)
     ! Creating files and writing headers
     if(.not.laddresults) then
       call openclose_chi_files(0)
@@ -33,7 +33,7 @@ subroutine calculate_chi()
     mpitag = (Npl-Npl_i)*total_hw_npt1*MPIsteps + (hw_count-1)*MPIsteps + count
     e = emin + deltae*myrank_col + MPIdelta*(count-1)
     if(myrank==0) then
-!             write(outputunit_loop,"(i0,' of ',i0,' points',', e = ',es10.3,' in myrank_col ',i0)") ((count-1)*MPIpts+myrank_col+1),npt1,e,myrank_col
+      ! write(outputunit_loop,"(i0,' of ',i0,' points',', e = ',es10.3,' in myrank_col ',i0)") ((count-1)*MPIpts+myrank_col+1),npt1,e,myrank_col
       write(outputunit_loop,"('[calculate_chi] Starting MPI step ',i0,' of ',i0)") count,MPIsteps
     end if
 
@@ -44,7 +44,7 @@ subroutine calculate_chi()
       ! (1 + chi_hf*Umat)^-1
       temp = identt
       call zgemm('n','n',dim,dim,dim,zum,chiorb_hf,dim,Umatorb,dim,zum,temp,dim)
-!           temp = identt + temp
+      ! temp = identt + temp
       call invers(temp,dim)
       call zgemm('n','n',dim,dim,dim,zum,temp,dim,chiorb_hf,dim,zero,chiorb,dim)
 

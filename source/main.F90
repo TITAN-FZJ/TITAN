@@ -4,104 +4,87 @@
 !! magnetic self-consistency and calculate either ground state
 !! quantities or response functions
 program TITAN
-  use mod_f90_kind
+  !use mod_f90_kind
   use mod_constants
   use mod_parameters
   use mod_io
+  use mod_System         ! New
+  use mod_Lattice        ! New
+  use mod_BrillouinZone  ! New
+  use mod_TightBinding   ! New
   use mod_magnet
   use mod_define_system
-  use mod_tight_binding
   use mod_self_consistency
   use mod_prefactors
   use mod_generate_epoints
-  use mod_system
   use mod_progress
   use mod_mpi_pars
   use mod_lgtv_currents
   use mod_sha
   use mod_torques, only: ntypetorque
   implicit none
+
+  type(System) :: sys
   integer           :: i,j,sigma,mu,nu,count_hw
   logical           :: lsuccess = .false.
 
-#ifndef _UFF
-!$  integer :: provided
-#endif
-!------------------------ begin MPI initialization ---------------------
-#ifdef _OPENMP
-#ifdef _UFF
-  call MPI_Init(ierr)
-#else
-  call MPI_Init_thread(MPI_THREAD_FUNNELED,provided,ierr)
-#endif
-  call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ierr)
-  call MPI_Comm_size(MPI_COMM_WORLD,numprocs,ierr)
-#else
-  call MPI_Init(ierr)
-  call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ierr)
-  call MPI_Comm_size(MPI_COMM_WORLD,numprocs,ierr)
-#endif
-!--------------------------- Starting program --------------------------
+  !-------------------------- MPI initialization --------------------------
+  call Initialize_MPI()
+
+  !--------------------------- Starting program ---------------------------
   start_program = MPI_Wtime()
 
-!------------------------- Reading parameters --------------------------
-  call get_parameters()
+  !-------------------------- Reading parameters --------------------------
+#ifdef _JUQUEEN
+    call get_parameters("input_juqueen", sys) ! TODO: Sort parameters
+#else
+    call get_parameters("input", sys) ! TODO: Sort parameters
+#endif
 
   if(myrank==0) call write_time(outputunit,'[main] Started on: ')
 
-!---------------------------- Getting hostname -------------------------
+  !--------------------------- Getting hostname ---------------------------
+  ! TODO: Throw into function
 #ifdef _JUQUEEN
   call hostnm_(host)
 #else
   call hostnm(host)
 #endif
-!-------------------- Useful constants and matrices --------------------
-  call define_constants()
+  !-------------------- Useful constants and matrices --------------------
+  call define_constants() ! TODO: Review
 
-!----------- Creating bi-dimensional matrix of MPI processes  ----------
-  if((itype==1).or.(itype==6)) then ! Create column for field loop (no energy integration)
-    call build_cartesian_grid_field(pn1)
-  end if
-  if( ((itype>=3).and.(itype<=5)) .or. itype==0) then ! Create column for field loop (no energy integration)
-    call build_cartesian_grid_field(1)
-  end if
-  if((itype>=7).and.(itype<=8)) then ! Create matrix for energy dependence and integration
-    call build_cartesian_grid()
-    call build_cartesian_grid_field(npt1*pnt)
-  end if
-  if(itype==9) then ! Create matrix for dclimit
-    call build_cartesian_grid_field(pnt)
-    call MPI_COMM_DUP(MPI_Comm_Col_hw,MPI_Comm_Col,ierr)
-    call MPI_COMM_DUP(MPI_Comm_Row_hw,MPI_Comm_Row,ierr)
-    myrank_col = myrank_col_hw
-    myrank_row = myrank_row_hw
-  end if
-!-------------------- Define the lattice structure ---------------------
-  call generate_neighbors()
+  !----------- Creating bi-dimensional matrix of MPI processes  ----------
+  call setup_MPI_grid(itype, pn1, npt1, pnt)
+
+  !-------------------- Define the lattice structure ---------------------
+  call setup_lattice(sys)
   ! Writing Positions into file
-  if( lpositions .and. (myrank==0)) then
-    call write_neighbors_to_file()
-  end if
-!-------------------- Generating k points in 2D BZ ---------------------
-  call generate_kpoints()
-  ! Writing BZ points and weights into files
-  if((lkpoints).and.(myrank==0)) then
-    call write_kpoints_to_file()
-  end if
-!---- Generating integration points of the complex energy integral -----
-  call generate_imag_epoints()
-!------------------------ NUMBER OF PLANES LOOP ------------------------
+  if( lpositions .and. (myrank==0)) call output_lattice(sys)
+
+  !-------------------- Generating k points in 2D BZ ---------------------
+  call setup_BrillouinZone(sys)
+  ! Writing BZ points and weights into file
+  if((lkpoints).and.(myrank==0)) call output_kpoints(sys)
+
+  !---- Generating integration points of the complex energy integral -----
+  call generate_imag_epoints() !TODO: Review
+
+  !------------------------ NUMBER OF PLANES LOOP ------------------------
   number_of_planes: do Npl = Npl_i,Npl_f
 
     ! DFT tight binding mode has two additional vacuum layers
+    !TODO: Change to nOrb
     Npl_total = Npl
     if(tbmode == 2) Npl_total = Npl + 2
-!--------------- Allocating variables that depend on Npl ---------------
-    call allocate_Npl_variables()
-!----------------------------- Dimensions ------------------------------
+
+    !--------------- Allocating variables that depend on Npl ---------------
+    call allocate_Npl_variables() !TODO: Review
+
+    !----------------------------- Dimensions ------------------------------
     dimsigmaNpl = 4*Npl
     dim = dimsigmaNpl*9*9
-!------------------------- Conversion arrays  --------------------------
+
+    !------------------------- Conversion arrays  --------------------------
     do nu=1,9 ; do mu=1,9 ; do i=1,Npl ; do sigma=1,4
       sigmaimunu2i(sigma,i,mu,nu)= (sigma-1)*Npl*9*9+(i-1)*9*9+(mu-1)*9+nu
       do j=1,Npl
@@ -111,7 +94,8 @@ program TITAN
     do i=1,Npl ; do sigma=1,4
       sigmai2i(sigma,i) = (sigma-1)*Npl+i
     end do ; end do
-!------------------------- Defining the system -------------------------
+
+    !------------------------- Defining the system -------------------------
     if(naddlayers/=0) then
       Npl_input = Npl-naddlayers+1 ! Npl is the total number of layers, including the added layers listed on inputcard
     else
@@ -119,15 +103,20 @@ program TITAN
     end if
     write(Npl_folder,fmt="(i0,'Npl')") Npl_input
     if(tbmode == 2) call define_system()
-!---------------------- Tight Binding parameters -----------------------
-    call tb_hopping()
-!---------------------- Lattice specific variables ---------------------
-    call lattice_definitions()
-!------------------------- MAGNETIC FIELD LOOP -------------------------
+
+    !---------------------- Tight Binding parameters -----------------------
+    call setup_TB_matrices(sys)
+    stop
+
+    !---------------------- Lattice specific variables ---------------------
+    call lattice_definitions() !TODO
+
+    !------------------------- MAGNETIC FIELD LOOP -------------------------
     if((myrank==0).and.(skip_steps_hw>0)) write(outputunit,"('[main] Skipping first ',i0,' field step(s)...')") skip_steps_hw
     hw_loop: do count_hw=1+skip_steps_hw,MPIsteps_hw
       hw_count = 1 + myrank_col_hw + MPIpts_hw*(count_hw-1)
-!------------ Opening files (general and one for each field) -----------
+
+      !------------ Opening files (general and one for each field) -----------
       if(myrank_row_hw==0) then
         if((total_hw_npt1==1).or.(itype==6)) then
           outputfile_loop  = outputfile
@@ -138,7 +127,8 @@ program TITAN
           open (unit=outputunit_loop, file=trim(outputfile_loop), status='replace')
         end if
       end if
-!---------------------- Turning off field for hwa=0 --------------------
+
+      !---------------------- Turning off field for hwa=0 --------------------
       if(abs(hw_list(hw_count,1))<1.d-8) then
         lfield = .false.
         ntypetorque = 2
@@ -151,7 +141,8 @@ program TITAN
       hhwx = 0.d0
       hhwy = 0.d0
       hhwz = 0.d0
-!--------------------- Defining the magnetic fields --------------------
+
+      !--------------------- Defining the magnetic fields --------------------
       if(lfield) then
         ! Variables of the hamiltonian
         ! There is an extra  minus sign in the definition of hhwx,hhwy,hhwz
@@ -170,7 +161,8 @@ program TITAN
         ! Testing if hwrotate is used
         lhwrotate = (any(abs(hwtrotate(1:Npl))>1.d-8).or.any(abs(hwprotate(1:Npl))>1.d-8))
       end if
-!------------------- Tests for coupling calculation --------------------
+
+      !------------------- Tests for coupling calculation --------------------
       if(itype==6) then
         if(nmaglayers==0) then
           if(myrank==0) write(outputunit,"('[main] No magnetic layers for coupling calculation!')")
@@ -183,23 +175,29 @@ program TITAN
           stop
         end if
       end if
-!------- Writing parameters and data to be calculated on screen --------
+
+      !------- Writing parameters and data to be calculated on screen --------
       if(myrank_row_hw==0) call iowrite()
-!---- L matrix in spin coordinates for given quantization direction ----
+
+      !---- L matrix in spin coordinates for given quantization direction ----
       call lp_matrix()
-!------ Calculate L.S matrix for the given quantization direction ------
+
+      !------ Calculate L.S matrix for the given quantization direction ------
       call ls_matrix()
-!------ Calculate L.B matrix for the given quantization direction ------
+
+      !------ Calculate L.B matrix for the given quantization direction ------
       if((lfield).and.(.not.lnolb)) call lb_matrix()
-!------------------------ Calculate S.B matrix  ------------------------
+
+      !------------------------ Calculate S.B matrix  ------------------------
       if(lfield) call sb_matrix()
-!---------------------------- Debugging part ---------------------------
+
+      !---------------------------- Debugging part ---------------------------
       if(ldebug) then
 !       if(myrank==0) then
         call debugging()
 !       end if
       end if
-!------------------- Only create files with headers --------------------
+      !------------------- Only create files with headers --------------------
       if(lcreatefiles) then
         if(myrank==0) then
           call create_files()
@@ -208,9 +206,9 @@ program TITAN
         call MPI_Finalize(ierr)
         stop
       end if
-!------------- Check if files exist to add results or sort -------------
+      !------------- Check if files exist to add results or sort -------------
       if(((lsortfiles).or.(laddresults)).and.(myrank==0)) call check_files()
-!----------------------- Only sort existing files ----------------------
+      !----------------------- Only sort existing files ----------------------
       if(lsortfiles) then
         if(myrank==0) call sort_all_files()
         cycle
@@ -221,13 +219,13 @@ program TITAN
 !         if(itype==9) exit
 !         cycle
 !       end if
-!---------------- Only calculate SHA from existing files ---------------
+      !---------------- Only calculate SHA from existing files ---------------
       if(lsha) then
         if(myrank==0) call read_currents_and_calculate_sha()
         if(itype==9) exit
         cycle
       end if
-!-------------------------- Begin first test part ----------------------
+      !-------------------------- Begin first test part ----------------------
       if((myrank==0).and.(itype==0)) then
         write(outputunit,"('[main] FIRST TEST PART')")
         mz  = 0.d0
@@ -245,7 +243,8 @@ program TITAN
         call ldos()
         ! call debugging()
       end if
-!--------------------------- Self-consistency --------------------------
+
+      !--------------------------- Self-consistency --------------------------
       ! Trying to read previous shifts and m from files
       call read_previous_results(lsuccess)
       ! Rotate the magnetization to the direction of the field
@@ -260,19 +259,24 @@ program TITAN
       if(lselfcon) call do_self_consistency()
       ! Writing new eps1 and mz to file after self-consistency is done
       if(.not.lontheflysc) call write_sc_results()
+
       ! Calculating ground state Orbital Angular Momentum
       if(lGSL) call L_gs()
+
       ! Writing self-consistency results on screen
       if(myrank_row_hw==0)  call write_sc_results_on_screen()
+
       ! Time now
-        if(myrank_row_hw==0)  call write_time(outputunit_loop,'[main] Time after self-consistency: ')
-!---- Only calculate long. and transv. currents from existing files ----
+      if(myrank_row_hw==0)  call write_time(outputunit_loop,'[main] Time after self-consistency: ')
+
+      !---- Only calculate long. and transv. currents from existing files ----
       if(llgtv) then
         if(myrank==0) call read_calculate_lgtv_currents()
         if(itype==9) exit
         cycle
       end if
-!============================= MAIN PROGRAM ============================
+
+      !============================= MAIN PROGRAM =============================
       main_program: select case (itype)
       case (2)
         call debugging()
@@ -291,24 +295,28 @@ program TITAN
       case (9)
         call calculate_dc_limit()
       end select main_program
+      !========================================================================
 
       ! Emergency stop after the calculation for a Npl or field is finished (don't check on last step)
       if(((Npl_f/=Npl_i).or.(total_hw_npt1/=1)).and.((Npl<Npl_f).or.(count_hw<MPIsteps_hw))) call check_emergency_stop()
-!---------------------------- Closing files ----------------------------
+      !---------------------------- Closing files ----------------------------
       if(((total_hw_npt1/=1).and.(itype/=6)).and.(myrank_row_hw==0)) close(outputunit_loop)
-!---------------------- Ending magnetic field loop ---------------------
+      !---------------------- Ending magnetic field loop ---------------------
     end do hw_loop
-!-------------- Deallocating variables that depend on Npl --------------
+
+    !-------------- Deallocating variables that depend on Npl --------------
     call deallocate_Npl_variables()
   end do number_of_planes
-!----------------------- Deallocating variables ------------------------
+
+  !----------------------- Deallocating variables ------------------------
   deallocate(r_nn, c_nn, l_nn)
   deallocate(kbz,wkbz) !,kbz2d)
-!----------------------- Finalizing the program ------------------------
+
+  !----------------------- Finalizing the program ------------------------
   if(myrank==0) call write_time(outputunit,'[main] Finished on: ')
   if(myrank==0) close(unit=outputunit)
   call MPI_Finalize(ierr)
   if((ierr/=0).and.(myrank==0)) write(outputunit,"('[main] Something went wrong in the parallelization! ierr = ',i0)") ierr
-!=======================================================================
-  
+
+
 end program TITAN

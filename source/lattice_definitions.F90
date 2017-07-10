@@ -1,13 +1,30 @@
-subroutine lattice_definitions()
+subroutine setup_electric_field(s)
+  use mod_f90_kind, only: double
+  use mod_System, only: System
+
+  implicit none
+  type(System), intent(inout) :: s
+  real(double), dimension(3) :: zdir
+
+  zdir = [0.d0,0.d0,1.d0]
+
+  
+
+
+
+subroutine lattice_definitions(s)
   use mod_f90_kind, only: double
   use mod_constants, only: pi
   use mod_mpi_pars
-  use mod_system, only: l_nn, r_nn, c_nn, pln_a1, pln_a2, pln_normal, pln_cnt
+  use mod_System, only: System
   use mod_parameters
   use mod_tools, only: cross_unit, is_parallel
   implicit none
+  type(System), intent(inout) :: s
   integer :: i
   real(double),dimension(3) :: versor_Eperp
+  real(double), dimension(3) :: zdir
+  zdir = [0.d0,0.d0,1.d0]
 
   if(dirEfield == -1) then
     dirEfieldvec = dirEfieldvec / sqrt(dot_product(dirEfieldvec, dirEfieldvec))
@@ -21,7 +38,7 @@ subroutine lattice_definitions()
   else if(dirEfield == -3) then
     dirEfieldvec = [cos(EFp*pi/180)*sin(EFt*pi/180), sin(EFp*pi/180)*sin(EFt*pi/180), cos(EFt*pi/180)]
   else if(dirEfield >=1 .and. dirEfield <= pln_cnt(1)) then
-    dirEfieldvec = c_nn(:, dirEfield)
+    dirEfieldvec = s%Neighbors(dirEfield)%dirCos
   else
     if(myrank.eq.0) write(outputunit,"('[lattice_definitions] Unknown E-Field direction!')")
     call MPI_Finalize(ierr)
@@ -31,7 +48,7 @@ subroutine lattice_definitions()
   ! Calculating out-of-plane unit vector
 
   ! Calculating vector in-plane perpendicular to electric field direction
-  if(0.d0 == dot_product(pln_normal, pln_normal)) then
+  if(s%lbulk) then
     versor_Eperp = 0.d0
     do i = l_nn(1,1), l_nn(1,2) - 1
       if(.not. is_parallel(r_nn(:,i), dirEfieldvec)) then
@@ -45,7 +62,7 @@ subroutine lattice_definitions()
       call MPI_Finalize(ierr)
     end if
   else
-    versor_Eperp = cross_unit(pln_normal, dirEfieldvec)
+    versor_Eperp = cross_unit(zdir, dirEfieldvec)
   end if
 
 

@@ -1,5 +1,5 @@
 module mod_beff
-  use mod_f90_kind
+  use mod_f90_kind, only: double
   implicit none
   ! Effective field
   complex(double),dimension(:,:),allocatable :: chiinv

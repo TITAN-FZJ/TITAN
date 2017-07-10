@@ -42,7 +42,7 @@ with open(sys.argv[2], "r") as f:
   name[i], point[i] = f.readline().split()
 
  table = np.loadtxt(f)
- ax2.set_title("Band structure with SOC 0.2")
+ ax2.set_title("Band structure with SOC")
  ax2.set_xlim([point[0],point[count[0]-1]])
 
  ax2.set_xticks(point)

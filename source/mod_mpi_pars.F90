@@ -1,5 +1,5 @@
 module mod_mpi_pars
-  use mod_f90_kind
+  use mod_f90_kind, only: double
   use MPI
   implicit none
   integer :: myrank,numprocs,errorcode,ierr,mcount,mpitag, numprocs_row
@@ -17,6 +17,52 @@ module mod_mpi_pars
 
 contains
 
+  subroutine Initialize_MPI()
+    implicit none
+
+#ifndef _UFF
+    !$  integer :: provided
+#endif
+    integer :: ierr
+
+#ifdef _OPENMP
+#ifdef _UFF
+      call MPI_Init(ierr)
+#else
+      call MPI_Init_thread(MPI_THREAD_FUNNELED,provided,ierr)
+#endif
+      call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ierr)
+      call MPI_Comm_size(MPI_COMM_WORLD,numprocs,ierr)
+#else
+      call MPI_Init(ierr)
+      call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ierr)
+      call MPI_Comm_size(MPI_COMM_WORLD,numprocs,ierr)
+#endif
+    return
+  end subroutine
+
+  subroutine setup_MPI_grid(itype, pn1, npt1, pnt)
+    implicit none
+    integer, intent(in) :: itype, pn1, npt1, pnt
+    integer :: ierr
+    if((itype==1).or.(itype==6)) then ! Create column for field loop (no energy integration)
+      call build_cartesian_grid_field(pn1)
+    end if
+    if( ((itype>=3).and.(itype<=5)) .or. itype==0) then ! Create column for field loop (no energy integration)
+      call build_cartesian_grid_field(1)
+    end if
+    if((itype>=7).and.(itype<=8)) then ! Create matrix for energy dependence and integration
+      call build_cartesian_grid()
+      call build_cartesian_grid_field(npt1*pnt)
+    end if
+    if(itype==9) then ! Create matrix for dclimit
+      call build_cartesian_grid_field(pnt)
+      call MPI_COMM_DUP(MPI_Comm_Col_hw,MPI_Comm_Col,ierr)
+      call MPI_COMM_DUP(MPI_Comm_Row_hw,MPI_Comm_Row,ierr)
+      myrank_col = myrank_col_hw
+      myrank_row = myrank_row_hw
+    end if
+  end subroutine setup_MPI_grid
   ! Bidimensional array should look like:
   !    myrank_col: / myrank_row: 0 1 2 3 ... pnt-1 (number inside a row)
   !        0
