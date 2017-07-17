@@ -1,38 +1,39 @@
 ! Integration of Green functions over k values to calculate the number of particles
 subroutine sumk_jij(er,ei,Jijint)
-  use mod_f90_kind
-  use mod_constants
-  use mod_parameters
-  use mod_progress
+  use mod_f90_kind, only: double
+  use mod_constants, only: pi, zum, zero, pauli_dorb
+  use mod_parameters, only: mmlayermag, U, lverbose, q, mmlayermag, outputunit, nmaglayers
   use mod_magnet, only: mx,my,mz,mabs
+  use mod_system, only: s => sys
+  use TightBinding, only: nOrb
   use mod_mpi_pars
-  use mod_system, only: nkpt, kbz, wkbz
+  use mod_progress
 !$  use omp_lib
   implicit none
 !$  integer     :: nthreads,mythread
   integer       :: iz,i,j,mu,nu,alpha
   real(double),intent(in)   :: er,ei
   real(double),intent(out)  :: Jijint(nmaglayers,nmaglayers,3,3)
-  real(double)  :: kp(3),kminusq(3),evec(nmaglayers,3),Jijk(nmaglayers,nmaglayers,3,3),Jijkan(nmaglayers,3,3)
-  complex(double) :: dbxcdm(nmaglayers,3,18,18),d2bxcdm2(nmaglayers,3,3,18,18),paulievec(nmaglayers,18,18)
-  complex(double),dimension(18,18)             :: gij,gji,temp1,temp2,paulia,paulib
-  complex(double),dimension(Npl,Npl,18,18)     :: gf,gfq
+  real(double)  :: kp(3),kminusq(3),evec(3,nmaglayers),Jijk(nmaglayers,nmaglayers,3,3),Jijkan(nmaglayers,3,3)
+  complex(double) :: dbxcdm(nmaglayers,3,2*nOrb,2*nOrb),d2bxcdm2(nmaglayers,3,3,2*nOrb,2*nOrb),paulievec(nmaglayers,2*nOrb,2*nOrb)
+  complex(double),dimension(2*nOrb,2*nOrb)             :: gij,gji,temp1,temp2,paulia,paulib
+  complex(double),dimension(s%nAtoms,s%nAtoms,2*nOrb,2*nOrb)     :: gf,gfq
 
   do iz=1,nmaglayers
     ! Unit vector along the direction of the magnetization of each magnetic plane
-    evec(iz,:) = [ mx(mmlayermag(iz)-1), my(mmlayermag(iz)-1), mz(mmlayermag(iz)-1) ]/mabs(mmlayermag(iz)-1)
+    evec(:,iz) = [ mx(mmlayermag(iz)-1), my(mmlayermag(iz)-1), mz(mmlayermag(iz)-1) ]/mabs(mmlayermag(iz)-1)
     ! Inner product of pauli matrix in spin and orbital space and unit vector evec
-    paulievec(iz,:,:) = pauli_dorb(1,:,:)*evec(iz,1)+pauli_dorb(2,:,:)*evec(iz,2)+pauli_dorb(3,:,:)*evec(iz,3)
+    paulievec(iz,:,:) = pauli_dorb(1,:,:)*evec(1,iz)+pauli_dorb(2,:,:)*evec(2,iz)+pauli_dorb(3,:,:)*evec(3,iz)
   end do
 
 ! Derivative of Bxc*sigma*evec w.r.t. m_i (Bxc = -U.m/2)
   do i=1,3 ; do iz=1,nmaglayers
-    dbxcdm(iz,i,:,:) = -0.5d0*U(mmlayermag(iz))*(pauli_dorb(i,:,:)-(paulievec(iz,:,:))*evec(iz,i))
+    dbxcdm(iz,i,:,:) = -0.5d0*U(mmlayermag(iz))*(pauli_dorb(i,:,:)-(paulievec(iz,:,:))*evec(i,iz))
   end do ; end do
 
 ! Second derivative of Bxc w.r.t. m_i (Bxc = -U.m/2)
   do j=1,3 ; do i = 1,3 ; do iz=1,nmaglayers
-    d2bxcdm2(iz,i,j,:,:) = evec(iz,i)*pauli_dorb(j,:,:) + pauli_dorb(i,:,:)*evec(iz,j) - 3*paulievec(iz,:,:)*evec(iz,i)*evec(iz,j)
+    d2bxcdm2(iz,i,j,:,:) = evec(i,iz)*pauli_dorb(j,:,:) + pauli_dorb(i,:,:)*evec(j,iz) - 3*paulievec(iz,:,:)*evec(i,iz)*evec(j,iz)
     if(i==j) d2bxcdm2(iz,i,j,:,:) = d2bxcdm2(iz,i,j,:,:) + paulievec(iz,:,:)
     d2bxcdm2(iz,i,j,:,:) = 0.5d0*U(mmlayermag(iz))*d2bxcdm2(iz,i,j,:,:)/(mabs(mmlayermag(iz)-1))
   end do ; end do ; end do
@@ -41,7 +42,7 @@ subroutine sumk_jij(er,ei,Jijint)
 
 !$omp parallel default(none) &
 !$omp& private(mythread,iz,kp,gf,gfq,gij,gji,paulia,paulib,i,j,mu,nu,alpha,kminusq,Jijk,Jijkan,temp1,temp2) &
-!$omp& shared(lverbose,kbz,q,wkbz,nkpt,er,ei,Jijint,dbxcdm,d2bxcdm2,Npl,mz,nmaglayers,mmlayermag,myrank,nthreads,pi,outputunit)
+!$omp& shared(lverbose,s,q,er,ei,Jijint,dbxcdm,d2bxcdm2,mz,nmaglayers,mmlayermag,myrank,nthreads,pi,outputunit)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread==0).and.(myrank==0)) then
 !$    nthreads = omp_get_num_threads()
@@ -49,12 +50,12 @@ subroutine sumk_jij(er,ei,Jijint)
 !$  end if
 
 !$omp do reduction(+:Jijint)
-  kpoints: do iz=1,nkpt
+  kpoints: do iz=1,s%nkpt
 !$  if((mythread==0)) then
-      if((myrank==0).and.(lverbose)) call progress_bar(outputunit,"kpoints",iz,nkpt)
+      if((myrank==0).and.(lverbose)) call progress_bar(outputunit,"kpoints",iz,s%nkpt)
 !$   end if
 
-    kp = kbz(:,iz)
+    kp = s%kbz(:,iz)
 
     ! Green function on energy Ef + iy, and wave vector kp
     call green(er,ei,kp,gf)
@@ -70,11 +71,11 @@ subroutine sumk_jij(er,ei,Jijint)
       gij = gf(mmlayermag(i)-1,mmlayermag(j)-1,:,:)
       paulib = dbxcdm(j,nu,:,:)
       gji = gfq(mmlayermag(j)-1,mmlayermag(i)-1,:,:)
-      call zgemm('n','n',18,18,18,zum,paulia,18,gij,18,zero,temp1,18)
-      call zgemm('n','n',18,18,18,zum,temp1,18,paulib,18,zero,temp2,18)
-      call zgemm('n','n',18,18,18,zum,temp2,18,gji,18,zero,temp1,18)
+      call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,paulia,2*nOrb,gij,   2*nOrb,zero,temp1,2*nOrb)
+      call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,temp1, 2*nOrb,paulib,2*nOrb,zero,temp2,2*nOrb)
+      call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,temp2, 2*nOrb,gji,   2*nOrb,zero,temp1,2*nOrb)
       ! Trace over orbitals and spins
-      do alpha = 1,18
+      do alpha = 1,2*nOrb
         Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + real(temp1(alpha,alpha))
       end do
 
@@ -82,9 +83,9 @@ subroutine sumk_jij(er,ei,Jijint)
       if(i==j) then
         gij = gf(mmlayermag(i)-1,mmlayermag(i)-1,:,:)
         paulia = d2bxcdm2(i,mu,nu,:,:)
-        call zgemm('n','n',18,18,18,zum,gij,18,paulia,18,zero,temp1,18)
+        call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,gij,2*nOrb,paulia,2*nOrb,zero,temp1,2*nOrb)
         ! Trace over orbitals and spins
-        do alpha = 1,18
+        do alpha = 1,2*nOrb
           Jijkan(i,mu,nu) = Jijkan(i,mu,nu) + real(temp1(alpha,alpha))
         end do
 
@@ -92,7 +93,7 @@ subroutine sumk_jij(er,ei,Jijint)
       end if
     end do ; end do ; end do ; end do
 
-    Jijk = Jijk*wkbz(iz)
+    Jijk = Jijk*s%wkbz(iz)
 
     Jijint = Jijint + Jijk
 

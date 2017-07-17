@@ -1,14 +1,13 @@
 ! Calculates the full 3x3 J tensor (including coupling, DMI and anisotropic pair interactions)
 subroutine coupling()
-  use mod_f90_kind
-  use mod_parameters
-  use mod_magnet
-  use mod_system, only: nkpt
+  use mod_f90_kind, only: double
+  use mod_parameters, only: fieldpart, nmaglayers, mmlayermag, Npl_input, outputunit, parts, eta, Utype, q
+  use mod_magnet, only: mx, my, mz
+  use mod_SOC, only: SOCc, socpart
+  use mod_system, only: s => sys
   use mod_mpi_pars,only: myrank
   implicit none
   character(len=400) :: varm
-  character(len=50)  :: fieldpart,socpart
-  character(len=1)   :: SOCc
   integer            :: i,j,mu,iw
   real(double),dimension(:,:),allocatable     :: trJij
   real(double),dimension(:,:,:,:),allocatable :: Jij,Jijs,Jija
@@ -17,26 +16,6 @@ subroutine coupling()
 
   if(myrank==0) write(outputunit,"('CALCULATING FULL TENSOR OF EXHANGE INTERACTIONS AND ANISOTROPIES AS A FUNCTION OF THICKNESS')")
 
-  fieldpart = ""
-  socpart   = ""
-  if(SOC) then
-    if(llinearsoc) then
-      SOCc = "L"
-    else
-      SOCc = "T"
-    end if
-    if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
-  else
-    SOCc = "F"
-  end if
-  if(lfield) then
-    write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
-    if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
-    if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
-    if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
-    if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
-  end if
-
   ! Opening files for position dependence
   if((myrank==0).and.(Npl==Npl_i)) then
     ! Exchange interactions
@@ -44,17 +23,17 @@ subroutine coupling()
       iw = 199+(j-1)*nmaglayers*2+(i-1)*2
       if(i==j) then
         iw = iw + 1
-        write(varm,"('./results/',a1,'SOC/Jij/Jii_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,parts,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+        write(varm,"('./results/',a1,'SOC/Jij/Jii_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,parts,s%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
         open (unit=iw, file=varm,status='replace')
         write(unit=iw, fmt="('#  Npl ,      Jii_xx       ,      Jii_yy       ,      Jii_zz       ')")
         iw = iw + 1
       else
         iw = iw + 1
-        write(varm,"('./results/',a1,'SOC/Jij/J_',i0,'_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,j,parts,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+        write(varm,"('./results/',a1,'SOC/Jij/J_',i0,'_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,j,parts,s%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
         open (unit=iw, file=varm,status='replace')
         write(unit=iw, fmt="('#  Npl ,   isotropic Jij    ,   anisotropic Jij_xx    ,   anisotropic Jij_yy    ,   anisotropic Jij_zz    ')")
         iw = iw + 1
-        write(varm,"('./results/',a1,'SOC/Jij/Dz_',i0,'_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,j,parts,nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+        write(varm,"('./results/',a1,'SOC/Jij/Dz_',i0,'_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,j,parts,s%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
         open (unit=iw, file=varm,status='replace')
         write(unit=iw, fmt="('#  Npl , Dz = (Jxy - Jyx)/2       ')")
       end if
@@ -113,24 +92,27 @@ subroutine coupling()
 
     ! Writing into files
     ! Exchange interactions
-    exchange_writing_loop: do j=1,nmaglayers ; do i=1,nmaglayers
-      iw = 199+(j-1)*nmaglayers*2+(i-1)*2
-      if(i==j) then
-        iw = iw + 1
-        write(unit=iw,fmt="(4x,i3,3x,3(es16.9,2x))") Npl_input,Jij(i,j,1,1),Jij(i,j,2,2),Jij(i,j,3,3)
-        iw = iw + 1
-      else
-        iw = iw + 1
-        write(unit=iw,fmt="(4x,i3,3x,4(es16.9,2x))") Npl_input,trJij(i,j),Jijs(i,j,1,1),Jijs(i,j,2,2),Jijs(i,j,3,3)
-        iw = iw + 1
-        write(unit=iw,fmt="(4x,i3,3x,es16.9,2x)") Npl_input,Jija(i,j,1,2)
-      end if
-    end do ; end do exchange_writing_loop
-
+    do j=1,nmaglayers
+      do i=1,nmaglayers
+        iw = 199+(j-1)*nmaglayers*2+(i-1)*2
+        if(i==j) then
+          iw = iw + 1
+          write(unit=iw,fmt="(4x,i3,3x,3(es16.9,2x))") Npl_input,Jij(i,j,1,1),Jij(i,j,2,2),Jij(i,j,3,3)
+          iw = iw + 1
+        else
+          iw = iw + 1
+          write(unit=iw,fmt="(4x,i3,3x,4(es16.9,2x))") Npl_input,trJij(i,j),Jijs(i,j,1,1),Jijs(i,j,2,2),Jijs(i,j,3,3)
+          iw = iw + 1
+          write(unit=iw,fmt="(4x,i3,3x,es16.9,2x)") Npl_input,Jija(i,j,1,2)
+        end if
+      end do
+    end do
+    
     ! Closing files
-    if(Npl==Npl_f) then
-      ! Closing files
-      do j=1,nmaglayers ; do i=1,nmaglayers
+    ! if(Npl==Npl_f) then
+    ! Closing files
+    do j=1,nmaglayers
+      do i=1,nmaglayers
         iw = 199+(j-1)*nmaglayers*2+(i-1)*2
         if(i==j) then
           iw = iw + 1
@@ -142,9 +124,10 @@ subroutine coupling()
           iw = iw + 1
           close (iw)
         end if
-      end do ; end do
-    end if
+      end do
+    end do
   end if
+  ! end if
 
   deallocate(trJij,Jij,Jijs,Jija)
 

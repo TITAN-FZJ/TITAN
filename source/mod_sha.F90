@@ -41,37 +41,17 @@ contains
 
   ! This subroutine opens and closes all the files needed for the sha
   subroutine openclose_sha_files(iflag)
-    use mod_parameters
+    use mod_parameters, only: fieldpart
+    use mod_SOC, only: SOCc, socpart
     use mod_mpi_pars
     use mod_system, only: nkpt
+    use electricfield, only: strElectricField
     implicit none
 
     character(len=500)  :: varm
-    character(len=50)   :: fieldpart,socpart
-    character(len=1)    :: SOCc
     character(len=6)    :: folder(8)
     character(len=3)    :: filename(7)
     integer :: i,j,iw,iflag,err,errt=0
-
-    fieldpart = ""
-    socpart   = ""
-    if(SOC) then
-      if(llinearsoc) then
-        SOCc = "L"
-      else
-        SOCc = "T"
-      end if
-      if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
-    else
-      SOCc = "F"
-    end if
-    if(lfield) then
-      write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
-      if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
-      if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
-      if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
-      if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
-    end if
 
     folder(1) = "CC"
     folder(2) = "SC"
@@ -100,13 +80,13 @@ contains
       do j=2,4
         do i=1,Npl
           iw = 8200+(i-1)*3+j-1
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/SHA_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(8)),filename(j),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/SHA_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(8)),filename(j),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#     energy     ,  SHA reIs/reIc  ,  SHA abs(Is/Ic) , SHA atan(Is/Ic) ,  SHA re(Is/Ic)  ,  SHA im(Is/Ic)  ')")
           close(unit=iw)
         end do
         iw = 8200+Npl*3+j-1
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/SHA_',a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(8)),filename(j),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/SHA_',a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(8)),filename(j),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#     energy     ,  SHA reIs/reIc  ,  SHA abs(Is/Ic) , SHA atan(Is/Ic) ,  SHA re(Is/Ic)  ,  SHA im(Is/Ic)  ')")
         close(unit=iw)
@@ -117,12 +97,12 @@ contains
       do j=2,4
         do i=1,Npl
           iw = 8200+(i-1)*3+j-1
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/SHA_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(8)),filename(j),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/SHA_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(8)),filename(j),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
         end do
         iw = 8200+Npl*3+j-1
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/SHA_',a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(8)),filename(j),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/SHA_',a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(8)),filename(j),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
       end do
@@ -171,40 +151,17 @@ contains
 
   ! This subroutine opens and closes all the files needed for the sha
   subroutine openclose_dc_sha_files(iflag)
-    use mod_parameters
+    use mod_parameters, only: dcfieldpart
+    use mod_SOC, only: SOCc, socpart
     use mod_mpi_pars, only: errorcode, ierr, MPI_COMM_WORLD
     use mod_system, only: nkpt
+    use electricfield, only: strElectricField
     implicit none
 
     character(len=500)  :: varm
-    character(len=50)   :: fieldpart,socpart
-    character(len=1)    :: SOCc
     character(len=6)    :: folder(8)
     character(len=3)    :: filename(7)
     integer :: i,j,iw,iflag,err,errt=0
-
-    fieldpart = ""
-    socpart   = ""
-    if(SOC) then
-      if(llinearsoc) then
-        SOCc = "L"
-      else
-        SOCc = "T"
-      end if
-      if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
-    else
-      SOCc = "F"
-    end if
-
-    if(dcfield_dependence/=7) then
-      if((dcfield_dependence/=1).and.(dcfield_dependence/=4).and.(dcfield_dependence/=5)) write(fieldpart,"(a,'_hwa=',es9.2)") trim(fieldpart),hwa
-      if((dcfield_dependence/=2).and.(dcfield_dependence/=4).and.(dcfield_dependence/=6)) write(fieldpart,"(a,'_hwt=',f5.2)") trim(fieldpart),hwt
-      if((dcfield_dependence/=3).and.(dcfield_dependence/=5).and.(dcfield_dependence/=6)) write(fieldpart,"(a,'_hwp=',f5.2)") trim(fieldpart),hwp
-    end if
-    if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
-    if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
-    if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
-    if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
 
     folder(1) = "CC"
     folder(2) = "SC"
@@ -233,13 +190,13 @@ contains
       do j=2,4
         do i=1,Npl
           iw = 82000+(i-1)*3+j-1
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(8)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(8)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#',a,'    SHA reIs/reIc   ,    SHA abs(Is/Ic)   ,    SHA atan(Is/Ic)   ,    SHA re(Is/Ic)   ,    SHA im(Is/Ic)   ')") trim(dc_header)
           close(unit=iw)
         end do
         iw = 82000+Npl*3+j-1
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(8)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(8)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,'    SHA reIs/reIc   ,    SHA abs(Is/Ic)   ,    SHA atan(Is/Ic)   ,    SHA re(Is/Ic)   ,    SHA im(Is/Ic)   ')") trim(dc_header)
         close(unit=iw)
@@ -250,12 +207,12 @@ contains
       do j=2,4
         do i=1,Npl
           iw = 82000+(i-1)*3+j-1
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(8)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(8)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           if(.not.lsha) errt = errt + err
         end do
         iw = 82000+Npl*3+j-1
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(8)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(8)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         if(.not.lsha) errt = errt + err
       end do

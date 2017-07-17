@@ -5,46 +5,67 @@
 !  1     2     3     4      Npl-1   Npl  Npl+1  Npl+2
 !         <-S-> <S-1>           <S-1> <-S->
 subroutine hamiltk(kp,hk)
-  use mod_tight_binding, only: lambda, ls, t0, t0i
-  use mod_parameters,    only: Npl_total, socscale
-  use mod_constants,     only: zi, zero
-  use mod_f90_kind,      only: double
-  use mod_system,        only: npln, r_nn, l_nn
-  use mod_magnet,        only: lb, sb
+  use mod_f90_kind, only: double
+  use mod_constants, only: zi, zero
+  use AtomTypes, only: NeighborIndex
+  use mod_System, only: s => sys
+  use TightBinding, only: nOrb
+  use mod_magnet, only: lb, sb
+  use mod_SOC, only: ls, socscale
   implicit none
-  integer :: i, j, l, loc_pln
-  integer :: i0, i1, j0, j1
+  integer :: i, j, k, l
+  integer :: i_u0, i_u1, i_d0, i_d1, j_u0, j_u1, j_d0, j_d1
+  integer :: index
   real(double), intent(in) :: kp(3)
-  complex(double) :: hee(18,18,Npl_total)
-  complex(double), dimension((Npl_total)*18,(Npl_total)*18), intent(out) :: hk
-
+  complex(double) :: hee(2*nOrb, 2*nOrb, s%nAtoms)
+  complex(double), dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb), intent(out) :: hk
+  complex(double), dimension(nOrb, nOrb) :: tmp
+  type(NeighborIndex), pointer :: current
   hk = zero
 
-  call U_matrix(hee)
+  call U_matrix(hee, s%nAtoms, nOrb)
 
   ! Mouting slab hamiltonian
-  do i=1, Npl_total
-     i0 = (i-1)*18+1
-     i1 = i0+9
+  do i=1, s%nAtoms
+    i_u0 = (i-1)*2*nOrb + 1
+    i_u1 = i_u0 + nOrb - 1
+    i_d0 = i_u0 + nOrb
+    i_d1 = i_d0 + nOrb - 1
 
-     loc_pln = npln
-     if(Npl_total < i + npln) loc_pln = Npl_total - i + 1
+    hk(i_u0:i_u1, i_u0:i_u1) = s%Types(s%Basis(i)%Material)%onSite ! + sb hee +socscale*lambda*ls
+    hk(i_d0:i_d1, i_d0:i_d1) = s%Types(s%Basis(i)%Material)%onSite ! + sb hee +socscale*lambda*ls
 
-     hk(i0:i0+8,i0:i0+8) = t0(:,:,i) ! + sb hee +socscale*lambda*ls
-     hk(i1:i1+8,i1:i1+8) = t0(:,:,i) ! + sb hee +socscale*lambda*ls
+    hk(i_u0:i_d1, i_u0:i_d1) = hk(i_u0:i_d1, i_u0:i_d1) &
+                             + lb(:,:,i) + sb(:,:,i) + hee(:,:,i) &
+                             + socscale * s%Types(s%Basis(i)%Material)%Lambda * ls
 
-     hk(i0:i0+17, i0:i0+17) = hk(i0:i0+17, i0:i0+17) + lb(:,:,i) + sb(:,:,i) + hee(:,:,i) + (socscale*lambda(i)*ls)
-
-     do j = 1, loc_pln
-        j0 = i0 + 18 * (j-1)
-        j1 = i0 + 18 * (j-1) + 9
-        do l = l_nn(1,j), l_nn(1,j+1)-1
-          hk(j0:j0+8, i0:i0+8) = hk(j0:j0+8, i0:i0+8) + t0i(:,:,l,i)*exp(zi*dot_product(kp,r_nn(:,l)))
-          hk(j1:j1+8, i1:i1+8) = hk(j1:j1+8, i1:i1+8) + t0i(:,:,l,i)*exp(zi*dot_product(kp,r_nn(:,l)))
+    do j = 1, s%nAtoms
+      j_u0 = (j-1) * 2 * nOrb + 1
+      j_u1 = j_u0 + nOrb - 1
+      j_d0 = j_u0 + nOrb
+      j_d1 = j_d0 + nOrb - 1
+      do k = 1, s%nStages
+        current => s%Basis(i)%NeighborList(k,j)%head
+        do while(associated(current))
+          index = current%index
+          !tmp = s%Neighbors(index)%t0i(1:nOrb,1:nOrb,i)
+          !tmp = tmp * exp(zi*dot_product(kp,s%Neighbors(index)%CellVector))
+           hk(j_u0:j_u1, i_u0:i_u1) = hk(j_u0:j_u1, i_u0:i_u1) + s%Neighbors(index)%t0i(1:nOrb,1:nOrb,i)*exp(zi*dot_product(kp,s%Neighbors(index)%CellVector))
+           hk(j_d0:j_d1, i_d0:i_d1) = hk(j_d0:j_d1, i_d0:i_d1) + s%Neighbors(index)%t0i(1:nOrb,1:nOrb,i)*exp(zi*dot_product(kp,s%Neighbors(index)%CellVector))
+          !hk(j_u0:j_u1, i_u0:i_u1) = hk(j_u0:j_u1, i_u0:i_u1) + tmp(1:nOrb, 1:nOrb)
+          !hk(j_d0:j_d1, i_d0:i_d1) = hk(j_d0:j_d1, i_d0:i_d1) + tmp(1:nOrb, 1:nOrb)
+          current => current%next
         end do
-        if(j > 1) hk(i0:i0+17, j0:j0+17) = transpose(conjg(hk(j0:j0+17, i0:i0+17)))
-     end do
+      end do
+    end do
   end do
+
+  ! do i = 1, 18
+  !   do j = 1, 18
+  !     print *, i,j,hk(j,i)
+  !   end do
+  ! end do
+  ! stop
 
   return
 end subroutine hamiltk
@@ -56,47 +77,53 @@ end subroutine hamiltk
 !  1     2     3     4      Npl-1   Npl  Npl+1  Npl+2
 !         <-S-> <S-1>           <S-1> <-S->
 subroutine hamiltklinearsoc(kp,hk,vsoc)
-  use mod_tight_binding, only: lambda, ls, t0, t0i
-  use mod_parameters,    only: socscale, Npl_total
-  use mod_constants,     only: zero, zi
   use mod_f90_kind,      only: double
-  use mod_system,        only: npln, r_nn, l_nn
+  use mod_constants,     only: zero, zi
+  use mod_system,        only: s => sys
+  use AtomTypes, only: NeighborIndex
+  use TightBinding, only: nOrb
+  use mod_SOC,    only: socscale, ls
   use mod_magnet,        only: lb, sb
   implicit none
-  integer :: i,j,l, loc_pln
-  integer :: i0,i1,j0,j1
+  integer :: i, j, k
+  integer :: i_u0, i_u1, i_d0, i_d1, j_u0, j_u1, j_d0, j_d1
   real(double), intent(in)  :: kp(3)
-  complex(double) :: hee(18,18,Npl_total)
-  complex(double),dimension((Npl_total)*18,(Npl_total)*18),intent(out)  :: hk,vsoc
-
+  complex(double) :: hee(2*nOrb, 2*nOrb, s%nAtoms)
+  complex(double),dimension(s%nAtoms*2*nOrb,s%nAtoms*2*nOrb),intent(out)  :: hk,vsoc
+  type(NeighborIndex), pointer :: current
   hk = zero
   vsoc = zero
 
-  call U_matrix(hee)
+  call U_matrix(hee, s%nAtoms, nOrb)
 
   ! Mouting slab hamiltonian
-  do i=1,Npl_total
-     i0 = (i-1)*18+1
-     i1 = i0+9
+  do i=1,s%nAtoms
+    i_u0 = (i-1)*2*nOrb + 1
+    i_u1 = i_u0 + nOrb - 1
+    i_d0 = i_u0 + nOrb
+    i_d1 = i_d0 + nOrb - 1
 
-     loc_pln = npln
-     if( Npl_total < i + npln ) loc_pln = Npl_total - i + 1
+    hk(i_u0:i_u1, i_u0:i_u1) = s%Types(s%Basis(i)%Material)%onSite ! + sb hee +socscale*lambda*ls
+    hk(i_d0:i_d1, i_d0:i_d1) = s%Types(s%Basis(i)%Material)%onSite ! + sb hee +socscale*lambda*ls
 
-     hk(i0:i0+8,i0:i0+8) = t0(:,:,i) ! + sb hee +socscale*lambda*ls
-     hk(i1:i1+8,i1:i1+8) = t0(:,:,i) ! + sb hee +socscale*lambda*ls
+    hk(i_u0:i_d1, i_u0:i_d1) = hk(i_u0:i_d1, i_u0:i_d1) &
+                             + lb(:,:,i) + sb(:,:,i) + hee(:,:,i)
+    vsoc(i_u0:i_d1, i_u0:i_d1) = socscale * s%Types(s%Basis(i)%Material)%Lambda * ls
 
-     hk  (i0:i0+17, i0:i0+17) = hk(i0:i0+17, i0:i0+17) + lb(:,:,i) + sb(:,:,i) + hee(:,:,i)
-     vsoc(i0:i0+17, i0:i0+17) = socscale*lambda(i)*ls
-
-     do j = 1, loc_pln
-        j0 = i0 + 18 * (j-1)
-        j1 = i0 + 18 * (j-1) + 9
-        do l = l_nn(1,j), l_nn(1,j+1)-1
-           hk(j0:j0+8, i0:i0+8) = hk(j0:j0+8, i0:i0+8) + t0i(:,:,l,i)*exp(zi*dot_product(kp,r_nn(:,l)))
-           hk(j1:j1+8, i1:i1+8) = hk(j1:j1+8, i1:i1+8) + t0i(:,:,l,i)*exp(zi*dot_product(kp,r_nn(:,l)))
+    do j = 1, s%nAtoms
+      j_u0 = (j-1) * 2 * nOrb + 1
+      j_u1 = j_u0 + nOrb - 1
+      j_d0 = j_u0 + nOrb
+      j_d1 = j_d0 + nOrb - 1
+      do k = 1, s%nStages
+        current => s%Basis(i)%NeighborList(k,j)%head
+        do while(associated(current))
+          hk(j_u0:j_u1, i_u0:i_u1) = hk(j_u0:j_u1, i_u0:i_u1) + s%Neighbors(current%index)%t0i(:,:,i)*exp(zi*dot_product(kp,s%Neighbors(current%index)%CellVector))
+          hk(j_d0:j_d1, i_d0:i_d1) = hk(j_d0:j_d1, i_d0:i_d1) + s%Neighbors(current%index)%t0i(:,:,i)*exp(zi*dot_product(kp,s%Neighbors(current%index)%CellVector))
+          current => current%next
         end do
-        if(j > 1) hk(i0:i0+17, j0:j0+17) = transpose(conjg(hk(j0:j0+17, i0:i0+17)))
-     end do
+      end do
+    end do
   end do
   return
 end subroutine hamiltklinearsoc

@@ -1,0 +1,272 @@
+module SK_TightBinding
+  use mod_f90_kind, only: double
+  implicit none
+
+contains
+
+  subroutine get_parameter(s, fermi_layer, nOrb, Orbitals)
+    use mod_f90_kind, only: double
+    use AtomTypes, only: NeighborIndex
+    use mod_system, only: System
+    use mod_parameters, only: Ef, fermi_layer
+    implicit none
+    type(System), intent(inout) :: s
+    integer, intent(in) :: fermi_layer
+    integer, intent(in) :: nOrb
+    logical, dimension(9) :: Orbitals
+    integer :: i,j,k
+    real(double), dimension(:,:), allocatable :: bp
+    type(NeighborIndex), pointer :: current
+
+    allocate(bp(nOrb,nOrb))
+
+    do i = 1, s%nTypes
+      call read_Papa_2C_param(s%Types(i), s%nStages, nOrb)
+    end do
+
+    Ef = s%Types(fermi_layer)%FermiLevel
+    do i = 1, s%nTypes
+      do j = 1, nOrb
+        s%Types(i)%onSite(j,j) = s%Types(i)%onSite(j,j) - s%Types(i)%FermiLevel + Ef
+      end do
+    end do
+
+    do i = 1, s%nNeighbors
+      allocate(s%Neighbors(i)%t0i(nOrb,nOrb,s%nAtoms))
+      s%Neighbors(i)%t0i(:,:,:) = 0.d0
+    end do
+
+    do i = 1, s%nAtoms
+      do j = 1, s%nAtoms
+        do k = 1, s%nStages
+          current => s%Basis(i)%NeighborList(k,j)%head
+          do while(associated(current))
+            call set_hopping_matrix(s%Neighbors(current%index)%t0i(:,:,i), &
+                                    s%Neighbors(current%index)%dirCos, &
+                                    s%Types(s%Basis(i)%Material)%Hopping(:,k), &
+                                    s%Types(s%Basis(j)%Material)%Hopping(:,k), nOrb)
+            current => current%next
+          end do
+        end do
+      end do
+    end do
+  end subroutine get_parameter
+
+  subroutine set_hopping_matrix(t0i, dirCos, t1, t2, nOrb)
+    use mod_f90_kind, only: double
+    implicit none
+    real(double), dimension(nOrb,nOrb), intent(inout) :: t0i
+    real(double), dimension(3), intent(in) :: dirCos
+    real(double), dimension(10), intent(in) :: t1, t2
+    integer, intent(in) :: nOrb
+
+    integer :: i
+    real(double), dimension(10) :: mix
+
+    do i = 1, 10
+      mix(i) = sign(sqrt(abs(t1(i)) * abs(t2(i))), t1(i) + t2(i))
+    end do
+    call intd(mix(1), mix(7), mix(2), mix(3), mix(8), mix(9), mix(10), mix(4), mix(5), mix(6), dirCos, t0i)
+    return
+  end subroutine set_hopping_matrix
+
+  subroutine read_Papa_2C_param(material, nStages, nOrb)
+    use AtomTypes, only: AtomKind
+    implicit none
+    type(AtomKind), intent(inout) :: material
+    integer, intent(in) :: nStages
+    integer, intent(in) :: nOrb
+    real(double), dimension(3) :: dens
+    integer :: i, j, k, ios, line_count = 0
+    integer :: exponent(10)
+    character(200) :: line
+    character(50) :: words(10)
+    real(double), dimension(4) :: on_site
+
+    allocate(material%onSite(nOrb,nOrb))
+    allocate(material%Hopping(10,nStages))
+
+    open(unit=995594, file=trim(material%Name), status='old', iostat=ios)
+    if(ios /= 0) stop "[read_Papa_2C_param] Error occured"
+    line_count = 0
+
+    ! Counting lines to determine whether the parameter are available for nn_stages next neighbours
+    read(unit=995594, fmt='(A)', iostat=ios) line
+    do while (ios == 0)
+      if(len_trim(line) > 0 .and. len_trim(line) < 200) line_count = line_count + 1
+      read(unit=995594, fmt='(A)', iostat=ios) line
+    end do
+    rewind(995594)
+
+    if(line_count < 10*nStages) then
+      stop "[read_Papa_2C_param] Parameter File corrupt" !TODO : Abort + error message
+    end if
+
+    read(unit=995594, fmt='(A)', iostat = ios) line
+    read(unit=line, fmt=*, iostat=ios) material%LatticeConstant
+
+    read(unit=995594, fmt='(A)', iostat = ios) line
+    read(unit= line, fmt=*, iostat=ios) material%Lambda
+
+    read(unit=995594, fmt='(A)', iostat = ios) line
+    read(unit= line, fmt=*, iostat=ios) material%FermiLevel
+
+    read(unit=995594, fmt='(A)', iostat = ios) line
+    read(unit= line, fmt=*, iostat=ios) dens(1), dens(2), dens(3)
+    material%Occupation = dens(1)+dens(2)+dens(3)
+
+    !a0_param = a0_param / a0  ! Scaling law by Andersen et al. O.K. Andersen, O. Jepsen, Physica 91B, 317 (1977); O.K. Andersen, W. Close. H. Nohl, Phys. Rev. B17, 1209 (1978)
+                             ! Distance dependence of tight binding matrix elements is given by V = C * d^(-[l+l'+1])
+                             ! e.g for ss hopping distance dependence is d^-1, for sp hopping d^-2
+    !exponent = [1, 3, 3, 5, 5, 5, 2, 3, 4, 4]
+
+    do i = 1, 4
+      read(unit=995594, fmt='(A)', iostat = ios) line
+      read(unit=line, fmt=*, iostat=ios) (words(j), j=1,10)
+      read(unit=words(3), fmt=*, iostat=ios) on_site(i)
+    end do
+
+    material%onSite = 0.d0
+    material%onSite(1,1) = on_site(1)
+    do j=2,4
+       material%onSite(j,j) = on_site(2)
+    end do
+    do j=5,7
+       material%onSite(j,j) = on_site(3)
+    end do
+    do j=8,9
+       material%onSite(j,j) = on_site(4)
+    end do
+
+    do i = 1, nstages
+      do j = 1, 10
+        read(unit=995594, fmt='(A)', iostat = ios) line
+        read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
+        read(unit=words(4), fmt=*, iostat=ios) material%Hopping(j,i)
+        !TODO: move XXX hopping(j,i) = hopping(j,i) * (a0_param ** exponent(j)) ! Correction of hopping parameter by scaling law.
+      end do
+    end do
+
+    close(995594)
+  end subroutine
+
+  pure subroutine intd(sss,sps,pps,ppp,ss,ps,pp,ds,dp,dd,w,b)
+    use mod_f90_kind, only: double
+    use mod_constants, only: sq3
+    implicit none
+    real(double), intent(in)  :: sss,sps,pps,ppp,ss,ps,pp,ds,dp,dd,w(3)
+    real(double), intent(out) :: b(9,9)
+    real(double)  :: x,y,z,xx,xy,yy,yz,zz,zx,xxyy,yyzz,zzxx
+    real(double)  :: aux,aux1,aux2,aux3,aux4,r3,f1,f2,f3,f4,f5,f8,g1,g2
+    x=w(1)
+    y=w(2)
+    z=w(3)
+    xx=x*x
+    xy=x*y
+    yy=y*y
+    yz=y*z
+    zz=z*z
+    zx=z*x
+    xxyy=xx*yy
+    yyzz=yy*zz
+    zzxx=zz*xx
+    aux=pps-ppp
+    r3=sq3
+    aux1=r3*ss
+    f8=3.d0*zz-1.d0
+    f1=xx+yy
+    f2=xx-yy
+    f3=zz-.5d0*f1
+    g1=1.5d0*f2*ds
+    g2=r3*f3*ds
+    b(1,1)=sss
+    b(1,2)=x*sps
+    b(1,3)=y*sps
+    b(1,4)=z*sps
+    b(2,1)=-b(1,2)
+    b(2,2)=xx*pps+(1.d0-xx)*ppp
+    b(2,3)=xy*aux
+    b(2,4)=zx*aux
+    b(3,1)=-b(1,3)
+    b(3,2)=b(2,3)
+    b(3,3)=yy*pps+(1.d0-yy)*ppp
+    b(3,4)=yz*aux
+    b(4,1)=-b(1,4)
+    b(4,2)=b(2,4)
+    b(4,3)=b(3,4)
+    b(4,4)=zz*pps+(1.d0-zz)*ppp
+    b(1,5)=xy*aux1
+    b(1,6)=yz*aux1
+    b(1,7)=zx*aux1
+    b(1,8)=.5d0*f2*aux1
+    b(1,9)=.5d0*f8*ss
+    b(5,1)=b(1,5)
+    b(6,1)=b(1,6)
+    b(7,1)=b(1,7)
+    b(8,1)=b(1,8)
+    b(9,1)=b(1,9)
+    f4=.5d0*r3*f2*ps
+    f5=.5d0*f8*ps
+    aux2=r3*xx*ps+(1.d0-2.d0*xx)*pp
+    b(2,5)=aux2*y
+    b(2,6)=(r3*ps-2.d0*pp)*xy*z
+    b(2,7)=aux2*z
+    b(2,8)=(f4+(1.d0-f2)*pp)*x
+    b(2,9)=(f5-r3*zz*pp)*x
+    aux3=(r3*yy*ps+(1.d0-2.d0*yy)*pp)
+    b(3,5)=aux3*x
+    b(3,6)=aux3*z
+    b(3,7)=b(2,6)
+    b(3,8)=(f4-(1.d0+f2)*pp)*y
+    b(3,9)=(f5-r3*zz*pp)*y
+    aux4=r3*zz*ps+(1.d0-2.d0*zz)*pp
+    b(4,5)=b(2,6)
+    b(4,6)=aux4*y
+    b(4,7)=aux4*x
+    b(4,8)=(f4-f2*pp)*z
+    b(4,9)=(f5+r3*f1*pp)*z
+    b(5,2)=-b(2,5)
+    b(6,2)=-b(2,6)
+    b(7,2)=-b(2,7)
+    b(8,2)=-b(2,8)
+    b(9,2)=-b(2,9)
+    b(5,3)=-b(3,5)
+    b(6,3)=-b(3,6)
+    b(7,3)=-b(3,7)
+    b(8,3)=-b(3,8)
+    b(9,3)=-b(3,9)
+    b(5,4)=-b(4,5)
+    b(6,4)=-b(4,6)
+    b(7,4)=-b(4,7)
+    b(8,4)=-b(4,8)
+    b(9,4)=-b(4,9)
+    b(5,5)=3.d0*xxyy*ds+(f1-4.d0*xxyy)*dp+(zz+xxyy)*dd
+    b(5,6)=(3.d0*yy*ds+(1.d0-4.d0*yy)*dp+(yy-1.d0)*dd)*zx
+    b(5,7)=(3.d0*xx*ds+(1.d0-4.d0*xx)*dp+(xx-1.d0)*dd)*yz
+    b(5,8)=(g1-2.d0*f2*dp+.5d0*f2*dd)*xy
+    b(5,9)=(g2-2.d0*r3*zz*dp+.5d0*r3*(1.d0+zz)*dd)*xy
+    b(6,5)=b(5,6)
+    b(6,6)=3.d0*yyzz*ds+(yy+zz-4.d0*yyzz)*dp+(xx+yyzz)*dd
+    b(6,7)=(3.d0*zz*ds+(1.d0-4.d0*zz)*dp+(zz-1.d0)*dd)*xy
+    b(6,8)=(g1-(1.d0+2.d0*f2)*dp+(1.d0+.5d0*f2)*dd)*yz
+    b(6,9)=(g2+r3*(f1-zz)*dp-.5d0*r3*f1*dd)*yz
+    b(7,5)=b(5,7)
+    b(7,6)=b(6,7)
+    b(7,7)=3.d0*zzxx*ds+(zz+xx-4.d0*zzxx)*dp+(yy+zzxx)*dd
+    b(7,8)=(g1+(1.d0-2.d0*f2)*dp-(1.d0-.5d0*f2)*dd)*zx
+    b(7,9)=(g2+r3*(f1-zz)*dp-.5d0*r3*f1*dd)*zx
+    b(8,5)=b(5,8)
+    b(8,6)=b(6,8)
+    b(8,7)=b(7,8)
+    b(8,8)=.75d0*f2*f2*ds+(f1-f2*f2)*dp+(zz+.25d0*f2*f2)*dd
+    b(8,9)=.5d0*f2*g2-r3*zz*f2*dp+.25d0*r3*(1.d0+zz)*f2*dd
+    b(9,5)=b(5,9)
+    b(9,6)=b(6,9)
+    b(9,7)=b(7,9)
+    b(9,8)=b(8,9)
+    b(9,9)=f3*f3*ds+3.d0*zz*f1*dp+.75d0*f1*f1*dd
+
+    return
+  end subroutine intd
+
+end module SK_TightBinding

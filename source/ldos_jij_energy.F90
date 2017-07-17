@@ -1,10 +1,11 @@
 !   Calculates spin-resolved LDOS and energy-dependence of exchange interactions
 subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
-  use mod_f90_kind
-  use mod_constants
+  use mod_f90_kind, only: double
+  use mod_constants, only: pi, zero, zum, pauli_dorb
   use mod_parameters
   use mod_progress
-  use mod_system, only: nkpt, kbz, wkbz
+  use mod_system, only: s => sys
+  use TightBinding, only: nOrb
   use mod_magnet, only: hdel,mz
   use mod_mpi_pars
 !$  use omp_lib
@@ -13,12 +14,12 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
   integer             :: i,j,mu,nu,iz,alpha
   real(double)        :: kp(3),Jijkan(nmaglayers,3,3),Jijk(nmaglayers,nmaglayers,3,3)
   real(double),intent(in)     :: e
-  real(double),intent(out)    :: ldosu(Npl,9),ldosd(Npl,9)
+  real(double),intent(out)    :: ldosu(s%nAtoms, nOrb),ldosd(s%nAtoms, nOrb)
   real(double),intent(out)    :: Jijint(nmaglayers,nmaglayers,3,3)
-  complex(double)     :: paulimatan(3,3,18,18)
-  complex(double),dimension(Npl,Npl,18,18)    :: gf
-  complex(double),dimension(Npl,9)            :: gfdiagu,gfdiagd
-  complex(double),dimension(18,18)            :: gij,gji,temp1,temp2,paulia,paulib
+  complex(double)     :: paulimatan(3,3,2*nOrb, 2*nOrb)
+  complex(double),dimension(s%nAtoms, s%nAtoms, 2*nOrb, 2*nOrb) :: gf
+  complex(double),dimension(s%nAtoms, nOrb) :: gfdiagu,gfdiagd
+  complex(double),dimension(2*nOrb, 2*nOrb) :: gij,gji,temp1,temp2,paulia,paulib
 
 ! (x,y,z)-tensor formed by Pauli matrices to calculate anisotropy term (when i=j)
   paulimatan = zero
@@ -35,7 +36,7 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
 
 !$omp parallel default(none) &
 !$omp& private(mythread,iz,kp,gf,gij,gji,paulia,paulib,i,j,mu,nu,alpha,gfdiagu,gfdiagd,Jijk,Jijkan,temp1,temp2) &
-!$omp& shared(lverbose,kbz,nkpt,wkbz,e,eta,Npl,hdel,mz,nmaglayers,mmlayermag,pauli_dorb,paulimatan,ldosu,ldosd,Jijint,nthreads,outputunit_loop)
+!$omp& shared(lverbose,s,e,eta,hdel,mz,nmaglayers,mmlayermag,pauli_dorb,paulimatan,ldosu,ldosd,Jijint,nthreads,outputunit_loop)
 !$  mythread = omp_get_thread_num()
 !$  if(mythread==0) then
 !$    nthreads = omp_get_num_threads()
@@ -43,11 +44,11 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
 !$  end if
 
 !$omp do reduction(+:ldosu,ldosd,Jijint)
-  kpoints: do iz=1,nkpt
+  kpoints: do iz=1,s%nkpt
 !$  if((mythread==0)) then
-      if(lverbose) call progress_bar(outputunit_loop,"kpoints",iz,nkpt)
+      if(lverbose) call progress_bar(outputunit_loop,"kpoints",iz,s%nkpt)
 !$  end if
-    kp = kbz(:,iz)
+    kp = s%kbz(:,iz)
 
     ! Green function on energy E + ieta, and wave vector kp
     call green(e,eta,kp,gf)
@@ -60,34 +61,34 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
       gij = gf(mmlayermag(i)-1,mmlayermag(j)-1,:,:)
       paulib = pauli_dorb(nu,:,:)
       gji = gf(mmlayermag(j)-1,mmlayermag(i)-1,:,:)
-      call zgemm('n','n',18,18,18,zum,paulia,18,gij,18,zero,temp1,18)
-      call zgemm('n','n',18,18,18,zum,temp1,18,paulib,18,zero,temp2,18)
-      call zgemm('n','n',18,18,18,zum,temp2,18,gji,18,zero,temp1,18)
-      do alpha = 1,18
+      call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,paulia,2*nOrb,gij,   2*nOrb,zero,temp1,2*nOrb)
+      call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,temp1, 2*nOrb,paulib,2*nOrb,zero,temp2,2*nOrb)
+      call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,temp2, 2*nOrb,gji,   2*nOrb,zero,temp1,2*nOrb)
+      do alpha = 1, 2*nOrb
         Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + real(temp1(alpha,alpha))
       end do
 
-      Jijk(i,j,mu,nu) = -hdel(mmlayermag(i)-1)*hdel(mmlayermag(j)-1)*Jijk(i,j,mu,nu)*wkbz(iz)/(mz(mmlayermag(i)-1)*mz(mmlayermag(j)-1))
+      Jijk(i,j,mu,nu) = -hdel(mmlayermag(i)-1)*hdel(mmlayermag(j)-1)*Jijk(i,j,mu,nu)*s%wkbz(iz)/(mz(mmlayermag(i)-1)*mz(mmlayermag(j)-1))
 
       ! Anisotropy (on-site) term
       if(i==j) then
         gij = gf(mmlayermag(i)-1,mmlayermag(i)-1,:,:)
         paulia = paulimatan(mu,nu,:,:)
-        call zgemm('n','n',18,18,18,zum,gij,18,paulia,18,zero,temp1,18)
+        call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,gij,2*nOrb,paulia,2*nOrb,zero,temp1,2*nOrb)
 
-        do alpha = 1,18
+        do alpha = 1,2*nOrb
           Jijkan(i,mu,nu) = Jijkan(i,mu,nu) + real(temp1(alpha,alpha))
         end do
 
-        Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + hdel(mmlayermag(i)-1)*Jijkan(i,mu,nu)*wkbz(iz)/(mz(mmlayermag(i)-1)**2)
+        Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + hdel(mmlayermag(i)-1)*Jijkan(i,mu,nu)*s%wkbz(iz)/(mz(mmlayermag(i)-1)**2)
       end if
     end do ; end do ; end do ; end do
 
     ! Density of states
-    do mu=1,9; do i=1,Npl
-      nu=mu+9
-      gfdiagu(i,mu) = - aimag(gf(i,i,mu,mu))*wkbz(iz)
-      gfdiagd(i,mu) = - aimag(gf(i,i,nu,nu))*wkbz(iz)
+    do mu=1,nOrb; do i=1,s%nAtoms
+      nu=mu+nOrb
+      gfdiagu(i,mu) = - aimag(gf(i,i,mu,mu))*s%wkbz(iz)
+      gfdiagd(i,mu) = - aimag(gf(i,i,nu,nu))*s%wkbz(iz)
     end do ; end do
 
     ldosu = ldosu + gfdiagu

@@ -1,13 +1,12 @@
 ! Calculates the full 3x3 J tensor (including coupling, DMI and anisotropic pair interactions)
-  subroutine jij_energy(Jij)
-    use mod_f90_kind
-    use mod_constants, only: pi
-    use mod_parameters
-    use mod_magnet
-    use mod_generate_epoints
-    use mod_mpi_pars
-    use mod_progress
-    use MPI
+subroutine jij_energy(Jij)
+  use mod_f90_kind, only: double
+  use mod_constants, only: pi
+  use mod_parameters, only: lverbose, host, outputunit, nmaglayers, Ef, pn1
+  use mod_generate_epoints, only: y, wght
+  use mod_mpi_pars
+  use mod_progress
+  implicit none
   integer         :: i
   real(double),dimension(nmaglayers,nmaglayers,3,3) :: Jijint
   real(double),dimension(nmaglayers,nmaglayers,3,3),intent(out) :: Jij

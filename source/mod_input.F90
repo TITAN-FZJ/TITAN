@@ -82,12 +82,10 @@ contains
     nlines = 0
 
     val = " "
-    print *, trim(filename)
     open(unit=iunit, file=trim(filename), status='old', iostat=eof)
     if(eof /= 0) return
     do while(eof == 0)
        read(unit=iunit, fmt='(A)', iostat=eof) line
-       print *, line
        if(line(1:2) /= "->") cycle
        nlines = nlines + 1
        eq_pos = index(line, "=")

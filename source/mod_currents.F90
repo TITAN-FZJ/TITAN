@@ -87,37 +87,18 @@ contains
 
   ! This subroutine opens and closes all the files needed for the currents
   subroutine openclose_currents_files(iflag)
-    use mod_parameters
+    use mod_parameters, only: fieldpart, energypart
     use mod_mpi_pars
+    use mod_SOC, only: SOCc, socpart
     use mod_system, only: nkpt, n0sc1, n0sc2
+    use electricfield, only: strElectricField
     implicit none
 
     character(len=500)  :: varm
-    character(len=50)   :: fieldpart,socpart
-    character(len=1)    :: SOCc
     character(len=5)    :: folder(7)
     character(len=3)    :: filename(7)
     integer :: i,j,iw,neighbor,iflag,err,errt=0
 
-    fieldpart = ""
-    socpart   = ""
-    if(SOC) then
-      if(llinearsoc) then
-        SOCc = "L"
-      else
-        SOCc = "T"
-      end if
-      if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
-    else
-      SOCc = "F"
-    end if
-    if(lfield) then
-      write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
-      if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
-      if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
-      if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
-      if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
-    end if
 
     folder(1) = "CC"
     folder(2) = "SC"
@@ -144,14 +125,14 @@ contains
       ! Header for currents per plane per neighbor
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 5000+(i-1)*n0sc2*7+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,i,trim(energypart),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
 
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,renormnb,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,i,trim(energypart),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
@@ -160,14 +141,14 @@ contains
       ! Header for total currents for each neighbor direction
       do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 7000+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,trim(energypart),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
 
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,renormnb,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,trim(energypart),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
@@ -176,7 +157,7 @@ contains
       ! Header for DC spin current
       do i=1,Npl ; do j=2,4
         iw = 8100+(i-1)*3+j-1
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'pumpdc_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(3)),filename(j),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'pumpdc_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(3)),filename(j),i,trim(energypart),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#      energy     ,    ',a,'pumpdc   ')") filename(j)
         close(unit=iw)
@@ -186,12 +167,12 @@ contains
       ! Currents per plane per neighbor
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 5000+(i-1)*n0sc2*7+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,i,trim(energypart),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,renormnb,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,i,trim(energypart),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
         end if
@@ -200,12 +181,12 @@ contains
       ! Total currents for each neighbor direction
       do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 7000+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,trim(energypart),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,renormnb,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),neighbor,trim(energypart),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
         end if
@@ -214,7 +195,7 @@ contains
       ! DC spin current
       do i=1,Npl ; do j=2,4
         iw = 8100+(i-1)*3+j-1
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'pumpdc_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(3)),filename(j),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'pumpdc_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(3)),filename(j),i,trim(energypart),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
       end do ; end do
@@ -262,7 +243,7 @@ contains
   ! Some information is also written on the screen
   subroutine write_currents(e)
     use mod_f90_kind
-    use mod_parameters, only: Npl,renorm,outputunit_loop,lwriteonscreen,mmlayermag
+    use mod_parameters, only: renorm,outputunit_loop,lwriteonscreen,mmlayermag
     use mod_magnet, only: mvec_spherical
     use mod_system, only: n0sc1, n0sc2
     implicit none
@@ -395,40 +376,17 @@ contains
 
   ! This subroutine opens and closes all the files needed for the currents
   subroutine openclose_dc_currents_files(iflag)
-    use mod_parameters
+    use mod_parameters, only: dcfieldpart, energypart
     use mod_mpi_pars
+    use mod_SOC, only: SOCc, socpart
     use mod_system, only:nkpt, n0sc1, n0sc2
+    use electricfield, only: strElectricField
     implicit none
 
     character(len=500)  :: varm
-    character(len=50)   :: fieldpart,socpart
-    character(len=1)    :: SOCc
     character(len=5)    :: folder(7)
     character(len=3)    :: filename(7)
     integer :: i,j,iw,neighbor,iflag,err,errt=0
-
-    fieldpart = ""
-    socpart   = ""
-    if(SOC) then
-      if(llinearsoc) then
-        SOCc = "L"
-      else
-        SOCc = "T"
-      end if
-      if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
-    else
-      SOCc = "F"
-    end if
-
-    if(dcfield_dependence/=7) then
-      if((dcfield_dependence/=1).and.(dcfield_dependence/=4).and.(dcfield_dependence/=5)) write(fieldpart,"(a,'_hwa=',es9.2)") trim(fieldpart),hwa
-      if((dcfield_dependence/=2).and.(dcfield_dependence/=4).and.(dcfield_dependence/=6)) write(fieldpart,"(a,'_hwt=',f5.2)") trim(fieldpart),hwt
-      if((dcfield_dependence/=3).and.(dcfield_dependence/=5).and.(dcfield_dependence/=6)) write(fieldpart,"(a,'_hwp=',f5.2)") trim(fieldpart),hwp
-    end if
-    if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
-    if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
-    if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
-    if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
 
     folder(1) = "CC"
     folder(2) = "SC"
@@ -455,14 +413,14 @@ contains
       ! Header for currents per plane per neighbor
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 50000+(i-1)*n0sc2*7+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,trim(energypart),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,' real part of ',a,' ,  imag part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
 
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,renormnb,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,trim(energypart),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#',a,' real part of ',a,' ,  imag part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
@@ -471,14 +429,14 @@ contains
       ! Header for total currents for each neighbor direction
       do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 70000+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,trim(energypart),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,' real part of ',a,' ,  imag part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
 
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,renormnb,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,trim(energypart),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#',a,' real part of ',a,' ,  imag part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
@@ -488,7 +446,7 @@ contains
       ! Header for DC spin current
       do i=1,Npl ; do j=2,4
         iw = 81000+(i-1)*3+j-1
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'pumpdc_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(3)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'pumpdc_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(3)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(energypart),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,'    ',a,'pumpdc    , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j)
         close(unit=iw)
@@ -498,12 +456,12 @@ contains
       ! Currents per plane per neighbor
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 50000+(i-1)*n0sc2*7+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,trim(energypart),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,renormnb,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,trim(energypart),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
         end if
@@ -512,12 +470,12 @@ contains
       ! Total currents for each neighbor direction
       do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 70000+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,trim(energypart),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,renormnb,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,trim(energypart),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
         end if
@@ -526,7 +484,7 @@ contains
       ! DC spin current
       do i=1,Npl ; do j=2,4
         iw = 81000+(i-1)*3+j-1
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'pumpdc_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(3)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'pumpdc_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(3)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(energypart),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
       end do ; end do

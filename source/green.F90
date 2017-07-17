@@ -6,39 +6,41 @@
 subroutine green(er,ei,kp,gf)
   use mod_f90_kind, only: double
   use mod_constants, only: zero
-  use mod_parameters, only: Npl, Npl_total, offset
+  use mod_System, only: s => sys
+  use mod_parameters, only: offset
+  use TightBinding, only: nOrb
   implicit none
   integer     :: i,j,i0,i1,j0,j1,d
   real(double), intent(in)  :: er,ei,kp(3)
   complex(double) :: ec
-  complex(double),dimension(Npl_total*18,Npl_total*18) :: gslab,hk
-  complex(double),dimension(Npl,Npl,18,18),intent(out)  :: gf
+  complex(double),dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb) :: gslab,hk
+  complex(double),dimension(s%nAtoms, s%nAtoms, 2*nOrb, 2*nOrb), intent(out)  :: gf
 
-  d=(Npl_total)*18
+  d = s%nAtoms * 2 * nOrb
 
   ec    = cmplx(er,ei,double)
 
   gslab = zero
-  do i=1,d
-   gslab(i,i) = ec
+  do i = 1, d
+    gslab(i,i) = ec
   end do
 
   call hamiltk(kp,hk)
 
   gslab = gslab - hk
 
-  call invers(gslab,d)
+  call invers(gslab, d)
 
   ! Put the slab Green's function [A(Npl*18,Npl*18)] in the A(i,j,mu,nu) form
-    do j=1, Npl
-      do i=1, Npl
-        i0 = (i-1+offset)*18 + 1
-        i1 = i0 + 17
-        j0 = (j-1+offset)*18 + 1
-        j1 = j0 + 17
-        gf(i,j,:,:) = gslab(i0:i1,j0:j1)
-      end do
+  do j = 1, s%nAtoms
+    do i = 1, s%nAtoms
+      i0 = (i-1+offset) * 2 * nOrb + 1
+      i1 = i0 + 2 * nOrb - 1
+      j0 = (j-1+offset) * 2 * nOrb + 1
+      j1 = j0 + 2 * nOrb - 1
+      gf(i,j,:,:) = gslab(i0:i1,j0:j1)
     end do
+  end do
 
   return
 end subroutine green
@@ -50,18 +52,20 @@ end subroutine green
 !  1     2     3       Npl-2 Npl-1  Npl
 !   <-1-> <-2->           <-2-> <-1->
 subroutine greenlinearsoc(er,ei,kp,g0,g0vsocg0)
-  use mod_f90_kind
-  use mod_constants
-  use mod_parameters
-  use mod_magnet
+  use mod_f90_kind, only: double
+  use mod_constants, only: zero, zum
+  use mod_parameters, only: offset
+  use TightBinding, only: nOrb
+  use mod_System, only: s => sys
+  !use mod_magnet, only:
   implicit none
   integer     :: i,j,i0,i1,j0,j1,d
   real(double), intent(in)  :: er,ei,kp(3)
   complex(double) :: ec
-  complex(double),dimension(Npl_total*18,Npl_total*18)  :: gslab0,hk,vsoc,temp,temp2
-  complex(double),dimension(Npl,Npl,18,18),intent(out)  :: g0,g0vsocg0
+  complex(double), dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb)  :: gslab0,hk,vsoc,temp,temp2
+  complex(double), dimension(s%nAtoms,s%nAtoms,2*nOrb,2*nOrb), intent(out)  :: g0,g0vsocg0
 
-  d = Npl_total*18
+  d = s%nAtoms*2*nOrb
 
   ec    = cmplx(er,ei,double)
 
@@ -81,12 +85,12 @@ subroutine greenlinearsoc(er,ei,kp,g0,g0vsocg0)
   call zgemm('n','n',d,d,d,zum,gslab0,d,temp,d,zero,temp2,d) ! temp2 = gslab0*vsoc*gslab0
 
   ! Put the slab Green's function [A(Npl*18,Npl*18)] in the A(i,j,mu,nu) form
-  do j=1,Npl
-    do i=1,Npl
-      i0 = (i-1+offset)*18+1
-      i1 = i0+17
-      j0 = (j-1+offset)*18+1
-      j1 = j0+17
+  do j=1,s%nAtoms
+    do i=1,s%nAtoms
+      i0 = (i-1+offset)*2*nOrb+1
+      i1 = i0+2*nOrb-1
+      j0 = (j-1+offset)*2*nOrb+1
+      j1 = j0+2*nOrb-1
       g0(i,j,:,:) = gslab0(i0:i1,j0:j1)
       g0vsocg0(i,j,:,:) = temp2(i0:i1,j0:j1)
     end do
@@ -101,18 +105,19 @@ end subroutine greenlinearsoc
 !  1     2     3       Npl-2 Npl-1  Npl
 !   <-1-> <-2->           <-2-> <-1->
 subroutine greenlineargfsoc(er,ei,kp,gf)
-  use mod_f90_kind
-  use mod_constants
-  use mod_parameters
-  use mod_magnet
+  use mod_f90_kind, only: double
+  use mod_constants, only: zero, zum
+  use mod_parameters, only: offset
+  use mod_System, only: s => sys
+  use TightBinding, only: nOrb
   implicit none
   integer     :: i,j,i0,i1,j0,j1,d
   real(double), intent(in)  :: er,ei,kp(3)
   complex(double) :: ec
-  complex(double),dimension(Npl_total*18,Npl_total*18)  :: gslab,gslab0,hk,vsoc,temp
-  complex(double),dimension(Npl,Npl,18,18),intent(out)  :: gf
+  complex(double),dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb)  :: gslab,gslab0,hk,vsoc,temp
+  complex(double),dimension(s%nAtoms,s%nAtoms, 2*nOrb, 2*nOrb),intent(out)  :: gf
 
-  d = Npl_total*18
+  d = s%nAtoms*2*nOrb
 
   ec    = cmplx(er,ei,double)
 
@@ -134,12 +139,12 @@ subroutine greenlineargfsoc(er,ei,kp,gf)
   call zgemm('n','n',d,d,d,zum,gslab0,d,temp,d,zero,gslab,d) ! gslab = gslab0(1+vsoc*gslab0)
 
   ! Put the slab Green's function [A(Npl*18,Npl*18)] in the A(i,j,mu,nu) form
-  do j=1,Npl
-    do i=1,Npl
-      i0 = (i-1+offset)*18+1
-      i1 = i0+17
-      j0 = (j-1+offset)*18+1
-      j1 = j0+17
+  do j=1,s%nAtoms
+    do i=1,s%nAtoms
+      i0 = (i-1+offset)*2*nOrb+1
+      i1 = i0+2*nOrb-1
+      j0 = (j-1+offset)*2*nOrb+1
+      j1 = j0+2*nOrb-1
       gf(i,j,:,:) = gslab(i0:i1,j0:j1)
     end do
   end do
@@ -152,20 +157,20 @@ end subroutine greenlineargfsoc
 !  1     2     3       Npl-2 Npl-1  Npl
 !   <-1-> <-2->           <-2-> <-1->
 subroutine green_es(er,ei,kp,gf)
-  use mod_f90_kind
-  use mod_constants
-  use mod_parameters
-  use mod_magnet
+  use mod_f90_kind, only: double
+  use mod_constants, only: zero, zum
+  use mod_System, only: s => sys
+  use TightBinding, only: nOrb
   implicit none
   integer     :: i,j,i0,i1,j0,j1
   real(double), intent(in)  :: er,ei,kp(3)
   complex(double) :: ec
-  complex(double),dimension(Npl_total*18,Npl_total*18)  :: gslab,identes,hk
-  complex(double),dimension(Npl_total,Npl_total,18,18),intent(out)  :: gf
+  complex(double),dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb)  :: gslab,identes,hk
+  complex(double),dimension(s%nAtoms, s%nAtoms, 2*nOrb, 2*nOrb),intent(out)  :: gf
 
   ec    = cmplx(er,ei,double)
   identes     = zero
-  do i=1,Npl_total*18
+  do i=1,s%nAtoms*2*nOrb
    identes(i,i) = zum
   end do
 
@@ -175,15 +180,15 @@ subroutine green_es(er,ei,kp,gf)
 
   gslab = ec*identes - hk
 
-  call invers(gslab,Npl_total*18)
+  call invers(gslab,s%nAtoms*2*nOrb)
 
   ! Put the slab Green's function [A(Npl*18,Npl*18)] in the A(i,j,mu,nu) form
-  do j=1,Npl_total
-    do i=1,Npl_total
-      i0 = (i-1)*18+1
-      i1 = i0+17
-      j0 = (j-1)*18+1
-      j1 = j0+17
+  do j=1,s%nAtoms
+    do i=1,s%nAtoms
+      i0 = (i-1)*2*nOrb+1
+      i1 = i0+2*nOrb-1
+      j0 = (j-1)*2*nOrb+1
+      j1 = j0+2*nOrb-1
       gf(i,j,:,:) = gslab(i0:i1,j0:j1)
     end do
   end do

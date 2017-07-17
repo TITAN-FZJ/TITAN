@@ -41,28 +41,46 @@ contains
     return
   end subroutine
 
-  subroutine setup_MPI_grid(itype, pn1, npt1, pnt)
+  ! Wrapper function for MPI Abort
+  subroutine abortProgram(str)
+    use mod_parameters, only: outputunit
     implicit none
-    integer, intent(in) :: itype, pn1, npt1, pnt
+    character(len=*), intent(in) :: str
+
+    write(outputunit,"(a)") str
+    call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+
+    return
+  end subroutine abortProgram
+
+
+  subroutine setup_MPI_grid(itype, pn1, npt1, pnt, total_hw_npt1, npts, deltae, emin, emax)
+    use mod_f90_kind, only: double
+    implicit none
+    integer, intent(in) :: itype, pn1, pnt, total_hw_npt1
+    real(double), intent(in) :: emin, emax
+    integer, intent(inout) :: npts, npt1
+    real(double), intent(inout) :: deltae
     integer :: ierr
     if((itype==1).or.(itype==6)) then ! Create column for field loop (no energy integration)
-      call build_cartesian_grid_field(pn1)
+      call build_cartesian_grid_field(pn1, total_hw_npt1, npt1)
     end if
     if( ((itype>=3).and.(itype<=5)) .or. itype==0) then ! Create column for field loop (no energy integration)
-      call build_cartesian_grid_field(1)
+      call build_cartesian_grid_field(1, total_hw_npt1, npt1)
     end if
     if((itype>=7).and.(itype<=8)) then ! Create matrix for energy dependence and integration
-      call build_cartesian_grid()
-      call build_cartesian_grid_field(npt1*pnt)
+      call build_cartesian_grid(total_hw_npt1, pnt, npt1, npts, deltae, emin, emax)
+      call build_cartesian_grid_field(npt1*pnt, total_hw_npt1, npt1)
     end if
     if(itype==9) then ! Create matrix for dclimit
-      call build_cartesian_grid_field(pnt)
+      call build_cartesian_grid_field(pnt, total_hw_npt1, npt1)
       call MPI_COMM_DUP(MPI_Comm_Col_hw,MPI_Comm_Col,ierr)
       call MPI_COMM_DUP(MPI_Comm_Row_hw,MPI_Comm_Row,ierr)
       myrank_col = myrank_col_hw
       myrank_row = myrank_row_hw
     end if
   end subroutine setup_MPI_grid
+
   ! Bidimensional array should look like:
   !    myrank_col: / myrank_row: 0 1 2 3 ... pnt-1 (number inside a row)
   !        0
@@ -71,11 +89,17 @@ contains
   !       ...
   !     MPIpts-1
   !(number inside a col)
-  subroutine build_cartesian_grid()
-    use mod_parameters, only: total_hw_npt1, pnt, npt1, npts, deltae, emin, emax, outputunit
+  subroutine build_cartesian_grid(total_hw_npt1, pnt, npt1, npts, deltae, emin, emax)
+    use mod_f90_kind, only: double
+    use mod_parameters, only: outputunit
     implicit none
+    integer, intent(in) :: total_hw_npt1, pnt
+    real(double), intent(in) :: emin, emax
+    integer, intent(inout) :: npts, npt1
+    real(double), intent(inout) :: deltae
     logical :: lreorder,lperiodic(2),lrow(2),lcol(2)
     integer :: MPIdims(2)
+
 
     MPIpts  = ceiling(dble(numprocs)/dble(pnt)) ! Number of rows to be used
     MPIdims = [MPIpts,pnt]
@@ -164,12 +188,12 @@ contains
   end subroutine build_cartesian_grid
 
 
-  subroutine build_cartesian_grid_field(elements_in_a_row)
-    use mod_parameters, only: total_hw_npt1,outputunit,npt1
+  subroutine build_cartesian_grid_field(elements_in_a_row, total_hw_npt1, npt1)
+    use mod_parameters, only: outputunit
     implicit none
     logical :: lreorder,lperiodic(2),lrow(2),lcol(2)
     integer :: MPIdims(2)
-    integer, intent(in) :: elements_in_a_row
+    integer, intent(in) :: elements_in_a_row, total_hw_npt1, npt1
 
     MPIpts_hw  = ceiling(dble(numprocs)/dble(elements_in_a_row)) ! Number of rows to be used
     MPIdims    = [MPIpts_hw,elements_in_a_row]
