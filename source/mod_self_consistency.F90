@@ -95,9 +95,9 @@ contains
       end do
 
       if(lfield .and. magaxis == 0) then
-        mx(i) = mz(i)*sin(hw_list(hw_count,2)*pi)*cos(hw_list(hw_count,3)*pi)
-        my(i) = mz(i)*sin(hw_list(hw_count,2)*pi)*sin(hw_list(hw_count,3)*pi)
-        mz(i) = mz(i)*cos(hw_list(hw_count,2)*pi)
+        mx = mz*sin(hw_list(hw_count,2)*pi)*cos(hw_list(hw_count,3)*pi)
+        my = mz*sin(hw_list(hw_count,2)*pi)*sin(hw_list(hw_count,3)*pi)
+        mz = mz*cos(hw_list(hw_count,2)*pi)
       end if
       mp = cmplx(mx,my,double)
 
