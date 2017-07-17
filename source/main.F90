@@ -93,7 +93,7 @@ program TITAN
   ! else
   !   Npl_input = Npl
   ! end if
-  ! write(Npl_folder,fmt="(i0,'Npl')") Npl_input
+  write(Npl_folder,fmt="(i0,'Npl')") sys%nAtoms
   ! if(tbmode == 2) call define_system()
 
   !---------------------- Tight Binding parameters -----------------------
