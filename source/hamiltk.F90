@@ -13,13 +13,12 @@ subroutine hamiltk(kp,hk)
   use mod_magnet, only: lb, sb
   use mod_SOC, only: ls, socscale
   implicit none
-  integer :: i, j, k, l
+  integer :: i, j, k
   integer :: i_u0, i_u1, i_d0, i_d1, j_u0, j_u1, j_d0, j_d1
   integer :: index
   real(double), intent(in) :: kp(3)
   complex(double) :: hee(2*nOrb, 2*nOrb, s%nAtoms)
   complex(double), dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb), intent(out) :: hk
-  complex(double), dimension(nOrb, nOrb) :: tmp
   type(NeighborIndex), pointer :: current
   hk = zero
 
