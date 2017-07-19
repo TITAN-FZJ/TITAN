@@ -187,56 +187,65 @@ contains
     spin(4) = "mm"
 
     if(iflag==0) then
-      do sigma=1,4 ; do j=1,s%nAtoms ; do i=1,s%nAtoms
-        iw = 1000+(sigma-1)*s%nAtoms*s%nAtoms+(j-1)*s%nAtoms+i
-        ! RPA SUSCEPTIBILITIES
-        if(.not.lhfresponses) then
-          write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a2,'/chi_',i0,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),i,j,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-          open (unit=iw, file=varm, status='replace', form='formatted')
-          write(unit=iw, fmt="('#     energy    ,  real part of chi ',a,'  ,  imaginary part of chi ',a,'  ,  amplitude of chi ',a,'  ')") spin(sigma),spin(sigma),spin(sigma)
-          close(unit=iw)
-        end if
-        iw = iw+1000
-        ! HF SUSCEPTIBILITIES
-        write(varm,"('./results/',a1,'SOC/',a,'/HF/',a2,'/chihf_',i0,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),i,j,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-        open (unit=iw, file=varm, status='replace', form='formatted')
-        write(unit=iw, fmt="('#     energy    ,  real part of chi ',a,' HF ,  imaginary part of chi ',a,' HF  ,  amplitude of chi ',a,' HF  ')") spin(sigma),spin(sigma),spin(sigma)
-        close(unit=iw)
-      end do ; end do ; end do
+      do sigma=1,4
+        do j=1,s%nAtoms
+          do i=1,s%nAtoms
+            iw = 1000 + (sigma-1) * s%nAtoms * s%nAtoms + (j-1) * s%nAtoms + i
+            ! RPA SUSCEPTIBILITIES
+            if(.not.lhfresponses) then
+              write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a2,'/chi_',i0,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),i,j,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+              open (unit=iw, file=varm, status='replace', form='formatted')
+              write(unit=iw, fmt="('#     energy    ,  real part of chi ',a,'  ,  imaginary part of chi ',a,'  ,  amplitude of chi ',a,'  ')") spin(sigma),spin(sigma),spin(sigma)
+              !close(unit=iw)
+            end if
+            iw = iw+1000
+            ! HF SUSCEPTIBILITIES
+            write(varm,"('./results/',a1,'SOC/',a,'/HF/',a2,'/chihf_',i0,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),i,j,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+            open (unit=iw, file=varm, status='replace', form='formatted')
+            write(unit=iw, fmt="('#     energy    ,  real part of chi ',a,' HF ,  imaginary part of chi ',a,' HF  ,  amplitude of chi ',a,' HF  ')") spin(sigma),spin(sigma),spin(sigma)
+            !close(unit=iw)
+          end do
+        end do
+      end do
       ! RPA DIAGONALIZATION
       if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
         write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_eval',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
         open (unit=1990, file=varm,status='replace', form='formatted')
         write(unit=1990,fmt="('#     energy    ,  real part of 1st eigenvalue  ,  imaginary part of 1st eigenvalue  ,  real part of 2nd eigenvalue  ,  imaginary part of 2nd eigenvalue  , ... ')")
-        close (unit=1990)
+        !close (unit=1990)
         do i=1,nmaglayers
           write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_evec',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
           open (unit=1990+i, file=varm,status='replace', form='formatted')
           write(unit=1990+i,fmt="('#     energy    ,  real part of 1st component  ,  imaginary part of 1st component  ,  real part of 2nd component  ,  imaginary part of 2nd component  , ...   ')")
-          close (unit=1990+i)
+          !close (unit=1990+i)
         end do
       end if
       if(ltestcharge) then
         write(varm, "('./results/',a1,'SOC/',a,'/RPA/testcharge',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
         open (unit=17964, file=varm, status='replace', form='formatted', iostat=err)
-        close(unit=17964)
+        !close(unit=17964)
       end if
 
     else if(iflag==1) then
-      do sigma=1,4 ; do j=1,s%nAtoms ; do i=1,s%nAtoms
-        iw = 1000+(sigma-1)*s%nAtoms*s%nAtoms+(j-1)*s%nAtoms+i
-        ! RPA SUSCEPTIBILITIES
-        if(.not.lhfresponses) then
-          write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a2,'/chi_',i0,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),i,j,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-          open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
-          errt = errt + err
-        end if
-        iw = iw+1000
-        ! HF SUSCEPTIBILITIES
-        write(varm,"('./results/',a1,'SOC/',a,'/HF/',a2,'/chihf_',i0,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),i,j,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-        open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
-        errt = errt + err
-      end do ; end do ; end do
+      do sigma=1,4
+        do j=1,s%nAtoms
+          do i=1,s%nAtoms
+            iw = 1000 + (sigma-1) * s%nAtoms * s%nAtoms + (j-1) * s%nAtoms + i
+
+            ! RPA SUSCEPTIBILITIES
+            if(.not.lhfresponses) then
+              write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a2,'/chi_',i0,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),i,j,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+              open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+              errt = errt + err
+            end if
+            iw = iw+1000
+            ! HF SUSCEPTIBILITIES
+            write(varm,"('./results/',a1,'SOC/',a,'/HF/',a2,'/chihf_',i0,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),i,j,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+            open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+            errt = errt + err
+          end do
+        end do
+      end do
       ! RPA DIAGONALIZATION
       if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
         write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_eval',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
@@ -257,14 +266,18 @@ contains
       if(errt/=0) call abortProgram("[openclose_chi_files] Some file(s) do(es) not exist! Stopping before starting calculations...")
 
     else
-      do sigma=1,4 ; do j=1,s%nAtoms ; do i=1,s%nAtoms
-        iw = 1000+(sigma-1)*s%nAtoms*s%nAtoms+(j-1)*s%nAtoms+i
-        ! RPA SUSCEPTIBILITIES
-        if(.not.lhfresponses) close(unit=iw)
-        iw = iw+1000
-        ! HF SUSCEPTIBILITIES
-        close(unit=iw)
-      end do ; end do ; end do
+      do sigma=1,4
+        do j=1,s%nAtoms
+          do i=1,s%nAtoms
+            iw = 1000+(sigma-1)*s%nAtoms*s%nAtoms+(j-1)*s%nAtoms+i
+            ! RPA SUSCEPTIBILITIES
+            if(.not.lhfresponses) close(unit=iw)
+            iw = iw+1000
+            ! HF SUSCEPTIBILITIES
+            close(unit=iw)
+          end do
+        end do
+      end do
       ! RPA DIAGONALIZATION
       if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
         close (unit=1990)
