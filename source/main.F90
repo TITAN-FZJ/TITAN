@@ -248,9 +248,10 @@ program TITAN
     end if
     ! Self-consistency
 
+    ! Time now
+    if(myrank_row_hw==0)  call write_time(outputunit_loop,'[main] Time before self-consistency: ')
     if(lselfcon) call do_self_consistency()
 
-    stop
     ! Writing new eps1 and mz to file after self-consistency is done
     if(.not.lontheflysc) call write_sc_results()
 
