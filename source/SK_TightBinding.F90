@@ -18,6 +18,7 @@ contains
     real(double), dimension(:,:), allocatable :: bp
     type(NeighborIndex), pointer :: current
 
+    nullify(current)
     allocate(bp(nOrb,nOrb))
 
     do i = 1, s%nTypes
