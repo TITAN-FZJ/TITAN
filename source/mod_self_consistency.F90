@@ -185,7 +185,6 @@ contains
     sc_solu(s%nAtoms+1:2*s%nAtoms)   = mx
     sc_solu(2*s%nAtoms+1:3*s%nAtoms) = my
     sc_solu(3*s%nAtoms+1:4*s%nAtoms) = mz
-
     iter  = 1
     !mpitag = (Npl-Npl_i)*total_hw_npt1 + hw_count
     mpitag = hw_count
@@ -507,7 +506,7 @@ contains
     integer  :: N,i,j,iflag
     integer,           intent(inout) :: iuser(*)
     real(double),      intent(inout) :: ruser(*)
-    real(double),dimension(N)        :: x,fvec
+    real(double),dimension(N) :: x,fvec
     real(double),dimension(N,N)      :: selfconjac
     real(double),dimension(s%nAtoms)      :: n_t,mx_in,my_in,mz_in
     complex(double),dimension(s%nAtoms)   :: mp_in
@@ -523,11 +522,11 @@ contains
     ncount2=N*N
 
   ! Values used in the hamiltonian
-    eps1  = x(1:s%nAtoms)
-    mx_in = x(s%nAtoms+1:2*s%nAtoms)
+    eps1  = x(           1:  s%nAtoms)
+    mx_in = x(  s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
-    mp_in = mx_in+zi*my_in
+    mp_in = mx_in + zi*my_in
 
     do i=1,s%nAtoms
       hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
@@ -535,28 +534,31 @@ contains
     end do
     hdelm = conjg(hdelp)
 
-    if((myrank_row_hw==0).and.(iter==1)) then
-      write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
-      do i=1,s%nAtoms
-        if(abs(mp(i))>1.d-10) then
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
-        else
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz_in(i)
-        end if
-      end do
-    end if
+    ! if((myrank_row_hw==0).and.(iter==1)) then
+    !   write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
+    !   do i=1,s%nAtoms
+    !     if(abs(mp(i))>1.d-10) then
+    !       write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
+    !     else
+    !       write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz_in(i)
+    !     end if
+    !   end do
+    ! end if
 
     ix = myrank_row_hw+1
     itask = numprocs ! Number of tasks done initially
-
-    flag: select case (iflag)
+    select case (iflag)
     case(1)
       n_orb_u = 0.d0
       n_orb_d = 0.d0
       mp = zero
+      ! if((myrank_row_hw==0)) then
+      !   write(outputunit_loop,*) "[sumk_npart]"
+      ! end if
 
       do while(ix <= pn1)
         call sumk_npart(Ef,y(ix),gdiaguur,gdiagddr,gdiagud,gdiagdu)
+
         gdiaguur = wght(ix)*gdiaguur
         gdiagddr = wght(ix)*gdiagddr
         gdiagud = wght(ix)*gdiagud
@@ -564,6 +566,7 @@ contains
 
         n_orb_u = n_orb_u + gdiaguur
         n_orb_d = n_orb_d + gdiagddr
+
         do j=1,s%nAtoms
           mp(j) = mp(j) + (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
         end do
@@ -586,54 +589,53 @@ contains
       do i=1,s%nAtoms
         ! Number of particles
         n_t(i) = sum(n_orb_t(i,:))
-        fvec(i)   = n_t(i) - s%Types(s%Basis(i)%Material)%Occupation !  npart0(i+offset)
+        fvec(i) = n_t(i) - s%Types(s%Basis(i)%Material)%Occupation !  npart0(i+offset)
         ! x-component of magnetization
-        j = i+s%nAtoms
-        fvec(j)  = mx(i) - mx_in(i)
+        j = i + s%nAtoms
+        fvec(j) = mx(i) - mx_in(i)
         ! y-component of magnetization
-        j = j+s%nAtoms
-        fvec(j)  = my(i) - my_in(i)
+        j = j + s%nAtoms
+        fvec(j) = my(i) - my_in(i)
         ! z-component of magnetization
         j = j+s%nAtoms
         mz(i)    = sum(mag_orb(i,5:9))
         fvec(j)  = mz(i) - mz_in(i)
       end do
 
-      if(myrank_row_hw==0) then
-        do i=1,s%nAtoms
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i)
-          write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+s%nAtoms,fvec(i+s%nAtoms),i+2*s%nAtoms,fvec(i+2*s%nAtoms),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
-
-          if(abs(mp(i))>1.d-10) then
-            write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i)
-            write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+s%nAtoms,fvec(i+s%nAtoms),i+2*s%nAtoms,fvec(i+2*s%nAtoms),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
-          else
-            write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz(i)
-            write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
-          end if
-        end do
-      end if
-      if(lontheflysc) call write_sc_results()
+      ! if(myrank_row_hw==0) then
+      !   do i=1,s%nAtoms
+      !     if(abs(mp(i))>1.d-10) then
+      !       write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i)
+      !       write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+s%nAtoms,fvec(i+s%nAtoms),i+2*s%nAtoms,fvec(i+2*s%nAtoms),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
+      !     else
+      !       write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz(i)
+      !       write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
+      !     end if
+      !   end do
+      ! end if
+      ! if(lontheflysc) call write_sc_results()
     case(2)
+      ! if((myrank_row_hw==0)) then
+      !   write(outputunit_loop,*) "[sumk_jacobian]"
+      ! end if
+
       selfconjac = 0.d0
-
-      selfconjac = zero
       do while(ix <= pn1)
-        call sumk_jacobian(Ef,y(ix),ggr)
+        call sumk_jacobian(Ef, y(ix), ggr)
         selfconjac = selfconjac + wght(ix)*ggr
-
         ix = ix + numprocs_row
       end do
-      call MPI_Allreduce(MPI_IN_PLACE, selfconjac, ncount2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
 
+      call MPI_Allreduce(MPI_IN_PLACE, selfconjac, ncount2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
       selfconjac = selfconjac/pi
-      do i = s%nAtoms+1,4*s%nAtoms
+      do i = s%nAtoms+1, 4*s%nAtoms
         selfconjac(i,i) = selfconjac(i,i) - 1.d0
       end do
+
     case default
       write(outputunit,"('[sc_equations_and_jacobian] Problem in self-consistency! iflag = ',I0)") iflag
       call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-    end select flag
+    end select
 
     iter = iter + 1
 
@@ -1128,16 +1130,16 @@ contains
   !$omp& private(mythread,iz,kp,gf,i,mu,mup) &
   !$omp& shared(llineargfsoc,llinearsoc,lverbose,s,er,ei,gdiaguur,gdiagddr,gdiagud,gdiagdu,myrank_row_hw,nthreads,outputunit_loop)
   !$  mythread = omp_get_thread_num()
-  !$  if((mythread==0).and.(myrank_row_hw==0)) then
-  !$    nthreads = omp_get_num_threads()
-  !$    write(outputunit_loop,"('[sumk_npart] Number of threads: ',i0)") nthreads
-  !$  end if
+  !! $  if((mythread==0).and.(myrank_row_hw==0)) then
+  !! $    nthreads = omp_get_num_threads()
+  !! $    write(outputunit_loop,"('[sumk_npart] Number of threads: ',i0)") nthreads
+  !! $  end if
 
-  !$omp do schedule(static,1000) reduction(+:gdiaguur), reduction(+:gdiagddr), reduction(+:gdiagud), reduction(+:gdiagdu)
-    kpoints: do iz=1,s%nkpt
-  !$  if((mythread==0)) then
-        if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"densities kpoints",iz,s%nkpt)
-  !$   end if
+  !$omp do schedule(static), reduction(+:gdiaguur), reduction(+:gdiagddr), reduction(+:gdiagud), reduction(+:gdiagdu)
+  do iz=1,s%nkpt
+  !!$  if((mythread==0)) then
+  !!      if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"densities kpoints",iz,s%nkpt)
+  !!$   end if
 
       kp = s%kbz(:,iz)
 
@@ -1147,7 +1149,7 @@ contains
       else
         call green(er,ei,kp,gf)
       end if
-      !omp critical
+      !$omp critical
       do i=1,s%nAtoms
         do mu=1,nOrb
           mup = mu+nOrb
@@ -1155,11 +1157,10 @@ contains
           gdiagddr(i,mu) = gdiagddr(i,mu) + real(gf(i,i,mup,mup)*s%wkbz(iz))
           gdiagud(i,mu) = gdiagud(i,mu) + (gf(i,i,mu,mup)*s%wkbz(iz))
           gdiagdu(i,mu) = gdiagdu(i,mu) + (gf(i,i,mup,mu)*s%wkbz(iz))
-          !print *, gf(i,i,mu,mup), gf(i,i,mup,mu)
         end do
       end do
-      !omp end critical
-    end do kpoints
+      !$omp end critical
+    end do
   !$omp end do
   !$omp end parallel
     return
@@ -1212,10 +1213,10 @@ contains
 !$omp& private(mythread,AllocateStatus,iz,kp,wkbzc,gf,gvg,temp,temp1,temp2,gij,gji,paulitemp,gdHdxg,gvgdHdxgvg,i,j,i0,j0,mu,sigma) &
 !$omp& shared(llineargfsoc,llinearsoc,lverbose,s,er,ei,ggr,mhalfU,pauli_components1,pauli_components2,myrank_row_hw,nthreads,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
-!$  if((mythread==0).and.(myrank_row_hw==0)) then
-!$    nthreads = omp_get_num_threads()
-!$    write(outputunit_loop,"('[sumk_jacobian] Number of threads: ',i0)") nthreads
-!$  end if
+!!$  if((mythread==0).and.(myrank_row_hw==0)) then
+!!$    nthreads = omp_get_num_threads()
+!!$    write(outputunit_loop,"('[sumk_jacobian] Number of threads: ',i0)") nthreads
+!!$  end if
     allocate( gdHdxg(4,4,s%nAtoms,s%nAtoms,18,18),gvgdHdxgvg(4,4,s%nAtoms,s%nAtoms,18,18) , STAT = AllocateStatus  )
     if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: gdHdxg,gvgdHdxgvg")
 
