@@ -119,26 +119,26 @@ subroutine calculate_chi()
 
           ! WRITING RPA AND HF SUSCEPTIBILITIES
           ! Opening chi and diag files
-          call openclose_chi_files(1)
+          !call openclose_chi_files(1)
 
           ! Writing susceptibilities
           call write_susceptibilities(e)
 
           ! Closing chi and diag files
-          call openclose_chi_files(2)
+          !call openclose_chi_files(2)
         end do
 
         write(time,"('[calculate_chi] Time after step ',i0,': ')") count
         call write_time(outputunit_loop,time)
 
         ! Emergency stop
-        open(unit=911, file="stop", status='old', iostat=iw)
-        if(iw==0) then
-          close(911)
-          write(outputunit,"('[calculate_chi] Emergency ""stop"" file found! Stopping after step ',i0,'...')") count
-          call system ('rm stop')
-          call abortProgram("[calculate_chi] (""stop"" file deleted!)")
-        end if
+        ! open(unit=911, file="stop", status='old', iostat=iw)
+        ! if(iw==0) then
+        !   close(911)
+        !   write(outputunit,"('[calculate_chi] Emergency ""stop"" file found! Stopping after step ',i0,'...')") count
+        !   call system ('rm stop')
+        !   call abortProgram("[calculate_chi] (""stop"" file deleted!)")
+        ! end if
       else
         call MPI_Send(e,     1,                   MPI_DOUBLE_PRECISION,0,1000,MPI_Comm_Col,ierr)
         call MPI_Send(schi,  s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX,  0,1100,MPI_Comm_Col,ierr)
@@ -149,6 +149,7 @@ subroutine calculate_chi()
 
   ! Sorting results on files
   if(myrank==0) then
+    call openclose_chi_files(2)
     call close_alpha_files()
     call sort_all_files()
   end if
