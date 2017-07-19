@@ -235,10 +235,10 @@ subroutine sumkshechilinearsoc(e,ep,Fint,Fintlsoc,iflag)
     !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,kp,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,i,j,mu,nu,gamma,xi,df1,df1lsoc) &
     !$omp& shared(llineargfsoc,lverbose,s,e,ep,iflag,Fint,Fintlsoc,Ef,eta,nthreads,myrank_row_hw,dim,sigmaimunu2i,sigmaijmunu2i,outputunit,outputunit_loop)
     !$  mythread = omp_get_thread_num()
-    !$  if((mythread==0).and.(myrank_row_hw==0)) then
-    !$    nthreads = omp_get_num_threads()
-    !$    write(outputunit_loop,"('[sumkshechilinearsoc] Number of threads: ',i0)") nthreads
-    !$  end if
+    !!$  if((mythread==0).and.(myrank_row_hw==0)) then
+    !!$    nthreads = omp_get_num_threads()
+    !!$    write(outputunit_loop,"('[sumkshechilinearsoc] Number of threads: ',i0)") nthreads
+    !!$  end if
     allocate(df1(dim,dim),gf(s%nAtoms,s%nAtoms,2*nOrb,2*nOrb),gfuu(s%nAtoms,s%nAtoms,nOrb,nOrb,2),gfud(s%nAtoms,s%nAtoms,nOrb,nOrb,2),gfdu(s%nAtoms,s%nAtoms,nOrb,nOrb,2),gfdd(s%nAtoms,s%nAtoms,nOrb,nOrb,2), STAT = AllocateStatus  )
     if (AllocateStatus/=0) call abortProgram("[sumkshechilinearsoc] Not enough memory for: df1,gf,gfuu,gfud,gfdu,gfdd")
 
@@ -248,9 +248,9 @@ subroutine sumkshechilinearsoc(e,ep,Fint,Fintlsoc,iflag)
     !$omp do schedule(static), reduction(+:Fint), reduction(+:Fintlsoc)
     do iz=1,s%nkpt
       ! Progress bar
-      !$  if((mythread==0)) then
-        if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,s%nkpt)
-      !$   end if
+      !!$  if((mythread==0)) then
+      !  if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,s%nkpt)
+      !!$   end if
 
       kp = s%kbz(:,iz)
 
@@ -343,10 +343,10 @@ subroutine sumkshechilinearsoc(e,ep,Fint,Fintlsoc,iflag)
     !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,kp,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,i,j,mu,nu,gamma,xi,df1,df1lsoc) &
     !$omp& shared(llineargfsoc,lverbose,s,e,ep,iflag,Fint,Fintlsoc,Ef,eta,nthreads,myrank_row_hw,dim,sigmaimunu2i,sigmaijmunu2i,outputunit,outputunit_loop)
     !$  mythread = omp_get_thread_num()
-    !$  if((mythread==0).and.(myrank_row_hw==0)) then
-    !$    nthreads = omp_get_num_threads()
-    !$    write(outputunit_loop,"('[sumkshechilinearsoc] Number of threads: ',i0)") nthreads
-    !$  end if
+    !!$  if((mythread==0).and.(myrank_row_hw==0)) then
+    !!$    nthreads = omp_get_num_threads()
+    !!$    write(outputunit_loop,"('[sumkshechilinearsoc] Number of threads: ',i0)") nthreads
+    !!$  end if
     allocate(df1(dim,dim),gf(s%nAtoms,s%nAtoms,2*nOrb,2*nOrb),gfuu(s%nAtoms,s%nAtoms,nOrb,nOrb,2),gfud(s%nAtoms,s%nAtoms,nOrb,nOrb,2),gfdu(s%nAtoms,s%nAtoms,nOrb,nOrb,2),gfdd(s%nAtoms,s%nAtoms,nOrb,nOrb,2), STAT = AllocateStatus  )
     if (AllocateStatus/=0) call abortProgram("[sumkshechilinearsoc] Not enough memory for: df1,gf,gfuu,gfud,gfdu,gfdd")
 
@@ -356,9 +356,9 @@ subroutine sumkshechilinearsoc(e,ep,Fint,Fintlsoc,iflag)
     !$omp do schedule(static), reduction(+:Fint), reduction(+:Fintlsoc)
     do iz=1,s%nkpt
       ! Progress bar
-      !$  if((mythread==0)) then
-        if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,s%nkpt)
-      !$   end if
+      !!$  if((mythread==0)) then
+      !  if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,s%nkpt)
+      !!$   end if
 
       kp = s%kbz(:,iz)
 
