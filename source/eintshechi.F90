@@ -21,11 +21,8 @@ subroutine eintshechi(e, count)
 !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
   allocate( Fint(dim,dim), STAT = AllocateStatus )
-  if (AllocateStatus/=0) then
-    write(outputunit,"('[eintshechi] Not enough memory for: Fint')")
-    call MPI_Abort(MPI_Comm_Row,errorcode,ierr)
-  end if
-
+  if (AllocateStatus/=0) call abortProgram("[eintshechi] Not enough memory for: Fint')")
+  
 ! Generating energy points in the real axis for third integration
   call generate_real_epoints(e)
 
