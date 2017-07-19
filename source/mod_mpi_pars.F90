@@ -2,7 +2,8 @@ module mod_mpi_pars
   use mod_f90_kind, only: double
   use MPI
   implicit none
-  integer :: myrank,numprocs,errorcode,ierr,mcount,mpitag, numprocs_row
+  integer :: ierr, errorcode
+  integer :: myrank,numprocs,mcount,mpitag, numprocs_row
   integer, dimension(MPI_STATUS_SIZE) :: stat
   ! Grid for energy loop calculations
   integer :: myrank_row,myrank_col
@@ -20,10 +21,10 @@ contains
   subroutine Initialize_MPI()
     implicit none
 
-#ifndef _UFF
-    !$  integer :: provided
-#endif
-    integer :: ierr
+ !#ifndef _UFF
+ !#endif
+    integer :: provided
+    !integer :: ierr
 
 #ifdef _OPENMP
 #ifdef _UFF
