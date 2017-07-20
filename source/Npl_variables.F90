@@ -74,7 +74,7 @@ subroutine deallocate_Npl_variables()
   deallocate(mmlayer,layertype,U,mmlayermag)
   deallocate(hhwx,hhwy,hhwz,sb,lb)
   !deallocate(t0, t0i)
-  deallocate(sha_longitudinal,sha_transverse,long_cos,transv_cos)
+  !deallocate(sha_longitudinal,sha_transverse,long_cos,transv_cos)
 
   return
 end subroutine deallocate_Npl_variables
