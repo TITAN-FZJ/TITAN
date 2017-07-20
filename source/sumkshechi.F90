@@ -28,10 +28,10 @@ subroutine sumkshechi(e,ep,Fint,iflag)
     !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,kp,gf,gfuu,gfud,gfdu,gfdd,i,j,mu,nu,gamma,xi,df1) &
     !$omp& shared(llineargfsoc,lverbose,s,e,ep,iflag,Fint,Ef,eta,nthreads,myrank_row_hw,dim,sigmaimunu2i,sigmaijmunu2i,outputunit,outputunit_loop)
     !$  mythread = omp_get_thread_num()
-    !$  if((mythread==0).and.(myrank_row_hw==0)) then
-    !$    nthreads = omp_get_num_threads()
-    !$    write(outputunit_loop,"('[sumkshechi] Number of threads: ',i0)") nthreads
-    !$  end if
+    !!$  if((mythread==0).and.(myrank_row_hw==0)) then
+    !!$    nthreads = omp_get_num_threads()
+    !!$    write(outputunit_loop,"('[sumkshechi] Number of threads: ',i0)") nthreads
+    !!$  end if
     allocate(df1(dim,dim), &
              gf  (s%nAtoms,s%nAtoms,2*nOrb,2*nOrb), &
              gfuu(s%nAtoms,s%nAtoms,nOrb,nOrb,2), &
@@ -114,10 +114,10 @@ subroutine sumkshechi(e,ep,Fint,iflag)
     !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,kp,gf,gfuu,gfud,gfdu,gfdd,i,j,mu,nu,gamma,xi,df1) &
     !$omp& shared(llineargfsoc,lverbose,s,e,ep,iflag,Fint,Ef,eta,nthreads,myrank_row_hw,dim,sigmaimunu2i,sigmaijmunu2i,outputunit,outputunit_loop)
     !$  mythread = omp_get_thread_num()
-    !$  if((mythread==0).and.(myrank_row_hw==0)) then
-    !$    nthreads = omp_get_num_threads()
-    !$    write(outputunit_loop,"('[sumkshechi] Number of threads: ',i0)") nthreads
-    !$  end if
+    !!$  if((mythread==0).and.(myrank_row_hw==0)) then
+    !!$    nthreads = omp_get_num_threads()
+    !!$    write(outputunit_loop,"('[sumkshechi] Number of threads: ',i0)") nthreads
+    !!$  end if
     allocate(df1(dim,dim), &
              gf  (s%nAtoms,s%nAtoms,2*nOrb,2*nOrb), &
              gfuu(s%nAtoms,s%nAtoms,nOrb,nOrb,2), &
