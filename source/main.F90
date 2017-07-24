@@ -99,6 +99,9 @@ program TITAN
   !---------------------- Tight Binding parameters -----------------------
   call initTightBinding(sys)
 
+  !---- Initialize Stride Matrices for hamiltk and dtdksub --------------
+  call initHamiltkStride(sys%nAtoms, nOrb)
+
   !---------------------- Lattice specific variables ---------------------
   call initElectricField(sys%a1, sys%a2, sys%a3)
 

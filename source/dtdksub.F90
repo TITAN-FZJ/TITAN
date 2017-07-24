@@ -8,29 +8,30 @@ subroutine dtdksub(kp,dtdk)
   use mod_f90_kind, only: double
   use mod_constants, only: zero, zi
   use AtomTypes, only: NeighborIndex
-  use mod_system, only: s => sys
+  use mod_system, only: ia, s => sys
   use TightBinding, only: nOrb
   use mod_parameters, only: offset
   use ElectricField, only: ElectricFieldVector
   implicit none
-  integer :: i, j, l
+  integer :: i, j, k
   real(double), intent(in)  :: kp(3)
   complex(double),dimension(s%nAtoms,s%nAtoms,nOrb,nOrb),intent(out)  :: dtdk
-  type(NeighborIndex), pointer :: current
+  complex(double) :: tmp(nOrb, nOrb)
+  complex(double) :: kpExp
   dtdk = zero
 
   ! Mouting derivative of slab's hamiltonian
 
-  do i=1, s%nAtoms
-    do j = 1, s%nAtoms
-      do l = 1, s%nStages
-        current => s%Basis(i)%NeighborList(l,j)%head
-        do while(associated(current))
-          dtdk(j,i,:,:) = dtdk(j,i,:,:) + zi * dot_product(ElectricFieldVector, s%Neighbors(current%index)%Position) * s%Neighbors(current%index)%t0i(:,:,i) * exp(zi * dot_product(kp, s%Neighbors(current%index)%CellVector))
-          current => current%next
-        end do
-      end do
+  do k = 1, s%nNeighbors
+    j = s%Neighbors(k)%BasisIndex
+    kpExp = zi * dot_product(ElectricFieldVector, s%Neighbors(k)%Position) * exp(zi * dot_product(kp,s%Neighbors(k)%CellVector))
+    
+    do i = 1, s%nAtoms
+      tmp = s%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp
+      hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hk(ia(3,j):ia(4,j), ia(1,i):ia(2,i)) + tmp
+      hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + tmp
     end do
   end do
+
   return
 end subroutine dtdksub

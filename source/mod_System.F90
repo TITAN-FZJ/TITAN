@@ -45,8 +45,25 @@ module mod_system
   integer :: n0sc2 !< last neighbor to calculate the in-plane spin and charge current
   integer :: n0sc  !< Number of neighbors to calculate currents
   real(double), dimension(3) :: pln_normal
-!
-! contains
+
+  integer, dimension(:,:), allocatable :: ia
+
+
+
+ contains
+
+   subroutine initHamiltkStride(nAtoms, nOrb)
+     implicit none 
+     integer :: i
+     allocate(ia(4,nAtoms))
+     do i = 1, nAtoms
+        ia(1,i) = (i-1) * 2 * nOrb + 1
+        ia(2,i) = ia(1,i) + nOrb - 1
+        ia(3,i) = ia(1,i) + nOrb
+        ia(4,i) = ia(3,i) + nOrb - 1
+     end do
+     return
+   end subroutine initHamiltkStride
 !
 !   subroutine generate_neighbors()
 !     use mod_f90_kind, only: double

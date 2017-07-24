@@ -6,11 +6,11 @@
 subroutine green(er,ei,kp,gf)
   use mod_f90_kind, only: double
   use mod_constants, only: zero
-  use mod_System, only: s => sys
+  use mod_System, only: ia, s => sys
   use mod_parameters, only: offset
   use TightBinding, only: nOrb
   implicit none
-  integer     :: i,j,i0,i1,j0,j1,d
+  integer     :: i,j,d
   real(double), intent(in)  :: er,ei,kp(3)
   complex(double) :: ec
   complex(double),dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb) :: gslab,hk
@@ -34,11 +34,7 @@ subroutine green(er,ei,kp,gf)
   ! Put the slab Green's function [A(Npl*18,Npl*18)] in the A(i,j,mu,nu) form
   do j = 1, s%nAtoms
     do i = 1, s%nAtoms
-      i0 = (i-1+offset) * 2 * nOrb + 1
-      i1 = i0 + 2 * nOrb - 1
-      j0 = (j-1+offset) * 2 * nOrb + 1
-      j1 = j0 + 2 * nOrb - 1
-      gf(i,j,:,:) = gslab(i0:i1,j0:j1)
+      gf(i,j,:,:) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
     end do
   end do
 
@@ -56,10 +52,10 @@ subroutine greenlinearsoc(er,ei,kp,g0,g0vsocg0)
   use mod_constants, only: zero, zum
   use mod_parameters, only: offset
   use TightBinding, only: nOrb
-  use mod_System, only: s => sys
+  use mod_System, only: ia, s => sys
   !use mod_magnet, only:
   implicit none
-  integer     :: i,j,i0,i1,j0,j1,d
+  integer     :: i,j,d
   real(double), intent(in)  :: er,ei,kp(3)
   complex(double) :: ec
   complex(double), dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb)  :: gslab0,hk,vsoc,temp,temp2
@@ -67,7 +63,7 @@ subroutine greenlinearsoc(er,ei,kp,g0,g0vsocg0)
 
   d = s%nAtoms*2*nOrb
 
-  ec    = cmplx(er,ei,double)
+  ec = cmplx(er,ei,double)
 
   gslab0 = zero
   do i=1,d
@@ -87,12 +83,8 @@ subroutine greenlinearsoc(er,ei,kp,g0,g0vsocg0)
   ! Put the slab Green's function [A(Npl*18,Npl*18)] in the A(i,j,mu,nu) form
   do j=1,s%nAtoms
     do i=1,s%nAtoms
-      i0 = (i-1+offset)*2*nOrb+1
-      i1 = i0+2*nOrb-1
-      j0 = (j-1+offset)*2*nOrb+1
-      j1 = j0+2*nOrb-1
-      g0(i,j,:,:) = gslab0(i0:i1,j0:j1)
-      g0vsocg0(i,j,:,:) = temp2(i0:i1,j0:j1)
+      g0(i,j,:,:) = gslab0(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
+      g0vsocg0(i,j,:,:) = temp2(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
     end do
   end do
   return
@@ -108,10 +100,10 @@ subroutine greenlineargfsoc(er,ei,kp,gf)
   use mod_f90_kind, only: double
   use mod_constants, only: zero, zum
   use mod_parameters, only: offset
-  use mod_System, only: s => sys
+  use mod_System, only: ia, s => sys
   use TightBinding, only: nOrb
   implicit none
-  integer     :: i,j,i0,i1,j0,j1,d
+  integer     :: i,j,d
   real(double), intent(in)  :: er,ei,kp(3)
   complex(double) :: ec
   complex(double),dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb)  :: gslab,gslab0,hk,vsoc,temp
@@ -141,11 +133,7 @@ subroutine greenlineargfsoc(er,ei,kp,gf)
   ! Put the slab Green's function [A(Npl*18,Npl*18)] in the A(i,j,mu,nu) form
   do j=1,s%nAtoms
     do i=1,s%nAtoms
-      i0 = (i-1+offset)*2*nOrb+1
-      i1 = i0+2*nOrb-1
-      j0 = (j-1+offset)*2*nOrb+1
-      j1 = j0+2*nOrb-1
-      gf(i,j,:,:) = gslab(i0:i1,j0:j1)
+      gf(i,j,:,:) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
     end do
   end do
   return
@@ -159,10 +147,10 @@ end subroutine greenlineargfsoc
 subroutine green_es(er,ei,kp,gf)
   use mod_f90_kind, only: double
   use mod_constants, only: zero, zum
-  use mod_System, only: s => sys
+  use mod_System, only: ia, s => sys
   use TightBinding, only: nOrb
   implicit none
-  integer     :: i,j,i0,i1,j0,j1
+  integer     :: i,j
   real(double), intent(in)  :: er,ei,kp(3)
   complex(double) :: ec
   complex(double),dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb)  :: gslab,identes,hk
@@ -185,11 +173,7 @@ subroutine green_es(er,ei,kp,gf)
   ! Put the slab Green's function [A(Npl*18,Npl*18)] in the A(i,j,mu,nu) form
   do j=1,s%nAtoms
     do i=1,s%nAtoms
-      i0 = (i-1)*2*nOrb+1
-      i1 = i0+2*nOrb-1
-      j0 = (j-1)*2*nOrb+1
-      j1 = j0+2*nOrb-1
-      gf(i,j,:,:) = gslab(i0:i1,j0:j1)
+      gf(i,j,:,:) = gslab(ia(1,i):ia(4,i),ia(1,j):ia(4,j))
     end do
   end do
 
