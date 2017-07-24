@@ -53,7 +53,8 @@ module mod_system
  contains
 
    subroutine initHamiltkStride(nAtoms, nOrb)
-     implicit none 
+     implicit none
+     integer, intent(in) :: nAtoms, nOrb
      integer :: i
      allocate(ia(4,nAtoms))
      do i = 1, nAtoms
