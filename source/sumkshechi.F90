@@ -39,8 +39,8 @@ subroutine sumkshechi(e,ep,Fint,iflag)
              gfdu(s%nAtoms,s%nAtoms,nOrb,nOrb,2), &
              gfdd(s%nAtoms,s%nAtoms,nOrb,nOrb,2), STAT = AllocateStatus  )
     if (AllocateStatus/=0) call abortProgram("[sumkshechi] Not enough memory for: df1,gf,gfuu,gfud,gfdu,gfdd")
-
-    !$omp do schedule(static), reduction(+: Fint)
+!, reduction(+: Fint)
+    !$omp do schedule(static) 
     do iz = 1, s%nkpt
       ! Progress bar
       !$  if((mythread==0)) then
@@ -94,14 +94,14 @@ subroutine sumkshechi(e,ep,Fint,iflag)
         df1(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = (gfuu(i,j,nu,gamma,1)*gfdd(j,i,xi,mu,2) + conjg(gfdd(i,j,mu,xi,2)*gfuu(j,i,gamma,nu,1)))*s%wkbz(iz)
       end do ; end do ; end do ; end do ; end do ; end do
 
-      !omp critical
+      !$omp critical
 #ifdef _JUQUEEN
       call zgeadd(Fint,dim,'N',df1,dim,'N',Fint,dim,dim,dim)
 #else
-      !call ZAXPY(dim*dim,zum,df1,1,Fint,1)              !       Fint      = Fint + df1
-      Fint = Fint + df1
+      call ZAXPY(dim*dim,zum,df1,1,Fint,1)              !       Fint      = Fint + df1
+      !Fint = Fint + df1
 #endif
-      !omp end critical
+      !$omp end critical
     end do
     !$omp end do
     deallocate(df1)
@@ -125,8 +125,8 @@ subroutine sumkshechi(e,ep,Fint,iflag)
              gfdu(s%nAtoms,s%nAtoms,nOrb,nOrb,2), &
              gfdd(s%nAtoms,s%nAtoms,nOrb,nOrb,2), STAT = AllocateStatus  )
     if (AllocateStatus/=0) call abortProgram("[sumkshechi] Not enough memory for: df1,gf,gfuu,gfud,gfdu,gfdd")
-
-    !$omp do schedule(static), reduction(+:Fint)
+!, reduction(+:Fint)
+    !$omp do schedule(static)
     do iz = 1, s%nkpt
       ! Progress bar
       !$  if((mythread==0)) then
@@ -181,14 +181,14 @@ subroutine sumkshechi(e,ep,Fint,iflag)
         df1(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -zi*(gfuu(i,j,nu,gamma,1)-conjg(gfuu(j,i,gamma,nu,1)))*conjg(gfdd(i,j,mu,xi,2))*s%wkbz(iz)
       end do ; end do ; end do ; end do ; end do ; end do
 
-      !omp critical
+      !$omp critical
 #ifdef _JUQUEEN
       call zgeadd(Fint,dim,'N',df1,dim,'N',Fint,dim,dim,dim)
 #else
-      ! call ZAXPY(dim*dim,zum,df1,1,Fint,1)              !       Fint      = Fint + df1
-      Fint      = Fint + df1
+      call ZAXPY(dim*dim,zum,df1,1,Fint,1)              !       Fint      = Fint + df1
+      !Fint      = Fint + df1
 #endif
-      !omp end critical
+      !$omp end critical
     end do
     !$omp end do
     deallocate(df1)
