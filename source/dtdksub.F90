@@ -25,10 +25,10 @@ subroutine dtdksub(kp,dtdk)
   do k = 1, s%nNeighbors
     j = s%Neighbors(k)%BasisIndex
     kpExp = zi * dot_product(ElectricFieldVector, s%Neighbors(k)%Position) * exp(zi * dot_product(kp,s%Neighbors(k)%CellVector))
-    
+
     do i = 1, s%nAtoms
       tmp = s%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp
-      hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hk(ia(3,j):ia(4,j), ia(1,i):ia(2,i)) + tmp
+      hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + tmp
       hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + tmp
     end do
   end do
