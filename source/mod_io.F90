@@ -56,7 +56,7 @@ contains
 
   subroutine get_parameters(filename, s)
     use mod_f90_kind, only: double
-    use mod_mpi_pars, only: myrank, MPI_Finalize, ierr
+    use mod_mpi_pars
     use mod_input
     use mod_parameters, only: outputunit, laddresults, lverbose, ldebug, lkpoints, &
                               lpositions, lcreatefiles, Utype, lslatec, lontheflysc, &

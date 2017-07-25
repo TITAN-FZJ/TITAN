@@ -8,7 +8,7 @@ contains
     use mod_f90_kind, only: double
     use AtomTypes, only: NeighborIndex
     use mod_system, only: System
-    use mod_parameters, only: Ef, fermi_layer
+    use mod_parameters, only: Ef
     implicit none
     type(System), intent(inout) :: s
     integer, intent(in) :: fermi_layer
