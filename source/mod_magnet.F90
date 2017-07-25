@@ -4,7 +4,7 @@ module mod_magnet
   implicit none
 
   logical :: lfield !< Turn on/off static magnetic field, option to give in magnetic field in tesla
-  
+
   integer                     :: iter                                   ! self-consistency iteration
   real(double),allocatable    :: mx(:),my(:),mz(:),mvec_cartesian(:,:),hdel(:)    ! Magnetization and exchange split delta/2
   real(double),allocatable    :: lxm(:),lym(:),lzm(:)                   ! Orbital angular momentum in lattice frame of reference
@@ -293,7 +293,7 @@ contains
     use TightBinding, only: nOrb
     implicit none
     real(double), intent(in) :: theta, phi
-    complex(double), dimension(9,9) :: Lx,Ly,Lz
+    complex(double), dimension(nOrb, nOrb) :: Lx,Ly,Lz
 
     if(allocated(lxp)) deallocate(lxp)
     if(allocated(lyp)) deallocate(lyp)
