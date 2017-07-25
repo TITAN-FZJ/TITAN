@@ -49,14 +49,18 @@ subroutine L_gs(s)
   lxm = 0.d0
   lym = 0.d0
   lzm = 0.d0
-  do nu=5,9 ; do mu=5,9 ; do i=1,s%nAtoms
-    lxpm(i) = lxpm(i) + real(lxp(mu,nu)*gupgdint(i,nu,mu))
-    lypm(i) = lypm(i) + real(lyp(mu,nu)*gupgdint(i,nu,mu))
-    lzpm(i) = lzpm(i) + real(lzp(mu,nu)*gupgdint(i,nu,mu))
-    lxm(i)  = lxm(i)  + real(lx (mu,nu)*gupgdint(i,nu,mu))
-    lym(i)  = lym(i)  + real(ly (mu,nu)*gupgdint(i,nu,mu))
-    lzm(i)  = lzm(i)  + real(lz (mu,nu)*gupgdint(i,nu,mu))
-  end do ; end do ; end do
+  do nu=5,9
+    do mu=5,9
+      do i=1,s%nAtoms
+        lxpm(i) = lxpm(i) + real(lxp(mu,nu)*gupgdint(i,nu,mu))
+        lypm(i) = lypm(i) + real(lyp(mu,nu)*gupgdint(i,nu,mu))
+        lzpm(i) = lzpm(i) + real(lzp(mu,nu)*gupgdint(i,nu,mu))
+        lxm(i)  = lxm(i)  + real(lx (mu,nu)*gupgdint(i,nu,mu))
+        lym(i)  = lym(i)  + real(ly (mu,nu)*gupgdint(i,nu,mu))
+        lzm(i)  = lzm(i)  + real(lz (mu,nu)*gupgdint(i,nu,mu))
+      end do
+    end do
+  end do
 
   ! Calculating angles of GS OAM (in units of pi)
   do i = 1,s%nAtoms
@@ -74,7 +78,7 @@ end subroutine L_gs
 
 
 subroutine sumk_L_gs(e,ep,gupgd, kbz, wkbz, nkpt, nAtoms)
-  use mod_f90_kind
+  use mod_f90_kind, only: double
   use mod_constants, only: pi, zero
 !$  use mod_parameters, only: outputunit_loop
   use TightBinding, only: nOrb
@@ -93,17 +97,17 @@ subroutine sumk_L_gs(e,ep,gupgd, kbz, wkbz, nkpt, nAtoms)
 
   gupgd   = zero
 
-!$omp parallel default(none) &
-!$omp& private(mythread,iz,kp,gf,i,mu,nu,mup,nup) &
-!$omp& shared(kbz,nkpt,wkbz,e,ep,nAtoms,gupgd,myrank_row_hw,nthreads,outputunit_loop)
-!$  mythread = omp_get_thread_num()
-!!$  if((mythread==0).and.(myrank_row_hw==0)) then
-!!$    nthreads = omp_get_num_threads()
-!!$    write(outputunit_loop,"('[L_gs] Number of threads: ',i0)") nthreads
-!!$  end if
+  !$omp parallel default(none) &
+  !$omp& private(mythread,iz,kp,gf,i,mu,nu,mup,nup) &
+  !$omp& shared(kbz,nkpt,wkbz,e,ep,nAtoms,gupgd,myrank_row_hw,nthreads,outputunit_loop)
+  !$  mythread = omp_get_thread_num()
+  !!$  if((mythread==0).and.(myrank_row_hw==0)) then
+  !!$    nthreads = omp_get_num_threads()
+  !!$    write(outputunit_loop,"('[L_gs] Number of threads: ',i0)") nthreads
+  !!$  end if
 
-!$omp do reduction(+:gupgd)
-  kpoints: do iz=1,nkpt
+  !$omp do reduction(+:gupgd)
+  do iz=1,nkpt
     kp = kbz(:,iz)
 
     !Green function on energy Ef + iy, and wave vector kp
@@ -118,7 +122,7 @@ subroutine sumk_L_gs(e,ep,gupgd, kbz, wkbz, nkpt, nAtoms)
         end do
       end do
     end do
-  end do kpoints
+  end do
 !$omp end do
 !$omp end parallel
 
