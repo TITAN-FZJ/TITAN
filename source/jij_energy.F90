@@ -2,8 +2,8 @@
 subroutine jij_energy(Jij)
   use mod_f90_kind, only: double
   use mod_constants, only: pi
-  use mod_parameters, only: lverbose, host, outputunit, nmaglayers, Ef, pn1
-  use mod_generate_epoints, only: y, wght
+  use mod_parameters, only: lverbose, host, outputunit, nmaglayers, Ef
+  use EnergyIntegration, only: pn1, y, wght
   use mod_mpi_pars
   use mod_progress
   implicit none
