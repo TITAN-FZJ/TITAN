@@ -534,16 +534,16 @@ contains
     end do
     hdelm = conjg(hdelp)
 
-    ! if((myrank_row_hw==0).and.(iter==1)) then
-    !   write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
-    !   do i=1,s%nAtoms
-    !     if(abs(mp(i))>1.d-10) then
-    !       write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
-    !     else
-    !       write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz_in(i)
-    !     end if
-    !   end do
-    ! end if
+    if((myrank_row_hw==0).and.(iter==1)) then
+      write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
+      do i=1,s%nAtoms
+        if(abs(mp(i))>1.d-10) then
+          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
+        else
+          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz_in(i)
+        end if
+      end do
+    end if
 
     ix = myrank_row_hw+1
     itask = numprocs ! Number of tasks done initially
@@ -552,9 +552,6 @@ contains
       n_orb_u = 0.d0
       n_orb_d = 0.d0
       mp = zero
-      ! if((myrank_row_hw==0)) then
-      !   write(outputunit_loop,*) "[sumk_npart]"
-      ! end if
 
       do while(ix <= pn1)
         call sumk_npart(Ef,y(ix),gdiaguur,gdiagddr,gdiagud,gdiagdu)
@@ -602,18 +599,18 @@ contains
         fvec(j)  = mz(i) - mz_in(i)
       end do
 
-      ! if(myrank_row_hw==0) then
-      !   do i=1,s%nAtoms
-      !     if(abs(mp(i))>1.d-10) then
-      !       write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i)
-      !       write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+s%nAtoms,fvec(i+s%nAtoms),i+2*s%nAtoms,fvec(i+2*s%nAtoms),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
-      !     else
-      !       write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz(i)
-      !       write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
-      !     end if
-      !   end do
-      ! end if
-      ! if(lontheflysc) call write_sc_results()
+      if(myrank_row_hw==0) then
+        do i=1,s%nAtoms
+          if(abs(mp(i))>1.d-10) then
+            write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i)
+            write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+s%nAtoms,fvec(i+s%nAtoms),i+2*s%nAtoms,fvec(i+2*s%nAtoms),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
+          else
+            write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz(i)
+            write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
+          end if
+        end do
+      end if
+      if(lontheflysc) call write_sc_results()
     case(2)
       ! if((myrank_row_hw==0)) then
       !   write(outputunit_loop,*) "[sumk_jacobian]"
@@ -1111,35 +1108,39 @@ contains
     use mod_mpi_pars, only: myrank_row_hw, myrank
     use TightBinding, only: nOrb
     !use mod_system, only: nkpt, kbz, wkbz
-  !$  use omp_lib
+    !$  use omp_lib
     implicit none
-  !$  integer     :: nthreads,mythread
+    !$  integer     :: nthreads,mythread
     integer       :: iz,i,mu,mup
     real(double)  :: kp(3)
     real(double),intent(in)  :: er,ei
     real(double),dimension(s%nAtoms,nOrb),intent(out)    :: gdiaguur,gdiagddr
     complex(double),dimension(s%nAtoms,nOrb),intent(out) :: gdiagud,gdiagdu
     complex(double),dimension(s%nAtoms,s%nAtoms,2*nOrb, 2*nOrb)     :: gf
+    complex(double),dimension(:,:,:,:),allocatable :: gf_loc
 
     gdiaguur= 0.d0
     gdiagddr= 0.d0
     gdiagud = zero
     gdiagdu = zero
 
-  !$omp parallel default(none) &
-  !$omp& private(mythread,iz,kp,gf,i,mu,mup) &
-  !$omp& shared(llineargfsoc,llinearsoc,lverbose,s,er,ei,gdiaguur,gdiagddr,gdiagud,gdiagdu,myrank_row_hw,nthreads,outputunit_loop)
-  !$  mythread = omp_get_thread_num()
-  !! $  if((mythread==0).and.(myrank_row_hw==0)) then
-  !! $    nthreads = omp_get_num_threads()
-  !! $    write(outputunit_loop,"('[sumk_npart] Number of threads: ',i0)") nthreads
-  !! $  end if
+    !$omp parallel default(none) &
+    !$omp& private(mythread,iz,kp,gf,i,mu,mup,gf_loc) &
+    !$omp& shared(llineargfsoc,llinearsoc,lverbose,s,er,ei,gdiaguur,gdiagddr,gdiagud,gdiagdu,myrank_row_hw,nthreads,outputunit_loop)
+    !$  mythread = omp_get_thread_num()
+    !$  if((mythread==0).and.(myrank_row_hw==0)) then
+    !$    nthreads = omp_get_num_threads()
+    !$    write(outputunit_loop,"('[sumk_npart] Number of threads: ',i0)") nthreads
+    !$  end if
 
-  !$omp do schedule(static), reduction(+:gdiaguur), reduction(+:gdiagddr), reduction(+:gdiagud), reduction(+:gdiagdu)
-  do iz=1,s%nkpt
-  !!$  if((mythread==0)) then
-  !!      if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"densities kpoints",iz,s%nkpt)
-  !!$   end if
+    allocate(gf_loc(s%nAtoms,s%nAtoms,2*nOrb,2*nOrb))
+    gf_loc = zero
+
+    !$omp do schedule(static)
+    do iz=1,s%nkpt
+    !!$  if((mythread==0)) then
+    !!      if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"densities kpoints",iz,s%nkpt)
+    !!$   end if
 
       kp = s%kbz(:,iz)
 
@@ -1149,20 +1150,23 @@ contains
       else
         call green(er,ei,kp,gf)
       end if
-      !$omp critical
-      do i=1,s%nAtoms
-        do mu=1,nOrb
-          mup = mu+nOrb
-          gdiaguur(i,mu) = gdiaguur(i,mu) + real(gf(i,i,mu,mu)*s%wkbz(iz))
-          gdiagddr(i,mu) = gdiagddr(i,mu) + real(gf(i,i,mup,mup)*s%wkbz(iz))
-          gdiagud(i,mu) = gdiagud(i,mu) + (gf(i,i,mu,mup)*s%wkbz(iz))
-          gdiagdu(i,mu) = gdiagdu(i,mu) + (gf(i,i,mup,mu)*s%wkbz(iz))
-        end do
-      end do
-      !$omp end critical
+      gf_loc = gf_loc + gf*s%wkbz(iz)
     end do
-  !$omp end do
-  !$omp end parallel
+    !$omp end do
+
+    !$omp critical
+    do i=1,s%nAtoms
+      do mu=1,nOrb
+        mup = mu+nOrb
+        gdiaguur(i,mu) = gdiaguur(i,mu) + real(gf_loc(i,i,mu,mu))
+        gdiagddr(i,mu) = gdiagddr(i,mu) + real(gf_loc(i,i,mup,mup))
+        gdiagud(i,mu) = gdiagud(i,mu) + gf_loc(i,i,mu,mup)
+        gdiagdu(i,mu) = gdiagdu(i,mu) + gf_loc(i,i,mup,mu)
+      end do
+    end do
+    !$omp end critical
+    deallocate(gf_loc)
+    !$omp end parallel
     return
   end subroutine sumk_npart
 
@@ -1177,9 +1181,9 @@ contains
     use TightBinding, only: nOrb
     use mod_progress, only: progress_bar
     use mod_mpi_pars, only: abortProgram, myrank_row_hw
-!$  use omp_lib
+    !$  use omp_lib
     implicit none
-!$  integer                  :: nthreads,mythread
+    !$  integer                  :: nthreads,mythread
     integer                  :: AllocateStatus
     integer                  :: iz,i,j,i0,j0,mu,sigma,sigmap
     real(double)             :: kp(3)
@@ -1213,10 +1217,10 @@ contains
 !$omp& private(mythread,AllocateStatus,iz,kp,wkbzc,gf,gvg,temp,temp1,temp2,gij,gji,paulitemp,gdHdxg,gvgdHdxgvg,i,j,i0,j0,mu,sigma) &
 !$omp& shared(llineargfsoc,llinearsoc,lverbose,s,er,ei,ggr,mhalfU,pauli_components1,pauli_components2,myrank_row_hw,nthreads,outputunit,outputunit_loop)
 !$  mythread = omp_get_thread_num()
-!!$  if((mythread==0).and.(myrank_row_hw==0)) then
-!!$    nthreads = omp_get_num_threads()
-!!$    write(outputunit_loop,"('[sumk_jacobian] Number of threads: ',i0)") nthreads
-!!$  end if
+!$  if((mythread==0).and.(myrank_row_hw==0)) then
+!$    nthreads = omp_get_num_threads()
+!$    write(outputunit_loop,"('[sumk_jacobian] Number of threads: ',i0)") nthreads
+!$  end if
     allocate( gdHdxg(4,4,s%nAtoms,s%nAtoms,18,18),gvgdHdxgvg(4,4,s%nAtoms,s%nAtoms,18,18) , STAT = AllocateStatus  )
     if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: gdHdxg,gvgdHdxgvg")
 
