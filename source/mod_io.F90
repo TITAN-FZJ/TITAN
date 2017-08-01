@@ -420,7 +420,7 @@ contains
 
     !----------------------------------- Band Structure and LDOS -----------------------------------
     if(itype == 4) then
-      if(.not. get_parameter("band", bands, band_cnt)) call log_error("get_parameters", "'bands' missing.")
+      if(.not. get_parameter("band", bands, band_cnt)) call log_error("get_parameters", "'band' missing.")
       if(band_cnt < 2) call log_error("get_parameters", "Need at least to Points for Band Structure")
     endif
 
