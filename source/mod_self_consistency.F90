@@ -1127,11 +1127,11 @@ contains
     !$omp parallel default(none) &
     !$omp& private(mythread,iz,kp,gf,i,mu,mup,gf_loc) &
     !$omp& shared(llineargfsoc,llinearsoc,lverbose,s,er,ei,gdiaguur,gdiagddr,gdiagud,gdiagdu,myrank_row_hw,nthreads,outputunit_loop)
-    !$  mythread = omp_get_thread_num()
-    !$  if((mythread==0).and.(myrank_row_hw==0)) then
-    !$    nthreads = omp_get_num_threads()
-    !$    write(outputunit_loop,"('[sumk_npart] Number of threads: ',i0)") nthreads
-    !$  end if
+    !!$  mythread = omp_get_thread_num()
+    !!$  if((mythread==0).and.(myrank_row_hw==0)) then
+    !!$    nthreads = omp_get_num_threads()
+    !!$    write(outputunit_loop,"('[sumk_npart] Number of threads: ',i0)") nthreads
+    !!$  end if
 
     allocate(gf_loc(s%nAtoms,s%nAtoms,2*nOrb,2*nOrb))
     gf_loc = zero
@@ -1213,22 +1213,24 @@ contains
 
     ggr    = 0.d0
 
-!$omp parallel default(none) &
-!$omp& private(mythread,AllocateStatus,iz,kp,wkbzc,gf,gvg,temp,temp1,temp2,gij,gji,paulitemp,gdHdxg,gvgdHdxgvg,i,j,i0,j0,mu,sigma) &
-!$omp& shared(llineargfsoc,llinearsoc,lverbose,s,er,ei,ggr,mhalfU,pauli_components1,pauli_components2,myrank_row_hw,nthreads,outputunit,outputunit_loop)
-!$  mythread = omp_get_thread_num()
-!$  if((mythread==0).and.(myrank_row_hw==0)) then
-!$    nthreads = omp_get_num_threads()
-!$    write(outputunit_loop,"('[sumk_jacobian] Number of threads: ',i0)") nthreads
-!$  end if
-    allocate( gdHdxg(4,4,s%nAtoms,s%nAtoms,18,18),gvgdHdxgvg(4,4,s%nAtoms,s%nAtoms,18,18) , STAT = AllocateStatus  )
+    !$omp parallel default(none) &
+    !$omp& private(mythread,AllocateStatus,iz,kp,wkbzc,gf,gvg,temp,temp1,temp2,gij,gji,paulitemp,gdHdxg,gvgdHdxgvg,i,j,i0,j0,mu,sigma) &
+    !$omp& shared(llineargfsoc,llinearsoc,lverbose,s,er,ei,ggr,mhalfU,pauli_components1,pauli_components2,myrank_row_hw,nthreads,outputunit,outputunit_loop)
+    !$  mythread = omp_get_thread_num()
+    !!$  if((mythread==0).and.(myrank_row_hw==0)) then
+    !!$    nthreads = omp_get_num_threads()
+    !!$    write(outputunit_loop,"('[sumk_jacobian] Number of threads: ',i0)") nthreads
+    !!$  end if
+    allocate( gdHdxg(4,4,s%nAtoms,s%nAtoms,2*nOrb,2*nOrb),gvgdHdxgvg(4,4,s%nAtoms,s%nAtoms,2*nOrb,2*nOrb) , STAT = AllocateStatus  )
     if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: gdHdxg,gvgdHdxgvg")
-
-!$omp do schedule(static), reduction(+:ggr)
-    kpoints: do iz=1,s%nkpt
-!$  if((mythread==0)) then
-        if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"jacobian kpoints",iz,s%nkpt)
-!$   end if
+    gdHdxg = zero
+    gvgdHdxgvg = zero
+    !, reduction(+:ggr)
+    !$omp do schedule(static)
+    do iz=1,s%nkpt
+      !!$  if((mythread==0)) then
+      !!        if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"jacobian kpoints",iz,s%nkpt)
+      !!$   end if
 
       kp = s%kbz(:,iz)
       wkbzc = cmplx(s%wkbz(iz), 0.d0)
@@ -1266,7 +1268,7 @@ contains
               gij = temp1(sigma,:,:)
               gji = temp2(sigmap,:,:)
               call zgemm('n','n',18,18,18,wkbzc,gij,18,gji,18,zero,temp,18)
-              gdHdxg(sigma,sigmap,i,j,:,:) = temp
+              gdHdxg(sigma,sigmap,i,j,:,:) = gdHdxg(sigma,sigmap,i,j,:,:) + temp
             end do
           end do
 
@@ -1295,34 +1297,36 @@ contains
                 gij = temp1(sigma,:,:)
                 gji = temp2(sigmap,:,:)
                 call zgemm('n','n',18,18,18,wkbzc,gij,18,gji,18,zero,temp,18)
-                gvgdHdxgvg(sigma,sigmap,i,j,:,:) = temp
+                gvgdHdxgvg(sigma,sigmap,i,j,:,:) = gvgdHdxgvg(sigma,sigmap,i,j,:,:) + temp
               end do
             end do
           end if
         end do
       end do
+    end do
+    !$omp end do
 
-      ! removing non-linear SOC term
-      if((llineargfsoc).or.(llinearsoc)) gdHdxg = gdHdxg - gvgdHdxgvg
+    ! removing non-linear SOC term
+    if((llineargfsoc).or.(llinearsoc)) gdHdxg = gdHdxg - gvgdHdxgvg
 
-      do mu=1,18
-        do j=1,s%nAtoms
-          do i=1,s%nAtoms
-            do sigmap=1,4
-              do sigma=1,4
-                i0 = (sigma-1)*s%nAtoms + i
-                j0 = (sigmap-1)*s%nAtoms + j
-                ! Trace over orbitals and spins of the real part
-                ggr(i0,j0) = ggr(i0,j0) + real(gdHdxg(sigma,sigmap,i,j,mu,mu))
-              end do
+    !$omp critical
+    do mu=1, 2*nOrb
+      do j=1,s%nAtoms
+        do i=1,s%nAtoms
+          do sigmap=1,4
+            do sigma=1,4
+              i0 = (sigma-1)*s%nAtoms + i
+              j0 = (sigmap-1)*s%nAtoms + j
+              ! Trace over orbitals and spins of the real part
+              ggr(i0,j0) = ggr(i0,j0) + real(gdHdxg(sigma,sigmap,i,j,mu,mu))
             end do
           end do
         end do
       end do
-    end do kpoints
-!$omp end do
+    end do
+    !$omp end critical
     deallocate(gdHdxg,gvgdHdxgvg)
-!$omp end parallel
+    !$omp end parallel
 
     return
   end subroutine sumk_jacobian
