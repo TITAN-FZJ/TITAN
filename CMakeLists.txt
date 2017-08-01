@@ -8,9 +8,10 @@ option(DEBUG "Enable debugging" OFF)
 
 enable_language(Fortran)
 
-file(GLOB sources source/*.F90
-	  	  source/*.f90)
 set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
+				                          source/coupling.F90
+																	source/jij_energy.F90
+																	source/sumk_jij.F90
                                   source/create_files.F90
                                   source/check_files.F90
                                   source/sort_all_files.F90
@@ -56,22 +57,28 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_susceptibilities.F90
                                   source/mod_alpha.F90
 																)
-add_executable(titan.exe ${SOURCE_TITAN})
 
 if(PLATFORM MATCHES "Juqueen")
+	set(TITAN_EXE titan_juqueen.exe)
   set(CMAKE_Fortran_COMPILER mpixlf2008_r)
+elseif(PLATFORM MATCHES "Jureca")
+	set(TITAN_EXE titan_jureca.exe)
+	set(CMAKE_Fortran_COMPILER mpiifort)
 else()
+	set(TITAN_EXE titan.exe)
   set(CMAKE_Fortran_COMPILER mpiifort)
 endif()
+
+add_executable(${TITAN_EXE} ${SOURCE_TITAN})
 
 set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
 if(PLATFORM MATCHES "Juqueen")
+	target_link_libraries(${TITAN_EXE} $ENV{ND}/lib/libnag_essl.a -L/bgsys/local/lib -lesslbg -qsmp=omp)
   link_directories(/bgsys/local/lib)
-  target_link_libraries(titan.exe $ENV{ND}/lib/libnag_essl.a -lesslbg -qsmp=omp)
-  target_compile_options(titan.exe PRIVATE -WF,-D_JUQUEEN
+  target_compile_options(${TITAN_EXE} PRIVATE -WF,-D_JUQUEEN
                                            -O3
                                            -qstrict
                                            -qnoescape
@@ -81,16 +88,16 @@ if(PLATFORM MATCHES "Juqueen")
   set(CMAKE_SHARED_LIBRARY_LINK_Fortran_FLAGS)
 elseif(PLATFORM MATCHES "Jureca")
 
-  target_link_libraries(titan.exe -mkl -lnag -qopenmp)
-  target_compile_options(titan.exe PRIVATE -no-wrap-margin
+  target_link_libraries(${TITAN_EXE} -mkl -lnag -qopenmp)
+  target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                            -fpp
                                            -O3
                                            -qopenmp
                                            -mkl
                                            -xHost)
 else()
-  target_link_libraries(titan.exe -mkl -qopenmp /opt/NAG/fll6i26dcl/lib/libnag_nag.a)
-  target_compile_options(titan.exe PRIVATE -no-wrap-margin
+  target_link_libraries(${TITAN_EXE} -mkl -qopenmp /opt/NAG/fll6i26dcl/lib/libnag_nag.a)
+  target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                            -fpp
                                            -O3
                                            -qopenmp
@@ -116,9 +123,9 @@ endif()
 #					-xHost
 #)
 if(DEBUG)
-target_compile_options(titan.exe PRIVATE -CB
+target_compile_options(titan.exe PRIVATE -C -CB
                                         -check uninit
-                                        #-check-all
+
                                         -debug all
                                         -warn all
                                         -ftrapuv
