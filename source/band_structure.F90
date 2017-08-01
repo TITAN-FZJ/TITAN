@@ -55,7 +55,6 @@ subroutine read_band_points(kbands, b1, b2, b3)
       stop
     endif
   end do
-
   close(666999)
 end subroutine read_band_points
 
@@ -66,7 +65,8 @@ subroutine band_structure(s)
   use mod_parameters, only: fieldpart, outputunit_loop, Ef, eta, Npl_folder, npts, npt1, Utype, bands, band_cnt
   use mod_SOC, only: SOCc, socpart
   use mod_mpi_pars, only: mpitag
-  use mod_system, only: System
+  use mod_system, only: System, ia
+  use TightBinding, only: nOrb
   implicit none
   type(System), intent(in) :: s
   character(len=400) :: varm
@@ -126,13 +126,7 @@ subroutine band_structure(s)
   i = i+1
   write(unit=666+mpitag, fmt=*) bands(i), total_length
 
-  ! deltak = (kmax - kmin)/npts
-  ! allocate( kpoints(npt1,3) )
-  ! do count=1,npt1
-  !   kpoints(count,:) = kmin + (count-1)*deltak
-  ! end do
-
-  band_structure_loop: do count=1,npt1
+  do count=1,npt1
     write(outputunit_loop,"('[band_structure] ',i0,' of ',i0,' points',', i = ',es10.3)") count,npt1,dble((count-1.d0)/npts)
     call hamiltk(kpoints(:,count),hk)
 
@@ -140,13 +134,12 @@ subroutine band_structure(s)
     if(ifail/=0) then
       write(outputunit_loop,"('[band_structure] Problem with diagonalization. ifail = ',i0)") ifail
       stop
-    ! else
-    !   write(outputunit_loop,"('[band_structure] optimal lwork = ',i0,' lwork = ',i0)") work(1),lwork
     end if
     ! Transform energy to eV if runoption is on
-    eval = eval
+    ! eval = eval
     write(666+mpitag,'(1000(es16.8))') dble((count-1.d0)*deltak), (real(eval(j)),j=1,dimbs)
-  end do band_structure_loop
+  end do
+
   close(666+mpitag)
   deallocate(hk,rwork,eval,evecl,evecr,work)
 
