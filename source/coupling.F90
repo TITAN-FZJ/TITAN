@@ -1,7 +1,8 @@
 ! Calculates the full 3x3 J tensor (including coupling, DMI and anisotropic pair interactions)
 subroutine coupling()
   use mod_f90_kind, only: double
-  use mod_parameters, only: fieldpart, nmaglayers, mmlayermag, Npl_input, outputunit, parts, eta, Utype, q
+  use mod_parameters, only: fieldpart, nmaglayers, mmlayermag, Npl_input, outputunit, eta, Utype, q
+  use EnergyIntegration, only: parts
   use mod_magnet, only: mx, my, mz
   use mod_SOC, only: SOCc, socpart
   use mod_system, only: s => sys
@@ -17,7 +18,7 @@ subroutine coupling()
   if(myrank==0) write(outputunit,"('CALCULATING FULL TENSOR OF EXHANGE INTERACTIONS AND ANISOTROPIES AS A FUNCTION OF THICKNESS')")
 
   ! Opening files for position dependence
-  if((myrank==0).and.(Npl==Npl_i)) then
+  if((myrank==0)) then !.and.(Npl==Npl_i)) then
     ! Exchange interactions
     do j=1,nmaglayers ; do i=1,nmaglayers
       iw = 199+(j-1)*nmaglayers*2+(i-1)*2
@@ -107,7 +108,7 @@ subroutine coupling()
         end if
       end do
     end do
-    
+
     ! Closing files
     ! if(Npl==Npl_f) then
     ! Closing files
