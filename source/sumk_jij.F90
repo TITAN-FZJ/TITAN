@@ -42,7 +42,7 @@ subroutine sumk_jij(er,ei,Jijint)
 
 !$omp parallel default(none) &
 !$omp& private(mythread,iz,kp,gf,gfq,gij,gji,paulia,paulib,i,j,mu,nu,alpha,kminusq,Jijk,Jijkan,temp1,temp2) &
-!$omp& shared(lverbose,s,q,er,ei,Jijint,dbxcdm,d2bxcdm2,mz,nmaglayers,mmlayermag,myrank,nthreads,pi,outputunit)
+!$omp& shared(lverbose,s,q,er,ei,Jijint,dbxcdm,d2bxcdm2,mz,nmaglayers,mmlayermag,myrank,nthreads,outputunit)
 !$  mythread = omp_get_thread_num()
 !$  if((mythread==0).and.(myrank==0)) then
 !$    nthreads = omp_get_num_threads()
