@@ -20,6 +20,8 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
   complex(double),dimension(s%nAtoms, s%nAtoms, 2*nOrb, 2*nOrb) :: gf
   complex(double),dimension(s%nAtoms, nOrb) :: gfdiagu,gfdiagd
   complex(double),dimension(2*nOrb, 2*nOrb) :: gij,gji,temp1,temp2,paulia,paulib
+  real(double),dimension(:,:),allocatable    :: ldosu_loc,ldosd_loc
+  real(double),dimension(:,:,:,:),allocatable    :: Jijint_loc
 
 ! (x,y,z)-tensor formed by Pauli matrices to calculate anisotropy term (when i=j)
   paulimatan = zero
@@ -35,16 +37,20 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
   Jijint = 0.d0
 
 !$omp parallel default(none) &
-!$omp& private(mythread,iz,kp,gf,gij,gji,paulia,paulib,i,j,mu,nu,alpha,gfdiagu,gfdiagd,Jijk,Jijkan,temp1,temp2) &
+!$omp& private(mythread,iz,kp,gf,gij,gji,paulia,paulib,i,j,mu,nu,alpha,gfdiagu,gfdiagd,Jijk,Jijkan,temp1,temp2,ldosu_loc,ldosd_loc,Jijint_loc) &
 !$omp& shared(lverbose,s,e,eta,hdel,mz,nmaglayers,mmlayermag,pauli_dorb,paulimatan,ldosu,ldosd,Jijint,nthreads,outputunit_loop)
 !$  mythread = omp_get_thread_num()
 !$  if(mythread==0) then
 !$    nthreads = omp_get_num_threads()
 !$    write(outputunit_loop,"('[ldos_jij_energy] Number of threads: ',i0)") nthreads
 !$  end if
-
-!$omp do reduction(+:ldosu,ldosd,Jijint)
-  kpoints: do iz=1,s%nkpt
+allocate(ldosu_loc(s%nAtoms, nOrb), ldosd_loc(s%nAtoms, nOrb), Jijint_loc(nmaglayers,nmaglayers,3,3))
+ldosu_loc = 0.d0
+ldosd_loc = 0.d0
+Jijint_loc = 0.d0
+!reduction(+:ldosu,ldosd,Jijint)
+!$omp do
+do iz=1,s%nkpt
 !$  if((mythread==0)) then
       if(lverbose) call progress_bar(outputunit_loop,"kpoints",iz,s%nkpt)
 !$  end if
@@ -91,12 +97,17 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
       gfdiagd(i,mu) = - aimag(gf(i,i,nu,nu))*s%wkbz(iz)
     end do ; end do
 
-    ldosu = ldosu + gfdiagu
-    ldosd = ldosd + gfdiagd
-    Jijint = Jijint + Jijk
+    ldosu_loc = ldosu_loc + gfdiagu
+    ldosd_loc = ldosd_loc + gfdiagd
+    Jijint_loc = Jijint_loc + Jijk
 
-  end do kpoints
+  end do
 !$omp end do
+!$omp critical
+ldosu = ldosu + ldosu_loc
+ldosd = ldosd + ldosd_loc
+Jijint = Jijint + Jijint_loc
+!$omp end critical
 !$omp end parallel
 
   ldosu  = ldosu/pi
