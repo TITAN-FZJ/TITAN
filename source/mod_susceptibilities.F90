@@ -196,14 +196,14 @@ contains
               write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a2,'/chi_',i0,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),i,j,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
               open (unit=iw, file=varm, status='replace', form='formatted')
               write(unit=iw, fmt="('#     energy    ,  real part of chi ',a,'  ,  imaginary part of chi ',a,'  ,  amplitude of chi ',a,'  ')") spin(sigma),spin(sigma),spin(sigma)
-              !close(unit=iw)
+              close(unit=iw)
             end if
             iw = iw+1000
             ! HF SUSCEPTIBILITIES
             write(varm,"('./results/',a1,'SOC/',a,'/HF/',a2,'/chihf_',i0,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),i,j,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
             open (unit=iw, file=varm, status='replace', form='formatted')
             write(unit=iw, fmt="('#     energy    ,  real part of chi ',a,' HF ,  imaginary part of chi ',a,' HF  ,  amplitude of chi ',a,' HF  ')") spin(sigma),spin(sigma),spin(sigma)
-            !close(unit=iw)
+            close(unit=iw)
           end do
         end do
       end do
@@ -212,18 +212,18 @@ contains
         write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_eval',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
         open (unit=1990, file=varm,status='replace', form='formatted')
         write(unit=1990,fmt="('#     energy    ,  real part of 1st eigenvalue  ,  imaginary part of 1st eigenvalue  ,  real part of 2nd eigenvalue  ,  imaginary part of 2nd eigenvalue  , ... ')")
-        !close (unit=1990)
+        close (unit=1990)
         do i=1,nmaglayers
           write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_evec',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
           open (unit=1990+i, file=varm,status='replace', form='formatted')
           write(unit=1990+i,fmt="('#     energy    ,  real part of 1st component  ,  imaginary part of 1st component  ,  real part of 2nd component  ,  imaginary part of 2nd component  , ...   ')")
-          !close (unit=1990+i)
+          close (unit=1990+i)
         end do
       end if
       if(ltestcharge) then
         write(varm, "('./results/',a1,'SOC/',a,'/RPA/testcharge',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
         open (unit=17964, file=varm, status='replace', form='formatted', iostat=err)
-        !close(unit=17964)
+        close(unit=17964)
       end if
 
     else if(iflag==1) then

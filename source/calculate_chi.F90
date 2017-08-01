@@ -119,13 +119,13 @@ subroutine calculate_chi()
 
           ! WRITING RPA AND HF SUSCEPTIBILITIES
           ! Opening chi and diag files
-          !call openclose_chi_files(1)
+          call openclose_chi_files(1)
 
           ! Writing susceptibilities
           call write_susceptibilities(e)
 
           ! Closing chi and diag files
-          !call openclose_chi_files(2)
+          call openclose_chi_files(2)
         end do
 
         write(time,"('[calculate_chi] Time after step ',i0,': ')") count
