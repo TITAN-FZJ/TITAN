@@ -12,6 +12,7 @@ subroutine hamiltk(kp,hk)
   use TightBinding, only: nOrb
   use mod_magnet, only: lb, sb
   use mod_SOC, only: ls, socscale
+  use mod_mpi_pars, only: abortProgram
   implicit none
   integer :: i, j, k
   real(double), intent(in) :: kp(3)
@@ -19,6 +20,7 @@ subroutine hamiltk(kp,hk)
   complex(double), dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb), intent(out) :: hk
   complex(double) :: tmp(nOrb,nOrb)
   complex(double) :: kpExp
+
   hk = zero
 
   call U_matrix(hee, s%nAtoms, nOrb)
@@ -38,12 +40,24 @@ subroutine hamiltk(kp,hk)
     kpExp = exp(zi * dot_product(kp,s%Neighbors(k)%CellVector))
 
     do i = 1, s%nAtoms
-      tmp = s%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp
-      hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + tmp
-      hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + tmp
+      tmp(1:nOrb,1:nOrb) = s%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp
+      hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + tmp(1:nOrb,1:nOrb)
+      hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + tmp(1:nOrb,1:nOrb)
     end do
   end do
 
+  do i = ia(1,1), ia(4,s%nAtoms)
+    do j = i, ia(4,s%nAtoms)
+      if(abs(hk(j,i)-conjg(hk(i,j))) > 1.d-12) then
+        print *, i,j,abs(hk(j,i)-conjg(hk(i,j)))
+      end if
+    end do
+  end do
+  ! do i = 1, s%nAtoms
+  !   print *, i
+  !   print *, (hk(ia(1,i)+j,ia(1,i)+j), j=0,nOrb-1)
+  ! end do
+  ! call abortProgram("")
   return
 end subroutine hamiltk
 
