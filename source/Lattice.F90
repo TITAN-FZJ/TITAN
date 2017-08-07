@@ -32,9 +32,7 @@ module Lattice
       type(NeighborAtom), dimension(:), allocatable :: list
       integer :: size
 
-      s%nStages = 2
-      s%lbulk = .true.
-
+      
       if(LatticeMode == 1) then
         call monoBasis()
       elseif(LatticeMode == 2) then
