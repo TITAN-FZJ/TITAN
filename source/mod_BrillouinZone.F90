@@ -1,6 +1,10 @@
 module mod_BrillouinZone
 implicit none
 
+integer :: nkpt_x = 0
+integer :: nkpt_y = 0
+integer :: nkpt_z = 0
+
 contains
   subroutine setup_BrillouinZone(s)
     use mod_system, only: System
@@ -33,42 +37,48 @@ contains
     integer :: l,j,m, k, smallest_index, numextrakbz
     integer :: nkpt_perdim !n. of k point per dimension
 
-    allocate(extrakbz(3,s%nkpt*10), extrawkbz(s%nkpt*10))
 
-    nkpt_perdim=ceiling((dble(s%nkpt))**(1.d0/3.d0))
-    nkpt_perdim=nkpt_perdim
-    s%nkpt = nkpt_perdim**3
-    allocate( iniwkbz(s%nkpt), inikbz(3, s%nkpt) )
+    if(abs(nkpt_x)+abs(nkpt_y)+abs(nkpt_z) == 0) then
+      nkpt_perdim=ceiling((dble(s%nkpt))**(1.d0/3.d0))
+      nkpt_perdim=nkpt_perdim
+      nkpt_x = nkpt_perdim
+      nkpt_y = nkpt_perdim
+      nkpt_z = nkpt_perdim
+    end if
+
+    s%nkpt = nkpt_x * nkpt_y * nkpt_z
+    allocate(extrakbz(3,s%nkpt*10), extrawkbz(s%nkpt*10))
+    allocate(iniwkbz(s%nkpt), inikbz(3, s%nkpt) )
 
     vol = tpi / dot_product(s%a1, cross(s%a2,s%a3))
     s%b1 = vol * cross(s%a2, s%a3)
     s%b2 = vol * cross(s%a3, s%a1)
     s%b3 = vol * cross(s%a1, s%a2)
 
-    BZ(:,1) = 0.d0
-    BZ(:,2) = s%b1
-    BZ(:,3) = s%b2
-    BZ(:,4) = s%b1 + s%b2
-    BZ(:,5) = s%b3
-    BZ(:,6) = s%b1 + s%b3
-    BZ(:,7) = s%b2 + s%b3
-    BZ(:,8) = s%b1 + s%b2 + s%b3
+    BZ(1:3,1) = 0.d0
+    BZ(1:3,2) = s%b1
+    BZ(1:3,3) = s%b2
+    BZ(1:3,4) = s%b1 + s%b2
+    BZ(1:3,5) = s%b3
+    BZ(1:3,6) = s%b1 + s%b3
+    BZ(1:3,7) = s%b2 + s%b3
+    BZ(1:3,8) = s%b1 + s%b2 + s%b3
 
     !Generate k-points in the paralelogram determined by b1 and b2
     iniwkbz = 1.d0
     m = 0
-    do l = 1, nkpt_perdim
-       do j = 1, nkpt_perdim
-          do k = 1, nkpt_perdim !Run over the entire BZ
+    do l = 1, nkpt_x
+       do j = 1, nkpt_y
+          do k = 1, nkpt_z !Run over the entire BZ
              m = m + 1
-             inikbz(:, m)= ( dble(l-1)*s%b1 + dble(j-1)*s%b2 + dble(k-1)*s%b3)/ dble(nkpt_perdim)
+             inikbz(:, m)= dble(l-1)*s%b1 / dble(nkpt_x) + dble(j-1)*s%b2 / dble(nkpt_y) + dble(k-1)*s%b3 / dble(nkpt_z)
           end do
        end do
     end do
 
     !Translate the k-points to the 1st BZ.
     !10*|b1+b2|, bigger than the distance of any genarated kpoint
-    ini_smallest_dist=10.d0*sqrt(dot_product(s%b1+s%b2,s%b1+s%b2))
+    ini_smallest_dist = 10.d0 * sqrt(dot_product(s%b1 + s%b2, s%b1 + s%b2))
     numextrakbz=0
     !Run over all the kpoints generated initially.
     do l=1, s%nkpt
@@ -77,11 +87,11 @@ contains
        !Checks to each of the 4 BZ's the kpoint belongs by checking
        ! to each BZ it's closer.
        do j=1, 8
-          diff=inikbz(:,l)-BZ(:,j)
-          distance=sqrt(dot_product(diff,diff))
-          if(distance<smallest_dist) then
-             smallest_dist=distance
-             smallest_index=j
+          diff = inikbz(:,l) - BZ(:,j)
+          distance = sqrt(dot_product(diff, diff))
+          if(distance < smallest_dist) then
+             smallest_dist = distance
+             smallest_index = j
           end if
        end do
        !Checks if the kpoint is in the border between two or more
@@ -172,7 +182,7 @@ contains
 
     !Translate the k-points to the 1st BZ.
     !10*|b1+b2|, bigger than the distance of any genarated kpoint
-    ini_smallest_dist = 10.d0 * sqrt(dot_product(s%b1+s%b2, s%b1+s%b2))
+    ini_smallest_dist = 10.d0 * sqrt(dot_product(s%b1 + s%b2, s%b1 + s%b2))
     numextrakbz = 0
     !Run over all the kpoints generated initially.
     do l = 1, s%nkpt

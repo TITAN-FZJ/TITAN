@@ -75,6 +75,7 @@ contains
     use Lattice, only: LatticeMode
     use ElectricField, only: ElectricFieldMode, ElectricFieldVector, EFp, EFt
     use EnergyIntegration, only: parts, parts3, pn1, pn2, pnt, n1gl, n3gl, strEnergyParts
+    use mod_BrillouinZone, only: nkpt_x, nkpt_y, nkpt_z
     implicit none
     character(len=*), intent(in) :: filename
     type(System), intent(inout) :: s
@@ -161,8 +162,16 @@ contains
 
     end if
 
-    if(.not. get_parameter("nkpt", s%nkpt)) call log_error("get_parameters","'nkpt' missing.")
-
+    if(.not. get_parameter("nkpt", i_vector,cnt)) call log_error("get_parameters","'nkpt' missing.")
+    if(cnt == 1) then
+      s%nkpt = i_vector(1)
+    else if(cnt == 3) then
+      nkpt_x = i_vector(1)
+      nkpt_y = i_vector(2)
+      nkpt_z = i_vector(3)
+    else
+      call log_error("get_parameter", "'nkpt' has wrong size (expected 1 or 3)")
+    end if
     !===============================================================================================
     !===============================================================================================
 
