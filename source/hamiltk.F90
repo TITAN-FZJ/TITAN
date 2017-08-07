@@ -14,7 +14,7 @@ subroutine hamiltk(kp,hk)
   use mod_SOC, only: ls, socscale
   use mod_mpi_pars, only: abortProgram
   implicit none
-  integer :: i, j, k
+  integer :: i, j, k,l,m
   real(double), intent(in) :: kp(3)
   complex(double) :: hee(2*nOrb, 2*nOrb, s%nAtoms)
   complex(double), dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb), intent(out) :: hk
@@ -27,8 +27,8 @@ subroutine hamiltk(kp,hk)
 
   ! Mouting slab hamiltonian
   do i=1, s%nAtoms
-    hk(ia(1,i):ia(2,i), ia(1,i):ia(2,i)) = s%Types(s%Basis(i)%Material)%onSite
-    hk(ia(3,i):ia(4,i), ia(3,i):ia(4,i)) = s%Types(s%Basis(i)%Material)%onSite
+    hk(ia(1,i):ia(2,i), ia(1,i):ia(2,i)) = s%Types(s%Basis(i)%Material)%onSite(1:nOrb,1:nOrb)
+    hk(ia(3,i):ia(4,i), ia(3,i):ia(4,i)) = s%Types(s%Basis(i)%Material)%onSite(1:nOrb,1:nOrb)
 
     hk(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = hk(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) &
                                          + lb(:,:,i) + sb(:,:,i) + hee(:,:,i) &
@@ -37,10 +37,11 @@ subroutine hamiltk(kp,hk)
 
   do k = 1, s%nNeighbors
     j = s%Neighbors(k)%BasisIndex
-    kpExp = exp(zi * dot_product(kp,s%Neighbors(k)%CellVector))
+    kpExp = exp(zi * dot_product(kp, s%Neighbors(k)%CellVector))
 
     do i = 1, s%nAtoms
-      tmp(1:nOrb,1:nOrb) = s%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp
+      tmp(1:nOrb,1:nOrb) = s%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i)
+      tmp = tmp * kpExp
       hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + tmp(1:nOrb,1:nOrb)
       hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + tmp(1:nOrb,1:nOrb)
     end do
@@ -53,11 +54,7 @@ subroutine hamiltk(kp,hk)
       end if
     end do
   end do
-  ! do i = 1, s%nAtoms
-  !   print *, i
-  !   print *, (hk(ia(1,i)+j,ia(1,i)+j), j=0,nOrb-1)
-  ! end do
-  ! call abortProgram("")
+
   return
 end subroutine hamiltk
 
