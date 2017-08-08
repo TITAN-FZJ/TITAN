@@ -504,6 +504,7 @@ contains
     use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx, my, mz
     use mod_progress, only: progress_bar
     use mod_mpi_pars
+    !$  use omp_lib
     implicit none
     integer  :: N,i,j,iflag
     integer,           intent(inout) :: iuser(*)
@@ -552,7 +553,7 @@ contains
     end if
 
     ix = myrank_row_hw+1
-    itask = numprocs ! Number of tasks done initially
+    itask = numprocs_row ! Number of tasks done initially
     select case (iflag)
     case(1)
       n_orb_u = 0.d0
@@ -574,7 +575,7 @@ contains
         end = (myrank_row_hw+1) * work + remainder
       end if
 
-      print *, myrank_row_hw, start, end, work, remainder
+
       !$omp parallel default(none) &
       !$omp& private(ix,iz,kp,i,mu,mup,gf,gf_loc) &
       !$omp& shared(llineargfsoc,llinearsoc,start,end,wght,s,Ef,y,gdiaguur,gdiagddr,gdiagud,gdiagdu)
@@ -583,20 +584,27 @@ contains
       gf = zero
       gf_loc = zero
 
-      !$omp do schedule(static) collapse(2)
-      do ix = start, end
-        do iz = 1, s%nkpt
-          kp = s%kbz(:,iz)
-          if((llineargfsoc).or.(llinearsoc)) then
+      if((llineargfsoc).or.(llinearsoc)) then
+        !$omp do schedule(static) collapse(2) nowait
+        do ix = start, end
+          do iz = 1, s%nkpt
+            kp = s%kbz(:,iz)
             call greenlineargfsoc(Ef,y(ix),kp,gf_loc)
-          else
-            call green(Ef,y(ix),kp,gf_loc)
-          end if
-          gf = gf + gf_loc*s%wkbz(iz)*wght(ix)
+            gf = gf + gf_loc*s%wkbz(iz)*wght(ix)
+          end do
         end do
-      end do
-      !$omp end do
-
+        !$omp end do
+      else
+        !$omp do schedule(static) collapse(2) nowait
+        do ix = start, end
+          do iz = 1, s%nkpt
+            kp = s%kbz(:,iz)
+            call green(Ef,y(ix),kp,gf_loc)
+            gf = gf + gf_loc*s%wkbz(iz)*wght(ix)
+          end do
+        end do
+        !$omp end do
+      end if
       !$omp critical
       do i=1,s%nAtoms
         do mu=1,nOrb
