@@ -565,12 +565,13 @@ contains
       gdiagud = zero
       gdiagdu = zero
 
-      work = pn1 / numprocs_row
       remainder = mod(pn1,numprocs_row)
       if(myrank_row_hw < remainder) then
+        work = ceiling(dble(pn1) / dble(numprocs_row))
         start = myrank_row_hw*work + 1
         end = (myrank_row_hw+1) * work
       else
+        work = floor(dble(pn1) / dble(numprocs_row))
         start = myrank_row_hw*work + 1 + remainder
         end = (myrank_row_hw+1) * work + remainder
       end if
