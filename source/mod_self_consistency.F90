@@ -585,7 +585,7 @@ contains
       gf_loc = zero
 
       if((llineargfsoc).or.(llinearsoc)) then
-        !$omp do schedule(static) collapse(2) nowait
+        !$omp do schedule(static) collapse(2)
         do ix = start, end
           do iz = 1, s%nkpt
             kp = s%kbz(:,iz)
@@ -593,9 +593,9 @@ contains
             gf = gf + gf_loc*s%wkbz(iz)*wght(ix)
           end do
         end do
-        !$omp end do
+        !$omp end do nowait
       else
-        !$omp do schedule(static) collapse(2) nowait
+        !$omp do schedule(static) collapse(2)
         do ix = start, end
           do iz = 1, s%nkpt
             kp = s%kbz(:,iz)
@@ -603,7 +603,7 @@ contains
             gf = gf + gf_loc*s%wkbz(iz)*wght(ix)
           end do
         end do
-        !$omp end do
+        !$omp end do nowait
       end if
       !$omp critical
       do i=1,s%nAtoms
