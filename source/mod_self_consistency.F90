@@ -566,12 +566,12 @@ contains
 
       work = pn1 / numprocs_row
       remainder = mod(pn1,numprocs_row)
-      if(myrank_row_hw <= remainder) then
+      if(myrank_row_hw < remainder) then
         start = myrank_row_hw*work + 1
         end = (myrank_row_hw+1) * work
       else
         start = myrank_row_hw*work + 1 + remainder
-      end = (myrank_row_hw+1) * work + remainder
+        end = (myrank_row_hw+1) * work + remainder
       end if
 
       print *, myrank_row_hw, start, end, work, remainder
@@ -615,8 +615,6 @@ contains
       do j=1,s%nAtoms
         mp(j) = mp(j) + (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
       end do
-      print *, gdiaguur
-      print *, gdiagddr
 
       call MPI_Allreduce(gdiaguur, n_orb_u, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
       call MPI_Allreduce(gdiagddr, n_orb_d, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
@@ -629,8 +627,6 @@ contains
       mp      = mp/pi
       mx      = real(mp)
       my      = aimag(mp)
-      print *, n_orb_u
-      print *, n_orb_d
       do i=1,s%nAtoms
         ! Number of particles
         n_t(i) = sum(n_orb_t(i,:))
