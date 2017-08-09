@@ -32,7 +32,7 @@ subroutine L_gs(s)
   do while(ix <= pn1)
     call sumk_L_gs(Ef,y(ix),gupgd, s%kbz, s%wkbz, s%nkpt, s%nAtoms)
     gupgdint = gupgdint + gupgd*wght(ix)
-    ix = ix + numprocs_row
+    ix = ix + numprocs_row_hw
   end do
   call MPI_Allreduce(MPI_IN_PLACE, gupgdint, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_Comm_Row_hw, ierr)
 

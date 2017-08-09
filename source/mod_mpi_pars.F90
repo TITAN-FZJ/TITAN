@@ -3,7 +3,9 @@ module mod_mpi_pars
   use MPI
   implicit none
   integer :: ierr, errorcode
-  integer :: myrank,numprocs,mcount,mpitag, numprocs_row
+  integer :: myrank,numprocs,mcount,mpitag
+  integer :: numprocs_row, numprocs_col
+  integer :: numprocs_row_hw, numprocs_col_hw
   integer, dimension(MPI_STATUS_SIZE) :: stat
   ! Grid for energy loop calculations
   integer :: myrank_row,myrank_col
@@ -94,7 +96,9 @@ contains
     use mod_f90_kind, only: double
     use mod_parameters, only: outputunit
     implicit none
-    integer, intent(in) :: total_hw_npt1, pnt
+    integer, intent(in) :: total_hw_npt1
+    integer, intent(in) :: pnt
+    !! Total number of points for Energy Integration (i.e. real + imaginary axis)
     real(double), intent(in) :: emin, emax
     integer, intent(inout) :: npts, npt1
     real(double), intent(inout) :: deltae
@@ -181,7 +185,9 @@ contains
 
     ! Obtaining process rank inside its row and column
     call MPI_Comm_rank(MPI_Comm_Row,myrank_row,ierr) ! Obtaining rank number inside its row
+    call MPI_Comm_size(MPI_Comm_Row, numprocs_row,ierr)      ! Obtain size of row
     call MPI_Comm_rank(MPI_Comm_Col,myrank_col,ierr) ! Obtaining rank number inside its column
+    call MPI_Comm_size(MPI_Comm_Col, numprocs_col,ierr)      ! Obtain size of row
 
     if(myrank==0) write(outputunit,"('[build_cartesian_grid] Created grid with ',i0,' rows (myrank_col) x ',i0,' columns (myrank_row)')") MPIdims(1),MPIdims(2)
 
@@ -252,8 +258,9 @@ contains
 
     ! Obtaining process rank inside its row and column
     call MPI_Comm_rank(MPI_Comm_Row_hw,myrank_row_hw,ierr) ! Obtaining rank number inside its row
-    call MPI_Comm_size(MPI_Comm_Row_hw, numprocs_row,ierr)      ! Obtain size of row
+    call MPI_Comm_size(MPI_Comm_Row_hw, numprocs_row_hw,ierr)      ! Obtain size of row
     call MPI_Comm_rank(MPI_Comm_Col_hw,myrank_col_hw,ierr) ! Obtaining rank number inside its column
+    call MPI_Comm_size(MPI_Comm_Col_hw, numprocs_col_hw,ierr)      ! Obtain size of row
 
     if(myrank==0) write(outputunit,"('[build_cartesian_grid_field] Created grid with ',i0,' rows (myrank_col_hw) x ',i0,' columns (myrank_row_hw)')") MPIdims(1),MPIdims(2)
 

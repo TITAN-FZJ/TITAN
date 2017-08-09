@@ -23,12 +23,12 @@ subroutine eintshechi(e, count)
   allocate( Fint_loc(dim,dim), STAT = AllocateStatus)
   allocate( Fint(dim,dim), STAT = AllocateStatus )
   if (AllocateStatus/=0) call abortProgram("[eintshechi] Not enough memory for: Fint')")
-  
+
 ! Generating energy points in the real axis for third integration
   call generate_real_epoints(e)
 
   ix = myrank_row + 1
-  !itask = numprocs_row ! Number of tasks done initially
+  !itask = numprocs_row_hw ! Number of tasks done initially
 
   ! Starting to calculate energy integral
   chiorb_hf = zero
@@ -44,11 +44,11 @@ subroutine eintshechi(e, count)
     end if
 
     Fint_loc = Fint_loc + Fint
-    chiorb_hf = chiorb_hf + Fint
+    !chiorb_hf = chiorb_hf + Fint
     ix = ix + numprocs_row
   end do
 
-  call MPI_Reduce(Fint_loc, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row_hw, ierr)
+  call MPI_Reduce(Fint_loc, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr)
 
   deallocate(Fint)
   deallocate(Fint_loc)
@@ -107,8 +107,8 @@ subroutine eintshechilinearsoc(e, count)
 
     ix = ix + numprocs_row
   end do
-  call MPI_Allreduce(MPI_IN_PLACE, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_Comm_Row_hw, ierr)
-  call MPI_Allreduce(MPI_IN_PLACE, chiorb_hflsoc, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_Comm_Row_hw, ierr)
+  call MPI_Allreduce(MPI_IN_PLACE, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_Comm_Row, ierr)
+  call MPI_Allreduce(MPI_IN_PLACE, chiorb_hflsoc, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_Comm_Row, ierr)
 
   deallocate(Fint,Fintlsoc)
 

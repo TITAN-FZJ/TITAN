@@ -553,7 +553,7 @@ contains
     end if
 
     ix = myrank_row_hw+1
-    itask = numprocs_row ! Number of tasks done initially
+    itask = numprocs_row_hw ! Number of tasks done initially
     select case (iflag)
     case(1)
       n_orb_u = 0.d0
@@ -565,13 +565,13 @@ contains
       gdiagud = zero
       gdiagdu = zero
 
-      remainder = mod(pn1,numprocs_row)
+      remainder = mod(pn1,numprocs_row_hw)
       if(myrank_row_hw < remainder) then
-        work = ceiling(dble(pn1) / dble(numprocs_row))
+        work = ceiling(dble(pn1) / dble(numprocs_row_hw))
         start = myrank_row_hw*work + 1
         end = (myrank_row_hw+1) * work
       else
-        work = floor(dble(pn1) / dble(numprocs_row))
+        work = floor(dble(pn1) / dble(numprocs_row_hw))
         start = myrank_row_hw*work + 1 + remainder
         end = (myrank_row_hw+1) * work + remainder
       end if
@@ -673,7 +673,7 @@ contains
       do while(ix <= pn1)
         call sumk_jacobian(Ef, y(ix), ggr)
         selfconjac = selfconjac + wght(ix)*ggr
-        ix = ix + numprocs_row
+        ix = ix + numprocs_row_hw
       end do
 
       call MPI_Allreduce(MPI_IN_PLACE, selfconjac, ncount2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
@@ -768,7 +768,7 @@ contains
 !           mp(j) = mp(j) + (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
 !         end do
 !
-!         ix = ix + numprocs_row
+!         ix = ix + numprocs_row_hw
 !       end do
 !
 !       call MPI_Allreduce(MPI_IN_PLACE, n_orb_u, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
@@ -820,7 +820,7 @@ contains
 !       do while(ix <= pn1)
 !         call sumk_jacobian(Ef, y(ix), ggr)
 !         selfconjac = selfconjac + wght(ix)*ggr
-!         ix = ix + numprocs_row
+!         ix = ix + numprocs_row_hw
 !       end do
 !
 !       call MPI_Allreduce(MPI_IN_PLACE, selfconjac, ncount2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
@@ -915,7 +915,7 @@ contains
         mp(j) = mp(j) + (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
       end do
 
-      ix = ix + numprocs_row
+      ix = ix + numprocs_row_hw
     end do
 
     call MPI_Allreduce(MPI_IN_PLACE, n_orb_u, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
@@ -1046,7 +1046,7 @@ contains
           mp(j) = mp(j) + (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
         end do
 
-        ix = ix + numprocs_row
+        ix = ix + numprocs_row_hw
       end do
 
       call MPI_Allreduce(MPI_IN_PLACE, n_orb_u, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
@@ -1096,7 +1096,7 @@ contains
         call sumk_jacobian(Ef,y(ix),ggr)
         selfconjac = selfconjac + wght(ix)*ggr
 
-        ix = ix + numprocs_row
+        ix = ix + numprocs_row_hw
       end do
       call MPI_Allreduce(MPI_IN_PLACE, selfconjac, ncount2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
 
@@ -1188,7 +1188,7 @@ contains
         mp(j) = mp(j) + (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
       end do
 
-      ix = ix + numprocs_row
+      ix = ix + numprocs_row_hw
     end do
 
     call MPI_Allreduce(MPI_IN_PLACE, n_orb_u, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
