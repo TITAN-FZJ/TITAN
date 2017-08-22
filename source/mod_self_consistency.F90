@@ -14,8 +14,10 @@ contains
     use mod_parameters, only: skipsc, outputunit_loop, lselfcon, U,&
                               magaxis, magaxisvec, offset, layertype
     use mod_system, only: s => sys
+    use TightBinding, only: nOrb
     use mod_mpi_pars, only: myrank_row_hw, myrank, abortProgram
     use mod_susceptibilities, only: lrot
+    use mod_Umatrix
     implicit none
     integer             :: i,err
     logical,intent(out) :: lsuccess
@@ -109,6 +111,8 @@ contains
       end do
       hdelm = conjg(hdelp)
     end if
+
+    call init_Umatrix(eps1,hdel,hdelm,hdelp,s%nAtoms,nOrb)
 
     return
   end subroutine read_previous_results
@@ -504,6 +508,7 @@ contains
     use TightBinding, only: nOrb
     use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx, my, mz
     use mod_progress, only: progress_bar
+    use mod_Umatrix
     use mod_mpi_pars
     !$  use omp_lib
     implicit none
@@ -541,6 +546,8 @@ contains
       hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
     end do
     hdelm = conjg(hdelp)
+
+    call update_Umatrix(eps1, hdel, hdelm, hdelp, s%nAtoms, nOrb)
 
     if((myrank_row_hw==0).and.(iter==1)) then
       write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
@@ -692,153 +699,6 @@ contains
 
     return
   end subroutine sc_equations_and_jacobian
-!
-! #if !defined(_OSX) && !defined(_JUQUEEN)
-!   subroutine sc_equations_and_jacobian(N,x,fvec,selfconjac,iuser,ruser,iflag)
-!     use mod_f90_kind, only: double
-!     use mod_constants, only: zi, pi, zero
-!     use mod_parameters, only: offset, U, outputunit, outputunit_loop, Ef, lverbose, host, lontheflysc
-!     use EnergyIntegration, only: pn1, y, wght
-!     use mod_system, only: s => sys
-!     use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx, my, mz
-!     use mod_progress, only: progress_bar
-!     use mod_mpi_pars
-!     implicit none
-!     integer  :: N,i,j,iflag
-!     integer,           intent(inout) :: iuser(*)
-!     real(double),      intent(inout) :: ruser(*)
-!     real(double),dimension(N) :: x,fvec
-!     real(double),dimension(N,N)      :: selfconjac
-!     real(double),dimension(s%nAtoms)      :: n_t,mx_in,my_in,mz_in
-!     complex(double),dimension(s%nAtoms)   :: mp_in
-!     real(double),dimension(N,N)      :: ggr
-!     real(double),dimension(s%nAtoms,9)    :: n_orb_u,n_orb_d,n_orb_t,mag_orb
-!     real(double),dimension(s%nAtoms,9)    :: gdiaguur,gdiagddr
-!     complex(double),dimension(s%nAtoms,9) :: gdiagud,gdiagdu
-!     !--------------------- begin MPI vars --------------------
-!     integer :: ix,itask
-!     integer :: ncount,ncount2
-!     !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
-!     ncount=s%nAtoms*9
-!     ncount2=N*N
-!
-!   ! Values used in the hamiltonian
-!     eps1  = x(           1:  s%nAtoms)
-!     mx_in = x(  s%nAtoms+1:2*s%nAtoms)
-!     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
-!     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
-!     mp_in = mx_in + zi*my_in
-!
-!     do i=1,s%nAtoms
-!       hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
-!       hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
-!     end do
-!     hdelm = conjg(hdelp)
-!
-!     if((myrank_row_hw==0).and.(iter==1)) then
-!       write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
-!       do i=1,s%nAtoms
-!         if(abs(mp(i))>1.d-10) then
-!           write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
-!         else
-!           write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz_in(i)
-!         end if
-!       end do
-!     end if
-!
-!     ix = myrank_row_hw+1
-!     itask = numprocs ! Number of tasks done initially
-!     select case (iflag)
-!     case(1)
-!       n_orb_u = 0.d0
-!       n_orb_d = 0.d0
-!       mp = zero
-!
-!       do while(ix <= pn1)
-!         call sumk_npart(Ef,y(ix),gdiaguur,gdiagddr,gdiagud,gdiagdu)
-!
-!         gdiaguur = wght(ix)*gdiaguur
-!         gdiagddr = wght(ix)*gdiagddr
-!         gdiagud = wght(ix)*gdiagud
-!         gdiagdu = wght(ix)*gdiagdu
-!
-!         n_orb_u = n_orb_u + gdiaguur
-!         n_orb_d = n_orb_d + gdiagddr
-!
-!         do j=1,s%nAtoms
-!           mp(j) = mp(j) + (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
-!         end do
-!
-!         ix = ix + numprocs_row_hw
-!       end do
-!
-!       call MPI_Allreduce(MPI_IN_PLACE, n_orb_u, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
-!       call MPI_Allreduce(MPI_IN_PLACE, n_orb_d, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
-!       call MPI_Allreduce(MPI_IN_PLACE, mp, s%nAtoms, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_Comm_Row_hw, ierr)
-!
-!       n_orb_u = 0.5d0 + n_orb_u/pi
-!       n_orb_d = 0.5d0 + n_orb_d/pi
-!       n_orb_t = n_orb_u + n_orb_d
-!       mag_orb = n_orb_u - n_orb_d
-!       mp      = mp/pi
-!       mx      = real(mp)
-!       my      = aimag(mp)
-!
-!       do i=1,s%nAtoms
-!         ! Number of particles
-!         n_t(i) = sum(n_orb_t(i,:))
-!         fvec(i) = n_t(i) - s%Types(s%Basis(i)%Material)%Occupation !  npart0(i+offset)
-!         ! x-component of magnetization
-!         j = i + s%nAtoms
-!         fvec(j) = mx(i) - mx_in(i)
-!         ! y-component of magnetization
-!         j = j + s%nAtoms
-!         fvec(j) = my(i) - my_in(i)
-!         ! z-component of magnetization
-!         j = j+s%nAtoms
-!         mz(i)    = sum(mag_orb(i,5:9))
-!         fvec(j)  = mz(i) - mz_in(i)
-!       end do
-!
-!       if(myrank_row_hw==0) then
-!         do i=1,s%nAtoms
-!           if(abs(mp(i))>1.d-10) then
-!             write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i)
-!             write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+s%nAtoms,fvec(i+s%nAtoms),i+2*s%nAtoms,fvec(i+2*s%nAtoms),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
-!           else
-!             write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz(i)
-!             write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
-!           end if
-!         end do
-!       end if
-!       if(lontheflysc) call write_sc_results()
-!     case(2)
-!       ! if((myrank_row_hw==0)) then
-!       !   write(outputunit_loop,*) "[sumk_jacobian]"
-!       ! end if
-!
-!       selfconjac = 0.d0
-!       do while(ix <= pn1)
-!         call sumk_jacobian(Ef, y(ix), ggr)
-!         selfconjac = selfconjac + wght(ix)*ggr
-!         ix = ix + numprocs_row_hw
-!       end do
-!
-!       call MPI_Allreduce(MPI_IN_PLACE, selfconjac, ncount2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
-!       selfconjac = selfconjac/pi
-!       do i = s%nAtoms+1, 4*s%nAtoms
-!         selfconjac(i,i) = selfconjac(i,i) - 1.d0
-!       end do
-!
-!     case default
-!       write(outputunit,"('[sc_equations_and_jacobian] Problem in self-consistency! iflag = ',I0)") iflag
-!       call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-!     end select
-!
-!     iter = iter + 1
-!
-!     return
-!   end subroutine sc_equations_and_jacobian
 
   ! For a given value of center of band eps1 it calculates the
   ! occupation number and the magnetic moment
@@ -847,9 +707,11 @@ contains
     use mod_parameters, only: offset, U, outputunit_loop, Ef, lverbose, host, lontheflysc
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
+    use TightBinding, only: nOrb
     use EnergyIntegration, only: pn1, y, wght
     use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx ,my ,mz
     use mod_progress, only: progress_bar
+    use mod_Umatrix
     use mod_mpi_pars
     implicit none
     integer  :: N,i,j,iflag
@@ -879,6 +741,8 @@ contains
       hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
     end do
     hdelm = conjg(hdelp)
+
+    call update_Umatrix(eps1, hdel, hdelm, hdelp, s%nAtoms, nOrb)
 
     if((myrank_row_hw==0).and.(iter==1)) then
       write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
@@ -979,9 +843,11 @@ contains
     use mod_parameters, only: offset, U, outputunit_loop, outputunit, Ef, lverbose, host, lontheflysc
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
+    use TightBinding, only: nOrb
     use EnergyIntegration, only: pn1, y, wght
     use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx, my, mz
     use mod_progress, only: progress_bar
+    use mod_Umatrix
     use mod_mpi_pars
     implicit none
     integer  :: N,i,j,iflag,ldfjac
@@ -1011,6 +877,8 @@ contains
       hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
     end do
     hdelm = conjg(hdelp)
+
+    call update_Umatrix(eps1, hdel, hdelm, hdelp, s%nAtoms, nOrb)
 
     if((myrank_row_hw==0).and.(iter==1)) then
       write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
@@ -1122,9 +990,11 @@ contains
     use mod_constants, only: zi, pi, zero
     use mod_parameters, only: offset, U, outputunit_loop, Ef, lverbose, host, lontheflysc
     use mod_system, only: s => sys
+    use TightBinding, only: nOrb
     use EnergyIntegration, only: pn1, y, wght
     use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx, my, mz
     use mod_progress, only: progress_bar
+    use mod_Umatrix
     use mod_mpi_pars
     implicit none
     integer  :: N,i,j,iflag
@@ -1152,6 +1022,8 @@ contains
       hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
     end do
     hdelm = conjg(hdelp)
+
+    call update_Umatrix(eps1, hdel, hdelm, hdelp, s%nAtoms, nOrb)
 
     if((myrank_row_hw==0).and.(iter==1)) then
       write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
@@ -1244,9 +1116,11 @@ contains
     use mod_constants, only: zi, pi
     use mod_parameters, only: offset, U, outputunit_loop, Ef, lverbose, host
     use mod_system, only: s => sys
+    use TightBinding, only: nOrb
     use EnergyIntegration, only: y, wght, pn1
     use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp
     use mod_progress, only: progress_bar
+    use mod_Umatrix
     use mod_mpi_pars
     implicit none
     integer       :: N,ldfjac,i,iflag
@@ -1272,6 +1146,8 @@ contains
       hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
     end do
     hdelm = conjg(hdelp)
+
+    call update_Umatrix(eps1, hdel, hdelm, hdelp, s%nAtoms, nOrb)
 
     fvec=fvec
 
