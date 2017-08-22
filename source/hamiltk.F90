@@ -13,17 +13,15 @@ subroutine hamiltk(kp,hk)
   use mod_magnet, only: lb, sb
   use mod_SOC, only: ls, socscale
   use mod_mpi_pars, only: abortProgram
+  use mod_Umatrix, only: hee
   implicit none
   integer :: i, j, k,l,m
   real(double), intent(in) :: kp(3)
-  complex(double) :: hee(2*nOrb, 2*nOrb, s%nAtoms)
   complex(double), dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb), intent(out) :: hk
   complex(double) :: tmp(nOrb,nOrb)
   complex(double) :: kpExp
 
   hk = zero
-
-  call U_matrix(hee, s%nAtoms, nOrb)
 
   ! Mouting slab hamiltonian
   do i=1, s%nAtoms
@@ -73,18 +71,16 @@ subroutine hamiltklinearsoc(kp,hk,vsoc)
   use TightBinding, only: nOrb
   use mod_SOC,    only: socscale, ls
   use mod_magnet,        only: lb, sb
+  use mod_Umatrix, only: hee
   implicit none
   integer :: i, j, k
   real(double), intent(in)  :: kp(3)
-  complex(double) :: hee(2*nOrb, 2*nOrb, s%nAtoms)
   complex(double),dimension(s%nAtoms*2*nOrb,s%nAtoms*2*nOrb),intent(out)  :: hk,vsoc
   complex(double) :: tmp(nOrb, nOrb)
   complex(double) :: kpExp
 
   hk = zero
   vsoc = zero
-
-  call U_matrix(hee, s%nAtoms, nOrb)
 
   ! Mouting slab hamiltonian
   do i=1,s%nAtoms

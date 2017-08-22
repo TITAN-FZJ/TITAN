@@ -1,18 +1,39 @@
-! Mounts the effective electron-electron interaction Hamiltonian
-subroutine U_matrix(hee, nAtoms, nOrb)
-  use mod_f90_kind,      only: double
-  use mod_constants,     only: zero
-  use mod_magnet,        only: eps1, hdel, hdelm, hdelp
-  use mod_parameters, only: offset
+module mod_Umatrix
+  ! Mounts the effective electron-electron interaction Hamiltonian
+  use mod_f90_kind, only: double
   implicit none
-  integer, intent(in) :: nAtoms, nOrb
-  integer :: i,mu,nu
-  complex(double), dimension(2*nOrb,2*nOrb,nAtoms), intent(out) :: hee
 
-  ! the effective electronic interaction matrix
-  hee = zero
-  if(2*nOrb /= 18) stop "U_matrix only implemented for nOrb = 9"
-  ! Diagonal terms (in orbital)
+  complex(double), dimension(:,:,:), allocatable :: hee
+
+contains
+
+  subroutine allocate_Umatrix(nAtoms, nOrb)
+    use mod_mpi_pars, only: AbortProgram
+    implicit none
+
+    integer, intent(in) :: nAtoms, nOrb
+    integer :: AllocateStatus
+
+    allocate(hee(2*nOrb,2*nOrb,nAtoms), stat=AllocateStatus)
+    if(AllocateStatus /= 0) call abortProgram("[allocate_Umatrix] Failed to allocate 'hee'.")
+
+    return
+  end subroutine allocate_Umatrix
+
+  subroutine update_Umatrix(eps1, hdel, hdelm, hdelp, nAtoms, nOrb)
+    use mod_f90_kind, only: double
+    use mod_constants, only: zero
+    use mod_parameters, only: offset
+    implicit none
+
+    integer, intent(in) :: nAtoms, nOrb
+    real(double), dimension(nAtoms), intent(in) :: eps1, hdel
+    complex(double), dimension(nAtoms), intent(in) :: hdelm, hdelp
+
+    integer :: i, mu, nu
+
+    hee = zero
+    ! Diagonal terms (in orbital)
     do i=1,nAtoms
       do mu=5, 9
         nu=mu+9
@@ -22,5 +43,24 @@ subroutine U_matrix(hee, nAtoms, nOrb)
         hee(nu,mu,i+offset) = -hdelp(i)
       end do
     end do
-  return
-end subroutine U_matrix
+    return
+  end subroutine update_Umatrix
+
+  subroutine init_Umatrix(eps1, hdel, hdelm, hdelp, nAtoms, nOrb)
+    use mod_f90_kind, only: double
+    use mod_mpi_pars, only: abortProgram
+    implicit none
+
+    integer, intent(in) :: nAtoms, nOrb
+    real(double), dimension(nAtoms), intent(in) :: eps1, hdel
+    complex(double), dimension(nAtoms), intent(in) :: hdelm, hdelp
+
+    if(2*nOrb /= 18) call abortProgram("[init_Umatrix] Umatrix only implemented for nOrb = 9")
+
+    call allocate_Umatrix(nAtoms,nOrb)
+    call update_Umatrix(eps1,hdel,hdelm,hdelp,nAtoms,nOrb)
+
+    return
+  end subroutine
+
+end module mod_Umatrix
