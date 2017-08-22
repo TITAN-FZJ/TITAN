@@ -26,6 +26,7 @@ type, extends(Atom) :: NeighborAtom
   real(double), dimension(:), allocatable :: Distance
   real(double), dimension(:,:), allocatable :: dirCos
   real(double), dimension(:,:,:), allocatable :: t0i ! nOrb, nOrb, nAtoms
+  logical, dimension(:), allocatable :: isHopping
 end type NeighborAtom
 
 type :: AtomKind

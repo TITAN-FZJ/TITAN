@@ -32,9 +32,12 @@ contains
       end do
     end do
 
+    ! Allocate & initialize Hopping variables
     do i = 1, s%nNeighbors
       allocate(s%Neighbors(i)%t0i(nOrb,nOrb,s%nAtoms))
+      allocate(s%Neighbors(i)%isHopping(s%nAtoms))
       s%Neighbors(i)%t0i(:,:,:) = 0.d0
+      s%Neighbors(i)%isHopping(:) = .false.
     end do
 
     do i = 1, s%nAtoms
@@ -46,6 +49,7 @@ contains
                                     s%Neighbors(current%index)%dirCos(:,i), &
                                     s%Types(s%Basis(i)%Material)%Hopping(:,k), &
                                     s%Types(s%Basis(j)%Material)%Hopping(:,k), nOrb)
+            s%Neighbors(current%index)%isHopping(i) = .true.
             current => current%next
           end do
         end do

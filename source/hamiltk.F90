@@ -40,6 +40,7 @@ subroutine hamiltk(kp,hk)
     kpExp = exp(zi * dot_product(kp, s%Neighbors(k)%CellVector))
 
     do i = 1, s%nAtoms
+      !if(.not. s%Neighbors(k)%isHopping(i)) cycle
       tmp(1:nOrb,1:nOrb) = s%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i)
       tmp = tmp * kpExp
       hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + tmp(1:nOrb,1:nOrb)
