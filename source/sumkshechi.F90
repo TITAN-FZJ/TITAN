@@ -105,15 +105,13 @@ subroutine sumkshechi(e,ep,Fint,iflag)
         end do
       end do
 
-      !omp critical
 #ifdef _JUQUEEN
       call zgeadd(Fint_loc,dim,'N',df1,dim,'N',Fint_loc,dim,dim,dim)
 #else
-      call ZAXPY(dim*dim,zum,df1,1,Fint_loc,1)              !       Fint      = Fint + df1
-      !Fint = Fint + df1
+      call ZAXPY(dim*dim,zum,df1,1,Fint_loc,1)
 #endif
-      !omp end critical
     end do
+
     !$omp end do
     !$omp critical
       Fint = Fint + Fint_loc
