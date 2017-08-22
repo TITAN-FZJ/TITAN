@@ -51,6 +51,7 @@ contains
     character(len=*), intent(in) :: str
 
     write(outputunit,"(a)") str
+    close(outputunit)
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
 
     return
