@@ -5,7 +5,7 @@
 ! iflag = 1 calculates A
 ! iflag = 2 calculates B
 subroutine build_rotation_matrices_chi(theta_in,phi_in,rotmat,iflag)
-  use mod_f90_kind
+  use mod_f90_kind, only: double
   use mod_constants, only: zi,pi
   implicit none
   integer,                        intent(in)  :: iflag
@@ -72,7 +72,7 @@ end subroutine build_rotation_matrices_chi
 
 ! Rotation matrix of an angle theta around y axis
 subroutine build_rotation_matrix_ry(theta,ry)
-  use mod_f90_kind
+  use mod_f90_kind, only: double
   implicit none
   real(double),                intent(in)  :: theta
   real(double),dimension(3,3), intent(out) :: ry
@@ -89,7 +89,7 @@ end subroutine build_rotation_matrix_ry
 
 ! Rotation matrix of an angle phi around z axis
 subroutine build_rotation_matrix_rz(phi,rz)
-  use mod_f90_kind
+  use mod_f90_kind, only: double
   implicit none
   real(double),                intent(in)  :: phi
   real(double),dimension(3,3), intent(out) :: rz

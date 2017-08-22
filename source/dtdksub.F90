@@ -5,30 +5,33 @@
 !        1     2     3       Npl-2 Npl-1  Npl
 !         <-S-> <S-1>           <S-1> <-S->
 subroutine dtdksub(kp,dtdk)
-  use mod_tight_binding, only: t0i
-  use mod_parameters,    only: Npl, dirEfieldvec, offset
-  use mod_constants,     only: zero, zi
-  use mod_f90_kind,      only: double
-  use mod_system,        only: r_nn, l_nn, npln
+  use mod_f90_kind, only: double
+  use mod_constants, only: zero, zi
+  use AtomTypes, only: NeighborIndex
+  use mod_system, only: ia, s => sys
+  use TightBinding, only: nOrb
+  use mod_parameters, only: offset
+  use ElectricField, only: ElectricFieldVector
   implicit none
-  integer     :: i, j, l, loc_pln
+  integer :: i, j, k
   real(double), intent(in)  :: kp(3)
-  complex(double),dimension(Npl,Npl,9,9),intent(out)  :: dtdk
-
+  complex(double),dimension(s%nAtoms,s%nAtoms,nOrb,nOrb),intent(out)  :: dtdk
+  complex(double) :: tmp(nOrb, nOrb)
+  complex(double) :: kpExp
   dtdk = zero
 
   ! Mouting derivative of slab's hamiltonian
 
-  do i=1, Npl
-     loc_pln = npln
-     if( Npl < i + npln ) loc_pln = Npl - i + 1
+  do k = 1, s%nNeighbors
+    j = s%Neighbors(k)%BasisIndex
+    kpExp = zi * dot_product(ElectricFieldVector, s%Neighbors(k)%Position) * exp(zi * dot_product(kp,s%Neighbors(k)%CellVector))
 
-     do j = 1, loc_pln
-        do l = l_nn(1,j), l_nn(1,j+1)-1
-           dtdk(i,i+j-1,:,:) = dtdk(i,i+j-1,:,:) + zi * dot_product(dirEfieldvec, r_nn(:, l)) * t0i(:,:,l,i+offset) * exp(zi * dot_product(kp, r_nn(:,l)))
-        end do
-        if(j > 1) dtdk(i+j-1,i,:,:) = transpose(conjg(dtdk(i,i+j-1,:,:)))
-     end do
+    do i = 1, s%nAtoms
+      tmp = s%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp
+      hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + tmp
+      hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + tmp
+    end do
   end do
+
   return
 end subroutine dtdksub

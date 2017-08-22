@@ -17,51 +17,19 @@ module mod_parameters
   logical       :: lhfresponses = .false. !< Use HF susceptibilities to calculate currents, disturbances and accumulations (don't renormalize)
   !========================================================================================!
   ! Lattice and surface direction
-  character(len=6) :: lattice                   !< Lattice description; general or bcc, fcc, hcp, cubic
+  character(len=6) :: latticeName                   !< Lattice description; general or bcc, fcc, hcp, cubic
   integer          :: Npl,Npl_i,Npl_f,Npl_input !< Description missing.
   integer          :: Npl_total
   logical          :: bulk = .false.            !< Flag turning on/off bulk calculations, default: .false., not used yet
   !========================================================================================!
   integer            :: magaxis                   !< Initial guess for magnetization
   real(double)       :: magaxisvec(3)
-  !character(len=1)   :: magaxis                   !< Equilibrium magnetization
-  integer            :: dirEfield                 !< Direction of in-plane applied electric field
-  !character(len=1)   :: dirEfield                 !< Direction of in-plane applied electric field
   real(double)       :: theta=0.d0,phi=0.d0       !< Euler Angles for the magnetization frame of reference
-  real(double)       :: dirEfieldvec(3)           !< Direction vector of the electric field
-  real(double)       :: EFp = 0.d0, EFt = 0.d0    !< Phi and Theta angles of the electric field in spherical coordinates
   !========================================================================================!
   integer :: itype  !< type of calculation - defined in input file 'input'
-  !========================================================================================!
-  logical :: SOC                                          !< Turn on/off SOC
-  logical :: llineargfsoc = .false.,llinearsoc = .false.  !< Linear SOC
-  real(double) :: socscale = 1.d0                         !< Rescale of SOC parameter
-  !========================================================================================!
-  logical :: lfield !< Turn on/off static magnetic field, option to give in magnetic field in tesla
-  ! Values of magnetic field in cartesian or spherical coordinates
-  character(len=9),dimension(7)  :: dcfield = ["hwa      ","hwt      ","hwp      ","hwahwt   ","hwahwp   ","hwthwp   ","hwahwthwp"]
-  character(len=60)              :: dc_header
-  character(len=60),allocatable  :: dc_fields(:),dcprefix(:)
-  real(double)     ,allocatable  :: hw_list(:,:)
-  integer       :: dcfield_dependence=0,dc_count=0
-  real(double)  :: hwx=0.d0,hwy=0.d0,hwz=0.d0,tesla=1.d0
-  real(double)  :: hwa,hwa_i=0.d0,hwa_f=0.d0,hwa_s
-  integer       :: hwa_npts=0,hwa_npt1=1,hwa_count
-  real(double)  :: hwt,hwt_i=0.d0,hwt_f=0.d0,hwt_s
-  integer       :: hwt_npts=0,hwt_npt1=1,hwt_count
-  real(double)  :: hwp,hwp_i=0.d0,hwp_f=0.d0,hwp_s
-  integer       :: hwp_npts=0,hwp_npt1=1,hwp_count
-  integer       :: hw_count,total_hw_npt1
-  ! Layer-resolved scale of magnetic field (including empty spheres)
-  logical       :: lhwscale        = .false.
-  real(double)  :: hwscale(dmax)   = 1.d0
-  logical       :: lhwrotate       = .false.
-  real(double)  :: hwtrotate(dmax) = 0.d0, hwprotate(dmax) = 0.d0
+
   !========================================================================================!
   ! Number of parts to divide energy integral I1+I2 and I3
-  integer      :: pn1,pn2,pnt
-  integer      :: parts,parts3
-  integer      :: n1gl,n3gl
   real(double) :: tol
   !========================================================================================!
   ! Band structure
@@ -74,7 +42,7 @@ module mod_parameters
   real(double) :: qxmin,qxmax,qzmin,qzmax
   ! Number of steps to skip from the beginning
   ! (useful to get the same points after a calculation has stopped)
-  integer :: skip_steps = 0, skip_steps_hw = 0
+  integer :: skip_steps = 0
   !========================================================================================!
   ! Conversion arrays
   integer,allocatable :: sigmaimunu2i(:,:,:,:),sigmaijmunu2i(:,:,:,:,:),sigmai2i(:,:)
@@ -132,7 +100,11 @@ module mod_parameters
   !========================================================================================!
   ! Output file
   integer            :: outputunit=123456789,outputunit_loop
-  character(len=200) :: outputfile,outputfile_loop
+  character(len=200) :: outputfile, outputfile_loop
+
+  character(len=50) :: fieldpart   = "" ! hwa, hwt, hwp, ltesla, lnolb, lhwscale, lhwrotate,
+  character(len=50) :: dcfieldpart = "" ! dc special case of fieldpart
+
   !========================================================================================!
   ! Choose between tight-binding (T) or orthogonal (O) DFT parameters
   character(len=1)  :: dfttype
@@ -157,4 +129,15 @@ module mod_parameters
   character(len=50) :: Npl_folder
   !========================================================================================!
   integer :: offset = 0
+
+contains
+  subroutine getHost()
+    implicit none
+#ifdef _JUQUEEN
+    call hostnm_(host)
+#else
+    call hostnm(host)
+#endif
+  end subroutine getHost
+
 end module mod_parameters

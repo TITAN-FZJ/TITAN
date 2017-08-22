@@ -1,8 +1,11 @@
 module mod_mpi_pars
-  use mod_f90_kind
+  use mod_f90_kind, only: double
   use MPI
   implicit none
-  integer :: myrank,numprocs,errorcode,ierr,mcount,mpitag, numprocs_row
+  integer :: ierr, errorcode
+  integer :: myrank,numprocs,mcount,mpitag
+  integer :: numprocs_row, numprocs_col
+  integer :: numprocs_row_hw, numprocs_col_hw
   integer, dimension(MPI_STATUS_SIZE) :: stat
   ! Grid for energy loop calculations
   integer :: myrank_row,myrank_col
@@ -17,6 +20,71 @@ module mod_mpi_pars
 
 contains
 
+  subroutine Initialize_MPI()
+    implicit none
+
+ !#ifndef _UFF
+ !#endif
+    integer :: provided
+    !integer :: ierr
+
+#ifdef _OPENMP
+#ifdef _UFF
+      call MPI_Init(ierr)
+#else
+      call MPI_Init_thread(MPI_THREAD_FUNNELED,provided,ierr)
+#endif
+      call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ierr)
+      call MPI_Comm_size(MPI_COMM_WORLD,numprocs,ierr)
+#else
+      call MPI_Init(ierr)
+      call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ierr)
+      call MPI_Comm_size(MPI_COMM_WORLD,numprocs,ierr)
+#endif
+    return
+  end subroutine
+
+  ! Wrapper function for MPI Abort
+  subroutine abortProgram(str)
+    use mod_parameters, only: outputunit
+    implicit none
+    character(len=*), intent(in) :: str
+
+    write(outputunit,"(a)") str
+    close(outputunit)
+    call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+
+    return
+  end subroutine abortProgram
+
+
+  subroutine setup_MPI_grid(itype, pn1, npt1, pnt, total_hw_npt1, npts, deltae, emin, emax)
+    use mod_f90_kind, only: double
+    implicit none
+    integer, intent(in) :: itype, pn1, pnt, total_hw_npt1
+    real(double), intent(in) :: emin, emax
+    integer, intent(inout) :: npts, npt1
+    real(double), intent(inout) :: deltae
+    integer :: ierr
+    if((itype==1).or.(itype==6)) then ! Create column for field loop (no energy integration)
+      call build_cartesian_grid_field(pn1, total_hw_npt1, npt1)
+    end if
+    if( ((itype>=3).and.(itype<=5)) .or. itype==0) then ! Create column for field loop (no energy integration)
+      call build_cartesian_grid_field(1, total_hw_npt1, npt1)
+    end if
+    if((itype>=7).and.(itype<=8)) then ! Create matrix for energy dependence and integration
+      call build_cartesian_grid(total_hw_npt1, pnt, npt1, npts, deltae, emin, emax)
+      call build_cartesian_grid_field(npt1*pnt, total_hw_npt1, npt1)
+    end if
+    if(itype==9) then ! Create matrix for dclimit
+      call build_cartesian_grid_field(pnt, total_hw_npt1, npt1)
+      call MPI_COMM_DUP(MPI_Comm_Col_hw,MPI_Comm_Col,ierr)
+      call MPI_COMM_DUP(MPI_Comm_Row_hw,MPI_Comm_Row,ierr)
+      myrank_col = myrank_col_hw
+      myrank_row = myrank_row_hw
+    end if
+  end subroutine setup_MPI_grid
+
   ! Bidimensional array should look like:
   !    myrank_col: / myrank_row: 0 1 2 3 ... pnt-1 (number inside a row)
   !        0
@@ -25,11 +93,19 @@ contains
   !       ...
   !     MPIpts-1
   !(number inside a col)
-  subroutine build_cartesian_grid()
-    use mod_parameters, only: total_hw_npt1, pnt, npt1, npts, deltae, emin, emax, outputunit
+  subroutine build_cartesian_grid(total_hw_npt1, pnt, npt1, npts, deltae, emin, emax)
+    use mod_f90_kind, only: double
+    use mod_parameters, only: outputunit
     implicit none
+    integer, intent(in) :: total_hw_npt1
+    integer, intent(in) :: pnt
+    !! Total number of points for Energy Integration (i.e. real + imaginary axis)
+    real(double), intent(in) :: emin, emax
+    integer, intent(inout) :: npts, npt1
+    real(double), intent(inout) :: deltae
     logical :: lreorder,lperiodic(2),lrow(2),lcol(2)
     integer :: MPIdims(2)
+
 
     MPIpts  = ceiling(dble(numprocs)/dble(pnt)) ! Number of rows to be used
     MPIdims = [MPIpts,pnt]
@@ -110,7 +186,9 @@ contains
 
     ! Obtaining process rank inside its row and column
     call MPI_Comm_rank(MPI_Comm_Row,myrank_row,ierr) ! Obtaining rank number inside its row
+    call MPI_Comm_size(MPI_Comm_Row, numprocs_row,ierr)      ! Obtain size of row
     call MPI_Comm_rank(MPI_Comm_Col,myrank_col,ierr) ! Obtaining rank number inside its column
+    call MPI_Comm_size(MPI_Comm_Col, numprocs_col,ierr)      ! Obtain size of row
 
     if(myrank==0) write(outputunit,"('[build_cartesian_grid] Created grid with ',i0,' rows (myrank_col) x ',i0,' columns (myrank_row)')") MPIdims(1),MPIdims(2)
 
@@ -118,12 +196,12 @@ contains
   end subroutine build_cartesian_grid
 
 
-  subroutine build_cartesian_grid_field(elements_in_a_row)
-    use mod_parameters, only: total_hw_npt1,outputunit,npt1
+  subroutine build_cartesian_grid_field(elements_in_a_row, total_hw_npt1, npt1)
+    use mod_parameters, only: outputunit
     implicit none
     logical :: lreorder,lperiodic(2),lrow(2),lcol(2)
     integer :: MPIdims(2)
-    integer, intent(in) :: elements_in_a_row
+    integer, intent(in) :: elements_in_a_row, total_hw_npt1, npt1
 
     MPIpts_hw  = ceiling(dble(numprocs)/dble(elements_in_a_row)) ! Number of rows to be used
     MPIdims    = [MPIpts_hw,elements_in_a_row]
@@ -181,8 +259,9 @@ contains
 
     ! Obtaining process rank inside its row and column
     call MPI_Comm_rank(MPI_Comm_Row_hw,myrank_row_hw,ierr) ! Obtaining rank number inside its row
-    call MPI_Comm_size(MPI_Comm_Row_hw, numprocs_row,ierr)      ! Obtain size of row
+    call MPI_Comm_size(MPI_Comm_Row_hw, numprocs_row_hw,ierr)      ! Obtain size of row
     call MPI_Comm_rank(MPI_Comm_Col_hw,myrank_col_hw,ierr) ! Obtaining rank number inside its column
+    call MPI_Comm_size(MPI_Comm_Col_hw, numprocs_col_hw,ierr)      ! Obtain size of row
 
     if(myrank==0) write(outputunit,"('[build_cartesian_grid_field] Created grid with ',i0,' rows (myrank_col_hw) x ',i0,' columns (myrank_row_hw)')") MPIdims(1),MPIdims(2)
 

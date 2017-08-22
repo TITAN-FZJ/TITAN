@@ -13,7 +13,6 @@ subroutine calculate_dc_limit()
   use mod_parameters
   use mod_prefactors
   use mod_disturbances
-  use mod_tight_binding,   only: lambda
   use mod_susceptibilities
   implicit none
   character(len=50) :: time
@@ -51,7 +50,7 @@ subroutine calculate_dc_limit()
 
     ! Creating files and writing headers
     if((.not.laddresults).and.(myrank==0).and.(hw_count==1)) then
-      call openclose_dc_chi_files(0)
+      call openclose_dc_chi_files(0, count)
       call openclose_dc_disturbance_files(0)
       call openclose_dc_currents_files(0)
       call openclose_dc_beff_files(0)
@@ -308,11 +307,11 @@ subroutine calculate_dc_limit()
 
           ! WRITING SUSCEPTIBILITIES
           ! Opening chi and diag files
-          call openclose_dc_chi_files(1)
+          call openclose_dc_chi_files(1, count)
           ! Writing susceptibilities
           call write_dc_susceptibilities()
           ! Closing chi and diag files
-          call openclose_dc_chi_files(2)
+          call openclose_dc_chi_files(2, count)
 
           ! Renormalizing disturbances and currents by the total charge current to neighbor renormnb
           if(renorm) then

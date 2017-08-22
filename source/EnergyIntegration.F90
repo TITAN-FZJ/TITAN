@@ -1,7 +1,14 @@
-module mod_generate_epoints
-  use mod_f90_kind
-  use mod_parameters, only: parts, parts3, eta, Ef, n1gl, n3gl, pn1, pn2, pnt
+module EnergyIntegration
+  use mod_f90_kind, only: double
+  use mod_parameters, only: eta, Ef
   implicit none
+
+
+  integer :: pn1, pn2, pnt
+  integer :: parts, parts3
+  integer :: n1gl, n3gl
+  character(len=50) :: strEnergyParts = "" ! parts, parts3
+
 !========================================================================================!
 ! Energy integration variables
 ! Number of parts to divide energy integral I1+I2 and I3
@@ -17,7 +24,7 @@ contains
     real(double)                  :: e1,e2,et1,xx
     real(double),allocatable      :: x1(:),p1(:)
 
-    allocate( x1(pn1),p1(pn1),y(pn1),wght(pn1), STAT = AllocateStatus )
+    allocate( x1(pn1), p1(pn1), y(pn1), wght(pn1), STAT = AllocateStatus )
     do k=parts,1,-1
       if(parts/=1)then
         if(k==1) then
@@ -110,4 +117,4 @@ contains
     return
   end subroutine gauleg
 
-end module mod_generate_epoints
+end module EnergyIntegration

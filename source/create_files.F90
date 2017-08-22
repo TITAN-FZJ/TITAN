@@ -2,11 +2,11 @@
 subroutine create_files()
   use mod_parameters, only: itype,outputunit,count,npt1
   use mod_susceptibilities
-  use mod_disturbances
-  use mod_currents
-  use mod_beff
-  use mod_torques
-  use mod_sha
+  !use mod_disturbances !TODO: Re-Include
+  !use mod_currents !TODO: Re-Include
+  !use mod_beff !TODO: Re-Include
+  !use mod_torques !TODO: Re-Include
+  !use mod_sha !TODO: Re-Include
   implicit none
 
   select case (itype)
@@ -15,20 +15,20 @@ subroutine create_files()
     write(outputunit,"('[create_files] Susceptibilities files created/overwritten!')")
   case (8)
     call openclose_chi_files(0)
-    call openclose_disturbance_files(0)
-    call openclose_currents_files(0)
-    call openclose_beff_files(0)
-    call openclose_torque_files(0)
-    call openclose_sha_files(0)
+    !call openclose_disturbance_files(0) !TODO: Re-Include
+    !call openclose_currents_files(0) !TODO: Re-Include
+    !call openclose_beff_files(0) !TODO: Re-Include 
+    !call openclose_torque_files(0) !TODO: Re-Include
+    !call openclose_sha_files(0) !TODO: Re-Include
     write(outputunit,"('[create_files] Susceptibilities, disturbances, current, SHA, effective field, torque and DC voltage files created/overwritten!')")
   case (9)
     energy_loop: do count=1,npt1
-      call openclose_dc_chi_files(0)
-      call openclose_dc_disturbance_files(0)
-      call openclose_dc_currents_files(0)
-      call openclose_dc_beff_files(0)
-      call openclose_dc_torque_files(0)
-      call openclose_dc_sha_files(0)
+      call openclose_dc_chi_files(0, count)
+      !call openclose_dc_disturbance_files(0) !TODO: Re-Include
+      !call openclose_dc_currents_files(0) !TODO: Re-Include
+      !call openclose_dc_beff_files(0) !TODO: Re-Include
+      !call openclose_dc_torque_files(0) !TODO: Re-Include
+      !call openclose_dc_sha_files(0) !TODO: Re-Include
     end do energy_loop
     write(outputunit,"('[create_files] Susceptibilities, disturbances, current, SHA, effective field, torque and DC voltage files created/overwritten!')")
   case default
