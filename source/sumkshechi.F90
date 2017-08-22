@@ -1,16 +1,14 @@
 ! ----------- Sum over wave vectors to calculate spin disturbance -----------
 subroutine sumkshechi(e,ep,Fint,iflag)
   use mod_f90_kind, only: double
-  use mod_parameters, only: eta, ef, lverbose, outputunit_loop, outputunit, dim, sigmaijmunu2i, sigmaimunu2i
+  use mod_parameters, only: eta, ef, dim, sigmaijmunu2i, sigmaimunu2i
   use mod_constants, only: zero, zum, zi, tpi
   use mod_system, only: s => sys
   use TightBinding, only: nOrb
   use mod_SOC, only: llineargfsoc
-  use mod_mpi_pars
-  use mod_progress
+  use mod_mpi_pars, only: abortProgram
 !$  use omp_lib
   implicit none
-!$  integer         :: nthreads,mythread
   integer         :: AllocateStatus
   integer         :: i,j,mu,nu,gamma,xi,iz
   integer, intent(in) :: iflag
@@ -25,13 +23,8 @@ subroutine sumkshechi(e,ep,Fint,iflag)
 
   if(iflag==0) then
     !$omp parallel default(none) &
-    !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,kp,gf,gfuu,gfud,gfdu,gfdd,i,j,mu,nu,gamma,xi,df1, Fint_loc) &
-    !$omp& shared(llineargfsoc,lverbose,s,e,ep,iflag,Fint,Ef,eta,nthreads,myrank_row_hw,dim,sigmaimunu2i,sigmaijmunu2i,outputunit,outputunit_loop)
-    !$  mythread = omp_get_thread_num()
-    !!$  if((mythread==0).and.(myrank_row_hw==0)) then
-    !!$    nthreads = omp_get_num_threads()
-    !!$    write(outputunit_loop,"('[sumkshechi] Number of threads: ',i0)") nthreads
-    !!$  end if
+    !$omp& private(AllocateStatus,iz,kp,gf,gfuu,gfud,gfdu,gfdd,i,j,mu,nu,gamma,xi,df1, Fint_loc) &
+    !$omp& shared(llineargfsoc,s,e,ep,iflag,Fint,Ef,eta,dim,sigmaimunu2i,sigmaijmunu2i)
     allocate(df1(dim,dim), Fint_loc(dim,dim), &
              gf  (s%nAtoms,s%nAtoms,2*nOrb,2*nOrb), &
              gfuu(s%nAtoms,s%nAtoms,nOrb,nOrb,2), &
@@ -40,14 +33,9 @@ subroutine sumkshechi(e,ep,Fint,iflag)
              gfdd(s%nAtoms,s%nAtoms,nOrb,nOrb,2), STAT = AllocateStatus  )
     if (AllocateStatus/=0) call abortProgram("[sumkshechi] Not enough memory for: df1,gf,gfuu,gfud,gfdu,gfdd")
     Fint_loc = zero
-!, reduction(+: Fint)
+
     !$omp do schedule(static)
     do iz = 1, s%nkpt
-      ! Progress bar
-      !$  if((mythread==0)) then
-        if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,s%nkpt)
-      !$   end if
-
       kp = s%kbz(:,iz)
 
       ! Green function at (k+q,E_F+E+iy)
@@ -105,14 +93,16 @@ subroutine sumkshechi(e,ep,Fint,iflag)
         end do
       end do
 
+      ! Locally add up df1
 #ifdef _JUQUEEN
       call zgeadd(Fint_loc,dim,'N',df1,dim,'N',Fint_loc,dim,dim,dim)
 #else
       call ZAXPY(dim*dim,zum,df1,1,Fint_loc,1)
 #endif
     end do
-
     !$omp end do
+
+    ! Add up df1 on MPI thread
     !$omp critical
       Fint = Fint + Fint_loc
     !$omp end critical
@@ -124,13 +114,8 @@ subroutine sumkshechi(e,ep,Fint,iflag)
 
   else
     !$omp parallel default(none) &
-    !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,kp,gf,gfuu,gfud,gfdu,gfdd,i,j,mu,nu,gamma,xi,df1, Fint_loc) &
-    !$omp& shared(llineargfsoc,lverbose,s,e,ep,iflag,Fint,Ef,eta,nthreads,myrank_row_hw,dim,sigmaimunu2i,sigmaijmunu2i,outputunit,outputunit_loop)
-    !$  mythread = omp_get_thread_num()
-    !!$  if((mythread==0).and.(myrank_row_hw==0)) then
-    !!$    nthreads = omp_get_num_threads()
-    !!$    write(outputunit_loop,"('[sumkshechi] Number of threads: ',i0)") nthreads
-    !!$  end if
+    !$omp& private(AllocateStatus,iz,kp,gf,gfuu,gfud,gfdu,gfdd,i,j,mu,nu,gamma,xi,df1, Fint_loc) &
+    !$omp& shared(llineargfsoc,s,e,ep,iflag,Fint,Ef,eta,dim,sigmaimunu2i,sigmaijmunu2i)
     allocate(df1(dim,dim), Fint_loc(dim,dim), &
              gf  (s%nAtoms,s%nAtoms,2*nOrb,2*nOrb), &
              gfuu(s%nAtoms,s%nAtoms,nOrb,nOrb,2), &
@@ -139,16 +124,10 @@ subroutine sumkshechi(e,ep,Fint,iflag)
              gfdd(s%nAtoms,s%nAtoms,nOrb,nOrb,2), STAT = AllocateStatus  )
     if (AllocateStatus/=0) call abortProgram("[sumkshechi] Not enough memory for: df1,gf,gfuu,gfud,gfdu,gfdd")
     Fint_loc = zero
-!, reduction(+:Fint)
+
     !$omp do schedule(static)
     do iz = 1, s%nkpt
-      ! Progress bar
-      !$  if((mythread==0)) then
-        if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,s%nkpt)
-      !$   end if
-
       kp = s%kbz(:,iz)
-
 
       ! Green function at (k+q,E'+E+i.eta)
       if(llineargfsoc) then
@@ -195,16 +174,16 @@ subroutine sumkshechi(e,ep,Fint,iflag)
         df1(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -zi*(gfuu(i,j,nu,gamma,1) - conjg(gfuu(j,i,gamma,nu,1)))*conjg(gfdd(i,j,mu,xi,2))*s%wkbz(iz)
       end do ; end do ; end do ; end do ; end do ; end do
 
-      !omp critical
+      ! Locally add up df1
 #ifdef _JUQUEEN
       call zgeadd(Fint_loc,dim,'N',df1,dim,'N',Fint_loc,dim,dim,dim)
 #else
-      call ZAXPY(dim*dim,zum,df1,1,Fint_loc,1)              !       Fint      = Fint + df1
-      !Fint      = Fint + df1
+      call ZAXPY(dim*dim,zum,df1,1,Fint_loc,1)
 #endif
-      !omp end critical
     end do
     !$omp end do
+
+    ! Add up df1 on MPI thread
     !$omp critical
       Fint = Fint + Fint_loc
     !$omp end critical
@@ -224,16 +203,14 @@ end subroutine sumkshechi
 ! -------------- to be used in the calculation of linear SOC chi ---------------
 subroutine sumkshechilinearsoc(e,ep,Fint,Fintlsoc,iflag)
   use mod_f90_kind, only: double
-  use mod_parameters, only: eta, ef, lverbose, outputunit_loop, outputunit, dim, sigmaijmunu2i, sigmaimunu2i
+  use mod_parameters, only: eta, ef, dim, sigmaijmunu2i, sigmaimunu2i
   use mod_constants, only: zero, zum, zi, tpi
-  use mod_mpi_pars
+  use mod_mpi_pars, only: abortProgram
   use mod_system, only: s => sys
   use TightBinding, only: nOrb
   use mod_SOC, only: llineargfsoc
-  use mod_progress
 !$  use omp_lib
   implicit none
-!$  integer         :: nthreads,mythread
   integer         :: AllocateStatus
   integer         :: i,j,mu,nu,gamma,xi,iz
   integer, intent(in) :: iflag
@@ -250,13 +227,8 @@ subroutine sumkshechilinearsoc(e,ep,Fint,Fintlsoc,iflag)
 
   if(iflag==0)then
     !$omp parallel default(none) &
-    !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,kp,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,i,j,mu,nu,gamma,xi,df1,df1lsoc) &
-    !$omp& shared(llineargfsoc,lverbose,s,e,ep,iflag,Fint,Fintlsoc,Ef,eta,nthreads,myrank_row_hw,dim,sigmaimunu2i,sigmaijmunu2i,outputunit,outputunit_loop)
-    !$  mythread = omp_get_thread_num()
-    !!$  if((mythread==0).and.(myrank_row_hw==0)) then
-    !!$    nthreads = omp_get_num_threads()
-    !!$    write(outputunit_loop,"('[sumkshechilinearsoc] Number of threads: ',i0)") nthreads
-    !!$  end if
+    !$omp& private(AllocateStatus,iz,kp,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,i,j,mu,nu,gamma,xi,df1,df1lsoc) &
+    !$omp& shared(llineargfsoc,s,e,ep,iflag,Fint,Fintlsoc,Ef,eta,dim,sigmaimunu2i,sigmaijmunu2i)
     allocate(df1(dim,dim),gf(s%nAtoms,s%nAtoms,2*nOrb,2*nOrb),gfuu(s%nAtoms,s%nAtoms,nOrb,nOrb,2),gfud(s%nAtoms,s%nAtoms,nOrb,nOrb,2),gfdu(s%nAtoms,s%nAtoms,nOrb,nOrb,2),gfdd(s%nAtoms,s%nAtoms,nOrb,nOrb,2), STAT = AllocateStatus  )
     if (AllocateStatus/=0) call abortProgram("[sumkshechilinearsoc] Not enough memory for: df1,gf,gfuu,gfud,gfdu,gfdd")
 
@@ -265,11 +237,6 @@ subroutine sumkshechilinearsoc(e,ep,Fint,Fintlsoc,iflag)
 
     !$omp do schedule(static), reduction(+:Fint), reduction(+:Fintlsoc)
     do iz=1,s%nkpt
-      ! Progress bar
-      !!$  if((mythread==0)) then
-      !  if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,s%nkpt)
-      !!$   end if
-
       kp = s%kbz(:,iz)
 
       ! Green function at (k+q,E_F+E+iy)
@@ -338,17 +305,13 @@ subroutine sumkshechilinearsoc(e,ep,Fint,Fintlsoc,iflag)
         df1lsoc(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = (gvguu(i,j,nu,gamma,1)*gfdd(j,i,xi,mu,2) + conjg(gvgdd(i,j,mu,xi,2)*gfuu(j,i,gamma,nu,1))  +  gfuu(i,j,nu,gamma,1)*gvgdd(j,i,xi,mu,2) + conjg(gfdd(i,j,mu,xi,2)*gvguu(j,i,gamma,nu,1)))*s%wkbz(iz)
       end do ; end do ; end do ; end do ; end do ; end do
 
-      !omp critical
 #ifdef _JUQUEEN
       call zgeadd(Fint,dim,'N',df1,dim,'N',Fint,dim,dim,dim)
       call zgeadd(Fintlsoc,dim,'N',df1lsoc,dim,'N',Fintlsoc,dim,dim,dim)
 #else
-      ! call ZAXPY(dim*dim,zum,df1,1,Fint,1)              !       Fint      = Fint + df1
-      ! call ZAXPY(dim*dim,zum,df1lsoc,1,Fintlsoc,1)      !       Fintlsoc  = Fintlsoc + df1lsoc
       Fint = Fint + df1
       Fintlsoc = Fintlsoc + df1lsoc
 #endif
-      !omp end critical
     end do
     !$omp end do
     deallocate(df1)
@@ -358,13 +321,8 @@ subroutine sumkshechilinearsoc(e,ep,Fint,Fintlsoc,iflag)
 
   else
     !$omp parallel default(none) &
-    !$omp& private(errorcode,ierr,mythread,AllocateStatus,iz,kp,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,i,j,mu,nu,gamma,xi,df1,df1lsoc) &
-    !$omp& shared(llineargfsoc,lverbose,s,e,ep,iflag,Fint,Fintlsoc,Ef,eta,nthreads,myrank_row_hw,dim,sigmaimunu2i,sigmaijmunu2i,outputunit,outputunit_loop)
-    !$  mythread = omp_get_thread_num()
-    !!$  if((mythread==0).and.(myrank_row_hw==0)) then
-    !!$    nthreads = omp_get_num_threads()
-    !!$    write(outputunit_loop,"('[sumkshechilinearsoc] Number of threads: ',i0)") nthreads
-    !!$  end if
+    !$omp& private(AllocateStatus,iz,kp,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,i,j,mu,nu,gamma,xi,df1,df1lsoc) &
+    !$omp& shared(llineargfsoc,s,e,ep,iflag,Fint,Fintlsoc,Ef,eta,dim,sigmaimunu2i,sigmaijmunu2i)
     allocate(df1(dim,dim),gf(s%nAtoms,s%nAtoms,2*nOrb,2*nOrb),gfuu(s%nAtoms,s%nAtoms,nOrb,nOrb,2),gfud(s%nAtoms,s%nAtoms,nOrb,nOrb,2),gfdu(s%nAtoms,s%nAtoms,nOrb,nOrb,2),gfdd(s%nAtoms,s%nAtoms,nOrb,nOrb,2), STAT = AllocateStatus  )
     if (AllocateStatus/=0) call abortProgram("[sumkshechilinearsoc] Not enough memory for: df1,gf,gfuu,gfud,gfdu,gfdd")
 
@@ -373,11 +331,6 @@ subroutine sumkshechilinearsoc(e,ep,Fint,Fintlsoc,iflag)
 
     !$omp do schedule(static), reduction(+:Fint), reduction(+:Fintlsoc)
     do iz=1,s%nkpt
-      ! Progress bar
-      !!$  if((mythread==0)) then
-      !  if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"kpoints",iz,s%nkpt)
-      !!$   end if
-
       kp = s%kbz(:,iz)
 
       ! Green function at (k+q,E_F+E+iy)
@@ -446,17 +399,13 @@ subroutine sumkshechilinearsoc(e,ep,Fint,Fintlsoc,iflag)
         df1lsoc(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -zi*((gvguu(i,j,nu,gamma,1)-conjg(gvguu(j,i,gamma,nu,1)))*conjg(gfdd(i,j,mu,xi,2))  +  (gfuu(i,j,nu,gamma,1)-conjg(gfuu(j,i,gamma,nu,1)))*conjg(gvgdd(i,j,mu,xi,2)))*s%wkbz(iz)
       end do ; end do ; end do ; end do ; end do ; end do
 
-      !omp critical
 #ifdef _JUQUEEN
       call zgeadd(Fint,dim,'N',df1,dim,'N',Fint,dim,dim,dim)
       call zgeadd(Fintlsoc,dim,'N',df1lsoc,dim,'N',Fintlsoc,dim,dim,dim)
 #else
-      ! call ZAXPY(dim*dim,zum,df1,1,Fint,1)              !       Fint      = Fint + df1
-      ! call ZAXPY(dim*dim,zum,df1lsoc,1,Fintlsoc,1)      !       Fintlsoc  = Fintlsoc + df1lsoc
       Fint = Fint + df1
       Fintlsoc = Fintlsoc + df1lsoc
 #endif
-      !omp end critical
     end do
     !$omp end do
     deallocate(df1)
