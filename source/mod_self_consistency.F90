@@ -91,14 +91,15 @@ contains
           mx(i) = mx(i) * sign(4.d0,hw_list(hw_count,1))
           my(i) = my(i) * sign(4.d0,hw_list(hw_count,1))
           mz(i) = mz(i) * sign(4.d0,hw_list(hw_count,1))
-        endif
+        end if
       end do
 
       if(lfield .and. magaxis == 0) then
-        mx = mz*sin(hw_list(hw_count,2)*pi)*cos(hw_list(hw_count,3)*pi)
-        my = mz*sin(hw_list(hw_count,2)*pi)*sin(hw_list(hw_count,3)*pi)
-        mz = mz*cos(hw_list(hw_count,2)*pi)
+        mx = mz * sin(hw_list(hw_count,2)*pi) * cos(hw_list(hw_count,3)*pi)
+        my = mz * sin(hw_list(hw_count,2)*pi) * sin(hw_list(hw_count,3)*pi)
+        mz = mz * cos(hw_list(hw_count,2)*pi)
       end if
+
       mp = cmplx(mx,my,double)
 
       ! Variables used in the hamiltonian
