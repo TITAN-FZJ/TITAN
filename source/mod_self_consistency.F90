@@ -90,13 +90,13 @@ contains
           my(i) = my(i) * sign(4.d0,hw_list(hw_count,1))
           mz(i) = mz(i) * sign(4.d0,hw_list(hw_count,1))
         endif
+        if(lfield .and. magaxis == 0) then
+           mx(i) = mz(i)*sin(hw_list(hw_count,2)*pi)*cos(hw_list(hw_count,3)*pi)
+           my(i) = mz(i)*sin(hw_list(hw_count,2)*pi)*sin(hw_list(hw_count,3)*pi)
+           mz(i) = mz(i)*cos(hw_list(hw_count,2)*pi)
+        end if
       end do
 
-      if(lfield .and. magaxis == 0) then
-        mx(i) = mz(i)*sin(hw_list(hw_count,2)*pi)*cos(hw_list(hw_count,3)*pi)
-        my(i) = mz(i)*sin(hw_list(hw_count,2)*pi)*sin(hw_list(hw_count,3)*pi)
-        mz(i) = mz(i)*cos(hw_list(hw_count,2)*pi)
-      end if
       mp = cmplx(mx,my,double)
 
       ! Variables used in the hamiltonian
