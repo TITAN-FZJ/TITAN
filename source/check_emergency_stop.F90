@@ -2,10 +2,12 @@
 ! and create unique subfiles when more than one iteration is required
 ! This is useful to run different jobs with the same loop
 ! (in conjunction with variable skip_steps_hw)
-subroutine check_emergency_stop()
-  use mod_parameters, only: Npl,hw_count,hw_list,outputunit
+subroutine check_emergency_stop(nAtoms, hw_list, hw_count)
+  use mod_parameters, only: outputunit
   use mod_mpi_pars
   implicit none
+  integer, intent(in) :: nAtoms, hw_count
+  real(double), dimension(hw_count,3), intent(in) :: hw_list
   character(len=8)  :: date
   character(len=10) :: time
   character(len=5)  :: zone
@@ -19,7 +21,7 @@ subroutine check_emergency_stop()
     close(911)
     if((istop<=1).or.(ios/=0)) then
       if(myrank==0) then
-        write(outputunit,"('[main] Emergency ""stopout"" file found! Stopping after Npl = ',i0,', hwa = ',es9.2,' hwt=',f5.2,' hwp=',f5.2,'...')") Npl,hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
+        write(outputunit,"('[main] Emergency ""stopout"" file found! Stopping after Npl = ',i0,', hwa = ',es9.2,' hwt=',f5.2,' hwp=',f5.2,'...')") nAtoms,hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
         open(unit=911, file=trim(stopfilename), status='replace')
         write(911,"(i0)") istop-1 ! Removing one iteration of the file
         close(911)

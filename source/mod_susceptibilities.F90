@@ -1,5 +1,5 @@
 module mod_susceptibilities
-  use mod_f90_kind
+  use mod_f90_kind, only: double
   implicit none
   ! Spin susceptibilities
   complex(double), dimension(:,:,:,:), allocatable   :: schi, schihf, shirhoz
@@ -24,19 +24,18 @@ contains
 
   ! This subroutine allocates variables related to the susceptibility calculation
   subroutine allocate_susceptibilities()
-    use mod_f90_kind
-    use mod_parameters, only: Npl,dim,nmaglayers,llinearsoc,outputunit
-    use mod_mpi_pars
+    use mod_f90_kind, only: double
+    use mod_parameters, only: dim, nmaglayers
+    use mod_SOC, only: llinearsoc
+    use mod_system, only: s => sys
+    use mod_mpi_pars, only: abortProgram, myrank_row, myrank_col
     implicit none
     integer           :: AllocateStatus
 
     if(myrank_row==0) then
-      allocate( schi(4,4,Npl,Npl),schihf(4,4,Npl,Npl),chiorb(dim,dim), STAT = AllocateStatus )
-      if (AllocateStatus/=0) then
-        write(outputunit,"('[allocate_susceptibilities] Not enough memory for: schi,schihf,chiorb')")
-        call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-      end if
-      if(lrot) allocate( rotmat_i(4,4,Npl),rotmat_j(4,4,Npl),rottemp(4,4),schitemp(4,4),schirot(4,4) )
+      allocate( schi(4,4,s%nAtoms, s%nAtoms),schihf(4,4,s%nAtoms, s%nAtoms),chiorb(dim,dim), STAT = AllocateStatus )
+      if (AllocateStatus/=0) call abortProgram("[allocate_susceptibilities] Not enough memory for: schi,schihf,chiorb")
+      if(lrot) allocate( rotmat_i(4,4,s%nAtoms),rotmat_j(4,4,s%nAtoms),rottemp(4,4),schitemp(4,4),schirot(4,4) )
 
       if(myrank_col==0) then
         if(nmaglayers>1) then
@@ -49,16 +48,10 @@ contains
       end if
     end if
     allocate( chiorb_hf(dim,dim),Umatorb(dim,dim),identt(dim,dim), STAT = AllocateStatus )
-    if (AllocateStatus/=0) then
-      write(outputunit,"('[allocate_susceptibilities] Not enough memory for: chiorb_hf,Umatorb,identt')")
-      call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-    end if
+    if (AllocateStatus/=0) call abortProgram("[allocate_susceptibilities] Not enough memory for: chiorb_hf,Umatorb,identt")
     if(llinearsoc) then
       allocate( chiorb_hflsoc(dim,dim), STAT = AllocateStatus  )
-      if (AllocateStatus/=0) then
-        write(outputunit,"('[allocate_susceptibilities] Not enough memory for: chiorb_hflsoc')")
-        call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-      end if
+      if (AllocateStatus/=0) call abortProgram("[allocate_susceptibilities] Not enough memory for: chiorb_hflsoc")
     end if
 
     return
@@ -66,29 +59,46 @@ contains
 
   ! Mounts U and identity matrix
   subroutine build_identity_and_U_matrix()
-    use mod_parameters
-    use mod_constants
+    use mod_parameters, only: offset, U, Utype, layertype, sigmaimunu2i, dim
+    use mod_constants, only: zero, zum
+    use mod_system, only: s => sys
     implicit none
     integer :: xi,gamma,nu,mu,i
 
     Umatorb = zero
     if(Utype/=0) then
-      do xi=5,9 ; do gamma=5,9 ; do nu=5,9 ; do mu=5,9 ; do i=1,Npl
-        if((Utype==1).and.(layertype(i+offset)/=2)) cycle
-        if((mu/=nu).or.(gamma/=xi)) cycle
-        Umatorb(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(1,i,gamma,xi)) = cmplx(U(i+offset),0.d0)
-        Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = cmplx(U(i+offset),0.d0)
-        Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = cmplx(U(i+offset),0.d0)
-        Umatorb(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,i,gamma,xi)) = cmplx(U(i+offset),0.d0)
-      end do ; end do ; end do ; end do ; end do
-      do xi=5,9 ; do gamma=5,9 ; do nu=5,9 ; do mu=5,9 ; do i=1,Npl
-        if((Utype==1).and.(layertype(i+offset)/=2)) cycle
-        if((mu/=xi).or.(nu/=gamma)) cycle
-        Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi))-cmplx(U(i+offset),0.d0)
-        Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gamma,xi))-cmplx(U(i+offset),0.d0)
-        Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gamma,xi))-cmplx(U(i+offset),0.d0)
-        Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi))-cmplx(U(i+offset),0.d0)
-      end do ; end do ; end do ; end do ; end do
+      do xi=5,9
+        do gamma=5,9
+          do nu=5,9
+            do mu=5,9
+              do i=1,s%nAtoms
+                if((Utype==1).and.(layertype(i+offset)/=2)) cycle
+                if((mu/=nu).or.(gamma/=xi)) cycle
+                Umatorb(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(1,i,gamma,xi)) = cmplx(U(i+offset),0.d0)
+                Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = cmplx(U(i+offset),0.d0)
+                Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = cmplx(U(i+offset),0.d0)
+                Umatorb(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,i,gamma,xi)) = cmplx(U(i+offset),0.d0)
+              end do
+            end do
+          end do
+        end do
+      end do
+      do xi=5,9
+        do gamma=5,9
+          do nu=5,9
+            do mu=5,9
+              do i=1,s%nAtoms
+                if((Utype==1).and.(layertype(i+offset)/=2)) cycle
+                if((mu/=xi).or.(nu/=gamma)) cycle
+                Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi))-cmplx(U(i+offset),0.d0)
+                Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gamma,xi))-cmplx(U(i+offset),0.d0)
+                Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gamma,xi))-cmplx(U(i+offset),0.d0)
+                Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi))-cmplx(U(i+offset),0.d0)
+              end do
+            end do
+          end do
+        end do
+      end do
     end if
 
     identt     = zero
@@ -101,9 +111,10 @@ contains
 
   ! This subroutine deallocates variables related to the susceptibility calculation
   subroutine deallocate_susceptibilities()
-    use mod_f90_kind
-    use mod_parameters, only: nmaglayers,llinearsoc
-    use mod_mpi_pars
+    use mod_f90_kind, only: double
+    use mod_parameters, only: nmaglayers
+    use mod_SOC, only: llinearsoc
+    use mod_mpi_pars, only: myrank_row, myrank_col
     implicit none
 
     if(myrank_row==0) then
@@ -127,17 +138,18 @@ contains
 
   ! This subroutine diagonalize the transverse susceptibility
   subroutine diagonalize_susceptibilities()
-    use mod_f90_kind
+    use mod_f90_kind, only: double
     use mod_parameters, only: nmaglayers,mmlayermag,outputunit
-    use mod_mpi_pars
+    use mod_mpi_pars, only: MPI_Abort, MPI_COMM_WORLD, errorcode, ierr
     implicit none
     integer  :: i,j,ifail
 
     if(nmaglayers>1) then
-
-      do i=1,nmaglayers ; do j=1,nmaglayers
-        chimag(i,j) = schi(1,1,mmlayermag(i)-1,mmlayermag(j)-1)
-      end do ; end do
+      do i=1, nmaglayers
+        do j=1, nmaglayers
+          chimag(i,j) = schi(1,1,mmlayermag(i)-1,mmlayermag(j)-1)
+        end do
+      end do
 
 #ifdef _JUQUEEN
       call zgeevx('N','N','V','N',nmaglayers,chimag,nmaglayers,eval,evecl,1,evecr,nmaglayers,ilo,ihi,dscale,abnrm,rconde,rcondv,work,lwork,rwork,ifail)
@@ -148,8 +160,8 @@ contains
       if(ifail/=0) then
         write(outputunit,"('[diagonalize_susceptibilities] Problem with diagonalization. ifail = ',i0)") ifail
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-!         else
-!           write(outputunit,"('[diagonalize_susceptibilities] optimal lwork = ',i0,' lwork = ',i0)") work(1),lwork
+      ! else
+      !   write(outputunit,"('[diagonalize_susceptibilities] optimal lwork = ',i0,' lwork = ',i0)") work(1),lwork
       end if
     end if ! nmaglayers
 
@@ -158,15 +170,15 @@ contains
 
   ! This subroutine opens and closes all the files needed for the susceptibilities
   subroutine openclose_chi_files(iflag)
-    use mod_parameters
-    use mod_mpi_pars
-    use mod_system, only:nkpt
+    use mod_parameters, only: fieldpart, nmaglayers, Npl_folder, suffix, eta, lnodiag, ltestcharge, lhfresponses, Utype
+    use mod_SOC, only: SOCc, socpart
+    use mod_system, only: s => sys
+    use mod_mpi_pars, only: abortProgram
+    use EnergyIntegration, only: strEnergyParts
     implicit none
 
     character(len=500)  :: varm
-    character(len=50)   :: fieldpart,socpart
     character(len=2)    :: spin(4)
-    character(len=1)    :: SOCc
     integer :: i,j,sigma,iw,iflag,err,errt=0
 
     spin(1) = "pm"
@@ -174,109 +186,98 @@ contains
     spin(3) = "dm"
     spin(4) = "mm"
 
-    fieldpart = ""
-    socpart   = ""
-    if(SOC) then
-      if(llinearsoc) then
-        SOCc = "L"
-      else
-        SOCc = "T"
-      end if
-      if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
-    else
-      SOCc = "F"
-    end if
-    if(lfield) then
-      write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
-      if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
-      if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
-      if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
-      if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
-    end if
-
     if(iflag==0) then
-      do sigma=1,4 ; do j=1,Npl ; do i=1,Npl
-        iw = 1000+(sigma-1)*Npl*Npl+(j-1)*Npl+i
-        ! RPA SUSCEPTIBILITIES
-        if(.not.lhfresponses) then
-          write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a2,'/chi_',i0,'_',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),i,j,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-          open (unit=iw, file=varm, status='replace', form='formatted')
-          write(unit=iw, fmt="('#     energy    ,  real part of chi ',a,'  ,  imaginary part of chi ',a,'  ,  amplitude of chi ',a,'  ')") spin(sigma),spin(sigma),spin(sigma)
-          close(unit=iw)
-        end if
-        iw = iw+1000
-        ! HF SUSCEPTIBILITIES
-        write(varm,"('./results/',a1,'SOC/',a,'/HF/',a2,'/chihf_',i0,'_',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),i,j,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-        open (unit=iw, file=varm, status='replace', form='formatted')
-        write(unit=iw, fmt="('#     energy    ,  real part of chi ',a,' HF ,  imaginary part of chi ',a,' HF  ,  amplitude of chi ',a,' HF  ')") spin(sigma),spin(sigma),spin(sigma)
-        close(unit=iw)
-      end do ; end do ; end do
+      do sigma=1,4
+        do j=1,s%nAtoms
+          do i=1,s%nAtoms
+            iw = 1000 + (sigma-1) * s%nAtoms * s%nAtoms + (j-1) * s%nAtoms + i
+            ! RPA SUSCEPTIBILITIES
+            if(.not.lhfresponses) then
+              write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a2,'/chi_',i0,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),i,j,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+              open (unit=iw, file=varm, status='replace', form='formatted')
+              write(unit=iw, fmt="('#     energy    ,  real part of chi ',a,'  ,  imaginary part of chi ',a,'  ,  amplitude of chi ',a,'  ')") spin(sigma),spin(sigma),spin(sigma)
+              close(unit=iw)
+            end if
+            iw = iw+1000
+            ! HF SUSCEPTIBILITIES
+            write(varm,"('./results/',a1,'SOC/',a,'/HF/',a2,'/chihf_',i0,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),i,j,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+            open (unit=iw, file=varm, status='replace', form='formatted')
+            write(unit=iw, fmt="('#     energy    ,  real part of chi ',a,' HF ,  imaginary part of chi ',a,' HF  ,  amplitude of chi ',a,' HF  ')") spin(sigma),spin(sigma),spin(sigma)
+            close(unit=iw)
+          end do
+        end do
+      end do
       ! RPA DIAGONALIZATION
       if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
-        write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_eval_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_eval',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
         open (unit=1990, file=varm,status='replace', form='formatted')
         write(unit=1990,fmt="('#     energy    ,  real part of 1st eigenvalue  ,  imaginary part of 1st eigenvalue  ,  real part of 2nd eigenvalue  ,  imaginary part of 2nd eigenvalue  , ... ')")
         close (unit=1990)
         do i=1,nmaglayers
-          write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_evec',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_evec',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
           open (unit=1990+i, file=varm,status='replace', form='formatted')
           write(unit=1990+i,fmt="('#     energy    ,  real part of 1st component  ,  imaginary part of 1st component  ,  real part of 2nd component  ,  imaginary part of 2nd component  , ...   ')")
           close (unit=1990+i)
         end do
       end if
       if(ltestcharge) then
-        write(varm, "('./results/',a1,'SOC/',a,'/RPA/testcharge_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+        write(varm, "('./results/',a1,'SOC/',a,'/RPA/testcharge',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
         open (unit=17964, file=varm, status='replace', form='formatted', iostat=err)
         close(unit=17964)
       end if
 
     else if(iflag==1) then
-      do sigma=1,4 ; do j=1,Npl ; do i=1,Npl
-        iw = 1000+(sigma-1)*Npl*Npl+(j-1)*Npl+i
-        ! RPA SUSCEPTIBILITIES
-        if(.not.lhfresponses) then
-          write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a2,'/chi_',i0,'_',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),i,j,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-          open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
-          errt = errt + err
-        end if
-        iw = iw+1000
-        ! HF SUSCEPTIBILITIES
-        write(varm,"('./results/',a1,'SOC/',a,'/HF/',a2,'/chihf_',i0,'_',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),i,j,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-        open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
-        errt = errt + err
-      end do ; end do ; end do
+      do sigma=1,4
+        do j=1,s%nAtoms
+          do i=1,s%nAtoms
+            iw = 1000 + (sigma-1) * s%nAtoms * s%nAtoms + (j-1) * s%nAtoms + i
+
+            ! RPA SUSCEPTIBILITIES
+            if(.not.lhfresponses) then
+              write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a2,'/chi_',i0,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),i,j,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+              open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+              errt = errt + err
+            end if
+            iw = iw+1000
+            ! HF SUSCEPTIBILITIES
+            write(varm,"('./results/',a1,'SOC/',a,'/HF/',a2,'/chihf_',i0,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),i,j,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+            open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+            errt = errt + err
+          end do
+        end do
+      end do
       ! RPA DIAGONALIZATION
       if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
-        write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_eval_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_eval',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
         open (unit=1990, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         do i=1,nmaglayers
-          write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_evec',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_evec',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
           open (unit=1990+i, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
         end do
       end if
       if(ltestcharge) then
-        write(varm, "('./results/',a1,'SOC/',a,'/RPA/testcharge_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+        write(varm, "('./results/',a1,'SOC/',a,'/RPA/testcharge',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
         open (unit=17964, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
       end if
       ! Stop if some file does not exist
-      if(errt/=0) then
-        write(outputunit,"(a,i0,a)") "[openclose_chi_files] Some file(s) do(es) not exist! Stopping before starting calculations..."
-        call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-        stop
-      end if
+      if(errt/=0) call abortProgram("[openclose_chi_files] Some file(s) do(es) not exist! Stopping before starting calculations...")
 
     else
-      do sigma=1,4 ; do j=1,Npl ; do i=1,Npl
-        iw = 1000+(sigma-1)*Npl*Npl+(j-1)*Npl+i
-        ! RPA SUSCEPTIBILITIES
-        if(.not.lhfresponses) close(unit=iw)
-        iw = iw+1000
-        ! HF SUSCEPTIBILITIES
-        close(unit=iw)
-      end do ; end do ; end do
+      do sigma=1,4
+        do j=1,s%nAtoms
+          do i=1,s%nAtoms
+            iw = 1000+(sigma-1)*s%nAtoms*s%nAtoms+(j-1)*s%nAtoms+i
+            ! RPA SUSCEPTIBILITIES
+            if(.not.lhfresponses) close(unit=iw)
+            iw = iw+1000
+            ! HF SUSCEPTIBILITIES
+            close(unit=iw)
+          end do
+        end do
+      end do
       ! RPA DIAGONALIZATION
       if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
         close (unit=1990)
@@ -296,18 +297,19 @@ contains
   ! (already opened with openclose_chi_files(1))
   ! Some information may be written on the screen
   subroutine write_susceptibilities(e)
-    use mod_f90_kind
-    use mod_parameters
+    use mod_f90_kind, only: double
+    use mod_parameters, only: lwriteonscreen, ltestcharge, lhfresponses, lnodiag, outputunit_loop, nmaglayers
+    use mod_system, only: s => sys
     implicit none
     character(len=100)      :: varm
     integer                 :: i,j,iw,sigma
     real(double),intent(in) :: e
 
     if(lwriteonscreen) write(outputunit_loop,"(' #################  Susceptibilities:  #################')")
-    do j=1,Npl
-      do i=1,Npl
-        do sigma=1,4
-          iw = 1000+(sigma-1)*Npl*Npl+(j-1)*Npl+i
+    do j=1, s%nAtoms
+      do i=1, s%nAtoms
+        do sigma=1, 4
+          iw = 1000+(sigma-1)*s%nAtoms*s%nAtoms+(j-1)*s%nAtoms+i
           if(.not.lhfresponses) then
             write(unit=iw,fmt="(4(es16.9,2x))") e,real(schi(sigma,1,i,j)),aimag(schi(sigma,1,i,j)),abs(schi(sigma,1,i,j))
             if(((sigma==1).and.(i==j)).and.(lwriteonscreen)) write(outputunit_loop,"('E = ',es11.4,', Plane: ',i0,' Chi+- = (',es16.9,') + i(',es16.9,')')") e,i,real(schi(sigma,1,i,j)),aimag(schi(sigma,1,i,j))
@@ -328,8 +330,8 @@ contains
     end if ! nmaglayers
 
     if(ltestcharge) then
-      do j=1,Npl
-        do i=1,Npl
+      do j=1, s%nAtoms
+        do i=1, s%nAtoms
           write(unit=17964, fmt="(es16.9,' ',i0,' ',i0,' ',es16.9,' ',es16.9)") e, i, j, real(schi(2,2,i,j)+schi(3,2,i,j)-schi(2,3,i,j)-schi(3,3,i,j)), aimag(schi(2,2,i,j)+schi(3,2,i,j)-schi(2,3,i,j)-schi(3,3,i,j))
         end do
       end do
@@ -339,71 +341,54 @@ contains
   end subroutine write_susceptibilities
 
   ! This subroutine opens and closes all the files needed for the dc-limit susceptibilities
-  subroutine openclose_dc_chi_files(iflag)
-    use mod_parameters
-    use mod_mpi_pars
-    use mod_system, only:nkpt
+  subroutine openclose_dc_chi_files(iflag, count)
+    use mod_parameters, only: dcfieldpart, lhfresponses, Npl_folder, eta, Utype, suffix, nmaglayers, lnodiag
+    use mod_magnet, only: dcprefix, dcfield_dependence, dcfield, dc_header
+    use mod_SOC, only: SOCc, socpart
+    use mod_system, only: s => sys
+    use mod_mpi_pars, only: abortProgram
+    use EnergyIntegration, only: strEnergyParts
     implicit none
-
+    integer, intent(in) :: iflag
+    integer, intent(in) :: count
     character(len=500)  :: varm
-    character(len=50)   :: fieldpart,socpart
     character(len=2)    :: spin(4)
-    character(len=1)    :: SOCc
-    integer :: i,j,sigma,iw,iflag,err,errt=0
+    integer :: i,j,sigma,iw,err,errt=0
 
     spin(1) = "pm"
     spin(2) = "um"
     spin(3) = "dm"
     spin(4) = "mm"
 
-    fieldpart = ""
-    socpart   = ""
-    if(SOC) then
-      if(llinearsoc) then
-        SOCc = "L"
-      else
-        SOCc = "T"
-      end if
-      if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
-    else
-      SOCc = "F"
-    end if
-
-    if(dcfield_dependence/=7) then
-      if((dcfield_dependence/=1).and.(dcfield_dependence/=4).and.(dcfield_dependence/=5)) write(fieldpart,"(a,'_hwa=',es9.2)") trim(fieldpart),hwa
-      if((dcfield_dependence/=2).and.(dcfield_dependence/=4).and.(dcfield_dependence/=6)) write(fieldpart,"(a,'_hwt=',f5.2)") trim(fieldpart),hwt
-      if((dcfield_dependence/=3).and.(dcfield_dependence/=5).and.(dcfield_dependence/=6)) write(fieldpart,"(a,'_hwp=',f5.2)") trim(fieldpart),hwp
-    end if
-    if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
-    if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
-    if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
-    if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
-
     if(iflag==0) then
-      do sigma=1,4 ; do j=1,Npl ; do i=1,Npl
-        iw = 10000+(sigma-1)*Npl*Npl+(j-1)*Npl+i
-        ! RPA SUSCEPTIBILITIES
-        if(.not.lhfresponses) then
-          write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a2,'/',a,'chi_',a,'_',i0,'_',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-          open (unit=iw, file=varm, status='replace', form='formatted')
-          write(unit=iw, fmt="('#',a,'  real part of chi ',a,'  ,  imaginary part of chi ',a,'  ,  amplitude of chi ',a,' ')") trim(dc_header),spin(sigma),spin(sigma),spin(sigma)
-          close(unit=iw)
-        end if
-        iw = iw+1000
-        ! HF SUSCEPTIBILITIES
-        write(varm,"('./results/',a1,'SOC/',a,'/HF/',a2,'/',a,'chihf_',a,'_',i0,'_',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-        open (unit=iw, file=varm, status='replace', form='formatted')
-        write(unit=iw, fmt="('#',a,'  real part of chi ',a,' HF ,  imaginary part of chi ',a,' HF  ,  amplitude of chi ',a,' HF ')") trim(dc_header),spin(sigma),spin(sigma),spin(sigma)
-        close(unit=iw)
-      end do ; end do ; end do
+      do sigma=1,4
+        do j=1,s%nAtoms
+          do i=1,s%nAtoms
+            iw = 10000+(sigma-1)*s%nAtoms*s%nAtoms+(j-1)*s%nAtoms+i
+            ! RPA SUSCEPTIBILITIES
+            if(.not.lhfresponses) then
+              write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a2,'/',a,'chi_',a,'_',i0,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(suffix)
+              open (unit=iw, file=varm, status='replace', form='formatted')
+              write(unit=iw, fmt="('#',a,'  real part of chi ',a,'  ,  imaginary part of chi ',a,'  ,  amplitude of chi ',a,' ')") trim(dc_header),spin(sigma),spin(sigma),spin(sigma)
+              close(unit=iw)
+            end if
+            iw = iw+1000
+            ! HF SUSCEPTIBILITIES
+            write(varm,"('./results/',a1,'SOC/',a,'/HF/',a2,'/',a,'chihf_',a,'_',i0,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(suffix)
+            open (unit=iw, file=varm, status='replace', form='formatted')
+            write(unit=iw, fmt="('#',a,'  real part of chi ',a,' HF ,  imaginary part of chi ',a,' HF  ,  amplitude of chi ',a,' HF ')") trim(dc_header),spin(sigma),spin(sigma),spin(sigma)
+            close(unit=iw)
+          end do
+        end do
+      end do
       ! RPA DIAGONALIZATION
       if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
-        write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/',a,'chi_eval_',a,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/',a,'chi_eval_',a,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(suffix)
         open (unit=19900, file=varm,status='replace', form='formatted')
         write(unit=19900,fmt="('#',a,'  real part of 1st eigenvalue  ,  imaginary part of 1st eigenvalue  ,  real part of 2nd eigenvalue  ,  imaginary part of 2nd eigenvalue  , ...')") trim(dc_header)
         close (unit=19900)
         do i=1,nmaglayers
-          write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/',a,'chi_evec',i0,'_',a,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(dcprefix(count)),i,trim(dcfield(dcfield_dependence)),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/',a,'chi_evec',i0,'_',a,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(dcprefix(count)),i,trim(dcfield(dcfield_dependence)),trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(suffix)
           open (unit=19900+i, file=varm,status='replace', form='formatted')
           write(unit=19900+i,fmt="('#',a,'  real part of 1st component  ,  imaginary part of 1st component  ,  real part of 2nd component  ,  imaginary part of 2nd component  , ...')") trim(dc_header)
           close (unit=19900+i)
@@ -411,46 +396,51 @@ contains
       end if
 
     else if(iflag==1) then
-      do sigma=1,4 ; do j=1,Npl ; do i=1,Npl
-        iw = 10000+(sigma-1)*Npl*Npl+(j-1)*Npl+i
-        ! RPA SUSCEPTIBILITIES
-        if(.not.lhfresponses) then
-          write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a2,'/',a,'chi_',a,'_',i0,'_',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-          open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
-          errt = errt + err
-        end if
-        iw = iw+1000
-        ! HF SUSCEPTIBILITIES
-        write(varm,"('./results/',a1,'SOC/',a,'/HF/',a2,'/',a,'chihf_',a,'_',i0,'_',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-        open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
-        errt = errt + err
-      end do ; end do ; end do
+      do sigma=1,4
+        do j=1,s%nAtoms
+          do i=1,s%nAtoms
+            iw = 10000+(sigma-1)*s%nAtoms*s%nAtoms+(j-1)*s%nAtoms+i
+            ! RPA SUSCEPTIBILITIES
+            if(.not.lhfresponses) then
+              write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a2,'/',a,'chi_',a,'_',i0,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(suffix)
+              open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+              errt = errt + err
+            end if
+            iw = iw+1000
+            ! HF SUSCEPTIBILITIES
+            write(varm,"('./results/',a1,'SOC/',a,'/HF/',a2,'/',a,'chihf_',a,'_',i0,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(suffix)
+            open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+            errt = errt + err
+          end do
+        end do
+      end do
       ! RPA DIAGONALIZATION
       if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
-        write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/',a,'chi_eval_',a,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/',a,'chi_eval_',a,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(suffix)
         open (unit=19900, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         do i=1,nmaglayers
-          write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/',a,'chi_evec',i0,'_',a,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(dcprefix(count)),i,trim(dcfield(dcfield_dependence)),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/',a,'chi_evec',i0,'_',a,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(dcprefix(count)),i,trim(dcfield(dcfield_dependence)),trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(suffix)
           open (unit=19900+i, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
         end do
       end if
       ! Stop if some file does not exist
-      if(errt/=0) then
-        write(outputunit,"(a,i0,a)") "[openclose_dc_chi_files] Some file(s) do(es) not exist! Stopping before starting calculations..."
-        call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-      end if
+      if(errt/=0) call abortProgram("[openclose_dc_chi_files] Some file(s) do(es) not exist! Stopping before starting calculations...")
 
     else
-      do sigma=1,4 ; do j=1,Npl ; do i=1,Npl
-        ! RPA SUSCEPTIBILITIES
-        iw = 10000+(sigma-1)*Npl*Npl+(j-1)*Npl+i
-        if(.not.lhfresponses) close(unit=iw)
-        ! HF SUSCEPTIBILITIES
-        iw = iw+1000
-        close(unit=iw)
-      end do ; end do ; end do
+      do sigma=1,4
+        do j=1,s%nAtoms
+          do i=1,s%nAtoms
+            ! RPA SUSCEPTIBILITIES
+            iw = 10000+(sigma-1) * s%nAtoms * s%nAtoms + (j-1) * s%nAtoms+i
+            if(.not.lhfresponses) close(unit=iw)
+            ! HF SUSCEPTIBILITIES
+            iw = iw+1000
+            close(unit=iw)
+          end do
+        end do
+      end do
       ! RPA DIAGONALIZATION
       if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
         close (unit=19900)
@@ -467,15 +457,17 @@ contains
   ! (already opened with openclose_chi_files(1))
   ! Some information is also written on the screen
   subroutine write_dc_susceptibilities()
-    use mod_f90_kind
-    use mod_parameters
+    use mod_f90_kind, only: double
+    use mod_parameters, only: lwriteonscreen, outputunit_loop, lhfresponses, nmaglayers, lnodiag
+    use mod_magnet, only: hw_count, dc_fields, dcfield_dependence, dcfield
+    use mod_system, only: s => sys
     implicit none
     character(len=100)      :: varm
     integer                 :: i,j,iw,sigma
 
     if(lwriteonscreen) write(outputunit_loop,"(' #################  Susceptibilities:  #################')")
-    do j=1,Npl ;  do i=1,Npl ; do sigma=1,4
-      iw = 10000+(sigma-1)*Npl*Npl+(j-1)*Npl+i
+    do j=1,s%nAtoms ;  do i=1,s%nAtoms ; do sigma=1,4
+      iw = 10000+(sigma-1)*s%nAtoms*s%nAtoms+(j-1)*s%nAtoms+i
       if(.not.lhfresponses) then
         write(unit=iw,fmt="(a,2x,3(es16.9,2x))") trim(dc_fields(hw_count)) , real(schi(sigma,1,i,j)) , aimag(schi(sigma,1,i,j)) , abs(schi(sigma,1,i,j))
         if((sigma==1).and.(i==j).and.(lwriteonscreen)) write(outputunit_loop,"(a,' = ',a,', Plane: ',i0,' Chi+- = (',es16.9,') + i(',es16.9,')')") trim(dcfield(dcfield_dependence)),trim(dc_fields(hw_count)),i,real(schi(sigma,1,i,j)),aimag(schi(sigma,1,i,j))
@@ -497,30 +489,36 @@ contains
   end subroutine write_dc_susceptibilities
 
   ! This subroutine sorts susceptibilities files
-  subroutine sort_susceptibilities()
-    use mod_f90_kind
-    use mod_parameters
+  subroutine sort_susceptibilities(count)
+    use mod_f90_kind, only: double
+    use mod_parameters, only: itype, lhfresponses, nmaglayers, lnodiag
     use mod_tools, only: sort_file
+    use mod_system, only: s => sys
     implicit none
+    integer, optional, intent(in) :: count
     integer :: i,j,iw,sigma,idc=1
 
     ! Opening chi and diag files
     if(itype==9) then
       idc=10
-      call openclose_dc_chi_files(1)
+      call openclose_dc_chi_files(1, count)
     else
       call openclose_chi_files(1)
     end if
 
-    do j=1,Npl ; do i=1,Npl ; do sigma=1,4
-      iw = 1000*idc+(sigma-1)*Npl*Npl+(j-1)*Npl+i
-      if(.not.lhfresponses) then
-        call sort_file(iw,.true.)
-      end if
+    do j=1, s%nAtoms
+      do i=1, s%nAtoms
+        do sigma=1, 4
+          iw = 1000*idc+(sigma-1)*s%nAtoms*s%nAtoms+(j-1)*s%nAtoms+i
+          if(.not.lhfresponses) then
+            call sort_file(iw,.true.)
+          end if
 
-      iw = iw+1000
-      call sort_file(iw,.true.)
-    end do ; end do ; end do
+          iw = iw+1000
+          call sort_file(iw,.true.)
+        end do
+      end do
+    end do
 
     if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
       call sort_file(1990*idc,.true.)
@@ -531,7 +529,7 @@ contains
 
     ! Closing chi and diag files
     if(itype==9) then
-      call openclose_dc_chi_files(2)
+      call openclose_dc_chi_files(2, count)
     else
       call openclose_chi_files(2)
     end if

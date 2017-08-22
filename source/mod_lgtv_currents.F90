@@ -38,37 +38,17 @@ contains
 
   ! This subroutine opens and closes all the files needed for the longitudinal and transverse currents
   subroutine openclose_lgtv_files(iflag)
-    use mod_parameters
+    use mod_parameters, only: fieldpart
     use mod_mpi_pars
+    use mod_SOC, only: SOCc, socpart
     use mod_system, only: nkpt
+    use electricfield, only: strElectricField
     implicit none
 
     character(len=500)  :: varm
-    character(len=50)   :: fieldpart,socpart
-    character(len=1)    :: SOCc
     character(len=6)    :: folder(7),typec(2)
     character(len=3)    :: filename(7)
     integer :: i,j,k,iw,iflag,err,errt=0
-
-    fieldpart = ""
-    socpart   = ""
-    if(SOC) then
-      if(llinearsoc) then
-        SOCc = "L"
-      else
-        SOCc = "T"
-      end if
-      if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
-    else
-      SOCc = "F"
-    end if
-    if(lfield) then
-      write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
-      if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
-      if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
-      if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
-      if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
-    end if
 
     folder(1) = "CC"
     folder(2) = "SC"
@@ -98,7 +78,7 @@ contains
       ! Header for longitudinal and transverse currents per plane
       do i=1,Npl ; do j=1,7 ; do k=1,2
         iw = 8300+(i-1)*7*2+(j-1)*2+k
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),typec(k),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),typec(k),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#     energy     , real part of ',a,', imag part of ',a,',   phase of ',a,'  ')") filename(j),filename(j),filename(j)
         close(unit=iw)
@@ -106,7 +86,7 @@ contains
       ! Header for total longitudinal and transverse currents
       do j=1,7 ; do k=1,2
         iw = 8500+(j-1)*2+k
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),typec(k),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),typec(k),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#     energy     , real part of ',a,', imag part of ',a,',   phase of ',a,'  ')") filename(j),filename(j),filename(j)
         close(unit=iw)
@@ -115,14 +95,14 @@ contains
       ! Longitudinal and transverse currents per plane
       do i=1,Npl ; do j=1,7 ; do k=1,2
         iw = 8300+(i-1)*7*2+(j-1)*2+k
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),typec(k),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),typec(k),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
       end do ; end do ; end do
       ! Total longitudinal and transverse currents
       do j=1,7 ; do k=1,2
         iw = 8500+(j-1)*2+k
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),typec(k),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),typec(k),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
       end do ; end do
@@ -148,40 +128,17 @@ contains
 
   ! This subroutine opens and closes all the files needed for the field dependent longitudinal and transverse currents
   subroutine openclose_dc_lgtv_files(iflag)
-    use mod_parameters
+    use mod_parameters, only: dcfieldpart
     use mod_mpi_pars
+    use mod_SOC, only: SOCc, socpart
     use mod_system, only: nkpt
+    use electricfield, only: strElectricField
     implicit none
 
     character(len=500)  :: varm
-    character(len=50)   :: fieldpart,socpart
-    character(len=1)    :: SOCc
     character(len=6)    :: folder(7),typec(2)
     character(len=3)    :: filename(7)
     integer :: i,j,k,iw,iflag,err,errt=0
-
-    fieldpart = ""
-    socpart   = ""
-    if(SOC) then
-      if(llinearsoc) then
-        SOCc = "L"
-      else
-        SOCc = "T"
-      end if
-      if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
-    else
-      SOCc = "F"
-    end if
-
-    if(dcfield_dependence/=7) then
-      if((dcfield_dependence/=1).and.(dcfield_dependence/=4).and.(dcfield_dependence/=5)) write(fieldpart,"(a,'_hwa=',es9.2)") trim(fieldpart),hwa
-      if((dcfield_dependence/=2).and.(dcfield_dependence/=4).and.(dcfield_dependence/=6)) write(fieldpart,"(a,'_hwt=',f5.2)") trim(fieldpart),hwt
-      if((dcfield_dependence/=3).and.(dcfield_dependence/=5).and.(dcfield_dependence/=6)) write(fieldpart,"(a,'_hwp=',f5.2)") trim(fieldpart),hwp
-    end if
-    if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
-    if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
-    if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
-    if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
 
     folder(1) = "CC"
     folder(2) = "SC"
@@ -211,7 +168,7 @@ contains
       ! Header for longitudinal and transverse currents per plane
       do i=1,Npl ; do j=1,7 ; do k=1,2
         iw = 83000+(i-1)*7*2+(j-1)*2+k
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,' real part of ',a,', imag part of ',a,',   phase of ',a,'  , mag angle theta ,  mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j)
         close(unit=iw)
@@ -219,7 +176,7 @@ contains
       ! Header for total longitudinal and transverse currents
       do j=1,7 ; do k=1,2
         iw = 85000+(j-1)*2+k
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,' real part of ',a,', imag part of ',a,',   phase of ',a,'  , mag angle theta ,  mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j)
         close(unit=iw)
@@ -228,14 +185,14 @@ contains
       ! Header for longitudinal and transverse currents per plane
       do i=1,Npl ; do j=1,7 ; do k=1,2
         iw = 83000+(i-1)*7*2+(j-1)*2+k
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
       end do ; end do ; end do
       ! Header for total longitudinal and transverse currents
       do j=1,7 ; do k=1,2
         iw = 85000+(j-1)*2+k
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'_EFp=',es8.1,'_EFt=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),EFp,Eft,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
       end do ; end do

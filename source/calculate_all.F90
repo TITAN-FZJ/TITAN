@@ -14,7 +14,6 @@ subroutine calculate_all()
   use mod_parameters
   use mod_prefactors
   use mod_disturbances
-  use mod_tight_binding,    only: lambda
   use mod_susceptibilities
   !! use mod_diamagnetic_current
   implicit none

@@ -1,9 +1,10 @@
-subroutine read_band_points(kbands)
-  use mod_parameters, only: bands, band_cnt
-  use mod_system, only: b1, b2, b3
+subroutine read_band_points(kbands, b1, b2, b3)
   use mod_f90_kind, only: double
+  use mod_parameters, only: bands, band_cnt
   implicit none
+
   real(double), dimension(:,:), allocatable, intent(out) :: kbands
+  real(double), dimension(3), intent(in) :: b1, b2, b3
   character(len=40) :: band_file = "kbands"
   character(len=200) :: line
   integer :: ios, line_count, i, j
@@ -54,71 +55,53 @@ subroutine read_band_points(kbands)
       stop
     endif
   end do
-
   close(666999)
 end subroutine read_band_points
 
 
 !   Calculates magnetic LDOS
-subroutine band_structure()
-  use mod_f90_kind
-  use mod_parameters
+subroutine band_structure(s)
+  use mod_f90_kind, only: double
+  use mod_parameters, only: fieldpart, outputunit_loop, Ef, eta, Npl_folder, npts, npt1, Utype, bands, band_cnt
+  use mod_SOC, only: SOCc, socpart
   use mod_mpi_pars, only: mpitag
-  use mod_system, only: nkpt
+  use mod_system, only: System, ia
+  use TightBinding, only: nOrb
   implicit none
+  type(System), intent(in) :: s
   character(len=400) :: varm
-  character(len=50)  :: fieldpart,socpart
-  character(len=1)   :: SOCc
-  integer            :: i, j, ifail
-  integer                       :: lwork,dimbs
-  real(double)                  :: dir(3), deltak
-  real(double),allocatable      :: rwork(:),kpoints(:,:)
-  complex(double),allocatable   :: eval(:),evecl(:,:),evecr(:,:),work(:)
-  complex(double),allocatable   :: hk(:,:)
-  character(len=20)  :: kdirection
+  integer :: i, j, ifail, count
+  integer :: lwork,dimbs
+  real(double) :: dir(3), deltak
+  real(double), allocatable :: rwork(:),kpoints(:,:)
+  complex(double), allocatable :: eval(:),evecl(:,:),evecr(:,:),work(:)
+  complex(double), allocatable :: hk(:,:)
+  character(len=20) :: kdirection
   real(double), dimension(:,:), allocatable :: band_points
   real(double) :: total_length
 
     interface
-      subroutine read_band_points(kbands)
+      subroutine read_band_points(kbands, b1, b2, b3)
         use mod_f90_kind, only: double
         real(double), dimension(:,:), allocatable, intent(out) :: kbands
+        real(double), dimension(3), intent(in) :: b1, b2, b3
       end subroutine
     end interface
 
-  dimbs = (Npl_total)*18
+  dimbs = (s%nAtoms)*18
   lwork = 33*dimbs
   allocate( hk(dimbs,dimbs),rwork(2*dimbs),eval(dimbs),evecl(1,dimbs),evecr(1,dimbs),work(lwork) )
 
   write(outputunit_loop,"('CALCULATING THE BAND STRUCTURE')")
 
-  call read_band_points(band_points)
+  call read_band_points(band_points, s%b1, s%b2, s%b3)
   total_length = 0.d0
   do i = 1, band_cnt - 1
     total_length = total_length + sqrt(dot_product(band_points(:,i)-band_points(:,i+1), band_points(:,i)-band_points(:,i+1)))
   end do
 
-  fieldpart = ""
-  socpart   = ""
-  if(SOC) then
-    if(llinearsoc) then
-      SOCc = "L"
-    else
-      SOCc = "T"
-    end if
-    if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
-  else
-    SOCc = "F"
-  end if
-  if(lfield) then
-    write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
-    if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
-    if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
-    if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
-    if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
-  end if
   write(kdirection,*) (trim(adjustl(bands(i))), i = 1,band_cnt)
-  write(varm,"('./results/',a1,'SOC/',a,'/BS/bandstructure_kdir=',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(adjustl(kdirection)),nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+  write(varm,"('./results/',a1,'SOC/',a,'/BS/bandstructure_kdir=',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(adjustl(kdirection)),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
   open (unit=666+mpitag, file=varm,status='replace')
   write(unit=666+mpitag, fmt=*) band_cnt, npts
   write(unit=666+mpitag, fmt=*) Ef
@@ -143,13 +126,7 @@ subroutine band_structure()
   i = i+1
   write(unit=666+mpitag, fmt=*) bands(i), total_length
 
-  ! deltak = (kmax - kmin)/npts
-  ! allocate( kpoints(npt1,3) )
-  ! do count=1,npt1
-  !   kpoints(count,:) = kmin + (count-1)*deltak
-  ! end do
-
-  band_structure_loop: do count=1,npt1
+  do count=1,npt1
     write(outputunit_loop,"('[band_structure] ',i0,' of ',i0,' points',', i = ',es10.3)") count,npt1,dble((count-1.d0)/npts)
     call hamiltk(kpoints(:,count),hk)
 
@@ -157,13 +134,12 @@ subroutine band_structure()
     if(ifail/=0) then
       write(outputunit_loop,"('[band_structure] Problem with diagonalization. ifail = ',i0)") ifail
       stop
-!       else
-!         write(outputunit_loop,"('[band_structure] optimal lwork = ',i0,' lwork = ',i0)") work(1),lwork
     end if
     ! Transform energy to eV if runoption is on
-    eval = eval
+    ! eval = eval
     write(666+mpitag,'(1000(es16.8))') dble((count-1.d0)*deltak), (real(eval(j)),j=1,dimbs)
-  end do band_structure_loop
+  end do
+
   close(666+mpitag)
   deallocate(hk,rwork,eval,evecl,evecr,work)
 
