@@ -254,8 +254,8 @@ subroutine calculate_all()
       end do plane_loop_calculate_all
       disturbances(2:4,:) = 0.5d0*disturbances(2:4,:)
       sdmat    = 0.5d0*sdmat
-      currents = -currents
-      currents(2:4,:,:) = 0.5d0*currents(2:4,:,:)
+      currents = currents
+      currents(2:4,:,:) =-0.5d0*currents(2:4,:,:)
       currents(3,:,:)   = currents(3,:,:)/zi
       ! Total currents for each neighbor direction (Sum of currents over all planes)
       total_currents = sum(currents,dim=3)
