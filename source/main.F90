@@ -1,9 +1,9 @@
 !> Main program:
-!! Initialize MPI, reads input, define lattice quantities then
-!! loops over number of planes and magnetic field to do the
-!! magnetic self-consistency and calculate either ground state
-!! quantities or response functions
 program TITAN
+  !! Initialize MPI, reads input, define lattice quantities then
+  !! loops over number of planes and magnetic field to do the
+  !! magnetic self-consistency and calculate either ground state
+  !! quantities or response functions
   !use mod_f90_kind
   use mod_constants
   use mod_parameters
@@ -22,6 +22,7 @@ program TITAN
   use EnergyIntegration
   use mod_progress
   use mod_mpi_pars
+  use mod_Umatrix
   !use mod_lgtv_currents TODO: Re-include
   !use mod_sha TODO: Re-include
   !use mod_torques, only: ntypetorque
