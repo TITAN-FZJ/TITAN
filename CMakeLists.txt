@@ -135,7 +135,7 @@ endif()
 #					-xHost
 #)
 if(DEBUG)
-target_compile_options(titan.exe PRIVATE -C -CB
+target_compile_options(${TITAN_EXE} PRIVATE -C -CB
                                         -check uninit
 
                                         -debug all

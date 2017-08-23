@@ -4,7 +4,7 @@ subroutine L_gs(s)
   use mod_constants, only: zero,pi
   use mod_System, only: System
   use TightBinding, only: nOrb
-  use mod_parameters, only: outputunit_loop, Ef, lverbose, host
+  use mod_parameters, only: outputunit_loop, Ef
   use mod_magnet
   use EnergyIntegration, only: y, wght, pn1
   use mod_mpi_pars

@@ -7,10 +7,10 @@ contains
   subroutine read_previous_results(lsuccess)
     use mod_f90_kind, only: double
     use mod_constants, only: pi
-    use mod_magnet, only: mabs, mx, my, mz, mtheta, mphi, &
+    use mod_magnet, only: mabs, mx, my, mz, mp, mtheta, mphi, &
                           mvec_cartesian, mvec_spherical, &
                           eps1, hw_count, hw_list, lfield, &
-                          mp, hdel, hdelm, hdelp
+                          hdel, hdelm, hdelp
     use mod_parameters, only: skipsc, outputunit_loop, lselfcon, U,&
                               magaxis, magaxisvec, offset, layertype
     use mod_system, only: s => sys
@@ -364,7 +364,7 @@ contains
     use mod_system, only: s => sys
     implicit none
     character(len=300)  :: file = ""
-    character(len=100)  :: folder,prefix
+    character(len=100)  :: prefix
     integer,intent(in)  :: iflag
     integer,intent(out) :: err
     logical,intent(out) :: lsuccess
@@ -491,6 +491,313 @@ contains
     return
   end subroutine read_write_sc_results
 
+  subroutine calcMagnetization(n, mx, my, mz, mp, size)
+    use mod_f90_kind, only: double
+    use mod_constants, only: zi, pi, zero
+    use mod_parameters, only: Ef
+    use mod_SOC, only: llinearsoc, llineargfsoc
+    use EnergyIntegration, only: pn1, y, wght
+    use mod_system, only: s => sys
+    use TightBinding, only: nOrb
+    use mod_mpi_pars
+    !$  use omp_lib
+    implicit none
+    integer, intent(in) :: size
+    real(double), dimension(s%nAtoms), intent(inout) :: n, mx, my, mz
+    complex(double), dimension(s%nAtoms), intent(inout) :: mp
+
+    integer  :: i,j
+    real(double), dimension(3) :: kp
+    real(double), dimension(s%nAtoms,nOrb) :: n_orb_u, n_orb_d
+    real(double), dimension(s%nAtoms,nOrb) :: gdiaguur,gdiagddr
+    complex(double), dimension(s%nAtoms,nOrb) :: gdiagud,gdiagdu
+    complex(double), dimension(:,:,:,:), allocatable :: gf, gf_loc
+    !--------------------- begin MPI vars --------------------
+    integer :: ix
+    integer :: ncount,ncount2
+    integer :: start, end, iz, work, remainder
+    integer :: mu,mup
+
+    ncount = s%nAtoms * 9
+    ncount2 = size * size
+
+    ! Calculate workload for each MPI process
+    remainder = mod(pn1,numprocs_row_hw)
+    if(myrank_row_hw < remainder) then
+      work = ceiling(dble(pn1) / dble(numprocs_row_hw))
+      start = myrank_row_hw*work + 1
+      end = (myrank_row_hw+1) * work
+    else
+      work = floor(dble(pn1) / dble(numprocs_row_hw))
+      start = myrank_row_hw*work + 1 + remainder
+      end = (myrank_row_hw+1) * work + remainder
+    end if
+    !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
+
+    n_orb_u = 0.d0
+    n_orb_d = 0.d0
+    mp = zero
+
+    gdiaguur= 0.d0
+    gdiagddr= 0.d0
+    gdiagud = zero
+    gdiagdu = zero
+
+    !$omp parallel default(none) &
+    !$omp& private(ix,iz,kp,i,mu,mup,gf,gf_loc) &
+    !$omp& shared(llineargfsoc,llinearsoc,start,end,wght,s,Ef,y,gdiaguur,gdiagddr,gdiagud,gdiagdu)
+    allocate(gf    (s%nAtoms,s%nAtoms,2*nOrb,2*nOrb))
+    allocate(gf_loc(s%nAtoms,s%nAtoms,2*nOrb,2*nOrb))
+    gf = zero
+    gf_loc = zero
+
+    if((llineargfsoc).or.(llinearsoc)) then
+      !$omp do schedule(static) collapse(2)
+      do ix = start, end
+        do iz = 1, s%nkpt
+          kp = s%kbz(:,iz)
+          call greenlineargfsoc(Ef,y(ix),kp,gf_loc)
+          gf = gf + gf_loc*s%wkbz(iz)*wght(ix)
+        end do
+      end do
+      !$omp end do nowait
+    else
+      !$omp do schedule(static) collapse(2)
+      do ix = start, end
+        do iz = 1, s%nkpt
+          kp = s%kbz(:,iz)
+          call green(Ef,y(ix),kp,gf_loc)
+          gf = gf + gf_loc*s%wkbz(iz)*wght(ix)
+        end do
+      end do
+      !$omp end do nowait
+    end if
+    !$omp critical
+    do i=1,s%nAtoms
+      do mu=1,nOrb
+        mup = mu+nOrb
+        gdiaguur(i,mu) = gdiaguur(i,mu) + real(gf(i,i,mu,mu))
+        gdiagddr(i,mu) = gdiagddr(i,mu) + real(gf(i,i,mup,mup))
+        gdiagud(i,mu) = gdiagud(i,mu) + gf(i,i,mu,mup)
+        gdiagdu(i,mu) = gdiagdu(i,mu) + gf(i,i,mup,mu)
+      end do
+    end do
+    !$omp end critical
+
+    deallocate(gf_loc, gf)
+    !$omp end parallel
+
+    do j=1,s%nAtoms
+      mp(j) = mp(j) + (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
+    end do
+
+    call MPI_Allreduce(gdiaguur, n_orb_u, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
+    call MPI_Allreduce(gdiagddr, n_orb_d, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, mp, s%nAtoms, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_Comm_Row_hw, ierr)
+
+    n_orb_u = 0.5d0 + n_orb_u/pi
+    n_orb_d = 0.5d0 + n_orb_d/pi
+    mp      = mp/pi
+    mx      = real(mp)
+    my      = aimag(mp)
+
+    !n_orb_t = n_orb_u + n_orb_d
+    !mag_orb = n_orb_u - n_orb_d
+
+    do i = 1, s%nAtoms
+      n(i) = sum(n_orb_u(i,:)) + sum(n_orb_d(i,:))
+      mz(i) = sum(n_orb_u(i,5:9)) - sum(n_orb_d(i,5:9))
+    end do
+    return
+  end subroutine calcMagnetization
+
+  subroutine calcJacobian(jacobian, N)
+    use mod_f90_kind, only: double
+    use mod_constants, only: zi, pi, identorb18, zero, pauli_dorb, zum
+    use mod_parameters, only: U, Ef, offset
+    use mod_SOC, only: llinearsoc, llineargfsoc
+    use EnergyIntegration, only: pn1, y, wght
+    use mod_system, only: s => sys
+    use TightBinding, only: nOrb
+    use mod_mpi_pars
+    !$  use omp_lib
+    implicit none
+    integer, intent(in) :: N
+    real(double), intent(inout), dimension(N,N) :: jacobian
+    complex(double), dimension(s%nAtoms, s%nAtoms, 2*nOrb, 2*nOrb) :: gf,gvg
+
+    integer :: i,j
+    integer :: AllocateStatus
+    integer :: i0,j0,sigma,sigmap
+
+    real(double) :: kp(3)
+
+    complex(double) :: mhalfU(4,s%nAtoms), weight
+    complex(double), dimension(2*nOrb, 2*nOrb, 4) :: pauli_components1,pauli_components2
+    complex(double), dimension(2*nOrb, 2*nOrb, 4) :: temp1,temp2
+    complex(double), dimension(2*nOrb, 2*nOrb) :: gij,gji,temp,paulitemp
+    complex(double), dimension(:,:,:,:,:,:), allocatable :: gdHdxg,gvgdHdxgvg
+
+    !--------------------- begin MPI vars --------------------
+    integer :: ix, iz
+    integer :: ncount,ncount2
+    integer :: start, end, work, remainder
+    integer :: mu
+
+    ! Calculate workload for each MPI process
+    remainder = mod(pn1,numprocs_row_hw)
+    if(myrank_row_hw < remainder) then
+      work = ceiling(dble(pn1) / dble(numprocs_row_hw))
+      start = myrank_row_hw*work + 1
+      end = (myrank_row_hw+1) * work
+    else
+      work = floor(dble(pn1) / dble(numprocs_row_hw))
+      start = myrank_row_hw*work + 1 + remainder
+      end = (myrank_row_hw+1) * work + remainder
+    end if
+    !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
+    ncount=s%nAtoms*9
+    ncount2=N*N
+
+    pauli_components1 = zero
+    pauli_components2 = zero
+!   Includes d orbitals in the charge component
+    pauli_components1(:,:,1) = identorb18(:,:)
+    pauli_components1(:,:,2) = pauli_dorb(1,:,:)
+    pauli_components1(:,:,3) = pauli_dorb(2,:,:)
+    pauli_components1(:,:,4) = pauli_dorb(3,:,:)
+!   Excludes d orbitals in the charge component
+    pauli_components2(5:9, 5:9, 1) = identorb18(5:9, 5:9)
+    pauli_components2(14:18, 14:18, 1) = identorb18(14:18, 14:18)
+    pauli_components2(:,:,2) = pauli_dorb(1,:,:)
+    pauli_components2(:,:,3) = pauli_dorb(2,:,:)
+    pauli_components2(:,:,4) = pauli_dorb(3,:,:)
+
+    ! Prefactor -U/2 in dH/dm and 1 in dH/deps1
+    do i=1,s%nAtoms
+      mhalfU(1,i) = zum
+      mhalfU(2:4,i) = -0.5d0*U(i+offset)
+    end do
+
+    jacobian = 0.d0
+
+    !$omp parallel default(none) &
+    !$omp& private(AllocateStatus,ix,iz,i,j,i0,j0,mu,sigma,sigmap,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp,gdHdxg,gvgdHdxgvg) &
+    !$omp& shared(llineargfsoc,llinearsoc,start,end,s,Ef,y,wght,mhalfU,pauli_components1,pauli_components2,jacobian)
+    allocate( gdHdxg(2*nOrb,2*nOrb,4,4,s%nAtoms,s%nAtoms), gvgdHdxgvg(2*nOrb,2*nOrb,4,4,s%nAtoms,s%nAtoms) , STAT = AllocateStatus  )
+    if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: gdHdxg,gvgdHdxgvg")
+    gdHdxg = zero
+    gvgdHdxgvg = zero
+
+    !$omp do schedule(static) collapse(2)
+    do ix = start, end
+      do iz=1,s%nkpt
+        kp = s%kbz(:,iz)
+        weight = cmplx(s%wkbz(iz), 0.d0) * wght(ix)
+
+        ! Green function on energy Ef + iy, and wave vector kp
+        if((llineargfsoc).or.(llinearsoc)) then
+          call greenlinearsoc(Ef,y(ix),kp,gf,gvg)
+          gf = gf + gvg
+        else
+          call green(Ef,y(ix),kp,gf)
+        end if
+
+        do j=1,s%nAtoms
+          do i=1,s%nAtoms
+            gij = gf(i,j,:,:)
+            gji = gf(j,i,:,:)
+
+            do sigma = 1,4
+              ! temp1 =  pauli*g_ij
+              paulitemp = pauli_components1(:,:, sigma)
+              call zgemm('n','n',18,18,18,zum,paulitemp,18,gij,18,zero,temp,18)
+              temp1(:,:, sigma) = temp
+            end do
+
+            do sigma = 1,4
+              ! temp2 = (-U/2) * sigma* g_ji
+              paulitemp = pauli_components2(:,:, sigma)
+              call zgemm('n','n',18,18,18,mhalfU(sigma,j),paulitemp,18,gji,18,zero,temp,18)
+              temp2(:,:, sigma) = temp
+            end do
+
+            do sigmap = 1,4
+              do sigma = 1,4
+                ! gdHdxg = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*sigma* g_ji
+                gij = temp1(:,:, sigma)
+                gji = temp2(:,:, sigmap)
+                call zgemm('n','n',18,18,18,weight,gij,18,gji,18,zero,temp,18)
+                gdHdxg(:,:,sigma,sigmap,i,j) = gdHdxg(:,:,sigma,sigmap,i,j) + temp
+              end do
+            end do
+
+
+            if((llineargfsoc).or.(llinearsoc)) then ! non-linear term
+              gij = gvg(i,j,:,:)
+              gji = gvg(j,i,:,:)
+
+              do sigma = 1,4
+                ! temp1 = wkbz* pauli*gvg_ij
+                paulitemp = pauli_components1(:,:,sigma)
+                call zgemm('n','n',18,18,18,zum,paulitemp,18,gij,18,zero,temp,18)
+                temp1(:,:,sigma) = temp
+              end do
+
+              do sigmap = 1,4
+                ! temp2 = (-U/2) * sigma* gvg_ji
+                paulitemp = pauli_components2(:,:,sigmap)
+                call zgemm('n','n',18,18,18,mhalfU(sigmap,j),paulitemp,18,gji,18,zero,temp,18)
+                temp2(:,:,sigmap) = temp
+              end do
+              do sigmap = 1,4
+                do sigma = 1,4
+                  ! gdHdxg = temp1*temp2 = wkbz* pauli*gvg_ij*(-U/2)*sigma* gvg_ji
+                  gij = temp1(:,:,sigma)
+                  gji = temp2(:,:,sigmap)
+                  call zgemm('n','n',18,18,18,weight,gij,18,gji,18,zero,temp,18)
+                  gvgdHdxgvg(:,:,sigma,sigmap,i,j) = gvgdHdxgvg(:,:,sigma,sigmap,i,j) + temp
+                end do
+              end do
+            end if ! End linear part
+          end do ! End nAtoms i loop
+        end do ! End nAtoms j loop
+
+      end do ! End nkpt loop
+    end do ! End pn1 loop
+    !$omp end do
+
+    ! removing non-linear SOC term
+    if((llineargfsoc).or.(llinearsoc)) gdHdxg = gdHdxg - gvgdHdxgvg
+
+    !$omp critical
+    do mu=1, 2*nOrb
+      do j=1,s%nAtoms
+        do i=1,s%nAtoms
+          do sigmap=1,4
+            do sigma=1,4
+              i0 = (sigma-1)*s%nAtoms + i
+              j0 = (sigmap-1)*s%nAtoms + j
+              ! Trace over orbitals and spins of the real part
+              jacobian(i0,j0) = jacobian(i0,j0) + real(gdHdxg(mu,mu,sigma,sigmap,i,j))
+            end do
+          end do
+        end do
+      end do
+    end do
+    !$omp end critical
+
+    deallocate(gdHdxg,gvgdHdxgvg)
+    !$omp end parallel
+
+    call MPI_Allreduce(MPI_IN_PLACE, jacobian, ncount2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
+    jacobian = jacobian/pi
+    do i = s%nAtoms+1, 4*s%nAtoms
+      jacobian(i,i) = jacobian(i,i) - 1.d0
+    end do
+    return
+  end subroutine calcJacobian
+
   ! This subroutine calculates the self-consistency equations
   !  n  - n0    = 0
   !  mx - mx_in = 0
@@ -500,41 +807,23 @@ contains
 #if !defined(_OSX) && !defined(_JUQUEEN)
   subroutine sc_equations_and_jacobian(N,x,fvec,selfconjac,iuser,ruser,iflag)
     use mod_f90_kind, only: double
-    use mod_constants, only: zi, pi, zero
-    use mod_parameters, only: offset, U, outputunit, outputunit_loop, Ef, lverbose, host, lontheflysc
-    use mod_SOC, only: llinearsoc, llineargfsoc
-    use EnergyIntegration, only: pn1, y, wght
+    use mod_constants, only: zi
+    use mod_parameters, only: offset, U, outputunit, outputunit_loop, lontheflysc
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
     use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx, my, mz
-    use mod_progress, only: progress_bar
     use mod_Umatrix
     use mod_mpi_pars
-    !$  use omp_lib
     implicit none
-    integer  :: N,i,j,iflag
-    integer,           intent(inout) :: iuser(*)
-    real(double),      intent(inout) :: ruser(*)
+    integer  :: N,i,iflag
+    integer, intent(inout) :: iuser(*)
+    real(double), intent(inout) :: ruser(*)
     real(double),dimension(N) :: x,fvec
-    real(double),dimension(N,N)      :: selfconjac
-    real(double),dimension(s%nAtoms)      :: n_t,mx_in,my_in,mz_in
-    complex(double),dimension(s%nAtoms)   :: mp_in
-    real(double),dimension(N,N)      :: ggr
-    real(double),dimension(s%nAtoms,nOrb)    :: n_orb_u,n_orb_d,n_orb_t,mag_orb
-    real(double),dimension(s%nAtoms,nOrb)    :: gdiaguur,gdiagddr
-    complex(double),dimension(s%nAtoms,nOrb) :: gdiagud,gdiagdu
-    real(double), dimension(3) :: kp
-    complex(double),dimension(:,:,:,:), allocatable :: gf, gf_loc
-    !--------------------- begin MPI vars --------------------
-    integer :: ix,itask
-    integer :: ncount,ncount2
-    integer :: start, end, iz, work, remainder
-    integer :: mu,mup
-    !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
-    ncount=s%nAtoms*9
-    ncount2=N*N
+    real(double),dimension(N,N) :: selfconjac
+    real(double),dimension(s%nAtoms) :: n_t,mx_in,my_in,mz_in
+    complex(double),dimension(s%nAtoms) :: mp_in
 
-  ! Values used in the hamiltonian
+    ! Values used in the hamiltonian
     eps1  = x(           1:  s%nAtoms)
     mx_in = x(  s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
@@ -560,106 +849,15 @@ contains
       end do
     end if
 
-    ix = myrank_row_hw+1
-    itask = numprocs_row_hw ! Number of tasks done initially
     select case (iflag)
     case(1)
-      n_orb_u = 0.d0
-      n_orb_d = 0.d0
-      mp = zero
-
-      gdiaguur= 0.d0
-      gdiagddr= 0.d0
-      gdiagud = zero
-      gdiagdu = zero
-
-      remainder = mod(pn1,numprocs_row_hw)
-      if(myrank_row_hw < remainder) then
-        work = ceiling(dble(pn1) / dble(numprocs_row_hw))
-        start = myrank_row_hw*work + 1
-        end = (myrank_row_hw+1) * work
-      else
-        work = floor(dble(pn1) / dble(numprocs_row_hw))
-        start = myrank_row_hw*work + 1 + remainder
-        end = (myrank_row_hw+1) * work + remainder
-      end if
-
-
-      !$omp parallel default(none) &
-      !$omp& private(ix,iz,kp,i,mu,mup,gf,gf_loc) &
-      !$omp& shared(llineargfsoc,llinearsoc,start,end,wght,s,Ef,y,gdiaguur,gdiagddr,gdiagud,gdiagdu)
-      allocate(gf    (s%nAtoms,s%nAtoms,2*nOrb,2*nOrb))
-      allocate(gf_loc(s%nAtoms,s%nAtoms,2*nOrb,2*nOrb))
-      gf = zero
-      gf_loc = zero
-
-      if((llineargfsoc).or.(llinearsoc)) then
-        !$omp do schedule(static) collapse(2)
-        do ix = start, end
-          do iz = 1, s%nkpt
-            kp = s%kbz(:,iz)
-            call greenlineargfsoc(Ef,y(ix),kp,gf_loc)
-            gf = gf + gf_loc*s%wkbz(iz)*wght(ix)
-          end do
-        end do
-        !$omp end do nowait
-      else
-        !$omp do schedule(static) collapse(2)
-        do ix = start, end
-          do iz = 1, s%nkpt
-            kp = s%kbz(:,iz)
-            call green(Ef,y(ix),kp,gf_loc)
-            gf = gf + gf_loc*s%wkbz(iz)*wght(ix)
-          end do
-        end do
-        !$omp end do nowait
-      end if
-      !$omp critical
-      do i=1,s%nAtoms
-        do mu=1,nOrb
-          mup = mu+nOrb
-          gdiaguur(i,mu) = gdiaguur(i,mu) + real(gf(i,i,mu,mu))
-          gdiagddr(i,mu) = gdiagddr(i,mu) + real(gf(i,i,mup,mup))
-          gdiagud(i,mu) = gdiagud(i,mu) + gf(i,i,mu,mup)
-          gdiagdu(i,mu) = gdiagdu(i,mu) + gf(i,i,mup,mu)
-        end do
+      call calcMagnetization(n_t, mx, my, mz, mp, N)
+      do i = 1, s%nAtoms
+        fvec(i) = n_t(i) - s%Types(s%Basis(i)%Material)%Occupation
+        fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
+        fvec(i+2*s%nAtoms) = my(i) - my_in(i)
+        fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
       end do
-      !$omp end critical
-
-      deallocate(gf_loc, gf)
-      !$omp end parallel
-
-      do j=1,s%nAtoms
-        mp(j) = mp(j) + (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
-      end do
-
-      call MPI_Allreduce(gdiaguur, n_orb_u, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
-      call MPI_Allreduce(gdiagddr, n_orb_d, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
-      call MPI_Allreduce(MPI_IN_PLACE, mp, s%nAtoms, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_Comm_Row_hw, ierr)
-
-      n_orb_u = 0.5d0 + n_orb_u/pi
-      n_orb_d = 0.5d0 + n_orb_d/pi
-      n_orb_t = n_orb_u + n_orb_d
-      mag_orb = n_orb_u - n_orb_d
-      mp      = mp/pi
-      mx      = real(mp)
-      my      = aimag(mp)
-      do i=1,s%nAtoms
-        ! Number of particles
-        n_t(i) = sum(n_orb_t(i,:))
-        fvec(i) = n_t(i) - s%Types(s%Basis(i)%Material)%Occupation !  npart0(i+offset)
-        ! x-component of magnetization
-        j = i + s%nAtoms
-        fvec(j) = mx(i) - mx_in(i)
-        ! y-component of magnetization
-        j = j + s%nAtoms
-        fvec(j) = my(i) - my_in(i)
-        ! z-component of magnetization
-        j = j+s%nAtoms
-        mz(i)    = sum(mag_orb(i,5:9))
-        fvec(j)  = mz(i) - mz_in(i)
-      end do
-
       if(myrank_row_hw==0) then
         do i=1,s%nAtoms
           if(abs(mp(i))>1.d-10) then
@@ -673,23 +871,7 @@ contains
       end if
       if(lontheflysc) call write_sc_results()
     case(2)
-      ! if((myrank_row_hw==0)) then
-      !   write(outputunit_loop,*) "[sumk_jacobian]"
-      ! end if
-
-      selfconjac = 0.d0
-      do while(ix <= pn1)
-        call sumk_jacobian(Ef, y(ix), ggr)
-        selfconjac = selfconjac + wght(ix)*ggr
-        ix = ix + numprocs_row_hw
-      end do
-
-      call MPI_Allreduce(MPI_IN_PLACE, selfconjac, ncount2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
-      selfconjac = selfconjac/pi
-      do i = s%nAtoms+1, 4*s%nAtoms
-        selfconjac(i,i) = selfconjac(i,i) - 1.d0
-      end do
-
+      call calcJacobian(selfconjac, N)
     case default
       write(outputunit,"('[sc_equations_and_jacobian] Problem in self-consistency! iflag = ',I0)") iflag
       call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
@@ -703,31 +885,21 @@ contains
   ! For a given value of center of band eps1 it calculates the
   ! occupation number and the magnetic moment
   subroutine sc_equations(N,x,fvec,iuser,ruser,iflag)
-    use mod_constants, only: zi, pi, zero
-    use mod_parameters, only: offset, U, outputunit_loop, Ef, lverbose, host, lontheflysc
+    use mod_constants, only: zi
+    use mod_parameters, only: offset, U, outputunit_loop, lontheflysc
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use EnergyIntegration, only: pn1, y, wght
     use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx ,my ,mz
-    use mod_progress, only: progress_bar
     use mod_Umatrix
     use mod_mpi_pars
     implicit none
-    integer  :: N,i,j,iflag
+    integer  :: N,i,iflag
     integer     , intent(inout)         :: iuser(*)
     real(double), intent(inout)         :: ruser(*)
     real(double),dimension(N)           :: x,fvec
-    real(double),dimension(s%nAtoms,9)       :: n_orb_u,n_orb_d,n_orb_t,mag_orb
     real(double),dimension(s%nAtoms)         :: n_t,mx_in,my_in,mz_in
     complex(double),dimension(s%nAtoms)      :: mp_in
-    real(double),dimension(s%nAtoms,9)       :: gdiaguur,gdiagddr
-    complex(double),dimension(s%nAtoms,9)    :: gdiagud,gdiagdu
-    !--------------------- begin MPI vars --------------------
-    integer :: ix,itask
-    integer :: ncount
-    ncount=s%nAtoms*9
-    !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
     iflag=0
   ! Values used in the hamiltonian
@@ -755,60 +927,12 @@ contains
       end do
     end if
 
-    n_orb_u = 0.d0
-    n_orb_d = 0.d0
-
-    ix = myrank_row_hw+1
-    itask = numprocs ! Number of tasks done initially
-
-    ! Calculating the number of particles for each spin and orbital using a complex integral
-    n_orb_u = 0.d0
-    n_orb_d = 0.d0
-    mp = zero
-
-    do while(ix <= pn1)
-      call sumk_npart(Ef,y(ix),gdiaguur,gdiagddr,gdiagud,gdiagdu)
-      gdiaguur = wght(ix)*gdiaguur
-      gdiagddr = wght(ix)*gdiagddr
-      gdiagud = wght(ix)*gdiagud
-      gdiagdu = wght(ix)*gdiagdu
-
-      n_orb_u = n_orb_u + gdiaguur
-      n_orb_d = n_orb_d + gdiagddr
-
-      do j=1,s%nAtoms
-        mp(j) = mp(j) + (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
-      end do
-
-      ix = ix + numprocs_row_hw
-    end do
-
-    call MPI_Allreduce(MPI_IN_PLACE, n_orb_u, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, n_orb_d, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, mp, s%nAtoms, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_Comm_Row_hw, ierr)
-
-    n_orb_u = 0.5d0 + n_orb_u/pi
-    n_orb_d = 0.5d0 + n_orb_d/pi
-    n_orb_t = n_orb_u + n_orb_d
-    mag_orb = n_orb_u - n_orb_d
-    mp      = mp/pi
-    mx      = real(mp)
-    my      = aimag(mp)
-
-    do i=1,s%nAtoms
-      ! Number of particles
-      n_t(i) = sum(n_orb_t(i,:))
-      fvec(i)   = n_t(i) - s%Types(s%Basis(i)%Material)%Occupation !npart0(i+offset)
-      ! x-component of magnetization
-      j = i+s%nAtoms
-      fvec(j)  = mx(i) - mx_in(i)
-      ! y-component of magnetization
-      j = j+s%nAtoms
-      fvec(j)  = my(i) - my_in(i)
-      ! z-component of magnetization
-      j = j+s%nAtoms
-      mz(i)    = sum(mag_orb(i,5:9))
-      fvec(j)  = mz(i) - mz_in(i)
+    call calcMagnetization(n_t, mx, my, mz, mp, N)
+    do i = 1, s%nAtoms
+      fvec(i) = n_t(i) - s%Types(s%Basis(i)%Material)%Occupation
+      fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
+      fvec(i+2*s%nAtoms) = my(i) - my_in(i)
+      fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
     end do
 
     if(myrank_row_hw==0) then
@@ -839,32 +963,20 @@ contains
   !  mz - mz_in = 0
   ! and the correspondent jacobian
   subroutine sc_eqs_and_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
-    use mod_constants, only: zi, pi, zero
-    use mod_parameters, only: offset, U, outputunit_loop, outputunit, Ef, lverbose, host, lontheflysc
+    use mod_constants, only: zi
+    use mod_parameters, only: offset, U, outputunit_loop, outputunit, lontheflysc
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use EnergyIntegration, only: pn1, y, wght
     use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx, my, mz
-    use mod_progress, only: progress_bar
     use mod_Umatrix
     use mod_mpi_pars
     implicit none
-    integer  :: N,i,j,iflag,ldfjac
+    integer  :: N,i,iflag,ldfjac
     real(double),dimension(N)        :: x,fvec
     real(double),dimension(ldfjac,N) :: selfconjac
     real(double),dimension(s%nAtoms)      :: n_t,mx_in,my_in,mz_in
     complex(double),dimension(s%nAtoms)   :: mp_in
-    real(double),dimension(N,N)      :: ggr
-    real(double),dimension(s%nAtoms,9)    :: n_orb_u,n_orb_d,n_orb_t,mag_orb
-    real(double),dimension(s%nAtoms,9)    :: gdiaguur,gdiagddr
-    complex(double),dimension(s%nAtoms,9) :: gdiagud,gdiagdu
-    !--------------------- begin MPI vars --------------------
-    integer :: ix,itask
-    integer :: ncount,ncount2
-    !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
-    ncount=s%nAtoms*9
-    ncount2=N*N
 
   ! Values used in the hamiltonian
     eps1  = x(1:s%nAtoms)
@@ -891,59 +1003,15 @@ contains
       end do
     end if
 
-    ix = myrank_row_hw+1
-    itask = numprocs ! Number of tasks done initially
-
     flag: select case (iflag)
     case(1)
       ! Calculating the number of particles for each spin and orbital using a complex integral
-      n_orb_u = 0.d0
-      n_orb_d = 0.d0
-      mp = zero
-
-      do while(ix <= pn1)
-        call sumk_npart(Ef,y(ix),gdiaguur,gdiagddr,gdiagud,gdiagdu)
-        gdiaguur = wght(ix)*gdiaguur
-        gdiagddr = wght(ix)*gdiagddr
-        gdiagud = wght(ix)*gdiagud
-        gdiagdu = wght(ix)*gdiagdu
-
-        n_orb_u = n_orb_u + gdiaguur
-        n_orb_d = n_orb_d + gdiagddr
-
-        do j=1,s%nAtoms
-          mp(j) = mp(j) + (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
-        end do
-
-        ix = ix + numprocs_row_hw
-      end do
-
-      call MPI_Allreduce(MPI_IN_PLACE, n_orb_u, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
-      call MPI_Allreduce(MPI_IN_PLACE, n_orb_d, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
-      call MPI_Allreduce(MPI_IN_PLACE, mp, s%nAtoms, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_Comm_Row_hw, ierr)
-
-      n_orb_u = 0.5d0 + n_orb_u/pi
-      n_orb_d = 0.5d0 + n_orb_d/pi
-      n_orb_t = n_orb_u + n_orb_d
-      mag_orb = n_orb_u - n_orb_d
-      mp      = mp/pi
-      mx      = real(mp)
-      my      = aimag(mp)
-
-      do i=1,s%nAtoms
-        ! Number of particles
-        n_t(i) = sum(n_orb_t(i,:))
-        fvec(i)   = n_t(i) - s%Types(s%Basis(i)%Material)%Occupation !npart0(i+offset)
-        ! x-component of magnetization
-        j = i+s%nAtoms
-        fvec(j)  = mx(i) - mx_in(i)
-        ! y-component of magnetization
-        j = j+s%nAtoms
-        fvec(j)  = my(i) - my_in(i)
-        ! z-component of magnetization
-        j = j+s%nAtoms
-        mz(i)    = sum(mag_orb(i,5:9))
-        fvec(j)  = mz(i) - mz_in(i)
+      call calcMagnetization(n_t, mx, my, mz, mp, N)
+      do i = 1, s%nAtoms
+        fvec(i) = n_t(i) - s%Types(s%Basis(i)%Material)%Occupation
+        fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
+        fvec(i+2*s%nAtoms) = my(i) - my_in(i)
+        fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
       end do
 
       if(myrank_row_hw==0) then
@@ -959,20 +1027,7 @@ contains
       end if
       if(lontheflysc) call write_sc_results()
     case(2)
-      selfconjac = 0.d0
-      ! Calculating the jacobian
-      do while(ix <= pn1)
-        call sumk_jacobian(Ef,y(ix),ggr)
-        selfconjac = selfconjac + wght(ix)*ggr
-
-        ix = ix + numprocs_row_hw
-      end do
-      call MPI_Allreduce(MPI_IN_PLACE, selfconjac, ncount2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
-
-      selfconjac = selfconjac/pi
-      do i = s%nAtoms+1,4*s%nAtoms
-        selfconjac(i,i) = selfconjac(i,i) - 1.d0
-      end do
+      call calcJacobian(selfconjac, N)
     case default
       write(outputunit,"('[sc_eqs_and_jac_old] Problem in self-consistency! iflag = ',I0)") iflag
       call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
@@ -987,28 +1042,18 @@ contains
   ! occupation number and the magnetic moment
   subroutine sc_eqs_old(N,x,fvec,iflag)
     use mod_f90_kind, only: double
-    use mod_constants, only: zi, pi, zero
-    use mod_parameters, only: offset, U, outputunit_loop, Ef, lverbose, host, lontheflysc
+    use mod_constants, only: zi
+    use mod_parameters, only: offset, U, outputunit_loop, lontheflysc
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use EnergyIntegration, only: pn1, y, wght
     use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx, my, mz
-    use mod_progress, only: progress_bar
     use mod_Umatrix
     use mod_mpi_pars
     implicit none
-    integer  :: N,i,j,iflag
+    integer  :: N,i,iflag
     real(double),dimension(N)           :: x,fvec
-    real(double),dimension(s%nAtoms,9)       :: n_orb_u,n_orb_d,n_orb_t,mag_orb
     real(double),dimension(s%nAtoms)         :: n_t,mx_in,my_in,mz_in
     complex(double),dimension(s%nAtoms)      :: mp_in
-    real(double),dimension(s%nAtoms,9)       :: gdiaguur,gdiagddr
-    complex(double),dimension(s%nAtoms,9)    :: gdiagud,gdiagdu
-    !--------------------- begin MPI vars --------------------
-    integer :: ix,itask
-    integer :: ncount
-    ncount=s%nAtoms*9
-    !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
     iflag=0
   ! Values used in the hamiltonian
@@ -1036,60 +1081,12 @@ contains
       end do
     end if
 
-    n_orb_u = 0.d0
-    n_orb_d = 0.d0
-
-    ix = myrank_row_hw+1
-    itask = numprocs ! Number of tasks done initially
-
-    ! Calculating the number of particles for each spin and orbital using a complex integral
-    n_orb_u = 0.d0
-    n_orb_d = 0.d0
-    mp = zero
-
-    do while(ix <= pn1)
-      call sumk_npart(Ef,y(ix),gdiaguur,gdiagddr,gdiagud,gdiagdu)
-      gdiaguur = wght(ix)*gdiaguur
-      gdiagddr = wght(ix)*gdiagddr
-      gdiagud = wght(ix)*gdiagud
-      gdiagdu = wght(ix)*gdiagdu
-
-      n_orb_u = n_orb_u + gdiaguur
-      n_orb_d = n_orb_d + gdiagddr
-
-      do j=1,s%nAtoms
-        mp(j) = mp(j) + (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
-      end do
-
-      ix = ix + numprocs_row_hw
-    end do
-
-    call MPI_Allreduce(MPI_IN_PLACE, n_orb_u, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, n_orb_d, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, mp, s%nAtoms, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_Comm_Row_hw, ierr)
-
-    n_orb_u = 0.5d0 + n_orb_u/pi
-    n_orb_d = 0.5d0 + n_orb_d/pi
-    n_orb_t = n_orb_u + n_orb_d
-    mag_orb = n_orb_u - n_orb_d
-    mp      = mp/pi
-    mx      = real(mp)
-    my      = aimag(mp)
-
-    do i=1,s%nAtoms
-      ! Number of particles
-      n_t(i) = sum(n_orb_t(i,:))
-      fvec(i)   = n_t(i) - s%Types(s%Basis(i)%Material)%Occupation !npart0(i+offset)
-      ! x-component of magnetization
-      j = i+s%nAtoms
-      fvec(j)  = mx(i) - mx_in(i)
-      ! y-component of magnetization
-      j = j+s%nAtoms
-      fvec(j)  = my(i) - my_in(i)
-      ! z-component of magnetization
-      j = j+s%nAtoms
-      mz(i)    = sum(mag_orb(i,5:9))
-      fvec(j)  = mz(i) - mz_in(i)
+    call calcMagnetization(n_t, mx, my, mz, mp, N)
+    do i = 1, s%nAtoms
+      fvec(i) = n_t(i) - s%Types(s%Basis(i)%Material)%Occupation
+      fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
+      fvec(i+2*s%nAtoms) = my(i) - my_in(i)
+      fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
     end do
 
     if(myrank_row_hw==0) then
@@ -1113,13 +1110,11 @@ contains
 
   subroutine sc_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
     use mod_f90_kind, only: double
-    use mod_constants, only: zi, pi
-    use mod_parameters, only: offset, U, outputunit_loop, Ef, lverbose, host
+    use mod_constants, only: zi
+    use mod_parameters, only: offset, U
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use EnergyIntegration, only: y, wght, pn1
     use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp
-    use mod_progress, only: progress_bar
     use mod_Umatrix
     use mod_mpi_pars
     implicit none
@@ -1127,12 +1122,7 @@ contains
     real(double)  :: x(N),fvec(N),selfconjac(ldfjac,N)
     real(double),dimension(s%nAtoms)         :: mx_in,my_in,mz_in
     complex(double),dimension(s%nAtoms)      :: mp_in
-    real(double),dimension(4*s%nAtoms,4*s%nAtoms) :: ggr
     !--------------------- begin MPI vars --------------------
-    integer :: ix,itask
-    integer :: ncount
-    !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
-    ncount=16*s%nAtoms*s%nAtoms
 
     iflag=0
   ! Values used in the hamiltonian
@@ -1151,261 +1141,172 @@ contains
 
     fvec=fvec
 
-    ix = myrank_row_hw+1
-    itask = numprocs ! Number of tasks done initially
-
-    selfconjac = 0.d0
-    ! Calculating the jacobian
-    do while(ix <= pn1)
-      call sumk_jacobian(Ef,y(ix),ggr)
-      selfconjac = selfconjac + wght(ix)*ggr
-
-      ix = ix + numprocs
-    end do
-    call MPI_Allreduce(MPI_IN_PLACE, selfconjac, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
-
-    selfconjac = selfconjac/pi
-    do i = s%nAtoms+1,4*s%nAtoms
-      selfconjac(i,i) = selfconjac(i,i) - 1.d0
-    end do
+    call calcJacobian(selfconjac, N)
 
     iter = iter + 1
 
     return
   end subroutine sc_jac_old
 
-  ! Integration of Green functions over k values to calculate the number of particles
-  subroutine sumk_npart(er,ei,gdiaguur,gdiagddr,gdiagud,gdiagdu)
-    use mod_f90_kind, only: double
-    use mod_system, only: s => sys
-    use mod_constants, only: zero
-    use mod_parameters, only: lverbose, outputunit_loop
-    use mod_SOC, only: llineargfsoc, llinearsoc
-    use mod_progress, only: progress_bar
-    use mod_mpi_pars, only: myrank_row_hw, myrank
-    use TightBinding, only: nOrb
-    !use mod_system, only: nkpt, kbz, wkbz
-    !$  use omp_lib
-    implicit none
-    !$  integer     :: nthreads,mythread
-    integer       :: iz,i,mu,mup
-    real(double)  :: kp(3)
-    real(double),intent(in)  :: er,ei
-    real(double),dimension(s%nAtoms,nOrb),intent(out)    :: gdiaguur,gdiagddr
-    complex(double),dimension(s%nAtoms,nOrb),intent(out) :: gdiagud,gdiagdu
-    complex(double),dimension(s%nAtoms,s%nAtoms,2*nOrb, 2*nOrb)     :: gf
-    complex(double),dimension(:,:,:,:),allocatable :: gf_loc
-
-    gdiaguur= 0.d0
-    gdiagddr= 0.d0
-    gdiagud = zero
-    gdiagdu = zero
-
-    !$omp parallel default(none) &
-    !$omp& private(mythread,iz,kp,gf,i,mu,mup,gf_loc) &
-    !$omp& shared(llineargfsoc,llinearsoc,lverbose,s,er,ei,gdiaguur,gdiagddr,gdiagud,gdiagdu,myrank_row_hw,nthreads,outputunit_loop)
-    !!$  mythread = omp_get_thread_num()
-    !!$  if((mythread==0).and.(myrank_row_hw==0)) then
-    !!$    nthreads = omp_get_num_threads()
-    !!$    write(outputunit_loop,"('[sumk_npart] Number of threads: ',i0)") nthreads
-    !!$  end if
-
-    allocate(gf_loc(s%nAtoms,s%nAtoms,2*nOrb,2*nOrb))
-    gf_loc = zero
-
-    !$omp do schedule(static)
-    do iz=1,s%nkpt
-    !!$  if((mythread==0)) then
-    !!      if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"densities kpoints",iz,s%nkpt)
-    !!$   end if
-
-      kp = s%kbz(:,iz)
-
-      ! Green function on energy Ef + iy, and wave vector kp
-      if((llineargfsoc).or.(llinearsoc)) then
-        call greenlineargfsoc(er,ei,kp,gf)
-      else
-        call green(er,ei,kp,gf)
-      end if
-      gf_loc = gf_loc + gf*s%wkbz(iz)
-    end do
-    !$omp end do
-
-    !$omp critical
-    do i=1,s%nAtoms
-      do mu=1,nOrb
-        mup = mu+nOrb
-        gdiaguur(i,mu) = gdiaguur(i,mu) + real(gf_loc(i,i,mu,mu))
-        gdiagddr(i,mu) = gdiagddr(i,mu) + real(gf_loc(i,i,mup,mup))
-        gdiagud(i,mu) = gdiagud(i,mu) + gf_loc(i,i,mu,mup)
-        gdiagdu(i,mu) = gdiagdu(i,mu) + gf_loc(i,i,mup,mu)
-      end do
-    end do
-    !$omp end critical
-    deallocate(gf_loc)
-    !$omp end parallel
-    return
-  end subroutine sumk_npart
-
   ! Integration of Green functions over k vectors to calculate
   ! the jacobian of self-consistency system
-  subroutine sumk_jacobian(er,ei,ggr)
-    use mod_f90_kind, only: double
-    use mod_system, only: s => sys
-    use mod_constants, only: identorb18, zero, pauli_dorb, zum
-    use mod_parameters, only: offset, U, outputunit_loop, outputunit, lverbose
-    use mod_SOC, only: llinearsoc, llineargfsoc
-    use TightBinding, only: nOrb
-    use mod_progress, only: progress_bar
-    use mod_mpi_pars, only: abortProgram, myrank_row_hw
-    !$  use omp_lib
-    implicit none
-    !$  integer                  :: nthreads,mythread
-    integer                  :: AllocateStatus
-    integer                  :: iz,i,j,i0,j0,mu,sigma,sigmap
-    real(double)             :: kp(3)
-    real(double),intent(in)  :: er,ei
-    real(double),dimension(4*s%nAtoms,4*s%nAtoms),intent(out) :: ggr
-    complex(double) :: mhalfU(4,s%nAtoms),wkbzc
-    complex(double), dimension(4,2*nOrb, 2*nOrb) :: pauli_components1,pauli_components2,temp1,temp2
-    complex(double), dimension(2*nOrb, 2*nOrb) :: gij,gji,temp,paulitemp
-    complex(double), dimension(:,:,:,:,:,:), allocatable :: gdHdxg,gvgdHdxgvg
-    complex(double), dimension(s%nAtoms,s%nAtoms,2*nOrb, 2*nOrb) :: gf,gvg
-
-    pauli_components1 = zero
-    pauli_components2 = zero
-!   Includes d orbitals in the charge component
-    pauli_components1(1,:,:)   = identorb18(:,:)
-    pauli_components1(2:4,:,:) = pauli_dorb(:,:,:)
-!   Excludes d orbitals in the charge component
-    pauli_components2(1, 5: 9, 5: 9) = identorb18( 5: 9, 5: 9)
-    pauli_components2(1,14:18,14:18) = identorb18(14:18,14:18)
-    pauli_components2(2:4,:,:) = pauli_dorb(:,:,:)
-
-  ! Prefactor -U/2 in dH/dm and 1 in dH/deps1
-    do j=1,s%nAtoms
-      mhalfU(1,j) = zum
-      mhalfU(2:4,j) = -0.5d0*U(j+offset)
-    end do
-
-    ggr    = 0.d0
-
-    !$omp parallel default(none) &
-    !$omp& private(mythread,AllocateStatus,iz,kp,wkbzc,gf,gvg,temp,temp1,temp2,gij,gji,paulitemp,gdHdxg,gvgdHdxgvg,i,j,i0,j0,mu,sigma) &
-    !$omp& shared(llineargfsoc,llinearsoc,lverbose,s,er,ei,ggr,mhalfU,pauli_components1,pauli_components2,myrank_row_hw,nthreads,outputunit,outputunit_loop)
-    !$  mythread = omp_get_thread_num()
-    !!$  if((mythread==0).and.(myrank_row_hw==0)) then
-    !!$    nthreads = omp_get_num_threads()
-    !!$    write(outputunit_loop,"('[sumk_jacobian] Number of threads: ',i0)") nthreads
-    !!$  end if
-    allocate( gdHdxg(4,4,s%nAtoms,s%nAtoms,2*nOrb,2*nOrb),gvgdHdxgvg(4,4,s%nAtoms,s%nAtoms,2*nOrb,2*nOrb) , STAT = AllocateStatus  )
-    if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: gdHdxg,gvgdHdxgvg")
-    gdHdxg = zero
-    gvgdHdxgvg = zero
-    !, reduction(+:ggr)
-    !$omp do schedule(static)
-    do iz=1,s%nkpt
-      !!$  if((mythread==0)) then
-      !!        if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"jacobian kpoints",iz,s%nkpt)
-      !!$   end if
-
-      kp = s%kbz(:,iz)
-      wkbzc = cmplx(s%wkbz(iz), 0.d0)
-
-      ! Green function on energy Ef + iy, and wave vector kp
-      if((llineargfsoc).or.(llinearsoc)) then
-        call greenlinearsoc(er,ei,kp,gf,gvg)
-        gf = gf + gvg
-      else
-        call green(er,ei,kp,gf)
-      end if
-
-      do j=1,s%nAtoms
-        do i=1,s%nAtoms
-          gij = gf(i,j,:,:)
-          gji = gf(j,i,:,:)
-
-          do sigma = 1,4
-            ! temp1 =  pauli*g_ij
-            paulitemp = pauli_components1(sigma,:,:)
-            call zgemm('n','n',18,18,18,zum,paulitemp,18,gij,18,zero,temp,18)
-            temp1(sigma,:,:) = temp
-          end do
-
-          do sigmap = 1,4
-            ! temp2 = (-U/2) * sigma* g_ji
-            paulitemp = pauli_components2(sigmap,:,:)
-            call zgemm('n','n',18,18,18,mhalfU(sigmap,j),paulitemp,18,gji,18,zero,temp,18)
-            temp2(sigmap,:,:) = temp
-          end do
-
-          do sigmap = 1,4
-            do sigma = 1,4
-              ! gdHdxg = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*sigma* g_ji
-              gij = temp1(sigma,:,:)
-              gji = temp2(sigmap,:,:)
-              call zgemm('n','n',18,18,18,wkbzc,gij,18,gji,18,zero,temp,18)
-              gdHdxg(sigma,sigmap,i,j,:,:) = gdHdxg(sigma,sigmap,i,j,:,:) + temp
-            end do
-          end do
-
-
-          if((llineargfsoc).or.(llinearsoc)) then ! non-linear term
-            gij = gvg(i,j,:,:)
-            gji = gvg(j,i,:,:)
-
-            do sigma = 1,4
-              ! temp1 = wkbz* pauli*gvg_ij
-              paulitemp = pauli_components1(sigma,:,:)
-              call zgemm('n','n',18,18,18,zum,paulitemp,18,gij,18,zero,temp,18)
-              temp1(sigma,:,:) = temp
-            end do
-
-            do sigmap = 1,4
-              ! temp2 = (-U/2) * sigma* gvg_ji
-              paulitemp = pauli_components2(sigmap,:,:)
-              call zgemm('n','n',18,18,18,mhalfU(sigmap,j),paulitemp,18,gji,18,zero,temp,18)
-              temp2(sigmap,:,:) = temp
-            end do
-
-            do sigmap = 1,4
-              do sigma = 1,4
-                ! gdHdxg = temp1*temp2 = wkbz* pauli*gvg_ij*(-U/2)*sigma* gvg_ji
-                gij = temp1(sigma,:,:)
-                gji = temp2(sigmap,:,:)
-                call zgemm('n','n',18,18,18,wkbzc,gij,18,gji,18,zero,temp,18)
-                gvgdHdxgvg(sigma,sigmap,i,j,:,:) = gvgdHdxgvg(sigma,sigmap,i,j,:,:) + temp
-              end do
-            end do
-          end if
-        end do
-      end do
-    end do
-    !$omp end do
-
-    ! removing non-linear SOC term
-    if((llineargfsoc).or.(llinearsoc)) gdHdxg = gdHdxg - gvgdHdxgvg
-
-    !$omp critical
-    do mu=1, 2*nOrb
-      do j=1,s%nAtoms
-        do i=1,s%nAtoms
-          do sigmap=1,4
-            do sigma=1,4
-              i0 = (sigma-1)*s%nAtoms + i
-              j0 = (sigmap-1)*s%nAtoms + j
-              ! Trace over orbitals and spins of the real part
-              ggr(i0,j0) = ggr(i0,j0) + real(gdHdxg(sigma,sigmap,i,j,mu,mu))
-            end do
-          end do
-        end do
-      end do
-    end do
-    !$omp end critical
-    deallocate(gdHdxg,gvgdHdxgvg)
-    !$omp end parallel
-
-    return
-  end subroutine sumk_jacobian
+!   subroutine sumk_jacobian(er,ei,ggr)
+!     use mod_f90_kind, only: double
+!     use mod_system, only: s => sys
+!     use mod_constants, only: identorb18, zero, pauli_dorb, zum
+!     use mod_parameters, only: offset, U, outputunit_loop, outputunit, lverbose
+!     use mod_SOC, only: llinearsoc, llineargfsoc
+!     use TightBinding, only: nOrb
+!     use mod_progress, only: progress_bar
+!     use mod_mpi_pars, only: abortProgram, myrank_row_hw
+!     !$  use omp_lib
+!     implicit none
+!     !$  integer                  :: nthreads,mythread
+!     integer                  :: AllocateStatus
+!     integer                  :: iz,i,j,i0,j0,mu,sigma,sigmap
+!     real(double)             :: kp(3)
+!     real(double),intent(in)  :: er,ei
+!     real(double),dimension(4*s%nAtoms,4*s%nAtoms),intent(out) :: ggr
+!     complex(double) :: mhalfU(4,s%nAtoms),wkbzc
+!     complex(double), dimension(4,2*nOrb, 2*nOrb) :: pauli_components1,pauli_components2,temp1,temp2
+!     complex(double), dimension(2*nOrb, 2*nOrb) :: gij,gji,temp,paulitemp
+!     complex(double), dimension(:,:,:,:,:,:), allocatable :: gdHdxg,gvgdHdxgvg
+!     complex(double), dimension(s%nAtoms,s%nAtoms,2*nOrb, 2*nOrb) :: gf,gvg
+!
+!     pauli_components1 = zero
+!     pauli_components2 = zero
+! !   Includes d orbitals in the charge component
+!     pauli_components1(1,:,:)   = identorb18(:,:)
+!     pauli_components1(2:4,:,:) = pauli_dorb(:,:,:)
+! !   Excludes d orbitals in the charge component
+!     pauli_components2(1, 5: 9, 5: 9) = identorb18( 5: 9, 5: 9)
+!     pauli_components2(1,14:18,14:18) = identorb18(14:18,14:18)
+!     pauli_components2(2:4,:,:) = pauli_dorb(:,:,:)
+!
+!   ! Prefactor -U/2 in dH/dm and 1 in dH/deps1
+!     do j=1,s%nAtoms
+!       mhalfU(1,j) = zum
+!       mhalfU(2:4,j) = -0.5d0*U(j+offset)
+!     end do
+!
+!     ggr    = 0.d0
+!
+!     !$omp parallel default(none) &
+!     !$omp& private(mythread,AllocateStatus,iz,kp,wkbzc,gf,gvg,temp,temp1,temp2,gij,gji,paulitemp,gdHdxg,gvgdHdxgvg,i,j,i0,j0,mu,sigma) &
+!     !$omp& shared(llineargfsoc,llinearsoc,lverbose,s,er,ei,ggr,mhalfU,pauli_components1,pauli_components2,myrank_row_hw,nthreads,outputunit,outputunit_loop)
+!     !$  mythread = omp_get_thread_num()
+!     !!$  if((mythread==0).and.(myrank_row_hw==0)) then
+!     !!$    nthreads = omp_get_num_threads()
+!     !!$    write(outputunit_loop,"('[sumk_jacobian] Number of threads: ',i0)") nthreads
+!     !!$  end if
+!     allocate( gdHdxg(4,4,s%nAtoms,s%nAtoms,2*nOrb,2*nOrb),gvgdHdxgvg(4,4,s%nAtoms,s%nAtoms,2*nOrb,2*nOrb) , STAT = AllocateStatus  )
+!     if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: gdHdxg,gvgdHdxgvg")
+!     gdHdxg = zero
+!     gvgdHdxgvg = zero
+!     !, reduction(+:ggr)
+!     !$omp do schedule(static)
+!     do iz=1,s%nkpt
+!       !!$  if((mythread==0)) then
+!       !!        if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"jacobian kpoints",iz,s%nkpt)
+!       !!$   end if
+!
+!       kp = s%kbz(:,iz)
+!       wkbzc = cmplx(s%wkbz(iz), 0.d0)
+!
+!       ! Green function on energy Ef + iy, and wave vector kp
+!       if((llineargfsoc).or.(llinearsoc)) then
+!         call greenlinearsoc(er,ei,kp,gf,gvg)
+!         gf = gf + gvg
+!       else
+!         call green(er,ei,kp,gf)
+!       end if
+!
+!       do j=1,s%nAtoms
+!         do i=1,s%nAtoms
+!           gij = gf(i,j,:,:)
+!           gji = gf(j,i,:,:)
+!
+!           do sigma = 1,4
+!             ! temp1 =  pauli*g_ij
+!             paulitemp = pauli_components1(sigma,:,:)
+!             call zgemm('n','n',18,18,18,zum,paulitemp,18,gij,18,zero,temp,18)
+!             temp1(sigma,:,:) = temp
+!           end do
+!
+!           do sigmap = 1,4
+!             ! temp2 = (-U/2) * sigma* g_ji
+!             paulitemp = pauli_components2(sigmap,:,:)
+!             call zgemm('n','n',18,18,18,mhalfU(sigmap,j),paulitemp,18,gji,18,zero,temp,18)
+!             temp2(sigmap,:,:) = temp
+!           end do
+!
+!           do sigmap = 1,4
+!             do sigma = 1,4
+!               ! gdHdxg = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*sigma* g_ji
+!               gij = temp1(sigma,:,:)
+!               gji = temp2(sigmap,:,:)
+!               call zgemm('n','n',18,18,18,wkbzc,gij,18,gji,18,zero,temp,18)
+!               gdHdxg(sigma,sigmap,i,j,:,:) = gdHdxg(sigma,sigmap,i,j,:,:) + temp
+!             end do
+!           end do
+!
+!
+!           if((llineargfsoc).or.(llinearsoc)) then ! non-linear term
+!             gij = gvg(i,j,:,:)
+!             gji = gvg(j,i,:,:)
+!
+!             do sigma = 1,4
+!               ! temp1 = wkbz* pauli*gvg_ij
+!               paulitemp = pauli_components1(sigma,:,:)
+!               call zgemm('n','n',18,18,18,zum,paulitemp,18,gij,18,zero,temp,18)
+!               temp1(sigma,:,:) = temp
+!             end do
+!
+!             do sigmap = 1,4
+!               ! temp2 = (-U/2) * sigma* gvg_ji
+!               paulitemp = pauli_components2(sigmap,:,:)
+!               call zgemm('n','n',18,18,18,mhalfU(sigmap,j),paulitemp,18,gji,18,zero,temp,18)
+!               temp2(sigmap,:,:) = temp
+!             end do
+!
+!             do sigmap = 1,4
+!               do sigma = 1,4
+!                 ! gdHdxg = temp1*temp2 = wkbz* pauli*gvg_ij*(-U/2)*sigma* gvg_ji
+!                 gij = temp1(sigma,:,:)
+!                 gji = temp2(sigmap,:,:)
+!                 call zgemm('n','n',18,18,18,wkbzc,gij,18,gji,18,zero,temp,18)
+!                 gvgdHdxgvg(sigma,sigmap,i,j,:,:) = gvgdHdxgvg(sigma,sigmap,i,j,:,:) + temp
+!               end do
+!             end do
+!           end if
+!         end do
+!       end do
+!     end do
+!     !$omp end do
+!
+!     ! removing non-linear SOC term
+!     if((llineargfsoc).or.(llinearsoc)) gdHdxg = gdHdxg - gvgdHdxgvg
+!
+!     !$omp critical
+!     do mu=1, 2*nOrb
+!       do j=1,s%nAtoms
+!         do i=1,s%nAtoms
+!           do sigmap=1,4
+!             do sigma=1,4
+!               i0 = (sigma-1)*s%nAtoms + i
+!               j0 = (sigmap-1)*s%nAtoms + j
+!               ! Trace over orbitals and spins of the real part
+!               ggr(i0,j0) = ggr(i0,j0) + real(gdHdxg(sigma,sigmap,i,j,mu,mu))
+!             end do
+!           end do
+!         end do
+!       end do
+!     end do
+!     !$omp end critical
+!     deallocate(gdHdxg,gvgdHdxgvg)
+!     !$omp end parallel
+!
+!     return
+!   end subroutine sumk_jacobian
 
 end module mod_self_consistency
