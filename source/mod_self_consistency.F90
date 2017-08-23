@@ -852,11 +852,12 @@ contains
     select case (iflag)
     case(1)
       call calcMagnetization(n_t, mx, my, mz, mp, N)
-      fvec(           1:  s%nAtoms) = n_t - s%Types(s%Basis(i)%Material)%Occupation
-      fvec(1*s%nAtoms+1:2*s%nAtoms) = mx - mx_in
-      fvec(2*s%nAtoms+1:3*s%nAtoms) = my - my_in
-      fvec(3*s%nAtoms+1:4*s%nAtoms) = mz - mz_in
-
+      do i = 1, s%nAtoms
+        fvec(i) = n_t(i) - s%Types(s%Basis(i)%Material)%Occupation
+        fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
+        fvec(i+2*s%nAtoms) = my(i) - my_in(i)
+        fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
+      end do
       if(myrank_row_hw==0) then
         do i=1,s%nAtoms
           if(abs(mp(i))>1.d-10) then
@@ -927,10 +928,12 @@ contains
     end if
 
     call calcMagnetization(n_t, mx, my, mz, mp, N)
-    fvec(           1:  s%nAtoms) = n_t - s%Types(s%Basis(i)%Material)%Occupation
-    fvec(1*s%nAtoms+1:2*s%nAtoms) = mx - mx_in
-    fvec(2*s%nAtoms+1:3*s%nAtoms) = my - my_in
-    fvec(3*s%nAtoms+1:4*s%nAtoms) = mz - mz_in
+    do i = 1, s%nAtoms
+      fvec(i) = n_t(i) - s%Types(s%Basis(i)%Material)%Occupation
+      fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
+      fvec(i+2*s%nAtoms) = my(i) - my_in(i)
+      fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
+    end do
 
     if(myrank_row_hw==0) then
       do i=1,s%nAtoms
@@ -1004,10 +1007,12 @@ contains
     case(1)
       ! Calculating the number of particles for each spin and orbital using a complex integral
       call calcMagnetization(n_t, mx, my, mz, mp, N)
-      fvec(           1:  s%nAtoms) = n_t - s%Types(s%Basis(i)%Material)%Occupation
-      fvec(1*s%nAtoms+1:2*s%nAtoms) = mx - mx_in
-      fvec(2*s%nAtoms+1:3*s%nAtoms) = my - my_in
-      fvec(3*s%nAtoms+1:4*s%nAtoms) = mz - mz_in
+      do i = 1, s%nAtoms
+        fvec(i) = n_t(i) - s%Types(s%Basis(i)%Material)%Occupation
+        fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
+        fvec(i+2*s%nAtoms) = my(i) - my_in(i)
+        fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
+      end do
 
       if(myrank_row_hw==0) then
         do i=1,s%nAtoms
@@ -1077,10 +1082,12 @@ contains
     end if
 
     call calcMagnetization(n_t, mx, my, mz, mp, N)
-    fvec(           1:  s%nAtoms) = n_t - s%Types(s%Basis(i)%Material)%Occupation
-    fvec(1*s%nAtoms+1:2*s%nAtoms) = mx - mx_in
-    fvec(2*s%nAtoms+1:3*s%nAtoms) = my - my_in
-    fvec(3*s%nAtoms+1:4*s%nAtoms) = mz - mz_in
+    do i = 1, s%nAtoms
+      fvec(i) = n_t(i) - s%Types(s%Basis(i)%Material)%Occupation
+      fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
+      fvec(i+2*s%nAtoms) = my(i) - my_in(i)
+      fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
+    end do
 
     if(myrank_row_hw==0) then
       do i=1,s%nAtoms
