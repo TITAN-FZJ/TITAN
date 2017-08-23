@@ -58,12 +58,15 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_alpha.F90
 																)
 
-if(PLATFORM MATCHES "Juqueen")
+if(PLATFORM MATCHES juqueen)
 	set(TITAN_EXE titan_juqueen.exe)
   set(CMAKE_Fortran_COMPILER mpixlf2008_r)
-elseif(PLATFORM MATCHES "Jureca")
+elseif(PLATFORM MATCHES jureca)
 	set(TITAN_EXE titan_jureca.exe)
 	set(CMAKE_Fortran_COMPILER mpiifort)
+elseif(PLATFORM MATCHES osx)
+  set(TITAN_EXE titan.exe)
+  set(CMAKE_Fortran_COMPILER mpif90)
 else()
 	set(TITAN_EXE titan.exe)
   set(CMAKE_Fortran_COMPILER mpiifort)
@@ -75,7 +78,7 @@ set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
-if(PLATFORM MATCHES "Juqueen")
+if(PLATFORM MATCHES juqueen)
 	target_link_libraries(${TITAN_EXE} $ENV{ND}/lib/libnag_essl.a -L/bgsys/local/lib -lesslbg -qsmp=omp)
   link_directories(/bgsys/local/lib)
   target_compile_options(${TITAN_EXE} PRIVATE -WF,-D_JUQUEEN
@@ -86,10 +89,19 @@ if(PLATFORM MATCHES "Juqueen")
                                            -qsmp=omp
                                            -qthreaded)
   set(CMAKE_SHARED_LIBRARY_LINK_Fortran_FLAGS)
-elseif(PLATFORM MATCHES "Jureca")
+elseif(PLATFORM MATCHES jureca)
 
   target_link_libraries(${TITAN_EXE} -mkl -lnag -qopenmp)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
+                                           -fpp
+                                           -O3
+                                           -qopenmp
+                                           -mkl
+                                           -xHost)
+elseif(PLATFORM MATCHES osx)
+  target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
+  target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
+                                           -D_OSX
                                            -fpp
                                            -O3
                                            -qopenmp

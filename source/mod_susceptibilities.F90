@@ -170,7 +170,7 @@ contains
 
   ! This subroutine opens and closes all the files needed for the susceptibilities
   subroutine openclose_chi_files(iflag)
-    use mod_parameters, only: fieldpart, nmaglayers, Npl_folder, suffix, eta, lnodiag, ltestcharge, lhfresponses, Utype
+    use mod_parameters, only: fieldpart, nmaglayers, Npl_folder, suffix, eta, lnodiag, ltestcharge, lhfresponses, Utype, missing_files
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
     use mod_mpi_pars, only: abortProgram
@@ -237,12 +237,14 @@ contains
               write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a2,'/chi_',i0,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),i,j,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
               open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
               errt = errt + err
+              if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
             end if
             iw = iw+1000
             ! HF SUSCEPTIBILITIES
             write(varm,"('./results/',a1,'SOC/',a,'/HF/',a2,'/chihf_',i0,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),i,j,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
             open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
             errt = errt + err
+            if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
           end do
         end do
       end do
@@ -251,19 +253,22 @@ contains
         write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_eval',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
         open (unit=1990, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
+        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
         do i=1,nmaglayers
           write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_evec',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
           open (unit=1990+i, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
+          if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
         end do
       end if
       if(ltestcharge) then
         write(varm, "('./results/',a1,'SOC/',a,'/RPA/testcharge',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
         open (unit=17964, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
+        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
       end if
       ! Stop if some file does not exist
-      if(errt/=0) call abortProgram("[openclose_chi_files] Some file(s) do(es) not exist! Stopping before starting calculations...")
+      if(errt/=0) call abortProgram("[openclose_chi_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
 
     else
       do sigma=1,4
@@ -342,7 +347,7 @@ contains
 
   ! This subroutine opens and closes all the files needed for the dc-limit susceptibilities
   subroutine openclose_dc_chi_files(iflag, count)
-    use mod_parameters, only: dcfieldpart, lhfresponses, Npl_folder, eta, Utype, suffix, nmaglayers, lnodiag
+    use mod_parameters, only: dcfieldpart, lhfresponses, Npl_folder, eta, Utype, suffix, nmaglayers, lnodiag, missing_files
     use mod_magnet, only: dcprefix, dcfield_dependence, dcfield, dc_header
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
@@ -405,12 +410,14 @@ contains
               write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a2,'/',a,'chi_',a,'_',i0,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(suffix)
               open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
               errt = errt + err
+              if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
             end if
             iw = iw+1000
             ! HF SUSCEPTIBILITIES
             write(varm,"('./results/',a1,'SOC/',a,'/HF/',a2,'/',a,'chihf_',a,'_',i0,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),spin(sigma),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(suffix)
             open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
             errt = errt + err
+            if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
           end do
         end do
       end do
@@ -419,14 +426,16 @@ contains
         write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/',a,'chi_eval_',a,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(suffix)
         open (unit=19900, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
+        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
         do i=1,nmaglayers
           write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/',a,'chi_evec',i0,'_',a,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(dcprefix(count)),i,trim(dcfield(dcfield_dependence)),trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(suffix)
           open (unit=19900+i, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
+          if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
         end do
       end if
       ! Stop if some file does not exist
-      if(errt/=0) call abortProgram("[openclose_dc_chi_files] Some file(s) do(es) not exist! Stopping before starting calculations...")
+      if(errt/=0) call abortProgram("[openclose_dc_chi_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
 
     else
       do sigma=1,4

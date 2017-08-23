@@ -98,6 +98,7 @@ contains
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),typec(k),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
+        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
       end do ; end do ; end do
       ! Total longitudinal and transverse currents
       do j=1,7 ; do k=1,2
@@ -105,12 +106,10 @@ contains
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),typec(k),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
+        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
       end do ; end do
       ! Stop if some file does not exist
-      if(errt/=0) then
-        write(outputunit,"(a,i0,a)") "[openclose_lgtv_files] Some file(s) do(es) not exist! Stopping before starting calculations..."
-        call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-      end if
+      if(errt/=0) call abortProgram("[openclose_lgtv_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
     else
       ! Closing longitudinal and transverse currents
       do i=1,Npl ; do j=1,7 ; do k=1,2
@@ -188,6 +187,7 @@ contains
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
+        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
       end do ; end do ; end do
       ! Header for total longitudinal and transverse currents
       do j=1,7 ; do k=1,2
@@ -195,15 +195,13 @@ contains
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
+        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
       end do ; end do
 
       ! Stop if some file does not exist
-      if(errt/=0) then
-        write(outputunit,"(a,i0,a)") "[openclose_dc_sha_files] Some file(s) do(es) not exist! Stopping before starting calculations..."
-        call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-      end if
+      if(errt/=0) call abortProgram("[openclose_dc_lgtv_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
     else
-      ! SHA
+      ! Longitudinal and tranverse currents
       do i=1,Npl ; do j=1,7 ; do k=1,2
         iw = 83000+(i-1)*7*2+(j-1)*2+k
         close(unit=iw)

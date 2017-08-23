@@ -100,18 +100,17 @@ contains
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/SHA_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(8)),filename(j),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
+          if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
         end do
         iw = 8200+Npl*3+j-1
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/SHA_',a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(8)),filename(j),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
+        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
       end do
 
       ! Stop if some file does not exist
-      if(errt/=0) then
-        write(outputunit,"(a,i0,a)") "[openclose_sha_files] Some file(s) do(es) not exist! Stopping before starting calculations..."
-        call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-      end if
+      if(errt/=0) call abortProgram("[openclose_sha_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
     else
       ! Closing SHA
       do j=2,4
@@ -209,19 +208,22 @@ contains
           iw = 82000+(i-1)*3+j-1
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(8)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
-          if(.not.lsha) errt = errt + err
+          if(.not.lsha) then
+            errt = errt + err
+            if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+          end if
         end do
         iw = 82000+Npl*3+j-1
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(8)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
-        if(.not.lsha) errt = errt + err
+        if(.not.lsha) then
+          errt = errt + err
+          if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+        end if
       end do
 
       ! Stop if some file does not exist
-      if(errt/=0) then
-        write(outputunit,"(a,i0,a)") "[openclose_dc_sha_files] Some file(s) do(es) not exist! Stopping before starting calculations..."
-        call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-      end if
+      if(errt/=0) call abortProgram("[openclose_dc_sha_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
     else
       ! SHA
       do j=2,4

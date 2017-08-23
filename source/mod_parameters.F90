@@ -95,6 +95,9 @@ module mod_parameters
   ! Give a file to start self-consistency
   character(len=200) :: scfile=""
   !========================================================================================!
+  ! Variable to store missing filenames
+  character(len=500)  :: missing_files=""
+  !========================================================================================!
   ! Suffix to use on filenames (to avoid overwriting while comparing different results)
   character(len=50)  :: suffix=""
   !========================================================================================!
