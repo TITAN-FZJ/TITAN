@@ -28,9 +28,6 @@ program TITAN
   !use mod_torques, only: ntypetorque
   implicit none
 
-  integer :: i,j,k
-  type(NeighborIndex), pointer :: current
-
   integer           :: count_hw
   logical           :: lsuccess = .false.
 

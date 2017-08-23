@@ -2,7 +2,7 @@
 subroutine calculate_chi()
   use mod_f90_kind, only: double
   use mod_constants, only: zero, zum
-  use mod_parameters, only:  emin, deltae, dim, sigmaimunu2i, outputunit, outputunit_loop, lnodiag,laddresults, skip_steps
+  use mod_parameters, only:  emin, deltae, dim, sigmaimunu2i, outputunit_loop, lnodiag,laddresults, skip_steps
   use mod_mpi_pars
   use mod_magnet, only: mtheta,mphi, hw_count
   use mod_susceptibilities, only: identt, Umatorb, schi, schihf, schirot, rotmat_i, &
@@ -17,7 +17,7 @@ subroutine calculate_chi()
   use mod_progress, only: write_time
   implicit none
   character(len=50) :: time
-  integer           :: i,j,iw,sigma,sigmap,mu,nu, count
+  integer           :: i,j,sigma,sigmap,mu,nu, count
   real(double)      :: e
   complex(double), dimension(:,:),   allocatable :: temp
   call allocate_susceptibilities()

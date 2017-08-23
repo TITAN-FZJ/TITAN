@@ -15,7 +15,7 @@ subroutine hamiltk(kp,hk)
   use mod_mpi_pars, only: abortProgram
   use mod_Umatrix, only: hee
   implicit none
-  integer :: i, j, k,l,m
+  integer :: i, j, k
   real(double), intent(in) :: kp(3)
   complex(double), dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb), intent(out) :: hk
   complex(double) :: tmp(nOrb,nOrb)

@@ -65,7 +65,7 @@ subroutine band_structure(s)
   use mod_parameters, only: fieldpart, outputunit_loop, Ef, eta, Npl_folder, npts, npt1, Utype, bands, band_cnt
   use mod_SOC, only: SOCc, socpart
   use mod_mpi_pars, only: mpitag
-  use mod_system, only: System, ia
+  use mod_system, only: System
   use TightBinding, only: nOrb
   implicit none
   type(System), intent(in) :: s

@@ -364,7 +364,7 @@ contains
     use mod_system, only: s => sys
     implicit none
     character(len=300)  :: file = ""
-    character(len=100)  :: folder,prefix
+    character(len=100)  :: prefix
     integer,intent(in)  :: iflag
     integer,intent(out) :: err
     logical,intent(out) :: lsuccess
@@ -642,7 +642,7 @@ contains
     integer :: ix, iz
     integer :: ncount,ncount2
     integer :: start, end, work, remainder
-    integer :: mu,mup
+    integer :: mu
 
     ! Calculate workload for each MPI process
     remainder = mod(pn1,numprocs_row_hw)
@@ -662,16 +662,16 @@ contains
     pauli_components1 = zero
     pauli_components2 = zero
 !   Includes d orbitals in the charge component
-    pauli_components1(:,:,1)   = identorb18(:,:)
-    pauli_components1(:,:,2) = pauli_dorb(2,:,:)
-    pauli_components1(:,:,3) = pauli_dorb(3,:,:)
-    pauli_components1(:,:,4) = pauli_dorb(4,:,:)
+    pauli_components1(:,:,1) = identorb18(:,:)
+    pauli_components1(:,:,2) = pauli_dorb(1,:,:)
+    pauli_components1(:,:,3) = pauli_dorb(2,:,:)
+    pauli_components1(:,:,4) = pauli_dorb(3,:,:)
 !   Excludes d orbitals in the charge component
     pauli_components2(5:9, 5:9, 1) = identorb18(5:9, 5:9)
     pauli_components2(14:18, 14:18, 1) = identorb18(14:18, 14:18)
-    pauli_components2(:,:, 2) = pauli_dorb(2, :,:)
-    pauli_components2(:,:, 3) = pauli_dorb(3, :,:)
-    pauli_components2(:,:, 4) = pauli_dorb(4, :,:)
+    pauli_components2(:,:,2) = pauli_dorb(1,:,:)
+    pauli_components2(:,:,3) = pauli_dorb(2,:,:)
+    pauli_components2(:,:,4) = pauli_dorb(3,:,:)
 
     ! Prefactor -U/2 in dH/dm and 1 in dH/deps1
     do i=1,s%nAtoms
@@ -807,39 +807,23 @@ contains
 #if !defined(_OSX) && !defined(_JUQUEEN)
   subroutine sc_equations_and_jacobian(N,x,fvec,selfconjac,iuser,ruser,iflag)
     use mod_f90_kind, only: double
-    use mod_constants, only: zi, pi, zero
-    use mod_parameters, only: offset, U, outputunit, outputunit_loop, Ef, lverbose, host, lontheflysc
-    use mod_SOC, only: llinearsoc, llineargfsoc
-    use EnergyIntegration, only: pn1, y, wght
+    use mod_constants, only: zi
+    use mod_parameters, only: offset, U, outputunit, outputunit_loop, lontheflysc
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
     use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx, my, mz
-    use mod_progress, only: progress_bar
     use mod_Umatrix
     use mod_mpi_pars
-    !$  use omp_lib
     implicit none
-    integer  :: N,i,j,iflag
-    integer,           intent(inout) :: iuser(*)
-    real(double),      intent(inout) :: ruser(*)
+    integer  :: N,i,iflag
+    integer, intent(inout) :: iuser(*)
+    real(double), intent(inout) :: ruser(*)
     real(double),dimension(N) :: x,fvec
-    real(double),dimension(N,N)      :: selfconjac
-    real(double),dimension(s%nAtoms)      :: n_t,mx_in,my_in,mz_in
-    complex(double),dimension(s%nAtoms)   :: mp_in
-    real(double),dimension(N,N)      :: ggr
-    real(double),dimension(s%nAtoms,nOrb)    :: gdiaguur,gdiagddr
-    complex(double),dimension(s%nAtoms,nOrb) :: gdiagud,gdiagdu
-    complex(double),dimension(:,:,:,:), allocatable :: gf, gf_loc
-    !--------------------- begin MPI vars --------------------
-    integer :: ix,itask
-    integer :: ncount,ncount2
-    integer :: start, end, iz, work, remainder
-    integer :: mu,mup
-    !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
-    ncount=s%nAtoms*9
-    ncount2=N*N
+    real(double),dimension(N,N) :: selfconjac
+    real(double),dimension(s%nAtoms) :: n_t,mx_in,my_in,mz_in
+    complex(double),dimension(s%nAtoms) :: mp_in
 
-  ! Values used in the hamiltonian
+    ! Values used in the hamiltonian
     eps1  = x(           1:  s%nAtoms)
     mx_in = x(  s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
@@ -865,8 +849,6 @@ contains
       end do
     end if
 
-    ix = myrank_row_hw+1
-    itask = numprocs_row_hw ! Number of tasks done initially
     select case (iflag)
     case(1)
       call calcMagnetization(n_t, mx, my, mz, mp, N)
@@ -902,31 +884,21 @@ contains
   ! For a given value of center of band eps1 it calculates the
   ! occupation number and the magnetic moment
   subroutine sc_equations(N,x,fvec,iuser,ruser,iflag)
-    use mod_constants, only: zi, pi, zero
-    use mod_parameters, only: offset, U, outputunit_loop, Ef, lverbose, host, lontheflysc
+    use mod_constants, only: zi
+    use mod_parameters, only: offset, U, outputunit_loop, lontheflysc
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use EnergyIntegration, only: pn1, y, wght
     use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx ,my ,mz
-    use mod_progress, only: progress_bar
     use mod_Umatrix
     use mod_mpi_pars
     implicit none
-    integer  :: N,i,j,iflag
+    integer  :: N,i,iflag
     integer     , intent(inout)         :: iuser(*)
     real(double), intent(inout)         :: ruser(*)
     real(double),dimension(N)           :: x,fvec
-    real(double),dimension(s%nAtoms,9)       :: n_orb_u,n_orb_d,n_orb_t,mag_orb
     real(double),dimension(s%nAtoms)         :: n_t,mx_in,my_in,mz_in
     complex(double),dimension(s%nAtoms)      :: mp_in
-    real(double),dimension(s%nAtoms,9)       :: gdiaguur,gdiagddr
-    complex(double),dimension(s%nAtoms,9)    :: gdiagud,gdiagdu
-    !--------------------- begin MPI vars --------------------
-    integer :: ix,itask
-    integer :: ncount
-    ncount=s%nAtoms*9
-    !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
     iflag=0
   ! Values used in the hamiltonian
@@ -988,32 +960,20 @@ contains
   !  mz - mz_in = 0
   ! and the correspondent jacobian
   subroutine sc_eqs_and_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
-    use mod_constants, only: zi, pi, zero
-    use mod_parameters, only: offset, U, outputunit_loop, outputunit, Ef, lverbose, host, lontheflysc
+    use mod_constants, only: zi
+    use mod_parameters, only: offset, U, outputunit_loop, outputunit, lontheflysc
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use EnergyIntegration, only: pn1, y, wght
     use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx, my, mz
-    use mod_progress, only: progress_bar
     use mod_Umatrix
     use mod_mpi_pars
     implicit none
-    integer  :: N,i,j,iflag,ldfjac
+    integer  :: N,i,iflag,ldfjac
     real(double),dimension(N)        :: x,fvec
     real(double),dimension(ldfjac,N) :: selfconjac
     real(double),dimension(s%nAtoms)      :: n_t,mx_in,my_in,mz_in
     complex(double),dimension(s%nAtoms)   :: mp_in
-    real(double),dimension(N,N)      :: ggr
-    real(double),dimension(s%nAtoms,9)    :: n_orb_u,n_orb_d,n_orb_t,mag_orb
-    real(double),dimension(s%nAtoms,9)    :: gdiaguur,gdiagddr
-    complex(double),dimension(s%nAtoms,9) :: gdiagud,gdiagdu
-    !--------------------- begin MPI vars --------------------
-    integer :: ix,itask
-    integer :: ncount,ncount2
-    !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
-    ncount=s%nAtoms*9
-    ncount2=N*N
 
   ! Values used in the hamiltonian
     eps1  = x(1:s%nAtoms)
@@ -1039,9 +999,6 @@ contains
         end if
       end do
     end if
-
-    ix = myrank_row_hw+1
-    itask = numprocs ! Number of tasks done initially
 
     flag: select case (iflag)
     case(1)
@@ -1080,28 +1037,18 @@ contains
   ! occupation number and the magnetic moment
   subroutine sc_eqs_old(N,x,fvec,iflag)
     use mod_f90_kind, only: double
-    use mod_constants, only: zi, pi, zero
-    use mod_parameters, only: offset, U, outputunit_loop, Ef, lverbose, host, lontheflysc
+    use mod_constants, only: zi
+    use mod_parameters, only: offset, U, outputunit_loop, lontheflysc
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use EnergyIntegration, only: pn1, y, wght
     use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx, my, mz
-    use mod_progress, only: progress_bar
     use mod_Umatrix
     use mod_mpi_pars
     implicit none
-    integer  :: N,i,j,iflag
+    integer  :: N,i,iflag
     real(double),dimension(N)           :: x,fvec
-    real(double),dimension(s%nAtoms,9)       :: n_orb_u,n_orb_d,n_orb_t,mag_orb
     real(double),dimension(s%nAtoms)         :: n_t,mx_in,my_in,mz_in
     complex(double),dimension(s%nAtoms)      :: mp_in
-    real(double),dimension(s%nAtoms,9)       :: gdiaguur,gdiagddr
-    complex(double),dimension(s%nAtoms,9)    :: gdiagud,gdiagdu
-    !--------------------- begin MPI vars --------------------
-    integer :: ix,itask
-    integer :: ncount
-    ncount=s%nAtoms*9
-    !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
     iflag=0
   ! Values used in the hamiltonian
@@ -1156,13 +1103,11 @@ contains
 
   subroutine sc_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
     use mod_f90_kind, only: double
-    use mod_constants, only: zi, pi
-    use mod_parameters, only: offset, U, outputunit_loop, Ef, lverbose, host
+    use mod_constants, only: zi
+    use mod_parameters, only: offset, U
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use EnergyIntegration, only: y, wght, pn1
     use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp
-    use mod_progress, only: progress_bar
     use mod_Umatrix
     use mod_mpi_pars
     implicit none
@@ -1170,12 +1115,7 @@ contains
     real(double)  :: x(N),fvec(N),selfconjac(ldfjac,N)
     real(double),dimension(s%nAtoms)         :: mx_in,my_in,mz_in
     complex(double),dimension(s%nAtoms)      :: mp_in
-    real(double),dimension(4*s%nAtoms,4*s%nAtoms) :: ggr
     !--------------------- begin MPI vars --------------------
-    integer :: ix,itask
-    integer :: ncount
-    !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
-    ncount=16*s%nAtoms*s%nAtoms
 
     iflag=0
   ! Values used in the hamiltonian
@@ -1194,9 +1134,6 @@ contains
 
     fvec=fvec
 
-    ix = myrank_row_hw+1
-    itask = numprocs ! Number of tasks done initially
-
     call calcJacobian(selfconjac, N)
 
     iter = iter + 1
@@ -1206,163 +1143,163 @@ contains
 
   ! Integration of Green functions over k vectors to calculate
   ! the jacobian of self-consistency system
-  subroutine sumk_jacobian(er,ei,ggr)
-    use mod_f90_kind, only: double
-    use mod_system, only: s => sys
-    use mod_constants, only: identorb18, zero, pauli_dorb, zum
-    use mod_parameters, only: offset, U, outputunit_loop, outputunit, lverbose
-    use mod_SOC, only: llinearsoc, llineargfsoc
-    use TightBinding, only: nOrb
-    use mod_progress, only: progress_bar
-    use mod_mpi_pars, only: abortProgram, myrank_row_hw
-    !$  use omp_lib
-    implicit none
-    !$  integer                  :: nthreads,mythread
-    integer                  :: AllocateStatus
-    integer                  :: iz,i,j,i0,j0,mu,sigma,sigmap
-    real(double)             :: kp(3)
-    real(double),intent(in)  :: er,ei
-    real(double),dimension(4*s%nAtoms,4*s%nAtoms),intent(out) :: ggr
-    complex(double) :: mhalfU(4,s%nAtoms),wkbzc
-    complex(double), dimension(4,2*nOrb, 2*nOrb) :: pauli_components1,pauli_components2,temp1,temp2
-    complex(double), dimension(2*nOrb, 2*nOrb) :: gij,gji,temp,paulitemp
-    complex(double), dimension(:,:,:,:,:,:), allocatable :: gdHdxg,gvgdHdxgvg
-    complex(double), dimension(s%nAtoms,s%nAtoms,2*nOrb, 2*nOrb) :: gf,gvg
-
-    pauli_components1 = zero
-    pauli_components2 = zero
-!   Includes d orbitals in the charge component
-    pauli_components1(1,:,:)   = identorb18(:,:)
-    pauli_components1(2:4,:,:) = pauli_dorb(:,:,:)
-!   Excludes d orbitals in the charge component
-    pauli_components2(1, 5: 9, 5: 9) = identorb18( 5: 9, 5: 9)
-    pauli_components2(1,14:18,14:18) = identorb18(14:18,14:18)
-    pauli_components2(2:4,:,:) = pauli_dorb(:,:,:)
-
-  ! Prefactor -U/2 in dH/dm and 1 in dH/deps1
-    do j=1,s%nAtoms
-      mhalfU(1,j) = zum
-      mhalfU(2:4,j) = -0.5d0*U(j+offset)
-    end do
-
-    ggr    = 0.d0
-
-    !$omp parallel default(none) &
-    !$omp& private(mythread,AllocateStatus,iz,kp,wkbzc,gf,gvg,temp,temp1,temp2,gij,gji,paulitemp,gdHdxg,gvgdHdxgvg,i,j,i0,j0,mu,sigma) &
-    !$omp& shared(llineargfsoc,llinearsoc,lverbose,s,er,ei,ggr,mhalfU,pauli_components1,pauli_components2,myrank_row_hw,nthreads,outputunit,outputunit_loop)
-    !$  mythread = omp_get_thread_num()
-    !!$  if((mythread==0).and.(myrank_row_hw==0)) then
-    !!$    nthreads = omp_get_num_threads()
-    !!$    write(outputunit_loop,"('[sumk_jacobian] Number of threads: ',i0)") nthreads
-    !!$  end if
-    allocate( gdHdxg(4,4,s%nAtoms,s%nAtoms,2*nOrb,2*nOrb),gvgdHdxgvg(4,4,s%nAtoms,s%nAtoms,2*nOrb,2*nOrb) , STAT = AllocateStatus  )
-    if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: gdHdxg,gvgdHdxgvg")
-    gdHdxg = zero
-    gvgdHdxgvg = zero
-    !, reduction(+:ggr)
-    !$omp do schedule(static)
-    do iz=1,s%nkpt
-      !!$  if((mythread==0)) then
-      !!        if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"jacobian kpoints",iz,s%nkpt)
-      !!$   end if
-
-      kp = s%kbz(:,iz)
-      wkbzc = cmplx(s%wkbz(iz), 0.d0)
-
-      ! Green function on energy Ef + iy, and wave vector kp
-      if((llineargfsoc).or.(llinearsoc)) then
-        call greenlinearsoc(er,ei,kp,gf,gvg)
-        gf = gf + gvg
-      else
-        call green(er,ei,kp,gf)
-      end if
-
-      do j=1,s%nAtoms
-        do i=1,s%nAtoms
-          gij = gf(i,j,:,:)
-          gji = gf(j,i,:,:)
-
-          do sigma = 1,4
-            ! temp1 =  pauli*g_ij
-            paulitemp = pauli_components1(sigma,:,:)
-            call zgemm('n','n',18,18,18,zum,paulitemp,18,gij,18,zero,temp,18)
-            temp1(sigma,:,:) = temp
-          end do
-
-          do sigmap = 1,4
-            ! temp2 = (-U/2) * sigma* g_ji
-            paulitemp = pauli_components2(sigmap,:,:)
-            call zgemm('n','n',18,18,18,mhalfU(sigmap,j),paulitemp,18,gji,18,zero,temp,18)
-            temp2(sigmap,:,:) = temp
-          end do
-
-          do sigmap = 1,4
-            do sigma = 1,4
-              ! gdHdxg = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*sigma* g_ji
-              gij = temp1(sigma,:,:)
-              gji = temp2(sigmap,:,:)
-              call zgemm('n','n',18,18,18,wkbzc,gij,18,gji,18,zero,temp,18)
-              gdHdxg(sigma,sigmap,i,j,:,:) = gdHdxg(sigma,sigmap,i,j,:,:) + temp
-            end do
-          end do
-
-
-          if((llineargfsoc).or.(llinearsoc)) then ! non-linear term
-            gij = gvg(i,j,:,:)
-            gji = gvg(j,i,:,:)
-
-            do sigma = 1,4
-              ! temp1 = wkbz* pauli*gvg_ij
-              paulitemp = pauli_components1(sigma,:,:)
-              call zgemm('n','n',18,18,18,zum,paulitemp,18,gij,18,zero,temp,18)
-              temp1(sigma,:,:) = temp
-            end do
-
-            do sigmap = 1,4
-              ! temp2 = (-U/2) * sigma* gvg_ji
-              paulitemp = pauli_components2(sigmap,:,:)
-              call zgemm('n','n',18,18,18,mhalfU(sigmap,j),paulitemp,18,gji,18,zero,temp,18)
-              temp2(sigmap,:,:) = temp
-            end do
-
-            do sigmap = 1,4
-              do sigma = 1,4
-                ! gdHdxg = temp1*temp2 = wkbz* pauli*gvg_ij*(-U/2)*sigma* gvg_ji
-                gij = temp1(sigma,:,:)
-                gji = temp2(sigmap,:,:)
-                call zgemm('n','n',18,18,18,wkbzc,gij,18,gji,18,zero,temp,18)
-                gvgdHdxgvg(sigma,sigmap,i,j,:,:) = gvgdHdxgvg(sigma,sigmap,i,j,:,:) + temp
-              end do
-            end do
-          end if
-        end do
-      end do
-    end do
-    !$omp end do
-
-    ! removing non-linear SOC term
-    if((llineargfsoc).or.(llinearsoc)) gdHdxg = gdHdxg - gvgdHdxgvg
-
-    !$omp critical
-    do mu=1, 2*nOrb
-      do j=1,s%nAtoms
-        do i=1,s%nAtoms
-          do sigmap=1,4
-            do sigma=1,4
-              i0 = (sigma-1)*s%nAtoms + i
-              j0 = (sigmap-1)*s%nAtoms + j
-              ! Trace over orbitals and spins of the real part
-              ggr(i0,j0) = ggr(i0,j0) + real(gdHdxg(sigma,sigmap,i,j,mu,mu))
-            end do
-          end do
-        end do
-      end do
-    end do
-    !$omp end critical
-    deallocate(gdHdxg,gvgdHdxgvg)
-    !$omp end parallel
-
-    return
-  end subroutine sumk_jacobian
+!   subroutine sumk_jacobian(er,ei,ggr)
+!     use mod_f90_kind, only: double
+!     use mod_system, only: s => sys
+!     use mod_constants, only: identorb18, zero, pauli_dorb, zum
+!     use mod_parameters, only: offset, U, outputunit_loop, outputunit, lverbose
+!     use mod_SOC, only: llinearsoc, llineargfsoc
+!     use TightBinding, only: nOrb
+!     use mod_progress, only: progress_bar
+!     use mod_mpi_pars, only: abortProgram, myrank_row_hw
+!     !$  use omp_lib
+!     implicit none
+!     !$  integer                  :: nthreads,mythread
+!     integer                  :: AllocateStatus
+!     integer                  :: iz,i,j,i0,j0,mu,sigma,sigmap
+!     real(double)             :: kp(3)
+!     real(double),intent(in)  :: er,ei
+!     real(double),dimension(4*s%nAtoms,4*s%nAtoms),intent(out) :: ggr
+!     complex(double) :: mhalfU(4,s%nAtoms),wkbzc
+!     complex(double), dimension(4,2*nOrb, 2*nOrb) :: pauli_components1,pauli_components2,temp1,temp2
+!     complex(double), dimension(2*nOrb, 2*nOrb) :: gij,gji,temp,paulitemp
+!     complex(double), dimension(:,:,:,:,:,:), allocatable :: gdHdxg,gvgdHdxgvg
+!     complex(double), dimension(s%nAtoms,s%nAtoms,2*nOrb, 2*nOrb) :: gf,gvg
+!
+!     pauli_components1 = zero
+!     pauli_components2 = zero
+! !   Includes d orbitals in the charge component
+!     pauli_components1(1,:,:)   = identorb18(:,:)
+!     pauli_components1(2:4,:,:) = pauli_dorb(:,:,:)
+! !   Excludes d orbitals in the charge component
+!     pauli_components2(1, 5: 9, 5: 9) = identorb18( 5: 9, 5: 9)
+!     pauli_components2(1,14:18,14:18) = identorb18(14:18,14:18)
+!     pauli_components2(2:4,:,:) = pauli_dorb(:,:,:)
+!
+!   ! Prefactor -U/2 in dH/dm and 1 in dH/deps1
+!     do j=1,s%nAtoms
+!       mhalfU(1,j) = zum
+!       mhalfU(2:4,j) = -0.5d0*U(j+offset)
+!     end do
+!
+!     ggr    = 0.d0
+!
+!     !$omp parallel default(none) &
+!     !$omp& private(mythread,AllocateStatus,iz,kp,wkbzc,gf,gvg,temp,temp1,temp2,gij,gji,paulitemp,gdHdxg,gvgdHdxgvg,i,j,i0,j0,mu,sigma) &
+!     !$omp& shared(llineargfsoc,llinearsoc,lverbose,s,er,ei,ggr,mhalfU,pauli_components1,pauli_components2,myrank_row_hw,nthreads,outputunit,outputunit_loop)
+!     !$  mythread = omp_get_thread_num()
+!     !!$  if((mythread==0).and.(myrank_row_hw==0)) then
+!     !!$    nthreads = omp_get_num_threads()
+!     !!$    write(outputunit_loop,"('[sumk_jacobian] Number of threads: ',i0)") nthreads
+!     !!$  end if
+!     allocate( gdHdxg(4,4,s%nAtoms,s%nAtoms,2*nOrb,2*nOrb),gvgdHdxgvg(4,4,s%nAtoms,s%nAtoms,2*nOrb,2*nOrb) , STAT = AllocateStatus  )
+!     if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: gdHdxg,gvgdHdxgvg")
+!     gdHdxg = zero
+!     gvgdHdxgvg = zero
+!     !, reduction(+:ggr)
+!     !$omp do schedule(static)
+!     do iz=1,s%nkpt
+!       !!$  if((mythread==0)) then
+!       !!        if((myrank_row_hw==0).and.(lverbose)) call progress_bar(outputunit_loop,"jacobian kpoints",iz,s%nkpt)
+!       !!$   end if
+!
+!       kp = s%kbz(:,iz)
+!       wkbzc = cmplx(s%wkbz(iz), 0.d0)
+!
+!       ! Green function on energy Ef + iy, and wave vector kp
+!       if((llineargfsoc).or.(llinearsoc)) then
+!         call greenlinearsoc(er,ei,kp,gf,gvg)
+!         gf = gf + gvg
+!       else
+!         call green(er,ei,kp,gf)
+!       end if
+!
+!       do j=1,s%nAtoms
+!         do i=1,s%nAtoms
+!           gij = gf(i,j,:,:)
+!           gji = gf(j,i,:,:)
+!
+!           do sigma = 1,4
+!             ! temp1 =  pauli*g_ij
+!             paulitemp = pauli_components1(sigma,:,:)
+!             call zgemm('n','n',18,18,18,zum,paulitemp,18,gij,18,zero,temp,18)
+!             temp1(sigma,:,:) = temp
+!           end do
+!
+!           do sigmap = 1,4
+!             ! temp2 = (-U/2) * sigma* g_ji
+!             paulitemp = pauli_components2(sigmap,:,:)
+!             call zgemm('n','n',18,18,18,mhalfU(sigmap,j),paulitemp,18,gji,18,zero,temp,18)
+!             temp2(sigmap,:,:) = temp
+!           end do
+!
+!           do sigmap = 1,4
+!             do sigma = 1,4
+!               ! gdHdxg = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*sigma* g_ji
+!               gij = temp1(sigma,:,:)
+!               gji = temp2(sigmap,:,:)
+!               call zgemm('n','n',18,18,18,wkbzc,gij,18,gji,18,zero,temp,18)
+!               gdHdxg(sigma,sigmap,i,j,:,:) = gdHdxg(sigma,sigmap,i,j,:,:) + temp
+!             end do
+!           end do
+!
+!
+!           if((llineargfsoc).or.(llinearsoc)) then ! non-linear term
+!             gij = gvg(i,j,:,:)
+!             gji = gvg(j,i,:,:)
+!
+!             do sigma = 1,4
+!               ! temp1 = wkbz* pauli*gvg_ij
+!               paulitemp = pauli_components1(sigma,:,:)
+!               call zgemm('n','n',18,18,18,zum,paulitemp,18,gij,18,zero,temp,18)
+!               temp1(sigma,:,:) = temp
+!             end do
+!
+!             do sigmap = 1,4
+!               ! temp2 = (-U/2) * sigma* gvg_ji
+!               paulitemp = pauli_components2(sigmap,:,:)
+!               call zgemm('n','n',18,18,18,mhalfU(sigmap,j),paulitemp,18,gji,18,zero,temp,18)
+!               temp2(sigmap,:,:) = temp
+!             end do
+!
+!             do sigmap = 1,4
+!               do sigma = 1,4
+!                 ! gdHdxg = temp1*temp2 = wkbz* pauli*gvg_ij*(-U/2)*sigma* gvg_ji
+!                 gij = temp1(sigma,:,:)
+!                 gji = temp2(sigmap,:,:)
+!                 call zgemm('n','n',18,18,18,wkbzc,gij,18,gji,18,zero,temp,18)
+!                 gvgdHdxgvg(sigma,sigmap,i,j,:,:) = gvgdHdxgvg(sigma,sigmap,i,j,:,:) + temp
+!               end do
+!             end do
+!           end if
+!         end do
+!       end do
+!     end do
+!     !$omp end do
+!
+!     ! removing non-linear SOC term
+!     if((llineargfsoc).or.(llinearsoc)) gdHdxg = gdHdxg - gvgdHdxgvg
+!
+!     !$omp critical
+!     do mu=1, 2*nOrb
+!       do j=1,s%nAtoms
+!         do i=1,s%nAtoms
+!           do sigmap=1,4
+!             do sigma=1,4
+!               i0 = (sigma-1)*s%nAtoms + i
+!               j0 = (sigmap-1)*s%nAtoms + j
+!               ! Trace over orbitals and spins of the real part
+!               ggr(i0,j0) = ggr(i0,j0) + real(gdHdxg(sigma,sigmap,i,j,mu,mu))
+!             end do
+!           end do
+!         end do
+!       end do
+!     end do
+!     !$omp end critical
+!     deallocate(gdHdxg,gvgdHdxgvg)
+!     !$omp end parallel
+!
+!     return
+!   end subroutine sumk_jacobian
 
 end module mod_self_consistency

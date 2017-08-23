@@ -2,7 +2,7 @@
 subroutine eintshechi(e, count)
   use mod_f90_kind, only: double
   use mod_constants, only: zero
-  use mod_parameters, only: dim, outputunit, outputunit_loop, lverbose, host
+  use mod_parameters, only: dim
   use EnergyIntegration, only: generate_real_epoints, y, wght, x2, p2, nepoints, pn1
   use mod_susceptibilities, only: chiorb_hf
   use mod_mpi_pars
@@ -11,11 +11,9 @@ subroutine eintshechi(e, count)
   integer, intent(in) :: count
 
   integer :: AllocateStatus
-  integer :: i
-  real(double) :: start_time,elapsed_time,sizemat,speed
   complex(double), dimension(:,:),allocatable :: Fint, Fint_loc
 !--------------------- begin MPI vars --------------------
-  integer :: ix,ix2,itask
+  integer :: ix,ix2
   integer :: ncount
   ncount=dim*dim
 !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
@@ -61,7 +59,7 @@ end subroutine eintshechi
 subroutine eintshechilinearsoc(e, count)
   use mod_f90_kind, only: double
   use mod_constants, only: zero
-  use mod_parameters, only: dim, outputunit_loop, host, lverbose
+  use mod_parameters, only: dim
   use EnergyIntegration, only: generate_real_epoints,y, wght, x2, p2, nepoints, pn1
   use mod_susceptibilities, only: chiorb_hf,chiorb_hflsoc
   use mod_mpi_pars
@@ -69,8 +67,6 @@ subroutine eintshechilinearsoc(e, count)
   real(double), intent(in)    :: e
   integer, intent(in) :: count
   integer           :: AllocateStatus
-  integer           :: i
-  real(double)                :: start_time,elapsed_time,sizemat,speed
   complex(double), dimension(:,:),allocatable         :: Fint,Fintlsoc
 !--------------------- begin MPI vars --------------------
   integer :: ix,ix2,itask
