@@ -32,7 +32,10 @@ subroutine eintshechi(e, count)
   integer :: start, start1, start2, end, end1, end2, work, remainder
   integer :: ncount
   ncount=dim*dim
+!^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
+! Generating energy points in the real axis for third integration
+  call generate_real_epoints(e)
 
   ! Calculate workload for each MPI process
   remainder = mod(nepoints,numprocs_row)
@@ -47,8 +50,8 @@ subroutine eintshechi(e, count)
   end if
 
   start1 = 1
-  start2 = pn1 + 1
   end1 = pn1
+  start2 = pn1 + 1
   end2 = nepoints
   if(start <= pn1) then
     start1 = start
@@ -65,10 +68,6 @@ subroutine eintshechi(e, count)
   end if
   start2 = start2 - pn1
   end2 = end2 - pn1
-!^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
-
-! Generating energy points in the real axis for third integration
-  call generate_real_epoints(e)
 
   ! Starting to calculate energy integral
   chiorb_hf = zero
