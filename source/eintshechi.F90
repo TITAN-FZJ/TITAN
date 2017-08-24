@@ -204,9 +204,11 @@ subroutine eintshechi(e, count)
   deallocate(df1, Fint)
   deallocate(gf,gfuu,gfud,gfdu,gfdd)
   !$omp end parallel
-
-  call MPI_Reduce(MPI_IN_PLACE, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr)
-
+  if(myrank_row == 0) then
+    call MPI_Reduce(MPI_IN_PLACE, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr)
+  else
+    call MPI_Reduce(chiorb_hf, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr)
+  end if
   return
 end subroutine eintshechi
 
