@@ -15,6 +15,7 @@ subroutine calculate_chi()
   use mod_system, only: s => sys
   use TightBinding, only: nOrb
   use mod_progress, only: write_time
+  use Timing
   implicit none
   character(len=50) :: time
   integer           :: i,j,sigma,sigmap,mu,nu, count
@@ -48,8 +49,10 @@ subroutine calculate_chi()
     end if
 
     ! Start parallelized processes to calculate chiorb_hf and chiorbi0_hf for energy e
+    call start_time(CHI_TIME)
     call eintshechi(e, count)
-
+    call end_time(CHI_TIME)
+    
     if(myrank_row==0) then
       ! (1 + chi_hf*Umat)^-1
       temp = identt

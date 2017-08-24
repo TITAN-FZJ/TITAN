@@ -23,6 +23,7 @@ program TITAN
   use mod_progress
   use mod_mpi_pars
   use mod_Umatrix
+  use Timing
   !use mod_lgtv_currents TODO: Re-include
   !use mod_sha TODO: Re-include
   !use mod_torques, only: ntypetorque
@@ -35,6 +36,8 @@ program TITAN
   call Initialize_MPI()
 
   !--------------------------- Starting program ---------------------------
+  call start_time(TOTAL_TIME)
+  call start_time(INIT_TIME)
   start_program = MPI_Wtime()
 
   !-------------------------- Reading parameters --------------------------
@@ -105,13 +108,13 @@ program TITAN
 
   !call setup_long_and_trans_current_neighbors(sys) !TODO: Not implemented TODO: Re-include
 
-
+  call end_time(INIT_TIME)
   !------------------------- MAGNETIC FIELD LOOP -------------------------
   if((myrank==0).and.(skip_steps_hw>0)) write(outputunit,"('[main] Skipping first ',i0,' field step(s)...')") skip_steps_hw
   hw_loop: do count_hw = 1 + skip_steps_hw, MPIsteps_hw
     hw_count = 1 + myrank_col_hw + MPIpts_hw*(count_hw-1)
 
-
+    call start_time(INIT_TIME)
     !------------ Opening files (general and one for each field) -----------
     if(myrank_row_hw == 0) then
       if((total_hw_npt1 == 1).or.(itype == 6)) then
@@ -237,7 +240,10 @@ program TITAN
       ! call debugging()
     end if
 
+    call end_time(INIT_TIME)
+
     !--------------------------- Self-consistency --------------------------
+    call start_time(SC_TIME)
     ! Trying to read previous shifts and m from files
     call read_previous_results(lsuccess)
     ! Rotate the magnetization to the direction of the field
@@ -262,6 +268,7 @@ program TITAN
     ! Writing self-consistency results on screen
     if(myrank_row_hw==0)  call write_sc_results_on_screen()
 
+    call end_time(SC_TIME)
     ! Time now
     if(myrank_row_hw==0)  call write_time(outputunit_loop,'[main] Time after self-consistency: ')
 
@@ -310,6 +317,8 @@ program TITAN
   !----------------------- Finalizing the program ------------------------
   if(myrank==0) call write_time(outputunit,'[main] Finished on: ')
   if(myrank==0) close(unit=outputunit)
+  call end_time(TOTAL_TIME)
+  call print_time()
   call MPI_Finalize(ierr)
   if((ierr/=0).and.(myrank==0)) write(outputunit,"('[main] Something went wrong in the parallelization! ierr = ',i0)") ierr
 

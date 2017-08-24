@@ -56,6 +56,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_self_consistency.F90
                                   source/mod_susceptibilities.F90
                                   source/mod_alpha.F90
+																	source/Timing.F90
 																)
 
 if(PLATFORM MATCHES juqueen)

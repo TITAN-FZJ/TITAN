@@ -1,7 +1,7 @@
 module mod_progress
     use mod_f90_kind
     implicit none
-    real(double)             :: start_program,start_time,elapsed_time
+    real(double)             :: start_program,start_t,elapsed_time
 contains
 
     subroutine progress_bar(unit,message,current_point,total_points)

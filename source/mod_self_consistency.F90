@@ -500,6 +500,7 @@ contains
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
     use mod_mpi_pars
+    use Timing
     !$  use omp_lib
     implicit none
     integer, intent(in) :: size
@@ -518,6 +519,7 @@ contains
     integer :: start, end, iz, work, remainder
     integer :: mu,mup
 
+    call start_time(MAG_TIME)
     ncount = s%nAtoms * 9
     ncount2 = size * size
 
@@ -608,6 +610,8 @@ contains
       n(i) = sum(n_orb_u(i,:)) + sum(n_orb_d(i,:))
       mz(i) = sum(n_orb_u(i,5:9)) - sum(n_orb_d(i,5:9))
     end do
+
+    call end_time(MAG_TIME)
     return
   end subroutine calcMagnetization
 
@@ -620,6 +624,7 @@ contains
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
     use mod_mpi_pars
+    use Timing
     !$  use omp_lib
     implicit none
     integer, intent(in) :: N
@@ -643,6 +648,8 @@ contains
     integer :: ncount,ncount2
     integer :: start, end, work, remainder
     integer :: mu
+
+    call start_time(JAC_TIME)
 
     ! Calculate workload for each MPI process
     remainder = mod(pn1,numprocs_row_hw)
@@ -795,6 +802,8 @@ contains
     do i = s%nAtoms+1, 4*s%nAtoms
       jacobian(i,i) = jacobian(i,i) - 1.d0
     end do
+
+    call end_time(JAC_TIME)
     return
   end subroutine calcJacobian
 
