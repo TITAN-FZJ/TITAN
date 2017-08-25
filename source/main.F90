@@ -151,17 +151,9 @@ program TITAN
 
 
     !------------------- Tests for coupling calculation --------------------
-    if(itype==6) then
-      if(nmaglayers==0) then
-        if(myrank==0) write(outputunit,"('[main] No magnetic layers for coupling calculation!')")
-        call MPI_Finalize(ierr)
-        stop
-      end if
-      if(lfield) then
-        if(myrank==0) write(outputunit,"('[main] Coupling calculation is valid for no external field!')")
-        call MPI_Finalize(ierr)
-        stop
-      end if
+    if(itype == 6 .and. myrank == 0) then
+      if(nmaglayers==0) call abortProgram("[main] No magnetic layers for coupling calculation!")
+      if(lfield) call abortProgram("[main] Coupling calculation is valid for no external field!")
     end if
 
     !------- Writing parameters and data to be calculated on screen --------
@@ -257,10 +249,10 @@ program TITAN
     if(.not.lontheflysc) call write_sc_results()
 
     ! Calculating ground state Orbital Angular Momentum
-    if(lGSL) call L_gs(sys)
+    if(lGSL) call calcLGS()
 
     ! Writing self-consistency results on screen
-    if(myrank_row_hw==0)  call write_sc_results_on_screen()
+    if(myrank_row_hw==0)  call print_sc_results()
 
     ! Time now
     if(myrank_row_hw==0)  call write_time(outputunit_loop,'[main] Time after self-consistency: ')
