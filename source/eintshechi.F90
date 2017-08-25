@@ -81,7 +81,7 @@ subroutine eintshechi(e, count)
            gfud(s%nAtoms,s%nAtoms,nOrb,nOrb,2), &
            gfdu(s%nAtoms,s%nAtoms,nOrb,nOrb,2), &
            gfdd(s%nAtoms,s%nAtoms,nOrb,nOrb,2), STAT = AllocateStatus  )
-  if (AllocateStatus/=0) call abortProgram("[sumkshechi] Not enough memory for: df1,Fint,gf,gfuu,gfud,gfdu,gfdd")
+  if (AllocateStatus/=0) call abortProgram("[eintshechi] Not enough memory for: df1,Fint,gf,gfuu,gfud,gfdu,gfdd")
   Fint = zero
 
   !$omp do schedule(static) collapse(2)
@@ -295,7 +295,7 @@ subroutine eintshechilinearsoc(e, count)
            gfud(s%nAtoms,s%nAtoms,nOrb,nOrb,2), &
            gfdu(s%nAtoms,s%nAtoms,nOrb,nOrb,2), &
            gfdd(s%nAtoms,s%nAtoms,nOrb,nOrb,2), STAT = AllocateStatus  )
-  if (AllocateStatus/=0) call abortProgram("[sumkshechilinearsoc] Not enough memory for: df1,Fint,gf,gfuu,gfud,gfdu,gfdd")
+  if (AllocateStatus/=0) call abortProgram("[eintshechilinearsoc] Not enough memory for: df1,Fint,gf,gfuu,gfud,gfdu,gfdd")
 
   allocate( df1lsoc(dim,dim), Fintlsoc(dim,dim), &
             gvg(s%nAtoms,s%nAtoms,2*nOrb,2*nOrb), &
@@ -303,7 +303,7 @@ subroutine eintshechilinearsoc(e, count)
             gvgud(s%nAtoms,s%nAtoms,nOrb,nOrb,2), &
             gvgdu(s%nAtoms,s%nAtoms,nOrb,nOrb,2), &
             gvgdd(s%nAtoms,s%nAtoms,nOrb,nOrb,2), STAT = AllocateStatus  )
-  if (AllocateStatus/=0) call abortProgram("[sumkshechilinearsoc] Not enough memory for: df1lsoc,Fintsloc,gvg,gvguu,gvgud,gvgdu,gvgdd")
+  if (AllocateStatus/=0) call abortProgram("[eintshechilinearsoc] Not enough memory for: df1lsoc,Fintsloc,gvg,gvguu,gvgud,gvgdu,gvgdd")
 
   Fint      = zero
   Fintlsoc  = zero
