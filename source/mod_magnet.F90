@@ -44,7 +44,11 @@ module mod_magnet
   real(double) :: hwtrotate(dmax) = 0.d0, hwprotate(dmax) = 0.d0
 
   integer :: skip_steps_hw = 0
-  integer :: hw_count, total_hw_npt1
+  !! How many iterations are to be skipped from the beginning
+  integer :: hw_count
+  !! Current iteration of magnetic field loop.
+  integer :: total_hw_npt1
+  !! Total number of magnetic field iterations.
 
 contains
 
