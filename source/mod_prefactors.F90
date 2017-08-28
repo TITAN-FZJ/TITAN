@@ -2,56 +2,88 @@ module mod_prefactors
   use mod_f90_kind, only: double
   implicit none
   complex(double), dimension(:,:), allocatable  :: prefactor,prefactorlsoc
-  complex(double),dimension(:,:,:,:), allocatable :: lxpt,lypt,lzpt,tlxp,tlyp,tlzp
+  complex(double), dimension(:,:,:,:), allocatable :: lxpt,lypt,lzpt,tlxp,tlyp,tlzp
 
 contains
 
   ! Calculates matrices hopping x angular momentum matrix for orbital angular momentum current calculation
-  subroutine OAM_curr_hopping_times_L()
-    use mod_magnet,        only: lxp, lyp, lzp
-    use mod_parameters,    only: Npl, offset
-    use mod_system,        only: n0sc1, n0sc2
-    use mod_constants,     only: zero
-    implicit none
-    integer         :: i,mu,nu,neighbor,alpha
+  ! subroutine OAM_curr_hopping_times_L() !TODO: Re-Include
+  !   use mod_magnet,        only: lxp, lyp, lzp
+  !   use mod_parameters,    only: Npl, offset
+  !   use mod_system,        only: n0sc1, n0sc2
+  !   use mod_constants,     only: zero
+  !   implicit none
+  !   integer         :: i,mu,nu,neighbor,alpha
+  !
+  !   lxpt = zero
+  !   lypt = zero
+  !   lzpt = zero
+  !   tlxp = zero
+  !   tlyp = zero
+  !   tlzp = zero
+  !   do nu=1,9
+  !     do mu=1,9
+  !       do neighbor=n0sc1,n0sc2
+  !         do i=1,Npl
+  !           do alpha=1,9
+  !             lxpt(i,neighbor,mu,nu) = lxpt(i,neighbor,mu,nu) + lxp(mu,alpha)*t0i(nu,alpha,neighbor,i+offset)
+  !             lypt(i,neighbor,mu,nu) = lypt(i,neighbor,mu,nu) + lyp(mu,alpha)*t0i(nu,alpha,neighbor,i+offset)
+  !             lzpt(i,neighbor,mu,nu) = lzpt(i,neighbor,mu,nu) + lzp(mu,alpha)*t0i(nu,alpha,neighbor,i+offset)
+  !             tlxp(i,neighbor,mu,nu) = tlxp(i,neighbor,mu,nu) + t0i(mu,alpha,neighbor,i+offset)*lxp(alpha,nu)
+  !             tlyp(i,neighbor,mu,nu) = tlyp(i,neighbor,mu,nu) + t0i(mu,alpha,neighbor,i+offset)*lyp(alpha,nu)
+  !             tlzp(i,neighbor,mu,nu) = tlzp(i,neighbor,mu,nu) + t0i(mu,alpha,neighbor,i+offset)*lzp(alpha,nu)
+  !           end do
+  !         end do
+  !       end do
+  !     end do
+  !   end do
+  !   return
+  ! end subroutine OAM_curr_hopping_times_L
 
-    lxpt = zero
-    lypt = zero
-    lzpt = zero
-    tlxp = zero
-    tlyp = zero
-    tlzp = zero
-    do nu=1,9
-      do mu=1,9
-        do neighbor=n0sc1,n0sc2
-          do i=1,Npl
-            do alpha=1,9
-              lxpt(i,neighbor,mu,nu) = lxpt(i,neighbor,mu,nu) + lxp(mu,alpha)*t0i(nu,alpha,neighbor,i+offset)
-              lypt(i,neighbor,mu,nu) = lypt(i,neighbor,mu,nu) + lyp(mu,alpha)*t0i(nu,alpha,neighbor,i+offset)
-              lzpt(i,neighbor,mu,nu) = lzpt(i,neighbor,mu,nu) + lzp(mu,alpha)*t0i(nu,alpha,neighbor,i+offset)
-              tlxp(i,neighbor,mu,nu) = tlxp(i,neighbor,mu,nu) + t0i(mu,alpha,neighbor,i+offset)*lxp(alpha,nu)
-              tlyp(i,neighbor,mu,nu) = tlyp(i,neighbor,mu,nu) + t0i(mu,alpha,neighbor,i+offset)*lyp(alpha,nu)
-              tlzp(i,neighbor,mu,nu) = tlzp(i,neighbor,mu,nu) + t0i(mu,alpha,neighbor,i+offset)*lzp(alpha,nu)
-            end do
-          end do
-        end do
-      end do
-    end do
-    return
-  end subroutine OAM_curr_hopping_times_L
-
-  subroutine allocate_prefactors()
-    use mod_parameters, only: Npl
-    use mod_constants, only: zero
-    use mod_system, only: n0sc1, n0sc2
+  subroutine allocate_prefactors() !TODO:Re-Include
+    use mod_parameters, only: dim
+    use mod_SOC, only: llinearsoc
+    use mod_mpi_pars, only: abortProgram
+    !use mod_system, only: n0sc1, n0sc2
     implicit none
-    allocate(lxpt(Npl,n0sc1:n0sc2,9,9),lypt(Npl,n0sc1:n0sc2,9,9),lzpt(Npl,n0sc1:n0sc2,9,9),tlxp(Npl,n0sc1:n0sc2,9,9),tlyp(Npl,n0sc1:n0sc2,9,9),tlzp(Npl,n0sc1:n0sc2,9,9))
+    integer :: AllocateStatus
+
+    if (.not. allocated(prefactor)) then
+      allocate(prefactor(dim,dim), STAT = AllocateStatus  )
+      if (AllocateStatus/=0) call abortProgram("[allocate_disturbances] Not enough memory for: prefactor")
+    end if
+
+    if (.not. allocated(prefactorlsoc)) then
+      if(llinearsoc) then
+        allocate(prefactorlsoc(dim,dim), STAT = AllocateStatus  )
+        if (AllocateStatus/=0) call abortProgram("[allocate_disturbances] Not enough memory for: prefactorlsoc")
+      end if
+    end if
+
+    ! TODO: Re-Include
+    ! allocate(lxpt(Npl,n0sc1:n0sc2,9,9), &
+    !          lypt(Npl,n0sc1:n0sc2,9,9), &
+    !          lzpt(Npl,n0sc1:n0sc2,9,9), &
+    !          tlxp(Npl,n0sc1:n0sc2,9,9), &
+    !          tlyp(Npl,n0sc1:n0sc2,9,9), &
+    !          tlzp(Npl,n0sc1:n0sc2,9,9), stat = AllocateStatus)
+    ! if (AllocateStatus/=0) call abortProgram("[allocate_prefactors] Not enough memory for: lxpt,lypt,lzpt,tlxp,tlyp,tlzp")
+
     return
   end subroutine allocate_prefactors
 
   subroutine deallocate_prefactors()
     implicit none
-    deallocate(lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
+    if(allocated(prefactor)) deallocate(prefactor)
+    if(allocated(prefactorlsoc)) deallocate(prefactorlsoc)
+
+    if(allocated(lxpt)) deallocate(lxpt)
+    if(allocated(lypt)) deallocate(lypt)
+    if(allocated(lypt)) deallocate(lzpt)
+    if(allocated(lypt)) deallocate(tlxp)
+    if(allocated(lypt)) deallocate(tlyp)
+    if(allocated(lypt)) deallocate(tlzp)
+
     return
   end subroutine deallocate_prefactors
 

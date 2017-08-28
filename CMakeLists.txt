@@ -20,6 +20,8 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/ldos_energy.F90
                                   source/ldos_jij_energy.F90
                                   source/calculate_chi.F90
+																	source/calculate_all.F90
+																	source/calculate_dc_limit.F90
                                   source/fermi_surface.F90
                                   source/Npl_variables.F90
                                   source/green.F90
@@ -54,6 +56,10 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_self_consistency.F90
                                   source/mod_susceptibilities.F90
                                   source/mod_alpha.F90
+																	source/mod_beff.F90
+																	source/mod_torques.F90
+																	source/mod_disturbances.F90
+																	source/mod_prefactors.F90
 																)
 
 if(PLATFORM MATCHES juqueen)

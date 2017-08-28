@@ -9,79 +9,51 @@ module mod_disturbances
   complex(double),dimension(:),allocatable       :: sdmat
 contains
 
-  ! This subroutine allocates variables related to the disturbance calculation
   subroutine allocate_disturbances()
-    use mod_f90_kind
-    use mod_mpi_pars
-    use mod_prefactors,only: prefactor,prefactorlsoc
-    use mod_parameters, only: Npl,renorm,llinearsoc,dim,dimsigmaNpl,outputunit
+  !! This subroutine allocates variables related to the disturbance calculation
+    use mod_f90_kind, only: double
+    use mod_parameters, only: renorm,dim,dimsigmaNpl,outputunit
+    use mod_System, only: s => sys
+    use mod_SOC, only: llinearsoc
+    use mod_mpi_pars, only: abortProgram, myrank_row
     implicit none
     integer           :: AllocateStatus
 
     if(myrank_row==0) then
-      allocate( disturbances(7,Npl),sdmat(dimsigmaNpl),ldmat(Npl,9,9), STAT = AllocateStatus )
-      if (AllocateStatus/=0) then
-        write(outputunit,"('[allocate_disturbances] Not enough memory for: disturbances,sdmat,ldmat')")
-        call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-      end if
+      allocate( disturbances(7,s%nAtoms),sdmat(dimsigmaNpl),ldmat(s%nAtoms,9,9), STAT = AllocateStatus )
+      if (AllocateStatus/=0) call abortProgram("[allocate_disturbances] Not enough memory for: disturbances,sdmat,ldmat")
+
       if(renorm) then
-        allocate( rdisturbances(7,Npl), STAT = AllocateStatus )
-        if (AllocateStatus/=0) then
-          write(outputunit,"('[allocate_disturbances] Not enough memory for: rdisturbances')")
-          call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-        end if
+        allocate( rdisturbances(7,s%nAtoms), STAT = AllocateStatus )
+        if (AllocateStatus/=0) call abortProgram("[allocate_disturbances] Not enough memory for: rdisturbances")
       end if
     end if
+
     allocate( tchiorbiikl(dim,4), STAT = AllocateStatus  )
-    if (AllocateStatus/=0) then
-      write(outputunit,"('[allocate_disturbances] Not enough memory for: tchiorbiikl')")
-      call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-    end if
-    if (.not. allocated(prefactor)) then
-      allocate(prefactor(dim,dim), STAT = AllocateStatus  )
-      if (AllocateStatus/=0) then
-        write(outputunit,"('[allocate_disturbances] Not enough memory for: prefactor')")
-        call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-      end if
-    end if
-    if (.not. allocated(prefactorlsoc)) then
-      if(llinearsoc) then
-        allocate(prefactorlsoc(dim,dim), STAT = AllocateStatus  )
-        if (AllocateStatus/=0) then
-          write(outputunit,"('[allocate_disturbances] Not enough memory for: prefactorlsoc')")
-          call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-        end if
-      end if
-    end if
+    if (AllocateStatus/=0) call abortProgram("[allocate_disturbances] Not enough memory for: tchiorbiikl")
 
     return
   end subroutine allocate_disturbances
 
-  ! This subroutine deallocates variables related to the disturbance calculation
   subroutine deallocate_disturbances()
-    use mod_f90_kind
-    use mod_mpi_pars
-    use mod_prefactors,only: prefactor,prefactorlsoc
-    use mod_parameters, only: renorm
+  !! This subroutine deallocates variables related to the disturbance calculation
     implicit none
 
-    if(myrank_row==0) then
-      deallocate(disturbances,sdmat,ldmat)
-      if(renorm) deallocate(rdisturbances)
-    end if
-    deallocate(tchiorbiikl)
-    if (allocated(prefactor)) deallocate(prefactor)
-    if (allocated(prefactorlsoc)) deallocate(prefactorlsoc)
+    if(allocated(disturbances)) deallocate(disturbances)
+    if(allocated(sdmat)) deallocate(sdmat)
+    if(allocated(ldmat)) deallocate(ldmat)
+    if(allocated(rdisturbances)) deallocate(rdisturbances)
+    if(allocated(tchiorbiikl)) deallocate(tchiorbiikl)
 
     return
   end subroutine deallocate_disturbances
 
-  ! This subroutine opens and closes all the files needed for the disturbances
-  subroutine openclose_disturbance_files(iflag)
-    use mod_parameters, only: fieldpart
+  subroutine create_disturbance_files()
+  !! This subroutine creates all the files needed for the disturbances
+    use mod_parameters, only: fieldpart, lhfresponses, Npl_folder, eta, suffix, Utype, renorm, renormnb, missing_files
     use mod_SOC, only: SOCc, socpart
     use mod_mpi_pars
-    use mod_system, only:nkpt
+    use mod_system, only: s => sys
     use EnergyIntegration, only: strEnergyParts
     use electricfield, only: strElectricField
     implicit none
@@ -89,7 +61,6 @@ contains
     character(len=500)  :: varm
     character(len=5)    :: folder(7)
     character(len=2)    :: filename(7)
-    character(len=1)    :: SOCc
     integer :: i,j,iw,iflag,err,errt=0
 
     folder(1) = "CD"
@@ -113,67 +84,146 @@ contains
     filename(6) = "Ly"
     filename(7) = "Lz"
 
-    if(iflag==0) then
-      do i=1,Npl ; do j=1,7
-        iw = 3000+(i-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,trim(strEnergyParts),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+    do i=1,s%nAtoms ; do j=1,7
+      iw = 3000+(i-1)*7+j
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+      open (unit=iw, file=varm, status='replace', form='formatted')
+      write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
+      close(unit=iw)
+      if(renorm) then
+        iw = iw+1000
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
-        if(renorm) then
-          iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,trim(strEnergyParts),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
-          open (unit=iw, file=varm, status='replace', form='formatted')
-          write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
-          close(unit=iw)
-        end if
-      end do ; end do
-    else if (iflag==1) then
-      do i=1,Npl ; do j=1,7
-        iw = 3000+(i-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,trim(strEnergyParts),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+      end if
+    end do ; end do
+
+    return
+  end subroutine create_disturbance_files
+
+  subroutine open_disturbance_files()
+  !! This subroutine opens all the files needed for the disturbances
+    use mod_parameters, only: fieldpart, lhfresponses, Npl_folder, eta, suffix, Utype, renorm, renormnb, missing_files
+    use mod_SOC, only: SOCc, socpart
+    use mod_mpi_pars
+    use mod_system, only: s => sys
+    use EnergyIntegration, only: strEnergyParts
+    use electricfield, only: strElectricField
+    implicit none
+
+    character(len=500)  :: varm
+    character(len=5)    :: folder(7)
+    character(len=2)    :: filename(7)
+    integer :: i,j,iw,iflag,err,errt=0
+
+    folder(1) = "CD"
+    folder(2) = "SD"
+    folder(3) = "SD"
+    folder(4) = "SD"
+    folder(5) = "LD"
+    folder(6) = "LD"
+    folder(7) = "LD"
+    if(lhfresponses) then
+      do i=1,7
+        folder(i) = trim(folder(i)) // "_HF"
+      end do
+    end if
+
+    filename(1) = "Cd"
+    filename(2) = "Sx"
+    filename(3) = "Sy"
+    filename(4) = "Sz"
+    filename(5) = "Lx"
+    filename(6) = "Ly"
+    filename(7) = "Lz"
+
+    do i=1,s%nAtoms ; do j=1,7
+      iw = 3000+(i-1)*7+j
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+      open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+      errt = errt + err
+      if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+      if(renorm) then
+        iw = iw+1000
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
-        if(renorm) then
-          iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,trim(strEnergyParts),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
-          open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
-          errt = errt + err
-          if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
-        end if
-      end do ; end do
-      ! Stop if some file does not exist
-      if(errt/=0) call abortProgram("[openclose_disturbance_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
-    else
-      do i=1,Npl ; do j=1,7
-        iw = 3000+(i-1)*7+j
-        close(unit=iw)
-
-        if(renorm) then
-          iw = iw+1000
-          close(unit=iw)
-        end if
-      end do ; end do
-    end if
+      end if
+    end do ; end do
+    ! Stop if some file does not exist
+    if(errt/=0) call abortProgram("[openclose_disturbance_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
 
     return
-  end subroutine openclose_disturbance_files
+  end subroutine open_disturbance_files
+
+  subroutine close_disturbance_files()
+  !! This subroutine closes all the files needed for the disturbances
+    use mod_parameters, only: fieldpart, lhfresponses, Npl_folder, eta, suffix, Utype, renorm, renormnb, missing_files
+    use mod_SOC, only: SOCc, socpart
+    use mod_mpi_pars
+    use mod_system, only: s => sys
+    use EnergyIntegration, only: strEnergyParts
+    use electricfield, only: strElectricField
+    implicit none
+
+    character(len=500)  :: varm
+    character(len=5)    :: folder(7)
+    character(len=2)    :: filename(7)
+    integer :: i,j,iw,iflag,err,errt=0
+
+    folder(1) = "CD"
+    folder(2) = "SD"
+    folder(3) = "SD"
+    folder(4) = "SD"
+    folder(5) = "LD"
+    folder(6) = "LD"
+    folder(7) = "LD"
+    if(lhfresponses) then
+      do i=1,7
+        folder(i) = trim(folder(i)) // "_HF"
+      end do
+    end if
+
+    filename(1) = "Cd"
+    filename(2) = "Sx"
+    filename(3) = "Sy"
+    filename(4) = "Sz"
+    filename(5) = "Lx"
+    filename(6) = "Ly"
+    filename(7) = "Lz"
+
+    do i=1,s%nAtoms ; do j=1,7
+      iw = 3000+(i-1)*7+j
+      close(unit=iw)
+
+      if(renorm) then
+        iw = iw+1000
+        close(unit=iw)
+      end if
+    end do ; end do
+
+    return
+  end subroutine close_disturbance_files
 
   ! This subroutine write all the disturbances into files
   ! (already opened with openclose_disturbance_files(1))
   ! Some information may also be written on the screen
   subroutine write_disturbances(e)
     use mod_f90_kind
-    use mod_parameters, only: Npl,renorm,outputunit_loop,lwriteonscreen
+    use mod_parameters, only: renorm,outputunit_loop,lwriteonscreen
     use mod_magnet, only: mvec_spherical
+    use mod_System, only: s => sys
     implicit none
     integer  :: i,iw
     real(double),intent(in) :: e
 
+    call open_disturbance_files()
+
     if(lwriteonscreen) write(outputunit_loop,"(' ################# Disturbances: #################')")
     ! Writing Spin, Charge and Orbital disturbances
-    do i=1,Npl
+    do i=1,s%nAtoms
       if(lwriteonscreen) then
         write(outputunit_loop,"('|--------------- Energy = ',es11.4,' , Plane: ',i0,' ---------------|')") e,i
 
@@ -243,15 +293,17 @@ contains
       end if
     end do
 
+    call close_disturbance_files()
     return
   end subroutine write_disturbances
 
-  ! This subroutine opens and closes all the files needed for the dc-limit disturbances
-  subroutine openclose_dc_disturbance_files(iflag)
-    use mod_parameters, only: dcfieldpart
+  subroutine create_dc_disturbance_files
+  !! This subroutine creates all the files needed for the dc-limit disturbances
+    use mod_parameters, only: dcfieldpart, lhfresponses, count, Npl_folder,eta, Utype, suffix, renorm, renormnb, missing_files
+    use mod_magnet, only: dcprefix, dcfield_dependence, dcfield, dc_header
     use mod_mpi_pars
     use mod_SOC, only: SOCc, socpart
-    use mod_system, only:nkpt
+    use mod_system, only: s => sys
     use electricfield, only: strElectricField
     use EnergyIntegration, only: strEnergyParts
     implicit none
@@ -259,7 +311,6 @@ contains
     character(len=500)  :: varm
     character(len=5)    :: folder(7)
     character(len=2)    :: filename(7)
-    character(len=1)    :: SOCc
     integer :: i,j,iw,iflag,err,errt=0
 
     folder(1) = "CD"
@@ -283,66 +334,152 @@ contains
     filename(6) = "Ly"
     filename(7) = "Lz"
 
-    if(iflag==0) then
-      do i=1,Npl ; do j=1,7
-        iw = 30000+(i-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+    do i=1,s%nAtoms ; do j=1,7
+      iw = 30000+(i-1)*7+j
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+      open (unit=iw, file=varm, status='replace', form='formatted')
+      write(unit=iw, fmt="('#',a,' imag part of ',a,' , real part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
+      close(unit=iw)
+      if(renorm) then
+        iw = iw+1000
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,' imag part of ',a,' , real part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
-        if(renorm) then
-          iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
-          open (unit=iw, file=varm, status='replace', form='formatted')
-          write(unit=iw, fmt="('#',a,' imag part of ',a,' , real part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
-          close(unit=iw)
-        end if
-      end do ; end do
-    else if (iflag==1) then
-      do i=1,Npl ; do j=1,7
-        iw = 30000+(i-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+      end if
+    end do ; end do
+
+    return
+
+  end subroutine create_dc_disturbance_files
+
+  subroutine open_dc_disturbance_files
+  ! This subroutine opens all the files needed for the dc-limit disturbances
+    use mod_parameters, only: dcfieldpart, lhfresponses, count, Npl_folder,eta, Utype, suffix, renorm, renormnb, missing_files
+    use mod_magnet, only: dcprefix, dcfield_dependence, dcfield, dc_header
+    use mod_mpi_pars
+    use mod_SOC, only: SOCc, socpart
+    use mod_system, only: s => sys
+    use electricfield, only: strElectricField
+    use EnergyIntegration, only: strEnergyParts
+    implicit none
+
+    character(len=500)  :: varm
+    character(len=5)    :: folder(7)
+    character(len=2)    :: filename(7)
+    integer :: i,j,iw,iflag,err,errt=0
+
+    folder(1) = "CD"
+    folder(2) = "SD"
+    folder(3) = "SD"
+    folder(4) = "SD"
+    folder(5) = "LD"
+    folder(6) = "LD"
+    folder(7) = "LD"
+    if(lhfresponses) then
+      do i=1,7
+        folder(i) = trim(folder(i)) // "_HF"
+      end do
+    end if
+
+    filename(1) = "Cd"
+    filename(2) = "Sx"
+    filename(3) = "Sy"
+    filename(4) = "Sz"
+    filename(5) = "Lx"
+    filename(6) = "Ly"
+    filename(7) = "Lz"
+
+    do i=1,s%nAtoms ; do j=1,7
+      iw = 30000+(i-1)*7+j
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+      open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+      errt = errt + err
+      if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+      if(renorm) then
+        iw = iw+1000
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
-        if(renorm) then
-          iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
-          open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
-          errt = errt + err
-          if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
-        end if
-      end do ; end do
-      ! Stop if some file does not exist
-      if(errt/=0) call abortProgram("[openclose_dc_disturbance_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
-    else
-      do i=1,Npl ; do j=1,7
-        iw = 30000+(i-1)*7+j
-        close(unit=iw)
-
-        if(renorm) then
-          iw = iw+1000
-          close(unit=iw)
-        end if
-      end do ; end do
-    end if
+      end if
+    end do ; end do
+    ! Stop if some file does not exist
+    if(errt/=0) call abortProgram("[openclose_dc_disturbance_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
 
     return
-  end subroutine openclose_dc_disturbance_files
+
+  end subroutine open_dc_disturbance_files
+
+  subroutine close_dc_disturbance_files()
+  !! This subroutine closes all the files needed for the dc-limit disturbances
+    use mod_parameters, only: dcfieldpart, lhfresponses, count, Npl_folder,eta, Utype, suffix, renorm, renormnb, missing_files
+    use mod_magnet, only: dcprefix, dcfield_dependence, dcfield, dc_header
+    use mod_mpi_pars
+    use mod_SOC, only: SOCc, socpart
+    use mod_system, only: s => sys
+    use electricfield, only: strElectricField
+    use EnergyIntegration, only: strEnergyParts
+    implicit none
+
+    character(len=500)  :: varm
+    character(len=5)    :: folder(7)
+    character(len=2)    :: filename(7)
+    integer :: i,j,iw,iflag,err,errt=0
+
+    folder(1) = "CD"
+    folder(2) = "SD"
+    folder(3) = "SD"
+    folder(4) = "SD"
+    folder(5) = "LD"
+    folder(6) = "LD"
+    folder(7) = "LD"
+    if(lhfresponses) then
+      do i=1,7
+        folder(i) = trim(folder(i)) // "_HF"
+      end do
+    end if
+
+    filename(1) = "Cd"
+    filename(2) = "Sx"
+    filename(3) = "Sy"
+    filename(4) = "Sz"
+    filename(5) = "Lx"
+    filename(6) = "Ly"
+    filename(7) = "Lz"
+
+    do i=1,s%nAtoms ; do j=1,7
+      iw = 30000+(i-1)*7+j
+      close(unit=iw)
+
+      if(renorm) then
+        iw = iw+1000
+        close(unit=iw)
+      end if
+    end do ; end do
+
+    return
+
+  end subroutine close_dc_disturbance_files
+
+
 
   ! This subroutine write all the dc-limit disturbances into files
   ! (already opened with openclose_dc_disturbance_files(1))
   ! Some information may also be written on the screen
   subroutine write_dc_disturbances()
     use mod_f90_kind
-    use mod_parameters, only: Npl,renorm,dcfield,dcfield_dependence,dc_fields,hw_count,outputunit_loop,lwriteonscreen
-    use mod_magnet, only: mvec_spherical
+    use mod_parameters, only: renorm,outputunit_loop,lwriteonscreen
+    use mod_magnet, only: mvec_spherical, dcfield, dcfield_dependence, dc_fields, hw_count
+    use mod_System, only: s => sys
     implicit none
     integer  :: i,iw
 
+    call open_dc_disturbance_files()
+
     if(lwriteonscreen) write(outputunit_loop,"(' ################# Disturbances: #################')")
     ! Writing Spin, Charge and Orbital disturbances
-    do i=1,Npl
+    do i=1, s%nAtoms
       if(lwriteonscreen) then
         write(outputunit_loop,"('|--------------- ',a,' = ',a,' , Plane: ',i0,' ---------------|')") trim(dcfield(dcfield_dependence)),trim(dc_fields(hw_count)),i
 
@@ -412,26 +549,29 @@ contains
       end if
     end do
 
+    call close_dc_disturbance_files()
+
     return
   end subroutine write_dc_disturbances
 
   ! This subroutine sorts disturbance files
   subroutine sort_disturbances()
     use mod_f90_kind
-    use mod_parameters, only: Npl,renorm,itype
+    use mod_parameters, only: renorm,itype
     use mod_tools, only: sort_file
+    use mod_System, only: s => sys
     implicit none
     integer :: i,j,iw,idc=1
 
     ! Opening disturbance files
     if(itype==9) then
       idc=10
-      call openclose_dc_disturbance_files(1)
+      call open_dc_disturbance_files()
     else
-      call openclose_disturbance_files(1)
+      call open_disturbance_files()
     end if
 
-    do i=1,Npl
+    do i=1, s%nAtoms
       ! Sorting disturbance files
       iw = 3000*idc+(i-1)*7
       do j=1,7
@@ -448,9 +588,9 @@ contains
 
     ! Closing disturbance files
     if(itype==9) then
-      call openclose_dc_disturbance_files(2)
+      call close_dc_disturbance_files()
     else
-      call openclose_disturbance_files(2)
+      call close_disturbance_files()
     end if
 
     return

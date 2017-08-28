@@ -1,5 +1,5 @@
 ! ---------- Spin disturbance: Energy integration ---------
-subroutine eintshechi(e, count)
+subroutine eintshechi(e)
   use mod_f90_kind, only: double
   use mod_constants, only: zero, zum, zi, tpi
   use mod_parameters, only: eta, ef, dim, sigmaijmunu2i, sigmaimunu2i
@@ -12,7 +12,6 @@ subroutine eintshechi(e, count)
   !$  use omp_lib
   implicit none
   real(double), intent(in)    :: e
-  integer, intent(in) :: count
 
   integer :: AllocateStatus
   complex(double), dimension(:,:),allocatable :: Fint
@@ -213,7 +212,7 @@ end subroutine eintshechi
 
 ! -------------------- Spin disturbance: Energy integration --------------------
 ! -------------- to be used in the calculation of linear SOC chi ---------------
-subroutine eintshechilinearsoc(e, count)
+subroutine eintshechilinearsoc(e)
   use mod_f90_kind, only: double
   use mod_constants, only: zero, zum, zi, tpi
   use mod_parameters, only: eta, ef, dim, sigmaijmunu2i, sigmaimunu2i
@@ -226,7 +225,6 @@ subroutine eintshechilinearsoc(e, count)
   !$  use omp_lib
 
   implicit none
-  integer, intent(in) :: count
   real(double), intent(in) :: e
 
   integer :: AllocateStatus

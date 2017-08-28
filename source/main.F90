@@ -279,9 +279,9 @@ program TITAN
     case (7)
       call calculate_chi()
     case (8)
-      !call calculate_all() TODO: Re-include
+      call calculate_all()
     case (9)
-      !call calculate_dc_limit() TODO: Re-include
+      call calculate_dc_limit()
     end select main_program
     !========================================================================
 
