@@ -9,27 +9,39 @@ option(DEBUG "Enable debugging" OFF)
 enable_language(Fortran)
 
 set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
-				                          source/coupling.F90
-																	source/jij_energy.F90
-																	source/sumk_jij.F90
+                                  source/AtomTypes.F90
+                                  source/Lattice.F90
                                   source/create_files.F90
                                   source/check_files.F90
                                   source/sort_all_files.F90
+                                  source/green.F90
+                                  source/hamiltk.F90
+                                  source/dtdksub.F90
+                                  source/invers.F90
+                                  source/U_matrix.F90
+                                  source/mod_System.F90
+                                  source/mod_monoBasis.F90
+                                  source/mod_polyBasis.F90
+                                  source/mod_BrillouinZone.F90
+                                  source/mod_SOC.F90
+                                  source/mod_magnet.F90
+                                  source/ElectricField.F90
+                                  source/mod_io.F90
                                   source/ldos.F90
                                   source/ldos_and_coupling.F90
                                   source/ldos_energy.F90
                                   source/ldos_jij_energy.F90
+                                  source/coupling.F90
+                                  source/jij_energy.F90
+																	source/eintshechi.F90
+																	source/eintshe.F90
                                   source/calculate_chi.F90
 																	source/calculate_all.F90
 																	source/calculate_dc_limit.F90
                                   source/fermi_surface.F90
                                   source/Npl_variables.F90
-                                  source/green.F90
-                                  source/hamiltk.F90
-                                  source/invers.F90
-                                  source/U_matrix.F90
                                   source/build_rotation_matrices.F90
-                                  source/eintshechi.F90
+                                  source/L_gs.F90
                                   source/check_emergency_stop.F90
                                   source/band_structure.F90
                                   source/mod_f90_kind.F90
@@ -41,18 +53,8 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_dnsqe.F90
                                   source/mod_progress.F90
                                   source/EnergyIntegration.F90
-                                  source/AtomTypes.F90
-                                  source/mod_System.F90
-                                  source/mod_monoBasis.F90
-                                  source/mod_polyBasis.F90
-                                  source/Lattice.F90
-                                  source/mod_BrillouinZone.F90
-                                  source/mod_SOC.F90
-                                  source/SK_TightBinding.F90
-                                  source/TightBinding.F90
-                                  source/mod_magnet.F90
-                                  source/ElectricField.F90
-                                  source/mod_io.F90
+																	source/SK_TightBinding.F90
+																	source/TightBinding.F90
                                   source/mod_self_consistency.F90
                                   source/mod_susceptibilities.F90
                                   source/mod_alpha.F90
