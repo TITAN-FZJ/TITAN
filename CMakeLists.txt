@@ -41,10 +41,6 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/fermi_surface.F90
                                   source/Npl_variables.F90
                                   source/build_rotation_matrices.F90
-<<<<<<< HEAD
-=======
-                                  source/L_gs.F90
->>>>>>> 57e4d0c47cae76b2a83f2edf2274bb28022f8286
                                   source/check_emergency_stop.F90
                                   source/band_structure.F90
                                   source/mod_f90_kind.F90
