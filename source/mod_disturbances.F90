@@ -1,12 +1,17 @@
 module mod_disturbances
-  use mod_f90_kind
+  use mod_f90_kind, only: double
   implicit none
   ! Disturbances and renormalized disturbances: chd,sdx,sdy,sdz,ldx,ldy,ldz
-  complex(double),allocatable   :: disturbances(:,:),rdisturbances(:,:)
-  ! Full response functions
+  complex(double),allocatable   :: disturbances(:,:)
+  !! Disturbances
+  complex(double),allocatable   :: rdisturbances(:,:)
+  !! Renormalized disturbances
   complex(double), dimension(:,:),   allocatable :: tchiorbiikl
+  !! Full disturbance response functions
   complex(double), dimension(:,:,:), allocatable :: ldmat
+  !! tbd.
   complex(double),dimension(:),allocatable       :: sdmat
+  !! tbd.
 contains
 
   subroutine allocate_disturbances()

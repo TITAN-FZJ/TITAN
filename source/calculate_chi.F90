@@ -49,6 +49,7 @@ subroutine calculate_chi()
     ! Start parallelized processes to calculate chiorb_hf and chiorbi0_hf for energy e
     call eintshechi(e)
 
+    ! From here on all other processes except for myrank_row == 0 are idle :/
     if(myrank_row==0) then
       ! (1 + chi_hf*Umat)^-1
       temp = identt

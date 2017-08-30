@@ -108,8 +108,12 @@ subroutine calculate_dc_limit()
     end if
 
     ! Start parallelized processes to calculate disturbances and currents for energy e
-    !call eintshe(e) TODO: Re-Include
-
+    if(llinearsoc) then
+      call eintshelinearsoc(e)
+    else
+      call eintshe(e)
+    end if
+    
     if(myrank_row_hw==0) call write_time(outputunit_loop,'[calculate_dc_limit] Time after energy integral: ')
 
     if(myrank_row==0) then

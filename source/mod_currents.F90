@@ -2,11 +2,25 @@ module mod_currents
   use mod_f90_kind
   implicit none
   ! Currents, total currents and renormalized currents: Ich, Isx, Isy, Isz, Ilx, Ily,Ilz
-  complex(double),allocatable   :: currents(:,:,:),total_currents(:,:),rcurrents(:,:,:),rtotal_currents(:,:)
+  complex(double),allocatable :: currents(:,:,:)
+  !! Currents
+  complex(double),allocatable :: total_currents(:,:)
+  !! Total Currents
+  complex(double),allocatable :: rcurrents(:,:,:)
+  !! Renormalized Currents
+  complex(double),allocatable :: rtotal_currents(:,:)
+  !! Total renormalized currents
+
   real(double),allocatable      :: dc_currents(:,:)
   ! Full response functions
-  complex(double), dimension(:,:,:), allocatable :: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl
-
+  complex(double), dimension(:,:,:), allocatable :: ttchiorbiikl
+  !! Currents response function
+  complex(double), dimension(:,:,:), allocatable :: Lxttchiorbiikl
+  !! Orbital Current Lx response function
+  complex(double), dimension(:,:,:), allocatable :: Lyttchiorbiikl
+  !! Orbital Current Ly response function
+  complex(double), dimension(:,:,:), allocatable :: Lzttchiorbiikl
+  !! Orbital Current Lz response function
 
 
 contains

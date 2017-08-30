@@ -115,7 +115,11 @@ subroutine calculate_all()
     end if
 
     ! Start parallelized processes to calculate all quantities for energy e
-    !call eintshe(e) !TODO: Re-Include
+    if(llinearsoc) then
+      call eintshelinearsoc(e)
+    else
+      call eintshe(e)
+    end if
 
     if(myrank_row_hw==0) call write_time(outputunit_loop,'[calculate_all] Time after energy integral: ')
 

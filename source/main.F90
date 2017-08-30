@@ -283,7 +283,7 @@ program TITAN
     case (5)
       if(myrank_row_hw==0) call fermi_surface(Ef)
     case (6)
-      !call coupling() !TODO: Re-Include
+      call coupling()
     case (7)
       call calculate_chi()
     case (8)
