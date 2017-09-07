@@ -7,11 +7,11 @@ module mod_disturbances
   complex(double),allocatable   :: rdisturbances(:,:)
   !! Renormalized disturbances
   complex(double), dimension(:,:),   allocatable :: tchiorbiikl
-  !! Full disturbance response functions
+  !! Full disturbance response function
   complex(double), dimension(:,:,:), allocatable :: ldmat
-  !! tbd.
+  !! Angular Momentum Disturbance Matrix
   complex(double),dimension(:),allocatable       :: sdmat
-  !! tbd.
+  !! Spin Disturbance Matrix
 contains
 
   subroutine allocate_disturbances()

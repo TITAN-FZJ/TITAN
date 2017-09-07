@@ -4,7 +4,7 @@ subroutine calculate_all()
   use mod_f90_kind, only: double
   use mod_constants, only: zero, zum, zi, levi_civita
   use mod_parameters, only: lnodiag, renorm, U, offset, outputunit_loop, outputunit, laddresults, skip_steps, count, lhfresponses, sigmaimunu2i, emin, emax, deltae, npt1, dim, sigmai2i, dimsigmanpl
-  use mod_magnet, only: lfield, mtheta, mphi, hhwx, hhwy, hhwz, mx, my, mz, lxp, lyp, lzp, mvec_spherical, total_hw_npt1, hw_count
+  use mod_magnet, only: lfield, mtheta, mphi, hhwx, hhwy, hhwz, mx, my, mz, lxp, lyp, lzp, lx, ly, lz, mvec_spherical, total_hw_npt1, hw_count
   use mod_SOC, only: llinearsoc
   use mod_System, only: s => sys
   use mod_prefactors, only: prefactor, prefactorlsoc, &
@@ -66,10 +66,10 @@ subroutine calculate_all()
   ! Calculates matrices hopping x angular momentum matrix for orbital angular momentum current calculation
   !call OAM_curr_hopping_times_L() !TODO:Re-Include
 
-! ! Calculating diamagnetic current contribution in the first 'pn1' processes (final result is on myrank = 0 only)
-! call calculate_idia()
-! call MPI_Finalize(ierr)
-! stop
+  ! ! Calculating diamagnetic current contribution in the first 'pn1' processes (final result is on myrank = 0 only)
+  ! call calculate_idia()
+  ! call MPI_Finalize(ierr)
+  ! stop
 
   if((myrank==0).and.(skip_steps>0)) write(outputunit,"('[calculate_all] Skipping first ',i0,' step(s)...')") skip_steps
 
@@ -125,8 +125,10 @@ subroutine calculate_all()
 
     if(myrank_row==0) then
 
+      ! Calculating the full matrix of RPA and HF susceptibilities for energy e
       if(.not.lhfresponses) then
-        ! Calculating the full matrix of RPA and HF susceptibilities for energy e
+
+        ! Calculate RPA susceptibility
         if(llinearsoc) then
           ! chiorb = prefactorlsoc*chi_hf + prefactor*chi_hflsoc
           call zgemm('n','n',dim,dim,dim,zum,prefactorlsoc,dim,chiorb_hf,dim,zero,chiorb,dim)
@@ -140,11 +142,11 @@ subroutine calculate_all()
         schihf = zero
         ! Calculating RPA and HF susceptibilities
         do j = 1, s%nAtoms
-          do nu = 1, 9
-            do i = 1, s%nAtoms
-              do mu = 1, 9
-                do sigmap = 1, 4
-                  do sigma = 1, 4
+          do i = 1, s%nAtoms
+            do sigmap = 1, 4
+              do sigma = 1, 4
+                do nu = 1, 9
+                  do mu = 1, 9
                     schi  (sigma,sigmap,i,j) = schi(sigma,sigmap,i,j)   + chiorb(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
                     schihf(sigma,sigmap,i,j) = schihf(sigma,sigmap,i,j) + chiorb_hf(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
                   end do
@@ -180,8 +182,8 @@ subroutine calculate_all()
             end do
           end do
         end if
+      ! Calculating only HF susceptibilities for energy e
       else
-        ! Calculating HF susceptibilities for energy e
         if(llinearsoc) then
           chiorb = chiorb_hf + chiorb_hflsoc
         else
@@ -227,12 +229,12 @@ subroutine calculate_all()
 
       ! Calculating inverse susceptibility to use on Beff calculation
       chiinv = zero
-      do nu = 1, 9
+      do i = 1, s%nAtoms
         do j = 1, s%nAtoms
           do sigmap = 1, 4
-            do mu = 1, 9
-              do i = 1, s%nAtoms
-                do sigma = 1, 4
+            do sigma = 1, 4
+              do nu = 1, 9
+                do mu = 1, 9
                   chiinv(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = chiinv(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + chiorb(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))    ! +- , up- , down- , --
                 end do
               end do
@@ -260,13 +262,13 @@ subroutine calculate_all()
         sdmat(sigmai2i(3,i)) = disturbances(1,i) - disturbances(4,i)    ! down = 0 - z
         sdmat(sigmai2i(4,i)) = disturbances(2,i) - zi*disturbances(3,i) ! -    = x - iy
 
-        ! Orbital angular momentum disturbance
+        ! Orbital angular momentum disturbance in the global frame
         do nu = 1, 9
           do mu = 1, 9
             ldmat(i,mu,nu) = tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3)
-            disturbances(5,i) = disturbances(5,i) + lxp(mu,nu)*ldmat(i,mu,nu)
-            disturbances(6,i) = disturbances(6,i) + lyp(mu,nu)*ldmat(i,mu,nu)
-            disturbances(7,i) = disturbances(7,i) + lzp(mu,nu)*ldmat(i,mu,nu)
+            disturbances(5,i) = disturbances(5,i) + lx(mu,nu)*ldmat(i,mu,nu)
+            disturbances(6,i) = disturbances(6,i) + ly(mu,nu)*ldmat(i,mu,nu)
+            disturbances(7,i) = disturbances(7,i) + lz(mu,nu)*ldmat(i,mu,nu)
           end do
         end do
 
@@ -274,14 +276,14 @@ subroutine calculate_all()
         do nu = 1, 9
           do mu = 1, 9
             ! x component: (Ly*Sz - Lz*Sy)/2
-            torques(1,1,i) = torques(1,1,i) + (   lyp(mu,nu)*(tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3))) &
-                                        + (zi*lzp(mu,nu)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
+            torques(1,1,i) = torques(1,1,i) + (   lyp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3))) &
+                                            + (zi*lzp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
             ! y component: (Lz*Sx - Lx*Sz)/2
-            torques(1,2,i) = torques(1,2,i) + (   lzp(mu,nu)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3))) &
-                                        - (   lxp(mu,nu)*(tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3)))
+            torques(1,2,i) = torques(1,2,i) + (lzp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3))) &
+                                            - (lxp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3)))
             ! z component: (Lx*Sy - Ly*Sx)/2
-            torques(1,3,i) = torques(1,3,i) - (zi*lxp(mu,nu)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3))) &
-                                        - (   lyp(mu,nu)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
+            torques(1,3,i) = torques(1,3,i) - (zi*lxp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3))) &
+                                            - (   lyp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
           end do
         end do
         torques(1,:,i) = 0.5d0*s%Types(s%Basis(i)%Material)%Lambda*torques(1,:,i)

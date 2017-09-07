@@ -7,8 +7,8 @@ module mod_magnet
 
   integer                     :: iter                                   ! self-consistency iteration
   real(double),allocatable    :: mx(:),my(:),mz(:),mvec_cartesian(:,:),hdel(:)    ! Magnetization and exchange split delta/2
-  real(double),allocatable    :: lxm(:),lym(:),lzm(:)                   ! Orbital angular momentum in lattice frame of reference
-  real(double),allocatable    :: lxpm(:),lypm(:),lzpm(:)                ! Orbital angular momentum in spin frame of reference
+  real(double),allocatable    :: lxm(:),lym(:),lzm(:)                   ! Orbital angular momentum in global frame of reference
+  real(double),allocatable    :: lxpm(:),lypm(:),lzpm(:)                ! Orbital angular momentum in local frame of reference
   complex(double),allocatable :: mp(:),hdelp(:)
   complex(double),allocatable :: mm(:),hdelm(:)
   real(double),allocatable    :: mabs(:),mtheta(:),mphi(:),mvec_spherical(:,:)
@@ -16,8 +16,12 @@ module mod_magnet
   real(double),allocatable    :: lpabs(:),lptheta(:),lpphi(:)
   real(double),allocatable    :: eps1(:)                                ! Center of the bands for each l - eps(Npl)
   real(double), dimension(:), allocatable :: hhwx, hhwy, hhwz           ! Static magnetic fields in each direction
-  complex(double), dimension(:,:,:), allocatable :: lb, sb              ! Zeeman matrices
-  complex(double), dimension(:,:), allocatable :: lxp, lyp, lzp         ! Angular momentum matrices in spin coordinate system
+  complex(double), dimension(:,:,:), allocatable :: lb, sb
+  !! Zeeman matrices
+  complex(double), dimension(:,:,:), allocatable :: lxp, lyp, lzp
+  !! Site dependent Angular momentum matrices in local frame
+  complex(double), dimension(:,:), allocatable :: lx, ly, lz
+  !! Angular momentum matrices in global frame
 
   !========================================================================================!
   ! Values of magnetic field in cartesian or spherical coordinates
@@ -80,7 +84,6 @@ contains
         hwp_s = (hwp_f - hwp_i)/hwp_npts
         if(abs(hwp_s) <= 1.d-10) hwp_npt1 = 1
       else ! hwa_i and hwa_f = 0
-        ! Cartesian coordinates on spin system of reference
         hwa_i   = sqrt(hwx**2+hwy**2+hwz**2)
         hwa_f   = hwa_i
         if(abs(hwa_i)<1.d-8) then
@@ -201,7 +204,7 @@ contains
     if((lfield).and.(.not.lnolb)) then
       allocate(lbsigma(nOrbs, nOrbs))
       do i=1, nAtoms
-        lbsigma(1:nOrbs, 1:nOrbs) = 0.5d0*(lxp*hhwx(i) + lyp*hhwy(i) + lzp*hhwz(i))
+        lbsigma(1:nOrbs, 1:nOrbs) = 0.5d0*(lx*hhwx(i) + ly*hhwy(i) + lz*hhwz(i))
         lb(1:nOrbs, 1:nOrbs, i) = lbsigma(:,:)
         lb(nOrbs+1:2*nOrbs, nOrbs+1:2*nOrbs, i) = lbsigma(:,:)
       end do
@@ -241,22 +244,24 @@ contains
   end subroutine sb_matrix
 
   ! This subroutine calculate the orbital angular momentum matrix in the cubic system of coordinates
-  subroutine l_matrix(Lx,Ly,Lz)
+  subroutine l_matrix()
     use mod_f90_kind
     use mod_constants
+    use TightBinding, only: nOrb
     implicit none
-    complex(double), dimension(9,9), intent(out) :: Lx,Ly,Lz
     complex(double), dimension(9,9) :: Lp,Lm
 
-    Lz = zero
+    allocate(lx(nOrb, nOrb), ly(nOrb,nOrb), lz(nOrb,nOrb))
 
-    Lz(2,3) = -zi
-    Lz(3,2) = zi
+    lz = zero
 
-    Lz(5,8) = 2.d0*zi
-    Lz(8,5) = -2.d0*zi
-    Lz(6,7) = zi
-    Lz(7,6) = -zi
+    lz(2,3) = -zi
+    lz(3,2) = zi
+
+    lz(5,8) = 2.d0*zi
+    lz(8,5) = -2.d0*zi
+    lz(6,7) = zi
+    lz(7,6) = -zi
 
     Lp = zero
     Lm = zero
@@ -285,8 +290,8 @@ contains
 
     Lm = transpose(conjg(Lp))
 
-    Lx = 0.5d0*(Lp+Lm)
-    Ly = -0.5d0*zi*(Lp-Lm)
+    lx = 0.5d0*(Lp+Lm)
+    ly = -0.5d0*zi*(Lp-Lm)
 
     return
   end subroutine l_matrix
@@ -295,20 +300,20 @@ contains
   subroutine lp_matrix(theta, phi)
     use mod_f90_kind, only: double
     use TightBinding, only: nOrb
+    use mod_System, only: s => sys
     implicit none
-    real(double), intent(in) :: theta, phi
-    complex(double), dimension(nOrb, nOrb) :: Lx,Ly,Lz
+    real(double), dimension(s%nAtoms), intent(in) :: theta, phi
 
     if(allocated(lxp)) deallocate(lxp)
     if(allocated(lyp)) deallocate(lyp)
     if(allocated(lzp)) deallocate(lzp)
-    allocate(lxp(nOrb,nOrb), lyp(nOrb,nOrb), lzp(nOrb,nOrb))
+    allocate(lxp(nOrb,nOrb,s%nAtoms), lyp(nOrb,nOrb,s%nAtoms), lzp(nOrb,nOrb,s%nAtoms))
 
-    call l_matrix(Lx, Ly, Lz)
-
-    lxp = (Lx*cos(theta)*cos(phi))+(Ly*cos(theta)*sin(phi))-(Lz*sin(theta))
-    lyp =-(Lx*sin(phi))+(Ly*cos(phi))
-    lzp = (Lx*sin(theta)*cos(phi))+(Ly*sin(theta)*sin(phi))+(Lz*cos(theta))
+    do i = 1, s%nAtoms
+      lxp(i) = (lx*cos(theta(i))*cos(phi(i)))+(ly*cos(theta(i))*sin(phi(i)))-(lz*sin(theta(i)))
+      lyp(i) =-(lx*sin(phi(i)))+(ly*cos(phi(i)))
+      lzp(i) = (lx*sin(theta(i))*cos(phi(i)))+(ly*sin(theta(i))*sin(phi(i)))+(lz*cos(theta(i)))
+    end do
 
     return
   end subroutine lp_matrix

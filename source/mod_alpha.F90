@@ -5,13 +5,38 @@ module mod_alpha
   complex(double), dimension(:,:),   allocatable :: m_chi, m_chi_hf, m_chi_inv, m_chi_hf_inv
 
 contains
-  subroutine open_alpha_files()
-    use mod_parameters, only: fieldpart, suffix, eta, Utype, Npl_folder
-    use mod_SOC, only: SOCc, socpart
-    use mod_system, only: s => sys
-    use EnergyIntegration, only: strEnergyParts
+
+  subroutine allocate_alpha()
+    use mod_System, only: s => sys
+    use mod_mpi_pars, only: abortProgram
+    implicit none
+    integer :: AllocateStatus
+    allocate(m_chi       (4*s%nAtoms,4*s%nAtoms), &
+             m_chi_hf    (4*s%nAtoms,4*s%nAtoms), &
+             m_chi_inv   (4*s%nAtoms,4*s%nAtoms), &
+             m_chi_hf_inv(4*s%nAtoms,4*s%nAtoms), stat = AllocateStatus)
+    if(AllocateStatus /= 0) call abortProgram("[allocate_alpha] Not enough memory for: m_chi, m_chi_hf, m_chi_inv, m_chi_hf_inv")
+
+    return
+  end subroutine allocate_alpha
+
+  subroutine deallocate_alpha()
     implicit none
 
+    if(allocated(m_chi)) deallocate(m_chi)
+    if(allocated(m_chi_hf)) deallocate(m_chi_hf)
+    if(allocated(m_chi_inv)) deallocate(m_chi_inv)
+    if(allocated(m_chi_hf_inv)) deallocate(m_chi_hf_inv)
+
+    return
+  end subroutine deallocate_alpha
+
+  subroutine create_alpha_files()
+    use mod_System, only: s => sys
+    use mod_parameters, only: Npl_folder, eta, Utype, suffix, fieldpart
+    use mod_SOC, only: SOCc, socpart
+    use EnergyIntegration, only: strEnergyParts
+    implicit none
     character(len=500)  :: varm
     integer :: i
 
@@ -33,10 +58,46 @@ contains
       write(unit=55+3*s%nAtoms+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ,  A+-  ,  A++')")
     end do
 
-    allocate(m_chi       (4*s%nAtoms,4*s%nAtoms), &
-             m_chi_hf    (4*s%nAtoms,4*s%nAtoms), &
-             m_chi_inv   (4*s%nAtoms,4*s%nAtoms), &
-             m_chi_hf_inv(4*s%nAtoms,4*s%nAtoms))
+    return
+
+  end subroutine create_alpha_files
+
+  subroutine open_alpha_files()
+    use mod_parameters, only: fieldpart, suffix, eta, Utype, Npl_folder
+    use mod_SOC, only: SOCc, socpart
+    use mod_system, only: s => sys
+    use EnergyIntegration, only: strEnergyParts
+    use mod_mpi_pars, only: abortProgram
+    implicit none
+
+    character(len=500) :: varm
+    character(len=500) :: missing_files
+    integer :: i, err, errt
+    errt = 0
+
+    do i=1, s%nAtoms
+      write(varm,"('./results/',a1,'SOC/',a,'/A/chi_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+      open (unit=55+           i, file=varm, status='old', position='append', form='formatted', iostat=err)
+      errt = errt + err
+      if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+
+      write(varm,"('./results/',a1,'SOC/',a,'/A/chi_hf',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+      open (unit=55+  s%nAtoms+i, file=varm, status='old', position='append', form='formatted', iostat=err)
+      errt = errt + err
+      if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+
+      write(varm,"('./results/',a1,'SOC/',a,'/A/chi_inv',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+      open (unit=55+2*s%nAtoms+i, file=varm, status='old', position='append', form='formatted', iostat=err)
+      errt = errt + err
+      if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+
+      write(varm,"('./results/',a1,'SOC/',a,'/A/chi_hf_inv',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+      open (unit=55+3*s%nAtoms+i, file=varm, status='old', position='append', form='formatted', iostat=err)
+      errt = errt + err
+      if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+    end do
+
+    if(errt/=0) call abortProgram("[open_alpha_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
 
     return
   end subroutine open_alpha_files
@@ -49,8 +110,6 @@ contains
     do i = 1, s%nAtoms
       close(unit=55+i)
     end do
-
-    deallocate(m_chi, m_chi_hf, m_chi_inv, m_chi_hf_inv)
 
     return
   end subroutine close_alpha_files
@@ -66,6 +125,9 @@ contains
     real(double) :: e
     complex(double) :: axx, axy, axx_hf, axy_hf, axx_inv, axy_inv, axx_hf_inv, axy_hf_inv
     integer :: i,j,sigma, sigmap
+
+    call open_alpha_files()
+
     do i = 1, s%nAtoms
       do j = 1, s%nAtoms
         do sigma = 1, 4
@@ -96,6 +158,9 @@ contains
       write(55 + 3*s%nAtoms+i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx_hf_inv)/aimag(axy_hf_inv), e / (mabs(i) * aimag(axy_hf_inv)), -mabs(i)*aimag(axx_hf_inv) / e
     end do
 
+    call close_alpha_files()
+
+    return
   end subroutine write_alpha
 
 

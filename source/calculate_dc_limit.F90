@@ -3,7 +3,7 @@
 subroutine calculate_dc_limit()
   use mod_constants,       only: zero, zum, zi, levi_civita, tpi
   use mod_parameters, only: sigmaimunu2i, sigmai2i, dimsigmaNpl, U, offset, lnodiag, outputunit, count, emin, deltae, outputunit_loop, npt1, laddresults, lhfresponses, dim
-  use mod_magnet,          only: lfield, dcfield_dependence, dc_count, dcfield, hw_count, mtheta, mphi, lxp, lyp, lzp, mx, my, mz, mvec_spherical, hhwx, hhwy, hhwz
+  use mod_magnet,          only: lfield, dcfield_dependence, dc_count, dcfield, hw_count, mtheta, mphi, lxp, lyp, lzp, lx, ly, lz, mx, my, mz, mvec_spherical, hhwx, hhwy, hhwz
   use mod_SOC, only: llinearsoc
   use mod_System, only: s => sys
   use mod_prefactors, only: prefactor, prefactorlsoc, &
@@ -113,7 +113,7 @@ subroutine calculate_dc_limit()
     else
       call eintshe(e)
     end if
-    
+
     if(myrank_row_hw==0) call write_time(outputunit_loop,'[calculate_dc_limit] Time after energy integral: ')
 
     if(myrank_row==0) then
@@ -250,13 +250,13 @@ subroutine calculate_dc_limit()
         sdmat(sigmai2i(3,i)) = disturbances(1,i) - disturbances(4,i)    ! down = 0 - z
         sdmat(sigmai2i(4,i)) = disturbances(2,i) - zi*disturbances(3,i) ! -    = x - iy
 
-        ! Orbital angular momentum disturbance
+        ! Orbital angular momentum disturbance in the global frame
         do nu = 1, 9
           do mu = 1, 9
             ldmat(i,mu,nu) = tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3)
-            disturbances(5,i) = disturbances(5,i) + lxp(mu,nu)*ldmat(i,mu,nu)
-            disturbances(6,i) = disturbances(6,i) + lyp(mu,nu)*ldmat(i,mu,nu)
-            disturbances(7,i) = disturbances(7,i) + lzp(mu,nu)*ldmat(i,mu,nu)
+            disturbances(5,i) = disturbances(5,i) + lx(mu,nu)*ldmat(i,mu,nu)
+            disturbances(6,i) = disturbances(6,i) + ly(mu,nu)*ldmat(i,mu,nu)
+            disturbances(7,i) = disturbances(7,i) + lz(mu,nu)*ldmat(i,mu,nu)
           end do
         end do
 
@@ -264,14 +264,14 @@ subroutine calculate_dc_limit()
         do nu = 1, 9
           do mu = 1, 9
             ! x component: (Ly*Sz - Lz*Sy)/2
-            torques(1,1,i) = torques(1,1,i) + (   lyp(mu,nu)*(tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3))) &
-                                        + (zi*lzp(mu,nu)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
+            torques(1,1,i) = torques(1,1,i) + (   lyp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3))) &
+                                        + (zi*lzp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
             ! y component: (Lz*Sx - Lx*Sz)/2
-            torques(1,2,i) = torques(1,2,i) + (   lzp(mu,nu)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3))) &
-                                        - (   lxp(mu,nu)*(tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3)))
+            torques(1,2,i) = torques(1,2,i) + (   lzp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3))) &
+                                        - (   lxp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3)))
             ! z component: (Lx*Sy - Ly*Sx)/2
-            torques(1,3,i) = torques(1,3,i) - (zi*lxp(mu,nu)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3))) &
-                                        - (   lyp(mu,nu)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
+            torques(1,3,i) = torques(1,3,i) - (zi*lxp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3))) &
+                                        - (   lyp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
           end do
         end do
         torques(1,:,i) = 0.5d0*s%Types(s%Basis(i)%Material)%Lambda*torques(1,:,i)

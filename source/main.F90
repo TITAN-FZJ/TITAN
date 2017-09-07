@@ -159,8 +159,8 @@ program TITAN
     !------- Writing parameters and data to be calculated on screen --------
     if(myrank_row_hw==0) call iowrite(sys)
 
-    !---- L matrix in spin coordinates for given quantization direction ----
-    call lp_matrix(theta, phi)
+    !---- L matrix in global frame for given quantization direction ----
+    call l_matrix()
 
     !------ Calculate L.S matrix for the given quantization direction ------
     call initLS(theta, phi, nOrb)
@@ -229,6 +229,7 @@ program TITAN
       ! call debugging()
     end if
 
+    call create_folder()
     !--------------------------- Self-consistency --------------------------
     ! Trying to read previous shifts and m from files
     call read_previous_results(lsuccess)
@@ -247,6 +248,10 @@ program TITAN
 
     ! Writing new eps1 and mz to file after self-consistency is done
     if(.not.lontheflysc) call write_sc_results()
+
+
+    !---- L matrix in local frame for given quantization direction ----
+    call lp_matrix(mtheta, mphi)
 
     ! Calculating ground state Orbital Angular Momentum
     if(lGSL) call calcLGS()

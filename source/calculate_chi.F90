@@ -10,7 +10,7 @@ subroutine calculate_chi()
                                   build_identity_and_U_matrix, diagonalize_susceptibilities, &
                                   create_chi_files, write_susceptibilities, &
                                   allocate_susceptibilities, deallocate_susceptibilities
-  use mod_alpha, only: open_alpha_files, close_alpha_files, write_alpha
+  use mod_alpha, only: create_alpha_files, write_alpha, allocate_alpha, deallocate_alpha
   use mod_system, only: s => sys
   use TightBinding, only: nOrb
   use mod_progress, only: write_time
@@ -20,6 +20,8 @@ subroutine calculate_chi()
   real(double)      :: e
   complex(double), dimension(:,:),   allocatable :: temp
   call allocate_susceptibilities()
+  call allocate_alpha()
+
   if(myrank_row==0) allocate(temp(dim,dim))
   if(myrank==0) then
     write(outputunit_loop,"('CALCULATING LOCAL SUSCEPTIBILITY AS A FUNCTION OF ENERGY')")
@@ -27,8 +29,8 @@ subroutine calculate_chi()
     ! Creating files and writing headers
     if(.not.laddresults) then
       call create_chi_files()
+      call create_alpha_files
     end if
-    call open_alpha_files()
   end if
 
   ! Mounting U and identity matrix
@@ -124,7 +126,7 @@ subroutine calculate_chi()
         write(time,"('[calculate_chi] Time after step ',i0,': ')") count
         call write_time(outputunit_loop,time)
 
-        ! Emergency stop
+        ! ! Emergency stop
         ! open(unit=911, file="stop", status='old', iostat=iw)
         ! if(iw==0) then
         !   close(911)
@@ -141,16 +143,12 @@ subroutine calculate_chi()
   end do
 
   ! Sorting results on files
-  if(myrank==0) then
-    !call close_chi_files() !Should not be necessary since files gets closed after each write
-    call close_alpha_files()
-    call sort_all_files()
-  end if
+  if(myrank==0) call sort_all_files()
 
   call deallocate_susceptibilities()
-  if(myrank_row==0) then
-    deallocate(temp)
-  end if
+  call deallocate_alpha()
+
+  if(myrank_row==0) deallocate(temp)
 
   return
 end subroutine calculate_chi

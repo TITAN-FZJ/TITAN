@@ -33,8 +33,10 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/ldos_jij_energy.F90
                                   source/coupling.F90
                                   source/jij_energy.F90
-																	source/eintshechi.F90
-																	source/eintshe.F90
+				  source/createFolder.F90													
+source/eintshechi.F90
+																		
+source/eintshe.F90
                                   source/calculate_chi.F90
 																	source/calculate_all.F90
 																	source/calculate_dc_limit.F90

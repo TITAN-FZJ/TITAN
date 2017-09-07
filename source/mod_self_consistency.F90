@@ -535,7 +535,6 @@ contains
 
     call MPI_Allreduce(MPI_IN_PLACE, gupgdint, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_Comm_Row_hw, ierr)
 
-    call l_matrix(lx,ly,lz)
 
     lxpm = 0.d0
     lypm = 0.d0
@@ -546,9 +545,9 @@ contains
     do nu=5,9
       do mu=5,9
         do i=1,s%nAtoms
-          lxpm(i) = lxpm(i) + real(lxp(mu,nu)*gupgdint(i,nu,mu))
-          lypm(i) = lypm(i) + real(lyp(mu,nu)*gupgdint(i,nu,mu))
-          lzpm(i) = lzpm(i) + real(lzp(mu,nu)*gupgdint(i,nu,mu))
+          lxpm(i) = lxpm(i) + real(lxp(mu,nu,i)*gupgdint(i,nu,mu))
+          lypm(i) = lypm(i) + real(lyp(mu,nu,i)*gupgdint(i,nu,mu))
+          lzpm(i) = lzpm(i) + real(lzp(mu,nu,i)*gupgdint(i,nu,mu))
           lxm(i)  = lxm(i)  + real(lx (mu,nu)*gupgdint(i,nu,mu))
           lym(i)  = lym(i)  + real(ly (mu,nu)*gupgdint(i,nu,mu))
           lzm(i)  = lzm(i)  + real(lz (mu,nu)*gupgdint(i,nu,mu))
@@ -741,12 +740,12 @@ contains
       if(abs(mp(i))/=0) write(outputunit_loop,"(12x,'theta =',f11.8,' pi',4x,'phi =',f11.8,' pi')") mtheta(i),mphi(i)
     end do
     if(lGSL) then
-      write(outputunit_loop,"(11x,' *** Orbital components in spin coordinates:  ***')")
+      write(outputunit_loop,"(11x,' *** Orbital components in local frame:  ***')")
       do i=1,s%nAtoms
         write(outputunit_loop,"(4x,'Lxp(',i2.0,')=',f11.8,4x,'Lyp(',i2.0,')=',f11.8,4x,'Lzp(',i2.0,')=',f11.8)") i,lxpm(i),i,lypm(i),i,lzpm(i)
         if(sqrt(lxpm(i)**2+lypm(i)**2)/=0) write(outputunit_loop,"(12x,'theta =',f11.8,' pi',4x,'phi =',f11.8,' pi')") lptheta(i),lpphi(i)
       end do
-      write(outputunit_loop,"(11x,' *** Orbital components in cubic coordinates: ***')")
+      write(outputunit_loop,"(11x,' *** Orbital components in global frame: ***')")
       do i=1,s%nAtoms
         write(outputunit_loop,"(4x,'Lx (',i2.0,')=',f11.8,4x,'Ly (',i2.0,')=',f11.8,4x,'Lz (',i2.0,')=',f11.8)") i,lxm(i),i,lym(i),i,lzm(i)
       end do
