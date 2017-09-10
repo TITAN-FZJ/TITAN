@@ -8,15 +8,13 @@ subroutine dtdksub(kp,dtdk)
   use mod_f90_kind, only: double
   use mod_constants, only: zero, zi
   use AtomTypes, only: NeighborIndex
-  use mod_system, only: ia, s => sys
+  use mod_system, only: s => sys
   use TightBinding, only: nOrb
-  use mod_parameters, only: offset
   use ElectricField, only: ElectricFieldVector
   implicit none
   integer :: i, j, k
   real(double), intent(in)  :: kp(3)
   complex(double),dimension(s%nAtoms,s%nAtoms,nOrb,nOrb),intent(out)  :: dtdk
-  complex(double) :: tmp(nOrb, nOrb)
   complex(double) :: kpExp
   dtdk = zero
 

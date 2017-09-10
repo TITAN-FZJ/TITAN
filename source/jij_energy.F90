@@ -2,7 +2,7 @@
 subroutine jij_energy(Jij)
   use mod_f90_kind, only: double
   use mod_constants, only: pi, zum, zero, pauli_dorb
-  use mod_parameters, only: mmlayermag, U, lverbose, q, mmlayermag, outputunit, nmaglayers, Ef, outputunit
+  use mod_parameters, only: mmlayermag, U, q, mmlayermag, outputunit, nmaglayers, Ef, outputunit
   use EnergyIntegration, only: pn1, y, wght
   use mod_mpi_pars
   use mod_progress

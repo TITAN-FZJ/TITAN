@@ -65,7 +65,7 @@ contains
                               lrotatemag, magaxis, magaxisvec, latticeName, itype, ry2ev, &
                               ltesla, eta, dmax, emin, emax, deltae, skip_steps, &
                               npts, npt1, renorm, renormnb, skipsc, scfile, bands, band_cnt, &
-                              offset, dfttype, Npl, Npl_i, Npl_f, suffix, tol, outputfile
+                              offset, dfttype, suffix, tol, outputfile
     use mod_system, only: System, pln_normal, n0sc1, n0sc2
     use mod_SOC, only: SOC, SOCc, socpart, socscale, llinearsoc, llineargfsoc
     use mod_magnet, only: lfield, tesla, hwa_i, hwa_f, hwa_npts, hwa_npt1, hwt_i, hwt_f, &
@@ -443,25 +443,26 @@ contains
       offset = 0
       dfttype = "S"
 
-      if(.not. get_parameter("layers", layers, cnt)) call log_error("get_parameters", "'layers' missing.")
-      if(cnt <= 0) call log_error("get_parameters", "'layers' No layers given.")
-      Npl = cnt
+      ! if(.not. get_parameter("layers", layers, cnt)) call log_error("get_parameters", "'layers' missing.")
+      ! if(cnt <= 0) call log_error("get_parameters", "'layers' No layers given.")
+      ! Npl = cnt
+      !
+      ! if(get_parameter("Npl", i_vector, cnt)) then
+      !   if(cnt < 1) call log_error("get_parameters","'Npl' doesn't contain any parameters.")
+      !   Npl_i = i_vector(1)
+      !   Npl_f = i_vector(1)
+      !   if(cnt >= 2) Npl_f = i_vector(2)
+      !   if(Npl_f < Npl_i) Npl_f = Npl_i
+      !   deallocate(i_vector)
+      !   if(Npl < Npl_f) call log_error("get_parameters", "'Npl' larger than amount of given layers")
+      ! else
+      !   call log_warning("get_parameters","'Npl' missing.")
+      !   Npl_i = Npl
+      !   Npl_f = Npl
+      ! end if
 
-      if(get_parameter("Npl", i_vector, cnt)) then
-        if(cnt < 1) call log_error("get_parameters","'Npl' doesn't contain any parameters.")
-        Npl_i = i_vector(1)
-        Npl_f = i_vector(1)
-        if(cnt >= 2) Npl_f = i_vector(2)
-        if(Npl_f < Npl_i) Npl_f = Npl_i
-        deallocate(i_vector)
-        if(Npl < Npl_f) call log_error("get_parameters", "'Npl' larger than amount of given layers")
-      else
-        call log_warning("get_parameters","'Npl' missing.")
-        Npl_i = Npl
-        Npl_f = Npl
-      end if
       if(.not. get_parameter("fermi_layer", fermi_layer)) call log_warning("get_parameters", "'fermi_layer' not given. Using fermi_layer = 1")
-      if(fermi_layer <= 0 .or. fermi_layer > Npl) call log_error("get_parameters", "'fermi_layer' out of range.")
+      !if(fermi_layer <= 0 .or. fermi_layer > Npl) call log_error("get_parameters", "'fermi_layer' out of range.")
 
     !--------------------------------------------- DFT ---------------------------------------------
     else if(2 == tbmode) then
@@ -675,7 +676,7 @@ contains
     case (6)
        write(outputunit_loop,"(1x,'Exhange interactions and anisotropies (full tensor)')")
        if(nmaglayers==1) write(outputunit_loop,"(1x,'Only 1 magnetic layer: calculating only anisotropies')")
-       write(outputunit_loop,"(8x,'from Npl = ',i0,' to ',i0)") Npl_i,Npl_f
+       !write(outputunit_loop,"(8x,'from Npl = ',i0,' to ',i0)") Npl_i,Npl_f
     case (7)
        write(outputunit_loop,"(1x,'Local susceptibility as a function of energy')")
        write(outputunit_loop,"(9x,'emin =',es9.2)") emin

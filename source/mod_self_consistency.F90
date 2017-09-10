@@ -17,11 +17,13 @@ contains
     use mod_susceptibilities, only: lrot
     implicit none
     real(double),allocatable      :: fvec(:),jac(:,:),wa(:),sc_solu(:)
-    real(double),allocatable      :: diag(:),qtf(:),w(:,:)
+    real(double),allocatable      :: diag(:),qtf(:)
     real(double)                  :: epsfcn,factor
 #if !defined(_OSX) && !defined(_JUQUEEN)
     real(double)                  :: ruser(1)
     integer                       :: iuser(1)
+#else
+    real(double),allocatable :: w(:,:)
 #endif
     integer                       :: i,neq,maxfev,ml,mr,mode,nfev,njev,lwa,ifail=0
 
@@ -451,7 +453,6 @@ contains
     use mod_mpi_pars
     !$  use omp_lib
     implicit none
-    complex(double), dimension(nOrb, nOrb)   :: lx,ly,lz
 
     integer :: AllocateStatus
     integer :: ix, iz
@@ -694,8 +695,7 @@ contains
     use mod_System, only: s => sys
     use mod_mpi_pars, only: myrank_row_hw
     implicit none
-    integer :: i,err,sign
-    logical :: lsuccess
+    integer :: i,sign
     real(double) :: mdotb
 
     if(myrank_row_hw==0) write(outputunit_loop,"('[rotate_magnetization_to_field] Rotating previous magnetization to the direction of the field...')")
@@ -887,14 +887,14 @@ contains
 
   subroutine write_sc_results()
     !! Writes the self-consistency results into files and broadcasts the scfile for the next iteration.
-    use mod_parameters, only: fieldpart, eta, U,Utype,scfile, outputunit_loop, Npl_folder, dfttype
+    use mod_parameters, only: fieldpart, eta, Utype,scfile, outputunit_loop, Npl_folder, dfttype
     use EnergyIntegration, only: parts
-    use mod_magnet, only: eps1, hdel, hdelm, hdelp, mp, mz, hw_count, mx, my, mz
+    use mod_magnet, only: eps1, mx, my, mz
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
     use mod_mpi_pars
     implicit none
-    integer             :: i
+    integer :: i
 
     if(myrank_row_hw == 0) then
       ! Writing new results (mx, my, mz and eps1) and mz to file

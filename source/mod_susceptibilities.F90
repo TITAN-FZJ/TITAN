@@ -205,7 +205,7 @@ contains
 
   subroutine create_chi_files()
   !! This subroutine creates all the files needed for the susceptibilities
-    use mod_parameters, only: fieldpart, nmaglayers, Npl_folder, suffix, eta, lnodiag, ltestcharge, lhfresponses, Utype, missing_files
+    use mod_parameters, only: fieldpart, nmaglayers, Npl_folder, suffix, eta, lnodiag, ltestcharge, lhfresponses, Utype
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
     use mod_mpi_pars, only: abortProgram
@@ -322,7 +322,6 @@ contains
     use mod_mpi_pars, only: abortProgram
     implicit none
 
-    character(len=500)  :: varm
     integer :: i,j,sigma,iw
 
     do sigma=1,4
@@ -404,7 +403,7 @@ contains
 
   subroutine create_dc_chi_files()
   !! This subroutine creates all the files needed for the dc-limit susceptibilities
-    use mod_parameters, only: count, dcfieldpart, lhfresponses, Npl_folder, eta, Utype, suffix, nmaglayers, lnodiag, missing_files
+    use mod_parameters, only: count, dcfieldpart, lhfresponses, Npl_folder, eta, Utype, suffix, nmaglayers, lnodiag
     use mod_magnet, only: dcprefix, dcfield_dependence, dcfield, dc_header
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
@@ -413,7 +412,7 @@ contains
     implicit none
     character(len=500)  :: varm
     character(len=2)    :: spin(4)
-    integer :: i,j,sigma,iw,err,errt=0
+    integer :: i,j,sigma,iw
 
     spin(1) = "pm"
     spin(2) = "um"
@@ -460,20 +459,14 @@ contains
   subroutine open_dc_chi_files()
   !! This subroutine opens all the files needed for the dc-limit susceptibilities
     use mod_parameters, only: count, dcfieldpart, lhfresponses, Npl_folder, eta, Utype, suffix, nmaglayers, lnodiag, missing_files
-    use mod_magnet, only: dcprefix, dcfield_dependence, dcfield, dc_header
+    use mod_magnet, only: dcprefix, dcfield_dependence, dcfield
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
     use mod_mpi_pars, only: abortProgram
     use EnergyIntegration, only: strEnergyParts
     implicit none
     character(len=500)  :: varm
-    character(len=2)    :: spin(4)
     integer :: i,j,sigma,iw,err,errt=0
-
-    spin(1) = "pm"
-    spin(2) = "um"
-    spin(3) = "dm"
-    spin(4) = "mm"
 
     do sigma=1,4
       do j=1,s%nAtoms
@@ -521,9 +514,7 @@ contains
     use mod_system, only: s => sys
     use mod_mpi_pars, only: abortProgram
     implicit none
-    character(len=500)  :: varm
-    character(len=2)    :: spin(4)
-    integer :: i,j,sigma,iw,err,errt=0
+    integer :: i,j,sigma,iw
 
     do sigma=1,4
       do j=1,s%nAtoms

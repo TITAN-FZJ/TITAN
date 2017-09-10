@@ -11,7 +11,7 @@ contains
  !! This subroutine allocates variables related to the effective field calculation
     use mod_f90_kind, only: double
     use mod_mpi_pars, only: abortProgram, myrank_row
-    use mod_parameters, only: dimsigmaNpl,outputunit
+    use mod_parameters, only: dimsigmaNpl
     implicit none
     integer :: AllocateStatus
 
@@ -25,7 +25,6 @@ contains
 
   subroutine deallocate_beff()
   !! This subroutine deallocates variables related to the effective field calculation
-    use mod_mpi_pars, only: myrank_row
     implicit none
 
     if(allocated(Beff)) deallocate(Beff)
@@ -37,7 +36,7 @@ contains
 
   subroutine create_beff_files()
   !! This subroutine creates all the files needed for the effective field
-    use mod_parameters, only: suffix, fieldpart, lhfresponses, Npl_folder, eta, Utype, missing_files
+    use mod_parameters, only: suffix, fieldpart, lhfresponses, Npl_folder, eta, Utype
     use mod_mpi_pars, only: abortProgram
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
@@ -49,7 +48,7 @@ contains
     character(len=7)    :: folder
     character(len=4)    :: filename
     character(len=1)    :: direction(4)
-    integer :: i,sigma,iw,iflag,err,errt=0
+    integer :: i,sigma,iw
 
     folder = "Beff"
     if(lhfresponses) folder = trim(folder) // "_HF"
@@ -87,7 +86,7 @@ contains
     character(len=7)    :: folder
     character(len=4)    :: filename
     character(len=1)    :: direction(4)
-    integer :: i,sigma,iw,iflag,err,errt=0
+    integer :: i,sigma,iw,err,errt=0
 
     folder = "Beff"
     if(lhfresponses) folder = trim(folder) // "_HF"
@@ -115,28 +114,10 @@ contains
 
   subroutine close_beff_files()
   !! This subroutine closes all the files needed for the effective field
-    use mod_parameters, only: suffix, fieldpart, lhfresponses, Npl_folder, eta, Utype, missing_files
-    use mod_mpi_pars, only: abortProgram
-    use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
-    use electricfield, only: strElectricField
-    use EnergyIntegration, only: strEnergyParts
     implicit none
 
-    character(len=500)  :: varm
-    character(len=7)    :: folder
-    character(len=4)    :: filename
-    character(len=1)    :: direction(4)
-    integer :: i,sigma,iw,iflag,err,errt=0
-
-    folder = "Beff"
-    if(lhfresponses) folder = trim(folder) // "_HF"
-    filename = "Beff"
-
-    direction(1) = "0"
-    direction(2) = "x"
-    direction(3) = "y"
-    direction(4) = "z"
+    integer :: i,sigma,iw
 
     do sigma = 1, 4
       do i = 1, s%nAtoms
@@ -188,7 +169,7 @@ contains
 
   subroutine create_dc_beff_files()
     !! This subroutine creates all the files needed for the effective field
-    use mod_parameters, only: lhfresponses,dcfieldpart, suffix, Npl_folder, Utype, eta, missing_files
+    use mod_parameters, only: lhfresponses,dcfieldpart, suffix, Npl_folder, Utype, eta
     use mod_magnet, only: dcprefix, dc_header, dcfield, dcfield_dependence
     use mod_mpi_pars, only: abortProgram
     use mod_SOC, only: SOCc, socpart
@@ -201,7 +182,7 @@ contains
     character(len=7)    :: folder
     character(len=4)    :: filename
     character(len=1)    :: direction(4)
-    integer :: i,sigma,iw,err,errt=0, count
+    integer :: i,sigma,iw, count
 
     folder = "Beff"
     if(lhfresponses) folder = trim(folder) // "_HF"
@@ -229,7 +210,7 @@ contains
   subroutine open_dc_beff_files()
   !! This subroutine opens all the files needed for the effective field
     use mod_parameters, only: lhfresponses,dcfieldpart, suffix, Npl_folder, Utype, eta, missing_files
-    use mod_magnet, only: dcprefix, dc_header, dcfield, dcfield_dependence
+    use mod_magnet, only: dcprefix, dcfield, dcfield_dependence
     use mod_mpi_pars, only: abortProgram
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
@@ -241,7 +222,7 @@ contains
     character(len=7)    :: folder
     character(len=4)    :: filename
     character(len=1)    :: direction(4)
-    integer :: i,sigma,iw,iflag,err,errt=0, count
+    integer :: i,sigma,iw,err,errt=0, count
 
     folder = "Beff"
     if(lhfresponses) folder = trim(folder) // "_HF"

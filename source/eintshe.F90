@@ -2,9 +2,9 @@
 subroutine eintshe(e)
   use mod_f90_kind, only: double
   use mod_constants,     only: zero, zum, zi, tpi
-  use mod_parameters, only: Ef, outputunit, outputunit_loop, dim, dimsigmaNpl,sigmaimunu2i, eta, sigmai2i, offset
+  use mod_parameters, only: Ef, dim, sigmaimunu2i, eta, sigmai2i, offset
   use TightBinding, only: nOrb
-  use mod_SOC, only: llineargfsoc, llinearsoc
+  use mod_SOC, only: llineargfsoc
   use EnergyIntegration, only: y, wght, nepoints, x2, p2, generate_real_epoints, pn1
   use mod_system, only: s => sys !, n0sc1, n0sc2
   use mod_prefactors,    only: prefactor !, lxpt, lypt, lzpt, tlxp, tlyp, tlzp
@@ -16,11 +16,9 @@ subroutine eintshe(e)
   !use mod_system,        only: r_nn, npln, nkpt, kbz, wkbz, n0sc1, n0sc2
   implicit none
 
-
-
-  integer           :: AllocateStatus
-  real(double)              :: start_time,elapsed_time,sizemat,speed
   real(double),intent(in)   :: e
+
+  integer :: AllocateStatus
   complex(double), dimension(:,:),allocatable         :: tFintiikl
   !complex(double), dimension(:,:,:), allocatable      :: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl TODO:Re-Include
 
@@ -36,7 +34,7 @@ subroutine eintshe(e)
   !--------------------- begin MPI vars --------------------
   integer :: ix, ix2, iz
   integer :: start, end, work, remainder, start1, end1, start2, end2
-  integer :: ncountkl,nncountkl
+  integer :: ncountkl !,nncountkl !TODO: Re-Include
   ncountkl = dim*4
   !nncountkl = n0sc*dimsigmaNpl*4 !TODO: Re-Include
   !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
@@ -386,8 +384,7 @@ end subroutine eintshe
 subroutine eintshelinearsoc(e)
   use mod_f90_kind, only: double
   use mod_constants, only: zero, zum, zi, tpi
-  use mod_parameters, only: outputunit, outputunit_loop, dim, dimsigmaNpl, Ef, eta, sigmai2i, sigmaimunu2i, offset
-  use mod_SOC, only: llinearsoc
+  use mod_parameters, only: dim, Ef, eta, sigmai2i, sigmaimunu2i, offset
   use TightBinding, only: nOrb
   use mod_system, only: s => sys
   use EnergyIntegration, only: y, wght, nepoints, x2, p2, generate_real_epoints, pn1
@@ -400,9 +397,8 @@ subroutine eintshelinearsoc(e)
   !use mod_currents,         only: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl !TODO: Re-Include
   !use mod_system,           only: n0sc1, n0sc2, n0sc
   implicit none
-  integer :: AllocateStatus
-  real(double) :: start_time,elapsed_time,sizemat,speed
   real(double),intent(in) :: e
+  integer :: AllocateStatus
   complex(double), dimension(:,:),allocatable :: tFintiikl
   !complex(double), dimension(:,:,:), allocatable :: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl !TODO: Re-Include
 
@@ -419,7 +415,7 @@ subroutine eintshelinearsoc(e)
 !--------------------- begin MPI vars --------------------
   integer :: ix,ix2, iz
   integer :: start, end, work, remainder, start1, end1, start2, end2
-  integer :: ncountkl,nncountkl
+  integer :: ncountkl !,nncountkl !TODO: Re-Include
   ncountkl = dim*4
   !nncountkl = n0sc*dimsigmaNpl*4 !TODO: Re-Include
 !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^

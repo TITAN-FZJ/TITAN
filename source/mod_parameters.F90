@@ -18,8 +18,8 @@ module mod_parameters
   !========================================================================================!
   ! Lattice and surface direction
   character(len=6) :: latticeName                   !< Lattice description; general or bcc, fcc, hcp, cubic
-  integer          :: Npl,Npl_i,Npl_f,Npl_input !< Description missing.
-  integer          :: Npl_total
+  !integer          :: Npl,Npl_i,Npl_f,Npl_input !< Description missing.
+  !integer          :: Npl_total
   logical          :: bulk = .false.            !< Flag turning on/off bulk calculations, default: .false., not used yet
   !========================================================================================!
   integer            :: magaxis                   !< Initial guess for magnetization

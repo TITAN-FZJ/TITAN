@@ -17,9 +17,8 @@ contains
   subroutine allocate_disturbances()
   !! This subroutine allocates variables related to the disturbance calculation
     use mod_f90_kind, only: double
-    use mod_parameters, only: renorm,dim,dimsigmaNpl,outputunit
+    use mod_parameters, only: renorm,dim,dimsigmaNpl
     use mod_System, only: s => sys
-    use mod_SOC, only: llinearsoc
     use mod_mpi_pars, only: abortProgram, myrank_row
     implicit none
     integer           :: AllocateStatus
@@ -55,7 +54,7 @@ contains
 
   subroutine create_disturbance_files()
   !! This subroutine creates all the files needed for the disturbances
-    use mod_parameters, only: fieldpart, lhfresponses, Npl_folder, eta, suffix, Utype, renorm, renormnb, missing_files
+    use mod_parameters, only: fieldpart, lhfresponses, Npl_folder, eta, suffix, Utype, renorm, renormnb
     use mod_SOC, only: SOCc, socpart
     use mod_mpi_pars
     use mod_system, only: s => sys
@@ -66,7 +65,7 @@ contains
     character(len=500)  :: varm
     character(len=5)    :: folder(7)
     character(len=2)    :: filename(7)
-    integer :: i,j,iw,iflag,err,errt=0
+    integer :: i,j,iw
 
     folder(1) = "CD"
     folder(2) = "SD"
@@ -120,7 +119,7 @@ contains
     character(len=500)  :: varm
     character(len=5)    :: folder(7)
     character(len=2)    :: filename(7)
-    integer :: i,j,iw,iflag,err,errt=0
+    integer :: i,j,iw,err,errt=0
 
     folder(1) = "CD"
     folder(2) = "SD"
@@ -165,49 +164,23 @@ contains
 
   subroutine close_disturbance_files()
   !! This subroutine closes all the files needed for the disturbances
-    use mod_parameters, only: fieldpart, lhfresponses, Npl_folder, eta, suffix, Utype, renorm, renormnb, missing_files
-    use mod_SOC, only: SOCc, socpart
-    use mod_mpi_pars
+    use mod_parameters, only: renorm
     use mod_system, only: s => sys
-    use EnergyIntegration, only: strEnergyParts
-    use electricfield, only: strElectricField
     implicit none
 
-    character(len=500)  :: varm
-    character(len=5)    :: folder(7)
-    character(len=2)    :: filename(7)
-    integer :: i,j,iw,iflag,err,errt=0
+    integer :: i,j,iw
 
-    folder(1) = "CD"
-    folder(2) = "SD"
-    folder(3) = "SD"
-    folder(4) = "SD"
-    folder(5) = "LD"
-    folder(6) = "LD"
-    folder(7) = "LD"
-    if(lhfresponses) then
-      do i=1,7
-        folder(i) = trim(folder(i)) // "_HF"
-      end do
-    end if
-
-    filename(1) = "Cd"
-    filename(2) = "Sx"
-    filename(3) = "Sy"
-    filename(4) = "Sz"
-    filename(5) = "Lx"
-    filename(6) = "Ly"
-    filename(7) = "Lz"
-
-    do i=1,s%nAtoms ; do j=1,7
-      iw = 3000+(i-1)*7+j
-      close(unit=iw)
-
-      if(renorm) then
-        iw = iw+1000
+    do i=1,s%nAtoms
+      do j=1,7
+        iw = 3000+(i-1)*7+j
         close(unit=iw)
-      end if
-    end do ; end do
+
+        if(renorm) then
+          iw = iw+1000
+          close(unit=iw)
+        end if
+      end do
+    end do
 
     return
   end subroutine close_disturbance_files
@@ -304,7 +277,7 @@ contains
 
   subroutine create_dc_disturbance_files
   !! This subroutine creates all the files needed for the dc-limit disturbances
-    use mod_parameters, only: dcfieldpart, lhfresponses, count, Npl_folder,eta, Utype, suffix, renorm, renormnb, missing_files
+    use mod_parameters, only: dcfieldpart, lhfresponses, count, Npl_folder,eta, Utype, suffix, renorm, renormnb
     use mod_magnet, only: dcprefix, dcfield_dependence, dcfield, dc_header
     use mod_mpi_pars
     use mod_SOC, only: SOCc, socpart
@@ -316,7 +289,7 @@ contains
     character(len=500)  :: varm
     character(len=5)    :: folder(7)
     character(len=2)    :: filename(7)
-    integer :: i,j,iw,iflag,err,errt=0
+    integer :: i,j,iw
 
     folder(1) = "CD"
     folder(2) = "SD"
@@ -361,7 +334,7 @@ contains
   subroutine open_dc_disturbance_files
   ! This subroutine opens all the files needed for the dc-limit disturbances
     use mod_parameters, only: dcfieldpart, lhfresponses, count, Npl_folder,eta, Utype, suffix, renorm, renormnb, missing_files
-    use mod_magnet, only: dcprefix, dcfield_dependence, dcfield, dc_header
+    use mod_magnet, only: dcprefix, dcfield_dependence, dcfield
     use mod_mpi_pars
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
@@ -372,7 +345,7 @@ contains
     character(len=500)  :: varm
     character(len=5)    :: folder(7)
     character(len=2)    :: filename(7)
-    integer :: i,j,iw,iflag,err,errt=0
+    integer :: i,j,iw,err,errt=0
 
     folder(1) = "CD"
     folder(2) = "SD"
@@ -418,61 +391,32 @@ contains
 
   subroutine close_dc_disturbance_files()
   !! This subroutine closes all the files needed for the dc-limit disturbances
-    use mod_parameters, only: dcfieldpart, lhfresponses, count, Npl_folder,eta, Utype, suffix, renorm, renormnb, missing_files
-    use mod_magnet, only: dcprefix, dcfield_dependence, dcfield, dc_header
-    use mod_mpi_pars
-    use mod_SOC, only: SOCc, socpart
+    use mod_parameters, only: renorm
     use mod_system, only: s => sys
-    use electricfield, only: strElectricField
-    use EnergyIntegration, only: strEnergyParts
     implicit none
 
-    character(len=500)  :: varm
-    character(len=5)    :: folder(7)
-    character(len=2)    :: filename(7)
-    integer :: i,j,iw,iflag,err,errt=0
+    integer :: i,j,iw
 
-    folder(1) = "CD"
-    folder(2) = "SD"
-    folder(3) = "SD"
-    folder(4) = "SD"
-    folder(5) = "LD"
-    folder(6) = "LD"
-    folder(7) = "LD"
-    if(lhfresponses) then
-      do i=1,7
-        folder(i) = trim(folder(i)) // "_HF"
-      end do
-    end if
-
-    filename(1) = "Cd"
-    filename(2) = "Sx"
-    filename(3) = "Sy"
-    filename(4) = "Sz"
-    filename(5) = "Lx"
-    filename(6) = "Ly"
-    filename(7) = "Lz"
-
-    do i=1,s%nAtoms ; do j=1,7
-      iw = 30000+(i-1)*7+j
-      close(unit=iw)
-
-      if(renorm) then
-        iw = iw+1000
+    do i=1,s%nAtoms
+      do j=1,7
+        iw = 30000+(i-1)*7+j
         close(unit=iw)
-      end if
-    end do ; end do
+
+        if(renorm) then
+          iw = iw+1000
+          close(unit=iw)
+        end if
+      end do
+    end do
 
     return
 
   end subroutine close_dc_disturbance_files
 
-
-
-  ! This subroutine write all the dc-limit disturbances into files
-  ! (already opened with openclose_dc_disturbance_files(1))
-  ! Some information may also be written on the screen
   subroutine write_dc_disturbances()
+  !! This subroutine write all the dc-limit disturbances into files
+  !! (already opened with openclose_dc_disturbance_files(1))
+  !! Some information may also be written on the screen
     use mod_f90_kind
     use mod_parameters, only: renorm,outputunit_loop,lwriteonscreen
     use mod_magnet, only: mvec_spherical, dcfield, dcfield_dependence, dc_fields, hw_count
