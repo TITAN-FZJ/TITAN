@@ -1,14 +1,30 @@
 module mod_constants
+  !! Contains commonly used constants
   use mod_f90_kind
   implicit none
-  complex(double), parameter :: zero=(0.d0,0.d0), zum=(1.d0,0.d0), zi=(0.d0,1.d0)
+  complex(double), parameter :: zero=(0.d0,0.d0)
+  !! Complex scalar zero
+  complex(double), parameter :: zum=(1.d0,0.d0)
+  !! Complex scalar one
+  complex(double), parameter :: zi=(0.d0,1.d0)
+  !! Complex scalar i
   real(double), parameter :: pi = 4.d0 * atan(1.d0)
+  !! Pi
   real(double), parameter :: tpi = 2.d0 * pi
+  !! 2*Pi
   real(double), parameter :: sq2 = sqrt(2.d0)
+  !! Square root of pi
   real(double), parameter :: hsq2 = 0.5d0 * sq2
+  !! (Square root of pi) / 2
   real(double), parameter :: sq3 = sqrt(3.d0)
+  !! Square root of 3
   real(double)    :: levi_civita(3,3,3)
-  complex(double) :: identorb18(18,18),identorb9(9,9),pauli_orb(3,18,18),pauli_dorb(3,18,18)
+  !! Levi Civita Tensor
+  complex(double) :: identorb18(18,18)
+  !! Identity
+  complex(double) :: identorb9(9,9)
+  complex(double) :: pauli_orb(3,18,18)
+  complex(double) :: pauli_dorb(3,18,18)
 
 contains
   subroutine define_constants()
