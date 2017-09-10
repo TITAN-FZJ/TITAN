@@ -303,6 +303,7 @@ contains
     use mod_System, only: s => sys
     implicit none
     real(double), dimension(s%nAtoms), intent(in) :: theta, phi
+    integer :: i
 
     if(allocated(lxp)) deallocate(lxp)
     if(allocated(lyp)) deallocate(lyp)
@@ -310,9 +311,9 @@ contains
     allocate(lxp(nOrb,nOrb,s%nAtoms), lyp(nOrb,nOrb,s%nAtoms), lzp(nOrb,nOrb,s%nAtoms))
 
     do i = 1, s%nAtoms
-      lxp(i) = (lx*cos(theta(i))*cos(phi(i)))+(ly*cos(theta(i))*sin(phi(i)))-(lz*sin(theta(i)))
-      lyp(i) =-(lx*sin(phi(i)))+(ly*cos(phi(i)))
-      lzp(i) = (lx*sin(theta(i))*cos(phi(i)))+(ly*sin(theta(i))*sin(phi(i)))+(lz*cos(theta(i)))
+      lxp(:,:,i) = (lx*cos(theta(i))*cos(phi(i)))+(ly*cos(theta(i))*sin(phi(i)))-(lz*sin(theta(i)))
+      lyp(:,:,i) =-(lx*sin(phi(i)))+(ly*cos(phi(i)))
+      lzp(:,:,i) = (lx*sin(theta(i))*cos(phi(i)))+(ly*sin(theta(i))*sin(phi(i)))+(lz*cos(theta(i)))
     end do
 
     return
