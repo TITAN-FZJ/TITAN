@@ -35,8 +35,8 @@ contains
     hee = zero
     ! Diagonal terms (in orbital)
     do i=1,nAtoms
-      do mu=5, 9
-        nu=mu+9
+      do mu=5, nOrb
+        nu=mu+nOrb
         hee(mu,mu,i+offset) = eps1(i)-hdel(i)
         hee(nu,nu,i+offset) = eps1(i)+hdel(i)
         hee(mu,nu,i+offset) = -hdelm(i)
