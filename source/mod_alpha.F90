@@ -41,19 +41,19 @@ contains
     integer :: i
 
     do i=1, s%nAtoms
-      write(varm,"('./results/',a1,'SOC/',a,'/A/chi_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chi_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
       open (unit=55+           i, file=varm, status='replace', form='formatted')
       write(unit=55+           i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ')")
 
-      write(varm,"('./results/',a1,'SOC/',a,'/A/chi_hf',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chi_hf',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
       open (unit=55+  s%nAtoms+i, file=varm, status='replace', form='formatted')
       write(unit=55+  s%nAtoms+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ')")
 
-      write(varm,"('./results/',a1,'SOC/',a,'/A/chi_inv',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chi_inv',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
       open (unit=55+2*s%nAtoms+i, file=varm, status='replace', form='formatted')
       write(unit=55+2*s%nAtoms+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ,  A+-  ,  A++')")
 
-      write(varm,"('./results/',a1,'SOC/',a,'/A/chi_hf_inv',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chi_hf_inv',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
       open (unit=55+3*s%nAtoms+i, file=varm, status='replace', form='formatted')
       write(unit=55+3*s%nAtoms+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ,  A+-  ,  A++')")
     end do
@@ -76,22 +76,22 @@ contains
     errt = 0
 
     do i=1, s%nAtoms
-      write(varm,"('./results/',a1,'SOC/',a,'/A/chi_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chi_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
       open (unit=55+           i, file=varm, status='old', position='append', form='formatted', iostat=err)
       errt = errt + err
       if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
 
-      write(varm,"('./results/',a1,'SOC/',a,'/A/chi_hf',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chi_hf',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
       open (unit=55+  s%nAtoms+i, file=varm, status='old', position='append', form='formatted', iostat=err)
       errt = errt + err
       if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
 
-      write(varm,"('./results/',a1,'SOC/',a,'/A/chi_inv',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chi_inv',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
       open (unit=55+2*s%nAtoms+i, file=varm, status='old', position='append', form='formatted', iostat=err)
       errt = errt + err
       if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
 
-      write(varm,"('./results/',a1,'SOC/',a,'/A/chi_hf_inv',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chi_hf_inv',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(Npl_folder),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
       open (unit=55+3*s%nAtoms+i, file=varm, status='old', position='append', form='formatted', iostat=err)
       errt = errt + err
       if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
