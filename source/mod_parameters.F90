@@ -30,7 +30,7 @@ module mod_parameters
 
   !========================================================================================!
   ! Number of parts to divide energy integral I1+I2 and I3
-  real(double) :: tol
+  real(double) :: mag_tol
   !========================================================================================!
   ! Band structure
   character(len=5), dimension(:), allocatable :: bands

@@ -65,7 +65,7 @@ contains
                               lrotatemag, magaxis, magaxisvec, latticeName, itype, ry2ev, &
                               ltesla, eta, dmax, emin, emax, deltae, skip_steps, &
                               npts, npt1, renorm, renormnb, skipsc, scfile, bands, band_cnt, &
-                              offset, dfttype, suffix, tol, outputfile
+                              offset, dfttype, suffix, mag_tol, outputfile
     use mod_system, only: System, pln_normal, n0sc1, n0sc2
     use mod_SOC, only: SOC, SOCc, socpart, socscale, llinearsoc, llineargfsoc
     use mod_magnet, only: lfield, tesla, hwa_i, hwa_f, hwa_npts, hwa_npt1, hwt_i, hwt_f, &
@@ -275,6 +275,8 @@ contains
     end if
 
     !---------------------------------------- Magnetization ----------------------------------------
+    if(.not. get_parameter("magtol", mag_tol, 1.d-10)) call log_warning("get_parameters", "'magtol' not found. Using default value.")
+
     if(.not. get_parameter("magbasis", tmp_string)) then
         call log_warning("get_parameters","'magbasis' missing.")
       magaxis = 0
@@ -572,7 +574,6 @@ contains
     ! if(itype==9) call prepare_dclimit() !TODO: Re-Include
 
 
-    tol   = 1.d-10
     pn1=parts*n1gl
     pn2=parts3*n3gl
     pnt=pn1+pn2

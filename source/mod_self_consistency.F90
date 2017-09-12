@@ -8,7 +8,7 @@ contains
   subroutine do_self_consistency()
     use mod_f90_kind, only: double
     use mod_constants, only: pi
-    use mod_parameters, only: outputunit_loop, lslatec, lnojac, tol
+    use mod_parameters, only: outputunit_loop, lslatec, lnojac, mag_tol
     use mod_magnet, only: eps1, mx, my, mz, mabs, mtheta, mphi, mvec_cartesian, mvec_spherical, &
                           hw_count, iter
     use mod_mpi_pars, only: myrank_row_hw,mpitag
@@ -45,31 +45,31 @@ contains
       lwa=neq*(3*neq+13)/2
       allocate( wa(lwa),w(neq,4) )
       if(lnojac) then
-        call dnsqe(sc_eqs_old,sc_jac_old,2,neq,sc_solu,fvec,tol,0,ifail,wa,lwa)
+        call dnsqe(sc_eqs_old,sc_jac_old,2,neq,sc_solu,fvec,mag_tol,0,ifail,wa,lwa)
       else
-        call dnsqe(sc_eqs_old,sc_jac_old,1,neq,sc_solu,fvec,tol,0,ifail,wa,lwa)
+        call dnsqe(sc_eqs_old,sc_jac_old,1,neq,sc_solu,fvec,mag_tol,0,ifail,wa,lwa)
       end if
       ifail = ifail-1
     else
       lwa=neq*(neq+1)/2
       allocate( wa(lwa),w(neq,4) )
       if(lnojac) then
-!         call c05nbf(sc_equations,neq,sc_solu,fvec,tol,wa,lwa,ifail)
+!         call c05nbf(sc_equations,neq,sc_solu,fvec,mag_tol,wa,lwa,ifail)
         maxfev = 200*(neq+1)
         ml = neq-1
         mr = neq-1
         epsfcn = 1.d-5
         mode = 1
         factor = 100.d0
-        call c05ncf(sc_eqs_old,neq,sc_solu,fvec,tol,maxfev,ml,mr,epsfcn,diag,mode,factor,0,nfev,jac,neq,wa,lwa,qtf,w,ifail)
+        call c05ncf(sc_eqs_old,neq,sc_solu,fvec,mag_tol,maxfev,ml,mr,epsfcn,diag,mode,factor,0,nfev,jac,neq,wa,lwa,qtf,w,ifail)
       else
-!         call c05pbf(sc_equations_and_jacobian,neq,sc_solu,fvec,jac,neq,tol,wa,lwa,ifail)
+!         call c05pbf(sc_equations_and_jacobian,neq,sc_solu,fvec,jac,neq,mag_tol,wa,lwa,ifail)
         maxfev = 100*(neq+1)
         mode = 1
         diag = 1.d0
 !         diag(Npl+1:4*Npl) = 100.d0
         factor = 100.d0
-        call c05pcf(sc_eqs_and_jac_old,neq,sc_solu,fvec,jac,neq,tol,maxfev,diag,mode,factor,0,nfev,njev,wa,lwa,qtf,w,ifail)
+        call c05pcf(sc_eqs_and_jac_old,neq,sc_solu,fvec,jac,neq,mag_tol,maxfev,diag,mode,factor,0,nfev,njev,wa,lwa,qtf,w,ifail)
       end if
     end if
     deallocate( w )
@@ -78,9 +78,9 @@ contains
       lwa=neq*(3*neq+13)/2
       allocate( wa(lwa) )
       if(lnojac) then
-        call dnsqe(sc_eqs_old,sc_jac_old,2,neq,sc_solu,fvec,tol,0,ifail,wa,lwa)
+        call dnsqe(sc_eqs_old,sc_jac_old,2,neq,sc_solu,fvec,mag_tol,0,ifail,wa,lwa)
       else
-        call dnsqe(sc_eqs_old,sc_jac_old,1,neq,sc_solu,fvec,tol,0,ifail,wa,lwa)
+        call dnsqe(sc_eqs_old,sc_jac_old,1,neq,sc_solu,fvec,mag_tol,0,ifail,wa,lwa)
       end if
       ifail = ifail-1
     else
@@ -93,14 +93,14 @@ contains
         epsfcn = 1.d-5
         mode = 1
         factor = 100.d0
-        call c05qcf(sc_equations,neq,sc_solu,fvec,tol,maxfev,ml,mr,epsfcn,mode,diag,factor,0,nfev,jac,wa,qtf,iuser,ruser,ifail)
+        call c05qcf(sc_equations,neq,sc_solu,fvec,mag_tol,maxfev,ml,mr,epsfcn,mode,diag,factor,0,nfev,jac,wa,qtf,iuser,ruser,ifail)
       else
         maxfev = 100*(neq+1)
         mode = 1
         diag = 1.d0
 !         diag(npl+1:4*npl) = 100.d0
         factor = 100.d0
-        call c05rcf(sc_equations_and_jacobian,neq,sc_solu,fvec,jac,tol,maxfev,mode,diag,factor,0,nfev,njev,wa,qtf,iuser,ruser,ifail)
+        call c05rcf(sc_equations_and_jacobian,neq,sc_solu,fvec,jac,mag_tol,maxfev,mode,diag,factor,0,nfev,njev,wa,qtf,iuser,ruser,ifail)
       end if
     end if
 #endif
