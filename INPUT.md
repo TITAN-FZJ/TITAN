@@ -2,8 +2,13 @@
 
 All commands are written with a preceeding `->` and followed by an equal sign `=` which separates command and value, e.g.
 ```
-  -> itype = 1
+-> itype = 1
 ```
+
+When inserting an array, the elements are given separated by whitespaces or tabs, e.g.
+```
+-> hwa = 
+
 ## Mandatory commands
 ### Type of Calculation: `itype`
 1 - Only Self-Consistency
@@ -48,4 +53,6 @@ In case the static magnetic field is turned on, more parameter become mandatory:
 ```fortran
 real(double), dimension(:) :: hwa
 ```
-If `dimension(1)` use only a single amplitude
+If `dimension(1)` only a single amplitude is used.
+
+If `dimension(3)` the order is: intial amplitude, final amplitude, nr. of points
