@@ -1,34 +1,64 @@
+module mod_gilbert_damping
+
+contains
 subroutine calculate_gilbert_damping()
   use mod_f90_kind, only: double
   use mod_System, only: s => sys
+  use mod_parameters, only: outputunit
   use mod_mpi_pars, only: myrank
   implicit none
   complex(double), dimension(s%nAtoms,s%nAtoms,3,3) :: alpha
   integer :: m,n,i,j
-  call TCM(alpha)
+
+  write(outputunit, *) "[calculate_gilbert_damping] Start..."
+
+  if(myrank == 0) print *, "SO Torque"
+  call TCM(alpha, local_SO_torque)
+
   if(myrank == 0) then
-    write(*,*) "# m    n    i    j"
+    write(*,*) "# m          i"
     do m = 1, 3
-      do n = 1, 3
-        do i = 1, s%nAtoms
-          do j = 1, s%nAtoms
-            print *, m,n,i,j,alpha(j,i,n,m)
-          end do
-        end do
+      do i = 1, s%nAtoms
+        print *, m,i,alpha(i,i,m,m)
       end do
     end do
   end if
+
+  if(myrank == 0) print *, "xc Torque"
+  call TCM(alpha, local_xc_torque)
+
+  if(myrank == 0) then
+    write(*,*) "# m          i"
+    do m = 1, 3
+      do i = 1, s%nAtoms
+        print *, m,i,alpha(i,i,m,m)
+      end do
+    end do
+  end if
+
+
   return
 end subroutine calculate_gilbert_damping
 
-subroutine TCM(alpha)
+subroutine TCM(alpha, torque_fct)
   use mod_f90_kind, only: double
   use mod_constants, only: zero, pi, zum
   use mod_System, only: s => sys
   use TightBinding, only: nOrb
   use mod_parameters, only: Ef, eta
   use mod_magnet, only: mabs
+  use mod_mpi_pars
   implicit none
+  interface
+    subroutine torque_fct(torque)
+      use mod_f90_kind, only: double
+      use TightBinding, only: nOrb
+      use mod_System, only: sys
+      implicit none
+      complex(double), dimension(2*nOrb,2*nOrb,3,sys%nAtoms), intent(out) :: torque
+    end subroutine torque_fct
+  end interface
+
   complex(double), dimension(s%nAtoms,s%nAtoms,3,3), intent(out) :: alpha
   !! Contains the Gilbert Damping as matrix in sites and cartesian coordinates (nAtoms,nAtoms,3,3)
   integer :: i,j,m,n, iz, mu
@@ -37,8 +67,23 @@ subroutine TCM(alpha)
   complex(double), dimension(2*nOrb,2*nOrb,3,s%nAtoms) :: torque
   complex(double),dimension(:,:,:,:),allocatable :: gf
   complex(double),dimension(:,:),allocatable :: temp1, temp2, temp3
+  complex(double), dimension(:,:,:,:), allocatable :: alpha_loc
+  integer :: start, end, work, remainder
 
-  call local_SO_torque(torque)
+  ! Calculate workload for each MPI process
+  remainder = mod(s%nkpt,numprocs)
+  if(myrank < remainder) then
+    work = ceiling(dble(s%nkpt) / dble(numprocs))
+    start = myrank*work + 1
+    end = (myrank+1) * work
+  else
+    work = floor(dble(s%nkpt) / dble(numprocs))
+    start = myrank*work + 1 + remainder
+    end = (myrank+1) * work + remainder
+  end if
+
+
+  call torque_fct(torque)
 
   !! Alpha = g/(m*pi)sum_k wkbz * ( Tr(T^nu Im(G(Ef)) T^mu Im(G(Ef))))
   !! Alpha = g/(m*pi)sum_k wkbz * ( sum_ij (T_ii^nu Im(G_ij(Ef)) T_jj^mu Im(G_ji(Ef)))) maybe
@@ -50,14 +95,15 @@ subroutine TCM(alpha)
   alpha = zero
 
   !$omp parallel default(none) &
-  !$omp& private(m,n,i,j,mu,iz,kp,wght,gf,temp1,temp2,temp3) &
-  !$omp& shared(s,Ef,eta,torque,alpha)
+  !$omp& private(m,n,i,j,mu,iz,kp,wght,gf,temp1,temp2,temp3, alpha_loc) &
+  !$omp& shared(s,start, end,Ef,eta,torque,alpha)
   allocate(gf(s%nAtoms,s%nAtoms,2*nOrb,2*nOrb), &
-           temp1(2*nOrb,2*nOrb), temp2(2*nOrb,2*nOrb), temp3(2*nOrb,2*nOrb))
+           temp1(2*nOrb,2*nOrb), temp2(2*nOrb,2*nOrb), temp3(2*nOrb,2*nOrb), &
+           alpha_loc(s%nAtoms,s%nAtoms,3,3))
   gf = zero
-
-  !$omp do schedule(static) reduction(+:alpha)
-  do iz = 1, s%nkpt
+  alpha_loc = zero
+  !$omp do schedule(static)
+  do iz = start, end
     kp = s%kbz(:,iz)
     wght = s%wkbz(iz)
     gf = zero
@@ -71,16 +117,16 @@ subroutine TCM(alpha)
             temp2 = zero
             temp3 = zero
             ! alpha^{mn}_{ij} = Tr ( Torque^m_i Im(G_ij(Ef)) * Torque^n_j * Im(G_ji(Ef)) )
-            temp2 = aimag(gf(i,j,:,:)) ! Im(G_ji(EF))
+            temp2 = aimag(gf(j,i,:,:)) ! Im(G_ji(EF))
             temp3 = torque(:,:,n,j)
             call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,temp3,2*nOrb,temp2,2*nOrb,zero,temp1,2*nOrb) ! Torque^n_j * Im(G_ji(Ef))
-            temp2 = aimag(gf(j,i,:,:)) ! Im(G_ji(EF))
+            temp2 = aimag(gf(i,j,:,:)) ! Im(G_ij(EF))
             call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,temp2,2*nOrb,temp1,2*nOrb,zero,temp3,2*nOrb) ! Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))
             temp2 = torque(:,:,m,i)
             call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,temp2,2*nOrb,temp3,2*nOrb,zero,temp1,2*nOrb) ! Torque^m_i * Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))
 
             do mu = 1, 2*nOrb
-              alpha(j,i,n,m) = alpha(j,i,n,m) + temp1(mu,mu) * wght
+              alpha_loc(j,i,n,m) = alpha_loc(j,i,n,m) + temp1(mu,mu) * wght
             end do
           end do
         end do
@@ -89,7 +135,12 @@ subroutine TCM(alpha)
   end do
   !$omp end do nowait
 
+  !$omp critical
+    alpha = alpha + alpha_loc
+  !$omp end critical
+
   deallocate(gf)
+  deallocate(alpha_loc)
   !$omp end parallel
 
   do i = 1, s%nAtoms
@@ -98,9 +149,59 @@ subroutine TCM(alpha)
     end do
   end do
 
+  call MPI_Allreduce(MPI_IN_PLACE, alpha, s%nAtoms*s%nAtoms*3*3, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD, ierr)
+
   return
 end subroutine TCM
 
+
+subroutine local_xc_torque(torque)
+  use mod_f90_kind, only: double
+  use mod_constants, only: zero, zum, zi, levi_civita
+  use TightBinding, only: nOrb
+  use mod_System, only: s => sys
+  use mod_parameters, only: U
+  use mod_magnet, only: mx,my,mz
+
+  complex(double), dimension(2*nOrb,2*nOrb,3,s%nAtoms), intent(out) :: torque
+  complex(double), dimension(2,2,3) :: sigma
+  complex(double), dimension(nOrb,nOrb) :: ident
+  real(double), dimension(3,s%nAtoms) :: mag
+  integer :: i,mu,m,n,k
+
+  ident = zero
+  do i = 5, nOrb
+    ident(i,i) = zum
+  end do
+
+  sigma(:,1,1) = [zero,zum]
+  sigma(:,2,1) = [zum, zero]
+  sigma(:,1,2) = [zero,-zi]
+  sigma(:,2,2) = [zi,zero]
+  sigma(:,1,3) = [zum,zero]
+  sigma(:,2,3) = [zero,-zum]
+
+  do i = 1, s%nAtoms
+    mag(:,i) = [mx(i),my(i),mz(i)]
+  end do
+
+  torque = zero
+  do i = 1, s%nAtoms
+    do m = 1, 3
+      do n = 1, 3
+        do k = 1, 3
+          torque(     1:  nOrb,     1:  nOrb,m,i) = torque(     1:  nOrb,     1:  nOrb,m,i) + mag(n,i) * ident(:,:) * sigma(1,1,k) * levi_civita(m,n,k)
+          torque(nOrb+1:2*nOrb,     1:  nOrb,m,i) = torque(nOrb+1:2*nOrb,     1:  nOrb,m,i) + mag(n,i) * ident(:,:) * sigma(2,1,k) * levi_civita(m,n,k)
+          torque(     1:  nOrb,nOrb+1:2*nOrb,m,i) = torque(     1:  nOrb,nOrb+1:2*nOrb,m,i) + mag(n,i) * ident(:,:) * sigma(1,2,k) * levi_civita(m,n,k)
+          torque(nOrb+1:2*nOrb,nOrb+1:2*nOrb,m,i) = torque(nOrb+1:2*nOrb,nOrb+1:2*nOrb,m,i) + mag(n,i) * ident(:,:) * sigma(2,2,k) * levi_civita(m,n,k)
+        end do
+      end do
+    end do
+    torque(:,:,:,i) = - U(i) * torque(:,:,:,i)
+  end do
+
+  return
+end subroutine local_xc_torque
 
 subroutine local_SO_torque(torque)
   use mod_f90_kind, only: double
@@ -109,6 +210,7 @@ subroutine local_SO_torque(torque)
   use mod_magnet, only: Lxp, Lyp, Lzp
   use TightBinding, only: nOrb
   use mod_mpi_pars, only: myrank
+  use mod_SOC, only: SOC
   implicit none
   integer :: i,m,n,k
   complex(double), dimension(2*nOrb,2*nOrb,3, s%nAtoms), intent(out) :: torque
@@ -134,24 +236,27 @@ subroutine local_SO_torque(torque)
   !! Lambda * i * ( L_i^y sigma^z *e_x - L_i^x*sigma^z*e_y)
 
   !! t_m = i*lambda_i * sum_alpha_beta * sum_nk_gamma,zeta eps_mnk L^n_gamma,zeta * sigma^k_alpha_beta
-  do i = 1, s%nAtoms
-    do m = 1, 3
-      do n = 1, 3
-        do k = 1, 3
-          torque(     1:  nOrb,     1:  nOrb,m,i) = torque(     1:  nOrb,     1:  nOrb,m,i) + L(:,:,n,i) * sigma(1,1,k) * levi_civita(m,n,k)
-          torque(nOrb+1:2*nOrb,     1:  nOrb,m,i) = torque(nOrb+1:2*nOrb,     1:  nOrb,m,i) + L(:,:,n,i) * sigma(2,1,k) * levi_civita(m,n,k)
-          torque(     1:  nOrb,nOrb+1:2*nOrb,m,i) = torque(     1:  nOrb,nOrb+1:2*nOrb,m,i) + L(:,:,n,i) * sigma(1,2,k) * levi_civita(m,n,k)
-          torque(nOrb+1:2*nOrb,nOrb+1:2*nOrb,m,i) = torque(nOrb+1:2*nOrb,nOrb+1:2*nOrb,m,i) + L(:,:,n,i) * sigma(2,2,k) * levi_civita(m,n,k)
+  if(SOC) then
+    do i = 1, s%nAtoms
+      do m = 1, 3
+        do n = 1, 3
+          do k = 1, 3
+            torque(     1:  nOrb,     1:  nOrb,m,i) = torque(     1:  nOrb,     1:  nOrb,m,i) + L(:,:,n,i) * sigma(1,1,k) * levi_civita(m,n,k)
+            torque(nOrb+1:2*nOrb,     1:  nOrb,m,i) = torque(nOrb+1:2*nOrb,     1:  nOrb,m,i) + L(:,:,n,i) * sigma(2,1,k) * levi_civita(m,n,k)
+            torque(     1:  nOrb,nOrb+1:2*nOrb,m,i) = torque(     1:  nOrb,nOrb+1:2*nOrb,m,i) + L(:,:,n,i) * sigma(1,2,k) * levi_civita(m,n,k)
+            torque(nOrb+1:2*nOrb,nOrb+1:2*nOrb,m,i) = torque(nOrb+1:2*nOrb,nOrb+1:2*nOrb,m,i) + L(:,:,n,i) * sigma(2,2,k) * levi_civita(m,n,k)
+          end do
         end do
       end do
-    end do
-    torque(:,:,:,i) = torque(:,:,:,i) * zi * s%Types(s%Basis(i)%Material)%Lambda
-  end do
-
-  if (myrank == 0) then
-    do i=1,2*nOrb
-      print *, (torque(n,i,3,1), n = 1, 2*nOrb)
+      torque(:,:,:,i) = torque(:,:,:,i) * zi * s%Types(s%Basis(i)%Material)%Lambda
     end do
   end if
+  ! if (myrank == 0) then
+  !   do i=1,2*nOrb
+  !     print *, (torque(n,i,3,1), n = 1, 2*nOrb)
+  !   end do
+  ! end if
   return
 end subroutine local_SO_torque
+
+end module mod_gilbert_damping

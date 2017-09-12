@@ -16,6 +16,7 @@ program TITAN
   use mod_magnet
   use ElectricField
   use AtomTypes
+  use mod_gilbert_damping
   !use mod_define_system TODO: Re-include
   use mod_self_consistency
   !use mod_prefactors TODO: Re-include
