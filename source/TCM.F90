@@ -236,26 +236,19 @@ subroutine local_SO_torque(torque)
   !! Lambda * i * ( L_i^y sigma^z *e_x - L_i^x*sigma^z*e_y)
 
   !! t_m = i*lambda_i * sum_alpha_beta * sum_nk_gamma,zeta eps_mnk L^n_gamma,zeta * sigma^k_alpha_beta
-  if(SOC) then
-    do i = 1, s%nAtoms
-      do m = 1, 3
-        do n = 1, 3
-          do k = 1, 3
-            torque(     1:  nOrb,     1:  nOrb,m,i) = torque(     1:  nOrb,     1:  nOrb,m,i) + L(:,:,n,i) * sigma(1,1,k) * levi_civita(m,n,k)
-            torque(nOrb+1:2*nOrb,     1:  nOrb,m,i) = torque(nOrb+1:2*nOrb,     1:  nOrb,m,i) + L(:,:,n,i) * sigma(2,1,k) * levi_civita(m,n,k)
-            torque(     1:  nOrb,nOrb+1:2*nOrb,m,i) = torque(     1:  nOrb,nOrb+1:2*nOrb,m,i) + L(:,:,n,i) * sigma(1,2,k) * levi_civita(m,n,k)
-            torque(nOrb+1:2*nOrb,nOrb+1:2*nOrb,m,i) = torque(nOrb+1:2*nOrb,nOrb+1:2*nOrb,m,i) + L(:,:,n,i) * sigma(2,2,k) * levi_civita(m,n,k)
-          end do
+  do i = 1, s%nAtoms
+    do m = 1, 3
+      do n = 1, 3
+        do k = 1, 3
+          torque(     1:  nOrb,     1:  nOrb,m,i) = torque(     1:  nOrb,     1:  nOrb,m,i) + L(:,:,n,i) * sigma(1,1,k) * levi_civita(m,n,k)
+          torque(nOrb+1:2*nOrb,     1:  nOrb,m,i) = torque(nOrb+1:2*nOrb,     1:  nOrb,m,i) + L(:,:,n,i) * sigma(2,1,k) * levi_civita(m,n,k)
+          torque(     1:  nOrb,nOrb+1:2*nOrb,m,i) = torque(     1:  nOrb,nOrb+1:2*nOrb,m,i) + L(:,:,n,i) * sigma(1,2,k) * levi_civita(m,n,k)
+          torque(nOrb+1:2*nOrb,nOrb+1:2*nOrb,m,i) = torque(nOrb+1:2*nOrb,nOrb+1:2*nOrb,m,i) + L(:,:,n,i) * sigma(2,2,k) * levi_civita(m,n,k)
         end do
       end do
-      torque(:,:,:,i) = torque(:,:,:,i) * zi * s%Types(s%Basis(i)%Material)%Lambda
     end do
-  end if
-  ! if (myrank == 0) then
-  !   do i=1,2*nOrb
-  !     print *, (torque(n,i,3,1), n = 1, 2*nOrb)
-  !   end do
-  ! end if
+    torque(:,:,:,i) = torque(:,:,:,i) * zi * s%Types(s%Basis(i)%Material)%Lambda
+  end do
   return
 end subroutine local_SO_torque
 
