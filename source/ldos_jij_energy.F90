@@ -17,7 +17,7 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
   real(double),intent(out)    :: ldosu(s%nAtoms, nOrb),ldosd(s%nAtoms, nOrb)
   real(double),intent(out)    :: Jijint(nmaglayers,nmaglayers,3,3)
   complex(double)     :: paulimatan(3,3,2*nOrb, 2*nOrb)
-  complex(double),dimension(s%nAtoms, s%nAtoms, 2*nOrb, 2*nOrb) :: gf
+  complex(double),dimension(2*nOrb, 2*nOrb, s%nAtoms, s%nAtoms) :: gf
   complex(double),dimension(s%nAtoms, nOrb) :: gfdiagu,gfdiagd
   complex(double),dimension(2*nOrb, 2*nOrb) :: gij,gji,temp1,temp2,paulia,paulib
   real(double),dimension(:,:),allocatable    :: ldosu_loc,ldosd_loc
@@ -64,9 +64,9 @@ do iz=1,s%nkpt
     Jijkan = 0.d0
     do nu = 1,3 ; do mu = 1,3 ; do j = 1,nmaglayers ; do i = 1,nmaglayers
       paulia = pauli_dorb(mu,:,:)
-      gij = gf(mmlayermag(i)-1,mmlayermag(j)-1,:,:)
+      gij = gf(:,:,mmlayermag(i)-1,mmlayermag(j)-1)
       paulib = pauli_dorb(nu,:,:)
-      gji = gf(mmlayermag(j)-1,mmlayermag(i)-1,:,:)
+      gji = gf(:,:,mmlayermag(j)-1,mmlayermag(i)-1)
       call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,paulia,2*nOrb,gij,   2*nOrb,zero,temp1,2*nOrb)
       call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,temp1, 2*nOrb,paulib,2*nOrb,zero,temp2,2*nOrb)
       call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,temp2, 2*nOrb,gji,   2*nOrb,zero,temp1,2*nOrb)
@@ -78,7 +78,7 @@ do iz=1,s%nkpt
 
       ! Anisotropy (on-site) term
       if(i==j) then
-        gij = gf(mmlayermag(i)-1,mmlayermag(i)-1,:,:)
+        gij = gf(:,:,mmlayermag(i)-1,mmlayermag(i)-1)
         paulia = paulimatan(mu,nu,:,:)
         call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,gij,2*nOrb,paulia,2*nOrb,zero,temp1,2*nOrb)
 
@@ -93,8 +93,8 @@ do iz=1,s%nkpt
     ! Density of states
     do mu=1,nOrb; do i=1,s%nAtoms
       nu=mu+nOrb
-      gfdiagu(i,mu) = - aimag(gf(i,i,mu,mu))*s%wkbz(iz)
-      gfdiagd(i,mu) = - aimag(gf(i,i,nu,nu))*s%wkbz(iz)
+      gfdiagu(i,mu) = - aimag(gf(mu,mu,i,i))*s%wkbz(iz)
+      gfdiagd(i,mu) = - aimag(gf(nu,nu,i,i))*s%wkbz(iz)
     end do ; end do
 
     ldosu_loc = ldosu_loc + gfdiagu

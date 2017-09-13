@@ -114,7 +114,7 @@ contains
     complex(double) :: expikr(n0sc1:n0sc2)
     real(double),intent(in)    :: e,ep
     real(double),dimension(n0sc1:n0sc2,Npl),intent(out) :: Idia
-    complex(double),dimension(Npl,Npl,18,18)            :: gf
+    !complex(double),dimension(Npl,Npl,18,18)            :: gf !TODO: Changed order of green
     complex(double),dimension(Npl,Npl,9,9)              :: dtdk
     complex(double),dimension(n0sc1:n0sc2,Npl,9,9)      :: pij
     complex(double),dimension(n0sc1:n0sc2,Npl,18,18)    :: gij,gji

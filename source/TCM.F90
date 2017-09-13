@@ -97,7 +97,7 @@ subroutine TCM(alpha, torque_fct)
   !$omp parallel default(none) &
   !$omp& private(m,n,i,j,mu,iz,kp,wght,gf,temp1,temp2,temp3, alpha_loc) &
   !$omp& shared(s,start, end,Ef,eta,torque,alpha)
-  allocate(gf(s%nAtoms,s%nAtoms,2*nOrb,2*nOrb), &
+  allocate(gf(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms), &
            temp1(2*nOrb,2*nOrb), temp2(2*nOrb,2*nOrb), temp3(2*nOrb,2*nOrb), &
            alpha_loc(s%nAtoms,s%nAtoms,3,3))
   gf = zero
@@ -117,10 +117,10 @@ subroutine TCM(alpha, torque_fct)
             temp2 = zero
             temp3 = zero
             ! alpha^{mn}_{ij} = Tr ( Torque^m_i Im(G_ij(Ef)) * Torque^n_j * Im(G_ji(Ef)) )
-            temp2 = aimag(gf(j,i,:,:)) ! Im(G_ji(EF))
+            temp2 = aimag(gf(:,:,j,i)) ! Im(G_ji(EF))
             temp3 = torque(:,:,n,j)
             call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,temp3,2*nOrb,temp2,2*nOrb,zero,temp1,2*nOrb) ! Torque^n_j * Im(G_ji(Ef))
-            temp2 = aimag(gf(i,j,:,:)) ! Im(G_ij(EF))
+            temp2 = aimag(gf(:,:,i,j)) ! Im(G_ij(EF))
             call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,temp2,2*nOrb,temp1,2*nOrb,zero,temp3,2*nOrb) ! Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))
             temp2 = torque(:,:,m,i)
             call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,temp2,2*nOrb,temp3,2*nOrb,zero,temp1,2*nOrb) ! Torque^m_i * Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))

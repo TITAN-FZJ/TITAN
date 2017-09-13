@@ -188,8 +188,8 @@ contains
     !$omp parallel default(none) &
     !$omp& private(ix,iz,kp,i,mu,mup,gf,gf_loc) &
     !$omp& shared(llineargfsoc,llinearsoc,start,end,wght,s,Ef,y,gdiaguur,gdiagddr,gdiagud,gdiagdu)
-    allocate(gf    (s%nAtoms,s%nAtoms,2*nOrb,2*nOrb))
-    allocate(gf_loc(s%nAtoms,s%nAtoms,2*nOrb,2*nOrb))
+    allocate(gf    (2*nOrb,2*nOrb,s%nAtoms,s%nAtoms))
+    allocate(gf_loc(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms))
     gf = zero
     gf_loc = zero
 
@@ -218,10 +218,10 @@ contains
     do i=1,s%nAtoms
       do mu=1,nOrb
         mup = mu+nOrb
-        gdiaguur(i,mu) = gdiaguur(i,mu) + real(gf(i,i,mu,mu))
-        gdiagddr(i,mu) = gdiagddr(i,mu) + real(gf(i,i,mup,mup))
-        gdiagud(i,mu) = gdiagud(i,mu) + gf(i,i,mu,mup)
-        gdiagdu(i,mu) = gdiagdu(i,mu) + gf(i,i,mup,mu)
+        gdiaguur(i,mu) = gdiaguur(i,mu) + real(gf(mu,mu,i,i))
+        gdiagddr(i,mu) = gdiagddr(i,mu) + real(gf(mup,mup,i,i))
+        gdiagud(i,mu) = gdiagud(i,mu) + gf(mu,mup,i,i)
+        gdiagdu(i,mu) = gdiagdu(i,mu) + gf(mup,mu,i,i)
       end do
     end do
     !$omp end critical
@@ -267,7 +267,7 @@ contains
     implicit none
     integer, intent(in) :: N
     real(double), intent(inout), dimension(N,N) :: jacobian
-    complex(double), dimension(s%nAtoms, s%nAtoms, 2*nOrb, 2*nOrb) :: gf,gvg
+    complex(double), dimension(2*nOrb, 2*nOrb, s%nAtoms, s%nAtoms) :: gf,gvg
 
     integer :: i,j
     integer :: AllocateStatus
@@ -348,8 +348,8 @@ contains
 
         do j=1,s%nAtoms
           do i=1,s%nAtoms
-            gij = gf(i,j,:,:)
-            gji = gf(j,i,:,:)
+            gij = gf(:,:,i,j)
+            gji = gf(:,:,j,i)
 
             do sigma = 1,4
               ! temp1 =  pauli*g_ij
@@ -377,8 +377,8 @@ contains
 
 
             if((llineargfsoc).or.(llinearsoc)) then ! non-linear term
-              gij = gvg(i,j,:,:)
-              gji = gvg(j,i,:,:)
+              gij = gvg(:,:,i,j)
+              gji = gvg(:,:,j,i)
 
               do sigma = 1,4
                 ! temp1 = wkbz* pauli*gvg_ij
@@ -488,7 +488,7 @@ contains
               lzpm(s%nAtoms), stat = AllocateStatus )
     if (AllocateStatus/=0) call abortProgram("[L_gs] Not enough memory for: df1,Fint,gf,gfuu,gfud,gfdu,gfdd")
 
-    allocate(gupgdint(s%nAtoms, nOrb, nOrb), stat = AllocateStatus)
+    allocate(gupgdint(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
     if(AllocateStatus/=0) call abortProgram("[L_gs] Not enough meory for: gupgdint")
 
     if(myrank_row_hw==0) write(outputunit_loop,"('[L_gs] Calculating Orbital Angular Momentum ground state... ')")
@@ -501,8 +501,8 @@ contains
     !$omp& private(AllocateStatus,ix,iz,i,mu,nu,mup,nup,kp,gf,gupgd) &
     !$omp& shared(start,end,s,Ef,y,wght,gupgdint)
 
-    allocate(gf(s%nAtoms,s%nAtoms,2*nOrb,2*nOrb), &
-             gupgd(s%nAtoms, nOrb, nOrb), stat = AllocateStatus)
+    allocate(gf(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms), &
+             gupgd(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
     gupgd   = zero
 
     !$omp do schedule(static) collapse(2)
@@ -518,7 +518,7 @@ contains
             mup = mu+nOrb
             do nu=1,nOrb
               nup = nu+nOrb
-              gupgd(i,mu,nu) = gupgd(i,mu,nu) + (gf(i,i,mu,nu) + gf(i,i,mup,nup)) * s%wkbz(iz) * wght(ix)
+              gupgd(mu,nu,i) = gupgd(mu,nu,i) + (gf(mu,nu,i,i) + gf(mup,nup,i,i)) * s%wkbz(iz) * wght(ix)
             end do
           end do
         end do
@@ -546,12 +546,12 @@ contains
     do nu=5,9
       do mu=5,9
         do i=1,s%nAtoms
-          lxpm(i) = lxpm(i) + real(lxp(mu,nu,i)*gupgdint(i,nu,mu))
-          lypm(i) = lypm(i) + real(lyp(mu,nu,i)*gupgdint(i,nu,mu))
-          lzpm(i) = lzpm(i) + real(lzp(mu,nu,i)*gupgdint(i,nu,mu))
-          lxm(i)  = lxm(i)  + real(lx (mu,nu)*gupgdint(i,nu,mu))
-          lym(i)  = lym(i)  + real(ly (mu,nu)*gupgdint(i,nu,mu))
-          lzm(i)  = lzm(i)  + real(lz (mu,nu)*gupgdint(i,nu,mu))
+          lxpm(i) = lxpm(i) + real(lxp(mu,nu,i)*gupgdint(nu,mu,i))
+          lypm(i) = lypm(i) + real(lyp(mu,nu,i)*gupgdint(nu,mu,i))
+          lzpm(i) = lzpm(i) + real(lzp(mu,nu,i)*gupgdint(nu,mu,i))
+          lxm(i)  = lxm(i)  + real(lx (mu,nu)*gupgdint(nu,mu,i))
+          lym(i)  = lym(i)  + real(ly (mu,nu)*gupgdint(nu,mu,i))
+          lzm(i)  = lzm(i)  + real(lz (mu,nu)*gupgdint(nu,mu,i))
         end do
       end do
     end do

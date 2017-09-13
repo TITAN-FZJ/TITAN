@@ -14,7 +14,7 @@ subroutine green(er,ei,kp,gf)
   real(double), intent(in)  :: er,ei,kp(3)
   complex(double) :: ec
   complex(double),dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb) :: gslab,hk
-  complex(double),dimension(s%nAtoms, s%nAtoms, 2*nOrb, 2*nOrb), intent(out)  :: gf
+  complex(double),dimension(2*nOrb, 2*nOrb, s%nAtoms, s%nAtoms), intent(out)  :: gf
 
   d = s%nAtoms * 2 * nOrb
 
@@ -34,7 +34,7 @@ subroutine green(er,ei,kp,gf)
   ! Put the slab Green's function [A(Npl*18,Npl*18)] in the A(i,j,mu,nu) form
   do j = 1, s%nAtoms
     do i = 1, s%nAtoms
-      gf(i,j,:,:) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
+      gf(:,:,i,j) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
     end do
   end do
 
@@ -59,7 +59,7 @@ subroutine greenlinearsoc(er,ei,kp,g0,g0vsocg0)
   real(double), intent(in)  :: er,ei,kp(3)
   complex(double) :: ec
   complex(double), dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb)  :: gslab0,hk,vsoc,temp,temp2
-  complex(double), dimension(s%nAtoms,s%nAtoms,2*nOrb,2*nOrb), intent(out)  :: g0,g0vsocg0
+  complex(double), dimension(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms), intent(out)  :: g0,g0vsocg0
 
   d = s%nAtoms*2*nOrb
 
@@ -83,8 +83,8 @@ subroutine greenlinearsoc(er,ei,kp,g0,g0vsocg0)
   ! Put the slab Green's function [A(Npl*18,Npl*18)] in the A(i,j,mu,nu) form
   do j=1,s%nAtoms
     do i=1,s%nAtoms
-      g0(i,j,:,:) = gslab0(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
-      g0vsocg0(i,j,:,:) = temp2(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
+      g0(:,:,i,j) = gslab0(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
+      g0vsocg0(:,:,i,j) = temp2(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
     end do
   end do
   return
@@ -107,7 +107,7 @@ subroutine greenlineargfsoc(er,ei,kp,gf)
   real(double), intent(in)  :: er,ei,kp(3)
   complex(double) :: ec
   complex(double),dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb)  :: gslab,gslab0,hk,vsoc,temp
-  complex(double),dimension(s%nAtoms,s%nAtoms, 2*nOrb, 2*nOrb),intent(out)  :: gf
+  complex(double),dimension(2*nOrb, 2*nOrb,s%nAtoms,s%nAtoms),intent(out)  :: gf
 
   d = s%nAtoms*2*nOrb
 
@@ -133,7 +133,7 @@ subroutine greenlineargfsoc(er,ei,kp,gf)
   ! Put the slab Green's function [A(Npl*18,Npl*18)] in the A(i,j,mu,nu) form
   do j=1,s%nAtoms
     do i=1,s%nAtoms
-      gf(i,j,:,:) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
+      gf(:,:,i,j) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
     end do
   end do
   return
@@ -154,7 +154,7 @@ subroutine green_es(er,ei,kp,gf)
   real(double), intent(in)  :: er,ei,kp(3)
   complex(double) :: ec
   complex(double),dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb)  :: gslab,identes,hk
-  complex(double),dimension(s%nAtoms, s%nAtoms, 2*nOrb, 2*nOrb),intent(out)  :: gf
+  complex(double),dimension(2*nOrb, 2*nOrb, s%nAtoms, s%nAtoms),intent(out)  :: gf
 
   ec    = cmplx(er,ei,double)
   identes     = zero
@@ -173,7 +173,7 @@ subroutine green_es(er,ei,kp,gf)
   ! Put the slab Green's function [A(Npl*18,Npl*18)] in the A(i,j,mu,nu) form
   do j=1,s%nAtoms
     do i=1,s%nAtoms
-      gf(i,j,:,:) = gslab(ia(1,i):ia(4,i),ia(1,j):ia(4,j))
+      gf(:,:,i,j) = gslab(ia(1,i):ia(4,i),ia(1,j):ia(4,j))
     end do
   end do
 

@@ -14,7 +14,7 @@ subroutine ldos_energy(e,ldosu,ldosd)
   real(double)        :: kp(3)
   real(double),intent(in) :: e
   real(double),intent(out) :: ldosu(s%nAtoms,nOrb),ldosd(s%nAtoms,nOrb)
-  complex(double),dimension(s%nAtoms, s%nAtoms, 2*nOrb, 2*nOrb) :: gf
+  complex(double),dimension(2*nOrb, 2*nOrb, s%nAtoms, s%nAtoms) :: gf
   complex(double),dimension(s%nAtoms, nOrb) :: gfdiagu,gfdiagd
 
   ldosu = 0.d0
@@ -42,8 +42,8 @@ subroutine ldos_energy(e,ldosu,ldosd)
     ! Density of states
     do mu=1,nOrb; do i=1,s%nAtoms
       nu=mu+nOrb
-      gfdiagu(i,mu) = - aimag(gf(i,i,mu,mu))*s%wkbz(iz)
-      gfdiagd(i,mu) = - aimag(gf(i,i,nu,nu))*s%wkbz(iz)
+      gfdiagu(i,mu) = - aimag(gf(mu,mu,i,i))*s%wkbz(iz)
+      gfdiagd(i,mu) = - aimag(gf(nu,nu,i,i))*s%wkbz(iz)
     end do ; end do
 
     ldosu = ldosu + gfdiagu

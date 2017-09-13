@@ -17,7 +17,7 @@ subroutine fermi_surface(e)
   real(double)       :: fs_layer(s%nAtoms,s%nkpt,4),fs_orb(3,s%nkpt,4),fs_total(s%nkpt,4)
   real(double)       :: kp(3)
   real(double),intent(in)    :: e
-  complex(double),dimension(s%nAtoms,s%nAtoms,2*nOrb,2*nOrb)    :: gf
+  complex(double),dimension(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms)    :: gf
   complex(double),dimension(2*nOrb,2*nOrb)    :: temp1,temp2,pauli_gf
 
   write(outputunit_loop,"('CALCULATING CHARGE AND SPIN DENSITY AT FERMI SURFACE')")
@@ -71,10 +71,10 @@ subroutine fermi_surface(e)
 
     do sigma=1,4 ; do i=1,s%nAtoms
       if(sigma==1) then
-        pauli_gf = gf(i,i,:,:)
+        pauli_gf = gf(:,:,i,i)
       else
         temp1 = pauli_orb(sigma-1,:,:)
-        temp2 = gf(i,i,:,:)
+        temp2 = gf(:,:,i,i)
         call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,temp1,2*nOrb,temp2,2*nOrb,zero,pauli_gf,2*nOrb)
       end if
       do mu=1,nOrb

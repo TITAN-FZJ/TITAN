@@ -26,7 +26,7 @@ subroutine jij_energy(Jij)
   complex(double), dimension(nmaglayers,3,3,2*nOrb,2*nOrb) :: d2bxcdm2
   complex(double), dimension(nmaglayers,2*nOrb,2*nOrb) :: paulievec
   complex(double), dimension(2*nOrb,2*nOrb) :: gij, gji, temp1, temp2, paulia, paulib
-  complex(double), dimension(s%nAtoms,s%nAtoms,2*nOrb,2*nOrb) :: gf,gfq
+  complex(double), dimension(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms) :: gf,gfq
   !--------------------- begin MPI vars --------------------
   integer :: start, end, work, remainder
   integer :: ncount
@@ -104,8 +104,8 @@ subroutine jij_energy(Jij)
       Jijkan = 0.d0
       do j = 1,nmaglayers
         do i = 1,nmaglayers
-          gij = gf(mmlayermag(i),mmlayermag(j),:,:)
-          gji = gfq(mmlayermag(j),mmlayermag(i),:,:)
+          gij = gf(:,:,mmlayermag(i),mmlayermag(j))
+          gji = gfq(:,:,mmlayermag(j),mmlayermag(i))
           do nu = 1,3
             do mu = 1,3
               paulia = dbxcdm(i,mu,:,:)
@@ -122,7 +122,7 @@ subroutine jij_energy(Jij)
 
           ! Anisotropy (on-site) term
           if(i==j) then
-            gij = gf(mmlayermag(i),mmlayermag(i),:,:)
+            gij = gf(:,:,mmlayermag(i),mmlayermag(i))
             do nu = 1,3
               do mu = 1,3
                 paulia = d2bxcdm2(i,mu,nu,:,:)
