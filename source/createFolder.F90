@@ -42,7 +42,7 @@ subroutine create_folder()
   end do
 
   !! Create Alpha Folder
-  alpha(:) = ["Slope", "TCM"]
+  alpha(:) = ["Slope", "TCM  "]
   do i = 1,2
     write(folder, "(a,'A/',a)") trim(base_command), trim(alpha(i))
     call execute_command_line(trim(folder))
