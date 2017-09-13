@@ -140,7 +140,7 @@ contains
     use mod_SOC, only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: pn1, y, wght
     use mod_system, only: s => sys
-    use TightBinding, only: nOrb
+    use TightBinding, only: nOrb,nOrb2
     use mod_mpi_pars
     !$  use omp_lib
     implicit none
@@ -188,8 +188,8 @@ contains
     !$omp parallel default(none) &
     !$omp& private(ix,iz,kp,i,mu,mup,gf,gf_loc) &
     !$omp& shared(llineargfsoc,llinearsoc,start,end,wght,s,Ef,y,gdiaguur,gdiagddr,gdiagud,gdiagdu)
-    allocate(gf    (2*nOrb,2*nOrb,s%nAtoms,s%nAtoms))
-    allocate(gf_loc(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms))
+    allocate(gf    (nOrb2,nOrb2,s%nAtoms,s%nAtoms))
+    allocate(gf_loc(nOrb2,nOrb2,s%nAtoms,s%nAtoms))
     gf = zero
     gf_loc = zero
 
@@ -261,13 +261,13 @@ contains
     use mod_SOC, only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: pn1, y, wght
     use mod_system, only: s => sys
-    use TightBinding, only: nOrb
+    use TightBinding, only: nOrb,nOrb2
     use mod_mpi_pars
     !$  use omp_lib
     implicit none
     integer, intent(in) :: N
     real(double), intent(inout), dimension(N,N) :: jacobian
-    complex(double), dimension(2*nOrb, 2*nOrb, s%nAtoms, s%nAtoms) :: gf,gvg
+    complex(double), dimension(nOrb2, nOrb2, s%nAtoms, s%nAtoms) :: gf,gvg
 
     integer :: i,j
     integer :: AllocateStatus
@@ -276,9 +276,9 @@ contains
     real(double) :: kp(3)
 
     complex(double) :: mhalfU(4,s%nAtoms), weight
-    complex(double), dimension(2*nOrb, 2*nOrb, 4) :: pauli_components1,pauli_components2
-    complex(double), dimension(2*nOrb, 2*nOrb, 4) :: temp1,temp2
-    complex(double), dimension(2*nOrb, 2*nOrb) :: gij,gji,temp,paulitemp
+    complex(double), dimension(nOrb2, nOrb2, 4) :: pauli_components1,pauli_components2
+    complex(double), dimension(nOrb2, nOrb2, 4) :: temp1,temp2
+    complex(double), dimension(nOrb2, nOrb2) :: gij,gji,temp,paulitemp
     complex(double), dimension(:,:,:,:,:,:), allocatable :: gdHdxg,gvgdHdxgvg
 
     !--------------------- begin MPI vars --------------------
@@ -327,7 +327,7 @@ contains
     !$omp parallel default(none) &
     !$omp& private(AllocateStatus,ix,iz,i,j,i0,j0,mu,sigma,sigmap,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp,gdHdxg,gvgdHdxgvg) &
     !$omp& shared(llineargfsoc,llinearsoc,start,end,s,Ef,y,wght,mhalfU,pauli_components1,pauli_components2,jacobian)
-    allocate( gdHdxg(2*nOrb,2*nOrb,4,4,s%nAtoms,s%nAtoms), gvgdHdxgvg(2*nOrb,2*nOrb,4,4,s%nAtoms,s%nAtoms) , STAT = AllocateStatus  )
+    allocate( gdHdxg(nOrb2,nOrb2,4,4,s%nAtoms,s%nAtoms), gvgdHdxgvg(nOrb2,nOrb2,4,4,s%nAtoms,s%nAtoms) , STAT = AllocateStatus  )
     if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: gdHdxg,gvgdHdxgvg")
     gdHdxg = zero
     gvgdHdxgvg = zero
@@ -414,7 +414,7 @@ contains
     if((llineargfsoc).or.(llinearsoc)) gdHdxg = gdHdxg - gvgdHdxgvg
 
     !$omp critical
-    do mu=1, 2*nOrb
+    do mu=1, nOrb2
       do j=1,s%nAtoms
         do i=1,s%nAtoms
           do sigmap=1,4
@@ -446,7 +446,7 @@ contains
     use mod_f90_kind, only: double
     use mod_constants, only: zero,pi
     use mod_System, only: s => sys
-    use TightBinding, only: nOrb
+    use TightBinding, only: nOrb,nOrb2
     use mod_parameters, only: outputunit_loop, Ef
     use mod_magnet
     use EnergyIntegration, only: y, wght, pn1
@@ -501,7 +501,7 @@ contains
     !$omp& private(AllocateStatus,ix,iz,i,mu,nu,mup,nup,kp,gf,gupgd) &
     !$omp& shared(start,end,s,Ef,y,wght,gupgdint)
 
-    allocate(gf(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms), &
+    allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
              gupgd(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
     gupgd   = zero
 

@@ -8,7 +8,7 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
   use mod_parameters,    only: outputunit, outputunit_loop, dim, dimsigmaNpl, lverbose, ef, sigmaimunu2i, eta, sigmai2i, offset
   use mod_SOC, only: llineargfsoc
   use mod_system, only: s => sys, n0sc1, n0sc2
-  use TightBinding, only: nOrb
+  use TightBinding, only: nOrb,nOrb2
   use mod_progress
 !$  use omp_lib
   implicit none
@@ -41,7 +41,7 @@ subroutine sumk(e,ep,tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl
 !$    nthreads = omp_get_num_threads()
 !$    write(outputunit_loop,"('[sumk] Number of threads: ',i0)") nthreads
 !$  end if
-  allocate(df1iikl(dim,4),pfdf1iikl(dim,4), gf(s%nAtoms, s%nAtoms, 2*nOrb, 2*nOrb), &
+  allocate(df1iikl(dim,4),pfdf1iikl(dim,4), gf(s%nAtoms, s%nAtoms, nOrb2, nOrb2), &
            dtdk(s%nAtoms, s%nAtoms, nOrb, nOrb), gfuu(s%nAtoms, s%nAtoms, nOrb, nOrb,2), &
            gfud(s%nAtoms, s%nAtoms, nOrb, nOrb,2), gfdu(s%nAtoms, s%nAtoms, nOrb, nOrb,2), &
            gfdd(s%nAtoms, s%nAtoms, nOrb, nOrb,2), STAT = AllocateStatus)

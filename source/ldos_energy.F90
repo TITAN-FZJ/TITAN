@@ -4,7 +4,7 @@ subroutine ldos_energy(e,ldosu,ldosd)
   use mod_constants, only: pi
   use mod_parameters, only: lverbose, eta, outputunit_loop
   use mod_system, only: s => sys
-  use TightBinding, only: nOrb
+  use TightBinding, only: nOrb,nOrb2
   use mod_progress
   !use mod_mpi_pars
 !$  use omp_lib
@@ -14,7 +14,7 @@ subroutine ldos_energy(e,ldosu,ldosd)
   real(double)        :: kp(3)
   real(double),intent(in) :: e
   real(double),intent(out) :: ldosu(s%nAtoms,nOrb),ldosd(s%nAtoms,nOrb)
-  complex(double),dimension(2*nOrb, 2*nOrb, s%nAtoms, s%nAtoms) :: gf
+  complex(double),dimension(nOrb2, nOrb2, s%nAtoms, s%nAtoms) :: gf
   complex(double),dimension(s%nAtoms, nOrb) :: gfdiagu,gfdiagd
 
   ldosu = 0.d0

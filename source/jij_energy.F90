@@ -9,7 +9,7 @@ subroutine jij_energy(Jij)
 
   use mod_magnet, only: mx,my,mz,mabs
   use mod_system, only: s => sys
-  use TightBinding, only: nOrb
+  use TightBinding, only: nOrb,nOrb2
 
 
   implicit none
@@ -22,11 +22,11 @@ subroutine jij_energy(Jij)
   real(double) :: evec(3,nmaglayers)
   real(double) :: Jijk(nmaglayers,nmaglayers,3,3)
   real(double) :: Jijkan(nmaglayers,3,3)
-  complex(double), dimension(nmaglayers,3,2*nOrb,2*nOrb) :: dbxcdm
-  complex(double), dimension(nmaglayers,3,3,2*nOrb,2*nOrb) :: d2bxcdm2
-  complex(double), dimension(nmaglayers,2*nOrb,2*nOrb) :: paulievec
-  complex(double), dimension(2*nOrb,2*nOrb) :: gij, gji, temp1, temp2, paulia, paulib
-  complex(double), dimension(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms) :: gf,gfq
+  complex(double), dimension(nmaglayers,3,nOrb2,nOrb2) :: dbxcdm
+  complex(double), dimension(nmaglayers,3,3,nOrb2,nOrb2) :: d2bxcdm2
+  complex(double), dimension(nmaglayers,nOrb2,nOrb2) :: paulievec
+  complex(double), dimension(nOrb2,nOrb2) :: gij, gji, temp1, temp2, paulia, paulib
+  complex(double), dimension(nOrb2,nOrb2,s%nAtoms,s%nAtoms) :: gf,gfq
   !--------------------- begin MPI vars --------------------
   integer :: start, end, work, remainder
   integer :: ncount
@@ -110,11 +110,11 @@ subroutine jij_energy(Jij)
             do mu = 1,3
               paulia = dbxcdm(i,mu,:,:)
               paulib = dbxcdm(j,nu,:,:)
-              call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,paulia,2*nOrb,gij,   2*nOrb,zero,temp1,2*nOrb)
-              call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,temp1, 2*nOrb,paulib,2*nOrb,zero,temp2,2*nOrb)
-              call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,temp2, 2*nOrb,gji,   2*nOrb,zero,temp1,2*nOrb)
+              call zgemm('n','n',nOrb2,nOrb2,nOrb2,zum,paulia,nOrb2,gij,   nOrb2,zero,temp1,nOrb2)
+              call zgemm('n','n',nOrb2,nOrb2,nOrb2,zum,temp1, nOrb2,paulib,nOrb2,zero,temp2,nOrb2)
+              call zgemm('n','n',nOrb2,nOrb2,nOrb2,zum,temp2, nOrb2,gji,   nOrb2,zero,temp1,nOrb2)
               ! Trace over orbitals and spins
-              do alpha = 1,2*nOrb
+              do alpha = 1,nOrb2
                 Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + real(temp1(alpha,alpha))
               end do
             end do
@@ -126,9 +126,9 @@ subroutine jij_energy(Jij)
             do nu = 1,3
               do mu = 1,3
                 paulia = d2bxcdm2(i,mu,nu,:,:)
-                call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,gij,2*nOrb,paulia,2*nOrb,zero,temp1,2*nOrb)
+                call zgemm('n','n',nOrb2,nOrb2,nOrb2,zum,gij,nOrb2,paulia,nOrb2,zero,temp1,nOrb2)
                 ! Trace over orbitals and spins
-                do alpha = 1,2*nOrb
+                do alpha = 1,nOrb2
                   Jijkan(i,mu,nu) = Jijkan(i,mu,nu) + real(temp1(alpha,alpha))
                 end do
                 Jijk(i,i,mu,nu) = Jijk(i,i,mu,nu) + Jijkan(i,mu,nu)
