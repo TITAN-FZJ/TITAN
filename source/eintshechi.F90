@@ -23,7 +23,7 @@ subroutine eintshechi(e)
   complex(double),dimension(:,:,:,:),allocatable    :: gf
   complex(double),dimension(:,:,:,:,:),allocatable  :: gfuu,gfud,gfdu,gfdd
   complex(double),dimension(:,:),allocatable        :: df1
-
+  real(double) :: weight
 
 
 !--------------------- begin MPI vars --------------------
@@ -72,7 +72,7 @@ subroutine eintshechi(e)
   chiorb_hf = zero
 
   !$omp parallel default(none) &
-  !$omp& private(AllocateStatus,iz,ix,ix2,i,j,mu,nu,gamma,xi,kp,gf,gfuu,gfud,gfdu,gfdd,df1,Fint) &
+  !$omp& private(AllocateStatus,iz,ix,ix2,i,j,mu,nu,gamma,xi,kp,wght,gf,gfuu,gfud,gfdu,gfdd,df1,Fint) &
   !$omp& shared(llineargfsoc,start1,start2,end1,end2,s,e,y,x2,wght,p2,Ef,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf)
   allocate(df1(dim,dim), Fint(dim,dim), &
            gf  (s%nAtoms,s%nAtoms,2*nOrb,2*nOrb), &
@@ -87,7 +87,7 @@ subroutine eintshechi(e)
   do ix = start1, end1
     do iz = 1, s%nkpt
       kp = s%kbz(:,iz)
-
+      weight = wght(ix)*s%wkbz(iz)
       ! Green function at (k+q,E_F+E+iy)
       if(llineargfsoc) then
         call greenlineargfsoc(Ef+e,y(ix),kp,gf)
@@ -143,7 +143,7 @@ subroutine eintshechi(e)
         end do
       end do
 
-      Fint = Fint + df1*wght(ix)*s%wkbz(iz)
+      Fint = Fint + df1*weight
     end do !end nkpt loop
   end do !end ix <= pn1 loop
   !$omp end do nowait
@@ -209,7 +209,7 @@ subroutine eintshechi(e)
       end do
 
       ! Locally add up df1
-      Fint = Fint + df1*p2(ix2)*s%wkbz(iz)
+      Fint = Fint + df1*(p2(ix2)*s%wkbz(iz))
     end do !end nkpt loop
   end do !end pn1+1, nepoints loop
   !$omp end do nowait

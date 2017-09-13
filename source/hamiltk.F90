@@ -20,17 +20,18 @@ subroutine hamiltk(kp,hk)
   complex(double), dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb), intent(out) :: hk
   complex(double) :: tmp(nOrb,nOrb)
   complex(double) :: kpExp
-
+  real(double) :: lambda
   hk = zero
 
   ! Mouting slab hamiltonian
   do i=1, s%nAtoms
+    lambda = s%Types(s%Basis(i)%Material)%Lambda
     hk(ia(1,i):ia(2,i), ia(1,i):ia(2,i)) = s%Types(s%Basis(i)%Material)%onSite(1:nOrb,1:nOrb)
     hk(ia(3,i):ia(4,i), ia(3,i):ia(4,i)) = s%Types(s%Basis(i)%Material)%onSite(1:nOrb,1:nOrb)
 
     hk(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = hk(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) &
                                          + lb(:,:,i) + sb(:,:,i) + hee(:,:,i) &
-                                         + socscale * s%Types(s%Basis(i)%Material)%Lambda * ls
+                                         + socscale * lambda * ls
   end do
 
   do k = 1, s%nNeighbors
@@ -46,13 +47,13 @@ subroutine hamiltk(kp,hk)
     end do
   end do
 
-  do i = ia(1,1), ia(4,s%nAtoms)
-    do j = i, ia(4,s%nAtoms)
-      if(abs(hk(j,i)-conjg(hk(i,j))) > 1.d-12) then
-        print *, i,j,abs(hk(j,i)-conjg(hk(i,j)))
-      end if
-    end do
-  end do
+  ! do i = ia(1,1), ia(4,s%nAtoms)
+  !   do j = i, ia(4,s%nAtoms)
+  !     if(abs(hk(j,i)-conjg(hk(i,j))) > 1.d-12) then
+  !       print *, i,j,abs(hk(j,i)-conjg(hk(i,j)))
+  !     end if
+  !   end do
+  ! end do
 
   return
 end subroutine hamiltk
