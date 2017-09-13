@@ -3,7 +3,7 @@ module mod_torques
   implicit none
   ! Torques (sot,xc-torque,external torque ; x,y,z ; layers)
   integer       :: ntypetorque=3 ! Number of types of torques implemented
-  complex(double),allocatable   :: torques(:,:,:),rtorques(:,:,:)
+  complex(double),allocatable   :: torques(:,:,:),rtorques(:,:,:),total_torques(:,:)
 contains
 
   ! This subroutine allocates variables related to the torques calculation
@@ -11,6 +11,7 @@ contains
     use mod_f90_kind
     use mod_mpi_pars
     use mod_parameters
+    use mod_system, only: s => sys
     use mod_magnet, only: lfield, total_hw_npt1
     implicit none
     integer           :: AllocateStatus
@@ -23,13 +24,13 @@ contains
     end if
 
     if(myrank_row==0) then
-      allocate( torques(ntypetorque,3,Npl), STAT = AllocateStatus )
+      allocate( torques(ntypetorque,3,s%nAtoms),total_torques(ntypetorque,3), STAT = AllocateStatus )
       if (AllocateStatus/=0) then
         write(outputunit,"('[allocate_torques] Not enough memory for: torques')")
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
       if(renorm) then
-        allocate( rtorques(ntypetorque,3,Npl), STAT = AllocateStatus )
+        allocate( rtorques(ntypetorque,3,s%nAtoms), STAT = AllocateStatus )
         if (AllocateStatus/=0) then
           write(outputunit,"('[allocate_torques] Not enough memory for: rtorques')")
           call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
@@ -48,7 +49,7 @@ contains
     implicit none
 
     if(myrank_row==0) then
-      deallocate(torques)
+      deallocate(torques,total_torques)
       if(renorm) deallocate(rtorques)
     end if
 
@@ -60,7 +61,8 @@ contains
     use mod_parameters, only: fieldpart
     use mod_SOC, only: SOCc, socpart
     use mod_mpi_pars
-    use mod_system, only: nkpt
+    use mod_system, only: s => sys
+    use EnergyIntegration, only: strEnergyParts
     use electricfield, only: strElectricField
     implicit none
 
@@ -81,47 +83,68 @@ contains
     direction(3) = "z"
 
     if(iflag==0) then
-      do typetorque=1,ntypetorque ; do sigma=1,3 ; do i=1,Npl
-        iw = 9000+(typetorque-1)*Npl*3+(sigma-1)*Npl+i
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename(typetorque)),direction(sigma),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
-        open (unit=iw, file=varm, status='replace', form='formatted')
-        write(unit=iw, fmt="('#     energy    , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
-        close(unit=iw)
-        if(renorm) then
-          iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename(typetorque)),direction(sigma),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+      do typetorque=1,ntypetorque ; do sigma=1,3
+        do i=1,s%nAtoms
+          iw = 9000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename(typetorque)),direction(sigma),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#     energy    , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
           close(unit=iw)
-        end if
-      end do ; end do ; end do
+          if(renorm) then
+            iw = iw+1000
+            write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename(typetorque)),direction(sigma),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+            open (unit=iw, file=varm, status='replace', form='formatted')
+            write(unit=iw, fmt="('#     energy    , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
+            close(unit=iw)
+          end if
+        end do
+        ! Total torque files
+        iw = 9500+(typetorque-1)*3+sigma
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename(typetorque)),direction(sigma),trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        open (unit=iw, file=varm, status='replace', form='formatted')
+        write(unit=iw, fmt="('#     energy    , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
+        close(unit=iw)
+      end do ; end do
     else if (iflag==1) then
-      do typetorque=1,ntypetorque ; do sigma=1,3 ; do i=1,Npl
-        iw = 9000+(typetorque-1)*Npl*3+(sigma-1)*Npl+i
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename(typetorque)),direction(sigma),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
-        open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
-        errt = errt + err
-        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
-        if(renorm) then
-          iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename(typetorque)),direction(sigma),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+      do typetorque=1,ntypetorque ; do sigma=1,3
+        do i=1,s%nAtoms
+          iw = 9000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename(typetorque)),direction(sigma),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
-        end if
-      end do ; end do ; end do
+          if(renorm) then
+            iw = iw+1000
+            write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename(typetorque)),direction(sigma),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+            open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+            errt = errt + err
+            if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+          end if
+        end do
+        ! Total torque files
+        iw = 9500+(typetorque-1)*3+sigma
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename(typetorque)),direction(sigma),trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+        errt = errt + err
+        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+      end do ; end do
       ! Stop if some file does not exist
       if(errt/=0) call abortProgram("[openclose_torque_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
     else
-      do typetorque=1,ntypetorque ; do sigma=1,3 ; do i=1,Npl
-        iw = 9000+(typetorque-1)*Npl*3+(sigma-1)*Npl+i
-        close(unit=iw)
-
-        if(renorm) then
-          iw = iw+1000
+      do typetorque=1,ntypetorque ; do sigma=1,3
+        do i=1,s%nAtoms
+          iw = 9000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
           close(unit=iw)
-        end if
-      end do ; end do ; end do
+
+          if(renorm) then
+            iw = iw+1000
+            close(unit=iw)
+          end if
+        end do
+        ! Total torque files
+        iw = 9500+(typetorque-1)*3+sigma
+        close(unit=iw)
+      end do ; end do
     end if
 
     return
@@ -132,45 +155,63 @@ contains
   ! Some information may also be written on the screen
   subroutine write_torques(e)
     use mod_f90_kind
-    use mod_parameters, only: Npl,renorm
+    use mod_parameters, only: renorm
     use mod_magnet, only: mvec_spherical
+    use mod_system, only: s => sys
     implicit none
     integer  :: i,iw,sigma,typetorque
     real(double) :: phase,sine,cosine
     real(double),intent(in) :: e
 
-    do typetorque=1,ntypetorque ; do sigma=1,3 ; do i=1,Npl
-      iw = 9000+(typetorque-1)*Npl*3+(sigma-1)*Npl+i
+    do typetorque=1,ntypetorque ; do sigma=1,3
+      do i=1,s%nAtoms
+        iw = 9000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
 
-      if(abs(torques(typetorque,sigma,i))>=1.d-10) then
-        phase  = atan2(aimag(torques(typetorque,sigma,i)),real(torques(typetorque,sigma,i)))
-        sine   = real(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
-        cosine = aimag(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
-      else
-        phase  = 0.d0
-        sine   = 0.d0
-        cosine = 0.d0
-      end if
-
-      write(unit=iw,fmt="(9(es16.9,2x))") e , abs(torques(typetorque,sigma,i)) , real(torques(typetorque,sigma,i)) , aimag(torques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
-
-      ! Writing renormalized torques
-      if(renorm) then
-        iw = iw+1000
-
-        if(abs(rtorques(typetorque,sigma,i))>=1.d-10) then
-          phase  = atan2(aimag(rtorques(typetorque,sigma,i)),real(rtorques(typetorque,sigma,i)))
-          sine   = real(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
-          cosine = aimag(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
+        if(abs(torques(typetorque,sigma,i))>=1.d-10) then
+          phase  = atan2(aimag(torques(typetorque,sigma,i)),real(torques(typetorque,sigma,i)))
+          sine   = real(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
+          cosine = aimag(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
         else
           phase  = 0.d0
           sine   = 0.d0
           cosine = 0.d0
         end if
 
-        write(unit=iw,fmt="(9(es16.9,2x))") e , abs(rtorques(typetorque,sigma,i)) , real(rtorques(typetorque,sigma,i)) , aimag(rtorques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
+        write(unit=iw,fmt="(9(es16.9,2x))") e , abs(torques(typetorque,sigma,i)) , real(torques(typetorque,sigma,i)) , aimag(torques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
+
+        ! Writing renormalized torques
+        if(renorm) then
+          iw = iw+1000
+
+          if(abs(rtorques(typetorque,sigma,i))>=1.d-10) then
+            phase  = atan2(aimag(rtorques(typetorque,sigma,i)),real(rtorques(typetorque,sigma,i)))
+            sine   = real(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
+            cosine = aimag(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
+          else
+            phase  = 0.d0
+            sine   = 0.d0
+            cosine = 0.d0
+          end if
+
+          write(unit=iw,fmt="(9(es16.9,2x))") e , abs(rtorques(typetorque,sigma,i)) , real(rtorques(typetorque,sigma,i)) , aimag(rtorques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
+        end if
+      end do
+      ! Writing total torques
+      iw = 9500+(typetorque-1)*3+sigma
+
+      if(abs(total_torques(typetorque,sigma))>=1.d-10) then
+        phase  = atan2(aimag(total_torques(typetorque,sigma)),real(total_torques(typetorque,sigma)))
+        sine   = real(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
+        cosine = aimag(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
+      else
+        phase  = 0.d0
+        sine   = 0.d0
+        cosine = 0.d0
       end if
-    end do ; end do ; end do
+
+      write(unit=iw,fmt="(9(es16.9,2x))") e , abs(total_torques(typetorque,sigma)) , real(total_torques(typetorque,sigma)) , aimag(total_torques(typetorque,sigma)) , phase , sine , cosine , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
+
+    end do ; end do
 
     return
   end subroutine write_torques
@@ -180,7 +221,8 @@ contains
     use mod_parameters, only: dcfieldpart
     use mod_mpi_pars
     use mod_SOC, only: SOCc, socpart
-    use mod_system, only:nkpt
+    use mod_system, only: s => sys
+    use EnergyIntegration, only: strEnergyParts
     use electricfield, only: strElectricField
     implicit none
 
@@ -201,47 +243,68 @@ contains
     direction(3) = "z"
 
     if(iflag==0) then
-      do typetorque=1,ntypetorque ; do sigma=1,3 ; do i=1,Npl
-        iw = 90000+(typetorque-1)*Npl*3+(sigma-1)*Npl+i
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
-        open (unit=iw, file=varm, status='replace', form='formatted')
-        write(unit=iw, fmt="('#',a,'  imaginary part of ',a,a,' ,  real part of ',a,a,'  , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
-        close(unit=iw)
-        if(renorm) then
-          iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+      do typetorque=1,ntypetorque ; do sigma=1,3
+        do i=1,s%nAtoms
+          iw = 90000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#',a,'  imaginary part of ',a,a,' ,  real part of ',a,a,'  , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
           close(unit=iw)
-        end if
-      end do ; end do ; end do
+          if(renorm) then
+            iw = iw+1000
+            write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+            open (unit=iw, file=varm, status='replace', form='formatted')
+            write(unit=iw, fmt="('#',a,'  imaginary part of ',a,a,' ,  real part of ',a,a,'  , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
+            close(unit=iw)
+          end if
+        end do
+        ! Total torque files
+        iw = 95000+(typetorque-1)*3+sigma
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        open (unit=iw, file=varm, status='replace', form='formatted')
+        write(unit=iw, fmt="('#',a,'  imaginary part of ',a,a,' ,  real part of ',a,a,'  , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
+        close(unit=iw)
+      end do ; end do
     else if (iflag==1) then
-      do typetorque=1,ntypetorque ; do sigma=1,3 ; do i=1,Npl
-        iw = 90000+(typetorque-1)*Npl*3+(sigma-1)*Npl+i
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
-        open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
-        errt = errt + err
-        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
-        if(renorm) then
-          iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+      do typetorque=1,ntypetorque ; do sigma=1,3
+        do i=1,s%nAtoms
+          iw = 90000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
-        end if
-      end do ; end do ; end do
+          if(renorm) then
+            iw = iw+1000
+            write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+            open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+            errt = errt + err
+            if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+          end if
+        end do
+        ! Total torque files
+        iw = 95000+(typetorque-1)*3+sigma
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+        errt = errt + err
+        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+      end do ; end do
       ! Stop if some file does not exist
       if(errt/=0) call abortProgram("[openclose_dc_torque_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
     else
-      do typetorque=1,ntypetorque ; do sigma=1,3 ; do i=1,Npl
-        iw = 90000+(typetorque-1)*Npl*3+(sigma-1)*Npl+i
-        close(unit=iw)
-
-        if(renorm) then
-          iw = iw+1000
+      do typetorque=1,ntypetorque ; do sigma=1,3
+        do i=1,s%nAtoms
+          iw = 90000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
           close(unit=iw)
-        end if
-      end do ; end do ; end do
+
+          if(renorm) then
+            iw = iw+1000
+            close(unit=iw)
+          end if
+        end do
+        ! Total torque files
+        iw = 95000+(typetorque-1)*3+sigma
+        close(unit=iw)
+      end do ; end do
     end if
 
     return
@@ -252,43 +315,60 @@ contains
   ! Some information may also be written on the screen
   subroutine write_dc_torques()
     use mod_f90_kind
-    use mod_parameters, only: Npl,renorm,dc_fields,hw_count
+    use mod_parameters, only: renorm,dc_fields,hw_count
     use mod_magnet, only: mvec_spherical
+    use mod_system, only: s => sys
     implicit none
     integer      :: i,iw,sigma,typetorque
     real(double) :: phase,sine,cosine
 
-    do typetorque=1,ntypetorque ; do sigma=1,3 ; do i=1,Npl
-      iw = 90000+(typetorque-1)*Npl*3+(sigma-1)*Npl+i
+    do typetorque=1,ntypetorque ; do sigma=1,3
+      do i=1,s%nAtoms
+        iw = 90000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
 
-      if(abs(torques(typetorque,sigma,i))>=1.d-10) then
-        phase  = atan2(aimag(torques(typetorque,sigma,i)),real(torques(typetorque,sigma,i)))
-        sine   = real(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
-        cosine = aimag(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
-      else
-        phase  = 0.d0
-        sine   = 0.d0
-        cosine = 0.d0
-      end if
-      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(torques(typetorque,sigma,i)) , real(torques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
-
-      ! Writing renormalized torques
-      if(renorm) then
-        iw = iw+1000
-
-        if(abs(rtorques(typetorque,sigma,i))>=1.d-10) then
-          phase  = atan2(aimag(rtorques(typetorque,sigma,i)),real(rtorques(typetorque,sigma,i)))
-          sine   = real(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
-          cosine = aimag(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
+        if(abs(torques(typetorque,sigma,i))>=1.d-10) then
+          phase  = atan2(aimag(torques(typetorque,sigma,i)),real(torques(typetorque,sigma,i)))
+          sine   = real(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
+          cosine = aimag(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
         else
           phase  = 0.d0
           sine   = 0.d0
           cosine = 0.d0
         end if
+        write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(torques(typetorque,sigma,i)) , real(torques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
 
-        write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(rtorques(typetorque,sigma,i)) , real(rtorques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
+        ! Writing renormalized torques
+        if(renorm) then
+          iw = iw+1000
+
+          if(abs(rtorques(typetorque,sigma,i))>=1.d-10) then
+            phase  = atan2(aimag(rtorques(typetorque,sigma,i)),real(rtorques(typetorque,sigma,i)))
+            sine   = real(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
+            cosine = aimag(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
+          else
+            phase  = 0.d0
+            sine   = 0.d0
+            cosine = 0.d0
+          end if
+
+          write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(rtorques(typetorque,sigma,i)) , real(rtorques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
+        end if
+      end do
+      ! Writing total torques
+      iw = 95000+(typetorque-1)*3+sigma
+
+      if(abs(total_torques(typetorque,sigma))>=1.d-10) then
+        phase  = atan2(aimag(total_torques(typetorque,sigma)),real(total_torques(typetorque,sigma)))
+        sine   = real(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
+        cosine = aimag(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
+      else
+        phase  = 0.d0
+        sine   = 0.d0
+        cosine = 0.d0
       end if
-    end do ; end do ; end do
+      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_torques(typetorque,sigma)) , real(total_torques(typetorque,sigma)) , phase , sine , cosine , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
+
+    end do ; end do
 
     return
   end subroutine write_dc_torques
@@ -296,7 +376,8 @@ contains
   ! This subroutine sorts torque files
   subroutine sort_torques()
     use mod_f90_kind
-    use mod_parameters, only: Npl,renorm,itype
+    use mod_parameters, only: renorm,itype
+    use mod_system, only: s => sys
     use mod_tools, only: sort_file
     implicit none
     integer  :: i,iw,sigma,typetorque,idc=1
@@ -309,18 +390,24 @@ contains
       call openclose_torque_files(1)
     end if
 
-    do typetorque=1,ntypetorque ; do sigma=1,3 ; do i=1,Npl
-      iw = 9000*idc+(typetorque-1)*Npl*3+(sigma-1)*Npl+i
+    do typetorque=1,ntypetorque ; do sigma=1,3
+      do i=1,s%nAtoms
+        iw = 9000*idc+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
 
-      ! Sorting torque files
-      call sort_file(iw,.true.)
-
-      ! Sorting renormalized torque files
-      if(renorm) then
-        iw = iw+1000
+        ! Sorting torque files
         call sort_file(iw,.true.)
-      end if
-    end do ; end do ; end do
+
+        ! Sorting renormalized torque files
+        if(renorm) then
+          iw = iw+1000
+          call sort_file(iw,.true.)
+        end if
+      end do
+      iw = 9500*idc+(typetorque-1)*3+sigma
+
+      ! Sorting total torque files
+      call sort_file(iw,.true.)
+    end do ; end do
 
     ! Closing torque files
     if(itype==9) then

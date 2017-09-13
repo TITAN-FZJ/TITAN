@@ -2,7 +2,7 @@ module mod_disturbances
   use mod_f90_kind
   implicit none
   ! Disturbances and renormalized disturbances: chd,sdx,sdy,sdz,ldx,ldy,ldz
-  complex(double),allocatable   :: disturbances(:,:),rdisturbances(:,:)
+  complex(double),allocatable   :: disturbances(:,:),total_disturbances(:),rdisturbances(:,:)
   ! Full response functions
   complex(double), dimension(:,:),   allocatable :: tchiorbiikl
   complex(double), dimension(:,:,:), allocatable :: ldmat
@@ -13,15 +13,15 @@ contains
   subroutine allocate_disturbances()
     use mod_f90_kind
     use mod_mpi_pars
-    use mod_prefactors,only: prefactor,prefactorlsoc
+    use mod_prefactors, only: prefactor,prefactorlsoc
     use mod_parameters, only: Npl,renorm,llinearsoc,dim,dimsigmaNpl,outputunit
     implicit none
     integer           :: AllocateStatus
 
     if(myrank_row==0) then
-      allocate( disturbances(7,Npl),sdmat(dimsigmaNpl),ldmat(Npl,9,9), STAT = AllocateStatus )
+      allocate( disturbances(7,Npl),total_disturbances(7),sdmat(dimsigmaNpl),ldmat(Npl,9,9), STAT = AllocateStatus )
       if (AllocateStatus/=0) then
-        write(outputunit,"('[allocate_disturbances] Not enough memory for: disturbances,sdmat,ldmat')")
+        write(outputunit,"('[allocate_disturbances] Not enough memory for: disturbances,total_disturbances,sdmat,ldmat')")
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
       if(renorm) then
@@ -66,7 +66,7 @@ contains
     implicit none
 
     if(myrank_row==0) then
-      deallocate(disturbances,sdmat,ldmat)
+      deallocate(disturbances,total_disturbances,sdmat,ldmat)
       if(renorm) deallocate(rdisturbances)
     end if
     deallocate(tchiorbiikl)
@@ -114,47 +114,68 @@ contains
     filename(7) = "Lz"
 
     if(iflag==0) then
-      do i=1,Npl ; do j=1,7
-        iw = 3000+(i-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,trim(strEnergyParts),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
-        open (unit=iw, file=varm, status='replace', form='formatted')
-        write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
-        close(unit=iw)
-        if(renorm) then
-          iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,trim(strEnergyParts),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+      do j=1,7
+        do i=1,Npl
+          iw = 3000+(i-1)*7+j
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,trim(strEnergyParts),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
-        end if
-      end do ; end do
+          if(renorm) then
+            iw = iw+1000
+            write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,trim(strEnergyParts),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+            open (unit=iw, file=varm, status='replace', form='formatted')
+            write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
+            close(unit=iw)
+          end if
+        end do
+        ! Total disturbances files
+        iw = 3500+j
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),trim(strEnergyParts),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        open (unit=iw, file=varm, status='replace', form='formatted')
+        write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
+        close(unit=iw)
+      end do
     else if (iflag==1) then
-      do i=1,Npl ; do j=1,7
-        iw = 3000+(i-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,trim(strEnergyParts),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
-        open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
-        errt = errt + err
-        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
-        if(renorm) then
-          iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,trim(strEnergyParts),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+      do j=1,7
+        do i=1,Npl
+          iw = 3000+(i-1)*7+j
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,trim(strEnergyParts),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
-        end if
-      end do ; end do
+          if(renorm) then
+            iw = iw+1000
+            write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),i,trim(strEnergyParts),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+            open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+            errt = errt + err
+            if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+          end if
+        end do
+        ! Total disturbances files
+        iw = 3500+j
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),filename(j),trim(strEnergyParts),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+        errt = errt + err
+        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+      end do
       ! Stop if some file does not exist
       if(errt/=0) call abortProgram("[openclose_disturbance_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
     else
-      do i=1,Npl ; do j=1,7
-        iw = 3000+(i-1)*7+j
-        close(unit=iw)
-
-        if(renorm) then
-          iw = iw+1000
+      do j=1,7
+        do i=1,Npl
+          iw = 3000+(i-1)*7+j
           close(unit=iw)
-        end if
-      end do ; end do
+
+          if(renorm) then
+            iw = iw+1000
+            close(unit=iw)
+          end if
+        end do
+        ! Total disturbances files
+        iw = 3500+j
+        close(unit=iw)
+      end do
     end if
 
     return
@@ -243,6 +264,23 @@ contains
       end if
     end do
 
+    ! Writing total charge disturbance
+    iw = 3500
+    write(unit=iw+1,fmt="(9(es16.9,2x))") e, abs(total_disturbances(1)) , real(total_disturbances(1)) , aimag(total_disturbances(1)) , atan2(aimag(total_disturbances(1)),real(total_disturbances(1))) , real(total_disturbances(1))/abs(total_disturbances(1)) , aimag(total_disturbances(1))/abs(total_disturbances(1)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
+    ! Writing x-component total spin disturbance
+    write(unit=iw+2,fmt="(9(es16.9,2x))") e, abs(total_disturbances(2)) , real(total_disturbances(2)) , aimag(total_disturbances(2)) , atan2(aimag(total_disturbances(2)),real(total_disturbances(2))) , real(total_disturbances(2))/abs(total_disturbances(2)) , aimag(total_disturbances(2))/abs(total_disturbances(2)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
+    ! Writing y-component total spin disturbance
+    write(unit=iw+3,fmt="(9(es16.9,2x))") e, abs(total_disturbances(3)) , real(total_disturbances(3)) , aimag(total_disturbances(3)) , atan2(aimag(total_disturbances(3)),real(total_disturbances(3))) , real(total_disturbances(3))/abs(total_disturbances(3)) , aimag(total_disturbances(3))/abs(total_disturbances(3)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
+    ! Writing z-component total spin disturbance
+    write(unit=iw+4,fmt="(9(es16.9,2x))") e, abs(total_disturbances(4)) , real(total_disturbances(4)) , aimag(total_disturbances(4)) , atan2(aimag(total_disturbances(4)),real(total_disturbances(4))) , real(total_disturbances(4))/abs(total_disturbances(4)) , aimag(total_disturbances(4))/abs(total_disturbances(4)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
+
+    ! Writing x-component total orbital disturbance
+    write(unit=iw+5,fmt="(9(es16.9,2x))") e, abs(total_disturbances(5)) , real(total_disturbances(5)) , aimag(total_disturbances(5)) , atan2(aimag(total_disturbances(5)),real(total_disturbances(5))) , real(total_disturbances(5))/abs(total_disturbances(5)) , aimag(total_disturbances(5))/abs(total_disturbances(5)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
+    ! Writing y-component total orbital disturbance
+    write(unit=iw+6,fmt="(9(es16.9,2x))") e, abs(total_disturbances(6)) , real(total_disturbances(6)) , aimag(total_disturbances(6)) , atan2(aimag(total_disturbances(6)),real(total_disturbances(6))) , real(total_disturbances(6))/abs(total_disturbances(6)) , aimag(total_disturbances(6))/abs(total_disturbances(6)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
+    ! Writing z-component total orbital disturbance
+    write(unit=iw+7,fmt="(9(es16.9,2x))") e, abs(total_disturbances(7)) , real(total_disturbances(7)) , aimag(total_disturbances(7)) , atan2(aimag(total_disturbances(7)),real(total_disturbances(7))) , real(total_disturbances(7))/abs(total_disturbances(7)) , aimag(total_disturbances(7))/abs(total_disturbances(7)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
+
     return
   end subroutine write_disturbances
 
@@ -284,47 +322,68 @@ contains
     filename(7) = "Lz"
 
     if(iflag==0) then
-      do i=1,Npl ; do j=1,7
-        iw = 30000+(i-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
-        open (unit=iw, file=varm, status='replace', form='formatted')
-        write(unit=iw, fmt="('#',a,' imag part of ',a,' , real part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
-        close(unit=iw)
-        if(renorm) then
-          iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+      do j=1,7
+        do i=1,Npl
+          iw = 30000+(i-1)*7+j
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#',a,' imag part of ',a,' , real part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
-        end if
-      end do ; end do
+          if(renorm) then
+            iw = iw+1000
+            write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+            open (unit=iw, file=varm, status='replace', form='formatted')
+            write(unit=iw, fmt="('#',a,' imag part of ',a,' , real part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
+            close(unit=iw)
+          end if
+        end do
+        ! Total disturbances files
+        iw = 35000+j
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_',a,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),trim(strEnergyParts),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        open (unit=iw, file=varm, status='replace', form='formatted')
+        write(unit=iw, fmt="('#',a,' imag part of ',a,' , real part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
+        close(unit=iw)
+      end do
     else if (iflag==1) then
-      do i=1,Npl ; do j=1,7
-        iw = 30000+(i-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
-        open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
-        errt = errt + err
-        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
-        if(renorm) then
-          iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+      do j=1,7
+        do i=1,Npl
+          iw = 30000+(i-1)*7+j
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
-        end if
-      end do ; end do
+          if(renorm) then
+            iw = iw+1000
+            write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+            open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+            errt = errt + err
+            if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+          end if
+        end do
+        ! Total disturbances files
+        iw = 35000+j
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_',a,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),trim(strEnergyParts),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+        errt = errt + err
+        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+      end do
       ! Stop if some file does not exist
       if(errt/=0) call abortProgram("[openclose_dc_disturbance_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
     else
-      do i=1,Npl ; do j=1,7
-        iw = 30000+(i-1)*7+j
-        close(unit=iw)
-
-        if(renorm) then
-          iw = iw+1000
+      do j=1,7
+        do i=1,Npl
+          iw = 30000+(i-1)*7+j
           close(unit=iw)
-        end if
-      end do ; end do
+
+          if(renorm) then
+            iw = iw+1000
+            close(unit=iw)
+          end if
+        end do
+        ! Total disturbances files
+        iw = 35000+j
+        close(unit=iw)
+      end do
     end if
 
     return
@@ -412,6 +471,23 @@ contains
       end if
     end do
 
+    ! Writing total charge disturbance
+    iw = 35000
+    write(unit=iw+1,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_disturbances(1)) , real(total_disturbances(1)) , atan2(aimag(total_disturbances(1)),real(total_disturbances(1))) , real(total_disturbances(1))/abs(total_disturbances(1)) , aimag(total_disturbances(1))/abs(total_disturbances(1)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
+    ! Writing x-component total spin disturbance
+    write(unit=iw+2,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_disturbances(2)) , real(total_disturbances(2)) , atan2(aimag(total_disturbances(2)),real(total_disturbances(2))) , real(total_disturbances(2))/abs(total_disturbances(2)) , aimag(total_disturbances(2))/abs(total_disturbances(2)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
+    ! Writing y-component total spin disturbance
+    write(unit=iw+3,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_disturbances(3)) , real(total_disturbances(3)) , atan2(aimag(total_disturbances(3)),real(total_disturbances(3))) , real(total_disturbances(3))/abs(total_disturbances(3)) , aimag(total_disturbances(3))/abs(total_disturbances(3)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
+    ! Writing z-component total spin disturbance
+    write(unit=iw+4,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_disturbances(4)) , real(total_disturbances(4)) , atan2(aimag(total_disturbances(4)),real(total_disturbances(4))) , real(total_disturbances(4))/abs(total_disturbances(4)) , aimag(total_disturbances(4))/abs(total_disturbances(4)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
+
+    ! Writing x-component total orbital disturbance
+    write(unit=iw+5,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_disturbances(5)) , real(total_disturbances(5)) , atan2(aimag(total_disturbances(5)),real(total_disturbances(5))) , real(total_disturbances(5))/abs(total_disturbances(5)) , aimag(total_disturbances(5))/abs(total_disturbances(5)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
+    ! Writing y-component total orbital disturbance
+    write(unit=iw+6,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_disturbances(6)) , real(total_disturbances(6)) , atan2(aimag(total_disturbances(6)),real(total_disturbances(6))) , real(total_disturbances(6))/abs(total_disturbances(6)) , aimag(total_disturbances(6))/abs(total_disturbances(6)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
+    ! Writing z-component total orbital disturbance
+    write(unit=iw+7,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_disturbances(7)) , real(total_disturbances(7)) , atan2(aimag(total_disturbances(7)),real(total_disturbances(7))) , real(total_disturbances(7))/abs(total_disturbances(7)) , aimag(total_disturbances(7))/abs(total_disturbances(7)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
+
     return
   end subroutine write_dc_disturbances
 
@@ -444,6 +520,12 @@ contains
           call sort_file(iw+j,.true.)
         end do
       end if
+
+      ! Sorting total disturbance
+      iw = 3500*idc
+      do j=1,7
+        call sort_file(iw+j,.true.)
+      end do
     end do
 
     ! Closing disturbance files
