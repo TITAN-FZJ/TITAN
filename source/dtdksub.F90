@@ -14,7 +14,7 @@ subroutine dtdksub(kp,dtdk)
   implicit none
   integer :: i, j, k
   real(double), intent(in)  :: kp(3)
-  complex(double),dimension(s%nAtoms,s%nAtoms,nOrb,nOrb),intent(out)  :: dtdk
+  complex(double),dimension(nOrb,nOrb,s%nAtoms,s%nAtoms),intent(out)  :: dtdk
   complex(double) :: kpExp
   dtdk = zero
 
@@ -24,7 +24,7 @@ subroutine dtdksub(kp,dtdk)
     j = s%Neighbors(k)%BasisIndex
     kpExp = zi * dot_product(ElectricFieldVector, s%Neighbors(k)%Position) * exp(zi * dot_product(kp,s%Neighbors(k)%CellVector))
     do i = 1, s%nAtoms
-      dtdk(j,i,1:nOrb,1:nOrb) = s%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp
+      dtdk(1:nOrb,1:nOrb,j,i) = s%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp
     end do
   end do
 

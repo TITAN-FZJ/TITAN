@@ -5,7 +5,7 @@ subroutine fermi_surface(e)
   use mod_parameters, only: outputunit_loop, lverbose, eta, Ef, Npl_folder, Utype, fieldpart
   use mod_SOC, only: SOCc, socpart, llinearsoc, llineargfsoc
   use mod_system, only: s => sys
-  use TightBinding, only: nOrb
+  use TightBinding, only: nOrb,nOrb2
   use mod_progress
   use mod_mpi_pars
 !$  use omp_lib
@@ -17,8 +17,8 @@ subroutine fermi_surface(e)
   real(double)       :: fs_layer(s%nAtoms,s%nkpt,4),fs_orb(3,s%nkpt,4),fs_total(s%nkpt,4)
   real(double)       :: kp(3)
   real(double),intent(in)    :: e
-  complex(double),dimension(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms)    :: gf
-  complex(double),dimension(2*nOrb,2*nOrb)    :: temp1,temp2,pauli_gf
+  complex(double),dimension(nOrb2,nOrb2,s%nAtoms,s%nAtoms)    :: gf
+  complex(double),dimension(nOrb2,nOrb2)    :: temp1,temp2,pauli_gf
 
   write(outputunit_loop,"('CALCULATING CHARGE AND SPIN DENSITY AT FERMI SURFACE')")
 
@@ -75,7 +75,7 @@ subroutine fermi_surface(e)
       else
         temp1 = pauli_orb(sigma-1,:,:)
         temp2 = gf(:,:,i,i)
-        call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,temp1,2*nOrb,temp2,2*nOrb,zero,pauli_gf,2*nOrb)
+        call zgemm('n','n',nOrb2,nOrb2,nOrb2,zum,temp1,nOrb2,temp2,nOrb2,zero,pauli_gf,nOrb2)
       end if
       do mu=1,nOrb
         nu = mu + nOrb

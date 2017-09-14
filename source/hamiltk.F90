@@ -9,7 +9,7 @@ subroutine hamiltk(kp,hk)
   use mod_constants, only: zi, zero
   use AtomTypes, only: NeighborIndex
   use mod_System, only: ia, s => sys
-  use TightBinding, only: nOrb, nOrb2
+  use TightBinding, only: nOrb,nOrb2
   use mod_magnet, only: lb, sb
   use mod_SOC, only: ls, socscale
   use mod_mpi_pars, only: abortProgram
@@ -17,7 +17,7 @@ subroutine hamiltk(kp,hk)
   implicit none
   integer :: i, j, k
   real(double), intent(in) :: kp(3)
-  complex(double), dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb), intent(out) :: hk
+  complex(double), dimension(s%nAtoms*nOrb2, s%nAtoms*nOrb2), intent(out) :: hk
   complex(double) :: tmp(nOrb,nOrb)
   complex(double) :: kpExp
   real(double) :: lambda
@@ -69,14 +69,14 @@ subroutine hamiltklinearsoc(kp,hk,vsoc)
   use mod_constants,     only: zero, zi
   use mod_system,        only: ia, s => sys
   use AtomTypes, only: NeighborIndex
-  use TightBinding, only: nOrb
+  use TightBinding, only: nOrb,nOrb2
   use mod_SOC,    only: socscale, ls
   use mod_magnet,        only: lb, sb
   use mod_Umatrix, only: hee
   implicit none
   integer :: i, j, k
   real(double), intent(in)  :: kp(3)
-  complex(double),dimension(s%nAtoms*2*nOrb,s%nAtoms*2*nOrb),intent(out)  :: hk,vsoc
+  complex(double),dimension(s%nAtoms*nOrb2,s%nAtoms*nOrb2),intent(out)  :: hk,vsoc
   complex(double) :: tmp(nOrb, nOrb)
   complex(double) :: kpExp
 

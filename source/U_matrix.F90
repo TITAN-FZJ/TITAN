@@ -55,7 +55,7 @@ contains
     real(double), dimension(nAtoms), intent(in) :: eps1, hdel
     complex(double), dimension(nAtoms), intent(in) :: hdelm, hdelp
 
-    if(2*nOrb /= 18) call abortProgram("[init_Umatrix] Umatrix only implemented for nOrb = 9")
+    if(nOrb /= 9) call abortProgram("[init_Umatrix] Umatrix only implemented for nOrb = 9")
 
     call allocate_Umatrix(nAtoms,nOrb)
     call update_Umatrix(eps1,hdel,hdelm,hdelp,nAtoms,nOrb)

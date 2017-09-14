@@ -8,13 +8,13 @@ subroutine green(er,ei,kp,gf)
   use mod_constants, only: zero,zum
   use mod_System, only: ia, s => sys
   use mod_parameters, only: offset
-  use TightBinding, only: nOrb
+  use TightBinding, only: nOrb,nOrb2
   implicit none
   integer     :: i,j,d
   real(double), intent(in)  :: er,ei,kp(3)
   complex(double) :: ec
-  complex(double),dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb) :: gslab,hk
-  complex(double),dimension(2*nOrb, 2*nOrb, s%nAtoms, s%nAtoms), intent(out)  :: gf
+  complex(double),dimension(s%nAtoms*nOrb2, s%nAtoms*nOrb2) :: gslab,hk
+  complex(double),dimension(nOrb2, nOrb2, s%nAtoms, s%nAtoms), intent(out)  :: gf
 
   d = s%nAtoms * 2 * nOrb
 
@@ -51,17 +51,17 @@ subroutine greenlinearsoc(er,ei,kp,g0,g0vsocg0)
   use mod_f90_kind, only: double
   use mod_constants, only: zero, zum
   use mod_parameters, only: offset
-  use TightBinding, only: nOrb
+  use TightBinding, only: nOrb,nOrb2
   use mod_System, only: ia, s => sys
   !use mod_magnet, only:
   implicit none
   integer     :: i,j,d
   real(double), intent(in)  :: er,ei,kp(3)
   complex(double) :: ec
-  complex(double), dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb)  :: gslab0,hk,vsoc,temp,temp2
-  complex(double), dimension(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms), intent(out)  :: g0,g0vsocg0
+  complex(double), dimension(s%nAtoms*nOrb2, s%nAtoms*nOrb2)  :: gslab0,hk,vsoc,temp,temp2
+  complex(double), dimension(nOrb2,nOrb2,s%nAtoms,s%nAtoms), intent(out)  :: g0,g0vsocg0
 
-  d = s%nAtoms*2*nOrb
+  d = s%nAtoms*nOrb2
 
   ec = cmplx(er,ei,double)
 
@@ -101,15 +101,15 @@ subroutine greenlineargfsoc(er,ei,kp,gf)
   use mod_constants, only: zero, zum
   use mod_parameters, only: offset
   use mod_System, only: ia, s => sys
-  use TightBinding, only: nOrb
+  use TightBinding, only: nOrb,nOrb2
   implicit none
   integer     :: i,j,d
   real(double), intent(in)  :: er,ei,kp(3)
   complex(double) :: ec
-  complex(double),dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb)  :: gslab,gslab0,hk,vsoc,temp
-  complex(double),dimension(2*nOrb, 2*nOrb,s%nAtoms,s%nAtoms),intent(out)  :: gf
+  complex(double),dimension(s%nAtoms*nOrb2, s%nAtoms*nOrb2)  :: gslab,gslab0,hk,vsoc,temp
+  complex(double),dimension(nOrb2, nOrb2,s%nAtoms,s%nAtoms),intent(out)  :: gf
 
-  d = s%nAtoms*2*nOrb
+  d = s%nAtoms*nOrb2
 
   ec    = cmplx(er,ei,double)
 
@@ -148,17 +148,17 @@ subroutine green_es(er,ei,kp,gf)
   use mod_f90_kind, only: double
   use mod_constants, only: zero, zum
   use mod_System, only: ia, s => sys
-  use TightBinding, only: nOrb
+  use TightBinding, only: nOrb,nOrb2
   implicit none
   integer     :: i,j
   real(double), intent(in)  :: er,ei,kp(3)
   complex(double) :: ec
-  complex(double),dimension(s%nAtoms*2*nOrb, s%nAtoms*2*nOrb)  :: gslab,identes,hk
-  complex(double),dimension(2*nOrb, 2*nOrb, s%nAtoms, s%nAtoms),intent(out)  :: gf
+  complex(double),dimension(s%nAtoms*nOrb2, s%nAtoms*nOrb2)  :: gslab,identes,hk
+  complex(double),dimension(nOrb2, nOrb2, s%nAtoms, s%nAtoms),intent(out)  :: gf
 
   ec    = cmplx(er,ei,double)
   identes     = zero
-  do i=1,s%nAtoms*2*nOrb
+  do i=1,s%nAtoms*nOrb2
    identes(i,i) = zum
   end do
 
@@ -168,7 +168,7 @@ subroutine green_es(er,ei,kp,gf)
 
   gslab = ec*identes - hk
 
-  call invers(gslab,s%nAtoms*2*nOrb)
+  call invers(gslab,s%nAtoms*nOrb2)
 
   ! Put the slab Green's function [A(Npl*18,Npl*18)] in the A(i,j,mu,nu) form
   do j=1,s%nAtoms

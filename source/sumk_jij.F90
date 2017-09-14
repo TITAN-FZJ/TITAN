@@ -5,7 +5,7 @@ subroutine sumk_jij(er,ei,Jijint)
   use mod_parameters, only: mmlayermag, U, lverbose, q, mmlayermag, outputunit, nmaglayers
   use mod_magnet, only: mx,my,mz,mabs
   use mod_system, only: s => sys
-  use TightBinding, only: nOrb
+  use TightBinding, only: nOrb,nOrb2
   use mod_mpi_pars
   use mod_progress
 !$  use omp_lib
@@ -15,9 +15,9 @@ subroutine sumk_jij(er,ei,Jijint)
   real(double),intent(in)   :: er,ei
   real(double),intent(out)  :: Jijint(nmaglayers,nmaglayers,3,3)
   real(double)  :: kp(3),kminusq(3),evec(3,nmaglayers),Jijk(nmaglayers,nmaglayers,3,3),Jijkan(nmaglayers,3,3)
-  complex(double) :: dbxcdm(nmaglayers,3,2*nOrb,2*nOrb),d2bxcdm2(nmaglayers,3,3,2*nOrb,2*nOrb),paulievec(nmaglayers,2*nOrb,2*nOrb)
-  complex(double),dimension(2*nOrb,2*nOrb)             :: gij,gji,temp1,temp2,paulia,paulib
-  complex(double),dimension(s%nAtoms,s%nAtoms,2*nOrb,2*nOrb)     :: gf,gfq
+  complex(double) :: dbxcdm(nmaglayers,3,nOrb2,nOrb2),d2bxcdm2(nmaglayers,3,3,nOrb2,nOrb2),paulievec(nmaglayers,nOrb2,nOrb2)
+  complex(double),dimension(nOrb2,nOrb2)             :: gij,gji,temp1,temp2,paulia,paulib
+  complex(double),dimension(s%nAtoms,s%nAtoms,nOrb2,nOrb2)     :: gf,gfq
 
   do iz=1,nmaglayers
     ! Unit vector along the direction of the magnetization of each magnetic plane
@@ -71,11 +71,11 @@ subroutine sumk_jij(er,ei,Jijint)
       gij = gf(mmlayermag(i)-1,mmlayermag(j)-1,:,:)
       paulib = dbxcdm(j,nu,:,:)
       gji = gfq(mmlayermag(j)-1,mmlayermag(i)-1,:,:)
-      call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,paulia,2*nOrb,gij,   2*nOrb,zero,temp1,2*nOrb)
-      call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,temp1, 2*nOrb,paulib,2*nOrb,zero,temp2,2*nOrb)
-      call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,temp2, 2*nOrb,gji,   2*nOrb,zero,temp1,2*nOrb)
+      call zgemm('n','n',nOrb2,nOrb2,nOrb2,zum,paulia,nOrb2,gij,   nOrb2,zero,temp1,nOrb2)
+      call zgemm('n','n',nOrb2,nOrb2,nOrb2,zum,temp1, nOrb2,paulib,nOrb2,zero,temp2,nOrb2)
+      call zgemm('n','n',nOrb2,nOrb2,nOrb2,zum,temp2, nOrb2,gji,   nOrb2,zero,temp1,nOrb2)
       ! Trace over orbitals and spins
-      do alpha = 1,2*nOrb
+      do alpha = 1,nOrb2
         Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + real(temp1(alpha,alpha))
       end do
 
@@ -83,9 +83,9 @@ subroutine sumk_jij(er,ei,Jijint)
       if(i==j) then
         gij = gf(mmlayermag(i)-1,mmlayermag(i)-1,:,:)
         paulia = d2bxcdm2(i,mu,nu,:,:)
-        call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,zum,gij,2*nOrb,paulia,2*nOrb,zero,temp1,2*nOrb)
+        call zgemm('n','n',nOrb2,nOrb2,nOrb2,zum,gij,nOrb2,paulia,nOrb2,zero,temp1,nOrb2)
         ! Trace over orbitals and spins
-        do alpha = 1,2*nOrb
+        do alpha = 1,nOrb2
           Jijkan(i,mu,nu) = Jijkan(i,mu,nu) + real(temp1(alpha,alpha))
         end do
 
