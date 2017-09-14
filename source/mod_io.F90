@@ -60,7 +60,7 @@ contains
     use mod_input
     use mod_parameters, only: outputunit, laddresults, lverbose, ldebug, lkpoints, &
                               lpositions, lcreatefiles, Utype, lslatec, lontheflysc, &
-                              lnolb, lhfresponses, lnojac, lGSL, lnodiag, lsha, &
+                              lnolb, lhfresponses, lnojac, lGSL, lnodiag, lsha, lcreatefolders, &
                               lwriteonscreen, runoptions, ltestcharge, llgtv, lsortfiles, &
                               lrotatemag, magaxis, magaxisvec, latticeName, itype, ry2ev, &
                               ltesla, eta, dmax, emin, emax, deltae, skip_steps, &
