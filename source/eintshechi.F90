@@ -111,12 +111,12 @@ subroutine eintshechi(e)
       gfdd(:,:,:,:,2) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
 
       !dir$ simd
-      do xi=1,nOrb
-        do nu=1,nOrb
+      do j=1,s%nAtoms
+        do i=1,s%nAtoms
           do gamma=1,nOrb
             do mu=1,nOrb
-              do j=1,s%nAtoms
-                do i=1,s%nAtoms
+              do xi=1,nOrb
+                do nu=1,nOrb
                   df1(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = (gfdd(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
                   df1(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = (gfdu(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
                   df1(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = (gfdd(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
