@@ -56,6 +56,7 @@ module mod_parameters
   logical :: lpositions     = .false.
   logical :: ltesla         = .false.
   logical :: lcreatefiles   = .false.
+  logical :: lcreatefolders = .false.
   logical :: laddresults    = .false.
   logical :: lGSL           = .false.
   logical :: lslatec        = .false.

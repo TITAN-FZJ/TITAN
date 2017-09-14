@@ -195,6 +195,8 @@ contains
           laddresults = .true.
        case ("createfiles")
           lcreatefiles = .true.
+       case("createfolders")
+          lcreatefolders = .true.
        case ("noUonall")
           if(Utype==1) then
              if(myrank==0) call log_warning("get_parameters","Runoption 'noUonNM' is already active.")

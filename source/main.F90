@@ -231,8 +231,8 @@ program TITAN
       call ldos()
       ! call debugging()
     end if
-
-    call create_folder()
+    if(lcreatefolders) call create_folder()
+    
     !--------------------------- Self-consistency --------------------------
     ! Trying to read previous shifts and m from files
     call read_previous_results(lsuccess)
