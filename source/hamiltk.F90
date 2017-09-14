@@ -9,7 +9,7 @@ subroutine hamiltk(kp,hk)
   use mod_constants, only: zi, zero
   use AtomTypes, only: NeighborIndex
   use mod_System, only: ia, s => sys
-  use TightBinding, only: nOrb
+  use TightBinding, only: nOrb, nOrb2
   use mod_magnet, only: lb, sb
   use mod_SOC, only: ls, socscale
   use mod_mpi_pars, only: abortProgram
@@ -30,8 +30,8 @@ subroutine hamiltk(kp,hk)
     hk(ia(3,i):ia(4,i), ia(3,i):ia(4,i)) = s%Types(s%Basis(i)%Material)%onSite(1:nOrb,1:nOrb)
 
     hk(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = hk(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) &
-                                         + lb(:,:,i) + sb(:,:,i) + hee(:,:,i) &
-                                         + socscale * lambda * ls
+                                         + lb(1:nOrb2,1:nOrb2,i) + sb(1:nOrb2,1:nOrb2,i) + hee(1:nOrb2,1:nOrb2,i) &
+                                         + socscale * lambda * ls(1:nOrb2,1:nOrb2)
   end do
 
   do k = 1, s%nNeighbors

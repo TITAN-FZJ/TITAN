@@ -109,7 +109,7 @@ contains
 
     if(.not. get_parameter("bulk", s%lbulk, .true.)) call log_warning("get_parameters", "'bulk' missing. Using default value.")
 
-    if(LatticeMode == 1 .or. LatticeMode == 2) then
+    if(LatticeMode == 1) then
 
       if(.not. get_parameter("a0", s%a0)) call log_error("get_parameters","'a0' missing.")
 
@@ -342,7 +342,7 @@ contains
 
 
     !------------------------------------- Static Magnetic Field -----------------------------------
-    if(.not. get_parameter("FIELD", lfield)) call log_error("get_parameters","'lfield' missing.")
+    if(.not. get_parameter("FIELD", lfield, .false.)) call log_warning("get_parameters","'lfield' missing. Using default value.")
     if(lfield) then
        if(.not. get_parameter("hwa", vector, cnt)) call log_error("get_parameters","'hwa' missing.")
        if(cnt < 1) call log_error("get_parameters","'hwa' doesn't contain any parameters.")
@@ -588,11 +588,12 @@ contains
     use mod_magnet
     use EnergyIntegration, only: parts, parts3, n1gl, n3gl
     use electricfield, only: ElectricFieldMode, ElectricFieldVector, EFt, EFp
+    !$ use omp_lib
     implicit none
     type(System), intent(in) :: s
     integer :: i
 #ifdef _OPENMP
-    write(outputunit_loop,"(10x,'Running on ',i0,' MPI process(es) WITH openMP')") numprocs
+    write(outputunit_loop,"(10x,'Running on ',i0,' MPI process(es) WITH ',i0,' openMP')") numprocs, omp_get_max_threads()
 #else
     write(outputunit_loop,"(10x,'Running on ',i0,' MPI process(es) WITHOUT openMP')") numprocs
 #endif

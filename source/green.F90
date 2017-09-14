@@ -5,7 +5,7 @@
 !   <-1-> <-2->           <-2-> <-1->
 subroutine green(er,ei,kp,gf)
   use mod_f90_kind, only: double
-  use mod_constants, only: zero
+  use mod_constants, only: zero,zum
   use mod_System, only: ia, s => sys
   use mod_parameters, only: offset
   use TightBinding, only: nOrb
@@ -27,8 +27,8 @@ subroutine green(er,ei,kp,gf)
 
   call hamiltk(kp,hk)
 
-  gslab = gslab - hk
-
+  call zaxpy(d*d,-zum,hk,1,gslab,1)
+  !gslab(i,j) = gslab(i,j) - hk(i,j)
   call invers(gslab, d)
 
   ! Put the slab Green's function [A(Npl*18,Npl*18)] in the A(i,j,mu,nu) form

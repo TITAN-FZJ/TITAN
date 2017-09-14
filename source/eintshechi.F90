@@ -142,8 +142,8 @@ subroutine eintshechi(e)
           end do
         end do
       end do
-
-      Fint = Fint + df1*weight
+      call zaxpy(dim*dim,weight,df1,1,Fint,1)
+      !Fint = Fint + df1*weight
     end do !end nkpt loop
   end do !end ix <= pn1 loop
   !$omp end do nowait
@@ -209,7 +209,8 @@ subroutine eintshechi(e)
       end do
 
       ! Locally add up df1
-      Fint = Fint + df1*(p2(ix2)*s%wkbz(iz))
+      call zaxpy(dim*dim,(p2(ix2)*s%wkbz(iz)),df1,1,Fint,1)
+      !Fint = Fint + df1*(p2(ix2)*s%wkbz(iz))
     end do !end nkpt loop
   end do !end pn1+1, nepoints loop
   !$omp end do nowait
