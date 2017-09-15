@@ -115,7 +115,6 @@ subroutine eintshechi(e)
         !dir$ ivdep:loop
         do i=1,s%nAtoms
           !dir$ ivdep:loop
-
           do gamma=1,nOrb
             !dir$ ivdep:loop
             do mu=1,nOrb
@@ -184,36 +183,38 @@ subroutine eintshechi(e)
       gfdd(:,:,:,:,2) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
 
       !dir$ ivdep:loop
-      do xi=1,nOrb
+      do j=1,s%nAtoms
         !dir$ ivdep:loop
-        do nu=1,nOrb
+        do i=1,s%nAtoms
           !dir$ ivdep:loop
           do gamma=1,nOrb
             !dir$ ivdep:loop
             do mu=1,nOrb
               !dir$ ivdep:loop
-              do j=1,s%nAtoms
+              do xi=1,nOrb
                 !dir$ ivdep:loop
-                do i=1,s%nAtoms
-                  Fint(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = Fint(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) - weight * zi*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-                  Fint(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = Fint(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) - weight * zi*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-                  Fint(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = Fint(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) - weight * zi*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
-                  Fint(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = Fint(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) - weight * zi*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+                do nu=1,nOrb
+                  index1(1:4) = sigmaimunu2i(1:4,i,mu,nu)
+                  index2(1:4) = sigmaimunu2i(1:4,j,gamma,xi)
+                  Fint(index1(1),index2(1)) = Fint(index1(1),index2(1)) - weight * zi*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+                  Fint(index1(1),index2(2)) = Fint(index1(1),index2(2)) - weight * zi*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+                  Fint(index1(1),index2(3)) = Fint(index1(1),index2(3)) - weight * zi*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+                  Fint(index1(1),index2(4)) = Fint(index1(1),index2(4)) - weight * zi*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
 
-                  Fint(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = Fint(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) - weight * zi*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-                  Fint(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = Fint(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) - weight * zi*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-                  Fint(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = Fint(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) - weight * zi*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
-                  Fint(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = Fint(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) - weight * zi*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+                  Fint(index1(2),index2(1)) = Fint(index1(2),index2(1)) - weight * zi*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+                  Fint(index1(2),index2(2)) = Fint(index1(2),index2(2)) - weight * zi*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+                  Fint(index1(2),index2(3)) = Fint(index1(2),index2(3)) - weight * zi*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+                  Fint(index1(2),index2(4)) = Fint(index1(2),index2(4)) - weight * zi*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
 
-                  Fint(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = Fint(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) - weight * zi*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-                  Fint(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = Fint(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) - weight * zi*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-                  Fint(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = Fint(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) - weight * zi*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
-                  Fint(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = Fint(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) - weight * zi*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+                  Fint(index1(3),index2(1)) = Fint(index1(3),index2(1)) - weight * zi*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+                  Fint(index1(3),index2(2)) = Fint(index1(3),index2(2)) - weight * zi*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+                  Fint(index1(3),index2(3)) = Fint(index1(3),index2(3)) - weight * zi*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+                  Fint(index1(3),index2(4)) = Fint(index1(3),index2(4)) - weight * zi*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
 
-                  Fint(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = Fint(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) - weight * zi*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-                  Fint(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = Fint(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) - weight * zi*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-                  Fint(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = Fint(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) - weight * zi*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
-                  Fint(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = Fint(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) - weight * zi*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+                  Fint(index1(4),index2(1)) = Fint(index1(4),index2(1)) - weight * zi*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+                  Fint(index1(4),index2(2)) = Fint(index1(4),index2(2)) - weight * zi*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+                  Fint(index1(4),index2(3)) = Fint(index1(4),index2(3)) - weight * zi*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+                  Fint(index1(4),index2(4)) = Fint(index1(4),index2(4)) - weight * zi*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
                 end do
               end do
             end do
