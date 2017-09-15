@@ -110,41 +110,47 @@ subroutine eintshechi(e)
       gfdu(:,:,:,:,2) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
       gfdd(:,:,:,:,2) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
 
-      !dir$ simd
+      !dir$ ivdep:loop
       do j=1,s%nAtoms
+        !dir$ ivdep:loop
         do i=1,s%nAtoms
+          !dir$ ivdep:loop
+
           do gamma=1,nOrb
+            !dir$ ivdep:loop
             do mu=1,nOrb
+              !dir$ ivdep:loop
               do xi=1,nOrb
+                !dir$ ivdep:loop
                 do nu=1,nOrb
                   index1(1:4) = sigmaimunu2i(1:4,i,mu,nu)
                   index2(1:4) = sigmaimunu2i(1:4,j,gamma,xi)
-                  df1(index1(1),index2(1)) = (gfdd(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
-                  df1(index1(1),index2(2)) = (gfdu(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
-                  df1(index1(1),index2(3)) = (gfdd(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
-                  df1(index1(1),index2(4)) = (gfdu(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
+                  Fint(index1(1),index2(1)) = Fint(index1(1),index2(1)) + weight*(gfdd(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
+                  Fint(index1(1),index2(2)) = Fint(index1(1),index2(2)) + weight*(gfdu(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
+                  Fint(index1(1),index2(3)) = Fint(index1(1),index2(3)) + weight*(gfdd(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
+                  Fint(index1(1),index2(4)) = Fint(index1(1),index2(4)) + weight*(gfdu(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
 
-                  df1(index1(2),index2(1)) = (gfud(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
-                  df1(index1(2),index2(2)) = (gfuu(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
-                  df1(index1(2),index2(3)) = (gfud(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
-                  df1(index1(2),index2(4)) = (gfuu(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
+                  Fint(index1(2),index2(1)) = Fint(index1(2),index2(1)) + weight*(gfud(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
+                  Fint(index1(2),index2(2)) = Fint(index1(2),index2(2)) + weight*(gfuu(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
+                  Fint(index1(2),index2(3)) = Fint(index1(2),index2(3)) + weight*(gfud(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
+                  Fint(index1(2),index2(4)) = Fint(index1(2),index2(4)) + weight*(gfuu(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
 
-                  df1(index1(3),index2(1)) = (gfdd(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
-                  df1(index1(3),index2(2)) = (gfdu(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
-                  df1(index1(3),index2(3)) = (gfdd(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
-                  df1(index1(3),index2(4)) = (gfdu(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
+                  Fint(index1(3),index2(1)) = Fint(index1(3),index2(1)) + weight*(gfdd(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
+                  Fint(index1(3),index2(2)) = Fint(index1(3),index2(2)) + weight*(gfdu(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
+                  Fint(index1(3),index2(3)) = Fint(index1(3),index2(3)) + weight*(gfdd(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
+                  Fint(index1(3),index2(4)) = Fint(index1(3),index2(4)) + weight*(gfdu(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
 
-                  df1(index1(4),index2(1)) = (gfud(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
-                  df1(index1(4),index2(2)) = (gfuu(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
-                  df1(index1(4),index2(3)) = (gfud(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
-                  df1(index1(4),index2(4)) = (gfuu(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
+                  Fint(index1(4),index2(1)) = Fint(index1(4),index2(1)) + weight*(gfud(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
+                  Fint(index1(4),index2(2)) = Fint(index1(4),index2(2)) + weight*(gfuu(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
+                  Fint(index1(4),index2(3)) = Fint(index1(4),index2(3)) + weight*(gfud(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
+                  Fint(index1(4),index2(4)) = Fint(index1(4),index2(4)) + weight*(gfuu(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
                 end do
               end do
             end do
           end do
         end do
       end do
-      call zaxpy(dim*dim,weight,df1,1,Fint,1)
+      !call zaxpy(dim*dim,weight,df1,1,Fint,1)
       !Fint = Fint + df1*weight
     end do !end nkpt loop
   end do !end ix <= pn1 loop
@@ -154,7 +160,7 @@ subroutine eintshechi(e)
   do ix2 = start2, end2 ! Third integration (on the real axis)
     do iz = 1, s%nkpt
       kp = s%kbz(:,iz)
-
+      weight = p2(ix2) * s%wkbz(iz)
       ! Green function at (k+q,E'+E+i.eta)
       if(llineargfsoc) then
         call greenlineargfsoc(x2(ix2)+e,eta,kp,gf)
@@ -177,32 +183,37 @@ subroutine eintshechi(e)
       gfdu(:,:,:,:,2) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
       gfdd(:,:,:,:,2) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
 
-      !dir$ simd
+      !dir$ ivdep:loop
       do xi=1,nOrb
+        !dir$ ivdep:loop
         do nu=1,nOrb
+          !dir$ ivdep:loop
           do gamma=1,nOrb
+            !dir$ ivdep:loop
             do mu=1,nOrb
+              !dir$ ivdep:loop
               do j=1,s%nAtoms
+                !dir$ ivdep:loop
                 do i=1,s%nAtoms
-                  df1(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = -zi*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-                  df1(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = -zi*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-                  df1(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = -zi*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
-                  df1(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -zi*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+                  Fint(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = Fint(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) - weight * zi*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+                  Fint(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = Fint(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) - weight * zi*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+                  Fint(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = Fint(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) - weight * zi*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+                  Fint(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = Fint(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) - weight * zi*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
 
-                  df1(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = -zi*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-                  df1(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = -zi*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-                  df1(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = -zi*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
-                  df1(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -zi*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+                  Fint(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = Fint(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) - weight * zi*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+                  Fint(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = Fint(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) - weight * zi*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+                  Fint(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = Fint(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) - weight * zi*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+                  Fint(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = Fint(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) - weight * zi*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
 
-                  df1(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = -zi*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-                  df1(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = -zi*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-                  df1(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = -zi*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
-                  df1(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -zi*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+                  Fint(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = Fint(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) - weight * zi*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+                  Fint(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = Fint(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) - weight * zi*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+                  Fint(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = Fint(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) - weight * zi*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+                  Fint(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = Fint(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) - weight * zi*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
 
-                  df1(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = -zi*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-                  df1(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = -zi*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-                  df1(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = -zi*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
-                  df1(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -zi*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+                  Fint(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = Fint(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) - weight * zi*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+                  Fint(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = Fint(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) - weight * zi*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+                  Fint(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = Fint(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) - weight * zi*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+                  Fint(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = Fint(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) - weight * zi*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
                 end do
               end do
             end do
@@ -211,7 +222,7 @@ subroutine eintshechi(e)
       end do
 
       ! Locally add up df1
-      call zaxpy(dim*dim,(p2(ix2)*s%wkbz(iz)),df1,1,Fint,1)
+      ! call zaxpy(dim*dim,(p2(ix2)*s%wkbz(iz)),df1,1,Fint,1)
       !Fint = Fint + df1*(p2(ix2)*s%wkbz(iz))
     end do !end nkpt loop
   end do !end pn1+1, nepoints loop
