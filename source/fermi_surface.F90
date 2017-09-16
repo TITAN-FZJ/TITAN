@@ -1,7 +1,7 @@
 !   Calculates iso-energy surface (e=Ef for Fermi surface)
 subroutine fermi_surface(e)
   use mod_f90_kind, only: double
-  use mod_constants, only: pi, pauli_orb, zero, zum
+  use mod_constants, only: pi, pauli_orb, cZero, cOne
   use mod_parameters, only: outputunit_loop, lverbose, eta, Ef, Npl_folder, Utype, fieldpart
   use mod_SOC, only: SOCc, socpart, llinearsoc, llineargfsoc
   use mod_system, only: s => sys
@@ -75,7 +75,7 @@ subroutine fermi_surface(e)
       else
         temp1 = pauli_orb(sigma-1,:,:)
         temp2 = gf(:,:,i,i)
-        call zgemm('n','n',nOrb2,nOrb2,nOrb2,zum,temp1,nOrb2,temp2,nOrb2,zero,pauli_gf,nOrb2)
+        call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp1,nOrb2,temp2,nOrb2,cZero,pauli_gf,nOrb2)
       end if
       do mu=1,nOrb
         nu = mu + nOrb

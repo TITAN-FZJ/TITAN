@@ -22,10 +22,10 @@ contains
 
   subroutine create_basis()
     ! TODO
-    ! Take zero position
+    ! Take cZero position
     ! Generate bubble around it
     ! Take closest out of plane atom
-    ! Write current shift current zero by closest atom and write to array
+    ! Write current shift current cZero by closest atom and write to array
     ! Find closest out of plane atoms, if more than one, find the one closest to all prior basis atoms
   end subroutine create_basis
 

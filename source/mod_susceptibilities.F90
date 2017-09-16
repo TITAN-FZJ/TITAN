@@ -121,12 +121,12 @@ contains
   subroutine build_identity_and_U_matrix()
   !! Mounts U and identity matrix
     use mod_parameters, only: offset, U, Utype, layertype, sigmaimunu2i, dim
-    use mod_constants, only: zero, zum
+    use mod_constants, only: cZero, cOne
     use mod_system, only: s => sys
     implicit none
     integer :: xi,gamma,nu,mu,i
 
-    Umatorb = zero
+    Umatorb = cZero
     if(Utype/=0) then
       do xi=5,9
         do gamma=5,9
@@ -162,9 +162,9 @@ contains
       end do
     end if
 
-    identt     = zero
+    identt     = cZero
     do i=1,dim
-     identt(i,i) = zum
+     identt(i,i) = cOne
     end do
 
     return

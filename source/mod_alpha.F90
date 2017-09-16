@@ -116,7 +116,7 @@ contains
 
   subroutine write_alpha(e)
     use mod_f90_kind, only: double
-    use mod_constants, only: zi
+    use mod_constants, only: cI
     use mod_susceptibilities, only: schi, schihf
     use mod_parameters, only: sigmai2i
     use mod_system, only: s => sys
@@ -144,13 +144,13 @@ contains
     call invers(m_chi_hf_inv, 4*s%nAtoms)
     do i = 1, s%nAtoms
       axx_inv    = 0.5d0   *(m_chi_inv(sigmai2i(1,i),sigmai2i(4,i)) + m_chi_inv(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_inv(sigmai2i(4,i),sigmai2i(4,i)) + m_chi_inv(sigmai2i(4,i),sigmai2i(1,i)))
-      axy_inv    = 0.5d0*zi*(m_chi_inv(sigmai2i(1,i),sigmai2i(4,i)) - m_chi_inv(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_inv(sigmai2i(4,i),sigmai2i(4,i)) - m_chi_inv(sigmai2i(4,i),sigmai2i(1,i)))
+      axy_inv    = 0.5d0*cI*(m_chi_inv(sigmai2i(1,i),sigmai2i(4,i)) - m_chi_inv(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_inv(sigmai2i(4,i),sigmai2i(4,i)) - m_chi_inv(sigmai2i(4,i),sigmai2i(1,i)))
       axx_hf_inv = 0.5d0   *(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(4,i)) + m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_hf_inv(sigmai2i(4,i),sigmai2i(4,i)) + m_chi_hf_inv(sigmai2i(4,i),sigmai2i(1,i)))
-      axy_hf_inv = 0.5d0*zi*(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(4,i)) - m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_hf_inv(sigmai2i(4,i),sigmai2i(4,i)) - m_chi_hf_inv(sigmai2i(4,i),sigmai2i(1,i)))
+      axy_hf_inv = 0.5d0*cI*(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(4,i)) - m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_hf_inv(sigmai2i(4,i),sigmai2i(4,i)) - m_chi_hf_inv(sigmai2i(4,i),sigmai2i(1,i)))
       axx        = 0.5d0   *(m_chi(sigmai2i(1,i),sigmai2i(4,i)) + m_chi(sigmai2i(1,i),sigmai2i(1,i)) + m_chi(sigmai2i(4,i),sigmai2i(4,i)) + m_chi(sigmai2i(4,i),sigmai2i(1,i)))
-      axy        = 0.5d0*zi*(m_chi(sigmai2i(1,i),sigmai2i(4,i)) - m_chi(sigmai2i(1,i),sigmai2i(1,i)) + m_chi(sigmai2i(4,i),sigmai2i(4,i)) - m_chi(sigmai2i(4,i),sigmai2i(1,i)))
+      axy        = 0.5d0*cI*(m_chi(sigmai2i(1,i),sigmai2i(4,i)) - m_chi(sigmai2i(1,i),sigmai2i(1,i)) + m_chi(sigmai2i(4,i),sigmai2i(4,i)) - m_chi(sigmai2i(4,i),sigmai2i(1,i)))
       axx_hf     = 0.5d0   *(m_chi_hf(sigmai2i(1,i),sigmai2i(4,i)) + m_chi_hf(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_hf(sigmai2i(4,i),sigmai2i(4,i)) + m_chi_hf(sigmai2i(4,i),sigmai2i(1,i)))
-      axy_hf     = 0.5d0*zi*(m_chi_hf(sigmai2i(1,i),sigmai2i(4,i)) - m_chi_hf(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_hf(sigmai2i(4,i),sigmai2i(4,i)) - m_chi_hf(sigmai2i(4,i),sigmai2i(1,i)))
+      axy_hf     = 0.5d0*cI*(m_chi_hf(sigmai2i(1,i),sigmai2i(4,i)) - m_chi_hf(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_hf(sigmai2i(4,i),sigmai2i(4,i)) - m_chi_hf(sigmai2i(4,i),sigmai2i(1,i)))
 
       write(55 +            i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx       )/aimag(axy       ), e / (mabs(i) * aimag(axy       )), -mabs(i)*aimag(axx       ) / e
       write(55 +   s%nAtoms+i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx_hf    )/aimag(axy_hf    ), e / (mabs(i) * aimag(axy_hf    )), -mabs(i)*aimag(axx_hf    ) / e

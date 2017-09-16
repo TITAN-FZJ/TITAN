@@ -120,9 +120,9 @@ contains
     complex(double),dimension(n0sc1:n0sc2,Npl,nOrb,nOrb)      :: pij
     complex(double),dimension(n0sc1:n0sc2,Npl,nOrb2,nOrb2)    :: gij,gji
 
-    pij = zero
-    gji = zero
-    gij = zero
+    pij = cZero
+    gji = cZero
+    gij = cZero
 
 !$omp parallel default(none) &
 !$omp& private(mythread,neighbor,iz,kp,i,dtdk,expikr,gf) &
@@ -138,7 +138,7 @@ contains
       kp = kbz(:,iz)
 
       do neighbor=n0sc1,n0sc2
-        expikr(neighbor) = exp(-zi*dot_product(kp, r_nn(:,neighbor)))
+        expikr(neighbor) = exp(-cI*dot_product(kp, r_nn(:,neighbor)))
       end do
 
       ! Calculating derivative of in-plane and n.n. inter-plane hoppings
@@ -199,7 +199,7 @@ contains
           do nu=1,9
             mup = mu+9
             nup = nu+9
-            ! Idia(neighbor,i) = Idia(neighbor,i) + zi*pij(neighbor,i,mu,nu)*aimag(gij(neighbor,i,nu,mu)+gji(neighbor,i,mu,nu)+gij(neighbor,i,nup,mup)+gji(neighbor,i,mup,nup))
+            ! Idia(neighbor,i) = Idia(neighbor,i) + cI*pij(neighbor,i,mu,nu)*aimag(gij(neighbor,i,nu,mu)+gji(neighbor,i,mu,nu)+gij(neighbor,i,nup,mup)+gji(neighbor,i,mup,nup))
             Idia(neighbor,i) = Idia(neighbor,i) + real(pij(neighbor,i,mu,nu)*( (gji(neighbor,i,nu,mu)+gij(neighbor,i,mu,nu)) + (gji(neighbor,i,nup,mup)+gij(neighbor,i,mup,nup)) ))/pi
           end do
         end do

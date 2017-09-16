@@ -568,16 +568,16 @@ contains
 
   subroutine calculate_lgtv_currents()
     use mod_parameters
-    use mod_constants, only: zero
+    use mod_constants, only: cZero
     use mod_currents
     use mod_system, only: n0sc1, n0sc2
     implicit none
     integer      :: i,j,neighbor
 
-    long_currents = zero
-    total_long_currents = zero
-    transv_currents = zero
-    total_transv_currents = zero
+    long_currents = cZero
+    total_long_currents = cZero
+    transv_currents = cZero
+    total_transv_currents = cZero
     do neighbor=n0sc1,n0sc2
       ! Summing currents flowing on longitudinal direction
       if(any(neighbor==sha_longitudinal(1:longitudinal_neighbors))) then

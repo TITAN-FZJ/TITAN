@@ -1,7 +1,7 @@
 ! Calculates the full 3x3 J tensor (including coupling, DMI and anisotropic pair interactions)
 subroutine jij_energy(Jij)
   use mod_f90_kind, only: double
-  use mod_constants, only: pi, zum, zero, pauli_dorb
+  use mod_constants, only: pi, cOne, cZero, pauli_dorb
   use mod_parameters, only: mmlayermag, U, q, mmlayermag, outputunit, nmaglayers, Ef, outputunit
   use EnergyIntegration, only: pn1, y, wght
   use mod_mpi_pars
@@ -110,9 +110,9 @@ subroutine jij_energy(Jij)
             do mu = 1,3
               paulia = dbxcdm(i,mu,:,:)
               paulib = dbxcdm(j,nu,:,:)
-              call zgemm('n','n',nOrb2,nOrb2,nOrb2,zum,paulia,nOrb2,gij,   nOrb2,zero,temp1,nOrb2)
-              call zgemm('n','n',nOrb2,nOrb2,nOrb2,zum,temp1, nOrb2,paulib,nOrb2,zero,temp2,nOrb2)
-              call zgemm('n','n',nOrb2,nOrb2,nOrb2,zum,temp2, nOrb2,gji,   nOrb2,zero,temp1,nOrb2)
+              call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,paulia,nOrb2,gij,   nOrb2,cZero,temp1,nOrb2)
+              call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp1, nOrb2,paulib,nOrb2,cZero,temp2,nOrb2)
+              call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp2, nOrb2,gji,   nOrb2,cZero,temp1,nOrb2)
               ! Trace over orbitals and spins
               do alpha = 1,nOrb2
                 Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + real(temp1(alpha,alpha))
@@ -126,7 +126,7 @@ subroutine jij_energy(Jij)
             do nu = 1,3
               do mu = 1,3
                 paulia = d2bxcdm2(i,mu,nu,:,:)
-                call zgemm('n','n',nOrb2,nOrb2,nOrb2,zum,gij,nOrb2,paulia,nOrb2,zero,temp1,nOrb2)
+                call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,gij,nOrb2,paulia,nOrb2,cZero,temp1,nOrb2)
                 ! Trace over orbitals and spins
                 do alpha = 1,nOrb2
                   Jijkan(i,mu,nu) = Jijkan(i,mu,nu) + real(temp1(alpha,alpha))

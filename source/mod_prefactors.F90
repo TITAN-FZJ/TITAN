@@ -11,16 +11,16 @@ contains
   !   use mod_magnet,        only: lxp, lyp, lzp
   !   use mod_parameters,    only: Npl, offset
   !   use mod_system,        only: n0sc1, n0sc2
-  !   use mod_constants,     only: zero
+  !   use mod_constants,     only: cZero
   !   implicit none
   !   integer         :: i,mu,nu,neighbor,alpha
   !
-  !   lxpt = zero
-  !   lypt = zero
-  !   lzpt = zero
-  !   tlxp = zero
-  !   tlyp = zero
-  !   tlzp = zero
+  !   lxpt = cZero
+  !   lypt = cZero
+  !   lzpt = cZero
+  !   tlxp = cZero
+  !   tlyp = cZero
+  !   tlzp = cZero
   !   do nu=1,9
   !     do mu=1,9
   !       do neighbor=n0sc1,n0sc2

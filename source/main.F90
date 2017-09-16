@@ -217,13 +217,13 @@ program TITAN
     if((myrank==0).and.(itype==0)) then
       write(outputunit,"('[main] FIRST TEST PART')")
       mz  = 0.d0
-      mp  = zero
+      mp  = cZero
       mm  = conjg(mp)
       ! Variables used in the hamiltonian
       eps1  = 0.d0
       hdel  = 0.d0
-      hdelp = zero
-      hdelm = zero
+      hdelp = cZero
+      hdelm = cZero
       hdel(1:sys%nAtoms) = 0.5d0*U*mz
       hdelp(1:sys%nAtoms) = 0.5d0*U*mp
       hdelm(1:sys%nAtoms) = 0.5d0*U*mm
@@ -232,7 +232,7 @@ program TITAN
       ! call debugging()
     end if
     if(lcreatefolders) call create_folder()
-    
+
     !--------------------------- Self-consistency --------------------------
     ! Trying to read previous shifts and m from files
     call read_previous_results(lsuccess)

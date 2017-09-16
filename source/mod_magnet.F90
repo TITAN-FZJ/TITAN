@@ -136,7 +136,7 @@ contains
 
   subroutine initMagneticField(nAtoms)
     use mod_f90_kind, only: double
-    use mod_constants, only: zero, pi
+    use mod_constants, only: cZero, pi
     use mod_parameters, only: outputfile_loop
     use mod_mpi_pars, only: abortProgram, myrank_row_hw
     use mod_SOC, only: SOC, llinearsoc
@@ -156,8 +156,8 @@ contains
     else
       lfield = .true.
     end if
-    sb   = zero
-    lb   = zero
+    sb   = cZero
+    lb   = cZero
     hhwx = 0.d0
     hhwy = 0.d0
     hhwz = 0.d0
@@ -186,7 +186,7 @@ contains
 
   subroutine lb_matrix(nAtoms, nOrbs)
     use mod_f90_kind,   only: double
-    use mod_constants,  only: zero
+    use mod_constants,  only: cZero
     use mod_parameters, only: lnolb
     implicit none
     integer, intent(in) :: nOrbs, nAtoms
@@ -200,7 +200,7 @@ contains
     ! There is an extra  minus sign in the definition of hhwx,hhwy,hhwz
     ! to take into account the fact that we are considering negative
     ! external fields to get the peak at positive energies
-    lb = zero
+    lb = cZero
     if((lfield).and.(.not.lnolb)) then
       allocate(lbsigma(nOrbs, nOrbs))
       do i=1, nAtoms
@@ -216,7 +216,7 @@ contains
   ! Spin Zeeman hamiltonian
   subroutine sb_matrix(nAtoms, nOrbs)
     use mod_f90_kind, only: double
-    use mod_constants, only: zero, zi
+    use mod_constants, only: cZero, cI
     implicit none
     integer, intent(in) :: nAtoms, nOrbs
     integer :: i,mu,nu
@@ -227,7 +227,7 @@ contains
     ! There is an extra  minus sign in the definition of hhwx,hhwy,hhwz
     ! to take into account the fact that we are considering negative
     ! external fields to get the peak at positive energies
-    sb = zero
+    sb = cZero
 
     if(lfield) then
       do i=1, nAtoms
@@ -235,8 +235,8 @@ contains
           nu=mu+nOrbs
           sb(mu,mu,i) = hhwz(i)
           sb(nu,nu,i) =-hhwz(i)
-          sb(nu,mu,i) = hhwx(i)-zi*hhwy(i)
-          sb(mu,nu,i) = hhwx(i)+zi*hhwy(i)
+          sb(nu,mu,i) = hhwx(i)-cI*hhwy(i)
+          sb(mu,nu,i) = hhwx(i)+cI*hhwy(i)
         end do
       end do
     end if
@@ -253,45 +253,45 @@ contains
 
     allocate(lx(nOrb, nOrb), ly(nOrb,nOrb), lz(nOrb,nOrb))
 
-    lz = zero
+    lz = cZero
 
-    lz(2,3) = -zi
-    lz(3,2) = zi
+    lz(2,3) = -cI
+    lz(3,2) = cI
 
-    lz(5,8) = 2.d0*zi
-    lz(8,5) = -2.d0*zi
-    lz(6,7) = zi
-    lz(7,6) = -zi
+    lz(5,8) = 2.d0*cI
+    lz(8,5) = -2.d0*cI
+    lz(6,7) = cI
+    lz(7,6) = -cI
 
-    Lp = zero
-    Lm = zero
+    Lp = cZero
+    Lm = cZero
 
-    Lp(2,4) = -zum
-    Lp(3,4) = -zi
-    Lp(4,2) = zum
-    Lp(4,3) = zi
+    Lp(2,4) = -cOne
+    Lp(3,4) = -cI
+    Lp(4,2) = cOne
+    Lp(4,3) = cI
 
-    Lp(5,6) = -zum
-    Lp(5,7) = -zi
+    Lp(5,6) = -cOne
+    Lp(5,7) = -cI
 
-    Lp(6,5) = zum
-    Lp(6,8) = -zi
-    Lp(6,9) = -sq3*zi
+    Lp(6,5) = cOne
+    Lp(6,8) = -cI
+    Lp(6,9) = -sq3*cI
 
-    Lp(7,5) = zi
-    Lp(7,8) = zum
+    Lp(7,5) = cI
+    Lp(7,8) = cOne
     Lp(7,9) = -sq3
 
-    Lp(8,6) = zi
-    Lp(8,7) = -zum
+    Lp(8,6) = cI
+    Lp(8,7) = -cOne
 
-    Lp(9,6) = sq3*zi
+    Lp(9,6) = sq3*cI
     Lp(9,7) = sq3
 
     Lm = transpose(conjg(Lp))
 
     lx = 0.5d0*(Lp+Lm)
-    ly = -0.5d0*zi*(Lp-Lm)
+    ly = -0.5d0*cI*(Lp-Lm)
 
     return
   end subroutine l_matrix

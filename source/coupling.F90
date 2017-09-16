@@ -62,7 +62,7 @@ subroutine coupling()
       do j=1,nmaglayers
       ! Writing on screen
       ! Writing original full tensor Jij
-      ! Only the transverse components are supposed to be non-zero (e.g., for m //z, only Jxx,Jxy,Jyx,Jyy)
+      ! Only the transverse components are supposed to be non-cZero (e.g., for m //z, only Jxx,Jxy,Jyx,Jyy)
       ! Relation between J_ii calculated and the position of the peak in the susceptibility:
       ! w_res = 2*gamma*mz*sqrt( (K_z-K_x)*(K_z-K_y) )  - for m // z
       ! where K_x = J_ii^xx/2 ; K_y = J_ii^yy/2 ; K_z = J_ii^zz/2
