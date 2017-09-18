@@ -24,6 +24,7 @@ subroutine hamiltk(kp,hk)
   hk = zero
 
   ! Mouting slab hamiltonian
+  !dir$ ivdep:loop
   do i=1, s%nAtoms
     lambda = s%Types(s%Basis(i)%Material)%Lambda
     hk(ia(1,i):ia(2,i), ia(1,i):ia(2,i)) = s%Types(s%Basis(i)%Material)%onSite(1:nOrb,1:nOrb)
@@ -34,10 +35,12 @@ subroutine hamiltk(kp,hk)
                                          + socscale * lambda * ls(1:nOrb2,1:nOrb2)
   end do
 
+  !dir$ ivdep:loop
   do k = 1, s%nNeighbors
     j = s%Neighbors(k)%BasisIndex
     kpExp = exp(zi * dot_product(kp, s%Neighbors(k)%CellVector))
 
+    !dir$ ivdep:loop
     do i = 1, s%nAtoms
       !if(.not. s%Neighbors(k)%isHopping(i)) cycle
       tmp(1:nOrb,1:nOrb) = s%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i)

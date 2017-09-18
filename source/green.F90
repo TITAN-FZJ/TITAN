@@ -32,7 +32,9 @@ subroutine green(er,ei,kp,gf)
   call invers(gslab, d)
 
   ! Put the slab Green's function [A(Npl*18,Npl*18)] in the A(i,j,mu,nu) form
+  !dir$ ivdep:loop
   do j = 1, s%nAtoms
+    !dir$ ivdep:loop
     do i = 1, s%nAtoms
       gf(:,:,i,j) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
     end do
