@@ -4,11 +4,15 @@ contains
 subroutine calculate_gilbert_damping()
   use mod_f90_kind, only: double
   use mod_System, only: s => sys
-  use mod_parameters, only: outputunit
+  use mod_parameters, only: outputunit, Npl_folder, eta, Utype, fieldpart, suffix
+  use mod_SOC, only: socpart, SOCc
+  use ElectricField, only: strElectricField
   use mod_mpi_pars, only: myrank
   implicit none
   complex(double), dimension(s%nAtoms,s%nAtoms,3,3) :: alpha
   integer :: m,n,i,j
+  character(len=500)  :: varm
+
 
   write(outputunit, *) "[calculate_gilbert_damping] Start..."
 
@@ -16,24 +20,30 @@ subroutine calculate_gilbert_damping()
   call TCM(alpha, local_SO_torque)
 
   if(myrank == 0) then
-    write(*,*) "# m          i"
-    do m = 1, 3
-      do i = 1, s%nAtoms
-        print *, m,i,alpha(i,i,m,m)
+    write(varm,"('./results/',a1,'SOC/',a,'/A/TCM_SO_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+    open (unit=634893, file=varm, status='replace', form='formatted')
+    write(unit=634893, fmt="('# i , m , Re(A_mx), Im(A_mx), Re(A_my), Im(A_my), Re(A_mz), Im(A_mz) ')")
+    do i = 1, s%nAtoms
+      do m = 1, 3
+        write(634893,*) i, m, (real(alpha(i,i,m,n)), aimag(alpha(i,i,m,n)), n = 1, 3)
       end do
     end do
+    close(unit=634893)
   end if
 
   if(myrank == 0) print *, "xc Torque"
   call TCM(alpha, local_xc_torque)
 
   if(myrank == 0) then
-    write(*,*) "# m          i"
-    do m = 1, 3
-      do i = 1, s%nAtoms
-        print *, m,i,alpha(i,i,m,m)
+    write(varm,"('./results/',a1,'SOC/',a,'/A/TCM_XC_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+    open (unit=634893, file=varm, status='replace', form='formatted')
+    write(unit=634893, fmt="('# i , m , Re(A_mx), Im(A_mx), Re(A_my), Im(A_my), Re(A_mz), Im(A_mz) ')")
+    do i = 1, s%nAtoms
+      do m = 1, 3
+        write(634893,*) i, m, (real(alpha(i,i,m,n)), aimag(alpha(i,i,m,n)), n = 1,3)
       end do
     end do
+    close(unit=634893)
   end if
 
 
