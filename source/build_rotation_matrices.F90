@@ -6,7 +6,7 @@
 ! iflag = 2 calculates B
 subroutine build_rotation_matrices_chi(theta_in,phi_in,rotmat,iflag)
   use mod_f90_kind, only: double
-  use mod_constants, only: zi,pi
+  use mod_constants, only: cI,pi
   implicit none
   integer,                        intent(in)  :: iflag
   real(double),                   intent(in)  :: theta_in,phi_in
@@ -17,7 +17,7 @@ subroutine build_rotation_matrices_chi(theta_in,phi_in,rotmat,iflag)
   theta = theta_in*pi
   phi   = phi_in*pi
 
-  expphi      = exp(zi*phi)
+  expphi      = exp(cI*phi)
   expmphi     = conjg(expphi)
   onepluscos  = 1.d0 + cos(theta)
   oneminuscos = 1.d0 - cos(theta)

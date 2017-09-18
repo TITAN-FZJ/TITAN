@@ -16,7 +16,7 @@ contains
     implicit none
     integer :: AllocateStatus
 
-    ! Turning off external torque if static field is zero
+    ! Turning off external torque if static field is cZero
     if((lfield).or.(total_hw_npt1/=1)) then
       ntypetorque=3
     else

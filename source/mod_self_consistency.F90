@@ -135,7 +135,7 @@ contains
   subroutine calcMagnetization(n, mx, my, mz, mp, size)
     !! Calculates occupation density and magnetization.
     use mod_f90_kind, only: double
-    use mod_constants, only: zi, pi, zero
+    use mod_constants, only: cI, pi, cZero
     use mod_parameters, only: Ef
     use mod_SOC, only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: pn1, y, wght
@@ -178,20 +178,20 @@ contains
 
     n_orb_u = 0.d0
     n_orb_d = 0.d0
-    mp = zero
+    mp = cZero
 
     gdiaguur= 0.d0
     gdiagddr= 0.d0
-    gdiagud = zero
-    gdiagdu = zero
+    gdiagud = cZero
+    gdiagdu = cZero
 
     !$omp parallel default(none) &
     !$omp& private(ix,iz,kp,i,mu,mup,gf,gf_loc) &
     !$omp& shared(llineargfsoc,llinearsoc,start,end,wght,s,Ef,y,gdiaguur,gdiagddr,gdiagud,gdiagdu)
     allocate(gf    (nOrb2,nOrb2,s%nAtoms,s%nAtoms))
     allocate(gf_loc(nOrb2,nOrb2,s%nAtoms,s%nAtoms))
-    gf = zero
-    gf_loc = zero
+    gf = cZero
+    gf_loc = cZero
 
     if((llineargfsoc).or.(llinearsoc)) then
       !$omp do schedule(static) collapse(2)
@@ -256,7 +256,7 @@ contains
   subroutine calcJacobian(jacobian, N)
     !! Calculated the Jacobian of the spin magnetization
     use mod_f90_kind, only: double
-    use mod_constants, only: zi, pi, identorb18, zero, pauli_dorb, zum
+    use mod_constants, only: cI, pi, identorb18, cZero, pauli_dorb, cOne
     use mod_parameters, only: U, Ef, offset
     use mod_SOC, only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: pn1, y, wght
@@ -302,8 +302,8 @@ contains
     ncount=s%nAtoms*9
     ncount2=N*N
 
-    pauli_components1 = zero
-    pauli_components2 = zero
+    pauli_components1 = cZero
+    pauli_components2 = cZero
 !   Includes d orbitals in the charge component
     pauli_components1(:,:,1) = identorb18(:,:)
     pauli_components1(:,:,2) = pauli_dorb(1,:,:)
@@ -318,7 +318,7 @@ contains
 
     ! Prefactor -U/2 in dH/dm and 1 in dH/deps1
     do i=1,s%nAtoms
-      mhalfU(1,i) = zum
+      mhalfU(1,i) = cOne
       mhalfU(2:4,i) = -0.5d0*U(i+offset)
     end do
 
@@ -329,8 +329,8 @@ contains
     !$omp& shared(llineargfsoc,llinearsoc,start,end,s,Ef,y,wght,mhalfU,pauli_components1,pauli_components2,jacobian)
     allocate( gdHdxg(nOrb2,nOrb2,4,4,s%nAtoms,s%nAtoms), gvgdHdxgvg(nOrb2,nOrb2,4,4,s%nAtoms,s%nAtoms) , STAT = AllocateStatus  )
     if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: gdHdxg,gvgdHdxgvg")
-    gdHdxg = zero
-    gvgdHdxgvg = zero
+    gdHdxg = cZero
+    gvgdHdxgvg = cZero
 
     !$omp do schedule(static) collapse(2)
     do ix = start, end
@@ -354,14 +354,14 @@ contains
             do sigma = 1,4
               ! temp1 =  pauli*g_ij
               paulitemp = pauli_components1(:,:, sigma)
-              call zgemm('n','n',18,18,18,zum,paulitemp,18,gij,18,zero,temp,18)
+              call zgemm('n','n',18,18,18,cOne,paulitemp,18,gij,18,cZero,temp,18)
               temp1(:,:, sigma) = temp
             end do
 
             do sigma = 1,4
               ! temp2 = (-U/2) * sigma* g_ji
               paulitemp = pauli_components2(:,:, sigma)
-              call zgemm('n','n',18,18,18,mhalfU(sigma,j),paulitemp,18,gji,18,zero,temp,18)
+              call zgemm('n','n',18,18,18,mhalfU(sigma,j),paulitemp,18,gji,18,cZero,temp,18)
               temp2(:,:, sigma) = temp
             end do
 
@@ -370,7 +370,7 @@ contains
                 ! gdHdxg = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*sigma* g_ji
                 gij = temp1(:,:, sigma)
                 gji = temp2(:,:, sigmap)
-                call zgemm('n','n',18,18,18,weight,gij,18,gji,18,zero,temp,18)
+                call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
                 gdHdxg(:,:,sigma,sigmap,i,j) = gdHdxg(:,:,sigma,sigmap,i,j) + temp
               end do
             end do
@@ -383,14 +383,14 @@ contains
               do sigma = 1,4
                 ! temp1 = wkbz* pauli*gvg_ij
                 paulitemp = pauli_components1(:,:,sigma)
-                call zgemm('n','n',18,18,18,zum,paulitemp,18,gij,18,zero,temp,18)
+                call zgemm('n','n',18,18,18,cOne,paulitemp,18,gij,18,cZero,temp,18)
                 temp1(:,:,sigma) = temp
               end do
 
               do sigmap = 1,4
                 ! temp2 = (-U/2) * sigma* gvg_ji
                 paulitemp = pauli_components2(:,:,sigmap)
-                call zgemm('n','n',18,18,18,mhalfU(sigmap,j),paulitemp,18,gji,18,zero,temp,18)
+                call zgemm('n','n',18,18,18,mhalfU(sigmap,j),paulitemp,18,gji,18,cZero,temp,18)
                 temp2(:,:,sigmap) = temp
               end do
               do sigmap = 1,4
@@ -398,7 +398,7 @@ contains
                   ! gdHdxg = temp1*temp2 = wkbz* pauli*gvg_ij*(-U/2)*sigma* gvg_ji
                   gij = temp1(:,:,sigma)
                   gji = temp2(:,:,sigmap)
-                  call zgemm('n','n',18,18,18,weight,gij,18,gji,18,zero,temp,18)
+                  call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
                   gvgdHdxgvg(:,:,sigma,sigmap,i,j) = gvgdHdxgvg(:,:,sigma,sigmap,i,j) + temp
                 end do
               end do
@@ -444,7 +444,7 @@ contains
   subroutine calcLGS()
     !! Calculates the orbital angular momentum ground state
     use mod_f90_kind, only: double
-    use mod_constants, only: zero,pi
+    use mod_constants, only: cZero,pi
     use mod_System, only: s => sys
     use TightBinding, only: nOrb,nOrb2
     use mod_parameters, only: outputunit_loop, Ef
@@ -495,7 +495,7 @@ contains
 
     ! Calculating the number of particles for each spin and orbital using a complex integral
 
-    gupgdint  = zero
+    gupgdint  = cZero
 
     !$omp parallel default(none) &
     !$omp& private(AllocateStatus,ix,iz,i,mu,nu,mup,nup,kp,gf,gupgd) &
@@ -503,7 +503,7 @@ contains
 
     allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
              gupgd(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
-    gupgd   = zero
+    gupgd   = cZero
 
     !$omp do schedule(static) collapse(2)
     do ix = start, end
@@ -770,7 +770,7 @@ contains
   ! This subroutine reads previous band-shifting and magnetization results
   subroutine read_sc_results(err,lsuccess)
     use mod_f90_kind, only: double
-    use mod_constants, only: zi
+    use mod_constants, only: cI
     use mod_parameters, only: offset, fieldpart, eta, U,Utype,scfile, outputunit_loop, Npl_folder, dfttype
     use EnergyIntegration, only: parts
     use mod_magnet, only: eps1, hdel, hdelm, hdelp, mp, mz, hw_count, mx, my, mz
@@ -843,7 +843,7 @@ contains
       mx  (:) = previous_results(:,2)
       my  (:) = previous_results(:,3)
       mz  (:) = previous_results(:,4)
-      mp  = mx + zi*my
+      mp  = mx + cI*my
       do i=1,s%nAtoms
         hdel(i)   = 0.5d0*U(i+offset)*mz(i)
         hdelp(i)  = 0.5d0*U(i+offset)*mp(i)
@@ -871,7 +871,7 @@ contains
           read(99,*) my(i)
           read(99,*) mz(i)
         end do
-        mp  = mx + zi*my
+        mp  = mx + cI*my
         do i=1,s%nAtoms
           hdel(i)   = 0.5d0*U(i+offset)*mz(i)
           hdelp(i)  = 0.5d0*U(i+offset)*mp(i)
@@ -924,7 +924,7 @@ contains
 #if !defined(_OSX) && !defined(_JUQUEEN)
   subroutine sc_equations_and_jacobian(N,x,fvec,selfconjac,iuser,ruser,iflag)
     use mod_f90_kind, only: double
-    use mod_constants, only: zi
+    use mod_constants, only: cI
     use mod_parameters, only: offset, U, outputunit, outputunit_loop, lontheflysc
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
@@ -945,7 +945,7 @@ contains
     mx_in = x(  s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
-    mp_in = mx_in + zi*my_in
+    mp_in = mx_in + cI*my_in
 
     do i=1,s%nAtoms
       hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
@@ -1002,7 +1002,7 @@ contains
   ! For a given value of center of band eps1 it calculates the
   ! occupation number and the magnetic moment
   subroutine sc_equations(N,x,fvec,iuser,ruser,iflag)
-    use mod_constants, only: zi
+    use mod_constants, only: cI
     use mod_parameters, only: offset, U, outputunit_loop, lontheflysc
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
@@ -1024,7 +1024,7 @@ contains
     mx_in = x(s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
-    mp_in = mx_in+zi*my_in
+    mp_in = mx_in+cI*my_in
     do i=1,s%nAtoms
       hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
       hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
@@ -1080,7 +1080,7 @@ contains
   !  mz - mz_in = 0
   ! and the correspondent jacobian
   subroutine sc_eqs_and_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
-    use mod_constants, only: zi
+    use mod_constants, only: cI
     use mod_parameters, only: offset, U, outputunit_loop, outputunit, lontheflysc
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
@@ -1100,7 +1100,7 @@ contains
     mx_in = x(s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
-    mp_in = mx_in+zi*my_in
+    mp_in = mx_in+cI*my_in
     do i=1,s%nAtoms
       hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
       hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
@@ -1159,7 +1159,7 @@ contains
   ! occupation number and the magnetic moment
   subroutine sc_eqs_old(N,x,fvec,iflag)
     use mod_f90_kind, only: double
-    use mod_constants, only: zi
+    use mod_constants, only: cI
     use mod_parameters, only: offset, U, outputunit_loop, lontheflysc
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
@@ -1178,7 +1178,7 @@ contains
     mx_in = x(s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
-    mp_in = mx_in+zi*my_in
+    mp_in = mx_in+cI*my_in
     do i=1,s%nAtoms
       hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
       hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
@@ -1227,7 +1227,7 @@ contains
 
   subroutine sc_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
     use mod_f90_kind, only: double
-    use mod_constants, only: zi
+    use mod_constants, only: cI
     use mod_parameters, only: offset, U
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
@@ -1247,7 +1247,7 @@ contains
     mx_in = x(s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
-    mp_in = mx_in+zi*my_in
+    mp_in = mx_in+cI*my_in
     do i=1,s%nAtoms
       hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
       hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)

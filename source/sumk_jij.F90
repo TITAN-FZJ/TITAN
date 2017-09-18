@@ -1,7 +1,7 @@
 ! Integration of Green functions over k values to calculate the number of particles
 subroutine sumk_jij(er,ei,Jijint)
   use mod_f90_kind, only: double
-  use mod_constants, only: pi, zum, zero, pauli_dorb
+  use mod_constants, only: pi, cOne, cZero, pauli_dorb
   use mod_parameters, only: mmlayermag, U, lverbose, q, mmlayermag, outputunit, nmaglayers
   use mod_magnet, only: mx,my,mz,mabs
   use mod_system, only: s => sys
@@ -71,9 +71,9 @@ subroutine sumk_jij(er,ei,Jijint)
       gij = gf(mmlayermag(i)-1,mmlayermag(j)-1,:,:)
       paulib = dbxcdm(j,nu,:,:)
       gji = gfq(mmlayermag(j)-1,mmlayermag(i)-1,:,:)
-      call zgemm('n','n',nOrb2,nOrb2,nOrb2,zum,paulia,nOrb2,gij,   nOrb2,zero,temp1,nOrb2)
-      call zgemm('n','n',nOrb2,nOrb2,nOrb2,zum,temp1, nOrb2,paulib,nOrb2,zero,temp2,nOrb2)
-      call zgemm('n','n',nOrb2,nOrb2,nOrb2,zum,temp2, nOrb2,gji,   nOrb2,zero,temp1,nOrb2)
+      call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,paulia,nOrb2,gij,   nOrb2,cZero,temp1,nOrb2)
+      call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp1, nOrb2,paulib,nOrb2,cZero,temp2,nOrb2)
+      call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp2, nOrb2,gji,   nOrb2,cZero,temp1,nOrb2)
       ! Trace over orbitals and spins
       do alpha = 1,nOrb2
         Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + real(temp1(alpha,alpha))
@@ -83,7 +83,7 @@ subroutine sumk_jij(er,ei,Jijint)
       if(i==j) then
         gij = gf(mmlayermag(i)-1,mmlayermag(i)-1,:,:)
         paulia = d2bxcdm2(i,mu,nu,:,:)
-        call zgemm('n','n',nOrb2,nOrb2,nOrb2,zum,gij,nOrb2,paulia,nOrb2,zero,temp1,nOrb2)
+        call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,gij,nOrb2,paulia,nOrb2,cZero,temp1,nOrb2)
         ! Trace over orbitals and spins
         do alpha = 1,nOrb2
           Jijkan(i,mu,nu) = Jijkan(i,mu,nu) + real(temp1(alpha,alpha))

@@ -553,16 +553,16 @@ contains
   ! NOTE: THIS IS DEFINED AS A CURRENT RATIO, NOT CURRENT DENSITY!
   subroutine calculate_sha()
     use mod_parameters
-    use mod_constants, only: zero
+    use mod_constants, only: cZero
     use mod_currents
     use mod_system, only: n0sc1, n0sc2
     implicit none
     integer      :: i,j,neighbor
 
     sha_re = 0.d0
-    sha_complex = zero
+    sha_complex = cZero
     sha_re_total = 0.d0
-    sha_complex_total = zero
+    sha_complex_total = cZero
     do neighbor=n0sc1,n0sc2
       ! Summing charge currents flowing on longitudinal direction
       if(any(neighbor==sha_longitudinal(1:longitudinal_neighbors))) then

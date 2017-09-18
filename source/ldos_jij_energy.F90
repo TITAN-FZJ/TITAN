@@ -1,7 +1,7 @@
 !   Calculates spin-resolved LDOS and energy-dependence of exchange interactions
 subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
   use mod_f90_kind, only: double
-  use mod_constants, only: pi, zero, zum, pauli_dorb
+  use mod_constants, only: pi, cZero, cOne, pauli_dorb
   use mod_parameters
   use mod_progress
   use mod_system, only: s => sys
@@ -24,7 +24,7 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
   real(double),dimension(:,:,:,:),allocatable    :: Jijint_loc
 
 ! (x,y,z)-tensor formed by Pauli matrices to calculate anisotropy term (when i=j)
-  paulimatan = zero
+  paulimatan = cZero
   paulimatan(1,1,:,:) = -pauli_dorb(3,:,:)
   paulimatan(2,2,:,:) = -pauli_dorb(3,:,:)
   paulimatan(1,3,:,:) = -pauli_dorb(1,:,:)
@@ -67,9 +67,9 @@ do iz=1,s%nkpt
       gij = gf(:,:,mmlayermag(i)-1,mmlayermag(j)-1)
       paulib = pauli_dorb(nu,:,:)
       gji = gf(:,:,mmlayermag(j)-1,mmlayermag(i)-1)
-      call zgemm('n','n',nOrb2,nOrb2,nOrb2,zum,paulia,nOrb2,gij,   nOrb2,zero,temp1,nOrb2)
-      call zgemm('n','n',nOrb2,nOrb2,nOrb2,zum,temp1, nOrb2,paulib,nOrb2,zero,temp2,nOrb2)
-      call zgemm('n','n',nOrb2,nOrb2,nOrb2,zum,temp2, nOrb2,gji,   nOrb2,zero,temp1,nOrb2)
+      call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,paulia,nOrb2,gij,   nOrb2,cZero,temp1,nOrb2)
+      call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp1, nOrb2,paulib,nOrb2,cZero,temp2,nOrb2)
+      call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp2, nOrb2,gji,   nOrb2,cZero,temp1,nOrb2)
       do alpha = 1, nOrb2
         Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + real(temp1(alpha,alpha))
       end do
@@ -80,7 +80,7 @@ do iz=1,s%nkpt
       if(i==j) then
         gij = gf(:,:,mmlayermag(i)-1,mmlayermag(i)-1)
         paulia = paulimatan(mu,nu,:,:)
-        call zgemm('n','n',nOrb2,nOrb2,nOrb2,zum,gij,nOrb2,paulia,nOrb2,zero,temp1,nOrb2)
+        call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,gij,nOrb2,paulia,nOrb2,cZero,temp1,nOrb2)
 
         do alpha = 1,nOrb2
           Jijkan(i,mu,nu) = Jijkan(i,mu,nu) + real(temp1(alpha,alpha))

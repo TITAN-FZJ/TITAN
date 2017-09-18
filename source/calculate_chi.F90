@@ -1,7 +1,7 @@
 ! This is the main subroutine to calculate the susceptibilities
 subroutine calculate_chi()
   use mod_f90_kind, only: double
-  use mod_constants, only: zero, zum
+  use mod_constants, only: cZero, cOne
   use mod_parameters, only:  count, emin, deltae, dim, sigmaimunu2i, outputunit_loop, lnodiag,laddresults, skip_steps
   use mod_mpi_pars
   use mod_magnet, only: mtheta,mphi, hw_count
@@ -55,13 +55,13 @@ subroutine calculate_chi()
     if(myrank_row==0) then
       ! (1 + chi_hf*Umat)^-1
       temp = identt
-      call zgemm('n','n',dim,dim,dim,zum,chiorb_hf,dim,Umatorb,dim,zum,temp,dim)
+      call zgemm('n','n',dim,dim,dim,cOne,chiorb_hf,dim,Umatorb,dim,cOne,temp,dim)
       ! temp = identt + temp
       call invers(temp,dim)
-      call zgemm('n','n',dim,dim,dim,zum,temp,dim,chiorb_hf,dim,zero,chiorb,dim)
+      call zgemm('n','n',dim,dim,dim,cOne,temp,dim,chiorb_hf,dim,cZero,chiorb,dim)
 
-      schi = zero
-      schihf = zero
+      schi = cZero
+      schihf = cZero
       ! Calculating RPA and HF susceptibilities
       do j=1, s%nAtoms
         do nu=1, nOrb
@@ -89,16 +89,16 @@ subroutine calculate_chi()
           do i=1, s%nAtoms
             rottemp  = rotmat_i(:,:,i)
             schitemp = schi(:,:,i,j)
-            call zgemm('n', 'n', 4, 4, 4, zum, rottemp, 4, schitemp, 4, zero, schirot, 4)
+            call zgemm('n', 'n', 4, 4, 4, cOne, rottemp, 4, schitemp, 4, cZero, schirot, 4)
             rottemp  = rotmat_j(:,:,j)
-            call zgemm('n', 'n', 4, 4, 4, zum, schirot, 4, rottemp, 4, zero, schitemp, 4)
+            call zgemm('n', 'n', 4, 4, 4, cOne, schirot, 4, rottemp, 4, cZero, schitemp, 4)
             schi(:,:,i,j) = schitemp
 
             rottemp  = rotmat_i(:,:,i)
             schitemp = schihf(:,:,i,j)
-            call zgemm('n', 'n', 4, 4, 4, zum, rottemp, 4, schitemp, 4, zero, schirot, 4)
+            call zgemm('n', 'n', 4, 4, 4, cOne, rottemp, 4, schitemp, 4, cZero, schirot, 4)
             rottemp  = rotmat_j(:,:,j)
-            call zgemm('n', 'n', 4, 4, 4, zum, schirot, 4, rottemp, 4, zero, schitemp, 4)
+            call zgemm('n', 'n', 4, 4, 4, cOne, schirot, 4, rottemp, 4, cZero, schitemp, 4)
             schihf(:,:,i,j) = schitemp
           end do
         end do

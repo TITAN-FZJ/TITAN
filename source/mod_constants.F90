@@ -2,11 +2,11 @@ module mod_constants
   !! Contains commonly used constants
   use mod_f90_kind
   implicit none
-  complex(double), parameter :: zero=(0.d0,0.d0)
-  !! Complex scalar zero
-  complex(double), parameter :: zum=(1.d0,0.d0)
+  complex(double), parameter :: cZero=(0.d0,0.d0)
+  !! Complex scalar cZero
+  complex(double), parameter :: cOne=(1.d0,0.d0)
   !! Complex scalar one
-  complex(double), parameter :: zi=(0.d0,1.d0)
+  complex(double), parameter :: cI=(0.d0,1.d0)
   !! Complex scalar i
   real(double), parameter :: pi = 4.d0 * atan(1.d0)
   !! Pi
@@ -31,40 +31,40 @@ contains
     implicit none
     integer :: i,mu,nu
 
-    identorb9  = zero
-    identorb18 = zero
+    identorb9  = cZero
+    identorb18 = cZero
     do i=1,9
-      identorb9(i,i) = zum
+      identorb9(i,i) = cOne
     end do
     do i=1,18
-      identorb18(i,i) = zum
+      identorb18(i,i) = cOne
     end do
 
 ! Pauli matrices in spin and orbital space
-    pauli_dorb = zero
+    pauli_dorb = cZero
     do mu = 1,9
       nu = mu+9
 
       ! pauli matrix x
-      pauli_orb(1,mu,nu) = zum
-      pauli_orb(1,nu,mu) = zum
+      pauli_orb(1,mu,nu) = cOne
+      pauli_orb(1,nu,mu) = cOne
       ! pauli matrix y
-      pauli_orb(2,mu,nu) = -zi
-      pauli_orb(2,nu,mu) = zi
+      pauli_orb(2,mu,nu) = -cI
+      pauli_orb(2,nu,mu) = cI
       ! pauli matrix z
-      pauli_orb(3,mu,mu) = zum
-      pauli_orb(3,nu,nu) = -zum
+      pauli_orb(3,mu,mu) = cOne
+      pauli_orb(3,nu,nu) = -cOne
 
       if (mu<5) cycle     ! Pauli matrices for d orbitals only
       ! pauli matrix x
-      pauli_dorb(1,mu,nu) = zum
-      pauli_dorb(1,nu,mu) = zum
+      pauli_dorb(1,mu,nu) = cOne
+      pauli_dorb(1,nu,mu) = cOne
       ! pauli matrix y
-      pauli_dorb(2,mu,nu) = -zi
-      pauli_dorb(2,nu,mu) = zi
+      pauli_dorb(2,mu,nu) = -cI
+      pauli_dorb(2,nu,mu) = cI
       ! pauli matrix z
-      pauli_dorb(3,mu,mu) = zum
-      pauli_dorb(3,nu,nu) = -zum
+      pauli_dorb(3,mu,mu) = cOne
+      pauli_dorb(3,nu,nu) = -cOne
     end do
 
     levi_civita(1,1,:) = [ 0.d0 , 0.d0 , 0.d0 ]
@@ -78,27 +78,27 @@ contains
     levi_civita(3,3,:) = [ 0.d0 , 0.d0 , 0.d0 ]
 
 !   ! Pauli matrices in spin and orbital space
-!     pauli  = zero
-!     paulid = zero
+!     pauli  = cZero
+!     paulid = cZero
 !     do mu = 1,9
 !       nu = mu+9
 !       ! identity
-!       pauli(1,mu,mu) = zum
-!       pauli(1,nu,nu) = zum
+!       pauli(1,mu,mu) = cOne
+!       pauli(1,nu,nu) = cOne
 !       if (mu<5) cycle     ! Pauli matrices for d orbitals only
 !       ! paulid matrix x
-!       pauli(2,mu,nu) = zum
-!       pauli(2,nu,mu) = zum
+!       pauli(2,mu,nu) = cOne
+!       pauli(2,nu,mu) = cOne
 !       ! paulid matrix y
-!       pauli(3,mu,nu) = -zi
-!       pauli(3,nu,mu) = zi
+!       pauli(3,mu,nu) = -cI
+!       pauli(3,nu,mu) = cI
 !       ! paulid matrix z
-!       pauli(4,mu,mu) = zum
-!       pauli(4,nu,nu) = -zum
+!       pauli(4,mu,mu) = cOne
+!       pauli(4,nu,nu) = -cOne
 
 !       ! identity
-!       paulid(1,mu,mu) = zum
-!       paulid(1,nu,nu) = zum
+!       paulid(1,mu,mu) = cOne
+!       paulid(1,nu,nu) = cOne
 !     end do
 !     paulid(2:4,:,:) = pauli(2:4,:,:)
 

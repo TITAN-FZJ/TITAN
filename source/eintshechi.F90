@@ -1,7 +1,7 @@
 ! ---------- Spin disturbance: Energy integration ---------
 subroutine eintshechi(e)
   use mod_f90_kind, only: double
-  use mod_constants, only: zero, zum, zi, tpi
+  use mod_constants, only: cZero, cOne, cI, tpi
   use mod_parameters, only: eta, ef, dim, sigmaijmunu2i, sigmaimunu2i
   use EnergyIntegration, only: generate_real_epoints, y, wght, x2, p2, nepoints, pn1
   use mod_susceptibilities, only: chiorb_hf
@@ -69,7 +69,7 @@ subroutine eintshechi(e)
   end2 = end2 - pn1
 
   ! Starting to calculate energy integral
-  chiorb_hf = zero
+  chiorb_hf = cZero
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,iz,ix,ix2,i,j,mu,nu,gamma,xi,kp,weight,gf,gfuu,gfud,gfdu,gfdd,df1,Fint, index1, index2) &
@@ -81,7 +81,7 @@ subroutine eintshechi(e)
            gfdu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
            gfdd(nOrb,nOrb,s%nAtoms,s%nAtoms,2), STAT = AllocateStatus  )
   if (AllocateStatus/=0) call abortProgram("[eintshechi] Not enough memory for: df1,Fint,gf,gfuu,gfud,gfdu,gfdd")
-  Fint = zero
+  Fint = cZero
 
   !$omp do schedule(static) collapse(2)
   do ix = start1, end1
@@ -196,25 +196,25 @@ subroutine eintshechi(e)
                 do nu=1,nOrb
                   index1(1:4) = sigmaimunu2i(1:4,i,mu,nu)
                   index2(1:4) = sigmaimunu2i(1:4,j,gamma,xi)
-                  Fint(index1(1),index2(1)) = Fint(index1(1),index2(1)) - weight * zi*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-                  Fint(index1(1),index2(2)) = Fint(index1(1),index2(2)) - weight * zi*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-                  Fint(index1(1),index2(3)) = Fint(index1(1),index2(3)) - weight * zi*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
-                  Fint(index1(1),index2(4)) = Fint(index1(1),index2(4)) - weight * zi*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+                  Fint(index1(1),index2(1)) = Fint(index1(1),index2(1)) - weight * cI*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+                  Fint(index1(1),index2(2)) = Fint(index1(1),index2(2)) - weight * cI*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+                  Fint(index1(1),index2(3)) = Fint(index1(1),index2(3)) - weight * cI*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+                  Fint(index1(1),index2(4)) = Fint(index1(1),index2(4)) - weight * cI*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
 
-                  Fint(index1(2),index2(1)) = Fint(index1(2),index2(1)) - weight * zi*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-                  Fint(index1(2),index2(2)) = Fint(index1(2),index2(2)) - weight * zi*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-                  Fint(index1(2),index2(3)) = Fint(index1(2),index2(3)) - weight * zi*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
-                  Fint(index1(2),index2(4)) = Fint(index1(2),index2(4)) - weight * zi*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+                  Fint(index1(2),index2(1)) = Fint(index1(2),index2(1)) - weight * cI*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+                  Fint(index1(2),index2(2)) = Fint(index1(2),index2(2)) - weight * cI*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+                  Fint(index1(2),index2(3)) = Fint(index1(2),index2(3)) - weight * cI*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+                  Fint(index1(2),index2(4)) = Fint(index1(2),index2(4)) - weight * cI*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
 
-                  Fint(index1(3),index2(1)) = Fint(index1(3),index2(1)) - weight * zi*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-                  Fint(index1(3),index2(2)) = Fint(index1(3),index2(2)) - weight * zi*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-                  Fint(index1(3),index2(3)) = Fint(index1(3),index2(3)) - weight * zi*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
-                  Fint(index1(3),index2(4)) = Fint(index1(3),index2(4)) - weight * zi*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+                  Fint(index1(3),index2(1)) = Fint(index1(3),index2(1)) - weight * cI*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+                  Fint(index1(3),index2(2)) = Fint(index1(3),index2(2)) - weight * cI*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+                  Fint(index1(3),index2(3)) = Fint(index1(3),index2(3)) - weight * cI*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+                  Fint(index1(3),index2(4)) = Fint(index1(3),index2(4)) - weight * cI*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
 
-                  Fint(index1(4),index2(1)) = Fint(index1(4),index2(1)) - weight * zi*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-                  Fint(index1(4),index2(2)) = Fint(index1(4),index2(2)) - weight * zi*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-                  Fint(index1(4),index2(3)) = Fint(index1(4),index2(3)) - weight * zi*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
-                  Fint(index1(4),index2(4)) = Fint(index1(4),index2(4)) - weight * zi*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+                  Fint(index1(4),index2(1)) = Fint(index1(4),index2(1)) - weight * cI*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+                  Fint(index1(4),index2(2)) = Fint(index1(4),index2(2)) - weight * cI*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+                  Fint(index1(4),index2(3)) = Fint(index1(4),index2(3)) - weight * cI*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+                  Fint(index1(4),index2(4)) = Fint(index1(4),index2(4)) - weight * cI*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
                 end do
               end do
             end do
@@ -249,7 +249,7 @@ end subroutine eintshechi
 ! -------------- to be used in the calculation of linear SOC chi ---------------
 subroutine eintshechilinearsoc(e)
   use mod_f90_kind, only: double
-  use mod_constants, only: zero, zum, zi, tpi
+  use mod_constants, only: cZero, cOne, cI, tpi
   use mod_parameters, only: eta, ef, dim, sigmaijmunu2i, sigmaimunu2i
   use EnergyIntegration, only: generate_real_epoints,y, wght, x2, p2, nepoints, pn1
   use mod_susceptibilities, only: chiorb_hf,chiorb_hflsoc
@@ -316,8 +316,8 @@ subroutine eintshechilinearsoc(e)
   !------------------------------------------------------
 
   ! Starting to calculate energy integral
-  chiorb_hf     = zero
-  chiorb_hflsoc = zero
+  chiorb_hf     = cZero
+  chiorb_hflsoc = cZero
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,iz,i,j,mu,nu,gamma,xi,kp,Fint,Fintlsoc,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,df1,df1lsoc) &
@@ -338,8 +338,8 @@ subroutine eintshechilinearsoc(e)
             gvgdd(nOrb,nOrb,s%nAtoms,s%nAtoms,2), STAT = AllocateStatus  )
   if (AllocateStatus/=0) call abortProgram("[eintshechilinearsoc] Not enough memory for: df1lsoc,Fintsloc,gvg,gvguu,gvgud,gvgdu,gvgdd")
 
-  Fint      = zero
-  Fintlsoc  = zero
+  Fint      = cZero
+  Fintlsoc  = cZero
 
   ! Starting to calculate energy integral
   !$omp do schedule(static) collapse(2)
@@ -449,46 +449,46 @@ subroutine eintshechilinearsoc(e)
 
       !dir$ simd
       do xi=1,nOrb ; do gamma=1,nOrb ; do j=1,s%nAtoms ; do nu=1,nOrb ; do mu=1,nOrb ; do i=1,s%nAtoms
-        df1(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = -zi*(gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-        df1(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = -zi*(gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-        df1(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = -zi*(gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
-        df1(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -zi*(gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+        df1(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = -cI*(gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+        df1(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = -cI*(gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+        df1(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = -cI*(gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+        df1(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -cI*(gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
 
-        df1(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = -zi*(gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-        df1(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = -zi*(gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-        df1(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = -zi*(gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
-        df1(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -zi*(gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+        df1(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = -cI*(gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+        df1(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = -cI*(gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+        df1(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = -cI*(gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+        df1(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -cI*(gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
 
-        df1(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = -zi*(gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-        df1(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = -zi*(gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-        df1(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = -zi*(gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
-        df1(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -zi*(gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+        df1(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = -cI*(gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+        df1(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = -cI*(gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+        df1(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = -cI*(gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+        df1(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -cI*(gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
 
-        df1(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = -zi*(gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-        df1(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = -zi*(gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-        df1(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = -zi*(gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
-        df1(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -zi*(gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+        df1(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = -cI*(gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+        df1(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = -cI*(gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+        df1(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = -cI*(gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+        df1(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -cI*(gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
 
 
-        df1lsoc(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = -zi*((gvgdd(nu,gamma,i,j,1)-conjg(gvgdd(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))  +  (gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gvguu(mu,xi,i,j,2)))
-        df1lsoc(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = -zi*((gvgdu(nu,gamma,i,j,1)-conjg(gvgud(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))  +  (gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gvguu(mu,xi,i,j,2)))
-        df1lsoc(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = -zi*((gvgdd(nu,gamma,i,j,1)-conjg(gvgdd(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))  +  (gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gvgud(mu,xi,i,j,2)))
-        df1lsoc(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -zi*((gvgdu(nu,gamma,i,j,1)-conjg(gvgud(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))  +  (gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gvgud(mu,xi,i,j,2)))
+        df1lsoc(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = -cI*((gvgdd(nu,gamma,i,j,1)-conjg(gvgdd(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))  +  (gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gvguu(mu,xi,i,j,2)))
+        df1lsoc(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = -cI*((gvgdu(nu,gamma,i,j,1)-conjg(gvgud(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))  +  (gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gvguu(mu,xi,i,j,2)))
+        df1lsoc(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = -cI*((gvgdd(nu,gamma,i,j,1)-conjg(gvgdd(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))  +  (gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gvgud(mu,xi,i,j,2)))
+        df1lsoc(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -cI*((gvgdu(nu,gamma,i,j,1)-conjg(gvgud(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))  +  (gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gvgud(mu,xi,i,j,2)))
 
-        df1lsoc(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = -zi*((gvgud(nu,gamma,i,j,1)-conjg(gvgdu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))  +  (gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gvguu(mu,xi,i,j,2)))
-        df1lsoc(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = -zi*((gvguu(nu,gamma,i,j,1)-conjg(gvguu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))  +  (gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gvguu(mu,xi,i,j,2)))
-        df1lsoc(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = -zi*((gvgud(nu,gamma,i,j,1)-conjg(gvgdu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))  +  (gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gvgud(mu,xi,i,j,2)))
-        df1lsoc(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -zi*((gvguu(nu,gamma,i,j,1)-conjg(gvguu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))  +  (gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gvgud(mu,xi,i,j,2)))
+        df1lsoc(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = -cI*((gvgud(nu,gamma,i,j,1)-conjg(gvgdu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))  +  (gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gvguu(mu,xi,i,j,2)))
+        df1lsoc(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = -cI*((gvguu(nu,gamma,i,j,1)-conjg(gvguu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))  +  (gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gvguu(mu,xi,i,j,2)))
+        df1lsoc(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = -cI*((gvgud(nu,gamma,i,j,1)-conjg(gvgdu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))  +  (gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gvgud(mu,xi,i,j,2)))
+        df1lsoc(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -cI*((gvguu(nu,gamma,i,j,1)-conjg(gvguu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))  +  (gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gvgud(mu,xi,i,j,2)))
 
-        df1lsoc(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = -zi*((gvgdd(nu,gamma,i,j,1)-conjg(gvgdd(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))  +  (gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gvgdu(mu,xi,i,j,2)))
-        df1lsoc(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = -zi*((gvgdu(nu,gamma,i,j,1)-conjg(gvgud(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))  +  (gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gvgdu(mu,xi,i,j,2)))
-        df1lsoc(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = -zi*((gvgdd(nu,gamma,i,j,1)-conjg(gvgdd(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))  +  (gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gvgdd(mu,xi,i,j,2)))
-        df1lsoc(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -zi*((gvgdu(nu,gamma,i,j,1)-conjg(gvgud(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))  +  (gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gvgdd(mu,xi,i,j,2)))
+        df1lsoc(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = -cI*((gvgdd(nu,gamma,i,j,1)-conjg(gvgdd(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))  +  (gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gvgdu(mu,xi,i,j,2)))
+        df1lsoc(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = -cI*((gvgdu(nu,gamma,i,j,1)-conjg(gvgud(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))  +  (gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gvgdu(mu,xi,i,j,2)))
+        df1lsoc(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = -cI*((gvgdd(nu,gamma,i,j,1)-conjg(gvgdd(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))  +  (gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gvgdd(mu,xi,i,j,2)))
+        df1lsoc(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -cI*((gvgdu(nu,gamma,i,j,1)-conjg(gvgud(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))  +  (gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gvgdd(mu,xi,i,j,2)))
 
-        df1lsoc(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = -zi*((gvgud(nu,gamma,i,j,1)-conjg(gvgdu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))  +  (gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gvgdu(mu,xi,i,j,2)))
-        df1lsoc(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = -zi*((gvguu(nu,gamma,i,j,1)-conjg(gvguu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))  +  (gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gvgdu(mu,xi,i,j,2)))
-        df1lsoc(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = -zi*((gvgud(nu,gamma,i,j,1)-conjg(gvgdu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))  +  (gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gvgdd(mu,xi,i,j,2)))
-        df1lsoc(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -zi*((gvguu(nu,gamma,i,j,1)-conjg(gvguu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))  +  (gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gvgdd(mu,xi,i,j,2)))
+        df1lsoc(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(1,j,gamma,xi)) = -cI*((gvgud(nu,gamma,i,j,1)-conjg(gvgdu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))  +  (gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gvgdu(mu,xi,i,j,2)))
+        df1lsoc(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) = -cI*((gvguu(nu,gamma,i,j,1)-conjg(gvguu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))  +  (gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gvgdu(mu,xi,i,j,2)))
+        df1lsoc(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) = -cI*((gvgud(nu,gamma,i,j,1)-conjg(gvgdu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))  +  (gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gvgdd(mu,xi,i,j,2)))
+        df1lsoc(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -cI*((gvguu(nu,gamma,i,j,1)-conjg(gvguu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))  +  (gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gvgdd(mu,xi,i,j,2)))
       end do ; end do ; end do ; end do ; end do ; end do
 
       Fint = Fint + df1 * s%wkbz(iz) * p2(ix2)

@@ -6,7 +6,7 @@
 !         <-S-> <S-1>           <S-1> <-S->
 subroutine hamiltk(kp,hk)
   use mod_f90_kind, only: double
-  use mod_constants, only: zi, zero
+  use mod_constants, only: cI, cZero
   use AtomTypes, only: NeighborIndex
   use mod_System, only: ia, s => sys
   use TightBinding, only: nOrb,nOrb2
@@ -21,7 +21,7 @@ subroutine hamiltk(kp,hk)
   complex(double) :: tmp(nOrb,nOrb)
   complex(double) :: kpExp
   real(double) :: lambda
-  hk = zero
+  hk = cZero
 
   ! Mouting slab hamiltonian
   !dir$ ivdep:loop
@@ -38,7 +38,7 @@ subroutine hamiltk(kp,hk)
   !dir$ ivdep:loop
   do k = 1, s%nNeighbors
     j = s%Neighbors(k)%BasisIndex
-    kpExp = exp(zi * dot_product(kp, s%Neighbors(k)%CellVector))
+    kpExp = exp(cI * dot_product(kp, s%Neighbors(k)%CellVector))
 
     !dir$ ivdep:loop
     do i = 1, s%nAtoms
@@ -69,7 +69,7 @@ end subroutine hamiltk
 !         <-S-> <S-1>           <S-1> <-S->
 subroutine hamiltklinearsoc(kp,hk,vsoc)
   use mod_f90_kind,      only: double
-  use mod_constants,     only: zero, zi
+  use mod_constants,     only: cZero, cI
   use mod_system,        only: ia, s => sys
   use AtomTypes, only: NeighborIndex
   use TightBinding, only: nOrb,nOrb2
@@ -83,8 +83,8 @@ subroutine hamiltklinearsoc(kp,hk,vsoc)
   complex(double) :: tmp(nOrb, nOrb)
   complex(double) :: kpExp
 
-  hk = zero
-  vsoc = zero
+  hk = cZero
+  vsoc = cZero
 
   ! Mouting slab hamiltonian
   do i=1,s%nAtoms
@@ -97,7 +97,7 @@ subroutine hamiltklinearsoc(kp,hk,vsoc)
 
   do k = 1, s%nNeighbors
     j = s%Neighbors(k)%BasisIndex
-    kpExp = exp(zi * dot_product(kp,s%Neighbors(k)%CellVector))
+    kpExp = exp(cI * dot_product(kp,s%Neighbors(k)%CellVector))
 
     do i = 1, s%nAtoms
       tmp = s%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp

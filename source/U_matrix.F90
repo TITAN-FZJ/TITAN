@@ -22,7 +22,7 @@ contains
 
   subroutine update_Umatrix(eps1, hdel, hdelm, hdelp, nAtoms, nOrb)
     use mod_f90_kind, only: double
-    use mod_constants, only: zero
+    use mod_constants, only: cZero
     use mod_parameters, only: offset
     implicit none
 
@@ -32,7 +32,7 @@ contains
 
     integer :: i, mu, nu
 
-    hee = zero
+    hee = cZero
     ! Diagonal terms (in orbital)
     do i=1,nAtoms
       do mu=5, nOrb

@@ -2,7 +2,7 @@
 ! currents, disturbances, torques, effective fields and susceptibilities
 subroutine calculate_all()
   use mod_f90_kind, only: double
-  use mod_constants, only: zero, zum, zi, levi_civita
+  use mod_constants, only: cZero, cOne, cI, levi_civita
   use mod_parameters, only: lnodiag, renorm, U, offset, outputunit_loop, outputunit, laddresults, skip_steps, count, lhfresponses, sigmaimunu2i, emin, emax, deltae, npt1, dim, sigmai2i, dimsigmanpl
   use mod_magnet, only: lfield, mtheta, mphi, hhwx, hhwy, hhwz, mx, my, mz, lxp, lyp, lzp, lx, ly, lz, mvec_spherical, total_hw_npt1, hw_count
   use mod_SOC, only: llinearsoc
@@ -101,15 +101,15 @@ subroutine calculate_all()
 
       ! prefactor = (1 + chi_hf*Umat)^-1
       prefactor     = identt
-      call zgemm('n','n',dim,dim,dim,zum,chiorb_hf,dim,Umatorb,dim,zum,prefactor,dim) ! prefactor = 1+chi_hf*Umat
+      call zgemm('n','n',dim,dim,dim,cOne,chiorb_hf,dim,Umatorb,dim,cOne,prefactor,dim) ! prefactor = 1+chi_hf*Umat
       call invers(prefactor,dim)
       if(llinearsoc) then
         prefactorlsoc = identt
         if (.not. allocated(chiorb)) allocate(chiorb(dim,dim))
         chiorb = chiorb_hf-chiorb_hflsoc ! the array chiorb will be used as a temporary array
-        call zgemm('n','n',dim,dim,dim,zum,chiorb,dim,Umatorb,dim,zum,prefactorlsoc,dim) ! prefactorlsoc = 1+chiorb*Umat = 1+(chi_hf + dchi_hf/dlambda)*Umat
-        call zgemm('n','n',dim,dim,dim,zum,prefactor,dim,prefactorlsoc,dim,zero,chiorb,dim) ! chiorb = prefactor*prefactorlsoc
-        call zgemm('n','n',dim,dim,dim,zum,chiorb,dim,prefactor,dim,zero,prefactorlsoc,dim) ! prefactorlsoc = chiorb*prefactor = prefactor*prefactorlsoc*prefactor
+        call zgemm('n','n',dim,dim,dim,cOne,chiorb,dim,Umatorb,dim,cOne,prefactorlsoc,dim) ! prefactorlsoc = 1+chiorb*Umat = 1+(chi_hf + dchi_hf/dlambda)*Umat
+        call zgemm('n','n',dim,dim,dim,cOne,prefactor,dim,prefactorlsoc,dim,cZero,chiorb,dim) ! chiorb = prefactor*prefactorlsoc
+        call zgemm('n','n',dim,dim,dim,cOne,chiorb,dim,prefactor,dim,cZero,prefactorlsoc,dim) ! prefactorlsoc = chiorb*prefactor = prefactor*prefactorlsoc*prefactor
       end if
       if(myrank_row_hw==0) call write_time(outputunit_loop,'[calculate_all] Time after prefactor calculation: ')
     end if
@@ -131,15 +131,15 @@ subroutine calculate_all()
         ! Calculate RPA susceptibility
         if(llinearsoc) then
           ! chiorb = prefactorlsoc*chi_hf + prefactor*chi_hflsoc
-          call zgemm('n','n',dim,dim,dim,zum,prefactorlsoc,dim,chiorb_hf,dim,zero,chiorb,dim)
-          call zgemm('n','n',dim,dim,dim,zum,prefactor,dim,chiorb_hflsoc,dim,zum,chiorb,dim)
+          call zgemm('n','n',dim,dim,dim,cOne,prefactorlsoc,dim,chiorb_hf,dim,cZero,chiorb,dim)
+          call zgemm('n','n',dim,dim,dim,cOne,prefactor,dim,chiorb_hflsoc,dim,cOne,chiorb,dim)
         else
           ! chiorb = prefactor*chi_hf
-          call zgemm('n','n',dim,dim,dim,zum,prefactor,dim,chiorb_hf,dim,zero,chiorb,dim) ! (1+chi_hf*Umat)^-1 * chi_hf
+          call zgemm('n','n',dim,dim,dim,cOne,prefactor,dim,chiorb_hf,dim,cZero,chiorb,dim) ! (1+chi_hf*Umat)^-1 * chi_hf
         end if
 
-        schi = zero
-        schihf = zero
+        schi = cZero
+        schihf = cZero
         ! Calculating RPA and HF susceptibilities
         do j = 1, s%nAtoms
           do i = 1, s%nAtoms
@@ -168,16 +168,16 @@ subroutine calculate_all()
             do i = 1, s%nAtoms
               rottemp = rotmat_i(:,:,i)
               schitemp = schi(:,:,i,j)
-              call zgemm('n','n',4,4,4,zum,rottemp,4,schitemp,4,zero,schirot,4)
+              call zgemm('n','n',4,4,4,cOne,rottemp,4,schitemp,4,cZero,schirot,4)
               rottemp = rotmat_j(:,:,j)
-              call zgemm('n','n',4,4,4,zum,schirot,4,rottemp,4,zero,schitemp,4)
+              call zgemm('n','n',4,4,4,cOne,schirot,4,rottemp,4,cZero,schitemp,4)
               schi(:,:,i,j) = schitemp
 
               rottemp = rotmat_i(:,:,i)
               schitemp = schihf(:,:,i,j)
-              call zgemm('n','n',4,4,4,zum,rottemp,4,schitemp,4,zero,schirot,4)
+              call zgemm('n','n',4,4,4,cOne,rottemp,4,schitemp,4,cZero,schirot,4)
               rottemp = rotmat_j(:,:,j)
-              call zgemm('n','n',4,4,4,zum,schirot,4,rottemp,4,zero,schitemp,4)
+              call zgemm('n','n',4,4,4,cOne,schirot,4,rottemp,4,cZero,schitemp,4)
               schihf(:,:,i,j) = schitemp
             end do
           end do
@@ -190,7 +190,7 @@ subroutine calculate_all()
           chiorb = chiorb_hf
         end if
 
-        schihf = zero
+        schihf = cZero
         ! Calculating RPA and HF susceptibilities
         do j = 1, s%nAtoms
           do nu = 1, 9
@@ -218,9 +218,9 @@ subroutine calculate_all()
             do i = 1, s%nAtoms
               rottemp  = rotmat_i(:,:,i)
               schitemp = schihf(:,:,i,j)
-              call zgemm('n','n',4,4,4,zum,rottemp,4,schitemp,4,zero,schirot,4)
+              call zgemm('n','n',4,4,4,cOne,rottemp,4,schitemp,4,cZero,schirot,4)
               rottemp  = rotmat_j(:,:,j)
-              call zgemm('n','n',4,4,4,zum,schirot,4,rottemp,4,zero,schitemp,4)
+              call zgemm('n','n',4,4,4,cOne,schirot,4,rottemp,4,cZero,schitemp,4)
               schihf(:,:,i,j) = schitemp
             end do
           end do
@@ -228,7 +228,7 @@ subroutine calculate_all()
       end if ! .not.lhfresponses
 
       ! Calculating inverse susceptibility to use on Beff calculation
-      chiinv = zero
+      chiinv = cZero
       do i = 1, s%nAtoms
         do j = 1, s%nAtoms
           do sigmap = 1, 4
@@ -244,23 +244,23 @@ subroutine calculate_all()
       end do
       call invers(chiinv,dimsigmaNpl) ! Inverse of the susceptibility chi^(-1)
 
-      disturbances = zero
-      torques      = zero
+      disturbances = cZero
+      torques      = cZero
       !plane_loop_calculate_all:
       do i=1, s%nAtoms
         ! Spin and charge disturbances
         do mu=1,9
           disturbances(1,i) = disturbances(1,i) + (tchiorbiikl(sigmaimunu2i(2,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,mu),3)+tchiorbiikl(sigmaimunu2i(3,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(3,i,mu,mu),3))
           disturbances(2,i) = disturbances(2,i) + (tchiorbiikl(sigmaimunu2i(1,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,mu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,mu),3))
-          disturbances(3,i) = disturbances(3,i) + (tchiorbiikl(sigmaimunu2i(1,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,mu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,mu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,mu),3))/zi
+          disturbances(3,i) = disturbances(3,i) + (tchiorbiikl(sigmaimunu2i(1,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,mu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,mu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,mu),3))/cI
           disturbances(4,i) = disturbances(4,i) + (tchiorbiikl(sigmaimunu2i(2,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,mu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,mu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,mu),3))
         end do
 
         ! Spin disturbance matrix to calculate effective field
-        sdmat(sigmai2i(1,i)) = disturbances(2,i) + zi*disturbances(3,i) ! +    = x + iy
+        sdmat(sigmai2i(1,i)) = disturbances(2,i) + cI*disturbances(3,i) ! +    = x + iy
         sdmat(sigmai2i(2,i)) = disturbances(1,i) + disturbances(4,i)    ! up   = 0 + z
         sdmat(sigmai2i(3,i)) = disturbances(1,i) - disturbances(4,i)    ! down = 0 - z
-        sdmat(sigmai2i(4,i)) = disturbances(2,i) - zi*disturbances(3,i) ! -    = x - iy
+        sdmat(sigmai2i(4,i)) = disturbances(2,i) - cI*disturbances(3,i) ! -    = x - iy
 
         ! Orbital angular momentum disturbance in the global frame
         do nu = 1, 9
@@ -277,12 +277,12 @@ subroutine calculate_all()
           do mu = 1, 9
             ! x component: (Ly*Sz - Lz*Sy)/2
             torques(1,1,i) = torques(1,1,i) + (   lyp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3))) &
-                                            + (zi*lzp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
+                                            + (cI*lzp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
             ! y component: (Lz*Sx - Lx*Sz)/2
             torques(1,2,i) = torques(1,2,i) + (lzp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3))) &
                                             - (lxp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3)))
             ! z component: (Lx*Sy - Ly*Sx)/2
-            torques(1,3,i) = torques(1,3,i) - (zi*lxp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3))) &
+            torques(1,3,i) = torques(1,3,i) - (cI*lxp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3))) &
                                             - (   lyp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
           end do
         end do
@@ -320,7 +320,7 @@ subroutine calculate_all()
       sdmat    = 0.5d0*sdmat
       ! currents = currents !TODO:Re-Include
       ! currents(2:4,:,:) =-0.5d0*currents(2:4,:,:) !TODO:Re-Include
-      ! currents(3,:,:)   = currents(3,:,:)/zi !TODO:Re-Include
+      ! currents(3,:,:)   = currents(3,:,:)/cI !TODO:Re-Include
 
       ! Total currents for each neighbor direction (Sum of currents over all planes)
       ! total_currents = sum(currents,dim=3)  !TODO:Re-Include
@@ -337,12 +337,12 @@ subroutine calculate_all()
       ! end do plane_loop_dc_current_all
 
       ! Effective field in cartesian coordinates
-      call zgemm('n','n',dimsigmaNpl,1,dimsigmaNpl,zum,chiinv,dimsigmaNpl,sdmat,dimsigmaNpl,zero,Beff,dimsigmaNpl) ! Beff = chi^(-1)*SD
+      call zgemm('n','n',dimsigmaNpl,1,dimsigmaNpl,cOne,chiinv,dimsigmaNpl,sdmat,dimsigmaNpl,cZero,Beff,dimsigmaNpl) ! Beff = chi^(-1)*SD
       ! plane_loop_effective_field_all
       do i = 1, s%nAtoms
         Beff_cart(sigmai2i(1,i)) =          (Beff(sigmai2i(2,i)) + Beff(sigmai2i(3,i))) ! 0
         Beff_cart(sigmai2i(2,i)) = 0.5d0*   (Beff(sigmai2i(1,i)) + Beff(sigmai2i(4,i))) ! x
-        Beff_cart(sigmai2i(3,i)) =-0.5d0*zi*(Beff(sigmai2i(1,i)) - Beff(sigmai2i(4,i))) ! y
+        Beff_cart(sigmai2i(3,i)) =-0.5d0*cI*(Beff(sigmai2i(1,i)) - Beff(sigmai2i(4,i))) ! y
         Beff_cart(sigmai2i(4,i)) = 0.5d0*   (Beff(sigmai2i(2,i)) - Beff(sigmai2i(3,i))) ! z
       end do
 
