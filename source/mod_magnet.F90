@@ -319,5 +319,65 @@ contains
     return
   end subroutine lp_matrix
 
+  subroutine allocate_magnet_variables(nAtoms)
+    use mod_mpi_pars, only: abortProgram
+    implicit none
+    integer, intent(in) :: nAtoms
+    integer :: AllocateStatus
+    allocate(eps1(nAtoms), STAT = AllocateStatus )
+    if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: eps1")
+
+    allocate( mx(nAtoms), my(nAtoms), mz(nAtoms), &
+              mvec_cartesian(nAtoms,3), &
+              mvec_spherical(nAtoms,3), &
+              hdel(nAtoms),hdelp(nAtoms),hdelm(nAtoms), &
+              mp(nAtoms),mm(nAtoms), STAT = AllocateStatus )
+    if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mx,my,mz,mvec_cartesian,mvec_spherical,hdel,mp,hdelp,mm,hdelm")
+
+    allocate( mabs(nAtoms), mtheta(nAtoms), mphi(nAtoms), &
+              labs(nAtoms), ltheta(nAtoms), lphi(nAtoms), &
+              lpabs(nAtoms), lptheta(nAtoms), lpphi(nAtoms), STAT = AllocateStatus )
+    if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mabs,mtheta,mphi,labs,ltheta,lphi,lpabs,lptheta,lpphi")
+
+    return
+  end subroutine
+
+  subroutine deallocate_magnet_variables()
+    implicit none
+
+    if(allocated(eps1)) deallocate(eps1)
+    if(allocated(mx)) deallocate(mx)
+    if(allocated(my)) deallocate(my)
+    if(allocated(mz)) deallocate(mz)
+    if(allocated(mm)) deallocate(mm)
+    if(allocated(mp)) deallocate(mp)
+    if(allocated(hdel)) deallocate(hdel)
+    if(allocated(hdelm)) deallocate(hdelm)
+    if(allocated(hdelp)) deallocate(hdelp)
+    if(allocated(mvec_spherical)) deallocate(mvec_spherical)
+    if(allocated(mvec_cartesian)) deallocate(mvec_cartesian)
+    if(allocated(mabs)) deallocate(mabs)
+    if(allocated(mtheta)) deallocate(mtheta)
+    if(allocated(mphi)) deallocate(mphi)
+    if(allocated(labs)) deallocate(labs)
+    if(allocated(ltheta)) deallocate(ltheta)
+    if(allocated(lphi)) deallocate(lphi)
+    if(allocated(lpabs)) deallocate(lpabs)
+    if(allocated(lptheta)) deallocate(lptheta)
+    if(allocated(lpphi)) deallocate(lpphi)
+    if(allocated(lxm)) deallocate(lxm)
+    if(allocated(lym)) deallocate(lym)
+    if(allocated(lzm)) deallocate(lzm)
+    if(allocated(lxpm)) deallocate(lxpm)
+    if(allocated(lypm)) deallocate(lypm)
+    if(allocated(lzpm)) deallocate(lzpm)
+    if(allocated(hhwx)) deallocate(hhwx)
+    if(allocated(hhwy)) deallocate(hhwy)
+    if(allocated(hhwz)) deallocate(hhwz)
+    if(allocated(sb)) deallocate(sb)
+    if(allocated(lb)) deallocate(lb)
+
+    return
+  end subroutine
 
 end module mod_magnet

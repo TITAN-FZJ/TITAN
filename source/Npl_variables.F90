@@ -33,23 +33,14 @@ end subroutine initConversionMatrices
 ! This subroutine allocates variables that depend on Npl
 subroutine allocate_Npl_variables(nAtoms)
   use mod_parameters, only: mmlayermag, U, layertype, mmlayer
-  use mod_magnet, only: eps1, mx, my, mz, mvec_cartesian, mvec_spherical, hdel, mp, &
-                        lptheta, lpabs, lphi, ltheta, labs, mm, hdelm, mabs, mtheta, &
-                        mphi, lpphi, hdelp
+  use mod_magnet, only: allocate_magnet_variables
   use TightBinding, only: nOrb
   use mod_mpi_pars, only: abortProgram
   implicit none
   integer, intent(in) :: nAtoms
   integer :: AllocateStatus
 
-  allocate(eps1(nAtoms), STAT = AllocateStatus )
-  if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: eps1")
-
-  allocate( mx(nAtoms),my(nAtoms),mz(nAtoms),mvec_cartesian(nAtoms,3),mvec_spherical(nAtoms,3),hdel(nAtoms),mp(nAtoms),hdelp(nAtoms),mm(nAtoms),hdelm(nAtoms), STAT = AllocateStatus )
-  if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mx,my,mz,mvec_cartesian,mvec_spherical,hdel,mp,hdelp,mm,hdelm")
-
-  allocate( mabs(nAtoms),mtheta(nAtoms),mphi(nAtoms),labs(nAtoms),ltheta(nAtoms),lphi(nAtoms),lpabs(nAtoms),lptheta(nAtoms),lpphi(nAtoms), STAT = AllocateStatus )
-  if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mabs,mtheta,mphi,labs,ltheta,lphi,lpabs,lptheta,lpphi")
+  call allocate_magnet_variables(nAtoms)
 
   allocate( mmlayer(nAtoms),layertype(nAtoms),U(nAtoms),mmlayermag(nAtoms), STAT = AllocateStatus )
   if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mmlayer,layertype,U,mmlayermag,lambda,npart0")
@@ -63,16 +54,14 @@ end subroutine allocate_Npl_variables
 
 ! This subroutine allocates variables that depend on Npl
 subroutine deallocate_Npl_variables()
-  use mod_parameters
-  use mod_magnet
+  use mod_parameters, only: sigmai2i, sigmaimunu2i, sigmaijmunu2i, mmlayer, layertype, U, mmlayermag
+  use mod_magnet, only: deallocate_magnet_variables
   implicit none
 
-  deallocate(sigmai2i,sigmaimunu2i,sigmaijmunu2i,eps1)
-  deallocate(mx,my,mz,mvec_cartesian,mvec_spherical,hdel,mp,hdelp,mm,hdelm)
-  deallocate(mabs,mtheta,mphi,labs,ltheta,lphi,lpabs,lptheta,lpphi)
-  if(lGSL) deallocate(lxm,lym,lzm,lxpm,lypm,lzpm)
+  call deallocate_magnet_variables()
+
+  deallocate(sigmai2i,sigmaimunu2i,sigmaijmunu2i)
   deallocate(mmlayer,layertype,U,mmlayermag)
-  deallocate(hhwx,hhwy,hhwz,sb,lb)
   !deallocate(t0, t0i)
   !deallocate(sha_longitudinal,sha_transverse,long_cos,transv_cos)
 
