@@ -1,5 +1,5 @@
 subroutine create_folder()
-  use mod_parameters, only: itype, Npl_folder, lhfresponses
+  use mod_parameters, only: itype, strSites, lhfresponses
   use mod_SOC, only: SOCc
   implicit none
 
@@ -17,7 +17,7 @@ subroutine create_folder()
   call execute_command_line(trim(folder))
 
   !! Go into layer dependent folder
-  write(base_command, "(a,a,'/')") trim(base_command), trim(Npl_folder)
+  write(base_command, "(a,a,'/')") trim(base_command), trim(strSites)
 
   !! Create folder for Band Structure
   write(folder, "(a,'BS')") trim(base_command)

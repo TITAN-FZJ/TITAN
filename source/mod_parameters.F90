@@ -130,7 +130,7 @@ module mod_parameters
   integer :: set1,set2
   ! Layers to add after set2 (maximum of 10) - Must include empty spheres on the list
   integer :: addlayers(10),naddlayers=0
-  character(len=50) :: Npl_folder
+  character(len=50) :: strSites
   !========================================================================================!
   integer :: offset = 0
 

@@ -62,7 +62,7 @@ end subroutine read_band_points
 !   Calculates magnetic LDOS
 subroutine band_structure(s)
   use mod_f90_kind, only: double
-  use mod_parameters, only: fieldpart, outputunit_loop, Ef, eta, Npl_folder, npts, npt1, Utype, bands, band_cnt
+  use mod_parameters, only: fieldpart, outputunit_loop, Ef, eta, strSites, npts, npt1, Utype, bands, band_cnt
   use mod_SOC, only: SOCc, socpart
   use mod_mpi_pars, only: mpitag
   use mod_system, only: System
@@ -101,7 +101,7 @@ subroutine band_structure(s)
   end do
 
   write(kdirection,*) (trim(adjustl(bands(i))), i = 1,band_cnt)
-  write(varm,"('./results/',a1,'SOC/',a,'/BS/bandstructure_kdir=',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(adjustl(kdirection)),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+  write(varm,"('./results/',a1,'SOC/',a,'/BS/bandstructure_kdir=',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),trim(adjustl(kdirection)),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
   open (unit=666+mpitag, file=varm,status='replace')
   write(unit=666+mpitag, fmt=*) band_cnt, npts
   write(unit=666+mpitag, fmt=*) Ef

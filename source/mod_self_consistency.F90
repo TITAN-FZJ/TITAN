@@ -771,7 +771,7 @@ contains
   subroutine read_sc_results(err,lsuccess)
     use mod_f90_kind, only: double
     use mod_constants, only: cI
-    use mod_parameters, only: offset, fieldpart, eta, U,Utype,scfile, outputunit_loop, Npl_folder, dfttype
+    use mod_parameters, only: offset, fieldpart, eta, U,Utype,scfile, outputunit_loop, strSites, dfttype
     use EnergyIntegration, only: parts
     use mod_magnet, only: eps1, hdel, hdelm, hdelp, mp, mz, hw_count, mx, my, mz
     use mod_SOC, only: SOCc, socpart
@@ -796,7 +796,7 @@ contains
     lsuccess = .false.
     !   Reading previous results (mx, my, mz and eps1) from files (if available)
     if(trim(scfile)=="") then ! If a filename is not given in inputcard (or don't exist), use the default one
-      write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),dfttype,parts,Utype,trim(fieldpart),s%nkpt,eta,trim(socpart)
+      write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(strSites),dfttype,parts,Utype,trim(fieldpart),s%nkpt,eta,trim(socpart)
       open(unit=99,file=file,status="old",iostat=err)
       if((err==0).and.(myrank_row_hw==0)) then
         write(outputunit_loop,"('[read_sc_results] Self-consistency file already exists. Reading it now...')")
@@ -812,7 +812,7 @@ contains
           write(outputunit_loop,"(a)") trim(scfile)
         end if
       else ! 2nd+ iteration, cheking if default file exists
-        write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),dfttype,parts,Utype,trim(fieldpart),s%nkpt,eta,trim(socpart)
+        write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(strSites),dfttype,parts,Utype,trim(fieldpart),s%nkpt,eta,trim(socpart)
         open(unit=99,file=file,status="old",iostat=err)
         if(err==0) then ! Reading file for the same parameters
           if(myrank_row_hw==0) then
@@ -857,7 +857,7 @@ contains
     else
       ! If file does not exist, try to read for parts-1
       close(99)
-      write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),dfttype,parts-1,Utype,trim(fieldpart),s%nkpt,eta,trim(socpart)
+      write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(strSites),dfttype,parts-1,Utype,trim(fieldpart),s%nkpt,eta,trim(socpart)
       open(unit=99,file=file,status="old",iostat=err)
       if(err==0) then
         if(myrank_row_hw==0) then
@@ -887,7 +887,7 @@ contains
 
   subroutine write_sc_results()
     !! Writes the self-consistency results into files and broadcasts the scfile for the next iteration.
-    use mod_parameters, only: fieldpart, eta, Utype,scfile, outputunit_loop, Npl_folder, dfttype
+    use mod_parameters, only: fieldpart, eta, Utype,scfile, outputunit_loop, strSites, dfttype
     use EnergyIntegration, only: parts
     use mod_magnet, only: eps1, mx, my, mz
     use mod_SOC, only: SOCc, socpart
@@ -899,7 +899,7 @@ contains
     if(myrank_row_hw == 0) then
       ! Writing new results (mx, my, mz and eps1) and mz to file
       write(outputunit_loop,"('[write_sc_results] Writing new eps1, mx, my and mz to file...')")
-      write(scfile,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc, trim(Npl_folder),dfttype,parts,Utype,trim(fieldpart),s%nkpt,eta,trim(socpart)
+      write(scfile,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc, trim(strSites),dfttype,parts,Utype,trim(fieldpart),s%nkpt,eta,trim(socpart)
       open (unit=99,status='replace',file=scfile)
       do i=1,s%nAtoms
         write(99,"(es21.11,2x,'! eps1')") eps1(i)

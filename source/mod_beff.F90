@@ -36,7 +36,7 @@ contains
 
   subroutine create_beff_files()
   !! This subroutine creates all the files needed for the effective field
-    use mod_parameters, only: suffix, fieldpart, lhfresponses, Npl_folder, eta, Utype
+    use mod_parameters, only: suffix, fieldpart, lhfresponses, strSites, eta, Utype
     use mod_mpi_pars, only: abortProgram
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
@@ -62,7 +62,7 @@ contains
     do sigma = 1, 4
       do i = 1, s%nAtoms
         iw = 8000+(sigma-1)*s%nAtoms+i
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename),direction(sigma),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename),direction(sigma),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#     energy    , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma)
         close(unit=iw)
@@ -74,7 +74,7 @@ contains
 
   subroutine open_beff_files()
   !! This subroutine opens all the files needed for the effective field
-    use mod_parameters, only: suffix, fieldpart, lhfresponses, Npl_folder, eta, Utype, missing_files
+    use mod_parameters, only: suffix, fieldpart, lhfresponses, strSites, eta, Utype, missing_files
     use mod_mpi_pars, only: abortProgram
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
@@ -100,7 +100,7 @@ contains
     do sigma=1,4
       do i=1,s%nAtoms
         iw = 8000+(sigma-1)*s%nAtoms+i
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename),direction(sigma),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename),direction(sigma),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -169,7 +169,7 @@ contains
 
   subroutine create_dc_beff_files()
     !! This subroutine creates all the files needed for the effective field
-    use mod_parameters, only: lhfresponses,dcfieldpart, suffix, Npl_folder, Utype, eta
+    use mod_parameters, only: lhfresponses,dcfieldpart, suffix, strSites, Utype, eta
     use mod_magnet, only: dcprefix, dc_header, dcfield, dcfield_dependence
     use mod_mpi_pars, only: abortProgram
     use mod_SOC, only: SOCc, socpart
@@ -196,7 +196,7 @@ contains
     do sigma=1,4
       do i=1,s%nAtoms
       iw = 80000+(sigma-1)*s%nAtoms+i
-      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
       open (unit=iw, file=varm, status='replace', form='formatted')
       write(unit=iw, fmt="('#',a,' imaginary part of ',a,a,' , real part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma)
       close(unit=iw)
@@ -209,7 +209,7 @@ contains
 
   subroutine open_dc_beff_files()
   !! This subroutine opens all the files needed for the effective field
-    use mod_parameters, only: lhfresponses,dcfieldpart, suffix, Npl_folder, Utype, eta, missing_files
+    use mod_parameters, only: lhfresponses,dcfieldpart, suffix, strSites, Utype, eta, missing_files
     use mod_magnet, only: dcprefix, dcfield, dcfield_dependence
     use mod_mpi_pars, only: abortProgram
     use mod_SOC, only: SOCc, socpart
@@ -236,7 +236,7 @@ contains
     do sigma=1,4
       do i=1,s%nAtoms
         iw = 80000+(sigma-1)*s%nAtoms+i
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)

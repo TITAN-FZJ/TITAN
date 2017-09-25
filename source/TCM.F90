@@ -4,7 +4,7 @@ contains
 subroutine calculate_gilbert_damping()
   use mod_f90_kind, only: double
   use mod_System, only: s => sys
-  use mod_parameters, only: outputunit_loop, Npl_folder, eta, Utype, fieldpart, suffix
+  use mod_parameters, only: outputunit_loop, strSites, eta, Utype, fieldpart, suffix
   use mod_SOC, only: socpart, SOCc
   use ElectricField, only: strElectricField
   use mod_mpi_pars, only: myrank
@@ -19,7 +19,7 @@ subroutine calculate_gilbert_damping()
   call TCM(alpha, local_SO_torque)
 
   if(myrank == 0) then
-    write(varm,"('./results/',a1,'SOC/',a,'/A/TCM/TCM_SO_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+    write(varm,"('./results/',a1,'SOC/',a,'/A/TCM/TCM_SO_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
     open (unit=634893, file=varm, status='replace', form='formatted')
     write(unit=634893, fmt="('# i , m , Re(A_mx), Im(A_mx), Re(A_my), Im(A_my), Re(A_mz), Im(A_mz) ')")
     do i = 1, s%nAtoms
@@ -33,7 +33,7 @@ subroutine calculate_gilbert_damping()
   call TCM(alpha, local_xc_torque)
 
   if(myrank == 0) then
-    write(varm,"('./results/',a1,'SOC/',a,'/A/TCM/TCM_XC_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+    write(varm,"('./results/',a1,'SOC/',a,'/A/TCM/TCM_XC_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
     open (unit=634893, file=varm, status='replace', form='formatted')
     write(unit=634893, fmt="('# i , m , Re(A_mx), Im(A_mx), Re(A_my), Im(A_my), Re(A_mz), Im(A_mz) ')")
     do i = 1, s%nAtoms
