@@ -4,7 +4,7 @@ contains
 subroutine calculate_gilbert_damping()
   use mod_f90_kind, only: double
   use mod_System, only: s => sys
-  use mod_parameters, only: outputunit, Npl_folder, eta, Utype, fieldpart, suffix
+  use mod_parameters, only: outputunit_loop, Npl_folder, eta, Utype, fieldpart, suffix
   use mod_SOC, only: socpart, SOCc
   use ElectricField, only: strElectricField
   use mod_mpi_pars, only: myrank
@@ -14,9 +14,8 @@ subroutine calculate_gilbert_damping()
   character(len=500)  :: varm
 
 
-  write(outputunit, *) "[calculate_gilbert_damping] Start..."
+  write(outputunit_loop, *) "[calculate_gilbert_damping] Start..."
 
-  if(myrank == 0) print *, "SO Torque"
   call TCM(alpha, local_SO_torque)
 
   if(myrank == 0) then
@@ -31,7 +30,6 @@ subroutine calculate_gilbert_damping()
     close(unit=634893)
   end if
 
-  if(myrank == 0) print *, "xc Torque"
   call TCM(alpha, local_xc_torque)
 
   if(myrank == 0) then
@@ -215,17 +213,14 @@ end subroutine local_xc_torque
 
 subroutine local_SO_torque(torque)
   use mod_f90_kind, only: double
-  use mod_constants, only: cZero, cOne, cI, levi_civita
+  use mod_constants, only: cZero, levi_civita, sigma => pauli_mat
   use mod_System, only: s => sys
   use mod_magnet, only: Lxp, Lyp, Lzp
   use TightBinding, only: nOrb
-  use mod_mpi_pars, only: myrank
-  use mod_SOC, only: SOC
   implicit none
   integer :: i,m,n,k
   complex(double), dimension(2*nOrb,2*nOrb,3, s%nAtoms), intent(out) :: torque
   complex(double), dimension(nOrb, nOrb, 3, s%nAtoms) :: L
-  complex(double), dimension(2,2,3) :: sigma
 
   do i = 1, s%nAtoms
     L(:,:,1, i) = Lxp(:,:,i)
@@ -233,19 +228,12 @@ subroutine local_SO_torque(torque)
     L(:,:,3, i) = Lzp(:,:,i)
   end do
 
-  sigma(:,1,1) = [cZero,cOne]
-  sigma(:,2,1) = [cOne, cZero]
-  sigma(:,1,2) = [cZero,-cI]
-  sigma(:,2,2) = [cI,cZero]
-  sigma(:,1,3) = [cOne,cZero]
-  sigma(:,2,3) = [cZero,-cOne]
-
   torque = cZero
 
   !! [sigma, H_SO]
-  !! Lambda * i * ( L_i^y sigma^z *e_x - L_i^x*sigma^z*e_y)
+  !! t_i^m = Lambda_i * sum_nk eps_mnk L_imunu^n * S_imunu^k
+  !! t_m = lambda_i * sum_alpha_beta * sum_nk_gamma,zeta eps_mnk L^n_gamma,zeta * sigma^k_alpha_beta
 
-  !! t_m = i*lambda_i * sum_alpha_beta * sum_nk_gamma,zeta eps_mnk L^n_gamma,zeta * sigma^k_alpha_beta
   do i = 1, s%nAtoms
     do m = 1, 3
       do n = 1, 3
@@ -257,7 +245,7 @@ subroutine local_SO_torque(torque)
         end do
       end do
     end do
-    torque(:,:,:,i) = torque(:,:,:,i) * cI * s%Types(s%Basis(i)%Material)%Lambda
+    torque(:,:,:,i) = torque(:,:,:,i) * s%Types(s%Basis(i)%Material)%Lambda
   end do
   return
 end subroutine local_SO_torque

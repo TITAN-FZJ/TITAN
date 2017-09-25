@@ -65,7 +65,7 @@ contains
                               lrotatemag, magaxis, magaxisvec, latticeName, itype, ry2ev, &
                               ltesla, eta, dmax, emin, emax, deltae, skip_steps, &
                               npts, npt1, renorm, renormnb, skipsc, scfile, bands, band_cnt, &
-                              offset, dfttype, suffix, mag_tol, outputfile
+                              offset, dfttype, suffix, mag_tol, outputfile, U
     use mod_system, only: System, pln_normal, n0sc1, n0sc2
     use mod_SOC, only: SOC, SOCc, socpart, socscale, llinearsoc, llineargfsoc
     use mod_magnet, only: lfield, tesla, hwa_i, hwa_f, hwa_npts, hwa_npt1, hwt_i, hwt_f, &
@@ -313,7 +313,18 @@ contains
       end select
     end if
 
-    !---------------------------------------- Electric Field ----------------------------------------
+    !------------------------------------- Coulomb Interaction -------------------------------------
+    if(.not. get_parameter("U", U, cnt)) then
+      call log_warning("get_parameters","'U' not present. Using default value of 1eV for all sites.")
+      allocate(U(1))
+      U = 1.d0 / 13.6d0
+    else if(cnt == 1) then
+      call log_warning("get_parameters", "'U' has only single value. Using this on all sites.")
+    else if(cnt < 0) then
+      call log_error("get_parameters","'U' has size < 0.")
+    end if
+
+    !--------------------------------------- Electric Field ----------------------------------------
     if(.not. get_parameter("ebasis", tmp_string)) call log_error("get_parameters","'ebasis' missing.")
     select case (tmp_string)
     case("cartesian")

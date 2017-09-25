@@ -25,7 +25,7 @@ module mod_constants
   complex(double) :: identorb9(9,9)
   complex(double) :: pauli_orb(3,18,18)
   complex(double) :: pauli_dorb(3,18,18)
-
+  complex(double) :: pauli_mat(2,2,0:3)
 contains
   subroutine define_constants()
     implicit none
@@ -39,6 +39,17 @@ contains
     do i=1,18
       identorb18(i,i) = cOne
     end do
+
+    ! All four Pauli matrices in spin space
+    pauli_mat(:,1,0) = [cOne, cZero]
+    pauli_mat(:,2,0) = [cZero, cOne]
+    pauli_mat(:,1,1) = [cZero,cOne]
+    pauli_mat(:,2,1) = [cOne, cZero]
+    pauli_mat(:,1,2) = [cZero,-cI]
+    pauli_mat(:,2,2) = [cI,cZero]
+    pauli_mat(:,1,3) = [cOne,cZero]
+    pauli_mat(:,2,3) = [cZero,-cOne]
+
 
 ! Pauli matrices in spin and orbital space
     pauli_dorb = cZero

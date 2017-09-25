@@ -78,6 +78,7 @@ program TITAN
   !if(tbmode == 2) Npl_total = Npl + 2
 
   !--------------- Allocating variables that depend on Npl ---------------
+  call allocate_magnet_variables(sys%nAtoms)
   call allocate_Npl_variables(sys%nAtoms) !TODO: Review
 
   !----------------------------- Dimensions ------------------------------
