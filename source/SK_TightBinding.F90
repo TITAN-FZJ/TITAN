@@ -77,10 +77,10 @@ contains
 
   subroutine read_Papa_2C_param(material, a0, nStages, nOrb)
     use mod_f90_kind, only: double
-    use AtomTypes, only: AtomKind
+    use AtomTypes, only: AtomType
     use mod_mpi_pars, only: abortProgram
     implicit none
-    type(AtomKind), intent(inout) :: material
+    type(AtomType), intent(inout) :: material
     real(double), intent(in) :: a0
     integer, intent(in) :: nStages
     integer, intent(in) :: nOrb

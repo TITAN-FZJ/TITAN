@@ -16,7 +16,7 @@
 !-------------------------------------------------------------------------------
 module mod_system
   use mod_f90_kind, only: double
-  use AtomTypes, only: BasisAtom, NeighborAtom, AtomKind
+  use AtomTypes, only: BasisAtom, NeighborAtom, AtomType
   implicit none
 
   type :: System
@@ -33,7 +33,7 @@ module mod_system
     integer :: nStages = 0
     real(double), dimension(:,:), allocatable :: Distances ! size (nStages, nAtoms)
     integer :: nTypes = 0
-    type(AtomKind), dimension(:), allocatable :: Types
+    type(AtomType), dimension(:), allocatable :: Types
     integer :: nkpt = 0
     real(double), dimension(:,:), allocatable :: kbz ! size (3,nkpt)
     real(double), dimension(:), allocatable :: wkbz

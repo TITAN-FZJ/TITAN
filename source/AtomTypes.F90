@@ -29,7 +29,7 @@ type, extends(Atom) :: NeighborAtom
   logical, dimension(:), allocatable :: isHopping
 end type NeighborAtom
 
-type :: AtomKind
+type :: AtomType
   character(len=50) :: Name
   real(double), dimension(:,:), allocatable :: onSite ! on site matrix; size (nOrb, nOrb)
   real(double), dimension(:,:), allocatable :: Hopping ! hopping matrix; size (10, nStages)
@@ -37,7 +37,7 @@ type :: AtomKind
   real(double) :: FermiLevel
   real(double) :: Occupation
   real(double) :: LatticeConstant
-end type AtomKind
+end type AtomType
 
 
 contains
