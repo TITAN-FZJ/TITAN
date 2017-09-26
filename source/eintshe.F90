@@ -7,13 +7,14 @@ subroutine eintshe(e)
   use mod_SOC, only: llineargfsoc
   use EnergyIntegration, only: y, wght, nepoints, x2, p2, generate_real_epoints, pn1
   use mod_system, only: s => sys !, n0sc1, n0sc2
+  use mod_BrillouinZone, only: BZ
   use mod_prefactors,    only: prefactor !, lxpt, lypt, lzpt, tlxp, tlyp, tlzp
   use mod_disturbances,     only: tchiorbiikl
   use mod_mpi_pars
 
   !use mod_currents,         only: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl !TODO: Re-Include
   !use mod_system,           only: n0sc1, n0sc2, n0sc
-  !use mod_system,        only: r_nn, npln, nkpt, kbz, wkbz, n0sc1, n0sc2
+  !use mod_system,        only: r_nn, npln, n0sc1, n0sc2
   implicit none
 
   real(double),intent(in)   :: e
@@ -85,7 +86,7 @@ subroutine eintshe(e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,iz,wkbzc,kp,i,j,l,mu,nu,gamma,xi,sigma,sigmap,neighbor,dtdk,gf,gfuu,gfud,gfdu,gfdd,df1iikl,pfdf1iikl,tFintiikl) & !,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,expikr,prett,preLxtt,preLytt,preLztt) &
-  !$omp& shared(s,llineargfsoc,prefactor,e,y,x2,wght,p2,Ef,eta,start1,end1,start2,end2,sigmai2i,sigmaimunu2i,dim,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
+  !$omp& shared(llineargfsoc,s,BZ,prefactor,e,y,x2,wght,p2,Ef,eta,start1,end1,start2,end2,sigmai2i,sigmaimunu2i,dim,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
 
   allocate(df1iikl(dim,4),pfdf1iikl(dim,4), &
            gf(nOrb2,nOrb2, s%nAtoms,s%nAtoms), &
@@ -111,9 +112,9 @@ subroutine eintshe(e)
 
   !$omp do schedule(static) collapse(2)
   do ix = start1, end1 ! First and second integrations (in the complex plane)
-    do iz=1, s%nkpt
-      kp = s%kbz(:,iz)
-      wkbzc = cmplx(s%wkbz(iz) * wght(ix),0.d0)
+    do iz=1, BZ%nkpt
+      kp = BZ%kp(1:3,iz)
+      wkbzc = cmplx(BZ%w(iz) * wght(ix),0.d0)
       df1iikl = cZero
 
       ! Calculating derivative of in-plane and n.n. inter-plane hoppings
@@ -227,9 +228,9 @@ subroutine eintshe(e)
 
   !$omp do schedule(static) collapse(2)
   do ix2 = start2, end2  ! Third integration (on the real axis)
-    do iz=1, s%nkpt
-      kp = s%kbz(:,iz)
-      wkbzc = cmplx(s%wkbz(iz)*p2(ix2),0.d0)
+    do iz=1, BZ%nkpt
+      kp = BZ%kp(1:3,iz)
+      wkbzc = cmplx(BZ%w(iz)*p2(ix2),0.d0)
 
       df1iikl = cZero
 
@@ -387,6 +388,7 @@ subroutine eintshelinearsoc(e)
   use mod_parameters, only: dim, Ef, eta, sigmai2i, sigmaimunu2i, offset
   use TightBinding, only: nOrb,nOrb2
   use mod_system, only: s => sys
+  use mod_BrillouinZone, only: BZ
   use EnergyIntegration, only: y, wght, nepoints, x2, p2, generate_real_epoints, pn1
   use mod_prefactors, only: prefactor, prefactorlsoc
   use mod_disturbances, only: tchiorbiikl
@@ -465,7 +467,7 @@ subroutine eintshelinearsoc(e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,iz,wkbzc,kp,tFintiikl,df1iikl,pfdf1iikl,df1lsoc,dtdk,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &    !,expikr,prett,preLxtt,preLytt,preLztt
-  !$omp& shared(start1,end1,start2,end2,tchiorbiikl,prefactor,prefactorlsoc,s,e,Ef,y,x2,wght,p2,eta,sigmai2i,sigmaimunu2i,dim,offset)                                                                                 !,n0sc1,n0sc2,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,lxpt,lypt,lzpt,tlxp,tlyp,tlzp
+  !$omp& shared(start1,end1,start2,end2,tchiorbiikl,prefactor,prefactorlsoc,s,BZ,e,Ef,y,x2,wght,p2,eta,sigmai2i,sigmaimunu2i,dim,offset)                                                                                 !,n0sc1,n0sc2,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,lxpt,lypt,lzpt,tlxp,tlyp,tlzp
 
   allocate( df1iikl(dim,4),pfdf1iikl(dim,4),df1lsoc(dim,4), &
             dtdk(nOrb,nOrb,s%nAtoms,s%nAtoms), &
@@ -497,9 +499,9 @@ subroutine eintshelinearsoc(e)
 
   !$omp do schedule(auto)
   do ix = start1, end1 ! First and second integrations (in the complex plane)
-    do iz = 1, s%nkpt
-      kp = s%kbz(:,iz)
-      wkbzc = cmplx(s%wkbz(iz)*wght(ix),0.d0)
+    do iz = 1, BZ%nkpt
+      kp = BZ%kp(1:3,iz)
+      wkbzc = cmplx(BZ%w(iz)*wght(ix),0.d0)
 
       df1iikl = cZero
       df1lsoc = cZero
@@ -640,9 +642,9 @@ subroutine eintshelinearsoc(e)
 
   !$omp do schedule(static) collapse(2)
   do ix2 = start2, end2 ! Third integration (on the real axis)
-    do iz=1,s%nkpt
-      kp = s%kbz(:,iz)
-      wkbzc = cmplx(s%wkbz(iz)*p2(ix2),0.d0)
+    do iz=1,BZ%nkpt
+      kp = BZ%kp(1:3,iz)
+      wkbzc = cmplx(BZ%w(iz)*p2(ix2),0.d0)
 
       df1iikl = cZero
       df1lsoc = cZero

@@ -4,6 +4,7 @@ subroutine ldos()
   use mod_parameters, only: outputunit_loop, fieldpart, strSites, eta, Utype, npt1, emin, deltae
   use mod_SOC, only: SOCc, socpart
   use mod_system, only: s => sys
+  use mod_BrillouinZone, only: BZ
   use mod_mpi_pars, only: mpitag
   use TightBinding, only: nOrb
   implicit none
@@ -20,10 +21,10 @@ subroutine ldos()
   ! LDOS
   do i=1,s%nAtoms
     iw = 1000+(mpitag-1)*s%nAtoms*2 + (i-1)*2 + 1
-    write(varm,"('./results/',a1,'SOC/',a,'/LDOS/ldosu_layer',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),i,s%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+    write(varm,"('./results/',a1,'SOC/',a,'/LDOS/ldosu_layer',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),i,BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
     open (unit=iw, file=varm,status='unknown')
     iw = iw+1
-    write(varm,"('./results/',a1,'SOC/',a,'/LDOS/ldosd_layer',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),i,s%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+    write(varm,"('./results/',a1,'SOC/',a,'/LDOS/ldosd_layer',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),i,BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
     open (unit=iw, file=varm,status='unknown')
   end do
 

@@ -4,6 +4,8 @@ module mod_torques
   ! Torques (sot,xc-torque,external torque ; x,y,z ; layers)
   integer       :: ntypetorque=3 ! Number of types of torques implemented
   complex(double),allocatable   :: torques(:,:,:),rtorques(:,:,:)
+  character(len=1), dimension(3), parameter, private    :: direction = ["x", "y", "z"]
+
 contains
 
   ! This subroutine allocates variables related to the torques calculation
@@ -52,6 +54,7 @@ contains
   use mod_magnet, only: lfield, total_hw_npt1
   use mod_mpi_pars
   use mod_system, only: s => sys
+  use mod_BrillouinZone, only: BZ
   use electricfield, only: strElectricField
   use EnergyIntegration, only: strEnergyParts
   implicit none
@@ -59,7 +62,6 @@ contains
   character(len=500)  :: varm
   character(len=6)    :: folder
   character(len=3)    :: filename(ntypetorque)
-  character(len=1)    :: direction(3)
   integer :: i,sigma,typetorque,iw
 
   folder = "SOT"
@@ -68,21 +70,17 @@ contains
   filename(2) = "XCT"
   if((lfield).or.(total_hw_npt1/=1)) filename(3) = "EXT"
 
-  direction(1) = "x"
-  direction(2) = "y"
-  direction(3) = "z"
-
   do typetorque=1,ntypetorque
     do sigma=1,3
       do i=1,s%nAtoms
         iw = 9000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(typetorque)),direction(sigma),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(typetorque)),direction(sigma),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#     energy    , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
         close(unit=iw)
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(typetorque)),direction(sigma),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(typetorque)),direction(sigma),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#     energy    , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
           close(unit=iw)
@@ -102,6 +100,7 @@ contains
   use mod_magnet, only: lfield, total_hw_npt1
   use mod_mpi_pars
   use mod_system, only: s => sys
+  use mod_BrillouinZone, only: BZ
   use electricfield, only: strElectricField
   use EnergyIntegration, only: strEnergyParts
   implicit none
@@ -109,7 +108,6 @@ contains
   character(len=500)  :: varm
   character(len=6)    :: folder
   character(len=3)    :: filename(ntypetorque)
-  character(len=1)    :: direction(3)
   integer :: i,sigma,typetorque,iw,err,errt=0
 
   folder = "SOT"
@@ -118,21 +116,17 @@ contains
   filename(2) = "XCT"
   if((lfield).or.(total_hw_npt1/=1)) filename(3) = "EXT"
 
-  direction(1) = "x"
-  direction(2) = "y"
-  direction(3) = "z"
-
   do typetorque=1,ntypetorque
     do sigma=1,3
       do i=1,s%nAtoms
         iw = 9000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(typetorque)),direction(sigma),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(typetorque)),direction(sigma),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(typetorque)),direction(sigma),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(typetorque)),direction(sigma),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -237,6 +231,7 @@ contains
     use mod_magnet, only: lfield, total_hw_npt1, dcprefix, dcfield_dependence, dcfield, dc_header
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
+    use mod_BrillouinZone, only: BZ
     use electricfield, only: strElectricField
     use EnergyIntegration, only: strEnergyParts
     implicit none
@@ -244,7 +239,6 @@ contains
     character(len=500)  :: varm
     character(len=6)    :: folder
     character(len=3)    :: filename(ntypetorque)
-    character(len=1)    :: direction(3)
     integer :: i,sigma,typetorque,iw
 
     folder = "SOT"
@@ -253,21 +247,17 @@ contains
     filename(2) = "XCT"
     if((lfield).or.(total_hw_npt1/=1)) filename(3) = "EXT"
 
-    direction(1) = "x"
-    direction(2) = "y"
-    direction(3) = "z"
-
     do typetorque=1,ntypetorque
       do sigma=1,3
         do i=1,s%nAtoms
           iw = 90000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#',a,'  imaginary part of ',a,a,' ,  real part of ',a,a,'  , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
           close(unit=iw)
           if(renorm) then
             iw = iw+1000
-            write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+            write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
             open (unit=iw, file=varm, status='replace', form='formatted')
             write(unit=iw, fmt="('#',a,'  imaginary part of ',a,a,' ,  real part of ',a,a,'  , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
             close(unit=iw)
@@ -286,6 +276,7 @@ contains
     use mod_mpi_pars
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
+    use mod_BrillouinZone, only: BZ
     use electricfield, only: strElectricField
     use EnergyIntegration, only: strEnergyParts
     implicit none
@@ -293,7 +284,6 @@ contains
     character(len=500)  :: varm
     character(len=6)    :: folder
     character(len=3)    :: filename(ntypetorque)
-    character(len=1)    :: direction(3)
     integer :: i,sigma,typetorque,iw,err,errt=0
 
     folder = "SOT"
@@ -302,21 +292,17 @@ contains
     filename(2) = "XCT"
     if((lfield).or.(total_hw_npt1/=1)) filename(3) = "EXT"
 
-    direction(1) = "x"
-    direction(2) = "y"
-    direction(3) = "z"
-
     do typetorque=1,ntypetorque
       do sigma=1,3
         do i=1,s%nAtoms
           iw = 90000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
           if(renorm) then
             iw = iw+1000
-            write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+            write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
             open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
             errt = errt + err
             if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)

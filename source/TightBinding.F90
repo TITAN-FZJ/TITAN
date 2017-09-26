@@ -15,9 +15,7 @@ contains
   subroutine initTightBinding(s)
     use mod_system, only: System
     use SK_TightBinding, only: SKParam => get_parameter
-    use mod_parameters, only: nmaglayers, mmlayermag, layertype, U
     implicit none
-    integer :: i
     type(System), intent(inout) :: s
     if(tbmode == 1) then
       call SKParam(s, fermi_layer, nOrb, Orbitals)

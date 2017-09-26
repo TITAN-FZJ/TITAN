@@ -2,49 +2,40 @@
 subroutine ldos_energy(e,ldosu,ldosd)
   use mod_f90_kind, only: double
   use mod_constants, only: pi
-  use mod_parameters, only: lverbose, eta, outputunit_loop
+  use mod_parameters, only: eta
   use mod_system, only: s => sys
+  use mod_BrillouinZone, only: BZ
   use TightBinding, only: nOrb,nOrb2
-  use mod_progress
-  !use mod_mpi_pars
-!$  use omp_lib
   implicit none
-!$  integer           :: nthreads,mythread
-  integer             :: i,mu,nu,iz
-  real(double)        :: kp(3)
-  real(double),intent(in) :: e
-  real(double),intent(out) :: ldosu(s%nAtoms,nOrb),ldosd(s%nAtoms,nOrb)
-  complex(double),dimension(nOrb2, nOrb2, s%nAtoms, s%nAtoms) :: gf
-  complex(double),dimension(s%nAtoms, nOrb) :: gfdiagu,gfdiagd
-
+  real(double), intent(in) :: e
+  real(double), dimension(s%nAtoms, nOrb), intent(out) :: ldosu, ldosd
+  complex(double), dimension(nOrb2, nOrb2, s%nAtoms, s%nAtoms) :: gf
+  complex(double), dimension(s%nAtoms, nOrb) :: gfdiagu,gfdiagd
+  real(double), dimension(3) :: kp
+  real(double) :: weight
+  integer :: i,mu,nu,iz
   ldosu = 0.d0
   ldosd = 0.d0
 
 !$omp parallel default(none) &
-!$omp& private(mythread,iz,kp,gf,i,mu,nu,gfdiagu,gfdiagd) &
-!$omp& shared(lverbose,s,e,eta,ldosu,ldosd,nthreads,outputunit_loop)
-!$  mythread = omp_get_thread_num()
-!$  if(mythread.eq.0) then
-!$    nthreads = omp_get_num_threads()
-!$    write(outputunit_loop,"('[ldos_jij_energy] Number of threads: ',i0)") nthreads
-!$  end if
+!$omp& private(iz,kp,weight,gf,i,mu,nu,gfdiagu,gfdiagd) &
+!$omp& shared(s,BZ,e,eta,ldosu,ldosd)
 
 !$omp do reduction(+:ldosu,ldosd)
-  do iz=1,s%nkpt
-!$  if((mythread.eq.0)) then
-      if(lverbose) call progress_bar(outputunit_loop,"kpoints",iz,s%nkpt)
-!$  end if
-    kp = s%kbz(:,iz)
-
+  do iz = 1,BZ%nkpt
+    kp = BZ%kp(1:3,iz)
+    weight = BZ%w(iz)
     ! Green function on energy E + ieta, and wave vector kp
     call green(e,eta,kp,gf)
 
     ! Density of states
-    do mu=1,nOrb; do i=1,s%nAtoms
-      nu=mu+nOrb
-      gfdiagu(i,mu) = - aimag(gf(mu,mu,i,i))*s%wkbz(iz)
-      gfdiagd(i,mu) = - aimag(gf(nu,nu,i,i))*s%wkbz(iz)
-    end do ; end do
+    do mu=1,nOrb
+      do i=1,s%nAtoms
+         nu = mu + nOrb
+         gfdiagu(i,mu) = - aimag(gf(mu,mu,i,i)) * weight
+         gfdiagd(i,mu) = - aimag(gf(nu,nu,i,i)) * weight
+      end do
+   end do
 
     ldosu = ldosu + gfdiagu
     ldosd = ldosd + gfdiagd

@@ -58,6 +58,7 @@ contains
     use mod_SOC, only: SOCc, socpart
     use mod_mpi_pars
     use mod_system, only: s => sys
+    use mod_BrillouinZone, only: BZ
     use EnergyIntegration, only: strEnergyParts
     use electricfield, only: strElectricField
     implicit none
@@ -90,13 +91,13 @@ contains
 
     do i=1,s%nAtoms ; do j=1,7
       iw = 3000+(i-1)*7+j
-      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
       open (unit=iw, file=varm, status='replace', form='formatted')
       write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
       close(unit=iw)
       if(renorm) then
         iw = iw+1000
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
@@ -112,6 +113,7 @@ contains
     use mod_SOC, only: SOCc, socpart
     use mod_mpi_pars
     use mod_system, only: s => sys
+    use mod_BrillouinZone, only: BZ
     use EnergyIntegration, only: strEnergyParts
     use electricfield, only: strElectricField
     implicit none
@@ -144,13 +146,13 @@ contains
 
     do i=1,s%nAtoms ; do j=1,7
       iw = 3000+(i-1)*7+j
-      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
       open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
       errt = errt + err
       if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
       if(renorm) then
         iw = iw+1000
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/r',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -282,6 +284,7 @@ contains
     use mod_mpi_pars
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
+    use mod_BrillouinZone, only: BZ
     use electricfield, only: strElectricField
     use EnergyIntegration, only: strEnergyParts
     implicit none
@@ -314,13 +317,13 @@ contains
 
     do i=1,s%nAtoms ; do j=1,7
       iw = 30000+(i-1)*7+j
-      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
       open (unit=iw, file=varm, status='replace', form='formatted')
       write(unit=iw, fmt="('#',a,' imag part of ',a,' , real part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
       close(unit=iw)
       if(renorm) then
         iw = iw+1000
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,' imag part of ',a,' , real part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
@@ -338,6 +341,7 @@ contains
     use mod_mpi_pars
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
+    use mod_BrillouinZone, only: BZ
     use electricfield, only: strElectricField
     use EnergyIntegration, only: strEnergyParts
     implicit none
@@ -370,13 +374,13 @@ contains
 
     do i=1,s%nAtoms ; do j=1,7
       iw = 30000+(i-1)*7+j
-      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
       open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
       errt = errt + err
       if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
       if(renorm) then
         iw = iw+1000
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'r',a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)

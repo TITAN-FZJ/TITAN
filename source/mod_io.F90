@@ -67,6 +67,7 @@ contains
                               npts, npt1, renorm, renormnb, skipsc, scfile, bands, band_cnt, &
                               offset, dfttype, suffix, mag_tol, outputfile, U
     use mod_system, only: System, pln_normal, n0sc1, n0sc2
+    use mod_BrillouinZone, only: BZ
     use mod_SOC, only: SOC, SOCc, socpart, socscale, llinearsoc, llineargfsoc
     use mod_magnet, only: lfield, tesla, hwa_i, hwa_f, hwa_npts, hwa_npt1, hwt_i, hwt_f, &
                           hwt_npts, hwt_npt1, hwp_i, hwp_f, hwp_npts, hwp_npt1, hwx, hwy, &
@@ -75,7 +76,6 @@ contains
     use Lattice, only: LatticeMode
     use ElectricField, only: ElectricFieldMode, ElectricFieldVector, EFp, EFt
     use EnergyIntegration, only: parts, parts3, pn1, pn2, pnt, n1gl, n3gl, strEnergyParts
-    use mod_BrillouinZone, only: nkpt_x, nkpt_y, nkpt_z
     implicit none
     character(len=*), intent(in) :: filename
     type(System), intent(inout) :: s
@@ -164,11 +164,11 @@ contains
 
     if(.not. get_parameter("nkpt", i_vector,cnt)) call log_error("get_parameters","'nkpt' missing.")
     if(cnt == 1) then
-      s%nkpt = i_vector(1)
+      BZ%nkpt = i_vector(1)
     else if(cnt == 3) then
-      nkpt_x = i_vector(1)
-      nkpt_y = i_vector(2)
-      nkpt_z = i_vector(3)
+      BZ%nkpt_x = i_vector(1)
+      BZ%nkpt_y = i_vector(2)
+      BZ%nkpt_z = i_vector(3)
     else
       call log_error("get_parameter", "'nkpt' has wrong size (expected 1 or 3)")
     end if
@@ -597,6 +597,7 @@ contains
     use mod_mpi_pars
     use mod_parameters
     use mod_System, only: System, n0sc1, n0sc2
+    use mod_BrillouinZone, only: BZ
     use mod_SOC, only: SOC, socscale
     use mod_magnet
     use EnergyIntegration, only: parts, parts3, n1gl, n3gl
@@ -646,7 +647,7 @@ contains
     else
        write(outputunit_loop,"(1x,'Current renormalization: DEACTIVATED')")
     end if
-    write(outputunit_loop,"(9x,'nkpt = ',i0)") s%nkpt
+    write(outputunit_loop,"(9x,'nkpt = ',i0)") BZ%nkpt
     write(outputunit_loop,"(8x,'parts = ',i0,'x',i0)") parts,n1gl
     write(outputunit_loop,"(7x,'parts3 = ',i0,'x',i0)") parts3,n3gl
     write(outputunit_loop,"(10x,'eta =',es9.2)") eta

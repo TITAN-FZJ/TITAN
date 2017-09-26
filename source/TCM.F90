@@ -4,13 +4,14 @@ contains
 subroutine calculate_gilbert_damping()
   use mod_f90_kind, only: double
   use mod_System, only: s => sys
+  use mod_BrillouinZone, only: BZ
   use mod_parameters, only: outputunit_loop, strSites, eta, Utype, fieldpart, suffix
   use mod_SOC, only: socpart, SOCc
   use ElectricField, only: strElectricField
   use mod_mpi_pars, only: myrank
   implicit none
   complex(double), dimension(s%nAtoms,s%nAtoms,3,3) :: alpha
-  integer :: m,n,i,j
+  integer :: m,n,i
   character(len=500)  :: varm
 
 
@@ -19,7 +20,7 @@ subroutine calculate_gilbert_damping()
   call TCM(alpha, local_SO_torque)
 
   if(myrank == 0) then
-    write(varm,"('./results/',a1,'SOC/',a,'/A/TCM/TCM_SO_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+    write(varm,"('./results/',a1,'SOC/',a,'/A/TCM/TCM_SO_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
     open (unit=634893, file=varm, status='replace', form='formatted')
     write(unit=634893, fmt="('# i , m , Re(A_mx), Im(A_mx), Re(A_my), Im(A_my), Re(A_mz), Im(A_mz) ')")
     do i = 1, s%nAtoms
@@ -33,7 +34,7 @@ subroutine calculate_gilbert_damping()
   call TCM(alpha, local_xc_torque)
 
   if(myrank == 0) then
-    write(varm,"('./results/',a1,'SOC/',a,'/A/TCM/TCM_XC_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+    write(varm,"('./results/',a1,'SOC/',a,'/A/TCM/TCM_XC_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
     open (unit=634893, file=varm, status='replace', form='formatted')
     write(unit=634893, fmt="('# i , m , Re(A_mx), Im(A_mx), Re(A_my), Im(A_my), Re(A_mz), Im(A_mz) ')")
     do i = 1, s%nAtoms
@@ -52,6 +53,8 @@ subroutine TCM(alpha, torque_fct)
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, pi, cOne
   use mod_System, only: s => sys
+  use mod_BrillouinZone, only: BZ
+
   use TightBinding, only: nOrb
   use mod_parameters, only: Ef, eta
   use mod_magnet, only: mabs
@@ -79,13 +82,13 @@ subroutine TCM(alpha, torque_fct)
   integer :: start, end, work, remainder
 
   ! Calculate workload for each MPI process
-  remainder = mod(s%nkpt,numprocs)
+  remainder = mod(BZ%nkpt,numprocs)
   if(myrank < remainder) then
-    work = ceiling(dble(s%nkpt) / dble(numprocs))
+    work = ceiling(dble(BZ%nkpt) / dble(numprocs))
     start = myrank*work + 1
     end = (myrank+1) * work
   else
-    work = floor(dble(s%nkpt) / dble(numprocs))
+    work = floor(dble(BZ%nkpt) / dble(numprocs))
     start = myrank*work + 1 + remainder
     end = (myrank+1) * work + remainder
   end if
@@ -104,7 +107,7 @@ subroutine TCM(alpha, torque_fct)
 
   !$omp parallel default(none) &
   !$omp& private(m,n,i,j,mu,iz,kp,wght,gf,temp1,temp2,temp3, alpha_loc) &
-  !$omp& shared(s,start, end,Ef,eta,torque,alpha)
+  !$omp& shared(s,BZ,start, end,Ef,eta,torque,alpha)
   allocate(gf(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms), &
            temp1(2*nOrb,2*nOrb), temp2(2*nOrb,2*nOrb), temp3(2*nOrb,2*nOrb), &
            alpha_loc(s%nAtoms,s%nAtoms,3,3))
@@ -112,8 +115,8 @@ subroutine TCM(alpha, torque_fct)
   alpha_loc = cZero
   !$omp do schedule(static)
   do iz = start, end
-    kp = s%kbz(:,iz)
-    wght = s%wkbz(iz)
+    kp = BZ%kp(1:3,iz)
+    wght = BZ%w(iz)
     gf = cZero
     call green(Ef, eta, kp, gf)
 
@@ -175,7 +178,7 @@ subroutine local_xc_torque(torque)
   complex(double), dimension(2,2,3) :: sigma
   complex(double), dimension(nOrb,nOrb) :: ident
   real(double), dimension(3,s%nAtoms) :: mag
-  integer :: i,mu,m,n,k
+  integer :: i,m,n,k
 
   ident = cZero
   do i = 5, nOrb

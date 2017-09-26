@@ -6,6 +6,7 @@ subroutine eintshechi(e)
   use EnergyIntegration, only: generate_real_epoints, y, wght, x2, p2, nepoints, pn1
   use mod_susceptibilities, only: chiorb_hf
   use mod_system, only: s => sys
+  use mod_BrillouinZone, only: BZ
   use TightBinding, only: nOrb,nOrb2
   use mod_SOC, only: llineargfsoc
   use mod_mpi_pars
@@ -73,7 +74,7 @@ subroutine eintshechi(e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,iz,ix,ix2,i,j,mu,nu,gamma,xi,kp,weight,gf,gfuu,gfud,gfdu,gfdd,df1,Fint, index1, index2) &
-  !$omp& shared(llineargfsoc,start1,start2,end1,end2,s,e,y,x2,wght,p2,Ef,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf)
+  !$omp& shared(llineargfsoc,start1,start2,end1,end2,s,BZ,e,y,x2,wght,p2,Ef,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf)
   allocate(df1(dim,dim), Fint(dim,dim), &
            gf  (nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
@@ -85,9 +86,9 @@ subroutine eintshechi(e)
 
   !$omp do schedule(static) collapse(2)
   do ix = start1, end1
-    do iz = 1, s%nkpt
-      kp = s%kbz(:,iz)
-      weight = wght(ix)*s%wkbz(iz)
+    do iz = 1, BZ%nkpt
+      kp = BZ%kp(1:3,iz)
+      weight = wght(ix) * BZ%w(iz)
       ! Green function at (k+q,E_F+E+iy)
       if(llineargfsoc) then
         call greenlineargfsoc(Ef+e,y(ix),kp,gf)
@@ -157,9 +158,9 @@ subroutine eintshechi(e)
 
   !$omp do schedule(static) collapse(2)
   do ix2 = start2, end2 ! Third integration (on the real axis)
-    do iz = 1, s%nkpt
-      kp = s%kbz(:,iz)
-      weight = p2(ix2) * s%wkbz(iz)
+    do iz = 1, BZ%nkpt
+      kp = BZ%kp(1:3,iz)
+      weight = p2(ix2) * BZ%w(iz)
       ! Green function at (k+q,E'+E+i.eta)
       if(llineargfsoc) then
         call greenlineargfsoc(x2(ix2)+e,eta,kp,gf)
@@ -255,6 +256,7 @@ subroutine eintshechilinearsoc(e)
   use mod_susceptibilities, only: chiorb_hf,chiorb_hflsoc
   use mod_mpi_pars
   use mod_system, only: s => sys
+  use mod_BrillouinZone, only: BZ
   use TightBinding, only: nOrb,nOrb2
   use mod_SOC, only: llineargfsoc
   !$  use omp_lib
@@ -266,6 +268,7 @@ subroutine eintshechilinearsoc(e)
   integer :: ix,ix2, iz
   integer :: i,j,mu,nu,gamma,xi
   real(double) :: kp(3)
+  real(double) :: weight
   complex(double), dimension(:,:,:,:), allocatable :: gf,gvg
   complex(double), dimension(:,:,:,:,:), allocatable :: gfuu,gfud,gfdu,gfdd
   complex(double), dimension(:,:,:,:,:), allocatable :: gvguu,gvgud,gvgdu,gvgdd
@@ -320,8 +323,8 @@ subroutine eintshechilinearsoc(e)
   chiorb_hflsoc = cZero
 
   !$omp parallel default(none) &
-  !$omp& private(AllocateStatus,ix,ix2,iz,i,j,mu,nu,gamma,xi,kp,Fint,Fintlsoc,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,df1,df1lsoc) &
-  !$omp& shared(llineargfsoc,start1,end1,start2,end2,s,e,y,wght,x2,p2,Ef,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf,chiorb_hflsoc)
+  !$omp& private(AllocateStatus,ix,ix2,iz,i,j,mu,nu,gamma,xi,kp,weight,Fint,Fintlsoc,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,df1,df1lsoc) &
+  !$omp& shared(llineargfsoc,start1,end1,start2,end2,s,BZ,e,y,wght,x2,p2,Ef,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf,chiorb_hflsoc)
   allocate(df1(dim,dim), Fint(dim,dim), &
            gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
@@ -344,9 +347,9 @@ subroutine eintshechilinearsoc(e)
   ! Starting to calculate energy integral
   !$omp do schedule(static) collapse(2)
   do ix = start1, end1
-    do iz=1,s%nkpt
-      kp = s%kbz(:,iz)
-
+    do iz=1,BZ%nkpt
+      kp = BZ%kp(1:3,iz)
+      weight = BZ%w(iz) * wght(ix)
       ! Green function at (k+q,E_F+E+iy)
       call greenlinearsoc(Ef+e,y(ix),kp,gf,gvg)
       gfuu(:,:,:,:,1) = gf(     1:  nOrb,      1: nOrb, :,:)
@@ -413,8 +416,8 @@ subroutine eintshechilinearsoc(e)
         df1lsoc(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = (gvguu(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gvgdd(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1))  +  gfuu(nu,gamma,i,j,1)*gvgdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gvguu(gamma,nu,j,i,1)))
       end do ; end do ; end do ; end do ; end do ; end do
 
-      Fint = Fint + df1 * s%wkbz(iz) * wght(ix)
-      Fintlsoc = Fintlsoc + df1lsoc * s%wkbz(iz) * wght(ix)
+      Fint = Fint + df1 * weight
+      Fintlsoc = Fintlsoc + df1lsoc * weight
 
     end do
   end do
@@ -422,8 +425,9 @@ subroutine eintshechilinearsoc(e)
 
   !$omp do schedule(static) collapse(2)
   do ix2 = start2, end2
-    do iz=1,s%nkpt
-      kp = s%kbz(:,iz)
+    do iz = 1, BZ%nkpt
+      kp = BZ%kp(1:3,iz)
+      weight = BZ%w(iz) * p2(ix2)
 
       ! Green function at (k+q,E_F+E+iy)
       call greenlinearsoc(x2(ix2)+e,eta,kp,gf,gvg)
@@ -491,8 +495,8 @@ subroutine eintshechilinearsoc(e)
         df1lsoc(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,j,gamma,xi)) = -cI*((gvguu(nu,gamma,i,j,1)-conjg(gvguu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))  +  (gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gvgdd(mu,xi,i,j,2)))
       end do ; end do ; end do ; end do ; end do ; end do
 
-      Fint = Fint + df1 * s%wkbz(iz) * p2(ix2)
-      Fintlsoc = Fintlsoc + df1lsoc * s%wkbz(iz) * p2(ix2)
+      Fint = Fint + df1 * weight
+      Fintlsoc = Fintlsoc + df1lsoc * weight
     end do
   end do
   !$omp end do nowait

@@ -140,6 +140,7 @@ contains
     use mod_SOC, only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: pn1, y, wght
     use mod_system, only: s => sys
+    use mod_BrillouinZone, only: BZ
     use TightBinding, only: nOrb,nOrb2
     use mod_mpi_pars
     !$  use omp_lib
@@ -187,7 +188,7 @@ contains
 
     !$omp parallel default(none) &
     !$omp& private(ix,iz,kp,i,mu,mup,gf,gf_loc) &
-    !$omp& shared(llineargfsoc,llinearsoc,start,end,wght,s,Ef,y,gdiaguur,gdiagddr,gdiagud,gdiagdu)
+    !$omp& shared(llineargfsoc,llinearsoc,start,end,wght,s,BZ,Ef,y,gdiaguur,gdiagddr,gdiagud,gdiagdu)
     allocate(gf    (nOrb2,nOrb2,s%nAtoms,s%nAtoms))
     allocate(gf_loc(nOrb2,nOrb2,s%nAtoms,s%nAtoms))
     gf = cZero
@@ -196,20 +197,20 @@ contains
     if((llineargfsoc).or.(llinearsoc)) then
       !$omp do schedule(static) collapse(2)
       do ix = start, end
-        do iz = 1, s%nkpt
-          kp = s%kbz(:,iz)
+        do iz = 1, BZ%nkpt
+          kp = BZ%kp(1:3,iz)
           call greenlineargfsoc(Ef,y(ix),kp,gf_loc)
-          gf = gf + gf_loc*s%wkbz(iz)*wght(ix)
+          gf = gf + gf_loc*BZ%w(iz)*wght(ix)
         end do
       end do
       !$omp end do nowait
     else
       !$omp do schedule(static) collapse(2)
       do ix = start, end
-        do iz = 1, s%nkpt
-          kp = s%kbz(:,iz)
+        do iz = 1, BZ%nkpt
+          kp = BZ%kp(1:3,iz)
           call green(Ef,y(ix),kp,gf_loc)
-          gf = gf + gf_loc*s%wkbz(iz)*wght(ix)
+          gf = gf + gf_loc*BZ%w(iz)*wght(ix)
         end do
       end do
       !$omp end do nowait
@@ -261,6 +262,7 @@ contains
     use mod_SOC, only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: pn1, y, wght
     use mod_system, only: s => sys
+    use mod_BrillouinZone, only: BZ
     use TightBinding, only: nOrb,nOrb2
     use mod_mpi_pars
     !$  use omp_lib
@@ -326,7 +328,7 @@ contains
 
     !$omp parallel default(none) &
     !$omp& private(AllocateStatus,ix,iz,i,j,i0,j0,mu,sigma,sigmap,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp,gdHdxg,gvgdHdxgvg) &
-    !$omp& shared(llineargfsoc,llinearsoc,start,end,s,Ef,y,wght,mhalfU,pauli_components1,pauli_components2,jacobian)
+    !$omp& shared(llineargfsoc,llinearsoc,start,end,s,BZ,Ef,y,wght,mhalfU,pauli_components1,pauli_components2,jacobian)
     allocate( gdHdxg(nOrb2,nOrb2,4,4,s%nAtoms,s%nAtoms), gvgdHdxgvg(nOrb2,nOrb2,4,4,s%nAtoms,s%nAtoms) , STAT = AllocateStatus  )
     if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: gdHdxg,gvgdHdxgvg")
     gdHdxg = cZero
@@ -334,9 +336,9 @@ contains
 
     !$omp do schedule(static) collapse(2)
     do ix = start, end
-      do iz=1,s%nkpt
-        kp = s%kbz(:,iz)
-        weight = cmplx(s%wkbz(iz), 0.d0) * wght(ix)
+      do iz=1,BZ%nkpt
+        kp = BZ%kp(1:3,iz)
+        weight = cmplx(BZ%w(iz), 0.d0) * wght(ix)
 
         ! Green function on energy Ef + iy, and wave vector kp
         if((llineargfsoc).or.(llinearsoc)) then
@@ -446,6 +448,7 @@ contains
     use mod_f90_kind, only: double
     use mod_constants, only: cZero,pi
     use mod_System, only: s => sys
+    use mod_BrillouinZone, only: BZ
     use TightBinding, only: nOrb,nOrb2
     use mod_parameters, only: outputunit_loop, Ef
     use mod_magnet
@@ -461,7 +464,7 @@ contains
     complex(double), dimension(:,:,:,:), allocatable :: gf
     complex(double), dimension(:,:,:), allocatable :: gupgd
     complex(double), dimension(:,:,:), allocatable :: gupgdint
-
+    real(double) :: weight
     !--------------------- begin MPI vars --------------------
     integer :: ncount
     integer :: start, end, work, remainder
@@ -498,8 +501,8 @@ contains
     gupgdint  = cZero
 
     !$omp parallel default(none) &
-    !$omp& private(AllocateStatus,ix,iz,i,mu,nu,mup,nup,kp,gf,gupgd) &
-    !$omp& shared(start,end,s,Ef,y,wght,gupgdint)
+    !$omp& private(AllocateStatus,ix,iz,i,mu,nu,mup,nup,kp,weight,gf,gupgd) &
+    !$omp& shared(start,end,s,BZ,Ef,y,wght,gupgdint)
 
     allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
              gupgd(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
@@ -507,9 +510,9 @@ contains
 
     !$omp do schedule(static) collapse(2)
     do ix = start, end
-      do iz = 1, s%nkpt
-        kp = s%kbz(:,iz)
-
+      do iz = 1, BZ%nkpt
+        kp = BZ%kp(1:3,iz)
+        weight = BZ%w(iz) * wght(ix)
         !Green function on energy Ef + iy, and wave vector kp
         call green(Ef,y(ix),kp,gf)
 
@@ -518,7 +521,7 @@ contains
             mup = mu+nOrb
             do nu=1,nOrb
               nup = nu+nOrb
-              gupgd(mu,nu,i) = gupgd(mu,nu,i) + (gf(mu,nu,i,i) + gf(mup,nup,i,i)) * s%wkbz(iz) * wght(ix)
+              gupgd(mu,nu,i) = gupgd(mu,nu,i) + (gf(mu,nu,i,i) + gf(mup,nup,i,i)) * weight
             end do
           end do
         end do
@@ -777,6 +780,7 @@ contains
     use mod_SOC, only: SOCc, socpart
     use mod_mpi_pars
     use mod_system, only: s => sys
+    use mod_BrillouinZone, only: BZ
     implicit none
     character(len=300)  :: file = ""
     integer,intent(out) :: err
@@ -796,7 +800,7 @@ contains
     lsuccess = .false.
     !   Reading previous results (mx, my, mz and eps1) from files (if available)
     if(trim(scfile)=="") then ! If a filename is not given in inputcard (or don't exist), use the default one
-      write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(strSites),dfttype,parts,Utype,trim(fieldpart),s%nkpt,eta,trim(socpart)
+      write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(strSites),dfttype,parts,Utype,trim(fieldpart),BZ%nkpt,eta,trim(socpart)
       open(unit=99,file=file,status="old",iostat=err)
       if((err==0).and.(myrank_row_hw==0)) then
         write(outputunit_loop,"('[read_sc_results] Self-consistency file already exists. Reading it now...')")
@@ -812,7 +816,7 @@ contains
           write(outputunit_loop,"(a)") trim(scfile)
         end if
       else ! 2nd+ iteration, cheking if default file exists
-        write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(strSites),dfttype,parts,Utype,trim(fieldpart),s%nkpt,eta,trim(socpart)
+        write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(strSites),dfttype,parts,Utype,trim(fieldpart),BZ%nkpt,eta,trim(socpart)
         open(unit=99,file=file,status="old",iostat=err)
         if(err==0) then ! Reading file for the same parameters
           if(myrank_row_hw==0) then
@@ -857,7 +861,7 @@ contains
     else
       ! If file does not exist, try to read for parts-1
       close(99)
-      write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(strSites),dfttype,parts-1,Utype,trim(fieldpart),s%nkpt,eta,trim(socpart)
+      write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(strSites),dfttype,parts-1,Utype,trim(fieldpart),BZ%nkpt,eta,trim(socpart)
       open(unit=99,file=file,status="old",iostat=err)
       if(err==0) then
         if(myrank_row_hw==0) then
@@ -892,6 +896,7 @@ contains
     use mod_magnet, only: eps1, mx, my, mz
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
+    use mod_BrillouinZone, only: BZ
     use mod_mpi_pars
     implicit none
     integer :: i
@@ -899,7 +904,7 @@ contains
     if(myrank_row_hw == 0) then
       ! Writing new results (mx, my, mz and eps1) and mz to file
       write(outputunit_loop,"('[write_sc_results] Writing new eps1, mx, my and mz to file...')")
-      write(scfile,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc, trim(strSites),dfttype,parts,Utype,trim(fieldpart),s%nkpt,eta,trim(socpart)
+      write(scfile,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc, trim(strSites),dfttype,parts,Utype,trim(fieldpart),BZ%nkpt,eta,trim(socpart)
       open (unit=99,status='replace',file=scfile)
       do i=1,s%nAtoms
         write(99,"(es21.11,2x,'! eps1')") eps1(i)

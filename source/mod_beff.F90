@@ -5,6 +5,8 @@ module mod_beff
   complex(double),dimension(:,:), allocatable :: chiinv
   complex(double),dimension(:), allocatable :: Beff,Beff_cart
 
+  character(len=1), dimension(4), parameter, private :: direction = ["0", "x", "y", "z"]
+
 contains
 
   subroutine allocate_beff()
@@ -40,6 +42,7 @@ contains
     use mod_mpi_pars, only: abortProgram
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
+    use mod_BrillouinZone, only: BZ
     use electricfield, only: strElectricField
     use EnergyIntegration, only: strEnergyParts
     implicit none
@@ -47,22 +50,16 @@ contains
     character(len=500)  :: varm
     character(len=7)    :: folder
     character(len=4)    :: filename
-    character(len=1)    :: direction(4)
     integer :: i,sigma,iw
 
     folder = "Beff"
     if(lhfresponses) folder = trim(folder) // "_HF"
     filename = "Beff"
 
-    direction(1) = "0"
-    direction(2) = "x"
-    direction(3) = "y"
-    direction(4) = "z"
-
     do sigma = 1, 4
       do i = 1, s%nAtoms
         iw = 8000+(sigma-1)*s%nAtoms+i
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename),direction(sigma),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename),direction(sigma),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#     energy    , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma)
         close(unit=iw)
@@ -78,6 +75,7 @@ contains
     use mod_mpi_pars, only: abortProgram
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
+    use mod_BrillouinZone, only: BZ
     use electricfield, only: strElectricField
     use EnergyIntegration, only: strEnergyParts
     implicit none
@@ -85,22 +83,16 @@ contains
     character(len=500)  :: varm
     character(len=7)    :: folder
     character(len=4)    :: filename
-    character(len=1)    :: direction(4)
     integer :: i,sigma,iw,err,errt=0
 
     folder = "Beff"
     if(lhfresponses) folder = trim(folder) // "_HF"
     filename = "Beff"
 
-    direction(1) = "0"
-    direction(2) = "x"
-    direction(3) = "y"
-    direction(4) = "z"
-
     do sigma=1,4
       do i=1,s%nAtoms
         iw = 8000+(sigma-1)*s%nAtoms+i
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename),direction(sigma),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename),direction(sigma),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -174,6 +166,7 @@ contains
     use mod_mpi_pars, only: abortProgram
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
+    use mod_BrillouinZone, only: BZ
     use electricfield, only: strElectricField
     use EnergyIntegration, only: strEnergyParts
     implicit none
@@ -181,22 +174,16 @@ contains
     character(len=500)  :: varm
     character(len=7)    :: folder
     character(len=4)    :: filename
-    character(len=1)    :: direction(4)
     integer :: i,sigma,iw, count
 
     folder = "Beff"
     if(lhfresponses) folder = trim(folder) // "_HF"
     filename = "Beff"
 
-    direction(1) = "0"
-    direction(2) = "x"
-    direction(3) = "y"
-    direction(4) = "z"
-
     do sigma=1,4
       do i=1,s%nAtoms
       iw = 80000+(sigma-1)*s%nAtoms+i
-      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
       open (unit=iw, file=varm, status='replace', form='formatted')
       write(unit=iw, fmt="('#',a,' imaginary part of ',a,a,' , real part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma)
       close(unit=iw)
@@ -214,6 +201,7 @@ contains
     use mod_mpi_pars, only: abortProgram
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
+    use mod_BrillouinZone, only: BZ
     use electricfield, only: strElectricField
     use EnergyIntegration, only: strEnergyParts
     implicit none
@@ -221,22 +209,16 @@ contains
     character(len=500)  :: varm
     character(len=7)    :: folder
     character(len=4)    :: filename
-    character(len=1)    :: direction(4)
     integer :: i,sigma,iw,err,errt=0, count
 
     folder = "Beff"
     if(lhfresponses) folder = trim(folder) // "_HF"
     filename = "Beff"
 
-    direction(1) = "0"
-    direction(2) = "x"
-    direction(3) = "y"
-    direction(4) = "z"
-
     do sigma=1,4
       do i=1,s%nAtoms
         iw = 80000+(sigma-1)*s%nAtoms+i
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)

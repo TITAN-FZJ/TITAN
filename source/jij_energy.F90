@@ -5,10 +5,9 @@ subroutine jij_energy(Jij)
   use mod_parameters, only: mmlayermag, U, q, mmlayermag, outputunit, nmaglayers, Ef, outputunit
   use EnergyIntegration, only: pn1, y, wght
   use mod_mpi_pars
-  use mod_progress
-
   use mod_magnet, only: mx,my,mz,mabs
   use mod_system, only: s => sys
+  use mod_BrillouinZone, only: BZ
   use TightBinding, only: nOrb,nOrb2
 
 
@@ -27,6 +26,7 @@ subroutine jij_energy(Jij)
   complex(double), dimension(nmaglayers,nOrb2,nOrb2) :: paulievec
   complex(double), dimension(nOrb2,nOrb2) :: gij, gji, temp1, temp2, paulia, paulib
   complex(double), dimension(nOrb2,nOrb2,s%nAtoms,s%nAtoms) :: gf,gfq
+  complex(double) :: weight
   !--------------------- begin MPI vars --------------------
   integer :: start, end, work, remainder
   integer :: ncount
@@ -83,16 +83,16 @@ subroutine jij_energy(Jij)
   Jij = 0.d0
 
   !$omp parallel default(none) &
-  !$omp& private(ix,iz,i,j,mu,nu,alpha,kp,kminusq,gf,gfq,gij,gji,paulia,paulib,temp1,temp2,Jijkan,Jijk,Jijint) &
-  !$omp& shared(s,Ef,y,wght,q,start,end,dbxcdm,d2bxcdm2,mz,nmaglayers,mmlayermag,Jij)
+  !$omp& private(ix,iz,i,j,mu,nu,alpha,kp,weight,kminusq,gf,gfq,gij,gji,paulia,paulib,temp1,temp2,Jijkan,Jijk,Jijint) &
+  !$omp& shared(s,BZ,Ef,y,wght,q,start,end,dbxcdm,d2bxcdm2,mz,nmaglayers,mmlayermag,Jij)
 
   Jijint = 0.d0
 
   !$omp do schedule(static) collapse(2)
   do ix = start, end
-    do iz = 1, s%nkpt
-      kp = s%kbz(:,iz)
-
+    do iz = 1, BZ%nkpt
+      kp = BZ%kp(1:3,iz)
+      weight = BZ%w(iz) * wght(ix)
       ! Green function on energy Ef + iy, and wave vector kp
       call green(Ef,y(ix),kp,gf)
 
@@ -138,7 +138,7 @@ subroutine jij_energy(Jij)
         end do
       end do
 
-      Jijint = Jijint + Jijk * s%wkbz(iz) * wght(ix)
+      Jijint = Jijint + Jijk * weight
     end do
   end do
   !$omp end do nowait

@@ -65,9 +65,9 @@ program TITAN
   if( lpositions .and. (myrank==0)) call writeLattice(sys)
 
   !-------------------- Generating k points in 2D BZ ---------------------
-  call setup_BrillouinZone(sys)
+  call BZ % setup(sys%lbulk, sys%a1, sys%a2, sys%a3)
   ! Writing BZ points and weights into file
-  if((lkpoints).and.(myrank==0)) call output_kpoints(sys)
+  if((lkpoints).and.(myrank==0)) call BZ % print()
 
   !---- Generating integration points of the complex energy integral -----
   call allocate_energy_points()

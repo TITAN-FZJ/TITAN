@@ -5,6 +5,7 @@ subroutine ldos_and_coupling()
   use mod_SOC, only: SOCc, socpart
   use mod_mpi_pars, only: mpitag
   use mod_system, only: s => sys
+  use mod_BrillouinZone, only: BZ
   use TightBinding, only: nOrb
   implicit none
   character(len=400) :: varm
@@ -24,10 +25,10 @@ subroutine ldos_and_coupling()
   ! LDOS
   do i=1,s%nAtoms
     iw = 1000+(mpitag-1)*s%nAtoms*2 + (i-1)*2 + 1
-    write(varm,"('./results/',a1,'SOC/',a,'/LDOS/ldosu_layer',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),i,s%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+    write(varm,"('./results/',a1,'SOC/',a,'/LDOS/ldosu_layer',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),i,BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
     open (unit=iw, file=varm,status='replace')
     iw = iw+1
-    write(varm,"('./results/',a1,'SOC/',a,'/LDOS/ldosd_layer',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),i,s%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+    write(varm,"('./results/',a1,'SOC/',a,'/LDOS/ldosd_layer',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),i,BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
     open (unit=iw, file=varm,status='replace')
   end do
   ! Exchange interactions
@@ -35,7 +36,7 @@ subroutine ldos_and_coupling()
     iw = 2000+(mpitag-1)*nmaglayers*nmaglayers*2+(j-1)*nmaglayers*2+(i-1)*2
     if(i==j) then
       iw = iw + 1
-      write(varm,"('./results/',a1,'SOC/',a,'/Jij/Jii_',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),mmlayermag(i)-1,s%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+      write(varm,"('./results/',a1,'SOC/',a,'/Jij/Jii_',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),mmlayermag(i)-1,BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
       open (unit=iw, file=varm,status='replace')
       write(unit=iw, fmt="('#   energy      ,  Jii_xx           ,   Jii_yy  ')")
       iw = iw + 1
@@ -44,11 +45,11 @@ subroutine ldos_and_coupling()
       ! where J_ii is the one calculated here
     else
       iw = iw + 1
-      write(varm,"('./results/',a1,'SOC/',a,'/Jij/J_',i0,'_',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),mmlayermag(i)-1,mmlayermag(j)-1,s%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+      write(varm,"('./results/',a1,'SOC/',a,'/Jij/J_',i0,'_',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),mmlayermag(i)-1,mmlayermag(j)-1,BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
       open (unit=iw, file=varm,status='replace')
       write(unit=iw, fmt="('#   energy      ,   isotropic Jij    ,   anisotropic Jij_xx    ,   anisotropic Jij_yy     ')")
       iw = iw + 1
-      write(varm,"('./results/',a1,'SOC/',a,'/Jij/Dz_',i0,'_',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),mmlayermag(i)-1,mmlayermag(j)-1,s%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+      write(varm,"('./results/',a1,'SOC/',a,'/Jij/Dz_',i0,'_',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),mmlayermag(i)-1,mmlayermag(j)-1,BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
       open (unit=iw, file=varm,status='replace')
       write(unit=iw, fmt="('#   energy      , Dz = (Jxy - Jyx)/2       ')")
     end if

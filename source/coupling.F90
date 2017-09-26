@@ -6,6 +6,7 @@ subroutine coupling()
   use mod_magnet, only: mx, my, mz
   use mod_SOC, only: SOCc, socpart
   use mod_system, only: s => sys
+  use mod_BrillouinZone, only: BZ
   use mod_mpi_pars,only: myrank
   implicit none
   character(len=400) :: varm
@@ -25,17 +26,17 @@ subroutine coupling()
         iw = 199+(j-1)*nmaglayers*2+(i-1)*2
         if(i==j) then
           iw = iw + 1
-          write(varm,"('./results/',a1,'SOC/Jij/Jii_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,parts,s%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+          write(varm,"('./results/',a1,'SOC/Jij/Jii_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,parts,BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
           open (unit=iw, file=varm,status='replace')
           write(unit=iw, fmt="('#  Npl ,      Jii_xx       ,      Jii_yy       ,      Jii_zz       ')")
           iw = iw + 1
         else
           iw = iw + 1
-          write(varm,"('./results/',a1,'SOC/Jij/J_',i0,'_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,j,parts,s%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+          write(varm,"('./results/',a1,'SOC/Jij/J_',i0,'_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,j,parts,BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
           open (unit=iw, file=varm,status='replace')
           write(unit=iw, fmt="('#  Npl ,   isotropic Jij    ,   anisotropic Jij_xx    ,   anisotropic Jij_yy    ,   anisotropic Jij_zz    ')")
           iw = iw + 1
-          write(varm,"('./results/',a1,'SOC/Jij/Dz_',i0,'_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,j,parts,s%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+          write(varm,"('./results/',a1,'SOC/Jij/Dz_',i0,'_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,j,parts,BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
           open (unit=iw, file=varm,status='replace')
           write(unit=iw, fmt="('#  Npl , Dz = (Jxy - Jyx)/2       ')")
         end if

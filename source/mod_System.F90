@@ -22,7 +22,6 @@ module mod_system
   type :: System
     character(len=200) :: Name = ""
     real(double), dimension(3) :: a1, a2, a3
-    real(double), dimension(3) :: b1, b2, b3
     real(double) :: a0
     logical :: lbulk = .false.
 
@@ -31,12 +30,11 @@ module mod_system
     integer :: nNeighbors
     type(NeighborAtom), dimension(:), allocatable :: Neighbors
     integer :: nStages = 0
-    real(double), dimension(:,:), allocatable :: Distances ! size (nStages, nAtoms)
+    real(double), dimension(:,:), allocatable :: Distances
+    !! List of all distances in nnstages range; size (nStages, nAtoms)
     integer :: nTypes = 0
+    !! Number of different atom types
     type(AtomType), dimension(:), allocatable :: Types
-    integer :: nkpt = 0
-    real(double), dimension(:,:), allocatable :: kbz ! size (3,nkpt)
-    real(double), dimension(:), allocatable :: wkbz
   end type System
 
   type(System) :: sys
