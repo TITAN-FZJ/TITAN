@@ -60,7 +60,7 @@ contains
 
    subroutine create_disturbance_files()
    !! This subroutine creates all the files needed for the disturbances
-       use mod_parameters, only: fieldpart, lhfresponses, strSites, eta, suffix, Utype, renorm, renormnb
+       use mod_parameters, only: fieldpart, lhfresponses, strSites, eta, suffix, Utype, renorm, renormnb, hfr
        use mod_SOC, only: SOCc, socpart
        use mod_mpi_pars
        use mod_system, only: s => sys
@@ -70,14 +70,7 @@ contains
        implicit none
 
        character(len=500)  :: varm
-       character(len=3)    :: hfr = ""
        integer :: i,j,iw
-
-       if(lhfresponses) then
-          hfr = "_HF"
-       else
-          hfr = ""
-       end if
 
        do j=1,7
          do i=1,s%nAtoms
@@ -107,7 +100,7 @@ contains
 
    subroutine open_disturbance_files()
    !! This subroutine opens all the files needed for the disturbances
-      use mod_parameters, only: fieldpart, lhfresponses, strSites, eta, suffix, Utype, renorm, renormnb, missing_files
+      use mod_parameters, only: fieldpart, lhfresponses, strSites, eta, suffix, Utype, renorm, renormnb, missing_files, hfr
       use mod_SOC, only: SOCc, socpart
       use mod_mpi_pars
       use mod_system, only: s => sys
@@ -117,14 +110,7 @@ contains
       implicit none
 
       character(len=500)  :: varm
-      character(len=3)    :: hfr = ""
       integer :: i,j,iw,err,errt=0
-
-      if(lhfresponses) then
-         hfr = "_HF"
-      else
-         hfr = ""
-      end if
 
       do j=1,7
          do i=1,s%nAtoms
@@ -291,7 +277,7 @@ contains
 
    subroutine create_dc_disturbance_files
    !! This subroutine creates all the files needed for the dc-limit disturbances
-      use mod_parameters, only: dcfieldpart, lhfresponses, count, strSites,eta, Utype, suffix, renorm, renormnb
+      use mod_parameters, only: dcfieldpart, lhfresponses, count, strSites,eta, Utype, suffix, renorm, renormnb, hfr
       use mod_magnet, only: dcprefix, dcfield_dependence, dcfield, dc_header
       use mod_mpi_pars
       use mod_SOC, only: SOCc, socpart
@@ -302,14 +288,7 @@ contains
       implicit none
 
       character(len=500)  :: varm
-      character(len=3)    :: hfr = ""
       integer :: i,j,iw
-
-      if(lhfresponses) then
-         hfr = "_HF"
-      else
-         hfr = ""
-      end if
 
       do i=1,s%nAtoms
          do j=1,7
@@ -340,7 +319,7 @@ contains
 
   subroutine open_dc_disturbance_files
   ! This subroutine opens all the files needed for the dc-limit disturbances
-    use mod_parameters, only: dcfieldpart, lhfresponses, count, strSites,eta, Utype, suffix, renorm, renormnb, missing_files
+    use mod_parameters, only: dcfieldpart, lhfresponses, count, strSites,eta, Utype, suffix, renorm, renormnb, missing_files, hfr
     use mod_magnet, only: dcprefix, dcfield_dependence, dcfield
     use mod_mpi_pars
     use mod_SOC, only: SOCc, socpart
@@ -351,14 +330,7 @@ contains
     implicit none
 
     character(len=500)  :: varm
-    character(len=3)    :: hfr = ""
     integer :: i,j,iw,err,errt=0
-
-    if(lhfresponses) then
-      hfr = "_HF"
-    else
-      hfr = ""
-    end if
 
     do j=1,7
       do i=1,s%nAtoms

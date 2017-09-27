@@ -81,6 +81,8 @@ module mod_parameters
   integer :: longitudinal_neighbors
   integer :: transverse_neighbors
 
+  character(len=3)    :: hfr = ""
+  !! String for HF Responses
   !========================================================================================!
   ! n0sc1 - first neighbor to calculate the in-plane spin and charge current
   ! n0sc2 - last neighbor to calculate the in-plane spin and charge current

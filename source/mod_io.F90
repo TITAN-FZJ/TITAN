@@ -65,7 +65,7 @@ contains
                               lrotatemag, magaxis, magaxisvec, latticeName, itype, ry2ev, &
                               ltesla, eta, dmax, emin, emax, deltae, skip_steps, &
                               npts, npt1, renorm, renormnb, skipsc, scfile, bands, band_cnt, &
-                              offset, dfttype, suffix, mag_tol, outputfile, U
+                              offset, dfttype, suffix, mag_tol, outputfile, U, hfr
     use mod_system, only: System, pln_normal, n0sc1, n0sc2
     use mod_BrillouinZone, only: BZ
     use mod_SOC, only: SOC, SOCc, socpart, socscale, llinearsoc, llineargfsoc
@@ -575,6 +575,13 @@ contains
 
     ! Turning off renormalization for non-current calculations
     if(itype/=8) renorm = .false.
+
+    ! Set string for HF Responses
+    if(lhfresponses) then
+      hfr = "_HF"
+    else
+      hfr = ""
+    end if
 
     ! Setting up external field variables and loops
     !call prepare_field() XXX Moved to main, renamed to setMagneticLoopPoints
