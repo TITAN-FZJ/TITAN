@@ -15,8 +15,8 @@
 !------------------------------------------------------------------------------------!
 
 module mod_polyBasis
-use mod_f90_kind, only: double
-implicit none
+   use mod_f90_kind, only: double
+   implicit none
 
 contains
 
