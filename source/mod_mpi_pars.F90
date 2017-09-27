@@ -49,6 +49,7 @@ contains
     use mod_parameters, only: outputunit
     implicit none
     character(len=*), intent(in) :: str
+    !! Abort Message
 
     write(outputunit,"(a)") str
     close(outputunit)
@@ -59,14 +60,28 @@ contains
 
 
   subroutine setup_MPI_grid(itype, pn1, npt1, pnt, total_hw_npt1, npts, deltae, emin, emax)
+    !! Chooses how to setup the MPI Grids depending on the calculation to be performed and the amount of available nodes
     use mod_f90_kind, only: double
     implicit none
-    integer, intent(in) :: itype, pn1, pnt, total_hw_npt1
+    integer, intent(in) :: itype
+    !! Type of calculation
+    integer, intent(in) :: pn1
+    !! Energy integration points along the imaginary axis (eta -> infinity)
+    integer, intent(in) :: pnt
+    !! Total number of energy integration points along imaginary and real axis (eta -> infinity + Ef-e -> Ef)
+    integer, intent(in) :: total_hw_npt1
+    !! Number of magnetic field points
     real(double), intent(in) :: emin, emax
-    integer, intent(inout) :: npts, npt1
+    !! Range of frequency points
     real(double), intent(inout) :: deltae
+    !! Delta inbetween frequency points
+    integer, intent(inout) :: npts
+    !! Number of frequency points
+    integer, intent(inout) :: npt1
+    !! Number of frequency points + 1
     integer :: ierr
-    if((itype==1).or.(itype==6)) then ! Create column for field loop (no energy integration)
+
+    if((itype==1).or.(itype==6) .or. (itype==10)) then ! Create column for field loop (only energy integration along imaginary axis)
       call build_cartesian_grid_field(pn1, total_hw_npt1, npt1)
     end if
     if( ((itype>=3).and.(itype<=5)) .or. itype==0) then ! Create column for field loop (no energy integration)
@@ -83,6 +98,7 @@ contains
       myrank_col = myrank_col_hw
       myrank_row = myrank_row_hw
     end if
+
   end subroutine setup_MPI_grid
 
   ! Bidimensional array should look like:
@@ -98,22 +114,30 @@ contains
     use mod_parameters, only: outputunit
     implicit none
     integer, intent(in) :: total_hw_npt1
+    !! Number of magnetic field points
     integer, intent(in) :: pnt
     !! Total number of points for Energy Integration (i.e. real + imaginary axis)
     real(double), intent(in) :: emin, emax
-    integer, intent(inout) :: npts, npt1
+    !! Frequency boundaries
+    integer, intent(inout) :: npts
+    !! Total number of frequency points
+    integer, intent(inout) :: npt1
+    !! Total number of frequency points + 1
     real(double), intent(inout) :: deltae
+    !! Delta between two frequency points
+
     logical :: lreorder,lperiodic(2),lrow(2),lcol(2)
     integer :: MPIdims(2)
 
 
     MPIpts  = ceiling(dble(numprocs)/dble(pnt)) ! Number of rows to be used
     MPIdims = [MPIpts,pnt]
-    if(numprocs<=pnt) then  ! If number of processes is less than necessary for 1 energy integral
-      MPIdims  = [MPIpts,numprocs]  ! Create only one array of processes, i.e., MPIpts = 1
-      MPIsteps = npt1
-    else
-      if(mod(numprocs,pnt)/=0) then
+
+    if(numprocs <= pnt) then  ! If number of processes is less than necessary for 1 energy integral
+      MPIdims  = [MPIpts,numprocs]  ! Create only one array of processes, i.e., MPIpts = 1 (one row with numprocs columns)
+      MPIsteps = npt1 ! perform npt1 iterations
+    else ! If number of processes exceeds the number necessary for a single energy integral
+      if(mod(numprocs,pnt)/=0) then ! If number of processes is not divisible by the number of points per integral -> abort
         if(myrank==0) then
           write(outputunit,"('[build_cartesian_grid] ************************************** ERROR: **************************************')")
           write(outputunit,"('[build_cartesian_grid]      Number of processes not commensurable with total energy integral points!')")
@@ -125,9 +149,10 @@ contains
         call MPI_Finalize(ierr)
         stop
       end if
+
       MPIsteps = 1
       if(total_hw_npt1==1) then ! If there's no loop on field, complete number of points
-        if(npt1*pnt<numprocs) then ! If the number of processors is larger (but commensurable) than complete calculation
+        if(numprocs > npt1*pnt) then ! If the number of processors is larger (but commensurable) than complete calculation (add points to calculation)
           if(myrank==0) then
             write(outputunit,"('[build_cartesian_grid] ************************************* WARNING: *************************************')")
             write(outputunit,"('[build_cartesian_grid]              Number of processes exceeds the total needed! ')")
@@ -135,9 +160,9 @@ contains
             write(outputunit,"('[build_cartesian_grid] ************************************************************************************')")
           end if
           npt1 = MPIpts
-        else if(npt1*pnt>numprocs) then ! If the number of processors is smaller than complete calculation, check commensurability
+        else if(numprocs < npt1*pnt) then ! If the number of processors is smaller than complete calculation, check commensurability
           MPIsteps = ceiling(dble(npt1)/dble(MPIpts))
-          if(mod(npt1,MPIpts)/=0) then
+          if(mod(npt1,MPIpts)/=0) then ! If number of frequency points is not divisible by number of rows add points to calculation
             if(myrank==0) then
               write(outputunit,"('[build_cartesian_grid] ************************************* WARNING: *************************************')")
               write(outputunit,"('[build_cartesian_grid]    Number of points to be calculated is not commensurable with processes used!')")
@@ -147,12 +172,12 @@ contains
             npt1 = MPIsteps*MPIpts
           end if
         end if
-      else
-        if(npt1*pnt<numprocs) then
-          MPIpts  = npt1
+      else ! If there is a loop on the field,
+        if(numprocs > npt1*pnt) then ! If number of processes exceeds number of points necessary for energy integration and frequencies only use first npt1*pnt nodes
+          MPIpts = npt1
         else
           MPIsteps = ceiling(dble(npt1)/dble(MPIpts))
-          if(mod(npt1,MPIpts)/=0) then
+          if(mod(npt1,MPIpts)/=0) then ! If number of frequencies is not devisible by number of mpi points, add points to calculation
             if(myrank==0) then
               write(outputunit,"('[build_cartesian_grid] ************************************* WARNING: *************************************')")
               write(outputunit,"('[build_cartesian_grid]    Number of points to be calculated is not commensurable with processes used!')")
@@ -185,10 +210,10 @@ contains
     call MPI_Cart_sub(MPIComm_Grid,lcol,MPI_Comm_Row,ierr) ! communicator inside a row (between columns)
 
     ! Obtaining process rank inside its row and column
-    call MPI_Comm_rank(MPI_Comm_Row,myrank_row,ierr) ! Obtaining rank number inside its row
-    call MPI_Comm_size(MPI_Comm_Row, numprocs_row,ierr)      ! Obtain size of row
-    call MPI_Comm_rank(MPI_Comm_Col,myrank_col,ierr) ! Obtaining rank number inside its column
-    call MPI_Comm_size(MPI_Comm_Col, numprocs_col,ierr)      ! Obtain size of row
+    call MPI_Comm_rank(MPI_Comm_Row, myrank_row, ierr) ! Obtaining rank number inside its row
+    call MPI_Comm_size(MPI_Comm_Row, numprocs_row, ierr) ! Obtain size of row
+    call MPI_Comm_rank(MPI_Comm_Col, myrank_col, ierr) ! Obtaining rank number inside its column
+    call MPI_Comm_size(MPI_Comm_Col, numprocs_col, ierr) ! Obtain size of row
 
     if(myrank==0) write(outputunit,"('[build_cartesian_grid] Created grid with ',i0,' rows (myrank_col) x ',i0,' columns (myrank_row)')") MPIdims(1),MPIdims(2)
 
@@ -197,11 +222,17 @@ contains
 
 
   subroutine build_cartesian_grid_field(elements_in_a_row, total_hw_npt1, npt1)
+  !! Create communicator for magnetic field loop
     use mod_parameters, only: outputunit
     implicit none
+    integer, intent(in) :: elements_in_a_row
+    !! Number of elements that are to be in a row
+    integer, intent(in) :: total_hw_npt1
+    !! Number of magnetic field points (number of rows)
+    integer, intent(in) :: npt1
+    !! Number of frequency points + 1
     logical :: lreorder,lperiodic(2),lrow(2),lcol(2)
     integer :: MPIdims(2)
-    integer, intent(in) :: elements_in_a_row, total_hw_npt1, npt1
 
     MPIpts_hw  = ceiling(dble(numprocs)/dble(elements_in_a_row)) ! Number of rows to be used
     MPIdims    = [MPIpts_hw,elements_in_a_row]
@@ -249,6 +280,7 @@ contains
     ! Creating bidimensiontal Grid of tasks
     lperiodic = [.false.,.false.]
     lreorder  = .true.
+
     call MPI_Cart_create(MPI_COMM_WORLD,2,MPIdims,lperiodic,lreorder,MPIComm_Grid_hw,ierr)
 
     ! Creating subarrays of rows and columns

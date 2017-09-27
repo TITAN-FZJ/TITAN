@@ -1,35 +1,36 @@
 ! This is the main subroutine to calculate the susceptibilities
 subroutine calculate_chi()
   use mod_f90_kind, only: double
-  use mod_constants, only: zero, zum
-  use mod_parameters, only:  emin, deltae, dim, sigmaimunu2i, outputunit_loop, lnodiag,laddresults, skip_steps
+  use mod_constants, only: cZero, cOne
+  use mod_parameters, only:  count, emin, deltae, dim, sigmaimunu2i, outputunit_loop, lnodiag,laddresults, skip_steps
   use mod_mpi_pars
   use mod_magnet, only: mtheta,mphi, hw_count
   use mod_susceptibilities, only: identt, Umatorb, schi, schihf, schirot, rotmat_i, &
                                   rotmat_j, rottemp, schitemp, lrot, chiorb_hf, chiorb, &
-                                  allocate_susceptibilities, openclose_chi_files, &
-                                  build_identity_and_U_matrix, &
-                                  diagonalize_susceptibilities, write_susceptibilities, &
-                                  deallocate_susceptibilities
-  use mod_alpha, only: open_alpha_files, close_alpha_files, write_alpha
+                                  build_identity_and_U_matrix, diagonalize_susceptibilities, &
+                                  create_chi_files, write_susceptibilities, &
+                                  allocate_susceptibilities, deallocate_susceptibilities
+  use mod_alpha, only: create_alpha_files, write_alpha, allocate_alpha, deallocate_alpha
   use mod_system, only: s => sys
   use TightBinding, only: nOrb
   use mod_progress, only: write_time
   implicit none
   character(len=50) :: time
-  integer           :: i,j,sigma,sigmap,mu,nu, count
+  integer           :: i,j,sigma,sigmap,mu,nu
   real(double)      :: e
   complex(double), dimension(:,:),   allocatable :: temp
   call allocate_susceptibilities()
+  call allocate_alpha()
+
   if(myrank_row==0) allocate(temp(dim,dim))
   if(myrank==0) then
     write(outputunit_loop,"('CALCULATING LOCAL SUSCEPTIBILITY AS A FUNCTION OF ENERGY')")
     ! write(outputunit_loop,"('Qx = ',es10.3,', Qz = ',es10.3)") q(1),q(3)
     ! Creating files and writing headers
     if(.not.laddresults) then
-      call openclose_chi_files(0)
+      call create_chi_files()
+      call create_alpha_files
     end if
-    call open_alpha_files()
   end if
 
   ! Mounting U and identity matrix
@@ -48,18 +49,19 @@ subroutine calculate_chi()
     end if
 
     ! Start parallelized processes to calculate chiorb_hf and chiorbi0_hf for energy e
-    call eintshechi(e, count)
+    call eintshechi(e)
 
+    ! From here on all other processes except for myrank_row == 0 are idle :/
     if(myrank_row==0) then
       ! (1 + chi_hf*Umat)^-1
       temp = identt
-      call zgemm('n','n',dim,dim,dim,zum,chiorb_hf,dim,Umatorb,dim,zum,temp,dim)
+      call zgemm('n','n',dim,dim,dim,cOne,chiorb_hf,dim,Umatorb,dim,cOne,temp,dim)
       ! temp = identt + temp
       call invers(temp,dim)
-      call zgemm('n','n',dim,dim,dim,zum,temp,dim,chiorb_hf,dim,zero,chiorb,dim)
+      call zgemm('n','n',dim,dim,dim,cOne,temp,dim,chiorb_hf,dim,cZero,chiorb,dim)
 
-      schi = zero
-      schihf = zero
+      schi = cZero
+      schihf = cZero
       ! Calculating RPA and HF susceptibilities
       do j=1, s%nAtoms
         do nu=1, nOrb
@@ -87,16 +89,16 @@ subroutine calculate_chi()
           do i=1, s%nAtoms
             rottemp  = rotmat_i(:,:,i)
             schitemp = schi(:,:,i,j)
-            call zgemm('n', 'n', 4, 4, 4, zum, rottemp, 4, schitemp, 4, zero, schirot, 4)
+            call zgemm('n', 'n', 4, 4, 4, cOne, rottemp, 4, schitemp, 4, cZero, schirot, 4)
             rottemp  = rotmat_j(:,:,j)
-            call zgemm('n', 'n', 4, 4, 4, zum, schirot, 4, rottemp, 4, zero, schitemp, 4)
+            call zgemm('n', 'n', 4, 4, 4, cOne, schirot, 4, rottemp, 4, cZero, schitemp, 4)
             schi(:,:,i,j) = schitemp
 
             rottemp  = rotmat_i(:,:,i)
             schitemp = schihf(:,:,i,j)
-            call zgemm('n', 'n', 4, 4, 4, zum, rottemp, 4, schitemp, 4, zero, schirot, 4)
+            call zgemm('n', 'n', 4, 4, 4, cOne, rottemp, 4, schitemp, 4, cZero, schirot, 4)
             rottemp  = rotmat_j(:,:,j)
-            call zgemm('n', 'n', 4, 4, 4, zum, schirot, 4, rottemp, 4, zero, schitemp, 4)
+            call zgemm('n', 'n', 4, 4, 4, cOne, schirot, 4, rottemp, 4, cZero, schitemp, 4)
             schihf(:,:,i,j) = schitemp
           end do
         end do
@@ -118,20 +120,13 @@ subroutine calculate_chi()
           call write_alpha(e)
 
           ! WRITING RPA AND HF SUSCEPTIBILITIES
-          ! Opening chi and diag files
-          call openclose_chi_files(1)
-
-          ! Writing susceptibilities
           call write_susceptibilities(e)
-
-          ! Closing chi and diag files
-          call openclose_chi_files(2)
         end do
 
         write(time,"('[calculate_chi] Time after step ',i0,': ')") count
         call write_time(outputunit_loop,time)
 
-        ! Emergency stop
+        ! ! Emergency stop
         ! open(unit=911, file="stop", status='old', iostat=iw)
         ! if(iw==0) then
         !   close(911)
@@ -148,16 +143,12 @@ subroutine calculate_chi()
   end do
 
   ! Sorting results on files
-  if(myrank==0) then
-    call openclose_chi_files(2)
-    call close_alpha_files()
-    call sort_all_files()
-  end if
+  if(myrank==0) call sort_all_files()
 
   call deallocate_susceptibilities()
-  if(myrank_row==0) then
-    deallocate(temp)
-  end if
+  call deallocate_alpha()
+
+  if(myrank_row==0) deallocate(temp)
 
   return
 end subroutine calculate_chi

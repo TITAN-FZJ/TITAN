@@ -22,7 +22,7 @@ contains
 
   subroutine update_Umatrix(eps1, hdel, hdelm, hdelp, nAtoms, nOrb)
     use mod_f90_kind, only: double
-    use mod_constants, only: zero
+    use mod_constants, only: cZero
     use mod_parameters, only: offset
     implicit none
 
@@ -32,11 +32,11 @@ contains
 
     integer :: i, mu, nu
 
-    hee = zero
+    hee = cZero
     ! Diagonal terms (in orbital)
     do i=1,nAtoms
-      do mu=5, 9
-        nu=mu+9
+      do mu=5, nOrb
+        nu=mu+nOrb
         hee(mu,mu,i+offset) = eps1(i)-hdel(i)
         hee(nu,nu,i+offset) = eps1(i)+hdel(i)
         hee(mu,nu,i+offset) = -hdelm(i)
@@ -55,7 +55,7 @@ contains
     real(double), dimension(nAtoms), intent(in) :: eps1, hdel
     complex(double), dimension(nAtoms), intent(in) :: hdelm, hdelp
 
-    if(2*nOrb /= 18) call abortProgram("[init_Umatrix] Umatrix only implemented for nOrb = 9")
+    if(nOrb /= 9) call abortProgram("[init_Umatrix] Umatrix only implemented for nOrb = 9")
 
     call allocate_Umatrix(nAtoms,nOrb)
     call update_Umatrix(eps1,hdel,hdelm,hdelp,nAtoms,nOrb)

@@ -60,13 +60,14 @@ contains
     use mod_input
     use mod_parameters, only: outputunit, laddresults, lverbose, ldebug, lkpoints, &
                               lpositions, lcreatefiles, Utype, lslatec, lontheflysc, &
-                              lnolb, lhfresponses, lnojac, lGSL, lnodiag, lsha, &
+                              lnolb, lhfresponses, lnojac, lGSL, lnodiag, lsha, lcreatefolders, &
                               lwriteonscreen, runoptions, ltestcharge, llgtv, lsortfiles, &
                               lrotatemag, magaxis, magaxisvec, latticeName, itype, ry2ev, &
                               ltesla, eta, dmax, emin, emax, deltae, skip_steps, &
                               npts, npt1, renorm, renormnb, skipsc, scfile, bands, band_cnt, &
-                              offset, dfttype, Npl, Npl_i, Npl_f, suffix, tol, outputfile
+                              offset, dfttype, suffix, mag_tol, outputfile, U
     use mod_system, only: System, pln_normal, n0sc1, n0sc2
+    use mod_BrillouinZone, only: BZ
     use mod_SOC, only: SOC, SOCc, socpart, socscale, llinearsoc, llineargfsoc
     use mod_magnet, only: lfield, tesla, hwa_i, hwa_f, hwa_npts, hwa_npt1, hwt_i, hwt_f, &
                           hwt_npts, hwt_npt1, hwp_i, hwp_f, hwp_npts, hwp_npt1, hwx, hwy, &
@@ -75,7 +76,6 @@ contains
     use Lattice, only: LatticeMode
     use ElectricField, only: ElectricFieldMode, ElectricFieldVector, EFp, EFt
     use EnergyIntegration, only: parts, parts3, pn1, pn2, pnt, n1gl, n3gl, strEnergyParts
-    use mod_BrillouinZone, only: nkpt_x, nkpt_y, nkpt_z
     implicit none
     character(len=*), intent(in) :: filename
     type(System), intent(inout) :: s
@@ -109,7 +109,7 @@ contains
 
     if(.not. get_parameter("bulk", s%lbulk, .true.)) call log_warning("get_parameters", "'bulk' missing. Using default value.")
 
-    if(LatticeMode == 1 .or. LatticeMode == 2) then
+    if(LatticeMode == 1) then
 
       if(.not. get_parameter("a0", s%a0)) call log_error("get_parameters","'a0' missing.")
 
@@ -164,11 +164,11 @@ contains
 
     if(.not. get_parameter("nkpt", i_vector,cnt)) call log_error("get_parameters","'nkpt' missing.")
     if(cnt == 1) then
-      s%nkpt = i_vector(1)
+      BZ%nkpt = i_vector(1)
     else if(cnt == 3) then
-      nkpt_x = i_vector(1)
-      nkpt_y = i_vector(2)
-      nkpt_z = i_vector(3)
+      BZ%nkpt_x = i_vector(1)
+      BZ%nkpt_y = i_vector(2)
+      BZ%nkpt_z = i_vector(3)
     else
       call log_error("get_parameter", "'nkpt' has wrong size (expected 1 or 3)")
     end if
@@ -195,6 +195,8 @@ contains
           laddresults = .true.
        case ("createfiles")
           lcreatefiles = .true.
+       case("createfolders")
+          lcreatefolders = .true.
        case ("noUonall")
           if(Utype==1) then
              if(myrank==0) call log_warning("get_parameters","Runoption 'noUonNM' is already active.")
@@ -275,6 +277,8 @@ contains
     end if
 
     !---------------------------------------- Magnetization ----------------------------------------
+    if(.not. get_parameter("magtol", mag_tol, 1.d-10)) call log_warning("get_parameters", "'magtol' not found. Using default value.")
+
     if(.not. get_parameter("magbasis", tmp_string)) then
         call log_warning("get_parameters","'magbasis' missing.")
       magaxis = 0
@@ -309,7 +313,18 @@ contains
       end select
     end if
 
-    !---------------------------------------- Electric Field ----------------------------------------
+    !------------------------------------- Coulomb Interaction -------------------------------------
+    if(.not. get_parameter("U", U, cnt)) then
+      call log_warning("get_parameters","'U' not present. Using default value of 1eV for all sites.")
+      allocate(U(1))
+      U = 1.d0 / 13.6d0
+    else if(cnt == 1) then
+      call log_warning("get_parameters", "'U' has only single value. Using this on all sites.")
+    else if(cnt < 0) then
+      call log_error("get_parameters","'U' has size < 0.")
+    end if
+
+    !--------------------------------------- Electric Field ----------------------------------------
     if(.not. get_parameter("ebasis", tmp_string)) call log_error("get_parameters","'ebasis' missing.")
     select case (tmp_string)
     case("cartesian")
@@ -340,7 +355,7 @@ contains
 
 
     !------------------------------------- Static Magnetic Field -----------------------------------
-    if(.not. get_parameter("FIELD", lfield)) call log_error("get_parameters","'lfield' missing.")
+    if(.not. get_parameter("FIELD", lfield, .false.)) call log_warning("get_parameters","'lfield' missing. Using default value.")
     if(lfield) then
        if(.not. get_parameter("hwa", vector, cnt)) call log_error("get_parameters","'hwa' missing.")
        if(cnt < 1) call log_error("get_parameters","'hwa' doesn't contain any parameters.")
@@ -443,25 +458,26 @@ contains
       offset = 0
       dfttype = "S"
 
-      if(.not. get_parameter("layers", layers, cnt)) call log_error("get_parameters", "'layers' missing.")
-      if(cnt <= 0) call log_error("get_parameters", "'layers' No layers given.")
-      Npl = cnt
+      ! if(.not. get_parameter("layers", layers, cnt)) call log_error("get_parameters", "'layers' missing.")
+      ! if(cnt <= 0) call log_error("get_parameters", "'layers' No layers given.")
+      ! Npl = cnt
+      !
+      ! if(get_parameter("Npl", i_vector, cnt)) then
+      !   if(cnt < 1) call log_error("get_parameters","'Npl' doesn't contain any parameters.")
+      !   Npl_i = i_vector(1)
+      !   Npl_f = i_vector(1)
+      !   if(cnt >= 2) Npl_f = i_vector(2)
+      !   if(Npl_f < Npl_i) Npl_f = Npl_i
+      !   deallocate(i_vector)
+      !   if(Npl < Npl_f) call log_error("get_parameters", "'Npl' larger than amount of given layers")
+      ! else
+      !   call log_warning("get_parameters","'Npl' missing.")
+      !   Npl_i = Npl
+      !   Npl_f = Npl
+      ! end if
 
-      if(get_parameter("Npl", i_vector, cnt)) then
-        if(cnt < 1) call log_error("get_parameters","'Npl' doesn't contain any parameters.")
-        Npl_i = i_vector(1)
-        Npl_f = i_vector(1)
-        if(cnt >= 2) Npl_f = i_vector(2)
-        if(Npl_f < Npl_i) Npl_f = Npl_i
-        deallocate(i_vector)
-        if(Npl < Npl_f) call log_error("get_parameters", "'Npl' larger than amount of given layers")
-      else
-        call log_warning("get_parameters","'Npl' missing.")
-        Npl_i = Npl
-        Npl_f = Npl
-      end if
       if(.not. get_parameter("fermi_layer", fermi_layer)) call log_warning("get_parameters", "'fermi_layer' not given. Using fermi_layer = 1")
-      if(fermi_layer <= 0 .or. fermi_layer > Npl) call log_error("get_parameters", "'fermi_layer' out of range.")
+      !if(fermi_layer <= 0 .or. fermi_layer > Npl) call log_error("get_parameters", "'fermi_layer' out of range.")
 
     !--------------------------------------------- DFT ---------------------------------------------
     else if(2 == tbmode) then
@@ -571,7 +587,6 @@ contains
     ! if(itype==9) call prepare_dclimit() !TODO: Re-Include
 
 
-    tol   = 1.d-10
     pn1=parts*n1gl
     pn2=parts3*n3gl
     pnt=pn1+pn2
@@ -582,15 +597,17 @@ contains
     use mod_mpi_pars
     use mod_parameters
     use mod_System, only: System, n0sc1, n0sc2
+    use mod_BrillouinZone, only: BZ
     use mod_SOC, only: SOC, socscale
     use mod_magnet
     use EnergyIntegration, only: parts, parts3, n1gl, n3gl
     use electricfield, only: ElectricFieldMode, ElectricFieldVector, EFt, EFp
+    !$ use omp_lib
     implicit none
     type(System), intent(in) :: s
     integer :: i
 #ifdef _OPENMP
-    write(outputunit_loop,"(10x,'Running on ',i0,' MPI process(es) WITH openMP')") numprocs
+    write(outputunit_loop,"(10x,'Running on ',i0,' MPI process(es) WITH ',i0,' openMP')") numprocs, omp_get_max_threads()
 #else
     write(outputunit_loop,"(10x,'Running on ',i0,' MPI process(es) WITHOUT openMP')") numprocs
 #endif
@@ -630,7 +647,7 @@ contains
     else
        write(outputunit_loop,"(1x,'Current renormalization: DEACTIVATED')")
     end if
-    write(outputunit_loop,"(9x,'nkpt = ',i0)") s%nkpt
+    write(outputunit_loop,"(9x,'nkpt = ',i0)") BZ%nkpt
     write(outputunit_loop,"(8x,'parts = ',i0,'x',i0)") parts,n1gl
     write(outputunit_loop,"(7x,'parts3 = ',i0,'x',i0)") parts3,n3gl
     write(outputunit_loop,"(10x,'eta =',es9.2)") eta
@@ -675,7 +692,7 @@ contains
     case (6)
        write(outputunit_loop,"(1x,'Exhange interactions and anisotropies (full tensor)')")
        if(nmaglayers==1) write(outputunit_loop,"(1x,'Only 1 magnetic layer: calculating only anisotropies')")
-       write(outputunit_loop,"(8x,'from Npl = ',i0,' to ',i0)") Npl_i,Npl_f
+       !write(outputunit_loop,"(8x,'from Npl = ',i0,' to ',i0)") Npl_i,Npl_f
     case (7)
        write(outputunit_loop,"(1x,'Local susceptibility as a function of energy')")
        write(outputunit_loop,"(9x,'emin =',es9.2)") emin

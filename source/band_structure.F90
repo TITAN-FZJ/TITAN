@@ -62,10 +62,11 @@ end subroutine read_band_points
 !   Calculates magnetic LDOS
 subroutine band_structure(s)
   use mod_f90_kind, only: double
-  use mod_parameters, only: fieldpart, outputunit_loop, Ef, eta, Npl_folder, npts, npt1, Utype, bands, band_cnt
+  use mod_parameters, only: fieldpart, outputunit_loop, Ef, eta, strSites, npts, npt1, Utype, bands, band_cnt
   use mod_SOC, only: SOCc, socpart
   use mod_mpi_pars, only: mpitag
   use mod_system, only: System
+  use mod_BrillouinZone, only: BZ
   use TightBinding, only: nOrb
   implicit none
   type(System), intent(in) :: s
@@ -94,14 +95,14 @@ subroutine band_structure(s)
 
   write(outputunit_loop,"('CALCULATING THE BAND STRUCTURE')")
 
-  call read_band_points(band_points, s%b1, s%b2, s%b3)
+  call read_band_points(band_points, BZ%b1, BZ%b2, BZ%b3)
   total_length = 0.d0
   do i = 1, band_cnt - 1
     total_length = total_length + sqrt(dot_product(band_points(:,i)-band_points(:,i+1), band_points(:,i)-band_points(:,i+1)))
   end do
 
   write(kdirection,*) (trim(adjustl(bands(i))), i = 1,band_cnt)
-  write(varm,"('./results/',a1,'SOC/',a,'/BS/bandstructure_kdir=',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(Npl_folder),trim(adjustl(kdirection)),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+  write(varm,"('./results/',a1,'SOC/',a,'/BS/bandstructure_kdir=',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),trim(adjustl(kdirection)),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
   open (unit=666+mpitag, file=varm,status='replace')
   write(unit=666+mpitag, fmt=*) band_cnt, npts
   write(unit=666+mpitag, fmt=*) Ef

@@ -16,6 +16,7 @@ program TITAN
   use mod_magnet
   use ElectricField
   use AtomTypes
+  use mod_gilbert_damping
   !use mod_define_system TODO: Re-include
   use mod_self_consistency
   !use mod_prefactors TODO: Re-include
@@ -64,18 +65,20 @@ program TITAN
   if( lpositions .and. (myrank==0)) call writeLattice(sys)
 
   !-------------------- Generating k points in 2D BZ ---------------------
-  call setup_BrillouinZone(sys)
+  call BZ % setup(sys%lbulk, sys%a1, sys%a2, sys%a3)
   ! Writing BZ points and weights into file
-  if((lkpoints).and.(myrank==0)) call output_kpoints(sys)
+  if((lkpoints).and.(myrank==0)) call BZ % print()
 
   !---- Generating integration points of the complex energy integral -----
-  call generate_imag_epoints() !TODO: Review, XXX seems fine
+  call allocate_energy_points()
+  call generate_imag_epoints()
 
   ! DFT tight binding mode has two additional vacuum layers
   !Npl_total = Npl
   !if(tbmode == 2) Npl_total = Npl + 2
 
   !--------------- Allocating variables that depend on Npl ---------------
+  call allocate_magnet_variables(sys%nAtoms)
   call allocate_Npl_variables(sys%nAtoms) !TODO: Review
 
   !----------------------------- Dimensions ------------------------------
@@ -91,7 +94,7 @@ program TITAN
   ! else
   !   Npl_input = Npl
   ! end if
-  write(Npl_folder,fmt="(i0,'Npl')") sys%nAtoms
+  write(strSites,fmt="(i0,'Sites')") sys%nAtoms
   ! if(tbmode == 2) call define_system()
 
   !---------------------- Tight Binding parameters -----------------------
@@ -108,7 +111,8 @@ program TITAN
 
   !------------------------- MAGNETIC FIELD LOOP -------------------------
   if((myrank==0).and.(skip_steps_hw>0)) write(outputunit,"('[main] Skipping first ',i0,' field step(s)...')") skip_steps_hw
-  hw_loop: do count_hw = 1 + skip_steps_hw, MPIsteps_hw
+
+  do count_hw = 1 + skip_steps_hw, MPIsteps_hw
     hw_count = 1 + myrank_col_hw + MPIpts_hw*(count_hw-1)
 
 
@@ -159,8 +163,8 @@ program TITAN
     !------- Writing parameters and data to be calculated on screen --------
     if(myrank_row_hw==0) call iowrite(sys)
 
-    !---- L matrix in spin coordinates for given quantization direction ----
-    call lp_matrix(theta, phi)
+    !---- L matrix in global frame for given quantization direction ----
+    call l_matrix()
 
     !------ Calculate L.S matrix for the given quantization direction ------
     call initLS(theta, phi, nOrb)
@@ -214,20 +218,21 @@ program TITAN
     if((myrank==0).and.(itype==0)) then
       write(outputunit,"('[main] FIRST TEST PART')")
       mz  = 0.d0
-      mp  = zero
+      mp  = cZero
       mm  = conjg(mp)
       ! Variables used in the hamiltonian
       eps1  = 0.d0
       hdel  = 0.d0
-      hdelp = zero
-      hdelm = zero
-      hdel(1:Npl) = 0.5d0*U*mz
-      hdelp(1:Npl) = 0.5d0*U*mp
-      hdelm(1:Npl) = 0.5d0*U*mm
+      hdelp = cZero
+      hdelm = cZero
+      hdel(1:sys%nAtoms) = 0.5d0*U*mz
+      hdelp(1:sys%nAtoms) = 0.5d0*U*mp
+      hdelm(1:sys%nAtoms) = 0.5d0*U*mm
 
       call ldos()
       ! call debugging()
     end if
+    if(lcreatefolders) call create_folder()
 
     !--------------------------- Self-consistency --------------------------
     ! Trying to read previous shifts and m from files
@@ -247,6 +252,10 @@ program TITAN
 
     ! Writing new eps1 and mz to file after self-consistency is done
     if(.not.lontheflysc) call write_sc_results()
+
+
+    ! L matrix in local frame for given quantization direction
+    call lp_matrix(mtheta, mphi)
 
     ! Calculating ground state Orbital Angular Momentum
     if(lGSL) call calcLGS()
@@ -275,13 +284,15 @@ program TITAN
     case (5)
       if(myrank_row_hw==0) call fermi_surface(Ef)
     case (6)
-      !call coupling() !TODO: Re-Include
+      call coupling()
     case (7)
       call calculate_chi()
     case (8)
-      !call calculate_all() TODO: Re-include
+      call calculate_all()
     case (9)
-      !call calculate_dc_limit() TODO: Re-include
+      call calculate_dc_limit()
+    case(10)
+      call calculate_gilbert_damping()
     end select main_program
     !========================================================================
 
@@ -290,7 +301,7 @@ program TITAN
     !---------------------------- Closing files ----------------------------
     if(((total_hw_npt1/=1).and.(itype/=6)).and.(myrank_row_hw==0)) close(outputunit_loop)
     !---------------------- Ending magnetic field loop ---------------------
-  end do hw_loop
+  end do
 
   !-------------- Deallocating variables that depend on Npl --------------
   call deallocate_Npl_variables()

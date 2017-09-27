@@ -7,8 +7,8 @@ module mod_magnet
 
   integer                     :: iter                                   ! self-consistency iteration
   real(double),allocatable    :: mx(:),my(:),mz(:),mvec_cartesian(:,:),hdel(:)    ! Magnetization and exchange split delta/2
-  real(double),allocatable    :: lxm(:),lym(:),lzm(:)                   ! Orbital angular momentum in lattice frame of reference
-  real(double),allocatable    :: lxpm(:),lypm(:),lzpm(:)                ! Orbital angular momentum in spin frame of reference
+  real(double),allocatable    :: lxm(:),lym(:),lzm(:)                   ! Orbital angular momentum in global frame of reference
+  real(double),allocatable    :: lxpm(:),lypm(:),lzpm(:)                ! Orbital angular momentum in local frame of reference
   complex(double),allocatable :: mp(:),hdelp(:)
   complex(double),allocatable :: mm(:),hdelm(:)
   real(double),allocatable    :: mabs(:),mtheta(:),mphi(:),mvec_spherical(:,:)
@@ -16,8 +16,12 @@ module mod_magnet
   real(double),allocatable    :: lpabs(:),lptheta(:),lpphi(:)
   real(double),allocatable    :: eps1(:)                                ! Center of the bands for each l - eps(Npl)
   real(double), dimension(:), allocatable :: hhwx, hhwy, hhwz           ! Static magnetic fields in each direction
-  complex(double), dimension(:,:,:), allocatable :: lb, sb              ! Zeeman matrices
-  complex(double), dimension(:,:), allocatable :: lxp, lyp, lzp         ! Angular momentum matrices in spin coordinate system
+  complex(double), dimension(:,:,:), allocatable :: lb, sb
+  !! Zeeman matrices
+  complex(double), dimension(:,:,:), allocatable :: lxp, lyp, lzp
+  !! Site dependent Angular momentum matrices in local frame
+  complex(double), dimension(:,:), allocatable :: lx, ly, lz
+  !! Angular momentum matrices in global frame
 
   !========================================================================================!
   ! Values of magnetic field in cartesian or spherical coordinates
@@ -80,7 +84,6 @@ contains
         hwp_s = (hwp_f - hwp_i)/hwp_npts
         if(abs(hwp_s) <= 1.d-10) hwp_npt1 = 1
       else ! hwa_i and hwa_f = 0
-        ! Cartesian coordinates on spin system of reference
         hwa_i   = sqrt(hwx**2+hwy**2+hwz**2)
         hwa_f   = hwa_i
         if(abs(hwa_i)<1.d-8) then
@@ -133,7 +136,7 @@ contains
 
   subroutine initMagneticField(nAtoms)
     use mod_f90_kind, only: double
-    use mod_constants, only: zero, pi
+    use mod_constants, only: cZero, pi
     use mod_parameters, only: outputfile_loop
     use mod_mpi_pars, only: abortProgram, myrank_row_hw
     use mod_SOC, only: SOC, llinearsoc
@@ -153,8 +156,8 @@ contains
     else
       lfield = .true.
     end if
-    sb   = zero
-    lb   = zero
+    sb   = cZero
+    lb   = cZero
     hhwx = 0.d0
     hhwy = 0.d0
     hhwz = 0.d0
@@ -183,7 +186,7 @@ contains
 
   subroutine lb_matrix(nAtoms, nOrbs)
     use mod_f90_kind,   only: double
-    use mod_constants,  only: zero
+    use mod_constants,  only: cZero
     use mod_parameters, only: lnolb
     implicit none
     integer, intent(in) :: nOrbs, nAtoms
@@ -197,11 +200,11 @@ contains
     ! There is an extra  minus sign in the definition of hhwx,hhwy,hhwz
     ! to take into account the fact that we are considering negative
     ! external fields to get the peak at positive energies
-    lb = zero
+    lb = cZero
     if((lfield).and.(.not.lnolb)) then
       allocate(lbsigma(nOrbs, nOrbs))
       do i=1, nAtoms
-        lbsigma(1:nOrbs, 1:nOrbs) = 0.5d0*(lxp*hhwx(i) + lyp*hhwy(i) + lzp*hhwz(i))
+        lbsigma(1:nOrbs, 1:nOrbs) = 0.5d0*(lx*hhwx(i) + ly*hhwy(i) + lz*hhwz(i))
         lb(1:nOrbs, 1:nOrbs, i) = lbsigma(:,:)
         lb(nOrbs+1:2*nOrbs, nOrbs+1:2*nOrbs, i) = lbsigma(:,:)
       end do
@@ -213,7 +216,7 @@ contains
   ! Spin Zeeman hamiltonian
   subroutine sb_matrix(nAtoms, nOrbs)
     use mod_f90_kind, only: double
-    use mod_constants, only: zero, zi
+    use mod_constants, only: cZero, cI
     implicit none
     integer, intent(in) :: nAtoms, nOrbs
     integer :: i,mu,nu
@@ -224,7 +227,7 @@ contains
     ! There is an extra  minus sign in the definition of hhwx,hhwy,hhwz
     ! to take into account the fact that we are considering negative
     ! external fields to get the peak at positive energies
-    sb = zero
+    sb = cZero
 
     if(lfield) then
       do i=1, nAtoms
@@ -232,8 +235,8 @@ contains
           nu=mu+nOrbs
           sb(mu,mu,i) = hhwz(i)
           sb(nu,nu,i) =-hhwz(i)
-          sb(nu,mu,i) = hhwx(i)-zi*hhwy(i)
-          sb(mu,nu,i) = hhwx(i)+zi*hhwy(i)
+          sb(nu,mu,i) = hhwx(i)-cI*hhwy(i)
+          sb(mu,nu,i) = hhwx(i)+cI*hhwy(i)
         end do
       end do
     end if
@@ -241,52 +244,54 @@ contains
   end subroutine sb_matrix
 
   ! This subroutine calculate the orbital angular momentum matrix in the cubic system of coordinates
-  subroutine l_matrix(Lx,Ly,Lz)
+  subroutine l_matrix()
     use mod_f90_kind
     use mod_constants
+    use TightBinding, only: nOrb
     implicit none
-    complex(double), dimension(9,9), intent(out) :: Lx,Ly,Lz
     complex(double), dimension(9,9) :: Lp,Lm
 
-    Lz = zero
+    allocate(lx(nOrb, nOrb), ly(nOrb,nOrb), lz(nOrb,nOrb))
 
-    Lz(2,3) = -zi
-    Lz(3,2) = zi
+    lz = cZero
 
-    Lz(5,8) = 2.d0*zi
-    Lz(8,5) = -2.d0*zi
-    Lz(6,7) = zi
-    Lz(7,6) = -zi
+    lz(2,3) = -cI
+    lz(3,2) = cI
 
-    Lp = zero
-    Lm = zero
+    lz(5,8) = 2.d0*cI
+    lz(8,5) = -2.d0*cI
+    lz(6,7) = cI
+    lz(7,6) = -cI
 
-    Lp(2,4) = -zum
-    Lp(3,4) = -zi
-    Lp(4,2) = zum
-    Lp(4,3) = zi
+    Lp = cZero
+    Lm = cZero
 
-    Lp(5,6) = -zum
-    Lp(5,7) = -zi
+    Lp(2,4) = -cOne
+    Lp(3,4) = -cI
+    Lp(4,2) = cOne
+    Lp(4,3) = cI
 
-    Lp(6,5) = zum
-    Lp(6,8) = -zi
-    Lp(6,9) = -sq3*zi
+    Lp(5,6) = -cOne
+    Lp(5,7) = -cI
 
-    Lp(7,5) = zi
-    Lp(7,8) = zum
+    Lp(6,5) = cOne
+    Lp(6,8) = -cI
+    Lp(6,9) = -sq3*cI
+
+    Lp(7,5) = cI
+    Lp(7,8) = cOne
     Lp(7,9) = -sq3
 
-    Lp(8,6) = zi
-    Lp(8,7) = -zum
+    Lp(8,6) = cI
+    Lp(8,7) = -cOne
 
-    Lp(9,6) = sq3*zi
+    Lp(9,6) = sq3*cI
     Lp(9,7) = sq3
 
     Lm = transpose(conjg(Lp))
 
-    Lx = 0.5d0*(Lp+Lm)
-    Ly = -0.5d0*zi*(Lp-Lm)
+    lx = 0.5d0*(Lp+Lm)
+    ly = -0.5d0*cI*(Lp-Lm)
 
     return
   end subroutine l_matrix
@@ -295,23 +300,84 @@ contains
   subroutine lp_matrix(theta, phi)
     use mod_f90_kind, only: double
     use TightBinding, only: nOrb
+    use mod_System, only: s => sys
     implicit none
-    real(double), intent(in) :: theta, phi
-    complex(double), dimension(nOrb, nOrb) :: Lx,Ly,Lz
+    real(double), dimension(s%nAtoms), intent(in) :: theta, phi
+    integer :: i
 
     if(allocated(lxp)) deallocate(lxp)
     if(allocated(lyp)) deallocate(lyp)
     if(allocated(lzp)) deallocate(lzp)
-    allocate(lxp(nOrb,nOrb), lyp(nOrb,nOrb), lzp(nOrb,nOrb))
+    allocate(lxp(nOrb,nOrb,s%nAtoms), lyp(nOrb,nOrb,s%nAtoms), lzp(nOrb,nOrb,s%nAtoms))
 
-    call l_matrix(Lx, Ly, Lz)
-
-    lxp = (Lx*cos(theta)*cos(phi))+(Ly*cos(theta)*sin(phi))-(Lz*sin(theta))
-    lyp =-(Lx*sin(phi))+(Ly*cos(phi))
-    lzp = (Lx*sin(theta)*cos(phi))+(Ly*sin(theta)*sin(phi))+(Lz*cos(theta))
+    do i = 1, s%nAtoms
+      lxp(:,:,i) = (lx*cos(theta(i))*cos(phi(i)))+(ly*cos(theta(i))*sin(phi(i)))-(lz*sin(theta(i)))
+      lyp(:,:,i) =-(lx*sin(phi(i)))+(ly*cos(phi(i)))
+      lzp(:,:,i) = (lx*sin(theta(i))*cos(phi(i)))+(ly*sin(theta(i))*sin(phi(i)))+(lz*cos(theta(i)))
+    end do
 
     return
   end subroutine lp_matrix
 
+  subroutine allocate_magnet_variables(nAtoms)
+    use mod_mpi_pars, only: abortProgram
+    implicit none
+    integer, intent(in) :: nAtoms
+    integer :: AllocateStatus
+    allocate(eps1(nAtoms), STAT = AllocateStatus )
+    if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: eps1")
+
+    allocate( mx(nAtoms), my(nAtoms), mz(nAtoms), &
+              mvec_cartesian(nAtoms,3), &
+              mvec_spherical(nAtoms,3), &
+              hdel(nAtoms),hdelp(nAtoms),hdelm(nAtoms), &
+              mp(nAtoms),mm(nAtoms), STAT = AllocateStatus )
+    if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mx,my,mz,mvec_cartesian,mvec_spherical,hdel,mp,hdelp,mm,hdelm")
+
+    allocate( mabs(nAtoms), mtheta(nAtoms), mphi(nAtoms), &
+              labs(nAtoms), ltheta(nAtoms), lphi(nAtoms), &
+              lpabs(nAtoms), lptheta(nAtoms), lpphi(nAtoms), STAT = AllocateStatus )
+    if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mabs,mtheta,mphi,labs,ltheta,lphi,lpabs,lptheta,lpphi")
+
+    return
+  end subroutine
+
+  subroutine deallocate_magnet_variables()
+    implicit none
+
+    if(allocated(eps1)) deallocate(eps1)
+    if(allocated(mx)) deallocate(mx)
+    if(allocated(my)) deallocate(my)
+    if(allocated(mz)) deallocate(mz)
+    if(allocated(mm)) deallocate(mm)
+    if(allocated(mp)) deallocate(mp)
+    if(allocated(hdel)) deallocate(hdel)
+    if(allocated(hdelm)) deallocate(hdelm)
+    if(allocated(hdelp)) deallocate(hdelp)
+    if(allocated(mvec_spherical)) deallocate(mvec_spherical)
+    if(allocated(mvec_cartesian)) deallocate(mvec_cartesian)
+    if(allocated(mabs)) deallocate(mabs)
+    if(allocated(mtheta)) deallocate(mtheta)
+    if(allocated(mphi)) deallocate(mphi)
+    if(allocated(labs)) deallocate(labs)
+    if(allocated(ltheta)) deallocate(ltheta)
+    if(allocated(lphi)) deallocate(lphi)
+    if(allocated(lpabs)) deallocate(lpabs)
+    if(allocated(lptheta)) deallocate(lptheta)
+    if(allocated(lpphi)) deallocate(lpphi)
+    if(allocated(lxm)) deallocate(lxm)
+    if(allocated(lym)) deallocate(lym)
+    if(allocated(lzm)) deallocate(lzm)
+    if(allocated(lxpm)) deallocate(lxpm)
+    if(allocated(lypm)) deallocate(lypm)
+    if(allocated(lzpm)) deallocate(lzpm)
+    if(allocated(hhwx)) deallocate(hhwx)
+    if(allocated(hhwy)) deallocate(hhwy)
+    if(allocated(hhwz)) deallocate(hhwz)
+    if(allocated(sb)) deallocate(sb)
+    if(allocated(lb)) deallocate(lb)
+
+    return
+  end subroutine
 
 end module mod_magnet

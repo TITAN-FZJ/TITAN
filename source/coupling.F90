@@ -1,11 +1,12 @@
 ! Calculates the full 3x3 J tensor (including coupling, DMI and anisotropic pair interactions)
 subroutine coupling()
   use mod_f90_kind, only: double
-  use mod_parameters, only: fieldpart, nmaglayers, mmlayermag, Npl_input, outputunit, eta, Utype, q
+  use mod_parameters, only: fieldpart, nmaglayers, mmlayermag, outputunit, eta, Utype, q
   use EnergyIntegration, only: parts
   use mod_magnet, only: mx, my, mz
   use mod_SOC, only: SOCc, socpart
   use mod_system, only: s => sys
+  use mod_BrillouinZone, only: BZ
   use mod_mpi_pars,only: myrank
   implicit none
   character(len=400) :: varm
@@ -20,25 +21,27 @@ subroutine coupling()
   ! Opening files for position dependence
   if((myrank==0)) then !.and.(Npl==Npl_i)) then
     ! Exchange interactions
-    do j=1,nmaglayers ; do i=1,nmaglayers
-      iw = 199+(j-1)*nmaglayers*2+(i-1)*2
-      if(i==j) then
-        iw = iw + 1
-        write(varm,"('./results/',a1,'SOC/Jij/Jii_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,parts,s%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-        open (unit=iw, file=varm,status='replace')
-        write(unit=iw, fmt="('#  Npl ,      Jii_xx       ,      Jii_yy       ,      Jii_zz       ')")
-        iw = iw + 1
-      else
-        iw = iw + 1
-        write(varm,"('./results/',a1,'SOC/Jij/J_',i0,'_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,j,parts,s%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-        open (unit=iw, file=varm,status='replace')
-        write(unit=iw, fmt="('#  Npl ,   isotropic Jij    ,   anisotropic Jij_xx    ,   anisotropic Jij_yy    ,   anisotropic Jij_zz    ')")
-        iw = iw + 1
-        write(varm,"('./results/',a1,'SOC/Jij/Dz_',i0,'_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,j,parts,s%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-        open (unit=iw, file=varm,status='replace')
-        write(unit=iw, fmt="('#  Npl , Dz = (Jxy - Jyx)/2       ')")
-      end if
-    end do ; end do
+    do j=1,nmaglayers
+      do i=1,nmaglayers
+        iw = 199+(j-1)*nmaglayers*2+(i-1)*2
+        if(i==j) then
+          iw = iw + 1
+          write(varm,"('./results/',a1,'SOC/Jij/Jii_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,parts,BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+          open (unit=iw, file=varm,status='replace')
+          write(unit=iw, fmt="('#  Npl ,      Jii_xx       ,      Jii_yy       ,      Jii_zz       ')")
+          iw = iw + 1
+        else
+          iw = iw + 1
+          write(varm,"('./results/',a1,'SOC/Jij/J_',i0,'_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,j,parts,BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+          open (unit=iw, file=varm,status='replace')
+          write(unit=iw, fmt="('#  Npl ,   isotropic Jij    ,   anisotropic Jij_xx    ,   anisotropic Jij_yy    ,   anisotropic Jij_zz    ')")
+          iw = iw + 1
+          write(varm,"('./results/',a1,'SOC/Jij/Dz_',i0,'_',i0,'_parts=',I0,'_nkpt=',I0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,i,j,parts,BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+          open (unit=iw, file=varm,status='replace')
+          write(unit=iw, fmt="('#  Npl , Dz = (Jxy - Jyx)/2       ')")
+        end if
+      end do
+    end do
   end if
 
   q = [ 0.d0 , 0.d0 , 0.d0 ]
@@ -56,40 +59,44 @@ subroutine coupling()
 
     ! Writing exchange couplings and anisotropies
     write(outputunit,"('  ************************* Full tensor Jij:  *************************')")
-    do i=1,nmaglayers ; do j=1,nmaglayers
-    ! Writing on screen
-    ! Writing original full tensor Jij
-    ! Only the transverse components are supposed to be non-zero (e.g., for m //z, only Jxx,Jxy,Jyx,Jyy)
-    ! Relation between J_ii calculated and the position of the peak in the susceptibility:
-    ! w_res = 2*gamma*mz*sqrt( (K_z-K_x)*(K_z-K_y) )  - for m // z
-    ! where K_x = J_ii^xx/2 ; K_y = J_ii^yy/2 ; K_z = J_ii^zz/2
-    ! K > 0 - easy axis ; K < 0 - hard axis
-      if(i==j) then
-        write(outputunit,"(3x,' ************** Magnetization components: ) *************')")
-        write(outputunit,"(4x,'Mx (',i2.0,')=',f11.8,4x,'My (',i2.0,')=',f11.8,4x,'Mz (',i2.0,')=',f11.8)") i,mx(i),i,my(i),i,mz(i)
-        write(outputunit,"(' |--------------- i = ',i0,'   j = ',i0,': anisotropies ---------------|')") mmlayermag(i),mmlayermag(j)
-      else
-        write(outputunit,"(' |----------- i = ',i0,'   j = ',i0,': exchange couplings -------------|')") mmlayermag(i),mmlayermag(j)
-      end if
-      write(outputunit,"('             x                  y                  z')")
-      write(outputunit,"('  x  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,1,1),Jij(i,j,1,2),Jij(i,j,1,3)
-      write(outputunit,"('  y  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,2,1),Jij(i,j,2,2),Jij(i,j,2,3)
-      write(outputunit,"('  z  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,3,1),Jij(i,j,3,2),Jij(i,j,3,3)
-    end do ; end do
+    do i=1,nmaglayers
+      do j=1,nmaglayers
+      ! Writing on screen
+      ! Writing original full tensor Jij
+      ! Only the transverse components are supposed to be non-cZero (e.g., for m //z, only Jxx,Jxy,Jyx,Jyy)
+      ! Relation between J_ii calculated and the position of the peak in the susceptibility:
+      ! w_res = 2*gamma*mz*sqrt( (K_z-K_x)*(K_z-K_y) )  - for m // z
+      ! where K_x = J_ii^xx/2 ; K_y = J_ii^yy/2 ; K_z = J_ii^zz/2
+      ! K > 0 - easy axis ; K < 0 - hard axis
+        if(i==j) then
+          write(outputunit,"(3x,' ************** Magnetization components: ) *************')")
+          write(outputunit,"(4x,'Mx (',i2.0,')=',f11.8,4x,'My (',i2.0,')=',f11.8,4x,'Mz (',i2.0,')=',f11.8)") i,mx(i),i,my(i),i,mz(i)
+          write(outputunit,"(' |--------------- i = ',i0,'   j = ',i0,': anisotropies ---------------|')") mmlayermag(i),mmlayermag(j)
+        else
+          write(outputunit,"(' |----------- i = ',i0,'   j = ',i0,': exchange couplings -------------|')") mmlayermag(i),mmlayermag(j)
+        end if
+        write(outputunit,"('             x                  y                  z')")
+        write(outputunit,"('  x  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,1,1),Jij(i,j,1,2),Jij(i,j,1,3)
+        write(outputunit,"('  y  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,2,1),Jij(i,j,2,2),Jij(i,j,2,3)
+        write(outputunit,"('  z  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,3,1),Jij(i,j,3,2),Jij(i,j,3,3)
+      end do
+    end do
     if(nmaglayers>1) write(outputunit,"('  *** Symmetric and antisymmetric exchange interactions:  ***')")
-    do i=1,nmaglayers ; do j=1,nmaglayers
-      if(i==j) cycle
-      write(outputunit,"(' |--------------------- i = ',i0,'   j = ',i0,' -----------------------|')") mmlayermag(i),mmlayermag(j)
-    ! Writing Heisenberg exchange interactions
-      write(outputunit,"('     Isotropic:     J     = ',es16.9)") trJij(i,j)
-      write(outputunit,"('   Anisotropic:     Js_xx = ',es16.9)") Jijs(i,j,1,1)
-      write(outputunit,"('                    Js_yy = ',es16.9)") Jijs(i,j,2,2)
-      write(outputunit,"('  DMI: Dz = (Jxy - Jyx)/2 = ',es16.9)") Jija(i,j,1,2)
-      write(outputunit,"(' --------- z components of Jij  ---------')")
-      write(outputunit,"('  Anisotropic:  Js_zz = ',es16.9)") Jijs(i,j,3,3)
-      write(outputunit,"('  DMI: Dy = (Jzx - Jxz)/2 = ',es16.9)") -Jija(i,j,1,3)
-      write(outputunit,"('  DMI: Dx = (Jyz - Jzy)/2 = ',es16.9)") Jija(i,j,2,3)
-    end do ; end do
+    do i=1,nmaglayers
+      do j=1,nmaglayers
+        if(i==j) cycle
+        write(outputunit,"(' |--------------------- i = ',i0,'   j = ',i0,' -----------------------|')") mmlayermag(i),mmlayermag(j)
+      ! Writing Heisenberg exchange interactions
+        write(outputunit,"('     Isotropic:     J     = ',es16.9)") trJij(i,j)
+        write(outputunit,"('   Anisotropic:     Js_xx = ',es16.9)") Jijs(i,j,1,1)
+        write(outputunit,"('                    Js_yy = ',es16.9)") Jijs(i,j,2,2)
+        write(outputunit,"('  DMI: Dz = (Jxy - Jyx)/2 = ',es16.9)") Jija(i,j,1,2)
+        write(outputunit,"(' --------- z components of Jij  ---------')")
+        write(outputunit,"('  Anisotropic:  Js_zz = ',es16.9)") Jijs(i,j,3,3)
+        write(outputunit,"('  DMI: Dy = (Jzx - Jxz)/2 = ',es16.9)") -Jija(i,j,1,3)
+        write(outputunit,"('  DMI: Dx = (Jyz - Jzy)/2 = ',es16.9)") Jija(i,j,2,3)
+      end do
+    end do
 
     ! Writing into files
     ! Exchange interactions
@@ -98,13 +105,13 @@ subroutine coupling()
         iw = 199+(j-1)*nmaglayers*2+(i-1)*2
         if(i==j) then
           iw = iw + 1
-          write(unit=iw,fmt="(4x,i3,3x,3(es16.9,2x))") Npl_input,Jij(i,j,1,1),Jij(i,j,2,2),Jij(i,j,3,3)
+          write(unit=iw,fmt="(4x,i3,3x,3(es16.9,2x))") s%nAtoms,Jij(i,j,1,1),Jij(i,j,2,2),Jij(i,j,3,3)
           iw = iw + 1
         else
           iw = iw + 1
-          write(unit=iw,fmt="(4x,i3,3x,4(es16.9,2x))") Npl_input,trJij(i,j),Jijs(i,j,1,1),Jijs(i,j,2,2),Jijs(i,j,3,3)
+          write(unit=iw,fmt="(4x,i3,3x,4(es16.9,2x))") s%nAtoms,trJij(i,j),Jijs(i,j,1,1),Jijs(i,j,2,2),Jijs(i,j,3,3)
           iw = iw + 1
-          write(unit=iw,fmt="(4x,i3,3x,es16.9,2x)") Npl_input,Jija(i,j,1,2)
+          write(unit=iw,fmt="(4x,i3,3x,es16.9,2x)") s%nAtoms,Jija(i,j,1,2)
         end if
       end do
     end do

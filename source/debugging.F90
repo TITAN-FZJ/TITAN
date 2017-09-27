@@ -20,13 +20,13 @@ subroutine debugging()
 
 !   write(*,*) 'Hamiltonian:'
   mz    = 2.d0
-  mp  = zero
+  mp  = cZero
   mm  = conjg(mp)
   ! Variables used in the hamiltonian
   eps1 = 0.d0
   hdel  = 0.d0
-  hdelp = zero
-  hdelm = zero
+  hdelp = cZero
+  hdelm = cZero
   hdel(1:Npl)   = 0.5d0*U*mz
   hdelp(1:Npl)  = 0.5d0*U*mp
   hdelm(1:Npl)  = 0.5d0*U*mm
@@ -81,13 +81,13 @@ subroutine debugging()
 
 !   write(*,*) 'Hamiltonian:'
 !   mz    = 0.5d0
-!   mp  = zero
+!   mp  = cZero
 !   mm  = conjg(mp)
 !   ! Variables used in the hamiltonian
 !   eps1 = 0.d0
 !   hdel  = 0.d0
-!   hdelp = zero
-!   hdelm = zero
+!   hdelp = cZero
+!   hdelm = cZero
 !   hdel(2:Npl+1)   = 0.5d0*U*mz
 !   hdelp(2:Npl+1)  = 0.5d0*U*mp
 !   hdelm(2:Npl+1)  = 0.5d0*U*mm
@@ -252,111 +252,111 @@ subroutine debugging()
 !       j0 = (j-1)*18+1
 !       j1 = j0+17
 !       if(sum(abs(hk(i0:i1,j0:j1)))>1.d-10) then
-!         write(*,*) 'Non zero values out-of tri-diagonal part!'
+!         write(*,*) 'Non cZero values out-of tri-diagonal part!'
 !       end if
 !     end if
 !   end do ; end do
 
 ! !   do i=1,(Npl+2)*18 ; do j=1,(Npl+2)*18
-! !     if((mod(i,9)==1).and.(mod(j,9)==1)) hk(i,j) = zero !ss
+! !     if((mod(i,9)==1).and.(mod(j,9)==1)) hk(i,j) = cZero !ss
 
-! !     if((mod(i,9)==1).and.(mod(j,9)==2)) hk(i,j) = zero !sp
-! !     if((mod(i,9)==1).and.(mod(j,9)==3)) hk(i,j) = zero !sp
-! !     if((mod(i,9)==1).and.(mod(j,9)==4)) hk(i,j) = zero !sp
+! !     if((mod(i,9)==1).and.(mod(j,9)==2)) hk(i,j) = cZero !sp
+! !     if((mod(i,9)==1).and.(mod(j,9)==3)) hk(i,j) = cZero !sp
+! !     if((mod(i,9)==1).and.(mod(j,9)==4)) hk(i,j) = cZero !sp
 
-! !     if((mod(i,9)==2).and.(mod(j,9)==1)) hk(i,j) = zero !ps
-! !     if((mod(i,9)==3).and.(mod(j,9)==1)) hk(i,j) = zero !ps
-! !     if((mod(i,9)==4).and.(mod(j,9)==1)) hk(i,j) = zero !ps
+! !     if((mod(i,9)==2).and.(mod(j,9)==1)) hk(i,j) = cZero !ps
+! !     if((mod(i,9)==3).and.(mod(j,9)==1)) hk(i,j) = cZero !ps
+! !     if((mod(i,9)==4).and.(mod(j,9)==1)) hk(i,j) = cZero !ps
 
-! !     if((mod(i,9)==2).and.(mod(j,9)==2)) hk(i,j) = zero !pp
-! !     if((mod(i,9)==2).and.(mod(j,9)==3)) hk(i,j) = zero !pp
-! !     if((mod(i,9)==2).and.(mod(j,9)==4)) hk(i,j) = zero !pp
+! !     if((mod(i,9)==2).and.(mod(j,9)==2)) hk(i,j) = cZero !pp
+! !     if((mod(i,9)==2).and.(mod(j,9)==3)) hk(i,j) = cZero !pp
+! !     if((mod(i,9)==2).and.(mod(j,9)==4)) hk(i,j) = cZero !pp
 
-! !     if((mod(i,9)==3).and.(mod(j,9)==2)) hk(i,j) = zero !pp
-! !     if((mod(i,9)==3).and.(mod(j,9)==3)) hk(i,j) = zero !pp
-! !     if((mod(i,9)==3).and.(mod(j,9)==4)) hk(i,j) = zero !pp
+! !     if((mod(i,9)==3).and.(mod(j,9)==2)) hk(i,j) = cZero !pp
+! !     if((mod(i,9)==3).and.(mod(j,9)==3)) hk(i,j) = cZero !pp
+! !     if((mod(i,9)==3).and.(mod(j,9)==4)) hk(i,j) = cZero !pp
 
-! !     if((mod(i,9)==4).and.(mod(j,9)==2)) hk(i,j) = zero !pp
-! !     if((mod(i,9)==4).and.(mod(j,9)==3)) hk(i,j) = zero !pp
-! !     if((mod(i,9)==4).and.(mod(j,9)==4)) hk(i,j) = zero !pp
+! !     if((mod(i,9)==4).and.(mod(j,9)==2)) hk(i,j) = cZero !pp
+! !     if((mod(i,9)==4).and.(mod(j,9)==3)) hk(i,j) = cZero !pp
+! !     if((mod(i,9)==4).and.(mod(j,9)==4)) hk(i,j) = cZero !pp
 
-! !     if((mod(i,9)==1).and.(mod(j,9)==5)) hk(i,j) = zero !sd
-! !     if((mod(i,9)==1).and.(mod(j,9)==6)) hk(i,j) = zero !sd
-! !     if((mod(i,9)==1).and.(mod(j,9)==7)) hk(i,j) = zero !sd
-! !     if((mod(i,9)==1).and.(mod(j,9)==8)) hk(i,j) = zero !sd
-! !     if((mod(i,9)==1).and.(mod(j,9)==0)) hk(i,j) = zero !sd
+! !     if((mod(i,9)==1).and.(mod(j,9)==5)) hk(i,j) = cZero !sd
+! !     if((mod(i,9)==1).and.(mod(j,9)==6)) hk(i,j) = cZero !sd
+! !     if((mod(i,9)==1).and.(mod(j,9)==7)) hk(i,j) = cZero !sd
+! !     if((mod(i,9)==1).and.(mod(j,9)==8)) hk(i,j) = cZero !sd
+! !     if((mod(i,9)==1).and.(mod(j,9)==0)) hk(i,j) = cZero !sd
 
-! !     if((mod(i,9)==5).and.(mod(j,9)==1)) hk(i,j) = zero !ds
-! !     if((mod(i,9)==6).and.(mod(j,9)==1)) hk(i,j) = zero !ds
-! !     if((mod(i,9)==7).and.(mod(j,9)==1)) hk(i,j) = zero !ds
-! !     if((mod(i,9)==8).and.(mod(j,9)==1)) hk(i,j) = zero !ds
-! !     if((mod(i,9)==0).and.(mod(j,9)==1)) hk(i,j) = zero !ds
+! !     if((mod(i,9)==5).and.(mod(j,9)==1)) hk(i,j) = cZero !ds
+! !     if((mod(i,9)==6).and.(mod(j,9)==1)) hk(i,j) = cZero !ds
+! !     if((mod(i,9)==7).and.(mod(j,9)==1)) hk(i,j) = cZero !ds
+! !     if((mod(i,9)==8).and.(mod(j,9)==1)) hk(i,j) = cZero !ds
+! !     if((mod(i,9)==0).and.(mod(j,9)==1)) hk(i,j) = cZero !ds
 
-! !     if((mod(i,9)==2).and.(mod(j,9)==5)) hk(i,j) = zero !pd
-! !     if((mod(i,9)==2).and.(mod(j,9)==6)) hk(i,j) = zero !pd
-! !     if((mod(i,9)==2).and.(mod(j,9)==7)) hk(i,j) = zero !pd
-! !     if((mod(i,9)==2).and.(mod(j,9)==8)) hk(i,j) = zero !pd
-! !     if((mod(i,9)==2).and.(mod(j,9)==0)) hk(i,j) = zero !pd
+! !     if((mod(i,9)==2).and.(mod(j,9)==5)) hk(i,j) = cZero !pd
+! !     if((mod(i,9)==2).and.(mod(j,9)==6)) hk(i,j) = cZero !pd
+! !     if((mod(i,9)==2).and.(mod(j,9)==7)) hk(i,j) = cZero !pd
+! !     if((mod(i,9)==2).and.(mod(j,9)==8)) hk(i,j) = cZero !pd
+! !     if((mod(i,9)==2).and.(mod(j,9)==0)) hk(i,j) = cZero !pd
 
-! !     if((mod(i,9)==3).and.(mod(j,9)==5)) hk(i,j) = zero !pd
-! !     if((mod(i,9)==3).and.(mod(j,9)==6)) hk(i,j) = zero !pd
-! !     if((mod(i,9)==3).and.(mod(j,9)==7)) hk(i,j) = zero !pd
-! !     if((mod(i,9)==3).and.(mod(j,9)==8)) hk(i,j) = zero !pd
-! !     if((mod(i,9)==3).and.(mod(j,9)==0)) hk(i,j) = zero !pd
+! !     if((mod(i,9)==3).and.(mod(j,9)==5)) hk(i,j) = cZero !pd
+! !     if((mod(i,9)==3).and.(mod(j,9)==6)) hk(i,j) = cZero !pd
+! !     if((mod(i,9)==3).and.(mod(j,9)==7)) hk(i,j) = cZero !pd
+! !     if((mod(i,9)==3).and.(mod(j,9)==8)) hk(i,j) = cZero !pd
+! !     if((mod(i,9)==3).and.(mod(j,9)==0)) hk(i,j) = cZero !pd
 
-! !     if((mod(i,9)==4).and.(mod(j,9)==5)) hk(i,j) = zero !pd
-! !     if((mod(i,9)==4).and.(mod(j,9)==6)) hk(i,j) = zero !pd
-! !     if((mod(i,9)==4).and.(mod(j,9)==7)) hk(i,j) = zero !pd
-! !     if((mod(i,9)==4).and.(mod(j,9)==8)) hk(i,j) = zero !pd
-! !     if((mod(i,9)==4).and.(mod(j,9)==0)) hk(i,j) = zero !pd
+! !     if((mod(i,9)==4).and.(mod(j,9)==5)) hk(i,j) = cZero !pd
+! !     if((mod(i,9)==4).and.(mod(j,9)==6)) hk(i,j) = cZero !pd
+! !     if((mod(i,9)==4).and.(mod(j,9)==7)) hk(i,j) = cZero !pd
+! !     if((mod(i,9)==4).and.(mod(j,9)==8)) hk(i,j) = cZero !pd
+! !     if((mod(i,9)==4).and.(mod(j,9)==0)) hk(i,j) = cZero !pd
 
-! !     if((mod(i,9)==5).and.(mod(j,9)==2)) hk(i,j) = zero !dp
-! !     if((mod(i,9)==6).and.(mod(j,9)==2)) hk(i,j) = zero !dp
-! !     if((mod(i,9)==7).and.(mod(j,9)==2)) hk(i,j) = zero !dp
-! !     if((mod(i,9)==8).and.(mod(j,9)==2)) hk(i,j) = zero !dp
-! !     if((mod(i,9)==0).and.(mod(j,9)==2)) hk(i,j) = zero !dp
+! !     if((mod(i,9)==5).and.(mod(j,9)==2)) hk(i,j) = cZero !dp
+! !     if((mod(i,9)==6).and.(mod(j,9)==2)) hk(i,j) = cZero !dp
+! !     if((mod(i,9)==7).and.(mod(j,9)==2)) hk(i,j) = cZero !dp
+! !     if((mod(i,9)==8).and.(mod(j,9)==2)) hk(i,j) = cZero !dp
+! !     if((mod(i,9)==0).and.(mod(j,9)==2)) hk(i,j) = cZero !dp
 
-! !     if((mod(i,9)==5).and.(mod(j,9)==3)) hk(i,j) = zero !dp
-! !     if((mod(i,9)==6).and.(mod(j,9)==3)) hk(i,j) = zero !dp
-! !     if((mod(i,9)==7).and.(mod(j,9)==3)) hk(i,j) = zero !dp
-! !     if((mod(i,9)==8).and.(mod(j,9)==3)) hk(i,j) = zero !dp
-! !     if((mod(i,9)==0).and.(mod(j,9)==3)) hk(i,j) = zero !dp
+! !     if((mod(i,9)==5).and.(mod(j,9)==3)) hk(i,j) = cZero !dp
+! !     if((mod(i,9)==6).and.(mod(j,9)==3)) hk(i,j) = cZero !dp
+! !     if((mod(i,9)==7).and.(mod(j,9)==3)) hk(i,j) = cZero !dp
+! !     if((mod(i,9)==8).and.(mod(j,9)==3)) hk(i,j) = cZero !dp
+! !     if((mod(i,9)==0).and.(mod(j,9)==3)) hk(i,j) = cZero !dp
 
-! !     if((mod(i,9)==5).and.(mod(j,9)==4)) hk(i,j) = zero !dp
-! !     if((mod(i,9)==6).and.(mod(j,9)==4)) hk(i,j) = zero !dp
-! !     if((mod(i,9)==7).and.(mod(j,9)==4)) hk(i,j) = zero !dp
-! !     if((mod(i,9)==8).and.(mod(j,9)==4)) hk(i,j) = zero !dp
-! !     if((mod(i,9)==0).and.(mod(j,9)==4)) hk(i,j) = zero !dp
+! !     if((mod(i,9)==5).and.(mod(j,9)==4)) hk(i,j) = cZero !dp
+! !     if((mod(i,9)==6).and.(mod(j,9)==4)) hk(i,j) = cZero !dp
+! !     if((mod(i,9)==7).and.(mod(j,9)==4)) hk(i,j) = cZero !dp
+! !     if((mod(i,9)==8).and.(mod(j,9)==4)) hk(i,j) = cZero !dp
+! !     if((mod(i,9)==0).and.(mod(j,9)==4)) hk(i,j) = cZero !dp
 
-! !     if((mod(i,9)==5).and.(mod(j,9)==5)) hk(i,j) = zero !dd
-! !     if((mod(i,9)==5).and.(mod(j,9)==6)) hk(i,j) = zero !dd
-! !     if((mod(i,9)==5).and.(mod(j,9)==7)) hk(i,j) = zero !dd
-! !     if((mod(i,9)==5).and.(mod(j,9)==8)) hk(i,j) = zero !dd
-! !     if((mod(i,9)==5).and.(mod(j,9)==0)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==5).and.(mod(j,9)==5)) hk(i,j) = cZero !dd
+! !     if((mod(i,9)==5).and.(mod(j,9)==6)) hk(i,j) = cZero !dd
+! !     if((mod(i,9)==5).and.(mod(j,9)==7)) hk(i,j) = cZero !dd
+! !     if((mod(i,9)==5).and.(mod(j,9)==8)) hk(i,j) = cZero !dd
+! !     if((mod(i,9)==5).and.(mod(j,9)==0)) hk(i,j) = cZero !dd
 
-! !     if((mod(i,9)==6).and.(mod(j,9)==5)) hk(i,j) = zero !dd
-! !     if((mod(i,9)==6).and.(mod(j,9)==6)) hk(i,j) = zero !dd
-! !     if((mod(i,9)==6).and.(mod(j,9)==7)) hk(i,j) = zero !dd
-! !     if((mod(i,9)==6).and.(mod(j,9)==8)) hk(i,j) = zero !dd
-! !     if((mod(i,9)==6).and.(mod(j,9)==0)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==6).and.(mod(j,9)==5)) hk(i,j) = cZero !dd
+! !     if((mod(i,9)==6).and.(mod(j,9)==6)) hk(i,j) = cZero !dd
+! !     if((mod(i,9)==6).and.(mod(j,9)==7)) hk(i,j) = cZero !dd
+! !     if((mod(i,9)==6).and.(mod(j,9)==8)) hk(i,j) = cZero !dd
+! !     if((mod(i,9)==6).and.(mod(j,9)==0)) hk(i,j) = cZero !dd
 
-! !     if((mod(i,9)==7).and.(mod(j,9)==5)) hk(i,j) = zero !dd
-! !     if((mod(i,9)==7).and.(mod(j,9)==6)) hk(i,j) = zero !dd
-! !     if((mod(i,9)==7).and.(mod(j,9)==7)) hk(i,j) = zero !dd
-! !     if((mod(i,9)==7).and.(mod(j,9)==8)) hk(i,j) = zero !dd
-! !     if((mod(i,9)==7).and.(mod(j,9)==0)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==7).and.(mod(j,9)==5)) hk(i,j) = cZero !dd
+! !     if((mod(i,9)==7).and.(mod(j,9)==6)) hk(i,j) = cZero !dd
+! !     if((mod(i,9)==7).and.(mod(j,9)==7)) hk(i,j) = cZero !dd
+! !     if((mod(i,9)==7).and.(mod(j,9)==8)) hk(i,j) = cZero !dd
+! !     if((mod(i,9)==7).and.(mod(j,9)==0)) hk(i,j) = cZero !dd
 
-! !     if((mod(i,9)==8).and.(mod(j,9)==5)) hk(i,j) = zero !dd
-! !     if((mod(i,9)==8).and.(mod(j,9)==6)) hk(i,j) = zero !dd
-! !     if((mod(i,9)==8).and.(mod(j,9)==7)) hk(i,j) = zero !dd
-! !     if((mod(i,9)==8).and.(mod(j,9)==8)) hk(i,j) = zero !dd
-! !     if((mod(i,9)==8).and.(mod(j,9)==0)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==8).and.(mod(j,9)==5)) hk(i,j) = cZero !dd
+! !     if((mod(i,9)==8).and.(mod(j,9)==6)) hk(i,j) = cZero !dd
+! !     if((mod(i,9)==8).and.(mod(j,9)==7)) hk(i,j) = cZero !dd
+! !     if((mod(i,9)==8).and.(mod(j,9)==8)) hk(i,j) = cZero !dd
+! !     if((mod(i,9)==8).and.(mod(j,9)==0)) hk(i,j) = cZero !dd
 
-! !     if((mod(i,9)==0).and.(mod(j,9)==5)) hk(i,j) = zero !dd
-! !     if((mod(i,9)==0).and.(mod(j,9)==6)) hk(i,j) = zero !dd
-! !     if((mod(i,9)==0).and.(mod(j,9)==7)) hk(i,j) = zero !dd
-! !     if((mod(i,9)==0).and.(mod(j,9)==8)) hk(i,j) = zero !dd
-! !     if((mod(i,9)==0).and.(mod(j,9)==0)) hk(i,j) = zero !dd
+! !     if((mod(i,9)==0).and.(mod(j,9)==5)) hk(i,j) = cZero !dd
+! !     if((mod(i,9)==0).and.(mod(j,9)==6)) hk(i,j) = cZero !dd
+! !     if((mod(i,9)==0).and.(mod(j,9)==7)) hk(i,j) = cZero !dd
+! !     if((mod(i,9)==0).and.(mod(j,9)==8)) hk(i,j) = cZero !dd
+! !     if((mod(i,9)==0).and.(mod(j,9)==0)) hk(i,j) = cZero !dd
 ! !   end do ; end do
 
 

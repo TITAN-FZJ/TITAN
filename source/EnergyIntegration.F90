@@ -13,18 +13,43 @@ module EnergyIntegration
 ! Energy integration variables
 ! Number of parts to divide energy integral I1+I2 and I3
   integer :: nepoints
-  real(double),allocatable      :: x2(:),p2(:)
-  real(double),allocatable      :: y(:),wght(:)
+  real(double), allocatable :: y(:)
+  !! Energy integration points along imaginary axis
+  real(double), allocatable :: wght(:)
+  !! Weights of energy integration points along imaginary axis
+
+  real(double), allocatable :: x2(:)
+  !! Energy integration points along real axis
+  real(double), allocatable :: p2(:)
+  !! Weights of energy integration points along real axis
 
 contains
-  !-- Generating integration points of the complex energy integral --
+
+  subroutine allocate_energy_points()
+  !! Allocating arrays for real and imaginary energy integrations
+    use mod_mpi_pars, only: abortProgram
+    implicit none
+    integer :: AllocateStatus
+    allocate( y(pn1), &
+              wght(pn1), &
+              x2(pn2), &
+              p2(pn2), STAT = AllocateStatus )
+    if(AllocateStatus/=0) call abortProgram("[allocate_energy_points] Not enough memory for: x1, p1, y, wght, x2, p2")
+    return
+  end subroutine allocate_energy_points
+
   subroutine generate_imag_epoints()
+  !! Generating integration points of the complex energy integral
+  !! Generates points from eta until infinity
+    use mod_mpi_pars, only: abortProgram
     implicit none
     integer                       :: i,j,k,AllocateStatus
     real(double)                  :: e1,e2,et1,xx
     real(double),allocatable      :: x1(:),p1(:)
 
-    allocate( x1(pn1), p1(pn1), y(pn1), wght(pn1), STAT = AllocateStatus )
+    allocate(x1(pn1),p1(pn1), STAT=AllocateStatus)
+    if(AllocateStatus/=0) call abortProgram("[generate_imag_epoints] Not enough memory: x1,p1")
+
     do k=parts,1,-1
       if(parts/=1)then
         if(k==1) then
@@ -55,14 +80,14 @@ contains
     return
   end subroutine generate_imag_epoints
 
-  ! Generating energy points in the real axis for third integration
   subroutine generate_real_epoints(e)
+  !! Generating energy points in the real axis for third integration
+  !! Generates points from Ef-e to Ef
     implicit none
-    integer                       :: i,j,k,AllocateStatus
-    real(double)                  :: e1,e2
-    real(double),intent(in)       :: e
-
-    allocate( x2(pn2),p2(pn2), STAT = AllocateStatus )
+    real(double),intent(in) :: e
+    !! Energy defining the lower boundary [Ef-e,Ef]
+    integer :: i,j,k
+    real(double) :: e1,e2
 
     if (abs(e)>=1.d-10) then
       nepoints = pnt

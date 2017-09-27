@@ -102,6 +102,7 @@ contains
   subroutine sumk_idia(e,ep,Idia)
     use mod_f90_kind
     use mod_constants
+    use TightBinding
     use mod_parameters, only: Npl,llineargfsoc, outputunit
     use mod_system,     only: n0sc1, n0sc2, r_nn, nkpt, kbz, wkbz
     !use mod_generate_kpoints
@@ -114,14 +115,14 @@ contains
     complex(double) :: expikr(n0sc1:n0sc2)
     real(double),intent(in)    :: e,ep
     real(double),dimension(n0sc1:n0sc2,Npl),intent(out) :: Idia
-    complex(double),dimension(Npl,Npl,18,18)            :: gf
-    complex(double),dimension(Npl,Npl,9,9)              :: dtdk
-    complex(double),dimension(n0sc1:n0sc2,Npl,9,9)      :: pij
-    complex(double),dimension(n0sc1:n0sc2,Npl,18,18)    :: gij,gji
+    complex(double),dimension(Npl,Npl,nOrb2,nOrb2)            :: gf
+    complex(double),dimension(nOrb,nOrb,Npl,Npl)              :: dtdk
+    complex(double),dimension(n0sc1:n0sc2,Npl,nOrb,nOrb)      :: pij
+    complex(double),dimension(n0sc1:n0sc2,Npl,nOrb2,nOrb2)    :: gij,gji
 
-    pij = zero
-    gji = zero
-    gij = zero
+    pij = cZero
+    gji = cZero
+    gij = cZero
 
 !$omp parallel default(none) &
 !$omp& private(mythread,neighbor,iz,kp,i,dtdk,expikr,gf) &
@@ -137,7 +138,7 @@ contains
       kp = kbz(:,iz)
 
       do neighbor=n0sc1,n0sc2
-        expikr(neighbor) = exp(-zi*dot_product(kp, r_nn(:,neighbor)))
+        expikr(neighbor) = exp(-cI*dot_product(kp, r_nn(:,neighbor)))
       end do
 
       ! Calculating derivative of in-plane and n.n. inter-plane hoppings
@@ -152,19 +153,19 @@ contains
 
       do neighbor=n0sc1,n0sc2
         do i=1,Npl
-          pij(neighbor,i,:,:) = pij(neighbor,i,:,:) + expikr(neighbor)*dtdk(i,i,:,:)*wkbz(iz)
-          gij(neighbor,i,:,:) = gij(neighbor,i,:,:) + expikr(neighbor)*gf(i,i,:,:)*wkbz(iz)
-          gji(neighbor,i,:,:) = gji(neighbor,i,:,:) + conjg(expikr(neighbor))*gf(i,i,:,:)*wkbz(iz)
+          pij(neighbor,i,:,:) = pij(neighbor,i,:,:) + expikr(neighbor)*dtdk(:,:,i,i)*wkbz(iz)
+          gij(neighbor,i,:,:) = gij(neighbor,i,:,:) + expikr(neighbor)*gf(:,:,i,i)*wkbz(iz)
+          gji(neighbor,i,:,:) = gji(neighbor,i,:,:) + conjg(expikr(neighbor))*gf(:,:,i,i)*wkbz(iz)
         end do
       end do
 
   !       !$omp critical
   !       do neighbor=n0sc1,n0sc2 ; do i=1,Npl ; do mu=1,9 ; do nu=1,9
-  !         pij(neighbor,i,mu,nu) = pij(neighbor,i,mu,nu) + expikr(neighbor)*dtdk(i,i,mu,nu)*wkbz(iz)
+  !         pij(neighbor,i,mu,nu) = pij(neighbor,i,mu,nu) + expikr(neighbor)*dtdk(mu,nu,i,i)*wkbz(iz)
   !       end do ; end do ; end do ; end do
   !       do neighbor=n0sc1,n0sc2 ; do i=1,Npl ; do mu=1,18 ; do nu=1,18
-  !         gij(neighbor,i,mu,nu) = gij(neighbor,i,mu,nu) + conjg(expikr(neighbor))*gf(i,i,mu,nu)*wkbz(iz)
-  !         gji(neighbor,i,mu,nu) = gji(neighbor,i,mu,nu) + expikr(neighbor)*gf(i,i,mu,nu)*wkbz(iz)
+  !         gij(neighbor,i,mu,nu) = gij(neighbor,i,mu,nu) + conjg(expikr(neighbor))*gf(mu,nu,i,i)*wkbz(iz)
+  !         gji(neighbor,i,mu,nu) = gji(neighbor,i,mu,nu) + expikr(neighbor)*gf(mu,nu,i,i)*wkbz(iz)
   !       end do ; end do ; end do ; end do
   !       !$omp end critical
 
@@ -198,7 +199,7 @@ contains
           do nu=1,9
             mup = mu+9
             nup = nu+9
-            ! Idia(neighbor,i) = Idia(neighbor,i) + zi*pij(neighbor,i,mu,nu)*aimag(gij(neighbor,i,nu,mu)+gji(neighbor,i,mu,nu)+gij(neighbor,i,nup,mup)+gji(neighbor,i,mup,nup))
+            ! Idia(neighbor,i) = Idia(neighbor,i) + cI*pij(neighbor,i,mu,nu)*aimag(gij(neighbor,i,nu,mu)+gji(neighbor,i,mu,nu)+gij(neighbor,i,nup,mup)+gji(neighbor,i,mup,nup))
             Idia(neighbor,i) = Idia(neighbor,i) + real(pij(neighbor,i,mu,nu)*( (gji(neighbor,i,nu,mu)+gij(neighbor,i,mu,nu)) + (gji(neighbor,i,nup,mup)+gij(neighbor,i,mup,nup)) ))/pi
           end do
         end do

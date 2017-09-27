@@ -11,7 +11,7 @@ module mod_define_system
 contains
 
   subroutine define_system()
-    use mod_parameters, only: Npl,mmlayer,set1,set2,outputunit,naddlayers,addlayers,Npl_input,Npl_folder
+    use mod_parameters, only: Npl,mmlayer,set1,set2,outputunit,naddlayers,addlayers,Npl_input,strSites
     use mod_mpi_pars
   implicit none
   integer :: i,j,ios,set1g,set2g
@@ -53,11 +53,11 @@ contains
     end if
   end do
 
-!  write(Npl_folder,fmt="(i0,'Npl')") Npl_input
+!  write(strSites,fmt="(i0,'Npl')") Npl_input
 
   do i=1,naddlayers
     mmlayer(Npl_input+i+1) = addlayers(i)
-    write(Npl_folder,fmt="(a,'_',i0)") trim(Npl_folder),addlayers(i)
+    write(strSites,fmt="(a,'_',i0)") trim(strSites),addlayers(i)
   end do
 
 !   write(outputunit,"(20(2x,i0))") (mmlayer(i),i=1,Npl+2)

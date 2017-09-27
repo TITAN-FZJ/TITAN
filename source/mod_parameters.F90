@@ -18,8 +18,8 @@ module mod_parameters
   !========================================================================================!
   ! Lattice and surface direction
   character(len=6) :: latticeName                   !< Lattice description; general or bcc, fcc, hcp, cubic
-  integer          :: Npl,Npl_i,Npl_f,Npl_input !< Description missing.
-  integer          :: Npl_total
+  !integer          :: Npl,Npl_i,Npl_f,Npl_input !< Description missing.
+  !integer          :: Npl_total
   logical          :: bulk = .false.            !< Flag turning on/off bulk calculations, default: .false., not used yet
   !========================================================================================!
   integer            :: magaxis                   !< Initial guess for magnetization
@@ -30,7 +30,7 @@ module mod_parameters
 
   !========================================================================================!
   ! Number of parts to divide energy integral I1+I2 and I3
-  real(double) :: tol
+  real(double) :: mag_tol
   !========================================================================================!
   ! Band structure
   character(len=5), dimension(:), allocatable :: bands
@@ -56,6 +56,7 @@ module mod_parameters
   logical :: lpositions     = .false.
   logical :: ltesla         = .false.
   logical :: lcreatefiles   = .false.
+  logical :: lcreatefolders = .false.
   logical :: laddresults    = .false.
   logical :: lGSL           = .false.
   logical :: lslatec        = .false.
@@ -129,7 +130,7 @@ module mod_parameters
   integer :: set1,set2
   ! Layers to add after set2 (maximum of 10) - Must include empty spheres on the list
   integer :: addlayers(10),naddlayers=0
-  character(len=50) :: Npl_folder
+  character(len=50) :: strSites
   !========================================================================================!
   integer :: offset = 0
 

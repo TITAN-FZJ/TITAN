@@ -1,0 +1,10 @@
+src_dir: source
+exclude_dir: build
+exclude_dir: example
+exclude_dir: bin
+exclude_dir: doc
+out_dir: ./
+project: TITAN
+graph: true
+preprocess: true
+project_website: https://iffgit.fz-juelich.de/titan/TITAN/

@@ -32,28 +32,38 @@ end subroutine initConversionMatrices
 
 ! This subroutine allocates variables that depend on Npl
 subroutine allocate_Npl_variables(nAtoms)
-  use mod_parameters, only: mmlayermag, U, layertype, mmlayer
-  use mod_magnet, only: eps1, mx, my, mz, mvec_cartesian, mvec_spherical, hdel, mp, &
-                        lptheta, lpabs, lphi, ltheta, labs, mm, hdelm, mabs, mtheta, &
-                        mphi, lpphi, hdelp
+  use mod_f90_kind, only: double
+  use mod_parameters, only: mmlayermag, U, layertype, mmlayer, nmaglayers
   use TightBinding, only: nOrb
   use mod_mpi_pars, only: abortProgram
   implicit none
   integer, intent(in) :: nAtoms
+  real(double) :: U_tmp
   integer :: AllocateStatus
+  integer :: i
 
-  allocate(eps1(nAtoms), STAT = AllocateStatus )
-  if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: eps1")
+  if(size(U) == 1) then
+    U_tmp = U(1)
+    deallocate(U)
+    allocate(U(nAtoms))
+    U = U_tmp
+  else if(size(U) /= nAtoms) then
+    call abortProgram("[allocate_Npl_variables] U has wrong size")
+  end if
 
-  allocate( mx(nAtoms),my(nAtoms),mz(nAtoms),mvec_cartesian(nAtoms,3),mvec_spherical(nAtoms,3),hdel(nAtoms),mp(nAtoms),hdelp(nAtoms),mm(nAtoms),hdelm(nAtoms), STAT = AllocateStatus )
-  if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mx,my,mz,mvec_cartesian,mvec_spherical,hdel,mp,hdelp,mm,hdelm")
 
-  allocate( mabs(nAtoms),mtheta(nAtoms),mphi(nAtoms),labs(nAtoms),ltheta(nAtoms),lphi(nAtoms),lpabs(nAtoms),lptheta(nAtoms),lpphi(nAtoms), STAT = AllocateStatus )
-  if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mabs,mtheta,mphi,labs,ltheta,lphi,lpabs,lptheta,lpphi")
+  allocate( mmlayer(nAtoms),layertype(nAtoms),mmlayermag(nAtoms), STAT = AllocateStatus )
+  if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mmlayer,layertype,mmlayermag,lambda,npart0")
 
-  allocate( mmlayer(nAtoms),layertype(nAtoms),U(nAtoms),mmlayermag(nAtoms), STAT = AllocateStatus )
-  if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mmlayer,layertype,U,mmlayermag,lambda,npart0")
-
+  do i = 1, nAtoms
+    if(abs(U(i)) > 1.d-9) then
+      layertype(i) = 2
+      nmaglayers = nmaglayers + 1
+      mmlayermag(nmaglayers) = i
+    else
+      layertype(i) = 0
+    end if
+  end do
   ! pln_cnt(1) contains # of in-plane neighbors TODO: Re-Include
   ! allocate(sha_longitudinal(pln_cnt(1)),sha_transverse(pln_cnt(1)),long_cos(pln_cnt(1)),transv_cos(pln_cnt(1)))
   ! if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: sha_longitudinal,sha_transverse,long_cos,transv_cos")
@@ -63,16 +73,14 @@ end subroutine allocate_Npl_variables
 
 ! This subroutine allocates variables that depend on Npl
 subroutine deallocate_Npl_variables()
-  use mod_parameters
-  use mod_magnet
+  use mod_parameters, only: sigmai2i, sigmaimunu2i, sigmaijmunu2i, mmlayer, layertype, U, mmlayermag
+  use mod_magnet, only: deallocate_magnet_variables
   implicit none
 
-  deallocate(sigmai2i,sigmaimunu2i,sigmaijmunu2i,eps1)
-  deallocate(mx,my,mz,mvec_cartesian,mvec_spherical,hdel,mp,hdelp,mm,hdelm)
-  deallocate(mabs,mtheta,mphi,labs,ltheta,lphi,lpabs,lptheta,lpphi)
-  if(lGSL) deallocate(lxm,lym,lzm,lxpm,lypm,lzpm)
+  call deallocate_magnet_variables()
+
+  deallocate(sigmai2i,sigmaimunu2i,sigmaijmunu2i)
   deallocate(mmlayer,layertype,U,mmlayermag)
-  deallocate(hhwx,hhwy,hhwz,sb,lb)
   !deallocate(t0, t0i)
   !deallocate(sha_longitudinal,sha_transverse,long_cos,transv_cos)
 

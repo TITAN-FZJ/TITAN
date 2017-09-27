@@ -8,7 +8,7 @@ contains
   subroutine do_self_consistency()
     use mod_f90_kind, only: double
     use mod_constants, only: pi
-    use mod_parameters, only: outputunit_loop, lslatec, lnojac, tol
+    use mod_parameters, only: outputunit_loop, lslatec, lnojac, mag_tol
     use mod_magnet, only: eps1, mx, my, mz, mabs, mtheta, mphi, mvec_cartesian, mvec_spherical, &
                           hw_count, iter
     use mod_mpi_pars, only: myrank_row_hw,mpitag
@@ -17,11 +17,13 @@ contains
     use mod_susceptibilities, only: lrot
     implicit none
     real(double),allocatable      :: fvec(:),jac(:,:),wa(:),sc_solu(:)
-    real(double),allocatable      :: diag(:),qtf(:),w(:,:)
+    real(double),allocatable      :: diag(:),qtf(:)
     real(double)                  :: epsfcn,factor
 #if !defined(_OSX) && !defined(_JUQUEEN)
     real(double)                  :: ruser(1)
     integer                       :: iuser(1)
+#else
+    real(double),allocatable :: w(:,:)
 #endif
     integer                       :: i,neq,maxfev,ml,mr,mode,nfev,njev,lwa,ifail=0
 
@@ -43,31 +45,31 @@ contains
       lwa=neq*(3*neq+13)/2
       allocate( wa(lwa),w(neq,4) )
       if(lnojac) then
-        call dnsqe(sc_eqs_old,sc_jac_old,2,neq,sc_solu,fvec,tol,0,ifail,wa,lwa)
+        call dnsqe(sc_eqs_old,sc_jac_old,2,neq,sc_solu,fvec,mag_tol,0,ifail,wa,lwa)
       else
-        call dnsqe(sc_eqs_old,sc_jac_old,1,neq,sc_solu,fvec,tol,0,ifail,wa,lwa)
+        call dnsqe(sc_eqs_old,sc_jac_old,1,neq,sc_solu,fvec,mag_tol,0,ifail,wa,lwa)
       end if
       ifail = ifail-1
     else
       lwa=neq*(neq+1)/2
       allocate( wa(lwa),w(neq,4) )
       if(lnojac) then
-!         call c05nbf(sc_equations,neq,sc_solu,fvec,tol,wa,lwa,ifail)
+!         call c05nbf(sc_equations,neq,sc_solu,fvec,mag_tol,wa,lwa,ifail)
         maxfev = 200*(neq+1)
         ml = neq-1
         mr = neq-1
         epsfcn = 1.d-5
         mode = 1
         factor = 100.d0
-        call c05ncf(sc_eqs_old,neq,sc_solu,fvec,tol,maxfev,ml,mr,epsfcn,diag,mode,factor,0,nfev,jac,neq,wa,lwa,qtf,w,ifail)
+        call c05ncf(sc_eqs_old,neq,sc_solu,fvec,mag_tol,maxfev,ml,mr,epsfcn,diag,mode,factor,0,nfev,jac,neq,wa,lwa,qtf,w,ifail)
       else
-!         call c05pbf(sc_equations_and_jacobian,neq,sc_solu,fvec,jac,neq,tol,wa,lwa,ifail)
+!         call c05pbf(sc_equations_and_jacobian,neq,sc_solu,fvec,jac,neq,mag_tol,wa,lwa,ifail)
         maxfev = 100*(neq+1)
         mode = 1
         diag = 1.d0
 !         diag(Npl+1:4*Npl) = 100.d0
         factor = 100.d0
-        call c05pcf(sc_eqs_and_jac_old,neq,sc_solu,fvec,jac,neq,tol,maxfev,diag,mode,factor,0,nfev,njev,wa,lwa,qtf,w,ifail)
+        call c05pcf(sc_eqs_and_jac_old,neq,sc_solu,fvec,jac,neq,mag_tol,maxfev,diag,mode,factor,0,nfev,njev,wa,lwa,qtf,w,ifail)
       end if
     end if
     deallocate( w )
@@ -76,9 +78,9 @@ contains
       lwa=neq*(3*neq+13)/2
       allocate( wa(lwa) )
       if(lnojac) then
-        call dnsqe(sc_eqs_old,sc_jac_old,2,neq,sc_solu,fvec,tol,0,ifail,wa,lwa)
+        call dnsqe(sc_eqs_old,sc_jac_old,2,neq,sc_solu,fvec,mag_tol,0,ifail,wa,lwa)
       else
-        call dnsqe(sc_eqs_old,sc_jac_old,1,neq,sc_solu,fvec,tol,0,ifail,wa,lwa)
+        call dnsqe(sc_eqs_old,sc_jac_old,1,neq,sc_solu,fvec,mag_tol,0,ifail,wa,lwa)
       end if
       ifail = ifail-1
     else
@@ -91,14 +93,14 @@ contains
         epsfcn = 1.d-5
         mode = 1
         factor = 100.d0
-        call c05qcf(sc_equations,neq,sc_solu,fvec,tol,maxfev,ml,mr,epsfcn,mode,diag,factor,0,nfev,jac,wa,qtf,iuser,ruser,ifail)
+        call c05qcf(sc_equations,neq,sc_solu,fvec,mag_tol,maxfev,ml,mr,epsfcn,mode,diag,factor,0,nfev,jac,wa,qtf,iuser,ruser,ifail)
       else
         maxfev = 100*(neq+1)
         mode = 1
         diag = 1.d0
 !         diag(npl+1:4*npl) = 100.d0
         factor = 100.d0
-        call c05rcf(sc_equations_and_jacobian,neq,sc_solu,fvec,jac,tol,maxfev,mode,diag,factor,0,nfev,njev,wa,qtf,iuser,ruser,ifail)
+        call c05rcf(sc_equations_and_jacobian,neq,sc_solu,fvec,jac,mag_tol,maxfev,mode,diag,factor,0,nfev,njev,wa,qtf,iuser,ruser,ifail)
       end if
     end if
 #endif
@@ -133,12 +135,13 @@ contains
   subroutine calcMagnetization(n, mx, my, mz, mp, size)
     !! Calculates occupation density and magnetization.
     use mod_f90_kind, only: double
-    use mod_constants, only: zi, pi, zero
+    use mod_constants, only: cI, pi, cZero
     use mod_parameters, only: Ef
     use mod_SOC, only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: pn1, y, wght
     use mod_system, only: s => sys
-    use TightBinding, only: nOrb
+    use mod_BrillouinZone, only: BZ
+    use TightBinding, only: nOrb,nOrb2
     use mod_mpi_pars
     !$  use omp_lib
     implicit none
@@ -176,38 +179,38 @@ contains
 
     n_orb_u = 0.d0
     n_orb_d = 0.d0
-    mp = zero
+    mp = cZero
 
     gdiaguur= 0.d0
     gdiagddr= 0.d0
-    gdiagud = zero
-    gdiagdu = zero
+    gdiagud = cZero
+    gdiagdu = cZero
 
     !$omp parallel default(none) &
     !$omp& private(ix,iz,kp,i,mu,mup,gf,gf_loc) &
-    !$omp& shared(llineargfsoc,llinearsoc,start,end,wght,s,Ef,y,gdiaguur,gdiagddr,gdiagud,gdiagdu)
-    allocate(gf    (s%nAtoms,s%nAtoms,2*nOrb,2*nOrb))
-    allocate(gf_loc(s%nAtoms,s%nAtoms,2*nOrb,2*nOrb))
-    gf = zero
-    gf_loc = zero
+    !$omp& shared(llineargfsoc,llinearsoc,start,end,wght,s,BZ,Ef,y,gdiaguur,gdiagddr,gdiagud,gdiagdu)
+    allocate(gf    (nOrb2,nOrb2,s%nAtoms,s%nAtoms))
+    allocate(gf_loc(nOrb2,nOrb2,s%nAtoms,s%nAtoms))
+    gf = cZero
+    gf_loc = cZero
 
     if((llineargfsoc).or.(llinearsoc)) then
       !$omp do schedule(static) collapse(2)
       do ix = start, end
-        do iz = 1, s%nkpt
-          kp = s%kbz(:,iz)
+        do iz = 1, BZ%nkpt
+          kp = BZ%kp(1:3,iz)
           call greenlineargfsoc(Ef,y(ix),kp,gf_loc)
-          gf = gf + gf_loc*s%wkbz(iz)*wght(ix)
+          gf = gf + gf_loc*BZ%w(iz)*wght(ix)
         end do
       end do
       !$omp end do nowait
     else
       !$omp do schedule(static) collapse(2)
       do ix = start, end
-        do iz = 1, s%nkpt
-          kp = s%kbz(:,iz)
+        do iz = 1, BZ%nkpt
+          kp = BZ%kp(1:3,iz)
           call green(Ef,y(ix),kp,gf_loc)
-          gf = gf + gf_loc*s%wkbz(iz)*wght(ix)
+          gf = gf + gf_loc*BZ%w(iz)*wght(ix)
         end do
       end do
       !$omp end do nowait
@@ -216,10 +219,10 @@ contains
     do i=1,s%nAtoms
       do mu=1,nOrb
         mup = mu+nOrb
-        gdiaguur(i,mu) = gdiaguur(i,mu) + real(gf(i,i,mu,mu))
-        gdiagddr(i,mu) = gdiagddr(i,mu) + real(gf(i,i,mup,mup))
-        gdiagud(i,mu) = gdiagud(i,mu) + gf(i,i,mu,mup)
-        gdiagdu(i,mu) = gdiagdu(i,mu) + gf(i,i,mup,mu)
+        gdiaguur(i,mu) = gdiaguur(i,mu) + real(gf(mu,mu,i,i))
+        gdiagddr(i,mu) = gdiagddr(i,mu) + real(gf(mup,mup,i,i))
+        gdiagud(i,mu) = gdiagud(i,mu) + gf(mu,mup,i,i)
+        gdiagdu(i,mu) = gdiagdu(i,mu) + gf(mup,mu,i,i)
       end do
     end do
     !$omp end critical
@@ -254,18 +257,19 @@ contains
   subroutine calcJacobian(jacobian, N)
     !! Calculated the Jacobian of the spin magnetization
     use mod_f90_kind, only: double
-    use mod_constants, only: zi, pi, identorb18, zero, pauli_dorb, zum
+    use mod_constants, only: cI, pi, identorb18, cZero, pauli_dorb, cOne
     use mod_parameters, only: U, Ef, offset
     use mod_SOC, only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: pn1, y, wght
     use mod_system, only: s => sys
-    use TightBinding, only: nOrb
+    use mod_BrillouinZone, only: BZ
+    use TightBinding, only: nOrb,nOrb2
     use mod_mpi_pars
     !$  use omp_lib
     implicit none
     integer, intent(in) :: N
     real(double), intent(inout), dimension(N,N) :: jacobian
-    complex(double), dimension(s%nAtoms, s%nAtoms, 2*nOrb, 2*nOrb) :: gf,gvg
+    complex(double), dimension(nOrb2, nOrb2, s%nAtoms, s%nAtoms) :: gf,gvg
 
     integer :: i,j
     integer :: AllocateStatus
@@ -274,9 +278,9 @@ contains
     real(double) :: kp(3)
 
     complex(double) :: mhalfU(4,s%nAtoms), weight
-    complex(double), dimension(2*nOrb, 2*nOrb, 4) :: pauli_components1,pauli_components2
-    complex(double), dimension(2*nOrb, 2*nOrb, 4) :: temp1,temp2
-    complex(double), dimension(2*nOrb, 2*nOrb) :: gij,gji,temp,paulitemp
+    complex(double), dimension(nOrb2, nOrb2, 4) :: pauli_components1,pauli_components2
+    complex(double), dimension(nOrb2, nOrb2, 4) :: temp1,temp2
+    complex(double), dimension(nOrb2, nOrb2) :: gij,gji,temp,paulitemp
     complex(double), dimension(:,:,:,:,:,:), allocatable :: gdHdxg,gvgdHdxgvg
 
     !--------------------- begin MPI vars --------------------
@@ -300,8 +304,8 @@ contains
     ncount=s%nAtoms*9
     ncount2=N*N
 
-    pauli_components1 = zero
-    pauli_components2 = zero
+    pauli_components1 = cZero
+    pauli_components2 = cZero
 !   Includes d orbitals in the charge component
     pauli_components1(:,:,1) = identorb18(:,:)
     pauli_components1(:,:,2) = pauli_dorb(1,:,:)
@@ -316,7 +320,7 @@ contains
 
     ! Prefactor -U/2 in dH/dm and 1 in dH/deps1
     do i=1,s%nAtoms
-      mhalfU(1,i) = zum
+      mhalfU(1,i) = cOne
       mhalfU(2:4,i) = -0.5d0*U(i+offset)
     end do
 
@@ -324,17 +328,17 @@ contains
 
     !$omp parallel default(none) &
     !$omp& private(AllocateStatus,ix,iz,i,j,i0,j0,mu,sigma,sigmap,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp,gdHdxg,gvgdHdxgvg) &
-    !$omp& shared(llineargfsoc,llinearsoc,start,end,s,Ef,y,wght,mhalfU,pauli_components1,pauli_components2,jacobian)
-    allocate( gdHdxg(2*nOrb,2*nOrb,4,4,s%nAtoms,s%nAtoms), gvgdHdxgvg(2*nOrb,2*nOrb,4,4,s%nAtoms,s%nAtoms) , STAT = AllocateStatus  )
+    !$omp& shared(llineargfsoc,llinearsoc,start,end,s,BZ,Ef,y,wght,mhalfU,pauli_components1,pauli_components2,jacobian)
+    allocate( gdHdxg(nOrb2,nOrb2,4,4,s%nAtoms,s%nAtoms), gvgdHdxgvg(nOrb2,nOrb2,4,4,s%nAtoms,s%nAtoms) , STAT = AllocateStatus  )
     if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: gdHdxg,gvgdHdxgvg")
-    gdHdxg = zero
-    gvgdHdxgvg = zero
+    gdHdxg = cZero
+    gvgdHdxgvg = cZero
 
     !$omp do schedule(static) collapse(2)
     do ix = start, end
-      do iz=1,s%nkpt
-        kp = s%kbz(:,iz)
-        weight = cmplx(s%wkbz(iz), 0.d0) * wght(ix)
+      do iz=1,BZ%nkpt
+        kp = BZ%kp(1:3,iz)
+        weight = cmplx(BZ%w(iz), 0.d0) * wght(ix)
 
         ! Green function on energy Ef + iy, and wave vector kp
         if((llineargfsoc).or.(llinearsoc)) then
@@ -346,20 +350,20 @@ contains
 
         do j=1,s%nAtoms
           do i=1,s%nAtoms
-            gij = gf(i,j,:,:)
-            gji = gf(j,i,:,:)
+            gij = gf(:,:,i,j)
+            gji = gf(:,:,j,i)
 
             do sigma = 1,4
               ! temp1 =  pauli*g_ij
               paulitemp = pauli_components1(:,:, sigma)
-              call zgemm('n','n',18,18,18,zum,paulitemp,18,gij,18,zero,temp,18)
+              call zgemm('n','n',18,18,18,cOne,paulitemp,18,gij,18,cZero,temp,18)
               temp1(:,:, sigma) = temp
             end do
 
             do sigma = 1,4
               ! temp2 = (-U/2) * sigma* g_ji
               paulitemp = pauli_components2(:,:, sigma)
-              call zgemm('n','n',18,18,18,mhalfU(sigma,j),paulitemp,18,gji,18,zero,temp,18)
+              call zgemm('n','n',18,18,18,mhalfU(sigma,j),paulitemp,18,gji,18,cZero,temp,18)
               temp2(:,:, sigma) = temp
             end do
 
@@ -368,27 +372,27 @@ contains
                 ! gdHdxg = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*sigma* g_ji
                 gij = temp1(:,:, sigma)
                 gji = temp2(:,:, sigmap)
-                call zgemm('n','n',18,18,18,weight,gij,18,gji,18,zero,temp,18)
+                call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
                 gdHdxg(:,:,sigma,sigmap,i,j) = gdHdxg(:,:,sigma,sigmap,i,j) + temp
               end do
             end do
 
 
             if((llineargfsoc).or.(llinearsoc)) then ! non-linear term
-              gij = gvg(i,j,:,:)
-              gji = gvg(j,i,:,:)
+              gij = gvg(:,:,i,j)
+              gji = gvg(:,:,j,i)
 
               do sigma = 1,4
                 ! temp1 = wkbz* pauli*gvg_ij
                 paulitemp = pauli_components1(:,:,sigma)
-                call zgemm('n','n',18,18,18,zum,paulitemp,18,gij,18,zero,temp,18)
+                call zgemm('n','n',18,18,18,cOne,paulitemp,18,gij,18,cZero,temp,18)
                 temp1(:,:,sigma) = temp
               end do
 
               do sigmap = 1,4
                 ! temp2 = (-U/2) * sigma* gvg_ji
                 paulitemp = pauli_components2(:,:,sigmap)
-                call zgemm('n','n',18,18,18,mhalfU(sigmap,j),paulitemp,18,gji,18,zero,temp,18)
+                call zgemm('n','n',18,18,18,mhalfU(sigmap,j),paulitemp,18,gji,18,cZero,temp,18)
                 temp2(:,:,sigmap) = temp
               end do
               do sigmap = 1,4
@@ -396,7 +400,7 @@ contains
                   ! gdHdxg = temp1*temp2 = wkbz* pauli*gvg_ij*(-U/2)*sigma* gvg_ji
                   gij = temp1(:,:,sigma)
                   gji = temp2(:,:,sigmap)
-                  call zgemm('n','n',18,18,18,weight,gij,18,gji,18,zero,temp,18)
+                  call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
                   gvgdHdxgvg(:,:,sigma,sigmap,i,j) = gvgdHdxgvg(:,:,sigma,sigmap,i,j) + temp
                 end do
               end do
@@ -412,7 +416,7 @@ contains
     if((llineargfsoc).or.(llinearsoc)) gdHdxg = gdHdxg - gvgdHdxgvg
 
     !$omp critical
-    do mu=1, 2*nOrb
+    do mu=1, nOrb2
       do j=1,s%nAtoms
         do i=1,s%nAtoms
           do sigmap=1,4
@@ -442,16 +446,16 @@ contains
   subroutine calcLGS()
     !! Calculates the orbital angular momentum ground state
     use mod_f90_kind, only: double
-    use mod_constants, only: zero,pi
+    use mod_constants, only: cZero,pi
     use mod_System, only: s => sys
-    use TightBinding, only: nOrb
+    use mod_BrillouinZone, only: BZ
+    use TightBinding, only: nOrb,nOrb2
     use mod_parameters, only: outputunit_loop, Ef
     use mod_magnet
     use EnergyIntegration, only: y, wght, pn1
     use mod_mpi_pars
     !$  use omp_lib
     implicit none
-    complex(double), dimension(nOrb, nOrb)   :: lx,ly,lz
 
     integer :: AllocateStatus
     integer :: ix, iz
@@ -460,7 +464,7 @@ contains
     complex(double), dimension(:,:,:,:), allocatable :: gf
     complex(double), dimension(:,:,:), allocatable :: gupgd
     complex(double), dimension(:,:,:), allocatable :: gupgdint
-
+    real(double) :: weight
     !--------------------- begin MPI vars --------------------
     integer :: ncount
     integer :: start, end, work, remainder
@@ -487,28 +491,28 @@ contains
               lzpm(s%nAtoms), stat = AllocateStatus )
     if (AllocateStatus/=0) call abortProgram("[L_gs] Not enough memory for: df1,Fint,gf,gfuu,gfud,gfdu,gfdd")
 
-    allocate(gupgdint(s%nAtoms, nOrb, nOrb), stat = AllocateStatus)
+    allocate(gupgdint(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
     if(AllocateStatus/=0) call abortProgram("[L_gs] Not enough meory for: gupgdint")
 
     if(myrank_row_hw==0) write(outputunit_loop,"('[L_gs] Calculating Orbital Angular Momentum ground state... ')")
 
     ! Calculating the number of particles for each spin and orbital using a complex integral
 
-    gupgdint  = zero
+    gupgdint  = cZero
 
     !$omp parallel default(none) &
-    !$omp& private(AllocateStatus,ix,iz,i,mu,nu,mup,nup,kp,gf,gupgd) &
-    !$omp& shared(start,end,s,Ef,y,wght,gupgdint)
+    !$omp& private(AllocateStatus,ix,iz,i,mu,nu,mup,nup,kp,weight,gf,gupgd) &
+    !$omp& shared(start,end,s,BZ,Ef,y,wght,gupgdint)
 
-    allocate(gf(s%nAtoms,s%nAtoms,2*nOrb,2*nOrb), &
-             gupgd(s%nAtoms, nOrb, nOrb), stat = AllocateStatus)
-    gupgd   = zero
+    allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
+             gupgd(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
+    gupgd   = cZero
 
     !$omp do schedule(static) collapse(2)
     do ix = start, end
-      do iz = 1, s%nkpt
-        kp = s%kbz(:,iz)
-
+      do iz = 1, BZ%nkpt
+        kp = BZ%kp(1:3,iz)
+        weight = BZ%w(iz) * wght(ix)
         !Green function on energy Ef + iy, and wave vector kp
         call green(Ef,y(ix),kp,gf)
 
@@ -517,7 +521,7 @@ contains
             mup = mu+nOrb
             do nu=1,nOrb
               nup = nu+nOrb
-              gupgd(i,mu,nu) = gupgd(i,mu,nu) + (gf(i,i,mu,nu) + gf(i,i,mup,nup)) * s%wkbz(iz) * wght(ix)
+              gupgd(mu,nu,i) = gupgd(mu,nu,i) + (gf(mu,nu,i,i) + gf(mup,nup,i,i)) * weight
             end do
           end do
         end do
@@ -535,7 +539,6 @@ contains
 
     call MPI_Allreduce(MPI_IN_PLACE, gupgdint, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_Comm_Row_hw, ierr)
 
-    call l_matrix(lx,ly,lz)
 
     lxpm = 0.d0
     lypm = 0.d0
@@ -546,12 +549,12 @@ contains
     do nu=5,9
       do mu=5,9
         do i=1,s%nAtoms
-          lxpm(i) = lxpm(i) + real(lxp(mu,nu)*gupgdint(i,nu,mu))
-          lypm(i) = lypm(i) + real(lyp(mu,nu)*gupgdint(i,nu,mu))
-          lzpm(i) = lzpm(i) + real(lzp(mu,nu)*gupgdint(i,nu,mu))
-          lxm(i)  = lxm(i)  + real(lx (mu,nu)*gupgdint(i,nu,mu))
-          lym(i)  = lym(i)  + real(ly (mu,nu)*gupgdint(i,nu,mu))
-          lzm(i)  = lzm(i)  + real(lz (mu,nu)*gupgdint(i,nu,mu))
+          lxpm(i) = lxpm(i) + real(lxp(mu,nu,i)*gupgdint(nu,mu,i))
+          lypm(i) = lypm(i) + real(lyp(mu,nu,i)*gupgdint(nu,mu,i))
+          lzpm(i) = lzpm(i) + real(lzp(mu,nu,i)*gupgdint(nu,mu,i))
+          lxm(i)  = lxm(i)  + real(lx (mu,nu)*gupgdint(nu,mu,i))
+          lym(i)  = lym(i)  + real(ly (mu,nu)*gupgdint(nu,mu,i))
+          lzm(i)  = lzm(i)  + real(lz (mu,nu)*gupgdint(nu,mu,i))
         end do
       end do
     end do
@@ -695,8 +698,7 @@ contains
     use mod_System, only: s => sys
     use mod_mpi_pars, only: myrank_row_hw
     implicit none
-    integer :: i,err,sign
-    logical :: lsuccess
+    integer :: i,sign
     real(double) :: mdotb
 
     if(myrank_row_hw==0) write(outputunit_loop,"('[rotate_magnetization_to_field] Rotating previous magnetization to the direction of the field...')")
@@ -741,12 +743,12 @@ contains
       if(abs(mp(i))/=0) write(outputunit_loop,"(12x,'theta =',f11.8,' pi',4x,'phi =',f11.8,' pi')") mtheta(i),mphi(i)
     end do
     if(lGSL) then
-      write(outputunit_loop,"(11x,' *** Orbital components in spin coordinates:  ***')")
+      write(outputunit_loop,"(11x,' *** Orbital components in local frame:  ***')")
       do i=1,s%nAtoms
         write(outputunit_loop,"(4x,'Lxp(',i2.0,')=',f11.8,4x,'Lyp(',i2.0,')=',f11.8,4x,'Lzp(',i2.0,')=',f11.8)") i,lxpm(i),i,lypm(i),i,lzpm(i)
         if(sqrt(lxpm(i)**2+lypm(i)**2)/=0) write(outputunit_loop,"(12x,'theta =',f11.8,' pi',4x,'phi =',f11.8,' pi')") lptheta(i),lpphi(i)
       end do
-      write(outputunit_loop,"(11x,' *** Orbital components in cubic coordinates: ***')")
+      write(outputunit_loop,"(11x,' *** Orbital components in global frame: ***')")
       do i=1,s%nAtoms
         write(outputunit_loop,"(4x,'Lx (',i2.0,')=',f11.8,4x,'Ly (',i2.0,')=',f11.8,4x,'Lz (',i2.0,')=',f11.8)") i,lxm(i),i,lym(i),i,lzm(i)
       end do
@@ -771,13 +773,14 @@ contains
   ! This subroutine reads previous band-shifting and magnetization results
   subroutine read_sc_results(err,lsuccess)
     use mod_f90_kind, only: double
-    use mod_constants, only: zi
-    use mod_parameters, only: offset, fieldpart, eta, U,Utype,scfile, outputunit_loop, Npl_folder, dfttype
+    use mod_constants, only: cI
+    use mod_parameters, only: offset, fieldpart, eta, U,Utype,scfile, outputunit_loop, strSites, dfttype
     use EnergyIntegration, only: parts
     use mod_magnet, only: eps1, hdel, hdelm, hdelp, mp, mz, hw_count, mx, my, mz
     use mod_SOC, only: SOCc, socpart
     use mod_mpi_pars
     use mod_system, only: s => sys
+    use mod_BrillouinZone, only: BZ
     implicit none
     character(len=300)  :: file = ""
     integer,intent(out) :: err
@@ -797,7 +800,7 @@ contains
     lsuccess = .false.
     !   Reading previous results (mx, my, mz and eps1) from files (if available)
     if(trim(scfile)=="") then ! If a filename is not given in inputcard (or don't exist), use the default one
-      write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),dfttype,parts,Utype,trim(fieldpart),s%nkpt,eta,trim(socpart)
+      write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(strSites),dfttype,parts,Utype,trim(fieldpart),BZ%nkpt,eta,trim(socpart)
       open(unit=99,file=file,status="old",iostat=err)
       if((err==0).and.(myrank_row_hw==0)) then
         write(outputunit_loop,"('[read_sc_results] Self-consistency file already exists. Reading it now...')")
@@ -813,7 +816,7 @@ contains
           write(outputunit_loop,"(a)") trim(scfile)
         end if
       else ! 2nd+ iteration, cheking if default file exists
-        write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),dfttype,parts,Utype,trim(fieldpart),s%nkpt,eta,trim(socpart)
+        write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(strSites),dfttype,parts,Utype,trim(fieldpart),BZ%nkpt,eta,trim(socpart)
         open(unit=99,file=file,status="old",iostat=err)
         if(err==0) then ! Reading file for the same parameters
           if(myrank_row_hw==0) then
@@ -844,7 +847,7 @@ contains
       mx  (:) = previous_results(:,2)
       my  (:) = previous_results(:,3)
       mz  (:) = previous_results(:,4)
-      mp  = mx + zi*my
+      mp  = mx + cI*my
       do i=1,s%nAtoms
         hdel(i)   = 0.5d0*U(i+offset)*mz(i)
         hdelp(i)  = 0.5d0*U(i+offset)*mp(i)
@@ -858,7 +861,7 @@ contains
     else
       ! If file does not exist, try to read for parts-1
       close(99)
-      write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(Npl_folder),dfttype,parts-1,Utype,trim(fieldpart),s%nkpt,eta,trim(socpart)
+      write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(strSites),dfttype,parts-1,Utype,trim(fieldpart),BZ%nkpt,eta,trim(socpart)
       open(unit=99,file=file,status="old",iostat=err)
       if(err==0) then
         if(myrank_row_hw==0) then
@@ -872,7 +875,7 @@ contains
           read(99,*) my(i)
           read(99,*) mz(i)
         end do
-        mp  = mx + zi*my
+        mp  = mx + cI*my
         do i=1,s%nAtoms
           hdel(i)   = 0.5d0*U(i+offset)*mz(i)
           hdelp(i)  = 0.5d0*U(i+offset)*mp(i)
@@ -888,19 +891,20 @@ contains
 
   subroutine write_sc_results()
     !! Writes the self-consistency results into files and broadcasts the scfile for the next iteration.
-    use mod_parameters, only: fieldpart, eta, U,Utype,scfile, outputunit_loop, Npl_folder, dfttype
+    use mod_parameters, only: fieldpart, eta, Utype,scfile, outputunit_loop, strSites, dfttype
     use EnergyIntegration, only: parts
-    use mod_magnet, only: eps1, hdel, hdelm, hdelp, mp, mz, hw_count, mx, my, mz
+    use mod_magnet, only: eps1, mx, my, mz
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
+    use mod_BrillouinZone, only: BZ
     use mod_mpi_pars
     implicit none
-    integer             :: i
+    integer :: i
 
     if(myrank_row_hw == 0) then
       ! Writing new results (mx, my, mz and eps1) and mz to file
       write(outputunit_loop,"('[write_sc_results] Writing new eps1, mx, my and mz to file...')")
-      write(scfile,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc, trim(Npl_folder),dfttype,parts,Utype,trim(fieldpart),s%nkpt,eta,trim(socpart)
+      write(scfile,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc, trim(strSites),dfttype,parts,Utype,trim(fieldpart),BZ%nkpt,eta,trim(socpart)
       open (unit=99,status='replace',file=scfile)
       do i=1,s%nAtoms
         write(99,"(es21.11,2x,'! eps1')") eps1(i)
@@ -925,7 +929,7 @@ contains
 #if !defined(_OSX) && !defined(_JUQUEEN)
   subroutine sc_equations_and_jacobian(N,x,fvec,selfconjac,iuser,ruser,iflag)
     use mod_f90_kind, only: double
-    use mod_constants, only: zi
+    use mod_constants, only: cI
     use mod_parameters, only: offset, U, outputunit, outputunit_loop, lontheflysc
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
@@ -946,7 +950,7 @@ contains
     mx_in = x(  s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
-    mp_in = mx_in + zi*my_in
+    mp_in = mx_in + cI*my_in
 
     do i=1,s%nAtoms
       hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
@@ -1003,7 +1007,7 @@ contains
   ! For a given value of center of band eps1 it calculates the
   ! occupation number and the magnetic moment
   subroutine sc_equations(N,x,fvec,iuser,ruser,iflag)
-    use mod_constants, only: zi
+    use mod_constants, only: cI
     use mod_parameters, only: offset, U, outputunit_loop, lontheflysc
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
@@ -1025,7 +1029,7 @@ contains
     mx_in = x(s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
-    mp_in = mx_in+zi*my_in
+    mp_in = mx_in+cI*my_in
     do i=1,s%nAtoms
       hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
       hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
@@ -1081,7 +1085,7 @@ contains
   !  mz - mz_in = 0
   ! and the correspondent jacobian
   subroutine sc_eqs_and_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
-    use mod_constants, only: zi
+    use mod_constants, only: cI
     use mod_parameters, only: offset, U, outputunit_loop, outputunit, lontheflysc
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
@@ -1101,7 +1105,7 @@ contains
     mx_in = x(s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
-    mp_in = mx_in+zi*my_in
+    mp_in = mx_in+cI*my_in
     do i=1,s%nAtoms
       hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
       hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
@@ -1160,7 +1164,7 @@ contains
   ! occupation number and the magnetic moment
   subroutine sc_eqs_old(N,x,fvec,iflag)
     use mod_f90_kind, only: double
-    use mod_constants, only: zi
+    use mod_constants, only: cI
     use mod_parameters, only: offset, U, outputunit_loop, lontheflysc
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
@@ -1179,7 +1183,7 @@ contains
     mx_in = x(s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
-    mp_in = mx_in+zi*my_in
+    mp_in = mx_in+cI*my_in
     do i=1,s%nAtoms
       hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
       hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
@@ -1228,7 +1232,7 @@ contains
 
   subroutine sc_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
     use mod_f90_kind, only: double
-    use mod_constants, only: zi
+    use mod_constants, only: cI
     use mod_parameters, only: offset, U
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
@@ -1248,7 +1252,7 @@ contains
     mx_in = x(s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
-    mp_in = mx_in+zi*my_in
+    mp_in = mx_in+cI*my_in
     do i=1,s%nAtoms
       hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
       hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)

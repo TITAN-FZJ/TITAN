@@ -24,20 +24,27 @@ type, extends(Atom) :: NeighborAtom
   integer, dimension(3) :: Cell
   real(double), dimension(3) :: CellVector
   real(double), dimension(:), allocatable :: Distance
+  !! Distance to basis atoms
   real(double), dimension(:,:), allocatable :: dirCos
-  real(double), dimension(:,:,:), allocatable :: t0i ! nOrb, nOrb, nAtoms
+  !! Directional cosine to basis atoms
+  real(double), dimension(:,:,:), allocatable :: t0i
+  !! Hopping to basis atoms; size (nOrb, nOrb, nAtoms)
   logical, dimension(:), allocatable :: isHopping
+  !! Flags saying that the atom is in neighbor range of basis atoms; size (nAtoms)
 end type NeighborAtom
 
-type :: AtomKind
+type :: AtomType
   character(len=50) :: Name
-  real(double), dimension(:,:), allocatable :: onSite ! on site matrix; size (nOrb, nOrb)
-  real(double), dimension(:,:), allocatable :: Hopping ! hopping matrix; size (10, nStages)
-  real(double) :: Lambda ! SOC Coupling constant
+  real(double), dimension(:,:), allocatable :: onSite
+  !! on site matrix; size (nOrb, nOrb)
+  real(double), dimension(:,:), allocatable :: Hopping
+  !! hopping matrix; size (10, nStages)
+  real(double) :: Lambda
+  !! SOC Coupling constant
   real(double) :: FermiLevel
   real(double) :: Occupation
   real(double) :: LatticeConstant
-end type AtomKind
+end type AtomType
 
 
 contains

@@ -22,7 +22,7 @@ contains
     allocate(bp(nOrb,nOrb))
 
     do i = 1, s%nTypes
-      call read_Papa_2C_param(s%Types(i), s%nStages, nOrb)
+      call read_Papa_2C_param(s%Types(i), s%a0, s%nStages, nOrb)
     end do
 
     Ef = s%Types(fermi_layer)%FermiLevel
@@ -36,8 +36,8 @@ contains
     do i = 1, s%nNeighbors
       allocate(s%Neighbors(i)%t0i(nOrb,nOrb,s%nAtoms))
       allocate(s%Neighbors(i)%isHopping(s%nAtoms))
-      s%Neighbors(i)%t0i(:,:,:) = 0.d0
-      s%Neighbors(i)%isHopping(:) = .false.
+      s%Neighbors(i)%t0i = 0.d0
+      s%Neighbors(i)%isHopping = .false.
     end do
 
     do i = 1, s%nAtoms
@@ -75,24 +75,28 @@ contains
     return
   end subroutine set_hopping_matrix
 
-  subroutine read_Papa_2C_param(material, nStages, nOrb)
-    use AtomTypes, only: AtomKind
+  subroutine read_Papa_2C_param(material, a0, nStages, nOrb)
+    use mod_f90_kind, only: double
+    use AtomTypes, only: AtomType
+    use mod_mpi_pars, only: abortProgram
     implicit none
-    type(AtomKind), intent(inout) :: material
+    type(AtomType), intent(inout) :: material
+    real(double), intent(in) :: a0
     integer, intent(in) :: nStages
     integer, intent(in) :: nOrb
     real(double), dimension(3) :: dens
     integer :: i, j, k, ios, line_count = 0
-    integer :: exponent(10)
+    integer, dimension(10) :: exponent
     character(200) :: line
     character(50) :: words(10)
     real(double), dimension(4) :: on_site
+    real(double) :: a0_corr
 
     allocate(material%onSite(nOrb,nOrb))
     allocate(material%Hopping(10,nStages))
 
     open(unit=995594, file=trim(material%Name), status='old', iostat=ios)
-    if(ios /= 0) stop "[read_Papa_2C_param] Error occured"
+    if(ios /= 0) call abortProgram("[read_Papa_2C_param] Error occured")
     line_count = 0
 
     ! Counting lines to determine whether the parameter are available for nn_stages next neighbours
@@ -103,9 +107,7 @@ contains
     end do
     rewind(995594)
 
-    if(line_count < 10*nStages) then
-      stop "[read_Papa_2C_param] Parameter File corrupt" !TODO : Abort + error message
-    end if
+    if(line_count < 10*nStages) call abortProgram("[read_Papa_2C_param] Parameter File corrupt")
 
     read(unit=995594, fmt='(A)', iostat = ios) line
     read(unit=line, fmt=*, iostat=ios) material%LatticeConstant
@@ -120,10 +122,10 @@ contains
     read(unit= line, fmt=*, iostat=ios) dens(1), dens(2), dens(3)
     material%Occupation = dens(1)+dens(2)+dens(3)
 
-    !a0_param = a0_param / a0  ! Scaling law by Andersen et al. O.K. Andersen, O. Jepsen, Physica 91B, 317 (1977); O.K. Andersen, W. Close. H. Nohl, Phys. Rev. B17, 1209 (1978)
-                             ! Distance dependence of tight binding matrix elements is given by V = C * d^(-[l+l'+1])
-                             ! e.g for ss hopping distance dependence is d^-1, for sp hopping d^-2
-    !exponent = [1, 3, 3, 5, 5, 5, 2, 3, 4, 4]
+    a0_corr = material%LatticeConstant / a0  ! Scaling law by Andersen et al. O.K. Andersen, O. Jepsen, Physica 91B, 317 (1977); O.K. Andersen, W. Close. H. Nohl, Phys. Rev. B17, 1209 (1978)
+                                             ! Distance dependence of tight binding matrix elements is given by V = C * d^(-[l+l'+1])
+                                             ! e.g for ss hopping distance dependence is d^-1, for sp hopping d^-2
+    exponent = [1.d0, 3.d0, 3.d0, 5.d0, 5.d0, 5.d0, 2.d0, 3.d0, 4.d0, 4.d0]
 
     do i = 1, 4
       read(unit=995594, fmt='(A)', iostat = ios) line
@@ -148,7 +150,7 @@ contains
         read(unit=995594, fmt='(A)', iostat = ios) line
         read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
         read(unit=words(4), fmt=*, iostat=ios) material%Hopping(j,i)
-        !TODO: move XXX hopping(j,i) = hopping(j,i) * (a0_param ** exponent(j)) ! Correction of hopping parameter by scaling law.
+        material%Hopping(j,i) = material%Hopping(j,i) * (a0_corr ** exponent(j)) ! Correction of hopping parameter by scaling law.
       end do
     end do
 
