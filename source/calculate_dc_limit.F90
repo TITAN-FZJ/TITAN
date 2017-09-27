@@ -14,13 +14,13 @@ subroutine calculate_dc_limit()
                                   build_identity_and_U_matrix, diagonalize_susceptibilities, &
                                   allocate_susceptibilities, deallocate_susceptibilities, &
                                   create_dc_chi_files, write_dc_susceptibilities
-  use mod_torques, only: torques, ntypetorque, &
+  use mod_torques, only: torques, total_torques, ntypetorque, &
                          allocate_torques, deallocate_torques, &
                          create_dc_torque_files, write_dc_torques
-  use mod_disturbances, only: disturbances, tchiorbiikl, sdmat, ldmat, &
+  use mod_disturbances, only: disturbances, total_disturbances, tchiorbiikl, sdmat, ldmat, &
                               allocate_disturbances, deallocate_disturbances, &
                               create_dc_disturbance_files, write_dc_disturbances
-  use mod_beff, only: chiinv, Beff, Beff_cart, &
+  use mod_beff, only: chiinv, Beff, total_Beff, Beff_cart, &
                       allocate_beff, deallocate_beff, &
                       create_dc_beff_files, write_dc_beff
   use mod_progress,        only: write_time
@@ -306,6 +306,8 @@ subroutine calculate_dc_limit()
       disturbances(2:4,:) = 0.5d0*disturbances(2:4,:)
       disturbances = disturbances/e
       torques  = torques/e
+      total_disturbances  = sum(disturbances,dim=2)
+      total_torques       = sum(torques,dim=3)
       sdmat    = 0.5d0*sdmat/e
       ! currents = currents/e !TODO:Re-Include
       ! currents(2:4,:,:) =-0.5d0*currents(2:4,:,:) !TODO:Re-Include
@@ -331,11 +333,12 @@ subroutine calculate_dc_limit()
       ! Effective field calculation
       call zgemm('n','n',dimsigmaNpl,1,dimsigmaNpl,cOne,chiinv,dimsigmaNpl,sdmat,dimsigmaNpl,cZero,Beff,dimsigmaNpl) ! Beff = chi^(-1)*SD
       do i = 1, s%nAtoms
-        Beff_cart(sigmai2i(1,i)) =       (Beff(sigmai2i(2,i)) + Beff(sigmai2i(3,i)))    ! 0
-        Beff_cart(sigmai2i(2,i)) = 0.5d0*(Beff(sigmai2i(1,i)) + Beff(sigmai2i(4,i)))    ! x
-        Beff_cart(sigmai2i(3,i)) = 0.5d0*(Beff(sigmai2i(1,i)) - Beff(sigmai2i(4,i)))/cI ! y
-        Beff_cart(sigmai2i(4,i)) = 0.5d0*(Beff(sigmai2i(2,i)) - Beff(sigmai2i(3,i)))    ! z
+        Beff_cart(1,i) =       (Beff(sigmai2i(2,i)) + Beff(sigmai2i(3,i)))    ! 0
+        Beff_cart(2,i) = 0.5d0*(Beff(sigmai2i(1,i)) + Beff(sigmai2i(4,i)))    ! x
+        Beff_cart(3,i) = 0.5d0*(Beff(sigmai2i(1,i)) - Beff(sigmai2i(4,i)))/cI ! y
+        Beff_cart(4,i) = 0.5d0*(Beff(sigmai2i(2,i)) - Beff(sigmai2i(3,i)))    ! z
       end do
+      total_Beff  = sum(Beff_cart,dim=2)
 
       ! Sending results to myrank_row = myrank_col = 0 and writing on file
       if(myrank_col==0) then
@@ -349,11 +352,14 @@ subroutine calculate_dc_limit()
             call MPI_Recv(count            ,1                , MPI_INTEGER         ,stat(MPI_SOURCE),44100+mpitag2,MPI_Comm_Col,stat,ierr) ! count needed to write correct energy on the filename
             call MPI_Recv(mvec_spherical   ,3*s%nAtoms       , MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),44200+mpitag2,MPI_Comm_Col,stat,ierr)
             if(.not.lhfresponses) &
-            call MPI_Recv(schi             ,s%nAtoms*s%nAtoms*16, MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44300+mpitag2,MPI_Comm_Col,stat,ierr)
+               call MPI_Recv(schi             ,s%nAtoms*s%nAtoms*16, MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44300+mpitag2,MPI_Comm_Col,stat,ierr)
             call MPI_Recv(schihf           ,s%nAtoms*s%nAtoms*16, MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44400+mpitag2,MPI_Comm_Col,stat,ierr)
-            call MPI_Recv(Beff_cart        ,dimsigmaNpl      ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44500+mpitag2,MPI_Comm_Col,stat,ierr)
+            call MPI_Recv(Beff_cart        ,4*s%nAtoms      ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44500+mpitag2,MPI_Comm_Col,stat,ierr)
+            call MPI_Recv(total_Beff        ,4                ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44550+mpitag2,MPI_Comm_Col,stat,ierr)
             call MPI_Recv(disturbances     ,7*s%nAtoms       ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44600+mpitag2,MPI_Comm_Col,stat,ierr)
+            call MPI_Recv(total_disturbances,7                ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44650+mpitag2,MPI_Comm_Col,stat,ierr)
             call MPI_Recv(torques          ,ntypetorque*3*s%nAtoms,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44900+mpitag2,MPI_Comm_Col,stat,ierr)
+            call MPI_Recv(total_torques     ,ntypetorque*3    ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44950+mpitag2,MPI_Comm_Col,stat,ierr)
             ! call MPI_Recv(currents         ,7*n0sc*s%nAtoms  ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44700+mpitag2,MPI_Comm_Col,stat,ierr)  !TODO:Re-Include
             ! call MPI_Recv(dc_currents      ,3*s%nAtoms       ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),45200+mpitag2,MPI_Comm_Col,stat,ierr) !TODO:Re-Include
             ! call MPI_Recv(total_currents   ,7*n0sc           ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44800+mpitag2,MPI_Comm_Col,stat,ierr) !TODO:Re-Include
@@ -411,17 +417,20 @@ subroutine calculate_dc_limit()
         ! Recovering rank 0 counter and magnetization direction
         hw_count       = hw_count_temp
         mvec_spherical = mvec_spherical_temp
-      else
+     else
         if(myrank_row_hw==0) write(outputunit_loop,"('[calculate_dc_limit] Sending results to process cZero... ')")
         call MPI_Send(hw_count         ,1                ,MPI_INTEGER         ,0,44000+mpitag2,MPI_Comm_Col,ierr)
         call MPI_Send(count_temp       ,1                ,MPI_INTEGER         ,0,44100+mpitag2,MPI_Comm_Col,ierr)
         call MPI_Send(mvec_spherical   ,3*s%nAtoms       ,MPI_DOUBLE_PRECISION,0,44200+mpitag2,MPI_Comm_Col,ierr)
         if(.not.lhfresponses) &
-        call MPI_Send(schi             ,s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX  ,0,44300+mpitag2,MPI_Comm_Col,ierr)
+         call MPI_Send(schi             ,s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX  ,0,44300+mpitag2,MPI_Comm_Col,ierr)
         call MPI_Send(schihf           ,s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX  ,0,44400+mpitag2,MPI_Comm_Col,ierr)
-        call MPI_Send(Beff_cart        ,dimsigmaNpl      ,MPI_DOUBLE_COMPLEX  ,0,44500+mpitag2,MPI_Comm_Col,ierr)
+        call MPI_Send(Beff_cart        , 4*s%nAtoms      ,MPI_DOUBLE_COMPLEX  ,0,44500+mpitag2,MPI_Comm_Col,ierr)
+        call MPI_Send(total_Beff        ,4                ,MPI_DOUBLE_COMPLEX  ,0,44550+mpitag2,MPI_Comm_Col,ierr)
         call MPI_Send(disturbances     ,7*s%nAtoms       ,MPI_DOUBLE_COMPLEX  ,0,44600+mpitag2,MPI_Comm_Col,ierr)
+        call MPI_Send(total_disturbances,7                ,MPI_DOUBLE_COMPLEX  ,0,44650+mpitag2,MPI_Comm_Col,ierr)
         call MPI_Send(torques          ,ntypetorque*3*s%nAtoms,MPI_DOUBLE_COMPLEX  ,0,44900+mpitag2,MPI_Comm_Col,ierr)
+        call MPI_Send(total_torques     ,ntypetorque*3    ,MPI_DOUBLE_COMPLEX  ,0,44950+mpitag2,MPI_Comm_Col,ierr)
         !call MPI_Send(currents         ,7*n0sc*s%nAtoms  ,MPI_DOUBLE_COMPLEX  ,0,44700+mpitag2,MPI_Comm_Col,ierr) !TODO:Re-Include
         !call MPI_Send(dc_currents      ,3*s%nAtoms       ,MPI_DOUBLE_PRECISION,0,45200+mpitag2,MPI_Comm_Col,ierr) !TODO:Re-Include
         !call MPI_Send(total_currents   ,7*n0sc           ,MPI_DOUBLE_COMPLEX  ,0,44800+mpitag2,MPI_Comm_Col,ierr) !TODO:Re-Include

@@ -46,15 +46,15 @@ contains
       open (unit=55+           i, file=varm, status='replace', form='formatted')
       write(unit=55+           i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ')")
 
-      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chi_hf',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chihf_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
       open (unit=55+  s%nAtoms+i, file=varm, status='replace', form='formatted')
       write(unit=55+  s%nAtoms+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ')")
 
-      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chi_inv',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chiinv_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
       open (unit=55+2*s%nAtoms+i, file=varm, status='replace', form='formatted')
       write(unit=55+2*s%nAtoms+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ,  A+-  ,  A++')")
 
-      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chi_hf_inv',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chihfinv_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
       open (unit=55+3*s%nAtoms+i, file=varm, status='replace', form='formatted')
       write(unit=55+3*s%nAtoms+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ,  A+-  ,  A++')")
     end do

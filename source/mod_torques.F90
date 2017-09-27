@@ -3,7 +3,7 @@ module mod_torques
   implicit none
   ! Torques (sot,xc-torque,external torque ; x,y,z ; layers)
   integer       :: ntypetorque=3 ! Number of types of torques implemented
-  complex(double),allocatable   :: torques(:,:,:),rtorques(:,:,:)
+  complex(double),allocatable   :: torques(:,:,:),total_torques(:,:), rtorques(:,:,:)
   character(len=1), dimension(3), parameter, private    :: direction = ["x", "y", "z"]
 
 contains
@@ -26,8 +26,8 @@ contains
     end if
 
     if(myrank_row==0) then
-      allocate( torques(ntypetorque,3, s%nAtoms), STAT = AllocateStatus )
-      if (AllocateStatus/=0) call abortProgram("[allocate_torques] Not enough memory for: torques")
+      allocate( torques(ntypetorque,3, s%nAtoms), total_torques(ntypetorque,3), STAT = AllocateStatus )
+      if (AllocateStatus/=0) call abortProgram("[allocate_torques] Not enough memory for: torques,total_torques")
       if(renorm) then
         allocate( rtorques(ntypetorque,3,s%nAtoms), STAT = AllocateStatus )
         if (AllocateStatus/=0) call abortProgram("[allocate_torques] Not enough memory for: rtorques")
@@ -42,6 +42,7 @@ contains
     implicit none
 
     if(allocated(torques)) deallocate(torques)
+    if(allocated(total_torques)) deallocate(total_torques)
     if(allocated(rtorques)) deallocate(rtorques)
 
     return
@@ -70,9 +71,9 @@ contains
   filename(2) = "XCT"
   if((lfield).or.(total_hw_npt1/=1)) filename(3) = "EXT"
 
-  do typetorque=1,ntypetorque
-    do sigma=1,3
-      do i=1,s%nAtoms
+  do typetorque = 1, ntypetorque
+    do sigma = 1, 3
+      do i = 1, s%nAtoms
         iw = 9000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(typetorque)),direction(sigma),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
@@ -86,6 +87,12 @@ contains
           close(unit=iw)
         end if
       end do
+      ! Total torque files
+      iw = 9500+(typetorque-1)*3+sigma
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(typetorque)),direction(sigma),trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+      open (unit=iw, file=varm, status='replace', form='formatted')
+      write(unit=iw, fmt="('#     energy    , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
+      close(unit=iw)
     end do
   end do
 
@@ -132,6 +139,12 @@ contains
           if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
         end if
       end do
+      ! Total torque files
+      iw = 9500+(typetorque-1)*3+sigma
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(typetorque)),direction(sigma),trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+      open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+      errt = errt + err
+      if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
     end do
   end do
   ! Stop if some file does not exist
@@ -160,6 +173,9 @@ contains
             close(unit=iw)
           end if
         end do
+        ! Total torque files
+        iw = 9500+(typetorque-1)*3+sigma
+        close(unit=iw)
       end do
     end do
 
@@ -172,7 +188,7 @@ contains
   !! (already opened with openclose_torque_files(1))
   !! Some information may also be written on the screen
     use mod_f90_kind, only: double
-    use mod_parameters, only: renorm
+    use mod_parameters, only: renorm, mmlayermag
     use mod_magnet, only: mvec_spherical
     use mod_System, only: s => sys
     implicit none
@@ -216,6 +232,21 @@ contains
             write(unit=iw,fmt="(9(es16.9,2x))") e , abs(rtorques(typetorque,sigma,i)) , real(rtorques(typetorque,sigma,i)) , aimag(rtorques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
           end if
         end do
+         ! Writing total torques
+         iw = 9500+(typetorque-1)*3+sigma
+
+         if(abs(total_torques(typetorque,sigma))>=1.d-10) then
+            phase  = atan2(aimag(total_torques(typetorque,sigma)),real(total_torques(typetorque,sigma)))
+            sine   = real(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
+            cosine = aimag(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
+         else
+            phase  = 0.d0
+            sine   = 0.d0
+            cosine = 0.d0
+         end if
+
+         write(unit=iw,fmt="(9(es16.9,2x))") e , abs(total_torques(typetorque,sigma)) , real(total_torques(typetorque,sigma)) , aimag(total_torques(typetorque,sigma)) , phase , sine , cosine , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
+
       end do
     end do
 
@@ -263,6 +294,12 @@ contains
             close(unit=iw)
           end if
         end do
+        ! Total torque files
+        iw = 95000+(typetorque-1)*3+sigma
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        open (unit=iw, file=varm, status='replace', form='formatted')
+        write(unit=iw, fmt="('#',a,'  imaginary part of ',a,a,' ,  real part of ',a,a,'  , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
+        close(unit=iw)
       end do
     end do
 
@@ -308,6 +345,12 @@ contains
             if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
           end if
         end do
+        ! Total torque files
+        iw = 95000+(typetorque-1)*3+sigma
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+        errt = errt + err
+        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
       end do
     end do
     ! Stop if some file does not exist
@@ -335,6 +378,9 @@ contains
             close(unit=iw)
           end if
         end do
+        ! Total torque files
+        iw = 95000+(typetorque-1)*3+sigma
+        close(unit=iw)
       end do
     end do
 
@@ -346,7 +392,7 @@ contains
   !! (already opened with openclose_torque_files(1))
   !! Some information may also be written on the screen
     use mod_f90_kind, only: double
-    use mod_parameters, only: renorm
+    use mod_parameters, only: renorm, mmlayermag
     use mod_magnet, only: mvec_spherical,dc_fields,hw_count
     use mod_System, only: s => sys
     implicit none
@@ -388,6 +434,20 @@ contains
             write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(rtorques(typetorque,sigma,i)) , real(rtorques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
           end if
         end do
+        ! Writing total torques
+      iw = 95000+(typetorque-1)*3+sigma
+
+      if(abs(total_torques(typetorque,sigma))>=1.d-10) then
+        phase  = atan2(aimag(total_torques(typetorque,sigma)),real(total_torques(typetorque,sigma)))
+        sine   = real(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
+        cosine = aimag(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
+      else
+        phase  = 0.d0
+        sine   = 0.d0
+        cosine = 0.d0
+      end if
+      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_torques(typetorque,sigma)) , real(total_torques(typetorque,sigma)) , phase , sine , cosine , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
+
       end do
     end do
 
@@ -413,18 +473,25 @@ contains
       call open_torque_files()
     end if
 
-    do typetorque=1,ntypetorque ; do sigma=1,3 ; do i=1,s%nAtoms
-      iw = 9000*idc+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
+    do typetorque=1,ntypetorque
+      do sigma=1,3
+         do i=1,s%nAtoms
+            iw = 9000*idc+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
 
-      ! Sorting torque files
-      call sort_file(iw,.true.)
+            ! Sorting torque files
+            call sort_file(iw,.true.)
 
-      ! Sorting renormalized torque files
-      if(renorm) then
-        iw = iw+1000
-        call sort_file(iw,.true.)
-      end if
-    end do ; end do ; end do
+            ! Sorting renormalized torque files
+            if(renorm) then
+              iw = iw+1000
+              call sort_file(iw,.true.)
+            end if
+          end do
+          iw = 9500*idc+(typetorque-1)*3+sigma
+         ! Sorting total torque files
+         call sort_file(iw,.true.)
+       end do
+    end do
 
     ! Closing torque files
     if(itype==9) then
