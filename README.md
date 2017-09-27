@@ -56,8 +56,6 @@ and it is parallelized with MPI.
 !       (use 'emin' as frequency)                                               !
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
-!   positions     - Write atom positions into file                              !
-!   kpoints       - Write kpoints and weights into file                         !
 !   noUonall      - Set U=0 on all layers                                       !
 !   noUonNM       - Set U=0 on NM layers                                        !
 !   GSL           - Calculate ground state of Orbital Angular Momentum L        !
@@ -66,12 +64,10 @@ and it is parallelized with MPI.
 !   tesla         - Read values of static magnetic field in tesla               !
 !   debug         - Turn on to use this optional variable for debugging         !
 !   createfiles   - Just create files (WARNING: overwrite existing files!)      !
-!   createfolders - Creates all result folders needed for calculation.          !
 !   addresults    - Add results to existing files, instead of creating new ones !
 !                   (files MUST exist)                                          !
-!   sortfiles     - Only sort files (no calculation is done)                    !
-!   writeonscreen - Also write some results on output files                     !
 !   slatec        - Use non-linear root finder dnsqe from Slatec library        !
+!   kpoints       - Write kpoints and weights into files                        !
 !   lineargfsoc   - Adds linear order SOC in the GF                             !
 !   linearsoc     - Adds linear order SOC in the susceptibility                 !
 !   nojac         - Perform self-consistency without using the jacobian         !
@@ -80,6 +76,8 @@ and it is parallelized with MPI.
 !   rotatemag     - Rotate the magnetization to the direction of the field      !
 !   nolb          - Remove Orbital Zeeman from the hamiltonian                  !
 !   nodiag        - Don't diagonalize susceptibilities                          !
+!   sortfiles     - Only sort files (no calculation is done)                    !
+!   writeonscreen - Also write some results on output files                     !
 !   sha           - Only calculate the SHA for input parameters                 !
 !   lgtv          - Only calculate total longitudinal and transverse currents   !
 !===============================================================================!
@@ -117,9 +115,17 @@ and it is parallelized with MPI.
 ! Layers grow in the +z direction (in the lattice referential)                  !
 !===============================================================================!
 !                           INTEGRATION VARIABLES                               !
+! k-points are obtained using Cunningham special points for BCC110 and FCC100   !
+! Ref.: S. Cunningham, Phys. Rev. B 10, 4988 (1974)                             !
+!                                                                               !
 ! Energy integration use Gauss-Legendre quadrature                              !
 !===============================================================================!
 !                                BAND STRUCTURE                                 !
+! Choose one of the following high symmetry direction in k space:               !
+!---------------------------------- BCC (110) ----------------------------------!
+! GH - HP - PN - NG  (or the opposite HG - PH - NP - GN)                        !
+!---------------------------------- FCC (100) ----------------------------------!
+! GM - MX - XG  (or the opposite GX - XM - MG)                                  !
 !===============================================================================!
 !                                DFT PARAMETERS                                 !
 ! Ref.:	O. K. Andersen and O. Jepsen, Phys. Rev. Lett. 53, 2571 (1984).         !
