@@ -252,8 +252,6 @@ subroutine calculate_all()
         end do neighbor_loop_calculate_all
       end do plane_loop_calculate_all
       disturbances(2:4,:) = 0.5d0*disturbances(2:4,:)
-      total_disturbances  = sum(disturbances,dim=2)
-      total_torques       = sum(torques,dim=3)
       sdmat    = 0.5d0*sdmat
       currents = currents
       currents(2:4,:,:) =-0.5d0*currents(2:4,:,:)
@@ -275,35 +273,31 @@ subroutine calculate_all()
       ! Effective field in cartesian coordinates
       call zgemm('n','n',dimsigmaNpl,1,dimsigmaNpl,zum,chiinv,dimsigmaNpl,sdmat,dimsigmaNpl,zero,Beff,dimsigmaNpl) ! Beff = chi^(-1)*SD
       plane_loop_effective_field_all: do i=1,Npl
-        Beff_cart(1,i) =          (Beff(sigmai2i(2,i)) + Beff(sigmai2i(3,i))) ! 0
-        Beff_cart(2,i) = 0.5d0*   (Beff(sigmai2i(1,i)) + Beff(sigmai2i(4,i))) ! x
-        Beff_cart(3,i) =-0.5d0*zi*(Beff(sigmai2i(1,i)) - Beff(sigmai2i(4,i))) ! y
-        Beff_cart(4,i) = 0.5d0*   (Beff(sigmai2i(2,i)) - Beff(sigmai2i(3,i))) ! z
+        Beff_cart(sigmai2i(1,i)) =          (Beff(sigmai2i(2,i)) + Beff(sigmai2i(3,i))) ! 0
+        Beff_cart(sigmai2i(2,i)) = 0.5d0*   (Beff(sigmai2i(1,i)) + Beff(sigmai2i(4,i))) ! x
+        Beff_cart(sigmai2i(3,i)) =-0.5d0*zi*(Beff(sigmai2i(1,i)) - Beff(sigmai2i(4,i))) ! y
+        Beff_cart(sigmai2i(4,i)) = 0.5d0*   (Beff(sigmai2i(2,i)) - Beff(sigmai2i(3,i))) ! z
       end do plane_loop_effective_field_all
-      total_Beff  = sum(Beff_cart,dim=2)
 
       ! Sending results to myrank_row_hw = 0 (first process of each field calculation) and writing on files
       if(myrank_row_hw==0) then
         MPI_points_all: do mcount=1,MPIpts
           if (mcount/=1) then ! Receive all points except the first (that was calculated at myrank_row_hw)
-            call MPI_Recv(e                 ,1                ,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE  ,4000,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(mvec_spherical    ,3*Npl            ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),4100,MPI_Comm_Row_hw,stat,ierr)
+            call MPI_Recv(e                ,1                ,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE  ,4000,MPI_Comm_Row_hw,stat,ierr)
+            call MPI_Recv(mvec_spherical   ,3*Npl            ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),4100,MPI_Comm_Row_hw,stat,ierr)
             if(.not.lhfresponses) &
-            call MPI_Recv(schi              ,Npl*Npl*16       ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4200,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(schihf            ,Npl*Npl*16       ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4300,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(Beff_cart         ,dimsigmaNpl      ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4400,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(total_Beff        ,4                ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4450,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(disturbances      ,7*Npl            ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4500,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(total_disturbances,7                ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4550,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(currents          ,7*n0sc*Npl       ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4600,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(total_currents    ,7*n0sc           ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4700,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(torques           ,ntypetorque*3*Npl,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4800,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(total_torques     ,ntypetorque*3    ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4850,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(dc_currents       ,3*Npl            ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),5100,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(sha_re            ,4*Npl            ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),5200,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(sha_re_total      ,4                ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),5300,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(sha_complex       ,4*Npl            ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),5400,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(sha_complex_total ,4                ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),5500,MPI_Comm_Row_hw,stat,ierr)
+            call MPI_Recv(schi             ,Npl*Npl*16       ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4200,MPI_Comm_Row_hw,stat,ierr)
+            call MPI_Recv(schihf           ,Npl*Npl*16       ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4300,MPI_Comm_Row_hw,stat,ierr)
+            call MPI_Recv(Beff_cart        ,dimsigmaNpl      ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4400,MPI_Comm_Row_hw,stat,ierr)
+            call MPI_Recv(disturbances     ,7*Npl            ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4500,MPI_Comm_Row_hw,stat,ierr)
+            call MPI_Recv(currents         ,7*n0sc*Npl       ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4600,MPI_Comm_Row_hw,stat,ierr)
+            call MPI_Recv(total_currents   ,7*n0sc           ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4700,MPI_Comm_Row_hw,stat,ierr)
+            call MPI_Recv(torques          ,ntypetorque*3*Npl,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4800,MPI_Comm_Row_hw,stat,ierr)
+            call MPI_Recv(dc_currents      ,3*Npl            ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),5100,MPI_Comm_Row_hw,stat,ierr)
+            call MPI_Recv(sha_re           ,4*Npl            ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),5200,MPI_Comm_Row_hw,stat,ierr)
+            call MPI_Recv(sha_re_total     ,4                ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),5300,MPI_Comm_Row_hw,stat,ierr)
+            call MPI_Recv(sha_complex      ,4*Npl            ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),5400,MPI_Comm_Row_hw,stat,ierr)
+            call MPI_Recv(sha_complex_total,4                ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),5500,MPI_Comm_Row_hw,stat,ierr)
           end if
 
           ! DIAGONALIZING SUSCEPTIBILITY
@@ -382,24 +376,21 @@ subroutine calculate_all()
           call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
         end if
       else
-        call MPI_Send(e                 ,1                ,MPI_DOUBLE_PRECISION,0,4000,MPI_Comm_Row_hw,ierr)
-        call MPI_Send(mvec_spherical    ,3*Npl            ,MPI_DOUBLE_PRECISION,0,4100,MPI_Comm_Row_hw,ierr)
+        call MPI_Send(e                ,1                ,MPI_DOUBLE_PRECISION,0,4000,MPI_Comm_Row_hw,ierr)
+        call MPI_Send(mvec_spherical   ,3*Npl            ,MPI_DOUBLE_PRECISION,0,4100,MPI_Comm_Row_hw,ierr)
         if(.not.lhfresponses) &
-        call MPI_Send(schi              ,Npl*Npl*16       ,MPI_DOUBLE_COMPLEX  ,0,4200,MPI_Comm_Row_hw,ierr)
-        call MPI_Send(schihf            ,Npl*Npl*16       ,MPI_DOUBLE_COMPLEX  ,0,4300,MPI_Comm_Row_hw,ierr)
-        call MPI_Send(Beff_cart         ,dimsigmaNpl      ,MPI_DOUBLE_COMPLEX  ,0,4400,MPI_Comm_Row_hw,ierr)
-        call MPI_Send(total_Beff        ,4                ,MPI_DOUBLE_COMPLEX  ,0,4450,MPI_Comm_Row_hw,ierr)
-        call MPI_Send(disturbances      ,7*Npl            ,MPI_DOUBLE_COMPLEX  ,0,4500,MPI_Comm_Row_hw,ierr)
-        call MPI_Send(total_disturbances,7                ,MPI_DOUBLE_COMPLEX  ,0,4550,MPI_Comm_Row_hw,ierr)
-        call MPI_Send(currents          ,7*n0sc*Npl       ,MPI_DOUBLE_COMPLEX  ,0,4600,MPI_Comm_Row_hw,ierr)
-        call MPI_Send(total_currents    ,7*n0sc           ,MPI_DOUBLE_COMPLEX  ,0,4700,MPI_Comm_Row_hw,ierr)
-        call MPI_Send(torques           ,ntypetorque*3*Npl,MPI_DOUBLE_COMPLEX  ,0,4800,MPI_Comm_Row_hw,ierr)
-        call MPI_Send(total_torques     ,ntypetorque*3    ,MPI_DOUBLE_COMPLEX  ,0,4850,MPI_Comm_Row_hw,ierr)
-        call MPI_Send(dc_currents       ,3*Npl            ,MPI_DOUBLE_PRECISION,0,5100,MPI_Comm_Row_hw,ierr)
-        call MPI_Send(sha_re            ,4*Npl            ,MPI_DOUBLE_PRECISION,0,5200,MPI_Comm_Row_hw,ierr)
-        call MPI_Send(sha_re_total      ,4                ,MPI_DOUBLE_PRECISION,0,5300,MPI_Comm_Row_hw,ierr)
-        call MPI_Send(sha_complex       ,4*Npl            ,MPI_DOUBLE_COMPLEX  ,0,5400,MPI_Comm_Row_hw,ierr)
-        call MPI_Send(sha_complex_total ,4                ,MPI_DOUBLE_COMPLEX  ,0,5500,MPI_Comm_Row_hw,ierr)
+        call MPI_Send(schi             ,Npl*Npl*16       ,MPI_DOUBLE_COMPLEX  ,0,4200,MPI_Comm_Row_hw,ierr)
+        call MPI_Send(schihf           ,Npl*Npl*16       ,MPI_DOUBLE_COMPLEX  ,0,4300,MPI_Comm_Row_hw,ierr)
+        call MPI_Send(Beff_cart        ,dimsigmaNpl      ,MPI_DOUBLE_COMPLEX  ,0,4400,MPI_Comm_Row_hw,ierr)
+        call MPI_Send(disturbances     ,7*Npl            ,MPI_DOUBLE_COMPLEX  ,0,4500,MPI_Comm_Row_hw,ierr)
+        call MPI_Send(currents         ,7*n0sc*Npl       ,MPI_DOUBLE_COMPLEX  ,0,4600,MPI_Comm_Row_hw,ierr)
+        call MPI_Send(total_currents   ,7*n0sc           ,MPI_DOUBLE_COMPLEX  ,0,4700,MPI_Comm_Row_hw,ierr)
+        call MPI_Send(torques          ,ntypetorque*3*Npl,MPI_DOUBLE_COMPLEX  ,0,4800,MPI_Comm_Row_hw,ierr)
+        call MPI_Send(dc_currents      ,3*Npl            ,MPI_DOUBLE_PRECISION,0,5100,MPI_Comm_Row_hw,ierr)
+        call MPI_Send(sha_re           ,4*Npl            ,MPI_DOUBLE_PRECISION,0,5200,MPI_Comm_Row_hw,ierr)
+        call MPI_Send(sha_re_total     ,4                ,MPI_DOUBLE_PRECISION,0,5300,MPI_Comm_Row_hw,ierr)
+        call MPI_Send(sha_complex      ,4*Npl            ,MPI_DOUBLE_COMPLEX  ,0,5400,MPI_Comm_Row_hw,ierr)
+        call MPI_Send(sha_complex_total,4                ,MPI_DOUBLE_COMPLEX  ,0,5500,MPI_Comm_Row_hw,ierr)
       end if
     end if
   end do all_energy_loop

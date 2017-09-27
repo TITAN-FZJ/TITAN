@@ -2,8 +2,8 @@ module mod_beff
   use mod_f90_kind, only: double
   implicit none
   ! Effective field
-  complex(double),dimension(:,:), allocatable :: chiinv,Beff_cart
-  complex(double),dimension(:)  , allocatable :: Beff,total_Beff
+  complex(double),dimension(:,:), allocatable :: chiinv
+  complex(double),dimension(:), allocatable :: Beff,Beff_cart
 
 contains
 
@@ -16,8 +16,8 @@ contains
     integer :: AllocateStatus
 
     if(myrank_row==0) then
-      allocate( Beff(dimsigmaNpl),Beff_cart(4,sys%nAtoms),total_Beff(4),chiinv(dimsigmaNpl,dimsigmaNpl), STAT = AllocateStatus )
-      if (AllocateStatus /= 0) call abortProgram("[allocate_beff] Not enough memory for: Beff,Beff_cart,total_Beff,chiinv")
+      allocate( Beff(dimsigmaNpl),Beff_cart(dimsigmaNpl),chiinv(dimsigmaNpl,dimsigmaNpl), STAT = AllocateStatus )
+      if (AllocateStatus /= 0) call abortProgram("[allocate_beff] Not enough memory for: Beff,Beff_cart,chiinv")
     end if
 
     return
@@ -29,7 +29,7 @@ contains
     implicit none
 
     if(myrank_row==0) then
-      deallocate(Beff,Beff_cart,total_Beff,chiinv)
+      deallocate(Beff,Beff_cart,chiinv)
     end if
 
     return
@@ -37,11 +37,10 @@ contains
 
   ! This subroutine opens and closes all the files needed for the effective field
   subroutine openclose_beff_files(iflag)
-    use mod_parameters, only: suffix, fieldpart, lhfresponses, Npl_folder, eta, Utype
+    use mod_parameters, only: suffix, fieldpart, energypart, lhfresponses, Npl_folder, eta, Utype
     use mod_mpi_pars, only: abortProgram
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
-    use EnergyIntegration, only: strEnergyParts
     use electricfield, only: strElectricField
     implicit none
 
@@ -63,7 +62,7 @@ contains
     if(iflag==0) then
       do sigma=1,4 ; do i=1, s%nAtoms
         iw = 8000+(sigma-1)*s%nAtoms+i
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename),direction(sigma),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename),direction(sigma),i,trim(energypart),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#     energy    , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma)
         close(unit=iw)
@@ -71,7 +70,7 @@ contains
     else if (iflag==1) then
       do sigma=1,4 ; do i=1,s%nAtoms
         iw = 8000+(sigma-1)*s%nAtoms+i
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename),direction(sigma),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(filename),direction(sigma),i,trim(energypart),s%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -105,17 +104,17 @@ contains
       do i=1,s%nAtoms
         iw = 8000+(sigma-1)*s%nAtoms+i
 
-        if(abs(Beff_cart(sigma,i))>=1.d-10) then
-          phase  = atan2(aimag(Beff_cart(sigma,i)),real(Beff_cart(sigma,i)))
-          sine   = real(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
-          cosine = aimag(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
+        if(abs(Beff_cart(sigmai2i(sigma,i)))>=1.d-10) then
+          phase  = atan2(aimag(Beff_cart(sigmai2i(sigma,i))),real(Beff_cart(sigmai2i(sigma,i))))
+          sine   = real(Beff_cart(sigmai2i(sigma,i)))/abs(Beff_cart(sigmai2i(sigma,i)))
+          cosine = aimag(Beff_cart(sigmai2i(sigma,i)))/abs(Beff_cart(sigmai2i(sigma,i)))
         else
           phase  = 0.d0
           sine   = 0.d0
           cosine = 0.d0
         end if
 
-        write(unit=iw,fmt="(9(es16.9,2x))") e , abs(Beff_cart(sigma,i)) , real(Beff_cart(sigma,i)) , aimag(Beff_cart(sigma,i)) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
+        write(unit=iw,fmt="(9(es16.9,2x))") e , abs(Beff_cart(sigmai2i(sigma,i))) , real(Beff_cart(sigmai2i(sigma,i))) , aimag(Beff_cart(sigmai2i(sigma,i))) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
       end do
     end do
 
@@ -124,12 +123,11 @@ contains
 
   ! This subroutine opens and closes all the files needed for the effective field
   subroutine openclose_dc_beff_files(iflag)
-    use mod_parameters, only: lhfresponses,dcfieldpart, suffix, Npl_folder, Utype, eta
+    use mod_parameters, only: lhfresponses,dcfieldpart, energypart, suffix, Npl_folder, Utype, eta
     use mod_magnet, only: dcprefix, dc_header, dcfield, dcfield_dependence
     use mod_mpi_pars, only: abortProgram
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
-    use EnergyIntegration, only: strEnergyParts
     use electricfield, only: strElectricField
     implicit none
 
@@ -151,7 +149,7 @@ contains
     if(iflag==0) then
       do sigma=1,4 ; do i=1,s%nAtoms
         iw = 80000+(sigma-1)*s%nAtoms+i
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(energypart),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,' imaginary part of ',a,a,' , real part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma)
         close(unit=iw)
@@ -159,7 +157,7 @@ contains
     else if (iflag==1) then
       do sigma=1,4 ; do i=1,s%nAtoms
         iw = 80000+(sigma-1)*s%nAtoms+i
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(Npl_folder),trim(folder),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(energypart),s%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -191,17 +189,17 @@ contains
     do sigma=1,4 ; do i=1,s%nAtoms
       iw = 80000+(sigma-1)*s%nAtoms+i
 
-      if(abs(Beff_cart(sigma,i))>=1.d-10) then
-        phase  = atan2(aimag(Beff_cart(sigma,i)),real(Beff_cart(sigma,i)))
-        sine   = real(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
-        cosine = aimag(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
+      if(abs(Beff_cart(sigmai2i(sigma,i)))>=1.d-10) then
+        phase  = atan2(aimag(Beff_cart(sigmai2i(sigma,i))),real(Beff_cart(sigmai2i(sigma,i))))
+        sine   = real(Beff_cart(sigmai2i(sigma,i)))/abs(Beff_cart(sigmai2i(sigma,i)))
+        cosine = aimag(Beff_cart(sigmai2i(sigma,i)))/abs(Beff_cart(sigmai2i(sigma,i)))
       else
         phase  = 0.d0
         sine   = 0.d0
         cosine = 0.d0
       end if
 
-      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(Beff_cart(sigma,i)) , real(Beff_cart(sigma,i)) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
+      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(Beff_cart(sigmai2i(sigma,i))) , real(Beff_cart(sigmai2i(sigma,i))) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
     end do ; end do
 
     return

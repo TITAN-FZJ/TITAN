@@ -249,8 +249,6 @@ subroutine calculate_dc_limit()
       disturbances(2:4,:) = 0.5d0*disturbances(2:4,:)
       disturbances = disturbances/e
       torques  = torques/e
-      total_disturbances  = sum(disturbances,dim=2)
-      total_torques       = sum(torques,dim=3)
       sdmat    = 0.5d0*sdmat/e
       currents = currents/e
       currents(2:4,:,:) =-0.5d0*currents(2:4,:,:)
@@ -272,12 +270,11 @@ subroutine calculate_dc_limit()
       ! Effective field calculation
       call zgemm('n','n',dimsigmaNpl,1,dimsigmaNpl,zum,chiinv,dimsigmaNpl,sdmat,dimsigmaNpl,zero,Beff,dimsigmaNpl) ! Beff = chi^(-1)*SD
       plane_loop_effective_field_dclimit: do i=1,Npl
-        Beff_cart(1,i) =       (Beff(sigmai2i(2,i)) + Beff(sigmai2i(3,i)))    ! 0
-        Beff_cart(2,i) = 0.5d0*(Beff(sigmai2i(1,i)) + Beff(sigmai2i(4,i)))    ! x
-        Beff_cart(3,i) = 0.5d0*(Beff(sigmai2i(1,i)) - Beff(sigmai2i(4,i)))/zi ! y
-        Beff_cart(4,i) = 0.5d0*(Beff(sigmai2i(2,i)) - Beff(sigmai2i(3,i)))    ! z
+        Beff_cart(sigmai2i(1,i)) =       (Beff(sigmai2i(2,i)) + Beff(sigmai2i(3,i)))    ! 0
+        Beff_cart(sigmai2i(2,i)) = 0.5d0*(Beff(sigmai2i(1,i)) + Beff(sigmai2i(4,i)))    ! x
+        Beff_cart(sigmai2i(3,i)) = 0.5d0*(Beff(sigmai2i(1,i)) - Beff(sigmai2i(4,i)))/zi ! y
+        Beff_cart(sigmai2i(4,i)) = 0.5d0*(Beff(sigmai2i(2,i)) - Beff(sigmai2i(3,i)))    ! z
       end do plane_loop_effective_field_dclimit
-      total_Beff  = sum(Beff_cart,dim=2)
 
       ! Sending results to myrank_row = myrank_col = 0 and writing on file
       if(myrank_col==0) then
@@ -287,25 +284,22 @@ subroutine calculate_dc_limit()
 
         MPI_points_dclimit: do mcount=1,MPIpts_hw
           if (mcount/=1) then ! Receive all points except the first (that was calculated at myrank_row_hw)
-            call MPI_Recv(hw_count          ,1                ,MPI_INTEGER         ,MPI_ANY_SOURCE  ,44000+mpitag2,MPI_Comm_Col,stat,ierr) ! hw_count needed to get correct values of fields on hw_list
-            call MPI_Recv(count             ,1                ,MPI_INTEGER         ,stat(MPI_SOURCE),44100+mpitag2,MPI_Comm_Col,stat,ierr) ! count needed to write correct energy on the filename
-            call MPI_Recv(mvec_spherical    ,3*Npl            ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),44200+mpitag2,MPI_Comm_Col,stat,ierr)
-            if(.not.lhfresponses)&
-            call MPI_Recv(schi              ,Npl*Npl*16       ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44300+mpitag2,MPI_Comm_Col,stat,ierr)
-            call MPI_Recv(schihf            ,Npl*Npl*16       ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44400+mpitag2,MPI_Comm_Col,stat,ierr)
-            call MPI_Recv(Beff_cart         ,dimsigmaNpl      ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44500+mpitag2,MPI_Comm_Col,stat,ierr)
-            call MPI_Recv(total_Beff        ,4                ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44550+mpitag2,MPI_Comm_Col,stat,ierr)
-            call MPI_Recv(disturbances      ,7*Npl            ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44600+mpitag2,MPI_Comm_Col,stat,ierr)
-            call MPI_Recv(total_disturbances,7                ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44650+mpitag2,MPI_Comm_Col,stat,ierr)
-            call MPI_Recv(currents          ,7*n0sc*Npl       ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44700+mpitag2,MPI_Comm_Col,stat,ierr)
-            call MPI_Recv(total_currents    ,7*n0sc           ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44800+mpitag2,MPI_Comm_Col,stat,ierr)
-            call MPI_Recv(torques           ,ntypetorque*3*Npl,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44900+mpitag2,MPI_Comm_Col,stat,ierr)
-            call MPI_Recv(total_torques     ,ntypetorque*3    ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44950+mpitag2,MPI_Comm_Col,stat,ierr)
-            call MPI_Recv(dc_currents       ,3*Npl            ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),45200+mpitag2,MPI_Comm_Col,stat,ierr)
-            call MPI_Recv(sha_re            ,4*Npl            ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),45300+mpitag2,MPI_Comm_Col,stat,ierr)
-            call MPI_Recv(sha_re_total      ,4                ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),45400+mpitag2,MPI_Comm_Col,stat,ierr)
-            call MPI_Recv(sha_complex       ,4*Npl            ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),45500+mpitag2,MPI_Comm_Col,stat,ierr)
-            call MPI_Recv(sha_complex_total ,4                ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),45600+mpitag2,MPI_Comm_Col,stat,ierr)
+            call MPI_Recv(hw_count         ,1                ,MPI_INTEGER         ,MPI_ANY_SOURCE  ,44000+mpitag2,MPI_Comm_Col,stat,ierr) ! hw_count needed to get correct values of fields on hw_list
+            call MPI_Recv(count            ,1                ,MPI_INTEGER         ,stat(MPI_SOURCE),44100+mpitag2,MPI_Comm_Col,stat,ierr) ! count needed to write correct energy on the filename
+            call MPI_Recv(mvec_spherical   ,3*Npl            ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),44200+mpitag2,MPI_Comm_Col,stat,ierr)
+            if(.not.lhfresponses) &
+            call MPI_Recv(schi             ,Npl*Npl*16       ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44300+mpitag2,MPI_Comm_Col,stat,ierr)
+            call MPI_Recv(schihf           ,Npl*Npl*16       ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44400+mpitag2,MPI_Comm_Col,stat,ierr)
+            call MPI_Recv(Beff_cart        ,dimsigmaNpl      ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44500+mpitag2,MPI_Comm_Col,stat,ierr)
+            call MPI_Recv(disturbances     ,7*Npl            ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44600+mpitag2,MPI_Comm_Col,stat,ierr)
+            call MPI_Recv(currents         ,7*n0sc*Npl       ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44700+mpitag2,MPI_Comm_Col,stat,ierr)
+            call MPI_Recv(total_currents   ,7*n0sc           ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44800+mpitag2,MPI_Comm_Col,stat,ierr)
+            call MPI_Recv(torques          ,ntypetorque*3*Npl,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44900+mpitag2,MPI_Comm_Col,stat,ierr)
+            call MPI_Recv(dc_currents      ,3*Npl            ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),45200+mpitag2,MPI_Comm_Col,stat,ierr)
+            call MPI_Recv(sha_re           ,4*Npl            ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),45300+mpitag2,MPI_Comm_Col,stat,ierr)
+            call MPI_Recv(sha_re_total     ,4                ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),45400+mpitag2,MPI_Comm_Col,stat,ierr)
+            call MPI_Recv(sha_complex      ,4*Npl            ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),45500+mpitag2,MPI_Comm_Col,stat,ierr)
+            call MPI_Recv(sha_complex_total,4                ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),45600+mpitag2,MPI_Comm_Col,stat,ierr)
           end if
 
           ! DIAGONALIZING SUSCEPTIBILITY
@@ -387,25 +381,22 @@ subroutine calculate_dc_limit()
         mvec_spherical = mvec_spherical_temp
       else
         if(myrank_row_hw==0) write(outputunit_loop,"('[calculate_dc_limit] Sending results to process zero... ')")
-        call MPI_Send(hw_count          ,1                ,MPI_INTEGER         ,0,44000+mpitag2,MPI_Comm_Col,ierr)
-        call MPI_Send(count_temp        ,1                ,MPI_INTEGER         ,0,44100+mpitag2,MPI_Comm_Col,ierr)
-        call MPI_Send(mvec_spherical    ,3*Npl            ,MPI_DOUBLE_PRECISION,0,44200+mpitag2,MPI_Comm_Col,ierr)
+        call MPI_Send(hw_count         ,1                ,MPI_INTEGER         ,0,44000+mpitag2,MPI_Comm_Col,ierr)
+        call MPI_Send(count_temp       ,1                ,MPI_INTEGER         ,0,44100+mpitag2,MPI_Comm_Col,ierr)
+        call MPI_Send(mvec_spherical   ,3*Npl            ,MPI_DOUBLE_PRECISION,0,44200+mpitag2,MPI_Comm_Col,ierr)
         if(.not.lhfresponses) &
-        call MPI_Send(schi              ,Npl*Npl*16       ,MPI_DOUBLE_COMPLEX  ,0,44300+mpitag2,MPI_Comm_Col,ierr)
-        call MPI_Send(schihf            ,Npl*Npl*16       ,MPI_DOUBLE_COMPLEX  ,0,44400+mpitag2,MPI_Comm_Col,ierr)
-        call MPI_Send(Beff_cart         ,dimsigmaNpl      ,MPI_DOUBLE_COMPLEX  ,0,44500+mpitag2,MPI_Comm_Col,ierr)
-        call MPI_Send(total_Beff        ,4                ,MPI_DOUBLE_COMPLEX  ,0,44550+mpitag2,MPI_Comm_Col,ierr)
-        call MPI_Send(disturbances      ,7*Npl            ,MPI_DOUBLE_COMPLEX  ,0,44600+mpitag2,MPI_Comm_Col,ierr)
-        call MPI_Send(total_disturbances,7                ,MPI_DOUBLE_COMPLEX  ,0,44650+mpitag2,MPI_Comm_Col,ierr)
-        call MPI_Send(currents          ,7*n0sc*Npl       ,MPI_DOUBLE_COMPLEX  ,0,44700+mpitag2,MPI_Comm_Col,ierr)
-        call MPI_Send(total_currents    ,7*n0sc           ,MPI_DOUBLE_COMPLEX  ,0,44800+mpitag2,MPI_Comm_Col,ierr)
-        call MPI_Send(torques           ,ntypetorque*3*Npl,MPI_DOUBLE_COMPLEX  ,0,44900+mpitag2,MPI_Comm_Col,ierr)
-        call MPI_Send(total_torques     ,ntypetorque*3    ,MPI_DOUBLE_COMPLEX  ,0,44950+mpitag2,MPI_Comm_Col,ierr)
-        call MPI_Send(dc_currents       ,3*Npl            ,MPI_DOUBLE_PRECISION,0,45200+mpitag2,MPI_Comm_Col,ierr)
-        call MPI_Send(sha_re            ,4*Npl            ,MPI_DOUBLE_PRECISION,0,45300+mpitag2,MPI_Comm_Col,ierr)
-        call MPI_Send(sha_re_total      ,4                ,MPI_DOUBLE_PRECISION,0,45400+mpitag2,MPI_Comm_Col,ierr)
-        call MPI_Send(sha_complex       ,4*Npl            ,MPI_DOUBLE_COMPLEX  ,0,45500+mpitag2,MPI_Comm_Col,ierr)
-        call MPI_Send(sha_complex_total ,4                ,MPI_DOUBLE_COMPLEX  ,0,45600+mpitag2,MPI_Comm_Col,ierr)
+        call MPI_Send(schi             ,Npl*Npl*16       ,MPI_DOUBLE_COMPLEX  ,0,44300+mpitag2,MPI_Comm_Col,ierr)
+        call MPI_Send(schihf           ,Npl*Npl*16       ,MPI_DOUBLE_COMPLEX  ,0,44400+mpitag2,MPI_Comm_Col,ierr)
+        call MPI_Send(Beff_cart        ,dimsigmaNpl      ,MPI_DOUBLE_COMPLEX  ,0,44500+mpitag2,MPI_Comm_Col,ierr)
+        call MPI_Send(disturbances     ,7*Npl            ,MPI_DOUBLE_COMPLEX  ,0,44600+mpitag2,MPI_Comm_Col,ierr)
+        call MPI_Send(currents         ,7*n0sc*Npl       ,MPI_DOUBLE_COMPLEX  ,0,44700+mpitag2,MPI_Comm_Col,ierr)
+        call MPI_Send(total_currents   ,7*n0sc           ,MPI_DOUBLE_COMPLEX  ,0,44800+mpitag2,MPI_Comm_Col,ierr)
+        call MPI_Send(torques          ,ntypetorque*3*Npl,MPI_DOUBLE_COMPLEX  ,0,44900+mpitag2,MPI_Comm_Col,ierr)
+        call MPI_Send(dc_currents      ,3*Npl            ,MPI_DOUBLE_PRECISION,0,45200+mpitag2,MPI_Comm_Col,ierr)
+        call MPI_Send(sha_re           ,4*Npl            ,MPI_DOUBLE_PRECISION,0,45300+mpitag2,MPI_Comm_Col,ierr)
+        call MPI_Send(sha_re_total     ,4                ,MPI_DOUBLE_PRECISION,0,45400+mpitag2,MPI_Comm_Col,ierr)
+        call MPI_Send(sha_complex      ,4*Npl            ,MPI_DOUBLE_COMPLEX  ,0,45500+mpitag2,MPI_Comm_Col,ierr)
+        call MPI_Send(sha_complex_total,4                ,MPI_DOUBLE_COMPLEX  ,0,45600+mpitag2,MPI_Comm_Col,ierr)
         write(time,"('[calculate_dc_limit] Time after step ',i0,': ')") dc_count
         call write_time(outputunit_loop,time)
       end if
