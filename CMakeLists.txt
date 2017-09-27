@@ -121,9 +121,9 @@ else()
                                            -O3
                                            -qopenmp
                                            -mkl
-					   -ipo
-					   -qopt-report=5
-					   -g
+                           					 -ipo
+					                            #-qopt-report=5
+					                            -g
                                            -xHost)
 endif()
 
