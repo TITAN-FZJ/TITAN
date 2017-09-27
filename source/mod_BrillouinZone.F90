@@ -1,3 +1,19 @@
+!-------------------------------------------------------------------------------------!
+! TITAN - TIme-dependent  Transport and Angular momentum properties of Nanostructures !
+!-------------------------------------------------------------------------------------!
+!
+! MODULE: mod_BrillouinZone
+!
+!> @author
+!> Jens Renè Suckert, PGI-1/IAS-1, Peter-Grünberg-Institut,FZ Jülich
+!
+! DESCRIPTION:
+!> Description of the Brillouin Zone in reciprocal space
+!> Contains types and routines to setup the Brillouin Zone
+!
+! REVISION HISTORY:
+! 26 September 2017 - Last Changes
+!-------------------------------------------------------------------------------------!
 module mod_BrillouinZone
    use mod_f90_kind, only: double
    implicit none
