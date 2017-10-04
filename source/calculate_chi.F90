@@ -29,7 +29,7 @@ subroutine calculate_chi()
     ! Creating files and writing headers
     if(.not.laddresults) then
       call create_chi_files()
-      call create_alpha_files
+      call create_alpha_files()
     end if
   end if
 
@@ -64,8 +64,8 @@ subroutine calculate_chi()
       schihf = cZero
       ! Calculating RPA and HF susceptibilities
       do j=1, s%nAtoms
-        do nu=1, nOrb
-          do i=1, s%nAtoms
+        do i=1, s%nAtoms
+          do nu=1, nOrb
             do mu=1, nOrb
               do sigmap=1, 4
                 do sigma=1, 4
@@ -77,6 +77,7 @@ subroutine calculate_chi()
           end do
         end do
       end do
+
       ! Rotating susceptibilities to the magnetization direction
       if(lrot) then
         do i=1, s%nAtoms
