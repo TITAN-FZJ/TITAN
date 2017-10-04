@@ -14,8 +14,10 @@ module mod_magnet
   real(double),allocatable    :: mabs(:),mtheta(:),mphi(:),mvec_spherical(:,:)
   real(double),allocatable    :: labs(:),ltheta(:),lphi(:)
   real(double),allocatable    :: lpabs(:),lptheta(:),lpphi(:)
-  real(double),allocatable    :: eps1(:)                                ! Center of the bands for each l - eps(Npl)
-  real(double), dimension(:), allocatable :: hhwx, hhwy, hhwz           ! Static magnetic fields in each direction
+  real(double),allocatable    :: eps1(:)
+  !! Center of the bands for each l - eps(Npl)
+  real(double), dimension(:), allocatable :: hhwx, hhwy, hhwz
+  !! Half of Static magnetic fields in each direction
   complex(double), dimension(:,:,:), allocatable :: lb, sb
   !! Zeeman matrices
   complex(double), dimension(:,:,:), allocatable :: lxp, lyp, lzp
