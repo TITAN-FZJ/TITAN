@@ -168,8 +168,8 @@ contains
       gammaM = e / aimag(axy_inv)
       alpha_v1 = - gammaM * aimag(m_chi_inv(sigmai2i(1,i),sigmai2i(1,i))) / e
       alpha_v2 = - gammaM * aimag(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i))) / e
-      alpha_v3 = gammaM * real(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)))**2 * aimag(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i))) / e
-      alpha_v4 = gammaM * U(i)**2 * aimag(m_chi(sigmai2i(1,i),sigmai2i(1,i))) / e
+      alpha_v3 =   gammaM * aimag(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i))) / e * real(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)))**2
+      alpha_v4 =   gammaM * aimag(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i))) / e * U(i)**2
 
       write(55 +            i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx       )/aimag(axy       ), e / (mabs(i) * aimag(axy       )), -mabs(i)*aimag(axx       ) / e
       write(55 +   s%nAtoms+i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx_hf    )/aimag(axy_hf    ), e / (mabs(i) * aimag(axy_hf    )), -mabs(i)*aimag(axx_hf    ) / e
