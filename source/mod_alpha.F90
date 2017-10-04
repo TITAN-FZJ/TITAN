@@ -60,7 +60,7 @@ contains
 
       write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/sumrule_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
       open (unit=55+4*s%nAtoms+i, file=varm, status='replace', form='formatted')
-      write(unit=55+4*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  (ReX(w))^(-2), [ReX(w)^(-1)]^2,     U^2,   v1  ,  v2  ,  v3.1  ,  v3.2,    v4')")
+      write(unit=55+4*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  (ReX(w))^(-2),     U^2,   v1  ,  v2  ,  v3,    v4')")
     end do
 
     return
@@ -135,7 +135,7 @@ contains
     use mod_magnet, only: mabs
     implicit none
     real(double) :: e
-    real(double) :: gammaM, alpha_v1, alpha_v2, alpha_v3_1, alpha_v3_2, alpha_v4
+    real(double) :: gammaM, alpha_v1, alpha_v2, alpha_v3, alpha_v4
     complex(double) :: axx, axy, axx_hf, axy_hf, axx_inv, axy_inv, axx_hf_inv, axy_hf_inv
     integer :: i,j,sigma, sigmap
 
@@ -168,15 +168,14 @@ contains
       gammaM = e / aimag(axy_inv)
       alpha_v1 = - gammaM * aimag(m_chi_inv(sigmai2i(1,i),sigmai2i(1,i))) / e
       alpha_v2 = - gammaM * aimag(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i))) / e
-      alpha_v3_1 = gammaM * real(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)))**2 * aimag(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i))) / e
-      alpha_v3_2 = gammaM / real(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i)))**2 * aimag(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i))) / e
+      alpha_v3 = gammaM * real(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)))**2 * aimag(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i))) / e
       alpha_v4 = gammaM * U(i)**2 * aimag(m_chi(sigmai2i(1,i),sigmai2i(1,i))) / e
 
       write(55 +            i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx       )/aimag(axy       ), e / (mabs(i) * aimag(axy       )), -mabs(i)*aimag(axx       ) / e
       write(55 +   s%nAtoms+i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx_hf    )/aimag(axy_hf    ), e / (mabs(i) * aimag(axy_hf    )), -mabs(i)*aimag(axx_hf    ) / e
       write(55 + 2*s%nAtoms+i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx_inv   )/aimag(axy_inv   ), e / (mabs(i) * aimag(axy_inv   )), -mabs(i)*aimag(axx_inv   ) / e
       write(55 + 3*s%nAtoms+i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx_hf_inv)/aimag(axy_hf_inv), e / (mabs(i) * aimag(axy_hf_inv)), -mabs(i)*aimag(axx_hf_inv) / e
-      write(55 + 4*s%nAtoms+i,"(8(es16.9,2x))") e, gammaM, real(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)))**2, 1.d0 / real(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i)))**2 , U(i)**2, alpha_v1, alpha_v2, alpha_v3_1, alpha_v3_2, alpha_v4
+      write(55 + 4*s%nAtoms+i,"(8(es16.9,2x))") e, gammaM, real(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)))**2, U(i)**2, alpha_v1, alpha_v2, alpha_v3, alpha_v4
     end do
 
     call close_alpha_files()
