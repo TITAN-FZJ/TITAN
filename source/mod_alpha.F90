@@ -57,6 +57,10 @@ contains
       write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chihfinv_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
       open (unit=55+3*s%nAtoms+i, file=varm, status='replace', form='formatted')
       write(unit=55+3*s%nAtoms+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ,  A+-  ,  A++')")
+
+      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/sumrule_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+      open (unit=55+4*s%nAtoms+i, file=varm, status='replace', form='formatted')
+      write(unit=55+4*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  v1  ,  v2  ,  v3  ,  v4')")
     end do
 
     return
@@ -83,20 +87,26 @@ contains
       errt = errt + err
       if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
 
-      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chi_hf',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chihf_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
       open (unit=55+  s%nAtoms+i, file=varm, status='old', position='append', form='formatted', iostat=err)
       errt = errt + err
       if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
 
-      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chi_inv',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chiinv_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
       open (unit=55+2*s%nAtoms+i, file=varm, status='old', position='append', form='formatted', iostat=err)
       errt = errt + err
       if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
 
-      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chi_hf_inv',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chihfinv_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
       open (unit=55+3*s%nAtoms+i, file=varm, status='old', position='append', form='formatted', iostat=err)
       errt = errt + err
       if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+
+      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/sumrule_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+      open (unit=55+4*s%nAtoms+i, file=varm, status='old', position='append', form='formatted', iostat=err)
+      errt = errt + err
+      if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+
     end do
 
     if(errt/=0) call abortProgram("[open_alpha_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
@@ -109,7 +119,7 @@ contains
     implicit none
     integer :: i
 
-    do i = 1, s%nAtoms
+    do i = 1, 4*s%nAtoms
       close(unit=55+i)
     end do
 
@@ -120,11 +130,12 @@ contains
     use mod_f90_kind, only: double
     use mod_constants, only: cI
     use mod_susceptibilities, only: schi, schihf
-    use mod_parameters, only: sigmai2i
+    use mod_parameters, only: sigmai2i, U
     use mod_system, only: s => sys
     use mod_magnet, only: mabs
     implicit none
     real(double) :: e
+    real(double) :: gammaM, alpha_v1, alpha_v2, alpha_v3, alpha_v4
     complex(double) :: axx, axy, axx_hf, axy_hf, axx_inv, axy_inv, axx_hf_inv, axy_hf_inv
     integer :: i,j,sigma, sigmap
 
@@ -154,10 +165,17 @@ contains
       axx_hf     = 0.5d0   *(m_chi_hf(sigmai2i(1,i),sigmai2i(4,i)) + m_chi_hf(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_hf(sigmai2i(4,i),sigmai2i(4,i)) + m_chi_hf(sigmai2i(4,i),sigmai2i(1,i)))
       axy_hf     = 0.5d0*cI*(m_chi_hf(sigmai2i(1,i),sigmai2i(4,i)) - m_chi_hf(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_hf(sigmai2i(4,i),sigmai2i(4,i)) - m_chi_hf(sigmai2i(4,i),sigmai2i(1,i)))
 
+      gammaM = e / aimag(axy_inv)
+      alpha_v1 = - gammaM * aimag(m_chi_inv(sigmai2i(1,i),sigmai2i(1,i))) / e
+      alpha_v2 = - gammaM * aimag(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i))) / e
+      alpha_v3 = gammaM * real(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)))**2 * aimag(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i))) / e
+      alpha_v4 = gammaM * U(i)**2 * aimag(m_chi(sigmai2i(1,i),sigmai2i(1,i))) / e
+
       write(55 +            i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx       )/aimag(axy       ), e / (mabs(i) * aimag(axy       )), -mabs(i)*aimag(axx       ) / e
       write(55 +   s%nAtoms+i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx_hf    )/aimag(axy_hf    ), e / (mabs(i) * aimag(axy_hf    )), -mabs(i)*aimag(axx_hf    ) / e
       write(55 + 2*s%nAtoms+i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx_inv   )/aimag(axy_inv   ), e / (mabs(i) * aimag(axy_inv   )), -mabs(i)*aimag(axx_inv   ) / e
       write(55 + 3*s%nAtoms+i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx_hf_inv)/aimag(axy_hf_inv), e / (mabs(i) * aimag(axy_hf_inv)), -mabs(i)*aimag(axx_hf_inv) / e
+      write(55 + 4*s%nAtoms+i,"(6(es16.9,2x))") e, gammaM, alpha_v1, alpha_v2, alpha_v3, alpha_v4
     end do
 
     call close_alpha_files()
