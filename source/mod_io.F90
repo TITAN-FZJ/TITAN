@@ -110,7 +110,7 @@ contains
     if(.not. get_parameter("bulk", s%lbulk, .true.)) call log_warning("get_parameters", "'bulk' missing. Using default value.")
 
     if(LatticeMode == 1) then
-
+      call log_error("get_parameters", "Monoatomic basis not available right now, sorry :P")
       if(.not. get_parameter("a0", s%a0)) call log_error("get_parameters","'a0' missing.")
 
       if(.not. get_parameter("lattice", latticeName)) call log_error("get_parameters","'lattice' missing.")
