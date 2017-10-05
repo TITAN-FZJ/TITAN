@@ -65,10 +65,10 @@ subroutine calculate_chi()
       ! Calculating RPA and HF susceptibilities
       do j=1, s%nAtoms
         do i=1, s%nAtoms
-          do nu=1, nOrb
-            do mu=1, nOrb
-              do sigmap=1, 4
-                do sigma=1, 4
+          do sigmap=1, 4
+            do sigma=1, 4
+              do nu=1, nOrb
+                do mu=1, nOrb
                   schi  (sigma,sigmap,i,j) = schi  (sigma,sigmap,i,j) + chiorb   (sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
                   schihf(sigma,sigmap,i,j) = schihf(sigma,sigmap,i,j) + chiorb_hf(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
                 end do
