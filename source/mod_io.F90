@@ -436,7 +436,7 @@ contains
 
 
     !---------------------------------- Magnetic Self-consistency ----------------------------------
-    if(.not. get_parameter("skipsc", skipsc)) call log_error("get_parameters","'skipsc' missing.")
+    if(.not. get_parameter("skipsc", skipsc, .false.)) call log_warning("get_parameters","'skipsc' missing. Using default value.")
 
     if(.not. get_parameter("scfile", scfile)) call log_warning("get_parameters","'scfile' missing.")
 
