@@ -421,9 +421,9 @@ contains
 
     if(.not. get_parameter("emax", emax)) call log_error("get_parameters","'emax' missing.")
 
-    if(.not. get_parameter("skip_steps", skip_steps)) call log_warning("get_parameters","'skip_steps' missing.")
+    if(.not. get_parameter("skip_steps", skip_steps, 0)) call log_warning("get_parameters","'skip_steps' missing.")
 
-    if(.not. get_parameter("skip_steps_hw", skip_steps_hw)) call log_warning("get_parameters","'skip_steps_hw' missing.")
+    if(.not. get_parameter("skip_steps_hw", skip_steps_hw, 0)) call log_warning("get_parameters","'skip_steps_hw' missing.")
 
     if(.not. get_parameter("npts", npts)) call log_error("get_parameters","'npts' missing.")
     npt1 = npts + 1
