@@ -2,7 +2,7 @@ module mod_alpha
   use mod_f90_kind, only: double
   implicit none
 
-  complex(double), dimension(:,:),   allocatable :: m_chi, m_chi_hf, m_chi_inv, m_chi_hf_inv
+  complex(double), dimension(:,:),   allocatable :: m_chi, m_chi_hf, m_chi_inv, m_chi_hf_inv, m_chiorb_inv, m_chiorbhf_inv
   character(len=7), parameter, private :: folder = "A/Slope"
   character(len=8), dimension(5), parameter, private :: filename = ["chi     ", "chihf   ", "chiinv  ", "chihfinv", "sumrule "]
 
@@ -10,13 +10,16 @@ contains
 
   subroutine allocate_alpha()
     use mod_System, only: s => sys
+    use mod_parameters, only: dim
     use mod_mpi_pars, only: abortProgram
     implicit none
     integer :: AllocateStatus
     allocate(m_chi       (4*s%nAtoms,4*s%nAtoms), &
              m_chi_hf    (4*s%nAtoms,4*s%nAtoms), &
              m_chi_inv   (4*s%nAtoms,4*s%nAtoms), &
-             m_chi_hf_inv(4*s%nAtoms,4*s%nAtoms), stat = AllocateStatus)
+             m_chi_hf_inv(4*s%nAtoms,4*s%nAtoms), &
+             m_chiorb_inv(dim,dim), &
+             m_chiorbhf_inv(dim,dim), stat = AllocateStatus)
     if(AllocateStatus /= 0) call abortProgram("[allocate_alpha] Not enough memory for: m_chi, m_chi_hf, m_chi_inv, m_chi_hf_inv")
 
     return
@@ -99,18 +102,22 @@ contains
 
   subroutine write_alpha(e)
     use mod_f90_kind, only: double
-    use mod_constants, only: cI
-    use mod_susceptibilities, only: schi, schihf
-    use mod_parameters, only: sigmai2i, U
+    use mod_constants, only: cI, cZero
+    use mod_susceptibilities, only: schi, schihf, chiorb, chiorb_hf
+    use mod_parameters, only: sigmai2i, U, dim, sigmaimunu2i
     use mod_system, only: s => sys
+    use TightBinding, only: nOrb
     use mod_magnet, only: mabs
     implicit none
     real(double) :: e
     real(double) :: gammaM, alpha_v1, alpha_v2, alpha_v3, alpha_v4
     complex(double) :: axx, axy, axx_hf, axy_hf, axx_inv, axy_inv, axx_hf_inv, axy_hf_inv
-    integer :: i,j,sigma, sigmap
+    integer :: i,j,sigma, sigmap, mu, nu
 
     call open_alpha_files()
+
+    m_chiorb_inv = chiorb
+    m_chiorbhf_inv = chiorb_hf
 
     do i = 1, s%nAtoms
       do j = 1, s%nAtoms
@@ -122,10 +129,33 @@ contains
         end do
       end do
     end do
-    m_chi_inv    = m_chi
-    m_chi_hf_inv = m_chi_hf
-    call invers(m_chi_inv,    4*s%nAtoms)
+   !  m_chi_inv    = m_chi
+   !  m_chi_hf_inv = m_chi_hf
+   !  call invers(m_chi_inv,    4*s%nAtoms)
+   !  call invers(m_chi_hf_inv, 4*s%nAtoms)
+
+    m_chi_inv = cZero
+    m_chi_hf_inv = cZero
+
+    do i = 1, s%nAtoms
+      do j = 1, s%nAtoms
+         do sigma = 1, 4
+            do sigmap = 1, 4
+               do mu = 5, nOrb
+                  do nu = 5, nOrb
+                     m_chi_inv(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = m_chi_inv(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + chiorb(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
+                     m_chi_hf_inv(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = m_chi_hf_inv(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + chiorb_hf(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
+                  end do
+               end do
+            end do
+         end do
+      end do
+    end do
+
+    call invers(m_chi_inv, 4*s%nAtoms)
     call invers(m_chi_hf_inv, 4*s%nAtoms)
+
+
     do i = 1, s%nAtoms
       axx_inv    = 0.5d0   *(m_chi_inv(sigmai2i(1,i),sigmai2i(4,i)) + m_chi_inv(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_inv(sigmai2i(4,i),sigmai2i(4,i)) + m_chi_inv(sigmai2i(4,i),sigmai2i(1,i)))
       axy_inv    = 0.5d0*cI*(m_chi_inv(sigmai2i(1,i),sigmai2i(4,i)) - m_chi_inv(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_inv(sigmai2i(4,i),sigmai2i(4,i)) - m_chi_inv(sigmai2i(4,i),sigmai2i(1,i)))
@@ -139,14 +169,16 @@ contains
       gammaM = e / aimag(axy_inv)
       alpha_v1 = - gammaM * aimag(m_chi_inv(sigmai2i(1,i),sigmai2i(1,i))) / e
       alpha_v2 = - gammaM * aimag(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i))) / e
-      alpha_v3 =   gammaM * aimag(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i))) / e * real(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)))**2
+      alpha_v3 =   gammaM * aimag(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i))) / (e * real(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i)))**2)
       alpha_v4 =   gammaM * aimag(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i))) / e * U(i)**2
 
+      print *, real(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)))**2
+      print *, 1.d0/real(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i)))**2
       write(55 +            i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx       )/aimag(axy       ), e / (mabs(i) * aimag(axy       )), -mabs(i)*aimag(axx       ) / e
       write(55 +   s%nAtoms+i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx_hf    )/aimag(axy_hf    ), e / (mabs(i) * aimag(axy_hf    )), -mabs(i)*aimag(axx_hf    ) / e
       write(55 + 2*s%nAtoms+i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx_inv   )/aimag(axy_inv   ), e / (mabs(i) * aimag(axy_inv   )), -mabs(i)*aimag(axx_inv   ) / e
       write(55 + 3*s%nAtoms+i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx_hf_inv)/aimag(axy_hf_inv), e / (mabs(i) * aimag(axy_hf_inv)), -mabs(i)*aimag(axx_hf_inv) / e
-      write(55 + 4*s%nAtoms+i,"(8(es16.9,2x))") e, gammaM, real(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)))**2, U(i)**2, alpha_v1, alpha_v2, alpha_v3, alpha_v4
+      write(55 + 4*s%nAtoms+i,"(8(es16.9,2x))") e, gammaM, 1.d0/real(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i)))**2, U(i)**2, alpha_v1, alpha_v2, alpha_v3, alpha_v4
     end do
 
     call close_alpha_files()
