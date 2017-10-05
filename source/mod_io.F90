@@ -476,8 +476,7 @@ contains
       !   Npl_f = Npl
       ! end if
 
-      if(.not. get_parameter("fermi_layer", fermi_layer)) call log_warning("get_parameters", "'fermi_layer' not given. Using fermi_layer = 1")
-      !if(fermi_layer <= 0 .or. fermi_layer > Npl) call log_error("get_parameters", "'fermi_layer' out of range.")
+      if(.not. get_parameter("fermi_layer", fermi_layer, 1)) call log_warning("get_parameters", "'fermi_layer' not given. Using fermi_layer = 1")
 
     !--------------------------------------------- DFT ---------------------------------------------
     else if(2 == tbmode) then
