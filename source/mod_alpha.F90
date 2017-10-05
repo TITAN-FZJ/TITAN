@@ -3,6 +3,8 @@ module mod_alpha
   implicit none
 
   complex(double), dimension(:,:),   allocatable :: m_chi, m_chi_hf, m_chi_inv, m_chi_hf_inv
+  character(len=7), parameter, private :: folder = "A/Slope"
+  character(len=8), dimension(5), parameter, private :: filename = ["chi     ", "chihf   ", "chiinv  ", "chihfinv", "sumrule "]
 
 contains
 
@@ -39,26 +41,15 @@ contains
     use EnergyIntegration, only: strEnergyParts
     implicit none
     character(len=500)  :: varm
-    integer :: i
+    integer :: i,j
 
     do i=1, s%nAtoms
-      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chi_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-      open (unit=55+           i, file=varm, status='replace', form='formatted')
-      write(unit=55+           i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ')")
-
-      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chihf_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-      open (unit=55+  s%nAtoms+i, file=varm, status='replace', form='formatted')
-      write(unit=55+  s%nAtoms+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ')")
-
-      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chiinv_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-      open (unit=55+2*s%nAtoms+i, file=varm, status='replace', form='formatted')
-      write(unit=55+2*s%nAtoms+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ,  A+-  ,  A++')")
-
-      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chihfinv_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-      open (unit=55+3*s%nAtoms+i, file=varm, status='replace', form='formatted')
-      write(unit=55+3*s%nAtoms+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ,  A+-  ,  A++')")
-
-      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/sumrule_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+      do j = 1, size(filename)-1
+         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(j)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+         open (unit=55+(j-1)*s%nAtoms+i, file=varm, status='replace', form='formatted')
+         write(unit=55+(j-1)*s%nAtoms+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma')")
+      end do
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(5)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
       open (unit=55+4*s%nAtoms+i, file=varm, status='replace', form='formatted')
       write(unit=55+4*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  (ReX(w))^(-2),     U^2,   v1  ,  v2  ,  v3,    v4')")
     end do
@@ -78,37 +69,17 @@ contains
 
     character(len=500) :: varm
     character(len=500) :: missing_files
-    integer :: i, err, errt
+    integer :: i, j,err, errt
     errt = 0
 
     do i=1, s%nAtoms
-      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chi_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-      open (unit=55+           i, file=varm, status='old', position='append', form='formatted', iostat=err)
-      errt = errt + err
-      if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
-
-      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chihf_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-      open (unit=55+  s%nAtoms+i, file=varm, status='old', position='append', form='formatted', iostat=err)
-      errt = errt + err
-      if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
-
-      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chiinv_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-      open (unit=55+2*s%nAtoms+i, file=varm, status='old', position='append', form='formatted', iostat=err)
-      errt = errt + err
-      if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
-
-      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/chihfinv_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-      open (unit=55+3*s%nAtoms+i, file=varm, status='old', position='append', form='formatted', iostat=err)
-      errt = errt + err
-      if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
-
-      write(varm,"('./results/',a1,'SOC/',a,'/A/Slope/sumrule_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-      open (unit=55+4*s%nAtoms+i, file=varm, status='old', position='append', form='formatted', iostat=err)
-      errt = errt + err
-      if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
-
+      do j = 1, size(filename)
+         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(j)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+         open (unit=55+(j-1)*s%nAtoms+i, file=varm, status='old', position='append', form='formatted', iostat=err)
+         errt = errt + err
+         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+      end do
     end do
-
     if(errt/=0) call abortProgram("[open_alpha_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
 
     return
@@ -119,7 +90,7 @@ contains
     implicit none
     integer :: i
 
-    do i = 1, 4*s%nAtoms
+    do i = 1, s%nAtoms*size(filename)
       close(unit=55+i)
     end do
 
