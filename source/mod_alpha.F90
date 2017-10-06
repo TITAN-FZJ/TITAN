@@ -6,6 +6,7 @@ module mod_alpha
   character(len=7), parameter, private :: folder = "A/Slope"
   character(len=8), dimension(5), parameter, private :: filename = ["chi     ", "chihf   ", "chiinv  ", "chihfinv", "sumrule "]
 
+  complex(double) :: chi0_0
 contains
 
   subroutine allocate_alpha()
@@ -167,13 +168,17 @@ contains
       axy_hf     = 0.5d0*cI*(m_chi_hf(sigmai2i(1,i),sigmai2i(4,i)) - m_chi_hf(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_hf(sigmai2i(4,i),sigmai2i(4,i)) - m_chi_hf(sigmai2i(4,i),sigmai2i(1,i)))
 
       gammaM = e / aimag(axy_inv)
+
+      if(e == 0.d0) then
+         chi0_0 = 1.d0/real(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i)))**2
+      end if
       alpha_v1 = - gammaM * aimag(m_chi_inv(sigmai2i(1,i),sigmai2i(1,i))) / e
       alpha_v2 = - gammaM * aimag(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i))) / e
-      alpha_v3 =   gammaM * aimag(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i))) / (e * real(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i)))**2)
+      alpha_v3 =   gammaM * aimag(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i))) / (e * chi0_0)
       alpha_v4 =   gammaM * aimag(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i))) / e * U(i)**2
 
-      print *, real(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)))**2
-      print *, 1.d0/real(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i)))**2
+      !print *, real(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)))**2
+      !print *, 1.d0/real(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i)))**2
       write(55 +            i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx       )/aimag(axy       ), e / (mabs(i) * aimag(axy       )), -mabs(i)*aimag(axx       ) / e
       write(55 +   s%nAtoms+i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx_hf    )/aimag(axy_hf    ), e / (mabs(i) * aimag(axy_hf    )), -mabs(i)*aimag(axx_hf    ) / e
       write(55 + 2*s%nAtoms+i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx_inv   )/aimag(axy_inv   ), e / (mabs(i) * aimag(axy_inv   )), -mabs(i)*aimag(axx_inv   ) / e
