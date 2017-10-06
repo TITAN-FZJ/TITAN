@@ -150,7 +150,7 @@ contains
         read(unit=995594, fmt='(A)', iostat = ios) line
         read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
         read(unit=words(4), fmt=*, iostat=ios) material%Hopping(j,i)
-        !material%Hopping(j,i) = material%Hopping(j,i) * (a0_corr ** exponent(j)) ! Correction of hopping parameter by scaling law.
+        material%Hopping(j,i) = material%Hopping(j,i) * (a0_corr ** exponent(j)) ! Correction of hopping parameter by scaling law.
       end do
     end do
 
