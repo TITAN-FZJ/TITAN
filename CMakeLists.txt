@@ -106,12 +106,11 @@ elseif(PLATFORM MATCHES jureca)
                                            -mkl
                                            -xHost)
 elseif(PLATFORM MATCHES osx)
-  target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
+  target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                            -D_OSX
                                            -fpp
                                            -O3
-                                           -qopenmp
                                            -mkl
                                            -xHost)
 else()

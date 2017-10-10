@@ -8,14 +8,14 @@ subroutine calculate_gilbert_damping()
   use mod_parameters, only: outputunit_loop, strSites, eta, Utype, fieldpart, suffix
   use mod_SOC, only: socpart, SOCc
   use ElectricField, only: strElectricField
-  use mod_mpi_pars, only: myrank
+  use mod_mpi_pars, only: myrank, myrank_row
   implicit none
   complex(double), dimension(s%nAtoms,s%nAtoms,3,3) :: alpha
   integer :: m,n,i
   character(len=500)  :: varm
 
 
-  write(outputunit_loop, *) "[calculate_gilbert_damping] Start..."
+  if(myrank_row==0) write(outputunit_loop, *) "[calculate_gilbert_damping] Start..."
 
   call TCM(alpha, local_SO_torque)
 
@@ -77,7 +77,7 @@ subroutine TCM(alpha, torque_fct)
   real(double) :: wght
   complex(double), dimension(2*nOrb,2*nOrb,3,s%nAtoms) :: torque
   complex(double), dimension(2*nOrb,2*nOrb,3) :: tsq
-  complex(double),dimension(:,:,:,:),allocatable :: gfr ,gfa
+  complex(double),dimension(:,:,:,:),allocatable :: gf
   complex(double),dimension(:,:),allocatable :: temp1, temp2, temp3
   complex(double), dimension(:,:,:,:), allocatable :: alpha_loc
   integer :: start, end, work, remainder
@@ -106,23 +106,19 @@ subroutine TCM(alpha, torque_fct)
   alpha = cZero
 
   !$omp parallel default(none) &
-  !$omp& private(m,n,i,j,mu,iz,kp,wght,gfr, gfa,temp1,temp2,temp3, alpha_loc) &
+  !$omp& private(m,n,i,j,mu,iz,kp,wght,gf,temp1,temp2,temp3, alpha_loc) &
   !$omp& shared(s,BZ,start, end,Ef,eta,torque,alpha)
-  allocate(gfr(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms), &
-           gfa(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms), &
+  allocate(gf(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms), &
            temp1(2*nOrb,2*nOrb), temp2(2*nOrb,2*nOrb), temp3(2*nOrb,2*nOrb), &
            alpha_loc(s%nAtoms,s%nAtoms,3,3))
-  gfr = cZero
-  gfa = cZero
+  gf = cZero
   alpha_loc = cZero
   !$omp do schedule(static)
   do iz = start, end
     kp = BZ%kp(1:3,iz)
     wght = BZ%w(iz)
-    gfr = cZero
-    gfa = cZero
-    call green(Ef, eta, kp, gfr)
-    call green(Ef, -eta, kp, gfa)
+    gf  = cZero
+    call green(Ef, eta, kp, gf)
     do m = 1, 3
       do n = 1, 3
         do i = 1, s%nAtoms
@@ -131,10 +127,10 @@ subroutine TCM(alpha, torque_fct)
             temp2 = cZero
             temp3 = cZero
             ! alpha^{mn}_{ij} = Tr ( Torque^m_i Im(G_ij(Ef)) * Torque^n_j * Im(G_ji(Ef)) )
-            temp2 = cI * (gfr(:,:,j,i) - gfa(:,:,i,j))
+            temp2 = cI * (gf(:,:,j,i) - transpose(conjg(gf(:,:,i,j))))
             temp3 = torque(:,:,n,j)
             call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,cOne,temp3,2*nOrb,temp2,2*nOrb,cZero,temp1,2*nOrb) ! Torque^n_j * Im(G_ji(Ef))
-            temp2 = cI * (gfr(:,:,i,j) - gfa(:,:,j,i))
+            temp2 = cI * (gf(:,:,i,j) - transpose(conjg(gf(:,:,i,j))))
             call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,cOne,temp2,2*nOrb,temp1,2*nOrb,cZero,temp3,2*nOrb) ! Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))
             temp2 = torque(:,:,m,i)
             call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,cOne,temp2,2*nOrb,temp3,2*nOrb,cZero,temp1,2*nOrb) ! Torque^m_i * Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))
@@ -153,7 +149,7 @@ subroutine TCM(alpha, torque_fct)
     alpha = alpha + alpha_loc
   !$omp end critical
 
-  deallocate(gfr, gfa)
+  deallocate(gf)
   deallocate(alpha_loc)
   !$omp end parallel
 
