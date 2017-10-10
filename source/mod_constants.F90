@@ -45,8 +45,8 @@ contains
     pauli_mat(:,2,0) = [cZero, cOne]
     pauli_mat(:,1,1) = [cZero,cOne]
     pauli_mat(:,2,1) = [cOne, cZero]
-    pauli_mat(:,1,2) = [cZero,-cI]
-    pauli_mat(:,2,2) = [cI,cZero]
+    pauli_mat(:,1,2) = [cZero,cI]
+    pauli_mat(:,2,2) = [-cI,cZero]
     pauli_mat(:,1,3) = [cOne,cZero]
     pauli_mat(:,2,3) = [cZero,-cOne]
 

@@ -51,7 +51,7 @@ end subroutine calculate_gilbert_damping
 
 subroutine TCM(alpha, torque_fct)
   use mod_f90_kind, only: double
-  use mod_constants, only: cZero, pi, cOne
+  use mod_constants, only: cZero, pi, cOne, cI
   use mod_System, only: s => sys
   use mod_BrillouinZone, only: BZ
 
@@ -72,15 +72,15 @@ subroutine TCM(alpha, torque_fct)
 
   complex(double), dimension(s%nAtoms,s%nAtoms,3,3), intent(out) :: alpha
   !! Contains the Gilbert Damping as matrix in sites and cartesian coordinates (nAtoms,nAtoms,3,3)
-  integer :: i,j,m,n, iz, mu
+  integer :: i,j,k,l,m,n, iz, mu
   real(double), dimension(3) :: kp
   real(double) :: wght
   complex(double), dimension(2*nOrb,2*nOrb,3,s%nAtoms) :: torque
-  complex(double),dimension(:,:,:,:),allocatable :: gf
+  complex(double), dimension(2*nOrb,2*nOrb,3) :: tsq
+  complex(double),dimension(:,:,:,:),allocatable :: gfr ,gfa
   complex(double),dimension(:,:),allocatable :: temp1, temp2, temp3
   complex(double), dimension(:,:,:,:), allocatable :: alpha_loc
   integer :: start, end, work, remainder
-
   ! Calculate workload for each MPI process
   remainder = mod(BZ%nkpt,numprocs)
   if(myrank < remainder) then
@@ -106,20 +106,23 @@ subroutine TCM(alpha, torque_fct)
   alpha = cZero
 
   !$omp parallel default(none) &
-  !$omp& private(m,n,i,j,mu,iz,kp,wght,gf,temp1,temp2,temp3, alpha_loc) &
+  !$omp& private(m,n,i,j,mu,iz,kp,wght,gfr, gfa,temp1,temp2,temp3, alpha_loc) &
   !$omp& shared(s,BZ,start, end,Ef,eta,torque,alpha)
-  allocate(gf(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms), &
+  allocate(gfr(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms), &
+           gfa(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms), &
            temp1(2*nOrb,2*nOrb), temp2(2*nOrb,2*nOrb), temp3(2*nOrb,2*nOrb), &
            alpha_loc(s%nAtoms,s%nAtoms,3,3))
-  gf = cZero
+  gfr = cZero
+  gfa = cZero
   alpha_loc = cZero
   !$omp do schedule(static)
   do iz = start, end
     kp = BZ%kp(1:3,iz)
     wght = BZ%w(iz)
-    gf = cZero
-    call green(Ef, eta, kp, gf)
-
+    gfr = cZero
+    gfa = cZero
+    call green(Ef, eta, kp, gfr)
+    call green(Ef, -eta, kp, gfa)
     do m = 1, 3
       do n = 1, 3
         do i = 1, s%nAtoms
@@ -128,10 +131,10 @@ subroutine TCM(alpha, torque_fct)
             temp2 = cZero
             temp3 = cZero
             ! alpha^{mn}_{ij} = Tr ( Torque^m_i Im(G_ij(Ef)) * Torque^n_j * Im(G_ji(Ef)) )
-            temp2 = aimag(gf(:,:,j,i)) ! Im(G_ji(EF))
+            temp2 = cI * (gfr(:,:,j,i) - gfa(:,:,i,j))
             temp3 = torque(:,:,n,j)
             call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,cOne,temp3,2*nOrb,temp2,2*nOrb,cZero,temp1,2*nOrb) ! Torque^n_j * Im(G_ji(Ef))
-            temp2 = aimag(gf(:,:,i,j)) ! Im(G_ij(EF))
+            temp2 = cI * (gfr(:,:,i,j) - gfa(:,:,j,i))
             call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,cOne,temp2,2*nOrb,temp1,2*nOrb,cZero,temp3,2*nOrb) ! Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))
             temp2 = torque(:,:,m,i)
             call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,cOne,temp2,2*nOrb,temp3,2*nOrb,cZero,temp1,2*nOrb) ! Torque^m_i * Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))
@@ -150,7 +153,7 @@ subroutine TCM(alpha, torque_fct)
     alpha = alpha + alpha_loc
   !$omp end critical
 
-  deallocate(gf)
+  deallocate(gfr, gfa)
   deallocate(alpha_loc)
   !$omp end parallel
 
@@ -168,14 +171,13 @@ end subroutine TCM
 
 subroutine local_xc_torque(torque)
   use mod_f90_kind, only: double
-  use mod_constants, only: cZero, cOne, cI, levi_civita
+  use mod_constants, only: cZero, cOne, cI, levi_civita, sigma => pauli_mat
   use TightBinding, only: nOrb
   use mod_System, only: s => sys
   use mod_parameters, only: U
   use mod_magnet, only: mx,my,mz
 
   complex(double), dimension(2*nOrb,2*nOrb,3,s%nAtoms), intent(out) :: torque
-  complex(double), dimension(2,2,3) :: sigma
   complex(double), dimension(nOrb,nOrb) :: ident
   real(double), dimension(3,s%nAtoms) :: mag
   integer :: i,m,n,k
@@ -184,13 +186,6 @@ subroutine local_xc_torque(torque)
   do i = 5, nOrb
     ident(i,i) = cOne
   end do
-
-  sigma(:,1,1) = [cZero,cOne]
-  sigma(:,2,1) = [cOne, cZero]
-  sigma(:,1,2) = [cZero,-cI]
-  sigma(:,2,2) = [cI,cZero]
-  sigma(:,1,3) = [cOne,cZero]
-  sigma(:,2,3) = [cZero,-cOne]
 
   do i = 1, s%nAtoms
     mag(:,i) = [mx(i),my(i),mz(i)]
@@ -216,19 +211,22 @@ end subroutine local_xc_torque
 
 subroutine local_SO_torque(torque)
   use mod_f90_kind, only: double
-  use mod_constants, only: cZero, levi_civita, sigma => pauli_mat
+  use mod_constants, only: cZero, levi_civita, sigma => pauli_mat, cI
   use mod_System, only: s => sys
-  use mod_magnet, only: Lxp, Lyp, Lzp
-  use TightBinding, only: nOrb
+  use mod_magnet, only: Lx, Ly, Lz
+  use TightBinding, only: nOrb, nOrb2
+  use mod_mpi_pars
   implicit none
-  integer :: i,m,n,k
-  complex(double), dimension(2*nOrb,2*nOrb,3, s%nAtoms), intent(out) :: torque
+  integer :: i,m,n,k, j
+  complex(double), dimension(nOrb2,nOrb2,3, s%nAtoms), intent(out) :: torque
   complex(double), dimension(nOrb, nOrb, 3, s%nAtoms) :: L
+  complex(double), dimension(nOrb, nOrb) :: test1
+  complex(double), dimension(2,2) :: test2
 
   do i = 1, s%nAtoms
-    L(:,:,1, i) = Lxp(:,:,i)
-    L(:,:,2, i) = Lyp(:,:,i)
-    L(:,:,3, i) = Lzp(:,:,i)
+    L(1:nOrb,1:nOrb,1, i) = Lx(1:nOrb,1:nOrb)
+    L(1:nOrb,1:nOrb,2, i) = Ly(1:nOrb,1:nOrb)
+    L(1:nOrb,1:nOrb,3, i) = Lz(1:nOrb,1:nOrb)
   end do
 
   torque = cZero
@@ -236,15 +234,14 @@ subroutine local_SO_torque(torque)
   !! [sigma, H_SO]
   !! t_i^m = Lambda_i * sum_nk eps_mnk L_imunu^n * S_imunu^k
   !! t_m = lambda_i * sum_alpha_beta * sum_nk_gamma,zeta eps_mnk L^n_gamma,zeta * sigma^k_alpha_beta
-
   do i = 1, s%nAtoms
     do m = 1, 3
       do n = 1, 3
         do k = 1, 3
-          torque(     1:  nOrb,     1:  nOrb,m,i) = torque(     1:  nOrb,     1:  nOrb,m,i) + L(:,:,n,i) * sigma(1,1,k) * levi_civita(m,n,k)
-          torque(nOrb+1:2*nOrb,     1:  nOrb,m,i) = torque(nOrb+1:2*nOrb,     1:  nOrb,m,i) + L(:,:,n,i) * sigma(2,1,k) * levi_civita(m,n,k)
-          torque(     1:  nOrb,nOrb+1:2*nOrb,m,i) = torque(     1:  nOrb,nOrb+1:2*nOrb,m,i) + L(:,:,n,i) * sigma(1,2,k) * levi_civita(m,n,k)
-          torque(nOrb+1:2*nOrb,nOrb+1:2*nOrb,m,i) = torque(nOrb+1:2*nOrb,nOrb+1:2*nOrb,m,i) + L(:,:,n,i) * sigma(2,2,k) * levi_civita(m,n,k)
+          torque(     1:nOrb ,     1:nOrb ,m,i) = torque(     1:nOrb ,     1:nOrb ,m,i) + L(1:nOrb,1:nOrb,n,i) * sigma(1,1,k) * levi_civita(m,n,k)
+          torque(nOrb+1:nOrb2,     1:nOrb ,m,i) = torque(nOrb+1:nOrb2,     1:nOrb ,m,i) + L(1:nOrb,1:nOrb,n,i) * sigma(2,1,k) * levi_civita(m,n,k)
+          torque(     1:nOrb ,nOrb+1:nOrb2,m,i) = torque(     1:nOrb ,nOrb+1:nOrb2,m,i) + L(1:nOrb,1:nOrb,n,i) * sigma(1,2,k) * levi_civita(m,n,k)
+          torque(nOrb+1:nOrb2,nOrb+1:nOrb2,m,i) = torque(nOrb+1:nOrb2,nOrb+1:nOrb2,m,i) + L(1:nOrb,1:nOrb,n,i) * sigma(2,2,k) * levi_civita(m,n,k)
         end do
       end do
     end do
