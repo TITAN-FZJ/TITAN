@@ -135,8 +135,8 @@ subroutine TCM(alpha, torque_fct)
             temp2 = torque(:,:,m,i)
             call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,cOne,temp2,2*nOrb,temp3,2*nOrb,cZero,temp1,2*nOrb) ! Torque^m_i * Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))
 
-            do mu = 1, 2*nOrb
-              alpha_loc(j,i,n,m) = alpha_loc(j,i,n,m) + temp1(mu,mu) * wght
+            do mu = 5, nOrb
+              alpha_loc(j,i,n,m) = alpha_loc(j,i,n,m) + (temp1(mu,mu) + temp1(mu+nOrb, mu+nOrb))* wght
             end do
           end do
         end do
