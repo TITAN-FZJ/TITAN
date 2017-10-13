@@ -123,9 +123,6 @@ module mod_parameters
   ! Layer type: 1 - Empty Sphere; 2 - Magnetic ; 3 - Bulk ; 0 - Other
   integer, dimension(:), allocatable       :: layertype
   !========================================================================================!
-  ! Hostname of rank
-  character(len=50) :: host
-  !========================================================================================!
   ! Set of tight-binding parameters to be used
   ! in the first half (set1) and second half (set2) of the slab
   ! NOTE: the Fermi energy is obtained from the first half.
@@ -135,15 +132,5 @@ module mod_parameters
   character(len=50) :: strSites
   !========================================================================================!
   integer :: offset = 0
-
-contains
-  subroutine getHost()
-    implicit none
-#ifdef _JUQUEEN
-    call hostnm_(host)
-#else
-    call hostnm(host)
-#endif
-  end subroutine getHost
 
 end module mod_parameters

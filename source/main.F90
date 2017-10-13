@@ -47,9 +47,6 @@ program TITAN
 
   if(myrank==0) call write_time(outputunit,'[main] Started on: ')
 
-  !--------------------------- Getting hostname ---------------------------
-  call getHost()
-
   !-------------------- Useful constants and matrices --------------------
   call define_constants() ! TODO: Review
 
