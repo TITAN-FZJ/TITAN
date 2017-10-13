@@ -130,26 +130,7 @@ program TITAN
     call initMagneticField(sys%nAtoms)
 
     !------------- Update fieldpart ----------------
-    fieldpart = ""
-    if(lfield) then
-      write(fieldpart,"('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(hw_count,1),hw_list(hw_count,2),hw_list(hw_count,3)
-      if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
-      if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
-      if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
-      if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
-    end if
-
-    dcfieldpart = ""
-    if(dcfield_dependence/=7) then
-      if((dcfield_dependence/=1).and.(dcfield_dependence/=4).and.(dcfield_dependence/=5)) write(dcfieldpart,"(a,'_hwa=',es9.2)") trim(dcfieldpart),hwa
-      if((dcfield_dependence/=2).and.(dcfield_dependence/=4).and.(dcfield_dependence/=6)) write(dcfieldpart,"(a,'_hwt=',f5.2)") trim(dcfieldpart),hwt
-      if((dcfield_dependence/=3).and.(dcfield_dependence/=5).and.(dcfield_dependence/=6)) write(dcfieldpart,"(a,'_hwp=',f5.2)") trim(dcfieldpart),hwp
-    end if
-    if(ltesla)    dcfieldpart = trim(dcfieldpart) // "_tesla"
-    if(lnolb)     dcfieldpart = trim(dcfieldpart) // "_nolb"
-    if(lhwscale)  dcfieldpart = trim(dcfieldpart) // "_hwscale"
-    if(lhwrotate) dcfieldpart = trim(dcfieldpart) // "_hwrotate"
-
+    call set_fieldpart(hw_count)
 
     !------------------- Tests for coupling calculation --------------------
     if(itype == 6 .and. myrank == 0) then

@@ -382,4 +382,31 @@ contains
     return
   end subroutine
 
+  subroutine set_fieldpart(count)
+     use mod_parameters, only: ltesla, lnolb, fieldpart, dcfieldpart
+     implicit none
+     integer :: count
+
+     fieldpart = ""
+     if(lfield) then
+      write(fieldpart, "('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(count,1),hw_list(count,2),hw_list(count,3)
+      if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
+      if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
+      if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
+      if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
+     end if
+
+     dcfieldpart = ""
+     if(dcfield_dependence/=7) then
+      if((dcfield_dependence/=1).and.(dcfield_dependence/=4).and.(dcfield_dependence/=5)) write(dcfieldpart,"(a,'_hwa=',es9.2)") trim(dcfieldpart),hwa
+      if((dcfield_dependence/=2).and.(dcfield_dependence/=4).and.(dcfield_dependence/=6)) write(dcfieldpart,"(a,'_hwt=',f5.2)") trim(dcfieldpart),hwt
+      if((dcfield_dependence/=3).and.(dcfield_dependence/=5).and.(dcfield_dependence/=6)) write(dcfieldpart,"(a,'_hwp=',f5.2)") trim(dcfieldpart),hwp
+     end if
+     if(ltesla)    dcfieldpart = trim(dcfieldpart) // "_tesla"
+     if(lnolb)     dcfieldpart = trim(dcfieldpart) // "_nolb"
+     if(lhwscale)  dcfieldpart = trim(dcfieldpart) // "_hwscale"
+     if(lhwrotate) dcfieldpart = trim(dcfieldpart) // "_hwrotate"
+
+  end subroutine set_fieldpart
+
 end module mod_magnet
