@@ -224,9 +224,11 @@ subroutine eintshe(e)
 
   !$omp do schedule(static)
   do ix2 = start2, end2  ! Third integration (on the real axis)
-      ep = x2(E_k_real_mesh(ix,1))
-      kp = bzs(1)%kp(:,E_k_real_mesh(ix2,2))
-      wkbzc = cmplx(bzs(1)%w(E_k_real_mesh(ix2,2)) * p2(E_k_real_mesh(ix2,1)), 0.d0)
+      nep = ix2 / bzs(1) % nkpt + 1
+      nkp = mod(ix2, pn2)
+      ep = x2(nep)
+      kp = bzs(1)%kp(:,nkp)
+      wkbzc = cmplx(bzs(1)%w(nkp) * p2(nep, 0.d0)
 
       df1iikl = cZero
 
