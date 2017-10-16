@@ -23,7 +23,7 @@ contains
       implicit none
       integer :: nkpt
       integer :: i,j,m
-
+      print *, y
       allocate(bzs(pn1))
       total_points = 0
       do i = 1, pn1
@@ -42,6 +42,7 @@ contains
             E_k_imag_mesh(m,2) = j
          end do
       end do
+      print *, total_points
       return
 
    end subroutine generate_imag_E_k_mesh
@@ -71,9 +72,9 @@ contains
       integer, intent(in) :: nkpt_total
 
       if(bulk) then
-         get_nkpt = nkpt_total / (e/e0)**log(3.d0)
+         get_nkpt = nkpt_total / (e/e0)**3 !**log(3.d0)
       else
-         get_nkpt = nkpt_total / (e/e0)**log(2.d0)
+         get_nkpt = nkpt_total / (e/e0)**2 !**log(2.d0)
       end if
       if(get_nkpt < 10) get_nkpt = 10
       return

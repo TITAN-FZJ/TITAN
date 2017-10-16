@@ -71,7 +71,7 @@ subroutine eintshechi(e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,iz,ix,ix2,i,j,mu,nu,gamma,xi,nep,nkp,ep,kp,weight,gf,gfuu,gfud,gfdu,gfdd,df1,Fint, index1, index2) &
-  !$omp& shared(llineargfsoc,start1,start2,end1,end2,s,bzs,Ef,e,y,wght,x2,p2,pn2,E_k_real_mesh,E_k_imag_mesh,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf)
+  !$omp& shared(llineargfsoc,start1,start2,end1,pn1,end2,s,bzs,Ef,e,y,wght,x2,p2,pn2,E_k_real_mesh,E_k_imag_mesh,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf)
   allocate(df1(dim,dim), Fint(dim,dim), &
            gf  (nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
@@ -83,8 +83,8 @@ subroutine eintshechi(e)
 
   !$omp do schedule(static)
   do ix = start1, end1
-      ep = y(E_k_imag_mesh(ix,1))
-      kp = bzs(E_k_imag_mesh(ix,1)) % kp(:,E_k_imag_mesh(ix,2))
+      ep = y( E_k_imag_mesh(ix,1) )
+      kp = bzs( E_k_imag_mesh(ix,1) ) % kp(1:3,E_k_imag_mesh(ix,2))
       weight = wght(E_k_imag_mesh(ix,1)) * bzs(E_k_imag_mesh(ix,1))%w(E_k_imag_mesh(ix,2))
       ! Green function at (k+q,E_F+E+iy)
       if(llineargfsoc) then
@@ -99,9 +99,9 @@ subroutine eintshechi(e)
 
       ! Green function at (k,E_F+iy)
       if(llineargfsoc) then
-        call greenlineargfsoc(Ef,y(ix),kp,gf)
+        call greenlineargfsoc(Ef,ep,kp,gf)
       else
-        call green(Ef,y(ix),kp,gf)
+        call green(Ef,ep,kp,gf)
       end if
       gfuu(:,:,:,:,2) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,2) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
