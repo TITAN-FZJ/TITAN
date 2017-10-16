@@ -65,7 +65,7 @@ contains
                               lrotatemag, magaxis, magaxisvec, latticeName, itype, ry2ev, &
                               ltesla, eta, dmax, emin, emax, deltae, skip_steps, &
                               npts, npt1, renorm, renormnb, skipsc, scfile, bands, band_cnt, &
-                              offset, dfttype, suffix, mag_tol, outputfile, U, hfr
+                              offset, dfttype, suffix, mag_tol, outputfile, U, hfr, total_nkpt
     use mod_system, only: System, pln_normal, n0sc1, n0sc2
     use mod_BrillouinZone, only: BZ
     use mod_SOC, only: SOC, SOCc, socpart, socscale, llinearsoc, llineargfsoc
@@ -172,6 +172,10 @@ contains
     else
       call log_error("get_parameter", "'nkpt' has wrong size (expected 1 or 3)")
     end if
+
+    total_nkpt = BZ%nkpt
+
+
     !===============================================================================================
     !===============================================================================================
 
