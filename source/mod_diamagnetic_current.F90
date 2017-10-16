@@ -54,7 +54,7 @@ contains
       call sumk_idia(Ef,y(ix),Idia)
       Idia_total = wght(ix)*Idia
 
-      if(lverbose) write(outputunit,"(' Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
+      if(lverbose) write(outputunit,"(' Finished point ',i0,' in rank ',i0)") ix,myrank
       do i=2,pn1
         if(lverbose) call progress_bar(outputunit,"energy points",i,pn1)
 
@@ -80,7 +80,7 @@ contains
         call sumk_idia(Ef,y(ix),Idia)
         Idia = wght(ix)*Idia
 
-  !       if(lverbose) write(outputunit,"('[diamagnetic_current] Finished point ',i0,' in rank ',i0,' (',a,')')") ix,myrank,trim(host)
+  !       if(lverbose) write(outputunit,"('[diamagnetic_current] Finished point ',i0,' in rank ',i0)") ix,myrank
         ! Sending results to process 0
         call MPI_Send(Idia,ncount,MPI_DOUBLE_PRECISION,0,1604,MPI_COMM_WORLD,ierr)
         ! Receiving new point or signal to exit
