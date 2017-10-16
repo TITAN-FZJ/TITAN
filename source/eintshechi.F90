@@ -3,10 +3,11 @@ subroutine eintshechi(e)
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, cOne, cI, tpi
   use mod_parameters, only: eta, ef, dim, sigmaijmunu2i, sigmaimunu2i
-  use EnergyIntegration, only: generate_real_epoints, y, wght, x2, p2, nepoints, pn1
+  use EnergyIntegration, only: generate_real_epoints, y, wght, x2, p2, pn1
   use mod_susceptibilities, only: chiorb_hf
   use mod_system, only: s => sys
-  use mod_BrillouinZone, only: BZ
+  !use mod_BrillouinZone, only: BZ
+  use adaptiveMesh
   use TightBinding, only: nOrb,nOrb2
   use mod_SOC, only: llineargfsoc
   use mod_mpi_pars
@@ -24,7 +25,7 @@ subroutine eintshechi(e)
   complex(double),dimension(:,:,:,:),allocatable    :: gf
   complex(double),dimension(:,:,:,:,:),allocatable  :: gfuu,gfud,gfdu,gfdd
   complex(double),dimension(:,:),allocatable        :: df1
-  real(double) :: weight
+  real(double) :: weight, ep
   integer, dimension(4) :: index1, index2
 
 !--------------------- begin MPI vars --------------------
@@ -38,43 +39,39 @@ subroutine eintshechi(e)
   call generate_real_epoints(e)
 
   ! Calculate workload for each MPI process
-  remainder = mod(nepoints,numprocs_row)
+  remainder = mod(total_points, numprocs_row)
   if(myrank_row < remainder) then
-    work = ceiling(dble(nepoints) / dble(numprocs_row))
-    start = myrank_row*work + 1
-    end = (myrank_row+1) * work
+    work = ceiling(dble(total_points) / dble(numprocs_row))
+    start1 = myrank_row*work + 1
+    end1 = (myrank_row+1) * work
   else
-    work = floor(dble(nepoints) / dble(numprocs_row))
-    start = myrank_row*work + 1 + remainder
-    end = (myrank_row+1) * work + remainder
+    work = floor(dble(total_points) / dble(numprocs_row))
+    start1 = myrank_row*work + 1 + remainder
+    end1 = (myrank_row+1) * work + remainder
   end if
 
-  start1 = 1
-  end1 = pn1
-  start2 = pn1 + 1
-  end2 = nepoints
-  if(start <= pn1) then
-    start1 = start
+  if(abs(e) >= 1.d-10) then
+     remainder = mod(total_points_real, numprocs_row)
+    if(myrank_row < remainder) then
+     work = ceiling(dble(total_points_real) / dble(numprocs_row))
+     start2 = myrank_row*work + 1
+     end2 = (myrank_row+1) * work
+    else
+     work = floor(dble(total_points_real) / dble(numprocs_row))
+     start2 = myrank_row*work + 1 + remainder
+     end2 = (myrank_row+1) * work + remainder
+    end if
   else
-    start1 = pn1 + 1
-    start2 = start
+     start2 = 0
+     end2 = 0
   end if
-
-  if(end <= pn1) then
-    end1 = end
-    end2 = 0
-  else
-    end2 = end
-  end if
-  start2 = start2 - pn1
-  end2 = end2 - pn1
 
   ! Starting to calculate energy integral
   chiorb_hf = cZero
 
   !$omp parallel default(none) &
-  !$omp& private(AllocateStatus,iz,ix,ix2,i,j,mu,nu,gamma,xi,kp,weight,gf,gfuu,gfud,gfdu,gfdd,df1,Fint, index1, index2) &
-  !$omp& shared(llineargfsoc,start1,start2,end1,end2,s,BZ,e,y,x2,wght,p2,Ef,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf)
+  !$omp& private(AllocateStatus,iz,ix,ix2,i,j,mu,nu,gamma,xi,ep,kp,weight,gf,gfuu,gfud,gfdu,gfdd,df1,Fint, index1, index2) &
+  !$omp& shared(llineargfsoc,start1,start2,end1,end2,s,bzs,Ef,e,y,wght,x2,p2,E_k_real_mesh,E_k_imag_mesh,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf)
   allocate(df1(dim,dim), Fint(dim,dim), &
            gf  (nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
@@ -84,16 +81,16 @@ subroutine eintshechi(e)
   if (AllocateStatus/=0) call abortProgram("[eintshechi] Not enough memory for: df1,Fint,gf,gfuu,gfud,gfdu,gfdd")
   Fint = cZero
 
-  !$omp do schedule(static) collapse(2)
+  !$omp do schedule(static)
   do ix = start1, end1
-    do iz = 1, BZ%nkpt
-      kp = BZ%kp(1:3,iz)
-      weight = wght(ix) * BZ%w(iz)
+      ep = y(E_k_imag_mesh(ix,1))
+      kp = bzs(E_k_imag_mesh(ix,1)) % kp(:,E_k_imag_mesh(ix,2))
+      weight = wght(E_k_imag_mesh(ix,1)) * bzs(E_k_imag_mesh(ix,1))%w(E_k_imag_mesh(ix,2))
       ! Green function at (k+q,E_F+E+iy)
       if(llineargfsoc) then
-        call greenlineargfsoc(Ef+e,y(ix),kp,gf)
+        call greenlineargfsoc(Ef+e,ep,kp,gf)
       else
-        call green(Ef+e,y(ix),kp,gf)
+        call green(Ef+e,ep,kp,gf)
       end if
       gfuu(:,:,:,:,1) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
@@ -152,20 +149,19 @@ subroutine eintshechi(e)
       end do
       !call zaxpy(dim*dim,weight,df1,1,Fint,1)
       !Fint = Fint + df1*weight
-    end do !end nkpt loop
   end do !end ix <= pn1 loop
   !$omp end do nowait
 
-  !$omp do schedule(static) collapse(2)
+  !$omp do schedule(static)
   do ix2 = start2, end2 ! Third integration (on the real axis)
-    do iz = 1, BZ%nkpt
-      kp = BZ%kp(1:3,iz)
-      weight = p2(ix2) * BZ%w(iz)
+      ep = x2(E_k_real_mesh(ix2,1))
+      kp = bzs(1) % kp(:,E_k_real_mesh(ix2, 2))
+      weight = p2(E_k_real_mesh(ix2,1)) * bzs(1)%w(E_k_real_mesh(ix2,2))
       ! Green function at (k+q,E'+E+i.eta)
       if(llineargfsoc) then
-        call greenlineargfsoc(x2(ix2)+e,eta,kp,gf)
+        call greenlineargfsoc(ep+e,eta,kp,gf)
       else
-        call green(x2(ix2)+e,eta,kp,gf)
+        call green(ep+e,eta,kp,gf)
       end if
       gfuu(:,:,:,:,1) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
@@ -226,7 +222,6 @@ subroutine eintshechi(e)
       ! Locally add up df1
       ! call zaxpy(dim*dim,(p2(ix2)*s%wkbz(iz)),df1,1,Fint,1)
       !Fint = Fint + df1*(p2(ix2)*s%wkbz(iz))
-    end do !end nkpt loop
   end do !end pn1+1, nepoints loop
   !$omp end do nowait
 

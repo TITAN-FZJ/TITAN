@@ -138,9 +138,10 @@ contains
     use mod_constants, only: cI, pi, cZero
     use mod_parameters, only: Ef
     use mod_SOC, only: llinearsoc, llineargfsoc
-    use EnergyIntegration, only: pn1, y, wght
+    use EnergyIntegration, only: y, wght
     use mod_system, only: s => sys
-    use mod_BrillouinZone, only: BZ
+    !use mod_BrillouinZone, only: BZ
+    use adaptiveMesh
     use TightBinding, only: nOrb,nOrb2
     use mod_mpi_pars
     !$  use omp_lib
@@ -160,18 +161,18 @@ contains
     integer :: ncount,ncount2
     integer :: start, end, iz, work, remainder
     integer :: mu,mup
-
+    real(double) :: weight, ep
     ncount = s%nAtoms * 9
     ncount2 = size * size
 
     ! Calculate workload for each MPI process
-    remainder = mod(pn1,numprocs_row_hw)
+    remainder = mod(total_points,numprocs_row_hw)
     if(myrank_row_hw < remainder) then
-      work = ceiling(dble(pn1) / dble(numprocs_row_hw))
+      work = ceiling(dble(total_points) / dble(numprocs_row_hw))
       start = myrank_row_hw*work + 1
       end = (myrank_row_hw+1) * work
     else
-      work = floor(dble(pn1) / dble(numprocs_row_hw))
+      work = floor(dble(total_points) / dble(numprocs_row_hw))
       start = myrank_row_hw*work + 1 + remainder
       end = (myrank_row_hw+1) * work + remainder
     end if
@@ -187,31 +188,31 @@ contains
     gdiagdu = cZero
 
     !$omp parallel default(none) &
-    !$omp& private(ix,iz,kp,i,mu,mup,gf,gf_loc) &
-    !$omp& shared(llineargfsoc,llinearsoc,start,end,wght,s,BZ,Ef,y,gdiaguur,gdiagddr,gdiagud,gdiagdu)
+    !$omp& private(ix,iz,ep,kp,weight,i,mu,mup,gf,gf_loc) &
+    !$omp& shared(llineargfsoc,llinearsoc,start,end,wght,s,bzs,E_k_imag_mesh,Ef,y,gdiaguur,gdiagddr,gdiagud,gdiagdu)
     allocate(gf    (nOrb2,nOrb2,s%nAtoms,s%nAtoms))
     allocate(gf_loc(nOrb2,nOrb2,s%nAtoms,s%nAtoms))
     gf = cZero
     gf_loc = cZero
 
     if((llineargfsoc).or.(llinearsoc)) then
-      !$omp do schedule(static) collapse(2)
+      !$omp do schedule(static)
       do ix = start, end
-        do iz = 1, BZ%nkpt
-          kp = BZ%kp(1:3,iz)
-          call greenlineargfsoc(Ef,y(ix),kp,gf_loc)
-          gf = gf + gf_loc*BZ%w(iz)*wght(ix)
-        end do
+         ep = y(E_k_imag_mesh(ix,1))
+         weight = wght(E_k_imag_mesh(ix,1)) * bzs(E_k_imag_mesh(ix,1)) % w(E_k_imag_mesh(ix,2))
+         kp = bzs(E_k_imag_mesh(ix,1)) % kp(:,E_k_imag_mesh(ix,2))
+         call greenlineargfsoc(Ef,ep,kp,gf_loc)
+         gf = gf + gf_loc * weight
       end do
       !$omp end do nowait
     else
-      !$omp do schedule(static) collapse(2)
+      !$omp do schedule(static)
       do ix = start, end
-        do iz = 1, BZ%nkpt
-          kp = BZ%kp(1:3,iz)
-          call green(Ef,y(ix),kp,gf_loc)
-          gf = gf + gf_loc*BZ%w(iz)*wght(ix)
-        end do
+         ep = y(E_k_imag_mesh(ix,1))
+         weight = wght(E_k_imag_mesh(ix,1)) * bzs(E_k_imag_mesh(ix,1)) % w(E_k_imag_mesh(ix,2))
+         kp = bzs(E_k_imag_mesh(ix,1)) % kp(:,E_k_imag_mesh(ix,2))
+         call green(Ef,ep,kp,gf_loc)
+         gf = gf + gf_loc * weight
       end do
       !$omp end do nowait
     end if
@@ -260,9 +261,10 @@ contains
     use mod_constants, only: cI, pi, identorb18, cZero, pauli_dorb, cOne
     use mod_parameters, only: U, Ef, offset
     use mod_SOC, only: llinearsoc, llineargfsoc
-    use EnergyIntegration, only: pn1, y, wght
+    use EnergyIntegration, only: y, wght
     use mod_system, only: s => sys
-    use mod_BrillouinZone, only: BZ
+    !use mod_BrillouinZone, only: BZ
+    use adaptiveMesh
     use TightBinding, only: nOrb,nOrb2
     use mod_mpi_pars
     !$  use omp_lib
@@ -275,7 +277,7 @@ contains
     integer :: AllocateStatus
     integer :: i0,j0,sigma,sigmap
 
-    real(double) :: kp(3)
+    real(double) :: kp(3), ep
 
     complex(double) :: mhalfU(4,s%nAtoms), weight
     complex(double), dimension(nOrb2, nOrb2, 4) :: pauli_components1,pauli_components2
@@ -289,17 +291,16 @@ contains
     integer :: start, end, work, remainder
     integer :: mu
 
-    ! Calculate workload for each MPI process
-    remainder = mod(pn1,numprocs_row_hw)
-    if(myrank_row_hw < remainder) then
-      work = ceiling(dble(pn1) / dble(numprocs_row_hw))
-      start = myrank_row_hw*work + 1
-      end = (myrank_row_hw+1) * work
-    else
-      work = floor(dble(pn1) / dble(numprocs_row_hw))
-      start = myrank_row_hw*work + 1 + remainder
-      end = (myrank_row_hw+1) * work + remainder
-    end if
+   remainder = mod(total_points,numprocs_row_hw)
+   if(myrank_row_hw < remainder) then
+     work = ceiling(dble(total_points) / dble(numprocs_row_hw))
+     start = myrank_row_hw*work + 1
+     end = (myrank_row_hw+1) * work
+   else
+     work = floor(dble(total_points) / dble(numprocs_row_hw))
+     start = myrank_row_hw*work + 1 + remainder
+     end = (myrank_row_hw+1) * work + remainder
+   end if
     !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
     ncount=s%nAtoms*9
     ncount2=N*N
@@ -327,25 +328,25 @@ contains
     jacobian = 0.d0
 
     !$omp parallel default(none) &
-    !$omp& private(AllocateStatus,ix,iz,i,j,i0,j0,mu,sigma,sigmap,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp,gdHdxg,gvgdHdxgvg) &
-    !$omp& shared(llineargfsoc,llinearsoc,start,end,s,BZ,Ef,y,wght,mhalfU,pauli_components1,pauli_components2,jacobian)
+    !$omp& private(AllocateStatus,ix,iz,i,j,i0,j0,mu,sigma,sigmap,ep,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp,gdHdxg,gvgdHdxgvg) &
+    !$omp& shared(llineargfsoc,llinearsoc,start,end,s,bzs,E_k_imag_mesh,Ef,y,wght,mhalfU,pauli_components1,pauli_components2,jacobian, myrank)
     allocate( gdHdxg(nOrb2,nOrb2,4,4,s%nAtoms,s%nAtoms), gvgdHdxgvg(nOrb2,nOrb2,4,4,s%nAtoms,s%nAtoms) , STAT = AllocateStatus  )
     if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: gdHdxg,gvgdHdxgvg")
     gdHdxg = cZero
     gvgdHdxgvg = cZero
 
-    !$omp do schedule(static) collapse(2)
-    do ix = start, end
-      do iz=1,BZ%nkpt
-        kp = BZ%kp(1:3,iz)
-        weight = cmplx(BZ%w(iz), 0.d0) * wght(ix)
-
+   !$omp do schedule(static)
+   do ix = start, end
+      ep = y(E_k_imag_mesh(ix,1))
+      kp = bzs(E_k_imag_mesh(ix,1)) % kp(:,E_k_imag_mesh(ix,2))
+      weight = cmplx(1.d0,0.d0) * wght(E_k_imag_mesh(ix,1)) * bzs(E_k_imag_mesh(ix,1)) % w(E_k_imag_mesh(ix,2))
+      if(myrank == 0 .and. mod((ix-start), 10000)) print *, "Jak_Stat", (ix-start) / (end-start) * 100.d0
         ! Green function on energy Ef + iy, and wave vector kp
         if((llineargfsoc).or.(llinearsoc)) then
-          call greenlinearsoc(Ef,y(ix),kp,gf,gvg)
+          call greenlinearsoc(Ef,ep,kp,gf,gvg)
           gf = gf + gvg
         else
-          call green(Ef,y(ix),kp,gf)
+          call green(Ef,ep,kp,gf)
         end if
 
         do j=1,s%nAtoms
@@ -408,7 +409,6 @@ contains
           end do ! End nAtoms i loop
         end do ! End nAtoms j loop
 
-      end do ! End nkpt loop
     end do ! End pn1 loop
     !$omp end do
 
@@ -448,11 +448,12 @@ contains
     use mod_f90_kind, only: double
     use mod_constants, only: cZero,pi
     use mod_System, only: s => sys
-    use mod_BrillouinZone, only: BZ
+    !use mod_BrillouinZone, only: BZ
+    use adaptiveMesh
     use TightBinding, only: nOrb,nOrb2
     use mod_parameters, only: outputunit_loop, Ef
     use mod_magnet
-    use EnergyIntegration, only: y, wght, pn1
+    use EnergyIntegration, only: y, wght
     use mod_mpi_pars
     !$  use omp_lib
     implicit none
@@ -464,20 +465,20 @@ contains
     complex(double), dimension(:,:,:,:), allocatable :: gf
     complex(double), dimension(:,:,:), allocatable :: gupgd
     complex(double), dimension(:,:,:), allocatable :: gupgdint
-    real(double) :: weight
+    real(double) :: weight, ep
     !--------------------- begin MPI vars --------------------
     integer :: ncount
     integer :: start, end, work, remainder
     ncount=s%nAtoms*nOrb*nOrb
 
     ! Calculate workload for each MPI process
-    remainder = mod(pn1,numprocs_row_hw)
+    remainder = mod(total_points,numprocs_row_hw)
     if(myrank_row_hw < remainder) then
-      work = ceiling(dble(pn1) / dble(numprocs_row_hw))
+      work = ceiling(dble(total_points) / dble(numprocs_row_hw))
       start = myrank_row_hw*work + 1
       end = (myrank_row_hw+1) * work
     else
-      work = floor(dble(pn1) / dble(numprocs_row_hw))
+      work = floor(dble(total_points) / dble(numprocs_row_hw))
       start = myrank_row_hw*work + 1 + remainder
       end = (myrank_row_hw+1) * work + remainder
     end if
@@ -501,20 +502,20 @@ contains
     gupgdint  = cZero
 
     !$omp parallel default(none) &
-    !$omp& private(AllocateStatus,ix,iz,i,mu,nu,mup,nup,kp,weight,gf,gupgd) &
-    !$omp& shared(start,end,s,BZ,Ef,y,wght,gupgdint)
+    !$omp& private(AllocateStatus,ix,iz,i,mu,nu,mup,nup,kp,ep,weight,gf,gupgd) &
+    !$omp& shared(start,end,s,E_k_imag_mesh,bzs,Ef,y,wght,gupgdint)
 
     allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
              gupgd(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
     gupgd   = cZero
 
-    !$omp do schedule(static) collapse(2)
+    !$omp do schedule(static)
     do ix = start, end
-      do iz = 1, BZ%nkpt
-        kp = BZ%kp(1:3,iz)
-        weight = BZ%w(iz) * wght(ix)
+        kp = bzs(E_k_imag_mesh(ix,1)) % kp(:,E_k_imag_mesh(ix,2))
+        ep = y(E_k_imag_mesh(ix,1))
+        weight = bzs(E_k_imag_mesh(ix,1)) % w(E_k_imag_mesh(ix,2)) * wght(E_k_imag_mesh(ix,1))
         !Green function on energy Ef + iy, and wave vector kp
-        call green(Ef,y(ix),kp,gf)
+        call green(Ef,ep,kp,gf)
 
         do i=1,s%nAtoms
           do mu=1,nOrb
@@ -526,7 +527,6 @@ contains
           end do
         end do
       end do
-    end do
     !$omp end do nowait
 
     gupgd = gupgd/pi
