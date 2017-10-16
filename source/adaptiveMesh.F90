@@ -10,7 +10,7 @@ contains
    subroutine generateAdaptiveMeshes()
       implicit none
       call generate_imag_E_k_mesh()
-      call generate_real_E_k_mesh()
+      !call generate_real_E_k_mesh()
       return
    end subroutine generateAdaptiveMeshes
 
@@ -46,22 +46,22 @@ contains
 
    end subroutine generate_imag_E_k_mesh
 
-   subroutine generate_real_E_k_mesh()
-      use EnergyIntegration, only: pn2
-      implicit none
-      integer :: i,j,m
-      allocate(E_k_real_mesh(pn2*bzs(1)%nkpt, 2))
-      total_points_real = pn2 * bzs(1)%nkpt
-      m = 0
-      do i = 1, pn2
-         do j = 1, bzs(1)%nkpt
-            m = m + 1
-            E_k_real_mesh(m,1) = i
-            E_k_real_mesh(m,2) = j
-         end do
-      end do
-      return
-   end subroutine generate_real_E_k_mesh
+   ! subroutine generate_real_E_k_mesh()
+   !    use EnergyIntegration, only: pn2
+   !    implicit none
+   !    integer :: i,j,m
+   !    allocate(E_k_real_mesh(pn2*bzs(1)%nkpt, 2))
+   !    total_points_real = pn2 * bzs(1)%nkpt
+   !    m = 0
+   !    do i = 1, pn2
+   !       do j = 1, bzs(1)%nkpt
+   !          m = m + 1
+   !          E_k_real_mesh(m,1) = i
+   !          E_k_real_mesh(m,2) = j
+   !       end do
+   !    end do
+   !    return
+   ! end subroutine generate_real_E_k_mesh
 
    integer function get_nkpt(e, e0, nkpt_total, bulk)
       use mod_f90_kind, only: double
