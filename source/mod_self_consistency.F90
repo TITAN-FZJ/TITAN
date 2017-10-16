@@ -340,7 +340,6 @@ contains
       ep = y(E_k_imag_mesh(ix,1))
       kp = bzs(E_k_imag_mesh(ix,1)) % kp(:,E_k_imag_mesh(ix,2))
       weight = cmplx(1.d0,0.d0) * wght(E_k_imag_mesh(ix,1)) * bzs(E_k_imag_mesh(ix,1)) % w(E_k_imag_mesh(ix,2))
-      if(myrank == 0 .and. mod((ix-start), 10000)) print *, "Jak_Stat", (ix-start) / (end-start) * 100.d0
         ! Green function on energy Ef + iy, and wave vector kp
         if((llineargfsoc).or.(llinearsoc)) then
           call greenlinearsoc(Ef,ep,kp,gf,gvg)

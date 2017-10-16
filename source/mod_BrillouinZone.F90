@@ -166,6 +166,7 @@ contains
     self%nkpt = self%nkpt + numextrakbz
 
     deallocate(extrakbz, extrawkbz)
+    deallocate(iniwkbz, inikbz)
 
     return
   end subroutine  generate_3D_BZ
@@ -267,6 +268,10 @@ contains
     self%w = self%w/dble(self%nkpt)
     self%nkpt = self%nkpt + numextrakbz
     return
+
+    deallocate(extrakbz, extrawkbz)
+    deallocate(iniwkbz, inikbz)
+
   end subroutine  generate_2D_BZ
 
 
