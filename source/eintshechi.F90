@@ -3,7 +3,7 @@ subroutine eintshechi(e)
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, cOne, cI, tpi
   use mod_parameters, only: eta, ef, dim, sigmaijmunu2i, sigmaimunu2i
-  use EnergyIntegration, only: generate_real_epoints, y, wght, x2, p2, pn1
+  use EnergyIntegration, only: generate_real_epoints, y, wght, x2, p2, pn1, pn2
   use mod_susceptibilities, only: chiorb_hf
   use mod_system, only: s => sys
   !use mod_BrillouinZone, only: BZ
@@ -51,13 +51,13 @@ subroutine eintshechi(e)
   end if
 
   if(abs(e) >= 1.d-10) then
-     remainder = mod(total_points_real, numprocs_row)
+     remainder = mod(pn2*bzs(1)%nkpt, numprocs_row)
     if(myrank_row < remainder) then
-     work = ceiling(dble(total_points_real) / dble(numprocs_row))
+     work = ceiling(dble(pn2*bzs(1)%nkpt) / dble(numprocs_row))
      start2 = myrank_row*work + 1
      end2 = (myrank_row+1) * work
     else
-     work = floor(dble(total_points_real) / dble(numprocs_row))
+     work = floor(dble(pn2*bzs(1)%nkpt) / dble(numprocs_row))
      start2 = myrank_row*work + 1 + remainder
      end2 = (myrank_row+1) * work + remainder
     end if
