@@ -15,6 +15,7 @@ program TITAN
   use mod_SOC            ! New
   use mod_magnet
   use ElectricField
+  use adaptiveMesh
   use AtomTypes
   use mod_gilbert_damping
   !use mod_define_system TODO: Re-include
@@ -69,6 +70,8 @@ program TITAN
   !---- Generating integration points of the complex energy integral -----
   call allocate_energy_points()
   call generate_imag_epoints()
+
+  call generateAdaptiveMeshes()
 
   ! DFT tight binding mode has two additional vacuum layers
   !Npl_total = Npl

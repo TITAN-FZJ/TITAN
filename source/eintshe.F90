@@ -5,9 +5,10 @@ subroutine eintshe(e)
   use mod_parameters, only: Ef, dim, sigmaimunu2i, eta, sigmai2i, offset
   use TightBinding, only: nOrb,nOrb2
   use mod_SOC, only: llineargfsoc
-  use EnergyIntegration, only: y, wght, nepoints, x2, p2, generate_real_epoints, pn1
+  use EnergyIntegration, only: y, wght, x2, p2, generate_real_epoints, pn1, pn2
   use mod_system, only: s => sys !, n0sc1, n0sc2
-  use mod_BrillouinZone, only: BZ
+  !use mod_BrillouinZone, only: BZ
+  use adaptiveMesh
   use mod_prefactors,    only: prefactor !, lxpt, lypt, lzpt, tlxp, tlyp, tlzp
   use mod_disturbances,     only: tchiorbiikl
   use mod_mpi_pars
@@ -24,7 +25,7 @@ subroutine eintshe(e)
   !complex(double), dimension(:,:,:), allocatable      :: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl TODO:Re-Include
 
   integer :: i,j,l,mu,nu,gamma,xi,sigma,sigmap, neighbor
-  real(double) :: kp(3)
+  real(double) :: kp(3), ep
   complex(double) :: wkbzc
   !complex(double) :: expikr(n0sc1:n0sc2) TODO:Re-Include
   complex(double),dimension(:,:,:,:),allocatable    :: gf,dtdk
@@ -45,36 +46,32 @@ subroutine eintshe(e)
   call generate_real_epoints(e)
 
   ! Calculate workload for each MPI process
-  remainder = mod(nepoints,numprocs_row)
+  remainder = mod(total_points, numprocs_row)
   if(myrank_row < remainder) then
-    work = ceiling(dble(nepoints) / dble(numprocs_row))
-    start = myrank_row*work + 1
-    end = (myrank_row+1) * work
+    work = ceiling(dble(total_points) / dble(numprocs_row))
+    start1 = myrank_row*work + 1
+    end1 = (myrank_row+1) * work
   else
-    work = floor(dble(nepoints) / dble(numprocs_row))
-    start = myrank_row*work + 1 + remainder
-    end = (myrank_row+1) * work + remainder
+    work = floor(dble(total_points) / dble(numprocs_row))
+    start1 = myrank_row*work + 1 + remainder
+    end1 = (myrank_row+1) * work + remainder
   end if
 
-  start1 = 1
-  end1 = pn1
-  start2 = pn1 + 1
-  end2 = nepoints
-  if(start <= pn1) then
-    start1 = start
+  if(abs(e) >= 1.d-10) then
+     remainder = mod(total_points_real, numprocs_row)
+    if(myrank_row < remainder) then
+     work = ceiling(dble(total_points_real) / dble(numprocs_row))
+     start2 = myrank_row*work + 1
+     end2 = (myrank_row+1) * work
+    else
+     work = floor(dble(total_points_real) / dble(numprocs_row))
+     start2 = myrank_row*work + 1 + remainder
+     end2 = (myrank_row+1) * work + remainder
+    end if
   else
-    start1 = pn1 + 1
-    start2 = start
+     start2 = 0
+     end2 = 0
   end if
-
-  if(end <= pn1) then
-    end1 = end
-    end2 = 0
-  else
-    end2 = end
-  end if
-  start2 = start2 - pn1
-  end2 = end2 - pn1
 
   ! Starting to calculate energy integral
   tchiorbiikl     = cZero
@@ -85,8 +82,8 @@ subroutine eintshe(e)
 
 
   !$omp parallel default(none) &
-  !$omp& private(AllocateStatus,ix,ix2,iz,wkbzc,kp,i,j,l,mu,nu,gamma,xi,sigma,sigmap,neighbor,dtdk,gf,gfuu,gfud,gfdu,gfdd,df1iikl,pfdf1iikl,tFintiikl) & !,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,expikr,prett,preLxtt,preLytt,preLztt) &
-  !$omp& shared(llineargfsoc,s,BZ,prefactor,e,y,x2,wght,p2,Ef,eta,start1,end1,start2,end2,sigmai2i,sigmaimunu2i,dim,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
+  !$omp& private(AllocateStatus,ix,ix2,iz,wkbzc,ep,kp,i,j,l,mu,nu,gamma,xi,sigma,sigmap,neighbor,dtdk,gf,gfuu,gfud,gfdu,gfdd,df1iikl,pfdf1iikl,tFintiikl) & !,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,expikr,prett,preLxtt,preLytt,preLztt) &
+  !$omp& shared(llineargfsoc,s,bzs,E_k_imag_mesh,E_k_real_mesh,prefactor,e,y,x2,wght,p2,Ef,eta,start1,end1,start2,end2,sigmai2i,sigmaimunu2i,dim,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
 
   allocate(df1iikl(dim,4),pfdf1iikl(dim,4), &
            gf(nOrb2,nOrb2, s%nAtoms,s%nAtoms), &
@@ -110,11 +107,11 @@ subroutine eintshe(e)
   !LyttFintiikl = cZero !TODO: Re-Include
   !LzttFintiikl = cZero !TODO: Re-Include
 
-  !$omp do schedule(static) collapse(2)
+  !$omp do schedule(static)
   do ix = start1, end1 ! First and second integrations (in the complex plane)
-    do iz=1, BZ%nkpt
-      kp = BZ%kp(1:3,iz)
-      wkbzc = cmplx(BZ%w(iz) * wght(ix),0.d0)
+      ep = y(E_k_imag_mesh(ix,1))
+      kp = bzs(E_k_imag_mesh(ix,1)) % kp(:,E_k_imag_mesh(ix,2))
+      wkbzc = cmplx(bzs(E_k_imag_mesh(ix,1))%w(E_k_imag_mesh(ix,2)) * wght(E_k_imag_mesh(ix,1)), 0.d0)
       df1iikl = cZero
 
       ! Calculating derivative of in-plane and n.n. inter-plane hoppings
@@ -142,9 +139,9 @@ subroutine eintshe(e)
 
       ! Green function at (k+q,E_F+E+iy)
       if(llineargfsoc) then
-        call greenlineargfsoc(Ef+e,y(ix),kp,gf)
+        call greenlineargfsoc(Ef+e,ep,kp,gf)
       else
-        call green(Ef+e,y(ix),kp,gf)
+        call green(Ef+e,ep,kp,gf)
       end if
       gfuu(:,:,:,:,1) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
@@ -153,9 +150,9 @@ subroutine eintshe(e)
 
       ! Green function at (k,E_F+iy)
       if(llineargfsoc) then
-        call greenlineargfsoc(Ef,y(ix),kp,gf)
+        call greenlineargfsoc(Ef,ep,kp,gf)
       else
-        call green(Ef,y(ix),kp,gf)
+        call green(Ef,ep,kp,gf)
       end if
       gfuu(:,:,:,:,2) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,2) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
@@ -222,15 +219,14 @@ subroutine eintshe(e)
       !   end do
       ! end do
 
-    end do ! iz
   end do
   !$omp end do nowait
 
-  !$omp do schedule(static) collapse(2)
+  !$omp do schedule(static)
   do ix2 = start2, end2  ! Third integration (on the real axis)
-    do iz=1, BZ%nkpt
-      kp = BZ%kp(1:3,iz)
-      wkbzc = cmplx(BZ%w(iz)*p2(ix2),0.d0)
+      ep = x2(E_k_real_mesh(ix,1))
+      kp = bzs(1)%kp(:,E_k_real_mesh(ix2,2))
+      wkbzc = cmplx(bzs(1)%w(E_k_real_mesh(ix2,2)) * p2(E_k_real_mesh(ix2,1)), 0.d0)
 
       df1iikl = cZero
 
@@ -339,7 +335,6 @@ subroutine eintshe(e)
       !     end do
       !   end do
       ! end do
-    end do ! iz
   end do
   !$omp end do nowait
 
