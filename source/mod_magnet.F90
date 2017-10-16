@@ -39,9 +39,9 @@ module mod_magnet
   integer :: hwa_npts = 0, hwa_npt1 = 1
   integer :: hwt_npts = 0, hwt_npt1 = 1
   integer :: hwp_npts = 0, hwp_npt1 = 1
-  real(double) :: hwa, hwa_i = 0.d0, hwa_f = 0.d0, hwa_s
-  real(double) :: hwt, hwt_i = 0.d0, hwt_f = 0.d0, hwt_s
-  real(double) :: hwp, hwp_i = 0.d0, hwp_f = 0.d0, hwp_s
+  real(double) :: hwa, hwa_i = 0.d0, hwa_f = 0.d0, hwa_s = 0.d0
+  real(double) :: hwt, hwt_i = 0.d0, hwt_f = 0.d0, hwt_s = 0.d0
+  real(double) :: hwp, hwp_i = 0.d0, hwp_f = 0.d0, hwp_s = 0.d0
 
   ! Layer-resolved scale of magnetic field (including empty spheres)
   logical :: lhwscale        = .false.
