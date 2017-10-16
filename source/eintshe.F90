@@ -257,9 +257,9 @@ subroutine eintshe(e)
 
         ! Green function at (k+q,E_F+E+iy)
         if(llineargfsoc) then
-          call greenlineargfsoc(x2(ix2)+e,eta,kp,gf)
+          call greenlineargfsoc(ep+e,eta,kp,gf)
         else
-          call green(x2(ix2)+e,eta,kp,gf)
+          call green(ep+e,eta,kp,gf)
         end if
         gfuu(:,:,:,:,1) = gf(     1:  nOrb,     1:  nOrb, :,:)
         gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
@@ -268,9 +268,9 @@ subroutine eintshe(e)
 
         ! Green function at (k,E_F+iy)
         if(llineargfsoc) then
-          call greenlineargfsoc(x2(ix2),eta,kp,gf)
+          call greenlineargfsoc(ep,eta,kp,gf)
         else
-          call green(x2(ix2),eta,kp,gf)
+          call green(ep,eta,kp,gf)
         end if
         gfuu(:,:,:,:,2) = gf(     1:  nOrb,     1:  nOrb, :,:)
         gfud(:,:,:,:,2) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)

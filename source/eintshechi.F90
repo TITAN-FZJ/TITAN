@@ -172,9 +172,9 @@ subroutine eintshechi(e)
 
       ! Green function at (k,E'+i.eta)
       if(llineargfsoc) then
-        call greenlineargfsoc(x2(ix2),eta,kp,gf)
+        call greenlineargfsoc(ep,eta,kp,gf)
       else
-        call green(x2(ix2),eta,kp,gf)
+        call green(ep,eta,kp,gf)
       end if
       gfuu(:,:,:,:,2) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,2) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
