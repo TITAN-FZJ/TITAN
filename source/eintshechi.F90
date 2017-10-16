@@ -71,7 +71,7 @@ subroutine eintshechi(e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,iz,ix,ix2,i,j,mu,nu,gamma,xi,nep,nkp,ep,kp,weight,gf,gfuu,gfud,gfdu,gfdd,df1,Fint, index1, index2) &
-  !$omp& shared(llineargfsoc,start1,start2,end1,end2,s,bzs,Ef,e,y,wght,x2,p2,E_k_real_mesh,E_k_imag_mesh,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf)
+  !$omp& shared(llineargfsoc,start1,start2,end1,end2,s,bzs,Ef,e,y,wght,x2,p2,pn2,E_k_real_mesh,E_k_imag_mesh,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf)
   allocate(df1(dim,dim), Fint(dim,dim), &
            gf  (nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &

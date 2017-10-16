@@ -34,7 +34,7 @@ subroutine eintshe(e)
   !complex(double),dimension(n0sc1:n0sc2,s%nAtoms,nOrb, nOrb)    :: prett,preLxtt,preLytt,preLztt !TODO: Re-Include
   !complex(double),dimension(n0sc1:n0sc2,dimsigmaNpl,4), intent(out) :: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl !TODO:Re-Include
   !--------------------- begin MPI vars --------------------
-  integer :: ix, ix2, iz
+  integer :: ix, ix2, nep,nkp
   integer :: start, end, work, remainder, start1, end1, start2, end2
   integer :: ncountkl !,nncountkl !TODO: Re-Include
   ncountkl = dim*4
@@ -82,8 +82,8 @@ subroutine eintshe(e)
 
 
   !$omp parallel default(none) &
-  !$omp& private(AllocateStatus,ix,ix2,iz,wkbzc,ep,kp,i,j,l,mu,nu,gamma,xi,sigma,sigmap,neighbor,dtdk,gf,gfuu,gfud,gfdu,gfdd,df1iikl,pfdf1iikl,tFintiikl) & !,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,expikr,prett,preLxtt,preLytt,preLztt) &
-  !$omp& shared(llineargfsoc,s,bzs,E_k_imag_mesh,E_k_real_mesh,prefactor,e,y,x2,wght,p2,Ef,eta,start1,end1,start2,end2,sigmai2i,sigmaimunu2i,dim,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
+  !$omp& private(AllocateStatus,ix,ix2,wkbzc,ep,kp,nep,nkp,i,j,l,mu,nu,gamma,xi,sigma,sigmap,neighbor,dtdk,gf,gfuu,gfud,gfdu,gfdd,df1iikl,pfdf1iikl,tFintiikl) & !,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,expikr,prett,preLxtt,preLytt,preLztt) &
+  !$omp& shared(llineargfsoc,s,bzs,E_k_imag_mesh,E_k_real_mesh,prefactor,e,y,x2,wght,p2,pn2,Ef,eta,start1,end1,start2,end2,sigmai2i,sigmaimunu2i,dim,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
 
   allocate(df1iikl(dim,4),pfdf1iikl(dim,4), &
            gf(nOrb2,nOrb2, s%nAtoms,s%nAtoms), &
@@ -227,8 +227,8 @@ subroutine eintshe(e)
       nep = ix2 / bzs(1) % nkpt + 1
       nkp = mod(ix2, pn2)
       ep = x2(nep)
-      kp = bzs(1)%kp(:,nkp)
-      wkbzc = cmplx(bzs(1)%w(nkp) * p2(nep, 0.d0)
+      kp = bzs(1) % kp(:,nkp)
+      wkbzc = cmplx(bzs(1)%w(nkp) * p2(nep), 0.d0)
 
       df1iikl = cZero
 
