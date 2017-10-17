@@ -159,24 +159,10 @@ contains
     !--------------------- begin MPI vars --------------------
     integer :: ix
     integer :: ncount,ncount2
-    integer :: start, end, iz, work, remainder
     integer :: mu,mup
     real(double) :: weight, ep
     ncount = s%nAtoms * 9
     ncount2 = size * size
-
-    ! Calculate workload for each MPI process
-    remainder = mod(total_points,numprocs_row_hw)
-    if(myrank_row_hw < remainder) then
-      work = ceiling(dble(total_points) / dble(numprocs_row_hw))
-      start = myrank_row_hw*work + 1
-      end = (myrank_row_hw+1) * work
-    else
-      work = floor(dble(total_points) / dble(numprocs_row_hw))
-      start = myrank_row_hw*work + 1 + remainder
-      end = (myrank_row_hw+1) * work + remainder
-    end if
-    !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
     n_orb_u = 0.d0
     n_orb_d = 0.d0
@@ -188,8 +174,8 @@ contains
     gdiagdu = cZero
 
     !$omp parallel default(none) &
-    !$omp& private(ix,iz,ep,kp,weight,i,mu,mup,gf,gf_loc) &
-    !$omp& shared(llineargfsoc,llinearsoc,start,end,wght,s,bzs,E_k_imag_mesh,Ef,y,gdiaguur,gdiagddr,gdiagud,gdiagdu)
+    !$omp& private(ix,ep,kp,weight,i,mu,mup,gf,gf_loc) &
+    !$omp& shared(llineargfsoc,llinearsoc,local_points,wght,s,bzs,E_k_imag_mesh,Ef,y,gdiaguur,gdiagddr,gdiagud,gdiagdu)
     allocate(gf    (nOrb2,nOrb2,s%nAtoms,s%nAtoms))
     allocate(gf_loc(nOrb2,nOrb2,s%nAtoms,s%nAtoms))
     gf = cZero
@@ -197,20 +183,20 @@ contains
 
     if((llineargfsoc).or.(llinearsoc)) then
       !$omp do schedule(static)
-      do ix = start, end
-         ep = y(E_k_imag_mesh(ix,1))
-         weight = wght(E_k_imag_mesh(ix,1)) * bzs(E_k_imag_mesh(ix,1)) % w(E_k_imag_mesh(ix,2))
-         kp = bzs(E_k_imag_mesh(ix,1)) % kp(:,E_k_imag_mesh(ix,2))
+      do ix = 1, local_points
+         ep = y(E_k_imag_mesh(1,ix))
+         weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
+         kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
          call greenlineargfsoc(Ef,ep,kp,gf_loc)
          gf = gf + gf_loc * weight
       end do
       !$omp end do nowait
     else
       !$omp do schedule(static)
-      do ix = start, end
-         ep = y(E_k_imag_mesh(ix,1))
-         weight = wght(E_k_imag_mesh(ix,1)) * bzs(E_k_imag_mesh(ix,1)) % w(E_k_imag_mesh(ix,2))
-         kp = bzs(E_k_imag_mesh(ix,1)) % kp(:,E_k_imag_mesh(ix,2))
+      do ix = 1, local_points
+         ep = y(E_k_imag_mesh(1,ix))
+         weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
+         kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
          call green(Ef,ep,kp,gf_loc)
          gf = gf + gf_loc * weight
       end do
@@ -288,19 +274,8 @@ contains
     !--------------------- begin MPI vars --------------------
     integer :: ix, iz
     integer :: ncount,ncount2
-    integer :: start, end, work, remainder
     integer :: mu
 
-   remainder = mod(total_points,numprocs_row_hw)
-   if(myrank_row_hw < remainder) then
-     work = ceiling(dble(total_points) / dble(numprocs_row_hw))
-     start = myrank_row_hw*work + 1
-     end = (myrank_row_hw+1) * work
-   else
-     work = floor(dble(total_points) / dble(numprocs_row_hw))
-     start = myrank_row_hw*work + 1 + remainder
-     end = (myrank_row_hw+1) * work + remainder
-   end if
     !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
     ncount=s%nAtoms*9
     ncount2=N*N
@@ -328,18 +303,18 @@ contains
     jacobian = 0.d0
 
     !$omp parallel default(none) &
-    !$omp& private(AllocateStatus,ix,iz,i,j,i0,j0,mu,sigma,sigmap,ep,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp,gdHdxg,gvgdHdxgvg) &
-    !$omp& shared(llineargfsoc,llinearsoc,start,end,s,bzs,E_k_imag_mesh,Ef,y,wght,mhalfU,pauli_components1,pauli_components2,jacobian, myrank)
+    !$omp& private(AllocateStatus,ix,i,j,i0,j0,mu,sigma,sigmap,ep,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp,gdHdxg,gvgdHdxgvg) &
+    !$omp& shared(llineargfsoc,llinearsoc,local_points,s,bzs,E_k_imag_mesh,Ef,y,wght,mhalfU,pauli_components1,pauli_components2,jacobian, myrank)
     allocate( gdHdxg(nOrb2,nOrb2,4,4,s%nAtoms,s%nAtoms), gvgdHdxgvg(nOrb2,nOrb2,4,4,s%nAtoms,s%nAtoms) , STAT = AllocateStatus  )
     if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: gdHdxg,gvgdHdxgvg")
     gdHdxg = cZero
     gvgdHdxgvg = cZero
 
    !$omp do schedule(static)
-   do ix = start, end
-      ep = y(E_k_imag_mesh(ix,1))
-      kp = bzs(E_k_imag_mesh(ix,1)) % kp(:,E_k_imag_mesh(ix,2))
-      weight = cmplx(1.d0,0.d0) * wght(E_k_imag_mesh(ix,1)) * bzs(E_k_imag_mesh(ix,1)) % w(E_k_imag_mesh(ix,2))
+   do ix = 1, local_points
+      ep = y(E_k_imag_mesh(1,ix))
+      kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
+      weight = cmplx(1.d0,0.d0) * wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
         ! Green function on energy Ef + iy, and wave vector kp
         if((llineargfsoc).or.(llinearsoc)) then
           call greenlinearsoc(Ef,ep,kp,gf,gvg)
@@ -458,7 +433,7 @@ contains
     implicit none
 
     integer :: AllocateStatus
-    integer :: ix, iz
+    integer :: ix
     integer :: i,mu,nu,mup,nup
     real(double) :: kp(3)
     complex(double), dimension(:,:,:,:), allocatable :: gf
@@ -467,20 +442,8 @@ contains
     real(double) :: weight, ep
     !--------------------- begin MPI vars --------------------
     integer :: ncount
-    integer :: start, end, work, remainder
     ncount=s%nAtoms*nOrb*nOrb
 
-    ! Calculate workload for each MPI process
-    remainder = mod(total_points,numprocs_row_hw)
-    if(myrank_row_hw < remainder) then
-      work = ceiling(dble(total_points) / dble(numprocs_row_hw))
-      start = myrank_row_hw*work + 1
-      end = (myrank_row_hw+1) * work
-    else
-      work = floor(dble(total_points) / dble(numprocs_row_hw))
-      start = myrank_row_hw*work + 1 + remainder
-      end = (myrank_row_hw+1) * work + remainder
-    end if
     !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
     allocate( lxm(s%nAtoms), &
@@ -501,18 +464,18 @@ contains
     gupgdint  = cZero
 
     !$omp parallel default(none) &
-    !$omp& private(AllocateStatus,ix,iz,i,mu,nu,mup,nup,kp,ep,weight,gf,gupgd) &
-    !$omp& shared(start,end,s,E_k_imag_mesh,bzs,Ef,y,wght,gupgdint)
+    !$omp& private(AllocateStatus,ix,i,mu,nu,mup,nup,kp,ep,weight,gf,gupgd) &
+    !$omp& shared(local_points,s,E_k_imag_mesh,bzs,Ef,y,wght,gupgdint)
 
     allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
              gupgd(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
     gupgd   = cZero
 
     !$omp do schedule(static)
-    do ix = start, end
-        kp = bzs(E_k_imag_mesh(ix,1)) % kp(:,E_k_imag_mesh(ix,2))
-        ep = y(E_k_imag_mesh(ix,1))
-        weight = bzs(E_k_imag_mesh(ix,1)) % w(E_k_imag_mesh(ix,2)) * wght(E_k_imag_mesh(ix,1))
+    do ix = 1, local_points
+        kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
+        ep = y(E_k_imag_mesh(1,ix))
+        weight = bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix)) * wght(E_k_imag_mesh(1,ix))
         !Green function on energy Ef + iy, and wave vector kp
         call green(Ef,ep,kp,gf)
 

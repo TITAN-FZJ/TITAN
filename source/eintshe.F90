@@ -7,7 +7,7 @@ subroutine eintshe(e)
   use mod_SOC, only: llineargfsoc
   use EnergyIntegration, only: y, wght, x2, p2, generate_real_epoints, pn1, pn2
   use mod_system, only: s => sys !, n0sc1, n0sc2
-  !use mod_BrillouinZone, only: BZ
+  use mod_BrillouinZone, only: BZ
   use adaptiveMesh
   use mod_prefactors,    only: prefactor !, lxpt, lypt, lzpt, tlxp, tlyp, tlzp
   use mod_disturbances,     only: tchiorbiikl
@@ -35,7 +35,7 @@ subroutine eintshe(e)
   !complex(double),dimension(n0sc1:n0sc2,dimsigmaNpl,4), intent(out) :: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl !TODO:Re-Include
   !--------------------- begin MPI vars --------------------
   integer :: ix, ix2, nep,nkp
-  integer :: start, end, work, remainder, start1, end1, start2, end2
+  integer :: work, remainder, start2, end2
   integer :: ncountkl !,nncountkl !TODO: Re-Include
   ncountkl = dim*4
   !nncountkl = n0sc*dimsigmaNpl*4 !TODO: Re-Include
@@ -45,26 +45,14 @@ subroutine eintshe(e)
   ! Generating energy points in the real axis for third integration
   call generate_real_epoints(e)
 
-  ! Calculate workload for each MPI process
-  remainder = mod(total_points, numprocs_row)
-  if(myrank_row < remainder) then
-    work = ceiling(dble(total_points) / dble(numprocs_row))
-    start1 = myrank_row*work + 1
-    end1 = (myrank_row+1) * work
-  else
-    work = floor(dble(total_points) / dble(numprocs_row))
-    start1 = myrank_row*work + 1 + remainder
-    end1 = (myrank_row+1) * work + remainder
-  end if
-
   if(abs(e) >= 1.d-10) then
-     remainder = mod(pn2*bzs(1)%nkpt, numprocs_row)
+     remainder = mod(pn2 * BZ%nkpt, numprocs_row)
     if(myrank_row < remainder) then
-     work = ceiling(dble(pn2*bzs(1)%nkpt) / dble(numprocs_row))
+     work = ceiling(dble(pn2 * BZ%nkpt) / dble(numprocs_row))
      start2 = myrank_row*work + 1
      end2 = (myrank_row+1) * work
     else
-     work = floor(dble(pn2*bzs(1)%nkpt) / dble(numprocs_row))
+     work = floor(dble(pn2 * BZ%nkpt) / dble(numprocs_row))
      start2 = myrank_row*work + 1 + remainder
      end2 = (myrank_row+1) * work + remainder
     end if
@@ -83,7 +71,7 @@ subroutine eintshe(e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,wkbzc,ep,kp,nep,nkp,i,j,l,mu,nu,gamma,xi,sigma,sigmap,neighbor,dtdk,gf,gfuu,gfud,gfdu,gfdd,df1iikl,pfdf1iikl,tFintiikl) & !,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,expikr,prett,preLxtt,preLytt,preLztt) &
-  !$omp& shared(llineargfsoc,s,bzs,E_k_imag_mesh,E_k_real_mesh,prefactor,e,y,x2,wght,p2,pn2,Ef,eta,start1,end1,start2,end2,sigmai2i,sigmaimunu2i,dim,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
+  !$omp& shared(llineargfsoc,s,bzs,BZ,E_k_imag_mesh,prefactor,e,y,x2,wght,p2,pn2,Ef,eta,local_points,start2,end2,sigmai2i,sigmaimunu2i,dim,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
 
   allocate(df1iikl(dim,4),pfdf1iikl(dim,4), &
            gf(nOrb2,nOrb2, s%nAtoms,s%nAtoms), &
@@ -108,10 +96,10 @@ subroutine eintshe(e)
   !LzttFintiikl = cZero !TODO: Re-Include
 
   !$omp do schedule(static)
-  do ix = start1, end1 ! First and second integrations (in the complex plane)
-      ep = y(E_k_imag_mesh(ix,1))
-      kp = bzs(E_k_imag_mesh(ix,1)) % kp(:,E_k_imag_mesh(ix,2))
-      wkbzc = cmplx(bzs(E_k_imag_mesh(ix,1))%w(E_k_imag_mesh(ix,2)) * wght(E_k_imag_mesh(ix,1)), 0.d0)
+  do ix = 1, local_points ! First and second integrations (in the complex plane)
+      ep = y(E_k_imag_mesh(1,ix))
+      kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
+      wkbzc = cmplx(bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix)) * wght(E_k_imag_mesh(1,ix)), 0.d0)
       df1iikl = cZero
 
       ! Calculating derivative of in-plane and n.n. inter-plane hoppings
@@ -224,11 +212,11 @@ subroutine eintshe(e)
 
   !$omp do schedule(static)
   do ix2 = start2, end2  ! Third integration (on the real axis)
-      nep = ix2 / bzs(1) % nkpt + 1
+      nep = ix2 / BZ % nkpt + 1
       nkp = mod(ix2, pn2)
       ep = x2(nep)
-      kp = bzs(1) % kp(:,nkp)
-      wkbzc = cmplx(bzs(1)%w(nkp) * p2(nep), 0.d0)
+      kp = BZ % kp(:,nkp)
+      wkbzc = cmplx(BZ%w(nkp) * p2(nep), 0.d0)
 
       df1iikl = cZero
 

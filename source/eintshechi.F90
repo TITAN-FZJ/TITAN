@@ -6,7 +6,7 @@ subroutine eintshechi(e)
   use EnergyIntegration, only: generate_real_epoints, y, wght, x2, p2, pn1, pn2
   use mod_susceptibilities, only: chiorb_hf
   use mod_system, only: s => sys
-  !use mod_BrillouinZone, only: BZ
+  use mod_BrillouinZone, only: BZ
   use adaptiveMesh
   use TightBinding, only: nOrb,nOrb2
   use mod_SOC, only: llineargfsoc
@@ -51,13 +51,13 @@ subroutine eintshechi(e)
   end if
 
   if(abs(e) >= 1.d-10) then
-     remainder = mod(pn2*bzs(1)%nkpt, numprocs_row)
+     remainder = mod(pn2 * BZ%nkpt, numprocs_row)
     if(myrank_row < remainder) then
-     work = ceiling(dble(pn2*bzs(1)%nkpt) / dble(numprocs_row))
+     work = ceiling(dble(pn2 * BZ%nkpt) / dble(numprocs_row))
      start2 = myrank_row*work + 1
      end2 = (myrank_row+1) * work
     else
-     work = floor(dble(pn2*bzs(1)%nkpt) / dble(numprocs_row))
+     work = floor(dble(pn2 * BZ%nkpt) / dble(numprocs_row))
      start2 = myrank_row*work + 1 + remainder
      end2 = (myrank_row+1) * work + remainder
     end if
@@ -71,7 +71,7 @@ subroutine eintshechi(e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,iz,ix,ix2,i,j,mu,nu,gamma,xi,nep,nkp,ep,kp,weight,gf,gfuu,gfud,gfdu,gfdd,df1,Fint, index1, index2) &
-  !$omp& shared(llineargfsoc,start1,start2,end1,pn1,end2,s,bzs,Ef,e,y,wght,x2,p2,pn2,E_k_real_mesh,E_k_imag_mesh,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf)
+  !$omp& shared(llineargfsoc,start1,start2,end1,pn1,end2,s,bzs,BZ,local_points,Ef,e,y,wght,x2,p2,pn2,E_k_imag_mesh,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf)
   allocate(df1(dim,dim), Fint(dim,dim), &
            gf  (nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
@@ -82,10 +82,10 @@ subroutine eintshechi(e)
   Fint = cZero
 
   !$omp do schedule(static)
-  do ix = start1, end1
-      ep = y( E_k_imag_mesh(ix,1) )
-      kp = bzs( E_k_imag_mesh(ix,1) ) % kp(1:3,E_k_imag_mesh(ix,2))
-      weight = wght(E_k_imag_mesh(ix,1)) * bzs(E_k_imag_mesh(ix,1))%w(E_k_imag_mesh(ix,2))
+  do ix = 1, local_points
+      ep = y( E_k_imag_mesh(1,ix) )
+      kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix))
+      weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix))
       ! Green function at (k+q,E_F+E+iy)
       if(llineargfsoc) then
         call greenlineargfsoc(Ef+e,ep,kp,gf)
@@ -154,11 +154,11 @@ subroutine eintshechi(e)
 
   !$omp do schedule(static)
   do ix2 = start2, end2 ! Third integration (on the real axis)
-      nep = ix2 / bzs(1) % nkpt + 1
-      nkp = mod(ix2, pn2)
+      nep = (ix2-1) / BZ % nkpt + 1
+      nkp = mod(ix2-1, BZ % nkpt)+1
       ep = x2(nep)
-      kp = bzs(1) % kp(:,nkp)
-      weight = p2(nep) * bzs(1)%w(nkp)
+      kp = BZ % kp(:,nkp)
+      weight = p2(nep) * BZ % w(nkp)
       ! Green function at (k+q,E'+E+i.eta)
       if(llineargfsoc) then
         call greenlineargfsoc(ep+e,eta,kp,gf)
