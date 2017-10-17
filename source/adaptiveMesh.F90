@@ -42,11 +42,9 @@ contains
             total_points = total_points + all_nkpt(i)
             call bzone % free()
          end do
-
-      else
-         call MPI_Bcast(total_points, 1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-         call MPI_Bcast(all_nkpt, pn1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
       end if
+      call MPI_Bcast(total_points, 1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      call MPI_Bcast(all_nkpt, pn1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
 
       ! Calculate workload for each MPI process
       remainder = mod(total_points, numprocs_row)
