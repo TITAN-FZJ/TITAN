@@ -14,13 +14,13 @@ contains
   subroutine allocate_beff()
  !! This subroutine allocates variables related to the effective field calculation
     use mod_f90_kind, only: double
-    use mod_mpi_pars, only: abortProgram, myrank_row
+    use mod_mpi_pars, only: abortProgram, rFreq
     use mod_parameters, only: dimsigmaNpl
     use mod_System, only: s => sys
     implicit none
     integer :: AllocateStatus
 
-    if(myrank_row==0) then
+    if(rFreq(1) == 0) then
       allocate( Beff(dimsigmaNpl),Beff_cart(4,s%nAtoms),total_Beff(4),chiinv(dimsigmaNpl,dimsigmaNpl), STAT = AllocateStatus )
       if (AllocateStatus /= 0) call abortProgram("[allocate_beff] Not enough memory for: Beff,Beff_cart,total_Beff,chiinv")
     end if

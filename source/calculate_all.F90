@@ -7,6 +7,7 @@ subroutine calculate_all()
   use mod_magnet, only: lfield, mtheta, mphi, hhwx, hhwy, hhwz, mx, my, mz, lxp, lyp, lzp, lx, ly, lz, mvec_spherical, total_hw_npt1, hw_count
   use mod_SOC, only: llinearsoc
   use mod_System, only: s => sys
+  use adaptiveMesh
   use mod_prefactors, only: prefactor, prefactorlsoc, &
                             allocate_prefactors, deallocate_prefactors
   use mod_susceptibilities, only: lrot, rottemp, rotmat_i, rotmat_j, &
@@ -35,6 +36,7 @@ subroutine calculate_all()
 
   implicit none
   character(len=50) :: time
+  integer :: mcount
   integer           :: i,j,iw,sigma,sigmap,mu,nu,neighbor
   real(double)      :: e,Icabs
 
@@ -47,7 +49,7 @@ subroutine calculate_all()
   ! call allocate_sha() !TODO: Re-Include
   ! call allocate_idia()
 
-  if(myrank_row==0) then
+  if(rFreq(1) == 0) then
     write(outputunit_loop,"('CALCULATING PARALLEL CURRENTS, DISTURBANCES, LOCAL SUSCEPTIBILITY, EFFECTIVE FIELDS, SO-TORQUES AND V_DC AS A FUNCTION OF ENERGY')")
     ! Creating files and writing headers
     if(.not.laddresults) then
@@ -63,6 +65,8 @@ subroutine calculate_all()
   ! Mounting U and identity matrix
   call build_identity_and_U_matrix()
 
+  call genLocalEKMesh(rFreq(1),sFreq(1),FreqComm(1))
+
   ! Calculates matrices hopping x angular momentum matrix for orbital angular momentum current calculation
   !call OAM_curr_hopping_times_L() !TODO:Re-Include
 
@@ -71,33 +75,33 @@ subroutine calculate_all()
   ! call MPI_Finalize(ierr)
   ! stop
 
-  if((myrank==0).and.(skip_steps>0)) write(outputunit,"('[calculate_all] Skipping first ',i0,' step(s)...')") skip_steps
+  if(myrank == 0 .and. skip_steps > 0) write(outputunit,"('[calculate_all] Skipping first ',i0,' step(s)...')") skip_steps
 
-  do count = 1 + skip_steps, MPIsteps
+  do count = startFreq + skip_steps, endFreq + skip_steps
     !mpitag = (myrank_col-1)*Npl_f*total_hw_npt1*MPIsteps+(Npl-Npl_i)*total_hw_npt1*MPIsteps + (hw_count-1)*MPIsteps + count
 
-    e = emin + deltae*mod(myrank_col,npt1) + MPIdelta*(count-1)
+    e = emin + deltae * (count-1)
 
-    if(myrank_row_hw==0) write(outputunit_loop,"('[calculate_all] Starting MPI step ',i0,' of ',i0)") count,MPIsteps
+    if(rField == 0) write(outputunit_loop,"('[calculate_all] Starting MPI step ',i0,' of ',i0)") count - startFreq - skip_steps, endFreq - startFreq + 1
 
     if(lhfresponses) then
-      if(myrank_row==0) write(outputunit_loop,"('[calculate_all] No renormalization will be done. Setting prefactors to identity and calculating HF susceptibilities... ')")
+      if(rFreq(1) == 0) write(outputunit_loop,"('[calculate_all] No renormalization will be done. Setting prefactors to identity and calculating HF susceptibilities... ')")
       prefactor = identt
       if(llinearsoc) prefactorlsoc = identt
       call eintshechi(e)
-      if(myrank_row_hw==0) call write_time(outputunit_loop,'[calculate_all] Time after susceptibility calculation: ')
+      if(rField == 0) call write_time(outputunit_loop,'[calculate_all] Time after susceptibility calculation: ')
     else
-      if(myrank_row_hw==0) write(outputunit_loop,"('[calculate_all] Calculating prefactor to use in currents and disturbances calculation. ')")
+      if(rField == 0) write(outputunit_loop,"('[calculate_all] Calculating prefactor to use in currents and disturbances calculation. ')")
       if(llinearsoc) then
         call eintshechilinearsoc(e) ! Note: chiorb_hflsoc = lambda*dchi_hf/dlambda(lambda=0)
         ! Broadcast chiorb_hflsoc to all processors of the same row
-        call MPI_Bcast(chiorb_hflsoc,dim*dim,MPI_DOUBLE_COMPLEX,0,MPI_Comm_Row,ierr)
+        call MPI_Bcast(chiorb_hflsoc,dim*dim,MPI_DOUBLE_COMPLEX,0,FreqComm(1),ierr)
       else
         call eintshechi(e)
       end if
 
       ! Broadcast chiorb_hf to all processors of the same row
-      call MPI_Bcast(chiorb_hf,dim*dim,MPI_DOUBLE_COMPLEX,0,MPI_Comm_Row,ierr)
+      call MPI_Bcast(chiorb_hf,dim*dim,MPI_DOUBLE_COMPLEX,0,FreqComm(1),ierr)
 
       ! prefactor = (1 + chi_hf*Umat)^-1
       prefactor     = identt
@@ -111,7 +115,7 @@ subroutine calculate_all()
         call zgemm('n','n',dim,dim,dim,cOne,prefactor,dim,prefactorlsoc,dim,cZero,chiorb,dim) ! chiorb = prefactor*prefactorlsoc
         call zgemm('n','n',dim,dim,dim,cOne,chiorb,dim,prefactor,dim,cZero,prefactorlsoc,dim) ! prefactorlsoc = chiorb*prefactor = prefactor*prefactorlsoc*prefactor
       end if
-      if(myrank_row_hw==0) call write_time(outputunit_loop,'[calculate_all] Time after prefactor calculation: ')
+      if(rField == 0) call write_time(outputunit_loop,'[calculate_all] Time after prefactor calculation: ')
     end if
 
     ! Start parallelized processes to calculate all quantities for energy e
@@ -121,9 +125,9 @@ subroutine calculate_all()
       call eintshe(e)
     end if
 
-    if(myrank_row_hw==0) call write_time(outputunit_loop,'[calculate_all] Time after energy integral: ')
+    if(rField == 0) call write_time(outputunit_loop,'[calculate_all] Time after energy integral: ')
 
-    if(myrank_row==0) then
+    if(rFreq(1) == 0) then
 
       ! Calculating the full matrix of RPA and HF susceptibilities for energy e
       if(.not.lhfresponses) then
@@ -352,27 +356,27 @@ subroutine calculate_all()
       total_Beff  = sum(Beff_cart,dim=2)
 
       ! Sending results to myrank_row_hw = 0 (first process of each field calculation) and writing on files
-      if(myrank_row_hw==0) then
-        do mcount = 1, MPIpts
+      if(rFreq(2) == 0) then
+        do mcount = 1, sFreq(2)
           if (mcount/=1) then ! Receive all points except the first (that was calculated at myrank_row_hw)
-            call MPI_Recv(e                ,1                ,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE  ,4000,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(mvec_spherical   ,3*s%nAtoms       ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),4100,MPI_Comm_Row_hw,stat,ierr)
+            call MPI_Recv(e                ,1                ,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE  ,4000,FreqComm(2),stat,ierr)
+            call MPI_Recv(mvec_spherical   ,3*s%nAtoms       ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),4100,FreqComm(2),stat,ierr)
             if(.not.lhfresponses) &
-              call MPI_Recv(schi             , s%nAtoms*s%nAtoms*16   , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4200,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(schihf             , s%nAtoms*s%nAtoms*16   , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4300,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(Beff_cart          , 4*s%nAtoms             , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4400,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(total_Beff         , 4                      , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4450,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(disturbances       , 7*s%nAtoms             , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4500,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(total_disturbances , 7                      , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4550,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(torques            , ntypetorque*3*s%nAtoms , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4800,MPI_Comm_Row_hw,stat,ierr)
-            call MPI_Recv(total_torques      , ntypetorque*3          , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4850,MPI_Comm_Row_hw,stat,ierr)
-            !call MPI_Recv(currents         ,7*n0sc*s%nAtoms  ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4600,MPI_Comm_Row_hw,stat,ierr)  !TODO:Re-Include
-            !call MPI_Recv(dc_currents      ,3*s%nAtoms       ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),5100,MPI_Comm_Row_hw,stat,ierr) !TODO:Re-Include
-            !call MPI_Recv(total_currents   ,7*n0sc           ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4700,MPI_Comm_Row_hw,stat,ierr) !TODO:Re-Include
-            !call MPI_Recv(sha_re           ,4*s%nAtoms       ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),5200,MPI_Comm_Row_hw,stat,ierr) !TODO:Re-Include
-            !call MPI_Recv(sha_re_total     ,4                ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),5300,MPI_Comm_Row_hw,stat,ierr) !TODO:Re-Include
-            !call MPI_Recv(sha_complex      ,4*s%nAtoms       ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),5400,MPI_Comm_Row_hw,stat,ierr) !TODO:Re-Include
-            !call MPI_Recv(sha_complex_total,4                ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),5500,MPI_Comm_Row_hw,stat,ierr) !TODO:Re-Include
+              call MPI_Recv(schi             , s%nAtoms*s%nAtoms*16   , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4200,FreqComm(2),stat,ierr)
+            call MPI_Recv(schihf             , s%nAtoms*s%nAtoms*16   , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4300,FreqComm(2),stat,ierr)
+            call MPI_Recv(Beff_cart          , 4*s%nAtoms             , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4400,FreqComm(2),stat,ierr)
+            call MPI_Recv(total_Beff         , 4                      , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4450,FreqComm(2),stat,ierr)
+            call MPI_Recv(disturbances       , 7*s%nAtoms             , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4500,FreqComm(2),stat,ierr)
+            call MPI_Recv(total_disturbances , 7                      , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4550,FreqComm(2),stat,ierr)
+            call MPI_Recv(torques            , ntypetorque*3*s%nAtoms , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4800,FreqComm(2),stat,ierr)
+            call MPI_Recv(total_torques      , ntypetorque*3          , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4850,FreqComm(2),stat,ierr)
+            !call MPI_Recv(currents         ,7*n0sc*s%nAtoms  ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4600,FreqComm(2),stat,ierr)  !TODO:Re-Include
+            !call MPI_Recv(dc_currents      ,3*s%nAtoms       ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),5100,FreqComm(2),stat,ierr) !TODO:Re-Include
+            !call MPI_Recv(total_currents   ,7*n0sc           ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4700,FreqComm(2),stat,ierr) !TODO:Re-Include
+            !call MPI_Recv(sha_re           ,4*s%nAtoms       ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),5200,FreqComm(2),stat,ierr) !TODO:Re-Include
+            !call MPI_Recv(sha_re_total     ,4                ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),5300,FreqComm(2),stat,ierr) !TODO:Re-Include
+            !call MPI_Recv(sha_complex      ,4*s%nAtoms       ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),5400,FreqComm(2),stat,ierr) !TODO:Re-Include
+            !call MPI_Recv(sha_complex_total,4                ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),5500,FreqComm(2),stat,ierr) !TODO:Re-Include
           end if
 
           ! DIAGONALIZING SUSCEPTIBILITY
@@ -421,30 +425,32 @@ subroutine calculate_all()
           call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
         end if
       else
-        call MPI_Send(e                  , 1                      , MPI_DOUBLE_PRECISION , 0 , 4000 , MPI_Comm_Row_hw , ierr)
-        call MPI_Send(mvec_spherical     , 3*s%nAtoms             , MPI_DOUBLE_PRECISION , 0 , 4100 , MPI_Comm_Row_hw , ierr)
+        call MPI_Send(e                  , 1                      , MPI_DOUBLE_PRECISION , 0 , 4000 , FreqComm(2) , ierr)
+        call MPI_Send(mvec_spherical     , 3*s%nAtoms             , MPI_DOUBLE_PRECISION , 0 , 4100 , FreqComm(2) , ierr)
         if(.not.lhfresponses) &
-          call MPI_Send(schi             , s%nAtoms*s%nAtoms*16   , MPI_DOUBLE_COMPLEX , 0 , 4200 , MPI_Comm_Row_hw , ierr)
-        call MPI_Send(schihf             , s%nAtoms*s%nAtoms*16   , MPI_DOUBLE_COMPLEX , 0 , 4300 , MPI_Comm_Row_hw , ierr)
-        call MPI_Send(Beff_cart          , 4*s%nAtoms             , MPI_DOUBLE_COMPLEX , 0 , 4400 , MPI_Comm_Row_hw , ierr)
-        call MPI_Send(total_Beff         , 4                      , MPI_DOUBLE_COMPLEX , 0 , 4450 , MPI_Comm_Row_hw , ierr)
-        call MPI_Send(disturbances       , 7*s%nAtoms             , MPI_DOUBLE_COMPLEX , 0 , 4500 , MPI_Comm_Row_hw , ierr)
-        call MPI_Send(total_disturbances , 7                      , MPI_DOUBLE_COMPLEX , 0 , 4550 , MPI_Comm_Row_hw , ierr)
-        call MPI_Send(torques            , ntypetorque*3*s%nAtoms , MPI_DOUBLE_COMPLEX , 0 , 4800 , MPI_Comm_Row_hw , ierr)
-        call MPI_Send(total_torques      , ntypetorque*3          , MPI_DOUBLE_COMPLEX , 0 , 4850 , MPI_Comm_Row_hw , ierr)
-        !call MPI_Send(currents         ,7*n0sc*s%nAtoms  ,MPI_DOUBLE_COMPLEX  ,0,4600,MPI_Comm_Row_hw,ierr) !TODO:Re-Include
-        !call MPI_Send(dc_currents      ,3*s%nAtoms       ,MPI_DOUBLE_PRECISION,0,5100,MPI_Comm_Row_hw,ierr) !TODO:Re-Include
-        !call MPI_Send(total_currents   ,7*n0sc           ,MPI_DOUBLE_COMPLEX  ,0,4700,MPI_Comm_Row_hw,ierr) !TODO:Re-Include
-        !call MPI_Send(sha_re           ,4*s%nAtoms       ,MPI_DOUBLE_PRECISION,0,5200,MPI_Comm_Row_hw,ierr) !TODO:Re-Include
-        !call MPI_Send(sha_re_total     ,4                ,MPI_DOUBLE_PRECISION,0,5300,MPI_Comm_Row_hw,ierr) !TODO:Re-Include
-        !call MPI_Send(sha_complex      ,4*s%nAtoms       ,MPI_DOUBLE_COMPLEX  ,0,5400,MPI_Comm_Row_hw,ierr) !TODO:Re-Include
-        !call MPI_Send(sha_complex_total,4                ,MPI_DOUBLE_COMPLEX  ,0,5500,MPI_Comm_Row_hw,ierr) !TODO:Re-Include
+          call MPI_Send(schi             , s%nAtoms*s%nAtoms*16   , MPI_DOUBLE_COMPLEX , 0 , 4200 , FreqComm(2) , ierr)
+        call MPI_Send(schihf             , s%nAtoms*s%nAtoms*16   , MPI_DOUBLE_COMPLEX , 0 , 4300 , FreqComm(2) , ierr)
+        call MPI_Send(Beff_cart          , 4*s%nAtoms             , MPI_DOUBLE_COMPLEX , 0 , 4400 , FreqComm(2) , ierr)
+        call MPI_Send(total_Beff         , 4                      , MPI_DOUBLE_COMPLEX , 0 , 4450 , FreqComm(2) , ierr)
+        call MPI_Send(disturbances       , 7*s%nAtoms             , MPI_DOUBLE_COMPLEX , 0 , 4500 , FreqComm(2) , ierr)
+        call MPI_Send(total_disturbances , 7                      , MPI_DOUBLE_COMPLEX , 0 , 4550 , FreqComm(2) , ierr)
+        call MPI_Send(torques            , ntypetorque*3*s%nAtoms , MPI_DOUBLE_COMPLEX , 0 , 4800 , FreqComm(2) , ierr)
+        call MPI_Send(total_torques      , ntypetorque*3          , MPI_DOUBLE_COMPLEX , 0 , 4850 , FreqComm(2) , ierr)
+        !call MPI_Send(currents         ,7*n0sc*s%nAtoms  ,MPI_DOUBLE_COMPLEX  ,0,4600,FreqComm(2),ierr) !TODO:Re-Include
+        !call MPI_Send(dc_currents      ,3*s%nAtoms       ,MPI_DOUBLE_PRECISION,0,5100,FreqComm(2),ierr) !TODO:Re-Include
+        !call MPI_Send(total_currents   ,7*n0sc           ,MPI_DOUBLE_COMPLEX  ,0,4700,FreqComm(2),ierr) !TODO:Re-Include
+        !call MPI_Send(sha_re           ,4*s%nAtoms       ,MPI_DOUBLE_PRECISION,0,5200,FreqComm(2),ierr) !TODO:Re-Include
+        !call MPI_Send(sha_re_total     ,4                ,MPI_DOUBLE_PRECISION,0,5300,FreqComm(2),ierr) !TODO:Re-Include
+        !call MPI_Send(sha_complex      ,4*s%nAtoms       ,MPI_DOUBLE_COMPLEX  ,0,5400,FreqComm(2),ierr) !TODO:Re-Include
+        !call MPI_Send(sha_complex_total,4                ,MPI_DOUBLE_COMPLEX  ,0,5500,FreqComm(2),ierr) !TODO:Re-Include
       end if
     end if
   end do
 
+  call freeLocalEKMesh()
+
   ! Sorting results on files
-  if(myrank_row_hw==0) then
+  if(rField==0) then
     call sort_all_files()
   end if
   call deallocate_prefactors()

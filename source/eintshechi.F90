@@ -38,29 +38,8 @@ subroutine eintshechi(e)
   ! Generating energy points in the real axis for third integration
   call generate_real_epoints(e)
 
-  ! Calculate workload for each MPI process
-  remainder = mod(total_points, numprocs_row)
-  if(myrank_row < remainder) then
-    work = ceiling(dble(total_points) / dble(numprocs_row))
-    start1 = myrank_row*work + 1
-    end1 = (myrank_row+1) * work
-  else
-    work = floor(dble(total_points) / dble(numprocs_row))
-    start1 = myrank_row*work + 1 + remainder
-    end1 = (myrank_row+1) * work + remainder
-  end if
-
   if(abs(e) >= 1.d-10) then
-     remainder = mod(pn2 * BZ%nkpt, numprocs_row)
-    if(myrank_row < remainder) then
-     work = ceiling(dble(pn2 * BZ%nkpt) / dble(numprocs_row))
-     start2 = myrank_row*work + 1
-     end2 = (myrank_row+1) * work
-    else
-     work = floor(dble(pn2 * BZ%nkpt) / dble(numprocs_row))
-     start2 = myrank_row*work + 1 + remainder
-     end2 = (myrank_row+1) * work + remainder
-    end if
+     call calcWorkload(pn2*BZ%nkpt,sFreq(1),rFreq(1),start2,end2)
   else
      start2 = 0
      end2 = 0
@@ -71,7 +50,7 @@ subroutine eintshechi(e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,iz,ix,ix2,i,j,mu,nu,gamma,xi,nep,nkp,ep,kp,weight,gf,gfuu,gfud,gfdu,gfdd,df1,Fint, index1, index2) &
-  !$omp& shared(llineargfsoc,start1,start2,end1,pn1,end2,s,bzs,BZ,local_points,Ef,e,y,wght,x2,p2,pn2,E_k_imag_mesh,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf)
+  !$omp& shared(llineargfsoc,start2,end2,pn1,bzs,s,BZ,local_points,Ef,e,y,wght,x2,p2,pn2,E_k_imag_mesh,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf)
   allocate(df1(dim,dim), Fint(dim,dim), &
            gf  (nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
@@ -235,10 +214,10 @@ subroutine eintshechi(e)
   deallocate(df1, Fint)
   deallocate(gf,gfuu,gfud,gfdu,gfdd)
   !$omp end parallel
-  if(myrank_row == 0) then
-    call MPI_Reduce(MPI_IN_PLACE, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr)
+  if(rFreq(1) == 0) then
+    call MPI_Reduce(MPI_IN_PLACE, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr)
   else
-    call MPI_Reduce(chiorb_hf, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr)
+    call MPI_Reduce(chiorb_hf, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr)
   end if
   return
 end subroutine eintshechi
@@ -249,11 +228,12 @@ subroutine eintshechilinearsoc(e)
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, cOne, cI, tpi
   use mod_parameters, only: eta, ef, dim, sigmaijmunu2i, sigmaimunu2i
-  use EnergyIntegration, only: generate_real_epoints,y, wght, x2, p2, nepoints, pn1
+  use EnergyIntegration, only: generate_real_epoints,y, wght, x2, p2, nepoints, pn1, pn2
   use mod_susceptibilities, only: chiorb_hf,chiorb_hflsoc
   use mod_mpi_pars
   use mod_system, only: s => sys
   use mod_BrillouinZone, only: BZ
+  use adaptiveMesh
   use TightBinding, only: nOrb,nOrb2
   use mod_SOC, only: llineargfsoc
   !$  use omp_lib
@@ -262,9 +242,9 @@ subroutine eintshechilinearsoc(e)
   real(double), intent(in) :: e
 
   integer :: AllocateStatus
-  integer :: ix,ix2, iz
+  integer :: ix,ix2, iz, nep, nkp
   integer :: i,j,mu,nu,gamma,xi
-  real(double) :: kp(3)
+  real(double) :: kp(3), ep
   real(double) :: weight
   complex(double), dimension(:,:,:,:), allocatable :: gf,gvg
   complex(double), dimension(:,:,:,:,:), allocatable :: gfuu,gfud,gfdu,gfdd
@@ -281,37 +261,12 @@ subroutine eintshechilinearsoc(e)
   ! Generating energy points in the real axis for third integration
   call generate_real_epoints(e)
 
-  ! Calculate workload for each MPI process
-  remainder = mod(nepoints,numprocs_row)
-  if(myrank_row < remainder) then
-    work = ceiling(dble(nepoints) / dble(numprocs_row))
-    start = myrank_row*work + 1
-    end = (myrank_row+1) * work
+  if(abs(e) >= 1.d-10) then
+     call calcWorkload(pn2*BZ%nkpt,sFreq(1),rFreq(1),start2,end2)
   else
-    work = floor(dble(nepoints) / dble(numprocs_row))
-    start = myrank_row*work + 1 + remainder
-    end = (myrank_row+1) * work + remainder
+     start2 = 0
+     end2 = 0
   end if
-
-  start1 = 1
-  end1 = pn1
-  start2 = pn1 + 1
-  end2 = nepoints
-  if(start <= pn1) then
-    start1 = start
-  else
-    start1 = pn1 + 1
-    start2 = start
-  end if
-
-  if(end <= pn1) then
-    end1 = end
-    end2 = 0
-  else
-    end2 = end
-  end if
-  start2 = start2 - pn1
-  end2 = end2 - pn1
 
   !------------------------------------------------------
 
@@ -320,8 +275,8 @@ subroutine eintshechilinearsoc(e)
   chiorb_hflsoc = cZero
 
   !$omp parallel default(none) &
-  !$omp& private(AllocateStatus,ix,ix2,iz,i,j,mu,nu,gamma,xi,kp,weight,Fint,Fintlsoc,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,df1,df1lsoc) &
-  !$omp& shared(llineargfsoc,start1,end1,start2,end2,s,BZ,e,y,wght,x2,p2,Ef,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf,chiorb_hflsoc)
+  !$omp& private(AllocateStatus,ix,ix2,iz,i,j,mu,nu,nep,nkp,gamma,xi,kp,ep,weight,Fint,Fintlsoc,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,df1,df1lsoc) &
+  !$omp& shared(llineargfsoc,local_points,start2,end2,s,bzs,BZ,E_k_imag_mesh,e,y,wght,x2,p2,Ef,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf,chiorb_hflsoc)
   allocate(df1(dim,dim), Fint(dim,dim), &
            gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
@@ -342,13 +297,13 @@ subroutine eintshechilinearsoc(e)
   Fintlsoc  = cZero
 
   ! Starting to calculate energy integral
-  !$omp do schedule(static) collapse(2)
-  do ix = start1, end1
-    do iz=1,BZ%nkpt
-      kp = BZ%kp(1:3,iz)
-      weight = BZ%w(iz) * wght(ix)
+  !$omp do schedule(static)
+  do ix = 1, local_points
+      ep = y( E_k_imag_mesh(1,ix) )
+      kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix))
+      weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix))
       ! Green function at (k+q,E_F+E+iy)
-      call greenlinearsoc(Ef+e,y(ix),kp,gf,gvg)
+      call greenlinearsoc(Ef+e,ep,kp,gf,gvg)
       gfuu(:,:,:,:,1) = gf(     1:  nOrb,      1: nOrb, :,:)
       gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
       gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
@@ -359,7 +314,7 @@ subroutine eintshechilinearsoc(e)
       gvgdd(:,:,:,:,1) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
 
       ! Green function at (k,E_F+iy)
-      call greenlinearsoc(Ef,y(ix),kp,gf,gvg)
+      call greenlinearsoc(Ef,ep,kp,gf,gvg)
       gfuu(:,:,:,:,2) = gf(:,:,     1:  nOrb,     1:  nOrb)
       gfud(:,:,:,:,2) = gf(:,:,     1:  nOrb,nOrb+1:nOrb2)
       gfdu(:,:,:,:,2) = gf(:,:,nOrb+1:nOrb2,     1:  nOrb)
@@ -416,18 +371,19 @@ subroutine eintshechilinearsoc(e)
       Fint = Fint + df1 * weight
       Fintlsoc = Fintlsoc + df1lsoc * weight
 
-    end do
   end do
   !$omp end do nowait
 
-  !$omp do schedule(static) collapse(2)
-  do ix2 = start2, end2
-    do iz = 1, BZ%nkpt
-      kp = BZ%kp(1:3,iz)
-      weight = BZ%w(iz) * p2(ix2)
+  !$omp do schedule(static)
+  do ix2 = start2, end2 ! Third integration (on the real axis)
+      nep = (ix2-1) / BZ % nkpt + 1
+      nkp = mod(ix2-1, BZ % nkpt)+1
+      ep = x2(nep)
+      kp = BZ % kp(:,nkp)
+      weight = p2(nep) * BZ % w(nkp)
 
       ! Green function at (k+q,E_F+E+iy)
-      call greenlinearsoc(x2(ix2)+e,eta,kp,gf,gvg)
+      call greenlinearsoc(ep+e,eta,kp,gf,gvg)
       gfuu(:,:,:,:,1) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
       gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
@@ -438,7 +394,7 @@ subroutine eintshechilinearsoc(e)
       gvgdd(:,:,:,:,1) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
 
       ! Green function at (k,E_F+iy)
-      call greenlinearsoc(x2(ix2),eta,kp,gf,gvg)
+      call greenlinearsoc(ep,eta,kp,gf,gvg)
       gfuu(:,:,:,:,2) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,2) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
       gfdu(:,:,:,:,2) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
@@ -494,7 +450,6 @@ subroutine eintshechilinearsoc(e)
 
       Fint = Fint + df1 * weight
       Fintlsoc = Fintlsoc + df1lsoc * weight
-    end do
   end do
   !$omp end do nowait
 
@@ -511,12 +466,12 @@ subroutine eintshechilinearsoc(e)
   deallocate(gvg,gvguu,gvgud,gvgdu,gvgdd)
   deallocate(gf,gfuu,gfud,gfdu,gfdd)
   !$omp end parallel
-  if(myrank_row == 0) then
-    call MPI_Reduce(MPI_IN_PLACE, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr)
-    call MPI_Reduce(MPI_IN_PLACE, chiorb_hflsoc, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr)
+  if(rFreq(1) == 0) then
+    call MPI_Reduce(MPI_IN_PLACE, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr)
+    call MPI_Reduce(MPI_IN_PLACE, chiorb_hflsoc, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr)
   else
-    call MPI_Reduce(chiorb_hf, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr)
-    call MPI_Reduce(chiorb_hflsoc, chiorb_hflsoc, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr)
+    call MPI_Reduce(chiorb_hf, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr)
+    call MPI_Reduce(chiorb_hflsoc, chiorb_hflsoc, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr)
   end if
 
   return

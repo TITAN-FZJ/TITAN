@@ -35,7 +35,7 @@ subroutine eintshe(e)
   !complex(double),dimension(n0sc1:n0sc2,dimsigmaNpl,4), intent(out) :: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl !TODO:Re-Include
   !--------------------- begin MPI vars --------------------
   integer :: ix, ix2, nep,nkp
-  integer :: work, remainder, start2, end2
+  integer :: start2, end2
   integer :: ncountkl !,nncountkl !TODO: Re-Include
   ncountkl = dim*4
   !nncountkl = n0sc*dimsigmaNpl*4 !TODO: Re-Include
@@ -46,16 +46,7 @@ subroutine eintshe(e)
   call generate_real_epoints(e)
 
   if(abs(e) >= 1.d-10) then
-     remainder = mod(pn2 * BZ%nkpt, numprocs_row)
-    if(myrank_row < remainder) then
-     work = ceiling(dble(pn2 * BZ%nkpt) / dble(numprocs_row))
-     start2 = myrank_row*work + 1
-     end2 = (myrank_row+1) * work
-    else
-     work = floor(dble(pn2 * BZ%nkpt) / dble(numprocs_row))
-     start2 = myrank_row*work + 1 + remainder
-     end2 = (myrank_row+1) * work + remainder
-    end if
+     call calcWorkload(pn2*BZ%nkpt,sFreq(1),rFreq(1),start2,end2)
   else
      start2 = 0
      end2 = 0
@@ -96,10 +87,11 @@ subroutine eintshe(e)
   !LzttFintiikl = cZero !TODO: Re-Include
 
   !$omp do schedule(static)
-  do ix = 1, local_points ! First and second integrations (in the complex plane)
-      ep = y(E_k_imag_mesh(1,ix))
-      kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
-      wkbzc = cmplx(bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix)) * wght(E_k_imag_mesh(1,ix)), 0.d0)
+  do ix = 1, local_points
+      ep = y( E_k_imag_mesh(1,ix) )
+      kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix))
+      wkbzc = cmplx(wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix)),0.d0)
+
       df1iikl = cZero
 
       ! Calculating derivative of in-plane and n.n. inter-plane hoppings
@@ -211,12 +203,12 @@ subroutine eintshe(e)
   !$omp end do nowait
 
   !$omp do schedule(static)
-  do ix2 = start2, end2  ! Third integration (on the real axis)
-      nep = ix2 / BZ % nkpt + 1
-      nkp = mod(ix2, pn2)
+  do ix2 = start2, end2 ! Third integration (on the real axis)
+      nep = (ix2-1) / BZ % nkpt + 1
+      nkp = mod(ix2-1, BZ % nkpt)+1
       ep = x2(nep)
       kp = BZ % kp(:,nkp)
-      wkbzc = cmplx(BZ%w(nkp) * p2(nep), 0.d0)
+      wkbzc = cmplx(p2(nep) * BZ % w(nkp), 0.d0)
 
       df1iikl = cZero
 
@@ -348,18 +340,18 @@ subroutine eintshe(e)
   !$omp end parallel
 
 
-  if(myrank_row == 0) then
-    call MPI_Reduce(MPI_IN_PLACE, tchiorbiikl, ncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr)
-    !call MPI_Reduce(MPI_IN_PLACE, ttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr) TODO: Re-Include
-    !call MPI_Reduce(MPI_IN_PLACE, Lxttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr) TODO: Re-Include
-    !call MPI_Reduce(MPI_IN_PLACE, Lyttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr) TODO: Re-Include
-    !call MPI_Reduce(MPI_IN_PLACE, Lzttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr) TODO: Re-Include
+  if(rFreq(1) == 0) then
+    call MPI_Reduce(MPI_IN_PLACE, tchiorbiikl, ncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr)
+    !call MPI_Reduce(MPI_IN_PLACE, ttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr) TODO: Re-Include
+    !call MPI_Reduce(MPI_IN_PLACE, Lxttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr) TODO: Re-Include
+    !call MPI_Reduce(MPI_IN_PLACE, Lyttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr) TODO: Re-Include
+    !call MPI_Reduce(MPI_IN_PLACE, Lzttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr) TODO: Re-Include
   else
-    call MPI_Reduce(tchiorbiikl, tchiorbiikl, ncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr)
-    !call MPI_Reduce(ttchiorbiikl, ttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr) TODO: Re-Include
-    !call MPI_Reduce(Lxttchiorbiikl, Lxttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr) TODO: Re-Include
-    !call MPI_Reduce(Lyttchiorbiikl, Lyttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr) TODO: Re-Include
-    !call MPI_Reduce(Lzttchiorbiikl, Lzttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr) TODO: Re-Include
+    call MPI_Reduce(tchiorbiikl, tchiorbiikl, ncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr)
+    !call MPI_Reduce(ttchiorbiikl, ttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr) TODO: Re-Include
+    !call MPI_Reduce(Lxttchiorbiikl, Lxttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr) TODO: Re-Include
+    !call MPI_Reduce(Lyttchiorbiikl, Lyttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr) TODO: Re-Include
+    !call MPI_Reduce(Lzttchiorbiikl, Lzttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr) TODO: Re-Include
   end if
   deallocate(tFintiikl) !,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl) TODO: Re-Incude
 
@@ -374,7 +366,8 @@ subroutine eintshelinearsoc(e)
   use TightBinding, only: nOrb,nOrb2
   use mod_system, only: s => sys
   use mod_BrillouinZone, only: BZ
-  use EnergyIntegration, only: y, wght, nepoints, x2, p2, generate_real_epoints, pn1
+  use adaptiveMesh
+  use EnergyIntegration, only: y, wght, nepoints, x2, p2, generate_real_epoints, pn1, pn2
   use mod_prefactors, only: prefactor, prefactorlsoc
   use mod_disturbances, only: tchiorbiikl
   use mod_mpi_pars
@@ -391,7 +384,8 @@ subroutine eintshelinearsoc(e)
 
 
   integer :: i,j,l,mu,nu,gamma,xi,sigma,sigmap,neighbor
-  real(double) :: kp(3)
+  real(double) :: kp(3), ep
+  integer :: nep, nkp
   !complex(double) :: expikr(n0sc1:n0sc2) !TODO: Re-Include
   complex(double) :: wkbzc
   complex(double),dimension(:,:,:,:),allocatable    :: gf,dtdk,gvg
@@ -411,37 +405,12 @@ subroutine eintshelinearsoc(e)
   ! Generating energy points in the real axis for third integration
   call generate_real_epoints(e)
 
-  ! Calculate workload for each MPI process
-  remainder = mod(nepoints,numprocs_row)
-  if(myrank_row < remainder) then
-    work = ceiling(dble(nepoints) / dble(numprocs_row))
-    start = myrank_row*work + 1
-    end = (myrank_row+1) * work
+  if(abs(e) >= 1.d-10) then
+     call calcWorkload(pn2*BZ%nkpt,sFreq(1),rFreq(1),start2,end2)
   else
-    work = floor(dble(nepoints) / dble(numprocs_row))
-    start = myrank_row*work + 1 + remainder
-    end = (myrank_row+1) * work + remainder
+     start2 = 0
+     end2 = 0
   end if
-
-  start1 = 1
-  end1 = pn1
-  start2 = pn1 + 1
-  end2 = nepoints
-  if(start <= pn1) then
-    start1 = start
-  else
-    start1 = pn1 + 1
-    start2 = start
-  end if
-
-  if(end <= pn1) then
-    end1 = end
-    end2 = 0
-  else
-    end2 = end
-  end if
-  start2 = start2 - pn1
-  end2 = end2 - pn1
 
   ! Starting to calculate energy integral
   tchiorbiikl     = cZero
@@ -451,8 +420,8 @@ subroutine eintshelinearsoc(e)
   ! Lzttchiorbiikl  = cZero !TODO: Re-Include
 
   !$omp parallel default(none) &
-  !$omp& private(AllocateStatus,iz,wkbzc,kp,tFintiikl,df1iikl,pfdf1iikl,df1lsoc,dtdk,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &    !,expikr,prett,preLxtt,preLytt,preLztt
-  !$omp& shared(start1,end1,start2,end2,tchiorbiikl,prefactor,prefactorlsoc,s,BZ,e,Ef,y,x2,wght,p2,eta,sigmai2i,sigmaimunu2i,dim,offset)                                                                                 !,n0sc1,n0sc2,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,lxpt,lypt,lzpt,tlxp,tlyp,tlzp
+  !$omp& private(AllocateStatus,iz,wkbzc,kp,ep,nep,nkp,tFintiikl,df1iikl,pfdf1iikl,df1lsoc,dtdk,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &    !,expikr,prett,preLxtt,preLytt,preLztt
+  !$omp& shared(local_points,start2,end2,bzs,E_k_imag_mesh,tchiorbiikl,prefactor,prefactorlsoc,s,BZ,e,Ef,y,x2,wght,p2,eta,sigmai2i,sigmaimunu2i,dim,offset)                                                                                 !,n0sc1,n0sc2,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,lxpt,lypt,lzpt,tlxp,tlyp,tlzp
 
   allocate( df1iikl(dim,4),pfdf1iikl(dim,4),df1lsoc(dim,4), &
             dtdk(nOrb,nOrb,s%nAtoms,s%nAtoms), &
@@ -482,11 +451,11 @@ subroutine eintshelinearsoc(e)
   ! LyttFintiikl = cZero !TODO: Re-Include
   ! LzttFintiikl = cZero !TODO: Re-Include
 
-  !$omp do schedule(auto)
-  do ix = start1, end1 ! First and second integrations (in the complex plane)
-    do iz = 1, BZ%nkpt
-      kp = BZ%kp(1:3,iz)
-      wkbzc = cmplx(BZ%w(iz)*wght(ix),0.d0)
+  !$omp do schedule(static)
+  do ix = 1, local_points
+      ep = y( E_k_imag_mesh(1,ix) )
+      kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix))
+      wkbzc = cmplx(wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix)),0.d0)
 
       df1iikl = cZero
       df1lsoc = cZero
@@ -621,15 +590,16 @@ subroutine eintshelinearsoc(e)
       !   end do
       ! end do
 
-    end do ! iz
   end do
   !$omp end do nowait
 
-  !$omp do schedule(static) collapse(2)
+  !$omp do schedule(static)
   do ix2 = start2, end2 ! Third integration (on the real axis)
-    do iz=1,BZ%nkpt
-      kp = BZ%kp(1:3,iz)
-      wkbzc = cmplx(BZ%w(iz)*p2(ix2),0.d0)
+      nep = (ix2-1) / BZ % nkpt + 1
+      nkp = mod(ix2-1, BZ % nkpt)+1
+      ep = x2(nep)
+      kp = BZ % kp(:,nkp)
+      wkbzc = cmplx(p2(nep) * BZ % w(nkp),0.d0)
 
       df1iikl = cZero
       df1lsoc = cZero
@@ -761,7 +731,6 @@ subroutine eintshelinearsoc(e)
       !   end do
       ! end do
 
-    end do ! iz
   end do
   !$omp end do nowait
 
@@ -785,18 +754,18 @@ subroutine eintshelinearsoc(e)
 !$omp end parallel
 
 
-  if(myrank_row == 0) then
-    call MPI_Reduce(MPI_IN_PLACE, tchiorbiikl, ncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr)
-    !call MPI_Reduce(MPI_IN_PLACE, ttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr) TODO: Re-Include
-    !call MPI_Reduce(MPI_IN_PLACE, Lxttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr) TODO: Re-Include
-    !call MPI_Reduce(MPI_IN_PLACE, Lyttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr) TODO: Re-Include
-    !call MPI_Reduce(MPI_IN_PLACE, Lzttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr) TODO: Re-Include
+  if(rFreq(1) == 0) then
+    call MPI_Reduce(MPI_IN_PLACE, tchiorbiikl, ncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr)
+    !call MPI_Reduce(MPI_IN_PLACE, ttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr) TODO: Re-Include
+    !call MPI_Reduce(MPI_IN_PLACE, Lxttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr) TODO: Re-Include
+    !call MPI_Reduce(MPI_IN_PLACE, Lyttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr) TODO: Re-Include
+    !call MPI_Reduce(MPI_IN_PLACE, Lzttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr) TODO: Re-Include
   else
-    call MPI_Reduce(tchiorbiikl, tchiorbiikl, ncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr)
-    !call MPI_Reduce(ttchiorbiikl, ttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr) TODO: Re-Include
-    !call MPI_Reduce(Lxttchiorbiikl, Lxttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr) TODO: Re-Include
-    !call MPI_Reduce(Lyttchiorbiikl, Lyttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr) TODO: Re-Include
-    !call MPI_Reduce(Lzttchiorbiikl, Lzttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, MPI_Comm_Row, ierr) TODO: Re-Include
+    call MPI_Reduce(tchiorbiikl, tchiorbiikl, ncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr)
+    !call MPI_Reduce(ttchiorbiikl, ttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr) TODO: Re-Include
+    !call MPI_Reduce(Lxttchiorbiikl, Lxttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr) TODO: Re-Include
+    !call MPI_Reduce(Lyttchiorbiikl, Lyttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr) TODO: Re-Include
+    !call MPI_Reduce(Lzttchiorbiikl, Lzttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr) TODO: Re-Include
   end if
   deallocate(tFintiikl) !,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl) TODO: Re-Incude
 

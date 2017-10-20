@@ -31,7 +31,6 @@ module mod_parameters
 
   !========================================================================================!
   ! Number of parts to divide energy integral I1+I2 and I3
-  real(double) :: mag_tol
   !========================================================================================!
   ! Band structure
   character(len=5), dimension(:), allocatable :: bands
@@ -59,11 +58,6 @@ module mod_parameters
   logical :: lcreatefiles   = .false.
   logical :: lcreatefolders = .false.
   logical :: laddresults    = .false.
-  logical :: lGSL           = .false.
-  logical :: lslatec        = .false.
-  logical :: lnojac         = .false.
-  logical :: lontheflysc    = .false.
-  logical :: lrotatemag     = .false.
   logical :: lnolb          = .false.
   logical :: lnodiag        = .false.
   logical :: lwriteonscreen = .false.
@@ -93,11 +87,6 @@ module mod_parameters
   ! Current renormalization
   logical :: renorm
   integer :: renormnb
-  !========================================================================================!
-  ! Skip self-consistency
-  logical :: skipsc,lselfcon
-  ! Give a file to start self-consistency
-  character(len=200) :: scfile=""
   !========================================================================================!
   ! Variable to store missing filenames
   character(len=500)  :: missing_files=""
@@ -133,5 +122,8 @@ module mod_parameters
   character(len=50) :: strSites
   !========================================================================================!
   integer :: offset = 0
+
+  integer :: parField = 1
+  integer :: parFreq = 1
 
 end module mod_parameters
