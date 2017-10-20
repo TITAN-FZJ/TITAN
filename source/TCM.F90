@@ -1,50 +1,73 @@
 module mod_gilbert_damping
+  use mod_f90_kind, only: double
+  implicit none
+  character(len=5), private :: folder = "A/TCM"
+  character(len=2), dimension(2), private :: filename = ["SO", "XC"]
 
 contains
+
+  subroutine openTCMFiles()
+    use mod_parameters, only: eta, fieldpart, strSites, suffix, Utype
+    use ElectricField, only: strElectricField
+    use mod_SOC, only: SOCc, socpart
+    use mod_BrillouinZone, only: BZ
+    implicit none
+    integer :: m,n,i,iw
+    character(len=500)  :: varm
+
+    do n = 1, size(filename)
+      iw = 634893 + n
+
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(n)),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+      open (unit=iw, file=varm, status='replace', form='formatted')
+      write(unit=iw, fmt="('# i , m , Re(A_mx), Im(A_mx), Re(A_my), Im(A_my), Re(A_mz), Im(A_mz) ')")
+
+    end do
+    return
+  end subroutine openTCMFiles
+
+  subroutine closeTCMFiles()
+    implicit none
+    integer :: i, iw
+    do i = 1, size(filename)
+      iw = 634893 + i
+      close(iw)
+    end do
+    return
+  end subroutine closeTCMFiles
+
+  subroutine writeTCM()
+
+  end subroutine writeTCM
+
 subroutine calculate_gilbert_damping()
   use mod_f90_kind, only: double
+  use mod_parameters, only: outputunit_loop
   use mod_System, only: s => sys
-  use mod_BrillouinZone, only: BZ
-  use mod_parameters, only: outputunit_loop, strSites, eta, Utype, fieldpart, suffix
-  use mod_SOC, only: socpart, SOCc
-  use ElectricField, only: strElectricField
-  use mod_mpi_pars, only: myrank, myrank_row
+  use mod_mpi_pars, only: rField
   implicit none
-  complex(double), dimension(s%nAtoms,s%nAtoms,3,3) :: alpha
-  integer :: m,n,i
-  character(len=500)  :: varm
+  complex(double), dimension(s%nAtoms,s%nAtoms,3,3) :: alphaSO, alphaXC
+  integer :: i,j,k
 
+  if(rField == 0) write(outputunit_loop, *) "[calculate_gilbert_damping] Start..."
 
-  if(myrank_row==0) write(outputunit_loop, *) "[calculate_gilbert_damping] Start..."
+  call TCM(alphaSO, local_SO_torque)
+  call TCM(alphaXC, local_xc_torque)
 
-  call TCM(alpha, local_SO_torque)
-
-  if(myrank == 0) then
-    write(varm,"('./results/',a1,'SOC/',a,'/A/TCM/TCM_SO_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
-    open (unit=634893, file=varm, status='replace', form='formatted')
-    write(unit=634893, fmt="('# i , m , Re(A_mx), Im(A_mx), Re(A_my), Im(A_my), Re(A_mz), Im(A_mz) ')")
-    do i = 1, s%nAtoms
-      do m = 1, 3
-        write(634893,*) i, m, (real(alpha(i,i,m,n)), aimag(alpha(i,i,m,n)), n = 1, 3)
-      end do
-    end do
-    close(unit=634893)
+  if(rField == 0) then
+    call openTCMFiles()
   end if
 
-  call TCM(alpha, local_xc_torque)
-
-  if(myrank == 0) then
-    write(varm,"('./results/',a1,'SOC/',a,'/A/TCM/TCM_XC_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
-    open (unit=634893, file=varm, status='replace', form='formatted')
-    write(unit=634893, fmt="('# i , m , Re(A_mx), Im(A_mx), Re(A_my), Im(A_my), Re(A_mz), Im(A_mz) ')")
+  if(rField == 0) then
     do i = 1, s%nAtoms
-      do m = 1, 3
-        write(634893,*) i, m, (real(alpha(i,i,m,n)), aimag(alpha(i,i,m,n)), n = 1,3)
+      do j = 1, 3
+        write(634894,*) i, j, (real(alphaSO(i,i,j,k)), aimag(alphaSO(i,i,j,k)), k = 1, 3)
+        write(634895,*) i, j, (real(alphaXC(i,i,j,k)), aimag(alphaXC(i,i,j,k)), k = 1, 3)
       end do
     end do
-    close(unit=634893)
   end if
 
+  if(rField == 0) call closeTCMFiles()
 
   return
 end subroutine calculate_gilbert_damping
@@ -80,19 +103,10 @@ subroutine TCM(alpha, torque_fct)
   complex(double),dimension(:,:,:,:),allocatable :: gf
   complex(double),dimension(:,:),allocatable :: temp1, temp2, temp3
   complex(double), dimension(:,:,:,:), allocatable :: alpha_loc
-  integer :: start, end, work, remainder
+  integer :: firstPoint, lastPoint
   ! Calculate workload for each MPI process
-  remainder = mod(BZ%nkpt,numprocs)
-  if(myrank < remainder) then
-    work = ceiling(dble(BZ%nkpt) / dble(numprocs))
-    start = myrank*work + 1
-    end = (myrank+1) * work
-  else
-    work = floor(dble(BZ%nkpt) / dble(numprocs))
-    start = myrank*work + 1 + remainder
-    end = (myrank+1) * work + remainder
-  end if
 
+  call calcWorkload(BZ%nkpt,sField,rField,firstPoint,lastPoint)
 
   call torque_fct(torque)
 
@@ -107,14 +121,14 @@ subroutine TCM(alpha, torque_fct)
 
   !$omp parallel default(none) &
   !$omp& private(m,n,i,j,mu,iz,kp,wght,gf,temp1,temp2,temp3, alpha_loc) &
-  !$omp& shared(s,BZ,start, end,Ef,eta,torque,alpha)
+  !$omp& shared(s,BZ,firstPoint,lastPoint,Ef,eta,torque,alpha)
   allocate(gf(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms), &
            temp1(2*nOrb,2*nOrb), temp2(2*nOrb,2*nOrb), temp3(2*nOrb,2*nOrb), &
            alpha_loc(s%nAtoms,s%nAtoms,3,3))
   gf = cZero
   alpha_loc = cZero
   !$omp do schedule(static)
-  do iz = start, end
+  do iz = firstPoint, lastPoint
     kp = BZ%kp(1:3,iz)
     wght = BZ%w(iz)
     gf  = cZero
@@ -159,7 +173,7 @@ subroutine TCM(alpha, torque_fct)
     end do
   end do
 
-  call MPI_Allreduce(MPI_IN_PLACE, alpha, s%nAtoms*s%nAtoms*3*3, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD, ierr)
+  call MPI_Allreduce(MPI_IN_PLACE, alpha, s%nAtoms*s%nAtoms*3*3, MPI_DOUBLE_COMPLEX, MPI_SUM, FieldComm, ierr)
 
   return
 end subroutine TCM

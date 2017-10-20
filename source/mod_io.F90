@@ -59,13 +59,13 @@ contains
     use mod_mpi_pars
     use mod_input
     use mod_parameters, only: outputunit, laddresults, lverbose, ldebug, lkpoints, &
-                              lpositions, lcreatefiles, Utype, lslatec, lontheflysc, &
-                              lnolb, lhfresponses, lnojac, lGSL, lnodiag, lsha, lcreatefolders, &
-                              lwriteonscreen, runoptions, ltestcharge, llgtv, lsortfiles, &
-                              lrotatemag, magaxis, magaxisvec, latticeName, itype, ry2ev, &
-                              ltesla, eta, dmax, emin, emax, deltae, skip_steps, &
-                              npts, npt1, renorm, renormnb, skipsc, scfile, bands, band_cnt, &
-                              offset, dfttype, suffix, mag_tol, outputfile, U, hfr, total_nkpt
+                              lpositions, lcreatefiles, Utype, lnolb, lhfresponses, &
+                              lnodiag, lsha, lcreatefolders, lwriteonscreen, runoptions, &
+                              ltestcharge, llgtv, lsortfiles, magaxis, magaxisvec, &
+                              latticeName, itype, ry2ev, ltesla, eta, dmax, emin, emax, deltae, &
+                              skip_steps, npts, npt1, renorm, renormnb, bands, band_cnt, &
+                              offset, dfttype, suffix, outputfile, U, hfr, total_nkpt, parField, parFreq
+    use mod_self_consistency, only: lslatec, lontheflysc, lnojac, lGSL, lrotatemag, skipsc, scfile, mag_tol
     use mod_system, only: System, pln_normal, n0sc1, n0sc2
     use mod_BrillouinZone, only: BZ
     use mod_SOC, only: SOC, SOCc, socpart, socscale, llinearsoc, llineargfsoc
@@ -532,6 +532,9 @@ contains
 
     if(.not. get_parameter("suffix", suffix)) call log_warning("get_parameters","'suffix' missing.")
 
+    if(.not. get_parameter("parField", parField, 1)) call log_warning("get_parameters","'parField' missing. Using default value")
+    if(.not. get_parameter("parFreq", parFreq, 1)) call log_warning("get_parameters","'parFreq' missing. Using default value")
+
 
     if(myrank == 0) then
       if(.not. disable_input_logging()) &
@@ -707,14 +710,14 @@ contains
        write(outputunit_loop,"(1x,'Local susceptibility as a function of energy')")
        write(outputunit_loop,"(9x,'emin =',es9.2)") emin
        write(outputunit_loop,"(9x,'emax =',es9.2)") emax
-       write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps of size',es10.3,' each calculating ',i0,' points')") npt1,MPIsteps,MPIdelta,MPIpts
+       !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps of size',es10.3,' each calculating ',i0,' points')") npt1,MPIsteps,MPIdelta,MPIpts
     case (8)
        write(outputunit_loop,"(1x,'Parallel currents, disturbances and local susc. as a function of energy')")
        write(outputunit_loop,"(8x,'n0sc1 = ',i0)") n0sc1
        write(outputunit_loop,"(8x,'n0sc2 = ',i0)") n0sc2
        write(outputunit_loop,"(9x,'emin =',es9.2)") emin
        write(outputunit_loop,"(9x,'emax =',es9.2)") emax
-       write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps of energy size',es10.3,' each calculating ',i0,' points')") total_hw_npt1*npt1,MPIsteps*MPIsteps_hw,MPIdelta,MPIpts_hw*MPIpts
+       !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps of energy size',es10.3,' each calculating ',i0,' points')") total_hw_npt1*npt1,MPIsteps*MPIsteps_hw,MPIdelta,MPIpts_hw*MPIpts
     case (9)
        write(outputunit_loop,"(1x,'dc limit calculations as a function of ',a)") trim(dcfield(dcfield_dependence))
        write(outputunit_loop,"(1x,'e =',es9.2)") emin
@@ -724,7 +727,7 @@ contains
        write(outputunit_loop,"(1x,'hwt_max =',f6.3)") hw_list(total_hw_npt1,2)
        write(outputunit_loop,"(1x,'hwp_min =',f6.3)") hw_list(1,3)
        write(outputunit_loop,"(1x,'hwp_max =',f6.3)") hw_list(total_hw_npt1,3)
-       write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps, each calculating ',i0,' points')") total_hw_npt1*npt1,MPIsteps*MPIsteps_hw,MPIpts_hw*MPIpts
+       !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps, each calculating ',i0,' points')") total_hw_npt1*npt1,MPIsteps*MPIsteps_hw,MPIpts_hw*MPIpts
     end select write_itype
     write(outputunit_loop,"('|---------------------------------------------------------------------------|')")
     return

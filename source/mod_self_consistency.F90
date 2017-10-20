@@ -1,17 +1,71 @@
 module mod_self_consistency
-  implicit none
-  character(len=300)  :: default_file
+   use mod_f90_kind, only: double
+   implicit none
+   character(len=300)  :: default_file
+   real(double) :: mag_tol = 1.d-10
+
+   character(len=200) :: scfile = ""
+   !! Give a file to start self-consistency
+   logical :: skipsc
+   !! Skip self-consistency
+   logical :: lselfcon = .false.
+   logical :: lGSL = .false.
+   logical :: lontheflysc = .false.
+   logical :: lslatec = .false.
+   logical :: lnojac = .false.
+   logical :: lrotatemag = .false.
 
 contains
 
-  ! This subroutine performs the self-consistency
-  subroutine do_self_consistency()
+   subroutine doSelfConsistency()
+      use mod_magnet, only: lp_matrix, mtheta, mphi
+      use adaptiveMesh, only: genLocalEKMesh, freeLocalEKMesh
+      use mod_mpi_pars, only: rField, sField, FieldComm
+      implicit none
+      logical :: lsuccess = .false.
+
+      ! Distribute Energy Integration across all points available
+      call genLocalEKMesh(rField,sField, FieldComm)
+
+
+      !--------------------------- Self-consistency --------------------------
+      ! Trying to read previous shifts and m from files
+      call read_previous_results(lsuccess)
+      ! Rotate the magnetization to the direction of the field
+      ! (useful for SOC=F)
+      ! Only when some previous result was read from file (lsuccess=.true.)
+      if(lrotatemag .and. lsuccess) then
+        call rotate_magnetization_to_field()
+      end if
+
+
+      if(lselfcon) call calcMagneticSelfConsistency()
+
+      ! Writing new eps1 and mz to file after self-consistency is done
+      if(.not. lontheflysc) call write_sc_results()
+
+      ! L matrix in local frame for given quantization direction
+      call lp_matrix(mtheta, mphi)
+
+      ! Calculating ground state Orbital Angular Momentum
+      if(lGSL) call calcLGS()
+
+      ! Writing self-consistency results on screen
+      if(rField == 0)  call print_sc_results()
+
+      call freeLocalEKMesh()
+
+      return
+   end subroutine doSelfConsistency
+
+  subroutine calcMagneticSelfConsistency()
+  !! This subroutine performs the self-consistency
     use mod_f90_kind, only: double
     use mod_constants, only: pi
-    use mod_parameters, only: outputunit_loop, lslatec, lnojac, mag_tol
-    use mod_magnet, only: eps1, mx, my, mz, mabs, mtheta, mphi, mvec_cartesian, mvec_spherical, &
-                          hw_count, iter
-    use mod_mpi_pars, only: myrank_row_hw,mpitag
+    use mod_parameters, only: outputunit_loop
+    use mod_magnet, only: eps1, mx, my, mz, mabs, mtheta, mphi, mvec_cartesian, mvec_spherical, hw_count, iter
+    use mod_mpi_pars, only: calcWorkload, sField, rField
+    use adaptiveMesh
     use mod_system, only: s => sys
     use mod_dnsqe
     use mod_susceptibilities, only: lrot
@@ -36,9 +90,8 @@ contains
     sc_solu(2*s%nAtoms+1:3*s%nAtoms) = my
     sc_solu(3*s%nAtoms+1:4*s%nAtoms) = mz
     iter  = 1
-    !mpitag = (Npl-Npl_i)*total_hw_npt1 + hw_count
-    mpitag = hw_count
-    if(myrank_row_hw==0) write(outputunit_loop,"('[self_consistency] Starting self-consistency:')")
+
+    if(rField == 0) write(outputunit_loop,"('[self_consistency] Starting self-consistency:')")
 
 #if defined(_OSX) || defined(_JUQUEEN)
     if(lslatec) then
@@ -130,7 +183,7 @@ contains
     end do
 
     return
-  end subroutine do_self_consistency
+  end subroutine calcMagneticSelfConsistency
 
   subroutine calcMagnetization(n, mx, my, mz, mp, size)
     !! Calculates occupation density and magnetization.
@@ -140,11 +193,9 @@ contains
     use mod_SOC, only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: y, wght
     use mod_system, only: s => sys
-    !use mod_BrillouinZone, only: BZ
     use adaptiveMesh
     use TightBinding, only: nOrb,nOrb2
     use mod_mpi_pars
-    !$  use omp_lib
     implicit none
     integer, intent(in) :: size
     real(double), dimension(s%nAtoms), intent(inout) :: n, mx, my, mz
@@ -158,11 +209,10 @@ contains
     complex(double), dimension(:,:,:,:), allocatable :: gf, gf_loc
     !--------------------- begin MPI vars --------------------
     integer :: ix
-    integer :: ncount,ncount2
+    integer :: ncount
     integer :: mu,mup
     real(double) :: weight, ep
     ncount = s%nAtoms * 9
-    ncount2 = size * size
 
     n_orb_u = 0.d0
     n_orb_d = 0.d0
@@ -185,8 +235,8 @@ contains
       !$omp do schedule(static)
       do ix = 1, local_points
          ep = y(E_k_imag_mesh(1,ix))
-         weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
          kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
+         weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
          call greenlineargfsoc(Ef,ep,kp,gf_loc)
          gf = gf + gf_loc * weight
       end do
@@ -221,9 +271,9 @@ contains
       mp(j) = mp(j) + (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
     end do
 
-    call MPI_Allreduce(gdiaguur, n_orb_u, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
-    call MPI_Allreduce(gdiagddr, n_orb_d, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, mp, s%nAtoms, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_Comm_Row_hw, ierr)
+    call MPI_Allreduce(gdiaguur, n_orb_u, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
+    call MPI_Allreduce(gdiagddr, n_orb_d, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, mp, s%nAtoms, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
 
     n_orb_u = 0.5d0 + n_orb_u/pi
     n_orb_d = 0.5d0 + n_orb_d/pi
@@ -249,11 +299,9 @@ contains
     use mod_SOC, only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: y, wght
     use mod_system, only: s => sys
-    !use mod_BrillouinZone, only: BZ
     use adaptiveMesh
     use TightBinding, only: nOrb,nOrb2
     use mod_mpi_pars
-    !$  use omp_lib
     implicit none
     integer, intent(in) :: N
     real(double), intent(inout), dimension(N,N) :: jacobian
@@ -263,9 +311,9 @@ contains
     integer :: AllocateStatus
     integer :: i0,j0,sigma,sigmap
 
-    real(double) :: kp(3), ep
+    real(double) :: kp(3), ep, weight
 
-    complex(double) :: mhalfU(4,s%nAtoms), weight
+    complex(double) :: mhalfU(4,s%nAtoms)
     complex(double), dimension(nOrb2, nOrb2, 4) :: pauli_components1,pauli_components2
     complex(double), dimension(nOrb2, nOrb2, 4) :: temp1,temp2
     complex(double), dimension(nOrb2, nOrb2) :: gij,gji,temp,paulitemp
@@ -304,7 +352,7 @@ contains
 
     !$omp parallel default(none) &
     !$omp& private(AllocateStatus,ix,i,j,i0,j0,mu,sigma,sigmap,ep,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp,gdHdxg,gvgdHdxgvg) &
-    !$omp& shared(llineargfsoc,llinearsoc,local_points,s,bzs,E_k_imag_mesh,Ef,y,wght,mhalfU,pauli_components1,pauli_components2,jacobian, myrank)
+    !$omp& shared(llineargfsoc,llinearsoc,local_points,s,bzs,E_k_imag_mesh,Ef,y,wght,mhalfU,pauli_components1,pauli_components2,jacobian)
     allocate( gdHdxg(nOrb2,nOrb2,4,4,s%nAtoms,s%nAtoms), gvgdHdxgvg(nOrb2,nOrb2,4,4,s%nAtoms,s%nAtoms) , STAT = AllocateStatus  )
     if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: gdHdxg,gvgdHdxgvg")
     gdHdxg = cZero
@@ -409,7 +457,7 @@ contains
     deallocate(gdHdxg,gvgdHdxgvg)
     !$omp end parallel
 
-    call MPI_Allreduce(MPI_IN_PLACE, jacobian, ncount2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_Comm_Row_hw, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, jacobian, ncount2, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
     jacobian = jacobian/pi
     do i = s%nAtoms+1, 4*s%nAtoms
       jacobian(i,i) = jacobian(i,i) - 1.d0
@@ -422,14 +470,12 @@ contains
     use mod_f90_kind, only: double
     use mod_constants, only: cZero,pi
     use mod_System, only: s => sys
-    !use mod_BrillouinZone, only: BZ
     use adaptiveMesh
     use TightBinding, only: nOrb,nOrb2
     use mod_parameters, only: outputunit_loop, Ef
     use mod_magnet
     use EnergyIntegration, only: y, wght
     use mod_mpi_pars
-    !$  use omp_lib
     implicit none
 
     integer :: AllocateStatus
@@ -457,7 +503,7 @@ contains
     allocate(gupgdint(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
     if(AllocateStatus/=0) call abortProgram("[L_gs] Not enough meory for: gupgdint")
 
-    if(myrank_row_hw==0) write(outputunit_loop,"('[L_gs] Calculating Orbital Angular Momentum ground state... ')")
+    if(rField == 0) write(outputunit_loop,"('[L_gs] Calculating Orbital Angular Momentum ground state... ')")
 
     ! Calculating the number of particles for each spin and orbital using a complex integral
 
@@ -499,7 +545,7 @@ contains
     deallocate(gf, gupgd)
     !$omp end parallel
 
-    call MPI_Allreduce(MPI_IN_PLACE, gupgdint, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_Comm_Row_hw, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, gupgdint, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
 
 
     lxpm = 0.d0
@@ -543,11 +589,10 @@ contains
                           mvec_cartesian, mvec_spherical, &
                           eps1, hw_count, hw_list, lfield, &
                           hdel, hdelm, hdelp
-    use mod_parameters, only: skipsc, outputunit_loop, lselfcon, U,&
-                              magaxis, magaxisvec, offset, layertype
+    use mod_parameters, only: outputunit_loop, U, magaxis, magaxisvec, offset, layertype
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_mpi_pars, only: myrank_row_hw, myrank, abortProgram
+    use mod_mpi_pars, only: myrank, abortProgram, rField
     use mod_susceptibilities, only: lrot
     use mod_Umatrix
     implicit none
@@ -560,14 +605,14 @@ contains
     if(lsuccess) then
       if(err==0) then ! Same parameters
         if(skipsc) then ! Skip option ON
-          if(myrank_row_hw==0) write(outputunit_loop,"('[read_previous_results] Existing results for the same parameters were read. Skipping self-consistency...')")
+          if(rField == 0) write(outputunit_loop,"('[read_previous_results] Existing results for the same parameters were read. Skipping self-consistency...')")
           lselfcon = .false.
         else ! Skip option OFF
-          if(myrank_row_hw==0) write(outputunit_loop,"('[read_previous_results] Existing results for the same parameters were read. Updating values...')")
+          if(rField == 0) write(outputunit_loop,"('[read_previous_results] Existing results for the same parameters were read. Updating values...')")
           lselfcon = .true.
         end if
       else ! Other parameters
-        if(myrank_row_hw==0) write(outputunit_loop,"('[read_previous_results] Existing results for other parameters were read. Updating values...')")
+        if(rField == 0) write(outputunit_loop,"('[read_previous_results] Existing results for other parameters were read. Updating values...')")
         lselfcon = .true.
       end if
       ! Calculating angles of GS magnetization in units of pi and magnetization vector
@@ -592,7 +637,7 @@ contains
         mvec_spherical(i,3) = mphi(i)
       end do
     else !  If file doesn't exist
-      if(myrank_row_hw==0) then
+      if(rField == 0) then
         write(outputunit_loop,"('[read_previous_results] Self-consistency file does not exist:')")
         write(outputunit_loop,"('[read_previous_results] ',a)") trim(default_file)
       end if
@@ -609,9 +654,9 @@ contains
         magaxisvec = [0.d0, 0.d0, sign(1.0d0, hw_list(hw_count,1))]
       else if(magaxis >=1 .and. magaxis <= s%nAtoms) then
         !magaxisvec(1:3) = c_nn(1:3, magaxis)
-        stop "Not Implemented"
+        if(rField == 0) call abortProgram("[read_previous_results] Magaxis along neighbor not implemented!")
       else
-        if(myrank.eq.0) call abortProgram("[read_previous_results] Unknown magnetization direction!")
+        if(rField == 0) call abortProgram("[read_previous_results] Unknown magnetization direction!")
       end if
       magaxisvec = magaxisvec / sqrt(dot_product(magaxisvec, magaxisvec))
       magaxisvec = magaxisvec * 0.5d0
@@ -658,14 +703,14 @@ contains
 
     use mod_parameters, only: outputunit_loop
     use mod_System, only: s => sys
-    use mod_mpi_pars, only: myrank_row_hw
+    use mod_mpi_pars, only: rField
     implicit none
     integer :: i,sign
     real(double) :: mdotb
 
-    if(myrank_row_hw==0) write(outputunit_loop,"('[rotate_magnetization_to_field] Rotating previous magnetization to the direction of the field...')")
+    if(rField == 0) write(outputunit_loop,"('[rotate_magnetization_to_field] Rotating previous magnetization to the direction of the field...')")
 
-    do i=1,s%nAtoms
+    do i = 1, s%nAtoms
       mdotb   = hhwx(i)*mx(i)+hhwy(i)*my(i)+hhwz(i)*mz(i)
       sign    = dble(mdotb/abs(mdotb))
       mabs(i) = sqrt(abs(mp(i))**2+(mz(i)**2))
@@ -676,17 +721,17 @@ contains
     end do
 
     ! Writing new eps1 and rotated mag to file (without self-consistency)
-    if(myrank_row_hw==0) call write_sc_results()
+    if(rField == 0) call write_sc_results()
 
     ! Writing self-consistency results on screen
-    if(myrank_row_hw==0)  call print_sc_results()
+    if(rField == 0)  call print_sc_results()
 
     return
   end subroutine rotate_magnetization_to_field
 
   ! Writes the self-consistency results on the screen
   subroutine print_sc_results()
-    use mod_parameters, only: outputunit_loop,lGSL
+    use mod_parameters, only: outputunit_loop
     use mod_system, only: s => sys
     !use mod_mpi_pars
     use mod_magnet, only: eps1, mx, my, mz, mp, mphi, mtheta, mabs, &
@@ -736,7 +781,7 @@ contains
   subroutine read_sc_results(err,lsuccess)
     use mod_f90_kind, only: double
     use mod_constants, only: cI
-    use mod_parameters, only: offset, fieldpart, eta, U,Utype,scfile, outputunit_loop, strSites, dfttype
+    use mod_parameters, only: offset, fieldpart, eta, U,Utype, outputunit_loop, strSites, dfttype
     use EnergyIntegration, only: parts
     use mod_magnet, only: eps1, hdel, hdelm, hdelp, mp, mz, hw_count, mx, my, mz
     use mod_SOC, only: SOCc, socpart
@@ -753,7 +798,7 @@ contains
     if(trim(scfile) /= "") then
       open(unit=99,file=scfile,status="old",iostat=err)
       if(err/=0) then
-        if(myrank_row_hw==0) write(outputunit_loop,"('*** WARNING: Self-consistency file given on input file does not exist! Using default... ***')")
+        if(rField == 0) write(outputunit_loop,"('*** WARNING: Self-consistency file given on input file does not exist! Using default... ***')")
         scfile = " "
       end if
       close(99)
@@ -764,7 +809,7 @@ contains
     if(trim(scfile)=="") then ! If a filename is not given in inputcard (or don't exist), use the default one
       write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(strSites),dfttype,parts,Utype,trim(fieldpart),BZ%nkpt,eta,trim(socpart)
       open(unit=99,file=file,status="old",iostat=err)
-      if((err==0).and.(myrank_row_hw==0)) then
+      if((err==0).and.(rField==0)) then
         write(outputunit_loop,"('[read_sc_results] Self-consistency file already exists. Reading it now...')")
         write(outputunit_loop,"(a)") trim(file)
       else
@@ -772,22 +817,22 @@ contains
       end if
     else ! If filename in inputcard exists or 2nd+ angular iteration
       if(((hw_count)==1)) then !.and.(Npl==Npl_i)) then ! Filename in inputcard (1st iteration on loop)
-        open(unit=99,file=scfile,status="old",iostat=err)
-        if((err==0).and.(myrank_row_hw==0)) then
+        open(unit = 99,file = scfile, status = "old", iostat = err)
+        if(err==0 .and. rField==0) then
           write(outputunit_loop,"('[read_sc_results] Using filename given in input file for self-consistency:')")
           write(outputunit_loop,"(a)") trim(scfile)
         end if
       else ! 2nd+ iteration, cheking if default file exists
         write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(strSites),dfttype,parts,Utype,trim(fieldpart),BZ%nkpt,eta,trim(socpart)
         open(unit=99,file=file,status="old",iostat=err)
-        if(err==0) then ! Reading file for the same parameters
-          if(myrank_row_hw==0) then
+        if(err == 0) then ! Reading file for the same parameters
+          if(rField == 0) then
             write(outputunit_loop,"('[read_sc_results] Self-consistency file already exists. Reading it now...')")
             write(outputunit_loop,"(a)") trim(file)
           end if
         else ! Reading results from previous iteration
           open(unit=99,file=scfile,status="old",iostat=err)
-          if((err==0).and.(myrank_row_hw==0)) then
+          if((err==0).and.(rField==0)) then
             write(outputunit_loop,"('[read_sc_results] Using results from previous iteration as input for self-consistency:')")
             write(outputunit_loop,"(a)") trim(scfile)
           end if
@@ -796,7 +841,7 @@ contains
       end if
     end if
     if(err==0) then
-      if(myrank_row_hw==0) then
+      if(rField==0) then
         do i=1,s%nAtoms
           read(99,fmt=*) previous_results(i,1)
           read(99,fmt=*) previous_results(i,2)
@@ -804,7 +849,7 @@ contains
           read(99,fmt=*) previous_results(i,4)
         end do
       end if
-      call MPI_Bcast(previous_results,4*s%nAtoms,MPI_DOUBLE_PRECISION,0,MPI_Comm_Row_hw,ierr)
+      call MPI_Bcast(previous_results,4*s%nAtoms,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
       eps1(:) = previous_results(:,1)
       mx  (:) = previous_results(:,2)
       my  (:) = previous_results(:,3)
@@ -826,7 +871,7 @@ contains
       write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(strSites),dfttype,parts-1,Utype,trim(fieldpart),BZ%nkpt,eta,trim(socpart)
       open(unit=99,file=file,status="old",iostat=err)
       if(err==0) then
-        if(myrank_row_hw==0) then
+        if(rField==0) then
           write(outputunit_loop,"('[read_sc_results] Self-consistency file does not exist. Reading results for parts-1 now...')")
           write(outputunit_loop,"('[read_sc_results] Updating values obtained for parts-1...')")
           write(outputunit_loop,"(a)") file
@@ -853,7 +898,7 @@ contains
 
   subroutine write_sc_results()
     !! Writes the self-consistency results into files and broadcasts the scfile for the next iteration.
-    use mod_parameters, only: fieldpart, eta, Utype,scfile, outputunit_loop, strSites, dfttype
+    use mod_parameters, only: fieldpart, eta, Utype, outputunit_loop, strSites, dfttype
     use EnergyIntegration, only: parts
     use mod_magnet, only: eps1, mx, my, mz
     use mod_SOC, only: SOCc, socpart
@@ -863,7 +908,7 @@ contains
     implicit none
     integer :: i
 
-    if(myrank_row_hw == 0) then
+    if(rField == 0) then
       ! Writing new results (mx, my, mz and eps1) and mz to file
       write(outputunit_loop,"('[write_sc_results] Writing new eps1, mx, my and mz to file...')")
       write(scfile,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc, trim(strSites),dfttype,parts,Utype,trim(fieldpart),BZ%nkpt,eta,trim(socpart)
@@ -877,7 +922,7 @@ contains
       close(99)
     end if
 
-    call MPI_Bcast(scfile, len(scfile), MPI_CHARACTER, 0, MPI_Comm_Row_hw,ierr)
+    call MPI_Bcast(scfile, len(scfile), MPI_CHARACTER, 0, FieldComm,ierr)
 
     return
   end subroutine write_sc_results
@@ -892,7 +937,7 @@ contains
   subroutine sc_equations_and_jacobian(N,x,fvec,selfconjac,iuser,ruser,iflag)
     use mod_f90_kind, only: double
     use mod_constants, only: cI
-    use mod_parameters, only: offset, U, outputunit, outputunit_loop, lontheflysc
+    use mod_parameters, only: offset, U, outputunit, outputunit_loop
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
     use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx, my, mz
@@ -922,7 +967,7 @@ contains
 
     call update_Umatrix(eps1, hdel, hdelm, hdelp, s%nAtoms, nOrb)
 
-    if((myrank_row_hw==0).and.(iter==1)) then
+    if((rField==0).and.(iter==1)) then
       write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
       do i=1,s%nAtoms
         if(abs(mp(i))>1.d-10) then
@@ -942,7 +987,7 @@ contains
         fvec(i+2*s%nAtoms) = my(i) - my_in(i)
         fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
       end do
-      if(myrank_row_hw==0) then
+      if(rField==0) then
         do i=1,s%nAtoms
           if(abs(mp(i))>1.d-10) then
             write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i)
@@ -970,7 +1015,7 @@ contains
   ! occupation number and the magnetic moment
   subroutine sc_equations(N,x,fvec,iuser,ruser,iflag)
     use mod_constants, only: cI
-    use mod_parameters, only: offset, U, outputunit_loop, lontheflysc
+    use mod_parameters, only: offset, U, outputunit_loop
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
@@ -1000,7 +1045,7 @@ contains
 
     call update_Umatrix(eps1, hdel, hdelm, hdelp, s%nAtoms, nOrb)
 
-    if((myrank_row_hw==0).and.(iter==1)) then
+    if((rField==0).and.(iter==1)) then
       write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
       do i=1,s%nAtoms
         if(abs(mp(i))>1.d-10) then
@@ -1019,7 +1064,7 @@ contains
       fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
     end do
 
-    if(myrank_row_hw==0) then
+    if(rField==0) then
       do i=1,s%nAtoms
         if(abs(mp(i))>1.d-10) then
           write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i)
@@ -1048,7 +1093,7 @@ contains
   ! and the correspondent jacobian
   subroutine sc_eqs_and_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
     use mod_constants, only: cI
-    use mod_parameters, only: offset, U, outputunit_loop, outputunit, lontheflysc
+    use mod_parameters, only: offset, U, outputunit_loop, outputunit
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
@@ -1076,7 +1121,7 @@ contains
 
     call update_Umatrix(eps1, hdel, hdelm, hdelp, s%nAtoms, nOrb)
 
-    if((myrank_row_hw==0).and.(iter==1)) then
+    if((rField==0).and.(iter==1)) then
       write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
       do i=1,s%nAtoms
         if(abs(mp(i))>1.d-10) then
@@ -1098,7 +1143,7 @@ contains
         fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
       end do
 
-      if(myrank_row_hw==0) then
+      if(rField==0) then
         do i=1,s%nAtoms
           if(abs(mp(i))>1.d-10) then
             write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i)
@@ -1127,7 +1172,7 @@ contains
   subroutine sc_eqs_old(N,x,fvec,iflag)
     use mod_f90_kind, only: double
     use mod_constants, only: cI
-    use mod_parameters, only: offset, U, outputunit_loop, lontheflysc
+    use mod_parameters, only: offset, U, outputunit_loop
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
     use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx, my, mz
@@ -1154,7 +1199,7 @@ contains
 
     call update_Umatrix(eps1, hdel, hdelm, hdelp, s%nAtoms, nOrb)
 
-    if((myrank_row_hw==0).and.(iter==1)) then
+    if((rField==0).and.(iter==1)) then
       write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
       do i=1,s%nAtoms
         if(abs(mp(i))>1.d-10) then
@@ -1173,7 +1218,7 @@ contains
       fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
     end do
 
-    if(myrank_row_hw==0) then
+    if(rField==0) then
       do i=1,s%nAtoms
         if(abs(mp(i))>1.d-10) then
           write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i)

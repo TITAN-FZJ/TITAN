@@ -62,6 +62,7 @@ contains
   !subroutine prepare_field()
   subroutine setMagneticLoopPoints()
     implicit none
+    !! Amount of points to skip
     integer       :: i, j, k, l
 
     if(lfield) then
@@ -117,6 +118,8 @@ contains
     ! Total number of points in the loops
     total_hw_npt1 = hwa_npt1*hwt_npt1*hwp_npt1
     if(total_hw_npt1==1) skip_steps_hw = 0
+    total_hw_npt1 = total_hw_npt1 - skip_steps_hw
+
     allocate(hw_list(total_hw_npt1,3))
 
     ! Creating list of magnetic fields (in spherical coordinates)
@@ -126,8 +129,9 @@ contains
       do k=1, hwt_npt1
         hwt = hwt_i + (k-1)*hwt_s
         do l = 1, hwp_npt1
+          if(i <= skip_steps_hw) cycle
           hwp = hwp_i + (l-1)*hwp_s
-          hw_list(i,:) = [ hwa , hwt , hwp ]
+          hw_list(i - skip_steps_hw, :) = [ hwa , hwt , hwp ]
           i = i+1
         end do
       end do
@@ -140,7 +144,7 @@ contains
     use mod_f90_kind, only: double
     use mod_constants, only: cZero, pi
     use mod_parameters, only: outputfile_loop
-    use mod_mpi_pars, only: abortProgram, myrank_row_hw
+    use mod_mpi_pars, only: abortProgram, rField
     use mod_SOC, only: SOC, llinearsoc
     implicit none
 
@@ -154,7 +158,7 @@ contains
     !---------------------- Turning off field for hwa=0 --------------------
     if(abs(hw_list(hw_count,1)) < 1.d-8) then
       lfield = .false.
-      if((llinearsoc) .or. (.not.SOC) .and. (myrank_row_hw==0)) write(outputfile_loop,"('[main] WARNING: No external magnetic field is applied and SOC is off/linear order: Goldstone mode is present!')")
+      if((llinearsoc) .or. (.not.SOC) .and. (rField == 0)) write(outputfile_loop,"('[main] WARNING: No external magnetic field is applied and SOC is off/linear order: Goldstone mode is present!')")
     else
       lfield = .true.
     end if

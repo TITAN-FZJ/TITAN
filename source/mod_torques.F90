@@ -17,7 +17,7 @@ contains
     use mod_parameters, only: renorm
     use mod_System, only: s => sys
     use mod_magnet, only: lfield, total_hw_npt1
-    use mod_mpi_pars, only: abortProgram, myrank_row
+    use mod_mpi_pars, only: abortProgram, rFreq
     implicit none
     integer :: AllocateStatus
 
@@ -28,7 +28,7 @@ contains
       ntypetorque=2
     end if
 
-    if(myrank_row==0) then
+    if(rFreq(1)==0) then
       allocate( torques(ntypetorque,3, s%nAtoms), total_torques(ntypetorque,3), STAT = AllocateStatus )
       if (AllocateStatus/=0) call abortProgram("[allocate_torques] Not enough memory for: torques,total_torques")
       if(renorm) then

@@ -4,6 +4,7 @@ module adaptiveMesh
    integer, dimension(:,:), allocatable :: E_k_imag_mesh
    type(BrillouinZone), dimension(:), allocatable :: bzs
    integer, dimension(:),allocatable :: all_nkpt
+   integer :: activeComm, activeRank, activeSize
 
 contains
 
@@ -12,8 +13,6 @@ contains
       implicit none
 
       call calcTotalPoints()
-      call genImagEKMesh()
-
       return
    end subroutine generateAdaptiveMeshes
 
@@ -45,71 +44,67 @@ contains
       end if
       call MPI_Bcast(total_points, 1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
       call MPI_Bcast(all_nkpt, pn1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      return
+   end subroutine calcTotalPoints
 
-      ! Calculate workload for each MPI process
-      remainder = mod(total_points, numprocs_row)
-      if(myrank_row < remainder) then
-        work = ceiling(dble(total_points) / dble(numprocs_row))
-        start_imag = myrank_row*work + 1
-        end_imag = (myrank_row+1) * work
-      else
-        work = floor(dble(total_points) / dble(numprocs_row))
-        start_imag = myrank_row*work + 1 + remainder
-        end_imag = (myrank_row+1) * work + remainder
-      end if
+   subroutine genLocalEKMesh(rank, size, comm)
+      use mod_parameters, only: total_nkpt
+      use EnergyIntegration, only: pn1, y
+      use mod_System, only: s => sys
+      use mod_BrillouinZone
+      use mod_mpi_pars, only: calcWorkload
+      implicit none
+      integer, intent(in) :: rank
+      integer, intent(in) :: size
+      integer, intent(in) :: comm
+      integer :: firstPoint, lastPoint
+      integer :: i, j, m, n
+      integer :: nkpt
 
-      local_points = end_imag - start_imag + 1
-      allocate(E_k_imag_mesh(2,end_imag-start_imag+1))
+      activeComm = comm
+      activeRank = rank
+      activeSize = size
+      call calcWorkload(total_points,activeSize,activeRank,firstPoint,lastPoint)
+      local_points = lastPoint - firstPoint + 1
+      allocate(E_k_imag_mesh(2,local_points))
+      allocate(bzs(pn1))
 
       m = 0
       n = 0
       do i = 1, pn1
-         if(m > end_imag) exit
+         if(m > lastPoint) exit
          do j = 1, all_nkpt(i)
             m = m + 1
-            if(m < start_imag .or. m > end_imag) cycle
+            if(m < firstPoint .or. m > lastPoint) cycle
             n = n + 1
             E_k_imag_mesh(1,n) = i
             E_k_imag_mesh(2,n) = j
+
+            if(.not. bzs(i)%isAlloc()) then
+               nkpt = get_nkpt(y(i), y(1), total_nkpt, s%lbulk)
+               bzs(i) % nkpt = nkpt
+               bzs(i) % nkpt_x = 0
+               bzs(i) % nkpt_y = 0
+               bzs(i) % nkpt_z = 0
+
+               call bzs(i) % setup(s%lbulk, s%a1, s%a2, s%a3)
+               if(all_nkpt(i) /= bzs(i)%nkpt) print *, "Something wrong.", i,j,bzs(i)%nkpt, all_nkpt(i)
+            end if
          end do
       end do
+
       return
+   end subroutine genLocalEKMesh
 
-   end subroutine calcTotalPoints
-
-
-   subroutine genImagEKMesh()
-      use mod_parameters, only: total_nkpt
-      use EnergyIntegration, only: pn1, y
-      use mod_System, only: s => sys
-      use mod_mpi_pars
-      use mod_BrillouinZone
+   subroutine freeLocalEKMesh()
       implicit none
-      integer :: nkpt
-      integer :: i,j,m
-      integer :: work, remainder, start_imag, end_imag
-
-      allocate(bzs(pn1))
-      total_points = 0
-
+      integer :: i
       do i = 1, local_points
-         j = E_k_imag_mesh(1,i)
-         m = E_k_imag_mesh(2,i)
-         if(bzs(j)%isAlloc()) cycle
-         nkpt = get_nkpt(y(j), y(1), total_nkpt, s%lbulk)
-         bzs(j) % nkpt = nkpt
-         bzs(j) % nkpt_x = 0
-         bzs(j) % nkpt_y = 0
-         bzs(j) % nkpt_z = 0
-
-         call bzs(j) % setup(s%lbulk, s%a1, s%a2, s%a3)
-         if(all_nkpt(j) /= bzs(j)%nkpt) print *, "Something wrong.", i,j,m,bzs(j)%nkpt, all_nkpt(j)
-
+         call bzs(E_k_imag_mesh(1,i)) % free()
       end do
-
+      deallocate(bzs, E_k_imag_mesh)
       return
-
-   end subroutine genImagEKMesh
+   end subroutine freeLocalEKMesh
 
    ! subroutine generate_real_E_k_mesh()
    !    use EnergyIntegration, only: pn2

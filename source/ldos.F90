@@ -1,59 +1,52 @@
 ! This subroutine calculates LDOS
 subroutine ldos()
   use mod_f90_kind, only: double
-  use mod_parameters, only: outputunit_loop, fieldpart, strSites, eta, Utype, npt1, emin, deltae
-  use mod_SOC, only: SOCc, socpart
+  use mod_parameters, only: outputunit_loop, npt1, emin, deltae
   use mod_system, only: s => sys
-  use mod_BrillouinZone, only: BZ
-  use mod_mpi_pars, only: mpitag
   use TightBinding, only: nOrb
+  use mod_LDOS
+  use mod_mpi_pars
   implicit none
-  character(len=400) :: varm
-  integer            :: i,iw, count
-  real(double)       :: e
-  real(double),dimension(:,:),allocatable :: ldosu,ldosd
-
-  allocate(ldosu(s%nAtoms, nOrb),ldosd(s%nAtoms,nOrb))
+  integer :: i, j
+  real(double) :: e
 
   write(outputunit_loop,"('CALCULATING LDOS')")
 
+  call allocateLDOS()
+
   ! Opening files
-  ! LDOS
-  do i=1,s%nAtoms
-    iw = 1000+(mpitag-1)*s%nAtoms*2 + (i-1)*2 + 1
-    write(varm,"('./results/',a1,'SOC/',a,'/LDOS/ldosu_layer',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),i,BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-    open (unit=iw, file=varm,status='unknown')
-    iw = iw+1
-    write(varm,"('./results/',a1,'SOC/',a,'/LDOS/ldosd_layer',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),i,BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-    open (unit=iw, file=varm,status='unknown')
-  end do
+  if(rField == 0) call openLDOSFiles()
 
-  ldos_energy_loop: do count=1,npt1
-    e = emin + (count-1)*deltae
-    write(outputunit_loop,"('[ldos] ',i0,' of ',i0,' points',', e = ',es10.3)") count,npt1,e
+  do i = startFreq, endFreq
+     e = emin + (i-1)*deltae
+     if(rFreq(1) == 0) write(outputunit_loop,"('[ldos] ',i0,' of ',i0,' points',', e = ',es10.3)") i,npt1,e
+     call ldos_energy(e,ldosu,ldosd)
 
-    call ldos_energy(e,ldosu,ldosd)
+     if(rFreq(1) == 0) then
+        if(rFreq(2) == 0) then
+           do j = 1, sFreq(2)
+             if (j /= 1) then
+               call MPI_Recv(e,     1                        ,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE  ,1000,FreqComm(2),stat,ierr)
+               call MPI_Recv(ldosd, s%nAtoms*nOrb            ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1100,FreqComm(2),stat,ierr)
+               call MPI_Recv(ldosu, s%nAtoms*nOrb            ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1200,FreqComm(2),stat,ierr)
+               end if
 
-    ! Writing into files
-    ! LDOS
-    ldos_writing_plane_loop: do i=1,s%nAtoms
-        iw = 1000+(mpitag-1)*s%nAtoms*2 + (i-1)*2 + 1
-        write(unit=iw,fmt="(5(es16.9,2x))") e,sum(ldosu(i,:)),ldosu(i,1),sum(ldosu(i,2:4)),sum(ldosu(i,5:9))
-        iw = iw+1
-        write(unit=iw,fmt="(5(es16.9,2x))") e,sum(ldosd(i,:)),ldosd(i,1),sum(ldosd(i,2:4)),sum(ldosd(i,5:9))
-    end do ldos_writing_plane_loop
+               ! Writing into files
+               call writeLDOS(e)
+            end do
+         else
+            call MPI_Recv(e,     1                        ,MPI_DOUBLE_PRECISION,0,1000,FreqComm(2),stat,ierr)
+            call MPI_Recv(ldosd, s%nAtoms*nOrb            ,MPI_DOUBLE_PRECISION,0,1100,FreqComm(2),stat,ierr)
+            call MPI_Recv(ldosu, s%nAtoms*nOrb            ,MPI_DOUBLE_PRECISION,0,1200,FreqComm(2),stat,ierr)
+         end if
+      end if
+      call MPI_Barrier(FieldComm, ierr)
+   end do
 
-  end do ldos_energy_loop
+  call deallocateLDOS()
 
   ! Closing files
-  do i=1,s%nAtoms
-    iw = 1000+(mpitag-1)*s%nAtoms*2 + (i-1)*2 + 1
-    close (iw)
-    iw = iw+1
-    close (iw)
-  end do
-
-  deallocate(ldosu,ldosd)
+  if(rField == 0) call closeLDOSFiles()
 
   return
 end subroutine ldos
