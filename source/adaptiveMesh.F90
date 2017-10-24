@@ -9,7 +9,6 @@ module adaptiveMesh
 contains
 
    subroutine generateAdaptiveMeshes()
-      use EnergyIntegration, only: pn1
       implicit none
 
       call calcTotalPoints()
@@ -23,10 +22,9 @@ contains
       use mod_BrillouinZone
       use mod_mpi_pars
       implicit none
-      integer :: i,j,m,n
+      integer :: i
       type(BrillouinZone) :: bzone
 
-      integer :: work, remainder, start_imag, end_imag
       allocate(all_nkpt(pn1))
       if(myrank == 0) then
          total_points = 0
@@ -88,7 +86,6 @@ contains
                bzs(i) % nkpt_z = 0
 
                call bzs(i) % setup(s%lbulk, s%a1, s%a2, s%a3)
-               if(all_nkpt(i) /= bzs(i)%nkpt) print *, "Something wrong.", i,j,bzs(i)%nkpt, all_nkpt(i)
             end if
          end do
       end do

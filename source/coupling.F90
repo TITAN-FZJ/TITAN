@@ -1,11 +1,8 @@
 ! Calculates the full 3x3 J tensor (including coupling, DMI and anisotropic pair interactions)
 subroutine coupling()
   use mod_f90_kind, only: double
-  use mod_parameters, only: outputunit_loop, fieldpart, nmaglayers, mmlayermag, outputunit, eta, Utype, q
-  use EnergyIntegration, only: parts
+  use mod_parameters, only: outputunit_loop, mmlayermag, nmaglayers, q
   use mod_magnet, only: mx, my, mz
-  use mod_SOC, only: SOCc, socpart
-  use mod_system, only: s => sys
   use adaptiveMesh
   use mod_BrillouinZone, only: BZ
   use mod_mpi_pars

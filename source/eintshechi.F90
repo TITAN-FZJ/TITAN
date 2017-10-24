@@ -30,7 +30,7 @@ subroutine eintshechi(e)
 
 !--------------------- begin MPI vars --------------------
   integer :: ix,ix2, nep,nkp
-  integer :: start, start1, start2, end, end1, end2, work, remainder
+  integer :: start2, end2
   integer :: ncount
   ncount=dim*dim
 !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
@@ -228,7 +228,7 @@ subroutine eintshechilinearsoc(e)
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, cOne, cI, tpi
   use mod_parameters, only: eta, ef, dim, sigmaijmunu2i, sigmaimunu2i
-  use EnergyIntegration, only: generate_real_epoints,y, wght, x2, p2, nepoints, pn1, pn2
+  use EnergyIntegration, only: generate_real_epoints,y, wght, x2, p2, pn2
   use mod_susceptibilities, only: chiorb_hf,chiorb_hflsoc
   use mod_mpi_pars
   use mod_system, only: s => sys
@@ -253,7 +253,7 @@ subroutine eintshechilinearsoc(e)
   complex(double), dimension(:,:), allocatable :: df1,df1lsoc
 
   !--------------------- begin MPI vars --------------------
-  integer :: start, start1, start2, end, end1, end2, work, remainder
+  integer :: start2, end2
   integer :: ncount
   ncount=dim*dim
   !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^

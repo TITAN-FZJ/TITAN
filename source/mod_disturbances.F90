@@ -60,7 +60,7 @@ contains
 
    subroutine create_disturbance_files()
    !! This subroutine creates all the files needed for the disturbances
-       use mod_parameters, only: fieldpart, lhfresponses, strSites, eta, suffix, Utype, renorm, renormnb, hfr
+       use mod_parameters, only: fieldpart, strSites, eta, suffix, Utype, renorm, renormnb, hfr
        use mod_SOC, only: SOCc, socpart
        use mod_mpi_pars
        use mod_system, only: s => sys
@@ -100,7 +100,7 @@ contains
 
    subroutine open_disturbance_files()
    !! This subroutine opens all the files needed for the disturbances
-      use mod_parameters, only: fieldpart, lhfresponses, strSites, eta, suffix, Utype, renorm, renormnb, missing_files, hfr
+      use mod_parameters, only: fieldpart, strSites, eta, suffix, Utype, renorm, renormnb, missing_files, hfr
       use mod_SOC, only: SOCc, socpart
       use mod_mpi_pars
       use mod_system, only: s => sys
@@ -277,7 +277,7 @@ contains
 
    subroutine create_dc_disturbance_files
    !! This subroutine creates all the files needed for the dc-limit disturbances
-      use mod_parameters, only: dcfieldpart, lhfresponses, count, strSites,eta, Utype, suffix, renorm, renormnb, hfr
+      use mod_parameters, only: dcfieldpart, count, strSites,eta, Utype, suffix, renorm, renormnb, hfr
       use mod_magnet, only: dcprefix, dcfield_dependence, dcfield, dc_header
       use mod_mpi_pars
       use mod_SOC, only: SOCc, socpart
@@ -319,7 +319,7 @@ contains
 
   subroutine open_dc_disturbance_files
   ! This subroutine opens all the files needed for the dc-limit disturbances
-    use mod_parameters, only: dcfieldpart, lhfresponses, count, strSites,eta, Utype, suffix, renorm, renormnb, missing_files, hfr
+    use mod_parameters, only: dcfieldpart, count, strSites,eta, Utype, suffix, renorm, renormnb, missing_files, hfr
     use mod_magnet, only: dcprefix, dcfield_dependence, dcfield
     use mod_mpi_pars
     use mod_SOC, only: SOCc, socpart

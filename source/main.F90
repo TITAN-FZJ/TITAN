@@ -31,7 +31,6 @@ program TITAN
   implicit none
 
   integer           :: count_hw
-  logical           :: lsuccess = .false.
 
   !-------------------------- MPI initialization --------------------------
   call Initialize_MPI()

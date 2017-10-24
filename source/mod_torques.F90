@@ -53,9 +53,8 @@ contains
 
   subroutine create_torque_files()
   !! This subroutine creates all the files needed for the disturbances
-  use mod_parameters, only: fieldpart, lhfresponses, strSites, eta, Utype, suffix, renorm, hfr
+  use mod_parameters, only: fieldpart, strSites, eta, Utype, suffix, renorm, hfr
   use mod_SOC, only: SOCc, socpart
-  use mod_magnet, only: lfield, total_hw_npt1
   use mod_mpi_pars
   use mod_system, only: s => sys
   use mod_BrillouinZone, only: BZ
@@ -97,9 +96,8 @@ contains
 
   subroutine open_torque_files()
   !! This subroutine opens all the files needed for the disturbances
-  use mod_parameters, only: fieldpart, lhfresponses, strSites, eta, Utype, suffix, renorm, missing_files, hfr
+  use mod_parameters, only: fieldpart, strSites, eta, Utype, suffix, renorm, missing_files, hfr
   use mod_SOC, only: SOCc, socpart
-  use mod_magnet, only: lfield, total_hw_npt1
   use mod_mpi_pars
   use mod_system, only: s => sys
   use mod_BrillouinZone, only: BZ
@@ -245,8 +243,8 @@ contains
 
   subroutine create_dc_torque_files()
   !! This subroutine creates all the files needed for the disturbances
-    use mod_parameters, only: dcfieldpart, lhfresponses, strSites, count, eta, Utype, suffix, renorm, hfr
-    use mod_magnet, only: lfield, total_hw_npt1, dcprefix, dcfield_dependence, dcfield, dc_header
+    use mod_parameters, only: dcfieldpart, strSites, count, eta, Utype, suffix, renorm, hfr
+    use mod_magnet, only: dcprefix, dcfield_dependence, dcfield, dc_header
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
     use mod_BrillouinZone, only: BZ
@@ -287,8 +285,8 @@ contains
 
   subroutine open_dc_torque_files()
   !! This subroutine opens all the files needed for the disturbances
-    use mod_parameters, only: dcfieldpart, lhfresponses, strSites, count, missing_files, eta, Utype, suffix, renorm, hfr
-    use mod_magnet, only: lfield, total_hw_npt1, dcprefix, dcfield_dependence, dcfield
+    use mod_parameters, only: dcfieldpart, strSites, count, missing_files, eta, Utype, suffix, renorm, hfr
+    use mod_magnet, only: dcprefix, dcfield_dependence, dcfield
     use mod_mpi_pars
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
