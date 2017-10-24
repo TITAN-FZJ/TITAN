@@ -4,7 +4,7 @@ subroutine calculate_chi()
   use mod_constants, only: cZero, cOne
   use mod_parameters, only:  count, emin, deltae, dim, sigmaimunu2i, outputunit_loop, lnodiag,laddresults, skip_steps
   use mod_mpi_pars
-  use mod_magnet, only: mtheta,mphi, hw_count
+  use mod_magnet, only: mtheta,mphi
   use mod_susceptibilities, only: identt, Umatorb, schi, schihf, schirot, rotmat_i, &
                                   rotmat_j, rottemp, schitemp, lrot, chiorb_hf, chiorb, &
                                   build_identity_and_U_matrix, diagonalize_susceptibilities, &
@@ -50,7 +50,7 @@ subroutine calculate_chi()
     ! Start parallelized processes to calculate chiorb_hf and chiorbi0_hf for energy e
     call eintshechi(e)
 
-    ! From here on all other processes except for myrank_row == 0 are idle :/
+    ! From here on all other processes except for rFreq(1) == 0 are idle :/
     if(rFreq(1)==0) then
       ! (1 + chi_hf*Umat)^-1
       temp = identt
@@ -106,7 +106,6 @@ subroutine calculate_chi()
 
       ! Sending results to myrank_row = myrank_col = 0 and writing on file
       if(rFreq(2) == 0) then
-         print *, "Receiving data"
         do mcount=1, sFreq(2)
           if (mcount/=1) then
             call MPI_Recv(e,     1,                   MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,1000,FreqComm(2),stat,ierr)
@@ -142,7 +141,6 @@ subroutine calculate_chi()
       end if
     end if
     call MPI_Barrier(FieldComm, ierr)
-    if(rField == 0) print *, "End of point"
   end do
 
   ! Sorting results on files

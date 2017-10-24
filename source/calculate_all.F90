@@ -4,7 +4,7 @@ subroutine calculate_all()
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, cOne, cI, levi_civita
   use mod_parameters, only: lnodiag, renorm, U, offset, outputunit_loop, outputunit, laddresults, skip_steps, count, lhfresponses, sigmaimunu2i, emin, emax, deltae, npt1, dim, sigmai2i, dimsigmanpl
-  use mod_magnet, only: lfield, mtheta, mphi, hhwx, hhwy, hhwz, mx, my, mz, lxp, lyp, lzp, lx, ly, lz, mvec_spherical, total_hw_npt1, hw_count
+  use mod_magnet, only: lfield, mtheta, mphi, hhwx, hhwy, hhwz, mx, my, mz, lxp, lyp, lzp, lx, ly, lz, mvec_spherical, total_hw_npt1
   use mod_SOC, only: llinearsoc
   use mod_System, only: s => sys
   use adaptiveMesh

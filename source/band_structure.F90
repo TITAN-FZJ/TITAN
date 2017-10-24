@@ -80,7 +80,6 @@ subroutine band_structure(s)
   character(len=20) :: kdirection
   real(double), dimension(:,:), allocatable :: band_points
   real(double) :: total_length
-  integer :: firstPoint, lastPoint
 
     interface
       subroutine read_band_points(kbands, b1, b2, b3)

@@ -5,7 +5,7 @@ subroutine eintshe(e)
   use mod_parameters, only: Ef, dim, sigmaimunu2i, eta, sigmai2i, offset
   use TightBinding, only: nOrb,nOrb2
   use mod_SOC, only: llineargfsoc
-  use EnergyIntegration, only: y, wght, x2, p2, generate_real_epoints, pn1, pn2
+  use EnergyIntegration, only: y, wght, x2, p2, generate_real_epoints, pn2
   use mod_system, only: s => sys !, n0sc1, n0sc2
   use mod_BrillouinZone, only: BZ
   use adaptiveMesh
@@ -367,7 +367,7 @@ subroutine eintshelinearsoc(e)
   use mod_system, only: s => sys
   use mod_BrillouinZone, only: BZ
   use adaptiveMesh
-  use EnergyIntegration, only: y, wght, nepoints, x2, p2, generate_real_epoints, pn1, pn2
+  use EnergyIntegration, only: y, wght, nepoints, x2, p2, generate_real_epoints, pn2
   use mod_prefactors, only: prefactor, prefactorlsoc
   use mod_disturbances, only: tchiorbiikl
   use mod_mpi_pars
@@ -395,7 +395,7 @@ subroutine eintshelinearsoc(e)
 
 !--------------------- begin MPI vars --------------------
   integer :: ix,ix2, iz
-  integer :: start, end, work, remainder, start1, end1, start2, end2
+  integer :: start2, end2
   integer :: ncountkl !,nncountkl !TODO: Re-Include
   ncountkl = dim*4
   !nncountkl = n0sc*dimsigmaNpl*4 !TODO: Re-Include

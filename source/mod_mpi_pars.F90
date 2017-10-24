@@ -378,7 +378,6 @@ contains
      integer :: FreqID, FieldID
 
      integer :: i, ierr
-     integer :: work, remainder
 
      FieldComm = genFieldComm(nFields, FieldID, MPI_COMM_WORLD)
      FreqComm = genFreqComm(nFreq, FreqID, FieldComm)

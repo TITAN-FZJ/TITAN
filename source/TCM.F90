@@ -12,7 +12,7 @@ contains
     use mod_SOC, only: SOCc, socpart
     use mod_BrillouinZone, only: BZ
     implicit none
-    integer :: m,n,i,iw
+    integer :: n,iw
     character(len=500)  :: varm
 
     do n = 1, size(filename)
@@ -95,11 +95,10 @@ subroutine TCM(alpha, torque_fct)
 
   complex(double), dimension(s%nAtoms,s%nAtoms,3,3), intent(out) :: alpha
   !! Contains the Gilbert Damping as matrix in sites and cartesian coordinates (nAtoms,nAtoms,3,3)
-  integer :: i,j,k,l,m,n, iz, mu
+  integer :: i,j,m,n, iz, mu
   real(double), dimension(3) :: kp
   real(double) :: wght
   complex(double), dimension(2*nOrb,2*nOrb,3,s%nAtoms) :: torque
-  complex(double), dimension(2*nOrb,2*nOrb,3) :: tsq
   complex(double),dimension(:,:,:,:),allocatable :: gf
   complex(double),dimension(:,:),allocatable :: temp1, temp2, temp3
   complex(double), dimension(:,:,:,:), allocatable :: alpha_loc
@@ -227,11 +226,9 @@ subroutine local_SO_torque(torque)
   use TightBinding, only: nOrb, nOrb2
   use mod_mpi_pars
   implicit none
-  integer :: i,m,n,k, j
+  integer :: i,m,n,k
   complex(double), dimension(nOrb2,nOrb2,3, s%nAtoms), intent(out) :: torque
   complex(double), dimension(nOrb, nOrb, 3, s%nAtoms) :: L
-  complex(double), dimension(nOrb, nOrb) :: test1
-  complex(double), dimension(2,2) :: test2
 
   do i = 1, s%nAtoms
     L(1:nOrb,1:nOrb,1, i) = Lx(1:nOrb,1:nOrb)
