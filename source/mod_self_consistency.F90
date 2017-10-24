@@ -204,7 +204,6 @@ contains
     integer  :: i,j
     real(double), dimension(3) :: kp
     real(double), dimension(s%nAtoms,nOrb) :: n_orb_u, n_orb_d
-    real(double), dimension(s%nAtoms,nOrb) :: gdiaguur,gdiagddr
     complex(double), dimension(s%nAtoms,nOrb) :: gdiagud,gdiagdu
     complex(double), dimension(:,:,:,:), allocatable :: gf, gf_loc
     !--------------------- begin MPI vars --------------------
@@ -218,61 +217,64 @@ contains
     n_orb_d = 0.d0
     mp = cZero
 
-    gdiaguur= 0.d0
-    gdiagddr= 0.d0
     gdiagud = cZero
     gdiagdu = cZero
 
+
     !$omp parallel default(none) &
-    !$omp& private(ix,ep,kp,weight,i,mu,mup,gf,gf_loc) &
-    !$omp& shared(llineargfsoc,llinearsoc,local_points,wght,s,bzs,E_k_imag_mesh,Ef,y,gdiaguur,gdiagddr,gdiagud,gdiagdu)
-    allocate(gf    (nOrb2,nOrb2,s%nAtoms,s%nAtoms))
+    !$omp& private(ix,ep,kp,weight,i,mu,mup,gf_loc) &
+    !$omp& shared(llineargfsoc,llinearsoc,local_points,wght,s,bzs,E_k_imag_mesh,Ef,y,n_orb_u,n_orb_d,gdiagud,gdiagdu)
     allocate(gf_loc(nOrb2,nOrb2,s%nAtoms,s%nAtoms))
-    gf = cZero
     gf_loc = cZero
 
-    if((llineargfsoc).or.(llinearsoc)) then
-      !$omp do schedule(static)
+    if(llineargfsoc .or. llinearsoc) then
+      !$omp do schedule(static) reduction(+:n_orb_u) reduction(+:n_orb_d) reduction(+:gdiagud) reduction(+:gdiagdu)
       do ix = 1, local_points
          ep = y(E_k_imag_mesh(1,ix))
          kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
          weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
          call greenlineargfsoc(Ef,ep,kp,gf_loc)
-         gf = gf + gf_loc * weight
+         do i=1,s%nAtoms
+           do mu=1,nOrb
+             mup = mu+nOrb
+             n_orb_u(i,mu) = n_orb_u(i,mu) + real(gf_loc(mu,mu,i,i)) * weight
+             n_orb_d(i,mu) = n_orb_d(i,mu) + real(gf_loc(mup,mup,i,i)) * weight
+             gdiagud(i,mu) = gdiagud(i,mu) + gf_loc(mu,mup,i,i) * weight
+             gdiagdu(i,mu) = gdiagdu(i,mu) + gf_loc(mup,mu,i,i) * weight
+           end do
+         end do
       end do
-      !$omp end do nowait
+      !$omp end do
     else
-      !$omp do schedule(static)
+      !$omp do schedule(static) reduction(+:n_orb_u) reduction(+:n_orb_d) reduction(+:gdiagud) reduction(+:gdiagdu)
       do ix = 1, local_points
          ep = y(E_k_imag_mesh(1,ix))
          weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
          kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
          call green(Ef,ep,kp,gf_loc)
-         gf = gf + gf_loc * weight
+         do i=1,s%nAtoms
+           do mu=1,nOrb
+             mup = mu+nOrb
+             n_orb_u(i,mu) = n_orb_u(i,mu) + real(gf_loc(mu,mu,i,i)) * weight
+             n_orb_d(i,mu) = n_orb_d(i,mu) + real(gf_loc(mup,mup,i,i)) * weight
+             gdiagud(i,mu) = gdiagud(i,mu) + gf_loc(mu,mup,i,i) * weight
+             gdiagdu(i,mu) = gdiagdu(i,mu) + gf_loc(mup,mu,i,i) * weight
+           end do
+         end do
       end do
-      !$omp end do nowait
+      !$omp end do
     end if
-    !$omp critical
-    do i=1,s%nAtoms
-      do mu=1,nOrb
-        mup = mu+nOrb
-        gdiaguur(i,mu) = gdiaguur(i,mu) + real(gf(mu,mu,i,i))
-        gdiagddr(i,mu) = gdiagddr(i,mu) + real(gf(mup,mup,i,i))
-        gdiagud(i,mu) = gdiagud(i,mu) + gf(mu,mup,i,i)
-        gdiagdu(i,mu) = gdiagdu(i,mu) + gf(mup,mu,i,i)
-      end do
-    end do
-    !$omp end critical
 
-    deallocate(gf_loc, gf)
+    deallocate(gf_loc)
     !$omp end parallel
+
 
     do j=1,s%nAtoms
       mp(j) = mp(j) + (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
     end do
 
-    call MPI_Allreduce(gdiaguur, n_orb_u, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
-    call MPI_Allreduce(gdiagddr, n_orb_d, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, n_orb_u, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, n_orb_d, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
     call MPI_Allreduce(MPI_IN_PLACE, mp, s%nAtoms, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
     n_orb_u = 0.5d0 + n_orb_u/pi
     n_orb_d = 0.5d0 + n_orb_d/pi
@@ -308,7 +310,6 @@ contains
     complex(double), dimension(:,:), allocatable :: gij,gji,temp,paulitemp
     complex(double), dimension(:,:,:), allocatable :: temp1,temp2
     complex(double), dimension(:,:,:,:), allocatable :: gf,gvg
-    complex(double), dimension(:,:,:,:,:,:), allocatable :: gdHdxg,gvgdHdxgvg
 
     integer :: i,j
     integer :: AllocateStatus
@@ -352,16 +353,14 @@ contains
     jacobian = 0.d0
 
     !$omp parallel default(none) &
-    !$omp& private(AllocateStatus,ix,i,j,i0,j0,mu,sigma,sigmap,ep,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp,gdHdxg,gvgdHdxgvg) &
+    !$omp& private(AllocateStatus,ix,i,j,i0,j0,mu,sigma,sigmap,ep,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp) &
     !$omp& shared(llineargfsoc,llinearsoc,local_points,s,bzs,E_k_imag_mesh,Ef,y,wght,mhalfU,pauli_components1,pauli_components2,jacobian)
-    allocate( gdHdxg(nOrb2,nOrb2,4,4,s%nAtoms,s%nAtoms), &
-              temp1(nOrb2, nOrb2, 4), &
+    allocate( temp1(nOrb2, nOrb2, 4), &
               temp2(nOrb2, nOrb2, 4), &
               gij(nOrb2,nOrb2), gji(nOrb2,nOrb2), &
               gf(nOrb2, nOrb2, s%nAtoms, s%nAtoms), &
               temp(nOrb2, nOrb2), paulitemp(nOrb2, nOrb2), stat = AllocateStatus)
-    if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: gdHdxg, temp1, temp2, gij, gji, gf, temp")
-    gdHdxg = cZero
+    if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: temp1, temp2, gij, gji, gf, temp")
     temp1 = cZero
     temp2 = cZero
     paulitemp = cZero
@@ -371,14 +370,12 @@ contains
     temp = cZero
 
     if(llineargfsoc .or. llinearsoc) then
-      allocate(gvgdHdxgvg(nOrb2,nOrb2,4,4,s%nAtoms,s%nAtoms), &
-               gvg(nOrb2, nOrb2, s%nAtoms, s%nAtoms), STAT = AllocateStatus  )
-      if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: gvgdHdxgvg, gvg")
-      gvgdHdxgvg = cZero
+      allocate(gvg(nOrb2, nOrb2, s%nAtoms, s%nAtoms), STAT = AllocateStatus  )
+      if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: gvg")
       gvg = cZero
     end if
 
-   !$omp do schedule(static)
+   !$omp do schedule(static) reduction(+:jacobian)
    do ix = 1, local_points
       ep = y(E_k_imag_mesh(1,ix))
       kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
@@ -410,13 +407,17 @@ contains
               temp2(:,:, sigma) = temp
             end do
 
-            do sigmap = 1,4
-              do sigma = 1,4
+            do sigma = 1,4
+              do sigmap = 1,4
                 ! gdHdxg = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*sigma* g_ji
+                i0 = (sigma-1)*s%nAtoms + i
+                j0 = (sigmap-1)*s%nAtoms + j
                 gij = temp1(:,:, sigma)
                 gji = temp2(:,:, sigmap)
                 call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
-                gdHdxg(:,:,sigma,sigmap,i,j) = gdHdxg(:,:,sigma,sigmap,i,j) + temp
+                do mu = 1, nOrb2
+                  jacobian(i0, j0) = jacobian(i0, j0) + real(temp(mu,mu))
+                end do
               end do
             end do
 
@@ -438,45 +439,28 @@ contains
                 call zgemm('n','n',18,18,18,mhalfU(sigmap,j),paulitemp,18,gji,18,cZero,temp,18)
                 temp2(:,:,sigmap) = temp
               end do
-              do sigmap = 1,4
-                do sigma = 1,4
+              do sigma = 1,4
+                do sigmap = 1,4
                   ! gdHdxg = temp1*temp2 = wkbz* pauli*gvg_ij*(-U/2)*sigma* gvg_ji
+                  i0 = (sigma-1)*s%nAtoms + i
+                  j0 = (sigmap-1)*s%nAtoms + j
                   gij = temp1(:,:,sigma)
                   gji = temp2(:,:,sigmap)
                   call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
-                  gvgdHdxgvg(:,:,sigma,sigmap,i,j) = gvgdHdxgvg(:,:,sigma,sigmap,i,j) + temp
+                  do mu = 1, nOrb2
+                    jacobian(i0, j0) = jacobian(i0, j0) - real(temp(mu,mu))
+                  end do
                 end do
               end do
             end if ! End linear part
           end do ! End nAtoms i loop
         end do ! End nAtoms j loop
-    end do ! End pn1 loop
+    end do ! End Energy+nkpt loop
     !$omp end do nowait
 
-    ! removing non-linear SOC term
-    if(llineargfsoc .or. llinearsoc ) gdHdxg = gdHdxg - gvgdHdxgvg
-
-    !$omp critical
-    do mu=1, nOrb2
-      do j=1,s%nAtoms
-        do i=1,s%nAtoms
-          do sigmap=1,4
-            do sigma=1,4
-              i0 = (sigma-1)*s%nAtoms + i
-              j0 = (sigmap-1)*s%nAtoms + j
-              ! Trace over orbitals and spins of the real part
-              jacobian(i0,j0) = jacobian(i0,j0) + real(gdHdxg(mu,mu,sigma,sigmap,i,j))
-            end do
-          end do
-        end do
-      end do
-    end do
-    !$omp end critical
-
-    deallocate(gdHdxg, paulitemp)
+    deallocate(paulitemp)
     deallocate(temp1, temp2, temp)
     deallocate(gf, gij, gji)
-    if(allocated(gvgdHdxgvg)) deallocate(gvgdHdxgvg)
     if(allocated(gvg)) deallocate(gvg)
     !$omp end parallel
 
@@ -508,7 +492,6 @@ contains
     real(double) :: kp(3)
     complex(double), dimension(:,:,:,:), allocatable :: gf
     complex(double), dimension(:,:,:), allocatable :: gupgd
-    complex(double), dimension(:,:,:), allocatable :: gupgdint
     real(double) :: weight, ep
     !--------------------- begin MPI vars --------------------
     integer :: ncount
@@ -524,24 +507,23 @@ contains
               lzpm(s%nAtoms), stat = AllocateStatus )
     if (AllocateStatus/=0) call abortProgram("[L_gs] Not enough memory for: df1,Fint,gf,gfuu,gfud,gfdu,gfdd")
 
-    allocate(gupgdint(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
-    if(AllocateStatus/=0) call abortProgram("[L_gs] Not enough meory for: gupgdint")
+    allocate(gupgd(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
+    if(AllocateStatus/=0) call abortProgram("[L_gs] Not enough meory for: gupgd")
 
     if(rField == 0) write(outputunit_loop,"('[L_gs] Calculating Orbital Angular Momentum ground state... ')")
 
     ! Calculating the number of particles for each spin and orbital using a complex integral
 
-    gupgdint  = cZero
+    gupgd  = cZero
 
     !$omp parallel default(none) &
-    !$omp& private(AllocateStatus,ix,i,mu,nu,mup,nup,kp,ep,weight,gf,gupgd) &
-    !$omp& shared(local_points,s,E_k_imag_mesh,bzs,Ef,y,wght,gupgdint)
+    !$omp& private(AllocateStatus,ix,i,mu,nu,mup,nup,kp,ep,weight,gf) &
+    !$omp& shared(local_points,s,E_k_imag_mesh,bzs,Ef,y,wght,gupgd)
 
-    allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
-             gupgd(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
-    gupgd   = cZero
+    allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat = AllocateStatus)
+    gf = cZero
 
-    !$omp do schedule(static)
+    !$omp do schedule(static) reduction(+:gupgd)
     do ix = 1, local_points
         kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
         ep = y(E_k_imag_mesh(1,ix))
@@ -559,18 +541,13 @@ contains
           end do
         end do
       end do
-    !$omp end do nowait
+    !$omp end do
 
-    gupgd = gupgd/pi
-    !$omp critical
-      gupgdint = gupgdint + gupgd
-    !$omp end critical
-
-    deallocate(gf, gupgd)
+    deallocate(gf)
     !$omp end parallel
 
-    call MPI_Allreduce(MPI_IN_PLACE, gupgdint, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
-
+    gupgd = gupgd / pi
+    call MPI_Allreduce(MPI_IN_PLACE, gupgd, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
 
     lxpm = 0.d0
     lypm = 0.d0
@@ -578,15 +555,16 @@ contains
     lxm = 0.d0
     lym = 0.d0
     lzm = 0.d0
+
     do nu=5,9
       do mu=5,9
         do i=1,s%nAtoms
-          lxpm(i) = lxpm(i) + real(lxp(mu,nu,i)*gupgdint(nu,mu,i))
-          lypm(i) = lypm(i) + real(lyp(mu,nu,i)*gupgdint(nu,mu,i))
-          lzpm(i) = lzpm(i) + real(lzp(mu,nu,i)*gupgdint(nu,mu,i))
-          lxm(i)  = lxm(i)  + real(lx (mu,nu)*gupgdint(nu,mu,i))
-          lym(i)  = lym(i)  + real(ly (mu,nu)*gupgdint(nu,mu,i))
-          lzm(i)  = lzm(i)  + real(lz (mu,nu)*gupgdint(nu,mu,i))
+          lxpm(i) = lxpm(i) + real(lxp(mu,nu,i)*gupgd(nu,mu,i))
+          lypm(i) = lypm(i) + real(lyp(mu,nu,i)*gupgd(nu,mu,i))
+          lzpm(i) = lzpm(i) + real(lzp(mu,nu,i)*gupgd(nu,mu,i))
+          lxm(i)  = lxm(i)  + real(lx (mu,nu)*gupgd(nu,mu,i))
+          lym(i)  = lym(i)  + real(ly (mu,nu)*gupgd(nu,mu,i))
+          lzm(i)  = lzm(i)  + real(lz (mu,nu)*gupgd(nu,mu,i))
         end do
       end do
     end do
@@ -601,7 +579,7 @@ contains
       lpphi(i)  = atan2(lypm(i),lxpm(i))/pi
     end do
 
-    deallocate(gupgdint)
+    deallocate(gupgd)
     return
   end subroutine calcLGS
 
