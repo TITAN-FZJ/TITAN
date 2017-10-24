@@ -63,8 +63,8 @@ contains
     use mod_f90_kind, only: double
     use mod_constants, only: pi
     use mod_parameters, only: outputunit_loop
-    use mod_magnet, only: eps1, mx, my, mz, mabs, mtheta, mphi, mvec_cartesian, mvec_spherical, hw_count, iter
-    use mod_mpi_pars, only: calcWorkload, sField, rField
+    use mod_magnet, only: eps1, mx, my, mz, mabs, mtheta, mphi, mvec_cartesian, mvec_spherical, iter
+    use mod_mpi_pars, only: calcWorkload, rField
     use adaptiveMesh
     use mod_system, only: s => sys
     use mod_dnsqe
@@ -274,7 +274,6 @@ contains
     call MPI_Allreduce(gdiaguur, n_orb_u, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
     call MPI_Allreduce(gdiagddr, n_orb_d, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
     call MPI_Allreduce(MPI_IN_PLACE, mp, s%nAtoms, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
-
     n_orb_u = 0.5d0 + n_orb_u/pi
     n_orb_d = 0.5d0 + n_orb_d/pi
     mp      = mp/pi
@@ -288,6 +287,7 @@ contains
       n(i) = sum(n_orb_u(i,:)) + sum(n_orb_d(i,:))
       mz(i) = sum(n_orb_u(i,5:9)) - sum(n_orb_d(i,5:9))
     end do
+
     return
   end subroutine calcMagnetization
 
@@ -299,28 +299,29 @@ contains
     use mod_SOC, only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: y, wght
     use mod_system, only: s => sys
-    use adaptiveMesh
+    use adaptiveMesh, only: local_points, E_k_imag_mesh, bzs, activeComm
     use TightBinding, only: nOrb,nOrb2
     use mod_mpi_pars
     implicit none
     integer, intent(in) :: N
     real(double), intent(inout), dimension(N,N) :: jacobian
-    complex(double), dimension(nOrb2, nOrb2, s%nAtoms, s%nAtoms) :: gf,gvg
+    complex(double), dimension(:,:), allocatable :: gij,gji,temp,paulitemp
+    complex(double), dimension(:,:,:), allocatable :: temp1,temp2
+    complex(double), dimension(:,:,:,:), allocatable :: gf,gvg
+    complex(double), dimension(:,:,:,:,:,:), allocatable :: gdHdxg,gvgdHdxgvg
 
     integer :: i,j
     integer :: AllocateStatus
     integer :: i0,j0,sigma,sigmap
 
-    real(double) :: kp(3), ep, weight
+    real(double) :: kp(3), ep
+    complex(double) :: weight
 
     complex(double) :: mhalfU(4,s%nAtoms)
     complex(double), dimension(nOrb2, nOrb2, 4) :: pauli_components1,pauli_components2
-    complex(double), dimension(nOrb2, nOrb2, 4) :: temp1,temp2
-    complex(double), dimension(nOrb2, nOrb2) :: gij,gji,temp,paulitemp
-    complex(double), dimension(:,:,:,:,:,:), allocatable :: gdHdxg,gvgdHdxgvg
 
     !--------------------- begin MPI vars --------------------
-    integer :: ix, iz
+    integer :: ix
     integer :: ncount,ncount2
     integer :: mu
 
@@ -353,10 +354,29 @@ contains
     !$omp parallel default(none) &
     !$omp& private(AllocateStatus,ix,i,j,i0,j0,mu,sigma,sigmap,ep,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp,gdHdxg,gvgdHdxgvg) &
     !$omp& shared(llineargfsoc,llinearsoc,local_points,s,bzs,E_k_imag_mesh,Ef,y,wght,mhalfU,pauli_components1,pauli_components2,jacobian)
-    allocate( gdHdxg(nOrb2,nOrb2,4,4,s%nAtoms,s%nAtoms), gvgdHdxgvg(nOrb2,nOrb2,4,4,s%nAtoms,s%nAtoms) , STAT = AllocateStatus  )
-    if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: gdHdxg,gvgdHdxgvg")
+    allocate( gdHdxg(nOrb2,nOrb2,4,4,s%nAtoms,s%nAtoms), &
+              temp1(nOrb2, nOrb2, 4), &
+              temp2(nOrb2, nOrb2, 4), &
+              gij(nOrb2,nOrb2), gji(nOrb2,nOrb2), &
+              gf(nOrb2, nOrb2, s%nAtoms, s%nAtoms), &
+              temp(nOrb2, nOrb2), paulitemp(nOrb2, nOrb2), stat = AllocateStatus)
+    if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: gdHdxg, temp1, temp2, gij, gji, gf, temp")
     gdHdxg = cZero
-    gvgdHdxgvg = cZero
+    temp1 = cZero
+    temp2 = cZero
+    paulitemp = cZero
+    gij = cZero
+    gji = cZero
+    gf = cZero
+    temp = cZero
+
+    if(llineargfsoc .or. llinearsoc) then
+      allocate(gvgdHdxgvg(nOrb2,nOrb2,4,4,s%nAtoms,s%nAtoms), &
+               gvg(nOrb2, nOrb2, s%nAtoms, s%nAtoms), STAT = AllocateStatus  )
+      if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: gvgdHdxgvg, gvg")
+      gvgdHdxgvg = cZero
+      gvg = cZero
+    end if
 
    !$omp do schedule(static)
    do ix = 1, local_points
@@ -364,7 +384,7 @@ contains
       kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
       weight = cmplx(1.d0,0.d0) * wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
         ! Green function on energy Ef + iy, and wave vector kp
-        if((llineargfsoc).or.(llinearsoc)) then
+        if(llineargfsoc .or. llinearsoc) then
           call greenlinearsoc(Ef,ep,kp,gf,gvg)
           gf = gf + gvg
         else
@@ -401,7 +421,7 @@ contains
             end do
 
 
-            if((llineargfsoc).or.(llinearsoc)) then ! non-linear term
+            if(llineargfsoc .or. llinearsoc) then ! non-linear term
               gij = gvg(:,:,i,j)
               gji = gvg(:,:,j,i)
 
@@ -430,12 +450,11 @@ contains
             end if ! End linear part
           end do ! End nAtoms i loop
         end do ! End nAtoms j loop
-
     end do ! End pn1 loop
-    !$omp end do
+    !$omp end do nowait
 
     ! removing non-linear SOC term
-    if((llineargfsoc).or.(llinearsoc)) gdHdxg = gdHdxg - gvgdHdxgvg
+    if(llineargfsoc .or. llinearsoc ) gdHdxg = gdHdxg - gvgdHdxgvg
 
     !$omp critical
     do mu=1, nOrb2
@@ -454,7 +473,11 @@ contains
     end do
     !$omp end critical
 
-    deallocate(gdHdxg,gvgdHdxgvg)
+    deallocate(gdHdxg, paulitemp)
+    deallocate(temp1, temp2, temp)
+    deallocate(gf, gij, gji)
+    if(allocated(gvgdHdxgvg)) deallocate(gvgdHdxgvg)
+    if(allocated(gvg)) deallocate(gvg)
     !$omp end parallel
 
     call MPI_Allreduce(MPI_IN_PLACE, jacobian, ncount2, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
@@ -462,6 +485,7 @@ contains
     do i = s%nAtoms+1, 4*s%nAtoms
       jacobian(i,i) = jacobian(i,i) - 1.d0
     end do
+
     return
   end subroutine calcJacobian
 
@@ -592,7 +616,7 @@ contains
     use mod_parameters, only: outputunit_loop, U, magaxis, magaxisvec, offset, layertype
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_mpi_pars, only: myrank, abortProgram, rField
+    use mod_mpi_pars, only: abortProgram, rField
     use mod_susceptibilities, only: lrot
     use mod_Umatrix
     implicit none
