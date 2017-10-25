@@ -193,17 +193,11 @@ program TITAN
     !-------------------------- Begin first test part ----------------------
     if(rField == 0 .and. itype==0) then
       write(outputunit_loop,"('[main] FIRST TEST PART')")
+      n_t = 0.d0
       mz  = 0.d0
       mp  = cZero
       mm  = conjg(mp)
       ! Variables used in the hamiltonian
-      eps1  = 0.d0
-      hdel  = 0.d0
-      hdelp = cZero
-      hdelm = cZero
-      hdel(1:sys%nAtoms) = 0.5d0*U*mz
-      hdelp(1:sys%nAtoms) = 0.5d0*U*mp
-      hdelm(1:sys%nAtoms) = 0.5d0*U*mm
 
       call ldos()
       ! call debugging()
