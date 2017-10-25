@@ -296,7 +296,7 @@ contains
   subroutine calcJacobian(jacobian, N)
     !! Calculated the Jacobian of the spin magnetization
     use mod_f90_kind, only: double
-    use mod_constants, only: cI, pi, identorb18, cZero, pauli_dorb, cOne
+    use mod_constants, only: cI, pi, identorb18, cZero, pauli_dorb, pauli_orb, cOne
     use mod_parameters, only: U, Ef, offset
     use mod_SOC, only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: y, wght
@@ -330,24 +330,24 @@ contains
     ncount=s%nAtoms*9
     ncount2=N*N
 
-    pauli_components1 = cZero
-    pauli_components2 = cZero
-!   Includes d orbitals in the charge component
+    pauli_components1 = cZero ! Pauli Matrices in Spin-Orbit space
+    pauli_components2 = cZero ! drho / dx =
+!   Includes d orbitals
     pauli_components1(:,:,1) = identorb18(:,:)
-    pauli_components1(:,:,2) = pauli_dorb(1,:,:)
-    pauli_components1(:,:,3) = pauli_dorb(2,:,:)
-    pauli_components1(:,:,4) = pauli_dorb(3,:,:)
-!   Excludes d orbitals in the charge component
-    pauli_components2(5:9, 5:9, 1) = identorb18(5:9, 5:9)
-    pauli_components2(14:18, 14:18, 1) = identorb18(14:18, 14:18)
-    pauli_components2(:,:,2) = pauli_dorb(1,:,:)
+    pauli_components1(:,:,2) = pauli_orb(1,:,:)
+    pauli_components1(:,:,3) = pauli_orb(2,:,:)
+    pauli_components1(:,:,4) = pauli_orb(3,:,:)
+!   Excludes d orbitals
+    pauli_components2(5:9, 5:9, 1) = identorb18(5:9, 5:9)           ! sigma_0 (1,1) = 1
+    pauli_components2(14:18, 14:18, 1) = identorb18(14:18, 14:18)   ! sigma_0 (2,2) = 1
+    pauli_components2(:,:,2) = pauli_dorb(1,:,:)                    ! sigma_1 and so on
     pauli_components2(:,:,3) = pauli_dorb(2,:,:)
     pauli_components2(:,:,4) = pauli_dorb(3,:,:)
 
     ! Prefactor -U/2 in dH/dm and 1 in dH/deps1
     do i=1,s%nAtoms
-      mhalfU(1,i) = cOne
-      mhalfU(2:4,i) = -0.5d0*U(i+offset)
+      !mhalfU(1,i) = cOne
+      mhalfU(1:4,i) = -0.5d0*U(i+offset)
     end do
 
     jacobian = 0.d0
