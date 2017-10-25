@@ -185,7 +185,7 @@ contains
     return
   end subroutine calcMagneticSelfConsistency
 
-  subroutine calcMagnetization(n, mx, my, mz, mp, size)
+  subroutine calcMagnetization(n, mx, my, mz, mp)
     !! Calculates occupation density and magnetization.
     use mod_f90_kind, only: double
     use mod_constants, only: cI, pi, cZero
@@ -197,7 +197,6 @@ contains
     use TightBinding, only: nOrb,nOrb2
     use mod_mpi_pars
     implicit none
-    integer, intent(in) :: size
     real(double), dimension(s%nAtoms), intent(inout) :: n, mx, my, mz
     complex(double), dimension(s%nAtoms), intent(inout) :: mp
 
@@ -205,7 +204,7 @@ contains
     real(double), dimension(3) :: kp
     real(double), dimension(s%nAtoms,nOrb) :: n_orb_u, n_orb_d
     complex(double), dimension(s%nAtoms,nOrb) :: gdiagud,gdiagdu
-    complex(double), dimension(:,:,:,:), allocatable :: gf, gf_loc
+    complex(double), dimension(:,:,:,:), allocatable :: gf
     !--------------------- begin MPI vars --------------------
     integer :: ix
     integer :: ncount
@@ -222,10 +221,10 @@ contains
 
 
     !$omp parallel default(none) &
-    !$omp& private(ix,ep,kp,weight,i,mu,mup,gf_loc) &
+    !$omp& private(ix,ep,kp,weight,i,mu,mup,gf) &
     !$omp& shared(llineargfsoc,llinearsoc,local_points,wght,s,bzs,E_k_imag_mesh,Ef,y,n_orb_u,n_orb_d,gdiagud,gdiagdu)
-    allocate(gf_loc(nOrb2,nOrb2,s%nAtoms,s%nAtoms))
-    gf_loc = cZero
+    allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms))
+    gf = cZero
 
     if(llineargfsoc .or. llinearsoc) then
       !$omp do schedule(static) reduction(+:n_orb_u) reduction(+:n_orb_d) reduction(+:gdiagud) reduction(+:gdiagdu)
@@ -233,14 +232,14 @@ contains
          ep = y(E_k_imag_mesh(1,ix))
          kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
          weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
-         call greenlineargfsoc(Ef,ep,kp,gf_loc)
+         call greenlineargfsoc(Ef,ep,kp,gf)
          do i=1,s%nAtoms
            do mu=1,nOrb
              mup = mu+nOrb
-             n_orb_u(i,mu) = n_orb_u(i,mu) + real(gf_loc(mu,mu,i,i)) * weight
-             n_orb_d(i,mu) = n_orb_d(i,mu) + real(gf_loc(mup,mup,i,i)) * weight
-             gdiagud(i,mu) = gdiagud(i,mu) + gf_loc(mu,mup,i,i) * weight
-             gdiagdu(i,mu) = gdiagdu(i,mu) + gf_loc(mup,mu,i,i) * weight
+             n_orb_u(i,mu) = n_orb_u(i,mu) + real(gf(mu,mu,i,i)) * weight
+             n_orb_d(i,mu) = n_orb_d(i,mu) + real(gf(mup,mup,i,i)) * weight
+             gdiagud(i,mu) = gdiagud(i,mu) + gf(mu,mup,i,i) * weight
+             gdiagdu(i,mu) = gdiagdu(i,mu) + gf(mup,mu,i,i) * weight
            end do
          end do
       end do
@@ -251,21 +250,21 @@ contains
          ep = y(E_k_imag_mesh(1,ix))
          weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
          kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
-         call green(Ef,ep,kp,gf_loc)
+         call green(Ef,ep,kp,gf)
          do i=1,s%nAtoms
            do mu=1,nOrb
              mup = mu+nOrb
-             n_orb_u(i,mu) = n_orb_u(i,mu) + real(gf_loc(mu,mu,i,i)) * weight
-             n_orb_d(i,mu) = n_orb_d(i,mu) + real(gf_loc(mup,mup,i,i)) * weight
-             gdiagud(i,mu) = gdiagud(i,mu) + gf_loc(mu,mup,i,i) * weight
-             gdiagdu(i,mu) = gdiagdu(i,mu) + gf_loc(mup,mu,i,i) * weight
+             n_orb_u(i,mu) = n_orb_u(i,mu) + real(gf(mu,mu,i,i)) * weight
+             n_orb_d(i,mu) = n_orb_d(i,mu) + real(gf(mup,mup,i,i)) * weight
+             gdiagud(i,mu) = gdiagud(i,mu) + gf(mu,mup,i,i) * weight
+             gdiagdu(i,mu) = gdiagdu(i,mu) + gf(mup,mu,i,i) * weight
            end do
          end do
       end do
       !$omp end do
     end if
 
-    deallocate(gf_loc)
+    deallocate(gf)
     !$omp end parallel
 
 
@@ -590,7 +589,7 @@ contains
     use mod_magnet, only: mabs, mx, my, mz, mp, mtheta, mphi, &
                           mvec_cartesian, mvec_spherical, &
                           hw_count, hw_list, lfield, n_t
-    use mod_parameters, only: outputunit_loop, U, magaxis, magaxisvec, offset, layertype
+    use mod_parameters, only: outputunit_loop, magaxis, magaxisvec, offset, layertype
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
     use mod_mpi_pars, only: abortProgram, rField
@@ -777,8 +776,7 @@ contains
   ! This subroutine reads previous band-shifting and magnetization results
   subroutine read_sc_results(err,lsuccess)
     use mod_f90_kind, only: double
-    use mod_constants, only: cI
-    use mod_parameters, only: offset, fieldpart, eta, U,Utype, outputunit_loop, strSites, dfttype
+    use mod_parameters, only: fieldpart, eta, Utype, outputunit_loop, strSites, dfttype
     use EnergyIntegration, only: parts
     use mod_magnet, only: n_t, mp, hw_count, mx, my, mz
     use mod_SOC, only: SOCc, socpart
@@ -851,7 +849,7 @@ contains
       mx  (:) = previous_results(:,2)
       my  (:) = previous_results(:,3)
       mz  (:) = previous_results(:,4)
-      mp  = mx + cI*my
+      mp  = cmplx(mx,my)
       if(lsuccess) then
         err = 1   ! Read different parameters
       else
@@ -874,7 +872,7 @@ contains
           read(99,*) my(i)
           read(99,*) mz(i)
         end do
-        mp  = mx + cI*my
+        mp  = cmplx(mx,my)
         lsuccess = .true. ! Read...
         err = 1           ! ... different parameters
       end if
@@ -923,8 +921,7 @@ contains
 #if !defined(_OSX) && !defined(_JUQUEEN)
   subroutine sc_equations_and_jacobian(N,x,fvec,selfconjac,iuser,ruser,iflag)
     use mod_f90_kind, only: double
-    use mod_constants, only: cI
-    use mod_parameters, only: offset, U, outputunit, outputunit_loop
+    use mod_parameters, only: outputunit, outputunit_loop
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
     use mod_magnet, only: iter, mp, mx, my, mz, n_t
@@ -944,7 +941,7 @@ contains
     mx_in = x(  s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
-    mp_in = mx_in + cI*my_in
+    mp_in = cmplx(mx_in,my_in)
 
     call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
 
@@ -961,7 +958,7 @@ contains
 
     select case (iflag)
     case(1)
-      call calcMagnetization(n_t, mx, my, mz, mp, N)
+      call calcMagnetization(n_t, mx, my, mz, mp)
       do i = 1, s%nAtoms
         fvec(i) = n_t(i) - n_in(i)
         fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
@@ -996,12 +993,12 @@ contains
   ! occupation number and the magnetic moment
   subroutine sc_equations(N,x,fvec,iuser,ruser,iflag)
     use mod_constants, only: cI
-    use mod_parameters, only: offset, U, outputunit_loop
+    use mod_parameters, only: outputunit_loop
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
     use mod_magnet, only: iter, mp, mx ,my ,mz, n_t
-    use mod_Umatrix
+    use mod_Umatrix, only: update_Umatrix
     use mod_mpi_pars
     implicit none
     integer  :: N,i,iflag
@@ -1017,7 +1014,7 @@ contains
     mx_in = x(s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
-    mp_in = mx_in+cI*my_in
+    mp_in = cmplx(mx_in,my_in)
 
     call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
 
@@ -1032,7 +1029,7 @@ contains
       end do
     end if
 
-    call calcMagnetization(n_t, mx, my, mz, mp, N)
+    call calcMagnetization(n_t, mx, my, mz, mp)
     do i = 1, s%nAtoms
       fvec(i) = n_t(i) - n_in(i)
       fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
@@ -1068,13 +1065,12 @@ contains
   !  mz - mz_in = 0
   ! and the correspondent jacobian
   subroutine sc_eqs_and_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
-    use mod_constants, only: cI
-    use mod_parameters, only: offset, U, outputunit_loop, outputunit
+    use mod_parameters, only: outputunit_loop, outputunit
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
     use mod_magnet, only: iter, mp, mx, my, mz, n_t
-    use mod_Umatrix
+    use mod_Umatrix, only: update_Umatrix
     use mod_mpi_pars
     implicit none
     integer  :: N,i,iflag,ldfjac
@@ -1088,7 +1084,7 @@ contains
     mx_in = x(s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
-    mp_in = mx_in+cI*my_in
+    mp_in = cmplx(mx_in,my_in)
 
     call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
 
@@ -1106,7 +1102,7 @@ contains
     flag: select case (iflag)
     case(1)
       ! Calculating the number of particles for each spin and orbital using a complex integral
-      call calcMagnetization(n_t, mx, my, mz, mp, N)
+      call calcMagnetization(n_t, mx, my, mz, mp)
       do i = 1, s%nAtoms
         fvec(i) = n_t(i) - n_in(i) !s%Types(s%Basis(i)%Material)%Occupation
         fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
@@ -1142,12 +1138,11 @@ contains
   ! occupation number and the magnetic moment
   subroutine sc_eqs_old(N,x,fvec,iflag)
     use mod_f90_kind, only: double
-    use mod_constants, only: cI
-    use mod_parameters, only: offset, U, outputunit_loop
+    use mod_parameters, only: outputunit_loop
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
     use mod_magnet, only: iter, mp, mx, my, mz, n_t
-    use mod_Umatrix
+    use mod_Umatrix, only: update_Umatrix
     use mod_mpi_pars
     implicit none
     integer  :: N,i,iflag
@@ -1161,7 +1156,7 @@ contains
     mx_in = x(s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
-    mp_in = mx_in+cI*my_in
+    mp_in = cmplx(mx_in,my_in)
 
     call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
 
@@ -1176,7 +1171,7 @@ contains
       end do
     end if
 
-    call calcMagnetization(n_t, mx, my, mz, mp, N)
+    call calcMagnetization(n_t, mx, my, mz, mp)
     do i = 1, s%nAtoms
       fvec(i) = n_t(i) - n_in(i) !s%Types(s%Basis(i)%Material)%Occupation
       fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
@@ -1205,15 +1200,12 @@ contains
 
   subroutine sc_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
     use mod_f90_kind, only: double
-    use mod_constants, only: cI
-    use mod_parameters, only: offset, U
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter, n_t
-    use mod_Umatrix
-    use mod_mpi_pars
+    use mod_magnet, only: iter
+    use mod_Umatrix, only: update_Umatrix
     implicit none
-    integer       :: N,ldfjac,i,iflag
+    integer       :: N,ldfjac,iflag
     real(double)  :: x(N),fvec(N),selfconjac(ldfjac,N)
     real(double),dimension(s%nAtoms)         :: mx_in,my_in,mz_in, n_in
     complex(double),dimension(s%nAtoms)      :: mp_in
@@ -1225,7 +1217,7 @@ contains
     mx_in = x(s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
-    mp_in = mx_in+cI*my_in
+    mp_in = cmplx(mx_in,my_in)
 
     call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
 
