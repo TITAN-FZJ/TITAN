@@ -644,8 +644,7 @@ contains
         write(outputunit_loop,"('[read_previous_results] ',a)") trim(default_file)
       end if
       lselfcon = .true.
-      ! Parameters: center of band, magnetization, exchange split
-      eps1 = 0.d0
+      ! Parameters: magnetization, exchange split
       if(magaxis == -1) then
         continue
       else if(magaxis == -2) then
@@ -694,7 +693,7 @@ contains
       n_t(i) = s%Types(s%Basis(i)%Material)%Occupation
       ndel(i) = 0.5d0*U(i+offset)*n_t(i)
     end do
-    call init_Umatrix(eps1,hdel,hdelm,hdelp,ndel,s%nAtoms,nOrb)
+    call init_Umatrix(mz,mp,n_t,s%nAtoms,nOrb)
 
     return
   end subroutine read_previous_results
@@ -958,8 +957,7 @@ contains
     complex(double),dimension(s%nAtoms) :: mp_in
 
     ! Values used in the hamiltonian
-    n_in = n_t
-    eps1  = x(           1:  s%nAtoms)
+    n_in  = x(           1:  s%nAtoms)
     mx_in = x(  s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
@@ -972,7 +970,7 @@ contains
     end do
     hdelm = conjg(hdelp)
 
-    call update_Umatrix(eps1, hdel, hdelm, hdelp, ndel, s%nAtoms, nOrb)
+    call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
 
     if((rField==0).and.(iter==1)) then
       write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
@@ -989,7 +987,7 @@ contains
     case(1)
       call calcMagnetization(n_t, mx, my, mz, mp, N)
       do i = 1, s%nAtoms
-        fvec(i) = n_t(i) - n_in(i) !s%Types(s%Basis(i)%Material)%Occupation
+        fvec(i) = n_t(i) - n_in(i)
         fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
         fvec(i+2*s%nAtoms) = my(i) - my_in(i)
         fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
@@ -1039,8 +1037,7 @@ contains
 
     iflag=0
   ! Values used in the hamiltonian
-    n_in = n_t
-    eps1  = x(1:s%nAtoms)
+    n_in  = x(1:s%nAtoms)
     mx_in = x(s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
@@ -1052,7 +1049,7 @@ contains
     end do
     hdelm = conjg(hdelp)
 
-    call update_Umatrix(eps1, hdel, hdelm, hdelp, ndel,s%nAtoms, nOrb)
+    call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
 
     if((rField==0).and.(iter==1)) then
       write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
@@ -1117,8 +1114,7 @@ contains
     complex(double),dimension(s%nAtoms)   :: mp_in
 
   ! Values used in the hamiltonian
-    n_in = n_t
-    eps1  = x(1:s%nAtoms)
+    n_in  = x(1:s%nAtoms)
     mx_in = x(s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
@@ -1130,7 +1126,7 @@ contains
     end do
     hdelm = conjg(hdelp)
 
-    call update_Umatrix(eps1, hdel, hdelm, hdelp, ndel,s%nAtoms, nOrb)
+    call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
 
     if((rField==0).and.(iter==1)) then
       write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
@@ -1197,8 +1193,7 @@ contains
 
     iflag=0
   ! Values used in the hamiltonian
-    n_in = n_t
-    eps1  = x(1:s%nAtoms)
+    n_in  = x(1:s%nAtoms)
     mx_in = x(s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
@@ -1210,7 +1205,7 @@ contains
     end do
     hdelm = conjg(hdelp)
 
-    call update_Umatrix(eps1, hdel, hdelm, hdelp, ndel,s%nAtoms, nOrb)
+    call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
 
     if((rField==0).and.(iter==1)) then
       write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
@@ -1268,8 +1263,7 @@ contains
 
     iflag=0
   ! Values used in the hamiltonian
-    n_in = n_t
-    eps1  = x(1:s%nAtoms)
+    n_in  = x(1:s%nAtoms)
     mx_in = x(s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
@@ -1281,7 +1275,7 @@ contains
     end do
     hdelm = conjg(hdelp)
 
-    call update_Umatrix(eps1, hdel, hdelm, hdelp, ndel,s%nAtoms, nOrb)
+    call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
 
     fvec=fvec
 
