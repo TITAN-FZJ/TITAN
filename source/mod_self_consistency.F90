@@ -185,7 +185,7 @@ contains
     return
   end subroutine calcMagneticSelfConsistency
 
-  subroutine calcMagnetization(n, mx, my, mz, mp)
+  subroutine calcMagnetization(nd, mxd, myd, mzd, mpd)
     !! Calculates occupation density and magnetization.
     use mod_f90_kind, only: double
     use mod_constants, only: cI, pi, cZero
@@ -193,12 +193,13 @@ contains
     use mod_SOC, only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: y, wght
     use mod_system, only: s => sys
+    use mod_magnet, only: mx, my, mz, mp, n_t
     use adaptiveMesh
     use TightBinding, only: nOrb,nOrb2
     use mod_mpi_pars
     implicit none
-    real(double), dimension(s%nAtoms), intent(inout) :: n, mx, my, mz
-    complex(double), dimension(s%nAtoms), intent(inout) :: mp
+    real(double), dimension(s%nAtoms), intent(inout) :: nd, mxd, myd, mzd
+    complex(double), dimension(s%nAtoms), intent(inout) :: mpd
 
     integer  :: i,j
     real(double), dimension(3) :: kp
@@ -269,24 +270,32 @@ contains
 
 
     do j=1,s%nAtoms
-      mp(j) = mp(j) + (sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9))))
+      mp(j) = mp(j) + (sum(gdiagdu(j,1:9)) + sum(conjg(gdiagud(j,1:9))))
+      mpd(j) = sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9)))
     end do
 
     call MPI_Allreduce(MPI_IN_PLACE, n_orb_u, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
     call MPI_Allreduce(MPI_IN_PLACE, n_orb_d, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
     call MPI_Allreduce(MPI_IN_PLACE, mp, s%nAtoms, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, mpd, s%nAtoms, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
     n_orb_u = 0.5d0 + n_orb_u/pi
     n_orb_d = 0.5d0 + n_orb_d/pi
     mp      = mp/pi
+    mpd     = mpd/pi
     mx      = real(mp)
     my      = aimag(mp)
+
+    mxd = real(mpd)
+    myd = aimag(mpd)
 
     !n_orb_t = n_orb_u + n_orb_d
     !mag_orb = n_orb_u - n_orb_d
 
     do i = 1, s%nAtoms
-      n(i) = sum(n_orb_u(i,:)) + sum(n_orb_d(i,:))
-      mz(i) = sum(n_orb_u(i,5:9)) - sum(n_orb_d(i,5:9))
+      n_t(i) = sum(n_orb_u(i,:)) + sum(n_orb_d(i,:))
+      nd(i) = sum(n_orb_u(i,5:9)) + sum(n_orb_d(i,5:9))
+      mz(i) = sum(n_orb_u(i,1:9)) - sum(n_orb_d(i,1:9))
+      mzd(i) = sum(n_orb_u(i,5:9)) - sum(n_orb_d(i,5:9))
     end do
 
     return
@@ -681,7 +690,7 @@ contains
       mp = cmplx(mx,my,double)
 
       do i = 1, s%nAtoms
-        n_t(i) = s%Types(s%Basis(i)%Material)%Occupation
+        n_t(i) = s%Types(s%Basis(i)%Material)%OccupationD
       end do
     end if
 
@@ -924,7 +933,7 @@ contains
     use mod_parameters, only: outputunit, outputunit_loop
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter, mp, mx, my, mz, n_t
+    use mod_magnet, only: iter !, mp, mx, my, mz, n_t, md
     use mod_Umatrix
     use mod_mpi_pars
     implicit none
@@ -934,7 +943,8 @@ contains
     real(double),dimension(N) :: x,fvec
     real(double),dimension(N,N) :: selfconjac
     real(double),dimension(s%nAtoms) :: mx_in,my_in,mz_in, n_in
-    complex(double),dimension(s%nAtoms) :: mp_in
+    real(double),dimension(s%nAtoms) :: mx, my, mz, n_t
+    complex(double),dimension(s%nAtoms) :: mp_in, mp
 
     ! Values used in the hamiltonian
     n_in  = x(           1:  s%nAtoms)
