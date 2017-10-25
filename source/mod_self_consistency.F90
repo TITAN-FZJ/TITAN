@@ -590,7 +590,7 @@ contains
     use mod_magnet, only: mabs, mx, my, mz, mp, mtheta, mphi, &
                           mvec_cartesian, mvec_spherical, &
                           eps1, hw_count, hw_list, lfield, &
-                          hdel, hdelm, hdelp
+                          hdel, hdelm, hdelp, n_t, ndel
     use mod_parameters, only: outputunit_loop, U, magaxis, magaxisvec, offset, layertype
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
@@ -690,8 +690,11 @@ contains
       end do
       hdelm = conjg(hdelp)
     end if
-
-    call init_Umatrix(eps1,hdel,hdelm,hdelp,s%nAtoms,nOrb)
+    do i = 1, s%nAtoms
+      n_t(i) = s%Types(s%Basis(i)%Material)%Occupation
+      ndel(i) = 0.5d0*U(i+offset)*n_t(i)
+    end do
+    call init_Umatrix(eps1,hdel,hdelm,hdelp,ndel,s%nAtoms,nOrb)
 
     return
   end subroutine read_previous_results
@@ -942,7 +945,7 @@ contains
     use mod_parameters, only: offset, U, outputunit, outputunit_loop
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx, my, mz
+    use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx, my, mz, n_t, ndel
     use mod_Umatrix
     use mod_mpi_pars
     implicit none
@@ -951,10 +954,11 @@ contains
     real(double), intent(inout) :: ruser(*)
     real(double),dimension(N) :: x,fvec
     real(double),dimension(N,N) :: selfconjac
-    real(double),dimension(s%nAtoms) :: n_t,mx_in,my_in,mz_in
+    real(double),dimension(s%nAtoms) :: mx_in,my_in,mz_in, n_in
     complex(double),dimension(s%nAtoms) :: mp_in
 
     ! Values used in the hamiltonian
+    n_in = n_t
     eps1  = x(           1:  s%nAtoms)
     mx_in = x(  s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
@@ -964,18 +968,19 @@ contains
     do i=1,s%nAtoms
       hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
       hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
+      ndel(i)   = 0.5d0*U(i+offset)*n_in(i)
     end do
     hdelm = conjg(hdelp)
 
-    call update_Umatrix(eps1, hdel, hdelm, hdelp, s%nAtoms, nOrb)
+    call update_Umatrix(eps1, hdel, hdelm, hdelp, ndel, s%nAtoms, nOrb)
 
     if((rField==0).and.(iter==1)) then
       write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
       do i=1,s%nAtoms
         if(abs(mp(i))>1.d-10) then
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
+          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9,4x,'N(',I2,')=',es16.9)") i,i,eps1(i),i,mx_in(i),i,my_in(i),i,mz_in(i),i,n_in(i)
         else
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz_in(i)
+          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9,4x,'N(',I2,')=',es16.9)") i,i,eps1(i),i,mz_in(i),i,n_in(i)
         end if
       end do
     end if
@@ -984,7 +989,7 @@ contains
     case(1)
       call calcMagnetization(n_t, mx, my, mz, mp, N)
       do i = 1, s%nAtoms
-        fvec(i) = n_t(i) - s%Types(s%Basis(i)%Material)%Occupation
+        fvec(i) = n_t(i) - n_in(i) !s%Types(s%Basis(i)%Material)%Occupation
         fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
         fvec(i+2*s%nAtoms) = my(i) - my_in(i)
         fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
@@ -992,10 +997,10 @@ contains
       if(rField==0) then
         do i=1,s%nAtoms
           if(abs(mp(i))>1.d-10) then
-            write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i)
+            write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9,4x,'N(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i),i,n_t(i)
             write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+s%nAtoms,fvec(i+s%nAtoms),i+2*s%nAtoms,fvec(i+2*s%nAtoms),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
           else
-            write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz(i)
+            write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9,4x,'N(',I2,')=',es16.9)") i,i,eps1(i),i,mz(i),i,n_t(i)
             write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
           end if
         end do
@@ -1021,7 +1026,7 @@ contains
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx ,my ,mz
+    use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx ,my ,mz, n_t, ndel
     use mod_Umatrix
     use mod_mpi_pars
     implicit none
@@ -1029,11 +1034,12 @@ contains
     integer     , intent(inout)         :: iuser(*)
     real(double), intent(inout)         :: ruser(*)
     real(double),dimension(N)           :: x,fvec
-    real(double),dimension(s%nAtoms)         :: n_t,mx_in,my_in,mz_in
+    real(double),dimension(s%nAtoms)         :: mx_in,my_in,mz_in,n_in
     complex(double),dimension(s%nAtoms)      :: mp_in
 
     iflag=0
   ! Values used in the hamiltonian
+    n_in = n_t
     eps1  = x(1:s%nAtoms)
     mx_in = x(s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
@@ -1042,25 +1048,26 @@ contains
     do i=1,s%nAtoms
       hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
       hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
+      ndel(i)   = 0.5d0*U(i+offset)*n_in(i)
     end do
     hdelm = conjg(hdelp)
 
-    call update_Umatrix(eps1, hdel, hdelm, hdelp, s%nAtoms, nOrb)
+    call update_Umatrix(eps1, hdel, hdelm, hdelp, ndel,s%nAtoms, nOrb)
 
     if((rField==0).and.(iter==1)) then
       write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
       do i=1,s%nAtoms
         if(abs(mp(i))>1.d-10) then
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
+          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9,'N(',I2,')=',es16.9)") i,i,eps1(i),i,mx_in(i),i,my_in(i),i,mz_in(i),i,n_in(i)
         else
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz_in(i)
+          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9,'N(',I2,')=',es16.9)") i,i,eps1(i),i,mz_in(i),i,n_in(i)
         end if
       end do
     end if
 
     call calcMagnetization(n_t, mx, my, mz, mp, N)
     do i = 1, s%nAtoms
-      fvec(i) = n_t(i) - s%Types(s%Basis(i)%Material)%Occupation
+      fvec(i) = n_t(i) - n_in(i) !s%Types(s%Basis(i)%Material)%Occupation
       fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
       fvec(i+2*s%nAtoms) = my(i) - my_in(i)
       fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
@@ -1069,10 +1076,10 @@ contains
     if(rField==0) then
       do i=1,s%nAtoms
         if(abs(mp(i))>1.d-10) then
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i)
+          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9,'N(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i),i,n_t(i)
           write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+s%nAtoms,fvec(i+s%nAtoms),i+2*s%nAtoms,fvec(i+2*s%nAtoms),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
         else
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz(i)
+          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9,'N(',I2,')=',es16.9)") i,i,eps1(i),i,mz(i),i,n_t(i)
           write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
         end if
       end do
@@ -1099,17 +1106,18 @@ contains
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx, my, mz
+    use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx, my, mz, n_t, ndel
     use mod_Umatrix
     use mod_mpi_pars
     implicit none
     integer  :: N,i,iflag,ldfjac
     real(double),dimension(N)        :: x,fvec
     real(double),dimension(ldfjac,N) :: selfconjac
-    real(double),dimension(s%nAtoms)      :: n_t,mx_in,my_in,mz_in
+    real(double),dimension(s%nAtoms)      :: mx_in,my_in,mz_in,n_in
     complex(double),dimension(s%nAtoms)   :: mp_in
 
   ! Values used in the hamiltonian
+    n_in = n_t
     eps1  = x(1:s%nAtoms)
     mx_in = x(s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
@@ -1118,10 +1126,11 @@ contains
     do i=1,s%nAtoms
       hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
       hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
+      ndel(i)   = 0.5d0*U(i+offset)*n_in(i)
     end do
     hdelm = conjg(hdelp)
 
-    call update_Umatrix(eps1, hdel, hdelm, hdelp, s%nAtoms, nOrb)
+    call update_Umatrix(eps1, hdel, hdelm, hdelp, ndel,s%nAtoms, nOrb)
 
     if((rField==0).and.(iter==1)) then
       write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
@@ -1139,7 +1148,7 @@ contains
       ! Calculating the number of particles for each spin and orbital using a complex integral
       call calcMagnetization(n_t, mx, my, mz, mp, N)
       do i = 1, s%nAtoms
-        fvec(i) = n_t(i) - s%Types(s%Basis(i)%Material)%Occupation
+        fvec(i) = n_t(i) - n_in(i) !s%Types(s%Basis(i)%Material)%Occupation
         fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
         fvec(i+2*s%nAtoms) = my(i) - my_in(i)
         fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
@@ -1177,17 +1186,18 @@ contains
     use mod_parameters, only: offset, U, outputunit_loop
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx, my, mz
+    use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx, my, mz, n_t, ndel
     use mod_Umatrix
     use mod_mpi_pars
     implicit none
     integer  :: N,i,iflag
     real(double),dimension(N)           :: x,fvec
-    real(double),dimension(s%nAtoms)         :: n_t,mx_in,my_in,mz_in
+    real(double),dimension(s%nAtoms)         :: mx_in,my_in,mz_in, n_in
     complex(double),dimension(s%nAtoms)      :: mp_in
 
     iflag=0
   ! Values used in the hamiltonian
+    n_in = n_t
     eps1  = x(1:s%nAtoms)
     mx_in = x(s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
@@ -1196,10 +1206,11 @@ contains
     do i=1,s%nAtoms
       hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
       hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
+      ndel(i) = 0.5d0*U(i+offset)*n_in(i)
     end do
     hdelm = conjg(hdelp)
 
-    call update_Umatrix(eps1, hdel, hdelm, hdelp, s%nAtoms, nOrb)
+    call update_Umatrix(eps1, hdel, hdelm, hdelp, ndel,s%nAtoms, nOrb)
 
     if((rField==0).and.(iter==1)) then
       write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
@@ -1214,7 +1225,7 @@ contains
 
     call calcMagnetization(n_t, mx, my, mz, mp, N)
     do i = 1, s%nAtoms
-      fvec(i) = n_t(i) - s%Types(s%Basis(i)%Material)%Occupation
+      fvec(i) = n_t(i) - n_in(i) !s%Types(s%Basis(i)%Material)%Occupation
       fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
       fvec(i+2*s%nAtoms) = my(i) - my_in(i)
       fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
@@ -1245,18 +1256,19 @@ contains
     use mod_parameters, only: offset, U
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp
+    use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, n_t, ndel
     use mod_Umatrix
     use mod_mpi_pars
     implicit none
     integer       :: N,ldfjac,i,iflag
     real(double)  :: x(N),fvec(N),selfconjac(ldfjac,N)
-    real(double),dimension(s%nAtoms)         :: mx_in,my_in,mz_in
+    real(double),dimension(s%nAtoms)         :: mx_in,my_in,mz_in, n_in
     complex(double),dimension(s%nAtoms)      :: mp_in
     !--------------------- begin MPI vars --------------------
 
     iflag=0
   ! Values used in the hamiltonian
+    n_in = n_t
     eps1  = x(1:s%nAtoms)
     mx_in = x(s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
@@ -1265,10 +1277,11 @@ contains
     do i=1,s%nAtoms
       hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
       hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
+      ndel(i) = 0.5d0*U(i+offset)*n_in(i)
     end do
     hdelm = conjg(hdelp)
 
-    call update_Umatrix(eps1, hdel, hdelm, hdelp, s%nAtoms, nOrb)
+    call update_Umatrix(eps1, hdel, hdelm, hdelp, ndel,s%nAtoms, nOrb)
 
     fvec=fvec
 
