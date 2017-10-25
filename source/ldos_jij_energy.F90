@@ -2,12 +2,12 @@
 subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
    use mod_f90_kind, only: double
    use mod_constants, only: pi, cZero, cOne, pauli_dorb
-   use mod_parameters, only: eta, nmaglayers, mmlayermag
+   use mod_parameters, only: eta, nmaglayers, mmlayermag, U
    use mod_progress
    use mod_system, only: s => sys
    use mod_BrillouinZone, only: BZ
    use TightBinding, only: nOrb,nOrb2
-   use mod_magnet, only: hdel,mz
+   use mod_magnet, only: mz
    use mod_mpi_pars
    implicit none
    real(double),intent(in)     :: e
@@ -42,7 +42,7 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
 
 !$omp parallel default(none) &
 !$omp& private(iz,kp,weight,gf,gij,gji,paulia,paulib,i,j,mu,nu,alpha,gfdiagu,gfdiagd,Jijk,Jijkan,temp1,temp2,ldosu_loc,ldosd_loc,Jijint_loc) &
-!$omp& shared(s,BZ,e,eta,hdel,mz,nmaglayers,mmlayermag,pauli_dorb,paulimatan,ldosu,ldosd,Jijint, firstPoint, lastPoint)
+!$omp& shared(s,BZ,e,eta,U,mz,nmaglayers,mmlayermag,pauli_dorb,paulimatan,ldosu,ldosd,Jijint, firstPoint, lastPoint)
 allocate(ldosu_loc(s%nAtoms, nOrb), ldosd_loc(s%nAtoms, nOrb), Jijint_loc(nmaglayers,nmaglayers,3,3))
 ldosu_loc = 0.d0
 ldosd_loc = 0.d0
@@ -73,7 +73,7 @@ do iz = firstPoint, lastPoint
                  Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + real(temp1(alpha,alpha))
                end do
 
-               Jijk(i,j,mu,nu) = -hdel(mmlayermag(i)-1)*hdel(mmlayermag(j)-1)*Jijk(i,j,mu,nu)*weight/(mz(mmlayermag(i)-1)*mz(mmlayermag(j)-1))
+               Jijk(i,j,mu,nu) = -0.25*U(mmlayermag(i)-1)*mz(mmlayermag(i)-1)*U(mmlayermag(j)-1)*mz(mmlayermag(j)-1)*Jijk(i,j,mu,nu)*weight
 
                ! Anisotropy (on-site) term
                if(i==j) then
@@ -85,7 +85,7 @@ do iz = firstPoint, lastPoint
                    Jijkan(i,mu,nu) = Jijkan(i,mu,nu) + real(temp1(alpha,alpha))
                  end do
 
-                 Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + hdel(mmlayermag(i)-1)*Jijkan(i,mu,nu)*weight/(mz(mmlayermag(i)-1)**2)
+                 Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + 0.5*U(mmlayermag(i)-1)*mz(mmlayermag(i)-1)*Jijkan(i,mu,nu)*weight
                end if
              end do
           end do
