@@ -41,7 +41,7 @@ contains
 
       if(lselfcon) call calcMagneticSelfConsistency()
 
-      ! Writing new eps1 and mz to file after self-consistency is done
+      ! Writing new n and mz to file after self-consistency is done
       if(.not. lontheflysc) call write_sc_results()
 
       ! L matrix in local frame for given quantization direction
@@ -63,7 +63,7 @@ contains
     use mod_f90_kind, only: double
     use mod_constants, only: pi
     use mod_parameters, only: outputunit_loop
-    use mod_magnet, only: eps1, mx, my, mz, mabs, mtheta, mphi, mvec_cartesian, mvec_spherical, iter
+    use mod_magnet, only: n_t, mx, my, mz, mabs, mtheta, mphi, mvec_cartesian, mvec_spherical, iter
     use mod_mpi_pars, only: calcWorkload, rField
     use adaptiveMesh
     use mod_system, only: s => sys
@@ -84,8 +84,8 @@ contains
     neq = 4*s%nAtoms
     allocate( sc_solu(neq),diag(neq),qtf(neq),fvec(neq),jac(neq,neq) )
 
-    ! Putting read eps1 existing solutions into esp1_solu (first guess of the subroutine)
-    sc_solu(1:s%nAtoms)         = eps1
+    ! Putting read n and m existing solutions into sc_solu (first guess of the subroutine)
+    sc_solu(1:s%nAtoms)              = n_t
     sc_solu(s%nAtoms+1:2*s%nAtoms)   = mx
     sc_solu(2*s%nAtoms+1:3*s%nAtoms) = my
     sc_solu(3*s%nAtoms+1:4*s%nAtoms) = mz
@@ -344,7 +344,7 @@ contains
     pauli_components2(:,:,3) = pauli_dorb(2,:,:)
     pauli_components2(:,:,4) = pauli_dorb(3,:,:)
 
-    ! Prefactor -U/2 in dH/dm and 1 in dH/deps1
+    ! Prefactor -U/2 in dH/dm and -U/2 in dH/dn
     do i=1,s%nAtoms
       !mhalfU(1,i) = cOne
       mhalfU(1:4,i) = -0.5d0*U(i+offset)
@@ -583,14 +583,13 @@ contains
     return
   end subroutine calcLGS
 
-  ! Tries to read eps1 and m if available - includes hdel, hdelp and hdelm calculations
+  ! Tries to read n and m if available
   subroutine read_previous_results(lsuccess)
     use mod_f90_kind, only: double
     use mod_constants, only: pi
     use mod_magnet, only: mabs, mx, my, mz, mp, mtheta, mphi, &
                           mvec_cartesian, mvec_spherical, &
-                          eps1, hw_count, hw_list, lfield, &
-                          hdel, hdelm, hdelp, n_t, ndel
+                          hw_count, hw_list, lfield, n_t
     use mod_parameters, only: outputunit_loop, U, magaxis, magaxisvec, offset, layertype
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
@@ -682,17 +681,11 @@ contains
 
       mp = cmplx(mx,my,double)
 
-      ! Variables used in the hamiltonian
-      do i=1,s%nAtoms
-        hdel(i)   = 0.5d0*U(i+offset)*mz(i)
-        hdelp(i)  = 0.5d0*U(i+offset)*mp(i)
+      do i = 1, s%nAtoms
+        n_t(i) = s%Types(s%Basis(i)%Material)%Occupation
       end do
-      hdelm = conjg(hdelp)
     end if
-    do i = 1, s%nAtoms
-      n_t(i) = s%Types(s%Basis(i)%Material)%Occupation
-      ndel(i) = 0.5d0*U(i+offset)*n_t(i)
-    end do
+
     call init_Umatrix(mz,mp,n_t,s%nAtoms,nOrb)
 
     return
@@ -724,7 +717,7 @@ contains
       mp(i)   = cmplx(mx(i),my(i),double)
     end do
 
-    ! Writing new eps1 and rotated mag to file (without self-consistency)
+    ! Writing new n and rotated mag to file (without self-consistency)
     if(rField == 0) call write_sc_results()
 
     ! Writing self-consistency results on screen
@@ -738,15 +731,15 @@ contains
     use mod_parameters, only: outputunit_loop
     use mod_system, only: s => sys
     !use mod_mpi_pars
-    use mod_magnet, only: eps1, mx, my, mz, mp, mphi, mtheta, mabs, &
+    use mod_magnet, only: n_t, mx, my, mz, mp, mphi, mtheta, mabs, &
                           lxpm, lypm, lzpm, lpphi, lptheta, lxm, lym, lzm, lpabs, labs
     implicit none
     integer :: i
 
     write(outputunit_loop,"('|----------=============== Self-consistent ground state: ===============----------|')")
-    write(outputunit_loop,"(11x,' *************** Center of d bands: ***************')")
+    write(outputunit_loop,"(11x,' *************** Charge density: ***************')")
     do i=1,s%nAtoms
-      write(outputunit_loop,"(26x,'eps1(',i2.0,')=',f11.8)") i,eps1(i)
+      write(outputunit_loop,"(26x,'N(',i2.0,')=',f11.8)") i, n_t(i)
     end do
     write(outputunit_loop,"(11x,' *********** Magnetization components: **********')")
     do i=1,s%nAtoms
@@ -787,7 +780,7 @@ contains
     use mod_constants, only: cI
     use mod_parameters, only: offset, fieldpart, eta, U,Utype, outputunit_loop, strSites, dfttype
     use EnergyIntegration, only: parts
-    use mod_magnet, only: eps1, hdel, hdelm, hdelp, mp, mz, hw_count, mx, my, mz
+    use mod_magnet, only: n_t, mp, hw_count, mx, my, mz
     use mod_SOC, only: SOCc, socpart
     use mod_mpi_pars
     use mod_system, only: s => sys
@@ -809,7 +802,7 @@ contains
     end if
 
     lsuccess = .false.
-    !   Reading previous results (mx, my, mz and eps1) from files (if available)
+    !   Reading previous results (mx, my, mz and n) from files (if available)
     if(trim(scfile)=="") then ! If a filename is not given in inputcard (or don't exist), use the default one
       write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(strSites),dfttype,parts,Utype,trim(fieldpart),BZ%nkpt,eta,trim(socpart)
       open(unit=99,file=file,status="old",iostat=err)
@@ -854,16 +847,11 @@ contains
         end do
       end if
       call MPI_Bcast(previous_results,4*s%nAtoms,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
-      eps1(:) = previous_results(:,1)
+      n_t (:) = previous_results(:,1)
       mx  (:) = previous_results(:,2)
       my  (:) = previous_results(:,3)
       mz  (:) = previous_results(:,4)
       mp  = mx + cI*my
-      do i=1,s%nAtoms
-        hdel(i)   = 0.5d0*U(i+offset)*mz(i)
-        hdelp(i)  = 0.5d0*U(i+offset)*mp(i)
-      end do
-      hdelm = conjg(hdelp)
       if(lsuccess) then
         err = 1   ! Read different parameters
       else
@@ -881,17 +869,12 @@ contains
           write(outputunit_loop,"(a)") file
         end if
         do i=1,s%nAtoms
-          read(99,*) eps1(i)
+          read(99,*) n_t(i)
           read(99,*) mx(i)
           read(99,*) my(i)
           read(99,*) mz(i)
         end do
         mp  = mx + cI*my
-        do i=1,s%nAtoms
-          hdel(i)   = 0.5d0*U(i+offset)*mz(i)
-          hdelp(i)  = 0.5d0*U(i+offset)*mp(i)
-        end do
-        hdelm = conjg(hdelp)
         lsuccess = .true. ! Read...
         err = 1           ! ... different parameters
       end if
@@ -904,7 +887,7 @@ contains
     !! Writes the self-consistency results into files and broadcasts the scfile for the next iteration.
     use mod_parameters, only: fieldpart, eta, Utype, outputunit_loop, strSites, dfttype
     use EnergyIntegration, only: parts
-    use mod_magnet, only: eps1, mx, my, mz
+    use mod_magnet, only: n_t, mx, my, mz
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
     use mod_BrillouinZone, only: BZ
@@ -913,12 +896,12 @@ contains
     integer :: i
 
     if(rField == 0) then
-      ! Writing new results (mx, my, mz and eps1) and mz to file
-      write(outputunit_loop,"('[write_sc_results] Writing new eps1, mx, my and mz to file...')")
+      ! Writing new results (mx, my, mz and n) to file
+      write(outputunit_loop,"('[write_sc_results] Writing new n, mx, my and mz to file...')")
       write(scfile,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc, trim(strSites),dfttype,parts,Utype,trim(fieldpart),BZ%nkpt,eta,trim(socpart)
       open (unit=99,status='replace',file=scfile)
       do i=1,s%nAtoms
-        write(99,"(es21.11,2x,'! eps1')") eps1(i)
+        write(99,"(es21.11,2x,'! n')") n_t(i)
         write(99,"(es21.11,2x,'! mx  ')") mx(i)
         write(99,"(es21.11,2x,'! my  ')") my(i)
         write(99,"(es21.11,2x,'! mz  ')") mz(i)
@@ -944,7 +927,7 @@ contains
     use mod_parameters, only: offset, U, outputunit, outputunit_loop
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx, my, mz, n_t, ndel
+    use mod_magnet, only: iter, mp, mx, my, mz, n_t
     use mod_Umatrix
     use mod_mpi_pars
     implicit none
@@ -963,22 +946,15 @@ contains
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
     mp_in = mx_in + cI*my_in
 
-    do i=1,s%nAtoms
-      hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
-      hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
-      ndel(i)   = 0.5d0*U(i+offset)*n_in(i)
-    end do
-    hdelm = conjg(hdelp)
-
     call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
 
     if((rField==0).and.(iter==1)) then
-      write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
+      write(outputunit_loop,"('|---------------- Starting charge density and magnetization ----------------|')")
       do i=1,s%nAtoms
         if(abs(mp(i))>1.d-10) then
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9,4x,'N(',I2,')=',es16.9)") i,i,eps1(i),i,mx_in(i),i,my_in(i),i,mz_in(i),i,n_in(i)
+          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_in(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
         else
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9,4x,'N(',I2,')=',es16.9)") i,i,eps1(i),i,mz_in(i),i,n_in(i)
+          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_in(i),i,mz_in(i)
         end if
       end do
     end if
@@ -995,10 +971,10 @@ contains
       if(rField==0) then
         do i=1,s%nAtoms
           if(abs(mp(i))>1.d-10) then
-            write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9,4x,'N(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i),i,n_t(i)
+            write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_t(i),i,mx(i),i,my(i),i,mz(i)
             write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+s%nAtoms,fvec(i+s%nAtoms),i+2*s%nAtoms,fvec(i+2*s%nAtoms),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
           else
-            write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9,4x,'N(',I2,')=',es16.9)") i,i,eps1(i),i,mz(i),i,n_t(i)
+            write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_t(i),i,mz(i)
             write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
           end if
         end do
@@ -1016,7 +992,7 @@ contains
     return
   end subroutine sc_equations_and_jacobian
 
-  ! For a given value of center of band eps1 it calculates the
+  ! For a given value of charge density it calculates the
   ! occupation number and the magnetic moment
   subroutine sc_equations(N,x,fvec,iuser,ruser,iflag)
     use mod_constants, only: cI
@@ -1024,7 +1000,7 @@ contains
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx ,my ,mz, n_t, ndel
+    use mod_magnet, only: iter, mp, mx ,my ,mz, n_t
     use mod_Umatrix
     use mod_mpi_pars
     implicit none
@@ -1042,29 +1018,23 @@ contains
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
     mp_in = mx_in+cI*my_in
-    do i=1,s%nAtoms
-      hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
-      hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
-      ndel(i)   = 0.5d0*U(i+offset)*n_in(i)
-    end do
-    hdelm = conjg(hdelp)
 
     call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
 
     if((rField==0).and.(iter==1)) then
-      write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
+      write(outputunit_loop,"('|---------------- Starting charge density and magnetization ----------------|')")
       do i=1,s%nAtoms
         if(abs(mp(i))>1.d-10) then
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9,'N(',I2,')=',es16.9)") i,i,eps1(i),i,mx_in(i),i,my_in(i),i,mz_in(i),i,n_in(i)
+          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_in(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
         else
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9,'N(',I2,')=',es16.9)") i,i,eps1(i),i,mz_in(i),i,n_in(i)
+          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_in(i),i,mz_in(i)
         end if
       end do
     end if
 
     call calcMagnetization(n_t, mx, my, mz, mp, N)
     do i = 1, s%nAtoms
-      fvec(i) = n_t(i) - n_in(i) !s%Types(s%Basis(i)%Material)%Occupation
+      fvec(i) = n_t(i) - n_in(i)
       fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
       fvec(i+2*s%nAtoms) = my(i) - my_in(i)
       fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
@@ -1073,10 +1043,10 @@ contains
     if(rField==0) then
       do i=1,s%nAtoms
         if(abs(mp(i))>1.d-10) then
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9,'N(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i),i,n_t(i)
+          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_t(i),i,mx(i),i,my(i),i,mz(i)
           write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+s%nAtoms,fvec(i+s%nAtoms),i+2*s%nAtoms,fvec(i+2*s%nAtoms),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
         else
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9,'N(',I2,')=',es16.9)") i,i,eps1(i),i,mz(i),i,n_t(i)
+          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_t(i),i,mz(i)
           write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
         end if
       end do
@@ -1103,7 +1073,7 @@ contains
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx, my, mz, n_t, ndel
+    use mod_magnet, only: iter, mp, mx, my, mz, n_t
     use mod_Umatrix
     use mod_mpi_pars
     implicit none
@@ -1119,22 +1089,16 @@ contains
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
     mp_in = mx_in+cI*my_in
-    do i=1,s%nAtoms
-      hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
-      hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
-      ndel(i)   = 0.5d0*U(i+offset)*n_in(i)
-    end do
-    hdelm = conjg(hdelp)
 
     call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
 
     if((rField==0).and.(iter==1)) then
-      write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
+      write(outputunit_loop,"('|---------------- Starting charge density and magnetization ----------------|')")
       do i=1,s%nAtoms
         if(abs(mp(i))>1.d-10) then
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
+          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_in(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
         else
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz_in(i)
+          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_in(i),i,mz_in(i)
         end if
       end do
     end if
@@ -1153,10 +1117,10 @@ contains
       if(rField==0) then
         do i=1,s%nAtoms
           if(abs(mp(i))>1.d-10) then
-            write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i)
+            write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_t(i),i,mx(i),i,my(i),i,mz(i)
             write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+s%nAtoms,fvec(i+s%nAtoms),i+2*s%nAtoms,fvec(i+2*s%nAtoms),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
           else
-            write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz(i)
+            write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_t(i),i,mz(i)
             write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
           end if
         end do
@@ -1174,7 +1138,7 @@ contains
     return
   end subroutine sc_eqs_and_jac_old
 
-  ! For a given value of center of band eps1 it calculates the
+  ! For a given value of charge density it calculates the
   ! occupation number and the magnetic moment
   subroutine sc_eqs_old(N,x,fvec,iflag)
     use mod_f90_kind, only: double
@@ -1182,7 +1146,7 @@ contains
     use mod_parameters, only: offset, U, outputunit_loop
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, mp, mx, my, mz, n_t, ndel
+    use mod_magnet, only: iter, mp, mx, my, mz, n_t
     use mod_Umatrix
     use mod_mpi_pars
     implicit none
@@ -1198,22 +1162,16 @@ contains
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
     mp_in = mx_in+cI*my_in
-    do i=1,s%nAtoms
-      hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
-      hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
-      ndel(i) = 0.5d0*U(i+offset)*n_in(i)
-    end do
-    hdelm = conjg(hdelp)
 
     call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
 
     if((rField==0).and.(iter==1)) then
-      write(outputunit_loop,"('|---------------- Starting eps1 and magnetization ----------------|')")
+      write(outputunit_loop,"('|---------------- Starting charge density and magnetization ----------------|')")
       do i=1,s%nAtoms
         if(abs(mp(i))>1.d-10) then
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
+          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_in(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
         else
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz_in(i)
+          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_in(i),i,mz_in(i)
         end if
       end do
     end if
@@ -1229,10 +1187,10 @@ contains
     if(rField==0) then
       do i=1,s%nAtoms
         if(abs(mp(i))>1.d-10) then
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mx(i),i,my(i),i,mz(i)
+          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_t(i),i,mx(i),i,my(i),i,mz(i)
           write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+s%nAtoms,fvec(i+s%nAtoms),i+2*s%nAtoms,fvec(i+2*s%nAtoms),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
         else
-          write(outputunit_loop,"('Plane ',I2,': eps1(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,eps1(i),i,mz(i)
+          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_t(i),i,mz(i)
           write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
         end if
       end do
@@ -1251,7 +1209,7 @@ contains
     use mod_parameters, only: offset, U
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter, eps1, hdel, hdelm, hdelp, n_t, ndel
+    use mod_magnet, only: iter, n_t
     use mod_Umatrix
     use mod_mpi_pars
     implicit none
@@ -1268,12 +1226,6 @@ contains
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
     mp_in = mx_in+cI*my_in
-    do i=1,s%nAtoms
-      hdel(i)   = 0.5d0*U(i+offset)*mz_in(i)
-      hdelp(i)  = 0.5d0*U(i+offset)*mp_in(i)
-      ndel(i) = 0.5d0*U(i+offset)*n_in(i)
-    end do
-    hdelm = conjg(hdelp)
 
     call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
 
