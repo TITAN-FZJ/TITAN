@@ -2,7 +2,7 @@ module mod_magnet
   use mod_f90_kind, only: double
   use mod_parameters, only: dmax
   implicit none
-
+ 
   logical :: lfield !< Turn on/off static magnetic field, option to give in magnetic field in tesla
 
   integer                     :: iter                                   ! self-consistency iteration
@@ -11,6 +11,7 @@ module mod_magnet
   real(double),allocatable    :: lxpm(:),lypm(:),lzpm(:)                ! Orbital angular momentum in local frame of reference
   complex(double),allocatable :: mp(:),hdelp(:)
   complex(double),allocatable :: mm(:),hdelm(:)
+  real(double),allocatable    :: n_t(:), ndel(:)
   real(double),allocatable    :: mabs(:),mtheta(:),mphi(:),mvec_spherical(:,:)
   real(double),allocatable    :: labs(:),ltheta(:),lphi(:)
   real(double),allocatable    :: lpabs(:),lptheta(:),lpphi(:)
@@ -345,6 +346,9 @@ contains
               lpabs(nAtoms), lptheta(nAtoms), lpphi(nAtoms), STAT = AllocateStatus )
     if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mabs,mtheta,mphi,labs,ltheta,lphi,lpabs,lptheta,lpphi")
 
+    allocate( n_t(nAtoms), ndel(nAtoms), stat = AllocateStatus)
+    if(AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: n_t, ndel")
+
     return
   end subroutine
 
@@ -382,7 +386,8 @@ contains
     if(allocated(hhwz)) deallocate(hhwz)
     if(allocated(sb)) deallocate(sb)
     if(allocated(lb)) deallocate(lb)
-
+    if(allocated(n_t)) deallocate(n_t)
+    if(allocated(ndel)) deallocate(ndel)
     return
   end subroutine
 
