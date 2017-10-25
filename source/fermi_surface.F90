@@ -28,16 +28,16 @@ subroutine fermi_surface(e)
   end if
   do i=1,s%nAtoms
     write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'layer',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),trim(epart),i,BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-    open (unit=17+(mpitag-1)*s%nAtoms+i, file=varm,status='replace')
+    open (unit=17+i, file=varm,status='replace')
   end do
   write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'s_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),trim(epart),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-  open (unit=96+mpitag, file=varm,status='replace')
+  open (unit=96, file=varm,status='replace')
   write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'p_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),trim(epart),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-  open (unit=97+mpitag, file=varm,status='replace')
+  open (unit=97, file=varm,status='replace')
   write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'d_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),trim(epart),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-  open (unit=98+mpitag, file=varm,status='replace')
+  open (unit=98, file=varm,status='replace')
   write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'total_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),trim(epart),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
-  open (unit=99+mpitag, file=varm,status='replace')
+  open (unit=99, file=varm,status='replace')
 
   fs_layer = 0.d0
   fs_orb   = 0.d0
@@ -92,22 +92,22 @@ subroutine fermi_surface(e)
   do iz = 1, BZ%nkpt
     kp = BZ%kp(1:3,iz)
     do i = 1, s%nAtoms
-      write(unit=17+(mpitag-1)*s%nAtoms+i,fmt="(6(es16.9,2x))") kp(1), kp(2), kp(3), (fs_layer(i,iz,sigma),sigma=1,4)
+      write(unit=17+i,fmt="(6(es16.9,2x))") kp(1), kp(2), kp(3), (fs_layer(i,iz,sigma),sigma=1,4)
     end do
 
-    write(unit=96+mpitag,fmt="(6(es16.9,2x))") kp(1), kp(2), kp(3),(fs_orb(1,iz,sigma),sigma=1,4)
-    write(unit=97+mpitag,fmt="(6(es16.9,2x))") kp(1), kp(2), kp(3),(fs_orb(2,iz,sigma),sigma=1,4)
-    write(unit=98+mpitag,fmt="(6(es16.9,2x))") kp(1), kp(2), kp(3),(fs_orb(3,iz,sigma),sigma=1,4)
-    write(unit=99+mpitag,fmt="(6(es16.9,2x))") kp(1), kp(2), kp(3),(fs_total(iz,sigma),sigma=1,4)
+    write(unit=96,fmt="(6(es16.9,2x))") kp(1), kp(2), kp(3),(fs_orb(1,iz,sigma),sigma=1,4)
+    write(unit=97,fmt="(6(es16.9,2x))") kp(1), kp(2), kp(3),(fs_orb(2,iz,sigma),sigma=1,4)
+    write(unit=98,fmt="(6(es16.9,2x))") kp(1), kp(2), kp(3),(fs_orb(3,iz,sigma),sigma=1,4)
+    write(unit=99,fmt="(6(es16.9,2x))") kp(1), kp(2), kp(3),(fs_total(iz,sigma),sigma=1,4)
   end do
   ! Closing files
   do i=1,s%nAtoms
-    close (17+(mpitag-1)*s%nAtoms+i)
+    close (17+i)
   end do
-  close(96+mpitag)
-  close(97+mpitag)
-  close(98+mpitag)
-  close(99+mpitag)
+  close(96)
+  close(97)
+  close(98)
+  close(99)
 
   return
 end subroutine fermi_surface

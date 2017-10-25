@@ -17,7 +17,7 @@ contains
     use mod_parameters, only: renorm
     use mod_System, only: s => sys
     use mod_magnet, only: lfield, total_hw_npt1
-    use mod_mpi_pars, only: abortProgram, myrank_row
+    use mod_mpi_pars, only: abortProgram, rFreq
     implicit none
     integer :: AllocateStatus
 
@@ -28,7 +28,7 @@ contains
       ntypetorque=2
     end if
 
-    if(myrank_row==0) then
+    if(rFreq(1)==0) then
       allocate( torques(ntypetorque,3, s%nAtoms), total_torques(ntypetorque,3), STAT = AllocateStatus )
       if (AllocateStatus/=0) call abortProgram("[allocate_torques] Not enough memory for: torques,total_torques")
       if(renorm) then
@@ -53,9 +53,8 @@ contains
 
   subroutine create_torque_files()
   !! This subroutine creates all the files needed for the disturbances
-  use mod_parameters, only: fieldpart, lhfresponses, strSites, eta, Utype, suffix, renorm, hfr
+  use mod_parameters, only: fieldpart, strSites, eta, Utype, suffix, renorm, hfr
   use mod_SOC, only: SOCc, socpart
-  use mod_magnet, only: lfield, total_hw_npt1
   use mod_mpi_pars
   use mod_system, only: s => sys
   use mod_BrillouinZone, only: BZ
@@ -97,9 +96,8 @@ contains
 
   subroutine open_torque_files()
   !! This subroutine opens all the files needed for the disturbances
-  use mod_parameters, only: fieldpart, lhfresponses, strSites, eta, Utype, suffix, renorm, missing_files, hfr
+  use mod_parameters, only: fieldpart, strSites, eta, Utype, suffix, renorm, missing_files, hfr
   use mod_SOC, only: SOCc, socpart
-  use mod_magnet, only: lfield, total_hw_npt1
   use mod_mpi_pars
   use mod_system, only: s => sys
   use mod_BrillouinZone, only: BZ
@@ -245,8 +243,8 @@ contains
 
   subroutine create_dc_torque_files()
   !! This subroutine creates all the files needed for the disturbances
-    use mod_parameters, only: dcfieldpart, lhfresponses, strSites, count, eta, Utype, suffix, renorm, hfr
-    use mod_magnet, only: lfield, total_hw_npt1, dcprefix, dcfield_dependence, dcfield, dc_header
+    use mod_parameters, only: dcfieldpart, strSites, count, eta, Utype, suffix, renorm, hfr
+    use mod_magnet, only: dcprefix, dcfield_dependence, dcfield, dc_header
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
     use mod_BrillouinZone, only: BZ
@@ -287,8 +285,8 @@ contains
 
   subroutine open_dc_torque_files()
   !! This subroutine opens all the files needed for the disturbances
-    use mod_parameters, only: dcfieldpart, lhfresponses, strSites, count, missing_files, eta, Utype, suffix, renorm, hfr
-    use mod_magnet, only: lfield, total_hw_npt1, dcprefix, dcfield_dependence, dcfield
+    use mod_parameters, only: dcfieldpart, strSites, count, missing_files, eta, Utype, suffix, renorm, hfr
+    use mod_magnet, only: dcprefix, dcfield_dependence, dcfield
     use mod_mpi_pars
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys

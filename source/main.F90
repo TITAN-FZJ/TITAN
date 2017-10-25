@@ -15,6 +15,7 @@ program TITAN
   use mod_SOC            ! New
   use mod_magnet
   use ElectricField
+  use adaptiveMesh
   use AtomTypes
   use mod_gilbert_damping
   !use mod_define_system TODO: Re-include
@@ -30,7 +31,6 @@ program TITAN
   implicit none
 
   integer           :: count_hw
-  logical           :: lsuccess = .false.
 
   !-------------------------- MPI initialization --------------------------
   call Initialize_MPI()
@@ -45,7 +45,7 @@ program TITAN
     call get_parameters("input", sys) ! TODO: Sort parameters
 #endif
 
-  if(myrank==0) call write_time(outputunit,'[main] Started on: ')
+  if(myrank == 0) call write_time(outputunit,'[main] Started on: ')
 
   !-------------------- Useful constants and matrices --------------------
   call define_constants() ! TODO: Review
@@ -54,8 +54,8 @@ program TITAN
   call setMagneticLoopPoints()
 
   !----------- Creating bi-dimensional matrix of MPI processes  ----------
-  call setup_MPI_grid(itype, pn1, npt1, pnt,total_hw_npt1, npts, deltae, emin, emax)
-
+  !call setup_MPI_grid(itype, pn1, npt1, pnt,total_hw_npt1, npts, deltae, emin, emax)
+  call genMPIGrid(parField,total_hw_npt1,parFreq,npt1 - skip_steps)
   !-------------------- Define the lattice structure ---------------------
   call initLattice(sys)
   ! Writing Positions into file
@@ -69,6 +69,8 @@ program TITAN
   !---- Generating integration points of the complex energy integral -----
   call allocate_energy_points()
   call generate_imag_epoints()
+
+  call generateAdaptiveMeshes()
 
   ! DFT tight binding mode has two additional vacuum layers
   !Npl_total = Npl
@@ -105,17 +107,14 @@ program TITAN
 
   !call setup_long_and_trans_current_neighbors(sys) !TODO: Not implemented TODO: Re-include
 
-
   !------------------------- MAGNETIC FIELD LOOP -------------------------
-  if((myrank==0).and.(skip_steps_hw>0)) write(outputunit,"('[main] Skipping first ',i0,' field step(s)...')") skip_steps_hw
+  if(myrank == 0 .and. skip_steps_hw > 0) write(outputunit,"('[main] Skipping first ',i0,' field step(s)...')") skip_steps_hw
 
-  do count_hw = 1 + skip_steps_hw, MPIsteps_hw
-    hw_count = 1 + myrank_col_hw + MPIpts_hw*(count_hw-1)
-
+  do hw_count = startField, endField
 
     !------------ Opening files (general and one for each field) -----------
-    if(myrank_row_hw == 0) then
-      if((total_hw_npt1 == 1).or.(itype == 6)) then
+    if(rField == 0) then
+      if(total_hw_npt1 == 1 .or. itype == 6 ) then
         outputfile_loop = outputfile
         outputunit_loop = outputunit
       else
@@ -124,7 +123,6 @@ program TITAN
         open (unit=outputunit_loop, file=trim(outputfile_loop), status='replace')
       end if
     end if
-
 
     !------------------- Initialize Magnetic Field --------------------
     call initMagneticField(sys%nAtoms)
@@ -139,7 +137,7 @@ program TITAN
     end if
 
     !------- Writing parameters and data to be calculated on screen --------
-    if(myrank_row_hw==0) call iowrite(sys)
+    if(rField == 0) call iowrite(sys)
 
     !---- L matrix in global frame for given quantization direction ----
     call l_matrix()
@@ -162,7 +160,7 @@ program TITAN
 
     !------------------- Only create files with headers --------------------
     if(lcreatefiles) then
-      if(myrank==0) then
+      if(rField == 0) then
         call create_files()
         if((itype==7).or.(itype==8)) cycle
       end if
@@ -170,11 +168,11 @@ program TITAN
       stop
     end if
     !------------- Check if files exist to add results or sort -------------
-    if(((lsortfiles).or.(laddresults)).and.(myrank==0)) call check_files()
+    if( (lsortfiles .or. laddresults) .and. rField == 0 ) call check_files()
 
     !----------------------- Only sort existing files ----------------------
     if(lsortfiles) then
-      if(myrank==0) call sort_all_files()
+      if(rField == 0) call sort_all_files()
       cycle
     end if
 
@@ -193,8 +191,8 @@ program TITAN
     ! end if
 
     !-------------------------- Begin first test part ----------------------
-    if((myrank==0).and.(itype==0)) then
-      write(outputunit,"('[main] FIRST TEST PART')")
+    if(rField == 0 .and. itype==0) then
+      write(outputunit_loop,"('[main] FIRST TEST PART')")
       mz  = 0.d0
       mp  = cZero
       mm  = conjg(mp)
@@ -210,39 +208,19 @@ program TITAN
       call ldos()
       ! call debugging()
     end if
+
     if(lcreatefolders) call create_folder()
 
-    !--------------------------- Self-consistency --------------------------
-    ! Trying to read previous shifts and m from files
-    call read_previous_results(lsuccess)
-    ! Rotate the magnetization to the direction of the field
-    ! (useful for SOC=F)
-    ! Only when some previous result was read from file (lsuccess=.true.)
-    if((lrotatemag).and.(lsuccess)) then
-      call rotate_magnetization_to_field()
-      cycle
-    end if
+
     ! Self-consistency
 
     ! Time now
-    if(myrank_row_hw==0)  call write_time(outputunit_loop,'[main] Time before self-consistency: ')
-    if(lselfcon) call do_self_consistency()
+    if(rField == 0)  call write_time(outputunit_loop,'[main] Time before self-consistency: ')
 
-    ! Writing new eps1 and mz to file after self-consistency is done
-    if(.not.lontheflysc) call write_sc_results()
-
-
-    ! L matrix in local frame for given quantization direction
-    call lp_matrix(mtheta, mphi)
-
-    ! Calculating ground state Orbital Angular Momentum
-    if(lGSL) call calcLGS()
-
-    ! Writing self-consistency results on screen
-    if(myrank_row_hw==0)  call print_sc_results()
+    call doSelfConsistency()
 
     ! Time now
-    if(myrank_row_hw==0)  call write_time(outputunit_loop,'[main] Time after self-consistency: ')
+    if(rField==0)  call write_time(outputunit_loop,'[main] Time after self-consistency: ')
 
     !---- Only calculate long. and transv. currents from existing files ----
     ! if(llgtv) then TODO: Re-include
@@ -256,11 +234,11 @@ program TITAN
     case (2)
       !call debugging() TODO: Re-Include
     case (3)
-      if(myrank_row_hw==0) call ldos_and_coupling()
+      call ldos_and_coupling()
     case (4)
-      if(myrank_row_hw==0) call band_structure(sys)
+      if(rField == 0) call band_structure(sys)
     case (5)
-      if(myrank_row_hw==0) call fermi_surface(Ef)
+      call fermi_surface(Ef)
     case (6)
       call coupling()
     case (7)
@@ -275,9 +253,9 @@ program TITAN
     !========================================================================
 
     ! Emergency stop after the calculation for a Npl or field is finished (don't check on last step)
-    if((total_hw_npt1/=1).and.(count_hw<MPIsteps_hw)) call check_emergency_stop(sys%nAtoms, hw_list, hw_count)
+    if(total_hw_npt1 /= 1 .and. count_hw < endField) call check_emergency_stop(sys%nAtoms, hw_list, hw_count)
     !---------------------------- Closing files ----------------------------
-    if(((total_hw_npt1/=1).and.(itype/=6)).and.(myrank_row_hw==0)) close(outputunit_loop)
+    if(total_hw_npt1 /= 1 .and.  itype /= 6 .and. rField == 0) close(outputunit_loop)
     !---------------------- Ending magnetic field loop ---------------------
   end do
 
@@ -289,9 +267,9 @@ program TITAN
   !deallocate(kbz,wkbz) !,kbz2d)
 
   !----------------------- Finalizing the program ------------------------
-  if(myrank==0) call write_time(outputunit,'[main] Finished on: ')
-  if(myrank==0) close(unit=outputunit)
+  if(myrank == 0) call write_time(outputunit,'[main] Finished on: ')
+  if(myrank == 0) close(unit=outputunit)
   call MPI_Finalize(ierr)
-  if((ierr/=0).and.(myrank==0)) write(outputunit,"('[main] Something went wrong in the parallelization! ierr = ',i0)") ierr
+  if(ierr /= 0 .and. myrank == 0) write(outputunit,"('[main] Something went wrong in the parallelization! ierr = ',i0)") ierr
 
 end program TITAN

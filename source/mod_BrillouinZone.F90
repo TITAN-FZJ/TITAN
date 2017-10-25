@@ -19,7 +19,7 @@ module mod_BrillouinZone
    implicit none
 
    type :: BrillouinZone
-      integer :: nkpt
+      integer :: nkpt = 0
       integer :: nkpt_x = 0
       integer :: nkpt_y = 0
       integer :: nkpt_z = 0
@@ -30,6 +30,8 @@ module mod_BrillouinZone
       logical :: is_bulk
    contains
       procedure :: setup => setup_BrillouinZone
+      procedure :: free => deallocate_BrillouinZone
+      procedure :: isAlloc => isAlloc_BrillouinZone
       procedure, private :: generate_2d => generate_2D_BZ
       procedure, private :: generate_3d => generate_3D_BZ
       procedure :: print => output_kpoints
@@ -54,6 +56,25 @@ contains
     end if
     return
   end subroutine setup_BrillouinZone
+
+  subroutine deallocate_BrillouinZone(self)
+     implicit none
+     class(BrillouinZone) :: self
+     if(allocated(self%kp)) deallocate(self%kp)
+     if(allocated(self%w)) deallocate(self%w)
+     return
+  end subroutine deallocate_BrillouinZone
+
+  logical function isAlloc_BrillouinZone(self)
+     implicit none
+     class(BrillouinZone) :: self
+     if(allocated(self%kp)) then
+        isAlloc_BrillouinZone = .true.
+     else
+        isAlloc_BrillouinZone = .false.
+     end if
+     return
+  end function isAlloc_BrillouinZone
 
   subroutine generate_3D_BZ(self, a1, a2, a3)
     use mod_f90_kind, only: double
@@ -166,6 +187,7 @@ contains
     self%nkpt = self%nkpt + numextrakbz
 
     deallocate(extrakbz, extrawkbz)
+    deallocate(iniwkbz, inikbz)
 
     return
   end subroutine  generate_3D_BZ
@@ -267,6 +289,10 @@ contains
     self%w = self%w/dble(self%nkpt)
     self%nkpt = self%nkpt + numextrakbz
     return
+
+    deallocate(extrakbz, extrawkbz)
+    deallocate(iniwkbz, inikbz)
+
   end subroutine  generate_2D_BZ
 
 

@@ -2,14 +2,14 @@
 subroutine jij_energy(Jij)
   use mod_f90_kind, only: double
   use mod_constants, only: pi, cOne, cZero, pauli_dorb
-  use mod_parameters, only: mmlayermag, U, q, mmlayermag, outputunit, nmaglayers, Ef, outputunit
-  use EnergyIntegration, only: pn1, y, wght
+  use mod_parameters, only: mmlayermag, U, q, mmlayermag, nmaglayers, Ef
+  use EnergyIntegration, only: y, wght
   use mod_mpi_pars
   use mod_magnet, only: mx,my,mz,mabs
   use mod_system, only: s => sys
-  use mod_BrillouinZone, only: BZ
+  use adaptiveMesh
   use TightBinding, only: nOrb,nOrb2
-
+  use mod_mpi_pars
 
   implicit none
   real(double),dimension(nmaglayers,nmaglayers,3,3) :: Jijint
@@ -17,7 +17,7 @@ subroutine jij_energy(Jij)
 
   integer :: ix,iz
   integer :: i,j,mu,nu,alpha
-  real(double) :: kp(3), kminusq(3)
+  real(double) :: kp(3), kminusq(3), ep
   real(double) :: evec(3,nmaglayers)
   real(double) :: Jijk(nmaglayers,nmaglayers,3,3)
   real(double) :: Jijkan(nmaglayers,3,3)
@@ -28,32 +28,8 @@ subroutine jij_energy(Jij)
   complex(double), dimension(nOrb2,nOrb2,s%nAtoms,s%nAtoms) :: gf,gfq
   complex(double) :: weight
   !--------------------- begin MPI vars --------------------
-  integer :: start, end, work, remainder
   integer :: ncount
   !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
-
-  ! Calculate workload for each MPI process
-  if(numprocs <= pn1) then
-    remainder = mod(pn1,numprocs)
-    if(myrank < remainder) then
-      work = ceiling(dble(pn1) / dble(numprocs))
-      start = myrank*work + 1
-      end = (myrank+1) * work
-    else
-      work = floor(dble(pn1) / dble(numprocs))
-      start = myrank*work + 1 + remainder
-      end = (myrank+1) * work + remainder
-    end if
-  else
-    write(outputunit, "('[jij_energy] Too many MPI threads. ',i0,' threads are idle.')") numprocs - pn1
-    if(myrank < pn1) then
-      start = myrank + 1
-      end = myrank + 1
-    else
-      start = 0
-      end = 0
-    end if
-  end if
 
   ncount = nmaglayers * nmaglayers * 3 * 3
 
@@ -83,17 +59,17 @@ subroutine jij_energy(Jij)
   Jij = 0.d0
 
   !$omp parallel default(none) &
-  !$omp& private(ix,iz,i,j,mu,nu,alpha,kp,weight,kminusq,gf,gfq,gij,gji,paulia,paulib,temp1,temp2,Jijkan,Jijk,Jijint) &
-  !$omp& shared(s,BZ,Ef,y,wght,q,start,end,dbxcdm,d2bxcdm2,mz,nmaglayers,mmlayermag,Jij)
+  !$omp& private(ix,i,j,mu,nu,alpha,kp,ep,weight,kminusq,gf,gfq,gij,gji,paulia,paulib,temp1,temp2,Jijkan,Jijk,Jijint) &
+  !$omp& shared(s,Ef,y,wght,q,local_points,dbxcdm,d2bxcdm2,mz,nmaglayers,mmlayermag,Jij,bzs,E_k_imag_mesh)
 
   Jijint = 0.d0
 
-  !$omp do schedule(static) collapse(2)
-  do ix = start, end
-    do iz = 1, BZ%nkpt
-      kp = BZ%kp(1:3,iz)
-      weight = BZ%w(iz) * wght(ix)
-      ! Green function on energy Ef + iy, and wave vector kp
+  !$omp do schedule(static)
+  do ix = 1, local_points
+     ep = y( E_k_imag_mesh(1,ix) )
+     kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix))
+     weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix))
+     ! Green function on energy Ef + iy, and wave vector kp
       call green(Ef,y(ix),kp,gf)
 
       ! Green function on energy Ef + iy, and wave vector kp-q
@@ -139,7 +115,6 @@ subroutine jij_energy(Jij)
       end do
 
       Jijint = Jijint + Jijk * weight
-    end do
   end do
   !$omp end do nowait
 
@@ -149,8 +124,11 @@ subroutine jij_energy(Jij)
   !$omp end critical
   !$omp end parallel
 
-
-  call MPI_Allreduce(MPI_IN_PLACE, Jij, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
+  if(activeRank == 0) then
+     call MPI_Reduce(MPI_IN_PLACE, Jij, nmaglayers*nmaglayers*3*3, MPI_DOUBLE_PRECISION, MPI_SUM, 0, activeComm, ierr)
+  else
+     call MPI_Reduce(Jij, Jij, nmaglayers*nmaglayers*3*3, MPI_DOUBLE_PRECISION, MPI_SUM, 0, activeComm, ierr)
+  end if
 
   !Jij = Jij / pi !TODO: Check with filipe if wrong
   return

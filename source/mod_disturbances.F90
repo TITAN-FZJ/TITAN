@@ -25,11 +25,11 @@ contains
       use mod_f90_kind, only: double
       use mod_parameters, only: renorm,dim,dimsigmaNpl
       use mod_System, only: s => sys
-      use mod_mpi_pars, only: abortProgram, myrank_row
+      use mod_mpi_pars, only: abortProgram, rFreq
       implicit none
       integer           :: AllocateStatus
 
-      if(myrank_row==0) then
+      if(rFreq(1) == 0) then
          allocate( disturbances(7,s%nAtoms),total_disturbances(7),sdmat(dimsigmaNpl),ldmat(s%nAtoms,9,9), STAT = AllocateStatus )
          if (AllocateStatus/=0) call abortProgram("[allocate_disturbances] Not enough memory for: disturbances,total_disturbances,dmat,ldmat")
 
@@ -60,7 +60,7 @@ contains
 
    subroutine create_disturbance_files()
    !! This subroutine creates all the files needed for the disturbances
-       use mod_parameters, only: fieldpart, lhfresponses, strSites, eta, suffix, Utype, renorm, renormnb, hfr
+       use mod_parameters, only: fieldpart, strSites, eta, suffix, Utype, renorm, renormnb, hfr
        use mod_SOC, only: SOCc, socpart
        use mod_mpi_pars
        use mod_system, only: s => sys
@@ -100,7 +100,7 @@ contains
 
    subroutine open_disturbance_files()
    !! This subroutine opens all the files needed for the disturbances
-      use mod_parameters, only: fieldpart, lhfresponses, strSites, eta, suffix, Utype, renorm, renormnb, missing_files, hfr
+      use mod_parameters, only: fieldpart, strSites, eta, suffix, Utype, renorm, renormnb, missing_files, hfr
       use mod_SOC, only: SOCc, socpart
       use mod_mpi_pars
       use mod_system, only: s => sys
@@ -277,7 +277,7 @@ contains
 
    subroutine create_dc_disturbance_files
    !! This subroutine creates all the files needed for the dc-limit disturbances
-      use mod_parameters, only: dcfieldpart, lhfresponses, count, strSites,eta, Utype, suffix, renorm, renormnb, hfr
+      use mod_parameters, only: dcfieldpart, count, strSites,eta, Utype, suffix, renorm, renormnb, hfr
       use mod_magnet, only: dcprefix, dcfield_dependence, dcfield, dc_header
       use mod_mpi_pars
       use mod_SOC, only: SOCc, socpart
@@ -319,7 +319,7 @@ contains
 
   subroutine open_dc_disturbance_files
   ! This subroutine opens all the files needed for the dc-limit disturbances
-    use mod_parameters, only: dcfieldpart, lhfresponses, count, strSites,eta, Utype, suffix, renorm, renormnb, missing_files, hfr
+    use mod_parameters, only: dcfieldpart, count, strSites,eta, Utype, suffix, renorm, renormnb, missing_files, hfr
     use mod_magnet, only: dcprefix, dcfield_dependence, dcfield
     use mod_mpi_pars
     use mod_SOC, only: SOCc, socpart

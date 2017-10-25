@@ -33,11 +33,11 @@ contains
     use mod_parameters, only: dim, nmaglayers
     use mod_SOC, only: llinearsoc
     use mod_system, only: s => sys
-    use mod_mpi_pars, only: abortProgram, myrank_row, myrank_col
+    use mod_mpi_pars, only: abortProgram, rFreq
     implicit none
     integer :: AllocateStatus
 
-    if(myrank_row==0) then
+    if(rFreq(1) == 0) then
       allocate( schi(4,4,s%nAtoms, s%nAtoms), &
                 schihf(4,4,s%nAtoms, s%nAtoms), &
                 chiorb(dim,dim), STAT = AllocateStatus )
@@ -52,7 +52,7 @@ contains
         if (AllocateStatus/=0) call abortProgram("[allocate_susceptibilities] Not enough memory for: rotmat_i,rotmat_j,rottemp,schitemp,schirot")
       end if
 
-      if(myrank_col==0) then
+      if(rFreq(2) == 0) then
         if(nmaglayers>1) then
           lwork = 33*nmaglayers
           allocate( chimag(nmaglayers,nmaglayers), &

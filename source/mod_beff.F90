@@ -14,13 +14,13 @@ contains
   subroutine allocate_beff()
  !! This subroutine allocates variables related to the effective field calculation
     use mod_f90_kind, only: double
-    use mod_mpi_pars, only: abortProgram, myrank_row
+    use mod_mpi_pars, only: abortProgram, rFreq
     use mod_parameters, only: dimsigmaNpl
     use mod_System, only: s => sys
     implicit none
     integer :: AllocateStatus
 
-    if(myrank_row==0) then
+    if(rFreq(1) == 0) then
       allocate( Beff(dimsigmaNpl),Beff_cart(4,s%nAtoms),total_Beff(4),chiinv(dimsigmaNpl,dimsigmaNpl), STAT = AllocateStatus )
       if (AllocateStatus /= 0) call abortProgram("[allocate_beff] Not enough memory for: Beff,Beff_cart,total_Beff,chiinv")
     end if
@@ -41,7 +41,7 @@ contains
 
   subroutine create_beff_files()
   !! This subroutine creates all the files needed for the effective field
-    use mod_parameters, only: suffix, fieldpart, lhfresponses, strSites, eta, Utype, hfr
+    use mod_parameters, only: suffix, fieldpart, strSites, eta, Utype, hfr
     use mod_mpi_pars, only: abortProgram
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
@@ -73,7 +73,7 @@ contains
 
   subroutine open_beff_files()
   !! This subroutine opens all the files needed for the effective field
-    use mod_parameters, only: suffix, fieldpart, lhfresponses, strSites, eta, Utype, missing_files, hfr
+    use mod_parameters, only: suffix, fieldpart, strSites, eta, Utype, missing_files, hfr
     use mod_mpi_pars, only: abortProgram
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
@@ -129,7 +129,6 @@ contains
     !! (already opened with openclose_beff_files(1))
     !! Some information may also be written on the screen
     use mod_f90_kind, only: double
-    use mod_parameters, only: sigmai2i
     use mod_magnet, only: mvec_spherical
     use mod_system, only: s => sys
     implicit none
@@ -177,7 +176,7 @@ contains
 
   subroutine create_dc_beff_files()
     !! This subroutine creates all the files needed for the effective field
-    use mod_parameters, only: lhfresponses,dcfieldpart, suffix, strSites, Utype, eta, hfr
+    use mod_parameters, only: dcfieldpart, suffix, strSites, Utype, eta, hfr
     use mod_magnet, only: dcprefix, dc_header, dcfield, dcfield_dependence
     use mod_mpi_pars, only: abortProgram
     use mod_SOC, only: SOCc, socpart
@@ -211,7 +210,7 @@ contains
 
   subroutine open_dc_beff_files()
   !! This subroutine opens all the files needed for the effective field
-    use mod_parameters, only: lhfresponses,dcfieldpart, suffix, strSites, Utype, eta, missing_files, hfr
+    use mod_parameters, only: dcfieldpart, suffix, strSites, Utype, eta, missing_files, hfr
     use mod_magnet, only: dcprefix, dcfield, dcfield_dependence
     use mod_mpi_pars, only: abortProgram
     use mod_SOC, only: SOCc, socpart
@@ -263,8 +262,7 @@ contains
     !! This subroutine write all the effective fields into files
     !! (already opened with openclose_dc_beff_files(1))
     !! Some information may also be written on the screen
-    !use mod_f90_kind
-    use mod_parameters, only: sigmai2i
+    use mod_f90_kind, only: double
     use mod_magnet, only: mvec_spherical, dc_fields, hw_count
     use mod_system, only: s => sys
     implicit none

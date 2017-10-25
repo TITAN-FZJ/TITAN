@@ -23,6 +23,9 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
    real(double), dimension(3) :: kp
    real(double) :: weight
    integer :: i,j,mu,nu,iz,alpha
+   integer :: firstPoint, lastPoint
+
+   call calcWorkload(BZ%nkpt,sFreq(1),rFreq(1),firstPoint,lastPoint)
 
 ! (x,y,z)-tensor formed by Pauli matrices to calculate anisotropy term (when i=j)
   paulimatan = cZero
@@ -39,14 +42,14 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
 
 !$omp parallel default(none) &
 !$omp& private(iz,kp,weight,gf,gij,gji,paulia,paulib,i,j,mu,nu,alpha,gfdiagu,gfdiagd,Jijk,Jijkan,temp1,temp2,ldosu_loc,ldosd_loc,Jijint_loc) &
-!$omp& shared(s,BZ,e,eta,hdel,mz,nmaglayers,mmlayermag,pauli_dorb,paulimatan,ldosu,ldosd,Jijint)
+!$omp& shared(s,BZ,e,eta,hdel,mz,nmaglayers,mmlayermag,pauli_dorb,paulimatan,ldosu,ldosd,Jijint, firstPoint, lastPoint)
 allocate(ldosu_loc(s%nAtoms, nOrb), ldosd_loc(s%nAtoms, nOrb), Jijint_loc(nmaglayers,nmaglayers,3,3))
 ldosu_loc = 0.d0
 ldosd_loc = 0.d0
 Jijint_loc = 0.d0
 
-!$omp do
-do iz = 1, BZ%nkpt
+!$omp do schedule(static)
+do iz = firstPoint, lastPoint
     kp = BZ%kp(1:3,iz)
     weight = BZ%w(iz)
     ! Green function on energy E + ieta, and wave vector kp
@@ -103,7 +106,8 @@ do iz = 1, BZ%nkpt
     Jijint_loc = Jijint_loc + Jijk
 
   end do
-  !$omp end do
+  !$omp end do nowait
+
   !$omp critical
     ldosu = ldosu + ldosu_loc
     ldosd = ldosd + ldosd_loc
@@ -115,5 +119,14 @@ do iz = 1, BZ%nkpt
   ldosd  = ldosd/pi
   Jijint = Jijint/pi
 
+  if(rFreq(1) == 0) then
+     call MPI_Reduce(MPI_IN_PLACE, ldosu , s%nAtoms*nOrb            , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+     call MPI_Reduce(MPI_IN_PLACE, ldosd , s%nAtoms*nOrb            , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+     call MPI_Reduce(MPI_IN_PLACE, Jijint, nmaglayers*nmaglayers*3*3, MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+  else
+     call MPI_Reduce(ldosu , ldosu , s%nAtoms*nOrb            , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+     call MPI_Reduce(ldosd , ldosd , s%nAtoms*nOrb            , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+     call MPI_Reduce(Jijint, Jijint, nmaglayers*nmaglayers*3*3, MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+  end if
   return
 end subroutine ldos_jij_energy

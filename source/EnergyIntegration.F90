@@ -44,7 +44,7 @@ contains
     use mod_mpi_pars, only: abortProgram
     implicit none
     integer                       :: i,j,k,AllocateStatus
-    real(double)                  :: e1,e2,et1,xx
+    real(double)                  :: e1,e2,et1,xx, tmp1, tmp2
     real(double),allocatable      :: x1(:),p1(:)
 
     allocate(x1(pn1),p1(pn1), STAT=AllocateStatus)
@@ -71,12 +71,25 @@ contains
       call gauleg(e1,e2,x1(i:j),p1(i:j),n1gl)
     end do
     et1 = 1.d0+eta
-    do k=1,pn1
+    do k = 1, pn1
       y(k)  = (x1(k)+eta)/(1.d0-x1(k))
       xx    = (1.d0-x1(k))*(1.d0-x1(k))
       wght(k) = et1*p1(k)/xx
     end do
     deallocate(x1,p1)
+
+    do i = 1, pn1
+      do j = i+1, pn1
+         if(y(i) > y(j)) then
+            tmp1 = y(i)
+            y(i) = y(j)
+            y(j) = tmp1
+            tmp2 = wght(i)
+            wght(i) = wght(j)
+            wght(j) = tmp2
+         end if
+      end do
+   end do
     return
   end subroutine generate_imag_epoints
 

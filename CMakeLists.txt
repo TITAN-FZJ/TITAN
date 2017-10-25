@@ -25,6 +25,8 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_BrillouinZone.F90
                                   source/mod_SOC.F90
                                   source/mod_magnet.F90
+                                  source/mod_LDOS.F90
+                                  source/mod_Coupling.F90
                                   source/ElectricField.F90
                                   source/mod_io.F90
                                   source/ldos.F90
@@ -63,6 +65,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
 											 source/mod_torques.F90
 											 source/mod_disturbances.F90
 											 source/mod_prefactors.F90
+                                  source/adaptiveMesh.F90
                                   )
 
 if(PLATFORM MATCHES juqueen)
@@ -120,7 +123,7 @@ else()
                                            -O3
                                            -qopenmp
                                            -mkl
-                           					 -ipo
+                           					 #-ipo
 					                            #-qopt-report=5
 					                            -g
                                            -xHost)
