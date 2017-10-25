@@ -2,20 +2,19 @@ module mod_magnet
   use mod_f90_kind, only: double
   use mod_parameters, only: dmax
   implicit none
- 
+
   logical :: lfield !< Turn on/off static magnetic field, option to give in magnetic field in tesla
 
   integer                     :: iter                                   ! self-consistency iteration
-  real(double),allocatable    :: mx(:),my(:),mz(:),mvec_cartesian(:,:),hdel(:)    ! Magnetization and exchange split delta/2
+  real(double),allocatable    :: mx(:),my(:),mz(:),mvec_cartesian(:,:)  ! Magnetization and exchange split delta/2
   real(double),allocatable    :: lxm(:),lym(:),lzm(:)                   ! Orbital angular momentum in global frame of reference
   real(double),allocatable    :: lxpm(:),lypm(:),lzpm(:)                ! Orbital angular momentum in local frame of reference
-  complex(double),allocatable :: mp(:),hdelp(:)
-  complex(double),allocatable :: mm(:),hdelm(:)
-  real(double),allocatable    :: n_t(:), ndel(:)
+  complex(double),allocatable :: mp(:)
+  complex(double),allocatable :: mm(:)
+  real(double),allocatable    :: n_t(:)
   real(double),allocatable    :: mabs(:),mtheta(:),mphi(:),mvec_spherical(:,:)
   real(double),allocatable    :: labs(:),ltheta(:),lphi(:)
   real(double),allocatable    :: lpabs(:),lptheta(:),lpphi(:)
-  real(double),allocatable    :: eps1(:)
   !! Center of the bands for each l - eps(Npl)
   real(double), dimension(:), allocatable :: hhwx, hhwy, hhwz
   !! Half of Static magnetic fields in each direction
@@ -331,23 +330,20 @@ contains
     implicit none
     integer, intent(in) :: nAtoms
     integer :: AllocateStatus
-    allocate(eps1(nAtoms), STAT = AllocateStatus )
-    if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: eps1")
 
     allocate( mx(nAtoms), my(nAtoms), mz(nAtoms), &
               mvec_cartesian(nAtoms,3), &
               mvec_spherical(nAtoms,3), &
-              hdel(nAtoms),hdelp(nAtoms),hdelm(nAtoms), &
               mp(nAtoms),mm(nAtoms), STAT = AllocateStatus )
-    if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mx,my,mz,mvec_cartesian,mvec_spherical,hdel,mp,hdelp,mm,hdelm")
+    if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mx,my,mz,mvec_cartesian,mvec_spherical,mp,mm")
 
     allocate( mabs(nAtoms), mtheta(nAtoms), mphi(nAtoms), &
               labs(nAtoms), ltheta(nAtoms), lphi(nAtoms), &
               lpabs(nAtoms), lptheta(nAtoms), lpphi(nAtoms), STAT = AllocateStatus )
     if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mabs,mtheta,mphi,labs,ltheta,lphi,lpabs,lptheta,lpphi")
 
-    allocate( n_t(nAtoms), ndel(nAtoms), stat = AllocateStatus)
-    if(AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: n_t, ndel")
+    allocate( n_t(nAtoms), stat = AllocateStatus)
+    if(AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: n_t")
 
     return
   end subroutine
@@ -355,15 +351,12 @@ contains
   subroutine deallocate_magnet_variables()
     implicit none
 
-    if(allocated(eps1)) deallocate(eps1)
+    if(allocated(n_t)) deallocate(n_t)
     if(allocated(mx)) deallocate(mx)
     if(allocated(my)) deallocate(my)
     if(allocated(mz)) deallocate(mz)
     if(allocated(mm)) deallocate(mm)
     if(allocated(mp)) deallocate(mp)
-    if(allocated(hdel)) deallocate(hdel)
-    if(allocated(hdelm)) deallocate(hdelm)
-    if(allocated(hdelp)) deallocate(hdelp)
     if(allocated(mvec_spherical)) deallocate(mvec_spherical)
     if(allocated(mvec_cartesian)) deallocate(mvec_cartesian)
     if(allocated(mabs)) deallocate(mabs)
@@ -386,8 +379,6 @@ contains
     if(allocated(hhwz)) deallocate(hhwz)
     if(allocated(sb)) deallocate(sb)
     if(allocated(lb)) deallocate(lb)
-    if(allocated(n_t)) deallocate(n_t)
-    if(allocated(ndel)) deallocate(ndel)
     return
   end subroutine
 
