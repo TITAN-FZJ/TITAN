@@ -121,6 +121,7 @@ contains
     read(unit=995594, fmt='(A)', iostat = ios) line
     read(unit= line, fmt=*, iostat=ios) dens(1), dens(2), dens(3)
     material%Occupation = dens(1)+dens(2)+dens(3)
+    material%OccupationD = dens(3)
 
     a0_corr = material%LatticeConstant / a0  ! Scaling law by Andersen et al. O.K. Andersen, O. Jepsen, Physica 91B, 317 (1977); O.K. Andersen, W. Close. H. Nohl, Phys. Rev. B17, 1209 (1978)
                                              ! Distance dependence of tight binding matrix elements is given by V = C * d^(-[l+l'+1])

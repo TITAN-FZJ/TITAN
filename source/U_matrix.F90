@@ -40,10 +40,10 @@ contains
     do i=1,nAtoms
       do mu=5, nOrb
         nu=mu+nOrb
-        hee(mu,mu,i+offset) = 0.5d0*U(i+offset) * (-mz(i) + n(i) - s%Types(s%Basis(i)%Material)%Occupation)
-        hee(nu,nu,i+offset) = 0.5d0*U(i+offset) * ( mz(i) + n(i) - s%Types(s%Basis(i)%Material)%Occupation)
-        hee(mu,nu,i+offset) = -0.5d0*U(i+offset)*conjg(mp(i))
-        hee(nu,mu,i+offset) = -0.5d0*U(i+offset)*mp(i)
+        hee(mu,mu,i+offset) = 0.5d0*U(i+offset) * (-mz(i) + n(i) - s%Types(s%Basis(i)%Material)%OccupationD)
+        hee(nu,nu,i+offset) = 0.5d0*U(i+offset) * ( mz(i) + n(i) - s%Types(s%Basis(i)%Material)%OccupationD)
+        hee(mu,nu,i+offset) = -0.5d0*U(i+offset)* conjg(mp(i))
+        hee(nu,mu,i+offset) = -0.5d0*U(i+offset)* mp(i)
       end do
     end do
     return
