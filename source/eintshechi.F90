@@ -60,7 +60,7 @@ subroutine eintshechi(e)
   if (AllocateStatus/=0) call abortProgram("[eintshechi] Not enough memory for: df1,Fint,gf,gfuu,gfud,gfdu,gfdd")
   Fint = cZero
 
-  !$omp do schedule(static)
+  !$omp do schedule(static) reduction(+:chiorb_hf)
   do ix = 1, local_points
       ep = y( E_k_imag_mesh(1,ix) )
       kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix))
@@ -126,12 +126,13 @@ subroutine eintshechi(e)
           end do
         end do
       end do
+      chiorb_hf = chiorb_hf + Fint
       !call zaxpy(dim*dim,weight,df1,1,Fint,1)
       !Fint = Fint + df1*weight
   end do !end ix <= pn1 loop
   !$omp end do nowait
 
-  !$omp do schedule(static)
+  !$omp do schedule(static) reduction(+:chiorb_hf)
   do ix2 = start2, end2 ! Third integration (on the real axis)
       nep = (ix2-1) / BZ % nkpt + 1
       nkp = mod(ix2-1, BZ % nkpt)+1
@@ -199,21 +200,22 @@ subroutine eintshechi(e)
           end do
         end do
       end do
-
+      chiorb_hf = chiorb_hf + Fint
       ! Locally add up df1
       ! call zaxpy(dim*dim,(p2(ix2)*s%wkbz(iz)),df1,1,Fint,1)
       !Fint = Fint + df1*(p2(ix2)*s%wkbz(iz))
   end do !end pn1+1, nepoints loop
   !$omp end do nowait
 
-  Fint = Fint / tpi
-  !$omp critical
-    chiorb_hf = chiorb_hf + Fint
-  !$omp end critical
+  ! Fint = Fint / tpi
+  ! !$omp critical
+  !   chiorb_hf = chiorb_hf + Fint
+  ! !$omp end critical
 
   deallocate(df1, Fint)
   deallocate(gf,gfuu,gfud,gfdu,gfdd)
   !$omp end parallel
+  chiorb_hf = chiorb_hf / tpi 
   if(rFreq(1) == 0) then
     call MPI_Reduce(MPI_IN_PLACE, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr)
   else
