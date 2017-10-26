@@ -45,11 +45,11 @@ subroutine eintshechi(e)
   end if
 
   ! Starting to calculate energy integral
-  chiorb_hf = cZero
 
   allocate(Fint(dim,dim), STAT = AllocateStatus  )
   if (AllocateStatus/=0) call abortProgram("[eintshechi] Not enough memory for: Fint")
   Fint = cZero
+  chiorb_hf = cZero
 
 
   !$omp parallel default(none) &
@@ -62,7 +62,7 @@ subroutine eintshechi(e)
            gfdd(nOrb,nOrb,s%nAtoms,s%nAtoms,2), STAT = AllocateStatus  )
   if (AllocateStatus/=0) call abortProgram("[eintshechi] Not enough memory for: gf,gfuu,gfud,gfdu,gfdd")
 
-  !$omp do schedule(static) reduction(+:Fint)
+  !$omp do schedule(static) reduction(+:chiorb_hf)
   do ix = 1, local_points
       ep = y( E_k_imag_mesh(1,ix) )
       kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix))
@@ -103,25 +103,25 @@ subroutine eintshechi(e)
                 do nu=1,nOrb
                   index1(1:4) = sigmaimunu2i(1:4,i,mu,nu)
                   index2(1:4) = sigmaimunu2i(1:4,j,gamma,xi)
-                  Fint(index1(1),index2(1)) = Fint(index1(1),index2(1)) + weight*(gfdd(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
-                  Fint(index1(1),index2(2)) = Fint(index1(1),index2(2)) + weight*(gfdu(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
-                  Fint(index1(1),index2(3)) = Fint(index1(1),index2(3)) + weight*(gfdd(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
-                  Fint(index1(1),index2(4)) = Fint(index1(1),index2(4)) + weight*(gfdu(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
+                  chiorb_hf(index1(1),index2(1)) = chiorb_hf(index1(1),index2(1)) + weight*(gfdd(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
+                  chiorb_hf(index1(1),index2(2)) = chiorb_hf(index1(1),index2(2)) + weight*(gfdu(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
+                  chiorb_hf(index1(1),index2(3)) = chiorb_hf(index1(1),index2(3)) + weight*(gfdd(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
+                  chiorb_hf(index1(1),index2(4)) = chiorb_hf(index1(1),index2(4)) + weight*(gfdu(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
 
-                  Fint(index1(2),index2(1)) = Fint(index1(2),index2(1)) + weight*(gfud(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
-                  Fint(index1(2),index2(2)) = Fint(index1(2),index2(2)) + weight*(gfuu(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
-                  Fint(index1(2),index2(3)) = Fint(index1(2),index2(3)) + weight*(gfud(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
-                  Fint(index1(2),index2(4)) = Fint(index1(2),index2(4)) + weight*(gfuu(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
+                  chiorb_hf(index1(2),index2(1)) = chiorb_hf(index1(2),index2(1)) + weight*(gfud(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
+                  chiorb_hf(index1(2),index2(2)) = chiorb_hf(index1(2),index2(2)) + weight*(gfuu(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
+                  chiorb_hf(index1(2),index2(3)) = chiorb_hf(index1(2),index2(3)) + weight*(gfud(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
+                  chiorb_hf(index1(2),index2(4)) = chiorb_hf(index1(2),index2(4)) + weight*(gfuu(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
 
-                  Fint(index1(3),index2(1)) = Fint(index1(3),index2(1)) + weight*(gfdd(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
-                  Fint(index1(3),index2(2)) = Fint(index1(3),index2(2)) + weight*(gfdu(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
-                  Fint(index1(3),index2(3)) = Fint(index1(3),index2(3)) + weight*(gfdd(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
-                  Fint(index1(3),index2(4)) = Fint(index1(3),index2(4)) + weight*(gfdu(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
+                  chiorb_hf(index1(3),index2(1)) = chiorb_hf(index1(3),index2(1)) + weight*(gfdd(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
+                  chiorb_hf(index1(3),index2(2)) = chiorb_hf(index1(3),index2(2)) + weight*(gfdu(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
+                  chiorb_hf(index1(3),index2(3)) = chiorb_hf(index1(3),index2(3)) + weight*(gfdd(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
+                  chiorb_hf(index1(3),index2(4)) = chiorb_hf(index1(3),index2(4)) + weight*(gfdu(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
 
-                  Fint(index1(4),index2(1)) = Fint(index1(4),index2(1)) + weight*(gfud(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
-                  Fint(index1(4),index2(2)) = Fint(index1(4),index2(2)) + weight*(gfuu(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
-                  Fint(index1(4),index2(3)) = Fint(index1(4),index2(3)) + weight*(gfud(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
-                  Fint(index1(4),index2(4)) = Fint(index1(4),index2(4)) + weight*(gfuu(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
+                  chiorb_hf(index1(4),index2(1)) = chiorb_hf(index1(4),index2(1)) + weight*(gfud(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
+                  chiorb_hf(index1(4),index2(2)) = chiorb_hf(index1(4),index2(2)) + weight*(gfuu(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
+                  chiorb_hf(index1(4),index2(3)) = chiorb_hf(index1(4),index2(3)) + weight*(gfud(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
+                  chiorb_hf(index1(4),index2(4)) = chiorb_hf(index1(4),index2(4)) + weight*(gfuu(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
                 end do
               end do
             end do
@@ -211,7 +211,7 @@ subroutine eintshechi(e)
   deallocate(gf,gfuu,gfud,gfdu,gfdd)
   !$omp end parallel
 
-  chiorb_hf = Fint / tpi
+  chiorb_hf = (chiorb_hf + Fint) / tpi
 
 
 
