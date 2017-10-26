@@ -48,19 +48,23 @@ subroutine eintshechi(e)
   ! Starting to calculate energy integral
   chiorb_hf = cZero
 
+  allocate(df1(dim,dim), Fint(dim,dim), STAT = AllocateStatus  )
+  if (AllocateStatus/=0) call abortProgram("[eintshechi] Not enough memory for: Fint")
+  Fint = cZero
+
+
   !$omp parallel default(none) &
-  !$omp& private(AllocateStatus,iz,ix,ix2,i,j,mu,nu,gamma,xi,nep,nkp,ep,kp,weight,gf,gfuu,gfud,gfdu,gfdd,df1,Fint, index1, index2) &
-  !$omp& shared(llineargfsoc,start2,end2,pn1,bzs,s,BZ,local_points,Ef,e,y,wght,x2,p2,pn2,E_k_imag_mesh,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf)
-  allocate(df1(dim,dim), Fint(dim,dim), &
+  !$omp& private(AllocateStatus,iz,ix,ix2,i,j,mu,nu,gamma,xi,nep,nkp,ep,kp,weight,gf,gfuu,gfud,gfdu,gfdd,df1, index1, index2) &
+  !$omp& shared(llineargfsoc,start2,end2,pn1,bzs,s,BZ,local_points,Ef,e,y,wght,x2,p2,pn2,E_k_imag_mesh,eta,dim,Fint,sigmaimunu2i,sigmaijmunu2i,chiorb_hf)
+  allocate(df1(dim,dim), &
            gf  (nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
            gfud(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
            gfdu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
            gfdd(nOrb,nOrb,s%nAtoms,s%nAtoms,2), STAT = AllocateStatus  )
   if (AllocateStatus/=0) call abortProgram("[eintshechi] Not enough memory for: df1,Fint,gf,gfuu,gfud,gfdu,gfdd")
-  Fint = cZero
 
-  !$omp do schedule(static)
+  !$omp do schedule(static) reduction(+:Fint)
   do ix = 1, local_points
       ep = y( E_k_imag_mesh(1,ix) )
       kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix))
@@ -131,7 +135,7 @@ subroutine eintshechi(e)
   end do !end ix <= pn1 loop
   !$omp end do nowait
 
-  !$omp do schedule(static)
+  !$omp do schedule(static) reduction(+: Fint)
   do ix2 = start2, end2 ! Third integration (on the real axis)
       nep = (ix2-1) / BZ % nkpt + 1
       nkp = mod(ix2-1, BZ % nkpt)+1
@@ -206,14 +210,14 @@ subroutine eintshechi(e)
   end do !end pn1+1, nepoints loop
   !$omp end do nowait
 
-  Fint = Fint / tpi
-  !$omp critical
-    chiorb_hf = chiorb_hf + Fint
-  !$omp end critical
-
-  deallocate(df1, Fint)
+  deallocate(df1)
   deallocate(gf,gfuu,gfud,gfdu,gfdd)
   !$omp end parallel
+
+  chiorb_hf = Fint / tpi
+
+
+
   if(rFreq(1) == 0) then
     call MPI_Reduce(MPI_IN_PLACE, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr)
   else
