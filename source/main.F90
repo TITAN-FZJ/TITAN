@@ -160,12 +160,10 @@ program TITAN
 
     !------------------- Only create files with headers --------------------
     if(lcreatefiles) then
-      if(rField == 0) then
-        call create_files()
-        if((itype==7).or.(itype==8)) cycle
-      end if
+      if(rField == 0) call create_files()
+      if((itype==7).or.(itype==8)) cycle
       call MPI_Finalize(ierr)
-      stop
+      call exit(0)
     end if
     !------------- Check if files exist to add results or sort -------------
     if( (lsortfiles .or. laddresults) .and. rField == 0 ) call check_files()
@@ -264,6 +262,5 @@ program TITAN
   if(myrank == 0) call write_time(outputunit,'[main] Finished on: ')
   if(myrank == 0) close(unit=outputunit)
   call MPI_Finalize(ierr)
-  if(ierr /= 0 .and. myrank == 0) write(outputunit,"('[main] Something went wrong in the parallelization! ierr = ',i0)") ierr
-
+  call exit(0)
 end program TITAN
