@@ -235,4 +235,11 @@ contains
     return
   end subroutine sort_file
 
+  character(len=500) function ItoS(i)
+     implicit none
+     integer :: i
+     write(Itos, "(i0)") i
+     return
+  end function ItoS
+
 end module mod_tools
