@@ -13,6 +13,7 @@ subroutine calculate_chi()
   use mod_alpha, only: create_alpha_files, write_alpha, allocate_alpha, deallocate_alpha
   use mod_system, only: s => sys
   use TightBinding, only: nOrb
+  use mod_tools, only: itos
   use adaptiveMesh, only: genLocalEKMesh, freeLocalEKMesh
   use mod_progress, only: write_time
   implicit none
@@ -77,6 +78,20 @@ subroutine calculate_chi()
         end do
       end do
 
+      ! call local_SO_torque(torque)
+      ! do i = 1, s%nAtoms
+      !    do mu = 1, 2*nOrb
+      !       do nu = 1, 2*nOrb
+      !          do gamma = 1, 2*nOrb
+      !             do delta = 1, 2*nOrb
+      !                sth = torque(mu,nu,i) * chiorb() * torque(gamma,delta,i) * chiorb()
+      !             end do
+      !          end do
+      !       end do
+      !    end do
+      ! end do
+      ! call local_xc_torque(torque)
+
       ! Rotating susceptibilities to the magnetization direction
       if(lrot) then
         do i=1, s%nAtoms
@@ -123,8 +138,8 @@ subroutine calculate_chi()
           call write_susceptibilities(e)
         end do
 
-        write(time,"('[calculate_chi] Time after step ',i0,': ')") count
-        call write_time(outputunit_loop,time)
+        !write(time,"('[calculate_chi] Time after step ',i0,': ')") count
+        call write_time(outputunit_loop,"[calculate_chi] Time after step " // trim(itos(count)) // ": ")
 
         ! ! Emergency stop
         ! open(unit=911, file="stop", status='old', iostat=iw)
