@@ -1007,7 +1007,7 @@ contains
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter, mp, mx ,my ,mz, n_t
+    use mod_magnet, only: iter !, mp, mx ,my ,mz, n_t
     use mod_Umatrix, only: update_Umatrix
     use mod_mpi_pars
     implicit none
@@ -1015,8 +1015,9 @@ contains
     integer     , intent(inout)         :: iuser(*)
     real(double), intent(inout)         :: ruser(*)
     real(double),dimension(N)           :: x,fvec
-    real(double),dimension(s%nAtoms)         :: mx_in,my_in,mz_in,n_in
-    complex(double),dimension(s%nAtoms)      :: mp_in
+    real(double),dimension(s%nAtoms) :: mx_in,my_in,mz_in, n_in
+    real(double),dimension(s%nAtoms) :: mx, my, mz, n_t
+    complex(double),dimension(s%nAtoms) :: mp_in, mp
 
     iflag=0
   ! Values used in the hamiltonian
@@ -1079,15 +1080,16 @@ contains
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter, mp, mx, my, mz, n_t
+    use mod_magnet, only: iter !, mp, mx, my, mz, n_t
     use mod_Umatrix, only: update_Umatrix
     use mod_mpi_pars
     implicit none
     integer  :: N,i,iflag,ldfjac
     real(double),dimension(N)        :: x,fvec
     real(double),dimension(ldfjac,N) :: selfconjac
-    real(double),dimension(s%nAtoms)      :: mx_in,my_in,mz_in,n_in
-    complex(double),dimension(s%nAtoms)   :: mp_in
+    real(double),dimension(s%nAtoms) :: mx_in,my_in,mz_in, n_in
+    real(double),dimension(s%nAtoms) :: mx, my, mz, n_t
+    complex(double),dimension(s%nAtoms) :: mp_in, mp
 
   ! Values used in the hamiltonian
     n_in  = x(1:s%nAtoms)
@@ -1151,14 +1153,15 @@ contains
     use mod_parameters, only: outputunit_loop
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter, mp, mx, my, mz, n_t
+    use mod_magnet, only: iter !, mp, mx, my, mz, n_t
     use mod_Umatrix, only: update_Umatrix
     use mod_mpi_pars
     implicit none
     integer  :: N,i,iflag
     real(double),dimension(N)           :: x,fvec
-    real(double),dimension(s%nAtoms)         :: mx_in,my_in,mz_in, n_in
-    complex(double),dimension(s%nAtoms)      :: mp_in
+    real(double),dimension(s%nAtoms) :: mx_in,my_in,mz_in, n_in
+    real(double),dimension(s%nAtoms) :: mx, my, mz, n_t
+    complex(double),dimension(s%nAtoms) :: mp_in, mp
 
     iflag=0
   ! Values used in the hamiltonian
@@ -1217,8 +1220,9 @@ contains
     implicit none
     integer       :: N,ldfjac,iflag
     real(double)  :: x(N),fvec(N),selfconjac(ldfjac,N)
-    real(double),dimension(s%nAtoms)         :: mx_in,my_in,mz_in, n_in
-    complex(double),dimension(s%nAtoms)      :: mp_in
+    real(double),dimension(s%nAtoms) :: mx_in,my_in,mz_in, n_in
+    real(double),dimension(s%nAtoms) :: mx, my, mz, n_t
+    complex(double),dimension(s%nAtoms) :: mp_in, mp
     !--------------------- begin MPI vars --------------------
 
     iflag=0
