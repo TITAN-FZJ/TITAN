@@ -593,7 +593,11 @@ contains
     !call prepare_field() XXX Moved to main, renamed to setMagneticLoopPoints
 
     ! Energy loop step
-    deltae = (emax - emin)/npts
+    if(npts < 1) then
+      deltae = 0
+    else
+      deltae = (emax - emin)/npts
+    end if
     if(deltae<=1.d-14) npt1 = 1
 
     ! Preparing dc-limit calculation
