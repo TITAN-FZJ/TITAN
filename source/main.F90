@@ -31,6 +31,7 @@ program TITAN
   implicit none
 
   integer           :: count_hw
+  character(len=500) :: arg = ""
 
   !-------------------------- MPI initialization --------------------------
   call Initialize_MPI()
@@ -39,11 +40,12 @@ program TITAN
   start_program = MPI_Wtime()
 
   !-------------------------- Reading parameters --------------------------
-#ifdef _JUQUEEN
-    call get_parameters("input_juqueen", sys) ! TODO: Sort parameters
-#else
-    call get_parameters("input", sys) ! TODO: Sort parameters
-#endif
+  if(command_argument_count() >= 1) call get_command_argument(1, arg)
+  if(len_trim(arg) > 0) then
+    call get_parameters(arg, sys)
+  else
+    call get_parameters("input",sys)
+  end if
 
   if(myrank == 0) call write_time(outputunit,'[main] Started on: ')
 
@@ -230,26 +232,29 @@ program TITAN
     ! end if
 
     !============================= MAIN PROGRAM =============================
-    main_program: select case (itype)
-    case (2)
+    select case (itype)
+    case(1) ! Calculation of self-consistency only
+      continue
+    case (2) !Debugging case
       !call debugging() TODO: Re-Include
-    case (3)
+      continue
+    case (3) ! Ca
       call ldos_and_coupling()
-    case (4)
+    case (4) !
       if(rField == 0) call band_structure(sys)
-    case (5)
+    case (5) !
       call fermi_surface(Ef)
-    case (6)
+    case (6) !
       call coupling()
-    case (7)
+    case (7) !
       call calculate_chi()
-    case (8)
+    case (8) !
       call calculate_all()
-    case (9)
+    case (9) !
       call calculate_dc_limit()
-    case(10)
+    case(10) ! Calculation of Gilbert Damping by Kamberskys Torque Torque model
       call calculate_gilbert_damping()
-    end select main_program
+    end select
     !========================================================================
 
     ! Emergency stop after the calculation for a Npl or field is finished (don't check on last step)
