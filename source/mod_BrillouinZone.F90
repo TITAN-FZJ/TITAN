@@ -93,7 +93,7 @@ contains
     real(double), allocatable, dimension(:) :: extrawkbz
     integer :: l,j,m, k, smallest_index, numextrakbz
     integer :: nkpt_perdim !n. of k point per dimension
-
+    integer :: nx, ny, nz
 
     if(abs(self%nkpt_x)+abs(self%nkpt_y)+abs(self%nkpt_z) == 0) then
       nkpt_perdim=ceiling((dble(self%nkpt))**(1.d0/3.d0))
@@ -104,7 +104,11 @@ contains
     end if
 
     self%nkpt = self%nkpt_x * self%nkpt_y * self%nkpt_z
-    allocate(extrakbz(3,self%nkpt*10), extrawkbz(self%nkpt*10))
+    if(self%nkpt < 1000) then
+      allocate(extrakbz(3,self%nkpt*10), extrawkbz(self%nkpt*10))
+    else
+      allocate(extrakbz(3,self%nkpt/2), extrawkbz(self%nkpt/2))
+    end if
     allocate(iniwkbz(self%nkpt), inikbz(3, self%nkpt) )
 
     vol = tpi / dot_product(a1, cross(a2,a3))
@@ -135,10 +139,15 @@ contains
 
     !Translate the k-points to the 1st BZ.
     !10*|b1+b2|, bigger than the distance of any genarated kpoint
-    ini_smallest_dist = 10.d0 * sqrt(dot_product(self%b1 + self%b2, self%b1 + self%b2))
+    ini_smallest_dist = 10.d0 * sqrt(dot_product(self%b1 + self%b2 + self%b3, self%b1 + self%b2 + self%b3))
     numextrakbz=0
     !Run over all the kpoints generated initially.
     do l=1, self%nkpt
+      ! nx = mod(floor(dble(l-1) / dble(self%nkpt_y * self%nkpt_z)), self%nkpt_x)
+      ! ny = mod(floor(dble(l-1) / dble(self%nkpt_z)), self%nkpt_y)
+      ! nz = mod(l-1, self%nkpt_z)
+      ! inikbz(1:3, l) = dble(nx)*self%b1 / dble(self%nkpt_x) + dble(ny)*self%b2 / dble(self%nkpt_y) + dble(nz)*self%b3 / dble(self%nkpt_z)
+
        smallest_dist=ini_smallest_dist
        m=0
        !Checks to each of the 4 BZ's the kpoint belongs by checking
@@ -191,6 +200,86 @@ contains
 
     return
   end subroutine  generate_3D_BZ
+
+  integer function count_3D_BZ(nkpt_in, a1, a2, a3)
+    use mod_f90_kind, only: double
+    use mod_constants, only: tpi
+    use mod_tools, only: cross
+    implicit none
+
+    integer, intent(in) :: nkpt_in
+    real(double), dimension(3), intent(in) :: a1, a2, a3
+    real(double) :: vol
+    real(double), dimension(3,8) :: bz_vec
+    real(double) :: smallest_dist, distance, ini_smallest_dist
+    real(double), dimension(3) ::  diff
+    real(double), dimension(3) :: kp, b1, b2, b3
+    integer :: nkpt_x, nkpt_y, nkpt_z, nkpt
+    integer :: l,j,m, k, smallest_index, numextrakbz
+    integer :: nkpt_perdim !n. of k point per dimension
+    integer :: nx, ny, nz
+
+    nkpt_perdim = ceiling((dble(nkpt_in))**(1.d0/3.d0))
+    nkpt_perdim=nkpt_perdim
+    nkpt_x = nkpt_perdim
+    nkpt_y = nkpt_perdim
+    nkpt_z = nkpt_perdim
+
+    nkpt = nkpt_x * nkpt_y * nkpt_z
+
+    vol = tpi / dot_product(a1, cross(a2,a3))
+    b1 = vol * cross(a2, a3)
+    b2 = vol * cross(a3, a1)
+    b3 = vol * cross(a1, a2)
+
+    bz_vec(1:3,1) = 0.d0
+    bz_vec(1:3,2) = b1
+    bz_vec(1:3,3) = b2
+    bz_vec(1:3,4) = b1 + b2
+    bz_vec(1:3,5) = b3
+    bz_vec(1:3,6) = b1 + b3
+    bz_vec(1:3,7) = b2 + b3
+    bz_vec(1:3,8) = b1 + b2 + b3
+
+    !Translate the k-points to the 1st BZ.
+    !10*|b1+b2|, bigger than the distance of any genarated kpoint
+    ini_smallest_dist = 10.d0 * sqrt(dot_product(b1 + b2 + b3, b1 + b2 + b3))
+    numextrakbz=0
+    !Run over all the kpoints generated initially.
+    !$omp parallel do default(none) reduction(+:numextrakbz) if(nkpt > 1000000) &
+    !$omp& private(l, j, nx, ny, nz, kp, smallest_dist, smallest_index, diff, distance) &
+    !$omp& shared(nkpt, ini_smallest_dist, bz_vec, b1, b2, b3, nkpt_x, nkpt_y, nkpt_z)
+    do l=1, nkpt
+      nx = mod(floor(dble(l-1) / dble(nkpt_y * nkpt_z)), nkpt_x)
+      ny = mod(floor(dble(l-1) / dble(nkpt_z)), nkpt_y)
+      nz = mod(l-1, nkpt_z)
+      kp = dble(nx)*b1 / dble(nkpt_x) + dble(ny)*b2 / dble(nkpt_y) + dble(nz)*b3 / dble(nkpt_z)
+
+      smallest_dist=ini_smallest_dist
+      !Checks to each of the 4 BZ's the kpoint belongs by checking
+      ! to each BZ it's closer.
+      do j=1, 8
+        diff = kp - bz_vec(:,j)
+        distance = sqrt(dot_product(diff, diff))
+        if(distance < smallest_dist) then
+          smallest_dist = distance
+          smallest_index = j
+        end if
+      end do
+      !Checks if the kpoint is in the border between two or more
+      ! BZ's. If yes, create a clone of it to translate later into
+      ! the 1st BZ.
+      do j=1, 8
+        diff=kp - bz_vec(:,j)
+        distance=sqrt(dot_product(diff,diff))
+        if( ( abs(distance-smallest_dist) < 1.d-12 ) .and. j/=smallest_index ) numextrakbz=numextrakbz+1
+      end do
+    end do
+    !$omp end parallel do
+    count_3D_BZ = nkpt + numextrakbz
+
+    return
+  end function count_3D_BZ
 
   subroutine generate_2D_BZ(self, a1, a2)
     use mod_f90_kind, only: double

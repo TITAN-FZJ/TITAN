@@ -29,15 +29,8 @@ contains
       if(myrank == 0) then
          total_points = 0
          do i = 1, pn1
-            bzone % nkpt = get_nkpt(y(i), y(1), total_nkpt, s%lbulk)
-            bzone % nkpt_x = 0
-            bzone % nkpt_y = 0
-            bzone % nkpt_z = 0
-
-            call bzone % setup(s%lbulk, s%a1, s%a2, s%a3)
-            all_nkpt(i) = bzone%nkpt
+            all_nkpt(i) = count_3D_BZ(get_nkpt(y(i), y(1), total_nkpt, s%lbulk),s%a1,s%a2,s%a3) !bzone%nkpt
             total_points = total_points + all_nkpt(i)
-            call bzone % free()
          end do
       end if
       call MPI_Bcast(total_points, 1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
