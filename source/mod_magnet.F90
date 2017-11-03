@@ -152,6 +152,9 @@ contains
     integer :: AllocateStatus
     integer :: i
 
+    if(allocated(hhwx)) deallocate(hhwx)
+    if(allocated(hhwy)) deallocate(hhwy)
+    if(allocated(hhwz)) deallocate(hhwz)
     allocate( hhwx(nAtoms),hhwy(nAtoms),hhwz(nAtoms), STAT = AllocateStatus )
     if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: hhwx,hhwy,hhwz,sb,lb")
 
@@ -257,6 +260,9 @@ contains
     implicit none
     complex(double), dimension(9,9) :: Lp,Lm
 
+    if(allocated(lx)) deallocate(lx)
+    if(allocated(ly)) deallocate(ly)
+    if(allocated(lz)) deallocate(lz)
     allocate(lx(nOrb, nOrb), ly(nOrb,nOrb), lz(nOrb,nOrb))
 
     lz = cZero
