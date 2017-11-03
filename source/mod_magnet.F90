@@ -149,11 +149,7 @@ contains
     implicit none
 
     integer, intent(in) :: nAtoms
-    integer :: AllocateStatus
     integer :: i
-
-    allocate( hhwx(nAtoms),hhwy(nAtoms),hhwz(nAtoms), STAT = AllocateStatus )
-    if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: hhwx,hhwy,hhwz,sb,lb")
 
     !---------------------- Turning off field for hwa=0 --------------------
     if(abs(hw_list(hw_count,1)) < 1.d-8) then
@@ -199,10 +195,6 @@ contains
     integer :: i
     complex(double), dimension(:,:), allocatable :: lbsigma
 
-    if(allocated(lb)) deallocate(lb)
-    allocate(lb(2*nOrbs,2*nOrbs,nAtoms))
-
-
     ! There is an extra  minus sign in the definition of hhwx,hhwy,hhwz
     ! to take into account the fact that we are considering negative
     ! external fields to get the peak at positive energies
@@ -226,9 +218,6 @@ contains
     implicit none
     integer, intent(in) :: nAtoms, nOrbs
     integer :: i,mu,nu
-
-    if(allocated(sb)) deallocate(sb)
-    allocate(sb(2*nOrbs,2*nOrbs,nAtoms))
 
     ! There is an extra  minus sign in the definition of hhwx,hhwy,hhwz
     ! to take into account the fact that we are considering negative
@@ -256,8 +245,6 @@ contains
     use TightBinding, only: nOrb
     implicit none
     complex(double), dimension(9,9) :: Lp,Lm
-
-    allocate(lx(nOrb, nOrb), ly(nOrb,nOrb), lz(nOrb,nOrb))
 
     lz = cZero
 
@@ -311,11 +298,6 @@ contains
     real(double), dimension(s%nAtoms), intent(in) :: theta, phi
     integer :: i
 
-    if(allocated(lxp)) deallocate(lxp)
-    if(allocated(lyp)) deallocate(lyp)
-    if(allocated(lzp)) deallocate(lzp)
-    allocate(lxp(nOrb,nOrb,s%nAtoms), lyp(nOrb,nOrb,s%nAtoms), lzp(nOrb,nOrb,s%nAtoms))
-
     do i = 1, s%nAtoms
       lxp(:,:,i) = (lx*cos(theta(i))*cos(phi(i)))+(ly*cos(theta(i))*sin(phi(i)))-(lz*sin(theta(i)))
       lyp(:,:,i) =-(lx*sin(phi(i)))+(ly*cos(phi(i)))
@@ -325,10 +307,11 @@ contains
     return
   end subroutine lp_matrix
 
-  subroutine allocate_magnet_variables(nAtoms)
+  subroutine allocate_magnet_variables(nAtoms, nOrb)
     use mod_mpi_pars, only: abortProgram
     implicit none
     integer, intent(in) :: nAtoms
+    integer, intent(in) :: nOrb
     integer :: AllocateStatus
 
     allocate( mx(nAtoms), my(nAtoms), mz(nAtoms), &
@@ -345,12 +328,35 @@ contains
     allocate( n_t(nAtoms), stat = AllocateStatus)
     if(AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: n_t")
 
+    allocate( hhwx(nAtoms),hhwy(nAtoms),hhwz(nAtoms), STAT = AllocateStatus )
+    if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: hhwx,hhwy,hhwz")
+
+    allocate(lx(nOrb, nOrb), ly(nOrb,nOrb), lz(nOrb,nOrb))
+    if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: lx, ly, lz")
+
+    allocate(sb(2*nOrb,2*nOrb,nAtoms), stat = AllocateStatus)
+    if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: sb")
+
+    allocate(lb(2*nOrb,2*nOrb,nAtoms), stat = AllocateStatus)
+    if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: lb")
+
+    allocate(lxp(nOrb,nOrb,nAtoms), lyp(nOrb,nOrb,nAtoms), lzp(nOrb,nOrb,nAtoms), stat = AllocateStatus)
+    if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: lxp, lyp, lzp")
+
     return
   end subroutine
 
   subroutine deallocate_magnet_variables()
     implicit none
 
+    if(allocated(lxp)) deallocate(lxp)
+    if(allocated(lyp)) deallocate(lyp)
+    if(allocated(lzp)) deallocate(lzp)
+    if(allocated(lx)) deallocate(lx)
+    if(allocated(ly)) deallocate(ly)
+    if(allocated(lz)) deallocate(lz)
+    if(allocated(lb)) deallocate(lb)
+    if(allocated(sb)) deallocate(sb)
     if(allocated(n_t)) deallocate(n_t)
     if(allocated(mx)) deallocate(mx)
     if(allocated(my)) deallocate(my)

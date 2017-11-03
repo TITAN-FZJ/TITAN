@@ -506,7 +506,12 @@ contains
     ncount=s%nAtoms*nOrb*nOrb
 
     !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
-
+    if(allocated(lxm)) deallocate(lxm)
+    if(allocated(lym)) deallocate(lym)
+    if(allocated(lzm)) deallocate(lzm)
+    if(allocated(lxpm)) deallocate(lxpm)
+    if(allocated(lypm)) deallocate(lypm)
+    if(allocated(lzpm)) deallocate(lzpm)
     allocate( lxm(s%nAtoms), &
               lym(s%nAtoms), &
               lzm(s%nAtoms), &

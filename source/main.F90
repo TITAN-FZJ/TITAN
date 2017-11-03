@@ -79,7 +79,8 @@ program TITAN
   !if(tbmode == 2) Npl_total = Npl + 2
 
   !--------------- Allocating variables that depend on Npl ---------------
-  call allocate_magnet_variables(sys%nAtoms)
+  call allocate_magnet_variables(sys%nAtoms, nOrb)
+  call allocLS(nOrb)
   call allocate_Npl_variables(sys%nAtoms) !TODO: Review
 
   !----------------------------- Dimensions ------------------------------
@@ -145,7 +146,7 @@ program TITAN
     call l_matrix()
 
     !------ Calculate L.S matrix for the given quantization direction ------
-    call initLS(theta, phi, nOrb)
+    call updateLS(theta, phi, nOrb)
 
     !------ Calculate L.B matrix for the given quantization direction ------
     call lb_matrix(sys%nAtoms, nOrb)
