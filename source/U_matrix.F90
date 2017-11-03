@@ -14,6 +14,7 @@ contains
     integer, intent(in) :: nAtoms, nOrb
     integer :: AllocateStatus
 
+    if(allocated(hee)) deallocate(hee)
     allocate(hee(2*nOrb,2*nOrb,nAtoms), stat=AllocateStatus)
     if(AllocateStatus /= 0) call abortProgram("[allocate_Umatrix] Failed to allocate 'hee'.")
 
