@@ -137,3 +137,99 @@ and it is parallelized with MPI.
 ! (e.g., in terminal: touch stopout)                                            !
 !*******************************************************************************!
 ```
+
+## Compiling the code
+
+First clone the repository on your local computer or supercomputer of choice.
+```
+git clone https://iffgit.fz-juelich.de/titan/TITAN.git
+cd TITAN
+mkdir bin
+mkdir build
+cd build
+``` 
+Depending on the system you are compiling on choose one of the following options.
+### Jureca 
+```
+module load Intel IntelMPI NAG/Mark26 CMake
+cmake ../ -DPLATFORM=jureca 
+make -j12
+```
+
+### Juqueen 
+```
+module load nag 
+cmake ../ -DPLATFORM=juqueen
+make -j16
+```
+
+### Linux 
+```
+cmake ../ 
+make -j4
+```
+
+## Running the code 
+
+After compiling you can start running the code.
+
+### Jureca 
+
+```
+#!/bin/bash -x 
+#SBATCH --nodes=1
+#SBATCH -J JobName
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=24
+#SBATCH -e error-%j
+#SBATCH -o output-%j
+#SBATCH --mail-user=your@mail
+#SBATCH --mail-type=ALL
+#SBATCH --partition=batch 
+#SBATCH --time=1:00:00
+
+module load Intel IntelMPI NAG/Mark26
+
+export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+export MKL_NUM_THREADS=1
+
+export OMP_STACKSIZE=150m
+export KMP_AFFINITY=scatter
+
+srun ~/TITAN/bin/titan_jureca.exe --exports=NAG_KUSARI_FILE --exports=OMP_NUM_THREADS --exports=MKL_NUM_THREADS --exports=KMP_AFFINITY
+``` 
+
+### Juqueen
+```
+# @ job_name = JobName
+# @ error = error-$(job_name).$(jobid).err
+# @ output = output-$(job_name).$(jobid).out
+# @ environment = COPY_ALL
+# @ wall_clock_limit = 24:00:00
+# @ notification = always
+# @ notify_user = your@mail
+# @ job_type = bluegene
+## @ bg_connectivity = TORUS
+# @ bg_size = 1024
+# @ queue
+
+# IMPORTANT RELATIONS
+#
+# np = number of points*256 (2*64 + 2*64)
+NUMPROCS=1024
+# bg_size*ranks_per_node = np (or bg_size = np/ranks_per_node)
+# threads_per_cpu*ranks_per_node = 64
+NUMTHREADS=64
+RANKSPERNODE=1
+#
+
+module load nag
+
+runjob --np ${NUMPROCS} --exp-env NAG_KUSARI_FILE --envs OMP_NUM_THREADS=${NUMTHREADS} --ranks-per-node ${RANKSPERNODE} --args " " --exe ~/TITAN/bin/titan_juqueen.exe
+```
+
+### Linux 
+``` 
+export OMP_NUM_THREADS=8
+mpirun -np 1 ~/TITAN/bin/titan.exe --exports=OMP_NUM_THREADS
+```
