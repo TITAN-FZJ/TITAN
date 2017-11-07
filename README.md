@@ -169,9 +169,11 @@ cmake ../
 make -j4
 ```
 
+The binary can be found in `TITAN/bin/`
 ## Running the code 
 
 After compiling you can start running the code.
+An example calculation can be found in `TITAN/example`
 
 ### Jureca 
 
