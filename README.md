@@ -143,10 +143,7 @@ and it is parallelized with MPI.
 First clone the repository on your local computer or supercomputer of choice.
 ```
 git clone https://iffgit.fz-juelich.de/titan/TITAN.git
-cd TITAN
-mkdir bin
-mkdir build
-cd build
+cd TITAN/build
 ``` 
 Depending on the system you are compiling on choose one of the following options.
 ### Jureca 
