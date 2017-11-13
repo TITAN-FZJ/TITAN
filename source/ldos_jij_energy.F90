@@ -22,10 +22,10 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
    real(double) :: Jijkan(nmaglayers,3,3), Jijk(nmaglayers,nmaglayers,3,3)
    real(double), dimension(3) :: kp
    real(double) :: weight
-   integer :: i,j,mu,nu,iz,alpha
-   integer :: firstPoint, lastPoint
+   integer :: i,j,mu,nu,alpha
+   integer*8 :: iz,firstPoint, lastPoint
 
-   call calcWorkload(BZ%nkpt,sFreq(1),rFreq(1),firstPoint,lastPoint)
+   call calcWorkload(int(BZ%nkpt,8),sFreq(1),rFreq(1),firstPoint,lastPoint)
 
 ! (x,y,z)-tensor formed by Pauli matrices to calculate anisotropy term (when i=j)
   paulimatan = cZero

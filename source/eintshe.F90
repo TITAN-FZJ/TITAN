@@ -34,8 +34,8 @@ subroutine eintshe(e)
   !complex(double),dimension(n0sc1:n0sc2,s%nAtoms,nOrb, nOrb)    :: prett,preLxtt,preLytt,preLztt !TODO: Re-Include
   !complex(double),dimension(n0sc1:n0sc2,dimsigmaNpl,4), intent(out) :: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl !TODO:Re-Include
   !--------------------- begin MPI vars --------------------
-  integer :: ix, ix2, nep,nkp
-  integer :: start2, end2
+  integer*8 :: ix, ix2, nep,nkp
+  integer*8 :: start2, end2
   integer :: ncountkl !,nncountkl !TODO: Re-Include
   ncountkl = dim*4
   !nncountkl = n0sc*dimsigmaNpl*4 !TODO: Re-Include
@@ -46,7 +46,7 @@ subroutine eintshe(e)
   call generate_real_epoints(e)
 
   if(abs(e) >= 1.d-10) then
-     call calcWorkload(pn2*BZ%nkpt,sFreq(1),rFreq(1),start2,end2)
+     call calcWorkload(int(pn2,8)*int(BZ%nkpt,8),sFreq(1),rFreq(1),start2,end2)
   else
      start2 = 0
      end2 = 0
@@ -395,7 +395,7 @@ subroutine eintshelinearsoc(e)
 
 !--------------------- begin MPI vars --------------------
   integer :: ix,ix2, iz
-  integer :: start2, end2
+  integer*8 :: start2, end2
   integer :: ncountkl !,nncountkl !TODO: Re-Include
   ncountkl = dim*4
   !nncountkl = n0sc*dimsigmaNpl*4 !TODO: Re-Include
@@ -406,7 +406,7 @@ subroutine eintshelinearsoc(e)
   call generate_real_epoints(e)
 
   if(abs(e) >= 1.d-10) then
-     call calcWorkload(pn2*BZ%nkpt,sFreq(1),rFreq(1),start2,end2)
+     call calcWorkload(int(pn2,8)*int(BZ%nkpt,8),sFreq(1),rFreq(1),start2,end2)
   else
      start2 = 0
      end2 = 0

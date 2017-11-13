@@ -1,6 +1,6 @@
 module adaptiveMesh
    use mod_BrillouinZone
-   integer :: total_points, local_points
+   integer*8 :: total_points, local_points
    integer, dimension(:,:), allocatable :: E_k_imag_mesh
    type(BrillouinZone), dimension(:), allocatable :: bzs
    integer, dimension(:),allocatable :: all_nkpt
@@ -26,15 +26,12 @@ contains
       type(BrillouinZone) :: bzone
 
       allocate(all_nkpt(pn1))
-      if(myrank == 0) then
-         total_points = 0
-         do i = 1, pn1
-            all_nkpt(i) = count_3D_BZ(get_nkpt(y(i), y(1), total_nkpt, s%lbulk),s%a1,s%a2,s%a3) !bzone%nkpt
-            total_points = total_points + all_nkpt(i)
-         end do
-      end if
-      call MPI_Bcast(total_points, 1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
-      call MPI_Bcast(all_nkpt, pn1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+      total_points = 0
+      do i = 1, pn1
+         all_nkpt(i) = count_3D_BZ(get_nkpt(y(i), y(1), total_nkpt, s%lbulk),s%a1,s%a2,s%a3) !bzone%nkpt
+         total_points = total_points + all_nkpt(i)
+      end do
+
       return
    end subroutine calcTotalPoints
 
@@ -48,8 +45,8 @@ contains
       integer, intent(in) :: rank
       integer, intent(in) :: size
       integer, intent(in) :: comm
-      integer :: firstPoint, lastPoint
-      integer :: i, j, m, n
+      integer*8 :: firstPoint, lastPoint
+      integer*8 :: i, j, m, n
       integer :: nkpt
 
       activeComm = comm
@@ -64,6 +61,10 @@ contains
       n = 0
       do i = 1, pn1
          if(m > lastPoint) exit
+         if(m + all_nkpt(i) < firstPoint) then
+            m = m + all_nkpt(i)
+            cycle
+         end if
          do j = 1, all_nkpt(i)
             m = m + 1
             if(m < firstPoint .or. m > lastPoint) cycle

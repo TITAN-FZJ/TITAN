@@ -95,17 +95,17 @@ subroutine TCM(alpha, torque_fct)
 
   complex(double), dimension(s%nAtoms,s%nAtoms,3,3), intent(out) :: alpha
   !! Contains the Gilbert Damping as matrix in sites and cartesian coordinates (nAtoms,nAtoms,3,3)
-  integer :: i,j,m,n, iz, mu
+  integer :: i,j,m,n, mu
   real(double), dimension(3) :: kp
   real(double) :: wght
   complex(double), dimension(2*nOrb,2*nOrb,3,s%nAtoms) :: torque
   complex(double),dimension(:,:,:,:),allocatable :: gf
   complex(double),dimension(:,:),allocatable :: temp1, temp2, temp3
   complex(double), dimension(:,:,:,:), allocatable :: alpha_loc
-  integer :: firstPoint, lastPoint
+  integer*8 :: firstPoint, lastPoint, iz
   ! Calculate workload for each MPI process
 
-  call calcWorkload(BZ%nkpt,sField,rField,firstPoint,lastPoint)
+  call calcWorkload(int(BZ%nkpt,8),sField,rField,firstPoint,lastPoint)
 
   call torque_fct(torque)
 
@@ -212,7 +212,7 @@ subroutine local_xc_torque(torque)
         end do
       end do
     end do
-    torque(:,:,:,i) = - U(i) * torque(:,:,:,i)
+    torque(:,:,:,i) = - 0.5d0 * U(i) * torque(:,:,:,i)
   end do
 
   return

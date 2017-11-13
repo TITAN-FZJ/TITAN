@@ -14,10 +14,10 @@ subroutine ldos_energy(e,ldosu,ldosd)
   complex(double), dimension(s%nAtoms, nOrb) :: gfdiagu,gfdiagd
   real(double), dimension(3) :: kp
   real(double) :: weight
-  integer :: i,mu,nu,iz
-  integer :: firstPoint, lastPoint
+  integer :: i,mu,nu
+  integer*8 :: firstPoint, lastPoint,iz
 
-  call calcWorkload(BZ%nkpt,sFreq(1),rFreq(1),firstPoint,lastPoint)
+  call calcWorkload(int(BZ%nkpt,8),sFreq(1),rFreq(1),firstPoint,lastPoint)
 
   ldosu = 0.d0
   ldosd = 0.d0

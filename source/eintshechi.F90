@@ -29,9 +29,11 @@ subroutine eintshechi(e)
   integer, dimension(4) :: index1, index2
 
 !--------------------- begin MPI vars --------------------
-  integer :: ix,ix2, nep,nkp
-  integer :: start2, end2
+  integer*8 :: ix
+  integer*8 :: ix2, nep,nkp
+  integer*8 :: start2, end2
   integer :: ncount
+
   ncount=dim*dim
 !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -39,7 +41,7 @@ subroutine eintshechi(e)
   call generate_real_epoints(e)
 
   if(abs(e) >= 1.d-10) then
-     call calcWorkload(pn2*BZ%nkpt,sFreq(1),rFreq(1),start2,end2)
+     call calcWorkload(int(pn2,8)*int(BZ%nkpt,8),sFreq(1),rFreq(1),start2,end2)
   else
      start2 = 0
      end2 = 0
@@ -253,7 +255,7 @@ subroutine eintshechilinearsoc(e)
   complex(double), dimension(:,:), allocatable :: df1,df1lsoc
 
   !--------------------- begin MPI vars --------------------
-  integer :: start2, end2
+  integer*8 :: start2, end2
   integer :: ncount
   ncount=dim*dim
   !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
@@ -262,7 +264,7 @@ subroutine eintshechilinearsoc(e)
   call generate_real_epoints(e)
 
   if(abs(e) >= 1.d-10) then
-     call calcWorkload(pn2*BZ%nkpt,sFreq(1),rFreq(1),start2,end2)
+     call calcWorkload(int(pn2,8)*int(BZ%nkpt,8),sFreq(1),rFreq(1),start2,end2)
   else
      start2 = 0
      end2 = 0
