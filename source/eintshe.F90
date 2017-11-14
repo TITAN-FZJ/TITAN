@@ -385,7 +385,7 @@ subroutine eintshelinearsoc(e)
 
   integer :: i,j,l,mu,nu,gamma,xi,sigma,sigmap,neighbor
   real(double) :: kp(3), ep
-  integer :: nep, nkp
+  integer*8 :: nep, nkp
   !complex(double) :: expikr(n0sc1:n0sc2) !TODO: Re-Include
   complex(double) :: wkbzc
   complex(double),dimension(:,:,:,:),allocatable    :: gf,dtdk,gvg
@@ -394,7 +394,7 @@ subroutine eintshelinearsoc(e)
   !complex(double),dimension(n0sc1:n0sc2,Npl,9,9)    :: prett,preLxtt,preLytt,preLztt !TODO: Re-Include
 
 !--------------------- begin MPI vars --------------------
-  integer :: ix,ix2, iz
+  integer*8 :: ix,ix2, iz
   integer*8 :: start2, end2
   integer :: ncountkl !,nncountkl !TODO: Re-Include
   ncountkl = dim*4

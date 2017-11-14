@@ -244,7 +244,7 @@ subroutine eintshechilinearsoc(e)
   real(double), intent(in) :: e
 
   integer :: AllocateStatus
-  integer :: ix,ix2, iz, nep, nkp
+  integer*8 :: ix,ix2, iz, nep, nkp
   integer :: i,j,mu,nu,gamma,xi
   real(double) :: kp(3), ep
   real(double) :: weight
