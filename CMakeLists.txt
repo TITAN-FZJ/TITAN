@@ -40,8 +40,8 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/eintshechi.F90
                                   source/eintshe.F90
                                   source/calculate_chi.F90
-											 source/calculate_all.F90
-											 source/calculate_dc_limit.F90
+					                        source/calculate_all.F90
+				                          source/calculate_dc_limit.F90
                                   source/fermi_surface.F90
                                   source/Npl_variables.F90
                                   source/build_rotation_matrices.F90
@@ -56,16 +56,17 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_dnsqe.F90
                                   source/mod_progress.F90
                                   source/EnergyIntegration.F90
-											 source/SK_TightBinding.F90
-											 source/TightBinding.F90
+					                        source/SK_TightBinding.F90
+				                          source/TightBinding.F90
                                   source/mod_self_consistency.F90
                                   source/mod_susceptibilities.F90
                                   source/mod_alpha.F90
-											 source/mod_beff.F90
-											 source/mod_torques.F90
-											 source/mod_disturbances.F90
-											 source/mod_prefactors.F90
+										              source/mod_beff.F90
+          											  source/mod_torques.F90
+          											  source/mod_disturbances.F90
+          											  source/mod_prefactors.F90
                                   source/adaptiveMesh.F90
+                                  source/TorqueTorqueResponse.F90
                                   )
 
 if(PLATFORM MATCHES juqueen)
