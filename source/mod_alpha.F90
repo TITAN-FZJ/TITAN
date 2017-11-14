@@ -100,7 +100,7 @@ contains
   subroutine write_alpha(e)
     use mod_f90_kind, only: double
     use mod_constants, only: cI, StoC, CtoS
-    use mod_susceptibilities, only: chiorb, chiorb_hf
+    use mod_susceptibilities, only: schi, schihf
     use mod_parameters, only: sigmai2i, U, dim
     use mod_system, only: s => sys
     use mod_magnet, only: mabs
@@ -112,10 +112,10 @@ contains
 
     call open_alpha_files()
 
-    m_chi = chiorb
-    m_chi_hf = chiorb_hf
-    m_chi_inv = chiorb
-    m_chi_hf_inv = chiorb_hf
+    m_chi = schi
+    m_chi_hf = schihf
+    m_chi_inv = schi
+    m_chi_hf_inv = schihf
     call invers(m_chi_inv,    4*s%nAtoms)
     call invers(m_chi_hf_inv, 4*s%nAtoms)
 
@@ -131,7 +131,7 @@ contains
             do t = 1, 4
               acart(p,q) = acart(p,q) + StoC(p,r) * m_chi(sigmai2i(r,i), sigmai2i(t,i)) * CtoS(t,q)
               acarthf(p,q) = acarthf(p,q) + StoC(p,r) * m_chi_hf(sigmai2i(r,i), sigmai2i(t,i)) * CtoS(t,q)
-              acartinv(p,q) = acartinv(p,q) + StoC(p,r) * m_chi_inv(sigmai2i(r,i), sigmai2i(t,i)) * CtoS(t,q)
+              acartinv(p,q) = acartinv(p,q) + StoC(p,r) * m_chi_inv(sigmai2i(t,i),sigmai2i(r,i)) * CtoS(t,q)
               acarthfinv(p,q) = acarthfinv(p,q) + StoC(p,r) * m_chi_hf_inv(sigmai2i(r,i), sigmai2i(t,i)) * CtoS(t,q)
             end do
           end do

@@ -71,8 +71,8 @@ subroutine calculate_chi()
                  do sigma=1, 4
                     do nu=1, nOrb
                        do mu=1, nOrb
-                          schi  (sigma,sigmap,i,j) = schi  (sigma,sigmap,i,j) + chiorb   (sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
-                          schihf(sigma,sigmap,i,j) = schihf(sigma,sigmap,i,j) + chiorb_hf(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
+                          schi  (sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schi  (sigmai2i(sigma,i),sigmai2i(sigmap,j)) + chiorb   (sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
+                          schihf(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schihf(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + chiorb_hf(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
                        end do
                     end do
                  end do
@@ -91,18 +91,34 @@ subroutine calculate_chi()
            do j=1, s%nAtoms
               do i=1, s%nAtoms
                  rottemp  = rotmat_i(:,:,i)
-                 schitemp = schi(:,:,i,j)
+                 do sigma = 1, 4
+                   do sigmap = 1, 4
+                     schitemp(sigma,sigmap) = schi(sigmai2i(sigmap,j),sigmai2i(sigma,i))
+                   end do
+                 end do
                  call zgemm('n', 'n', 4, 4, 4, cOne, rottemp, 4, schitemp, 4, cZero, schirot, 4)
                  rottemp  = rotmat_j(:,:,j)
                  call zgemm('n', 'n', 4, 4, 4, cOne, schirot, 4, rottemp, 4, cZero, schitemp, 4)
-                 schi(:,:,i,j) = schitemp
+                 do sigma = 1, 4
+                   do sigmap = 1, 4
+                     schi(sigmai2i(sigmap,j),sigmai2i(sigma,i)) = schitemp(sigma,sigmap)
+                   end do
+                 end do
 
                  rottemp  = rotmat_i(:,:,i)
-                 schitemp = schihf(:,:,i,j)
+                 do sigma = 1, 4
+                   do sigmap = 1, 4
+                     schitemp(sigma,sigmap) = schihf(sigmai2i(sigma,i), sigmai2i(sigmap,j))
+                   end do
+                 end do
                  call zgemm('n', 'n', 4, 4, 4, cOne, rottemp, 4, schitemp, 4, cZero, schirot, 4)
                  rottemp  = rotmat_j(:,:,j)
                  call zgemm('n', 'n', 4, 4, 4, cOne, schirot, 4, rottemp, 4, cZero, schitemp, 4)
-                 schihf(:,:,i,j) = schitemp
+                 do sigma = 1, 4
+                   do sigmap = 1, 4
+                     schihf(sigmai2i(sigma,i), sigmai2i(sigmap,j)) = schitemp(sigma,sigmap)
+                   end do
+                 end do
               end do
            end do
         end if
@@ -118,18 +134,6 @@ subroutine calculate_chi()
 
               ! DIAGONALIZING SUSCEPTIBILITY
               if(.not.lnodiag) call diagonalize_susceptibilities()
-
-              !Unwrap everything again.
-              do i = 1, s%nAtoms
-                 do j = 1, s%nAtoms
-                    do sigma = 1, 4
-                       do sigmap = 1, 4
-                          chiorb   (sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schi  (sigma,sigmap,i,j)
-                          chiorb_hf(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schihf(sigma,sigmap,i,j)
-                       end do
-                    end do
-                 end do
-              end do
 
               ! Gonna be stupidly slow :/
               call calcTTResponse(e)

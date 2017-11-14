@@ -110,20 +110,19 @@ contains
     use mod_constants, only: levi_civita, StoC, CtoS, cZero
     use mod_System, only: s => sys
     use mod_magnet, only: Lxp, Lyp, Lzp
-    use mod_parameters, only: dim
+    use mod_parameters, only: sigmai2i
     use TightBinding, only: nOrb
     use mod_parameters, only: sigmaimunu2i
-    use mod_susceptibilities, only: chiorb
+    use mod_susceptibilities, only: schi
     use mod_mpi_pars, only: abortProgram
     implicit none
     complex(double), dimension(9,9,3,s%nAtoms) :: L
     integer :: AllocateStatus
     integer :: i,j, m,n,k, mp,np,kp, mu,nu, gamma,zeta, p,q
     real(double), intent(in) :: e
-    complex(double), dimension(:,:), allocatable :: tempchi
     complex(double), dimension(:,:), allocatable :: TTInverse
-    allocate(tempchi(dim,dim), TTInverse(s%nAtoms*3, s%nAtoms*3), stat=AllocateStatus)
-    if(AllocateStatus /= 0) call abortProgram("[calcTTResponse] Couldn't allocate memory for: tempchi, TTInverse")
+    allocate(TTInverse(s%nAtoms*3, s%nAtoms*3), stat=AllocateStatus)
+    if(AllocateStatus /= 0) call abortProgram("[calcTTResponse] Couldn't allocate memory for: TTInverse")
 
     do i = 1, s%nAtoms
        L(1:9,1:9,1,i) = lxp(1:9,1:9,i)
@@ -155,8 +154,8 @@ contains
                                               TTResponse(mp, m, j, i) = TTResponse(mp, m, j, i) &
                                                    - s%Types(s%Basis(i)%Material)%Lambda * s%Types(s%Basis(j)%Material)%Lambda &
                                                    * levi_civita(m,n,k) * levi_civita(mp, np, kp) &
-                                                   * L(nu, mu, n, i) * L(gamma, zeta, np, j) &
-                                                   * StoC(k+1,p) * chiorb(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma,zeta)) * CtoS(q,kp+1)
+                                                   * L(mu, nu, n, i) * L(gamma, zeta, np, j) &
+                                                   * StoC(k+1,p) * schi(sigmai2i(p,i), sigmai2i(q,j)) * CtoS(q,kp+1)
                                            end do
                                         end do
                                      end do
