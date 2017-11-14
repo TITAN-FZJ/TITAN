@@ -2,19 +2,20 @@
 subroutine calculate_chi()
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, cOne
-  use mod_parameters, only:  count, emin, deltae, dim, sigmaimunu2i, outputunit_loop, lnodiag,laddresults, skip_steps
+  use mod_parameters, only:  count, emin, deltae, dim, sigmaimunu2i, outputunit_loop, lnodiag,laddresults, skip_steps, sigmai2i
   use mod_mpi_pars
   use mod_magnet, only: mtheta,mphi
   use mod_susceptibilities, only: identt, Umatorb, schi, schihf, schirot, rotmat_i, &
-                                  rotmat_j, rottemp, schitemp, lrot, chiorb_hf, chiorb, &
-                                  build_identity_and_U_matrix, diagonalize_susceptibilities, &
-                                  create_chi_files, write_susceptibilities, &
-                                  allocate_susceptibilities, deallocate_susceptibilities
+       rotmat_j, rottemp, schitemp, lrot, chiorb_hf, chiorb, &
+       build_identity_and_U_matrix, diagonalize_susceptibilities, &
+       create_chi_files, write_susceptibilities, &
+       allocate_susceptibilities, deallocate_susceptibilities
   use mod_alpha, only: create_alpha_files, write_alpha, allocate_alpha, deallocate_alpha
   use mod_system, only: s => sys
   use TightBinding, only: nOrb
   use adaptiveMesh, only: genLocalEKMesh, freeLocalEKMesh
   use mod_progress, only: write_time
+  use TorqueTorqueResponse, only: calcTTResponse, create_TTR_files, allocTTResponse
   implicit none
   character(len=50) :: time
   integer :: mcount
@@ -23,18 +24,20 @@ subroutine calculate_chi()
   complex(double), dimension(:,:),   allocatable :: temp
   call allocate_susceptibilities()
   call allocate_alpha()
+  call allocTTResponse(s%nAtoms)
 
   call genLocalEKMesh(rFreq(1), sFreq(1), FreqComm(1))
 
   if(rFreq(1) == 0) allocate(temp(dim,dim))
   if(rField == 0) then
-    write(outputunit_loop,"('CALCULATING LOCAL SUSCEPTIBILITY AS A FUNCTION OF ENERGY')")
-    ! write(outputunit_loop,"('Qx = ',es10.3,', Qz = ',es10.3)") q(1),q(3)
-    ! Creating files and writing headers
-    if(.not.laddresults) then
-      call create_chi_files()
-      call create_alpha_files()
-    end if
+     write(outputunit_loop,"('CALCULATING LOCAL SUSCEPTIBILITY AS A FUNCTION OF ENERGY')")
+     ! write(outputunit_loop,"('Qx = ',es10.3,', Qz = ',es10.3)") q(1),q(3)
+     ! Creating files and writing headers
+     if(.not.laddresults) then
+        call create_chi_files()
+        call create_alpha_files()
+        call create_TTR_files
+     end if
   end if
 
   ! Mounting U and identity matrix
@@ -44,103 +47,110 @@ subroutine calculate_chi()
 
   ! Chi Energy Loop
   do count = startFreq+skip_steps, endFreq+skip_steps
-    e = emin + deltae * (count-1)
-    if(myrank==0) write(outputunit_loop,"('[calculate_chi] Starting MPI step ',i0,' of ',i0)") count - startFreq - skip_steps + 1, endFreq - startFreq + 1
+     e = emin + deltae * (count-1)
+     if(myrank==0) write(outputunit_loop,"('[calculate_chi] Starting MPI step ',i0,' of ',i0)") count - startFreq - skip_steps + 1, endFreq - startFreq + 1
 
-    ! Start parallelized processes to calculate chiorb_hf and chiorbi0_hf for energy e
-    call eintshechi(e)
+     ! Start parallelized processes to calculate chiorb_hf and chiorbi0_hf for energy e
+     call eintshechi(e)
 
-    ! From here on all other processes except for rFreq(1) == 0 are idle :/
-    if(rFreq(1)==0) then
-      ! (1 + chi_hf*Umat)^-1
-      temp = identt
-      call zgemm('n','n',dim,dim,dim,cOne,chiorb_hf,dim,Umatorb,dim,cOne,temp,dim)
-      ! temp = identt + temp
-      call invers(temp,dim)
-      call zgemm('n','n',dim,dim,dim,cOne,temp,dim,chiorb_hf,dim,cZero,chiorb,dim)
+     ! From here on all other processes except for rFreq(1) == 0 are idle :/
+     if(rFreq(1)==0) then
+        ! (1 + chi_hf*Umat)^-1
+        temp = identt
+        call zgemm('n','n',dim,dim,dim,cOne,chiorb_hf,dim,Umatorb,dim,cOne,temp,dim)
+        ! temp = identt + temp
+        call invers(temp,dim)
+        call zgemm('n','n',dim,dim,dim,cOne,temp,dim,chiorb_hf,dim,cZero,chiorb,dim)
 
-      schi = cZero
-      schihf = cZero
-      ! Calculating RPA and HF susceptibilities
-      do j=1, s%nAtoms
-        do i=1, s%nAtoms
-          do sigmap=1, 4
-            do sigma=1, 4
-              do nu=1, nOrb
-                do mu=1, nOrb
-                  schi  (sigma,sigmap,i,j) = schi  (sigma,sigmap,i,j) + chiorb   (sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
-                  schihf(sigma,sigmap,i,j) = schihf(sigma,sigmap,i,j) + chiorb_hf(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
-                end do
-              end do
-            end do
-          end do
-        end do
-      end do
-
-      ! Rotating susceptibilities to the magnetization direction
-      if(lrot) then
-        do i=1, s%nAtoms
-          call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,1)
-          rotmat_i(:,:,i) = rottemp
-          call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,2)
-          rotmat_j(:,:,i) = rottemp
-        end do
+        schi = cZero
+        schihf = cZero
+        ! Calculating RPA and HF susceptibilities
         do j=1, s%nAtoms
-          do i=1, s%nAtoms
-            rottemp  = rotmat_i(:,:,i)
-            schitemp = schi(:,:,i,j)
-            call zgemm('n', 'n', 4, 4, 4, cOne, rottemp, 4, schitemp, 4, cZero, schirot, 4)
-            rottemp  = rotmat_j(:,:,j)
-            call zgemm('n', 'n', 4, 4, 4, cOne, schirot, 4, rottemp, 4, cZero, schitemp, 4)
-            schi(:,:,i,j) = schitemp
-
-            rottemp  = rotmat_i(:,:,i)
-            schitemp = schihf(:,:,i,j)
-            call zgemm('n', 'n', 4, 4, 4, cOne, rottemp, 4, schitemp, 4, cZero, schirot, 4)
-            rottemp  = rotmat_j(:,:,j)
-            call zgemm('n', 'n', 4, 4, 4, cOne, schirot, 4, rottemp, 4, cZero, schitemp, 4)
-            schihf(:,:,i,j) = schitemp
-          end do
-        end do
-      end if
-
-      ! Sending results to myrank_row = myrank_col = 0 and writing on file
-      if(rFreq(2) == 0) then
-        do mcount=1, sFreq(2)
-          if (mcount/=1) then
-            call MPI_Recv(e,     1,                   MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,1000,FreqComm(2),stat,ierr)
-            call MPI_Recv(schi,  s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),1100,FreqComm(2),stat,ierr)
-            call MPI_Recv(schihf,s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),1200,FreqComm(2),stat,ierr)
-          end if
-
-          ! DIAGONALIZING SUSCEPTIBILITY
-          if(.not.lnodiag) call diagonalize_susceptibilities()
-
-          ! WRITING GILBERT DAMPING
-          call write_alpha(e)
-
-          ! WRITING RPA AND HF SUSCEPTIBILITIES
-          call write_susceptibilities(e)
+           do i=1, s%nAtoms
+              do sigmap=1, 4
+                 do sigma=1, 4
+                    do nu=1, nOrb
+                       do mu=1, nOrb
+                          schi  (sigma,sigmap,i,j) = schi  (sigma,sigmap,i,j) + chiorb   (sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
+                          schihf(sigma,sigmap,i,j) = schihf(sigma,sigmap,i,j) + chiorb_hf(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
+                       end do
+                    end do
+                 end do
+              end do
+           end do
         end do
 
-        write(time,"('[calculate_chi] Time after step ',i0,': ')") count
-        call write_time(outputunit_loop,time)
+        ! Rotating susceptibilities to the magnetization direction
+        if(lrot) then
+           do i=1, s%nAtoms
+              call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,1)
+              rotmat_i(:,:,i) = rottemp
+              call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,2)
+              rotmat_j(:,:,i) = rottemp
+           end do
+           do j=1, s%nAtoms
+              do i=1, s%nAtoms
+                 rottemp  = rotmat_i(:,:,i)
+                 schitemp = schi(:,:,i,j)
+                 call zgemm('n', 'n', 4, 4, 4, cOne, rottemp, 4, schitemp, 4, cZero, schirot, 4)
+                 rottemp  = rotmat_j(:,:,j)
+                 call zgemm('n', 'n', 4, 4, 4, cOne, schirot, 4, rottemp, 4, cZero, schitemp, 4)
+                 schi(:,:,i,j) = schitemp
 
-        ! ! Emergency stop
-        ! open(unit=911, file="stop", status='old', iostat=iw)
-        ! if(iw==0) then
-        !   close(911)
-        !   write(outputunit,"('[calculate_chi] Emergency ""stop"" file found! Stopping after step ',i0,'...')") count
-        !   call system ('rm stop')
-        !   call abortProgram("[calculate_chi] (""stop"" file deleted!)")
-        ! end if
-      else
-        call MPI_Send(e,     1,                   MPI_DOUBLE_PRECISION,0,1000, FreqComm(2),ierr)
-        call MPI_Send(schi,  s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX,  0,1100, FreqComm(2),ierr)
-        call MPI_Send(schihf,s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX,  0,1200, FreqComm(2),ierr)
-      end if
-    end if
-    call MPI_Barrier(FieldComm, ierr)
+                 rottemp  = rotmat_i(:,:,i)
+                 schitemp = schihf(:,:,i,j)
+                 call zgemm('n', 'n', 4, 4, 4, cOne, rottemp, 4, schitemp, 4, cZero, schirot, 4)
+                 rottemp  = rotmat_j(:,:,j)
+                 call zgemm('n', 'n', 4, 4, 4, cOne, schirot, 4, rottemp, 4, cZero, schitemp, 4)
+                 schihf(:,:,i,j) = schitemp
+              end do
+           end do
+        end if
+
+        ! Sending results to myrank_row = myrank_col = 0 and writing on file
+        if(rFreq(2) == 0) then
+           do mcount=1, sFreq(2)
+              if (mcount/=1) then
+                 call MPI_Recv(e,     1,                   MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,1000,FreqComm(2),stat,ierr)
+                 call MPI_Recv(schi,  s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),1100,FreqComm(2),stat,ierr)
+                 call MPI_Recv(schihf,s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),1200,FreqComm(2),stat,ierr)
+              end if
+
+              ! DIAGONALIZING SUSCEPTIBILITY
+              if(.not.lnodiag) call diagonalize_susceptibilities()
+
+              !Unwrap everything again.
+              do i = 1, s%nAtoms
+                 do j = 1, s%nAtoms
+                    do sigma = 1, 4
+                       do sigmap = 1, 4
+                          chiorb   (sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schi  (sigma,sigmap,i,j)
+                          chiorb_hf(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schihf(sigma,sigmap,i,j)
+                       end do
+                    end do
+                 end do
+              end do
+
+              ! Gonna be stupidly slow :/
+              call calcTTResponse(e)
+
+              ! WRITING GILBERT DAMPING
+              call write_alpha(e)
+
+              ! WRITING RPA AND HF SUSCEPTIBILITIES
+              call write_susceptibilities(e)
+           end do
+
+           write(time,"('[calculate_chi] Time after step ',i0,': ')") count
+           call write_time(outputunit_loop,time)
+
+        else
+           call MPI_Send(e,     1,                   MPI_DOUBLE_PRECISION,0,1000, FreqComm(2),ierr)
+           call MPI_Send(schi,  s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX,  0,1100, FreqComm(2),ierr)
+           call MPI_Send(schihf,s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX,  0,1200, FreqComm(2),ierr)
+        end if
+     end if
+     call MPI_Barrier(FieldComm, ierr)
   end do
 
   ! Sorting results on files
