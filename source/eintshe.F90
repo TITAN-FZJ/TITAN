@@ -205,7 +205,7 @@ subroutine eintshe(e)
   !$omp do schedule(static)
   do ix2 = start2, end2 ! Third integration (on the real axis)
       nep = (ix2-1) / BZ % nkpt + 1
-      nkp = mod(ix2-1, BZ % nkpt)+1
+      nkp = mod(ix2-1, int(BZ % nkpt,8))+1
       ep = x2(nep)
       kp = BZ % kp(:,nkp)
       wkbzc = cmplx(p2(nep) * BZ % w(nkp), 0.d0)
@@ -596,7 +596,7 @@ subroutine eintshelinearsoc(e)
   !$omp do schedule(static)
   do ix2 = start2, end2 ! Third integration (on the real axis)
       nep = (ix2-1) / BZ % nkpt + 1
-      nkp = mod(ix2-1, BZ % nkpt)+1
+      nkp = mod(ix2-1, int(BZ % nkpt,8))+1
       ep = x2(nep)
       kp = BZ % kp(:,nkp)
       wkbzc = cmplx(p2(nep) * BZ % w(nkp),0.d0)
