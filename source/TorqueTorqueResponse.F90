@@ -2,7 +2,7 @@ module TorqueTorqueResponse
   use mod_f90_kind, only: double
   implicit none
 
-  complex(double), dimension(:,:,:,:), allocatable :: TTResponse
+  complex(double), dimension(:,:,:,:), allocatable :: TTResponse, TTResponseHF
   character(len=7), dimension(2), parameter, private :: folder = ["RPA    ", "A/Slope"]
   character(len=6), dimension(3), parameter, private :: filename = ["TTR   ", "TTAinv", "TTA   "]
 
@@ -15,8 +15,8 @@ contains
 
     if(allocated(TTResponse)) deallocate(TTResponse)
 
-    allocate(TTResponse(4,4,nAtoms,nAtoms), stat = AllocateStatus)
-    if(AllocateStatus /= 0) call abortProgram("[allocateTTPrefactor] Not enough memory for: TTPrefactor")
+    allocate(TTResponse(4,4,nAtoms,nAtoms), TTResponseHF(4,4,nAtoms,nAtoms), stat = AllocateStatus)
+    if(AllocateStatus /= 0) call abortProgram("[allocateTTResponse] Not enough memory for: TTResponse, TTResponseHF")
 
     return
   end subroutine allocTTResponse
@@ -37,13 +37,18 @@ contains
           open (unit=555+s%nAtoms*i+j, file=varm, status='replace', form='formatted')
           write(unit=555+s%nAtoms*i+j, fmt="('#     energy    ,  Torque Torque Response ((i,j, i=1,3), j=1,3)')")
 
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(2)),trim(filename(2)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-          open (unit=666+s%nAtoms+i, file=varm, status='replace', position='append', form='formatted')
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_','asite=',i0,'_bsite=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(2)),trim(filename(2)),i,j,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+          open (unit=666+s%nAtoms*i+j, file=varm, status='replace', position='append', form='formatted')
           write(unit=666+s%nAtoms*i+j, fmt="('#     energy    ,  Torque Torque Response ((i,j, i=1,3), j=1,3)')")
 
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(2)),trim(filename(3)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-          open (unit=777+s%nAtoms+i, file=varm, status='replace', position='append', form='formatted')
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_','asite=',i0,'_bsite=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(2)),trim(filename(3)),i,j,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+          open (unit=777+s%nAtoms*i+j, file=varm, status='replace', position='append', form='formatted')
           write(unit=777+s%nAtoms*i+j, fmt="('#     energy    ,  Inverse Torque Torque Response ((i,j, i=1,3), j=1,3)')")
+
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'HF_','asite=',i0,'_bsite=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(2)),trim(filename(2)),i,j,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+          open (unit=888+s%nAtoms*i+j, file=varm, status='replace', position='append', form='formatted')
+          write(unit=888+s%nAtoms*i+j, fmt="('#     energy    ,  Torque Torque Response ((i,j, i=1,3), j=1,3)')")
+
 
        end do
     end do
@@ -73,15 +78,21 @@ contains
           errt = errt + err
           if(err .ne. 0) missing_files = trim(missing_files) // " " // trim(varm)
 
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(2)),trim(filename(2)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-          open (unit=666+s%nAtoms+i, file=varm, status='old', position='append', form='formatted', iostat=err)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_','asite=',i0,'_bsite=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(2)),trim(filename(2)),i,j,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+          open (unit=666+s%nAtoms*i+j, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err .ne. 0) missing_files = trim(missing_files) // " " // trim(varm)
 
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(2)),trim(filename(3)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
-          open (unit=777+s%nAtoms+i, file=varm, status='old', position='append', form='formatted', iostat=err)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_','asite=',i0,'_bsite=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(2)),trim(filename(3)),i,j,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+          open (unit=777+s%nAtoms*i+j, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err .ne. 0) missing_files = trim(missing_files) // " " // trim(varm)
+
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'HF_','asite=',i0,'_bsite=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(2)),trim(filename(2)),i,j,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+          open (unit=888+s%nAtoms*i+j, file=varm, status='old', position='append', form='formatted', iostat=err)
+          errt = errt + err
+          if(err .ne. 0) missing_files = trim(missing_files) // " " // trim(varm)
+
        end do
     end do
     if(errt/=0) call abortProgram("[open_alpha_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_line('A') // trim(missing_files))
@@ -98,7 +109,8 @@ contains
        do j = 1, s%nAtoms
           close(unit=555+s%nAtoms*i+j)
           close(unit=666+s%nAtoms*i+j)
-          close(unit=666+s%nAtoms*i+j)
+          close(unit=777+s%nAtoms*i+j)
+          close(unit=888+s%nAtoms*i+j)
        end do
     end do
 
@@ -113,7 +125,7 @@ contains
     use mod_parameters, only: sigmai2i
     use TightBinding, only: nOrb
     use mod_parameters, only: sigmaimunu2i
-    use mod_susceptibilities, only: schi, chiorb
+    use mod_susceptibilities, only: schi, chiorb, chiorb_hf
     use mod_mpi_pars, only: abortProgram
     implicit none
     complex(double), dimension(9,9,3,s%nAtoms) :: L
@@ -156,6 +168,12 @@ contains
                                                    * levi_civita(m,n,k) * levi_civita(mp, np, kp) &
                                                    * L(mu, nu, n, i) * L(gamma, zeta, np, j) &
                                                    * StoC(k+1,p) * chiorb(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma,zeta)) * CtoS(q,kp+1)
+                                              TTResponseHF(mp, m, j, i) = TTResponseHF(mp, m, j, i) &
+                                                   - s%Types(s%Basis(i)%Material)%Lambda * s%Types(s%Basis(j)%Material)%Lambda &
+                                                   * levi_civita(m,n,k) * levi_civita(mp, np, kp) &
+                                                   * L(mu, nu, n, i) * L(gamma, zeta, np, j) &
+                                                   * StoC(k+1,p) * chiorb_hf(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma,zeta)) * CtoS(q,kp+1)
+
                                            end do
                                         end do
                                      end do
@@ -180,7 +198,6 @@ contains
     do i = 1, s%nAtoms
        do j = 1, s%nAtoms
           do m = 1,3
-             print *, (TTResponse(n,m,j,i), n = 1,3)
              do n = 1,3
                 TTInverse(3*(j-1) + n, 3*(i-1)+m) = TTResponse(n,m,j,i)
              end do
@@ -193,6 +210,7 @@ contains
        do j = 1, s%nAtoms
           write(666+s%nAtoms*i+j, "(19(es16.9,2x))") e, ((real(TTInverse(3*(j-1)+q, 3*(i-1)+p)), aimag(TTInverse(3*(j-1)+q, 3*(i-1)+p)), q = 1, 3), p = 1, 3)
           write(777+s%nAtoms*i+j, "(19(es16.9,2x))") e, ((real(TTResponse(q,p,j,i)), aimag(TTResponse(q,p,j,i)), q = 1, 3), p = 1, 3)
+          write(888+s%nAtoms*i+j, "(19(es16.9,2x))") e, ((real(TTResponseHF(q,p,j,i)), aimag(TTResponseHF(q,p,j,i)), q = 1, 3), p = 1, 3)
        end do
     end do
 
