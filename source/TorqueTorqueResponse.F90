@@ -113,7 +113,7 @@ contains
     use mod_parameters, only: sigmai2i
     use TightBinding, only: nOrb
     use mod_parameters, only: sigmaimunu2i
-    use mod_susceptibilities, only: schi
+    use mod_susceptibilities, only: schi, chiorb
     use mod_mpi_pars, only: abortProgram
     implicit none
     complex(double), dimension(9,9,3,s%nAtoms) :: L
@@ -155,7 +155,7 @@ contains
                                                    - s%Types(s%Basis(i)%Material)%Lambda * s%Types(s%Basis(j)%Material)%Lambda &
                                                    * levi_civita(m,n,k) * levi_civita(mp, np, kp) &
                                                    * L(mu, nu, n, i) * L(gamma, zeta, np, j) &
-                                                   * StoC(k+1,p) * schi(sigmai2i(p,i), sigmai2i(q,j)) * CtoS(q,kp+1)
+                                                   * StoC(k+1,p) * chiorb(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma,zeta)) * CtoS(q,kp+1)
                                            end do
                                         end do
                                      end do
