@@ -45,7 +45,7 @@ contains
           open (unit=777+s%nAtoms*i+j, file=varm, status='replace', position='append', form='formatted')
           write(unit=777+s%nAtoms*i+j, fmt="('#     energy    ,  Inverse Torque Torque Response ((i,j, i=1,3), j=1,3)')")
 
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'HF_','asite=',i0,'_bsite=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(2)),trim(filename(2)),i,j,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'HF_','asite=',i0,'_bsite=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(2)),trim(filename(3)),i,j,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
           open (unit=888+s%nAtoms*i+j, file=varm, status='replace', position='append', form='formatted')
           write(unit=888+s%nAtoms*i+j, fmt="('#     energy    ,  Torque Torque Response ((i,j, i=1,3), j=1,3)')")
 
@@ -88,7 +88,7 @@ contains
           errt = errt + err
           if(err .ne. 0) missing_files = trim(missing_files) // " " // trim(varm)
 
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'HF_','asite=',i0,'_bsite=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(2)),trim(filename(2)),i,j,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'HF_','asite=',i0,'_bsite=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(2)),trim(filename(3)),i,j,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
           open (unit=888+s%nAtoms*i+j, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err .ne. 0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -143,7 +143,7 @@ contains
     end do
 
     TTResponse = cmplx(0.d0, 0.d0)
-
+    TTResponseHF = cmplx(0.d0, 0.d0)
     do i = 1, s%nAtoms
        do j = 1, s%nAtoms
           do m = 1, 3
