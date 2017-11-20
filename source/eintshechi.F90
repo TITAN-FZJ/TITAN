@@ -11,16 +11,13 @@ subroutine eintshechi(e)
   use TightBinding, only: nOrb,nOrb2
   use mod_SOC, only: llineargfsoc
   use mod_mpi_pars
-  !$  use omp_lib
   implicit none
   real(double), intent(in)    :: e
 
   integer :: AllocateStatus
   complex(double), dimension(:,:),allocatable :: Fint
 
-
-
-  integer         :: i,j,mu,nu,gamma,xi,iz
+  integer         :: i,j,mu,nu,gamma,xi
   real(double)                :: kp(3)
   complex(double),dimension(:,:,:,:),allocatable    :: gf
   complex(double),dimension(:,:,:,:,:),allocatable  :: gfuu,gfud,gfdu,gfdd
@@ -32,6 +29,7 @@ subroutine eintshechi(e)
   integer*8 :: ix
   integer*8 :: ix2, nep,nkp
   integer*8 :: start2, end2
+  integer*8 :: real_points
   integer :: ncount
 
   ncount=dim*dim
@@ -41,7 +39,8 @@ subroutine eintshechi(e)
   call generate_real_epoints(e)
 
   if(abs(e) >= 1.d-10) then
-     call calcWorkload(int(pn2,8)*int(BZ%nkpt,8),sFreq(1),rFreq(1),start2,end2)
+    real_points = int(pn2,8) * int(BZ%nkpt,8)
+     call calcWorkload(real_points,sFreq(1),rFreq(1),start2,end2)
   else
      start2 = 0
      end2 = 0
@@ -51,7 +50,7 @@ subroutine eintshechi(e)
   chiorb_hf = cZero
 
   !$omp parallel default(none) &
-  !$omp& private(AllocateStatus,iz,ix,ix2,i,j,mu,nu,gamma,xi,nep,nkp,ep,kp,weight,gf,gfuu,gfud,gfdu,gfdd,df1,Fint, index1, index2) &
+  !$omp& private(AllocateStatus,ix,ix2,i,j,mu,nu,gamma,xi,nep,nkp,ep,kp,weight,gf,gfuu,gfud,gfdu,gfdd,df1,Fint, index1, index2) &
   !$omp& shared(llineargfsoc,start2,end2,pn1,bzs,s,BZ,local_points,Ef,e,y,wght,x2,p2,pn2,E_k_imag_mesh,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf)
   allocate(df1(dim,dim), Fint(dim,dim), &
            gf  (nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
@@ -135,7 +134,7 @@ subroutine eintshechi(e)
 
   !$omp do schedule(static)
   do ix2 = start2, end2 ! Third integration (on the real axis)
-      nep = (ix2-1) / BZ % nkpt + 1
+      nep = (ix2-1) / int(BZ % nkpt,8) + 1
       nkp = mod(ix2-1, int(BZ % nkpt,8))+1
       ep = x2(nep)
       kp = BZ % kp(:,nkp)
@@ -378,7 +377,7 @@ subroutine eintshechilinearsoc(e)
 
   !$omp do schedule(static)
   do ix2 = start2, end2 ! Third integration (on the real axis)
-      nep = (ix2-1) / BZ % nkpt + 1
+      nep = (ix2-1) / int(BZ % nkpt,8) + 1
       nkp = mod(ix2-1, int(BZ % nkpt,8))+1
       ep = x2(nep)
       kp = BZ % kp(:,nkp)

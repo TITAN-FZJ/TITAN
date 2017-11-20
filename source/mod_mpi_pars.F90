@@ -170,13 +170,13 @@ contains
 
      remainder = mod(points, int(procs,8))
      if(rank < remainder) then
-        work = ceiling(dble(points) / dble(procs))
-        firstPoint = rank * work + 1
-        lastPoint = (rank + 1) * work
+        work = ceiling(dble(points) / dble(procs),8)
+        firstPoint = int(rank,8) * work + 1
+        lastPoint = (int(rank,8) + 1) * work
      else
-        work = floor(dble(points) / dble(procs))
-        firstPoint = rank * work + 1 + remainder
-        lastPoint = (rank + 1) * work + remainder
+        work = floor(dble(points) / dble(procs),8)
+        firstPoint = int(rank,8) * work + 1 + remainder
+        lastPoint = (int(rank,8) + 1) * work + remainder
      end if
      return
   end subroutine calcWorkload

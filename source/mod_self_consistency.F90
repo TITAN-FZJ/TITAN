@@ -207,7 +207,7 @@ contains
     complex(double), dimension(s%nAtoms,nOrb) :: gdiagud,gdiagdu
     complex(double), dimension(:,:,:,:), allocatable :: gf, gf_loc
     !--------------------- begin MPI vars --------------------
-    integer :: ix
+    integer*8 :: ix
     integer :: ncount
     integer :: mu,mup
     real(double) :: weight, ep
@@ -322,7 +322,7 @@ contains
     complex(double), dimension(nOrb2, nOrb2, 4) :: pauli_components1,pauli_components2
 
     !--------------------- begin MPI vars --------------------
-    integer :: ix
+    integer*8 :: ix
     integer :: ncount,ncount2
     integer :: mu
 
@@ -487,7 +487,7 @@ contains
     implicit none
 
     integer :: AllocateStatus
-    integer :: ix
+    integer*8 :: ix
     integer :: i,mu,nu,mup,nup
     real(double) :: kp(3)
     complex(double), dimension(:,:,:,:), allocatable :: gf
