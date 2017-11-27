@@ -16,6 +16,7 @@ subroutine calculate_chi()
   use adaptiveMesh, only: genLocalEKMesh, freeLocalEKMesh
   use mod_progress, only: write_time
   use TorqueTorqueResponse, only: calcTTResponse, create_TTR_files, allocTTResponse
+  use TorqueSpinResponse, only: calcTSResponse, create_TSR_files, allocTSResponse
   implicit none
   character(len=50) :: time
   integer :: mcount
@@ -25,7 +26,7 @@ subroutine calculate_chi()
   call allocate_susceptibilities()
   call allocate_alpha()
   call allocTTResponse(s%nAtoms)
-
+  call allocTSResponse(s%nAtoms)
   call genLocalEKMesh(rFreq(1), sFreq(1), FreqComm(1))
 
   if(rFreq(1) == 0) allocate(temp(dim,dim))
@@ -37,6 +38,7 @@ subroutine calculate_chi()
         call create_chi_files()
         call create_alpha_files()
         call create_TTR_files
+        call create_TSR_files()
      end if
   end if
 
@@ -137,7 +139,7 @@ subroutine calculate_chi()
 
               ! Gonna be stupidly slow :/
               call calcTTResponse(e)
-
+              call calcTSResponse(e)
               ! WRITING GILBERT DAMPING
               call write_alpha(e)
 

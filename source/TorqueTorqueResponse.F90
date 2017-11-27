@@ -36,18 +36,21 @@ contains
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(1)),trim(filename(1)),i,j,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
           open (unit=555+s%nAtoms*i+j, file=varm, status='replace', form='formatted')
           write(unit=555+s%nAtoms*i+j, fmt="('#     energy    ,  Torque Torque Response ((i,j, i=1,3), j=1,3)')")
-
+          close(unit=555+s%nAtoms*i+j)
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_','asite=',i0,'_bsite=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(2)),trim(filename(2)),i,j,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
           open (unit=666+s%nAtoms*i+j, file=varm, status='replace', position='append', form='formatted')
           write(unit=666+s%nAtoms*i+j, fmt="('#     energy    ,  Torque Torque Response ((i,j, i=1,3), j=1,3)')")
+          close(unit=666+s%nAtoms*i+j)
 
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_','asite=',i0,'_bsite=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(2)),trim(filename(3)),i,j,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
           open (unit=777+s%nAtoms*i+j, file=varm, status='replace', position='append', form='formatted')
           write(unit=777+s%nAtoms*i+j, fmt="('#     energy    ,  Inverse Torque Torque Response ((i,j, i=1,3), j=1,3)')")
+          close(unit=777+s%nAtoms*i+j)
 
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'HF_','asite=',i0,'_bsite=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(2)),trim(filename(3)),i,j,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
           open (unit=888+s%nAtoms*i+j, file=varm, status='replace', position='append', form='formatted')
           write(unit=888+s%nAtoms*i+j, fmt="('#     energy    ,  Torque Torque Response ((i,j, i=1,3), j=1,3)')")
+          close(unit=888+s%nAtoms*i+j)
 
 
        end do
@@ -189,6 +192,7 @@ contains
        end do
     end do
 
+    call open_TTR_files()
     do i = 1, s%nAtoms
        do j = 1, s%nAtoms
           write(unit=555+s%nAtoms*i+j, fmt="(es16.9,2x,i0,2x,i0,2x,18(es16.9,2x))") e, i,j,(((real(TTResponse(n,m,j,i)), aimag(TTResponse(n,m,j,i))), n=1,3), m = 1,3)
@@ -213,7 +217,7 @@ contains
           write(888+s%nAtoms*i+j, "(19(es16.9,2x))") e, ((real(TTResponseHF(q,p,j,i)), aimag(TTResponseHF(q,p,j,i)), q = 1, 3), p = 1, 3)
        end do
     end do
-
+    call close_TTR_files()
     return
   end subroutine calcTTResponse
 

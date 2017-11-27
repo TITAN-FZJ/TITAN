@@ -67,6 +67,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
           											  source/mod_prefactors.F90
                                   source/adaptiveMesh.F90
                                   source/TorqueTorqueResponse.F90
+                                  source/TorqueSpinResponse.F90
                                   )
 
 if(PLATFORM MATCHES juqueen)
