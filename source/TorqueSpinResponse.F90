@@ -103,6 +103,7 @@ contains
     use mod_parameters, only: sigmaimunu2i
     use mod_susceptibilities, only: schi, chiorb, chiorb_hf
     use mod_mpi_pars, only: abortProgram
+    use mod_magnet, only: mabs
     implicit none
     complex(double), dimension(9,9,3,s%nAtoms) :: L
     integer :: i,j, m,n,k, mp,np,kp, mu,nu, gamma,zeta, p,q
@@ -131,10 +132,10 @@ contains
                                   do q = 1, 4
                                      if(StoC(k+1,p) == cZero .or. CtoS(q,mp+1) == 0) cycle
                                      TSResponse(mp, m, j, i) = TSResponse(mp, m, j, i) &
-                                          - s%Types(s%Basis(i)%Material)%Lambda * levi_civita(m,n,k) * L(mu, nu, n, i) &
+                                          - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%Lambda * levi_civita(m,n,k) * L(mu, nu, n, i) &
                                           * StoC(k+1,p) * chiorb(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma, gamma)) * CtoS(q,mp+1)
                                      TSResponseHF(mp, m, j, i) = TSResponse(mp, m, j, i) &
-                                          - s%Types(s%Basis(i)%Material)%Lambda * levi_civita(m,n,k) * L(mu, nu, n, i) &
+                                          - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%Lambda * levi_civita(m,n,k) * L(mu, nu, n, i) &
                                           * StoC(k+1,p) * chiorb_hf(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma, gamma)) * CtoS(q,mp+1)
                                   end do
                                end do

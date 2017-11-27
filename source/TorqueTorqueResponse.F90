@@ -130,6 +130,7 @@ contains
     use mod_parameters, only: sigmaimunu2i
     use mod_susceptibilities, only: schi, chiorb, chiorb_hf
     use mod_mpi_pars, only: abortProgram
+    use mod_magnet, only: mabs
     implicit none
     complex(double), dimension(9,9,3,s%nAtoms) :: L
     integer :: AllocateStatus
@@ -167,12 +168,12 @@ contains
                                            do q = 1, 4
                                               if(StoC(k+1,p) == cZero .or. CtoS(q,kp+1) == 0) cycle
                                               TTResponse(mp, m, j, i) = TTResponse(mp, m, j, i) &
-                                                   - s%Types(s%Basis(i)%Material)%Lambda * s%Types(s%Basis(j)%Material)%Lambda &
+                                                   - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%Lambda * s%Types(s%Basis(j)%Material)%Lambda &
                                                    * levi_civita(m,n,k) * levi_civita(mp, np, kp) &
                                                    * L(mu, nu, n, i) * L(gamma, zeta, np, j) &
                                                    * StoC(k+1,p) * chiorb(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma,zeta)) * CtoS(q,kp+1)
                                               TTResponseHF(mp, m, j, i) = TTResponseHF(mp, m, j, i) &
-                                                   - s%Types(s%Basis(i)%Material)%Lambda * s%Types(s%Basis(j)%Material)%Lambda &
+                                                   - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%Lambda * s%Types(s%Basis(j)%Material)%Lambda &
                                                    * levi_civita(m,n,k) * levi_civita(mp, np, kp) &
                                                    * L(mu, nu, n, i) * L(gamma, zeta, np, j) &
                                                    * StoC(k+1,p) * chiorb_hf(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma,zeta)) * CtoS(q,kp+1)
