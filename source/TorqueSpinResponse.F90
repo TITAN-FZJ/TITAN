@@ -2,12 +2,14 @@ module TorqueSpinResponse
   use mod_f90_kind, only: double
   implicit none
 
+  integer, parameter, private :: nFiles = 3
   complex(double), dimension(:,:,:,:), allocatable :: TSResponse, TSResponseHF
-  character(len=7), dimension(2), parameter, private :: folder = ["A/Slope", "A/Slope"]
-  character(len=5), dimension(2), parameter, private :: filename = ["TSR  ", "TSAHF"]
-  integer, dimension(2) :: unitBase = [12000,13000]
-  character(len=50), dimension(2) :: FileHeader = [ "#     energy    ,  Torque Spin Response ((i,j, i=1,3), j=1,3)", &
-                                                    "#     energy    ,  Torque Spin Response ((i,j, i=1,3), j=1,3)" ]
+  character(len=7), dimension(nFiles), parameter, private :: folder = ["A/Slope", "A/Slope", "A/Slope"]
+  character(len=5), dimension(nFiles), parameter, private :: filename = ["TSR  ", "TSAHF", "TSInv"]
+  integer, dimension(nFiles) :: unitBase = [12000,13000,14000]
+  character(len=50), dimension(nFiles) :: FileHeader = [ "#     energy    ,  Torque Spin Response ((i,j, i=1,3), j=1,3)", &
+                                                         "#     energy    ,  Torque Spin Response ((i,j, i=1,3), j=1,3)", &
+                                                         "#     energy    ,  Inverse Chi TS       ((i,j, i=1,2), j=1,2)" ]
 contains
   subroutine allocTSResponse(nAtoms)
     use mod_mpi_pars, only: abortProgram
@@ -103,12 +105,12 @@ contains
     use mod_parameters, only: sigmaimunu2i
     use mod_susceptibilities, only: schi, chiorb, chiorb_hf
     use mod_mpi_pars, only: abortProgram
-    use mod_magnet, only: mabs
+    use mod_magnet, only: mabs, mz
     implicit none
     complex(double), dimension(9,9,3,s%nAtoms) :: L
     integer :: i,j, m,n,k, mp,np,kp, mu,nu, gamma,zeta, p,q
     real(double), intent(in) :: e
-
+    complex(double), dimension(2,2) :: chits
     do i = 1, s%nAtoms
        L(1:9,1:9,1,i) = lxp(1:9,1:9,i)
        L(1:9,1:9,2,i) = lyp(1:9,1:9,i)
@@ -149,11 +151,21 @@ contains
        end do
     end do
 
+    chits(1,1) = TSResponse(1,1,1,1)
+    chits(1,2) = TSResponse(1,2,1,1) - mz(1)
+    chits(2,1) = TSResponse(2,1,1,1) + mz(1)
+    chits(2,2) = TSResponse(2,2,1,1)
+
+    call invers(chits, 2)
+
+
+
     call open_TSR_files()
     do i = 1, s%nAtoms
        do j = 1, s%nAtoms
           write(unitBase(1)+s%nAtoms*i+j, "(19(es16.9,2x))") e, ((real(TSResponse(q,p,j,i)), aimag(TSResponse(q,p,j,i)), q = 1, 3), p = 1, 3)
           write(unitBase(2)+s%nAtoms*i+j, "(19(es16.9,2x))") e, ((real(TSResponseHF(q,p,j,i)), aimag(TSResponseHF(q,p,j,i)), q = 1, 3), p = 1, 3)
+          write(unitBase(3)+s%nAtoms*i+j, "(9(es16.9,2x))") e, ((real(chits(j,i)), aimag(chits(j,i)), q= 1,2),p=1,2)
        end do
     end do
     call close_TSR_files()
