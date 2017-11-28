@@ -65,7 +65,7 @@ contains
     do i=1, s%nAtoms
        do j = 1, s%nAtoms
          do k = 1, size(filename)
-           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'asite=',i0,'_bsite=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(k)),trim(filename(k)),i,j,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(k)),trim(filename(k)),i,j,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
            open (unit=unitBase(k)+s%nAtoms*i+j, file=varm, status='old', position='append', form='formatted', iostat=err)
            errt = errt + err
            if(err .ne. 0) missing_files = trim(missing_files) // " " // trim(varm)
