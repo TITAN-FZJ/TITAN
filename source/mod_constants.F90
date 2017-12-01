@@ -26,6 +26,18 @@ module mod_constants
   complex(double) :: pauli_orb(3,18,18)
   complex(double) :: pauli_dorb(3,18,18)
   complex(double) :: pauli_mat(2,2,0:3)
+
+  complex(double), dimension(4,4) :: StoC = reshape([cmplx(0.0d0,0.d0), cmplx(0.5d0,0.d0),  cmplx(0.0d0,-0.5d0),  cmplx( 0.0d0,0.d0), &
+                                                     cmplx(1.0d0,0.d0), cmplx(0.0d0,0.d0),  cmplx(0.0d0, 0.0d0),  cmplx( 0.5d0,0.d0), &
+                                                     cmplx(1.0d0,0.d0), cmplx(0.0d0,0.d0),  cmplx(0.0d0, 0.0d0),  cmplx(-0.5d0,0.d0), &
+                                                     cmplx(0.0d0,0.d0), cmplx(0.5d0,0.d0),  cmplx(0.0d0, 0.5d0),  cmplx( 0.0d0,0.d0)], [4,4])
+
+
+ complex(double), dimension(4,4) :: CtoS = reshape([cmplx(0.0d0,0.d0), cmplx(0.5d0,0.d0),  cmplx( 0.5d0, 0.d0),  cmplx( 0.0d0, 0.d0), &
+                                                    cmplx(1.0d0,0.d0), cmplx(0.0d0,0.d0),  cmplx( 0.0d0, 0.d0),  cmplx( 1.0d0, 0.d0), &
+                                                    cmplx(0.0d0,1.d0), cmplx(0.0d0,0.d0),  cmplx( 0.0d0, 0.d0),  cmplx( 0.0d0,-1.d0), &
+                                                    cmplx(0.0d0,0.d0), cmplx(1.0d0,0.d0),  cmplx(-1.0d0, 0.d0),  cmplx( 0.0d0, 0.d0)], [4,4])
+
 contains
   subroutine define_constants()
     implicit none

@@ -252,7 +252,7 @@ subroutine local_SO_torque(torque)
         end do
       end do
     end do
-    torque(:,:,:,i) = torque(:,:,:,i) * s%Types(s%Basis(i)%Material)%Lambda
+    torque(:,:,:,i) = 0.25d0 * torque(:,:,:,i) * s%Types(s%Basis(i)%Material)%Lambda
   end do
   return
 end subroutine local_SO_torque

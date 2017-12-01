@@ -47,7 +47,7 @@ contains
       do j = 1, size(filename)-1
          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(j)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
          open (unit=55+(j-1)*s%nAtoms+i, file=varm, status='replace', form='formatted')
-         write(unit=55+(j-1)*s%nAtoms+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma')")
+         write(unit=55+(j-1)*s%nAtoms+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ,  ((chi(j,i), j=1,4),i=1,4)  ')")
       end do
       write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(5)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
       open (unit=55+4*s%nAtoms+i, file=varm, status='replace', form='formatted')
@@ -99,53 +99,59 @@ contains
 
   subroutine write_alpha(e)
     use mod_f90_kind, only: double
-    use mod_constants, only: cI
+    use mod_constants, only: cI, StoC, CtoS
     use mod_susceptibilities, only: schi, schihf
-    use mod_parameters, only: sigmai2i, U
+    use mod_parameters, only: sigmai2i, U, dim
     use mod_system, only: s => sys
     use mod_magnet, only: mabs
     implicit none
     real(double) :: e
     real(double) :: gammaM, alpha_v1, alpha_v2, alpha_v3, alpha_v4
-    complex(double) :: axx, axy, axx_hf, axy_hf, axx_inv, axy_inv, axx_hf_inv, axy_hf_inv
-    integer :: i,j,sigma, sigmap
+    complex(double), dimension(4,4) :: acart, acarthf, acarthfinv, acartinv
+    integer :: i,j,sigma, sigmap, p,q,r,t
 
     call open_alpha_files()
 
+    m_chi = schi
+    m_chi_hf = schihf
+    m_chi_inv = schi
+    m_chi_hf_inv = schihf
+    call invers(m_chi_inv,    4*s%nAtoms)
+    call invers(m_chi_hf_inv, 4*s%nAtoms)
+
+    acart = 0.d0
+    acarthf = 0.d0
+    acartinv = 0.d0
+    acarthfinv = 0.d0
     do i = 1, s%nAtoms
-      do j = 1, s%nAtoms
-        do sigma = 1, 4
-          do sigmap = 1, 4
-            m_chi   (sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schi  (sigma,sigmap,i,j)
-            m_chi_hf(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schihf(sigma,sigmap,i,j)
+
+      do p = 1, 4
+        do q = 1, 4
+          do r = 1, 4
+            do t = 1, 4
+              acart(p,q) = acart(p,q) + StoC(p,r) * m_chi(sigmai2i(r,i), sigmai2i(t,i)) * CtoS(t,q)
+              acarthf(p,q) = acarthf(p,q) + StoC(p,r) * m_chi_hf(sigmai2i(r,i), sigmai2i(t,i)) * CtoS(t,q)
+              acartinv(p,q) = acartinv(p,q) + StoC(p,r) * m_chi_inv(sigmai2i(t,i),sigmai2i(r,i)) * CtoS(t,q)
+              acarthfinv(p,q) = acarthfinv(p,q) + StoC(p,r) * m_chi_hf_inv(sigmai2i(r,i), sigmai2i(t,i)) * CtoS(t,q)
+            end do
           end do
         end do
       end do
-    end do
-    m_chi_inv    = m_chi
-    m_chi_hf_inv = m_chi_hf
-    call invers(m_chi_inv,    4*s%nAtoms)
-    call invers(m_chi_hf_inv, 4*s%nAtoms)
-    do i = 1, s%nAtoms
-      axx_inv    = 0.5d0   *(m_chi_inv(sigmai2i(1,i),sigmai2i(4,i)) + m_chi_inv(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_inv(sigmai2i(4,i),sigmai2i(4,i)) + m_chi_inv(sigmai2i(4,i),sigmai2i(1,i)))
-      axy_inv    = 0.5d0*cI*(m_chi_inv(sigmai2i(1,i),sigmai2i(4,i)) - m_chi_inv(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_inv(sigmai2i(4,i),sigmai2i(4,i)) - m_chi_inv(sigmai2i(4,i),sigmai2i(1,i)))
-      axx_hf_inv = 0.5d0   *(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(4,i)) + m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_hf_inv(sigmai2i(4,i),sigmai2i(4,i)) + m_chi_hf_inv(sigmai2i(4,i),sigmai2i(1,i)))
-      axy_hf_inv = 0.5d0*cI*(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(4,i)) - m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_hf_inv(sigmai2i(4,i),sigmai2i(4,i)) - m_chi_hf_inv(sigmai2i(4,i),sigmai2i(1,i)))
-      axx        = 0.5d0   *(m_chi(sigmai2i(1,i),sigmai2i(4,i)) + m_chi(sigmai2i(1,i),sigmai2i(1,i)) + m_chi(sigmai2i(4,i),sigmai2i(4,i)) + m_chi(sigmai2i(4,i),sigmai2i(1,i)))
-      axy        = 0.5d0*cI*(m_chi(sigmai2i(1,i),sigmai2i(4,i)) - m_chi(sigmai2i(1,i),sigmai2i(1,i)) + m_chi(sigmai2i(4,i),sigmai2i(4,i)) - m_chi(sigmai2i(4,i),sigmai2i(1,i)))
-      axx_hf     = 0.5d0   *(m_chi_hf(sigmai2i(1,i),sigmai2i(4,i)) + m_chi_hf(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_hf(sigmai2i(4,i),sigmai2i(4,i)) + m_chi_hf(sigmai2i(4,i),sigmai2i(1,i)))
-      axy_hf     = 0.5d0*cI*(m_chi_hf(sigmai2i(1,i),sigmai2i(4,i)) - m_chi_hf(sigmai2i(1,i),sigmai2i(1,i)) + m_chi_hf(sigmai2i(4,i),sigmai2i(4,i)) - m_chi_hf(sigmai2i(4,i),sigmai2i(1,i)))
 
-      gammaM = e / aimag(axy_inv)
+      gammaM = e / aimag(acartinv(2,3))
       alpha_v1 = - gammaM * aimag(m_chi_inv(sigmai2i(1,i),sigmai2i(1,i))) / e
       alpha_v2 = - gammaM * aimag(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i))) / e
       alpha_v3 =   gammaM * aimag(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i))) / e * real(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)))**2
       alpha_v4 =   gammaM * aimag(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i))) / e * U(i)**2
 
-      write(55 +            i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx       )/aimag(axy       ), e / (mabs(i) * aimag(axy       )), -mabs(i)*aimag(axx       ) / e
-      write(55 +   s%nAtoms+i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx_hf    )/aimag(axy_hf    ), e / (mabs(i) * aimag(axy_hf    )), -mabs(i)*aimag(axx_hf    ) / e
-      write(55 + 2*s%nAtoms+i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx_inv   )/aimag(axy_inv   ), e / (mabs(i) * aimag(axy_inv   )), -mabs(i)*aimag(axx_inv   ) / e
-      write(55 + 3*s%nAtoms+i,"(4(es16.9,2x))") e, -1.d0 * aimag(axx_hf_inv)/aimag(axy_hf_inv), e / (mabs(i) * aimag(axy_hf_inv)), -mabs(i)*aimag(axx_hf_inv) / e
+      write(55 +            i,"(36(es16.9,2x))") e, -1.d0 * aimag(acart(2,2))/aimag(acart(2,3)), e / (mabs(i) * aimag(acart(2,3))), -mabs(i)*aimag(acart(2,2)) / e, &
+                                                ((real(acart(q,p)), aimag(acart(q,p)), q = 1, 4), p = 1, 4)
+      write(55 +   s%nAtoms+i,"(36(es16.9,2x))") e, -1.d0 * aimag(acarthf(2,2))/aimag(acarthf(2,3)), e / (mabs(i) * aimag(acarthf(2,3))), -mabs(i)*aimag(acarthf(2,2)) / e, &
+                                                ((real(acarthf(q,p)), aimag(acarthf(q,p)), q = 1, 4), p = 1, 4)
+      write(55 + 2*s%nAtoms+i,"(36(es16.9,2x))") e, -1.d0 * aimag(acartinv(2,2))/aimag(acartinv(2,3)), e / (mabs(i) * aimag(acartinv(2,3))), -mabs(i)*aimag(acartinv(2,2)) / e, &
+                                                ((real(acartinv(q,p)), aimag(acartinv(q,p)), q = 1, 4), p = 1, 4)
+      write(55 + 3*s%nAtoms+i,"(36(es16.9,2x))") e, -1.d0 * aimag(acarthfinv(2,2))/aimag(acarthfinv(2,3)), e / (mabs(i) * aimag(acarthfinv(2,3))), -mabs(i)*aimag(acarthfinv(2,2)) / e, &
+                                                ((real(acarthfinv(q,p)), aimag(acarthfinv(q,p)), q = 1, 4), p = 1, 4)
       write(55 + 4*s%nAtoms+i,"(8(es16.9,2x))") e, gammaM, real(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)))**2, U(i)**2, alpha_v1, alpha_v2, alpha_v3, alpha_v4
     end do
 
@@ -153,8 +159,5 @@ contains
 
     return
   end subroutine write_alpha
-
-
-
 
 end module mod_alpha
