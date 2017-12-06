@@ -43,7 +43,7 @@ subroutine eintshechi(e)
      call calcWorkload(real_points,sFreq(1),rFreq(1),start2,end2)
   else
      start2 = 0
-     end2 = 0
+     end2 = -1
   end if
 
   ! Starting to calculate energy integral

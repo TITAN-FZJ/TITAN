@@ -49,7 +49,7 @@ subroutine eintshe(e)
      call calcWorkload(int(pn2,8)*int(BZ%nkpt,8),sFreq(1),rFreq(1),start2,end2)
   else
      start2 = 0
-     end2 = 0
+     end2 = -1
   end if
 
   ! Starting to calculate energy integral
