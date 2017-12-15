@@ -220,7 +220,6 @@ contains
     integer :: nx, ny, nz
 
     nkpt_perdim = ceiling((dble(nkpt_in))**(1.d0/3.d0))
-    nkpt_perdim=nkpt_perdim
     nkpt_x = nkpt_perdim
     nkpt_y = nkpt_perdim
     nkpt_z = nkpt_perdim
@@ -384,6 +383,76 @@ contains
 
   end subroutine  generate_2D_BZ
 
+  integer function count_2D_BZ(nkpt_in, a1, a2)
+    use mod_f90_kind, only: double
+    use mod_constants, only: tpi
+    use mod_tools, only: cross
+    implicit none
+
+    integer, intent(in) :: nkpt_in
+    real(double), dimension(3), intent(in) :: a1,a2
+    real(double), dimension(3) :: kp, b1, b2
+    real(double), dimension(3) :: zdir
+    real(double), dimension(3,4) :: bz_vec
+    real(double), dimension(3)   :: diff
+    real(double) :: smallest_dist, distance, ini_smallest_dist, vol
+    integer :: j,l, smallest_index, numextrakbz, nkpt_perdim
+    integer :: nkpt_x, nkpt_y, nx, ny, nkpt
+
+    zdir = [0,0,1]
+    nkpt_perdim = ceiling(sqrt(dble(nkpt_in)))
+    nkpt_x = nkpt_perdim
+    nkpt_y = nkpt_perdim
+
+    nkpt = nkpt_x * nkpt_y
+
+    vol = tpi / dot_product(zdir, cross(a1,a2))
+    b1 = vol * cross(a1, zdir)
+    b2 = vol * cross(zdir, a2)
+
+    bz_vec(:,1) = 0.d0
+    bz_vec(:,2) = b1
+    bz_vec(:,3) = b2
+    bz_vec(:,4) = b1 + b2
+
+    !Translate the k-points to the 1st BZ.
+    !10*|b1+b2|, bigger than the distance of any genarated kpoint
+    ini_smallest_dist = 10.d0 * sqrt(dot_product(b1 + b2, b1 + b2))
+    numextrakbz = 0
+    !Run over all the kpoints generated initially.
+    !$omp parallel do default(none) reduction(+:numextrakbz) if(nkpt > 1000000) &
+    !$omp& private(l,j,nx,ny,kp,smallest_dist, smallest_index, diff, distance) &
+    !$omp& shared(nkpt, ini_smallest_dist, bz_vec, b1, b2, nkpt_x, nkpt_y)
+    do l = 1, nkpt
+
+      nx = mod(floor(dble(l-1) / dble(nkpt_y)), nkpt_x)
+      ny = mod(l-1, nkpt_y)
+      kp = dble(nx)*b1 / dble(nkpt_x) + dble(ny)*b2 / dble(nkpt_y)
+
+      smallest_dist = ini_smallest_dist
+      !Checks to each of the 4 BZ's the kpoint belongs by checking
+      ! to each BZ it's closer.
+      do j = 1, 4
+        diff = kp - bz_vec(:,j)
+        distance = sqrt(dot_product(diff, diff))
+        if(distance < smallest_dist) then
+          smallest_dist = distance
+          smallest_index = j
+        end if
+      end do
+      !Checks if the kpoint is in the border between two or more
+      ! BZ's. If yes, create a clone of it to translate later into
+      ! the 1st BZ.
+      do j = 1, 4
+        diff = kp - bz_vec(:, j)
+        distance = sqrt(dot_product(diff, diff))
+        if( ( abs(distance-smallest_dist) < 1.d-12 ) .and. j /= smallest_index ) numextrakbz = numextrakbz + 1
+      end do
+    end do
+    !$omp end parallel do
+    count_2D_BZ = nkpt + numextrakbz
+    return
+  end function count_2D_BZ
 
   subroutine output_kpoints(self)
     implicit none

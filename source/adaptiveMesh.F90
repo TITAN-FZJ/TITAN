@@ -11,6 +11,7 @@ contains
    subroutine generateAdaptiveMeshes()
       implicit none
 
+
       call calcTotalPoints()
       return
    end subroutine generateAdaptiveMeshes
@@ -28,7 +29,11 @@ contains
       allocate(all_nkpt(pn1))
       total_points = 0
       do i = 1, pn1
-         all_nkpt(i) = count_3D_BZ(get_nkpt(y(i), y(1), total_nkpt, s%lbulk),s%a1,s%a2,s%a3) !bzone%nkpt
+         if(s%lbulk) then
+            all_nkpt(i) = count_3D_BZ(get_nkpt(y(i), y(1), total_nkpt, s%lbulk),s%a1,s%a2,s%a3) !bzone%nkpt
+         else
+            all_nkpt(i) = count_2D_BZ(get_nkpt(y(i), y(1), total_nkpt, s%lbulk),s%a1,s%a2)
+         end if
          total_points = total_points + all_nkpt(i)
       end do
 
@@ -96,23 +101,6 @@ contains
       deallocate(bzs, E_k_imag_mesh)
       return
    end subroutine freeLocalEKMesh
-
-   ! subroutine generate_real_E_k_mesh()
-   !    use EnergyIntegration, only: pn2
-   !    implicit none
-   !    integer :: i,j,m
-   !    allocate(E_k_real_mesh(pn2*bzs(1)%nkpt, 2))
-   !    total_points_real = pn2 * bzs(1)%nkpt
-   !    m = 0
-   !    do i = 1, pn2
-   !       do j = 1, bzs(1)%nkpt
-   !          m = m + 1
-   !          E_k_real_mesh(m,1) = i
-   !          E_k_real_mesh(m,2) = j
-   !       end do
-   !    end do
-   !    return
-   ! end subroutine generate_real_E_k_mesh
 
    integer function get_nkpt(e, e0, nkpt_total, bulk)
       use mod_f90_kind, only: double
