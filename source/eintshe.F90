@@ -7,7 +7,7 @@ subroutine eintshe(e)
   use mod_SOC, only: llineargfsoc
   use EnergyIntegration, only: y, wght, x2, p2, generate_real_epoints, pn2
   use mod_system, only: s => sys !, n0sc1, n0sc2
-  use mod_BrillouinZone, only: BZ
+  use mod_BrillouinZone, only: realBZ
   use adaptiveMesh
   use mod_prefactors,    only: prefactor !, lxpt, lypt, lzpt, tlxp, tlyp, tlzp
   use mod_disturbances,     only: tchiorbiikl
@@ -35,7 +35,7 @@ subroutine eintshe(e)
   !complex(double),dimension(n0sc1:n0sc2,dimsigmaNpl,4), intent(out) :: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl !TODO:Re-Include
   !--------------------- begin MPI vars --------------------
   integer*8 :: ix, ix2, nep,nkp
-  integer*8 :: start2, end2
+  integer*8 :: real_points
   integer :: ncountkl !,nncountkl !TODO: Re-Include
   ncountkl = dim*4
   !nncountkl = n0sc*dimsigmaNpl*4 !TODO: Re-Include
@@ -45,12 +45,9 @@ subroutine eintshe(e)
   ! Generating energy points in the real axis for third integration
   call generate_real_epoints(e)
 
-  if(abs(e) >= 1.d-10) then
-     call calcWorkload(int(pn2,8)*int(BZ%nkpt,8),sFreq(1),rFreq(1),start2,end2)
-  else
-     start2 = 0
-     end2 = -1
-  end if
+
+  real_points = 0
+  if(abs(e) >= 1.d-10) real_points = int(pn2,8) * int(realBZ%workload,8)
 
   ! Starting to calculate energy integral
   tchiorbiikl     = cZero
@@ -62,7 +59,7 @@ subroutine eintshe(e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,wkbzc,ep,kp,nep,nkp,i,j,l,mu,nu,gamma,xi,sigma,sigmap,neighbor,dtdk,gf,gfuu,gfud,gfdu,gfdd,df1iikl,pfdf1iikl,tFintiikl) & !,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,expikr,prett,preLxtt,preLytt,preLztt) &
-  !$omp& shared(llineargfsoc,s,bzs,BZ,E_k_imag_mesh,prefactor,e,y,x2,wght,p2,pn2,Ef,eta,local_points,start2,end2,sigmai2i,sigmaimunu2i,dim,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
+  !$omp& shared(llineargfsoc,s,bzs,realBZ,E_k_imag_mesh,prefactor,e,y,x2,wght,p2,pn2,Ef,eta,local_points,real_points,sigmai2i,sigmaimunu2i,dim,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
 
   allocate(df1iikl(dim,4),pfdf1iikl(dim,4), &
            gf(nOrb2,nOrb2, s%nAtoms,s%nAtoms), &
@@ -203,12 +200,12 @@ subroutine eintshe(e)
   !$omp end do nowait
 
   !$omp do schedule(static)
-  do ix2 = start2, end2 ! Third integration (on the real axis)
-      nep = (ix2-1) / BZ % nkpt + 1
-      nkp = mod(ix2-1, int(BZ % nkpt,8))+1
+  do ix2 = 1, real_points ! Third integration (on the real axis)
+      nep = (ix2-1) / realBZ % workload + 1
+      nkp = mod(ix2-1, int(realBZ % workload,8))+1
       ep = x2(nep)
-      kp = BZ % kp(:,nkp)
-      wkbzc = cmplx(p2(nep) * BZ % w(nkp), 0.d0)
+      kp = realBZ % kp(:,nkp)
+      wkbzc = cmplx(p2(nep) * realBZ % w(nkp), 0.d0)
 
       df1iikl = cZero
 
@@ -365,9 +362,9 @@ subroutine eintshelinearsoc(e)
   use mod_parameters, only: dim, Ef, eta, sigmai2i, sigmaimunu2i, offset
   use TightBinding, only: nOrb,nOrb2
   use mod_system, only: s => sys
-  use mod_BrillouinZone, only: BZ
+  use mod_BrillouinZone, only: realBZ
   use adaptiveMesh
-  use EnergyIntegration, only: y, wght, nepoints, x2, p2, generate_real_epoints, pn2
+  use EnergyIntegration, only: y, wght, x2, p2, generate_real_epoints, pn2
   use mod_prefactors, only: prefactor, prefactorlsoc
   use mod_disturbances, only: tchiorbiikl
   use mod_mpi_pars
@@ -395,7 +392,7 @@ subroutine eintshelinearsoc(e)
 
 !--------------------- begin MPI vars --------------------
   integer*8 :: ix,ix2, iz
-  integer*8 :: start2, end2
+  integer*8 :: real_points
   integer :: ncountkl !,nncountkl !TODO: Re-Include
   ncountkl = dim*4
   !nncountkl = n0sc*dimsigmaNpl*4 !TODO: Re-Include
@@ -405,12 +402,8 @@ subroutine eintshelinearsoc(e)
   ! Generating energy points in the real axis for third integration
   call generate_real_epoints(e)
 
-  if(abs(e) >= 1.d-10) then
-     call calcWorkload(int(pn2,8)*int(BZ%nkpt,8),sFreq(1),rFreq(1),start2,end2)
-  else
-     start2 = 0
-     end2 = 0
-  end if
+  real_points = 0
+  if(abs(e) >= 1.d-10) real_points = int(pn2,8) * int(realBZ%workload,8)
 
   ! Starting to calculate energy integral
   tchiorbiikl     = cZero
@@ -421,7 +414,7 @@ subroutine eintshelinearsoc(e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,iz,wkbzc,kp,ep,nep,nkp,tFintiikl,df1iikl,pfdf1iikl,df1lsoc,dtdk,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &    !,expikr,prett,preLxtt,preLytt,preLztt
-  !$omp& shared(local_points,start2,end2,bzs,E_k_imag_mesh,tchiorbiikl,prefactor,prefactorlsoc,s,BZ,e,Ef,y,x2,wght,p2,eta,sigmai2i,sigmaimunu2i,dim,offset)                                                                                 !,n0sc1,n0sc2,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,lxpt,lypt,lzpt,tlxp,tlyp,tlzp
+  !$omp& shared(local_points,real_points,bzs,E_k_imag_mesh,tchiorbiikl,prefactor,prefactorlsoc,s,realBZ,e,Ef,y,x2,wght,p2,eta,sigmai2i,sigmaimunu2i,dim,offset)                                                                                 !,n0sc1,n0sc2,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,lxpt,lypt,lzpt,tlxp,tlyp,tlzp
 
   allocate( df1iikl(dim,4),pfdf1iikl(dim,4),df1lsoc(dim,4), &
             dtdk(nOrb,nOrb,s%nAtoms,s%nAtoms), &
@@ -594,12 +587,12 @@ subroutine eintshelinearsoc(e)
   !$omp end do nowait
 
   !$omp do schedule(static)
-  do ix2 = start2, end2 ! Third integration (on the real axis)
-      nep = (ix2-1) / BZ % nkpt + 1
-      nkp = mod(ix2-1, int(BZ % nkpt,8))+1
+  do ix2 = 1, realBZ%workload ! Third integration (on the real axis)
+      nep = (ix2-1) / realBZ % workload + 1
+      nkp = mod(ix2-1, int(realBZ % workload,8))+1
       ep = x2(nep)
-      kp = BZ % kp(:,nkp)
-      wkbzc = cmplx(p2(nep) * BZ % w(nkp),0.d0)
+      kp = realBZ % kp(:,nkp)
+      wkbzc = cmplx(p2(nep) * realBZ % w(nkp),0.d0)
 
       df1iikl = cZero
       df1lsoc = cZero

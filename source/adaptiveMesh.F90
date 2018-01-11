@@ -11,37 +11,34 @@ contains
    subroutine generateAdaptiveMeshes()
       implicit none
 
-
       call calcTotalPoints()
       return
    end subroutine generateAdaptiveMeshes
 
    subroutine calcTotalPoints()
-      use mod_parameters, only: total_nkpt
+      use mod_parameters, only: total_nkpt => kptotal_in
       use EnergyIntegration, only: pn1, y
       use mod_System, only: s => sys
       use mod_BrillouinZone
       use mod_mpi_pars
       implicit none
       integer :: i
-      type(BrillouinZone) :: bzone
 
       allocate(all_nkpt(pn1))
       total_points = 0
       do i = 1, pn1
          if(s%lbulk) then
-            all_nkpt(i) = count_3D_BZ(get_nkpt(y(i), y(1), total_nkpt, s%lbulk),s%a1,s%a2,s%a3) !bzone%nkpt
+            all_nkpt(i) = count_3D_BZ(get_nkpt(y(i), y(1), total_nkpt, s%lbulk),s%a1,s%a2,s%a3)
          else
             all_nkpt(i) = count_2D_BZ(get_nkpt(y(i), y(1), total_nkpt, s%lbulk),s%a1,s%a2)
          end if
          total_points = total_points + all_nkpt(i)
       end do
-
       return
    end subroutine calcTotalPoints
 
    subroutine genLocalEKMesh(rank, size, comm)
-      use mod_parameters, only: total_nkpt
+      use mod_parameters, only: total_nkpt => kptotal_in
       use EnergyIntegration, only: pn1, y
       use mod_System, only: s => sys
       use mod_BrillouinZone
@@ -79,12 +76,22 @@ contains
 
             if(.not. bzs(i)%isAlloc()) then
                nkpt = get_nkpt(y(i), y(1), total_nkpt, s%lbulk)
-               bzs(i) % nkpt = nkpt
-               bzs(i) % nkpt_x = 0
-               bzs(i) % nkpt_y = 0
-               bzs(i) % nkpt_z = 0
+               bzs(i) % a1 = s % a1
+               bzs(i) % a2 = s % a2
+               bzs(i) % a3 = s % a3
+               bzs(i) % bulk = s%lbulk
 
-               call bzs(i) % setup(s%lbulk, s%a1, s%a2, s%a3)
+               if(s%lbulk) then
+                  bzs(i) % nkpt_x = ceiling((dble(nkpt))**(1.d0/3.d0))
+                  bzs(i) % nkpt_y = ceiling((dble(nkpt))**(1.d0/3.d0))
+                  bzs(i) % nkpt_z = ceiling((dble(nkpt))**(1.d0/3.d0))
+               else
+                  bzs(i) % nkpt_x = ceiling((dble(nkpt))**(1.d0/2.d0))
+                  bzs(i) % nkpt_y = ceiling((dble(nkpt))**(1.d0/2.d0))
+                  bzs(i) % nkpt_z = 0
+               end if
+
+               call bzs(i) % setup()
             end if
          end do
       end do
@@ -114,7 +121,7 @@ contains
       else
          get_nkpt = nkpt_total / (e/e0)**sqrt(2.d0) !**log(2.d0)
       end if
-      if(get_nkpt < 1000) get_nkpt = 1000
+      if(get_nkpt < 50) get_nkpt = 50
       return
    end function get_nkpt
 

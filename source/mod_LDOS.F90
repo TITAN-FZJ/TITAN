@@ -28,10 +28,8 @@ contains
    end subroutine deallocateLDOS
 
    subroutine openLDOSFiles()
-      use mod_parameters, only: eta, Utype, fieldpart, strSites
+      use mod_parameters, only: output
       use mod_System, only: s => sys
-      use mod_BrillouinZone, only: BZ
-      use mod_SOC, only: SOCc, socpart
       implicit none
       character(len=400) :: varm
       integer            :: i, iw, j
@@ -39,7 +37,7 @@ contains
       do i = 1, s%nAtoms
          do j = 1, size(filename)
             iw = 1000 + (i-1) * size(filename) + j
-            write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_layer=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(j)),i,BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+            write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_layer=',i0,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%info),trim(output%BField),trim(output%SOC)
             open (unit=iw, file=varm,status='replace')
             write(unit=iw, fmt="('#   energy      ,  LDOS SUM        ,  LDOS S          ,  LDOS P          ,  LDOS D          ')")
          end do

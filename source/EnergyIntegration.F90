@@ -7,7 +7,6 @@ module EnergyIntegration
   integer :: pn1, pn2, pnt
   integer :: parts, parts3
   integer :: n1gl, n3gl
-  character(len=50) :: strEnergyParts = "" ! parts, parts3
 
 !========================================================================================!
 ! Energy integration variables

@@ -34,11 +34,9 @@ contains
       if(allocated(Jija)) deallocate(Jija)
       return
    end subroutine deallocateCoupling
-   
+
    subroutine openCouplingFiles()
-      use mod_parameters, only: nmaglayers, mmlayermag, eta, Utype, fieldpart, strSites
-      use mod_BrillouinZone, only: BZ
-      use mod_SOC, only: SOCc, socpart
+      use mod_parameters, only: nmaglayers, mmlayermag, output
       implicit none
       character(len=400) :: varm
       integer :: i, j, iw
@@ -48,7 +46,7 @@ contains
            iw = 2000 + (j-1) * nmaglayers * 2 + (i-1) * 2
            if(i==j) then
              iw = iw + 1
-             write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(1)),mmlayermag(i)-1,BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+             write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(1)),mmlayermag(i)-1,trim(output%info),trim(output%BField),trim(output%SOC)
              open (unit=iw, file=varm,status='replace')
              write(unit=iw, fmt="('#   energy      ,  Jii_xx           ,   Jii_yy  ')")
              ! Anisotropy energy is given by K^a = 2*J_ii^aa
@@ -56,11 +54,11 @@ contains
              ! where J_ii is the one calculated here
            else
              iw = iw + 1
-             write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(2)),mmlayermag(i)-1,mmlayermag(j)-1,BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+             write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_',i0,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(2)),mmlayermag(i)-1,trim(output%info),trim(output%BField),trim(output%SOC)
              open (unit=iw, file=varm,status='replace')
              write(unit=iw, fmt="('#   energy      ,   isotropic Jij    ,   anisotropic Jij_xx    ,   anisotropic Jij_yy     ')")
              iw = iw + 1
-             write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(3)),mmlayermag(i)-1,mmlayermag(j)-1,BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+             write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_',i0,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(3)),mmlayermag(i)-1,trim(output%info),trim(output%BField),trim(output%SOC)
              open (unit=iw, file=varm,status='replace')
              write(unit=iw, fmt="('#   energy      , Dz = (Jxy - Jyx)/2       ')")
            end if

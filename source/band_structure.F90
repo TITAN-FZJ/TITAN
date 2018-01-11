@@ -62,11 +62,10 @@ end subroutine read_band_points
 !   Calculates magnetic LDOS
 subroutine band_structure(s)
   use mod_f90_kind, only: double
-  use mod_parameters, only: fieldpart, outputunit_loop, Ef, eta, strSites, npts, npt1, Utype, bands, band_cnt
-  use mod_SOC, only: SOCc, socpart
+  use mod_parameters, only: output, Ef, npts, npt1, bands, band_cnt
   use mod_mpi_pars
   use mod_system, only: System
-  use mod_BrillouinZone, only: BZ
+  use mod_BrillouinZone, only: BZ => realBZ
   use TightBinding, only: nOrb
   implicit none
   type(System), intent(in) :: s
@@ -93,7 +92,7 @@ subroutine band_structure(s)
   lwork = 33*dimbs
   allocate( hk(dimbs,dimbs),rwork(2*dimbs),eval(dimbs),evecl(1,dimbs),evecr(1,dimbs),work(lwork) )
 
-  if(rField == 0) write(outputunit_loop,"('CALCULATING THE BAND STRUCTURE')")
+  if(rField == 0) write(output%unit_loop,"('CALCULATING THE BAND STRUCTURE')")
 
   call read_band_points(band_points, BZ%b1, BZ%b2, BZ%b3)
   total_length = 0.d0
@@ -102,7 +101,7 @@ subroutine band_structure(s)
   end do
 
   write(kdirection,*) (trim(adjustl(bands(i))), i = 1,band_cnt)
-  write(varm,"('./results/',a1,'SOC/',a,'/BS/bandstructure_kdir=',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),trim(adjustl(kdirection)),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
+  write(varm,"('./results/',a1,'SOC/',a,'/BS/bandstructure_kdir=',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(adjustl(kdirection)),trim(output%info),trim(output%BField),trim(output%SOC)
   open (unit=666, file=varm,status='replace')
   write(unit=666, fmt=*) band_cnt, npts
   write(unit=666, fmt=*) Ef
@@ -129,12 +128,12 @@ subroutine band_structure(s)
   write(unit=666, fmt=*) bands(i), total_length
 
   do count=1,npt1
-    write(outputunit_loop,"('[band_structure] ',i0,' of ',i0,' points',', i = ',es10.3)") count,npt1,dble((count-1.d0)/npts)
+    write(output%unit_loop,"('[band_structure] ',i0,' of ',i0,' points',', i = ',es10.3)") count,npt1,dble((count-1.d0)/npts)
     call hamiltk(kpoints(:,count),hk)
 
     call zgeev('N','N',dimbs,hk,dimbs,eval,evecl,1,evecr,1,work,lwork,rwork,ifail)
     if(ifail/=0) then
-      write(outputunit_loop,"('[band_structure] Problem with diagonalization. ifail = ',i0)") ifail
+      write(output%unit_loop,"('[band_structure] Problem with diagonalization. ifail = ',i0)") ifail
       stop
     end if
     ! Transform energy to eV if runoption is on

@@ -60,13 +60,9 @@ contains
 
    subroutine create_disturbance_files()
    !! This subroutine creates all the files needed for the disturbances
-       use mod_parameters, only: fieldpart, strSites, eta, suffix, Utype, renorm, renormnb, hfr
-       use mod_SOC, only: SOCc, socpart
+       use mod_parameters, only: output, renorm, renormnb
        use mod_mpi_pars
        use mod_system, only: s => sys
-       use mod_BrillouinZone, only: BZ
-       use EnergyIntegration, only: strEnergyParts
-       use electricfield, only: strElectricField
        implicit none
 
        character(len=500)  :: varm
@@ -75,13 +71,13 @@ contains
        do j=1,7
          do i=1,s%nAtoms
             iw = 3000+(i-1)*7+j
-            write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(hfr),filename(j),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+            write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),filename(j),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
             open (unit=iw, file=varm, status='replace', form='formatted')
             write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
             close(unit=iw)
             if(renorm) then
             iw = iw+1000
-            write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/r',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(hfr),filename(j),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+            write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/r',a,'_pos=',i0,a,a,a,a,a,'_renormnb=',i0,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),filename(j),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),renormnb,trim(output%suffix)
             open (unit=iw, file=varm, status='replace', form='formatted')
             write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
             close(unit=iw)
@@ -89,7 +85,7 @@ contains
          end do
          ! Total disturbances files
          iw = 3500+j
-         write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(hfr),filename(j),trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+         write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),filename(j),trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
          open (unit=iw, file=varm, status='replace', form='formatted')
          write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
          close(unit=iw)
@@ -100,13 +96,9 @@ contains
 
    subroutine open_disturbance_files()
    !! This subroutine opens all the files needed for the disturbances
-      use mod_parameters, only: fieldpart, strSites, eta, suffix, Utype, renorm, renormnb, missing_files, hfr
-      use mod_SOC, only: SOCc, socpart
+      use mod_parameters, only: output, renorm, renormnb, missing_files
       use mod_mpi_pars
       use mod_system, only: s => sys
-      use mod_BrillouinZone, only: BZ
-      use EnergyIntegration, only: strEnergyParts
-      use electricfield, only: strElectricField
       implicit none
 
       character(len=500)  :: varm
@@ -115,13 +107,13 @@ contains
       do j=1,7
          do i=1,s%nAtoms
             iw = 3000+(i-1)*7+j
-            write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(hfr),filename(j),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+            write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),filename(j),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
             open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
             errt = errt + err
             if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
             if(renorm) then
                iw = iw+1000
-               write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/r',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(hfr),filename(j),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+               write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/r',a,'_pos=',i0,a,a,a,a,a,'_renormnb=',i0,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),filename(j),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),renormnb,trim(output%suffix)
                open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
                errt = errt + err
                if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -129,7 +121,7 @@ contains
          end do
          ! Total disturbances files
          iw = 3500+j
-         write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(hfr),filename(j),trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+         write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),filename(j),trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
          open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
          errt = errt + err
          if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -172,7 +164,7 @@ contains
    ! Some information may also be written on the screen
    subroutine write_disturbances(e)
       use mod_f90_kind
-      use mod_parameters, only: renorm,outputunit_loop,lwriteonscreen,mmlayermag
+      use mod_parameters, only: renorm,output,lwriteonscreen,mmlayermag
       use mod_magnet, only: mvec_spherical
       use mod_System, only: s => sys
       implicit none
@@ -181,39 +173,39 @@ contains
 
       call open_disturbance_files()
 
-      if(lwriteonscreen) write(outputunit_loop,"(' ################# Disturbances: #################')")
+      if(lwriteonscreen) write(output%unit_loop,"(' ################# Disturbances: #################')")
       ! Writing Spin, Charge and Orbital disturbances
       do i=1,s%nAtoms
          if(lwriteonscreen) then
-            write(outputunit_loop,"('|--------------- Energy = ',es11.4,' , Plane: ',i0,' ---------------|')") e,i
+            write(output%unit_loop,"('|--------------- Energy = ',es11.4,' , Plane: ',i0,' ---------------|')") e,i
 
-            write(outputunit_loop,"('     Cd  = (',es16.9,') + i(',es16.9,')')") real(disturbances(1,i)),aimag(disturbances(1,i))
-            write(outputunit_loop,"(' abs(Cd) = ',es16.9)") abs(disturbances(1,i))
-            write(outputunit_loop,"('atan(Cd) = ',es16.9)") atan2(aimag(disturbances(1,i)),real(disturbances(1,i)))
+            write(output%unit_loop,"('     Cd  = (',es16.9,') + i(',es16.9,')')") real(disturbances(1,i)),aimag(disturbances(1,i))
+            write(output%unit_loop,"(' abs(Cd) = ',es16.9)") abs(disturbances(1,i))
+            write(output%unit_loop,"('atan(Cd) = ',es16.9)") atan2(aimag(disturbances(1,i)),real(disturbances(1,i)))
 
-            write(outputunit_loop,"('     Sdx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(2,i)),aimag(disturbances(2,i))
-            write(outputunit_loop,"(' abs(Sdx) = ',es16.9)") abs(disturbances(2,i))
-            write(outputunit_loop,"('atan(Sdx) = ',es16.9)") atan2(aimag(disturbances(2,i)),real(disturbances(2,i)))
+            write(output%unit_loop,"('     Sdx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(2,i)),aimag(disturbances(2,i))
+            write(output%unit_loop,"(' abs(Sdx) = ',es16.9)") abs(disturbances(2,i))
+            write(output%unit_loop,"('atan(Sdx) = ',es16.9)") atan2(aimag(disturbances(2,i)),real(disturbances(2,i)))
 
-            write(outputunit_loop,"('     Sdy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(3,i)),aimag(disturbances(3,i))
-            write(outputunit_loop,"(' abs(Sdy) = ',es16.9)") abs(disturbances(3,i))
-            write(outputunit_loop,"('atan(Sdy) = ',es16.9)") atan2(aimag(disturbances(3,i)),real(disturbances(3,i)))
+            write(output%unit_loop,"('     Sdy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(3,i)),aimag(disturbances(3,i))
+            write(output%unit_loop,"(' abs(Sdy) = ',es16.9)") abs(disturbances(3,i))
+            write(output%unit_loop,"('atan(Sdy) = ',es16.9)") atan2(aimag(disturbances(3,i)),real(disturbances(3,i)))
 
-            write(outputunit_loop,"('     Sdz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(4,i)),aimag(disturbances(4,i))
-            write(outputunit_loop,"(' abs(Sdz) = ',es16.9)") abs(disturbances(4,i))
-            write(outputunit_loop,"('atan(Sdz) = ',es16.9)") atan2(aimag(disturbances(4,i)),real(disturbances(4,i)))
+            write(output%unit_loop,"('     Sdz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(4,i)),aimag(disturbances(4,i))
+            write(output%unit_loop,"(' abs(Sdz) = ',es16.9)") abs(disturbances(4,i))
+            write(output%unit_loop,"('atan(Sdz) = ',es16.9)") atan2(aimag(disturbances(4,i)),real(disturbances(4,i)))
 
-            write(outputunit_loop,"('     Ldx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(5,i)),aimag(disturbances(5,i))
-            write(outputunit_loop,"(' abs(Ldx) = ',es16.9)") abs(disturbances(5,i))
-            write(outputunit_loop,"('atan(Ldx) = ',es16.9)") atan2(aimag(disturbances(5,i)),real(disturbances(5,i)))
+            write(output%unit_loop,"('     Ldx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(5,i)),aimag(disturbances(5,i))
+            write(output%unit_loop,"(' abs(Ldx) = ',es16.9)") abs(disturbances(5,i))
+            write(output%unit_loop,"('atan(Ldx) = ',es16.9)") atan2(aimag(disturbances(5,i)),real(disturbances(5,i)))
 
-            write(outputunit_loop,"('     Ldy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(6,i)),aimag(disturbances(6,i))
-            write(outputunit_loop,"(' abs(Ldy) = ',es16.9)") abs(disturbances(6,i))
-            write(outputunit_loop,"('atan(Ldy) = ',es16.9)") atan2(aimag(disturbances(6,i)),real(disturbances(6,i)))
+            write(output%unit_loop,"('     Ldy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(6,i)),aimag(disturbances(6,i))
+            write(output%unit_loop,"(' abs(Ldy) = ',es16.9)") abs(disturbances(6,i))
+            write(output%unit_loop,"('atan(Ldy) = ',es16.9)") atan2(aimag(disturbances(6,i)),real(disturbances(6,i)))
 
-            write(outputunit_loop,"('     Ldz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(7,i)),aimag(disturbances(7,i))
-            write(outputunit_loop,"(' abs(Ldz) = ',es16.9)") abs(disturbances(7,i))
-            write(outputunit_loop,"('atan(Ldz) = ',es16.9)") atan2(aimag(disturbances(7,i)),real(disturbances(7,i)))
+            write(output%unit_loop,"('     Ldz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(7,i)),aimag(disturbances(7,i))
+            write(output%unit_loop,"(' abs(Ldz) = ',es16.9)") abs(disturbances(7,i))
+            write(output%unit_loop,"('atan(Ldz) = ',es16.9)") atan2(aimag(disturbances(7,i)),real(disturbances(7,i)))
          end if
 
          ! Writing charge disturbance
@@ -277,14 +269,10 @@ contains
 
    subroutine create_dc_disturbance_files
    !! This subroutine creates all the files needed for the dc-limit disturbances
-      use mod_parameters, only: dcfieldpart, count, strSites,eta, Utype, suffix, renorm, renormnb, hfr
+      use mod_parameters, only: count, output, renorm, renormnb
       use mod_magnet, only: dcprefix, dcfield_dependence, dcfield, dc_header
       use mod_mpi_pars
-      use mod_SOC, only: SOCc, socpart
       use mod_system, only: s => sys
-      use mod_BrillouinZone, only: BZ
-      use electricfield, only: strElectricField
-      use EnergyIntegration, only: strEnergyParts
       implicit none
 
       character(len=500)  :: varm
@@ -293,13 +281,13 @@ contains
       do i=1,s%nAtoms
          do j=1,7
             iw = 30000+(i-1)*7+j
-            write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+            write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
             open (unit=iw, file=varm, status='replace', form='formatted')
             write(unit=iw, fmt="('#',a,' imag part of ',a,' , real part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
             close(unit=iw)
             if(renorm) then
                iw = iw+1000
-               write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'r',a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+               write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'r',a,'_',a,'_pos=',i0,a,a,a,a,a,'_renormnb=',i0,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),renormnb,trim(output%suffix)
                open (unit=iw, file=varm, status='replace', form='formatted')
                write(unit=iw, fmt="('#',a,' imag part of ',a,' , real part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
                close(unit=iw)
@@ -307,7 +295,7 @@ contains
          end do
          ! Total disturbances files
          iw = 35000+j
-         write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_',a,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+         write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
          open (unit=iw, file=varm, status='replace', form='formatted')
          write(unit=iw, fmt="('#',a,' imag part of ',a,' , real part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
          close(unit=iw)
@@ -319,14 +307,10 @@ contains
 
   subroutine open_dc_disturbance_files
   ! This subroutine opens all the files needed for the dc-limit disturbances
-    use mod_parameters, only: dcfieldpart, count, strSites,eta, Utype, suffix, renorm, renormnb, missing_files, hfr
+    use mod_parameters, only: output, count, renorm, renormnb, missing_files
     use mod_magnet, only: dcprefix, dcfield_dependence, dcfield
     use mod_mpi_pars
-    use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
-    use mod_BrillouinZone, only: BZ
-    use electricfield, only: strElectricField
-    use EnergyIntegration, only: strEnergyParts
     implicit none
 
     character(len=500)  :: varm
@@ -335,13 +319,13 @@ contains
     do j=1,7
       do i=1,s%nAtoms
          iw = 30000+(i-1)*7+j
-         write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+         write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
          open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
          errt = errt + err
          if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
          if(renorm) then
            iw = iw+1000
-           write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'r',a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+           write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'r',a,'_',a,'_pos=',i0,a,a,a,a,a,'_renormnb=',i0,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),renormnb,trim(output%suffix)
            open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
            errt = errt + err
            if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -349,7 +333,7 @@ contains
       end do
        ! Total disturbances files
        iw = 35000+j
-       write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_',a,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+       write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
        open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
        errt = errt + err
        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -392,7 +376,7 @@ contains
   !! (already opened with openclose_dc_disturbance_files(1))
   !! Some information may also be written on the screen
     use mod_f90_kind
-    use mod_parameters, only: renorm,outputunit_loop,lwriteonscreen,mmlayermag
+    use mod_parameters, only: renorm,output,lwriteonscreen,mmlayermag
     use mod_magnet, only: mvec_spherical, dcfield, dcfield_dependence, dc_fields, hw_count
     use mod_System, only: s => sys
     implicit none
@@ -400,39 +384,39 @@ contains
 
     call open_dc_disturbance_files()
 
-    if(lwriteonscreen) write(outputunit_loop,"(' ################# Disturbances: #################')")
+    if(lwriteonscreen) write(output%unit_loop,"(' ################# Disturbances: #################')")
     ! Writing Spin, Charge and Orbital disturbances
     do i=1, s%nAtoms
       if(lwriteonscreen) then
-        write(outputunit_loop,"('|--------------- ',a,' = ',a,' , Plane: ',i0,' ---------------|')") trim(dcfield(dcfield_dependence)),trim(dc_fields(hw_count)),i
+        write(output%unit_loop,"('|--------------- ',a,' = ',a,' , Plane: ',i0,' ---------------|')") trim(dcfield(dcfield_dependence)),trim(dc_fields(hw_count)),i
 
-        write(outputunit_loop,"('     Cd  = (',es16.9,') + i(',es16.9,')')") real(disturbances(1,i)),aimag(disturbances(1,i))
-        write(outputunit_loop,"(' abs(Cd) = ',es16.9)") abs(disturbances(1,i))
-        write(outputunit_loop,"('atan(Cd) = ',es16.9)") atan2(aimag(disturbances(1,i)),real(disturbances(1,i)))
+        write(output%unit_loop,"('     Cd  = (',es16.9,') + i(',es16.9,')')") real(disturbances(1,i)),aimag(disturbances(1,i))
+        write(output%unit_loop,"(' abs(Cd) = ',es16.9)") abs(disturbances(1,i))
+        write(output%unit_loop,"('atan(Cd) = ',es16.9)") atan2(aimag(disturbances(1,i)),real(disturbances(1,i)))
 
-        write(outputunit_loop,"('     Sdx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(2,i)),aimag(disturbances(2,i))
-        write(outputunit_loop,"(' abs(Sdx) = ',es16.9)") abs(disturbances(2,i))
-        write(outputunit_loop,"('atan(Sdx) = ',es16.9)") atan2(aimag(disturbances(2,i)),real(disturbances(2,i)))
+        write(output%unit_loop,"('     Sdx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(2,i)),aimag(disturbances(2,i))
+        write(output%unit_loop,"(' abs(Sdx) = ',es16.9)") abs(disturbances(2,i))
+        write(output%unit_loop,"('atan(Sdx) = ',es16.9)") atan2(aimag(disturbances(2,i)),real(disturbances(2,i)))
 
-        write(outputunit_loop,"('     Sdy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(3,i)),aimag(disturbances(3,i))
-        write(outputunit_loop,"(' abs(Sdy) = ',es16.9)") abs(disturbances(3,i))
-        write(outputunit_loop,"('atan(Sdy) = ',es16.9)") atan2(aimag(disturbances(3,i)),real(disturbances(3,i)))
+        write(output%unit_loop,"('     Sdy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(3,i)),aimag(disturbances(3,i))
+        write(output%unit_loop,"(' abs(Sdy) = ',es16.9)") abs(disturbances(3,i))
+        write(output%unit_loop,"('atan(Sdy) = ',es16.9)") atan2(aimag(disturbances(3,i)),real(disturbances(3,i)))
 
-        write(outputunit_loop,"('     Sdz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(4,i)),aimag(disturbances(4,i))
-        write(outputunit_loop,"(' abs(Sdz) = ',es16.9)") abs(disturbances(4,i))
-        write(outputunit_loop,"('atan(Sdz) = ',es16.9)") atan2(aimag(disturbances(4,i)),real(disturbances(4,i)))
+        write(output%unit_loop,"('     Sdz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(4,i)),aimag(disturbances(4,i))
+        write(output%unit_loop,"(' abs(Sdz) = ',es16.9)") abs(disturbances(4,i))
+        write(output%unit_loop,"('atan(Sdz) = ',es16.9)") atan2(aimag(disturbances(4,i)),real(disturbances(4,i)))
 
-        write(outputunit_loop,"('     Ldx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(5,i)),aimag(disturbances(5,i))
-        write(outputunit_loop,"(' abs(Ldx) = ',es16.9)") abs(disturbances(5,i))
-        write(outputunit_loop,"('atan(Ldx) = ',es16.9)") atan2(aimag(disturbances(5,i)),real(disturbances(5,i)))
+        write(output%unit_loop,"('     Ldx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(5,i)),aimag(disturbances(5,i))
+        write(output%unit_loop,"(' abs(Ldx) = ',es16.9)") abs(disturbances(5,i))
+        write(output%unit_loop,"('atan(Ldx) = ',es16.9)") atan2(aimag(disturbances(5,i)),real(disturbances(5,i)))
 
-        write(outputunit_loop,"('     Ldy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(6,i)),aimag(disturbances(6,i))
-        write(outputunit_loop,"(' abs(Ldy) = ',es16.9)") abs(disturbances(6,i))
-        write(outputunit_loop,"('atan(Ldy) = ',es16.9)") atan2(aimag(disturbances(6,i)),real(disturbances(6,i)))
+        write(output%unit_loop,"('     Ldy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(6,i)),aimag(disturbances(6,i))
+        write(output%unit_loop,"(' abs(Ldy) = ',es16.9)") abs(disturbances(6,i))
+        write(output%unit_loop,"('atan(Ldy) = ',es16.9)") atan2(aimag(disturbances(6,i)),real(disturbances(6,i)))
 
-        write(outputunit_loop,"('     Ldz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(7,i)),aimag(disturbances(7,i))
-        write(outputunit_loop,"(' abs(Ldz) = ',es16.9)") abs(disturbances(7,i))
-        write(outputunit_loop,"('atan(Ldz) = ',es16.9)") atan2(aimag(disturbances(7,i)),real(disturbances(7,i)))
+        write(output%unit_loop,"('     Ldz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(7,i)),aimag(disturbances(7,i))
+        write(output%unit_loop,"(' abs(Ldz) = ',es16.9)") abs(disturbances(7,i))
+        write(output%unit_loop,"('atan(Ldz) = ',es16.9)") atan2(aimag(disturbances(7,i)),real(disturbances(7,i)))
       end if
 
       ! Writing charge disturbance

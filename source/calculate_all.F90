@@ -3,7 +3,7 @@
 subroutine calculate_all()
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, cOne, cI, levi_civita
-  use mod_parameters, only: lnodiag, renorm, U, offset, outputunit_loop, outputunit, laddresults, skip_steps, count, lhfresponses, sigmaimunu2i, emin, emax, deltae, npt1, dim, sigmai2i, dimsigmanpl
+  use mod_parameters, only: lnodiag, renorm, U, offset, output, laddresults, skip_steps, count, lhfresponses, sigmaimunu2i, emin, emax, deltae, npt1, dim, sigmai2i, dimsigmanpl
   use mod_magnet, only: lfield, mtheta, mphi, hhwx, hhwy, hhwz, mx, my, mz, lxp, lyp, lzp, lx, ly, lz, mvec_spherical, total_hw_npt1
   use mod_SOC, only: llinearsoc
   use mod_System, only: s => sys
@@ -50,7 +50,7 @@ subroutine calculate_all()
   ! call allocate_idia()
 
   if(rFreq(1) == 0) then
-    write(outputunit_loop,"('CALCULATING PARALLEL CURRENTS, DISTURBANCES, LOCAL SUSCEPTIBILITY, EFFECTIVE FIELDS, SO-TORQUES AND V_DC AS A FUNCTION OF ENERGY')")
+    write(output%unit_loop,"('CALCULATING PARALLEL CURRENTS, DISTURBANCES, LOCAL SUSCEPTIBILITY, EFFECTIVE FIELDS, SO-TORQUES AND V_DC AS A FUNCTION OF ENERGY')")
     ! Creating files and writing headers
     if(.not.laddresults) then
       call create_chi_files()
@@ -66,6 +66,7 @@ subroutine calculate_all()
   call build_identity_and_U_matrix()
 
   call genLocalEKMesh(rFreq(1),sFreq(1),FreqComm(1))
+  call realBZ % setup_fraction(rFreq(1), sFreq(1), FreqComm(1))
 
   ! Calculates matrices hopping x angular momentum matrix for orbital angular momentum current calculation
   !call OAM_curr_hopping_times_L() !TODO:Re-Include
@@ -75,23 +76,23 @@ subroutine calculate_all()
   ! call MPI_Finalize(ierr)
   ! stop
 
-  if(myrank == 0 .and. skip_steps > 0) write(outputunit,"('[calculate_all] Skipping first ',i0,' step(s)...')") skip_steps
+  if(myrank == 0 .and. skip_steps > 0) write(output%unit,"('[calculate_all] Skipping first ',i0,' step(s)...')") skip_steps
 
   do count = startFreq + skip_steps, endFreq + skip_steps
     !mpitag = (myrank_col-1)*Npl_f*total_hw_npt1*MPIsteps+(Npl-Npl_i)*total_hw_npt1*MPIsteps + (hw_count-1)*MPIsteps + count
 
     e = emin + deltae * (count-1)
 
-    if(rField == 0) write(outputunit_loop,"('[calculate_all] Starting MPI step ',i0,' of ',i0)") count - startFreq - skip_steps, endFreq - startFreq + 1
+    if(rField == 0) write(output%unit_loop,"('[calculate_all] Starting MPI step ',i0,' of ',i0)") count - startFreq - skip_steps, endFreq - startFreq + 1
 
     if(lhfresponses) then
-      if(rFreq(1) == 0) write(outputunit_loop,"('[calculate_all] No renormalization will be done. Setting prefactors to identity and calculating HF susceptibilities... ')")
+      if(rFreq(1) == 0) write(output%unit_loop,"('[calculate_all] No renormalization will be done. Setting prefactors to identity and calculating HF susceptibilities... ')")
       prefactor = identt
       if(llinearsoc) prefactorlsoc = identt
       call eintshechi(e)
-      if(rField == 0) call write_time(outputunit_loop,'[calculate_all] Time after susceptibility calculation: ')
+      if(rField == 0) call write_time(output%unit_loop,'[calculate_all] Time after susceptibility calculation: ')
     else
-      if(rField == 0) write(outputunit_loop,"('[calculate_all] Calculating prefactor to use in currents and disturbances calculation. ')")
+      if(rField == 0) write(output%unit_loop,"('[calculate_all] Calculating prefactor to use in currents and disturbances calculation. ')")
       if(llinearsoc) then
         call eintshechilinearsoc(e) ! Note: chiorb_hflsoc = lambda*dchi_hf/dlambda(lambda=0)
         ! Broadcast chiorb_hflsoc to all processors of the same row
@@ -115,7 +116,7 @@ subroutine calculate_all()
         call zgemm('n','n',dim,dim,dim,cOne,prefactor,dim,prefactorlsoc,dim,cZero,chiorb,dim) ! chiorb = prefactor*prefactorlsoc
         call zgemm('n','n',dim,dim,dim,cOne,chiorb,dim,prefactor,dim,cZero,prefactorlsoc,dim) ! prefactorlsoc = chiorb*prefactor = prefactor*prefactorlsoc*prefactor
       end if
-      if(rField == 0) call write_time(outputunit_loop,'[calculate_all] Time after prefactor calculation: ')
+      if(rField == 0) call write_time(output%unit_loop,'[calculate_all] Time after prefactor calculation: ')
     end if
 
     ! Start parallelized processes to calculate all quantities for energy e
@@ -125,7 +126,7 @@ subroutine calculate_all()
       call eintshe(e)
     end if
 
-    if(rField == 0) call write_time(outputunit_loop,'[calculate_all] Time after energy integral: ')
+    if(rField == 0) call write_time(output%unit_loop,'[calculate_all] Time after energy integral: ')
 
     if(rFreq(1) == 0) then
 
@@ -437,15 +438,15 @@ subroutine calculate_all()
         end do
 
         write(time,"('[calculate_all] Time after step ',i0,': ')") count
-        call write_time(outputunit_loop,time)
+        call write_time(output%unit_loop,time)
 
         ! Emergency stop
         open(unit=911, file="stop", status='old', iostat=iw)
         if(iw==0) then
           close(911)
-          write(outputunit,"('[calculate_all] Emergency ""stop"" file found! Stopping after step ',i0,'...')") count
+          write(output%unit,"('[calculate_all] Emergency ""stop"" file found! Stopping after step ',i0,'...')") count
           call system ('rm stop')
-          write(outputunit,"('[calculate_all] (""stop"" file deleted!)')")
+          write(output%unit,"('[calculate_all] (""stop"" file deleted!)')")
           call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
         end if
       else

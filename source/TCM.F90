@@ -7,10 +7,7 @@ module mod_gilbert_damping
 contains
 
   subroutine openTCMFiles()
-    use mod_parameters, only: eta, fieldpart, strSites, suffix, Utype
-    use ElectricField, only: strElectricField
-    use mod_SOC, only: SOCc, socpart
-    use mod_BrillouinZone, only: BZ
+    use mod_parameters, only: output
     implicit none
     integer :: n,iw
     character(len=500)  :: varm
@@ -18,7 +15,7 @@ contains
     do n = 1, size(filename)
       iw = 634893 + n
 
-      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(n)),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(n)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
       open (unit=iw, file=varm, status='replace', form='formatted')
       write(unit=iw, fmt="('# i , m , Re(A_mx), Im(A_mx), Re(A_my), Im(A_my), Re(A_mz), Im(A_mz) ')")
 
@@ -42,14 +39,14 @@ contains
 
 subroutine calculate_gilbert_damping()
   use mod_f90_kind, only: double
-  use mod_parameters, only: outputunit_loop
+  use mod_parameters, only: output
   use mod_System, only: s => sys
   use mod_mpi_pars, only: rField
   implicit none
   complex(double), dimension(s%nAtoms,s%nAtoms,3,3) :: alphaSO, alphaXC
   integer :: i,j,k
 
-  if(rField == 0) write(outputunit_loop, *) "[calculate_gilbert_damping] Start..."
+  if(rField == 0) write(output%unit_loop, *) "[calculate_gilbert_damping] Start..."
 
   call TCM(alphaSO, local_SO_torque)
   call TCM(alphaXC, local_xc_torque)
@@ -76,7 +73,7 @@ subroutine TCM(alpha, torque_fct)
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, pi, cOne, cI
   use mod_System, only: s => sys
-  use mod_BrillouinZone, only: BZ
+  use mod_BrillouinZone, only: realBZ
 
   use TightBinding, only: nOrb
   use mod_parameters, only: Ef, eta
@@ -105,7 +102,7 @@ subroutine TCM(alpha, torque_fct)
   integer*8 :: firstPoint, lastPoint, iz
   ! Calculate workload for each MPI process
 
-  call calcWorkload(int(BZ%nkpt,8),sField,rField,firstPoint,lastPoint)
+  call realBZ % setup_fraction(rField, sField, FieldComm)
 
   call torque_fct(torque)
 
@@ -120,16 +117,16 @@ subroutine TCM(alpha, torque_fct)
 
   !$omp parallel default(none) &
   !$omp& private(m,n,i,j,mu,iz,kp,wght,gf,temp1,temp2,temp3, alpha_loc) &
-  !$omp& shared(s,BZ,firstPoint,lastPoint,Ef,eta,torque,alpha)
+  !$omp& shared(s,realBZ,firstPoint,lastPoint,Ef,eta,torque,alpha)
   allocate(gf(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms), &
            temp1(2*nOrb,2*nOrb), temp2(2*nOrb,2*nOrb), temp3(2*nOrb,2*nOrb), &
            alpha_loc(s%nAtoms,s%nAtoms,3,3))
   gf = cZero
   alpha_loc = cZero
   !$omp do schedule(static)
-  do iz = firstPoint, lastPoint
-    kp = BZ%kp(1:3,iz)
-    wght = BZ%w(iz)
+  do iz = 1, realBZ%workload
+    kp = realBZ%kp(1:3,iz)
+    wght = realBZ%w(iz)
     gf  = cZero
     call green(Ef, eta, kp, gf)
     do m = 1, 3

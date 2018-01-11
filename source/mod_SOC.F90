@@ -7,8 +7,6 @@ logical :: SOC                                          !< Turn on/off SOC
 logical :: llineargfsoc = .false.
 logical :: llinearsoc = .false.                         !< Linear SOC
 real(double) :: socscale = 1.d0                         !< Rescale of SOC parameter
-character(len=50)  :: socpart = ""
-character(len=1)   :: SOCc = ""
 
 complex(double), dimension(:,:), allocatable :: ls
 

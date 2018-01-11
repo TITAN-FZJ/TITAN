@@ -1,7 +1,7 @@
 ! This subroutine calculates LDOS
 subroutine ldos()
   use mod_f90_kind, only: double
-  use mod_parameters, only: outputunit_loop, npt1, emin, deltae
+  use mod_parameters, only: output, npt1, emin, deltae
   use mod_system, only: s => sys
   use TightBinding, only: nOrb
   use mod_LDOS
@@ -10,7 +10,7 @@ subroutine ldos()
   integer :: i, j
   real(double) :: e
 
-  write(outputunit_loop,"('CALCULATING LDOS')")
+  write(output%unit_loop,"('CALCULATING LDOS')")
 
   call allocateLDOS()
 
@@ -19,7 +19,7 @@ subroutine ldos()
 
   do i = startFreq, endFreq
      e = emin + (i-1)*deltae
-     if(rFreq(1) == 0) write(outputunit_loop,"('[ldos] ',i0,' of ',i0,' points',', e = ',es10.3)") i,npt1,e
+     if(rFreq(1) == 0) write(output%unit_loop,"('[ldos] ',i0,' of ',i0,' points',', e = ',es10.3)") i,npt1,e
      call ldos_energy(e,ldosu,ldosd)
 
      if(rFreq(1) == 0) then

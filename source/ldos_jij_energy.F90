@@ -5,7 +5,7 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
    use mod_parameters, only: eta, nmaglayers, mmlayermag
    use mod_progress
    use mod_system, only: s => sys
-   use mod_BrillouinZone, only: BZ
+   use mod_BrillouinZone, only: realBZ
    use TightBinding, only: nOrb,nOrb2
    use mod_magnet, only: hdel,mz
    use mod_mpi_pars
@@ -23,9 +23,8 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
    real(double), dimension(3) :: kp
    real(double) :: weight
    integer :: i,j,mu,nu,alpha
-   integer*8 :: iz,firstPoint, lastPoint
+   integer*8 :: iz
 
-   call calcWorkload(int(BZ%nkpt,8),sFreq(1),rFreq(1),firstPoint,lastPoint)
 
 ! (x,y,z)-tensor formed by Pauli matrices to calculate anisotropy term (when i=j)
   paulimatan = cZero
@@ -42,16 +41,16 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
 
 !$omp parallel default(none) &
 !$omp& private(iz,kp,weight,gf,gij,gji,paulia,paulib,i,j,mu,nu,alpha,gfdiagu,gfdiagd,Jijk,Jijkan,temp1,temp2,ldosu_loc,ldosd_loc,Jijint_loc) &
-!$omp& shared(s,BZ,e,eta,hdel,mz,nmaglayers,mmlayermag,pauli_dorb,paulimatan,ldosu,ldosd,Jijint, firstPoint, lastPoint)
+!$omp& shared(s,realBZ,e,eta,hdel,mz,nmaglayers,mmlayermag,pauli_dorb,paulimatan,ldosu,ldosd,Jijint)
 allocate(ldosu_loc(s%nAtoms, nOrb), ldosd_loc(s%nAtoms, nOrb), Jijint_loc(nmaglayers,nmaglayers,3,3))
 ldosu_loc = 0.d0
 ldosd_loc = 0.d0
 Jijint_loc = 0.d0
 
 !$omp do schedule(static)
-do iz = firstPoint, lastPoint
-    kp = BZ%kp(1:3,iz)
-    weight = BZ%w(iz)
+do iz = 1, realBZ%workload
+    kp = realBZ%kp(:,iz)
+    weight = realBZ%w(iz)
     ! Green function on energy E + ieta, and wave vector kp
     call green(e,eta,kp,gf)
 

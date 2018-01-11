@@ -2,7 +2,7 @@
 subroutine calculate_chi()
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, cOne
-  use mod_parameters, only:  count, emin, deltae, dim, sigmaimunu2i, outputunit_loop, lnodiag,laddresults, skip_steps, sigmai2i
+  use mod_parameters, only:  count, emin, deltae, dim, sigmaimunu2i, output, lnodiag,laddresults, skip_steps, sigmai2i
   use mod_mpi_pars
   use mod_magnet, only: mtheta,mphi
   use mod_susceptibilities, only: identt, Umatorb, schi, schihf, schirot, rotmat_i, &
@@ -13,6 +13,7 @@ subroutine calculate_chi()
   use mod_alpha, only: create_alpha_files, write_alpha, allocate_alpha, deallocate_alpha
   use mod_system, only: s => sys
   use TightBinding, only: nOrb
+  use mod_BrillouinZone, only: realBZ
   use adaptiveMesh, only: genLocalEKMesh, freeLocalEKMesh
   use mod_progress, only: write_time
   use TorqueTorqueResponse, only: calcTTResponse, create_TTR_files, allocTTResponse
@@ -28,10 +29,12 @@ subroutine calculate_chi()
   call allocTTResponse(s%nAtoms)
   call allocTSResponse(s%nAtoms)
   call genLocalEKMesh(rFreq(1), sFreq(1), FreqComm(1))
+  call realBZ % setup_fraction(rFreq(1), sFreq(1), FreqComm(1))
+
 
   if(rFreq(1) == 0) allocate(temp(dim,dim))
   if(rField == 0) then
-     write(outputunit_loop,"('CALCULATING LOCAL SUSCEPTIBILITY AS A FUNCTION OF ENERGY')")
+     write(output%unit_loop,"('CALCULATING LOCAL SUSCEPTIBILITY AS A FUNCTION OF ENERGY')")
      ! write(outputunit_loop,"('Qx = ',es10.3,', Qz = ',es10.3)") q(1),q(3)
      ! Creating files and writing headers
      if(.not.laddresults) then
@@ -45,12 +48,12 @@ subroutine calculate_chi()
   ! Mounting U and identity matrix
   call build_identity_and_U_matrix()
 
-  if(myrank == 0 .and. skip_steps > 0) write(outputunit_loop,"('[calculate_chi] Skipping first ',i0,' step(s)...')") skip_steps
+  if(myrank == 0 .and. skip_steps > 0) write(output%unit_loop,"('[calculate_chi] Skipping first ',i0,' step(s)...')") skip_steps
 
   ! Chi Energy Loop
   do count = startFreq+skip_steps, endFreq+skip_steps
      e = emin + deltae * (count-1)
-     if(myrank==0) write(outputunit_loop,"('[calculate_chi] Starting MPI step ',i0,' of ',i0)") count - startFreq - skip_steps + 1, endFreq - startFreq + 1
+     if(myrank==0) write(output%unit_loop,"('[calculate_chi] Starting MPI step ',i0,' of ',i0)") count - startFreq - skip_steps + 1, endFreq - startFreq + 1
 
      ! Start parallelized processes to calculate chiorb_hf and chiorbi0_hf for energy e
      call eintshechi(e)
@@ -148,7 +151,7 @@ subroutine calculate_chi()
            end do
 
            write(time,"('[calculate_chi] Time after step ',i0,': ')") count
-           call write_time(outputunit_loop,time)
+           call write_time(output%unit_loop,time)
 
         else
            call MPI_Send(e,     1,                   MPI_DOUBLE_PRECISION,0,1000, FreqComm(2),ierr)

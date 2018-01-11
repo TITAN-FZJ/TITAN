@@ -4,7 +4,7 @@ subroutine ldos_energy(e,ldosu,ldosd)
   use mod_constants, only: pi
   use mod_parameters, only: eta
   use mod_system, only: s => sys
-  use mod_BrillouinZone, only: BZ
+  use mod_BrillouinZone, only: realBZ
   use TightBinding, only: nOrb,nOrb2
   use mod_mpi_pars
   implicit none
@@ -15,21 +15,21 @@ subroutine ldos_energy(e,ldosu,ldosd)
   real(double), dimension(3) :: kp
   real(double) :: weight
   integer :: i,mu,nu
-  integer*8 :: firstPoint, lastPoint,iz
+  integer*8 :: iz
 
-  call calcWorkload(int(BZ%nkpt,8),sFreq(1),rFreq(1),firstPoint,lastPoint)
+  call realBZ % setup_fraction(rFreq(1), sFreq(1), FreqComm(1))
 
   ldosu = 0.d0
   ldosd = 0.d0
 
 !$omp parallel default(none) &
 !$omp& private(iz,kp,weight,gf,i,mu,nu,gfdiagu,gfdiagd) &
-!$omp& shared(s,BZ,e,eta,ldosu,ldosd, firstPoint, lastPoint)
+!$omp& shared(s,realBZ,e,eta,ldosu,ldosd)
 
 !$omp do reduction(+:ldosu,ldosd)
-  do iz = firstPoint,lastPoint
-    kp = BZ%kp(1:3,iz)
-    weight = BZ%w(iz)
+  do iz = 1,realBZ%workload
+    kp = realBZ%kp(1:3,iz)
+    weight = realBZ%w(iz)
     ! Green function on energy E + ieta, and wave vector kp
     call green(e,eta,kp,gf)
 

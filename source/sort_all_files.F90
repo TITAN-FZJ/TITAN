@@ -1,6 +1,6 @@
 ! Sort all files
 subroutine sort_all_files()
-  use mod_parameters, only: itype,count,npt1,outputunit_loop
+  use mod_parameters, only: itype,count,npt1,output
   use mod_magnet, only: hw_count
   use mod_susceptibilities
   use mod_disturbances
@@ -10,7 +10,7 @@ subroutine sort_all_files()
   !use mod_sha !TODO: Re-Include
   implicit none
 
-  write(outputunit_loop,"('[sort_all_files] Sorting files... ')", advance='no')
+  write(output%unit_loop,"('[sort_all_files] Sorting files... ')", advance='no')
   select case (itype)
   case (7)
     ! SORTING SUSCEPTIBILITIES
@@ -46,7 +46,7 @@ subroutine sort_all_files()
       end do
     end if
   end select
-  write(outputunit_loop,"('Done! All files sorted!')")
+  write(output%unit_loop,"('Done! All files sorted!')")
 
   return
 end subroutine sort_all_files

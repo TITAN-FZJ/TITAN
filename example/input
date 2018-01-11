@@ -7,8 +7,9 @@
 ! -> suffix = _-M
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
--> Options = createfolders positions GSL ! kpoints ! noUonPt ! addresults
+-> Options = kpoints createfolders positions GSL ! kpoints ! noUonPt ! addresults
 !===============================================================================!
+-> bulk = .false.
 !                               SYSTEM VARIABLES                                !
 ! Lattice and surface direction:                                                !
 !-> lattice = fcc
@@ -58,7 +59,7 @@
 !===============================================================================!
 !                           INTEGRATION VARIABLES                               !
 ! Approxiamte number of k-points: (nkpt > 0)                                    !
--> nkpt = 10000000
+-> nkpt = 10000
 ! Number of parts to divide energy integral in complex plane:                   !
 -> parts = 2
 -> n1gl = 64

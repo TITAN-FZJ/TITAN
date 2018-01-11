@@ -6,12 +6,15 @@ module mod_parameters
 !  integer       :: nkpt         !< Number of k-point generation vectors (S. Cunningham, Phys. Rev. B 10, 4988 (1974))
   !XXX: integer       :: nkpt        !< Number of generated k-points
   real(double)  :: eta         !< Small imaginary part included in the energy z = E + i.eta
-  integer :: total_nkpt
   real(double)  :: Ef          !< Fermi energy (read from mod_tight_binding)
   real(double)  :: q(3)        !< q-vector for the dependence of response functions (not used yet)
   ! Dimensions
   integer       :: dimsigmaNpl !< Dimensions (Maybe enhance description?)
   integer       :: dim         !< Dimensions (Maybe enhance description?)
+
+  integer :: kpx_in, kpy_in, kpz_in
+  integer :: kptotal_in
+
   !========================================================================================!
   real(double), allocatable  :: U(:)       !< Effective intra-site electron electron interaction
   integer       :: Utype = 2              !< Description missing
@@ -76,7 +79,6 @@ module mod_parameters
   integer :: longitudinal_neighbors
   integer :: transverse_neighbors
 
-  character(len=3)    :: hfr = ""
   !! String for HF Responses
   !========================================================================================!
   ! n0sc1 - first neighbor to calculate the in-plane spin and charge current
@@ -92,14 +94,8 @@ module mod_parameters
   character(len=500)  :: missing_files=""
   !========================================================================================!
   ! Suffix to use on filenames (to avoid overwriting while comparing different results)
-  character(len=50)  :: suffix=""
   !========================================================================================!
-  ! Output file
-  integer            :: outputunit=123456789,outputunit_loop
-  character(len=200) :: outputfile, outputfile_loop
 
-  character(len=50) :: fieldpart   = "" ! hwa, hwt, hwp, ltesla, lnolb, lhwscale, lhwrotate,
-  character(len=50) :: dcfieldpart = "" ! dc special case of fieldpart
 
   !========================================================================================!
   ! Choose between tight-binding (T) or orthogonal (O) DFT parameters
@@ -119,11 +115,35 @@ module mod_parameters
   integer :: set1,set2
   ! Layers to add after set2 (maximum of 10) - Must include empty spheres on the list
   integer :: addlayers(10),naddlayers=0
-  character(len=50) :: strSites
   !========================================================================================!
   integer :: offset = 0
 
   integer :: parField = 1
   integer :: parFreq = 1
 
+  type :: Filename
+     integer :: unit=123456789
+     character(len=200) :: file
+
+     integer :: unit_loop
+     character(len=200) :: file_loop
+
+     character(len=50) :: BField   = "" ! hwa, hwt, hwp, ltesla, lnolb, lhwscale, lhwrotate,
+     character(len=50) :: dcBField = "" ! dc special case of fieldpart
+
+     character(len=50) :: EField = "" ! EFt, EFp
+
+     character(len=50) :: suffix = ""
+     character(len=50) :: Sites = ""
+
+     character(len=50) :: SOC = ""
+     character(len=1) :: SOCchar = ""
+
+     character(len=50) :: Energy = "" ! parts, parts3
+
+     character(len=3) :: hfr = ""
+
+     character(len=50) :: info = ""
+  end type Filename
+  type(Filename) :: output
 end module mod_parameters
