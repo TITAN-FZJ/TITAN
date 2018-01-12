@@ -316,6 +316,7 @@ contains
       self%w(added-range+1:added) = 1.0 / dble(weight)
     end do
     self%w = self%w / dble(count)
+    print *, added, self%workload
     if(added > self%workload) call abortProgram("[gen3DFraction] Generated more points than it should have!")
     if(added < self%workload) call abortProgram("[gen3DFraction] Generated less points than it should have!")
     return
