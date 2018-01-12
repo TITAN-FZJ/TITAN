@@ -44,6 +44,7 @@ type :: AtomType
   real(double) :: FermiLevel
   real(double) :: Occupation
   real(double) :: LatticeConstant
+  real(double), dimension(:), allocatable :: Stage
 end type AtomType
 
 

@@ -243,7 +243,7 @@ program TITAN
     case(1) ! Calculation of self-consistency only
       continue
     case (2) !Debugging case
-      !call debugging() TODO: Re-Include
+      call ldos() !call debugging() TODO: Re-Include
       continue
     case (3) !
       call ldos_and_coupling()

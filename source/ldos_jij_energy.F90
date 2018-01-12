@@ -62,9 +62,9 @@ do iz = 1, realBZ%workload
          do j = 1,nmaglayers
             do i = 1,nmaglayers
                paulia = pauli_dorb(mu,:,:)
-               gij = gf(:,:,mmlayermag(i)-1,mmlayermag(j)-1)
+               gij = gf(:,:,mmlayermag(i),mmlayermag(j))
                paulib = pauli_dorb(nu,:,:)
-               gji = gf(:,:,mmlayermag(j)-1,mmlayermag(i)-1)
+               gji = gf(:,:,mmlayermag(j),mmlayermag(i))
                call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,paulia,nOrb2,gij,   nOrb2,cZero,temp1,nOrb2)
                call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp1, nOrb2,paulib,nOrb2,cZero,temp2,nOrb2)
                call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp2, nOrb2,gji,   nOrb2,cZero,temp1,nOrb2)

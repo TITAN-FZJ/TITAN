@@ -14,15 +14,15 @@ contains
     integer, intent(in) :: fermi_layer
     integer, intent(in) :: nOrb
     logical, dimension(9) :: Orbitals
-    integer :: i,j,k
+    integer :: i,j,k, mu, nu
     real(double), dimension(:,:), allocatable :: bp
+    real(double) :: scale_factor
     type(NeighborIndex), pointer :: current
-
     nullify(current)
     allocate(bp(nOrb,nOrb))
 
     do i = 1, s%nTypes
-      call read_Papa_2C_param(s%Types(i), s%a0, s%nStages, nOrb)
+      call read_Papa_2C_param(s%Types(i), s%nStages, nOrb)
     end do
 
     Ef = s%Types(fermi_layer)%FermiLevel
@@ -50,6 +50,16 @@ contains
                                     s%Types(s%Basis(i)%Material)%Hopping(:,k), &
                                     s%Types(s%Basis(j)%Material)%Hopping(:,k), nOrb)
             s%Neighbors(current%index)%isHopping(i) = .true.
+
+            ! Scaling law by Andersen et al. O.K. Andersen, O. Jepsen, Physica 91B, 317 (1977); O.K. Andersen, W. Close. H. Nohl, Phys. Rev. B17, 1209 (1978)
+            ! Distance dependence of tight binding matrix elements is given by V = C * d^(-[l+l'+1])
+            ! e.g for ss hopping distance dependence is d^-1, for sp hopping d^-2
+            scale_factor = s%Types(s%Basis(i)%Material)%stage(k) / s%Neighbors(current%index)%Distance(i)
+            do mu = 1, nOrb
+              do nu = 1, nOrb
+                s%Neighbors(current%index)%t0i(mu,nu,i) = s%Neighbors(current%index)%t0i(mu,nu,i) * scale_factor ** ( -(mu + nu + 1) )
+              end do
+            end do
             current => current%next
           end do
         end do
@@ -72,25 +82,25 @@ contains
       mix(i) = sign(sqrt(abs(t1(i)) * abs(t2(i))), t1(i) + t2(i))
     end do
     call intd(mix(1), mix(2), mix(3), mix(4), mix(5), mix(6), mix(7), mix(8), mix(9), mix(10), dirCos, t0i)
+
     return
   end subroutine set_hopping_matrix
 
-  subroutine read_Papa_2C_param(material, a0, nStages, nOrb)
+  subroutine read_Papa_2C_param(material, nStages, nOrb)
     use mod_f90_kind, only: double
     use AtomTypes, only: AtomType
     use mod_mpi_pars, only: abortProgram
     implicit none
     type(AtomType), intent(inout) :: material
-    real(double), intent(in) :: a0
     integer, intent(in) :: nStages
     integer, intent(in) :: nOrb
     real(double), dimension(3) :: dens
-    integer :: i, j, k, ios, line_count = 0
-    integer, dimension(10) :: exponent
+    integer :: i, j, k, l, ios, line_count = 0
     character(200) :: line
     character(50) :: words(10)
+    real(double), dimension(3) :: a1, a2, a3, vec
     real(double), dimension(4) :: on_site
-    real(double) :: a0_corr
+    real(double) :: dist
 
     allocate(material%onSite(nOrb,nOrb))
     allocate(material%Hopping(10,nStages))
@@ -122,10 +132,21 @@ contains
     read(unit= line, fmt=*, iostat=ios) dens(1), dens(2), dens(3)
     material%Occupation = dens(1)+dens(2)+dens(3)
 
-    a0_corr = material%LatticeConstant / a0  ! Scaling law by Andersen et al. O.K. Andersen, O. Jepsen, Physica 91B, 317 (1977); O.K. Andersen, W. Close. H. Nohl, Phys. Rev. B17, 1209 (1978)
-                                             ! Distance dependence of tight binding matrix elements is given by V = C * d^(-[l+l'+1])
-                                             ! e.g for ss hopping distance dependence is d^-1, for sp hopping d^-2
-    exponent = [1.d0, 3.d0, 3.d0, 5.d0, 5.d0, 5.d0, 2.d0, 3.d0, 4.d0, 4.d0]
+
+    read(unit=995594, fmt='(A)', iostat=ios) line
+    read(unit=line, fmt=*, iostat=ios) (a1(i), i=1,3)
+    if(dot_product(a1,a1) <= 1.d-9) call abortProgram("[read_Papa_2C_param] a1 not given properly")
+    a1 = a1 * material%LatticeConstant
+
+    read(unit=995594, fmt='(A)', iostat=ios) line
+    read(unit=line, fmt=*, iostat=ios) (a2(i), i=1,3)
+    if(dot_product(a2,a2) <= 1.d-9) call abortProgram("[read_Papa_2C_param] a1 not given properly")
+    a2 = a2 * material%LatticeConstant
+
+    read(unit=995594, fmt='(A)', iostat=ios) line
+    read(unit=line, fmt=*, iostat=ios) (a3(i), i=1,3)
+    if(dot_product(a3,a3) <= 1.d-9) call abortProgram("[read_Papa_2C_param] a1 not given properly")
+    a3 = a3 * material%LatticeConstant
 
     do i = 1, 4
       read(unit=995594, fmt='(A)', iostat = ios) line
@@ -150,10 +171,33 @@ contains
         read(unit=995594, fmt='(A)', iostat = ios) line
         read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
         read(unit=words(4), fmt=*, iostat=ios) material%Hopping(j,i)
-        material%Hopping(j,i) = material%Hopping(j,i) * (a0_corr ** exponent(j)) ! Correction of hopping parameter by scaling law.
+        !material%Hopping(j,i) = material%Hopping(j,i) * (a0_corr ** exponent(j)) ! Correction of hopping parameter by scaling law.
       end do
     end do
 
+    allocate(material%stage(nStages))
+    material % stage = 10.d0 * material % LatticeConstant
+    do i = 0, 3*nStages
+      do j = 0, 3*nStages
+        do k = 0, 3*nStages
+          if(i == 0 .and. j == 0 .and. k == 0) cycle
+          vec = i * a1 + j * a2 + k * a3
+          dist = sqrt(dot_product(vec,vec))
+          l = nStages
+          do while(1 <= l)
+            if(material % stage(l) - dist < 1.d-9) exit
+            if(l < nStages) material%stage(l+1) = material%stage(l)
+            l = l - 1
+          end do
+          if(l == 0) then
+            material%stage(l+1) = dist
+          elseif(abs(material % stage(l) - dist) >= 1.d-9 .and. l < nStages) then
+            material%stage(l+1) = dist
+          end if
+
+        end do
+      end do
+    end do
     close(995594)
   end subroutine
 
