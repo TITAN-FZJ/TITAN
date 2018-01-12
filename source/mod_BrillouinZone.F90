@@ -341,12 +341,7 @@ contains
     integer :: nkpt_perdim !n. of k point per dimension
     integer :: nx, ny, nz
 
-    nkpt_perdim = ceiling((dble(nkpt_in))**(1.d0/3.d0))
-    nkpt_x = nkpt_perdim
-    nkpt_y = nkpt_perdim
-    nkpt_z = nkpt_perdim
-
-    nkpt = nkpt_x * nkpt_y * nkpt_z
+    nkpt = self%nkpt_x * self%nkpt_y * self%nkpt_z
 
     vol = tpi / dot_product(a1, cross(a2,a3))
     b1 = vol * cross(a2, a3)
