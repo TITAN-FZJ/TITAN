@@ -84,6 +84,7 @@ contains
     call self%count()
     call calcWorkload(self%nkpt, self%size, self%rank, self%first, self%last)
     self%workload = self%last - self%first + 1
+    print *, self%workload, self%first, self%last
     if(self%bulk) then
       call self%generate_3d_fraction(self%first,self%last, self%nkpt)
     else
