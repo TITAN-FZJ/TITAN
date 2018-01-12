@@ -3,6 +3,7 @@ subroutine ldos()
   use mod_f90_kind, only: double
   use mod_parameters, only: output, npt1, emin, deltae
   use mod_system, only: s => sys
+  use mod_BrillouinZone, only: realBZ
   use TightBinding, only: nOrb
   use mod_LDOS
   use mod_mpi_pars
@@ -13,6 +14,8 @@ subroutine ldos()
   write(output%unit_loop,"('CALCULATING LDOS')")
 
   call allocateLDOS()
+  call realBZ % setup_fraction(rFreq(1), sFreq(1), FreqComm(1))
+
 
   ! Opening files
   if(rField == 0) call openLDOSFiles()

@@ -17,8 +17,6 @@ subroutine ldos_energy(e,ldosu,ldosd)
   integer :: i,mu,nu
   integer*8 :: iz
 
-  call realBZ % setup_fraction(rFreq(1), sFreq(1), FreqComm(1))
-
   ldosu = 0.d0
   ldosd = 0.d0
 
