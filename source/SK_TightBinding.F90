@@ -57,7 +57,7 @@ contains
             scale_factor = s%Types(s%Basis(i)%Material)%stage(k) / s%Neighbors(current%index)%Distance(i)
             do mu = 1, nOrb
               do nu = 1, nOrb
-                s%Neighbors(current%index)%t0i(mu,nu,i) = s%Neighbors(current%index)%t0i(mu,nu,i) * scale_factor ** ( -(mu + nu + 1) )
+                s%Neighbors(current%index)%t0i(mu,nu,i) = s%Neighbors(current%index)%t0i(mu,nu,i) * scale_factor ** (mu + nu + 1) 
               end do
             end do
             current => current%next
