@@ -121,7 +121,7 @@ contains
       else
          get_nkpt = nkpt_total / (e/e0)**sqrt(2.d0) !**log(2.d0)
       end if
-      if(get_nkpt < 50) get_nkpt = 50
+      if(get_nkpt < 1000) get_nkpt = 1000
       return
    end function get_nkpt
 
