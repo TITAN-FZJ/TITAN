@@ -14,12 +14,14 @@ contains
     integer, intent(in) :: fermi_layer
     integer, intent(in) :: nOrb
     logical, dimension(9) :: Orbitals
-    integer :: i,j,k, mu, nu
+    integer :: i,j,k,l
     real(double), dimension(:,:), allocatable :: bp
-    real(double) :: scale_factor
+    real(double) :: scale_factor(2), mix(10,2)
     type(NeighborIndex), pointer :: current
+    real(double), dimension(10), parameter :: exponent = [1.0d0,3.0d0,3.0d0,5.0d0,5.0d0,5.0d0,2.0d0,3.0d0,4.0d0,4.0d0]
     nullify(current)
     allocate(bp(nOrb,nOrb))
+
 
     do i = 1, s%nTypes
       call read_Papa_2C_param(s%Types(i), s%nStages, nOrb)
@@ -45,21 +47,25 @@ contains
         do k = 1, s%nStages
           current => s%Basis(i)%NeighborList(k,j)%head
           do while(associated(current))
+            scale_factor(1) = s%Types(s%Basis(i)%Material)%stage(k) / s%Neighbors(current%index)%Distance(i)
+            scale_factor(2) = s%Types(s%Basis(j)%Material)%stage(k) / s%Neighbors(current%index)%Distance(i)
+            do l = 1, 10
+              mix(l,1) = s%Types(s%Basis(i)%Material)%Hopping(l,k) * scale_factor(1) ** exponent(l)
+              mix(l,2) = s%Types(s%Basis(j)%Material)%Hopping(l,k) * scale_factor(2) ** exponent(l)
+            end do
             call set_hopping_matrix(s%Neighbors(current%index)%t0i(:,:,i), &
                                     s%Neighbors(current%index)%dirCos(:,i), &
-                                    s%Types(s%Basis(i)%Material)%Hopping(:,k), &
-                                    s%Types(s%Basis(j)%Material)%Hopping(:,k), nOrb)
+                                    mix(:,1), mix(:,2), nOrb)
             s%Neighbors(current%index)%isHopping(i) = .true.
 
             ! Scaling law by Andersen et al. O.K. Andersen, O. Jepsen, Physica 91B, 317 (1977); O.K. Andersen, W. Close. H. Nohl, Phys. Rev. B17, 1209 (1978)
             ! Distance dependence of tight binding matrix elements is given by V = C * d^(-[l+l'+1])
             ! e.g for ss hopping distance dependence is d^-1, for sp hopping d^-2
-            scale_factor = s%Types(s%Basis(i)%Material)%stage(k) / s%Neighbors(current%index)%Distance(i)
-            do mu = 1, nOrb
-              do nu = 1, nOrb
-                s%Neighbors(current%index)%t0i(mu,nu,i) = s%Neighbors(current%index)%t0i(mu,nu,i) * scale_factor ** (mu + nu + 1)
-              end do
-            end do
+            ! do mu = 1, nOrb
+            !   do nu = 1, nOrb
+            !     s%Neighbors(current%index)%t0i(mu,nu,i) = s%Neighbors(current%index)%t0i(mu,nu,i) * scale_factor ** (mu + nu + 1)
+            !   end do
+            ! end do
             current => current%next
           end do
         end do
