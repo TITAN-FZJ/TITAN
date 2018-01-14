@@ -228,8 +228,8 @@ contains
        self%kp(:,self%nkpt+1:self%nkpt+numextrakbz) = extrakbz(:,1:numextrakbz)
        self%w(self%nkpt+1:self%nkpt+numextrakbz) = extrawkbz(1:numextrakbz)
     end if
-    self%nkpt = self%nkpt + numextrakbz
     self%w = self%w / dble(self%nkpt)
+    self%nkpt = self%nkpt + numextrakbz
 
     deallocate(extrakbz, extrawkbz)
     deallocate(iniwkbz, inikbz)
@@ -315,7 +315,7 @@ contains
       end do
       self%w(added-range+1:added) = 1.0 / dble(weight)
     end do
-    self%w = self%w / dble(count)
+    self%w = self%w / dble(nkpt)
     if(added > self%workload) call abortProgram("[gen3DFraction] Generated more points than it should have!")
     if(added < self%workload) call abortProgram("[gen3DFraction] Generated less points than it should have!")
     return
@@ -492,8 +492,8 @@ contains
        self%kp(:, self%nkpt + 1 : self%nkpt + numextrakbz) = extrakbz(:, 1 : numextrakbz)
        self%w(self%nkpt + 1 : self%nkpt + numextrakbz) = extrawkbz(1 : numextrakbz)
     end if
-    self%nkpt = self%nkpt + numextrakbz
     self%w = self%w/dble(self%nkpt)
+    self%nkpt = self%nkpt + numextrakbz
 
     deallocate(extrakbz, extrawkbz)
     deallocate(iniwkbz, inikbz)
@@ -572,7 +572,7 @@ contains
       end do
       self%w(added-weight+1:added) = 1.0 / dble(weight)
     end do
-    self%w = self%w / dble(count)
+    self%w = self%w / dble(nkpt)
     if(added > self%workload) call abortProgram("[gen2DFraction] Generated more points than it should have!")
     if(added < self%workload) call abortProgram("[gen2DFraction] Generated less points than it should have!")
     return
