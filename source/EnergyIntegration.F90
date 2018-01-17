@@ -1,6 +1,7 @@
 module EnergyIntegration
   use mod_f90_kind, only: double
-  use mod_parameters, only: eta, Ef
+  use mod_parameters, only: eta
+  use mod_System, only: s => sys
   implicit none
 
 
@@ -105,8 +106,8 @@ contains
     if (abs(e)>=1.d-10) then
       nepoints = pnt
       do k=1,parts3
-        e1 = Ef-((parts3-(k-1))*e/parts3)
-        e2 = Ef-((parts3-k)*e/parts3)
+        e1 = s%Ef-((parts3-(k-1))*e/parts3)
+        e2 = s%Ef-((parts3-k)*e/parts3)
 
         i = (k-1)*n3gl+1
         j = k*n3gl

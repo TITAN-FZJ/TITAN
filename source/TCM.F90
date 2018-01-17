@@ -79,7 +79,7 @@ subroutine TCM(alpha, torque_fct)
   use mod_BrillouinZone, only: BZ
 
   use TightBinding, only: nOrb
-  use mod_parameters, only: Ef, eta
+  use mod_parameters, only: eta
   use mod_magnet, only: mabs
   use mod_mpi_pars
   implicit none
@@ -120,7 +120,7 @@ subroutine TCM(alpha, torque_fct)
 
   !$omp parallel default(none) &
   !$omp& private(m,n,i,j,mu,iz,kp,wght,gf,temp1,temp2,temp3, alpha_loc) &
-  !$omp& shared(s,BZ,firstPoint,lastPoint,Ef,eta,torque,alpha)
+  !$omp& shared(s,BZ,firstPoint,lastPoint,eta,torque,alpha)
   allocate(gf(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms), &
            temp1(2*nOrb,2*nOrb), temp2(2*nOrb,2*nOrb), temp3(2*nOrb,2*nOrb), &
            alpha_loc(s%nAtoms,s%nAtoms,3,3))
@@ -131,7 +131,7 @@ subroutine TCM(alpha, torque_fct)
     kp = BZ%kp(1:3,iz)
     wght = BZ%w(iz)
     gf  = cZero
-    call green(Ef, eta, kp, gf)
+    call green(s%Ef, eta, kp, gf)
     do m = 1, 3
       do n = 1, 3
         do i = 1, s%nAtoms

@@ -28,6 +28,8 @@ module mod_system
     integer :: nAtoms = 0
     type(BasisAtom), dimension(:), allocatable :: Basis
     integer :: nNeighbors
+    real(double)  :: Ef                   !< Fermi energy
+    real(double)  :: totalOccupation = 0  !< Total occupation of the system
     type(NeighborAtom), dimension(:), allocatable :: Neighbors
     integer :: nStages = 0
     real(double), dimension(:,:), allocatable :: Distances

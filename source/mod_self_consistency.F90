@@ -27,7 +27,6 @@ contains
       ! Distribute Energy Integration across all points available
       call genLocalEKMesh(rField,sField, FieldComm)
 
-
       !--------------------------- Self-consistency --------------------------
       ! Trying to read previous shifts and m from files
       call read_previous_results(lsuccess)
@@ -37,7 +36,6 @@ contains
       if(lrotatemag .and. lsuccess) then
         call rotate_magnetization_to_field()
       end if
-
 
       if(lselfcon) call calcMagneticSelfConsistency()
 
@@ -81,7 +79,7 @@ contains
 #endif
     integer                       :: i,neq,maxfev,ml,mr,mode,nfev,njev,lwa,ifail=0
 
-    neq = 4*s%nAtoms
+    neq = 4*s%nAtoms+1
     allocate( sc_solu(neq),diag(neq),qtf(neq),fvec(neq),jac(neq,neq) )
 
     ! Putting read n and m existing solutions into sc_solu (first guess of the subroutine)
@@ -89,6 +87,7 @@ contains
     sc_solu(s%nAtoms+1:2*s%nAtoms)   = mx
     sc_solu(2*s%nAtoms+1:3*s%nAtoms) = my
     sc_solu(3*s%nAtoms+1:4*s%nAtoms) = mz
+    sc_solu(neq) = s%Ef
     iter  = 1
 
     if(rField == 0) write(outputunit_loop,"('[self_consistency] Starting self-consistency:')")
@@ -189,7 +188,6 @@ contains
     !! Calculates occupation density and magnetization.
     use mod_f90_kind, only: double
     use mod_constants, only: cI, pi, cZero
-    use mod_parameters, only: Ef
     use mod_SOC, only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: y, wght
     use mod_system, only: s => sys
@@ -220,10 +218,9 @@ contains
     gdiagud = cZero
     gdiagdu = cZero
 
-
     !$omp parallel default(none) &
     !$omp& private(ix,ep,kp,weight,i,mu,mup,gf) &
-    !$omp& shared(llineargfsoc,llinearsoc,local_points,wght,s,bzs,E_k_imag_mesh,Ef,y,n_orb_u,n_orb_d,gdiagud,gdiagdu)
+    !$omp& shared(llineargfsoc,llinearsoc,local_points,wght,s,bzs,E_k_imag_mesh,y,n_orb_u,n_orb_d,gdiagud,gdiagdu)
     allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms))
     gf = cZero
 
@@ -233,7 +230,7 @@ contains
          ep = y(E_k_imag_mesh(1,ix))
          kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
          weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
-         call greenlineargfsoc(Ef,ep,kp,gf)
+         call greenlineargfsoc(s%Ef,ep,kp,gf)
          do i=1,s%nAtoms
            do mu=1,nOrb
              mup = mu+nOrb
@@ -251,7 +248,7 @@ contains
          ep = y(E_k_imag_mesh(1,ix))
          weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
          kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
-         call green(Ef,ep,kp,gf)
+         call green(s%Ef,ep,kp,gf)
          do i=1,s%nAtoms
            do mu=1,nOrb
              mup = mu+nOrb
@@ -305,11 +302,12 @@ contains
     !! Calculated the Jacobian of the spin magnetization
     use mod_f90_kind, only: double
     use mod_constants, only: cI, pi, identorb18, cZero, pauli_dorb, pauli_orb, cOne
-    use mod_parameters, only: U, Ef, offset
+    use mod_parameters, only: U, offset, eta
     use mod_SOC, only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: y, wght
     use mod_system, only: s => sys
     use adaptiveMesh, only: local_points, E_k_imag_mesh, bzs, activeComm
+    use mod_BrillouinZone, only: BZ
     use TightBinding, only: nOrb,nOrb2
     use mod_mpi_pars
     implicit none
@@ -318,6 +316,7 @@ contains
     complex(double), dimension(:,:), allocatable :: gij,gji,temp,paulitemp
     complex(double), dimension(:,:,:), allocatable :: temp1,temp2
     complex(double), dimension(:,:,:,:), allocatable :: gf,gvg
+    integer :: firstPoint, lastPoint
 
     integer :: i,j
     integer :: AllocateStatus
@@ -360,9 +359,11 @@ contains
 
     jacobian = 0.d0
 
+    call calcWorkload(BZ%nkpt,sFreq(1),rFreq(1),firstPoint,lastPoint)
+
     !$omp parallel default(none) &
     !$omp& private(AllocateStatus,ix,i,j,i0,j0,mu,sigma,sigmap,ep,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp) &
-    !$omp& shared(llineargfsoc,llinearsoc,local_points,s,bzs,E_k_imag_mesh,Ef,y,wght,mhalfU,pauli_components1,pauli_components2,jacobian)
+    !$omp& shared(llineargfsoc,llinearsoc,local_points,s,BZ,bzs,E_k_imag_mesh,y,eta,firstPoint,lastPoint,wght,mhalfU,pauli_components1,pauli_components2,jacobian)
     allocate( temp1(nOrb2, nOrb2, 4), &
               temp2(nOrb2, nOrb2, 4), &
               gij(nOrb2,nOrb2), gji(nOrb2,nOrb2), &
@@ -388,83 +389,128 @@ contains
       ep = y(E_k_imag_mesh(1,ix))
       kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
       weight = cmplx(1.d0,0.d0) * wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
-        ! Green function on energy Ef + iy, and wave vector kp
-        if(llineargfsoc .or. llinearsoc) then
-          call greenlinearsoc(Ef,ep,kp,gf,gvg)
-          gf = gf + gvg
-        else
-          call green(Ef,ep,kp,gf)
-        end if
+      ! Green function on energy Ef + iy, and wave vector kp
+      if(llineargfsoc .or. llinearsoc) then
+        call greenlinearsoc(s%Ef,ep,kp,gf,gvg)
+        gf = gf + gvg
+      else
+        call green(s%Ef,ep,kp,gf)
+      end if
 
-        do j=1,s%nAtoms
-          do i=1,s%nAtoms
-            gij = gf(:,:,i,j)
-            gji = gf(:,:,j,i)
+      do j=1,s%nAtoms
+        do i=1,s%nAtoms
+          gij = gf(:,:,i,j)
+          gji = gf(:,:,j,i)
+
+          do sigma = 1,4
+            ! temp1 =  pauli*g_ij
+            paulitemp = pauli_components1(:,:, sigma)
+            call zgemm('n','n',18,18,18,cOne,paulitemp,18,gij,18,cZero,temp,18)
+            temp1(:,:, sigma) = temp
+          end do
+
+          do sigma = 1,4
+            ! temp2 = (-U/2) * sigma* g_ji
+            paulitemp = pauli_components2(:,:, sigma)
+            call zgemm('n','n',18,18,18,mhalfU(sigma,j),paulitemp,18,gji,18,cZero,temp,18)
+            temp2(:,:, sigma) = temp
+          end do
+
+          do sigma = 1,4
+            do sigmap = 1,4
+              ! gdHdxg = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*sigma* g_ji
+              i0 = (sigma-1)*s%nAtoms + i
+              j0 = (sigmap-1)*s%nAtoms + j
+              gij = temp1(:,:, sigma)
+              gji = temp2(:,:, sigmap)
+              call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
+              do mu = 1, nOrb2
+                jacobian(i0, j0) = jacobian(i0, j0) + real(temp(mu,mu))
+              end do
+            end do
+          end do
+
+          if(llineargfsoc .or. llinearsoc) then ! non-linear term
+            gij = gvg(:,:,i,j)
+            gji = gvg(:,:,j,i)
 
             do sigma = 1,4
-              ! temp1 =  pauli*g_ij
-              paulitemp = pauli_components1(:,:, sigma)
+              ! temp1 = wkbz* pauli*gvg_ij
+              paulitemp = pauli_components1(:,:,sigma)
               call zgemm('n','n',18,18,18,cOne,paulitemp,18,gij,18,cZero,temp,18)
-              temp1(:,:, sigma) = temp
+              temp1(:,:,sigma) = temp
             end do
 
-            do sigma = 1,4
-              ! temp2 = (-U/2) * sigma* g_ji
-              paulitemp = pauli_components2(:,:, sigma)
-              call zgemm('n','n',18,18,18,mhalfU(sigma,j),paulitemp,18,gji,18,cZero,temp,18)
-              temp2(:,:, sigma) = temp
+            do sigmap = 1,4
+              ! temp2 = (-U/2) * sigma* gvg_ji
+              paulitemp = pauli_components2(:,:,sigmap)
+              call zgemm('n','n',18,18,18,mhalfU(sigmap,j),paulitemp,18,gji,18,cZero,temp,18)
+              temp2(:,:,sigmap) = temp
             end do
-
             do sigma = 1,4
               do sigmap = 1,4
-                ! gdHdxg = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*sigma* g_ji
+                ! gdHdxg = temp1*temp2 = wkbz* pauli*gvg_ij*(-U/2)*sigma* gvg_ji
                 i0 = (sigma-1)*s%nAtoms + i
                 j0 = (sigmap-1)*s%nAtoms + j
-                gij = temp1(:,:, sigma)
-                gji = temp2(:,:, sigmap)
+                gij = temp1(:,:,sigma)
+                gji = temp2(:,:,sigmap)
                 call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
                 do mu = 1, nOrb2
-                  jacobian(i0, j0) = jacobian(i0, j0) + real(temp(mu,mu))
+                  jacobian(i0, j0) = jacobian(i0, j0) - real(temp(mu,mu))
                 end do
+                jacobian(i0, j0) = jacobian(i0, j0) - real(temp(mu,mu))
               end do
             end do
+          end if ! End linear part
 
+          ! Derivative of the last equation (total occupation)
+          do sigmap = 1,4
+            j0 = (sigmap-1)*s%nAtoms + j
+            jacobian(4*s%nAtoms+1, j0) = jacobian(4*s%nAtoms+1, j0) + jacobian(i, j0)
+          end do
 
-            if(llineargfsoc .or. llinearsoc) then ! non-linear term
-              gij = gvg(:,:,i,j)
-              gji = gvg(:,:,j,i)
-
-              do sigma = 1,4
-                ! temp1 = wkbz* pauli*gvg_ij
-                paulitemp = pauli_components1(:,:,sigma)
-                call zgemm('n','n',18,18,18,cOne,paulitemp,18,gij,18,cZero,temp,18)
-                temp1(:,:,sigma) = temp
-              end do
-
-              do sigmap = 1,4
-                ! temp2 = (-U/2) * sigma* gvg_ji
-                paulitemp = pauli_components2(:,:,sigmap)
-                call zgemm('n','n',18,18,18,mhalfU(sigmap,j),paulitemp,18,gji,18,cZero,temp,18)
-                temp2(:,:,sigmap) = temp
-              end do
-              do sigma = 1,4
-                do sigmap = 1,4
-                  ! gdHdxg = temp1*temp2 = wkbz* pauli*gvg_ij*(-U/2)*sigma* gvg_ji
-                  i0 = (sigma-1)*s%nAtoms + i
-                  j0 = (sigmap-1)*s%nAtoms + j
-                  gij = temp1(:,:,sigma)
-                  gji = temp2(:,:,sigmap)
-                  call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
-                  do mu = 1, nOrb2
-                    jacobian(i0, j0) = jacobian(i0, j0) - real(temp(mu,mu))
-                  end do
-                end do
-              end do
-            end if ! End linear part
-          end do ! End nAtoms i loop
-        end do ! End nAtoms j loop
+        end do ! End nAtoms i loop
+      end do ! End nAtoms j loop
     end do ! End Energy+nkpt loop
     !$omp end do nowait
+
+    !$omp do schedule(static) reduction(+:jacobian)
+    do ix = firstPoint,lastPoint
+      kp = BZ%kp(1:3,ix)
+      weight = BZ%w(ix)
+
+      ! Green function at Ef + ieta, and wave vector kp
+      if(llineargfsoc .or. llinearsoc) then
+        call greenlinearsoc(s%Ef,eta,kp,gf,gvg)
+        gf = gf + gvg
+      else
+        call green(s%Ef,eta,kp,gf)
+      end if
+
+      do i=1,s%nAtoms
+        gij = gf(:,:,i,i)
+
+        do sigma = 1,4
+          ! temp1 =  pauli*g_ii
+          paulitemp = pauli_components1(:,:, sigma)
+          call zgemm('n','n',18,18,18,cOne,paulitemp,18,gij,18,cZero,temp,18)
+
+          i0 = (sigma-1)*s%nAtoms + i
+          do mu = 1, nOrb2
+            jacobian(i0, 4*s%nAtoms+1) = jacobian(i0, 4*s%nAtoms+1) - real(temp(mu,mu))
+          end do
+
+        end do
+
+        ! No linear correction is needed since it's a single Green function
+
+        ! Derivative of the last equation (total occupation)
+        jacobian(4*s%nAtoms+1, 4*s%nAtoms+1) = jacobian(4*s%nAtoms+1, 4*s%nAtoms+1) + jacobian(i, 4*s%nAtoms+1)
+
+      end do ! End nAtoms i loop
+    end do ! End nkpt loop
+    !$omp end do nowait
+
 
     deallocate(paulitemp)
     deallocate(temp1, temp2, temp)
@@ -474,7 +520,7 @@ contains
 
     call MPI_Allreduce(MPI_IN_PLACE, jacobian, ncount2, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
     jacobian = jacobian/pi
-    do i = s%nAtoms+1, 4*s%nAtoms
+    do i = 1, 4*s%nAtoms
       jacobian(i,i) = jacobian(i,i) - 1.d0
     end do
 
@@ -488,7 +534,7 @@ contains
     use mod_System, only: s => sys
     use adaptiveMesh
     use TightBinding, only: nOrb,nOrb2
-    use mod_parameters, only: outputunit_loop, Ef
+    use mod_parameters, only: outputunit_loop
     use mod_magnet
     use EnergyIntegration, only: y, wght
     use mod_mpi_pars
@@ -531,7 +577,7 @@ contains
 
     !$omp parallel default(none) &
     !$omp& private(AllocateStatus,ix,i,mu,nu,mup,nup,kp,ep,weight,gf) &
-    !$omp& shared(local_points,s,E_k_imag_mesh,bzs,Ef,y,wght,gupgd)
+    !$omp& shared(local_points,s,E_k_imag_mesh,bzs,y,wght,gupgd)
 
     allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat = AllocateStatus)
     gf = cZero
@@ -542,7 +588,7 @@ contains
         ep = y(E_k_imag_mesh(1,ix))
         weight = bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix)) * wght(E_k_imag_mesh(1,ix))
         !Green function on energy Ef + iy, and wave vector kp
-        call green(Ef,ep,kp,gf)
+        call green(s%Ef,ep,kp,gf)
 
         do i=1,s%nAtoms
           do mu=1,nOrb
@@ -750,6 +796,7 @@ contains
     integer :: i
 
     write(outputunit_loop,"('|----------=============== Self-consistent ground state: ===============----------|')")
+    write(outputunit_loop,"(28x,'Ef=',f11.8)") s%Ef
     write(outputunit_loop,"(11x,' *************** Charge density: ***************')")
     do i=1,s%nAtoms
       write(outputunit_loop,"(26x,'N(',i2.0,')=',f11.8)") i, n_t(i)
@@ -785,8 +832,6 @@ contains
   end subroutine print_sc_results
 
 
-
-
   ! This subroutine reads previous band-shifting and magnetization results
   subroutine read_sc_results(err,lsuccess)
     use mod_f90_kind, only: double
@@ -802,7 +847,7 @@ contains
     integer,intent(out) :: err
     logical,intent(out) :: lsuccess
     integer             :: i
-    real(double)        :: previous_results(s%nAtoms,4)
+    real(double)        :: previous_results(s%nAtoms,4), previous_Ef
 
     if(trim(scfile) /= "") then
       open(unit=99,file=scfile,status="old",iostat=err)
@@ -857,13 +902,16 @@ contains
           read(99,fmt=*) previous_results(i,3)
           read(99,fmt=*) previous_results(i,4)
         end do
+        read(99,fmt=*) previous_Ef
       end if
       call MPI_Bcast(previous_results,4*s%nAtoms,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
+      call MPI_Bcast(previous_Ef,1,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
       n_t (:) = previous_results(:,1)
       mx  (:) = previous_results(:,2)
       my  (:) = previous_results(:,3)
       mz  (:) = previous_results(:,4)
       mp  = cmplx(mx,my)
+      s%Ef = previous_Ef
       if(lsuccess) then
         err = 1   ! Read different parameters
       else
@@ -879,14 +927,22 @@ contains
           write(outputunit_loop,"('[read_sc_results] Self-consistency file does not exist. Reading results for parts-1 now...')")
           write(outputunit_loop,"('[read_sc_results] Updating values obtained for parts-1...')")
           write(outputunit_loop,"(a)") file
+          do i=1,s%nAtoms
+            read(99,fmt=*) previous_results(i,1)
+            read(99,fmt=*) previous_results(i,2)
+            read(99,fmt=*) previous_results(i,3)
+            read(99,fmt=*) previous_results(i,4)
+          end do
+          read(99,fmt=*) previous_Ef
         end if
-        do i=1,s%nAtoms
-          read(99,*) n_t(i)
-          read(99,*) mx(i)
-          read(99,*) my(i)
-          read(99,*) mz(i)
-        end do
+        call MPI_Bcast(previous_results,4*s%nAtoms,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
+        call MPI_Bcast(previous_Ef,1,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
+        n_t (:) = previous_results(:,1)
+        mx  (:) = previous_results(:,2)
+        my  (:) = previous_results(:,3)
+        mz  (:) = previous_results(:,4)
         mp  = cmplx(mx,my)
+        s%Ef = previous_Ef
         lsuccess = .true. ! Read...
         err = 1           ! ... different parameters
       end if
@@ -918,6 +974,7 @@ contains
         write(99,"(es21.11,2x,'! my  ')") my(i)
         write(99,"(es21.11,2x,'! mz  ')") mz(i)
       end do
+      write(99,"(es21.11,2x,'! Ef  ')") s%Ef
       close(99)
     end if
 
@@ -926,11 +983,57 @@ contains
     return
   end subroutine write_sc_results
 
+
+  ! Writes the initial values for the self-consistency
+  subroutine print_sc_step(n,mx,my,mz,Ef,fvec)
+    use mod_f90_kind, only: double
+    use mod_parameters, only: outputunit_loop
+    use mod_system, only: s => sys
+    use mod_magnet, only: iter
+    use mod_mpi_pars
+    implicit none
+    logical :: linitial
+    real(double),dimension(4*s%nAtoms+1),optional :: fvec
+    real(double),dimension(s%nAtoms) :: n,mx,my,mz
+    real(double)                     :: Ef
+    integer :: i
+
+    if(rField==0) then
+      if(present(fvec)) then
+        do i=1,s%nAtoms
+          if(abs(cmplx(mx(i),my(i)))>1.d-10) then
+            write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mx(i),i,my(i),i,mz(i)
+            write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+s%nAtoms,fvec(i+s%nAtoms),i+2*s%nAtoms,fvec(i+2*s%nAtoms),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
+          else
+            write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mz(i)
+            write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
+          end if
+        end do
+        write(outputunit_loop,"(13x,'Ef=',es16.9)") Ef
+        write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9)") 4*s%nAtoms+1,fvec(4*s%nAtoms+1)
+      else
+        write(outputunit_loop,"('|---------------- Starting charge density, magnetization and Ef ----------------|')")
+        do i=1,s%nAtoms
+          if(abs(cmplx(mx(i),my(i)))>1.d-10) then
+            write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mx(i),i,my(i),i,mz(i)
+          else
+            write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mz(i)
+          end if
+        end do
+        write(outputunit_loop,"(13x,'Ef=',es16.9)") Ef
+      end if
+    end if
+
+    return
+  end subroutine print_sc_step
+
+
   ! This subroutine calculates the self-consistency equations
-  !  n  - n0    = 0
-  !  mx - mx_in = 0
-  !  my - my_in = 0
-  !  mz - mz_in = 0
+  !     n  - n_in    = 0
+  !     mx - mx_in   = 0
+  !     my - my_in   = 0
+  !     mz - mz_in   = 0
+  !  sum n - n_total = 0
   ! and the correspondent jacobian
 #if !defined(_OSX) && !defined(_JUQUEEN)
   subroutine sc_equations_and_jacobian(N,x,fvec,selfconjac,iuser,ruser,iflag)
@@ -939,16 +1042,16 @@ contains
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
     use mod_magnet, only: iter !, mp, mx, my, mz, n_t, md
-    use mod_Umatrix
+    use mod_Umatrix, only: update_Umatrix
     use mod_mpi_pars
     implicit none
     integer  :: N,i,iflag
-    integer, intent(inout) :: iuser(*)
-    real(double), intent(inout) :: ruser(*)
-    real(double),dimension(N) :: x,fvec
-    real(double),dimension(N,N) :: selfconjac
-    real(double),dimension(s%nAtoms) :: mx_in,my_in,mz_in, n_in
-    real(double),dimension(s%nAtoms) :: mx, my, mz, n_t
+    integer     ,  intent(inout)        :: iuser(*)
+    real(double),  intent(inout)        :: ruser(*)
+    real(double),   dimension(N)        :: x,fvec
+    real(double),   dimension(N,N)      :: selfconjac
+    real(double),   dimension(s%nAtoms) :: mx_in,my_in,mz_in,n_in
+    real(double),   dimension(s%nAtoms) :: mx, my, mz, n_t
     complex(double),dimension(s%nAtoms) :: mp_in, mp
 
     ! Values used in the hamiltonian
@@ -957,19 +1060,11 @@ contains
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
     mp_in = cmplx(mx_in,my_in)
+    s%Ef  = x(4*s%nAtoms+1)
 
     call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
 
-    if((rField==0).and.(iter==1)) then
-      write(outputunit_loop,"('|---------------- Starting charge density and magnetization ----------------|')")
-      do i=1,s%nAtoms
-        if(abs(mp(i))>1.d-10) then
-          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_in(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
-        else
-          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_in(i),i,mz_in(i)
-        end if
-      end do
-    end if
+    call print_sc_step(n_in,mx_in,my_in,mz_in,s%Ef)
 
     select case (iflag)
     case(1)
@@ -980,17 +1075,10 @@ contains
         fvec(i+2*s%nAtoms) = my(i) - my_in(i)
         fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
       end do
-      if(rField==0) then
-        do i=1,s%nAtoms
-          if(abs(mp(i))>1.d-10) then
-            write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_t(i),i,mx(i),i,my(i),i,mz(i)
-            write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+s%nAtoms,fvec(i+s%nAtoms),i+2*s%nAtoms,fvec(i+2*s%nAtoms),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
-          else
-            write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_t(i),i,mz(i)
-            write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
-          end if
-        end do
-      end if
+      fvec(4*s%nAtoms+1) = sum(n_t) - s%totalOccupation
+
+      call print_sc_step(n_t,mx,my,mz,s%Ef,fvec)
+
       if(lontheflysc) call write_sc_results()
     case(2)
       call calcJacobian(selfconjac, N)
@@ -1004,12 +1092,16 @@ contains
     return
   end subroutine sc_equations_and_jacobian
 
-  ! For a given value of charge density it calculates the
-  ! occupation number and the magnetic moment
+  ! This subroutine calculates the self-consistency equations
+  !     n  - n_in    = 0
+  !     mx - mx_in   = 0
+  !     my - my_in   = 0
+  !     mz - mz_in   = 0
+  !  sum n - n_total = 0
   subroutine sc_equations(N,x,fvec,iuser,ruser,iflag)
-    use mod_constants, only: cI
-    use mod_parameters, only: outputunit_loop
     use mod_f90_kind, only: double
+    use mod_parameters, only: outputunit_loop
+    use mod_constants, only: cI
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
     use mod_magnet, only: iter !, mp, mx ,my ,mz, n_t
@@ -1017,33 +1109,25 @@ contains
     use mod_mpi_pars
     implicit none
     integer  :: N,i,iflag
-    integer     , intent(inout)         :: iuser(*)
-    real(double), intent(inout)         :: ruser(*)
-    real(double),dimension(N)           :: x,fvec
-    real(double),dimension(s%nAtoms) :: mx_in,my_in,mz_in, n_in
-    real(double),dimension(s%nAtoms) :: mx, my, mz, n_t
+    integer     ,   intent(inout)       :: iuser(*)
+    real(double),   intent(inout)       :: ruser(*)
+    real(double),   dimension(N)        :: x,fvec
+    real(double),   dimension(s%nAtoms) :: mx_in,my_in,mz_in, n_in
+    real(double),   dimension(s%nAtoms) :: mx, my, mz, n_t
     complex(double),dimension(s%nAtoms) :: mp_in, mp
 
     iflag=0
   ! Values used in the hamiltonian
-    n_in  = x(1:s%nAtoms)
-    mx_in = x(s%nAtoms+1:2*s%nAtoms)
+    n_in  = x(           1:  s%nAtoms)
+    mx_in = x(  s%nAtoms+1:2*s%nAtoms)
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
     mp_in = cmplx(mx_in,my_in)
+    s%Ef  = x(4*s%nAtoms+1)
 
     call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
 
-    if((rField==0).and.(iter==1)) then
-      write(outputunit_loop,"('|---------------- Starting charge density and magnetization ----------------|')")
-      do i=1,s%nAtoms
-        if(abs(mp(i))>1.d-10) then
-          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_in(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
-        else
-          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_in(i),i,mz_in(i)
-        end if
-      end do
-    end if
+    call print_sc_step(n_in,mx_in,my_in,mz_in,s%Ef)
 
     call calcMagnetization(n_t, mx, my, mz, mp)
     do i = 1, s%nAtoms
@@ -1052,18 +1136,9 @@ contains
       fvec(i+2*s%nAtoms) = my(i) - my_in(i)
       fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
     end do
+    fvec(4*s%nAtoms+1) = sum(n_t) - s%totalOccupation
 
-    if(rField==0) then
-      do i=1,s%nAtoms
-        if(abs(mp(i))>1.d-10) then
-          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_t(i),i,mx(i),i,my(i),i,mz(i)
-          write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+s%nAtoms,fvec(i+s%nAtoms),i+2*s%nAtoms,fvec(i+2*s%nAtoms),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
-        else
-          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_t(i),i,mz(i)
-          write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
-        end if
-      end do
-    end if
+    call print_sc_step(n_t,mx,my,mz,s%Ef,fvec)
 
     if(lontheflysc) call write_sc_results()
 
@@ -1075,14 +1150,15 @@ contains
 #endif
 
   ! This subroutine calculates the self-consistency equations
-  !  n  - n0    = 0
-  !  mx - mx_in = 0
-  !  my - my_in = 0
-  !  mz - mz_in = 0
+  !     n  - n_in    = 0
+  !     mx - mx_in   = 0
+  !     my - my_in   = 0
+  !     mz - mz_in   = 0
+  !  sum n - n_total = 0
   ! and the correspondent jacobian
   subroutine sc_eqs_and_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
-    use mod_parameters, only: outputunit_loop, outputunit
     use mod_f90_kind, only: double
+    use mod_parameters, only: outputunit_loop, outputunit
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
     use mod_magnet, only: iter !, mp, mx, my, mz, n_t
@@ -1092,7 +1168,7 @@ contains
     integer  :: N,i,iflag,ldfjac
     real(double),dimension(N)        :: x,fvec
     real(double),dimension(ldfjac,N) :: selfconjac
-    real(double),dimension(s%nAtoms) :: mx_in,my_in,mz_in, n_in
+    real(double),dimension(s%nAtoms) :: mx_in,my_in,mz_in,n_in
     real(double),dimension(s%nAtoms) :: mx, my, mz, n_t
     complex(double),dimension(s%nAtoms) :: mp_in, mp
 
@@ -1102,42 +1178,26 @@ contains
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
     mp_in = cmplx(mx_in,my_in)
+    s%Ef  = x(4*s%nAtoms+1)
 
     call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
 
-    if((rField==0).and.(iter==1)) then
-      write(outputunit_loop,"('|---------------- Starting charge density and magnetization ----------------|')")
-      do i=1,s%nAtoms
-        if(abs(mp(i))>1.d-10) then
-          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_in(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
-        else
-          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_in(i),i,mz_in(i)
-        end if
-      end do
-    end if
+    call print_sc_step(n_in,mx_in,my_in,mz_in,s%Ef)
 
     flag: select case (iflag)
     case(1)
       ! Calculating the number of particles for each spin and orbital using a complex integral
       call calcMagnetization(n_t, mx, my, mz, mp)
       do i = 1, s%nAtoms
-        fvec(i) = n_t(i) - n_in(i) !s%Types(s%Basis(i)%Material)%Occupation
+        fvec(i) = n_t(i) - n_in(i)
         fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
         fvec(i+2*s%nAtoms) = my(i) - my_in(i)
         fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
       end do
+      fvec(4*s%nAtoms+1) = sum(n_t) - s%totalOccupation
 
-      if(rField==0) then
-        do i=1,s%nAtoms
-          if(abs(mp(i))>1.d-10) then
-            write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_t(i),i,mx(i),i,my(i),i,mz(i)
-            write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+s%nAtoms,fvec(i+s%nAtoms),i+2*s%nAtoms,fvec(i+2*s%nAtoms),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
-          else
-            write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_t(i),i,mz(i)
-            write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
-          end if
-        end do
-      end if
+      call print_sc_step(n_t,mx,my,mz,s%Ef,fvec)
+
       if(lontheflysc) call write_sc_results()
     case(2)
       call calcJacobian(selfconjac, N)
@@ -1151,8 +1211,12 @@ contains
     return
   end subroutine sc_eqs_and_jac_old
 
-  ! For a given value of charge density it calculates the
-  ! occupation number and the magnetic moment
+  ! This subroutine calculates the self-consistency equations
+  !     n  - n_in    = 0
+  !     mx - mx_in   = 0
+  !     my - my_in   = 0
+  !     mz - mz_in   = 0
+  !  sum n - n_total = 0
   subroutine sc_eqs_old(N,x,fvec,iflag)
     use mod_f90_kind, only: double
     use mod_parameters, only: outputunit_loop
@@ -1163,9 +1227,9 @@ contains
     use mod_mpi_pars
     implicit none
     integer  :: N,i,iflag
-    real(double),dimension(N)           :: x,fvec
-    real(double),dimension(s%nAtoms) :: mx_in,my_in,mz_in, n_in
-    real(double),dimension(s%nAtoms) :: mx, my, mz, n_t
+    real(double),   dimension(N)        :: x,fvec
+    real(double),   dimension(s%nAtoms) :: mx_in,my_in,mz_in, n_in
+    real(double),   dimension(s%nAtoms) :: mx, my, mz, n_t
     complex(double),dimension(s%nAtoms) :: mp_in, mp
 
     iflag=0
@@ -1175,39 +1239,22 @@ contains
     my_in = x(2*s%nAtoms+1:3*s%nAtoms)
     mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
     mp_in = cmplx(mx_in,my_in)
+    s%Ef  = x(4*s%nAtoms+1)
 
     call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
 
-    if((rField==0).and.(iter==1)) then
-      write(outputunit_loop,"('|---------------- Starting charge density and magnetization ----------------|')")
-      do i=1,s%nAtoms
-        if(abs(mp(i))>1.d-10) then
-          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_in(i),i,mx_in(i),i,my_in(i),i,mz_in(i)
-        else
-          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_in(i),i,mz_in(i)
-        end if
-      end do
-    end if
+    call print_sc_step(n_in,mx_in,my_in,mz_in,s%Ef)
 
     call calcMagnetization(n_t, mx, my, mz, mp)
     do i = 1, s%nAtoms
-      fvec(i) = n_t(i) - n_in(i) !s%Types(s%Basis(i)%Material)%Occupation
+      fvec(i) = n_t(i) - n_in(i)
       fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
       fvec(i+2*s%nAtoms) = my(i) - my_in(i)
       fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
     end do
+    fvec(4*s%nAtoms+1) = sum(n_t) - s%totalOccupation
 
-    if(rField==0) then
-      do i=1,s%nAtoms
-        if(abs(mp(i))>1.d-10) then
-          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_t(i),i,mx(i),i,my(i),i,mz(i)
-          write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+s%nAtoms,fvec(i+s%nAtoms),i+2*s%nAtoms,fvec(i+2*s%nAtoms),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
-        else
-          write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n_t(i),i,mz(i)
-          write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
-        end if
-      end do
-    end if
+    call print_sc_step(n_t,mx,my,mz,s%Ef,fvec)
 
     if(lontheflysc) call write_sc_results()
 
@@ -1216,6 +1263,12 @@ contains
     return
   end subroutine sc_eqs_old
 
+  ! This subroutine calculates the jacobian of the system of equations
+  !     n  - n_in    = 0
+  !     mx - mx_in   = 0
+  !     my - my_in   = 0
+  !     mz - mz_in   = 0
+  !  sum n - n_total = 0
   subroutine sc_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
@@ -1225,8 +1278,8 @@ contains
     implicit none
     integer       :: N,ldfjac,iflag
     real(double)  :: x(N),fvec(N),selfconjac(ldfjac,N)
-    real(double),dimension(s%nAtoms) :: mx_in,my_in,mz_in, n_in
-    real(double),dimension(s%nAtoms) :: mx, my, mz, n_t
+    real(double),   dimension(s%nAtoms) :: mx_in,my_in,mz_in, n_in
+    real(double),   dimension(s%nAtoms) :: mx, my, mz, n_t
     complex(double),dimension(s%nAtoms) :: mp_in, mp
     !--------------------- begin MPI vars --------------------
 

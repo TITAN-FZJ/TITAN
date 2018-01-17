@@ -8,7 +8,7 @@ program TITAN
   use mod_constants
   use mod_parameters
   use mod_io
-  use mod_System         ! New
+  use mod_system         ! New
   use Lattice        ! New
   use mod_BrillouinZone  ! New
   use TightBinding   ! New
@@ -236,7 +236,7 @@ program TITAN
     case (4) !
       if(rField == 0) call band_structure(sys)
     case (5) !
-      call fermi_surface(Ef)
+      call fermi_surface(sys%Ef)
     case (6) !
       call coupling()
     case (7) !

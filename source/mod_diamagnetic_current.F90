@@ -32,7 +32,7 @@ contains
     use mod_mpi_pars,         only: myrank, numprocs, stat, ierr
     use mod_generate_epoints, only: y, wght
     use mod_progress,         only: progress_bar
-    use mod_system,           only: n0sc1, n0sc2, n0sc
+    use mod_system,           only: n0sc1, n0sc2, n0sc, s => sys
     use mod_parameters
 
     implicit none
@@ -51,7 +51,7 @@ contains
 
     ! Calculating the number of particles for each spin and orbital using a complex integral
     if (myrank==0) then ! Process 0 receives all results and send new tasks if necessary
-      call sumk_idia(Ef,y(ix),Idia)
+      call sumk_idia(s%Ef,y(ix),Idia)
       Idia_total = wght(ix)*Idia
 
       if(lverbose) write(outputunit,"(' Finished point ',i0,' in rank ',i0)") ix,myrank
@@ -77,7 +77,7 @@ contains
         if(ix>pn1) exit
 
         ! First and second integrations (in the complex plane)
-        call sumk_idia(Ef,y(ix),Idia)
+        call sumk_idia(s%Ef,y(ix),Idia)
         Idia = wght(ix)*Idia
 
   !       if(lverbose) write(outputunit,"('[diamagnetic_current] Finished point ',i0,' in rank ',i0)") ix,myrank

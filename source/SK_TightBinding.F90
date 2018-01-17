@@ -8,7 +8,6 @@ contains
     use mod_f90_kind, only: double
     use AtomTypes, only: NeighborIndex
     use mod_system, only: System
-    use mod_parameters, only: Ef
     implicit none
     type(System), intent(inout) :: s
     integer, intent(in) :: fermi_layer
@@ -25,10 +24,10 @@ contains
       call read_Papa_2C_param(s%Types(i), s%a0, s%nStages, nOrb)
     end do
 
-    Ef = s%Types(fermi_layer)%FermiLevel
+    s%Ef = s%Types(fermi_layer)%FermiLevel
     do i = 1, s%nTypes
       do j = 1, nOrb
-        s%Types(i)%onSite(j,j) = s%Types(i)%onSite(j,j) - s%Types(i)%FermiLevel + Ef
+        s%Types(i)%onSite(j,j) = s%Types(i)%onSite(j,j) - s%Types(i)%FermiLevel + s%Ef
       end do
     end do
 
@@ -41,6 +40,7 @@ contains
     end do
 
     do i = 1, s%nAtoms
+      s%totalOccupation = s%totalOccupation + s%Types(s%Basis(i)%Material)%Occupation
       do j = 1, s%nAtoms
         do k = 1, s%nStages
           current => s%Basis(i)%NeighborList(k,j)%head

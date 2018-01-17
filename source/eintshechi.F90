@@ -2,7 +2,7 @@
 subroutine eintshechi(e)
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, cOne, cI, tpi
-  use mod_parameters, only: eta, ef, dim, sigmaijmunu2i, sigmaimunu2i
+  use mod_parameters, only: eta, dim, sigmaijmunu2i, sigmaimunu2i
   use EnergyIntegration, only: generate_real_epoints, y, wght, x2, p2, pn1, pn2
   use mod_susceptibilities, only: chiorb_hf
   use mod_system, only: s => sys
@@ -54,7 +54,7 @@ subroutine eintshechi(e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,iz,ix,ix2,i,j,mu,nu,gamma,xi,nep,nkp,ep,kp,weight,gf,gfuu,gfud,gfdu,gfdd,index1, index2) &
-  !$omp& shared(llineargfsoc,start2,end2,pn1,bzs,s,BZ,local_points,Ef,e,y,wght,x2,p2,pn2,E_k_imag_mesh,eta,dim,Fint,sigmaimunu2i,sigmaijmunu2i,chiorb_hf)
+  !$omp& shared(llineargfsoc,start2,end2,pn1,bzs,s,BZ,local_points,e,y,wght,x2,p2,pn2,E_k_imag_mesh,eta,dim,Fint,sigmaimunu2i,sigmaijmunu2i,chiorb_hf)
   allocate(gf  (nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
            gfud(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
@@ -69,9 +69,9 @@ subroutine eintshechi(e)
       weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix))
       ! Green function at (k+q,E_F+E+iy)
       if(llineargfsoc) then
-        call greenlineargfsoc(Ef+e,ep,kp,gf)
+        call greenlineargfsoc(s%Ef+e,ep,kp,gf)
       else
-        call green(Ef+e,ep,kp,gf)
+        call green(s%Ef+e,ep,kp,gf)
       end if
       gfuu(:,:,:,:,1) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
@@ -80,9 +80,9 @@ subroutine eintshechi(e)
 
       ! Green function at (k,E_F+iy)
       if(llineargfsoc) then
-        call greenlineargfsoc(Ef,ep,kp,gf)
+        call greenlineargfsoc(s%Ef,ep,kp,gf)
       else
-        call green(Ef,ep,kp,gf)
+        call green(s%Ef,ep,kp,gf)
       end if
       gfuu(:,:,:,:,2) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,2) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
@@ -230,7 +230,7 @@ end subroutine eintshechi
 subroutine eintshechilinearsoc(e)
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, cOne, cI, tpi
-  use mod_parameters, only: eta, ef, dim, sigmaijmunu2i, sigmaimunu2i
+  use mod_parameters, only: eta, dim, sigmaijmunu2i, sigmaimunu2i
   use EnergyIntegration, only: generate_real_epoints,y, wght, x2, p2, pn2
   use mod_susceptibilities, only: chiorb_hf,chiorb_hflsoc
   use mod_mpi_pars
@@ -279,7 +279,7 @@ subroutine eintshechilinearsoc(e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,iz,i,j,mu,nu,nep,nkp,gamma,xi,kp,ep,weight,Fint,Fintlsoc,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,df1,df1lsoc) &
-  !$omp& shared(llineargfsoc,local_points,start2,end2,s,bzs,BZ,E_k_imag_mesh,e,y,wght,x2,p2,Ef,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf,chiorb_hflsoc)
+  !$omp& shared(llineargfsoc,local_points,start2,end2,s,bzs,BZ,E_k_imag_mesh,e,y,wght,x2,p2,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf,chiorb_hflsoc)
   allocate(df1(dim,dim), Fint(dim,dim), &
            gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
@@ -306,7 +306,7 @@ subroutine eintshechilinearsoc(e)
       kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix))
       weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix))
       ! Green function at (k+q,E_F+E+iy)
-      call greenlinearsoc(Ef+e,ep,kp,gf,gvg)
+      call greenlinearsoc(s%Ef+e,ep,kp,gf,gvg)
       gfuu(:,:,:,:,1) = gf(     1:  nOrb,      1: nOrb, :,:)
       gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
       gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
@@ -317,7 +317,7 @@ subroutine eintshechilinearsoc(e)
       gvgdd(:,:,:,:,1) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
 
       ! Green function at (k,E_F+iy)
-      call greenlinearsoc(Ef,ep,kp,gf,gvg)
+      call greenlinearsoc(s%Ef,ep,kp,gf,gvg)
       gfuu(:,:,:,:,2) = gf(:,:,     1:  nOrb,     1:  nOrb)
       gfud(:,:,:,:,2) = gf(:,:,     1:  nOrb,nOrb+1:nOrb2)
       gfdu(:,:,:,:,2) = gf(:,:,nOrb+1:nOrb2,     1:  nOrb)

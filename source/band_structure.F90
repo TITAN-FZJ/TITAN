@@ -62,7 +62,7 @@ end subroutine read_band_points
 !   Calculates magnetic LDOS
 subroutine band_structure(s)
   use mod_f90_kind, only: double
-  use mod_parameters, only: fieldpart, outputunit_loop, Ef, eta, strSites, npts, npt1, Utype, bands, band_cnt
+  use mod_parameters, only: fieldpart, outputunit_loop, eta, strSites, npts, npt1, Utype, bands, band_cnt
   use mod_SOC, only: SOCc, socpart
   use mod_mpi_pars
   use mod_system, only: System
@@ -105,7 +105,7 @@ subroutine band_structure(s)
   write(varm,"('./results/',a1,'SOC/',a,'/BS/bandstructure_kdir=',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") SOCc,trim(strSites),trim(adjustl(kdirection)),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart)
   open (unit=666, file=varm,status='replace')
   write(unit=666, fmt=*) band_cnt, npts
-  write(unit=666, fmt=*) Ef
+  write(unit=666, fmt=*) s%Ef
   deltak = total_length / npts
   allocate(kpoints(3,npt1))
 

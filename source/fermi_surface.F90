@@ -2,7 +2,7 @@
 subroutine fermi_surface(e)
   use mod_f90_kind, only: double
   use mod_constants, only: pi, pauli_orb, cZero, cOne
-  use mod_parameters, only: outputunit_loop, eta, Ef, strSites, Utype, fieldpart
+  use mod_parameters, only: outputunit_loop, eta, strSites, Utype, fieldpart
   use mod_SOC, only: SOCc, socpart, llinearsoc, llineargfsoc
   use mod_system, only: s => sys
   use mod_BrillouinZone, only: BZ
@@ -21,7 +21,7 @@ subroutine fermi_surface(e)
   write(outputunit_loop,"('CALCULATING CHARGE AND SPIN DENSITY AT FERMI SURFACE')")
 
   ! Opening files for writing
-  if(abs(e-ef)>1.d-6) then
+  if(abs(e-s%ef)>1.d-6) then
     write(epart,fmt="('e=',es8.1,'_')") e
   else
     write(epart,fmt="('fs_')")
@@ -45,7 +45,7 @@ subroutine fermi_surface(e)
 
 !$omp parallel default(none) &
 !$omp& private(iz,kp,gf,i,mu,nu,sigma,temp1,temp2) &
-!$omp& shared(llineargfsoc,llinearsoc,s,BZ,e,Ef,eta,pauli_orb,pauli_gf,fs_layer,fs_orb,fs_total,outputunit_loop)
+!$omp& shared(llineargfsoc,llinearsoc,s,BZ,e,eta,pauli_orb,pauli_gf,fs_layer,fs_orb,fs_total,outputunit_loop)
 
 !$omp do
   do iz = 1, BZ%nkpt

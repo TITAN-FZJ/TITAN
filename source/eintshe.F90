@@ -2,7 +2,7 @@
 subroutine eintshe(e)
   use mod_f90_kind, only: double
   use mod_constants,     only: cZero, cOne, cI, tpi
-  use mod_parameters, only: Ef, dim, sigmaimunu2i, eta, sigmai2i, offset
+  use mod_parameters, only: dim, sigmaimunu2i, eta, sigmai2i, offset
   use TightBinding, only: nOrb,nOrb2
   use mod_SOC, only: llineargfsoc
   use EnergyIntegration, only: y, wght, x2, p2, generate_real_epoints, pn2
@@ -62,7 +62,7 @@ subroutine eintshe(e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,wkbzc,ep,kp,nep,nkp,i,j,l,mu,nu,gamma,xi,sigma,sigmap,neighbor,dtdk,gf,gfuu,gfud,gfdu,gfdd,df1iikl,pfdf1iikl,tFintiikl) & !,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,expikr,prett,preLxtt,preLytt,preLztt) &
-  !$omp& shared(llineargfsoc,s,bzs,BZ,E_k_imag_mesh,prefactor,e,y,x2,wght,p2,pn2,Ef,eta,local_points,start2,end2,sigmai2i,sigmaimunu2i,dim,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
+  !$omp& shared(llineargfsoc,s,bzs,BZ,E_k_imag_mesh,prefactor,e,y,x2,wght,p2,pn2,eta,local_points,start2,end2,sigmai2i,sigmaimunu2i,dim,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
 
   allocate(df1iikl(dim,4),pfdf1iikl(dim,4), &
            gf(nOrb2,nOrb2, s%nAtoms,s%nAtoms), &
@@ -119,9 +119,9 @@ subroutine eintshe(e)
 
       ! Green function at (k+q,E_F+E+iy)
       if(llineargfsoc) then
-        call greenlineargfsoc(Ef+e,ep,kp,gf)
+        call greenlineargfsoc(s%Ef+e,ep,kp,gf)
       else
-        call green(Ef+e,ep,kp,gf)
+        call green(s%Ef+e,ep,kp,gf)
       end if
       gfuu(:,:,:,:,1) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
@@ -130,9 +130,9 @@ subroutine eintshe(e)
 
       ! Green function at (k,E_F+iy)
       if(llineargfsoc) then
-        call greenlineargfsoc(Ef,ep,kp,gf)
+        call greenlineargfsoc(s%Ef,ep,kp,gf)
       else
-        call green(Ef,ep,kp,gf)
+        call green(s%Ef,ep,kp,gf)
       end if
       gfuu(:,:,:,:,2) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,2) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
@@ -362,7 +362,7 @@ end subroutine eintshe
 subroutine eintshelinearsoc(e)
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, cOne, cI, tpi
-  use mod_parameters, only: dim, Ef, eta, sigmai2i, sigmaimunu2i, offset
+  use mod_parameters, only: dim, eta, sigmai2i, sigmaimunu2i, offset
   use TightBinding, only: nOrb,nOrb2
   use mod_system, only: s => sys
   use mod_BrillouinZone, only: BZ
@@ -421,7 +421,7 @@ subroutine eintshelinearsoc(e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,iz,wkbzc,kp,ep,nep,nkp,tFintiikl,df1iikl,pfdf1iikl,df1lsoc,dtdk,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &    !,expikr,prett,preLxtt,preLytt,preLztt
-  !$omp& shared(local_points,start2,end2,bzs,E_k_imag_mesh,tchiorbiikl,prefactor,prefactorlsoc,s,BZ,e,Ef,y,x2,wght,p2,eta,sigmai2i,sigmaimunu2i,dim,offset)                                                                                 !,n0sc1,n0sc2,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,lxpt,lypt,lzpt,tlxp,tlyp,tlzp
+  !$omp& shared(local_points,start2,end2,bzs,E_k_imag_mesh,tchiorbiikl,prefactor,prefactorlsoc,s,BZ,e,y,x2,wght,p2,eta,sigmai2i,sigmaimunu2i,dim,offset)                                                                                 !,n0sc1,n0sc2,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,lxpt,lypt,lzpt,tlxp,tlyp,tlzp
 
   allocate( df1iikl(dim,4),pfdf1iikl(dim,4),df1lsoc(dim,4), &
             dtdk(nOrb,nOrb,s%nAtoms,s%nAtoms), &
@@ -482,7 +482,7 @@ subroutine eintshelinearsoc(e)
       ! end do
 
         ! Green function at (k+q,E_F+E+iy)
-        call greenlinearsoc(Ef+e,y(ix),kp,gf,gvg)
+        call greenlinearsoc(s%Ef+e,y(ix),kp,gf,gvg)
         gfuu(:,:,:,:,1)  = gf(     1:  nOrb,     1:  nOrb, :,:)
         gfud(:,:,:,:,1)  = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
         gfdu(:,:,:,:,1)  = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
@@ -493,7 +493,7 @@ subroutine eintshelinearsoc(e)
         gvgdd(:,:,:,:,1) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
 
         ! Green function at (k,E_F+iy)
-        call greenlinearsoc(Ef,y(ix),kp,gf,gvg)
+        call greenlinearsoc(s%Ef,y(ix),kp,gf,gvg)
         gfuu(:,:,:,:,2)  = gf(     1:  nOrb,     1:  nOrb, :,:)
         gfud(:,:,:,:,2)  = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
         gfdu(:,:,:,:,2)  = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
