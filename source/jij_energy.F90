@@ -60,7 +60,7 @@ subroutine jij_energy(Jij)
 
   !$omp parallel default(none) &
   !$omp& private(ix,i,j,mu,nu,alpha,kp,ep,weight,kminusq,gf,gfq,gij,gji,paulia,paulib,temp1,temp2,Jijkan,Jijk,Jijint) &
-  !$omp& shared(s,y,wght,q,local_points,dbxcdm,d2bxcdm2,mz,nmaglayers,mmlayermag,Jij,bzs,E_k_imag_mesh)
+  !$omp& shared(s,y,wght,q,local_points,dbxcdm,d2bxcdm2,nmaglayers,mmlayermag,Jij,bzs,E_k_imag_mesh)
 
   Jijint = 0.d0
 
