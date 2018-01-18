@@ -4,7 +4,6 @@ module EnergyIntegration
   use mod_System, only: s => sys
   implicit none
 
-
   integer :: pn1, pn2, pnt
   integer :: parts, parts3
   integer :: n1gl, n3gl

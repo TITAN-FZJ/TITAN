@@ -21,15 +21,8 @@ subroutine debugging()
 !   write(*,*) 'Hamiltonian:'
   mz    = 2.d0
   mp  = cZero
-  mm  = conjg(mp)
   ! Variables used in the hamiltonian
   eps1 = 0.d0
-  hdel  = 0.d0
-  hdelp = cZero
-  hdelm = cZero
-  hdel(1:Npl)   = 0.5d0*U*mz
-  hdelp(1:Npl)  = 0.5d0*U*mp
-  hdelm(1:Npl)  = 0.5d0*U*mm
 !   lambda=0.d0
   ! call calculate_idia()
 
@@ -82,15 +75,8 @@ subroutine debugging()
 !   write(*,*) 'Hamiltonian:'
 !   mz    = 0.5d0
 !   mp  = cZero
-!   mm  = conjg(mp)
 !   ! Variables used in the hamiltonian
 !   eps1 = 0.d0
-!   hdel  = 0.d0
-!   hdelp = cZero
-!   hdelm = cZero
-!   hdel(2:Npl+1)   = 0.5d0*U*mz
-!   hdelp(2:Npl+1)  = 0.5d0*U*mp
-!   hdelm(2:Npl+1)  = 0.5d0*U*mm
 !   lambda=0.d0
 
 !   kp = 0.d0!kbz(1,:)

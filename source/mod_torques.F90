@@ -198,7 +198,7 @@ contains
             cosine = 0.d0
           end if
 
-          write(unit=iw,fmt="(9(es16.9,2x))") e , abs(torques(typetorque,sigma,i)) , real(torques(typetorque,sigma,i)) , aimag(torques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
+          write(unit=iw,fmt="(9(es16.9,2x))") e , abs(torques(typetorque,sigma,i)) , real(torques(typetorque,sigma,i)) , aimag(torques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
 
           ! Writing renormalized torques
           if(renorm) then
@@ -214,7 +214,7 @@ contains
               cosine = 0.d0
             end if
 
-            write(unit=iw,fmt="(9(es16.9,2x))") e , abs(rtorques(typetorque,sigma,i)) , real(rtorques(typetorque,sigma,i)) , aimag(rtorques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
+            write(unit=iw,fmt="(9(es16.9,2x))") e , abs(rtorques(typetorque,sigma,i)) , real(rtorques(typetorque,sigma,i)) , aimag(rtorques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
           end if
         end do
          ! Writing total torques
@@ -230,7 +230,7 @@ contains
             cosine = 0.d0
          end if
 
-         write(unit=iw,fmt="(9(es16.9,2x))") e , abs(total_torques(typetorque,sigma)) , real(total_torques(typetorque,sigma)) , aimag(total_torques(typetorque,sigma)) , phase , sine , cosine , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
+         write(unit=iw,fmt="(9(es16.9,2x))") e , abs(total_torques(typetorque,sigma)) , real(total_torques(typetorque,sigma)) , aimag(total_torques(typetorque,sigma)) , phase , sine , cosine , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
 
       end do
     end do
@@ -384,7 +384,7 @@ contains
             sine   = 0.d0
             cosine = 0.d0
           end if
-          write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(torques(typetorque,sigma,i)) , real(torques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
+          write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(torques(typetorque,sigma,i)) , real(torques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
 
           ! Writing renormalized torques
           if(renorm) then
@@ -400,7 +400,7 @@ contains
               cosine = 0.d0
             end if
 
-            write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(rtorques(typetorque,sigma,i)) , real(rtorques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(i,2) , mvec_spherical(i,3)
+            write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(rtorques(typetorque,sigma,i)) , real(rtorques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
           end if
         end do
         ! Writing total torques
@@ -415,7 +415,7 @@ contains
         sine   = 0.d0
         cosine = 0.d0
       end if
-      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_torques(typetorque,sigma)) , real(total_torques(typetorque,sigma)) , phase , sine , cosine , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
+      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_torques(typetorque,sigma)) , real(total_torques(typetorque,sigma)) , phase , sine , cosine , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
 
       end do
     end do

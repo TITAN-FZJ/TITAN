@@ -4,7 +4,7 @@ subroutine calculate_all()
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, cOne, cI, levi_civita
   use mod_parameters, only: lnodiag, renorm, U, offset, outputunit_loop, outputunit, laddresults, skip_steps, count, lhfresponses, sigmaimunu2i, emin, emax, deltae, npt1, dim, sigmai2i, dimsigmanpl
-  use mod_magnet, only: lfield, mtheta, mphi, hhwx, hhwy, hhwz, mx, my, mz, lxp, lyp, lzp, lx, ly, lz, mvec_spherical, total_hw_npt1
+  use mod_magnet, only: lfield, hhwx, hhwy, hhwz, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, total_hw_npt1
   use mod_SOC, only: llinearsoc
   use mod_System, only: s => sys
   use adaptiveMesh
@@ -163,9 +163,9 @@ subroutine calculate_all()
         ! Rotating susceptibilities to the magnetization direction
         if(lrot) then
           do i = 1, s%nAtoms
-            call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,1)
+            call build_rotation_matrices_chi(mvec_spherical(2,i),mvec_spherical(3,i),rottemp,1)
             rotmat_i(:,:,i) = rottemp
-            call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,2)
+            call build_rotation_matrices_chi(mvec_spherical(2,i),mvec_spherical(3,i),rottemp,2)
             rotmat_j(:,:,i) = rottemp
           end do
           do j = 1, s%nAtoms
@@ -213,9 +213,9 @@ subroutine calculate_all()
         ! Rotating susceptibilities to the magnetization direction
         if(lrot) then
           do i = 1, s%nAtoms
-            call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,1)
+            call build_rotation_matrices_chi(mvec_spherical(2,i),mvec_spherical(3,i),rottemp,1)
             rotmat_i(:,:,i) = rottemp
-            call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,2)
+            call build_rotation_matrices_chi(mvec_spherical(2,i),mvec_spherical(3,i),rottemp,2)
             rotmat_j(:,:,i) = rottemp
           end do
           do j = 1, s%nAtoms
@@ -293,9 +293,9 @@ subroutine calculate_all()
         torques(1,:,i) = 0.5d0*s%Types(s%Basis(i)%Material)%Lambda*torques(1,:,i)
 
         ! Exchange-correlation torques (calculated in the spin frame of reference)
-        torques(2,1,i) = U(i+offset)*(mz(i)*disturbances(3,i)-my(i)*disturbances(4,i))
-        torques(2,2,i) = U(i+offset)*(mx(i)*disturbances(4,i)-mz(i)*disturbances(2,i))
-        torques(2,3,i) = U(i+offset)*(my(i)*disturbances(2,i)-mx(i)*disturbances(3,i))
+        torques(2,1,i) = U(i+offset)*(mvec_cartesian(3,i)*disturbances(3,i)-mvec_cartesian(2,i)*disturbances(4,i))
+        torques(2,2,i) = U(i+offset)*(mvec_cartesian(1,i)*disturbances(4,i)-mvec_cartesian(3,i)*disturbances(2,i))
+        torques(2,3,i) = U(i+offset)*(mvec_cartesian(2,i)*disturbances(2,i)-mvec_cartesian(1,i)*disturbances(3,i))
 
         ! External torques (calculated in the spin frame of reference)
         if(lfield) then

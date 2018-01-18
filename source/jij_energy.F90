@@ -5,7 +5,7 @@ subroutine jij_energy(Jij)
   use mod_parameters, only: mmlayermag, U, q, mmlayermag, nmaglayers
   use EnergyIntegration, only: y, wght
   use mod_mpi_pars
-  use mod_magnet, only: mx,my,mz,mabs
+  use mod_magnet, only: mvec_cartesian,mabs
   use mod_system, only: s => sys
   use adaptiveMesh
   use TightBinding, only: nOrb,nOrb2
@@ -37,7 +37,7 @@ subroutine jij_energy(Jij)
 
   do iz = 1, nmaglayers
     ! Unit vector along the direction of the magnetization of each magnetic plane
-    evec(:,iz) = [ mx(mmlayermag(iz)), my(mmlayermag(iz)), mz(mmlayermag(iz)) ]/mabs(mmlayermag(iz))
+    evec(:,iz) = [ mvec_cartesian(1,mmlayermag(iz)), mvec_cartesian(2,mmlayermag(iz)), mvec_cartesian(3,mmlayermag(iz)) ]/mabs(mmlayermag(iz))
 
     ! Inner product of pauli matrix in spin and orbital space and unit vector evec
     paulievec(iz,:,:) = pauli_dorb(1,:,:) * evec(1,iz) + pauli_dorb(2,:,:) * evec(2,iz) + pauli_dorb(3,:,:) * evec(3,iz)

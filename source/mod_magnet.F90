@@ -5,14 +5,14 @@ module mod_magnet
 
   logical :: lfield !< Turn on/off static magnetic field, option to give in magnetic field in tesla
 
-  integer                     :: iter                                   ! self-consistency iteration
-  real(double),allocatable    :: mx(:),my(:),mz(:),mvec_cartesian(:,:)  ! Magnetization and exchange split delta/2
-  real(double),allocatable    :: lxm(:),lym(:),lzm(:)                   ! Orbital angular momentum in global frame of reference
-  real(double),allocatable    :: lxpm(:),lypm(:),lzpm(:)                ! Orbital angular momentum in local frame of reference
-  complex(double),allocatable :: mp(:)
-  complex(double),allocatable :: mm(:)
-  real(double),allocatable    :: n_t(:)
-  real(double),allocatable    :: mabs(:),mtheta(:),mphi(:),mvec_spherical(:,:)
+  integer                     :: iter                                           !< self-consistency iteration
+  real(double),allocatable    :: rho(:,:)                                       !< orbital-dependent and d-orbital charge density per site
+  real(double),allocatable    :: mx(:,:),my(:,:),mz(:,:)                        !< orbital-dependent magnetization per site in cartesian coordinates
+  real(double),allocatable    :: rhod(:),mxd(:),myd(:),mzd(:)                   !< d-orbital charge density and magnetization per site
+  complex(double),allocatable :: mp(:,:),mpd(:)                                 !< circular components (plus) of the total and d-orbital magnetization
+  real(double),allocatable    :: lxm(:),lym(:),lzm(:)                           !< Orbital angular momentum in global frame of reference
+  real(double),allocatable    :: lxpm(:),lypm(:),lzpm(:)                        !< Orbital angular momentum in local frame of reference
+  real(double),allocatable    :: mabs(:),mtheta(:),mphi(:),mvec_spherical(:,:),mvec_cartesian(:,:)
   real(double),allocatable    :: labs(:),ltheta(:),lphi(:)
   real(double),allocatable    :: lpabs(:),lptheta(:),lpphi(:)
   !! Center of the bands for each l - eps(Npl)
@@ -314,19 +314,23 @@ contains
     integer, intent(in) :: nOrb
     integer :: AllocateStatus
 
-    allocate( mx(nAtoms), my(nAtoms), mz(nAtoms), &
-              mvec_cartesian(nAtoms,3), &
-              mvec_spherical(nAtoms,3), &
-              mp(nAtoms),mm(nAtoms), STAT = AllocateStatus )
-    if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mx,my,mz,mvec_cartesian,mvec_spherical,mp,mm")
+    allocate( rho(nOrb,nAtoms), stat = AllocateStatus)
+    if(AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: rho")
+
+    allocate( mx(nOrb,nAtoms), my(nOrb,nAtoms), mz(nOrb,nAtoms), mp(nOrb,nAtoms), &
+              mvec_cartesian(3,nAtoms), &
+              mvec_spherical(3,nAtoms), STAT = AllocateStatus )
+    if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mx,my,mz,mp,mvec_cartesian,mvec_spherical")
+
+    allocate( mxd(nAtoms), myd(nAtoms), mzd(nAtoms), mpd(nAtoms), &
+              rhod(nAtoms), STAT = AllocateStatus )
+    if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mx,my,mz,mp,mxd,myd,mzd,mvec_cartesian,mvec_spherical")
 
     allocate( mabs(nAtoms), mtheta(nAtoms), mphi(nAtoms), &
               labs(nAtoms), ltheta(nAtoms), lphi(nAtoms), &
               lpabs(nAtoms), lptheta(nAtoms), lpphi(nAtoms), STAT = AllocateStatus )
     if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mabs,mtheta,mphi,labs,ltheta,lphi,lpabs,lptheta,lpphi")
 
-    allocate( n_t(nAtoms), stat = AllocateStatus)
-    if(AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: n_t")
 
     allocate( hhwx(nAtoms),hhwy(nAtoms),hhwz(nAtoms), STAT = AllocateStatus )
     if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: hhwx,hhwy,hhwz")
@@ -357,11 +361,10 @@ contains
     if(allocated(lz)) deallocate(lz)
     if(allocated(lb)) deallocate(lb)
     if(allocated(sb)) deallocate(sb)
-    if(allocated(n_t)) deallocate(n_t)
+    if(allocated(rho)) deallocate(rho)
     if(allocated(mx)) deallocate(mx)
     if(allocated(my)) deallocate(my)
     if(allocated(mz)) deallocate(mz)
-    if(allocated(mm)) deallocate(mm)
     if(allocated(mp)) deallocate(mp)
     if(allocated(mvec_spherical)) deallocate(mvec_spherical)
     if(allocated(mvec_cartesian)) deallocate(mvec_cartesian)

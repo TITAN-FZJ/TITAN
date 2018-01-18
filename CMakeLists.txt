@@ -149,13 +149,13 @@ endif()
 
 if(PLATFORM MATCHES juqueen)
 if(DEBUG)
-target_compile_options(${TITAN_EXE} PRIVATE -C 
-				    	    -g 
-					    -qfullpath 
-					    -O0 
-					    -qflttrap=enable:invalid:overflow:underflow:zerodivide 
-					    -qinitauto=7FF7FFFF 
-					    -qnoescape 
+target_compile_options(${TITAN_EXE} PRIVATE -C
+				    	    -g
+					    -qfullpath
+					    -O0
+					    -qflttrap=enable:invalid:overflow:underflow:zerodivide
+					    -qinitauto=7FF7FFFF
+					    -qnoescape
 					    -qkeepparm
 					    )
 endif(DEBUG)

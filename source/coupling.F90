@@ -2,7 +2,7 @@
 subroutine coupling()
   use mod_f90_kind, only: double
   use mod_parameters, only: outputunit_loop, mmlayermag, nmaglayers, q
-  use mod_magnet, only: mx, my, mz
+  use mod_magnet, only: mvec_cartesian
   use adaptiveMesh
   use mod_BrillouinZone, only: BZ
   use mod_mpi_pars
@@ -46,7 +46,7 @@ subroutine coupling()
       ! K > 0 - easy axis ; K < 0 - hard axis
         if(i==j) then
           write(outputunit_loop,"(3x,' ************** Magnetization components: ) *************')")
-          write(outputunit_loop,"(4x,'Mx (',i2.0,')=',f11.8,4x,'My (',i2.0,')=',f11.8,4x,'Mz (',i2.0,')=',f11.8)") i,mx(i),i,my(i),i,mz(i)
+          write(outputunit_loop,"(4x,'Mx (',i2.0,')=',f11.8,4x,'My (',i2.0,')=',f11.8,4x,'Mz (',i2.0,')=',f11.8)") i,mvec_cartesian(1,i),i,mvec_cartesian(2,i),i,mvec_cartesian(3,i)
           write(outputunit_loop,"(' |--------------- i = ',i0,'   j = ',i0,': anisotropies ---------------|')") mmlayermag(i),mmlayermag(j)
         else
           write(outputunit_loop,"(' |----------- i = ',i0,'   j = ',i0,': exchange couplings -------------|')") mmlayermag(i),mmlayermag(j)

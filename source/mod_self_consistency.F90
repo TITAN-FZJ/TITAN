@@ -17,51 +17,305 @@ module mod_self_consistency
 
 contains
 
-   subroutine doSelfConsistency()
-      use mod_magnet, only: lp_matrix, mtheta, mphi
-      use adaptiveMesh, only: genLocalEKMesh, freeLocalEKMesh
-      use mod_mpi_pars, only: rField, sField, FieldComm
-      implicit none
-      logical :: lsuccess = .false.
+  subroutine doSelfConsistency()
+    use mod_magnet, only: lp_matrix, mtheta, mphi
+    use adaptiveMesh, only: genLocalEKMesh, freeLocalEKMesh
+    use mod_mpi_pars, only: rField, sField, FieldComm
+    implicit none
+    logical :: lsuccess = .false.
 
-      ! Distribute Energy Integration across all points available
-      call genLocalEKMesh(rField,sField, FieldComm)
+    ! Distribute Energy Integration across all points available
+    call genLocalEKMesh(rField,sField, FieldComm)
 
-      !--------------------------- Self-consistency --------------------------
-      ! Trying to read previous shifts and m from files
-      call read_previous_results(lsuccess)
-      ! Rotate the magnetization to the direction of the field
-      ! (useful for SOC=F)
-      ! Only when some previous result was read from file (lsuccess=.true.)
-      if(lrotatemag .and. lsuccess) then
-        call rotate_magnetization_to_field()
+    !--------------------------- Self-consistency --------------------------
+    ! Trying to read previous densities and Ef from files
+    call read_previous_results(lsuccess)
+    ! Rotate the magnetization to the direction of the field
+    ! (useful for SOC=F)
+    ! Only when some previous result was read from file (lsuccess=.true.)
+    if(lrotatemag .and. lsuccess) then
+      call rotate_magnetization_to_field()
+    end if
+
+    if(lselfcon) call calcMagneticSelfConsistency()
+
+    ! Writing new n and mz to file after self-consistency is done
+    if(.not. lontheflysc) call write_sc_results()
+
+    ! L matrix in local frame for given quantization direction
+    call lp_matrix(mtheta, mphi)
+
+    ! Calculating ground state Orbital Angular Momentum
+    if(lGSL) call calcLGS()
+
+    ! Writing self-consistency results on screen
+    if(rField == 0)  call print_sc_results()
+
+    call freeLocalEKMesh()
+
+    return
+  end subroutine doSelfConsistency
+
+  ! Tries to read n and m if available
+  subroutine read_previous_results(lsuccess)
+    use mod_f90_kind, only: double
+    use mod_constants, only: pi
+    use mod_magnet, only: mxd, myd, mzd, mpd, &
+                          hw_count, hw_list, lfield, rhod
+    use mod_parameters, only: outputunit_loop, magaxis, magaxisvec, offset, layertype
+    use mod_system, only: s => sys
+    use TightBinding, only: nOrb
+    use mod_mpi_pars, only: abortProgram, rField
+    use mod_Umatrix
+    implicit none
+    integer             :: i,err
+    logical,intent(out) :: lsuccess
+
+    lsuccess = .false.
+    call read_sc_results(err,lsuccess)
+
+    if(lsuccess) then
+      if(err==0) then ! Same parameters
+        if(skipsc) then ! Skip option ON
+          if(rField == 0) write(outputunit_loop,"('[read_previous_results] Existing results for the same parameters were read. Skipping self-consistency...')")
+          lselfcon = .false.
+        else ! Skip option OFF
+          if(rField == 0) write(outputunit_loop,"('[read_previous_results] Existing results for the same parameters were read. Updating values...')")
+          lselfcon = .true.
+        end if
+      else ! Other parameters
+        if(rField == 0) write(outputunit_loop,"('[read_previous_results] Existing results for other parameters were read. Updating values...')")
+        lselfcon = .true.
+      end if
+    else !  If file doesn't exist
+      if(rField == 0) then
+        write(outputunit_loop,"('[read_previous_results] Self-consistency file does not exist:')")
+        write(outputunit_loop,"('[read_previous_results] ',a)") trim(default_file)
+      end if
+      lselfcon = .true.
+      ! Parameters: magnetization, exchange split
+      if(magaxis == -1) then
+        continue
+      else if(magaxis == -2) then
+        magaxisvec = magaxisvec(1) * s%a1 + magaxisvec(2) * s%a2 + magaxisvec(3) * s%a3
+      else if(magaxis == -3) then
+        magaxisvec = [cos(magaxisvec(2)*pi/180)*sin(magaxisvec(1)*pi/180), sin(magaxisvec(2)*pi/180)*sin(magaxisvec(1)*pi/180), cos(magaxisvec(1)*pi/180)]
+      else if(magaxis == 0) then
+        magaxisvec = [0.d0, 0.d0, sign(1.0d0, hw_list(hw_count,1))]
+      else if(magaxis >=1 .and. magaxis <= s%nAtoms) then
+        !magaxisvec(1:3) = c_nn(1:3, magaxis)
+        if(rField == 0) call abortProgram("[read_previous_results] Magaxis along neighbor not implemented!")
+      else
+        if(rField == 0) call abortProgram("[read_previous_results] Unknown magnetization direction!")
+      end if
+      magaxisvec = magaxisvec / sqrt(dot_product(magaxisvec, magaxisvec))
+      magaxisvec = magaxisvec * 0.5d0
+
+      mxd = magaxisvec(1)
+      myd = magaxisvec(2)
+      mzd = magaxisvec(3)
+
+      do i=1,s%nAtoms
+        if(layertype(i+offset)==2) then
+          mxd(i) = mxd(i) * sign(4.d0,hw_list(hw_count,1))
+          myd(i) = myd(i) * sign(4.d0,hw_list(hw_count,1))
+          mzd(i) = mzd(i) * sign(4.d0,hw_list(hw_count,1))
+        end if
+      end do
+
+      if(lfield .and. magaxis == 0) then
+        mxd = mzd * sin(hw_list(hw_count,2)*pi) * cos(hw_list(hw_count,3)*pi)
+        myd = mzd * sin(hw_list(hw_count,2)*pi) * sin(hw_list(hw_count,3)*pi)
+        mzd = mzd * cos(hw_list(hw_count,2)*pi)
       end if
 
-      if(lselfcon) call calcMagneticSelfConsistency()
+      mpd = cmplx(mxd,myd,double)
 
-      ! Writing new n and mz to file after self-consistency is done
-      if(.not. lontheflysc) call write_sc_results()
+      do i = 1, s%nAtoms
+        rhod(i)  = s%Types(s%Basis(i)%Material)%OccupationD
+      end do
+    end if
 
-      ! L matrix in local frame for given quantization direction
-      call lp_matrix(mtheta, mphi)
+    call init_Umatrix(mzd,mpd,rhod,s%nAtoms,nOrb)
 
-      ! Calculating ground state Orbital Angular Momentum
-      if(lGSL) call calcLGS()
+    return
+  end subroutine read_previous_results
 
-      ! Writing self-consistency results on screen
-      if(rField == 0)  call print_sc_results()
+  ! This subroutine reads previous band-shifting and magnetization results
+  subroutine read_sc_results(err,lsuccess)
+    use mod_f90_kind, only: double
+    use mod_parameters, only: fieldpart, eta, Utype, outputunit_loop, strSites, dfttype
+    use EnergyIntegration, only: parts
+    use mod_magnet, only: rho, mp, mx, my, mz, rhod, mpd, mxd, myd, mzd, hw_count
+    use TightBinding, only: nOrb
+    use mod_SOC, only: SOCc, socpart
+    use mod_mpi_pars
+    use mod_system, only: s => sys
+    use mod_BrillouinZone, only: BZ
+    implicit none
+    character(len=300)  :: file = ""
+    integer,intent(out) :: err
+    logical,intent(out) :: lsuccess
+    integer             :: i,j
+    real(double)        :: previous_results(4*nOrb,s%nAtoms), previous_Ef
 
-      call freeLocalEKMesh()
+    if(trim(scfile) /= "") then
+      open(unit=99,file=scfile,status="old",iostat=err)
+      if(err/=0) then
+        if(rField == 0) write(outputunit_loop,"('*** WARNING: Self-consistency file given on input file does not exist! Using default... ***')")
+        scfile = " "
+      end if
+      close(99)
+    end if
 
-      return
-   end subroutine doSelfConsistency
+    lsuccess = .false.
+    !   Reading previous results (mx, my, mz and n) from files (if available)
+    if(trim(scfile)=="") then ! If a filename is not given in inputcard (or don't exist), use the default one
+      write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(strSites),dfttype,parts,Utype,trim(fieldpart),BZ%nkpt,eta,trim(socpart)
+      open(unit=99,file=file,status="old",iostat=err)
+      if((err==0).and.(rField==0)) then
+        write(outputunit_loop,"('[read_sc_results] Self-consistency file already exists. Reading it now...')")
+        write(outputunit_loop,"(a)") trim(file)
+      else
+        default_file = trim(file)
+      end if
+    else ! If filename in inputcard exists or 2nd+ angular iteration
+      if(((hw_count)==1)) then !.and.(Npl==Npl_i)) then ! Filename in inputcard (1st iteration on loop)
+        open(unit = 99,file = scfile, status = "old", iostat = err)
+        if(err==0 .and. rField==0) then
+          write(outputunit_loop,"('[read_sc_results] Using filename given in input file for self-consistency:')")
+          write(outputunit_loop,"(a)") trim(scfile)
+        end if
+      else ! 2nd+ iteration, cheking if default file exists
+        write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(strSites),dfttype,parts,Utype,trim(fieldpart),BZ%nkpt,eta,trim(socpart)
+        open(unit=99,file=file,status="old",iostat=err)
+        if(err == 0) then ! Reading file for the same parameters
+          if(rField == 0) then
+            write(outputunit_loop,"('[read_sc_results] Self-consistency file already exists. Reading it now...')")
+            write(outputunit_loop,"(a)") trim(file)
+          end if
+        else ! Reading results from previous iteration
+          open(unit=99,file=scfile,status="old",iostat=err)
+          if((err==0).and.(rField==0)) then
+            write(outputunit_loop,"('[read_sc_results] Using results from previous iteration as input for self-consistency:')")
+            write(outputunit_loop,"(a)") trim(scfile)
+          end if
+          lsuccess   = .true. ! something was read
+        end if
+      end if
+    end if
+    if(err==0) then
+      if(rField==0) then
+        do i=1,s%nAtoms
+          read(99,fmt=*) (previous_results(j,i), j=1,4*nOrb)
+        end do
+        read(99,fmt=*) previous_Ef
+      end if
+
+      call MPI_Bcast(previous_results,4*nOrb*s%nAtoms,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
+      call MPI_Bcast(previous_Ef,1,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
+
+      rho(:,:) = previous_results(       1:  nOrb,:)
+      mx (:,:) = previous_results(  nOrb+1:2*nOrb,:)
+      my (:,:) = previous_results(2*nOrb+1:3*nOrb,:)
+      mz (:,:) = previous_results(3*nOrb+1:4*nOrb,:)
+
+      rhod(:) = sum(rho(5:9,:),dim=1)
+      mxd(:)  = sum(mx (5:9,:),dim=1)
+      myd(:)  = sum(my (5:9,:),dim=1)
+      mzd(:)  = sum(mz (5:9,:),dim=1)
+
+      mpd  = cmplx(mxd,myd)
+
+      call calcMagAngle()
+
+      s%Ef = previous_Ef
+      if(lsuccess) then
+        err = 1   ! Read different parameters
+      else
+        lsuccess   = .true. ! Read same parameters (err=0)
+      end if
+    else
+      ! If file does not exist, try to read for parts-1
+      close(99)
+      write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(strSites),dfttype,parts-1,Utype,trim(fieldpart),BZ%nkpt,eta,trim(socpart)
+      open(unit=99,file=file,status="old",iostat=err)
+      if(err==0) then
+        if(rField==0) then
+          write(outputunit_loop,"('[read_sc_results] Self-consistency file does not exist. Reading results for parts-1 now...')")
+          write(outputunit_loop,"('[read_sc_results] Updating values obtained for parts-1...')")
+          write(outputunit_loop,"(a)") file
+          do i=1,s%nAtoms
+            read(99,fmt=*) (previous_results(j,i), j=1,4*nOrb)
+          end do
+          read(99,fmt=*) previous_Ef
+        end if
+
+        call MPI_Bcast(previous_results,4*nOrb*s%nAtoms,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
+        call MPI_Bcast(previous_Ef,1,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
+
+        rho(:,:) = previous_results(       1:  nOrb,:)
+        mx (:,:) = previous_results(  nOrb+1:2*nOrb,:)
+        my (:,:) = previous_results(2*nOrb+1:3*nOrb,:)
+        mz (:,:) = previous_results(3*nOrb+1:4*nOrb,:)
+
+        rhod(:) = sum(rho(5:9,:),dim=1)
+        mxd(:)  = sum(mx (5:9,:),dim=1)
+        myd(:)  = sum(my (5:9,:),dim=1)
+        mzd(:)  = sum(mz (5:9,:),dim=1)
+
+        mpd  = cmplx(mxd,myd)
+
+        call calcMagAngle()
+
+        s%Ef = previous_Ef
+        lsuccess = .true. ! Read...
+        err = 1           ! ... different parameters
+      end if
+    end if
+    close(99)
+    return
+  end subroutine read_sc_results
+
+  subroutine calcMagAngle()
+    use mod_constants, only: pi
+    use mod_magnet, only: mx, my, mz, mabs, &
+                          mtheta, mphi, mvec_cartesian, mvec_spherical
+    use mod_system, only: s => sys
+    use mod_susceptibilities, only: lrot
+    implicit none
+    integer :: i
+
+    ! Calculating new angles of GS magnetization in units of pi and magnetization vector
+    do i = 1,s%nAtoms
+      mabs(i)   = sqrt((sum(mx(:,i))**2)+(sum(my(:,i))**2)+(sum(mz(:,i))**2))
+      mtheta(i) = acos(sum(mz(:,i))/mabs(i))/pi
+      if(abs(mtheta(i))>1.d-8) then
+        if(abs(abs(mtheta(i))-1.d0)>1.d-8) then
+          mphi(i)   = atan2(sum(my(:,i)),sum(mx(:,i)))/pi
+        else
+          mphi(i) = 0.d0
+        end if
+        lrot = .true. ! Susceptibilities need to be rotated
+      else
+        mphi(i) = 0.d0
+      end if
+      mvec_cartesian(1,i) = sum(mx(:,i))
+      mvec_cartesian(2,i) = sum(my(:,i))
+      mvec_cartesian(3,i) = sum(mz(:,i))
+      mvec_spherical(1,i) = mabs(i)
+      mvec_spherical(2,i) = mtheta(i)
+      mvec_spherical(3,i) = mphi(i)
+    end do
+    return
+  end  subroutine calcMagAngle
 
   subroutine calcMagneticSelfConsistency()
   !! This subroutine performs the self-consistency
     use mod_f90_kind, only: double
     use mod_constants, only: pi
     use mod_parameters, only: outputunit_loop
-    use mod_magnet, only: n_t, mx, my, mz, mabs, mtheta, mphi, mvec_cartesian, mvec_spherical, iter
+    use mod_magnet, only: iter, rhod, mxd, myd, mzd
     use mod_mpi_pars, only: calcWorkload, rField
     use adaptiveMesh
     use mod_system, only: s => sys
@@ -83,10 +337,10 @@ contains
     allocate( sc_solu(neq),diag(neq),qtf(neq),fvec(neq),jac(neq,neq) )
 
     ! Putting read n and m existing solutions into sc_solu (first guess of the subroutine)
-    sc_solu(1:s%nAtoms)              = n_t
-    sc_solu(s%nAtoms+1:2*s%nAtoms)   = mx
-    sc_solu(2*s%nAtoms+1:3*s%nAtoms) = my
-    sc_solu(3*s%nAtoms+1:4*s%nAtoms) = mz
+    sc_solu(1:s%nAtoms)              = rhod
+    sc_solu(s%nAtoms+1:2*s%nAtoms)   = mxd
+    sc_solu(2*s%nAtoms+1:3*s%nAtoms) = myd
+    sc_solu(3*s%nAtoms+1:4*s%nAtoms) = mzd
     sc_solu(neq) = s%Ef
     iter  = 1
 
@@ -159,46 +413,23 @@ contains
 
     deallocate(sc_solu,diag,qtf,fvec,jac,wa)
 
-    ! Calculating new angles of GS magnetization in units of pi and magnetization vector
-    do i = 1,s%nAtoms
-      mabs(i)   = sqrt((mx(i)**2)+(my(i)**2)+(mz(i)**2))
-      mtheta(i) = acos(mz(i)/mabs(i))/pi
-      if(abs(mtheta(i))>1.d-8) then
-        if(abs(abs(mtheta(i))-1.d0)>1.d-8) then
-          mphi(i)   = atan2(my(i),mx(i))/pi
-        else
-          mphi(i) = 0.d0
-        end if
-        lrot = .true. ! Susceptibilities need to be rotated
-      else
-        mphi(i) = 0.d0
-      end if
-      mvec_cartesian(i,1) = mx(i)
-      mvec_cartesian(i,2) = my(i)
-      mvec_cartesian(i,3) = mz(i)
-      mvec_spherical(i,1) = mabs(i)
-      mvec_spherical(i,2) = mtheta(i)
-      mvec_spherical(i,3) = mphi(i)
-    end do
+    call calcMagAngle()
 
     return
   end subroutine calcMagneticSelfConsistency
 
-  subroutine calcMagnetization(nd, mxd, myd, mzd, mpd)
+  subroutine calcMagnetization()
     !! Calculates occupation density and magnetization.
     use mod_f90_kind, only: double
     use mod_constants, only: cI, pi, cZero
     use mod_SOC, only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: y, wght
     use mod_system, only: s => sys
-    use mod_magnet, only: mx, my, mz, mp, n_t
+    use mod_magnet, only: mx, my, mz, mp, rho, mxd, myd, mzd, mpd, rhod
     use adaptiveMesh
     use TightBinding, only: nOrb,nOrb2
     use mod_mpi_pars
     implicit none
-    real(double), dimension(s%nAtoms), intent(inout) :: nd, mxd, myd, mzd
-    complex(double), dimension(s%nAtoms), intent(inout) :: mpd
-
     integer  :: i,j
     real(double), dimension(3) :: kp
     real(double), dimension(s%nAtoms,nOrb) :: n_orb_u, n_orb_d
@@ -213,7 +444,6 @@ contains
 
     n_orb_u = 0.d0
     n_orb_d = 0.d0
-    mp = cZero
 
     gdiagud = cZero
     gdiagdu = cZero
@@ -265,34 +495,30 @@ contains
     deallocate(gf)
     !$omp end parallel
 
-
     do j=1,s%nAtoms
-      mp(j) = mp(j) + (sum(gdiagdu(j,1:9)) + sum(conjg(gdiagud(j,1:9))))
+      mp(:,j)= gdiagdu(j,:) + conjg(gdiagud(j,:))
       mpd(j) = sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9)))
     end do
 
     call MPI_Allreduce(MPI_IN_PLACE, n_orb_u, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
     call MPI_Allreduce(MPI_IN_PLACE, n_orb_d, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, mp, s%nAtoms, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, mp, s%nAtoms*nOrb, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
     call MPI_Allreduce(MPI_IN_PLACE, mpd, s%nAtoms, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
+
     n_orb_u = 0.5d0 + n_orb_u/pi
     n_orb_d = 0.5d0 + n_orb_d/pi
     mp      = mp/pi
     mpd     = mpd/pi
     mx      = real(mp)
     my      = aimag(mp)
-
-    mxd = real(mpd)
-    myd = aimag(mpd)
-
-    !n_orb_t = n_orb_u + n_orb_d
-    !mag_orb = n_orb_u - n_orb_d
+    mxd     = real(mpd)
+    myd     = aimag(mpd)
 
     do i = 1, s%nAtoms
-      n_t(i) = sum(n_orb_u(i,:)) + sum(n_orb_d(i,:))
-      nd(i) = sum(n_orb_u(i,5:9)) + sum(n_orb_d(i,5:9))
-      mz(i) = sum(n_orb_u(i,1:9)) - sum(n_orb_d(i,1:9))
-      mzd(i) = sum(n_orb_u(i,5:9)) - sum(n_orb_d(i,5:9))
+      rho(:,i) = n_orb_u(i, : ) + n_orb_d(i, : )
+      mz (:,i) = n_orb_u(i, : ) - n_orb_d(i, : )
+      rhod(i)  = sum(n_orb_u(i,5:9)) + sum(n_orb_d(i,5:9))
+      mzd(i)   = sum(n_orb_u(i,5:9)) - sum(n_orb_d(i,5:9))
     end do
 
     return
@@ -370,13 +596,13 @@ contains
               gf(nOrb2, nOrb2, s%nAtoms, s%nAtoms), &
               temp(nOrb2, nOrb2), paulitemp(nOrb2, nOrb2), stat = AllocateStatus)
     if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: temp1, temp2, gij, gji, gf, temp")
-    temp1 = cZero
-    temp2 = cZero
+    temp1     = cZero
+    temp2     = cZero
     paulitemp = cZero
-    gij = cZero
-    gji = cZero
-    gf = cZero
-    temp = cZero
+    gij       = cZero
+    gji       = cZero
+    gf        = cZero
+    temp      = cZero
 
     if(llineargfsoc .or. llinearsoc) then
       allocate(gvg(nOrb2, nOrb2, s%nAtoms, s%nAtoms), STAT = AllocateStatus  )
@@ -528,7 +754,7 @@ contains
   end subroutine calcJacobian
 
   subroutine calcLGS()
-    !! Calculates the orbital angular momentum ground state
+    !! Calculates the ground state charge, magnetization and orbital angular momentum ground state
     use mod_f90_kind, only: double
     use mod_constants, only: cZero,pi
     use mod_System, only: s => sys
@@ -639,141 +865,37 @@ contains
     end do
 
     deallocate(gupgd)
+
     return
   end subroutine calcLGS
 
-  ! Tries to read n and m if available
-  subroutine read_previous_results(lsuccess)
-    use mod_f90_kind, only: double
-    use mod_constants, only: pi
-    use mod_magnet, only: mabs, mx, my, mz, mp, mtheta, mphi, &
-                          mvec_cartesian, mvec_spherical, &
-                          hw_count, hw_list, lfield, n_t
-    use mod_parameters, only: outputunit_loop, magaxis, magaxisvec, offset, layertype
-    use mod_system, only: s => sys
-    use TightBinding, only: nOrb
-    use mod_mpi_pars, only: abortProgram, rField
-    use mod_susceptibilities, only: lrot
-    use mod_Umatrix
-    implicit none
-    integer             :: i,err
-    logical,intent(out) :: lsuccess
-
-    lsuccess = .false.
-    call read_sc_results(err,lsuccess)
-
-    if(lsuccess) then
-      if(err==0) then ! Same parameters
-        if(skipsc) then ! Skip option ON
-          if(rField == 0) write(outputunit_loop,"('[read_previous_results] Existing results for the same parameters were read. Skipping self-consistency...')")
-          lselfcon = .false.
-        else ! Skip option OFF
-          if(rField == 0) write(outputunit_loop,"('[read_previous_results] Existing results for the same parameters were read. Updating values...')")
-          lselfcon = .true.
-        end if
-      else ! Other parameters
-        if(rField == 0) write(outputunit_loop,"('[read_previous_results] Existing results for other parameters were read. Updating values...')")
-        lselfcon = .true.
-      end if
-      ! Calculating angles of GS magnetization in units of pi and magnetization vector
-      do i = 1,s%nAtoms
-        mabs(i)   = sqrt((mx(i)**2)+(my(i)**2)+(mz(i)**2))
-        mtheta(i) = acos(mz(i)/mabs(i))/pi
-        if(abs(mtheta(i))>1.d-8) then
-          if(abs(abs(mtheta(i))-1.d0)>1.d-8) then
-            mphi(i)   = atan2(my(i),mx(i))/pi
-          else
-            mphi(i) = 0.d0
-          end if
-          lrot = .true. ! Susceptibilities need to be rotated
-        else
-          mphi(i) = 0.d0
-        end if
-        mvec_cartesian(i,1) = mx(i)
-        mvec_cartesian(i,2) = my(i)
-        mvec_cartesian(i,3) = mz(i)
-        mvec_spherical(i,1) = mabs(i)
-        mvec_spherical(i,2) = mtheta(i)
-        mvec_spherical(i,3) = mphi(i)
-      end do
-    else !  If file doesn't exist
-      if(rField == 0) then
-        write(outputunit_loop,"('[read_previous_results] Self-consistency file does not exist:')")
-        write(outputunit_loop,"('[read_previous_results] ',a)") trim(default_file)
-      end if
-      lselfcon = .true.
-      ! Parameters: magnetization, exchange split
-      if(magaxis == -1) then
-        continue
-      else if(magaxis == -2) then
-        magaxisvec = magaxisvec(1) * s%a1 + magaxisvec(2) * s%a2 + magaxisvec(3) * s%a3
-      else if(magaxis == -3) then
-        magaxisvec = [cos(magaxisvec(2)*pi/180)*sin(magaxisvec(1)*pi/180), sin(magaxisvec(2)*pi/180)*sin(magaxisvec(1)*pi/180), cos(magaxisvec(1)*pi/180)]
-      else if(magaxis == 0) then
-        magaxisvec = [0.d0, 0.d0, sign(1.0d0, hw_list(hw_count,1))]
-      else if(magaxis >=1 .and. magaxis <= s%nAtoms) then
-        !magaxisvec(1:3) = c_nn(1:3, magaxis)
-        if(rField == 0) call abortProgram("[read_previous_results] Magaxis along neighbor not implemented!")
-      else
-        if(rField == 0) call abortProgram("[read_previous_results] Unknown magnetization direction!")
-      end if
-      magaxisvec = magaxisvec / sqrt(dot_product(magaxisvec, magaxisvec))
-      magaxisvec = magaxisvec * 0.5d0
-
-      mx = magaxisvec(1)
-      my = magaxisvec(2)
-      mz = magaxisvec(3)
-
-      do i=1,s%nAtoms
-        if(layertype(i+offset)==2) then
-          mx(i) = mx(i) * sign(4.d0,hw_list(hw_count,1))
-          my(i) = my(i) * sign(4.d0,hw_list(hw_count,1))
-          mz(i) = mz(i) * sign(4.d0,hw_list(hw_count,1))
-        end if
-      end do
-
-      if(lfield .and. magaxis == 0) then
-        mx = mz * sin(hw_list(hw_count,2)*pi) * cos(hw_list(hw_count,3)*pi)
-        my = mz * sin(hw_list(hw_count,2)*pi) * sin(hw_list(hw_count,3)*pi)
-        mz = mz * cos(hw_list(hw_count,2)*pi)
-      end if
-
-      mp = cmplx(mx,my,double)
-
-      do i = 1, s%nAtoms
-        n_t(i) = s%Types(s%Basis(i)%Material)%OccupationD
-      end do
-    end if
-
-    call init_Umatrix(mz,mp,n_t,s%nAtoms,nOrb)
-
-    return
-  end subroutine read_previous_results
 
   subroutine rotate_magnetization_to_field()
   !! Rotate the magnetization to the direction of the field (useful for SOC=F)
     use mod_f90_kind, only: double
     use mod_constants, only: pi
     use mod_magnet, only: hw_count, hw_list, hhwx, hhwy, hhwz, &
-                          mx, my, mz, mabs, mp
-
+                          mx, my, mz, mp
     use mod_parameters, only: outputunit_loop
     use mod_System, only: s => sys
+    use TightBinding, only: nOrb
     use mod_mpi_pars, only: rField
     implicit none
-    integer :: i,sign
-    real(double) :: mdotb
+    integer :: i,j,sign
+    real(double) :: mdotb,mabs(nOrb,s%nAtoms)
 
     if(rField == 0) write(outputunit_loop,"('[rotate_magnetization_to_field] Rotating previous magnetization to the direction of the field...')")
 
     do i = 1, s%nAtoms
-      mdotb   = hhwx(i)*mx(i)+hhwy(i)*my(i)+hhwz(i)*mz(i)
-      sign    = dble(mdotb/abs(mdotb))
-      mabs(i) = sqrt(abs(mp(i))**2+(mz(i)**2))
-      mx(i)   = sign*mabs(i)*sin(hw_list(hw_count,2)*pi)*cos(hw_list(hw_count,3)*pi)
-      my(i)   = sign*mabs(i)*sin(hw_list(hw_count,2)*pi)*sin(hw_list(hw_count,3)*pi)
-      mz(i)   = sign*mabs(i)*cos(hw_list(hw_count,2)*pi)
-      mp(i)   = cmplx(mx(i),my(i),double)
+      do j=1,nOrb
+        mdotb   = hhwx(i)*mx(j,i)+hhwy(i)*my(j,i)+hhwz(i)*mz(j,i)
+        sign    = dble(mdotb/abs(mdotb))
+        mabs(j,i) = sqrt((mx(j,i)**2)+(my(j,i)**2)+(mz(j,i)**2))
+        mx(j,i)   = sign*mabs(j,i)*sin(hw_list(hw_count,2)*pi)*cos(hw_list(hw_count,3)*pi)
+        my(j,i)   = sign*mabs(j,i)*sin(hw_list(hw_count,2)*pi)*sin(hw_list(hw_count,3)*pi)
+        mz(j,i)   = sign*mabs(j,i)*cos(hw_list(hw_count,2)*pi)
+        mp(j,i)   = cmplx(mx(j,i),my(j,i),double)
+      end do
     end do
 
     ! Writing new n and rotated mag to file (without self-consistency)
@@ -789,8 +911,7 @@ contains
   subroutine print_sc_results()
     use mod_parameters, only: outputunit_loop
     use mod_system, only: s => sys
-    !use mod_mpi_pars
-    use mod_magnet, only: n_t, mx, my, mz, mp, mphi, mtheta, mabs, &
+    use mod_magnet, only: rho, mvec_cartesian, mp, mvec_spherical, &
                           lxpm, lypm, lzpm, lpphi, lptheta, lxm, lym, lzm, lpabs, labs
     implicit none
     integer :: i
@@ -799,12 +920,12 @@ contains
     write(outputunit_loop,"(28x,'Ef=',f11.8)") s%Ef
     write(outputunit_loop,"(11x,' *************** Charge density: ***************')")
     do i=1,s%nAtoms
-      write(outputunit_loop,"(26x,'N(',i2.0,')=',f11.8)") i, n_t(i)
+      write(outputunit_loop,"(26x,'N(',i2.0,')=',f11.8)") i, sum(rho(:,i))
     end do
     write(outputunit_loop,"(11x,' *********** Magnetization components: **********')")
     do i=1,s%nAtoms
-      write(outputunit_loop,"(4x,'Mx (',i2.0,')=',f11.8,4x,'My (',i2.0,')=',f11.8,4x,'Mz (',i2.0,')=',f11.8)") i,mx(i),i,my(i),i,mz(i)
-      if(abs(mp(i))/=0) write(outputunit_loop,"(12x,'theta =',f11.8,' pi',4x,'phi =',f11.8,' pi')") mtheta(i),mphi(i)
+      write(outputunit_loop,"(4x,'Mx (',i2.0,')=',f11.8,4x,'My (',i2.0,')=',f11.8,4x,'Mz (',i2.0,')=',f11.8)") i,mvec_cartesian(1,i),i,mvec_cartesian(2,i),i,mvec_cartesian(3,i)
+      if(abs(sum(mp(:,i)))/=0) write(outputunit_loop,"(12x,'theta =',f11.8,' pi',4x,'phi =',f11.8,' pi')") mvec_spherical(2,i),mvec_spherical(3,i)
     end do
     if(lGSL) then
       write(outputunit_loop,"(11x,' *** Orbital components in local frame:  ***')")
@@ -818,12 +939,12 @@ contains
       end do
       write(outputunit_loop,"(11x,' ******************** Total: ********************')")
       do i=1,s%nAtoms
-        write(outputunit_loop,"(4x,'M (',i2.0,') =',f11.8,4x,'Lp (',i2.0,')=',f11.8,4x,'L (',i2.0,') =',f11.8)") i,mabs(i),i,lpabs(i),i,labs(i)
+        write(outputunit_loop,"(4x,'M (',i2.0,') =',f11.8,4x,'Lp (',i2.0,')=',f11.8,4x,'L (',i2.0,') =',f11.8)") i,mvec_spherical(1,i),i,lpabs(i),i,labs(i)
       end do
     else
       write(outputunit_loop,"(11x,' ******************** Total: ********************')")
       do i=1,s%nAtoms
-        write(outputunit_loop,"(27x,'M (',i2.0,') =',f11.8)") i,mabs(i)
+        write(outputunit_loop,"(27x,'M (',i2.0,') =',f11.8)") i,mvec_spherical(1,i)
       end do
     end if
     write(outputunit_loop,"('|----------=============================================================----------|')")
@@ -832,149 +953,34 @@ contains
   end subroutine print_sc_results
 
 
-  ! This subroutine reads previous band-shifting and magnetization results
-  subroutine read_sc_results(err,lsuccess)
-    use mod_f90_kind, only: double
-    use mod_parameters, only: fieldpart, eta, Utype, outputunit_loop, strSites, dfttype
-    use EnergyIntegration, only: parts
-    use mod_magnet, only: n_t, mp, hw_count, mx, my, mz
-    use mod_SOC, only: SOCc, socpart
-    use mod_mpi_pars
-    use mod_system, only: s => sys
-    use mod_BrillouinZone, only: BZ
-    implicit none
-    character(len=300)  :: file = ""
-    integer,intent(out) :: err
-    logical,intent(out) :: lsuccess
-    integer             :: i
-    real(double)        :: previous_results(s%nAtoms,4), previous_Ef
-
-    if(trim(scfile) /= "") then
-      open(unit=99,file=scfile,status="old",iostat=err)
-      if(err/=0) then
-        if(rField == 0) write(outputunit_loop,"('*** WARNING: Self-consistency file given on input file does not exist! Using default... ***')")
-        scfile = " "
-      end if
-      close(99)
-    end if
-
-    lsuccess = .false.
-    !   Reading previous results (mx, my, mz and n) from files (if available)
-    if(trim(scfile)=="") then ! If a filename is not given in inputcard (or don't exist), use the default one
-      write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(strSites),dfttype,parts,Utype,trim(fieldpart),BZ%nkpt,eta,trim(socpart)
-      open(unit=99,file=file,status="old",iostat=err)
-      if((err==0).and.(rField==0)) then
-        write(outputunit_loop,"('[read_sc_results] Self-consistency file already exists. Reading it now...')")
-        write(outputunit_loop,"(a)") trim(file)
-      else
-        default_file = trim(file)
-      end if
-    else ! If filename in inputcard exists or 2nd+ angular iteration
-      if(((hw_count)==1)) then !.and.(Npl==Npl_i)) then ! Filename in inputcard (1st iteration on loop)
-        open(unit = 99,file = scfile, status = "old", iostat = err)
-        if(err==0 .and. rField==0) then
-          write(outputunit_loop,"('[read_sc_results] Using filename given in input file for self-consistency:')")
-          write(outputunit_loop,"(a)") trim(scfile)
-        end if
-      else ! 2nd+ iteration, cheking if default file exists
-        write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(strSites),dfttype,parts,Utype,trim(fieldpart),BZ%nkpt,eta,trim(socpart)
-        open(unit=99,file=file,status="old",iostat=err)
-        if(err == 0) then ! Reading file for the same parameters
-          if(rField == 0) then
-            write(outputunit_loop,"('[read_sc_results] Self-consistency file already exists. Reading it now...')")
-            write(outputunit_loop,"(a)") trim(file)
-          end if
-        else ! Reading results from previous iteration
-          open(unit=99,file=scfile,status="old",iostat=err)
-          if((err==0).and.(rField==0)) then
-            write(outputunit_loop,"('[read_sc_results] Using results from previous iteration as input for self-consistency:')")
-            write(outputunit_loop,"(a)") trim(scfile)
-          end if
-          lsuccess   = .true. ! something was read
-        end if
-      end if
-    end if
-    if(err==0) then
-      if(rField==0) then
-        do i=1,s%nAtoms
-          read(99,fmt=*) previous_results(i,1)
-          read(99,fmt=*) previous_results(i,2)
-          read(99,fmt=*) previous_results(i,3)
-          read(99,fmt=*) previous_results(i,4)
-        end do
-        read(99,fmt=*) previous_Ef
-      end if
-      call MPI_Bcast(previous_results,4*s%nAtoms,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
-      call MPI_Bcast(previous_Ef,1,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
-      n_t (:) = previous_results(:,1)
-      mx  (:) = previous_results(:,2)
-      my  (:) = previous_results(:,3)
-      mz  (:) = previous_results(:,4)
-      mp  = cmplx(mx,my)
-      s%Ef = previous_Ef
-      if(lsuccess) then
-        err = 1   ! Read different parameters
-      else
-        lsuccess   = .true. ! Read same parameters (err=0)
-      end if
-    else
-      ! If file does not exist, try to read for parts-1
-      close(99)
-      write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc,trim(strSites),dfttype,parts-1,Utype,trim(fieldpart),BZ%nkpt,eta,trim(socpart)
-      open(unit=99,file=file,status="old",iostat=err)
-      if(err==0) then
-        if(rField==0) then
-          write(outputunit_loop,"('[read_sc_results] Self-consistency file does not exist. Reading results for parts-1 now...')")
-          write(outputunit_loop,"('[read_sc_results] Updating values obtained for parts-1...')")
-          write(outputunit_loop,"(a)") file
-          do i=1,s%nAtoms
-            read(99,fmt=*) previous_results(i,1)
-            read(99,fmt=*) previous_results(i,2)
-            read(99,fmt=*) previous_results(i,3)
-            read(99,fmt=*) previous_results(i,4)
-          end do
-          read(99,fmt=*) previous_Ef
-        end if
-        call MPI_Bcast(previous_results,4*s%nAtoms,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
-        call MPI_Bcast(previous_Ef,1,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
-        n_t (:) = previous_results(:,1)
-        mx  (:) = previous_results(:,2)
-        my  (:) = previous_results(:,3)
-        mz  (:) = previous_results(:,4)
-        mp  = cmplx(mx,my)
-        s%Ef = previous_Ef
-        lsuccess = .true. ! Read...
-        err = 1           ! ... different parameters
-      end if
-    end if
-    close(99)
-    return
-  end subroutine read_sc_results
-
   subroutine write_sc_results()
     !! Writes the self-consistency results into files and broadcasts the scfile for the next iteration.
     use mod_parameters, only: fieldpart, eta, Utype, outputunit_loop, strSites, dfttype
     use EnergyIntegration, only: parts
-    use mod_magnet, only: n_t, mx, my, mz
+    use mod_magnet, only: rho, mx, my, mz
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: s => sys
     use mod_BrillouinZone, only: BZ
+    use TightBinding, only: nOrb
     use mod_mpi_pars
     implicit none
-    integer :: i
+    character(len=30) :: formatvar
+    integer :: i,j
 
     if(rField == 0) then
       ! Writing new results (mx, my, mz and n) to file
       write(outputunit_loop,"('[write_sc_results] Writing new n, mx, my and mz to file...')")
       write(scfile,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,'_Utype=',i0,a,'_nkpt=',i0,'_eta=',es8.1,a,'.dat')") SOCc, trim(strSites),dfttype,parts,Utype,trim(fieldpart),BZ%nkpt,eta,trim(socpart)
       open (unit=99,status='replace',file=scfile)
+
+      write(formatvar,fmt="(a,i0,a)") '(',4*nOrb,'(es21.11,2x))'
       do i=1,s%nAtoms
-        write(99,"(es21.11,2x,'! n')") n_t(i)
-        write(99,"(es21.11,2x,'! mx  ')") mx(i)
-        write(99,"(es21.11,2x,'! my  ')") my(i)
-        write(99,"(es21.11,2x,'! mz  ')") mz(i)
+        write(99,fmt=formatvar) (rho(j,i), j=1,nOrb),(mx(j,i), j=1,nOrb),(my(j,i), j=1,nOrb),(mz(j,i), j=1,nOrb)
       end do
       write(99,"(es21.11,2x,'! Ef  ')") s%Ef
+      write(99,"('! n(1:nOrb, mx(1:nOrb), my(1:nOrb), mz(1:nOrb) per site ')")
+      write(99,"('! Ef ')")
+
       close(99)
     end if
 
@@ -1003,15 +1009,15 @@ contains
         do i=1,s%nAtoms
           if(abs(cmplx(mx(i),my(i)))>1.d-10) then
             write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mx(i),i,my(i),i,mz(i)
-            write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+s%nAtoms,fvec(i+s%nAtoms),i+2*s%nAtoms,fvec(i+2*s%nAtoms),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
+            write(outputunit_loop,"(15x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+s%nAtoms,fvec(i+s%nAtoms),i+2*s%nAtoms,fvec(i+2*s%nAtoms),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
           else
             write(outputunit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mz(i)
-            write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
+            write(outputunit_loop,"(15x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
           end if
         end do
         write(outputunit_loop,"(13x,'Ef=',es16.9)") Ef
-        write(outputunit_loop,"(10x,'fvec(',I2,')=',es16.9)") 4*s%nAtoms+1,fvec(4*s%nAtoms+1)
-      else
+        write(outputunit_loop,"(15x,'fvec(',I2,')=',es16.9)") 4*s%nAtoms+1,fvec(4*s%nAtoms+1)
+      else if(iter == 1) then
         write(outputunit_loop,"('|---------------- Starting charge density, magnetization and Ef ----------------|')")
         do i=1,s%nAtoms
           if(abs(cmplx(mx(i),my(i)))>1.d-10) then
@@ -1029,7 +1035,7 @@ contains
 
 
   ! This subroutine calculates the self-consistency equations
-  !     n  - n_in    = 0
+  !     n  - rho_in    = 0
   !     mx - mx_in   = 0
   !     my - my_in   = 0
   !     mz - mz_in   = 0
@@ -1041,7 +1047,7 @@ contains
     use mod_parameters, only: outputunit, outputunit_loop
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter !, mp, mx, my, mz, n_t, md
+    use mod_magnet, only: iter,rho,mx,my,mz,rhod,mxd,myd,mzd
     use mod_Umatrix, only: update_Umatrix
     use mod_mpi_pars
     implicit none
@@ -1050,34 +1056,40 @@ contains
     real(double),  intent(inout)        :: ruser(*)
     real(double),   dimension(N)        :: x,fvec
     real(double),   dimension(N,N)      :: selfconjac
-    real(double),   dimension(s%nAtoms) :: mx_in,my_in,mz_in,n_in
-    real(double),   dimension(s%nAtoms) :: mx, my, mz, n_t
-    complex(double),dimension(s%nAtoms) :: mp_in, mp
+    real(double),   dimension(s%nAtoms) :: mx_in,my_in,mz_in,rho_in
+    real(double),   dimension(s%nAtoms) :: mxd_in,myd_in,mzd_in,rhod_in
+    complex(double),dimension(s%nAtoms) :: mp_in,mpd_in
 
     ! Values used in the hamiltonian
-    n_in  = x(           1:  s%nAtoms)
-    mx_in = x(  s%nAtoms+1:2*s%nAtoms)
-    my_in = x(2*s%nAtoms+1:3*s%nAtoms)
-    mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
-    mp_in = cmplx(mx_in,my_in)
-    s%Ef  = x(4*s%nAtoms+1)
+    rhod_in = x(           1:  s%nAtoms)
+    mxd_in  = x(  s%nAtoms+1:2*s%nAtoms)
+    myd_in  = x(2*s%nAtoms+1:3*s%nAtoms)
+    mzd_in  = x(3*s%nAtoms+1:4*s%nAtoms)
+    mpd_in  = cmplx(mxd_in,myd_in)
+    s%Ef    = x(4*s%nAtoms+1)
 
-    call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
+    call update_Umatrix(mzd_in, mpd_in, rhod_in, s%nAtoms, nOrb)
 
-    call print_sc_step(n_in,mx_in,my_in,mz_in,s%Ef)
+    call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
+
+    rho_in = rhod_in + sum(rho(:,:),dim=1) - rhod
+    mx_in  = mxd_in  + sum(mx(:,:), dim=1) - mxd
+    my_in  = myd_in  + sum(my(:,:), dim=1) - mxd
+    mz_in  = mzd_in  + sum(mz(:,:), dim=1) - mxd
+    mp_in  = cmplx(mx_in,my_in)
 
     select case (iflag)
     case(1)
-      call calcMagnetization(n_t, mx, my, mz, mp)
+      call calcMagnetization()
       do i = 1, s%nAtoms
-        fvec(i) = n_t(i) - n_in(i)
-        fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
-        fvec(i+2*s%nAtoms) = my(i) - my_in(i)
-        fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
+        fvec(i           ) = sum(rho(:,i)) - rho_in(i)
+        fvec(i+1*s%nAtoms) = sum(mx (:,i)) - mx_in(i)
+        fvec(i+2*s%nAtoms) = sum(my (:,i)) - my_in(i)
+        fvec(i+3*s%nAtoms) = sum(mz (:,i)) - mz_in(i)
       end do
-      fvec(4*s%nAtoms+1) = sum(n_t) - s%totalOccupation
+      fvec(4*s%nAtoms+1) = sum(rho) - s%totalOccupation
 
-      call print_sc_step(n_t,mx,my,mz,s%Ef,fvec)
+      call print_sc_step(rhod,mxd,myd,mzd,s%Ef,fvec)
 
       if(lontheflysc) call write_sc_results()
     case(2)
@@ -1093,7 +1105,7 @@ contains
   end subroutine sc_equations_and_jacobian
 
   ! This subroutine calculates the self-consistency equations
-  !     n  - n_in    = 0
+  !     n  - rho_in    = 0
   !     mx - mx_in   = 0
   !     my - my_in   = 0
   !     mz - mz_in   = 0
@@ -1104,7 +1116,7 @@ contains
     use mod_constants, only: cI
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter !, mp, mx ,my ,mz, n_t
+    use mod_magnet, only: iter,rho,mx,my,mz,rhod,mxd,myd,mzd
     use mod_Umatrix, only: update_Umatrix
     use mod_mpi_pars
     implicit none
@@ -1112,33 +1124,38 @@ contains
     integer     ,   intent(inout)       :: iuser(*)
     real(double),   intent(inout)       :: ruser(*)
     real(double),   dimension(N)        :: x,fvec
-    real(double),   dimension(s%nAtoms) :: mx_in,my_in,mz_in, n_in
-    real(double),   dimension(s%nAtoms) :: mx, my, mz, n_t
-    complex(double),dimension(s%nAtoms) :: mp_in, mp
+    real(double),   dimension(s%nAtoms) :: mx_in,my_in,mz_in,rho_in
+    real(double),   dimension(s%nAtoms) :: mxd_in,myd_in,mzd_in,rhod_in
+    complex(double),dimension(s%nAtoms) :: mp_in,mpd_in
 
-    iflag=0
-  ! Values used in the hamiltonian
-    n_in  = x(           1:  s%nAtoms)
-    mx_in = x(  s%nAtoms+1:2*s%nAtoms)
-    my_in = x(2*s%nAtoms+1:3*s%nAtoms)
-    mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
-    mp_in = cmplx(mx_in,my_in)
-    s%Ef  = x(4*s%nAtoms+1)
+    ! Values used in the hamiltonian
+    rhod_in = x(           1:  s%nAtoms)
+    mxd_in  = x(  s%nAtoms+1:2*s%nAtoms)
+    myd_in  = x(2*s%nAtoms+1:3*s%nAtoms)
+    mzd_in  = x(3*s%nAtoms+1:4*s%nAtoms)
+    mpd_in  = cmplx(mxd_in,myd_in)
+    s%Ef    = x(4*s%nAtoms+1)
 
-    call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
+    call update_Umatrix(mzd_in, mpd_in, rhod_in, s%nAtoms, nOrb)
 
-    call print_sc_step(n_in,mx_in,my_in,mz_in,s%Ef)
+    call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
 
-    call calcMagnetization(n_t, mx, my, mz, mp)
+    rho_in = rhod_in + sum(rho(:,:),dim=1) - rhod
+    mx_in  = mxd_in  + sum(mx(:,:), dim=1) - mxd
+    my_in  = myd_in  + sum(my(:,:), dim=1) - mxd
+    mz_in  = mzd_in  + sum(mz(:,:), dim=1) - mxd
+    mp_in  = cmplx(mx_in,my_in)
+
+    call calcMagnetization()
     do i = 1, s%nAtoms
-      fvec(i) = n_t(i) - n_in(i)
-      fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
-      fvec(i+2*s%nAtoms) = my(i) - my_in(i)
-      fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
+      fvec(i           ) = sum(rho(:,i)) - rho_in(i)
+      fvec(i+1*s%nAtoms) = sum(mx (:,i)) - mx_in(i)
+      fvec(i+2*s%nAtoms) = sum(my (:,i)) - my_in(i)
+      fvec(i+3*s%nAtoms) = sum(mz (:,i)) - mz_in(i)
     end do
-    fvec(4*s%nAtoms+1) = sum(n_t) - s%totalOccupation
+    fvec(4*s%nAtoms+1) = sum(rho) - s%totalOccupation
 
-    call print_sc_step(n_t,mx,my,mz,s%Ef,fvec)
+    call print_sc_step(rhod,mxd,myd,mzd,s%Ef,fvec)
 
     if(lontheflysc) call write_sc_results()
 
@@ -1150,7 +1167,7 @@ contains
 #endif
 
   ! This subroutine calculates the self-consistency equations
-  !     n  - n_in    = 0
+  !     n  - rho_in    = 0
   !     mx - mx_in   = 0
   !     my - my_in   = 0
   !     mz - mz_in   = 0
@@ -1161,42 +1178,47 @@ contains
     use mod_parameters, only: outputunit_loop, outputunit
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter !, mp, mx, my, mz, n_t
+    use mod_magnet, only: iter,rho,mx,my,mz,rhod,mxd,myd,mzd
     use mod_Umatrix, only: update_Umatrix
     use mod_mpi_pars
     implicit none
     integer  :: N,i,iflag,ldfjac
-    real(double),dimension(N)        :: x,fvec
-    real(double),dimension(ldfjac,N) :: selfconjac
-    real(double),dimension(s%nAtoms) :: mx_in,my_in,mz_in,n_in
-    real(double),dimension(s%nAtoms) :: mx, my, mz, n_t
-    complex(double),dimension(s%nAtoms) :: mp_in, mp
+    real(double),   dimension(N)        :: x,fvec
+    real(double),   dimension(ldfjac,N) :: selfconjac
+    real(double),   dimension(s%nAtoms) :: mx_in,my_in,mz_in,rho_in
+    real(double),   dimension(s%nAtoms) :: mxd_in,myd_in,mzd_in,rhod_in
+    complex(double),dimension(s%nAtoms) :: mp_in,mpd_in
 
-  ! Values used in the hamiltonian
-    n_in  = x(1:s%nAtoms)
-    mx_in = x(s%nAtoms+1:2*s%nAtoms)
-    my_in = x(2*s%nAtoms+1:3*s%nAtoms)
-    mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
-    mp_in = cmplx(mx_in,my_in)
-    s%Ef  = x(4*s%nAtoms+1)
+    ! Values used in the hamiltonian
+    rhod_in = x(           1:  s%nAtoms)
+    mxd_in  = x(  s%nAtoms+1:2*s%nAtoms)
+    myd_in  = x(2*s%nAtoms+1:3*s%nAtoms)
+    mzd_in  = x(3*s%nAtoms+1:4*s%nAtoms)
+    mpd_in  = cmplx(mxd_in,myd_in)
+    s%Ef    = x(4*s%nAtoms+1)
 
-    call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
+    call update_Umatrix(mzd_in, mpd_in, rhod_in, s%nAtoms, nOrb)
 
-    call print_sc_step(n_in,mx_in,my_in,mz_in,s%Ef)
+    call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
+
+    rho_in = rhod_in + sum(rho(:,:),dim=1) - rhod
+    mx_in  = mxd_in  + sum(mx(:,:), dim=1) - mxd
+    my_in  = myd_in  + sum(my(:,:), dim=1) - mxd
+    mz_in  = mzd_in  + sum(mz(:,:), dim=1) - mxd
+    mp_in  = cmplx(mx_in,my_in)
 
     flag: select case (iflag)
     case(1)
-      ! Calculating the number of particles for each spin and orbital using a complex integral
-      call calcMagnetization(n_t, mx, my, mz, mp)
+      call calcMagnetization()
       do i = 1, s%nAtoms
-        fvec(i) = n_t(i) - n_in(i)
-        fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
-        fvec(i+2*s%nAtoms) = my(i) - my_in(i)
-        fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
+        fvec(i           ) = sum(rho(:,i)) - rho_in(i)
+        fvec(i+1*s%nAtoms) = sum(mx (:,i)) - mx_in(i)
+        fvec(i+2*s%nAtoms) = sum(my (:,i)) - my_in(i)
+        fvec(i+3*s%nAtoms) = sum(mz (:,i)) - mz_in(i)
       end do
-      fvec(4*s%nAtoms+1) = sum(n_t) - s%totalOccupation
+      fvec(4*s%nAtoms+1) = sum(rho) - s%totalOccupation
 
-      call print_sc_step(n_t,mx,my,mz,s%Ef,fvec)
+      call print_sc_step(rhod,mxd,myd,mzd,s%Ef,fvec)
 
       if(lontheflysc) call write_sc_results()
     case(2)
@@ -1212,7 +1234,7 @@ contains
   end subroutine sc_eqs_and_jac_old
 
   ! This subroutine calculates the self-consistency equations
-  !     n  - n_in    = 0
+  !     n  - rho_in    = 0
   !     mx - mx_in   = 0
   !     my - my_in   = 0
   !     mz - mz_in   = 0
@@ -1222,39 +1244,45 @@ contains
     use mod_parameters, only: outputunit_loop
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter !, mp, mx, my, mz, n_t
+    use mod_magnet, only: iter,rho,mx,my,mz,rhod,mxd,myd,mzd
     use mod_Umatrix, only: update_Umatrix
     use mod_mpi_pars
     implicit none
     integer  :: N,i,iflag
     real(double),   dimension(N)        :: x,fvec
-    real(double),   dimension(s%nAtoms) :: mx_in,my_in,mz_in, n_in
-    real(double),   dimension(s%nAtoms) :: mx, my, mz, n_t
-    complex(double),dimension(s%nAtoms) :: mp_in, mp
+    real(double),   dimension(s%nAtoms) :: mx_in,my_in,mz_in,rho_in
+    real(double),   dimension(s%nAtoms) :: mxd_in,myd_in,mzd_in,rhod_in
+    complex(double),dimension(s%nAtoms) :: mp_in,mpd_in
 
     iflag=0
-  ! Values used in the hamiltonian
-    n_in  = x(1:s%nAtoms)
-    mx_in = x(s%nAtoms+1:2*s%nAtoms)
-    my_in = x(2*s%nAtoms+1:3*s%nAtoms)
-    mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
-    mp_in = cmplx(mx_in,my_in)
-    s%Ef  = x(4*s%nAtoms+1)
+    ! Values used in the hamiltonian
+    rhod_in = x(           1:  s%nAtoms)
+    mxd_in  = x(  s%nAtoms+1:2*s%nAtoms)
+    myd_in  = x(2*s%nAtoms+1:3*s%nAtoms)
+    mzd_in  = x(3*s%nAtoms+1:4*s%nAtoms)
+    mpd_in  = cmplx(mxd_in,myd_in)
+    s%Ef    = x(4*s%nAtoms+1)
 
-    call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
+    call update_Umatrix(mzd_in, mpd_in, rhod_in, s%nAtoms, nOrb)
 
-    call print_sc_step(n_in,mx_in,my_in,mz_in,s%Ef)
+    call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
 
-    call calcMagnetization(n_t, mx, my, mz, mp)
+    rho_in = rhod_in + sum(rho(:,:),dim=1) - rhod
+    mx_in  = mxd_in  + sum(mx(:,:), dim=1) - mxd
+    my_in  = myd_in  + sum(my(:,:), dim=1) - mxd
+    mz_in  = mzd_in  + sum(mz(:,:), dim=1) - mxd
+    mp_in  = cmplx(mx_in,my_in)
+
+    call calcMagnetization()
     do i = 1, s%nAtoms
-      fvec(i) = n_t(i) - n_in(i)
-      fvec(i+1*s%nAtoms) = mx(i) - mx_in(i)
-      fvec(i+2*s%nAtoms) = my(i) - my_in(i)
-      fvec(i+3*s%nAtoms) = mz(i) - mz_in(i)
+      fvec(i           ) = sum(rho(:,i)) - rho_in(i)
+      fvec(i+1*s%nAtoms) = sum(mx (:,i)) - mx_in(i)
+      fvec(i+2*s%nAtoms) = sum(my (:,i)) - my_in(i)
+      fvec(i+3*s%nAtoms) = sum(mz (:,i)) - mz_in(i)
     end do
-    fvec(4*s%nAtoms+1) = sum(n_t) - s%totalOccupation
+    fvec(4*s%nAtoms+1) = sum(rho) - s%totalOccupation
 
-    call print_sc_step(n_t,mx,my,mz,s%Ef,fvec)
+    call print_sc_step(rhod,mxd,myd,mzd,s%Ef,fvec)
 
     if(lontheflysc) call write_sc_results()
 
@@ -1264,7 +1292,7 @@ contains
   end subroutine sc_eqs_old
 
   ! This subroutine calculates the jacobian of the system of equations
-  !     n  - n_in    = 0
+  !     n  - rho_in    = 0
   !     mx - mx_in   = 0
   !     my - my_in   = 0
   !     mz - mz_in   = 0
@@ -1278,20 +1306,20 @@ contains
     implicit none
     integer       :: N,ldfjac,iflag
     real(double)  :: x(N),fvec(N),selfconjac(ldfjac,N)
-    real(double),   dimension(s%nAtoms) :: mx_in,my_in,mz_in, n_in
-    real(double),   dimension(s%nAtoms) :: mx, my, mz, n_t
-    complex(double),dimension(s%nAtoms) :: mp_in, mp
+    real(double),   dimension(s%nAtoms) :: mxd_in,myd_in,mzd_in,rhod_in
+    complex(double),dimension(s%nAtoms) :: mpd_in
     !--------------------- begin MPI vars --------------------
 
     iflag=0
-  ! Values used in the hamiltonian
-    n_in  = x(1:s%nAtoms)
-    mx_in = x(s%nAtoms+1:2*s%nAtoms)
-    my_in = x(2*s%nAtoms+1:3*s%nAtoms)
-    mz_in = x(3*s%nAtoms+1:4*s%nAtoms)
-    mp_in = cmplx(mx_in,my_in)
+    ! Values used in the hamiltonian
+    rhod_in = x(           1:  s%nAtoms)
+    mxd_in  = x(  s%nAtoms+1:2*s%nAtoms)
+    myd_in  = x(2*s%nAtoms+1:3*s%nAtoms)
+    mzd_in  = x(3*s%nAtoms+1:4*s%nAtoms)
+    mpd_in  = cmplx(mxd_in,myd_in)
+    s%Ef    = x(4*s%nAtoms+1)
 
-    call update_Umatrix(mz_in, mp_in, n_in, s%nAtoms, nOrb)
+    call update_Umatrix(mzd_in, mpd_in, rhod_in, s%nAtoms, nOrb)
 
     fvec=fvec
 

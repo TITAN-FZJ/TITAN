@@ -139,10 +139,10 @@ contains
     do j=2,4
       do i=1,Npl
         iw = 8200+(i-1)*3+j-1
-        write(unit=iw,fmt="(8(es16.9,2x))") e , sha_re(j,i) , abs(sha_complex(j,i)) , atan2(aimag(sha_complex(j,i)),real(sha_complex(j,i))) , real(sha_complex(j,i)) , aimag(sha_complex(j,i)) , mvec_spherical(i,2) , mvec_spherical(i,3)
+        write(unit=iw,fmt="(8(es16.9,2x))") e , sha_re(j,i) , abs(sha_complex(j,i)) , atan2(aimag(sha_complex(j,i)),real(sha_complex(j,i))) , real(sha_complex(j,i)) , aimag(sha_complex(j,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
       end do
       iw = 8200+Npl*3+j-1
-      write(unit=iw,fmt="(8(es16.9,2x))") e , sha_re_total(j) , abs(sha_complex_total(j)) , atan2(aimag(sha_complex_total(j)),real(sha_complex_total(j))) , real(sha_complex_total(j)) , aimag(sha_complex_total(j)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
+      write(unit=iw,fmt="(8(es16.9,2x))") e , sha_re_total(j) , abs(sha_complex_total(j)) , atan2(aimag(sha_complex_total(j)),real(sha_complex_total(j))) , real(sha_complex_total(j)) , aimag(sha_complex_total(j)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
     end do
 
     return
@@ -252,10 +252,10 @@ contains
     do j=2,4
       do i=1,Npl
         iw = 82000+(i-1)*3+j-1
-        write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , sha_re(j,i) , abs(sha_complex(j,i)) , atan2(aimag(sha_complex(j,i)),real(sha_complex(j,i))) , real(sha_complex(j,i)) , aimag(sha_complex(j,i)) , mvec_spherical(i,2) , mvec_spherical(i,3)
+        write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , sha_re(j,i) , abs(sha_complex(j,i)) , atan2(aimag(sha_complex(j,i)),real(sha_complex(j,i))) , real(sha_complex(j,i)) , aimag(sha_complex(j,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
       end do
       iw = 82000+Npl*3+j-1
-      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , sha_re_total(j) , abs(sha_complex_total(j)) , atan2(aimag(sha_complex_total(j)),real(sha_complex_total(j))) , real(sha_complex_total(j)) , aimag(sha_complex_total(j)) , mvec_spherical(mmlayermag(1)-1,2) , mvec_spherical(mmlayermag(1)-1,3)
+      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , sha_re_total(j) , abs(sha_complex_total(j)) , atan2(aimag(sha_complex_total(j)),real(sha_complex_total(j))) , real(sha_complex_total(j)) , aimag(sha_complex_total(j)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
     end do
 
     return
@@ -514,8 +514,8 @@ contains
           do ie=1,rows
             ! Filling variables used in writing routing
             hw_count = ie
-            mvec_spherical(:,2) = mangles(ie,:,1)
-            mvec_spherical(:,3) = mangles(ie,:,2)
+            mvec_spherical(2,:) = mangles(ie,:,1)
+            mvec_spherical(3,:) = mangles(ie,:,2)
             write(dc_fields(hw_count),fmt=formatvar) (x(ie,k),k=1,idc)
             currents(:,:,:) = currents_from_file(:,:,:,ie)
             total_currents(:,:) = total_currents_from_file(:,:,ie)
