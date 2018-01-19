@@ -60,8 +60,8 @@ contains
   subroutine read_previous_results(lsuccess)
     use mod_f90_kind, only: double
     use mod_constants, only: pi
-    use mod_magnet, only: mxd, myd, mzd, mpd, &
-                          hw_count, hw_list, lfield, rhod
+    use mod_magnet, only: mx, my, mz, mxd, myd, mzd, mpd, &
+                          hw_count, hw_list, lfield, rho, rhod
     use mod_parameters, only: outputunit_loop, magaxis, magaxisvec, offset, layertype
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
@@ -131,8 +131,18 @@ contains
 
       mpd = cmplx(mxd,myd,double)
 
+      mx = 0.d0
+      my = 0.d0
+      mz = 0.d0
       do i = 1, s%nAtoms
-        rhod(i)  = s%Types(s%Basis(i)%Material)%OccupationD
+        mx(5:9,i) = 0.2d0*mxd(i)
+        my(5:9,i) = 0.2d0*myd(i)
+        mz(5:9,i) = 0.2d0*mzd(i)
+
+        rho(  1,i) = s%Types(s%Basis(i)%Material)%OccupationS
+        rho(2:4,i) = s%Types(s%Basis(i)%Material)%OccupationP/3.d0
+        rho(5:9,i) = s%Types(s%Basis(i)%Material)%OccupationD/5.d0
+        rhod(i)    = s%Types(s%Basis(i)%Material)%OccupationD
       end do
     end if
 
@@ -431,8 +441,8 @@ contains
     use mod_mpi_pars
     implicit none
     integer  :: i,j
-    real(double), dimension(3) :: kp
-    real(double), dimension(s%nAtoms,nOrb) :: n_orb_u, n_orb_d
+    real(double),    dimension(3)             :: kp
+    real(double),    dimension(s%nAtoms,nOrb) :: n_orb_u, n_orb_d
     complex(double), dimension(s%nAtoms,nOrb) :: gdiagud,gdiagdu
     complex(double), dimension(:,:,:,:), allocatable :: gf
     !--------------------- begin MPI vars --------------------
@@ -440,7 +450,7 @@ contains
     integer :: ncount
     integer :: mu,mup
     real(double) :: weight, ep
-    ncount = s%nAtoms * 9
+    ncount = s%nAtoms * nOrb
 
     n_orb_u = 0.d0
     n_orb_d = 0.d0
@@ -502,7 +512,7 @@ contains
 
     call MPI_Allreduce(MPI_IN_PLACE, n_orb_u, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
     call MPI_Allreduce(MPI_IN_PLACE, n_orb_d, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, mp, s%nAtoms*nOrb, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, mp, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
     call MPI_Allreduce(MPI_IN_PLACE, mpd, s%nAtoms, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
 
     n_orb_u = 0.5d0 + n_orb_u/pi
@@ -682,19 +692,11 @@ contains
                 gji = temp2(:,:,sigmap)
                 call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
                 do mu = 1, nOrb2
-                  jacobian(i0, j0) = jacobian(i0, j0) - real(temp(mu,mu))
+                  jacobian(i0, j0) = jacobian(i0, j0) - real(temp(mu,mu)) ! Removing non-linear term
                 end do
-                jacobian(i0, j0) = jacobian(i0, j0) - real(temp(mu,mu))
               end do
             end do
           end if ! End linear part
-
-          ! Derivative of the last equation (total occupation)
-          do sigmap = 1,4
-            j0 = (sigmap-1)*s%nAtoms + j
-            jacobian(4*s%nAtoms+1, j0) = jacobian(4*s%nAtoms+1, j0) + jacobian(i, j0)
-          end do
-
         end do ! End nAtoms i loop
       end do ! End nAtoms j loop
     end do ! End Energy+nkpt loop
@@ -703,7 +705,7 @@ contains
     !$omp do schedule(static) reduction(+:jacobian)
     do ix = firstPoint,lastPoint
       kp = BZ%kp(1:3,ix)
-      weight = BZ%w(ix)
+      weight = cmplx(1.d0,0.d0) * BZ%w(ix)
 
       ! Green function at Ef + ieta, and wave vector kp
       if(llineargfsoc .or. llinearsoc) then
@@ -719,24 +721,20 @@ contains
         do sigma = 1,4
           ! temp1 =  pauli*g_ii
           paulitemp = pauli_components1(:,:, sigma)
-          call zgemm('n','n',18,18,18,cOne,paulitemp,18,gij,18,cZero,temp,18)
+          call zgemm('n','n',18,18,18,weight,paulitemp,18,gij,18,cZero,temp,18)
 
           i0 = (sigma-1)*s%nAtoms + i
           do mu = 1, nOrb2
-            jacobian(i0, 4*s%nAtoms+1) = jacobian(i0, 4*s%nAtoms+1) - real(temp(mu,mu))
+            jacobian(i0, 4*s%nAtoms+1) = jacobian(i0, 4*s%nAtoms+1) - aimag(temp(mu,mu))
           end do
 
         end do
 
         ! No linear correction is needed since it's a single Green function
 
-        ! Derivative of the last equation (total occupation)
-        jacobian(4*s%nAtoms+1, 4*s%nAtoms+1) = jacobian(4*s%nAtoms+1, 4*s%nAtoms+1) + jacobian(i, 4*s%nAtoms+1)
-
       end do ! End nAtoms i loop
     end do ! End nkpt loop
     !$omp end do nowait
-
 
     deallocate(paulitemp)
     deallocate(temp1, temp2, temp)
@@ -745,6 +743,19 @@ contains
     !$omp end parallel
 
     call MPI_Allreduce(MPI_IN_PLACE, jacobian, ncount2, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
+
+    ! Derivative of the last equation (total occupation)
+    do i=1,s%nAtoms
+      do j=1,s%nAtoms
+        do sigmap = 1,4
+          j0 = (sigmap-1)*s%nAtoms + j
+          jacobian(4*s%nAtoms+1, j0) = jacobian(4*s%nAtoms+1, j0) + jacobian(i, j0)
+        end do
+      end do
+      ! Derivative of the last equation (total occupation)
+      jacobian(4*s%nAtoms+1, 4*s%nAtoms+1) = jacobian(4*s%nAtoms+1, 4*s%nAtoms+1) + jacobian(i, 4*s%nAtoms+1)
+    end do
+
     jacobian = jacobian/pi
     do i = 1, 4*s%nAtoms
       jacobian(i,i) = jacobian(i,i) - 1.d0
@@ -1073,9 +1084,9 @@ contains
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
 
     rho_in = rhod_in + sum(rho(:,:),dim=1) - rhod
-    mx_in  = mxd_in  + sum(mx(:,:), dim=1) - mxd
-    my_in  = myd_in  + sum(my(:,:), dim=1) - mxd
-    mz_in  = mzd_in  + sum(mz(:,:), dim=1) - mxd
+    mx_in  = mxd_in  + sum(mx (:,:),dim=1) - mxd
+    my_in  = myd_in  + sum(my (:,:),dim=1) - mxd
+    mz_in  = mzd_in  + sum(mz (:,:),dim=1) - mxd
     mp_in  = cmplx(mx_in,my_in)
 
     select case (iflag)
@@ -1083,9 +1094,9 @@ contains
       call calcMagnetization()
       do i = 1, s%nAtoms
         fvec(i           ) = sum(rho(:,i)) - rho_in(i)
-        fvec(i+1*s%nAtoms) = sum(mx (:,i)) - mx_in(i)
-        fvec(i+2*s%nAtoms) = sum(my (:,i)) - my_in(i)
-        fvec(i+3*s%nAtoms) = sum(mz (:,i)) - mz_in(i)
+        fvec(i+1*s%nAtoms) = sum(mx (:,i)) - mx_in (i)
+        fvec(i+2*s%nAtoms) = sum(my (:,i)) - my_in (i)
+        fvec(i+3*s%nAtoms) = sum(mz (:,i)) - mz_in (i)
       end do
       fvec(4*s%nAtoms+1) = sum(rho) - s%totalOccupation
 
@@ -1197,11 +1208,19 @@ contains
     mpd_in  = cmplx(mxd_in,myd_in)
     s%Ef    = x(4*s%nAtoms+1)
 
+if(myrank==0) then
+  write(*,*) iter
+  write(*,*) "Fe", rho(1,1), sum(rho(2:4,1)), sum(rho(5:9,1))
+end if
+
     call update_Umatrix(mzd_in, mpd_in, rhod_in, s%nAtoms, nOrb)
 
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
 
     rho_in = rhod_in + sum(rho(:,:),dim=1) - rhod
+if(myrank==0) then
+  write(*,*) "Fe1", 'd' ,rhod_in(1), 't', sum(rho(:,1),dim=1), 'd',rhod(1),'sp',sum(rho(:,1),dim=1)-rhod(1)
+end if
     mx_in  = mxd_in  + sum(mx(:,:), dim=1) - mxd
     my_in  = myd_in  + sum(my(:,:), dim=1) - mxd
     mz_in  = mzd_in  + sum(mz(:,:), dim=1) - mxd
@@ -1217,6 +1236,10 @@ contains
         fvec(i+3*s%nAtoms) = sum(mz (:,i)) - mz_in(i)
       end do
       fvec(4*s%nAtoms+1) = sum(rho) - s%totalOccupation
+if(myrank==0) then
+  write(*,*) "Fe2", sum(rho(:,1)), rho_in(1)
+  write(*,*) "Fe2", sum(rho), s%totalOccupation
+end if
 
       call print_sc_step(rhod,mxd,myd,mzd,s%Ef,fvec)
 

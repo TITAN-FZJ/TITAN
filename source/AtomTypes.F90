@@ -42,7 +42,7 @@ type :: AtomType
   real(double) :: Lambda
   !! SOC Coupling constant
   real(double) :: FermiLevel
-  real(double) :: Occupation, OccupationD
+  real(double) :: Occupation, OccupationS, OccupationP, OccupationD
   real(double) :: LatticeConstant
 end type AtomType
 
