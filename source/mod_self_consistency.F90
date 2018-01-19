@@ -129,7 +129,7 @@ contains
         mzd = mzd * cos(hw_list(hw_count,2)*pi)
       end if
 
-      mpd = cmplx(mxd,myd,double)
+      mpd = cmplx(mxd,myd)
 
       mx = 0.d0
       my = 0.d0
@@ -564,12 +564,8 @@ contains
     complex(double), dimension(nOrb2, nOrb2, 4) :: pauli_components1,pauli_components2
 
     !--------------------- begin MPI vars --------------------
-    integer :: ix
-    integer :: ncount,ncount2
-    integer :: mu
-
+    integer :: ix,mu,ncount2
     !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
-    ncount=s%nAtoms*9
     ncount2=N*N
 
     pauli_components1 = cZero ! Pauli Matrices in Spin-Orbit space
@@ -660,7 +656,11 @@ contains
               gji = temp2(:,:, sigmap)
               call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
               do mu = 1, nOrb2
-                jacobian(i0, j0) = jacobian(i0, j0) + real(temp(mu,mu))
+                if(((mu>=5).and.(mu<=9)).or.((mu>=14).and.(mu<=18))) then
+                  jacobian(i0, j0) = jacobian(i0, j0) + real(temp(mu,mu))
+                end if
+
+                if(sigma==1) jacobian(4*s%nAtoms+1, j0) = jacobian(4*s%nAtoms+1, j0) + real(temp(mu,mu))
               end do
             end do
           end do
@@ -691,7 +691,11 @@ contains
                 gji = temp2(:,:,sigmap)
                 call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
                 do mu = 1, nOrb2
-                  jacobian(i0, j0) = jacobian(i0, j0) - real(temp(mu,mu)) ! Removing non-linear term
+                  if(((mu>=5).and.(mu<=9)).or.((mu>=14).and.(mu<=18))) then
+                    jacobian(i0, j0) = jacobian(i0, j0) - real(temp(mu,mu)) ! Removing non-linear term
+                  end if
+
+                  if(sigma==1) jacobian(4*s%nAtoms+1, j0) = jacobian(4*s%nAtoms+1, j0) - real(temp(mu,mu)) ! Removing non-linear term
                 end do
               end do
             end do
@@ -724,7 +728,10 @@ contains
 
           i0 = (sigma-1)*s%nAtoms + i
           do mu = 1, nOrb2
-            jacobian(i0, 4*s%nAtoms+1) = jacobian(i0, 4*s%nAtoms+1) - aimag(temp(mu,mu))
+            if(((mu>=5).and.(mu<=9)).or.((mu>=14).and.(mu<=18))) then
+              jacobian(i0, 4*s%nAtoms+1) = jacobian(i0, 4*s%nAtoms+1) - aimag(temp(mu,mu))
+            end if
+            if(sigma==1) jacobian(4*s%nAtoms+1, 4*s%nAtoms+1) = jacobian(4*s%nAtoms+1, 4*s%nAtoms+1) - aimag(temp(mu,mu))
           end do
 
         end do
@@ -742,18 +749,6 @@ contains
     !$omp end parallel
 
     call MPI_Allreduce(MPI_IN_PLACE, jacobian, ncount2, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
-
-    ! Derivative of the last equation (total occupation)
-    do i=1,s%nAtoms
-      do j=1,s%nAtoms
-        do sigmap = 1,4
-          j0 = (sigmap-1)*s%nAtoms + j
-          jacobian(4*s%nAtoms+1, j0) = jacobian(4*s%nAtoms+1, j0) + jacobian(i, j0)
-        end do
-      end do
-      ! Derivative of the last equation (total occupation)
-      jacobian(4*s%nAtoms+1, 4*s%nAtoms+1) = jacobian(4*s%nAtoms+1, 4*s%nAtoms+1) + jacobian(i, 4*s%nAtoms+1)
-    end do
 
     jacobian = jacobian/pi
     do i = 1, 4*s%nAtoms
@@ -1228,10 +1223,10 @@ end if
     case(1)
       call calcMagnetization()
       do i = 1, s%nAtoms
-        fvec(i           ) = sum(rho(:,i)) - rho_in(i)
-        fvec(i+1*s%nAtoms) = sum(mx (:,i)) - mx_in(i)
-        fvec(i+2*s%nAtoms) = sum(my (:,i)) - my_in(i)
-        fvec(i+3*s%nAtoms) = sum(mz (:,i)) - mz_in(i)
+        fvec(i           ) = rhod(i) - rhod_in(i)
+        fvec(i+1*s%nAtoms) =  mxd(i) -  mxd_in(i)
+        fvec(i+2*s%nAtoms) =  myd(i) -  myd_in(i)
+        fvec(i+3*s%nAtoms) =  mzd(i) -  mzd_in(i)
       end do
       fvec(4*s%nAtoms+1) = sum(rho) - s%totalOccupation
 if(myrank==0) then
