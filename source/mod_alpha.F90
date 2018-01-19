@@ -35,21 +35,18 @@ contains
 
   subroutine create_alpha_files()
     use mod_System, only: s => sys
-    use mod_BrillouinZone, only: BZ
-    use mod_parameters, only: strSites, eta, Utype, suffix, fieldpart
-    use mod_SOC, only: SOCc, socpart
-    use EnergyIntegration, only: strEnergyParts
+    use mod_parameters, only: output
     implicit none
     character(len=500)  :: varm
     integer :: i,j
 
     do i=1, s%nAtoms
       do j = 1, size(filename)-1
-         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(j)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
          open (unit=55+(j-1)*s%nAtoms+i, file=varm, status='replace', form='formatted')
-         write(unit=55+(j-1)*s%nAtoms+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ,  ((chi(j,i), j=1,4),i=1,4)  ')")
+         write(unit=55+(j-1)*s%nAtoms+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ,  ((real[chi(j,i)], imag[chi(j,i)], j=1,4),i=1,4)  ')")
       end do
-      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(5)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(5)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       open (unit=55+4*s%nAtoms+i, file=varm, status='replace', form='formatted')
       write(unit=55+4*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  (ReX(w))^(-2),     U^2,   v1  ,  v2  ,  v3,    v4')")
     end do
@@ -59,11 +56,8 @@ contains
   end subroutine create_alpha_files
 
   subroutine open_alpha_files()
-    use mod_parameters, only: fieldpart, suffix, eta, Utype, strSites
-    use mod_SOC, only: SOCc, socpart
+    use mod_parameters, only: output
     use mod_system, only: s => sys
-    use mod_BrillouinZone, only: BZ
-    use EnergyIntegration, only: strEnergyParts
     use mod_mpi_pars, only: abortProgram
     implicit none
 
@@ -74,7 +68,7 @@ contains
 
     do i=1, s%nAtoms
       do j = 1, size(filename)
-         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder),trim(filename(j)),i,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
          open (unit=55+(j-1)*s%nAtoms+i, file=varm, status='old', position='append', form='formatted', iostat=err)
          errt = errt + err
          if(err .ne. 0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -101,14 +95,14 @@ contains
     use mod_f90_kind, only: double
     use mod_constants, only: cI, StoC, CtoS
     use mod_susceptibilities, only: schi, schihf
-    use mod_parameters, only: sigmai2i, U, dim
+    use mod_parameters, only: sigmai2i, U
     use mod_system, only: s => sys
     use mod_magnet, only: mabs
     implicit none
     real(double) :: e
     real(double) :: gammaM, alpha_v1, alpha_v2, alpha_v3, alpha_v4
     complex(double), dimension(4,4) :: acart, acarthf, acarthfinv, acartinv
-    integer :: i,j,sigma, sigmap, p,q,r,t
+    integer :: i, p,q,r,t
 
     call open_alpha_files()
 

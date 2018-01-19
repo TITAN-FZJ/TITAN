@@ -27,10 +27,7 @@ contains
 
   subroutine create_TSR_files()
     use mod_System, only: s => sys
-    use mod_BrillouinZone, only: BZ
-    use mod_parameters, only: strSites, eta, Utype, suffix, fieldpart
-    use mod_SOC, only: SOCc, socpart
-    use EnergyIntegration, only: strEnergyParts
+    use mod_parameters, only: output
     implicit none
     character(len=500)  :: varm
     integer :: i,j,k
@@ -38,7 +35,7 @@ contains
     do k = 1, size(filename)
       do i=1, s%nAtoms
         do j = 1, s%nAtoms
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(k)),trim(filename(k)),i,j,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(k)),trim(filename(k)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
           open (unit=unitBase(k)+s%nAtoms*i+j, file=varm, status='replace', form='formatted')
           write(unit=unitBase(k)+s%nAtoms*i+j, fmt="(a)") FileHeader(k)
           close(unit=unitBase(k)+s%nAtoms*i+j)
@@ -51,11 +48,8 @@ contains
   end subroutine create_TSR_files
 
   subroutine open_TSR_files()
-    use mod_parameters, only: fieldpart, suffix, eta, Utype, strSites
-    use mod_SOC, only: SOCc, socpart
+    use mod_parameters, only: output
     use mod_system, only: s => sys
-    use mod_BrillouinZone, only: BZ
-    use EnergyIntegration, only: strEnergyParts
     use mod_mpi_pars, only: abortProgram
     implicit none
 
@@ -67,7 +61,7 @@ contains
     do i=1, s%nAtoms
        do j = 1, s%nAtoms
          do k = 1, size(filename)
-           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(k)),trim(filename(k)),i,j,trim(strEnergyParts),BZ%nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(suffix)
+           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(k)),trim(filename(k)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
            open (unit=unitBase(k)+s%nAtoms*i+j, file=varm, status='old', position='append', form='formatted', iostat=err)
            errt = errt + err
            if(err .ne. 0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -100,15 +94,14 @@ contains
     use mod_constants, only: levi_civita, StoC, CtoS, cZero
     use mod_System, only: s => sys
     use mod_magnet, only: Lxp, Lyp, Lzp
-    use mod_parameters, only: sigmai2i
     use TightBinding, only: nOrb
     use mod_parameters, only: sigmaimunu2i
-    use mod_susceptibilities, only: schi, chiorb, chiorb_hf
+    use mod_susceptibilities, only: chiorb, chiorb_hf
     use mod_mpi_pars, only: abortProgram
     use mod_magnet, only: mabs, mz
     implicit none
     complex(double), dimension(9,9,3,s%nAtoms) :: L
-    integer :: i,j, m,n,k, mp,np,kp, mu,nu, gamma,zeta, p,q
+    integer :: i,j, m,n,k, mp,mu,nu, gamma, p,q
     real(double), intent(in) :: e
     complex(double), dimension(2,2) :: chits
     do i = 1, s%nAtoms

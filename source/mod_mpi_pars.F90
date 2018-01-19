@@ -3,22 +3,9 @@ module mod_mpi_pars
   use MPI
   implicit none
   integer :: ierr, errorcode
-  integer :: myrank,numprocs !,mcount,mpitag
-  ! integer :: numprocs_row, numprocs_col
-  ! integer :: numprocs_row_hw, numprocs_col_hw
+  integer :: myrank,numprocs
   integer, dimension(MPI_STATUS_SIZE) :: stat
-  ! Grid for energy loop calculations
-  ! integer :: myrank_row,myrank_col
-  ! integer :: MPIsteps,MPIpts
-  ! integer :: MPIComm_Grid,MPI_Comm_Row,MPI_Comm_Col,MPI_Comm_Energy
-  ! real(double) :: MPIdelta
-  ! Grid for field loop calculation
-  ! integer :: myrank_row_hw,myrank_col_hw
-  ! integer :: MPIsteps_hw,MPIpts_hw=1
-  ! integer :: MPIComm_Grid_hw,MPI_Comm_Row_hw,MPI_Comm_Col_hw
 
-
-  ! New Stuff
   integer :: FieldComm
   !! Magnetic Field Communicator
   integer :: sField
@@ -47,10 +34,7 @@ contains
   subroutine Initialize_MPI()
     implicit none
 
- !#ifndef _UFF
- !#endif
     integer :: provided
-    !integer :: ierr
 
 #ifdef _OPENMP
 #ifdef _UFF
@@ -70,13 +54,13 @@ contains
 
   ! Wrapper function for MPI Abort
   subroutine abortProgram(str)
-    use mod_parameters, only: outputunit
+    use mod_parameters, only: output
     implicit none
     character(len=*), intent(in) :: str
     !! Abort Message
 
-    write(outputunit,"(a)") str
-    close(outputunit)
+    write(output%unit,"(a)") str
+    close(output%unit)
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
 
     return

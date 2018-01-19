@@ -2,7 +2,7 @@
 ! (in particular, the dc-limit) response functions
 subroutine calculate_dc_limit()
   use mod_constants,       only: cZero, cOne, cI, levi_civita, tpi
-  use mod_parameters, only: sigmaimunu2i, sigmai2i, dimsigmaNpl, U, offset, lnodiag, outputunit, count, emin, deltae, outputunit_loop, npt1, laddresults, lhfresponses, dim, skip_steps
+  use mod_parameters, only: sigmaimunu2i, sigmai2i, dimsigmaNpl, U, offset, lnodiag, output, count, emin, deltae, npt1, laddresults, lhfresponses, dim, skip_steps
   use mod_magnet,          only: lfield, dcfield_dependence, dc_count, dcfield, hw_count, mtheta, mphi, lxp, lyp, lzp, lx, ly, lz, mx, my, mz, mvec_spherical, hhwx, hhwy, hhwz
   use mod_SOC, only: llinearsoc
   use mod_System, only: s => sys
@@ -39,6 +39,7 @@ subroutine calculate_dc_limit()
   dc_count = dc_count + 1
 
   call genLocalEKMesh(rFreq(1),sFreq(1),FreqComm(1))
+  call realBZ % setup_fraction(rFreq(1), sFreq(1), FreqComm(1))
 
   call allocate_prefactors()
   call allocate_susceptibilities()
@@ -50,9 +51,9 @@ subroutine calculate_dc_limit()
 
   if(rFreq(1) == 0) then
     if(emin <= 2.d-6) then
-      write(outputunit_loop,"('CALCULATING DC-LIMIT QUANTITIES AS A FUNCTION OF EXTERNAL FIELD (',a,')')") trim(dcfield(dcfield_dependence))
+      write(output%unit_loop,"('CALCULATING DC-LIMIT QUANTITIES AS A FUNCTION OF EXTERNAL FIELD (',a,')')") trim(dcfield(dcfield_dependence))
     else
-      write(outputunit_loop,"('CALCULATING QUANTITIES AT FIXED FREQUENCY ',es9.2,' AS A FUNCTION OF EXTERNAL FIELD (',a,')')") e,trim(dcfield(dcfield_dependence))
+      write(output%unit_loop,"('CALCULATING QUANTITIES AT FIXED FREQUENCY ',es9.2,' AS A FUNCTION OF EXTERNAL FIELD (',a,')')") e,trim(dcfield(dcfield_dependence))
     end if
   end if
 
@@ -77,13 +78,13 @@ subroutine calculate_dc_limit()
     end if
 
     if(lhfresponses) then
-      if(rField == 0) write(outputunit_loop,"('[calculate_dc_limit] No renormalization will be done. Setting prefactors to identity and calculating HF susceptibilities... ')")
+      if(rField == 0) write(output%unit_loop,"('[calculate_dc_limit] No renormalization will be done. Setting prefactors to identity and calculating HF susceptibilities... ')")
       prefactor     = identt
       if(llinearsoc) prefactorlsoc = identt
       call eintshechi(e)
-      if(rField == 0) call write_time(outputunit_loop,'[calculate_dc_limit] Time after susceptibility calculation: ')
+      if(rField == 0) call write_time(output%unit_loop,'[calculate_dc_limit] Time after susceptibility calculation: ')
     else
-      if(rField == 0) write(outputunit_loop,"('[calculate_dc_limit] Calculating prefactor to use in currents and disturbances calculation. ')")
+      if(rField == 0) write(output%unit_loop,"('[calculate_dc_limit] Calculating prefactor to use in currents and disturbances calculation. ')")
       if(llinearsoc) then
         call eintshechilinearsoc(e) ! Note: chiorb_hflsoc = lambda*dchi_hf/dlambda(lambda=0)
         ! Broadcast chiorb_hflsoc to all processors of the same row
@@ -107,7 +108,7 @@ subroutine calculate_dc_limit()
         call zgemm('n','n',dim,dim,dim,cOne,prefactor,dim,prefactorlsoc,dim,cZero,chiorb,dim) ! chiorb = prefactor*prefactorlsoc
         call zgemm('n','n',dim,dim,dim,cOne,chiorb,dim,prefactor,dim,cZero,prefactorlsoc,dim) ! prefactorlsoc = chiorb*prefactor = prefactor*prefactorlsoc*prefactor
       end if
-      if(rField == 0) call write_time(outputunit_loop,'[calculate_dc_limit] Time after prefactor calculation: ')
+      if(rField == 0) call write_time(output%unit_loop,'[calculate_dc_limit] Time after prefactor calculation: ')
     end if
 
     ! Start parallelized processes to calculate disturbances and currents for energy e
@@ -117,7 +118,7 @@ subroutine calculate_dc_limit()
       call eintshe(e)
     end if
 
-    if(rField == 0) call write_time(outputunit_loop,'[calculate_dc_limit] Time after energy integral: ')
+    if(rField == 0) call write_time(output%unit_loop,'[calculate_dc_limit] Time after energy integral: ')
 
     if(rFreq(1) == 0) then
 
@@ -429,22 +430,22 @@ subroutine calculate_dc_limit()
         end do
 
         write(time,"('[calculate_dc_limit] Time after step ',i0,': ')") dc_count
-        call write_time(outputunit_loop,time)
+        call write_time(output%unit_loop,time)
 
         ! Emergency stop
         open(unit=911, file="stop", status='old', iostat=iw)
         if(iw==0) then
           close(911)
-            write(outputunit,"('[calculate_dc_limit] Emergency ""stop"" file found! Stopping after step ',i0,'...')") dc_count
+            write(output%unit,"('[calculate_dc_limit] Emergency ""stop"" file found! Stopping after step ',i0,'...')") dc_count
             call system ('rm stop')
-            write(outputunit,"('[calculate_dc_limit] (""stop"" file deleted!)')")
+            write(output%unit,"('[calculate_dc_limit] (""stop"" file deleted!)')")
           call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
         end if
         ! Recovering rank 0 counter and magnetization direction
         hw_count       = hw_count_temp
         mvec_spherical = mvec_spherical_temp
         write(time,"('[calculate_dc_limit] Time after step ',i0,': ')") dc_count
-        call write_time(outputunit_loop,time)
+        call write_time(output%unit_loop,time)
      else
         call MPI_Send(hw_count         ,1                ,MPI_INTEGER         ,0,44000, FreqComm(2),ierr)
         call MPI_Send(count_temp       ,1                ,MPI_INTEGER         ,0,44100, FreqComm(2),ierr)

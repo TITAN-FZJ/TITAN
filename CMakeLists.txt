@@ -122,7 +122,7 @@ else()
   target_link_libraries(${TITAN_EXE} -mkl -qopenmp /opt/NAG/fll6i26dcl/lib/libnag_nag.a)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                            -fpp
-                                           -O3
+                                           -O2
                                            -qopenmp
                                            -mkl
                            					 #-ipo

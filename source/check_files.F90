@@ -1,6 +1,6 @@
 ! Check if files exist
 subroutine check_files()
-  use mod_parameters, only: itype,npt1,outputunit
+  use mod_parameters, only: itype,npt1,output
   use mod_susceptibilities, only: open_chi_files, close_chi_files, &
                                   open_dc_chi_files, close_dc_chi_files
   use mod_disturbances, only: open_disturbance_files, close_disturbance_files, &
@@ -14,7 +14,7 @@ subroutine check_files()
   !use mod_sha, only: openclose_sha_files, openclose_dc_sha_files !TODO: Re-Include
   implicit none
   integer :: count
-  write(outputunit,"('[check_files] Checking if files exist...')")
+  write(output%unit,"('[check_files] Checking if files exist...')")
   select case (itype)
   case (7)
     call open_chi_files()
@@ -50,7 +50,7 @@ subroutine check_files()
       end do
     end if
   end select
-  write(outputunit,"('[check_files] All files exist!')")
+  write(output%unit,"('[check_files] All files exist!')")
 
   return
 end subroutine check_files

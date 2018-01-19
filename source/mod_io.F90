@@ -1,19 +1,21 @@
 module mod_io
+  ! Subroutines to read input file and variables containing these parameters
   implicit none
   logical :: log_unit = .false.
+  character(len=12), parameter :: logfile = "parameter.in"
 
 contains
 
   subroutine log_message(procedure, message)
     use mod_mpi_pars, only: myrank
-    use mod_parameters, only: outputunit
+    use mod_parameters, only: output
     implicit none
     character(len=*), intent(in) :: procedure
     character(len=*), intent(in) :: message
 
     if(myrank == 0) then
        if(log_unit) then
-          write(outputunit, "('[',a,'] ',a,'')") procedure, trim(message)
+          write(output%unit, "('[',a,'] ',a,'')") procedure, trim(message)
        else
           write(*, "('[',a,'] ',a,'')") procedure, trim(message)
        end if
@@ -22,14 +24,14 @@ contains
 
   subroutine log_error(procedure, message)
     use mod_mpi_pars
-    use mod_parameters, only: outputunit
+    use mod_parameters, only: output
     implicit none
     character(len=*), intent(in) :: procedure
     character(len=*), intent(in) :: message
 
     if(myrank == 0) then
        if(log_unit) then
-          write(outputunit, "('[Error] [',a,'] ',a,'')") procedure, trim(message)
+          write(output%unit, "('[Error] [',a,'] ',a,'')") procedure, trim(message)
        else
           write(*, "('[Error] [',a,'] ',a,'')") procedure, trim(message)
        end if
@@ -40,14 +42,14 @@ contains
 
   subroutine log_warning(procedure, message)
     use mod_mpi_pars, only: myrank
-    use mod_parameters, only: outputunit
+    use mod_parameters, only: output
     implicit none
     character(len=*), intent(in) :: procedure
     character(len=*), intent(in) :: message
 
     if(myrank == 0) then
        if(log_unit) then
-          write(outputunit, "('[Warning] [',a,'] ',a,'')") procedure, trim(message)
+          write(output%unit, "('[Warning] [',a,'] ',a,'')") procedure, trim(message)
        else
           write(*, "('[Warning] [',a,'] ',a,'')") procedure, trim(message)
        end if
@@ -58,24 +60,22 @@ contains
     use mod_f90_kind, only: double
     use mod_mpi_pars
     use mod_input
-    use mod_parameters, only: outputunit, laddresults, lverbose, ldebug, lkpoints, &
+    use mod_parameters, only: output, laddresults, lverbose, ldebug, lkpoints, &
                               lpositions, lcreatefiles, Utype, lnolb, lhfresponses, &
                               lnodiag, lsha, lcreatefolders, lwriteonscreen, runoptions, &
                               ltestcharge, llgtv, lsortfiles, magaxis, magaxisvec, &
-                              latticeName, itype, ry2ev, ltesla, eta, dmax, emin, emax, deltae, &
+                              itype, ry2ev, ltesla, eta, dmax, emin, emax, deltae, &
                               skip_steps, npts, npt1, renorm, renormnb, bands, band_cnt, &
-                              offset, dfttype, suffix, outputfile, U, hfr, total_nkpt, parField, parFreq
+                              offset, dfttype, U, parField, parFreq, kptotal_in, kpx_in, kpy_in, kpz_in
     use mod_self_consistency, only: lslatec, lontheflysc, lnojac, lGSL, lrotatemag, skipsc, scfile, mag_tol
-    use mod_system, only: System, pln_normal, n0sc1, n0sc2
-    use mod_BrillouinZone, only: BZ
-    use mod_SOC, only: SOC, SOCc, socpart, socscale, llinearsoc, llineargfsoc
+    use mod_system, only: System, n0sc1, n0sc2
+    use mod_SOC, only: SOC, socscale, llinearsoc, llineargfsoc
     use mod_magnet, only: lfield, tesla, hwa_i, hwa_f, hwa_npts, hwa_npt1, hwt_i, hwt_f, &
                           hwt_npts, hwt_npt1, hwp_i, hwp_f, hwp_npts, hwp_npt1, hwx, hwy, &
                           hwz, hwscale, hwtrotate, hwprotate, skip_steps_hw
-    use TightBinding, only: tbmode, fermi_layer, layers
-    use Lattice, only: LatticeMode
+    use TightBinding, only: tbmode, fermi_layer
     use ElectricField, only: ElectricFieldMode, ElectricFieldVector, EFp, EFt
-    use EnergyIntegration, only: parts, parts3, pn1, pn2, pnt, n1gl, n3gl, strEnergyParts
+    use EnergyIntegration, only: parts, parts3, pn1, pn2, pnt, n1gl, n3gl
     implicit none
     character(len=*), intent(in) :: filename
     type(System), intent(inout) :: s
@@ -88,93 +88,47 @@ contains
          call log_error("get_parameters", "File " // trim(filename) // " not found!")
 
     if(myrank == 0) then
-       if(.not. enable_input_logging("parameter.in")) &
+       if(.not. enable_input_logging(logfile)) &
             call log_warning("get_parameters", "couldn't enable logging.")
     end if
-    if(.not. get_parameter("output", outputfile)) &
+    if(.not. get_parameter("output", output%file)) &
          call log_error("get_parameters", "Output filename not given!")
 
-    if(myrank==0) open (unit=outputunit, file=trim(outputfile), status='replace')
+    if(myrank==0) open (unit=output%unit, file=trim(output%file), status='replace')
     log_unit = .true.
 
     if(myrank==0) &
-         write(outputunit,"('[get_parameters] Reading parameters from ""',a,'"" file...')") trim(filename)
+         write(output%unit,"('[get_parameters] Reading parameters from ""',a,'"" file...')") trim(filename)
 
     !===============================================================================================
     !============= System configuration (Lattice + Reciprocal lattice) =============================
     !===============================================================================================
-    if(.not. get_parameter("basis", LatticeMode, 2)) call log_warning("get_parameters", "'basis' not found. Using default value.")
-
     if(.not. get_parameter("nn_stages", s%nStages)) call log_warning("get_parameters","'nn_stages' missing.")
 
     if(.not. get_parameter("bulk", s%lbulk, .true.)) call log_warning("get_parameters", "'bulk' missing. Using default value.")
 
-    if(LatticeMode == 1) then
-      call log_error("get_parameters", "Monoatomic basis not available right now, sorry :P")
-      if(.not. get_parameter("a0", s%a0)) call log_error("get_parameters","'a0' missing.")
-
-      if(.not. get_parameter("lattice", latticeName)) call log_error("get_parameters","'lattice' missing.")
-      select case(latticeName)
-      case("general")
-        if(.not. get_parameter("a1", vector, cnt)) &
-            call log_error("get_parameters"," 'a1' missing.")
-        if(cnt /= 3) call log_error("get_parameters","'a1' has wrong size (size 3 required).")
-        s%a1 = vector * s%a0
-        deallocate(vector)
-
-        if(.not. get_parameter("a2", vector, cnt)) call log_error("get_parameters","'a2' missing.")
-        if(cnt /= 3) call log_error("get_parameters","'a3' has wrong size (size 3 required).")
-        s%a2 = vector * s%a0
-        deallocate(vector)
-
-        if(.not. get_parameter("a3", vector, cnt)) call log_error("get_parameters","'a3' missing.")
-        if(cnt /= 3) call log_error("get_parameters","'a3' has wrong size (size 3 required).")
-        s%a3 = vector * s%a0
-        deallocate(vector)
-      case("bcc")
-        s%a1 = [-0.5d0,  0.5d0,  0.5d0] * s%a0 !/ sqrt(0.75d0)
-        s%a2 = [ 0.5d0, -0.5d0,  0.5d0] * s%a0 !/ sqrt(0.75d0)
-        s%a3 = [ 0.5d0,  0.5d0, -0.5d0] * s%a0 !/ sqrt(0.75d0)
-      case("fcc")
-        s%a1 = [0.0d0, 0.5d0, 0.5d0] * s%a0 !/ sqrt(0.5d0)
-        s%a2 = [0.5d0, 0.0d0, 0.5d0] * s%a0 !/ sqrt(0.5d0)
-        s%a3 = [0.5d0, 0.5d0, 0.0d0] * s%a0 !/ sqrt(0.5d0)
-      case("sc")
-        s%a1 = [1.0d0, 0.0d0, 0.0d0] * s%a0
-        s%a2 = [0.0d0, 1.0d0, 0.0d0] * s%a0
-        s%a3 = [0.0d0, 0.0d0, 1.0d0] * s%a0
-      case("hcp")
-        s%a1 = [1.0d0, 0.0d0, 0.0d0] * s%a0
-        s%a2 = [0.5d0, sqrt(3.0d0)*0.5d0, 0.0d0] * s%a0
-        s%a3 = [0.0d0, 0.0d0, sqrt(8.0d0 / 3.0d0)] * s%a0 / sqrt( 8.0d0 / 3.0d0 )
-      case default
-        call log_error("get_parameters","Unknown 'lattice' option.")
-      end select
-
-      if(get_parameter("plane", vector, cnt)) then
-        if(cnt /= 3) call log_error("get_parameters","'plane' has wrong size (size 3 required).")
-        pln_normal = vector(1:3) / sqrt(dot_product(vector(1:3),vector(1:3)))
-        deallocate(vector)
-      else
-        pln_normal = 0.d0
-        call log_warning("get_parameters","'plane' missing.")
-      end if
-
-    end if
-
     if(.not. get_parameter("nkpt", i_vector,cnt)) call log_error("get_parameters","'nkpt' missing.")
     if(cnt == 1) then
-      BZ%nkpt = i_vector(1)
+      kptotal_in = i_vector(1)
+      if(s%lbulk) then
+        kpx_in = ceiling((dble(kptotal_in))**(1.d0/3.d0))
+        kpy_in = kpx_in
+        kpz_in = kpx_in
+        kptotal_in = kpx_in * kpy_in * kpz_in
+      else
+        kpx_in = ceiling((dble(kptotal_in))**(1.d0/2.d0))
+        kpy_in = kpx_in
+        kpz_in = 0
+        kptotal_in = kpx_in * kpy_in
+      end if
     else if(cnt == 3) then
-      BZ%nkpt_x = i_vector(1)
-      BZ%nkpt_y = i_vector(2)
-      BZ%nkpt_z = i_vector(3)
+      kpx_in = i_vector(1)
+      kpy_in = i_vector(2)
+      kpz_in = i_vector(3)
+      kptotal_in = kpx_in * kpy_in * kpz_in
     else
       call log_error("get_parameter", "'nkpt' has wrong size (expected 1 or 3)")
     end if
-
-    total_nkpt = BZ%nkpt
-
 
     !===============================================================================================
     !===============================================================================================
@@ -270,14 +224,14 @@ contains
       if(.not. get_parameter("socscale", socscale, 1.d0)) &
           call log_warning("get_parameters","'socscale' missing. Using default value.")
       if(llinearsoc) then
-        SOCc = "L"
+        output%SOCchar = "L"
       else
-        SOCc = "T"
+        output%SOCchar = "T"
       end if
-      if(abs(socscale-1.d0)>1.d-6) write(socpart,"('_socscale=',f5.2)") socscale
-      if((llineargfsoc).or.(llinearsoc)) socpart = trim(socpart) // "_linearsoc"
+      if(abs(socscale-1.d0)>1.d-6) write(output%SOC,"('_socscale=',f5.2)") socscale
+      if((llineargfsoc).or.(llinearsoc)) output%SOC = trim(output%SOC) // "_linearsoc"
     else
-      SOCc = "F"
+      output%SOCchar = "F"
     end if
 
     !---------------------------------------- Magnetization ----------------------------------------
@@ -414,7 +368,7 @@ contains
 
     if(.not. get_parameter("parts", parts)) call log_error("get_parameters","'parts' missing.")
     if(.not. get_parameter("parts3", parts3)) call log_error("get_parameters","'parts3' missing.")
-    write(strEnergyParts, "('_parts=',i0,'_parts3=',i0)") parts,parts3
+    write(output%Energy, "('_parts=',i0,'_parts3=',i0)") parts,parts3
 
 
     if(.not. get_parameter("n1gl", n1gl)) call log_error("get_parameters","'n1gl' missing.")
@@ -530,7 +484,7 @@ contains
     !==============================================================================================!
     !==============================================================================================!
 
-    if(.not. get_parameter("suffix", suffix)) call log_warning("get_parameters","'suffix' missing.")
+    if(.not. get_parameter("suffix", output%suffix)) call log_warning("get_parameters","'suffix' missing.")
 
     if(.not. get_parameter("parField", parField, 1)) call log_warning("get_parameters","'parField' missing. Using default value")
     if(.not. get_parameter("parFreq", parFreq, 1)) call log_warning("get_parameters","'parFreq' missing. Using default value")
@@ -543,7 +497,7 @@ contains
 
 
     if(myrank==0) &
-        write(outputunit,"('[get_parameters] Finished reading from ""',a,'"" file')") trim(filename)
+        write(output%unit,"('[get_parameters] Finished reading from ""',a,'"" file')") trim(filename)
 
 
     !-------------------------------------------------------------------------------
@@ -559,23 +513,23 @@ contains
     ! Some consistency checks
     if((renorm).and.((renormnb<n0sc1).or.(renormnb>n0sc2))) then
        if(myrank==0) then
-          write(outputunit,"('[get_parameters] Invalid neighbor for renormalization: ',i0,'!')") renormnb
-          write(outputunit,"('[get_parameters] Choose a value between ',i0,' and ',i0,'.')") n0sc1,n0sc2
+          write(output%unit,"('[get_parameters] Invalid neighbor for renormalization: ',i0,'!')") renormnb
+          write(output%unit,"('[get_parameters] Choose a value between ',i0,' and ',i0,'.')") n0sc1,n0sc2
        end if
        call MPI_Finalize(ierr)
        stop
     end if
     if(skip_steps<0) then
-       if(myrank==0) write(outputunit,"('[get_parameters] Invalid number of energy steps to skip: ',i0)") skip_steps
+       if(myrank==0) write(output%unit,"('[get_parameters] Invalid number of energy steps to skip: ',i0)") skip_steps
        call MPI_Finalize(ierr)
        stop
     end if
     if(skip_steps_hw<0) then
-       if(myrank==0) write(outputunit,"('[get_parameters] Invalid number of field steps to skip: ',i0)") skip_steps_hw
+       if(myrank==0) write(output%unit,"('[get_parameters] Invalid number of field steps to skip: ',i0)") skip_steps_hw
        call MPI_Finalize(ierr)
        stop
     end if
-    if((lhfresponses).and.(itype==7).and.(myrank==0)) write(outputunit,"('[get_parameters] Susceptibility calculations already include HF responses. Ignoring ""hfresponses"" runoption')")
+    if((lhfresponses).and.(itype==7).and.(myrank==0)) write(output%unit,"('[get_parameters] Susceptibility calculations already include HF responses. Ignoring ""hfresponses"" runoption')")
     ! Adjusting zeeman energy to Ry or eV
     tesla = tesla*ry2ev
 
@@ -584,9 +538,9 @@ contains
 
     ! Set string for HF Responses
     if(lhfresponses) then
-      hfr = "_HF"
+      output%hfr = "_HF"
     else
-      hfr = ""
+      output%hfr = ""
     end if
 
     ! Setting up external field variables and loops
@@ -614,7 +568,7 @@ contains
     use mod_mpi_pars
     use mod_parameters
     use mod_System, only: System, n0sc1, n0sc2
-    use mod_BrillouinZone, only: BZ
+    use mod_BrillouinZone, only: BZ => realBZ
     use mod_SOC, only: SOC, socscale
     use mod_magnet
     use EnergyIntegration, only: parts, parts3, n1gl, n3gl
@@ -624,116 +578,116 @@ contains
     type(System), intent(in) :: s
     integer :: i
 #ifdef _OPENMP
-    write(outputunit_loop,"(10x,'Running on ',i0,' MPI process(es) WITH ',i0,' openMP')") numprocs, omp_get_max_threads()
+    write(output%unit_loop,"(10x,'Running on ',i0,' MPI process(es) WITH ',i0,' openMP')") numprocs, omp_get_max_threads()
 #else
-    write(outputunit_loop,"(10x,'Running on ',i0,' MPI process(es) WITHOUT openMP')") numprocs
+    write(output%unit_loop,"(10x,'Running on ',i0,' MPI process(es) WITHOUT openMP')") numprocs
 #endif
-    write(outputunit_loop,"('|------------------------------- PARAMETERS: -------------------------------|')")
-    write(outputunit_loop,"(10x,'nAtoms = ',i0)") s%nAtoms
-    write(outputunit_loop,"(1x,'DFT parameters: ')", advance='no')
+    write(output%unit_loop,"('|------------------------------- PARAMETERS: -------------------------------|')")
+    write(output%unit_loop,"(10x,'nAtoms = ',i0)") s%nAtoms
+    write(output%unit_loop,"(1x,'DFT parameters: ')", advance='no')
     dft_type: select case (dfttype)
     case ("T")
-       write(outputunit_loop,"('Tight-binding basis')")
+       write(output%unit_loop,"('Tight-binding basis')")
     case ("O")
-       write(outputunit_loop,"('Orthogonal basis')")
+       write(output%unit_loop,"('Orthogonal basis')")
     end select dft_type
     if(SOC) then
-       write(outputunit_loop,"(1x,'Spin Orbit Coupling: ACTIVATED')")
-       write(outputunit_loop,"(5x,'socscale =',es9.2)") socscale
+       write(output%unit_loop,"(1x,'Spin Orbit Coupling: ACTIVATED')")
+       write(output%unit_loop,"(5x,'socscale =',es9.2)") socscale
     else
-       write(outputunit_loop,"(1x,'Spin Orbit Coupling: DEACTIVATED')")
+       write(output%unit_loop,"(1x,'Spin Orbit Coupling: DEACTIVATED')")
     end if
-    write(outputunit_loop,"(8x,'Utype = ',i0)") Utype
+    write(output%unit_loop,"(8x,'Utype = ',i0)") Utype
 
-    write(outputunit_loop,"(1x,'Electric field direction: ')", advance='no')
+    write(output%unit_loop,"(1x,'Electric field direction: ')", advance='no')
     select case(ElectricFieldMode)
     case(-3)
-       write(outputunit_loop,"('Spherical theta=',f7.3,' phi=',f7.3)") EFt, EFp
+       write(output%unit_loop,"('Spherical theta=',f7.3,' phi=',f7.3)") EFt, EFp
     case(-2)
-       write(outputunit_loop,"('Bravais ')")
+       write(output%unit_loop,"('Bravais ')")
     case(-1)
-       write(outputunit_loop,"('Cartesian')")
+       write(output%unit_loop,"('Cartesian')")
     case(1:99)
-       write(outputunit_loop, "('Neighbor ',i0)") ElectricFieldMode
+       write(output%unit_loop, "('Neighbor ',i0)") ElectricFieldMode
     end select
-    write(outputunit_loop,"('Direction ',/,1x,' E = (',f6.3,',',f6.3,',',f6.3,')')") (ElectricFieldVector(i), i=1,3)
+    write(output%unit_loop,"('Direction ',/,1x,' E = (',f6.3,',',f6.3,',',f6.3,')')") (ElectricFieldVector(i), i=1,3)
 
     if(renorm) then
-       write(outputunit_loop,"(1x,'Current renormalization: ACTIVATED')")
-       write(outputunit_loop,"(5x,'renormnb = ',i0)") renormnb
+       write(output%unit_loop,"(1x,'Current renormalization: ACTIVATED')")
+       write(output%unit_loop,"(5x,'renormnb = ',i0)") renormnb
     else
-       write(outputunit_loop,"(1x,'Current renormalization: DEACTIVATED')")
+       write(output%unit_loop,"(1x,'Current renormalization: DEACTIVATED')")
     end if
-    write(outputunit_loop,"(9x,'nkpt = ',i0)") BZ%nkpt
-    write(outputunit_loop,"(8x,'parts = ',i0,'x',i0)") parts,n1gl
-    write(outputunit_loop,"(7x,'parts3 = ',i0,'x',i0)") parts3,n3gl
-    write(outputunit_loop,"(10x,'eta =',es9.2)") eta
+    write(output%unit_loop,"(9x,'nkpt = ',i0,' : ',i0,' x ',i0,' x ',i0)") BZ%nkpt, BZ%nkpt_x, BZ%nkpt_y, BZ%nkpt_z
+    write(output%unit_loop,"(8x,'parts = ',i0,'x',i0)") parts,n1gl
+    write(output%unit_loop,"(7x,'parts3 = ',i0,'x',i0)") parts3,n3gl
+    write(output%unit_loop,"(10x,'eta =',es9.2)") eta
     if(lfield) then
-       write(outputunit_loop,"(1x,'Static magnetic field: ACTIVATED')")
-       write(outputunit_loop,"(10x,'hwx =',es9.2,5x,'|',5x,'hwa =',es9.2)") hwx,hw_list(hw_count,1)
-       write(outputunit_loop,"(10x,'hwy =',es9.2,5x,'|',5x,'hwt =',f6.3)") hwy,hw_list(hw_count,2)
-       write(outputunit_loop,"(10x,'hwz =',es9.2,5x,'|',5x,'hwp =',f6.3)") hwz,hw_list(hw_count,3)
+       write(output%unit_loop,"(1x,'Static magnetic field: ACTIVATED')")
+       write(output%unit_loop,"(10x,'hwx =',es9.2,5x,'|',5x,'hwa =',es9.2)") hwx,hw_list(hw_count,1)
+       write(output%unit_loop,"(10x,'hwy =',es9.2,5x,'|',5x,'hwt =',f6.3)") hwy,hw_list(hw_count,2)
+       write(output%unit_loop,"(10x,'hwz =',es9.2,5x,'|',5x,'hwp =',f6.3)") hwz,hw_list(hw_count,3)
     else
-       write(outputunit_loop,"(1x,'Static magnetic field: DEACTIVATED')")
+       write(output%unit_loop,"(1x,'Static magnetic field: DEACTIVATED')")
     end if
-    if(runoptions/="") write(outputunit_loop,"(6x,'Activated options:',/,4x,a)") trim(runoptions)
+    if(runoptions/="") write(output%unit_loop,"(6x,'Activated options:',/,4x,a)") trim(runoptions)
 
-    write(outputunit_loop,"('|------------------------------ TO CALCULATE: ------------------------------|')")
+    write(output%unit_loop,"('|------------------------------ TO CALCULATE: ------------------------------|')")
     write_itype: select case (itype)
     case (0)
-       write(outputunit_loop,"(1x,'Test before SC')")
-       write(outputunit_loop,"(8x,'n0sc1 = ',i0)") n0sc1
-       write(outputunit_loop,"(8x,'n0sc2 = ',i0)") n0sc2
-       write(outputunit_loop,"(9x,'emin =',es9.2)") emin
-       write(outputunit_loop,"(9x,'emax =',es9.2)") emax
-       write(outputunit_loop,"(1x,'Number of points to calculate: ',i0)") npt1
+       write(output%unit_loop,"(1x,'Test before SC')")
+       write(output%unit_loop,"(8x,'n0sc1 = ',i0)") n0sc1
+       write(output%unit_loop,"(8x,'n0sc2 = ',i0)") n0sc2
+       write(output%unit_loop,"(9x,'emin =',es9.2)") emin
+       write(output%unit_loop,"(9x,'emax =',es9.2)") emax
+       write(output%unit_loop,"(1x,'Number of points to calculate: ',i0)") npt1
     case (1)
-       write(outputunit_loop,"(1x,'Self-consistency only')")
+       write(output%unit_loop,"(1x,'Self-consistency only')")
     case (2)
-       write(outputunit_loop,"(1x,'Test after SC')")
-       write(outputunit_loop,"(8x,'n0sc1 = ',i0)") n0sc1
-       write(outputunit_loop,"(8x,'n0sc2 = ',i0)") n0sc2
-       write(outputunit_loop,"(9x,'emin =',es9.2)") emin
-       write(outputunit_loop,"(9x,'emax =',es9.2)") emax
-       write(outputunit_loop,"(1x,'Number of points to calculate: ',i0)") npt1
+       write(output%unit_loop,"(1x,'Test after SC')")
+       write(output%unit_loop,"(8x,'n0sc1 = ',i0)") n0sc1
+       write(output%unit_loop,"(8x,'n0sc2 = ',i0)") n0sc2
+       write(output%unit_loop,"(9x,'emin =',es9.2)") emin
+       write(output%unit_loop,"(9x,'emax =',es9.2)") emax
+       write(output%unit_loop,"(1x,'Number of points to calculate: ',i0)") npt1
     case (3)
-       write(outputunit_loop,"(1x,'LDOS and exchange interactions as a function of energy')")
-       write(outputunit_loop,"(9x,'emin =',es9.2)") emin
-       write(outputunit_loop,"(9x,'emax =',es9.2)") emax
-       write(outputunit_loop,"(1x,'Number of points to calculate: ',i0)") npt1
+       write(output%unit_loop,"(1x,'LDOS and exchange interactions as a function of energy')")
+       write(output%unit_loop,"(9x,'emin =',es9.2)") emin
+       write(output%unit_loop,"(9x,'emax =',es9.2)") emax
+       write(output%unit_loop,"(1x,'Number of points to calculate: ',i0)") npt1
     case (4)
-       write(outputunit_loop,"(1x,'Band structure')")
-       write(outputunit_loop,"(9x,'Number of points to calculate: ',i0)") npt1
+       write(output%unit_loop,"(1x,'Band structure')")
+       write(output%unit_loop,"(9x,'Number of points to calculate: ',i0)") npt1
     case (5)
-       write(outputunit_loop,"(1x,'Charge and spin density at Fermi surface')")
+       write(output%unit_loop,"(1x,'Charge and spin density at Fermi surface')")
     case (6)
-       write(outputunit_loop,"(1x,'Exhange interactions and anisotropies (full tensor)')")
-       if(nmaglayers==1) write(outputunit_loop,"(1x,'Only 1 magnetic layer: calculating only anisotropies')")
+       write(output%unit_loop,"(1x,'Exhange interactions and anisotropies (full tensor)')")
+       if(nmaglayers==1) write(output%unit_loop,"(1x,'Only 1 magnetic layer: calculating only anisotropies')")
        !write(outputunit_loop,"(8x,'from Npl = ',i0,' to ',i0)") Npl_i,Npl_f
     case (7)
-       write(outputunit_loop,"(1x,'Local susceptibility as a function of energy')")
-       write(outputunit_loop,"(9x,'emin =',es9.2)") emin
-       write(outputunit_loop,"(9x,'emax =',es9.2)") emax
-       !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps of size',es10.3,' each calculating ',i0,' points')") npt1,MPIsteps,MPIdelta,MPIpts
+       write(output%unit_loop,"(1x,'Local susceptibility as a function of energy')")
+       write(output%unit_loop,"(9x,'emin =',es9.2)") emin
+       write(output%unit_loop,"(9x,'emax =',es9.2)") emax
+       !write(output%unit_loop,"(1x,i0,' points divided into ',i0,' steps of size',es10.3,' each calculating ',i0,' points')") npt1,MPIsteps,MPIdelta,MPIpts
     case (8)
-       write(outputunit_loop,"(1x,'Parallel currents, disturbances and local susc. as a function of energy')")
-       write(outputunit_loop,"(8x,'n0sc1 = ',i0)") n0sc1
-       write(outputunit_loop,"(8x,'n0sc2 = ',i0)") n0sc2
-       write(outputunit_loop,"(9x,'emin =',es9.2)") emin
-       write(outputunit_loop,"(9x,'emax =',es9.2)") emax
+       write(output%unit_loop,"(1x,'Parallel currents, disturbances and local susc. as a function of energy')")
+       write(output%unit_loop,"(8x,'n0sc1 = ',i0)") n0sc1
+       write(output%unit_loop,"(8x,'n0sc2 = ',i0)") n0sc2
+       write(output%unit_loop,"(9x,'emin =',es9.2)") emin
+       write(output%unit_loop,"(9x,'emax =',es9.2)") emax
        !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps of energy size',es10.3,' each calculating ',i0,' points')") total_hw_npt1*npt1,MPIsteps*MPIsteps_hw,MPIdelta,MPIpts_hw*MPIpts
     case (9)
-       write(outputunit_loop,"(1x,'dc limit calculations as a function of ',a)") trim(dcfield(dcfield_dependence))
-       write(outputunit_loop,"(1x,'e =',es9.2)") emin
-       write(outputunit_loop,"(1x,'hwa_min =',es9.2)") hw_list(1,1)
-       write(outputunit_loop,"(1x,'hwa_max =',es9.2)") hw_list(total_hw_npt1,1)
-       write(outputunit_loop,"(1x,'hwt_min =',f6.3)") hw_list(1,2)
-       write(outputunit_loop,"(1x,'hwt_max =',f6.3)") hw_list(total_hw_npt1,2)
-       write(outputunit_loop,"(1x,'hwp_min =',f6.3)") hw_list(1,3)
-       write(outputunit_loop,"(1x,'hwp_max =',f6.3)") hw_list(total_hw_npt1,3)
+       write(output%unit_loop,"(1x,'dc limit calculations as a function of ',a)") trim(dcfield(dcfield_dependence))
+       write(output%unit_loop,"(1x,'e =',es9.2)") emin
+       write(output%unit_loop,"(1x,'hwa_min =',es9.2)") hw_list(1,1)
+       write(output%unit_loop,"(1x,'hwa_max =',es9.2)") hw_list(total_hw_npt1,1)
+       write(output%unit_loop,"(1x,'hwt_min =',f6.3)") hw_list(1,2)
+       write(output%unit_loop,"(1x,'hwt_max =',f6.3)") hw_list(total_hw_npt1,2)
+       write(output%unit_loop,"(1x,'hwp_min =',f6.3)") hw_list(1,3)
+       write(output%unit_loop,"(1x,'hwp_max =',f6.3)") hw_list(total_hw_npt1,3)
        !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps, each calculating ',i0,' points')") total_hw_npt1*npt1,MPIsteps*MPIsteps_hw,MPIpts_hw*MPIpts
     end select write_itype
-    write(outputunit_loop,"('|---------------------------------------------------------------------------|')")
+    write(output%unit_loop,"('|---------------------------------------------------------------------------|')")
     return
   end subroutine iowrite
 

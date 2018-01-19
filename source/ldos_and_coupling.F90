@@ -1,17 +1,20 @@
 ! This subroutine calculates LDOS and coupling as a function of energy
 subroutine ldos_and_coupling()
   use mod_f90_kind, only: double
-  use mod_parameters, only: outputunit_loop,nmaglayers, emin, deltae, npt1, skip_steps
+  use mod_parameters, only: output,nmaglayers, emin, deltae, npt1, skip_steps
   use mod_system, only: s => sys
   use mod_LDOS
   use mod_Coupling
   use TightBinding, only: nOrb
+  use mod_BrillouinZone, only: realBZ
   use mod_mpi_pars
   implicit none
   integer :: i, j, mu, count
   real(double) :: e
 
-  if(rField == 0) write(outputunit_loop,"('CALCULATING LDOS AND EXCHANGE INTERACTIONS AS A FUNCTION OF ENERGY')")
+  if(rField == 0) write(output%unit_loop,"('CALCULATING LDOS AND EXCHANGE INTERACTIONS AS A FUNCTION OF ENERGY')")
+
+  call realBZ % setup_fraction(rFreq(1), sFreq(1), FreqComm(1))
 
   ! Opening files
   if(rField == 0) then
@@ -26,7 +29,7 @@ subroutine ldos_and_coupling()
 
   do count = startFreq + skip_steps, endFreq + skip_steps
     e = emin + (count-1) * deltae
-    if(rFreq(1) == 0) write(outputunit_loop,"('[ldos_and_coupling] ',i0,' of ',i0,' points',', e = ',es10.3)") count,npt1,e
+    if(rFreq(1) == 0) write(output%unit_loop,"('[ldos_and_coupling] ',i0,' of ',i0,' points',', e = ',es10.3)") count,npt1,e
 
     call ldos_jij_energy(e,ldosu,ldosd,Jij)
 

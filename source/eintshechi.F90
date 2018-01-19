@@ -6,7 +6,7 @@ subroutine eintshechi(e)
   use EnergyIntegration, only: generate_real_epoints, y, wght, x2, p2, pn1, pn2
   use mod_susceptibilities, only: chiorb_hf
   use mod_system, only: s => sys
-  use mod_BrillouinZone, only: BZ
+  use mod_BrillouinZone, only: realBZ
   use adaptiveMesh
   use TightBinding, only: nOrb,nOrb2
   use mod_SOC, only: llineargfsoc
@@ -28,7 +28,6 @@ subroutine eintshechi(e)
 !--------------------- begin MPI vars --------------------
   integer*8 :: ix
   integer*8 :: ix2, nep,nkp
-  integer*8 :: start2, end2
   integer*8 :: real_points
   integer :: ncount
 
@@ -38,20 +37,15 @@ subroutine eintshechi(e)
   ! Generating energy points in the real axis for third integration
   call generate_real_epoints(e)
 
-  if(abs(e) >= 1.d-10) then
-    real_points = int(pn2,8) * int(BZ%nkpt,8)
-     call calcWorkload(real_points,sFreq(1),rFreq(1),start2,end2)
-  else
-     start2 = 0
-     end2 = -1
-  end if
+  real_points = 0
+  if(abs(e) >= 1.d-10) real_points = int(pn2,8) * int(realBZ%workload,8)
 
   ! Starting to calculate energy integral
   chiorb_hf = cZero
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,i,j,mu,nu,gamma,xi,nep,nkp,ep,kp,weight,gf,gfuu,gfud,gfdu,gfdd,df1,Fint, index1, index2) &
-  !$omp& shared(llineargfsoc,start2,end2,pn1,bzs,s,BZ,local_points,Ef,e,y,wght,x2,p2,pn2,E_k_imag_mesh,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf)
+  !$omp& shared(llineargfsoc,pn1,bzs,s,realBZ,local_points,Ef,e,y,wght,x2,p2,pn2,real_points,E_k_imag_mesh,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf)
   allocate(df1(dim,dim), Fint(dim,dim), &
            gf  (nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
@@ -133,12 +127,12 @@ subroutine eintshechi(e)
   !$omp end do nowait
 
   !$omp do schedule(static)
-  do ix2 = start2, end2 ! Third integration (on the real axis)
-      nep = (ix2-1) / int(BZ % nkpt,8) + 1
-      nkp = mod(ix2-1, int(BZ % nkpt,8))+1
+  do ix2 = 1, real_points ! Third integration (on the real axis)
+      nep = (ix2-1) / int(realBZ % workload,8) + 1
+      nkp = mod(ix2-1, int(realBZ % workload,8)) + 1
       ep = x2(nep)
-      kp = BZ % kp(:,nkp)
-      weight = p2(nep) * BZ % w(nkp)
+      kp = realBZ % kp(:,nkp)
+      weight = p2(nep) * realBZ % w(nkp)
       ! Green function at (k+q,E'+E+i.eta)
       if(llineargfsoc) then
         call greenlineargfsoc(ep+e,eta,kp,gf)
@@ -233,7 +227,7 @@ subroutine eintshechilinearsoc(e)
   use mod_susceptibilities, only: chiorb_hf,chiorb_hflsoc
   use mod_mpi_pars
   use mod_system, only: s => sys
-  use mod_BrillouinZone, only: BZ
+  use mod_BrillouinZone, only: realBZ
   use adaptiveMesh
   use TightBinding, only: nOrb,nOrb2
   use mod_SOC, only: llineargfsoc
@@ -254,20 +248,16 @@ subroutine eintshechilinearsoc(e)
   complex(double), dimension(:,:), allocatable :: df1,df1lsoc
 
   !--------------------- begin MPI vars --------------------
-  integer*8 :: start2, end2
   integer :: ncount
+  integer :: real_points
   ncount=dim*dim
   !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
   ! Generating energy points in the real axis for third integration
   call generate_real_epoints(e)
 
-  if(abs(e) >= 1.d-10) then
-     call calcWorkload(int(pn2,8)*int(BZ%nkpt,8),sFreq(1),rFreq(1),start2,end2)
-  else
-     start2 = 0
-     end2 = 0
-  end if
+  real_points = 0
+  if(abs(e) >= 1.d-10) real_points = int(pn2,8) * int(realBZ%workload,8)
 
   !------------------------------------------------------
 
@@ -277,7 +267,7 @@ subroutine eintshechilinearsoc(e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,iz,i,j,mu,nu,nep,nkp,gamma,xi,kp,ep,weight,Fint,Fintlsoc,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,df1,df1lsoc) &
-  !$omp& shared(llineargfsoc,local_points,start2,end2,s,bzs,BZ,E_k_imag_mesh,e,y,wght,x2,p2,Ef,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf,chiorb_hflsoc)
+  !$omp& shared(llineargfsoc,local_points,s,bzs,realBZ,real_points,E_k_imag_mesh,e,y,wght,x2,p2,Ef,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf,chiorb_hflsoc)
   allocate(df1(dim,dim), Fint(dim,dim), &
            gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
@@ -376,12 +366,12 @@ subroutine eintshechilinearsoc(e)
   !$omp end do nowait
 
   !$omp do schedule(static)
-  do ix2 = start2, end2 ! Third integration (on the real axis)
-      nep = (ix2-1) / int(BZ % nkpt,8) + 1
-      nkp = mod(ix2-1, int(BZ % nkpt,8))+1
+  do ix2 = 1, realBZ%workload ! Third integration (on the real axis)
+      nep = (ix2-1) / int(realBZ % workload,8) + 1
+      nkp = mod(ix2-1, int(realBZ % workload,8))+1
       ep = x2(nep)
-      kp = BZ % kp(:,nkp)
-      weight = p2(nep) * BZ % w(nkp)
+      kp = realBZ % kp(:,nkp)
+      weight = p2(nep) * realBZ % w(nkp)
 
       ! Green function at (k+q,E_F+E+iy)
       call greenlinearsoc(ep+e,eta,kp,gf,gvg)

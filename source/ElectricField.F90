@@ -7,11 +7,11 @@ implicit none
 integer :: ElectricFieldMode                          !< Direction of in-plane applied electric field
 real(double), dimension(3) :: ElectricFieldVector(3)  !< Direction vector of the electric field
 real(double) :: EFp = 0.d0, EFt = 0.d0                !< Phi and Theta angles of the electric field in spherical coordinates
-character(len=50) :: strElectricField = ""            ! EFt, EFp
 
 contains
 
   subroutine initElectricField(a1,a2,a3)
+    use mod_parameters, only: output
     use mod_f90_kind, only: double
     use mod_constants, only: pi
     use mod_mpi_pars, only: abortProgram, myrank
@@ -41,7 +41,7 @@ contains
     EFp = atan(ElectricFieldVector(2) / ElectricFieldVector(1))
     EFt = acos(ElectricFieldVector(3))
 
-    write(strElectricField,"('_EFp=',es8.1,'_EFt=',es8.1)") EFp,EFt
+    write(output%EField,"('_EFp=',es8.1,'_EFt=',es8.1)") EFp,EFt
 
     return
   end subroutine initElectricField

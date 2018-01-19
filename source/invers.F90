@@ -2,7 +2,7 @@
 subroutine invers(matriz,nn)
   use mod_f90_kind
   use mod_mpi_pars
-  use mod_parameters, only: outputunit
+  use mod_parameters, only: output
   implicit none
   integer :: nn,info
   integer :: lwork
@@ -14,17 +14,17 @@ subroutine invers(matriz,nn)
   info = 0
   call zgetrf(nn,nn,matriz,nn,ipiv,info)
   if (info>0) then
-    write(outputunit,"('[invers] Singular matrix! info = ',i0,' on rank ',i0)") info,myrank
+    write(output%unit,"('[invers] Singular matrix! info = ',i0,' on rank ',i0)") info,myrank
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
   if (info<0) then
-    write(outputunit,"('[invers] Illegal value of argument ',i0,' on rank ',i0)") -info,myrank
+    write(output%unit,"('[invers] Illegal value of argument ',i0,' on rank ',i0)") -info,myrank
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
   call zgetri(nn,matriz,nn,ipiv,work,lwork,info)
 
   if (info/=0) then
-    write(outputunit,"('[invers] Singular matrix! info = ',i0,' on rank ',i0)") info,myrank
+    write(output%unit,"('[invers] Singular matrix! info = ',i0,' on rank ',i0)") info,myrank
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
 

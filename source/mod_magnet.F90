@@ -143,7 +143,7 @@ contains
   subroutine initMagneticField(nAtoms)
     use mod_f90_kind, only: double
     use mod_constants, only: cZero, pi
-    use mod_parameters, only: outputfile_loop
+    use mod_parameters, only: output
     use mod_mpi_pars, only: abortProgram, rField
     use mod_SOC, only: SOC, llinearsoc
     implicit none
@@ -161,7 +161,7 @@ contains
     !---------------------- Turning off field for hwa=0 --------------------
     if(abs(hw_list(hw_count,1)) < 1.d-8) then
       lfield = .false.
-      if((llinearsoc) .or. (.not.SOC) .and. (rField == 0)) write(outputfile_loop,"('[main] WARNING: No external magnetic field is applied and SOC is off/linear order: Goldstone mode is present!')")
+      if((llinearsoc) .or. (.not.SOC) .and. (rField == 0)) write(output%file_loop,"('[main] WARNING: No external magnetic field is applied and SOC is off/linear order: Goldstone mode is present!')")
     else
       lfield = .true.
     end if
@@ -393,29 +393,29 @@ contains
   end subroutine
 
   subroutine set_fieldpart(count)
-     use mod_parameters, only: ltesla, lnolb, fieldpart, dcfieldpart
+     use mod_parameters, only: ltesla, lnolb, output
      implicit none
      integer :: count
 
-     fieldpart = ""
+     output%BField = ""
      if(lfield) then
-      write(fieldpart, "('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(count,1),hw_list(count,2),hw_list(count,3)
-      if(ltesla)    fieldpart = trim(fieldpart) // "_tesla"
-      if(lnolb)     fieldpart = trim(fieldpart) // "_nolb"
-      if(lhwscale)  fieldpart = trim(fieldpart) // "_hwscale"
-      if(lhwrotate) fieldpart = trim(fieldpart) // "_hwrotate"
+      write(output%BField, "('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(count,1),hw_list(count,2),hw_list(count,3)
+      if(ltesla)    output%BField = trim(output%BField) // "_tesla"
+      if(lnolb)     output%BField = trim(output%BField) // "_nolb"
+      if(lhwscale)  output%BField = trim(output%BField) // "_hwscale"
+      if(lhwrotate) output%BField = trim(output%BField) // "_hwrotate"
      end if
 
-     dcfieldpart = ""
+     output%dcBField = ""
      if(dcfield_dependence/=7) then
-      if((dcfield_dependence/=1).and.(dcfield_dependence/=4).and.(dcfield_dependence/=5)) write(dcfieldpart,"(a,'_hwa=',es9.2)") trim(dcfieldpart),hwa
-      if((dcfield_dependence/=2).and.(dcfield_dependence/=4).and.(dcfield_dependence/=6)) write(dcfieldpart,"(a,'_hwt=',f5.2)") trim(dcfieldpart),hwt
-      if((dcfield_dependence/=3).and.(dcfield_dependence/=5).and.(dcfield_dependence/=6)) write(dcfieldpart,"(a,'_hwp=',f5.2)") trim(dcfieldpart),hwp
+      if((dcfield_dependence/=1).and.(dcfield_dependence/=4).and.(dcfield_dependence/=5)) write(output%dcBField,"(a,'_hwa=',es9.2)") trim(output%dcBField),hwa
+      if((dcfield_dependence/=2).and.(dcfield_dependence/=4).and.(dcfield_dependence/=6)) write(output%dcBField,"(a,'_hwt=',f5.2)") trim(output%dcBField),hwt
+      if((dcfield_dependence/=3).and.(dcfield_dependence/=5).and.(dcfield_dependence/=6)) write(output%dcBField,"(a,'_hwp=',f5.2)") trim(output%dcBField),hwp
      end if
-     if(ltesla)    dcfieldpart = trim(dcfieldpart) // "_tesla"
-     if(lnolb)     dcfieldpart = trim(dcfieldpart) // "_nolb"
-     if(lhwscale)  dcfieldpart = trim(dcfieldpart) // "_hwscale"
-     if(lhwrotate) dcfieldpart = trim(dcfieldpart) // "_hwrotate"
+     if(ltesla)    output%dcBField = trim(output%dcBField) // "_tesla"
+     if(lnolb)     output%dcBField = trim(output%dcBField) // "_nolb"
+     if(lhwscale)  output%dcBField = trim(output%dcBField) // "_hwscale"
+     if(lhwrotate) output%dcBField = trim(output%dcBField) // "_hwrotate"
 
   end subroutine set_fieldpart
 

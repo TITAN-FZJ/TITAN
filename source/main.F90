@@ -47,7 +47,7 @@ program TITAN
     call get_parameters("input",sys)
   end if
 
-  if(myrank == 0) call write_time(outputunit,'[main] Started on: ')
+  if(myrank == 0) call write_time(output%unit,'[main] Started on: ')
 
   !-------------------- Useful constants and matrices --------------------
   call define_constants() ! TODO: Review
@@ -55,32 +55,35 @@ program TITAN
   !------------------- Set Loop and Integration Points -------------------
   call setMagneticLoopPoints()
 
-  !----------- Creating bi-dimensional matrix of MPI processes  ----------
+  !----------- Creating grid of MPI processes  ----------
   !call setup_MPI_grid(itype, pn1, npt1, pnt,total_hw_npt1, npts, deltae, emin, emax)
-  call genMPIGrid(parField,total_hw_npt1,parFreq,npt1 - skip_steps)
+  call genMPIGrid(parField, total_hw_npt1, parFreq, npt1 - skip_steps)
   !-------------------- Define the lattice structure ---------------------
   call initLattice(sys)
   ! Writing Positions into file
   if( lpositions .and. (myrank==0)) call writeLattice(sys)
 
-  !-------------------- Generating k points in 2D BZ ---------------------
-  call BZ % setup(sys%lbulk, sys%a1, sys%a2, sys%a3)
-  ! Writing BZ points and weights into file
-  if((lkpoints).and.(myrank==0)) call BZ % print()
-
   !---- Generating integration points of the complex energy integral -----
   call allocate_energy_points()
   call generate_imag_epoints()
 
+  !-------------------- Generating k points for real axis integration ---------------------
+  realBZ % bulk = sys%lbulk
+  realBZ % a1 = sys%a1
+  realBZ % a2 = sys%a2
+  realBZ % a3 = sys%a3
+  realBZ % nkpt_x = kpx_in
+  realBZ % nkpt_y = kpy_in
+  realBZ % nkpt_z = kpz_in
+  call realBZ % count()
+  ! ! Writing BZ points and weights into file
+  ! if((lkpoints).and.(myrank==0)) call BZ % print()
+
   call generateAdaptiveMeshes()
 
-  ! DFT tight binding mode has two additional vacuum layers
-  !Npl_total = Npl
-  !if(tbmode == 2) Npl_total = Npl + 2
-
-  !--------------- Allocating variables that depend on Npl ---------------
+  !--------------- Allocating variables that depend on the number of sites ---------------
   call allocate_magnet_variables(sys%nAtoms)
-  call allocate_Npl_variables(sys%nAtoms) !TODO: Review
+  call allocate_Npl_variables(sys%nAtoms)
 
   !----------------------------- Dimensions ------------------------------
   dimsigmaNpl = 4 * sys%nAtoms
@@ -95,7 +98,7 @@ program TITAN
   ! else
   !   Npl_input = Npl
   ! end if
-  write(strSites,fmt="(i0,'Sites')") sys%nAtoms
+  write(output%Sites,fmt="(i0,'Sites')") sys%nAtoms
   ! if(tbmode == 2) call define_system()
 
   !---------------------- Tight Binding parameters -----------------------
@@ -109,20 +112,24 @@ program TITAN
 
   !call setup_long_and_trans_current_neighbors(sys) !TODO: Not implemented TODO: Re-include
 
+  ! Filename strings
+  write(output%info,"('_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0)") kptotal_in, eta, Utype
+
+
   !------------------------- MAGNETIC FIELD LOOP -------------------------
-  if(myrank == 0 .and. skip_steps_hw > 0) write(outputunit,"('[main] Skipping first ',i0,' field step(s)...')") skip_steps_hw
+  if(myrank == 0 .and. skip_steps_hw > 0) write(output%unit,"('[main] Skipping first ',i0,' field step(s)...')") skip_steps_hw
 
   do hw_count = startField, endField
 
     !------------ Opening files (general and one for each field) -----------
     if(rField == 0) then
       if(total_hw_npt1 == 1 .or. itype == 6 ) then
-        outputfile_loop = outputfile
-        outputunit_loop = outputunit
+        output%file_loop = output%file
+        output%unit_loop = output%unit
       else
-        write(outputfile_loop, fmt="(a,a,i0)") trim(outputfile), '.', hw_count
-        outputunit_loop = outputunit + hw_count
-        open (unit=outputunit_loop, file=trim(outputfile_loop), status='replace')
+        write(output%file_loop, fmt="(a,a,i0)") trim(output%file), '.', hw_count
+        output%unit_loop = output%unit + hw_count
+        open (unit=output%unit_loop, file=trim(output%file_loop), status='replace')
       end if
     end if
 
@@ -194,7 +201,7 @@ program TITAN
 
     !-------------------------- Begin first test part ----------------------
     if(rField == 0 .and. itype==0) then
-      write(outputunit_loop,"('[main] FIRST TEST PART')")
+      write(output%unit_loop,"('[main] FIRST TEST PART')")
       mz  = 0.d0
       mp  = cZero
       mm  = conjg(mp)
@@ -217,12 +224,12 @@ program TITAN
     ! Self-consistency
 
     ! Time now
-    if(rField == 0)  call write_time(outputunit_loop,'[main] Time before self-consistency: ')
+    if(rField == 0)  call write_time(output%unit_loop,'[main] Time before self-consistency: ')
 
     call doSelfConsistency()
 
     ! Time now
-    if(rField==0)  call write_time(outputunit_loop,'[main] Time after self-consistency: ')
+    if(rField==0)  call write_time(output%unit_loop,'[main] Time after self-consistency: ')
 
     !---- Only calculate long. and transv. currents from existing files ----
     ! if(llgtv) then TODO: Re-include
@@ -236,9 +243,9 @@ program TITAN
     case(1) ! Calculation of self-consistency only
       continue
     case (2) !Debugging case
-      !call debugging() TODO: Re-Include
+      call ldos() !call debugging() TODO: Re-Include
       continue
-    case (3) ! Ca
+    case (3) !
       call ldos_and_coupling()
     case (4) !
       if(rField == 0) call band_structure(sys)
@@ -260,7 +267,7 @@ program TITAN
     ! Emergency stop after the calculation for a Npl or field is finished (don't check on last step)
     if(total_hw_npt1 /= 1 .and. count_hw < endField) call check_emergency_stop(sys%nAtoms, hw_list, hw_count)
     !---------------------------- Closing files ----------------------------
-    if(total_hw_npt1 /= 1 .and.  itype /= 6 .and. rField == 0) close(outputunit_loop)
+    if(total_hw_npt1 /= 1 .and.  itype /= 6 .and. rField == 0) close(output%unit_loop)
     !---------------------- Ending magnetic field loop ---------------------
   end do
 
@@ -272,9 +279,9 @@ program TITAN
   !deallocate(kbz,wkbz) !,kbz2d)
 
   !----------------------- Finalizing the program ------------------------
-  if(myrank == 0) call write_time(outputunit,'[main] Finished on: ')
-  if(myrank == 0) close(unit=outputunit)
+  if(myrank == 0) call write_time(output%unit,'[main] Finished on: ')
+  if(myrank == 0) close(unit=output%unit)
   call MPI_Finalize(ierr)
-  if(ierr /= 0 .and. myrank == 0) write(outputunit,"('[main] Something went wrong in the parallelization! ierr = ',i0)") ierr
+  if(ierr /= 0 .and. myrank == 0) write(output%unit,"('[main] Something went wrong in the parallelization! ierr = ',i0)") ierr
 
 end program TITAN
