@@ -229,13 +229,13 @@ contains
       mx (:,:) = previous_results(  nOrb+1:2*nOrb,:)
       my (:,:) = previous_results(2*nOrb+1:3*nOrb,:)
       mz (:,:) = previous_results(3*nOrb+1:4*nOrb,:)
+      mp       = cmplx(mx,my)
 
       rhod(:) = sum(rho(5:9,:),dim=1)
       mxd(:)  = sum(mx (5:9,:),dim=1)
       myd(:)  = sum(my (5:9,:),dim=1)
       mzd(:)  = sum(mz (5:9,:),dim=1)
-
-      mpd  = cmplx(mxd,myd)
+      mpd     = cmplx(mxd,myd)
 
       call calcMagAngle()
 
@@ -268,13 +268,13 @@ contains
         mx (:,:) = previous_results(  nOrb+1:2*nOrb,:)
         my (:,:) = previous_results(2*nOrb+1:3*nOrb,:)
         mz (:,:) = previous_results(3*nOrb+1:4*nOrb,:)
+        mp       = cmplx(mx,my)
 
         rhod(:) = sum(rho(5:9,:),dim=1)
         mxd(:)  = sum(mx (5:9,:),dim=1)
         myd(:)  = sum(my (5:9,:),dim=1)
         mzd(:)  = sum(mz (5:9,:),dim=1)
-
-        mpd  = cmplx(mxd,myd)
+        mpd     = cmplx(mxd,myd)
 
         call calcMagAngle()
 
@@ -330,7 +330,6 @@ contains
     use adaptiveMesh
     use mod_system, only: s => sys
     use mod_dnsqe
-    use mod_susceptibilities, only: lrot
     implicit none
     real(double),allocatable      :: fvec(:),jac(:,:),wa(:),sc_solu(:)
     real(double),allocatable      :: diag(:),qtf(:)
@@ -341,7 +340,7 @@ contains
 #else
     real(double),allocatable :: w(:,:)
 #endif
-    integer                       :: i,neq,maxfev,ml,mr,mode,nfev,njev,lwa,ifail=0
+    integer                       :: neq,maxfev,ml,mr,mode,nfev,njev,lwa,ifail=0
 
     neq = 4*s%nAtoms+1
     allocate( sc_solu(neq),diag(neq),qtf(neq),fvec(neq),jac(neq,neq) )
@@ -1009,7 +1008,6 @@ contains
     use mod_magnet, only: iter
     use mod_mpi_pars
     implicit none
-    logical :: linitial
     real(double),dimension(4*s%nAtoms+1),optional :: fvec
     real(double),dimension(s%nAtoms) :: n,mx,my,mz
     real(double)                     :: Ef
@@ -1055,7 +1053,7 @@ contains
 #if !defined(_OSX) && !defined(_JUQUEEN)
   subroutine sc_equations_and_jacobian(N,x,fvec,selfconjac,iuser,ruser,iflag)
     use mod_f90_kind, only: double
-    use mod_parameters, only: outputunit, outputunit_loop
+    use mod_parameters, only: outputunit
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
     use mod_magnet, only: iter,rho,mx,my,mz,rhod,mxd,myd,mzd
@@ -1123,7 +1121,6 @@ contains
   !  sum n - n_total = 0
   subroutine sc_equations(N,x,fvec,iuser,ruser,iflag)
     use mod_f90_kind, only: double
-    use mod_parameters, only: outputunit_loop
     use mod_constants, only: cI
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
@@ -1139,6 +1136,7 @@ contains
     real(double),   dimension(s%nAtoms) :: mxd_in,myd_in,mzd_in,rhod_in
     complex(double),dimension(s%nAtoms) :: mp_in,mpd_in
 
+    iflag=0
     ! Values used in the hamiltonian
     rhod_in = x(           1:  s%nAtoms)
     mxd_in  = x(  s%nAtoms+1:2*s%nAtoms)
@@ -1186,7 +1184,7 @@ contains
   ! and the correspondent jacobian
   subroutine sc_eqs_and_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
     use mod_f90_kind, only: double
-    use mod_parameters, only: outputunit_loop, outputunit
+    use mod_parameters, only: outputunit
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
     use mod_magnet, only: iter,rho,mx,my,mz,rhod,mxd,myd,mzd
@@ -1264,7 +1262,6 @@ end if
   !  sum n - n_total = 0
   subroutine sc_eqs_old(N,x,fvec,iflag)
     use mod_f90_kind, only: double
-    use mod_parameters, only: outputunit_loop
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
     use mod_magnet, only: iter,rho,mx,my,mz,rhod,mxd,myd,mzd
