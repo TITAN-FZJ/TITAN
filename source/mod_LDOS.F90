@@ -2,7 +2,7 @@ module mod_LDOS
    use mod_f90_kind, only: double
    implicit none
    character(len=4), private :: folder = "LDOS"
-   character(len=5), dimension(2), private :: filename = ["ldosu", "ldosd"]
+   character(len=5), dimension(4), private :: filename = ["ldosu","ldosd","lmdosu", "lmdosd"]
 
    real(double),dimension(:,:),allocatable :: ldosu,ldosd
 
@@ -67,7 +67,11 @@ contains
 
       do i = 1, s%nAtoms
           iw = 1000 + (i-1) * 2 + 1
-          write(unit=iw,fmt="(10(es16.9,2x))") e, (ldosu(i,j), j = 1, 9) !sum(ldosu(i,:)),ldosu(i,1),sum(ldosu(i,2:4)),sum(ldosu(i,5:9))
+          write(unit=iw,fmt="( 6(es16.9,2x))") e, sum(ldosu(i,:)),ldosu(i,1),sum(ldosu(i,2:4)),sum(ldosu(i,5:7)),sum(ldosu(i,8:9))
+          iw = iw + 1
+          write(unit=iw,fmt="( 6(es16.9,2x))") e, sum(ldosd(i,:)),ldosd(i,1),sum(ldosd(i,2:4)),sum(ldosd(i,5:7)),sum(ldosd(i,8:9))
+          iw = iw + 1
+          write(unit=iw,fmt="(10(es16.9,2x))") e, (ldosu(i,j), j = 1,9) !sum(ldosu(i,:)),ldosu(i,1),sum(ldosu(i,2:4)),sum(ldosu(i,5:9))
           iw = iw + 1
           write(unit=iw,fmt="(10(es16.9,2x))") e, (ldosd(i,j), j = 1,9) !sum(ldosd(i,:)),ldosd(i,1),sum(ldosd(i,2:4)),sum(ldosd(i,5:9))
       end do
