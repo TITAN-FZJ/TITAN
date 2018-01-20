@@ -6,6 +6,7 @@ subroutine calculate_dc_limit()
   use mod_magnet,          only: lfield, dcfield_dependence, dc_count, dcfield, hw_count, mtheta, mphi, lxp, lyp, lzp, lx, ly, lz, mx, my, mz, mvec_spherical, hhwx, hhwy, hhwz
   use mod_SOC, only: llinearsoc
   use mod_System, only: s => sys
+  use mod_BrillouinZone, only: realBZ
   use mod_prefactors, only: prefactor, prefactorlsoc, &
                             allocate_prefactors, deallocate_prefactors
   use mod_susceptibilities, only: lrot, rottemp, rotmat_i, rotmat_j, &
@@ -24,7 +25,7 @@ subroutine calculate_dc_limit()
                       allocate_beff, deallocate_beff, &
                       create_dc_beff_files, write_dc_beff
   use mod_progress,        only: write_time
-  use adaptiveMesh
+  use adaptiveMesh, only: genLocalEKMesh, freeLocalEKMesh
   use mod_mpi_pars
 
   !use mod_system,          only: n0sc1, n0sc2, n0sc
@@ -470,6 +471,8 @@ subroutine calculate_dc_limit()
     end if
   end do
 
+  call freeLocalEKMesh()
+  
   ! Sorting results on files
   if(rField==0) then
     call sort_all_files()

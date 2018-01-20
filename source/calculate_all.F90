@@ -7,7 +7,8 @@ subroutine calculate_all()
   use mod_magnet, only: lfield, mtheta, mphi, hhwx, hhwy, hhwz, mx, my, mz, lxp, lyp, lzp, lx, ly, lz, mvec_spherical, total_hw_npt1
   use mod_SOC, only: llinearsoc
   use mod_System, only: s => sys
-  use adaptiveMesh
+  use mod_BrillouinZone, only: realBZ
+  use adaptiveMesh, only: genLocalEKMesh, freeLocalEKMesh
   use mod_prefactors, only: prefactor, prefactorlsoc, &
                             allocate_prefactors, deallocate_prefactors
   use mod_susceptibilities, only: lrot, rottemp, rotmat_i, rotmat_j, &

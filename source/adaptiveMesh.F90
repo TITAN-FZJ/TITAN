@@ -1,5 +1,5 @@
 module adaptiveMesh
-   use mod_BrillouinZone
+   use mod_BrillouinZone, only: BrillouinZone
    integer*8 :: total_points, local_points
    integer, dimension(:,:), allocatable :: E_k_imag_mesh
    type(BrillouinZone), dimension(:), allocatable :: bzs
@@ -19,7 +19,7 @@ contains
       use mod_parameters, only: total_nkpt => kptotal_in
       use EnergyIntegration, only: pn1, y
       use mod_System, only: s => sys
-      use mod_BrillouinZone
+      use mod_BrillouinZone, only: count_3D_BZ, count_2D_BZ
       use mod_mpi_pars
       implicit none
       integer :: i
@@ -41,7 +41,6 @@ contains
       use mod_parameters, only: total_nkpt => kptotal_in
       use EnergyIntegration, only: pn1, y
       use mod_System, only: s => sys
-      use mod_BrillouinZone
       use mod_mpi_pars, only: calcWorkload
       implicit none
       integer, intent(in) :: rank
