@@ -794,7 +794,7 @@ contains
     if (AllocateStatus/=0) call abortProgram("[L_gs] Not enough memory for: df1,Fint,gf,gfuu,gfud,gfdu,gfdd")
 
     allocate(gupgd(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
-    if(AllocateStatus/=0) call abortProgram("[L_gs] Not enough meory for: gupgd")
+    if(AllocateStatus/=0) call abortProgram("[L_gs] Not enough memory for: gupgd")
 
     if(rField == 0) write(output%unit_loop,"('[L_gs] Calculating Orbital Angular Momentum ground state... ')")
 
@@ -978,7 +978,7 @@ contains
         write(99,fmt=formatvar) (rho(j,i), j=1,nOrb),(mx(j,i), j=1,nOrb),(my(j,i), j=1,nOrb),(mz(j,i), j=1,nOrb)
       end do
       write(99,"(es21.11,2x,'! Ef  ')") s%Ef
-      write(99,"('! n(1:nOrb, mx(1:nOrb), my(1:nOrb), mz(1:nOrb) per site ')")
+      write(99,"('! n(1:nOrb), mx(1:nOrb), my(1:nOrb), mz(1:nOrb) per site ')")
       write(99,"('! Ef ')")
 
       close(99)
@@ -1081,10 +1081,10 @@ contains
     case(1)
       call calcMagnetization()
       do i = 1, s%nAtoms
-        fvec(i           ) = sum(rho(:,i)) - rho_in(i)
-        fvec(i+1*s%nAtoms) = sum(mx (:,i)) - mx_in (i)
-        fvec(i+2*s%nAtoms) = sum(my (:,i)) - my_in (i)
-        fvec(i+3*s%nAtoms) = sum(mz (:,i)) - mz_in (i)
+        fvec(i           ) = rhod(i) - rhod_in(i)
+        fvec(i+1*s%nAtoms) =  mxd(i) -  mxd_in(i)
+        fvec(i+2*s%nAtoms) =  myd(i) -  myd_in(i)
+        fvec(i+3*s%nAtoms) =  mzd(i) -  mzd_in(i)
       end do
       fvec(4*s%nAtoms+1) = sum(rho) - s%totalOccupation
 
@@ -1147,10 +1147,10 @@ contains
 
     call calcMagnetization()
     do i = 1, s%nAtoms
-      fvec(i           ) = sum(rho(:,i)) - rho_in(i)
-      fvec(i+1*s%nAtoms) = sum(mx (:,i)) - mx_in(i)
-      fvec(i+2*s%nAtoms) = sum(my (:,i)) - my_in(i)
-      fvec(i+3*s%nAtoms) = sum(mz (:,i)) - mz_in(i)
+        fvec(i           ) = rhod(i) - rhod_in(i)
+        fvec(i+1*s%nAtoms) =  mxd(i) -  mxd_in(i)
+        fvec(i+2*s%nAtoms) =  myd(i) -  myd_in(i)
+        fvec(i+3*s%nAtoms) =  mzd(i) -  mzd_in(i)
     end do
     fvec(4*s%nAtoms+1) = sum(rho) - s%totalOccupation
 
@@ -1285,10 +1285,10 @@ end if
 
     call calcMagnetization()
     do i = 1, s%nAtoms
-      fvec(i           ) = sum(rho(:,i)) - rho_in(i)
-      fvec(i+1*s%nAtoms) = sum(mx (:,i)) - mx_in(i)
-      fvec(i+2*s%nAtoms) = sum(my (:,i)) - my_in(i)
-      fvec(i+3*s%nAtoms) = sum(mz (:,i)) - mz_in(i)
+      fvec(i           ) = rhod(i) - rhod_in(i)
+      fvec(i+1*s%nAtoms) =  mxd(i) -  mxd_in(i)
+      fvec(i+2*s%nAtoms) =  myd(i) -  myd_in(i)
+      fvec(i+3*s%nAtoms) =  mzd(i) -  mzd_in(i)
     end do
     fvec(4*s%nAtoms+1) = sum(rho) - s%totalOccupation
 
