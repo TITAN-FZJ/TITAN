@@ -6,7 +6,6 @@ module mod_parameters
 !  integer       :: nkpt         !< Number of k-point generation vectors (S. Cunningham, Phys. Rev. B 10, 4988 (1974))
   !XXX: integer       :: nkpt        !< Number of generated k-points
   real(double)  :: eta         !< Small imaginary part included in the energy z = E + i.eta
-  real(double)  :: Ef          !< Fermi energy (read from mod_tight_binding)
   real(double)  :: q(3)        !< q-vector for the dependence of response functions (not used yet)
   ! Dimensions
   integer       :: dimsigmaNpl !< Dimensions (Maybe enhance description?)

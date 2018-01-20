@@ -2,12 +2,12 @@
 subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
    use mod_f90_kind, only: double
    use mod_constants, only: pi, cZero, cOne, pauli_dorb
-   use mod_parameters, only: eta, nmaglayers, mmlayermag
+   use mod_parameters, only: eta, nmaglayers, mmlayermag, U
    use mod_progress
    use mod_system, only: s => sys
    use mod_BrillouinZone, only: realBZ
    use TightBinding, only: nOrb,nOrb2
-   use mod_magnet, only: hdel,mz
+   use mod_magnet, only: mvec_cartesian, mabs
    use mod_mpi_pars
    implicit none
    real(double),intent(in)     :: e
@@ -25,6 +25,10 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
    integer :: i,j,mu,nu,alpha
    integer*8 :: iz
 
+   real(double), dimension(3,nmaglayers) :: evec
+   complex(double), dimension(nmaglayers,3,nOrb2,nOrb2) :: dbxcdm
+   complex(double), dimension(nmaglayers,3,3,nOrb2,nOrb2) :: d2bxcdm2
+   complex(double), dimension(nmaglayers,nOrb2,nOrb2) :: paulievec
 
 ! (x,y,z)-tensor formed by Pauli matrices to calculate anisotropy term (when i=j)
   paulimatan = cZero
@@ -39,9 +43,31 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
   ldosd = 0.d0
   Jijint = 0.d0
 
+  do iz = 1, nmaglayers
+    ! Unit vector along the direction of the magnetization of each magnetic plane
+    evec(:,iz) = [ mvec_cartesian(1,mmlayermag(iz)), mvec_cartesian(2,mmlayermag(iz)), mvec_cartesian(3,mmlayermag(iz)) ]/mabs(mmlayermag(iz))
+
+    ! Inner product of pauli matrix in spin and orbital space and unit vector evec
+    paulievec(iz,:,:) = pauli_dorb(1,:,:) * evec(1,iz) + pauli_dorb(2,:,:) * evec(2,iz) + pauli_dorb(3,:,:) * evec(3,iz)
+
+    do i = 1, 3
+      ! Derivative of Bxc*sigma*evec w.r.t. m_i (Bxc = -U.m/2)
+      dbxcdm(iz,i,:,:) = -0.5d0 * U(mmlayermag(iz)) * (pauli_dorb(i,:,:) - (paulievec(iz,:,:)) * evec(i,iz))
+
+      ! Second derivative of Bxc w.r.t. m_i (Bxc = -U.m/2)
+      do j=1,3
+        d2bxcdm2(iz,i,j,:,:) = evec(i,iz)*pauli_dorb(j,:,:) + pauli_dorb(i,:,:)*evec(j,iz) - 3*paulievec(iz,:,:)*evec(i,iz)*evec(j,iz)
+        if(i==j) d2bxcdm2(iz,i,j,:,:) = d2bxcdm2(iz,i,j,:,:) + paulievec(iz,:,:)
+        d2bxcdm2(iz,i,j,:,:) = 0.5d0*U(mmlayermag(iz))*d2bxcdm2(iz,i,j,:,:)/(mabs(mmlayermag(iz)))
+      end do
+    end do
+  end do
+
+
+
 !$omp parallel default(none) &
 !$omp& private(iz,kp,weight,gf,gij,gji,paulia,paulib,i,j,mu,nu,alpha,gfdiagu,gfdiagd,Jijk,Jijkan,temp1,temp2,ldosu_loc,ldosd_loc,Jijint_loc) &
-!$omp& shared(s,realBZ,e,eta,hdel,mz,nmaglayers,mmlayermag,pauli_dorb,paulimatan,ldosu,ldosd,Jijint)
+!$omp& shared(s,realBZ,e,eta,U,dbxcdm,d2bxcdm2,nmaglayers,mmlayermag,pauli_dorb,paulimatan,ldosu,ldosd,Jijint)
 allocate(ldosu_loc(s%nAtoms, nOrb), ldosd_loc(s%nAtoms, nOrb), Jijint_loc(nmaglayers,nmaglayers,3,3))
 ldosu_loc = 0.d0
 ldosd_loc = 0.d0
@@ -57,39 +83,42 @@ do iz = 1, realBZ%workload
     ! Exchange interaction tensor
     Jijk   = 0.d0
     Jijkan = 0.d0
-    do nu = 1,3
-      do mu = 1,3
-         do j = 1,nmaglayers
-            do i = 1,nmaglayers
-               paulia = pauli_dorb(mu,:,:)
-               gij = gf(:,:,mmlayermag(i),mmlayermag(j))
-               paulib = pauli_dorb(nu,:,:)
-               gji = gf(:,:,mmlayermag(j),mmlayermag(i))
-               call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,paulia,nOrb2,gij,   nOrb2,cZero,temp1,nOrb2)
-               call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp1, nOrb2,paulib,nOrb2,cZero,temp2,nOrb2)
-               call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp2, nOrb2,gji,   nOrb2,cZero,temp1,nOrb2)
-               do alpha = 1, nOrb2
-                 Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + real(temp1(alpha,alpha))
-               end do
-
-               Jijk(i,j,mu,nu) = -hdel(mmlayermag(i)-1)*hdel(mmlayermag(j)-1)*Jijk(i,j,mu,nu)*weight/(mz(mmlayermag(i)-1)*mz(mmlayermag(j)-1))
-
-               ! Anisotropy (on-site) term
-               if(i==j) then
-                 gij = gf(:,:,mmlayermag(i)-1,mmlayermag(i)-1)
-                 paulia = paulimatan(mu,nu,:,:)
-                 call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,gij,nOrb2,paulia,nOrb2,cZero,temp1,nOrb2)
-
-                 do alpha = 1,nOrb2
-                   Jijkan(i,mu,nu) = Jijkan(i,mu,nu) + real(temp1(alpha,alpha))
-                 end do
-
-                 Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + hdel(mmlayermag(i)-1)*Jijkan(i,mu,nu)*weight/(mz(mmlayermag(i)-1)**2)
-               end if
-             end do
+    do j = 1,nmaglayers
+      do i = 1,nmaglayers
+        gij = gf(:,:,mmlayermag(i),mmlayermag(j))
+        gji = gf(:,:,mmlayermag(j),mmlayermag(i))
+        do nu = 1,3
+          do mu = 1,3
+            paulia = dbxcdm(i,mu,:,:)
+            paulib = dbxcdm(j,nu,:,:)
+            call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,paulia,nOrb2,gij,   nOrb2,cZero,temp1,nOrb2)
+            call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp1, nOrb2,paulib,nOrb2,cZero,temp2,nOrb2)
+            call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp2, nOrb2,gji,   nOrb2,cZero,temp1,nOrb2)
+            ! Trace over orbitals and spins
+            do alpha = 1,nOrb2
+              Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + real(temp1(alpha,alpha))
+            end do
           end do
-       end do
+        end do
+
+        ! Anisotropy (on-site) term
+        if(i==j) then
+          gij = gf(:,:,mmlayermag(i),mmlayermag(i))
+          do nu = 1,3
+            do mu = 1,3
+              paulia = d2bxcdm2(i,mu,nu,:,:)
+              call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,gij,nOrb2,paulia,nOrb2,cZero,temp1,nOrb2)
+              ! Trace over orbitals and spins
+              do alpha = 1,nOrb2
+                Jijkan(i,mu,nu) = Jijkan(i,mu,nu) + real(temp1(alpha,alpha))
+              end do
+              Jijk(i,i,mu,nu) = Jijk(i,i,mu,nu) + Jijkan(i,mu,nu)
+            end do
+          end do
+        end if
+      end do
     end do
+    Jijint = Jijint + Jijk * weight
 
     ! Density of states
     do mu=1,nOrb

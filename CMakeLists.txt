@@ -148,6 +148,21 @@ endif()
 #					-mkl
 #					-xHost
 #)
+
+if(PLATFORM MATCHES juqueen)
+if(DEBUG)
+target_compile_options(${TITAN_EXE} PRIVATE -C
+				    	    -g
+					    -qfullpath
+					    -O0
+					    -qflttrap=enable:invalid:overflow:underflow:zerodivide
+					    -qinitauto=7FF7FFFF
+					    -qnoescape
+					    -qkeepparm
+					    )
+endif(DEBUG)
+
+else()
 if(DEBUG)
 target_compile_options(${TITAN_EXE} PRIVATE -C -CB
                                         -check uninit
@@ -160,5 +175,5 @@ target_compile_options(${TITAN_EXE} PRIVATE -C -CB
                                         -O0
                       )
 endif(DEBUG)
-
+endif()
 #target_link_libraries(${EXEC_NAME} ${NAG}/lib/libnag_nag.a -qopenmp)

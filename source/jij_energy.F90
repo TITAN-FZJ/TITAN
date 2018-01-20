@@ -2,10 +2,10 @@
 subroutine jij_energy(Jij)
   use mod_f90_kind, only: double
   use mod_constants, only: pi, cOne, cZero, pauli_dorb
-  use mod_parameters, only: mmlayermag, U, q, mmlayermag, nmaglayers, Ef
+  use mod_parameters, only: mmlayermag, U, q, mmlayermag, nmaglayers
   use EnergyIntegration, only: y, wght
   use mod_mpi_pars
-  use mod_magnet, only: mx,my,mz,mabs
+  use mod_magnet, only: mvec_cartesian,mabs
   use mod_system, only: s => sys
   use adaptiveMesh
   use TightBinding, only: nOrb,nOrb2
@@ -37,7 +37,7 @@ subroutine jij_energy(Jij)
 
   do iz = 1, nmaglayers
     ! Unit vector along the direction of the magnetization of each magnetic plane
-    evec(:,iz) = [ mx(mmlayermag(iz)), my(mmlayermag(iz)), mz(mmlayermag(iz)) ]/mabs(mmlayermag(iz))
+    evec(:,iz) = [ mvec_cartesian(1,mmlayermag(iz)), mvec_cartesian(2,mmlayermag(iz)), mvec_cartesian(3,mmlayermag(iz)) ]/mabs(mmlayermag(iz))
 
     ! Inner product of pauli matrix in spin and orbital space and unit vector evec
     paulievec(iz,:,:) = pauli_dorb(1,:,:) * evec(1,iz) + pauli_dorb(2,:,:) * evec(2,iz) + pauli_dorb(3,:,:) * evec(3,iz)
@@ -60,7 +60,7 @@ subroutine jij_energy(Jij)
 
   !$omp parallel default(none) &
   !$omp& private(ix,i,j,mu,nu,alpha,kp,ep,weight,kminusq,gf,gfq,gij,gji,paulia,paulib,temp1,temp2,Jijkan,Jijk,Jijint) &
-  !$omp& shared(s,Ef,y,wght,q,local_points,dbxcdm,d2bxcdm2,mz,nmaglayers,mmlayermag,Jij,bzs,E_k_imag_mesh)
+  !$omp& shared(s,y,wght,q,local_points,dbxcdm,d2bxcdm2,nmaglayers,mmlayermag,Jij,bzs,E_k_imag_mesh)
 
   Jijint = 0.d0
 
@@ -70,11 +70,11 @@ subroutine jij_energy(Jij)
      kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix))
      weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix))
      ! Green function on energy Ef + iy, and wave vector kp
-      call green(Ef,y(ix),kp,gf)
+      call green(s%Ef,y(ix),kp,gf)
 
       ! Green function on energy Ef + iy, and wave vector kp-q
       kminusq = kp-q
-      call green(Ef,y(ix),kminusq,gfq)
+      call green(s%Ef,y(ix),kminusq,gfq)
 
       Jijk   = 0.d0
       Jijkan = 0.d0

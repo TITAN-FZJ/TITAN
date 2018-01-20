@@ -145,8 +145,8 @@ contains
     end do
 
     chits(1,1) = TSResponse(1,1,1,1)
-    chits(1,2) = TSResponse(1,2,1,1) - mz(1)
-    chits(2,1) = TSResponse(2,1,1,1) + mz(1)
+    chits(1,2) = TSResponse(1,2,1,1) - sum(mz(:,1))
+    chits(2,1) = TSResponse(2,1,1,1) + sum(mz(:,1))
     chits(2,2) = TSResponse(2,2,1,1)
 
     call invers(chits, 2)

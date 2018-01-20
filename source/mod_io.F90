@@ -76,6 +76,7 @@ contains
     use TightBinding, only: tbmode, fermi_layer
     use ElectricField, only: ElectricFieldMode, ElectricFieldVector, EFp, EFt
     use EnergyIntegration, only: parts, parts3, pn1, pn2, pnt, n1gl, n3gl
+    use mod_tools, only: itos
     implicit none
     character(len=*), intent(in) :: filename
     type(System), intent(inout) :: s
@@ -512,12 +513,7 @@ contains
     !-------------------------------------------------------------------------------
     ! Some consistency checks
     if((renorm).and.((renormnb<n0sc1).or.(renormnb>n0sc2))) then
-       if(myrank==0) then
-          write(output%unit,"('[get_parameters] Invalid neighbor for renormalization: ',i0,'!')") renormnb
-          write(output%unit,"('[get_parameters] Choose a value between ',i0,' and ',i0,'.')") n0sc1,n0sc2
-       end if
-       call MPI_Finalize(ierr)
-       stop
+        call log_error("get_parameters", "Invalid neighbor for renormalization: " // trim(itos(renormnb)) // ". Choose a value between " // trim(itos(n0sc1)) // " and " // trim(itos(n0sc2)) // ".")
     end if
     if(skip_steps<0) then
        if(myrank==0) write(output%unit,"('[get_parameters] Invalid number of energy steps to skip: ',i0)") skip_steps

@@ -8,7 +8,7 @@ program TITAN
   use mod_constants
   use mod_parameters
   use mod_io
-  use mod_System         ! New
+  use mod_system         ! New
   use Lattice        ! New
   use mod_BrillouinZone  ! New
   use TightBinding   ! New
@@ -81,9 +81,10 @@ program TITAN
 
   call generateAdaptiveMeshes()
 
-  !--------------- Allocating variables that depend on the number of sites ---------------
-  call allocate_magnet_variables(sys%nAtoms)
-  call allocate_Npl_variables(sys%nAtoms)
+  !--------------- Allocating variables that depend on Npl ---------------
+  call allocate_magnet_variables(sys%nAtoms, nOrb)
+  call allocLS(nOrb)
+  call allocate_Npl_variables(sys%nAtoms) !TODO: Review
 
   !----------------------------- Dimensions ------------------------------
   dimsigmaNpl = 4 * sys%nAtoms
@@ -152,7 +153,7 @@ program TITAN
     call l_matrix()
 
     !------ Calculate L.S matrix for the given quantization direction ------
-    call initLS(theta, phi, nOrb)
+    call updateLS(theta, phi, nOrb)
 
     !------ Calculate L.B matrix for the given quantization direction ------
     call lb_matrix(sys%nAtoms, nOrb)
@@ -169,12 +170,10 @@ program TITAN
 
     !------------------- Only create files with headers --------------------
     if(lcreatefiles) then
-      if(rField == 0) then
-        call create_files()
-        if((itype==7).or.(itype==8)) cycle
-      end if
+      if(rField == 0) call create_files()
+      if((itype==7).or.(itype==8)) cycle
       call MPI_Finalize(ierr)
-      stop
+      call exit(0)
     end if
     !------------- Check if files exist to add results or sort -------------
     if( (lsortfiles .or. laddresults) .and. rField == 0 ) call check_files()
@@ -202,17 +201,10 @@ program TITAN
     !-------------------------- Begin first test part ----------------------
     if(rField == 0 .and. itype==0) then
       write(output%unit_loop,"('[main] FIRST TEST PART')")
+      rho  = 0.d0
       mz  = 0.d0
       mp  = cZero
-      mm  = conjg(mp)
       ! Variables used in the hamiltonian
-      eps1  = 0.d0
-      hdel  = 0.d0
-      hdelp = cZero
-      hdelm = cZero
-      hdel(1:sys%nAtoms) = 0.5d0*U*mz
-      hdelp(1:sys%nAtoms) = 0.5d0*U*mp
-      hdelm(1:sys%nAtoms) = 0.5d0*U*mm
 
       call ldos()
       ! call debugging()
@@ -250,7 +242,7 @@ program TITAN
     case (4) !
       if(rField == 0) call band_structure(sys)
     case (5) !
-      call fermi_surface(Ef)
+      call fermi_surface(sys%Ef)
     case (6) !
       call coupling()
     case (7) !
@@ -282,6 +274,5 @@ program TITAN
   if(myrank == 0) call write_time(output%unit,'[main] Finished on: ')
   if(myrank == 0) close(unit=output%unit)
   call MPI_Finalize(ierr)
-  if(ierr /= 0 .and. myrank == 0) write(output%unit,"('[main] Something went wrong in the parallelization! ierr = ',i0)") ierr
-
+  call exit(0)
 end program TITAN

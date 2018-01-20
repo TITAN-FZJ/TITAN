@@ -13,17 +13,12 @@ complex(double), dimension(:,:), allocatable :: ls
 
 contains
 
-  subroutine initLS(theta, phi, nOrb)
+  subroutine updateLS(theta, phi, nOrb)
     use mod_f90_kind, only: double
     use mod_constants, only: cI, sq3, cZero
     implicit none
     real(double), intent(in) :: theta, phi
     integer, intent(in) :: nOrb
-
-    if(nOrb /= 9) stop "LS Matrix only implemented for nOrb = 9"
-
-    if(allocated(ls)) deallocate(ls)
-    allocate(ls(2*nOrb, 2*nOrb))
 
     ! the spin-orbit matrix
     ls = cZero
@@ -96,6 +91,18 @@ contains
       !   l_z = 2.d0*ls( 5: 9, 5: 9)
     end if
     return
-  end subroutine initLS
+  end subroutine updateLS
 
+  subroutine allocLS(nOrb)
+    use mod_constants, only: cZero
+    implicit none
+    integer, intent(in) :: nOrb
+    if(nOrb /= 9) stop "LS Matrix only implemented for nOrb = 9"
+
+    if(allocated(ls)) deallocate(ls)
+    allocate(ls(2*nOrb, 2*nOrb))
+
+    ! the spin-orbit matrix
+    ls = cZero
+  end subroutine allocLS
 end module mod_SOC

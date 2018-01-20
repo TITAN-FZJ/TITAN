@@ -42,7 +42,7 @@ type :: AtomType
   real(double) :: Lambda
   !! SOC Coupling constant
   real(double) :: FermiLevel
-  real(double) :: Occupation
+  real(double) :: Occupation, OccupationS, OccupationP, OccupationD
   real(double) :: LatticeConstant
   real(double), dimension(:), allocatable :: Stage
 end type AtomType

@@ -1,9 +1,4 @@
-! Calculate hamiltonian of a slab containing
-! Npl layers + 1 layer of Empty spheres on each side
-!  ES    S    S-1   S-2       S-2   S-1    S     ES
-!  o-----|-----|-----|---...---|-----|-----|-----o
-!  1     2     3     4      Npl-1   Npl  Npl+1  Npl+2
-!         <-S-> <S-1>           <S-1> <-S->
+! Calculate hamiltonian of the unit cell
 subroutine hamiltk(kp,hk)
   use mod_f90_kind, only: double
   use mod_constants, only: cI, cZero
@@ -61,12 +56,8 @@ subroutine hamiltk(kp,hk)
   return
 end subroutine hamiltk
 
-! Calculate hamiltonian of a slab containing
-! Npl layers + 1 layer of Empty spheres on each side
-!  ES    S    S-1   S-2       S-2   S-1    S     ES
-!  o-----|-----|-----|---...---|-----|-----|-----o
-!  1     2     3     4      Npl-1   Npl  Npl+1  Npl+2
-!         <-S-> <S-1>           <S-1> <-S->
+! Calculate hamiltonian of the unit cell
+! and the spin-orbit coupling contribution separately
 subroutine hamiltklinearsoc(kp,hk,vsoc)
   use mod_f90_kind,      only: double
   use mod_constants,     only: cZero, cI

@@ -76,7 +76,7 @@ subroutine TCM(alpha, torque_fct)
   use mod_BrillouinZone, only: realBZ
 
   use TightBinding, only: nOrb
-  use mod_parameters, only: Ef, eta
+  use mod_parameters, only: eta
   use mod_magnet, only: mabs
   use mod_mpi_pars
   implicit none
@@ -117,7 +117,7 @@ subroutine TCM(alpha, torque_fct)
 
   !$omp parallel default(none) &
   !$omp& private(m,n,i,j,mu,iz,kp,wght,gf,temp1,temp2,temp3, alpha_loc) &
-  !$omp& shared(s,realBZ,firstPoint,lastPoint,Ef,eta,torque,alpha)
+  !$omp& shared(s,realBZ,firstPoint,lastPoint,eta,torque,alpha)
   allocate(gf(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms), &
            temp1(2*nOrb,2*nOrb), temp2(2*nOrb,2*nOrb), temp3(2*nOrb,2*nOrb), &
            alpha_loc(s%nAtoms,s%nAtoms,3,3))
@@ -128,7 +128,7 @@ subroutine TCM(alpha, torque_fct)
     kp = realBZ%kp(1:3,iz)
     wght = realBZ%w(iz)
     gf  = cZero
-    call green(Ef, eta, kp, gf)
+    call green(s%Ef, eta, kp, gf)
     do m = 1, 3
       do n = 1, 3
         do i = 1, s%nAtoms
@@ -181,11 +181,10 @@ subroutine local_xc_torque(torque)
   use TightBinding, only: nOrb
   use mod_System, only: s => sys
   use mod_parameters, only: U
-  use mod_magnet, only: mx,my,mz
+  use mod_magnet, only: mvec_cartesian
 
   complex(double), dimension(2*nOrb,2*nOrb,3,s%nAtoms), intent(out) :: torque
   complex(double), dimension(nOrb,nOrb) :: ident
-  real(double), dimension(3,s%nAtoms) :: mag
   integer :: i,m,n,k
 
   ident = cZero
@@ -193,19 +192,15 @@ subroutine local_xc_torque(torque)
     ident(i,i) = cOne
   end do
 
-  do i = 1, s%nAtoms
-    mag(:,i) = [mx(i),my(i),mz(i)]
-  end do
-
   torque = cZero
   do i = 1, s%nAtoms
     do m = 1, 3
       do n = 1, 3
         do k = 1, 3
-          torque(     1:  nOrb,     1:  nOrb,m,i) = torque(     1:  nOrb,     1:  nOrb,m,i) + mag(n,i) * ident(:,:) * sigma(1,1,k) * levi_civita(m,n,k)
-          torque(nOrb+1:2*nOrb,     1:  nOrb,m,i) = torque(nOrb+1:2*nOrb,     1:  nOrb,m,i) + mag(n,i) * ident(:,:) * sigma(2,1,k) * levi_civita(m,n,k)
-          torque(     1:  nOrb,nOrb+1:2*nOrb,m,i) = torque(     1:  nOrb,nOrb+1:2*nOrb,m,i) + mag(n,i) * ident(:,:) * sigma(1,2,k) * levi_civita(m,n,k)
-          torque(nOrb+1:2*nOrb,nOrb+1:2*nOrb,m,i) = torque(nOrb+1:2*nOrb,nOrb+1:2*nOrb,m,i) + mag(n,i) * ident(:,:) * sigma(2,2,k) * levi_civita(m,n,k)
+          torque(     1:  nOrb,     1:  nOrb,m,i) = torque(     1:  nOrb,     1:  nOrb,m,i) + mvec_cartesian(n,i) * ident(:,:) * sigma(1,1,k) * levi_civita(m,n,k)
+          torque(nOrb+1:2*nOrb,     1:  nOrb,m,i) = torque(nOrb+1:2*nOrb,     1:  nOrb,m,i) + mvec_cartesian(n,i) * ident(:,:) * sigma(2,1,k) * levi_civita(m,n,k)
+          torque(     1:  nOrb,nOrb+1:2*nOrb,m,i) = torque(     1:  nOrb,nOrb+1:2*nOrb,m,i) + mvec_cartesian(n,i) * ident(:,:) * sigma(1,2,k) * levi_civita(m,n,k)
+          torque(nOrb+1:2*nOrb,nOrb+1:2*nOrb,m,i) = torque(nOrb+1:2*nOrb,nOrb+1:2*nOrb,m,i) + mvec_cartesian(n,i) * ident(:,:) * sigma(2,2,k) * levi_civita(m,n,k)
         end do
       end do
     end do

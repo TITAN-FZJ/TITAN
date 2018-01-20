@@ -3,7 +3,7 @@
 subroutine calculate_dc_limit()
   use mod_constants,       only: cZero, cOne, cI, levi_civita, tpi
   use mod_parameters, only: sigmaimunu2i, sigmai2i, dimsigmaNpl, U, offset, lnodiag, output, count, emin, deltae, npt1, laddresults, lhfresponses, dim, skip_steps
-  use mod_magnet,          only: lfield, dcfield_dependence, dc_count, dcfield, hw_count, mtheta, mphi, lxp, lyp, lzp, lx, ly, lz, mx, my, mz, mvec_spherical, hhwx, hhwy, hhwz
+  use mod_magnet,          only: lfield, dcfield_dependence, dc_count, dcfield, hw_count, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, hhwx, hhwy, hhwz
   use mod_SOC, only: llinearsoc
   use mod_System, only: s => sys
   use mod_BrillouinZone, only: realBZ
@@ -35,7 +35,7 @@ subroutine calculate_dc_limit()
   character(len=50) :: time
   integer :: mcount
   integer           :: i,j,iw,sigma,sigmap,mu,nu,neighbor,hw_count_temp,count_temp,mpitag2
-  real(double)      :: e,Icabs,mvec_spherical_temp(s%nAtoms,3)
+  real(double)      :: e,Icabs,mvec_spherical_temp(3,s%nAtoms)
 
   dc_count = dc_count + 1
 
@@ -154,9 +154,9 @@ subroutine calculate_dc_limit()
         ! Rotating susceptibilities to the magnetization direction
         if(lrot) then
           do i = 1, s%nAtoms
-            call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,1)
+            call build_rotation_matrices_chi(mvec_spherical(2,i),mvec_spherical(3,i),rottemp,1)
             rotmat_i(:,:,i) = rottemp
-            call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,2)
+            call build_rotation_matrices_chi(mvec_spherical(2,i),mvec_spherical(3,i),rottemp,2)
             rotmat_j(:,:,i) = rottemp
           end do
           do j = 1, s%nAtoms
@@ -218,9 +218,9 @@ subroutine calculate_dc_limit()
         ! Rotating susceptibilities to the magnetization direction
         if(lrot) then
           do i = 1, s%nAtoms
-            call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,1)
+            call build_rotation_matrices_chi(mvec_spherical(2,i),mvec_spherical(3,i),rottemp,1)
             rotmat_i(:,:,i) = rottemp
-            call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,2)
+            call build_rotation_matrices_chi(mvec_spherical(2,i),mvec_spherical(3,i),rottemp,2)
             rotmat_j(:,:,i) = rottemp
           end do
           do j = 1, s%nAtoms
@@ -305,9 +305,9 @@ subroutine calculate_dc_limit()
         torques(1,:,i) = 0.5d0*s%Types(s%Basis(i)%Material)%Lambda*torques(1,:,i)
 
         ! Exchange-correlation torques (calculated in the spin frame of reference)
-        torques(2,1,i) = U(i+offset)*(mz(i)*disturbances(3,i)-my(i)*disturbances(4,i))
-        torques(2,2,i) = U(i+offset)*(mx(i)*disturbances(4,i)-mz(i)*disturbances(2,i))
-        torques(2,3,i) = U(i+offset)*(my(i)*disturbances(2,i)-mx(i)*disturbances(3,i))
+        torques(2,1,i) = U(i+offset)*(mvec_cartesian(3,i)*disturbances(3,i)-mvec_cartesian(2,i)*disturbances(4,i))
+        torques(2,2,i) = U(i+offset)*(mvec_cartesian(1,i)*disturbances(4,i)-mvec_cartesian(3,i)*disturbances(2,i))
+        torques(2,3,i) = U(i+offset)*(mvec_cartesian(2,i)*disturbances(2,i)-mvec_cartesian(1,i)*disturbances(3,i))
 
         ! External torques (calculated in the spin frame of reference)
         if(lfield) then
@@ -472,7 +472,7 @@ subroutine calculate_dc_limit()
   end do
 
   call freeLocalEKMesh()
-  
+
   ! Sorting results on files
   if(rField==0) then
     call sort_all_files()

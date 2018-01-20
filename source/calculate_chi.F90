@@ -4,7 +4,7 @@ subroutine calculate_chi()
   use mod_constants, only: cZero, cOne
   use mod_parameters, only:  count, emin, deltae, dim, sigmaimunu2i, output, lnodiag,laddresults, skip_steps, sigmai2i
   use mod_mpi_pars
-  use mod_magnet, only: mtheta,mphi
+  use mod_magnet, only: mvec_spherical
   use mod_susceptibilities, only: identt, Umatorb, schi, schihf, schirot, rotmat_i, &
        rotmat_j, rottemp, schitemp, lrot, chiorb_hf, chiorb, &
        build_identity_and_U_matrix, diagonalize_susceptibilities, &
@@ -14,6 +14,7 @@ subroutine calculate_chi()
   use mod_system, only: s => sys
   use TightBinding, only: nOrb
   use mod_BrillouinZone, only: realBZ
+  use mod_tools, only: itos
   use adaptiveMesh, only: genLocalEKMesh, freeLocalEKMesh
   use mod_progress, only: write_time
   use TorqueTorqueResponse, only: calcTTResponse, create_TTR_files, allocTTResponse
@@ -88,9 +89,9 @@ subroutine calculate_chi()
         ! Rotating susceptibilities to the magnetization direction
         if(lrot) then
            do i=1, s%nAtoms
-              call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,1)
+              call build_rotation_matrices_chi(mvec_spherical(2,i),mvec_spherical(3,i),rottemp,1)
               rotmat_i(:,:,i) = rottemp
-              call build_rotation_matrices_chi(mtheta(i),mphi(i),rottemp,2)
+              call build_rotation_matrices_chi(mvec_spherical(2,i),mvec_spherical(3,i),rottemp,2)
               rotmat_j(:,:,i) = rottemp
            end do
            do j=1, s%nAtoms

@@ -5,16 +5,16 @@ module mod_magnet
 
   logical :: lfield !< Turn on/off static magnetic field, option to give in magnetic field in tesla
 
-  integer                     :: iter                                   ! self-consistency iteration
-  real(double),allocatable    :: mx(:),my(:),mz(:),mvec_cartesian(:,:),hdel(:)    ! Magnetization and exchange split delta/2
-  real(double),allocatable    :: lxm(:),lym(:),lzm(:)                   ! Orbital angular momentum in global frame of reference
-  real(double),allocatable    :: lxpm(:),lypm(:),lzpm(:)                ! Orbital angular momentum in local frame of reference
-  complex(double),allocatable :: mp(:),hdelp(:)
-  complex(double),allocatable :: mm(:),hdelm(:)
-  real(double),allocatable    :: mabs(:),mtheta(:),mphi(:),mvec_spherical(:,:)
+  integer                     :: iter                                           !< self-consistency iteration
+  real(double),allocatable    :: rho(:,:)                                       !< orbital-dependent and d-orbital charge density per site
+  real(double),allocatable    :: mx(:,:),my(:,:),mz(:,:)                        !< orbital-dependent magnetization per site in cartesian coordinates
+  real(double),allocatable    :: rhod(:),mxd(:),myd(:),mzd(:)                   !< d-orbital charge density and magnetization per site
+  complex(double),allocatable :: mp(:,:),mpd(:)                                 !< circular components (plus) of the total and d-orbital magnetization
+  real(double),allocatable    :: lxm(:),lym(:),lzm(:)                           !< Orbital angular momentum in global frame of reference
+  real(double),allocatable    :: lxpm(:),lypm(:),lzpm(:)                        !< Orbital angular momentum in local frame of reference
+  real(double),allocatable    :: mabs(:),mtheta(:),mphi(:),mvec_spherical(:,:),mvec_cartesian(:,:)
   real(double),allocatable    :: labs(:),ltheta(:),lphi(:)
   real(double),allocatable    :: lpabs(:),lptheta(:),lpphi(:)
-  real(double),allocatable    :: eps1(:)
   !! Center of the bands for each l - eps(Npl)
   real(double), dimension(:), allocatable :: hhwx, hhwy, hhwz
   !! Half of Static magnetic fields in each direction
@@ -149,8 +149,7 @@ contains
     implicit none
 
     integer, intent(in) :: nAtoms
-    integer :: AllocateStatus
-    integer :: i
+    integer :: i, AllocateStatus
 
     if(allocated(hhwx)) deallocate(hhwx)
     if(allocated(hhwy)) deallocate(hhwy)
@@ -199,12 +198,8 @@ contains
     use mod_parameters, only: lnolb
     implicit none
     integer, intent(in) :: nOrbs, nAtoms
-    integer :: i
+    integer :: i, AllocateStatus
     complex(double), dimension(:,:), allocatable :: lbsigma
-
-    if(allocated(lb)) deallocate(lb)
-    allocate(lb(2*nOrbs,2*nOrbs,nAtoms))
-
 
     ! There is an extra  minus sign in the definition of hhwx,hhwy,hhwz
     ! to take into account the fact that we are considering negative
@@ -229,9 +224,6 @@ contains
     implicit none
     integer, intent(in) :: nAtoms, nOrbs
     integer :: i,mu,nu
-
-    if(allocated(sb)) deallocate(sb)
-    allocate(sb(2*nOrbs,2*nOrbs,nAtoms))
 
     ! There is an extra  minus sign in the definition of hhwx,hhwy,hhwz
     ! to take into account the fact that we are considering negative
@@ -317,11 +309,6 @@ contains
     real(double), dimension(s%nAtoms), intent(in) :: theta, phi
     integer :: i
 
-    if(allocated(lxp)) deallocate(lxp)
-    if(allocated(lyp)) deallocate(lyp)
-    if(allocated(lzp)) deallocate(lzp)
-    allocate(lxp(nOrb,nOrb,s%nAtoms), lyp(nOrb,nOrb,s%nAtoms), lzp(nOrb,nOrb,s%nAtoms))
-
     do i = 1, s%nAtoms
       lxp(:,:,i) = (lx*cos(theta(i))*cos(phi(i)))+(ly*cos(theta(i))*sin(phi(i)))-(lz*sin(theta(i)))
       lyp(:,:,i) =-(lx*sin(phi(i)))+(ly*cos(phi(i)))
@@ -331,25 +318,45 @@ contains
     return
   end subroutine lp_matrix
 
-  subroutine allocate_magnet_variables(nAtoms)
+  subroutine allocate_magnet_variables(nAtoms, nOrb)
     use mod_mpi_pars, only: abortProgram
     implicit none
     integer, intent(in) :: nAtoms
+    integer, intent(in) :: nOrb
     integer :: AllocateStatus
-    allocate(eps1(nAtoms), STAT = AllocateStatus )
-    if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: eps1")
 
-    allocate( mx(nAtoms), my(nAtoms), mz(nAtoms), &
-              mvec_cartesian(nAtoms,3), &
-              mvec_spherical(nAtoms,3), &
-              hdel(nAtoms),hdelp(nAtoms),hdelm(nAtoms), &
-              mp(nAtoms),mm(nAtoms), STAT = AllocateStatus )
-    if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mx,my,mz,mvec_cartesian,mvec_spherical,hdel,mp,hdelp,mm,hdelm")
+    allocate( rho(nOrb,nAtoms), stat = AllocateStatus)
+    if(AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: rho")
+
+    allocate( mx(nOrb,nAtoms), my(nOrb,nAtoms), mz(nOrb,nAtoms), mp(nOrb,nAtoms), &
+              mvec_cartesian(3,nAtoms), &
+              mvec_spherical(3,nAtoms), STAT = AllocateStatus )
+    if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mx,my,mz,mp,mvec_cartesian,mvec_spherical")
+
+    allocate( mxd(nAtoms), myd(nAtoms), mzd(nAtoms), mpd(nAtoms), &
+              rhod(nAtoms), STAT = AllocateStatus )
+    if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mx,my,mz,mp,mxd,myd,mzd,mvec_cartesian,mvec_spherical")
 
     allocate( mabs(nAtoms), mtheta(nAtoms), mphi(nAtoms), &
               labs(nAtoms), ltheta(nAtoms), lphi(nAtoms), &
               lpabs(nAtoms), lptheta(nAtoms), lpphi(nAtoms), STAT = AllocateStatus )
     if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mabs,mtheta,mphi,labs,ltheta,lphi,lpabs,lptheta,lpphi")
+
+
+    allocate( hhwx(nAtoms),hhwy(nAtoms),hhwz(nAtoms), STAT = AllocateStatus )
+    if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: hhwx,hhwy,hhwz")
+
+    allocate(lx(nOrb, nOrb), ly(nOrb,nOrb), lz(nOrb,nOrb))
+    if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: lx, ly, lz")
+
+    allocate(sb(2*nOrb,2*nOrb,nAtoms), stat = AllocateStatus)
+    if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: sb")
+
+    allocate(lb(2*nOrb,2*nOrb,nAtoms), stat = AllocateStatus)
+    if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: lb")
+
+    allocate(lxp(nOrb,nOrb,nAtoms), lyp(nOrb,nOrb,nAtoms), lzp(nOrb,nOrb,nAtoms), stat = AllocateStatus)
+    if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: lxp, lyp, lzp")
 
     return
   end subroutine
@@ -357,15 +364,19 @@ contains
   subroutine deallocate_magnet_variables()
     implicit none
 
-    if(allocated(eps1)) deallocate(eps1)
+    if(allocated(lxp)) deallocate(lxp)
+    if(allocated(lyp)) deallocate(lyp)
+    if(allocated(lzp)) deallocate(lzp)
+    if(allocated(lx)) deallocate(lx)
+    if(allocated(ly)) deallocate(ly)
+    if(allocated(lz)) deallocate(lz)
+    if(allocated(lb)) deallocate(lb)
+    if(allocated(sb)) deallocate(sb)
+    if(allocated(rho)) deallocate(rho)
     if(allocated(mx)) deallocate(mx)
     if(allocated(my)) deallocate(my)
     if(allocated(mz)) deallocate(mz)
-    if(allocated(mm)) deallocate(mm)
     if(allocated(mp)) deallocate(mp)
-    if(allocated(hdel)) deallocate(hdel)
-    if(allocated(hdelm)) deallocate(hdelm)
-    if(allocated(hdelp)) deallocate(hdelp)
     if(allocated(mvec_spherical)) deallocate(mvec_spherical)
     if(allocated(mvec_cartesian)) deallocate(mvec_cartesian)
     if(allocated(mabs)) deallocate(mabs)
@@ -388,7 +399,6 @@ contains
     if(allocated(hhwz)) deallocate(hhwz)
     if(allocated(sb)) deallocate(sb)
     if(allocated(lb)) deallocate(lb)
-
     return
   end subroutine
 
