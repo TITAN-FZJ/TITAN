@@ -39,7 +39,7 @@ contains
             iw = 1000 + (i-1) * size(filename) + j
             write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_layer=',i0,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%info),trim(output%BField),trim(output%SOC)
             open (unit=iw, file=varm,status='replace')
-            write(unit=iw, fmt="('#   energy      ,  LDOS SUM        ,  LDOS S          ,  LDOS P          ,  LDOS D          ')")
+            write(unit=iw, fmt="('#   energy      ,  LDOS SUM        ,  LDOS S          ,  LDOS P          ,  LDOS EG         ,  LDOS T2G        ,')")
          end do
       end do
       return
@@ -63,13 +63,13 @@ contains
       use mod_System, only: s => sys
       implicit none
       real(double), intent(in) :: e
-      integer :: i, iw
+      integer :: i, iw, j
 
       do i = 1, s%nAtoms
           iw = 1000 + (i-1) * 2 + 1
-          write(unit=iw,fmt="(5(es16.9,2x))") e, sum(ldosu(i,:)),ldosu(i,1),sum(ldosu(i,2:4)),sum(ldosu(i,5:9))
+          write(unit=iw,fmt="(10(es16.9,2x))") e, (ldosu(i,j), j = 1, 9) !sum(ldosu(i,:)),ldosu(i,1),sum(ldosu(i,2:4)),sum(ldosu(i,5:9))
           iw = iw + 1
-          write(unit=iw,fmt="(5(es16.9,2x))") e, sum(ldosd(i,:)),ldosd(i,1),sum(ldosd(i,2:4)),sum(ldosd(i,5:9))
+          write(unit=iw,fmt="(10(es16.9,2x))") e, (ldosd(i,j), j = 1,9) !sum(ldosd(i,:)),ldosd(i,1),sum(ldosd(i,2:4)),sum(ldosd(i,5:9))
       end do
 
    end subroutine writeLDOS
