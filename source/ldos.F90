@@ -1,7 +1,7 @@
 ! This subroutine calculates LDOS
 subroutine ldos()
   use mod_f90_kind, only: double
-  use mod_parameters, only: output, npt1, emin, deltae
+  use mod_parameters, only: output, npt1, emin, deltae,laddresults
   use mod_system, only: s => sys
   use mod_BrillouinZone, only: realBZ
   use TightBinding, only: nOrb
@@ -11,14 +11,14 @@ subroutine ldos()
   integer :: i, j
   real(double) :: e
 
-  write(output%unit_loop,"('CALCULATING LDOS')")
-
   call allocateLDOS()
   call realBZ % setup_fraction(rFreq(1), sFreq(1), FreqComm(1))
 
-
   ! Opening files
-  if(rField == 0) call openLDOSFiles()
+  if(rField == 0) then
+    write(output%unit_loop,"('CALCULATING LDOS')")
+    if(.not.laddresults) call createLDOSFiles()
+  end if
 
   do i = startFreq, endFreq
      e = emin + (i-1)*deltae

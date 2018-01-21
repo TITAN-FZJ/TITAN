@@ -10,12 +10,16 @@ subroutine check_files()
   use mod_torques, only: open_torque_files, close_torque_files, &
                          open_dc_torque_files, close_dc_torque_files
   use mod_magnet, only: hw_count
+  use mod_LDOS, only: openLDOSFiles,closeLDOSFiles
   !use mod_currents, only: openclose_currents_files, openclose_dc_currents_files !TODO: Re-Include
   !use mod_sha, only: openclose_sha_files, openclose_dc_sha_files !TODO: Re-Include
   implicit none
   integer :: count
   write(output%unit,"('[check_files] Checking if files exist...')")
   select case (itype)
+  case (2)
+    call openLDOSFiles()
+    call closeLDOSFiles()
   case (7)
     call open_chi_files()
     call close_chi_files()

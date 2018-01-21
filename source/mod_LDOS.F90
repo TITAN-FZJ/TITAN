@@ -27,7 +27,7 @@ contains
       return
    end subroutine deallocateLDOS
 
-   subroutine openLDOSFiles()
+   subroutine createLDOSFiles()
       use mod_parameters, only: output
       use mod_System, only: s => sys
       implicit none
@@ -38,10 +38,33 @@ contains
          do j = 1, size(filename)
             iw = 1000 + (i-1) * size(filename) + j
             write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_site=',i0,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%info),trim(output%BField),trim(output%SOC)
-            open (unit=iw, file=varm,status='replace')
+            open (unit=iw, file=varm,status='replace', form='formatted')
             write(unit=iw, fmt="('#   energy      ,  LDOS SUM        ,  LDOS S          ,  LDOS P          ,  LDOS T2G        ,  LDOS EG         ')")
+            close(unit=iw)
          end do
       end do
+      return
+   end subroutine createLDOSFiles
+
+   subroutine openLDOSFiles()
+      use mod_parameters, only: output,missing_files
+      use mod_System, only: s => sys
+      implicit none
+      character(len=400) :: varm
+      integer            :: i, iw, j, err, errt=0
+
+      do i = 1, s%nAtoms
+         do j = 1, size(filename)
+            iw = 1000 + (i-1) * size(filename) + j
+            write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_site=',i0,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%info),trim(output%BField),trim(output%SOC)
+            open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+            errt = errt + err
+            if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+         end do
+      end do
+      ! Stop if some file does not exist
+      if(errt/=0) call abortProgram("[openLDOSFiles] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_line('A') // trim(missing_files))
+
       return
    end subroutine openLDOSFiles
 
