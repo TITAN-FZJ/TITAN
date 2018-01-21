@@ -2,7 +2,7 @@ module mod_LDOS
    use mod_f90_kind, only: double
    implicit none
    character(len=4), private :: folder = "LDOS"
-   character(len=5), dimension(4), private :: filename = ["ldosu","ldosd","lmdosu", "lmdosd"]
+   character(len=6), dimension(4), private :: filename = ["ldosu","ldosd","lmdosu", "lmdosd"]
 
    real(double),dimension(:,:),allocatable :: ldosu,ldosd
 
