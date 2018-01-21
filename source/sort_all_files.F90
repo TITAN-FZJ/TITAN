@@ -6,12 +6,16 @@ subroutine sort_all_files()
   use mod_disturbances
   use mod_beff
   use mod_torques
+  use mod_LDOS, only: sortLDOS
   !use mod_currents!TODO: Re-Include
   !use mod_sha !TODO: Re-Include
   implicit none
 
   write(output%unit_loop,"('[sort_all_files] Sorting files... ')", advance='no')
   select case (itype)
+  case (2)
+    ! SORTING LDOS
+    call sortLDOS()
   case (7)
     ! SORTING SUSCEPTIBILITIES
     call sort_susceptibilities()
