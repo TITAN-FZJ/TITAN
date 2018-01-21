@@ -49,6 +49,7 @@ contains
    subroutine openLDOSFiles()
       use mod_parameters, only: output,missing_files
       use mod_System, only: s => sys
+      use mod_mpi_pars, only: abortProgram
       implicit none
       character(len=400) :: varm
       integer            :: i, iw, j, err, errt=0
