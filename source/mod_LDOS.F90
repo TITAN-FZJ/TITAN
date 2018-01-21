@@ -66,7 +66,7 @@ contains
       integer :: i, iw, j
 
       do i = 1, s%nAtoms
-          iw = 1000 + (i-1) * 2 + 1
+          iw = 1000 + (i-1) * size(filename) + 1
           write(unit=iw,fmt="( 6(es16.9,2x))") e, sum(ldosu(i,:)),ldosu(i,1),sum(ldosu(i,2:4)),sum(ldosu(i,5:7)),sum(ldosu(i,8:9))
           iw = iw + 1
           write(unit=iw,fmt="( 6(es16.9,2x))") e, sum(ldosd(i,:)),ldosd(i,1),sum(ldosd(i,2:4)),sum(ldosd(i,5:7)),sum(ldosd(i,8:9))
