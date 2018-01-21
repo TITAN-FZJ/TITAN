@@ -37,7 +37,7 @@ contains
       do i = 1, s%nAtoms
          do j = 1, size(filename)
             iw = 1000 + (i-1) * size(filename) + j
-            write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_layer=',i0,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%info),trim(output%BField),trim(output%SOC)
+            write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_site=',i0,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%info),trim(output%BField),trim(output%SOC)
             open (unit=iw, file=varm,status='replace')
             write(unit=iw, fmt="('#   energy      ,  LDOS SUM        ,  LDOS S          ,  LDOS P          ,  LDOS EG         ,  LDOS T2G        ,')")
          end do
