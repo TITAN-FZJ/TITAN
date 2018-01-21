@@ -236,7 +236,6 @@ program TITAN
       continue
     case (2) !Debugging case
       call ldos() !call debugging() TODO: Re-Include
-      continue
     case (3) !
       call ldos_and_coupling()
     case (4) !
