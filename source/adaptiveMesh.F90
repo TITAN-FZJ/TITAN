@@ -8,21 +8,14 @@ module adaptiveMesh
 
 contains
 
-   subroutine generateAdaptiveMeshes()
-      implicit none
-
-      call calcTotalPoints()
-      return
-   end subroutine generateAdaptiveMeshes
-
-   subroutine calcTotalPoints()
+   subroutine generateAdaptiveMeshes(pn1)
       use mod_parameters, only: total_nkpt => kptotal_in
-      use EnergyIntegration, only: pn1, y
+      use EnergyIntegration, only: y
       use mod_System, only: s => sys
       use mod_BrillouinZone, only: count_3D_BZ, count_2D_BZ
       use mod_mpi_pars
       implicit none
-      integer :: i
+      integer :: i,pn1
 
       allocate(all_nkpt(pn1))
       total_points = 0
@@ -35,7 +28,7 @@ contains
          total_points = total_points + all_nkpt(i)
       end do
       return
-   end subroutine calcTotalPoints
+   end subroutine generateAdaptiveMeshes
 
    subroutine genLocalEKMesh(rank, size, comm)
       use mod_parameters, only: total_nkpt => kptotal_in

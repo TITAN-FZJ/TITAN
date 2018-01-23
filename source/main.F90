@@ -79,7 +79,7 @@ program TITAN
   ! ! Writing BZ points and weights into file
   ! if((lkpoints).and.(myrank==0)) call BZ % print()
 
-  call generateAdaptiveMeshes()
+  call generateAdaptiveMeshes(pn1)
 
   !--------------- Allocating variables that depend on Npl ---------------
   call allocate_magnet_variables(sys%nAtoms, nOrb)
