@@ -21,6 +21,7 @@ contains
     use mod_magnet, only: lp_matrix, mtheta, mphi
     use adaptiveMesh, only: genLocalEKMesh, freeLocalEKMesh
     use mod_mpi_pars, only: rField, sField, FieldComm
+    use mod_SOC, only: SOC
     implicit none
     logical :: lsuccess = .false.
 
@@ -46,7 +47,7 @@ contains
     call lp_matrix(mtheta, mphi)
 
     ! Calculating ground state Orbital Angular Momentum
-    if(lGSL) call calcLGS()
+    if((lGSL).or.(SOC)) call calcLGS()
 
     ! Writing self-consistency results on screen
     if(rField == 0)  call print_sc_results()
@@ -912,6 +913,7 @@ contains
   subroutine print_sc_results()
     use mod_parameters, only: output
     use mod_system, only: s => sys
+    use mod_SOC, only: SOC
     use mod_magnet, only: rho, mvec_cartesian, mp, mvec_spherical, &
                           lxpm, lypm, lzpm, lpphi, lptheta, lxm, lym, lzm, lpabs, labs
     implicit none
@@ -928,7 +930,7 @@ contains
       write(output%unit_loop,"(4x,'Mx (',i2.0,')=',f11.8,4x,'My (',i2.0,')=',f11.8,4x,'Mz (',i2.0,')=',f11.8)") i,mvec_cartesian(1,i),i,mvec_cartesian(2,i),i,mvec_cartesian(3,i)
       if(abs(sum(mp(:,i)))/=0) write(output%unit_loop,"(12x,'theta =',f11.8,' pi',4x,'phi =',f11.8,' pi')") mvec_spherical(2,i),mvec_spherical(3,i)
     end do
-    if(lGSL) then
+    if((lGSL).or.(SOC)) then
       write(output%unit_loop,"(11x,' *** Orbital components in local frame:  ***')")
       do i=1,s%nAtoms
         write(output%unit_loop,"(4x,'Lxp(',i2.0,')=',f11.8,4x,'Lyp(',i2.0,')=',f11.8,4x,'Lzp(',i2.0,')=',f11.8)") i,lxpm(i),i,lypm(i),i,lzpm(i)

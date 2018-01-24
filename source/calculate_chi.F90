@@ -1,11 +1,11 @@
 ! This is the main subroutine to calculate the susceptibilities
 subroutine calculate_chi()
   use mod_f90_kind, only: double
-  use mod_constants, only: cZero, cOne
+  use mod_constants, only: cZero, cOne, StoC, CtoS
   use mod_parameters, only:  count, emin, deltae, dim, sigmaimunu2i, output, lnodiag,laddresults, skip_steps, sigmai2i
   use mod_mpi_pars
-  use mod_magnet, only: mvec_spherical
-  use mod_susceptibilities, only: identt, Umatorb, schi, schihf, schirot, rotmat_i, &
+  use mod_magnet, only: mvec_spherical,l
+  use mod_susceptibilities, only: identt, Umatorb, schi, schihf, schiLS, schiSL, schiLL, schirot, rotmat_i, &
        rotmat_j, rottemp, schitemp, lrot, chiorb_hf, chiorb, &
        build_identity_and_U_matrix, diagonalize_susceptibilities, &
        create_chi_files, write_susceptibilities, &
@@ -21,9 +21,10 @@ subroutine calculate_chi()
   use TorqueSpinResponse, only: calcTSResponse, create_TSR_files, allocTSResponse
   implicit none
   character(len=50) :: time
-  integer :: mcount
-  integer           :: i,j,sigma,sigmap,mu,nu
+  integer           :: mcount
+  integer           :: i,j,sigma,sigmap,mu,nu,gamma,xi,p
   real(double)      :: e
+real(double) :: schi_sum(4,4),schihf_sum(4,4)
   complex(double), dimension(:,:),   allocatable :: temp
   call allocate_susceptibilities()
   call allocate_alpha()
@@ -68,7 +69,7 @@ subroutine calculate_chi()
         call invers(temp,dim)
         call zgemm('n','n',dim,dim,dim,cOne,temp,dim,chiorb_hf,dim,cZero,chiorb,dim)
 
-        schi = cZero
+        schi   = cZero
         schihf = cZero
         ! Calculating RPA and HF susceptibilities
         do j=1, s%nAtoms
@@ -85,6 +86,33 @@ subroutine calculate_chi()
               end do
            end do
         end do
+
+        schiLS = cZero
+        schiSL = cZero
+        schiLL = cZero
+        ! Calculating 3x3 <<L,S>>, <<S,L>> and <<L,L>> responses in cartesian components (x,y,z)
+        do j=1, s%nAtoms
+           do i=1, s%nAtoms
+              do sigmap=1, 3
+                 do sigma=1, 3
+                    do nu=1, nOrb
+                       do mu=1, nOrb
+                          do gamma=1, nOrb
+                            do p=1, 4
+                              schiLS(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiLS(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + l(mu,gamma,sigma)*( chiorb(sigmaimunu2i(2,i,mu,gamma),sigmaimunu2i(p,j,nu,nu)) + chiorb(sigmaimunu2i(3,i,mu,gamma),sigmaimunu2i(p,j,nu,nu)) )*CtoS(p,sigmap+1)
+                              schiSL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiSL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + StoC(sigma+1,p)*( chiorb(sigmaimunu2i(p,i,mu,mu),sigmaimunu2i(2,j,nu,gamma)) + chiorb(sigmaimunu2i(p,i,mu,mu),sigmaimunu2i(3,j,nu,gamma)) )*l(nu,gamma,sigmap)
+                            end do
+                            do xi=1, nOrb
+                              schiLL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiLL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + l(mu,nu,sigma)*( chiorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) + chiorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) + chiorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) + chiorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) )*l(gamma,xi,sigmap)
+                            end do
+                          end do
+                       end do
+                    end do
+                 end do
+              end do
+           end do
+        end do
+
 
         ! Rotating susceptibilities to the magnetization direction
         if(lrot) then

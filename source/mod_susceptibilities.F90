@@ -1,8 +1,9 @@
 module mod_susceptibilities
   use mod_f90_kind, only: double
   implicit none
-  ! Spin susceptibilities
+  ! Spin and orbital susceptibilities
   complex(double), dimension(:,:), allocatable   :: schi, schihf
+  complex(double), dimension(:,:), allocatable   :: schiLS, schiSL, schiLL
   ! Full response functions
   complex(double), dimension(:,:), allocatable :: chiorb_hf,chiorb_hflsoc,chiorb
   complex(double), dimension(:,:), allocatable :: identt,Umatorb
@@ -40,6 +41,11 @@ contains
             schihf(4*s%nAtoms,4*s%nAtoms), &
             chiorb(dim,dim), STAT = AllocateStatus )
        if (AllocateStatus/=0) call abortProgram("[allocate_susceptibilities] Not enough memory for: schi,schihf,chiorb")
+
+       allocate( schiLS(3*s%nAtoms, 3*s%nAtoms), &
+            schiSL(3*s%nAtoms,3*s%nAtoms), &
+            schiLL(3*s%nAtoms,3*s%nAtoms), STAT = AllocateStatus )
+       if (AllocateStatus/=0) call abortProgram("[allocate_susceptibilities] Not enough memory for: schiLS, schiSL, schiLL")
 
        if(lrot) then
           allocate( rotmat_i(4,4,s%nAtoms), &
@@ -89,6 +95,9 @@ contains
 
     if(allocated(schi)) deallocate(schi)
     if(allocated(schihf)) deallocate(schihf)
+    if(allocated(schiLS)) deallocate(schiLS)
+    if(allocated(schiSL)) deallocate(schiSL)
+    if(allocated(schiLL)) deallocate(schiLL)
     if(allocated(rotmat_i)) deallocate(rotmat_i)
     if(allocated(rotmat_j)) deallocate(rotmat_j)
     if(allocated(rottemp)) deallocate(rottemp)

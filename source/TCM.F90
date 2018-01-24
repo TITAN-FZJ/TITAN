@@ -214,19 +214,12 @@ subroutine local_SO_torque(torque)
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, levi_civita, sigma => pauli_mat, cI
   use mod_System, only: s => sys
-  use mod_magnet, only: Lx, Ly, Lz
+  use mod_magnet, only: l
   use TightBinding, only: nOrb, nOrb2
   use mod_mpi_pars
   implicit none
   integer :: i,m,n,k
   complex(double), dimension(nOrb2,nOrb2,3, s%nAtoms), intent(out) :: torque
-  complex(double), dimension(nOrb, nOrb, 3, s%nAtoms) :: L
-
-  do i = 1, s%nAtoms
-    L(1:nOrb,1:nOrb,1, i) = Lx(1:nOrb,1:nOrb)
-    L(1:nOrb,1:nOrb,2, i) = Ly(1:nOrb,1:nOrb)
-    L(1:nOrb,1:nOrb,3, i) = Lz(1:nOrb,1:nOrb)
-  end do
 
   torque = cZero
 
@@ -237,10 +230,10 @@ subroutine local_SO_torque(torque)
     do m = 1, 3
       do n = 1, 3
         do k = 1, 3
-          torque(     1:nOrb ,     1:nOrb ,m,i) = torque(     1:nOrb ,     1:nOrb ,m,i) + L(1:nOrb,1:nOrb,n,i) * sigma(1,1,k) * levi_civita(m,n,k)
-          torque(nOrb+1:nOrb2,     1:nOrb ,m,i) = torque(nOrb+1:nOrb2,     1:nOrb ,m,i) + L(1:nOrb,1:nOrb,n,i) * sigma(2,1,k) * levi_civita(m,n,k)
-          torque(     1:nOrb ,nOrb+1:nOrb2,m,i) = torque(     1:nOrb ,nOrb+1:nOrb2,m,i) + L(1:nOrb,1:nOrb,n,i) * sigma(1,2,k) * levi_civita(m,n,k)
-          torque(nOrb+1:nOrb2,nOrb+1:nOrb2,m,i) = torque(nOrb+1:nOrb2,nOrb+1:nOrb2,m,i) + L(1:nOrb,1:nOrb,n,i) * sigma(2,2,k) * levi_civita(m,n,k)
+          torque(     1:nOrb ,     1:nOrb ,m,i) = torque(     1:nOrb ,     1:nOrb ,m,i) + l(1:nOrb,1:nOrb,n) * sigma(1,1,k) * levi_civita(m,n,k)
+          torque(nOrb+1:nOrb2,     1:nOrb ,m,i) = torque(nOrb+1:nOrb2,     1:nOrb ,m,i) + l(1:nOrb,1:nOrb,n) * sigma(2,1,k) * levi_civita(m,n,k)
+          torque(     1:nOrb ,nOrb+1:nOrb2,m,i) = torque(     1:nOrb ,nOrb+1:nOrb2,m,i) + l(1:nOrb,1:nOrb,n) * sigma(1,2,k) * levi_civita(m,n,k)
+          torque(nOrb+1:nOrb2,nOrb+1:nOrb2,m,i) = torque(nOrb+1:nOrb2,nOrb+1:nOrb2,m,i) + l(1:nOrb,1:nOrb,n) * sigma(2,2,k) * levi_civita(m,n,k)
         end do
       end do
     end do

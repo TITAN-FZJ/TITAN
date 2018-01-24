@@ -17,10 +17,9 @@ contains
     real(double), dimension(:,:), allocatable :: bp
     real(double) :: scale_factor(2), mix(10,2)
     type(NeighborIndex), pointer :: current
-    real(double), dimension(10), parameter :: exponent = [1.0d0,3.0d0,3.0d0,5.0d0,5.0d0,5.0d0,2.0d0,3.0d0,4.0d0,4.0d0]
+    real(double), dimension(10), parameter :: expon = [1.0d0,3.0d0,3.0d0,5.0d0,5.0d0,5.0d0,2.0d0,3.0d0,4.0d0,4.0d0]
     nullify(current)
     allocate(bp(nOrb,nOrb))
-
 
     do i = 1, s%nTypes
       call read_Papa_2C_param(s%Types(i), s%nStages, nOrb)
@@ -50,8 +49,8 @@ contains
             scale_factor(1) = s%Types(s%Basis(i)%Material)%stage(k) / s%Neighbors(current%index)%Distance(i)
             scale_factor(2) = s%Types(s%Basis(j)%Material)%stage(k) / s%Neighbors(current%index)%Distance(i)
             do l = 1, 10
-              mix(l,1) = s%Types(s%Basis(i)%Material)%Hopping(l,k) * scale_factor(1) ** exponent(l)
-              mix(l,2) = s%Types(s%Basis(j)%Material)%Hopping(l,k) * scale_factor(2) ** exponent(l)
+              mix(l,1) = s%Types(s%Basis(i)%Material)%Hopping(l,k) * scale_factor(1) ** expon(l)
+              mix(l,2) = s%Types(s%Basis(j)%Material)%Hopping(l,k) * scale_factor(2) ** expon(l)
             end do
             call set_hopping_matrix(s%Neighbors(current%index)%t0i(:,:,i), &
                                     s%Neighbors(current%index)%dirCos(:,i), &
@@ -180,7 +179,7 @@ contains
         read(unit=995594, fmt='(A)', iostat = ios) line
         read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
         read(unit=words(4), fmt=*, iostat=ios) material%Hopping(j,i)
-        !material%Hopping(j,i) = material%Hopping(j,i) * (a0_corr ** exponent(j)) ! Correction of hopping parameter by scaling law.
+        !material%Hopping(j,i) = material%Hopping(j,i) * (a0_corr ** expon(j)) ! Correction of hopping parameter by scaling law.
       end do
     end do
 

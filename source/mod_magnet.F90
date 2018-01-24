@@ -22,8 +22,9 @@ module mod_magnet
   !! Zeeman matrices
   complex(double), dimension(:,:,:), allocatable :: lxp, lyp, lzp
   !! Site dependent Angular momentum matrices in local frame
-  complex(double), dimension(:,:), allocatable :: lx, ly, lz
-  !! Angular momentum matrices in global frame
+  complex(double), dimension(:,:), allocatable   :: lx, ly, lz
+  !! Angular momentum vector matrices in global frame
+  complex(double), dimension(:,:,:), allocatable :: l
 
   !========================================================================================!
   ! Values of magnetic field in cartesian or spherical coordinates
@@ -255,7 +256,7 @@ contains
     if(allocated(lx)) deallocate(lx)
     if(allocated(ly)) deallocate(ly)
     if(allocated(lz)) deallocate(lz)
-    allocate(lx(nOrb, nOrb), ly(nOrb,nOrb), lz(nOrb,nOrb))
+    allocate(lx(nOrb, nOrb), ly(nOrb,nOrb), lz(nOrb,nOrb), l(nOrb,nOrb,3))
 
     lz = cZero
 
@@ -296,6 +297,10 @@ contains
 
     lx = 0.5d0*(Lp+Lm)
     ly = -0.5d0*cI*(Lp-Lm)
+
+    l(:,:,1) = lx
+    l(:,:,2) = ly
+    l(:,:,3) = lz
 
     return
   end subroutine l_matrix
