@@ -48,10 +48,9 @@ subroutine eintshechi(e)
 
 
   !$omp parallel default(none) &
-  !$omp& private(AllocateStatus,ix,ix2,i,j,mu,nu,gamma,xi,nep,nkp,ep,kp,weight,gf,gfuu,gfud,gfdu,gfdd,Fint, index1, index2) &
-  !$omp& shared(llineargfsoc,pn1,bzs,s,realBZ,local_points,e,y,wght,x2,p2,pn2,real_points,E_k_imag_mesh,eta,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf)
-  allocate(Fint(dim,dim), &
-           gf  (nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
+  !$omp& private(AllocateStatus,ix,ix2,i,j,mu,nu,gamma,xi,nep,nkp,ep,kp,weight,gf,gfuu,gfud,gfdu,gfdd,index1, index2) &
+  !$omp& shared(llineargfsoc,pn1,bzs,s,realBZ,local_points,e,y,wght,x2,p2,pn2,real_points,E_k_imag_mesh,eta,dim,sigmaimunu2i,sigmaijmunu2i,Fint,chiorb_hf)
+  allocate(gf  (nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
            gfud(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
            gfdu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
@@ -129,7 +128,7 @@ subroutine eintshechi(e)
   end do !end ix <= pn1 loop
   !$omp end do nowait
 
-  !$omp do schedule(static)
+  !$omp do schedule(static) reduction(+:Fint)
   do ix2 = 1, real_points ! Third integration (on the real axis)
       nep = (ix2-1) / int(realBZ % workload,8) + 1
       nkp = mod(ix2-1, int(realBZ % workload,8)) + 1
