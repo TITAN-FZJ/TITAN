@@ -417,10 +417,12 @@ contains
     integer :: j,l,m, smallest_index, numextrakbz
 
     zdir = [0,0,1]
+
+    self%nkpt = self%nkpt_x * self%nkpt_y
+
     allocate(extrakbz(3,self%nkpt*10))
     allocate(extrawkbz(self%nkpt*10))
 
-    self%nkpt = self%nkpt_x * self%nkpt_y
 
     allocate(iniwkbz(self%nkpt), inikbz(3,self%nkpt))
 
