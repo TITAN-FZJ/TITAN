@@ -1,8 +1,8 @@
 module adaptiveMesh
-   use mod_BrillouinZone, only: BrillouinZone
+   use mod_BrillouinZone, only: FractionalBrillouinZone
    integer*8 :: total_points, local_points
    integer, dimension(:,:), allocatable :: E_k_imag_mesh
-   type(BrillouinZone), dimension(:), allocatable :: bzs
+   type(FractionalBrillouinZone), dimension(:), allocatable :: bzs
    integer, dimension(:),allocatable :: all_nkpt
    integer :: activeComm, activeRank, activeSize
 
@@ -40,7 +40,7 @@ contains
       integer, intent(in) :: size
       integer, intent(in) :: comm
       integer*8 :: firstPoint, lastPoint
-      integer*8 :: i, j, m, n
+      integer*8 :: i, j, m, n, p, q
       integer :: nkpt
 
       activeComm = comm
@@ -59,33 +59,65 @@ contains
             m = m + all_nkpt(i)
             cycle
          end if
-         do j = 1, all_nkpt(i)
-            m = m + 1
-            if(m < firstPoint .or. m > lastPoint) cycle
+
+         p = firstPoint - m
+         if(lastPoint < m + all_nkpt(i)) then
+            q = lastPoint - m
+         else
+            q = all_nkpt(i)
+         end if
+
+         bzs(i) % a1 = s % a1
+         bzs(i) % a2 = s % a2
+         bzs(i) % a3 = s % a3
+         bzs(i) % bulk = s%lbulk
+
+         if(s%lbulk) then
+            bzs(i) % nkpt_x = ceiling((dble(nkpt))**(1.d0/3.d0))
+            bzs(i) % nkpt_y = ceiling((dble(nkpt))**(1.d0/3.d0))
+            bzs(i) % nkpt_z = ceiling((dble(nkpt))**(1.d0/3.d0))
+            call bzs(i) % generate_3d_fraction(p,q,all_nkpt(i))
+         else
+            bzs(i) % nkpt_x = ceiling((dble(nkpt))**(1.d0/2.d0))
+            bzs(i) % nkpt_y = ceiling((dble(nkpt))**(1.d0/2.d0))
+            bzs(i) % nkpt_z = 0
+            call bzs(i) % generate_3d_fraction(p,q,all_nkpt(i))
+         end if
+
+         do j = 1, bzs(i)%workload
             n = n + 1
             E_k_imag_mesh(1,n) = i
             E_k_imag_mesh(2,n) = j
-
-            if(.not. bzs(i)%isAlloc()) then
-               nkpt = get_nkpt(y(i), y(1), total_nkpt, s%lbulk)
-               bzs(i) % a1 = s % a1
-               bzs(i) % a2 = s % a2
-               bzs(i) % a3 = s % a3
-               bzs(i) % bulk = s%lbulk
-
-               if(s%lbulk) then
-                  bzs(i) % nkpt_x = ceiling((dble(nkpt))**(1.d0/3.d0))
-                  bzs(i) % nkpt_y = ceiling((dble(nkpt))**(1.d0/3.d0))
-                  bzs(i) % nkpt_z = ceiling((dble(nkpt))**(1.d0/3.d0))
-               else
-                  bzs(i) % nkpt_x = ceiling((dble(nkpt))**(1.d0/2.d0))
-                  bzs(i) % nkpt_y = ceiling((dble(nkpt))**(1.d0/2.d0))
-                  bzs(i) % nkpt_z = 0
-               end if
-
-               call bzs(i) % setup()
-            end if
          end do
+         m = m + q
+
+         ! do j = 1, all_nkpt(i)
+         !    m = m + 1
+         !    if(m < firstPoint .or. m > lastPoint) cycle
+         !    n = n + 1
+         !    E_k_imag_mesh(1,n) = i
+         !    E_k_imag_mesh(2,n) = j
+         !
+         !    if(.not. bzs(i)%isAlloc()) then
+         !       nkpt = get_nkpt(y(i), y(1), total_nkpt, s%lbulk)
+         !       bzs(i) % a1 = s % a1
+         !       bzs(i) % a2 = s % a2
+         !       bzs(i) % a3 = s % a3
+         !       bzs(i) % bulk = s%lbulk
+         !
+         !       if(s%lbulk) then
+         !          bzs(i) % nkpt_x = ceiling((dble(nkpt))**(1.d0/3.d0))
+         !          bzs(i) % nkpt_y = ceiling((dble(nkpt))**(1.d0/3.d0))
+         !          bzs(i) % nkpt_z = ceiling((dble(nkpt))**(1.d0/3.d0))
+         !       else
+         !          bzs(i) % nkpt_x = ceiling((dble(nkpt))**(1.d0/2.d0))
+         !          bzs(i) % nkpt_y = ceiling((dble(nkpt))**(1.d0/2.d0))
+         !          bzs(i) % nkpt_z = 0
+         !       end if
+         !
+         !       call bzs(i) % setup()
+         !    end if
+         ! end do
       end do
 
       return
