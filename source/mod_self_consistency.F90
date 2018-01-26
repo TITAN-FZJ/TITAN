@@ -434,14 +434,14 @@ contains
     use EnergyIntegration, only: y, wght
     use mod_system, only: s => sys
     use mod_magnet, only: mx, my, mz, mp, rho, mxd, myd, mzd, mpd, rhod
-    use adaptiveMesh
+    use adaptiveMesh, only: bzs, E_k_imag_mesh, activeComm, local_points
     use TightBinding, only: nOrb,nOrb2
     use mod_mpi_pars
     implicit none
-    integer  :: i,j
-    real(double),    dimension(3)             :: kp
-    real(double),    dimension(s%nAtoms,nOrb) :: n_orb_u, n_orb_d
-    complex(double), dimension(s%nAtoms,nOrb) :: gdiagud,gdiagdu
+    integer  :: i,j, AllocateStatus
+    real(double),    dimension(3) :: kp
+    real(double),    dimension(:,:), allocatable :: n_orb_u, n_orb_d
+    complex(double), dimension(:,:), allocatable :: gdiagud,gdiagdu
     complex(double), dimension(:,:,:,:), allocatable :: gf
     !--------------------- begin MPI vars --------------------
     integer*8 :: ix
@@ -450,6 +450,12 @@ contains
     real(double) :: weight, ep
     ncount = s%nAtoms * nOrb
 
+    allocate(n_orb_u(s%nAtoms,nOrb), n_orb_d(s%nAtoms,nOrb), stat = AllocateStatus)
+    if(AllocateStatus /= 0) call abortProgram("[calcMagnetization] Not enough memory for: n_orb_u, n_orb_d")
+
+    allocate(gdiagud(s%nAtoms,nOrb), gdiagdu(s%nAtoms,nOrb), stat = AllocateStatus)
+    if(AllocateStatus /= 0) call abortProgram("[calcMagnetization] Not enough memory for: gdiagdu, gdiagud")
+
     n_orb_u = 0.d0
     n_orb_d = 0.d0
 
@@ -457,9 +463,10 @@ contains
     gdiagdu = cZero
 
     !$omp parallel default(none) &
-    !$omp& private(ix,ep,kp,weight,i,mu,mup,gf) &
+    !$omp& private(ix,ep,kp,weight,i,mu,mup,gf,AllocateStatus) &
     !$omp& shared(llineargfsoc,llinearsoc,local_points,wght,s,bzs,E_k_imag_mesh,y,n_orb_u,n_orb_d,gdiagud,gdiagdu)
-    allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms))
+    allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat=AllocateStatus)
+    if(AllocateStatus /= 0) call AbortProgram("[calcMagnetization] Not enough memory for: gf")
     gf = cZero
 
     if(llineargfsoc .or. llinearsoc) then
@@ -528,6 +535,9 @@ contains
       rhod(i)  = sum(n_orb_u(i,5:9)) + sum(n_orb_d(i,5:9))
       mzd(i)   = sum(n_orb_u(i,5:9)) - sum(n_orb_d(i,5:9))
     end do
+
+    deallocate(n_orb_u, n_orb_d)
+    deallocate(gdiagdu, gdiagud)
 
     return
   end subroutine calcMagnetization
@@ -962,7 +972,6 @@ contains
     use EnergyIntegration, only: parts
     use mod_magnet, only: rho, mx, my, mz
     use mod_system, only: s => sys
-    use mod_BrillouinZone, only: realBZ
     use TightBinding, only: nOrb
     use mod_mpi_pars
     implicit none

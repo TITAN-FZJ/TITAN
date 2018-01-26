@@ -46,8 +46,8 @@ module mod_BrillouinZone
      integer :: size, rank, comm
    contains
      procedure :: setup_fraction => genFraction
-     procedure, private :: generate_2d_fraction => gen2DFraction
-     procedure, private :: generate_3d_fraction => gen3DFraction
+     procedure :: generate_2d_fraction => gen2DFraction
+     procedure :: generate_3d_fraction => gen3DFraction
    end type FractionalBrillouinZone
 
    type(FractionalBrillouinZone) :: realBZ
