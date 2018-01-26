@@ -374,7 +374,7 @@ contains
         mr = neq-1
         epsfcn = 1.d-5
         mode = 1
-        factor = 100.d0
+        factor = 0.1d0
         call c05ncf(sc_eqs_old,neq,sc_solu,fvec,mag_tol,maxfev,ml,mr,epsfcn,diag,mode,factor,0,nfev,jac,neq,wa,lwa,qtf,w,ifail)
       else
 !         call c05pbf(sc_equations_and_jacobian,neq,sc_solu,fvec,jac,neq,mag_tol,wa,lwa,ifail)
@@ -382,7 +382,7 @@ contains
         mode = 1
         diag = 1.d0
 !         diag(Npl+1:4*Npl) = 100.d0
-        factor = 100.d0
+        factor = 0.1d0
         call c05pcf(sc_eqs_and_jac_old,neq,sc_solu,fvec,jac,neq,mag_tol,maxfev,diag,mode,factor,0,nfev,njev,wa,lwa,qtf,w,ifail)
       end if
     end if
@@ -406,14 +406,14 @@ contains
         mr = neq-1
         epsfcn = 1.d-5
         mode = 1
-        factor = 100.d0
+        factor = 0.1d0
         call c05qcf(sc_equations,neq,sc_solu,fvec,mag_tol,maxfev,ml,mr,epsfcn,mode,diag,factor,0,nfev,jac,wa,qtf,iuser,ruser,ifail)
       else
         maxfev = 100*(neq+1)
         mode = 1
         diag = 1.d0
 !         diag(npl+1:4*npl) = 100.d0
-        factor = 100.d0
+        factor = 0.1d0
         call c05rcf(sc_equations_and_jacobian,neq,sc_solu,fvec,jac,mag_tol,maxfev,mode,diag,factor,0,nfev,njev,wa,qtf,iuser,ruser,ifail)
       end if
     end if
@@ -1207,19 +1207,11 @@ contains
     mpd_in  = cmplx(mxd_in,myd_in)
     s%Ef    = x(4*s%nAtoms+1)
 
-if(myrank==0) then
-  write(*,*) iter
-  write(*,*) "Fe", rho(1,1), sum(rho(2:4,1)), sum(rho(5:9,1))
-end if
-
     call update_Umatrix(mzd_in, mpd_in, rhod_in, s%nAtoms, nOrb)
 
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
 
     rho_in = rhod_in + sum(rho(:,:),dim=1) - rhod
-if(myrank==0) then
-  write(*,*) "Fe1", 'd' ,rhod_in(1), 't', sum(rho(:,1),dim=1), 'd',rhod(1),'sp',sum(rho(:,1),dim=1)-rhod(1)
-end if
     mx_in  = mxd_in  + sum(mx(:,:), dim=1) - mxd
     my_in  = myd_in  + sum(my(:,:), dim=1) - mxd
     mz_in  = mzd_in  + sum(mz(:,:), dim=1) - mxd
@@ -1235,10 +1227,6 @@ end if
         fvec(i+3*s%nAtoms) =  mzd(i) -  mzd_in(i)
       end do
       fvec(4*s%nAtoms+1) = sum(rho) - s%totalOccupation
-if(myrank==0) then
-  write(*,*) "Fe2", sum(rho(:,1)), rho_in(1)
-  write(*,*) "Fe2", sum(rho), s%totalOccupation
-end if
 
       call print_sc_step(rhod,mxd,myd,mzd,s%Ef,fvec)
 
