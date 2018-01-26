@@ -9,6 +9,7 @@ module adaptiveMesh
 contains
 
    subroutine generateAdaptiveMeshes(pn1)
+      use mod_f90_kind, only: double
       use mod_parameters, only: total_nkpt => kptotal_in
       use EnergyIntegration, only: y
       use mod_System, only: s => sys
@@ -16,14 +17,21 @@ contains
       use mod_mpi_pars
       implicit none
       integer :: i,pn1
-
+      integer :: nx, ny, nz, nall
       allocate(all_nkpt(pn1))
       total_points = 0
       do i = 1, pn1
+         nall = get_nkpt(y(i), y(1), total_nkpt, s%lbulk)
          if(s%lbulk) then
-            all_nkpt(i) = count_3D_BZ(get_nkpt(y(i), y(1), total_nkpt, s%lbulk),s%a1,s%a2,s%a3)
+            nx = ceiling((dble(nall))**(1.d0/3.d0))
+            ny = ceiling((dble(nall))**(1.d0/3.d0))
+            nz = ceiling((dble(nall))**(1.d0/3.d0))
+            all_nkpt(i) = count_3D_BZ(nx*ny*nz,s%a1,s%a2,s%a3)
          else
-            all_nkpt(i) = count_2D_BZ(get_nkpt(y(i), y(1), total_nkpt, s%lbulk),s%a1,s%a2)
+            nx = ceiling((dble(nall))**(1.d0/2.d0))
+            ny = ceiling((dble(nall))**(1.d0/2.d0))
+            nz = 0
+            all_nkpt(i) = count_2D_BZ(nx*ny,s%a1,s%a2)
          end if
          total_points = total_points + all_nkpt(i)
       end do
@@ -41,7 +49,7 @@ contains
       integer, intent(in) :: comm
       integer*8 :: firstPoint, lastPoint
       integer*8 :: i, j, m, n, p, q
-      integer :: nkpt
+      integer :: nkpt, nall
 
       activeComm = comm
       activeRank = rank
@@ -60,28 +68,40 @@ contains
             cycle
          end if
 
-         p = firstPoint - m
+         if(firstPoint < m) then
+            p = 1
+         else
+            p = firstPoint - m
+         end if
+
          if(lastPoint < m + all_nkpt(i)) then
             q = lastPoint - m
          else
             q = all_nkpt(i)
          end if
 
+         bzs(i) % rank = rank
+         bzs(i) % size = size
+         bzs(i) % comm = comm
+
          bzs(i) % a1 = s % a1
          bzs(i) % a2 = s % a2
          bzs(i) % a3 = s % a3
          bzs(i) % bulk = s%lbulk
+         bzs(i) % workload = q - p + 1
+         bzs(i) % nkpt = all_nkpt(i)
+         nall = get_nkpt(y(i), y(1), total_nkpt, s%lbulk)
 
          if(s%lbulk) then
-            bzs(i) % nkpt_x = ceiling((dble(nkpt))**(1.d0/3.d0))
-            bzs(i) % nkpt_y = ceiling((dble(nkpt))**(1.d0/3.d0))
-            bzs(i) % nkpt_z = ceiling((dble(nkpt))**(1.d0/3.d0))
-            call bzs(i) % generate_3d_fraction(p,q,all_nkpt(i))
+            bzs(i) % nkpt_x = ceiling((dble(nall))**(1.d0/3.d0))
+            bzs(i) % nkpt_y = ceiling((dble(nall))**(1.d0/3.d0))
+            bzs(i) % nkpt_z = ceiling((dble(nall))**(1.d0/3.d0))
+            call bzs(i) % generate_3d_fraction(int(p,8),int(q,8),int(all_nkpt(i),8))
          else
-            bzs(i) % nkpt_x = ceiling((dble(nkpt))**(1.d0/2.d0))
-            bzs(i) % nkpt_y = ceiling((dble(nkpt))**(1.d0/2.d0))
+            bzs(i) % nkpt_x = ceiling((dble(nall))**(1.d0/2.d0))
+            bzs(i) % nkpt_y = ceiling((dble(nall))**(1.d0/2.d0))
             bzs(i) % nkpt_z = 0
-            call bzs(i) % generate_3d_fraction(p,q,all_nkpt(i))
+            call bzs(i) % generate_2d_fraction(int(p,8),int(q,8),int(all_nkpt(i),8))
          end if
 
          do j = 1, bzs(i)%workload
@@ -89,7 +109,7 @@ contains
             E_k_imag_mesh(1,n) = i
             E_k_imag_mesh(2,n) = j
          end do
-         m = m + q
+         m = m + all_nkpt(i)
 
          ! do j = 1, all_nkpt(i)
          !    m = m + 1
@@ -119,7 +139,6 @@ contains
          !    end if
          ! end do
       end do
-
       return
    end subroutine genLocalEKMesh
 

@@ -242,6 +242,7 @@ contains
     use mod_constants, only: tpi
     use mod_tools, only: cross
     use mod_mpi_pars, only: abortProgram
+    use mod_tools, only: itos
     implicit none
 
     class(FractionalBrillouinZone) :: self
@@ -280,7 +281,7 @@ contains
     added = 0
     !Run over all the kpoints generated initially.
     do l = 1, nkpt
-      if(count > self%last) exit
+      if(count > last) exit
       weight = 0
       range = 0
       nx = mod(floor(dble(l-1) / dble(self%nkpt_y * self%nkpt_z)), self%nkpt_x)
@@ -316,8 +317,8 @@ contains
       self%w(added-range+1:added) = 1.0 / dble(weight)
     end do
     self%w = self%w / dble(nkpt)
-    if(added > self%workload) call abortProgram("[gen3DFraction] Generated more points than it should have!")
-    if(added < self%workload) call abortProgram("[gen3DFraction] Generated less points than it should have!")
+    if(added > self%workload) call abortProgram("[gen3DFraction] Generated more points than it should have! " // trim(itos(added)) // " of " // trim(itos(self%workload)))
+    if(added < self%workload) call abortProgram("[gen3DFraction] Generated less points than it should have! " // trim(itos(added)) // " of " // trim(itos(self%workload)))
     return
   end subroutine gen3DFraction
 
@@ -541,7 +542,7 @@ contains
     added = 0
     !Run over all the kpoints generated initially.
     do l=1, nkpt
-      if(count > self%last) exit
+      if(count > last) exit
       weight = 0
       nx = mod(floor(dble(l-1) / dble(self%nkpt_y)), self%nkpt_x)
       ny = mod(l-1, self%nkpt_y)
@@ -552,6 +553,7 @@ contains
       ! to each BZ it's closer.
       do j = 1, 4
         diff = kp - bz_vec(:,j)
+        distance = sqrt(dot_product(diff, diff))
         if(sqrt(dot_product(diff, diff)) < smallest_dist) smallest_dist = distance
       end do
 
