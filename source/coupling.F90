@@ -9,7 +9,7 @@ subroutine coupling()
   implicit none
   integer            :: i,j,mu
 
-  if(rField == 0) write(output%unit_loop,"('CALCULATING FULL TENSOR OF EXHANGE INTERACTIONS AND ANISOTROPIES AS A FUNCTION OF THICKNESS')")
+  if(rField == 0) write(output%unit_loop,"('CALCULATING FULL TENSOR OF EXHANGE INTERACTIONS AND ANISOTROPIES')")
 
   if(rField == 0) call openCouplingFiles()
 
