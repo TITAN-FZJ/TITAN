@@ -44,7 +44,7 @@ subroutine coupling()
       ! where K_x = J_ii^xx/2 ; K_y = J_ii^yy/2 ; K_z = J_ii^zz/2
       ! K > 0 - easy axis ; K < 0 - hard axis
         if(i==j) then
-          write(output%unit_loop,"(3x,' ************** Magnetization components: ) *************')")
+          write(output%unit_loop,"(3x,' ******************* Magnetization components:  ******************')")
           write(output%unit_loop,"(4x,'Mx (',i2.0,')=',f11.8,4x,'My (',i2.0,')=',f11.8,4x,'Mz (',i2.0,')=',f11.8)") i,mvec_cartesian(1,i),i,mvec_cartesian(2,i),i,mvec_cartesian(3,i)
           write(output%unit_loop,"(' |--------------- i = ',i0,'   j = ',i0,': anisotropies ---------------|')") mmlayermag(i),mmlayermag(j)
         else

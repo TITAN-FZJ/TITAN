@@ -130,6 +130,5 @@ subroutine jij_energy(Jij)
      call MPI_Reduce(Jij, Jij, nmaglayers*nmaglayers*3*3, MPI_DOUBLE_PRECISION, MPI_SUM, 0, activeComm, ierr)
   end if
 
-  !Jij = Jij / pi !TODO: Check with filipe if wrong
   return
   end subroutine jij_energy
