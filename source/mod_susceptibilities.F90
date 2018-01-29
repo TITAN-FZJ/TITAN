@@ -348,7 +348,7 @@ contains
            end if
 
            iw = iw+1000
-           write(unit=iw,fmt="(4(es16.9,2x))") e, ((real(schihf(sigmai2i(q,i),sigmai2i(p,j))), aimag(schihf(sigmai2i(q,i),sigmai2i(p,j))), q = 1, 4), p = 1, 4)
+           write(unit=iw,fmt="(33(es16.9,2x))") e, ((real(schihf(sigmai2i(q,i),sigmai2i(p,j))), aimag(schihf(sigmai2i(q,i),sigmai2i(p,j))), q = 1, 4), p = 1, 4)
        end do
     end do
 
