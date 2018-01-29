@@ -45,10 +45,12 @@ contains
          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
          open (unit=55+(j-1)*s%nAtoms+i, file=varm, status='replace', form='formatted')
          write(unit=55+(j-1)*s%nAtoms+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ,  ((real[chi(j,i)], imag[chi(j,i)], j=1,4),i=1,4)  ')")
+         close(unit=55+(j-1)*s%nAtoms+i)
       end do
       write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(5)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       open (unit=55+4*s%nAtoms+i, file=varm, status='replace', form='formatted')
       write(unit=55+4*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  (ReX(w))^(-2),     U^2,   v1  ,  v2  ,  v3,    v4')")
+      close(unit=55+4*s%nAtoms+i)
     end do
 
     return
