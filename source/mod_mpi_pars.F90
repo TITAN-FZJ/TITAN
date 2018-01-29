@@ -2,22 +2,22 @@ module mod_mpi_pars
   use mod_f90_kind, only: double
   use MPI
   implicit none
-  integer :: ierr, errorcode
-  integer :: myrank,numprocs
-  integer, dimension(MPI_STATUS_SIZE) :: stat
+  integer*4 :: ierr, errorcode
+  integer*4 :: myrank,numprocs
+  integer*4, dimension(MPI_STATUS_SIZE) :: stat
 
-  integer :: FieldComm
+  integer*4 :: FieldComm
   !! Magnetic Field Communicator
-  integer :: sField
+  integer*4 :: sField
   !! Size of Magnetic Field Communicator
-  integer :: rField
+  integer*4 :: rField
   !! Rank in Magnetic Field Communicator
 
-  integer, dimension(2) :: FreqComm
+  integer*4, dimension(2) :: FreqComm
   !! Frequency Communicators, (1) Row, (2) Col (for sending to 1 Process)
-  integer, dimension(2) :: sFreq
+  integer*4, dimension(2) :: sFreq
   !! Size of Frequency Communicators
-  integer, dimension(2) :: rFreq
+  integer*4, dimension(2) :: rFreq
   !! Rank in Frequency Communicators
 
   integer*8 :: startField
@@ -34,7 +34,7 @@ contains
   subroutine Initialize_MPI()
     implicit none
 
-    integer :: provided
+    integer*4 :: provided
 
 #ifdef _OPENMP
 #ifdef _UFF
@@ -66,16 +66,17 @@ contains
     return
   end subroutine abortProgram
 
-  integer function genFieldComm(nFields, FieldID, comm)
+  function genFieldComm(nFields, FieldID, comm)
      implicit none
-     integer, intent(in) :: nFields
+     integer*4, intent(in) :: nFields
      !! Number of field points to be calculated in parallel
-     integer, intent(out) :: FieldID
+     integer*4, intent(out) :: FieldID
      !! Communicator ID
-     integer, intent(in) :: comm
+     integer*4, intent(in) :: comm
      !! MPI Communicator to split up
-     integer :: rank, procs, ierr
-     integer :: group
+     integer*4 :: genFieldComm
+     integer*4 :: rank, procs, ierr
+     integer*4 :: group
      call MPI_Comm_rank(comm, rank, ierr)
      call MPI_Comm_size(comm, procs, ierr)
      if(mod(procs,nFields) /= 0) call abortProgram("[genFieldComm] Number of MPI processes have to be divisible by nFields")
@@ -87,16 +88,16 @@ contains
 
   function genFreqComm(nFreq, FreqID, comm)
      implicit none
-     integer, intent(in) :: nFreq
+     integer*4, intent(in) :: nFreq
      !! Number of frequency points to be calculated in parallel
-     integer, intent(out) :: FreqID
+     integer*4, intent(out) :: FreqID
      !! Communicator ID
-     integer, intent(in) :: comm
+     integer*4, intent(in) :: comm
      !! MPI Communicator to split up
-     integer, dimension(2) :: genFreqComm
+     integer*4, dimension(2) :: genFreqComm
 
-     integer :: rank, rank_row, procs, ierr
-     integer :: group
+     integer*4 :: rank, rank_row, procs, ierr
+     integer*4 :: group
 
      call MPI_Comm_rank(comm, rank, ierr)
      call MPI_Comm_size(comm, procs,ierr)
@@ -117,12 +118,12 @@ contains
      integer, intent(in) :: nFreq
      integer, intent(in) :: nFieldPoints
      integer, intent(in) :: nFreqPoints
-     integer :: FreqID, FieldID
+     integer*4 :: FreqID, FieldID
 
-     integer :: i, ierr
+     integer*4 :: i, ierr
 
-     FieldComm = genFieldComm(nFields, FieldID, MPI_COMM_WORLD)
-     FreqComm = genFreqComm(nFreq, FreqID, FieldComm)
+     FieldComm = genFieldComm(int(nFields,4), FieldID, MPI_COMM_WORLD)
+     FreqComm = genFreqComm(int(nFreq,4), FreqID, FieldComm)
      call MPI_Comm_rank(FieldComm, rField, ierr)
      call MPI_Comm_size(FieldComm, sField, ierr)
 
@@ -132,9 +133,9 @@ contains
      end do
 
      ! Calculate Field workload for each Field Communicator
-     call calcWorkload(int(nFieldPoints,8),nFields,FieldID,startField,endField)
+     call calcWorkload(int(nFieldPoints,8),int(nFields,4),FieldID,startField,endField)
      ! Calculate Field workload for each Frequency Communicator
-     call calcWorkload(int(nFreqPoints,8),nFreq,FreqID,startFreq,endFreq)
+     call calcWorkload(int(nFreqPoints,8),int(nFreq,4),FreqID,startFreq,endFreq)
      return
   end subroutine genMPIGrid
 
@@ -142,9 +143,9 @@ contains
      implicit none
      integer*8, intent(in) :: points
      !! Number of points to split up
-     integer, intent(in) :: procs
+     integer*4, intent(in) :: procs
      !! Number of processes
-     integer, intent(in) :: rank
+     integer*4, intent(in) :: rank
      !! MPI Rank
      integer*8, intent(out) :: firstPoint
      !! First point of workload

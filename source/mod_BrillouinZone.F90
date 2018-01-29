@@ -43,7 +43,7 @@ module mod_BrillouinZone
      integer*8 :: workload = 0
      integer*8 :: first = 0
      integer*8 :: last = 0
-     integer :: size, rank, comm
+     integer*4 :: size, rank, comm
    contains
      procedure :: setup_fraction => genFraction
      procedure :: generate_2d_fraction => gen2DFraction
@@ -72,7 +72,7 @@ contains
     use mod_mpi_pars, only: calcWorkload
     implicit none
     class(FractionalBrillouinZone) :: self
-    integer, intent(in) :: rank, size, comm
+    integer*4, intent(in) :: rank, size, comm
 
     if(allocated(self%kp)) deallocate(self%kp)
     if(allocated(self%w)) deallocate(self%w)
@@ -317,8 +317,8 @@ contains
       self%w(added-range+1:added) = 1.0 / dble(weight)
     end do
     self%w = self%w / dble(nkpt)
-    if(added > self%workload) call abortProgram("[gen3DFraction] Generated more points than it should have! " // trim(itos(added)) // " of " // trim(itos(self%workload)))
-    if(added < self%workload) call abortProgram("[gen3DFraction] Generated less points than it should have! " // trim(itos(added)) // " of " // trim(itos(self%workload)))
+    if(added > self%workload) call abortProgram("[gen3DFraction] Generated more points than it should have! ")
+    if(added < self%workload) call abortProgram("[gen3DFraction] Generated less points than it should have! ")
     return
   end subroutine gen3DFraction
 
