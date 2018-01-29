@@ -44,9 +44,9 @@ contains
       use mod_System, only: s => sys
       use mod_mpi_pars, only: calcWorkload
       implicit none
-      integer, intent(in) :: rank
-      integer, intent(in) :: size
-      integer, intent(in) :: comm
+      integer*4, intent(in) :: rank
+      integer*4, intent(in) :: size
+      integer*4, intent(in) :: comm
       integer*8 :: firstPoint, lastPoint
       integer*8 :: i, j, m, n, p, q
       integer :: nkpt, nall

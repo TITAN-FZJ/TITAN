@@ -66,7 +66,7 @@ contains
     return
   end subroutine abortProgram
 
-  integer function genFieldComm(nFields, FieldID, comm)
+  function genFieldComm(nFields, FieldID, comm)
      implicit none
      integer*4, intent(in) :: nFields
      !! Number of field points to be calculated in parallel
@@ -74,6 +74,7 @@ contains
      !! Communicator ID
      integer*4, intent(in) :: comm
      !! MPI Communicator to split up
+     integer*4 :: genFieldComm
      integer*4 :: rank, procs, ierr
      integer*4 :: group
      call MPI_Comm_rank(comm, rank, ierr)
@@ -132,9 +133,9 @@ contains
      end do
 
      ! Calculate Field workload for each Field Communicator
-     call calcWorkload(int(nFieldPoints,8),nFields,FieldID,startField,endField)
+     call calcWorkload(int(nFieldPoints,8),int(nFields,4),FieldID,startField,endField)
      ! Calculate Field workload for each Frequency Communicator
-     call calcWorkload(int(nFreqPoints,8),nFreq,FreqID,startFreq,endFreq)
+     call calcWorkload(int(nFreqPoints,8),int(nFreq,4),FreqID,startFreq,endFreq)
      return
   end subroutine genMPIGrid
 
