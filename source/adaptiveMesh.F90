@@ -4,7 +4,7 @@ module adaptiveMesh
    integer, dimension(:,:), allocatable :: E_k_imag_mesh
    type(FractionalBrillouinZone), dimension(:), allocatable :: bzs
    integer, dimension(:),allocatable :: all_nkpt
-   integer :: activeComm, activeRank, activeSize
+   integer*4 :: activeComm, activeRank, activeSize
 
 contains
 

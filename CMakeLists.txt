@@ -5,6 +5,7 @@ cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
 project(TITAN)
 
 option(DEBUG "Enable debugging" OFF)
+option(BIGINT "Use 8byte integer" OFF)
 
 enable_language(Fortran)
 
@@ -101,6 +102,9 @@ if(PLATFORM MATCHES juqueen)
                                            -qsmp=omp
                                            -qthreaded)
   set(CMAKE_SHARED_LIBRARY_LINK_Fortran_FLAGS)
+  if(BIGINT)
+     target_compile_options(${TITAN_EXE} PRIVATE -qintsize=8)
+  endif()
 elseif(PLATFORM MATCHES jureca)
 
   target_link_libraries(${TITAN_EXE} -mkl -lnag -qopenmp)
