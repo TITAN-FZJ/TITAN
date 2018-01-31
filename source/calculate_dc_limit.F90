@@ -3,7 +3,7 @@
 subroutine calculate_dc_limit()
   use mod_constants,       only: cZero, cOne, cI, levi_civita, tpi
   use mod_parameters, only: sigmaimunu2i, sigmai2i, dimsigmaNpl, U, offset, lnodiag, output, count, emin, deltae, npt1, laddresults, lhfresponses, dim, skip_steps
-  use mod_magnet,          only: lfield, dcfield_dependence, dc_count, dcfield, hw_count, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, hhwx, hhwy, hhwz
+  use mod_magnet,          only: lfield, dcfield_dependence, dc_count, dcfield, hw_count, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, hhw
   use mod_SOC, only: llinearsoc
   use mod_System, only: s => sys
   use mod_BrillouinZone, only: realBZ
@@ -311,9 +311,9 @@ subroutine calculate_dc_limit()
 
         ! External torques (calculated in the spin frame of reference)
         if(lfield) then
-          torques(3,1,i) = 2.d0*(hhwy(i+offset)*disturbances(4,i)-hhwz(i+offset)*disturbances(3,i))
-          torques(3,2,i) = 2.d0*(hhwz(i+offset)*disturbances(2,i)-hhwx(i+offset)*disturbances(4,i))
-          torques(3,3,i) = 2.d0*(hhwx(i+offset)*disturbances(3,i)-hhwy(i+offset)*disturbances(2,i))
+          torques(3,1,i) = 2.d0*(hhw(2,i+offset)*disturbances(4,i)-hhw(3,i+offset)*disturbances(3,i))
+          torques(3,2,i) = 2.d0*(hhw(3,i+offset)*disturbances(2,i)-hhw(1,i+offset)*disturbances(4,i))
+          torques(3,3,i) = 2.d0*(hhw(1,i+offset)*disturbances(3,i)-hhw(2,i+offset)*disturbances(2,i))
         end if
 
         ! Calculating spin and charge current for each neighbor

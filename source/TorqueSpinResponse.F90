@@ -125,7 +125,7 @@ contains
                             do gamma = 1, nOrb
                                do p = 1, 4
                                   do q = 1, 4
-                                     if(StoC(k+1,p) == cZero .or. CtoS(q,mp+1) == 0) cycle
+                                     if(StoC(k+1,p) == cZero .or. CtoS(q,mp+1) == cZero) cycle
                                      TSResponse(mp, m, j, i) = TSResponse(mp, m, j, i) &
                                           - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%Lambda * levi_civita(m,n,k) * L(mu, nu, n, i) &
                                           * StoC(k+1,p) * chiorb(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma, gamma)) * CtoS(q,mp+1)

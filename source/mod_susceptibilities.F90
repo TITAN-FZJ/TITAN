@@ -222,7 +222,7 @@ contains
 
      do j=1,s%nAtoms
         do i=1,s%nAtoms
-           iw = 1000 + (j-1) * s%nAtoms + i
+           iw = 1050 + (j-1) * s%nAtoms + i
            ! RPA SUSCEPTIBILITIES
            if(.not.lhfresponses) then
               write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_',i0,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
@@ -241,14 +241,14 @@ contains
     ! RPA DIAGONALIZATION
     if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
        write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_eval',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-       open (unit=1990, file=varm,status='replace', form='formatted')
-       write(unit=1990,fmt="('#     energy    ,  real part of 1st eigenvalue  ,  imaginary part of 1st eigenvalue  ,  real part of 2nd eigenvalue  ,  imaginary part of 2nd eigenvalue  , ... ')")
-       close (unit=1990)
+       open (unit=19900, file=varm,status='replace', form='formatted')
+       write(unit=19900,fmt="('#     energy    ,  real part of 1st eigenvalue  ,  imaginary part of 1st eigenvalue  ,  real part of 2nd eigenvalue  ,  imaginary part of 2nd eigenvalue  , ... ')")
+       close (unit=19900)
        do i=1,nmaglayers
           write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_evec',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-          open (unit=1990+i, file=varm,status='replace', form='formatted')
-          write(unit=1990+i,fmt="('#     energy    ,  real part of 1st component  ,  imaginary part of 1st component  ,  real part of 2nd component  ,  imaginary part of 2nd component  , ...   ')")
-          close (unit=1990+i)
+          open (unit=19900+i, file=varm,status='replace', form='formatted')
+          write(unit=19900+i,fmt="('#     energy    ,  real part of 1st component  ,  imaginary part of 1st component  ,  real part of 2nd component  ,  imaginary part of 2nd component  , ...   ')")
+          close (unit=19900+i)
        end do
     end if
 
@@ -267,7 +267,7 @@ contains
 
      do j=1,s%nAtoms
         do i=1,s%nAtoms
-           iw = 1000 + (j-1) * s%nAtoms + i
+           iw = 1050 + (j-1) * s%nAtoms + i
 
            ! RPA SUSCEPTIBILITIES
            if(.not.lhfresponses) then
@@ -287,12 +287,12 @@ contains
     ! RPA DIAGONALIZATION
     if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
        write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_eval',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-       open (unit=1990, file=varm, status='old', position='append', form='formatted', iostat=err)
+       open (unit=19900, file=varm, status='old', position='append', form='formatted', iostat=err)
        errt = errt + err
        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
        do i=1,nmaglayers
           write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_evec',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-          open (unit=1990+i, file=varm, status='old', position='append', form='formatted', iostat=err)
+          open (unit=19900+i, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
        end do
@@ -314,7 +314,7 @@ contains
 
      do j=1,s%nAtoms
         do i=1,s%nAtoms
-           iw = 1000 + (j-1)*s%nAtoms + i
+           iw = 1050 + (j-1)*s%nAtoms + i
            ! RPA SUSCEPTIBILITIES
            if(.not.lhfresponses) close(unit=iw)
            iw = iw+1000
@@ -324,9 +324,9 @@ contains
      end do
     ! RPA DIAGONALIZATION
     if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
-       close (unit=1990)
+       close (unit=19900)
        do i=1,nmaglayers
-          close (unit=1990+i)
+          close (unit=19900+i)
        end do
     end if
 
@@ -350,7 +350,7 @@ contains
     if(lwriteonscreen) write(output%unit_loop,"(' #################  Susceptibilities:  #################')")
     do j=1, s%nAtoms
        do i=1, s%nAtoms
-           iw = 1000 + (j-1)*s%nAtoms + i
+           iw = 1050 + (j-1)*s%nAtoms + i
            if(.not.lhfresponses) then
               write(unit=iw,fmt="(33(es16.9,2x))") e, ((real(schi(sigmai2i(q,i),sigmai2i(p,j))), aimag(schi(sigmai2i(q,i),sigmai2i(p,j))), q = 1, 4), p = 1, 4)
               if(i == j .and. lwriteonscreen) write(output%unit_loop,"('E = ',es11.4,', Plane: ',i0,' Chi+- = (',es16.9,') + i(',es16.9,')')") e,i,real(schi(sigmai2i(1,i),sigmai2i(1,j))),aimag(schi(sigmai2i(1,i),sigmai2i(1,j)))
@@ -363,9 +363,9 @@ contains
 
     if(nmaglayers > 1 .and. (.not. lhfresponses) .and. (.not. lnodiag)) then
        write(varm,fmt="(a,i0,a)") '(',2*nmaglayers+1,'(es16.9,2x))'
-       write(unit=1990,fmt=varm) e,(real(eval(i)),aimag(eval(i)),i=1,nmaglayers)
+       write(unit=19900,fmt=varm) e,(real(eval(i)),aimag(eval(i)),i=1,nmaglayers)
        do i=1,nmaglayers
-          write(unit=1990+i,fmt=varm) e,(real(evecr(j,i)),aimag(evecr(j,i)),j=1,nmaglayers)
+          write(unit=19900+i,fmt=varm) e,(real(evecr(j,i)),aimag(evecr(j,i)),j=1,nmaglayers)
        end do
     end if ! nmaglayers
 
@@ -386,7 +386,7 @@ contains
 
      do j=1,s%nAtoms
         do i=1,s%nAtoms
-           iw = 10000 + (j-1)*s%nAtoms + i
+           iw = 10500 + (j-1)*s%nAtoms + i
            ! RPA SUSCEPTIBILITIES
            if(.not.lhfresponses) then
               write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_',a,'_',i0,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%suffix)
@@ -405,14 +405,14 @@ contains
     ! RPA DIAGONALIZATION
     if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
        write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_eval_',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%suffix)
-       open (unit=19900, file=varm,status='replace', form='formatted')
-       write(unit=19900,fmt="('#',a,'  real part of 1st eigenvalue  ,  imaginary part of 1st eigenvalue  ,  real part of 2nd eigenvalue  ,  imaginary part of 2nd eigenvalue  , ...')") trim(dc_header)
-       close (unit=19900)
+       open (unit=199000, file=varm,status='replace', form='formatted')
+       write(unit=199000,fmt="('#',a,'  real part of 1st eigenvalue  ,  imaginary part of 1st eigenvalue  ,  real part of 2nd eigenvalue  ,  imaginary part of 2nd eigenvalue  , ...')") trim(dc_header)
+       close (unit=199000)
        do i=1,nmaglayers
           write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_evec',i0,'_',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%suffix)
-          open (unit=19900+i, file=varm,status='replace', form='formatted')
-          write(unit=19900+i,fmt="('#',a,'  real part of 1st component  ,  imaginary part of 1st component  ,  real part of 2nd component  ,  imaginary part of 2nd component  , ...')") trim(dc_header)
-          close (unit=19900+i)
+          open (unit=199000+i, file=varm,status='replace', form='formatted')
+          write(unit=199000+i,fmt="('#',a,'  real part of 1st component  ,  imaginary part of 1st component  ,  real part of 2nd component  ,  imaginary part of 2nd component  , ...')") trim(dc_header)
+          close (unit=199000+i)
        end do
     end if
 
@@ -431,7 +431,7 @@ contains
 
      do j=1,s%nAtoms
         do i=1,s%nAtoms
-           iw = 10000 + (j-1)*s%nAtoms + i
+           iw = 10500 + (j-1)*s%nAtoms + i
            ! RPA SUSCEPTIBILITIES
            if(.not.lhfresponses) then
               write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_',a,'_',i0,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%suffix)
@@ -450,12 +450,12 @@ contains
     ! RPA DIAGONALIZATION
     if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
        write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_eval_',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%suffix)
-       open (unit=19900, file=varm, status='old', position='append', form='formatted', iostat=err)
+       open (unit=199000, file=varm, status='old', position='append', form='formatted', iostat=err)
        errt = errt + err
        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
        do i=1,nmaglayers
           write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_evec',i0,'_',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%suffix)
-          open (unit=19900+i, file=varm, status='old', position='append', form='formatted', iostat=err)
+          open (unit=199000+i, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
        end do
@@ -478,7 +478,7 @@ contains
      do j=1,s%nAtoms
         do i=1,s%nAtoms
            ! RPA SUSCEPTIBILITIES
-           iw = 10000 + (j-1) * s%nAtoms+i
+           iw = 10500 + (j-1) * s%nAtoms+i
            if(.not.lhfresponses) close(unit=iw)
            ! HF SUSCEPTIBILITIES
            iw = iw+1000
@@ -487,9 +487,9 @@ contains
      end do
     ! RPA DIAGONALIZATION
     if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
-       close (unit=19900)
+       close (unit=199000)
        do i=1,nmaglayers
-          close (unit=19900+i)
+          close (unit=199000+i)
        end do
     end if
 
@@ -514,7 +514,7 @@ contains
     if(lwriteonscreen) write(output%unit_loop,"(' #################  Susceptibilities:  #################')")
     do j=1,s%nAtoms
       do i=1,s%nAtoms
-       iw = 10000 + (j-1)*s%nAtoms + i
+       iw = 10500 + (j-1)*s%nAtoms + i
        if(.not.lhfresponses) then
           write(unit=iw,fmt="(a,2x,32(es16.9,2x))") trim(dc_fields(hw_count)) , ((real(schi(sigmai2i(q,i),sigmai2i(p,j))), aimag(schi(sigmai2i(q,i),sigmai2i(p,j))), q = 1, 4), p = 1, 4)
           if( i == j .and. lwriteonscreen ) write(output%unit_loop,"(a,' = ',a,', Plane: ',i0,' Chi+- = (',es16.9,') + i(',es16.9,')')") trim(dcfield(dcfield_dependence)),trim(dc_fields(hw_count)),i,real(schi(sigmai2i(1,i),sigmai2i(1,j))),aimag(schi(sigmai2i(1,i),sigmai2i(1,j)))
@@ -527,9 +527,9 @@ contains
 
     if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
        write(varm,fmt="(a,i0,a)") '(a,2x,',2*nmaglayers,'(es16.9,2x))'
-       write(unit=19900,fmt=varm) trim(dc_fields(hw_count)) , (real(eval(i)) , aimag(eval(i)),i=1,nmaglayers)
+       write(unit=199000,fmt=varm) trim(dc_fields(hw_count)) , (real(eval(i)) , aimag(eval(i)),i=1,nmaglayers)
        do i=1,nmaglayers
-          write(unit=19900+i,fmt=varm) trim(dc_fields(hw_count)) , (real(evecr(j,i)) , aimag(evecr(j,i)),j=1,nmaglayers)
+          write(unit=199000+i,fmt=varm) trim(dc_fields(hw_count)) , (real(evecr(j,i)) , aimag(evecr(j,i)),j=1,nmaglayers)
        end do
     end if ! nmaglayers
 
@@ -556,7 +556,7 @@ contains
 
     do j=1, s%nAtoms
        do i=1, s%nAtoms
-         iw = 1000*idc + (j-1)*s%nAtoms + i
+         iw = 1050*idc + (j-1)*s%nAtoms + i
          if(.not.lhfresponses) then
             call sort_file(iw,.true.)
          end if
@@ -567,9 +567,9 @@ contains
     end do
 
     if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
-       call sort_file(1990*idc,.true.)
+       call sort_file(19900*idc,.true.)
        do i=1,nmaglayers
-          call sort_file(1990*idc+i,.true.)
+          call sort_file(19900*idc+i,.true.)
        end do
     end if ! nmaglayers
 

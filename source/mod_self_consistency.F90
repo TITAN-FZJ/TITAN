@@ -869,11 +869,35 @@ contains
     ! Calculating angles of GS OAM (in units of pi)
     do i = 1,s%nAtoms
       labs(i)   = sqrt((lxm(i)**2)+(lym(i)**2)+(lzm(i)**2))
-      ltheta(i) = acos(lzm(i)/sqrt(lxm(i)**2+lym(i)**2+lzm(i)**2))/pi
-      lphi(i)   = atan2(lym(i),lxm(i))/pi
+      if(abs(labs(i))>1.d-8) then
+        ltheta(i) = acos(lzm(i)/sqrt(lxm(i)**2+lym(i)**2+lzm(i)**2))/pi
+      else
+        ltheta(i) = 0.d0
+      end if
+      if(abs(ltheta(i))>1.d-8) then
+        if(abs(abs(ltheta(i))-1.d0)>1.d-8) then
+          lphi(i)   = atan2(lym(i),lxm(i))/pi
+        else
+          lphi(i) = 0.d0
+        end if
+      else
+        lphi(i) = 0.d0
+      end if
       lpabs(i)  = sqrt((lxpm(i)**2)+(lypm(i)**2)+(lzpm(i)**2))
-      lptheta(i)= acos(lzpm(i)/sqrt(lxpm(i)**2+lypm(i)**2+lzpm(i)**2))/pi
-      lpphi(i)  = atan2(lypm(i),lxpm(i))/pi
+      if(abs(lpabs(i))>1.d-8) then
+        lptheta(i)= acos(lzpm(i)/sqrt(lxpm(i)**2+lypm(i)**2+lzpm(i)**2))/pi
+      else
+        lptheta(i) = 0.d0
+      end if
+      if(abs(lptheta(i))>1.d-8) then
+        if(abs(abs(lptheta(i))-1.d0)>1.d-8) then
+          lpphi(i)   = atan2(lypm(i),lxpm(i))/pi
+        else
+          lpphi(i) = 0.d0
+        end if
+      else
+        lpphi(i) = 0.d0
+      end if
     end do
 
     deallocate(gupgd)
@@ -886,7 +910,7 @@ contains
   !! Rotate the magnetization to the direction of the field (useful for SOC=F)
     use mod_f90_kind, only: double
     use mod_constants, only: pi
-    use mod_magnet, only: hw_count, hw_list, hhwx, hhwy, hhwz, &
+    use mod_magnet, only: hw_count, hw_list, hhw, &
                           mx, my, mz, mp
     use mod_parameters, only: output
     use mod_System, only: s => sys
@@ -900,7 +924,7 @@ contains
 
     do i = 1, s%nAtoms
       do j=1,nOrb
-        mdotb   = hhwx(i)*mx(j,i)+hhwy(i)*my(j,i)+hhwz(i)*mz(j,i)
+        mdotb   = hhw(1,i)*mx(j,i)+hhw(2,i)*my(j,i)+hhw(3,i)*mz(j,i)
         sign    = dble(mdotb/abs(mdotb))
         mabs(j,i) = sqrt((mx(j,i)**2)+(my(j,i)**2)+(mz(j,i)**2))
         mx(j,i)   = sign*mabs(j,i)*sin(hw_list(hw_count,2)*pi)*cos(hw_list(hw_count,3)*pi)
