@@ -16,7 +16,7 @@ module mod_magnet
   real(double),allocatable    :: labs(:),ltheta(:),lphi(:)
   real(double),allocatable    :: lpabs(:),lptheta(:),lpphi(:)
   !! Center of the bands for each l - eps(Npl)
-  real(double), dimension(:), allocatable :: hhwx, hhwy, hhwz
+  real(double), dimension(:,:), allocatable :: hhw
   !! Half of Static magnetic fields in each direction
   complex(double), dimension(:,:,:), allocatable :: lb, sb
   !! Zeeman matrices
@@ -152,11 +152,9 @@ contains
     integer, intent(in) :: nAtoms
     integer :: i, AllocateStatus
 
-    if(allocated(hhwx)) deallocate(hhwx)
-    if(allocated(hhwy)) deallocate(hhwy)
-    if(allocated(hhwz)) deallocate(hhwz)
-    allocate( hhwx(nAtoms),hhwy(nAtoms),hhwz(nAtoms), STAT = AllocateStatus )
-    if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: hhwx,hhwy,hhwz,sb,lb")
+    if(allocated(hhw)) deallocate(hhw)
+    allocate( hhw(3,nAtoms), STAT = AllocateStatus )
+    if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: hhw")
 
     !---------------------- Turning off field for hwa=0 --------------------
     if(abs(hw_list(hw_count,1)) < 1.d-8) then
@@ -167,30 +165,28 @@ contains
     end if
     sb   = cZero
     lb   = cZero
-    hhwx = 0.d0
-    hhwy = 0.d0
-    hhwz = 0.d0
+    hhw  = 0.d0
 
     !--------------------- Defining the magnetic fields -------------------- TODO
     if(lfield) then
       ! Variables of the hamiltonian
-      ! There is an extra  minus sign in the definition of hhwx,hhwy,hhwz
+      ! There is an extra  minus sign in the definition of hhw
       ! to take into account the fact that we are considering negative
       ! external fields to get the peak at positive energies
       do i = 1, nAtoms
-        hhwx(i) = -0.5d0*hwscale(i)*hw_list(hw_count,1)*sin((hw_list(hw_count,2) + hwtrotate(i))*pi)*cos((hw_list(hw_count,3) + hwprotate(i))*pi)*tesla
-        hhwy(i) = -0.5d0*hwscale(i)*hw_list(hw_count,1)*sin((hw_list(hw_count,2) + hwtrotate(i))*pi)*sin((hw_list(hw_count,3) + hwprotate(i))*pi)*tesla
-        hhwz(i) = -0.5d0*hwscale(i)*hw_list(hw_count,1)*cos((hw_list(hw_count,2) + hwtrotate(i))*pi)*tesla
-        if(abs(hhwx(i))<1.d-8) hhwx(i) = 0.d0
-        if(abs(hhwy(i))<1.d-8) hhwy(i) = 0.d0
-        if(abs(hhwz(i))<1.d-8) hhwz(i) = 0.d0
+        hhw(1,i) = -0.5d0*hwscale(i)*hw_list(hw_count,1)*sin((hw_list(hw_count,2) + hwtrotate(i))*pi)*cos((hw_list(hw_count,3) + hwprotate(i))*pi)*tesla
+        hhw(2,i) = -0.5d0*hwscale(i)*hw_list(hw_count,1)*sin((hw_list(hw_count,2) + hwtrotate(i))*pi)*sin((hw_list(hw_count,3) + hwprotate(i))*pi)*tesla
+        hhw(3,i) = -0.5d0*hwscale(i)*hw_list(hw_count,1)*cos((hw_list(hw_count,2) + hwtrotate(i))*pi)*tesla
+        if(abs(hhw(1,i))<1.d-8) hhw(1,i) = 0.d0
+        if(abs(hhw(2,i))<1.d-8) hhw(2,i) = 0.d0
+        if(abs(hhw(3,i))<1.d-8) hhw(3,i) = 0.d0
       end do
       ! Testing if hwscale is used
       lhwscale = any(abs(hwscale(1:nAtoms)-1.d0) > 1.d-8)
       ! Testing if hwrotate is used
       lhwrotate = (any(abs(hwtrotate(1:nAtoms)) > 1.d-8).or.any(abs(hwprotate(1:nAtoms))>1.d-8))
     end if
-
+    return
   end subroutine initMagneticField
 
   subroutine lb_matrix(nAtoms, nOrbs)
@@ -199,24 +195,29 @@ contains
     use mod_parameters, only: lnolb
     implicit none
     integer, intent(in) :: nOrbs, nAtoms
-    integer :: i, AllocateStatus
+    integer :: i,sigma, AllocateStatus
     complex(double), dimension(:,:), allocatable :: lbsigma
 
-    ! There is an extra  minus sign in the definition of hhwx,hhwy,hhwz
+    ! There is an extra  minus sign in the definition of hhw
     ! to take into account the fact that we are considering negative
     ! external fields to get the peak at positive energies
     lb = cZero
     if((lfield).and.(.not.lnolb)) then
       allocate(lbsigma(nOrbs, nOrbs))
       do i=1, nAtoms
-        lbsigma(1:nOrbs, 1:nOrbs) = 0.5d0*(lx*hhwx(i) + ly*hhwy(i) + lz*hhwz(i))
-        lb(1:nOrbs, 1:nOrbs, i) = lbsigma(:,:)
+        lbsigma = cZero
+        ! L.B
+        do sigma=1,3
+          lbsigma(1:nOrbs, 1:nOrbs) = lbsigma(1:nOrbs, 1:nOrbs) + l(:,:,sigma)*hhw(sigma,i)
+        end do
+        lb(      1:  nOrbs,       1:  nOrbs, i) = lbsigma(:,:)
         lb(nOrbs+1:2*nOrbs, nOrbs+1:2*nOrbs, i) = lbsigma(:,:)
       end do
       deallocate(lbsigma)
     end if
     return
   end subroutine lb_matrix
+
 
   ! Spin Zeeman hamiltonian
   subroutine sb_matrix(nAtoms, nOrbs)
@@ -226,7 +227,7 @@ contains
     integer, intent(in) :: nAtoms, nOrbs
     integer :: i,mu,nu
 
-    ! There is an extra  minus sign in the definition of hhwx,hhwy,hhwz
+    ! There is an extra  minus sign in the definition of hhw
     ! to take into account the fact that we are considering negative
     ! external fields to get the peak at positive energies
     sb = cZero
@@ -235,10 +236,10 @@ contains
       do i=1, nAtoms
         do mu=1,nOrbs
           nu=mu+nOrbs
-          sb(mu,mu,i) = hhwz(i)
-          sb(nu,nu,i) =-hhwz(i)
-          sb(nu,mu,i) = hhwx(i)-cI*hhwy(i)
-          sb(mu,nu,i) = hhwx(i)+cI*hhwy(i)
+          sb(mu,mu,i) = hhw(3,i)
+          sb(nu,nu,i) =-hhw(3,i)
+          sb(nu,mu,i) = hhw(1,i)-cI*hhw(2,i)
+          sb(mu,nu,i) = hhw(1,i)+cI*hhw(2,i)
         end do
       end do
     end if
@@ -348,8 +349,8 @@ contains
     if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mabs,mtheta,mphi,labs,ltheta,lphi,lpabs,lptheta,lpphi")
 
 
-    allocate( hhwx(nAtoms),hhwy(nAtoms),hhwz(nAtoms), STAT = AllocateStatus )
-    if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: hhwx,hhwy,hhwz")
+    allocate( hhw(3,nAtoms), STAT = AllocateStatus )
+    if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: hhw")
 
     allocate(lx(nOrb, nOrb), ly(nOrb,nOrb), lz(nOrb,nOrb))
     if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: lx, ly, lz")
@@ -399,9 +400,7 @@ contains
     if(allocated(lxpm)) deallocate(lxpm)
     if(allocated(lypm)) deallocate(lypm)
     if(allocated(lzpm)) deallocate(lzpm)
-    if(allocated(hhwx)) deallocate(hhwx)
-    if(allocated(hhwy)) deallocate(hhwy)
-    if(allocated(hhwz)) deallocate(hhwz)
+    if(allocated(hhw)) deallocate(hhw)
     if(allocated(sb)) deallocate(sb)
     if(allocated(lb)) deallocate(lb)
     return
@@ -432,6 +431,7 @@ contains
      if(lhwscale)  output%dcBField = trim(output%dcBField) // "_hwscale"
      if(lhwrotate) output%dcBField = trim(output%dcBField) // "_hwrotate"
 
+     return
   end subroutine set_fieldpart
 
 end module mod_magnet

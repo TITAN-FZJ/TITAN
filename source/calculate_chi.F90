@@ -19,12 +19,12 @@ subroutine calculate_chi()
   use mod_progress, only: write_time
   use TorqueTorqueResponse, only: calcTTResponse, create_TTR_files, allocTTResponse
   use TorqueSpinResponse, only: calcTSResponse, create_TSR_files, allocTSResponse
+  use mod_sumrule
   implicit none
   character(len=50) :: time
   integer           :: mcount
   integer           :: i,j,sigma,sigmap,mu,nu,gamma,xi,p
   real(double)      :: e
-real(double) :: schi_sum(4,4),schihf_sum(4,4)
   complex(double), dimension(:,:),   allocatable :: temp
   call allocate_susceptibilities()
   call allocate_alpha()
@@ -60,6 +60,12 @@ real(double) :: schi_sum(4,4),schihf_sum(4,4)
      ! Start parallelized processes to calculate chiorb_hf and chiorbi0_hf for energy e
      call eintshechi(e)
 
+     ! Time now
+     if(rField == 0)  call write_time(output%unit_loop,'[calculate_chi] Time after calculating chi HF: ')
+
+     ! Checking sum rule for e=0.d0
+     if(e == 0.d0) call sumrule(chiorb_hf)
+
      ! From here on all other processes except for rFreq(1) == 0 are idle :/
      if(rFreq(1)==0) then
         ! (1 + chi_hf*Umat)^-1
@@ -71,7 +77,7 @@ real(double) :: schi_sum(4,4),schihf_sum(4,4)
 
         schi   = cZero
         schihf = cZero
-        ! Calculating RPA and HF susceptibilities
+        ! Calculating RPA and HF susceptibilities in global frame of reference
         do j=1, s%nAtoms
            do i=1, s%nAtoms
               do sigmap=1, 4
@@ -114,7 +120,7 @@ real(double) :: schi_sum(4,4),schihf_sum(4,4)
         end do
 
 
-        ! Rotating susceptibilities to the magnetization direction
+        ! Rotating susceptibilities to the magnetization direction (local frame of reference)
         if(lrot) then
            do i=1, s%nAtoms
               call build_rotation_matrices_chi(mvec_spherical(2,i),mvec_spherical(3,i),rottemp,1)

@@ -160,7 +160,7 @@ contains
                                         if(L(gamma,zeta,np,j) == cZero) cycle
                                         do p = 1, 4
                                            do q = 1, 4
-                                              if(StoC(k+1,p) == cZero .or. CtoS(q,kp+1) == 0) cycle
+                                              if(StoC(k+1,p) == cZero .or. CtoS(q,kp+1) == cZero) cycle
                                               TTResponse(mp, m, j, i) = TTResponse(mp, m, j, i) &
                                                    - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%Lambda * s%Types(s%Basis(j)%Material)%Lambda &
                                                    * levi_civita(m,n,k) * levi_civita(mp, np, kp) &
