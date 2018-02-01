@@ -236,7 +236,7 @@ contains
     end if
 
     !---------------------------------------- Magnetization ----------------------------------------
-    if(.not. get_parameter("magtol", mag_tol, 1.d-10)) call log_warning("get_parameters", "'magtol' not found. Using default value.")
+    if(.not. get_parameter("magtol", mag_tol, 1.d-12)) call log_warning("get_parameters", "'magtol' not found. Using default value.")
 
     if(.not. get_parameter("magbasis", tmp_string)) then
         call log_warning("get_parameters","'magbasis' missing.")

@@ -23,7 +23,6 @@ contains
     complex(double), dimension(dim,dim)              :: chiorb_hf_cart
     complex(double), dimension(dim,dim), intent(in)  :: chiorb_hf
     complex(double), dimension(:,:,:,:,:),allocatable  :: lhs,rhs
-
     if(rField == 0) write(output%unit_loop,"('[sumrule] Checking if the sum rule is satisfied... ')")
 
     allocate(lhs(3,3,nOrb,nOrb,s%nAtoms),rhs(3,3,nOrb,nOrb,s%nAtoms), stat = AllocateStatus)
@@ -94,34 +93,7 @@ contains
     end do
     rhs = 2.d0*rhs
 
-! if(rField == 0) then
-! do i = 1, s%nAtoms ; do k = 1, 3 ; do nu = 1, nOrb ; do mu = 1, nOrb
-! if(abs(Smunuiivec(mu,nu,k,i)) > 1.d-10) write(15,"(a,2x,4(i0,2x),2(es16.9,2x))")'Smunuiivec',mu,nu,k,i,real(Smunuiivec(mu,nu,k,i)),aimag(Smunuiivec(mu,nu,k,i))
-! end do ; end do ; end do ; end do
-! do i = 1, s%nAtoms ; do j = 1, s%nAtoms ; do p = 1,3 ; do m = 1,3 ; do mu = 1, nOrb ; do nu = 1, nOrb ; do gamma = 1, nOrb ; do xi = 1, nOrb
-! if(abs(chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi))) > 1.d-10) write(16,"(a,2x,8(i0,2x),2(es16.9,2x))")'chiorb_hf_cart',i,j,m+1,p+1,mu,nu,gamma,xi,real(chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi))),aimag(chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi)))
-! end do ; end do ; end do ; end do ; end do ; end do ; end do ; end do
-! do j = 1, s%nAtoms ; do q = 1, 3 ; do gamma = 1, nOrb ; do xi = 1, nOrb
-! if(abs(Beff(sigmaimunu2i(q+1,j,gamma,xi))) > 1.d-10) write(17,"(a,2x,4(i0,2x),2(es16.9,2x))") 'Beff',q,j,gamma,xi,real(Beff(sigmaimunu2i(q+1,j,gamma,xi))),aimag(Beff(sigmaimunu2i(q+1,j,gamma,xi)))
-! end do ; end do ; end do ; end do
-! do i = 1, s%nAtoms ; do m = 1, 3 ; do n = 1, 3 ; do nu = 1, nOrb ; do mu = 1, nOrb
-! if(abs(lhs(m,n,mu,nu,i) - rhs(m,n,mu,nu,i)) > 1.d-10) write(18,"(a,2x,5(i0,2x),2(es16.9,2x))") 'sum',m,n,mu,nu,i,real(lhs(m,n,mu,nu,i) - rhs(m,n,mu,nu,i)),aimag(lhs(m,n,mu,nu,i) - rhs(m,n,mu,nu,i))
-! end do ; end do ; end do ; end do ; end do
-! do i = 1, s%nAtoms ; do m = 1, 3 ; do n = 1, 3 ; do nu = 1, nOrb ; do mu = 1, nOrb
-! if(abs(lhs(m,n,mu,nu,i)) > 1.d-10) write(19,"(a,2x,5(i0,2x),2(es16.9,2x))") 'lhs',m,n,mu,nu,i,real(lhs(m,n,mu,nu,i)),aimag(lhs(m,n,mu,nu,i))
-! end do ; end do ; end do ; end do ; end do
-
-! do i = 1, s%nAtoms ; do m = 1, 3 ; do n = 1, 3 ; do nu = 1, nOrb ; do mu = 1, nOrb
-! if(abs(rhs(m,n,mu,nu,i)) > 1.d-10) write(20,"(a,2x,5(i0,2x),2(es16.9,2x))") 'rhs',m,n,mu,nu,i,real(rhs(m,n,mu,nu,i)),aimag(rhs(m,n,mu,nu,i))
-! end do ; end do ; end do ; end do ; end do
-! write(*,"(a,2x,3(es16.9,2x))") 'mz ',mvec_cartesian(3,1),real(sum(lhs(1,2,:,:,1)))    ,aimag(sum(lhs(1,2,:,:,1)))
-! write(*,"(a,2x,3(es16.9,2x))") 'mz ',mvec_cartesian(3,1),real(sum(lhs(2,1,:,:,1)))    ,aimag(sum(lhs(2,1,:,:,1)))
-! write(*,"(a,2x,3(es16.9,2x))") 'mzd',mvec(3,1)          ,real(sum(lhs(1,2,5:9,5:9,1))),aimag(sum(lhs(1,2,5:9,5:9,1)))
-! write(*,"(a,2x,3(es16.9,2x))") 'mzd',mvec(3,1)          ,real(sum(lhs(2,1,5:9,5:9,1))),aimag(sum(lhs(2,1,5:9,5:9,1)))
-! write(*,*) sum(abs(lhs(:,:,:,:,:) - rhs(:,:,:,:,:)))
-! end if
-
-    if(sum(abs(lhs - rhs)) < 1.d-6) then
+    if(sum(abs(lhs - rhs)) < 1.d-7) then
       if(rField == 0) write(output%unit_loop,"('[sumrule] YES! ')")
     else
       if(rField == 0) write(output%unit_loop,"('[sumrule] NO! ')")
@@ -257,3 +229,49 @@ contains
   end subroutine calcSmunu
 
 end module mod_sumrule
+
+
+
+! To be used in sumrule for test
+
+! complex(double) :: test1,test2
+
+
+! if(rField == 0) then
+! do i = 1, s%nAtoms ; do k = 1, 3 ; do nu = 1, nOrb ; do mu = 1, nOrb
+! if(abs(Smunuiivec(mu,nu,k,i)) > 1.d-10) write(15,"(a,2x,4(i0,2x),2(es16.9,2x))")'Smunuiivec',mu,nu,k,i,real(Smunuiivec(mu,nu,k,i)),aimag(Smunuiivec(mu,nu,k,i))
+! end do ; end do ; end do ; end do
+! do i = 1, s%nAtoms ; do j = 1, s%nAtoms ; do p = 1,3 ; do m = 1,3 ; do mu = 1, nOrb ; do nu = 1, nOrb ; do gamma = 1, nOrb ; do xi = 1, nOrb
+! if(abs(chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi))) > 1.d-10) write(16,"(a,2x,8(i0,2x),2(es16.9,2x))")'chiorb_hf_cart',i,j,m+1,p+1,mu,nu,gamma,xi,real(chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi))),aimag(chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi)))
+! end do ; end do ; end do ; end do ; end do ; end do ; end do ; end do
+! do j = 1, s%nAtoms ; do q = 1, 3 ; do gamma = 1, nOrb ; do xi = 1, nOrb
+! if(abs(Beff(sigmaimunu2i(q+1,j,gamma,xi))) > 1.d-10) write(17,"(a,2x,4(i0,2x),2(es16.9,2x))") 'Beff',q,j,gamma,xi,real(Beff(sigmaimunu2i(q+1,j,gamma,xi))),aimag(Beff(sigmaimunu2i(q+1,j,gamma,xi)))
+! end do ; end do ; end do ; end do
+! do i = 1, s%nAtoms ; do m = 1, 3 ; do n = 1, 3 ; do nu = 1, nOrb ; do mu = 1, nOrb
+! if(abs(lhs(m,n,mu,nu,i) - rhs(m,n,mu,nu,i)) > 1.d-10) write(18,"(a,2x,5(i0,2x),2(es16.9,2x))") 'sum',m,n,mu,nu,i,real(lhs(m,n,mu,nu,i) - rhs(m,n,mu,nu,i)),aimag(lhs(m,n,mu,nu,i) - rhs(m,n,mu,nu,i))
+! end do ; end do ; end do ; end do ; end do
+! do i = 1, s%nAtoms ; do m = 1, 3 ; do n = 1, 3 ; do nu = 1, nOrb ; do mu = 1, nOrb
+! if(abs(lhs(m,n,mu,nu,i)) > 1.d-10) write(19,"(a,2x,5(i0,2x),2(es16.9,2x))") 'lhs',m,n,mu,nu,i,real(lhs(m,n,mu,nu,i)),aimag(lhs(m,n,mu,nu,i))
+! end do ; end do ; end do ; end do ; end do
+
+! do i = 1, s%nAtoms ; do m = 1, 3 ; do n = 1, 3 ; do nu = 1, nOrb ; do mu = 1, nOrb
+! if(abs(rhs(m,n,mu,nu,i)) > 1.d-10) write(20,"(a,2x,5(i0,2x),2(es16.9,2x))") 'rhs',m,n,mu,nu,i,real(rhs(m,n,mu,nu,i)),aimag(rhs(m,n,mu,nu,i))
+! end do ; end do ; end do ; end do ; end do
+! test1=cZero
+! test2=cZero
+! do mu=1,nOrb
+! test1 = test1 + lhs(1,2,mu,mu,1)
+! test2 = test2 + lhs(2,1,mu,mu,1)
+! end do
+! write(*,"(a,2x,3(es16.9,2x))") 'mz ',mvec_cartesian(3,1),real(test1),aimag(test1)
+! write(*,"(a,2x,3(es16.9,2x))") 'mz ',mvec_cartesian(3,1),real(test2),aimag(test2)
+! test1=cZero
+! test2=cZero
+! do mu=5,nOrb
+! test1 = test1 + lhs(1,2,mu,mu,1)
+! test2 = test2 + lhs(2,1,mu,mu,1)
+! end do
+! write(*,"(a,2x,3(es16.9,2x))") 'mzd',mvec(3,1),real(test1),aimag(test1)
+! write(*,"(a,2x,3(es16.9,2x))") 'mzd',mvec(3,1),real(test2),aimag(test2)
+! write(*,*) sum(abs(lhs(:,:,:,:,:) - rhs(:,:,:,:,:)))
+! end if

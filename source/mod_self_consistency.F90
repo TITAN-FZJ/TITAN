@@ -583,7 +583,7 @@ contains
     ncount2=N*N
 
     pauli_components1 = cZero ! Pauli Matrices in Spin-Orbit space
-    pauli_components2 = cZero ! drho / dx =
+    pauli_components2 = cZero !
 !   Includes d orbitals
     pauli_components1(:,:,1) = identorb18(:,:)
     pauli_components1(:,:,2) = pauli_orb(1,:,:)
@@ -954,7 +954,7 @@ contains
     use mod_system, only: s => sys
     use mod_SOC, only: SOC
     use mod_magnet, only: rho, mvec_cartesian, mp, mvec_spherical, &
-                          lxpm, lypm, lzpm, lpphi, lptheta, lxm, lym, lzm, lpabs, labs
+                          lxpm, lypm, lzpm, lpphi, lptheta, lxm, lym, lzm, ltheta, lphi, lpabs, labs
     implicit none
     integer :: i
 
@@ -967,17 +967,18 @@ contains
     write(output%unit_loop,"(11x,' *********** Magnetization components: **********')")
     do i=1,s%nAtoms
       write(output%unit_loop,"(4x,'Mx (',i2.0,')=',f11.8,4x,'My (',i2.0,')=',f11.8,4x,'Mz (',i2.0,')=',f11.8)") i,mvec_cartesian(1,i),i,mvec_cartesian(2,i),i,mvec_cartesian(3,i)
-      if(abs(sum(mp(:,i)))/=0) write(output%unit_loop,"(12x,'theta = ',f11.7,'  ',4x,'phi = ',f11.7)") mvec_spherical(2,i),mvec_spherical(3,i)
+      if(abs(sum(mp(:,i)))/=0) write(output%unit_loop,"(12x,'theta = ',f11.6,'  ',4x,'phi = ',f11.6)") mvec_spherical(2,i),mvec_spherical(3,i)
     end do
     if((lGSL).or.(SOC)) then
-      write(output%unit_loop,"(11x,' *** Orbital components in local frame:  ***')")
-      do i=1,s%nAtoms
-        write(output%unit_loop,"(4x,'Lxp(',i2.0,')=',f11.8,4x,'Lyp(',i2.0,')=',f11.8,4x,'Lzp(',i2.0,')=',f11.8)") i,lxpm(i),i,lypm(i),i,lzpm(i)
-        if(sqrt(lxpm(i)**2+lypm(i)**2)/=0) write(output%unit_loop,"(12x,'theta = ',f11.7,'  ',4x,'phi = ',f11.7)") lptheta(i),lpphi(i)
-      end do
       write(output%unit_loop,"(11x,' *** Orbital components in global frame: ***')")
       do i=1,s%nAtoms
         write(output%unit_loop,"(4x,'Lx (',i2.0,')=',f11.8,4x,'Ly (',i2.0,')=',f11.8,4x,'Lz (',i2.0,')=',f11.8)") i,lxm(i),i,lym(i),i,lzm(i)
+        if(sqrt(lxm(i)**2+lym(i)**2)/=0) write(output%unit_loop,"(12x,'theta = ',f11.6,'  ',4x,'phi = ',f11.6)") ltheta(i),lphi(i)
+      end do
+      write(output%unit_loop,"(11x,' *** Orbital components in local frame:  ***')")
+      do i=1,s%nAtoms
+        write(output%unit_loop,"(4x,'Lxp(',i2.0,')=',f11.8,4x,'Lyp(',i2.0,')=',f11.8,4x,'Lzp(',i2.0,')=',f11.8)") i,lxpm(i),i,lypm(i),i,lzpm(i)
+        if(sqrt(lxpm(i)**2+lypm(i)**2)/=0) write(output%unit_loop,"(12x,'theta = ',f11.6,'  ',4x,'phi = ',f11.6)") lptheta(i),lpphi(i)
       end do
       write(output%unit_loop,"(11x,' ******************** Total: ********************')")
       do i=1,s%nAtoms
