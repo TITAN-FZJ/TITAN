@@ -30,7 +30,6 @@ program TITAN
   !use mod_torques, only: ntypetorque
   implicit none
 
-  integer           :: count_hw
   character(len=500) :: arg = ""
 
   !-------------------------- MPI initialization --------------------------
@@ -256,7 +255,7 @@ program TITAN
     !========================================================================
 
     ! Emergency stop after the calculation for a Npl or field is finished (don't check on last step)
-    if(total_hw_npt1 /= 1 .and. count_hw < endField) call check_emergency_stop(sys%nAtoms, hw_list, hw_count)
+    if(total_hw_npt1 /= 1 .and. hw_count < endField) call check_emergency_stop(sys%nAtoms, hw_list, hw_count)
     !---------------------------- Closing files ----------------------------
     if(total_hw_npt1 /= 1 .and.  itype /= 6 .and. rField == 0) close(output%unit_loop)
     !---------------------- Ending magnetic field loop ---------------------

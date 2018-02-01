@@ -14,6 +14,7 @@ contains
     integer :: AllocateStatus
 
     if(allocated(TTResponse)) deallocate(TTResponse)
+    if(allocated(TTResponseHF)) deallocate(TTResponseHF)
 
     allocate(TTResponse(4,4,nAtoms,nAtoms), TTResponseHF(4,4,nAtoms,nAtoms), stat = AllocateStatus)
     if(AllocateStatus /= 0) call abortProgram("[allocateTTResponse] Not enough memory for: TTResponse, TTResponseHF")

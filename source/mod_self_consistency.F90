@@ -421,6 +421,7 @@ contains
 
     deallocate(sc_solu,diag,qtf,fvec,jac,wa)
 
+    ! Calculating the magnetization in cartesian and spherical coordinates
     call calcMagAngle()
 
     return

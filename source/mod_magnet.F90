@@ -257,6 +257,7 @@ contains
     if(allocated(lx)) deallocate(lx)
     if(allocated(ly)) deallocate(ly)
     if(allocated(lz)) deallocate(lz)
+    if(allocated(l )) deallocate(l )
     allocate(lx(nOrb, nOrb), ly(nOrb,nOrb), lz(nOrb,nOrb), l(nOrb,nOrb,3))
 
     lz = cZero
