@@ -37,9 +37,9 @@ contains
       do i=1, s%nAtoms
         do j = 1, s%nAtoms
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(k)),trim(filename(k)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-          open (unit=unitBase(k)+s%nAtoms*i+j, file=varm, status='replace', form='formatted')
-          write(unit=unitBase(k)+s%nAtoms*i+j, fmt="(a)") FileHeader(k)
-          close(unit=unitBase(k)+s%nAtoms*i+j)
+          open (unit=unitBase(k)+s%nAtoms*(i-1)+j, file=varm, status='replace', form='formatted')
+          write(unit=unitBase(k)+s%nAtoms*(i-1)+j, fmt="(a)") FileHeader(k)
+          close(unit=unitBase(k)+s%nAtoms*(i-1)+j)
         end do
        end do
     end do
@@ -63,7 +63,7 @@ contains
        do j = 1, s%nAtoms
          do k = 1, size(filename)
            write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(k)),trim(filename(k)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-           open (unit=unitBase(k)+s%nAtoms*i+j, file=varm, status='old', position='append', form='formatted', iostat=err)
+           open (unit=unitBase(k)+s%nAtoms*(i-1)+j, file=varm, status='old', position='append', form='formatted', iostat=err)
            errt = errt + err
            if(err .ne. 0) missing_files = trim(missing_files) // " " // trim(varm)
          end do
@@ -82,7 +82,7 @@ contains
     do i = 1, s%nAtoms
        do j = 1, s%nAtoms
          do k = 1, size(filename)
-           close(unit=unitBase(k)+s%nAtoms*i+j)
+           close(unit=unitBase(k)+s%nAtoms**(i-1)+j)
          end do
        end do
     end do
@@ -94,22 +94,16 @@ contains
   subroutine calcTSResponse(e)
     use mod_constants, only: levi_civita, StoC, CtoS, cZero
     use mod_System, only: s => sys
-    use mod_magnet, only: Lxp, Lyp, Lzp
+    use mod_magnet, only: l
     use TightBinding, only: nOrb
     use mod_parameters, only: sigmaimunu2i
     use mod_susceptibilities, only: chiorb, chiorb_hf
     use mod_mpi_pars, only: abortProgram
     use mod_magnet, only: mabs, mz
     implicit none
-    complex(double), dimension(9,9,3,s%nAtoms) :: L
     integer :: i,j, m,n,k, mp,mu,nu, gamma, p,q
     real(double), intent(in) :: e
     complex(double), dimension(2,2) :: chits
-    do i = 1, s%nAtoms
-       L(1:9,1:9,1,i) = lxp(1:9,1:9,i)
-       L(1:9,1:9,2,i) = lyp(1:9,1:9,i)
-       L(1:9,1:9,3,i) = lzp(1:9,1:9,i)
-    end do
 
     TSResponse = cmplx(0.d0, 0.d0)
     TSResponseHF = cmplx(0.d0, 0.d0)
@@ -122,16 +116,16 @@ contains
                    do mp = 1,3
                       do mu = 1, nOrb
                          do nu = 1, nOrb
-                            if(L(nu,mu,n,i) == cZero) cycle
+                            if(l(mu,nu,n) == cZero) cycle
                             do gamma = 1, nOrb
                                do p = 1, 4
                                   do q = 1, 4
                                      if(StoC(k+1,p) == cZero .or. CtoS(q,mp+1) == cZero) cycle
                                      TSResponse(mp, m, j, i) = TSResponse(mp, m, j, i) &
-                                          - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%Lambda * levi_civita(m,n,k) * L(mu, nu, n, i) &
+                                          - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%Lambda * levi_civita(m,n,k) * l(mu, nu, n) &
                                           * StoC(k+1,p) * chiorb(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma, gamma)) * CtoS(q,mp+1)
                                      TSResponseHF(mp, m, j, i) = TSResponse(mp, m, j, i) &
-                                          - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%Lambda * levi_civita(m,n,k) * L(mu, nu, n, i) &
+                                          - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%Lambda * levi_civita(m,n,k) * l(mu, nu, n) &
                                           * StoC(k+1,p) * chiorb_hf(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma, gamma)) * CtoS(q,mp+1)
                                   end do
                                end do
@@ -152,14 +146,12 @@ contains
 
     call invers(chits, 2)
 
-
-
     call open_TSR_files()
     do i = 1, s%nAtoms
        do j = 1, s%nAtoms
-          write(unitBase(1)+s%nAtoms*i+j, "(19(es16.9,2x))") e, ((real(TSResponse(q,p,j,i)), aimag(TSResponse(q,p,j,i)), q = 1, 3), p = 1, 3)
-          write(unitBase(2)+s%nAtoms*i+j, "(19(es16.9,2x))") e, ((real(TSResponseHF(q,p,j,i)), aimag(TSResponseHF(q,p,j,i)), q = 1, 3), p = 1, 3)
-          write(unitBase(3)+s%nAtoms*i+j, "(9(es16.9,2x))") e, ((real(chits(j,i)), aimag(chits(j,i)), q= 1,2),p=1,2)
+          write(unitBase(1)+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TSResponse(q,p,j,i)), aimag(TSResponse(q,p,j,i)), q = 1, 3), p = 1, 3)
+          write(unitBase(2)+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TSResponseHF(q,p,j,i)), aimag(TSResponseHF(q,p,j,i)), q = 1, 3), p = 1, 3)
+          write(unitBase(3)+s%nAtoms*(i-1)+j, "( 9(es16.9,2x))") e, ((real(chits(j,i)), aimag(chits(j,i)), q= 1,2),p=1,2)
        end do
     end do
     call close_TSR_files()

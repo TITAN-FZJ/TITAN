@@ -621,8 +621,8 @@ contains
     if(lfield) then
        write(output%unit_loop,"(1x,'Static magnetic field: ACTIVATED')")
        write(output%unit_loop,"(10x,'hwx =',es9.2,5x,'|',5x,'hwa =',es9.2)") hwx,hw_list(hw_count,1)
-       write(output%unit_loop,"(10x,'hwy =',es9.2,5x,'|',5x,'hwt =',f6.3)") hwy,hw_list(hw_count,2)
-       write(output%unit_loop,"(10x,'hwz =',es9.2,5x,'|',5x,'hwp =',f6.3)") hwz,hw_list(hw_count,3)
+       write(output%unit_loop,"(10x,'hwy =',es9.2,5x,'|',5x,'hwt =',f7.2)") hwy,hw_list(hw_count,2)
+       write(output%unit_loop,"(10x,'hwz =',es9.2,5x,'|',5x,'hwp =',f7.2)") hwz,hw_list(hw_count,3)
     else
        write(output%unit_loop,"(1x,'Static magnetic field: DEACTIVATED')")
     end if
@@ -677,10 +677,10 @@ contains
        write(output%unit_loop,"(1x,'e =',es9.2)") emin
        write(output%unit_loop,"(1x,'hwa_min =',es9.2)") hw_list(1,1)
        write(output%unit_loop,"(1x,'hwa_max =',es9.2)") hw_list(total_hw_npt1,1)
-       write(output%unit_loop,"(1x,'hwt_min =',f6.3)") hw_list(1,2)
-       write(output%unit_loop,"(1x,'hwt_max =',f6.3)") hw_list(total_hw_npt1,2)
-       write(output%unit_loop,"(1x,'hwp_min =',f6.3)") hw_list(1,3)
-       write(output%unit_loop,"(1x,'hwp_max =',f6.3)") hw_list(total_hw_npt1,3)
+       write(output%unit_loop,"(1x,'hwt_min =',f7.2)") hw_list(1,2)
+       write(output%unit_loop,"(1x,'hwt_max =',f7.2)") hw_list(total_hw_npt1,2)
+       write(output%unit_loop,"(1x,'hwp_min =',f7.2)") hw_list(1,3)
+       write(output%unit_loop,"(1x,'hwp_max =',f7.2)") hw_list(total_hw_npt1,3)
        !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps, each calculating ',i0,' points')") total_hw_npt1*npt1,MPIsteps*MPIsteps_hw,MPIpts_hw*MPIpts
     end select write_itype
     write(output%unit_loop,"('|---------------------------------------------------------------------------|')")

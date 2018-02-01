@@ -25,6 +25,8 @@ module mod_magnet
   complex(double), dimension(:,:), allocatable   :: lx, ly, lz
   !! Angular momentum vector matrices in global frame
   complex(double), dimension(:,:,:), allocatable :: l
+  !! Angular momentum vector matrices in local frame
+  complex(double), dimension(:,:,:,:), allocatable :: lp
 
   !========================================================================================!
   ! Values of magnetic field in cartesian or spherical coordinates
@@ -62,6 +64,7 @@ contains
   ! This subroutine sets up external magnetic fields and related loop
   !subroutine prepare_field()
   subroutine setMagneticLoopPoints()
+    use mod_constants, only: rad2deg
     implicit none
     !! Amount of points to skip
     integer       :: i, j, k, l
@@ -93,10 +96,10 @@ contains
         if(abs(hwa_i)<1.d-8) then
           lfield = .false.
         else
-          hwt_i    = acos(hwz/hwa_i)
+          hwt_i    = acos(hwz/hwa_i)*rad2deg
           hwt_s    = 0.d0
           hwt_npt1 = 1
-          hwp_i    = atan2(hwy,hwx)
+          hwp_i    = atan2(hwy,hwx)*rad2deg
           hwp_s    = 0.d0
           hwp_npt1 = 1
         end if
@@ -143,7 +146,7 @@ contains
 
   subroutine initMagneticField(nAtoms)
     use mod_f90_kind, only: double
-    use mod_constants, only: cZero, pi
+    use mod_constants, only: cZero, deg2rad
     use mod_parameters, only: output
     use mod_mpi_pars, only: abortProgram, rField
     use mod_SOC, only: SOC, llinearsoc
@@ -174,9 +177,9 @@ contains
       ! to take into account the fact that we are considering negative
       ! external fields to get the peak at positive energies
       do i = 1, nAtoms
-        hhw(1,i) = -0.5d0*hwscale(i)*hw_list(hw_count,1)*sin((hw_list(hw_count,2) + hwtrotate(i))*pi)*cos((hw_list(hw_count,3) + hwprotate(i))*pi)*tesla
-        hhw(2,i) = -0.5d0*hwscale(i)*hw_list(hw_count,1)*sin((hw_list(hw_count,2) + hwtrotate(i))*pi)*sin((hw_list(hw_count,3) + hwprotate(i))*pi)*tesla
-        hhw(3,i) = -0.5d0*hwscale(i)*hw_list(hw_count,1)*cos((hw_list(hw_count,2) + hwtrotate(i))*pi)*tesla
+        hhw(1,i) = -0.5d0*hwscale(i)*hw_list(hw_count,1)*sin((hw_list(hw_count,2) + hwtrotate(i))*deg2rad)*cos((hw_list(hw_count,3) + hwprotate(i))*deg2rad)*tesla
+        hhw(2,i) = -0.5d0*hwscale(i)*hw_list(hw_count,1)*sin((hw_list(hw_count,2) + hwtrotate(i))*deg2rad)*sin((hw_list(hw_count,3) + hwprotate(i))*deg2rad)*tesla
+        hhw(3,i) = -0.5d0*hwscale(i)*hw_list(hw_count,1)*cos((hw_list(hw_count,2) + hwtrotate(i))*deg2rad)*tesla
         if(abs(hhw(1,i))<1.d-8) hhw(1,i) = 0.d0
         if(abs(hhw(2,i))<1.d-8) hhw(2,i) = 0.d0
         if(abs(hhw(3,i))<1.d-8) hhw(3,i) = 0.d0
@@ -254,12 +257,6 @@ contains
     implicit none
     complex(double), dimension(9,9) :: Lp,Lm
 
-    if(allocated(lx)) deallocate(lx)
-    if(allocated(ly)) deallocate(ly)
-    if(allocated(lz)) deallocate(lz)
-    if(allocated(l )) deallocate(l )
-    allocate(lx(nOrb, nOrb), ly(nOrb,nOrb), lz(nOrb,nOrb), l(nOrb,nOrb,3))
-
     lz = cZero
 
     lz(2,3) = -cI
@@ -307,21 +304,24 @@ contains
     return
   end subroutine l_matrix
 
-  ! This subroutine calculate the orbital angular momentum matrix in the spin system of coordinates
+  ! This subroutine calculate the orbital angular momentum matrix in the local system of coordinates
   subroutine lp_matrix(theta, phi)
     use mod_f90_kind, only: double
+    use mod_constants, only: deg2rad
     use TightBinding, only: nOrb
     use mod_System, only: s => sys
     implicit none
     real(double), dimension(s%nAtoms), intent(in) :: theta, phi
     integer :: i
-
     do i = 1, s%nAtoms
-      lxp(:,:,i) = (lx*cos(theta(i))*cos(phi(i)))+(ly*cos(theta(i))*sin(phi(i)))-(lz*sin(theta(i)))
-      lyp(:,:,i) =-(lx*sin(phi(i)))+(ly*cos(phi(i)))
-      lzp(:,:,i) = (lx*sin(theta(i))*cos(phi(i)))+(ly*sin(theta(i))*sin(phi(i)))+(lz*cos(theta(i)))
-    end do
+      lxp(:,:,i) = ( l(:,:,1)*cos(theta(i)*deg2rad)*cos(phi(i)*deg2rad)) + (l(:,:,2)*cos(theta(i)*deg2rad)*sin(phi(i)*deg2rad)) - (l(:,:,3)*sin(theta(i)*deg2rad))
+      lyp(:,:,i) = (-l(:,:,1)                      *sin(phi(i)*deg2rad)) + (l(:,:,2)                      *cos(phi(i)*deg2rad))
+      lzp(:,:,i) = ( l(:,:,1)*sin(theta(i)*deg2rad)*cos(phi(i)*deg2rad)) + (l(:,:,2)*sin(theta(i)*deg2rad)*sin(phi(i)*deg2rad)) + (l(:,:,3)*cos(theta(i)*deg2rad))
 
+      lp(:,:,1,i) = lxp(:,:,i)
+      lp(:,:,2,i) = lyp(:,:,i)
+      lp(:,:,3,i) = lzp(:,:,i)
+    end do
     return
   end subroutine lp_matrix
 
@@ -333,37 +333,36 @@ contains
     integer :: AllocateStatus
 
     allocate( rho(nOrb,nAtoms), stat = AllocateStatus)
-    if(AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: rho")
+    if(AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: rho")
 
     allocate( mx(nOrb,nAtoms), my(nOrb,nAtoms), mz(nOrb,nAtoms), mp(nOrb,nAtoms), &
               mvec_cartesian(3,nAtoms), &
               mvec_spherical(3,nAtoms), STAT = AllocateStatus )
-    if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mx,my,mz,mp,mvec_cartesian,mvec_spherical")
+    if (AllocateStatus/=0) call abortProgram("[allocate_magnet_variables] Not enough memory for: mx,my,mz,mp,mvec_cartesian,mvec_spherical")
 
     allocate( mxd(nAtoms), myd(nAtoms), mzd(nAtoms), mpd(nAtoms), &
               rhod(nAtoms), STAT = AllocateStatus )
-    if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mx,my,mz,mp,mxd,myd,mzd,mvec_cartesian,mvec_spherical")
+    if (AllocateStatus/=0) call abortProgram("[allocate_magnet_variables] Not enough memory for: mx,my,mz,mp,mxd,myd,mzd,mvec_cartesian,mvec_spherical")
 
     allocate( mabs(nAtoms), mtheta(nAtoms), mphi(nAtoms), &
               labs(nAtoms), ltheta(nAtoms), lphi(nAtoms), &
               lpabs(nAtoms), lptheta(nAtoms), lpphi(nAtoms), STAT = AllocateStatus )
-    if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mabs,mtheta,mphi,labs,ltheta,lphi,lpabs,lptheta,lpphi")
-
+    if (AllocateStatus/=0) call abortProgram("[allocate_magnet_variables] Not enough memory for: mabs,mtheta,mphi,labs,ltheta,lphi,lpabs,lptheta,lpphi")
 
     allocate( hhw(3,nAtoms), STAT = AllocateStatus )
-    if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: hhw")
+    if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: hhw")
 
-    allocate(lx(nOrb, nOrb), ly(nOrb,nOrb), lz(nOrb,nOrb))
-    if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: lx, ly, lz")
+    allocate(lx(nOrb, nOrb), ly(nOrb,nOrb), lz(nOrb,nOrb), l(nOrb,nOrb,3), stat = AllocateStatus)
+    if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lx, ly, lz, l")
 
     allocate(sb(2*nOrb,2*nOrb,nAtoms), stat = AllocateStatus)
-    if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: sb")
+    if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: sb")
 
     allocate(lb(2*nOrb,2*nOrb,nAtoms), stat = AllocateStatus)
-    if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: lb")
+    if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lb")
 
-    allocate(lxp(nOrb,nOrb,nAtoms), lyp(nOrb,nOrb,nAtoms), lzp(nOrb,nOrb,nAtoms), stat = AllocateStatus)
-    if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: lxp, lyp, lzp")
+    allocate(lxp(nOrb,nOrb,nAtoms), lyp(nOrb,nOrb,nAtoms), lzp(nOrb,nOrb,nAtoms), lp(nOrb,nOrb,3,nAtoms), stat = AllocateStatus)
+    if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lxp, lyp, lzp, lp")
 
     return
   end subroutine
@@ -374,9 +373,11 @@ contains
     if(allocated(lxp)) deallocate(lxp)
     if(allocated(lyp)) deallocate(lyp)
     if(allocated(lzp)) deallocate(lzp)
+    if(allocated(lp)) deallocate(lp)
     if(allocated(lx)) deallocate(lx)
     if(allocated(ly)) deallocate(ly)
     if(allocated(lz)) deallocate(lz)
+    if(allocated(l )) deallocate(l )
     if(allocated(lb)) deallocate(lb)
     if(allocated(sb)) deallocate(sb)
     if(allocated(rho)) deallocate(rho)
@@ -414,7 +415,7 @@ contains
 
      output%BField = ""
      if(lfield) then
-      write(output%BField, "('_hwa=',es9.2,'_hwt=',f5.2,'_hwp=',f5.2)") hw_list(count,1),hw_list(count,2),hw_list(count,3)
+      write(output%BField, "('_hwa=',es9.2,'_hwt=',f7.2,'_hwp=',f7.2)") hw_list(count,1),hw_list(count,2),hw_list(count,3)
       if(ltesla)    output%BField = trim(output%BField) // "_tesla"
       if(lnolb)     output%BField = trim(output%BField) // "_nolb"
       if(lhwscale)  output%BField = trim(output%BField) // "_hwscale"
@@ -424,8 +425,8 @@ contains
      output%dcBField = ""
      if(dcfield_dependence/=7) then
       if((dcfield_dependence/=1).and.(dcfield_dependence/=4).and.(dcfield_dependence/=5)) write(output%dcBField,"(a,'_hwa=',es9.2)") trim(output%dcBField),hwa
-      if((dcfield_dependence/=2).and.(dcfield_dependence/=4).and.(dcfield_dependence/=6)) write(output%dcBField,"(a,'_hwt=',f5.2)") trim(output%dcBField),hwt
-      if((dcfield_dependence/=3).and.(dcfield_dependence/=5).and.(dcfield_dependence/=6)) write(output%dcBField,"(a,'_hwp=',f5.2)") trim(output%dcBField),hwp
+      if((dcfield_dependence/=2).and.(dcfield_dependence/=4).and.(dcfield_dependence/=6)) write(output%dcBField,"(a,'_hwt=',f7.2)") trim(output%dcBField),hwt
+      if((dcfield_dependence/=3).and.(dcfield_dependence/=5).and.(dcfield_dependence/=6)) write(output%dcBField,"(a,'_hwp=',f7.2)") trim(output%dcBField),hwp
      end if
      if(ltesla)    output%dcBField = trim(output%dcBField) // "_tesla"
      if(lnolb)     output%dcBField = trim(output%dcBField) // "_nolb"

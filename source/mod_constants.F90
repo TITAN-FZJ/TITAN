@@ -13,11 +13,15 @@ module mod_constants
   real(double), parameter :: tpi = 2.d0 * pi
   !! 2*Pi
   real(double), parameter :: sq2 = sqrt(2.d0)
-  !! Square root of pi
+  !! Square root of 2
   real(double), parameter :: hsq2 = 0.5d0 * sq2
-  !! (Square root of pi) / 2
+  !! (Square root of 2) / 2
   real(double), parameter :: sq3 = sqrt(3.d0)
   !! Square root of 3
+  real(double), parameter :: deg2rad = pi/180
+  !! degrees to radians
+  real(double), parameter :: rad2deg = 180/pi
+  !! radians to degrees
   real(double)    :: levi_civita(3,3,3)
   !! Levi Civita Tensor
   complex(double) :: identorb18(18,18)

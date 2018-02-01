@@ -20,7 +20,7 @@ contains
   subroutine doSelfConsistency()
     use mod_magnet, only: lp_matrix, mtheta, mphi
     use adaptiveMesh, only: genLocalEKMesh, freeLocalEKMesh
-    use mod_mpi_pars, only: rField, sField, FieldComm
+    use mod_mpi_pars, only: rField, sField, FieldComm, myrank
     use mod_SOC, only: SOC
     implicit none
     logical :: lsuccess = .false.
@@ -60,7 +60,7 @@ contains
   ! Tries to read n and m if available
   subroutine read_previous_results(lsuccess)
     use mod_f90_kind, only: double
-    use mod_constants, only: pi
+    use mod_constants, only: deg2rad
     use mod_magnet, only: mx, my, mz, mxd, myd, mzd, mpd, &
                           hw_count, hw_list, lfield, rho, rhod
     use mod_parameters, only: output, magaxis, magaxisvec, offset, layertype
@@ -100,7 +100,7 @@ contains
       else if(magaxis == -2) then
         magaxisvec = magaxisvec(1) * s%a1 + magaxisvec(2) * s%a2 + magaxisvec(3) * s%a3
       else if(magaxis == -3) then
-        magaxisvec = [cos(magaxisvec(2)*pi/180)*sin(magaxisvec(1)*pi/180), sin(magaxisvec(2)*pi/180)*sin(magaxisvec(1)*pi/180), cos(magaxisvec(1)*pi/180)]
+        magaxisvec = [cos(magaxisvec(2)*deg2rad)*sin(magaxisvec(1)*deg2rad), sin(magaxisvec(2)*deg2rad)*sin(magaxisvec(1)*deg2rad), cos(magaxisvec(1)*deg2rad)]
       else if(magaxis == 0) then
         magaxisvec = [0.d0, 0.d0, sign(1.0d0, hw_list(hw_count,1))]
       else if(magaxis >=1 .and. magaxis <= s%nAtoms) then
@@ -125,9 +125,9 @@ contains
       end do
 
       if(lfield .and. magaxis == 0) then
-        mxd = mzd * sin(hw_list(hw_count,2)*pi) * cos(hw_list(hw_count,3)*pi)
-        myd = mzd * sin(hw_list(hw_count,2)*pi) * sin(hw_list(hw_count,3)*pi)
-        mzd = mzd * cos(hw_list(hw_count,2)*pi)
+        mxd = mzd * sin(hw_list(hw_count,2)*deg2rad) * cos(hw_list(hw_count,3)*deg2rad)
+        myd = mzd * sin(hw_list(hw_count,2)*deg2rad) * sin(hw_list(hw_count,3)*deg2rad)
+        mzd = mzd * cos(hw_list(hw_count,2)*deg2rad)
       end if
 
       mpd = cmplx(mxd,myd)
@@ -287,7 +287,7 @@ contains
   end subroutine read_sc_results
 
   subroutine calcMagAngle()
-    use mod_constants, only: pi
+    use mod_constants, only: pi,rad2deg
     use mod_magnet, only: mx, my, mz, mabs, &
                           mtheta, mphi, mvec_cartesian, mvec_spherical
     use mod_system, only: s => sys
@@ -298,10 +298,14 @@ contains
     ! Calculating new angles of GS magnetization in units of pi and magnetization vector
     do i = 1,s%nAtoms
       mabs(i)   = sqrt((sum(mx(:,i))**2)+(sum(my(:,i))**2)+(sum(mz(:,i))**2))
-      mtheta(i) = acos(sum(mz(:,i))/mabs(i))/pi
+      if(abs(mabs(i))>1.d-8) then
+        mtheta(i) = acos(sum(mz(:,i))/mabs(i))*rad2deg
+      else
+        mtheta(i) = 0.d0
+      end if
       if(abs(mtheta(i))>1.d-8) then
         if(abs(abs(mtheta(i))-1.d0)>1.d-8) then
-          mphi(i)   = atan2(sum(my(:,i)),sum(mx(:,i)))/pi
+          mphi(i)   = atan2(sum(my(:,i)),sum(mx(:,i)))*rad2deg
         else
           mphi(i) = 0.d0
         end if
@@ -769,7 +773,7 @@ contains
   subroutine calcLGS()
     !! Calculates the ground state charge, magnetization and orbital angular momentum ground state
     use mod_f90_kind, only: double
-    use mod_constants, only: cZero,pi
+    use mod_constants, only: cZero,pi,rad2deg
     use mod_System, only: s => sys
     use adaptiveMesh
     use TightBinding, only: nOrb,nOrb2
@@ -850,9 +854,9 @@ contains
     lxpm = 0.d0
     lypm = 0.d0
     lzpm = 0.d0
-    lxm = 0.d0
-    lym = 0.d0
-    lzm = 0.d0
+    lxm  = 0.d0
+    lym  = 0.d0
+    lzm  = 0.d0
 
     do nu=5,9
       do mu=5,9
@@ -860,9 +864,9 @@ contains
           lxpm(i) = lxpm(i) + real(lxp(mu,nu,i)*gupgd(nu,mu,i))
           lypm(i) = lypm(i) + real(lyp(mu,nu,i)*gupgd(nu,mu,i))
           lzpm(i) = lzpm(i) + real(lzp(mu,nu,i)*gupgd(nu,mu,i))
-          lxm(i)  = lxm(i)  + real(lx (mu,nu)*gupgd(nu,mu,i))
-          lym(i)  = lym(i)  + real(ly (mu,nu)*gupgd(nu,mu,i))
-          lzm(i)  = lzm(i)  + real(lz (mu,nu)*gupgd(nu,mu,i))
+          lxm (i) = lxm (i) + real(lx (mu,nu  )*gupgd(nu,mu,i))
+          lym (i) = lym (i) + real(ly (mu,nu  )*gupgd(nu,mu,i))
+          lzm (i) = lzm (i) + real(lz (mu,nu  )*gupgd(nu,mu,i))
         end do
       end do
     end do
@@ -871,13 +875,13 @@ contains
     do i = 1,s%nAtoms
       labs(i)   = sqrt((lxm(i)**2)+(lym(i)**2)+(lzm(i)**2))
       if(abs(labs(i))>1.d-8) then
-        ltheta(i) = acos(lzm(i)/sqrt(lxm(i)**2+lym(i)**2+lzm(i)**2))/pi
+        ltheta(i) = acos(lzm(i)/labs(i))*rad2deg
       else
         ltheta(i) = 0.d0
       end if
       if(abs(ltheta(i))>1.d-8) then
         if(abs(abs(ltheta(i))-1.d0)>1.d-8) then
-          lphi(i)   = atan2(lym(i),lxm(i))/pi
+          lphi(i)   = atan2(lym(i),lxm(i))*rad2deg
         else
           lphi(i) = 0.d0
         end if
@@ -886,13 +890,13 @@ contains
       end if
       lpabs(i)  = sqrt((lxpm(i)**2)+(lypm(i)**2)+(lzpm(i)**2))
       if(abs(lpabs(i))>1.d-8) then
-        lptheta(i)= acos(lzpm(i)/sqrt(lxpm(i)**2+lypm(i)**2+lzpm(i)**2))/pi
+        lptheta(i)= acos(lzpm(i)/lpabs(i))*rad2deg
       else
         lptheta(i) = 0.d0
       end if
       if(abs(lptheta(i))>1.d-8) then
         if(abs(abs(lptheta(i))-1.d0)>1.d-8) then
-          lpphi(i)   = atan2(lypm(i),lxpm(i))/pi
+          lpphi(i)   = atan2(lypm(i),lxpm(i))*rad2deg
         else
           lpphi(i) = 0.d0
         end if
@@ -910,7 +914,7 @@ contains
   subroutine rotate_magnetization_to_field()
   !! Rotate the magnetization to the direction of the field (useful for SOC=F)
     use mod_f90_kind, only: double
-    use mod_constants, only: pi
+    use mod_constants, only: deg2rad
     use mod_magnet, only: hw_count, hw_list, hhw, &
                           mx, my, mz, mp
     use mod_parameters, only: output
@@ -928,9 +932,9 @@ contains
         mdotb   = hhw(1,i)*mx(j,i)+hhw(2,i)*my(j,i)+hhw(3,i)*mz(j,i)
         sign    = dble(mdotb/abs(mdotb))
         mabs(j,i) = sqrt((mx(j,i)**2)+(my(j,i)**2)+(mz(j,i)**2))
-        mx(j,i)   = sign*mabs(j,i)*sin(hw_list(hw_count,2)*pi)*cos(hw_list(hw_count,3)*pi)
-        my(j,i)   = sign*mabs(j,i)*sin(hw_list(hw_count,2)*pi)*sin(hw_list(hw_count,3)*pi)
-        mz(j,i)   = sign*mabs(j,i)*cos(hw_list(hw_count,2)*pi)
+        mx(j,i)   = sign*mabs(j,i)*sin(hw_list(hw_count,2)*deg2rad)*cos(hw_list(hw_count,3)*deg2rad)
+        my(j,i)   = sign*mabs(j,i)*sin(hw_list(hw_count,2)*deg2rad)*sin(hw_list(hw_count,3)*deg2rad)
+        mz(j,i)   = sign*mabs(j,i)*cos(hw_list(hw_count,2)*deg2rad)
         mp(j,i)   = cmplx(mx(j,i),my(j,i),double)
       end do
     end do
@@ -963,13 +967,13 @@ contains
     write(output%unit_loop,"(11x,' *********** Magnetization components: **********')")
     do i=1,s%nAtoms
       write(output%unit_loop,"(4x,'Mx (',i2.0,')=',f11.8,4x,'My (',i2.0,')=',f11.8,4x,'Mz (',i2.0,')=',f11.8)") i,mvec_cartesian(1,i),i,mvec_cartesian(2,i),i,mvec_cartesian(3,i)
-      if(abs(sum(mp(:,i)))/=0) write(output%unit_loop,"(12x,'theta =',f11.8,' pi',4x,'phi =',f11.8,' pi')") mvec_spherical(2,i),mvec_spherical(3,i)
+      if(abs(sum(mp(:,i)))/=0) write(output%unit_loop,"(12x,'theta = ',f11.7,'  ',4x,'phi = ',f11.7)") mvec_spherical(2,i),mvec_spherical(3,i)
     end do
     if((lGSL).or.(SOC)) then
       write(output%unit_loop,"(11x,' *** Orbital components in local frame:  ***')")
       do i=1,s%nAtoms
         write(output%unit_loop,"(4x,'Lxp(',i2.0,')=',f11.8,4x,'Lyp(',i2.0,')=',f11.8,4x,'Lzp(',i2.0,')=',f11.8)") i,lxpm(i),i,lypm(i),i,lzpm(i)
-        if(sqrt(lxpm(i)**2+lypm(i)**2)/=0) write(output%unit_loop,"(12x,'theta =',f11.8,' pi',4x,'phi =',f11.8,' pi')") lptheta(i),lpphi(i)
+        if(sqrt(lxpm(i)**2+lypm(i)**2)/=0) write(output%unit_loop,"(12x,'theta = ',f11.7,'  ',4x,'phi = ',f11.7)") lptheta(i),lpphi(i)
       end do
       write(output%unit_loop,"(11x,' *** Orbital components in global frame: ***')")
       do i=1,s%nAtoms

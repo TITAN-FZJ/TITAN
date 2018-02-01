@@ -13,7 +13,7 @@ contains
   subroutine initElectricField(a1,a2,a3)
     use mod_parameters, only: output
     use mod_f90_kind, only: double
-    use mod_constants, only: pi
+    use mod_constants, only: deg2rad
     use mod_mpi_pars, only: abortProgram, myrank
     implicit none
     real(double), dimension(3), intent(in) :: a1, a2, a3
@@ -27,7 +27,7 @@ contains
                                + ElectricFieldVector(3) * a3(1:3)
 
     else if(ElectricFieldMode == -3) then
-      ElectricFieldVector(1:3) = [cos(EFp*pi/180)*sin(EFt*pi/180), sin(EFp*pi/180)*sin(EFt*pi*180), cos(EFt*pi/180)]
+      ElectricFieldVector(1:3) = [cos(EFp*deg2rad)*sin(EFt*deg2rad), sin(EFp*deg2rad)*sin(EFt*deg2rad), cos(EFt*deg2rad)]
 
     else if(1 <= ElectricFieldMode) then ! not Implemented anyway!  .and. dirEfield <= s%nAtoms) then
       if(myrank.eq.0) call abortProgram("[initElectricField] Electric Field along Atom Directions not implemented yet!!")

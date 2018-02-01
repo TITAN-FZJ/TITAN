@@ -1,6 +1,6 @@
 subroutine setup_electric_field(s)
   use mod_f90_kind, only: double
-  use mod_constants, only: pi
+  use mod_constants, only: deg2rad
   use mod_parameters, only: outputunit, dirEfield, dirEfieldvec, EFp, EFt
   use mod_System, only: System
   use mod_mpi_pars, only: myrank, ierr, MPI_Finalize
@@ -15,7 +15,7 @@ subroutine setup_electric_field(s)
   else if(dirEfield == -2) then
     dirEfieldvec = dirEfieldvec(1) * s%a1 + dirEfieldvec(2) * s%a2 + dirEfieldvec(3) * s%a3
   else if(dirEfield == -3) then
-    dirEfieldvec = [cos(EFp*pi/180)*sin(EFt*pi/180), sin(EFp*pi/180)*sin(EFt*pi*180), cos(EFt*pi/180)]
+    dirEfieldvec = [cos(EFp*deg2rad)*sin(EFt*deg2rad), sin(EFp*deg2rad)*sin(EFt*deg2rad), cos(EFt*deg2rad)]
   else if(1 <= dirEfield .and. dirEfield <= s%nAtoms) then
     stop "Not Implemented."
   else
@@ -109,7 +109,7 @@ end subroutine setup_long_and_trans_current_neighbors
 !     EFp = atan(dirEfieldvec(2) / dirEfieldvec(1))
 !     EFt = acos(dirEfieldvec(3))
 !   else if(dirEfield == -3) then
-!     dirEfieldvec = [cos(EFp*pi/180)*sin(EFt*pi/180), sin(EFp*pi/180)*sin(EFt*pi/180), cos(EFt*pi/180)]
+!     dirEfieldvec = [cos(EFp*deg2rad)*sin(EFt*deg2rad), sin(EFp*deg2rad)*sin(EFt*deg2rad), cos(EFt*deg2rad)]
 !   else if(dirEfield >=1 .and. dirEfield <= pln_cnt(1)) then
 !     dirEfieldvec = s%Neighbors(dirEfield)%dirCos
 !   else

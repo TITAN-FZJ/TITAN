@@ -84,7 +84,6 @@ program TITAN
   call allocate_magnet_variables(sys%nAtoms, nOrb)
   call allocLS(nOrb)
   call allocate_Npl_variables(sys%nAtoms) !TODO: Review
-
   !----------------------------- Dimensions ------------------------------
   dimsigmaNpl = 4 * sys%nAtoms
   dim = dimsigmaNpl * nOrb * nOrb

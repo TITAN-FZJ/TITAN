@@ -4,9 +4,10 @@
 ! rotation matrix (A) is different than the right one (B).
 ! iflag = 1 calculates A
 ! iflag = 2 calculates B
+! Angles should be given in degrees
 subroutine build_rotation_matrices_chi(theta_in,phi_in,rotmat,iflag)
   use mod_f90_kind, only: double
-  use mod_constants, only: cI,pi
+  use mod_constants, only: cI,deg2rad
   implicit none
   integer,                        intent(in)  :: iflag
   real(double),                   intent(in)  :: theta_in,phi_in
@@ -14,8 +15,8 @@ subroutine build_rotation_matrices_chi(theta_in,phi_in,rotmat,iflag)
   complex(double)                             :: expphi,expmphi
   complex(double),dimension(4,4), intent(out) :: rotmat
 
-  theta = theta_in*pi
-  phi   = phi_in*pi
+  theta = theta_in*deg2rad
+  phi   = phi_in*deg2rad
 
   expphi      = exp(cI*phi)
   expmphi     = conjg(expphi)
@@ -70,35 +71,37 @@ subroutine build_rotation_matrices_chi(theta_in,phi_in,rotmat,iflag)
   return
 end subroutine build_rotation_matrices_chi
 
-! Rotation matrix of an angle theta around y axis
+! Rotation matrix of an angle theta (in degrees) around y axis
 subroutine build_rotation_matrix_ry(theta,ry)
   use mod_f90_kind, only: double
+  use mod_constants, only: deg2rad
   implicit none
   real(double),                intent(in)  :: theta
   real(double),dimension(3,3), intent(out) :: ry
 
   ry = 0.d0
-  ry(1,1) = cos(theta)
-  ry(1,3) = sin(theta)
+  ry(1,1) = cos(theta*deg2rad)
+  ry(1,3) = sin(theta*deg2rad)
   ry(2,2) = 1.d0
-  ry(3,1) =-sin(theta)
-  ry(3,3) = cos(theta)
+  ry(3,1) =-sin(theta*deg2rad)
+  ry(3,3) = cos(theta*deg2rad)
 
   return
 end subroutine build_rotation_matrix_ry
 
-! Rotation matrix of an angle phi around z axis
+! Rotation matrix of an angle phi (in degrees)  around z axis
 subroutine build_rotation_matrix_rz(phi,rz)
   use mod_f90_kind, only: double
+  use mod_constants, only: deg2rad
   implicit none
   real(double),                intent(in)  :: phi
   real(double),dimension(3,3), intent(out) :: rz
 
   rz = 0.d0
-  rz(1,1) = cos(phi)
-  rz(1,2) =-sin(phi)
-  rz(2,1) = sin(phi)
-  rz(2,2) = cos(phi)
+  rz(1,1) = cos(phi*deg2rad)
+  rz(1,2) =-sin(phi*deg2rad)
+  rz(2,1) = sin(phi*deg2rad)
+  rz(2,2) = cos(phi*deg2rad)
   rz(3,3) = 1.d0
 
   return
