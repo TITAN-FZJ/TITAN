@@ -2,7 +2,7 @@
 ! (in particular, the dc-limit) response functions
 subroutine calculate_dc_limit()
   use mod_constants,       only: cZero, cOne, cI, levi_civita, tpi
-  use mod_parameters, only: sigmaimunu2i, sigmai2i, dimsigmaNpl, U, offset, lnodiag, output, count, emin, deltae, npt1, laddresults, lhfresponses, dim, skip_steps
+  use mod_parameters, only: sigmaimunu2i, sigmai2i, dimspinAtoms, U, offset, lnodiag, output, count, emin, deltae, npt1, laddresults, lhfresponses, dim, skip_steps
   use mod_magnet,          only: lfield, dcfield_dependence, dc_count, dcfield, hw_count, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, hhw
   use mod_SOC, only: llinearsoc
   use mod_System, only: s => sys
@@ -259,7 +259,7 @@ subroutine calculate_dc_limit()
           end do
         end do
       end do
-      call invers(chiinv,dimsigmaNpl) ! Inverse of the susceptibility chi^(-1)
+      call invers(chiinv,dimspinAtoms) ! Inverse of the susceptibility chi^(-1)
 
       disturbances = cZero
       torques      = cZero
@@ -359,7 +359,7 @@ subroutine calculate_dc_limit()
       ! end do
       !
       ! Effective field calculation
-      call zgemm('n','n',dimsigmaNpl,1,dimsigmaNpl,cOne,chiinv,dimsigmaNpl,sdmat,dimsigmaNpl,cZero,Beff,dimsigmaNpl) ! Beff = chi^(-1)*SD
+      call zgemm('n','n',dimspinAtoms,1,dimspinAtoms,cOne,chiinv,dimspinAtoms,sdmat,dimspinAtoms,cZero,Beff,dimspinAtoms) ! Beff = chi^(-1)*SD
       do i = 1, s%nAtoms
         Beff_cart(1,i) =       (Beff(sigmai2i(2,i)) + Beff(sigmai2i(3,i)))    ! 0
         Beff_cart(2,i) = 0.5d0*(Beff(sigmai2i(1,i)) + Beff(sigmai2i(4,i)))    ! x

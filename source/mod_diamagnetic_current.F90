@@ -51,7 +51,7 @@ contains
 
     ! Calculating the number of particles for each spin and orbital using a complex integral
     if (myrank==0) then ! Process 0 receives all results and send new tasks if necessary
-      call sumk_idia(s%Ef,y(ix),Idia)
+      call sumk_idia(s%Ef,y(ix)+eta,Idia)
       Idia_total = wght(ix)*Idia
 
       if(lverbose) write(outputunit,"(' Finished point ',i0,' in rank ',i0)") ix,myrank

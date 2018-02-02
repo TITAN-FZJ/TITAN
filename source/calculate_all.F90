@@ -3,7 +3,7 @@
 subroutine calculate_all()
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, cOne, cI, levi_civita
-  use mod_parameters, only: lnodiag, renorm, U, offset, output, laddresults, skip_steps, count, lhfresponses, sigmaimunu2i, emin, emax, deltae, npt1, dim, sigmai2i, dimsigmanpl
+  use mod_parameters, only: lnodiag, renorm, U, offset, output, laddresults, skip_steps, count, lhfresponses, sigmaimunu2i, emin, emax, deltae, npt1, dim, sigmai2i, dimspinAtoms
   use mod_magnet, only: lfield, hhw, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, total_hw_npt1
   use mod_SOC, only: llinearsoc
   use mod_System, only: s => sys
@@ -272,7 +272,7 @@ subroutine calculate_all()
           end do
         end do
       end do
-      call invers(chiinv,dimsigmaNpl) ! Inverse of the susceptibility chi^(-1)
+      call invers(chiinv,dimspinAtoms) ! Inverse of the susceptibility chi^(-1)
 
       disturbances = cZero
       torques      = cZero
@@ -371,7 +371,7 @@ subroutine calculate_all()
       ! end do plane_loop_dc_current_all
 
       ! Effective field in cartesian coordinates
-      call zgemm('n','n',dimsigmaNpl,1,dimsigmaNpl,cOne,chiinv,dimsigmaNpl,sdmat,dimsigmaNpl,cZero,Beff,dimsigmaNpl) ! Beff = chi^(-1)*SD
+      call zgemm('n','n',dimspinAtoms,1,dimspinAtoms,cOne,chiinv,dimspinAtoms,sdmat,dimspinAtoms,cZero,Beff,dimspinAtoms) ! Beff = chi^(-1)*SD
       ! plane_loop_effective_field_all
       do i = 1, s%nAtoms
         Beff_cart(1,i) =          (Beff(sigmai2i(2,i)) + Beff(sigmai2i(3,i))) ! 0

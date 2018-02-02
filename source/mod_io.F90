@@ -64,7 +64,7 @@ contains
                               lpositions, lcreatefiles, Utype, lnolb, lhfresponses, &
                               lnodiag, lsha, lcreatefolders, lwriteonscreen, runoptions, &
                               ltestcharge, llgtv, lsortfiles, magaxis, magaxisvec, &
-                              itype, ry2ev, ltesla, eta, dmax, emin, emax, deltae, &
+                              itype, ry2ev, ltesla, eta, etap, dmax, emin, emax, deltae, &
                               skip_steps, npts, npt1, renorm, renormnb, bands, band_cnt, &
                               offset, dfttype, U, parField, parFreq, kptotal_in, kpx_in, kpy_in, kpz_in
     use mod_self_consistency, only: lslatec, lontheflysc, lnojac, lGSL, lrotatemag, skipsc, scfile, mag_tol
@@ -311,6 +311,7 @@ contains
 
     deallocate(s_vector)
     if(.not. get_parameter("eta", eta)) call log_error("get_parameters","'eta' missing.")
+    if(.not. get_parameter("etap", etap, eta)) call log_warning("get_parameters", "'etap' not found. Using default value eta.")
 
 
     !------------------------------------- Static Magnetic Field -----------------------------------

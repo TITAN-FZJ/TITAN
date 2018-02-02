@@ -23,14 +23,14 @@ contains
    subroutine allocate_disturbances()
    !! This subroutine allocates variables related to the disturbance calculation
       use mod_f90_kind, only: double
-      use mod_parameters, only: renorm,dim,dimsigmaNpl
+      use mod_parameters, only: renorm,dim,dimspinAtoms
       use mod_System, only: s => sys
       use mod_mpi_pars, only: abortProgram, rFreq
       implicit none
       integer           :: AllocateStatus
 
       if(rFreq(1) == 0) then
-         allocate( disturbances(7,s%nAtoms),total_disturbances(7),sdmat(dimsigmaNpl),ldmat(s%nAtoms,9,9), STAT = AllocateStatus )
+         allocate( disturbances(7,s%nAtoms),total_disturbances(7),sdmat(dimspinAtoms),ldmat(s%nAtoms,9,9), STAT = AllocateStatus )
          if (AllocateStatus/=0) call abortProgram("[allocate_disturbances] Not enough memory for: disturbances,total_disturbances,dmat,ldmat")
 
          if(renorm) then

@@ -18,10 +18,10 @@ module mod_self_consistency
 contains
 
   subroutine doSelfConsistency()
-    use mod_magnet, only: lp_matrix, mtheta, mphi
+    use mod_magnet,   only: lp_matrix, mtheta, mphi
     use adaptiveMesh, only: genLocalEKMesh, freeLocalEKMesh
-    use mod_mpi_pars, only: rField, sField, FieldComm, myrank
-    use mod_SOC, only: SOC
+    use mod_mpi_pars, only: rField, sField, FieldComm
+    use mod_SOC,      only: SOC
     implicit none
     logical :: lsuccess = .false.
 
@@ -433,14 +433,15 @@ contains
 
   subroutine calcMagnetization()
     !! Calculates occupation density and magnetization.
-    use mod_f90_kind, only: double
-    use mod_constants, only: cI, pi, cZero
-    use mod_SOC, only: llinearsoc, llineargfsoc
+    use mod_f90_kind,      only: double
+    use mod_constants,     only: cI, pi, cZero
+    use mod_SOC,           only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: y, wght
-    use mod_system, only: s => sys
-    use mod_magnet, only: mx, my, mz, mp, rho, mxd, myd, mzd, mpd, rhod
-    use adaptiveMesh, only: bzs, E_k_imag_mesh, activeComm, local_points
-    use TightBinding, only: nOrb,nOrb2
+    use mod_system,        only: s => sys
+    use mod_magnet,        only: mx, my, mz, mp, rho, mxd, myd, mzd, mpd, rhod
+    use adaptiveMesh,      only: bzs, E_k_imag_mesh, activeComm, local_points
+    use TightBinding,      only: nOrb,nOrb2
+    use mod_parameters,    only: eta
     use mod_mpi_pars
     implicit none
     integer  :: i,j, AllocateStatus
@@ -480,7 +481,7 @@ contains
          ep = y(E_k_imag_mesh(1,ix))
          kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
          weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
-         call greenlineargfsoc(s%Ef,ep,kp,gf)
+         call greenlineargfsoc(s%Ef,ep+eta,kp,gf)
          do i=1,s%nAtoms
            do mu=1,nOrb
              mup = mu+nOrb
@@ -498,7 +499,7 @@ contains
          ep = y(E_k_imag_mesh(1,ix))
          kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
          weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
-         call green(s%Ef,ep,kp,gf)
+         call green(s%Ef,ep+eta,kp,gf)
          do i=1,s%nAtoms
            do mu=1,nOrb
              mup = mu+nOrb
@@ -634,10 +635,10 @@ contains
       weight = cmplx(1.d0,0.d0) * wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
       ! Green function on energy Ef + iy, and wave vector kp
       if(llineargfsoc .or. llinearsoc) then
-        call greenlinearsoc(s%Ef,ep,kp,gf,gvg)
+        call greenlinearsoc(s%Ef,ep+eta,kp,gf,gvg)
         gf = gf + gvg
       else
-        call green(s%Ef,ep,kp,gf)
+        call green(s%Ef,ep+eta,kp,gf)
       end if
 
       do j=1,s%nAtoms
@@ -772,14 +773,14 @@ contains
 
   subroutine calcLGS()
     !! Calculates the ground state charge, magnetization and orbital angular momentum ground state
-    use mod_f90_kind, only: double
-    use mod_constants, only: cZero,pi,rad2deg
-    use mod_System, only: s => sys
-    use adaptiveMesh
-    use TightBinding, only: nOrb,nOrb2
-    use mod_parameters, only: output
-    use mod_magnet
+    use mod_f90_kind,      only: double
+    use mod_constants,     only: cZero,pi,rad2deg
+    use mod_System,        only: s => sys
+    use TightBinding,      only: nOrb,nOrb2
+    use mod_parameters,    only: output, eta
     use EnergyIntegration, only: y, wght
+    use adaptiveMesh
+    use mod_magnet
     use mod_mpi_pars
     implicit none
 
@@ -831,7 +832,7 @@ contains
         ep = y(E_k_imag_mesh(1,ix))
         weight = bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix)) * wght(E_k_imag_mesh(1,ix))
         !Green function on energy Ef + iy, and wave vector kp
-        call green(s%Ef,ep,kp,gf)
+        call green(s%Ef,ep+eta,kp,gf)
 
         do i=1,s%nAtoms
           do mu=1,nOrb

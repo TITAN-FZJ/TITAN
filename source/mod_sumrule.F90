@@ -143,12 +143,13 @@ contains
 
   subroutine calcSmunu()
     !! Calculates the expectation value <S^munu_ii> = <c^+_imu c_inu>
-    use mod_f90_kind, only: double
-    use mod_constants, only: cZero,cI,tpi
-    use mod_System, only: s => sys
-    use adaptiveMesh
-    use TightBinding, only: nOrb,nOrb2
+    use mod_f90_kind,      only: double
+    use mod_constants,     only: cZero,cI,tpi
+    use mod_System,        only: s => sys
+    use TightBinding,      only: nOrb,nOrb2
     use EnergyIntegration, only: y, wght
+    use mod_parameters,    only: eta
+    use adaptiveMesh
     use mod_mpi_pars
     implicit none
     integer      :: AllocateStatus
@@ -185,7 +186,7 @@ contains
       kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
       weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
       !Green function on energy Ef + iy, and wave vector kp
-      call green(s%Ef,ep,kp,gf)
+      call green(s%Ef,ep+eta,kp,gf)
       do i=1,s%nAtoms
         do mu=1,nOrb
           mup = mu+nOrb

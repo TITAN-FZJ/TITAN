@@ -2,56 +2,76 @@ module mod_parameters
   use mod_f90_kind, only: double
   implicit none
   !========================================================================================!
-  integer,parameter :: dmax=20 !< Maximum dimension for Npl-dependent quantities that must be read from input
-!  integer       :: nkpt         !< Number of k-point generation vectors (S. Cunningham, Phys. Rev. B 10, 4988 (1974))
-  !XXX: integer       :: nkpt        !< Number of generated k-points
-  real(double)  :: eta         !< Small imaginary part included in the energy z = E + i.eta
-  real(double)  :: q(3)        !< q-vector for the dependence of response functions (not used yet)
-  ! Dimensions
-  integer       :: dimsigmaNpl !< Dimensions (Maybe enhance description?)
-  integer       :: dim         !< Dimensions (Maybe enhance description?)
+  integer,parameter :: dmax=20
+  !! Maximum dimension for Npl-dependent quantities that must be read from input (obsolete?)
+  real(double)  :: eta
+  !! Small imaginary part included in the energy of GF or susceptibility z = w + i.eta
+  real(double)  :: etap
+  !! Small imaginary part included in the energy of GF  z = E + i.eta'
+  real(double)  :: q(3)
+  !! q-vector for the dependence of response functions (not used yet)
+  ! Dimension variables:
+  integer       :: dimspinAtoms
+  !! Dimension: 4 spins x number of atoms in the unit cell
+  integer       :: dim
+  !! Dimension: 4 spins x number of atoms in the unit cell x number of orbitals^2
 
   integer :: kpx_in, kpy_in, kpz_in
+  !! Number of k-points in each direction
   integer :: kptotal_in
+  !! Total number of k-points
 
   !========================================================================================!
-  real(double), allocatable  :: U(:)       !< Effective intra-site electron electron interaction
-  integer       :: Utype = 2              !< Description missing
-  logical       :: lhfresponses = .false. !< Use HF susceptibilities to calculate currents, disturbances and accumulations (don't renormalize)
+  real(double), allocatable  :: U(:)
+  !! Effective intra-site electron electron interaction
+  integer       :: Utype = 2
+  !! Variable to say if an atom is magnetic or not (obsolete?)
+  logical       :: lhfresponses = .false.
+  !! Use HF susceptibilities to calculate currents, disturbances and accumulations (don't renormalize)
   !========================================================================================!
   ! Lattice and surface direction
-  character(len=6) :: latticeName                   !< Lattice description; general or bcc, fcc, hcp, cubic
-  !integer          :: Npl,Npl_i,Npl_f,Npl_input !< Description missing.
+  character(len=6) :: latticeName
+  !! Lattice description; general or bcc, fcc, hcp, cubic
+  !integer          :: Npl,Npl_i,Npl_f,Npl_input
   !integer          :: Npl_total
-  logical          :: bulk = .false.            !< Flag turning on/off bulk calculations, default: .false., not used yet
+  !! Obsolete?
+  logical          :: bulk = .false.
+  !! Flag turning on/off bulk calculations, default: .false., not used yet
   !========================================================================================!
-  integer            :: magaxis                   !< Initial guess for magnetization
+  integer            :: magaxis
   real(double)       :: magaxisvec(3)
-  real(double)       :: theta=0.d0,phi=0.d0       !< Euler Angles for the magnetization frame of reference
+  !! Initial guess for magnetization
+  real(double)       :: theta=0.d0,phi=0.d0
+  !! Euler Angles for the magnetization frame of reference
   !========================================================================================!
-  integer :: itype  !< type of calculation - defined in input file 'input'
+  integer :: itype
+  !! type of calculation - defined in input file 'input'
 
   !========================================================================================!
   ! Number of parts to divide energy integral I1+I2 and I3
   !========================================================================================!
-  ! Band structure
   character(len=5), dimension(:), allocatable :: bands
+  !! Band structure
   integer :: band_cnt
   !========================================================================================!
   ! Number of points and interval of energy/wave vector/position calculations
   integer      :: npts,npt1,count
+  !! Number of energy points (+1) and counter
   real(double) :: emin,emax,deltae
+  !! Minimum energy, maximum energy, and step size
   real(double) :: qxmin,qxmax,qzmin,qzmax
-  ! Number of steps to skip from the beginning
-  ! (useful to get the same points after a calculation has stopped)
+  !! Minimum and maximum q-vector
   integer :: skip_steps = 0
+  !! Number of steps to skip from the beginning
+  !! (useful to get the same points after a calculation has stopped)
   !========================================================================================!
-  ! Conversion arrays
   integer,allocatable :: sigmaimunu2i(:,:,:,:),sigmaijmunu2i(:,:,:,:,:),sigmai2i(:,:)
+  !! Conversion arrays
   !========================================================================================!
-  ! Run options are stored in this string
   character(len=200)          :: runoptions
-  real(double)                :: ry2ev=1.d0              ! Optional conversion of ry to eV
+  !! Run options are stored in this string
+  real(double)                :: ry2ev=1.d0
+  !! Optional conversion of ry to eV
   !========================================================================================!
   ! Logical variables for runoptions
   logical :: lkpoints       = .false.
@@ -73,10 +93,14 @@ module mod_parameters
   logical :: ldebug   = .false.
   !========================================================================================!
   ! Longitudinal and transverse, and Spin Hall Angle calculation
-  integer, dimension(:),  allocatable :: sha_longitudinal,sha_transverse ! In-plane longitudinal and transverse neighbors
-  real(double), dimension(:),  allocatable :: long_cos(:),transv_cos(:)  ! In-plane longitudinal and transverse cosines
+  integer, dimension(:),  allocatable :: sha_longitudinal,sha_transverse
+  !! In-plane longitudinal and transverse neighbors
+  real(double), dimension(:),  allocatable :: long_cos(:),transv_cos(:)
+  !! In-plane longitudinal and transverse cosines
   integer :: longitudinal_neighbors
+  !! Number of longitudinal neighbors
   integer :: transverse_neighbors
+  !! Number of transverse neighbors
 
   !! String for HF Responses
   !========================================================================================!
@@ -85,28 +109,29 @@ module mod_parameters
   ! n0sc  - Number of neighbors to calculate currents
   ! integer :: n0sc1,n0sc2,n0sc
   !========================================================================================!
-  ! Current renormalization
+  ! Current renormalization (obsolete)
   logical :: renorm
   integer :: renormnb
   !========================================================================================!
-  ! Variable to store missing filenames
   character(len=500)  :: missing_files=""
+  !! Variable to store missing filenames
   !========================================================================================!
   ! Suffix to use on filenames (to avoid overwriting while comparing different results)
   !========================================================================================!
 
 
   !========================================================================================!
-  ! Choose between tight-binding (T) or orthogonal (O) DFT parameters
   character(len=1)  :: dfttype
+  !! Choose between tight-binding (T) or orthogonal (O) DFT parameters (obsolete?)
   !========================================================================================!
-  ! Layer conversion
   integer, dimension(:), allocatable       :: mmlayer
-  ! Number and list of magnetic layers
+  !! Layer conversion
   integer :: nmaglayers
+  !! Number of magnetic layers
   integer, dimension(:), allocatable       :: mmlayermag
-  ! Layer type: 1 - Empty Sphere; 2 - Magnetic ; 3 - Bulk ; 0 - Other
+  !! List of magnetic layers
   integer, dimension(:), allocatable       :: layertype
+  !! Layer type: 1 - Empty Sphere; 2 - Magnetic ; 3 - Bulk ; 0 - Other
   !========================================================================================!
   ! Set of tight-binding parameters to be used
   ! in the first half (set1) and second half (set2) of the slab

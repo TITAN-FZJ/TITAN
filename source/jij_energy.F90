@@ -2,7 +2,7 @@
 subroutine jij_energy(Jij)
   use mod_f90_kind, only: double
   use mod_constants, only: pi, cOne, cZero, pauli_dorb
-  use mod_parameters, only: mmlayermag, U, q, mmlayermag, nmaglayers
+  use mod_parameters, only: mmlayermag, U, q, mmlayermag, nmaglayers, eta
   use EnergyIntegration, only: y, wght
   use mod_mpi_pars
   use mod_magnet, only: mvec_cartesian,mabs
@@ -70,11 +70,11 @@ subroutine jij_energy(Jij)
      kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix))
      weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix))
      ! Green function on energy Ef + iy, and wave vector kp
-      call green(s%Ef,ep,kp,gf)
+      call green(s%Ef,ep+eta,kp,gf)
 
       ! Green function on energy Ef + iy, and wave vector kp-q
       kminusq = kp-q
-      call green(s%Ef,ep,kminusq,gfq)
+      call green(s%Ef,ep+eta,kminusq,gfq)
 
       Jijk   = 0.d0
       Jijkan = 0.d0

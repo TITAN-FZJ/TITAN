@@ -30,7 +30,7 @@ contains
     use mod_f90_kind
     use mod_mpi_pars
     use mod_prefactors,only: prefactor,prefactorlsoc
-    use mod_parameters, only: Npl,dimsigmaNpl,renorm,llinearsoc,dim,outputunit
+    use mod_parameters, only: Npl,dimspinAtoms,renorm,llinearsoc,dim,outputunit
     use mod_system, only: n0sc1, n0sc2
     implicit none
     integer           :: AllocateStatus
@@ -52,10 +52,10 @@ contains
         end if
       end if
     end if
-    allocate( ttchiorbiikl   (n0sc1:n0sc2, dimsigmaNpl,4), &
-              Lxttchiorbiikl (n0sc1:n0sc2, dimsigmaNpl,4), &
-              Lyttchiorbiikl (n0sc1:n0sc2, dimsigmaNpl,4), &
-              Lzttchiorbiikl (n0sc1:n0sc2, dimsigmaNpl,4), STAT = AllocateStatus  )
+    allocate( ttchiorbiikl   (n0sc1:n0sc2, dimspinAtoms,4), &
+              Lxttchiorbiikl (n0sc1:n0sc2, dimspinAtoms,4), &
+              Lyttchiorbiikl (n0sc1:n0sc2, dimspinAtoms,4), &
+              Lzttchiorbiikl (n0sc1:n0sc2, dimspinAtoms,4), STAT = AllocateStatus  )
     if (AllocateStatus/=0) then
       write(outputunit,"('[allocate_currents] Not enough memory for: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl')")
       call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)

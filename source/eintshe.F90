@@ -1,16 +1,16 @@
 ! ---------- Parallel spin current: Energy integration ---------
 subroutine eintshe(e)
-  use mod_f90_kind, only: double
+  use mod_f90_kind,      only: double
   use mod_constants,     only: cZero, cOne, cI, tpi
-  use mod_parameters, only: dim, sigmaimunu2i, eta, sigmai2i, offset
-  use TightBinding, only: nOrb,nOrb2
-  use mod_SOC, only: llineargfsoc
+  use mod_parameters,    only: dim, sigmaimunu2i, eta, etap, sigmai2i, offset
+  use TightBinding,      only: nOrb,nOrb2
+  use mod_SOC,           only: llineargfsoc
   use EnergyIntegration, only: y, wght, x2, p2, generate_real_epoints, pn2
-  use mod_system, only: s => sys !, n0sc1, n0sc2
+  use mod_system,        only: s => sys !, n0sc1, n0sc2
   use mod_BrillouinZone, only: realBZ
-  use adaptiveMesh
   use mod_prefactors,    only: prefactor !, lxpt, lypt, lzpt, tlxp, tlyp, tlzp
-  use mod_disturbances,     only: tchiorbiikl
+  use mod_disturbances,  only: tchiorbiikl
+  use adaptiveMesh
   use mod_mpi_pars
 
   !use mod_currents,         only: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl !TODO: Re-Include
@@ -32,13 +32,13 @@ subroutine eintshe(e)
   complex(double),dimension(:,:,:,:,:),allocatable  :: gfuu,gfud,gfdu,gfdd
   complex(double),dimension(:,:),allocatable        :: df1iikl,pfdf1iikl
   !complex(double),dimension(n0sc1:n0sc2,s%nAtoms,nOrb, nOrb)    :: prett,preLxtt,preLytt,preLztt !TODO: Re-Include
-  !complex(double),dimension(n0sc1:n0sc2,dimsigmaNpl,4), intent(out) :: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl !TODO:Re-Include
+  !complex(double),dimension(n0sc1:n0sc2,dimspinAtoms,4), intent(out) :: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl !TODO:Re-Include
   !--------------------- begin MPI vars --------------------
   integer*8 :: ix, ix2, nep,nkp
   integer*8 :: real_points
   integer :: ncountkl !,nncountkl !TODO: Re-Include
   ncountkl = dim*4
-  !nncountkl = n0sc*dimsigmaNpl*4 !TODO: Re-Include
+  !nncountkl = n0sc*dimspinAtoms*4 !TODO: Re-Include
   !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
 
@@ -59,7 +59,7 @@ subroutine eintshe(e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,wkbzc,ep,kp,nep,nkp,i,j,l,mu,nu,gamma,xi,sigma,sigmap,neighbor,dtdk,gf,gfuu,gfud,gfdu,gfdd,df1iikl,pfdf1iikl,tFintiikl) & !,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,expikr,prett,preLxtt,preLytt,preLztt) &
-  !$omp& shared(llineargfsoc,s,bzs,realBZ,E_k_imag_mesh,prefactor,e,y,x2,wght,p2,pn2,   eta,local_points,real_points,sigmai2i,sigmaimunu2i,dim,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
+  !$omp& shared(llineargfsoc,s,bzs,realBZ,E_k_imag_mesh,prefactor,e,y,x2,wght,p2,pn2,eta,etap,local_points,real_points,sigmai2i,sigmaimunu2i,dim,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
 
   allocate(df1iikl(dim,4),pfdf1iikl(dim,4), &
            gf(nOrb2,nOrb2, s%nAtoms,s%nAtoms), &
@@ -71,10 +71,10 @@ subroutine eintshe(e)
   if(AllocateStatus /= 0) call abortProgram("[sumk] Not enough memory for: df1iikl,pfdf1iikl,gf,dtdk,gfuu,gfud,gfdu,gfdd")
 
   allocate( tFintiikl(dim,4), STAT = AllocateStatus ) !, &
-            !ttFintiikl   (n0sc1:n0sc2, dimsigmaNpl, 4), &
-            !LxttFintiikl (n0sc1:n0sc2, dimsigmaNpl, 4), &
-            !LyttFintiikl (n0sc1:n0sc2, dimsigmaNpl, 4), &
-            !LzttFintiikl (n0sc1:n0sc2, dimsigmaNpl, 4), STAT = AllocateStatus )
+            !ttFintiikl   (n0sc1:n0sc2, dimspinAtoms, 4), &
+            !LxttFintiikl (n0sc1:n0sc2, dimspinAtoms, 4), &
+            !LyttFintiikl (n0sc1:n0sc2, dimspinAtoms, 4), &
+            !LzttFintiikl (n0sc1:n0sc2, dimspinAtoms, 4), STAT = AllocateStatus )
   if (AllocateStatus/=0) call abortProgram("[eintshe] Not enough memory for: tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl")
 
   tFintiikl    = cZero
@@ -116,9 +116,9 @@ subroutine eintshe(e)
 
       ! Green function at (k+q,E_F+E+iy)
       if(llineargfsoc) then
-        call greenlineargfsoc(s%Ef+e,ep,kp,gf)
+        call greenlineargfsoc(s%Ef+e,ep+eta,kp,gf)
       else
-        call green(s%Ef+e,ep,kp,gf)
+        call green(s%Ef+e,ep+eta,kp,gf)
       end if
       gfuu(:,:,:,:,1) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
@@ -127,9 +127,9 @@ subroutine eintshe(e)
 
       ! Green function at (k,E_F+iy)
       if(llineargfsoc) then
-        call greenlineargfsoc(s%Ef,ep,kp,gf)
+        call greenlineargfsoc(s%Ef,ep+etap,kp,gf)
       else
-        call green(s%Ef,ep,kp,gf)
+        call green(s%Ef,ep+etap,kp,gf)
       end if
       gfuu(:,:,:,:,2) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,2) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
@@ -245,9 +245,9 @@ subroutine eintshe(e)
 
         ! Green function at (k,E_F+iy)
         if(llineargfsoc) then
-          call greenlineargfsoc(ep,eta,kp,gf)
+          call greenlineargfsoc(ep,etap,kp,gf)
         else
-          call green(ep,eta,kp,gf)
+          call green(ep,etap,kp,gf)
         end if
         gfuu(:,:,:,:,2) = gf(     1:  nOrb,     1:  nOrb, :,:)
         gfud(:,:,:,:,2) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
@@ -357,16 +357,16 @@ end subroutine eintshe
 
 
 subroutine eintshelinearsoc(e)
-  use mod_f90_kind, only: double
-  use mod_constants, only: cZero, cOne, cI, tpi
-  use mod_parameters, only: dim, eta, sigmai2i, sigmaimunu2i, offset
-  use TightBinding, only: nOrb,nOrb2
-  use mod_system, only: s => sys
+  use mod_f90_kind,      only: double
+  use mod_constants,     only: cZero, cOne, cI, tpi
+  use mod_parameters,    only: dim, eta, etap, sigmai2i, sigmaimunu2i, offset
+  use TightBinding,      only: nOrb,nOrb2
+  use mod_system,        only: s => sys
   use mod_BrillouinZone, only: realBZ
-  use adaptiveMesh
   use EnergyIntegration, only: y, wght, x2, p2, generate_real_epoints, pn2
-  use mod_prefactors, only: prefactor, prefactorlsoc
-  use mod_disturbances, only: tchiorbiikl
+  use mod_prefactors,    only: prefactor, prefactorlsoc
+  use mod_disturbances,  only: tchiorbiikl
+  use adaptiveMesh
   use mod_mpi_pars
 
 
@@ -395,7 +395,7 @@ subroutine eintshelinearsoc(e)
   integer*8 :: real_points
   integer :: ncountkl !,nncountkl !TODO: Re-Include
   ncountkl = dim*4
-  !nncountkl = n0sc*dimsigmaNpl*4 !TODO: Re-Include
+  !nncountkl = n0sc*dimspinAtoms*4 !TODO: Re-Include
 !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
 
@@ -414,7 +414,7 @@ subroutine eintshelinearsoc(e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,iz,wkbzc,kp,ep,nep,nkp,tFintiikl,df1iikl,pfdf1iikl,df1lsoc,dtdk,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &    !,expikr,prett,preLxtt,preLytt,preLztt
-  !$omp& shared(local_points,real_points,bzs,E_k_imag_mesh,tchiorbiikl,prefactor,prefactorlsoc,s,realBZ,e,   y,x2,wght,p2,eta,sigmai2i,sigmaimunu2i,dim,offset)                                                                                 !,n0sc1,n0sc2,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,lxpt,lypt,lzpt,tlxp,tlyp,tlzp
+  !$omp& shared(local_points,real_points,bzs,E_k_imag_mesh,tchiorbiikl,prefactor,prefactorlsoc,s,realBZ,e,y,x2,wght,p2,eta,etap,sigmai2i,sigmaimunu2i,dim,offset)                                                                                 !,n0sc1,n0sc2,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,lxpt,lypt,lzpt,tlxp,tlyp,tlzp
 
   allocate( df1iikl(dim,4),pfdf1iikl(dim,4),df1lsoc(dim,4), &
             dtdk(nOrb,nOrb,s%nAtoms,s%nAtoms), &
@@ -433,10 +433,10 @@ subroutine eintshelinearsoc(e)
   if (AllocateStatus/=0) call abortProgram("[sumklinearsoc] Not enough memory for: gvg,gvguu,gvgud,gvgdu,gvgdd")
 
   allocate( tFintiikl(dim,4), STAT = AllocateStatus ) !, & !TODO: Re-Include
-            !ttFintiikl   (n0sc1:n0sc2, dimsigmaNpl, 4), &
-            !LxttFintiikl (n0sc1:n0sc2, dimsigmaNpl, 4), &
-            !LyttFintiikl (n0sc1:n0sc2, dimsigmaNpl, 4), &
-            !LzttFintiikl (n0sc1:n0sc2, dimsigmaNpl, 4), STAT = AllocateStatus )
+            !ttFintiikl   (n0sc1:n0sc2, dimspinAtoms, 4), &
+            !LxttFintiikl (n0sc1:n0sc2, dimspinAtoms, 4), &
+            !LyttFintiikl (n0sc1:n0sc2, dimspinAtoms, 4), &
+            !LzttFintiikl (n0sc1:n0sc2, dimspinAtoms, 4), STAT = AllocateStatus )
   if (AllocateStatus/=0) call abortProgram("[eintshe] Not enough memory for: tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl")
   tFintiikl    = cZero
   ! ttFintiikl   = cZero !TODO: Re-Include
@@ -475,7 +475,7 @@ subroutine eintshelinearsoc(e)
       ! end do
 
         ! Green function at (k+q,E_F+E+iy)
-        call greenlinearsoc(s%Ef+e,y(ix),kp,gf,gvg)
+        call greenlinearsoc(s%Ef+e,ep+eta,kp,gf,gvg)
         gfuu(:,:,:,:,1)  = gf(     1:  nOrb,     1:  nOrb, :,:)
         gfud(:,:,:,:,1)  = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
         gfdu(:,:,:,:,1)  = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
@@ -486,7 +486,7 @@ subroutine eintshelinearsoc(e)
         gvgdd(:,:,:,:,1) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
 
         ! Green function at (k,E_F+iy)
-        call greenlinearsoc(s%Ef,y(ix),kp,gf,gvg)
+        call greenlinearsoc(s%Ef,ep+etap,kp,gf,gvg)
         gfuu(:,:,:,:,2)  = gf(     1:  nOrb,     1:  nOrb, :,:)
         gfud(:,:,:,:,2)  = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
         gfdu(:,:,:,:,2)  = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
@@ -619,7 +619,7 @@ subroutine eintshelinearsoc(e)
       ! end do
 
       ! Green function at (k+q,E_F+E+iy)
-      call greenlinearsoc(x2(ix2)+e,eta,kp,gf,gvg)
+      call greenlinearsoc(ep+e,eta,kp,gf,gvg)
       gfuu(:,:,:,:,1) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
       gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
@@ -630,7 +630,7 @@ subroutine eintshelinearsoc(e)
       gvgdd(:,:,:,:,1) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
 
       ! Green function at (k,E_F+iy)
-      call greenlinearsoc(x2(ix2),eta,kp,gf,gvg)
+      call greenlinearsoc(ep,etap,kp,gf,gvg)
       gfuu(:,:,:,:,2) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,2) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
       gfdu(:,:,:,:,2) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)

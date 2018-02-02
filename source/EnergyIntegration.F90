@@ -1,6 +1,5 @@
 module EnergyIntegration
   use mod_f90_kind, only: double
-  use mod_parameters, only: eta
   use mod_System, only: s => sys
   implicit none
 
@@ -39,7 +38,7 @@ contains
 
   subroutine generate_imag_epoints()
   !! Generating integration points of the complex energy integral
-  !! Generates points from eta until infinity
+  !! Generates points from zero until infinity
     use mod_mpi_pars, only: abortProgram
     implicit none
     integer                       :: i,j,k,AllocateStatus
@@ -69,9 +68,9 @@ contains
       j = k*n1gl
       call gauleg(e1,e2,x1(i:j),p1(i:j),n1gl)
     end do
-    et1 = 1.d0+eta
+    et1 = 1.d0
     do k = 1, pn1
-      y(k)  = (x1(k)+eta)/(1.d0-x1(k))
+      y(k)  = x1(k)/(1.d0-x1(k))
       xx    = (1.d0-x1(k))*(1.d0-x1(k))
       wght(k) = et1*p1(k)/xx
     end do

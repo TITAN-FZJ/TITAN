@@ -53,7 +53,6 @@ program TITAN
 
   !------------------- Set Loop and Integration Points -------------------
   call setMagneticLoopPoints()
-
   !----------- Creating grid of MPI processes  ----------
   !call setup_MPI_grid(itype, pn1, npt1, pnt,total_hw_npt1, npts, deltae, emin, emax)
   call genMPIGrid(parField, total_hw_npt1, parFreq, npt1 - skip_steps)
@@ -85,8 +84,8 @@ program TITAN
   call allocLS(nOrb)
   call allocate_Npl_variables(sys%nAtoms) !TODO: Review
   !----------------------------- Dimensions ------------------------------
-  dimsigmaNpl = 4 * sys%nAtoms
-  dim = dimsigmaNpl * nOrb * nOrb
+  dimspinAtoms = 4 * sys%nAtoms
+  dim = dimspinAtoms * nOrb * nOrb
 
   !------------------------- Conversion arrays  --------------------------
   call initConversionMatrices(sys%nAtoms,nOrb)
