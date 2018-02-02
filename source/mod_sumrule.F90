@@ -176,7 +176,7 @@ contains
 
     !$omp parallel default(none) &
     !$omp& private(AllocateStatus,ix,i,mu,nu,mup,nup,kp,ep,weight,gf) &
-    !$omp& shared(local_points,s,E_k_imag_mesh,bzs,y,wght,imguu,imgdd,imgud,imgdu)
+    !$omp& shared(local_points,s,E_k_imag_mesh,bzs,eta,y,wght,imguu,imgdd,imgud,imgdu)
     allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat = AllocateStatus)
     gf = cZero
 

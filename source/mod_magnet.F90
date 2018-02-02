@@ -198,7 +198,7 @@ contains
     use mod_parameters, only: lnolb
     implicit none
     integer, intent(in) :: nOrbs, nAtoms
-    integer :: i,sigma, AllocateStatus
+    integer :: i,sigma
     complex(double), dimension(:,:), allocatable :: lbsigma
 
     ! There is an extra  minus sign in the definition of hhw

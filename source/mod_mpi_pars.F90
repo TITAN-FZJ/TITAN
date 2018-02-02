@@ -53,7 +53,6 @@ contains
   end subroutine
 
   subroutine abortProgram(str)
-    use mod_parameters, only: output
     use mod_tools, only: itos
     implicit none
     character(len=*), intent(in) :: str

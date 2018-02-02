@@ -105,7 +105,6 @@ contains
   ! This subroutine sorts LDOS files
   subroutine sortLDOS()
     use mod_f90_kind, only: double
-    use mod_parameters, only: itype
     use mod_tools, only: sort_file
     use mod_system, only: s => sys
     implicit none

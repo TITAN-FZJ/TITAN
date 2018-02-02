@@ -470,7 +470,7 @@ contains
 
     !$omp parallel default(none) &
     !$omp& private(ix,ep,kp,weight,i,mu,mup,gf,AllocateStatus) &
-    !$omp& shared(llineargfsoc,llinearsoc,local_points,wght,s,bzs,E_k_imag_mesh,y,n_orb_u,n_orb_d,gdiagud,gdiagdu)
+    !$omp& shared(llineargfsoc,llinearsoc,local_points,eta,wght,s,bzs,E_k_imag_mesh,y,n_orb_u,n_orb_d,gdiagud,gdiagdu)
     allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat=AllocateStatus)
     if(AllocateStatus /= 0) call AbortProgram("[calcMagnetization] Not enough memory for: gf")
     gf = cZero
@@ -821,7 +821,7 @@ contains
 
     !$omp parallel default(none) &
     !$omp& private(AllocateStatus,ix,i,mu,nu,mup,nup,kp,ep,weight,gf) &
-    !$omp& shared(local_points,s,E_k_imag_mesh,bzs,y,wght,gupgd)
+    !$omp& shared(local_points,s,E_k_imag_mesh,bzs,eta,y,wght,gupgd)
 
     allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat = AllocateStatus)
     gf = cZero
