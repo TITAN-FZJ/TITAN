@@ -22,6 +22,7 @@ contains
 
   subroutine read_basis(filename, s)
     use mod_system, only: System
+    use mod_mpi_pars, only: myrank, abortProgram
     implicit none
 
     character(len=*), intent(in) :: filename
@@ -36,7 +37,7 @@ contains
     character(len=1) :: coord_type
 
     open(unit = f_unit, file=trim(filename), status='old', iostat = ios)
-    if(ios /= 0) stop "Error reading 'basis'"
+    if((ios /= 0).and.(myrank.eq.0)) call abortProgram("[read_basis] Error reading 'basis'!")
 
     read(f_unit, fmt='(A)', iostat=ios) s%Name
     s%Name = trim(adjustl(s%Name))
@@ -46,20 +47,20 @@ contains
 
     read(f_unit, fmt='(A)', iostat=ios) line
     read(unit=line, fmt=*, iostat=ios) (s%a1(i), i=1,3)
-    if(dot_product(s%a1,s%a1) <= 1.d-9) stop "a1 not given properly"
+    if((dot_product(s%a1,s%a1) <= 1.d-9).and.(myrank.eq.0)) call abortProgram("[read_basis] a1 not given properly!")
     s%a1 = s%a1 * s%a0
 
     read(f_unit, fmt='(A)', iostat=ios) line
     read(unit=line, fmt=*, iostat=ios) (s%a2(i), i=1,3)
-
-    if(dot_product(s%a2,s%a2) <= 1.d-9) stop "a2 not given properly"
+    if((dot_product(s%a2,s%a2) <= 1.d-9).and.(myrank.eq.0)) call abortProgram("[read_basis] a2 not given properly!")
     s%a2 = s%a2 * s%a0
 
-    read(f_unit, fmt='(A)', iostat=ios) line
-    read(unit=line, fmt=*, iostat=ios) (s%a3(i), i=1,3)
-
-    if(dot_product(s%a3,s%a3) <= 1.d-9) stop "a3 not given properly"
-    s%a3 = s%a3 * s%a0
+    if(s%lbulk) then
+        read(f_unit, fmt='(A)', iostat=ios) line
+        read(unit=line, fmt=*, iostat=ios) (s%a3(i), i=1,3)
+        if((dot_product(s%a3,s%a3) <= 1.d-9).and.(myrank.eq.0)) call abortProgram("[read_basis] a3 not given properly!")
+        s%a3 = s%a3 * s%a0
+    end if
 
     str_arr = ""
     read(f_unit, fmt='(A)', iostat=ios) line
@@ -86,7 +87,7 @@ contains
     do i = 1, s%nTypes
       s%nAtoms = s%nAtoms + type_count(i)
     end do
-    if(s%nAtoms <= 0) stop "No basis atoms given"
+    if((s%nAtoms <= 0).and.(myrank.eq.0)) call abortProgram("[read_basis] No basis atoms given!")
     allocate(s%Basis(s%nAtoms))
 
     k = 0
@@ -95,7 +96,7 @@ contains
         line = ""
         do while(len_trim(line) == 0 .or. len_trim(line) == 200)
           read(f_unit, fmt='(A)', iostat=ios) line
-          if(ios /= 0) stop "Not enough basis atoms given"
+          if((ios /= 0).and.(myrank.eq.0)) call abortProgram("[read_basis] Not enough basis atoms given!")
         end do
         k = k + 1
         s%Basis(k)%Material = i

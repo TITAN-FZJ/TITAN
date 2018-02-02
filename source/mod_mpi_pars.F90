@@ -52,15 +52,16 @@ contains
     return
   end subroutine
 
-  ! Wrapper function for MPI Abort
   subroutine abortProgram(str)
     use mod_parameters, only: output
+    use mod_tools, only: itos
     implicit none
     character(len=*), intent(in) :: str
     !! Abort Message
 
-    write(output%unit,"(a)") str
-    close(output%unit)
+    open (unit=123456787, file="error." // trim(itos(myrank)), status='replace', form='formatted')
+    write(123456787,"(a)") str
+    close(unit=123456787)
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
 
     return
