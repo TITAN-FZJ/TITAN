@@ -99,7 +99,7 @@ subroutine TCM(alpha, torque_fct)
   complex(double),dimension(:,:,:,:),allocatable :: gf
   complex(double),dimension(:,:),allocatable :: temp1, temp2, temp3
   complex(double), dimension(:,:,:,:), allocatable :: alpha_loc
-  integer*8 :: firstPoint, lastPoint, iz
+  integer*8 :: iz
   ! Calculate workload for each MPI process
 
   call realBZ % setup_fraction(rField, sField, FieldComm)
@@ -117,7 +117,7 @@ subroutine TCM(alpha, torque_fct)
 
   !$omp parallel default(none) &
   !$omp& private(m,n,i,j,mu,iz,kp,wght,gf,temp1,temp2,temp3, alpha_loc) &
-  !$omp& shared(s,realBZ,firstPoint,lastPoint,eta,torque,alpha)
+  !$omp& shared(s,realBZ,eta,torque,alpha)
   allocate(gf(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms), &
            temp1(2*nOrb,2*nOrb), temp2(2*nOrb,2*nOrb), temp3(2*nOrb,2*nOrb), &
            alpha_loc(s%nAtoms,s%nAtoms,3,3))
@@ -214,7 +214,7 @@ subroutine local_SO_torque(torque)
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, levi_civita, sigma => pauli_mat, cI
   use mod_System, only: s => sys
-  use mod_magnet, only: l
+  use mod_magnet, only: lvec
   use TightBinding, only: nOrb, nOrb2
   use mod_mpi_pars
   implicit none
@@ -230,15 +230,28 @@ subroutine local_SO_torque(torque)
     do m = 1, 3
       do n = 1, 3
         do k = 1, 3
-          torque(     1:nOrb ,     1:nOrb ,m,i) = torque(     1:nOrb ,     1:nOrb ,m,i) + l(1:nOrb,1:nOrb,n) * sigma(1,1,k) * levi_civita(m,n,k)
-          torque(nOrb+1:nOrb2,     1:nOrb ,m,i) = torque(nOrb+1:nOrb2,     1:nOrb ,m,i) + l(1:nOrb,1:nOrb,n) * sigma(2,1,k) * levi_civita(m,n,k)
-          torque(     1:nOrb ,nOrb+1:nOrb2,m,i) = torque(     1:nOrb ,nOrb+1:nOrb2,m,i) + l(1:nOrb,1:nOrb,n) * sigma(1,2,k) * levi_civita(m,n,k)
-          torque(nOrb+1:nOrb2,nOrb+1:nOrb2,m,i) = torque(nOrb+1:nOrb2,nOrb+1:nOrb2,m,i) + l(1:nOrb,1:nOrb,n) * sigma(2,2,k) * levi_civita(m,n,k)
+          torque(     1:nOrb ,     1:nOrb ,m,i) = torque(     1:nOrb ,     1:nOrb ,m,i) + lvec(1:nOrb,1:nOrb,n) * sigma(1,1,k) * levi_civita(m,n,k)
+          torque(nOrb+1:nOrb2,     1:nOrb ,m,i) = torque(nOrb+1:nOrb2,     1:nOrb ,m,i) + lvec(1:nOrb,1:nOrb,n) * sigma(2,1,k) * levi_civita(m,n,k)
+          torque(     1:nOrb ,nOrb+1:nOrb2,m,i) = torque(     1:nOrb ,nOrb+1:nOrb2,m,i) + lvec(1:nOrb,1:nOrb,n) * sigma(1,2,k) * levi_civita(m,n,k)
+          torque(nOrb+1:nOrb2,nOrb+1:nOrb2,m,i) = torque(nOrb+1:nOrb2,nOrb+1:nOrb2,m,i) + lvec(1:nOrb,1:nOrb,n) * sigma(2,2,k) * levi_civita(m,n,k)
         end do
       end do
     end do
-    torque(:,:,:,i) = 0.25d0 * torque(:,:,:,i) * s%Types(s%Basis(i)%Material)%Lambda
+
+    ! p-block
+    torque( 2: 4, 2: 4,:,i) = 0.25d0 * s%Types(s%Basis(i)%Material)%LambdaP * torque( 2: 4, 2: 4,:,i)
+    torque( 2: 4,11:13,:,i) = 0.25d0 * s%Types(s%Basis(i)%Material)%LambdaP * torque( 2: 4,11:13,:,i)
+    torque(11:13, 2: 4,:,i) = 0.25d0 * s%Types(s%Basis(i)%Material)%LambdaP * torque(11:13, 2: 4,:,i)
+    torque(11:13,11:13,:,i) = 0.25d0 * s%Types(s%Basis(i)%Material)%LambdaP * torque(11:13,11:13,:,i)
+
+    ! d-block
+    torque( 5: 9, 5: 9,:,i) = 0.25d0 * s%Types(s%Basis(i)%Material)%LambdaD  * torque( 5: 9, 5: 9,:,i)
+    torque( 5: 9,14:18,:,i) = 0.25d0 * s%Types(s%Basis(i)%Material)%LambdaD  * torque( 5: 9,14:18,:,i)
+    torque(14:18, 5: 9,:,i) = 0.25d0 * s%Types(s%Basis(i)%Material)%LambdaD  * torque(14:18, 5: 9,:,i)
+    torque(14:18,14:18,:,i) = 0.25d0 * s%Types(s%Basis(i)%Material)%LambdaD  * torque(14:18,14:18,:,i)
   end do
+
+
   return
 end subroutine local_SO_torque
 

@@ -3,19 +3,30 @@ module mod_magnet
   use mod_parameters, only: dmax
   implicit none
 
-  logical :: lfield !< Turn on/off static magnetic field, option to give in magnetic field in tesla
-
-  integer                     :: iter                                           !< self-consistency iteration
-  real(double),allocatable    :: rho(:,:)                                       !< orbital-dependent and d-orbital charge density per site
-  real(double),allocatable    :: mx(:,:),my(:,:),mz(:,:)                        !< orbital-dependent magnetization per site in cartesian coordinates
-  real(double),allocatable    :: rhod(:),mxd(:),myd(:),mzd(:)                   !< d-orbital charge density and magnetization per site
-  complex(double),allocatable :: mp(:,:),mpd(:)                                 !< circular components (plus) of the total and d-orbital magnetization
-  real(double),allocatable    :: lxm(:),lym(:),lzm(:)                           !< Orbital angular momentum in global frame of reference
-  real(double),allocatable    :: lxpm(:),lypm(:),lzpm(:)                        !< Orbital angular momentum in local frame of reference
-  real(double),allocatable    :: mabs(:),mtheta(:),mphi(:),mvec_spherical(:,:),mvec_cartesian(:,:)
+  logical :: lfield
+  !! Turn on/off static magnetic field
+  integer                     :: iter
+  !! self-consistency iteration
+  real(double),allocatable    :: rho(:,:)
+  !! orbital-dependent and d-orbital charge density per site
+  real(double),allocatable    :: mx(:,:),my(:,:),mz(:,:)
+  !! orbital-dependent magnetization per site in cartesian coordinates
+  real(double),allocatable    :: rhod(:),mxd(:),myd(:),mzd(:)
+  !! d-orbital charge density and magnetization per site
+  complex(double),allocatable :: mp(:,:),mpd(:)
+  !! circular components (plus) of the total and d-orbital magnetization
+  real(double),allocatable    :: lxm(:),lym(:),lzm(:)
+  !! Orbital angular momentum in global frame of reference
+  real(double),allocatable    :: lxpm(:),lypm(:),lzpm(:)
+  !! Orbital angular momentum in local frame of reference
+  real(double),allocatable    :: mabs(:),mtheta(:),mphi(:)
+  !! Site-dependent spherical components of magnetization
+  real(double), dimension(:,:),allocatable   :: mvec_spherical,mvec_cartesian
+  !! Magnetization vectors in cartesian and spherical components
   real(double),allocatable    :: labs(:),ltheta(:),lphi(:)
+  !! Site-dependent spherical components of orbital magnetization in global frame
   real(double),allocatable    :: lpabs(:),lptheta(:),lpphi(:)
-  !! Center of the bands for each l - eps(Npl)
+  !! Site-dependent spherical components of orbital magnetization in local frame
   real(double), dimension(:,:), allocatable :: hhw
   !! Half of Static magnetic fields in each direction
   complex(double), dimension(:,:,:), allocatable :: lb, sb
@@ -24,9 +35,9 @@ module mod_magnet
   !! Site dependent Angular momentum matrices in local frame
   complex(double), dimension(:,:), allocatable   :: lx, ly, lz
   !! Angular momentum vector matrices in global frame
-  complex(double), dimension(:,:,:), allocatable :: l
+  complex(double), dimension(:,:,:), allocatable :: lvec
   !! Angular momentum vector matrices in local frame
-  complex(double), dimension(:,:,:,:), allocatable :: lp
+  complex(double), dimension(:,:,:,:), allocatable :: lpvec
 
   !========================================================================================!
   ! Values of magnetic field in cartesian or spherical coordinates
@@ -147,9 +158,7 @@ contains
   subroutine initMagneticField(nAtoms)
     use mod_f90_kind, only: double
     use mod_constants, only: cZero, deg2rad
-    use mod_parameters, only: output
-    use mod_mpi_pars, only: abortProgram, rField
-    use mod_SOC, only: SOC, llinearsoc
+    use mod_mpi_pars, only: abortProgram
     implicit none
 
     integer, intent(in) :: nAtoms
@@ -162,7 +171,6 @@ contains
     !---------------------- Turning off field for hwa=0 --------------------
     if(abs(hw_list(hw_count,1)) < 1.d-8) then
       lfield = .false.
-      if((llinearsoc) .or. (.not.SOC) .and. (rField == 0)) write(output%file_loop,"('[main] WARNING: No external magnetic field is applied and SOC is off/linear order: Goldstone mode is present!')")
     else
       lfield = .true.
     end if
@@ -211,7 +219,7 @@ contains
         lbsigma = cZero
         ! L.B
         do sigma=1,3
-          lbsigma(1:nOrbs, 1:nOrbs) = lbsigma(1:nOrbs, 1:nOrbs) + l(:,:,sigma)*hhw(sigma,i)
+          lbsigma(1:nOrbs, 1:nOrbs) = lbsigma(1:nOrbs, 1:nOrbs) + lvec(:,:,sigma)*hhw(sigma,i)
         end do
         lb(      1:  nOrbs,       1:  nOrbs, i) = lbsigma(:,:)
         lb(nOrbs+1:2*nOrbs, nOrbs+1:2*nOrbs, i) = lbsigma(:,:)
@@ -297,9 +305,9 @@ contains
     lx = 0.5d0*(Lp+Lm)
     ly = -0.5d0*cI*(Lp-Lm)
 
-    l(:,:,1) = lx
-    l(:,:,2) = ly
-    l(:,:,3) = lz
+    lvec(:,:,1) = lx
+    lvec(:,:,2) = ly
+    lvec(:,:,3) = lz
 
     return
   end subroutine l_matrix
@@ -314,13 +322,13 @@ contains
     real(double), dimension(s%nAtoms), intent(in) :: theta, phi
     integer :: i
     do i = 1, s%nAtoms
-      lxp(:,:,i) = ( l(:,:,1)*cos(theta(i)*deg2rad)*cos(phi(i)*deg2rad)) + (l(:,:,2)*cos(theta(i)*deg2rad)*sin(phi(i)*deg2rad)) - (l(:,:,3)*sin(theta(i)*deg2rad))
-      lyp(:,:,i) = (-l(:,:,1)                      *sin(phi(i)*deg2rad)) + (l(:,:,2)                      *cos(phi(i)*deg2rad))
-      lzp(:,:,i) = ( l(:,:,1)*sin(theta(i)*deg2rad)*cos(phi(i)*deg2rad)) + (l(:,:,2)*sin(theta(i)*deg2rad)*sin(phi(i)*deg2rad)) + (l(:,:,3)*cos(theta(i)*deg2rad))
+      lxp(:,:,i) = ( lvec(:,:,1)*cos(theta(i)*deg2rad)*cos(phi(i)*deg2rad)) + (lvec(:,:,2)*cos(theta(i)*deg2rad)*sin(phi(i)*deg2rad)) - (lvec(:,:,3)*sin(theta(i)*deg2rad))
+      lyp(:,:,i) = (-lvec(:,:,1)                      *sin(phi(i)*deg2rad)) + (lvec(:,:,2)                      *cos(phi(i)*deg2rad))
+      lzp(:,:,i) = ( lvec(:,:,1)*sin(theta(i)*deg2rad)*cos(phi(i)*deg2rad)) + (lvec(:,:,2)*sin(theta(i)*deg2rad)*sin(phi(i)*deg2rad)) + (lvec(:,:,3)*cos(theta(i)*deg2rad))
 
-      lp(:,:,1,i) = lxp(:,:,i)
-      lp(:,:,2,i) = lyp(:,:,i)
-      lp(:,:,3,i) = lzp(:,:,i)
+      lpvec(:,:,1,i) = lxp(:,:,i)
+      lpvec(:,:,2,i) = lyp(:,:,i)
+      lpvec(:,:,3,i) = lzp(:,:,i)
     end do
     return
   end subroutine lp_matrix
@@ -352,8 +360,8 @@ contains
     allocate( hhw(3,nAtoms), STAT = AllocateStatus )
     if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: hhw")
 
-    allocate(lx(nOrb, nOrb), ly(nOrb,nOrb), lz(nOrb,nOrb), l(nOrb,nOrb,3), stat = AllocateStatus)
-    if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lx, ly, lz, l")
+    allocate(lx(nOrb, nOrb), ly(nOrb,nOrb), lz(nOrb,nOrb), lvec(nOrb,nOrb,3), stat = AllocateStatus)
+    if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lx, ly, lz, lvec")
 
     allocate(sb(2*nOrb,2*nOrb,nAtoms), stat = AllocateStatus)
     if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: sb")
@@ -361,8 +369,8 @@ contains
     allocate(lb(2*nOrb,2*nOrb,nAtoms), stat = AllocateStatus)
     if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lb")
 
-    allocate(lxp(nOrb,nOrb,nAtoms), lyp(nOrb,nOrb,nAtoms), lzp(nOrb,nOrb,nAtoms), lp(nOrb,nOrb,3,nAtoms), stat = AllocateStatus)
-    if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lxp, lyp, lzp, lp")
+    allocate(lxp(nOrb,nOrb,nAtoms), lyp(nOrb,nOrb,nAtoms), lzp(nOrb,nOrb,nAtoms), lpvec(nOrb,nOrb,3,nAtoms), stat = AllocateStatus)
+    if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lxp, lyp, lzp, lpvec")
 
     return
   end subroutine
@@ -373,11 +381,11 @@ contains
     if(allocated(lxp)) deallocate(lxp)
     if(allocated(lyp)) deallocate(lyp)
     if(allocated(lzp)) deallocate(lzp)
-    if(allocated(lp)) deallocate(lp)
+    if(allocated(lpvec)) deallocate(lpvec)
     if(allocated(lx)) deallocate(lx)
     if(allocated(ly)) deallocate(ly)
     if(allocated(lz)) deallocate(lz)
-    if(allocated(l )) deallocate(l )
+    if(allocated(lvec )) deallocate(lvec )
     if(allocated(lb)) deallocate(lb)
     if(allocated(sb)) deallocate(sb)
     if(allocated(rho)) deallocate(rho)

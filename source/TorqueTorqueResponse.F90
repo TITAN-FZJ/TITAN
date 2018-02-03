@@ -119,7 +119,7 @@ contains
   subroutine calcTTResponse(e)
     use mod_constants, only: levi_civita, StoC, CtoS, cZero
     use mod_System, only: s => sys
-    use mod_magnet, only: l
+    use mod_magnet, only: lvec
     use TightBinding, only: nOrb
     use mod_parameters, only: sigmaimunu2i
     use mod_susceptibilities, only: chiorb, chiorb_hf
@@ -145,24 +145,24 @@ contains
                       do np = 1, 3
                          do kp = 1, 3
                             if(levi_civita(mp,np,kp) == 0.d0) cycle
-                            do mu = 1, nOrb
-                               do nu = 1, nOrb
-                                 if(l(nu,mu,n) == cZero) cycle
-                                  do gamma = 1, nOrb
-                                     do zeta = 1, nOrb
-                                        if(l(gamma,zeta,np) == cZero) cycle
+                            do mu = 5, nOrb
+                               do nu = 5, nOrb
+                                 if(lvec(nu,mu,n) == cZero) cycle
+                                  do gamma = 5, nOrb
+                                     do zeta = 5, nOrb
+                                        if(lvec(gamma,zeta,np) == cZero) cycle
                                         do p = 1, 4
                                            do q = 1, 4
                                               if(StoC(k+1,p) == cZero .or. CtoS(q,kp+1) == cZero) cycle
                                               TTResponse(mp, m, j, i) = TTResponse(mp, m, j, i) &
-                                                   - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%Lambda * s%Types(s%Basis(j)%Material)%Lambda &
+                                                   - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%LambdaD * s%Types(s%Basis(j)%Material)%LambdaD &
                                                    * levi_civita(m,n,k) * levi_civita(mp, np, kp) &
-                                                   * l(mu, nu, n) * l(gamma, zeta, np) &
+                                                   * lvec(mu, nu, n) * lvec(gamma, zeta, np) &
                                                    * StoC(k+1,p) * chiorb(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma,zeta)) * CtoS(q,kp+1)
                                               TTResponseHF(mp, m, j, i) = TTResponseHF(mp, m, j, i) &
-                                                   - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%Lambda * s%Types(s%Basis(j)%Material)%Lambda &
+                                                   - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%LambdaD * s%Types(s%Basis(j)%Material)%LambdaD &
                                                    * levi_civita(m,n,k) * levi_civita(mp, np, kp) &
-                                                   * l(mu, nu, n) * l(gamma, zeta, np) &
+                                                   * lvec(mu, nu, n) * lvec(gamma, zeta, np) &
                                                    * StoC(k+1,p) * chiorb_hf(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma,zeta)) * CtoS(q,kp+1)
 
                                            end do

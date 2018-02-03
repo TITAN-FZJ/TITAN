@@ -1,9 +1,4 @@
-! Calculate the derivative of H0 of a slab containing
-! Npl layers (ES not included)
-!  ES    S    S-1   S-2       S-2   S-1    S     ES
-!  o-----|-----|-----|---...---|-----|-----|-----o
-!        1     2     3       Npl-2 Npl-1  Npl
-!         <-S-> <S-1>           <S-1> <-S->
+! Calculate the derivative of H0 of a slab
 subroutine dtdksub(kp,dtdk)
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, cI

@@ -1,33 +1,31 @@
 ! Calculate hamiltonian of the unit cell
 subroutine hamiltk(kp,hk)
-  use mod_f90_kind, only: double
+  use mod_f90_kind,  only: double
   use mod_constants, only: cI, cZero
-  use AtomTypes, only: NeighborIndex
-  use mod_System, only: ia, s => sys
-  use TightBinding, only: nOrb,nOrb2
-  use mod_magnet, only: lb, sb
-  use mod_SOC, only: ls, socscale
-  use mod_mpi_pars, only: abortProgram
-  use mod_Umatrix, only: hee
+  use AtomTypes,     only: NeighborIndex
+  use mod_System,    only: ia, s => sys
+  use TightBinding,  only: nOrb,nOrb2
+  use mod_magnet,    only: lb, sb
+  use mod_SOC,       only: ls
+  use mod_mpi_pars,  only: abortProgram
+  use mod_Umatrix,   only: hee
   implicit none
   integer :: i, j, k
   real(double), intent(in) :: kp(3)
   complex(double), dimension(s%nAtoms*nOrb2, s%nAtoms*nOrb2), intent(out) :: hk
   complex(double) :: tmp(nOrb,nOrb)
   complex(double) :: kpExp
-  real(double) :: lambda
   hk = cZero
 
   ! Mouting slab hamiltonian
   !dir$ ivdep:loop
   do i=1, s%nAtoms
-    lambda = s%Types(s%Basis(i)%Material)%Lambda
     hk(ia(1,i):ia(2,i), ia(1,i):ia(2,i)) = s%Types(s%Basis(i)%Material)%onSite(1:nOrb,1:nOrb)
     hk(ia(3,i):ia(4,i), ia(3,i):ia(4,i)) = s%Types(s%Basis(i)%Material)%onSite(1:nOrb,1:nOrb)
 
     hk(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = hk(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) &
                                          + lb(1:nOrb2,1:nOrb2,i) + sb(1:nOrb2,1:nOrb2,i) + hee(1:nOrb2,1:nOrb2,i) &
-                                         + socscale * lambda * ls(1:nOrb2,1:nOrb2)
+                                         + ls(1:nOrb2,1:nOrb2,i)
   end do
 
   !dir$ ivdep:loop
@@ -59,14 +57,14 @@ end subroutine hamiltk
 ! Calculate hamiltonian of the unit cell
 ! and the spin-orbit coupling contribution separately
 subroutine hamiltklinearsoc(kp,hk,vsoc)
-  use mod_f90_kind,      only: double
-  use mod_constants,     only: cZero, cI
-  use mod_system,        only: ia, s => sys
-  use AtomTypes, only: NeighborIndex
-  use TightBinding, only: nOrb,nOrb2
-  use mod_SOC,    only: socscale, ls
-  use mod_magnet,        only: lb, sb
-  use mod_Umatrix, only: hee
+  use mod_f90_kind,  only: double
+  use mod_constants, only: cZero, cI
+  use mod_system,    only: ia, s => sys
+  use AtomTypes,     only: NeighborIndex
+  use TightBinding,  only: nOrb,nOrb2
+  use mod_SOC,       only: ls
+  use mod_magnet,    only: lb, sb
+  use mod_Umatrix,   only: hee
   implicit none
   integer :: i, j, k
   real(double), intent(in)  :: kp(3)
@@ -83,7 +81,7 @@ subroutine hamiltklinearsoc(kp,hk,vsoc)
     hk(ia(3,i):ia(4,i), ia(3,i):ia(4,i)) = s%Types(s%Basis(i)%Material)%onSite
     hk(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = hk(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) &
                                          + lb(:,:,i) + sb(:,:,i) + hee(:,:,i)
-    vsoc(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = socscale * s%Types(s%Basis(i)%Material)%Lambda * ls
+    vsoc(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = ls(:,:,i)
   end do
 
   do k = 1, s%nNeighbors
