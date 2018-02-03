@@ -94,7 +94,7 @@ contains
   subroutine calcTSResponse(e)
     use mod_constants, only: levi_civita, StoC, CtoS, cZero
     use mod_System, only: s => sys
-    use mod_magnet, only: l
+    use mod_magnet, only: lvec
     use TightBinding, only: nOrb
     use mod_parameters, only: sigmaimunu2i
     use mod_susceptibilities, only: chiorb, chiorb_hf
@@ -114,18 +114,18 @@ contains
                 do k = 1, 3
                    if(levi_civita(m,n,k) == 0.d0) cycle
                    do mp = 1,3
-                      do mu = 1, nOrb
-                         do nu = 1, nOrb
-                            if(l(mu,nu,n) == cZero) cycle
-                            do gamma = 1, nOrb
+                      do mu = 5, nOrb
+                         do nu = 5, nOrb
+                            if(lvec(mu,nu,n) == cZero) cycle
+                            do gamma = 5, nOrb
                                do p = 1, 4
                                   do q = 1, 4
                                      if(StoC(k+1,p) == cZero .or. CtoS(q,mp+1) == cZero) cycle
                                      TSResponse(mp, m, j, i) = TSResponse(mp, m, j, i) &
-                                          - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%Lambda * levi_civita(m,n,k) * l(mu, nu, n) &
+                                          - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%LambdaD * levi_civita(m,n,k) * lvec(mu, nu, n) &
                                           * StoC(k+1,p) * chiorb(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma, gamma)) * CtoS(q,mp+1)
                                      TSResponseHF(mp, m, j, i) = TSResponse(mp, m, j, i) &
-                                          - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%Lambda * levi_civita(m,n,k) * l(mu, nu, n) &
+                                          - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%LambdaD * levi_civita(m,n,k) * lvec(mu, nu, n) &
                                           * StoC(k+1,p) * chiorb_hf(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma, gamma)) * CtoS(q,mp+1)
                                   end do
                                end do

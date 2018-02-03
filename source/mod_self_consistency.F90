@@ -189,7 +189,7 @@ contains
         default_file = trim(file)
       end if
     else ! If filename in inputcard exists or 2nd+ angular iteration
-      if(((hw_count)==1)) then !.and.(Npl==Npl_i)) then ! Filename in inputcard (1st iteration on loop)
+      if(((hw_count)==1)) then ! Filename in inputcard (1st iteration on loop)
         open(unit = 99,file = scfile, status = "old", iostat = err)
         if(err==0 .and. rField==0) then
           write(output%unit_loop,"('[read_sc_results] Using filename given in input file for self-consistency:')")
@@ -385,7 +385,6 @@ contains
         maxfev = 100*(neq+1)
         mode = 1
         diag = 1.d0
-!         diag(Npl+1:4*Npl) = 100.d0
         factor = 0.1d0
         call c05pcf(sc_eqs_and_jac_old,neq,sc_solu,fvec,jac,neq,mag_tol,maxfev,diag,mode,factor,0,nfev,njev,wa,lwa,qtf,w,ifail)
       end if
@@ -416,7 +415,6 @@ contains
         maxfev = 100*(neq+1)
         mode = 1
         diag = 1.d0
-!         diag(npl+1:4*npl) = 100.d0
         factor = 0.1d0
         call c05rcf(sc_equations_and_jacobian,neq,sc_solu,fvec,jac,mag_tol,maxfev,mode,diag,factor,0,nfev,njev,wa,qtf,iuser,ruser,ifail)
       end if
@@ -566,7 +564,6 @@ contains
     complex(double), dimension(:,:), allocatable :: gij,gji,temp,paulitemp
     complex(double), dimension(:,:,:), allocatable :: temp1,temp2
     complex(double), dimension(:,:,:,:), allocatable :: gf,gvg
-    integer :: firstPoint, lastPoint
 
     integer :: i,j
     integer :: AllocateStatus
@@ -607,7 +604,7 @@ contains
 
     !$omp parallel default(none) &
     !$omp& private(AllocateStatus,ix,i,j,i0,j0,mu,sigma,sigmap,ep,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp) &
-    !$omp& shared(llineargfsoc,llinearsoc,local_points,s,realBZ,bzs,E_k_imag_mesh,y,eta,firstPoint,lastPoint,wght,mhalfU,pauli_components1,pauli_components2,jacobian)
+    !$omp& shared(llineargfsoc,llinearsoc,local_points,s,realBZ,bzs,E_k_imag_mesh,y,eta,wght,mhalfU,pauli_components1,pauli_components2,jacobian)
     allocate( temp1(nOrb2, nOrb2, 4), &
               temp2(nOrb2, nOrb2, 4), &
               gij(nOrb2,nOrb2), gji(nOrb2,nOrb2), &

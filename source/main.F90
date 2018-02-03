@@ -79,18 +79,18 @@ program TITAN
 
   call generateAdaptiveMeshes(pn1)
 
-  !--------------- Allocating variables that depend on Npl ---------------
+  !------------ Allocating variables that depend on nAtoms -------------
   call allocate_magnet_variables(sys%nAtoms, nOrb)
-  call allocLS(nOrb)
-  call allocate_Npl_variables(sys%nAtoms) !TODO: Review
-  !----------------------------- Dimensions ------------------------------
+  call allocLS(sys%nAtoms,nOrb)
+  call allocate_Atom_variables(sys%nAtoms) !TODO: Review
+  !---------------------------- Dimensions -----------------------------
   dimspinAtoms = 4 * sys%nAtoms
   dim = dimspinAtoms * nOrb * nOrb
 
-  !------------------------- Conversion arrays  --------------------------
+  !------------------------ Conversion arrays  -------------------------
   call initConversionMatrices(sys%nAtoms,nOrb)
 
-  !------------------------- Defining the system -------------------------
+  !------------------------ Defining the system ------------------------
   ! if(naddlayers/=0) then
   !   Npl_input = Npl-naddlayers+1 ! Npl is the total number of layers, including the added layers listed on inputcard
   ! else
@@ -133,6 +133,7 @@ program TITAN
 
     !------------------- Initialize Magnetic Field --------------------
     call initMagneticField(sys%nAtoms)
+    if((llinearsoc) .or. (.not.SOC) .and. (.not.lfield) .and. (rField == 0)) write(output%file_loop,"('[main] WARNING: No external magnetic field is applied and SOC is off/linear order: Goldstone mode is present!')")
 
     !------------- Update fieldpart ----------------
     call set_fieldpart(hw_count)
@@ -150,7 +151,7 @@ program TITAN
     call l_matrix()
 
     !------ Calculate L.S matrix for the given quantization direction ------
-    call updateLS(theta, phi, nOrb)
+    if(SOC) call updateLS(theta, phi, nOrb)
 
     !------ Calculate L.B matrix for the given quantization direction ------
     call lb_matrix(sys%nAtoms, nOrb)
@@ -252,21 +253,21 @@ program TITAN
     end select
     !========================================================================
 
-    ! Emergency stop after the calculation for a Npl or field is finished (don't check on last step)
-    if(total_hw_npt1 /= 1 .and. hw_count < endField) call check_emergency_stop(sys%nAtoms, hw_list, hw_count)
+    ! Emergency stop after the calculation for a field is finished (don't check on last step)
+    if(total_hw_npt1 /= 1 .and. hw_count < endField) call check_emergency_stop(hw_list, hw_count)
     !---------------------------- Closing files ----------------------------
     if(total_hw_npt1 /= 1 .and.  itype /= 6 .and. rField == 0) close(output%unit_loop)
     !---------------------- Ending magnetic field loop ---------------------
   end do
 
-  !-------------- Deallocating variables that depend on Npl --------------
-  call deallocate_Npl_variables()
+  !------------ Deallocating variables that depend on nAtoms------------
+  call deallocate_Atom_variables()
 
-  !----------------------- Deallocating variables ------------------------
+  !---------------------- Deallocating variables -----------------------
   !deallocate(r_nn, c_nn, l_nn)
   !deallocate(kbz,wkbz) !,kbz2d)
 
-  !----------------------- Finalizing the program ------------------------
+  !---------------------- Finalizing the program -----------------------
   if(myrank == 0) call write_time(output%unit,'[main] Finished on: ')
   if(myrank == 0) close(unit=output%unit)
   call MPI_Finalize(ierr)

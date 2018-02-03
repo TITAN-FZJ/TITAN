@@ -2,8 +2,8 @@
 subroutine eintshechi(e)
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, cOne, cI, tpi
-  use mod_parameters, only: eta, etap, dim, sigmaijmunu2i, sigmaimunu2i
-  use EnergyIntegration, only: generate_real_epoints, y, wght, x2, p2, pn1, pn2
+  use mod_parameters, only: eta, etap, dim, sigmaimunu2i
+  use EnergyIntegration, only: generate_real_epoints, y, wght, x2, p2, pn2
   use mod_susceptibilities, only: chiorb_hf
   use mod_system, only: s => sys
   use mod_BrillouinZone, only: realBZ
@@ -49,7 +49,7 @@ subroutine eintshechi(e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,i,j,mu,nu,gamma,xi,nep,nkp,ep,kp,weight,gf,gfuu,gfud,gfdu,gfdd,index1, index2) &
-  !$omp& shared(llineargfsoc,pn1,bzs,s,realBZ,local_points,e,y,wght,x2,p2,pn2,real_points,E_k_imag_mesh,eta,etap,dim,sigmaimunu2i,sigmaijmunu2i,Fint,chiorb_hf)
+  !$omp& shared(llineargfsoc,bzs,s,realBZ,local_points,e,y,wght,x2,p2,pn2,real_points,E_k_imag_mesh,eta,etap,dim,sigmaimunu2i,Fint,chiorb_hf)
   allocate(gf  (nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
            gfud(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
@@ -225,7 +225,7 @@ end subroutine eintshechi
 subroutine eintshechilinearsoc(e)
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, cOne, cI, tpi
-  use mod_parameters, only: eta, etap, dim, sigmaijmunu2i, sigmaimunu2i
+  use mod_parameters, only: eta, etap, dim, sigmaimunu2i
   use EnergyIntegration, only: generate_real_epoints,y, wght, x2, p2, pn2
   use mod_susceptibilities, only: chiorb_hf,chiorb_hflsoc
   use mod_mpi_pars
@@ -233,14 +233,13 @@ subroutine eintshechilinearsoc(e)
   use mod_BrillouinZone, only: realBZ
   use adaptiveMesh
   use TightBinding, only: nOrb,nOrb2
-  use mod_SOC, only: llineargfsoc
   !$  use omp_lib
 
   implicit none
   real(double), intent(in) :: e
 
   integer :: AllocateStatus
-  integer*8 :: ix,ix2, iz, nep, nkp
+  integer*8 :: ix,ix2, nep, nkp
   integer :: i,j,mu,nu,gamma,xi
   real(double) :: kp(3), ep
   real(double) :: weight
@@ -269,8 +268,8 @@ subroutine eintshechilinearsoc(e)
   chiorb_hflsoc = cZero
 
   !$omp parallel default(none) &
-  !$omp& private(AllocateStatus,ix,ix2,iz,i,j,mu,nu,nep,nkp,gamma,xi,kp,ep,weight,Fint,Fintlsoc,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,df1,df1lsoc) &
-  !$omp& shared(llineargfsoc,local_points,s,bzs,realBZ,real_points,E_k_imag_mesh,e,y,wght,x2,p2,eta,etap,dim,sigmaimunu2i,sigmaijmunu2i,chiorb_hf,chiorb_hflsoc)
+  !$omp& private(AllocateStatus,ix,ix2,i,j,mu,nu,nep,nkp,gamma,xi,kp,ep,weight,Fint,Fintlsoc,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,df1,df1lsoc) &
+  !$omp& shared(local_points,s,bzs,realBZ,real_points,E_k_imag_mesh,e,y,wght,x2,p2,eta,etap,dim,sigmaimunu2i,chiorb_hf,chiorb_hflsoc)
   allocate(df1(dim,dim), Fint(dim,dim), &
            gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &

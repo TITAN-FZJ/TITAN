@@ -30,8 +30,8 @@ subroutine initConversionMatrices(nAtoms, nOrbs)
   return
 end subroutine initConversionMatrices
 
-! This subroutine allocates variables that depend on Npl
-subroutine allocate_Npl_variables(nAtoms)
+! This subroutine allocates variables that depend on nAtom
+subroutine allocate_Atom_variables(nAtoms)
   use mod_f90_kind, only: double
   use mod_parameters, only: mmlayermag, U, layertype, mmlayer, nmaglayers
   use TightBinding, only: nOrb
@@ -48,12 +48,12 @@ subroutine allocate_Npl_variables(nAtoms)
     allocate(U(nAtoms))
     U = U_tmp
   else if(size(U) /= nAtoms) then
-    call abortProgram("[allocate_Npl_variables] U has wrong size")
+    call abortProgram("[allocate_Atom_variables] U has wrong size")
   end if
 
 
   allocate( mmlayer(nAtoms),layertype(nAtoms),mmlayermag(nAtoms), STAT = AllocateStatus )
-  if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mmlayer,layertype,mmlayermag,lambda,npart0")
+  if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mmlayer,layertype,mmlayermag")
 
   do i = 1, nAtoms
     if(abs(U(i)) > 1.d-9) then
@@ -69,10 +69,10 @@ subroutine allocate_Npl_variables(nAtoms)
   ! if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: sha_longitudinal,sha_transverse,long_cos,transv_cos")
 
   return
-end subroutine allocate_Npl_variables
+end subroutine allocate_Atom_variables
 
-! This subroutine allocates variables that depend on Npl
-subroutine deallocate_Npl_variables()
+! This subroutine allocates variables that depend on nAtom
+subroutine deallocate_Atom_variables()
   use mod_parameters, only: sigmai2i, sigmaimunu2i, sigmaijmunu2i, mmlayer, layertype, U, mmlayermag
   use mod_magnet, only: deallocate_magnet_variables
   implicit none
@@ -85,4 +85,4 @@ subroutine deallocate_Npl_variables()
   !deallocate(sha_longitudinal,sha_transverse,long_cos,transv_cos)
 
   return
-end subroutine deallocate_Npl_variables
+end subroutine deallocate_Atom_variables

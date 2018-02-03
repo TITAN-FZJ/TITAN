@@ -96,7 +96,7 @@ contains
     if(sum(abs(lhs - rhs)) < 1.d-7) then
       if(rField == 0) write(output%unit_loop,"('[sumrule] YES! ')")
     else
-      if(rField == 0) write(output%unit_loop,"('[sumrule] NO! ')")
+      if(rField == 0) write(output%unit_loop,"('[sumrule] NO! Difference: ',es16.9)") sum(abs(lhs - rhs))
     end if
 
     deallocate(lhs,rhs)
@@ -113,7 +113,7 @@ contains
     use mod_parameters, only: dim, sigmaimunu2i, offset
     use mod_SOC,        only: SOC, socscale
     use mod_parameters, only: U
-    use mod_magnet,     only: l, lfield, hhw
+    use mod_magnet,     only: lvec, lfield, hhw
     use mod_System,     only: s => sys
     implicit none
     integer                             , intent(in)  :: nAtoms, nOrb
@@ -121,16 +121,26 @@ contains
     complex(double), dimension(dim)     , intent(out) :: Beff
     integer         :: i,mu,nu,sigma
 
+
     Beff = cZero
     do i=1,nAtoms
       do sigma=1,3
         do mu=1, nOrb
           if(lfield) Beff(sigmaimunu2i(sigma+1,i,mu,mu)) = Beff(sigmaimunu2i(sigma+1,i,mu,mu)) + hhw(sigma,i)
+          ! p block
+          if(SOC) then
+            if((mu>=2).and.(mu<=4)) then
+              do nu=2,4
+                Beff(sigmaimunu2i(sigma+1,i,mu,nu))  = Beff(sigmaimunu2i(sigma+1,i,mu,nu)) + 0.5d0*socscale * s%Types(s%Basis(i)%Material)%LambdaP * lvec(mu,nu,sigma)
+              end do
+            end if
+          end if
+          ! d block
           if(mu>=5) then
             Beff(sigmaimunu2i(sigma+1,i,mu,mu)) = Beff(sigmaimunu2i(sigma+1,i,mu,mu)) - 0.5d0*U(i+offset) * mvec(sigma,i)
             if(SOC) then
               do nu=5,nOrb
-                Beff(sigmaimunu2i(sigma+1,i,mu,nu))  = Beff(sigmaimunu2i(sigma+1,i,mu,nu)) + 0.5d0*socscale * s%Types(s%Basis(i)%Material)%Lambda * l(mu,nu,sigma)
+                Beff(sigmaimunu2i(sigma+1,i,mu,nu))  = Beff(sigmaimunu2i(sigma+1,i,mu,nu)) + 0.5d0*socscale * s%Types(s%Basis(i)%Material)%LambdaD * lvec(mu,nu,sigma)
               end do
             end if
           end if

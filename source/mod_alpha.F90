@@ -105,7 +105,7 @@ contains
     use mod_magnet, only: mabs
     implicit none
     real(double) :: e
-    real(double) :: gammaM, alpha_v1, alpha_v2, alpha_v3, alpha_v4, alpha_t
+    real(double) :: gammaM, alpha_v1, alpha_v2, alpha_v3, alpha_v4
     complex(double), dimension(4,4) :: acart, acarthf, acarthfinv, acartinv
     complex(double), dimension(3,3) :: acart_t_inv
     integer :: i, p,q,r,t
@@ -140,7 +140,7 @@ contains
 
       do p = 1, 3
         do q = 1, 3
-          acart_t_inv(p,q) = 4.d0*acart(p+1,q+1) + 2.d0*schiLS(sigmai2i(p,i),sigmai2i(q,i)) + 2.d0*schiLS(sigmai2i(p,i),sigmai2i(q,i)) + schiLL(sigmai2i(p,i),sigmai2i(q,i))
+          acart_t_inv(p,q) = 4.d0*acart(p+1,q+1) + 2.d0*schiLS(sigmai2i(p,i),sigmai2i(q,i)) + 2.d0*schiSL(sigmai2i(p,i),sigmai2i(q,i)) + schiLL(sigmai2i(p,i),sigmai2i(q,i))
         end do
       end do
       call invers(acart_t_inv,3)

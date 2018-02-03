@@ -128,7 +128,7 @@ contains
     read(unit=line, fmt=*, iostat=ios) material%LatticeConstant
 
     read(unit=995594, fmt='(A)', iostat = ios) line
-    read(unit= line, fmt=*, iostat=ios) material%Lambda
+    read(unit= line, fmt=*, iostat=ios) material%LambdaP, material%LambdaD
 
     read(unit=995594, fmt='(A)', iostat = ios) line
     read(unit= line, fmt=*, iostat=ios) material%FermiLevel

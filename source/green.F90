@@ -1,8 +1,4 @@
-! Calculate green function of a slab containing Npl W layers
-!  S    S-1   S-2       S-2   S-1    S
-!  |-----|-----|---...---|-----|-----|
-!  1     2     3       Npl-2 Npl-1  Npl
-!   <-1-> <-2->           <-2-> <-1->
+! Calculate green function (E - H)^-1
 subroutine green(er,ei,kp,gf)
   use mod_f90_kind, only: double
   use mod_constants, only: cZero,cOne
@@ -31,7 +27,7 @@ subroutine green(er,ei,kp,gf)
   !gslab(i,j) = gslab(i,j) - hk(i,j)
   call invers(gslab, d)
 
-  ! Put the slab Green's function [A(Npl*18,Npl*18)] in the A(i,j,mu,nu) form
+  ! Put the slab Green's function [A(nAtoms*18,nAtoms*18)] in the A(i,j,mu,nu) form
   !dir$ ivdep:loop
   do j = 1, s%nAtoms
     !dir$ ivdep:loop
@@ -44,11 +40,7 @@ subroutine green(er,ei,kp,gf)
 end subroutine green
 
 
-! Calculate green function of a slab containing Npl W layers
-!  S    S-1   S-2       S-2   S-1    S
-!  |-----|-----|---...---|-----|-----|
-!  1     2     3       Npl-2 Npl-1  Npl
-!   <-1-> <-2->           <-2-> <-1->
+! Calculate green function (E - H)^-1 without SOC and the linear term G0.H_so.G0
 subroutine greenlinearsoc(er,ei,kp,g0,g0vsocg0)
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, cOne
@@ -82,7 +74,7 @@ subroutine greenlinearsoc(er,ei,kp,g0,g0vsocg0)
   call zgemm('n','n',d,d,d,cOne,vsoc,d,gslab0,d,cZero,temp,d)  ! temp = vsoc*gslab0
   call zgemm('n','n',d,d,d,cOne,gslab0,d,temp,d,cZero,temp2,d) ! temp2 = gslab0*vsoc*gslab0
 
-  ! Put the slab Green's function [A(Npl*18,Npl*18)] in the A(i,j,mu,nu) form
+  ! Put the slab Green's function [A(nAtoms*18,nAtoms*18)] in the A(i,j,mu,nu) form
   do j=1,s%nAtoms
     do i=1,s%nAtoms
       g0(:,:,i,j) = gslab0(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
@@ -93,11 +85,7 @@ subroutine greenlinearsoc(er,ei,kp,g0,g0vsocg0)
 end subroutine greenlinearsoc
 
 
-! Calculate green function of a slab containing Npl W layers
-!  S    S-1   S-2       S-2   S-1    S
-!  |-----|-----|---...---|-----|-----|
-!  1     2     3       Npl-2 Npl-1  Npl
-!   <-1-> <-2->           <-2-> <-1->
+! Calculate green function (E - H)^-1 with linear SOC: G = G0+G0.H_so.G0
 subroutine greenlineargfsoc(er,ei,kp,gf)
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, cOne
@@ -132,7 +120,7 @@ subroutine greenlineargfsoc(er,ei,kp,gf)
   call zgemm('n','n',d,d,d,cOne,vsoc,d,gslab0,d,cOne,temp,d)   ! temp = 1+vsoc*gslab0
   call zgemm('n','n',d,d,d,cOne,gslab0,d,temp,d,cZero,gslab,d) ! gslab = gslab0(1+vsoc*gslab0)
 
-  ! Put the slab Green's function [A(Npl*18,Npl*18)] in the A(i,j,mu,nu) form
+  ! Put the slab Green's function [A(nAtoms*18,nAtoms*18)] in the A(i,j,mu,nu) form
   do j=1,s%nAtoms
     do i=1,s%nAtoms
       gf(:,:,i,j) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
@@ -140,44 +128,3 @@ subroutine greenlineargfsoc(er,ei,kp,gf)
   end do
   return
 end subroutine greenlineargfsoc
-
-! Calculate green function of a slab containing Npl W layers
-!  S    S-1   S-2       S-2   S-1    S
-!  |-----|-----|---...---|-----|-----|
-!  1     2     3       Npl-2 Npl-1  Npl
-!   <-1-> <-2->           <-2-> <-1->
-subroutine green_es(er,ei,kp,gf)
-  use mod_f90_kind, only: double
-  use mod_constants, only: cZero, cOne
-  use mod_System, only: ia, s => sys
-  use TightBinding, only: nOrb,nOrb2
-  implicit none
-  integer     :: i,j
-  real(double), intent(in)  :: er,ei,kp(3)
-  complex(double) :: ec
-  complex(double),dimension(s%nAtoms*nOrb2, s%nAtoms*nOrb2)  :: gslab,identes,hk
-  complex(double),dimension(nOrb2, nOrb2, s%nAtoms, s%nAtoms),intent(out)  :: gf
-
-  ec    = cmplx(er,ei,double)
-  identes     = cZero
-  do i=1,s%nAtoms*nOrb2
-   identes(i,i) = cOne
-  end do
-
-  gslab = cZero
-
-  call hamiltk(kp,hk)
-
-  gslab = ec*identes - hk
-
-  call invers(gslab,s%nAtoms*nOrb2)
-
-  ! Put the slab Green's function [A(Npl*18,Npl*18)] in the A(i,j,mu,nu) form
-  do j=1,s%nAtoms
-    do i=1,s%nAtoms
-      gf(:,:,i,j) = gslab(ia(1,i):ia(4,i),ia(1,j):ia(4,j))
-    end do
-  end do
-
-  return
-end subroutine green_es

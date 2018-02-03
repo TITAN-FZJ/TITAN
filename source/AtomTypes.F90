@@ -39,8 +39,8 @@ type :: AtomType
   !! on site matrix; size (nOrb, nOrb)
   real(double), dimension(:,:), allocatable :: Hopping
   !! hopping matrix; size (10, nStages)
-  real(double) :: Lambda
-  !! SOC Coupling constant
+  real(double) :: LambdaP, LambdaD
+  !! SOC Coupling constants
   real(double) :: FermiLevel
   real(double) :: Occupation, OccupationS, OccupationP, OccupationD
   real(double) :: LatticeConstant

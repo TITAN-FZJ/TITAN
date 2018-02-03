@@ -27,6 +27,7 @@ subroutine calculate_all()
                       allocate_beff, deallocate_beff, &
                       create_beff_files, write_beff
   use mod_progress, only: write_time
+  use mod_rotation_matrices, only: rotation_matrices_chi
   use mod_mpi_pars
 
   !use mod_system, only: n0sc1, n0sc2, n0sc
@@ -165,9 +166,9 @@ subroutine calculate_all()
         ! Rotating susceptibilities to the magnetization direction
         if(lrot) then
           do i = 1, s%nAtoms
-            call build_rotation_matrices_chi(mvec_spherical(2,i),mvec_spherical(3,i),rottemp,1)
+            call rotation_matrices_chi(mvec_spherical(2,i),mvec_spherical(3,i),rottemp,1)
             rotmat_i(:,:,i) = rottemp
-            call build_rotation_matrices_chi(mvec_spherical(2,i),mvec_spherical(3,i),rottemp,2)
+            call rotation_matrices_chi(mvec_spherical(2,i),mvec_spherical(3,i),rottemp,2)
             rotmat_j(:,:,i) = rottemp
           end do
           do j = 1, s%nAtoms
@@ -231,9 +232,9 @@ subroutine calculate_all()
         ! Rotating susceptibilities to the magnetization direction
         if(lrot) then
           do i = 1, s%nAtoms
-            call build_rotation_matrices_chi(mvec_spherical(2,i),mvec_spherical(3,i),rottemp,1)
+            call rotation_matrices_chi(mvec_spherical(2,i),mvec_spherical(3,i),rottemp,1)
             rotmat_i(:,:,i) = rottemp
-            call build_rotation_matrices_chi(mvec_spherical(2,i),mvec_spherical(3,i),rottemp,2)
+            call rotation_matrices_chi(mvec_spherical(2,i),mvec_spherical(3,i),rottemp,2)
             rotmat_j(:,:,i) = rottemp
           end do
           do j = 1, s%nAtoms
@@ -302,9 +303,9 @@ subroutine calculate_all()
           end do
         end do
 
-        ! Spin-orbit torques (calculated in the spin frame of reference)
-        do nu = 1, 9
-          do mu = 1, 9
+        ! Spin-orbit torques (calculated in the spin frame of reference), only for the D orbitals
+        do nu = 5, 9
+          do mu = 5, 9
             ! x component: (Ly*Sz - Lz*Sy)/2
             torques(1,1,i) = torques(1,1,i) + (   lyp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3))) &
                                             + (cI*lzp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
@@ -316,7 +317,7 @@ subroutine calculate_all()
                                             - (   lyp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
           end do
         end do
-        torques(1,:,i) = 0.5d0*s%Types(s%Basis(i)%Material)%Lambda*torques(1,:,i)
+        torques(1,:,i) = 0.5d0*s%Types(s%Basis(i)%Material)%LambdaD*torques(1,:,i)
 
         ! Exchange-correlation torques (calculated in the spin frame of reference)
         torques(2,1,i) = U(i+offset)*(mvec_cartesian(3,i)*disturbances(3,i)-mvec_cartesian(2,i)*disturbances(4,i))
