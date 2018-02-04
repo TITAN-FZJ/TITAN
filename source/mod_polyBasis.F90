@@ -55,12 +55,9 @@ contains
     if((dot_product(s%a2,s%a2) <= 1.d-9).and.(myrank.eq.0)) call abortProgram("[read_basis] a2 not given properly!")
     s%a2 = s%a2 * s%a0
 
-    if(s%lbulk) then
-        read(f_unit, fmt='(A)', iostat=ios) line
-        read(unit=line, fmt=*, iostat=ios) (s%a3(i), i=1,3)
-        if((dot_product(s%a3,s%a3) <= 1.d-9).and.(myrank.eq.0)) call abortProgram("[read_basis] a3 not given properly!")
-        s%a3 = s%a3 * s%a0
-    end if
+    read(f_unit, fmt='(A)', iostat=ios) line
+    read(unit=line, fmt=*, iostat=ios) (s%a3(i), i=1,3)
+    s%a3 = s%a3 * s%a0
 
     str_arr = ""
     read(f_unit, fmt='(A)', iostat=ios) line
@@ -104,6 +101,7 @@ contains
         if(coord_type == 'D' .or. coord_type == 'd') then
           s%Basis(k)%Position = s%Basis(k)%Position * s%a0
         else
+          if((.not.s%lbulk).and.(dot_product(s%a3,s%a3) <= 1.d-9).and.(myrank.eq.0)) call abortProgram("[read_basis] a3 not given properly!")
           s%Basis(k)%Position = s%Basis(k)%Position(1) * s%a1 + s%Basis(k)%Position(2) * s%a2 + s%Basis(k)%Position(3) * s%a3
         end if
       end do
