@@ -18,12 +18,16 @@ module mod_magnet
   !! Center of the bands for each l - eps(Npl)
   real(double), dimension(:), allocatable :: hhwx, hhwy, hhwz
   !! Half of Static magnetic fields in each direction
+  real(double), dimension(:,:), allocatable :: hhw
+  !! Half of Static magnetic field vector
   complex(double), dimension(:,:,:), allocatable :: lb, sb
   !! Zeeman matrices
   complex(double), dimension(:,:,:), allocatable :: lxp, lyp, lzp
   !! Site dependent Angular momentum matrices in local frame
   complex(double), dimension(:,:), allocatable :: lx, ly, lz
   !! Angular momentum matrices in global frame
+  complex(double), dimension(:,:,:), allocatable :: lvec
+  !! Angular momentum vector matrices in global frame
 
   !========================================================================================!
   ! Values of magnetic field in cartesian or spherical coordinates
@@ -155,8 +159,9 @@ contains
     if(allocated(hhwx)) deallocate(hhwx)
     if(allocated(hhwy)) deallocate(hhwy)
     if(allocated(hhwz)) deallocate(hhwz)
-    allocate( hhwx(nAtoms),hhwy(nAtoms),hhwz(nAtoms), STAT = AllocateStatus )
-    if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: hhwx,hhwy,hhwz,sb,lb")
+    if(allocated(hhw )) deallocate(hhw )
+    allocate( hhwx(nAtoms),hhwy(nAtoms),hhwz(nAtoms),hhw(3,nAtoms), STAT = AllocateStatus )
+    if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: hhwx,hhwy,hhwz,hhw")
 
     !---------------------- Turning off field for hwa=0 --------------------
     if(abs(hw_list(hw_count,1)) < 1.d-8) then
@@ -184,13 +189,16 @@ contains
         if(abs(hhwx(i))<1.d-8) hhwx(i) = 0.d0
         if(abs(hhwy(i))<1.d-8) hhwy(i) = 0.d0
         if(abs(hhwz(i))<1.d-8) hhwz(i) = 0.d0
+        hhw(1,i) = hhwx(i)
+        hhw(2,i) = hhwy(i)
+        hhw(3,i) = hhwz(i)
       end do
       ! Testing if hwscale is used
       lhwscale = any(abs(hwscale(1:nAtoms)-1.d0) > 1.d-8)
       ! Testing if hwrotate is used
       lhwrotate = (any(abs(hwtrotate(1:nAtoms)) > 1.d-8).or.any(abs(hwprotate(1:nAtoms))>1.d-8))
     end if
-
+    return
   end subroutine initMagneticField
 
   subroutine lb_matrix(nAtoms, nOrbs)
@@ -263,7 +271,8 @@ contains
     if(allocated(lx)) deallocate(lx)
     if(allocated(ly)) deallocate(ly)
     if(allocated(lz)) deallocate(lz)
-    allocate(lx(nOrb, nOrb), ly(nOrb,nOrb), lz(nOrb,nOrb))
+    if(allocated(lvec)) deallocate(lvec)
+    allocate(lx(nOrb, nOrb), ly(nOrb,nOrb), lz(nOrb,nOrb), lvec(nOrb,nOrb,3))
 
     lz = cZero
 
@@ -304,6 +313,10 @@ contains
 
     lx = 0.5d0*(Lp+Lm)
     ly = -0.5d0*cI*(Lp-Lm)
+
+    lvec(:,:,1) = lx
+    lvec(:,:,2) = ly
+    lvec(:,:,3) = lz
 
     return
   end subroutine l_matrix
@@ -386,6 +399,7 @@ contains
     if(allocated(hhwx)) deallocate(hhwx)
     if(allocated(hhwy)) deallocate(hhwy)
     if(allocated(hhwz)) deallocate(hhwz)
+    if(allocated(hhw )) deallocate(hhw )
     if(allocated(sb)) deallocate(sb)
     if(allocated(lb)) deallocate(lb)
 
@@ -416,7 +430,7 @@ contains
      if(lnolb)     output%dcBField = trim(output%dcBField) // "_nolb"
      if(lhwscale)  output%dcBField = trim(output%dcBField) // "_hwscale"
      if(lhwrotate) output%dcBField = trim(output%dcBField) // "_hwrotate"
-
+     return
   end subroutine set_fieldpart
 
 end module mod_magnet

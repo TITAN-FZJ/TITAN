@@ -18,6 +18,7 @@ subroutine calculate_chi()
   use mod_progress, only: write_time
   use TorqueTorqueResponse, only: calcTTResponse, create_TTR_files, allocTTResponse
   use TorqueSpinResponse, only: calcTSResponse, create_TSR_files, allocTSResponse
+  use mod_sumrule
   implicit none
   character(len=50) :: time
   integer :: mcount
@@ -57,6 +58,9 @@ subroutine calculate_chi()
 
      ! Start parallelized processes to calculate chiorb_hf and chiorbi0_hf for energy e
      call eintshechi(e)
+
+     ! Checking sum rule for e=0.d0
+     if(e == 0.d0) call sumrule(chiorb_hf)
 
      ! From here on all other processes except for rFreq(1) == 0 are idle :/
      if(rFreq(1)==0) then
