@@ -540,9 +540,6 @@ contains
       output%hfr = ""
     end if
 
-    ! Setting up external field variables and loops
-    !call prepare_field() XXX Moved to main, renamed to setMagneticLoopPoints
-
     ! Energy loop step
     if(npts < 1) then
       deltae = 0
