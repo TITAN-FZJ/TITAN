@@ -17,7 +17,7 @@ complex(double), dimension(:,:,:), allocatable :: ls
 
 contains
 
-  subroutine updateLS(theta, phi, nOrb)
+  subroutine updateLS(theta, phi)
     use mod_f90_kind,          only: double
     use mod_constants,         only: pauli_mat, cZero,cI,sq3
     use mod_magnet,            only: lvec
@@ -25,7 +25,6 @@ contains
     use mod_System,            only: s => sys
     implicit none
     real(double), intent(in) :: theta, phi
-    integer,      intent(in) :: nOrb
     real(double),dimension(3,3) :: ry,rz,rzy
     integer :: i,m,n,mu,nu,mup,nup
 

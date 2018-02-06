@@ -150,14 +150,14 @@ program TITAN
     !---- L matrix in global frame for given quantization direction ----
     call l_matrix()
 
-    !------ Calculate L.S matrix for the given quantization direction ------
-    if(SOC) call updateLS(theta, phi, nOrb)
+    ! !------ Calculate L.S matrix for the given quantization direction ------
+    ! if(SOC) call updateLS(theta, phi)
 
-    !------ Calculate L.B matrix for the given quantization direction ------
-    call lb_matrix(sys%nAtoms, nOrb)
+    ! !------ Calculate L.B matrix for the given quantization direction ------
+    ! call lb_matrix(sys%nAtoms, nOrb)
 
-    !------------------------ Calculate S.B matrix  ------------------------
-    call sb_matrix(sys%nAtoms, nOrb)
+    ! !------------------------ Calculate S.B matrix  ------------------------
+    ! call sb_matrix(sys%nAtoms, nOrb)
 
     !---------------------------- Debugging part ---------------------------
     ! if(ldebug) then TODO: Re-Include

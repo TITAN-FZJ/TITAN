@@ -73,7 +73,6 @@ module mod_magnet
 contains
 
   ! This subroutine sets up external magnetic fields and related loop
-  !subroutine prepare_field()
   subroutine setMagneticLoopPoints()
     use mod_constants, only: rad2deg
     implicit none

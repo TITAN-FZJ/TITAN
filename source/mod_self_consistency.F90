@@ -15,18 +15,129 @@ module mod_self_consistency
    logical :: lnojac = .false.
    logical :: lrotatemag = .false.
 
+   complex(double), dimension(:,:,:), allocatable  :: Ucc0
+   real(double),    dimension(:),     allocatable  :: Un0
+
 contains
 
+  subroutine calc_initial_Uterms()
+  !! Calculates the expectation value \sum_s U^i <c^+_imus c_inus>
+  !! and U^i n_i/2
+  use mod_f90_kind,      only: double
+  use mod_constants,     only: cZero,tpi
+  use mod_System,        only: s => sys
+  use TightBinding,      only: nOrb,nOrb2
+  use EnergyIntegration, only: y, wght
+  use mod_parameters,    only: eta, offset, U
+  use mod_magnet,        only: mzd,mpd,rhod
+  use mod_Umatrix
+  use adaptiveMesh
+  use mod_mpi_pars
+  implicit none
+  integer      :: AllocateStatus
+  integer*8    :: ix
+  integer      :: i,mu,nu,mup,nup
+  real(double) :: kp(3)
+  real(double) :: weight, ep
+  complex(double), dimension(:,:,:,:), allocatable :: gf
+  complex(double), dimension(:,:,:),   allocatable :: imguu,imgdd
+  !--------------------- begin MPI vars --------------------
+  integer :: ncount
+  ncount=s%nAtoms*nOrb*nOrb
+  !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
+
+  allocate(imguu(nOrb, nOrb,s%nAtoms),imgdd(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
+  if(AllocateStatus/=0) call abortProgram("[calc_initial_Uterms] Not enough memory for: imguu,imgdd")
+  allocate(Ucc0(nOrb,nOrb,s%nAtoms),Un0(s%nAtoms), stat = AllocateStatus)
+  if(AllocateStatus/=0) call abortProgram("[calc_initial_Uterms] Not enough memory for: Ucc0,In0")
+
+  mzd = 0.d0
+  mpd = cZero
+  do i = 1, s%nAtoms
+    rhod(i) = s%Types(s%Basis(i)%Material)%OccupationD
+    Un0 (i) = 0.5d0*U(i+offset) * s%Types(s%Basis(i)%Material)%OccupationD
+  end do
+  Ucc0 = cZero
+  call init_Umatrix(mzd,mpd,rhod,Un0,Ucc0,s%nAtoms,nOrb)
+
+  imguu = cZero
+  imgdd = cZero
+
+  !$omp parallel default(none) &
+  !$omp& private(AllocateStatus,ix,i,mu,nu,mup,nup,kp,ep,weight,gf) &
+  !$omp& shared(local_points,s,E_k_imag_mesh,bzs,eta,y,wght,imguu,imgdd)
+  allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat = AllocateStatus)
+  gf = cZero
+
+  !$omp do schedule(static) reduction(+:imguu) reduction(+:imgdd)
+  do ix = 1, local_points
+    ep = y(E_k_imag_mesh(1,ix))
+    kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
+    weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
+    !Green function on energy Ef + iy, and wave vector kp
+    call green(s%Ef,ep+eta,kp,gf)
+    do i=1,s%nAtoms
+    do mu=1,nOrb
+      mup = mu+nOrb
+      do nu=1,nOrb
+      nup = nu+nOrb
+
+      imguu(mu,nu,i) = imguu(mu,nu,i) + ( gf(nu ,mu ,i,i) + conjg(gf(mu ,nu ,i,i)) ) * weight
+      imgdd(mu,nu,i) = imgdd(mu,nu,i) + ( gf(nup,mup,i,i) + conjg(gf(mup,nup,i,i)) ) * weight
+      end do
+    end do
+    end do
+  end do
+  !$omp end do
+
+  deallocate(gf)
+  !$omp end parallel
+  imguu = imguu / tpi
+  imgdd = imgdd / tpi
+
+  call MPI_Allreduce(MPI_IN_PLACE, imguu, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
+  call MPI_Allreduce(MPI_IN_PLACE, imgdd, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
+
+  Un0 = cZero
+  do i=1,s%nAtoms
+    do mu=5,nOrb
+      imguu(mu,mu,i) = 0.5d0 + imguu(mu,mu,i)
+      imgdd(mu,mu,i) = 0.5d0 + imgdd(mu,mu,i)
+      Un0(i) = Un0(i) + (imguu(mu,mu,i) + imgdd(mu,mu,i))*0.5d0*U(i+offset)
+    end do
+    Ucc0(:,:,i) = (imguu(:,:,i) + imgdd(:,:,i))*U(i+offset)
+  end do
+
+  deallocate(imguu,imgdd)
+
+  return
+  end subroutine calc_initial_Uterms
+
   subroutine doSelfConsistency()
-    use mod_magnet,   only: lp_matrix, mtheta, mphi
-    use adaptiveMesh, only: genLocalEKMesh, freeLocalEKMesh
-    use mod_mpi_pars, only: rField, sField, FieldComm
-    use mod_SOC,      only: SOC
+    use mod_magnet,     only: lp_matrix, mtheta, mphi, lb_matrix, sb_matrix
+    use adaptiveMesh,   only: genLocalEKMesh, freeLocalEKMesh
+    use mod_mpi_pars,   only: rField, sField, FieldComm
+    use mod_SOC,        only: SOC, updateLS
+    use mod_parameters, only: theta, phi
+    use mod_System,     only: s => sys
+    use TightBinding,   only: nOrb
     implicit none
     logical :: lsuccess = .false.
 
     ! Distribute Energy Integration across all points available
     call genLocalEKMesh(rField,sField, FieldComm)
+
+    ! Calculating initial values for U terms in the hamiltonian with mag=0
+    call calc_initial_Uterms()
+
+    !------ Calculate L.S matrix for the given quantization direction ------
+    if(SOC) call updateLS(theta, phi)
+
+    !------ Calculate L.B matrix for the given quantization direction ------
+    call lb_matrix(s%nAtoms, nOrb)
+
+    !------------------------ Calculate S.B matrix  ------------------------
+    call sb_matrix(s%nAtoms, nOrb)
 
     !--------------------------- Self-consistency --------------------------
     ! Trying to read previous densities and Ef from files
@@ -147,7 +258,7 @@ contains
       end do
     end if
 
-    call init_Umatrix(mzd,mpd,rhod,s%nAtoms,nOrb)
+    call init_Umatrix(mzd,mpd,rhod,Un0,Ucc0,s%nAtoms,nOrb)
 
     return
   end subroutine read_previous_results
@@ -1106,7 +1217,7 @@ contains
     mpd_in  = cmplx(mxd_in,myd_in)
     s%Ef    = x(4*s%nAtoms+1)
 
-    call update_Umatrix(mzd_in, mpd_in, rhod_in, s%nAtoms, nOrb)
+    call update_Umatrix(mzd_in, mpd_in, rhod_in, Un0, Ucc0, s%nAtoms, nOrb)
 
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
 
@@ -1174,7 +1285,7 @@ contains
     mpd_in  = cmplx(mxd_in,myd_in)
     s%Ef    = x(4*s%nAtoms+1)
 
-    call update_Umatrix(mzd_in, mpd_in, rhod_in, s%nAtoms, nOrb)
+    call update_Umatrix(mzd_in, mpd_in, rhod_in, Un0, Ucc0, s%nAtoms, nOrb)
 
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
 
@@ -1235,7 +1346,7 @@ contains
     mpd_in  = cmplx(mxd_in,myd_in)
     s%Ef    = x(4*s%nAtoms+1)
 
-    call update_Umatrix(mzd_in, mpd_in, rhod_in, s%nAtoms, nOrb)
+    call update_Umatrix(mzd_in, mpd_in, rhod_in, Un0, Ucc0, s%nAtoms, nOrb)
 
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
 
@@ -1300,7 +1411,7 @@ contains
     mpd_in  = cmplx(mxd_in,myd_in)
     s%Ef    = x(4*s%nAtoms+1)
 
-    call update_Umatrix(mzd_in, mpd_in, rhod_in, s%nAtoms, nOrb)
+    call update_Umatrix(mzd_in, mpd_in, rhod_in, Un0, Ucc0, s%nAtoms, nOrb)
 
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
 
@@ -1356,7 +1467,7 @@ contains
     mpd_in  = cmplx(mxd_in,myd_in)
     s%Ef    = x(4*s%nAtoms+1)
 
-    call update_Umatrix(mzd_in, mpd_in, rhod_in, s%nAtoms, nOrb)
+    call update_Umatrix(mzd_in, mpd_in, rhod_in, Un0, Ucc0, s%nAtoms, nOrb)
 
     fvec=fvec
 
