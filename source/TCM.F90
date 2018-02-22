@@ -239,16 +239,16 @@ subroutine local_SO_torque(torque)
     end do
 
     ! p-block
-    torque( 2: 4, 2: 4,:,i) = 0.25d0 * s%Types(s%Basis(i)%Material)%LambdaP * torque( 2: 4, 2: 4,:,i)
-    torque( 2: 4,11:13,:,i) = 0.25d0 * s%Types(s%Basis(i)%Material)%LambdaP * torque( 2: 4,11:13,:,i)
-    torque(11:13, 2: 4,:,i) = 0.25d0 * s%Types(s%Basis(i)%Material)%LambdaP * torque(11:13, 2: 4,:,i)
-    torque(11:13,11:13,:,i) = 0.25d0 * s%Types(s%Basis(i)%Material)%LambdaP * torque(11:13,11:13,:,i)
+    torque( 2: 4, 2: 4,:,i) = 0.5d0 * s%Types(s%Basis(i)%Material)%LambdaP * torque( 2: 4, 2: 4,:,i)
+    torque( 2: 4,11:13,:,i) = 0.5d0 * s%Types(s%Basis(i)%Material)%LambdaP * torque( 2: 4,11:13,:,i)
+    torque(11:13, 2: 4,:,i) = 0.5d0 * s%Types(s%Basis(i)%Material)%LambdaP * torque(11:13, 2: 4,:,i)
+    torque(11:13,11:13,:,i) = 0.5d0 * s%Types(s%Basis(i)%Material)%LambdaP * torque(11:13,11:13,:,i)
 
     ! d-block
-    torque( 5: 9, 5: 9,:,i) = 0.25d0 * s%Types(s%Basis(i)%Material)%LambdaD  * torque( 5: 9, 5: 9,:,i)
-    torque( 5: 9,14:18,:,i) = 0.25d0 * s%Types(s%Basis(i)%Material)%LambdaD  * torque( 5: 9,14:18,:,i)
-    torque(14:18, 5: 9,:,i) = 0.25d0 * s%Types(s%Basis(i)%Material)%LambdaD  * torque(14:18, 5: 9,:,i)
-    torque(14:18,14:18,:,i) = 0.25d0 * s%Types(s%Basis(i)%Material)%LambdaD  * torque(14:18,14:18,:,i)
+    torque( 5: 9, 5: 9,:,i) = 0.5d0 * s%Types(s%Basis(i)%Material)%LambdaD * torque( 5: 9, 5: 9,:,i)
+    torque( 5: 9,14:18,:,i) = 0.5d0 * s%Types(s%Basis(i)%Material)%LambdaD * torque( 5: 9,14:18,:,i)
+    torque(14:18, 5: 9,:,i) = 0.5d0 * s%Types(s%Basis(i)%Material)%LambdaD * torque(14:18, 5: 9,:,i)
+    torque(14:18,14:18,:,i) = 0.5d0 * s%Types(s%Basis(i)%Material)%LambdaD * torque(14:18,14:18,:,i)
   end do
 
 

@@ -77,6 +77,7 @@ contains
     use ElectricField, only: ElectricFieldMode, ElectricFieldVector, EFp, EFt
     use EnergyIntegration, only: parts, parts3, pn1, pn2, pnt, n1gl, n3gl
     use mod_tools, only: itos
+    use adaptiveMesh, only: minimumBZmesh
     implicit none
     character(len=*), intent(in) :: filename
     type(System), intent(inout) :: s
@@ -131,6 +132,7 @@ contains
       call log_error("get_parameter", "'nkpt' has wrong size (expected 1 or 3)")
     end if
 
+    if(.not. get_parameter("minimumBZmesh", minimumBZmesh, 1000)) call log_warning("get_parameters", "'minimumBZmesh' missing. Using default value.")
     !===============================================================================================
     !===============================================================================================
 
@@ -567,6 +569,7 @@ contains
     use mod_magnet
     use EnergyIntegration, only: parts, parts3, n1gl, n3gl
     use electricfield, only: ElectricFieldMode, ElectricFieldVector, EFt, EFp
+    use adaptiveMesh, only: minimumBZmesh
     !$ use omp_lib
     implicit none
     type(System), intent(in) :: s
@@ -604,7 +607,8 @@ contains
     case(1:99)
        write(output%unit_loop, "('Neighbor ',i0)") ElectricFieldMode
     end select
-    write(output%unit_loop,"('Direction ',/,1x,' E = (',f6.3,',',f6.3,',',f6.3,')')") (ElectricFieldVector(i), i=1,3)
+    write(output%unit_loop,"(1x,'Direction: ')", advance='no')
+    write(output%unit_loop,"('E = (',f6.3,',',f6.3,',',f6.3,')')") (ElectricFieldVector(i), i=1,3)
 
     if(renorm) then
        write(output%unit_loop,"(1x,'Current renormalization: ACTIVATED')")
@@ -613,6 +617,7 @@ contains
        write(output%unit_loop,"(1x,'Current renormalization: DEACTIVATED')")
     end if
     write(output%unit_loop,"(9x,'nkpt = ',i0,' : ',i0,' x ',i0,' x ',i0)") BZ%nkpt, BZ%nkpt_x, BZ%nkpt_y, BZ%nkpt_z
+    if(minimumBZmesh/=1000) write(output%unit_loop,"(9x,'minimumBZmesh = ',i0)") minimumBZmesh
     write(output%unit_loop,"(8x,'parts = ',i0,'x',i0)") parts,n1gl
     write(output%unit_loop,"(7x,'parts3 = ',i0,'x',i0)") parts3,n3gl
     write(output%unit_loop,"(10x,'eta =',es9.2)") eta

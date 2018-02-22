@@ -15,56 +15,54 @@ module mod_self_consistency
    logical :: lnojac = .false.
    logical :: lrotatemag = .false.
 
-   complex(double), dimension(:,:,:), allocatable  :: Ucc0
-   real(double),    dimension(:),     allocatable  :: Un0
-
 contains
 
   subroutine calc_initial_Uterms()
   !! Calculates the expectation value \sum_s U^i <c^+_imus c_inus>
   !! and U^i n_i/2
   use mod_f90_kind,      only: double
-  use mod_constants,     only: cZero,tpi
+  use mod_constants,     only: cZero,pi
   use mod_System,        only: s => sys
   use TightBinding,      only: nOrb,nOrb2
   use EnergyIntegration, only: y, wght
-  use mod_parameters,    only: eta, offset, U
-  use mod_magnet,        only: mzd,mpd,rhod
+  use mod_parameters,    only: eta
+  use mod_magnet,        only: mzd,mpd,rhod,rho,rho0,rhod0
   use mod_Umatrix
   use adaptiveMesh
   use mod_mpi_pars
   implicit none
   integer      :: AllocateStatus
   integer*8    :: ix
-  integer      :: i,mu,nu,mup,nup
+  integer      :: i,mu,mup
   real(double) :: kp(3)
   real(double) :: weight, ep
   complex(double), dimension(:,:,:,:), allocatable :: gf
-  complex(double), dimension(:,:,:),   allocatable :: imguu,imgdd
+  real(double),    dimension(:,:),     allocatable :: imguu,imgdd
   !--------------------- begin MPI vars --------------------
   integer :: ncount
-  ncount=s%nAtoms*nOrb*nOrb
+  ncount=s%nAtoms*nOrb
   !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
-  allocate(imguu(nOrb, nOrb,s%nAtoms),imgdd(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
+  allocate(imguu(nOrb,s%nAtoms),imgdd(nOrb,s%nAtoms), stat = AllocateStatus)
   if(AllocateStatus/=0) call abortProgram("[calc_initial_Uterms] Not enough memory for: imguu,imgdd")
-  allocate(Ucc0(nOrb,nOrb,s%nAtoms),Un0(s%nAtoms), stat = AllocateStatus)
-  if(AllocateStatus/=0) call abortProgram("[calc_initial_Uterms] Not enough memory for: Ucc0,In0")
+  allocate(rho0(nOrb,s%nAtoms),rhod0(s%nAtoms), stat = AllocateStatus)
+  if(AllocateStatus/=0) call abortProgram("[calc_initial_Uterms] Not enough memory for: rho0,rhod0")
 
   mzd = 0.d0
   mpd = cZero
   do i = 1, s%nAtoms
     rhod(i) = s%Types(s%Basis(i)%Material)%OccupationD
-    Un0 (i) = 0.5d0*U(i+offset) * s%Types(s%Basis(i)%Material)%OccupationD
+    rhod0  (i) = s%Types(s%Basis(i)%Material)%OccupationD
   end do
-  Ucc0 = cZero
-  call init_Umatrix(mzd,mpd,rhod,Un0,Ucc0,s%nAtoms,nOrb)
+  rho0 = 0.d0
+  rho  = rho0
+  call init_Umatrix(mzd,mpd,rhod,rhod0,rho,rho0,s%nAtoms,nOrb)
 
-  imguu = cZero
-  imgdd = cZero
+  imguu = 0.d0
+  imgdd = 0.d0
 
   !$omp parallel default(none) &
-  !$omp& private(AllocateStatus,ix,i,mu,nu,mup,nup,kp,ep,weight,gf) &
+  !$omp& private(AllocateStatus,ix,i,mu,mup,kp,ep,weight,gf) &
   !$omp& shared(local_points,s,E_k_imag_mesh,bzs,eta,y,wght,imguu,imgdd)
   allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat = AllocateStatus)
   gf = cZero
@@ -77,37 +75,34 @@ contains
     !Green function on energy Ef + iy, and wave vector kp
     call green(s%Ef,ep+eta,kp,gf)
     do i=1,s%nAtoms
-    do mu=1,nOrb
-      mup = mu+nOrb
-      do nu=1,nOrb
-      nup = nu+nOrb
-
-      imguu(mu,nu,i) = imguu(mu,nu,i) + ( gf(nu ,mu ,i,i) + conjg(gf(mu ,nu ,i,i)) ) * weight
-      imgdd(mu,nu,i) = imgdd(mu,nu,i) + ( gf(nup,mup,i,i) + conjg(gf(mup,nup,i,i)) ) * weight
+      do mu=1,nOrb
+        mup = mu+nOrb
+        imguu(mu,i) = imguu(mu,i) + real(gf(mu ,mu ,i,i)) * weight
+        imgdd(mu,i) = imgdd(mu,i) + real(gf(mup,mup,i,i)) * weight
       end do
-    end do
     end do
   end do
   !$omp end do
 
   deallocate(gf)
   !$omp end parallel
-  imguu = imguu / tpi
-  imgdd = imgdd / tpi
+  imguu = imguu / pi
+  imgdd = imgdd / pi
 
-  call MPI_Allreduce(MPI_IN_PLACE, imguu, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
-  call MPI_Allreduce(MPI_IN_PLACE, imgdd, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
+  call MPI_Allreduce(MPI_IN_PLACE, imguu, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
+  call MPI_Allreduce(MPI_IN_PLACE, imgdd, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
 
-  Un0 = cZero
+  rhod0 = 0.d0
   do i=1,s%nAtoms
-    do mu=5,nOrb
-      imguu(mu,mu,i) = 0.5d0 + imguu(mu,mu,i)
-      imgdd(mu,mu,i) = 0.5d0 + imgdd(mu,mu,i)
-      Un0(i) = Un0(i) + (imguu(mu,mu,i) + imgdd(mu,mu,i))*0.5d0*U(i+offset)
+    do mu=1,nOrb
+      imguu(mu,i) = 0.5d0 + imguu(mu,i)
+      imgdd(mu,i) = 0.5d0 + imgdd(mu,i)
+      if(mu>=5) rhod0(i) = rhod0(i) + real(imguu(mu,i) + imgdd(mu,i))
+      rho0(mu,i) = imguu(mu,i) + imgdd(mu,i)
     end do
-    Ucc0(:,:,i) = (imguu(:,:,i) + imgdd(:,:,i))*U(i+offset)
   end do
 
+! if(rField == 0) write(*,*) rhod0,sum(abs(rho0))
   deallocate(imguu,imgdd)
 
   return
@@ -172,8 +167,8 @@ contains
   subroutine read_previous_results(lsuccess)
     use mod_f90_kind, only: double
     use mod_constants, only: deg2rad
-    use mod_magnet, only: mx, my, mz, mxd, myd, mzd, mpd, &
-                          hw_count, hw_list, lfield, rho, rhod
+    use mod_magnet, only: mx,my,mz,mxd,myd,mzd,mpd, &
+                          hw_count,hw_list,lfield,rho,rhod,rhod0,rho0
     use mod_parameters, only: output, magaxis, magaxisvec, offset, layertype
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
@@ -246,19 +241,19 @@ contains
       mx = 0.d0
       my = 0.d0
       mz = 0.d0
+      ! Initialize U matrix using occupations from elemental files and rho=rho0
+      rho = rho0
       do i = 1, s%nAtoms
         mx(5:9,i) = 0.2d0*mxd(i)
         my(5:9,i) = 0.2d0*myd(i)
         mz(5:9,i) = 0.2d0*mzd(i)
 
-        rho(  1,i) = s%Types(s%Basis(i)%Material)%OccupationS
-        rho(2:4,i) = s%Types(s%Basis(i)%Material)%OccupationP/3.d0
-        rho(5:9,i) = s%Types(s%Basis(i)%Material)%OccupationD/5.d0
         rhod(i)    = s%Types(s%Basis(i)%Material)%OccupationD
       end do
+
     end if
 
-    call init_Umatrix(mzd,mpd,rhod,Un0,Ucc0,s%nAtoms,nOrb)
+    call init_Umatrix(mzd,mpd,rhod,rhod0,rho,rho0,s%nAtoms,nOrb)
 
     return
   end subroutine read_previous_results
@@ -436,13 +431,14 @@ contains
 
   subroutine calcMagneticSelfConsistency()
   !! This subroutine performs the self-consistency
-    use mod_f90_kind, only: double
-    use mod_constants, only: pi
+    use mod_f90_kind,   only: double
+    use mod_constants,  only: pi
     use mod_parameters, only: output
-    use mod_magnet, only: iter, rhod, mxd, myd, mzd
-    use mod_mpi_pars, only: calcWorkload, rField
+    use mod_magnet,     only: iter, rho, rhod, mxd, myd, mzd
+    use mod_mpi_pars,   only: calcWorkload, rField
+    use TightBinding,   only: nOrb
+    use mod_system,     only: s => sys
     use adaptiveMesh
-    use mod_system, only: s => sys
     use mod_dnsqe
     implicit none
     real(double),allocatable      :: fvec(:),jac(:,:),wa(:),sc_solu(:)
@@ -454,17 +450,21 @@ contains
 #else
     real(double),allocatable :: w(:,:)
 #endif
-    integer                       :: neq,maxfev,ml,mr,mode,nfev,njev,lwa,ifail=0
+    integer                       :: i,mu,neq,maxfev,ml,mr,mode,nfev,njev,lwa,ifail=0
 
-    neq = 4*s%nAtoms+1
+    neq = 8*s%nAtoms+1
     allocate( sc_solu(neq),diag(neq),qtf(neq),fvec(neq),jac(neq,neq) )
 
     ! Putting read n and m existing solutions into sc_solu (first guess of the subroutine)
-    sc_solu(1:s%nAtoms)              = rhod
-    sc_solu(s%nAtoms+1:2*s%nAtoms)   = mxd
-    sc_solu(2*s%nAtoms+1:3*s%nAtoms) = myd
-    sc_solu(3*s%nAtoms+1:4*s%nAtoms) = mzd
-    sc_solu(neq) = s%Ef
+    do i = 1, s%nAtoms
+      do mu = 5,nOrb
+        sc_solu((i-1)*5+(mu-4)) = rho(mu,i)
+      end do
+      sc_solu((i-1)*8+6) = mxd(i)
+      sc_solu((i-1)*8+7) = myd(i)
+      sc_solu((i-1)*8+8) = mzd(i)
+    end do
+    sc_solu(8*s%nAtoms+1) = s%Ef
     iter  = 1
 
     if(rField == 0) write(output%unit_loop,"('[self_consistency] Starting self-consistency:')")
@@ -543,20 +543,20 @@ contains
   subroutine calcMagnetization()
     !! Calculates occupation density and magnetization.
     use mod_f90_kind,      only: double
-    use mod_constants,     only: cI, pi, cZero
-    use mod_SOC,           only: llinearsoc, llineargfsoc
-    use EnergyIntegration, only: y, wght
+    use mod_constants,     only: cI,pi,cZero
+    use mod_SOC,           only: llinearsoc,llineargfsoc
+    use EnergyIntegration, only: y,wght
     use mod_system,        only: s => sys
-    use mod_magnet,        only: mx, my, mz, mp, rho, mxd, myd, mzd, mpd, rhod
-    use adaptiveMesh,      only: bzs, E_k_imag_mesh, activeComm, local_points
+    use mod_magnet,        only: mx,my,mz,mp,rho,mxd,myd,mzd,mpd,rhod,rho0
+    use adaptiveMesh,      only: bzs,E_k_imag_mesh,activeComm,local_points
     use TightBinding,      only: nOrb,nOrb2
     use mod_parameters,    only: eta
     use mod_mpi_pars
     implicit none
     integer  :: i,j, AllocateStatus
-    real(double),    dimension(3) :: kp
-    real(double),    dimension(:,:), allocatable :: n_orb_u, n_orb_d
-    complex(double), dimension(:,:), allocatable :: gdiagud,gdiagdu
+    real(double),    dimension(3)                    :: kp
+    complex(double), dimension(:,:),     allocatable :: gdiagud,gdiagdu
+    real(double),    dimension(:,:),     allocatable :: imguu,imgdd
     complex(double), dimension(:,:,:,:), allocatable :: gf
     !--------------------- begin MPI vars --------------------
     integer*8 :: ix
@@ -565,27 +565,26 @@ contains
     real(double) :: weight, ep
     ncount = s%nAtoms * nOrb
 
-    allocate(n_orb_u(s%nAtoms,nOrb), n_orb_d(s%nAtoms,nOrb), stat = AllocateStatus)
-    if(AllocateStatus /= 0) call abortProgram("[calcMagnetization] Not enough memory for: n_orb_u, n_orb_d")
+    allocate(imguu(nOrb,s%nAtoms),imgdd(nOrb,s%nAtoms), stat = AllocateStatus)
+    if(AllocateStatus/=0) call abortProgram("[calcMagnetization] Not enough memory for: imguu,imgdd")
 
     allocate(gdiagud(s%nAtoms,nOrb), gdiagdu(s%nAtoms,nOrb), stat = AllocateStatus)
     if(AllocateStatus /= 0) call abortProgram("[calcMagnetization] Not enough memory for: gdiagdu, gdiagud")
 
-    n_orb_u = 0.d0
-    n_orb_d = 0.d0
-
+    imguu   = 0.d0
+    imgdd   = 0.d0
     gdiagud = cZero
     gdiagdu = cZero
 
     !$omp parallel default(none) &
     !$omp& private(ix,ep,kp,weight,i,mu,mup,gf,AllocateStatus) &
-    !$omp& shared(llineargfsoc,llinearsoc,local_points,eta,wght,s,bzs,E_k_imag_mesh,y,n_orb_u,n_orb_d,gdiagud,gdiagdu)
+    !$omp& shared(llineargfsoc,llinearsoc,local_points,eta,wght,s,bzs,E_k_imag_mesh,y,gdiagud,gdiagdu,imguu,imgdd)
     allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat=AllocateStatus)
     if(AllocateStatus /= 0) call AbortProgram("[calcMagnetization] Not enough memory for: gf")
     gf = cZero
 
     if(llineargfsoc .or. llinearsoc) then
-      !$omp do schedule(static) reduction(+:n_orb_u) reduction(+:n_orb_d) reduction(+:gdiagud) reduction(+:gdiagdu)
+      !$omp do schedule(static) reduction(+:imguu) reduction(+:imgdd) reduction(+:gdiagud) reduction(+:gdiagdu)
       do ix = 1, local_points
          ep = y(E_k_imag_mesh(1,ix))
          kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
@@ -594,16 +593,17 @@ contains
          do i=1,s%nAtoms
            do mu=1,nOrb
              mup = mu+nOrb
-             n_orb_u(i,mu) = n_orb_u(i,mu) + real(gf(mu,mu,i,i)) * weight
-             n_orb_d(i,mu) = n_orb_d(i,mu) + real(gf(mup,mup,i,i)) * weight
              gdiagud(i,mu) = gdiagud(i,mu) + gf(mu,mup,i,i) * weight
              gdiagdu(i,mu) = gdiagdu(i,mu) + gf(mup,mu,i,i) * weight
+
+             imguu(mu,i) = imguu(mu,i) + real(gf(mu ,mu ,i,i)) * weight
+             imgdd(mu,i) = imgdd(mu,i) + real(gf(mup,mup,i,i)) * weight
            end do
          end do
       end do
       !$omp end do
     else
-      !$omp do schedule(static) reduction(+:n_orb_u) reduction(+:n_orb_d) reduction(+:gdiagud) reduction(+:gdiagdu)
+      !$omp do schedule(static) reduction(+:imguu) reduction(+:imgdd) reduction(+:gdiagud) reduction(+:gdiagdu)
       do ix = 1, local_points
          ep = y(E_k_imag_mesh(1,ix))
          kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
@@ -612,10 +612,11 @@ contains
          do i=1,s%nAtoms
            do mu=1,nOrb
              mup = mu+nOrb
-             n_orb_u(i,mu) = n_orb_u(i,mu) + real(gf(mu,mu,i,i)) * weight
-             n_orb_d(i,mu) = n_orb_d(i,mu) + real(gf(mup,mup,i,i)) * weight
              gdiagud(i,mu) = gdiagud(i,mu) + gf(mu,mup,i,i) * weight
              gdiagdu(i,mu) = gdiagdu(i,mu) + gf(mup,mu,i,i) * weight
+
+             imguu(mu,i) = imguu(mu,i) + real(gf(mu ,mu ,i,i)) * weight
+             imgdd(mu,i) = imgdd(mu,i) + real(gf(mup,mup,i,i)) * weight
            end do
          end do
       end do
@@ -624,19 +625,19 @@ contains
 
     deallocate(gf)
     !$omp end parallel
+    imguu = imguu / pi
+    imgdd = imgdd / pi
 
     do j=1,s%nAtoms
       mp(:,j)= gdiagdu(j,:) + conjg(gdiagud(j,:))
       mpd(j) = sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9)))
     end do
 
-    call MPI_Allreduce(MPI_IN_PLACE, n_orb_u, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, n_orb_d, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, mp, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, imguu, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, imgdd, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, mp,    ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
     call MPI_Allreduce(MPI_IN_PLACE, mpd, s%nAtoms, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
 
-    n_orb_u = 0.5d0 + n_orb_u/pi
-    n_orb_d = 0.5d0 + n_orb_d/pi
     mp      = mp/pi
     mpd     = mpd/pi
     mx      = real(mp)
@@ -645,13 +646,25 @@ contains
     myd     = aimag(mpd)
 
     do i = 1, s%nAtoms
-      rho(:,i) = n_orb_u(i, : ) + n_orb_d(i, : )
-      mz (:,i) = n_orb_u(i, : ) - n_orb_d(i, : )
-      rhod(i)  = sum(n_orb_u(i,5:9)) + sum(n_orb_d(i,5:9))
-      mzd(i)   = sum(n_orb_u(i,5:9)) - sum(n_orb_d(i,5:9))
+      do mu=1,nOrb
+        imguu(mu,i) = 0.5d0 + imguu(mu,i)
+        imgdd(mu,i) = 0.5d0 + imgdd(mu,i)
+        rho(mu,i) = imguu(mu,i) + imgdd(mu,i)
+        mz (mu,i) = imguu(mu,i) - imgdd(mu,i)
+      end do
+      rhod(i)   = sum(imguu(5:9,i)) + sum(imgdd(5:9,i))
+      mzd(i)    = sum(imguu(5:9,i)) - sum(imgdd(5:9,i))
+      ! rho = rho0
     end do
+! do mu=1,9 ; do nu=1,9
+! if(aimag(rho(mu,nu,1)) >= 1.d-10 )  then
+! if(rField == 0)  write(*,*) mu,nu, rho(mu,nu,1)
+! end if
+! end do ; end do
 
-    deallocate(n_orb_u, n_orb_d)
+! if(rField == 0) write(*,*) sum(abs(rho(5:9,5:9,:))),sum(abs(rho(5:9,5:9,:) - rho0(5:9,5:9,:)))
+
+    deallocate(imguu,imgdd)
     deallocate(gdiagdu, gdiagud)
 
     return
@@ -659,21 +672,21 @@ contains
 
   subroutine calcJacobian(jacobian, N)
     !! Calculated the Jacobian of the spin magnetization
-    use mod_f90_kind, only: double
-    use mod_constants, only: cI, pi, identorb18, cZero, pauli_dorb, pauli_orb, cOne
-    use mod_parameters, only: U, offset, eta
-    use mod_SOC, only: llinearsoc, llineargfsoc
+    use mod_f90_kind,      only: double
+    use mod_constants,     only: cI, pi, identorb18, cZero, pauli_dorb, pauli_orb, cOne
+    use mod_parameters,    only: U, offset, eta
+    use mod_SOC,           only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: y, wght
-    use mod_system, only: s => sys
-    use adaptiveMesh, only: local_points, E_k_imag_mesh, bzs, activeComm
+    use mod_system,        only: s => sys
+    use adaptiveMesh,      only: local_points, E_k_imag_mesh, bzs, activeComm
     use mod_BrillouinZone, only: realBZ
-    use TightBinding, only: nOrb,nOrb2
+    use TightBinding,      only: nOrb,nOrb2
     use mod_mpi_pars
     implicit none
-    integer, intent(in) :: N
-    real(double), intent(inout), dimension(N,N) :: jacobian
-    complex(double), dimension(:,:), allocatable :: gij,gji,temp,paulitemp
-    complex(double), dimension(:,:,:), allocatable :: temp1,temp2
+    integer,      intent(in) :: N
+    real(double),    dimension(N,N),   intent(inout) :: jacobian
+    complex(double), dimension(:,:),     allocatable :: gij,gji,temp,paulitemp
+    complex(double), dimension(:,:,:),   allocatable :: temp1,temp2
     complex(double), dimension(:,:,:,:), allocatable :: gf,gvg
 
     integer :: i,j
@@ -1119,11 +1132,12 @@ contains
 
     if(rField == 0) then
       ! Writing new results (mx, my, mz and n) to file
-      write(output%unit_loop,"('[write_sc_results] Writing new n, mx, my and mz to file...')")
+      write(output%unit_loop,"('[write_sc_results] Writing new n, mx, my, mz and Ef to file...')")
       write(scfile,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,a,a,a,'.dat')") output%SOCchar, trim(output%Sites),dfttype,parts,trim(output%BField),trim(output%info),trim(output%SOC)
       open (unit=99,status='replace',file=scfile)
 
       write(formatvar,fmt="(a,i0,a)") '(',4*nOrb,'(es21.11,2x))'
+
       do i=1,s%nAtoms
         write(99,fmt=formatvar) (rho(j,i), j=1,nOrb),(mx(j,i), j=1,nOrb),(my(j,i), j=1,nOrb),(mz(j,i), j=1,nOrb)
       end do
@@ -1142,30 +1156,37 @@ contains
 
   ! Writes the initial values for the self-consistency
   subroutine print_sc_step(n,mx,my,mz,Ef,fvec)
-    use mod_f90_kind, only: double
+    use mod_f90_kind,   only: double
     use mod_parameters, only: output
-    use mod_system, only: s => sys
-    use mod_magnet, only: iter
+    use mod_system,     only: s => sys
+    use mod_magnet,     only: iter
+    use TightBinding,   only: nOrb
     use mod_mpi_pars
     implicit none
-    real(double),dimension(4*s%nAtoms+1),optional :: fvec
-    real(double),dimension(s%nAtoms) :: n,mx,my,mz
-    real(double)                     :: Ef
-    integer :: i
+    real(double),dimension(4*s%nAtoms+1), intent(in), optional :: fvec
+    real(double),dimension(s%nAtoms),     intent(in) :: n,mx,my,mz
+    real(double)                    ,     intent(in) :: Ef
+    integer :: i,mu
+    real(double) :: fvecsum
 
     if(rField==0) then
       if(present(fvec)) then
         do i=1,s%nAtoms
+          fvecsum = 0.0
+          do mu = 5,nOrb
+            fvecsum = fvecsum + fvec((i-1)*5+(mu-4))
+          end do
+
           if(abs(cmplx(mx(i),my(i)))>1.d-10) then
             write(output%unit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mx(i),i,my(i),i,mz(i)
-            write(output%unit_loop,"(15x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+s%nAtoms,fvec(i+s%nAtoms),i+2*s%nAtoms,fvec(i+2*s%nAtoms),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
+            write(output%unit_loop,"(15x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvecsum,i+5*s%nAtoms,fvec(i+5*s%nAtoms),i+6*s%nAtoms,fvec(i+6*s%nAtoms),i+7*s%nAtoms,fvec(i+7*s%nAtoms)
           else
             write(output%unit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mz(i)
-            write(output%unit_loop,"(15x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvec(i),i+3*s%nAtoms,fvec(i+3*s%nAtoms)
+            write(output%unit_loop,"(15x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvecsum,i+7*s%nAtoms,fvec(i+7*s%nAtoms)
           end if
         end do
         write(output%unit_loop,"(13x,'Ef=',es16.9)") Ef
-        write(output%unit_loop,"(15x,'fvec(',I2,')=',es16.9)") 4*s%nAtoms+1,fvec(4*s%nAtoms+1)
+        write(output%unit_loop,"(15x,'fvec(',I2,')=',es16.9)") 8*s%nAtoms+1,fvec(8*s%nAtoms+1)
       else if(iter == 1) then
         write(output%unit_loop,"('|---------------- Starting charge density, magnetization and Ef ----------------|')")
         do i=1,s%nAtoms
@@ -1192,51 +1213,53 @@ contains
   ! and the correspondent jacobian
 #if !defined(_OSX) && !defined(_JUQUEEN)
   subroutine sc_equations_and_jacobian(N,x,fvec,selfconjac,iuser,ruser,iflag)
-    use mod_f90_kind, only: double
+    use mod_f90_kind,   only: double
     use mod_parameters, only: output
-    use mod_system, only: s => sys
-    use TightBinding, only: nOrb
-    use mod_magnet, only: iter,rho,mx,my,mz,rhod,mxd,myd,mzd
-    use mod_Umatrix, only: update_Umatrix
+    use mod_system,     only: s => sys
+    use TightBinding,   only: nOrb
+    use mod_magnet,     only: iter,rho,rhod,mxd,myd,mzd,rhod0,rho0
+    use mod_Umatrix,    only: update_Umatrix
     use mod_mpi_pars
     implicit none
-    integer  :: N,i,iflag
-    integer     ,  intent(inout)        :: iuser(*)
-    real(double),  intent(inout)        :: ruser(*)
-    real(double),   dimension(N)        :: x,fvec
-    real(double),   dimension(N,N)      :: selfconjac
-    real(double),   dimension(s%nAtoms) :: mx_in,my_in,mz_in,rho_in
-    real(double),   dimension(s%nAtoms) :: mxd_in,myd_in,mzd_in,rhod_in
-    complex(double),dimension(s%nAtoms) :: mp_in,mpd_in
+    integer  :: N,i,mu,iflag
+    integer     ,  intent(inout)             :: iuser(*)
+    real(double),  intent(inout)             :: ruser(*)
+    real(double),   dimension(N)             :: x,fvec
+    real(double),   dimension(N,N)           :: selfconjac
+    real(double),   dimension(nOrb,s%nAtoms) :: rho_in
+    real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
+    complex(double),dimension(s%nAtoms)      :: mpd_in
 
     ! Values used in the hamiltonian
-    rhod_in = x(           1:  s%nAtoms)
-    mxd_in  = x(  s%nAtoms+1:2*s%nAtoms)
-    myd_in  = x(2*s%nAtoms+1:3*s%nAtoms)
-    mzd_in  = x(3*s%nAtoms+1:4*s%nAtoms)
-    mpd_in  = cmplx(mxd_in,myd_in)
-    s%Ef    = x(4*s%nAtoms+1)
+    rho_in = rho
+    do i = 1, s%nAtoms
+      do mu = 5,nOrb
+        rho_in(mu,i) = x((i-1)*5+(mu-4))
+      end do
+      rhod_in(i)= sum(rho_in(5:9,i))
+      mxd_in(i) = x((i-1)*8+6)
+      myd_in(i) = x((i-1)*8+7)
+      mzd_in(i) = x((i-1)*8+8)
+      mpd_in(i) = cmplx(mxd_in(i),myd_in(i))
+    end do
+    s%Ef    = x(8*s%nAtoms+1)
 
-    call update_Umatrix(mzd_in, mpd_in, rhod_in, Un0, Ucc0, s%nAtoms, nOrb)
+    call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
 
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
-
-    rho_in = rhod_in + sum(rho(:,:),dim=1) - rhod
-    mx_in  = mxd_in  + sum(mx (:,:),dim=1) - mxd
-    my_in  = myd_in  + sum(my (:,:),dim=1) - mxd
-    mz_in  = mzd_in  + sum(mz (:,:),dim=1) - mxd
-    mp_in  = cmplx(mx_in,my_in)
 
     select case (iflag)
     case(1)
       call calcMagnetization()
       do i = 1, s%nAtoms
-        fvec(i           ) = rhod(i) - rhod_in(i)
-        fvec(i+1*s%nAtoms) =  mxd(i) -  mxd_in(i)
-        fvec(i+2*s%nAtoms) =  myd(i) -  myd_in(i)
-        fvec(i+3*s%nAtoms) =  mzd(i) -  mzd_in(i)
+        do mu = 5,nOrb
+          fvec((i-1)*5+(mu-4)) = rho(mu,i) - rho_in(mu,i)
+        end do
+        fvec((i-1)*8+6) =  mxd(i) -  mxd_in(i)
+        fvec((i-1)*8+7) =  myd(i) -  myd_in(i)
+        fvec((i-1)*8+8) =  mzd(i) -  mzd_in(i)
       end do
-      fvec(4*s%nAtoms+1) = sum(rho) - s%totalOccupation
+      fvec(8*s%nAtoms+1) = sum(rho) - s%totalOccupation
 
       call print_sc_step(rhod,mxd,myd,mzd,s%Ef,fvec)
 
@@ -1264,45 +1287,47 @@ contains
     use mod_constants, only: cI
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter,rho,mx,my,mz,rhod,mxd,myd,mzd
+    use mod_magnet, only: iter,rho,rhod,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix, only: update_Umatrix
     use mod_mpi_pars
     implicit none
-    integer  :: N,i,iflag
-    integer     ,   intent(inout)       :: iuser(*)
-    real(double),   intent(inout)       :: ruser(*)
-    real(double),   dimension(N)        :: x,fvec
-    real(double),   dimension(s%nAtoms) :: mx_in,my_in,mz_in,rho_in
-    real(double),   dimension(s%nAtoms) :: mxd_in,myd_in,mzd_in,rhod_in
-    complex(double),dimension(s%nAtoms) :: mp_in,mpd_in
+    integer  :: N,i,mu,iflag
+    integer     ,   intent(inout)            :: iuser(*)
+    real(double),   intent(inout)            :: ruser(*)
+    real(double),   dimension(N)             :: x,fvec
+    real(double),   dimension(nOrb,s%nAtoms) :: rho_in
+    real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
+    complex(double),dimension(s%nAtoms)      :: mpd_in
 
     iflag=0
     ! Values used in the hamiltonian
-    rhod_in = x(           1:  s%nAtoms)
-    mxd_in  = x(  s%nAtoms+1:2*s%nAtoms)
-    myd_in  = x(2*s%nAtoms+1:3*s%nAtoms)
-    mzd_in  = x(3*s%nAtoms+1:4*s%nAtoms)
-    mpd_in  = cmplx(mxd_in,myd_in)
-    s%Ef    = x(4*s%nAtoms+1)
+    rho_in = rho
+    do i = 1, s%nAtoms
+      do mu = 5,nOrb
+        rho_in(mu,i) = x((i-1)*5+(mu-4))
+      end do
+      rhod_in(i)= sum(rho_in(5:9,i))
+      mxd_in(i) = x((i-1)*8+6)
+      myd_in(i) = x((i-1)*8+7)
+      mzd_in(i) = x((i-1)*8+8)
+      mpd_in(i) = cmplx(mxd_in(i),myd_in(i))
+    end do
+    s%Ef    = x(8*s%nAtoms+1)
 
-    call update_Umatrix(mzd_in, mpd_in, rhod_in, Un0, Ucc0, s%nAtoms, nOrb)
+    call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
 
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
 
-    rho_in = rhod_in + sum(rho(:,:),dim=1) - rhod
-    mx_in  = mxd_in  + sum(mx(:,:), dim=1) - mxd
-    my_in  = myd_in  + sum(my(:,:), dim=1) - mxd
-    mz_in  = mzd_in  + sum(mz(:,:), dim=1) - mxd
-    mp_in  = cmplx(mx_in,my_in)
-
     call calcMagnetization()
     do i = 1, s%nAtoms
-        fvec(i           ) = rhod(i) - rhod_in(i)
-        fvec(i+1*s%nAtoms) =  mxd(i) -  mxd_in(i)
-        fvec(i+2*s%nAtoms) =  myd(i) -  myd_in(i)
-        fvec(i+3*s%nAtoms) =  mzd(i) -  mzd_in(i)
+      do mu = 5,nOrb
+        fvec((i-1)*5+(mu-4)) = rho(mu,i) - rho_in(mu,i)
+      end do
+      fvec((i-1)*8+6) =  mxd(i) -  mxd_in(i)
+      fvec((i-1)*8+7) =  myd(i) -  myd_in(i)
+      fvec((i-1)*8+8) =  mzd(i) -  mzd_in(i)
     end do
-    fvec(4*s%nAtoms+1) = sum(rho) - s%totalOccupation
+    fvec(8*s%nAtoms+1) = sum(rho) - s%totalOccupation
 
     call print_sc_step(rhod,mxd,myd,mzd,s%Ef,fvec)
 
@@ -1327,45 +1352,47 @@ contains
     use mod_parameters, only: output
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter,rho,mx,my,mz,rhod,mxd,myd,mzd
+    use mod_magnet, only: iter,rho,rhod,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix, only: update_Umatrix
     use mod_mpi_pars
     implicit none
-    integer  :: N,i,iflag,ldfjac
-    real(double),   dimension(N)        :: x,fvec
-    real(double),   dimension(ldfjac,N) :: selfconjac
-    real(double),   dimension(s%nAtoms) :: mx_in,my_in,mz_in,rho_in
-    real(double),   dimension(s%nAtoms) :: mxd_in,myd_in,mzd_in,rhod_in
-    complex(double),dimension(s%nAtoms) :: mp_in,mpd_in
+    integer  :: N,i,mu,iflag,ldfjac
+    real(double),   dimension(N)             :: x,fvec
+    real(double),   dimension(ldfjac,N)      :: selfconjac
+    real(double),   dimension(nOrb,s%nAtoms) :: rho_in
+    real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
+    complex(double),dimension(s%nAtoms)      :: mpd_in
 
     ! Values used in the hamiltonian
-    rhod_in = x(           1:  s%nAtoms)
-    mxd_in  = x(  s%nAtoms+1:2*s%nAtoms)
-    myd_in  = x(2*s%nAtoms+1:3*s%nAtoms)
-    mzd_in  = x(3*s%nAtoms+1:4*s%nAtoms)
-    mpd_in  = cmplx(mxd_in,myd_in)
-    s%Ef    = x(4*s%nAtoms+1)
+    rho_in = rho
+    do i = 1, s%nAtoms
+      do mu = 5,nOrb
+        rho_in(mu,i) = x((i-1)*5+(mu-4))
+      end do
+      rhod_in(i)= sum(rho_in(5:9,i))
+      mxd_in(i) = x((i-1)*8+6)
+      myd_in(i) = x((i-1)*8+7)
+      mzd_in(i) = x((i-1)*8+8)
+      mpd_in(i) = cmplx(mxd_in(i),myd_in(i))
+    end do
+    s%Ef    = x(8*s%nAtoms+1)
 
-    call update_Umatrix(mzd_in, mpd_in, rhod_in, Un0, Ucc0, s%nAtoms, nOrb)
+    call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
 
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
-
-    rho_in = rhod_in + sum(rho(:,:),dim=1) - rhod
-    mx_in  = mxd_in  + sum(mx(:,:), dim=1) - mxd
-    my_in  = myd_in  + sum(my(:,:), dim=1) - mxd
-    mz_in  = mzd_in  + sum(mz(:,:), dim=1) - mxd
-    mp_in  = cmplx(mx_in,my_in)
 
     flag: select case (iflag)
     case(1)
       call calcMagnetization()
       do i = 1, s%nAtoms
-        fvec(i           ) = rhod(i) - rhod_in(i)
-        fvec(i+1*s%nAtoms) =  mxd(i) -  mxd_in(i)
-        fvec(i+2*s%nAtoms) =  myd(i) -  myd_in(i)
-        fvec(i+3*s%nAtoms) =  mzd(i) -  mzd_in(i)
+        do mu = 5,nOrb
+          fvec((i-1)*5+(mu-4)) = rho(mu,i) - rho_in(mu,i)
+        end do
+        fvec((i-1)*8+6) =  mxd(i) -  mxd_in(i)
+        fvec((i-1)*8+7) =  myd(i) -  myd_in(i)
+        fvec((i-1)*8+8) =  mzd(i) -  mzd_in(i)
       end do
-      fvec(4*s%nAtoms+1) = sum(rho) - s%totalOccupation
+      fvec(8*s%nAtoms+1) = sum(rho) - s%totalOccupation
 
       call print_sc_step(rhod,mxd,myd,mzd,s%Ef,fvec)
 
@@ -1392,43 +1419,45 @@ contains
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter,rho,mx,my,mz,rhod,mxd,myd,mzd
+    use mod_magnet, only: iter,rho,rhod,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix, only: update_Umatrix
     use mod_mpi_pars
     implicit none
-    integer  :: N,i,iflag
-    real(double),   dimension(N)        :: x,fvec
-    real(double),   dimension(s%nAtoms) :: mx_in,my_in,mz_in,rho_in
-    real(double),   dimension(s%nAtoms) :: mxd_in,myd_in,mzd_in,rhod_in
-    complex(double),dimension(s%nAtoms) :: mp_in,mpd_in
+    integer  :: N,i,mu,iflag
+    real(double),   dimension(N)             :: x,fvec
+    real(double),   dimension(nOrb,s%nAtoms) :: rho_in
+    real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
+    complex(double),dimension(s%nAtoms)      :: mpd_in
 
     iflag=0
     ! Values used in the hamiltonian
-    rhod_in = x(           1:  s%nAtoms)
-    mxd_in  = x(  s%nAtoms+1:2*s%nAtoms)
-    myd_in  = x(2*s%nAtoms+1:3*s%nAtoms)
-    mzd_in  = x(3*s%nAtoms+1:4*s%nAtoms)
-    mpd_in  = cmplx(mxd_in,myd_in)
-    s%Ef    = x(4*s%nAtoms+1)
+    rho_in = rho
+    do i = 1, s%nAtoms
+      do mu = 5,nOrb
+        rho_in(mu,i) = x((i-1)*5+(mu-4))
+      end do
+      rhod_in(i)= sum(rho_in(5:9,i))
+      mxd_in(i) = x((i-1)*8+6)
+      myd_in(i) = x((i-1)*8+7)
+      mzd_in(i) = x((i-1)*8+8)
+      mpd_in(i) = cmplx(mxd_in(i),myd_in(i))
+    end do
+    s%Ef    = x(8*s%nAtoms+1)
 
-    call update_Umatrix(mzd_in, mpd_in, rhod_in, Un0, Ucc0, s%nAtoms, nOrb)
+    call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
 
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
 
-    rho_in = rhod_in + sum(rho(:,:),dim=1) - rhod
-    mx_in  = mxd_in  + sum(mx(:,:), dim=1) - mxd
-    my_in  = myd_in  + sum(my(:,:), dim=1) - mxd
-    mz_in  = mzd_in  + sum(mz(:,:), dim=1) - mxd
-    mp_in  = cmplx(mx_in,my_in)
-
     call calcMagnetization()
     do i = 1, s%nAtoms
-      fvec(i           ) = rhod(i) - rhod_in(i)
-      fvec(i+1*s%nAtoms) =  mxd(i) -  mxd_in(i)
-      fvec(i+2*s%nAtoms) =  myd(i) -  myd_in(i)
-      fvec(i+3*s%nAtoms) =  mzd(i) -  mzd_in(i)
+      do mu = 5,nOrb
+        fvec((i-1)*5+(mu-4)) = rho(mu,i) - rho_in(mu,i)
+      end do
+      fvec((i-1)*8+6) =  mxd(i) -  mxd_in(i)
+      fvec((i-1)*8+7) =  myd(i) -  myd_in(i)
+      fvec((i-1)*8+8) =  mzd(i) -  mzd_in(i)
     end do
-    fvec(4*s%nAtoms+1) = sum(rho) - s%totalOccupation
+    fvec(8*s%nAtoms+1) = sum(rho) - s%totalOccupation
 
     call print_sc_step(rhod,mxd,myd,mzd,s%Ef,fvec)
 
@@ -1449,25 +1478,32 @@ contains
     use mod_f90_kind, only: double
     use mod_system, only: s => sys
     use TightBinding, only: nOrb
-    use mod_magnet, only: iter
+    use mod_magnet, only: iter,rhod0,rho0,rho
     use mod_Umatrix, only: update_Umatrix
     implicit none
-    integer       :: N,ldfjac,iflag
+    integer       :: N,i,mu,ldfjac,iflag
     real(double)  :: x(N),fvec(N),selfconjac(ldfjac,N)
-    real(double),   dimension(s%nAtoms) :: mxd_in,myd_in,mzd_in,rhod_in
-    complex(double),dimension(s%nAtoms) :: mpd_in
+    real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
+    real(double),   dimension(nOrb,s%nAtoms) :: rho_in
+    complex(double),dimension(s%nAtoms)      :: mpd_in
     !--------------------- begin MPI vars --------------------
 
     iflag=0
     ! Values used in the hamiltonian
-    rhod_in = x(           1:  s%nAtoms)
-    mxd_in  = x(  s%nAtoms+1:2*s%nAtoms)
-    myd_in  = x(2*s%nAtoms+1:3*s%nAtoms)
-    mzd_in  = x(3*s%nAtoms+1:4*s%nAtoms)
-    mpd_in  = cmplx(mxd_in,myd_in)
-    s%Ef    = x(4*s%nAtoms+1)
+    rho_in = rho
+    do i = 1, s%nAtoms
+      do mu = 5,nOrb
+        rho_in(mu,i) = x((i-1)*5+(mu-4))
+      end do
+      rhod_in(i)= sum(rho_in(5:9,i))
+      mxd_in(i) = x((i-1)*8+6)
+      myd_in(i) = x((i-1)*8+7)
+      mzd_in(i) = x((i-1)*8+8)
+      mpd_in(i) = cmplx(mxd_in(i),myd_in(i))
+    end do
+    s%Ef    = x(8*s%nAtoms+1)
 
-    call update_Umatrix(mzd_in, mpd_in, rhod_in, Un0, Ucc0, s%nAtoms, nOrb)
+    call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
 
     fvec=fvec
 

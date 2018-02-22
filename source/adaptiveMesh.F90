@@ -5,6 +5,7 @@ module adaptiveMesh
    type(FractionalBrillouinZone), dimension(:), allocatable :: bzs
    integer, dimension(:),allocatable :: all_nkpt
    integer*4 :: activeComm, activeRank, activeSize
+   integer   :: minimumBZmesh
 
 contains
 
@@ -164,7 +165,7 @@ contains
       else
          get_nkpt = nkpt_total / (e/e0)**sqrt(2.d0) !**log(2.d0)
       end if
-      if(get_nkpt < 1000) get_nkpt = 1000
+      if(get_nkpt < minimumBZmesh ) get_nkpt = minimumBZmesh
       return
    end function get_nkpt
 

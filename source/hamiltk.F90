@@ -7,7 +7,6 @@ subroutine hamiltk(kp,hk)
   use TightBinding,  only: nOrb,nOrb2
   use mod_magnet,    only: lb, sb
   use mod_SOC,       only: ls
-  use mod_mpi_pars,  only: abortProgram
   use mod_Umatrix,   only: hee
   implicit none
   integer :: i, j, k

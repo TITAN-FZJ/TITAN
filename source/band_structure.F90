@@ -22,22 +22,23 @@ subroutine read_band_points(kbands, b1, b2, b3)
   endif
 
   ! Count non commented lines
-  read(unit=666999, fmt='(A)', iostat=ios) line
+  ios = 0
   do while (ios == 0)
-    if(len_trim(line) > 0 .and. len_trim(line) < 200 .and. index(adjustl(line), "#") /= 1) line_count = line_count + 1
     read(unit=666999, fmt='(A)', iostat=ios) line
+    if(len_trim(line) > 0 .and. len_trim(line) < 200 .and. index(adjustl(line), "#") /= 1) line_count = line_count + 1
   end do
   rewind(666999)
 
   allocate(kband(line_count))
   i = 0
-  read(unit=666999, fmt='(A)', iostat=ios) line
+  ios=0
   do while (ios == 0)
+    read(unit=666999, fmt='(A)', iostat=ios) line
     if(len_trim(line) <= 0 .or. len_trim(line) >= 200 .or. index(adjustl(line),"#") == 1) cycle
     if(index(line, "#") > 0) line = line(1:index(line, "#")-1)
     i = i + 1
     read(unit = line, fmt = *, iostat=ios) kband(i)%name, (kband(i)%kp(j), j = 1,3)
-    read(unit=666999, fmt='(A)', iostat=ios) line
+    ! read(unit=666999, fmt='(A)', iostat=ios) line
   end do
 
   allocate(kbands(3,band_cnt))
@@ -56,17 +57,20 @@ subroutine read_band_points(kbands, b1, b2, b3)
     endif
   end do
   close(666999)
+  return
 end subroutine read_band_points
 
 
 !   Calculates magnetic LDOS
 subroutine band_structure(s)
-  use mod_f90_kind, only: double
-  use mod_parameters, only: output, npts, npt1, bands, band_cnt
-  use mod_mpi_pars
-  use mod_system, only: System
+  use mod_f90_kind,      only: double
+  use mod_parameters,    only: output, npts, npt1, bands, band_cnt
+  use mod_system,        only: System
   use mod_BrillouinZone, only: BZ => realBZ
-  use TightBinding, only: nOrb
+  use TightBinding,      only: nOrb
+  use mod_tools,         only: cross
+  use mod_constants,     only: tpi
+  use mod_mpi_pars
   implicit none
   type(System), intent(in) :: s
   character(len=400) :: varm
@@ -79,7 +83,8 @@ subroutine band_structure(s)
   character(len=20) :: kdirection
   real(double), dimension(:,:), allocatable :: band_points
   real(double) :: total_length
-
+  real(double),dimension(3,3) :: bb
+  real(double) :: vol
     interface
       subroutine read_band_points(kbands, b1, b2, b3)
         use mod_f90_kind, only: double
@@ -94,14 +99,20 @@ subroutine band_structure(s)
 
   if(rField == 0) write(output%unit_loop,"('CALCULATING THE BAND STRUCTURE')")
 
-  call read_band_points(band_points, BZ%b1, BZ%b2, BZ%b3)
+  vol = tpi / dot_product(s%a1, cross(s%a2,s%a3))
+  bb(:,1) = vol * cross(s%a2, s%a3)
+  bb(:,2) = vol * cross(s%a3, s%a1)
+  bb(:,3) = vol * cross(s%a1, s%a2)
+
+  call read_band_points(band_points, bb(:,1),bb(:,2),bb(:,3))
+
   total_length = 0.d0
   do i = 1, band_cnt - 1
     total_length = total_length + sqrt(dot_product(band_points(:,i)-band_points(:,i+1), band_points(:,i)-band_points(:,i+1)))
   end do
 
   write(kdirection,*) (trim(adjustl(bands(i))), i = 1,band_cnt)
-  write(varm,"('./results/',a1,'SOC/',a,'/BS/bandstructure_kdir=',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(adjustl(kdirection)),trim(output%info),trim(output%BField),trim(output%SOC)
+  write(varm,"('./results/',a1,'SOC/',a,'/BS/bandstructure_kdir=',a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(adjustl(kdirection)),trim(output%info),trim(output%BField),trim(output%SOC)
   open (unit=666, file=varm,status='replace')
   write(unit=666, fmt=*) band_cnt, npts
   write(unit=666, fmt=*) s%Ef

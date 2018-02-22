@@ -1,5 +1,5 @@
 module mod_magnet
-  use mod_f90_kind, only: double
+  use mod_f90_kind, only: single,double
   use mod_parameters, only: dmax
   implicit none
 
@@ -15,6 +15,10 @@ module mod_magnet
   !! d-orbital charge density and magnetization per site
   complex(double),allocatable :: mp(:,:),mpd(:)
   !! circular components (plus) of the total and d-orbital magnetization
+  real(double), dimension(:,:), allocatable :: rho0
+  !! initial occupation per orbital obtained from hopping parameters only
+  real(double), dimension(:), allocatable :: rhod0
+  !! initial occupation of d orbitals obtained from hopping parameters only
   real(double),allocatable    :: lxm(:),lym(:),lzm(:)
   !! Orbital angular momentum in global frame of reference
   real(double),allocatable    :: lxpm(:),lypm(:),lzpm(:)
