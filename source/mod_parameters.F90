@@ -16,7 +16,7 @@ module mod_parameters
   integer       :: dim
   !! Dimension: 4 spins x number of atoms in the unit cell x number of orbitals^2
 
-  integer :: kpx_in, kpy_in, kpz_in
+  integer, dimension(3) :: kp_in
   !! Number of k-points in each direction
   integer :: kptotal_in
   !! Total number of k-points

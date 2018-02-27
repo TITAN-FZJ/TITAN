@@ -66,7 +66,7 @@ contains
                               ltestcharge, llgtv, lsortfiles, magaxis, magaxisvec, &
                               itype, ry2ev, ltesla, eta, etap, dmax, emin, emax, deltae, &
                               skip_steps, npts, npt1, renorm, renormnb, bands, band_cnt, &
-                              offset, dfttype, U, parField, parFreq, kptotal_in, kpx_in, kpy_in, kpz_in
+                              offset, dfttype, U, parField, parFreq, kptotal_in, kp_in
     use mod_self_consistency, only: lslatec, lontheflysc, lnojac, lGSL, lrotatemag, skipsc, scfile, mag_tol
     use mod_system, only: System, n0sc1, n0sc2
     use mod_SOC, only: SOC, socscale, llinearsoc, llineargfsoc
@@ -105,7 +105,7 @@ contains
     !===============================================================================================
     !============= System configuration (Lattice + Reciprocal lattice) =============================
     !===============================================================================================
-    if(.not. get_parameter("nn_stages", s%nStages)) call log_warning("get_parameters","'nn_stages' missing.")
+    if(.not. get_parameter("nn_stages", s%nStages,2)) call log_warning("get_parameters","'nn_stages' missing. Using default value of 2.")
 
     if(.not. get_parameter("bulk", s%lbulk, .true.)) call log_warning("get_parameters", "'bulk' missing. Using default value.")
 
@@ -113,21 +113,18 @@ contains
     if(cnt == 1) then
       kptotal_in = i_vector(1)
       if(s%lbulk) then
-        kpx_in = ceiling((dble(kptotal_in))**(1.d0/3.d0))
-        kpy_in = kpx_in
-        kpz_in = kpx_in
-        kptotal_in = kpx_in * kpy_in * kpz_in
+        kp_in(:) = ceiling((dble(kptotal_in))**(1.d0/3.d0))
+        kptotal_in = kp_in(1) * kp_in(2) * kp_in(3)
       else
-        kpx_in = ceiling((dble(kptotal_in))**(1.d0/2.d0))
-        kpy_in = kpx_in
-        kpz_in = 0
-        kptotal_in = kpx_in * kpy_in
+        kp_in(1:2) = ceiling((dble(kptotal_in))**(1.d0/2.d0))
+        kp_in(3) = 0
+        kptotal_in = kp_in(1) * kp_in(2)
       end if
     else if(cnt == 3) then
-      kpx_in = i_vector(1)
-      kpy_in = i_vector(2)
-      kpz_in = i_vector(3)
-      kptotal_in = kpx_in * kpy_in * kpz_in
+      kp_in(1) = i_vector(1)
+      kp_in(2) = i_vector(2)
+      kp_in(3) = i_vector(3)
+      kptotal_in = kp_in(1) * kp_in(2) * kp_in(3)
     else
       call log_error("get_parameter", "'nkpt' has wrong size (expected 1 or 3)")
     end if

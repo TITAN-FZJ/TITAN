@@ -140,7 +140,7 @@ subroutine band_structure(s)
 
   do count=1,npt1
     write(output%unit_loop,"('[band_structure] ',i0,' of ',i0,' points',', i = ',es10.3)") count,npt1,dble((count-1.d0)/npts)
-    call hamiltk(kpoints(:,count),hk)
+    call hamiltk(s,kpoints(:,count),hk)
 
     call zgeev('N','N',dimbs,hk,dimbs,eval,evecl,1,evecr,1,work,lwork,rwork,ifail)
     if(ifail/=0) then

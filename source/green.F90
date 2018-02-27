@@ -1,18 +1,19 @@
 ! Calculate green function (E - H)^-1
-subroutine green(er,ei,kp,gf)
-  use mod_f90_kind, only: double
-  use mod_constants, only: cZero,cOne
-  use mod_System, only: ia, s => sys
+subroutine green(er,ei,sys,kp,gf)
+  use mod_f90_kind,   only: double
+  use mod_constants,  only: cZero,cOne
+  use mod_System,     only: ia, System
   use mod_parameters, only: offset
-  use TightBinding, only: nOrb,nOrb2
+  use TightBinding,   only: nOrb,nOrb2
   implicit none
   integer     :: i,j,d
-  real(double), intent(in)  :: er,ei,kp(3)
+  real(double), intent(in) :: er,ei,kp(3)
+  type(System), intent(in) :: sys
   complex(double) :: ec
-  complex(double),dimension(s%nAtoms*nOrb2, s%nAtoms*nOrb2) :: gslab,hk
-  complex(double),dimension(nOrb2, nOrb2, s%nAtoms, s%nAtoms), intent(out)  :: gf
+  complex(double),dimension(sys%nAtoms*nOrb2, sys%nAtoms*nOrb2) :: gslab,hk
+  complex(double),dimension(nOrb2, nOrb2, sys%nAtoms, sys%nAtoms), intent(out)  :: gf
 
-  d = s%nAtoms * 2 * nOrb
+  d = sys%nAtoms * 2 * nOrb
 
   ec    = cmplx(er,ei,double)
 
@@ -21,7 +22,7 @@ subroutine green(er,ei,kp,gf)
     gslab(i,i) = ec
   end do
 
-  call hamiltk(kp,hk)
+  call hamiltk(sys,kp,hk)
 
   call zaxpy(d*d,-cOne,hk,1,gslab,1)
   !gslab(i,j) = gslab(i,j) - hk(i,j)
@@ -29,9 +30,9 @@ subroutine green(er,ei,kp,gf)
 
   ! Put the slab Green's function [A(nAtoms*18,nAtoms*18)] in the A(i,j,mu,nu) form
   !dir$ ivdep:loop
-  do j = 1, s%nAtoms
+  do j = 1, sys%nAtoms
     !dir$ ivdep:loop
-    do i = 1, s%nAtoms
+    do i = 1, sys%nAtoms
       gf(:,:,i,j) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
     end do
   end do
@@ -41,21 +42,22 @@ end subroutine green
 
 
 ! Calculate green function (E - H)^-1 without SOC and the linear term G0.H_so.G0
-subroutine greenlinearsoc(er,ei,kp,g0,g0vsocg0)
-  use mod_f90_kind, only: double
-  use mod_constants, only: cZero, cOne
+subroutine greenlinearsoc(er,ei,sys,kp,g0,g0vsocg0)
+  use mod_f90_kind,   only: double
+  use mod_constants,  only: cZero, cOne
   use mod_parameters, only: offset
-  use TightBinding, only: nOrb,nOrb2
-  use mod_System, only: ia, s => sys
+  use TightBinding,   only: nOrb,nOrb2
+  use mod_System,     only: ia, System
   !use mod_magnet, only:
   implicit none
   integer     :: i,j,d
-  real(double), intent(in)  :: er,ei,kp(3)
+  real(double), intent(in) :: er,ei,kp(3)
+  type(System), intent(in) :: sys
   complex(double) :: ec
-  complex(double), dimension(s%nAtoms*nOrb2, s%nAtoms*nOrb2)  :: gslab0,hk,vsoc,temp,temp2
-  complex(double), dimension(nOrb2,nOrb2,s%nAtoms,s%nAtoms), intent(out)  :: g0,g0vsocg0
+  complex(double), dimension(sys%nAtoms*nOrb2, sys%nAtoms*nOrb2)  :: gslab0,hk,vsoc,temp,temp2
+  complex(double), dimension(nOrb2,nOrb2,sys%nAtoms,sys%nAtoms), intent(out)  :: g0,g0vsocg0
 
-  d = s%nAtoms*nOrb2
+  d = sys%nAtoms*nOrb2
 
   ec = cmplx(er,ei,double)
 
@@ -64,7 +66,7 @@ subroutine greenlinearsoc(er,ei,kp,g0,g0vsocg0)
    gslab0(i,i) = ec
   end do
 
-  call hamiltklinearsoc(kp,hk,vsoc)
+  call hamiltklinearsoc(sys,kp,hk,vsoc)
 
   gslab0 = gslab0 - hk
 
@@ -75,8 +77,8 @@ subroutine greenlinearsoc(er,ei,kp,g0,g0vsocg0)
   call zgemm('n','n',d,d,d,cOne,gslab0,d,temp,d,cZero,temp2,d) ! temp2 = gslab0*vsoc*gslab0
 
   ! Put the slab Green's function [A(nAtoms*18,nAtoms*18)] in the A(i,j,mu,nu) form
-  do j=1,s%nAtoms
-    do i=1,s%nAtoms
+  do j=1,sys%nAtoms
+    do i=1,sys%nAtoms
       g0(:,:,i,j) = gslab0(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
       g0vsocg0(:,:,i,j) = temp2(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
     end do
@@ -86,20 +88,21 @@ end subroutine greenlinearsoc
 
 
 ! Calculate green function (E - H)^-1 with linear SOC: G = G0+G0.H_so.G0
-subroutine greenlineargfsoc(er,ei,kp,gf)
-  use mod_f90_kind, only: double
-  use mod_constants, only: cZero, cOne
+subroutine greenlineargfsoc(er,ei,sys,kp,gf)
+  use mod_f90_kind,   only: double
+  use mod_constants,  only: cZero, cOne
   use mod_parameters, only: offset
-  use mod_System, only: ia, s => sys
-  use TightBinding, only: nOrb,nOrb2
+  use mod_System,     only: ia, System
+  use TightBinding,   only: nOrb,nOrb2
   implicit none
   integer     :: i,j,d
-  real(double), intent(in)  :: er,ei,kp(3)
+  real(double), intent(in) :: er,ei,kp(3)
+  type(System), intent(in) :: sys
   complex(double) :: ec
-  complex(double),dimension(s%nAtoms*nOrb2, s%nAtoms*nOrb2)  :: gslab,gslab0,hk,vsoc,temp
-  complex(double),dimension(nOrb2, nOrb2,s%nAtoms,s%nAtoms),intent(out)  :: gf
+  complex(double),dimension(sys%nAtoms*nOrb2, sys%nAtoms*nOrb2)  :: gslab,gslab0,hk,vsoc,temp
+  complex(double),dimension(nOrb2, nOrb2,sys%nAtoms,sys%nAtoms),intent(out)  :: gf
 
-  d = s%nAtoms*nOrb2
+  d = sys%nAtoms*nOrb2
 
   ec    = cmplx(er,ei,double)
 
@@ -110,7 +113,7 @@ subroutine greenlineargfsoc(er,ei,kp,gf)
    gslab0(i,i) = ec
   end do
 
-  call hamiltklinearsoc(kp,hk,vsoc)
+  call hamiltklinearsoc(sys,kp,hk,vsoc)
 
   gslab0 = gslab0 - hk
 
@@ -121,8 +124,8 @@ subroutine greenlineargfsoc(er,ei,kp,gf)
   call zgemm('n','n',d,d,d,cOne,gslab0,d,temp,d,cZero,gslab,d) ! gslab = gslab0(1+vsoc*gslab0)
 
   ! Put the slab Green's function [A(nAtoms*18,nAtoms*18)] in the A(i,j,mu,nu) form
-  do j=1,s%nAtoms
-    do i=1,s%nAtoms
+  do j=1,sys%nAtoms
+    do i=1,sys%nAtoms
       gf(:,:,i,j) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
     end do
   end do

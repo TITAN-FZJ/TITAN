@@ -1,30 +1,28 @@
 ! Calculates the full 3x3 J tensor (including coupling, DMI and anisotropic pair interactions)
 subroutine jij_energy(Jij)
-  use mod_f90_kind, only: double
-  use mod_constants, only: pi, cOne, cZero, pauli_dorb
-  use mod_parameters, only: mmlayermag, U, q, mmlayermag, nmaglayers, eta
+  use mod_f90_kind,      only: double
+  use mod_constants,     only: pi, cOne, cZero, pauli_dorb
+  use mod_parameters,    only: mmlayermag, U, q, mmlayermag, nmaglayers, eta
   use EnergyIntegration, only: y, wght
+  use mod_magnet,        only: mvec_cartesian,mabs
+  use mod_system,        only: s => sys
+  use TightBinding,      only: nOrb,nOrb2
   use mod_mpi_pars
-  use mod_magnet, only: mvec_cartesian,mabs
-  use mod_system, only: s => sys
   use adaptiveMesh
-  use TightBinding, only: nOrb,nOrb2
   use mod_mpi_pars
-
   implicit none
-  real(double),dimension(nmaglayers,nmaglayers,3,3) :: Jijint
+  real(double),dimension(nmaglayers,nmaglayers,3,3)             :: Jijint
   real(double),dimension(nmaglayers,nmaglayers,3,3),intent(out) :: Jij
-
   integer :: ix,iz
   integer :: i,j,mu,nu,alpha
   real(double) :: kp(3), kminusq(3), ep
   real(double) :: evec(3,nmaglayers)
   real(double) :: Jijk(nmaglayers,nmaglayers,3,3)
   real(double) :: Jijkan(nmaglayers,3,3)
-  complex(double), dimension(nmaglayers,3,nOrb2,nOrb2) :: dbxcdm
-  complex(double), dimension(nmaglayers,3,3,nOrb2,nOrb2) :: d2bxcdm2
-  complex(double), dimension(nmaglayers,nOrb2,nOrb2) :: paulievec
-  complex(double), dimension(nOrb2,nOrb2) :: gij, gji, temp1, temp2, paulia, paulib
+  complex(double), dimension(nmaglayers,3,nOrb2,nOrb2)      :: dbxcdm
+  complex(double), dimension(nmaglayers,3,3,nOrb2,nOrb2)    :: d2bxcdm2
+  complex(double), dimension(nmaglayers,nOrb2,nOrb2)        :: paulievec
+  complex(double), dimension(nOrb2,nOrb2)                   :: gij, gji, temp1, temp2, paulia, paulib
   complex(double), dimension(nOrb2,nOrb2,s%nAtoms,s%nAtoms) :: gf,gfq
   complex(double) :: weight
   !--------------------- begin MPI vars --------------------
@@ -70,11 +68,11 @@ subroutine jij_energy(Jij)
      kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix))
      weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix))
      ! Green function on energy Ef + iy, and wave vector kp
-      call green(s%Ef,ep+eta,kp,gf)
+      call green(s%Ef,ep+eta,s,kp,gf)
 
       ! Green function on energy Ef + iy, and wave vector kp-q
       kminusq = kp-q
-      call green(s%Ef,ep+eta,kminusq,gfq)
+      call green(s%Ef,ep+eta,s,kminusq,gfq)
 
       Jijk   = 0.d0
       Jijkan = 0.d0

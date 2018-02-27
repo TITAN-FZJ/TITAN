@@ -1,15 +1,15 @@
 ! ---------- Spin disturbance: Energy integration ---------
 subroutine eintshechi(e)
-  use mod_f90_kind, only: double
-  use mod_constants, only: cZero, cOne, cI, tpi
-  use mod_parameters, only: eta, etap, dim, sigmaimunu2i
-  use EnergyIntegration, only: generate_real_epoints, y, wght, x2, p2, pn2
+  use mod_f90_kind,         only: double
+  use mod_constants,        only: cZero, cOne, cI, tpi
+  use mod_parameters,       only: eta, etap, dim, sigmaimunu2i
+  use EnergyIntegration,    only: generate_real_epoints, y, wght, x2, p2, pn2
   use mod_susceptibilities, only: chiorb_hf
-  use mod_system, only: s => sys
-  use mod_BrillouinZone, only: realBZ
+  use mod_system,           only: s => sys
+  use mod_BrillouinZone,    only: realBZ
+  use TightBinding,         only: nOrb,nOrb2
+  use mod_SOC,              only: llineargfsoc
   use adaptiveMesh
-  use TightBinding, only: nOrb,nOrb2
-  use mod_SOC, only: llineargfsoc
   use mod_mpi_pars
   implicit none
   real(double), intent(in)    :: e
@@ -64,9 +64,9 @@ subroutine eintshechi(e)
       weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix))
       ! Green function at (k+q,E_F+E+iy)
       if(llineargfsoc) then
-        call greenlineargfsoc(s%Ef+e,ep+eta,kp,gf)
+        call greenlineargfsoc(s%Ef+e,ep+eta,s,kp,gf)
       else
-        call green(s%Ef+e,ep+eta,kp,gf)
+        call green(s%Ef+e,ep+eta,s,kp,gf)
       end if
       gfuu(:,:,:,:,1) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
@@ -75,9 +75,9 @@ subroutine eintshechi(e)
 
       ! Green function at (k,E_F+iy)
       if(llineargfsoc) then
-        call greenlineargfsoc(s%Ef,ep+etap,kp,gf)
+        call greenlineargfsoc(s%Ef,ep+etap,s,kp,gf)
       else
-        call green(s%Ef,ep+etap,kp,gf)
+        call green(s%Ef,ep+etap,s,kp,gf)
       end if
       gfuu(:,:,:,:,2) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,2) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
@@ -137,9 +137,9 @@ subroutine eintshechi(e)
       weight = p2(nep) * realBZ % w(nkp)
       ! Green function at (k+q,E'+E+i.eta)
       if(llineargfsoc) then
-        call greenlineargfsoc(ep+e,eta,kp,gf)
+        call greenlineargfsoc(ep+e,eta,s,kp,gf)
       else
-        call green(ep+e,eta,kp,gf)
+        call green(ep+e,eta,s,kp,gf)
       end if
       gfuu(:,:,:,:,1) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
@@ -148,9 +148,9 @@ subroutine eintshechi(e)
 
       ! Green function at (k,E'+i.eta)
       if(llineargfsoc) then
-        call greenlineargfsoc(ep,etap,kp,gf)
+        call greenlineargfsoc(ep,etap,s,kp,gf)
       else
-        call green(ep,etap,kp,gf)
+        call green(ep,etap,s,kp,gf)
       end if
       gfuu(:,:,:,:,2) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,2) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
@@ -223,16 +223,16 @@ end subroutine eintshechi
 ! -------------------- Spin disturbance: Energy integration --------------------
 ! -------------- to be used in the calculation of linear SOC chi ---------------
 subroutine eintshechilinearsoc(e)
-  use mod_f90_kind, only: double
-  use mod_constants, only: cZero, cOne, cI, tpi
-  use mod_parameters, only: eta, etap, dim, sigmaimunu2i
-  use EnergyIntegration, only: generate_real_epoints,y, wght, x2, p2, pn2
+  use mod_f90_kind,         only: double
+  use mod_constants,        only: cZero, cOne, cI, tpi
+  use mod_parameters,       only: eta, etap, dim, sigmaimunu2i
+  use EnergyIntegration,    only: generate_real_epoints,y, wght, x2, p2, pn2
   use mod_susceptibilities, only: chiorb_hf,chiorb_hflsoc
-  use mod_mpi_pars
-  use mod_system, only: s => sys
-  use mod_BrillouinZone, only: realBZ
+  use mod_system,           only: s => sys
+  use mod_BrillouinZone,    only: realBZ
+  use TightBinding,         only: nOrb,nOrb2
   use adaptiveMesh
-  use TightBinding, only: nOrb,nOrb2
+  use mod_mpi_pars
   !$  use omp_lib
 
   implicit none
@@ -296,7 +296,7 @@ subroutine eintshechilinearsoc(e)
       kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix))
       weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix))
       ! Green function at (k+q,E_F+E+iy)
-      call greenlinearsoc(s%Ef+e,ep+eta,kp,gf,gvg)
+      call greenlinearsoc(s%Ef+e,ep+eta,s,kp,gf,gvg)
       gfuu(:,:,:,:,1) = gf(     1:  nOrb,      1: nOrb, :,:)
       gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
       gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
@@ -307,7 +307,7 @@ subroutine eintshechilinearsoc(e)
       gvgdd(:,:,:,:,1) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
 
       ! Green function at (k,E_F+iy)
-      call greenlinearsoc(s%Ef,ep+etap,kp,gf,gvg)
+      call greenlinearsoc(s%Ef,ep+etap,s,kp,gf,gvg)
       gfuu(:,:,:,:,2) = gf(:,:,     1:  nOrb,     1:  nOrb)
       gfud(:,:,:,:,2) = gf(:,:,     1:  nOrb,nOrb+1:nOrb2)
       gfdu(:,:,:,:,2) = gf(:,:,nOrb+1:nOrb2,     1:  nOrb)
@@ -376,7 +376,7 @@ subroutine eintshechilinearsoc(e)
       weight = p2(nep) * realBZ % w(nkp)
 
       ! Green function at (k+q,E_F+E+iy)
-      call greenlinearsoc(ep+e,eta,kp,gf,gvg)
+      call greenlinearsoc(ep+e,eta,s,kp,gf,gvg)
       gfuu(:,:,:,:,1) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
       gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
@@ -387,7 +387,7 @@ subroutine eintshechilinearsoc(e)
       gvgdd(:,:,:,:,1) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
 
       ! Green function at (k,E_F+iy)
-      call greenlinearsoc(ep,etap,kp,gf,gvg)
+      call greenlinearsoc(ep,etap,s,kp,gf,gvg)
       gfuu(:,:,:,:,2) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,2) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
       gfdu(:,:,:,:,2) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)

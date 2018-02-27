@@ -1,34 +1,34 @@
 !   Calculates spin-resolved LDOS and energy-dependence of exchange interactions
 subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
-   use mod_f90_kind, only: double
-   use mod_constants, only: pi, cZero, cOne, pauli_dorb
-   use mod_parameters, only: eta, nmaglayers, mmlayermag, U
-   use mod_progress
-   use mod_system, only: s => sys
+   use mod_f90_kind,      only: double
+   use mod_constants,     only: pi, cZero, cOne, pauli_dorb
+   use mod_parameters,    only: eta, nmaglayers, mmlayermag, U
+   use mod_system,        only: s => sys
    use mod_BrillouinZone, only: realBZ
-   use TightBinding, only: nOrb,nOrb2
-   use mod_magnet, only: mvec_cartesian, mabs
+   use TightBinding,      only: nOrb,nOrb2
+   use mod_magnet,        only: mvec_cartesian, mabs
+   use mod_progress
    use mod_mpi_pars
    implicit none
    real(double),intent(in)     :: e
    real(double),intent(out)    :: ldosu(s%nAtoms, nOrb),ldosd(s%nAtoms, nOrb)
    real(double),intent(out)    :: Jijint(nmaglayers,nmaglayers,3,3)
+   complex(double), dimension(nOrb2, nOrb2, s%nAtoms, s%nAtoms) :: gf
+   complex(double), dimension(s%nAtoms, nOrb)   :: gfdiagu,gfdiagd
+   complex(double), dimension(nOrb2, nOrb2)     :: gij,gji,temp1,temp2,paulia,paulib
+   real(double),    dimension(:,:),allocatable     :: ldosu_loc,ldosd_loc
+   real(double),    dimension(:,:,:,:),allocatable :: Jijint_loc
+   real(double),    dimension(3) :: kp
    complex(double) :: paulimatan(3,3,nOrb2, nOrb2)
-   complex(double),dimension(nOrb2, nOrb2, s%nAtoms, s%nAtoms) :: gf
-   complex(double),dimension(s%nAtoms, nOrb) :: gfdiagu,gfdiagd
-   complex(double),dimension(nOrb2, nOrb2) :: gij,gji,temp1,temp2,paulia,paulib
-   real(double),dimension(:,:),allocatable    :: ldosu_loc,ldosd_loc
-   real(double),dimension(:,:,:,:),allocatable    :: Jijint_loc
-   real(double) :: Jijkan(nmaglayers,3,3), Jijk(nmaglayers,nmaglayers,3,3)
-   real(double), dimension(3) :: kp
-   real(double) :: weight
-   integer :: i,j,mu,nu,alpha
-   integer*8 :: iz
+   real(double)    :: Jijkan(nmaglayers,3,3), Jijk(nmaglayers,nmaglayers,3,3)
+   real(double)    :: weight
+   integer         :: i,j,mu,nu,alpha
+   integer*8       :: iz
 
-   real(double), dimension(3,nmaglayers) :: evec
-   complex(double), dimension(nmaglayers,3,nOrb2,nOrb2) :: dbxcdm
+   real(double),    dimension(3,nmaglayers)               :: evec
+   complex(double), dimension(nmaglayers,3,nOrb2,nOrb2)   :: dbxcdm
    complex(double), dimension(nmaglayers,3,3,nOrb2,nOrb2) :: d2bxcdm2
-   complex(double), dimension(nmaglayers,nOrb2,nOrb2) :: paulievec
+   complex(double), dimension(nmaglayers,nOrb2,nOrb2)     :: paulievec
 
 ! (x,y,z)-tensor formed by Pauli matrices to calculate anisotropy term (when i=j)
   paulimatan = cZero
@@ -78,7 +78,7 @@ do iz = 1, realBZ%workload
     kp = realBZ%kp(:,iz)
     weight = realBZ%w(iz)
     ! Green function on energy E + ieta, and wave vector kp
-    call green(e,eta,kp,gf)
+    call green(e,eta,s,kp,gf)
 
     ! Exchange interaction tensor
     Jijk   = 0.d0

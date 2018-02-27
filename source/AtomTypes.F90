@@ -34,7 +34,9 @@ type, extends(Atom) :: NeighborAtom
 end type NeighborAtom
 
 type :: AtomType
+  !! Store information for each element type
   character(len=50) :: Name
+  !! Element name
   real(double), dimension(:,:), allocatable :: onSite
   !! on site matrix; size (nOrb, nOrb)
   real(double), dimension(:,:), allocatable :: Hopping
@@ -42,9 +44,15 @@ type :: AtomType
   real(double) :: LambdaP, LambdaD
   !! SOC Coupling constants
   real(double) :: FermiLevel
+  !! Fermi level
   real(double) :: Occupation, OccupationS, OccupationP, OccupationD
+  !! Total, s, p and d occupations
   real(double) :: LatticeConstant
+  !! Lattice constant
+  real(double), dimension(3) :: a1,a2,a3
+  !! Lattice vectors
   real(double), dimension(:), allocatable :: Stage
+  !! Neighbor distances
 end type AtomType
 
 

@@ -6,18 +6,18 @@ contains
 
   subroutine get_parameter(s, fermi_layer, nOrb, Orbitals)
     use mod_f90_kind, only: double
-    use AtomTypes, only: NeighborIndex
-    use mod_system, only: System
+    use AtomTypes,    only: NeighborIndex
+    use mod_system,   only: System
     implicit none
     type(System), intent(inout) :: s
-    integer, intent(in) :: fermi_layer
-    integer, intent(in) :: nOrb
-    logical, dimension(9) :: Orbitals
-    integer :: i,j,k,l
+    integer,      intent(in)    :: fermi_layer
+    integer,      intent(in)    :: nOrb
+    logical, dimension(9)       :: Orbitals
+    integer                     :: i,j,k,l
     real(double), dimension(:,:), allocatable :: bp
-    real(double) :: scale_factor(2), mix(10,2)
-    type(NeighborIndex), pointer :: current
-    real(double), dimension(10), parameter :: expon = [1.0d0,3.0d0,3.0d0,5.0d0,5.0d0,5.0d0,2.0d0,3.0d0,4.0d0,4.0d0]
+    real(double)                              :: scale_factor(2), mix(10,2)
+    type(NeighborIndex), pointer              :: current
+    real(double), dimension(10), parameter    :: expon = [1.0d0,3.0d0,3.0d0,5.0d0,5.0d0,5.0d0,2.0d0,3.0d0,4.0d0,4.0d0]
     nullify(current)
     allocate(bp(nOrb,nOrb))
 
@@ -76,11 +76,10 @@ contains
     use mod_f90_kind, only: double
     implicit none
     real(double), dimension(nOrb,nOrb), intent(inout) :: t0i
-    real(double), dimension(3), intent(in) :: dirCos
-    real(double), dimension(10), intent(in) :: t1, t2
-    integer, intent(in) :: nOrb
-
-    integer :: i
+    real(double), dimension(3),         intent(in)    :: dirCos
+    real(double), dimension(10),        intent(in)    :: t1, t2
+    integer,                            intent(in)    :: nOrb
+    integer                     :: i
     real(double), dimension(10) :: mix
 
     do i = 1, 10
@@ -93,19 +92,19 @@ contains
 
   subroutine read_Papa_2C_param(material, nStages, nOrb)
     use mod_f90_kind, only: double
-    use AtomTypes, only: AtomType
+    use AtomTypes,    only: AtomType
     use mod_mpi_pars, only: abortProgram
     implicit none
     type(AtomType), intent(inout) :: material
-    integer, intent(in) :: nStages
-    integer, intent(in) :: nOrb
-    real(double), dimension(3) :: dens
-    integer :: i, j, k, l, ios, line_count = 0
+    integer,        intent(in)    :: nStages
+    integer,        intent(in)    :: nOrb
+    real(double), dimension(3)    :: dens
+    integer        :: i, j, k, l, ios, line_count = 0
     character(200) :: line
-    character(50) :: words(10)
+    character(50)  :: words(10)
+    real(double)               :: dist
     real(double), dimension(3) :: a1, a2, a3, vec
     real(double), dimension(4) :: on_site
-    real(double) :: dist
 
     allocate(material%onSite(nOrb,nOrb))
     allocate(material%Hopping(10,nStages))
@@ -144,17 +143,17 @@ contains
     read(unit=995594, fmt='(A)', iostat=ios) line
     read(unit=line, fmt=*, iostat=ios) (a1(i), i=1,3)
     if(dot_product(a1,a1) <= 1.d-9) call abortProgram("[read_Papa_2C_param] a1 not given properly")
-    a1 = a1 * material%LatticeConstant
+    material%a1 = a1 * material%LatticeConstant
 
     read(unit=995594, fmt='(A)', iostat=ios) line
     read(unit=line, fmt=*, iostat=ios) (a2(i), i=1,3)
-    if(dot_product(a2,a2) <= 1.d-9) call abortProgram("[read_Papa_2C_param] a1 not given properly")
-    a2 = a2 * material%LatticeConstant
+    if(dot_product(a2,a2) <= 1.d-9) call abortProgram("[read_Papa_2C_param] a2 not given properly")
+    material%a2 = a2 * material%LatticeConstant
 
     read(unit=995594, fmt='(A)', iostat=ios) line
     read(unit=line, fmt=*, iostat=ios) (a3(i), i=1,3)
-    if(dot_product(a3,a3) <= 1.d-9) call abortProgram("[read_Papa_2C_param] a1 not given properly")
-    a3 = a3 * material%LatticeConstant
+    if(dot_product(a3,a3) <= 1.d-9) call abortProgram("[read_Papa_2C_param] a3 not given properly")
+    material%a3 = a3 * material%LatticeConstant
 
     do i = 1, 4
       read(unit=995594, fmt='(A)', iostat = ios) line
@@ -189,7 +188,7 @@ contains
       do j = 0, 3*nStages
         do k = 0, 3*nStages
           if(i == 0 .and. j == 0 .and. k == 0) cycle
-          vec = i * a1 + j * a2 + k * a3
+          vec = i * material%a1 + j * material%a2 + k * material%a3
           dist = sqrt(dot_product(vec,vec))
           l = nStages
           do while(1 <= l)
@@ -207,6 +206,7 @@ contains
       end do
     end do
     close(995594)
+    return
   end subroutine
 
   pure subroutine intd(sss,pps,ppp,dds,ddp,ddd,sps,sds,pds,pdp,w,b)

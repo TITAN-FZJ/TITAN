@@ -1,12 +1,12 @@
 !   Calculates iso-energy surface (e=Ef for Fermi surface)
 subroutine fermi_surface(e)
-  use mod_f90_kind, only: double
-  use mod_constants, only: pi, pauli_orb, cZero, cOne
-  use mod_parameters, only: output, eta
-  use mod_SOC, only: llinearsoc, llineargfsoc
-  use mod_system, only: s => sys
+  use mod_f90_kind,      only: double
+  use mod_constants,     only: pi, pauli_orb, cZero, cOne
+  use mod_parameters,    only: output, eta
+  use mod_SOC,           only: llinearsoc, llineargfsoc
+  use mod_system,        only: s => sys
   use mod_BrillouinZone, only: realBZ
-  use TightBinding, only: nOrb,nOrb2
+  use TightBinding,      only: nOrb,nOrb2
   use mod_mpi_pars
   implicit none
   character(len=400) :: varm
@@ -21,7 +21,7 @@ subroutine fermi_surface(e)
   write(output%unit_loop,"('CALCULATING CHARGE AND SPIN DENSITY AT FERMI SURFACE')")
 
   ! Allocating Brillouin Zone
-  call realBZ % setup_fraction(rField, sField, FieldComm)
+  call realBZ % setup_fraction(s,rField, sField, FieldComm)
 
   ! Opening files for writing
   if(abs(e-s%ef)>1.d-6) then

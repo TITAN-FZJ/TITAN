@@ -40,8 +40,8 @@ subroutine calculate_dc_limit()
 
   dc_count = dc_count + 1
 
-  call genLocalEKMesh(rFreq(1),sFreq(1),FreqComm(1))
-  call realBZ % setup_fraction(rFreq(1), sFreq(1), FreqComm(1))
+  call genLocalEKMesh(s,rFreq(1),sFreq(1),FreqComm(1))
+  call realBZ % setup_fraction(s,rFreq(1), sFreq(1), FreqComm(1))
 
   call allocate_prefactors()
   call allocate_susceptibilities()

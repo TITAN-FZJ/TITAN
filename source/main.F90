@@ -8,11 +8,12 @@ program TITAN
   use mod_constants
   use mod_parameters
   use mod_io
-  use mod_system         ! New
-  use Lattice        ! New
-  use mod_BrillouinZone  ! New
-  use TightBinding   ! New
-  use mod_SOC            ! New
+  use mod_system
+  use mod_polyBasis, only: polyBasis => read_basis
+  use Lattice
+  use mod_BrillouinZone
+  use TightBinding
+  use mod_SOC
   use mod_magnet
   use ElectricField
   use adaptiveMesh
@@ -32,13 +33,13 @@ program TITAN
 
   character(len=500) :: arg = ""
 
-  !-------------------------- MPI initialization --------------------------
+  !------------------------ MPI initialization -------------------------
   call Initialize_MPI()
 
-  !--------------------------- Starting program ---------------------------
+  !------------------------- Starting program --------------------------
   start_program = MPI_Wtime()
 
-  !-------------------------- Reading parameters --------------------------
+  !------------------------ Reading parameters -------------------------
   if(command_argument_count() >= 1) call get_command_argument(1, arg)
   if(len_trim(arg) > 0) then
     call get_parameters(arg, sys)
@@ -48,36 +49,36 @@ program TITAN
 
   if(myrank == 0) call write_time(output%unit,'[main] Started on: ')
 
-  !-------------------- Useful constants and matrices --------------------
+  !------------------- Useful constants and matrices -------------------
   call define_constants() ! TODO: Review
 
-  !------------------- Set Loop and Integration Points -------------------
+  !------------------ Set Loop and Integration Points ------------------
   call setMagneticLoopPoints()
-  !----------- Creating grid of MPI processes  ----------
+  !------------------ Creating grid of MPI processes  ------------------
   !call setup_MPI_grid(itype, pn1, npt1, pnt,total_hw_npt1, npts, deltae, emin, emax)
   call genMPIGrid(parField, total_hw_npt1, parFreq, npt1 - skip_steps)
-  !-------------------- Define the lattice structure ---------------------
+
+  !----- Calculating initial values in the hamiltonian with mag=0 ------
+  call calc_initial_Uterms()
+
+  !------------------- Define the lattice structure --------------------
+  call polyBasis("basis", sys)
   call initLattice(sys)
   ! Writing Positions into file
   if( lpositions .and. (myrank==0)) call writeLattice(sys)
 
-  !---- Generating integration points of the complex energy integral -----
+  !--- Generating integration points of the complex energy integral ----
   call allocate_energy_points()
   call generate_imag_epoints()
 
-  !-------------------- Generating k points for real axis integration ---------------------
-  realBZ % bulk = sys%lbulk
-  realBZ % a1 = sys%a1
-  realBZ % a2 = sys%a2
-  realBZ % a3 = sys%a3
-  realBZ % nkpt_x = kpx_in
-  realBZ % nkpt_y = kpy_in
-  realBZ % nkpt_z = kpz_in
-  call realBZ % count()
-  ! ! Writing BZ points and weights into file
-  ! if((lkpoints).and.(myrank==0)) call BZ % print()
+  !----------- Generating k points for real axis integration -----------
+  realBZ % nkpt_x = kp_in(1)
+  realBZ % nkpt_y = kp_in(2)
+  realBZ % nkpt_z = kp_in(3)
+  call realBZ % count(sys)
 
-  call generateAdaptiveMeshes(pn1)
+  !---- Generating k meshes points for imaginary axis integration ------
+  call generateAdaptiveMeshes(sys,pn1)
 
   !------------ Allocating variables that depend on nAtoms -------------
   call allocate_magnet_variables(sys%nAtoms, nOrb)
@@ -99,13 +100,13 @@ program TITAN
   write(output%Sites,fmt="(i0,'Sites')") sys%nAtoms
   ! if(tbmode == 2) call define_system()
 
-  !---------------------- Tight Binding parameters -----------------------
+  !--------------------- Tight Binding parameters ----------------------
   call initTightBinding(sys)
 
-  !---- Initialize Stride Matrices for hamiltk and dtdksub --------------
+  !------- Initialize Stride Matrices for hamiltk and dtdksub ----------
   call initHamiltkStride(sys%nAtoms, nOrb)
 
-  !---------------------- Lattice specific variables ---------------------
+  !--------------------- Lattice specific variables --------------------
   call initElectricField(sys%a1, sys%a2, sys%a3)
 
   !call setup_long_and_trans_current_neighbors(sys) !TODO: Not implemented TODO: Re-include
@@ -114,12 +115,12 @@ program TITAN
   write(output%info,"('_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0)") kptotal_in, eta, Utype
 
 
-  !------------------------- MAGNETIC FIELD LOOP -------------------------
-  if(myrank == 0 .and. skip_steps_hw > 0) write(output%unit,"('[main] Skipping first ',i0,' field step(s)...')") skip_steps_hw
+  !------------------------ MAGNETIC FIELD LOOP ------------------------
+  if(myrank == 0 .and. skip_steps_hw > 0) &
+  write(output%unit,"('[main] Skipping first ',i0,' field step(s)...')") skip_steps_hw
 
   do hw_count = startField, endField
-
-    !------------ Opening files (general and one for each field) -----------
+    !---------- Opening files (general and one for each field) ---------
     if(rField == 0) then
       if(total_hw_npt1 == 1 .or. itype == 6 ) then
         output%file_loop = output%file
@@ -131,72 +132,75 @@ program TITAN
       end if
     end if
 
-    !------------------- Initialize Magnetic Field --------------------
+    !------------------- Initialize Magnetic Field ---------------------
     call initMagneticField(sys%nAtoms)
-    if((llinearsoc) .or. (.not.SOC) .and. (.not.lfield) .and. (rField == 0)) write(output%file_loop,"('[main] WARNING: No external magnetic field is applied and SOC is off/linear order: Goldstone mode is present!')")
+    if((llinearsoc) .or. (.not.SOC) .and. (.not.lfield) .and. (rField == 0)) &
+    write(output%file_loop,"('[main] WARNING: No external magnetic field is applied and SOC is off/linear order: Goldstone mode is present!')")
 
-    !------------- Update fieldpart ----------------
+    !----------------------- Update fieldpart --------------------------
     call set_fieldpart(hw_count)
 
-    !------------------- Tests for coupling calculation --------------------
+    !----------------- Tests for coupling calculation ------------------
     if(itype == 6 .and. myrank == 0) then
-      if(nmaglayers==0) call abortProgram("[main] No magnetic layers for coupling calculation!")
-      if(lfield) call abortProgram("[main] Coupling calculation is valid for no external field!")
+      if(nmaglayers==0) &
+      call abortProgram("[main] No magnetic layers for coupling calculation!")
+      if(lfield) &
+      call abortProgram("[main] Coupling calculation is valid for no external field!")
     end if
 
-    !------- Writing parameters and data to be calculated on screen --------
+    !----- Writing parameters and data to be calculated on screen ------
     if(rField == 0) call iowrite(sys)
 
     !---- L matrix in global frame for given quantization direction ----
     call l_matrix()
 
-    ! !------ Calculate L.S matrix for the given quantization direction ------
-    ! if(SOC) call updateLS(theta, phi)
+    !---- Calculate L.S matrix for the given quantization direction ----
+    if(SOC) call updateLS(theta, phi)
 
-    ! !------ Calculate L.B matrix for the given quantization direction ------
-    ! call lb_matrix(sys%nAtoms, nOrb)
+    !---- Calculate L.B matrix for the given quantization direction ----
+    call lb_matrix(sys%nAtoms, nOrb)
 
-    ! !------------------------ Calculate S.B matrix  ------------------------
-    ! call sb_matrix(sys%nAtoms, nOrb)
+    !---------------------- Calculate S.B matrix  ----------------------
+    call sb_matrix(sys%nAtoms, nOrb)
 
-    !---------------------------- Debugging part ---------------------------
+    !-------------------------- Debugging part -------------------------
     ! if(ldebug) then TODO: Re-Include
     !   !if(myrank==0) then
     !   call debugging()
     !   !end if
     ! end if
 
-    !------------------- Only create files with headers --------------------
+    !----------------- Only create files with headers ------------------
     if(lcreatefiles) then
       if(rField == 0) call create_files()
       if((itype==7).or.(itype==8)) cycle
       call MPI_Finalize(ierr)
       call exit(0)
     end if
-    !------------- Check if files exist to add results or sort -------------
+    !----------- Check if files exist to add results or sort -----------
     if( (lsortfiles .or. laddresults) .and. rField == 0 ) call check_files()
 
-    !----------------------- Only sort existing files ----------------------
+    !--------------------- Only sort existing files --------------------
     if(lsortfiles) then
       if(rField == 0) call sort_all_files()
       cycle
     end if
 
-    ! !---- Only calculate long. and transv. currents from existing files ----
+    !-- Only calculate long. and transv. currents from existing files --
     ! if(llgtv) then
     !   if(myrank==0) call read_calculate_lgtv_currents()
     !   if(itype==9) exit
     !   cycle
     ! end if
 
-    !---------------- Only calculate SHA from existing files ---------------
+    !-------------- Only calculate SHA from existing files -------------
     ! if(lsha) then TODO: Re-include
     !   if(myrank==0) call read_currents_and_calculate_sha()
     !   if(itype==9) exit
     !   cycle
     ! end if
 
-    !-------------------------- Begin first test part ----------------------
+    !------------------------ Begin first test part --------------------
     if(rField == 0 .and. itype==0) then
       write(output%unit_loop,"('[main] FIRST TEST PART')")
       rho  = 0.d0
@@ -208,57 +212,60 @@ program TITAN
       ! call debugging()
     end if
 
-    if(lcreatefolders) call create_folder()
+    !------------- Creating folders for current calculation ------------
+    if(lcreatefolders) &
+    call create_folder()
 
 
-    ! Self-consistency
-
-    ! Time now
-    if(rField == 0)  call write_time(output%unit_loop,'[main] Time before self-consistency: ')
+    !------------------------- Self-consistency ------------------------
+    if(rField == 0) &
+    call write_time(output%unit_loop,'[main] Time before self-consistency: ')
 
     call doSelfConsistency()
 
-    ! Time now
-    if(rField==0)  call write_time(output%unit_loop,'[main] Time after self-consistency: ')
+    if(rField==0) &
+    call write_time(output%unit_loop,'[main] Time after self-consistency: ')
 
-    !---- Only calculate long. and transv. currents from existing files ----
+    !-- Only calculate long. and transv. currents from existing files --
     ! if(llgtv) then TODO: Re-include
     !   if(myrank==0) call read_calculate_lgtv_currents()
     !   if(itype==9) exit
     !   cycle
     ! end if
 
-    !============================= MAIN PROGRAM =============================
+    !========================== MAIN PROGRAM ===========================
     select case (itype)
-    case(1) ! Calculation of self-consistency only
+    case(1)  ! Calculation of self-consistency only
       continue
-    case (2) !Debugging case
-      call ldos() !call debugging() TODO: Re-Include
-    case (3) !
+    case (2) ! LDOS calculation
+      call ldos()
+    case (3) ! LDOS and coupling and a function of energy
       call ldos_and_coupling()
-    case (4) !
+    case (4) ! Band structure (not parallelized)
       if(rField == 0) call band_structure(sys)
-    case (5) !
+    case (5) ! Iso-energy surface (for input = sys%Ef - Fermi surface)
       call fermi_surface(sys%Ef)
-    case (6) !
+    case (6) ! Coupling tensor
       call coupling()
-    case (7) !
+    case (7) ! Full magnetic susceptibility as a function of the frequency
       call calculate_chi()
-    case (8) !
+    case (8) ! All responses to an electric field as a function of frequency
       call calculate_all()
-    case (9) !
+    case (9) ! All responses to an electric field as a function of magnetic field
       call calculate_dc_limit()
     case(10) ! Calculation of Gilbert Damping by Kamberskys Torque Torque model
       call calculate_gilbert_damping()
     end select
-    !========================================================================
+    !===================================================================
 
-    ! Emergency stop after the calculation for a field is finished (don't check on last step)
-    if(total_hw_npt1 /= 1 .and. hw_count < endField) call check_emergency_stop(hw_list, hw_count)
-    !---------------------------- Closing files ----------------------------
-    if(total_hw_npt1 /= 1 .and.  itype /= 6 .and. rField == 0) close(output%unit_loop)
-    !---------------------- Ending magnetic field loop ---------------------
-  end do
+    ! Emergency stop after the calculation for a field is finished
+    ! (not checked on last step)
+    if(total_hw_npt1 /= 1 .and. hw_count < endField) &
+    call check_emergency_stop(hw_list, hw_count)
+    !-------------------------- Closing files --------------------------
+    if(total_hw_npt1 /= 1 .and.  itype /= 6 .and. rField == 0) &
+    close(output%unit_loop)
+  end do ! Ending of magnetic field loop
 
   !------------ Deallocating variables that depend on nAtoms------------
   call deallocate_Atom_variables()

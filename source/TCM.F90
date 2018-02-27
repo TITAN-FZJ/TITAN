@@ -1,7 +1,7 @@
 module mod_gilbert_damping
   use mod_f90_kind, only: double
   implicit none
-  character(len=5), private :: folder = "A/TCM"
+  character(len=5),               private :: folder = "A/TCM"
   character(len=2), dimension(2), private :: filename = ["SO", "XC"]
 
 contains
@@ -35,13 +35,14 @@ contains
 
   subroutine writeTCM()
 
+    return
   end subroutine writeTCM
 
 subroutine calculate_gilbert_damping()
-  use mod_f90_kind, only: double
+  use mod_f90_kind,   only: double
   use mod_parameters, only: output
-  use mod_System, only: s => sys
-  use mod_mpi_pars, only: rField
+  use mod_System,     only: s => sys
+  use mod_mpi_pars,   only: rField
   implicit none
   complex(double), dimension(s%nAtoms,s%nAtoms,3,3) :: alphaSO, alphaXC
   integer :: i,j,k
@@ -70,23 +71,23 @@ subroutine calculate_gilbert_damping()
 end subroutine calculate_gilbert_damping
 
 subroutine TCM(alpha, torque_fct)
-  use mod_f90_kind, only: double
-  use mod_constants, only: cZero, pi, cOne, cI
-  use mod_System, only: s => sys
+  use mod_f90_kind,      only: double
+  use mod_constants,     only: cZero, pi, cOne, cI
+  use mod_System,        only: s => sys
   use mod_BrillouinZone, only: realBZ
-
-  use TightBinding, only: nOrb
-  use mod_parameters, only: eta
-  use mod_magnet, only: mabs
+  use TightBinding,      only: nOrb
+  use mod_parameters,    only: eta
+  use mod_magnet,        only: mabs
   use mod_mpi_pars
   implicit none
   interface
     subroutine torque_fct(torque)
       use mod_f90_kind, only: double
       use TightBinding, only: nOrb
-      use mod_System, only: sys
+      use mod_System,   only: sys
       implicit none
       complex(double), dimension(2*nOrb,2*nOrb,3,sys%nAtoms), intent(out) :: torque
+      return
     end subroutine torque_fct
   end interface
 
@@ -102,7 +103,7 @@ subroutine TCM(alpha, torque_fct)
   integer*8 :: iz
   ! Calculate workload for each MPI process
 
-  call realBZ % setup_fraction(rField, sField, FieldComm)
+  call realBZ % setup_fraction(s,rField, sField, FieldComm)
 
   call torque_fct(torque)
 
@@ -128,7 +129,7 @@ subroutine TCM(alpha, torque_fct)
     kp = realBZ%kp(1:3,iz)
     wght = realBZ%w(iz)
     gf  = cZero
-    call green(s%Ef, eta, kp, gf)
+    call green(s%Ef,eta,s,kp,gf)
     do m = 1, 3
       do n = 1, 3
         do i = 1, s%nAtoms
@@ -176,12 +177,12 @@ end subroutine TCM
 
 
 subroutine local_xc_torque(torque)
-  use mod_f90_kind, only: double
-  use mod_constants, only: cZero, cOne, cI, levi_civita, sigma => pauli_mat
-  use TightBinding, only: nOrb
-  use mod_System, only: s => sys
+  use mod_f90_kind,   only: double
+  use mod_constants,  only: cZero, cOne, cI, levi_civita, sigma => pauli_mat
+  use TightBinding,   only: nOrb
+  use mod_System,     only: s => sys
   use mod_parameters, only: U
-  use mod_magnet, only: mvec_cartesian
+  use mod_magnet,     only: mvec_cartesian
 
   complex(double), dimension(2*nOrb,2*nOrb,3,s%nAtoms), intent(out) :: torque
   complex(double), dimension(nOrb,nOrb) :: ident
@@ -211,11 +212,11 @@ subroutine local_xc_torque(torque)
 end subroutine local_xc_torque
 
 subroutine local_SO_torque(torque)
-  use mod_f90_kind, only: double
+  use mod_f90_kind,  only: double
   use mod_constants, only: cZero, levi_civita, sigma => pauli_mat, cI
-  use mod_System, only: s => sys
-  use mod_magnet, only: lvec
-  use TightBinding, only: nOrb, nOrb2
+  use mod_System,    only: s => sys
+  use mod_magnet,    only: lvec
+  use TightBinding,  only: nOrb, nOrb2
   use mod_mpi_pars
   implicit none
   integer :: i,m,n,k
@@ -250,7 +251,6 @@ subroutine local_SO_torque(torque)
     torque(14:18, 5: 9,:,i) = 0.5d0 * s%Types(s%Basis(i)%Material)%LambdaD * torque(14:18, 5: 9,:,i)
     torque(14:18,14:18,:,i) = 0.5d0 * s%Types(s%Basis(i)%Material)%LambdaD * torque(14:18,14:18,:,i)
   end do
-
 
   return
 end subroutine local_SO_torque

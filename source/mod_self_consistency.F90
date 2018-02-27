@@ -1,118 +1,26 @@
 module mod_self_consistency
    use mod_f90_kind, only: double
    implicit none
-   character(len=300)  :: default_file
-   real(double) :: mag_tol = 1.d-10
-
+   character(len=300) :: default_file
+   real(double)       :: mag_tol = 1.d-10
    character(len=200) :: scfile = ""
    !! Give a file to start self-consistency
    logical :: skipsc
    !! Skip self-consistency
-   logical :: lselfcon = .false.
-   logical :: lGSL = .false.
+   logical :: lselfcon    = .false.
+   logical :: lGSL        = .false.
    logical :: lontheflysc = .false.
-   logical :: lslatec = .false.
-   logical :: lnojac = .false.
-   logical :: lrotatemag = .false.
+   logical :: lslatec     = .false.
+   logical :: lnojac      = .false.
+   logical :: lrotatemag  = .false.
 
 contains
-
-  subroutine calc_initial_Uterms()
-  !! Calculates the expectation value \sum_s U^i <c^+_imus c_inus>
-  !! and U^i n_i/2
-  use mod_f90_kind,      only: double
-  use mod_constants,     only: cZero,pi
-  use mod_System,        only: s => sys
-  use TightBinding,      only: nOrb,nOrb2
-  use EnergyIntegration, only: y, wght
-  use mod_parameters,    only: eta
-  use mod_magnet,        only: mzd,mpd,rhod,rho,rho0,rhod0
-  use mod_Umatrix
-  use adaptiveMesh
-  use mod_mpi_pars
-  implicit none
-  integer      :: AllocateStatus
-  integer*8    :: ix
-  integer      :: i,mu,mup
-  real(double) :: kp(3)
-  real(double) :: weight, ep
-  complex(double), dimension(:,:,:,:), allocatable :: gf
-  real(double),    dimension(:,:),     allocatable :: imguu,imgdd
-  !--------------------- begin MPI vars --------------------
-  integer :: ncount
-  ncount=s%nAtoms*nOrb
-  !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
-
-  allocate(imguu(nOrb,s%nAtoms),imgdd(nOrb,s%nAtoms), stat = AllocateStatus)
-  if(AllocateStatus/=0) call abortProgram("[calc_initial_Uterms] Not enough memory for: imguu,imgdd")
-  allocate(rho0(nOrb,s%nAtoms),rhod0(s%nAtoms), stat = AllocateStatus)
-  if(AllocateStatus/=0) call abortProgram("[calc_initial_Uterms] Not enough memory for: rho0,rhod0")
-
-  mzd = 0.d0
-  mpd = cZero
-  do i = 1, s%nAtoms
-    rhod(i) = s%Types(s%Basis(i)%Material)%OccupationD
-    rhod0  (i) = s%Types(s%Basis(i)%Material)%OccupationD
-  end do
-  rho0 = 0.d0
-  rho  = rho0
-  call init_Umatrix(mzd,mpd,rhod,rhod0,rho,rho0,s%nAtoms,nOrb)
-
-  imguu = 0.d0
-  imgdd = 0.d0
-
-  !$omp parallel default(none) &
-  !$omp& private(AllocateStatus,ix,i,mu,mup,kp,ep,weight,gf) &
-  !$omp& shared(local_points,s,E_k_imag_mesh,bzs,eta,y,wght,imguu,imgdd)
-  allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat = AllocateStatus)
-  gf = cZero
-
-  !$omp do schedule(static) reduction(+:imguu) reduction(+:imgdd)
-  do ix = 1, local_points
-    ep = y(E_k_imag_mesh(1,ix))
-    kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
-    weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
-    !Green function on energy Ef + iy, and wave vector kp
-    call green(s%Ef,ep+eta,kp,gf)
-    do i=1,s%nAtoms
-      do mu=1,nOrb
-        mup = mu+nOrb
-        imguu(mu,i) = imguu(mu,i) + real(gf(mu ,mu ,i,i)) * weight
-        imgdd(mu,i) = imgdd(mu,i) + real(gf(mup,mup,i,i)) * weight
-      end do
-    end do
-  end do
-  !$omp end do
-
-  deallocate(gf)
-  !$omp end parallel
-  imguu = imguu / pi
-  imgdd = imgdd / pi
-
-  call MPI_Allreduce(MPI_IN_PLACE, imguu, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
-  call MPI_Allreduce(MPI_IN_PLACE, imgdd, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
-
-  rhod0 = 0.d0
-  do i=1,s%nAtoms
-    do mu=1,nOrb
-      imguu(mu,i) = 0.5d0 + imguu(mu,i)
-      imgdd(mu,i) = 0.5d0 + imgdd(mu,i)
-      if(mu>=5) rhod0(i) = rhod0(i) + real(imguu(mu,i) + imgdd(mu,i))
-      rho0(mu,i) = imguu(mu,i) + imgdd(mu,i)
-    end do
-  end do
-
-! if(rField == 0) write(*,*) rhod0,sum(abs(rho0))
-  deallocate(imguu,imgdd)
-
-  return
-  end subroutine calc_initial_Uterms
 
   subroutine doSelfConsistency()
     use mod_magnet,     only: lp_matrix, mtheta, mphi, lb_matrix, sb_matrix
     use adaptiveMesh,   only: genLocalEKMesh, freeLocalEKMesh
     use mod_mpi_pars,   only: rField, sField, FieldComm
-    use mod_SOC,        only: SOC, updateLS
+    use mod_SOC,        only: SOC
     use mod_parameters, only: theta, phi
     use mod_System,     only: s => sys
     use TightBinding,   only: nOrb
@@ -120,19 +28,7 @@ contains
     logical :: lsuccess = .false.
 
     ! Distribute Energy Integration across all points available
-    call genLocalEKMesh(rField,sField, FieldComm)
-
-    ! Calculating initial values for U terms in the hamiltonian with mag=0
-    call calc_initial_Uterms()
-
-    !------ Calculate L.S matrix for the given quantization direction ------
-    if(SOC) call updateLS(theta, phi)
-
-    !------ Calculate L.B matrix for the given quantization direction ------
-    call lb_matrix(s%nAtoms, nOrb)
-
-    !------------------------ Calculate S.B matrix  ------------------------
-    call sb_matrix(s%nAtoms, nOrb)
+    call genLocalEKMesh(s,rField,sField, FieldComm)
 
     !--------------------------- Self-consistency --------------------------
     ! Trying to read previous densities and Ef from files
@@ -165,14 +61,14 @@ contains
 
   ! Tries to read n and m if available
   subroutine read_previous_results(lsuccess)
-    use mod_f90_kind, only: double
-    use mod_constants, only: deg2rad
-    use mod_magnet, only: mx,my,mz,mxd,myd,mzd,mpd, &
-                          hw_count,hw_list,lfield,rho,rhod,rhod0,rho0
+    use mod_f90_kind,   only: double
+    use mod_constants,  only: deg2rad
     use mod_parameters, only: output, magaxis, magaxisvec, offset, layertype
-    use mod_system, only: s => sys
-    use TightBinding, only: nOrb
-    use mod_mpi_pars, only: abortProgram, rField
+    use mod_system,     only: s => sys
+    use TightBinding,   only: nOrb
+    use mod_mpi_pars,   only: abortProgram, rField
+    use mod_magnet,     only: mx,my,mz,mxd,myd,mzd,mpd,hw_count,hw_list, &
+                              lfield,rho,rhod,rhod0,rho0
     use mod_Umatrix
     implicit none
     integer             :: i,err
@@ -248,7 +144,7 @@ contains
         my(5:9,i) = 0.2d0*myd(i)
         mz(5:9,i) = 0.2d0*mzd(i)
 
-        rhod(i)    = s%Types(s%Basis(i)%Material)%OccupationD
+        rhod(i)   = s%Types(s%Basis(i)%Material)%OccupationD
       end do
 
     end if
@@ -260,12 +156,13 @@ contains
 
   ! This subroutine reads previous band-shifting and magnetization results
   subroutine read_sc_results(err,lsuccess)
-    use mod_f90_kind, only: double
-    use mod_parameters, only: output, dfttype
+    use mod_f90_kind,      only: double
+    use mod_parameters,    only: output, dfttype
     use EnergyIntegration, only: parts
-    use mod_magnet, only: rho, mp, mx, my, mz, rhod, mpd, mxd, myd, mzd, hw_count
-    use TightBinding, only: nOrb
-    use mod_system, only: s => sys
+    use TightBinding,      only: nOrb
+    use mod_system,        only: s => sys
+    use mod_magnet,        only: rho, mp, mx, my, mz, rhod, &
+                                 mpd, mxd, myd, mzd, hw_count
     use mod_mpi_pars
     implicit none
     character(len=300)  :: file = ""
@@ -393,11 +290,12 @@ contains
   end subroutine read_sc_results
 
   subroutine calcMagAngle()
-    use mod_constants, only: pi,rad2deg
-    use mod_magnet, only: mx, my, mz, mabs, &
-                          mtheta, mphi, mvec_cartesian, mvec_spherical
-    use mod_system, only: s => sys
+    use mod_constants,        only: pi,rad2deg
+    use mod_system,           only: s => sys
     use mod_susceptibilities, only: lrot
+    use mod_magnet,           only: mx, my, mz, mabs, &
+                                    mtheta, mphi, mvec_cartesian, &
+                                    mvec_spherical
     implicit none
     integer :: i
 
@@ -467,7 +365,8 @@ contains
     sc_solu(8*s%nAtoms+1) = s%Ef
     iter  = 1
 
-    if(rField == 0) write(output%unit_loop,"('[self_consistency] Starting self-consistency:')")
+    if(rField == 0) &
+    write(output%unit_loop,"('[self_consistency] Starting self-consistency:')")
 
 #if defined(_OSX) || defined(_JUQUEEN)
     if(lslatec) then
@@ -566,10 +465,12 @@ contains
     ncount = s%nAtoms * nOrb
 
     allocate(imguu(nOrb,s%nAtoms),imgdd(nOrb,s%nAtoms), stat = AllocateStatus)
-    if(AllocateStatus/=0) call abortProgram("[calcMagnetization] Not enough memory for: imguu,imgdd")
+    if(AllocateStatus/=0) &
+    call abortProgram("[calcMagnetization] Not enough memory for: imguu,imgdd")
 
     allocate(gdiagud(s%nAtoms,nOrb), gdiagdu(s%nAtoms,nOrb), stat = AllocateStatus)
-    if(AllocateStatus /= 0) call abortProgram("[calcMagnetization] Not enough memory for: gdiagdu, gdiagud")
+    if(AllocateStatus /= 0) &
+    call abortProgram("[calcMagnetization] Not enough memory for: gdiagdu, gdiagud")
 
     imguu   = 0.d0
     imgdd   = 0.d0
@@ -580,7 +481,8 @@ contains
     !$omp& private(ix,ep,kp,weight,i,mu,mup,gf,AllocateStatus) &
     !$omp& shared(llineargfsoc,llinearsoc,local_points,eta,wght,s,bzs,E_k_imag_mesh,y,gdiagud,gdiagdu,imguu,imgdd)
     allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat=AllocateStatus)
-    if(AllocateStatus /= 0) call AbortProgram("[calcMagnetization] Not enough memory for: gf")
+    if(AllocateStatus /= 0) &
+    call AbortProgram("[calcMagnetization] Not enough memory for: gf")
     gf = cZero
 
     if(llineargfsoc .or. llinearsoc) then
@@ -589,7 +491,7 @@ contains
          ep = y(E_k_imag_mesh(1,ix))
          kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
          weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
-         call greenlineargfsoc(s%Ef,ep+eta,kp,gf)
+         call greenlineargfsoc(s%Ef,ep+eta,s,kp,gf)
          do i=1,s%nAtoms
            do mu=1,nOrb
              mup = mu+nOrb
@@ -608,7 +510,7 @@ contains
          ep = y(E_k_imag_mesh(1,ix))
          kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
          weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
-         call green(s%Ef,ep+eta,kp,gf)
+         call green(s%Ef,ep+eta,s,kp,gf)
          do i=1,s%nAtoms
            do mu=1,nOrb
              mup = mu+nOrb
@@ -683,19 +585,16 @@ contains
     use TightBinding,      only: nOrb,nOrb2
     use mod_mpi_pars
     implicit none
-    integer,      intent(in) :: N
+    integer,                           intent(in)    :: N
     real(double),    dimension(N,N),   intent(inout) :: jacobian
     complex(double), dimension(:,:),     allocatable :: gij,gji,temp,paulitemp
     complex(double), dimension(:,:,:),   allocatable :: temp1,temp2
     complex(double), dimension(:,:,:,:), allocatable :: gf,gvg
-
     integer :: i,j
     integer :: AllocateStatus
     integer :: i0,j0,sigma,sigmap
-
-    real(double) :: kp(3), ep
+    real(double)    :: kp(3), ep
     complex(double) :: weight
-
     complex(double) :: mhalfU(4,s%nAtoms)
     complex(double), dimension(nOrb2, nOrb2, 4) :: pauli_components1,pauli_components2
 
@@ -734,7 +633,8 @@ contains
               gij(nOrb2,nOrb2), gji(nOrb2,nOrb2), &
               gf(nOrb2, nOrb2, s%nAtoms, s%nAtoms), &
               temp(nOrb2, nOrb2), paulitemp(nOrb2, nOrb2), stat = AllocateStatus)
-    if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: temp1, temp2, gij, gji, gf, temp")
+    if (AllocateStatus/=0) &
+    call abortProgram("[calcJacobian] Not enough memory for: temp1, temp2, gij, gji, gf, temp")
     temp1     = cZero
     temp2     = cZero
     paulitemp = cZero
@@ -745,7 +645,8 @@ contains
 
     if(llineargfsoc .or. llinearsoc) then
       allocate(gvg(nOrb2, nOrb2, s%nAtoms, s%nAtoms), STAT = AllocateStatus  )
-      if (AllocateStatus/=0) call abortProgram("[sumk_jacobian] Not enough memory for: gvg")
+      if (AllocateStatus/=0) &
+      call abortProgram("[calcJacobian] Not enough memory for: gvg")
       gvg = cZero
     end if
 
@@ -756,10 +657,10 @@ contains
       weight = cmplx(1.d0,0.d0) * wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
       ! Green function on energy Ef + iy, and wave vector kp
       if(llineargfsoc .or. llinearsoc) then
-        call greenlinearsoc(s%Ef,ep+eta,kp,gf,gvg)
+        call greenlinearsoc(s%Ef,ep+eta,s,kp,gf,gvg)
         gf = gf + gvg
       else
-        call green(s%Ef,ep+eta,kp,gf)
+        call green(s%Ef,ep+eta,s,kp,gf)
       end if
 
       do j=1,s%nAtoms
@@ -846,10 +747,10 @@ contains
 
       ! Green function at Ef + ieta, and wave vector kp
       if(llineargfsoc .or. llinearsoc) then
-        call greenlinearsoc(s%Ef,eta,kp,gf,gvg)
+        call greenlinearsoc(s%Ef,eta,s,kp,gf,gvg)
         gf = gf + gvg
       else
-        call green(s%Ef,eta,kp,gf)
+        call green(s%Ef,eta,s,kp,gf)
       end if
 
       do i=1,s%nAtoms
@@ -904,18 +805,16 @@ contains
     use mod_magnet
     use mod_mpi_pars
     implicit none
-
-    integer :: AllocateStatus
-    integer*8 :: ix
-    integer :: i,mu,nu,mup,nup
+    integer*8    :: ix
+    integer      :: AllocateStatus
+    integer      :: i,mu,nu,mup,nup
     real(double) :: kp(3)
-    complex(double), dimension(:,:,:,:), allocatable :: gf
-    complex(double), dimension(:,:,:), allocatable :: gupgd
     real(double) :: weight, ep
+    complex(double), dimension(:,:,:,:), allocatable :: gf
+    complex(double), dimension(:,:,:),   allocatable :: gupgd
     !--------------------- begin MPI vars --------------------
     integer :: ncount
     ncount=s%nAtoms*nOrb*nOrb
-
     !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
     if(allocated(lxm)) deallocate(lxm)
     if(allocated(lym)) deallocate(lym)
@@ -929,31 +828,33 @@ contains
               lxpm(s%nAtoms), &
               lypm(s%nAtoms), &
               lzpm(s%nAtoms), stat = AllocateStatus )
-    if (AllocateStatus/=0) call abortProgram("[L_gs] Not enough memory for: df1,Fint,gf,gfuu,gfud,gfdu,gfdd")
+    if (AllocateStatus/=0) &
+    call abortProgram("[calcLGS] Not enough memory for: df1,Fint,gf,gfuu,gfud,gfdu,gfdd")
 
     allocate(gupgd(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
-    if(AllocateStatus/=0) call abortProgram("[L_gs] Not enough memory for: gupgd")
+    if(AllocateStatus/=0) &
+    call abortProgram("[calcLGS] Not enough memory for: gupgd")
 
-    if(rField == 0) write(output%unit_loop,"('[L_gs] Calculating Orbital Angular Momentum ground state... ')")
+    if(rField == 0) &
+    write(output%unit_loop,"('[calcLGS] Calculating Orbital Angular Momentum ground state... ')")
 
-    ! Calculating the number of particles for each spin and orbital using a complex integral
-
+    ! Calculating the jacobian using a complex integral
     gupgd  = cZero
-
     !$omp parallel default(none) &
     !$omp& private(AllocateStatus,ix,i,mu,nu,mup,nup,kp,ep,weight,gf) &
     !$omp& shared(local_points,s,E_k_imag_mesh,bzs,eta,y,wght,gupgd)
-
     allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat = AllocateStatus)
-    gf = cZero
+    if (AllocateStatus/=0) &
+    call abortProgram("[calcLGS] Not enough memory for: gf")
 
+    gf = cZero
     !$omp do schedule(static) reduction(+:gupgd)
     do ix = 1, local_points
         kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
         ep = y(E_k_imag_mesh(1,ix))
         weight = bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix)) * wght(E_k_imag_mesh(1,ix))
         !Green function on energy Ef + iy, and wave vector kp
-        call green(s%Ef,ep+eta,kp,gf)
+        call green(s%Ef,ep+eta,s,kp,gf)
 
         do i=1,s%nAtoms
           do mu=1,nOrb
@@ -1032,22 +933,21 @@ contains
     return
   end subroutine calcLGS
 
-
   subroutine rotate_magnetization_to_field()
   !! Rotate the magnetization to the direction of the field (useful for SOC=F)
-    use mod_f90_kind, only: double
-    use mod_constants, only: deg2rad
-    use mod_magnet, only: hw_count, hw_list, hhw, &
-                          mx, my, mz, mp
+    use mod_f90_kind,   only: double
+    use mod_constants,  only: deg2rad
+    use mod_magnet,     only: hw_count,hw_list,hhw,mx,my,mz,mp
     use mod_parameters, only: output
-    use mod_System, only: s => sys
-    use TightBinding, only: nOrb
-    use mod_mpi_pars, only: rField
+    use mod_System,     only: s => sys
+    use TightBinding,   only: nOrb
+    use mod_mpi_pars,   only: rField
     implicit none
-    integer :: i,j,sign
+    integer      :: i,j,sign
     real(double) :: mdotb,mabs(nOrb,s%nAtoms)
 
-    if(rField == 0) write(output%unit_loop,"('[rotate_magnetization_to_field] Rotating previous magnetization to the direction of the field...')")
+    if(rField == 0) &
+    write(output%unit_loop,"('[rotate_magnetization_to_field] Rotating previous magnetization to the direction of the field...')")
 
     do i = 1, s%nAtoms
       do j=1,nOrb
@@ -1065,7 +965,7 @@ contains
     if(rField == 0) call write_sc_results()
 
     ! Writing self-consistency results on screen
-    if(rField == 0)  call print_sc_results()
+    if(rField == 0) call print_sc_results()
 
     return
   end subroutine rotate_magnetization_to_field
@@ -1073,10 +973,11 @@ contains
   ! Writes the self-consistency results on the screen
   subroutine print_sc_results()
     use mod_parameters, only: output
-    use mod_system, only: s => sys
-    use mod_SOC, only: SOC
-    use mod_magnet, only: rho, mvec_cartesian, mp, mvec_spherical, &
-                          lxpm, lypm, lzpm, lpphi, lptheta, lxm, lym, lzm, ltheta, lphi, lpabs, labs
+    use mod_system,     only: s => sys
+    use mod_SOC,        only: SOC
+    use mod_magnet,     only: rho, mvec_cartesian, mp, mvec_spherical, &
+                              lxpm, lypm, lzpm, lpphi, lptheta, lxm, lym, &
+                              lzm, ltheta, lphi, lpabs, labs
     implicit none
     integer :: i
 
@@ -1089,18 +990,21 @@ contains
     write(output%unit_loop,"(11x,' *********** Magnetization components: **********')")
     do i=1,s%nAtoms
       write(output%unit_loop,"(4x,'Mx (',i2.0,')=',f11.8,4x,'My (',i2.0,')=',f11.8,4x,'Mz (',i2.0,')=',f11.8)") i,mvec_cartesian(1,i),i,mvec_cartesian(2,i),i,mvec_cartesian(3,i)
-      if(abs(sum(mp(:,i)))/=0) write(output%unit_loop,"(12x,'theta = ',f11.6,'  ',4x,'phi = ',f11.6)") mvec_spherical(2,i),mvec_spherical(3,i)
+      if(abs(sum(mp(:,i)))/=0) &
+      write(output%unit_loop,"(12x,'theta = ',f11.6,'  ',4x,'phi = ',f11.6)") mvec_spherical(2,i),mvec_spherical(3,i)
     end do
     if((lGSL).or.(SOC)) then
       write(output%unit_loop,"(11x,' *** Orbital components in global frame: ***')")
       do i=1,s%nAtoms
         write(output%unit_loop,"(4x,'Lx (',i2.0,')=',f11.8,4x,'Ly (',i2.0,')=',f11.8,4x,'Lz (',i2.0,')=',f11.8)") i,lxm(i),i,lym(i),i,lzm(i)
-        if(sqrt(lxm(i)**2+lym(i)**2)/=0) write(output%unit_loop,"(12x,'theta = ',f11.6,'  ',4x,'phi = ',f11.6)") ltheta(i),lphi(i)
+        if(sqrt(lxm(i)**2+lym(i)**2)/=0) &
+        write(output%unit_loop,"(12x,'theta = ',f11.6,'  ',4x,'phi = ',f11.6)") ltheta(i),lphi(i)
       end do
       write(output%unit_loop,"(11x,' *** Orbital components in local frame:  ***')")
       do i=1,s%nAtoms
         write(output%unit_loop,"(4x,'Lxp(',i2.0,')=',f11.8,4x,'Lyp(',i2.0,')=',f11.8,4x,'Lzp(',i2.0,')=',f11.8)") i,lxpm(i),i,lypm(i),i,lzpm(i)
-        if(sqrt(lxpm(i)**2+lypm(i)**2)/=0) write(output%unit_loop,"(12x,'theta = ',f11.6,'  ',4x,'phi = ',f11.6)") lptheta(i),lpphi(i)
+        if(sqrt(lxpm(i)**2+lypm(i)**2)/=0) &
+        write(output%unit_loop,"(12x,'theta = ',f11.6,'  ',4x,'phi = ',f11.6)") lptheta(i),lpphi(i)
       end do
       write(output%unit_loop,"(11x,' ******************** Total: ********************')")
       do i=1,s%nAtoms
@@ -1120,15 +1024,15 @@ contains
 
   subroutine write_sc_results()
     !! Writes the self-consistency results into files and broadcasts the scfile for the next iteration.
-    use mod_parameters, only: output, dfttype
+    use mod_parameters,    only: output, dfttype
     use EnergyIntegration, only: parts
-    use mod_magnet, only: rho, mx, my, mz
-    use mod_system, only: s => sys
-    use TightBinding, only: nOrb
+    use mod_magnet,        only: rho, mx, my, mz
+    use mod_system,        only: s => sys
+    use TightBinding,      only: nOrb
     use mod_mpi_pars
     implicit none
     character(len=30) :: formatvar
-    integer :: i,j
+    integer           :: i,j
 
     if(rField == 0) then
       ! Writing new results (mx, my, mz and n) to file

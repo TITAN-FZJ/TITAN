@@ -15,7 +15,7 @@ subroutine coupling()
 
   call allocateCoupling()
 
-  call genLocalEKMesh(rField,sField, FieldComm)
+  call genLocalEKMesh(s,rField,sField, FieldComm)
   q = [ 0.d0 , 0.d0 , 0.d0 ]
   call jij_energy(Jij)
   call freeLocalEKMesh()

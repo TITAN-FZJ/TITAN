@@ -1,10 +1,10 @@
 ! This subroutine calculates LDOS
 subroutine ldos()
-  use mod_f90_kind, only: double
-  use mod_parameters, only: output, npt1, emin, deltae,laddresults
-  use mod_system, only: s => sys
+  use mod_f90_kind,      only: double
+  use mod_parameters,    only: output, npt1, emin, deltae,laddresults
+  use mod_system,        only: s => sys
   use mod_BrillouinZone, only: realBZ
-  use TightBinding, only: nOrb
+  use TightBinding,      only: nOrb
   use mod_LDOS
   use mod_mpi_pars
   implicit none
@@ -12,7 +12,7 @@ subroutine ldos()
   real(double) :: e
 
   call allocateLDOS()
-  call realBZ % setup_fraction(rFreq(1), sFreq(1), FreqComm(1))
+  call realBZ % setup_fraction(s,rFreq(1), sFreq(1), FreqComm(1))
 
   ! Opening files
   if(rField == 0) then

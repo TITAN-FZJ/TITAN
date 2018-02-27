@@ -116,9 +116,9 @@ subroutine eintshe(e)
 
       ! Green function at (k+q,E_F+E+iy)
       if(llineargfsoc) then
-        call greenlineargfsoc(s%Ef+e,ep+eta,kp,gf)
+        call greenlineargfsoc(s%Ef+e,ep+eta,s,kp,gf)
       else
-        call green(s%Ef+e,ep+eta,kp,gf)
+        call green(s%Ef+e,ep+eta,s,kp,gf)
       end if
       gfuu(:,:,:,:,1) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
@@ -127,9 +127,9 @@ subroutine eintshe(e)
 
       ! Green function at (k,E_F+iy)
       if(llineargfsoc) then
-        call greenlineargfsoc(s%Ef,ep+etap,kp,gf)
+        call greenlineargfsoc(s%Ef,ep+etap,s,kp,gf)
       else
-        call green(s%Ef,ep+etap,kp,gf)
+        call green(s%Ef,ep+etap,s,kp,gf)
       end if
       gfuu(:,:,:,:,2) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,2) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
@@ -234,9 +234,9 @@ subroutine eintshe(e)
 
         ! Green function at (k+q,E_F+E+iy)
         if(llineargfsoc) then
-          call greenlineargfsoc(ep+e,eta,kp,gf)
+          call greenlineargfsoc(ep+e,eta,s,kp,gf)
         else
-          call green(ep+e,eta,kp,gf)
+          call green(ep+e,eta,s,kp,gf)
         end if
         gfuu(:,:,:,:,1) = gf(     1:  nOrb,     1:  nOrb, :,:)
         gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
@@ -245,9 +245,9 @@ subroutine eintshe(e)
 
         ! Green function at (k,E_F+iy)
         if(llineargfsoc) then
-          call greenlineargfsoc(ep,etap,kp,gf)
+          call greenlineargfsoc(ep,etap,s,kp,gf)
         else
-          call green(ep,etap,kp,gf)
+          call green(ep,etap,s,kp,gf)
         end if
         gfuu(:,:,:,:,2) = gf(     1:  nOrb,     1:  nOrb, :,:)
         gfud(:,:,:,:,2) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
@@ -475,7 +475,7 @@ subroutine eintshelinearsoc(e)
       ! end do
 
         ! Green function at (k+q,E_F+E+iy)
-        call greenlinearsoc(s%Ef+e,ep+eta,kp,gf,gvg)
+        call greenlinearsoc(s%Ef+e,ep+eta,s,kp,gf,gvg)
         gfuu(:,:,:,:,1)  = gf(     1:  nOrb,     1:  nOrb, :,:)
         gfud(:,:,:,:,1)  = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
         gfdu(:,:,:,:,1)  = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
@@ -486,7 +486,7 @@ subroutine eintshelinearsoc(e)
         gvgdd(:,:,:,:,1) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
 
         ! Green function at (k,E_F+iy)
-        call greenlinearsoc(s%Ef,ep+etap,kp,gf,gvg)
+        call greenlinearsoc(s%Ef,ep+etap,s,kp,gf,gvg)
         gfuu(:,:,:,:,2)  = gf(     1:  nOrb,     1:  nOrb, :,:)
         gfud(:,:,:,:,2)  = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
         gfdu(:,:,:,:,2)  = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
@@ -619,7 +619,7 @@ subroutine eintshelinearsoc(e)
       ! end do
 
       ! Green function at (k+q,E_F+E+iy)
-      call greenlinearsoc(ep+e,eta,kp,gf,gvg)
+      call greenlinearsoc(ep+e,eta,s,kp,gf,gvg)
       gfuu(:,:,:,:,1) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
       gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
@@ -630,7 +630,7 @@ subroutine eintshelinearsoc(e)
       gvgdd(:,:,:,:,1) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
 
       ! Green function at (k,E_F+iy)
-      call greenlinearsoc(ep,etap,kp,gf,gvg)
+      call greenlinearsoc(ep,etap,s,kp,gf,gvg)
       gfuu(:,:,:,:,2) = gf(     1:  nOrb,     1:  nOrb, :,:)
       gfud(:,:,:,:,2) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
       gfdu(:,:,:,:,2) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)

@@ -7,12 +7,12 @@ module mod_Umatrix
 
 contains
 
-  subroutine allocate_Umatrix(nAtoms, nOrb)
+  subroutine allocate_Umatrix(nAtoms,nOrb)
     use mod_mpi_pars, only: AbortProgram
     implicit none
-
     integer, intent(in) :: nAtoms, nOrb
-    integer :: AllocateStatus
+    integer             :: AllocateStatus
+
     if(allocated(hee)) deallocate(hee)
     allocate(hee(2*nOrb,2*nOrb,nAtoms), stat=AllocateStatus)
     if(AllocateStatus /= 0) call abortProgram("[allocate_Umatrix] Failed to allocate 'hee'.")
@@ -36,8 +36,8 @@ contains
       ! Diagonal terms (in orbital)
       do mu=5, nOrb
         nu=mu+nOrb
-        hee(mu,mu,i+offset) = U(i+offset)*(rho(mu,i) - rho0(mu,i)) + 0.5d0*U(i+offset)*(-mz(i) - rhod(i) + rhod0(i) )
-        hee(nu,nu,i+offset) = U(i+offset)*(rho(mu,i) - rho0(mu,i)) + 0.5d0*U(i+offset)*( mz(i) - rhod(i) + rhod0(i) )
+        hee(mu,mu,i+offset) = U(i+offset)*(rho(mu,i) - rho0(mu,i)) + 0.5d0*U(i+offset)*(-mz(i) - rhod(i) + rhod0(i))
+        hee(nu,nu,i+offset) = U(i+offset)*(rho(mu,i) - rho0(mu,i)) + 0.5d0*U(i+offset)*( mz(i) - rhod(i) + rhod0(i))
         hee(mu,nu,i+offset) = - 0.5d0*U(i+offset)*conjg(mp(i))
         hee(nu,mu,i+offset) = - 0.5d0*U(i+offset)*mp(i)
       end do

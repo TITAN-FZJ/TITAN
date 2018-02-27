@@ -196,7 +196,7 @@ contains
       kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
       weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
       !Green function on energy Ef + iy, and wave vector kp
-      call green(s%Ef,ep+eta,kp,gf)
+      call green(s%Ef,ep+eta,s,kp,gf)
       do i=1,s%nAtoms
         do mu=1,nOrb
           mup = mu+nOrb

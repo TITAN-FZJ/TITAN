@@ -31,8 +31,8 @@ subroutine calculate_chi()
   call allocate_alpha()
   call allocTTResponse(s%nAtoms)
   call allocTSResponse(s%nAtoms)
-  call genLocalEKMesh(rFreq(1), sFreq(1), FreqComm(1))
-  call realBZ % setup_fraction(rFreq(1), sFreq(1), FreqComm(1))
+  call genLocalEKMesh(s,rFreq(1), sFreq(1), FreqComm(1))
+  call realBZ % setup_fraction(s,rFreq(1), sFreq(1), FreqComm(1))
 
 
   if(rFreq(1) == 0) allocate(temp(dim,dim))

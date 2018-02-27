@@ -18,26 +18,15 @@ module Lattice
   use mod_f90_kind, only: double
   implicit none
 
-  integer :: LatticeMode = 2
-
   contains
 
     subroutine initLattice(s)
-      use mod_monoBasis, only: monoBasis => create_basis
-      use mod_polyBasis, only: polyBasis => read_basis
       use mod_system, only: System
       use AtomTypes, only: NeighborAtom
       implicit none
       type(System), intent(inout) :: s
       type(NeighborAtom), dimension(:), allocatable :: list
       integer :: size
-
-      
-      if(LatticeMode == 1) then
-        call monoBasis()
-      elseif(LatticeMode == 2) then
-        call polyBasis("basis", s)
-      end if
 
       call generateNeighbors(s, list, size)
       call sortNeighbors(s, list,size)

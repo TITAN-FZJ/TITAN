@@ -20,6 +20,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/dtdksub.F90
                                   source/invers.F90
                                   source/U_matrix.F90
+                                  source/calc_initial_Uterms.F90
                                   source/mod_System.F90
                                   source/mod_monoBasis.F90
                                   source/mod_polyBasis.F90

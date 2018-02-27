@@ -1,11 +1,11 @@
 !   Calculates spin-resolved LDOS and energy-dependence of exchange interactions
 subroutine ldos_energy(e,ldosu,ldosd)
-  use mod_f90_kind, only: double
-  use mod_constants, only: pi
-  use mod_parameters, only: eta
-  use mod_system, only: s => sys
+  use mod_f90_kind,      only: double
+  use mod_constants,     only: pi
+  use mod_parameters,    only: eta
+  use mod_system,        only: s => sys
   use mod_BrillouinZone, only: realBZ
-  use TightBinding, only: nOrb,nOrb2
+  use TightBinding,      only: nOrb,nOrb2
   use mod_mpi_pars
   implicit none
   real(double), intent(in) :: e
@@ -29,7 +29,7 @@ subroutine ldos_energy(e,ldosu,ldosd)
     kp = realBZ%kp(1:3,iz)
     weight = realBZ%w(iz)
     ! Green function on energy E + ieta, and wave vector kp
-    call green(e,eta,kp,gf)
+    call green(e,eta,s,kp,gf)
 
     ! Density of states
     do mu=1,nOrb

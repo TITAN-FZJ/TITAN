@@ -103,8 +103,8 @@ contains
     use mod_f90_kind
     use mod_constants
     use TightBinding
-    use mod_parameters, only: Npl,llineargfsoc, outputunit
-    use mod_system,     only: n0sc1, n0sc2, r_nn, nkpt, kbz, wkbz
+    use mod_parameters, only: Npl,llineargfsoc,outputunit
+    use mod_system,     only: n0sc1,n0sc2,r_nn,nkpt,kbz,wkbz, s=>sys
     !use mod_generate_kpoints
     use mod_mpi_pars
 !$  use omp_lib
@@ -146,9 +146,9 @@ contains
 
       ! Green function at (k+q,E_F+E+iy)
       if(llineargfsoc) then
-        call greenlineargfsoc(e,ep,kp,gf)
+        call greenlineargfsoc(e,ep,s,kp,gf)
       else
-        call green(e,ep,kp,gf)
+        call green(e,ep,s,kp,gf)
       end if
 
       do neighbor=n0sc1,n0sc2

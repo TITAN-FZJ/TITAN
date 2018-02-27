@@ -67,8 +67,8 @@ subroutine calculate_all()
   ! Mounting U and identity matrix
   call build_identity_and_U_matrix()
 
-  call genLocalEKMesh(rFreq(1),sFreq(1),FreqComm(1))
-  call realBZ % setup_fraction(rFreq(1), sFreq(1), FreqComm(1))
+  call genLocalEKMesh(s,rFreq(1),sFreq(1),FreqComm(1))
+  call realBZ % setup_fraction(s,rFreq(1), sFreq(1), FreqComm(1))
 
   ! Calculates matrices hopping x angular momentum matrix for orbital angular momentum current calculation
   !call OAM_curr_hopping_times_L() !TODO:Re-Include
