@@ -1,0 +1,48 @@
+Mn bcc bulk
+5.40
+ 0.5     0.5     -0.5
+ 0.5     -0.5    0.5
+ -0.5    0.5     0.5
+ Mn
+ 1
+ L
+ 0.0    0.0     0.0
+0.7795
+0.6 0.41 5.99
+0.088
+0.000 0.003234
+3
+  s on-site  1.1683290005      1                             Mn
+  p on-site  1.8421097994      2                             Mn
+  t2g on-site  0.7353093624      3                             Mn
+   eg on-site  0.7034067512      4                             Mn
+  sss 1st nn  -0.1348998398      5                             Mn
+  pps 1st nn   0.2579174638      6                             Mn
+  ppp 1st nn   0.0303716697      7                             Mn
+  dds 1st nn  -0.0550929829      8                             Mn
+  ddp 1st nn   0.0320959091      9                             Mn
+  ddd 1st nn  -0.0017256107     10                             Mn
+  sps 1st nn   0.1684432030     11                             Mn
+  sds 1st nn  -0.0752353296     12                             Mn
+  pds 1st nn  -0.1034446806     13                             Mn
+  pdp 1st nn   0.0203963201     14                             Mn
+  sss 2nd nn  -0.0304656569     15                             Mn
+  pps 2nd nn   0.1838487536     16                             Mn
+  ppp 2nd nn   0.0412759632     17                             Mn
+  dds 2nd nn  -0.0346816294     18                             Mn
+  ddp 2nd nn   0.0034711666     19                             Mn
+  ddd 2nd nn   0.0019506770     20                             Mn
+  sps 2nd nn   0.0667166039     21                             Mn
+  sds 2nd nn  -0.0409977622     22                             Mn
+  pds 2nd nn  -0.0679761171     23                             Mn
+  pdp 2nd nn  -0.0102039790     24                             Mn
+  sss 3rd nn   0.0191971324     25                             Mn
+  pps 3rd nn  -0.0423084609     26                             Mn
+  ppp 3rd nn   0.0161061510     27                             Mn
+  dds 3rd nn   0.0034631311     28                             Mn
+  ddp 3rd nn  -0.0002504401     29                             Mn
+  ddd 3rd nn  -0.0007090796     30                             Mn
+  sps 3rd nn  -0.0268329550     31                             Mn
+  sds 3rd nn  -0.0001264394     32                             Mn
+  pds 3rd nn   0.0015610651     33                             Mn
+  pdp 3rd nn  -0.0046058497     34                             Mn

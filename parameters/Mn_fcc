@@ -1,0 +1,39 @@
+Mn fcc bulk
+ 6.80
+ 0.5    0.5     0.0
+ 0.5    0.0     0.5
+ 0.0    0.5     0.5
+ Mn
+ 1
+ L
+ 0.0    0.0     0.0
+0.7795
+0.6 0.41 5.99
+0.088
+0.003234
+2
+  s on-site  1.1991604567      1                            Mn
+  p on-site  1.6176140308      2                            Mn
+  t2g on-site  0.6634100080      3                            Mn
+   eg on-site  0.6537720561      4                            Mn
+  sss 1st nn  -0.0890795290      5                            Mn
+  pps 1st nn   0.1994082630      6                            Mn
+  ppp 1st nn   0.0073140706      7                            Mn
+  dds 1st nn  -0.0474951938      8                            Mn
+  ddp 1st nn   0.0319125392      9                            Mn
+  ddd 1st nn  -0.0068338467     10                            Mn
+  sps 1st nn   0.1287420690     11                            Mn
+  sds 1st nn  -0.0469550937     12                            Mn
+  pds 1st nn  -0.0580448508     13                            Mn
+  pdp 1st nn   0.0245987456     14                            Mn
+  sss 2nd nn  -0.0042201709     15                            Mn
+  pps 2nd nn   0.0591074862     16                            Mn
+  ppp 2nd nn   0.0031562101     17                            Mn
+  dds 2nd nn  -0.0068668756     18                            Mn
+  ddp 2nd nn   0.0029526541     19                            Mn
+  ddd 2nd nn   0.0000340725     20                            Mn
+  sps 2nd nn   0.0180479139     21                            Mn
+  sds 2nd nn  -0.0115908282     22                            Mn
+  pds 2nd nn  -0.0142341629     23                            Mn
+  pdp 2nd nn   0.0045624496     24                            Mn
+
