@@ -80,11 +80,8 @@ contains
     read(f_unit, fmt='(A)', iostat=ios) line
     read(unit=line, fmt=*, iostat=ios) coord_type
 
-    s%nAtoms = 0
-    do i = 1, s%nTypes
-      s%nAtoms = s%nAtoms + type_count(i)
-    end do
-    if((s%nAtoms <= 0).and.(myrank.eq.0)) call abortProgram("[read_basis] No basis atoms given!")
+    s%nAtoms = sum(type_count(1:s%nTypes))
+    if(s%nAtoms <= 0) call abortProgram("[read_basis] No basis atoms given!")
     allocate(s%Basis(s%nAtoms))
 
     k = 0
