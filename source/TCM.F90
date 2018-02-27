@@ -87,7 +87,6 @@ subroutine TCM(alpha, torque_fct)
       use mod_System,   only: sys
       implicit none
       complex(double), dimension(2*nOrb,2*nOrb,3,sys%nAtoms), intent(out) :: torque
-      return
     end subroutine torque_fct
   end interface
 
