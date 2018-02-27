@@ -53,6 +53,8 @@ type :: AtomType
   !! Lattice vectors
   real(double), dimension(:), allocatable :: Stage
   !! Neighbor distances
+  real(double) :: U
+  !! Coulomb strength
 end type AtomType
 
 

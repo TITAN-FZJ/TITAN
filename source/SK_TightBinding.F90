@@ -22,7 +22,7 @@ contains
     allocate(bp(nOrb,nOrb))
 
     do i = 1, s%nTypes
-      call read_Papa_2C_param(s%Types(i), s%nStages, nOrb)
+      call readElementFile(s%Types(i), s%nStages, nOrb)
     end do
 
     s%Ef = s%Types(fermi_layer)%FermiLevel
@@ -90,98 +90,157 @@ contains
     return
   end subroutine set_hopping_matrix
 
-  subroutine read_Papa_2C_param(material, nStages, nOrb)
+  subroutine readElementFile(material, nStages, nOrb)
     use mod_f90_kind, only: double
     use AtomTypes,    only: AtomType
     use mod_mpi_pars, only: abortProgram
+    use mod_tools, only: itos
     implicit none
     type(AtomType), intent(inout) :: material
-    integer,        intent(in)    :: nStages
-    integer,        intent(in)    :: nOrb
+    integer, intent(in) :: nStages
+    integer, intent(in) :: nOrb
+    integer :: nTypes
+    integer :: nn_stages
+    integer :: nAtoms
+    integer, dimension(:), allocatable :: type_count
     real(double), dimension(3)    :: dens
     integer        :: i, j, k, l, ios, line_count = 0
+    integer, parameter :: line_length = 300, word_length = 50, max_elements = 50
+    character(len=word_length), dimension(max_elements) :: str_arr
     character(200) :: line
     character(50)  :: words(10)
     real(double)               :: dist
-    real(double), dimension(3) :: a1, a2, a3, vec
+    real(double), dimension(3) :: vec
+    real(double), dimension(3,3) :: Bravais
     real(double), dimension(4) :: on_site
-
+    real(double), dimension(:,:),allocatable :: position
+    character(len=1) :: coord_type
+    character(len=100) :: Name
+    integer :: fu = 995594
     allocate(material%onSite(nOrb,nOrb))
     allocate(material%Hopping(10,nStages))
 
-    open(unit=995594, file=trim(material%Name), status='old', iostat=ios)
-    if(ios /= 0) call abortProgram("[read_Papa_2C_param] Error occured")
+    open(fu, file=trim(material%Name), status='old', iostat=ios)
+    if(ios /= 0) call abortProgram("[readElementFile] Error occured")
     line_count = 0
 
-    ! Counting lines to determine whether the parameter are available for nn_stages next neighbours
-    read(unit=995594, fmt='(A)', iostat=ios) line
-    do while (ios == 0)
-      if(len_trim(line) > 0 .and. len_trim(line) < 200) line_count = line_count + 1
-      read(unit=995594, fmt='(A)', iostat=ios) line
-    end do
-    rewind(995594)
+    ! Read parameter file name
+    read(fu, fmt='(A)', iostat=ios) Name
+    Name = trim(adjustl(Name))
 
-    if(line_count < 10*nStages) call abortProgram("[read_Papa_2C_param] Parameter File corrupt")
-
-    read(unit=995594, fmt='(A)', iostat = ios) line
+    ! Lattice constant
+    read(fu, fmt='(A)', iostat=ios) line
     read(unit=line, fmt=*, iostat=ios) material%LatticeConstant
 
-    read(unit=995594, fmt='(A)', iostat = ios) line
-    read(unit= line, fmt=*, iostat=ios) material%LambdaP, material%LambdaD
+    ! Bravais lattice
+    do j = 1, 3
+      read(fu, fmt='(A)', iostat=ios) line
+      read(unit=line, fmt=*, iostat=ios) (Bravais(i,j), i=1,3)
+      if(dot_product(Bravais(:,j),Bravais(:,j)) <= 1.d-9) call abortProgram("[readElementFile] Bravais vector a" // trim(itos(j)) //" not given properly!")
+    end do
+    Bravais = Bravais * material%LatticeConstant
+    material%a1 = Bravais(:,1)
+    material%a2 = Bravais(:,2)
+    material%a3 = Bravais(:,3)
 
-    read(unit=995594, fmt='(A)', iostat = ios) line
+    ! Read Different Elements in File
+    str_arr = ""
+    read(fu, fmt='(A)', iostat=ios) line
+    read(unit=line, fmt=*, iostat=ios) (str_arr(i), i = 1, max_elements)
+    nTypes = 0
+    do i = 1, max_elements
+      if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
+      nTypes = nTypes + 1
+    end do
+
+    ! Read amount of atoms per element
+    allocate(type_count(nTypes))
+    read(fu, fmt='(A)', iostat=ios) line
+    read(unit=line, fmt=*, iostat=ios) (type_count(i), i = 1, nTypes)
+
+    ! Count number of atoms
+    nAtoms = sum(type_count(1:nTypes))
+    if(nAtoms <= 0) call abortProgram("[readElementFile] No basis atoms given!")
+
+    ! Read coordinate type
+    read(fu, fmt='(A)', iostat=ios) line
+    read(unit=line, fmt=*, iostat=ios) coord_type
+
+    ! Read atom positions
+    allocate(position(3,nAtoms))
+    k = 0
+    do i = 1, nTypes
+      do j = 1, type_count(i)
+        k = k + 1
+        read(fu, fmt='(A)', iostat=ios) line
+        if(ios /= 0) call abortProgram("[read_basis] Not enough basis atoms given!")
+        read(unit=line, fmt=*, iostat=ios) (position(l,k), l=1,3)
+        if(coord_type == 'D' .or. coord_type == 'd') then
+          position(:,k) = position(:,k) * material%LatticeConstant
+        else
+          position(:,k) = position(1,k) * material%a1 + position(2,k) * material%a2 + position(3,k) * material%a3
+        end if
+      end do
+    end do
+
+    ! Read Fermi level
+    read(fu, fmt='(A)', iostat = ios) line
     read(unit= line, fmt=*, iostat=ios) material%FermiLevel
 
-    read(unit=995594, fmt='(A)', iostat = ios) line
+    ! Read charge densitites for s p d
+    read(fu, fmt='(A)', iostat = ios) line
     read(unit= line, fmt=*, iostat=ios) dens(1), dens(2), dens(3)
     material%OccupationS = dens(1)
     material%OccupationP = dens(2)
     material%OccupationD = dens(3)
     material%Occupation  = material%OccupationS+material%OccupationP+material%OccupationD
 
+    ! Read Hubbard Coulomb strength
+    read(fu, fmt='(A)', iostat = ios) line
+    read(unit= line, fmt=*, iostat=ios) material%U
 
-    read(unit=995594, fmt='(A)', iostat=ios) line
-    read(unit=line, fmt=*, iostat=ios) (a1(i), i=1,3)
-    if(dot_product(a1,a1) <= 1.d-9) call abortProgram("[read_Papa_2C_param] a1 not given properly")
-    material%a1 = a1 * material%LatticeConstant
+    ! Read Spin-Orbit interaction strength for p and d
+    read(fu, fmt='(A)', iostat = ios) line
+    read(unit= line, fmt=*, iostat=ios) material%LambdaP, material%LambdaD
 
-    read(unit=995594, fmt='(A)', iostat=ios) line
-    read(unit=line, fmt=*, iostat=ios) (a2(i), i=1,3)
-    if(dot_product(a2,a2) <= 1.d-9) call abortProgram("[read_Papa_2C_param] a2 not given properly")
-    material%a2 = a2 * material%LatticeConstant
+    ! Read next nearest neighbor stages
+    read(fu, fmt='(A)', iostat = ios) line
+    read(unit= line, fmt=*, iostat=ios) nn_stages
 
-    read(unit=995594, fmt='(A)', iostat=ios) line
-    read(unit=line, fmt=*, iostat=ios) (a3(i), i=1,3)
-    if(dot_product(a3,a3) <= 1.d-9) call abortProgram("[read_Papa_2C_param] a3 not given properly")
-    material%a3 = a3 * material%LatticeConstant
-
-    do i = 1, 4
-      read(unit=995594, fmt='(A)', iostat = ios) line
-      read(unit=line, fmt=*, iostat=ios) (words(j), j=1,10)
-      read(unit=words(3), fmt=*, iostat=ios) on_site(i)
-    end do
-
-    material%onSite = 0.d0
-    material%onSite(1,1) = on_site(1)
-    do j=2,4
-       material%onSite(j,j) = on_site(2)
-    end do
-    do j=5,7
-       material%onSite(j,j) = on_site(3)
-    end do
-    do j=8,9
-       material%onSite(j,j) = on_site(4)
-    end do
-
-    do i = 1, nstages
-      do j = 1, 10
-        read(unit=995594, fmt='(A)', iostat = ios) line
+    ! Read Hopping Parameter
+    do i = 1, nTypes
+      ! Read on-site terms
+      do j = 1, 4
+        read(fu, fmt='(A)', iostat = ios) line
         read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
-        read(unit=words(4), fmt=*, iostat=ios) material%Hopping(j,i)
-        !material%Hopping(j,i) = material%Hopping(j,i) * (a0_corr ** expon(j)) ! Correction of hopping parameter by scaling law.
+        read(unit=words(3), fmt=*, iostat=ios) on_site(j)
+      end do
+
+      material%onSite = 0.d0
+      material%onSite(1,1) = on_site(1)
+      do j=2,4
+        material%onSite(j,j) = on_site(2)
+      end do
+      do j=5,7
+        material%onSite(j,j) = on_site(3)
+      end do
+      do j=8,9
+        material%onSite(j,j) = on_site(4)
+      end do
+
+      do j = 1, nn_stages
+        do k = 1, 10
+          read(fu, fmt='(A)', iostat = ios) line
+          read(unit=line, fmt=*, iostat=ios) (words(l), l=1,10)
+          if(j<=nStages) read(unit=words(4), fmt=*, iostat=ios) material%Hopping(k,j)
+          !material%Hopping(j,i) = material%Hopping(j,i) * (a0_corr ** expon(j)) ! Correction of hopping parameter by scaling law.
+        end do
       end do
     end do
 
+    close(fu)
+
+    ! Determine neighbor distances
     allocate(material%stage(nStages))
     material % stage = 10.d0 * material % LatticeConstant
     do i = 0, 3*nStages
@@ -205,7 +264,6 @@ contains
         end do
       end do
     end do
-    close(995594)
     return
   end subroutine
 
