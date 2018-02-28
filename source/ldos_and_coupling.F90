@@ -14,7 +14,7 @@ subroutine ldos_and_coupling()
 
   if(rField == 0) write(output%unit_loop,"('CALCULATING LDOS AND EXCHANGE INTERACTIONS AS A FUNCTION OF ENERGY')")
 
-  call realBZ % setup_fraction(rFreq(1), sFreq(1), FreqComm(1))
+  call realBZ % setup_fraction(s,rFreq(1), sFreq(1), FreqComm(1))
 
   ! Opening files
   if(rField == 0) then

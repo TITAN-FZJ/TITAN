@@ -16,9 +16,9 @@ module mod_magnet
   complex(double),allocatable :: mp(:,:),mpd(:)
   !! circular components (plus) of the total and d-orbital magnetization
   real(double), dimension(:,:), allocatable :: rho0
-  !! initial occupation per orbital obtained from hopping parameters only
+  !! initial occupation per orbital obtained from hopping parameters only (to be used in the hamiltonian)
   real(double), dimension(:), allocatable :: rhod0
-  !! initial occupation of d orbitals obtained from hopping parameters only
+  !! initial occupation of d orbitals obtained from hopping parameters only (to be used in the hamiltonian)
   real(double),allocatable    :: lxm(:),lym(:),lzm(:)
   !! Orbital angular momentum in global frame of reference
   real(double),allocatable    :: lxpm(:),lypm(:),lzpm(:)
@@ -376,7 +376,7 @@ contains
     if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lxp, lyp, lzp, lpvec")
 
     return
-  end subroutine
+  end subroutine allocate_magnet_variables
 
   subroutine deallocate_magnet_variables()
     implicit none
@@ -396,6 +396,11 @@ contains
     if(allocated(my)) deallocate(my)
     if(allocated(mz)) deallocate(mz)
     if(allocated(mp)) deallocate(mp)
+    if(allocated(rhod)) deallocate(rhod)
+    if(allocated(mxd)) deallocate(mxd)
+    if(allocated(myd)) deallocate(myd)
+    if(allocated(mzd)) deallocate(mzd)
+    if(allocated(mpd)) deallocate(mpd)
     if(allocated(mvec_spherical)) deallocate(mvec_spherical)
     if(allocated(mvec_cartesian)) deallocate(mvec_cartesian)
     if(allocated(mabs)) deallocate(mabs)

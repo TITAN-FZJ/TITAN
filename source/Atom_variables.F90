@@ -74,13 +74,15 @@ end subroutine allocate_Atom_variables
 ! This subroutine allocates variables that depend on nAtom
 subroutine deallocate_Atom_variables()
   use mod_parameters, only: sigmai2i, sigmaimunu2i, sigmaijmunu2i, mmlayer, layertype, U, mmlayermag
-  use mod_magnet, only: deallocate_magnet_variables
+  use mod_magnet, only: deallocate_magnet_variables,rho0,rhod0
   implicit none
 
   call deallocate_magnet_variables()
 
   deallocate(sigmai2i,sigmaimunu2i,sigmaijmunu2i)
   deallocate(mmlayer,layertype,U,mmlayermag)
+  deallocate(rho0,rhod0)
+
   !deallocate(t0, t0i)
   !deallocate(sha_longitudinal,sha_transverse,long_cos,transv_cos)
 

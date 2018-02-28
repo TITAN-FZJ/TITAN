@@ -66,7 +66,6 @@ subroutine band_structure(s)
   use mod_f90_kind,      only: double
   use mod_parameters,    only: output, npts, npt1, bands, band_cnt
   use mod_system,        only: System
-  use mod_BrillouinZone, only: BZ => realBZ
   use TightBinding,      only: nOrb
   use mod_tools,         only: cross
   use mod_constants,     only: tpi

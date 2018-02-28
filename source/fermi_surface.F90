@@ -43,9 +43,9 @@ subroutine fermi_surface(e)
     kp = realBZ%kp(1:3,iz)
     ! Green function on energy Ef + ieta, and wave vector kp
     if((llinearsoc).or.(llineargfsoc)) then
-      call greenlineargfsoc(e,eta,kp,gf)
+      call greenlineargfsoc(e,eta,s,kp,gf)
     else
-      call green(e,eta,kp,gf)
+      call green(e,eta,s,kp,gf)
     end if
 
     do sigma=1,4

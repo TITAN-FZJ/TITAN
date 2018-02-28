@@ -21,7 +21,7 @@ contains
       integer      :: i,pn1
       integer      :: nx, ny, nz, nall
 
-      allocate(all_nkpt(pn1))
+      if(.not.allocated(all_nkpt)) allocate(all_nkpt(pn1))
       total_points = 0
       do i = 1, pn1
          nall = get_nkpt(y(i), y(1), total_nkpt, sys%lbulk)
@@ -53,7 +53,7 @@ contains
       integer*4,    intent(in) :: comm
       integer*8 :: firstPoint, lastPoint
       integer*8 :: i, j, m, n, p, q
-      integer   :: nkpt, nall
+      integer   :: nall
 
       activeComm = comm
       activeRank = rank

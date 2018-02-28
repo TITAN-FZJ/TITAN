@@ -26,6 +26,7 @@ program TITAN
   use mod_progress
   use mod_mpi_pars
   use mod_Umatrix
+  use expectation
   !use mod_lgtv_currents TODO: Re-include
   !use mod_sha TODO: Re-include
   !use mod_torques, only: ntypetorque
@@ -58,9 +59,6 @@ program TITAN
   !call setup_MPI_grid(itype, pn1, npt1, pnt,total_hw_npt1, npts, deltae, emin, emax)
   call genMPIGrid(parField, total_hw_npt1, parFreq, npt1 - skip_steps)
 
-  !----- Calculating initial values in the hamiltonian with mag=0 ------
-  call calc_initial_Uterms()
-
   !------------------- Define the lattice structure --------------------
   call polyBasis("basis", sys)
   call initLattice(sys)
@@ -70,6 +68,9 @@ program TITAN
   !--- Generating integration points of the complex energy integral ----
   call allocate_energy_points()
   call generate_imag_epoints()
+
+  !----- Calculating initial values in the hamiltonian with mag=0 ------
+  call calc_initial_Uterms(sys)
 
   !----------- Generating k points for real axis integration -----------
   realBZ % nkpt_x = kp_in(1)
@@ -88,7 +89,7 @@ program TITAN
   dimspinAtoms = 4 * sys%nAtoms
   dim = dimspinAtoms * nOrb * nOrb
 
-  !------------------------ Conversion arrays  -------------------------
+  !---------- Conversion arrays for dynamical quantities ---------------
   call initConversionMatrices(sys%nAtoms,nOrb)
 
   !------------------------ Defining the system ------------------------
@@ -155,7 +156,7 @@ program TITAN
     call l_matrix()
 
     !---- Calculate L.S matrix for the given quantization direction ----
-    if(SOC) call updateLS(theta, phi)
+    if(SOC) call updateLS(sys,theta, phi)
 
     !---- Calculate L.B matrix for the given quantization direction ----
     call lb_matrix(sys%nAtoms, nOrb)

@@ -66,11 +66,13 @@ contains
       if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
       s%nTypes = s%nTypes + 1
     end do
+
     allocate(s%Types(s%nTypes))
     j = 1
     do i = 1, max_elements
       if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
       s%Types(j)%Name = str_arr(i)
+
       j = j + 1
     end do
 

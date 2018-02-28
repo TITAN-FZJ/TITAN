@@ -1,6 +1,7 @@
 module mod_self_consistency
    use mod_f90_kind, only: double
    implicit none
+   integer            :: neq
    character(len=300) :: default_file
    real(double)       :: mag_tol = 1.d-10
    character(len=200) :: scfile = ""
@@ -21,7 +22,6 @@ contains
     use adaptiveMesh,   only: genLocalEKMesh, freeLocalEKMesh
     use mod_mpi_pars,   only: rField, sField, FieldComm
     use mod_SOC,        only: SOC
-    use mod_parameters, only: theta, phi
     use mod_System,     only: s => sys
     use TightBinding,   only: nOrb
     implicit none
@@ -332,7 +332,7 @@ contains
     use mod_f90_kind,   only: double
     use mod_constants,  only: pi
     use mod_parameters, only: output
-    use mod_magnet,     only: iter, rho, rhod, mxd, myd, mzd
+    use mod_magnet,     only: iter, rho, mxd, myd, mzd
     use mod_mpi_pars,   only: calcWorkload, rField
     use TightBinding,   only: nOrb
     use mod_system,     only: s => sys
@@ -348,7 +348,7 @@ contains
 #else
     real(double),allocatable :: w(:,:)
 #endif
-    integer                       :: i,mu,neq,maxfev,ml,mr,mode,nfev,njev,lwa,ifail=0
+    integer                       :: i,mu,maxfev,ml,mr,mode,nfev,njev,lwa,ifail=0
 
     neq = 8*s%nAtoms+1
     allocate( sc_solu(neq),diag(neq),qtf(neq),fvec(neq),jac(neq,neq) )
@@ -446,7 +446,7 @@ contains
     use mod_SOC,           only: llinearsoc,llineargfsoc
     use EnergyIntegration, only: y,wght
     use mod_system,        only: s => sys
-    use mod_magnet,        only: mx,my,mz,mp,rho,mxd,myd,mzd,mpd,rhod,rho0
+    use mod_magnet,        only: mx,my,mz,mp,rho,mxd,myd,mzd,mpd,rhod
     use adaptiveMesh,      only: bzs,E_k_imag_mesh,activeComm,local_points
     use TightBinding,      only: nOrb,nOrb2
     use mod_parameters,    only: eta
@@ -556,15 +556,7 @@ contains
       end do
       rhod(i)   = sum(imguu(5:9,i)) + sum(imgdd(5:9,i))
       mzd(i)    = sum(imguu(5:9,i)) - sum(imgdd(5:9,i))
-      ! rho = rho0
     end do
-! do mu=1,9 ; do nu=1,9
-! if(aimag(rho(mu,nu,1)) >= 1.d-10 )  then
-! if(rField == 0)  write(*,*) mu,nu, rho(mu,nu,1)
-! end if
-! end do ; end do
-
-! if(rField == 0) write(*,*) sum(abs(rho(5:9,5:9,:))),sum(abs(rho(5:9,5:9,:) - rho0(5:9,5:9,:)))
 
     deallocate(imguu,imgdd)
     deallocate(gdiagdu, gdiagud)
@@ -1067,7 +1059,7 @@ contains
     use TightBinding,   only: nOrb
     use mod_mpi_pars
     implicit none
-    real(double),dimension(4*s%nAtoms+1), intent(in), optional :: fvec
+    real(double),dimension(neq), intent(in), optional :: fvec
     real(double),dimension(s%nAtoms),     intent(in) :: n,mx,my,mz
     real(double)                    ,     intent(in) :: Ef
     integer :: i,mu

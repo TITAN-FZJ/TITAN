@@ -17,13 +17,15 @@ complex(double), dimension(:,:,:), allocatable :: ls
 
 contains
 
-  subroutine updateLS(theta, phi)
+  subroutine updateLS(sys,theta, phi)
+    use mod_System,            only: System
     use mod_f90_kind,          only: double
     use mod_constants,         only: pauli_mat, cZero,cI,sq3
     use mod_magnet,            only: lvec
     use mod_rotation_matrices, only: rotation_matrix_ry, rotation_matrix_rz
-    use mod_System,            only: s => sys
+    use mod_System,            only: System
     implicit none
+    type(System), intent(in) :: sys
     real(double), intent(in) :: theta, phi
     real(double),dimension(3,3) :: ry,rz,rzy
     integer :: i,m,n,mu,nu,mup,nup
@@ -34,7 +36,7 @@ contains
     call dgemm('n','n',3,3,3,1.d0,rz,3,ry,3,0.d0,rzy,3)
 
     ls = cZero
-    do i=1,s%nAtoms
+    do i=1,sys%nAtoms
       do n=1,3
         do m=1,3
           ! p-block
@@ -42,10 +44,10 @@ contains
             nup = nu+9
             do mu=2,4
               mup = mu+9
-              ls(mu ,nu ,i) = ls(mu ,nu ,i) + s%Types(s%Basis(i)%Material)%LambdaP*lvec(mu,nu,m)*rzy(m,n)*pauli_mat(1,1,n)
-              ls(mu ,nup,i) = ls(mu ,nup,i) + s%Types(s%Basis(i)%Material)%LambdaP*lvec(mu,nu,m)*rzy(m,n)*pauli_mat(1,2,n)
-              ls(mup,nu ,i) = ls(mup,nu ,i) + s%Types(s%Basis(i)%Material)%LambdaP*lvec(mu,nu,m)*rzy(m,n)*pauli_mat(2,1,n)
-              ls(mup,nup,i) = ls(mup,nup,i) + s%Types(s%Basis(i)%Material)%LambdaP*lvec(mu,nu,m)*rzy(m,n)*pauli_mat(2,2,n)
+              ls(mu ,nu ,i) = ls(mu ,nu ,i) + sys%Types(sys%Basis(i)%Material)%LambdaP*lvec(mu,nu,m)*rzy(m,n)*pauli_mat(1,1,n)
+              ls(mu ,nup,i) = ls(mu ,nup,i) + sys%Types(sys%Basis(i)%Material)%LambdaP*lvec(mu,nu,m)*rzy(m,n)*pauli_mat(1,2,n)
+              ls(mup,nu ,i) = ls(mup,nu ,i) + sys%Types(sys%Basis(i)%Material)%LambdaP*lvec(mu,nu,m)*rzy(m,n)*pauli_mat(2,1,n)
+              ls(mup,nup,i) = ls(mup,nup,i) + sys%Types(sys%Basis(i)%Material)%LambdaP*lvec(mu,nu,m)*rzy(m,n)*pauli_mat(2,2,n)
             end do
           end do
           ! d-block
@@ -53,10 +55,10 @@ contains
             nup = nu+9
             do mu=5,9
               mup = mu+9
-              ls(mu ,nu ,i) = ls(mu ,nu ,i) + s%Types(s%Basis(i)%Material)%LambdaD*lvec(mu,nu,m)*rzy(m,n)*pauli_mat(1,1,n)
-              ls(mu ,nup,i) = ls(mu ,nup,i) + s%Types(s%Basis(i)%Material)%LambdaD*lvec(mu,nu,m)*rzy(m,n)*pauli_mat(1,2,n)
-              ls(mup,nu ,i) = ls(mup,nu ,i) + s%Types(s%Basis(i)%Material)%LambdaD*lvec(mu,nu,m)*rzy(m,n)*pauli_mat(2,1,n)
-              ls(mup,nup,i) = ls(mup,nup,i) + s%Types(s%Basis(i)%Material)%LambdaD*lvec(mu,nu,m)*rzy(m,n)*pauli_mat(2,2,n)
+              ls(mu ,nu ,i) = ls(mu ,nu ,i) + sys%Types(sys%Basis(i)%Material)%LambdaD*lvec(mu,nu,m)*rzy(m,n)*pauli_mat(1,1,n)
+              ls(mu ,nup,i) = ls(mu ,nup,i) + sys%Types(sys%Basis(i)%Material)%LambdaD*lvec(mu,nu,m)*rzy(m,n)*pauli_mat(1,2,n)
+              ls(mup,nu ,i) = ls(mup,nu ,i) + sys%Types(sys%Basis(i)%Material)%LambdaD*lvec(mu,nu,m)*rzy(m,n)*pauli_mat(2,1,n)
+              ls(mup,nup,i) = ls(mup,nup,i) + sys%Types(sys%Basis(i)%Material)%LambdaD*lvec(mu,nu,m)*rzy(m,n)*pauli_mat(2,2,n)
             end do
           end do
 

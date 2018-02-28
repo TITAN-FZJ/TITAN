@@ -41,7 +41,7 @@ type :: AtomType
   !! on site matrix; size (nOrb, nOrb)
   real(double), dimension(:,:), allocatable :: Hopping
   !! hopping matrix; size (10, nStages)
-  real(double) :: LambdaP, LambdaD
+  real(double) :: LambdaP=0.d0, LambdaD=0.d0
   !! SOC Coupling constants
   real(double) :: FermiLevel
   !! Fermi level
@@ -55,6 +55,10 @@ type :: AtomType
   !! Neighbor distances
   real(double) :: U
   !! Coulomb strength
+  real(double), dimension(:,:), allocatable :: rho0
+  !! Initial occupation per orbital obtained from hopping parameters only
+  real(double), dimension(:), allocatable   :: rhod0
+  !! Initial occupation of d orbitals obtained from hopping parameters only
 end type AtomType
 
 
