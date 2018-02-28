@@ -10,7 +10,8 @@ contains
     use mod_magnet,     only: l_matrix,lb,sb,allocate_magnet_variables,deallocate_magnet_variables,rho0,rhod0
     use mod_SOC,        only: ls,allocLS
     use adaptiveMesh,   only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh
-    use Lattice,        only: initLattice
+    ! use Lattice,        only: initLattice
+    use Lattice
     use mod_parameters, only: kp_in,output
     use mod_polyBasis,  only: polyBasis => read_basis
     use mod_progress
@@ -36,7 +37,6 @@ contains
       if(sys0(i)%nAtoms/=1) call abortProgram("[calc_initial_Uterms] Not implemented for parameter file with more than 1 atom!")
       ! Setting the number of nearest neighbors
       sys0(i)%nStages = sys%nStages
-      call initLattice(sys0(i))
       !---------- Generating k points for real axis integration ----------
       if(dot_product(sys0(i)%a3,sys0(i)%a3) == 0.d0) then
         sys0(i)%lbulk = .false.
@@ -50,6 +50,8 @@ contains
         realBZ % nkpt_z = kp_in(1)
       end if
       call realBZ % count(sys0(i))
+
+      call initLattice(sys0(i))
 
       !--- Generating k meshes points for imaginary axis integration -----
       call generateAdaptiveMeshes(sys0(i),pn1)

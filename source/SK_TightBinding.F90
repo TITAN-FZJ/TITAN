@@ -29,7 +29,6 @@ contains
     do i = 1, s%nTypes
       do j = 1, nOrb
         s%Types(i)%onSite(j,j) = s%Types(i)%onSite(j,j) - s%Types(i)%FermiLevel + s%Ef
-write(*,*) "onSite",s%Types(1)%onSite(j,j)
       end do
     end do
     ! Allocate & initialize Hopping variables
@@ -56,7 +55,6 @@ write(*,*) "onSite",s%Types(1)%onSite(j,j)
                                     s%Neighbors(current%index)%dirCos(:,i), &
                                     mix(:,1), mix(:,2), nOrb)
             s%Neighbors(current%index)%isHopping(i) = .true.
-write(*,*) "t0i",k,j,sum(abs(s%Neighbors(current%index)%t0i(:,:,i)))
             ! Scaling law by Andersen et al. O.K. Andersen, O. Jepsen, Physica 91B, 317 (1977); O.K. Andersen, W. Close. H. Nohl, Phys. Rev. B17, 1209 (1978)
             ! Distance dependence of tight binding matrix elements is given by V = C * d^(-[l+l'+1])
             ! e.g for ss hopping distance dependence is d^-1, for sp hopping d^-2
