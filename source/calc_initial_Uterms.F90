@@ -91,10 +91,10 @@ contains
 
       !------------------------ Freeing memory ---------------------------
       call freeLocalEKMesh()
-    end do
 
-    !--------------------- Deallocating variables ------------------------
-    call deallocate_magnet_variables()
+      !--------------------- Deallocating variables ------------------------
+      call deallocate_magnet_variables()
+    end do
 
 
     ! Transfering from occupations stored on Type to variables used in the hamiltonian

@@ -143,7 +143,6 @@ contains
         mx(5:9,i) = 0.2d0*mxd(i)
         my(5:9,i) = 0.2d0*myd(i)
         mz(5:9,i) = 0.2d0*mzd(i)
-
         rhod(i)   = s%Types(s%Basis(i)%Material)%OccupationD
       end do
 
@@ -356,7 +355,7 @@ contains
     ! Putting read n and m existing solutions into sc_solu (first guess of the subroutine)
     do i = 1, s%nAtoms
       do mu = 5,nOrb
-        sc_solu((i-1)*5+(mu-4)) = rho(mu,i)
+        sc_solu((i-1)*8+(mu-4)) = rho(mu,i)
       end do
       sc_solu((i-1)*8+6) = mxd(i)
       sc_solu((i-1)*8+7) = myd(i)
@@ -1070,15 +1069,15 @@ contains
         do i=1,s%nAtoms
           fvecsum = 0.0
           do mu = 5,nOrb
-            fvecsum = fvecsum + fvec((i-1)*5+(mu-4))
+            fvecsum = fvecsum + fvec((i-1)*8+(mu-4))
           end do
 
           if(abs(cmplx(mx(i),my(i)))>1.d-10) then
             write(output%unit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mx(i),i,my(i),i,mz(i)
-            write(output%unit_loop,"(15x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvecsum,i+5*s%nAtoms,fvec(i+5*s%nAtoms),i+6*s%nAtoms,fvec(i+6*s%nAtoms),i+7*s%nAtoms,fvec(i+7*s%nAtoms)
+            write(output%unit_loop,"(15x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvecsum,(i-1)*8+6,fvec((i-1)*8+6),(i-1)*8+7,fvec((i-1)*8+7),(i-1)*8+8,fvec((i-1)*8+8)
           else
             write(output%unit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mz(i)
-            write(output%unit_loop,"(15x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvecsum,i+7*s%nAtoms,fvec(i+7*s%nAtoms)
+            write(output%unit_loop,"(15x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvecsum,(i-1)*8+8,fvec((i-1)*8+8)
           end if
         end do
         write(output%unit_loop,"(13x,'Ef=',es16.9)") Ef
@@ -1130,7 +1129,7 @@ contains
     rho_in = rho
     do i = 1, s%nAtoms
       do mu = 5,nOrb
-        rho_in(mu,i) = x((i-1)*5+(mu-4))
+        rho_in(mu,i) = x((i-1)*8+(mu-4))
       end do
       rhod_in(i)= sum(rho_in(5:9,i))
       mxd_in(i) = x((i-1)*8+6)
@@ -1149,7 +1148,7 @@ contains
       call calcMagnetization()
       do i = 1, s%nAtoms
         do mu = 5,nOrb
-          fvec((i-1)*5+(mu-4)) = rho(mu,i) - rho_in(mu,i)
+          fvec((i-1)*8+(mu-4)) = rho(mu,i) - rho_in(mu,i)
         end do
         fvec((i-1)*8+6) =  mxd(i) -  mxd_in(i)
         fvec((i-1)*8+7) =  myd(i) -  myd_in(i)
@@ -1200,7 +1199,7 @@ contains
     rho_in = rho
     do i = 1, s%nAtoms
       do mu = 5,nOrb
-        rho_in(mu,i) = x((i-1)*5+(mu-4))
+        rho_in(mu,i) = x((i-1)*8+(mu-4))
       end do
       rhod_in(i)= sum(rho_in(5:9,i))
       mxd_in(i) = x((i-1)*8+6)
@@ -1217,7 +1216,7 @@ contains
     call calcMagnetization()
     do i = 1, s%nAtoms
       do mu = 5,nOrb
-        fvec((i-1)*5+(mu-4)) = rho(mu,i) - rho_in(mu,i)
+        fvec((i-1)*8+(mu-4)) = rho(mu,i) - rho_in(mu,i)
       end do
       fvec((i-1)*8+6) =  mxd(i) -  mxd_in(i)
       fvec((i-1)*8+7) =  myd(i) -  myd_in(i)
@@ -1263,7 +1262,7 @@ contains
     rho_in = rho
     do i = 1, s%nAtoms
       do mu = 5,nOrb
-        rho_in(mu,i) = x((i-1)*5+(mu-4))
+        rho_in(mu,i) = x((i-1)*8+(mu-4))
       end do
       rhod_in(i)= sum(rho_in(5:9,i))
       mxd_in(i) = x((i-1)*8+6)
@@ -1282,7 +1281,7 @@ contains
       call calcMagnetization()
       do i = 1, s%nAtoms
         do mu = 5,nOrb
-          fvec((i-1)*5+(mu-4)) = rho(mu,i) - rho_in(mu,i)
+          fvec((i-1)*8+(mu-4)) = rho(mu,i) - rho_in(mu,i)
         end do
         fvec((i-1)*8+6) =  mxd(i) -  mxd_in(i)
         fvec((i-1)*8+7) =  myd(i) -  myd_in(i)
@@ -1330,7 +1329,7 @@ contains
     rho_in = rho
     do i = 1, s%nAtoms
       do mu = 5,nOrb
-        rho_in(mu,i) = x((i-1)*5+(mu-4))
+        rho_in(mu,i) = x((i-1)*8+(mu-4))
       end do
       rhod_in(i)= sum(rho_in(5:9,i))
       mxd_in(i) = x((i-1)*8+6)
@@ -1347,7 +1346,7 @@ contains
     call calcMagnetization()
     do i = 1, s%nAtoms
       do mu = 5,nOrb
-        fvec((i-1)*5+(mu-4)) = rho(mu,i) - rho_in(mu,i)
+        fvec((i-1)*8+(mu-4)) = rho(mu,i) - rho_in(mu,i)
       end do
       fvec((i-1)*8+6) =  mxd(i) -  mxd_in(i)
       fvec((i-1)*8+7) =  myd(i) -  myd_in(i)
@@ -1389,7 +1388,7 @@ contains
     rho_in = rho
     do i = 1, s%nAtoms
       do mu = 5,nOrb
-        rho_in(mu,i) = x((i-1)*5+(mu-4))
+        rho_in(mu,i) = x((i-1)*8+(mu-4))
       end do
       rhod_in(i)= sum(rho_in(5:9,i))
       mxd_in(i) = x((i-1)*8+6)
