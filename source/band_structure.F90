@@ -1,8 +1,8 @@
 subroutine read_band_points(kbands, b1, b2, b3)
-  use mod_f90_kind, only: double
+  use mod_f90_kind,   only: double
   use mod_parameters, only: bands, band_cnt
+  use mod_mpi_pars,   only: abortProgram
   implicit none
-
   real(double), dimension(:,:), allocatable, intent(out) :: kbands
   real(double), dimension(3), intent(in) :: b1, b2, b3
   character(len=40) :: band_file = "kbands"
@@ -17,9 +17,7 @@ subroutine read_band_points(kbands, b1, b2, b3)
 
   line_count = 0
   open(unit = 666999, file = trim(band_file), status='old', iostat=ios)
-  if(ios /= 0) then
-    !TODO: Call upon hell
-  endif
+  if(ios /= 0) call abortProgram("[read_band_points] File 'kbands' not found!")
 
   ! Count non commented lines
   ios = 0

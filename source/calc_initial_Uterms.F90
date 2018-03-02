@@ -81,12 +81,13 @@ contains
       call genLocalEKMesh(sys0(i),rField,sField, FieldComm)
 
       !---------------- Calculating expectation values -------------------
-      call calc_expectation_values(sys0(i),sys%Types(sys%Basis(i)%Material)%rho0,sys%Types(sys%Basis(i)%Material)%rhod0)
+      call calc_expectation_values(sys0(i),sys%Types(i)%rho0,sys%Types(i)%rhod0)
 
       !------------------------- Test printing ---------------------------
       if(rField == 0) then
-        write(*,"(a,12(2x,es16.9))") trim(sys%Types(sys%Basis(i)%Material)%Name) , ((sys%Types(sys%Basis(i)%Material)%rho0(mu,j),mu=1,nOrb),j=1,sys0(i)%nAtoms)
-        write(*,"(a,12(2x,es16.9))") trim(sys%Types(sys%Basis(i)%Material)%Name) , (sys%Types(sys%Basis(i)%Material)%rhod0(j),j=1,sys0(i)%nAtoms)
+        write(*,"('Calculating initial densities from: ',a)") trim(sys0(i)%Name)
+        write(*,"(a,12(2x,es16.9))") trim(sys%Types(i)%Name) , ((sys%Types(i)%rho0(mu,j),mu=1,nOrb),j=1,sys0(i)%nAtoms)
+        write(*,"(a,12(2x,es16.9))") trim(sys%Types(i)%Name) , (sys%Types(i)%rhod0(j),j=1,sys0(i)%nAtoms)
       end if
 
       !------------------------ Freeing memory ---------------------------
@@ -95,7 +96,6 @@ contains
       !--------------------- Deallocating variables ------------------------
       call deallocate_magnet_variables()
     end do
-
 
     ! Transfering from occupations stored on Type to variables used in the hamiltonian
     do i=1,sys%nAtoms

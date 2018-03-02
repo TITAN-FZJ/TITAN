@@ -15,16 +15,10 @@ output/*
 *optrpt
 *genmod*
 *.pbs
-tbshe*
-last_compilation
-*.py
 *.png
 *.jpg
 *.nb
 results/*
-fcc111*
-bcc110*
-fcc100*
 source/legacy*
 bin/*
 build/*
