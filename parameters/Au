@@ -1,0 +1,38 @@
+Au fcc bulk
+ 7.70687
+ 0.5    0.5     0.0
+ 0.5    0.0     0.5
+ 0.0    0.5     0.5
+ Au
+ 1
+ L
+ 0.0    0.0     0.0
+ 0.5380
+0.86  0.25  9.89
+ 0.2206
+ 0.000  0.0478
+2
+  s on-site	 0.5622000098      1                            Au
+  p on-site	 1.2789732218      2                            Au
+  t2g on-site	 0.2609749138      3                            Au
+   eg on-site	 0.2530935705      4                            Au
+  sss 1st nn	-0.0668008178      5                            Au
+  pps 1st nn	 0.1786578000      6                            Au
+  ppp 1st nn	-0.0164533593      7                            Au
+  dds 1st nn	-0.0497136861      8                            Au
+  ddp 1st nn	 0.0262431949      9                            Au
+  ddd 1st nn	-0.0045657060     10                            Au
+  sps 1st nn	 0.0972074196     11                            Au
+  sds 1st nn	-0.0472184718     12                            Au
+  pds 1st nn	-0.0639859810     13                            Au
+  pdp 1st nn	 0.0189629477     14                            Au
+  sss 2nd nn	 0.0027650150     15                            Au
+  pps 2nd nn	 0.0370661765     16                            Au
+  ppp 2nd nn	-0.0102546606     17                            Au
+  dds 2nd nn	-0.0030460383     18                            Au
+  ddp 2nd nn	 0.0023966201     19                            Au
+  ddd 2nd nn	-0.0005703921     20                            Au
+  sps 2nd nn	 0.0026111931     21                            Au
+  sds 2nd nn	-0.0078398902     22                            Au
+  pds 2nd nn	-0.0076151453     23                            Au
+  pdp 2nd nn	 0.0046994258     24                            Au
