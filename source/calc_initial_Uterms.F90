@@ -60,9 +60,6 @@ contains
       call allocate_magnet_variables(sys0(i)%nAtoms, nOrb)
       call allocLS(sys0(i)%nAtoms,nOrb)
 
-      !--- Generating k meshes points for imaginary axis integration -----
-      call generateAdaptiveMeshes(sys0(i),pn1)
-
       !-------------------- Tight Binding parameters ---------------------
       call initTightBinding(sys0(i))
 

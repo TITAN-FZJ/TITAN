@@ -297,7 +297,7 @@ contains
     integer      :: nkpt
     integer      :: l, j
     integer      :: nx, ny
-    integer      :: count, added, weight
+    integer      :: count, added, weight, range
 
     zdir = [0.0,0.0,1.0]
     allocate( self%w(self%workload), self%kp(3,self%workload) )
@@ -321,6 +321,7 @@ contains
     do l=1, nkpt
       if(count > last) exit
       weight = 0
+      range = 0
       nx = mod(floor(dble(l-1) / dble(self%nkpt_y)), self%nkpt_x)
       ny = mod(l-1, self%nkpt_y)
       kp = dble(nx)*b1 / dble(self%nkpt_x) + dble(ny)*b2 / dble(self%nkpt_y)
@@ -331,7 +332,7 @@ contains
       do j = 1, 4
         diff = kp - bz_vec(:,j)
         distance = sqrt(dot_product(diff, diff))
-        if(sqrt(dot_product(diff, diff)) < smallest_dist) smallest_dist = distance
+        if(distance < smallest_dist) smallest_dist = distance
       end do
 
       !Checks if the kpoint is in the border between two or more
@@ -345,11 +346,12 @@ contains
           weight = weight + 1
           if(count >= first .and. count <= last ) then
             added = added + 1
+            range = range + 1
             self%kp(:,added) = diff
           end if
         end if
       end do
-      self%w(added-weight+1:added) = 1.0 / dble(weight)
+      self%w(added-range+1:added) = 1.0 / dble(weight)
     end do
     self%w = self%w / dble(nkpt)
     if(added > self%workload) call abortProgram("[gen2DFraction] Generated more points than it should have!")
