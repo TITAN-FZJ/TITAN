@@ -1114,6 +1114,7 @@ contains
     use TightBinding,   only: nOrb
     use mod_magnet,     only: iter,rho,rhod,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,    only: update_Umatrix
+    use mod_tools,      only: itos
     use mod_mpi_pars
     implicit none
     integer  :: N,i,mu,iflag
@@ -1162,8 +1163,7 @@ contains
     case(2)
       call calcJacobian(selfconjac, N)
     case default
-      write(output%unit,"('[sc_equations_and_jacobian] Problem in self-consistency! iflag = ',I0)") iflag
-      call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+      call abortProgram("[sc_equations_and_jacobian] Problem in self-consistency! iflag = " // trim(itos(iflag)))
     end select
 
     iter = iter + 1
@@ -1243,12 +1243,13 @@ contains
   !  sum n - n_total = 0
   ! and the correspondent jacobian
   subroutine sc_eqs_and_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
-    use mod_f90_kind, only: double
+    use mod_f90_kind,   only: double
     use mod_parameters, only: output
-    use mod_system, only: s => sys
-    use TightBinding, only: nOrb
-    use mod_magnet, only: iter,rho,rhod,mxd,myd,mzd,rhod0,rho0
-    use mod_Umatrix, only: update_Umatrix
+    use mod_system,     only: s => sys
+    use TightBinding,   only: nOrb
+    use mod_magnet,     only: iter,rho,rhod,mxd,myd,mzd,rhod0,rho0
+    use mod_Umatrix,    only: update_Umatrix
+    use mod_tools,      only: itos
     use mod_mpi_pars
     implicit none
     integer  :: N,i,mu,iflag,ldfjac
@@ -1295,8 +1296,7 @@ contains
     case(2)
       call calcJacobian(selfconjac, N)
     case default
-      write(output%unit,"('[sc_eqs_and_jac_old] Problem in self-consistency! iflag = ',I0)") iflag
-      call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+      call abortProgram("[sc_eqs_and_jac_old] Problem in self-consistency! iflag = " // trim(itos(iflag)))
     end select flag
 
     iter = iter + 1

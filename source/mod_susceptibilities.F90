@@ -29,7 +29,7 @@ contains
   subroutine allocate_susceptibilities()
     !! This subroutine allocates variables related to the susceptibility calculation
     use mod_f90_kind, only: double
-    use mod_parameters, only: dim, nmaglayers
+    use mod_parameters, only: dim
     use mod_SOC, only: llinearsoc
     use mod_system, only: s => sys
     use mod_mpi_pars, only: abortProgram, rFreq
@@ -57,19 +57,19 @@ contains
        end if
 
        if(rFreq(2) == 0) then
-          if(nmaglayers>1) then
-             lwork = 33*nmaglayers
-             allocate( chimag(nmaglayers,nmaglayers), &
-                  rwork(2*nmaglayers), &
-                  eval(nmaglayers), &
-                  evecl(1,nmaglayers), &
-                  evecr(nmaglayers,nmaglayers), &
+          if(s%nAtoms>1) then
+             lwork = 33*s%nAtoms
+             allocate( chimag(s%nAtoms,s%nAtoms), &
+                  rwork(2*s%nAtoms), &
+                  eval(s%nAtoms), &
+                  evecl(1,s%nAtoms), &
+                  evecr(s%nAtoms,s%nAtoms), &
                   work(lwork), STAT = AllocateStatus )
              if (AllocateStatus/=0) call abortProgram("[allocate_susceptibilities] Not enough memory for: chimag, rwork, eval, evecl, evecr, work")
 #ifdef _JUQUEEN
-             allocate( dscale(nmaglayers), &
-                  rconde(nmaglayers), &
-                  rcondv(nmaglayers), STAT = AllocateStatus )
+             allocate( dscale(s%nAtoms), &
+                  rconde(s%nAtoms), &
+                  rcondv(s%nAtoms), STAT = AllocateStatus )
              if (AllocateStatus/=0) call abortProgram("[allocate_susceptibilities] Not enough memory for: dscale, rconde, rcondv")
 #endif
           end if
@@ -180,39 +180,40 @@ contains
 
   ! This subroutine diagonalize the transverse susceptibility
   subroutine diagonalize_susceptibilities()
-    use mod_f90_kind, only: double
-    use mod_parameters, only: nmaglayers,mmlayermag,output, sigmai2i
-    use mod_mpi_pars, only: MPI_Abort, MPI_COMM_WORLD, errorcode, ierr
+    use mod_f90_kind,   only: double
+    use mod_system,     only: s => sys
+    use mod_parameters, only: sigmai2i
+    use mod_mpi_pars,   only: AbortProgram
+    use mod_tools,      only: itos
     implicit none
     integer  :: i,j,ifail
 
-    if(nmaglayers>1) then
-       do i=1, nmaglayers
-          do j=1, nmaglayers
-             chimag(i,j) = schi(sigmai2i(1,mmlayermag(i)-1), sigmai2i(1,mmlayermag(j)-1))
+    if(s%nAtoms>1) then
+       do i=1, s%nAtoms
+          do j=1, s%nAtoms
+             chimag(i,j) = schi(sigmai2i(1,i), sigmai2i(1,j))
           end do
        end do
 
 #ifdef _JUQUEEN
-       call zgeevx('N','N','V','N',nmaglayers,chimag,nmaglayers,eval,evecl,1,evecr,nmaglayers,ilo,ihi,dscale,abnrm,rconde,rcondv,work,lwork,rwork,ifail)
+       call zgeevx('N','N','V','N',s%nAtoms,chimag,s%nAtoms,eval,evecl,1,evecr,s%nAtoms,ilo,ihi,dscale,abnrm,rconde,rcondv,work,lwork,rwork,ifail)
 #else
-       call zgeev('N','V',nmaglayers,chimag,nmaglayers,eval,evecl,1,evecr,nmaglayers,work,lwork,rwork,ifail)
+       call zgeev('N','V',s%nAtoms,chimag,s%nAtoms,eval,evecl,1,evecr,s%nAtoms,work,lwork,rwork,ifail)
 #endif
 
        if(ifail/=0) then
-          write(output%unit,"('[diagonalize_susceptibilities] Problem with diagonalization. ifail = ',i0)") ifail
-          call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+          call abortProgram("[diagonalize_susceptibilities] Problem with diagonalization. ifail = " // trim(itos(ifail)))
           ! else
           !   write(outputunit,"('[diagonalize_susceptibilities] optimal lwork = ',i0,' lwork = ',i0)") work(1),lwork
        end if
-    end if ! nmaglayers
+    end if ! s%nAtoms
 
     return
   end subroutine diagonalize_susceptibilities
 
   subroutine create_chi_files()
     !! This subroutine creates all the files needed for the susceptibilities
-    use mod_parameters, only: output, nmaglayers, lnodiag, lhfresponses
+    use mod_parameters, only: output, lnodiag, lhfresponses
     use mod_system, only: s => sys
     use mod_mpi_pars, only: abortProgram
     implicit none
@@ -239,12 +240,12 @@ contains
         end do
      end do
     ! RPA DIAGONALIZATION
-    if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
+    if((s%nAtoms>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
        write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_eval',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
        open (unit=19900, file=varm,status='replace', form='formatted')
        write(unit=19900,fmt="('#     energy    ,  real part of 1st eigenvalue  ,  imaginary part of 1st eigenvalue  ,  real part of 2nd eigenvalue  ,  imaginary part of 2nd eigenvalue  , ... ')")
        close (unit=19900)
-       do i=1,nmaglayers
+       do i=1,s%nAtoms
           write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_evec',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
           open (unit=19900+i, file=varm,status='replace', form='formatted')
           write(unit=19900+i,fmt="('#     energy    ,  real part of 1st component  ,  imaginary part of 1st component  ,  real part of 2nd component  ,  imaginary part of 2nd component  , ...   ')")
@@ -257,7 +258,7 @@ contains
 
   subroutine open_chi_files()
     !! This subroutine opens all the files needed for the susceptibilities
-    use mod_parameters, only: output, nmaglayers, lnodiag, lhfresponses, missing_files
+    use mod_parameters, only: output, lnodiag, lhfresponses, missing_files
     use mod_system, only: s => sys
     use mod_mpi_pars, only: abortProgram
     implicit none
@@ -285,12 +286,12 @@ contains
         end do
      end do
     ! RPA DIAGONALIZATION
-    if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
+    if((s%nAtoms>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
        write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_eval',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
        open (unit=19900, file=varm, status='old', position='append', form='formatted', iostat=err)
        errt = errt + err
        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
-       do i=1,nmaglayers
+       do i=1,s%nAtoms
           write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_evec',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
           open (unit=19900+i, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
@@ -305,11 +306,10 @@ contains
 
   subroutine close_chi_files()
     !! This subroutine closes all the files needed for the susceptibilities
-    use mod_parameters, only: nmaglayers, lnodiag, lhfresponses
-    use mod_system, only: s => sys
-    use mod_mpi_pars, only: abortProgram
+    use mod_parameters, only: lnodiag, lhfresponses
+    use mod_system,     only: s => sys
+    use mod_mpi_pars,   only: abortProgram
     implicit none
-
     integer :: i,j,iw
 
      do j=1,s%nAtoms
@@ -323,9 +323,9 @@ contains
         end do
      end do
     ! RPA DIAGONALIZATION
-    if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
+    if((s%nAtoms>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
        close (unit=19900)
-       do i=1,nmaglayers
+       do i=1,s%nAtoms
           close (unit=19900+i)
        end do
     end if
@@ -338,7 +338,7 @@ contains
   ! Some information may be written on the screen
   subroutine write_susceptibilities(e)
     use mod_f90_kind, only: double
-    use mod_parameters, only: lwriteonscreen, lhfresponses, lnodiag, output, nmaglayers, sigmai2i
+    use mod_parameters, only: lwriteonscreen, lhfresponses, lnodiag, output, sigmai2i
     use mod_system, only: s => sys
     implicit none
     character(len=100)      :: varm
@@ -361,13 +361,13 @@ contains
        end do
     end do
 
-    if(nmaglayers > 1 .and. (.not. lhfresponses) .and. (.not. lnodiag)) then
-       write(varm,fmt="(a,i0,a)") '(',2*nmaglayers+1,'(es16.9,2x))'
-       write(unit=19900,fmt=varm) e,(real(eval(i)),aimag(eval(i)),i=1,nmaglayers)
-       do i=1,nmaglayers
-          write(unit=19900+i,fmt=varm) e,(real(evecr(j,i)),aimag(evecr(j,i)),j=1,nmaglayers)
+    if(s%nAtoms > 1 .and. (.not. lhfresponses) .and. (.not. lnodiag)) then
+       write(varm,fmt="(a,i0,a)") '(',2*s%nAtoms+1,'(es16.9,2x))'
+       write(unit=19900,fmt=varm) e,(real(eval(i)),aimag(eval(i)),i=1,s%nAtoms)
+       do i=1,s%nAtoms
+          write(unit=19900+i,fmt=varm) e,(real(evecr(j,i)),aimag(evecr(j,i)),j=1,s%nAtoms)
        end do
-    end if ! nmaglayers
+    end if ! s%nAtoms
 
     call close_chi_files()
 
@@ -376,7 +376,7 @@ contains
 
   subroutine create_dc_chi_files()
     !! This subroutine creates all the files needed for the dc-limit susceptibilities
-    use mod_parameters, only: count, output, lhfresponses, nmaglayers, lnodiag
+    use mod_parameters, only: count, output, lhfresponses, lnodiag
     use mod_magnet, only: dcprefix, dcfield_dependence, dcfield, dc_header
     use mod_system, only: s => sys
     use mod_mpi_pars, only: abortProgram
@@ -403,12 +403,12 @@ contains
         end do
      end do
     ! RPA DIAGONALIZATION
-    if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
+    if((s%nAtoms>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
        write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_eval_',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%suffix)
        open (unit=199000, file=varm,status='replace', form='formatted')
        write(unit=199000,fmt="('#',a,'  real part of 1st eigenvalue  ,  imaginary part of 1st eigenvalue  ,  real part of 2nd eigenvalue  ,  imaginary part of 2nd eigenvalue  , ...')") trim(dc_header)
        close (unit=199000)
-       do i=1,nmaglayers
+       do i=1,s%nAtoms
           write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_evec',i0,'_',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%suffix)
           open (unit=199000+i, file=varm,status='replace', form='formatted')
           write(unit=199000+i,fmt="('#',a,'  real part of 1st component  ,  imaginary part of 1st component  ,  real part of 2nd component  ,  imaginary part of 2nd component  , ...')") trim(dc_header)
@@ -421,7 +421,7 @@ contains
 
   subroutine open_dc_chi_files()
     !! This subroutine opens all the files needed for the dc-limit susceptibilities
-    use mod_parameters, only: count, output, lhfresponses, nmaglayers, lnodiag, missing_files
+    use mod_parameters, only: count, output, lhfresponses, lnodiag, missing_files
     use mod_magnet, only: dcprefix, dcfield_dependence, dcfield
     use mod_system, only: s => sys
     use mod_mpi_pars, only: abortProgram
@@ -448,12 +448,12 @@ contains
         end do
      end do
     ! RPA DIAGONALIZATION
-    if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
+    if((s%nAtoms>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
        write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_eval_',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%suffix)
        open (unit=199000, file=varm, status='old', position='append', form='formatted', iostat=err)
        errt = errt + err
        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
-       do i=1,nmaglayers
+       do i=1,s%nAtoms
           write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_evec',i0,'_',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%suffix)
           open (unit=199000+i, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
@@ -469,7 +469,7 @@ contains
 
   subroutine close_dc_chi_files()
     !! This subroutine closes all the files needed for the dc-limit susceptibilities
-    use mod_parameters, only: lhfresponses, nmaglayers, lnodiag
+    use mod_parameters, only: lhfresponses, lnodiag
     use mod_system, only: s => sys
     use mod_mpi_pars, only: abortProgram
     implicit none
@@ -486,9 +486,9 @@ contains
         end do
      end do
     ! RPA DIAGONALIZATION
-    if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
+    if((s%nAtoms>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
        close (unit=199000)
-       do i=1,nmaglayers
+       do i=1,s%nAtoms
           close (unit=199000+i)
        end do
     end if
@@ -502,7 +502,7 @@ contains
   ! Some information is also written on the screen
   subroutine write_dc_susceptibilities()
     use mod_f90_kind, only: double
-    use mod_parameters, only: lwriteonscreen, output, lhfresponses, nmaglayers, lnodiag, sigmai2i
+    use mod_parameters, only: lwriteonscreen, output, lhfresponses, lnodiag, sigmai2i
     use mod_magnet, only: hw_count, dc_fields, dcfield_dependence, dcfield
     use mod_system, only: s => sys
     implicit none
@@ -525,13 +525,13 @@ contains
       end do
     end do
 
-    if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
-       write(varm,fmt="(a,i0,a)") '(a,2x,',2*nmaglayers,'(es16.9,2x))'
-       write(unit=199000,fmt=varm) trim(dc_fields(hw_count)) , (real(eval(i)) , aimag(eval(i)),i=1,nmaglayers)
-       do i=1,nmaglayers
-          write(unit=199000+i,fmt=varm) trim(dc_fields(hw_count)) , (real(evecr(j,i)) , aimag(evecr(j,i)),j=1,nmaglayers)
+    if((s%nAtoms>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
+       write(varm,fmt="(a,i0,a)") '(a,2x,',2*s%nAtoms,'(es16.9,2x))'
+       write(unit=199000,fmt=varm) trim(dc_fields(hw_count)) , (real(eval(i)) , aimag(eval(i)),i=1,s%nAtoms)
+       do i=1,s%nAtoms
+          write(unit=199000+i,fmt=varm) trim(dc_fields(hw_count)) , (real(evecr(j,i)) , aimag(evecr(j,i)),j=1,s%nAtoms)
        end do
-    end if ! nmaglayers
+    end if ! s%nAtoms
 
     call close_dc_chi_files
     return
@@ -540,7 +540,7 @@ contains
   ! This subroutine sorts susceptibilities files
   subroutine sort_susceptibilities()
     use mod_f90_kind, only: double
-    use mod_parameters, only: itype, lhfresponses, nmaglayers, lnodiag
+    use mod_parameters, only: itype, lhfresponses, lnodiag
     use mod_tools, only: sort_file
     use mod_system, only: s => sys
     implicit none
@@ -566,12 +566,12 @@ contains
        end do
     end do
 
-    if((nmaglayers>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
+    if((s%nAtoms>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
        call sort_file(19900*idc,.true.)
-       do i=1,nmaglayers
+       do i=1,s%nAtoms
           call sort_file(19900*idc+i,.true.)
        end do
-    end if ! nmaglayers
+    end if ! s%nAtoms
 
     ! Closing chi and diag files
     if(itype==9) then
