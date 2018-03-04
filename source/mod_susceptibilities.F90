@@ -287,12 +287,12 @@ contains
      end do
     ! RPA DIAGONALIZATION
     if((s%nAtoms>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
-       write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_eval',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+       write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_eval',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
        open (unit=19900, file=varm, status='old', position='append', form='formatted', iostat=err)
        errt = errt + err
        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
        do i=1,s%nAtoms
-          write(varm,"('./results/',a1,'SOC/',a,'/RPA/pm/chi_evec',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_evec',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
           open (unit=19900+i, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
