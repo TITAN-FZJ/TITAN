@@ -131,4 +131,11 @@ contains
 
     return
   end subroutine define_constants
+
+  integer function delta(i,j)
+    implicit none
+    integer :: i,j
+    delta = 0
+    if(i==j) delta = 1
+  end function delta
 end module mod_constants

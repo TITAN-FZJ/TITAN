@@ -4,7 +4,7 @@ subroutine calculate_chi()
   use mod_constants, only: cZero, cOne, StoC, CtoS
   use mod_parameters, only:  count, emin, deltae, dim, sigmaimunu2i, output, lnodiag,laddresults, skip_steps, sigmai2i
   use mod_mpi_pars
-  use mod_magnet, only: mvec_spherical,lvec
+  use mod_magnet, only: lfield,mvec_spherical,lvec
   use mod_susceptibilities, only: identt, Umatorb, schi, schihf, schiLS, schiSL, schiLL, schirot, rotmat_i, &
        rotmat_j, rottemp, schitemp, lrot, chiorb_hf, chiorb, &
        build_identity_and_U_matrix, diagonalize_susceptibilities, &
@@ -176,9 +176,11 @@ subroutine calculate_chi()
               ! DIAGONALIZING SUSCEPTIBILITY
               if(.not.lnodiag) call diagonalize_susceptibilities()
 
-              ! Gonna be stupidly slow :/
-              call calcTTResponse(e)
-              call calcTSResponse(e)
+              if(.not.lfield) then
+                ! Gonna be stupidly slow :/
+                call calcTTResponse(e)
+                call calcTSResponse(e)
+              end if
               ! WRITING GILBERT DAMPING
               call write_alpha(e)
 

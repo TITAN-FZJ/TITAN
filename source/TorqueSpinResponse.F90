@@ -92,14 +92,14 @@ contains
 
 
   subroutine calcTSResponse(e)
-    use mod_constants, only: levi_civita, StoC, CtoS, cZero
-    use mod_System, only: s => sys
-    use mod_magnet, only: lvec
-    use TightBinding, only: nOrb
-    use mod_parameters, only: sigmaimunu2i
+    use mod_constants,        only: delta, levi_civita, StoC, CtoS, cZero, cI
+    use mod_System,           only: s => sys
+    use mod_magnet,           only: lvec
+    use TightBinding,         only: nOrb
+    use mod_parameters,       only: sigmaimunu2i
     use mod_susceptibilities, only: chiorb, chiorb_hf
-    use mod_mpi_pars, only: abortProgram
-    use mod_magnet, only: mabs, mz
+    use mod_mpi_pars,         only: abortProgram
+    use mod_magnet,           only: mabs, mz
     implicit none
     integer :: i,j, m,n,k, mp,mu,nu, gamma, p,q
     real(double), intent(in) :: e
@@ -139,19 +139,21 @@ contains
        end do
     end do
 
-    chits(1,1) = TSResponse(1,1,1,1)
-    chits(1,2) = TSResponse(1,2,1,1) - sum(mz(:,1))
-    chits(2,1) = TSResponse(2,1,1,1) + sum(mz(:,1))
-    chits(2,2) = TSResponse(2,2,1,1)
-
-    call invers(chits, 2)
-
     call open_TSR_files()
     do i = 1, s%nAtoms
        do j = 1, s%nAtoms
+          chits(1,1) = TSResponse(1,1,i,j)
+          chits(1,2) = TSResponse(1,2,i,j) - mabs(i)*delta(i,j)
+          chits(2,1) = TSResponse(2,1,i,j) + mabs(i)*delta(i,j)
+          chits(2,2) = TSResponse(2,2,i,j)
+
+          call invers(chits, 2)
+
+          chits = chits*cI*sqrt(mabs(i)*mabs(j))  * 0.5d0 ! last part is 1/gamma
+
           write(unitBase(1)+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TSResponse(q,p,j,i)), aimag(TSResponse(q,p,j,i)), q = 1, 3), p = 1, 3)
           write(unitBase(2)+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TSResponseHF(q,p,j,i)), aimag(TSResponseHF(q,p,j,i)), q = 1, 3), p = 1, 3)
-          write(unitBase(3)+s%nAtoms*(i-1)+j, "( 9(es16.9,2x))") e, ((real(chits(j,i)), aimag(chits(j,i)), q= 1,2),p=1,2)
+          write(unitBase(3)+s%nAtoms*(i-1)+j, "( 9(es16.9,2x))") e, ((real(chits(q,p)), aimag(chits(q,p)), q= 1,2),p=1,2)
        end do
     end do
     call close_TSR_files()

@@ -967,8 +967,7 @@ contains
     use mod_system,     only: s => sys
     use mod_SOC,        only: SOC
     use mod_magnet,     only: rho, mvec_cartesian, mp, mvec_spherical, &
-                              lxpm, lypm, lzpm, lpphi, lptheta, lxm, lym, &
-                              lzm, ltheta, lphi, lpabs, labs
+                              lxm, lym, lzm, ltheta, lphi, labs
     implicit none
     integer :: i
 
@@ -1109,7 +1108,6 @@ contains
 #if !defined(_OSX) && !defined(_JUQUEEN)
   subroutine sc_equations_and_jacobian(N,x,fvec,selfconjac,iuser,ruser,iflag)
     use mod_f90_kind,   only: double
-    use mod_parameters, only: output
     use mod_system,     only: s => sys
     use TightBinding,   only: nOrb
     use mod_magnet,     only: iter,rho,rhod,mxd,myd,mzd,rhod0,rho0
@@ -1244,7 +1242,6 @@ contains
   ! and the correspondent jacobian
   subroutine sc_eqs_and_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
     use mod_f90_kind,   only: double
-    use mod_parameters, only: output
     use mod_system,     only: s => sys
     use TightBinding,   only: nOrb
     use mod_magnet,     only: iter,rho,rhod,mxd,myd,mzd,rhod0,rho0
