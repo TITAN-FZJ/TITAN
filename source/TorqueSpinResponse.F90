@@ -99,7 +99,7 @@ contains
     use mod_parameters,       only: sigmaimunu2i
     use mod_susceptibilities, only: chiorb, chiorb_hf
     use mod_mpi_pars,         only: abortProgram
-    use mod_magnet,           only: mabs, mz
+    use mod_magnet,           only: mabs
     implicit none
     integer :: i,j, m,n,k, mp,mu,nu, gamma, p,q
     real(double), intent(in) :: e

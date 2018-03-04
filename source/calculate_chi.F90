@@ -182,7 +182,7 @@ subroutine calculate_chi()
                 call calcTSResponse(e)
               end if
               ! WRITING GILBERT DAMPING
-              call write_alpha(e)
+              if(e/=0) call write_alpha(e)
 
               ! WRITING RPA AND HF SUSCEPTIBILITIES
               call write_susceptibilities(e)
