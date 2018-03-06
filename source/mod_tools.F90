@@ -19,6 +19,17 @@ contains
     return
   end function cross
 
+  function vecDist(a,b)
+  !! Function calculating the distance of two 3D points
+     use mod_f90_kind, only: double
+     implicit none
+     real(double) :: vecDist
+     real(double), dimension(3), intent(in) :: a, b
+
+     vecDist = sqrt(dot_product(a - b, a - b))
+     return
+  end function vecDist
+
   ! --------------------------------------------------------------------
   ! logical function is_perpendicular(a,b):
   !  This subroutines return whether a and b are perpendicular or not
