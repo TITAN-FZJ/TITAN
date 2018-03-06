@@ -107,6 +107,8 @@ contains
     !===============================================================================================
     if(.not. get_parameter("nn_stages", s%nStages,2)) call log_warning("get_parameters","'nn_stages' missing. Using default value of 2.")
 
+    if(.not. get_parameter("relTol", s%relTol,0.05d0)) call log_warning("get_parameters","'relTol' missing. Using default value of 0.05.")
+
     if(.not. get_parameter("bulk", s%lbulk, .true.)) call log_warning("get_parameters", "'bulk' missing. Using default value.")
 
     if(.not. get_parameter("nkpt", i_vector,cnt)) call log_error("get_parameters","'nkpt' missing.")

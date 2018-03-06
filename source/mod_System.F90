@@ -41,6 +41,8 @@ module mod_system
     type(NeighborAtom), dimension(:), allocatable :: Neighbors
     integer :: nStages = 0
     !! Number of nearest neighbors
+    real(double) :: relTol
+    !! Tolerance for shell radius
     real(double), dimension(:,:), allocatable :: Distances
     !! List of all distances in nnstages range; size (nStages, nAtoms)
     integer :: nTypes = 0

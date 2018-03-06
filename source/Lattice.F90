@@ -18,8 +18,6 @@ module Lattice
   use mod_f90_kind, only: double
   implicit none
 
-  real(double), private :: relTol = 0.05
-
   contains
 
     subroutine initLattice(s)
@@ -134,7 +132,7 @@ module Lattice
       do j = 1, s%nAtoms
         l = 1
         do i = 2, size
-          if(abs(localDistances(i,j) - s%Distances(l,j)) < s%Distances(1,j) * relTol) cycle
+          if(abs(localDistances(i,j) - s%Distances(l,j)) < s%Distances(1,j) * s%relTol) cycle
           l = l + 1
           s%Distances(l,j) = localDistances(i,j)
           if(l >= s%nStages) exit
@@ -174,7 +172,7 @@ module Lattice
         found = .false.
         do j = 1, s%nAtoms
           do k = 1, s%nStages
-            if(abs(list(i)%Distance(j) - s%Distances(k,j)) < s%Distances(1,j) * relTol) then
+            if(abs(list(i)%Distance(j) - s%Distances(k,j)) < s%Distances(1,j) * s%relTol) then
               found = .true.
               matchedNeighbor(j) = k
               exit

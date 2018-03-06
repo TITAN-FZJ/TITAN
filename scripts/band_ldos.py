@@ -7,6 +7,11 @@ import sys
 nSites=2
 #plt.xkcd()
 
+ry2ev = 13.6
+if(ry2ev != 1.0):
+  label = "$E-E_F$ [eV]"
+else:
+  label = "$E-E_F$ [Ry]"
 
 bsstruct = sys.argv[1]
 
@@ -50,15 +55,21 @@ with open(bsstruct, "r") as f:
 
  # for i in range(2,19):
  #  ax2.scatter(table[:,0],[(a-fermi) for a in table[:,i]], marker='.', c='k', s=0.2)
- ax[1].scatter(table[:,0],[(a-fermi) for a in table[:,1]], marker='.', c='b', s=0.2, label="TITAN")
- ax[1].set_ylim([-0.8,0.7])
+ ax[1].scatter(table[:,0],[(a-fermi)*ry2ev for a in table[:,1]], marker='.', c='b', s=0.2, label="TITAN")
+
+ if(ry2ev != 1.0):
+  ax[1].set_ylim([-12.0,9])
+  ax[1].set_yticks([-12, -8, -4, 0, 4, 8])
+ else:
+  ax[1].set_ylim([-1.0,0.7])
+
  # ax2.set_title("TITAN")
  ax[1].set_xlim([point[0],point[count[0]-1]])
 
 if(len(sys.argv)==4):
-  ax[0].set_ylabel("$E-E_F$ [Ry]")
+  ax[0].set_ylabel(label)
 else:
-  ax[1].set_ylabel("$E-E_F$ [Ry]")
+  ax[1].set_ylabel(label)
 
 if(len(sys.argv)==4):
   data = [ np.loadtxt(ldosu), np.loadtxt(ldosd) ]
@@ -67,16 +78,18 @@ if(len(sys.argv)==4):
   dat2 = (data[1])[(data[1])[:,0].argsort()]
 
   x1 = [ x-fermi for x in dat1[:,0] ]
-  tot1 = dat1[:,1]
-  s1 = dat1[:,2]
-  p1 = dat1[:,3]
-  d1 = dat1[:,4]
+  x1 = x1*ry2ev
+  tot1 = dat1[:,1]/ry2ev
+  s1   = dat1[:,2]/ry2ev
+  p1   = dat1[:,3]/ry2ev
+  d1   = dat1[:,4]/ry2ev
 
   x2 = [ x-fermi for x in dat2[:,0] ]
-  tot2 = [-x for x in dat2[:,1] ]
-  s2 = [-x for x in dat2[:,2] ]
-  p2 = [-x for x in dat2[:,3] ]
-  d2 = [-x for x in dat2[:,4] ]
+  x2 = x2*ry2ev
+  tot2 = [-x for x in dat2[:,1]/ry2ev ]
+  s2   = [-x for x in dat2[:,2]/ry2ev ]
+  p2   = [-x for x in dat2[:,3]/ry2ev ]
+  d2   = [-x for x in dat2[:,4]/ry2ev ]
 
   ax[2].plot(tot1,x1,color='k')
   ax[2].plot(s1,x1,color='r')
