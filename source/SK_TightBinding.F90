@@ -102,7 +102,7 @@ contains
     integer :: nAtoms
     integer, dimension(:), allocatable :: type_count
     real(double), dimension(3)    :: dens
-    integer        :: i, j, k, l, ios, line_count = 0
+    integer        :: i, j, k, l, m, ios, line_count = 0
     integer, parameter :: line_length = 300, word_length = 50, max_elements = 50
     character(len=word_length), dimension(max_elements) :: str_arr
     character(200) :: line
@@ -112,6 +112,7 @@ contains
     real(double), dimension(3,3) :: Bravais
     real(double), dimension(4) :: on_site
     real(double), dimension(:,:),allocatable :: position
+    real(double), dimension(:), allocatable :: localDistances
     character(len=1) :: coord_type
     character(len=100) :: Name
     integer :: fu = 995594
@@ -240,28 +241,39 @@ contains
 
     ! Determine neighbor distances
     allocate(material%stage(nStages))
+    allocate(localDistances((6*nStages+1)**3))
+    m = 0
     material % stage = 10.d0 * material % LatticeConstant
-    do i = 0, 3*nStages
-      do j = 0, 3*nStages
-        do k = 0, 3*nStages
+    do i = -3*nStages, 3*nStages
+      do j = -3*nStages, 3*nStages
+        do k = -3*nStages, 3*nStages
           if(i == 0 .and. j == 0 .and. k == 0) cycle
+          m = m + 1
           vec = i * material%a1 + j * material%a2 + k * material%a3
           dist = sqrt(dot_product(vec,vec))
-          l = nStages
+          localDistances(m) = dist
+          l = m - 1
           do while(1 <= l)
-            if(material % stage(l) - dist < 1.d-9) exit
-            if(l < nStages) material%stage(l+1) = material%stage(l)
+            if(localDistances(l) - dist < 1.d-9) exit
+            localDistances(l+1) = localDistances(l)
             l = l - 1
           end do
-          if(l == 0) then
-            material%stage(l+1) = dist
-          elseif(abs(material % stage(l) - dist) >= 1.d-9 .and. l < nStages) then
-            material%stage(l+1) = dist
-          end if
-
+          localDistances(l+1) = dist
         end do
       end do
     end do
+
+    l = 1
+    material%stage(1) = localDistances(1)
+
+    do i = 1, m
+      if(abs(localDistances(i) - material%stage(l)) < material%stage(1) * 0.01) cycle
+      l = l + 1
+      material%stage(l) = localDistances(i)
+      if(l >= nStages) exit
+    end do
+
+    deallocate(localDistances)
     return
   end subroutine
 
