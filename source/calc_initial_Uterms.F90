@@ -37,6 +37,7 @@ contains
       if(sys0(i)%nAtoms/=1) call abortProgram("[calc_initial_Uterms] Not implemented for parameter file with more than 1 atom!")
       ! Setting the number of nearest neighbors
       sys0(i)%nStages = sys%nStages
+      sys0(i)%relTol  = sys%relTol
       !---------- Generating k points for real axis integration ----------
       if(dot_product(sys0(i)%a3,sys0(i)%a3) == 0.d0) then
         sys0(i)%lbulk = .false.
@@ -53,6 +54,8 @@ contains
 
       call initLattice(sys0(i))
 
+! if(myrank==0) call writeLattice(sys0(i))
+! stop
       !--- Generating k meshes points for imaginary axis integration -----
       call generateAdaptiveMeshes(sys0(i),pn1)
 
