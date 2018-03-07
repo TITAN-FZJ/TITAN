@@ -1,7 +1,7 @@
 ! Calculates the full 3x3 J tensor (including coupling, DMI and anisotropic pair interactions)
 subroutine coupling()
   use mod_f90_kind,   only: double
-  use mod_parameters, only: output, mmlayermag, nmaglayers, q
+  use mod_parameters, only: output, q
   use mod_magnet,     only: mvec_cartesian
   use mod_system,     only: s => sys
   use adaptiveMesh
@@ -22,8 +22,8 @@ subroutine coupling()
   call freeLocalEKMesh()
 
   if(rField == 0) then
-    do i=1,nmaglayers
-      do j=1,nmaglayers
+    do i=1,s%nAtoms
+      do j=1,s%nAtoms
          trJij(i,j)    = 0.5d0*(Jij(i,j,1,1)+Jij(i,j,2,2))
          Jija(i,j,:,:) = 0.5d0*(Jij(i,j,:,:) - transpose(Jij(i,j,:,:)))
          Jijs(i,j,:,:) = 0.5d0*(Jij(i,j,:,:) + transpose(Jij(i,j,:,:)))
@@ -35,10 +35,10 @@ subroutine coupling()
 
     ! Writing exchange couplings and anisotropies
     write(output%unit_loop,"('  ************************* Full tensor Jij:  *************************')")
-    do i=1,nmaglayers
-      do j=1,nmaglayers
+    do i=1,s%nAtoms
+      do j=1,s%nAtoms
       ! Writing on screen
-      ! Writing original full tensor Jij
+      ! Writing original full tensor Jij (in units of Ry)
       ! Only the transverse components are supposed to be non-cZero (e.g., for m //z, only Jxx,Jxy,Jyx,Jyy)
       ! Relation between J_ii calculated and the position of the peak in the susceptibility:
       ! w_res = 2*gamma*mz*sqrt( (K_z-K_x)*(K_z-K_y) )  - for m // z
@@ -47,9 +47,9 @@ subroutine coupling()
         if(i==j) then
           write(output%unit_loop,"(3x,' ******************* Magnetization components:  ******************')")
           write(output%unit_loop,"(4x,'Mx (',i2.0,')=',f11.8,4x,'My (',i2.0,')=',f11.8,4x,'Mz (',i2.0,')=',f11.8)") i,mvec_cartesian(1,i),i,mvec_cartesian(2,i),i,mvec_cartesian(3,i)
-          write(output%unit_loop,"(' |--------------- i = ',i0,'   j = ',i0,': anisotropies ---------------|')") mmlayermag(i),mmlayermag(j)
+          write(output%unit_loop,"(' |--------------- i = ',i0,'   j = ',i0,': anisotropies ---------------|')") i,j
         else
-          write(output%unit_loop,"(' |----------- i = ',i0,'   j = ',i0,': exchange couplings -------------|')") mmlayermag(i),mmlayermag(j)
+          write(output%unit_loop,"(' |----------- i = ',i0,'   j = ',i0,': exchange couplings -------------|')") i,j
         end if
         write(output%unit_loop,"('             x                  y                  z')")
         write(output%unit_loop,"('  x  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,1,1),Jij(i,j,1,2),Jij(i,j,1,3)
@@ -57,11 +57,11 @@ subroutine coupling()
         write(output%unit_loop,"('  z  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,3,1),Jij(i,j,3,2),Jij(i,j,3,3)
       end do
     end do
-    if(nmaglayers>1) write(output%unit_loop,"('  *** Symmetric and antisymmetric exchange interactions:  ***')")
-    do i=1,nmaglayers
-      do j=1,nmaglayers
+    if(s%nAtoms>1) write(output%unit_loop,"('  *** Symmetric and antisymmetric exchange interactions:  ***')")
+    do i=1,s%nAtoms
+      do j=1,s%nAtoms
         if(i==j) cycle
-        write(output%unit_loop,"(' |--------------------- i = ',i0,'   j = ',i0,' -----------------------|')") mmlayermag(i),mmlayermag(j)
+        write(output%unit_loop,"(' |--------------------- i = ',i0,'   j = ',i0,' -----------------------|')") i,j
       ! Writing Heisenberg exchange interactions
         write(output%unit_loop,"('     Isotropic:     J     = ',es16.9)") trJij(i,j)
         write(output%unit_loop,"('   Anisotropic:     Js_xx = ',es16.9)") Jijs(i,j,1,1)
