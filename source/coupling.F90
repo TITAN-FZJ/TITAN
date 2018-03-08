@@ -39,9 +39,9 @@ subroutine coupling()
       do j=1,s%nAtoms
       ! Writing on screen
       ! Writing original full tensor Jij (in units of Ry)
-      ! Only the transverse components are supposed to be non-cZero (e.g., for m //z, only Jxx,Jxy,Jyx,Jyy)
+      ! Only the transverse components are supposed to be non-zero (e.g., for m //z, only Jxx,Jxy,Jyx,Jyy)
       ! Relation between J_ii calculated and the position of the peak in the susceptibility:
-      ! w_res = 2*gamma*mz*sqrt( (K_z-K_x)*(K_z-K_y) )  - for m // z
+      ! w_res = 2*gamma*sqrt( (K_z-K_x)*(K_z-K_y) )/mz  - for m // z (local frame of reference)
       ! where K_x = J_ii^xx/2 ; K_y = J_ii^yy/2 ; K_z = J_ii^zz/2
       ! K > 0 - easy axis ; K < 0 - hard axis
         if(i==j) then

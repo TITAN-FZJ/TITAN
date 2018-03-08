@@ -17,7 +17,7 @@ subroutine jij_energy(Jij)
   implicit none
   real(double),dimension(s%nAtoms,s%nAtoms,3,3)             :: Jijint
   real(double),dimension(s%nAtoms,s%nAtoms,3,3),intent(out) :: Jij
-  integer :: ix,iz
+  integer :: ix
   integer :: i,j,mu,nu,alpha
   real(double) :: kp(3), kminusq(3), ep
   real(double) :: evec(3,s%nAtoms)
@@ -34,21 +34,21 @@ subroutine jij_energy(Jij)
   !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
   ncount = s%nAtoms * s%nAtoms * 3 * 3
 
-  do iz = 1, s%nAtoms
+  do i = 1, s%nAtoms
     ! Unit vector along the direction of the magnetization of each magnetic plane
-    evec(:,iz) = [ mvec_cartesian(1,iz), mvec_cartesian(2,iz), mvec_cartesian(3,iz) ]/mabs(iz)
+    evec(:,i) = [ mvec_cartesian(1,i), mvec_cartesian(2,i), mvec_cartesian(3,i) ]/mabs(i)
 
     ! Inner product of pauli matrix in spin and orbital space and unit vector evec
-    paulievec(iz,:,:) = pauli_dorb(1,:,:) * evec(1,iz) + pauli_dorb(2,:,:) * evec(2,iz) + pauli_dorb(3,:,:) * evec(3,iz)
+    paulievec(i,:,:) = pauli_dorb(1,:,:) * evec(1,i) + pauli_dorb(2,:,:) * evec(2,i) + pauli_dorb(3,:,:) * evec(3,i)
 
-    do i = 1, 3
+    do mu = 1, 3
       ! Derivative of Bxc*sigma*evec w.r.t. m_i (Bxc = -U.m/2)
-      dBxc_dm(iz,i,:,:) = -0.5d0*U(iz)*(pauli_dorb(i,:,:) - (paulievec(iz,:,:)) * evec(i,iz))
+      dBxc_dm(i,mu,:,:) = -0.5d0*U(i)*(pauli_dorb(mu,:,:) - (paulievec(i,:,:)) * evec(mu,i))
       ! Second derivative of Bxc w.r.t. m_i (Bxc = -U.m/2)
-      do j=1,3
-        d2Bxc_dm2(iz,i,j,:,:) = evec(i,iz)*pauli_dorb(j,:,:) + pauli_dorb(i,:,:)*evec(j,iz) - 3*paulievec(iz,:,:)*evec(i,iz)*evec(j,iz)
-        if(i==j) d2Bxc_dm2(iz,i,j,:,:) = d2Bxc_dm2(iz,i,j,:,:) + paulievec(iz,:,:)
-        d2Bxc_dm2(iz,i,j,:,:) = 0.5d0*U(iz)*d2Bxc_dm2(iz,i,j,:,:)
+      do nu=1,3
+        d2Bxc_dm2(i,mu,nu,:,:) = evec(mu,i)*pauli_dorb(nu,:,:) + pauli_dorb(mu,:,:)*evec(nu,i) - 3*paulievec(i,:,:)*evec(mu,i)*evec(nu,i)
+        if(mu==nu) d2Bxc_dm2(i,mu,nu,:,:) = d2Bxc_dm2(i,mu,nu,:,:) + paulievec(i,:,:)
+        d2Bxc_dm2(i,mu,nu,:,:) = 0.5d0*U(i)*d2Bxc_dm2(i,mu,nu,:,:)/mabs(i)
       end do
     end do
   end do
