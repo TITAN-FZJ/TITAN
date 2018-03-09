@@ -307,7 +307,7 @@ contains
         mtheta(i) = 0.d0
       end if
       if(abs(mtheta(i))>1.d-8) then
-        if(abs(abs(mtheta(i))-1.d0)>1.d-8) then
+        if(abs(abs(mtheta(i))-180.d0)>1.d-8) then
           mphi(i)   = atan2(sum(my(:,i)),sum(mx(:,i)))*rad2deg
         else
           mphi(i) = 0.d0
@@ -894,7 +894,7 @@ contains
         ltheta(i) = 0.d0
       end if
       if(abs(ltheta(i))>1.d-8) then
-        if(abs(abs(ltheta(i))-1.d0)>1.d-8) then
+        if(abs(abs(ltheta(i))-180.d0)>1.d-8) then
           lphi(i)   = atan2(lym(i),lxm(i))*rad2deg
         else
           lphi(i) = 0.d0
@@ -909,7 +909,7 @@ contains
         lptheta(i) = 0.d0
       end if
       if(abs(lptheta(i))>1.d-8) then
-        if(abs(abs(lptheta(i))-1.d0)>1.d-8) then
+        if(abs(abs(lptheta(i))-180.d0)>1.d-8) then
           lpphi(i)   = atan2(lypm(i),lxpm(i))*rad2deg
         else
           lpphi(i) = 0.d0
