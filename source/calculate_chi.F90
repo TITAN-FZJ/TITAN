@@ -51,12 +51,12 @@ subroutine calculate_chi()
   ! Mounting U and identity matrix
   call build_identity_and_U_matrix()
 
-  if(myrank == 0 .and. skip_steps > 0) write(output%unit_loop,"('[calculate_chi] Skipping first ',i0,' step(s)...')") skip_steps
+  if(rField == 0 .and. skip_steps > 0) write(output%unit_loop,"('[calculate_chi] Skipping first ',i0,' step(s)...')") skip_steps
 
   ! Chi Energy Loop
   do count = startFreq+skip_steps, endFreq+skip_steps
      e = emin + deltae * (count-1)
-     if(myrank==0) write(output%unit_loop,"('[calculate_chi] Starting MPI step ',i0,' of ',i0)") count - startFreq - skip_steps + 1, endFreq - startFreq + 1
+     if(rField==0) write(output%unit_loop,"('[calculate_chi] Starting MPI step ',i0,' of ',i0)") count - startFreq - skip_steps + 1, endFreq - startFreq + 1
 
      ! Start parallelized processes to calculate chiorb_hf and chiorbi0_hf for energy e
      call eintshechi(e)

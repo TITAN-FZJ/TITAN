@@ -350,7 +350,6 @@ subroutine eintshe(e)
     !call MPI_Reduce(Lyttchiorbiikl, Lyttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr) TODO: Re-Include
     !call MPI_Reduce(Lzttchiorbiikl, Lzttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr) TODO: Re-Include
   end if
-  deallocate(tFintiikl) !,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl) TODO: Re-Incude
 
   return
 end subroutine eintshe

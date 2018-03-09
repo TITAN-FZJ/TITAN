@@ -80,12 +80,10 @@ subroutine calculate_all()
 
   if(myrank == 0 .and. skip_steps > 0) write(output%unit,"('[calculate_all] Skipping first ',i0,' step(s)...')") skip_steps
 
-  do count = startFreq + skip_steps, endFreq + skip_steps
-    !mpitag = (myrank_col-1)*Npl_f*total_hw_npt1*MPIsteps+(Npl-Npl_i)*total_hw_npt1*MPIsteps + (hw_count-1)*MPIsteps + count
-
+  ! Responses Energy Loop
+  do count = startFreq+skip_steps, endFreq+skip_steps
     e = emin + deltae * (count-1)
-
-    if(rField == 0) write(output%unit_loop,"('[calculate_all] Starting MPI step ',i0,' of ',i0)") count - startFreq - skip_steps, endFreq - startFreq + 1
+    if(rField==0) write(output%unit_loop,"('[calculate_all] Starting MPI step ',i0,' of ',i0)") count - startFreq - skip_steps + 1, endFreq - startFreq + 1
 
     if(lhfresponses) then
       if(rFreq(1) == 0) write(output%unit_loop,"('[calculate_all] No renormalization will be done. Setting prefactors to identity and calculating HF susceptibilities... ')")
