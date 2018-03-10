@@ -2,7 +2,7 @@ module mod_torques
   use mod_f90_kind
   implicit none
   ! Torques (sot,xc-torque,external torque ; x,y,z ; layers)
-  integer       :: ntypetorque=3 ! Number of types of torques implemented
+  integer       :: ntypetorque=2 ! Number of types of torques implemented
   complex(double),allocatable   :: torques(:,:,:),total_torques(:,:), rtorques(:,:,:)
 
   character(len=6), parameter, private :: folder = "SOT"
