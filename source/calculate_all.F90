@@ -29,7 +29,7 @@ subroutine calculate_all()
   use mod_progress, only: write_time
   use mod_rotation_matrices, only: rotation_matrices_chi
   use mod_mpi_pars
-
+  use mod_sumrule
   !use mod_system, only: n0sc1, n0sc2, n0sc
   !use mod_currents !TODO: Re-Include
   !use mod_sha !TODO: Re-Include
@@ -103,6 +103,9 @@ subroutine calculate_all()
 
       ! Broadcast chiorb_hf to all processors of the same row
       call MPI_Bcast(chiorb_hf,dim*dim,MPI_DOUBLE_COMPLEX,0,FreqComm(1),ierr)
+
+      ! Checking sum rule for e=0.d0
+      if(e == 0.d0) call sumrule(chiorb_hf)
 
       ! prefactor = (1 + chi_hf*Umat)^-1
       prefactor     = identt
