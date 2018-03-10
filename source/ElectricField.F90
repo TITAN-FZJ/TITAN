@@ -13,7 +13,7 @@ contains
   subroutine initElectricField(a1,a2,a3)
     use mod_parameters, only: output
     use mod_f90_kind, only: double
-    use mod_constants, only: deg2rad
+    use mod_constants, only: deg2rad,rad2deg
     use mod_mpi_pars, only: abortProgram, myrank
     implicit none
     real(double), dimension(3), intent(in) :: a1, a2, a3
@@ -38,10 +38,18 @@ contains
     end if
 
     ElectricFieldVector(1:3) = ElectricFieldVector(1:3) / sqrt(dot_product(ElectricFieldVector(1:3), ElectricFieldVector(1:3)))
-    EFp = atan(ElectricFieldVector(2) / ElectricFieldVector(1))
-    EFt = acos(ElectricFieldVector(3))
-
-    write(output%EField,"('_EFp=',es8.1,'_EFt=',es8.1)") EFp,EFt
+    EFt = acos(ElectricFieldVector(3))*rad2deg
+    if(abs(Eft)>1.d-8) then
+      if(abs(abs(Eft)-180.d0)>1.d-8) then
+        EFp   = atan2(ElectricFieldVector(2),ElectricFieldVector(1))*rad2deg
+      else
+        EFp = 0.d0
+      end if
+    else
+      EFp = 0.d0
+    end if
+    EFp = atan2(ElectricFieldVector(2),ElectricFieldVector(1))*rad2deg
+    write(output%EField,"('_EFp=',f6.2,'_EFt=',f6.2)") EFp,EFt
 
     return
   end subroutine initElectricField
