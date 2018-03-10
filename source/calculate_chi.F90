@@ -174,7 +174,7 @@ subroutine calculate_chi()
               end if
 
               ! DIAGONALIZING SUSCEPTIBILITY
-              if(.not.lnodiag) call diagonalize_susceptibilities()
+              if((.not.lhfresponses).and.(.not.lnodiag)) call diagonalize_susceptibilities()
 
               if(.not.lfield) then
                 ! Gonna be stupidly slow :/
