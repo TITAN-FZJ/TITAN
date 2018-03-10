@@ -95,14 +95,14 @@ subroutine calculate_all()
       if(rField == 0) write(output%unit_loop,"('[calculate_all] Calculating prefactor to use in currents and disturbances calculation. ')")
       if(llinearsoc) then
         call eintshechilinearsoc(e) ! Note: chiorb_hflsoc = lambda*dchi_hf/dlambda(lambda=0)
-        ! Broadcast chiorb_hflsoc to all processors of the same row
-        call MPI_Bcast(chiorb_hflsoc,dim*dim,MPI_DOUBLE_COMPLEX,0,FreqComm(1),ierr)
+        ! ! Broadcast chiorb_hflsoc to all processors of the same row
+        ! call MPI_Bcast(chiorb_hflsoc,dim*dim,MPI_DOUBLE_COMPLEX,0,FreqComm(1),ierr)
       else
         call eintshechi(e)
       end if
 
-      ! Broadcast chiorb_hf to all processors of the same row
-      call MPI_Bcast(chiorb_hf,dim*dim,MPI_DOUBLE_COMPLEX,0,FreqComm(1),ierr)
+      ! ! Broadcast chiorb_hf to all processors of the same row
+      ! call MPI_Bcast(chiorb_hf,dim*dim,MPI_DOUBLE_COMPLEX,0,FreqComm(1),ierr)
 
       ! Checking sum rule for e=0.d0
       if(e == 0.d0) call sumrule(chiorb_hf)

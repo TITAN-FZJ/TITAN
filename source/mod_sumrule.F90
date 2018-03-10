@@ -12,22 +12,22 @@ contains
     use mod_System,     only: s => sys
     use mod_constants,  only: levi_civita, StoC, CtoS, cZero
     use TightBinding,   only: nOrb
-    use mod_magnet!,     only: mxd,myd,mzd
+    use mod_magnet,     only: mxd,myd,mzd
     use mod_parameters, only: output, dim, sigmaimunu2i
     use mod_mpi_pars,   only: abortProgram,rField
     implicit none
     integer :: AllocateStatus
     integer :: i,j,r,t,p,q,mu,nu,gamma,xi,m,n,k
-    real(double)   , dimension(3,s%nAtoms)           :: mvec
-    complex(double), dimension(dim)                  :: Beff
-    complex(double), dimension(dim,dim)              :: chiorb_hf_cart
-    complex(double), dimension(dim,dim), intent(in)  :: chiorb_hf
+    real(double)   , dimension(3,s%nAtoms)             :: mvec
+    complex(double), dimension(dim)                    :: Beff
+    complex(double), dimension(dim,dim), intent(in)    :: chiorb_hf
     complex(double), dimension(:,:,:,:,:),allocatable  :: lhs,rhs
-    if(rField == 0) write(output%unit_loop,"('[sumrule] Checking if the sum rule is satisfied... ')")
+    complex(double), dimension(:,:)      ,allocatable  :: chiorb_hf_cart
 
-    allocate(lhs(3,3,nOrb,nOrb,s%nAtoms),rhs(3,3,nOrb,nOrb,s%nAtoms), stat = AllocateStatus)
-    if(AllocateStatus/=0) call abortProgram("[sumrule] Not enough memory for: lhs,rhs")
+    if(rField == 0) write(output%unit_loop,"('[sumrule] Checking if the sum rule is satisfied... ')", advance='no')
 
+    allocate(chiorb_hf_cart(dim,dim),lhs(3,3,nOrb,nOrb,s%nAtoms),rhs(3,3,nOrb,nOrb,s%nAtoms), stat = AllocateStatus)
+    if(AllocateStatus/=0) call abortProgram("[sumrule] Not enough memory for: chiorb_hf_cart,lhs,rhs")
 
     mvec(1,:) = mxd(:)
     mvec(2,:) = myd(:)
@@ -94,12 +94,12 @@ contains
     rhs = 2.d0*rhs
 
     if(sum(abs(lhs - rhs)) < 1.d-7) then
-      if(rField == 0) write(output%unit_loop,"('[sumrule] YES! ')")
+      if(rField == 0) write(output%unit_loop,"(' YES! ')")
     else
-      if(rField == 0) write(output%unit_loop,"('[sumrule] NO! Difference: ',es16.9)") sum(abs(lhs - rhs))
+      if(rField == 0) write(output%unit_loop,"(' NO! Difference: ',es16.9)") sum(abs(lhs - rhs))
     end if
 
-    deallocate(lhs,rhs)
+    ! deallocate(lhs,rhs)
     deallocate(Smunuiivec)
 
     return
