@@ -2,7 +2,7 @@
 subroutine calculate_chi()
   use mod_f90_kind, only: double
   use mod_constants, only: cZero, cOne, StoC, CtoS
-  use mod_parameters, only:  count, emin, deltae, dim, sigmaimunu2i, output, lnodiag,laddresults, skip_steps, sigmai2i
+  use mod_parameters, only: count, emin, deltae, dim, sigmaimunu2i, output, lhfresponses, lnodiag, laddresults, skip_steps, sigmai2i
   use mod_mpi_pars
   use mod_magnet, only: lfield,mvec_spherical,lvec
   use mod_susceptibilities, only: identt, Umatorb, schi, schihf, schiLS, schiSL, schiLL, schirot, rotmat_i, &
