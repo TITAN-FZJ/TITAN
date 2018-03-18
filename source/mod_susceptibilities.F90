@@ -2,23 +2,23 @@ module mod_susceptibilities
   use mod_f90_kind, only: double
   implicit none
   ! Spin and orbital susceptibilities
-  complex(double), dimension(:,:), allocatable   :: schi, schihf
-  complex(double), dimension(:,:), allocatable   :: schiLS, schiSL, schiLL
+  complex(double), dimension(:,:), allocatable :: schi, schihf
+  complex(double), dimension(:,:), allocatable :: schiLS, schiSL, schiLL
   ! Full response functions
   complex(double), dimension(:,:), allocatable :: chiorb_hf,chiorb_hflsoc,chiorb
   complex(double), dimension(:,:), allocatable :: identt,Umatorb
   ! Rotation of spin susceptibilities
   logical :: lrot = .false.
-  complex(double), dimension(:,:,:), allocatable   :: rotmat_i, rotmat_j
-  complex(double), dimension(:,:), allocatable     :: rottemp, schitemp, schirot
+  complex(double), dimension(:,:,:), allocatable :: rotmat_i, rotmat_j
+  complex(double), dimension(:,:),   allocatable :: rottemp, schitemp, schirot
 
   ! Susceptibility diagonalization
   integer :: lwork
-  real(double), dimension(:), allocatable :: rwork
-  complex(double), dimension(:), allocatable :: eval, work
+  real(double),    dimension(:),   allocatable :: rwork
+  complex(double), dimension(:),   allocatable :: eval, work
   complex(double), dimension(:,:), allocatable :: chimag,evecl,evecr
 #ifdef _JUQUEEN
-  integer :: ilo,ihi
+  integer      :: ilo,ihi
   real(double) :: abnrm
   real(double), dimension(:), allocatable :: dscale, rconde, rcondv
 #endif
@@ -362,12 +362,12 @@ contains
     end do
 
     if(s%nAtoms > 1 .and. (.not. lhfresponses) .and. (.not. lnodiag)) then
-       write(varm,fmt="(a,i0,a)") '(',2*s%nAtoms+1,'(es16.9,2x))'
+       write(varm,fmt="('(',i0,'(es16.9,2x))')") 2*s%nAtoms+1
        write(unit=19900,fmt=varm) e,(real(eval(i)),aimag(eval(i)),i=1,s%nAtoms)
        do i=1,s%nAtoms
           write(unit=19900+i,fmt=varm) e,(real(evecr(j,i)),aimag(evecr(j,i)),j=1,s%nAtoms)
        end do
-    end if ! s%nAtoms
+    end if
 
     call close_chi_files()
 
@@ -571,7 +571,7 @@ contains
        do i=1,s%nAtoms
           call sort_file(19900*idc+i,.true.)
        end do
-    end if ! s%nAtoms
+    end if
 
     ! Closing chi and diag files
     if(itype==9) then

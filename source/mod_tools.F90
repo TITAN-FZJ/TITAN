@@ -153,7 +153,7 @@ contains
     implicit  none
     integer, intent(out) :: rows, cols
     integer, intent(in)  :: unit
-    character(len=200)   :: stringtemp
+    character(len=900)   :: stringtemp
     integer :: ios,i
 
     rewind unit
@@ -183,7 +183,7 @@ contains
     implicit  none
     integer     , intent(in)  :: unit,rows,cols
     real(double), intent(out) :: data(rows,cols)
-    character(len=200)        :: stringtemp
+    character(len=900)        :: stringtemp
     integer :: ios,i,j
 
     rewind unit
@@ -246,7 +246,7 @@ contains
     return
   end subroutine sort_file
 
-  character(len=500) function ItoS(i)
+  character(len=900) function ItoS(i)
      implicit none
      integer :: i
      write(Itos, "(i0)") i

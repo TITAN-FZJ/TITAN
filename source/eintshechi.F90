@@ -208,13 +208,7 @@ subroutine eintshechi(e)
 
   chiorb_hf = (chiorb_hf + Fint) / tpi
 
-  ! call MPI_Allreduce(MPI_IN_PLACE, chiorb_hf, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1), ierr)
-
-  if(rFreq(1) == 0) then
-    call MPI_Reduce(MPI_IN_PLACE, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr)
-  else
-    call MPI_Reduce(chiorb_hf, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr)
-  end if
+  call MPI_Allreduce(MPI_IN_PLACE, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, FreqComm(1), ierr)
 
   deallocate(Fint)
   return
@@ -460,16 +454,8 @@ subroutine eintshechilinearsoc(e)
   deallocate(gf,gfuu,gfud,gfdu,gfdd)
   !$omp end parallel
 
-  ! call MPI_Allreduce(MPI_IN_PLACE, chiorb_hf    , ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1), ierr)
-  ! call MPI_Allreduce(MPI_IN_PLACE, chiorb_hflsoc, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1), ierr)
-
-  if(rFreq(1) == 0) then
-    call MPI_Reduce(MPI_IN_PLACE, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr)
-    call MPI_Reduce(MPI_IN_PLACE, chiorb_hflsoc, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr)
-  else
-    call MPI_Reduce(chiorb_hf, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr)
-    call MPI_Reduce(chiorb_hflsoc, chiorb_hflsoc, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr)
-  end if
+  call MPI_Allreduce(MPI_IN_PLACE, chiorb_hf    , ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, FreqComm(1), ierr)
+  call MPI_Allreduce(MPI_IN_PLACE, chiorb_hflsoc, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, FreqComm(1), ierr)
 
   return
 end subroutine eintshechilinearsoc
