@@ -4,7 +4,7 @@ subroutine calculate_chi()
   use mod_constants, only: cZero, cOne, StoC, CtoS
   use mod_parameters, only: count, emin, deltae, dim, sigmaimunu2i, output, lhfresponses, lnodiag, laddresults, skip_steps, sigmai2i
   use mod_mpi_pars
-  use mod_magnet, only: lfield,mvec_spherical,lvec
+  use mod_magnet, only: lfield,mvec_spherical,lvec,mabs
   use mod_susceptibilities, only: identt, Umatorb, schi, schihf, schiLS, schiSL, schiLL, schirot, rotmat_i, &
        rotmat_j, rottemp, schitemp, lrot, chiorb_hf, chiorb, &
        build_identity_and_U_matrix, diagonalize_susceptibilities, &
@@ -26,6 +26,8 @@ subroutine calculate_chi()
   integer           :: mcount
   integer           :: i,j,sigma,sigmap,mu,nu,gamma,xi,p
   real(double)      :: e
+real(double)    :: schi_sum(4,4),schihf_sum(4,4)
+complex(double) :: alpha_chiinv
   complex(double), dimension(:,:),   allocatable :: temp
   call allocate_susceptibilities()
   call allocate_alpha()
@@ -119,6 +121,72 @@ subroutine calculate_chi()
               end do
            end do
         end do
+
+
+schi_sum = 0.d0
+schihf_sum = 0.d0
+! Calculating RPA and HF susceptibilities
+do sigmap=1, 4
+  do sigma=1, 4
+    do xi=1, nOrb
+      do gamma=1, nOrb
+        do nu=1, nOrb
+           do mu=1, nOrb
+              schi_sum  (sigmai2i(sigma,1),sigmai2i(sigmap,1)) = schi_sum  (sigmai2i(sigma,1),sigmai2i(sigmap,1)) + abs(chiorb   (sigmaimunu2i(sigma,1,mu,nu),sigmaimunu2i(sigmap,1,gamma,xi)))
+              schihf_sum(sigmai2i(sigma,1),sigmai2i(sigmap,1)) = schihf_sum(sigmai2i(sigma,1),sigmai2i(sigmap,1)) + abs(chiorb_hf(sigmaimunu2i(sigma,1,mu,nu),sigmaimunu2i(sigmap,1,gamma,xi)))
+           end do
+        end do
+      end do
+    end do
+  end do
+end do
+write(*,*) "4-index RPA"
+do sigma=1, 4
+  write(*,"(4(es19.11,2x))") (schi_sum(sigmai2i(sigma,1),sigmai2i(sigmap,1)),sigmap=1,4)
+end do
+write(*,*) "4-index HF"
+do sigma=1, 4
+  write(*,"(4(es19.11,2x))") (schihf_sum(sigmai2i(sigma,1),sigmai2i(sigmap,1)),sigmap=1,4)
+end do
+
+schi_sum = 0.d0
+schihf_sum = 0.d0
+! Calculating RPA and HF susceptibilities
+do sigmap=1, 4
+  do sigma=1, 4
+    do nu=1, nOrb
+       do mu=1, nOrb
+          schi_sum  (sigmai2i(sigma,1),sigmai2i(sigmap,1)) = schi_sum  (sigmai2i(sigma,1),sigmai2i(sigmap,1)) + abs(chiorb   (sigmaimunu2i(sigma,1,mu,mu),sigmaimunu2i(sigmap,1,nu,nu)))
+          schihf_sum(sigmai2i(sigma,1),sigmai2i(sigmap,1)) = schihf_sum(sigmai2i(sigma,1),sigmai2i(sigmap,1)) + abs(chiorb_hf(sigmaimunu2i(sigma,1,mu,mu),sigmaimunu2i(sigmap,1,nu,nu)))
+       end do
+    end do
+  end do
+end do
+write(*,*) "2-index RPA"
+do sigma=1, 4
+  write(*,"(4(es19.11,2x))") (schi_sum(sigmai2i(sigma,1),sigmai2i(sigmap,1)),sigmap=1,4)
+end do
+write(*,*) "2-index HF"
+do sigma=1, 4
+  write(*,"(4(es19.11,2x))") (schihf_sum(sigmai2i(sigma,1),sigmai2i(sigmap,1)),sigmap=1,4)
+end do
+
+call invers(chiorb,dim)
+! Calculating alpha from chiinv
+alpha_chiinv = cZero
+do sigmap=1, 1
+  do sigma=1, 1
+    do nu=5, nOrb
+       do mu=5, nOrb
+          alpha_chiinv = alpha_chiinv + chiorb(sigmaimunu2i(sigma,1,mu,mu),sigmaimunu2i(sigmap,1,nu,nu))
+       end do
+    end do
+  end do
+end do
+write(*,*) "alpha from full chiinv"
+write(*,"(4(es19.11,2x))") mabs(1)*aimag(alpha_chiinv)/(2.d0*e)
+
+
 
 
         ! Rotating susceptibilities to the magnetization direction (local frame of reference)
