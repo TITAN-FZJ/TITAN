@@ -243,7 +243,8 @@ program TITAN
     case (3) ! LDOS and coupling and a function of energy
       call ldos_and_coupling()
     case (4) ! Band structure (not parallelized)
-      if(rField == 0) call band_structure(sys)
+      if(rField == 0) &
+      call band_structure(sys)
     case (5) ! Iso-energy surface (for input = sys%Ef - Fermi surface)
       call fermi_surface(sys%Ef)
     case (6) ! Coupling tensor
