@@ -23,8 +23,7 @@ contains
       allocate(Jijs(nmaglayers,nmaglayers,3,3))
       allocate(Jija(nmaglayers,nmaglayers,3,3))
 
-      return
-   end subroutine allocateCoupling
+         end subroutine allocateCoupling
 
    subroutine deallocateCoupling()
       implicit none
@@ -32,8 +31,7 @@ contains
       if(allocated(Jij)) deallocate(Jij)
       if(allocated(Jijs)) deallocate(Jijs)
       if(allocated(Jija)) deallocate(Jija)
-      return
-   end subroutine deallocateCoupling
+         end subroutine deallocateCoupling
 
    subroutine openCouplingFiles()
       use mod_parameters, only: nmaglayers, mmlayermag, output
@@ -64,8 +62,7 @@ contains
            end if
          end do
       end do
-      return
-   end subroutine openCouplingFiles
+         end subroutine openCouplingFiles
 
    subroutine closeCouplingFiles()
       use mod_parameters, only: nmaglayers
@@ -78,8 +75,7 @@ contains
            if(i/=j) close(iw+1)
         end do
       end do
-      return
-   end subroutine closeCouplingFiles
+         end subroutine closeCouplingFiles
 
    subroutine writeCoupling(e)
       use mod_f90_kind, only: double
@@ -102,7 +98,6 @@ contains
            end if
         end do
       end do
-      return
-   end subroutine writeCoupling
+         end subroutine writeCoupling
 
 end module mod_Coupling

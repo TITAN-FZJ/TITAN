@@ -51,8 +51,7 @@ contains
     EFp = atan2(ElectricFieldVector(2),ElectricFieldVector(1))*rad2deg
     write(output%EField,"('_EFp=',f6.2,'_EFt=',f6.2)") EFp,EFt
 
-    return
-  end subroutine initElectricField
+      end subroutine initElectricField
 
 
   subroutine initLongAndTransCurentNeighbors(s)

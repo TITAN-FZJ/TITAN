@@ -31,8 +31,7 @@ contains
     end if
 !     write(outputunit,"(20(2x,i0))") (mmlayer(i),i=1,Npl+2)
 !     stop
-    return
-  end if
+      end if
 
   set1g = (set1-1)*6
   if(Npl_input==1) set2 = set1
@@ -63,6 +62,5 @@ contains
 !   write(outputunit,"(20(2x,i0))") (mmlayer(i),i=1,Npl+2)
 !   stop
 
-  return
-  end subroutine define_system
+    end subroutine define_system
 end module mod_define_system

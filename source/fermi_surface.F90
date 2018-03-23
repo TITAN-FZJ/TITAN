@@ -118,5 +118,4 @@ subroutine fermi_surface(e)
     end if
     call MPI_Barrier(FreqComm(1), ierr)
   end do
-  return
-end subroutine fermi_surface
+  end subroutine fermi_surface

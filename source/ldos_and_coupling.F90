@@ -86,5 +86,4 @@ subroutine ldos_and_coupling()
      call closeCouplingFiles()
   end if
 
-  return
-end subroutine ldos_and_coupling
+  end subroutine ldos_and_coupling

@@ -78,5 +78,4 @@ subroutine create_folder()
   call execute_command_line(trim(folder))
 
 
-  return
-end subroutine create_folder
+  end subroutine create_folder

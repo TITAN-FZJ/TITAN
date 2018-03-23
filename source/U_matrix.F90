@@ -17,8 +17,7 @@ contains
     allocate(hee(2*nOrb,2*nOrb,nAtoms), stat=AllocateStatus)
     if(AllocateStatus /= 0) call abortProgram("[allocate_Umatrix] Failed to allocate 'hee'.")
 
-    return
-  end subroutine allocate_Umatrix
+      end subroutine allocate_Umatrix
 
   subroutine update_Umatrix(mz,mp,rhod,rhod0,rho,rho0,nAtoms,nOrb)
     use mod_f90_kind,   only: double
@@ -42,8 +41,7 @@ contains
         hee(nu,mu,i+offset) = - 0.5d0*U(i+offset)*mp(i)
       end do
     end do
-    return
-  end subroutine update_Umatrix
+      end subroutine update_Umatrix
 
   subroutine init_Umatrix(mz,mp,rhod,rhod0,rho,rho0,nAtoms,nOrb)
     use mod_f90_kind, only: double
@@ -60,7 +58,6 @@ contains
     call allocate_Umatrix(nAtoms,nOrb)
     call update_Umatrix(mz,mp,rhod,rhod0,rho,rho0,nAtoms,nOrb)
 
-    return
-  end subroutine
+      end subroutine
 
 end module mod_Umatrix

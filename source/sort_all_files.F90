@@ -52,5 +52,4 @@ subroutine sort_all_files()
   end select
   write(output%unit_loop,"('Done! All files sorted!')")
 
-  return
-end subroutine sort_all_files
+  end subroutine sort_all_files

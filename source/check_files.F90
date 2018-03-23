@@ -56,5 +56,4 @@ subroutine check_files()
   end select
   write(output%unit,"('[check_files] All files exist!')")
 
-  return
-end subroutine check_files
+  end subroutine check_files

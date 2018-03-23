@@ -20,8 +20,7 @@ contains
       write(unit=iw, fmt="('# i , m , Re(A_mx), Im(A_mx), Re(A_my), Im(A_my), Re(A_mz), Im(A_mz) ')")
 
     end do
-    return
-  end subroutine openTCMFiles
+      end subroutine openTCMFiles
 
   subroutine closeTCMFiles()
     implicit none
@@ -30,13 +29,11 @@ contains
       iw = 634893 + i
       close(iw)
     end do
-    return
-  end subroutine closeTCMFiles
+      end subroutine closeTCMFiles
 
   subroutine writeTCM()
 
-    return
-  end subroutine writeTCM
+      end subroutine writeTCM
 
 subroutine calculate_gilbert_damping()
   use mod_f90_kind,   only: double
@@ -67,8 +64,7 @@ subroutine calculate_gilbert_damping()
 
   if(rField == 0) call closeTCMFiles()
 
-  return
-end subroutine calculate_gilbert_damping
+  end subroutine calculate_gilbert_damping
 
 subroutine TCM(alpha, torque_fct)
   use mod_f90_kind,      only: double
@@ -171,8 +167,7 @@ subroutine TCM(alpha, torque_fct)
 
   call MPI_Allreduce(MPI_IN_PLACE, alpha, s%nAtoms*s%nAtoms*3*3, MPI_DOUBLE_COMPLEX, MPI_SUM, FieldComm, ierr)
 
-  return
-end subroutine TCM
+  end subroutine TCM
 
 
 subroutine local_xc_torque(torque)
@@ -207,8 +202,7 @@ subroutine local_xc_torque(torque)
     torque(:,:,:,i) = - 0.5d0 * U(i) * torque(:,:,:,i)
   end do
 
-  return
-end subroutine local_xc_torque
+  end subroutine local_xc_torque
 
 subroutine local_SO_torque(torque)
   use mod_f90_kind,  only: double
@@ -251,7 +245,6 @@ subroutine local_SO_torque(torque)
     torque(14:18,14:18,:,i) = 0.5d0 * s%Types(s%Basis(i)%Material)%LambdaD * torque(14:18,14:18,:,i)
   end do
 
-  return
-end subroutine local_SO_torque
+  end subroutine local_SO_torque
 
 end module mod_gilbert_damping

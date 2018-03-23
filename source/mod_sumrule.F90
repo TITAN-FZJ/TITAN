@@ -47,7 +47,7 @@ contains
                   do xi = 1, nOrb
                     do p = 1, 4
                       do q = 1, 4
-                        if(StoC(p,r) == cZero .or. CtoS(t,q) == 0) cycle
+                        if(StoC(p,r) == cZero .or. CtoS(t,q) == cZero) cycle
                         chiorb_hf_cart(sigmaimunu2i(p,i,mu,nu),sigmaimunu2i(q,j,gamma,xi)) = chiorb_hf_cart(sigmaimunu2i(p,i,mu,nu),sigmaimunu2i(q,j,gamma,xi)) &
                                                                           + StoC(p,r) * chiorb_hf(sigmaimunu2i(r,i,mu,nu),sigmaimunu2i(t,j,gamma,xi))* CtoS(t,q)
                       end do
@@ -93,7 +93,7 @@ contains
     end do
     rhs = 2.d0*rhs
 
-    if(sum(abs(lhs - rhs)) < 1.d-7) then
+    if(sum(abs(lhs - rhs)) < 1.d-5) then
       if(rField == 0) write(output%unit_loop,"(' YES! ')")
     else
       if(rField == 0) write(output%unit_loop,"(' NO! Difference: ',es16.9)") sum(abs(lhs - rhs))
@@ -102,8 +102,7 @@ contains
     ! deallocate(lhs,rhs)
     deallocate(Smunuiivec)
 
-    return
-  end subroutine sumrule
+      end subroutine sumrule
 
   ! This subroutine calculates the effective field on the Hamiltonian
   ! H = H_0 + \sigma.B_eff
@@ -116,11 +115,10 @@ contains
     use mod_magnet,     only: lvec, lfield, hhw
     use mod_System,     only: s => sys
     implicit none
+    integer :: i,mu,nu,sigma
     integer                             , intent(in)  :: nAtoms, nOrb
     real(double)   , dimension(3,nAtoms), intent(in)  :: mvec
     complex(double), dimension(dim)     , intent(out) :: Beff
-    integer         :: i,mu,nu,sigma
-
 
     Beff = cZero
     do i=1,nAtoms
@@ -148,8 +146,7 @@ contains
       end do
     end do
 
-    return
-  end subroutine Beffective
+      end subroutine Beffective
 
   subroutine calcSmunu()
     !! Calculates the expectation value <S^munu_ii> = <c^+_imu c_inu>
@@ -236,8 +233,7 @@ contains
 
     deallocate(imguu,imgdd,imgud,imgdu)
 
-    return
-  end subroutine calcSmunu
+      end subroutine calcSmunu
 
 end module mod_sumrule
 

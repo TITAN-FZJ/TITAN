@@ -211,8 +211,7 @@ subroutine eintshechi(e)
   call MPI_Allreduce(MPI_IN_PLACE, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, FreqComm(1), ierr)
 
   deallocate(Fint)
-  return
-end subroutine eintshechi
+  end subroutine eintshechi
 
 ! -------------------- Spin disturbance: Energy integration --------------------
 ! -------------- to be used in the calculation of linear SOC chi ---------------
@@ -457,5 +456,4 @@ subroutine eintshechilinearsoc(e)
   call MPI_Allreduce(MPI_IN_PLACE, chiorb_hf    , ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, FreqComm(1), ierr)
   call MPI_Allreduce(MPI_IN_PLACE, chiorb_hflsoc, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, FreqComm(1), ierr)
 
-  return
-end subroutine eintshechilinearsoc
+  end subroutine eintshechilinearsoc

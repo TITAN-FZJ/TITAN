@@ -4,10 +4,10 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import sys
 
-nSites=2
+nSites=1
 #plt.xkcd()
 
-ry2ev = 13.6
+ry2ev = 1.0
 if(ry2ev != 1.0):
   label = "$E-E_F$ [eV]"
 else:

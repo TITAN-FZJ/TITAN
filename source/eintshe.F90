@@ -351,8 +351,7 @@ subroutine eintshe(e)
     !call MPI_Reduce(Lzttchiorbiikl, Lzttchiorbiikl, nncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr) TODO: Re-Include
   end if
 
-  return
-end subroutine eintshe
+  end subroutine eintshe
 
 
 subroutine eintshelinearsoc(e)
@@ -761,5 +760,4 @@ subroutine eintshelinearsoc(e)
   end if
   deallocate(tFintiikl) !,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl) TODO: Re-Incude
 
-  return
-end subroutine eintshelinearsoc
+  end subroutine eintshelinearsoc

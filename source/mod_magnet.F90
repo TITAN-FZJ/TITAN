@@ -155,8 +155,7 @@ contains
       end do
     end do
 
-    return
-  end subroutine setMagneticLoopPoints
+      end subroutine setMagneticLoopPoints
 
   subroutine initMagneticField(nAtoms)
     use mod_f90_kind, only: double
@@ -200,8 +199,7 @@ contains
       ! Testing if hwrotate is used
       lhwrotate = (any(abs(hwtrotate(1:nAtoms)) > 1.d-8).or.any(abs(hwprotate(1:nAtoms))>1.d-8))
     end if
-    return
-  end subroutine initMagneticField
+      end subroutine initMagneticField
 
   subroutine lb_matrix(nAtoms, nOrbs)
     use mod_f90_kind,   only: double
@@ -229,8 +227,7 @@ contains
       end do
       deallocate(lbsigma)
     end if
-    return
-  end subroutine lb_matrix
+      end subroutine lb_matrix
 
 
   ! Spin Zeeman hamiltonian
@@ -257,8 +254,7 @@ contains
         end do
       end do
     end if
-    return
-  end subroutine sb_matrix
+      end subroutine sb_matrix
 
   ! This subroutine calculate the orbital angular momentum matrix in the cubic system of coordinates
   subroutine l_matrix()
@@ -312,8 +308,7 @@ contains
     lvec(:,:,2) = ly
     lvec(:,:,3) = lz
 
-    return
-  end subroutine l_matrix
+      end subroutine l_matrix
 
   ! This subroutine calculate the orbital angular momentum matrix in the local system of coordinates
   subroutine lp_matrix(theta, phi)
@@ -333,8 +328,7 @@ contains
       lpvec(:,:,2,i) = lyp(:,:,i)
       lpvec(:,:,3,i) = lzp(:,:,i)
     end do
-    return
-  end subroutine lp_matrix
+      end subroutine lp_matrix
 
   subroutine allocate_magnet_variables(nAtoms, nOrb)
     use mod_mpi_pars, only: abortProgram
@@ -375,8 +369,7 @@ contains
     allocate(lxp(nOrb,nOrb,nAtoms), lyp(nOrb,nOrb,nAtoms), lzp(nOrb,nOrb,nAtoms), lpvec(nOrb,nOrb,3,nAtoms), stat = AllocateStatus)
     if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lxp, lyp, lzp, lpvec")
 
-    return
-  end subroutine allocate_magnet_variables
+      end subroutine allocate_magnet_variables
 
   subroutine deallocate_magnet_variables()
     implicit none
@@ -421,8 +414,7 @@ contains
     if(allocated(hhw)) deallocate(hhw)
     if(allocated(sb)) deallocate(sb)
     if(allocated(lb)) deallocate(lb)
-    return
-  end subroutine
+      end subroutine
 
   subroutine set_fieldpart(count)
      use mod_parameters, only: ltesla, lnolb, output
@@ -449,7 +441,6 @@ contains
      if(lhwscale)  output%dcBField = trim(output%dcBField) // "_hwscale"
      if(lhwrotate) output%dcBField = trim(output%dcBField) // "_hwrotate"
 
-     return
-  end subroutine set_fieldpart
+       end subroutine set_fieldpart
 
 end module mod_magnet

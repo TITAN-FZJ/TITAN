@@ -17,15 +17,13 @@ contains
     allocate(ldosu(s%nAtoms,nOrb))
     allocate(ldosd(s%nAtoms,nOrb))
 
-    return
-  end subroutine allocateLDOS
+      end subroutine allocateLDOS
 
   subroutine deallocateLDOS()
     implicit none
     if(allocated(ldosu)) deallocate(ldosu)
     if(allocated(ldosd)) deallocate(ldosd)
-    return
-  end subroutine deallocateLDOS
+      end subroutine deallocateLDOS
 
   subroutine createLDOSFiles()
     use mod_parameters, only: output
@@ -43,8 +41,7 @@ contains
         close(unit=iw)
       end do
     end do
-    return
-  end subroutine createLDOSFiles
+      end subroutine createLDOSFiles
 
   subroutine openLDOSFiles()
     use mod_parameters, only: output,missing_files
@@ -66,8 +63,7 @@ contains
     ! Stop if some file does not exist
     if(errt/=0) call abortProgram("[openLDOSFiles] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_line('A') // trim(missing_files))
 
-    return
-  end subroutine openLDOSFiles
+      end subroutine openLDOSFiles
 
   subroutine closeLDOSFiles()
     use mod_System, only: s => sys
@@ -79,8 +75,7 @@ contains
         close(iw)
       end do
     end do
-    return
-  end subroutine closeLDOSFiles
+      end subroutine closeLDOSFiles
 
   subroutine writeLDOS(e)
     use mod_f90_kind, only: double
@@ -123,7 +118,6 @@ contains
     ! Closing LDOS files
     call closeLDOSFiles()
 
-    return
-  end subroutine sortLDOS
+      end subroutine sortLDOS
 
 end module mod_LDOS

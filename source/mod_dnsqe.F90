@@ -375,8 +375,7 @@ contains
          IF (INFO == 5) INFO = 4
    20 CONTINUE
       IF (INFO == 0) CALL XERMSG ('SLATEC', 'DNSQE', 'INVALID INPUT PARAMETER.', 2, 1)
-      RETURN
-!
+
 !     LAST CARD OF SUBROUTINE DNSQE.
 !
       END SUBROUTINE DNSQE
@@ -1128,8 +1127,7 @@ contains
       IF (INFO == 2) CALL XERMSG ('SLATEC', 'DNSQ', 'TOO MANY FUNCTION EVALUATIONS.', 9, 1)
       IF (INFO == 3) CALL XERMSG ('SLATEC', 'DNSQ', 'XTOL TOO SMALL. NO FURTHER IMPROVEMENT POSSIBLE.', 3, 1)
       IF (INFO > 4) CALL XERMSG ('SLATEC', 'DNSQ', 'ITERATION NOT MAKING GOOD PROGRESS.', 1, 1)
-      RETURN
-!
+
 !     LAST CARD OF SUBROUTINE DNSQ.
 !
       END SUBROUTINE DNSQ
@@ -1194,7 +1192,6 @@ contains
           STOP 'D1MACH -- input arg out of bounds'
       END SELECT
 
-      RETURN
       END FUNCTION D1MACH
 
       SUBROUTINE D1MPYQ (M, N, A, LDA, V, W)
@@ -1291,8 +1288,7 @@ contains
    30       CONTINUE
    40    CONTINUE
    50 CONTINUE
-      RETURN
-!
+
 !     LAST CARD OF SUBROUTINE D1MPYQ.
 !
       END SUBROUTINE D1MPYQ
@@ -1504,8 +1500,7 @@ contains
          L = L + 1
   150    CONTINUE
       IF (S(JJ) == cZero) SING = .TRUE.
-      RETURN
-!
+
 !     LAST CARD OF SUBROUTINE D1UPDT.
 !
       END SUBROUTINE D1UPDT
@@ -1692,8 +1687,7 @@ contains
          X(J) = TEMP*WA1(J) + ALPHA*X(J)
   130    CONTINUE
   140 CONTINUE
-      RETURN
-!
+
 !     LAST CARD OF SUBROUTINE DDOGLG.
 !
       END SUBROUTINE DDOGLG
@@ -1809,7 +1803,6 @@ contains
             DENORM = X3MAX*SQRT(S3)
   120    CONTINUE
   130 CONTINUE
-      RETURN
 !
 !     LAST CARD OF FUNCTION DENORM.
 !
@@ -1965,8 +1958,7 @@ contains
    90       CONTINUE
   100    CONTINUE
   110 CONTINUE
-      RETURN
-!
+
 !     LAST CARD OF SUBROUTINE DFDJC1.
 !
       END SUBROUTINE DFDJC1
@@ -2068,8 +2060,7 @@ contains
   100       CONTINUE
   110    CONTINUE
   120    CONTINUE
-      RETURN
-!
+
 !     LAST CARD OF SUBROUTINE DQFORM.
 !
       END SUBROUTINE DQFORM
@@ -2243,8 +2234,7 @@ contains
   100    CONTINUE
          SIGMA(J) = -AJNORM
   110    CONTINUE
-      RETURN
-!
+
 !     LAST CARD OF SUBROUTINE DQRFAC.
 !
       END SUBROUTINE DQRFAC
@@ -2277,7 +2267,6 @@ contains
 !   891214  Prologue converted to Version 4.0 format.  (BAB)
 !***END PROLOGUE  FDUMP
 !***FIRST EXECUTABLE STATEMENT  FDUMP
-      RETURN
       END SUBROUTINE FDUMP
 
       INTEGER FUNCTION I1MACH (I)
@@ -2383,7 +2372,6 @@ contains
           STOP 'I1MACH: input argument out of bounds'
       END SELECT
 
-      RETURN
       END FUNCTION I1MACH
 
       FUNCTION J4SAVE (IWHICH, IVALUE, ISET)
@@ -2449,7 +2437,6 @@ contains
 !***FIRST EXECUTABLE STATEMENT  J4SAVE
       J4SAVE = IPARAM(IWHICH)
       IF (ISET) IPARAM(IWHICH) = IVALUE
-      RETURN
       END FUNCTION J4SAVE
 
       SUBROUTINE XERHLT (MESSG)
@@ -2843,7 +2830,6 @@ contains
       ELSE
          CALL XERHLT (MESSG)
       ENDIF
-      RETURN
       END SUBROUTINE XERMSG
 
       SUBROUTINE XERPRN (PREFIX, NPREF, MESSG, NWRAP)
@@ -3072,7 +3058,6 @@ contains
    60 CONTINUE
 !
       IF (NEXTC <= LENMSG) GO TO 50
-      RETURN
       END SUBROUTINE XERPRN
 
       SUBROUTINE XERSVE (LIBRAR, SUBROU, MESSG, KFLAG, NERR, LEVEL, ICOUNT)
@@ -3217,7 +3202,6 @@ contains
             ICOUNT = 0
          ENDIF
       ENDIF
-      RETURN
 !
 !     Formats.
 !
@@ -3276,6 +3260,5 @@ contains
          IF (I==1) INDEX = 3
          IUNITA(I) = J4SAVE(INDEX,0,.FALSE.)
    30 CONTINUE
-      RETURN
       END SUBROUTINE XGETUA
 end module mod_dnsqe

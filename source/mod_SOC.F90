@@ -69,8 +69,7 @@ contains
     ! rescale
     ls = 0.5d0 * socscale * ls
 
-    return
-  end subroutine updateLS
+      end subroutine updateLS
 
   subroutine allocLS(nAtoms,nOrb)
     use mod_constants, only: cZero
@@ -85,6 +84,5 @@ contains
     ! the spin-orbit matrix
     ls = cZero
 
-    return
-  end subroutine allocLS
+      end subroutine allocLS
 end module mod_SOC

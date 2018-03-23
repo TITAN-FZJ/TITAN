@@ -25,8 +25,7 @@ contains
       end if
     end if
 
-    return
-  end subroutine allocate_sha
+      end subroutine allocate_sha
 
   ! This subroutine allocates variables related to the sha calculation
   subroutine deallocate_sha()
@@ -36,8 +35,7 @@ contains
 
     if(myrank_row==0) deallocate(sha_re,sha_complex)
 
-    return
-  end subroutine deallocate_sha
+      end subroutine deallocate_sha
 
   ! This subroutine opens and closes all the files needed for the sha
   subroutine openclose_sha_files(iflag)
@@ -123,8 +121,7 @@ contains
       end do
     end if
 
-    return
-  end subroutine openclose_sha_files
+      end subroutine openclose_sha_files
 
   ! This subroutine write all the SHA into files
   ! (already opened with openclose_sha_files(1))
@@ -145,8 +142,7 @@ contains
       write(unit=iw,fmt="(8(es16.9,2x))") e , sha_re_total(j) , abs(sha_complex_total(j)) , atan2(aimag(sha_complex_total(j)),real(sha_complex_total(j))) , real(sha_complex_total(j)) , aimag(sha_complex_total(j)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
     end do
 
-    return
-  end subroutine write_sha
+      end subroutine write_sha
 
   ! This subroutine opens and closes all the files needed for the sha
   subroutine openclose_dc_sha_files(iflag)
@@ -237,8 +233,7 @@ contains
 
     end if
 
-    return
-  end subroutine openclose_dc_sha_files
+      end subroutine openclose_dc_sha_files
 
   ! This subroutine write all the sha in the dc limit into files
   ! (already opened with openclose_dc_sha_files(1))
@@ -258,8 +253,7 @@ contains
       write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , sha_re_total(j) , abs(sha_complex_total(j)) , atan2(aimag(sha_complex_total(j)),real(sha_complex_total(j))) , real(sha_complex_total(j)) , aimag(sha_complex_total(j)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
     end do
 
-    return
-  end subroutine write_dc_sha
+      end subroutine write_dc_sha
 
   ! This subroutine sorts SHA files
   subroutine sort_sha()
@@ -294,8 +288,7 @@ contains
       call openclose_sha_files(2)
     end if
 
-    return
-  end subroutine sort_sha
+      end subroutine sort_sha
 
   ! This subroutine reads currents from existing files
   ! and calculates the spin hall angle
@@ -543,8 +536,7 @@ contains
     end select
     write(outputunit,"('[read_currents_and_calculate_sha] Finished calculating SHA!')")
 
-    return
-  end subroutine read_currents_and_calculate_sha
+      end subroutine read_currents_and_calculate_sha
 
 
   ! This subroutine calculates the spin hall angle
@@ -594,6 +586,5 @@ contains
     sha_re_total(2:4) = 2.d0*sha_re_total(2:4)/sha_re_total(1)
     sha_complex_total(2:4) = 2.d0*sha_complex_total(2:4)/sha_complex_total(1)
 
-    return
-  end subroutine calculate_sha
+      end subroutine calculate_sha
 end module mod_sha

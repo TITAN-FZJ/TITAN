@@ -209,5 +209,4 @@ subroutine calculate_chi()
 
   if(rFreq(1) == 0) deallocate(temp)
 
-  return
-end subroutine calculate_chi
+  end subroutine calculate_chi

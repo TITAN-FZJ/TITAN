@@ -49,8 +49,7 @@ contains
       call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ierr)
       call MPI_Comm_size(MPI_COMM_WORLD,numprocs,ierr)
 #endif
-    return
-  end subroutine
+      end subroutine
 
   subroutine abortProgram(str)
     use mod_tools, only: itos
@@ -63,8 +62,7 @@ contains
     close(unit=123456787)
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
 
-    return
-  end subroutine abortProgram
+      end subroutine abortProgram
 
   function genFieldComm(nFields, FieldID, comm)
      implicit none
@@ -83,8 +81,7 @@ contains
      group = procs / nFields
      FieldID = rank / group
      call MPI_Comm_split(comm, FieldID, rank, genFieldComm, ierr)
-     return
-  end function genFieldComm
+       end function genFieldComm
 
   function genFreqComm(nFreq, FreqID, comm)
      implicit none
@@ -109,8 +106,7 @@ contains
      call MPI_Comm_rank(genFreqComm(1), rank_row, ierr)
      call MPI_Comm_split(comm, rank_row, rank, genFreqComm(2), ierr)
 
-     return
-  end function genFreqComm
+       end function genFreqComm
 
   subroutine genMPIGrid(nFields, nFieldPoints, nFreq, nFreqPoints)
      implicit none
@@ -136,8 +132,7 @@ contains
      call calcWorkload(int(nFieldPoints,8),int(nFields,4),FieldID,startField,endField)
      ! Calculate Field workload for each Frequency Communicator
      call calcWorkload(int(nFreqPoints,8),int(nFreq,4),FreqID,startFreq,endFreq)
-     return
-  end subroutine genMPIGrid
+       end subroutine genMPIGrid
 
   subroutine calcWorkload(points, procs, rank, firstPoint, lastPoint)
      implicit none
@@ -163,7 +158,6 @@ contains
         firstPoint = int(rank,8) * work + 1 + remainder
         lastPoint = (int(rank,8) + 1) * work + remainder
      end if
-     return
-  end subroutine calcWorkload
+       end subroutine calcWorkload
 
 end module mod_mpi_pars

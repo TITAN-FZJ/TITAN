@@ -37,8 +37,6 @@ contains
     if(eof /= 0) return
     out_unit = 123456788
     success = .true.
-
-    return
   end function enable_input_logging
 
   function disable_input_logging() result(success)
@@ -51,7 +49,6 @@ contains
     close(unit=out_unit, iostat=eof)
     if(eof /= 0) return
     success = .true.
-    return
   end function disable_input_logging
 
   subroutine log_parameter(key_string, val_string)
@@ -63,8 +60,6 @@ contains
     if(out_unit < 0) return
 
     write(out_unit, "(' ',a,' = ',a,' ')") trim(adjustl(key_string)), trim(adjustl(val_string))
-
-    return
   end subroutine log_parameter
 
   function read_file(filename) result(success)
@@ -102,8 +97,6 @@ contains
     if(eof /= 0) return
 
     success = .true.
-    return
-
   end function read_file
 
   function find_val(key_val, ind) result(success)

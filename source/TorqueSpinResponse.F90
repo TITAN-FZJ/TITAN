@@ -23,8 +23,7 @@ contains
     allocate(TSResponse(4,4,nAtoms,nAtoms), TSResponseHF(4,4,nAtoms,nAtoms), stat = AllocateStatus)
     if(AllocateStatus /= 0) call abortProgram("[allocateTSResponse] Not enough memory for: TSResponse, TSResponseHF")
 
-    return
-  end subroutine allocTSResponse
+      end subroutine allocTSResponse
 
   subroutine create_TSR_files()
     use mod_System, only: s => sys
@@ -44,7 +43,6 @@ contains
        end do
     end do
 
-    return
 
   end subroutine create_TSR_files
 
@@ -71,8 +69,7 @@ contains
     end do
     if(errt/=0) call abortProgram("[open_TSR_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_line('A') // trim(missing_files))
 
-    return
-  end subroutine open_TSR_files
+      end subroutine open_TSR_files
 
   subroutine close_TSR_files()
     use mod_system, only: s => sys
@@ -87,8 +84,7 @@ contains
        end do
     end do
 
-    return
-  end subroutine close_TSR_files
+      end subroutine close_TSR_files
 
 
   subroutine calcTSResponse(e)
@@ -157,7 +153,6 @@ contains
        end do
     end do
     call close_TSR_files()
-    return
-  end subroutine calcTSResponse
+      end subroutine calcTSResponse
 
 end module TorqueSpinResponse

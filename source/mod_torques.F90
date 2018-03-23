@@ -37,8 +37,7 @@ contains
       end if
     end if
 
-    return
-  end subroutine allocate_torques
+      end subroutine allocate_torques
 
   subroutine deallocate_torques()
   !! This subroutine deallocates variables related to the torques calculation
@@ -48,8 +47,7 @@ contains
     if(allocated(total_torques)) deallocate(total_torques)
     if(allocated(rtorques)) deallocate(rtorques)
 
-    return
-  end subroutine deallocate_torques
+      end subroutine deallocate_torques
 
   subroutine create_torque_files()
   !! This subroutine creates all the files needed for the disturbances
@@ -86,7 +84,6 @@ contains
     end do
   end do
 
-  return
 
   end subroutine create_torque_files
 
@@ -127,7 +124,6 @@ contains
   ! Stop if some file does not exist
   if(errt/=0) call abortProgram("[openclose_torque_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
 
-  return
 
   end subroutine open_torque_files
 
@@ -156,8 +152,7 @@ contains
       end do
     end do
 
-    return
-  end subroutine close_torque_files
+      end subroutine close_torque_files
 
 
   subroutine write_torques(e)
@@ -229,8 +224,7 @@ contains
 
     call close_torque_files()
 
-    return
-  end subroutine write_torques
+      end subroutine write_torques
 
 
   subroutine create_dc_torque_files()
@@ -268,8 +262,7 @@ contains
       end do
     end do
 
-    return
-  end subroutine create_dc_torque_files
+      end subroutine create_dc_torque_files
 
   subroutine open_dc_torque_files()
   !! This subroutine opens all the files needed for the disturbances
@@ -309,8 +302,7 @@ contains
     ! Stop if some file does not exist
     if(errt/=0) call abortProgram("[openclose_dc_torque_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
 
-    return
-  end subroutine open_dc_torque_files
+      end subroutine open_dc_torque_files
 
   subroutine close_dc_torque_files()
   !! This subroutine closes all the files needed for the disturbances
@@ -337,8 +329,7 @@ contains
       end do
     end do
 
-    return
-  end subroutine close_dc_torque_files
+      end subroutine close_dc_torque_files
 
   subroutine write_dc_torques()
   !! This subroutine write all the torques into files
@@ -406,8 +397,7 @@ contains
 
     call close_dc_torque_files()
 
-    return
-  end subroutine write_dc_torques
+      end subroutine write_dc_torques
 
   ! This subroutine sorts torque files
   subroutine sort_torques()
@@ -453,7 +443,6 @@ contains
       call close_torque_files()
     end if
 
-    return
-  end subroutine sort_torques
+      end subroutine sort_torques
 
 end module mod_torques

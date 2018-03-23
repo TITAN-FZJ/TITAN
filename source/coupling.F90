@@ -85,5 +85,4 @@ subroutine coupling()
 
   call deallocateCoupling()
 
-  return
-end subroutine coupling
+  end subroutine coupling

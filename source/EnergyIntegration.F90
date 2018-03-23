@@ -33,8 +33,7 @@ contains
               x2(pn2), &
               p2(pn2), STAT = AllocateStatus )
     if(AllocateStatus/=0) call abortProgram("[allocate_energy_points] Not enough memory for: x1, p1, y, wght, x2, p2")
-    return
-  end subroutine allocate_energy_points
+      end subroutine allocate_energy_points
 
   subroutine generate_imag_epoints()
   !! Generating integration points of the complex energy integral
@@ -88,8 +87,7 @@ contains
          end if
       end do
    end do
-    return
-  end subroutine generate_imag_epoints
+      end subroutine generate_imag_epoints
 
   subroutine generate_real_epoints(e)
   !! Generating energy points in the real axis for third integration
@@ -114,8 +112,7 @@ contains
     else
       nepoints = pn1
     end if
-    return
-  end subroutine generate_real_epoints
+      end subroutine generate_real_epoints
 
   ! This subroutine returns the N points in the abcissae x and its weight w using Gauss-Legendre
   subroutine gauleg(x1,x2,x,w,n)
@@ -150,7 +147,6 @@ contains
       w(i) = (2.0d0*xl)/((1.0d0-z*z)*pp*pp)
       w(n+1-i) = w(i)
     end do
-    return
-  end subroutine gauleg
+      end subroutine gauleg
 
 end module EnergyIntegration

@@ -77,6 +77,5 @@ module mod_system
       ia(3,i) = ia(1,i) + nOrb
       ia(4,i) = ia(3,i) + nOrb - 1
     end do
-    return
-  end subroutine initHamiltkStride
+      end subroutine initHamiltkStride
 end module mod_system

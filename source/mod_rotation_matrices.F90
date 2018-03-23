@@ -72,8 +72,7 @@ contains
 
     rotmat = 0.5d0*rotmat
 
-    return
-  end subroutine rotation_matrices_chi
+      end subroutine rotation_matrices_chi
 
   ! Rotation matrix of an angle theta (in degrees) around y axis
   subroutine rotation_matrix_ry(theta,ry)
@@ -90,8 +89,7 @@ contains
     ry(3,1) =-sin(theta*deg2rad)
     ry(3,3) = cos(theta*deg2rad)
 
-    return
-  end subroutine rotation_matrix_ry
+      end subroutine rotation_matrix_ry
 
   ! Rotation matrix of an angle phi (in degrees)  around z axis
   subroutine rotation_matrix_rz(phi,rz)
@@ -108,6 +106,5 @@ contains
     rz(2,2) = cos(phi*deg2rad)
     rz(3,3) = 1.d0
 
-    return
-  end subroutine rotation_matrix_rz
+      end subroutine rotation_matrix_rz
 end module mod_rotation_matrices

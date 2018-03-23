@@ -86,7 +86,7 @@ module mod_parameters
   logical :: lsortfiles     = .false.
   logical :: lsha           = .false.
   logical :: llgtv          = .false.
-  logical :: ltestcharge    = .false.
+  logical :: lcheckjac      = .false.
   !========================================================================================!
   ! Activate debug options
   logical :: lverbose = .false.

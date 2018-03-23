@@ -28,8 +28,7 @@ subroutine invers(matriz,nn)
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
 
-  return
-end subroutine invers
+  end subroutine invers
 
 
 
@@ -69,5 +68,4 @@ end subroutine invers
 
 !   matriz = ident
 
-!   return
-! end subroutine invers
+!   ! end subroutine invers

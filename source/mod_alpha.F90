@@ -19,8 +19,7 @@ contains
              m_chi_hf_inv(4*s%nAtoms,4*s%nAtoms), stat = AllocateStatus)
     if(AllocateStatus /= 0) call abortProgram("[allocate_alpha] Not enough memory for: m_chi, m_chi_hf, m_chi_inv, m_chi_hf_inv")
 
-    return
-  end subroutine allocate_alpha
+      end subroutine allocate_alpha
 
   subroutine deallocate_alpha()
     implicit none
@@ -30,8 +29,7 @@ contains
     if(allocated(m_chi_inv)) deallocate(m_chi_inv)
     if(allocated(m_chi_hf_inv)) deallocate(m_chi_hf_inv)
 
-    return
-  end subroutine deallocate_alpha
+      end subroutine deallocate_alpha
 
   subroutine create_alpha_files()
     use mod_System, only: s => sys
@@ -56,7 +54,6 @@ contains
 
     end do
 
-    return
 
   end subroutine create_alpha_files
 
@@ -81,8 +78,7 @@ contains
     end do
     if(errt/=0) call abortProgram("[open_alpha_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
 
-    return
-  end subroutine open_alpha_files
+      end subroutine open_alpha_files
 
   subroutine close_alpha_files()
     use mod_system, only: s => sys
@@ -93,8 +89,7 @@ contains
       close(unit=55+i)
     end do
 
-    return
-  end subroutine close_alpha_files
+      end subroutine close_alpha_files
 
   subroutine write_alpha(e)
     use mod_f90_kind, only: double
@@ -166,7 +161,6 @@ contains
 
     call close_alpha_files()
 
-    return
-  end subroutine write_alpha
+      end subroutine write_alpha
 
 end module mod_alpha

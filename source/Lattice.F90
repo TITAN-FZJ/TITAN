@@ -31,8 +31,7 @@ module Lattice
       call generateNeighbors(s, list, size)
       call sortNeighbors(s, list,size)
 
-      return
-    end subroutine initLattice
+          end subroutine initLattice
 
     subroutine generateNeighbors(s,list,size)
       use AtomTypes, only: NeighborAtom
@@ -139,8 +138,7 @@ module Lattice
         end do
       end do
       deallocate(localDistances)
-      return
-    end subroutine generateNeighbors
+          end subroutine generateNeighbors
 
     subroutine sortNeighbors(s,list, size)
       use AtomTypes, only: NeighborAtom, add_elem
@@ -196,8 +194,7 @@ module Lattice
       allocate(s%Neighbors(nNeighbors))
       s%Neighbors(1:nNeighbors) = list(1:nNeighbors)
 
-      return
-    end subroutine sortNeighbors
+          end subroutine sortNeighbors
 
 
     subroutine writeLattice(s)
@@ -241,7 +238,6 @@ module Lattice
         end do
       end do
       close(out_unit)
-      return
 
     end subroutine writeLattice
 end module Lattice

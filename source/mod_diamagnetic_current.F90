@@ -14,16 +14,14 @@ contains
 
     if(myrank==0) allocate( Idia_total(n0sc1:n0sc2,Npl) )
 
-    return
-  end subroutine allocate_idia
+      end subroutine allocate_idia
 
   ! This subroutine deallocates variables related to the diamagnetic current
   subroutine deallocate_idia()
     use mod_mpi_pars, only: myrank
     implicit none
     if(myrank==0) deallocate( Idia_total )
-    return
-  end subroutine deallocate_idia
+      end subroutine deallocate_idia
 
   ! ---------- Diamagnetic current: Energy integration ---------
   subroutine calculate_idia()
@@ -95,8 +93,7 @@ contains
         write(outputunit,fmt="(10(es11.4,2x))") (Idia_total(j,i),j=n0sc1,n0sc2)
       end do
     end if
-    return
-  end subroutine calculate_idia
+      end subroutine calculate_idia
 
   !   Calculates the momentum matrix in real space
   subroutine sumk_idia(e,ep,Idia)
@@ -206,6 +203,5 @@ contains
       end do
     end do
 
-    return
-  end subroutine sumk_idia
+      end subroutine sumk_idia
 end module mod_diamagnetic_current

@@ -23,5 +23,4 @@ subroutine dtdksub(kp,dtdk)
     end do
   end do
 
-  return
-end subroutine dtdksub
+  end subroutine dtdksub

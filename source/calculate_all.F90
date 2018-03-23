@@ -485,5 +485,4 @@ subroutine calculate_all()
   !call deallocate_sha() !TODO: Re-Include
 ! call deallocate_idia()
 
-  return
-end subroutine calculate_all
+  end subroutine calculate_all

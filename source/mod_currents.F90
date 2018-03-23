@@ -77,8 +77,7 @@ contains
       end if
     end if
 
-    return
-  end subroutine allocate_currents
+      end subroutine allocate_currents
 
   ! This subroutine allocates variables related to the current calculation
   subroutine deallocate_currents()
@@ -96,8 +95,7 @@ contains
     if (allocated(prefactor)) deallocate(prefactor)
     if (allocated(prefactorlsoc)) deallocate(prefactorlsoc)
 
-    return
-  end subroutine deallocate_currents
+      end subroutine deallocate_currents
 
   ! This subroutine opens and closes all the files needed for the currents
   subroutine openclose_currents_files(iflag)
@@ -251,8 +249,7 @@ contains
       end do ; end do
     end if
 
-    return
-  end subroutine openclose_currents_files
+      end subroutine openclose_currents_files
 
   ! This subroutine write all the currents into files
   ! (already opened with openclose_currents_files(1))
@@ -387,8 +384,7 @@ contains
       write(unit=iw,fmt="(4(es16.9,2x))") e , dc_currents(j,i) , mvec_spherical(2,i) , mvec_spherical(3,i)
     end do ; end do
 
-    return
-  end subroutine write_currents
+      end subroutine write_currents
 
   ! This subroutine opens and closes all the files needed for the currents
   subroutine openclose_dc_currents_files(iflag)
@@ -542,8 +538,7 @@ contains
       end do ; end do
     end if
 
-    return
-  end subroutine openclose_dc_currents_files
+      end subroutine openclose_dc_currents_files
 
   ! This subroutine write all the currents in the dc limit into files
   ! (already opened with openclose_dc_currents_files(1))
@@ -682,8 +677,7 @@ contains
       write(unit=iw,fmt="(a,2x,3(es16.9,2x))") trim(dc_fields(hw_count)) , dc_currents(j,i) , mvec_spherical(2,i) , mvec_spherical(3,i)
     end do ; end do
 
-    return
-  end subroutine write_dc_currents
+      end subroutine write_dc_currents
 
   ! This subroutine sorts current files
   subroutine sort_currents()
@@ -746,7 +740,6 @@ contains
       call openclose_currents_files(2)
     end if
 
-    return
-  end subroutine sort_currents
+      end subroutine sort_currents
 
 end module mod_currents

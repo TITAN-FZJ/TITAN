@@ -497,5 +497,4 @@ subroutine debugging()
   if ((ierr/=0).and.(myrank==0)) write(outputunit,"('[main] Something went wrong in the parallelization! ierr = ',i0)") ierr
   stop
 
-  return
-end subroutine debugging
+  end subroutine debugging

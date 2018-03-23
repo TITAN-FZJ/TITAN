@@ -76,5 +76,4 @@ subroutine prepare_dclimit()
     end do
   end if
 
-  return
-end subroutine prepare_dclimit
+  end subroutine prepare_dclimit

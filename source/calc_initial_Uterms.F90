@@ -106,8 +106,7 @@ contains
     if(myrank == 0) &
     call write_time(output%unit,'[calc_initial_Uterms] Finished calculating initial density: ')
 
-    return
-  end subroutine calc_initial_Uterms
+      end subroutine calc_initial_Uterms
 
 
 
@@ -204,6 +203,5 @@ contains
     ! if(rField == 0) write(*,*) rhod0,sum(abs(rho0))
     deallocate(imguu,imgdd)
 
-    return
-  end subroutine calc_expectation_values
+      end subroutine calc_expectation_values
 end module expectation

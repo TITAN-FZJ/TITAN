@@ -76,7 +76,6 @@ contains
     list%head%index = index
     list%head%next  => local
 
-    return
-  end subroutine add_elem
+      end subroutine add_elem
 
 end module AtomTypes

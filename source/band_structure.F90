@@ -55,8 +55,7 @@ subroutine read_band_points(kbands, b1, b2, b3)
     endif
   end do
   close(666999)
-  return
-end subroutine read_band_points
+  end subroutine read_band_points
 
 
 !   Calculates magnetic LDOS
@@ -152,5 +151,4 @@ subroutine band_structure(s)
   close(666)
   deallocate(hk,rwork,eval,evecl,evecr,work)
 
-  return
-end subroutine band_structure
+  end subroutine band_structure

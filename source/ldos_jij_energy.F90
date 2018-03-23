@@ -156,5 +156,4 @@ do iz = 1, realBZ%workload
      call MPI_Reduce(ldosd , ldosd , s%nAtoms*nOrb            , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
      call MPI_Reduce(Jijint, Jijint, nmaglayers*nmaglayers*3*3, MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
   end if
-  return
-end subroutine ldos_jij_energy
+  end subroutine ldos_jij_energy

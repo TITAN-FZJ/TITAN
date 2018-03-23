@@ -42,8 +42,7 @@ contains
       allocate( tchiorbiikl(dim,4), STAT = AllocateStatus  )
       if (AllocateStatus/=0) call abortProgram("[allocate_disturbances] Not enough memory for: tchiorbiikl")
 
-      return
-   end subroutine allocate_disturbances
+         end subroutine allocate_disturbances
 
    subroutine deallocate_disturbances()
    !! This subroutine deallocates variables related to the disturbance calculation
@@ -55,8 +54,7 @@ contains
       if(allocated(rdisturbances)) deallocate(rdisturbances)
       if(allocated(tchiorbiikl)) deallocate(tchiorbiikl)
 
-      return
-   end subroutine deallocate_disturbances
+         end subroutine deallocate_disturbances
 
    subroutine create_disturbance_files()
    !! This subroutine creates all the files needed for the disturbances
@@ -91,8 +89,7 @@ contains
          close(unit=iw)
       end do
 
-      return
-   end subroutine create_disturbance_files
+         end subroutine create_disturbance_files
 
    subroutine open_disturbance_files()
    !! This subroutine opens all the files needed for the disturbances
@@ -129,8 +126,7 @@ contains
       ! Stop if some file does not exist
       if(errt/=0) call abortProgram("[openclose_disturbance_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
 
-      return
-   end subroutine open_disturbance_files
+         end subroutine open_disturbance_files
 
    subroutine close_disturbance_files()
    !! This subroutine closes all the files needed for the disturbances
@@ -156,8 +152,7 @@ contains
 
       end do
 
-      return
-   end subroutine close_disturbance_files
+         end subroutine close_disturbance_files
 
    ! This subroutine write all the disturbances into files
    ! (already opened with openclose_disturbance_files(1))
@@ -264,8 +259,7 @@ contains
 
 
       call close_disturbance_files()
-      return
-   end subroutine write_disturbances
+         end subroutine write_disturbances
 
    subroutine create_dc_disturbance_files
    !! This subroutine creates all the files needed for the dc-limit disturbances
@@ -301,7 +295,6 @@ contains
          close(unit=iw)
       end do
 
-      return
 
    end subroutine create_dc_disturbance_files
 
@@ -342,7 +335,6 @@ contains
     ! Stop if some file does not exist
     if(errt/=0) call abortProgram("[openclose_dc_disturbance_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
 
-    return
 
   end subroutine open_dc_disturbance_files
 
@@ -368,8 +360,7 @@ contains
          iw = 35000+j
          close(unit=iw)
       end do
-      return
-   end subroutine close_dc_disturbance_files
+         end subroutine close_dc_disturbance_files
 
   subroutine write_dc_disturbances()
   !! This subroutine write all the dc-limit disturbances into files
@@ -475,8 +466,7 @@ contains
 
     call close_dc_disturbance_files()
 
-    return
-  end subroutine write_dc_disturbances
+      end subroutine write_dc_disturbances
 
   ! This subroutine sorts disturbance files
   subroutine sort_disturbances()
@@ -524,7 +514,6 @@ contains
       call close_disturbance_files()
     end if
 
-    return
-  end subroutine sort_disturbances
+      end subroutine sort_disturbances
 
 end module mod_disturbances

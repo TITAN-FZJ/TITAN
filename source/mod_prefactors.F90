@@ -37,8 +37,7 @@ contains
   !       end do
   !     end do
   !   end do
-  !   return
-  ! end subroutine OAM_curr_hopping_times_L
+  !     ! end subroutine OAM_curr_hopping_times_L
 
   subroutine allocate_prefactors() !TODO:Re-Include
     use mod_parameters, only: dim
@@ -69,8 +68,7 @@ contains
     !          tlzp(Npl,n0sc1:n0sc2,9,9), stat = AllocateStatus)
     ! if (AllocateStatus/=0) call abortProgram("[allocate_prefactors] Not enough memory for: lxpt,lypt,lzpt,tlxp,tlyp,tlzp")
 
-    return
-  end subroutine allocate_prefactors
+      end subroutine allocate_prefactors
 
   subroutine deallocate_prefactors()
     implicit none
@@ -84,7 +82,6 @@ contains
     if(allocated(lypt)) deallocate(tlyp)
     if(allocated(lypt)) deallocate(tlzp)
 
-    return
-  end subroutine deallocate_prefactors
+      end subroutine deallocate_prefactors
 
 end module mod_prefactors

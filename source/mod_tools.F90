@@ -16,8 +16,7 @@ contains
     cross(1) = a(2) * b(3) - a(3) * b(2)
     cross(2) = a(3) * b(1) - a(1) * b(3)
     cross(3) = a(1) * b(2) - a(2) * b(1)
-    return
-  end function cross
+      end function cross
 
   function vecDist(a,b)
   !! Function calculating the distance of two 3D points
@@ -27,8 +26,7 @@ contains
      real(double), dimension(3), intent(in) :: a, b
 
      vecDist = sqrt(dot_product(a - b, a - b))
-     return
-  end function vecDist
+       end function vecDist
 
   ! --------------------------------------------------------------------
   ! logical function is_perpendicular(a,b):
@@ -47,8 +45,7 @@ contains
     if( 1d-9 > dot_product(crs(1:3),crs(1:3)) ) then
        is_parallel = .true.
     end if
-    return
-  end function is_parallel
+      end function is_parallel
 
   ! --------------------------------------------------------------------
   ! logical function is_parallel(a,b):
@@ -65,8 +62,7 @@ contains
     if( 1.d-9 > abs(dot_product(a,b)) ) then
        is_perpendicular = .true.
     end if
-    return
-  end function is_perpendicular
+      end function is_perpendicular
 
   ! --------------------------------------------------------------------
   ! double precision function cross_unit():
@@ -84,8 +80,7 @@ contains
     cross_unit(3) = a(1) * b(2) - a(2) * b(1)
 
     cross_unit = cross_unit/sqrt(dot_product(cross_unit,cross_unit))
-    return
-  end function cross_unit
+      end function cross_unit
 
   ! --------------------------------------------------------------------
   ! subroutine Sort():
@@ -107,8 +102,7 @@ contains
        mask(order(i)) = .false.
     end do
 
-    return
-  end subroutine sort
+      end subroutine sort
 
   ! --------------------------------------------------------------------
   ! subroutine number_of_lines():
@@ -140,8 +134,7 @@ contains
        non_commented = non_commented + 1
     end do
 
-    return
-  end subroutine number_of_lines
+      end subroutine number_of_lines
 
 
   ! --------------------------------------------------------------------
@@ -168,8 +161,7 @@ contains
     end do
     cols = count([( stringtemp(i:i), i=1,len(stringtemp) )] == "E")
 
-    return
-  end subroutine number_of_rows_cols
+      end subroutine number_of_rows_cols
 
 
   ! --------------------------------------------------------------------
@@ -200,8 +192,7 @@ contains
     !   write(*,"(10(es16.9,2x))") (data(i,j),j=1,cols)
     ! end do
 
-    return
-  end subroutine read_data
+      end subroutine read_data
 
   ! --------------------------------------------------------------------
   ! subroutine sort_file():
@@ -243,14 +234,12 @@ contains
 
     deallocate(data,x,order)
 
-    return
-  end subroutine sort_file
+      end subroutine sort_file
 
   character(len=900) function ItoS(i)
      implicit none
      integer :: i
      write(Itos, "(i0)") i
-     return
-  end function ItoS
+       end function ItoS
 
 end module mod_tools

@@ -63,7 +63,7 @@ contains
     use mod_parameters, only: output, laddresults, lverbose, ldebug, lkpoints, &
                               lpositions, lcreatefiles, Utype, lnolb, lhfresponses, &
                               lnodiag, lsha, lcreatefolders, lwriteonscreen, runoptions, &
-                              ltestcharge, llgtv, lsortfiles, magaxis, magaxisvec, &
+                              lcheckjac, llgtv, lsortfiles, magaxis, magaxisvec, &
                               itype, ry2ev, ltesla, eta, etap, dmax, emin, emax, deltae, &
                               skip_steps, npts, npt1, renorm, renormnb, bands, band_cnt, &
                               offset, dfttype, U, parField, parFreq, kptotal_in, kp_in
@@ -201,8 +201,8 @@ contains
           lsortfiles = .true.
        case ("lgtv")
           llgtv = .true.
-       case ("testcharge")
-          ltestcharge = .true.
+       case ("checkjac")
+          lcheckjac = .true.
        case("!")
           exit
        case default
@@ -556,8 +556,7 @@ contains
     pn1=parts*n1gl
     pn2=parts3*n3gl
     pnt=pn1+pn2
-    return
-  end subroutine get_parameters
+      end subroutine get_parameters
 
   subroutine iowrite(s)
     use mod_mpi_pars
@@ -686,7 +685,6 @@ contains
        !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps, each calculating ',i0,' points')") total_hw_npt1*npt1,MPIsteps*MPIsteps_hw,MPIpts_hw*MPIpts
     end select write_itype
     write(output%unit_loop,"('|---------------------------------------------------------------------------|')")
-    return
-  end subroutine iowrite
+      end subroutine iowrite
 
 end module mod_io
