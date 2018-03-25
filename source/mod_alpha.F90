@@ -4,7 +4,7 @@ module mod_alpha
 
   complex(double), dimension(:,:),   allocatable :: m_chi, m_chi_hf, m_chi_inv, m_chi_hf_inv
   character(len=7), parameter, private :: folder = "A/Slope"
-  character(len=8), dimension(6), parameter, private :: filename = ["chi     ", "chihf   ", "chiinv  ", "chihfinv", "sumrule ", "totalchi"]
+  character(len=8), dimension(10), parameter, private :: filename = ["chi     ", "chihf   ", "chiinv  ", "chihfinv", "sumrule ", "chiLS   ", "chiSL   ", "chiLL   ", "chiSt   ", "totalchi"]
 
 contains
 
@@ -19,7 +19,7 @@ contains
              m_chi_hf_inv(4*s%nAtoms,4*s%nAtoms), stat = AllocateStatus)
     if(AllocateStatus /= 0) call abortProgram("[allocate_alpha] Not enough memory for: m_chi, m_chi_hf, m_chi_inv, m_chi_hf_inv")
 
-      end subroutine allocate_alpha
+  end subroutine allocate_alpha
 
   subroutine deallocate_alpha()
     implicit none
@@ -29,7 +29,7 @@ contains
     if(allocated(m_chi_inv)) deallocate(m_chi_inv)
     if(allocated(m_chi_hf_inv)) deallocate(m_chi_hf_inv)
 
-      end subroutine deallocate_alpha
+  end subroutine deallocate_alpha
 
   subroutine create_alpha_files()
     use mod_System, only: s => sys
@@ -39,7 +39,7 @@ contains
     integer :: i,j
 
     do i=1, s%nAtoms
-      do j = 1, size(filename)-2
+      do j = 1, size(filename)-6
          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
          open (unit=55+(j-1)*s%nAtoms+i, file=varm, status='replace', form='formatted')
          write(unit=55+(j-1)*s%nAtoms+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ,  ((real[chi(j,i)], imag[chi(j,i)], j=1,4),i=1,4)  ')")
@@ -50,11 +50,25 @@ contains
 
       write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(6)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       open (unit=55+5*s%nAtoms+i, file=varm, status='replace', form='formatted')
-      write(unit=55+5*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  alpha_t')")
+      write(unit=55+5*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  alpha_LS')")
+
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(7)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+      open (unit=55+6*s%nAtoms+i, file=varm, status='replace', form='formatted')
+      write(unit=55+6*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  alpha_SL')")
+
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(8)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+      open (unit=55+7*s%nAtoms+i, file=varm, status='replace', form='formatted')
+      write(unit=55+7*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  alpha_LL')")
+
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(9)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+      open (unit=55+8*s%nAtoms+i, file=varm, status='replace', form='formatted')
+      write(unit=55+8*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  alpha_St')")
+
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(10)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+      open (unit=55+9*s%nAtoms+i, file=varm, status='replace', form='formatted')
+      write(unit=55+9*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  alpha_t')")
 
     end do
-
-
   end subroutine create_alpha_files
 
   subroutine open_alpha_files()
@@ -78,7 +92,7 @@ contains
     end do
     if(errt/=0) call abortProgram("[open_alpha_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
 
-      end subroutine open_alpha_files
+  end subroutine open_alpha_files
 
   subroutine close_alpha_files()
     use mod_system, only: s => sys
@@ -89,7 +103,7 @@ contains
       close(unit=55+i)
     end do
 
-      end subroutine close_alpha_files
+  end subroutine close_alpha_files
 
   subroutine write_alpha(e)
     use mod_f90_kind, only: double
@@ -102,7 +116,7 @@ contains
     real(double) :: e
     real(double) :: gammaM, alpha_v1, alpha_v2, alpha_v3, alpha_v4
     complex(double), dimension(4,4) :: acart, acarthf, acarthfinv, acartinv
-    complex(double), dimension(3,3) :: acart_t_inv
+    complex(double), dimension(3,3) :: acart_t_inv,acart_St_inv,acart_LS_inv,acart_SL_inv,acart_LL_inv
     integer :: i, p,q,r,t
 
     call open_alpha_files()
@@ -135,9 +149,17 @@ contains
 
       do p = 1, 3
         do q = 1, 3
-          acart_t_inv(p,q) = 4.d0*acart(p+1,q+1) + 2.d0*schiLS(sigmai2i(p,i),sigmai2i(q,i)) + 2.d0*schiSL(sigmai2i(p,i),sigmai2i(q,i)) + schiLL(sigmai2i(p,i),sigmai2i(q,i))
+          acart_LS_inv(p,q) = schiLS(sigmai2i(p,i),sigmai2i(q,i))
+          acart_SL_inv(p,q) = schiSL(sigmai2i(p,i),sigmai2i(q,i))
+          acart_LL_inv(p,q) = schiLL(sigmai2i(p,i),sigmai2i(q,i))
+          acart_St_inv(p,q) = 4.d0*acart(p+1,q+1) + 2.d0*schiSL(sigmai2i(p,i),sigmai2i(q,i))
+          acart_t_inv(p,q)  = 4.d0*acart(p+1,q+1) + 2.d0*schiLS(sigmai2i(p,i),sigmai2i(q,i)) + 2.d0*schiSL(sigmai2i(p,i),sigmai2i(q,i)) + schiLL(sigmai2i(p,i),sigmai2i(q,i))
         end do
       end do
+      call invers(acart_LS_inv,3)
+      call invers(acart_SL_inv,3)
+      call invers(acart_LL_inv,3)
+      call invers(acart_St_inv,3)
       call invers(acart_t_inv,3)
 
       gammaM = e / aimag(acartinv(2,3))
@@ -156,11 +178,15 @@ contains
                                                 ((real(acarthfinv(q,p)), aimag(acarthfinv(q,p)), q = 1, 4), p = 1, 4)
       write(55 + 4*s%nAtoms+i,"(8(es16.9,2x))") e, gammaM, real(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)))**2, U(i)**2, alpha_v1, alpha_v2, alpha_v3, alpha_v4
 
-      write(55 + 5*s%nAtoms+i,"(8(es16.9,2x))") e, e / aimag(acart_t_inv(2,3)),  -1.d0 * aimag(acart_t_inv(2,2))/aimag(acart_t_inv(2,3))
+      write(55 + 5*s%nAtoms+i,"(3(es16.9,2x))") e, e / aimag(acart_LS_inv(2,3)),  -1.d0 * aimag(acart_LS_inv(2,2))/aimag(acart_LS_inv(2,3))
+      write(55 + 6*s%nAtoms+i,"(3(es16.9,2x))") e, e / aimag(acart_SL_inv(2,3)),  -1.d0 * aimag(acart_SL_inv(2,2))/aimag(acart_SL_inv(2,3))
+      write(55 + 7*s%nAtoms+i,"(3(es16.9,2x))") e, e / aimag(acart_LL_inv(2,3)),  -1.d0 * aimag(acart_LL_inv(2,2))/aimag(acart_LL_inv(2,3))
+      write(55 + 8*s%nAtoms+i,"(3(es16.9,2x))") e, e / aimag(acart_St_inv(2,3)),  -1.d0 * aimag(acart_St_inv(2,2))/aimag(acart_St_inv(2,3))
+      write(55 + 9*s%nAtoms+i,"(3(es16.9,2x))") e, e / aimag(acart_t_inv(2,3)),  -1.d0 * aimag(acart_t_inv(2,2))/aimag(acart_t_inv(2,3))
     end do
 
     call close_alpha_files()
 
-      end subroutine write_alpha
+  end subroutine write_alpha
 
 end module mod_alpha
