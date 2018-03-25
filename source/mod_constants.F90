@@ -24,12 +24,18 @@ module mod_constants
   !! radians to degrees
   real(double)    :: levi_civita(3,3,3)
   !! Levi Civita Tensor
-  complex(double) :: identorb18(18,18)
-  !! Identity
-  complex(double) :: identorb9(9,9)
-  complex(double) :: pauli_orb(3,18,18)
-  complex(double) :: pauli_dorb(3,18,18)
+  complex(double) :: ident_norb(9,9)
+  !! Identity in orbital space
+  complex(double) :: ident_norb2(18,18)
+  !! Identity in spin and orbital space
+  complex(double) :: ident_dorb(18,18)
+  !! Identity in spin and orbital space (only non-zero on d-orbitals)
   complex(double) :: pauli_mat(2,2,0:3)
+  !! Identity and pauli matrices
+  complex(double) :: pauli_orb(3,18,18)
+  !! Pauli matrices in spin and orbital space
+  complex(double) :: pauli_dorb(3,18,18)
+  !! Pauli matrices in spin and orbital space (only non-zero on d-orbitals)
 
   complex(double), dimension(4,4) :: StoC = reshape([cmplx(0.0d0,0.d0), cmplx(0.5d0,0.d0),  cmplx(0.0d0,-0.5d0),  cmplx( 0.0d0,0.d0), &
                                                      cmplx(1.0d0,0.d0), cmplx(0.0d0,0.d0),  cmplx(0.0d0, 0.0d0),  cmplx( 0.5d0,0.d0), &
@@ -47,13 +53,13 @@ contains
     implicit none
     integer :: i,mu,nu
 
-    identorb9  = cZero
-    identorb18 = cZero
+    ident_norb  = cZero
+    ident_norb2 = cZero
     do i=1,9
-      identorb9(i,i) = cOne
+      ident_norb(i,i) = cOne
     end do
     do i=1,18
-      identorb18(i,i) = cOne
+      ident_norb2(i,i) = cOne
     end do
 
     ! All four Pauli matrices in spin space
@@ -69,6 +75,7 @@ contains
 
 ! Pauli matrices in spin and orbital space
     pauli_dorb = cZero
+    ident_dorb = cZero
     do mu = 1,9
       nu = mu+9
 
@@ -82,7 +89,10 @@ contains
       pauli_orb(3,mu,mu) = cOne
       pauli_orb(3,nu,nu) = -cOne
 
-      if (mu<5) cycle     ! Pauli matrices for d orbitals only
+      if (mu<5) cycle     ! Identity and Pauli matrices for d orbitals only
+      ! Identity
+      ident_dorb(mu,mu)   = cOne
+      ident_dorb(nu,nu)   = cOne
       ! pauli matrix x
       pauli_dorb(1,mu,nu) = cOne
       pauli_dorb(1,nu,mu) = cOne

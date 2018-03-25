@@ -324,7 +324,7 @@ contains
   !! This subroutine performs the self-consistency
     use mod_f90_kind,   only: double
     use mod_constants,  only: pi
-    use mod_parameters, only: output,lcheckjac
+    use mod_parameters, only: output
     use mod_magnet,     only: iter, rho, mxd, myd, mzd
     use mod_mpi_pars,   only: rField
     use TightBinding,   only: nOrb
@@ -357,8 +357,6 @@ contains
     end do
     sc_solu(8*s%nAtoms+1) = s%Ef
     iter  = 1
-
-    if((lcheckjac).and.(.not.lnojac)) call check_jacobian(neq,sc_solu)
 
     if(rField == 0) &
     write(output%unit_loop,"('[self_consistency] Starting self-consistency:')")
@@ -434,7 +432,7 @@ contains
 
 
   subroutine check_jacobian(neq,x)
-    use mod_parameters, only: output
+    use mod_parameters, only: output,lcheckjac
     use mod_mpi_pars,   only: rField,ierr
     use mod_chkder
     implicit none
@@ -446,6 +444,8 @@ contains
     real(double) :: ruser(1)
     integer      :: iuser(1)
 #endif
+
+    lcheckjac = .false.
 
     if(rField == 0) &
     write(output%unit_loop,"('[check_jacobian] Checking Jacobian...')")
@@ -469,16 +469,17 @@ contains
     end do
 
     if(rField == 0) then
-      write(*,*) "fvec"
-      write(*,*) (fvec (i),i=1,neq)
-      write(*,*) "fvecp"
-      write(*,*) (fvecp(i),i=1,neq)
-      write(*,*) "err"
-      write(*,*) (err  (i),i=1,neq)
+      ! write(*,*) "fvec"
+      ! write(*,*) (fvec (i),i=1,neq)
+      ! write(*,*) "fvecp"
+      ! write(*,*) (fvecp(i),i=1,neq)
+      do i=1,neq
+        if(abs(err(i)-1.d0)>1.d-8) write(*,*) i,err(i)
+      end do
     end if
 
-    call MPI_Finalize(ierr)
-    call exit(0)
+    lcheckjac = .true.
+
   end subroutine check_jacobian
 
   subroutine calcMagnetization()
@@ -607,7 +608,7 @@ contains
   subroutine calcJacobian(jacobian, N)
     !! Calculated the Jacobian of the spin magnetization
     use mod_f90_kind,      only: double
-    use mod_constants,     only: cI, pi, identorb18, cZero, pauli_dorb, cOne
+    use mod_constants,     only: pi, ident_norb2, cZero, pauli_dorb, ident_dorb, cOne
     use mod_parameters,    only: U, offset, eta
     use mod_SOC,           only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: y, wght
@@ -635,15 +636,14 @@ contains
     !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
     ncount2=N*N
 
-    pauli_a = cZero
 !   Identity and Pauli matrices (excluding d orbitals)
-    pauli_a(:,:,1) = identorb18(:,:)    ! sigma_0 (1,1) = 1
+    pauli_a(:,:,1) = ident_norb2(:,:)   ! sigma_0 (includes sp for the last line - total charge neutrality)
     pauli_a(:,:,2) = pauli_dorb(1,:,:)  ! sigma_x
     pauli_a(:,:,3) = pauli_dorb(2,:,:)  ! sigma_y
     pauli_a(:,:,4) = pauli_dorb(3,:,:)  ! sigma_z
 
-    pauli_b = pauli_a
-    pauli_b(1:4,1:4,1) = cZero ! removing d orbitals from charge part
+    pauli_b(:,:,  1) = ident_dorb  ! excluding d orbitals from charge part
+    pauli_b(:,:,2:4) = pauli_a(:,:,2:4)
 
     ! Prefactor -U/2 in dH/dn and dH/dm
     do i=1,s%nAtoms
@@ -662,11 +662,6 @@ contains
               temp(nOrb2, nOrb2), paulitemp(nOrb2, nOrb2), stat = AllocateStatus)
     if (AllocateStatus/=0) &
     call abortProgram("[calcJacobian] Not enough memory for: temp1, temp2, gij, gji, gf, temp")
-    temp1     = cZero
-    temp2     = cZero
-    paulitemp = cZero
-    gij       = cZero
-    gji       = cZero
     gf        = cZero
     temp      = cZero
 
@@ -681,7 +676,7 @@ contains
    do ix = 1, local_points
       ep = y(E_k_imag_mesh(1,ix))
       kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
-      weight = cmplx(1.d0,0.d0) * wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
+      weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
       ! Green function on energy Ef + iy, and wave vector kp
       if(llineargfsoc .or. llinearsoc) then
         call greenlinearsoc(s%Ef,ep+eta,s,kp,gf,gvg)
@@ -692,28 +687,29 @@ contains
 
       do j=1,s%nAtoms
         do i=1,s%nAtoms
-          gij = gf(:,:,i,j)
-          gji = gf(:,:,j,i)
 
+          ! First product: temp1 =  pauli*g_ij
+          gij = gf(:,:,i,j)
           do sigma = 1,4
-            ! temp1 =  pauli*g_ij
             paulitemp = pauli_a(:,:, sigma)
             call zgemm('n','n',18,18,18,cOne,paulitemp,18,gij,18,cZero,temp,18)
-            temp1(:,:, sigma) = temp
+            temp1(:,:,sigma) = temp
           end do
 
           do nu=5,nOrb
-            ! temp2 = (-U/2) * sigma* g_ji
+            ! Second product: temp2 = (U_j\delta_{mu,nu} -U_j/2) * sigma * g_ji
+            gji = gf(:,:,j,i)
             paulitemp = pauli_b(:,:, 1)
-            paulitemp(nu,nu) = paulitemp(nu,nu) - 2.d0
+            paulitemp(nu  ,nu  ) = paulitemp(nu  ,nu  ) - 2.d0
+            paulitemp(nu+9,nu+9) = paulitemp(nu+9,nu+9) - 2.d0
             call zgemm('n','n',18,18,18,halfU(j),paulitemp,18,gji,18,cZero,temp,18)
-            temp2(:,:, 1) = temp
+            temp2(:,:,1) = temp
 
-            ! Product:  sigma.g.dHdx.g = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*sigma* g_ji
+            ! Full product:  sigma.g.dHdx.g = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*sigma* g_ji
 
             ! Charge density-charge density part
-            gij = temp1(:,:, 1)
-            gji = temp2(:,:, 1)
+            gij = temp1(:,:,1)
+            gji = temp2(:,:,1)
             call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
 
             do mu = 1,nOrb
@@ -725,8 +721,8 @@ contains
 
             ! Magnetic density-charge density part
             do sigma = 2,4
-              gij = temp1(:,:, sigma)
-              gji = temp2(:,:, 1)
+              gij = temp1(:,:,sigma)
+              gji = temp2(:,:,1)
               call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
 
               do mu = 5,nOrb
@@ -736,17 +732,21 @@ contains
 
           end do
 
+          gji = gf(:,:,j,i)
+
           do sigmap = 2,4
-            ! temp2 = (-U/2) * sigma* g_ji
-            paulitemp = pauli_b(:,:, sigmap)
+            ! Second product: temp2 = (-U/2) * sigma* g_ji
+            paulitemp = pauli_b(:,:,sigmap)
             call zgemm('n','n',18,18,18,halfU(j),paulitemp,18,gji,18,cZero,temp,18)
-            temp2(:,:, sigmap) = temp
+            temp2(:,:,sigmap) = temp
           end do
+
+          ! Full product:  sigma.g.dHdx.g = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*sigma* g_ji
 
           ! Charge density-magnetic density part
           do sigmap = 2,4
-            gij = temp1(:,:, 1)
-            gji = temp2(:,:, sigmap)
+            gij = temp1(:,:,1)
+            gji = temp2(:,:,sigmap)
             call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
 
             do mu = 1,nOrb
@@ -760,8 +760,8 @@ contains
           ! Magnetic density-magnetic density part
           do sigma = 2,4
             do sigmap = 2,4
-              gij = temp1(:,:, sigma)
-              gji = temp2(:,:, sigmap)
+              gij = temp1(:,:,sigma)
+              gji = temp2(:,:,sigmap)
               call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
 
               do mu = 5,nOrb
@@ -770,51 +770,64 @@ contains
             end do
           end do
 
-          ! Removing non-linear (quadratic) terms:
+          ! **** Removing non-linear (quadratic) terms: ****
           if(llineargfsoc .or. llinearsoc) then
             gij = gvg(:,:,i,j)
-            gji = gvg(:,:,j,i)
 
             do sigma = 1,4
-              ! temp1 =  pauli*gvg_ij
+              ! First product: temp1 =  pauli*g_ij
               paulitemp = pauli_a(:,:, sigma)
               call zgemm('n','n',18,18,18,cOne,paulitemp,18,gij,18,cZero,temp,18)
               temp1(:,:, sigma) = temp
             end do
 
-            do sigma = 1,4
-              ! temp2 = (-U/2) * sigma* gvg_ji
-              paulitemp = pauli_b(:,:, sigma)
+            do nu=5,nOrb
+              gji = gvg(:,:,j,i)
+
+              ! Second product: temp2 = (-U/2) * sigma* g_ji
+              paulitemp = pauli_b(:,:, 1)
+              paulitemp(nu  ,nu  ) = paulitemp(nu  ,nu  ) - 2.d0
+              paulitemp(nu+9,nu+9) = paulitemp(nu+9,nu+9) - 2.d0
               call zgemm('n','n',18,18,18,halfU(j),paulitemp,18,gji,18,cZero,temp,18)
-              temp2(:,:, sigma) = temp
-            end do
+              temp2(:,:, 1) = temp
 
-            ! g.dHdx.g = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*sigma* g_ji
+              ! Full product:  sigma.g.dHdx.g = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*sigma* g_ji
 
-            ! Charge density-charge density part
-            gij = temp1(:,:, 1)
-            gji = temp2(:,:, 1)
-            call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
-
-            do mu = 5,nOrb
-              do nu = 5,nOrb
-                jacobian((i-1)*8+(mu-4),(j-1)*8+(nu-4)) = jacobian((i-1)*8+(mu-4),(j-1)*8+(nu-4)) - real(temp(mu,nu) + temp(mu+9,nu+9))  ! Removing non-linear term
-                jacobian(  8*s%nAtoms+1,(j-1)*8+(nu-4)) = jacobian(  8*s%nAtoms+1,(j-1)*8+(nu-4)) - real(temp(mu,nu) + temp(mu+9,nu+9))  ! Removing non-linear term
-              end do
-            end do
-
-            ! Magnetic density-charge density part
-            do sigma = 2,4
-              gij = temp1(:,:, sigma)
+              ! Charge density-charge density part
+              gij = temp1(:,:, 1)
               gji = temp2(:,:, 1)
               call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
 
-              do mu = 5,nOrb
-                do nu = 5,nOrb
-                  jacobian((i-1)*8+4+sigma,(j-1)*8+(nu-4)) = jacobian((i-1)*8+4+sigma,(j-1)*8+(nu-4)) - real(temp(mu,nu) + temp(mu+9,nu+9))  ! Removing non-linear term
+              do mu = 1,nOrb
+                ! Last line (Total charge neutrality)
+                jacobian(  8*s%nAtoms+1,(j-1)*8+(nu-4)) = jacobian(  8*s%nAtoms+1,(j-1)*8+(nu-4)) - real(temp(mu,mu) + temp(mu+9,mu+9))
+                if(mu<5) cycle
+                jacobian((i-1)*8+(mu-4),(j-1)*8+(nu-4)) = jacobian((i-1)*8+(mu-4),(j-1)*8+(nu-4)) - real(temp(mu,mu) + temp(mu+9,mu+9))
+              end do
+
+              ! Magnetic density-charge density part
+              do sigma = 2,4
+                gij = temp1(:,:, sigma)
+                gji = temp2(:,:, 1)
+                call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
+
+                do mu = 5,nOrb
+                  jacobian((i-1)*8+4+sigma,(j-1)*8+(nu-4)) = jacobian((i-1)*8+4+sigma,(j-1)*8+(nu-4)) - real(temp(mu,mu) + temp(mu+9,mu+9))
                 end do
               end do
+
             end do
+
+            gji = gvg(:,:,j,i)
+
+            do sigmap = 2,4
+              ! Second product: temp2 = (-U/2) * sigma* g_ji
+              paulitemp = pauli_b(:,:, sigmap)
+              call zgemm('n','n',18,18,18,halfU(j),paulitemp,18,gji,18,cZero,temp,18)
+              temp2(:,:, sigmap) = temp
+            end do
+
+            ! Full product:  sigma.g.dHdx.g = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*sigma* g_ji
 
             ! Charge density-magnetic density part
             do sigmap = 2,4
@@ -822,11 +835,11 @@ contains
               gji = temp2(:,:, sigmap)
               call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
 
-              do mu = 5,nOrb
-                do nu = 5,nOrb
-                  jacobian((i-1)*8+(mu-4),(j-1)*8+4+sigmap) = jacobian((i-1)*8+(mu-4),(j-1)*8+4+sigmap) - real(temp(mu,nu) + temp(mu+9,nu+9))  ! Removing non-linear term
-                  jacobian(  8*s%nAtoms+1,(j-1)*8+4+sigmap) = jacobian(  8*s%nAtoms+1,(j-1)*8+4+sigmap) - real(temp(mu,nu) + temp(mu+9,nu+9))  ! Removing non-linear term
-                end do
+              do mu = 1,nOrb
+                ! Last line (Total charge neutrality)
+                jacobian(  8*s%nAtoms+1,(j-1)*8+4+sigmap) = jacobian(  8*s%nAtoms+1,(j-1)*8+4+sigmap) - real(temp(mu,mu) + temp(mu+9,mu+9))
+                if(mu<5) cycle
+                jacobian((i-1)*8+(mu-4),(j-1)*8+4+sigmap) = jacobian((i-1)*8+(mu-4),(j-1)*8+4+sigmap) - real(temp(mu,mu) + temp(mu+9,mu+9))
               end do
             end do
 
@@ -838,9 +851,7 @@ contains
                 call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
 
                 do mu = 5,nOrb
-                  do nu = 5,nOrb
-                    jacobian((i-1)*8+4+sigma,(j-1)*8+4+sigmap) = jacobian((i-1)*8+4+sigma,(j-1)*8+4+sigmap) - real(temp(mu,nu) + temp(mu+9,nu+9)) ! Removing non-linear term
-                  end do
+                  jacobian((i-1)*8+4+sigma,(j-1)*8+4+sigmap) = jacobian((i-1)*8+4+sigma,(j-1)*8+4+sigmap) - real(temp(mu,mu) + temp(mu+9,mu+9))
                 end do
               end do
             end do
@@ -853,7 +864,7 @@ contains
     !$omp end do nowait
 
     ! Last column: Derivatives with respect to the Fermi level
-    ! No more energy integral - only BZ integration of G(Ef)
+    ! No energy integral - only BZ integration of G(Ef)
     !$omp do schedule(static) reduction(+:jacobian)
     do ix = 1, realBZ%workload
       kp = realBZ%kp(1:3,ix)
@@ -877,9 +888,9 @@ contains
 
         do mu = 1,nOrb
           ! Last line (Total charge neutrality)
-          jacobian(  8*s%nAtoms+1,8*s%nAtoms+1) = jacobian(  8*s%nAtoms+1,8*s%nAtoms+1) + real(temp(mu,mu) + temp(mu+9,mu+9))
+          jacobian(  8*s%nAtoms+1,8*s%nAtoms+1) = jacobian(  8*s%nAtoms+1,8*s%nAtoms+1) - aimag(temp(mu,mu) + temp(mu+9,mu+9))
           if(mu<5) cycle
-          jacobian((i-1)*8+(mu-4),8*s%nAtoms+1) = jacobian((i-1)*8+(mu-4),8*s%nAtoms+1) + real(temp(mu,mu) + temp(mu+9,mu+9))
+          jacobian((i-1)*8+(mu-4),8*s%nAtoms+1) = jacobian((i-1)*8+(mu-4),8*s%nAtoms+1) - aimag(temp(mu,mu) + temp(mu+9,mu+9))
         end do
 
         do sigma = 2,4
@@ -888,7 +899,7 @@ contains
           call zgemm('n','n',18,18,18,weight,paulitemp,18,gij,18,cZero,temp,18)
 
           do mu = 5,nOrb
-            jacobian((i-1)*8+4+sigma,8*s%nAtoms+1) = jacobian((i-1)*8+4+sigma,8*s%nAtoms+1) + real(temp(mu,mu) + temp(mu+9,mu+9))
+            jacobian((i-1)*8+4+sigma,8*s%nAtoms+1) = jacobian((i-1)*8+4+sigma,8*s%nAtoms+1) - aimag(temp(mu,mu) + temp(mu+9,mu+9))
           end do
         end do
 
@@ -1277,6 +1288,8 @@ contains
 
       if(lontheflysc) call write_sc_results()
     case(2)
+      if(lcheckjac) call check_jacobian(neq,x)
+
       call calcJacobian(selfconjac, N)
     case default
       call abortProgram("[sc_equations_and_jacobian] Problem in self-consistency! iflag = " // trim(itos(iflag)))
@@ -1358,6 +1371,7 @@ contains
     use mod_f90_kind,   only: double
     use mod_system,     only: s => sys
     use TightBinding,   only: nOrb
+    use mod_parameters, only: lcheckjac
     use mod_magnet,     only: iter,rho,rhod,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,    only: update_Umatrix
     use mod_tools,      only: itos
@@ -1405,6 +1419,8 @@ contains
 
       if(lontheflysc) call write_sc_results()
     case(2)
+      if(lcheckjac) call check_jacobian(neq,x)
+
       call calcJacobian(selfconjac, N)
     case default
       call abortProgram("[sc_eqs_and_jac_old] Problem in self-consistency! iflag = " // trim(itos(iflag)))
