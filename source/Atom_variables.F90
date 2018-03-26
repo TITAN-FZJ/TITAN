@@ -27,7 +27,7 @@ subroutine initConversionMatrices(nAtoms, nOrbs)
       sigmai2i(sigma,i) = (sigma-1)*nAtoms + i
     end do
   end do
-  end subroutine initConversionMatrices
+end subroutine initConversionMatrices
 
 ! This subroutine allocates variables that depend on nAtom
 subroutine allocate_Atom_variables(nAtoms)
@@ -67,7 +67,7 @@ subroutine allocate_Atom_variables(nAtoms)
   ! allocate(sha_longitudinal(pln_cnt(1)),sha_transverse(pln_cnt(1)),long_cos(pln_cnt(1)),transv_cos(pln_cnt(1)))
   ! if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: sha_longitudinal,sha_transverse,long_cos,transv_cos")
 
-  end subroutine allocate_Atom_variables
+end subroutine allocate_Atom_variables
 
 ! This subroutine allocates variables that depend on nAtom
 subroutine deallocate_Atom_variables()
@@ -84,4 +84,4 @@ subroutine deallocate_Atom_variables()
   !deallocate(t0, t0i)
   !deallocate(sha_longitudinal,sha_transverse,long_cos,transv_cos)
 
-  end subroutine deallocate_Atom_variables
+end subroutine deallocate_Atom_variables

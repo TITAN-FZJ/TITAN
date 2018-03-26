@@ -14,14 +14,14 @@ contains
 
     if(myrank==0) allocate( Idia_total(n0sc1:n0sc2,Npl) )
 
-      end subroutine allocate_idia
+  end subroutine allocate_idia
 
   ! This subroutine deallocates variables related to the diamagnetic current
   subroutine deallocate_idia()
     use mod_mpi_pars, only: myrank
     implicit none
     if(myrank==0) deallocate( Idia_total )
-      end subroutine deallocate_idia
+  end subroutine deallocate_idia
 
   ! ---------- Diamagnetic current: Energy integration ---------
   subroutine calculate_idia()
@@ -93,7 +93,7 @@ contains
         write(outputunit,fmt="(10(es11.4,2x))") (Idia_total(j,i),j=n0sc1,n0sc2)
       end do
     end if
-      end subroutine calculate_idia
+  end subroutine calculate_idia
 
   !   Calculates the momentum matrix in real space
   subroutine sumk_idia(e,ep,Idia)
@@ -121,40 +121,40 @@ contains
     gji = cZero
     gij = cZero
 
-!$omp parallel default(none) &
-!$omp& private(mythread,neighbor,iz,kp,i,dtdk,expikr,gf) &
-!$omp& shared(kbz,nkpt,wkbz,myrank,nthreads,n0sc1,n0sc2,llineargfsoc,Npl,r_nn,e,ep,pij,gij,gji, outputunit)
-!$  mythread = omp_get_thread_num()
-!$  if((mythread==0).and.(myrank==0)) then
-!$    nthreads = omp_get_num_threads()
-!$    write(outputunit,"('[sumk_idia] Number of threads: ',i0)") nthreads
-!$  end if
+  !$omp parallel default(none) &
+  !$omp& private(mythread,neighbor,iz,kp,i,dtdk,expikr,gf) &
+  !$omp& shared(kbz,nkpt,wkbz,myrank,nthreads,n0sc1,n0sc2,llineargfsoc,Npl,r_nn,e,ep,pij,gij,gji, outputunit)
+  !$  mythread = omp_get_thread_num()
+  !$  if((mythread==0).and.(myrank==0)) then
+  !$    nthreads = omp_get_num_threads()
+  !$    write(outputunit,"('[sumk_idia] Number of threads: ',i0)") nthreads
+  !$  end if
 
-!$omp do reduction(+:pij,gij,gji)
-    kpoints: do iz=1,nkpt
-      kp = kbz(:,iz)
+  !$omp do reduction(+:pij,gij,gji)
+  kpoints: do iz=1,nkpt
+    kp = kbz(:,iz)
 
-      do neighbor=n0sc1,n0sc2
-        expikr(neighbor) = exp(-cI*dot_product(kp, r_nn(:,neighbor)))
+    do neighbor=n0sc1,n0sc2
+      expikr(neighbor) = exp(-cI*dot_product(kp, r_nn(:,neighbor)))
+    end do
+
+    ! Calculating derivative of in-plane and n.n. inter-plane hoppings
+    call dtdksub(kp,dtdk)
+
+    ! Green function at (k+q,E_F+E+iy)
+    if(llineargfsoc) then
+      call greenlineargfsoc(e,ep,s,kp,gf)
+    else
+      call green(e,ep,s,kp,gf)
+    end if
+
+    do neighbor=n0sc1,n0sc2
+      do i=1,Npl
+        pij(neighbor,i,:,:) = pij(neighbor,i,:,:) + expikr(neighbor)*dtdk(:,:,i,i)*wkbz(iz)
+        gij(neighbor,i,:,:) = gij(neighbor,i,:,:) + expikr(neighbor)*gf(:,:,i,i)*wkbz(iz)
+        gji(neighbor,i,:,:) = gji(neighbor,i,:,:) + conjg(expikr(neighbor))*gf(:,:,i,i)*wkbz(iz)
       end do
-
-      ! Calculating derivative of in-plane and n.n. inter-plane hoppings
-      call dtdksub(kp,dtdk)
-
-      ! Green function at (k+q,E_F+E+iy)
-      if(llineargfsoc) then
-        call greenlineargfsoc(e,ep,s,kp,gf)
-      else
-        call green(e,ep,s,kp,gf)
-      end if
-
-      do neighbor=n0sc1,n0sc2
-        do i=1,Npl
-          pij(neighbor,i,:,:) = pij(neighbor,i,:,:) + expikr(neighbor)*dtdk(:,:,i,i)*wkbz(iz)
-          gij(neighbor,i,:,:) = gij(neighbor,i,:,:) + expikr(neighbor)*gf(:,:,i,i)*wkbz(iz)
-          gji(neighbor,i,:,:) = gji(neighbor,i,:,:) + conjg(expikr(neighbor))*gf(:,:,i,i)*wkbz(iz)
-        end do
-      end do
+    end do
 
   !       !$omp critical
   !       do neighbor=n0sc1,n0sc2 ; do i=1,Npl ; do mu=1,9 ; do nu=1,9
@@ -167,8 +167,8 @@ contains
   !       !$omp end critical
 
     end do kpoints
-!$omp end do
-!$omp end parallel
+    !$omp end do
+    !$omp end parallel
 
       ! if(myrank==0) then
       !   write(outputunit,*) "pij"
@@ -203,5 +203,5 @@ contains
       end do
     end do
 
-      end subroutine sumk_idia
+  end subroutine sumk_idia
 end module mod_diamagnetic_current

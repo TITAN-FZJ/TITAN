@@ -24,7 +24,8 @@ contains
     complex(double), dimension(:,:,:,:,:),allocatable  :: lhs,rhs
     complex(double), dimension(:,:)      ,allocatable  :: chiorb_hf_cart
 
-    if(rField == 0) write(output%unit_loop,"('[sumrule] Checking if the sum rule is satisfied... ')", advance='no')
+    if(rField == 0) &
+    write(output%unit_loop,"('[sumrule] Checking if the sum rule is satisfied... ')", advance='no')
 
     allocate(chiorb_hf_cart(dim,dim),lhs(3,3,nOrb,nOrb,s%nAtoms),rhs(3,3,nOrb,nOrb,s%nAtoms), stat = AllocateStatus)
     if(AllocateStatus/=0) call abortProgram("[sumrule] Not enough memory for: chiorb_hf_cart,lhs,rhs")
@@ -102,7 +103,7 @@ contains
     ! deallocate(lhs,rhs)
     deallocate(Smunuiivec)
 
-      end subroutine sumrule
+  end subroutine sumrule
 
   ! This subroutine calculates the effective field on the Hamiltonian
   ! H = H_0 + \sigma.B_eff
@@ -146,7 +147,7 @@ contains
       end do
     end do
 
-      end subroutine Beffective
+  end subroutine Beffective
 
   subroutine calcSmunu()
     !! Calculates the expectation value <S^munu_ii> = <c^+_imu c_inu>
@@ -233,7 +234,7 @@ contains
 
     deallocate(imguu,imgdd,imgud,imgdu)
 
-      end subroutine calcSmunu
+  end subroutine calcSmunu
 
 end module mod_sumrule
 

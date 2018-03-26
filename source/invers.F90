@@ -28,7 +28,7 @@ subroutine invers(matriz,nn)
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
   end if
 
-  end subroutine invers
+end subroutine invers
 
 
 

@@ -1,20 +1,15 @@
 module mod_SOC
-use mod_f90_kind, only: double
-implicit none
-
-!========================================================================================!
-logical :: SOC
-!! Turn on/off SOC
-logical :: llineargfsoc = .false.
-logical :: llinearsoc = .false.
-!! Linear SOC
-real(double) :: socscale = 1.d0
-!! Rescale of SOC parameter
-
-complex(double), dimension(:,:,:), allocatable :: ls
-!! L.S matrix
-
-
+  use mod_f90_kind, only: double
+  implicit none
+  logical :: SOC
+  !! Turn on/off SOC
+  logical :: llineargfsoc = .false.
+  logical :: llinearsoc = .false.
+  !! Linear SOC
+  real(double) :: socscale = 1.d0
+  !! Rescale of SOC parameter
+  complex(double), dimension(:,:,:), allocatable :: ls
+  !! L.S matrix
 contains
 
   subroutine updateLS(sys,theta, phi)
@@ -69,7 +64,7 @@ contains
     ! rescale
     ls = 0.5d0 * socscale * ls
 
-      end subroutine updateLS
+  end subroutine updateLS
 
   subroutine allocLS(nAtoms,nOrb)
     use mod_constants, only: cZero
@@ -84,5 +79,5 @@ contains
     ! the spin-orbit matrix
     ls = cZero
 
-      end subroutine allocLS
+  end subroutine allocLS
 end module mod_SOC

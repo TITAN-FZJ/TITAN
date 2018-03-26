@@ -12,7 +12,7 @@ module mod_beff
 contains
 
   subroutine allocate_beff()
- !! This subroutine allocates variables related to the effective field calculation
+  !! This subroutine allocates variables related to the effective field calculation
     use mod_f90_kind, only: double
     use mod_mpi_pars, only: abortProgram, rFreq
     use mod_parameters, only: dimspinAtoms
@@ -25,7 +25,7 @@ contains
       if (AllocateStatus /= 0) call abortProgram("[allocate_beff] Not enough memory for: Beff,Beff_cart,total_Beff,chiinv")
     end if
 
-      end subroutine allocate_beff
+  end subroutine allocate_beff
 
   subroutine deallocate_beff()
   !! This subroutine deallocates variables related to the effective field calculation
@@ -35,7 +35,7 @@ contains
     if(allocated(Beff_cart)) deallocate(Beff_cart)
     if(allocated(chiinv)) deallocate(chiinv)
 
-      end subroutine deallocate_beff
+  end subroutine deallocate_beff
 
   subroutine create_beff_files()
   !! This subroutine creates all the files needed for the effective field
@@ -62,7 +62,7 @@ contains
       close(unit=iw)
     end do
 
-      end subroutine create_beff_files
+  end subroutine create_beff_files
 
   subroutine open_beff_files()
   !! This subroutine opens all the files needed for the effective field
@@ -91,7 +91,7 @@ contains
     ! Stop if some file does not exist
     if(errt/=0) call abortProgram("[openclose_beff_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
 
-      end subroutine open_beff_files
+  end subroutine open_beff_files
 
   subroutine close_beff_files()
   !! This subroutine closes all the files needed for the effective field
@@ -109,7 +109,7 @@ contains
       close(unit=iw)
     end do
 
-      end subroutine close_beff_files
+  end subroutine close_beff_files
 
   subroutine write_beff(e)
     !! This subroutine write all the effective fields into files
@@ -158,7 +158,7 @@ contains
 
     call close_beff_files()
 
-      end subroutine write_beff
+  end subroutine write_beff
 
   subroutine create_dc_beff_files()
     !! This subroutine creates all the files needed for the effective field
@@ -185,8 +185,6 @@ contains
       write(unit=iw, fmt="('#',a,' imaginary part of ',a,a,' , real part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma)
       close(unit=iw)
     end do
-
-
   end subroutine create_dc_beff_files
 
   subroutine open_dc_beff_files()
@@ -216,7 +214,7 @@ contains
     end do
     ! Stop if some file does not exist
     if(errt/=0) call abortProgram("[openclose_dc_beff_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
-      end subroutine open_dc_beff_files
+  end subroutine open_dc_beff_files
 
   subroutine close_dc_beff_files()
   !! This subroutine closes all the files needed for the effective field
@@ -231,7 +229,7 @@ contains
       iw = 85000+sigma
       close(unit=iw)
     end do
-      end subroutine close_dc_beff_files
+  end subroutine close_dc_beff_files
 
   subroutine write_dc_beff()
     !! This subroutine write all the effective fields into files
@@ -276,7 +274,7 @@ contains
    end do
 
     call close_dc_beff_files()
-      end subroutine write_dc_beff
+  end subroutine write_dc_beff
 
   ! This subroutine sorts effective field files
   subroutine sort_beff()
@@ -312,6 +310,6 @@ contains
       call close_beff_files()
     end if
 
-      end subroutine sort_beff
+  end subroutine sort_beff
 
 end module mod_beff

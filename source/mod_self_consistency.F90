@@ -436,51 +436,118 @@ contains
     use mod_mpi_pars,   only: rField,ierr
     use mod_chkder
     implicit none
-    integer :: i
-    integer     , intent(in) :: neq
-    real(double), intent(in) :: x(neq)
+    integer :: liw,lw
+    integer :: i,ifail
+    integer     , allocatable :: iw(:)
+    real(double), allocatable :: w(:)
+    integer     , intent(in)  :: neq
+    real(double), intent(in)  :: x(neq)
     real(double) :: fvec(neq),fvecp(neq),jac(neq,neq),xp(neq),err(neq)
 #if !defined(_OSX) && !defined(_JUQUEEN)
     real(double) :: ruser(1)
     integer      :: iuser(1)
 #endif
 
+    liw = 1
+    lw  = (4+neq)*neq
+    allocate(iw(liw),w(lw))
+
     lcheckjac = .false.
 
     if(rField == 0) &
-    write(output%unit_loop,"('[check_jacobian] Checking Jacobian...')")
+    write(output%unit_loop,"('[check_jacobian] Checking Jacobian if Jacobian is correct...')", advance='no')
 
-    call chkder(neq,neq,x,fvec,jac,neq,xp,fvecp,1,err)
+    call e04yaf(neq,neq,lsqfun,x,fvec,jac,neq,iw,liw,w,lw,ifail)
 
-#if defined(_OSX) || defined(_JUQUEEN)
-    call sc_eqs_and_jac_old(neq,x ,fvec ,jac,neq,1)
-    call sc_eqs_and_jac_old(neq,x ,fvec ,jac,neq,2)
-    call sc_eqs_and_jac_old(neq,xp,fvecp,jac,neq,1)
-#else
-    call sc_equations_and_jacobian(neq,x ,fvec ,jac,iuser,ruser,1)
-    call sc_equations_and_jacobian(neq,x ,fvec ,jac,iuser,ruser,2)
-    call sc_equations_and_jacobian(neq,xp,fvecp,jac,iuser,ruser,1)
-#endif
+    if(rField == 0) write(*,*) ifail
 
-    call chkder(neq,neq,x,fvec,jac,neq,xp,fvecp,2,err)
+!     call chkder(neq,neq,x,fvec,jac,neq,xp,fvecp,1,err)
 
-    do i = 1,neq
-      fvecp(i) = fvecp(i) - fvec(i)
-    end do
+! #if defined(_OSX) || defined(_JUQUEEN)
+!     call sc_eqs_and_jac_old(neq,x ,fvec ,jac,neq,1)
+!     call sc_eqs_and_jac_old(neq,x ,fvec ,jac,neq,2)
+!     call sc_eqs_and_jac_old(neq,xp,fvecp,jac,neq,1)
+! #else
+!     call sc_equations_and_jacobian(neq,x ,fvec ,jac,iuser,ruser,1)
+!     call sc_equations_and_jacobian(neq,x ,fvec ,jac,iuser,ruser,2)
+!     call sc_equations_and_jacobian(neq,xp,fvecp,jac,iuser,ruser,1)
+! #endif
 
-    if(rField == 0) then
-      ! write(*,*) "fvec"
-      ! write(*,*) (fvec (i),i=1,neq)
-      ! write(*,*) "fvecp"
-      ! write(*,*) (fvecp(i),i=1,neq)
-      do i=1,neq
-        if(abs(err(i)-1.d0)>1.d-8) write(*,*) i,err(i)
-      end do
+!     call chkder(neq,neq,x,fvec,jac,neq,xp,fvecp,2,err)
+
+    ! do i = 1,neq
+    !   fvecp(i) = fvecp(i) - fvec(i)
+    ! end do
+
+    ! if(rField == 0) then
+    !   ! write(*,*) "fvec"
+    !   ! write(*,*) (fvec (i),i=1,neq)
+    !   ! write(*,*) "fvecp"
+    !   ! write(*,*) (fvecp(i),i=1,neq)
+    !   do i=1,neq
+    !     if(abs(err(i)-1.d0)>1.d-8) write(*,*) i,err(i)
+    !   end do
+    ! end if
+
+    if(iflag == 0) then
+      if(rField == 0) write(output%unit_loop,"(' YES! ')")
+    else
+      if(rField == 0) write(output%unit_loop,"(' NO! iflag = ',i0)") iflag
     end if
 
     lcheckjac = .true.
 
   end subroutine check_jacobian
+
+  subroutine lsqfun(iflag,M,N,x,fvec,selfconjac,ljc,iw,liw,w,lw)
+    use mod_f90_kind,   only: double
+    use mod_system,     only: s => sys
+    use TightBinding,   only: nOrb
+    use mod_magnet,     only: iter,rho,rhod,mxd,myd,mzd,rhod0,rho0
+    use mod_Umatrix,    only: update_Umatrix
+    use mod_tools,      only: itos
+    use mod_mpi_pars
+    implicit none
+    integer  :: M,N,ljc,i,mu,iflag,lw,liw,iw(liw)
+    real(double) :: w(lw)
+    real(double),   dimension(N)             :: x,fvec
+    real(double),   dimension(N,N)           :: selfconjac
+    real(double),   dimension(nOrb,s%nAtoms) :: rho_in
+    real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
+    complex(double),dimension(s%nAtoms)      :: mpd_in
+
+    ! Values used in the hamiltonian
+    rho_in = rho
+    do i = 1, s%nAtoms
+      do mu = 5,nOrb
+        rho_in(mu,i) = x((i-1)*8+(mu-4))
+      end do
+      rhod_in(i)= sum(rho_in(5:9,i))
+      mxd_in(i) = x((i-1)*8+6)
+      myd_in(i) = x((i-1)*8+7)
+      mzd_in(i) = x((i-1)*8+8)
+      mpd_in(i) = cmplx(mxd_in(i),myd_in(i))
+    end do
+    s%Ef    = x(8*s%nAtoms+1)
+
+    call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
+
+    ! call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
+
+    call calcMagnetization()
+    do i = 1, s%nAtoms
+      do mu = 5,nOrb
+        fvec((i-1)*8+(mu-4)) = rho(mu,i) - rho_in(mu,i)
+      end do
+      fvec((i-1)*8+6) =  mxd(i) -  mxd_in(i)
+      fvec((i-1)*8+7) =  myd(i) -  myd_in(i)
+      fvec((i-1)*8+8) =  mzd(i) -  mzd_in(i)
+    end do
+    fvec(8*s%nAtoms+1) = sum(rho) - s%totalOccupation
+
+    call calcJacobian(selfconjac, N)
+
+  end subroutine lsqfun
 
   subroutine calcMagnetization()
     !! Calculates occupation density and magnetization.
@@ -1239,6 +1306,7 @@ contains
     use mod_f90_kind,   only: double
     use mod_system,     only: s => sys
     use TightBinding,   only: nOrb
+    use mod_parameters, only: lcheckjac
     use mod_magnet,     only: iter,rho,rhod,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,    only: update_Umatrix
     use mod_tools,      only: itos

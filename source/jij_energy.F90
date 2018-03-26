@@ -128,4 +128,4 @@ subroutine jij_energy(Jij)
      call MPI_Reduce(Jij, Jij, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, 0, activeComm, ierr)
   end if
 
-    end subroutine jij_energy
+end subroutine jij_energy

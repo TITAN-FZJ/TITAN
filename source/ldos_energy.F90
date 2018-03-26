@@ -58,4 +58,4 @@ subroutine ldos_energy(e,ldosu,ldosd)
        call MPI_Reduce(ldosd , ldosd , s%nAtoms*nOrb, MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
     end if
 
-  end subroutine ldos_energy
+end subroutine ldos_energy

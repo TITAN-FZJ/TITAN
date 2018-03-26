@@ -52,4 +52,4 @@ subroutine ldos()
   ! Closing files
   if(rField == 0) call closeLDOSFiles()
 
-  end subroutine ldos
+end subroutine ldos

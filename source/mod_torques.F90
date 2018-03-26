@@ -37,7 +37,7 @@ contains
       end if
     end if
 
-      end subroutine allocate_torques
+  end subroutine allocate_torques
 
   subroutine deallocate_torques()
   !! This subroutine deallocates variables related to the torques calculation
@@ -47,84 +47,80 @@ contains
     if(allocated(total_torques)) deallocate(total_torques)
     if(allocated(rtorques)) deallocate(rtorques)
 
-      end subroutine deallocate_torques
+  end subroutine deallocate_torques
 
   subroutine create_torque_files()
-  !! This subroutine creates all the files needed for the disturbances
-  use mod_parameters, only: output, renorm
-  use mod_mpi_pars
-  use mod_system, only: s => sys
-  implicit none
+    !! This subroutine creates all the files needed for the disturbances
+    use mod_parameters, only: output, renorm
+    use mod_mpi_pars
+    use mod_system, only: s => sys
+    implicit none
 
-  character(len=500)  :: varm
-  integer :: i,sigma,typetorque,iw
+    character(len=500)  :: varm
+    integer :: i,sigma,typetorque,iw
 
-  do typetorque = 1, ntypetorque
-    do sigma = 1, 3
-      do i = 1, s%nAtoms
-        iw = 9000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(filename(typetorque)),direction(sigma),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
-        open (unit=iw, file=varm, status='replace', form='formatted')
-        write(unit=iw, fmt="('#     energy    , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
-        close(unit=iw)
-        if(renorm) then
-          iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/r',a,a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(filename(typetorque)),direction(sigma),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
+    do typetorque = 1, ntypetorque
+      do sigma = 1, 3
+        do i = 1, s%nAtoms
+          iw = 9000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(filename(typetorque)),direction(sigma),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#     energy    , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
           close(unit=iw)
-        end if
+          if(renorm) then
+            iw = iw+1000
+            write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/r',a,a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(filename(typetorque)),direction(sigma),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
+            open (unit=iw, file=varm, status='replace', form='formatted')
+            write(unit=iw, fmt="('#     energy    , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
+            close(unit=iw)
+          end if
+        end do
+        ! Total torque files
+        iw = 9500+(typetorque-1)*3+sigma
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(filename(typetorque)),direction(sigma),trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
+        open (unit=iw, file=varm, status='replace', form='formatted')
+        write(unit=iw, fmt="('#     energy    , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
+        close(unit=iw)
       end do
-      ! Total torque files
-      iw = 9500+(typetorque-1)*3+sigma
-      write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(filename(typetorque)),direction(sigma),trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
-      open (unit=iw, file=varm, status='replace', form='formatted')
-      write(unit=iw, fmt="('#     energy    , amplitude of ',a,a,' , real part of ',a,a,' , imaginary part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  ')") trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
-      close(unit=iw)
     end do
-  end do
-
-
   end subroutine create_torque_files
 
   subroutine open_torque_files()
-  !! This subroutine opens all the files needed for the disturbances
-  use mod_parameters, only: output, renorm, missing_files
-  use mod_mpi_pars
-  use mod_system, only: s => sys
-  implicit none
+    !! This subroutine opens all the files needed for the disturbances
+    use mod_parameters, only: output, renorm, missing_files
+    use mod_mpi_pars
+    use mod_system, only: s => sys
+    implicit none
 
-  character(len=500)  :: varm
-  integer :: i,sigma,typetorque,iw,err,errt=0
+    character(len=500)  :: varm
+    integer :: i,sigma,typetorque,iw,err,errt=0
 
-  do typetorque=1,ntypetorque
-    do sigma=1,3
-      do i=1,s%nAtoms
-        iw = 9000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(filename(typetorque)),direction(sigma),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
-        open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
-        errt = errt + err
-        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
-        if(renorm) then
-          iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/r',a,a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(filename(typetorque)),direction(sigma),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
+    do typetorque=1,ntypetorque
+      do sigma=1,3
+        do i=1,s%nAtoms
+          iw = 9000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(filename(typetorque)),direction(sigma),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
-        end if
+          if(renorm) then
+            iw = iw+1000
+            write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/r',a,a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(filename(typetorque)),direction(sigma),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
+            open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+            errt = errt + err
+            if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+          end if
+        end do
+        ! Total torque files
+        iw = 9500+(typetorque-1)*3+sigma
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(filename(typetorque)),direction(sigma),trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
+        open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+        errt = errt + err
+        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
       end do
-      ! Total torque files
-      iw = 9500+(typetorque-1)*3+sigma
-      write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(filename(typetorque)),direction(sigma),trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
-      open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
-      errt = errt + err
-      if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
     end do
-  end do
-  ! Stop if some file does not exist
-  if(errt/=0) call abortProgram("[openclose_torque_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
-
-
+    ! Stop if some file does not exist
+    if(errt/=0) call abortProgram("[openclose_torque_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
   end subroutine open_torque_files
 
   subroutine close_torque_files()
@@ -152,7 +148,7 @@ contains
       end do
     end do
 
-      end subroutine close_torque_files
+  end subroutine close_torque_files
 
 
   subroutine write_torques(e)
@@ -224,7 +220,7 @@ contains
 
     call close_torque_files()
 
-      end subroutine write_torques
+  end subroutine write_torques
 
 
   subroutine create_dc_torque_files()
@@ -262,7 +258,7 @@ contains
       end do
     end do
 
-      end subroutine create_dc_torque_files
+  end subroutine create_dc_torque_files
 
   subroutine open_dc_torque_files()
   !! This subroutine opens all the files needed for the disturbances
@@ -302,7 +298,7 @@ contains
     ! Stop if some file does not exist
     if(errt/=0) call abortProgram("[openclose_dc_torque_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
 
-      end subroutine open_dc_torque_files
+  end subroutine open_dc_torque_files
 
   subroutine close_dc_torque_files()
   !! This subroutine closes all the files needed for the disturbances
@@ -329,7 +325,7 @@ contains
       end do
     end do
 
-      end subroutine close_dc_torque_files
+  end subroutine close_dc_torque_files
 
   subroutine write_dc_torques()
   !! This subroutine write all the torques into files
@@ -397,7 +393,7 @@ contains
 
     call close_dc_torque_files()
 
-      end subroutine write_dc_torques
+  end subroutine write_dc_torques
 
   ! This subroutine sorts torque files
   subroutine sort_torques()
@@ -443,6 +439,6 @@ contains
       call close_torque_files()
     end if
 
-      end subroutine sort_torques
+  end subroutine sort_torques
 
 end module mod_torques

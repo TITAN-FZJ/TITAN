@@ -38,7 +38,7 @@ contains
          end if
          total_points = total_points + all_nkpt(i)
       end do
-         end subroutine generateAdaptiveMeshes
+   end subroutine generateAdaptiveMeshes
 
    subroutine genLocalEKMesh(sys,rank,size,comm)
       use mod_parameters,    only: total_nkpt => kptotal_in
@@ -134,7 +134,7 @@ contains
          !    end if
          ! end do
       end do
-         end subroutine genLocalEKMesh
+   end subroutine genLocalEKMesh
 
    subroutine freeLocalEKMesh()
       implicit none
@@ -143,7 +143,7 @@ contains
          call bzs(E_k_imag_mesh(1,i)) % free()
       end do
       deallocate(bzs, E_k_imag_mesh)
-         end subroutine freeLocalEKMesh
+   end subroutine freeLocalEKMesh
 
    integer function get_nkpt(e, e0, nkpt_total, bulk)
       use mod_f90_kind, only: double
@@ -158,6 +158,6 @@ contains
          get_nkpt = nkpt_total / (e/e0)**sqrt(2.d0) !**log(2.d0)
       end if
       if(get_nkpt < minimumBZmesh ) get_nkpt = minimumBZmesh
-         end function get_nkpt
+   end function get_nkpt
 
 end module adaptiveMesh

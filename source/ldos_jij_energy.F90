@@ -1,34 +1,34 @@
 !   Calculates spin-resolved LDOS and energy-dependence of exchange interactions
 subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
-   use mod_f90_kind,      only: double
-   use mod_constants,     only: pi, cZero, cOne, pauli_dorb
-   use mod_parameters,    only: eta, nmaglayers, mmlayermag, U
-   use mod_system,        only: s => sys
-   use mod_BrillouinZone, only: realBZ
-   use TightBinding,      only: nOrb,nOrb2
-   use mod_magnet,        only: mvec_cartesian, mabs
-   use mod_progress
-   use mod_mpi_pars
-   implicit none
-   real(double),intent(in)     :: e
-   real(double),intent(out)    :: ldosu(s%nAtoms, nOrb),ldosd(s%nAtoms, nOrb)
-   real(double),intent(out)    :: Jijint(nmaglayers,nmaglayers,3,3)
-   complex(double), dimension(nOrb2, nOrb2, s%nAtoms, s%nAtoms) :: gf
-   complex(double), dimension(s%nAtoms, nOrb)   :: gfdiagu,gfdiagd
-   complex(double), dimension(nOrb2, nOrb2)     :: gij,gji,temp1,temp2,paulia,paulib
-   real(double),    dimension(:,:),allocatable     :: ldosu_loc,ldosd_loc
-   real(double),    dimension(:,:,:,:),allocatable :: Jijint_loc
-   real(double),    dimension(3) :: kp
-   complex(double) :: paulimatan(3,3,nOrb2, nOrb2)
-   real(double)    :: Jijkan(nmaglayers,3,3), Jijk(nmaglayers,nmaglayers,3,3)
-   real(double)    :: weight
-   integer         :: i,j,mu,nu,alpha
-   integer*8       :: iz
+  use mod_f90_kind,      only: double
+  use mod_constants,     only: pi, cZero, cOne, pauli_dorb
+  use mod_parameters,    only: eta, nmaglayers, mmlayermag, U
+  use mod_system,        only: s => sys
+  use mod_BrillouinZone, only: realBZ
+  use TightBinding,      only: nOrb,nOrb2
+  use mod_magnet,        only: mvec_cartesian, mabs
+  use mod_progress
+  use mod_mpi_pars
+  implicit none
+  real(double),intent(in)     :: e
+  real(double),intent(out)    :: ldosu(s%nAtoms, nOrb),ldosd(s%nAtoms, nOrb)
+  real(double),intent(out)    :: Jijint(nmaglayers,nmaglayers,3,3)
+  complex(double), dimension(nOrb2, nOrb2, s%nAtoms, s%nAtoms) :: gf
+  complex(double), dimension(s%nAtoms, nOrb)   :: gfdiagu,gfdiagd
+  complex(double), dimension(nOrb2, nOrb2)     :: gij,gji,temp1,temp2,paulia,paulib
+  real(double),    dimension(:,:),allocatable     :: ldosu_loc,ldosd_loc
+  real(double),    dimension(:,:,:,:),allocatable :: Jijint_loc
+  real(double),    dimension(3) :: kp
+  complex(double) :: paulimatan(3,3,nOrb2, nOrb2)
+  real(double)    :: Jijkan(nmaglayers,3,3), Jijk(nmaglayers,nmaglayers,3,3)
+  real(double)    :: weight
+  integer         :: i,j,mu,nu,alpha
+  integer*8       :: iz
 
-   real(double),    dimension(3,nmaglayers)               :: evec
-   complex(double), dimension(nmaglayers,3,nOrb2,nOrb2)   :: dbxcdm
-   complex(double), dimension(nmaglayers,3,3,nOrb2,nOrb2) :: d2bxcdm2
-   complex(double), dimension(nmaglayers,nOrb2,nOrb2)     :: paulievec
+  real(double),    dimension(3,nmaglayers)               :: evec
+  complex(double), dimension(nmaglayers,3,nOrb2,nOrb2)   :: dbxcdm
+  complex(double), dimension(nmaglayers,3,3,nOrb2,nOrb2) :: d2bxcdm2
+  complex(double), dimension(nmaglayers,nOrb2,nOrb2)     :: paulievec
 
 ! (x,y,z)-tensor formed by Pauli matrices to calculate anisotropy term (when i=j)
   paulimatan = cZero
@@ -65,16 +65,16 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
 
 
 
-!$omp parallel default(none) &
-!$omp& private(iz,kp,weight,gf,gij,gji,paulia,paulib,i,j,mu,nu,alpha,gfdiagu,gfdiagd,Jijk,Jijkan,temp1,temp2,ldosu_loc,ldosd_loc,Jijint_loc) &
-!$omp& shared(s,realBZ,e,eta,U,dbxcdm,d2bxcdm2,nmaglayers,mmlayermag,pauli_dorb,paulimatan,ldosu,ldosd,Jijint)
-allocate(ldosu_loc(s%nAtoms, nOrb), ldosd_loc(s%nAtoms, nOrb), Jijint_loc(nmaglayers,nmaglayers,3,3))
-ldosu_loc = 0.d0
-ldosd_loc = 0.d0
-Jijint_loc = 0.d0
+  !$omp parallel default(none) &
+  !$omp& private(iz,kp,weight,gf,gij,gji,paulia,paulib,i,j,mu,nu,alpha,gfdiagu,gfdiagd,Jijk,Jijkan,temp1,temp2,ldosu_loc,ldosd_loc,Jijint_loc) &
+  !$omp& shared(s,realBZ,e,eta,U,dbxcdm,d2bxcdm2,nmaglayers,mmlayermag,pauli_dorb,paulimatan,ldosu,ldosd,Jijint)
+  allocate(ldosu_loc(s%nAtoms, nOrb), ldosd_loc(s%nAtoms, nOrb), Jijint_loc(nmaglayers,nmaglayers,3,3))
+  ldosu_loc = 0.d0
+  ldosd_loc = 0.d0
+  Jijint_loc = 0.d0
 
-!$omp do schedule(static)
-do iz = 1, realBZ%workload
+  !$omp do schedule(static)
+  do iz = 1, realBZ%workload
     kp = realBZ%kp(:,iz)
     weight = realBZ%w(iz)
     ! Green function on energy E + ieta, and wave vector kp
@@ -156,4 +156,4 @@ do iz = 1, realBZ%workload
      call MPI_Reduce(ldosd , ldosd , s%nAtoms*nOrb            , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
      call MPI_Reduce(Jijint, Jijint, nmaglayers*nmaglayers*3*3, MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
   end if
-  end subroutine ldos_jij_energy
+end subroutine ldos_jij_energy

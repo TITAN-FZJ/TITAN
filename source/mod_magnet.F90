@@ -155,7 +155,7 @@ contains
       end do
     end do
 
-      end subroutine setMagneticLoopPoints
+  end subroutine setMagneticLoopPoints
 
   subroutine initMagneticField(nAtoms)
     use mod_f90_kind, only: double
@@ -199,7 +199,7 @@ contains
       ! Testing if hwrotate is used
       lhwrotate = (any(abs(hwtrotate(1:nAtoms)) > 1.d-8).or.any(abs(hwprotate(1:nAtoms))>1.d-8))
     end if
-      end subroutine initMagneticField
+  end subroutine initMagneticField
 
   subroutine lb_matrix(nAtoms, nOrbs)
     use mod_f90_kind,   only: double
@@ -227,7 +227,7 @@ contains
       end do
       deallocate(lbsigma)
     end if
-      end subroutine lb_matrix
+  end subroutine lb_matrix
 
 
   ! Spin Zeeman hamiltonian
@@ -254,7 +254,7 @@ contains
         end do
       end do
     end if
-      end subroutine sb_matrix
+  end subroutine sb_matrix
 
   ! This subroutine calculate the orbital angular momentum matrix in the cubic system of coordinates
   subroutine l_matrix()
@@ -308,7 +308,7 @@ contains
     lvec(:,:,2) = ly
     lvec(:,:,3) = lz
 
-      end subroutine l_matrix
+  end subroutine l_matrix
 
   ! This subroutine calculate the orbital angular momentum matrix in the local system of coordinates
   subroutine lp_matrix(theta, phi)
@@ -328,7 +328,7 @@ contains
       lpvec(:,:,2,i) = lyp(:,:,i)
       lpvec(:,:,3,i) = lzp(:,:,i)
     end do
-      end subroutine lp_matrix
+  end subroutine lp_matrix
 
   subroutine allocate_magnet_variables(nAtoms, nOrb)
     use mod_mpi_pars, only: abortProgram
@@ -369,7 +369,7 @@ contains
     allocate(lxp(nOrb,nOrb,nAtoms), lyp(nOrb,nOrb,nAtoms), lzp(nOrb,nOrb,nAtoms), lpvec(nOrb,nOrb,3,nAtoms), stat = AllocateStatus)
     if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lxp, lyp, lzp, lpvec")
 
-      end subroutine allocate_magnet_variables
+  end subroutine allocate_magnet_variables
 
   subroutine deallocate_magnet_variables()
     implicit none
@@ -414,33 +414,32 @@ contains
     if(allocated(hhw)) deallocate(hhw)
     if(allocated(sb)) deallocate(sb)
     if(allocated(lb)) deallocate(lb)
-      end subroutine
+  end subroutine
 
   subroutine set_fieldpart(count)
-     use mod_parameters, only: ltesla, lnolb, output
-     implicit none
-     integer :: count
+    use mod_parameters, only: ltesla, lnolb, output
+    implicit none
+    integer :: count
 
-     output%BField = ""
-     if(lfield) then
-      write(output%BField, "('_hwa=',es9.2,'_hwt=',f7.2,'_hwp=',f7.2)") hw_list(count,1),hw_list(count,2),hw_list(count,3)
-      if(ltesla)    output%BField = trim(output%BField) // "_tesla"
-      if(lnolb)     output%BField = trim(output%BField) // "_nolb"
-      if(lhwscale)  output%BField = trim(output%BField) // "_hwscale"
-      if(lhwrotate) output%BField = trim(output%BField) // "_hwrotate"
-     end if
+    output%BField = ""
+    if(lfield) then
+     write(output%BField, "('_hwa=',es9.2,'_hwt=',f7.2,'_hwp=',f7.2)") hw_list(count,1),hw_list(count,2),hw_list(count,3)
+     if(ltesla)    output%BField = trim(output%BField) // "_tesla"
+     if(lnolb)     output%BField = trim(output%BField) // "_nolb"
+     if(lhwscale)  output%BField = trim(output%BField) // "_hwscale"
+     if(lhwrotate) output%BField = trim(output%BField) // "_hwrotate"
+    end if
 
-     output%dcBField = ""
-     if(dcfield_dependence/=7) then
-      if((dcfield_dependence/=1).and.(dcfield_dependence/=4).and.(dcfield_dependence/=5)) write(output%dcBField,"(a,'_hwa=',es9.2)") trim(output%dcBField),hwa
-      if((dcfield_dependence/=2).and.(dcfield_dependence/=4).and.(dcfield_dependence/=6)) write(output%dcBField,"(a,'_hwt=',f7.2)") trim(output%dcBField),hwt
-      if((dcfield_dependence/=3).and.(dcfield_dependence/=5).and.(dcfield_dependence/=6)) write(output%dcBField,"(a,'_hwp=',f7.2)") trim(output%dcBField),hwp
-     end if
-     if(ltesla)    output%dcBField = trim(output%dcBField) // "_tesla"
-     if(lnolb)     output%dcBField = trim(output%dcBField) // "_nolb"
-     if(lhwscale)  output%dcBField = trim(output%dcBField) // "_hwscale"
-     if(lhwrotate) output%dcBField = trim(output%dcBField) // "_hwrotate"
-
-       end subroutine set_fieldpart
+    output%dcBField = ""
+    if(dcfield_dependence/=7) then
+     if((dcfield_dependence/=1).and.(dcfield_dependence/=4).and.(dcfield_dependence/=5)) write(output%dcBField,"(a,'_hwa=',es9.2)") trim(output%dcBField),hwa
+     if((dcfield_dependence/=2).and.(dcfield_dependence/=4).and.(dcfield_dependence/=6)) write(output%dcBField,"(a,'_hwt=',f7.2)") trim(output%dcBField),hwt
+     if((dcfield_dependence/=3).and.(dcfield_dependence/=5).and.(dcfield_dependence/=6)) write(output%dcBField,"(a,'_hwp=',f7.2)") trim(output%dcBField),hwp
+    end if
+    if(ltesla)    output%dcBField = trim(output%dcBField) // "_tesla"
+    if(lnolb)     output%dcBField = trim(output%dcBField) // "_nolb"
+    if(lhwscale)  output%dcBField = trim(output%dcBField) // "_hwscale"
+    if(lhwrotate) output%dcBField = trim(output%dcBField) // "_hwrotate"
+  end subroutine set_fieldpart
 
 end module mod_magnet

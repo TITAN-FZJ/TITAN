@@ -51,7 +51,7 @@ subroutine hamiltk(sys,kp,hk)
   !   end do
   ! end do
 
-  end subroutine hamiltk
+end subroutine hamiltk
 
 ! Calculate hamiltonian of the unit cell
 ! and the spin-orbit coupling contribution separately
@@ -94,4 +94,4 @@ subroutine hamiltklinearsoc(sys,kp,hk,vsoc)
       hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + tmp
     end do
   end do
-  end subroutine hamiltklinearsoc
+end subroutine hamiltklinearsoc

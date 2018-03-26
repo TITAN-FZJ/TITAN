@@ -86,7 +86,7 @@ contains
        if (AllocateStatus/=0) call abortProgram("[allocate_susceptibilities] Not enough memory for: chiorb_hflsoc")
     end if
 
-      end subroutine allocate_susceptibilities
+  end subroutine allocate_susceptibilities
 
   subroutine deallocate_susceptibilities()
     !! This subroutine deallocates variables related to the susceptibility calculation
@@ -121,7 +121,7 @@ contains
     if(allocated(Umatorb)) deallocate(Umatorb)
     if(allocated(identt)) deallocate(identt)
 
-      end subroutine deallocate_susceptibilities
+  end subroutine deallocate_susceptibilities
 
   subroutine build_identity_and_U_matrix()
     !! Mounts U and identity matrix
@@ -172,7 +172,7 @@ contains
        identt(i,i) = cOne
     end do
 
-      end subroutine build_identity_and_U_matrix
+  end subroutine build_identity_and_U_matrix
 
 
   ! This subroutine diagonalize the transverse susceptibility
@@ -205,7 +205,7 @@ contains
        end if
     end if ! s%nAtoms
 
-      end subroutine diagonalize_susceptibilities
+  end subroutine diagonalize_susceptibilities
 
   subroutine create_chi_files()
     !! This subroutine creates all the files needed for the susceptibilities
@@ -249,7 +249,7 @@ contains
        end do
     end if
 
-      end subroutine create_chi_files
+  end subroutine create_chi_files
 
   subroutine open_chi_files()
     !! This subroutine opens all the files needed for the susceptibilities
@@ -296,7 +296,7 @@ contains
     ! Stop if some file does not exist
     if(errt/=0) call abortProgram("[openclose_chi_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_line('A') // trim(missing_files))
 
-      end subroutine open_chi_files
+  end subroutine open_chi_files
 
   subroutine close_chi_files()
     !! This subroutine closes all the files needed for the susceptibilities
@@ -324,7 +324,7 @@ contains
        end do
     end if
 
-      end subroutine close_chi_files
+  end subroutine close_chi_files
 
   ! This subroutine write all the susceptibilities into files
   ! (already opened with openclose_chi_files(1))
@@ -364,7 +364,7 @@ contains
 
     call close_chi_files()
 
-      end subroutine write_susceptibilities
+  end subroutine write_susceptibilities
 
   subroutine create_dc_chi_files()
     !! This subroutine creates all the files needed for the dc-limit susceptibilities
@@ -408,7 +408,7 @@ contains
        end do
     end if
 
-      end subroutine create_dc_chi_files
+  end subroutine create_dc_chi_files
 
   subroutine open_dc_chi_files()
     !! This subroutine opens all the files needed for the dc-limit susceptibilities
@@ -483,7 +483,7 @@ contains
        end do
     end if
 
-      end subroutine close_dc_chi_files
+  end subroutine close_dc_chi_files
 
 
   ! This subroutine write all the susceptibilities into files
@@ -523,7 +523,7 @@ contains
     end if ! s%nAtoms
 
     call close_dc_chi_files
-      end subroutine write_dc_susceptibilities
+  end subroutine write_dc_susceptibilities
 
   ! This subroutine sorts susceptibilities files
   subroutine sort_susceptibilities()
@@ -568,6 +568,6 @@ contains
        call close_chi_files()
     end if
 
-      end subroutine sort_susceptibilities
+  end subroutine sort_susceptibilities
 
 end module mod_susceptibilities

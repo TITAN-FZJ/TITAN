@@ -37,7 +37,7 @@ subroutine green(er,ei,sys,kp,gf)
     end do
   end do
 
-  end subroutine green
+end subroutine green
 
 
 ! Calculate green function (E - H)^-1 without SOC and the linear term G0.H_so.G0
@@ -82,7 +82,7 @@ subroutine greenlinearsoc(er,ei,sys,kp,g0,g0vsocg0)
       g0vsocg0(:,:,i,j) = temp2(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
     end do
   end do
-  end subroutine greenlinearsoc
+end subroutine greenlinearsoc
 
 
 ! Calculate green function (E - H)^-1 with linear SOC: G = G0+G0.H_so.G0
@@ -127,4 +127,4 @@ subroutine greenlineargfsoc(er,ei,sys,kp,gf)
       gf(:,:,i,j) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
     end do
   end do
-  end subroutine greenlineargfsoc
+end subroutine greenlineargfsoc

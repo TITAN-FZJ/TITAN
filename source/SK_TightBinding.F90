@@ -85,7 +85,7 @@ contains
     end do
     call intd(mix(1), mix(2), mix(3), mix(4), mix(5), mix(6), mix(7), mix(8), mix(9), mix(10), dirCos, t0i)
 
-      end subroutine set_hopping_matrix
+  end subroutine set_hopping_matrix
 
   subroutine readElementFile(material, nStages, nOrb)
     use mod_f90_kind, only: double
@@ -273,7 +273,7 @@ contains
     end do
 
     deallocate(localDistances)
-      end subroutine
+  end subroutine readElementFile
 
   pure subroutine intd(sss,pps,ppp,dds,ddp,ddd,sps,sds,pds,pdp,w,b)
     use mod_f90_kind, only: double
@@ -404,6 +404,6 @@ contains
     b(9,8)= b(8,9)
     b(9,9)=f3*f3*dds+3.d0*zz*f1*ddp+.75d0*f1*f1*ddd
 
-      end subroutine intd
+  end subroutine intd
 
 end module SK_TightBinding

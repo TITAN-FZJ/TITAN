@@ -74,7 +74,7 @@ contains
       call self%generate_2d_fraction(sys,self%first,self%last, self%nkpt)
     end if
 
-      end subroutine genFraction
+  end subroutine genFraction
 
   subroutine count_BrillouinZone(self,sys)
     use mod_System, only: System
@@ -91,14 +91,14 @@ contains
       self%nkpt = count_2D_BZ(total,sys%a1,sys%a2)
     end if
 
-      end subroutine count_BrillouinZone
+  end subroutine count_BrillouinZone
 
   subroutine deallocate_BrillouinZone(self)
-     implicit none
-     class(BrillouinZone) :: self
-     if(allocated(self%kp)) deallocate(self%kp)
-     if(allocated(self%w)) deallocate(self%w)
-       end subroutine deallocate_BrillouinZone
+    implicit none
+    class(BrillouinZone) :: self
+    if(allocated(self%kp)) deallocate(self%kp)
+    if(allocated(self%w)) deallocate(self%w)
+  end subroutine deallocate_BrillouinZone
 
   logical function isAlloc_BrillouinZone(self)
      implicit none
@@ -108,7 +108,7 @@ contains
      else
         isAlloc_BrillouinZone = .false.
      end if
-       end function isAlloc_BrillouinZone
+  end function isAlloc_BrillouinZone
 
   subroutine gen3DFraction(self,sys,first,last,total)
     use mod_f90_kind,  only: double
@@ -193,7 +193,7 @@ contains
     self%w = self%w / dble(nkpt)
     if(added > self%workload) call abortProgram("[gen3DFraction] Generated more points than it should have! ")
     if(added < self%workload) call abortProgram("[gen3DFraction] Generated less points than it should have! ")
-      end subroutine gen3DFraction
+  end subroutine gen3DFraction
 
   integer function count_3D_BZ(nkpt_in, a1, a2, a3)
     use mod_f90_kind, only: double
@@ -271,7 +271,7 @@ contains
     !$omp end parallel do
     count_3D_BZ = nkpt + numextrakbz
 
-      end function count_3D_BZ
+  end function count_3D_BZ
 
   subroutine gen2DFraction(self,sys,first,last,total)
     use mod_f90_kind,  only: double
@@ -350,7 +350,7 @@ contains
     self%w = self%w / dble(nkpt)
     if(added > self%workload) call abortProgram("[gen2DFraction] Generated more points than it should have!")
     if(added < self%workload) call abortProgram("[gen2DFraction] Generated less points than it should have!")
-      end subroutine gen2DFraction
+  end subroutine gen2DFraction
 
   integer function count_2D_BZ(nkpt_in, a1, a2)
     use mod_f90_kind, only: double
@@ -420,7 +420,7 @@ contains
     end do
     !$omp end parallel do
     count_2D_BZ = nkpt + numextrakbz
-      end function count_2D_BZ
+  end function count_2D_BZ
 
   subroutine output_kpoints(self)
     implicit none
@@ -434,6 +434,6 @@ contains
     end do
     close(3333)
 
-      end subroutine output_kpoints
+  end subroutine output_kpoints
 
 end module mod_BrillouinZone

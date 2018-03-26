@@ -27,7 +27,7 @@ subroutine setup_electric_field(s)
   dirEfieldvec = dirEfieldvec / sqrt(dot_product(dirEfieldvec,dirEfieldvec))
   EFp = atan(dirEfieldvec(2) / dirEfieldvec(1))
   EFt = acos(dirEfieldvec(3))
-  end subroutine
+end subroutine setup_electric_field
 
 subroutine setup_long_and_trans_current_neighbors(s)
   use mod_f90_kind, only: double

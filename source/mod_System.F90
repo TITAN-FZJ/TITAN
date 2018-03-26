@@ -60,9 +60,7 @@ module mod_system
 
   integer, dimension(:,:), allocatable :: ia
 
-
-
- contains
+contains
 
   subroutine initHamiltkStride(nAtoms, nOrb)
     implicit none
@@ -77,5 +75,5 @@ module mod_system
       ia(3,i) = ia(1,i) + nOrb
       ia(4,i) = ia(3,i) + nOrb - 1
     end do
-      end subroutine initHamiltkStride
+  end subroutine initHamiltkStride
 end module mod_system

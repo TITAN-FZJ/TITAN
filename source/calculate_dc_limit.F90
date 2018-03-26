@@ -485,4 +485,4 @@ subroutine calculate_dc_limit()
   call deallocate_torques()
   !call deallocate_currents() !TODO:Re-Include
   !call deallocate_sha()  !TODO:Re-Include
-  end subroutine calculate_dc_limit
+end subroutine calculate_dc_limit

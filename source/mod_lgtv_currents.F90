@@ -22,7 +22,7 @@ contains
       end if
     end if
 
-      end subroutine allocate_lgtv_currents
+  end subroutine allocate_lgtv_currents
 
   ! This subroutine allocates variables related to the longitudinal and transverse currents calculation
   subroutine deallocate_lgtv_currents()
@@ -32,7 +32,7 @@ contains
 
     if(myrank_row==0) deallocate(long_currents,total_long_currents,transv_currents,total_transv_currents)
 
-      end subroutine deallocate_lgtv_currents
+  end subroutine deallocate_lgtv_currents
 
   ! This subroutine opens and closes all the files needed for the longitudinal and transverse currents
   subroutine openclose_lgtv_files(iflag)
@@ -120,7 +120,7 @@ contains
       end do ; end do
     end if
 
-      end subroutine openclose_lgtv_files
+  end subroutine openclose_lgtv_files
 
   ! This subroutine opens and closes all the files needed for the field dependent longitudinal and transverse currents
   subroutine openclose_dc_lgtv_files(iflag)
@@ -210,7 +210,7 @@ contains
 
     end if
 
-      end subroutine openclose_dc_lgtv_files
+  end subroutine openclose_dc_lgtv_files
 
 
   ! This subroutine write all the longitudinal and transverse currents into files
@@ -236,7 +236,7 @@ contains
       write(unit=iw,fmt="(6(es16.9,2x))") e , real(total_transv_currents(j)) , aimag(total_transv_currents(j)) , atan2(aimag(total_transv_currents(j)),real(total_transv_currents(j))) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
     end do
 
-      end subroutine write_lgtv_currents
+  end subroutine write_lgtv_currents
 
 
   ! This subroutine write all the longitudinal and transverse currents for fixed frequency into files
@@ -261,7 +261,7 @@ contains
       write(unit=iw,fmt="(a,2x,5(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_transv_currents(j)) , aimag(total_transv_currents(j)) , atan2(aimag(total_transv_currents(j)),real(total_transv_currents(j))) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
     end do
 
-      end subroutine write_dc_lgtv_currents
+  end subroutine write_dc_lgtv_currents
 
   ! This subroutine sorts longitudinal and transverse currents files
   subroutine sort_lgtv_currents()
@@ -296,7 +296,7 @@ contains
       call openclose_lgtv_files(2)
     end if
 
-      end subroutine sort_lgtv_currents
+  end subroutine sort_lgtv_currents
 
   ! This subroutine reads currents from existing files
   ! and calculates longitudinal and transverse currents
@@ -556,7 +556,7 @@ contains
     end select
     write(outputunit,"('[read_calculate_lgtv_currents] Finished calculating longitudinal and transverse currents!')")
 
-      end subroutine read_calculate_lgtv_currents
+  end subroutine read_calculate_lgtv_currents
 
   subroutine calculate_lgtv_currents()
     use mod_parameters
@@ -592,5 +592,5 @@ contains
       end if
     end do
 
-      end subroutine calculate_lgtv_currents
+  end subroutine calculate_lgtv_currents
 end module mod_lgtv_currents

@@ -19,7 +19,7 @@ contains
     allocate(TTResponse(4,4,nAtoms,nAtoms), TTResponseHF(4,4,nAtoms,nAtoms), stat = AllocateStatus)
     if(AllocateStatus /= 0) call abortProgram("[allocateTTResponse] Not enough memory for: TTResponse, TTResponseHF")
 
-      end subroutine allocTTResponse
+  end subroutine allocTTResponse
 
   subroutine create_TTR_files()
     use mod_System, only: s => sys
@@ -52,7 +52,6 @@ contains
 
        end do
     end do
-
 
   end subroutine create_TTR_files
 
@@ -93,7 +92,7 @@ contains
     end do
     if(errt/=0) call abortProgram("[open_TTR_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_line('A') // trim(missing_files))
 
-      end subroutine open_TTR_files
+  end subroutine open_TTR_files
 
   subroutine close_TTR_files()
     use mod_system, only: s => sys
@@ -109,7 +108,7 @@ contains
        end do
     end do
 
-      end subroutine close_TTR_files
+  end subroutine close_TTR_files
 
 
   subroutine calcTTResponse(e)
@@ -202,6 +201,6 @@ contains
        end do
     end do
     call close_TTR_files()
-      end subroutine calcTTResponse
+  end subroutine calcTTResponse
 
 end module TorqueTorqueResponse

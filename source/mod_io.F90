@@ -556,7 +556,7 @@ contains
     pn1=parts*n1gl
     pn2=parts3*n3gl
     pnt=pn1+pn2
-      end subroutine get_parameters
+  end subroutine get_parameters
 
   subroutine iowrite(s)
     use mod_mpi_pars
@@ -685,6 +685,6 @@ contains
        !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps, each calculating ',i0,' points')") total_hw_npt1*npt1,MPIsteps*MPIsteps_hw,MPIpts_hw*MPIpts
     end select write_itype
     write(output%unit_loop,"('|---------------------------------------------------------------------------|')")
-      end subroutine iowrite
+  end subroutine iowrite
 
 end module mod_io

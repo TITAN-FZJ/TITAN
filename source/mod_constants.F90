@@ -139,7 +139,7 @@ contains
 !     end do
 !     paulid(2:4,:,:) = pauli(2:4,:,:)
 
-      end subroutine define_constants
+  end subroutine define_constants
 
   integer function delta(i,j)
     implicit none
