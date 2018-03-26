@@ -1177,18 +1177,18 @@ contains
     write(output%unit_loop,"(28x,'Ef=',f11.8)") s%Ef
     write(output%unit_loop,"(11x,' *************** Charge density: ****************')")
     do i=1,s%nAtoms
-      write(output%unit_loop,"(4x,'Ns(',i2.0,')=',f11.8,4x,'Np(',i2.0,')=',f11.8,4x,'Nd(',i2.0,')=',f11.8)") i, rho(1,i),i, sum(rho(2:4,i)),i, sum(rho(5:9,i))
+      write(output%unit_loop,"(a,':',2x,'Ns(',i2.0,')=',f11.8,4x,'Np(',i2.0,')=',f11.8,4x,'Nd(',i2.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i, rho(1,i),i, sum(rho(2:4,i)),i, sum(rho(5:9,i))
     end do
     write(output%unit_loop,"(11x,' *********** Magnetization components: **********')")
     do i=1,s%nAtoms
-      write(output%unit_loop,"(4x,'Mx(',i2.0,')=',f11.8,4x,'My(',i2.0,')=',f11.8,4x,'Mz(',i2.0,')=',f11.8)") i,mvec_cartesian(1,i),i,mvec_cartesian(2,i),i,mvec_cartesian(3,i)
+      write(output%unit_loop,"(a,':',2x,'Mx(',i2.0,')=',f11.8,4x,'My(',i2.0,')=',f11.8,4x,'Mz(',i2.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,mvec_cartesian(1,i),i,mvec_cartesian(2,i),i,mvec_cartesian(3,i)
       if(abs(sum(mp(:,i)))/=0) &
       write(output%unit_loop,"(12x,'theta = ',f11.6,'  ',4x,'phi = ',f11.6)") mvec_spherical(2,i),mvec_spherical(3,i)
     end do
     if((lGSL).or.(SOC)) then
       write(output%unit_loop,"(11x,' ****** Orbital components in global frame: *****')")
       do i=1,s%nAtoms
-        write(output%unit_loop,"(4x,'Lx(',i2.0,')=',f11.8,4x,'Ly(',i2.0,')=',f11.8,4x,'Lz(',i2.0,')=',f11.8)") i,lxm(i),i,lym(i),i,lzm(i)
+        write(output%unit_loop,"(a,':',2x,'Lx(',i2.0,')=',f11.8,4x,'Ly(',i2.0,')=',f11.8,4x,'Lz(',i2.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,lxm(i),i,lym(i),i,lzm(i)
         if(sqrt(lxm(i)**2+lym(i)**2)/=0) &
         write(output%unit_loop,"(12x,'theta = ',f11.6,'  ',4x,'phi = ',f11.6)") ltheta(i),lphi(i)
       end do
@@ -1200,12 +1200,12 @@ contains
       ! end do
       write(output%unit_loop,"(11x,' ******************** Total: ********************')")
       do i=1,s%nAtoms
-        write(output%unit_loop,"(4x,' N(',i2.0,')=',f11.8,4x,' M(',i2.0,')=',f11.8,4x,' L(',i2.0,')=',f11.8)") i,sum(rho(:,i)),i,mvec_spherical(1,i),i,labs(i)
+        write(output%unit_loop,"(a,':',2x,' N(',i2.0,')=',f11.8,4x,' M(',i2.0,')=',f11.8,4x,' L(',i2.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,sum(rho(:,i)),i,mvec_spherical(1,i),i,labs(i)
       end do
     else
       write(output%unit_loop,"(11x,' ******************** Total: ********************')")
       do i=1,s%nAtoms
-        write(output%unit_loop,"(9x,' N(',i2.0,') =',f11.8,4x,' M(',i2.0,') =',f11.8)") i,sum(rho(:,i)),i,mvec_spherical(1,i)
+        write(output%unit_loop,"(a,':',6x,' N(',i2.0,') =',f11.8,4x,' M(',i2.0,') =',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,sum(rho(:,i)),i,mvec_spherical(1,i)
       end do
     end if
     write(output%unit_loop,"('|----------=============================================================----------|')")

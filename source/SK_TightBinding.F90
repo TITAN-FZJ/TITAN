@@ -171,7 +171,7 @@ contains
       do j = 1, type_count(i)
         k = k + 1
         read(fu, fmt='(A)', iostat=ios) line
-        if(ios /= 0) call abortProgram("[read_basis] Not enough basis atoms given!")
+        if(ios /= 0) call abortProgram("[readElementFile] Not enough basis atoms given!")
         read(unit=line, fmt=*, iostat=ios) (position(l,k), l=1,3)
         if(coord_type == 'D' .or. coord_type == 'd') then
           position(:,k) = position(:,k) * material%LatticeConstant
