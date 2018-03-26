@@ -459,7 +459,7 @@ contains
 
     call e04yaf(neq,neq,lsqfun,x,fvec,jac,neq,iw,liw,w,lw,ifail)
 
-    if(rField == 0) write(*,*) ifail
+    ! if(rField == 0) write(*,*) ifail
 
 !     call chkder(neq,neq,x,fvec,jac,neq,xp,fvecp,1,err)
 
@@ -489,10 +489,10 @@ contains
     !   end do
     ! end if
 
-    if(iflag == 0) then
+    if(ifail == 0) then
       if(rField == 0) write(output%unit_loop,"(' YES! ')")
     else
-      if(rField == 0) write(output%unit_loop,"(' NO! iflag = ',i0)") iflag
+      if(rField == 0) write(output%unit_loop,"(' NO! ifail = ',i0)") ifail
     end if
 
     lcheckjac = .true.
