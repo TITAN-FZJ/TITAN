@@ -24,8 +24,6 @@ module mod_parameters
   !========================================================================================!
   real(double), allocatable  :: U(:)
   !! Effective intra-site electron electron interaction
-  integer       :: Utype = 2
-  !! Variable to say if an atom is magnetic or not (obsolete?)
   logical       :: lhfresponses = .false.
   !! Use HF susceptibilities to calculate currents, disturbances and accumulations (don't renormalize)
   !========================================================================================!
@@ -38,8 +36,9 @@ module mod_parameters
   logical          :: bulk = .false.
   !! Flag turning on/off bulk calculations, default: .false., not used yet
   !========================================================================================!
-  integer            :: magaxis
-  real(double)       :: magaxisvec(3)
+  character(len=50)  :: magbasis = ""
+  !! Basis to give initial magnetization in 'initialmag' file
+  real(double),allocatable       :: initialmag(:,:)
   !! Initial guess for magnetization
   real(double)       :: theta=0.d0,phi=0.d0
   !! Euler Angles for the magnetization frame of reference
@@ -124,15 +123,6 @@ module mod_parameters
   character(len=1)  :: dfttype
   !! Choose between tight-binding (T) or orthogonal (O) DFT parameters (obsolete?)
   !========================================================================================!
-  integer, dimension(:), allocatable       :: mmlayer
-  !! Layer conversion
-  integer :: nmaglayers
-  !! Number of magnetic layers
-  integer, dimension(:), allocatable       :: mmlayermag
-  !! List of magnetic layers
-  integer, dimension(:), allocatable       :: layertype
-  !! Layer type: 1 - Empty Sphere; 2 - Magnetic ; 3 - Bulk ; 0 - Other
-  !========================================================================================!
   ! Set of tight-binding parameters to be used
   ! in the first half (set1) and second half (set2) of the slab
   ! NOTE: the Fermi energy is obtained from the first half.
@@ -155,17 +145,17 @@ module mod_parameters
      character(len=50) :: BField   = "" ! hwa, hwt, hwp, ltesla, lnolb, lhwscale, lhwrotate,
      character(len=50) :: dcBField = "" ! dc special case of fieldpart
 
-     character(len=50) :: EField = "" ! EFt, EFp
+     character(len=50) :: EField = ""   ! EFt, EFp
 
      character(len=50) :: suffix = ""
      character(len=50) :: Sites = ""
 
      character(len=50) :: SOC = ""
-     character(len=1) :: SOCchar = ""
+     character(len=1)  :: SOCchar = ""
 
      character(len=50) :: Energy = "" ! parts, parts3
 
-     character(len=3) :: hfr = ""
+     character(len=3)  :: hfr = ""
 
      character(len=50) :: info = ""
   end type Filename

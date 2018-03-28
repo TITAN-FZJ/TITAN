@@ -12,9 +12,9 @@ contains
 
   subroutine initElectricField(a1,a2,a3)
     use mod_parameters, only: output
-    use mod_f90_kind, only: double
-    use mod_constants, only: deg2rad,rad2deg
-    use mod_mpi_pars, only: abortProgram, myrank
+    use mod_f90_kind,   only: double
+    use mod_constants,  only: deg2rad,rad2deg
+    use mod_mpi_pars,   only: myrank,abortProgram
     implicit none
     real(double), dimension(3), intent(in) :: a1, a2, a3
 
@@ -39,30 +39,25 @@ contains
 
     ElectricFieldVector(1:3) = ElectricFieldVector(1:3) / sqrt(dot_product(ElectricFieldVector(1:3), ElectricFieldVector(1:3)))
     EFt = acos(ElectricFieldVector(3))*rad2deg
-    if(abs(Eft)>1.d-8) then
-      if(abs(abs(Eft)-180.d0)>1.d-8) then
-        EFp   = atan2(ElectricFieldVector(2),ElectricFieldVector(1))*rad2deg
-      else
-        EFp = 0.d0
-      end if
+    if((abs(Eft)>1.d-8).and.(abs(abs(Eft)-180.d0)>1.d-8)) then
+      EFp = atan2(ElectricFieldVector(2),ElectricFieldVector(1))*rad2deg
     else
       EFp = 0.d0
     end if
-    EFp = atan2(ElectricFieldVector(2),ElectricFieldVector(1))*rad2deg
-    write(output%EField,"('_EFp=',f6.2,'_EFt=',f6.2)") EFp,EFt
+    write(output%EField,"('_EFp=',f7.2,'_EFt=',f7.2)") EFp,EFt
 
   end subroutine initElectricField
 
 
-  subroutine initLongAndTransCurentNeighbors(s)
+  subroutine initLongAndTransCurentNeighbors()
     use mod_f90_kind, only: double
-    use mod_system, only: System
-
+    use mod_system,   only: System
+    use mod_mpi_pars, only: abortProgram
     implicit none
 
-    type(System), intent(inout) :: s
+    ! type(System), intent(inout) :: s
 
-    stop "setup_long_and_trans_current_neighbors not Implemented."
+    call abortProgram("[initLongAndTransCurentNeighbors] Not Implemented!")
       !
       ! ! Calculating vector in-plane perpendicular to electric field direction
       ! if(s%lbulk) then

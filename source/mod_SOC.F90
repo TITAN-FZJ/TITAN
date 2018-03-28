@@ -68,7 +68,8 @@ contains
 
   subroutine allocLS(nAtoms,nOrb)
     use mod_constants, only: cZero
-    use mod_mpi_pars, only: abortProgram,myrank
+    use mod_mpi_pars, only: abortProgram
+    use mod_mpi_pars,  only: myrank
     implicit none
     integer, intent(in) :: nOrb,nAtoms
     if((myrank.eq.0).and.(nOrb /= 9)) call abortProgram("[allocLS] LS Matrix only implemented for nOrb = 9.")

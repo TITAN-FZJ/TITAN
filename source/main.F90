@@ -19,14 +19,14 @@ program TITAN
   use adaptiveMesh
   use AtomTypes
   use mod_gilbert_damping
-  !use mod_define_system TODO: Re-include
   use mod_self_consistency
-  !use mod_prefactors TODO: Re-include
   use EnergyIntegration
   use mod_progress
   use mod_mpi_pars
   use mod_Umatrix
-  use expectation
+  use expectation, only: calc_initial_Uterms
+  !use mod_define_system TODO: Re-include
+  !use mod_prefactors TODO: Re-include
   !use mod_lgtv_currents TODO: Re-include
   !use mod_sha TODO: Re-include
   !use mod_torques, only: ntypetorque
@@ -113,7 +113,7 @@ program TITAN
   !call setup_long_and_trans_current_neighbors(sys) !TODO: Not implemented TODO: Re-include
 
   ! Filename strings
-  write(output%info,"('_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0)") kptotal_in, eta, Utype
+  write(output%info,"('_nkpt=',i0,'_eta=',es8.1)") kptotal_in, eta
 
 
   !------------------------ MAGNETIC FIELD LOOP ------------------------
@@ -143,8 +143,6 @@ program TITAN
 
     !----------------- Tests for coupling calculation ------------------
     if(itype == 6 .and. myrank == 0) then
-      if(nmaglayers==0) &
-      call abortProgram("[main] No magnetic layers for coupling calculation!")
       if(lfield) &
       call abortProgram("[main] Coupling calculation is valid for no external field!")
     end if

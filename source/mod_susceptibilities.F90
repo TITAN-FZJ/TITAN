@@ -28,11 +28,11 @@ contains
 
   subroutine allocate_susceptibilities()
     !! This subroutine allocates variables related to the susceptibility calculation
-    use mod_f90_kind, only: double
+    use mod_f90_kind,   only: double
     use mod_parameters, only: dim
-    use mod_SOC, only: llinearsoc
-    use mod_system, only: s => sys
-    use mod_mpi_pars, only: abortProgram, rFreq
+    use mod_SOC,        only: llinearsoc
+    use mod_system,     only: s => sys
+    use mod_mpi_pars,   only: rFreq,abortProgram
     implicit none
     integer :: AllocateStatus
 
@@ -125,47 +125,43 @@ contains
 
   subroutine build_identity_and_U_matrix()
     !! Mounts U and identity matrix
-    use mod_parameters, only: offset, U, Utype, layertype, sigmaimunu2i, dim
+    use mod_parameters, only: offset, U, sigmaimunu2i, dim
     use mod_constants, only: cZero, cOne
     use mod_system, only: s => sys
     implicit none
     integer :: xi,gamma,nu,mu,i
 
     Umatorb = cZero
-    if(Utype/=0) then
-       do xi=5,9
-          do gamma=5,9
-             do nu=5,9
-                do mu=5,9
-                   do i=1,s%nAtoms
-                      if((Utype==1).and.(layertype(i+offset)/=2)) cycle
-                      if((mu/=nu).or.(gamma/=xi)) cycle
-                      Umatorb(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(1,i,gamma,xi)) = cmplx(U(i+offset),0.d0)
-                      Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = cmplx(U(i+offset),0.d0)
-                      Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = cmplx(U(i+offset),0.d0)
-                      Umatorb(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,i,gamma,xi)) = cmplx(U(i+offset),0.d0)
-                   end do
+    do xi=5,9
+       do gamma=5,9
+          do nu=5,9
+             do mu=5,9
+                do i=1,s%nAtoms
+                   if((mu/=nu).or.(gamma/=xi)) cycle
+                   Umatorb(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(1,i,gamma,xi)) = cmplx(U(i+offset),0.d0)
+                   Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = cmplx(U(i+offset),0.d0)
+                   Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = cmplx(U(i+offset),0.d0)
+                   Umatorb(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,i,gamma,xi)) = cmplx(U(i+offset),0.d0)
                 end do
              end do
           end do
        end do
-       do xi=5,9
-          do gamma=5,9
-             do nu=5,9
-                do mu=5,9
-                   do i=1,s%nAtoms
-                      if((Utype==1).and.(layertype(i+offset)/=2)) cycle
-                      if((mu/=xi).or.(nu/=gamma)) cycle
-                      Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi))-cmplx(U(i+offset),0.d0)
-                      Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gamma,xi))-cmplx(U(i+offset),0.d0)
-                      Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gamma,xi))-cmplx(U(i+offset),0.d0)
-                      Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi))-cmplx(U(i+offset),0.d0)
-                   end do
+    end do
+    do xi=5,9
+       do gamma=5,9
+          do nu=5,9
+             do mu=5,9
+                do i=1,s%nAtoms
+                   if((mu/=xi).or.(nu/=gamma)) cycle
+                   Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi))-cmplx(U(i+offset),0.d0)
+                   Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gamma,xi))-cmplx(U(i+offset),0.d0)
+                   Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gamma,xi))-cmplx(U(i+offset),0.d0)
+                   Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi))-cmplx(U(i+offset),0.d0)
                 end do
              end do
           end do
        end do
-    end if
+    end do
 
     identt     = cZero
     do i=1,dim
@@ -180,8 +176,8 @@ contains
     use mod_f90_kind,   only: double
     use mod_system,     only: s => sys
     use mod_parameters, only: sigmai2i
-    use mod_mpi_pars,   only: AbortProgram
     use mod_tools,      only: itos
+    use mod_mpi_pars,   only: abortProgram
     implicit none
     integer  :: i,j,ifail
 
@@ -210,7 +206,7 @@ contains
   subroutine create_chi_files()
     !! This subroutine creates all the files needed for the susceptibilities
     use mod_parameters, only: output, lnodiag, lhfresponses
-    use mod_system, only: s => sys
+    use mod_system,     only: s => sys
     use mod_mpi_pars, only: abortProgram
     implicit none
 
@@ -254,7 +250,7 @@ contains
   subroutine open_chi_files()
     !! This subroutine opens all the files needed for the susceptibilities
     use mod_parameters, only: output, lnodiag, lhfresponses, missing_files
-    use mod_system, only: s => sys
+    use mod_System,     only: s => sys
     use mod_mpi_pars, only: abortProgram
     implicit none
 
@@ -369,9 +365,9 @@ contains
   subroutine create_dc_chi_files()
     !! This subroutine creates all the files needed for the dc-limit susceptibilities
     use mod_parameters, only: count, output, lhfresponses, lnodiag
-    use mod_magnet, only: dcprefix, dcfield_dependence, dcfield, dc_header
-    use mod_system, only: s => sys
-    use mod_mpi_pars, only: abortProgram
+    use mod_magnet,     only: dcprefix, dcfield_dependence, dcfield, dc_header
+    use mod_system,     only: s => sys
+    use mod_mpi_pars,   only: abortProgram
     implicit none
     character(len=500)  :: varm
     integer :: i,j,iw
@@ -413,9 +409,9 @@ contains
   subroutine open_dc_chi_files()
     !! This subroutine opens all the files needed for the dc-limit susceptibilities
     use mod_parameters, only: count, output, lhfresponses, lnodiag, missing_files
-    use mod_magnet, only: dcprefix, dcfield_dependence, dcfield
-    use mod_system, only: s => sys
-    use mod_mpi_pars, only: abortProgram
+    use mod_magnet,     only: dcprefix, dcfield_dependence, dcfield
+    use mod_system,     only: s => sys
+    use mod_mpi_pars,   only: abortProgram
     implicit none
     character(len=500)  :: varm
     integer :: i,j,iw,err,errt=0
@@ -460,8 +456,8 @@ contains
   subroutine close_dc_chi_files()
     !! This subroutine closes all the files needed for the dc-limit susceptibilities
     use mod_parameters, only: lhfresponses, lnodiag
-    use mod_system, only: s => sys
-    use mod_mpi_pars, only: abortProgram
+    use mod_system,     only: s => sys
+    use mod_mpi_pars,   only: abortProgram
     implicit none
     integer :: i,j,iw
 

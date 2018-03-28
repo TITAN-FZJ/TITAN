@@ -46,7 +46,7 @@ contains
 
   subroutine open_TSR_files()
     use mod_parameters, only: output
-    use mod_system, only: s => sys
+    use mod_system,     only: s => sys
     use mod_mpi_pars, only: abortProgram
     implicit none
 
@@ -91,7 +91,7 @@ contains
     use TightBinding,         only: nOrb
     use mod_parameters,       only: sigmaimunu2i
     use mod_susceptibilities, only: chiorb, chiorb_hf
-    use mod_mpi_pars,         only: abortProgram
+    use mod_mpi_pars, only: abortProgram
     use mod_magnet,           only: mabs
     implicit none
     integer :: i,j, m,n,k, mp,mu,nu, gamma, p,q

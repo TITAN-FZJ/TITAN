@@ -84,16 +84,21 @@ subroutine fermi_surface(e)
   do proc = 0, sFreq(1)-1
     if(proc == rFreq(1)) then
       do i=1,s%nAtoms
-        write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'layer',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')") output%SOCchar,trim( output%Sites),trim(epart),i,trim(output%info),trim( output%BField),trim(output%SOC)
+        write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'layer',i0,'_',a,a,a,'.dat')") &
+         output%SOCchar,trim(output%Sites),trim(epart),i,trim(output%info),trim(output%BField),trim(output%SOC)
         open (unit=17+i, file=varm,status='replace')
       end do
-      write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'s_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')")  output%SOCchar,trim( output%Sites),trim(epart),trim(output%info),trim( output%BField),trim(output%SOC)
+      write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'s_',a,a,a,'.dat')") &
+       output%SOCchar,trim(output%Sites),trim(epart),trim(output%info),trim(output%BField),trim(output%SOC)
       open (unit=96, file=varm,status='replace')
-      write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'p_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')")  output%SOCchar,trim( output%Sites),trim(epart),trim(output%info),trim( output%BField),trim(output%SOC)
+      write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'p_',a,a,a,'.dat')") &
+       output%SOCchar,trim(output%Sites),trim(epart),trim(output%info),trim(output%BField),trim(output%SOC)
       open (unit=97, file=varm,status='replace')
-      write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'d_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')")  output%SOCchar,trim( output%Sites),trim(epart),trim(output%info),trim( output%BField),trim(output%SOC)
+      write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'d_',a,a,a,'.dat')") &
+       output%SOCchar,trim(output%Sites),trim(epart),trim(output%info),trim(output%BField),trim(output%SOC)
       open (unit=98, file=varm,status='replace')
-      write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'total_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,'.dat')")  output%SOCchar,trim( output%Sites),trim(epart),trim(output%info),trim( output%BField),trim(output%SOC)
+      write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'total_',a,a,a,'.dat')") &
+       output%SOCchar,trim(output%Sites),trim(epart),trim(output%info),trim(output%BField),trim(output%SOC)
       open (unit=99, file=varm,status='replace')
 
       do iz = 1, realBZ%workload

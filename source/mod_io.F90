@@ -61,9 +61,9 @@ contains
     use mod_mpi_pars
     use mod_input
     use mod_parameters, only: output, laddresults, lverbose, ldebug, lkpoints, &
-                              lpositions, lcreatefiles, Utype, lnolb, lhfresponses, &
+                              lpositions, lcreatefiles, lnolb, lhfresponses, &
                               lnodiag, lsha, lcreatefolders, lwriteonscreen, runoptions, &
-                              lcheckjac, llgtv, lsortfiles, magaxis, magaxisvec, &
+                              lcheckjac, llgtv, lsortfiles, magbasis, &
                               itype, ry2ev, ltesla, eta, etap, dmax, emin, emax, deltae, &
                               skip_steps, npts, npt1, renorm, renormnb, bands, band_cnt, &
                               offset, dfttype, U, parField, parFreq, kptotal_in, kp_in
@@ -157,18 +157,6 @@ contains
           lcreatefiles = .true.
        case("createfolders")
           lcreatefolders = .true.
-       case ("noUonall")
-          if(Utype==1) then
-             if(myrank==0) call log_warning("get_parameters","Runoption 'noUonNM' is already active.")
-          else
-             Utype = 0
-          end if
-       case ("noUonNM")
-          if(Utype==0) then
-             if(myrank==0) call log_warning("get_parameters","Runoption 'noUonall' is already active.")
-          else
-             Utype = 1
-          end if
        case ("slatec")
           lslatec = .true.
        case ("GSL")
@@ -239,39 +227,40 @@ contains
     !---------------------------------------- Magnetization ----------------------------------------
     if(.not. get_parameter("magtol", mag_tol, 1.d-12)) call log_warning("get_parameters", "'magtol' not found. Using default value.")
 
-    if(.not. get_parameter("magbasis", tmp_string)) then
-        call log_warning("get_parameters","'magbasis' missing.")
-      magaxis = 0
-    else
-      select case (tmp_string)
-      case("cartesian")
-        if(.not. get_parameter("magaxis", vector, cnt)) &
-            call log_error("get_parameters","'magaxis' missing.")
-        if(cnt /= 3) &
-            call log_error("get_parameters","'magaxis' has wrong size (size 3 required).")
-        magaxis = -1 ! TODO: Set it to a value if not determined otherwise?
-        magaxisvec(1:3) = vector(1:3)
-        deallocate(vector)
-      case("neighbor")
-        if(.not. get_parameter("magaxis", magaxis)) &
-            call log_error("get_parameters","'magaxis' missing.")
-      case("bravais")
-        if(.not. get_parameter("magaxis", i_vector, cnt)) &
-            call log_error("get_parameters","'magaxis' missing.")
-        if(cnt /= 2) &
-            call log_error("get_parameters","'magaxis' has wrong size (size 2 required).")
-        magaxis = -2 ! TODO: Add options to evaluate these values.
-        magaxisvec(1:2) = i_vector(1:2)
-        deallocate(i_vector)
-      case("spherical")
-        if(.not. get_parameter("magaxis", vector, cnt)) &
-            call log_error("get_parameters", "'magaxis' missing.")
-        if(cnt /= 2) call log_error("get_parameters", "'magaxis' has wrong size (size 2 required).")
-        magaxis = -3
-        magaxisvec(1:2) = vector(1:2)
-        deallocate(vector)
-      end select
-    end if
+    if(.not. get_parameter("magbasis", magbasis)) call log_warning("get_parameters","'magbasis' missing.")
+    ! if(.not. get_parameter("magbasis", tmp_string)) then
+    !   call log_warning("get_parameters","'magbasis' missing.")
+    !   magaxis = 0
+    ! else
+    !   select case (tmp_string)
+    !   case("cartesian")
+    !     if(.not. get_parameter("magaxis", vector, cnt)) &
+    !         call log_error("get_parameters","'magaxis' missing.")
+    !     if(cnt /= 3) &
+    !         call log_error("get_parameters","'magaxis' has wrong size (size 3 required).")
+    !     magaxis = -1 ! TODO: Set it to a value if not determined otherwise?
+    !     magaxisvec(1:3) = vector(1:3)
+    !     deallocate(vector)
+    !   case("neighbor")
+    !     if(.not. get_parameter("magaxis", magaxis)) &
+    !         call log_error("get_parameters","'magaxis' missing.")
+    !   case("bravais")
+    !     if(.not. get_parameter("magaxis", i_vector, cnt)) &
+    !         call log_error("get_parameters","'magaxis' missing.")
+    !     if(cnt /= 2) &
+    !         call log_error("get_parameters","'magaxis' has wrong size (size 2 required).")
+    !     magaxis = -2 ! TODO: Add options to evaluate these values.
+    !     magaxisvec(1:2) = i_vector(1:2)
+    !     deallocate(i_vector)
+    !   case("spherical")
+    !     if(.not. get_parameter("magaxis", vector, cnt)) &
+    !         call log_error("get_parameters", "'magaxis' missing.")
+    !     if(cnt /= 2) call log_error("get_parameters", "'magaxis' has wrong size (size 2 required).")
+    !     magaxis = -3
+    !     magaxisvec(1:2) = vector(1:2)
+    !     deallocate(vector)
+    !   end select
+    ! end if
 
     !------------------------------------- Coulomb Interaction -------------------------------------
     if(.not. get_parameter("U", U, cnt)) then
@@ -510,7 +499,7 @@ contains
     !     nkpt = 6
     !     SOC = .true.
     !     magaxis = "5"
-    !     runoptions = trim(runoptions) // " noUonNM"
+    !     runoptions = trim(runoptions)
     !     scfile = "results/selfconsistency/selfconsistency_Npl=4_dfttype=T_parts=2_U= 0.7E-01_hwa= 0.00E+00_hwt= 0.00E+00_hwp= 0.00E+00_nkpt=6_eta= 0.5E-03.dat"
     !-------------------------------------------------------------------------------
     ! Some consistency checks
@@ -592,7 +581,6 @@ contains
     else
        write(output%unit_loop,"(1x,'Spin Orbit Coupling: DEACTIVATED')")
     end if
-    write(output%unit_loop,"(8x,'Utype = ',i0)") Utype
 
     write(output%unit_loop,"(1x,'Electric field direction: ')", advance='no')
     select case(ElectricFieldMode)
@@ -659,7 +647,7 @@ contains
        write(output%unit_loop,"(1x,'Charge and spin density at Fermi surface')")
     case (6)
        write(output%unit_loop,"(1x,'Exhange interactions and anisotropies (full tensor)')")
-       if(nmaglayers==1) write(output%unit_loop,"(1x,'Only 1 magnetic layer: calculating only anisotropies')")
+       if(s%nAtoms==1) write(output%unit_loop,"(1x,'Only 1 atom in the unit cell: calculating only anisotropies')")
        !write(outputunit_loop,"(8x,'from Npl = ',i0,' to ',i0)") Npl_i,Npl_f
     case (7)
        write(output%unit_loop,"(1x,'Local susceptibility as a function of energy')")

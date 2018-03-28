@@ -1,7 +1,7 @@
 subroutine read_band_points(kbands, b1, b2, b3)
   use mod_f90_kind,   only: double
   use mod_parameters, only: bands, band_cnt
-  use mod_mpi_pars,   only: abortProgram
+  use mod_mpi_pars, only: abortProgram
   implicit none
   real(double), dimension(:,:), allocatable, intent(out) :: kbands
   real(double), dimension(3), intent(in) :: b1, b2, b3

@@ -97,7 +97,7 @@ contains
 
   ! This subroutine opens and closes all the files needed for the currents
   subroutine openclose_currents_files(iflag)
-    use mod_parameters, only: fieldpart, energypart
+    use mod_parameters, only: fieldpart, output
     use mod_mpi_pars
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: nkpt, n0sc1, n0sc2
@@ -135,14 +135,14 @@ contains
       ! Header for currents per plane per neighbor
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 5000+(i-1)*n0sc2*7+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),neighbor,i,trim(energypart),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),neighbor,i,trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
 
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),neighbor,i,trim(energypart),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_pos=',i0,a,a,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),neighbor,i,trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
@@ -151,14 +151,14 @@ contains
       ! Header for total currents for each neighbor direction
       do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 7000+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),neighbor,trim(energypart),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),neighbor,trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
 
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),neighbor,trim(energypart),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_total',a,a,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),neighbor,trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
@@ -167,7 +167,7 @@ contains
       ! Header for DC spin current
       do i=1,Npl ; do j=2,4
         iw = 8100+(i-1)*3+j-1
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'pumpdc_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(3)),filename(j),i,trim(energypart),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'pumpdc_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(3)),filename(j),i,trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#      energy     ,    ',a,'pumpdc   ')") filename(j)
         close(unit=iw)
@@ -177,13 +177,13 @@ contains
       ! Currents per plane per neighbor
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 5000+(i-1)*n0sc2*7+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),neighbor,i,trim(energypart),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),neighbor,i,trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),neighbor,i,trim(energypart),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_pos=',i0,a,a,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),neighbor,i,trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -193,13 +193,13 @@ contains
       ! Total currents for each neighbor direction
       do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 7000+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),neighbor,trim(energypart),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),neighbor,trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),neighbor,trim(energypart),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_total',a,a,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),neighbor,trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -209,7 +209,7 @@ contains
       ! DC spin current
       do i=1,Npl ; do j=2,4
         iw = 8100+(i-1)*3+j-1
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'pumpdc_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(3)),filename(j),i,trim(energypart),nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'pumpdc_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(3)),filename(j),i,trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -254,8 +254,8 @@ contains
   ! Some information is also written on the screen
   subroutine write_currents(e)
     use mod_f90_kind
-    use mod_parameters, only: renorm,outputunit_loop,lwriteonscreen,mmlayermag
-    use mod_magnet, only: mvec_spherical
+    use mod_parameters, only: renorm,outputunit_loop,lwriteonscreen
+    use mod_magnet, only: mvec_spherical,mtotal_spherical
     use mod_system, only: n0sc1, n0sc2
     implicit none
     integer  :: neighbor,i,j,iw
@@ -298,40 +298,40 @@ contains
       ! Total currents for each neighbor direction
       ! Writing charge current
       iw = 7000+(neighbor-1)*7
-      write(unit=iw+1,fmt="(9(es16.9,2x))") e , abs(total_currents(1,neighbor)) , real(total_currents(1,neighbor)) , aimag(total_currents(1,neighbor)) , atan2(aimag(total_currents(1,neighbor)),real(total_currents(1,neighbor))) , real(total_currents(1,neighbor))/abs(total_currents(1,neighbor)) , aimag(total_currents(1,neighbor))/abs(total_currents(1,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+      write(unit=iw+1,fmt="(9(es16.9,2x))") e , abs(total_currents(1,neighbor)) , real(total_currents(1,neighbor)) , aimag(total_currents(1,neighbor)) , atan2(aimag(total_currents(1,neighbor)),real(total_currents(1,neighbor))) , real(total_currents(1,neighbor))/abs(total_currents(1,neighbor)) , aimag(total_currents(1,neighbor))/abs(total_currents(1,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
 
       ! Writing x-component spin current
-      write(unit=iw+2,fmt="(9(es16.9,2x))") e , abs(total_currents(2,neighbor)) , real(total_currents(2,neighbor)) , aimag(total_currents(2,neighbor)) , atan2(aimag(total_currents(2,neighbor)),real(total_currents(2,neighbor))) , real(total_currents(2,neighbor))/abs(total_currents(2,neighbor)) , aimag(total_currents(2,neighbor))/abs(total_currents(2,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+      write(unit=iw+2,fmt="(9(es16.9,2x))") e , abs(total_currents(2,neighbor)) , real(total_currents(2,neighbor)) , aimag(total_currents(2,neighbor)) , atan2(aimag(total_currents(2,neighbor)),real(total_currents(2,neighbor))) , real(total_currents(2,neighbor))/abs(total_currents(2,neighbor)) , aimag(total_currents(2,neighbor))/abs(total_currents(2,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
       ! Writing y-component spin current
-      write(unit=iw+3,fmt="(9(es16.9,2x))") e , abs(total_currents(3,neighbor)) , real(total_currents(3,neighbor)) , aimag(total_currents(3,neighbor)) , atan2(aimag(total_currents(3,neighbor)),real(total_currents(3,neighbor))) , real(total_currents(3,neighbor))/abs(total_currents(3,neighbor)) , aimag(total_currents(3,neighbor))/abs(total_currents(3,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+      write(unit=iw+3,fmt="(9(es16.9,2x))") e , abs(total_currents(3,neighbor)) , real(total_currents(3,neighbor)) , aimag(total_currents(3,neighbor)) , atan2(aimag(total_currents(3,neighbor)),real(total_currents(3,neighbor))) , real(total_currents(3,neighbor))/abs(total_currents(3,neighbor)) , aimag(total_currents(3,neighbor))/abs(total_currents(3,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
       ! Writing z-component spin current
-      write(unit=iw+4,fmt="(9(es16.9,2x))") e , abs(total_currents(4,neighbor)) , real(total_currents(4,neighbor)) , aimag(total_currents(4,neighbor)) , atan2(aimag(total_currents(4,neighbor)),real(total_currents(4,neighbor))) , real(total_currents(4,neighbor))/abs(total_currents(4,neighbor)) , aimag(total_currents(4,neighbor))/abs(total_currents(4,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+      write(unit=iw+4,fmt="(9(es16.9,2x))") e , abs(total_currents(4,neighbor)) , real(total_currents(4,neighbor)) , aimag(total_currents(4,neighbor)) , atan2(aimag(total_currents(4,neighbor)),real(total_currents(4,neighbor))) , real(total_currents(4,neighbor))/abs(total_currents(4,neighbor)) , aimag(total_currents(4,neighbor))/abs(total_currents(4,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
 
       ! Writing x-component orbital angular momentum current
-      write(unit=iw+5,fmt="(9(es16.9,2x))") e , abs(total_currents(5,neighbor)) , real(total_currents(5,neighbor)) , aimag(total_currents(5,neighbor)) , atan2(aimag(total_currents(5,neighbor)),real(total_currents(5,neighbor))) , real(total_currents(5,neighbor))/abs(total_currents(5,neighbor)) , aimag(total_currents(5,neighbor))/abs(total_currents(5,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+      write(unit=iw+5,fmt="(9(es16.9,2x))") e , abs(total_currents(5,neighbor)) , real(total_currents(5,neighbor)) , aimag(total_currents(5,neighbor)) , atan2(aimag(total_currents(5,neighbor)),real(total_currents(5,neighbor))) , real(total_currents(5,neighbor))/abs(total_currents(5,neighbor)) , aimag(total_currents(5,neighbor))/abs(total_currents(5,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
       ! Writing y-component orbital angular momentum current
-      write(unit=iw+6,fmt="(9(es16.9,2x))") e , abs(total_currents(6,neighbor)) , real(total_currents(6,neighbor)) , aimag(total_currents(6,neighbor)) , atan2(aimag(total_currents(6,neighbor)),real(total_currents(6,neighbor))) , real(total_currents(6,neighbor))/abs(total_currents(6,neighbor)) , aimag(total_currents(6,neighbor))/abs(total_currents(6,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+      write(unit=iw+6,fmt="(9(es16.9,2x))") e , abs(total_currents(6,neighbor)) , real(total_currents(6,neighbor)) , aimag(total_currents(6,neighbor)) , atan2(aimag(total_currents(6,neighbor)),real(total_currents(6,neighbor))) , real(total_currents(6,neighbor))/abs(total_currents(6,neighbor)) , aimag(total_currents(6,neighbor))/abs(total_currents(6,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
       ! Writing z-component orbital angular momentum current
-      write(unit=iw+7,fmt="(9(es16.9,2x))") e , abs(total_currents(7,neighbor)) , real(total_currents(7,neighbor)) , aimag(total_currents(7,neighbor)) , atan2(aimag(total_currents(7,neighbor)),real(total_currents(7,neighbor))) , real(total_currents(7,neighbor))/abs(total_currents(7,neighbor)) , aimag(total_currents(7,neighbor))/abs(total_currents(7,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+      write(unit=iw+7,fmt="(9(es16.9,2x))") e , abs(total_currents(7,neighbor)) , real(total_currents(7,neighbor)) , aimag(total_currents(7,neighbor)) , atan2(aimag(total_currents(7,neighbor)),real(total_currents(7,neighbor))) , real(total_currents(7,neighbor))/abs(total_currents(7,neighbor)) , aimag(total_currents(7,neighbor))/abs(total_currents(7,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
 
       ! Writing renormalized currents
       if(renorm) then
         ! Writing renormalized charge current
-        write(unit=iw+1001,fmt="(9(es16.9,2x))") e , abs(rtotal_currents(1,neighbor)) , real(rtotal_currents(1,neighbor)) , aimag(rtotal_currents(1,neighbor)) , atan2(aimag(rtotal_currents(1,neighbor)),real(rtotal_currents(1,neighbor))) , real(rtotal_currents(1,neighbor))/abs(rtotal_currents(1,neighbor)) , aimag(rtotal_currents(1,neighbor))/abs(rtotal_currents(1,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+        write(unit=iw+1001,fmt="(9(es16.9,2x))") e , abs(rtotal_currents(1,neighbor)) , real(rtotal_currents(1,neighbor)) , aimag(rtotal_currents(1,neighbor)) , atan2(aimag(rtotal_currents(1,neighbor)),real(rtotal_currents(1,neighbor))) , real(rtotal_currents(1,neighbor))/abs(rtotal_currents(1,neighbor)) , aimag(rtotal_currents(1,neighbor))/abs(rtotal_currents(1,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
 
         ! Writing renormalized x-component spin current
-        write(unit=iw+1002,fmt="(9(es16.9,2x))") e , abs(rtotal_currents(2,neighbor)) , real(rtotal_currents(2,neighbor)) , aimag(rtotal_currents(2,neighbor)) , atan2(aimag(rtotal_currents(2,neighbor)),real(rtotal_currents(2,neighbor))) , real(rtotal_currents(2,neighbor))/abs(rtotal_currents(2,neighbor)) , aimag(rtotal_currents(2,neighbor))/abs(rtotal_currents(2,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+        write(unit=iw+1002,fmt="(9(es16.9,2x))") e , abs(rtotal_currents(2,neighbor)) , real(rtotal_currents(2,neighbor)) , aimag(rtotal_currents(2,neighbor)) , atan2(aimag(rtotal_currents(2,neighbor)),real(rtotal_currents(2,neighbor))) , real(rtotal_currents(2,neighbor))/abs(rtotal_currents(2,neighbor)) , aimag(rtotal_currents(2,neighbor))/abs(rtotal_currents(2,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
         ! Writing renormalized y-component spin current
-        write(unit=iw+1003,fmt="(9(es16.9,2x))") e , abs(rtotal_currents(3,neighbor)) , real(rtotal_currents(3,neighbor)) , aimag(rtotal_currents(3,neighbor)) , atan2(aimag(rtotal_currents(3,neighbor)),real(rtotal_currents(3,neighbor))) , real(rtotal_currents(3,neighbor))/abs(rtotal_currents(3,neighbor)) , aimag(rtotal_currents(3,neighbor))/abs(rtotal_currents(3,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+        write(unit=iw+1003,fmt="(9(es16.9,2x))") e , abs(rtotal_currents(3,neighbor)) , real(rtotal_currents(3,neighbor)) , aimag(rtotal_currents(3,neighbor)) , atan2(aimag(rtotal_currents(3,neighbor)),real(rtotal_currents(3,neighbor))) , real(rtotal_currents(3,neighbor))/abs(rtotal_currents(3,neighbor)) , aimag(rtotal_currents(3,neighbor))/abs(rtotal_currents(3,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
         ! Writing renormalized z-component spin current
-        write(unit=iw+1004,fmt="(9(es16.9,2x))") e , abs(rtotal_currents(4,neighbor)) , real(rtotal_currents(4,neighbor)) , aimag(rtotal_currents(4,neighbor)) , atan2(aimag(rtotal_currents(4,neighbor)),real(rtotal_currents(4,neighbor))) , real(rtotal_currents(4,neighbor))/abs(rtotal_currents(4,neighbor)) , aimag(rtotal_currents(4,neighbor))/abs(rtotal_currents(4,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+        write(unit=iw+1004,fmt="(9(es16.9,2x))") e , abs(rtotal_currents(4,neighbor)) , real(rtotal_currents(4,neighbor)) , aimag(rtotal_currents(4,neighbor)) , atan2(aimag(rtotal_currents(4,neighbor)),real(rtotal_currents(4,neighbor))) , real(rtotal_currents(4,neighbor))/abs(rtotal_currents(4,neighbor)) , aimag(rtotal_currents(4,neighbor))/abs(rtotal_currents(4,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
 
         ! Writing x-component orbital angular momentum current
-        write(unit=iw+1005,fmt="(9(es16.9,2x))") e , abs(rtotal_currents(5,neighbor)) , real(rtotal_currents(5,neighbor)) , aimag(rtotal_currents(5,neighbor)) , atan2(aimag(rtotal_currents(5,neighbor)),real(rtotal_currents(5,neighbor))) , real(rtotal_currents(5,neighbor))/abs(rtotal_currents(5,neighbor)) , aimag(rtotal_currents(5,neighbor))/abs(rtotal_currents(5,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+        write(unit=iw+1005,fmt="(9(es16.9,2x))") e , abs(rtotal_currents(5,neighbor)) , real(rtotal_currents(5,neighbor)) , aimag(rtotal_currents(5,neighbor)) , atan2(aimag(rtotal_currents(5,neighbor)),real(rtotal_currents(5,neighbor))) , real(rtotal_currents(5,neighbor))/abs(rtotal_currents(5,neighbor)) , aimag(rtotal_currents(5,neighbor))/abs(rtotal_currents(5,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
         ! Writing y-component orbital angular momentum current
-        write(unit=iw+1006,fmt="(9(es16.9,2x))") e , abs(rtotal_currents(6,neighbor)) , real(rtotal_currents(6,neighbor)) , aimag(rtotal_currents(6,neighbor)) , atan2(aimag(rtotal_currents(6,neighbor)),real(rtotal_currents(6,neighbor))) , real(rtotal_currents(6,neighbor))/abs(rtotal_currents(6,neighbor)) , aimag(rtotal_currents(6,neighbor))/abs(rtotal_currents(6,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+        write(unit=iw+1006,fmt="(9(es16.9,2x))") e , abs(rtotal_currents(6,neighbor)) , real(rtotal_currents(6,neighbor)) , aimag(rtotal_currents(6,neighbor)) , atan2(aimag(rtotal_currents(6,neighbor)),real(rtotal_currents(6,neighbor))) , real(rtotal_currents(6,neighbor))/abs(rtotal_currents(6,neighbor)) , aimag(rtotal_currents(6,neighbor))/abs(rtotal_currents(6,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
         ! Writing z-component orbital angular momentum current
-        write(unit=iw+1007,fmt="(9(es16.9,2x))") e , abs(rtotal_currents(7,neighbor)) , real(rtotal_currents(7,neighbor)) , aimag(rtotal_currents(7,neighbor)) , atan2(aimag(rtotal_currents(7,neighbor)),real(rtotal_currents(7,neighbor))) , real(rtotal_currents(7,neighbor))/abs(rtotal_currents(7,neighbor)) , aimag(rtotal_currents(7,neighbor))/abs(rtotal_currents(7,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+        write(unit=iw+1007,fmt="(9(es16.9,2x))") e , abs(rtotal_currents(7,neighbor)) , real(rtotal_currents(7,neighbor)) , aimag(rtotal_currents(7,neighbor)) , atan2(aimag(rtotal_currents(7,neighbor)),real(rtotal_currents(7,neighbor))) , real(rtotal_currents(7,neighbor))/abs(rtotal_currents(7,neighbor)) , aimag(rtotal_currents(7,neighbor))/abs(rtotal_currents(7,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
       end if
 
       ! Writing currents per plane
@@ -386,7 +386,7 @@ contains
 
   ! This subroutine opens and closes all the files needed for the currents
   subroutine openclose_dc_currents_files(iflag)
-    use mod_parameters, only: dcfieldpart, energypart
+    use mod_parameters, only: dcfieldpart, output
     use mod_mpi_pars
     use mod_SOC, only: SOCc, socpart
     use mod_system, only:nkpt, n0sc1, n0sc2
@@ -423,14 +423,14 @@ contains
       ! Header for currents per plane per neighbor
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 50000+(i-1)*n0sc2*7+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,trim(energypart),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,' real part of ',a,' ,  imag part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
 
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,trim(energypart),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_pos=',i0,a,a,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#',a,' real part of ',a,' ,  imag part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
@@ -439,14 +439,14 @@ contains
       ! Header for total currents for each neighbor direction
       do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 70000+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,trim(energypart),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,' real part of ',a,' ,  imag part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
 
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,trim(energypart),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_total',a,a,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#',a,' real part of ',a,' ,  imag part of ',a,'  ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
@@ -456,7 +456,7 @@ contains
       ! Header for DC spin current
       do i=1,Npl ; do j=2,4
         iw = 81000+(i-1)*3+j-1
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'pumpdc_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(3)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(energypart),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'pumpdc_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(3)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,'    ',a,'pumpdc    , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j)
         close(unit=iw)
@@ -466,13 +466,13 @@ contains
       ! Currents per plane per neighbor
       do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 50000+(i-1)*n0sc2*7+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,trim(energypart),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,trim(energypart),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_pos=',i0,a,a,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -482,13 +482,13 @@ contains
       ! Total currents for each neighbor direction
       do neighbor=n0sc1,n0sc2 ; do j=1,7
         iw = 70000+(neighbor-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,trim(energypart),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_total',a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,trim(energypart),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_total',a,a,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -498,7 +498,7 @@ contains
       ! DC spin current
       do i=1,Npl ; do j=2,4
         iw = 81000+(i-1)*3+j-1
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'pumpdc_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(3)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(energypart),nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'pumpdc_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(3)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -549,7 +549,7 @@ contains
   subroutine write_dc_currents()
     use mod_f90_kind
     use mod_parameters
-    use mod_magnet, only: mvec_spherical
+    use mod_magnet, only: mvec_spherical,mtotal_spherical
     use mod_system, only: n0sc1, n0sc2
     implicit none
     integer  :: neighbor,i,j,iw
@@ -591,40 +591,40 @@ contains
       ! Total currents for each neighbor direction
       ! Writing charge current
       iw = 70000+(neighbor-1)*7
-      write(unit=iw+1,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_currents(1,neighbor)) , aimag(total_currents(1,neighbor)) , atan2(aimag(total_currents(1,neighbor)),real(total_currents(1,neighbor))) , real(total_currents(1,neighbor))/abs(total_currents(1,neighbor)) , aimag(total_currents(1,neighbor))/abs(total_currents(1,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+      write(unit=iw+1,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_currents(1,neighbor)) , aimag(total_currents(1,neighbor)) , atan2(aimag(total_currents(1,neighbor)),real(total_currents(1,neighbor))) , real(total_currents(1,neighbor))/abs(total_currents(1,neighbor)) , aimag(total_currents(1,neighbor))/abs(total_currents(1,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
 
       ! Writing x-component spin current
-      write(unit=iw+2,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_currents(2,neighbor)) , aimag(total_currents(2,neighbor)) , atan2(aimag(total_currents(2,neighbor)),real(total_currents(2,neighbor))) , real(total_currents(2,neighbor))/abs(total_currents(2,neighbor)) , aimag(total_currents(2,neighbor))/abs(total_currents(2,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+      write(unit=iw+2,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_currents(2,neighbor)) , aimag(total_currents(2,neighbor)) , atan2(aimag(total_currents(2,neighbor)),real(total_currents(2,neighbor))) , real(total_currents(2,neighbor))/abs(total_currents(2,neighbor)) , aimag(total_currents(2,neighbor))/abs(total_currents(2,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
       ! Writing y-component spin current
-      write(unit=iw+3,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_currents(3,neighbor)) , aimag(total_currents(3,neighbor)) , atan2(aimag(total_currents(3,neighbor)),real(total_currents(3,neighbor))) , real(total_currents(3,neighbor))/abs(total_currents(3,neighbor)) , aimag(total_currents(3,neighbor))/abs(total_currents(3,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+      write(unit=iw+3,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_currents(3,neighbor)) , aimag(total_currents(3,neighbor)) , atan2(aimag(total_currents(3,neighbor)),real(total_currents(3,neighbor))) , real(total_currents(3,neighbor))/abs(total_currents(3,neighbor)) , aimag(total_currents(3,neighbor))/abs(total_currents(3,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
       ! Writing z-component spin current
-      write(unit=iw+4,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_currents(4,neighbor)) , aimag(total_currents(4,neighbor)) , atan2(aimag(total_currents(4,neighbor)),real(total_currents(4,neighbor))) , real(total_currents(4,neighbor))/abs(total_currents(4,neighbor)) , aimag(total_currents(4,neighbor))/abs(total_currents(4,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+      write(unit=iw+4,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_currents(4,neighbor)) , aimag(total_currents(4,neighbor)) , atan2(aimag(total_currents(4,neighbor)),real(total_currents(4,neighbor))) , real(total_currents(4,neighbor))/abs(total_currents(4,neighbor)) , aimag(total_currents(4,neighbor))/abs(total_currents(4,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
 
       ! Writing x-component orbital angular momentum current
-      write(unit=iw+5,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_currents(5,neighbor)) , aimag(total_currents(5,neighbor)) , atan2(aimag(total_currents(5,neighbor)),real(total_currents(5,neighbor))) , real(total_currents(5,neighbor))/abs(total_currents(5,neighbor)) , aimag(total_currents(5,neighbor))/abs(total_currents(5,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+      write(unit=iw+5,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_currents(5,neighbor)) , aimag(total_currents(5,neighbor)) , atan2(aimag(total_currents(5,neighbor)),real(total_currents(5,neighbor))) , real(total_currents(5,neighbor))/abs(total_currents(5,neighbor)) , aimag(total_currents(5,neighbor))/abs(total_currents(5,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
       ! Writing y-component orbital angular momentum current
-      write(unit=iw+6,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_currents(6,neighbor)) , aimag(total_currents(6,neighbor)) , atan2(aimag(total_currents(6,neighbor)),real(total_currents(6,neighbor))) , real(total_currents(6,neighbor))/abs(total_currents(6,neighbor)) , aimag(total_currents(6,neighbor))/abs(total_currents(6,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+      write(unit=iw+6,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_currents(6,neighbor)) , aimag(total_currents(6,neighbor)) , atan2(aimag(total_currents(6,neighbor)),real(total_currents(6,neighbor))) , real(total_currents(6,neighbor))/abs(total_currents(6,neighbor)) , aimag(total_currents(6,neighbor))/abs(total_currents(6,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
       ! Writing z-component orbital angular momentum current
-      write(unit=iw+7,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_currents(7,neighbor)) , aimag(total_currents(7,neighbor)) , atan2(aimag(total_currents(7,neighbor)),real(total_currents(7,neighbor))) , real(total_currents(7,neighbor))/abs(total_currents(7,neighbor)) , aimag(total_currents(7,neighbor))/abs(total_currents(7,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+      write(unit=iw+7,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_currents(7,neighbor)) , aimag(total_currents(7,neighbor)) , atan2(aimag(total_currents(7,neighbor)),real(total_currents(7,neighbor))) , real(total_currents(7,neighbor))/abs(total_currents(7,neighbor)) , aimag(total_currents(7,neighbor))/abs(total_currents(7,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
 
       ! Writing renormalized currents
       if(renorm) then
         ! Writing renormalized charge current
-        write(unit=iw+1001,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rtotal_currents(1,neighbor)) , aimag(rtotal_currents(1,neighbor)) , atan2(aimag(rtotal_currents(1,neighbor)),real(rtotal_currents(1,neighbor))) , real(rtotal_currents(1,neighbor))/abs(rtotal_currents(1,neighbor)) , aimag(rtotal_currents(1,neighbor))/abs(rtotal_currents(1,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+        write(unit=iw+1001,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rtotal_currents(1,neighbor)) , aimag(rtotal_currents(1,neighbor)) , atan2(aimag(rtotal_currents(1,neighbor)),real(rtotal_currents(1,neighbor))) , real(rtotal_currents(1,neighbor))/abs(rtotal_currents(1,neighbor)) , aimag(rtotal_currents(1,neighbor))/abs(rtotal_currents(1,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
 
         ! Writing renormalized x-component spin current
-        write(unit=iw+1002,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rtotal_currents(2,neighbor)) , aimag(rtotal_currents(2,neighbor)) , atan2(aimag(rtotal_currents(2,neighbor)),real(rtotal_currents(2,neighbor))) , real(rtotal_currents(2,neighbor))/abs(rtotal_currents(2,neighbor)) , aimag(rtotal_currents(2,neighbor))/abs(rtotal_currents(2,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+        write(unit=iw+1002,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rtotal_currents(2,neighbor)) , aimag(rtotal_currents(2,neighbor)) , atan2(aimag(rtotal_currents(2,neighbor)),real(rtotal_currents(2,neighbor))) , real(rtotal_currents(2,neighbor))/abs(rtotal_currents(2,neighbor)) , aimag(rtotal_currents(2,neighbor))/abs(rtotal_currents(2,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
         ! Writing renormalized y-component spin current
-        write(unit=iw+1003,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rtotal_currents(3,neighbor)) , aimag(rtotal_currents(3,neighbor)) , atan2(aimag(rtotal_currents(3,neighbor)),real(rtotal_currents(3,neighbor))) , real(rtotal_currents(3,neighbor))/abs(rtotal_currents(3,neighbor)) , aimag(rtotal_currents(3,neighbor))/abs(rtotal_currents(3,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+        write(unit=iw+1003,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rtotal_currents(3,neighbor)) , aimag(rtotal_currents(3,neighbor)) , atan2(aimag(rtotal_currents(3,neighbor)),real(rtotal_currents(3,neighbor))) , real(rtotal_currents(3,neighbor))/abs(rtotal_currents(3,neighbor)) , aimag(rtotal_currents(3,neighbor))/abs(rtotal_currents(3,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
         ! Writing renormalized z-component spin current
-        write(unit=iw+1004,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rtotal_currents(4,neighbor)) , aimag(rtotal_currents(4,neighbor)) , atan2(aimag(rtotal_currents(4,neighbor)),real(rtotal_currents(4,neighbor))) , real(rtotal_currents(4,neighbor))/abs(rtotal_currents(4,neighbor)) , aimag(rtotal_currents(4,neighbor))/abs(rtotal_currents(4,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+        write(unit=iw+1004,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rtotal_currents(4,neighbor)) , aimag(rtotal_currents(4,neighbor)) , atan2(aimag(rtotal_currents(4,neighbor)),real(rtotal_currents(4,neighbor))) , real(rtotal_currents(4,neighbor))/abs(rtotal_currents(4,neighbor)) , aimag(rtotal_currents(4,neighbor))/abs(rtotal_currents(4,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
 
         ! Writing x-component orbital angular momentum current
-        write(unit=iw+1005,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rtotal_currents(5,neighbor)) , aimag(rtotal_currents(5,neighbor)) , atan2(aimag(rtotal_currents(5,neighbor)),real(rtotal_currents(5,neighbor))) , real(rtotal_currents(5,neighbor))/abs(rtotal_currents(5,neighbor)) , aimag(rtotal_currents(5,neighbor))/abs(rtotal_currents(5,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+        write(unit=iw+1005,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rtotal_currents(5,neighbor)) , aimag(rtotal_currents(5,neighbor)) , atan2(aimag(rtotal_currents(5,neighbor)),real(rtotal_currents(5,neighbor))) , real(rtotal_currents(5,neighbor))/abs(rtotal_currents(5,neighbor)) , aimag(rtotal_currents(5,neighbor))/abs(rtotal_currents(5,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
         ! Writing y-component orbital angular momentum current
-        write(unit=iw+1006,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rtotal_currents(6,neighbor)) , aimag(rtotal_currents(6,neighbor)) , atan2(aimag(rtotal_currents(6,neighbor)),real(rtotal_currents(6,neighbor))) , real(rtotal_currents(6,neighbor))/abs(rtotal_currents(6,neighbor)) , aimag(rtotal_currents(6,neighbor))/abs(rtotal_currents(6,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+        write(unit=iw+1006,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rtotal_currents(6,neighbor)) , aimag(rtotal_currents(6,neighbor)) , atan2(aimag(rtotal_currents(6,neighbor)),real(rtotal_currents(6,neighbor))) , real(rtotal_currents(6,neighbor))/abs(rtotal_currents(6,neighbor)) , aimag(rtotal_currents(6,neighbor))/abs(rtotal_currents(6,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
         ! Writing z-component orbital angular momentum current
-        write(unit=iw+1007,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rtotal_currents(7,neighbor)) , aimag(rtotal_currents(7,neighbor)) , atan2(aimag(rtotal_currents(7,neighbor)),real(rtotal_currents(7,neighbor))) , real(rtotal_currents(7,neighbor))/abs(rtotal_currents(7,neighbor)) , aimag(rtotal_currents(7,neighbor))/abs(rtotal_currents(7,neighbor)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+        write(unit=iw+1007,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , real(rtotal_currents(7,neighbor)) , aimag(rtotal_currents(7,neighbor)) , atan2(aimag(rtotal_currents(7,neighbor)),real(rtotal_currents(7,neighbor))) , real(rtotal_currents(7,neighbor))/abs(rtotal_currents(7,neighbor)) , aimag(rtotal_currents(7,neighbor))/abs(rtotal_currents(7,neighbor)) , mtotal_spherical(2) , mtotal_spherical(3)
       end if
 
       ! Writing currents per plane

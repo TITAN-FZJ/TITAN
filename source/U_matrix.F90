@@ -8,7 +8,7 @@ module mod_Umatrix
 contains
 
   subroutine allocate_Umatrix(nAtoms,nOrb)
-    use mod_mpi_pars, only: AbortProgram
+    use mod_mpi_pars, only: abortProgram
     implicit none
     integer, intent(in) :: nAtoms, nOrb
     integer             :: AllocateStatus
@@ -21,7 +21,7 @@ contains
 
   subroutine update_Umatrix(mz,mp,rhod,rhod0,rho,rho0,nAtoms,nOrb)
     use mod_f90_kind,   only: double
-    use mod_constants,  only: cZero,ident_dorb,pauli_dorb
+    use mod_constants,  only: cZero
     use mod_parameters, only: offset, U
     implicit none
     integer,                              intent(in) :: nAtoms, nOrb

@@ -13,11 +13,12 @@ contains
 
   ! This subroutine allocates variables related to the torques calculation
   subroutine allocate_torques()
-    use mod_f90_kind, only: double
+    use mod_f90_kind,   only: double
     use mod_parameters, only: renorm
-    use mod_System, only: s => sys
-    use mod_magnet, only: lfield, total_hw_npt1
-    use mod_mpi_pars, only: abortProgram, rFreq
+    use mod_System,     only: s => sys
+    use mod_magnet,     only: lfield, total_hw_npt1
+    use mod_mpi_pars, only: abortProgram
+    use mod_mpi_pars,   only: rFreq
     implicit none
     integer :: AllocateStatus
 
@@ -52,8 +53,7 @@ contains
   subroutine create_torque_files()
     !! This subroutine creates all the files needed for the disturbances
     use mod_parameters, only: output, renorm
-    use mod_mpi_pars
-    use mod_system, only: s => sys
+    use mod_system,     only: s => sys
     implicit none
 
     character(len=500)  :: varm
@@ -155,10 +155,10 @@ contains
   !! This subroutine write all the torques into files
   !! (already opened with openclose_torque_files(1))
   !! Some information may also be written on the screen
-    use mod_f90_kind, only: double
-    use mod_parameters, only: renorm, mmlayermag
-    use mod_magnet, only: mvec_spherical
-    use mod_System, only: s => sys
+    use mod_f90_kind,   only: double
+    use mod_parameters, only: renorm
+    use mod_magnet,     only: mvec_spherical,mtotal_spherical
+    use mod_System,     only: s => sys
     implicit none
     integer  :: i,iw,sigma,typetorque
     real(double) :: phase,sine,cosine
@@ -213,7 +213,7 @@ contains
             cosine = 0.d0
          end if
 
-         write(unit=iw,fmt="(9(es16.9,2x))") e , abs(total_torques(typetorque,sigma)) , real(total_torques(typetorque,sigma)) , aimag(total_torques(typetorque,sigma)) , phase , sine , cosine , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+         write(unit=iw,fmt="(9(es16.9,2x))") e , abs(total_torques(typetorque,sigma)) , real(total_torques(typetorque,sigma)) , aimag(total_torques(typetorque,sigma)) , phase , sine , cosine , mtotal_spherical(2) , mtotal_spherical(3)
 
       end do
     end do
@@ -332,8 +332,8 @@ contains
   !! (already opened with openclose_torque_files(1))
   !! Some information may also be written on the screen
     use mod_f90_kind, only: double
-    use mod_parameters, only: renorm, mmlayermag
-    use mod_magnet, only: mvec_spherical,dc_fields,hw_count
+    use mod_parameters, only: renorm
+    use mod_magnet, only: mvec_spherical,mtotal_spherical,dc_fields,hw_count
     use mod_System, only: s => sys
     implicit none
     integer      :: i,iw,sigma,typetorque
@@ -386,7 +386,7 @@ contains
         sine   = 0.d0
         cosine = 0.d0
       end if
-      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_torques(typetorque,sigma)) , real(total_torques(typetorque,sigma)) , phase , sine , cosine , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_torques(typetorque,sigma)) , real(total_torques(typetorque,sigma)) , phase , sine , cosine , mtotal_spherical(2) , mtotal_spherical(3)
 
       end do
     end do

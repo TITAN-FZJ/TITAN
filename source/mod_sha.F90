@@ -39,7 +39,7 @@ contains
 
   ! This subroutine opens and closes all the files needed for the sha
   subroutine openclose_sha_files(iflag)
-    use mod_parameters, only: fieldpart
+    use mod_parameters, only: fieldpart,output
     use mod_SOC, only: SOCc, socpart
     use mod_mpi_pars
     use mod_system, only: nkpt
@@ -78,13 +78,13 @@ contains
       do j=2,4
         do i=1,Npl
           iw = 8200+(i-1)*3+j-1
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/SHA_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),filename(j),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/SHA_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),filename(j),i,trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#     energy     ,  SHA reIs/reIc  ,  SHA abs(Is/Ic) , SHA atan(Is/Ic) ,  SHA re(Is/Ic)  ,  SHA im(Is/Ic)  ')")
           close(unit=iw)
         end do
         iw = 8200+Npl*3+j-1
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/SHA_',a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),filename(j),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/SHA_',a,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),filename(j),trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#     energy     ,  SHA reIs/reIc  ,  SHA abs(Is/Ic) , SHA atan(Is/Ic) ,  SHA re(Is/Ic)  ,  SHA im(Is/Ic)  ')")
         close(unit=iw)
@@ -95,13 +95,13 @@ contains
       do j=2,4
         do i=1,Npl
           iw = 8200+(i-1)*3+j-1
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/SHA_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),filename(j),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/SHA_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),filename(j),i,trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
         end do
         iw = 8200+Npl*3+j-1
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/SHA_',a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),filename(j),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/SHA_',a,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),filename(j),trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -127,8 +127,8 @@ contains
   ! (already opened with openclose_sha_files(1))
   subroutine write_sha(e)
     use mod_f90_kind
-    use mod_parameters, only: Npl,mmlayermag
-    use mod_magnet, only: mvec_spherical
+    use mod_parameters, only: Npl
+    use mod_magnet, only: mvec_spherical,mtotal_spherical
     implicit none
     integer  :: i,j,iw
     real(double),intent(in) :: e
@@ -139,14 +139,14 @@ contains
         write(unit=iw,fmt="(8(es16.9,2x))") e , sha_re(j,i) , abs(sha_complex(j,i)) , atan2(aimag(sha_complex(j,i)),real(sha_complex(j,i))) , real(sha_complex(j,i)) , aimag(sha_complex(j,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
       end do
       iw = 8200+Npl*3+j-1
-      write(unit=iw,fmt="(8(es16.9,2x))") e , sha_re_total(j) , abs(sha_complex_total(j)) , atan2(aimag(sha_complex_total(j)),real(sha_complex_total(j))) , real(sha_complex_total(j)) , aimag(sha_complex_total(j)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+      write(unit=iw,fmt="(8(es16.9,2x))") e , sha_re_total(j) , abs(sha_complex_total(j)) , atan2(aimag(sha_complex_total(j)),real(sha_complex_total(j))) , real(sha_complex_total(j)) , aimag(sha_complex_total(j)) , mtotal_spherical(2) , mtotal_spherical(3)
     end do
 
   end subroutine write_sha
 
   ! This subroutine opens and closes all the files needed for the sha
   subroutine openclose_dc_sha_files(iflag)
-    use mod_parameters, only: dcfieldpart
+    use mod_parameters, only: dcfieldpart,output
     use mod_SOC, only: SOCc, socpart
     use mod_mpi_pars, only: errorcode, ierr, MPI_COMM_WORLD
     use mod_system, only: nkpt
@@ -185,13 +185,13 @@ contains
       do j=2,4
         do i=1,Npl
           iw = 82000+(i-1)*3+j-1
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#',a,'    SHA reIs/reIc   ,    SHA abs(Is/Ic)   ,    SHA atan(Is/Ic)   ,    SHA re(Is/Ic)   ,    SHA im(Is/Ic)   ')") trim(dc_header)
           close(unit=iw)
         end do
         iw = 82000+Npl*3+j-1
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,'    SHA reIs/reIc   ,    SHA abs(Is/Ic)   ,    SHA atan(Is/Ic)   ,    SHA re(Is/Ic)   ,    SHA im(Is/Ic)   ')") trim(dc_header)
         close(unit=iw)
@@ -202,7 +202,7 @@ contains
       do j=2,4
         do i=1,Npl
           iw = 82000+(i-1)*3+j-1
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           if(.not.lsha) then
             errt = errt + err
@@ -210,7 +210,7 @@ contains
           end if
         end do
         iw = 82000+Npl*3+j-1
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         if(.not.lsha) then
           errt = errt + err
@@ -240,7 +240,7 @@ contains
   subroutine write_dc_sha()
     use mod_f90_kind
     use mod_parameters
-    use mod_magnet, only: mvec_spherical
+    use mod_magnet, only: mvec_spherical,mtotal_spherical
     implicit none
     integer  :: i,j,iw
 
@@ -250,7 +250,7 @@ contains
         write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , sha_re(j,i) , abs(sha_complex(j,i)) , atan2(aimag(sha_complex(j,i)),real(sha_complex(j,i))) , real(sha_complex(j,i)) , aimag(sha_complex(j,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
       end do
       iw = 82000+Npl*3+j-1
-      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , sha_re_total(j) , abs(sha_complex_total(j)) , atan2(aimag(sha_complex_total(j)),real(sha_complex_total(j))) , real(sha_complex_total(j)) , aimag(sha_complex_total(j)) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , sha_re_total(j) , abs(sha_complex_total(j)) , atan2(aimag(sha_complex_total(j)),real(sha_complex_total(j))) , real(sha_complex_total(j)) , aimag(sha_complex_total(j)) , mtotal_spherical(2) , mtotal_spherical(3)
     end do
 
   end subroutine write_dc_sha
@@ -493,7 +493,7 @@ contains
             end if
 
             ! Checking if angles are the same
-            if(sum(abs(mangles(:,mmlayermag(1)-1,:)-data(:,cols-1:cols)))>1.d-8) then
+            if(sum(abs(mangles(:,1,:)-data(:,cols-1:cols)))>1.d-8) then
               write(outputunit,"('[read_calculate_lgtv_currents] Different angles on current files!')")
               call MPI_Finalize(ierr)
               stop

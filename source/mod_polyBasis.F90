@@ -21,8 +21,9 @@ module mod_polyBasis
 contains
 
   subroutine read_basis(filename, s)
-    use mod_system, only: System
-    use mod_mpi_pars, only: myrank, abortProgram
+    use mod_system,   only: System
+    use mod_mpi_pars, only: myrank
+    use mod_mpi_pars, only: abortProgram
     implicit none
 
     character(len=*), intent(in) :: filename

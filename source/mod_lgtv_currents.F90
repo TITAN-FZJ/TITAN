@@ -36,7 +36,7 @@ contains
 
   ! This subroutine opens and closes all the files needed for the longitudinal and transverse currents
   subroutine openclose_lgtv_files(iflag)
-    use mod_parameters, only: fieldpart
+    use mod_parameters, only: fieldpart,output
     use mod_mpi_pars
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: nkpt
@@ -76,7 +76,7 @@ contains
       ! Header for longitudinal and transverse currents per plane
       do i=1,Npl ; do j=1,7 ; do k=1,2
         iw = 8300+(i-1)*7*2+(j-1)*2+k
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),typec(k),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,a,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),typec(k),i,trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#     energy     , real part of ',a,', imag part of ',a,',   phase of ',a,'  ')") filename(j),filename(j),filename(j)
         close(unit=iw)
@@ -84,7 +84,7 @@ contains
       ! Header for total longitudinal and transverse currents
       do j=1,7 ; do k=1,2
         iw = 8500+(j-1)*2+k
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),typec(k),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,a,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),typec(k),trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#     energy     , real part of ',a,', imag part of ',a,',   phase of ',a,'  ')") filename(j),filename(j),filename(j)
         close(unit=iw)
@@ -93,7 +93,7 @@ contains
       ! Longitudinal and transverse currents per plane
       do i=1,Npl ; do j=1,7 ; do k=1,2
         iw = 8300+(i-1)*7*2+(j-1)*2+k
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),typec(k),i,parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,a,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),typec(k),i,trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -101,7 +101,7 @@ contains
       ! Total longitudinal and transverse currents
       do j=1,7 ; do k=1,2
         iw = 8500+(j-1)*2+k
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),typec(k),parts,parts3,nkpt,eta,Utype,trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,a,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),typec(k),trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -124,7 +124,7 @@ contains
 
   ! This subroutine opens and closes all the files needed for the field dependent longitudinal and transverse currents
   subroutine openclose_dc_lgtv_files(iflag)
-    use mod_parameters, only: dcfieldpart
+    use mod_parameters, only: dcfieldpart,output
     use mod_mpi_pars
     use mod_SOC, only: SOCc, socpart
     use mod_system, only: nkpt
@@ -164,7 +164,7 @@ contains
       ! Header for longitudinal and transverse currents per plane
       do i=1,Npl ; do j=1,7 ; do k=1,2
         iw = 83000+(i-1)*7*2+(j-1)*2+k
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,' real part of ',a,', imag part of ',a,',   phase of ',a,'  , mag angle theta ,  mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j)
         close(unit=iw)
@@ -172,7 +172,7 @@ contains
       ! Header for total longitudinal and transverse currents
       do j=1,7 ; do k=1,2
         iw = 85000+(j-1)*2+k
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,' real part of ',a,', imag part of ',a,',   phase of ',a,'  , mag angle theta ,  mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j)
         close(unit=iw)
@@ -181,7 +181,7 @@ contains
       ! Header for longitudinal and transverse currents per plane
       do i=1,Npl ; do j=1,7 ; do k=1,2
         iw = 83000+(i-1)*7*2+(j-1)*2+k
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_pos=',i0,'_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),i,parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -189,7 +189,7 @@ contains
       ! Header for total longitudinal and transverse currents
       do j=1,7 ; do k=1,2
         iw = 85000+(j-1)*2+k
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_total_parts=',i0,'_parts3=',i0,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),parts,parts3,nkpt,eta,Utype,trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -217,8 +217,8 @@ contains
   ! (already opened with openclose_lgtv_files(1))
   subroutine write_lgtv_currents(e)
     use mod_f90_kind
-    use mod_parameters, only: Npl, mmlayermag
-    use mod_magnet, only: mvec_spherical
+    use mod_parameters, only: Npl
+    use mod_magnet, only: mvec_spherical,mtotal_spherical
     implicit none
     integer  :: i,j,iw
     real(double),intent(in) :: e
@@ -231,9 +231,9 @@ contains
     end do ; end do
     do j=1,7
       iw = 8500+(j-1)*2+1
-      write(unit=iw,fmt="(6(es16.9,2x))") e , real(total_long_currents(j)) , aimag(total_long_currents(j)) , atan2(aimag(total_long_currents(j)),real(total_long_currents(j))) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+      write(unit=iw,fmt="(6(es16.9,2x))") e , real(total_long_currents(j)) , aimag(total_long_currents(j)) , atan2(aimag(total_long_currents(j)),real(total_long_currents(j))) , mtotal_spherical(2) , mtotal_spherical(3)
       iw = iw+1
-      write(unit=iw,fmt="(6(es16.9,2x))") e , real(total_transv_currents(j)) , aimag(total_transv_currents(j)) , atan2(aimag(total_transv_currents(j)),real(total_transv_currents(j))) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+      write(unit=iw,fmt="(6(es16.9,2x))") e , real(total_transv_currents(j)) , aimag(total_transv_currents(j)) , atan2(aimag(total_transv_currents(j)),real(total_transv_currents(j))) , mtotal_spherical(2) , mtotal_spherical(3)
     end do
 
   end subroutine write_lgtv_currents
@@ -244,7 +244,7 @@ contains
   subroutine write_dc_lgtv_currents()
     use mod_f90_kind
     use mod_parameters
-    use mod_magnet, only: mvec_spherical
+    use mod_magnet, only: mvec_spherical,mtotal_spherical
     implicit none
     integer  :: i,j,iw
 
@@ -256,9 +256,9 @@ contains
     end do ; end do
     do j=1,7
       iw = 85000+(j-1)*2+1
-      write(unit=iw,fmt="(a,2x,5(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_long_currents(j)) , aimag(total_long_currents(j)) , atan2(aimag(total_long_currents(j)),real(total_long_currents(j))) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+      write(unit=iw,fmt="(a,2x,5(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_long_currents(j)) , aimag(total_long_currents(j)) , atan2(aimag(total_long_currents(j)),real(total_long_currents(j))) , mtotal_spherical(2) , mtotal_spherical(3)
       iw = iw+1
-      write(unit=iw,fmt="(a,2x,5(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_transv_currents(j)) , aimag(total_transv_currents(j)) , atan2(aimag(total_transv_currents(j)),real(total_transv_currents(j))) , mvec_spherical(2,mmlayermag(1)-1) , mvec_spherical(3,mmlayermag(1)-1)
+      write(unit=iw,fmt="(a,2x,5(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_transv_currents(j)) , aimag(total_transv_currents(j)) , atan2(aimag(total_transv_currents(j)),real(total_transv_currents(j))) , mtotal_spherical(2) , mtotal_spherical(3)
     end do
 
   end subroutine write_dc_lgtv_currents
@@ -510,7 +510,7 @@ contains
             end if
 
             ! Checking if angles are the same
-            if(sum(abs(mangles(:,mmlayermag(1)-1,:)-data(:,cols-1:cols)))>1.d-8) then
+            if(sum(abs(mangles(:,1,:)-data(:,cols-1:cols)))>1.d-8) then
               write(outputunit,"('[read_calculate_lgtv_currents] Different angles on current files!')")
               call MPI_Finalize(ierr)
               stop

@@ -1,7 +1,7 @@
 ! This subroutine calculates LDOS and coupling as a function of energy
 subroutine ldos_and_coupling()
   use mod_f90_kind, only: double
-  use mod_parameters, only: output,nmaglayers, emin, deltae, npt1, skip_steps
+  use mod_parameters, only: output, emin, deltae, npt1, skip_steps
   use mod_system, only: s => sys
   use mod_LDOS
   use mod_Coupling
@@ -9,8 +9,12 @@ subroutine ldos_and_coupling()
   use mod_BrillouinZone, only: realBZ
   use mod_mpi_pars
   implicit none
-  integer :: i, j, mu, count
+  integer :: i, j, mu, count, ncount,ncount2,ncount3
   real(double) :: e
+
+  ncount  = s%nAtoms*nOrb
+  ncount2 = s%nAtoms*s%nAtoms
+  ncount3 = ncount*9
 
   if(rField == 0) write(output%unit_loop,"('CALCULATING LDOS AND EXCHANGE INTERACTIONS AS A FUNCTION OF ENERGY')")
 
@@ -34,8 +38,8 @@ subroutine ldos_and_coupling()
     call ldos_jij_energy(e,ldosu,ldosd,Jij)
 
     if(rFreq(1) == 0) then
-       do i = 1, nmaglayers
-         do j = 1, nmaglayers
+       do i = 1, s%nAtoms
+         do j = 1, s%nAtoms
             trJij(i,j)    = 0.5d0*(Jij(i,j,1,1) + Jij(i,j,2,2))
             Jija(i,j,:,:) = 0.5d0*(Jij(i,j,:,:) - transpose(Jij(i,j,:,:)))
             Jijs(i,j,:,:) = 0.5d0*(Jij(i,j,:,:) + transpose(Jij(i,j,:,:)))
@@ -49,13 +53,13 @@ subroutine ldos_and_coupling()
        if(rFreq(2) == 0) then
          do i = 1, sFreq(2)
             if (i /= 1) then
-               call MPI_Recv(e,     1                        ,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE  ,1000,FreqComm(2),stat,ierr)
-               call MPI_Recv(ldosd, s%nAtoms*nOrb            ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1100,FreqComm(2),stat,ierr)
-               call MPI_Recv(ldosu, s%nAtoms*nOrb            ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1200,FreqComm(2),stat,ierr)
-               call MPI_Recv(trJij, nmaglayers*nmaglayers    ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1300,FreqComm(2),stat,ierr)
-               call MPI_Recv(Jij,   nmaglayers*nmaglayers*3*3,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1400,FreqComm(2),stat,ierr)
-               call MPI_Recv(Jijs,  nmaglayers*nmaglayers*3*3,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1500,FreqComm(2),stat,ierr)
-               call MPI_Recv(Jija,  nmaglayers*nmaglayers*3*3,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1600,FreqComm(2),stat,ierr)
+               call MPI_Recv(e,     1       ,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE  ,1000,FreqComm(2),stat,ierr)
+               call MPI_Recv(ldosd, ncount  ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1100,FreqComm(2),stat,ierr)
+               call MPI_Recv(ldosu, ncount  ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1200,FreqComm(2),stat,ierr)
+               call MPI_Recv(trJij, ncount2 ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1300,FreqComm(2),stat,ierr)
+               call MPI_Recv(Jij,   ncount3 ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1400,FreqComm(2),stat,ierr)
+               call MPI_Recv(Jijs,  ncount3 ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1500,FreqComm(2),stat,ierr)
+               call MPI_Recv(Jija,  ncount3 ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1600,FreqComm(2),stat,ierr)
             end if
 
             ! Writing into files
@@ -64,13 +68,13 @@ subroutine ldos_and_coupling()
             call writeCoupling(e)
          end do
        else
-          call MPI_Recv(e,     1                        ,MPI_DOUBLE_PRECISION,0,1000,FreqComm(2),stat,ierr)
-          call MPI_Recv(ldosd, s%nAtoms*nOrb            ,MPI_DOUBLE_PRECISION,0,1100,FreqComm(2),stat,ierr)
-          call MPI_Recv(ldosu, s%nAtoms*nOrb            ,MPI_DOUBLE_PRECISION,0,1200,FreqComm(2),stat,ierr)
-          call MPI_Recv(trJij, nmaglayers*nmaglayers    ,MPI_DOUBLE_PRECISION,0,1300,FreqComm(2),stat,ierr)
-          call MPI_Recv(Jij,   nmaglayers*nmaglayers*3*3,MPI_DOUBLE_PRECISION,0,1400,FreqComm(2),stat,ierr)
-          call MPI_Recv(Jijs,  nmaglayers*nmaglayers*3*3,MPI_DOUBLE_PRECISION,0,1500,FreqComm(2),stat,ierr)
-          call MPI_Recv(Jija,  nmaglayers*nmaglayers*3*3,MPI_DOUBLE_PRECISION,0,1600,FreqComm(2),stat,ierr)
+          call MPI_Recv(e,     1       ,MPI_DOUBLE_PRECISION,0,1000,FreqComm(2),stat,ierr)
+          call MPI_Recv(ldosd, ncount  ,MPI_DOUBLE_PRECISION,0,1100,FreqComm(2),stat,ierr)
+          call MPI_Recv(ldosu, ncount  ,MPI_DOUBLE_PRECISION,0,1200,FreqComm(2),stat,ierr)
+          call MPI_Recv(trJij, ncount2 ,MPI_DOUBLE_PRECISION,0,1300,FreqComm(2),stat,ierr)
+          call MPI_Recv(Jij,   ncount3 ,MPI_DOUBLE_PRECISION,0,1400,FreqComm(2),stat,ierr)
+          call MPI_Recv(Jijs,  ncount3 ,MPI_DOUBLE_PRECISION,0,1500,FreqComm(2),stat,ierr)
+          call MPI_Recv(Jija,  ncount3 ,MPI_DOUBLE_PRECISION,0,1600,FreqComm(2),stat,ierr)
        end if
     end if
     call MPI_Barrier(FieldComm, ierr)

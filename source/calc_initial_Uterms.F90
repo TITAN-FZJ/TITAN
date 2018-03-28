@@ -10,15 +10,14 @@ contains
     use mod_magnet,     only: l_matrix,lb,sb,allocate_magnet_variables,deallocate_magnet_variables,rho0,rhod0
     use mod_SOC,        only: ls,allocLS
     use adaptiveMesh,   only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh
-    ! use Lattice,        only: initLattice
-    use Lattice
     use mod_parameters, only: kp_in,output
     use mod_polyBasis,  only: polyBasis => read_basis
-    use mod_progress
-    use mod_mpi_pars
-    use SK_TightBinding
-    use mod_BrillouinZone
-    use EnergyIntegration
+    use mod_mpi_pars,   only: myrank,FieldComm,rField,sField,abortProgram
+    use Lattice,        only: initLattice
+    use mod_progress,   only: write_time
+    ! use SK_TightBinding
+    use mod_BrillouinZone, only: realBZ!,nkpt_x,nkpt_y,nkpt_z
+    use EnergyIntegration, only: pn1
     implicit none
     integer :: i,j,mu
     type(System), intent(inout) :: sys
@@ -84,10 +83,10 @@ contains
       call calc_expectation_values(sys0(i),sys%Types(i)%rho0,sys%Types(i)%rhod0)
 
       !------------------------- Test printing ---------------------------
-      if(rField == 0) then
-        write(*,"('Calculating initial densities from: ',a)") trim(sys0(i)%Name)
-        write(*,"(a,12(2x,es16.9))") trim(sys%Types(i)%Name) , ((sys%Types(i)%rho0(mu,j),mu=1,nOrb),j=1,sys0(i)%nAtoms)
-        write(*,"(a,12(2x,es16.9))") trim(sys%Types(i)%Name) , (sys%Types(i)%rhod0(j),j=1,sys0(i)%nAtoms)
+      if(myrank == 0) then
+        write(output%unit,"('[calc_initial_Uterms] Calculating initial densities from: ',a)") trim(sys0(i)%Name)
+        write(output%unit,"(a,12(2x,es16.9))") trim(sys%Types(i)%Name) , ((sys%Types(i)%rho0(mu,j),mu=1,nOrb),j=1,sys0(i)%nAtoms)
+        write(output%unit,"(a,12(2x,es16.9))") trim(sys%Types(i)%Name) , (sys%Types(i)%rhod0(j),j=1,sys0(i)%nAtoms)
       end if
 
       !------------------------ Freeing memory ---------------------------

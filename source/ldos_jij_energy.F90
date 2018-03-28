@@ -2,7 +2,7 @@
 subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
   use mod_f90_kind,      only: double
   use mod_constants,     only: pi, cZero, cOne, pauli_dorb
-  use mod_parameters,    only: eta, nmaglayers, mmlayermag, U
+  use mod_parameters,    only: eta, U
   use mod_system,        only: s => sys
   use mod_BrillouinZone, only: realBZ
   use TightBinding,      only: nOrb,nOrb2
@@ -12,7 +12,7 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
   implicit none
   real(double),intent(in)     :: e
   real(double),intent(out)    :: ldosu(s%nAtoms, nOrb),ldosd(s%nAtoms, nOrb)
-  real(double),intent(out)    :: Jijint(nmaglayers,nmaglayers,3,3)
+  real(double),intent(out)    :: Jijint(s%nAtoms,s%nAtoms,3,3)
   complex(double), dimension(nOrb2, nOrb2, s%nAtoms, s%nAtoms) :: gf
   complex(double), dimension(s%nAtoms, nOrb)   :: gfdiagu,gfdiagd
   complex(double), dimension(nOrb2, nOrb2)     :: gij,gji,temp1,temp2,paulia,paulib
@@ -20,15 +20,18 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
   real(double),    dimension(:,:,:,:),allocatable :: Jijint_loc
   real(double),    dimension(3) :: kp
   complex(double) :: paulimatan(3,3,nOrb2, nOrb2)
-  real(double)    :: Jijkan(nmaglayers,3,3), Jijk(nmaglayers,nmaglayers,3,3)
+  real(double)    :: Jijkan(s%nAtoms,3,3), Jijk(s%nAtoms,s%nAtoms,3,3)
   real(double)    :: weight
-  integer         :: i,j,mu,nu,alpha
+  integer         :: i,j,mu,nu,alpha,ncount,ncount2
   integer*8       :: iz
 
-  real(double),    dimension(3,nmaglayers)               :: evec
-  complex(double), dimension(nmaglayers,3,nOrb2,nOrb2)   :: dbxcdm
-  complex(double), dimension(nmaglayers,3,3,nOrb2,nOrb2) :: d2bxcdm2
-  complex(double), dimension(nmaglayers,nOrb2,nOrb2)     :: paulievec
+  real(double),    dimension(3,s%nAtoms)               :: evec
+  complex(double), dimension(s%nAtoms,3,nOrb2,nOrb2)   :: dbxcdm
+  complex(double), dimension(s%nAtoms,3,3,nOrb2,nOrb2) :: d2bxcdm2
+  complex(double), dimension(s%nAtoms,nOrb2,nOrb2)     :: paulievec
+
+  ncount  = s%nAtoms*nOrb
+  ncount2 = s%nAtoms*s%nAtoms*9
 
 ! (x,y,z)-tensor formed by Pauli matrices to calculate anisotropy term (when i=j)
   paulimatan = cZero
@@ -43,22 +46,22 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
   ldosd = 0.d0
   Jijint = 0.d0
 
-  do iz = 1, nmaglayers
+  do iz = 1, s%nAtoms
     ! Unit vector along the direction of the magnetization of each magnetic plane
-    evec(:,iz) = [ mvec_cartesian(1,mmlayermag(iz)), mvec_cartesian(2,mmlayermag(iz)), mvec_cartesian(3,mmlayermag(iz)) ]/mabs(mmlayermag(iz))
+    evec(:,iz) = [ mvec_cartesian(1,iz), mvec_cartesian(2,iz), mvec_cartesian(3,iz) ]/mabs(iz)
 
     ! Inner product of pauli matrix in spin and orbital space and unit vector evec
     paulievec(iz,:,:) = pauli_dorb(1,:,:) * evec(1,iz) + pauli_dorb(2,:,:) * evec(2,iz) + pauli_dorb(3,:,:) * evec(3,iz)
 
     do i = 1, 3
       ! Derivative of Bxc*sigma*evec w.r.t. m_i (Bxc = -U.m/2)
-      dbxcdm(iz,i,:,:) = -0.5d0 * U(mmlayermag(iz)) * (pauli_dorb(i,:,:) - (paulievec(iz,:,:)) * evec(i,iz))
+      dbxcdm(iz,i,:,:) = -0.5d0 * U(iz) * (pauli_dorb(i,:,:) - (paulievec(iz,:,:)) * evec(i,iz))
 
       ! Second derivative of Bxc w.r.t. m_i (Bxc = -U.m/2)
       do j=1,3
         d2bxcdm2(iz,i,j,:,:) = evec(i,iz)*pauli_dorb(j,:,:) + pauli_dorb(i,:,:)*evec(j,iz) - 3*paulievec(iz,:,:)*evec(i,iz)*evec(j,iz)
         if(i==j) d2bxcdm2(iz,i,j,:,:) = d2bxcdm2(iz,i,j,:,:) + paulievec(iz,:,:)
-        d2bxcdm2(iz,i,j,:,:) = 0.5d0*U(mmlayermag(iz))*d2bxcdm2(iz,i,j,:,:)/(mabs(mmlayermag(iz)))
+        d2bxcdm2(iz,i,j,:,:) = 0.5d0*U(iz)*d2bxcdm2(iz,i,j,:,:)/(mabs(iz))
       end do
     end do
   end do
@@ -67,8 +70,8 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
 
   !$omp parallel default(none) &
   !$omp& private(iz,kp,weight,gf,gij,gji,paulia,paulib,i,j,mu,nu,alpha,gfdiagu,gfdiagd,Jijk,Jijkan,temp1,temp2,ldosu_loc,ldosd_loc,Jijint_loc) &
-  !$omp& shared(s,realBZ,e,eta,U,dbxcdm,d2bxcdm2,nmaglayers,mmlayermag,pauli_dorb,paulimatan,ldosu,ldosd,Jijint)
-  allocate(ldosu_loc(s%nAtoms, nOrb), ldosd_loc(s%nAtoms, nOrb), Jijint_loc(nmaglayers,nmaglayers,3,3))
+  !$omp& shared(s,realBZ,e,eta,U,dbxcdm,d2bxcdm2,pauli_dorb,paulimatan,ldosu,ldosd,Jijint)
+  allocate(ldosu_loc(s%nAtoms, nOrb), ldosd_loc(s%nAtoms, nOrb), Jijint_loc(s%nAtoms,s%nAtoms,3,3))
   ldosu_loc = 0.d0
   ldosd_loc = 0.d0
   Jijint_loc = 0.d0
@@ -83,10 +86,10 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
     ! Exchange interaction tensor
     Jijk   = 0.d0
     Jijkan = 0.d0
-    do j = 1,nmaglayers
-      do i = 1,nmaglayers
-        gij = gf(:,:,mmlayermag(i),mmlayermag(j))
-        gji = gf(:,:,mmlayermag(j),mmlayermag(i))
+    do j = 1,s%nAtoms
+      do i = 1,s%nAtoms
+        gij = gf(:,:,i,j)
+        gji = gf(:,:,j,i)
         do nu = 1,3
           do mu = 1,3
             paulia = dbxcdm(i,mu,:,:)
@@ -103,7 +106,7 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
 
         ! Anisotropy (on-site) term
         if(i==j) then
-          gij = gf(:,:,mmlayermag(i),mmlayermag(i))
+          gij = gf(:,:,i,i)
           do nu = 1,3
             do mu = 1,3
               paulia = d2bxcdm2(i,mu,nu,:,:)
@@ -148,12 +151,12 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
   Jijint = Jijint/pi
 
   if(rFreq(1) == 0) then
-     call MPI_Reduce(MPI_IN_PLACE, ldosu , s%nAtoms*nOrb            , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
-     call MPI_Reduce(MPI_IN_PLACE, ldosd , s%nAtoms*nOrb            , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
-     call MPI_Reduce(MPI_IN_PLACE, Jijint, nmaglayers*nmaglayers*3*3, MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+     call MPI_Reduce(MPI_IN_PLACE, ldosu , ncount  , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+     call MPI_Reduce(MPI_IN_PLACE, ldosd , ncount  , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+     call MPI_Reduce(MPI_IN_PLACE, Jijint, ncount2 , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
   else
-     call MPI_Reduce(ldosu , ldosu , s%nAtoms*nOrb            , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
-     call MPI_Reduce(ldosd , ldosd , s%nAtoms*nOrb            , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
-     call MPI_Reduce(Jijint, Jijint, nmaglayers*nmaglayers*3*3, MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+     call MPI_Reduce(ldosu , ldosu , ncount  , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+     call MPI_Reduce(ldosd , ldosd , ncount  , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+     call MPI_Reduce(Jijint, Jijint, ncount2 , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
   end if
 end subroutine ldos_jij_energy

@@ -27,6 +27,8 @@ module mod_magnet
   !! Site-dependent spherical components of magnetization
   real(double), dimension(:,:),allocatable   :: mvec_spherical,mvec_cartesian
   !! Magnetization vectors in cartesian and spherical components
+  real(double)                :: mtotal_cartesian(3),mtotal_spherical(3)
+  !! Total magnetization in cartesian and spherical components
   real(double),allocatable    :: labs(:),ltheta(:),lphi(:)
   !! Site-dependent spherical components of orbital magnetization in global frame
   real(double),allocatable    :: lpabs(:),lptheta(:),lpphi(:)

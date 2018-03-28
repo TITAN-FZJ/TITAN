@@ -61,10 +61,10 @@ contains
   subroutine read_previous_results(lsuccess)
     use mod_f90_kind,   only: double
     use mod_constants,  only: deg2rad
-    use mod_parameters, only: output, magaxis, magaxisvec, offset, layertype
+    use mod_parameters, only: output, magbasis, initialmag
     use mod_system,     only: s => sys
     use TightBinding,   only: nOrb
-    use mod_mpi_pars,   only: abortProgram, rField
+    use mod_mpi_pars,   only: rField,abortProgram
     use mod_magnet,     only: mx,my,mz,mxd,myd,mzd,mpd,hw_count,hw_list, &
                               lfield,rho,rhod,rhod0,rho0
     use mod_Umatrix
@@ -94,60 +94,115 @@ contains
         write(output%unit_loop,"('[read_previous_results] ',a)") trim(default_file)
       end if
       lselfcon = .true.
-      ! Parameters: magnetization, exchange split
-      if(magaxis == -1) then
-        continue
-      else if(magaxis == -2) then
-        magaxisvec = magaxisvec(1) * s%a1 + magaxisvec(2) * s%a2 + magaxisvec(3) * s%a3
-      else if(magaxis == -3) then
-        magaxisvec = [cos(magaxisvec(2)*deg2rad)*sin(magaxisvec(1)*deg2rad), sin(magaxisvec(2)*deg2rad)*sin(magaxisvec(1)*deg2rad), cos(magaxisvec(1)*deg2rad)]
-      else if(magaxis == 0) then
-        magaxisvec = [0.d0, 0.d0, sign(1.0d0, hw_list(hw_count,1))]
-      else if(magaxis >=1 .and. magaxis <= s%nAtoms) then
-        !magaxisvec(1:3) = c_nn(1:3, magaxis)
-        if(rField == 0) call abortProgram("[read_previous_results] Magaxis along neighbor not implemented!")
-      else
-        if(rField == 0) call abortProgram("[read_previous_results] Unknown magnetization direction!")
-      end if
-      magaxisvec = magaxisvec / sqrt(dot_product(magaxisvec, magaxisvec))
-      magaxisvec = magaxisvec * 0.5d0
 
-      mxd = magaxisvec(1)
-      myd = magaxisvec(2)
-      mzd = magaxisvec(3)
+      ! Starting magnetization
+      allocate(initialmag(s%nAtoms,3))
+      if(trim(magbasis)/="") then
+        call read_initialmag("initialmag",trim(magbasis),s%nAtoms)
+      else
+        do i=1,s%nAtoms
+          initialmag(i,:) = [0.d0, 0.d0, sign(2.0d0, hw_list(hw_count,1))]
+        end do
+
+        ! Rotating magnetization to field direction
+        if(lfield) then
+          initialmag(:,1) = sign(2.0d0, hw_list(hw_count,1))*sin(hw_list(hw_count,2)*deg2rad) * cos(hw_list(hw_count,3)*deg2rad)
+          initialmag(:,2) = sign(2.0d0, hw_list(hw_count,1))*sin(hw_list(hw_count,2)*deg2rad) * sin(hw_list(hw_count,3)*deg2rad)
+          initialmag(:,3) = sign(2.0d0, hw_list(hw_count,1))*cos(hw_list(hw_count,2)*deg2rad)
+        end if
+
+      end if
 
       do i=1,s%nAtoms
-        if(layertype(i+offset)==2) then
-          mxd(i) = mxd(i) * sign(4.d0,hw_list(hw_count,1))
-          myd(i) = myd(i) * sign(4.d0,hw_list(hw_count,1))
-          mzd(i) = mzd(i) * sign(4.d0,hw_list(hw_count,1))
-        end if
+        mxd(i) = initialmag(i,1)
+        myd(i) = initialmag(i,2)
+        mzd(i) = initialmag(i,3)
       end do
-
-      if(lfield .and. magaxis == 0) then
-        mxd = mzd * sin(hw_list(hw_count,2)*deg2rad) * cos(hw_list(hw_count,3)*deg2rad)
-        myd = mzd * sin(hw_list(hw_count,2)*deg2rad) * sin(hw_list(hw_count,3)*deg2rad)
-        mzd = mzd * cos(hw_list(hw_count,2)*deg2rad)
-      end if
-
       mpd = cmplx(mxd,myd)
 
       mx = 0.d0
       my = 0.d0
       mz = 0.d0
-      ! Initialize U matrix using occupations from elemental files and rho=rho0
+      ! Initialize hamiltonian using occupations from elemental files and rho=rho0
       rho = rho0
       do i = 1, s%nAtoms
         mx(5:9,i) = 0.2d0*mxd(i)
         my(5:9,i) = 0.2d0*myd(i)
         mz(5:9,i) = 0.2d0*mzd(i)
-        rhod(i)   = s%Types(s%Basis(i)%Material)%OccupationD
+        rhod(i)   = rhod0(i) !s%Types(s%Basis(i)%Material)%OccupationD
       end do
 
     end if
 
     call init_Umatrix(mzd,mpd,rhod,rhod0,rho,rho0,s%nAtoms,nOrb)
   end subroutine read_previous_results
+
+  ! Reads the initial magnetization for nAtoms in 'filename'
+  subroutine read_initialmag(filename,magbasis,nAtoms)
+    use mod_f90_kind,   only: double
+    use mod_parameters, only: initialmag,output
+    use mod_constants,  only: deg2rad
+    use mod_tools,      only: read_data
+    use mod_system,     only: s => sys
+    use mod_mpi_pars,   only: rField,abortProgram
+    implicit none
+    character(len=*), intent(in) :: filename,magbasis
+    integer         , intent(in) :: nAtoms
+    integer      :: i,err
+    real(double) :: temp(nAtoms,3)
+
+    if(rField == 0) &
+    write(output%unit_loop,"('[read_initialmag] Reading initial magnetization from file ',a)") filename
+
+    open(unit=321,file=trim(filename),status="old",iostat=err)
+    if((rField == 0).and.(err/=0)) call abortProgram("[read_initialmag] File '" // trim(filename) // "'' does not exist!")
+
+    select case(magbasis)
+    case("cartesian","c")
+      call read_data(321,nAtoms,3,initialmag)
+    case("spherical","s")
+      call read_data(321,nAtoms,3,temp)
+      do i=1,nAtoms
+        initialmag(i,1) = temp(i,1)*sin(temp(i,2)*deg2rad)*cos(temp(i,3)*deg2rad)
+        initialmag(i,2) = temp(i,1)*sin(temp(i,2)*deg2rad)*sin(temp(i,3)*deg2rad)
+        initialmag(i,3) = temp(i,1)*cos(temp(i,2)*deg2rad)
+      end do
+    case("bravais","b")
+      call read_data(321,nAtoms,3,temp)
+      do i=1,nAtoms
+        initialmag(i,:) = temp(i,1)*s%a1 + temp(i,2)*s%a2 + temp(i,3)*s%a3
+      end do
+    case("neighbor","n")
+      call read_data(321,nAtoms,1,temp)
+      call abortProgram("[read_initialmag] initialmag not implemented for magbasis = neighbor")
+      ! do i=1,nAtoms
+      !   initialmag(i,:) = temp(i,1)
+      ! end do
+    case default
+      call abortProgram("[read_initialmag] magbasis wrongly defined: " // trim(magbasis))
+    end select
+
+
+
+
+    ! if(magbasis == "") then
+    !   continue
+    ! else if(magaxis == -2) then
+    !   magaxisvec = magaxisvec(1) * s%a1 + magaxisvec(2) * s%a2 + magaxisvec(3) * s%a3
+    ! else if(magaxis == -3) then
+    !   magaxisvec = [cos(magaxisvec(2)*deg2rad)*sin(magaxisvec(1)*deg2rad), sin(magaxisvec(2)*deg2rad)*sin(magaxisvec(1)*deg2rad), cos(magaxisvec(1)*deg2rad)]
+    ! else if(magaxis == 0) then
+    !   magaxisvec = [0.d0, 0.d0, sign(1.0d0, hw_list(hw_count,1))]
+    ! else if(magaxis >=1 .and. magaxis <= s%nAtoms) then
+    !   !magaxisvec(1:3) = c_nn(1:3, magaxis)
+    !   if(rField == 0) call abortProgram("[read_previous_results] Magaxis along neighbor not implemented!")
+    ! else
+    !   if(rField == 0) call abortProgram("[read_previous_results] Unknown magnetization direction!")
+    ! end if
+    ! magaxisvec = magaxisvec / sqrt(dot_product(magaxisvec, magaxisvec))
+    ! magaxisvec = magaxisvec * 0.5d0
+
+  end subroutine read_initialmag
 
   ! This subroutine reads previous band-shifting and magnetization results
   subroutine read_sc_results(err,lsuccess)
@@ -289,14 +344,14 @@ contains
     use mod_susceptibilities, only: lrot
     use mod_magnet,           only: mx, my, mz, mabs, &
                                     mtheta, mphi, mvec_cartesian, &
-                                    mvec_spherical
+                                    mvec_spherical,mtotal_cartesian,mtotal_spherical
     implicit none
     integer :: i
 
     ! Calculating new angles of GS magnetization in units of pi and magnetization vector
     do i = 1,s%nAtoms
       mabs(i)   = sqrt((sum(mx(:,i))**2)+(sum(my(:,i))**2)+(sum(mz(:,i))**2))
-      if(abs(mabs(i))>1.d-8) then
+      if(mabs(i)>1.d-8) then
         mtheta(i) = acos(sum(mz(:,i))/mabs(i))*rad2deg
       else
         mtheta(i) = 0.d0
@@ -318,6 +373,23 @@ contains
       mvec_spherical(2,i) = mtheta(i)
       mvec_spherical(3,i) = mphi(i)
     end do
+
+    mtotal_cartesian(1) = sum(mvec_cartesian(1,:))
+    mtotal_cartesian(2) = sum(mvec_cartesian(2,:))
+    mtotal_cartesian(3) = sum(mvec_cartesian(3,:))
+
+    mtotal_spherical(1) = sqrt((mtotal_cartesian(1)**2)+(mtotal_cartesian(2)**2)+(mtotal_cartesian(3)**2))
+    if(mtotal_spherical(1)>1.d-8) then
+      mtotal_spherical(2) = acos(mtotal_cartesian(3)/mtotal_spherical(1))*rad2deg
+    else
+      mtotal_spherical(2) = 0.d0
+    end if
+    if((abs(mtotal_spherical(2))>1.d-8).and.(abs(abs(mtotal_spherical(2))-180.d0)>1.d-8)) then
+      mtotal_spherical(3)   = atan2(mtotal_cartesian(2),mtotal_cartesian(1))*rad2deg
+    else
+      mtotal_spherical(3) = 0.d0
+    end if
+
   end  subroutine calcMagAngle
 
   subroutine calcMagneticSelfConsistency()
@@ -433,16 +505,17 @@ contains
 
   subroutine check_jacobian(neq,x)
     use mod_parameters, only: output,lcheckjac
-    use mod_mpi_pars,   only: rField,ierr
+    use mod_mpi_pars,   only: rField
     use mod_chkder
     implicit none
-    integer :: liw,lw
-    integer :: i,ifail
+    integer :: liw,lw,ifail
     integer     , allocatable :: iw(:)
     real(double), allocatable :: w(:)
     integer     , intent(in)  :: neq
     real(double), intent(in)  :: x(neq)
-    real(double) :: fvec(neq),fvecp(neq),jac(neq,neq),xp(neq),err(neq)
+    real(double) :: fvec(neq),jac(neq,neq)
+    ! integer :: i
+    ! real(double) :: fvecp(neq),xp(neq),err(neq)
 #if !defined(_OSX) && !defined(_JUQUEEN)
     real(double) :: ruser(1)
     integer      :: iuser(1)
@@ -503,18 +576,21 @@ contains
     use mod_f90_kind,   only: double
     use mod_system,     only: s => sys
     use TightBinding,   only: nOrb
-    use mod_magnet,     only: iter,rho,rhod,mxd,myd,mzd,rhod0,rho0
+    use mod_magnet,     only: rho,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,    only: update_Umatrix
-    use mod_tools,      only: itos
-    use mod_mpi_pars
+    ! use mod_mpi_pars
     implicit none
     integer  :: M,N,ljc,i,mu,iflag,lw,liw,iw(liw)
     real(double) :: w(lw)
     real(double),   dimension(N)             :: x,fvec
-    real(double),   dimension(N,N)           :: selfconjac
+    real(double),   dimension(M,ljc)         :: selfconjac
     real(double),   dimension(nOrb,s%nAtoms) :: rho_in
     real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
     complex(double),dimension(s%nAtoms)      :: mpd_in
+
+    w=w
+    iw=iw
+    iflag=iflag
 
     ! Values used in the hamiltonian
     rho_in = rho
@@ -679,7 +755,7 @@ contains
     use mod_parameters,    only: U, offset, eta
     use mod_SOC,           only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: y, wght
-    use mod_system,        only: s => sys
+    use mod_System,        only: s => sys
     use adaptiveMesh,      only: local_points, E_k_imag_mesh, bzs, activeComm
     use mod_BrillouinZone, only: realBZ
     use TightBinding,      only: nOrb,nOrb2
@@ -1094,7 +1170,7 @@ contains
     ! Calculating angles of GS OAM (in units of pi)
     do i = 1,s%nAtoms
       labs(i)   = sqrt((lxm(i)**2)+(lym(i)**2)+(lzm(i)**2))
-      if(abs(labs(i))>1.d-8) then
+      if(labs(i)>1.d-8) then
         ltheta(i) = acos(lzm(i)/labs(i))*rad2deg
       else
         ltheta(i) = 0.d0

@@ -13,10 +13,11 @@ contains
 
   subroutine allocate_beff()
   !! This subroutine allocates variables related to the effective field calculation
-    use mod_f90_kind, only: double
-    use mod_mpi_pars, only: abortProgram, rFreq
+    use mod_f90_kind,   only: double
+    use mod_mpi_pars, only: abortProgram
+    use mod_mpi_pars,   only: rFreq
     use mod_parameters, only: dimspinAtoms
-    use mod_System, only: s => sys
+    use mod_System,     only: s => sys
     implicit none
     integer :: AllocateStatus
 
@@ -41,7 +42,7 @@ contains
   !! This subroutine creates all the files needed for the effective field
     use mod_parameters, only: output
     use mod_mpi_pars, only: abortProgram
-    use mod_system, only: s => sys
+    use mod_system,     only: s => sys
     implicit none
 
     character(len=500)  :: varm
@@ -68,7 +69,7 @@ contains
   !! This subroutine opens all the files needed for the effective field
     use mod_parameters, only: missing_files, output
     use mod_mpi_pars, only: abortProgram
-    use mod_system, only: s => sys
+    use mod_system,     only: s => sys
     implicit none
 
     character(len=500)  :: varm
@@ -163,9 +164,9 @@ contains
   subroutine create_dc_beff_files()
     !! This subroutine creates all the files needed for the effective field
     use mod_parameters, only: output
-    use mod_magnet, only: dcprefix, dc_header, dcfield, dcfield_dependence
+    use mod_magnet,     only: dcprefix, dc_header, dcfield, dcfield_dependence
     use mod_mpi_pars, only: abortProgram
-    use mod_system, only: s => sys
+    use mod_system,     only: s => sys
     implicit none
 
     character(len=500)  :: varm
@@ -174,13 +175,15 @@ contains
     do sigma=1,4
       do i=1,s%nAtoms
          iw = 80000+(sigma-1)*s%nAtoms+i
-         write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,a,'_',a,'_pos=',i0,a,'_nkpt=',i0,'_eta=',es8.1,'_Utype=',i0,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
+         write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") &
+          output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
          open (unit=iw, file=varm, status='replace', form='formatted')
          write(unit=iw, fmt="('#',a,' imaginary part of ',a,a,' , real part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma)
          close(unit=iw)
       end do
       iw = 85000+sigma
-      write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") &
+       output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
       open (unit=iw, file=varm, status='replace', form='formatted')
       write(unit=iw, fmt="('#',a,' imaginary part of ',a,a,' , real part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma)
       close(unit=iw)
@@ -190,9 +193,9 @@ contains
   subroutine open_dc_beff_files()
   !! This subroutine opens all the files needed for the effective field
     use mod_parameters, only: missing_files, output
-    use mod_magnet, only: dcprefix, dcfield, dcfield_dependence
+    use mod_magnet,     only: dcprefix, dcfield, dcfield_dependence
     use mod_mpi_pars, only: abortProgram
-    use mod_system, only: s => sys
+    use mod_system,     only: s => sys
     implicit none
 
     character(len=500)  :: varm

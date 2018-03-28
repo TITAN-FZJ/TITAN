@@ -2,15 +2,19 @@
 subroutine coupling()
   use mod_f90_kind,   only: double
   use mod_parameters, only: output, q
-  use mod_magnet,     only: mvec_cartesian
+  use mod_magnet,     only: mvec_cartesian,mabs
   use mod_system,     only: s => sys
+  use mod_mpi_pars, only: abortProgram
+  use mod_mpi_pars,   only: rField,sField,FieldComm
   use adaptiveMesh
-  use mod_mpi_pars
   use mod_Coupling
   implicit none
   integer            :: i,j,mu
 
   if(rField == 0) write(output%unit_loop,"('CALCULATING FULL TENSOR OF EXHANGE INTERACTIONS AND ANISOTROPIES')")
+
+  if(sum(mabs(:))<1.d-8) &
+  call abortProgram("[main] No magnetic layers for coupling calculation!")
 
   if(rField == 0) call openCouplingFiles()
 

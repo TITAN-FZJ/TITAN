@@ -31,15 +31,13 @@ end subroutine initConversionMatrices
 
 ! This subroutine allocates variables that depend on nAtom
 subroutine allocate_Atom_variables(nAtoms)
-  use mod_f90_kind, only: double
-  use mod_parameters, only: mmlayermag, U, layertype, mmlayer, nmaglayers
-  use TightBinding, only: nOrb
+  use mod_f90_kind,   only: double
+  use mod_parameters, only: U
+  use TightBinding,   only: nOrb
   use mod_mpi_pars, only: abortProgram
   implicit none
   integer, intent(in) :: nAtoms
   real(double) :: U_tmp
-  integer :: AllocateStatus
-  integer :: i
 
   if(size(U) == 1) then
     U_tmp = U(1)
@@ -50,19 +48,6 @@ subroutine allocate_Atom_variables(nAtoms)
     call abortProgram("[allocate_Atom_variables] U has wrong size")
   end if
 
-
-  allocate( mmlayer(nAtoms),layertype(nAtoms),mmlayermag(nAtoms), STAT = AllocateStatus )
-  if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: mmlayer,layertype,mmlayermag")
-
-  do i = 1, nAtoms
-    if(abs(U(i)) > 1.d-9) then
-      layertype(i) = 2
-      nmaglayers = nmaglayers + 1
-      mmlayermag(nmaglayers) = i
-    else
-      layertype(i) = 0
-    end if
-  end do
   ! pln_cnt(1) contains # of in-plane neighbors TODO: Re-Include
   ! allocate(sha_longitudinal(pln_cnt(1)),sha_transverse(pln_cnt(1)),long_cos(pln_cnt(1)),transv_cos(pln_cnt(1)))
   ! if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: sha_longitudinal,sha_transverse,long_cos,transv_cos")
@@ -71,14 +56,14 @@ end subroutine allocate_Atom_variables
 
 ! This subroutine allocates variables that depend on nAtom
 subroutine deallocate_Atom_variables()
-  use mod_parameters, only: sigmai2i, sigmaimunu2i, sigmaijmunu2i, mmlayer, layertype, U, mmlayermag
+  use mod_parameters, only: sigmai2i, sigmaimunu2i, sigmaijmunu2i, U
   use mod_magnet, only: deallocate_magnet_variables,rho0,rhod0
   implicit none
 
   call deallocate_magnet_variables()
 
   deallocate(sigmai2i,sigmaimunu2i,sigmaijmunu2i)
-  deallocate(mmlayer,layertype,U,mmlayermag)
+  deallocate(U)
   deallocate(rho0,rhod0)
 
   !deallocate(t0, t0i)

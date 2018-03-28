@@ -52,15 +52,18 @@ contains
   end subroutine
 
   subroutine abortProgram(str)
-    use mod_tools, only: itos
     implicit none
     character(len=*), intent(in) :: str
+    character(len=15) :: filename
+    integer           :: unit=123456787
     !! Abort Message
 
-    open (unit=123456787, file="error." // trim(itos(myrank)), status='replace', form='formatted')
-    write(123456787,"(a)") str
-    close(unit=123456787)
+    write(filename, "('error.',i0)") myrank
+    open (unit=unit, file=trim(filename), status='replace', form='formatted')
+    write(unit=unit,fmt="(a)") str
+    close(unit=unit)
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+
   end subroutine abortProgram
 
   function genFieldComm(nFields, FieldID, comm)
