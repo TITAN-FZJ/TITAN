@@ -152,7 +152,7 @@ contains
     real(double) :: temp(nAtoms,3)
 
     if(rField == 0) &
-    write(output%unit_loop,"('[read_initialmag] Reading initial magnetization from file ',a)") filename
+    write(output%unit_loop,"('[read_initialmag] Reading initial magnetization from file ',a)") "'" // filename // "'"
 
     open(unit=321,file=trim(filename),status="old",iostat=err)
     if((rField == 0).and.(err/=0)) call abortProgram("[read_initialmag] File '" // trim(filename) // "'' does not exist!")
@@ -1257,16 +1257,20 @@ contains
     end do
     write(output%unit_loop,"(11x,' *********** Magnetization components: **********')")
     do i=1,s%nAtoms
-      write(output%unit_loop,"(a,':',2x,'Mx(',i2.0,')=',f11.8,4x,'My(',i2.0,')=',f11.8,4x,'Mz(',i2.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,mvec_cartesian(1,i),i,mvec_cartesian(2,i),i,mvec_cartesian(3,i)
-      if(abs(sum(mp(:,i)))/=0) &
-      write(output%unit_loop,"(12x,'theta = ',f11.6,'  ',4x,'phi = ',f11.6)") mvec_spherical(2,i),mvec_spherical(3,i)
+      if(abs(sum(mp(:,i)))/=0) then
+        write(output%unit_loop,"(a,':',2x,'Mx(',i2.0,')=',f11.8,4x,'My(',i2.0,')=',f11.8,4x,'Mz(',i2.0,')=',f11.8,4x,'theta = ',f11.6,4x,'phi = ',f11.6)") trim(s%Types(s%Basis(i)%Material)%Name),i,mvec_cartesian(1,i),i,mvec_cartesian(2,i),i,mvec_cartesian(3,i),mvec_spherical(2,i),mvec_spherical(3,i)
+      else
+        write(output%unit_loop,"(a,':',2x,'Mx(',i2.0,')=',f11.8,4x,'My(',i2.0,')=',f11.8,4x,'Mz(',i2.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,mvec_cartesian(1,i),i,mvec_cartesian(2,i),i,mvec_cartesian(3,i)
+      end if
     end do
     if((lGSL).or.(SOC)) then
       write(output%unit_loop,"(11x,' ****** Orbital components in global frame: *****')")
       do i=1,s%nAtoms
-        write(output%unit_loop,"(a,':',2x,'Lx(',i2.0,')=',f11.8,4x,'Ly(',i2.0,')=',f11.8,4x,'Lz(',i2.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,lxm(i),i,lym(i),i,lzm(i)
-        if(sqrt(lxm(i)**2+lym(i)**2)/=0) &
-        write(output%unit_loop,"(12x,'theta = ',f11.6,'  ',4x,'phi = ',f11.6)") ltheta(i),lphi(i)
+        if(sqrt(lxm(i)**2+lym(i)**2)/=0) then
+          write(output%unit_loop,"(a,':',2x,'Lx(',i2.0,')=',f11.8,4x,'Ly(',i2.0,')=',f11.8,4x,'Lz(',i2.0,')=',f11.8,4x,'theta = ',f11.6,4x,'phi = ',f11.6)") trim(s%Types(s%Basis(i)%Material)%Name),i,lxm(i),i,lym(i),i,lzm(i),ltheta(i),lphi(i)
+        else
+          write(output%unit_loop,"(a,':',2x,'Lx(',i2.0,')=',f11.8,4x,'Ly(',i2.0,')=',f11.8,4x,'Lz(',i2.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,lxm(i),i,lym(i),i,lzm(i)
+        end if
       end do
       ! write(output%unit_loop,"(11x,' *** Orbital components in local frame:  ***')")
       ! do i=1,s%nAtoms
@@ -1346,10 +1350,10 @@ contains
           end do
 
           if(abs(cmplx(mx(i),my(i)))>1.d-10) then
-            write(output%unit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mx(i),i,my(i),i,mz(i)
+            write(output%unit_loop,"('Site ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mx(i),i,my(i),i,mz(i)
             write(output%unit_loop,"(15x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvecsum,(i-1)*8+6,fvec((i-1)*8+6),(i-1)*8+7,fvec((i-1)*8+7),(i-1)*8+8,fvec((i-1)*8+8)
           else
-            write(output%unit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mz(i)
+            write(output%unit_loop,"('Site ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mz(i)
             write(output%unit_loop,"(15x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvecsum,(i-1)*8+8,fvec((i-1)*8+8)
           end if
         end do
@@ -1359,9 +1363,9 @@ contains
         write(output%unit_loop,"('|---------------- Starting charge density, magnetization and Ef ----------------|')")
         do i=1,s%nAtoms
           if(abs(cmplx(mx(i),my(i)))>1.d-10) then
-            write(output%unit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mx(i),i,my(i),i,mz(i)
+            write(output%unit_loop,"('Site ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mx(i),i,my(i),i,mz(i)
           else
-            write(output%unit_loop,"('Plane ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mz(i)
+            write(output%unit_loop,"('Site ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mz(i)
           end if
         end do
         write(output%unit_loop,"(13x,'Ef=',es16.9)") Ef

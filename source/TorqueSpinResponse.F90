@@ -114,11 +114,11 @@ contains
                                do p = 1, 4
                                   do q = 1, 4
                                      if(StoC(k+1,p) == cZero .or. CtoS(q,mp+1) == cZero) cycle
-                                     TSResponse(mp, m, j, i) = TSResponse(mp, m, j, i) &
-                                          - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%LambdaD * levi_civita(m,n,k) * lvec(mu, nu, n) &
+                                     TSResponse(m, mp, i, j) = TSResponse(m, mp, i, j) &
+                                          + s%Types(s%Basis(i)%Material)%LambdaD * levi_civita(m,n,k) * lvec(mu, nu, n) &
                                           * StoC(k+1,p) * chiorb(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma, gamma)) * CtoS(q,mp+1)
-                                     TSResponseHF(mp, m, j, i) = TSResponse(mp, m, j, i) &
-                                          - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%LambdaD * levi_civita(m,n,k) * lvec(mu, nu, n) &
+                                     TSResponseHF(m, mp, i, j) = TSResponse(m, mp, i, j) &
+                                          + s%Types(s%Basis(i)%Material)%LambdaD * levi_civita(m,n,k) * lvec(mu, nu, n) &
                                           * StoC(k+1,p) * chiorb_hf(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma, gamma)) * CtoS(q,mp+1)
                                   end do
                                end do
@@ -136,8 +136,8 @@ contains
     do i = 1, s%nAtoms
        do j = 1, s%nAtoms
           chits(1,1) = TSResponse(1,1,i,j)
-          chits(1,2) = TSResponse(1,2,i,j) - mabs(i)*delta(i,j)
-          chits(2,1) = TSResponse(2,1,i,j) + mabs(i)*delta(i,j)
+          chits(1,2) = TSResponse(1,2,i,j) + 0.5d0*mabs(i)*delta(i,j)
+          chits(2,1) = TSResponse(2,1,i,j) - 0.5d0*mabs(i)*delta(i,j)
           chits(2,2) = TSResponse(2,2,i,j)
 
           call invers(chits, 2)
