@@ -15,6 +15,7 @@ contains
     use mod_f90_kind,   only: double
     use mod_constants,  only: deg2rad,rad2deg
     use mod_mpi_pars,   only: myrank,abortProgram
+    use mod_tools,      only: rtos
     implicit none
     real(double), dimension(3), intent(in) :: a1, a2, a3
 
@@ -44,7 +45,7 @@ contains
     else
       EFp = 0.d0
     end if
-    write(output%EField,"('_EFp=',f7.2,'_EFt=',f7.2)") EFp,EFt
+    write(output%EField,"('_EFp=',a,'_EFt=',a)") trim(rtos(EFp)),trim(rtos(EFt))
 
   end subroutine initElectricField
 

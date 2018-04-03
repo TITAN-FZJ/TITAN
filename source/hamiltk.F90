@@ -36,8 +36,7 @@ subroutine hamiltk(sys,kp,hk)
     !dir$ ivdep:loop
     do i = 1, sys%nAtoms
       if(.not. sys%Neighbors(k)%isHopping(i)) cycle
-      tmp(1:nOrb,1:nOrb) = sys%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i)
-      tmp = tmp * kpExp
+      tmp(1:nOrb,1:nOrb) = sys%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp
       hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + tmp(1:nOrb,1:nOrb)
       hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + tmp(1:nOrb,1:nOrb)
     end do

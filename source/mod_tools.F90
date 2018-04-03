@@ -240,10 +240,27 @@ contains
 
   end subroutine sort_file
 
+  ! --------------------------------------------------------------------
+  ! function ItoS():
+  !    This function transforms an integer i into a character variable ItoS
+  ! --------------------------------------------------------------------
   character(len=900) function ItoS(i)
     implicit none
     integer :: i
     write(Itos, "(i0)") i
   end function ItoS
+
+  ! --------------------------------------------------------------------
+  ! function RtoS():
+  !    This function transforms a real r into a character variable RtoS.
+  ! It also cuts leading spaces (on the left)
+  ! --------------------------------------------------------------------
+  character(len=900) function RtoS(r)
+    use mod_f90_kind, only: double
+    implicit none
+    real(double) :: r
+    write(Rtos, "(f7.2)") r
+    RtoS = adjustl(RtoS)
+  end function RtoS
 
 end module mod_tools
