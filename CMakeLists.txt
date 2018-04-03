@@ -124,6 +124,15 @@ elseif(PLATFORM MATCHES osx)
                                            -O3
                                            -mkl
                                            -xHost)
+elseif(PLATFORM MATCHES "RWTH")
+  target_link_libraries(${TITAN_EXE} -mkl $ENV{FLAGS_MATH_LINKER} -qopenmp)
+  target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
+                                           -fpp
+                                           -O3
+					   -g
+                                           -qopenmp
+                                           -mkl -$ENV{FLAGS_MATH_INCLUDE}
+                                           -xHost)
 else()
   target_link_libraries(${TITAN_EXE} -mkl -qopenmp /opt/NAG/fll6i26dcl/lib/libnag_nag.a)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
