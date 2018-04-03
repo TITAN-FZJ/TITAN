@@ -24,6 +24,7 @@ program TITAN
   use mod_progress
   use mod_mpi_pars
   use mod_Umatrix
+  use mod_tools, only: rtos
   use expectation, only: calc_initial_Uterms
   !use mod_define_system TODO: Re-include
   !use mod_prefactors TODO: Re-include
@@ -113,8 +114,7 @@ program TITAN
   !call setup_long_and_trans_current_neighbors(sys) !TODO: Not implemented TODO: Re-include
 
   ! Filename strings
-  write(output%info,"('_nkpt=',i0,'_eta=',es8.1)") kptotal_in, eta
-
+  write(output%info,"('_nkpt=',i0,'_eta=',a)") kptotal_in, trim(rtos(eta,"(es8.1)"))
 
   !------------------------ MAGNETIC FIELD LOOP ------------------------
   if(myrank == 0 .and. skip_steps_hw > 0) &

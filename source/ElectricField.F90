@@ -45,7 +45,8 @@ contains
     else
       EFp = 0.d0
     end if
-    write(output%EField,"('_EFp=',a,'_EFt=',a)") trim(rtos(EFp)),trim(rtos(EFt))
+
+    write(output%EField,"('_EFp=',a,'_EFt=',a)") trim(rtos(EFp,"(f7.2)")),trim(rtos(EFt,"(f7.2)"))
 
   end subroutine initElectricField
 

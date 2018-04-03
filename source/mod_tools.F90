@@ -255,11 +255,12 @@ contains
   !    This function transforms a real r into a character variable RtoS.
   ! It also cuts leading spaces (on the left)
   ! --------------------------------------------------------------------
-  character(len=900) function RtoS(r)
+  character(len=900) function RtoS(r,format)
     use mod_f90_kind, only: double
     implicit none
-    real(double) :: r
-    write(Rtos, "(f7.2)") r
+    real(double)     :: r
+    character(len=*) :: format
+    write(Rtos, fmt=format) r
     RtoS = adjustl(RtoS)
   end function RtoS
 
