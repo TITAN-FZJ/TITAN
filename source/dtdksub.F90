@@ -14,10 +14,10 @@ subroutine dtdksub(kp,dtdk)
   dtdk = cZero
 
   ! Mouting derivative of slab's hamiltonian
-
+  ! d/dk t_ij * exp(i*R*k) = i*R t_ij exp(i*R*k)
   do k = 1, s%nNeighbors
     j = s%Neighbors(k)%BasisIndex
-    kpExp = cI * dot_product(ElectricFieldVector, s%Neighbors(k)%Position) * exp(cI * dot_product(kp,s%Neighbors(k)%CellVector))
+    kpExp = cI * dot_product(ElectricFieldVector, s%Neighbors(k)%CellVector) * exp(cI * dot_product(kp,s%Neighbors(k)%CellVector))
     do i = 1, s%nAtoms
       dtdk(1:nOrb,1:nOrb,j,i) = s%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp
     end do
