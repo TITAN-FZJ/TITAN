@@ -36,7 +36,7 @@ subroutine eintshe(e)
   !--------------------- begin MPI vars --------------------
   integer*8 :: ix, ix2, nep,nkp
   integer*8 :: real_points
-  integer :: ncountkl !,nncountkl !TODO: Re-Include
+  integer   :: ncountkl !,nncountkl !TODO: Re-Include
   ncountkl = dim*4
   !nncountkl = n0sc*dimspinAtoms*4 !TODO: Re-Include
   !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
@@ -68,14 +68,16 @@ subroutine eintshe(e)
            gfud(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
            gfdu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
            gfdd(nOrb,nOrb,s%nAtoms,s%nAtoms,2), STAT = AllocateStatus)
-  if(AllocateStatus /= 0) call abortProgram("[sumk] Not enough memory for: df1iikl,pfdf1iikl,gf,dtdk,gfuu,gfud,gfdu,gfdd")
+  if(AllocateStatus/=0) &
+  call abortProgram("[eintshe] Not enough memory for: df1iikl,pfdf1iikl,gf,dtdk,gfuu,gfud,gfdu,gfdd")
 
   allocate( tFintiikl(dim,4), STAT = AllocateStatus ) !, &
             !ttFintiikl   (n0sc1:n0sc2, dimspinAtoms, 4), &
             !LxttFintiikl (n0sc1:n0sc2, dimspinAtoms, 4), &
             !LyttFintiikl (n0sc1:n0sc2, dimspinAtoms, 4), &
             !LzttFintiikl (n0sc1:n0sc2, dimspinAtoms, 4), STAT = AllocateStatus )
-  if (AllocateStatus/=0) call abortProgram("[eintshe] Not enough memory for: tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl")
+  if (AllocateStatus/=0) &
+  call abortProgram("[eintshe] Not enough memory for: tFintiikl,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl")
 
   tFintiikl    = cZero
   !ttFintiikl   = cZero !TODO: Re-Include
@@ -120,10 +122,10 @@ subroutine eintshe(e)
       else
         call green(s%Ef+e,ep+eta,s,kp,gf)
       end if
-      gfuu(:,:,:,:,1) = gf(     1:  nOrb,     1:  nOrb, :,:)
-      gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
-      gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
-      gfdd(:,:,:,:,1) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
+      gfuu(:,:,:,:,1) = gf(     1:nOrb ,     1:nOrb ,:,:)
+      gfud(:,:,:,:,1) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
+      gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:nOrb ,:,:)
+      gfdd(:,:,:,:,1) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
 
       ! Green function at (k,E_F+iy)
       if(llineargfsoc) then
@@ -131,10 +133,10 @@ subroutine eintshe(e)
       else
         call green(s%Ef,ep+etap,s,kp,gf)
       end if
-      gfuu(:,:,:,:,2) = gf(     1:  nOrb,     1:  nOrb, :,:)
-      gfud(:,:,:,:,2) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
-      gfdu(:,:,:,:,2) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
-      gfdd(:,:,:,:,2) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
+      gfuu(:,:,:,:,2) = gf(     1:nOrb ,     1:nOrb ,:,:)
+      gfud(:,:,:,:,2) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
+      gfdu(:,:,:,:,2) = gf(nOrb+1:nOrb2,     1:nOrb ,:,:)
+      gfdd(:,:,:,:,2) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
 
       do nu=1,nOrb
         do mu=1,nOrb
@@ -238,10 +240,10 @@ subroutine eintshe(e)
         else
           call green(ep+e,eta,s,kp,gf)
         end if
-        gfuu(:,:,:,:,1) = gf(     1:  nOrb,     1:  nOrb, :,:)
-        gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
-        gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
-        gfdd(:,:,:,:,1) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
+        gfuu(:,:,:,:,1) = gf(     1:nOrb ,     1:nOrb ,:,:)
+        gfud(:,:,:,:,1) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
+        gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:nOrb ,:,:)
+        gfdd(:,:,:,:,1) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
 
         ! Green function at (k,E_F+iy)
         if(llineargfsoc) then
@@ -249,10 +251,10 @@ subroutine eintshe(e)
         else
           call green(ep,etap,s,kp,gf)
         end if
-        gfuu(:,:,:,:,2) = gf(     1:  nOrb,     1:  nOrb, :,:)
-        gfud(:,:,:,:,2) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
-        gfdu(:,:,:,:,2) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
-        gfdd(:,:,:,:,2) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
+        gfuu(:,:,:,:,2) = gf(     1:nOrb ,     1:nOrb ,:,:)
+        gfud(:,:,:,:,2) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
+        gfdu(:,:,:,:,2) = gf(nOrb+1:nOrb2,     1:nOrb ,:,:)
+        gfdd(:,:,:,:,2) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
 
         do nu=1,nOrb
           do gamma=1,nOrb
@@ -367,7 +369,6 @@ subroutine eintshelinearsoc(e)
   use adaptiveMesh
   use mod_mpi_pars
 
-
   !use mod_system, only: r_nn, npln, nkpt, kbz, wkbz, n0sc1, n0sc2
   !use mod_currents,         only: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl !TODO: Re-Include
   !use mod_system,           only: n0sc1, n0sc2, n0sc
@@ -474,25 +475,25 @@ subroutine eintshelinearsoc(e)
 
         ! Green function at (k+q,E_F+E+iy)
         call greenlinearsoc(s%Ef+e,ep+eta,s,kp,gf,gvg)
-        gfuu(:,:,:,:,1)  = gf(     1:  nOrb,     1:  nOrb, :,:)
-        gfud(:,:,:,:,1)  = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
-        gfdu(:,:,:,:,1)  = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
-        gfdd(:,:,:,:,1)  = gf(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
-        gvguu(:,:,:,:,1) = gvg(     1:  nOrb,     1:  nOrb, :,:)
-        gvgud(:,:,:,:,1) = gvg(     1:  nOrb,nOrb+1:nOrb2, :,:)
-        gvgdu(:,:,:,:,1) = gvg(nOrb+1:nOrb2,     1:  nOrb, :,:)
-        gvgdd(:,:,:,:,1) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
+        gfuu (:,:,:,:,1) = gf (     1:nOrb ,     1:nOrb ,:,:)
+        gfud (:,:,:,:,1) = gf (     1:nOrb ,nOrb+1:nOrb2,:,:)
+        gfdu (:,:,:,:,1) = gf (nOrb+1:nOrb2,     1:nOrb ,:,:)
+        gfdd (:,:,:,:,1) = gf (nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
+        gvguu(:,:,:,:,1) = gvg(     1:nOrb ,     1:nOrb ,:,:)
+        gvgud(:,:,:,:,1) = gvg(     1:nOrb ,nOrb+1:nOrb2,:,:)
+        gvgdu(:,:,:,:,1) = gvg(nOrb+1:nOrb2,     1:nOrb ,:,:)
+        gvgdd(:,:,:,:,1) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
 
         ! Green function at (k,E_F+iy)
         call greenlinearsoc(s%Ef,ep+etap,s,kp,gf,gvg)
-        gfuu(:,:,:,:,2)  = gf(     1:  nOrb,     1:  nOrb, :,:)
-        gfud(:,:,:,:,2)  = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
-        gfdu(:,:,:,:,2)  = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
-        gfdd(:,:,:,:,2)  = gf(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
-        gvguu(:,:,:,:,2) = gvg(     1:  nOrb,     1:  nOrb, :,:)
-        gvgud(:,:,:,:,2) = gvg(     1:  nOrb,nOrb+1:nOrb2, :,:)
-        gvgdu(:,:,:,:,2) = gvg(nOrb+1:nOrb2,     1:  nOrb, :,:)
-        gvgdd(:,:,:,:,2) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
+        gfuu (:,:,:,:,2) = gf (     1:nOrb ,     1: nOrb,:,:)
+        gfud (:,:,:,:,2) = gf (     1:nOrb ,nOrb+1:nOrb2,:,:)
+        gfdu (:,:,:,:,2) = gf (nOrb+1:nOrb2,     1: nOrb,:,:)
+        gfdd (:,:,:,:,2) = gf (nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
+        gvguu(:,:,:,:,2) = gvg(     1:nOrb ,     1: nOrb,:,:)
+        gvgud(:,:,:,:,2) = gvg(     1:nOrb ,nOrb+1:nOrb2,:,:)
+        gvgdu(:,:,:,:,2) = gvg(nOrb+1:nOrb2,     1: nOrb,:,:)
+        gvgdd(:,:,:,:,2) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
 
         do nu = 1, 9
           do mu = 1, 9
@@ -618,25 +619,25 @@ subroutine eintshelinearsoc(e)
 
       ! Green function at (k+q,E_F+E+iy)
       call greenlinearsoc(ep+e,eta,s,kp,gf,gvg)
-      gfuu(:,:,:,:,1) = gf(     1:  nOrb,     1:  nOrb, :,:)
-      gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
-      gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
-      gfdd(:,:,:,:,1) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
-      gvguu(:,:,:,:,1) = gvg(     1:  nOrb,     1:  nOrb, :,:)
-      gvgud(:,:,:,:,1) = gvg(     1:  nOrb,nOrb+1:nOrb2, :,:)
-      gvgdu(:,:,:,:,1) = gvg(nOrb+1:nOrb2,     1:  nOrb, :,:)
-      gvgdd(:,:,:,:,1) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
+      gfuu (:,:,:,:,1) = gf (     1:nOrb ,     1:nOrb ,:,:)
+      gfud (:,:,:,:,1) = gf (     1:nOrb ,nOrb+1:nOrb2,:,:)
+      gfdu (:,:,:,:,1) = gf (nOrb+1:nOrb2,     1:nOrb ,:,:)
+      gfdd (:,:,:,:,1) = gf (nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
+      gvguu(:,:,:,:,1) = gvg(     1:nOrb ,     1:nOrb ,:,:)
+      gvgud(:,:,:,:,1) = gvg(     1:nOrb ,nOrb+1:nOrb2,:,:)
+      gvgdu(:,:,:,:,1) = gvg(nOrb+1:nOrb2,     1:nOrb ,:,:)
+      gvgdd(:,:,:,:,1) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
 
       ! Green function at (k,E_F+iy)
       call greenlinearsoc(ep,etap,s,kp,gf,gvg)
-      gfuu(:,:,:,:,2) = gf(     1:  nOrb,     1:  nOrb, :,:)
-      gfud(:,:,:,:,2) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
-      gfdu(:,:,:,:,2) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
-      gfdd(:,:,:,:,2) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
-      gvguu(:,:,:,:,2) = gvg(     1:  nOrb,     1:  nOrb, :,:)
-      gvgud(:,:,:,:,2) = gvg(     1:  nOrb,nOrb+1:nOrb2, :,:)
-      gvgdu(:,:,:,:,2) = gvg(nOrb+1:nOrb2,     1:  nOrb, :,:)
-      gvgdd(:,:,:,:,2) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
+      gfuu (:,:,:,:,2) = gf (     1:nOrb ,     1: nOrb,:,:)
+      gfud (:,:,:,:,2) = gf (     1:nOrb ,nOrb+1:nOrb2,:,:)
+      gfdu (:,:,:,:,2) = gf (nOrb+1:nOrb2,     1: nOrb,:,:)
+      gfdd (:,:,:,:,2) = gf (nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
+      gvguu(:,:,:,:,2) = gvg(     1:nOrb ,     1: nOrb,:,:)
+      gvgud(:,:,:,:,2) = gvg(     1:nOrb ,nOrb+1:nOrb2,:,:)
+      gvgdu(:,:,:,:,2) = gvg(nOrb+1:nOrb2,     1: nOrb,:,:)
+      gvgdd(:,:,:,:,2) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
 
       do nu=1,9
         do mu=1,9
@@ -731,13 +732,13 @@ subroutine eintshelinearsoc(e)
   ! LyttFintiikl = LyttFintiikl/tpi !TODO: Re-Include
   ! LzttFintiikl = LzttFintiikl/tpi !TODO: Re-Include
 
-  !omp critical
+  !$omp critical
     tchiorbiikl = tchiorbiikl + tFintiikl
     ! ttchiorbiikl = ttchiorbiikl + ttFintiikl !TODO: Re-Include
     ! Lxttchiorbiikl = Lxttchiorbiikl + LxttFintiikl !TODO: Re-Include
     ! Lyttchiorbiikl = Lyttchiorbiikl + LyttFintiikl !TODO: Re-Include
     ! Lzttchiorbiikl = Lzttchiorbiikl + LzttFintiikl !TODO: Re-Include
-  !omp end critical
+  !$omp end critical
 
   deallocate(df1iikl,pfdf1iikl,df1lsoc)
   deallocate(gvg,gvguu,gvgud,gvgdu,gvgdd)

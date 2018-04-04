@@ -1256,7 +1256,7 @@ contains
       write(output%unit_loop,"(a,':',2x,'Ns(',i2.0,')=',f11.8,4x,'Np(',i2.0,')=',f11.8,4x,'Nd(',i2.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i, rho(1,i),i, sum(rho(2:4,i)),i, sum(rho(5:9,i))
     end do
     write(output%unit_loop,"(11x,' *********** Magnetization components: **********')")
-    if(abs(sum(mp(:,:)))/=0.d0) then
+    if(abs(sum(mp(:,:)))>1.d-8) then
       do i=1,s%nAtoms
         write(output%unit_loop,"(a,':',2x,'Mx(',i2.0,')=',f11.8,4x,'My(',i2.0,')=',f11.8,4x,'Mz(',i2.0,')=',f11.8,4x,'theta = ',f11.6,4x,'phi = ',f11.6)") trim(s%Types(s%Basis(i)%Material)%Name),i,mvec_cartesian(1,i),i,mvec_cartesian(2,i),i,mvec_cartesian(3,i),mvec_spherical(2,i),mvec_spherical(3,i)
       end do
@@ -1267,7 +1267,7 @@ contains
     end if
     if((lGSL).or.(SOC)) then
       write(output%unit_loop,"(11x,' ****** Orbital components in global frame: *****')")
-      if(sum(lxm(:)**2+lym(:)**2)/=0.d0) then
+      if(sum(lxm(:)**2+lym(:)**2)>1.d-8) then
         do i=1,s%nAtoms
           write(output%unit_loop,"(a,':',2x,'Lx(',i2.0,')=',f11.8,4x,'Ly(',i2.0,')=',f11.8,4x,'Lz(',i2.0,')=',f11.8,4x,'theta = ',f11.6,4x,'phi = ',f11.6)") trim(s%Types(s%Basis(i)%Material)%Name),i,lxm(i),i,lym(i),i,lzm(i),ltheta(i),lphi(i)
         end do

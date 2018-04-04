@@ -28,8 +28,7 @@ subroutine eintshechi(e)
   integer*8 :: ix
   integer*8 :: ix2, nep,nkp
   integer*8 :: real_points
-  integer :: ncount
-
+  integer   :: ncount
   ncount=dim*dim
 !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -42,10 +41,10 @@ subroutine eintshechi(e)
   ! Starting to calculate energy integral
 
   allocate(Fint(dim,dim), STAT = AllocateStatus  )
-  if (AllocateStatus/=0) call abortProgram("[eintshechi] Not enough memory for: Fint")
+  if (AllocateStatus/=0) &
+  call abortProgram("[eintshechi] Not enough memory for: Fint")
   Fint = cZero
   chiorb_hf = cZero
-
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,i,j,mu,nu,gamma,xi,nep,nkp,ep,kp,weight,gf,gfuu,gfud,gfdu,gfdd,index1, index2) &
@@ -55,7 +54,8 @@ subroutine eintshechi(e)
            gfud(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
            gfdu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
            gfdd(nOrb,nOrb,s%nAtoms,s%nAtoms,2), STAT = AllocateStatus  )
-  if (AllocateStatus/=0) call abortProgram("[eintshechi] Not enough memory for: gf,gfuu,gfud,gfdu,gfdd")
+  if (AllocateStatus/=0) &
+  call abortProgram("[eintshechi] Not enough memory for: gf,gfuu,gfud,gfdu,gfdd")
 
   !$omp do schedule(static) reduction(+:chiorb_hf)
   do ix = 1, local_points
@@ -68,10 +68,10 @@ subroutine eintshechi(e)
       else
         call green(s%Ef+e,ep+eta,s,kp,gf)
       end if
-      gfuu(:,:,:,:,1) = gf(     1:  nOrb,     1:  nOrb, :,:)
-      gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
-      gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
-      gfdd(:,:,:,:,1) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
+      gfuu(:,:,:,:,1) = gf(     1:nOrb ,     1:nOrb ,:,:)
+      gfud(:,:,:,:,1) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
+      gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:nOrb ,:,:)
+      gfdd(:,:,:,:,1) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
 
       ! Green function at (k,E_F+iy)
       if(llineargfsoc) then
@@ -79,10 +79,10 @@ subroutine eintshechi(e)
       else
         call green(s%Ef,ep+etap,s,kp,gf)
       end if
-      gfuu(:,:,:,:,2) = gf(     1:  nOrb,     1:  nOrb, :,:)
-      gfud(:,:,:,:,2) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
-      gfdu(:,:,:,:,2) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
-      gfdd(:,:,:,:,2) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
+      gfuu(:,:,:,:,2) = gf(     1:nOrb ,     1:nOrb ,:,:)
+      gfud(:,:,:,:,2) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
+      gfdu(:,:,:,:,2) = gf(nOrb+1:nOrb2,     1:nOrb ,:,:)
+      gfdd(:,:,:,:,2) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
 
       !dir$ ivdep:loop
       do j=1,s%nAtoms
@@ -141,10 +141,10 @@ subroutine eintshechi(e)
       else
         call green(ep+e,eta,s,kp,gf)
       end if
-      gfuu(:,:,:,:,1) = gf(     1:  nOrb,     1:  nOrb, :,:)
-      gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
-      gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
-      gfdd(:,:,:,:,1) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
+      gfuu(:,:,:,:,1) = gf(     1:nOrb ,     1:nOrb ,:,:)
+      gfud(:,:,:,:,1) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
+      gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:nOrb ,:,:)
+      gfdd(:,:,:,:,1) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
 
       ! Green function at (k,E'+i.eta)
       if(llineargfsoc) then
@@ -152,10 +152,10 @@ subroutine eintshechi(e)
       else
         call green(ep,etap,s,kp,gf)
       end if
-      gfuu(:,:,:,:,2) = gf(     1:  nOrb,     1:  nOrb, :,:)
-      gfud(:,:,:,:,2) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
-      gfdu(:,:,:,:,2) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
-      gfdd(:,:,:,:,2) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
+      gfuu(:,:,:,:,2) = gf(     1:nOrb ,     1:nOrb ,:,:)
+      gfud(:,:,:,:,2) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
+      gfdu(:,:,:,:,2) = gf(nOrb+1:nOrb2,     1:nOrb ,:,:)
+      gfdd(:,:,:,:,2) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
 
       !dir$ ivdep:loop
       do j=1,s%nAtoms
@@ -226,8 +226,6 @@ subroutine eintshechilinearsoc(e)
   use TightBinding,         only: nOrb,nOrb2
   use adaptiveMesh
   use mod_mpi_pars
-  !$  use omp_lib
-
   implicit none
   real(double), intent(in) :: e
 
@@ -290,25 +288,25 @@ subroutine eintshechilinearsoc(e)
       weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix))
       ! Green function at (k+q,E_F+E+iy)
       call greenlinearsoc(s%Ef+e,ep+eta,s,kp,gf,gvg)
-      gfuu(:,:,:,:,1) = gf(     1:  nOrb,      1: nOrb, :,:)
-      gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
-      gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
-      gfdd(:,:,:,:,1) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
-      gvguu(:,:,:,:,1) = gvg(     1:  nOrb,     1:  nOrb, :,:)
-      gvgud(:,:,:,:,1) = gvg(     1:  nOrb,nOrb+1:nOrb2, :,:)
-      gvgdu(:,:,:,:,1) = gvg(nOrb+1:nOrb2,     1:  nOrb, :,:)
-      gvgdd(:,:,:,:,1) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
+      gfuu (:,:,:,:,1) = gf (     1:nOrb ,     1:nOrb ,:,:)
+      gfud (:,:,:,:,1) = gf (     1:nOrb ,nOrb+1:nOrb2,:,:)
+      gfdu (:,:,:,:,1) = gf (nOrb+1:nOrb2,     1:nOrb ,:,:)
+      gfdd (:,:,:,:,1) = gf (nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
+      gvguu(:,:,:,:,1) = gvg(     1:nOrb ,     1:nOrb ,:,:)
+      gvgud(:,:,:,:,1) = gvg(     1:nOrb ,nOrb+1:nOrb2,:,:)
+      gvgdu(:,:,:,:,1) = gvg(nOrb+1:nOrb2,     1:nOrb ,:,:)
+      gvgdd(:,:,:,:,1) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
 
       ! Green function at (k,E_F+iy)
       call greenlinearsoc(s%Ef,ep+etap,s,kp,gf,gvg)
-      gfuu(:,:,:,:,2) = gf(:,:,     1:  nOrb,     1:  nOrb)
-      gfud(:,:,:,:,2) = gf(:,:,     1:  nOrb,nOrb+1:nOrb2)
-      gfdu(:,:,:,:,2) = gf(:,:,nOrb+1:nOrb2,     1:  nOrb)
-      gfdd(:,:,:,:,2) = gf(:,:,nOrb+1:nOrb2,nOrb+1:nOrb2)
-      gvguu(:,:,:,:,2) = gvg(:,:,     1:  nOrb,     1:  nOrb)
-      gvgud(:,:,:,:,2) = gvg(:,:,     1:  nOrb,nOrb+1:nOrb2)
-      gvgdu(:,:,:,:,2) = gvg(:,:,nOrb+1:nOrb2,     1:  nOrb)
-      gvgdd(:,:,:,:,2) = gvg(:,:,nOrb+1:nOrb2,nOrb+1:nOrb2)
+      gfuu (:,:,:,:,2) = gf (     1:nOrb ,     1: nOrb,:,:)
+      gfud (:,:,:,:,2) = gf (     1:nOrb ,nOrb+1:nOrb2,:,:)
+      gfdu (:,:,:,:,2) = gf (nOrb+1:nOrb2,     1: nOrb,:,:)
+      gfdd (:,:,:,:,2) = gf (nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
+      gvguu(:,:,:,:,2) = gvg(     1:nOrb ,     1: nOrb,:,:)
+      gvgud(:,:,:,:,2) = gvg(     1:nOrb ,nOrb+1:nOrb2,:,:)
+      gvgdu(:,:,:,:,2) = gvg(nOrb+1:nOrb2,     1: nOrb,:,:)
+      gvgdd(:,:,:,:,2) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
 
       !dir$ simd
       do xi=1,nOrb ; do gamma=1,nOrb ; do j=1,s%nAtoms ; do nu=1,nOrb ; do mu=1,nOrb ; do i=1,s%nAtoms
@@ -370,25 +368,25 @@ subroutine eintshechilinearsoc(e)
 
       ! Green function at (k+q,E_F+E+iy)
       call greenlinearsoc(ep+e,eta,s,kp,gf,gvg)
-      gfuu(:,:,:,:,1) = gf(     1:  nOrb,     1:  nOrb, :,:)
-      gfud(:,:,:,:,1) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
-      gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
-      gfdd(:,:,:,:,1) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
-      gvguu(:,:,:,:,1) = gvg(     1:  nOrb,     1:  nOrb, :,:)
-      gvgud(:,:,:,:,1) = gvg(     1:  nOrb,nOrb+1:nOrb2, :,:)
-      gvgdu(:,:,:,:,1) = gvg(nOrb+1:nOrb2,     1:  nOrb, :,:)
-      gvgdd(:,:,:,:,1) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
+      gfuu (:,:,:,:,1) = gf (     1:nOrb ,     1:nOrb ,:,:)
+      gfud (:,:,:,:,1) = gf (     1:nOrb ,nOrb+1:nOrb2,:,:)
+      gfdu (:,:,:,:,1) = gf (nOrb+1:nOrb2,     1:nOrb ,:,:)
+      gfdd (:,:,:,:,1) = gf (nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
+      gvguu(:,:,:,:,1) = gvg(     1:nOrb ,     1:nOrb ,:,:)
+      gvgud(:,:,:,:,1) = gvg(     1:nOrb ,nOrb+1:nOrb2,:,:)
+      gvgdu(:,:,:,:,1) = gvg(nOrb+1:nOrb2,     1:nOrb ,:,:)
+      gvgdd(:,:,:,:,1) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
 
       ! Green function at (k,E_F+iy)
       call greenlinearsoc(ep,etap,s,kp,gf,gvg)
-      gfuu(:,:,:,:,2) = gf(     1:  nOrb,     1:  nOrb, :,:)
-      gfud(:,:,:,:,2) = gf(     1:  nOrb,nOrb+1:nOrb2, :,:)
-      gfdu(:,:,:,:,2) = gf(nOrb+1:nOrb2,     1:  nOrb, :,:)
-      gfdd(:,:,:,:,2) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
-      gvguu(:,:,:,:,2) = gvg(     1:  nOrb,     1:  nOrb, :,:)
-      gvgud(:,:,:,:,2) = gvg(     1:  nOrb,nOrb+1:nOrb2, :,:)
-      gvgdu(:,:,:,:,2) = gvg(nOrb+1:nOrb2,     1:  nOrb, :,:)
-      gvgdd(:,:,:,:,2) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2, :,:)
+      gfuu (:,:,:,:,2) = gf (     1:nOrb ,     1: nOrb,:,:)
+      gfud (:,:,:,:,2) = gf (     1:nOrb ,nOrb+1:nOrb2,:,:)
+      gfdu (:,:,:,:,2) = gf (nOrb+1:nOrb2,     1: nOrb,:,:)
+      gfdd (:,:,:,:,2) = gf (nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
+      gvguu(:,:,:,:,2) = gvg(     1:nOrb ,     1: nOrb,:,:)
+      gvgud(:,:,:,:,2) = gvg(     1:nOrb ,nOrb+1:nOrb2,:,:)
+      gvgdu(:,:,:,:,2) = gvg(nOrb+1:nOrb2,     1: nOrb,:,:)
+      gvgdd(:,:,:,:,2) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
 
       !dir$ simd
       do xi=1,nOrb ; do gamma=1,nOrb ; do j=1,s%nAtoms ; do nu=1,nOrb ; do mu=1,nOrb ; do i=1,s%nAtoms
