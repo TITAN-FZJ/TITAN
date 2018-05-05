@@ -74,7 +74,7 @@ contains
                           hwt_npts, hwt_npt1, hwp_i, hwp_f, hwp_npts, hwp_npt1, hwx, hwy, &
                           hwz, hwscale, hwtrotate, hwprotate, skip_steps_hw
     use TightBinding, only: tbmode, fermi_layer
-    use ElectricField, only: ElectricFieldMode, ElectricFieldVector, EFp, EFt
+    use ElectricField, only: ElectricFieldMode, ElectricFieldVector, EFp, EFt, EshiftBZ
     use EnergyIntegration, only: parts, parts3, pn1, pn2, pnt, n1gl, n3gl
     use mod_tools, only: itos
     use adaptiveMesh, only: minimumBZmesh
