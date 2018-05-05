@@ -49,6 +49,13 @@ contains
 
     write(output%EField,"('_EFp=',a,'_EFt=',a)") trim(rtos(EFp,"(f7.2)")),trim(rtos(EFt,"(f7.2)"))
 
+    if(abs(EshiftBZ)>1.d-8) then
+      output%EField   = output%EField // "_EshiftBZ=" //trim(rtos(EshiftBZ,"(es8.1)"))
+      output%EFieldBZ = output%EField
+    else
+      output%EFieldBZ = ""
+    end if
+
   end subroutine initElectricField
 
 

@@ -207,10 +207,10 @@ contains
     !! This subroutine creates all the files needed for the susceptibilities
     use mod_parameters, only: output, lnodiag, lhfresponses
     use mod_system,     only: s => sys
-    use mod_mpi_pars, only: abortProgram
+    use mod_mpi_pars,   only: abortProgram
     implicit none
 
-    character(len=500)  :: varm
+    character(len=500) :: varm
     integer :: i,j,iw
 
      do j=1,s%nAtoms
@@ -218,14 +218,14 @@ contains
            iw = 1050 + (j-1) * s%nAtoms + i
            ! RPA SUSCEPTIBILITIES
            if(.not.lhfresponses) then
-              write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_',i0,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+              write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_',i0,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
               open (unit=iw, file=varm, status='replace', form='formatted')
               write(unit=iw, fmt="('#     energy    ,  ((real[chi(j,i)], imag[chi(j,i)], j=1,4),i=1,4)')")
               close(unit=iw)
            end if
            iw = iw+1000
            ! HF SUSCEPTIBILITIES
-           write(varm,"('./results/',a1,'SOC/',a,'/HF/chihf_',i0,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+           write(varm,"('./results/',a1,'SOC/',a,'/HF/chihf_',i0,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
            open (unit=iw, file=varm, status='replace', form='formatted')
            write(unit=iw, fmt="('#     energy    ,  ((real[chihf(j,i)], imag[chihf(j,i)], j=1,4),i=1,4)  ')")
            close(unit=iw)
@@ -233,12 +233,12 @@ contains
      end do
     ! RPA DIAGONALIZATION
     if((s%nAtoms>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
-       write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_eval',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+       write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_eval',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
        open (unit=19900, file=varm,status='replace', form='formatted')
        write(unit=19900,fmt="('#     energy    ,  real part of 1st eigenvalue  ,  imaginary part of 1st eigenvalue  ,  real part of 2nd eigenvalue  ,  imaginary part of 2nd eigenvalue  , ... ')")
        close (unit=19900)
        do i=1,s%nAtoms
-          write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_evec',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_evec',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
           open (unit=19900+i, file=varm,status='replace', form='formatted')
           write(unit=19900+i,fmt="('#     energy    ,  real part of 1st component  ,  imaginary part of 1st component  ,  real part of 2nd component  ,  imaginary part of 2nd component  , ...   ')")
           close (unit=19900+i)
@@ -263,14 +263,14 @@ contains
 
            ! RPA SUSCEPTIBILITIES
            if(.not.lhfresponses) then
-              write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_',i0,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+              write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_',i0,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
               open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
               errt = errt + err
               if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
            end if
            iw = iw+1000
            ! HF SUSCEPTIBILITIES
-           write(varm,"('./results/',a1,'SOC/',a,'/HF/chihf_',i0,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+           write(varm,"('./results/',a1,'SOC/',a,'/HF/chihf_',i0,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
            open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
            errt = errt + err
            if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -278,12 +278,12 @@ contains
      end do
     ! RPA DIAGONALIZATION
     if((s%nAtoms>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
-       write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_eval',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+       write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_eval',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
        open (unit=19900, file=varm, status='old', position='append', form='formatted', iostat=err)
        errt = errt + err
        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
        do i=1,s%nAtoms
-          write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_evec',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_evec',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
           open (unit=19900+i, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -377,14 +377,14 @@ contains
            iw = 10500 + (j-1)*s%nAtoms + i
            ! RPA SUSCEPTIBILITIES
            if(.not.lhfresponses) then
-              write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_',a,'_',i0,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%suffix)
+              write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_',a,'_',i0,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
               open (unit=iw, file=varm, status='replace', form='formatted')
               write(unit=iw, fmt="('#',a,'  real part of chi ',a,'  ,  imaginary part of chi ',a,'  ,  amplitude of chi ',a,' ')") trim(dc_header)
               close(unit=iw)
            end if
            iw = iw+1000
            ! HF SUSCEPTIBILITIES
-           write(varm,"('./results/',a1,'SOC/',a,'/HF/',a,'chihf_',a,'_',i0,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%suffix)
+           write(varm,"('./results/',a1,'SOC/',a,'/HF/',a,'chihf_',a,'_',i0,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
            open (unit=iw, file=varm, status='replace', form='formatted')
            write(unit=iw, fmt="('#',a,'  real part of chi ',a,' HF ,  imaginary part of chi ',a,' HF  ,  amplitude of chi ',a,' HF ')") trim(dc_header)
            close(unit=iw)
@@ -392,12 +392,12 @@ contains
      end do
     ! RPA DIAGONALIZATION
     if((s%nAtoms>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
-       write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_eval_',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%suffix)
+       write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_eval_',a,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
        open (unit=199000, file=varm,status='replace', form='formatted')
        write(unit=199000,fmt="('#',a,'  real part of 1st eigenvalue  ,  imaginary part of 1st eigenvalue  ,  real part of 2nd eigenvalue  ,  imaginary part of 2nd eigenvalue  , ...')") trim(dc_header)
        close (unit=199000)
        do i=1,s%nAtoms
-          write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_evec',i0,'_',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_evec',i0,'_',a,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
           open (unit=199000+i, file=varm,status='replace', form='formatted')
           write(unit=199000+i,fmt="('#',a,'  real part of 1st component  ,  imaginary part of 1st component  ,  real part of 2nd component  ,  imaginary part of 2nd component  , ...')") trim(dc_header)
           close (unit=199000+i)
@@ -421,14 +421,14 @@ contains
            iw = 10500 + (j-1)*s%nAtoms + i
            ! RPA SUSCEPTIBILITIES
            if(.not.lhfresponses) then
-              write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_',a,'_',i0,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%suffix)
+              write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_',a,'_',i0,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
               open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
               errt = errt + err
               if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
            end if
            iw = iw+1000
            ! HF SUSCEPTIBILITIES
-           write(varm,"('./results/',a1,'SOC/',a,'/HF/',a,'chihf_',a,'_',i0,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%suffix)
+           write(varm,"('./results/',a1,'SOC/',a,'/HF/',a,'chihf_',a,'_',i0,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
            open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
            errt = errt + err
            if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -436,12 +436,12 @@ contains
      end do
     ! RPA DIAGONALIZATION
     if((s%nAtoms>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
-       write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_eval_',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%suffix)
+       write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_eval_',a,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
        open (unit=199000, file=varm, status='old', position='append', form='formatted', iostat=err)
        errt = errt + err
        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
        do i=1,s%nAtoms
-          write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_evec',i0,'_',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_evec',i0,'_',a,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
           open (unit=199000+i, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)

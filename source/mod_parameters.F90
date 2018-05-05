@@ -145,10 +145,11 @@ module mod_parameters
      character(len=50) :: BField   = "" ! hwa, hwt, hwp, ltesla, lnolb, lhwscale, lhwrotate,
      character(len=50) :: dcBField = "" ! dc special case of fieldpart
 
-     character(len=50) :: EField = ""   ! EFt, EFp
+     character(len=50) :: EField   = ""   ! EFt, EFp, EshiftBZ (if present)
+     character(len=50) :: EFieldBZ = ""   ! EFt, EFp, EshiftBZ (for susceptibility files)
 
      character(len=50) :: suffix = ""
-     character(len=50) :: Sites = ""
+     character(len=50) :: Sites  = ""
 
      character(len=50) :: SOC = ""
      character(len=1)  :: SOCchar = ""
