@@ -200,6 +200,7 @@ contains
        runoptions  = trim(runoptions) // " " // trim(s_vector(i))
     end do
 
+    deallocate(s_vector)
 
     !-------------------------------------- In-Plane Currents --------------------------------------
     if(.not. get_parameter("n0sc1", n0sc1)) call log_warning("get_parameters","'n0sc1' missing.")
@@ -299,7 +300,7 @@ contains
        deallocate(vector)
     end select
 
-    deallocate(s_vector)
+    if(.not. get_parameter("EshiftBZ", EshiftBZ, 0.d0)) call log_warning("get_parameters", "'EshiftBZ' not found. Using default value 0.d0.")
     if(.not. get_parameter("eta", eta)) call log_error("get_parameters","'eta' missing.")
     if(.not. get_parameter("etap", etap, eta)) call log_warning("get_parameters", "'etap' not found. Using default value eta.")
 
@@ -555,8 +556,8 @@ contains
     use mod_SOC, only: SOC, socscale
     use mod_magnet
     use EnergyIntegration, only: parts, parts3, n1gl, n3gl
-    use electricfield, only: ElectricFieldMode, ElectricFieldVector, EFt, EFp
-    use adaptiveMesh, only: minimumBZmesh
+    use ElectricField, only: ElectricFieldMode, ElectricFieldVector, EFt, EFp, EshiftBZ
+    use AdaptiveMesh, only: minimumBZmesh
     !$ use omp_lib
     implicit none
     type(System), intent(in) :: s

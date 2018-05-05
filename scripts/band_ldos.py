@@ -3,15 +3,29 @@ import matplotlib.pyplot as plt
 #from matplotlib2tikz import save as tikz_save
 import matplotlib.gridspec as gridspec
 import sys
+from matplotlib import rc
+rc('mathtext', default='regular')
+
+# Fonts
+font = {'family': 'arial',
+         'color': 'black',
+         'weight':'normal',
+         'size': 9,
+        }
 
 nSites=1
 #plt.xkcd()
 
-ry2ev = 1.0
+ry2ev = 13.6
 if(ry2ev != 1.0):
-  label = "$E-E_F$ [eV]"
+  label = r'$E-E_F$ [eV]'
 else:
-  label = "$E-E_F$ [Ry]"
+  label = r'$E-E_F$ [Ry]'
+
+# colors = brewer2mpl.get_map('Set1', 'qualitative', 5).mpl_colors
+colors = ['#e41a1c','#377eb8','#4daf4a','#984ea3','#a65628']
+# colors = np.array(['k', 'g', 'r', 'b']) # The colors you wish to cycle through
+legends = np.array(['Total', 's', 'p', 'd'])
 
 bsstruct = sys.argv[1]
 
@@ -20,8 +34,8 @@ if(len(sys.argv) == 4):
   ldosd = sys.argv[3]
 
 if(len(sys.argv) == 4):
-  fig, ax = plt.subplots(1,3, sharey=True,gridspec_kw = {'width_ratios':[1,4,1]})
-  fig.subplots_adjust(wspace=0)
+  fig, ax = plt.subplots(1,3, sharey=True, gridspec_kw = {'width_ratios':[1,4,1]})
+  fig.subplots_adjust(wspace=0.15)
 else:
   fig,axx = plt.subplots(1,1)
   ax = [None, axx, None]
@@ -49,19 +63,23 @@ with open(bsstruct, "r") as f:
  ax[1].set_xticks(point)
  ax[1].set_xticklabels(name)
  for i in point:
-  ax[1].axvline(x=i, color='k')
- ax[1].axhline(y=0.0, xmin=point[0], xmax=point[count[0]-1], color='k', linestyle='--')
+  ax[1].axvline(x=i, color='k', linewidth=0.75)
+ ax[1].axhline(y=0.0, xmin=point[0], xmax=point[count[0]-1], color='k', linestyle='--', linewidth=0.75)
  #ax[1].axhline(y=0.0, xmin=point[0], xmax=point[count[0]-1], color='k', linestyle='--')
 
  # for i in range(2,19):
  #  ax2.scatter(table[:,0],[(a-fermi) for a in table[:,i]], marker='.', c='k', s=0.2)
- ax[1].scatter(table[:,0],[(a-fermi)*ry2ev for a in table[:,1]], marker='.', c='b', s=0.2, label="TITAN")
+ ax[1].scatter(table[:,0],[(a-fermi)*ry2ev for a in table[:,1]], marker='.', c='k', s=1.0)
 
  if(ry2ev != 1.0):
   ax[1].set_ylim([-12.0,9])
   ax[1].set_yticks([-12, -8, -4, 0, 4, 8])
  else:
   ax[1].set_ylim([-1.0,0.7])
+
+ ax[0].tick_params(axis='y', direction='in', left=True, right=True)
+ ax[1].tick_params(axis='y', direction='in', left=True, right=True)
+ ax[2].tick_params(axis='y', direction='in', left=True, right=True)
 
  # ax2.set_title("TITAN")
  ax[1].set_xlim([point[0],point[count[0]-1]])
@@ -72,38 +90,32 @@ else:
   ax[1].set_ylabel(label)
 
 if(len(sys.argv)==4):
-  data = [ np.loadtxt(ldosu), np.loadtxt(ldosd) ]
 
-  dat1 = (data[0])[(data[0])[:,0].argsort()]
-  dat2 = (data[1])[(data[1])[:,0].argsort()]
+  datau = np.loadtxt(ldosu)
+  datau = datau[datau[:,0].argsort()]
+  x = datau[:,0]
+  for i in range(1,len(datau[0,:])):
+    ax[0].plot(-datau[:,i]/ry2ev,(x-fermi)*ry2ev, color=colors[i-1], label=legends[i-1])
 
-  x1 = [ x-fermi for x in dat1[:,0] ]
-  x1 = x1*ry2ev
-  tot1 = dat1[:,1]/ry2ev
-  s1   = dat1[:,2]/ry2ev
-  p1   = dat1[:,3]/ry2ev
-  d1   = dat1[:,4]/ry2ev
+  datad = np.loadtxt(ldosd)
+  datad = datad[datad[:,0].argsort()]
+  x = datad[:,0]
+  for i in range(1,len(datad[0,:])):
+    ax[2].plot(datad[:,i]/ry2ev,(x-fermi)*ry2ev, color=colors[i-1])
 
-  x2 = [ x-fermi for x in dat2[:,0] ]
-  x2 = x2*ry2ev
-  tot2 = [-x for x in dat2[:,1]/ry2ev ]
-  s2   = [-x for x in dat2[:,2]/ry2ev ]
-  p2   = [-x for x in dat2[:,3]/ry2ev ]
-  d2   = [-x for x in dat2[:,4]/ry2ev ]
+  a1 = max(datau[:,1]/ry2ev)
+  a2 = max(datad[:,1]/ry2ev)
+  max_ldos = max(a1,a2)
+  xlim = 1.1*abs(max_ldos)
+  ax[2].set_xlim([0.0,xlim])
+  ax[0].set_xlim([-xlim,0.0])
 
-  ax[2].plot(tot1,x1,color='k')
-  ax[2].plot(s1,x1,color='r')
-  ax[2].plot(p1,x1,color='b')
-  ax[2].plot(d1,x1,color='c')
+  ax[2].axhline(y=0.0, xmin=point[0], xmax=point[count[0]-1], color='k', linestyle='--', linewidth=0.75)
+  ax[0].axhline(y=0.0, xmin=point[0], xmax=point[count[0]-1], color='k', linestyle='--', linewidth=0.75)
 
-  ax[0].plot(tot2,x2,color='k')
-  ax[0].plot(s2,x2,color='r')
-  ax[0].plot(p2,x2,color='b')
-  ax[0].plot(d2,x2,color='c')
+  ax[0].legend(loc=3, prop={'size': 7})
 
-  ax[2].axhline(y=0.0, xmin=point[0], xmax=point[count[0]-1], color='k', linestyle='--')
-  ax[0].axhline(y=0.0, xmin=point[0], xmax=point[count[0]-1], color='k', linestyle='--')
-
-plt.legend()
 #tikz_save("plot.tex", figurewidth="10cm", figureheight="10cm")
+plt.savefig('BS_LDOS.pdf')
+
 plt.show()

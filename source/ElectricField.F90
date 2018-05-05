@@ -7,6 +7,7 @@ implicit none
 integer :: ElectricFieldMode                          !< Direction of in-plane applied electric field
 real(double), dimension(3) :: ElectricFieldVector(3)  !< Direction vector of the electric field
 real(double) :: EFp = 0.d0, EFt = 0.d0                !< Phi and Theta angles of the electric field in spherical coordinates
+real(double) :: EshiftBZ                              !< Shift on the BZ points due to a small electric field
 
 contains
 
