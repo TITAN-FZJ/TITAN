@@ -596,6 +596,7 @@ contains
     end select
     write(output%unit_loop,"(1x,'Direction: ')", advance='no')
     write(output%unit_loop,"('E = (',f6.3,',',f6.3,',',f6.3,')')") (ElectricFieldVector(i), i=1,3)
+    if(EshiftBZ > 1.d-8) write(output%unit_loop,"(1x,'Shift of BZ = ',es9.2)") EshiftBZ
 
     if(renorm) then
        write(output%unit_loop,"(1x,'Current renormalization: ACTIVATED')")
