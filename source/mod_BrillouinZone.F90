@@ -117,7 +117,6 @@ contains
     use mod_mpi_pars,  only: abortProgram
     use mod_System,    only: System
     use mod_tools,     only: itos
-    use ElectricField, only: EshiftBZ,ElectricFieldVector
     implicit none
     class(FractionalBrillouinZone) :: self
     type(System), intent(in)       :: sys
@@ -185,7 +184,7 @@ contains
           if(count >= first .and. count <= last ) then
             added = added + 1
             range = range + 1
-            self%kp(:,added) = diff + EshiftBZ*ElectricFieldVector
+            self%kp(:,added) = diff
           end if
         end if
       end do
@@ -280,7 +279,6 @@ contains
     use mod_tools,     only: cross
     use mod_mpi_pars,  only: abortProgram
     use mod_System,    only: System
-    use ElectricField, only: EshiftBZ,ElectricFieldVector
     implicit none
     class(FractionalBrillouinZone) :: self
     type(System), intent(in)       :: sys
@@ -343,7 +341,7 @@ contains
           if(count >= first .and. count <= last ) then
             added = added + 1
             range = range + 1
-            self%kp(:,added) = diff + EshiftBZ*ElectricFieldVector
+            self%kp(:,added) = diff
           end if
         end if
       end do

@@ -636,6 +636,7 @@ contains
     use adaptiveMesh,      only: bzs,E_k_imag_mesh,activeComm,local_points
     use TightBinding,      only: nOrb,nOrb2
     use mod_parameters,    only: eta
+    use ElectricField,     only: EshiftBZ,ElectricFieldVector
     use mod_mpi_pars
     implicit none
     integer  :: i,j, AllocateStatus
@@ -665,7 +666,7 @@ contains
 
     !$omp parallel default(none) &
     !$omp& private(ix,ep,kp,weight,i,mu,mup,gf,AllocateStatus) &
-    !$omp& shared(llineargfsoc,llinearsoc,local_points,eta,wght,s,bzs,E_k_imag_mesh,y,gdiagud,gdiagdu,imguu,imgdd)
+    !$omp& shared(llineargfsoc,llinearsoc,local_points,eta,wght,s,bzs,E_k_imag_mesh,y,gdiagud,gdiagdu,imguu,imgdd,EshiftBZ,ElectricFieldVector)
     allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat=AllocateStatus)
     if(AllocateStatus /= 0) &
     call AbortProgram("[calcMagnetization] Not enough memory for: gf")
@@ -675,7 +676,7 @@ contains
       !$omp do schedule(static) reduction(+:imguu) reduction(+:imgdd) reduction(+:gdiagud) reduction(+:gdiagdu)
       do ix = 1, local_points
          ep = y(E_k_imag_mesh(1,ix))
-         kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
+         kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix)) + EshiftBZ*ElectricFieldVector
          weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
          call greenlineargfsoc(s%Ef,ep+eta,s,kp,gf)
          do i=1,s%nAtoms
@@ -694,7 +695,7 @@ contains
       !$omp do schedule(static) reduction(+:imguu) reduction(+:imgdd) reduction(+:gdiagud) reduction(+:gdiagdu)
       do ix = 1, local_points
          ep = y(E_k_imag_mesh(1,ix))
-         kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
+         kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix)) + EshiftBZ*ElectricFieldVector
          weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
          call green(s%Ef,ep+eta,s,kp,gf)
          do i=1,s%nAtoms
@@ -759,6 +760,7 @@ contains
     use adaptiveMesh,      only: local_points, E_k_imag_mesh, bzs, activeComm
     use mod_BrillouinZone, only: realBZ
     use TightBinding,      only: nOrb,nOrb2
+    use ElectricField,     only: EshiftBZ,ElectricFieldVector
     use mod_mpi_pars
     implicit none
     integer,                           intent(in)    :: N
@@ -797,7 +799,7 @@ contains
 
     !$omp parallel default(none) &
     !$omp& private(AllocateStatus,ix,i,j,mu,nu,sigma,sigmap,ep,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp) &
-    !$omp& shared(llineargfsoc,llinearsoc,local_points,s,realBZ,bzs,E_k_imag_mesh,y,eta,wght,halfU,pauli_a,pauli_b,jacobian)
+    !$omp& shared(llineargfsoc,llinearsoc,local_points,s,realBZ,bzs,E_k_imag_mesh,y,eta,wght,halfU,pauli_a,pauli_b,jacobian,EshiftBZ,ElectricFieldVector)
     allocate( temp1(nOrb2, nOrb2, 4), &
               temp2(nOrb2, nOrb2, 4), &
               gij(nOrb2,nOrb2), gji(nOrb2,nOrb2), &
@@ -818,7 +820,7 @@ contains
    !$omp do schedule(static) reduction(+:jacobian)
    do ix = 1, local_points
       ep = y(E_k_imag_mesh(1,ix))
-      kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
+      kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix)) + EshiftBZ*ElectricFieldVector
       weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
       ! Green function on energy Ef + iy, and wave vector kp
       if(llineargfsoc .or. llinearsoc) then
@@ -1010,7 +1012,7 @@ contains
     ! No energy integral - only BZ integration of G(Ef)
     !$omp do schedule(static) reduction(+:jacobian)
     do ix = 1, realBZ%workload
-      kp = realBZ%kp(1:3,ix)
+      kp = realBZ%kp(1:3,ix) + EshiftBZ*ElectricFieldVector
       weight = cmplx(1.d0,0.d0) * realBZ%w(ix)
 
       ! Green function at Ef + ieta, and wave vector kp
@@ -1074,6 +1076,7 @@ contains
     use TightBinding,      only: nOrb,nOrb2
     use mod_parameters,    only: output, eta
     use EnergyIntegration, only: y, wght
+    use ElectricField,     only: EshiftBZ,ElectricFieldVector
     use adaptiveMesh
     use mod_magnet
     use mod_mpi_pars
@@ -1115,7 +1118,7 @@ contains
     gupgd  = cZero
     !$omp parallel default(none) &
     !$omp& private(AllocateStatus,ix,i,mu,nu,mup,nup,kp,ep,weight,gf) &
-    !$omp& shared(local_points,s,E_k_imag_mesh,bzs,eta,y,wght,gupgd)
+    !$omp& shared(local_points,s,E_k_imag_mesh,bzs,eta,y,wght,gupgd,EshiftBZ,ElectricFieldVector)
     allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat = AllocateStatus)
     if (AllocateStatus/=0) &
     call abortProgram("[calcLGS] Not enough memory for: gf")
@@ -1123,7 +1126,7 @@ contains
     gf = cZero
     !$omp do schedule(static) reduction(+:gupgd)
     do ix = 1, local_points
-        kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
+        kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix)) + EshiftBZ*ElectricFieldVector
         ep = y(E_k_imag_mesh(1,ix))
         weight = bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix)) * wght(E_k_imag_mesh(1,ix))
         !Green function on energy Ef + iy, and wave vector kp

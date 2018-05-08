@@ -9,6 +9,7 @@ subroutine eintshechi(e)
   use mod_BrillouinZone,    only: realBZ
   use TightBinding,         only: nOrb,nOrb2
   use mod_SOC,              only: llineargfsoc
+  use ElectricField,        only: EshiftBZ,ElectricFieldVector
   use adaptiveMesh
   use mod_mpi_pars
   implicit none
@@ -18,7 +19,7 @@ subroutine eintshechi(e)
   complex(double), dimension(:,:),allocatable :: Fint
 
   integer         :: i,j,mu,nu,gamma,xi
-  real(double)                :: kp(3)
+  real(double)    :: kp(3)
   complex(double),dimension(:,:,:,:),allocatable    :: gf
   complex(double),dimension(:,:,:,:,:),allocatable  :: gfuu,gfud,gfdu,gfdd
   real(double) :: weight, ep
@@ -48,7 +49,7 @@ subroutine eintshechi(e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,i,j,mu,nu,gamma,xi,nep,nkp,ep,kp,weight,gf,gfuu,gfud,gfdu,gfdd,index1, index2) &
-  !$omp& shared(llineargfsoc,bzs,s,realBZ,local_points,e,y,wght,x2,p2,pn2,real_points,E_k_imag_mesh,eta,etap,dim,sigmaimunu2i,Fint,chiorb_hf)
+  !$omp& shared(llineargfsoc,bzs,s,realBZ,local_points,e,y,wght,x2,p2,pn2,real_points,E_k_imag_mesh,eta,etap,dim,sigmaimunu2i,Fint,chiorb_hf,EshiftBZ,ElectricFieldVector)
   allocate(gf  (nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
            gfud(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
@@ -60,7 +61,7 @@ subroutine eintshechi(e)
   !$omp do schedule(static) reduction(+:chiorb_hf)
   do ix = 1, local_points
       ep = y( E_k_imag_mesh(1,ix) )
-      kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix))
+      kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix)) + EshiftBZ*ElectricFieldVector
       weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix))
       ! Green function at (k+q,E_F+E+iy)
       if(llineargfsoc) then
@@ -133,7 +134,7 @@ subroutine eintshechi(e)
       nep = (ix2-1) / int(realBZ % workload,8) + 1
       nkp = mod(ix2-1, int(realBZ % workload,8)) + 1
       ep = x2(nep)
-      kp = realBZ % kp(:,nkp)
+      kp = realBZ % kp(:,nkp) + EshiftBZ*ElectricFieldVector
       weight = p2(nep) * realBZ % w(nkp)
       ! Green function at (k+q,E'+E+i.eta)
       if(llineargfsoc) then
@@ -224,6 +225,7 @@ subroutine eintshechilinearsoc(e)
   use mod_system,           only: s => sys
   use mod_BrillouinZone,    only: realBZ
   use TightBinding,         only: nOrb,nOrb2
+  use ElectricField,        only: EshiftBZ,ElectricFieldVector
   use adaptiveMesh
   use mod_mpi_pars
   implicit none
@@ -260,7 +262,7 @@ subroutine eintshechilinearsoc(e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,i,j,mu,nu,nep,nkp,gamma,xi,kp,ep,weight,Fint,Fintlsoc,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,df1,df1lsoc) &
-  !$omp& shared(local_points,s,bzs,realBZ,real_points,E_k_imag_mesh,e,y,wght,x2,p2,eta,etap,dim,sigmaimunu2i,chiorb_hf,chiorb_hflsoc)
+  !$omp& shared(local_points,s,bzs,realBZ,real_points,E_k_imag_mesh,e,y,wght,x2,p2,eta,etap,dim,sigmaimunu2i,chiorb_hf,chiorb_hflsoc,EshiftBZ,ElectricFieldVector)
   allocate(df1(dim,dim), Fint(dim,dim), &
            gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
@@ -284,7 +286,7 @@ subroutine eintshechilinearsoc(e)
   !$omp do schedule(static)
   do ix = 1, local_points
       ep = y( E_k_imag_mesh(1,ix) )
-      kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix))
+      kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix)) + EshiftBZ*ElectricFieldVector
       weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix))
       ! Green function at (k+q,E_F+E+iy)
       call greenlinearsoc(s%Ef+e,ep+eta,s,kp,gf,gvg)
@@ -363,7 +365,7 @@ subroutine eintshechilinearsoc(e)
       nep = (ix2-1) / int(realBZ % workload,8) + 1
       nkp = mod(ix2-1, int(realBZ % workload,8))+1
       ep = x2(nep)
-      kp = realBZ % kp(:,nkp)
+      kp = realBZ % kp(:,nkp) + EshiftBZ*ElectricFieldVector
       weight = p2(nep) * realBZ % w(nkp)
 
       ! Green function at (k+q,E_F+E+iy)
