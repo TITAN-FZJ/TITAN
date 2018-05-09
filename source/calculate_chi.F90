@@ -20,6 +20,7 @@ subroutine calculate_chi()
   use TorqueTorqueResponse, only: calcTTResponse, create_TTR_files, allocTTResponse
   use TorqueSpinResponse, only: calcTSResponse, create_TSR_files, allocTSResponse
   use mod_rotation_matrices, only: rotation_matrices_chi
+  use mod_SOC, only: SOC
   use mod_sumrule
   implicit none
   character(len=50) :: time
@@ -94,31 +95,33 @@ subroutine calculate_chi()
            end do
         end do
 
-        schiLS = cZero
-        schiSL = cZero
-        schiLL = cZero
-        ! Calculating 3x3 <<L,S>>, <<S,L>> and <<L,L>> responses in cartesian components (x,y,z)
-        do j=1, s%nAtoms
-           do i=1, s%nAtoms
-              do sigmap=1, 3
-                 do sigma=1, 3
-                    do nu=1, nOrb
-                       do mu=1, nOrb
-                          do gamma=1, nOrb
-                            do p=1, 4
-                              schiLS(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiLS(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + lvec(mu,gamma,sigma)*( chiorb(sigmaimunu2i(2,i,mu,gamma),sigmaimunu2i(p,j,nu,nu)) + chiorb(sigmaimunu2i(3,i,mu,gamma),sigmaimunu2i(p,j,nu,nu)) )*CtoS(p,sigmap+1)
-                              schiSL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiSL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + StoC(sigma+1,p)*( chiorb(sigmaimunu2i(p,i,mu,mu),sigmaimunu2i(2,j,nu,gamma)) + chiorb(sigmaimunu2i(p,i,mu,mu),sigmaimunu2i(3,j,nu,gamma)) )*lvec(nu,gamma,sigmap)
+        if(SOC) then
+          schiLS = cZero
+          schiSL = cZero
+          schiLL = cZero
+          ! Calculating 3x3 <<L,S>>, <<S,L>> and <<L,L>> responses in cartesian components (x,y,z)
+          do j=1, s%nAtoms
+             do i=1, s%nAtoms
+                do sigmap=1, 3
+                   do sigma=1, 3
+                      do nu=1, nOrb
+                         do mu=1, nOrb
+                            do gamma=1, nOrb
+                              do p=1, 4
+                                schiLS(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiLS(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + lvec(mu,gamma,sigma)*( chiorb(sigmaimunu2i(2,i,mu,gamma),sigmaimunu2i(p,j,nu,nu)) + chiorb(sigmaimunu2i(3,i,mu,gamma),sigmaimunu2i(p,j,nu,nu)) )*CtoS(p,sigmap+1)
+                                schiSL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiSL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + StoC(sigma+1,p)*( chiorb(sigmaimunu2i(p,i,mu,mu),sigmaimunu2i(2,j,nu,gamma)) + chiorb(sigmaimunu2i(p,i,mu,mu),sigmaimunu2i(3,j,nu,gamma)) )*lvec(nu,gamma,sigmap)
+                              end do
+                              do xi=1, nOrb
+                                schiLL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiLL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + lvec(mu,nu,sigma)*( chiorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) + chiorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) + chiorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) + chiorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) )*lvec(gamma,xi,sigmap)
+                              end do
                             end do
-                            do xi=1, nOrb
-                              schiLL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiLL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + lvec(mu,nu,sigma)*( chiorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) + chiorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) + chiorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) + chiorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) )*lvec(gamma,xi,sigmap)
-                            end do
-                          end do
-                       end do
-                    end do
-                 end do
-              end do
-           end do
-        end do
+                         end do
+                      end do
+                   end do
+                end do
+             end do
+          end do
+        end if
 
         ! Rotating susceptibilities to the magnetization direction (local frame of reference)
         if(lrot) then

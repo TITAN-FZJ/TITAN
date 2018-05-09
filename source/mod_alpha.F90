@@ -106,12 +106,13 @@ contains
   end subroutine close_alpha_files
 
   subroutine write_alpha(e)
-    use mod_f90_kind, only: double
-    use mod_constants, only: cI, StoC, CtoS
+    use mod_f90_kind,         only: double
+    use mod_constants,        only: cI, StoC, CtoS
     use mod_susceptibilities, only: schi, schihf, schiLS, schiSL, schiLL
-    use mod_parameters, only: sigmai2i, U
-    use mod_system, only: s => sys
-    use mod_magnet, only: mabs
+    use mod_parameters,       only: sigmai2i, U
+    use mod_system,           only: s => sys
+    use mod_magnet,           only: mabs
+    use mod_SOC,              only: SOC
     implicit none
     real(double) :: e
     real(double) :: gammaM, alpha_v1, alpha_v2, alpha_v3, alpha_v4
@@ -147,20 +148,6 @@ contains
         end do
       end do
 
-      do p = 1, 3
-        do q = 1, 3
-          acart_LS_inv(p,q) = schiLS(sigmai2i(p,i),sigmai2i(q,i))
-          acart_SL_inv(p,q) = schiSL(sigmai2i(p,i),sigmai2i(q,i))
-          acart_LL_inv(p,q) = schiLL(sigmai2i(p,i),sigmai2i(q,i))
-          acart_St_inv(p,q) = 4.d0*acart(p+1,q+1) + 2.d0*schiSL(sigmai2i(p,i),sigmai2i(q,i))
-          acart_t_inv(p,q)  = 4.d0*acart(p+1,q+1) + 2.d0*schiLS(sigmai2i(p,i),sigmai2i(q,i)) + 2.d0*schiSL(sigmai2i(p,i),sigmai2i(q,i)) + schiLL(sigmai2i(p,i),sigmai2i(q,i))
-        end do
-      end do
-      call invers(acart_LS_inv,3)
-      call invers(acart_SL_inv,3)
-      call invers(acart_LL_inv,3)
-      call invers(acart_St_inv,3)
-      call invers(acart_t_inv,3)
 
       gammaM = e / aimag(acartinv(2,3))
       alpha_v1 = - gammaM * aimag(m_chi_inv(sigmai2i(1,i),sigmai2i(1,i))) / e
@@ -178,11 +165,29 @@ contains
                                                 ((real(acarthfinv(q,p)), aimag(acarthfinv(q,p)), q = 1, 4), p = 1, 4)
       write(55 + 4*s%nAtoms+i,"(8(es16.9,2x))") e, gammaM, real(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)))**2, U(i)**2, alpha_v1, alpha_v2, alpha_v3, alpha_v4
 
-      write(55 + 5*s%nAtoms+i,"(3(es16.9,2x))") e, e / aimag(acart_LS_inv(2,3)),  -1.d0 * aimag(acart_LS_inv(2,2))/aimag(acart_LS_inv(2,3))
-      write(55 + 6*s%nAtoms+i,"(3(es16.9,2x))") e, e / aimag(acart_SL_inv(2,3)),  -1.d0 * aimag(acart_SL_inv(2,2))/aimag(acart_SL_inv(2,3))
-      write(55 + 7*s%nAtoms+i,"(3(es16.9,2x))") e, e / aimag(acart_LL_inv(2,3)),  -1.d0 * aimag(acart_LL_inv(2,2))/aimag(acart_LL_inv(2,3))
-      write(55 + 8*s%nAtoms+i,"(3(es16.9,2x))") e, e / aimag(acart_St_inv(2,3)),  -1.d0 * aimag(acart_St_inv(2,2))/aimag(acart_St_inv(2,3))
-      write(55 + 9*s%nAtoms+i,"(3(es16.9,2x))") e, e / aimag(acart_t_inv(2,3)),  -1.d0 * aimag(acart_t_inv(2,2))/aimag(acart_t_inv(2,3))
+      if(SOC) then
+        do p = 1, 3
+          do q = 1, 3
+            acart_LS_inv(p,q) = schiLS(sigmai2i(p,i),sigmai2i(q,i))
+            acart_SL_inv(p,q) = schiSL(sigmai2i(p,i),sigmai2i(q,i))
+            acart_LL_inv(p,q) = schiLL(sigmai2i(p,i),sigmai2i(q,i))
+            acart_St_inv(p,q) = 4.d0*acart(p+1,q+1) + 2.d0*schiSL(sigmai2i(p,i),sigmai2i(q,i))
+            acart_t_inv(p,q)  = 4.d0*acart(p+1,q+1) + 2.d0*schiLS(sigmai2i(p,i),sigmai2i(q,i)) + 2.d0*schiSL(sigmai2i(p,i),sigmai2i(q,i)) + schiLL(sigmai2i(p,i),sigmai2i(q,i))
+          end do
+        end do
+
+        call invers(acart_LS_inv,3)
+        call invers(acart_SL_inv,3)
+        call invers(acart_LL_inv,3)
+        call invers(acart_St_inv,3)
+        call invers(acart_t_inv,3)
+
+        write(55 + 5*s%nAtoms+i,"(3(es16.9,2x))") e, e / aimag(acart_LS_inv(2,3)),  -1.d0 * aimag(acart_LS_inv(2,2))/aimag(acart_LS_inv(2,3))
+        write(55 + 6*s%nAtoms+i,"(3(es16.9,2x))") e, e / aimag(acart_SL_inv(2,3)),  -1.d0 * aimag(acart_SL_inv(2,2))/aimag(acart_SL_inv(2,3))
+        write(55 + 7*s%nAtoms+i,"(3(es16.9,2x))") e, e / aimag(acart_LL_inv(2,3)),  -1.d0 * aimag(acart_LL_inv(2,2))/aimag(acart_LL_inv(2,3))
+        write(55 + 8*s%nAtoms+i,"(3(es16.9,2x))") e, e / aimag(acart_St_inv(2,3)),  -1.d0 * aimag(acart_St_inv(2,2))/aimag(acart_St_inv(2,3))
+        write(55 + 9*s%nAtoms+i,"(3(es16.9,2x))") e, e / aimag(acart_t_inv(2,3)),  -1.d0 * aimag(acart_t_inv(2,2))/aimag(acart_t_inv(2,3))
+      end if
     end do
 
     call close_alpha_files()
