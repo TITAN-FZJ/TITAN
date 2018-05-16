@@ -62,9 +62,9 @@ subroutine deallocate_Atom_variables()
 
   call deallocate_magnet_variables()
 
-  deallocate(sigmai2i,sigmaimunu2i,sigmaijmunu2i)
-  deallocate(U)
-  deallocate(rho0,rhod0)
+  if(allocated(sigmai2i)) deallocate(sigmai2i,sigmaimunu2i,sigmaijmunu2i)
+  if(allocated(U)) deallocate(U)
+  if(allocated(rho0)) deallocate(rho0,rhod0)
 
   !deallocate(t0, t0i)
   !deallocate(sha_longitudinal,sha_transverse,long_cos,transv_cos)

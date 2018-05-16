@@ -71,7 +71,7 @@ program TITAN
   call generate_imag_epoints()
 
   !----- Calculating initial values in the hamiltonian with mag=0 ------
-  call calc_initial_Uterms(sys)
+  if(.not.lsortfiles) call calc_initial_Uterms(sys)
 
   !----------- Generating k points for real axis integration -----------
   realBZ % nkpt_x = kp_in(1)
