@@ -411,7 +411,7 @@ contains
         ! Allocating current and SHA variables
         call allocate_currents()
         call allocate_sha()
-        energy_loop: do count=1,npt1
+        energy_loop: do count=1,nEner1
           ! Creating SHA files with headers
           call openclose_dc_sha_files(0)
 

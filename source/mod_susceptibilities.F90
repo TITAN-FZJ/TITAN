@@ -325,14 +325,14 @@ contains
   ! This subroutine write all the susceptibilities into files
   ! (already opened with openclose_chi_files(1))
   ! Some information may be written on the screen
-  subroutine write_susceptibilities(e)
+  subroutine write_susceptibilities(q,e)
     use mod_f90_kind, only: double
     use mod_parameters, only: lwriteonscreen, lhfresponses, lnodiag, output, sigmai2i
     use mod_system, only: s => sys
     implicit none
     character(len=100)      :: varm
-    integer                 :: i,j,iw,p,q
-    real(double),intent(in) :: e
+    integer                 :: i,j,k,iw,m,n
+    real(double),intent(in) :: e,q(3)
 
     call open_chi_files()
 
@@ -341,20 +341,20 @@ contains
        do i=1, s%nAtoms
            iw = 1050 + (j-1)*s%nAtoms + i
            if(.not.lhfresponses) then
-              write(unit=iw,fmt="(33(es16.9,2x))") e, ((real(schi(sigmai2i(q,i),sigmai2i(p,j))), aimag(schi(sigmai2i(q,i),sigmai2i(p,j))), q = 1, 4), p = 1, 4)
+              write(unit=iw,fmt="(36(es16.9,2x))") e, (q(k),k=1,3), ((real(schi(sigmai2i(n,i),sigmai2i(m,j))), aimag(schi(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
               if(i == j .and. lwriteonscreen) write(output%unit_loop,"('E = ',es11.4,', Plane: ',i0,' Chi+- = (',es16.9,') + i(',es16.9,')')") e,i,real(schi(sigmai2i(1,i),sigmai2i(1,j))),aimag(schi(sigmai2i(1,i),sigmai2i(1,j)))
            end if
 
            iw = iw+1000
-           write(unit=iw,fmt="(33(es16.9,2x))") e, ((real(schihf(sigmai2i(q,i),sigmai2i(p,j))), aimag(schihf(sigmai2i(q,i),sigmai2i(p,j))), q = 1, 4), p = 1, 4)
+           write(unit=iw,fmt="(36(es16.9,2x))") e, (q(k),k=1,3), ((real(schihf(sigmai2i(n,i),sigmai2i(m,j))), aimag(schihf(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
        end do
     end do
 
     if(s%nAtoms > 1 .and. (.not. lhfresponses) .and. (.not. lnodiag)) then
-       write(varm,fmt="('(',i0,'(es16.9,2x))')") 2*s%nAtoms+1
-       write(unit=19900,fmt=varm) e,(real(eval(i)),aimag(eval(i)),i=1,s%nAtoms)
+       write(varm,fmt="('(',i0,'(es16.9,2x))')") 2*s%nAtoms+4
+       write(unit=19900,fmt=varm) e, (q(k),k=1,3),(real(eval(i)),aimag(eval(i)),i=1,s%nAtoms)
        do i=1,s%nAtoms
-          write(unit=19900+i,fmt=varm) e,(real(evecr(j,i)),aimag(evecr(j,i)),j=1,s%nAtoms)
+          write(unit=19900+i,fmt=varm) e, (q(k),k=1,3),(real(evecr(j,i)),aimag(evecr(j,i)),j=1,s%nAtoms)
        end do
     end if
 
@@ -485,14 +485,15 @@ contains
   ! This subroutine write all the susceptibilities into files
   ! (already opened with openclose_chi_files(1))
   ! Some information is also written on the screen
-  subroutine write_dc_susceptibilities()
+  subroutine write_dc_susceptibilities(q)
     use mod_f90_kind, only: double
     use mod_parameters, only: lwriteonscreen, output, lhfresponses, lnodiag, sigmai2i
     use mod_magnet, only: hw_count, dc_fields, dcfield_dependence, dcfield
     use mod_system, only: s => sys
     implicit none
-    character(len=100)      :: varm
-    integer                 :: i,j,iw,p,q
+    character(len=100)       :: varm
+    integer                  :: i,j,k,iw,m,n
+    real(double), intent(in) :: q(3)
 
     call open_dc_chi_files()
 
@@ -501,24 +502,24 @@ contains
       do i=1,s%nAtoms
        iw = 10500 + (j-1)*s%nAtoms + i
        if(.not.lhfresponses) then
-          write(unit=iw,fmt="(a,2x,32(es16.9,2x))") trim(dc_fields(hw_count)) , ((real(schi(sigmai2i(q,i),sigmai2i(p,j))), aimag(schi(sigmai2i(q,i),sigmai2i(p,j))), q = 1, 4), p = 1, 4)
+          write(unit=iw,fmt="(a,2x,35(es16.9,2x))") trim(dc_fields(hw_count)) , (q(k),k=1,3) , ((real(schi(sigmai2i(n,i),sigmai2i(m,j))), aimag(schi(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
           if( i == j .and. lwriteonscreen ) write(output%unit_loop,"(a,' = ',a,', Plane: ',i0,' Chi+- = (',es16.9,') + i(',es16.9,')')") trim(dcfield(dcfield_dependence)),trim(dc_fields(hw_count)),i,real(schi(sigmai2i(1,i),sigmai2i(1,j))),aimag(schi(sigmai2i(1,i),sigmai2i(1,j)))
        end if
 
        iw = iw+1000
-       write(unit=iw,fmt="(a,2x,32(es16.9,2x))") trim(dc_fields(hw_count)) , ((real(schi(sigmai2i(q,i),sigmai2i(p,j))), aimag(schi(sigmai2i(q,i),sigmai2i(p,j))), q = 1, 4), p = 1, 4)
+       write(unit=iw,fmt="(a,2x,35(es16.9,2x))") trim(dc_fields(hw_count)) , (q(k),k=1,3) , ((real(schi(sigmai2i(n,i),sigmai2i(m,j))), aimag(schi(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
       end do
     end do
 
     if((s%nAtoms>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
-       write(varm,fmt="(a,i0,a)") '(a,2x,',2*s%nAtoms,'(es16.9,2x))'
-       write(unit=199000,fmt=varm) trim(dc_fields(hw_count)) , (real(eval(i)) , aimag(eval(i)),i=1,s%nAtoms)
+       write(varm,fmt="(a,i0,a)") '(a,2x,',2*s%nAtoms+3,'(es16.9,2x))'
+       write(unit=199000,fmt=varm) trim(dc_fields(hw_count)) , (q(k),k=1,3) , (real(eval(i)) , aimag(eval(i)),i=1,s%nAtoms)
        do i=1,s%nAtoms
-          write(unit=199000+i,fmt=varm) trim(dc_fields(hw_count)) , (real(evecr(j,i)) , aimag(evecr(j,i)),j=1,s%nAtoms)
+          write(unit=199000+i,fmt=varm) trim(dc_fields(hw_count)) , (q(k),k=1,3) , (real(evecr(j,i)) , aimag(evecr(j,i)),j=1,s%nAtoms)
        end do
     end if ! s%nAtoms
 
-    call close_dc_chi_files
+    call close_dc_chi_files()
   end subroutine write_dc_susceptibilities
 
   ! This subroutine sorts susceptibilities files

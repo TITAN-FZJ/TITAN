@@ -21,9 +21,10 @@ module mod_polyBasis
 contains
 
   subroutine read_basis(filename, s)
-    use mod_system,   only: System
-    use mod_mpi_pars, only: myrank
-    use mod_mpi_pars, only: abortProgram
+    use mod_system,    only: System
+    use mod_mpi_pars,  only: myrank,abortProgram
+    use mod_constants, only: tpi
+    use mod_tools,     only: cross
     implicit none
 
     character(len=*), intent(in) :: filename
@@ -106,6 +107,12 @@ contains
       end if
       end do
     end do
+
+    ! Calculating volume of BZ and reciprocal lattice vectors
+    s%vol   = tpi / dot_product(s%a1, cross(s%a2,s%a3))
+    s%b1(:) = s%vol * cross(s%a2, s%a3)
+    s%b2(:) = s%vol * cross(s%a3, s%a1)
+    s%b3(:) = s%vol * cross(s%a1, s%a2)
 
     close(f_unit)
     ! write(unit=out_unit, fmt=*) ""

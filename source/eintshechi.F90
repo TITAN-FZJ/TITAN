@@ -1,5 +1,5 @@
 ! ---------- Spin disturbance: Energy integration ---------
-subroutine eintshechi(e)
+subroutine eintshechi(q,e)
   use mod_f90_kind,         only: double
   use mod_constants,        only: cZero, cOne, cI, tpi
   use mod_parameters,       only: eta, etap, dim, sigmaimunu2i
@@ -13,7 +13,7 @@ subroutine eintshechi(e)
   use adaptiveMesh
   use mod_mpi_pars
   implicit none
-  real(double), intent(in)    :: e
+  real(double), intent(in)    :: e, q(3)
 
   integer :: AllocateStatus
   complex(double), dimension(:,:),allocatable :: Fint
@@ -49,7 +49,7 @@ subroutine eintshechi(e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,i,j,mu,nu,gamma,xi,nep,nkp,ep,kp,weight,gf,gfuu,gfud,gfdu,gfdd,index1, index2) &
-  !$omp& shared(llineargfsoc,bzs,s,realBZ,local_points,e,y,wght,x2,p2,pn2,real_points,E_k_imag_mesh,eta,etap,dim,sigmaimunu2i,Fint,chiorb_hf,EshiftBZ,ElectricFieldVector)
+  !$omp& shared(llineargfsoc,bzs,s,realBZ,local_points,q,e,y,wght,x2,p2,pn2,real_points,E_k_imag_mesh,eta,etap,dim,sigmaimunu2i,Fint,chiorb_hf,EshiftBZ,ElectricFieldVector)
   allocate(gf  (nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
            gfud(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
@@ -65,9 +65,9 @@ subroutine eintshechi(e)
       weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix))
       ! Green function at (k+q,E_F+E+iy)
       if(llineargfsoc) then
-        call greenlineargfsoc(s%Ef+e,ep+eta,s,kp,gf)
+        call greenlineargfsoc(s%Ef+e,ep+eta,s,kp+q,gf)
       else
-        call green(s%Ef+e,ep+eta,s,kp,gf)
+        call green(s%Ef+e,ep+eta,s,kp+q,gf)
       end if
       gfuu(:,:,:,:,1) = gf(     1:nOrb ,     1:nOrb ,:,:)
       gfud(:,:,:,:,1) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
@@ -138,9 +138,9 @@ subroutine eintshechi(e)
       weight = p2(nep) * realBZ % w(nkp)
       ! Green function at (k+q,E'+E+i.eta)
       if(llineargfsoc) then
-        call greenlineargfsoc(ep+e,eta,s,kp,gf)
+        call greenlineargfsoc(ep+e,eta,s,kp+q,gf)
       else
-        call green(ep+e,eta,s,kp,gf)
+        call green(ep+e,eta,s,kp+q,gf)
       end if
       gfuu(:,:,:,:,1) = gf(     1:nOrb ,     1:nOrb ,:,:)
       gfud(:,:,:,:,1) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
@@ -216,7 +216,7 @@ end subroutine eintshechi
 
 ! -------------------- Spin disturbance: Energy integration --------------------
 ! -------------- to be used in the calculation of linear SOC chi ---------------
-subroutine eintshechilinearsoc(e)
+subroutine eintshechilinearsoc(q,e)
   use mod_f90_kind,         only: double
   use mod_constants,        only: cZero, cOne, cI, tpi
   use mod_parameters,       only: eta, etap, dim, sigmaimunu2i
@@ -229,7 +229,7 @@ subroutine eintshechilinearsoc(e)
   use adaptiveMesh
   use mod_mpi_pars
   implicit none
-  real(double), intent(in) :: e
+  real(double), intent(in) :: e,q(3)
 
   integer :: AllocateStatus
   integer*8 :: ix,ix2, nep, nkp
@@ -262,7 +262,7 @@ subroutine eintshechilinearsoc(e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,i,j,mu,nu,nep,nkp,gamma,xi,kp,ep,weight,Fint,Fintlsoc,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,df1,df1lsoc) &
-  !$omp& shared(local_points,s,bzs,realBZ,real_points,E_k_imag_mesh,e,y,wght,x2,p2,eta,etap,dim,sigmaimunu2i,chiorb_hf,chiorb_hflsoc,EshiftBZ,ElectricFieldVector)
+  !$omp& shared(local_points,s,bzs,realBZ,real_points,E_k_imag_mesh,q,e,y,wght,x2,p2,eta,etap,dim,sigmaimunu2i,chiorb_hf,chiorb_hflsoc,EshiftBZ,ElectricFieldVector)
   allocate(df1(dim,dim), Fint(dim,dim), &
            gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
@@ -289,7 +289,7 @@ subroutine eintshechilinearsoc(e)
       kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix)) + EshiftBZ*ElectricFieldVector
       weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix))
       ! Green function at (k+q,E_F+E+iy)
-      call greenlinearsoc(s%Ef+e,ep+eta,s,kp,gf,gvg)
+      call greenlinearsoc(s%Ef+e,ep+eta,s,kp+q,gf,gvg)
       gfuu (:,:,:,:,1) = gf (     1:nOrb ,     1:nOrb ,:,:)
       gfud (:,:,:,:,1) = gf (     1:nOrb ,nOrb+1:nOrb2,:,:)
       gfdu (:,:,:,:,1) = gf (nOrb+1:nOrb2,     1:nOrb ,:,:)
@@ -369,7 +369,7 @@ subroutine eintshechilinearsoc(e)
       weight = p2(nep) * realBZ % w(nkp)
 
       ! Green function at (k+q,E_F+E+iy)
-      call greenlinearsoc(ep+e,eta,s,kp,gf,gvg)
+      call greenlinearsoc(ep+e,eta,s,kp+q,gf,gvg)
       gfuu (:,:,:,:,1) = gf (     1:nOrb ,     1:nOrb ,:,:)
       gfud (:,:,:,:,1) = gf (     1:nOrb ,nOrb+1:nOrb2,:,:)
       gfdu (:,:,:,:,1) = gf (nOrb+1:nOrb2,     1:nOrb ,:,:)

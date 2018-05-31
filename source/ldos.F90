@@ -1,7 +1,7 @@
 ! This subroutine calculates LDOS
 subroutine ldos()
   use mod_f90_kind,      only: double
-  use mod_parameters,    only: output, npt1, emin, deltae,laddresults
+  use mod_parameters,    only: output, nEner1, emin, deltae,laddresults
   use mod_system,        only: s => sys
   use mod_BrillouinZone, only: realBZ
   use TightBinding,      only: nOrb
@@ -23,7 +23,7 @@ subroutine ldos()
 
   do i = startFreq, endFreq
      e = emin + (i-1)*deltae
-     if(rFreq(1) == 0) write(output%unit_loop,"('[ldos] ',i0,' of ',i0,' points',', e = ',es10.3)") i,npt1,e
+     if(rFreq(1) == 0) write(output%unit_loop,"('[ldos] ',i0,' of ',i0,' points',', e = ',es10.3)") i,nEner1,e
      call ldos_energy(e,ldosu,ldosd)
 
      if(rFreq(1) == 0) then

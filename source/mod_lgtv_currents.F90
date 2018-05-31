@@ -427,7 +427,7 @@ contains
         call allocate_currents()
         call allocate_lgtv_currents()
 
-        energy_loop: do count=1,npt1
+        energy_loop: do count=1,nEner1
 
           ! Creating longitudinal and transverse currents files with headers
           call openclose_dc_lgtv_files(0)

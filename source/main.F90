@@ -54,17 +54,18 @@ program TITAN
   !------------------- Useful constants and matrices -------------------
   call define_constants() ! TODO: Review
 
-  !------------------ Set Loop and Integration Points ------------------
-  call setMagneticLoopPoints()
-  !------------------ Creating grid of MPI processes  ------------------
-  !call setup_MPI_grid(itype, pn1, npt1, pnt,total_hw_npt1, npts, deltae, emin, emax)
-  call genMPIGrid(parField, total_hw_npt1, parFreq, npt1 - skip_steps)
-
   !------------------- Define the lattice structure --------------------
   call polyBasis("basis", sys)
   call initLattice(sys)
   ! Writing Positions into file
   if( lpositions .and. (myrank==0)) call writeLattice(sys)
+
+  !------------------ Set Loops and Integration Points -----------------
+  call setMagneticLoopPoints()
+  call setLoops()
+  !------------------ Creating grid of MPI processes  ------------------
+  !call setup_MPI_grid(itype, pn1, nEner1, pnt,total_hw_npt1, nEner, deltae, emin, emax)
+  call genMPIGrid(parField, total_hw_npt1, parFreq, nEner1 - skip_steps)
 
   !--- Generating integration points of the complex energy integral ----
   call allocate_energy_points()

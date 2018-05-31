@@ -69,6 +69,8 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
           											  source/mod_disturbances.F90
           											  source/mod_prefactors.F90
                                   source/adaptiveMesh.F90
+                                  source/setLoops.F90
+                                  source/read_band_points.F90
                                   source/TorqueTorqueResponse.F90
                                   source/TorqueSpinResponse.F90
                                   )
@@ -129,7 +131,7 @@ elseif(PLATFORM MATCHES "RWTH")
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                            -fpp
                                            -O3
-					   -g
+                                           -g
                                            -qopenmp
                                            -mkl -$ENV{FLAGS_MATH_INCLUDE}
                                            -xHost)

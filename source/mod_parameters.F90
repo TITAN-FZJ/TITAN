@@ -45,24 +45,29 @@ module mod_parameters
   !========================================================================================!
   integer :: itype
   !! type of calculation - defined in input file 'input'
-
-  !========================================================================================!
-  ! Number of parts to divide energy integral I1+I2 and I3
   !========================================================================================!
   character(len=5), dimension(:), allocatable :: bands
-  !! Band structure
+  !! Band structure points
   integer :: band_cnt
+  !! Number of points along the loop path
   !========================================================================================!
-  ! Number of points and interval of energy/wave vector/position calculations
-  integer      :: npts,npt1,count
-  !! Number of energy points (+1) and counter
+  integer      :: nEner,nEner1,count
+  ! Number of points of energy (frequency) loops
   real(double) :: emin,emax,deltae
-  !! Minimum energy, maximum energy, and step size
-  real(double) :: qxmin,qxmax,qzmin,qzmax
-  !! Minimum and maximum q-vector
-  integer :: skip_steps = 0
+  !! Minimum and maximum energy (frequency), and step size
+  integer      :: skip_steps = 0
   !! Number of steps to skip from the beginning
   !! (useful to get the same points after a calculation has stopped)
+  integer      :: nQvec,nQvec1,deltak
+  !! Number of points of wave vector loops, and step size  (band structure and susceptibility)
+  real(double), dimension(:,:), allocatable :: band_points
+  !! Band points used in wave vector loop
+  real(double), allocatable :: kpoints(:,:)
+  !! Kpoints in the wave vector loop
+  character(len=50)  :: qbasis = ""
+  !! Basis to use on kpoints given in kbands file. Default: reciprocal lattice vectors
+  character(len=400) :: bsfile
+  !! Filename for band structure calculation
   !========================================================================================!
   integer,allocatable :: sigmaimunu2i(:,:,:,:),sigmaijmunu2i(:,:,:,:,:),sigmai2i(:,:)
   !! Conversion arrays
