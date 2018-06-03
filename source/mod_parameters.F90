@@ -46,7 +46,7 @@ module mod_parameters
   integer :: itype
   !! type of calculation - defined in input file 'input'
   !========================================================================================!
-  character(len=5), dimension(:), allocatable :: bands
+  character(len=10), dimension(:), allocatable :: bands
   !! Band structure points
   integer :: band_cnt
   !! Number of points along the loop path
@@ -58,8 +58,10 @@ module mod_parameters
   integer      :: skip_steps = 0
   !! Number of steps to skip from the beginning
   !! (useful to get the same points after a calculation has stopped)
-  integer      :: nQvec,nQvec1,deltak
-  !! Number of points of wave vector loops, and step size  (band structure and susceptibility)
+  integer      :: nQvec,nQvec1
+  !! Number of points of wave vector loops, and step size (band structure and susceptibility)
+  real(double) :: deltak
+  !! Step size of wave vector loops (band structure and susceptibility)
   real(double), dimension(:,:), allocatable :: band_points
   !! Band points used in wave vector loop
   real(double), allocatable :: kpoints(:,:)

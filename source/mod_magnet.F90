@@ -426,7 +426,7 @@ contains
 
     output%BField = ""
     if(lfield) then
-     write(output%BField, "('_hwa=',a,'_hwt=',a,'_hwp=',a)") trim(rtos(hw_list(count,1),"(es9.2)")),trim(rtos(hw_list(count,2),"(es7.2)")),trim(rtos(hw_list(count,3),"(es7.2)"))
+     write(output%BField, "('_hwa=',a,'_hwt=',a,'_hwp=',a)") trim(rtos(hw_list(count,1),"(es9.2)")),trim(rtos(hw_list(count,2),"(f7.2)")),trim(rtos(hw_list(count,3),"(f7.2)"))
      if(ltesla)    output%BField = trim(output%BField) // "_tesla"
      if(lnolb)     output%BField = trim(output%BField) // "_nolb"
      if(lhwscale)  output%BField = trim(output%BField) // "_hwscale"
@@ -436,8 +436,8 @@ contains
     output%dcBField = ""
     if(dcfield_dependence/=7) then
      if((dcfield_dependence/=1).and.(dcfield_dependence/=4).and.(dcfield_dependence/=5)) write(output%dcBField,"(a,'_hwa=',a)") trim(output%dcBField),trim(rtos(hwa,"(es9.2)"))
-     if((dcfield_dependence/=2).and.(dcfield_dependence/=4).and.(dcfield_dependence/=6)) write(output%dcBField,"(a,'_hwt=',a)") trim(output%dcBField),trim(rtos(hwt,"(es7.2)"))
-     if((dcfield_dependence/=3).and.(dcfield_dependence/=5).and.(dcfield_dependence/=6)) write(output%dcBField,"(a,'_hwp=',a)") trim(output%dcBField),trim(rtos(hwp,"(es7.2)"))
+     if((dcfield_dependence/=2).and.(dcfield_dependence/=4).and.(dcfield_dependence/=6)) write(output%dcBField,"(a,'_hwt=',a)") trim(output%dcBField),trim(rtos(hwt,"(f7.2)"))
+     if((dcfield_dependence/=3).and.(dcfield_dependence/=5).and.(dcfield_dependence/=6)) write(output%dcBField,"(a,'_hwp=',a)") trim(output%dcBField),trim(rtos(hwp,"(f7.2)"))
     end if
     if(ltesla)    output%dcBField = trim(output%dcBField) // "_tesla"
     if(lnolb)     output%dcBField = trim(output%dcBField) // "_nolb"

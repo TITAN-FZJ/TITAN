@@ -30,12 +30,9 @@ contains
     character(len=*), intent(in) :: message
 
     if(myrank == 0) then
-       if(log_unit) then
-          write(output%unit, "('[Error] [',a,'] ',a,'')") procedure, trim(message)
-       else
-          write(*, "('[Error] [',a,'] ',a,'')") procedure, trim(message)
-       end if
+      if(log_unit) write(output%unit, "('[Error] [',a,'] ',a,'')") procedure, trim(message)
     end if
+    write(*, "('[Error] [',a,'] ',a,'')") procedure, trim(message)
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
     stop
   end subroutine log_error
@@ -391,9 +388,12 @@ contains
       ! Path or point to calculate the susceptibility
       if(.not. get_parameter("band", bands, band_cnt)) then
         call log_warning("get_parameters", "'band' missing. Using Gamma point only.")
+        allocate(bands(1))
+        bands = "G"
+        band_cnt = 1
         nQvec1 = 1
       end if
-      if((band_cnt == 1).and.(nQvec > 1)) then
+      if((band_cnt == 1).and.(nQvec1 > 1)) then
         call log_warning("get_parameters", "Only one wave vector given. Using nQvec=1.")
         nQvec1 = 1
       end if
@@ -646,7 +646,8 @@ contains
        write(output%unit_loop,"(1x,'Number of points to calculate: ',i0)") nEner1
     case (4)
        write(output%unit_loop,"(1x,'Band structure')")
-       write(output%unit_loop,"(9x,'Number of points to calculate: ',i0)") nEner1
+       write(output%unit_loop,"(2x,'Path along BZ: ',a)") (trim(adjustl(bands(i))), i = 1,band_cnt)
+       write(output%unit_loop,"(2x,'Number of wave vectors to calculate: ',i0)") nQvec1
     case (5)
        write(output%unit_loop,"(1x,'Charge and spin density at Fermi surface')")
     case (6)
@@ -655,6 +656,8 @@ contains
        !write(outputunit_loop,"(8x,'from Npl = ',i0,' to ',i0)") Npl_i,Npl_f
     case (7)
        write(output%unit_loop,"(1x,'Local susceptibility as a function of energy')")
+       write(output%unit_loop,"(2x,'Path along BZ: ',10(a,1x))") (trim(adjustl(bands(i))), i = 1,band_cnt)
+       write(output%unit_loop,"(2x,'Number of wave vectors to calculate: ',i0)") nQvec1
        write(output%unit_loop,"(9x,'emin =',es9.2)") emin
        write(output%unit_loop,"(9x,'emax =',es9.2)") emax
        !write(output%unit_loop,"(1x,i0,' points divided into ',i0,' steps of size',es10.3,' each calculating ',i0,' points')") nEner1,MPIsteps,MPIdelta,MPIpts

@@ -8,6 +8,13 @@ subroutine setLoops(s)
   character(len=20)        :: kdirection
   integer                  :: count,i,j
   real(double)             :: dir(3),total_length
+    interface
+      subroutine read_band_points(kbands, b1, b2, b3)
+        use mod_f90_kind, only: double
+        real(double), dimension(:,:), allocatable, intent(out) :: kbands
+        real(double), dimension(3), intent(in) :: b1, b2, b3
+      end subroutine
+    end interface
 
   ! Energy loop step
   if(nEner < 1) then
