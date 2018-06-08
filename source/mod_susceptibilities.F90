@@ -17,11 +17,6 @@ module mod_susceptibilities
   real(double),    dimension(:),   allocatable :: rwork
   complex(double), dimension(:),   allocatable :: eval, work
   complex(double), dimension(:,:), allocatable :: chimag,evecl,evecr
-#ifdef _JUQUEEN
-  integer      :: ilo,ihi
-  real(double) :: abnrm
-  real(double), dimension(:), allocatable :: dscale, rconde, rcondv
-#endif
 
 
 contains
@@ -66,12 +61,6 @@ contains
                   evecr(s%nAtoms,s%nAtoms), &
                   work(lwork), STAT = AllocateStatus )
              if (AllocateStatus/=0) call abortProgram("[allocate_susceptibilities] Not enough memory for: chimag, rwork, eval, evecl, evecr, work")
-#ifdef _JUQUEEN
-             allocate( dscale(s%nAtoms), &
-                  rconde(s%nAtoms), &
-                  rcondv(s%nAtoms), STAT = AllocateStatus )
-             if (AllocateStatus/=0) call abortProgram("[allocate_susceptibilities] Not enough memory for: dscale, rconde, rcondv")
-#endif
           end if
        end if
     end if
@@ -108,12 +97,6 @@ contains
     if(allocated(evecl)) deallocate(evecl)
     if(allocated(evecr)) deallocate(evecr)
     if(allocated(work)) deallocate(work)
-
-#ifdef _JUQUEEN
-    if(allocated(dscale)) deallocate(dscale)
-    if(allocated(rconde)) deallocate(rconde)
-    if(allocated(rcondv)) deallocate(rcondv)
-#endif
 
     if(allocated(chiorb)) deallocate(chiorb)
     if(allocated(chiorb_hf)) deallocate(chiorb_hf)
@@ -188,11 +171,7 @@ contains
           end do
        end do
 
-#ifdef _JUQUEEN
-       call zgeevx('N','N','V','N',s%nAtoms,chimag,s%nAtoms,eval,evecl,1,evecr,s%nAtoms,ilo,ihi,dscale,abnrm,rconde,rcondv,work,lwork,rwork,ifail)
-#else
        call zgeev('N','V',s%nAtoms,chimag,s%nAtoms,eval,evecl,1,evecr,s%nAtoms,work,lwork,rwork,ifail)
-#endif
 
        if(ifail/=0) then
           call abortProgram("[diagonalize_susceptibilities] Problem with diagonalization. ifail = " // trim(itos(ifail)))

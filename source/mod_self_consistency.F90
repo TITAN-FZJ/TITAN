@@ -407,7 +407,7 @@ contains
     real(double),allocatable      :: fvec(:),jac(:,:),wa(:),sc_solu(:)
     real(double),allocatable      :: diag(:),qtf(:)
     real(double)                  :: epsfcn,factor
-#if !defined(_OSX) && !defined(_JUQUEEN)
+#if !defined(_OSX)
     real(double)                  :: ruser(1)
     integer                       :: iuser(1)
 #else
@@ -433,7 +433,7 @@ contains
     if(rField == 0) &
     write(output%unit_loop,"('[self_consistency] Starting self-consistency:')")
 
-#if defined(_OSX) || defined(_JUQUEEN)
+#if defined(_OSX)
     if(lslatec) then
       lwa=neq*(3*neq+13)/2
       allocate( wa(lwa),w(neq,4) )
@@ -516,7 +516,7 @@ contains
     real(double) :: fvec(neq),jac(neq,neq)
     ! integer :: i
     ! real(double) :: fvecp(neq),xp(neq),err(neq)
-#if !defined(_OSX) && !defined(_JUQUEEN)
+#if !defined(_OSX)
     real(double) :: ruser(1)
     integer      :: iuser(1)
 #endif
@@ -536,7 +536,7 @@ contains
 
 !     call chkder(neq,neq,x,fvec,jac,neq,xp,fvecp,1,err)
 
-! #if defined(_OSX) || defined(_JUQUEEN)
+! #if defined(_OSX)
 !     call sc_eqs_and_jac_old(neq,x ,fvec ,jac,neq,1)
 !     call sc_eqs_and_jac_old(neq,x ,fvec ,jac,neq,2)
 !     call sc_eqs_and_jac_old(neq,xp,fvecp,jac,neq,1)
@@ -1388,7 +1388,7 @@ contains
   !     mz - mz_in   = 0
   !  sum n - n_total = 0
   ! and the correspondent jacobian
-#if !defined(_OSX) && !defined(_JUQUEEN)
+#if !defined(_OSX)
   subroutine sc_equations_and_jacobian(N,x,fvec,selfconjac,iuser,ruser,iflag)
     use mod_f90_kind,   only: double
     use mod_system,     only: s => sys

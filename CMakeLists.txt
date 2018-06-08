@@ -73,10 +73,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/TorqueSpinResponse.F90
                                   )
 
-if(PLATFORM MATCHES juqueen)
-	set(TITAN_EXE titan_juqueen.exe)
-  set(CMAKE_Fortran_COMPILER mpixlf2008_r)
-elseif(PLATFORM MATCHES jureca)
+if(PLATFORM MATCHES jureca)
 	set(TITAN_EXE titan_jureca.exe)
 	set(CMAKE_Fortran_COMPILER mpiifort)
 elseif(PLATFORM MATCHES osx)
@@ -93,21 +90,7 @@ set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
-if(PLATFORM MATCHES juqueen)
-	target_link_libraries(${TITAN_EXE} $ENV{ND}/lib/libnag_essl.a -L/bgsys/local/lib -lesslbg -qsmp=omp)
-  link_directories(/bgsys/local/lib)
-  target_compile_options(${TITAN_EXE} PRIVATE -WF,-D_JUQUEEN
-                                           -O3
-                                           -qstrict
-                                           -qnoescape
-                                           -qnosave
-                                           -qsmp=omp
-                                           -qthreaded)
-  set(CMAKE_SHARED_LIBRARY_LINK_Fortran_FLAGS)
-  if(BIGINT)
-     target_compile_options(${TITAN_EXE} PRIVATE -qintsize=8)
-  endif()
-elseif(PLATFORM MATCHES jureca)
+if(PLATFORM MATCHES jureca)
 
   target_link_libraries(${TITAN_EXE} -mkl -lnag -qopenmp)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
@@ -147,37 +130,6 @@ else()
 endif()
 
 
-
-
-
-
-
-
-
-#target_compile_options(${EXEC_NAME} PRIVATE -no-wrap-margin
-#                                        -fpp
-#                                        -D _LINUX
-#                                        -O3
-##                                        -I${NAG}/c_headers#
-#					-qopenmp
-#					-mkl
-#					-xHost
-#)
-
-if(PLATFORM MATCHES juqueen)
-if(DEBUG)
-target_compile_options(${TITAN_EXE} PRIVATE -C
-				    	    -g
-					    -qfullpath
-					    -O0
-					    -qflttrap=enable:invalid:overflow:underflow:zerodivide
-					    -qinitauto=7FF7FFFF
-					    -qnoescape
-					    -qkeepparm
-					    )
-endif(DEBUG)
-
-else()
 if(DEBUG)
 target_compile_options(${TITAN_EXE} PRIVATE -C -CB
                                         -check uninit
@@ -190,5 +142,3 @@ target_compile_options(${TITAN_EXE} PRIVATE -C -CB
                                         -O0
                       )
 endif(DEBUG)
-endif()
-#target_link_libraries(${EXEC_NAME} ${NAG}/lib/libnag_nag.a -qopenmp)
