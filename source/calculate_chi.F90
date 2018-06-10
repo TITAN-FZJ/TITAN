@@ -56,7 +56,7 @@ subroutine calculate_chi()
 
   ! Chi wave vector Loop
   do qcount=1,nQvec1
-    write(output%unit_loop,"('[calculate_chi] Wave vector Q loop: ',i0,' of ',i0,' points',', Q = [',es10.3,es10.3,es10.3,']')") qcount,nQvec1,(kpoints(i,qcount),i=1,3)
+    if(rField==0) write(output%unit_loop,"('[calculate_chi] Wave vector Q loop: ',i0,' of ',i0,' points',', Q = [',es10.3,es10.3,es10.3,']')") qcount,nQvec1,(kpoints(i,qcount),i=1,3)
     q = kpoints(:,qcount)
     ! Chi Energy (frequency) Loop
     do count = startFreq+skip_steps, endFreq
