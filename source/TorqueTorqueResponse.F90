@@ -30,22 +30,22 @@ contains
 
     do i=1, s%nAtoms
        do j = 1, s%nAtoms
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(1)),trim(filename(1)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(1)),trim(filename(1)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
           open (unit=555+s%nAtoms*(i-1)+j, file=varm, status='replace', form='formatted')
           write(unit=555+s%nAtoms*(i-1)+j, fmt="('#     energy    ,  Torque Torque Response ((i,j, i=1,3), j=1,3)')")
           close(unit=555+s%nAtoms*(i-1)+j)
 
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(2)),trim(filename(2)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(2)),trim(filename(2)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
           open (unit=666+s%nAtoms*(i-1)+j, file=varm, status='replace', position='append', form='formatted')
           write(unit=666+s%nAtoms*(i-1)+j, fmt="('#     energy    ,  Torque Torque Response ((i,j, i=1,3), j=1,3)')")
           close(unit=666+s%nAtoms*(i-1)+j)
 
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(2)),trim(filename(3)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(2)),trim(filename(3)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
           open (unit=777+s%nAtoms*(i-1)+j, file=varm, status='replace', position='append', form='formatted')
           write(unit=777+s%nAtoms*(i-1)+j, fmt="('#     energy    ,  Inverse Torque Torque Response ((i,j, i=1,3), j=1,3)')")
           close(unit=777+s%nAtoms*(i-1)+j)
 
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'HF_asite=',i0,'_bsite=',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(2)),trim(filename(3)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'HF_asite=',i0,'_bsite=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(2)),trim(filename(3)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
           open (unit=888+s%nAtoms*(i-1)+j, file=varm, status='replace', position='append', form='formatted')
           write(unit=888+s%nAtoms*(i-1)+j, fmt="('#     energy    ,  Torque Torque Response ((i,j, i=1,3), j=1,3)')")
           close(unit=888+s%nAtoms*(i-1)+j)
@@ -68,22 +68,22 @@ contains
 
     do i=1, s%nAtoms
        do j = 1, s%nAtoms
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(1)),trim(filename(1)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(1)),trim(filename(1)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
           open (unit=555+s%nAtoms*(i-1)+j, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err .ne. 0) missing_files = trim(missing_files) // " " // trim(varm)
 
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(2)),trim(filename(2)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(2)),trim(filename(2)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
           open (unit=666+s%nAtoms*(i-1)+j, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err .ne. 0) missing_files = trim(missing_files) // " " // trim(varm)
 
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(2)),trim(filename(3)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(2)),trim(filename(3)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
           open (unit=777+s%nAtoms*(i-1)+j, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err .ne. 0) missing_files = trim(missing_files) // " " // trim(varm)
 
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'HF_asite=',i0,'_bsite=',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(2)),trim(filename(3)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'HF_asite=',i0,'_bsite=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(2)),trim(filename(3)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
           open (unit=888+s%nAtoms*(i-1)+j, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err .ne. 0) missing_files = trim(missing_files) // " " // trim(varm)
