@@ -56,8 +56,8 @@ contains
     if(rField == 0) then
       do i = 1, s%nAtoms
         do j = 1, 3
-          write(unit=634894,*) i, j, (real(alphaSO(i,i,j,k)), aimag(alphaSO(i,i,j,k)), k = 1, 3)
-          write(unit=634895,*) i, j, (real(alphaXC(i,i,j,k)), aimag(alphaXC(i,i,j,k)), k = 1, 3)
+          write(unit=634894,fmt=*) i, j, (real(alphaSO(i,i,j,k)), aimag(alphaSO(i,i,j,k)), k = 1, 3)
+          write(unit=634895,fmt=*) i, j, (real(alphaXC(i,i,j,k)), aimag(alphaXC(i,i,j,k)), k = 1, 3)
         end do
       end do
     end if
