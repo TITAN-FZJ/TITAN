@@ -112,7 +112,7 @@ contains
 
     !$omp parallel default(none) &
     !$omp& private(m,n,i,j,mu,iz,kp,wght,gf,temp1,temp2,temp3, alpha_loc) &
-    !$omp& shared(s,realBZ,eta,torque,alpha)
+    !$omp& shared(s,realBZ,eta,torque,alpha,rField)
     allocate(gf(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms), &
              temp1(2*nOrb,2*nOrb), temp2(2*nOrb,2*nOrb), temp3(2*nOrb,2*nOrb), &
              alpha_loc(s%nAtoms,s%nAtoms,3,3))
