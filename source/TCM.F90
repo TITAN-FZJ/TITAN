@@ -56,8 +56,8 @@ contains
     if(rField == 0) then
       do i = 1, s%nAtoms
         do j = 1, 3
-          write(634894,*) i, j, (real(alphaSO(i,i,j,k)), aimag(alphaSO(i,i,j,k)), k = 1, 3)
-          write(634895,*) i, j, (real(alphaXC(i,i,j,k)), aimag(alphaXC(i,i,j,k)), k = 1, 3)
+          write(unit=634894,*) i, j, (real(alphaSO(i,i,j,k)), aimag(alphaSO(i,i,j,k)), k = 1, 3)
+          write(unit=634895,*) i, j, (real(alphaXC(i,i,j,k)), aimag(alphaXC(i,i,j,k)), k = 1, 3)
         end do
       end do
     end if
@@ -149,7 +149,7 @@ contains
         end do dir_n
       end do dir_m
 
-      if(rField == 0) write(634896,*) (kp(m),m=1,3), ( (real(alpha_loc(i,i,m,m)), m = 1, 3) ,i = 1,s%nAtoms )
+      if(rField == 0) write(unit=634896,fmt='(21(es14.7,2x))') (kp(m),m=1,3), ( (real(alpha_loc(i,i,m,m)), m = 1, 3) ,i = 1,s%nAtoms )
 
     end do kpoints
     !$omp end do nowait
