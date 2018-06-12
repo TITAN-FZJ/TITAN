@@ -2,7 +2,7 @@ module mod_gilbert_damping
   use mod_f90_kind, only: double
   implicit none
   character(len=5),               private :: folder = "A/TCM"
-  character(len=2), dimension(2), private :: filename = ["SO", "XC"]
+  character(len=3), dimension(3), private :: filename = ["SO ", "XC ", "XCk"]
 
 contains
 
@@ -17,7 +17,7 @@ contains
 
       write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(n)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
       open (unit=iw, file=varm, status='replace', form='formatted')
-      write(unit=iw, fmt="('# i , m , Re(A_mx), Im(A_mx), Re(A_my), Im(A_my), Re(A_mz), Im(A_mz) ')")
+      write(unit=iw, fmt="('# (k), i , m , Re(A_mx), Im(A_mx), Re(A_my), Im(A_my), Re(A_mz), Im(A_mz) ')")
 
     end do
   end subroutine openTCMFiles
@@ -119,15 +119,15 @@ contains
     gf = cZero
     alpha_loc = cZero
     !$omp do schedule(static)
-    do iz = 1, realBZ%workload
+    kpoints: do iz = 1, realBZ%workload
       kp = realBZ%kp(1:3,iz)
       wght = realBZ%w(iz)
       gf  = cZero
       call green(s%Ef,eta,s,kp,gf)
-      do m = 1, 3
-        do n = 1, 3
-          do i = 1, s%nAtoms
-            do j = 1, s%nAtoms
+      dir_m: do m = 1, 3
+        dir_n: do n = 1, 3
+          site_i: do i = 1, s%nAtoms
+            site_j: do j = 1, s%nAtoms
               temp1 = cZero
               temp2 = cZero
               temp3 = cZero
@@ -143,11 +143,15 @@ contains
               do mu = 1, 2*nOrb
                 alpha_loc(j,i,n,m) = alpha_loc(j,i,n,m) + temp1(mu,mu) * wght
               end do
-            end do
-          end do
-        end do
-      end do
-    end do
+
+            end do site_j
+          end do site_i
+        end do dir_n
+      end do dir_m
+
+      if(rField == 0) write(634896,*) (kp(m),m=1,3), ( (real(alpha_loc(i,i,m,m)), m = 1, 3) ,i = 1,s%nAtoms )
+
+    end do kpoints
     !$omp end do nowait
 
     !$omp critical
