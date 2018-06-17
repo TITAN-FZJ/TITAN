@@ -20,9 +20,9 @@ module mod_BrillouinZone
 
    type :: BrillouinZone
       integer*8 :: nkpt   = 0
-      integer   :: nkpt_x = 0
-      integer   :: nkpt_y = 0
-      integer   :: nkpt_z = 0
+      integer*8 :: nkpt_x = 0
+      integer*8 :: nkpt_y = 0
+      integer*8 :: nkpt_z = 0
 
       real(double), dimension(:,:), allocatable :: kp
       real(double), dimension(:),   allocatable :: w
@@ -69,9 +69,9 @@ contains
     call calcWorkload(self%nkpt, self%size, self%rank, self%first, self%last)
     self%workload = self%last - self%first + 1
     if(sys%lbulk) then
-      call self%generate_3d_fraction(sys,self%first,self%last, self%nkpt)
+      call self%generate_3d_fraction(sys,self%first,self%last)
     else
-      call self%generate_2d_fraction(sys,self%first,self%last, self%nkpt)
+      call self%generate_2d_fraction(sys,self%first,self%last)
     end if
 
   end subroutine genFraction
@@ -81,7 +81,7 @@ contains
     implicit none
     class(BrillouinZone)     :: self
     type(System), intent(in) :: sys
-    integer                  :: total
+    integer*8                :: total
 
     if(sys%lbulk) then
       total = self%nkpt_x * self%nkpt_y * self%nkpt_z
@@ -110,7 +110,7 @@ contains
      end if
   end function isAlloc_BrillouinZone
 
-  subroutine gen3DFraction(self,sys,first,last,total)
+  subroutine gen3DFraction(self,sys,first,last)
     use mod_f90_kind,  only: double
     use mod_constants, only: tpi
     use mod_tools,     only: cross
@@ -120,15 +120,15 @@ contains
     implicit none
     class(FractionalBrillouinZone) :: self
     type(System), intent(in)       :: sys
-    integer*8,    intent(in)       :: first, last, total
+    integer*8,    intent(in)       :: first, last
     real(double), dimension(3,8)   :: bz_vec
     real(double), dimension(3)     :: diff
     real(double), dimension(3)     :: kp, b1, b2, b3
     real(double) :: vol
     real(double) :: smallest_dist, distance, ini_smallest_dist
-    integer      :: nkpt
-    integer      :: l, j
-    integer      :: nx, ny, nz
+    integer*8    :: nkpt, l
+    integer*8    :: nx, ny, nz
+    integer      :: j
     integer      :: count, added, weight, range
 
     allocate( self%w(self%workload), self%kp(3,self%workload) )
@@ -195,23 +195,23 @@ contains
     if(added < self%workload) call abortProgram("[gen3DFraction] Generated less points than it should have! ")
   end subroutine gen3DFraction
 
-  integer function count_3D_BZ(nkpt_in, a1, a2, a3)
+  integer*8 function count_3D_BZ(nkpt_in, a1, a2, a3)
     use mod_f90_kind, only: double
     use mod_constants, only: tpi
     use mod_tools, only: cross
     implicit none
 
-    integer, intent(in) :: nkpt_in
+    integer*8, intent(in) :: nkpt_in
     real(double), dimension(3), intent(in) :: a1, a2, a3
     real(double) :: vol
     real(double), dimension(3,8) :: bz_vec
     real(double) :: smallest_dist, distance, ini_smallest_dist
     real(double), dimension(3) ::  diff
     real(double), dimension(3) :: kp, b1, b2, b3
-    integer :: nkpt_x, nkpt_y, nkpt_z, nkpt
-    integer :: l,j, smallest_index, numextrakbz
-    integer :: nkpt_perdim !n. of k point per dimension
-    integer :: nx, ny, nz
+    integer*8 :: l, nkpt_x, nkpt_y, nkpt_z, nkpt
+    integer*8 :: nkpt_perdim !n. of k point per dimension
+    integer*8 :: nx, ny, nz
+    integer   :: j, smallest_index, numextrakbz
 
     nkpt_perdim = ceiling((dble(nkpt_in))**(1.d0/3.d0))
     nkpt_x = nkpt_perdim
@@ -273,7 +273,7 @@ contains
 
   end function count_3D_BZ
 
-  subroutine gen2DFraction(self,sys,first,last,total)
+  subroutine gen2DFraction(self,sys,first,last)
     use mod_f90_kind,  only: double
     use mod_constants, only: tpi
     use mod_tools,     only: cross
@@ -282,15 +282,15 @@ contains
     implicit none
     class(FractionalBrillouinZone) :: self
     type(System), intent(in)       :: sys
-    integer*8,    intent(in)       :: first, last, total
+    integer*8,    intent(in)       :: first, last
     real(double), dimension(3,4)   :: bz_vec
     real(double), dimension(3)     ::  diff, zdir
     real(double), dimension(3)     :: kp, b1, b2
     real(double) :: smallest_dist, distance, ini_smallest_dist
     real(double) :: vol
-    integer      :: nkpt
-    integer      :: l, j
-    integer      :: nx, ny
+    integer*8    :: l, nkpt
+    integer*8    :: nx, ny
+    integer      :: j
     integer      :: count, added, weight, range
 
     zdir = [0.0,0.0,1.0]
@@ -352,21 +352,21 @@ contains
     if(added < self%workload) call abortProgram("[gen2DFraction] Generated less points than it should have!")
   end subroutine gen2DFraction
 
-  integer function count_2D_BZ(nkpt_in, a1, a2)
+  integer*8 function count_2D_BZ(nkpt_in, a1, a2)
     use mod_f90_kind, only: double
     use mod_constants, only: tpi
     use mod_tools, only: cross
     implicit none
 
-    integer, intent(in) :: nkpt_in
+    integer*8, intent(in) :: nkpt_in
     real(double), dimension(3), intent(in) :: a1,a2
     real(double), dimension(3) :: kp, b1, b2
     real(double), dimension(3) :: zdir
     real(double), dimension(3,4) :: bz_vec
     real(double), dimension(3)   :: diff
     real(double) :: smallest_dist, distance, ini_smallest_dist, vol
-    integer :: j,l, smallest_index, numextrakbz, nkpt_perdim
-    integer :: nkpt_x, nkpt_y, nx, ny, nkpt
+    integer   :: j, smallest_index, numextrakbz
+    integer*8 :: l, nkpt_x, nkpt_y, nx, ny, nkpt, nkpt_perdim
 
     zdir = [0,0,1]
     nkpt_perdim = ceiling(sqrt(dble(nkpt_in)))
@@ -447,7 +447,7 @@ contains
     use mod_mpi_pars,  only: abortProgram
     implicit none
 
-    integer, intent(in) :: nkpt_in
+    integer*8, intent(in) :: nkpt_in
     !! Initial kpoints (as given by realBZ%nkpt_x * realBZ%nkpt_y * realBZ%nkpt_z)
     real(double), dimension(3), intent(in)  :: b1, b2, b3
     !! Reciprocal vectors
@@ -463,11 +463,11 @@ contains
     real(double) :: smallest_dist, distance, ini_smallest_dist
     real(double), dimension(3) :: diff
     real(double), dimension(3) :: kp
-    integer :: nkpt_x, nkpt_y, nkpt_z, nkpt
-    integer :: l, j, count, smallest_index
-    integer :: nkpt_perdim
+    integer*8  :: l, nkpt_x, nkpt_y, nkpt_z, nkpt
+    integer    :: j, count, smallest_index
+    integer *8 :: nkpt_perdim
     !! Number of k points per dimension
-    integer :: nx, ny, nz
+    integer*8  :: nx, ny, nz
 
     nkpt_perdim = ceiling((dble(nkpt_in))**(1.d0/3.d0))
     nkpt_x = nkpt_perdim

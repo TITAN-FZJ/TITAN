@@ -80,7 +80,7 @@ contains
     type(System), intent(inout) :: s
     character(len=20), allocatable :: s_vector(:)
     real(double), allocatable :: vector(:)
-    integer, allocatable :: i_vector(:)
+    integer*8, allocatable :: i_vector(:)
     integer :: i, cnt
     character(len=20) :: tmp_string
     if(.not. read_file(filename)) &

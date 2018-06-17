@@ -7,6 +7,11 @@ module adaptiveMesh
    integer*4 :: activeComm, activeRank, activeSize
    integer   :: minimumBZmesh
 
+  interface get_nkpt
+     module procedure get_nkpt_int4, &
+                      get_nkpt_int8
+  end interface get_nkpt
+
 contains
 
    subroutine generateAdaptiveMeshes(sys,pn1)
@@ -19,7 +24,7 @@ contains
       implicit none
       type(System) :: sys
       integer      :: i,pn1
-      integer      :: nx, ny, nz, nall
+      integer*8    :: nx, ny, nz, nall
 
       if(.not.allocated(all_nkpt)) allocate(all_nkpt(pn1))
       total_points = 0
@@ -95,12 +100,12 @@ contains
             bzs(i) % nkpt_x = ceiling((dble(nall))**(1.d0/3.d0))
             bzs(i) % nkpt_y = ceiling((dble(nall))**(1.d0/3.d0))
             bzs(i) % nkpt_z = ceiling((dble(nall))**(1.d0/3.d0))
-            call bzs(i) % generate_3d_fraction(sys,int(p,8),int(q,8),int(all_nkpt(i),8))
+            call bzs(i) % generate_3d_fraction(sys,int(p,8),int(q,8))
          else
             bzs(i) % nkpt_x = ceiling((dble(nall))**(1.d0/2.d0))
             bzs(i) % nkpt_y = ceiling((dble(nall))**(1.d0/2.d0))
             bzs(i) % nkpt_z = 0
-            call bzs(i) % generate_2d_fraction(sys,int(p,8),int(q,8),int(all_nkpt(i),8))
+            call bzs(i) % generate_2d_fraction(sys,int(p,8),int(q,8))
          end if
 
          do j = 1, bzs(i)%workload
@@ -145,7 +150,7 @@ contains
       deallocate(bzs, E_k_imag_mesh)
    end subroutine freeLocalEKMesh
 
-   integer function get_nkpt(e, e0, nkpt_total, bulk)
+   integer function get_nkpt_int4(e, e0, nkpt_total, bulk)
       use mod_f90_kind, only: double
       implicit none
       real(double), intent(in) :: e, e0
@@ -153,11 +158,26 @@ contains
       integer, intent(in) :: nkpt_total
 
       if(bulk) then
-         get_nkpt = nkpt_total / (e/e0)**sqrt(3.d0) !**log(3.d0)
+         get_nkpt_int4 = nkpt_total / (e/e0)**sqrt(3.d0) !**log(3.d0)
       else
-         get_nkpt = nkpt_total / (e/e0)**sqrt(2.d0) !**log(2.d0)
+         get_nkpt_int4 = nkpt_total / (e/e0)**sqrt(2.d0) !**log(2.d0)
       end if
-      if(get_nkpt < minimumBZmesh ) get_nkpt = minimumBZmesh
-   end function get_nkpt
+      if(get_nkpt_int4 < minimumBZmesh ) get_nkpt_int4 = minimumBZmesh
+   end function get_nkpt_int4
+
+   integer*8 function get_nkpt_int8(e, e0, nkpt_total, bulk)
+      use mod_f90_kind, only: double
+      implicit none
+      real(double), intent(in) :: e, e0
+      logical, intent(in) :: bulk
+      integer*8, intent(in) :: nkpt_total
+
+      if(bulk) then
+         get_nkpt_int8 = nkpt_total / (e/e0)**sqrt(3.d0) !**log(3.d0)
+      else
+         get_nkpt_int8 = nkpt_total / (e/e0)**sqrt(2.d0) !**log(2.d0)
+      end if
+      if(get_nkpt_int8 < minimumBZmesh ) get_nkpt_int8 = minimumBZmesh
+   end function get_nkpt_int8
 
 end module adaptiveMesh

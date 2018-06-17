@@ -12,7 +12,8 @@ module mod_input
   interface get_parameter
      module procedure get_int, &
                       get_int_default, &
-                      get_int_array, &
+                      get_int4_array, &
+                      get_int8_array, &
                       get_real, &
                       get_real_default, &
                       get_real_array, &
@@ -149,7 +150,7 @@ contains
     end if
   end function get_int_default
 
-  function get_int_array(key_val, ret_val, ret_cnt) result(success)
+  function get_int4_array(key_val, ret_val, ret_cnt) result(success)
     implicit none
     character(len=*), intent(in) :: key_val
     integer, allocatable, intent(out) :: ret_val(:)
@@ -174,7 +175,34 @@ contains
        allocate(ret_val(ret_cnt))
        ret_val = tmp_arr(:ret_cnt)
     end if
-  end function get_int_array
+  end function get_int4_array
+
+  function get_int8_array(key_val, ret_val, ret_cnt) result(success)
+    implicit none
+    character(len=*), intent(in) :: key_val
+    integer*8, allocatable, intent(out) :: ret_val(:)
+    integer, intent(out) :: ret_cnt
+    logical :: success
+    integer :: ind , ios, i
+    integer*8 :: tmp_arr(max_elements)
+    character(len=word_length) :: str_arr(max_elements)
+
+    success = find_val(key_val, ind)
+    ret_cnt = 0
+    do i=1,max_elements
+       str_arr(i) = ""
+    end do
+    if(success) then
+       read(unit=val(ind), fmt=*, iostat=ios) (str_arr(i), i=1,max_elements)
+       do i = 1, max_elements
+          if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
+          ret_cnt = ret_cnt + 1
+          read(unit=str_arr(i), fmt=*,iostat=ios ) tmp_arr(ret_cnt)
+       end do
+       allocate(ret_val(ret_cnt))
+       ret_val = tmp_arr(:ret_cnt)
+    end if
+  end function get_int8_array
 
   function get_real(key_val, ret_val) result(success)
     use mod_f90_kind, only:double
