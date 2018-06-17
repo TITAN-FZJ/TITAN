@@ -39,7 +39,7 @@ contains
     character(len=1) :: coord_type
 
     open(unit = f_unit, file=trim(filename), status='old', iostat = ios)
-    if((ios /= 0).and.(myrank.eq.0)) call abortProgram("[read_basis] Error reading " // trim(filename))
+    if((ios /= 0).and.(myrank==0)) call abortProgram("[read_basis] Error reading " // trim(filename))
 
     read(f_unit, fmt='(A)', iostat=ios) s%Name
     s%Name = trim(adjustl(s%Name))
@@ -49,12 +49,12 @@ contains
 
     read(f_unit, fmt='(A)', iostat=ios) line
     read(unit=line, fmt=*, iostat=ios) (s%a1(i), i=1,3)
-    if((dot_product(s%a1,s%a1) <= 1.d-9).and.(myrank.eq.0)) call abortProgram("[read_basis] a1 not given properly in '" // trim(filename) // "'!")
+    if((dot_product(s%a1,s%a1) <= 1.d-9).and.(myrank==0)) call abortProgram("[read_basis] a1 not given properly in '" // trim(filename) // "'!")
     s%a1 = s%a1 * s%a0
 
     read(f_unit, fmt='(A)', iostat=ios) line
     read(unit=line, fmt=*, iostat=ios) (s%a2(i), i=1,3)
-    if((dot_product(s%a2,s%a2) <= 1.d-9).and.(myrank.eq.0)) call abortProgram("[read_basis] a2 not given properly in '" // trim(filename) // "'!")
+    if((dot_product(s%a2,s%a2) <= 1.d-9).and.(myrank==0)) call abortProgram("[read_basis] a2 not given properly in '" // trim(filename) // "'!")
     s%a2 = s%a2 * s%a0
 
     read(f_unit, fmt='(A)', iostat=ios) line
@@ -94,7 +94,7 @@ contains
       line = ""
       do while(len_trim(line) == 0 .or. len_trim(line) == 200)
         read(f_unit, fmt='(A)', iostat=ios) line
-        if((ios /= 0).and.(myrank.eq.0)) call abortProgram("[read_basis] Not enough basis atoms given in '" // trim(filename) // "'!")
+        if((ios /= 0).and.(myrank==0)) call abortProgram("[read_basis] Not enough basis atoms given in '" // trim(filename) // "'!")
       end do
       k = k + 1
       s%Basis(k)%Material = i
@@ -102,7 +102,7 @@ contains
       if(coord_type == 'D' .or. coord_type == 'd') then
         s%Basis(k)%Position = s%Basis(k)%Position * s%a0
       else
-        if((s%lbulk).and.(dot_product(s%a3,s%a3) <= 1.d-9).and.(myrank.eq.0)) call abortProgram("[read_basis] a3 not given properly in '" // trim(filename) // "'!")
+        if((s%lbulk).and.(dot_product(s%a3,s%a3) <= 1.d-9).and.(myrank==0)) call abortProgram("[read_basis] a3 not given properly in '" // trim(filename) // "'!")
         s%Basis(k)%Position = s%Basis(k)%Position(1) * s%a1 + s%Basis(k)%Position(2) * s%a2 + s%Basis(k)%Position(3) * s%a3
       end if
       end do

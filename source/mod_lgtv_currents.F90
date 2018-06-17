@@ -96,7 +96,7 @@ contains
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,a,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),typec(k),i,trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
-        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+        if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
       end do ; end do ; end do
       ! Total longitudinal and transverse currents
       do j=1,7 ; do k=1,2
@@ -104,7 +104,7 @@ contains
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,a,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),typec(k),trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
-        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+        if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
       end do ; end do
       ! Stop if some file does not exist
       if(errt/=0) call abortProgram("[openclose_lgtv_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
@@ -184,7 +184,7 @@ contains
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
-        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+        if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
       end do ; end do ; end do
       ! Header for total longitudinal and transverse currents
       do j=1,7 ; do k=1,2
@@ -192,7 +192,7 @@ contains
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
-        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+        if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
       end do ; end do
 
       ! Stop if some file does not exist

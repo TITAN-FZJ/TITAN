@@ -180,13 +180,13 @@ contains
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),neighbor,i,trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
-        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+        if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
         if(renorm) then
           iw = iw+1000
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_pos=',i0,a,a,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),neighbor,i,trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
-          if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+          if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
         end if
       end do ; end do ; end do
 
@@ -196,13 +196,13 @@ contains
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/prll',a,'_neighbor=',i0,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),neighbor,trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
-        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+        if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
         if(renorm) then
           iw = iw+1000
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/rprll',a,'_neighbor=',i0,'_total',a,a,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),filename(j),neighbor,trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
-          if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+          if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
         end if
       end do ; end do
 
@@ -212,7 +212,7 @@ contains
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'pumpdc_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(3)),filename(j),i,trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
-        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+        if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
       end do ; end do
 
       ! Stop if some file does not exist
@@ -469,13 +469,13 @@ contains
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
-        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+        if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
         if(renorm) then
           iw = iw+1000
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_pos=',i0,a,a,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,i,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
-          if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+          if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
         end if
       end do ; end do ; end do
 
@@ -485,13 +485,13 @@ contains
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,'_',a,'_neighbor=',i0,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
-        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+        if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
         if(renorm) then
           iw = iw+1000
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'rprll',a,'_',a,'_neighbor=',i0,'_total',a,a,a,a,a,'_renormnb=',i0,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),neighbor,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),renormnb,trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
-          if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+          if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
         end if
       end do ; end do
 
@@ -501,7 +501,7 @@ contains
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,'pumpdc_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(3)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
-        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+        if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
       end do ; end do
 
       ! Stop if some file does not exist

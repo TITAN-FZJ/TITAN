@@ -71,22 +71,22 @@ contains
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(1)),trim(filename(1)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
           open (unit=555+s%nAtoms*(i-1)+j, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
-          if(err .ne. 0) missing_files = trim(missing_files) // " " // trim(varm)
+          if(err /= 0) missing_files = trim(missing_files) // " " // trim(varm)
 
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(2)),trim(filename(2)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
           open (unit=666+s%nAtoms*(i-1)+j, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
-          if(err .ne. 0) missing_files = trim(missing_files) // " " // trim(varm)
+          if(err /= 0) missing_files = trim(missing_files) // " " // trim(varm)
 
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(2)),trim(filename(3)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
           open (unit=777+s%nAtoms*(i-1)+j, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
-          if(err .ne. 0) missing_files = trim(missing_files) // " " // trim(varm)
+          if(err /= 0) missing_files = trim(missing_files) // " " // trim(varm)
 
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'HF_asite=',i0,'_bsite=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(2)),trim(filename(3)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
           open (unit=888+s%nAtoms*(i-1)+j, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
-          if(err .ne. 0) missing_files = trim(missing_files) // " " // trim(varm)
+          if(err /= 0) missing_files = trim(missing_files) // " " // trim(varm)
 
        end do
     end do

@@ -2,7 +2,7 @@ module mod_gilbert_damping
   use mod_f90_kind, only: double
   implicit none
   character(len=5),               private :: folder = "A/TCM"
-  character(len=3), dimension(3), private :: filename = ["SO ", "XC ", "XCk"]
+  character(len=3), dimension(4), private :: filename = ["SO ", "SOi", "XC ", "XCi"]
 
 contains
 
@@ -15,12 +15,14 @@ contains
     do n = 1, size(filename)
       iw = 634893 + n
 
-      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(n)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(n)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       open (unit=iw, file=varm, status='replace', form='formatted')
       write(unit=iw, fmt="('# (k), i , m , Re(A_mx), Im(A_mx), Re(A_my), Im(A_my), Re(A_mz), Im(A_mz) ')")
 
     end do
   end subroutine openTCMFiles
+
+
 
   subroutine closeTCMFiles()
     implicit none
@@ -31,9 +33,38 @@ contains
     end do
   end subroutine closeTCMFiles
 
-  subroutine writeTCM()
 
+
+
+  subroutine writeTCM(unit,alpha,ndiffk,diff_k,ialpha)
+    use mod_System,     only: s => sys
+    implicit none
+    integer, intent(in) :: unit
+    !! File unit
+    integer, intent(in) :: ndiffk
+    !! Number of different kzs
+    real(double), dimension(ndiffk), intent(in) :: diff_k
+    !! Different kzs
+    real(double), dimension(s%nAtoms,3,ndiffk), intent(in) :: ialpha
+    !! Contributions of each kz to alpha
+    integer :: i,j,k
+    complex(double), dimension(s%nAtoms,s%nAtoms,3,3),intent(in) :: alpha
+    !! Total Gilbert damping matrix alpha
+
+    !! Writing Gilbert damping
+    do i = 1, s%nAtoms
+      do j = 1, 3
+        write(unit=unit  ,fmt=*) i, j, (real(alpha(i,i,j,k)), aimag(alpha(i,i,j,k)), k = 1, 3)
+      end do
+    end do
+
+    !! Writing k-dependent Gilbert damping alpha
+    do k=1,size(diff_k)
+      write(unit=unit+1,fmt=*) diff_k(k), ( (ialpha(i,j,k), j=1,3), i=1,s%nAtoms )
+    end do
   end subroutine writeTCM
+
+
 
   subroutine calculate_gilbert_damping()
     use mod_f90_kind,   only: double
@@ -41,38 +72,36 @@ contains
     use mod_System,     only: s => sys
     use mod_mpi_pars,   only: rField
     implicit none
+    integer :: ndiffk
+    real(double),    dimension(:),     allocatable    :: diff_k
+    real(double),    dimension(:,:,:), allocatable    :: ialphaSO, ialphaXC
     complex(double), dimension(s%nAtoms,s%nAtoms,3,3) :: alphaSO, alphaXC
-    integer :: i,j,k
 
-    if(rField == 0) write(output%unit_loop, *) "[calculate_gilbert_damping] Start..."
 
-    call TCM(alphaSO, local_SO_torque)
-    call TCM(alphaXC, local_xc_torque)
+    if(rField == 0) write(output%unit_loop, *) "[calculate_gilbert_damping] Starting to calculate Gilbert damping..."
 
-    if(rField == 0) then
-      call openTCMFiles()
-    end if
+    if(rField == 0) call openTCMFiles()
 
-    if(rField == 0) then
-      do i = 1, s%nAtoms
-        do j = 1, 3
-          write(unit=634894,fmt=*) i, j, (real(alphaSO(i,i,j,k)), aimag(alphaSO(i,i,j,k)), k = 1, 3)
-          write(unit=634895,fmt=*) i, j, (real(alphaXC(i,i,j,k)), aimag(alphaXC(i,i,j,k)), k = 1, 3)
-        end do
-      end do
-    end if
+    call TCM(local_SO_torque, alphaSO, ndiffk, diff_k, ialphaSO)
+    call TCM(local_xc_torque, alphaXC, ndiffk, diff_k, ialphaXC)
+
+    if(rField == 0) call writeTCM(634894, alphaSO, ndiffk, diff_k, ialphaSO)
+    if(rField == 0) call writeTCM(634896, alphaXC, ndiffk, diff_k, ialphaXC)
 
     if(rField == 0) call closeTCMFiles()
   end subroutine calculate_gilbert_damping
 
-  subroutine TCM(alpha, torque_fct)
+
+
+  subroutine TCM(torque_fct, alpha, ndiffk, diff_k, ialpha)
     use mod_f90_kind,      only: double
     use mod_constants,     only: cZero, pi, cOne, cI
     use mod_System,        only: s => sys
-    use mod_BrillouinZone, only: realBZ
+    use mod_BrillouinZone, only: realBZ, store_diff
     use TightBinding,      only: nOrb
     use mod_parameters,    only: eta
     use mod_magnet,        only: mabs
+    use mod_tools,         only: sort
     use mod_mpi_pars
     implicit none
     interface
@@ -87,37 +116,74 @@ contains
 
     complex(double), dimension(s%nAtoms,s%nAtoms,3,3), intent(out) :: alpha
     !! Contains the Gilbert Damping as matrix in sites and cartesian coordinates (nAtoms,nAtoms,3,3)
-    integer :: i,j,m,n, mu
-    real(double), dimension(3) :: kp
-    real(double) :: wght
-    complex(double), dimension(2*nOrb,2*nOrb,3,s%nAtoms) :: torque
-    complex(double),dimension(:,:,:,:),allocatable :: gf
-    complex(double),dimension(:,:),allocatable :: temp1, temp2, temp3
-    complex(double), dimension(:,:,:,:), allocatable :: alpha_loc
     integer*8 :: iz
-    ! Calculate workload for each MPI process
+    integer   :: i,j,k,m,n,mu
 
+    integer   :: ndiffk
+    !! Number of different abs(k_z) in the k points list
+    real(double), dimension(:), allocatable :: diff_k_unsrt
+    !! Different values of abs(k_z) - unsorted
+    real(double), dimension(:), allocatable :: diff_k
+    !! Different values of abs(k_z) - sorted
+    integer, dimension(:), allocatable :: order
+    !! Order of increasing abs(k_z) in the different k points list
+
+    real(double), dimension(3) :: kp
+    !! k-point
+    real(double) :: wght
+    !! k-point weight
+    real(double), dimension(:,:,:), allocatable, intent(out) :: ialpha
+    !! Integrated alpha (as a function of the maximum kz summed) $ \alpha = \sum_{k_z}^{k_z^\text{max}} \alpha(k_z)$
+    complex(double), dimension(2*nOrb,2*nOrb,3,s%nAtoms) :: torque
+    !! Torque operator (SO or XC)
+    complex(double),dimension(:,:,:,:),allocatable :: gf
+    !! Green function
+    complex(double),dimension(:,:),allocatable :: temp1, temp2, temp3
+    complex(double) :: alphatemp
+    !! Temporary k-dependent alpha
+    complex(double), dimension(:,:,:,:), allocatable :: alpha_loc
+    !! Local (in-processor) alpha
+
+
+    ! Calculate workload for each MPI process
     call realBZ % setup_fraction(s,rField, sField, FieldComm)
+
+    ! Obtaining the different kz (an)
+    call store_diff(realBZ%nkpt_x*realBZ%nkpt_y*realBZ%nkpt_z, s%b1, s%b2, s%b3, 3, ndiffk, diff_k_unsrt)
+
+    ! Sorting the k-points for increasing abs(kz)
+    allocate( order(ndiffk) )
+    if(.not.allocated(diff_k)) allocate( diff_k(ndiffk) )
+    call sort( diff_k_unsrt(:), ndiffk, order(:) )
+    sort_diffk: do k = 1, ndiffk
+      diff_k(k) = diff_k_unsrt(order(k))
+    end do sort_diffk
 
     call torque_fct(torque)
 
-    !! Alpha = g/(m*pi)sum_k wkbz * ( Tr(T^nu Im(G(Ef)) T^mu Im(G(Ef))))
-    !! Alpha = g/(m*pi)sum_k wkbz * ( sum_ij (T_ii^nu Im(G_ij(Ef)) T_jj^mu Im(G_ji(Ef)))) maybe
+    !! XC-TCM:
+    !! $\alpha= \frac{1}{\gamma M \pi N} \sum_\mathbf{k} \operatorname{Tr}\{\operatorname{Im} G(\mathbf{k},\epsilon_F)\hat{T}^-_\text{xc} \operatorname{Im} G(\mathbf{k},\epsilon_F) \hat{T}^+_\text{xc}\}$
+    !! SO-TCM:
+    !! $\alpha - \alpha_\text{noSOI} = \frac{1}{\gamma M \pi N} \sum_\mathbf{k} \operatorname{Tr}\{\operatorname{Im} G(\mathbf{k},\epsilon_F)\hat{T}^-_\text{SOI} \operatorname{Im} G(\mathbf{k},\epsilon_F) \hat{T}^+_\text{SOI}\}$
     !! g = 2
-    !! m = magnetization amplitude
+    !! M = magnetic moment
+    alpha(:,:,:,:) = cZero
 
-    ! Calculate full greens function at Ef+i*eta
+    !! k-dependent alpha(k_z)
+    !! $\alpha(k_z) = \frac{1}{N}\sum_{k_x,k_y}\alpha(k_x,k_y,k_z)$
 
-    alpha = cZero
+    !! Allocating integrated alpha
+    allocate( ialpha(s%nAtoms,3,ndiffk) )
+    ialpha = 0.d0
 
-    !$omp parallel default(none) &
-    !$omp& private(m,n,i,j,mu,iz,kp,wght,gf,temp1,temp2,temp3, alpha_loc) &
-    !$omp& shared(s,realBZ,eta,torque,alpha,rField)
+    !$omp parallel default(none) reduction(+:ialpha) &
+    !$omp& private(m,n,i,j,k,mu,iz,kp,wght,gf,temp1,temp2,temp3, alpha_loc,alphatemp) &
+    !$omp& shared(s,realBZ,eta,torque,alpha,rField,order,ndiffk,diff_k)
     allocate(gf(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms), &
              temp1(2*nOrb,2*nOrb), temp2(2*nOrb,2*nOrb), temp3(2*nOrb,2*nOrb), &
              alpha_loc(s%nAtoms,s%nAtoms,3,3))
     gf = cZero
-    alpha_loc = cZero
+    alpha_loc  = cZero
     !$omp do schedule(static)
     kpoints: do iz = 1, realBZ%workload
       kp = realBZ%kp(1:3,iz)
@@ -128,6 +194,7 @@ contains
         dir_n: do n = 1, 3
           site_i: do i = 1, s%nAtoms
             site_j: do j = 1, s%nAtoms
+              alphatemp = cZero
               temp1 = cZero
               temp2 = cZero
               temp3 = cZero
@@ -141,16 +208,23 @@ contains
               call zgemm('n','n',2*nOrb,2*nOrb,2*nOrb,cOne,temp2,2*nOrb,temp3,2*nOrb,cZero,temp1,2*nOrb) ! Torque^m_i * Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))
 
               do mu = 1, 2*nOrb
-                alpha_loc(j,i,n,m) = alpha_loc(j,i,n,m) + temp1(mu,mu) * wght
+                alphatemp = alphatemp + temp1(mu,mu) * wght
               end do
+              alpha_loc(j,i,n,m) = alpha_loc(j,i,n,m) + alphatemp
+
+              if((i == j).and.(m == n)) then
+                diffk: do k = 1, ndiffk
+                  if ( abs(abs(kp(3)) - diff_k(k)) < 1.d-12 ) then
+                    ialpha(i,m,k) = ialpha(i,m,k) + real(alphatemp)
+                    exit diffk
+                  end if
+                end do diffk
+              end if
 
             end do site_j
           end do site_i
         end do dir_n
       end do dir_m
-
-      if(rField == 0) write(unit=634896,fmt='(21(es14.7,2x))') (kp(m),m=1,3), ( (real(alpha_loc(i,i,m,m)), m = 1, 3) ,i = 1,s%nAtoms )
-
     end do kpoints
     !$omp end do nowait
 
@@ -158,7 +232,7 @@ contains
       alpha = alpha + alpha_loc
     !$omp end critical
 
-    deallocate(gf)
+    deallocate(gf,temp1,temp2,temp3)
     deallocate(alpha_loc)
     !$omp end parallel
 
@@ -168,9 +242,13 @@ contains
       end do
     end do
 
-    call MPI_Allreduce(MPI_IN_PLACE, alpha, s%nAtoms*s%nAtoms*3*3, MPI_DOUBLE_COMPLEX, MPI_SUM, FieldComm, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, alpha , s%nAtoms*s%nAtoms*3*3, MPI_DOUBLE_COMPLEX  , MPI_SUM, FieldComm, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, ialpha, s%nAtoms*3*ndiffk    , MPI_DOUBLE_PRECISION, MPI_SUM, FieldComm, ierr)
+
+    deallocate(order)
 
   end subroutine TCM
+
 
 
   subroutine local_xc_torque(torque)
@@ -206,6 +284,8 @@ contains
     end do
 
   end subroutine local_xc_torque
+
+
 
   subroutine local_SO_torque(torque)
     use mod_f90_kind,  only: double

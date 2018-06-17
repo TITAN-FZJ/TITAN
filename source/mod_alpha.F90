@@ -87,7 +87,7 @@ contains
          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
          open (unit=55+(j-1)*s%nAtoms+i, file=varm, status='old', position='append', form='formatted', iostat=err)
          errt = errt + err
-         if(err .ne. 0) missing_files = trim(missing_files) // " " // trim(varm)
+         if(err /= 0) missing_files = trim(missing_files) // " " // trim(varm)
       end do
     end do
     if(errt/=0) call abortProgram("[open_alpha_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))

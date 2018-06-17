@@ -266,14 +266,14 @@ contains
               write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_',i0,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
               open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
               errt = errt + err
-              if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+              if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
            end if
            iw = iw+1000
            ! HF SUSCEPTIBILITIES
            write(varm,"('./results/',a1,'SOC/',a,'/HF/chihf_',i0,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
            open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
            errt = errt + err
-           if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+           if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
         end do
      end do
     ! RPA DIAGONALIZATION
@@ -281,12 +281,12 @@ contains
        write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_eval',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
        open (unit=19900, file=varm, status='old', position='append', form='formatted', iostat=err)
        errt = errt + err
-       if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+       if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
        do i=1,s%nAtoms
           write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_evec',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
           open (unit=19900+i, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
-          if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+          if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
        end do
     end if
     ! Stop if some file does not exist
@@ -424,14 +424,14 @@ contains
               write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_',a,'_',i0,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
               open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
               errt = errt + err
-              if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+              if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
            end if
            iw = iw+1000
            ! HF SUSCEPTIBILITIES
            write(varm,"('./results/',a1,'SOC/',a,'/HF/',a,'chihf_',a,'_',i0,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
            open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
            errt = errt + err
-           if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+           if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
         end do
      end do
     ! RPA DIAGONALIZATION
@@ -439,12 +439,12 @@ contains
        write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_eval_',a,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
        open (unit=199000, file=varm, status='old', position='append', form='formatted', iostat=err)
        errt = errt + err
-       if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+       if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
        do i=1,s%nAtoms
           write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_evec',i0,'_',a,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
           open (unit=199000+i, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
-          if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+          if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
        end do
     end if
     ! Stop if some file does not exist

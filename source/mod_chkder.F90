@@ -114,13 +114,13 @@ contains
 !
       EPS = SQRT(EPSMCH)
 !
-      IF (MODE .EQ. 2) GO TO 20
+      IF (MODE == 2) GO TO 20
 !
 !        MODE = 1.
 !
          DO 10 J = 1, N
             TEMP = EPS*ABS(X(J))
-            IF (TEMP .EQ. ZERO) TEMP = EPS
+            IF (TEMP == ZERO) TEMP = EPS
             XP(J) = X(J) + TEMP
    10       CONTINUE
          GO TO 70
@@ -135,21 +135,21 @@ contains
    30       CONTINUE
          DO 50 J = 1, N
             TEMP = ABS(X(J))
-            IF (TEMP .EQ. ZERO) TEMP = ONE
+            IF (TEMP == ZERO) TEMP = ONE
             DO 40 I = 1, M
                ERR(I) = ERR(I) + TEMP*FJAC(I,J)
    40          CONTINUE
    50       CONTINUE
          DO 60 I = 1, M
             TEMP = ONE
-            IF (FVEC(I) .NE. ZERO .AND. FVECP(I) .NE. ZERO &
-                .AND. ABS(FVECP(I)-FVEC(I)) .GE. EPSF*ABS(FVEC(I))) &
+            IF (FVEC(I) /= ZERO .AND. FVECP(I) /= ZERO &
+                .AND. ABS(FVECP(I)-FVEC(I)) >= EPSF*ABS(FVEC(I))) &
                TEMP = EPS*ABS((FVECP(I)-FVEC(I))/EPS-ERR(I)) &
                       /(ABS(FVEC(I)) + ABS(FVECP(I)))
             ERR(I) = ONE
-            IF (TEMP .GT. EPSMCH .AND. TEMP .LT. EPS) &
+            IF (TEMP > EPSMCH .AND. TEMP < EPS) &
                ERR(I) = (LOG10(TEMP) - EPSLOG)/EPSLOG
-            IF (TEMP .GE. EPS) ERR(I) = ZERO
+            IF (TEMP >= EPS) ERR(I) = ZERO
    60       CONTINUE
    70 CONTINUE
 !
@@ -220,7 +220,7 @@ contains
 !     base-B form
 !                sign (B**E)*( (X(1)/B) + ... + (X(T)/B**T) )
 !
-!     where 0 <= X(I) .LT. B for I=1,...,T; 0 < X(1); and EMIN <= E <= EMAX.
+!     where 0 <= X(I) < B for I=1,...,T; 0 < X(1); and EMIN <= E <= EMAX.
 !
 !     I1MACH(10) = B, the base.
 !
@@ -391,8 +391,8 @@ contains
 !
 !              sign (B**E)*( (X(1)/B) + ... + (X(T)/B**T) )
 !
-!   where 0 .LE. X(I) .LT. B for I=1,...,T, 0 .LT. X(1), and
-!   EMIN .LE. E .LE. EMAX.
+!   where 0 <= X(I) < B for I=1,...,T, 0 < X(1), and
+!   EMIN <= E <= EMAX.
 !
 !   The values of B, T, EMIN and EMAX are provided in I1MACH as
 !   follows:
@@ -677,7 +677,7 @@ contains
 !   891013  REVISED TO CORRECT COMMENTS.
 !   891214  Prologue converted to Version 4.0 format.  (WRB)
 !   900510  Changed test on NERR to be -9999999 < NERR < 99999999, but
-!           NERR .ne. 0, and on LEVEL to be -2 < LEVEL < 3.  Added
+!           NERR /= 0, and on LEVEL to be -2 < LEVEL < 3.  Added
 !           LEVEL=-1 logic, changed calls to XERSAV to XERSVE, and
 !           XERCTL to XERCNT.  (RWC)
 !   920501  Reformatted the REFERENCES section.  (WRB)
@@ -700,8 +700,8 @@ contains
 !          CALLING XERMSG.  THE ERROR NUMBER SHOULD BE POSITIVE,
 !          AND THE LEVEL SHOULD BE BETWEEN 0 AND 2.
 !
-      IF (NERR.LT.-9999999 .OR. NERR.GT.99999999 .OR. NERR.EQ.0 .OR. &
-         LEVEL.LT.-1 .OR. LEVEL.GT.2) THEN
+      IF (NERR<-9999999 .OR. NERR>99999999 .OR. NERR==0 .OR. &
+         LEVEL<-1 .OR. LEVEL>2) THEN
          CALL XERPRN (' ***', -1, 'FATAL ERROR IN...$$ ' // &
             'XERMSG -- INVALID ERROR NUMBER OR LEVEL$$ '// &
             'JOB ABORT DUE TO FATAL ERROR.', 72)
@@ -717,7 +717,7 @@ contains
 !
 !       HANDLE PRINT-ONCE WARNING MESSAGES.
 !
-      IF (LEVEL.EQ.-1 .AND. KOUNT.GT.1) RETURN
+      IF (LEVEL==-1 .AND. KOUNT>1) RETURN
 !
 !       ALLOW TEMPORARY USER OVERRIDE OF THE CONTROL FLAG.
 !
@@ -734,17 +734,17 @@ contains
 !       SKIP PRINTING IF THE CONTROL FLAG VALUE AS RESET IN XERCNT IS
 !       ZERO AND THE ERROR IS NOT FATAL.
 !
-      IF (LEVEL.LT.2 .AND. LKNTRL.EQ.0) GO TO 30
-      IF (LEVEL.EQ.0 .AND. KOUNT.GT.MAXMES) GO TO 30
-      IF (LEVEL.EQ.1 .AND. KOUNT.GT.MAXMES .AND. MKNTRL.EQ.1) GO TO 30
-      IF (LEVEL.EQ.2 .AND. KOUNT.GT.MAX(1,MAXMES)) GO TO 30
+      IF (LEVEL<2 .AND. LKNTRL==0) GO TO 30
+      IF (LEVEL==0 .AND. KOUNT>MAXMES) GO TO 30
+      IF (LEVEL==1 .AND. KOUNT>MAXMES .AND. MKNTRL==1) GO TO 30
+      IF (LEVEL==2 .AND. KOUNT>MAX(1,MAXMES)) GO TO 30
 !
 !       ANNOUNCE THE NAMES OF THE LIBRARY AND SUBROUTINE BY BUILDING A
 !       MESSAGE IN CHARACTER VARIABLE TEMP (NOT EXCEEDING 66 CHARACTERS)
 !       AND SENDING IT OUT VIA XERPRN.  PRINT ONLY IF CONTROL FLAG
 !       IS NOT ZERO.
 !
-      IF (LKNTRL .NE. 0) THEN
+      IF (LKNTRL /= 0) THEN
          TEMP(1:21) = 'MESSAGE FROM ROUTINE '
          I = MIN(LEN(SUBROU), 16)
          TEMP(22:21+I) = SUBROU(1:I)
@@ -776,14 +776,14 @@ contains
 !       EXCEED 74 CHARACTERS.
 !       WE SKIP THE NEXT BLOCK IF THE INTRODUCTORY LINE IS NOT NEEDED.
 !
-      IF (LKNTRL .GT. 0) THEN
+      IF (LKNTRL > 0) THEN
 !
 !       THE FIRST PART OF THE MESSAGE TELLS ABOUT THE LEVEL.
 !
-         IF (LEVEL .LE. 0) THEN
+         IF (LEVEL <= 0) THEN
             TEMP(1:20) = 'INFORMATIVE MESSAGE,'
             LTEMP = 20
-         ELSEIF (LEVEL .EQ. 1) THEN
+         ELSEIF (LEVEL == 1) THEN
             TEMP(1:30) = 'POTENTIALLY RECOVERABLE ERROR,'
             LTEMP = 30
          ELSE
@@ -793,8 +793,8 @@ contains
 !
 !       THEN WHETHER THE PROGRAM WILL CONTINUE.
 !
-         IF ((MKNTRL.EQ.2 .AND. LEVEL.GE.1) .OR. &
-             (MKNTRL.EQ.1 .AND. LEVEL.EQ.2)) THEN
+         IF ((MKNTRL==2 .AND. LEVEL>=1) .OR. &
+             (MKNTRL==1 .AND. LEVEL==2)) THEN
             TEMP(LTEMP+1:LTEMP+14) = ' PROG ABORTED,'
             LTEMP = LTEMP + 14
          ELSE
@@ -804,7 +804,7 @@ contains
 !
 !       FINALLY TELL WHETHER THERE SHOULD BE A TRACEBACK.
 !
-         IF (LKNTRL .GT. 0) THEN
+         IF (LKNTRL > 0) THEN
             TEMP(LTEMP+1:LTEMP+20) = ' TRACEBACK REQUESTED'
             LTEMP = LTEMP + 20
          ELSE
@@ -821,10 +821,10 @@ contains
 !       IF LKNTRL IS POSITIVE, WRITE THE ERROR NUMBER AND REQUEST A
 !          TRACEBACK.
 !
-      IF (LKNTRL .GT. 0) THEN
+      IF (LKNTRL > 0) THEN
          WRITE (TEMP, '(''ERROR NUMBER = '', I8)') NERR
          DO 10 I=16,22
-            IF (TEMP(I:I) .NE. ' ') GO TO 20
+            IF (TEMP(I:I) /= ' ') GO TO 20
    10    CONTINUE
 !
    20    CALL XERPRN (' *  ', -1, TEMP(1:15) // TEMP(I:23), 72)
@@ -833,7 +833,7 @@ contains
 !
 !       IF LKNTRL IS NOT ZERO, PRINT A BLANK LINE AND AN END OF MESSAGE.
 !
-      IF (LKNTRL .NE. 0) THEN
+      IF (LKNTRL /= 0) THEN
          CALL XERPRN (' *  ', -1, ' ', 72)
          CALL XERPRN (' ***', -1, 'END OF MESSAGE', 72)
          CALL XERPRN ('    ',  0, ' ', 72)
@@ -842,14 +842,14 @@ contains
 !       IF THE ERROR IS NOT FATAL OR THE ERROR IS RECOVERABLE AND THE
 !       CONTROL FLAG IS SET FOR RECOVERY, THEN RETURN.
 !
-   30 IF (LEVEL.LE.0 .OR. (LEVEL.EQ.1 .AND. MKNTRL.LE.1)) RETURN
+   30 IF (LEVEL<=0 .OR. (LEVEL==1 .AND. MKNTRL<=1)) RETURN
 !
 !       THE PROGRAM WILL BE STOPPED DUE TO AN UNRECOVERED ERROR OR A
 !       FATAL ERROR.  PRINT THE REASON FOR THE ABORT AND THE ERROR
 !       SUMMARY IF THE CONTROL FLAG AND THE MAXIMUM ERROR COUNT PERMIT.
 !
-      IF (LKNTRL.GT.0 .AND. KOUNT.LT.MAX(1,MAXMES)) THEN
-         IF (LEVEL .EQ. 1) THEN
+      IF (LKNTRL>0 .AND. KOUNT<MAX(1,MAXMES)) THEN
+         IF (LEVEL == 1) THEN
             CALL XERPRN &
                (' ***', -1, 'JOB ABORT DUE TO UNRECOVERED ERROR.', 72)
          ELSE
@@ -954,20 +954,20 @@ contains
 !
       N = I1MACH(4)
       DO 10 I=1,NUNIT
-         IF (IU(I) .EQ. 0) IU(I) = N
+         IF (IU(I) == 0) IU(I) = N
    10 CONTINUE
 !
 !       LPREF IS THE LENGTH OF THE PREFIX.  THE PREFIX IS PLACED AT THE
 !       BEGINNING OF CBUFF, THE CHARACTER BUFFER, AND KEPT THERE DURING
 !       THE REST OF THIS ROUTINE.
 !
-      IF ( NPREF .LT. 0 ) THEN
+      IF ( NPREF < 0 ) THEN
          LPREF = LEN(PREFIX)
       ELSE
          LPREF = NPREF
       ENDIF
       LPREF = MIN(16, LPREF)
-      IF (LPREF .NE. 0) CBUFF(1:LPREF) = PREFIX
+      IF (LPREF /= 0) CBUFF(1:LPREF) = PREFIX
 !
 !       LWRAP IS THE MAXIMUM NUMBER OF CHARACTERS WE WANT TO TAKE AT ONE
 !       TIME FROM MESSG TO PRINT ON ONE LINE.
@@ -979,14 +979,14 @@ contains
       LENMSG = LEN(MESSG)
       N = LENMSG
       DO 20 I=1,N
-         IF (MESSG(LENMSG:LENMSG) .NE. ' ') GO TO 30
+         IF (MESSG(LENMSG:LENMSG) /= ' ') GO TO 30
          LENMSG = LENMSG - 1
    20 CONTINUE
    30 CONTINUE
 !
 !       IF THE MESSAGE IS ALL BLANKS, THEN PRINT ONE BLANK LINE.
 !
-      IF (LENMSG .EQ. 0) THEN
+      IF (LENMSG == 0) THEN
          CBUFF(LPREF+1:LPREF+1) = ' '
          DO 40 I=1,NUNIT
             WRITE(IU(I), '(A)') CBUFF(1:LPREF+1)
@@ -1009,12 +1009,12 @@ contains
 !       OF CHARACTERS THAT SHOULD BE TAKEN FROM MESSG STARTING AT
 !       POSITION NEXTC.
 !
-!       LPIECE .EQ. 0   THE NEW LINE SENTINEL DOES NOT OCCUR IN THE
+!       LPIECE == 0   THE NEW LINE SENTINEL DOES NOT OCCUR IN THE
 !                       REMAINDER OF THE CHARACTER STRING.  LPIECE
 !                       SHOULD BE SET TO LWRAP OR LENMSG+1-NEXTC,
 !                       WHICHEVER IS LESS.
 !
-!       LPIECE .EQ. 1   THE NEW LINE SENTINEL STARTS AT MESSG(NEXTC:
+!       LPIECE == 1   THE NEW LINE SENTINEL STARTS AT MESSG(NEXTC:
 !                       NEXTC).  LPIECE IS EFFECTIVELY ZERO, AND WE
 !                       PRINT NOTHING TO AVOID PRODUCING UNNECESSARY
 !                       BLANK LINES.  THIS TAKES CARE OF THE SITUATION
@@ -1023,25 +1023,25 @@ contains
 !                       SENTINEL FOLLOWED BY MORE CHARACTERS.  NEXTC
 !                       SHOULD BE INCREMENTED BY 2.
 !
-!       LPIECE .GT. LWRAP+1  REDUCE LPIECE TO LWRAP.
+!       LPIECE > LWRAP+1  REDUCE LPIECE TO LWRAP.
 !
-!       ELSE            THIS LAST CASE MEANS 2 .LE. LPIECE .LE. LWRAP+1
+!       ELSE            THIS LAST CASE MEANS 2 <= LPIECE <= LWRAP+1
 !                       RESET LPIECE = LPIECE-1.  NOTE THAT THIS
-!                       PROPERLY HANDLES THE END CASE WHERE LPIECE .EQ.
+!                       PROPERLY HANDLES THE END CASE WHERE LPIECE ==
 !                       LWRAP+1.  THAT IS, THE SENTINEL FALLS EXACTLY
 !                       AT THE END OF A LINE.
 !
       NEXTC = 1
    50 LPIECE = INDEX(MESSG(NEXTC:LENMSG), NEWLIN)
-      IF (LPIECE .EQ. 0) THEN
+      IF (LPIECE == 0) THEN
 !
 !       THERE WAS NO NEW LINE SENTINEL FOUND.
 !
          IDELTA = 0
          LPIECE = MIN(LWRAP, LENMSG+1-NEXTC)
-         IF (LPIECE .LT. LENMSG+1-NEXTC) THEN
+         IF (LPIECE < LENMSG+1-NEXTC) THEN
             DO 52 I=LPIECE+1,2,-1
-               IF (MESSG(NEXTC+I-1:NEXTC+I-1) .EQ. ' ') THEN
+               IF (MESSG(NEXTC+I-1:NEXTC+I-1) == ' ') THEN
                   LPIECE = I-1
                   IDELTA = 1
                   GOTO 54
@@ -1050,21 +1050,21 @@ contains
          ENDIF
    54    CBUFF(LPREF+1:LPREF+LPIECE) = MESSG(NEXTC:NEXTC+LPIECE-1)
          NEXTC = NEXTC + LPIECE + IDELTA
-      ELSEIF (LPIECE .EQ. 1) THEN
+      ELSEIF (LPIECE == 1) THEN
 !
 !       WE HAVE A NEW LINE SENTINEL AT MESSG(NEXTC:NEXTC+1).
 !       DON'T PRINT A BLANK LINE.
 !
          NEXTC = NEXTC + 2
          GO TO 50
-      ELSEIF (LPIECE .GT. LWRAP+1) THEN
+      ELSEIF (LPIECE > LWRAP+1) THEN
 !
 !       LPIECE SHOULD BE SET DOWN TO LWRAP.
 !
          IDELTA = 0
          LPIECE = LWRAP
          DO 56 I=LPIECE+1,2,-1
-            IF (MESSG(NEXTC+I-1:NEXTC+I-1) .EQ. ' ') THEN
+            IF (MESSG(NEXTC+I-1:NEXTC+I-1) == ' ') THEN
                LPIECE = I-1
                IDELTA = 1
                GOTO 58
@@ -1074,7 +1074,7 @@ contains
          NEXTC = NEXTC + LPIECE + IDELTA
       ELSE
 !
-!       IF WE ARRIVE HERE, IT MEANS 2 .LE. LPIECE .LE. LWRAP+1.
+!       IF WE ARRIVE HERE, IT MEANS 2 <= LPIECE <= LWRAP+1.
 !       WE SHOULD DECREMENT LPIECE BY ONE.
 !
          LPIECE = LPIECE - 1
@@ -1088,7 +1088,7 @@ contains
          WRITE(IU(I), '(A)') CBUFF(1:LPREF+LPIECE)
    60 CONTINUE
 !
-      IF (NEXTC .LE. LENMSG) GO TO 50
+      IF (NEXTC <= LENMSG) GO TO 50
       END SUBROUTINE XERPRN
 
       SUBROUTINE XERSVE (LIBRAR, SUBROU, MESSG, KFLAG, NERR, LEVEL,ICOUNT)
@@ -1160,18 +1160,18 @@ contains
       DATA KOUNTX/0/, NMSG/0/
 !***FIRST EXECUTABLE STATEMENT  XERSVE
 !
-      IF (KFLAG.LE.0) THEN
+      IF (KFLAG<=0) THEN
 !
 !        Dump the table.
 !
-         IF (NMSG.EQ.0) RETURN
+         IF (NMSG==0) RETURN
 !
 !        Print to each unit.
 !
          CALL XGETUA (LUN, NUNIT)
          DO 20 KUNIT = 1,NUNIT
             IUNIT = LUN(KUNIT)
-            IF (IUNIT.EQ.0) IUNIT = I1MACH(4)
+            IF (IUNIT==0) IUNIT = I1MACH(4)
 !
 !           Print the table header.
 !
@@ -1186,13 +1186,13 @@ contains
 !
 !           Print number of other errors.
 !
-            IF (KOUNTX.NE.0) WRITE (IUNIT,9020) KOUNTX
+            IF (KOUNTX/=0) WRITE (IUNIT,9020) KOUNTX
             WRITE (IUNIT,9030)
    20    CONTINUE
 !
 !        Clear the error tables.
 !
-         IF (KFLAG.EQ.0) THEN
+         IF (KFLAG==0) THEN
             NMSG = 0
             KOUNTX = 0
          ENDIF
@@ -1206,16 +1206,16 @@ contains
          SUB = SUBROU
          MES = MESSG
          DO 30 I = 1,NMSG
-            IF (LIB.EQ.LIBTAB(I) .AND. SUB.EQ.SUBTAB(I) .AND. &
-               MES.EQ.MESTAB(I) .AND. NERR.EQ.NERTAB(I) .AND. &
-               LEVEL.EQ.LEVTAB(I)) THEN
+            IF (LIB==LIBTAB(I) .AND. SUB==SUBTAB(I) .AND. &
+               MES==MESTAB(I) .AND. NERR==NERTAB(I) .AND. &
+               LEVEL==LEVTAB(I)) THEN
                   KOUNT(I) = KOUNT(I) + 1
                   ICOUNT = KOUNT(I)
                   RETURN
             ENDIF
    30    CONTINUE
 !
-         IF (NMSG.LT.LENTAB) THEN
+         IF (NMSG<LENTAB) THEN
 !
 !           Empty slot found for new message.
 !
@@ -1270,7 +1270,7 @@ contains
 !                default unit, as defined by the I1MACH machine
 !                constant routine.  Only IUNIT(1),...,IUNIT(N) are
 !                defined by XGETUA.  The values of IUNIT(N+1),...,
-!                IUNIT(5) are not defined (for N .LT. 5) or altered
+!                IUNIT(5) are not defined (for N < 5) or altered
 !                in any way by XGETUA.
 !        N     - the number of units to which copies of the
 !                error messages are being sent.  N will be in the
@@ -1293,7 +1293,7 @@ contains
       N = J4SAVE(5,0,.FALSE.)
       DO 30 I=1,N
          INDEX = I+4
-         IF (I.EQ.1) INDEX = 3
+         IF (I==1) INDEX = 3
          IUNITA(I) = J4SAVE(INDEX,0,.FALSE.)
    30 CONTINUE
       END SUBROUTINE XGETUA

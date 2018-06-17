@@ -1,6 +1,17 @@
 module mod_tools
   implicit none
 
+  interface itos
+     module procedure i4tos, &
+                      i8tos
+  end interface itos
+
+  interface sort
+     module procedure sort_int, &
+                      sort_double_int
+  end interface sort
+
+
 contains
 
   ! --------------------------------------------------------------------
@@ -83,26 +94,57 @@ contains
   end function cross_unit
 
   ! --------------------------------------------------------------------
-  ! subroutine Sort():
+  ! subroutine sort_int():
   !    This subroutine receives an array x() and returns an integer array
   !  'order' with the positions of ascending numbers of x.
   ! --------------------------------------------------------------------
-  subroutine sort(x, size, order)
+  subroutine sort_int(x, size, order)
     use mod_f90_kind, only: double
-    implicit  none
-    integer, intent(in)                        :: size
+    implicit none
+    integer,                       intent(in)  :: size
     real(double), dimension(size), intent(in)  :: x
     integer     , dimension(size), intent(out) :: order
     integer                                    :: i
-    logical, dimension(size) :: mask
+    logical,      dimension(:), allocatable    :: mask
+
+    allocate( mask(size) )
 
     mask = .true.
     do i = 1,size
-       order(i) = minloc(x,1,mask)
+       order(i) = minloc( x, 1, mask(:) )
        mask(order(i)) = .false.
     end do
 
-  end subroutine sort
+    deallocate( mask )
+
+  end subroutine sort_int
+
+  ! --------------------------------------------------------------------
+  ! subroutine sort_double_int():
+  !    This subroutine receives an array x() and returns an double integer array
+  !  'order' with the positions of ascending numbers of x.
+  ! --------------------------------------------------------------------
+  subroutine sort_double_int(x, size, order)
+    use mod_f90_kind, only: double
+    implicit none
+    integer*8,                     intent(in)  :: size
+    real(double), dimension(size), intent(in)  :: x
+    integer*8   , dimension(size), intent(out) :: order
+    integer*8                                  :: i
+    logical,      dimension(:), allocatable    :: mask
+
+    allocate( mask(size) )
+
+    mask(:) = .true.
+    do i = 1,size
+       order(i) = minloc( x, 1, mask(:) )
+       mask(order(i)) = .false.
+    end do
+
+    deallocate( mask )
+
+  end subroutine sort_double_int
+
 
   ! --------------------------------------------------------------------
   ! subroutine number_of_lines():
@@ -111,7 +153,7 @@ contains
   ! Blank lines are ignored.
   ! --------------------------------------------------------------------
   subroutine number_of_lines(unit,total_lines,non_commented)
-    implicit  none
+    implicit none
     integer, intent(out) :: total_lines, non_commented
     integer, intent(in)  :: unit
     character(len=20)    :: stringtemp
@@ -143,7 +185,7 @@ contains
   ! (given by "unit", already opened).
   ! --------------------------------------------------------------------
   subroutine number_of_rows_cols(unit,rows,cols)
-    implicit  none
+    implicit none
     integer, intent(out) :: rows, cols
     integer, intent(in)  :: unit
     character(len=900)   :: stringtemp
@@ -173,7 +215,7 @@ contains
   subroutine read_data(unit,rows,cols,data)
     use mod_f90_kind, only: double
     use mod_mpi_pars, only: abortProgram
-    implicit  none
+    implicit none
     integer     , intent(in)  :: unit,rows,cols
     real(double), intent(out) :: data(rows,cols)
     character(len=900)        :: stringtemp
@@ -205,7 +247,7 @@ contains
   ! --------------------------------------------------------------------
   subroutine sort_file(unit,header)
     use mod_f90_kind, only: double
-    implicit  none
+    implicit none
     integer, intent(in) :: unit
     logical, intent(in) :: header
     character(len=50)   :: colformat
@@ -244,11 +286,16 @@ contains
   ! function ItoS():
   !    This function transforms an integer i into a character variable ItoS
   ! --------------------------------------------------------------------
-  character(len=900) function ItoS(i)
+  character(len=100) function I4toS(i)
     implicit none
     integer :: i
-    write(Itos, "(i0)") i
-  end function ItoS
+    write(I4toS, "(i0)") i
+  end function I4toS
+  character(len=100) function I8toS(i)
+    implicit none
+    integer*8 :: i
+    write(I8toS, "(i0)") i
+  end function I8toS
 
   ! --------------------------------------------------------------------
   ! function RtoS():

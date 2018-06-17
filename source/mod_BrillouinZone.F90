@@ -164,8 +164,8 @@ contains
       kp = dble(nx)*b1 / dble(self%nkpt_x) + dble(ny)*b2 / dble(self%nkpt_y) + dble(nz)*b3 / dble(self%nkpt_z)
 
       smallest_dist = ini_smallest_dist
-      !Checks to each of the 4 BZ's the kpoint belongs by checking
-      ! to each BZ it's closer.
+      !Checks to which of the 4 BZ's the kpoint belongs by checking
+      ! to which BZ it's closer.
       do j = 1, 8
         diff = kp - bz_vec(:,j)
         distance = sqrt(dot_product(diff, diff))
@@ -237,7 +237,7 @@ contains
     !Translate the k-points to the 1st BZ.
     !10*|b1+b2|, bigger than the distance of any genarated kpoint
     ini_smallest_dist = 10.d0 * sqrt(dot_product(b1 + b2 + b3, b1 + b2 + b3))
-    numextrakbz=0
+    numextrakbz = 0
     !Run over all the kpoints generated initially.
     !$omp parallel do default(none) reduction(+:numextrakbz) if(nkpt > 1000000) &
     !$omp& private(l, j, nx, ny, nz, kp, smallest_dist, smallest_index, diff, distance) &
@@ -249,8 +249,8 @@ contains
       kp = dble(nx)*b1 / dble(nkpt_x) + dble(ny)*b2 / dble(nkpt_y) + dble(nz)*b3 / dble(nkpt_z)
 
       smallest_dist=ini_smallest_dist
-      !Checks to each of the 4 BZ's the kpoint belongs by checking
-      ! to each BZ it's closer.
+      ! Checks to which of the 4 BZ's the kpoint belongs by checking
+      ! to which BZ it's closer.
       do j=1, 8
         diff = kp - bz_vec(:,j)
         distance = sqrt(dot_product(diff, diff))
@@ -259,7 +259,7 @@ contains
           smallest_index = j
         end if
       end do
-      !Checks if the kpoint is in the border between two or more
+      ! Checks if the kpoint is in the border between two or more
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 8
@@ -321,15 +321,15 @@ contains
       kp = dble(nx)*b1 / dble(self%nkpt_x) + dble(ny)*b2 / dble(self%nkpt_y)
 
       smallest_dist = ini_smallest_dist
-      !Checks to each of the 4 BZ's the kpoint belongs by checking
-      ! to each BZ it's closer.
+      ! Checks to which of the 4 BZ's the kpoint belongs by checking
+      ! to which BZ it's closer.
       do j = 1, 4
         diff = kp - bz_vec(:,j)
         distance = sqrt(dot_product(diff, diff))
         if(distance < smallest_dist) smallest_dist = distance
       end do
 
-      !Checks if the kpoint is in the border between two or more
+      ! Checks if the kpoint is in the border between two or more
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 4
@@ -399,8 +399,8 @@ contains
       kp = dble(nx)*b1 / dble(nkpt_x) + dble(ny)*b2 / dble(nkpt_y)
 
       smallest_dist = ini_smallest_dist
-      !Checks to each of the 4 BZ's the kpoint belongs by checking
-      ! to each BZ it's closer.
+      ! Checks to which of the 4 BZ's the kpoint belongs by checking
+      ! to which BZ it's closer.
       do j = 1, 4
         diff = kp - bz_vec(:,j)
         distance = sqrt(dot_product(diff, diff))
@@ -435,5 +435,117 @@ contains
     close(3333)
 
   end subroutine output_kpoints
+
+
+! This subroutine generates all the k-points
+! and store the different values of the
+! component "component" (1,2,3)
+  subroutine store_diff(nkpt_in, b1, b2, b3, component, ndiffk, diff_k_unsrt)
+    use mod_f90_kind, only: double
+    use mod_constants, only: tpi
+    use mod_tools, only: cross, itos
+    use mod_mpi_pars,  only: abortProgram
+    implicit none
+
+    integer, intent(in) :: nkpt_in
+    !! Initial kpoints (as given by realBZ%nkpt_x * realBZ%nkpt_y * realBZ%nkpt_z)
+    real(double), dimension(3), intent(in)  :: b1, b2, b3
+    !! Reciprocal vectors
+    integer, intent(in) :: component
+    !! Which component to store the different values and the map
+    integer, intent(out) :: ndiffk
+    !! Number of different kp(component)
+    real(double), dimension(:), allocatable, intent(out) :: diff_k_unsrt
+    !! Different values of kp(component)
+    real(double), dimension(:), allocatable              :: diff_k_temp
+    !! Temporary array for different values of kp(component)
+    real(double), dimension(3,8) :: bz_vec
+    real(double) :: smallest_dist, distance, ini_smallest_dist
+    real(double), dimension(3) :: diff
+    real(double), dimension(3) :: kp
+    integer :: nkpt_x, nkpt_y, nkpt_z, nkpt
+    integer :: l, j, count, smallest_index
+    integer :: nkpt_perdim
+    !! Number of k points per dimension
+    integer :: nx, ny, nz
+
+    nkpt_perdim = ceiling((dble(nkpt_in))**(1.d0/3.d0))
+    nkpt_x = nkpt_perdim
+    nkpt_y = nkpt_perdim
+    nkpt_z = nkpt_perdim
+
+    nkpt = nkpt_x * nkpt_y * nkpt_z
+
+    !! Allocating large temporary vector to store different values of kp(component)
+    allocate( diff_k_temp(2*nkpt_perdim) )
+    diff_k_temp(:) = 999.d0
+    ndiffk = 0
+
+    ! Counter of total number of points
+    count = 0
+
+    bz_vec(1:3,1) = 0.d0
+    bz_vec(1:3,2) = b1
+    bz_vec(1:3,3) = b2
+    bz_vec(1:3,4) = b1 + b2
+    bz_vec(1:3,5) = b3
+    bz_vec(1:3,6) = b1 + b3
+    bz_vec(1:3,7) = b2 + b3
+    bz_vec(1:3,8) = b1 + b2 + b3
+
+    !Translate the k-points to the 1st BZ.
+    !10*|b1+b2|, bigger than the distance of any genarated kpoint
+    ini_smallest_dist = 10.d0 * sqrt(dot_product(b1 + b2 + b3, b1 + b2 + b3))
+    !Run over all the kpoints generated initially.
+    !$omp parallel do default(none) if(nkpt > 1000000) &
+    !$omp& private(l, j, nx, ny, nz, kp, smallest_dist, smallest_index, diff, distance) &
+    !$omp& shared(nkpt, ini_smallest_dist, bz_vec, b1, b2, b3, nkpt_x, nkpt_y, nkpt_z, component, diff_k_temp, ndiffk, count)
+    do l=1, nkpt
+      nx = mod(floor(dble(l-1) / dble(nkpt_y * nkpt_z)), nkpt_x)
+      ny = mod(floor(dble(l-1) / dble(nkpt_z)), nkpt_y)
+      nz = mod(l-1, nkpt_z)
+      kp = dble(nx)*b1 / dble(nkpt_x) + dble(ny)*b2 / dble(nkpt_y) + dble(nz)*b3 / dble(nkpt_z)
+
+      smallest_dist=ini_smallest_dist
+      ! Checks to which of the 4 BZ's the kpoint belongs by checking
+      ! to which BZ it's closer.
+      do j=1, 8
+        diff = kp - bz_vec(:,j)
+        distance = sqrt(dot_product(diff, diff))
+        if(distance < smallest_dist) then
+          smallest_dist = distance
+          smallest_index = j
+        end if
+      end do
+      !Checks if the kpoint is in the border between two or more
+      ! BZ's. If yes, create a clone of it to translate later into
+      ! the 1st BZ.
+      do j=1, 8
+        diff=kp - bz_vec(:,j)
+        distance=sqrt(dot_product(diff,diff))
+        if( ( abs(distance-smallest_dist) < 1.d-12 )  ) then
+
+          !$omp critical
+          count = count + 1 ! Counting the total number of points generated
+          ! Checking if all numbers are different than current list (if any of them is zero, the point is already stored)
+          if( all(abs( diff_k_temp(:) - abs(diff(component)) )> 1.d-12,1)  ) then
+            ndiffk = ndiffk + 1
+            diff_k_temp(ndiffk) = abs(diff(component))
+          end if
+          !$omp end critical
+
+        end if
+
+      end do
+    end do
+    !$omp end parallel do
+
+    if(count/=realBZ%nkpt) &
+      call abortProgram("[store_diff] Generated different number of points than it should have! count = " // trim(itos(count)) // ", nkpt = " // trim(itos(realBZ%nkpt)))
+
+    allocate(diff_k_unsrt(ndiffk))
+    diff_k_unsrt(:) = diff_k_temp(1:ndiffk)
+
+  end subroutine store_diff
 
 end module mod_BrillouinZone

@@ -72,7 +72,7 @@ contains
     use mod_mpi_pars,  only: myrank
     implicit none
     integer, intent(in) :: nOrb,nAtoms
-    if((myrank.eq.0).and.(nOrb /= 9)) call abortProgram("[allocLS] LS Matrix only implemented for nOrb = 9.")
+    if((myrank==0).and.(nOrb /= 9)) call abortProgram("[allocLS] LS Matrix only implemented for nOrb = 9.")
 
     if(allocated(ls)) deallocate(ls)
     allocate(ls(2*nOrb, 2*nOrb,nAtoms))
