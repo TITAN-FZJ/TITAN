@@ -39,9 +39,9 @@ contains
   subroutine writeTCM(unit,alpha,ndiffk,diff_k,ialpha)
     use mod_System,     only: s => sys
     implicit none
-    integer, intent(in) :: unit
+    integer,   intent(in) :: unit
     !! File unit
-    integer, intent(in) :: ndiffk
+    integer*8, intent(in) :: ndiffk
     !! Number of different kzs
     real(double), dimension(ndiffk), intent(in) :: diff_k
     !! Different kzs
@@ -72,19 +72,21 @@ contains
     use mod_System,     only: s => sys
     use mod_mpi_pars,   only: rField
     implicit none
-    integer :: ndiffk
+    integer*8 :: ndiffk
     real(double),    dimension(:),     allocatable    :: diff_k
     real(double),    dimension(:,:,:), allocatable    :: ialphaSO, ialphaXC
     complex(double), dimension(s%nAtoms,s%nAtoms,3,3) :: alphaSO, alphaXC
 
-
-    if(rField == 0) write(output%unit_loop, *) "[calculate_gilbert_damping] Starting to calculate Gilbert damping..."
+    if(rField == 0) write(output%unit_loop, *) "[calculate_gilbert_damping] Starting to calculate Gilbert damping:"
 
     if(rField == 0) call openTCMFiles()
 
+    if(rField == 0) write(output%unit_loop, *) "[calculate_gilbert_damping] SO-TCM..."
     call TCM(local_SO_torque, alphaSO, ndiffk, diff_k, ialphaSO)
+    if(rField == 0) write(output%unit_loop, *) "[calculate_gilbert_damping] XC-TCM..."
     call TCM(local_xc_torque, alphaXC, ndiffk, diff_k, ialphaXC)
 
+    if(rField == 0) write(output%unit_loop, *) "[calculate_gilbert_damping] Writing results to file..."
     if(rField == 0) call writeTCM(634894, alphaSO, ndiffk, diff_k, ialphaSO)
     if(rField == 0) call writeTCM(634896, alphaXC, ndiffk, diff_k, ialphaXC)
 
@@ -117,15 +119,15 @@ contains
     complex(double), dimension(s%nAtoms,s%nAtoms,3,3), intent(out) :: alpha
     !! Contains the Gilbert Damping as matrix in sites and cartesian coordinates (nAtoms,nAtoms,3,3)
     integer*8 :: iz
-    integer   :: i,j,k,m,n,mu
+    integer   :: i, j, m, n, mu
 
-    integer   :: ndiffk
+    integer*8 :: ndiffk, k
     !! Number of different abs(k_z) in the k points list
     real(double), dimension(:), allocatable :: diff_k_unsrt
     !! Different values of abs(k_z) - unsorted
     real(double), dimension(:), allocatable :: diff_k
     !! Different values of abs(k_z) - sorted
-    integer, dimension(:), allocatable :: order
+    integer*8,    dimension(:), allocatable :: order
     !! Order of increasing abs(k_z) in the different k points list
 
     real(double), dimension(3) :: kp
@@ -148,8 +150,9 @@ contains
     ! Calculate workload for each MPI process
     call realBZ % setup_fraction(s,rField, sField, FieldComm)
 
-    ! Obtaining the different kz (an)
-    call store_diff(realBZ%nkpt_x*realBZ%nkpt_y*realBZ%nkpt_z, s%b1, s%b2, s%b3, 3, ndiffk, diff_k_unsrt)
+    ! Obtaining the different kz
+    k = realBZ%nkpt_x*realBZ%nkpt_y*realBZ%nkpt_z
+    call store_diff(k, s%b1, s%b2, s%b3, 3, ndiffk, diff_k_unsrt)
 
     ! Sorting the k-points for increasing abs(kz)
     allocate( order(ndiffk) )
@@ -184,11 +187,12 @@ contains
              alpha_loc(s%nAtoms,s%nAtoms,3,3))
     gf = cZero
     alpha_loc  = cZero
+
     !$omp do schedule(static)
     kpoints: do iz = 1, realBZ%workload
-      kp = realBZ%kp(1:3,iz)
+      kp   = realBZ%kp(1:3,iz)
       wght = realBZ%w(iz)
-      gf  = cZero
+      gf   = cZero
       call green(s%Ef,eta,s,kp,gf)
       dir_m: do m = 1, 3
         dir_n: do n = 1, 3

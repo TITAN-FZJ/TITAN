@@ -128,8 +128,8 @@ contains
     real(double) :: smallest_dist, distance, ini_smallest_dist
     integer*8    :: nkpt, l
     integer*8    :: nx, ny, nz
+    integer*8    :: count, added, weight, range
     integer      :: j
-    integer      :: count, added, weight, range
 
     allocate( self%w(self%workload), self%kp(3,self%workload) )
     self%w = 1.d0
@@ -208,10 +208,10 @@ contains
     real(double) :: smallest_dist, distance, ini_smallest_dist
     real(double), dimension(3) ::  diff
     real(double), dimension(3) :: kp, b1, b2, b3
-    integer*8 :: l, nkpt_x, nkpt_y, nkpt_z, nkpt
+    integer*8 :: l, nkpt_x, nkpt_y, nkpt_z, nkpt, numextrakbz
     integer*8 :: nkpt_perdim !n. of k point per dimension
     integer*8 :: nx, ny, nz
-    integer   :: j, smallest_index, numextrakbz
+    integer   :: j, smallest_index
 
     nkpt_perdim = ceiling((dble(nkpt_in))**(1.d0/3.d0))
     nkpt_x = nkpt_perdim
@@ -290,8 +290,8 @@ contains
     real(double) :: vol
     integer*8    :: l, nkpt
     integer*8    :: nx, ny
+    integer*8    :: count, added, weight, range
     integer      :: j
-    integer      :: count, added, weight, range
 
     zdir = [0.0,0.0,1.0]
     allocate( self%w(self%workload), self%kp(3,self%workload) )
@@ -353,9 +353,9 @@ contains
   end subroutine gen2DFraction
 
   integer*8 function count_2D_BZ(nkpt_in, a1, a2)
-    use mod_f90_kind, only: double
+    use mod_f90_kind,  only: double
     use mod_constants, only: tpi
-    use mod_tools, only: cross
+    use mod_tools,     only: cross
     implicit none
 
     integer*8, intent(in) :: nkpt_in
@@ -365,8 +365,8 @@ contains
     real(double), dimension(3,4) :: bz_vec
     real(double), dimension(3)   :: diff
     real(double) :: smallest_dist, distance, ini_smallest_dist, vol
-    integer   :: j, smallest_index, numextrakbz
-    integer*8 :: l, nkpt_x, nkpt_y, nx, ny, nkpt, nkpt_perdim
+    integer   :: j, smallest_index
+    integer*8 :: l, nkpt_x, nkpt_y, nx, ny, nkpt, nkpt_perdim, numextrakbz
 
     zdir = [0,0,1]
     nkpt_perdim = ceiling(sqrt(dble(nkpt_in)))
@@ -441,19 +441,19 @@ contains
 ! and store the different values of the
 ! component "component" (1,2,3)
   subroutine store_diff(nkpt_in, b1, b2, b3, component, ndiffk, diff_k_unsrt)
-    use mod_f90_kind, only: double
+    use mod_f90_kind,  only: double
     use mod_constants, only: tpi
-    use mod_tools, only: cross, itos
-    use mod_mpi_pars,  only: abortProgram
+    use mod_tools,     only: itos
+    use mod_mpi_pars,  only: abortProgram,rField
     implicit none
 
     integer*8, intent(in) :: nkpt_in
     !! Initial kpoints (as given by realBZ%nkpt_x * realBZ%nkpt_y * realBZ%nkpt_z)
     real(double), dimension(3), intent(in)  :: b1, b2, b3
     !! Reciprocal vectors
-    integer, intent(in) :: component
+    integer,   intent(in)  :: component
     !! Which component to store the different values and the map
-    integer, intent(out) :: ndiffk
+    integer*8, intent(out) :: ndiffk
     !! Number of different kp(component)
     real(double), dimension(:), allocatable, intent(out) :: diff_k_unsrt
     !! Different values of kp(component)
@@ -463,11 +463,11 @@ contains
     real(double) :: smallest_dist, distance, ini_smallest_dist
     real(double), dimension(3) :: diff
     real(double), dimension(3) :: kp
-    integer*8  :: l, nkpt_x, nkpt_y, nkpt_z, nkpt
-    integer    :: j, count, smallest_index
-    integer *8 :: nkpt_perdim
+    integer*8  :: l, count, nkpt_x, nkpt_y, nkpt_z, nkpt
+    integer*8  :: nkpt_perdim
     !! Number of k points per dimension
     integer*8  :: nx, ny, nz
+    integer    :: j, smallest_index
 
     nkpt_perdim = ceiling((dble(nkpt_in))**(1.d0/3.d0))
     nkpt_x = nkpt_perdim
@@ -497,9 +497,9 @@ contains
     !10*|b1+b2|, bigger than the distance of any genarated kpoint
     ini_smallest_dist = 10.d0 * sqrt(dot_product(b1 + b2 + b3, b1 + b2 + b3))
     !Run over all the kpoints generated initially.
-    !$omp parallel do default(none) if(nkpt > 1000000) &
+    !$omp parallel do default(none) reduction(+:count) if(nkpt > 1000000) &
     !$omp& private(l, j, nx, ny, nz, kp, smallest_dist, smallest_index, diff, distance) &
-    !$omp& shared(nkpt, ini_smallest_dist, bz_vec, b1, b2, b3, nkpt_x, nkpt_y, nkpt_z, component, diff_k_temp, ndiffk, count)
+    !$omp& shared(nkpt, ini_smallest_dist, bz_vec, b1, b2, b3, nkpt_x, nkpt_y, nkpt_z, component, diff_k_temp, ndiffk)
     do l=1, nkpt
       nx = mod(floor(dble(l-1) / dble(nkpt_y * nkpt_z)), nkpt_x)
       ny = mod(floor(dble(l-1) / dble(nkpt_z)), nkpt_y)
@@ -525,9 +525,9 @@ contains
         distance=sqrt(dot_product(diff,diff))
         if( ( abs(distance-smallest_dist) < 1.d-12 )  ) then
 
-          !$omp critical
           count = count + 1 ! Counting the total number of points generated
           ! Checking if all numbers are different than current list (if any of them is zero, the point is already stored)
+          !$omp critical
           if( all(abs( diff_k_temp(:) - abs(diff(component)) )> 1.d-12,1)  ) then
             ndiffk = ndiffk + 1
             diff_k_temp(ndiffk) = abs(diff(component))

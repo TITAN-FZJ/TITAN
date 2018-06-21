@@ -149,15 +149,15 @@ contains
     !! Last point of workload
     integer*8 :: work, remainder
 
-    remainder = mod(points, int(procs,8))
+    remainder = mod(points, int(procs,kind(remainder)))
     if(rank < remainder) then
        work = ceiling(dble(points) / dble(procs),8)
-       firstPoint = int(rank,8) * work + 1
-       lastPoint = (int(rank,8) + 1) * work
+       firstPoint = int(rank,kind(firstPoint)) * work + 1
+       lastPoint = (int(rank,kind(lastPoint)) + 1) * work
     else
        work = floor(dble(points) / dble(procs),8)
-       firstPoint = int(rank,8) * work + 1 + remainder
-       lastPoint = (int(rank,8) + 1) * work + remainder
+       firstPoint = int(rank,kind(firstPoint)) * work + 1 + remainder
+       lastPoint = (int(rank,kind(lastPoint)) + 1) * work + remainder
     end if
   end subroutine calcWorkload
 
