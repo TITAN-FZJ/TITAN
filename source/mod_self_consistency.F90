@@ -768,9 +768,9 @@ contains
     complex(double), dimension(:,:),     allocatable :: gij,gji,temp,paulitemp
     complex(double), dimension(:,:,:),   allocatable :: temp1,temp2
     complex(double), dimension(:,:,:,:), allocatable :: gf,gvg
-    integer :: ix,i,j,mu,nu
+    integer*8 :: ix
     integer :: AllocateStatus
-    integer :: sigma,sigmap
+    integer :: i,j,mu,nu,sigma,sigmap
     real(double)    :: kp(3), ep
     complex(double) :: weight
     complex(double) :: halfU(s%nAtoms)

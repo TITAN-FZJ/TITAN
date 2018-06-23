@@ -143,7 +143,7 @@ contains
 
    subroutine freeLocalEKMesh()
       implicit none
-      integer :: i
+      integer*8 :: i
       do i = 1, local_points
          call bzs(E_k_imag_mesh(1,i)) % free()
       end do
