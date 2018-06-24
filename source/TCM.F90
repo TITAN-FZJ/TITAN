@@ -114,9 +114,9 @@ contains
     use mod_System,        only: s => sys
     use mod_BrillouinZone, only: realBZ, store_diff
     use TightBinding,      only: nOrb
-    use mod_parameters,    only: eta,output,kptotal_in
+    use mod_parameters,    only: eta, output, kptotal_in
     use mod_magnet,        only: mabs
-    use mod_tools,         only: sort,itos
+    use mod_tools,         only: sort, itos, rtos
     use mod_mpi_pars
     implicit none
     interface
@@ -254,7 +254,7 @@ contains
               if((i == j).and.(m == n)) then
                 ! Testing if kz is not on the list of different kz calculated before
                 if( all(abs( abs(kp(3)) - diff_k(:) )> 1.d-12,1)  ) &
-                  call abortProgram("[TCM] kz not in the list: kz = " // trim(rtos( abs(kp(3)) )) )
+                  call abortProgram("[TCM] kz not in the list: kz = " // trim(rtos( abs(kp(3)),"(es16.9)" )) )
                 diffk: do k = 1, ndiffk
                   if ( abs(abs(kp(3)) - diff_k(k)) < 1.d-12 ) then
                     ialpha(i,m,k) = ialpha(i,m,k) + real(alphatemp)
