@@ -77,16 +77,16 @@ contains
     real(double),    dimension(:,:,:), allocatable    :: ialphaSO, ialphaXC
     complex(double), dimension(s%nAtoms,s%nAtoms,3,3) :: alphaSO, alphaXC
 
-    if(rField == 0) write(output%unit_loop, *) "[calculate_gilbert_damping] Starting to calculate Gilbert damping:"
+    if(rField == 0) write(output%unit_loop, "('[calculate_gilbert_damping] Starting to calculate Gilbert damping:')")
 
     if(rField == 0) call openTCMFiles()
 
-    if(rField == 0) write(output%unit_loop, *) "[calculate_gilbert_damping] SO-TCM..."
+    if(rField == 0) write(output%unit_loop, "('[calculate_gilbert_damping] SO-TCM...')")
     call TCM(local_SO_torque, alphaSO, ndiffk, diff_k, ialphaSO)
-    if(rField == 0) write(output%unit_loop, *) "[calculate_gilbert_damping] XC-TCM..."
+    if(rField == 0) write(output%unit_loop, "('[calculate_gilbert_damping] XC-TCM...')")
     call TCM(local_xc_torque, alphaXC, ndiffk, diff_k, ialphaXC)
 
-    if(rField == 0) write(output%unit_loop, *) "[calculate_gilbert_damping] Writing results to file..."
+    if(rField == 0) write(output%unit_loop, "('[calculate_gilbert_damping] Writing results to file...')")
     if(rField == 0) call writeTCM(634894, alphaSO, ndiffk, diff_k, ialphaSO)
     if(rField == 0) call writeTCM(634896, alphaXC, ndiffk, diff_k, ialphaXC)
 
@@ -101,9 +101,9 @@ contains
     use mod_System,        only: s => sys
     use mod_BrillouinZone, only: realBZ, store_diff
     use TightBinding,      only: nOrb
-    use mod_parameters,    only: eta
+    use mod_parameters,    only: eta,output,kptotal_in
     use mod_magnet,        only: mabs
-    use mod_tools,         only: sort
+    use mod_tools,         only: sort,itos
     use mod_mpi_pars
     implicit none
     interface
@@ -119,7 +119,7 @@ contains
     complex(double), dimension(s%nAtoms,s%nAtoms,3,3), intent(out) :: alpha
     !! Contains the Gilbert Damping as matrix in sites and cartesian coordinates (nAtoms,nAtoms,3,3)
     integer*8 :: iz
-    integer   :: i, j, m, n, mu
+    integer   :: i, j, m, n, mu, ios
 
     integer*8 :: ndiffk, k
     !! Number of different abs(k_z) in the k points list
@@ -148,13 +148,32 @@ contains
 
 
     ! Calculate workload for each MPI process
+    if(rField == 0) &
+      write(output%unit_loop, "('[TCM] Generating local k-points...')")
     call realBZ % setup_fraction(s,rField, sField, FieldComm)
 
     ! Obtaining the different kz
-    k = realBZ%nkpt_x*realBZ%nkpt_y*realBZ%nkpt_z
-    call store_diff(k, s%b1, s%b2, s%b3, 3, ndiffk, diff_k_unsrt)
+    if(rField == 0) &
+      write(output%unit_loop, "('[TCM] Obtaining different kz: ')", advance='no')
+    open (unit=99999, file='diffkz_'//trim(itos(kptotal_in)),status='old', iostat = ios)
+    if(ios /= 0) then
+      if(rField == 0) &
+        write(output%unit_loop, "('Generating...')")
+      k = realBZ%nkpt_x*realBZ%nkpt_y*realBZ%nkpt_z
+      call store_diff(k, s%b1, s%b2, s%b3, 3, ndiffk, diff_k_unsrt)
+    else
+      if(rField == 0) &
+        write(output%unit_loop, "('Reading from file...')")
+      read(unit=99999, fmt='(i0)') ndiffk
+      allocate( diff_k_unsrt(ndiffk) )
+      do i=1,ndiffk
+        read(unit=99999, fmt='(es16.9)') diff_k_unsrt(i)
+      end do
+    end if
 
     ! Sorting the k-points for increasing abs(kz)
+    if(rField == 0) &
+      write(output%unit_loop, "('[TCM] Sorting different kz...')")
     allocate( order(ndiffk) )
     if(.not.allocated(diff_k)) allocate( diff_k(ndiffk) )
     call sort( diff_k_unsrt(:), ndiffk, order(:) )
@@ -179,6 +198,8 @@ contains
     allocate( ialpha(s%nAtoms,3,ndiffk) )
     ialpha = 0.d0
 
+    if(rField == 0) &
+      write(output%unit_loop, "('[TCM] Calculating alpha...')")
     !$omp parallel default(none) reduction(+:ialpha) &
     !$omp& private(m,n,i,j,k,mu,iz,kp,wght,gf,temp1,temp2,temp3, alpha_loc,alphatemp) &
     !$omp& shared(s,realBZ,eta,torque,alpha,rField,order,ndiffk,diff_k)
@@ -244,12 +265,13 @@ contains
       do j = 1, s%nAtoms
         alpha(j,i,:,:) = 2.d0 * alpha(j,i,:,:) / (sqrt(mabs(i)*mabs(j))*pi)
       end do
+      ialpha(i,m,k) = 2.d0 * ialpha(i,:,:) / (mabs(i)*pi)
     end do
 
     call MPI_Allreduce(MPI_IN_PLACE, alpha , s%nAtoms*s%nAtoms*3*3, MPI_DOUBLE_COMPLEX  , MPI_SUM, FieldComm, ierr)
     call MPI_Allreduce(MPI_IN_PLACE, ialpha, s%nAtoms*3*ndiffk    , MPI_DOUBLE_PRECISION, MPI_SUM, FieldComm, ierr)
 
-    deallocate(order)
+    deallocate(order,diff_k_unsrt)
 
   end subroutine TCM
 

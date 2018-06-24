@@ -158,9 +158,9 @@ contains
       if(count > last) exit
       weight = 0
       range = 0
-      nx = mod(floor(dble(l-1) / dble(self%nkpt_y * self%nkpt_z)), self%nkpt_x)
-      ny = mod(floor(dble(l-1) / dble(self%nkpt_z)), self%nkpt_y)
-      nz = mod(l-1, self%nkpt_z)
+      nx = int(mod(floor(dble(l-1) / dble(self%nkpt_y*self%nkpt_z),kind(nx)), self%nkpt_x),kind(nx))
+      ny = int(mod(floor(dble(l-1) / dble(self%nkpt_z),kind(ny)), self%nkpt_y),kind(ny))
+      nz = int(mod(l-1, self%nkpt_z),kind(nz))
       kp = dble(nx)*b1 / dble(self%nkpt_x) + dble(ny)*b2 / dble(self%nkpt_y) + dble(nz)*b3 / dble(self%nkpt_z)
 
       smallest_dist = ini_smallest_dist
@@ -243,9 +243,9 @@ contains
     !$omp& private(l, j, nx, ny, nz, kp, smallest_dist, smallest_index, diff, distance) &
     !$omp& shared(nkpt, ini_smallest_dist, bz_vec, b1, b2, b3, nkpt_x, nkpt_y, nkpt_z)
     do l=1, nkpt
-      nx = mod(floor(dble(l-1) / dble(nkpt_y * nkpt_z)), nkpt_x)
-      ny = mod(floor(dble(l-1) / dble(nkpt_z)), nkpt_y)
-      nz = mod(l-1, nkpt_z)
+      nx = int(mod(floor(dble(l-1) / dble(nkpt_y*nkpt_z),kind(nx)), nkpt_x),kind(nx))
+      ny = int(mod(floor(dble(l-1) / dble(nkpt_z),kind(ny)), nkpt_y),kind(ny))
+      nz = int(mod(l-1, nkpt_z),kind(nz))
       kp = dble(nx)*b1 / dble(nkpt_x) + dble(ny)*b2 / dble(nkpt_y) + dble(nz)*b3 / dble(nkpt_z)
 
       smallest_dist=ini_smallest_dist
@@ -316,8 +316,8 @@ contains
       if(count > last) exit
       weight = 0
       range = 0
-      nx = mod(floor(dble(l-1) / dble(self%nkpt_y)), self%nkpt_x)
-      ny = mod(l-1, self%nkpt_y)
+      nx = int(mod(floor(dble(l-1) / dble(self%nkpt_y),kind(nx)), self%nkpt_x),kind(nx))
+      ny = int(mod(l-1, self%nkpt_y),kind(ny))
       kp = dble(nx)*b1 / dble(self%nkpt_x) + dble(ny)*b2 / dble(self%nkpt_y)
 
       smallest_dist = ini_smallest_dist
@@ -393,9 +393,8 @@ contains
     !$omp& private(l,j,nx,ny,kp,smallest_dist, smallest_index, diff, distance) &
     !$omp& shared(nkpt, ini_smallest_dist, bz_vec, b1, b2, nkpt_x, nkpt_y)
     do l = 1, nkpt
-
-      nx = mod(floor(dble(l-1) / dble(nkpt_y)), nkpt_x)
-      ny = mod(l-1, nkpt_y)
+      nx = int(mod(floor(dble(l-1) / dble(nkpt_y),kind(nx)), nkpt_x),kind(nx))
+      ny = int(mod(l-1, nkpt_y),kind(ny))
       kp = dble(nx)*b1 / dble(nkpt_x) + dble(ny)*b2 / dble(nkpt_y)
 
       smallest_dist = ini_smallest_dist
@@ -441,10 +440,12 @@ contains
 ! and store the different values of the
 ! component "component" (1,2,3)
   subroutine store_diff(nkpt_in, b1, b2, b3, component, ndiffk, diff_k_unsrt)
-    use mod_f90_kind,  only: double
-    use mod_constants, only: tpi
-    use mod_tools,     only: itos
-    use mod_mpi_pars,  only: abortProgram
+    use mod_f90_kind,   only: double
+    use mod_constants,  only: tpi
+    use mod_tools,      only: itos
+    use mod_mpi_pars,   only: abortProgram, rField
+    use mod_parameters, only: kptotal_in
+    !$ use omp_lib
     implicit none
 
     integer*8, intent(in) :: nkpt_in
@@ -457,17 +458,18 @@ contains
     !! Number of different kp(component)
     real(double), dimension(:), allocatable, intent(out) :: diff_k_unsrt
     !! Different values of kp(component)
-    real(double), dimension(:), allocatable              :: diff_k_temp
-    !! Temporary array for different values of kp(component)
+    real(double), dimension(:), allocatable              :: diff_k_loc,diff_k_temp,diff_k_temp2
+    !! Local and temporary array for different values of kp(component)
     real(double), dimension(3,8) :: bz_vec
     real(double) :: smallest_dist, distance, ini_smallest_dist
     real(double), dimension(3) :: diff
     real(double), dimension(3) :: kp
-    integer*8  :: l, count, nkpt_x, nkpt_y, nkpt_z, nkpt
+    integer*8  :: l, count, nkpt_x, nkpt_y, nkpt_z, nkpt, ndiffk_max
     integer*8  :: nkpt_perdim
+    integer*8, dimension(:), allocatable :: ndiffk_loc
     !! Number of k points per dimension
-    integer*8  :: nx, ny, nz
-    integer    :: j, smallest_index
+    integer*8  :: nx, ny, nz , start, end, maxdiffk
+    integer    :: j, smallest_index, mythread, nthreads
 
     nkpt_perdim = ceiling((dble(nkpt_in))**(1.d0/3.d0))
     nkpt_x = nkpt_perdim
@@ -476,10 +478,12 @@ contains
 
     nkpt = nkpt_x * nkpt_y * nkpt_z
 
-    !! Allocating large temporary vector to store different values of kp(component)
-    allocate( diff_k_temp(2*nkpt_perdim) )
-    diff_k_temp(:) = 999.d0
-    ndiffk = 0
+    nthreads = 1
+    !$ nthreads = omp_get_max_threads()
+    ndiffk_max = 2*nkpt_perdim
+    allocate( ndiffk_loc(0:nthreads) )
+    ndiffk_loc(:) = 0
+    ndiffk_loc(0) = 1
 
     ! Counter of total number of points
     count = 0
@@ -497,13 +501,22 @@ contains
     !10*|b1+b2|, bigger than the distance of any genarated kpoint
     ini_smallest_dist = 10.d0 * sqrt(dot_product(b1 + b2 + b3, b1 + b2 + b3))
     !Run over all the kpoints generated initially.
-    !$omp parallel do default(none) reduction(+:count) if(nkpt > 1000000) &
-    !$omp& private(l, j, nx, ny, nz, kp, smallest_dist, smallest_index, diff, distance) &
-    !$omp& shared(nkpt, ini_smallest_dist, bz_vec, b1, b2, b3, nkpt_x, nkpt_y, nkpt_z, component, diff_k_temp, ndiffk)
+    !$omp parallel default(none) if(nkpt > 1000000) &
+    !$omp& private(l, j, nx, ny, nz, kp, smallest_dist, smallest_index, diff, distance, diff_k_loc, start, end, mythread) &
+    !$omp& shared(count, ndiffk_max, nkpt, ini_smallest_dist, bz_vec, b1, b2, b3, nkpt_x, nkpt_y, nkpt_z, component, ndiffk_loc, diff_k_temp, maxdiffk)
+
+    mythread = 1
+    !$ mythread = omp_get_thread_num()+1
+
+    !! Allocating large temporary vector to store different values of kp(component)
+    allocate( diff_k_loc(ndiffk_max) )
+    diff_k_loc(:) = 999.d0
+
+    !$omp do schedule(static) reduction(+:count)
     do l=1, nkpt
-      nx = mod(floor(dble(l-1) / dble(nkpt_y * nkpt_z)), nkpt_x)
-      ny = mod(floor(dble(l-1) / dble(nkpt_z)), nkpt_y)
-      nz = mod(l-1, nkpt_z)
+      nx = int(mod(floor(dble(l-1) / dble(nkpt_y*nkpt_z),kind(nx)), nkpt_x),kind(nx))
+      ny = int(mod(floor(dble(l-1) / dble(nkpt_z),kind(ny)), nkpt_y),kind(nx))
+      nz = int(mod(l-1, nkpt_z),kind(nz))
       kp = dble(nx)*b1 / dble(nkpt_x) + dble(ny)*b2 / dble(nkpt_y) + dble(nz)*b3 / dble(nkpt_z)
 
       smallest_dist=ini_smallest_dist
@@ -524,27 +537,56 @@ contains
         diff=kp - bz_vec(:,j)
         distance=sqrt(dot_product(diff,diff))
         if( ( abs(distance-smallest_dist) < 1.d-12 )  ) then
-
           count = count + 1 ! Counting the total number of points generated
-          ! Checking if all numbers are different than current list (if any of them is zero, the point is already stored)
-          !$omp critical
-          if( all(abs( diff_k_temp(:) - abs(diff(component)) )> 1.d-12,1)  ) then
-            ndiffk = ndiffk + 1
-            diff_k_temp(ndiffk) = abs(diff(component))
+          ! Checking if all numbers are different than current local list (if any of them is zero, the point is already stored)
+          if( all(abs( diff_k_loc(:) - abs(diff(component)) )> 1.d-12,1)  ) then
+            ndiffk_loc(mythread) = ndiffk_loc(mythread) + 1
+            diff_k_loc(ndiffk_loc(mythread)) = abs(diff(component))
           end if
-          !$omp end critical
-
         end if
-
       end do
     end do
-    !$omp end parallel do
+    !$omp end do
+
+    if(mythread==1) then
+      maxdiffk = sum(ndiffk_loc(:))
+      allocate( diff_k_temp(maxdiffk) )
+    end if
+    start = sum(ndiffk_loc(0:mythread-1))
+    end   = start + ndiffk_loc(mythread)
+    !$omp barrier
+    diff_k_temp(start:end) = diff_k_loc(1:ndiffk_loc(mythread))
+
+    !$omp end parallel
 
     if(count/=realBZ%nkpt) &
       call abortProgram("[store_diff] Generated different number of points than it should have! count = " // trim(itos(count)) // ", nkpt = " // trim(itos(realBZ%nkpt)))
 
+    ! Checking for different kp(component) between the locally generated ones
+    allocate( diff_k_temp2(maxdiffk) )
+    diff_k_temp2(:) = 999.d0
+    ndiffk = 0
+    do l=1,maxdiffk
+
+      if( all(abs( diff_k_temp2(:) - diff_k_temp(l) )> 1.d-12,1)  ) then
+        ndiffk = ndiffk + 1
+        diff_k_temp2(ndiffk) = diff_k_temp(l)
+      end if
+
+    end do
+
     allocate(diff_k_unsrt(ndiffk))
-    diff_k_unsrt(:) = diff_k_temp(1:ndiffk)
+    diff_k_unsrt(:) = diff_k_temp2(1:ndiffk)
+
+    ! Writing different k(component) into file
+    if(myrank==0) then
+      open (unit=9999, file='diffkz_'//trim(itos(kptotal_in)),status='replace')
+      write(unit=9999,fmt="(i0)") ndiffk
+      do l=1,ndiffk
+        write(unit=9999,fmt="(es16.9)") diff_k_unsrt(l)
+      end do
+      close(9999)
+    end if
 
   end subroutine store_diff
 
