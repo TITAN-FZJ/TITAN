@@ -443,7 +443,7 @@ contains
     use mod_f90_kind,   only: double
     use mod_constants,  only: tpi
     use mod_tools,      only: itos
-    use mod_mpi_pars,   only: abortProgram, rField
+    use mod_mpi_pars,   only: abortProgram, myrank
     use mod_parameters, only: kptotal_in
     !$ use omp_lib
     implicit none

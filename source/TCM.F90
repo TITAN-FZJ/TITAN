@@ -71,26 +71,39 @@ contains
     use mod_parameters, only: output
     use mod_System,     only: s => sys
     use mod_mpi_pars,   only: rField
+    use mod_progress,   only: write_time
     implicit none
     integer*8 :: ndiffk
     real(double),    dimension(:),     allocatable    :: diff_k
     real(double),    dimension(:,:,:), allocatable    :: ialphaSO, ialphaXC
     complex(double), dimension(s%nAtoms,s%nAtoms,3,3) :: alphaSO, alphaXC
 
-    if(rField == 0) write(output%unit_loop, "('[calculate_gilbert_damping] Starting to calculate Gilbert damping:')")
+    if(rField == 0) &
+      write(output%unit_loop, "('[calculate_gilbert_damping] Starting to calculate Gilbert damping:')")
 
-    if(rField == 0) call openTCMFiles()
+    if(rField == 0) &
+      call openTCMFiles()
 
-    if(rField == 0) write(output%unit_loop, "('[calculate_gilbert_damping] SO-TCM...')")
+    if(rField == 0) &
+      write(output%unit_loop, "('[calculate_gilbert_damping] SO-TCM...')")
     call TCM(local_SO_torque, alphaSO, ndiffk, diff_k, ialphaSO)
-    if(rField == 0) write(output%unit_loop, "('[calculate_gilbert_damping] XC-TCM...')")
+
+    if(rField == 0) then
+      write(output%unit_loop, "('[calculate_gilbert_damping] Writing results of SO-TCM to file...')")
+      call writeTCM(634894, alphaSO, ndiffk, diff_k, ialphaSO)
+      call write_time(output%unit_loop,'[main] Time after SO-TCM: ')
+      write(output%unit_loop, "('[calculate_gilbert_damping] XC-TCM...')")
+    end if
+
     call TCM(local_xc_torque, alphaXC, ndiffk, diff_k, ialphaXC)
 
-    if(rField == 0) write(output%unit_loop, "('[calculate_gilbert_damping] Writing results to file...')")
-    if(rField == 0) call writeTCM(634894, alphaSO, ndiffk, diff_k, ialphaSO)
-    if(rField == 0) call writeTCM(634896, alphaXC, ndiffk, diff_k, ialphaXC)
+    if(rField == 0) then
+      write(output%unit_loop, "('[calculate_gilbert_damping] Writing results of XC-TCM to file...')")
+      call writeTCM(634896, alphaXC, ndiffk, diff_k, ialphaXC)
+      call write_time(output%unit_loop,'[main] Time after XC-TCM: ')
+      call closeTCMFiles()
+    end if
 
-    if(rField == 0) call closeTCMFiles()
   end subroutine calculate_gilbert_damping
 
 
@@ -164,11 +177,12 @@ contains
     else
       if(rField == 0) &
         write(output%unit_loop, "('Reading from file...')")
-      read(unit=99999, fmt='(i0)') ndiffk
+      read(unit=99999, fmt=*) ndiffk
       allocate( diff_k_unsrt(ndiffk) )
-      do i=1,ndiffk
-        read(unit=99999, fmt='(es16.9)') diff_k_unsrt(i)
+      do i=1,ndiffk-1
+        read(unit=99999, fmt=*) diff_k_unsrt(i)
       end do
+      close(unit=99999)
     end if
 
     ! Sorting the k-points for increasing abs(kz)
@@ -265,7 +279,7 @@ contains
       do j = 1, s%nAtoms
         alpha(j,i,:,:) = 2.d0 * alpha(j,i,:,:) / (sqrt(mabs(i)*mabs(j))*pi)
       end do
-      ialpha(i,m,k) = 2.d0 * ialpha(i,:,:) / (mabs(i)*pi)
+      ialpha(i,:,:) = 2.d0 * ialpha(i,:,:) / (mabs(i)*pi)
     end do
 
     call MPI_Allreduce(MPI_IN_PLACE, alpha , s%nAtoms*s%nAtoms*3*3, MPI_DOUBLE_COMPLEX  , MPI_SUM, FieldComm, ierr)
