@@ -252,6 +252,9 @@ contains
               alpha_loc(j,i,n,m) = alpha_loc(j,i,n,m) + alphatemp
 
               if((i == j).and.(m == n)) then
+                ! Testing if kz is not on the list of different kz calculated before
+                if( all(abs( abs(kp(3)) - diff_k(:) )> 1.d-12,1)  ) &
+                  call abortProgram("[TCM] kz not in the list: kz = " // trim(rtos( abs(kp(3)) )) )
                 diffk: do k = 1, ndiffk
                   if ( abs(abs(kp(3)) - diff_k(k)) < 1.d-12 ) then
                     ialpha(i,m,k) = ialpha(i,m,k) + real(alphatemp)
