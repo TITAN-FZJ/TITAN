@@ -179,7 +179,7 @@ contains
         write(output%unit_loop, "('Reading from file...')")
       read(unit=99999, fmt=*) ndiffk
       allocate( diff_k_unsrt(ndiffk) )
-      do i=1,ndiffk-1
+      do i=1,ndiffk
         read(unit=99999, fmt=*) diff_k_unsrt(i)
       end do
       close(unit=99999)
@@ -253,8 +253,12 @@ contains
 
               if((i == j).and.(m == n)) then
                 ! Testing if kz is not on the list of different kz calculated before
-                if( all(abs( abs(kp(3)) - diff_k(:) )> 1.d-12,1)  ) &
-                  call abortProgram("[TCM] kz not in the list: kz = " // trim(rtos( abs(kp(3)),"(es16.9)" )) )
+!                if( all(abs( abs(kp(3)) - diff_k(:) )> 1.d-12,1)  ) then
+!                  write(*,"('[TCM] kz not in the list: kz = ',es23.16)") abs(kp(3))
+!                  ! call abortProgram("[TCM] kz not in the list: kz = " //
+!                  ! trim(rtos( abs(kp(3)),"(es16.9)" )) )
+!                end if
+
                 diffk: do k = 1, ndiffk
                   if ( abs(abs(kp(3)) - diff_k(k)) < 1.d-12 ) then
                     ialpha(i,m,k) = ialpha(i,m,k) + real(alphatemp)

@@ -583,7 +583,7 @@ contains
       open (unit=9999, file='diffkz_'//trim(itos(kptotal_in)),status='replace')
       write(unit=9999,fmt="(i0)") ndiffk
       do l=1,ndiffk
-        write(unit=9999,fmt="(es16.9)") diff_k_unsrt(l)
+        write(unit=9999,fmt="(es23.16)") diff_k_unsrt(l)
       end do
       close(9999)
     end if
