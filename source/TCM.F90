@@ -36,7 +36,7 @@ contains
 
 
 
-  subroutine writeTCM(unit,alpha,ndiffk,diff_k,ialpha)
+  subroutine writeTCM(unit,alpha,ndiffk,diff_k,ialpha,iwght)
     use mod_System,     only: s => sys
     implicit none
     integer,   intent(in) :: unit
@@ -45,6 +45,8 @@ contains
     !! Number of different kzs
     real(double), dimension(ndiffk), intent(in) :: diff_k
     !! Different kzs
+    real(double), dimension(ndiffk), intent(in) :: iwght
+    !! Weights of different kzs
     real(double), dimension(s%nAtoms,3,ndiffk), intent(in) :: ialpha
     !! Contributions of each kz to alpha
     integer :: i,j,k
@@ -60,7 +62,7 @@ contains
 
     !! Writing k-dependent Gilbert damping alpha
     do k=1,size(diff_k)
-      write(unit=unit+1,fmt=*) diff_k(k), ( (ialpha(i,j,k), j=1,3), i=1,s%nAtoms )
+      write(unit=unit+1,fmt=*) diff_k(k), ( (ialpha(i,j,k), j=1,3), i=1,s%nAtoms ), iwght(k)
     end do
   end subroutine writeTCM
 
@@ -74,7 +76,7 @@ contains
     use mod_progress,   only: write_time
     implicit none
     integer*8 :: ndiffk
-    real(double),    dimension(:),     allocatable    :: diff_k
+    real(double),    dimension(:),     allocatable    :: diff_k, iwght
     real(double),    dimension(:,:,:), allocatable    :: ialphaSO, ialphaXC
     complex(double), dimension(s%nAtoms,s%nAtoms,3,3) :: alphaSO, alphaXC
 
@@ -86,20 +88,20 @@ contains
 
     if(rField == 0) &
       write(output%unit_loop, "('[calculate_gilbert_damping] SO-TCM...')")
-    call TCM(local_SO_torque, alphaSO, ndiffk, diff_k, ialphaSO)
+    call TCM(local_SO_torque, alphaSO, ndiffk, diff_k, ialphaSO, iwght)
 
     if(rField == 0) then
       write(output%unit_loop, "('[calculate_gilbert_damping] Writing results of SO-TCM to file...')")
-      call writeTCM(634894, alphaSO, ndiffk, diff_k, ialphaSO)
+      call writeTCM(634894, alphaSO, ndiffk, diff_k, ialphaSO, iwght)
       call write_time(output%unit_loop,'[main] Time after SO-TCM: ')
       write(output%unit_loop, "('[calculate_gilbert_damping] XC-TCM...')")
     end if
 
-    call TCM(local_xc_torque, alphaXC, ndiffk, diff_k, ialphaXC)
+    call TCM(local_xc_torque, alphaXC, ndiffk, diff_k, ialphaXC, iwght)
 
     if(rField == 0) then
       write(output%unit_loop, "('[calculate_gilbert_damping] Writing results of XC-TCM to file...')")
-      call writeTCM(634896, alphaXC, ndiffk, diff_k, ialphaXC)
+      call writeTCM(634896, alphaXC, ndiffk, diff_k, ialphaXC, iwght)
       call write_time(output%unit_loop,'[main] Time after XC-TCM: ')
       call closeTCMFiles()
     end if
@@ -108,7 +110,7 @@ contains
 
 
 
-  subroutine TCM(torque_fct, alpha, ndiffk, diff_k, ialpha)
+  subroutine TCM(torque_fct, alpha, ndiffk, diff_k, ialpha, iwght)
     use mod_f90_kind,      only: double
     use mod_constants,     only: cZero, pi, cOne, cI
     use mod_System,        only: s => sys
@@ -147,6 +149,8 @@ contains
     !! k-point
     real(double) :: wght
     !! k-point weight
+    real(double), dimension(:), allocatable :: iwght
+    !! integrated weight (up to k_z^max)
     real(double), dimension(:,:,:), allocatable, intent(out) :: ialpha
     !! Integrated alpha (as a function of the maximum kz summed) $ \alpha = \sum_{k_z}^{k_z^\text{max}} \alpha(k_z)$
     complex(double), dimension(2*nOrb,2*nOrb,3,s%nAtoms) :: torque
@@ -190,6 +194,7 @@ contains
       write(output%unit_loop, "('[TCM] Sorting different kz...')")
     allocate( order(ndiffk) )
     if(.not.allocated(diff_k)) allocate( diff_k(ndiffk) )
+    if(.not.allocated(iwght))  allocate( iwght(ndiffk) )
     call sort( diff_k_unsrt(:), ndiffk, order(:) )
     sort_diffk: do k = 1, ndiffk
       diff_k(k) = diff_k_unsrt(order(k))
@@ -214,7 +219,7 @@ contains
 
     if(rField == 0) &
       write(output%unit_loop, "('[TCM] Calculating alpha...')")
-    !$omp parallel default(none) reduction(+:ialpha) &
+    !$omp parallel default(none) reduction(+:ialpha,iwght) &
     !$omp& private(m,n,i,j,k,mu,iz,kp,wght,gf,temp1,temp2,temp3, alpha_loc,alphatemp) &
     !$omp& shared(s,realBZ,eta,torque,alpha,rField,order,ndiffk,diff_k)
     allocate(gf(2*nOrb,2*nOrb,s%nAtoms,s%nAtoms), &
@@ -262,6 +267,7 @@ contains
                 diffk: do k = 1, ndiffk
                   if ( abs(abs(kp(3)) - diff_k(k)) < 1.d-12 ) then
                     ialpha(i,m,k) = ialpha(i,m,k) + real(alphatemp)
+                    iwght(k) = iwght(k) + wght
                     exit diffk
                   end if
                 end do diffk
@@ -291,6 +297,7 @@ contains
 
     call MPI_Allreduce(MPI_IN_PLACE, alpha , s%nAtoms*s%nAtoms*3*3, MPI_DOUBLE_COMPLEX  , MPI_SUM, FieldComm, ierr)
     call MPI_Allreduce(MPI_IN_PLACE, ialpha, s%nAtoms*3*ndiffk    , MPI_DOUBLE_PRECISION, MPI_SUM, FieldComm, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, iwght , ndiffk               , MPI_DOUBLE_PRECISION, MPI_SUM, FieldComm, ierr)
 
     deallocate(order,diff_k_unsrt)
 
