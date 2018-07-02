@@ -571,13 +571,13 @@ contains
 #endif
     write(output%unit_loop,"('|------------------------------- PARAMETERS: -------------------------------|')")
     write(output%unit_loop,"(10x,'nAtoms = ',i0)") s%nAtoms
-    write(output%unit_loop,"(1x,'DFT parameters: ')", advance='no')
-    dft_type: select case (dfttype)
-    case ("T")
-       write(output%unit_loop,"('Tight-binding basis')")
-    case ("O")
-       write(output%unit_loop,"('Orthogonal basis')")
-    end select dft_type
+    ! write(output%unit_loop,"(1x,'DFT parameters: ')", advance='no')
+    ! dft_type: select case (dfttype)
+    ! case ("T")
+    !    write(output%unit_loop,"('Tight-binding basis')")
+    ! case ("O")
+    !    write(output%unit_loop,"('Orthogonal basis')")
+    ! end select dft_type
     if(SOC) then
        write(output%unit_loop,"(1x,'Spin Orbit Coupling: ACTIVATED')")
        write(output%unit_loop,"(5x,'socscale =',es9.2)") socscale

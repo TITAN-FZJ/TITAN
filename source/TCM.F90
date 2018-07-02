@@ -88,6 +88,8 @@ contains
 
     if(rField == 0) &
       write(output%unit_loop, "('[calculate_gilbert_damping] SO-TCM...')")
+
+    ! SO-TCM
     call TCM(local_SO_torque, alphaSO, ndiffk, diff_k, ialphaSO, iwght)
 
     if(rField == 0) then
@@ -97,14 +99,15 @@ contains
       write(output%unit_loop, "('[calculate_gilbert_damping] XC-TCM...')")
     end if
 
-    call TCM(local_xc_torque, alphaXC, ndiffk, diff_k, ialphaXC, iwght)
+    ! ! XC-TCM
+    ! call TCM(local_xc_torque, alphaXC, ndiffk, diff_k, ialphaXC, iwght)
 
-    if(rField == 0) then
-      write(output%unit_loop, "('[calculate_gilbert_damping] Writing results of XC-TCM to file...')")
-      call writeTCM(634896, alphaXC, ndiffk, diff_k, ialphaXC, iwght)
-      call write_time(output%unit_loop,'[main] Time after XC-TCM: ')
-      call closeTCMFiles()
-    end if
+    ! if(rField == 0) then
+    !   write(output%unit_loop, "('[calculate_gilbert_damping] Writing results of XC-TCM to file...')")
+    !   call writeTCM(634896, alphaXC, ndiffk, diff_k, ialphaXC, iwght)
+    !   call write_time(output%unit_loop,'[main] Time after XC-TCM: ')
+    !   call closeTCMFiles()
+    ! end if
 
   end subroutine calculate_gilbert_damping
 
@@ -209,6 +212,7 @@ contains
     !! g = 2
     !! M = magnetic moment
     alpha(:,:,:,:) = cZero
+    iwght = 0.d0
 
     !! k-dependent alpha(k_z)
     !! $\alpha(k_z) = \frac{1}{N}\sum_{k_x,k_y}\alpha(k_x,k_y,k_z)$
@@ -267,7 +271,7 @@ contains
                 diffk: do k = 1, ndiffk
                   if ( abs(abs(kp(3)) - diff_k(k)) < 1.d-12 ) then
                     ialpha(i,m,k) = ialpha(i,m,k) + real(alphatemp)
-                    iwght(k) = iwght(k) + wght
+                    if( (i==1) .and. (m==1) ) iwght(k) = iwght(k) + wght
                     exit diffk
                   end if
                 end do diffk
