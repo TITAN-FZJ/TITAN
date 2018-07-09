@@ -113,7 +113,7 @@ contains
   subroutine gen3DFraction(self,sys,first,last)
     use mod_f90_kind,  only: double
     use mod_constants, only: tpi
-    use mod_tools,     only: cross
+    use mod_tools,     only: cross, itos
     use mod_mpi_pars,  only: abortProgram
     use mod_System,    only: System
     use mod_tools,     only: itos
@@ -278,7 +278,7 @@ contains
   subroutine gen2DFraction(self,sys,first,last)
     use mod_f90_kind,  only: double
     use mod_constants, only: tpi
-    use mod_tools,     only: cross
+    use mod_tools,     only: cross, itos
     use mod_mpi_pars,  only: abortProgram
     use mod_System,    only: System
     implicit none
