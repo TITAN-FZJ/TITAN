@@ -191,8 +191,10 @@ contains
       self%w(added-range+1:added) = 1.0 / dble(weight)
     end do
     self%w = self%w / dble(nkpt)
-    if(added > self%workload) call abortProgram("[gen3DFraction] Generated more points than it should have! ")
-    if(added < self%workload) call abortProgram("[gen3DFraction] Generated less points than it should have! ")
+    if(added > self%workload) &
+      call abortProgram("[gen3DFraction] Generated more points than it should have! added = " // trim(itos(added)) // ", self%workload = " // trim(itos(self%workload)))
+    if(added < self%workload) &
+      call abortProgram("[gen3DFraction] Generated less points than it should have! added = " // trim(itos(added)) // ", self%workload = " // trim(itos(self%workload)))
   end subroutine gen3DFraction
 
   integer*8 function count_3D_BZ(nkpt_in, a1, a2, a3)
@@ -348,8 +350,10 @@ contains
       self%w(added-range+1:added) = 1.0 / dble(weight)
     end do
     self%w = self%w / dble(nkpt)
-    if(added > self%workload) call abortProgram("[gen2DFraction] Generated more points than it should have!")
-    if(added < self%workload) call abortProgram("[gen2DFraction] Generated less points than it should have!")
+    if(added > self%workload) &
+      call abortProgram("[gen2DFraction] Generated more points than it should have! added = " // trim(itos(added)) // ", self%workload = " // trim(itos(self%workload)))
+    if(added < self%workload) &
+      call abortProgram("[gen2DFraction] Generated less points than it should have! added = " // trim(itos(added)) // ", self%workload = " // trim(itos(self%workload)))
   end subroutine gen2DFraction
 
   integer*8 function count_2D_BZ(nkpt_in, a1, a2)
