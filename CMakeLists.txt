@@ -84,6 +84,9 @@ elseif(PLATFORM MATCHES jureca)
 elseif(PLATFORM MATCHES osx)
   set(TITAN_EXE titan.exe)
   set(CMAKE_Fortran_COMPILER mpif90)
+elseif(PLATFORM MATCHES booster)
+  set(TITAN_EXE titan_booster.exe)
+  set(CMAKE_Fortran_COMPILER mpiifort)
 else()
 	set(TITAN_EXE titan.exe)
   set(CMAKE_Fortran_COMPILER mpiifort)
@@ -126,6 +129,19 @@ elseif(PLATFORM MATCHES osx)
                                            -O3
                                            -mkl
                                            -xHost)
+elseif(PLATFORM MATCHES booster)
+  link_directories(/homeb/jias15/jias1501/BoosterNAG)
+  target_link_libraries(${TITAN_EXE} -mkl
+                                     -qopenmp
+                                     -I/homeb/jias15/jias1501/BoosterNAG/nag_interface_blocks
+                                     libnag.a )
+  target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
+                                              -fpp
+                                              -O3
+                                              -mkl
+                                              -I/homeb/jias15/jias1501/BoosterNAG/nag_interface_blocks
+                                              -xMIC-AVX512
+                                              -qopenmp)
 elseif(PLATFORM MATCHES "RWTH")
   target_link_libraries(${TITAN_EXE} -mkl $ENV{FLAGS_MATH_LINKER} -qopenmp)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
