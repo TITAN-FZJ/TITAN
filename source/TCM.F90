@@ -99,15 +99,15 @@ contains
       write(output%unit_loop, "('[calculate_gilbert_damping] XC-TCM...')")
     end if
 
-    ! ! XC-TCM
-    ! call TCM(local_xc_torque, alphaXC, ndiffk, diff_k, ialphaXC, iwght)
+    ! XC-TCM
+    call TCM(local_xc_torque, alphaXC, ndiffk, diff_k, ialphaXC, iwght)
 
-    ! if(rField == 0) then
-    !   write(output%unit_loop, "('[calculate_gilbert_damping] Writing results of XC-TCM to file...')")
-    !   call writeTCM(634896, alphaXC, ndiffk, diff_k, ialphaXC, iwght)
-    !   call write_time(output%unit_loop,'[main] Time after XC-TCM: ')
-    !   call closeTCMFiles()
-    ! end if
+    if(rField == 0) then
+      write(output%unit_loop, "('[calculate_gilbert_damping] Writing results of XC-TCM to file...')")
+      call writeTCM(634896, alphaXC, ndiffk, diff_k, ialphaXC, iwght)
+      call write_time(output%unit_loop,'[main] Time after XC-TCM: ')
+      call closeTCMFiles()
+    end if
 
   end subroutine calculate_gilbert_damping
 

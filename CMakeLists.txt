@@ -133,16 +133,17 @@ elseif(PLATFORM MATCHES osx)
                                            -mkl
                                            -xHost)
 elseif(PLATFORM MATCHES booster)
-  link_directories(/homeb/jias15/jias1501/BoosterNAG)
+  link_directories($ENV{HOME}/BoosterNAG)
   target_link_libraries(${TITAN_EXE} -mkl
                                      -qopenmp
-                                     -I/homeb/jias15/jias1501/BoosterNAG/nag_interface_blocks
-                                     libnag.a )
+                                     -I$ENV{HOME}/BoosterNAG/nag_interface_blocks
+                                     -L$ENV{HOME}/BoosterNAG
+                                     -lnag )
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                               -fpp
                                               -O3
                                               -mkl
-                                              -I/homeb/jias15/jias1501/BoosterNAG/nag_interface_blocks
+                                              -I$ENV{HOME}/BoosterNAG/nag_interface_blocks
                                               -xMIC-AVX512
                                               -qopenmp)
 elseif(PLATFORM MATCHES "RWTH")
