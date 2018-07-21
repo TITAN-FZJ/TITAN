@@ -87,6 +87,9 @@ elseif(PLATFORM MATCHES osx)
 elseif(PLATFORM MATCHES booster)
   set(TITAN_EXE titan_booster.exe)
   set(CMAKE_Fortran_COMPILER mpiifort)
+elseif(PLATFORM MATCHES iff)
+  set(TITAN_EXE titan.exe)
+  set(CMAKE_Fortran_COMPILER mpiifort)
 else()
 	set(TITAN_EXE titan.exe)
   set(CMAKE_Fortran_COMPILER mpiifort)
@@ -150,6 +153,15 @@ elseif(PLATFORM MATCHES "RWTH")
                                            -g
                                            -qopenmp
                                            -mkl -$ENV{FLAGS_MATH_INCLUDE}
+                                           -xHost)
+elseif(PLATFORM MATCHES iff)
+  target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe)
+  target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
+                                           -D_OSX
+                                           -fpp
+                                           -static-intel
+                                           -O3
+                                           -mkl
                                            -xHost)
 else()
   target_link_libraries(${TITAN_EXE} -mkl -qopenmp /opt/NAG/fll6i26dcl/lib/libnag_nag.a)

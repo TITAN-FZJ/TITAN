@@ -41,13 +41,13 @@ module mod_constants
                                                      cmplx(1.0d0,0.d0), cmplx(0.0d0,0.d0),  cmplx(0.0d0, 0.0d0),  cmplx( 0.5d0,0.d0), &
                                                      cmplx(1.0d0,0.d0), cmplx(0.0d0,0.d0),  cmplx(0.0d0, 0.0d0),  cmplx(-0.5d0,0.d0), &
                                                      cmplx(0.0d0,0.d0), cmplx(0.5d0,0.d0),  cmplx(0.0d0, 0.5d0),  cmplx( 0.0d0,0.d0)], [4,4])
+  !! Transformation matrix spin (+,up,down,-) to cartesian (0,x,y,z)
 
-
- complex(double), dimension(4,4) :: CtoS = reshape([cmplx(0.0d0,0.d0), cmplx(0.5d0,0.d0),  cmplx( 0.5d0, 0.d0),  cmplx( 0.0d0, 0.d0), &
+  complex(double), dimension(4,4) :: CtoS = reshape([cmplx(0.0d0,0.d0), cmplx(0.5d0,0.d0),  cmplx( 0.5d0, 0.d0),  cmplx( 0.0d0, 0.d0), &
                                                     cmplx(1.0d0,0.d0), cmplx(0.0d0,0.d0),  cmplx( 0.0d0, 0.d0),  cmplx( 1.0d0, 0.d0), &
                                                     cmplx(0.0d0,1.d0), cmplx(0.0d0,0.d0),  cmplx( 0.0d0, 0.d0),  cmplx( 0.0d0,-1.d0), &
                                                     cmplx(0.0d0,0.d0), cmplx(1.0d0,0.d0),  cmplx(-1.0d0, 0.d0),  cmplx( 0.0d0, 0.d0)], [4,4])
-
+  !! Transformation matrix cartesian (0,x,y,z) to spin (+,up,down,-)
 contains
   subroutine define_constants()
     implicit none

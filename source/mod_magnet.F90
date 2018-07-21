@@ -192,6 +192,7 @@ contains
         hhw(1,i) = -0.5d0*hwscale(i)*hw_list(hw_count,1)*sin((hw_list(hw_count,2) + hwtrotate(i))*deg2rad)*cos((hw_list(hw_count,3) + hwprotate(i))*deg2rad)*tesla
         hhw(2,i) = -0.5d0*hwscale(i)*hw_list(hw_count,1)*sin((hw_list(hw_count,2) + hwtrotate(i))*deg2rad)*sin((hw_list(hw_count,3) + hwprotate(i))*deg2rad)*tesla
         hhw(3,i) = -0.5d0*hwscale(i)*hw_list(hw_count,1)*cos((hw_list(hw_count,2) + hwtrotate(i))*deg2rad)*tesla
+        !          ^ EXTRA MINUS SIGN
         if(abs(hhw(1,i))<1.d-8) hhw(1,i) = 0.d0
         if(abs(hhw(2,i))<1.d-8) hhw(2,i) = 0.d0
         if(abs(hhw(3,i))<1.d-8) hhw(3,i) = 0.d0

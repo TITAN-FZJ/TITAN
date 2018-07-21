@@ -268,8 +268,8 @@ contains
     do i = 1, m
       if(abs(localDistances(i) - material%stage(l)) < material%stage(1) * 0.01) cycle
       l = l + 1
+      if(l > nStages) exit
       material%stage(l) = localDistances(i)
-      if(l >= nStages) exit
     end do
 
     deallocate(localDistances)

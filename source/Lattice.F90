@@ -133,8 +133,8 @@ contains
       do i = 2, size
         if(abs(localDistances(i,j) - s%Distances(l,j)) < s%Distances(1,j) * s%relTol) cycle
         l = l + 1
+        if(l > s%nStages) exit
         s%Distances(l,j) = localDistances(i,j)
-        if(l >= s%nStages) exit
       end do
     end do
     deallocate(localDistances)
