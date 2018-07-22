@@ -41,8 +41,8 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/eintshechi.F90
                                   source/eintshe.F90
                                   source/calculate_chi.F90
-					                        source/calculate_all.F90
-				                          source/calculate_dc_limit.F90
+                                  source/calculate_all.F90
+                                  source/calculate_dc_limit.F90
                                   source/fermi_surface.F90
                                   source/Atom_variables.F90
                                   source/mod_rotation_matrices.F90
@@ -59,15 +59,15 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_progress.F90
                                   source/mod_sumrule.F90
                                   source/EnergyIntegration.F90
-					                        source/SK_TightBinding.F90
-				                          source/TightBinding.F90
+                                  source/SK_TightBinding.F90
+                                  source/TightBinding.F90
                                   source/mod_self_consistency.F90
                                   source/mod_susceptibilities.F90
                                   source/mod_alpha.F90
-										              source/mod_beff.F90
-          											  source/mod_torques.F90
-          											  source/mod_disturbances.F90
-          											  source/mod_prefactors.F90
+                                  source/mod_beff.F90
+                                  source/mod_torques.F90
+                                  source/mod_disturbances.F90
+                                  source/mod_prefactors.F90
                                   source/adaptiveMesh.F90
                                   source/setLoops.F90
                                   source/read_band_points.F90
@@ -75,23 +75,27 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/TorqueSpinResponse.F90
                                   )
 
+# Execulable names
 if(PLATFORM MATCHES juqueen)
-	set(TITAN_EXE titan_juqueen.exe)
+  set(TITAN_EXE titan_juqueen.exe)
   set(CMAKE_Fortran_COMPILER mpixlf2008_r)
 elseif(PLATFORM MATCHES jureca)
-	set(TITAN_EXE titan_jureca.exe)
-	set(CMAKE_Fortran_COMPILER mpiifort)
+  set(TITAN_EXE titan_jureca.exe)
+  set(CMAKE_Fortran_COMPILER mpiifort)
 elseif(PLATFORM MATCHES osx)
-  set(TITAN_EXE titan.exe)
+  set(TITAN_EXE titan_osx.exe)
   set(CMAKE_Fortran_COMPILER mpif90)
 elseif(PLATFORM MATCHES booster)
   set(TITAN_EXE titan_booster.exe)
   set(CMAKE_Fortran_COMPILER mpiifort)
 elseif(PLATFORM MATCHES iff)
-  set(TITAN_EXE titan.exe)
+  set(TITAN_EXE titan_iff.exe)
   set(CMAKE_Fortran_COMPILER mpiifort)
+elseif(PLATFORM MATCHES hh)
+  set(titan_exe titan_hh.exe)
+  set(cmake_fortran_compiler ftn)
 else()
-	set(TITAN_EXE titan.exe)
+  set(TITAN_EXE titan.exe)
   set(CMAKE_Fortran_COMPILER mpiifort)
 endif()
 
@@ -102,7 +106,7 @@ set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
 if(PLATFORM MATCHES juqueen)
-	target_link_libraries(${TITAN_EXE} $ENV{ND}/lib/libnag_essl.a -L/bgsys/local/lib -lesslbg -qsmp=omp)
+  target_link_libraries(${TITAN_EXE} $ENV{ND}/lib/libnag_essl.a -L/bgsys/local/lib -lesslbg -qsmp=omp)
   link_directories(/bgsys/local/lib)
   target_compile_options(${TITAN_EXE} PRIVATE -WF,-D_JUQUEEN
                                            -O3
@@ -116,22 +120,21 @@ if(PLATFORM MATCHES juqueen)
      target_compile_options(${TITAN_EXE} PRIVATE -qintsize=8)
   endif()
 elseif(PLATFORM MATCHES jureca)
-
   target_link_libraries(${TITAN_EXE} -mkl -lnag -qopenmp)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                           -fpp
-                                           -O3
-                                           -qopenmp
-                                           -mkl
-                                           -xHost)
+                                              -fpp
+                                              -O3
+                                              -qopenmp
+                                              -mkl
+                                              -xHost)
 elseif(PLATFORM MATCHES osx)
   target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                           -D_OSX
-                                           -fpp
-                                           -O3
-                                           -mkl
-                                           -xHost)
+                                              -D_OSX
+                                              -fpp
+                                              -O3
+                                              -mkl
+                                              -xHost)
 elseif(PLATFORM MATCHES booster)
   link_directories($ENV{HOME}/BoosterNAG)
   target_link_libraries(${TITAN_EXE} -mkl
@@ -146,24 +149,32 @@ elseif(PLATFORM MATCHES booster)
                                               -I$ENV{HOME}/BoosterNAG/nag_interface_blocks
                                               -xMIC-AVX512
                                               -qopenmp)
-elseif(PLATFORM MATCHES "RWTH")
+elseif(PLATFORM MATCHES RWTH)
   target_link_libraries(${TITAN_EXE} -mkl $ENV{FLAGS_MATH_LINKER} -qopenmp)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                           -fpp
-                                           -O3
-                                           -g
-                                           -qopenmp
-                                           -mkl -$ENV{FLAGS_MATH_INCLUDE}
-                                           -xHost)
+                                              -fpp
+                                              -O3
+                                              -g
+                                              -qopenmp
+                                              -mkl -$ENV{FLAGS_MATH_INCLUDE}
+                                              -xHost)
 elseif(PLATFORM MATCHES iff)
   target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                           -D_OSX
-                                           -fpp
-                                           -static-intel
-                                           -O3
-                                           -mkl
-                                           -xHost)
+                                              -D_OSX
+                                              -fpp
+                                              -static-intel
+                                              -O3
+                                              -mkl
+                                              -xHost)
+elseif(PLATFORM MATCHES hh)
+  target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lnag -qopenmp)
+  target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
+                                              -fpp
+                                              -O3
+                                              -qopenmp
+                                              -mkl
+                                              -xCORE-AVX2)
 else()
   target_link_libraries(${TITAN_EXE} -mkl -qopenmp /opt/NAG/fll6i26dcl/lib/libnag_nag.a)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
@@ -171,55 +182,44 @@ else()
                                            -O2
                                            -qopenmp
                                            -mkl
-                           					 #-ipo
-					                            #-qopt-report=5
-					                            -g
+                                           #-ipo
+                                           #-qopt-report=5
+                                           -g
                                            -xHost)
 endif()
-
-
-
-
-
-
-
-
 
 #target_compile_options(${EXEC_NAME} PRIVATE -no-wrap-margin
 #                                        -fpp
 #                                        -D _LINUX
 #                                        -O3
 ##                                        -I${NAG}/c_headers#
-#					-qopenmp
-#					-mkl
-#					-xHost
+#         -qopenmp
+#         -mkl
+#         -xHost
 #)
 
 if(PLATFORM MATCHES juqueen)
-if(DEBUG)
-target_compile_options(${TITAN_EXE} PRIVATE -C
-				    	    -g
-					    -qfullpath
-					    -O0
-					    -qflttrap=enable:invalid:overflow:underflow:zerodivide
-					    -qinitauto=7FF7FFFF
-					    -qnoescape
-					    -qkeepparm
-					    )
-endif(DEBUG)
-
+  if(DEBUG)
+    target_compile_options(${TITAN_EXE} PRIVATE -C
+                                                -g
+                                                -qfullpath
+                                                -O0
+                                                -qflttrap=enable:invalid:overflow:underflow:zerodivide
+                                                -qinitauto=7FF7FFFF
+                                                -qnoescape
+                                                -qkeepparm)
+  endif(DEBUG)
 else()
-if(DEBUG)
-target_compile_options(${TITAN_EXE} PRIVATE -C -CB
-                                        -check uninit
-
-                                        -debug all
-                                        -warn all
-                                        -ftrapuv
-                                        -traceback
-                                        -g
-                                        -O0
-                      )
-endif(DEBUG)
+  if(DEBUG)
+    target_compile_options(${TITAN_EXE} PRIVATE -C
+                                                -CB
+                                                -check uninit
+                                                -debug all
+                                                -warn all
+                                                -ftrapuv
+                                                -traceback
+                                                -g
+                                                -O0)
+  endif(DEBUG)
 endif()
 #target_link_libraries(${EXEC_NAME} ${NAG}/lib/libnag_nag.a -qopenmp)
