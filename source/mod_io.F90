@@ -59,12 +59,12 @@ contains
     use mod_input
     use mod_parameters, only: output, laddresults, lverbose, ldebug, lkpoints, &
                               lpositions, lcreatefiles, lnolb, lhfresponses, &
-                              lnodiag, lsha, lcreatefolders, lwriteonscreen, runoptions, &
-                              lcheckjac, llgtv, lsortfiles, magbasis, &
+                              lnodiag, lsha, lcreatefolders, lwriteonscreen, runoptions, lsimplemix, &
+                              lcheckjac, llgtv, lsortfiles, &
                               itype, ry2ev, ltesla, eta, etap, dmax, emin, emax, &
                               skip_steps, nEner, nEner1, nQvec, nQvec1, qbasis, renorm, renormnb, bands, band_cnt, &
                               offset, dfttype, U, parField, parFreq, kptotal_in, kp_in
-    use mod_self_consistency, only: lslatec, lontheflysc, lnojac, lGSL, lrotatemag, skipsc, scfile, mag_tol
+    use mod_self_consistency, only: lslatec, lontheflysc, lnojac, lGSL, lforceoccup, lrotatemag, skipsc, scfile, magbasis, mag_tol
     use mod_system, only: System, n0sc1, n0sc2
     use mod_SOC, only: SOC, socscale, llinearsoc, llineargfsoc
     use mod_magnet, only: lfield, tesla, hwa_i, hwa_f, hwa_npts, hwa_npt1, hwt_i, hwt_f, &
@@ -188,6 +188,10 @@ contains
           llgtv = .true.
        case ("checkjac")
           lcheckjac = .true.
+       case ("forceoccupation")
+          lforceoccup = .true.
+       case ("simplemix")
+          lsimplemix = .true.
        case("!")
           exit
        case default

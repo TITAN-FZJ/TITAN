@@ -71,7 +71,8 @@ contains
   end subroutine get_parameter
 
   subroutine set_hopping_matrix(t0i, dirCos, t1, t2, nOrb)
-    use mod_f90_kind, only: double
+    use mod_f90_kind,   only: double
+    use mod_parameters, only: lsimplemix
     implicit none
     real(double), dimension(nOrb,nOrb), intent(inout) :: t0i
     real(double), dimension(3),         intent(in)    :: dirCos
@@ -81,7 +82,11 @@ contains
     real(double), dimension(10) :: mix
 
     do i = 1, 10
-      mix(i) = sign(sqrt(abs(t1(i)) * abs(t2(i))), t1(i) + t2(i))
+      if(lsimplemix) then
+        mix(i) = 0.5d0*(t1(i) + t2(i))
+      else
+        mix(i) = sign(sqrt(abs(t1(i)) * abs(t2(i))), t1(i) + t2(i))
+      end if
     end do
     call intd(mix(1), mix(2), mix(3), mix(4), mix(5), mix(6), mix(7), mix(8), mix(9), mix(10), dirCos, t0i)
 

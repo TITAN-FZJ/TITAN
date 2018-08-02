@@ -1,19 +1,24 @@
 module mod_self_consistency
-   use mod_f90_kind, only: double
-   implicit none
-   integer            :: neq
-   character(len=300) :: default_file
-   real(double)       :: mag_tol = 1.d-10
-   character(len=200) :: scfile = ""
-   !! Give a file to start self-consistency
-   logical :: skipsc
-   !! Skip self-consistency
-   logical :: lselfcon    = .false.
-   logical :: lGSL        = .false.
-   logical :: lontheflysc = .false.
-   logical :: lslatec     = .false.
-   logical :: lnojac      = .false.
-   logical :: lrotatemag  = .false.
+  use mod_f90_kind, only: double
+  implicit none
+  integer            :: neq
+  character(len=300) :: default_file
+  real(double)       :: mag_tol = 1.d-10
+  character(len=200) :: scfile = ""
+  !! Give a file to start self-consistency
+  logical :: skipsc
+  !! Skip self-consistency
+  character(len=50)  :: magbasis = ""
+  !! Basis to give initial magnetization in 'initialmag' file
+  real(double),allocatable       :: initialmag(:,:)
+  !! Initial guess for magnetization
+  logical :: lselfcon    = .false.
+  logical :: lGSL        = .false.
+  logical :: lontheflysc = .false.
+  logical :: lslatec     = .false.
+  logical :: lnojac      = .false.
+  logical :: lrotatemag  = .false.
+  logical :: lforceoccup = .false.
 
 contains
 
@@ -61,7 +66,7 @@ contains
   subroutine read_previous_results(lsuccess)
     use mod_f90_kind,   only: double
     use mod_constants,  only: deg2rad
-    use mod_parameters, only: output, magbasis, initialmag
+    use mod_parameters, only: output
     use mod_system,     only: s => sys
     use TightBinding,   only: nOrb
     use mod_mpi_pars,   only: rField,abortProgram
@@ -138,15 +143,15 @@ contains
   end subroutine read_previous_results
 
   ! Reads the initial magnetization for nAtoms in 'filename'
-  subroutine read_initialmag(filename,magbasis,nAtoms)
+  subroutine read_initialmag(filename,basis,nAtoms)
     use mod_f90_kind,   only: double
-    use mod_parameters, only: initialmag,output
+    use mod_parameters, only: output
     use mod_constants,  only: deg2rad
     use mod_tools,      only: read_data
     use mod_system,     only: s => sys
     use mod_mpi_pars,   only: rField,abortProgram
     implicit none
-    character(len=*), intent(in) :: filename,magbasis
+    character(len=*), intent(in) :: filename,basis
     integer         , intent(in) :: nAtoms
     integer      :: i,err
     real(double) :: temp(nAtoms,3)
@@ -157,7 +162,7 @@ contains
     open(unit=321,file=trim(filename),status="old",iostat=err)
     if((rField == 0).and.(err/=0)) call abortProgram("[read_initialmag] File '" // trim(filename) // "'' does not exist!")
 
-    select case(magbasis)
+    select case(basis)
     case("cartesian","c")
       call read_data(321,nAtoms,3,initialmag)
     case("spherical","s")
@@ -174,15 +179,15 @@ contains
       end do
     case("neighbor","n")
       call read_data(321,nAtoms,1,temp)
-      call abortProgram("[read_initialmag] initialmag not implemented for magbasis = neighbor")
+      call abortProgram("[read_initialmag] initialmag not implemented for basis = neighbor")
       ! do i=1,nAtoms
       !   initialmag(i,:) = temp(i,1)
       ! end do
     case default
-      call abortProgram("[read_initialmag] magbasis wrongly defined: " // trim(magbasis))
+      call abortProgram("[read_initialmag] basis wrongly defined: " // trim(basis))
     end select
 
-
+    close(unit=321)
 
 
     ! if(magbasis == "") then

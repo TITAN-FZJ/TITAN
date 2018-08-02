@@ -36,10 +36,6 @@ module mod_parameters
   logical          :: bulk = .false.
   !! Flag turning on/off bulk calculations, default: .false., not used yet
   !========================================================================================!
-  character(len=50)  :: magbasis = ""
-  !! Basis to give initial magnetization in 'initialmag' file
-  real(double),allocatable       :: initialmag(:,:)
-  !! Initial guess for magnetization
   real(double)       :: theta=0.d0,phi=0.d0
   !! Euler Angles for the magnetization frame of reference
   !========================================================================================!
@@ -93,6 +89,7 @@ module mod_parameters
   logical :: lsha           = .false.
   logical :: llgtv          = .false.
   logical :: lcheckjac      = .false.
+  logical :: lsimplemix     = .false.
   !========================================================================================!
   ! Activate debug options
   logical :: lverbose = .false.
