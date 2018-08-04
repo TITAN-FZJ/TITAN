@@ -1,8 +1,8 @@
 module adaptiveMesh
    use mod_BrillouinZone, only: FractionalBrillouinZone
-   integer,                       dimension(:,:), allocatable :: E_k_imag_mesh
+   integer*8,                     dimension(:,:), allocatable :: E_k_imag_mesh
    type(FractionalBrillouinZone), dimension(:),   allocatable :: bzs
-   integer,                       dimension(:),   allocatable :: all_nkpt
+   integer*8,                     dimension(:),   allocatable :: all_nkpt
    integer*8 :: total_points, local_points
    integer*4 :: activeComm, activeRank, activeSize
    integer   :: minimumBZmesh
@@ -31,13 +31,13 @@ contains
       do i = 1, pn1
          nall = get_nkpt(y(i), y(1), total_nkpt, sys%lbulk)
          if(sys%lbulk) then
-            nx = ceiling((dble(nall))**(1.d0/3.d0))
-            ny = ceiling((dble(nall))**(1.d0/3.d0))
-            nz = ceiling((dble(nall))**(1.d0/3.d0))
+            nx = ceiling( (dble(nall))**(1.d0/3.d0), kind(nx) )
+            ny = ceiling( (dble(nall))**(1.d0/3.d0), kind(ny) )
+            nz = ceiling( (dble(nall))**(1.d0/3.d0), kind(nz) )
             all_nkpt(i) = count_3D_BZ(nx*ny*nz,sys%a1,sys%a2,sys%a3)
          else
-            nx = ceiling((dble(nall))**(1.d0/2.d0))
-            ny = ceiling((dble(nall))**(1.d0/2.d0))
+            nx = ceiling( (dble(nall))**(1.d0/2.d0), kind(nx) )
+            ny = ceiling( (dble(nall))**(1.d0/2.d0), kind(ny) )
             nz = 0
             all_nkpt(i) = count_2D_BZ(nx*ny,sys%a1,sys%a2)
          end if
@@ -56,8 +56,8 @@ contains
       integer*4,    intent(in) :: size
       integer*4,    intent(in) :: comm
       integer*8 :: firstPoint, lastPoint
-      integer*8 :: i, j, m, n, p, q
-      integer   :: nall
+      integer*8 :: j, m, n, p, q, nall
+      integer   :: i
 
       activeComm = comm
       activeRank = rank
@@ -76,7 +76,7 @@ contains
             cycle
          end if
 
-         if(firstPoint < m) then
+         if(firstPoint <= m) then
             p = 1
          else
             p = firstPoint - m
@@ -97,20 +97,20 @@ contains
          nall = get_nkpt(y(i), y(1), total_nkpt, sys%lbulk)
 
          if(sys%lbulk) then
-            bzs(i) % nkpt_x = ceiling((dble(nall))**(1.d0/3.d0))
-            bzs(i) % nkpt_y = ceiling((dble(nall))**(1.d0/3.d0))
-            bzs(i) % nkpt_z = ceiling((dble(nall))**(1.d0/3.d0))
-            call bzs(i) % generate_3d_fraction(sys,int(p,8),int(q,8))
+            bzs(i) % nkpt_x = ceiling( (dble(nall))**(1.d0/3.d0), kind(bzs(i) % nkpt_x) )
+            bzs(i) % nkpt_y = ceiling( (dble(nall))**(1.d0/3.d0), kind(bzs(i) % nkpt_y) )
+            bzs(i) % nkpt_z = ceiling( (dble(nall))**(1.d0/3.d0), kind(bzs(i) % nkpt_z) )
+            call bzs(i) % generate_3d_fraction(sys,p,q)
          else
-            bzs(i) % nkpt_x = ceiling((dble(nall))**(1.d0/2.d0))
-            bzs(i) % nkpt_y = ceiling((dble(nall))**(1.d0/2.d0))
+            bzs(i) % nkpt_x = ceiling( (dble(nall))**(1.d0/2.d0), kind(bzs(i) % nkpt_x) )
+            bzs(i) % nkpt_y = ceiling( (dble(nall))**(1.d0/2.d0), kind(bzs(i) % nkpt_y) )
             bzs(i) % nkpt_z = 0
-            call bzs(i) % generate_2d_fraction(sys,int(p,8),int(q,8))
+            call bzs(i) % generate_2d_fraction(sys,p,q)
          end if
 
          do j = 1, bzs(i)%workload
             n = n + 1
-            E_k_imag_mesh(1,n) = i
+            E_k_imag_mesh(1,n) = int(i,8)
             E_k_imag_mesh(2,n) = j
          end do
          m = m + all_nkpt(i)
@@ -177,7 +177,7 @@ contains
       else
          get_nkpt_int8 = nkpt_total / (e/e0)**sqrt(2.d0) !**log(2.d0)
       end if
-      if(get_nkpt_int8 < minimumBZmesh ) get_nkpt_int8 = minimumBZmesh
+      if(get_nkpt_int8 < int(minimumBZmesh,8) ) get_nkpt_int8 = int(minimumBZmesh,8)
    end function get_nkpt_int8
 
 end module adaptiveMesh

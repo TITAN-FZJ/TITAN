@@ -256,10 +256,7 @@ contains
       do j=1, 8
         diff = kp - bz_vec(:,j)
         distance = sqrt(dot_product(diff, diff))
-        if(distance < smallest_dist) then
-          smallest_dist = distance
-          smallest_index = j
-        end if
+        if(distance < smallest_dist) smallest_dist = distance
       end do
       ! Checks if the kpoint is in the border between two or more
       ! BZ's. If yes, create a clone of it to translate later into
@@ -267,11 +264,11 @@ contains
       do j=1, 8
         diff=kp - bz_vec(:,j)
         distance=sqrt(dot_product(diff,diff))
-        if( ( abs(distance-smallest_dist) < 1.d-12 ) .and. j/=smallest_index ) numextrakbz=numextrakbz+1
+        if( abs(distance-smallest_dist) < 1.d-12 ) numextrakbz=numextrakbz+1
       end do
     end do
     !$omp end parallel do
-    count_3D_BZ = nkpt + numextrakbz
+    count_3D_BZ = numextrakbz
 
   end function count_3D_BZ
 
