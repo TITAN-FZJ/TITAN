@@ -96,6 +96,13 @@ contains
     if(myrank==0) open (unit=output%unit, file=trim(output%file), status='replace')
     log_unit = .true.
 
+! Print the Git version (VERSION is defined via CMake macro and defined with compiler flag -DVERSION='')
+#if defined(VERSION)
+    write(output%unit,"('Git version: ',a)") VERSION
+#else
+    write(output%unit,"('Git version: unknown')")
+#endif
+
     if(myrank==0) &
          write(output%unit,"('[get_parameters] Reading parameters from ""',a,'"" file...')") trim(filename)
 

@@ -76,10 +76,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   )
 
 # Execulable names
-if(PLATFORM MATCHES juqueen)
-  set(TITAN_EXE titan_juqueen.exe)
-  set(CMAKE_Fortran_COMPILER mpixlf2008_r)
-elseif(PLATFORM MATCHES jureca)
+if(PLATFORM MATCHES jureca)
   set(TITAN_EXE titan_jureca.exe)
   set(CMAKE_Fortran_COMPILER mpiifort)
 elseif(PLATFORM MATCHES osx)
@@ -105,24 +102,13 @@ set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
-if(PLATFORM MATCHES juqueen)
-  target_link_libraries(${TITAN_EXE} $ENV{ND}/lib/libnag_essl.a -L/bgsys/local/lib -lesslbg -qsmp=omp)
-  link_directories(/bgsys/local/lib)
-  target_compile_options(${TITAN_EXE} PRIVATE -WF,-D_JUQUEEN
-                                           -O3
-                                           -qstrict
-                                           -qnoescape
-                                           -qnosave
-                                           -qsmp=omp
-                                           -qthreaded)
-  set(CMAKE_SHARED_LIBRARY_LINK_Fortran_FLAGS)
-  if(BIGINT)
-     target_compile_options(${TITAN_EXE} PRIVATE -qintsize=8)
-  endif()
-elseif(PLATFORM MATCHES jureca)
+execute_process(COMMAND git describe --abbrev=4 --dirty --always --tags OUTPUT_VARIABLE GIT_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+if(PLATFORM MATCHES jureca)
   target_link_libraries(${TITAN_EXE} -mkl -lnag -qopenmp)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                               -fpp
+                                              -DVERSION="${GIT_VERSION}"
                                               -O3
                                               -qopenmp
                                               -mkl
@@ -132,6 +118,7 @@ elseif(PLATFORM MATCHES osx)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                               -D_OSX
                                               -fpp
+                                              -DVERSION="${GIT_VERSION}"
                                               -O3
                                               -mkl
                                               -xHost)
@@ -144,6 +131,7 @@ elseif(PLATFORM MATCHES booster)
                                      -lnag )
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                               -fpp
+                                              -DVERSION="${GIT_VERSION}"
                                               -O3
                                               -mkl
                                               -I$ENV{HOME}/BoosterNAG/nag_interface_blocks
@@ -153,6 +141,7 @@ elseif(PLATFORM MATCHES RWTH)
   target_link_libraries(${TITAN_EXE} -mkl $ENV{FLAGS_MATH_LINKER} -qopenmp)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                               -fpp
+                                              -DVERSION="${GIT_VERSION}"
                                               -O3
                                               -g
                                               -qopenmp
@@ -162,6 +151,7 @@ elseif(PLATFORM MATCHES iff)
   target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                               -D_OSX
+                                              -DVERSION="${GIT_VERSION}"
                                               -fpp
                                               -static-intel
                                               -O3
@@ -171,6 +161,8 @@ elseif(PLATFORM MATCHES hh)
   target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lnag -qopenmp)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                               -fpp
+                                              -D_OSX
+                                              -DVERSION="${GIT_VERSION}"
                                               -O3
                                               -qopenmp
                                               -mkl
@@ -179,7 +171,8 @@ else()
   target_link_libraries(${TITAN_EXE} -mkl -qopenmp /opt/NAG/fll6i26dcl/lib/libnag_nag.a)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                            -fpp
-                                           -O2
+                                           -DVERSION="${GIT_VERSION}"
+                                           -O3
                                            -qopenmp
                                            -mkl
                                            #-ipo
@@ -198,28 +191,17 @@ endif()
 #         -xHost
 #)
 
-if(PLATFORM MATCHES juqueen)
-  if(DEBUG)
-    target_compile_options(${TITAN_EXE} PRIVATE -C
-                                                -g
-                                                -qfullpath
-                                                -O0
-                                                -qflttrap=enable:invalid:overflow:underflow:zerodivide
-                                                -qinitauto=7FF7FFFF
-                                                -qnoescape
-                                                -qkeepparm)
-  endif(DEBUG)
-else()
-  if(DEBUG)
-    target_compile_options(${TITAN_EXE} PRIVATE -C
-                                                -CB
-                                                -check uninit
-                                                -debug all
-                                                -warn all
-                                                -ftrapuv
-                                                -traceback
-                                                -g
-                                                -O0)
-  endif(DEBUG)
-endif()
+if(DEBUG)
+  target_compile_options(${TITAN_EXE} PRIVATE -C
+                                              -CB
+                                              -check uninit
+                                              -debug all
+                                              -warn all
+                                              -ftrapuv
+                                              -traceback
+                                              -fpp
+                                              -DVERSION="${GIT_VERSION}"
+                                              -g
+                                              -O0)
+endif(DEBUG)
 #target_link_libraries(${EXEC_NAME} ${NAG}/lib/libnag_nag.a -qopenmp)
