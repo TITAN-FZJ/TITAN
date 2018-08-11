@@ -98,9 +98,9 @@ contains
 
 ! Print the Git version (VERSION is defined via CMake macro and defined with compiler flag -DVERSION='')
 #if defined(VERSION)
-    write(output%unit,"('Git version: ',a)") VERSION
+    if(myrank==0) write(output%unit,"('Git version: ',a)") VERSION
 #else
-    write(output%unit,"('Git version: unknown')")
+    if(myrank==0) write(output%unit,"('Git version: unknown')")
 #endif
 
     if(myrank==0) &
