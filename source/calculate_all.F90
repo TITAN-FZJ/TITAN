@@ -79,29 +79,30 @@ subroutine calculate_all()
   ! stop
 
   if(myrank == 0 .and. skip_steps > 0) &
-  write(output%unit,"('[calculate_all] Skipping first ',i0,' step(s)...')") skip_steps
+    write(output%unit,"('[calculate_all] Skipping first ',i0,' step(s)...')") skip_steps
 
   ! Chi wave vector Loop
   do qcount=1,nQvec1
-    write(output%unit_loop,"('[calculate_all] Wave vector Q loop: ',i0,' of ',i0,' points',', Q = [',es10.3,es10.3,es10.3,']')") qcount,nQvec1,(kpoints(i,qcount),i=1,3)
+    if(rField==0) &
+      write(output%unit_loop,"('[calculate_all] Wave vector Q loop: ',i0,' of ',i0,' points',', Q = [',es10.3,es10.3,es10.3,']')") qcount,nQvec1,(kpoints(i,qcount),i=1,3)
     q = kpoints(:,qcount)
     ! Responses Energy Loop
     do count = startFreq+skip_steps, endFreq
       e = emin + deltae * (count-1)
       if(rField==0) &
-      write(output%unit_loop,"('[calculate_all] Starting MPI step ',i0,' of ',i0)") count - startFreq - skip_steps + 1, endFreq - startFreq + 1
+        write(output%unit_loop,"('[calculate_chi] Starting MPI step ',i0,' of ',i0,':',10x,'E =  ',es10.3)") count - startFreq - skip_steps + 1, endFreq - startFreq + 1, e
 
       if(lhfresponses) then
         if(rFreq(1) == 0) &
-        write(output%unit_loop,"('[calculate_all] No renormalization will be done. Setting prefactors to identity and calculating HF susceptibilities... ')")
+          write(output%unit_loop,"('[calculate_all] No renormalization will be done. Setting prefactors to identity and calculating HF susceptibilities... ')")
         prefactor = identt
         if(llinearsoc) prefactorlsoc = identt
         call eintshechi(q,e)
         if(rField == 0) &
-        call write_time(output%unit_loop,'[calculate_all] Time after susceptibility calculation: ')
+          call write_time(output%unit_loop,'[calculate_all] Time after susceptibility calculation: ')
       else
         if(rField == 0) &
-        write(output%unit_loop,"('[calculate_all] Calculating prefactor to use in currents and disturbances calculation. ')")
+          write(output%unit_loop,"('[calculate_all] Calculating prefactor to use in currents and disturbances calculation. ')")
         if(llinearsoc) then
           call eintshechilinearsoc(q,e) ! Note: chiorb_hflsoc = lambda*dchi_hf/dlambda(lambda=0)
         else
@@ -124,7 +125,7 @@ subroutine calculate_all()
           call zgemm('n','n',dim,dim,dim,cOne,chiorb,dim,prefactor,dim,cZero,prefactorlsoc,dim) ! prefactorlsoc = chiorb*prefactor = prefactor*prefactorlsoc*prefactor
         end if
         if(rField == 0) &
-        call write_time(output%unit_loop,'[calculate_all] Time after prefactor calculation: ')
+          call write_time(output%unit_loop,'[calculate_all] Time after prefactor calculation: ')
       end if
 
       ! Start parallelized processes to calculate all quantities for energy e
@@ -135,7 +136,7 @@ subroutine calculate_all()
       end if
 
       if(rField == 0) &
-      call write_time(output%unit_loop,'[calculate_all] Time after energy integral: ')
+        call write_time(output%unit_loop,'[calculate_all] Time after energy integral: ')
 
       if(rFreq(1) == 0) then
 

@@ -395,7 +395,7 @@ contains
     end if
 
     !----------------- Wave vector loop (band structure and susceptibility)  ----------------
-    if(itype == 7) then
+    if((itype >= 7).and.(itype <= 9)) then
       ! Path or point to calculate the susceptibility
       if(.not. get_parameter("band", bands, band_cnt)) then
         call log_warning("get_parameters", "'band' missing. Using Gamma point only.")

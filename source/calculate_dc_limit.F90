@@ -67,7 +67,8 @@ subroutine calculate_dc_limit()
 
   ! Chi wave vector Loop
   do qcount=1,nQvec1
-    write(output%unit_loop,"('[calculate_all] Wave vector Q loop: ',i0,' of ',i0,' points',', Q = [',es10.3,es10.3,es10.3,']')") qcount,nQvec1,(kpoints(i,qcount),i=1,3)
+    if(rField==0) &
+      write(output%unit_loop,"('[calculate_all] Wave vector Q loop: ',i0,' of ',i0,' points',', Q = [',es10.3,es10.3,es10.3,']')") qcount,nQvec1,(kpoints(i,qcount),i=1,3)
     q = kpoints(:,qcount)
     ! Chi Energy (frequency) Loop
     do count_temp = startFreq + skip_steps, endFreq + skip_steps
@@ -85,13 +86,16 @@ subroutine calculate_dc_limit()
       end if
 
       if(lhfresponses) then
-        if(rField == 0) write(output%unit_loop,"('[calculate_dc_limit] No renormalization will be done. Setting prefactors to identity and calculating HF susceptibilities... ')")
+        if(rField == 0) &
+          write(output%unit_loop,"('[calculate_dc_limit] No renormalization will be done. Setting prefactors to identity and calculating HF susceptibilities... ')")
         prefactor     = identt
         if(llinearsoc) prefactorlsoc = identt
         call eintshechi(q,e)
-        if(rField == 0) call write_time(output%unit_loop,'[calculate_dc_limit] Time after susceptibility calculation: ')
+        if(rField == 0) &
+          call write_time(output%unit_loop,'[calculate_dc_limit] Time after susceptibility calculation: ')
       else
-        if(rField == 0) write(output%unit_loop,"('[calculate_dc_limit] Calculating prefactor to use in currents and disturbances calculation. ')")
+        if(rField == 0) &
+          write(output%unit_loop,"('[calculate_dc_limit] Calculating prefactor to use in currents and disturbances calculation. ')")
         if(llinearsoc) then
           call eintshechilinearsoc(q,e) ! Note: chiorb_hflsoc = lambda*dchi_hf/dlambda(lambda=0)
           ! Broadcast chiorb_hflsoc to all processors of the same row
@@ -115,7 +119,8 @@ subroutine calculate_dc_limit()
           call zgemm('n','n',dim,dim,dim,cOne,prefactor,dim,prefactorlsoc,dim,cZero,chiorb,dim) ! chiorb = prefactor*prefactorlsoc
           call zgemm('n','n',dim,dim,dim,cOne,chiorb,dim,prefactor,dim,cZero,prefactorlsoc,dim) ! prefactorlsoc = chiorb*prefactor = prefactor*prefactorlsoc*prefactor
         end if
-        if(rField == 0) call write_time(output%unit_loop,'[calculate_dc_limit] Time after prefactor calculation: ')
+        if(rField == 0) &
+          call write_time(output%unit_loop,'[calculate_dc_limit] Time after prefactor calculation: ')
       end if
 
       ! Start parallelized processes to calculate disturbances and currents for energy e
@@ -125,10 +130,10 @@ subroutine calculate_dc_limit()
         call eintshe(q,e)
       end if
 
-      if(rField == 0) call write_time(output%unit_loop,'[calculate_dc_limit] Time after energy integral: ')
+      if(rField == 0) &
+        call write_time(output%unit_loop,'[calculate_dc_limit] Time after energy integral: ')
 
       if(rFreq(1) == 0) then
-
         if(.not.lhfresponses) then
           ! Calculating the full matrix of RPA and HF susceptibilities for energy e
           if(llinearsoc) then

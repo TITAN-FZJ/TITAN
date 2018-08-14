@@ -109,7 +109,6 @@ if(PLATFORM MATCHES jureca)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                               -fpp
                                               -DVERSION="${GIT_VERSION}"
-                                              -O3
                                               -qopenmp
                                               -mkl
                                               -xHost)
@@ -119,7 +118,6 @@ elseif(PLATFORM MATCHES osx)
                                               -D_OSX
                                               -fpp
                                               -DVERSION="${GIT_VERSION}"
-                                              -O3
                                               -mkl
                                               -xHost)
 elseif(PLATFORM MATCHES booster)
@@ -132,7 +130,6 @@ elseif(PLATFORM MATCHES booster)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                               -fpp
                                               -DVERSION="${GIT_VERSION}"
-                                              -O3
                                               -mkl
                                               -I$ENV{HOME}/BoosterNAG/nag_interface_blocks
                                               -xMIC-AVX512
@@ -142,7 +139,6 @@ elseif(PLATFORM MATCHES RWTH)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                               -fpp
                                               -DVERSION="${GIT_VERSION}"
-                                              -O3
                                               -g
                                               -qopenmp
                                               -mkl -$ENV{FLAGS_MATH_INCLUDE}
@@ -154,7 +150,6 @@ elseif(PLATFORM MATCHES iff)
                                               -DVERSION="${GIT_VERSION}"
                                               -fpp
                                               -static-intel
-                                              -O3
                                               -mkl
                                               -xHost)
 elseif(PLATFORM MATCHES hh)
@@ -163,7 +158,6 @@ elseif(PLATFORM MATCHES hh)
                                               -fpp
                                               -D_OSX
                                               -DVERSION="${GIT_VERSION}"
-                                              -O3
                                               -qopenmp
                                               -mkl
                                               -xCORE-AVX2)
@@ -172,7 +166,6 @@ else()
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                            -fpp
                                            -DVERSION="${GIT_VERSION}"
-                                           -O3
                                            -qopenmp
                                            -mkl
                                            #-ipo
@@ -203,5 +196,7 @@ if(DEBUG)
                                               -DVERSION="${GIT_VERSION}"
                                               -g
                                               -O0)
+else()
+  target_compile_options(${TITAN_EXE} PRIVATE -O3)
 endif(DEBUG)
 #target_link_libraries(${EXEC_NAME} ${NAG}/lib/libnag_nag.a -qopenmp)
