@@ -178,11 +178,11 @@ contains
         read(fu, fmt='(A)', iostat=ios) line
         if(ios /= 0) call abortProgram("[readElementFile] Not enough basis atoms given!")
         read(unit=line, fmt=*, iostat=ios) (position(l,k), l=1,3)
-        if(coord_type == 'C' .or. coord_type == 'c') then
+        if(coord_type == 'C' .or. coord_type == 'c' .or. coord_type == 'K' .or. coord_type == 'k') then
           ! Position of atoms given in Cartesian coordinates
           position(:,k) = position(:,k) * material%LatticeConstant
-        else if(coord_type == 'D' .or. coord_type == 'd' .or. coord_type == 'B' .or. coord_type == 'b' .or. coord_type == 'I' .or. coord_type == 'i') then
-          ! Position of atoms given in Bravais (or Direct or Internal) coordinates
+        else
+          ! Position of atoms given in Bravais (or Direct, Internal, Lattice) coordinates
           position(:,k) = position(1,k) * material%a1 + position(2,k) * material%a2 + position(3,k) * material%a3
         end if
       end do

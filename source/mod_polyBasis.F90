@@ -99,9 +99,11 @@ contains
       k = k + 1
       s%Basis(k)%Material = i
       read(unit=line, fmt=*, iostat=ios) (s%Basis(k)%Position(l), l=1,3)
-      if(coord_type == 'D' .or. coord_type == 'd') then
+      if(coord_type == 'C' .or. coord_type == 'c' .or. coord_type == 'K' .or. coord_type == 'k') then
+        ! Positions of atoms given in Cartesian coordinates
         s%Basis(k)%Position = s%Basis(k)%Position * s%a0
       else
+        ! Position of atoms given in Bravais (or Direct, Internal, Lattice) coordinates
         if((s%lbulk).and.(dot_product(s%a3,s%a3) <= 1.d-9).and.(myrank==0)) call abortProgram("[read_basis] a3 not given properly in '" // trim(filename) // "'!")
         s%Basis(k)%Position = s%Basis(k)%Position(1) * s%a1 + s%Basis(k)%Position(2) * s%a2 + s%Basis(k)%Position(3) * s%a3
       end if
