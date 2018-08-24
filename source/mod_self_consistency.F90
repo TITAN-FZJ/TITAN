@@ -1216,7 +1216,8 @@ contains
   !! Rotate the magnetization to the direction of the field (useful for SOC=F)
     use mod_f90_kind,   only: double
     use mod_constants,  only: deg2rad
-    use mod_magnet,     only: hw_count,hw_list,hhw,mx,my,mz,mp
+    use mod_magnet,     only: hw_count, hw_list, hhw, mp, mx, my, mz, &
+                                                      mpd, mxd, myd, mzd
     use mod_parameters, only: output
     use mod_System,     only: s => sys
     use TightBinding,   only: nOrb
@@ -1233,18 +1234,25 @@ contains
         mdotb   = hhw(1,i)*mx(j,i)+hhw(2,i)*my(j,i)+hhw(3,i)*mz(j,i)
         sign    = dble(mdotb/abs(mdotb))
         mabs(j,i) = sqrt((mx(j,i)**2)+(my(j,i)**2)+(mz(j,i)**2))
-        mx(j,i)   = sign*mabs(j,i)*sin(hw_list(hw_count,2)*deg2rad)*cos(hw_list(hw_count,3)*deg2rad)
-        my(j,i)   = sign*mabs(j,i)*sin(hw_list(hw_count,2)*deg2rad)*sin(hw_list(hw_count,3)*deg2rad)
-        mz(j,i)   = sign*mabs(j,i)*cos(hw_list(hw_count,2)*deg2rad)
-        mp(j,i)   = cmplx(mx(j,i),my(j,i),double)
+        mx  (j,i) = sign*mabs(j,i)*sin(hw_list(hw_count,2)*deg2rad)*cos(hw_list(hw_count,3)*deg2rad)
+        my  (j,i) = sign*mabs(j,i)*sin(hw_list(hw_count,2)*deg2rad)*sin(hw_list(hw_count,3)*deg2rad)
+        mz  (j,i) = sign*mabs(j,i)*cos(hw_list(hw_count,2)*deg2rad)
+        mp  (j,i) = cmplx(mx(j,i),my(j,i),double)
       end do
     end do
 
+    mxd(:)  = sum(mx (5:9,:),dim=1)
+    myd(:)  = sum(my (5:9,:),dim=1)
+    mzd(:)  = sum(mz (5:9,:),dim=1)
+    mpd     = cmplx(mxd,myd)
+
+    call calcMagAngle()
+
     ! Writing new n and rotated mag to file (without self-consistency)
-    if(rField == 0) call write_sc_results()
+    ! if(rField == 0) call write_sc_results()
 
     ! Writing self-consistency results on screen
-    if(rField == 0) call print_sc_results()
+    ! if(rField == 0) call print_sc_results()
   end subroutine rotate_magnetization_to_field
 
   ! Writes the self-consistency results on the screen
