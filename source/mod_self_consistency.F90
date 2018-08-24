@@ -1216,8 +1216,8 @@ contains
   !! Rotate the magnetization to the direction of the field (useful for SOC=F)
     use mod_f90_kind,   only: double
     use mod_constants,  only: deg2rad
-    use mod_magnet,     only: hw_count, hw_list, hhw, mp, mx, my, mz, &
-                                                      mpd, mxd, myd, mzd
+    use mod_magnet,     only: lfield, hw_count, hw_list, hhw, mp, mx, my, mz, &
+                                                              mpd, mxd, myd, mzd
     use mod_parameters, only: output
     use mod_System,     only: s => sys
     use TightBinding,   only: nOrb
@@ -1227,7 +1227,13 @@ contains
     real(double) :: mdotb,mabs(nOrb,s%nAtoms)
 
     if(rField == 0) &
-    write(output%unit_loop,"('[rotate_magnetization_to_field] Rotating previous magnetization to the direction of the field...')")
+      write(output%unit_loop,"('[rotate_magnetization_to_field] Rotating previous magnetization to the direction of the field...')")
+
+    if(.not.lfield) then
+      if(rField == 0) &
+        write(output%unit_loop,"('[rotate_magnetization_to_field] Field if OFF! No rotation is done.')")
+      return
+    end if
 
     do i = 1, s%nAtoms
       do j=1,nOrb
