@@ -20,9 +20,9 @@ module mod_BrillouinZone
 
    type :: BrillouinZone
       integer*8 :: nkpt   = 0
-      integer*8 :: nkpt_x = 0
-      integer*8 :: nkpt_y = 0
-      integer*8 :: nkpt_z = 0
+      integer*4 :: nkpt_x = 0
+      integer*4 :: nkpt_y = 0
+      integer*4 :: nkpt_z = 0
 
       real(double), dimension(:,:), allocatable :: kp
       real(double), dimension(:),   allocatable :: w
@@ -127,7 +127,7 @@ contains
     real(double) :: vol
     real(double) :: smallest_dist, distance, ini_smallest_dist
     integer*8    :: nkpt, l
-    integer*8    :: nx, ny, nz
+    integer      :: nx, ny, nz
     integer*8    :: count, added, weight, range
     integer      :: j
 
@@ -198,7 +198,7 @@ contains
   end subroutine gen3DFraction
 
   integer*8 function count_3D_BZ(nkpt_in, a1, a2, a3)
-    use mod_f90_kind, only: double
+    use mod_f90_kind,  only: double
     use mod_constants, only: tpi
     use mod_tools, only: cross
     implicit none
@@ -210,10 +210,10 @@ contains
     real(double) :: smallest_dist, distance, ini_smallest_dist
     real(double), dimension(3) ::  diff
     real(double), dimension(3) :: kp, b1, b2, b3
-    integer*8 :: l, nkpt_x, nkpt_y, nkpt_z, nkpt, numextrakbz
-    integer*8 :: nkpt_perdim !n. of k point per dimension
-    integer*8 :: nx, ny, nz
-    integer   :: j, smallest_index
+    integer*8 :: l, nkpt, numextrakbz
+    integer   :: nkpt_x, nkpt_y, nkpt_z, nkpt_perdim !n. of k point per dimension
+    integer   :: nx, ny, nz
+    integer   :: j
 
     nkpt_perdim = ceiling((dble(nkpt_in))**(1.d0/3.d0))
     nkpt_x = nkpt_perdim
@@ -242,7 +242,7 @@ contains
     numextrakbz = 0
     !Run over all the kpoints generated initially.
     !$omp parallel do default(none) reduction(+:numextrakbz) if(nkpt > 1000000) &
-    !$omp& private(l, j, nx, ny, nz, kp, smallest_dist, smallest_index, diff, distance) &
+    !$omp& private(l, j, nx, ny, nz, kp, smallest_dist, diff, distance) &
     !$omp& shared(nkpt, ini_smallest_dist, bz_vec, b1, b2, b3, nkpt_x, nkpt_y, nkpt_z)
     do l=1, nkpt
       nx = int(mod(floor(dble(l-1) / dble(nkpt_y*nkpt_z),kind(nx)), nkpt_x),kind(nx))
@@ -283,12 +283,12 @@ contains
     type(System), intent(in)       :: sys
     integer*8,    intent(in)       :: first, last
     real(double), dimension(3,4)   :: bz_vec
-    real(double), dimension(3)     ::  diff, zdir
+    real(double), dimension(3)     :: diff, zdir
     real(double), dimension(3)     :: kp, b1, b2
     real(double) :: smallest_dist, distance, ini_smallest_dist
     real(double) :: vol
     integer*8    :: l, nkpt
-    integer*8    :: nx, ny
+    integer      :: nx, ny
     integer*8    :: count, added, weight, range
     integer      :: j
 
@@ -359,15 +359,15 @@ contains
     use mod_tools,     only: cross
     implicit none
 
-    integer*8, intent(in) :: nkpt_in
+    integer*8,                  intent(in) :: nkpt_in
     real(double), dimension(3), intent(in) :: a1,a2
-    real(double), dimension(3) :: kp, b1, b2
-    real(double), dimension(3) :: zdir
+    real(double), dimension(3)   :: kp, b1, b2
+    real(double), dimension(3)   :: zdir
     real(double), dimension(3,4) :: bz_vec
     real(double), dimension(3)   :: diff
     real(double) :: smallest_dist, distance, ini_smallest_dist, vol
-    integer   :: j, smallest_index
-    integer*8 :: l, nkpt_x, nkpt_y, nx, ny, nkpt, nkpt_perdim, numextrakbz
+    integer      :: j, nkpt_x, nkpt_y, nx, ny, nkpt_perdim
+    integer*8    :: l, nkpt, numextrakbz
 
     zdir = [0,0,1]
     nkpt_perdim = ceiling(sqrt(dble(nkpt_in)))
@@ -391,7 +391,7 @@ contains
     numextrakbz = 0
     !Run over all the kpoints generated initially.
     !$omp parallel do default(none) reduction(+:numextrakbz) if(nkpt > 1000000) &
-    !$omp& private(l,j,nx,ny,kp,smallest_dist, smallest_index, diff, distance) &
+    !$omp& private(l,j,nx,ny,kp,smallest_dist, diff, distance) &
     !$omp& shared(nkpt, ini_smallest_dist, bz_vec, b1, b2, nkpt_x, nkpt_y)
     do l = 1, nkpt
       nx = int(mod(floor(dble(l-1) / dble(nkpt_y),kind(nx)), nkpt_x),kind(nx))
@@ -404,10 +404,7 @@ contains
       do j = 1, 4
         diff = kp - bz_vec(:,j)
         distance = sqrt(dot_product(diff, diff))
-        if(distance < smallest_dist) then
-          smallest_dist = distance
-          smallest_index = j
-        end if
+        if(distance < smallest_dist) smallest_dist = distance
       end do
       !Checks if the kpoint is in the border between two or more
       ! BZ's. If yes, create a clone of it to translate later into
@@ -415,11 +412,11 @@ contains
       do j = 1, 4
         diff = kp - bz_vec(:, j)
         distance = sqrt(dot_product(diff, diff))
-        if( ( abs(distance-smallest_dist) < 1.d-12 ) .and. j /= smallest_index ) numextrakbz = numextrakbz + 1
+        if( abs(distance-smallest_dist) < 1.d-12 ) numextrakbz = numextrakbz + 1
       end do
     end do
     !$omp end parallel do
-    count_2D_BZ = nkpt + numextrakbz
+    count_2D_BZ = numextrakbz
   end function count_2D_BZ
 
   subroutine output_kpoints(self)
@@ -449,13 +446,13 @@ contains
     !$ use omp_lib
     implicit none
 
-    integer*8, intent(in) :: nkpt_in
+    integer*8,  intent(in) :: nkpt_in
     !! Initial kpoints (as given by realBZ%nkpt_x * realBZ%nkpt_y * realBZ%nkpt_z)
     real(double), dimension(3), intent(in)  :: b1, b2, b3
     !! Reciprocal vectors
     integer,   intent(in)  :: component
     !! Which component to store the different values and the map
-    integer*8, intent(out) :: ndiffk
+    integer,   intent(out) :: ndiffk
     !! Number of different kp(component)
     real(double), dimension(:), allocatable, intent(out) :: diff_k_unsrt
     !! Different values of kp(component)
@@ -465,19 +462,21 @@ contains
     real(double) :: smallest_dist, distance, ini_smallest_dist
     real(double), dimension(3) :: diff
     real(double), dimension(3) :: kp
-    integer*8  :: l, count, nkpt_x, nkpt_y, nkpt_z, nkpt, ndiffk_max
-    integer*8  :: nkpt_perdim
-    integer*8, dimension(:), allocatable :: ndiffk_loc
+    integer, dimension(:), allocatable :: ndiffk_loc
+    integer*8  :: l, nkpt
+    integer    :: nkpt_perdim, nkpt_x, nkpt_y, nkpt_z
     !! Number of k points per dimension
-    integer*8  :: nx, ny, nz , start, end, maxdiffk
-    integer    :: j, smallest_index, mythread, nthreads
+    integer    :: nx, ny, nz , start, end
+    integer    :: maxdiffk, ndiffk_max, count
+    !! Number of different k points, maximum value, and counter
+    integer    :: j, mythread, nthreads
 
     nkpt_perdim = ceiling((dble(nkpt_in))**(1.d0/3.d0))
     nkpt_x = nkpt_perdim
     nkpt_y = nkpt_perdim
     nkpt_z = nkpt_perdim
 
-    nkpt = nkpt_x * nkpt_y * nkpt_z
+    nkpt = int(nkpt_x * nkpt_y * nkpt_z,kind(nkpt))
 
     nthreads = 1
     !$ nthreads = omp_get_max_threads()
@@ -503,7 +502,7 @@ contains
     ini_smallest_dist = 10.d0 * sqrt(dot_product(b1 + b2 + b3, b1 + b2 + b3))
     !Run over all the kpoints generated initially.
     !$omp parallel default(none) if(nkpt > 1000000) &
-    !$omp& private(l, j, nx, ny, nz, kp, smallest_dist, smallest_index, diff, distance, diff_k_loc, start, end, mythread) &
+    !$omp& private(l, j, nx, ny, nz, kp, smallest_dist, diff, distance, diff_k_loc, start, end, mythread) &
     !$omp& shared(count, ndiffk_max, nkpt, ini_smallest_dist, bz_vec, b1, b2, b3, nkpt_x, nkpt_y, nkpt_z, component, ndiffk_loc, diff_k_temp, maxdiffk)
 
     mythread = 1
@@ -526,10 +525,7 @@ contains
       do j=1, 8
         diff = kp - bz_vec(:,j)
         distance = sqrt(dot_product(diff, diff))
-        if(distance < smallest_dist) then
-          smallest_dist = distance
-          smallest_index = j
-        end if
+        if(distance < smallest_dist) smallest_dist = distance
       end do
       !Checks if the kpoint is in the border between two or more
       ! BZ's. If yes, create a clone of it to translate later into
@@ -537,7 +533,7 @@ contains
       do j=1, 8
         diff=kp - bz_vec(:,j)
         distance=sqrt(dot_product(diff,diff))
-        if( ( abs(distance-smallest_dist) < 1.d-12 )  ) then
+        if( abs(distance-smallest_dist) < 1.d-12 ) then
           count = count + 1 ! Counting the total number of points generated
           ! Checking if all numbers are different than current local list (if any of them is zero, the point is already stored)
           if( all(abs( diff_k_loc(:) - abs(diff(component)) )> 1.d-12,1)  ) then
@@ -567,11 +563,11 @@ contains
     allocate( diff_k_temp2(maxdiffk) )
     diff_k_temp2(:) = 999.d0
     ndiffk = 0
-    do l=1,maxdiffk
+    do j=1,maxdiffk
 
-      if( all(abs( diff_k_temp2(:) - diff_k_temp(l) )> 1.d-12,1)  ) then
+      if( all(abs( diff_k_temp2(:) - diff_k_temp(j) )> 1.d-12,1)  ) then
         ndiffk = ndiffk + 1
-        diff_k_temp2(ndiffk) = diff_k_temp(l)
+        diff_k_temp2(ndiffk) = diff_k_temp(j)
       end if
 
     end do

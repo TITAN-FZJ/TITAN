@@ -39,9 +39,9 @@ contains
   subroutine writeTCM(unit,alpha,ndiffk,diff_k,ialpha,iwght)
     use mod_System,     only: s => sys
     implicit none
-    integer,   intent(in) :: unit
+    integer, intent(in) :: unit
     !! File unit
-    integer*8, intent(in) :: ndiffk
+    integer, intent(in) :: ndiffk
     !! Number of different kzs
     real(double), dimension(ndiffk), intent(in) :: diff_k
     !! Different kzs
@@ -75,7 +75,7 @@ contains
     use mod_mpi_pars,   only: rField
     use mod_progress,   only: write_time
     implicit none
-    integer*8 :: ndiffk
+    integer :: ndiffk
     real(double),    dimension(:),     allocatable    :: diff_k, iwght
     real(double),    dimension(:,:,:), allocatable    :: ialphaSO, ialphaXC
     complex(double), dimension(s%nAtoms,s%nAtoms,3,3) :: alphaSO, alphaXC
@@ -137,15 +137,17 @@ contains
     complex(double), dimension(s%nAtoms,s%nAtoms,3,3), intent(out) :: alpha
     !! Contains the Gilbert Damping as matrix in sites and cartesian coordinates (nAtoms,nAtoms,3,3)
     integer*8 :: iz
-    integer   :: i, j, m, n, mu, ios
+    integer   :: i, j, m, n, k, mu, ios
 
-    integer*8 :: ndiffk, k
+    integer   :: ndiffk
     !! Number of different abs(k_z) in the k points list
+    integer*8 :: nk
+    !! Total number of k points
     real(double), dimension(:), allocatable :: diff_k_unsrt
     !! Different values of abs(k_z) - unsorted
     real(double), dimension(:), allocatable :: diff_k
     !! Different values of abs(k_z) - sorted
-    integer*8,    dimension(:), allocatable :: order
+    integer,      dimension(:), allocatable :: order
     !! Order of increasing abs(k_z) in the different k points list
 
     real(double), dimension(3) :: kp
@@ -179,8 +181,8 @@ contains
     if(ios /= 0) then
       if(rField == 0) &
         write(output%unit_loop, "('Generating...')")
-      k = realBZ%nkpt_x*realBZ%nkpt_y*realBZ%nkpt_z
-      call store_diff(k, s%b1, s%b2, s%b3, 3, ndiffk, diff_k_unsrt)
+      nk = int(realBZ%nkpt_x*realBZ%nkpt_y*realBZ%nkpt_z,kind(nk))
+      call store_diff(nk, s%b1, s%b2, s%b3, 3, ndiffk, diff_k_unsrt)
     else
       if(rField == 0) &
         write(output%unit_loop, "('Reading from file...')")

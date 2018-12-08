@@ -1,27 +1,29 @@
 ! This is the main subroutine to calculate the susceptibilities
 subroutine calculate_chi()
-  use mod_f90_kind, only: double
-  use mod_constants, only: cZero, cOne, StoC, CtoS
-  use mod_parameters, only: count, emin, deltae, nQvec1, kpoints, dim, sigmaimunu2i, output, lhfresponses, lnodiag, laddresults, skip_steps, sigmai2i
-  use mod_mpi_pars
-  use mod_magnet, only: lfield,mvec_spherical,lvec
-  use mod_susceptibilities, only: identt, Umatorb, schi, schihf, schiLS, schiSL, schiLL, schirot, rotmat_i, &
+  use mod_f90_kind,          only: double
+  use mod_constants,         only: cZero, cOne, StoC, CtoS
+  use mod_parameters,        only: count, emin, deltae, nQvec1, kpoints, dim, sigmaimunu2i, output, lhfresponses, lnodiag, laddresults, skip_steps, sigmai2i
+  use mod_magnet,            only: lfield,mvec_spherical,lvec
+  use mod_alpha,             only: create_alpha_files, write_alpha
+  use mod_system,            only: s => sys
+  use TightBinding,          only: nOrb
+  use mod_BrillouinZone,     only: realBZ
+  use mod_tools,             only: itos
+  use adaptiveMesh,          only: genLocalEKMesh, freeLocalEKMesh
+  use mod_progress,          only: write_time
+  use TorqueTorqueResponse,  only: calcTTResponse, create_TTR_files, allocTTResponse
+  use TorqueSpinResponse,    only: calcTSResponse, create_TSR_files, allocTSResponse
+  use mod_rotation_matrices, only: rotation_matrices_chi
+  use mod_SOC,               only: SOC
+  use mod_Coupling,          only: get_J_K_from_chi
+  use mod_susceptibilities,  only: identt, Umatorb, schi, schihf, schiLS, schiSL, schiLL, schirot, rotmat_i, &
       rotmat_j, rottemp, schitemp, lrot, chiorb_hf, chiorb, &
       build_identity_and_U_matrix, diagonalize_susceptibilities, &
       create_chi_files, write_susceptibilities, &
       allocate_susceptibilities, deallocate_susceptibilities
-  use mod_alpha, only: create_alpha_files, write_alpha, allocate_alpha, deallocate_alpha
-  use mod_system, only: s => sys
-  use TightBinding, only: nOrb
-  use mod_BrillouinZone, only: realBZ
-  use mod_tools, only: itos
-  use adaptiveMesh, only: genLocalEKMesh, freeLocalEKMesh
-  use mod_progress, only: write_time
-  use TorqueTorqueResponse, only: calcTTResponse, create_TTR_files, allocTTResponse
-  use TorqueSpinResponse, only: calcTSResponse, create_TSR_files, allocTSResponse
-  use mod_rotation_matrices, only: rotation_matrices_chi
-  use mod_SOC, only: SOC
   use mod_sumrule
+  use mod_mpi_pars
+  use mod_check_stop
   implicit none
   character(len=50) :: time
   integer           :: mcount,qcount
@@ -29,7 +31,6 @@ subroutine calculate_chi()
   real(double)      :: e,q(3)
   complex(double), dimension(:,:),   allocatable :: temp
   call allocate_susceptibilities()
-  call allocate_alpha()
   call allocTTResponse(s%nAtoms)
   call allocTSResponse(s%nAtoms)
   call genLocalEKMesh(s,rFreq(1), sFreq(1), FreqComm(1))
@@ -74,7 +75,7 @@ subroutine calculate_chi()
       call write_time(output%unit_loop,'[calculate_chi] Time after calculating chi HF: ')
 
       ! Checking sum rule for e=0.d0
-      if(e == 0.d0) call sumrule(chiorb_hf)
+      if(abs(e) < 1.d-8) call sumrule(chiorb_hf)
 
       ! From here on all other processes except for rFreq(1) == 0 are idle :/
       if(rFreq(1)==0) then
@@ -134,9 +135,11 @@ subroutine calculate_chi()
         ! Rotating susceptibilities to the magnetization direction (local frame of reference)
         if(lrot) then
           do i=1, s%nAtoms
-            call rotation_matrices_chi(mvec_spherical(2,i),mvec_spherical(3,i),rottemp,1)
+            ! Left rotation matrix
+            call rotation_matrices_chi(180.d0-mvec_spherical(2,i),180.d0+mvec_spherical(3,i),rottemp,1)
             rotmat_i(:,:,i) = rottemp
-            call rotation_matrices_chi(mvec_spherical(2,i),mvec_spherical(3,i),rottemp,2)
+            ! Right rotation matrix
+            call rotation_matrices_chi(180.d0-mvec_spherical(2,i),180.d0+mvec_spherical(3,i),rottemp,2)
             rotmat_j(:,:,i) = rottemp
           end do
           do j=1, s%nAtoms
@@ -144,7 +147,7 @@ subroutine calculate_chi()
               rottemp  = rotmat_i(:,:,i)
               do sigma = 1, 4
                 do sigmap = 1, 4
-                  schitemp(sigma,sigmap) = schi(sigmai2i(sigmap,j),sigmai2i(sigma,i))
+                  schitemp(sigma,sigmap) = schi(sigmai2i(sigma,i),sigmai2i(sigmap,j))
                 end do
               end do
               call zgemm('n', 'n', 4, 4, 4, cOne, rottemp, 4, schitemp, 4, cZero, schirot, 4)
@@ -152,7 +155,7 @@ subroutine calculate_chi()
               call zgemm('n', 'n', 4, 4, 4, cOne, schirot, 4, rottemp, 4, cZero, schitemp, 4)
               do sigma = 1, 4
                 do sigmap = 1, 4
-                  schi(sigmai2i(sigmap,j),sigmai2i(sigma,i)) = schitemp(sigma,sigmap)
+                  schi(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schitemp(sigma,sigmap)
                 end do
               end do
 
@@ -192,7 +195,11 @@ subroutine calculate_chi()
               call calcTSResponse(e)
             end if
             ! WRITING GILBERT DAMPING
-            if(e/=0) call write_alpha(e)
+            if(abs(e)>1.d-8) then
+              call write_alpha(e)
+            else
+              call get_J_K_from_chi()
+            end if
 
             ! WRITING RPA AND HF SUSCEPTIBILITIES
             call write_susceptibilities(q,e)
@@ -200,6 +207,7 @@ subroutine calculate_chi()
 
           write(time,"('[calculate_chi] Time after step ',i0,': ')") count
           call write_time(output%unit_loop,time)
+
         else
           call MPI_Send(e,     1,                   MPI_DOUBLE_PRECISION,0,1000, FreqComm(2),ierr)
           call MPI_Send(q,     3,                   MPI_DOUBLE_PRECISION,0,1100, FreqComm(2),ierr)
@@ -207,7 +215,10 @@ subroutine calculate_chi()
           call MPI_Send(schihf,s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX,  0,1300, FreqComm(2),ierr)
         end if
       end if
+
+      ! Emergency stop
       call MPI_Barrier(FieldComm, ierr)
+      call check_stop("stop",0,e)
     end do ! Energy (frequency) loop
 
   end do ! Wave vector loop
@@ -218,7 +229,6 @@ subroutine calculate_chi()
   call freeLocalEKMesh()
 
   call deallocate_susceptibilities()
-  call deallocate_alpha()
 
   if(rFreq(1) == 0) deallocate(temp)
 

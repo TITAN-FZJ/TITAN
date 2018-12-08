@@ -2,15 +2,14 @@ module mod_tools
   implicit none
 
   interface itos
-     module procedure i4tos, &
+    module procedure i4tos, &
                       i8tos
   end interface itos
 
   interface sort
-     module procedure sort_int, &
+    module procedure sort_int, &
                       sort_double_int
   end interface sort
-
 
 contains
 
@@ -54,7 +53,7 @@ contains
     is_parallel = .false.
     crs = cross(a,b)
     if( 1d-9 > dot_product(crs(1:3),crs(1:3)) ) then
-       is_parallel = .true.
+      is_parallel = .true.
     end if
   end function is_parallel
 
@@ -71,7 +70,7 @@ contains
 
     is_perpendicular = .false.
     if( 1.d-9 > abs(dot_product(a,b)) ) then
-       is_perpendicular = .true.
+      is_perpendicular = .true.
     end if
   end function is_perpendicular
 
@@ -111,8 +110,8 @@ contains
 
     mask = .true.
     do i = 1,size
-       order(i) = minloc( x, 1, mask(:) )
-       mask(order(i)) = .false.
+      order(i) = minloc( x, 1, mask(:) )
+      mask(order(i)) = .false.
     end do
 
     deallocate( mask )
@@ -137,8 +136,8 @@ contains
 
     mask(:) = .true.
     do i = 1,size
-       order(i) = minloc( x, 1, mask(:) )
-       mask(order(i)) = .false.
+      order(i) = minloc( x, 1, mask(:) )
+      mask(order(i)) = .false.
     end do
 
     deallocate( mask )
@@ -165,15 +164,15 @@ contains
     non_commented  = 0
     total_lines    = 0
     do
-       read (unit=unit,fmt=*,iostat=ios) stringtemp
-       if (ios/=0) exit
-       if (stringtemp=="") cycle ! If the line is blank, ignore
-       ! Total number of non-empty lines
-       total_lines = total_lines + 1
+      read (unit=unit,fmt=*,iostat=ios) stringtemp
+      if (ios/=0) exit
+      if (stringtemp=="") cycle ! If the line is blank, ignore
+      ! Total number of non-empty lines
+      total_lines = total_lines + 1
 
-       ! Getting the number of non-commented lines
-       if ((stringtemp(1:1)=="#").or.(stringtemp(1:1)=="!")) cycle
-       non_commented = non_commented + 1
+      ! Getting the number of non-commented lines
+      if ((stringtemp(1:1)=="#").or.(stringtemp(1:1)=="!")) cycle
+      non_commented = non_commented + 1
     end do
 
   end subroutine number_of_lines
@@ -195,11 +194,11 @@ contains
     ! Counting the number of lines
     rows  = 0
     do
-       read (unit=unit,fmt='(A)',iostat=ios) stringtemp
-       if (ios/=0) exit
-       ! Getting the number of rows
-       if ((stringtemp(1:1)=="#").or.(stringtemp(1:1)=="!").or.(stringtemp=="")) cycle
-       rows = rows + 1
+      read (unit=unit,fmt='(A)',iostat=ios) stringtemp
+      if (ios/=0) exit
+      ! Getting the number of rows
+      if ((stringtemp(1:1)=="#").or.(stringtemp(1:1)=="!").or.(stringtemp=="")) cycle
+      rows = rows + 1
     end do
     cols = count([( stringtemp(i:i), i=1,len(stringtemp) )] == "E")
 
@@ -224,12 +223,12 @@ contains
     rewind unit
     i = 0
     do
-       read(unit=unit,fmt='(A)',iostat=ios) stringtemp
-       if (ios/=0) exit
-       if ((stringtemp(1:1)=="#").or.(stringtemp(1:1)=="!").or.(stringtemp=="")) cycle
-       i=i+1
-       read(unit=stringtemp,fmt=*,iostat=ios) (data(i,j),j=1,cols)
-       if (ios/=0)  call abortProgram("[read_data] Incorrect number of cols: " // trim(itos(j)) // " when expecting " // trim(itos(cols)))
+      read(unit=unit,fmt='(A)',iostat=ios) stringtemp
+      if (ios/=0) exit
+      if ((stringtemp(1:1)=="#").or.(stringtemp(1:1)=="!").or.(stringtemp=="")) cycle
+      i=i+1
+      read(unit=stringtemp,fmt=*,iostat=ios) (data(i,j),j=1,cols)
+      if (ios/=0)  call abortProgram("[read_data] Incorrect number of cols: " // trim(itos(j)) // " when expecting " // trim(itos(cols)))
     end do
 
     if(i/=rows) call abortProgram("[read_data] Incorrect number of rows: " // trim(itos(i)) // " when expecting " // trim(itos(rows)))
@@ -275,7 +274,7 @@ contains
     ! Rewriting data, now sorted
     write(colformat,fmt="(a,i0,a)") '(',cols,'(es16.9,2x))'
     do i=1,rows
-       write(unit=unit,fmt=trim(colformat)) (data(order(i),j),j=1,cols)
+      write(unit=unit,fmt=trim(colformat)) (data(order(i),j),j=1,cols)
     end do
 
     deallocate(data,x,order)

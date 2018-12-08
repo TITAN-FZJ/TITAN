@@ -1,34 +1,33 @@
 ! This is the main subroutine to calculate the fixed-frequency
 ! (in particular, the dc-limit) response functions
 subroutine calculate_dc_limit()
-  use mod_constants,       only: cZero, cOne, cI, levi_civita, tpi
-  use mod_parameters, only: sigmaimunu2i, sigmai2i, dimspinAtoms, U, offset, lnodiag, output, count, emin, deltae, nQvec1, kpoints, laddresults, lhfresponses, dim, skip_steps
-  use mod_magnet,          only: lfield, dcfield_dependence, dc_count, dcfield, hw_count, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, hhw
-  use mod_SOC, only: llinearsoc
-  use mod_System, only: s => sys
-  use mod_BrillouinZone, only: realBZ
-  use mod_prefactors, only: prefactor, prefactorlsoc, &
-                            allocate_prefactors, deallocate_prefactors
-  use mod_susceptibilities, only: lrot, rottemp, rotmat_i, rotmat_j, &
+  use mod_mpi_pars
+  use mod_constants,         only: cZero, cOne, cI, levi_civita, tpi
+  use mod_parameters,        only: sigmaimunu2i, sigmai2i, dimspinAtoms, U, offset, lnodiag, output, count, emin, deltae, nQvec1, kpoints, laddresults, lhfresponses, dim, skip_steps
+  use mod_magnet,            only: lfield, dcfield_dependence, dc_count, dcfield, hw_count, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, hhw
+  use mod_SOC,               only: llinearsoc
+  use mod_System,            only: s => sys
+  use mod_BrillouinZone,     only: realBZ
+  use mod_prefactors,        only: prefactor, prefactorlsoc, allocate_prefactors, deallocate_prefactors
+  use mod_progress,          only: write_time
+  use adaptiveMesh,          only: genLocalEKMesh, freeLocalEKMesh
+  use mod_rotation_matrices, only: rotation_matrices_chi
+  use mod_susceptibilities,  only: lrot, rottemp, rotmat_i, rotmat_j, &
                                   schitemp, schirot, schi, schihf, &
                                   chiorb, chiorb_hf, chiorb_hflsoc, Umatorb, identt, &
                                   build_identity_and_U_matrix, diagonalize_susceptibilities, &
                                   allocate_susceptibilities, deallocate_susceptibilities, &
                                   create_dc_chi_files, write_dc_susceptibilities
-  use mod_torques, only: torques, total_torques, ntypetorque, &
-                         allocate_torques, deallocate_torques, &
-                         create_dc_torque_files, write_dc_torques
-  use mod_disturbances, only: disturbances, total_disturbances, tchiorbiikl, sdmat, ldmat, &
-                              allocate_disturbances, deallocate_disturbances, &
-                              create_dc_disturbance_files, write_dc_disturbances
-  use mod_beff, only: chiinv, Beff, total_Beff, Beff_cart, &
-                      allocate_beff, deallocate_beff, &
-                      create_dc_beff_files, write_dc_beff
-  use mod_progress,        only: write_time
-  use adaptiveMesh, only: genLocalEKMesh, freeLocalEKMesh
-  use mod_rotation_matrices, only: rotation_matrices_chi
-  use mod_mpi_pars
-
+  use mod_torques,           only: torques, total_torques, ntypetorque, &
+                                    allocate_torques, deallocate_torques, &
+                                    create_dc_torque_files, write_dc_torques
+  use mod_disturbances,      only: disturbances, total_disturbances, tchiorbiikl, sdmat, ldmat, &
+                                    allocate_disturbances, deallocate_disturbances, &
+                                    create_dc_disturbance_files, write_dc_disturbances
+  use mod_beff,              only: chiinv, Beff, total_Beff, Beff_cart, &
+                                    allocate_beff, deallocate_beff, &
+                                    create_dc_beff_files, write_dc_beff
+  use mod_check_stop
   !use mod_system,          only: n0sc1, n0sc2, n0sc
   !use mod_currents !TODO: Re-Include
   !use mod_sha !TODO: Re-Include
@@ -392,7 +391,7 @@ subroutine calculate_dc_limit()
               call MPI_Recv(q                ,3                , MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),44101,FreqComm(2),stat,ierr)
               call MPI_Recv(mvec_spherical   ,3*s%nAtoms       , MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),44200,FreqComm(2),stat,ierr)
               if(.not.lhfresponses) &
-                 call MPI_Recv(schi             ,s%nAtoms*s%nAtoms*16, MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44300,FreqComm(2),stat,ierr)
+                call MPI_Recv(schi             ,s%nAtoms*s%nAtoms*16, MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44300,FreqComm(2),stat,ierr)
               call MPI_Recv(schihf           ,s%nAtoms*s%nAtoms*16, MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44400,FreqComm(2),stat,ierr)
               call MPI_Recv(Beff_cart        ,4*s%nAtoms      ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44500,FreqComm(2),stat,ierr)
               call MPI_Recv(total_Beff        ,4                ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),44550,FreqComm(2),stat,ierr)
@@ -445,21 +444,12 @@ subroutine calculate_dc_limit()
           write(time,"('[calculate_dc_limit] Time after step ',i0,': ')") dc_count
           call write_time(output%unit_loop,time)
 
-          ! Emergency stop
-          open(unit=911, file="stop", status='old', iostat=iw)
-          if(iw==0) then
-            close(911)
-              write(output%unit,"('[calculate_dc_limit] Emergency ""stop"" file found! Stopping after step ',i0,'...')") dc_count
-              call system ('rm stop')
-              write(output%unit,"('[calculate_dc_limit] (""stop"" file deleted!)')")
-            call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-          end if
           ! Recovering rank 0 counter and magnetization direction
           hw_count       = hw_count_temp
           mvec_spherical = mvec_spherical_temp
           write(time,"('[calculate_dc_limit] Time after step ',i0,': ')") dc_count
           call write_time(output%unit_loop,time)
-       else
+        else
           call MPI_Send(hw_count         ,1                ,MPI_INTEGER         ,0,44000, FreqComm(2),ierr)
           call MPI_Send(count_temp       ,1                ,MPI_INTEGER         ,0,44100, FreqComm(2),ierr)
           call MPI_Send(q                ,3                ,MPI_DOUBLE_PRECISION,0,44101, FreqComm(2),ierr)
@@ -482,6 +472,10 @@ subroutine calculate_dc_limit()
           !call MPI_Send(sha_complex_total,4                ,MPI_DOUBLE_COMPLEX  ,0,45600, FreqComm(2),ierr) !TODO:Re-Include
         end if
       end if
+
+      ! Emergency stop
+      call MPI_Barrier(FieldComm, ierr)
+      call check_stop("stop",0,e)
     end do ! Energy (frequency) loop
 
   end do ! Wave vector loop

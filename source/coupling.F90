@@ -4,7 +4,7 @@ subroutine coupling()
   use mod_parameters, only: output, q
   use mod_magnet,     only: mvec_cartesian,mabs
   use mod_system,     only: s => sys
-  use mod_mpi_pars, only: abortProgram
+  use mod_mpi_pars,   only: abortProgram
   use mod_mpi_pars,   only: rField,sField,FieldComm
   use adaptiveMesh
   use mod_Coupling
@@ -28,12 +28,12 @@ subroutine coupling()
   if(rField == 0) then
     do i=1,s%nAtoms
       do j=1,s%nAtoms
-         trJij(i,j)    = 0.5d0*(Jij(i,j,1,1)+Jij(i,j,2,2))
-         Jija(i,j,:,:) = 0.5d0*(Jij(i,j,:,:) - transpose(Jij(i,j,:,:)))
-         Jijs(i,j,:,:) = 0.5d0*(Jij(i,j,:,:) + transpose(Jij(i,j,:,:)))
-         do mu = 1, 3
-            Jijs(i,j,mu,mu) = Jijs(i,j,mu,mu) - trJij(i,j)
-         end do
+        trJij(i,j)    = 0.5d0*(Jij(i,j,1,1)+Jij(i,j,2,2))
+        Jija(i,j,:,:) = 0.5d0*(Jij(i,j,:,:) - transpose(Jij(i,j,:,:)))
+        Jijs(i,j,:,:) = 0.5d0*(Jij(i,j,:,:) + transpose(Jij(i,j,:,:)))
+        do mu = 1, 3
+          Jijs(i,j,mu,mu) = Jijs(i,j,mu,mu) - trJij(i,j)
+        end do
       end do
     end do
 

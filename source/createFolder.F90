@@ -14,6 +14,9 @@ subroutine create_folder()
   write(folder, "(a,'selfconsistency')") trim(base_command)
   call execute_command_line(trim(folder))
 
+  !! Create selfconsistency folder for FSOC (to store expectation values)
+  if(output%SOCchar/="F") call execute_command_line(trim('mkdir -p ./results/FSOC/selfconsistency'))
+
   !! Go into layer dependent folder
   write(base_command, "(a,a,'/')") trim(base_command), trim(output%Sites)
 

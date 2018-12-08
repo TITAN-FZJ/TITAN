@@ -24,7 +24,8 @@ contains
       implicit none
       type(System) :: sys
       integer      :: i,pn1
-      integer*8    :: nx, ny, nz, nall
+      integer      :: nx, ny, nz
+      integer*8    :: nall
 
       if(.not.allocated(all_nkpt)) allocate(all_nkpt(pn1))
       total_points = 0
@@ -34,12 +35,14 @@ contains
             nx = ceiling( (dble(nall))**(1.d0/3.d0), kind(nx) )
             ny = ceiling( (dble(nall))**(1.d0/3.d0), kind(ny) )
             nz = ceiling( (dble(nall))**(1.d0/3.d0), kind(nz) )
-            all_nkpt(i) = count_3D_BZ(nx*ny*nz,sys%a1,sys%a2,sys%a3)
+            nall = int( nx*ny*nz, kind(nall) )
+            all_nkpt(i) = count_3D_BZ(nall,sys%a1,sys%a2,sys%a3)
          else
             nx = ceiling( (dble(nall))**(1.d0/2.d0), kind(nx) )
             ny = ceiling( (dble(nall))**(1.d0/2.d0), kind(ny) )
             nz = 0
-            all_nkpt(i) = count_2D_BZ(nx*ny,sys%a1,sys%a2)
+            nall = int( nx*ny, kind(nall) )
+            all_nkpt(i) = count_2D_BZ(nall,sys%a1,sys%a2)
          end if
          total_points = total_points + all_nkpt(i)
       end do
@@ -104,7 +107,7 @@ contains
          else
             bzs(i) % nkpt_x = ceiling( (dble(nall))**(1.d0/2.d0), kind(bzs(i) % nkpt_x) )
             bzs(i) % nkpt_y = ceiling( (dble(nall))**(1.d0/2.d0), kind(bzs(i) % nkpt_y) )
-            bzs(i) % nkpt_z = 0
+            bzs(i) % nkpt_z = 1
             call bzs(i) % generate_2d_fraction(sys,p,q)
          end if
 
@@ -132,7 +135,7 @@ contains
          !       else
          !          bzs(i) % nkpt_x = ceiling((dble(nkpt))**(1.d0/2.d0))
          !          bzs(i) % nkpt_y = ceiling((dble(nkpt))**(1.d0/2.d0))
-         !          bzs(i) % nkpt_z = 0
+         !          bzs(i) % nkpt_z = 1
          !       end if
          !
          !       call bzs(i) % setup()
@@ -169,8 +172,8 @@ contains
       use mod_f90_kind, only: double
       implicit none
       real(double), intent(in) :: e, e0
-      logical, intent(in) :: bulk
-      integer*8, intent(in) :: nkpt_total
+      logical,      intent(in) :: bulk
+      integer*8,    intent(in) :: nkpt_total
 
       if(bulk) then
          get_nkpt_int8 = nkpt_total / (e/e0)**sqrt(3.d0) !**log(3.d0)

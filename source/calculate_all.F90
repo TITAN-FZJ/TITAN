@@ -18,8 +18,8 @@ subroutine calculate_all()
                                   allocate_susceptibilities, deallocate_susceptibilities, &
                                   create_chi_files, write_susceptibilities
   use mod_torques, only: torques, total_torques, ntypetorque, &
-                         allocate_torques, deallocate_torques, &
-                         create_torque_files, write_torques
+                          allocate_torques, deallocate_torques, &
+                          create_torque_files, write_torques
   use mod_disturbances, only: disturbances, total_disturbances, tchiorbiikl, sdmat, ldmat, &
                               allocate_disturbances, deallocate_disturbances, &
                               create_disturbance_files, write_disturbances
@@ -30,6 +30,7 @@ subroutine calculate_all()
   use mod_rotation_matrices, only: rotation_matrices_chi
   use mod_mpi_pars
   use mod_sumrule
+  use mod_check_stop
   !use mod_system, only: n0sc1, n0sc2, n0sc
   !use mod_currents !TODO: Re-Include
   !use mod_sha !TODO: Re-Include
@@ -451,15 +452,6 @@ subroutine calculate_all()
           write(time,"('[calculate_all] Time after step ',i0,': ')") count
           call write_time(output%unit_loop,time)
 
-          ! Emergency stop
-          open(unit=911, file="stop", status='old', iostat=iw)
-          if(iw==0) then
-            close(911)
-            write(output%unit,"('[calculate_all] Emergency ""stop"" file found! Stopping after step ',i0,'...')") count
-            call system ('rm stop')
-            write(output%unit,"('[calculate_all] (""stop"" file deleted!)')")
-            call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-          end if
         else
           call MPI_Send(e                  , 1                      , MPI_DOUBLE_PRECISION , 0 , 4000 , FreqComm(2) , ierr)
           call MPI_Send(q                  , 3                      , MPI_DOUBLE_PRECISION , 0 , 4001 , FreqComm(2) , ierr)
@@ -482,6 +474,10 @@ subroutine calculate_all()
           !call MPI_Send(sha_complex_total,4                ,MPI_DOUBLE_COMPLEX  ,0,5500,FreqComm(2),ierr) !TODO:Re-Include
         end if
       end if
+
+      ! Emergency stop
+      call MPI_Barrier(FieldComm, ierr)
+      call check_stop("stop",0,e)
     end do ! Energy (frequency) loop
 
   end do ! Wave vector loop

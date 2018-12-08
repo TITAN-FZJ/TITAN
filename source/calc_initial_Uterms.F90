@@ -10,31 +10,31 @@ contains
     use mod_magnet,     only: l_matrix,lb,sb,allocate_magnet_variables,deallocate_magnet_variables,rho0,rhod0
     use mod_SOC,        only: ls,allocLS
     use adaptiveMesh,   only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh
-    use mod_parameters, only: kp_in,output
+    use mod_parameters, only: kp_in,kptotal_in,output,eta
     use mod_polyBasis,  only: polyBasis => read_basis
     use mod_mpi_pars,   only: myrank,FieldComm,rField,sField,abortProgram
     use Lattice,        only: initLattice
     use mod_progress,   only: write_time
+    use mod_tools,      only: rtos
     ! use SK_TightBinding
     use mod_BrillouinZone, only: realBZ!,nkpt_x,nkpt_y,nkpt_z
     use EnergyIntegration, only: pn1
     implicit none
-    integer :: i,j,mu
+    integer :: i,j,mu,err
     type(System), intent(inout) :: sys
     type(System), allocatable   :: sys0(:)
 
     if(myrank == 0) &
-    call write_time(output%unit,'[calc_initial_Uterms] Start calculating initial density: ')
+      call write_time(output%unit,'[calc_initial_Uterms] Obtaining initial densities: ')
 
     allocate(sys0(sys%nTypes))
-
-    allocate(rho0(nOrb,sys%nAtoms),rhod0(sys%nAtoms))
 
     do i = 1, sys%nTypes
       !------------------ Define the lattice structure -------------------
       call polyBasis(trim(sys%Types(i)%Name), sys0(i))
       if(sys0(i)%nAtoms/=1) call abortProgram("[calc_initial_Uterms] Not implemented for parameter file with more than 1 atom!")
-      ! Setting the number of nearest neighbors
+
+      !------------- Setting the number of nearest neighbors -------------
       sys0(i)%nStages = sys%nStages
       sys0(i)%relTol  = sys%relTol
       !---------- Generating k points for real axis integration ----------
@@ -42,7 +42,7 @@ contains
         sys0(i)%lbulk = .false.
         realBZ % nkpt_x = kp_in(1)
         realBZ % nkpt_y = kp_in(1)
-        realBZ % nkpt_z = 0
+        realBZ % nkpt_z = 1
       else
         sys0(i)%lbulk = .true.
         realBZ % nkpt_x = kp_in(1)
@@ -50,53 +50,69 @@ contains
         realBZ % nkpt_z = kp_in(1)
       end if
       call realBZ % count(sys0(i))
-
+      
       call initLattice(sys0(i))
-
 ! if(myrank==0) call writeLattice(sys0(i))
 ! stop
-      !--- Generating k meshes points for imaginary axis integration -----
-      call generateAdaptiveMeshes(sys0(i),pn1)
+      !-------------------------- Filename strings -------------------------
+      write(output%info,"('_nkpt=',i0,'_eta=',a)") kptotal_in, trim(rtos(eta,"(es8.1)"))
 
-      !----------- Allocating variables that depend on nAtoms ------------
-      call allocate_magnet_variables(sys0(i)%nAtoms, nOrb)
-      call allocLS(sys0(i)%nAtoms,nOrb)
+      !---------------- Reading from previous calculations -----------------
+      call read_initial_Uterms(sys,sys0(i),i,err)
 
-      !-------------------- Tight Binding parameters ---------------------
-      call initTightBinding(sys0(i))
+      !---------------- Calculating if file doesn't exist ------------------
+      if(err/=0) then
+        if(myrank == 0) write(output%unit,"('[calc_initial_Uterms] Initial density file for ""',a,'"" does not exist. Calculating...')") trim(sys%Types(i)%Name)
 
-      !------- Initialize Stride Matrices for hamiltk and dtdksub --------
-      call initHamiltkStride(sys0(i)%nAtoms, nOrb)
+        !--- Generating k meshes points for imaginary axis integration -----
+        call generateAdaptiveMeshes(sys0(i),pn1)
 
-      !---- L matrix in global frame for given quantization direction ----
-      call l_matrix()
+        !----------- Allocating variables that depend on nAtoms ------------
+        call allocate_magnet_variables(sys0(i)%nAtoms, nOrb)
+        call allocLS(sys0(i)%nAtoms,nOrb)
 
-      !----- Removing L.B, S.B and L.S matrices from the hamiltonian -----
-      lb = cZero
-      sb = cZero
-      ls = cZero
+        !-------------------- Tight Binding parameters ---------------------
+        call initTightBinding(sys0(i))
 
-      ! Distribute Energy Integration across all points available
-      call genLocalEKMesh(sys0(i),rField,sField, FieldComm)
+        !------- Initialize Stride Matrices for hamiltk and dtdksub --------
+        call initHamiltkStride(sys0(i)%nAtoms, nOrb)
 
-      !---------------- Calculating expectation values -------------------
-      call calc_expectation_values(sys0(i),sys%Types(i)%rho0,sys%Types(i)%rhod0)
+        !---- L matrix in global frame for given quantization direction ----
+        call l_matrix()
+
+        !----- Removing L.B, S.B and L.S matrices from the hamiltonian -----
+        lb = cZero
+        sb = cZero
+        ls = cZero
+
+        ! Distribute Energy Integration across all points available
+        call genLocalEKMesh(sys0(i),rField,sField, FieldComm)
+
+        !---------------- Calculating expectation values -------------------
+        call calc_expectation_values(sys0(i),sys%Types(i)%rho0,sys%Types(i)%rhod0)
+
+        !-------------- Writing initial densities to files -----------------
+        if(myrank == 0) call write_initial_Uterms(sys,sys0(i),i)
+
+        !------------------------ Freeing memory ---------------------------
+        call freeLocalEKMesh()
+
+        !-------------------- Deallocating variables -----------------------
+        call deallocate_magnet_variables()
+
+      end if ! err
 
       !------------------------- Test printing ---------------------------
       if(myrank == 0) then
-        write(output%unit,"('[calc_initial_Uterms] Calculating initial densities from: ',a)") trim(sys0(i)%Name)
+        write(output%unit,"('[calc_initial_Uterms] Initial densities from: ',a)") trim(sys0(i)%Name)
         write(output%unit,"(a,12(2x,es16.9))") trim(sys%Types(i)%Name) , ((sys%Types(i)%rho0(mu,j),mu=1,nOrb),j=1,sys0(i)%nAtoms)
         write(output%unit,"(a,12(2x,es16.9))") trim(sys%Types(i)%Name) , (sys%Types(i)%rhod0(j),j=1,sys0(i)%nAtoms)
       end if
-
-      !------------------------ Freeing memory ---------------------------
-      call freeLocalEKMesh()
-
-      !--------------------- Deallocating variables ------------------------
-      call deallocate_magnet_variables()
     end do
 
     ! Transfering from occupations stored on Type to variables used in the hamiltonian
+    if(.not.allocated(rho0 )) allocate(rho0(nOrb,sys%nAtoms))
+    if(.not.allocated(rhod0)) allocate(rhod0(sys%nAtoms))
     do i=1,sys%nAtoms
       rho0(:,i) = sys%Types(sys%Basis(i)%Material)%rho0(:,1)
       rhod0(i)  = sys%Types(sys%Basis(i)%Material)%rhod0(1)
@@ -200,4 +216,77 @@ contains
     deallocate(imguu,imgdd)
 
   end subroutine calc_expectation_values
+
+  subroutine write_initial_Uterms(sys,sys0,i)
+    !! Writes the initial orbital dependent densities (calculated with tight-binding hamiltonian only) into files
+    use mod_parameters,    only: output, dfttype
+    use EnergyIntegration, only: parts
+    use mod_System,        only: System
+    use TightBinding,      only: nOrb
+    implicit none
+    character(len=500) :: filename
+    character(len=30) :: formatvar
+    type(System), intent(in) :: sys0,sys
+    integer,      intent(in) :: i
+    integer           :: j,mu
+
+    write(output%unit,"('[write_initial_Uterms] Writing initial densities of ""',a,'"" to file:')") trim(sys0%Name)
+    write(filename,"('./results/FSOC/selfconsistency/initialrho_',a,'_dfttype=',a,'_parts=',i0,a,'.dat')") trim(sys%Types(i)%Name), dfttype, parts,trim(output%info)
+    write(output%unit,"('[write_initial_Uterms] ',a)") trim(filename)
+    open (unit=98,status='replace',file=filename)
+
+    write(formatvar,fmt="(a,i0,a)") '(',nOrb*sys0%nAtoms,'(es21.11,2x))'
+    write(98,fmt=formatvar) ((sys%Types(i)%rho0(mu,j),mu=1,nOrb),j=1,sys0%nAtoms)
+    write(formatvar,fmt="(a,i0,a)") '(',sys0%nAtoms,'(es21.11,2x))'
+    write(98,fmt=formatvar) (sys%Types(i)%rhod0(j),j=1,sys0%nAtoms)
+
+    close(98)
+  end subroutine write_initial_Uterms
+
+
+  subroutine read_initial_Uterms(sys,sys0,i,err)
+    !! Writes the initial orbital dependent densities (calculated with tight-binding hamiltonian only) into files
+    use mod_f90_kind,      only: double
+    use mod_parameters,    only: output, dfttype
+    use EnergyIntegration, only: parts
+    use mod_System,        only: System
+    use TightBinding,      only: nOrb
+    use mod_mpi_pars
+    implicit none
+    character(len=500) :: filename
+    type(System), intent(in)    :: sys0
+    type(System), intent(inout) :: sys
+    integer,      intent(in)    :: i
+    integer,      intent(out)   :: err
+    integer           :: j,mu
+    real(double)      :: previous_results_rho0(nOrb,sys0%nAtoms),previous_results_rhod0(sys0%nAtoms)
+
+    write(filename,"('./results/FSOC/selfconsistency/initialrho_',a,'_dfttype=',a,'_parts=',i0,a,'.dat')") trim(sys%Types(i)%Name), dfttype, parts,trim(output%info)
+    open(unit=97,file=filename,status="old",iostat=err)
+    if(err/=0) return
+
+    if(rField==0) then 
+      write(output%unit,"('[read_initial_Uterms] Initial density file for ""',a,'"" already exists. Reading it from file:')") trim(sys%Types(i)%Name)
+      write(output%unit,"(a)") trim(filename)
+    end if
+
+    read(97,fmt=*) ((previous_results_rho0(mu,j),mu=1,nOrb),j=1,sys0%nAtoms)
+    read(97,fmt=*) (previous_results_rhod0(j),j=1,sys0%nAtoms)
+    close(97)
+
+    call MPI_Bcast(previous_results_rho0 ,nOrb*sys0%nAtoms,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
+    call MPI_Bcast(previous_results_rhod0,sys0%nAtoms     ,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
+
+    if(.not.allocated(sys%Types(i)%rho0 )) allocate(sys%Types(i)%rho0(nOrb,sys%nAtoms))
+    if(.not.allocated(sys%Types(i)%rhod0)) allocate(sys%Types(i)%rhod0(sys%nAtoms))
+
+    do j=1,sys0%nAtoms
+      do mu=1,nOrb
+        sys%Types(i)%rho0(mu,j) = previous_results_rho0(mu,j)
+      end do
+      sys%Types(i)%rhod0(j) = previous_results_rhod0(j)
+    end do
+
+  end subroutine read_initial_Uterms
+
 end module expectation

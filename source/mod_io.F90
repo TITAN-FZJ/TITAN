@@ -80,7 +80,7 @@ contains
     type(System), intent(inout) :: s
     character(len=20), allocatable :: s_vector(:)
     real(double), allocatable :: vector(:)
-    integer*8, allocatable :: i_vector(:)
+    integer*8,    allocatable :: i_vector(:)
     integer :: i, cnt
     character(len=20) :: tmp_string
     if(.not. read_file(filename)) &
@@ -117,20 +117,20 @@ contains
 
     if(.not. get_parameter("nkpt", i_vector,cnt)) call log_error("get_parameters","'nkpt' missing.")
     if(cnt == 1) then
-      kptotal_in = i_vector(1)
+      kptotal_in = int( i_vector(1), kind(kptotal_in) )
       if(s%lbulk) then
-        kp_in(:) = ceiling((dble(kptotal_in))**(1.d0/3.d0))
-        kptotal_in = kp_in(1) * kp_in(2) * kp_in(3)
+        kp_in(:) = ceiling((dble(kptotal_in))**(1.d0/3.d0), kind(kp_in(1)) )
+        kptotal_in = int( kp_in(1) * kp_in(2) * kp_in(3), kind(kptotal_in) )
       else
-        kp_in(1:2) = ceiling((dble(kptotal_in))**(1.d0/2.d0))
+        kp_in(1:2) = ceiling((dble(kptotal_in))**(1.d0/2.d0), kind(kp_in(1)) )
         kp_in(3) = 0
-        kptotal_in = kp_in(1) * kp_in(2)
+        kptotal_in = int( kp_in(1) * kp_in(2), kind(kptotal_in) )
       end if
     else if(cnt == 3) then
-      kp_in(1) = i_vector(1)
-      kp_in(2) = i_vector(2)
-      kp_in(3) = i_vector(3)
-      kptotal_in = kp_in(1) * kp_in(2) * kp_in(3)
+      kp_in(1) = int( i_vector(1), kind(kp_in(1)) )
+      kp_in(2) = int( i_vector(2), kind(kp_in(2)) )
+      kp_in(3) = int( i_vector(3), kind(kp_in(3)) )
+      kptotal_in = int( kp_in(1) * kp_in(2) * kp_in(3), kind(kptotal_in) )
     else
       call log_error("get_parameter", "'nkpt' has wrong size (expected 1 or 3)")
     end if

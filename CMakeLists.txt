@@ -46,7 +46,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/fermi_surface.F90
                                   source/Atom_variables.F90
                                   source/mod_rotation_matrices.F90
-                                  source/check_emergency_stop.F90
+                                  source/mod_check_stop.F90
                                   source/band_structure.F90
                                   source/mod_f90_kind.F90
                                   source/mod_constants.F90
@@ -197,6 +197,6 @@ if(DEBUG)
                                               -g
                                               -O0)
 else()
-  target_compile_options(${TITAN_EXE} PRIVATE -O3)
+  target_compile_options(${TITAN_EXE} PRIVATE -O1)
 endif(DEBUG)
 #target_link_libraries(${EXEC_NAME} ${NAG}/lib/libnag_nag.a -qopenmp)

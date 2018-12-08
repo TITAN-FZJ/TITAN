@@ -120,6 +120,8 @@ contains
     complex(double), dimension(3,3) :: acart_t_inv,acart_St_inv,acart_LS_inv,acart_SL_inv,acart_LL_inv
     integer :: i, p,q,r,t
 
+    call allocate_alpha()
+
     call open_alpha_files()
 
     m_chi = schi
@@ -191,6 +193,8 @@ contains
     end do
 
     call close_alpha_files()
+
+    call deallocate_alpha()
 
   end subroutine write_alpha
 

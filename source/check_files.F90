@@ -8,7 +8,7 @@ subroutine check_files()
   use mod_beff, only: open_beff_files, close_beff_files, &
                       open_dc_beff_files, close_dc_beff_files
   use mod_torques, only: open_torque_files, close_torque_files, &
-                         open_dc_torque_files, close_dc_torque_files
+                          open_dc_torque_files, close_dc_torque_files
   use mod_magnet, only: hw_count
   use mod_LDOS, only: openLDOSFiles,closeLDOSFiles
   !use mod_currents, only: openclose_currents_files, openclose_dc_currents_files !TODO: Re-Include
