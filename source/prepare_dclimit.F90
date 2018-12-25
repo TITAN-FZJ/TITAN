@@ -20,10 +20,10 @@ subroutine prepare_dclimit()
   end if
 
   ! Allocating variable to write value of the fields on file
-  allocate(dc_fields(total_hw_npt1),dcprefix(npt1))
+  allocate(dc_fields(total_hw_npt1),dcprefix(nEner1))
 
   ! Prefix for filenames containing the frequency/energy
-  do count=1,npt1
+  do count=1,nEner1
     e = emin + deltae*(count-1)
     if(e<2.d-6) then
       write(dcprefix(count),fmt="('dc')")

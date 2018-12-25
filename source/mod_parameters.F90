@@ -16,9 +16,9 @@ module mod_parameters
   integer       :: dim
   !! Dimension: 4 spins x number of atoms in the unit cell x number of orbitals^2
 
-  integer, dimension(3) :: kp_in
+  integer*8, dimension(3) :: kp_in
   !! Number of k-points in each direction
-  integer :: kptotal_in
+  integer*8 :: kptotal_in
   !! Total number of k-points
 
   !========================================================================================!
@@ -36,33 +36,36 @@ module mod_parameters
   logical          :: bulk = .false.
   !! Flag turning on/off bulk calculations, default: .false., not used yet
   !========================================================================================!
-  character(len=50)  :: magbasis = ""
-  !! Basis to give initial magnetization in 'initialmag' file
-  real(double),allocatable       :: initialmag(:,:)
-  !! Initial guess for magnetization
   real(double)       :: theta=0.d0,phi=0.d0
   !! Euler Angles for the magnetization frame of reference
   !========================================================================================!
   integer :: itype
   !! type of calculation - defined in input file 'input'
-
   !========================================================================================!
-  ! Number of parts to divide energy integral I1+I2 and I3
-  !========================================================================================!
-  character(len=5), dimension(:), allocatable :: bands
-  !! Band structure
+  character(len=10), dimension(:), allocatable :: bands
+  !! Band structure points
   integer :: band_cnt
+  !! Number of points along the loop path
   !========================================================================================!
-  ! Number of points and interval of energy/wave vector/position calculations
-  integer      :: npts,npt1,count
-  !! Number of energy points (+1) and counter
+  integer      :: nEner,nEner1,count
+  ! Number of points of energy (frequency) loops
   real(double) :: emin,emax,deltae
-  !! Minimum energy, maximum energy, and step size
-  real(double) :: qxmin,qxmax,qzmin,qzmax
-  !! Minimum and maximum q-vector
-  integer :: skip_steps = 0
+  !! Minimum and maximum energy (frequency), and step size
+  integer      :: skip_steps = 0
   !! Number of steps to skip from the beginning
   !! (useful to get the same points after a calculation has stopped)
+  integer      :: nQvec,nQvec1
+  !! Number of points of wave vector loops, and step size (band structure and susceptibility)
+  real(double) :: deltak
+  !! Step size of wave vector loops (band structure and susceptibility)
+  real(double), dimension(:,:), allocatable :: band_points
+  !! Band points used in wave vector loop
+  real(double), allocatable :: kpoints(:,:)
+  !! Kpoints in the wave vector loop
+  character(len=50)  :: qbasis = ""
+  !! Basis to use on kpoints given in kbands file. Default: reciprocal lattice vectors
+  character(len=400) :: bsfile
+  !! Filename for band structure calculation
   !========================================================================================!
   integer,allocatable :: sigmaimunu2i(:,:,:,:),sigmaijmunu2i(:,:,:,:,:),sigmai2i(:,:)
   !! Conversion arrays
@@ -86,6 +89,7 @@ module mod_parameters
   logical :: lsha           = .false.
   logical :: llgtv          = .false.
   logical :: lcheckjac      = .false.
+  logical :: lsimplemix     = .false.
   !========================================================================================!
   ! Activate debug options
   logical :: lverbose = .false.

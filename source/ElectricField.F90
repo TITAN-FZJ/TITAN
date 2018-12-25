@@ -32,10 +32,10 @@ contains
       ElectricFieldVector(1:3) = [cos(EFp*deg2rad)*sin(EFt*deg2rad), sin(EFp*deg2rad)*sin(EFt*deg2rad), cos(EFt*deg2rad)]
 
     else if(1 <= ElectricFieldMode) then ! not Implemented anyway!  .and. dirEfield <= s%nAtoms) then
-      if(myrank.eq.0) call abortProgram("[initElectricField] Electric Field along Atom Directions not implemented yet!!")
+      if(myrank==0) call abortProgram("[initElectricField] Electric Field along Atom Directions not implemented yet!!")
 
     else
-      if(myrank.eq.0) call abortProgram("[initElectricField] Unknown E-Field direction!")
+      if(myrank==0) call abortProgram("[initElectricField] Unknown E-Field direction!")
 
     end if
 

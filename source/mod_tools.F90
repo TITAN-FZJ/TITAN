@@ -1,6 +1,16 @@
 module mod_tools
   implicit none
 
+  interface itos
+    module procedure i4tos, &
+                      i8tos
+  end interface itos
+
+  interface sort
+    module procedure sort_int, &
+                      sort_double_int
+  end interface sort
+
 contains
 
   ! --------------------------------------------------------------------
@@ -43,7 +53,7 @@ contains
     is_parallel = .false.
     crs = cross(a,b)
     if( 1d-9 > dot_product(crs(1:3),crs(1:3)) ) then
-       is_parallel = .true.
+      is_parallel = .true.
     end if
   end function is_parallel
 
@@ -60,7 +70,7 @@ contains
 
     is_perpendicular = .false.
     if( 1.d-9 > abs(dot_product(a,b)) ) then
-       is_perpendicular = .true.
+      is_perpendicular = .true.
     end if
   end function is_perpendicular
 
@@ -83,26 +93,57 @@ contains
   end function cross_unit
 
   ! --------------------------------------------------------------------
-  ! subroutine Sort():
+  ! subroutine sort_int():
   !    This subroutine receives an array x() and returns an integer array
   !  'order' with the positions of ascending numbers of x.
   ! --------------------------------------------------------------------
-  subroutine sort(x, size, order)
+  subroutine sort_int(x, size, order)
     use mod_f90_kind, only: double
-    implicit  none
-    integer, intent(in)                        :: size
+    implicit none
+    integer,                       intent(in)  :: size
     real(double), dimension(size), intent(in)  :: x
     integer     , dimension(size), intent(out) :: order
     integer                                    :: i
-    logical, dimension(size) :: mask
+    logical,      dimension(:), allocatable    :: mask
+
+    allocate( mask(size) )
 
     mask = .true.
     do i = 1,size
-       order(i) = minloc(x,1,mask)
-       mask(order(i)) = .false.
+      order(i) = minloc( x, 1, mask(:) )
+      mask(order(i)) = .false.
     end do
 
-  end subroutine sort
+    deallocate( mask )
+
+  end subroutine sort_int
+
+  ! --------------------------------------------------------------------
+  ! subroutine sort_double_int():
+  !    This subroutine receives an array x() and returns an double integer array
+  !  'order' with the positions of ascending numbers of x.
+  ! --------------------------------------------------------------------
+  subroutine sort_double_int(x, size, order)
+    use mod_f90_kind, only: double
+    implicit none
+    integer*8,                     intent(in)  :: size
+    real(double), dimension(size), intent(in)  :: x
+    integer*8   , dimension(size), intent(out) :: order
+    integer*8                                  :: i
+    logical,      dimension(:), allocatable    :: mask
+
+    allocate( mask(size) )
+
+    mask(:) = .true.
+    do i = 1,size
+      order(i) = minloc( x, 1, mask(:) )
+      mask(order(i)) = .false.
+    end do
+
+    deallocate( mask )
+
+  end subroutine sort_double_int
+
 
   ! --------------------------------------------------------------------
   ! subroutine number_of_lines():
@@ -111,7 +152,7 @@ contains
   ! Blank lines are ignored.
   ! --------------------------------------------------------------------
   subroutine number_of_lines(unit,total_lines,non_commented)
-    implicit  none
+    implicit none
     integer, intent(out) :: total_lines, non_commented
     integer, intent(in)  :: unit
     character(len=20)    :: stringtemp
@@ -123,15 +164,15 @@ contains
     non_commented  = 0
     total_lines    = 0
     do
-       read (unit=unit,fmt=*,iostat=ios) stringtemp
-       if (ios/=0) exit
-       if (stringtemp=="") cycle ! If the line is blank, ignore
-       ! Total number of non-empty lines
-       total_lines = total_lines + 1
+      read (unit=unit,fmt=*,iostat=ios) stringtemp
+      if (ios/=0) exit
+      if (stringtemp=="") cycle ! If the line is blank, ignore
+      ! Total number of non-empty lines
+      total_lines = total_lines + 1
 
-       ! Getting the number of non-commented lines
-       if ((stringtemp(1:1)=="#").or.(stringtemp(1:1)=="!")) cycle
-       non_commented = non_commented + 1
+      ! Getting the number of non-commented lines
+      if ((stringtemp(1:1)=="#").or.(stringtemp(1:1)=="!")) cycle
+      non_commented = non_commented + 1
     end do
 
   end subroutine number_of_lines
@@ -143,7 +184,7 @@ contains
   ! (given by "unit", already opened).
   ! --------------------------------------------------------------------
   subroutine number_of_rows_cols(unit,rows,cols)
-    implicit  none
+    implicit none
     integer, intent(out) :: rows, cols
     integer, intent(in)  :: unit
     character(len=900)   :: stringtemp
@@ -153,11 +194,11 @@ contains
     ! Counting the number of lines
     rows  = 0
     do
-       read (unit=unit,fmt='(A)',iostat=ios) stringtemp
-       if (ios/=0) exit
-       ! Getting the number of rows
-       if ((stringtemp(1:1)=="#").or.(stringtemp(1:1)=="!").or.(stringtemp=="")) cycle
-       rows = rows + 1
+      read (unit=unit,fmt='(A)',iostat=ios) stringtemp
+      if (ios/=0) exit
+      ! Getting the number of rows
+      if ((stringtemp(1:1)=="#").or.(stringtemp(1:1)=="!").or.(stringtemp=="")) cycle
+      rows = rows + 1
     end do
     cols = count([( stringtemp(i:i), i=1,len(stringtemp) )] == "E")
 
@@ -173,7 +214,7 @@ contains
   subroutine read_data(unit,rows,cols,data)
     use mod_f90_kind, only: double
     use mod_mpi_pars, only: abortProgram
-    implicit  none
+    implicit none
     integer     , intent(in)  :: unit,rows,cols
     real(double), intent(out) :: data(rows,cols)
     character(len=900)        :: stringtemp
@@ -182,12 +223,12 @@ contains
     rewind unit
     i = 0
     do
-       read(unit=unit,fmt='(A)',iostat=ios) stringtemp
-       if (ios/=0) exit
-       if ((stringtemp(1:1)=="#").or.(stringtemp(1:1)=="!").or.(stringtemp=="")) cycle
-       i=i+1
-       read(unit=stringtemp,fmt=*,iostat=ios) (data(i,j),j=1,cols)
-       if (ios/=0)  call abortProgram("[read_data] Incorrect number of cols: " // trim(itos(j)) // " when expecting " // trim(itos(cols)))
+      read(unit=unit,fmt='(A)',iostat=ios) stringtemp
+      if (ios/=0) exit
+      if ((stringtemp(1:1)=="#").or.(stringtemp(1:1)=="!").or.(stringtemp=="")) cycle
+      i=i+1
+      read(unit=stringtemp,fmt=*,iostat=ios) (data(i,j),j=1,cols)
+      if (ios/=0)  call abortProgram("[read_data] Incorrect number of cols: " // trim(itos(j)) // " when expecting " // trim(itos(cols)))
     end do
 
     if(i/=rows) call abortProgram("[read_data] Incorrect number of rows: " // trim(itos(i)) // " when expecting " // trim(itos(rows)))
@@ -205,7 +246,7 @@ contains
   ! --------------------------------------------------------------------
   subroutine sort_file(unit,header)
     use mod_f90_kind, only: double
-    implicit  none
+    implicit none
     integer, intent(in) :: unit
     logical, intent(in) :: header
     character(len=50)   :: colformat
@@ -233,7 +274,7 @@ contains
     ! Rewriting data, now sorted
     write(colformat,fmt="(a,i0,a)") '(',cols,'(es16.9,2x))'
     do i=1,rows
-       write(unit=unit,fmt=trim(colformat)) (data(order(i),j),j=1,cols)
+      write(unit=unit,fmt=trim(colformat)) (data(order(i),j),j=1,cols)
     end do
 
     deallocate(data,x,order)
@@ -244,11 +285,16 @@ contains
   ! function ItoS():
   !    This function transforms an integer i into a character variable ItoS
   ! --------------------------------------------------------------------
-  character(len=900) function ItoS(i)
+  character(len=100) function I4toS(i)
     implicit none
     integer :: i
-    write(Itos, "(i0)") i
-  end function ItoS
+    write(I4toS, "(i0)") i
+  end function I4toS
+  character(len=100) function I8toS(i)
+    implicit none
+    integer*8 :: i
+    write(I8toS, "(i0)") i
+  end function I8toS
 
   ! --------------------------------------------------------------------
   ! function RtoS():

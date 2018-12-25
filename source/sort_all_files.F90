@@ -1,6 +1,6 @@
 ! Sort all files
 subroutine sort_all_files()
-  use mod_parameters, only: itype,count,npt1,output
+  use mod_parameters, only: itype,count,nEner1,output
   use mod_magnet, only: hw_count
   use mod_susceptibilities
   use mod_disturbances
@@ -34,7 +34,7 @@ subroutine sort_all_files()
     !call sort_sha() !TODO: Re-Include
   case (9)
     if(hw_count==1) then
-      do count = 1, npt1
+      do count = 1, nEner1
         ! SORTING SUSCEPTIBILITIES
         call sort_susceptibilities()
         ! SORTING DISTURBANCES

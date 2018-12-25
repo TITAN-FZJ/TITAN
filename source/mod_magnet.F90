@@ -192,6 +192,7 @@ contains
         hhw(1,i) = -0.5d0*hwscale(i)*hw_list(hw_count,1)*sin((hw_list(hw_count,2) + hwtrotate(i))*deg2rad)*cos((hw_list(hw_count,3) + hwprotate(i))*deg2rad)*tesla
         hhw(2,i) = -0.5d0*hwscale(i)*hw_list(hw_count,1)*sin((hw_list(hw_count,2) + hwtrotate(i))*deg2rad)*sin((hw_list(hw_count,3) + hwprotate(i))*deg2rad)*tesla
         hhw(3,i) = -0.5d0*hwscale(i)*hw_list(hw_count,1)*cos((hw_list(hw_count,2) + hwtrotate(i))*deg2rad)*tesla
+        !          ^ EXTRA MINUS SIGN
         if(abs(hhw(1,i))<1.d-8) hhw(1,i) = 0.d0
         if(abs(hhw(2,i))<1.d-8) hhw(2,i) = 0.d0
         if(abs(hhw(3,i))<1.d-8) hhw(3,i) = 0.d0
@@ -376,28 +377,18 @@ contains
   subroutine deallocate_magnet_variables()
     implicit none
 
-    if(allocated(lxp)) deallocate(lxp)
-    if(allocated(lyp)) deallocate(lyp)
-    if(allocated(lzp)) deallocate(lzp)
-    if(allocated(lpvec)) deallocate(lpvec)
-    if(allocated(lx)) deallocate(lx)
-    if(allocated(ly)) deallocate(ly)
-    if(allocated(lz)) deallocate(lz)
-    if(allocated(lvec )) deallocate(lvec )
-    if(allocated(lb)) deallocate(lb)
-    if(allocated(sb)) deallocate(sb)
     if(allocated(rho)) deallocate(rho)
     if(allocated(mx)) deallocate(mx)
     if(allocated(my)) deallocate(my)
     if(allocated(mz)) deallocate(mz)
     if(allocated(mp)) deallocate(mp)
-    if(allocated(rhod)) deallocate(rhod)
+    if(allocated(mvec_cartesian)) deallocate(mvec_cartesian)
+    if(allocated(mvec_spherical)) deallocate(mvec_spherical)
     if(allocated(mxd)) deallocate(mxd)
     if(allocated(myd)) deallocate(myd)
     if(allocated(mzd)) deallocate(mzd)
     if(allocated(mpd)) deallocate(mpd)
-    if(allocated(mvec_spherical)) deallocate(mvec_spherical)
-    if(allocated(mvec_cartesian)) deallocate(mvec_cartesian)
+    if(allocated(rhod)) deallocate(rhod)
     if(allocated(mabs)) deallocate(mabs)
     if(allocated(mtheta)) deallocate(mtheta)
     if(allocated(mphi)) deallocate(mphi)
@@ -407,15 +398,24 @@ contains
     if(allocated(lpabs)) deallocate(lpabs)
     if(allocated(lptheta)) deallocate(lptheta)
     if(allocated(lpphi)) deallocate(lpphi)
+    if(allocated(hhw)) deallocate(hhw)
+    if(allocated(lx)) deallocate(lx)
+    if(allocated(ly)) deallocate(ly)
+    if(allocated(lz)) deallocate(lz)
+    if(allocated(lvec )) deallocate(lvec )
+    if(allocated(sb)) deallocate(sb)
+    if(allocated(lb)) deallocate(lb)
+    if(allocated(lxp)) deallocate(lxp)
+    if(allocated(lyp)) deallocate(lyp)
+    if(allocated(lzp)) deallocate(lzp)
+    if(allocated(lpvec)) deallocate(lpvec)
+
     if(allocated(lxm)) deallocate(lxm)
     if(allocated(lym)) deallocate(lym)
     if(allocated(lzm)) deallocate(lzm)
     if(allocated(lxpm)) deallocate(lxpm)
     if(allocated(lypm)) deallocate(lypm)
     if(allocated(lzpm)) deallocate(lzpm)
-    if(allocated(hhw)) deallocate(hhw)
-    if(allocated(sb)) deallocate(sb)
-    if(allocated(lb)) deallocate(lb)
   end subroutine
 
   subroutine set_fieldpart(count)
@@ -426,18 +426,18 @@ contains
 
     output%BField = ""
     if(lfield) then
-     write(output%BField, "('_hwa=',a,'_hwt=',a,'_hwp=',a)") trim(rtos(hw_list(count,1),"(es9.2)")),trim(rtos(hw_list(count,2),"(es7.2)")),trim(rtos(hw_list(count,3),"(es7.2)"))
-     if(ltesla)    output%BField = trim(output%BField) // "_tesla"
-     if(lnolb)     output%BField = trim(output%BField) // "_nolb"
-     if(lhwscale)  output%BField = trim(output%BField) // "_hwscale"
-     if(lhwrotate) output%BField = trim(output%BField) // "_hwrotate"
+      write(output%BField, "('_hwa=',a,'_hwt=',a,'_hwp=',a)") trim(rtos(hw_list(count,1),"(es9.2)")),trim(rtos(hw_list(count,2),"(f7.2)")),trim(rtos(hw_list(count,3),"(f7.2)"))
+      if(ltesla)    output%BField = trim(output%BField) // "_tesla"
+      if(lnolb)     output%BField = trim(output%BField) // "_nolb"
+      if(lhwscale)  output%BField = trim(output%BField) // "_hwscale"
+      if(lhwrotate) output%BField = trim(output%BField) // "_hwrotate"
     end if
 
     output%dcBField = ""
     if(dcfield_dependence/=7) then
-     if((dcfield_dependence/=1).and.(dcfield_dependence/=4).and.(dcfield_dependence/=5)) write(output%dcBField,"(a,'_hwa=',a)") trim(output%dcBField),trim(rtos(hwa,"(es9.2)"))
-     if((dcfield_dependence/=2).and.(dcfield_dependence/=4).and.(dcfield_dependence/=6)) write(output%dcBField,"(a,'_hwt=',a)") trim(output%dcBField),trim(rtos(hwt,"(es7.2)"))
-     if((dcfield_dependence/=3).and.(dcfield_dependence/=5).and.(dcfield_dependence/=6)) write(output%dcBField,"(a,'_hwp=',a)") trim(output%dcBField),trim(rtos(hwp,"(es7.2)"))
+      if((dcfield_dependence/=1).and.(dcfield_dependence/=4).and.(dcfield_dependence/=5)) write(output%dcBField,"(a,'_hwa=',a)") trim(output%dcBField),trim(rtos(hwa,"(es9.2)"))
+      if((dcfield_dependence/=2).and.(dcfield_dependence/=4).and.(dcfield_dependence/=6)) write(output%dcBField,"(a,'_hwt=',a)") trim(output%dcBField),trim(rtos(hwt,"(f7.2)"))
+      if((dcfield_dependence/=3).and.(dcfield_dependence/=5).and.(dcfield_dependence/=6)) write(output%dcBField,"(a,'_hwp=',a)") trim(output%dcBField),trim(rtos(hwp,"(f7.2)"))
     end if
     if(ltesla)    output%dcBField = trim(output%dcBField) // "_tesla"
     if(lnolb)     output%dcBField = trim(output%dcBField) // "_nolb"

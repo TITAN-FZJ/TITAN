@@ -21,9 +21,10 @@ module mod_polyBasis
 contains
 
   subroutine read_basis(filename, s)
-    use mod_system,   only: System
-    use mod_mpi_pars, only: myrank
-    use mod_mpi_pars, only: abortProgram
+    use mod_system,    only: System
+    use mod_mpi_pars,  only: myrank,abortProgram
+    use mod_constants, only: tpi
+    use mod_tools,     only: cross
     implicit none
 
     character(len=*), intent(in) :: filename
@@ -38,7 +39,7 @@ contains
     character(len=1) :: coord_type
 
     open(unit = f_unit, file=trim(filename), status='old', iostat = ios)
-    if((ios /= 0).and.(myrank.eq.0)) call abortProgram("[read_basis] Error reading " // trim(filename))
+    if((ios /= 0).and.(myrank==0)) call abortProgram("[read_basis] Error reading " // trim(filename))
 
     read(f_unit, fmt='(A)', iostat=ios) s%Name
     s%Name = trim(adjustl(s%Name))
@@ -48,12 +49,12 @@ contains
 
     read(f_unit, fmt='(A)', iostat=ios) line
     read(unit=line, fmt=*, iostat=ios) (s%a1(i), i=1,3)
-    if((dot_product(s%a1,s%a1) <= 1.d-9).and.(myrank.eq.0)) call abortProgram("[read_basis] a1 not given properly in '" // trim(filename) // "'!")
+    if((dot_product(s%a1,s%a1) <= 1.d-9).and.(myrank==0)) call abortProgram("[read_basis] a1 not given properly in '" // trim(filename) // "'!")
     s%a1 = s%a1 * s%a0
 
     read(f_unit, fmt='(A)', iostat=ios) line
     read(unit=line, fmt=*, iostat=ios) (s%a2(i), i=1,3)
-    if((dot_product(s%a2,s%a2) <= 1.d-9).and.(myrank.eq.0)) call abortProgram("[read_basis] a2 not given properly in '" // trim(filename) // "'!")
+    if((dot_product(s%a2,s%a2) <= 1.d-9).and.(myrank==0)) call abortProgram("[read_basis] a2 not given properly in '" // trim(filename) // "'!")
     s%a2 = s%a2 * s%a0
 
     read(f_unit, fmt='(A)', iostat=ios) line
@@ -93,19 +94,27 @@ contains
       line = ""
       do while(len_trim(line) == 0 .or. len_trim(line) == 200)
         read(f_unit, fmt='(A)', iostat=ios) line
-        if((ios /= 0).and.(myrank.eq.0)) call abortProgram("[read_basis] Not enough basis atoms given in '" // trim(filename) // "'!")
+        if((ios /= 0).and.(myrank==0)) call abortProgram("[read_basis] Not enough basis atoms given in '" // trim(filename) // "'!")
       end do
       k = k + 1
       s%Basis(k)%Material = i
       read(unit=line, fmt=*, iostat=ios) (s%Basis(k)%Position(l), l=1,3)
-      if(coord_type == 'D' .or. coord_type == 'd') then
+      if(coord_type == 'C' .or. coord_type == 'c' .or. coord_type == 'K' .or. coord_type == 'k') then
+        ! Positions of atoms given in Cartesian coordinates
         s%Basis(k)%Position = s%Basis(k)%Position * s%a0
       else
-        if((s%lbulk).and.(dot_product(s%a3,s%a3) <= 1.d-9).and.(myrank.eq.0)) call abortProgram("[read_basis] a3 not given properly in '" // trim(filename) // "'!")
+        ! Position of atoms given in Bravais (or Direct, Internal, Lattice) coordinates
+        if((s%lbulk).and.(dot_product(s%a3,s%a3) <= 1.d-9).and.(myrank==0)) call abortProgram("[read_basis] a3 not given properly in '" // trim(filename) // "'!")
         s%Basis(k)%Position = s%Basis(k)%Position(1) * s%a1 + s%Basis(k)%Position(2) * s%a2 + s%Basis(k)%Position(3) * s%a3
       end if
       end do
     end do
+
+    ! Calculating volume of BZ and reciprocal lattice vectors
+    s%vol   = tpi / dot_product(s%a1, cross(s%a2,s%a3))
+    s%b1(:) = s%vol * cross(s%a2, s%a3)
+    s%b2(:) = s%vol * cross(s%a3, s%a1)
+    s%b3(:) = s%vol * cross(s%a1, s%a2)
 
     close(f_unit)
     ! write(unit=out_unit, fmt=*) ""

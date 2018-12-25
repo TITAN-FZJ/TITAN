@@ -98,13 +98,13 @@ contains
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/SHA_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),filename(j),i,trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
-          if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+          if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
         end do
         iw = 8200+Npl*3+j-1
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/SHA_',a,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),filename(j),trim(output%Energy),trim(output%info),trim(fieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
-        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+        if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
       end do
 
       ! Stop if some file does not exist
@@ -206,7 +206,7 @@ contains
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           if(.not.lsha) then
             errt = errt + err
-            if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+            if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
           end if
         end do
         iw = 82000+Npl*3+j-1
@@ -214,7 +214,7 @@ contains
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         if(.not.lsha) then
           errt = errt + err
-          if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+          if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
         end if
       end do
 
@@ -411,7 +411,7 @@ contains
         ! Allocating current and SHA variables
         call allocate_currents()
         call allocate_sha()
-        energy_loop: do count=1,npt1
+        energy_loop: do count=1,nEner1
           ! Creating SHA files with headers
           call openclose_dc_sha_files(0)
 

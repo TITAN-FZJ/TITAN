@@ -18,7 +18,6 @@ module mod_susceptibilities
   complex(double), dimension(:),   allocatable :: eval, work
   complex(double), dimension(:,:), allocatable :: chimag,evecl,evecr
 
-
 contains
 
   subroutine allocate_susceptibilities()
@@ -97,7 +96,6 @@ contains
     if(allocated(evecl)) deallocate(evecl)
     if(allocated(evecr)) deallocate(evecr)
     if(allocated(work)) deallocate(work)
-
     if(allocated(chiorb)) deallocate(chiorb)
     if(allocated(chiorb_hf)) deallocate(chiorb_hf)
     if(allocated(chiorb_hflsoc)) deallocate(chiorb_hflsoc)
@@ -199,14 +197,14 @@ contains
            if(.not.lhfresponses) then
               write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_',i0,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
               open (unit=iw, file=varm, status='replace', form='formatted')
-              write(unit=iw, fmt="('#     energy    ,  ((real[chi(j,i)], imag[chi(j,i)], j=1,4),i=1,4)')")
+              write(unit=iw, fmt="('#     energy    ,       qx        ,       qy        ,       qz        ,  ((real[chi(j,i)], imag[chi(j,i)], j=1,4),i=1,4)')")
               close(unit=iw)
            end if
            iw = iw+1000
            ! HF SUSCEPTIBILITIES
            write(varm,"('./results/',a1,'SOC/',a,'/HF/chihf_',i0,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
            open (unit=iw, file=varm, status='replace', form='formatted')
-           write(unit=iw, fmt="('#     energy    ,  ((real[chihf(j,i)], imag[chihf(j,i)], j=1,4),i=1,4)  ')")
+           write(unit=iw, fmt="('#     energy    ,       qx        ,       qy        ,       qz        ,   ((real[chihf(j,i)], imag[chihf(j,i)], j=1,4),i=1,4)  ')")
            close(unit=iw)
         end do
      end do
@@ -214,12 +212,12 @@ contains
     if((s%nAtoms>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
        write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_eval',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
        open (unit=19900, file=varm,status='replace', form='formatted')
-       write(unit=19900,fmt="('#     energy    ,  real part of 1st eigenvalue  ,  imaginary part of 1st eigenvalue  ,  real part of 2nd eigenvalue  ,  imaginary part of 2nd eigenvalue  , ... ')")
+       write(unit=19900,fmt="('#     energy    ,       qx        ,       qy        ,       qz        ,   real part of 1st eigenvalue  ,  imaginary part of 1st eigenvalue  ,  real part of 2nd eigenvalue  ,  imaginary part of 2nd eigenvalue  , ... ')")
        close (unit=19900)
        do i=1,s%nAtoms
           write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_evec',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
           open (unit=19900+i, file=varm,status='replace', form='formatted')
-          write(unit=19900+i,fmt="('#     energy    ,  real part of 1st component  ,  imaginary part of 1st component  ,  real part of 2nd component  ,  imaginary part of 2nd component  , ...   ')")
+          write(unit=19900+i,fmt="('#     energy    ,       qx        ,       qy        ,       qz        ,   real part of 1st component  ,  imaginary part of 1st component  ,  real part of 2nd component  ,  imaginary part of 2nd component  , ...   ')")
           close (unit=19900+i)
        end do
     end if
@@ -245,14 +243,14 @@ contains
               write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_',i0,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
               open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
               errt = errt + err
-              if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+              if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
            end if
            iw = iw+1000
            ! HF SUSCEPTIBILITIES
            write(varm,"('./results/',a1,'SOC/',a,'/HF/chihf_',i0,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
            open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
            errt = errt + err
-           if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+           if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
         end do
      end do
     ! RPA DIAGONALIZATION
@@ -260,12 +258,12 @@ contains
        write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_eval',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
        open (unit=19900, file=varm, status='old', position='append', form='formatted', iostat=err)
        errt = errt + err
-       if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+       if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
        do i=1,s%nAtoms
           write(varm,"('./results/',a1,'SOC/',a,'/RPA/chi_evec',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
           open (unit=19900+i, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
-          if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+          if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
        end do
     end if
     ! Stop if some file does not exist
@@ -304,14 +302,14 @@ contains
   ! This subroutine write all the susceptibilities into files
   ! (already opened with openclose_chi_files(1))
   ! Some information may be written on the screen
-  subroutine write_susceptibilities(e)
+  subroutine write_susceptibilities(q,e)
     use mod_f90_kind, only: double
     use mod_parameters, only: lwriteonscreen, lhfresponses, lnodiag, output, sigmai2i
     use mod_system, only: s => sys
     implicit none
     character(len=100)      :: varm
-    integer                 :: i,j,iw,p,q
-    real(double),intent(in) :: e
+    integer                 :: i,j,k,iw,m,n
+    real(double),intent(in) :: e,q(3)
 
     call open_chi_files()
 
@@ -320,20 +318,20 @@ contains
        do i=1, s%nAtoms
            iw = 1050 + (j-1)*s%nAtoms + i
            if(.not.lhfresponses) then
-              write(unit=iw,fmt="(33(es16.9,2x))") e, ((real(schi(sigmai2i(q,i),sigmai2i(p,j))), aimag(schi(sigmai2i(q,i),sigmai2i(p,j))), q = 1, 4), p = 1, 4)
+              write(unit=iw,fmt="(36(es16.9,2x))") e, (q(k),k=1,3), ((real(schi(sigmai2i(n,i),sigmai2i(m,j))), aimag(schi(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
               if(i == j .and. lwriteonscreen) write(output%unit_loop,"('E = ',es11.4,', Plane: ',i0,' Chi+- = (',es16.9,') + i(',es16.9,')')") e,i,real(schi(sigmai2i(1,i),sigmai2i(1,j))),aimag(schi(sigmai2i(1,i),sigmai2i(1,j)))
            end if
 
            iw = iw+1000
-           write(unit=iw,fmt="(33(es16.9,2x))") e, ((real(schihf(sigmai2i(q,i),sigmai2i(p,j))), aimag(schihf(sigmai2i(q,i),sigmai2i(p,j))), q = 1, 4), p = 1, 4)
+           write(unit=iw,fmt="(36(es16.9,2x))") e, (q(k),k=1,3), ((real(schihf(sigmai2i(n,i),sigmai2i(m,j))), aimag(schihf(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
        end do
     end do
 
     if(s%nAtoms > 1 .and. (.not. lhfresponses) .and. (.not. lnodiag)) then
-       write(varm,fmt="('(',i0,'(es16.9,2x))')") 2*s%nAtoms+1
-       write(unit=19900,fmt=varm) e,(real(eval(i)),aimag(eval(i)),i=1,s%nAtoms)
+       write(varm,fmt="('(',i0,'(es16.9,2x))')") 2*s%nAtoms+4
+       write(unit=19900,fmt=varm) e, (q(k),k=1,3),(real(eval(i)),aimag(eval(i)),i=1,s%nAtoms)
        do i=1,s%nAtoms
-          write(unit=19900+i,fmt=varm) e,(real(evecr(j,i)),aimag(evecr(j,i)),j=1,s%nAtoms)
+          write(unit=19900+i,fmt=varm) e, (q(k),k=1,3),(real(evecr(j,i)),aimag(evecr(j,i)),j=1,s%nAtoms)
        end do
     end if
 
@@ -358,14 +356,14 @@ contains
            if(.not.lhfresponses) then
               write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_',a,'_',i0,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
               open (unit=iw, file=varm, status='replace', form='formatted')
-              write(unit=iw, fmt="('#',a,'  real part of chi ',a,'  ,  imaginary part of chi ',a,'  ,  amplitude of chi ',a,' ')") trim(dc_header)
+              write(unit=iw, fmt="('#',a,'       qx        ,       qy        ,       qz        ,  real part of chi ',a,'  ,  imaginary part of chi ',a,'  ,  amplitude of chi ',a,' ')") trim(dc_header)
               close(unit=iw)
            end if
            iw = iw+1000
            ! HF SUSCEPTIBILITIES
            write(varm,"('./results/',a1,'SOC/',a,'/HF/',a,'chihf_',a,'_',i0,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
            open (unit=iw, file=varm, status='replace', form='formatted')
-           write(unit=iw, fmt="('#',a,'  real part of chi ',a,' HF ,  imaginary part of chi ',a,' HF  ,  amplitude of chi ',a,' HF ')") trim(dc_header)
+           write(unit=iw, fmt="('#',a,'       qx        ,       qy        ,       qz        ,  real part of chi ',a,' HF ,  imaginary part of chi ',a,' HF  ,  amplitude of chi ',a,' HF ')") trim(dc_header)
            close(unit=iw)
         end do
      end do
@@ -373,12 +371,12 @@ contains
     if((s%nAtoms>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
        write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_eval_',a,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
        open (unit=199000, file=varm,status='replace', form='formatted')
-       write(unit=199000,fmt="('#',a,'  real part of 1st eigenvalue  ,  imaginary part of 1st eigenvalue  ,  real part of 2nd eigenvalue  ,  imaginary part of 2nd eigenvalue  , ...')") trim(dc_header)
+       write(unit=199000,fmt="('#',a,'       qx        ,       qy        ,       qz        ,  real part of 1st eigenvalue  ,  imaginary part of 1st eigenvalue  ,  real part of 2nd eigenvalue  ,  imaginary part of 2nd eigenvalue  , ...')") trim(dc_header)
        close (unit=199000)
        do i=1,s%nAtoms
           write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_evec',i0,'_',a,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
           open (unit=199000+i, file=varm,status='replace', form='formatted')
-          write(unit=199000+i,fmt="('#',a,'  real part of 1st component  ,  imaginary part of 1st component  ,  real part of 2nd component  ,  imaginary part of 2nd component  , ...')") trim(dc_header)
+          write(unit=199000+i,fmt="('#',a,'       qx        ,       qy        ,       qz        ,  real part of 1st component  ,  imaginary part of 1st component  ,  real part of 2nd component  ,  imaginary part of 2nd component  , ...')") trim(dc_header)
           close (unit=199000+i)
        end do
     end if
@@ -403,14 +401,14 @@ contains
               write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_',a,'_',i0,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
               open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
               errt = errt + err
-              if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+              if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
            end if
            iw = iw+1000
            ! HF SUSCEPTIBILITIES
            write(varm,"('./results/',a1,'SOC/',a,'/HF/',a,'chihf_',a,'_',i0,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,j,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
            open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
            errt = errt + err
-           if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+           if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
         end do
      end do
     ! RPA DIAGONALIZATION
@@ -418,12 +416,12 @@ contains
        write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_eval_',a,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
        open (unit=199000, file=varm, status='old', position='append', form='formatted', iostat=err)
        errt = errt + err
-       if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+       if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
        do i=1,s%nAtoms
           write(varm,"('./results/',a1,'SOC/',a,'/RPA/',a,'chi_evec',i0,'_',a,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(count)),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
           open (unit=199000+i, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
-          if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+          if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
        end do
     end if
     ! Stop if some file does not exist
@@ -464,14 +462,15 @@ contains
   ! This subroutine write all the susceptibilities into files
   ! (already opened with openclose_chi_files(1))
   ! Some information is also written on the screen
-  subroutine write_dc_susceptibilities()
+  subroutine write_dc_susceptibilities(q)
     use mod_f90_kind, only: double
     use mod_parameters, only: lwriteonscreen, output, lhfresponses, lnodiag, sigmai2i
     use mod_magnet, only: hw_count, dc_fields, dcfield_dependence, dcfield
     use mod_system, only: s => sys
     implicit none
-    character(len=100)      :: varm
-    integer                 :: i,j,iw,p,q
+    character(len=100)       :: varm
+    integer                  :: i,j,k,iw,m,n
+    real(double), intent(in) :: q(3)
 
     call open_dc_chi_files()
 
@@ -480,24 +479,24 @@ contains
       do i=1,s%nAtoms
        iw = 10500 + (j-1)*s%nAtoms + i
        if(.not.lhfresponses) then
-          write(unit=iw,fmt="(a,2x,32(es16.9,2x))") trim(dc_fields(hw_count)) , ((real(schi(sigmai2i(q,i),sigmai2i(p,j))), aimag(schi(sigmai2i(q,i),sigmai2i(p,j))), q = 1, 4), p = 1, 4)
+          write(unit=iw,fmt="(a,2x,35(es16.9,2x))") trim(dc_fields(hw_count)) , (q(k),k=1,3) , ((real(schi(sigmai2i(n,i),sigmai2i(m,j))), aimag(schi(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
           if( i == j .and. lwriteonscreen ) write(output%unit_loop,"(a,' = ',a,', Plane: ',i0,' Chi+- = (',es16.9,') + i(',es16.9,')')") trim(dcfield(dcfield_dependence)),trim(dc_fields(hw_count)),i,real(schi(sigmai2i(1,i),sigmai2i(1,j))),aimag(schi(sigmai2i(1,i),sigmai2i(1,j)))
        end if
 
        iw = iw+1000
-       write(unit=iw,fmt="(a,2x,32(es16.9,2x))") trim(dc_fields(hw_count)) , ((real(schi(sigmai2i(q,i),sigmai2i(p,j))), aimag(schi(sigmai2i(q,i),sigmai2i(p,j))), q = 1, 4), p = 1, 4)
+       write(unit=iw,fmt="(a,2x,35(es16.9,2x))") trim(dc_fields(hw_count)) , (q(k),k=1,3) , ((real(schi(sigmai2i(n,i),sigmai2i(m,j))), aimag(schi(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
       end do
     end do
 
     if((s%nAtoms>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
-       write(varm,fmt="(a,i0,a)") '(a,2x,',2*s%nAtoms,'(es16.9,2x))'
-       write(unit=199000,fmt=varm) trim(dc_fields(hw_count)) , (real(eval(i)) , aimag(eval(i)),i=1,s%nAtoms)
+       write(varm,fmt="(a,i0,a)") '(a,2x,',2*s%nAtoms+3,'(es16.9,2x))'
+       write(unit=199000,fmt=varm) trim(dc_fields(hw_count)) , (q(k),k=1,3) , (real(eval(i)) , aimag(eval(i)),i=1,s%nAtoms)
        do i=1,s%nAtoms
-          write(unit=199000+i,fmt=varm) trim(dc_fields(hw_count)) , (real(evecr(j,i)) , aimag(evecr(j,i)),j=1,s%nAtoms)
+          write(unit=199000+i,fmt=varm) trim(dc_fields(hw_count)) , (q(k),k=1,3) , (real(evecr(j,i)) , aimag(evecr(j,i)),j=1,s%nAtoms)
        end do
     end if ! s%nAtoms
 
-    call close_dc_chi_files
+    call close_dc_chi_files()
   end subroutine write_dc_susceptibilities
 
   ! This subroutine sorts susceptibilities files

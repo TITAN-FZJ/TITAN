@@ -71,7 +71,8 @@ contains
   end subroutine get_parameter
 
   subroutine set_hopping_matrix(t0i, dirCos, t1, t2, nOrb)
-    use mod_f90_kind, only: double
+    use mod_f90_kind,   only: double
+    use mod_parameters, only: lsimplemix
     implicit none
     real(double), dimension(nOrb,nOrb), intent(inout) :: t0i
     real(double), dimension(3),         intent(in)    :: dirCos
@@ -81,7 +82,11 @@ contains
     real(double), dimension(10) :: mix
 
     do i = 1, 10
-      mix(i) = sign(sqrt(abs(t1(i)) * abs(t2(i))), t1(i) + t2(i))
+      if(lsimplemix) then
+        mix(i) = 0.5d0*(t1(i) + t2(i))
+      else
+        mix(i) = sign(sqrt(abs(t1(i)) * abs(t2(i))), t1(i) + t2(i))
+      end if
     end do
     call intd(mix(1), mix(2), mix(3), mix(4), mix(5), mix(6), mix(7), mix(8), mix(9), mix(10), dirCos, t0i)
 
@@ -173,9 +178,11 @@ contains
         read(fu, fmt='(A)', iostat=ios) line
         if(ios /= 0) call abortProgram("[readElementFile] Not enough basis atoms given!")
         read(unit=line, fmt=*, iostat=ios) (position(l,k), l=1,3)
-        if(coord_type == 'D' .or. coord_type == 'd') then
+        if(coord_type == 'C' .or. coord_type == 'c' .or. coord_type == 'K' .or. coord_type == 'k') then
+          ! Position of atoms given in Cartesian coordinates
           position(:,k) = position(:,k) * material%LatticeConstant
         else
+          ! Position of atoms given in Bravais (or Direct, Internal, Lattice) coordinates
           position(:,k) = position(1,k) * material%a1 + position(2,k) * material%a2 + position(3,k) * material%a3
         end if
       end do
@@ -268,8 +275,8 @@ contains
     do i = 1, m
       if(abs(localDistances(i) - material%stage(l)) < material%stage(1) * 0.01) cycle
       l = l + 1
+      if(l > nStages) exit
       material%stage(l) = localDistances(i)
-      if(l >= nStages) exit
     end do
 
     deallocate(localDistances)

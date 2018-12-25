@@ -57,7 +57,7 @@ contains
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_site=',i0,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%info),trim(output%BField),trim(output%SOC)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
-        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+        if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
       end do
     end do
     ! Stop if some file does not exist

@@ -19,7 +19,7 @@ subroutine setup_electric_field(s)
   else if(1 <= dirEfield .and. dirEfield <= s%nAtoms) then
     stop "Not Implemented."
   else
-    if(myrank.eq.0) write(outputunit,"('[lattice_definitions] Unknown E-Field direction!')")
+    if(myrank==0) write(outputunit,"('[lattice_definitions] Unknown E-Field direction!')")
     call MPI_Finalize(ierr)
     stop
   end if
@@ -112,7 +112,7 @@ end subroutine setup_long_and_trans_current_neighbors
 !   else if(dirEfield >=1 .and. dirEfield <= pln_cnt(1)) then
 !     dirEfieldvec = s%Neighbors(dirEfield)%dirCos
 !   else
-!     if(myrank.eq.0) write(outputunit,"('[lattice_definitions] Unknown E-Field direction!')")
+!     if(myrank==0) write(outputunit,"('[lattice_definitions] Unknown E-Field direction!')")
 !     call MPI_Finalize(ierr)
 !     stop
 !   end if

@@ -32,13 +32,18 @@ bsstruct = sys.argv[1]
 if(len(sys.argv) == 4):
   ldosu = sys.argv[2]
   ldosd = sys.argv[3]
-
-if(len(sys.argv) == 4):
+  filename = 'BS_LDOS.pdf'
   fig, ax = plt.subplots(1,3, sharey=True, gridspec_kw = {'width_ratios':[1,4,1]})
   fig.subplots_adjust(wspace=0.15)
+  ax[0].tick_params(axis='y', direction='in', left=True, right=True)
+  ax[0].set_ylabel(label)
+  ax[2].tick_params(axis='y', direction='in', left=True, right=True)
 else:
   fig,axx = plt.subplots(1,1)
   ax = [None, axx, None]
+  filename = 'BS.pdf'
+  ax[1].set_ylabel(label)
+
 
 fermi = 0.0
 
@@ -77,17 +82,10 @@ with open(bsstruct, "r") as f:
  else:
   ax[1].set_ylim([-1.0,0.7])
 
- ax[0].tick_params(axis='y', direction='in', left=True, right=True)
  ax[1].tick_params(axis='y', direction='in', left=True, right=True)
- ax[2].tick_params(axis='y', direction='in', left=True, right=True)
 
  # ax2.set_title("TITAN")
  ax[1].set_xlim([point[0],point[count[0]-1]])
-
-if(len(sys.argv)==4):
-  ax[0].set_ylabel(label)
-else:
-  ax[1].set_ylabel(label)
 
 if(len(sys.argv)==4):
 
@@ -116,6 +114,6 @@ if(len(sys.argv)==4):
   ax[0].legend(loc=3, prop={'size': 7})
 
 #tikz_save("plot.tex", figurewidth="10cm", figureheight="10cm")
-plt.savefig('BS_LDOS.pdf')
+plt.savefig(filename)
 
 plt.show()

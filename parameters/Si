@@ -1,0 +1,49 @@
+Si diamond
+10.26250
+ 0.5    0.5     0.0
+ 0.5    0.0     0.5
+ 0.0    0.5     0.5
+ Si
+ 2
+ Cartesian
+ 0.0     0.0      0.0
+ 0.25    0.25     0.25
+0.35
+2.0 2.0 0.0
+0.000
+0.000882 0.0000
+3
+  s on-site   -5.19278      1                             Si
+  p on-site    1.05825      2                             Si
+  t2g on-site  0.00000      3                             Si
+   eg on-site  0.00000      4                             Si
+  sss 1st nn  -2.36233      5                             Si
+  pps 1st nn   2.85882      6                             Si
+  ppp 1st nn  -0.94687      7                             Si
+  dds 1st nn   0.00000      8                             Si
+  ddp 1st nn   0.00000      9                             Si
+  ddd 1st nn   0.00000     10                             Si
+  sps 1st nn   1.86401     11                             Si
+  sds 1st nn   0.00000     12                             Si
+  pds 1st nn   0.00000     13                             Si
+  pdp 1st nn   0.00000     14                             Si
+  sss 2nd nn   0.13595     15                             Si
+  pps 2nd nn   0.41007     16                             Si
+  ppp 2nd nn  -0.13704     17                             Si
+  dds 2nd nn   0.00000     18                             Si
+  ddp 2nd nn   0.00000     19                             Si
+  ddd 2nd nn   0.00000     20                             Si
+  sps 2nd nn  -0.26377     21                             Si
+  sds 2nd nn   0.00000     22                             Si
+  pds 2nd nn   0.00000     23                             Si
+  pdp 2nd nn   0.00000     24                             Si
+  sss 3rd nn   0.04603     25                             Si
+  pps 3rd nn  -0.05261     26                             Si
+  ppp 3rd nn   0.08081     27                             Si
+  dds 3rd nn   0.00000     28                             Si
+  ddp 3rd nn   0.00000     29                             Si
+  ddd 3rd nn   0.00000     30                             Si
+  sps 3rd nn  -0.19434     31                             Si
+  sds 3rd nn   0.00000     32                             Si
+  pds 3rd nn   0.00000     33                             Si
+  pdp 3rd nn   0.00000     34                             Si

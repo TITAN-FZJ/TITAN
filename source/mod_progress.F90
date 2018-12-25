@@ -2,9 +2,15 @@ module mod_progress
   use mod_f90_kind
   implicit none
   real(double)             :: start_program,start_time,elapsed_time
+
+  interface progress_bar
+     module procedure progress_bar_int, &
+                      progress_bar_double_int
+  end interface progress_bar
+
 contains
 
-  subroutine progress_bar(unit,message,current_point,total_points)
+  subroutine progress_bar_int(unit,message,current_point,total_points)
     use mod_mpi_pars
     implicit none
     integer         ,intent(in) :: unit,current_point,total_points
@@ -17,7 +23,25 @@ contains
     !write(unit,"(a1,2x,i3,'% (',i0,'/',i0,') of ',a,' done. Total time: ',i2,'h:',i2,'m:',i2,'s',a1,$)") spiner(mod(current_point,4)+1),porcent,current_point,total_points,trim(message),int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),char(13)
     write(unit,"(a1,2x,i3,'% (',i0,'/',i0,') of ',a,' done. Total time: ',i2,'h:',i2,'m:',i2,'s',a1)", advance='no') spiner(mod(current_point,4)+1),porcent,current_point,total_points,trim(message),int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),char(13)
 
-  end subroutine progress_bar
+  end subroutine progress_bar_int
+
+
+  subroutine progress_bar_double_int(unit,message,current_point,total_points)
+    use mod_mpi_pars
+    implicit none
+    integer         ,intent(in) :: unit
+    integer*8       ,intent(in) :: current_point,total_points
+    character(len=*),intent(in) :: message
+    character(len=2)   :: spiner(4) = ['| ','/ ','- ','\ ']
+    integer            :: porcent
+
+    porcent = floor(current_point*100.d0/total_points)
+    elapsed_time = MPI_Wtime() - start_program
+    !write(unit,"(a1,2x,i3,'% (',i0,'/',i0,') of ',a,' done. Total time: ',i2,'h:',i2,'m:',i2,'s',a1,$)") spiner(mod(current_point,4)+1),porcent,current_point,total_points,trim(message),int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),char(13)
+    write(unit,"(a1,2x,i3,'% (',i0,'/',i0,') of ',a,' done. Total time: ',i2,'h:',i2,'m:',i2,'s',a1)", advance='no') spiner(mod(current_point,4)+1),porcent,current_point,total_points,trim(message),int(elapsed_time/3600.d0),int(mod(elapsed_time,3600.d0)/60.d0),int(mod(mod(elapsed_time,3600.d0),60.d0)),char(13)
+
+  end subroutine progress_bar_double_int
+
 
   subroutine write_time(unit,message)
     use mod_mpi_pars

@@ -1,19 +1,24 @@
 module mod_self_consistency
-   use mod_f90_kind, only: double
-   implicit none
-   integer            :: neq
-   character(len=300) :: default_file
-   real(double)       :: mag_tol = 1.d-10
-   character(len=200) :: scfile = ""
-   !! Give a file to start self-consistency
-   logical :: skipsc
-   !! Skip self-consistency
-   logical :: lselfcon    = .false.
-   logical :: lGSL        = .false.
-   logical :: lontheflysc = .false.
-   logical :: lslatec     = .false.
-   logical :: lnojac      = .false.
-   logical :: lrotatemag  = .false.
+  use mod_f90_kind, only: double
+  implicit none
+  integer            :: neq
+  character(len=300) :: default_file
+  real(double)       :: mag_tol = 1.d-10
+  character(len=200) :: scfile = ""
+  !! Give a file to start self-consistency
+  logical :: skipsc
+  !! Skip self-consistency
+  character(len=50)  :: magbasis = ""
+  !! Basis to give initial magnetization in 'initialmag' file
+  real(double),allocatable       :: initialmag(:,:)
+  !! Initial guess for magnetization
+  logical :: lselfcon    = .false.
+  logical :: lGSL        = .false.
+  logical :: lontheflysc = .false.
+  logical :: lslatec     = .false.
+  logical :: lnojac      = .false.
+  logical :: lrotatemag  = .false.
+  logical :: lforceoccup = .false.
 
 contains
 
@@ -61,7 +66,7 @@ contains
   subroutine read_previous_results(lsuccess)
     use mod_f90_kind,   only: double
     use mod_constants,  only: deg2rad
-    use mod_parameters, only: output, magbasis, initialmag
+    use mod_parameters, only: output
     use mod_system,     only: s => sys
     use TightBinding,   only: nOrb
     use mod_mpi_pars,   only: rField,abortProgram
@@ -138,15 +143,15 @@ contains
   end subroutine read_previous_results
 
   ! Reads the initial magnetization for nAtoms in 'filename'
-  subroutine read_initialmag(filename,magbasis,nAtoms)
+  subroutine read_initialmag(filename,basis,nAtoms)
     use mod_f90_kind,   only: double
-    use mod_parameters, only: initialmag,output
+    use mod_parameters, only: output
     use mod_constants,  only: deg2rad
     use mod_tools,      only: read_data
     use mod_system,     only: s => sys
     use mod_mpi_pars,   only: rField,abortProgram
     implicit none
-    character(len=*), intent(in) :: filename,magbasis
+    character(len=*), intent(in) :: filename,basis
     integer         , intent(in) :: nAtoms
     integer      :: i,err
     real(double) :: temp(nAtoms,3)
@@ -157,7 +162,7 @@ contains
     open(unit=321,file=trim(filename),status="old",iostat=err)
     if((rField == 0).and.(err/=0)) call abortProgram("[read_initialmag] File '" // trim(filename) // "'' does not exist!")
 
-    select case(magbasis)
+    select case(basis)
     case("cartesian","c")
       call read_data(321,nAtoms,3,initialmag)
     case("spherical","s")
@@ -174,15 +179,15 @@ contains
       end do
     case("neighbor","n")
       call read_data(321,nAtoms,1,temp)
-      call abortProgram("[read_initialmag] initialmag not implemented for magbasis = neighbor")
+      call abortProgram("[read_initialmag] initialmag not implemented for basis = neighbor")
       ! do i=1,nAtoms
       !   initialmag(i,:) = temp(i,1)
       ! end do
     case default
-      call abortProgram("[read_initialmag] magbasis wrongly defined: " // trim(magbasis))
+      call abortProgram("[read_initialmag] basis wrongly defined: " // trim(basis))
     end select
 
-
+    close(unit=321)
 
 
     ! if(magbasis == "") then
@@ -411,7 +416,7 @@ contains
     real(double)                  :: ruser(1)
     integer                       :: iuser(1)
 #else
-    real(double),allocatable :: w(:,:)
+    real(double),allocatable      :: w(:,:)
 #endif
     integer                       :: i,mu,maxfev,ml,mr,mode,nfev,njev,lwa,ifail=0
 
@@ -768,9 +773,9 @@ contains
     complex(double), dimension(:,:),     allocatable :: gij,gji,temp,paulitemp
     complex(double), dimension(:,:,:),   allocatable :: temp1,temp2
     complex(double), dimension(:,:,:,:), allocatable :: gf,gvg
-    integer :: ix,i,j,mu,nu
+    integer*8 :: ix
     integer :: AllocateStatus
-    integer :: sigma,sigmap
+    integer :: i,j,mu,nu,sigma,sigmap
     real(double)    :: kp(3), ep
     complex(double) :: weight
     complex(double) :: halfU(s%nAtoms)
@@ -1211,7 +1216,8 @@ contains
   !! Rotate the magnetization to the direction of the field (useful for SOC=F)
     use mod_f90_kind,   only: double
     use mod_constants,  only: deg2rad
-    use mod_magnet,     only: hw_count,hw_list,hhw,mx,my,mz,mp
+    use mod_magnet,     only: lfield, hw_count, hw_list, hhw, mp, mx, my, mz, &
+                                                              mpd, mxd, myd, mzd
     use mod_parameters, only: output
     use mod_System,     only: s => sys
     use TightBinding,   only: nOrb
@@ -1221,25 +1227,38 @@ contains
     real(double) :: mdotb,mabs(nOrb,s%nAtoms)
 
     if(rField == 0) &
-    write(output%unit_loop,"('[rotate_magnetization_to_field] Rotating previous magnetization to the direction of the field...')")
+      write(output%unit_loop,"('[rotate_magnetization_to_field] Rotating previous magnetization to the direction of the field...')")
+
+    if(.not.lfield) then
+      if(rField == 0) &
+        write(output%unit_loop,"('[rotate_magnetization_to_field] Field if OFF! No rotation is done.')")
+      return
+    end if
 
     do i = 1, s%nAtoms
       do j=1,nOrb
         mdotb   = hhw(1,i)*mx(j,i)+hhw(2,i)*my(j,i)+hhw(3,i)*mz(j,i)
         sign    = dble(mdotb/abs(mdotb))
         mabs(j,i) = sqrt((mx(j,i)**2)+(my(j,i)**2)+(mz(j,i)**2))
-        mx(j,i)   = sign*mabs(j,i)*sin(hw_list(hw_count,2)*deg2rad)*cos(hw_list(hw_count,3)*deg2rad)
-        my(j,i)   = sign*mabs(j,i)*sin(hw_list(hw_count,2)*deg2rad)*sin(hw_list(hw_count,3)*deg2rad)
-        mz(j,i)   = sign*mabs(j,i)*cos(hw_list(hw_count,2)*deg2rad)
-        mp(j,i)   = cmplx(mx(j,i),my(j,i),double)
+        mx  (j,i) = sign*mabs(j,i)*sin(hw_list(hw_count,2)*deg2rad)*cos(hw_list(hw_count,3)*deg2rad)
+        my  (j,i) = sign*mabs(j,i)*sin(hw_list(hw_count,2)*deg2rad)*sin(hw_list(hw_count,3)*deg2rad)
+        mz  (j,i) = sign*mabs(j,i)*cos(hw_list(hw_count,2)*deg2rad)
+        mp  (j,i) = cmplx(mx(j,i),my(j,i),double)
       end do
     end do
 
+    mxd(:)  = sum(mx (5:9,:),dim=1)
+    myd(:)  = sum(my (5:9,:),dim=1)
+    mzd(:)  = sum(mz (5:9,:),dim=1)
+    mpd     = cmplx(mxd,myd)
+
+    call calcMagAngle()
+
     ! Writing new n and rotated mag to file (without self-consistency)
-    if(rField == 0) call write_sc_results()
+    ! if(rField == 0) call write_sc_results()
 
     ! Writing self-consistency results on screen
-    if(rField == 0) call print_sc_results()
+    ! if(rField == 0) call print_sc_results()
   end subroutine rotate_magnetization_to_field
 
   ! Writes the self-consistency results on the screen

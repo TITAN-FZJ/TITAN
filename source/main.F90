@@ -24,6 +24,7 @@ program TITAN
   use mod_progress
   use mod_mpi_pars
   use mod_Umatrix
+  use mod_check_stop
   use mod_tools, only: rtos
   use expectation, only: calc_initial_Uterms
   !use mod_define_system TODO: Re-include
@@ -51,20 +52,25 @@ program TITAN
 
   if(myrank == 0) call write_time(output%unit,'[main] Started on: ')
 
+  !------------- Creating folders for current calculation ------------
+  if(lcreatefolders) &
+    call create_folder()
+
   !------------------- Useful constants and matrices -------------------
   call define_constants() ! TODO: Review
-
-  !------------------ Set Loop and Integration Points ------------------
-  call setMagneticLoopPoints()
-  !------------------ Creating grid of MPI processes  ------------------
-  !call setup_MPI_grid(itype, pn1, npt1, pnt,total_hw_npt1, npts, deltae, emin, emax)
-  call genMPIGrid(parField, total_hw_npt1, parFreq, npt1 - skip_steps)
 
   !------------------- Define the lattice structure --------------------
   call polyBasis("basis", sys)
   call initLattice(sys)
   ! Writing Positions into file
   if( lpositions .and. (myrank==0)) call writeLattice(sys)
+
+  !------------------ Set Loops and Integration Points -----------------
+  call setMagneticLoopPoints()
+  call setLoops(sys)
+  !------------------ Creating grid of MPI processes  ------------------
+  !call setup_MPI_grid(itype, pn1, nEner1, pnt,total_hw_npt1, nEner, deltae, emin, emax)
+  call genMPIGrid(parField, total_hw_npt1, parFreq, nEner1 - skip_steps)
 
   !--- Generating integration points of the complex energy integral ----
   call allocate_energy_points()
@@ -113,7 +119,7 @@ program TITAN
 
   !call setup_long_and_trans_current_neighbors(sys) !TODO: Not implemented TODO: Re-include
 
-  ! Filename strings
+  !-------------------------- Filename strings -------------------------
   write(output%info,"('_nkpt=',i0,'_eta=',a)") kptotal_in, trim(rtos(eta,"(es8.1)"))
 
   !------------------------ MAGNETIC FIELD LOOP ------------------------
@@ -211,19 +217,14 @@ program TITAN
       ! call debugging()
     end if
 
-    !------------- Creating folders for current calculation ------------
-    if(lcreatefolders) &
-    call create_folder()
-
-
     !------------------------- Self-consistency ------------------------
     if(rField == 0) &
-    call write_time(output%unit_loop,'[main] Time before self-consistency: ')
+      call write_time(output%unit_loop,'[main] Time before self-consistency: ')
 
     call doSelfConsistency()
 
     if(rField==0) &
-    call write_time(output%unit_loop,'[main] Time after self-consistency: ')
+      call write_time(output%unit_loop,'[main] Time after self-consistency: ')
 
     !-- Only calculate long. and transv. currents from existing files --
     ! if(llgtv) then TODO: Re-include
@@ -261,10 +262,10 @@ program TITAN
     ! Emergency stop after the calculation for a field is finished
     ! (not checked on last step)
     if(total_hw_npt1 /= 1 .and. hw_count < endField) &
-    call check_emergency_stop(hw_list, hw_count)
+      call check_stop("stopout",hw_count)
     !-------------------------- Closing files --------------------------
     if(total_hw_npt1 /= 1 .and.  itype /= 6 .and. rField == 0) &
-    close(output%unit_loop)
+      close(output%unit_loop)
   end do ! Ending of magnetic field loop
 
   !------------ Deallocating variables that depend on nAtoms------------

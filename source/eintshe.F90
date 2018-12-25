@@ -1,5 +1,5 @@
 ! ---------- Parallel spin current: Energy integration ---------
-subroutine eintshe(e)
+subroutine eintshe(q,e)
   use mod_f90_kind,      only: double
   use mod_constants,     only: cZero, cOne, cI, tpi
   use mod_parameters,    only: dim, sigmaimunu2i, eta, etap, sigmai2i, offset
@@ -18,7 +18,7 @@ subroutine eintshe(e)
   !use mod_system,        only: r_nn, npln, n0sc1, n0sc2
   implicit none
 
-  real(double),intent(in)   :: e
+  real(double),intent(in)   :: e,q(3)
 
   integer :: AllocateStatus
   complex(double), dimension(:,:),allocatable         :: tFintiikl
@@ -356,7 +356,7 @@ subroutine eintshe(e)
 end subroutine eintshe
 
 
-subroutine eintshelinearsoc(e)
+subroutine eintshelinearsoc(q,e)
   use mod_f90_kind,      only: double
   use mod_constants,     only: cZero, cOne, cI, tpi
   use mod_parameters,    only: dim, eta, etap, sigmai2i, sigmaimunu2i, offset
@@ -373,7 +373,7 @@ subroutine eintshelinearsoc(e)
   !use mod_currents,         only: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl !TODO: Re-Include
   !use mod_system,           only: n0sc1, n0sc2, n0sc
   implicit none
-  real(double),intent(in) :: e
+  real(double),intent(in) :: e,q(3)
   integer :: AllocateStatus
   complex(double), dimension(:,:),allocatable :: tFintiikl
   !complex(double), dimension(:,:,:), allocatable :: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl !TODO: Re-Include

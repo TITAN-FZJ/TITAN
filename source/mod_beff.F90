@@ -81,13 +81,13 @@ contains
         write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(filename),direction(sigma),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
-        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+        if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
       end do
       iw = 8500+sigma
       write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(filename),direction(sigma),trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
       open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
       errt = errt + err
-      if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+      if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
     end do
     ! Stop if some file does not exist
     if(errt/=0) call abortProgram("[openclose_beff_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
@@ -207,13 +207,13 @@ contains
         write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
-        if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+        if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
       end do
       iw = 85000+sigma
       write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(dcprefix(count)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
       open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
       errt = errt + err
-      if(err.ne.0) missing_files = trim(missing_files) // " " // trim(varm)
+      if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
     end do
     ! Stop if some file does not exist
     if(errt/=0) call abortProgram("[openclose_dc_beff_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))

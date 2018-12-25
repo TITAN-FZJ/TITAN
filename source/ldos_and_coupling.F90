@@ -1,7 +1,7 @@
 ! This subroutine calculates LDOS and coupling as a function of energy
 subroutine ldos_and_coupling()
   use mod_f90_kind, only: double
-  use mod_parameters, only: output, emin, deltae, npt1, skip_steps
+  use mod_parameters, only: output, emin, deltae, nEner1, skip_steps
   use mod_system, only: s => sys
   use mod_LDOS
   use mod_Coupling
@@ -33,7 +33,7 @@ subroutine ldos_and_coupling()
 
   do count = startFreq + skip_steps, endFreq + skip_steps
     e = emin + (count-1) * deltae
-    if(rFreq(1) == 0) write(output%unit_loop,"('[ldos_and_coupling] ',i0,' of ',i0,' points',', e = ',es10.3)") count,npt1,e
+    if(rFreq(1) == 0) write(output%unit_loop,"('[ldos_and_coupling] ',i0,' of ',i0,' points',', e = ',es10.3)") count,nEner1,e
 
     call ldos_jij_energy(e,ldosu,ldosd,Jij)
 

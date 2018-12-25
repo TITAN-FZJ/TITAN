@@ -27,6 +27,10 @@ module mod_system
     !! Lattice parameter
     real(double), dimension(3) :: a1, a2, a3
     !! Lattice vectors
+    real(double), dimension(3) :: b1, b2, b3
+    !! Reciprocal vectors
+    real(double) :: vol
+    !! Volume of Brillouin Zone
     logical :: lbulk = .false.
     !! 3D or 2D logical variable
 

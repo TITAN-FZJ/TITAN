@@ -30,12 +30,9 @@ contains
     character(len=*), intent(in) :: message
 
     if(myrank == 0) then
-       if(log_unit) then
-          write(output%unit, "('[Error] [',a,'] ',a,'')") procedure, trim(message)
-       else
-          write(*, "('[Error] [',a,'] ',a,'')") procedure, trim(message)
-       end if
+      if(log_unit) write(output%unit, "('[Error] [',a,'] ',a,'')") procedure, trim(message)
     end if
+    write(*, "('[Error] [',a,'] ',a,'')") procedure, trim(message)
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
     stop
   end subroutine log_error
@@ -62,12 +59,12 @@ contains
     use mod_input
     use mod_parameters, only: output, laddresults, lverbose, ldebug, lkpoints, &
                               lpositions, lcreatefiles, lnolb, lhfresponses, &
-                              lnodiag, lsha, lcreatefolders, lwriteonscreen, runoptions, &
-                              lcheckjac, llgtv, lsortfiles, magbasis, &
-                              itype, ry2ev, ltesla, eta, etap, dmax, emin, emax, deltae, &
-                              skip_steps, npts, npt1, renorm, renormnb, bands, band_cnt, &
+                              lnodiag, lsha, lcreatefolders, lwriteonscreen, runoptions, lsimplemix, &
+                              lcheckjac, llgtv, lsortfiles, &
+                              itype, ry2ev, ltesla, eta, etap, dmax, emin, emax, &
+                              skip_steps, nEner, nEner1, nQvec, nQvec1, qbasis, renorm, renormnb, bands, band_cnt, &
                               offset, dfttype, U, parField, parFreq, kptotal_in, kp_in
-    use mod_self_consistency, only: lslatec, lontheflysc, lnojac, lGSL, lrotatemag, skipsc, scfile, mag_tol
+    use mod_self_consistency, only: lslatec, lontheflysc, lnojac, lGSL, lforceoccup, lrotatemag, skipsc, scfile, magbasis, mag_tol
     use mod_system, only: System, n0sc1, n0sc2
     use mod_SOC, only: SOC, socscale, llinearsoc, llineargfsoc
     use mod_magnet, only: lfield, tesla, hwa_i, hwa_f, hwa_npts, hwa_npt1, hwt_i, hwt_f, &
@@ -83,7 +80,7 @@ contains
     type(System), intent(inout) :: s
     character(len=20), allocatable :: s_vector(:)
     real(double), allocatable :: vector(:)
-    integer, allocatable :: i_vector(:)
+    integer*8,    allocatable :: i_vector(:)
     integer :: i, cnt
     character(len=20) :: tmp_string
     if(.not. read_file(filename)) &
@@ -99,6 +96,13 @@ contains
     if(myrank==0) open (unit=output%unit, file=trim(output%file), status='replace')
     log_unit = .true.
 
+! Print the Git version (VERSION is defined via CMake macro and defined with compiler flag -DVERSION='')
+#if defined(VERSION)
+    if(myrank==0) write(output%unit,"('Git version: ',a)") VERSION
+#else
+    if(myrank==0) write(output%unit,"('Git version: unknown')")
+#endif
+
     if(myrank==0) &
          write(output%unit,"('[get_parameters] Reading parameters from ""',a,'"" file...')") trim(filename)
 
@@ -113,20 +117,20 @@ contains
 
     if(.not. get_parameter("nkpt", i_vector,cnt)) call log_error("get_parameters","'nkpt' missing.")
     if(cnt == 1) then
-      kptotal_in = i_vector(1)
+      kptotal_in = int( i_vector(1), kind(kptotal_in) )
       if(s%lbulk) then
-        kp_in(:) = ceiling((dble(kptotal_in))**(1.d0/3.d0))
-        kptotal_in = kp_in(1) * kp_in(2) * kp_in(3)
+        kp_in(:) = ceiling((dble(kptotal_in))**(1.d0/3.d0), kind(kp_in(1)) )
+        kptotal_in = int( kp_in(1) * kp_in(2) * kp_in(3), kind(kptotal_in) )
       else
-        kp_in(1:2) = ceiling((dble(kptotal_in))**(1.d0/2.d0))
+        kp_in(1:2) = ceiling((dble(kptotal_in))**(1.d0/2.d0), kind(kp_in(1)) )
         kp_in(3) = 0
-        kptotal_in = kp_in(1) * kp_in(2)
+        kptotal_in = int( kp_in(1) * kp_in(2), kind(kptotal_in) )
       end if
     else if(cnt == 3) then
-      kp_in(1) = i_vector(1)
-      kp_in(2) = i_vector(2)
-      kp_in(3) = i_vector(3)
-      kptotal_in = kp_in(1) * kp_in(2) * kp_in(3)
+      kp_in(1) = int( i_vector(1), kind(kp_in(1)) )
+      kp_in(2) = int( i_vector(2), kind(kp_in(2)) )
+      kp_in(3) = int( i_vector(3), kind(kp_in(3)) )
+      kptotal_in = int( kp_in(1) * kp_in(2) * kp_in(3), kind(kptotal_in) )
     else
       call log_error("get_parameter", "'nkpt' has wrong size (expected 1 or 3)")
     end if
@@ -191,6 +195,10 @@ contains
           llgtv = .true.
        case ("checkjac")
           lcheckjac = .true.
+       case ("forceoccupation")
+          lforceoccup = .true.
+       case ("simplemix")
+          lsimplemix = .true.
        case("!")
           exit
        case default
@@ -357,8 +365,6 @@ contains
     if(allocated(vector)) deallocate(vector)
 
     !------------------------------------ Integration Variables ------------------------------------
-
-
     if(.not. get_parameter("parts", parts)) call log_error("get_parameters","'parts' missing.")
     if(.not. get_parameter("parts3", parts3)) call log_error("get_parameters","'parts3' missing.")
     write(output%Energy, "('_parts=',i0,'_parts3=',i0)") parts,parts3
@@ -368,6 +374,7 @@ contains
 
     if(.not. get_parameter("n3gl", n3gl)) call log_error("get_parameters","'n3gl' missing.")
 
+    !------------------------------------ Loop Variables ------------------------------------
     if(.not. get_parameter("emin", emin)) call log_error("get_parameters","'emin' missing.")
 
     if(.not. get_parameter("emax", emax)) call log_error("get_parameters","'emax' missing.")
@@ -376,28 +383,43 @@ contains
 
     if(.not. get_parameter("skip_steps_hw", skip_steps_hw, 0)) call log_warning("get_parameters","'skip_steps_hw' missing.")
 
-    if(.not. get_parameter("npts", npts)) call log_error("get_parameters","'npts' missing.")
-    npt1 = npts + 1
+    if(.not. get_parameter("nEner", nEner)) call log_error("get_parameters","'nEner' missing.")
+    nEner1 = nEner + 1
+
+    if(.not. get_parameter("nQvec", nQvec, 0)) call log_warning("get_parameters","'nQvec' not found. No wave vector loop will be done.")
+    nQvec1 = nQvec + 1
 
     if(.not. get_parameter("renorm", renorm)) call log_error("get_parameters","'renorm' missing.")
     if(renorm) then
        if(.not. get_parameter("renormnb", renormnb)) call log_error("get_parameters","'renormnb' missing.")
     end if
 
-
+    !----------------- Wave vector loop (band structure and susceptibility)  ----------------
+    if((itype >= 7).and.(itype <= 9)) then
+      ! Path or point to calculate the susceptibility
+      if(.not. get_parameter("band", bands, band_cnt)) then
+        call log_warning("get_parameters", "'band' missing. Using Gamma point only.")
+        allocate(bands(1))
+        bands = "G"
+        band_cnt = 1
+        nQvec1 = 1
+      end if
+      if((band_cnt == 1).and.(nQvec1 > 1)) then
+        call log_warning("get_parameters", "Only one wave vector given. Using nQvec=1.")
+        nQvec1 = 1
+      end if
+    endif
+    if(itype == 4) then
+      ! Path to calculate band structure (can't be single point in this case)
+      if(.not. get_parameter("band", bands, band_cnt)) call log_error("get_parameters", "'band' missing.")
+      if((band_cnt < 2).or.(nQvec < 2)) call log_error("get_parameters", "Need at least two points for Band Structure")
+    endif
+    if(.not. get_parameter("qbasis", qbasis,"b")) call log_warning("get_parameters","'qbasis' missing. Using reciprocal lattice.")
 
     !---------------------------------- Magnetic Self-consistency ----------------------------------
     if(.not. get_parameter("skipsc", skipsc, .false.)) call log_warning("get_parameters","'skipsc' missing. Using default value.")
 
     if(.not. get_parameter("scfile", scfile)) call log_warning("get_parameters","'scfile' missing.")
-
-
-
-    !----------------------------------- Band Structure and LDOS -----------------------------------
-    if(itype == 4) then
-      if(.not. get_parameter("band", bands, band_cnt)) call log_error("get_parameters", "'band' missing.")
-      if(band_cnt < 2) call log_error("get_parameters", "Need at least to Points for Band Structure")
-    endif
 
 
     !======================================== Tight-Binding ========================================
@@ -531,17 +553,8 @@ contains
       output%hfr = ""
     end if
 
-    ! Energy loop step
-    if(npts < 1) then
-      deltae = 0
-    else
-      deltae = (emax - emin)/npts
-    end if
-    if(deltae<=1.d-14) npt1 = 1
-
     ! Preparing dc-limit calculation
     ! if(itype==9) call prepare_dclimit() !TODO: Re-Include
-
 
     pn1=parts*n1gl
     pn2=parts3*n3gl
@@ -569,13 +582,13 @@ contains
 #endif
     write(output%unit_loop,"('|------------------------------- PARAMETERS: -------------------------------|')")
     write(output%unit_loop,"(10x,'nAtoms = ',i0)") s%nAtoms
-    write(output%unit_loop,"(1x,'DFT parameters: ')", advance='no')
-    dft_type: select case (dfttype)
-    case ("T")
-       write(output%unit_loop,"('Tight-binding basis')")
-    case ("O")
-       write(output%unit_loop,"('Orthogonal basis')")
-    end select dft_type
+    ! write(output%unit_loop,"(1x,'DFT parameters: ')", advance='no')
+    ! dft_type: select case (dfttype)
+    ! case ("T")
+    !    write(output%unit_loop,"('Tight-binding basis')")
+    ! case ("O")
+    !    write(output%unit_loop,"('Orthogonal basis')")
+    ! end select dft_type
     if(SOC) then
        write(output%unit_loop,"(1x,'Spin Orbit Coupling: ACTIVATED')")
        write(output%unit_loop,"(5x,'socscale =',es9.2)") socscale
@@ -627,7 +640,7 @@ contains
        write(output%unit_loop,"(8x,'n0sc2 = ',i0)") n0sc2
        write(output%unit_loop,"(9x,'emin =',es9.2)") emin
        write(output%unit_loop,"(9x,'emax =',es9.2)") emax
-       write(output%unit_loop,"(1x,'Number of points to calculate: ',i0)") npt1
+       write(output%unit_loop,"(1x,'Number of points to calculate: ',i0)") nEner1
     case (1)
        write(output%unit_loop,"(1x,'Self-consistency only')")
     case (2)
@@ -636,15 +649,16 @@ contains
        write(output%unit_loop,"(8x,'n0sc2 = ',i0)") n0sc2
        write(output%unit_loop,"(9x,'emin =',es9.2)") emin
        write(output%unit_loop,"(9x,'emax =',es9.2)") emax
-       write(output%unit_loop,"(1x,'Number of points to calculate: ',i0)") npt1
+       write(output%unit_loop,"(1x,'Number of points to calculate: ',i0)") nEner1
     case (3)
        write(output%unit_loop,"(1x,'LDOS and exchange interactions as a function of energy')")
        write(output%unit_loop,"(9x,'emin =',es9.2)") emin
        write(output%unit_loop,"(9x,'emax =',es9.2)") emax
-       write(output%unit_loop,"(1x,'Number of points to calculate: ',i0)") npt1
+       write(output%unit_loop,"(1x,'Number of points to calculate: ',i0)") nEner1
     case (4)
        write(output%unit_loop,"(1x,'Band structure')")
-       write(output%unit_loop,"(9x,'Number of points to calculate: ',i0)") npt1
+       write(output%unit_loop,"(2x,'Path along BZ: ',a)") (trim(adjustl(bands(i))), i = 1,band_cnt)
+       write(output%unit_loop,"(2x,'Number of wave vectors to calculate: ',i0)") nQvec1
     case (5)
        write(output%unit_loop,"(1x,'Charge and spin density at Fermi surface')")
     case (6)
@@ -653,16 +667,18 @@ contains
        !write(outputunit_loop,"(8x,'from Npl = ',i0,' to ',i0)") Npl_i,Npl_f
     case (7)
        write(output%unit_loop,"(1x,'Local susceptibility as a function of energy')")
+       write(output%unit_loop,"(2x,'Path along BZ: ',10(a,1x))") (trim(adjustl(bands(i))), i = 1,band_cnt)
+       write(output%unit_loop,"(2x,'Number of wave vectors to calculate: ',i0)") nQvec1
        write(output%unit_loop,"(9x,'emin =',es9.2)") emin
        write(output%unit_loop,"(9x,'emax =',es9.2)") emax
-       !write(output%unit_loop,"(1x,i0,' points divided into ',i0,' steps of size',es10.3,' each calculating ',i0,' points')") npt1,MPIsteps,MPIdelta,MPIpts
+       !write(output%unit_loop,"(1x,i0,' points divided into ',i0,' steps of size',es10.3,' each calculating ',i0,' points')") nEner1,MPIsteps,MPIdelta,MPIpts
     case (8)
        write(output%unit_loop,"(1x,'Parallel currents, disturbances and local susc. as a function of energy')")
        write(output%unit_loop,"(8x,'n0sc1 = ',i0)") n0sc1
        write(output%unit_loop,"(8x,'n0sc2 = ',i0)") n0sc2
        write(output%unit_loop,"(9x,'emin =',es9.2)") emin
        write(output%unit_loop,"(9x,'emax =',es9.2)") emax
-       !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps of energy size',es10.3,' each calculating ',i0,' points')") total_hw_npt1*npt1,MPIsteps*MPIsteps_hw,MPIdelta,MPIpts_hw*MPIpts
+       !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps of energy size',es10.3,' each calculating ',i0,' points')") total_hw_npt1*nEner1,MPIsteps*MPIsteps_hw,MPIdelta,MPIpts_hw*MPIpts
     case (9)
        write(output%unit_loop,"(1x,'dc limit calculations as a function of ',a)") trim(dcfield(dcfield_dependence))
        write(output%unit_loop,"(1x,'e =',es9.2)") emin
@@ -672,7 +688,7 @@ contains
        write(output%unit_loop,"(1x,'hwt_max =',f7.2)") hw_list(total_hw_npt1,2)
        write(output%unit_loop,"(1x,'hwp_min =',f7.2)") hw_list(1,3)
        write(output%unit_loop,"(1x,'hwp_max =',f7.2)") hw_list(total_hw_npt1,3)
-       !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps, each calculating ',i0,' points')") total_hw_npt1*npt1,MPIsteps*MPIsteps_hw,MPIpts_hw*MPIpts
+       !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps, each calculating ',i0,' points')") total_hw_npt1*nEner1,MPIsteps*MPIsteps_hw,MPIpts_hw*MPIpts
     end select write_itype
     write(output%unit_loop,"('|---------------------------------------------------------------------------|')")
   end subroutine iowrite
