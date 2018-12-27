@@ -1,7 +1,6 @@
 ! This subroutine builds the U vector from the elemental files
 subroutine build_U(sys)
   use mod_parameters, only: U
-  use mod_mpi_pars,   only: abortProgram
   use mod_System,     only: System
   implicit none
   type(System), intent(in) :: sys

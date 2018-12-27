@@ -61,10 +61,8 @@ contains
       call initTightBinding(sys0(i))
 
       !---------------- Reading from previous calculations -----------------
-      call read_initial_Uterms(sys,sys0(i),i,err)
-
-      !---------------- Calculating if file doesn't exist ------------------
-      if(err/=0) then
+      !------- and calculating if file doesn't exist (or different U) ------
+      if(.not.read_initial_Uterms(sys,sys0(i),i,err)) then
         if(myrank == 0) write(output%unit,"('[calc_initial_Uterms] Initial density file for ""',a,'"" does not exist. Calculating...')") trim(sys%Types(i)%Name)
 
         !--- Generating k meshes points for imaginary axis integration -----
@@ -254,7 +252,7 @@ contains
   end subroutine write_initial_Uterms
 
 
-  subroutine read_initial_Uterms(sys,sys0,i,err)
+  function read_initial_Uterms(sys,sys0,i,err) result(success)
     !! Writes the initial orbital dependent densities (calculated with tight-binding hamiltonian only) into files
     use mod_f90_kind,      only: double
     use mod_parameters,    only: output, dfttype
@@ -267,9 +265,12 @@ contains
     type(System), intent(inout) :: sys
     integer,      intent(in)    :: i
     integer,      intent(out)   :: err
+    logical            :: success
     character(len=500) :: filename
     integer            :: j,mu
     real(double)       :: previous_results_rho0(nOrb,sys0%nAtoms),previous_results_rhod0(sys0%nAtoms),U_tmp
+
+    success = .false.
 
     write(filename,"('./results/FSOC/selfconsistency/initialrho_',a,'_dfttype=',a,'_parts=',i0,a,'.dat')") trim(sys%Types(i)%Name), dfttype, parts,trim(output%info)
     open(unit=97,file=filename,status="old",iostat=err)
@@ -289,7 +290,6 @@ contains
       write(output%unit,"('[read_initial_Uterms] Different value of U:')")
       write(output%unit,"('[read_initial_Uterms] Using for ',a,':', es16.9,', Read from previous calculations: ', es16.9)") trim(sys%Types(i)%Name), sys0%Types(1)%U, U_tmp
       write(output%unit,"('[read_initial_Uterms] Recalculating expectation values...')")
-      err = 1
       return
     end if
 
@@ -306,6 +306,7 @@ contains
       sys%Types(i)%rhod0(j) = previous_results_rhod0(j)
     end do
 
-  end subroutine read_initial_Uterms
+    success = .true.
+  end function read_initial_Uterms
 
 end module mod_expectation
