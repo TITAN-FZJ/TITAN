@@ -86,6 +86,9 @@ program TITAN
   realBZ % nkpt_z = kp_in(3)
   call realBZ % count(sys)
 
+  !---------------- Reading Tight Binding parameters -------------------
+  call initTightBinding(sys)
+
   !---- Generating k meshes points for imaginary axis integration ------
   call generateAdaptiveMeshes(sys,pn1)
 
@@ -109,9 +112,6 @@ program TITAN
   ! end if
   write(output%Sites,fmt="(i0,'Sites')") sys%nAtoms
   ! if(tbmode == 2) call define_system()
-
-  !--------------------- Tight Binding parameters ----------------------
-  call initTightBinding(sys)
 
   !------- Initialize Stride Matrices for hamiltk and dtdksub ----------
   call initHamiltkStride(sys%nAtoms, nOrb)

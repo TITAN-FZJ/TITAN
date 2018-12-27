@@ -57,6 +57,9 @@ contains
       !-------------------------- Filename strings -------------------------
       write(output%info,"('_nkpt=',i0,'_eta=',a)") kptotal_in, trim(rtos(eta,"(es8.1)"))
 
+      !-------------------- Tight Binding parameters ---------------------
+      call initTightBinding(sys0(i))
+
       !---------------- Reading from previous calculations -----------------
       call read_initial_Uterms(sys,sys0(i),i,err)
 
@@ -71,9 +74,6 @@ contains
         call allocate_magnet_variables(sys0(i)%nAtoms, nOrb)
         call allocLS(sys0(i)%nAtoms,nOrb)
         call allocate_Atom_variables(sys0(i)%nAtoms,nOrb)
-
-        !-------------------- Tight Binding parameters ---------------------
-        call initTightBinding(sys0(i))
 
         !------- Initialize Stride Matrices for hamiltk and dtdksub --------
         call initHamiltkStride(sys0(i)%nAtoms, nOrb)
@@ -287,7 +287,7 @@ contains
 
     if(abs(U_tmp - sys0%Types(1)%U) > 1.d-10) then ! Only works for 1 atom in unit cell of elemental file
       write(output%unit,"('[read_initial_Uterms] Different value of U:')")
-      write(output%unit,"('[read_initial_Uterms] Using for ',a,':', es16.9,', Read from previous calculations: ', es16.9)") trim(sys%Types(i)%Name),U_tmp, sys%Types(i)%U
+      write(output%unit,"('[read_initial_Uterms] Using for ',a,':', es16.9,', Read from previous calculations: ', es16.9)") trim(sys%Types(i)%Name), sys0%Types(1)%U, U_tmp
       write(output%unit,"('[read_initial_Uterms] Recalculating expectation values...')")
       err = 1
       return

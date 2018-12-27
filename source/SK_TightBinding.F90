@@ -95,7 +95,7 @@ contains
     use mod_f90_kind, only: double
     use AtomTypes,    only: AtomType
     use mod_mpi_pars, only: abortProgram
-    use mod_tools, only: itos
+    use mod_tools,    only: itos
     implicit none
     type(AtomType), intent(inout) :: material
     integer, intent(in) :: nStages
