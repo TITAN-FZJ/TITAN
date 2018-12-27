@@ -119,8 +119,8 @@ contains
     if(.not.allocated(rho0 )) allocate(rho0(nOrb,sys%nAtoms))
     if(.not.allocated(rhod0)) allocate(rhod0(sys%nAtoms))
     do i=1,sys%nAtoms
-      rho0(:,i) = sys%Types(sys%Basis(i)%Material)%rho0(:,1)
-      rhod0(i)  = sys%Types(sys%Basis(i)%Material)%rhod0(1)
+      rho0(:,i) = sys%Types(sys%Basis(i)%Material)%rho0(:,1) ! Only works for 1 atom in unit cell of elemental file
+      rhod0(i)  = sys%Types(sys%Basis(i)%Material)%rhod0(1)  ! Only works for 1 atom in unit cell of elemental file
     end do
 
     if(myrank == 0) &
@@ -248,7 +248,7 @@ contains
     write(98,fmt=formatvar) (sys%Types(i)%rhod0(j),j=1,sys0%nAtoms)
 
     ! Writing U to file (to be compared in other calculations)
-    write(98,fmt="(es21.11)") sys%Types(i)%U
+    write(98,fmt="(es21.11)") sys0%Types(1)%U ! Only works for 1 atom in unit cell of elemental file
 
     close(98)
   end subroutine write_initial_Uterms
@@ -285,7 +285,7 @@ contains
     read(97,fmt=*) U_tmp
     close(97)
 
-    if(abs(U_tmp - sys%Types(i)%U) > 1.d-10) then
+    if(abs(U_tmp - sys0%Types(1)%U) > 1.d-10) then ! Only works for 1 atom in unit cell of elemental file
       write(output%unit,"('[read_initial_Uterms] Different value of U:')")
       write(output%unit,"('[read_initial_Uterms] Using for ',a,':', es16.9,', Read from previous calculations: ', es16.9)") trim(sys%Types(i)%Name),U_tmp, sys%Types(i)%U
       write(output%unit,"('[read_initial_Uterms] Recalculating expectation values...')")
