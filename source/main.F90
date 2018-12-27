@@ -9,7 +9,7 @@ program TITAN
   use mod_parameters
   use mod_io
   use mod_system
-  use mod_polyBasis, only: polyBasis => read_basis
+  use mod_polyBasis, only: read_basis
   use Lattice
   use mod_BrillouinZone
   use TightBinding
@@ -25,8 +25,9 @@ program TITAN
   use mod_mpi_pars
   use mod_Umatrix
   use mod_check_stop
+  use mod_Atom_variables, only: allocate_Atom_variables, deallocate_Atom_variables
   use mod_tools, only: rtos
-  use expectation, only: calc_initial_Uterms
+  use mod_expectation, only: calc_initial_Uterms
   !use mod_define_system TODO: Re-include
   !use mod_prefactors TODO: Re-include
   !use mod_lgtv_currents TODO: Re-include
@@ -60,7 +61,7 @@ program TITAN
   call define_constants() ! TODO: Review
 
   !------------------- Define the lattice structure --------------------
-  call polyBasis("basis", sys)
+  call read_basis("basis", sys)
   call initLattice(sys)
   ! Writing Positions into file
   if( lpositions .and. (myrank==0)) call writeLattice(sys)
@@ -91,7 +92,8 @@ program TITAN
   !------------ Allocating variables that depend on nAtoms -------------
   call allocate_magnet_variables(sys%nAtoms, nOrb)
   call allocLS(sys%nAtoms,nOrb)
-  call allocate_Atom_variables(sys%nAtoms) !TODO: Review
+  call allocate_Atom_variables(sys%nAtoms,nOrb)
+
   !---------------------------- Dimensions -----------------------------
   dimspinAtoms = 4 * sys%nAtoms
   dim = dimspinAtoms * nOrb * nOrb
@@ -118,6 +120,9 @@ program TITAN
   call initElectricField(sys%a1, sys%a2, sys%a3)
 
   !call setup_long_and_trans_current_neighbors(sys) !TODO: Not implemented TODO: Re-include
+
+  !--------------------------- Build U array ---------------------------
+  call build_U(sys)
 
   !-------------------------- Filename strings -------------------------
   write(output%info,"('_nkpt=',i0,'_eta=',a)") kptotal_in, trim(rtos(eta,"(es8.1)"))
@@ -270,6 +275,7 @@ program TITAN
 
   !------------ Deallocating variables that depend on nAtoms------------
   call deallocate_Atom_variables()
+  call deallocate_magnet_variables()
 
   !---------------------- Deallocating variables -----------------------
   !deallocate(r_nn, c_nn, l_nn)

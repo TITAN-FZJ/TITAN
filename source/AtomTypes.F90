@@ -54,7 +54,7 @@ module AtomTypes
     real(double), dimension(:), allocatable :: Stage
     !! Neighbor distances
     real(double) :: U
-    !! Coulomb strength
+    !! Effective Coulomb interaction strength - Hubbard U
     real(double), dimension(:,:), allocatable :: rho0
     !! Initial occupation per orbital obtained from hopping parameters only
     real(double), dimension(:), allocatable   :: rhod0

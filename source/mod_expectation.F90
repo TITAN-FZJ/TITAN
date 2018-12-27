@@ -1,4 +1,4 @@
-module expectation
+module mod_expectation
 
 contains
 
@@ -11,14 +11,14 @@ contains
     use mod_SOC,        only: ls,allocLS
     use adaptiveMesh,   only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh
     use mod_parameters, only: kp_in,kptotal_in,output,eta
-    use mod_polyBasis,  only: polyBasis => read_basis
+    use mod_polyBasis,  only: read_basis
     use mod_mpi_pars,   only: myrank,FieldComm,rField,sField,abortProgram
     use Lattice,        only: initLattice
     use mod_progress,   only: write_time
     use mod_tools,      only: rtos
-    ! use SK_TightBinding
-    use mod_BrillouinZone, only: realBZ!,nkpt_x,nkpt_y,nkpt_z
-    use EnergyIntegration, only: pn1
+    use mod_Atom_variables, only: allocate_Atom_variables,deallocate_Atom_variables
+    use mod_BrillouinZone,  only: realBZ!,nkpt_x,nkpt_y,nkpt_z
+    use EnergyIntegration,  only: pn1
     implicit none
     integer :: i,j,mu,err
     type(System), intent(inout) :: sys
@@ -31,7 +31,7 @@ contains
 
     do i = 1, sys%nTypes
       !------------------ Define the lattice structure -------------------
-      call polyBasis(trim(sys%Types(i)%Name), sys0(i))
+      call read_basis(trim(sys%Types(i)%Name), sys0(i))
       if(sys0(i)%nAtoms/=1) call abortProgram("[calc_initial_Uterms] Not implemented for parameter file with more than 1 atom!")
 
       !------------- Setting the number of nearest neighbors -------------
@@ -70,6 +70,7 @@ contains
         !----------- Allocating variables that depend on nAtoms ------------
         call allocate_magnet_variables(sys0(i)%nAtoms, nOrb)
         call allocLS(sys0(i)%nAtoms,nOrb)
+        call allocate_Atom_variables(sys0(i)%nAtoms,nOrb)
 
         !-------------------- Tight Binding parameters ---------------------
         call initTightBinding(sys0(i))
@@ -79,6 +80,9 @@ contains
 
         !---- L matrix in global frame for given quantization direction ----
         call l_matrix()
+
+        !-------------------------- Build U array --------------------------
+        call build_U(sys0(i))
 
         !----- Removing L.B, S.B and L.S matrices from the hamiltonian -----
         lb = cZero
@@ -99,6 +103,7 @@ contains
 
         !-------------------- Deallocating variables -----------------------
         call deallocate_magnet_variables()
+        call deallocate_Atom_variables()
 
       end if ! err
 
@@ -230,15 +235,20 @@ contains
     integer,      intent(in) :: i
     integer           :: j,mu
 
+    ! Defining and opening file:
     write(output%unit,"('[write_initial_Uterms] Writing initial densities of ""',a,'"" to file:')") trim(sys0%Name)
     write(filename,"('./results/FSOC/selfconsistency/initialrho_',a,'_dfttype=',a,'_parts=',i0,a,'.dat')") trim(sys%Types(i)%Name), dfttype, parts,trim(output%info)
     write(output%unit,"('[write_initial_Uterms] ',a)") trim(filename)
     open (unit=98,status='replace',file=filename)
 
+    ! Writing rho0(nOrb,nAtoms) and rhod0(nAtoms) to file
     write(formatvar,fmt="(a,i0,a)") '(',nOrb*sys0%nAtoms,'(es21.11,2x))'
     write(98,fmt=formatvar) ((sys%Types(i)%rho0(mu,j),mu=1,nOrb),j=1,sys0%nAtoms)
     write(formatvar,fmt="(a,i0,a)") '(',sys0%nAtoms,'(es21.11,2x))'
     write(98,fmt=formatvar) (sys%Types(i)%rhod0(j),j=1,sys0%nAtoms)
+
+    ! Writing U to file (to be compared in other calculations)
+    write(98,fmt="(es21.11)") sys%Types(i)%U
 
     close(98)
   end subroutine write_initial_Uterms
@@ -253,13 +263,13 @@ contains
     use TightBinding,      only: nOrb
     use mod_mpi_pars
     implicit none
-    character(len=500) :: filename
     type(System), intent(in)    :: sys0
     type(System), intent(inout) :: sys
     integer,      intent(in)    :: i
     integer,      intent(out)   :: err
-    integer           :: j,mu
-    real(double)      :: previous_results_rho0(nOrb,sys0%nAtoms),previous_results_rhod0(sys0%nAtoms)
+    character(len=500) :: filename
+    integer            :: j,mu
+    real(double)       :: previous_results_rho0(nOrb,sys0%nAtoms),previous_results_rhod0(sys0%nAtoms),U_tmp
 
     write(filename,"('./results/FSOC/selfconsistency/initialrho_',a,'_dfttype=',a,'_parts=',i0,a,'.dat')") trim(sys%Types(i)%Name), dfttype, parts,trim(output%info)
     open(unit=97,file=filename,status="old",iostat=err)
@@ -272,7 +282,16 @@ contains
 
     read(97,fmt=*) ((previous_results_rho0(mu,j),mu=1,nOrb),j=1,sys0%nAtoms)
     read(97,fmt=*) (previous_results_rhod0(j),j=1,sys0%nAtoms)
+    read(97,fmt=*) U_tmp
     close(97)
+
+    if(abs(U_tmp - sys%Types(i)%U) > 1.d-10) then
+      write(output%unit,"('[read_initial_Uterms] Different value of U:')")
+      write(output%unit,"('[read_initial_Uterms] Using for ',a,':', es16.9,', Read from previous calculations: ', es16.9)") trim(sys%Types(i)%Name),U_tmp, sys%Types(i)%U
+      write(output%unit,"('[read_initial_Uterms] Recalculating expectation values...')")
+      err = 1
+      return
+    end if
 
     call MPI_Bcast(previous_results_rho0 ,nOrb*sys0%nAtoms,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
     call MPI_Bcast(previous_results_rhod0,sys0%nAtoms     ,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
@@ -289,4 +308,4 @@ contains
 
   end subroutine read_initial_Uterms
 
-end module expectation
+end module mod_expectation
