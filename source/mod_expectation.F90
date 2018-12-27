@@ -1,4 +1,4 @@
-module expectation
+module mod_expectation
 
 contains
 
@@ -11,14 +11,14 @@ contains
     use mod_SOC,        only: ls,allocLS
     use adaptiveMesh,   only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh
     use mod_parameters, only: kp_in,kptotal_in,output,eta
-    use mod_polyBasis,  only: polyBasis => read_basis
+    use mod_polyBasis,  only: read_basis
     use mod_mpi_pars,   only: myrank,FieldComm,rField,sField,abortProgram
     use Lattice,        only: initLattice
     use mod_progress,   only: write_time
     use mod_tools,      only: rtos
-    ! use SK_TightBinding
-    use mod_BrillouinZone, only: realBZ!,nkpt_x,nkpt_y,nkpt_z
-    use EnergyIntegration, only: pn1
+    use mod_Atom_variables, only: allocate_Atom_variables,deallocate_Atom_variables
+    use mod_BrillouinZone,  only: realBZ!,nkpt_x,nkpt_y,nkpt_z
+    use EnergyIntegration,  only: pn1
     implicit none
     integer :: i,j,mu,err
     type(System), intent(inout) :: sys
@@ -31,7 +31,7 @@ contains
 
     do i = 1, sys%nTypes
       !------------------ Define the lattice structure -------------------
-      call polyBasis(trim(sys%Types(i)%Name), sys0(i))
+      call read_basis(trim(sys%Types(i)%Name), sys0(i))
       if(sys0(i)%nAtoms/=1) call abortProgram("[calc_initial_Uterms] Not implemented for parameter file with more than 1 atom!")
 
       !------------- Setting the number of nearest neighbors -------------
@@ -57,11 +57,12 @@ contains
       !-------------------------- Filename strings -------------------------
       write(output%info,"('_nkpt=',i0,'_eta=',a)") kptotal_in, trim(rtos(eta,"(es8.1)"))
 
-      !---------------- Reading from previous calculations -----------------
-      call read_initial_Uterms(sys,sys0(i),i,err)
+      !-------------------- Tight Binding parameters ---------------------
+      call initTightBinding(sys0(i))
 
-      !---------------- Calculating if file doesn't exist ------------------
-      if(err/=0) then
+      !---------------- Reading from previous calculations -----------------
+      !------- and calculating if file doesn't exist (or different U) ------
+      if(.not.read_initial_Uterms(sys,sys0(i),i,err)) then
         if(myrank == 0) write(output%unit,"('[calc_initial_Uterms] Initial density file for ""',a,'"" does not exist. Calculating...')") trim(sys%Types(i)%Name)
 
         !--- Generating k meshes points for imaginary axis integration -----
@@ -70,15 +71,16 @@ contains
         !----------- Allocating variables that depend on nAtoms ------------
         call allocate_magnet_variables(sys0(i)%nAtoms, nOrb)
         call allocLS(sys0(i)%nAtoms,nOrb)
-
-        !-------------------- Tight Binding parameters ---------------------
-        call initTightBinding(sys0(i))
+        call allocate_Atom_variables(sys0(i)%nAtoms,nOrb)
 
         !------- Initialize Stride Matrices for hamiltk and dtdksub --------
         call initHamiltkStride(sys0(i)%nAtoms, nOrb)
 
         !---- L matrix in global frame for given quantization direction ----
         call l_matrix()
+
+        !-------------------------- Build U array --------------------------
+        call build_U(sys0(i))
 
         !----- Removing L.B, S.B and L.S matrices from the hamiltonian -----
         lb = cZero
@@ -99,6 +101,7 @@ contains
 
         !-------------------- Deallocating variables -----------------------
         call deallocate_magnet_variables()
+        call deallocate_Atom_variables()
 
       end if ! err
 
@@ -114,8 +117,8 @@ contains
     if(.not.allocated(rho0 )) allocate(rho0(nOrb,sys%nAtoms))
     if(.not.allocated(rhod0)) allocate(rhod0(sys%nAtoms))
     do i=1,sys%nAtoms
-      rho0(:,i) = sys%Types(sys%Basis(i)%Material)%rho0(:,1)
-      rhod0(i)  = sys%Types(sys%Basis(i)%Material)%rhod0(1)
+      rho0(:,i) = sys%Types(sys%Basis(i)%Material)%rho0(:,1) ! Only works for 1 atom in unit cell of elemental file
+      rhod0(i)  = sys%Types(sys%Basis(i)%Material)%rhod0(1)  ! Only works for 1 atom in unit cell of elemental file
     end do
 
     if(myrank == 0) &
@@ -230,21 +233,26 @@ contains
     integer,      intent(in) :: i
     integer           :: j,mu
 
+    ! Defining and opening file:
     write(output%unit,"('[write_initial_Uterms] Writing initial densities of ""',a,'"" to file:')") trim(sys0%Name)
     write(filename,"('./results/FSOC/selfconsistency/initialrho_',a,'_dfttype=',a,'_parts=',i0,a,'.dat')") trim(sys%Types(i)%Name), dfttype, parts,trim(output%info)
     write(output%unit,"('[write_initial_Uterms] ',a)") trim(filename)
     open (unit=98,status='replace',file=filename)
 
+    ! Writing rho0(nOrb,nAtoms) and rhod0(nAtoms) to file
     write(formatvar,fmt="(a,i0,a)") '(',nOrb*sys0%nAtoms,'(es21.11,2x))'
     write(98,fmt=formatvar) ((sys%Types(i)%rho0(mu,j),mu=1,nOrb),j=1,sys0%nAtoms)
     write(formatvar,fmt="(a,i0,a)") '(',sys0%nAtoms,'(es21.11,2x))'
     write(98,fmt=formatvar) (sys%Types(i)%rhod0(j),j=1,sys0%nAtoms)
 
+    ! Writing U to file (to be compared in other calculations)
+    write(98,fmt="(es21.11)") sys0%Types(1)%U ! Only works for 1 atom in unit cell of elemental file
+
     close(98)
   end subroutine write_initial_Uterms
 
 
-  subroutine read_initial_Uterms(sys,sys0,i,err)
+  function read_initial_Uterms(sys,sys0,i,err) result(success)
     !! Writes the initial orbital dependent densities (calculated with tight-binding hamiltonian only) into files
     use mod_f90_kind,      only: double
     use mod_parameters,    only: output, dfttype
@@ -253,13 +261,16 @@ contains
     use TightBinding,      only: nOrb
     use mod_mpi_pars
     implicit none
-    character(len=500) :: filename
     type(System), intent(in)    :: sys0
     type(System), intent(inout) :: sys
     integer,      intent(in)    :: i
     integer,      intent(out)   :: err
-    integer           :: j,mu
-    real(double)      :: previous_results_rho0(nOrb,sys0%nAtoms),previous_results_rhod0(sys0%nAtoms)
+    logical            :: success
+    character(len=500) :: filename
+    integer            :: j,mu
+    real(double)       :: previous_results_rho0(nOrb,sys0%nAtoms),previous_results_rhod0(sys0%nAtoms),U_tmp
+
+    success = .false.
 
     write(filename,"('./results/FSOC/selfconsistency/initialrho_',a,'_dfttype=',a,'_parts=',i0,a,'.dat')") trim(sys%Types(i)%Name), dfttype, parts,trim(output%info)
     open(unit=97,file=filename,status="old",iostat=err)
@@ -272,7 +283,15 @@ contains
 
     read(97,fmt=*) ((previous_results_rho0(mu,j),mu=1,nOrb),j=1,sys0%nAtoms)
     read(97,fmt=*) (previous_results_rhod0(j),j=1,sys0%nAtoms)
+    read(97,fmt=*) U_tmp
     close(97)
+
+    if(abs(U_tmp - sys0%Types(1)%U) > 1.d-10) then ! Only works for 1 atom in unit cell of elemental file
+      write(output%unit,"('[read_initial_Uterms] Different value of U:')")
+      write(output%unit,"('[read_initial_Uterms] Using for ',a,':', es16.9,', Read from previous calculations: ', es16.9)") trim(sys%Types(i)%Name), sys0%Types(1)%U, U_tmp
+      write(output%unit,"('[read_initial_Uterms] Recalculating expectation values...')")
+      return
+    end if
 
     call MPI_Bcast(previous_results_rho0 ,nOrb*sys0%nAtoms,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
     call MPI_Bcast(previous_results_rhod0,sys0%nAtoms     ,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
@@ -287,6 +306,7 @@ contains
       sys%Types(i)%rhod0(j) = previous_results_rhod0(j)
     end do
 
-  end subroutine read_initial_Uterms
+    success = .true.
+  end function read_initial_Uterms
 
-end module expectation
+end module mod_expectation

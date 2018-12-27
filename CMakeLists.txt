@@ -20,7 +20,9 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/dtdksub.F90
                                   source/invers.F90
                                   source/U_matrix.F90
-                                  source/calc_initial_Uterms.F90
+                                  source/mod_expectation.F90
+                                  source/initConversionMatrices.F90
+                                  source/build_U.F90
                                   source/mod_System.F90
                                   source/mod_polyBasis.F90
                                   source/mod_BrillouinZone.F90
@@ -44,7 +46,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/calculate_all.F90
                                   source/calculate_dc_limit.F90
                                   source/fermi_surface.F90
-                                  source/Atom_variables.F90
+                                  source/mod_Atom_variables.F90
                                   source/mod_rotation_matrices.F90
                                   source/mod_check_stop.F90
                                   source/band_structure.F90

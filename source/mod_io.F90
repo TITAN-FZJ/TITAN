@@ -54,7 +54,7 @@ contains
   end subroutine log_warning
 
   subroutine get_parameters(filename, s)
-    use mod_f90_kind, only: double
+    use mod_f90_kind,   only: double
     use mod_mpi_pars
     use mod_input
     use mod_parameters, only: output, laddresults, lverbose, ldebug, lkpoints, &
@@ -65,35 +65,37 @@ contains
                               skip_steps, nEner, nEner1, nQvec, nQvec1, qbasis, renorm, renormnb, bands, band_cnt, &
                               offset, dfttype, U, parField, parFreq, kptotal_in, kp_in
     use mod_self_consistency, only: lslatec, lontheflysc, lnojac, lGSL, lforceoccup, lrotatemag, skipsc, scfile, magbasis, mag_tol
-    use mod_system, only: System, n0sc1, n0sc2
-    use mod_SOC, only: SOC, socscale, llinearsoc, llineargfsoc
-    use mod_magnet, only: lfield, tesla, hwa_i, hwa_f, hwa_npts, hwa_npt1, hwt_i, hwt_f, &
-                          hwt_npts, hwt_npt1, hwp_i, hwp_f, hwp_npts, hwp_npt1, hwx, hwy, &
-                          hwz, hwscale, hwtrotate, hwprotate, skip_steps_hw
-    use TightBinding, only: tbmode, fermi_layer
-    use ElectricField, only: ElectricFieldMode, ElectricFieldVector, EFp, EFt, EshiftBZ
-    use EnergyIntegration, only: parts, parts3, pn1, pn2, pnt, n1gl, n3gl
-    use mod_tools, only: itos
-    use adaptiveMesh, only: minimumBZmesh
+    use mod_system,           only: System, n0sc1, n0sc2
+    use mod_SOC,              only: SOC, socscale, llinearsoc, llineargfsoc
+    use mod_magnet,           only: lfield, tesla, hwa_i, hwa_f, hwa_npts, hwa_npt1, hwt_i, hwt_f, &
+                              hwt_npts, hwt_npt1, hwp_i, hwp_f, hwp_npts, hwp_npt1, hwx, hwy, &
+                              hwz, hwscale, hwtrotate, hwprotate, skip_steps_hw
+    use TightBinding,         only: tbmode, fermi_layer
+    use ElectricField,        only: ElectricFieldMode, ElectricFieldVector, EFp, EFt, EshiftBZ
+    use EnergyIntegration,    only: parts, parts3, pn1, pn2, pnt, n1gl, n3gl
+    use mod_tools,            only: itos, rtos
+    use adaptiveMesh,         only: minimumBZmesh
     implicit none
-    character(len=*), intent(in) :: filename
-    type(System), intent(inout) :: s
-    character(len=20), allocatable :: s_vector(:)
-    real(double), allocatable :: vector(:)
-    integer*8,    allocatable :: i_vector(:)
+    character(len=*), intent(in)    :: filename
+    type(System),     intent(inout) :: s
+    character(len=20), allocatable  :: s_vector(:)
+    real(double),      allocatable  :: vector(:)
+    integer*8,         allocatable  :: i_vector(:)
     integer :: i, cnt
     character(len=20) :: tmp_string
+
     if(.not. read_file(filename)) &
-         call log_error("get_parameters", "File " // trim(filename) // " not found!")
+      call log_error("get_parameters", "File " // trim(filename) // " not found!")
 
     if(myrank == 0) then
-       if(.not. enable_input_logging(logfile)) &
-            call log_warning("get_parameters", "couldn't enable logging.")
+      if(.not. enable_input_logging(logfile)) &
+        call log_warning("get_parameters", "couldn't enable logging.")
     end if
     if(.not. get_parameter("output", output%file)) &
-         call log_error("get_parameters", "Output filename not given!")
+      call log_error("get_parameters", "Output filename not given!")
 
-    if(myrank==0) open (unit=output%unit, file=trim(output%file), status='replace')
+    if(myrank==0) open(unit=output%unit, file=trim(output%file), status='replace')
+
     log_unit = .true.
 
 ! Print the Git version (VERSION is defined via CMake macro and defined with compiler flag -DVERSION='')
@@ -104,18 +106,18 @@ contains
 #endif
 
     if(myrank==0) &
-         write(output%unit,"('[get_parameters] Reading parameters from ""',a,'"" file...')") trim(filename)
-
+      write(output%unit,"('[get_parameters] Reading parameters from ""',a,'"" file...')") trim(filename)
     !===============================================================================================
     !============= System configuration (Lattice + Reciprocal lattice) =============================
     !===============================================================================================
-    if(.not. get_parameter("nn_stages", s%nStages,2)) call log_warning("get_parameters","'nn_stages' missing. Using default value of 2.")
-
-    if(.not. get_parameter("relTol", s%relTol,0.05d0)) call log_warning("get_parameters","'relTol' missing. Using default value of 0.05.")
-
-    if(.not. get_parameter("bulk", s%lbulk, .true.)) call log_warning("get_parameters", "'bulk' missing. Using default value.")
-
-    if(.not. get_parameter("nkpt", i_vector,cnt)) call log_error("get_parameters","'nkpt' missing.")
+    if(.not. get_parameter("nn_stages", s%nStages,2)) &
+      call log_warning("get_parameters","'nn_stages' missing. Using default value: 2")
+    if(.not. get_parameter("relTol", s%relTol,0.05d0)) &
+      call log_warning("get_parameters","'relTol' missing. Using default value: 0.05")
+    if(.not. get_parameter("bulk", s%lbulk, .true.)) &
+      call log_warning("get_parameters", "'bulk' missing. Using default value: .true.")
+    if(.not. get_parameter("nkpt", i_vector,cnt)) &
+      call log_error("get_parameters","'nkpt' missing.")
     if(cnt == 1) then
       kptotal_in = int( i_vector(1), kind(kptotal_in) )
       if(s%lbulk) then
@@ -132,96 +134,98 @@ contains
       kp_in(3) = int( i_vector(3), kind(kp_in(3)) )
       kptotal_in = int( kp_in(1) * kp_in(2) * kp_in(3), kind(kptotal_in) )
     else
-      call log_error("get_parameter", "'nkpt' has wrong size (expected 1 or 3)")
+      call log_error("get_parameter", "'nkpt' has wrong size (expected 1 or 3).")
     end if
-
-    if(.not. get_parameter("minimumBZmesh", minimumBZmesh, 1000)) call log_warning("get_parameters", "'minimumBZmesh' missing. Using default value.")
+    if(.not. get_parameter("minimumBZmesh", minimumBZmesh, 1000)) &
+      call log_warning("get_parameters", "'minimumBZmesh' missing. Using default value: 1000")
+    if(.not. get_parameter("eta", eta)) &
+      call log_error("get_parameters","'eta' missing.")
+    if(.not. get_parameter("etap", etap, eta)) &
+      call log_warning("get_parameters", "'etap' not found. Using default value: eta = " // trim(rtos(eta,"(es8.1)")) )
     !===============================================================================================
     !===============================================================================================
-
     !------------------------------------- Type of Calculation -------------------------------------
-    if(.not. get_parameter("itype", itype)) call log_error("get_parameters","'itype' missing.")
-
-    if(.not. get_parameter("Options", s_vector, cnt)) call log_error("get_parameters","'Options' missing.")
+    if(.not. get_parameter("itype", itype)) &
+      call log_error("get_parameters","'itype' missing.")
+    if(.not. get_parameter("Options", s_vector, cnt)) &
+      call log_warning("get_parameters","'Options' missing.")
     runoptions = ""
     do i = 1, cnt
-       select case (s_vector(i))
-       case ("ry2ev")
-          ry2ev = 13.6d0
-       case ("tesla")
-          tesla = 5.7883817555d-5/13.6d0 ! Ry/T
-          ltesla = .true.
-       case ("verbose")
-          lverbose = .true.
-       case ("debug")
-          ldebug = .true.
-       case ("addresults")
-          laddresults = .true.
-       case ("createfiles")
-          lcreatefiles = .true.
-       case("createfolders")
-          lcreatefolders = .true.
-       case ("slatec")
-          lslatec = .true.
-       case ("GSL")
-          lGSL = .true.
-       case ("kpoints")
-          lkpoints = .true.
-       case ("positions")
-          lpositions = .true.
-       case ("lineargfsoc")
-          llineargfsoc = .true.
-       case ("linearsoc")
-          llinearsoc = .true.
-       case ("nojac")
-          lnojac = .true.
-       case ("hfresponses")
-          lhfresponses  = .true.
-       case ("ontheflysc")
-          lontheflysc = .true.
-       case ("rotatemag")
-          lrotatemag = .true.
-       case ("nolb")
-          lnolb = .true.
-       case ("nodiag")
-          lnodiag = .true.
-       case ("sha")
-          lsha = .true.
-       case ("writeonscreen")
-          lwriteonscreen = .true.
-       case ("sortfiles")
-          lsortfiles = .true.
-       case ("lgtv")
-          llgtv = .true.
-       case ("checkjac")
-          lcheckjac = .true.
-       case ("forceoccupation")
-          lforceoccup = .true.
-       case ("simplemix")
-          lsimplemix = .true.
-       case("!")
-          exit
-       case default
-          call log_warning("get_parameters","Runoption " // trim(s_vector(i)) // " not found!")
-          cycle
-       end select
-       runoptions  = trim(runoptions) // " " // trim(s_vector(i))
+      select case (s_vector(i))
+      case ("ry2ev")
+        ry2ev = 13.6d0
+      case ("tesla")
+        tesla = 5.7883817555d-5/13.6d0 ! Ry/T
+        ltesla = .true.
+      case ("verbose")
+        lverbose = .true.
+      case ("debug")
+        ldebug = .true.
+      case ("addresults")
+        laddresults = .true.
+      case ("createfiles")
+        lcreatefiles = .true.
+      case("createfolders")
+        lcreatefolders = .true.
+      case ("slatec")
+        lslatec = .true.
+      case ("GSL")
+        lGSL = .true.
+      case ("kpoints")
+        lkpoints = .true.
+      case ("positions")
+        lpositions = .true.
+      case ("lineargfsoc")
+        llineargfsoc = .true.
+      case ("linearsoc")
+        llinearsoc = .true.
+      case ("nojac")
+        lnojac = .true.
+      case ("hfresponses")
+        lhfresponses  = .true.
+      case ("ontheflysc")
+        lontheflysc = .true.
+      case ("rotatemag")
+        lrotatemag = .true.
+      case ("nolb")
+        lnolb = .true.
+      case ("nodiag")
+        lnodiag = .true.
+      case ("sha")
+        lsha = .true.
+      case ("writeonscreen")
+        lwriteonscreen = .true.
+      case ("sortfiles")
+        lsortfiles = .true.
+      case ("lgtv")
+        llgtv = .true.
+      case ("checkjac")
+        lcheckjac = .true.
+      case ("forceoccupation")
+        lforceoccup = .true.
+      case ("simplemix")
+        lsimplemix = .true.
+      case("!")
+        exit
+      case default
+        call log_warning("get_parameters","Runoption " // trim(s_vector(i)) // " not found!")
+        cycle
+      end select
+      runoptions  = trim(runoptions) // " " // trim(s_vector(i))
     end do
-
     deallocate(s_vector)
-
     !-------------------------------------- In-Plane Currents --------------------------------------
-    if(.not. get_parameter("n0sc1", n0sc1)) call log_warning("get_parameters","'n0sc1' missing.")
-
-    if(.not. get_parameter("n0sc2", n0sc2)) call log_warning("get_parameters","'n0sc2' missing.")
-
-
-    !----------------------------------- Spin - Orbit - Coupling -----------------------------------
-    if(.not. get_parameter("SOC", SOC)) &
-        call log_warning("get_parameters","'SOC' missing. Using default value.")
+    ! Delete?
+    if(.not. get_parameter("n0sc1", n0sc1)) &
+      call log_warning("get_parameters","'n0sc1' missing.")
+    if(.not. get_parameter("n0sc2", n0sc2)) &
+      call log_warning("get_parameters","'n0sc2' missing.")
+    !------------------------------------- Spin-Orbit-Coupling -------------------------------------
+    if(.not. get_parameter("SOC", SOC,.true.)) &
+      call log_warning("get_parameters","'SOC' missing. Using default value: .true.")
     if(SOC) then
       if(.not. get_parameter("socscale", socscale, 1.d0)) &
-          call log_warning("get_parameters","'socscale' missing. Using default value.")
+        call log_warning("get_parameters","'socscale' missing. Using default value: 1.d0")
       if(llinearsoc) then
         output%SOCchar = "L"
       else
@@ -232,119 +236,88 @@ contains
     else
       output%SOCchar = "F"
     end if
-
-    !---------------------------------------- Magnetization ----------------------------------------
-    if(.not. get_parameter("magtol", mag_tol, 1.d-12)) call log_warning("get_parameters", "'magtol' not found. Using default value.")
-
-    if(.not. get_parameter("magbasis", magbasis)) call log_warning("get_parameters","'magbasis' missing.")
-    ! if(.not. get_parameter("magbasis", tmp_string)) then
-    !   call log_warning("get_parameters","'magbasis' missing.")
-    !   magaxis = 0
-    ! else
-    !   select case (tmp_string)
-    !   case("cartesian")
-    !     if(.not. get_parameter("magaxis", vector, cnt)) &
-    !         call log_error("get_parameters","'magaxis' missing.")
-    !     if(cnt /= 3) &
-    !         call log_error("get_parameters","'magaxis' has wrong size (size 3 required).")
-    !     magaxis = -1 ! TODO: Set it to a value if not determined otherwise?
-    !     magaxisvec(1:3) = vector(1:3)
-    !     deallocate(vector)
-    !   case("neighbor")
-    !     if(.not. get_parameter("magaxis", magaxis)) &
-    !         call log_error("get_parameters","'magaxis' missing.")
-    !   case("bravais")
-    !     if(.not. get_parameter("magaxis", i_vector, cnt)) &
-    !         call log_error("get_parameters","'magaxis' missing.")
-    !     if(cnt /= 2) &
-    !         call log_error("get_parameters","'magaxis' has wrong size (size 2 required).")
-    !     magaxis = -2 ! TODO: Add options to evaluate these values.
-    !     magaxisvec(1:2) = i_vector(1:2)
-    !     deallocate(i_vector)
-    !   case("spherical")
-    !     if(.not. get_parameter("magaxis", vector, cnt)) &
-    !         call log_error("get_parameters", "'magaxis' missing.")
-    !     if(cnt /= 2) call log_error("get_parameters", "'magaxis' has wrong size (size 2 required).")
-    !     magaxis = -3
-    !     magaxisvec(1:2) = vector(1:2)
-    !     deallocate(vector)
-    !   end select
-    ! end if
-
+    !---------------------------------------- Magnetization -----------------------------------------
+    if(.not. get_parameter("magtol", mag_tol, 1.d-12)) &
+      call log_warning("get_parameters", "'magtol' not found. Using default value: 1.d-12")
+    if(.not. get_parameter("magbasis", magbasis, "spherical")) &
+      call log_warning("get_parameters","'magbasis' missing. Using default value: ""spherical""")
     !------------------------------------- Coulomb Interaction -------------------------------------
-    if(.not. get_parameter("U", U, cnt)) then
-      call log_warning("get_parameters","'U' not present. Using default value of 1eV for all sites.")
-      allocate(U(1))
-      U = 1.d0 / 13.6d0
-    else if(cnt == 1) then
-      call log_warning("get_parameters", "'U' has only single value. Using this on all sites.")
-    else if(cnt < 0) then
-      call log_error("get_parameters","'U' has size < 0.")
-    end if
-
+    ! if(get_parameter("U", U_from_input, cnt)) &
+    !   call log_warning("get_parameters", "'U' given in input. Overwriting values from elemental files.")
     !--------------------------------------- Electric Field ----------------------------------------
-    if(.not. get_parameter("ebasis", tmp_string)) call log_error("get_parameters","'ebasis' missing.")
+    if(.not. get_parameter("ebasis", tmp_string, "spherical")) &
+      call log_warning("get_parameters","'ebasis' missing. Using default value: ""spherical""")
     select case (tmp_string)
     case("cartesian")
-       if(.not. get_parameter("dirEfield", vector, cnt)) call log_error("get_parameters","'dirEfield' missing.")
-       if(cnt /= 3) call log_error("get_parameters","'dirEfield' has wrong size (size 3 required).")
-       ElectricFieldMode = -1 ! TODO: Set it to a value if not determined otherwise?
-       ElectricFieldVector(1:3) = vector(1:3)
-       deallocate(vector)
+      if(.not. get_parameter("dirEfield", vector, cnt)) &
+        call log_error("get_parameters","'dirEfield' missing.")
+      if(cnt /= 3) call log_error("get_parameters","'dirEfield' has wrong size (size 3 required).")
+      ElectricFieldMode = -1 ! TODO: Set it to a value if not determined otherwise?
+      ElectricFieldVector(1:3) = vector(1:3)
+      deallocate(vector)
     case("neighbor")
-       if(.not. get_parameter("dirEfield", ElectricFieldMode)) call log_error("get_parameters","'dirEfield' missing.")
+      if(.not. get_parameter("dirEfield", ElectricFieldMode)) &
+        call log_error("get_parameters","'dirEfield' missing.")
     case("bravais")
-       if(.not. get_parameter("dirEfield", i_vector, cnt)) call log_error("get_parameters","'dirEfield' missing.")
-       if(cnt /= 2) call log_error("get_parameters","'dirEfield' has wrong size (size 2 required).")
-       ElectricFieldMode = -2 ! TODO: Add options to evaluate these values.
-       ElectricFieldVector(1:2) = i_vector(1:2)
-       deallocate(i_vector)
+      if(.not. get_parameter("dirEfield", i_vector, cnt)) &
+        call log_error("get_parameters","'dirEfield' missing.")
+      if(cnt /= 2) call log_error("get_parameters","'dirEfield' has wrong size (size 2 required).")
+      ElectricFieldMode = -2 ! TODO: Add options to evaluate these values.
+      ElectricFieldVector(1:2) = i_vector(1:2)
+      deallocate(i_vector)
     case("spherical")
-       if(.not. get_parameter("dirEfield", vector, cnt)) call log_error("get_parameters", "'dirEfield' missing.")
-       if(cnt /= 2) call log_error("get_parameters", "'dirEfield' has wrong size (size 2 required).")
-       ElectricFieldMode = -3
-       EFt = vector(1)
-       EFp = vector(2)
-       deallocate(vector)
+      if(.not. get_parameter("dirEfield", vector, cnt)) &
+        call log_error("get_parameters", "'dirEfield' missing.")
+      if(cnt /= 2) call log_error("get_parameters", "'dirEfield' has wrong size (size 2 required).")
+      ElectricFieldMode = -3
+      EFt = vector(1)
+      EFp = vector(2)
+      deallocate(vector)
     end select
-
-    if(.not. get_parameter("EshiftBZ", EshiftBZ, 0.d0)) call log_warning("get_parameters", "'EshiftBZ' not found. Using default value 0.d0.")
-    if(.not. get_parameter("eta", eta)) call log_error("get_parameters","'eta' missing.")
-    if(.not. get_parameter("etap", etap, eta)) call log_warning("get_parameters", "'etap' not found. Using default value eta.")
-
-
+    if(.not. get_parameter("EshiftBZ", EshiftBZ, 0.d0)) &
+      call log_warning("get_parameters", "'EshiftBZ' not found. Using default value: 0.d0")
     !------------------------------------- Static Magnetic Field -----------------------------------
-    if(.not. get_parameter("FIELD", lfield, .false.)) call log_warning("get_parameters","'lfield' missing. Using default value.")
+    if(.not. get_parameter("FIELD", lfield, .false.)) &
+      call log_warning("get_parameters","'lfield' missing. Using default value: .false.")
     if(lfield) then
-       if(.not. get_parameter("hwa", vector, cnt)) call log_error("get_parameters","'hwa' missing.")
-       if(cnt < 1) call log_error("get_parameters","'hwa' doesn't contain any parameters.")
-       hwa_i = vector(1)
-       if(cnt >= 2) hwa_f = vector(2)
-       if(cnt >= 3) hwa_npts = vector(3)
-       deallocate(vector)
-       hwa_npt1 = hwa_npts + 1
+      if(.not. get_parameter("hwa", vector, cnt)) &
+        call log_error("get_parameters","'hwa' missing.")
+      if(cnt < 1) call log_error("get_parameters","'hwa' doesn't contain any parameter.")
+      hwa_i = vector(1)
+      if(cnt >= 2) hwa_f = vector(2)
+      if(cnt >= 3) hwa_npts = vector(3)
+      deallocate(vector)
+      hwa_npt1 = hwa_npts + 1
 
-       if(.not. get_parameter("hwt", vector, cnt)) call log_error("get_parameters","'hwt' missing.")
-       if(cnt < 1) call log_error("get_parameters","'hwt' doesn't contain any parameters.")
-       hwt_i = vector(1)
-       if(cnt >= 2) hwt_f = vector(2)
-       if(cnt >= 3) hwt_npts = vector(3)
-       deallocate(vector)
-       hwt_npt1 = hwt_npts + 1
+      if(.not. get_parameter("hwt", vector, cnt)) &
+        call log_error("get_parameters","'hwt' missing.")
+      if(cnt < 1) call log_error("get_parameters","'hwt' doesn't contain any parameter.")
+      hwt_i = vector(1)
+      if(cnt >= 2) hwt_f = vector(2)
+      if(cnt >= 3) hwt_npts = vector(3)
+      deallocate(vector)
+      hwt_npt1 = hwt_npts + 1
 
-       if(.not. get_parameter("hwp", vector, cnt)) call log_error("get_parameters","'hwp' missing.")
-       if(cnt < 1) call log_error("get_parameters","'hwp' doesn't contain any parameters.")
-       hwp_i = vector(1)
-       if(cnt >= 2) hwp_f = vector(2)
-       if(cnt >= 3) hwp_npts = vector(3)
-       deallocate(vector)
-       hwp_npt1 = hwp_npts + 1
-       if(abs(hwa_i) < 1.d-9) then
-         if(.not. get_parameter("hwx", hwx)) call log_error("get_parameters","'hwx' missing.")
-         if(.not. get_parameter("hwy", hwy)) call log_error("get_parameters","'hwy' missing.")
-         if(.not. get_parameter("hwz", hwz)) call log_error("get_parameters","'hwz' missing.")
-       end if
+      if(.not. get_parameter("hwp", vector, cnt)) &
+        call log_error("get_parameters","'hwp' missing.")
+      if(cnt < 1) call log_error("get_parameters","'hwp' doesn't contain any parameter.")
+      hwp_i = vector(1)
+      if(cnt >= 2) hwp_f = vector(2)
+      if(cnt >= 3) hwp_npts = vector(3)
+      deallocate(vector)
+      hwp_npt1 = hwp_npts + 1
+
+      if(abs(hwa_i) < 1.d-9) then
+        if(.not. get_parameter("hwx", hwx)) &
+          call log_error("get_parameters","'hwx' missing.")
+        if(.not. get_parameter("hwy", hwy)) &
+          call log_error("get_parameters","'hwy' missing.")
+        if(.not. get_parameter("hwz", hwz)) &
+          call log_error("get_parameters","'hwz' missing.")
+      end if
     end if
+    if(.not. get_parameter("skip_steps_hw", skip_steps_hw, 0)) &
+      call log_warning("get_parameters","'skip_steps_hw' missing. Using default value: 0")
 
     if(get_parameter("hwscale", vector, cnt)) then
        if(cnt < dmax)  hwscale(1:cnt)  = vector(1:cnt)
@@ -363,37 +336,38 @@ contains
        if(cnt >= dmax) hwprotate(1:dmax) = vector(1:dmax)
     end if
     if(allocated(vector)) deallocate(vector)
-
     !------------------------------------ Integration Variables ------------------------------------
-    if(.not. get_parameter("parts", parts)) call log_error("get_parameters","'parts' missing.")
-    if(.not. get_parameter("parts3", parts3)) call log_error("get_parameters","'parts3' missing.")
+    if(.not. get_parameter("parts", parts)) &
+      call log_error("get_parameters","'parts' missing.")
+    if(.not. get_parameter("parts3", parts3)) &
+      call log_error("get_parameters","'parts3' missing.")
     write(output%Energy, "('_parts=',i0,'_parts3=',i0)") parts,parts3
-
-
-    if(.not. get_parameter("n1gl", n1gl)) call log_error("get_parameters","'n1gl' missing.")
-
-    if(.not. get_parameter("n3gl", n3gl)) call log_error("get_parameters","'n3gl' missing.")
-
+    if(.not. get_parameter("n1gl", n1gl)) &
+      call log_error("get_parameters","'n1gl' missing.")
+    if(.not. get_parameter("n3gl", n3gl)) &
+      call log_error("get_parameters","'n3gl' missing.")
     !------------------------------------ Loop Variables ------------------------------------
-    if(.not. get_parameter("emin", emin)) call log_error("get_parameters","'emin' missing.")
-
-    if(.not. get_parameter("emax", emax)) call log_error("get_parameters","'emax' missing.")
-
-    if(.not. get_parameter("skip_steps", skip_steps, 0)) call log_warning("get_parameters","'skip_steps' missing.")
-
-    if(.not. get_parameter("skip_steps_hw", skip_steps_hw, 0)) call log_warning("get_parameters","'skip_steps_hw' missing.")
-
-    if(.not. get_parameter("nEner", nEner)) call log_error("get_parameters","'nEner' missing.")
+    ! Energy (frequency):
+    if(.not. get_parameter("emin", emin)) &
+      call log_error("get_parameters","'emin' missing.")
+    if(.not. get_parameter("emax", emax)) &
+      call log_error("get_parameters","'emax' missing.")
+    if(.not. get_parameter("skip_steps", skip_steps, 0)) &
+      call log_warning("get_parameters","'skip_steps' missing. Using default value: 0")
+    if(.not. get_parameter("nEner", nEner)) &
+      call log_error("get_parameters","'nEner' missing.")
     nEner1 = nEner + 1
 
-    if(.not. get_parameter("nQvec", nQvec, 0)) call log_warning("get_parameters","'nQvec' not found. No wave vector loop will be done.")
+    ! Wave vectors:
+    if(.not. get_parameter("nQvec", nQvec, 0)) &
+      call log_warning("get_parameters","'nQvec' not found. No wave vector loop will be done.")
     nQvec1 = nQvec + 1
-
-    if(.not. get_parameter("renorm", renorm)) call log_error("get_parameters","'renorm' missing.")
-    if(renorm) then
-       if(.not. get_parameter("renormnb", renormnb)) call log_error("get_parameters","'renormnb' missing.")
+    if(.not. get_parameter("renorm", renorm)) & ! Delete?
+      call log_error("get_parameters","'renorm' missing.")
+    if(renorm) then ! Delete?
+      if(.not. get_parameter("renormnb", renormnb)) &
+        call log_error("get_parameters","'renormnb' missing.")
     end if
-
     !----------------- Wave vector loop (band structure and susceptibility)  ----------------
     if((itype >= 7).and.(itype <= 9)) then
       ! Path or point to calculate the susceptibility
@@ -411,23 +385,23 @@ contains
     endif
     if(itype == 4) then
       ! Path to calculate band structure (can't be single point in this case)
-      if(.not. get_parameter("band", bands, band_cnt)) call log_error("get_parameters", "'band' missing.")
+      if(.not. get_parameter("band", bands, band_cnt)) &
+        call log_error("get_parameters", "'band' missing.")
       if((band_cnt < 2).or.(nQvec < 2)) call log_error("get_parameters", "Need at least two points for Band Structure")
     endif
-    if(.not. get_parameter("qbasis", qbasis,"b")) call log_warning("get_parameters","'qbasis' missing. Using reciprocal lattice.")
-
+    if(.not. get_parameter("qbasis", qbasis,"b")) &
+      call log_warning("get_parameters","'qbasis' missing. Using reciprocal lattice.")
     !---------------------------------- Magnetic Self-consistency ----------------------------------
-    if(.not. get_parameter("skipsc", skipsc, .false.)) call log_warning("get_parameters","'skipsc' missing. Using default value.")
-
-    if(.not. get_parameter("scfile", scfile)) call log_warning("get_parameters","'scfile' missing.")
-
-
+    if(.not. get_parameter("skipsc", skipsc, .false.)) &
+      call log_warning("get_parameters","'skipsc' missing. Using default value: .false.")
+    if(.not. get_parameter("scfile", scfile))&
+      call log_warning("get_parameters","'scfile' missing. Using none.")
     !======================================== Tight-Binding ========================================
 
-    if(.not. get_parameter("tbmode", tbmode)) call log_error("get_parameters", "'tbmode' missing.")
-
+    if(.not. get_parameter("tbmode", tbmode)) &
+      call log_error("get_parameters", "'tbmode' missing.")
     !---------------------------------------- Slater-Koster ----------------------------------------
-    if(1 == tbmode) then
+    if(tbmode == 1) then
       offset = 0
       dfttype = "S"
 
@@ -449,7 +423,8 @@ contains
       !   Npl_f = Npl
       ! end if
 
-      if(.not. get_parameter("fermi_layer", fermi_layer, 1)) call log_warning("get_parameters", "'fermi_layer' not given. Using fermi_layer = 1")
+      if(.not. get_parameter("fermi_layer", fermi_layer, 1)) &
+        call log_warning("get_parameters", "'fermi_layer' not given. Using default value: fermi_layer = 1")
 
     !--------------------------------------------- DFT ---------------------------------------------
     else if(2 == tbmode) then
@@ -497,22 +472,19 @@ contains
        call log_error("get_parameters", "'tbmode' Unknown mode selected. (Choose either 1 or 2)")
     end if
     !==============================================================================================!
-    !==============================================================================================!
-
-    if(.not. get_parameter("suffix", output%suffix)) call log_warning("get_parameters","'suffix' missing.")
-
-    if(.not. get_parameter("parField", parField, 1)) call log_warning("get_parameters","'parField' missing. Using default value")
-    if(.not. get_parameter("parFreq", parFreq, 1)) call log_warning("get_parameters","'parFreq' missing. Using default value")
-
-
+    if(.not. get_parameter("suffix", output%suffix)) &
+      call log_warning("get_parameters","'suffix' missing. Using none.")
+    if(.not. get_parameter("parField", parField, 1)) &
+      call log_warning("get_parameters","'parField' missing. Using default value: 1")
+    if(.not. get_parameter("parFreq", parFreq, 1)) &
+      call log_warning("get_parameters","'parFreq' missing. Using default value: 1")
     if(myrank == 0) then
       if(.not. disable_input_logging()) &
           call log_warning("get_parameters", "Could not disable logging.")
     end if
-
-
+    !==============================================================================================!    
     if(myrank==0) &
-        write(output%unit,"('[get_parameters] Finished reading from ""',a,'"" file')") trim(filename)
+      write(output%unit,"('[get_parameters] Finished reading from ""',a,'"" file')") trim(filename)
 
 
     !-------------------------------------------------------------------------------

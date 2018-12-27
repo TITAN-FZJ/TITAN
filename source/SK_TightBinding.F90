@@ -1,10 +1,9 @@
 module SK_TightBinding
-  use mod_f90_kind, only: double
   implicit none
 
 contains
 
-  subroutine get_parameter(s, fermi_layer, nOrb, Orbitals)
+  subroutine get_SK_parameter(s, fermi_layer, nOrb, Orbitals)
     use mod_f90_kind, only: double
     use AtomTypes,    only: NeighborIndex
     use mod_system,   only: System
@@ -68,7 +67,7 @@ contains
         end do
       end do
     end do
-  end subroutine get_parameter
+  end subroutine get_SK_parameter
 
   subroutine set_hopping_matrix(t0i, dirCos, t1, t2, nOrb)
     use mod_f90_kind,   only: double
@@ -96,7 +95,7 @@ contains
     use mod_f90_kind, only: double
     use AtomTypes,    only: AtomType
     use mod_mpi_pars, only: abortProgram
-    use mod_tools, only: itos
+    use mod_tools,    only: itos
     implicit none
     type(AtomType), intent(inout) :: material
     integer, intent(in) :: nStages
@@ -174,17 +173,17 @@ contains
     k = 0
     do i = 1, nTypes
       do j = 1, type_count(i)
-        k = k + 1
-        read(fu, fmt='(A)', iostat=ios) line
-        if(ios /= 0) call abortProgram("[readElementFile] Not enough basis atoms given!")
-        read(unit=line, fmt=*, iostat=ios) (position(l,k), l=1,3)
-        if(coord_type == 'C' .or. coord_type == 'c' .or. coord_type == 'K' .or. coord_type == 'k') then
-          ! Position of atoms given in Cartesian coordinates
-          position(:,k) = position(:,k) * material%LatticeConstant
-        else
-          ! Position of atoms given in Bravais (or Direct, Internal, Lattice) coordinates
-          position(:,k) = position(1,k) * material%a1 + position(2,k) * material%a2 + position(3,k) * material%a3
-        end if
+      k = k + 1
+      read(fu, fmt='(A)', iostat=ios) line
+      if(ios /= 0) call abortProgram("[readElementFile] Not enough basis atoms given!")
+      read(unit=line, fmt=*, iostat=ios) (position(l,k), l=1,3)
+      if(coord_type == 'C' .or. coord_type == 'c' .or. coord_type == 'K' .or. coord_type == 'k') then
+        ! Position of atoms given in Cartesian coordinates
+        position(:,k) = position(:,k) * material%LatticeConstant
+      else
+        ! Position of atoms given in Bravais (or Direct, Internal, Lattice) coordinates
+        position(:,k) = position(1,k) * material%a1 + position(2,k) * material%a2 + position(3,k) * material%a3
+      end if
       end do
     end do
 
@@ -200,7 +199,7 @@ contains
     material%OccupationD = dens(3)
     material%Occupation  = material%OccupationS+material%OccupationP+material%OccupationD
 
-    ! Read Hubbard Coulomb strength
+    ! Read Hubbard effective Coulomb interaction strength
     read(fu, fmt='(A)', iostat = ios) line
     read(unit= line, fmt=*, iostat=ios) material%U
 
@@ -216,30 +215,30 @@ contains
     do i = 1, nTypes
       ! Read on-site terms
       do j = 1, 4
-        read(fu, fmt='(A)', iostat = ios) line
-        read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
-        read(unit=words(3), fmt=*, iostat=ios) on_site(j)
+      read(fu, fmt='(A)', iostat = ios) line
+      read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
+      read(unit=words(3), fmt=*, iostat=ios) on_site(j)
       end do
 
       material%onSite = 0.d0
       material%onSite(1,1) = on_site(1)
       do j=2,4
-        material%onSite(j,j) = on_site(2)
+      material%onSite(j,j) = on_site(2)
       end do
       do j=5,7
-        material%onSite(j,j) = on_site(3)
+      material%onSite(j,j) = on_site(3)
       end do
       do j=8,9
-        material%onSite(j,j) = on_site(4)
+      material%onSite(j,j) = on_site(4)
       end do
 
       do j = 1, nn_stages
-        do k = 1, 10
-          read(fu, fmt='(A)', iostat = ios) line
-          read(unit=line, fmt=*, iostat=ios) (words(l), l=1,10)
-          if(j<=nStages) read(unit=words(4), fmt=*, iostat=ios) material%Hopping(k,j)
-          !material%Hopping(j,i) = material%Hopping(j,i) * (a0_corr ** expon(j)) ! Correction of hopping parameter by scaling law.
-        end do
+      do k = 1, 10
+        read(fu, fmt='(A)', iostat = ios) line
+        read(unit=line, fmt=*, iostat=ios) (words(l), l=1,10)
+        if(j<=nStages) read(unit=words(4), fmt=*, iostat=ios) material%Hopping(k,j)
+        !material%Hopping(j,i) = material%Hopping(j,i) * (a0_corr ** expon(j)) ! Correction of hopping parameter by scaling law.
+      end do
       end do
     end do
 
@@ -252,20 +251,20 @@ contains
     material % stage = 10.d0 * material % LatticeConstant
     do i = -3*nStages, 3*nStages
       do j = -3*nStages, 3*nStages
-        do k = -3*nStages, 3*nStages
-          if(i == 0 .and. j == 0 .and. k == 0) cycle
-          m = m + 1
-          vec = i * material%a1 + j * material%a2 + k * material%a3
-          dist = sqrt(dot_product(vec,vec))
-          localDistances(m) = dist
-          l = m - 1
-          do while(1 <= l)
-            if(localDistances(l) - dist < 1.d-9) exit
-            localDistances(l+1) = localDistances(l)
-            l = l - 1
-          end do
-          localDistances(l+1) = dist
+      do k = -3*nStages, 3*nStages
+        if(i == 0 .and. j == 0 .and. k == 0) cycle
+        m = m + 1
+        vec = i * material%a1 + j * material%a2 + k * material%a3
+        dist = sqrt(dot_product(vec,vec))
+        localDistances(m) = dist
+        l = m - 1
+        do while(1 <= l)
+        if(localDistances(l) - dist < 1.d-9) exit
+        localDistances(l+1) = localDistances(l)
+        l = l - 1
         end do
+        localDistances(l+1) = dist
+      end do
       end do
     end do
 
@@ -410,7 +409,6 @@ contains
     b(9,7)= b(7,9)
     b(9,8)= b(8,9)
     b(9,9)=f3*f3*dds+3.d0*zz*f1*ddp+.75d0*f1*f1*ddd
-
   end subroutine intd
 
 end module SK_TightBinding
