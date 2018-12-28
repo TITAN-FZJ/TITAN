@@ -18,7 +18,7 @@ program TITAN
   use ElectricField
   use adaptiveMesh
   use AtomTypes
-  use mod_gilbert_damping
+  use mod_TCM
   use mod_self_consistency
   use EnergyIntegration
   use mod_progress
@@ -260,7 +260,7 @@ program TITAN
     case (9) ! All responses to an electric field as a function of magnetic field
       call calculate_dc_limit()
     case(10) ! Calculation of Gilbert Damping by Kamberskys Torque Torque model
-      call calculate_gilbert_damping()
+      call calculate_TCM()
     end select
     !===================================================================
 

@@ -1,4 +1,6 @@
-module mod_gilbert_damping
+!> This subroutine includes the calculation of the Gilbert damping
+!> and the related subroutines.
+module mod_TCM
   use mod_f90_kind, only: double
   implicit none
   character(len=5),               private :: folder = "A/TCM"
@@ -6,36 +8,27 @@ module mod_gilbert_damping
 
 contains
 
+  !> Open files for the results obtained with the torque-correlation method
   subroutine openTCMFiles()
     use mod_parameters, only: output
+    use mod_System,     only: s => sys
     implicit none
-    integer :: n,iw
+    integer :: i,iw
     character(len=500)  :: varm
 
-    do n = 1, size(filename)
-      iw = 634893 + n
-
-      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(n)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+    do i = 1, size(filename)
+      iw = 634893 + i
+      ! Skip files for integrated alpha if not in bulk
+      if((.not.s%lbulk).and.(scan(filename(i),"i")>0)) cycle
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(i)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       open (unit=iw, file=varm, status='replace', form='formatted')
       write(unit=iw, fmt="('# (k), i , m , Re(A_mx), Im(A_mx), Re(A_my), Im(A_my), Re(A_mz), Im(A_mz) ')")
-
     end do
+
   end subroutine openTCMFiles
 
 
-
-  subroutine closeTCMFiles()
-    implicit none
-    integer :: i, iw
-    do i = 1, size(filename)
-      iw = 634893 + i
-      close(iw)
-    end do
-  end subroutine closeTCMFiles
-
-
-
-
+  !> Write the results for the damping calculated with the TCM
   subroutine writeTCM(unit,alpha,ndiffk,diff_k,ialpha,iwght)
     use mod_System,     only: s => sys
     implicit none
@@ -61,14 +54,29 @@ contains
     end do
 
     !! Writing k-dependent Gilbert damping alpha
-    do k=1,size(diff_k)
-      write(unit=unit+1,fmt=*) diff_k(k), ( (ialpha(i,j,k), j=1,3), i=1,s%nAtoms ), iwght(k)
-    end do
+    if(s%lbulk) then
+      do k=1,size(diff_k)
+        write(unit=unit+1,fmt=*) diff_k(k), ( (ialpha(i,j,k), j=1,3), i=1,s%nAtoms ), iwght(k)
+      end do
+    end if
   end subroutine writeTCM
 
+  !> Close files for the results obtained with the torque-correlation method
+  subroutine closeTCMFiles()
+    use mod_System,     only: s => sys
+    implicit none
+    integer :: i, iw
 
+    do i = 1, size(filename)
+      iw = 634893 + i
+      ! Skip files for integrated alpha if not in bulk
+      if((.not.s%lbulk).and.(scan(filename(i),"i")>0)) cycle
+      close(iw)
+    end do
+  end subroutine closeTCMFiles
 
-  subroutine calculate_gilbert_damping()
+  !> Driver routine to call the different torque-correlation methods and their I/O
+  subroutine calculate_TCM()
     use mod_f90_kind,   only: double
     use mod_parameters, only: output
     use mod_System,     only: s => sys
@@ -81,7 +89,7 @@ contains
     complex(double), dimension(s%nAtoms,s%nAtoms,3,3) :: alphaSO, alphaXC
 
     if(rField == 0) &
-      write(output%unit_loop, "('[calculate_gilbert_damping] Starting to calculate Gilbert damping:')")
+      write(output%unit_loop, "('[calculate_gilbert_damping] Starting to calculate Gilbert damping within the TCM:')")
 
     if(rField == 0) &
       call openTCMFiles()
@@ -109,10 +117,10 @@ contains
       call closeTCMFiles()
     end if
 
-  end subroutine calculate_gilbert_damping
+  end subroutine calculate_TCM
 
 
-
+  !> This subroutine calculates the Gilbert damping using the torque-correlation method
   subroutine TCM(torque_fct, alpha, ndiffk, diff_k, ialpha, iwght)
     use mod_f90_kind,      only: double
     use mod_constants,     only: cZero, pi, cOne, cI
@@ -174,54 +182,57 @@ contains
       write(output%unit_loop, "('[TCM] Generating local k-points...')")
     call realBZ % setup_fraction(s,rField, sField, FieldComm)
 
-    ! Obtaining the different kz
-    if(rField == 0) &
-      write(output%unit_loop, "('[TCM] Obtaining different kz: ')", advance='no')
-    open (unit=99999, file='diffkz_'//trim(itos(kptotal_in)),status='old', iostat = ios)
-    if(ios /= 0) then
+    if(s%lbulk) then
+      ! Obtaining the different kz
       if(rField == 0) &
-        write(output%unit_loop, "('Generating...')")
-      nk = int(realBZ%nkpt_x*realBZ%nkpt_y*realBZ%nkpt_z,kind(nk))
-      call store_diff(nk, s%b1, s%b2, s%b3, 3, ndiffk, diff_k_unsrt)
-    else
-      if(rField == 0) &
-        write(output%unit_loop, "('Reading from file...')")
-      read(unit=99999, fmt=*) ndiffk
-      allocate( diff_k_unsrt(ndiffk) )
-      do i=1,ndiffk
-        read(unit=99999, fmt=*) diff_k_unsrt(i)
-      end do
-      close(unit=99999)
-    end if
+        write(output%unit_loop, "('[TCM] Obtaining different kz: ')", advance='no')
+      open (unit=99999, file='diffkz_'//trim(itos(kptotal_in)),status='old', iostat = ios)
+      if(ios /= 0) then
+        if(rField == 0) &
+          write(output%unit_loop, "('Generating...')")
+        nk = int(realBZ%nkpt_x*realBZ%nkpt_y*realBZ%nkpt_z,kind(nk))
+        call store_diff(nk, s%b1, s%b2, s%b3, 3, ndiffk, diff_k_unsrt)
+      else
+        if(rField == 0) &
+          write(output%unit_loop, "('Reading from file...')")
+        read(unit=99999, fmt=*) ndiffk
+        allocate( diff_k_unsrt(ndiffk) )
+        do i=1,ndiffk
+          read(unit=99999, fmt=*) diff_k_unsrt(i)
+        end do
+        close(unit=99999)
+      end if
 
-    ! Sorting the k-points for increasing abs(kz)
-    if(rField == 0) &
-      write(output%unit_loop, "('[TCM] Sorting different kz...')")
-    allocate( order(ndiffk) )
-    if(.not.allocated(diff_k)) allocate( diff_k(ndiffk) )
-    if(.not.allocated(iwght))  allocate( iwght(ndiffk) )
-    call sort( diff_k_unsrt(:), ndiffk, order(:) )
-    sort_diffk: do k = 1, ndiffk
-      diff_k(k) = diff_k_unsrt(order(k))
-    end do sort_diffk
+      ! Sorting the k-points for increasing abs(kz)
+      if(rField == 0) &
+        write(output%unit_loop, "('[TCM] Sorting different kz...')")
+      allocate( order(ndiffk) )
+      if(.not.allocated(diff_k)) allocate( diff_k(ndiffk) )
+      if(.not.allocated(iwght))  allocate( iwght(ndiffk) )
+      call sort( diff_k_unsrt(:), ndiffk, order(:) )
+      sort_diffk: do k = 1, ndiffk
+        diff_k(k) = diff_k_unsrt(order(k))
+      end do sort_diffk
+
+      iwght = 0.d0
+
+      !! k-dependent alpha(k_z)
+      !! $\alpha(k_z) = \frac{1}{N}\sum_{k_x,k_y}\alpha(k_x,k_y,k_z)$
+
+      !! Allocating integrated alpha
+      allocate( ialpha(s%nAtoms,3,ndiffk) )
+      ialpha = 0.d0
+    end if
 
     call torque_fct(torque)
 
     !! XC-TCM:
-    !! $\alpha= \frac{1}{\gamma M \pi N} \sum_\mathbf{k} \operatorname{Tr}\{\operatorname{Im} G(\mathbf{k},\epsilon_F)\hat{T}^-_\text{xc} \operatorname{Im} G(\mathbf{k},\epsilon_F) \hat{T}^+_\text{xc}\}$
+    !! $\alpha= \frac{1}{\gamma M \pi N} \sum_{\mathbf{k}} \operatorname{Tr}\{\operatorname{Im} G(\mathbf{k},\epsilon_\text{F})\hat{T}^-_\text{xc} \operatorname{Im} G(\mathbf{k},\epsilon_F) \hat{T}^+_\text{xc}\}$
     !! SO-TCM:
-    !! $\alpha - \alpha_\text{noSOI} = \frac{1}{\gamma M \pi N} \sum_\mathbf{k} \operatorname{Tr}\{\operatorname{Im} G(\mathbf{k},\epsilon_F)\hat{T}^-_\text{SOI} \operatorname{Im} G(\mathbf{k},\epsilon_F) \hat{T}^+_\text{SOI}\}$
+    !! $\alpha - \alpha_{\text{noSOI}} = \frac{1}{\gamma M \pi N} \sum_{\mathbf{k}}\operatorname{Tr}\{\operatorname{Im} G(\mathbf{k},\epsilon_F)\hat{T}^-_{\text{SOI}} \operatorname{Im} G(\mathbf{k},\epsilon_F) \hat{T}^+_{\text{SOI}}\} $
     !! g = 2
     !! M = magnetic moment
     alpha(:,:,:,:) = cZero
-    iwght = 0.d0
-
-    !! k-dependent alpha(k_z)
-    !! $\alpha(k_z) = \frac{1}{N}\sum_{k_x,k_y}\alpha(k_x,k_y,k_z)$
-
-    !! Allocating integrated alpha
-    allocate( ialpha(s%nAtoms,3,ndiffk) )
-    ialpha = 0.d0
 
     if(rField == 0) &
       write(output%unit_loop, "('[TCM] Calculating alpha...')")
@@ -262,14 +273,8 @@ contains
               end do
               alpha_loc(j,i,n,m) = alpha_loc(j,i,n,m) + alphatemp
 
-              if((i == j).and.(m == n)) then
+              if((s%lbulk).and.(i == j).and.(m == n)) then
                 ! Testing if kz is not on the list of different kz calculated before
-!                if( all(abs( abs(kp(3)) - diff_k(:) )> 1.d-12,1)  ) then
-!                  write(*,"('[TCM] kz not in the list: kz = ',es23.16)") abs(kp(3))
-!                  ! call abortProgram("[TCM] kz not in the list: kz = " //
-!                  ! trim(rtos( abs(kp(3)),"(es16.9)" )) )
-!                end if
-
                 diffk: do k = 1, ndiffk
                   if ( abs(abs(kp(3)) - diff_k(k)) < 1.d-12 ) then
                     ialpha(i,m,k) = ialpha(i,m,k) + real(alphatemp)
@@ -298,19 +303,19 @@ contains
       do j = 1, s%nAtoms
         alpha(j,i,:,:) = 2.d0 * alpha(j,i,:,:) / (sqrt(mabs(i)*mabs(j))*pi)
       end do
-      ialpha(i,:,:) = 2.d0 * ialpha(i,:,:) / (mabs(i)*pi)
+      if(s%lbulk) ialpha(i,:,:) = 2.d0 * ialpha(i,:,:) / (mabs(i)*pi)
     end do
 
     call MPI_Allreduce(MPI_IN_PLACE, alpha , s%nAtoms*s%nAtoms*3*3, MPI_DOUBLE_COMPLEX  , MPI_SUM, FieldComm, ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, ialpha, s%nAtoms*3*ndiffk    , MPI_DOUBLE_PRECISION, MPI_SUM, FieldComm, ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, iwght , ndiffk               , MPI_DOUBLE_PRECISION, MPI_SUM, FieldComm, ierr)
-
-    deallocate(order,diff_k_unsrt)
-
+    if(s%lbulk) then
+      call MPI_Allreduce(MPI_IN_PLACE, ialpha, s%nAtoms*3*ndiffk    , MPI_DOUBLE_PRECISION, MPI_SUM, FieldComm, ierr)
+      call MPI_Allreduce(MPI_IN_PLACE, iwght , ndiffk               , MPI_DOUBLE_PRECISION, MPI_SUM, FieldComm, ierr)
+      deallocate(order,diff_k_unsrt)
+    end if
   end subroutine TCM
 
 
-
+  !> This subroutine defines the exchange-correlation torque operator/matrix
   subroutine local_xc_torque(torque)
     use mod_f90_kind,   only: double
     use mod_constants,  only: cZero, cOne, cI, levi_civita, sigma => pauli_mat
@@ -342,11 +347,10 @@ contains
       end do
       torque(:,:,:,i) = - 0.5d0 * U(i) * torque(:,:,:,i)
     end do
-
   end subroutine local_xc_torque
 
 
-
+  !> This subroutine defines the spin-orbit torque operator/matrix
   subroutine local_SO_torque(torque)
     use mod_f90_kind,  only: double
     use mod_constants, only: cZero, levi_civita, sigma => pauli_mat, cI
@@ -387,7 +391,6 @@ contains
       torque(14:18, 5: 9,:,i) = 0.5d0 * s%Types(s%Basis(i)%Material)%LambdaD * torque(14:18, 5: 9,:,i)
       torque(14:18,14:18,:,i) = 0.5d0 * s%Types(s%Basis(i)%Material)%LambdaD * torque(14:18,14:18,:,i)
     end do
-
   end subroutine local_SO_torque
 
-end module mod_gilbert_damping
+end module mod_TCM

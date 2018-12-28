@@ -24,3 +24,5 @@ bin/*
 build/*
 example/*
 cmake/*
+.DS_Store
+
