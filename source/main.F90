@@ -64,7 +64,7 @@ program TITAN
   call read_basis("basis", sys)
   call initLattice(sys)
   ! Writing Positions into file
-  if( lpositions .and. (myrank==0)) call writeLattice(sys)
+  if( lpositions .and. (myrank==0) ) call writeLattice(sys)
 
   !------------------ Set Loops and Integration Points -----------------
   call setMagneticLoopPoints()
@@ -147,7 +147,7 @@ program TITAN
     !------------------- Initialize Magnetic Field ---------------------
     call initMagneticField(sys%nAtoms)
     if((llinearsoc) .or. (.not.SOC) .and. (.not.lfield) .and. (rField == 0)) &
-    write(output%file_loop,"('[main] WARNING: No external magnetic field is applied and SOC is off/linear order: Goldstone mode is present!')")
+      write(output%file_loop,"('[main] WARNING: No external magnetic field is applied and SOC is off/linear order: Goldstone mode is present!')")
 
     !----------------------- Update fieldpart --------------------------
     call set_fieldpart(hw_count)
