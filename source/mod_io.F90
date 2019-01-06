@@ -239,8 +239,8 @@ contains
     !---------------------------------------- Magnetization -----------------------------------------
     if(.not. get_parameter("magtol", mag_tol, 1.d-12)) &
       call log_warning("get_parameters", "'magtol' not found. Using default value: 1.d-12")
-    if(.not. get_parameter("magbasis", magbasis, "spherical")) &
-      call log_warning("get_parameters","'magbasis' missing. Using default value: ""spherical""")
+    if(.not. get_parameter("magbasis", magbasis)) &
+      call log_warning("get_parameters","'magbasis' missing. Using default values for initial magnetization")
     !------------------------------------- Coulomb Interaction -------------------------------------
     ! if(get_parameter("U", U_from_input, cnt)) &
     !   call log_warning("get_parameters", "'U' given in input. Overwriting values from elemental files.")
