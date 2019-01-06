@@ -53,22 +53,24 @@ program TITAN
 
   if(myrank == 0) call write_time(output%unit,'[main] Started on: ')
 
-  !------------- Creating folders for current calculation ------------
-  if(lcreatefolders) &
-    call create_folder()
-
   !------------------- Useful constants and matrices -------------------
   call define_constants() ! TODO: Review
 
   !------------------- Define the lattice structure --------------------
   call read_basis("basis", sys)
   call initLattice(sys)
+  write(output%Sites,fmt="(i0,'Sites')") sys%nAtoms
   ! Writing Positions into file
   if( lpositions .and. (myrank==0) ) call writeLattice(sys)
+
+  !------------- Creating folders for current calculation ------------
+  if(lcreatefolders) &
+    call create_folder()
 
   !------------------ Set Loops and Integration Points -----------------
   call setMagneticLoopPoints()
   call setLoops(sys)
+
   !------------------ Creating grid of MPI processes  ------------------
   !call setup_MPI_grid(itype, pn1, nEner1, pnt,total_hw_npt1, nEner, deltae, emin, emax)
   call genMPIGrid(parField, total_hw_npt1, parFreq, nEner1 - skip_steps)
@@ -103,15 +105,6 @@ program TITAN
 
   !---------- Conversion arrays for dynamical quantities ---------------
   call initConversionMatrices(sys%nAtoms,nOrb)
-
-  !------------------------ Defining the system ------------------------
-  ! if(naddlayers/=0) then
-  !   Npl_input = Npl-naddlayers+1 ! Npl is the total number of layers, including the added layers listed on inputcard
-  ! else
-  !   Npl_input = Npl
-  ! end if
-  write(output%Sites,fmt="(i0,'Sites')") sys%nAtoms
-  ! if(tbmode == 2) call define_system()
 
   !------- Initialize Stride Matrices for hamiltk and dtdksub ----------
   call initHamiltkStride(sys%nAtoms, nOrb)
