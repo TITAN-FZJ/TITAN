@@ -17,6 +17,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/sort_all_files.F90
                                   source/green.F90
                                   source/hamiltk.F90
+                                  source/fd_dist.F90
                                   source/dtdksub.F90
                                   source/invers.F90
                                   source/U_matrix.F90
@@ -199,6 +200,6 @@ if(DEBUG)
                                               -g
                                               -O0)
 else()
-  target_compile_options(${TITAN_EXE} PRIVATE -O1)
+  target_compile_options(${TITAN_EXE} PRIVATE -O3)
 endif(DEBUG)
 #target_link_libraries(${EXEC_NAME} ${NAG}/lib/libnag_nag.a -qopenmp)

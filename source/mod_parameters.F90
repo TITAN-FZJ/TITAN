@@ -90,6 +90,7 @@ module mod_parameters
   logical :: llgtv          = .false.
   logical :: lcheckjac      = .false.
   logical :: lsimplemix     = .false.
+  logical :: leigenstates   = .false.
   !========================================================================================!
   ! Activate debug options
   logical :: lverbose = .false.

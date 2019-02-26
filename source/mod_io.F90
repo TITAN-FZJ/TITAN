@@ -60,7 +60,7 @@ contains
     use mod_parameters, only: output, laddresults, lverbose, ldebug, lkpoints, &
                               lpositions, lcreatefiles, lnolb, lhfresponses, &
                               lnodiag, lsha, lcreatefolders, lwriteonscreen, runoptions, lsimplemix, &
-                              lcheckjac, llgtv, lsortfiles, &
+                              lcheckjac, llgtv, lsortfiles,leigenstates, &
                               itype, ry2ev, ltesla, eta, etap, dmax, emin, emax, &
                               skip_steps, nEner, nEner1, nQvec, nQvec1, qbasis, renorm, renormnb, bands, band_cnt, &
                               offset, dfttype, U, parField, parFreq, kptotal_in, kp_in
@@ -205,6 +205,8 @@ contains
         lforceoccup = .true.
       case ("simplemix")
         lsimplemix = .true.
+      case ("eigenstates")
+        leigenstates = .true.
       case("!")
         exit
       case default
