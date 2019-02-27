@@ -27,7 +27,7 @@ program TITAN
   use mod_check_stop
   use mod_Atom_variables, only: allocate_Atom_variables, deallocate_Atom_variables
   use mod_tools, only: rtos
-  use mod_expectation, only: calc_initial_Uterms
+  use mod_initial_expectation, only: calc_initial_Uterms
   !use mod_define_system TODO: Re-include
   !use mod_prefactors TODO: Re-include
   !use mod_lgtv_currents TODO: Re-include

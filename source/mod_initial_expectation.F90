@@ -1,4 +1,4 @@
-module mod_expectation
+module mod_initial_expectation
 
 contains
 
@@ -312,4 +312,4 @@ contains
     success = .true.
   end function read_initial_Uterms
 
-end module mod_expectation
+end module mod_initial_expectation
