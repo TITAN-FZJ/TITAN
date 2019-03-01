@@ -64,7 +64,7 @@ contains
     ! Writing self-consistency results on screen
     if(rField == 0)  call print_sc_results()
 
-    call freeLocalEKMesh()
+    if(.not.leigenstates) call freeLocalEKMesh()
   end subroutine doSelfConsistency
 
   ! Tries to read n and m if available
