@@ -4,7 +4,7 @@ subroutine green(er,ei,sys,kp,gf)
   use mod_constants,  only: cZero,cOne
   use mod_System,     only: ia, System
   use mod_parameters, only: offset
-  use TightBinding,   only: nOrb,nOrb2
+  use TightBinding,   only: nOrb2
   implicit none
   integer     :: i,j,d
   real(double), intent(in) :: er,ei,kp(3)
@@ -13,7 +13,7 @@ subroutine green(er,ei,sys,kp,gf)
   complex(double),dimension(sys%nAtoms*nOrb2, sys%nAtoms*nOrb2) :: gslab,hk
   complex(double),dimension(nOrb2, nOrb2, sys%nAtoms, sys%nAtoms), intent(out)  :: gf
 
-  d = sys%nAtoms * 2 * nOrb
+  d = sys%nAtoms * nOrb2
 
   ec    = cmplx(er,ei,double)
 
@@ -45,7 +45,7 @@ subroutine greenlinearsoc(er,ei,sys,kp,g0,g0vsocg0)
   use mod_f90_kind,   only: double
   use mod_constants,  only: cZero, cOne
   use mod_parameters, only: offset
-  use TightBinding,   only: nOrb,nOrb2
+  use TightBinding,   only: nOrb2
   use mod_System,     only: ia, System
   !use mod_magnet, only:
   implicit none
@@ -91,7 +91,7 @@ subroutine greenlineargfsoc(er,ei,sys,kp,gf)
   use mod_constants,  only: cZero, cOne
   use mod_parameters, only: offset
   use mod_System,     only: ia, System
-  use TightBinding,   only: nOrb,nOrb2
+  use TightBinding,   only: nOrb2
   implicit none
   integer     :: i,j,d
   real(double), intent(in) :: er,ei,kp(3)

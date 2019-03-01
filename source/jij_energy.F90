@@ -10,7 +10,7 @@ subroutine jij_energy(Jij)
   use EnergyIntegration, only: y, wght
   use mod_magnet,        only: mvec_cartesian,mabs
   use mod_system,        only: s => sys
-  use TightBinding,      only: nOrb,nOrb2
+  use TightBinding,      only: nOrb2
   use mod_mpi_pars
   use adaptiveMesh
   use mod_mpi_pars
@@ -58,7 +58,7 @@ subroutine jij_energy(Jij)
 
   !$omp parallel default(none) &
   !$omp& private(ix,i,j,mu,nu,alpha,kp,ep,weight,kminusq,gf,gfq,gij,gji,paulia,paulib,temp1,temp2,Jijkan,Jijk,Jijint) &
-  !$omp& shared(s,eta,y,wght,q,local_points,dBxc_dm,d2Bxc_dm2,Jij,bzs,E_k_imag_mesh)
+  !$omp& shared(s,nOrb2,eta,y,wght,q,local_points,dBxc_dm,d2Bxc_dm2,Jij,bzs,E_k_imag_mesh)
 
   Jijint = 0.d0
 

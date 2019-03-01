@@ -22,7 +22,7 @@ subroutine ldos_energy(e,ldosu,ldosd)
 
 !$omp parallel default(none) &
 !$omp& private(iz,kp,weight,gf,i,mu,nu,gfdiagu,gfdiagd) &
-!$omp& shared(s,realBZ,e,eta,ldosu,ldosd)
+!$omp& shared(s,realBZ,e,nOrb,eta,ldosu,ldosd)
 
 !$omp do reduction(+:ldosu,ldosd)
   do iz = 1,realBZ%workload

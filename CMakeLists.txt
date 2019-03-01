@@ -17,11 +17,12 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/sort_all_files.F90
                                   source/green.F90
                                   source/hamiltk.F90
-                                  source/fd_dist.F90
+                                  source/mod_distributions.F90
                                   source/dtdksub.F90
                                   source/invers.F90
                                   source/U_matrix.F90
                                   source/mod_initial_expectation.F90
+                                  source/mod_expectation.F90
                                   source/initConversionMatrices.F90
                                   source/build_U.F90
                                   source/mod_System.F90

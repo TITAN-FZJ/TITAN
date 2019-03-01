@@ -265,7 +265,7 @@ contains
     use mod_constants
     use TightBinding, only: nOrb
     implicit none
-    complex(double), dimension(9,9) :: Lp,Lm
+    complex(double), dimension(nOrb,nOrb) :: Lp,Lm
 
     lz = cZero
 
@@ -317,7 +317,6 @@ contains
   subroutine lp_matrix(theta, phi)
     use mod_f90_kind, only: double
     use mod_constants, only: deg2rad
-    use TightBinding, only: nOrb
     use mod_System, only: s => sys
     implicit none
     real(double), dimension(s%nAtoms), intent(in) :: theta, phi
@@ -333,17 +332,17 @@ contains
     end do
   end subroutine lp_matrix
 
-  subroutine allocate_magnet_variables(nAtoms, nOrb)
+  subroutine allocate_magnet_variables(nAtoms, nOrbs)
     use mod_mpi_pars, only: abortProgram
     implicit none
     integer, intent(in) :: nAtoms
-    integer, intent(in) :: nOrb
+    integer, intent(in) :: nOrbs
     integer :: AllocateStatus
 
-    allocate( rho(nOrb,nAtoms), stat = AllocateStatus)
+    allocate( rho(nOrbs,nAtoms), stat = AllocateStatus)
     if(AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: rho")
 
-    allocate( mx(nOrb,nAtoms), my(nOrb,nAtoms), mz(nOrb,nAtoms), mp(nOrb,nAtoms), &
+    allocate( mx(nOrbs,nAtoms), my(nOrbs,nAtoms), mz(nOrbs,nAtoms), mp(nOrbs,nAtoms), &
               mvec_cartesian(3,nAtoms), &
               mvec_spherical(3,nAtoms), STAT = AllocateStatus )
     if (AllocateStatus/=0) call abortProgram("[allocate_magnet_variables] Not enough memory for: mx,my,mz,mp,mvec_cartesian,mvec_spherical")
@@ -360,16 +359,16 @@ contains
     allocate( hhw(3,nAtoms), STAT = AllocateStatus )
     if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: hhw")
 
-    allocate(lx(nOrb, nOrb), ly(nOrb,nOrb), lz(nOrb,nOrb), lvec(nOrb,nOrb,3), stat = AllocateStatus)
+    allocate(lx(nOrbs, nOrbs), ly(nOrbs,nOrbs), lz(nOrbs,nOrbs), lvec(nOrbs,nOrbs,3), stat = AllocateStatus)
     if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lx, ly, lz, lvec")
 
-    allocate(sb(2*nOrb,2*nOrb,nAtoms), stat = AllocateStatus)
+    allocate(sb(2*nOrbs,2*nOrbs,nAtoms), stat = AllocateStatus)
     if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: sb")
 
-    allocate(lb(2*nOrb,2*nOrb,nAtoms), stat = AllocateStatus)
+    allocate(lb(2*nOrbs,2*nOrbs,nAtoms), stat = AllocateStatus)
     if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lb")
 
-    allocate(lxp(nOrb,nOrb,nAtoms), lyp(nOrb,nOrb,nAtoms), lzp(nOrb,nOrb,nAtoms), lpvec(nOrb,nOrb,3,nAtoms), stat = AllocateStatus)
+    allocate(lxp(nOrbs,nOrbs,nAtoms), lyp(nOrbs,nOrbs,nAtoms), lzp(nOrbs,nOrbs,nAtoms), lpvec(nOrbs,nOrbs,3,nAtoms), stat = AllocateStatus)
     if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lxp, lyp, lzp, lpvec")
 
   end subroutine allocate_magnet_variables

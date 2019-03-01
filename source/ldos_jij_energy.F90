@@ -70,7 +70,7 @@ subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
 
   !$omp parallel default(none) &
   !$omp& private(iz,kp,weight,gf,gij,gji,paulia,paulib,i,j,mu,nu,alpha,gfdiagu,gfdiagd,Jijk,Jijkan,temp1,temp2,ldosu_loc,ldosd_loc,Jijint_loc) &
-  !$omp& shared(s,realBZ,e,eta,U,dbxcdm,d2bxcdm2,pauli_dorb,paulimatan,ldosu,ldosd,Jijint)
+  !$omp& shared(s,realBZ,nOrb,nOrb2,e,eta,U,dbxcdm,d2bxcdm2,pauli_dorb,paulimatan,ldosu,ldosd,Jijint)
   allocate(ldosu_loc(s%nAtoms, nOrb), ldosd_loc(s%nAtoms, nOrb), Jijint_loc(s%nAtoms,s%nAtoms,3,3))
   ldosu_loc = 0.d0
   ldosd_loc = 0.d0

@@ -3,7 +3,6 @@ subroutine band_structure(s)
   use mod_f90_kind,      only: double
   use mod_parameters,    only: output, nQvec, nQvec1, kpoints, bsfile, deltak
   use mod_system,        only: System
-  use TightBinding,      only: nOrb
   use mod_tools,         only: cross
   use mod_mpi_pars,      only: rField
   implicit none

@@ -67,7 +67,7 @@ module mod_parameters
   character(len=400) :: bsfile
   !! Filename for band structure calculation
   !========================================================================================!
-  integer,allocatable :: sigmaimunu2i(:,:,:,:),sigmaijmunu2i(:,:,:,:,:),sigmai2i(:,:)
+  integer,allocatable :: sigmaimunu2i(:,:,:,:),sigmaijmunu2i(:,:,:,:,:),sigmai2i(:,:),isigmamu2n(:,:,:)
   !! Conversion arrays
   !========================================================================================!
   character(len=200)          :: runoptions

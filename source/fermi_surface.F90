@@ -36,7 +36,7 @@ subroutine fermi_surface(e)
 
 !$omp parallel default(none) &
 !$omp& private(iz,kp,gf,i,mu,nu,sigma,temp1,temp2) &
-!$omp& shared(llineargfsoc,llinearsoc,s,realBZ,e,eta,pauli_orb,pauli_gf,fs_layer,fs_orb,fs_total)
+!$omp& shared(llineargfsoc,llinearsoc,s,nOrb,nOrb2,realBZ,e,eta,pauli_orb,pauli_gf,fs_layer,fs_orb,fs_total)
 
 !$omp do
   do iz = 1, realBZ%workload

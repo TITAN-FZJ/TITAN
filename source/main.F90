@@ -167,11 +167,11 @@ program TITAN
     call sb_matrix(sys%nAtoms, nOrb)
 
     !-------------------------- Debugging part -------------------------
-    ! if(ldebug) then TODO: Re-Include
-    !   !if(myrank==0) then
-    !   call debugging()
-    !   !end if
-    ! end if
+    if(ldebug) then 
+      !if(myrank==0) then
+      ! call debugging()
+      !end if
+    end if
 
     !----------------- Only create files with headers ------------------
     if(lcreatefiles) then

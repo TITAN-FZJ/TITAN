@@ -23,17 +23,22 @@ module mod_self_consistency
 contains
 
   subroutine doSelfConsistency()
-    use mod_magnet,     only: lp_matrix, mtheta, mphi, lb_matrix, sb_matrix
-    use adaptiveMesh,   only: genLocalEKMesh, freeLocalEKMesh
-    use mod_mpi_pars,   only: rField, sField, FieldComm
-    use mod_SOC,        only: SOC
-    use mod_System,     only: s => sys
-    use TightBinding,   only: nOrb
+    use mod_magnet,        only: lp_matrix, mtheta, mphi, lb_matrix, sb_matrix
+    use adaptiveMesh,      only: genLocalEKMesh, freeLocalEKMesh
+    use mod_BrillouinZone, only: realBZ
+    use mod_mpi_pars,      only: rFreq, sFreq, FreqComm, rField, sField, FieldComm
+    use mod_SOC,           only: SOC
+    use mod_parameters,    only: leigenstates
+    use mod_System,        only: s => sys
     implicit none
     logical :: lsuccess = .false.
 
     ! Distribute Energy Integration across all points available
-    call genLocalEKMesh(s,rField,sField, FieldComm)
+    if(leigenstates) then
+      call realBZ % setup_fraction(s,rFreq(1), sFreq(1), FreqComm(1))
+    else
+      call genLocalEKMesh(s,rField,sField, FieldComm)
+    end if
 
     !--------------------------- Self-consistency --------------------------
     ! Trying to read previous densities and Ef from files
@@ -521,10 +526,10 @@ contains
     real(double) :: fvec(neq),jac(neq,neq)
     ! integer :: i
     ! real(double) :: fvecp(neq),xp(neq),err(neq)
-#if !defined(_OSX)
-    real(double) :: ruser(1)
-    integer      :: iuser(1)
-#endif
+! #if !defined(_OSX)
+!     real(double) :: ruser(1)
+!     integer      :: iuser(1)
+! #endif
 
     liw = 1
     lw  = (4+neq)*neq
@@ -578,11 +583,13 @@ contains
   end subroutine check_jacobian
 
   subroutine lsqfun(iflag,M,N,x,fvec,selfconjac,ljc,iw,liw,w,lw)
-    use mod_f90_kind,   only: double
-    use mod_system,     only: s => sys
-    use TightBinding,   only: nOrb
-    use mod_magnet,     only: rho,mxd,myd,mzd,rhod0,rho0
-    use mod_Umatrix,    only: update_Umatrix
+    use mod_f90_kind,    only: double
+    use mod_system,      only: s => sys
+    use TightBinding,    only: nOrb
+    use mod_magnet,      only: rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
+    use mod_Umatrix,     only: update_Umatrix
+    use mod_parameters,  only: leigenstates
+    use mod_expectation, only: expectation_values_greenfunction, expectation_values_eigenstates
     ! use mod_mpi_pars
     implicit none
     integer  :: M,N,ljc,i,mu,iflag,lw,liw,iw(liw)
@@ -614,8 +621,19 @@ contains
     call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
 
     ! call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
+    if(leigenstates) then
+      call expectation_values_eigenstates(s,rho,mp,mx,my,mz)
+    else
+      call expectation_values_greenfunction(s,rho,mp,mx,my,mz)
+    end if
+    do i = 1, s%nAtoms
+      rhod(i)   = sum(rho(5:9,i))
+      mpd(i)    = sum(mp(5:9,i))
+      mxd(i)    = sum(mx(5:9,i))
+      myd(i)    = sum(my(5:9,i))
+      mzd(i)    = sum(mz(5:9,i))
+    end do
 
-    call calcMagnetization()
     do i = 1, s%nAtoms
       do mu = 5,nOrb
         fvec((i-1)*8+(mu-4)) = rho(mu,i) - rho_in(mu,i)
@@ -671,7 +689,7 @@ contains
 
     !$omp parallel default(none) &
     !$omp& private(ix,ep,kp,weight,i,mu,mup,gf,AllocateStatus) &
-    !$omp& shared(llineargfsoc,llinearsoc,local_points,eta,wght,s,bzs,E_k_imag_mesh,y,gdiagud,gdiagdu,imguu,imgdd,EshiftBZ,ElectricFieldVector)
+    !$omp& shared(llineargfsoc,llinearsoc,local_points,eta,wght,s,nOrb,nOrb2,bzs,E_k_imag_mesh,y,gdiagud,gdiagdu,imguu,imgdd,EshiftBZ,ElectricFieldVector)
     allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat=AllocateStatus)
     if(AllocateStatus /= 0) &
     call AbortProgram("[calcMagnetization] Not enough memory for: gf")
@@ -804,7 +822,7 @@ contains
 
     !$omp parallel default(none) &
     !$omp& private(AllocateStatus,ix,i,j,mu,nu,sigma,sigmap,ep,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp) &
-    !$omp& shared(llineargfsoc,llinearsoc,local_points,s,realBZ,bzs,E_k_imag_mesh,y,eta,wght,halfU,pauli_a,pauli_b,jacobian,EshiftBZ,ElectricFieldVector)
+    !$omp& shared(llineargfsoc,llinearsoc,local_points,s,nOrb,nOrb2,realBZ,bzs,E_k_imag_mesh,y,eta,wght,halfU,pauli_a,pauli_b,jacobian,EshiftBZ,ElectricFieldVector)
     allocate( temp1(nOrb2, nOrb2, 4), &
               temp2(nOrb2, nOrb2, 4), &
               gij(nOrb2,nOrb2), gji(nOrb2,nOrb2), &
@@ -1123,7 +1141,7 @@ contains
     gupgd  = cZero
     !$omp parallel default(none) &
     !$omp& private(AllocateStatus,ix,i,mu,nu,mup,nup,kp,ep,weight,gf) &
-    !$omp& shared(local_points,s,E_k_imag_mesh,bzs,eta,y,wght,gupgd,EshiftBZ,ElectricFieldVector)
+    !$omp& shared(local_points,s,nOrb,nOrb2,E_k_imag_mesh,bzs,eta,y,wght,gupgd,EshiftBZ,ElectricFieldVector)
     allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat = AllocateStatus)
     if (AllocateStatus/=0) &
     call abortProgram("[calcLGS] Not enough memory for: gf")
@@ -1409,23 +1427,27 @@ contains
   ! and the correspondent jacobian
 #if !defined(_OSX)
   subroutine sc_equations_and_jacobian(N,x,fvec,selfconjac,iuser,ruser,iflag)
-    use mod_f90_kind,   only: double
-    use mod_system,     only: s => sys
-    use TightBinding,   only: nOrb
-    use mod_parameters, only: lcheckjac
-    use mod_magnet,     only: iter,rho,rhod,mxd,myd,mzd,rhod0,rho0
-    use mod_Umatrix,    only: update_Umatrix
-    use mod_tools,      only: itos
+    use mod_f90_kind,    only: double
+    use mod_system,      only: s => sys
+    use TightBinding,    only: nOrb
+    use mod_parameters,  only: lcheckjac, leigenstates
+    use mod_magnet,      only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
+    use mod_Umatrix,     only: update_Umatrix
+    use mod_tools,       only: itos
+    use mod_expectation, only: expectation_values_greenfunction,expectation_values_eigenstates
     use mod_mpi_pars
     implicit none
     integer  :: N,i,mu,iflag
-    integer     ,  intent(inout)             :: iuser(*)
-    real(double),  intent(inout)             :: ruser(*)
+    integer     ,  intent(inout)             :: iuser(1)
+    real(double),  intent(inout)             :: ruser(1)
     real(double),   dimension(N)             :: x,fvec
     real(double),   dimension(N,N)           :: selfconjac
     real(double),   dimension(nOrb,s%nAtoms) :: rho_in
     real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
     complex(double),dimension(s%nAtoms)      :: mpd_in
+
+    iuser = 0
+    ruser = 0.d0
 
     ! Values used in the hamiltonian
     rho_in = rho
@@ -1447,7 +1469,19 @@ contains
 
     select case (iflag)
     case(1)
-      call calcMagnetization()
+      if(leigenstates) then
+        call expectation_values_eigenstates(s,rho,mp,mx,my,mz)
+      else
+        call expectation_values_greenfunction(s,rho,mp,mx,my,mz)
+      end if
+      do i = 1, s%nAtoms
+        rhod(i)   = sum(rho(5:9,i))
+        mpd(i)    = sum(mp(5:9,i))
+        mxd(i)    = sum(mx(5:9,i))
+        myd(i)    = sum(my(5:9,i))
+        mzd(i)    = sum(mz(5:9,i))
+      end do
+
       do i = 1, s%nAtoms
         do mu = 5,nOrb
           fvec((i-1)*8+(mu-4)) = rho(mu,i) - rho_in(mu,i)
@@ -1479,21 +1513,26 @@ contains
   !     mz - mz_in   = 0
   !  sum n - n_total = 0
   subroutine sc_equations(N,x,fvec,iuser,ruser,iflag)
-    use mod_f90_kind, only: double
-    use mod_constants, only: cI
-    use mod_system, only: s => sys
-    use TightBinding, only: nOrb
-    use mod_magnet, only: iter,rho,rhod,mxd,myd,mzd,rhod0,rho0
-    use mod_Umatrix, only: update_Umatrix
+    use mod_f90_kind,    only: double
+    use mod_constants,   only: cI
+    use mod_system,      only: s => sys
+    use TightBinding,    only: nOrb
+    use mod_magnet,      only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
+    use mod_Umatrix,     only: update_Umatrix
+    use mod_parameters,  only: leigenstates
+    use mod_expectation, only: expectation_values_greenfunction, expectation_values_eigenstates
     use mod_mpi_pars
     implicit none
     integer  :: N,i,mu,iflag
-    integer     ,   intent(inout)            :: iuser(*)
-    real(double),   intent(inout)            :: ruser(*)
+    integer     ,   intent(inout)            :: iuser(1)
+    real(double),   intent(inout)            :: ruser(1)
     real(double),   dimension(N)             :: x,fvec
     real(double),   dimension(nOrb,s%nAtoms) :: rho_in
     real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
     complex(double),dimension(s%nAtoms)      :: mpd_in
+
+    iuser = 0
+    ruser = 0.d0
 
     iflag=0
     ! Values used in the hamiltonian
@@ -1514,7 +1553,18 @@ contains
 
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
 
-    call calcMagnetization()
+    if(leigenstates) then
+      call expectation_values_eigenstates(s,rho,mp,mx,my,mz)
+    else
+      call expectation_values_greenfunction(s,rho,mp,mx,my,mz)
+    end if
+    do i = 1, s%nAtoms
+      rhod(i)   = sum(rho(5:9,i))
+      mpd(i)    = sum(mp(5:9,i))
+      mxd(i)    = sum(mx(5:9,i))
+      myd(i)    = sum(my(5:9,i))
+      mzd(i)    = sum(mz(5:9,i))
+    end do
     do i = 1, s%nAtoms
       do mu = 5,nOrb
         fvec((i-1)*8+(mu-4)) = rho(mu,i) - rho_in(mu,i)
@@ -1542,13 +1592,14 @@ contains
   !  sum n - n_total = 0
   ! and the correspondent jacobian
   subroutine sc_eqs_and_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
-    use mod_f90_kind,   only: double
-    use mod_system,     only: s => sys
-    use TightBinding,   only: nOrb
-    use mod_parameters, only: lcheckjac
-    use mod_magnet,     only: iter,rho,rhod,mxd,myd,mzd,rhod0,rho0
-    use mod_Umatrix,    only: update_Umatrix
-    use mod_tools,      only: itos
+    use mod_f90_kind,    only: double
+    use mod_system,      only: s => sys
+    use TightBinding,    only: nOrb
+    use mod_parameters,  only: lcheckjac, leigenstates
+    use mod_magnet,      only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
+    use mod_Umatrix,     only: update_Umatrix
+    use mod_tools,       only: itos
+    use mod_expectation, only: expectation_values_greenfunction, expectation_values_eigenstates
     use mod_mpi_pars
     implicit none
     integer  :: N,i,mu,iflag,ldfjac
@@ -1578,7 +1629,19 @@ contains
 
     flag: select case (iflag)
     case(1)
-      call calcMagnetization()
+      if(leigenstates) then
+        call expectation_values_eigenstates(s,rho,mp,mx,my,mz)
+      else
+        call expectation_values_greenfunction(s,rho,mp,mx,my,mz)
+      end if
+      do i = 1, s%nAtoms
+        rhod(i)   = sum(rho(5:9,i))
+        mpd(i)    = sum(mp(5:9,i))
+        mxd(i)    = sum(mx(5:9,i))
+        myd(i)    = sum(my(5:9,i))
+        mzd(i)    = sum(mz(5:9,i))
+      end do
+
       do i = 1, s%nAtoms
         do mu = 5,nOrb
           fvec((i-1)*8+(mu-4)) = rho(mu,i) - rho_in(mu,i)
@@ -1610,11 +1673,13 @@ contains
   !     mz - mz_in   = 0
   !  sum n - n_total = 0
   subroutine sc_eqs_old(N,x,fvec,iflag)
-    use mod_f90_kind, only: double
-    use mod_system, only: s => sys
-    use TightBinding, only: nOrb
-    use mod_magnet, only: iter,rho,rhod,mxd,myd,mzd,rhod0,rho0
-    use mod_Umatrix, only: update_Umatrix
+    use mod_f90_kind,    only: double
+    use mod_system,      only: s => sys
+    use TightBinding,    only: nOrb
+    use mod_magnet,      only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
+    use mod_Umatrix,     only: update_Umatrix
+    use mod_parameters,  only: leigenstates
+    use mod_expectation, only: expectation_values_greenfunction, expectation_values_eigenstates
     use mod_mpi_pars
     implicit none
     integer  :: N,i,mu,iflag
@@ -1642,7 +1707,18 @@ contains
 
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
 
-    call calcMagnetization()
+    if(leigenstates) then
+      call expectation_values_eigenstates(s,rho,mp,mx,my,mz)
+    else
+      call expectation_values_greenfunction(s,rho,mp,mx,my,mz)
+    end if
+    do i = 1, s%nAtoms
+      rhod(i)   = sum(rho(5:9,i))
+      mpd(i)    = sum(mp(5:9,i))
+      mxd(i)    = sum(mx(5:9,i))
+      myd(i)    = sum(my(5:9,i))
+      mzd(i)    = sum(mz(5:9,i))
+    end do
     do i = 1, s%nAtoms
       do mu = 5,nOrb
         fvec((i-1)*8+(mu-4)) = rho(mu,i) - rho_in(mu,i)

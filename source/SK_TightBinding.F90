@@ -3,7 +3,7 @@ module SK_TightBinding
 
 contains
 
-  subroutine get_SK_parameter(s, fermi_layer, nOrb, Orbitals)
+  subroutine get_SK_parameter(s, fermi_layer, nOrb)
     use mod_f90_kind, only: double
     use AtomTypes,    only: NeighborIndex
     use mod_system,   only: System
@@ -11,7 +11,6 @@ contains
     type(System), intent(inout) :: s
     integer,      intent(in)    :: fermi_layer
     integer,      intent(in)    :: nOrb
-    logical, dimension(9)       :: Orbitals
     integer                     :: i,j,k,l
     real(double), dimension(:,:), allocatable :: bp
     real(double)                              :: scale_factor(2), mix(10,2)

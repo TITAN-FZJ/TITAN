@@ -54,27 +54,27 @@ contains
   end subroutine log_warning
 
   subroutine get_parameters(filename, s)
-    use mod_f90_kind,   only: double
-    use mod_mpi_pars
-    use mod_input
-    use mod_parameters, only: output, laddresults, lverbose, ldebug, lkpoints, &
-                              lpositions, lcreatefiles, lnolb, lhfresponses, &
-                              lnodiag, lsha, lcreatefolders, lwriteonscreen, runoptions, lsimplemix, &
-                              lcheckjac, llgtv, lsortfiles,leigenstates, &
-                              itype, ry2ev, ltesla, eta, etap, dmax, emin, emax, &
-                              skip_steps, nEner, nEner1, nQvec, nQvec1, qbasis, renorm, renormnb, bands, band_cnt, &
-                              offset, dfttype, U, parField, parFreq, kptotal_in, kp_in
+    use mod_f90_kind,         only: double
+    use mod_input,            only: get_parameter, read_file, enable_input_logging, disable_input_logging
+    use mod_parameters,       only: output, laddresults, lverbose, ldebug, lkpoints, &
+                                    lpositions, lcreatefiles, lnolb, lhfresponses, &
+                                    lnodiag, lsha, lcreatefolders, lwriteonscreen, runoptions, lsimplemix, &
+                                    lcheckjac, llgtv, lsortfiles,leigenstates, &
+                                    itype, ry2ev, ltesla, eta, etap, dmax, emin, emax, &
+                                    skip_steps, nEner, nEner1, nQvec, nQvec1, qbasis, renorm, renormnb, bands, band_cnt, &
+                                    offset, dfttype, parField, parFreq, kptotal_in, kp_in
     use mod_self_consistency, only: lslatec, lontheflysc, lnojac, lGSL, lforceoccup, lrotatemag, skipsc, scfile, magbasis, mag_tol
     use mod_system,           only: System, n0sc1, n0sc2
     use mod_SOC,              only: SOC, socscale, llinearsoc, llineargfsoc
     use mod_magnet,           only: lfield, tesla, hwa_i, hwa_f, hwa_npts, hwa_npt1, hwt_i, hwt_f, &
-                              hwt_npts, hwt_npt1, hwp_i, hwp_f, hwp_npts, hwp_npt1, hwx, hwy, &
-                              hwz, hwscale, hwtrotate, hwprotate, skip_steps_hw
-    use TightBinding,         only: tbmode, fermi_layer
+                                    hwt_npts, hwt_npt1, hwp_i, hwp_f, hwp_npts, hwp_npt1, hwx, hwy, &
+                                    hwz, hwscale, hwtrotate, hwprotate, skip_steps_hw
+    use TightBinding,         only: nOrb,nOrb2,tbmode, fermi_layer
     use ElectricField,        only: ElectricFieldMode, ElectricFieldVector, EFp, EFt, EshiftBZ
     use EnergyIntegration,    only: parts, parts3, pn1, pn2, pnt, n1gl, n3gl
     use mod_tools,            only: itos, rtos
     use adaptiveMesh,         only: minimumBZmesh
+    use mod_mpi_pars
     implicit none
     character(len=*), intent(in)    :: filename
     type(System),     intent(inout) :: s
@@ -243,9 +243,6 @@ contains
       call log_warning("get_parameters", "'magtol' not found. Using default value: 1.d-12")
     if(.not. get_parameter("magbasis", magbasis)) &
       call log_warning("get_parameters","'magbasis' missing. Using default values for initial magnetization")
-    !------------------------------------- Coulomb Interaction -------------------------------------
-    ! if(get_parameter("U", U_from_input, cnt)) &
-    !   call log_warning("get_parameters", "'U' given in input. Overwriting values from elemental files.")
     !--------------------------------------- Electric Field ----------------------------------------
     if(.not. get_parameter("ebasis", tmp_string, "spherical")) &
       call log_warning("get_parameters","'ebasis' missing. Using default value: ""spherical""")
@@ -402,6 +399,9 @@ contains
 
     if(.not. get_parameter("tbmode", tbmode)) &
       call log_error("get_parameters", "'tbmode' missing.")
+    if(.not. get_parameter("nOrb",nOrb,9)) &
+      call log_warning("get_parameters", "'nOrb' missing. Using default value: 9")
+    nOrb2 = 2*nOrb
     !---------------------------------------- Slater-Koster ----------------------------------------
     if(tbmode == 1) then
       offset = 0

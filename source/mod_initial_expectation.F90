@@ -3,19 +3,19 @@ module mod_initial_expectation
 contains
 
   subroutine calc_initial_Uterms(sys)
-    use mod_f90_kind,   only: double
-    use mod_constants,  only: cZero
-    use mod_System,     only: System,initHamiltkStride
-    use TightBinding,   only: nOrb,initTightBinding
-    use mod_magnet,     only: l_matrix,lb,sb,allocate_magnet_variables,deallocate_magnet_variables,rho0,rhod0
-    use mod_SOC,        only: ls,allocLS
-    use adaptiveMesh,   only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh
-    use mod_parameters, only: kp_in,kptotal_in,output,eta
-    use mod_polyBasis,  only: read_basis
-    use mod_mpi_pars,   only: myrank,FieldComm,rField,sField,abortProgram
-    use Lattice,        only: initLattice
-    use mod_progress,   only: write_time
-    use mod_tools,      only: rtos
+    use mod_f90_kind,       only: double
+    use mod_constants,      only: cZero
+    use mod_System,         only: System,initHamiltkStride
+    use TightBinding,       only: nOrb,initTightBinding
+    use mod_magnet,         only: l_matrix,lb,sb,allocate_magnet_variables,deallocate_magnet_variables,rho0,rhod0
+    use mod_SOC,            only: ls,allocLS
+    use adaptiveMesh,       only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh
+    use mod_parameters,     only: kp_in,kptotal_in,output,eta,leigenstates
+    use mod_polyBasis,      only: read_basis
+    use mod_mpi_pars,       only: myrank,FieldComm,rField,sField,rFreq,sFreq,FreqComm,abortProgram
+    use Lattice,            only: initLattice
+    use mod_progress,       only: write_time
+    use mod_tools,          only: rtos
     use mod_Atom_variables, only: allocate_Atom_variables,deallocate_Atom_variables
     use mod_BrillouinZone,  only: realBZ!,nkpt_x,nkpt_y,nkpt_z
     use EnergyIntegration,  only: pn1
@@ -65,9 +65,6 @@ contains
       if(.not.read_initial_Uterms(sys0(i),err)) then
         if(myrank == 0) write(output%unit,"('[calc_initial_Uterms] Initial density file for ""',a,'"" does not exist. Calculating...')") trim(sys%Types(i)%Name)
 
-        !--- Generating k meshes points for imaginary axis integration -----
-        call generateAdaptiveMeshes(sys0(i),pn1)
-
         !----------- Allocating variables that depend on nAtoms ------------
         call allocate_magnet_variables(sys0(i)%nAtoms, nOrb)
         call allocLS(sys0(i)%nAtoms,nOrb)
@@ -87,8 +84,18 @@ contains
         sb = cZero
         ls = cZero
 
+        !------------------------ Conversion arrays -------------------------
+        call initConversionMatrices(sys0(i)%nAtoms,nOrb)
+
         ! Distribute Energy Integration across all points available
-        call genLocalEKMesh(sys0(i),rField,sField, FieldComm)
+        if(leigenstates) then
+          call realBZ % setup_fraction(sys0(i),rFreq(1), sFreq(1), FreqComm(1))
+        else
+          !-- Generating k meshes points for imaginary axis integration ----
+          call generateAdaptiveMeshes(sys0(i),pn1)
+          !--- Distribute Energy Integration across all points available ---
+          call genLocalEKMesh(sys0(i),rField,sField, FieldComm)
+        end if
 
         !---------------- Calculating expectation values -------------------
         call calc_expectation_values(sys0(i))
@@ -97,7 +104,7 @@ contains
         if(myrank == 0) call write_initial_Uterms(sys0(i))
 
         !------------------------ Freeing memory ---------------------------
-        call freeLocalEKMesh()
+        if(.not.leigenstates) call freeLocalEKMesh()
 
         !-------------------- Deallocating variables -----------------------
         call deallocate_magnet_variables()
@@ -134,33 +141,20 @@ contains
     use mod_f90_kind,      only: double
     use mod_constants,     only: cZero,pi
     use mod_System,        only: System
-    use TightBinding,      only: nOrb,nOrb2
-    use EnergyIntegration, only: y, wght
-    use mod_parameters,    only: eta
-    use mod_magnet,        only: mzd,mpd,rhod,rho
+    use TightBinding,      only: nOrb
+    use mod_parameters,    only: leigenstates
+    use mod_magnet,        only: rho,rhod,mp,mx,my,mz,mpd,mzd
+    use mod_expectation,   only: expectation_values_greenfunction,expectation_values_eigenstates
     use mod_Umatrix
     use adaptiveMesh
     use mod_mpi_pars
     implicit none
-    integer      :: AllocateStatus
-    integer*8    :: ix
-    integer      :: i,mu,mup
-    real(double) :: kp(3)
-    real(double) :: weight, ep
+    integer      :: i
     type(System),                      intent(inout) :: sys
     real(double),    dimension(:,:)    , allocatable :: rho0
     real(double),    dimension(:)      , allocatable :: rhod0
-    real(double),    dimension(:,:)    , allocatable :: imguu,imgdd
-    complex(double), dimension(:,:,:,:), allocatable :: gf
-    !--------------------- begin MPI vars --------------------
-    integer :: ncount
-    ncount=sys%nAtoms*nOrb
-    !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
     allocate( rho0(nOrb,sys%nAtoms),rhod0(sys%nAtoms) )
-
-    allocate(imguu(nOrb,sys%nAtoms),imgdd(nOrb,sys%nAtoms), stat = AllocateStatus)
-    if(AllocateStatus/=0) call abortProgram("[calc_expectation_values] Not enough memory for: imguu,imgdd")
 
     mzd = 0.d0
     mpd = cZero
@@ -171,49 +165,13 @@ contains
     rho0 = 0.d0
     rho  = rho0
     call init_Umatrix(mzd,mpd,rhod,rhod0,rho,rho0,sys%nAtoms,nOrb)
-
-    imguu = 0.d0
-    imgdd = 0.d0
-
-    !$omp parallel default(none) &
-    !$omp& private(AllocateStatus,ix,i,mu,mup,kp,ep,weight,gf) &
-    !$omp& shared(local_points,sys,E_k_imag_mesh,bzs,eta,y,wght,imguu,imgdd)
-    allocate(gf(nOrb2,nOrb2,sys%nAtoms,sys%nAtoms), stat = AllocateStatus)
-    gf = cZero
-
-    !$omp do schedule(static) reduction(+:imguu) reduction(+:imgdd)
-    do ix = 1, local_points
-      ep = y(E_k_imag_mesh(1,ix))
-      kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
-      weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
-      !Green function on energy Ef + iy, and wave vector kp
-      call green(sys%Ef,ep+eta,sys,kp,gf)
-      do i=1,sys%nAtoms
-        do mu=1,nOrb
-          mup = mu+nOrb
-          imguu(mu,i) = imguu(mu,i) + real(gf(mu ,mu ,i,i)) * weight
-          imgdd(mu,i) = imgdd(mu,i) + real(gf(mup,mup,i,i)) * weight
-        end do
-      end do
-    end do
-    !$omp end do
-
-    deallocate(gf)
-    !$omp end parallel
-    imguu = imguu / pi
-    imgdd = imgdd / pi
-
-    call MPI_Allreduce(MPI_IN_PLACE, imguu, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, imgdd, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
-
-    rhod0 = 0.d0
-    do i=1,sys%nAtoms
-      do mu=1,nOrb
-        imguu(mu,i) = 0.5d0 + imguu(mu,i)
-        imgdd(mu,i) = 0.5d0 + imgdd(mu,i)
-        rho0(mu,i)  = imguu(mu,i) + imgdd(mu,i)
-        if(mu>=5) rhod0(i) = rhod0(i) + rho0(mu,i)
-      end do
+    if(leigenstates) then
+      call expectation_values_eigenstates(sys,rho0,mp,mx,my,mz)
+    else
+      call expectation_values_greenfunction(sys,rho0,mp,mx,my,mz)
+    end if
+    do i = 1, sys%nAtoms
+      rhod0(i)   = sum(rho0(5:9,i))
     end do
 
     ! The following lines only works for 1 type of atom in the unit cell
@@ -222,7 +180,6 @@ contains
     sys%Types(1)%rhod0(:)  = rhod0(:)
 
     ! if(rField == 0) write(*,*) rhod0,sum(abs(rho0))
-    deallocate(imguu,imgdd,rho0,rhod0)
 
   end subroutine calc_expectation_values
 

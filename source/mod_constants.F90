@@ -30,12 +30,12 @@ module mod_constants
   !! Identity in spin and orbital space
   complex(double) :: ident_dorb(18,18)
   !! Identity in spin and orbital space (only non-zero on d-orbitals)
-  complex(double) :: pauli_mat(2,2,0:3)
-  !! Identity and pauli matrices
-  complex(double) :: pauli_orb(3,18,18)
-  !! Pauli matrices in spin and orbital space
-  complex(double) :: pauli_dorb(3,18,18)
-  !! Pauli matrices in spin and orbital space (only non-zero on d-orbitals)
+  complex(double) :: pauli_mat(2,2,0:5)
+  !! Identity and pauli matrices  (0,x,y,z,+,-)
+  complex(double) :: pauli_orb(5,18,18)
+  !! Pauli matrices in spin and orbital space (x,y,z,+,-)
+  complex(double) :: pauli_dorb(5,18,18)
+  !! Pauli matrices in spin and orbital space (x,y,z,+,-) (only non-zero on d-orbitals)
 
   complex(double), dimension(4,4) :: StoC = reshape([cmplx(0.0d0,0.d0), cmplx(0.5d0,0.d0),  cmplx(0.0d0,-0.5d0),  cmplx( 0.0d0,0.d0), &
                                                      cmplx(1.0d0,0.d0), cmplx(0.0d0,0.d0),  cmplx(0.0d0, 0.0d0),  cmplx( 0.5d0,0.d0), &
@@ -72,6 +72,9 @@ contains
     pauli_mat(:,1,3) = [cOne,cZero]
     pauli_mat(:,2,3) = [cZero,-cOne]
 
+    pauli_mat(:,:,4) = pauli_mat(:,:,1) + cI*pauli_mat(:,:,2)
+    pauli_mat(:,:,5) = pauli_mat(:,:,1) - cI*pauli_mat(:,:,2)
+
 
 ! Pauli matrices in spin and orbital space
     pauli_dorb = cZero
@@ -103,6 +106,10 @@ contains
       pauli_dorb(3,mu,mu) = cOne
       pauli_dorb(3,nu,nu) = -cOne
     end do
+    pauli_orb(4,:,:) = pauli_orb(1,:,:) + cI*pauli_orb(2,:,:)
+    pauli_orb(5,:,:) = pauli_orb(1,:,:) - cI*pauli_orb(2,:,:)
+    pauli_dorb(4,:,:) = pauli_dorb(1,:,:) + cI*pauli_dorb(2,:,:)
+    pauli_dorb(5,:,:) = pauli_dorb(1,:,:) - cI*pauli_dorb(2,:,:)
 
     levi_civita(1,1,:) = [ 0.d0 , 0.d0 , 0.d0 ]
     levi_civita(1,2,:) = [ 0.d0 , 0.d0 , 1.d0 ]
