@@ -138,13 +138,13 @@ contains
     real(double),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
     complex(double), dimension(nOrb,s%nAtoms), intent(out) :: mp
 
-    integer                      :: iz, info !, mu,i
-    integer                      :: lwork,dimH
-    real(double)                 :: weight, kp(3)
-    real(double),    dimension(nOrb,s%nAtoms)   :: expec_0, expec_z
-    complex(double), dimension(nOrb,s%nAtoms)   :: expec_p
-    real(double),    dimension(:),  allocatable :: rwork(:), eval(:)
-    complex(double),                allocatable :: work(:), hk(:,:)
+    integer                                      :: iz, info !, mu,i
+    integer                                      :: lwork,dimH
+    real(double)                                 :: weight, kp(3)
+    real(double),    dimension(nOrb,s%nAtoms)    :: expec_0, expec_z
+    complex(double), dimension(nOrb,s%nAtoms)    :: expec_p
+    real(double),    dimension(:),  allocatable  :: rwork(:), eval(:)
+    complex(double),                allocatable  :: work(:), hk(:,:)
 
     dimH  = (s%nAtoms)*nOrb2
     lwork = 21*dimH
@@ -208,9 +208,9 @@ contains
     real(double),    dimension(nOrb,s%nAtoms), intent(out) :: expec_0, expec_z
     complex(double), dimension(nOrb,s%nAtoms), intent(out) :: expec_p
 
-    integer                                           :: i, n, sigma, sigmap, mu
-    real(double)                                      :: f_n
-    complex(double)                                   :: evec(dim)
+    integer                                     :: i, n, sigma, sigmap, mu
+    real(double)                                :: f_n
+    complex(double)                             :: evec(dim)
 
     expec_0 = 0.d0
     expec_z = 0.d0
@@ -244,4 +244,56 @@ contains
 
   end subroutine expec_val
 
+
+
+
+  !> subroutine expectation value of the operators Sx, Sy, Sz in each state n:
+  subroutine expec_val_n(s, dim, evec, eval, expec_0, expec_p, expec_z)
+    use mod_f90_kind,      only: double 
+    use mod_constants,     only: cOne,cZero,pi,pauli_mat
+    use mod_parameters,    only: eta, isigmamu2n
+    use mod_distributions, only: fd_dist
+    use TightBinding,      only: nOrb
+    use mod_system,        only: System
+    implicit none
+    
+    type(System),                              intent(in)  :: s
+    integer,                                   intent(in)  :: dim
+    real(double),    dimension(dim),           intent(in)  :: eval
+    complex(double),                           intent(in)  :: evec(dim)
+    real(double),    dimension(nOrb,s%nAtoms), intent(out) :: expec_0, expec_z
+    complex(double), dimension(nOrb,s%nAtoms), intent(out) :: expec_p
+
+    integer :: i
+    integer :: n, sigma, sigmap, mu
+    real(double) :: f_n
+
+    expec_0 = 0.d0
+    expec_z = 0.d0
+    expec_p = cZero
+  
+      ! Fermi-Dirac:
+      f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval(n))
+
+      ! Getting eigenvector and its transpose conjugate
+    
+        do mu = 1, nOrb
+          do sigma = 1, 2
+            do sigmap = 1, 2
+
+            ! Charge
+            expec_0(mu,i) = expec_0(mu,i) + f_n*conjg( evec(mu) )*pauli_mat(sigma,sigmap,0)*evec(mu)
+
+            ! M_p
+            expec_p(mu,i) = expec_p(mu,i) + f_n*conjg( evec(mu) )*pauli_mat(sigma,sigmap,4)*evec(mu)
+
+            ! M_z
+            expec_z(mu,i) = expec_z(mu,i) + f_n*conjg( evec(mu) )*pauli_mat(sigma,sigmap,3)*evec(mu)
+            end do
+          end do
+        end do
+
+  end subroutine expec_val_n
+
+  
 end module mod_expectation

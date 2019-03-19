@@ -11,6 +11,8 @@ module mod_parameters
   real(double)  :: q(3)
   !! q-vector for the dependence of response functions (not used yet)
   ! Dimension variables:
+  integer       :: dimH
+  !! Dimension of the Hamiltonian: 2 spins x number of atoms in the unit cell
   integer       :: dimspinAtoms
   !! Dimension: 4 spins x number of atoms in the unit cell
   integer       :: dim

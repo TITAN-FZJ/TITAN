@@ -75,6 +75,7 @@ contains
     use mod_tools,            only: itos, rtos
     use adaptiveMesh,         only: minimumBZmesh
     use mod_mpi_pars
+    use mod_imRK4_parameters, only: hw1, hw, N, integration_time, sc_tol
     implicit none
     character(len=*), intent(in)    :: filename
     type(System),     intent(inout) :: s
@@ -474,6 +475,20 @@ contains
        call log_error("get_parameters", "'tbmode' Unknown mode selected. (Choose either 1 or 2)")
     end if
     !==============================================================================================!
+    ! REAL TIME PROPAGATION PARAMETERS
+    if(itype==11) then
+      if(.not. get_parameter("hw1", hw1)) &
+        call log_error("get_parameters", "'hw1' not found.")
+      if(.not. get_parameter("hw", hw)) &
+        call log_error("get_parameters", "'hw' not found.")
+      if(.not. get_parameter("N", N)) &
+        call log_error("get_parameters", "'N' not found.")
+      if(.not. get_parameter("integration_time", integration_time)) &
+        call log_error("get_parameters", "'integration_time' not found.")
+      if(.not. get_parameter("sc_tol", sc_tol, 0.01d0)) &
+        call log_warning("get_parameters", "'sc_tol' not given. Using default value: sc_tol = 0.01d0")
+    end if
+    !==============================================================================================!
     if(.not. get_parameter("suffix", output%suffix)) &
       call log_warning("get_parameters","'suffix' missing. Using none.")
     if(.not. get_parameter("parField", parField, 1)) &
@@ -538,13 +553,14 @@ contains
   subroutine iowrite(s)
     use mod_mpi_pars
     use mod_parameters
-    use mod_System, only: System, n0sc1, n0sc2
-    use mod_BrillouinZone, only: BZ => realBZ
-    use mod_SOC, only: SOC, socscale
     use mod_magnet
-    use EnergyIntegration, only: parts, parts3, n1gl, n3gl
-    use ElectricField, only: ElectricFieldMode, ElectricFieldVector, EFt, EFp, EshiftBZ
-    use AdaptiveMesh, only: minimumBZmesh
+    use mod_System,           only: System, n0sc1, n0sc2
+    use mod_BrillouinZone,    only: BZ => realBZ
+    use mod_SOC,              only: SOC, socscale
+    use EnergyIntegration,    only: parts, parts3, n1gl, n3gl
+    use ElectricField,        only: ElectricFieldMode, ElectricFieldVector, EFt, EFp, EshiftBZ
+    use AdaptiveMesh,         only: minimumBZmesh
+    use mod_imRK4_parameters, only: hw1, hw, N, integration_time, sc_tol
     !$ use omp_lib
     implicit none
     type(System), intent(in) :: s
@@ -663,6 +679,13 @@ contains
        write(output%unit_loop,"(1x,'hwp_min =',f7.2)") hw_list(1,3)
        write(output%unit_loop,"(1x,'hwp_max =',f7.2)") hw_list(total_hw_npt1,3)
        !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps, each calculating ',i0,' points')") total_hw_npt1*nEner1,MPIsteps*MPIsteps_hw,MPIpts_hw*MPIpts
+    case (11)
+      write(output%unit_loop, fmt="('Input parameters:')" )
+      write(output%unit_loop,"(1x,'hw1 =',es9.2)") hw1
+      write(output%unit_loop,"(1x,'hw  =',es9.2)") hw
+      write(output%unit_loop,"(1x,'N   =',es9.2)") N
+      write(output%unit_loop,"(1x,'sc_tol   =',es9.2)") sc_tol
+      write(output%unit_loop,"(1x,'integration_time   =',es9.2)") integration_time
     end select write_itype
     write(output%unit_loop,"('|---------------------------------------------------------------------------|')")
   end subroutine iowrite

@@ -310,4 +310,76 @@ contains
     RtoS = adjustl(RtoS)
   end function RtoS
 
+!-----------------------------------------------------------------------------------------------------!
+!                    These added subroutines are used in time propagator module                                               !
+!-----------------------------------------------------------------------------------------------------!
+
+! subroutine for kronecker product.
+  subroutine KronProd(nax,nay,nbx,nby,B1,B2,Kprod)
+    use mod_f90_kind, only: double
+    implicit none
+    integer,          intent(in)  :: nax, nay, nbx, nby
+    integer                       :: i, j, p, q, l, m                                              
+    complex(double), intent(in)   :: B1(nax,nay), B2(nbx,nby) 
+    complex(double), intent(out)  :: Kprod(nax*nbx,nay*nby) 
+    do i = 1,nax
+      do j = 1,nay
+        l=(i-1)*nbx + 1
+        m=l+nbx-1
+        p=(j-1)*nby + 1
+        q=p+nby-1
+        Kprod(l:m,p:q) = B1(i,j)*B2
+      end do
+    end do
+  end subroutine KronProd
+
+  ! function for vector norm.
+  function vec_norm(v, dim_v)
+    use mod_f90_kind, only: double
+    implicit none
+    integer,                           intent(in) :: dim_v ! vector dimension
+    complex(double), dimension(dim_v), intent(in) :: v ! vector v
+    real(double)                                  :: vec_norm
+    real(double)                                  :: sum
+    integer                                       :: i
+
+    sum= 0.d0
+    do i = 1, dim_v
+      sum = sum + v(i)*conjg(v(i))
+    end do
+    vec_norm= sqrt(sum)
+  end function vec_norm
+
+  ! interface to the LAPACK linear system solver A*X=B
+  subroutine LS_solver(n,A,b)
+    use mod_f90_kind, only: double
+    implicit none
+    
+    integer,          intent(in)     :: n
+    complex(double),   intent(in)    :: A(n,n)
+    complex(double), intent(out)     :: b(n)
+    ! Workspace variables
+    integer                          :: nrhs, lda, ldb, ldx, info, iter
+    integer, allocatable             :: ipiv(:)
+    complex, allocatable             :: swork(:)
+    complex(double), allocatable     :: work(:), X(:)
+    double precision, allocatable    :: rwork(:)
+
+    lda= n
+    ldb=n
+    ldx= n
+    nrhs=1
+
+    allocate(rwork(n),swork(n*(n+1)),work(n), ipiv(n), X(n) )
+    ! call zcgesv( n, nrhs, a, lda, ipiv, b, ldb, X, ldx, work, swork, rwork, iter, info )
+    ! b = X
+    call zgesv( n, nrhs, a, lda, ipiv, b, ldb, info )
+    
+    if (info /= 0) write(*,'("eigensolver: failure in zheev")')
+    deallocate(work,swork,rwork,ipiv,X)
+    
+    end subroutine LS_solver
+
 end module mod_tools
+
+
