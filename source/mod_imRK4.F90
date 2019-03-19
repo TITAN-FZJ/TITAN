@@ -1,9 +1,6 @@
 !> module for imRK4 routines
 module mod_imRK4
-  use mod_f90_kind,   only: double
-  use mod_parameters, only: dimH
   implicit none
-  ! complex(double), dimension(dimH,dimH)  :: hamilt_t, Jacobian_t
 
 contains
   ! subroutine to find the vectors Z_ki
@@ -100,7 +97,7 @@ contains
     call build_td_Jacobian(s, t, kp, Yn, Jacobian_t)
 
     ! TODO: test if size(A) works
-    call KronProd(size(A),size(A),dimH,dimH,A,Jacobian_t,Kprod)
+    call KronProd(size(A,1),size(A,1),dimH,dimH,A,Jacobian_t,Kprod)
     M2n = id - step * Kprod
   end subroutine M_2n
 

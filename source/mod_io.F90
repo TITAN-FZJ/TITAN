@@ -75,7 +75,7 @@ contains
     use mod_tools,            only: itos, rtos
     use adaptiveMesh,         only: minimumBZmesh
     use mod_mpi_pars
-    use mod_imRK4_parameters, only: hw1, hw, N, integration_time, sc_tol
+    use mod_imRK4_parameters, only: hw1, hw, N, integration_time, sc_tol, step
     implicit none
     character(len=*), intent(in)    :: filename
     type(System),     intent(inout) :: s
@@ -485,6 +485,8 @@ contains
         call log_error("get_parameters", "'N' not found.")
       if(.not. get_parameter("integration_time", integration_time)) &
         call log_error("get_parameters", "'integration_time' not found.")
+      if(.not. get_parameter("step", step)) &
+        call log_error("get_parameters", "'step' not found.")
       if(.not. get_parameter("sc_tol", sc_tol, 0.01d0)) &
         call log_warning("get_parameters", "'sc_tol' not given. Using default value: sc_tol = 0.01d0")
     end if

@@ -4,9 +4,9 @@ contains
 
   subroutine time_propagator(s)
     use mod_f90_kind,         only: double
-    use mod_tools
     use mod_imRK4_parameters, only: dimH2, time, initialize, step
-    use mod_imRK4
+    use mod_RK_matrices,      only: A, build_identity
+    use mod_imRK4,            only: iterate_Zki
     use mod_BrillouinZone,    only: realBZ
     use mod_parameters,       only: output,dimH
     use mod_system,           only: System
@@ -37,12 +37,18 @@ contains
     open(unit=11,file=trim(output_file), status= 'replace')
     write(unit=11,fmt=*) '#      Time      ', '        M_x       ', '        M_y       ', '        M_z       ', '      M      '
     
-    ! get imRK4 parameters
-    call initialize() 
 
-    lwork = 21*dimH
-    ! get the dimensions
+    ! Building identity
+    call build_identity(size(A,1)*dimH) 
+
+    ! Obtaining number of steps for the time loop
+    time= int(integration_time/step)
+
+    ! Dimensions for RK method
     dimH2  = 2*dimH
+
+    ! working space for the eigenstate solver
+    lwork = 21*dimH
 
     allocate( hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork),evec_kn(dimH,dimH,realBZ%workload) )
 
