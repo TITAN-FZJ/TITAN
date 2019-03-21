@@ -154,7 +154,7 @@ contains
     !$omp parallel default(none) &
     !$omp& firstprivate(lwork) &
     !$omp& private(iz,kp,weight,hk,eval,work,rwork,info,expec_0, expec_p, expec_z) &
-    !$omp& shared(s,dimH,output,nOrb2,realBZ,rho,mp,mz,EshiftBZ,ElectricFieldVector)
+    !$omp& shared(s,dimH,output,realBZ,rho,mp,mz,EshiftBZ,ElectricFieldVector)
 
     rho = 0.d0
     mp  = 0.d0

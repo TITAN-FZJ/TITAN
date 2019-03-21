@@ -58,6 +58,10 @@ contains
 
       ! Obtaining new deltaZ(k)
       if (k >= 1) then
+if(sum(abs(deltaZ_k_old)) < 1.d-8) then
+write(*,*) sum(abs(deltaZ_k_old))
+stop
+end if
         norm_k_old = vec_norm(deltaZ_k_old, dimH2)
         norm_k_new = vec_norm(Z_k, dimH2)
         theta_k    = norm_k_new/norm_k_old

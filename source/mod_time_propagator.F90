@@ -21,7 +21,7 @@ contains
     type(System),         intent(in)  :: s
 
     character(len=9)                  :: output_file = "time_prop"
-    integer                           :: i, it, n
+    integer                           :: i, it, n, m, mu
     real(double)                      :: t
     complex(double), dimension(dimH)  :: Yn
     complex(double), dimension(:,:,:), allocatable  :: evec_kn
@@ -61,16 +61,13 @@ contains
     ! Building matrix M1
     call KronProd(size(A,1),size(A,1),dimH,dimH,A,id,M1)
 
-
-
     ! Time propagation over t, kpoints, eigenvectors(Yn) for each k
     t_loop: do it = 0, time
       t = it*step
 
       !$omp parallel default(none) &
-      !$omp& firstprivate(lwork) &
-      !$omp& private(iz,n,kp,weight,hk,Yn,eval,work,rwork,info,expec_0,expec_p,expec_z) &
-      !$omp& shared(s,t,it,dimH,realBZ,evec_kn,rho_t,mp_t,mz_t,EshiftBZ,ElectricFieldVector)
+      !$omp& private(iz,n,m,i,mu,kp,weight,hk,Yn,eval,work,rwork,info,expec_0,expec_p,expec_z) &
+      !$omp& shared(s,t,it,dimH,realBZ,evec_kn,rho_t,mp_t,mz_t,lwork,EshiftBZ,ElectricFieldVector)
 
       rho_t = 0.d0
       mp_t  = cZero
@@ -85,20 +82,29 @@ contains
           call hamiltk(s,kp,hk)
           ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
           call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
-        else
-          write(*,*) 'it = ',it,' evec_kn = ',sum(abs(evec_kn))
-          stop
         end if
         evs_loop: do n = 1, dimH
-write(*,*) it, iz, n
           if (it==0) then
             Yn(:)= hk(:,n)
           else
             Yn(:)= evec_kn(:,n,iz)
           end if
+do m=1,dimH
+if(abs(Yn(m))>1.d-6) write(100,*) it,t,iz,n,Yn(m)
+end do
           call iterate_Zki(s, t, kp, eval(n), Yn)
+do m=1,dimH
+if(abs(Yn(m))>1.d-6) write(101,*) it,t,iz,n,Yn(m)
+end do
           ! Calculating expectation values for the nth eigenvector 
           call expec_val_n(s, dimH, Yn, eval(n), expec_0, expec_p, expec_z)
+do i=1,s%nAtoms
+do mu=1,9
+if(abs(expec_0(mu,i))>1.d-6)  write(102,*) it,t,iz,n,i,mu,expec_0(mu,i)
+if(abs(expec_p(mu,i))>1.d-6)  write(103,*) it,t,iz,n,i,mu,expec_p(mu,i)
+if(abs(expec_z(mu,i))>1.d-6)  write(104,*) it,t,iz,n,i,mu,expec_z(mu,i)
+end do
+end do
           rho_t = rho_t + expec_0 * weight 
           mp_t  = mp_t  + expec_p * weight 
           mz_t  = mz_t  + expec_z * weight 
