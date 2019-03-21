@@ -256,7 +256,7 @@ program TITAN
       call calculate_dc_limit()
     case(10) ! Calculation of Gilbert Damping by Kamberskys Torque Torque model
       call calculate_TCM()
-    case(11) ! Propagation of ( H_t.b + S.B(t) )
+    case(11) ! Propagation of ( H(k) + S.B(t) )
       call time_propagator(sys)
     end select
     !===================================================================

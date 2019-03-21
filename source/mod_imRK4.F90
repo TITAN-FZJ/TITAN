@@ -10,7 +10,7 @@ contains
     use mod_system,           only: System
     use mod_imRK4_parameters, only: step, dimH2, sc_tol
     use mod_tools,            only: vec_norm, LS_solver
-    use mod_constants
+    use mod_constants,        only: cZero
     use mod_RK_matrices
     implicit none
     ! define the variables: 
@@ -20,10 +20,9 @@ contains
     real(double)                     , intent(in)    :: eval
     complex(double), dimension(dimH) , intent(inout) :: Yn
 
-    integer                                 :: k, i, j 
+    integer                                 :: k 
     real(double)                            :: error, norm_k_old, norm_k_new, theta_k, eta_k, tol
-    complex(double), dimension(dimH)        :: F, delta1Z_k, delta2Z_k
-    complex(double), dimension(dimH2)       :: deltaZ_k_old, deltaZ_k_new, deltaZ_k  
+    complex(double), dimension(dimH2)       :: deltaZ_k_old, deltaZ_k  
     complex(double), dimension(dimH2,dimH2) :: M2n
     complex(double), dimension(dimH2)       :: Fun 
     complex(double), dimension(dimH2)       :: Z_k 
@@ -32,7 +31,7 @@ contains
     ! z = (g - Y)
     ! z = 0.0 is the solution
     ! Initial value of z_k (Taylor expansion point) 
-    Z_k   = 0.d0
+    Z_k   = cZero
     k     = 0
     error = 1.d0
     !
@@ -84,7 +83,7 @@ contains
     use mod_parameters,       only: dimH
     use mod_system,           only: System
     use mod_imRK4_parameters, only: dimH2
-    use mod_RK_matrices,      only: A, id
+    use mod_RK_matrices,      only: A, id2
     use mod_tools,            only: KronProd
     implicit none
     type(System)                           , intent(in)  :: s
@@ -102,7 +101,7 @@ contains
 
     ! TODO: test if size(A) works
     call KronProd(size(A,1),size(A,1),dimH,dimH,A,Jacobian_t,Kprod)
-    M2n = id - step * Kprod
+    M2n = id2 - step * Kprod
   end subroutine M_2n
 
   !> subroutine f(Z_k) that builds the right side of the linear system.
@@ -118,7 +117,7 @@ contains
     real(double)                    ,  intent(in)  :: t, step
     real(double)                    ,  intent(in)  :: kp(3)
     complex(double), dimension(dimH),  intent(in)  :: Yn
-    complex(double), dimension(dimH),  intent(in)  :: Z_k
+    complex(double), dimension(dimH2), intent(in)  :: Z_k
     complex(double), dimension(dimH2), intent(out) :: Fun 
     real(double)                     :: t1, t2
     complex(double)                  :: hamilt_t(dimH,dimH)
@@ -187,14 +186,14 @@ contains
       do mu=5,nOrb
         do s1=1,2
           do s2=1,2
-            dHdc(isigmamu2n(i,mu,s1),isigmamu2n(i,mu,s2)) = dHdc(isigmamu2n(i,mu,s1),isigmamu2n(i,mu,s2)) + Yn(isigmamu2n(i,mu,s1))*conjg(Yn(isigmamu2n(i,mu,s2)))
+            dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,mu)) = dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,mu)) + Yn(isigmamu2n(i,s1,mu))*conjg(Yn(isigmamu2n(i,s2,mu)))
             do j=1,s%nAtoms
               do nu=5,nOrb
-                dHdc(isigmamu2n(i,mu,s1),isigmamu2n(j,nu,s2)) = dHdc(isigmamu2n(i,mu,s1),isigmamu2n(j,nu,s2)) - 0.5d0*Yn(isigmamu2n(i,mu,s1))*conjg(Yn(isigmamu2n(j,nu,s2)))
+                dHdc(isigmamu2n(i,s1,mu),isigmamu2n(j,s2,nu)) = dHdc(isigmamu2n(i,s1,mu),isigmamu2n(j,s2,nu)) - 0.5d0*Yn(isigmamu2n(i,s1,mu))*conjg(Yn(isigmamu2n(j,s2,nu)))
                 do s3=1,2
                   do s4=1,2
                     do alpha = 1,3
-                      dHdc(isigmamu2n(i,mu,s1),isigmamu2n(j,nu,s2)) = dHdc(isigmamu2n(i,mu,s1),isigmamu2n(j,nu,s2)) - 0.5d0*pauli_mat(s1,s3,alpha)*Yn(isigmamu2n(i,mu,s3))*pauli_mat(s4,s2,alpha)*conjg(Yn(isigmamu2n(j,nu,s4)))
+                      dHdc(isigmamu2n(i,s1,mu),isigmamu2n(j,s2,nu)) = dHdc(isigmamu2n(i,s1,mu),isigmamu2n(j,s2,nu)) - 0.5d0*pauli_mat(s1,s3,alpha)*Yn(isigmamu2n(i,s3,mu))*pauli_mat(s4,s2,alpha)*conjg(Yn(isigmamu2n(j,s4,nu)))
                     end do
                   end do
                 end do
@@ -215,7 +214,6 @@ contains
   !> H(t)= S.B(t),  S= Pauli matricies of dimension 18? or dimH
   subroutine build_td_hamiltonian(s,t,kp,hamilt_t)
     use mod_f90_kind,   only: double
-    use mod_constants,  only: pauli_orb
     use mod_system,     only: System
     use mod_parameters, only: dimH
     implicit none
@@ -223,7 +221,7 @@ contains
     real(double),   intent(in) :: t
     real(double),   intent(in) :: kp(3)
     complex(double), intent(out)  :: hamilt_t(dimH,dimH)
-    complex(double), dimension(dimH,dimH)  :: hk, hext_t
+    complex(double), dimension(dimH,dimH)  :: hk
 
     ! Calculating the "ground state" Hamiltonian for a given k-point (with time-dependent expectation values included)
     call hamiltk(s,kp,hk)
@@ -262,11 +260,12 @@ contains
       hext(mu,nu) = conjg(hext(nu,mu))
     end do
 
+    hext_t = cZero
     do i=1, nAtoms
       hext_t(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = hext(1:nOrb2,1:nOrb2)
     end do
 
-    end function hext_t
+  end function hext_t
 
 end module mod_imRK4
 

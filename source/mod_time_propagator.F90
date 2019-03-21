@@ -6,20 +6,21 @@ contains
     use mod_f90_kind,         only: double
     use mod_constants,        only: cZero
     use mod_imRK4_parameters, only: dimH2, time, step, integration_time
-    use mod_RK_matrices,      only: A, build_identity
+    use mod_RK_matrices,      only: A, id, id2, M1, build_identity
     use mod_imRK4,            only: iterate_Zki
     use mod_BrillouinZone,    only: realBZ
-    use mod_parameters,       only: output,dimH
+    use mod_parameters,       only: dimH
     use mod_system,           only: System
-    use TightBinding,         only: nOrb,nOrb2
+    use TightBinding,         only: nOrb
     use ElectricField,        only: EshiftBZ,ElectricFieldVector
     use mod_expectation,      only: expec_val_n
     use mod_Umatrix,          only: update_Umatrix
     use mod_magnet,           only: rhod0,rho0
+    use mod_tools,            only: KronProd
     implicit none
     type(System),         intent(in)  :: s
 
-    character(len=6)                  :: output_file = "output"
+    character(len=9)                  :: output_file = "time_prop"
     integer                           :: i, it, n
     real(double)                      :: t
     complex(double), dimension(dimH)  :: Yn
@@ -39,41 +40,57 @@ contains
     complex(double), dimension(s%nAtoms)        :: mpd_t
 
     ! Open file and write headers
-    open(unit=11,file=trim(output_file), status= 'replace')
-    write(unit=11,fmt=*) '#      Time      ', '        M_x       ', '        M_y       ', '        M_z       ', '      M      '
+    open(unit=5090,file=trim(output_file), status= 'replace')
+    write(unit=5090,fmt=*) '#      Time      ', '        M_x       ', '        M_y       ', '        M_z       ', '      M      '
     
-
-    ! Building identity
-    call build_identity(size(A,1)*dimH) 
-
     ! Obtaining number of steps for the time loop
     time = int(integration_time/step)
-
-    ! Dimensions for RK method
-    dimH2  = 2*dimH
 
     ! working space for the eigenstate solver
     lwork = 21*dimH
 
-    allocate( hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork),evec_kn(dimH,dimH,realBZ%workload) )
+    ! Dimensions for RK method
+    dimH2  = 2*dimH
+
+    allocate( id(dimH,dimH),id2(dimH2,dimH2),hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork),evec_kn(dimH,dimH,realBZ%workload), M1(dimH2,dimH2) )
+
+    ! Building identities
+    call build_identity(dimH,id)
+    call build_identity(size(A,1)*dimH,id2)
+
+    ! Building matrix M1
+    call KronProd(size(A,1),size(A,1),dimH,dimH,A,id,M1)
+
+
 
     ! Time propagation over t, kpoints, eigenvectors(Yn) for each k
     t_loop: do it = 0, time
       t = it*step
+
+      !$omp parallel default(none) &
+      !$omp& firstprivate(lwork) &
+      !$omp& private(iz,n,kp,weight,hk,Yn,eval,work,rwork,info,expec_0,expec_p,expec_z) &
+      !$omp& shared(s,t,it,dimH,realBZ,evec_kn,rho_t,mp_t,mz_t,EshiftBZ,ElectricFieldVector)
+
       rho_t = 0.d0
       mp_t  = cZero
       mz_t  = 0.d0
 
-      kpoints_loop:    do iz = 1, realBZ%workload
-        kp = realBZ%kp(1:3,iz) !+ EshiftBZ*ElectricFieldVector
+      !$omp do reduction(+:rho_t,mp_t,mz_t)
+      kpoints_loop: do iz = 1, realBZ%workload
+        kp = realBZ%kp(1:3,iz) + EshiftBZ*ElectricFieldVector
         weight = realBZ%w(iz)   
         if (it==0) then
           ! Calculating the hamiltonian for a given k-point
           call hamiltk(s,kp,hk)
           ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
           call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
+        else
+          write(*,*) 'it = ',it,' evec_kn = ',sum(abs(evec_kn))
+          stop
         end if
         evs_loop: do n = 1, dimH
+write(*,*) it, iz, n
           if (it==0) then
             Yn(:)= hk(:,n)
           else
@@ -81,7 +98,7 @@ contains
           end if
           call iterate_Zki(s, t, kp, eval(n), Yn)
           ! Calculating expectation values for the nth eigenvector 
-          call expec_val_n(s, dimH, Yn, eval, expec_0, expec_p, expec_z)
+          call expec_val_n(s, dimH, Yn, eval(n), expec_0, expec_p, expec_z)
           rho_t = rho_t + expec_0 * weight 
           mp_t  = mp_t  + expec_p * weight 
           mz_t  = mz_t  + expec_z * weight 
@@ -90,6 +107,8 @@ contains
           evec_kn(:,n,iz)= Yn
         end do evs_loop
       end do kpoints_loop
+      !$omp end do
+      !$omp end parallel
 
       mx_t = real(mp_t)
       my_t = aimag(mp_t)
@@ -103,9 +122,9 @@ contains
 
       call update_Umatrix(mzd_t,mpd_t,rhod_t,rhod0,rho_t,rho0,s%nAtoms,nOrb)
 
-      write(unit=11,fmt="(100(es16.9,2x))") t, (sum(mx_t(:,i)), sum(my_t(:,i)), sum(mz_t(:,i)), (sum(mx_t(:,i))**2 + sum(my_t(:,i))**2 + sum(mz_t(:,i))**2), i=1,s%nAtoms)
+      write(unit=5090,fmt="(100(es16.9,2x))") t, (sum(mx_t(:,i)), sum(my_t(:,i)), sum(mz_t(:,i)), sqrt(sum(mx_t(:,i))**2 + sum(my_t(:,i))**2 + sum(mz_t(:,i))**2), i=1,s%nAtoms)
     end do t_loop
-    close(unit=11)
+    close(unit=5090)
   end subroutine time_propagator
 end module mod_time_propagator
 

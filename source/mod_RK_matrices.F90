@@ -3,8 +3,9 @@
 module mod_RK_matrices 
   use mod_f90_kind, only: double
   implicit none
-  real(double),    dimension(:,:), allocatable :: id(:,:)
-  real(double),    dimension(4,4), parameter   :: M1= reshape([ 0.25d0,0.d0,-0.03867513d0, 0.d0,0.d0,0.25d0,0.d0,-0.03867513d0,0.53867513d0,0.d0,0.25d0,0.d0,0.d0,0.53867513d0,0.d0,0.25d0 ],[ 4,4 ],Order=[ 2,1 ])
+  complex(double), dimension(:,:), allocatable :: id(:,:),id2(:,:)
+  ! real(double),    dimension(4,4), parameter   :: M1= reshape([ 0.25d0,0.d0,-0.03867513d0, 0.d0,0.d0,0.25d0,0.d0,-0.03867513d0,0.53867513d0,0.d0,0.25d0,0.d0,0.d0,0.53867513d0,0.d0,0.25d0 ],[ 4,4 ],Order=[ 2,1 ])
+  complex(double), dimension(:,:), allocatable :: M1
   real(double),    dimension(2,2), parameter   :: A_inverse= reshape([ 3.d0, 0.46410162d0, -6.46410162d0, 3.d0 ],[ 2,2 ],Order=[ 2,1 ])
   complex(double), dimension(2,2), parameter   :: A= reshape([ 0.25d0, -0.03867513d0, 0.53867513d0, 0.25d0 ],[ 2,2 ],Order=[ 2,1 ])
   real(double),    dimension(2)  , parameter   :: b= [ 0.5d0, 0.5d0 ]
@@ -16,16 +17,16 @@ module mod_RK_matrices
 contains
 
   ! subroutine for identity matricies of dimension dim_I. 
-  subroutine build_identity(dim_I)
+  subroutine build_identity(dim_I,ident)
+    use mod_f90_kind, only: double
     implicit none
-    integer, intent(in)  :: dim_I
+    integer,                                 intent(in)  :: dim_I
+    complex(double), dimension(dim_I,dim_I), intent(out) :: ident
     integer :: n
 
-    allocate(id(dim_I,dim_I))
-
-    id = 0.d0
+    ident = 0.d0
     do n= 1, dim_I
-      id(n,n)= 1.d0
+      ident(n,n)= 1.d0
     end do    
 
   end subroutine build_identity

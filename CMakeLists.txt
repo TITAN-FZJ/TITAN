@@ -126,6 +126,7 @@ elseif(PLATFORM MATCHES osx)
                                               -D_OSX
                                               -fpp
                                               -DVERSION="${GIT_VERSION}"
+                                              -qopenmp
                                               -mkl
                                               -xHost)
 elseif(PLATFORM MATCHES booster)
@@ -200,6 +201,7 @@ if(DEBUG)
                                               -warn all
                                               -ftrapuv
                                               -traceback
+                                              -qopenmp
                                               -fpp
                                               -DVERSION="${GIT_VERSION}"
                                               -g

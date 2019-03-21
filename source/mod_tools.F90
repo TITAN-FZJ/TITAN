@@ -359,7 +359,7 @@ contains
     complex(double),   intent(in)    :: A(n,n)
     complex(double), intent(out)     :: b(n)
     ! Workspace variables
-    integer                          :: nrhs, lda, ldb, ldx, info, iter
+    integer                          :: nrhs, lda, ldb, ldx, info
     integer, allocatable             :: ipiv(:)
     complex, allocatable             :: swork(:)
     complex(double), allocatable     :: work(:), X(:)

@@ -152,9 +152,9 @@ contains
     allocate( hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork) )
 
     !$omp parallel default(none) &
-    !$omp& firstprivate(lwork,dimH) &
+    !$omp& firstprivate(lwork) &
     !$omp& private(iz,kp,weight,hk,eval,work,rwork,info,expec_0, expec_p, expec_z) &
-    !$omp& shared(s,output,nOrb2,realBZ,rho,mp,mz,EshiftBZ,ElectricFieldVector)
+    !$omp& shared(s,dimH,output,nOrb2,realBZ,rho,mp,mz,EshiftBZ,ElectricFieldVector)
 
     rho = 0.d0
     mp  = 0.d0
@@ -162,14 +162,14 @@ contains
 
     !$omp do reduction(+:rho,mp,mz)
     do iz = 1,realBZ%workload
-      kp = realBZ%kp(1:3,iz) !+ EshiftBZ*ElectricFieldVector
+      kp = realBZ%kp(1:3,iz) + EshiftBZ*ElectricFieldVector
       weight = realBZ%w(iz)
 
       ! Calculating the hamiltonian for a given k-point
       call hamiltk(s,kp,hk)
 
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-      call zheev('V','L',dimH,hk,dimHexpectation_values_eigenstates,eval,work,lwork,rwork,info)
+      call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
 
       if(info/=0) then
         write(output%unit_loop,"('[expectation_values_eigenstates] Problem with diagonalization. info = ',i0)") info
@@ -257,11 +257,11 @@ contains
     type(System),                              intent(in)  :: s
     integer,                                   intent(in)  :: dim
     complex(double), dimension(dim),           intent(in)  :: evec
-    real(double),    dimension(dim),           intent(in)  :: eval
+    real(double),                              intent(in)  :: eval
     real(double),    dimension(nOrb,s%nAtoms), intent(out) :: expec_0, expec_z
     complex(double), dimension(nOrb,s%nAtoms), intent(out) :: expec_p
 
-    integer :: i, n, sigma, sigmap, mu
+    integer :: i, sigma, sigmap, mu
     real(double) :: f_n
 
     expec_0 = 0.d0
@@ -269,7 +269,7 @@ contains
     expec_p = cZero
   
     ! Fermi-Dirac:
-    f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval(n))
+    f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval)
 
     do i = 1, s%nAtoms
       do mu = 1, nOrb
