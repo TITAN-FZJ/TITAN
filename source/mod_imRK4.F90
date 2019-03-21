@@ -4,7 +4,7 @@ module mod_imRK4
 
 contains
   ! subroutine to find the vectors Z_ki
-  subroutine iterate_Zki(s,t,kp,Yn)
+  subroutine iterate_Zki(s, t, kp, eval, Yn)
     use mod_f90_kind,         only: double
     use mod_parameters,       only: dimH
     use mod_system,           only: System
@@ -17,6 +17,7 @@ contains
     type(System)                     , intent(in)    :: s
     real(double)                     , intent(in)    :: t
     real(double)                     , intent(in)    :: kp(3)
+    real(double)                     , intent(in)    :: eval
     complex(double), dimension(dimH) , intent(inout) :: Yn
 
     integer                                 :: k, i, j 
@@ -26,6 +27,7 @@ contains
     complex(double), dimension(dimH2,dimH2) :: M2n
     complex(double), dimension(dimH2)       :: Fun 
     complex(double), dimension(dimH2)       :: Z_k 
+
 
     ! z = (g - Y)
     ! z = 0.0 is the solution
@@ -42,7 +44,7 @@ contains
     !
     sc_loop: do while (error >= sc_tol) 
       ! Build M2n matrix
-      call M_2n(s, t, kp, Yn, step, M2n)
+      call M_2n(s, t, kp, eval, Yn, step, M2n)
       ! Build Fun vector
       call Fsystem(s, t, kp, Yn, step, Z_k, Fun)
       ! Solve the Ax=b linear equation
@@ -77,24 +79,26 @@ contains
   end subroutine iterate_Zki
 
 ! Subroutine to build the matrix M_2n
-  subroutine M_2n(s, t, kp, Yn, step, M2n)
+  subroutine M_2n(s, t, kp, eval, Yn, step, M2n)
     use mod_f90_kind,         only: double
     use mod_parameters,       only: dimH
     use mod_system,           only: System
     use mod_imRK4_parameters, only: dimH2
-    use mod_RK_matrices
+    use mod_RK_matrices,      only: A, id
     use mod_tools,            only: KronProd
     implicit none
     type(System)                           , intent(in)  :: s
     real(double)                           , intent(in)  :: t, step
     real(double)                           , intent(in)  :: kp(3)
+    real(double)                           , intent(in)  :: eval
     complex(double), dimension(dimH)       , intent(in)  :: Yn
     complex(double), dimension(dimH2,dimH2), intent(out) :: M2n
 
     complex(double), dimension(dimH,dimH)   :: Jacobian_t
     complex(double), dimension(dimH2,dimH2) :: Kprod(dimH2,dimH2)
 
-    call build_td_Jacobian(s, t, kp, Yn, Jacobian_t)
+    ! Calculating the Jacobian at previous time
+    call build_td_Jacobian(s, t-step, kp, eval, Yn, Jacobian_t)
 
     ! TODO: test if size(A) works
     call KronProd(size(A,1),size(A,1),dimH,dimH,A,Jacobian_t,Kprod)
@@ -136,24 +140,76 @@ contains
 
 
   !> build time dependent jacobian for each kp 
-  subroutine build_td_Jacobian(s, t, kp, Yn, Jacobian_t)
+  subroutine build_td_Jacobian(s, t, kp, eval, Yn, Jacobian_t)
     use mod_f90_kind,   only: double
+    use mod_constants,  only: cI
     use mod_parameters, only: dimH
     use mod_system,     only: System
     ! use mod_Umatrix,   only: hee
     implicit none
-    type(System)                     , intent(in) :: s
-    real(double)                     , intent(in) :: t
-    real(double)                     , intent(in) :: kp(3)
-    complex(double), dimension(dimH) , intent(in) :: Yn
+    type(System)                          , intent(in)  :: s
+    real(double)                          , intent(in)  :: t
+    real(double)                          , intent(in)  :: kp(3)
+    real(double)                          , intent(in)  :: eval
+    complex(double), dimension(dimH)      , intent(in)  :: Yn
     complex(double), dimension(dimH,dimH) , intent(out) :: Jacobian_t
-    complex(double)  :: hamilt_t(dimH,dimH)
+
+    complex(double), dimension(dimH,dimH)  :: hamilt_t,dHdc
 
     call build_td_hamiltonian(s, t, kp, hamilt_t)
+    call build_term_Jacobian(s, eval, Yn, dHdc)
 
-    Jacobian_t = hamilt_t ! + some other terms
+    Jacobian_t = -cI*(hamilt_t + dHdc)
 
   end subroutine build_td_Jacobian
+
+
+  !> Calculate the last term of the Jacobian
+  !> Given by \sum_j <i| dH/dc^n_k |j> * c_j^n(t)
+  subroutine build_term_Jacobian(s, eval, Yn, dHdc)
+    use mod_f90_kind,      only: double
+    use mod_parameters,    only: dimH, U, isigmamu2n, eta
+    use mod_system,        only: System
+    use mod_distributions, only: fd_dist
+    use TightBinding,      only: nOrb
+    use mod_constants,     only: cZero, pauli_mat, pi
+    ! use mod_Umatrix,   only: hee
+    implicit none
+    type(System)                          , intent(in)  :: s
+    real(double)                          , intent(in)  :: eval
+    complex(double), dimension(dimH)      , intent(in)  :: Yn
+    complex(double), dimension(dimH,dimH) , intent(out) :: dHdc
+
+    integer      :: i,j,mu,nu,s1,s2,s3,s4,alpha
+
+    dHdc = cZero
+    do i=1,s%nAtoms
+      do mu=5,nOrb
+        do s1=1,2
+          do s2=1,2
+            dHdc(isigmamu2n(i,mu,s1),isigmamu2n(i,mu,s2)) = dHdc(isigmamu2n(i,mu,s1),isigmamu2n(i,mu,s2)) + Yn(isigmamu2n(i,mu,s1))*conjg(Yn(isigmamu2n(i,mu,s2)))
+            do j=1,s%nAtoms
+              do nu=5,nOrb
+                dHdc(isigmamu2n(i,mu,s1),isigmamu2n(j,nu,s2)) = dHdc(isigmamu2n(i,mu,s1),isigmamu2n(j,nu,s2)) - 0.5d0*Yn(isigmamu2n(i,mu,s1))*conjg(Yn(isigmamu2n(j,nu,s2)))
+                do s3=1,2
+                  do s4=1,2
+                    do alpha = 1,3
+                      dHdc(isigmamu2n(i,mu,s1),isigmamu2n(j,nu,s2)) = dHdc(isigmamu2n(i,mu,s1),isigmamu2n(j,nu,s2)) - 0.5d0*pauli_mat(s1,s3,alpha)*Yn(isigmamu2n(i,mu,s3))*pauli_mat(s4,s2,alpha)*conjg(Yn(isigmamu2n(j,nu,s4)))
+                    end do
+                  end do
+                end do
+              end do
+            end do
+          end do
+        end do
+      end do
+      dHdc = U(i) * dHdc
+    end do
+    dHdc = fd_dist(s%Ef, 1.d0/(pi*eta), eval) * dHdc
+
+  end subroutine build_term_Jacobian
+
+
 
   !> build time dependent Hamiltonian for each kp 
   !> H(t)= S.B(t),  S= Pauli matricies of dimension 18? or dimH

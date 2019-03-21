@@ -169,7 +169,7 @@ contains
       call hamiltk(s,kp,hk)
 
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-      call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
+      call zheev('V','L',dimH,hk,dimHexpectation_values_eigenstates,eval,work,lwork,rwork,info)
 
       if(info/=0) then
         write(output%unit_loop,"('[expectation_values_eigenstates] Problem with diagonalization. info = ',i0)") info
@@ -192,7 +192,7 @@ contains
   end subroutine expectation_values_eigenstates
 
 
-  ! subroutine expectation value of the operator Sx in each state n:
+  ! subroutine expectation value of the operators 1 (occupation), Sp and Sz:
   subroutine expec_val(s, dim, hk, eval, expec_0, expec_p, expec_z)
     use mod_f90_kind,      only: double 
     use mod_constants,     only: cOne,cZero,pi,pauli_mat
@@ -225,16 +225,15 @@ contains
       do i = 1, s%nAtoms
         do mu = 1, nOrb
           do sigma = 1, 2
-            do sigmap = 1, 2
-
             ! Charge
-            expec_0(mu,i) = expec_0(mu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*pauli_mat(sigma,sigmap,0)*evec(isigmamu2n(i,sigmap,mu))
+            expec_0(mu,i) = expec_0(mu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,mu))
 
-            ! M_p
-            expec_p(mu,i) = expec_p(mu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*pauli_mat(sigma,sigmap,4)*evec(isigmamu2n(i,sigmap,mu))
+            do sigmap = 1, 2
+              ! M_p
+              expec_p(mu,i) = expec_p(mu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*pauli_mat(sigma,sigmap,4)*evec(isigmamu2n(i,sigmap,mu))
 
-            ! M_z
-            expec_z(mu,i) = expec_z(mu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*pauli_mat(sigma,sigmap,3)*evec(isigmamu2n(i,sigmap,mu))
+              ! M_z
+              expec_z(mu,i) = expec_z(mu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*pauli_mat(sigma,sigmap,3)*evec(isigmamu2n(i,sigmap,mu))
             end do
           end do
         end do
@@ -245,9 +244,7 @@ contains
   end subroutine expec_val
 
 
-
-
-  !> subroutine expectation value of the operators Sx, Sy, Sz in each state n:
+  ! subroutine expectation value of the operators 1 (occupation), Sp and Sz for a given state n:
   subroutine expec_val_n(s, dim, evec, eval, expec_0, expec_p, expec_z)
     use mod_f90_kind,      only: double 
     use mod_constants,     only: cOne,cZero,pi,pauli_mat
@@ -259,39 +256,37 @@ contains
     
     type(System),                              intent(in)  :: s
     integer,                                   intent(in)  :: dim
+    complex(double), dimension(dim),           intent(in)  :: evec
     real(double),    dimension(dim),           intent(in)  :: eval
-    complex(double),                           intent(in)  :: evec(dim)
     real(double),    dimension(nOrb,s%nAtoms), intent(out) :: expec_0, expec_z
     complex(double), dimension(nOrb,s%nAtoms), intent(out) :: expec_p
 
-    integer :: i
-    integer :: n, sigma, sigmap, mu
+    integer :: i, n, sigma, sigmap, mu
     real(double) :: f_n
 
     expec_0 = 0.d0
     expec_z = 0.d0
     expec_p = cZero
   
-      ! Fermi-Dirac:
-      f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval(n))
+    ! Fermi-Dirac:
+    f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval(n))
 
-      ! Getting eigenvector and its transpose conjugate
-    
-        do mu = 1, nOrb
-          do sigma = 1, 2
-            do sigmap = 1, 2
+    do i = 1, s%nAtoms
+      do mu = 1, nOrb
+        do sigma = 1, 2
+          ! Charge
+          expec_0(mu,i) = expec_0(mu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,mu))
 
-            ! Charge
-            expec_0(mu,i) = expec_0(mu,i) + f_n*conjg( evec(mu) )*pauli_mat(sigma,sigmap,0)*evec(mu)
-
+          do sigmap = 1, 2
             ! M_p
-            expec_p(mu,i) = expec_p(mu,i) + f_n*conjg( evec(mu) )*pauli_mat(sigma,sigmap,4)*evec(mu)
+            expec_p(mu,i) = expec_p(mu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*pauli_mat(sigma,sigmap,4)*evec(isigmamu2n(i,sigmap,mu))
 
             ! M_z
-            expec_z(mu,i) = expec_z(mu,i) + f_n*conjg( evec(mu) )*pauli_mat(sigma,sigmap,3)*evec(mu)
-            end do
+            expec_z(mu,i) = expec_z(mu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*pauli_mat(sigma,sigmap,3)*evec(isigmamu2n(i,sigmap,mu))
           end do
         end do
+      end do
+    end do
 
   end subroutine expec_val_n
 

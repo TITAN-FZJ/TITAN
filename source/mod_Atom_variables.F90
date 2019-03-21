@@ -6,11 +6,11 @@ contains
   subroutine allocate_Atom_variables(nAtoms,nOrbs)
     use mod_mpi_pars,   only: abortProgram
     use mod_System,     only: System
-    use mod_parameters, only: sigmai2i, sigmaimunu2i, sigmaijmunu2i, isigmamu2n, U
+    use mod_parameters, only: sigmai2i, sigmaimunu2i, sigmaijmunu2i, isigmamu2n, n2isigmamu, U
     implicit none
     integer, intent(in) :: nAtoms,nOrbs
 
-    allocate( sigmai2i(4,nAtoms),sigmaimunu2i(4,nAtoms,nOrbs,nOrbs),sigmaijmunu2i(4,nAtoms,nAtoms,nOrbs,nOrbs),isigmamu2n(nAtoms,2,nOrbs) )
+    allocate( sigmai2i(4,nAtoms),sigmaimunu2i(4,nAtoms,nOrbs,nOrbs),sigmaijmunu2i(4,nAtoms,nAtoms,nOrbs,nOrbs),isigmamu2n(nAtoms,2,nOrbs), n2isigmamu(nAtoms*2*nOrbs,3) )
 
     allocate( U(nAtoms) )
 
@@ -22,7 +22,7 @@ contains
 
   ! This subroutine deallocates variables that depend on nAtom
   subroutine deallocate_Atom_variables()
-    use mod_parameters, only: sigmai2i, sigmaimunu2i, sigmaijmunu2i, isigmamu2n, U
+    use mod_parameters, only: sigmai2i, sigmaimunu2i, sigmaijmunu2i, isigmamu2n, n2isigmamu, U
     use mod_magnet,     only: rho0,rhod0
     implicit none
 
@@ -30,6 +30,7 @@ contains
     if(allocated(sigmaimunu2i))  deallocate( sigmaimunu2i )
     if(allocated(sigmaijmunu2i)) deallocate( sigmaijmunu2i )
     if(allocated(isigmamu2n))    deallocate( isigmamu2n )
+    if(allocated(n2isigmamu))    deallocate( n2isigmamu )
     if(allocated(U))             deallocate( U )
     if(allocated(rho0))          deallocate( rho0 )
     if(allocated(rhod0))         deallocate( rhod0 )

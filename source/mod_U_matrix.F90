@@ -22,7 +22,7 @@ contains
   subroutine update_Umatrix(mz,mp,rhod,rhod0,rho,rho0,nAtoms,nOrb)
     use mod_f90_kind,   only: double
     use mod_constants,  only: cZero
-    use mod_parameters, only: offset, U
+    use mod_parameters, only: U
     implicit none
     integer,                              intent(in) :: nAtoms, nOrb
     real(double),    dimension(nAtoms),   intent(in) :: mz,rhod,rhod0
@@ -34,10 +34,10 @@ contains
     do i=1,nAtoms
       do mu=5, nOrb
         nu=mu+nOrb
-        hee(mu,mu,i+offset) = U(i+offset)*(rho(mu,i) - rho0(mu,i)) + 0.5d0*U(i+offset)*(-mz(i) - rhod(i) + rhod0(i))
-        hee(nu,nu,i+offset) = U(i+offset)*(rho(mu,i) - rho0(mu,i)) + 0.5d0*U(i+offset)*( mz(i) - rhod(i) + rhod0(i))
-        hee(mu,nu,i+offset) = - 0.5d0*U(i+offset)*conjg(mp(i))
-        hee(nu,mu,i+offset) = - 0.5d0*U(i+offset)*mp(i)
+        hee(mu,mu,i) = U(i)*(rho(mu,i) - rho0(mu,i)) + 0.5d0*U(i)*(-mz(i) - rhod(i) + rhod0(i))
+        hee(nu,nu,i) = U(i)*(rho(mu,i) - rho0(mu,i)) + 0.5d0*U(i)*( mz(i) - rhod(i) + rhod0(i))
+        hee(mu,nu,i) = - 0.5d0*U(i)*conjg(mp(i))
+        hee(nu,mu,i) = - 0.5d0*U(i)*mp(i)
       end do
     end do
   end subroutine update_Umatrix

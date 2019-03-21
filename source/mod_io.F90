@@ -75,7 +75,7 @@ contains
     use mod_tools,            only: itos, rtos
     use adaptiveMesh,         only: minimumBZmesh
     use mod_mpi_pars
-    use mod_imRK4_parameters, only: hw1, hw, N, integration_time, sc_tol, step
+    use mod_imRK4_parameters, only: hw1, hw, integration_time, sc_tol, step
     implicit none
     character(len=*), intent(in)    :: filename
     type(System),     intent(inout) :: s
@@ -481,8 +481,6 @@ contains
         call log_error("get_parameters", "'hw1' not found.")
       if(.not. get_parameter("hw", hw)) &
         call log_error("get_parameters", "'hw' not found.")
-      if(.not. get_parameter("N", N)) &
-        call log_error("get_parameters", "'N' not found.")
       if(.not. get_parameter("integration_time", integration_time)) &
         call log_error("get_parameters", "'integration_time' not found.")
       if(.not. get_parameter("step", step)) &
@@ -562,7 +560,7 @@ contains
     use EnergyIntegration,    only: parts, parts3, n1gl, n3gl
     use ElectricField,        only: ElectricFieldMode, ElectricFieldVector, EFt, EFp, EshiftBZ
     use AdaptiveMesh,         only: minimumBZmesh
-    use mod_imRK4_parameters, only: hw1, hw, N, integration_time, sc_tol
+    use mod_imRK4_parameters, only: hw1, hw, step, integration_time, sc_tol
     !$ use omp_lib
     implicit none
     type(System), intent(in) :: s
@@ -685,9 +683,9 @@ contains
       write(output%unit_loop, fmt="('Input parameters:')" )
       write(output%unit_loop,"(1x,'hw1 =',es9.2)") hw1
       write(output%unit_loop,"(1x,'hw  =',es9.2)") hw
-      write(output%unit_loop,"(1x,'N   =',es9.2)") N
-      write(output%unit_loop,"(1x,'sc_tol   =',es9.2)") sc_tol
       write(output%unit_loop,"(1x,'integration_time   =',es9.2)") integration_time
+      write(output%unit_loop,"(1x,'step   =',es9.2)") step
+      write(output%unit_loop,"(1x,'sc_tol   =',es9.2)") sc_tol
     end select write_itype
     write(output%unit_loop,"('|---------------------------------------------------------------------------|')")
   end subroutine iowrite

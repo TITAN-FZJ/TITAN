@@ -1,9 +1,9 @@
 !! This subroutine mounts the conversion matrices from 4 to 2 ranks
 subroutine initConversionMatrices(nAtoms, nOrbs)
-  use mod_parameters, only: sigmai2i, sigmaimunu2i, sigmaijmunu2i, isigmamu2n
+  use mod_parameters, only: sigmai2i, sigmaimunu2i, sigmaijmunu2i, isigmamu2n, n2isigmamu
   implicit none
   integer, intent(in) :: nAtoms, nOrbs
-  integer :: nu, mu, i, sigma, j
+  integer :: nu, mu, i, sigma, j, count
 
   !------------------------- Conversion arrays  --------------------------
   do nu = 1, nOrbs
@@ -29,7 +29,11 @@ subroutine initConversionMatrices(nAtoms, nOrbs)
   do i = 1, nAtoms
     do sigma = 1, 2
       do mu = 1, nOrbs
-        isigmamu2n(i,sigma,mu) = (i-1)*2*nOrbs + (sigma-1)*nOrbs + mu
+        count = (i-1)*2*nOrbs + (sigma-1)*nOrbs + mu
+        isigmamu2n(i,sigma,mu) = count
+        n2isigmamu(count,1) = i
+        n2isigmamu(count,2) = sigma
+        n2isigmamu(count,3) = mu
       end do
     end do
   end do
