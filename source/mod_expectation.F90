@@ -159,12 +159,10 @@ contains
     rho = 0.d0
     mp  = 0.d0
     mz  = 0.d0
-
     !$omp do reduction(+:rho,mp,mz)
     do iz = 1,realBZ%workload
       kp = realBZ%kp(1:3,iz) + EshiftBZ*ElectricFieldVector
       weight = realBZ%w(iz)
-
       ! Calculating the hamiltonian for a given k-point
       call hamiltk(s,kp,hk)
 

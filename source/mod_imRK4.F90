@@ -58,10 +58,6 @@ contains
 
       ! Obtaining new deltaZ(k)
       if (k >= 1) then
-if(sum(abs(deltaZ_k_old)) < 1.d-8) then
-write(*,*) sum(abs(deltaZ_k_old))
-stop
-end if
         norm_k_old = vec_norm(deltaZ_k_old, dimH2)
         norm_k_new = vec_norm(Z_k, dimH2)
         theta_k    = norm_k_new/norm_k_old
@@ -183,7 +179,7 @@ end if
     complex(double), dimension(dimH)      , intent(in)  :: Yn
     complex(double), dimension(dimH,dimH) , intent(out) :: dHdc
 
-    integer      :: i,j,mu,nu,s1,s2,s3,s4,alpha
+    integer      :: i,mu,nu,s1,s2,s3,s4,alpha
 
     dHdc = cZero
     do i=1,s%nAtoms
@@ -191,14 +187,12 @@ end if
         do s1=1,2
           do s2=1,2
             dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,mu)) = dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,mu)) + Yn(isigmamu2n(i,s1,mu))*conjg(Yn(isigmamu2n(i,s2,mu)))
-            do j=1,s%nAtoms
-              do nu=5,nOrb
-                dHdc(isigmamu2n(i,s1,mu),isigmamu2n(j,s2,nu)) = dHdc(isigmamu2n(i,s1,mu),isigmamu2n(j,s2,nu)) - 0.5d0*Yn(isigmamu2n(i,s1,mu))*conjg(Yn(isigmamu2n(j,s2,nu)))
-                do s3=1,2
-                  do s4=1,2
-                    do alpha = 1,3
-                      dHdc(isigmamu2n(i,s1,mu),isigmamu2n(j,s2,nu)) = dHdc(isigmamu2n(i,s1,mu),isigmamu2n(j,s2,nu)) - 0.5d0*pauli_mat(s1,s3,alpha)*Yn(isigmamu2n(i,s3,mu))*pauli_mat(s4,s2,alpha)*conjg(Yn(isigmamu2n(j,s4,nu)))
-                    end do
+            do nu=5,nOrb
+              dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,nu)) = dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,nu)) - 0.5d0*Yn(isigmamu2n(i,s1,mu))*conjg(Yn(isigmamu2n(i,s2,nu)))
+              do s3=1,2
+                do s4=1,2
+                  do alpha = 1,3
+                    dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,nu)) = dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,nu)) - 0.5d0*pauli_mat(s1,s3,alpha)*Yn(isigmamu2n(i,s3,mu))*pauli_mat(s4,s2,alpha)*conjg(Yn(isigmamu2n(i,s4,nu)))
                   end do
                 end do
               end do
