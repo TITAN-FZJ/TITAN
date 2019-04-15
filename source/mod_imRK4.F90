@@ -254,7 +254,7 @@ contains
     hext = cZero
     do mu=1,nOrb
       nu=mu+nOrb
-      hext(nu,mu) = (cos(hw*t) +cI*sin(hw*t))*hw1
+      hext(nu,mu) = (cos(hw*t) - cI*sin(hw*t))*hw1*0.5d0
       hext(mu,nu) = conjg(hext(nu,mu))
     end do
 
