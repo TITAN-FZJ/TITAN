@@ -127,12 +127,14 @@ contains
 
   !   Calculates ground state quantities from eigenstates
   subroutine expectation_values_eigenstates(s,rho,mp,mx,my,mz)
-    use mod_f90_kind,       only: double
-    use mod_BrillouinZone,  only: realBZ
-    use mod_parameters,     only: output
-    use mod_system,         only: System
-    use TightBinding,       only: nOrb,nOrb2
-    use ElectricField,      only: EshiftBZ,ElectricFieldVector
+    use mod_f90_kind,      only: double
+    use mod_BrillouinZone, only: realBZ
+    use mod_parameters,    only: output
+    use mod_system,        only: System
+    use TightBinding,      only: nOrb,nOrb2
+    use ElectricField,     only: EshiftBZ,ElectricFieldVector
+    use mod_mpi_pars,      only: abortProgram
+    use mod_tools,         only: itos
     implicit none
     type(System),                              intent(in)  :: s
     real(double),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
@@ -155,7 +157,6 @@ contains
     !$omp& firstprivate(lwork) &
     !$omp& private(iz,kp,weight,hk,eval,work,rwork,info,expec_0, expec_p, expec_z) &
     !$omp& shared(s,dimH,output,realBZ,rho,mp,mz,EshiftBZ,ElectricFieldVector)
-
     rho = 0.d0
     mp  = 0.d0
     mz  = 0.d0
@@ -169,13 +170,12 @@ contains
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
       call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
 
-      if(info/=0) then
-        write(output%unit_loop,"('[expectation_values_eigenstates] Problem with diagonalization. info = ',i0)") info
-        stop
-      end if
+      if(info/=0) &
+        call abortProgram("[expectation_values_eigenstates] Problem with diagonalization. info = " // itos(info))
 
       ! Calculating expectation values for a given k-point
       call expec_val(s, dimH, hk, eval, expec_0, expec_p, expec_z)
+
       rho = rho + expec_0*weight
       mp  = mp  + expec_p*weight
       mz  = mz  + expec_z*weight
@@ -242,8 +242,9 @@ contains
   end subroutine expec_val
 
 
-  ! subroutine expectation value of the operators 1 (occupation), Sp and Sz for a given state n:
   subroutine expec_val_n(s, dim, evec, eval, expec_0, expec_p, expec_z)
+    !! Calculate the expectation value of the operators 1 (occupation), \sigma^+ and \sigma^z
+    !! for a given state n (evec) with eigenenergy eval
     use mod_f90_kind,      only: double 
     use mod_constants,     only: cOne,cZero,pi,pauli_mat
     use mod_parameters,    only: eta, isigmamu2n
@@ -259,7 +260,7 @@ contains
     real(double),    dimension(nOrb,s%nAtoms), intent(out) :: expec_0, expec_z
     complex(double), dimension(nOrb,s%nAtoms), intent(out) :: expec_p
 
-    integer :: i, sigma, sigmap, mu
+    integer      :: i, sigma, sigmap, mu
     real(double) :: f_n
 
     expec_0 = 0.d0
@@ -288,5 +289,244 @@ contains
 
   end subroutine expec_val_n
 
+  subroutine calcLGS()
+    !! Calculates the expectation value of the orbital angular momentum in the ground state
+    use mod_parameters,    only: output, leigenstates
+    use mod_constants,     only: cZero,rad2deg
+    use mod_System,        only: s => sys
+    use mod_mpi_pars,      only: rField,abortProgram
+    use mod_magnet
+    implicit none
+    integer      :: i,AllocateStatus
+
+    if(rField == 0) &
+    write(output%unit_loop,"('[calcLGS_greenfunction] Calculating Orbital Angular Momentum ground state... ')")
+
+    if(allocated(lxm)) deallocate(lxm)
+    if(allocated(lym)) deallocate(lym)
+    if(allocated(lzm)) deallocate(lzm)
+    if(allocated(lxpm)) deallocate(lxpm)
+    if(allocated(lypm)) deallocate(lypm)
+    if(allocated(lzpm)) deallocate(lzpm)
+    allocate( lxm(s%nAtoms), &
+              lym(s%nAtoms), &
+              lzm(s%nAtoms), &
+              lxpm(s%nAtoms), &
+              lypm(s%nAtoms), &
+              lzpm(s%nAtoms), stat = AllocateStatus )
+    if (AllocateStatus/=0) &
+    call abortProgram("[calcLGS] Not enough memory for: lxm,lym,lzm,lxpm,lypm,lzpm")
+
+    if(leigenstates) then
+      call calcLGS_eigenstates()
+    else
+      call calcLGS_greenfunction()
+    end if
+
+    ! Calculating angles of GS OAM (in degrees)
+    do i = 1,s%nAtoms
+      labs(i)   = sqrt((lxm(i)**2)+(lym(i)**2)+(lzm(i)**2))
+      if(labs(i)>1.d-8) then
+        ltheta(i) = acos(lzm(i)/labs(i))*rad2deg
+      else
+        ltheta(i) = 0.d0
+      end if
+      if(abs(ltheta(i))>1.d-8) then
+        if(abs(abs(ltheta(i))-180.d0)>1.d-8) then
+          lphi(i)   = atan2(lym(i),lxm(i))*rad2deg
+        else
+          lphi(i) = 0.d0
+        end if
+      else
+        lphi(i) = 0.d0
+      end if
+      lpabs(i)  = sqrt((lxpm(i)**2)+(lypm(i)**2)+(lzpm(i)**2))
+      if(abs(lpabs(i))>1.d-8) then
+        lptheta(i)= acos(lzpm(i)/lpabs(i))*rad2deg
+      else
+        lptheta(i) = 0.d0
+      end if
+      if(abs(lptheta(i))>1.d-8) then
+        if(abs(abs(lptheta(i))-180.d0)>1.d-8) then
+          lpphi(i)   = atan2(lypm(i),lxpm(i))*rad2deg
+        else
+          lpphi(i) = 0.d0
+        end if
+      else
+        lpphi(i) = 0.d0
+      end if
+    end do
+
+  end subroutine calcLGS
+
+
+  subroutine calcLGS_greenfunction()
+    !! Calculates the expectation value of the orbital angular momentum in the ground state using green functions
+    use mod_f90_kind,      only: double
+    use mod_constants,     only: cZero,pi
+    use mod_System,        only: s => sys
+    use TightBinding,      only: nOrb,nOrb2
+    use mod_parameters,    only: eta
+    use EnergyIntegration, only: y, wght
+    use ElectricField,     only: EshiftBZ,ElectricFieldVector
+    use mod_magnet,        only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz 
+    use adaptiveMesh
+    use mod_mpi_pars
+    implicit none
+    integer*8    :: ix
+    integer      :: AllocateStatus
+    integer      :: i,mu,nu,mup,nup
+    real(double) :: kp(3)
+    real(double) :: weight, ep
+    complex(double), dimension(:,:,:,:), allocatable :: gf
+    complex(double), dimension(:,:,:),   allocatable :: gupgd
+    !--------------------- begin MPI vars --------------------
+    integer :: ncount
+    ncount=s%nAtoms*nOrb*nOrb
+    !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
+
+    allocate(gupgd(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
+    if(AllocateStatus/=0) &
+    call abortProgram("[calcLGS_greenfunction] Not enough memory for: gupgd")
+
+    ! Calculating the jacobian using a complex integral
+    gupgd  = cZero
+    !$omp parallel default(none) &
+    !$omp& private(AllocateStatus,ix,i,mu,nu,mup,nup,kp,ep,weight,gf) &
+    !$omp& shared(local_points,s,nOrb,nOrb2,E_k_imag_mesh,bzs,eta,y,wght,gupgd,EshiftBZ,ElectricFieldVector)
+    allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat = AllocateStatus)
+    if (AllocateStatus/=0) &
+    call abortProgram("[calcLGS_greenfunction] Not enough memory for: gf")
+
+    gf = cZero
+    !$omp do schedule(static) reduction(+:gupgd)
+    do ix = 1, local_points
+        kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix)) + EshiftBZ*ElectricFieldVector
+        ep = y(E_k_imag_mesh(1,ix))
+        weight = bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix)) * wght(E_k_imag_mesh(1,ix))
+        !Green function on energy Ef + iy, and wave vector kp
+        call green(s%Ef,ep+eta,s,kp,gf)
+
+        do i=1,s%nAtoms
+          do mu=1,nOrb
+            mup = mu+nOrb
+            do nu=1,nOrb
+              nup = nu+nOrb
+              gupgd(mu,nu,i) = gupgd(mu,nu,i) + (gf(mu,nu,i,i) + gf(mup,nup,i,i)) * weight
+            end do
+          end do
+        end do
+      end do
+    !$omp end do
+
+    deallocate(gf)
+    !$omp end parallel
+
+    gupgd = gupgd / pi
+    call MPI_Allreduce(MPI_IN_PLACE, gupgd, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
+
+    lxpm = 0.d0
+    lypm = 0.d0
+    lzpm = 0.d0
+    lxm  = 0.d0
+    lym  = 0.d0
+    lzm  = 0.d0
+
+    do nu=5,9
+      do mu=5,9
+        do i=1,s%nAtoms
+          lxpm(i) = lxpm(i) + real(lxp(mu,nu,i)*gupgd(nu,mu,i))
+          lypm(i) = lypm(i) + real(lyp(mu,nu,i)*gupgd(nu,mu,i))
+          lzpm(i) = lzpm(i) + real(lzp(mu,nu,i)*gupgd(nu,mu,i))
+          lxm (i) = lxm (i) + real(lx (mu,nu  )*gupgd(nu,mu,i))
+          lym (i) = lym (i) + real(ly (mu,nu  )*gupgd(nu,mu,i))
+          lzm (i) = lzm (i) + real(lz (mu,nu  )*gupgd(nu,mu,i))
+        end do
+      end do
+    end do
+
+    deallocate(gupgd)
+  end subroutine calcLGS_greenfunction
+
+  !   Calculates ground state quantities from eigenstates
+  subroutine calcLGS_eigenstates()
+    use mod_f90_kind,      only: double
+    use mod_BrillouinZone, only: realBZ
+    use mod_constants,     only: pi
+    use mod_parameters,    only: output,eta,isigmamu2n
+    use mod_System,        only: s => sys
+    use TightBinding,      only: nOrb,nOrb2
+    use ElectricField,     only: EshiftBZ,ElectricFieldVector
+    use mod_magnet,        only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
+    use mod_distributions, only: fd_dist
+    use mod_mpi_pars,      only: abortProgram
+    use mod_tools,         only: itos
+    implicit none
+    integer                                      :: iz, info , n, i, mu, nu, sigma
+    integer                                      :: lwork,dimH
+    real(double)                                 :: weight, kp(3), f_n
+    complex(double)                              :: prod
+    real(double),    dimension(:),  allocatable  :: rwork(:), eval(:)
+    complex(double),                allocatable  :: work(:), hk(:,:), evec(:)
+
+    dimH  = (s%nAtoms)*nOrb2
+    lwork = 21*dimH
+
+    allocate( hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),evec(dimH),work(lwork) )
+
+    !$omp parallel default(none) &
+    !$omp& firstprivate(lwork) &
+    !$omp& private(iz,n,i,sigma,mu,nu,kp,weight,hk,eval,f_n,evec,work,rwork,info,prod) &
+    !$omp& shared(s,nOrb,dimH,output,realBZ,eta,isigmamu2n,lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz,EshiftBZ,ElectricFieldVector)
+
+    lxm  = 0.d0
+    lym  = 0.d0
+    lzm  = 0.d0
+    lxpm = 0.d0
+    lypm = 0.d0
+    lzpm = 0.d0
+    !$omp do reduction(+:lxm,lym,lzm,lxpm,lypm,lzpm) schedule(static)
+    kloop: do iz = 1,realBZ%workload
+      kp = realBZ%kp(1:3,iz) + EshiftBZ*ElectricFieldVector
+      weight = realBZ%w(iz)
+      ! Calculating the hamiltonian for a given k-point
+      call hamiltk(s,kp,hk)
+
+      ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
+      call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
+
+      if(info/=0) &
+        call abortProgram("[expectation_values_eigenstates] Problem with diagonalization. info = " // itos(info))
+      eval_loop: do n = 1, dimH
+        ! Fermi-Dirac:
+        f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval(n))
+
+        ! Getting eigenvector and its transpose conjugate
+        evec(:) = hk(:,n)
+
+        sites_loop: do i = 1, s%nAtoms
+          do sigma = 1, 2
+            do nu = 1, nOrb
+              do mu = 1, nOrb
+                prod = f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,nu))*weight
+                lxm (i) = lxm (i) + prod*lx (mu,nu  )
+                lym (i) = lym (i) + prod*ly (mu,nu  )
+                lzm (i) = lzm (i) + prod*lz (mu,nu  )
+                lxpm(i) = lxpm(i) + prod*lxp(mu,nu,i)
+                lypm(i) = lypm(i) + prod*lyp(mu,nu,i)
+                lzpm(i) = lzpm(i) + prod*lzp(mu,nu,i)
+              end do
+            end do
+          end do
+        end do sites_loop
+      end do eval_loop
+    end do kloop
+    !$omp end do
+    !$omp end parallel
+
+
+    deallocate(hk,rwork,eval,work)
+
+  end subroutine calcLGS_eigenstates
   
 end module mod_expectation

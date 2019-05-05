@@ -1,3 +1,8 @@
+################################################################################
+# Routine to plot {x,y} from a data file with many columns 
+# (x is obtained from column 0)
+# @author Filipe Guimarães
+################################################################################
 import numpy 	as np              # Numerical library
 import sys                         # System library (to read arguments from command line)
 import matplotlib.pyplot as plt    # Plotting library

@@ -56,6 +56,7 @@ contains
       ! stop
       !-------------------------- Filename strings -------------------------
       write(output%info,"('_nkpt=',i0,'_eta=',a)") kptotal_in, trim(rtos(eta,"(es8.1)"))
+      if(leigenstates) output%info = trim(output%info) // "_ev"
 
       !-------------------- Tight Binding parameters ---------------------
       call initTightBinding(sys0(i))

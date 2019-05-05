@@ -121,6 +121,7 @@ program TITAN
 
   !-------------------------- Filename strings -------------------------
   write(output%info,"('_nkpt=',i0,'_eta=',a)") kptotal_in, trim(rtos(eta,"(es8.1)"))
+  if(leigenstates) output%info = trim(output%info) // "_ev"
 
   !------------------------ MAGNETIC FIELD LOOP ------------------------
   if(myrank == 0 .and. skip_steps_hw > 0) &
