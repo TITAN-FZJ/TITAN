@@ -239,7 +239,7 @@ contains
   function hext_t(nAtoms,t)
     use mod_f90_kind,         only: double
     use mod_constants,        only: cI,cZero
-    use mod_imRK4_parameters, only: hw1, hw
+    use mod_imRK4_parameters, only: lelectric, hw1_e, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
     use TightBinding,         only: nOrb,nOrb2
     use mod_System,           only: ia
     use mod_parameters,       only: dimH
@@ -254,7 +254,21 @@ contains
     hext = cZero
     do mu=1,nOrb
       nu=mu+nOrb
-      hext(nu,mu) = (cos(hw*t) - cI*sin(hw*t))*hw1*0.5d0
+      if(lmagnetic) then
+        if(lpulse_m) then
+          hext(nu,mu) = hext(nu,mu) + hw1_m*0.5d0*exp(-(t-4.d0*tau_m)**2/tau_m**2)*exp(hw_m*t*cI)
+        else
+          hext(nu,mu) = hext(nu,mu) + (cos(hw_m*t) - cI*sin(hw_m*t))*hw1_m*0.5d0
+        end if
+      end if
+
+      if(lelectric) then
+        if(lpulse_e) then
+          hext(nu,mu) = hext(nu,mu) + hw1_e*0.5d0*exp(-(t-4.d0*tau_e)**2/tau_e**2)*exp(hw_e*t*cI)
+        else
+          hext(nu,mu) = hext(nu,mu) + (cos(hw_e*t) - cI*sin(hw_e*t))*hw1_e*0.5d0
+        end if
+      end if
       hext(mu,nu) = conjg(hext(nu,mu))
     end do
 

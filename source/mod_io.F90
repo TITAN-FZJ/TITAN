@@ -477,16 +477,47 @@ contains
     !==============================================================================================!
     ! REAL TIME PROPAGATION PARAMETERS
     if(itype==11) then
-      if(.not. get_parameter("hw1", hw1)) &
-        call log_error("get_parameters", "'hw1' not found.")
-      if(.not. get_parameter("hw", hw)) &
-        call log_error("get_parameters", "'hw' not found.")
       if(.not. get_parameter("integration_time", integration_time)) &
         call log_error("get_parameters", "'integration_time' not found.")
       if(.not. get_parameter("step", step)) &
         call log_error("get_parameters", "'step' not found.")
       if(.not. get_parameter("sc_tol", sc_tol, 0.01d0)) &
         call log_warning("get_parameters", "'sc_tol' not given. Using default value: sc_tol = 0.01d0")
+      ! Reading electric field variables
+      if(.not. get_parameter("electric", lelectric,.false.)) &
+        call log_warning("get_parameters", "'electric' not found. Electric field is not applied.")
+      if(lelectric) then 
+        if(.not. get_parameter("hw1_e", hw1_e)) &
+          call log_error("get_parameters", "'hw1_e' not found.")
+        if(.not. get_parameter("hw_e", hw_e)) &
+          call log_error("get_parameters", "'hw_e' not found.")
+        if(.not. get_parameter("pulse_e", lpulse_e,.false.)) &
+          call log_warning("get_parameters", "'pulse_e' not found. Oscillatory electric field is applied.")
+        if(lpulse_e) then 
+          if(.not. get_parameter("tau_e", tau_e)) &
+            call log_error("get_parameters", "'tau_e' not found.")
+          if(.not. get_parameter("delay_e", delay_e, 0.d0)) &
+            call log_warning("get_parameters", "'delay_e' not found. Center of the pulse is located at t=4tau_e.")
+        end if
+      end if
+      ! Reading magnetic field variables
+      if(.not. get_parameter("magnetic", lmagnetic,.false.)) &
+        call log_warning("get_parameters", "'magnetic' not found. Magnetic field is not applied.")
+      if(lmagnetic) then 
+        if(.not. get_parameter("hw1_m", hw1_m)) &
+          call log_error("get_parameters", "'hw1_m' not found.")
+        if(.not. get_parameter("hw_m", hw_m)) &
+          call log_error("get_parameters", "'hw_m' not found.")
+        if(.not. get_parameter("pulse_m", lpulse_m,.false.)) &
+          call log_warning("get_parameters", "'pulse_m' not found. Oscillatory Magnetic field is applied.")
+        if(lpulse_m) then 
+          if(.not. get_parameter("tau_m", tau_m)) &
+            call log_error("get_parameters", "'tau_m' not found.")
+          if(.not. get_parameter("delay_m", delay_m, 0.d0)) &
+            call log_warning("get_parameters", "'delay_m' not found. Center of the pulse is located at t=4tau_m.")
+        end if
+      end if
+
     end if
     !==============================================================================================!
     if(.not. get_parameter("suffix", output%suffix)) &

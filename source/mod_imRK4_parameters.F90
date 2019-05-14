@@ -2,9 +2,27 @@
 module mod_imRK4_parameters
   use mod_f90_kind, only: double
   implicit none
-  real(double) :: hw1, hw, omega, integration_time, step, sc_tol
+  real(double) :: hw1_e, hw1_m
+  !! Intensity of electric and magnetic fields
+  real(double) :: hw_e, hw_m
+  !! Frequency (hwt) of electric and magnetic fields
+  real(double) :: tau_e, tau_m
+  !! Pulse length of electric and magnetic fields
+  real(double) :: delay_e, delay_m
+  !! Time delay in electric and magnetic fields pulses
+  logical      :: lelectric, lmagnetic, lpulse_e, lpulse_m
+  !! Logical variables for choosing between (oscilatory or laser fields)
+  real(double) :: omega
+  !! Mix of frequencies
+  real(double) :: integration_time
+  !! Real integration time 
+  real(double) :: step
+  !! Step size
+  real(double) :: sc_tol 
+  !! Time propagation self consistency tolerence
   integer      :: time
+  !! Integer integration time
   integer      :: dimH2
-  ! Dimension: 2*dimension of the Hamiltonian (dimH)
+  !! Dimension: 2*dimension of the Hamiltonian (dimH)
 
 end module mod_imRK4_parameters
