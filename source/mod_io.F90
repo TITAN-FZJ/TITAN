@@ -75,7 +75,7 @@ contains
     use mod_tools,            only: itos, rtos
     use adaptiveMesh,         only: minimumBZmesh
     use mod_mpi_pars
-    use mod_imRK4_parameters, only: hw1, hw, integration_time, sc_tol, step
+    use mod_imRK4_parameters, only: integration_time, omega, sc_tol, step, hw1_e, hw1_m, hw_e, hw_m, tau_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
     implicit none
     character(len=*), intent(in)    :: filename
     type(System),     intent(inout) :: s
@@ -479,10 +479,17 @@ contains
     if(itype==11) then
       if(.not. get_parameter("integration_time", integration_time)) &
         call log_error("get_parameters", "'integration_time' not found.")
-      if(.not. get_parameter("step", step)) &
-        call log_error("get_parameters", "'step' not found.")
+      if(.not. get_parameter("step", step, integration_time/1.d4 )) &
+        call log_warning("get_parameters", "'step' not found. Using default value: integration_time/1.d4")
       if(.not. get_parameter("sc_tol", sc_tol, 0.01d0)) &
         call log_warning("get_parameters", "'sc_tol' not given. Using default value: sc_tol = 0.01d0")
+      if(.not. get_parameter("abs_tol", abs_tol, 1.d-3)) &
+        call log_warning("get_parameters", "'abs_tol' not given. Using default value: abs_tol = 0.001d0")
+      if(.not. get_parameter("rel_tol", rel_tol, 1.d-3)) &
+        call log_warning("get_parameters", "'rel_tol' not given. Using default value: rel_tol = 0.001d0")
+      if(.not. get_parameter("Delta", Delta, 0.9d0)) &
+        call log_warning("get_parameters", "'Delta' not given. Using default value: Delta = 0.9d0")
+
       ! Reading electric field variables
       if(.not. get_parameter("electric", lelectric,.false.)) &
         call log_warning("get_parameters", "'electric' not found. Electric field is not applied.")
@@ -591,7 +598,7 @@ contains
     use EnergyIntegration,    only: parts, parts3, n1gl, n3gl
     use ElectricField,        only: ElectricFieldMode, ElectricFieldVector, EFt, EFp, EshiftBZ
     use AdaptiveMesh,         only: minimumBZmesh
-    use mod_imRK4_parameters, only: hw1, hw, step, integration_time, sc_tol
+    use mod_imRK4_parameters, only: integration_time, omega, sc_tol, step, hw1_e, hw1_m, hw_e, hw_m, tau_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
     !$ use omp_lib
     implicit none
     type(System), intent(in) :: s
@@ -711,10 +718,11 @@ contains
        write(output%unit_loop,"(1x,'hwp_max =',f7.2)") hw_list(total_hw_npt1,3)
        !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps, each calculating ',i0,' points')") total_hw_npt1*nEner1,MPIsteps*MPIsteps_hw,MPIpts_hw*MPIpts
     case (11)
+      ! should I modify this?????????????????
       write(output%unit_loop, fmt="('Input parameters:')" )
-      write(output%unit_loop,"(1x,'hw1 =',es9.2)") hw1
-      write(output%unit_loop,"(1x,'hw  =',es9.2)") hw
-      write(output%unit_loop,"(1x,'integration_time   =',es9.2)") integration_time
+      !write(output%unit_loop,"(1x,'hw1 =',es9.2)") hw1
+      !write(output%unit_loop,"(1x,'hw  =',es9.2)") hw
+      !write(output%unit_loop,"(1x,'integration_time   =',es9.2)") integration_time
       write(output%unit_loop,"(1x,'step   =',es9.2)") step
       write(output%unit_loop,"(1x,'sc_tol   =',es9.2)") sc_tol
     end select write_itype

@@ -4,11 +4,11 @@ module mod_imRK4
 
 contains
   ! subroutine to find the vectors Z_ki
-  subroutine iterate_Zki(s, t, kp, eval, Yn)
+  subroutine iterate_Zki(s,t,kp,eval,step,Yn_new,Yn,Yn_hat)
     use mod_f90_kind,         only: double
     use mod_parameters,       only: dimH
     use mod_system,           only: System
-    use mod_imRK4_parameters, only: step, dimH2, sc_tol
+    use mod_imRK4_parameters, only: dimH2, sc_tol
     use mod_tools,            only: vec_norm, LS_solver
     use mod_constants,        only: cZero
     use mod_RK_matrices
@@ -18,15 +18,15 @@ contains
     real(double)                     , intent(in)    :: t
     real(double)                     , intent(in)    :: kp(3)
     real(double)                     , intent(in)    :: eval
-    complex(double), dimension(dimH) , intent(inout) :: Yn
-
-    integer                                 :: k 
-    real(double)                            :: error, norm_k_old, norm_k_new, theta_k, eta_k, tol
+    complex(double), dimension(dimH) , intent(inout) :: Yn_new, Yn_hat, Yn
+   
+    integer                                 :: i, k
+    real(double)                            :: step, error, norm_k_old, norm_k_new, theta_k, eta_k, tol
     complex(double), dimension(dimH2)       :: deltaZ_k_old, deltaZ_k  
     complex(double), dimension(dimH2,dimH2) :: M2n
     complex(double), dimension(dimH2)       :: Fun 
     complex(double), dimension(dimH2)       :: Z_k 
-
+    real(double),    dimension(dimH)        :: Eta
 
     ! z = (g - Y)
     ! z = 0.0 is the solution
@@ -74,7 +74,11 @@ contains
       end if 
     end do sc_loop
 
-    Yn = Yn + d1*Z_k(1:dimH) + d2*Z_k(dimH+1:dimH2)
+    ! Find Yn_hat
+    Yn_hat = Yn + d1_hat*Z_k(1:dimH) + d2_hat*Z_k(dimH+1:dimH2)
+    ! Find Yn
+    Yn_new = Yn + d1*Z_k(1:dimH) + d2*Z_k(dimH+1:dimH2)
+     
   end subroutine iterate_Zki
 
 ! Subroutine to build the matrix M_2n
@@ -279,5 +283,32 @@ contains
 
   end function hext_t
 
+  !> subroutine to calculate the error in the step size control
+  subroutine calculate_step_error(Yn,Yn_new,Yn_hat,ERR_kn)
+    use mod_f90_kind,         only: double
+    use mod_RK_matrices,      only: A
+    use mod_parameters,       only: dimH
+    use mod_imRK4_parameters, only: abs_tol, rel_tol
+    implicit none
+    complex(double), dimension(dimH), intent(in) :: Yn, Yn_new, Yn_hat
+    real(double), dimension(dimH)                :: Eta
+    real(double),                     intent(out):: ERR_kn
+    real(double)                                 :: ERR_i
+    integer                                      :: i
+
+    ! Find the difference Eta in the two solutions Yn_new and Yn_hat
+    Eta = abs(Yn_new - Yn_hat)
+    ! sum over the error components to get the scaled norm (ERR)
+    ! ERR= sqrt[ 1\n Sum_i{ abs(Yn - Yn_hat)/( abs_tol + rel_tol * Yn(i) ) }^2 ]
+    ERR_loop: do i=1, dimH
+      ERR_i = ( Eta(i)/(abs_tol+ rel_tol* abs(Yn(i)) ) )**2 
+      ERR_kn = ERR_i + ERR_kn
+    end do ERR_loop
+    ERR_kn = sqrt(ERR_kn/dimH)
+    
+  end subroutine calculate_step_error
+
+
 end module mod_imRK4
+
 

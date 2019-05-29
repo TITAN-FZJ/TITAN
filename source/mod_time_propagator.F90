@@ -5,9 +5,9 @@ contains
   subroutine time_propagator(s)
     use mod_f90_kind,         only: double
     use mod_constants,        only: cZero
-    use mod_imRK4_parameters, only: dimH2, time, step, integration_time
+    use mod_imRK4_parameters, only: dimH2, time, step, integration_time, ERR, Delta
     use mod_RK_matrices,      only: A, id, id2, M1, build_identity
-    use mod_imRK4,            only: iterate_Zki
+    use mod_imRK4,            only: iterate_Zki, calculate_step_error
     use mod_BrillouinZone,    only: realBZ
     use mod_parameters,       only: dimH
     use mod_system,           only: System
@@ -21,9 +21,9 @@ contains
     type(System),         intent(in)  :: s
 
     character(len=9)                  :: output_file = "time_prop"
-    integer                           :: i, it, n
-    real(double)                      :: t
-    complex(double), dimension(dimH)  :: Yn
+    integer                           :: i, it, n, counter
+    real(double)                      :: t, p, h_new, h_old, ERR_old, ERR_kn
+    complex(double), dimension(dimH)  :: Yn, Yn_hat, Yn_new
     complex(double), dimension(:,:,:), allocatable  :: evec_kn
     real(double),    dimension(:,:),   allocatable  :: eval_kn
 
@@ -66,50 +66,95 @@ contains
     call KronProd(size(A,1),size(A,1),dimH,dimH,A,id,M1)
 
     ! Time propagation over t, kpoints, eigenvectors(Yn) for each k
-    t_loop: do it = 0, time
-      t = it*step
+    t = 0.d0
+    it = 0  
+    t_loop: do while (t <= integration_time)
+      t = t + step
+      counter = 0 ! Counter for the calculation of error in the step size for each time t
 
-      !$omp parallel default(none) &
-      !$omp& private(iz,n,i,kp,weight,hk,Yn,eval,work,rwork,info,expec_0,expec_p,expec_z) &
-      !$omp& shared(s,t,it,dimH,realBZ,evec_kn,eval_kn,rho_t,mp_t,mz_t,lwork,EshiftBZ,ElectricFieldVector)
+      ! Propagation loop for a given time t, calculating the optimal step size
+      do
+        !$omp parallel default(none) &
+        !$omp& private(iz,n,i,kp,weight,hk,ERR_kn,Yn, Yn_new, Yn_hat,eval,work,rwork,info,expec_0,expec_p,expec_z) &
+        !$omp& shared( h_old, h_new, ERR, ERR_old, counter, step,s,t,it,dimH,realBZ,evec_kn,eval_kn,rho_t,mp_t,mz_t,lwork,EshiftBZ,ElectricFieldVector)
 
-      rho_t = 0.d0
-      mp_t  = cZero
-      mz_t  = 0.d0
+        rho_t = 0.d0
+        mp_t  = cZero
+        mz_t  = 0.d0
+        ERR = 0.d0
 
-      !$omp do reduction(+:rho_t,mp_t,mz_t)
-      kpoints_loop: do iz = 1, realBZ%workload
-        kp = realBZ%kp(1:3,iz) + EshiftBZ*ElectricFieldVector
-        weight = realBZ%w(iz)   
-        if (it==0) then
-          ! Calculating the hamiltonian for a given k-point
-          call hamiltk(s,kp,hk)
-          ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-          call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
-          eval_kn(:,iz) = eval(:)
-        end if
-        evs_loop: do n = 1, dimH
+        !$omp do reduction(+:rho_t,mp_t,mz_t,ERR)
+        kpoints_loop: do iz = 1, realBZ%workload
+          kp = realBZ%kp(1:3,iz) + EshiftBZ*ElectricFieldVector
+          weight = realBZ%w(iz)   
           if (it==0) then
-            Yn(:)= hk(:,n)
-          else
-            Yn(:)= evec_kn(:,n,iz)
+            ! Calculating the hamiltonian for a given k-point
+            call hamiltk(s,kp,hk)
+            ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
+            call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
+            eval_kn(:,iz) = eval(:)
           end if
+          evs_loop: do n = 1, dimH
+            if (it==0) then
+              Yn(:)= hk(:,n)
+            else
+              Yn(:)= evec_kn(:,n,iz)
+            end if
 
-          call iterate_Zki(s, t, kp, eval_kn(n,iz), Yn)
+            call iterate_Zki(s,t,kp,eval_kn(n,iz),step,Yn_new,Yn,Yn_hat)
+             
+            ! Calculating expectation values for the nth eigenvector 
+            call expec_val_n(s, dimH, Yn, eval_kn(n,iz), expec_0, expec_p, expec_z)
 
-          ! Calculating expectation values for the nth eigenvector 
-          call expec_val_n(s, dimH, Yn, eval_kn(n,iz), expec_0, expec_p, expec_z)
+            rho_t = rho_t + expec_0 * weight 
+            mp_t  = mp_t  + expec_p * weight 
+            mz_t  = mz_t  + expec_z * weight 
 
-          rho_t = rho_t + expec_0 * weight 
-          mp_t  = mp_t  + expec_p * weight 
-          mz_t  = mz_t  + expec_z * weight 
-          
+            ! Calculation of the error and the new step size
+            call calculate_step_error(Yn,Yn_new,Yn_hat,ERR_kn)
+                                      
+            ERR = ERR + ERR_kn
+
+          end do evs_loop
+        end do kpoints_loop
+        !$omp end do
+        !$omp end parallel
+
+        ! Find the new step size h_new
+        ! h_new = delta * h_used / (ERR)^(1/p+1) where p = 2*s, delta is some saftey factor 
+        ! delta = 0.9 * (2*K_max + 1)/ (2*K_max + NEWT) where NEWT is the number of newton iterations
+        p = 2.0*size(A,1) 
+        ! h_new = delta * step * (ERR)**(-1.0/(2.0*s)) !! simpler formula
+        if (counter /= 0) then
+          h_new = delta * step * (ERR)**(-1.0/p) * (step/h_old) * (ERR_old/ERR)**(1.0/p)!! Gustafsson (1994) formula          
+        else 
+          h_new = delta * step * (ERR)**(-1.0/p)
+        end if 
+        ! Tests if the step size is good:
+        ! the condition (h_new < delta* step) is equivalent to the condition (ERR > 1)
+        ! if ( h_new < 0.9 * step) then
+           ! do while ( h_new < step) 
+        ! save ERR from iterate_Zki to ERR_old
+        ERR_old = ERR
+        if ( ERR > 1.d0) then
+          ! repeat the calculation using h_new
+          t = t - step + h_new
+          h_old = step
+          step = h_new
+          write(*,*) t, step, ERR
+          ! this condition seems to mantain a small step size
+          ! else if (step <= h_new <= 1.2*step) then
+          ! step = step
+        else
           ! Update the eignvectors array of dimension ( dimH * dimH , k )
-          evec_kn(:,n,iz) = Yn(:)
-        end do evs_loop
-      end do kpoints_loop
-      !$omp end do
-      !$omp end parallel
+          evec_kn(:,n,iz) = Yn_new(:)
+          step = h_new
+          exit
+        end if
+          
+      end do
+
+      write(*,*)  "Accepted", t, step, ERR 
 
       mx_t = real(mp_t)
       my_t = aimag(mp_t)
@@ -125,10 +170,16 @@ contains
 
       write(unit=5090,fmt="(100(es16.9,2x))") t, (sum(rho_t(:,i)), sum(mx_t(:,i)), sum(my_t(:,i)), sum(mz_t(:,i)), sqrt(sum(mx_t(:,i))**2 + sum(my_t(:,i))**2 + sum(mz_t(:,i))**2), i=1,s%nAtoms)
       write(unit=5190,fmt="(100(es16.9,2x))") t, (rhod_t(i), mxd_t(i), myd_t(i), mzd_t(i), sqrt(mxd_t(i)**2 + myd_t(i)**2 + mzd_t(i)**2), i=1,s%nAtoms)
+      
+      counter = counter + 1
+      it = it + 1
+
     end do t_loop
+
     close(unit=5090)
     close(unit=5190)
-  end subroutine time_propagator
-end module mod_time_propagator
 
+  end subroutine time_propagator
+
+end module mod_time_propagator
 

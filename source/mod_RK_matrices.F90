@@ -11,6 +11,8 @@ module mod_RK_matrices
   real(double),    dimension(2)  , parameter   :: b= [ 0.5d0, 0.5d0 ]
   real(double)                   , parameter   :: d1= -1.73205081d0
   real(double)                   , parameter   :: d2=  1.73205081d0
+  real(double)                   , parameter   :: d1_hat= 6.4641018d0
+  real(double)                   , parameter   :: d2_hat= -0.46410171d0
   real(double)                   , parameter   :: c1= 0.21132486540518713d0
   real(double)                   , parameter   :: c2= 0.5288675134594812d0
   real(double)                   , parameter   :: c_avg= (c1+c2)/2.d0

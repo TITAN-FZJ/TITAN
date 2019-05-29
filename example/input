@@ -1,6 +1,46 @@
 !*******************************************************************************!
 !                           CHOOSE WHAT TO CALCULATE                            !
-->itype = 7
+->itype = 11
+
+!===============================================================================!
+!                         TIME-DEPENDENT PERTURBATION                           !
+! Total time to propagate:
+-> integration_time = 10.d0
+! Tolerance for propagation loop:
+-> sc_tol = 0.01d0
+! Absolute tolerance for step size control:
+-> abs_tol = 0.001d0
+! Relative tolerance for step size control:
+-> rel_tol = 0.001d0
+! Saftey factor for step size control:
+-> Delta = 0.9d0
+!-------------------------------------------------------------------------------!
+! Electric field:
+-> electric = F
+! Intensity of the field:
+-> hw1_e = 1.d0
+! Frequency of oscillation hw_e.t:
+-> hw_e = 100.d0
+! Pulse (if F, oscillatory field)
+-> pulse_e = F
+! Length of the pulse (must be given if pulse=T)
+-> tau_e = 100.d0 
+! Delay of the pulse 
+-> delay_e = 0.d0 ! Center of the pulse is located at 4tau when delay_e=0.d0 
+!-------------------------------------------------------------------------------!
+! Magnetic field:
+-> magnetic = T
+Intensity of the field
+! Intensity of the field:
+-> hw1_m = 1.d0 
+! Frequency of oscillation hw_m.t:
+-> hw_m = 100.d0
+! Pulse (if F, oscillatory field)
+-> pulse_m = F
+! Length of the pulse (must be given if pulse=T)
+-> tau_m = 100.d0 
+! Delay of the pulse 
+-> delay_m = 0.d0 ! Center of the pulse is located at 4tau when delay_m=0.d0 
 !===============================================================================!
 !                                OUTPUT FILE                                    !
 -> output = output/log_susc_T_1e-3_10000000
@@ -21,7 +61,6 @@
 -> eta = 1e-3
 !===============================================================================!
 !                          STATIC MAGNETIC ZEEMAN FIELD                         !
-!                         (in the spin reference system)                        !
 -> FIELD = F  ! Magnetic field on (T) or off (F) (choose one form below)
 ! Spherical coordinates (default, angles in units of pi)                        !
 -> hwa   = 1.0E-04

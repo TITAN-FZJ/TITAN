@@ -18,11 +18,14 @@ module mod_imRK4_parameters
   !! Real integration time 
   real(double) :: step
   !! Step size
-  real(double) :: sc_tol 
-  !! Time propagation self consistency tolerence
+  real(double) :: sc_tol
+  !! Time propagation self consistency tolerence 
+  real(double) :: abs_tol, rel_tol, Delta
+  !! Step size control error(ERR) tolerence
   integer      :: time
   !! Integer integration time
   integer      :: dimH2
   !! Dimension: 2*dimension of the Hamiltonian (dimH)
-
+  real(double) :: ERR
+  !! Error for the calculation of the step size in time propagation
 end module mod_imRK4_parameters
