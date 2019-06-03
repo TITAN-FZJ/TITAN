@@ -123,6 +123,7 @@ contains
         !$omp end do
         !$omp end parallel
 
+        ERR = sqrt(ERR)
         ! Find the new step size h_new
         ! h_new = delta * h_used / (ERR)^(1/p+1) where p = 2*s, delta is some saftey factor 
         ! delta = 0.9 * (2*K_max + 1)/ (2*K_max + NEWT) where NEWT is the number of newton iterations

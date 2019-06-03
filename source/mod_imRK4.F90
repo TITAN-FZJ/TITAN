@@ -304,7 +304,7 @@ contains
       ERR_i = ( Eta(i)/(abs_tol+ rel_tol* abs(Yn(i)) ) )**2 
       ERR_kn = ERR_i + ERR_kn
     end do ERR_loop
-    ERR_kn = sqrt(ERR_kn/dimH)
+    ERR_kn = ERR_kn/dimH
     
   end subroutine calculate_step_error
 
