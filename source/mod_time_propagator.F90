@@ -24,7 +24,7 @@ contains
     integer                           :: i, it, n, counter
     real(double)                      :: t, p, h_new, h_old, ERR_old, ERR_kn
     complex(double), dimension(dimH)  :: Yn, Yn_hat, Yn_new
-    complex(double), dimension(:,:,:), allocatable  :: evec_kn
+    complex(double), dimension(:,:,:), allocatable  :: evec_kn,evec_kn_temp
     real(double),    dimension(:,:),   allocatable  :: eval_kn
 
     integer                                     :: iz, info 
@@ -56,7 +56,7 @@ contains
     ! Dimensions for RK method
     dimH2  = 2*dimH
 
-    allocate( id(dimH,dimH),id2(dimH2,dimH2),hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork),eval_kn(dimH,realBZ%workload),evec_kn(dimH,dimH,realBZ%workload), M1(dimH2,dimH2) )
+    allocate( id(dimH,dimH),id2(dimH2,dimH2),hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork),eval_kn(dimH,realBZ%workload),evec_kn(dimH,dimH,realBZ%workload),evec_kn_temp(dimH,dimH,realBZ%workload), M1(dimH2,dimH2) )
 
     ! Building identities
     call build_identity(dimH,id)
@@ -75,8 +75,8 @@ contains
       ! Propagation loop for a given time t, calculating the optimal step size
       do
         !$omp parallel default(none) &
-        !$omp& private(iz,n,i,kp,weight,hk,ERR_kn,Yn, Yn_new, Yn_hat,eval,work,rwork,info,expec_0,expec_p,expec_z) &
-        !$omp& shared( h_old, h_new, ERR, ERR_old, counter, step,s,t,it,dimH,realBZ,evec_kn,eval_kn,rho_t,mp_t,mz_t,lwork,EshiftBZ,ElectricFieldVector)
+        !$omp& private(iz,n,i,kp,weight,hk,ERR_kn,Yn, Yn_new, Yn_hat, eval,work,rwork,info,expec_0,expec_p,expec_z) &
+        !$omp& shared(ERR, counter, step, s,t,it,dimH,realBZ,evec_kn_temp,evec_kn,eval_kn,rho_t,mp_t,mz_t,lwork,EshiftBZ,ElectricFieldVector)
 
         rho_t = 0.d0
         mp_t  = cZero
@@ -104,7 +104,7 @@ contains
             call iterate_Zki(s,t,kp,eval_kn(n,iz),step,Yn_new,Yn,Yn_hat)
              
             ! Calculating expectation values for the nth eigenvector 
-            call expec_val_n(s, dimH, Yn, eval_kn(n,iz), expec_0, expec_p, expec_z)
+            call expec_val_n(s, dimH, Yn_new, eval_kn(n,iz), expec_0, expec_p, expec_z)
 
             rho_t = rho_t + expec_0 * weight 
             mp_t  = mp_t  + expec_p * weight 
@@ -113,7 +113,10 @@ contains
             ! Calculation of the error and the new step size
             call calculate_step_error(Yn,Yn_new,Yn_hat,ERR_kn)
                                       
-            ERR = ERR + ERR_kn
+            ERR = ERR + ERR_kn * weight
+
+            ! Storing temporary propagated vector before checking if it's Accepted
+            evec_kn_temp(:,n,iz) = Yn_new(:)
 
           end do evs_loop
         end do kpoints_loop
@@ -147,7 +150,7 @@ contains
           ! step = step
         else
           ! Update the eignvectors array of dimension ( dimH * dimH , k )
-          evec_kn(:,n,iz) = Yn_new(:)
+          evec_kn = evec_kn_temp
           step = h_new
           exit
         end if
