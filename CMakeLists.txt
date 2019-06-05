@@ -1,5 +1,6 @@
 # Minimum required Version
 cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Projects name
 project(TITAN)

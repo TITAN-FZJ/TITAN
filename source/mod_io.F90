@@ -523,6 +523,8 @@ contains
           if(.not. get_parameter("delay_m", delay_m, 0.d0)) &
             call log_warning("get_parameters", "'delay_m' not found. Center of the pulse is located at t=4tau_m.")
         end if
+      else
+        if(.not.lelectric) call log_error("get_parameters", "'magnetic' and 'electric' not found. Please, choose a type of perturbation.") 
       end if
 
     end if
