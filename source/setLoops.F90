@@ -9,10 +9,11 @@ subroutine setLoops(s)
   integer                  :: count,i,j
   real(double)             :: dir(3),total_length
     interface
-      subroutine read_band_points(kbands, b1, b2, b3)
+      subroutine read_band_points(kbands, a0, b1, b2, b3)
         use mod_f90_kind, only: double
         real(double), dimension(:,:), allocatable, intent(out) :: kbands
         real(double), dimension(3), intent(in) :: b1, b2, b3
+        real(double),               intent(in) :: a0
       end subroutine
     end interface
 
@@ -31,14 +32,14 @@ subroutine setLoops(s)
       allocate(kpoints(3,1))
 
       if(band_cnt == 1) then
-        call read_band_points(band_points, s%b1,s%b2,s%b3)
+        call read_band_points(band_points,s%a0,s%b1,s%b2,s%b3)
         kpoints(:,1) = band_points(:,1)
       else
         kpoints(:,1) = [0.d0,0.d0,0.d0]
       end if
 
     else ! If a path is given
-      call read_band_points(band_points, s%b1,s%b2,s%b3)
+      call read_band_points(band_points,s%a0,s%b1,s%b2,s%b3)
       total_length = 0.d0
       do i = 1, band_cnt - 1
         total_length = total_length + sqrt(dot_product(band_points(:,i)-band_points(:,i+1), band_points(:,i)-band_points(:,i+1)))

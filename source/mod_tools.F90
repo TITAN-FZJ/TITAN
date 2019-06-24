@@ -149,7 +149,8 @@ contains
   ! subroutine number_of_lines():
   !    this subroutine returns the number of lines (commented and
   ! not commented) on a file (given by "unit", already opened).
-  ! Blank lines are ignored.
+  ! Notes: - Blank lines are ignored.
+  !        - automatically rewinds the file
   ! --------------------------------------------------------------------
   subroutine number_of_lines(unit,total_lines,non_commented)
     implicit none
@@ -175,6 +176,7 @@ contains
       non_commented = non_commented + 1
     end do
 
+    rewind unit
   end subroutine number_of_lines
 
 
@@ -209,7 +211,7 @@ contains
   ! subroutine read_data():
   !    this subroutine reads a table of data (size rows,cols) from a file
   ! (given by "unit", already opened) and returns it on "data".
-  ! Blank lines are ignored.
+  ! Blank lines and commented lines are ignored.
   ! --------------------------------------------------------------------
   subroutine read_data(unit,rows,cols,data)
     use mod_f90_kind, only: double
@@ -309,6 +311,7 @@ contains
     write(Rtos, fmt=format) r
     RtoS = adjustl(RtoS)
   end function RtoS
+
 
 !-----------------------------------------------------------------------------------------------------!
 !                    These added subroutines are used in time propagator module                                               !
