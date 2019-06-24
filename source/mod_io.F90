@@ -731,4 +731,28 @@ contains
     write(output%unit_loop,"('|---------------------------------------------------------------------------|')")
   end subroutine iowrite
 
+
+  ! Writing header for previously opened file of unit "unit"
+  subroutine write_header(unit,title_line,Ef)
+    use mod_f90_kind,   only: double
+    use mod_parameters, only: nQvec, nQvec1, bands, band_cnt, partial_length
+
+    integer,          intent(in) :: unit
+    character(len=*), intent(in) :: title_line
+    real(double),     intent(in), optional :: Ef
+    integer :: i
+
+    write(unit=unit, fmt=*) title_line
+
+    if(nQvec1/=1) then
+      write(unit=unit, fmt=*) "# ",band_cnt, nQvec
+      do i=1,band_cnt
+        write(unit=unit, fmt=*) "# ",bands(i), partial_length(i)
+      end do
+      if(present(Ef)) write(unit=unit, fmt=*) "# ",Ef
+    end if
+
+  end subroutine write_header
+
+
 end module mod_io

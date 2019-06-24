@@ -28,8 +28,11 @@ contains
     cross(3) = a(1) * b(2) - a(2) * b(1)
   end function cross
 
+  ! --------------------------------------------------------------------
+  ! double precision function vecDist():
+  !    Calculating the distance of two 3D points a and b
+  ! --------------------------------------------------------------------
   function vecDist(a,b)
-  !! Function calculating the distance of two 3D points
     use mod_f90_kind, only: double
     implicit none
     real(double) :: vecDist

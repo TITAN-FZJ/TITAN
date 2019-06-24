@@ -198,7 +198,7 @@ subroutine calculate_chi()
             if(abs(e)>1.d-8) then
               call write_alpha(e)
             else
-              call get_J_K_from_chi()
+              if(sum(abs(q)) < 1.d-8) call get_J_K_from_chi()
             end if
 
             ! WRITING RPA AND HF SUSCEPTIBILITIES

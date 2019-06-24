@@ -46,8 +46,12 @@ module mod_parameters
   !========================================================================================!
   character(len=10), dimension(:), allocatable :: bands
   !! Band structure points
-  integer :: band_cnt
+  integer           :: band_cnt
   !! Number of points along the loop path
+  character(len=20) :: kdirection
+  !! Path of symmetry points followed in the Brillouin Zone
+  real(double), allocatable :: partial_length(:)
+  !! Length of each segment on the Brillouin zone
   !========================================================================================!
   integer      :: nEner,nEner1,count
   ! Number of points of energy (frequency) loops
