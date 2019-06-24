@@ -202,7 +202,7 @@ subroutine calculate_chi()
             end if
 
             ! WRITING RPA AND HF SUSCEPTIBILITIES
-            call write_susceptibilities(q,e)
+            call write_susceptibilities(qcount,e)
           end do
 
           write(time,"('[calculate_chi] Time after step ',i0,': ')") count

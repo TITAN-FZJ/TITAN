@@ -412,7 +412,7 @@ subroutine calculate_dc_limit()
             if((.not.lhfresponses).and.(.not.lnodiag)) call diagonalize_susceptibilities()
 
             ! WRITING SUSCEPTIBILITIES
-            call write_dc_susceptibilities(q)
+            call write_dc_susceptibilities(qcount)
 
             ! Renormalizing disturbances and currents by the total charge current to neighbor renormnb
             ! if(renorm) then  !TODO:Re-Include
