@@ -111,7 +111,7 @@ subroutine calculate_all()
         end if
 
         ! Checking sum rule for e=0.d0
-        if(e == 0.d0) call sumrule(chiorb_hf)
+        if((abs(e) < 1.d-8).and.(sum(abs(q)) < 1.d-8)) call sumrule(chiorb_hf)
 
         ! prefactor = (1 + chi_hf*Umat)^-1
         prefactor     = identt

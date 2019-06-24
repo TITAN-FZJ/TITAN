@@ -75,7 +75,7 @@ subroutine calculate_chi()
       call write_time(output%unit_loop,'[calculate_chi] Time after calculating chi HF: ')
 
       ! Checking sum rule for e=0.d0
-      if(abs(e) < 1.d-8) call sumrule(chiorb_hf)
+      if((abs(e) < 1.d-8).and.(sum(abs(q)) < 1.d-8)) call sumrule(chiorb_hf)
 
       ! From here on all other processes except for rFreq(1) == 0 are idle :/
       if(rFreq(1)==0) then
