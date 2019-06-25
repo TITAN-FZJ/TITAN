@@ -4,7 +4,7 @@ subroutine calculate_dc_limit()
   use mod_mpi_pars
   use mod_constants,         only: cZero, cOne, cI, levi_civita, tpi
   use mod_parameters,        only: sigmaimunu2i, sigmai2i, dimspinAtoms, U, offset, lnodiag, output, count, emin, deltae, nQvec1, kpoints, laddresults, lhfresponses, dim, skip_steps
-  use mod_magnet,            only: lfield, dcfield_dependence, dc_count, dcfield, hw_count, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, hhw
+  use mod_magnet,            only: lfield, dcfield_dependence, dc_count, dcfield, hw_count, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, hhw, lrot
   use mod_SOC,               only: llinearsoc
   use mod_System,            only: s => sys
   use mod_BrillouinZone,     only: realBZ
@@ -12,7 +12,7 @@ subroutine calculate_dc_limit()
   use mod_progress,          only: write_time
   use adaptiveMesh,          only: genLocalEKMesh, freeLocalEKMesh
   use mod_rotation_matrices, only: rotation_matrices_chi
-  use mod_susceptibilities,  only: lrot, rottemp, rotmat_i, rotmat_j, &
+  use mod_susceptibilities,  only: rottemp, rotmat_i, rotmat_j, &
                                   schitemp, schirot, schi, schihf, &
                                   chiorb, chiorb_hf, chiorb_hflsoc, Umatorb, identt, &
                                   build_identity_and_U_matrix, diagonalize_susceptibilities, &

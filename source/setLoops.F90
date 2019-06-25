@@ -7,7 +7,7 @@ subroutine setLoops(s)
   implicit none
   type(System), intent(in)  :: s
   integer                   :: count,i,j
-  real(double)              :: dir(3),total_length
+  real(double)              :: dir(3),total_length,total_length1
     interface
       subroutine read_band_points(kbands, a0, b1, b2, b3)
         use mod_f90_kind, only: double
@@ -59,7 +59,8 @@ subroutine setLoops(s)
       i = 0
       partial_length(1) = 0.d0
       do count = 1, nQvec1
-        if( (deltak*count >= sum(partial_length(1:i))).and.(i < band_cnt - 1) ) then
+        ! if( (deltak*count >= total_length1).and.(i < band_cnt - 1) ) then
+        if( (deltak*count >= sum(partial_length(1:i+1))).and.(i < band_cnt - 1) ) then
           i = i + 1
           partial_length(i+1) = vecDist(band_points(1:3,i),band_points(1:3,i+1))
           j = 0
@@ -69,6 +70,7 @@ subroutine setLoops(s)
         kpoints(:,count) = band_points(:,i) + dir * j * deltak
         j = j + 1
       end do
+
       ! write(*,*) sum(partial_length),total_length
     end if ! nQvec
   end if ! itype

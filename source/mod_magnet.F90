@@ -40,10 +40,13 @@ module mod_magnet
   complex(double), dimension(:,:,:), allocatable :: lxp, lyp, lzp
   !! Site dependent Angular momentum matrices in local frame
   complex(double), dimension(:,:), allocatable   :: lx, ly, lz
-  !! Angular momentum vector matrices in global frame
+  !! Angular momentum matrices in global frame
   complex(double), dimension(:,:,:), allocatable :: lvec
-  !! Angular momentum vector matrices in local frame
+  !! Angular momentum vector matrices in global frame
   complex(double), dimension(:,:,:,:), allocatable :: lpvec
+  !! Angular momentum vector matrices in local frame
+  logical :: lrot = .false.
+  !! Logical variable that indicates the need to rotate susceptibility matrix
 
   !========================================================================================!
   ! Values of magnetic field in cartesian or spherical coordinates

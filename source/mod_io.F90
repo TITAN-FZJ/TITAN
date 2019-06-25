@@ -747,9 +747,9 @@ contains
     if(nQvec1/=1) then
       write(unit=unit, fmt=*) "# ",band_cnt, nQvec
       do i=1,band_cnt
-        write(unit=unit, fmt=*) "# ",bands(i), partial_length(i)
+        write(unit=unit, fmt=*) "# ",bands(i), sum(partial_length(1:i))
       end do
-      if(present(Ef)) write(unit=unit, fmt=*) "# ",Ef
+      if(present(Ef)) write(unit=unit, fmt=*) "# Ef ",Ef
     end if
 
   end subroutine write_header

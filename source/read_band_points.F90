@@ -5,7 +5,7 @@ subroutine read_band_points(kbands, a0, b1, b2, b3)
   use mod_parameters, only: bands, band_cnt, qbasis
   use mod_mpi_pars,   only: abortProgram
   use mod_tools,      only: itos, number_of_lines
-  use mod_constants,  only: pi
+  use mod_constants,  only: tpi
   implicit none
   real(double), dimension(:,:), allocatable, intent(out) :: kbands
   real(double), dimension(3),                intent(in)  :: b1, b2, b3
@@ -49,9 +49,9 @@ subroutine read_band_points(kbands, a0, b1, b2, b3)
       if(trim(kband(j)%name) == trim(bands(i))) then
         found = .true.
         if(qbasis(1:1) == "b") then
-          kbands(1:3,i) = (kband(j)%kp(1) * b1 + kband(j)%kp(2) * b2 + kband(j)%kp(3) * b3)*pi/a0
+          kbands(1:3,i) = (kband(j)%kp(1) * b1 + kband(j)%kp(2) * b2 + kband(j)%kp(3) * b3)*tpi/a0
         else if (qbasis(1:1) == "c") then
-          kbands(1:3,i) = kband(j)%kp(:)*pi/a0
+          kbands(1:3,i) = kband(j)%kp(:)*tpi/a0
         else
           call abortProgram("[read_band_points] Basis " // trim(qbasis) //" not defined!")
         end if

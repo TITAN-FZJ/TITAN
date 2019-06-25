@@ -3,7 +3,7 @@ subroutine calculate_chi()
   use mod_f90_kind,          only: double
   use mod_constants,         only: cZero, cOne, StoC, CtoS
   use mod_parameters,        only: count, emin, deltae, nQvec1, kpoints, dim, sigmaimunu2i, output, lhfresponses, lnodiag, laddresults, skip_steps, sigmai2i
-  use mod_magnet,            only: lfield,mvec_spherical,lvec
+  use mod_magnet,            only: lfield,mvec_spherical,lvec, lrot
   use mod_alpha,             only: create_alpha_files, write_alpha
   use mod_system,            only: s => sys
   use TightBinding,          only: nOrb
@@ -17,7 +17,7 @@ subroutine calculate_chi()
   use mod_SOC,               only: SOC
   use mod_Coupling,          only: get_J_K_from_chi
   use mod_susceptibilities,  only: identt, Umatorb, schi, schihf, schiLS, schiSL, schiLL, schirot, rotmat_i, &
-      rotmat_j, rottemp, schitemp, lrot, chiorb_hf, chiorb, &
+      rotmat_j, rottemp, schitemp, chiorb_hf, chiorb, &
       build_identity_and_U_matrix, diagonalize_susceptibilities, &
       create_chi_files, write_susceptibilities, &
       allocate_susceptibilities, deallocate_susceptibilities

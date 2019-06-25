@@ -1,17 +1,16 @@
 ! This is the main subroutine to calculate all quantities:
 ! currents, disturbances, torques, effective fields and susceptibilities
 subroutine calculate_all()
-  use mod_f90_kind, only: double
-  use mod_constants, only: cZero, cOne, cI, levi_civita
+  use mod_f90_kind,   only: double
+  use mod_constants,  only: cZero, cOne, cI, levi_civita
   use mod_parameters, only: lnodiag, renorm, U, offset, output, laddresults, skip_steps, count, lhfresponses, sigmaimunu2i, emin, emax, deltae, nQvec1, kpoints, dim, sigmai2i, dimspinAtoms
-  use mod_magnet, only: lfield, hhw, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, total_hw_npt1
-  use mod_SOC, only: llinearsoc
-  use mod_System, only: s => sys
+  use mod_magnet,     only: lfield, hhw, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, total_hw_npt1, lrot
+  use mod_SOC,        only: llinearsoc
+  use mod_System,     only: s => sys
   use mod_BrillouinZone, only: realBZ
-  use adaptiveMesh, only: genLocalEKMesh, freeLocalEKMesh
-  use mod_prefactors, only: prefactor, prefactorlsoc, &
-                            allocate_prefactors, deallocate_prefactors
-  use mod_susceptibilities, only: lrot, rottemp, rotmat_i, rotmat_j, &
+  use adaptiveMesh,      only: genLocalEKMesh, freeLocalEKMesh
+  use mod_prefactors,    only: prefactor, prefactorlsoc, allocate_prefactors, deallocate_prefactors
+  use mod_susceptibilities, only: rottemp, rotmat_i, rotmat_j, &
                                   schitemp, schirot, schi, schihf, &
                                   chiorb, chiorb_hf, chiorb_hflsoc, Umatorb, identt, &
                                   build_identity_and_U_matrix, diagonalize_susceptibilities, &

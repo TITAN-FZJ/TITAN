@@ -352,10 +352,9 @@ contains
   subroutine calcMagAngle()
     use mod_constants,        only: pi,rad2deg
     use mod_system,           only: s => sys
-    use mod_susceptibilities, only: lrot
     use mod_magnet,           only: mx, my, mz, mabs, &
                                     mtheta, mphi, mvec_cartesian, &
-                                    mvec_spherical,mtotal_cartesian,mtotal_spherical
+                                    mvec_spherical,mtotal_cartesian,mtotal_spherical, lrot
     implicit none
     integer :: i
 
