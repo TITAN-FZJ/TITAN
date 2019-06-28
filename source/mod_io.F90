@@ -742,8 +742,6 @@ contains
     real(double),     intent(in), optional :: Ef
     integer :: i
 
-    write(unit=unit, fmt=*) title_line
-
     if(nQvec1/=1) then
       write(unit=unit, fmt=*) "# ",band_cnt, nQvec
       do i=1,band_cnt
@@ -751,6 +749,8 @@ contains
       end do
       if(present(Ef)) write(unit=unit, fmt=*) "# Ef ",Ef
     end if
+
+    write(unit=unit, fmt=*) title_line
 
   end subroutine write_header
 

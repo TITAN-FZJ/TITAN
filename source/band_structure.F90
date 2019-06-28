@@ -21,7 +21,7 @@ subroutine band_structure(s)
 
   write(bsfile,"('./results/',a1,'SOC/',a,'/BS/bandstructure_kdir=',a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(adjustl(kdirection)),trim(output%info),trim(output%BField),trim(output%SOC)
   open (unit=f_unit, file=bsfile, status='replace')
-  call write_header(f_unit,"# Band structure \n # dble((count-1.d0)*deltak), (eval(j),j=1,dimbs)",s%Ef)
+  call write_header(f_unit,"# dble((count-1.d0)*deltak), (eval(j),j=1,dimbs)",s%Ef)
 
   do count=1,nQvec1
     write(output%unit_loop,"('[band_structure] ',i0,' of ',i0,' points',', i = ',es10.3)") count,nQvec1,dble((count-1.d0)/nQvec)
