@@ -19,7 +19,7 @@ subroutine eintshechi(q,e)
   complex(double), dimension(:,:),allocatable :: Fint
 
   integer         :: i,j,mu,nu,gamma,xi
-  real(double)    :: kp(3)
+  real(double)    :: kp(3),kpq(3)
   complex(double),dimension(:,:,:,:),allocatable    :: gf
   complex(double),dimension(:,:,:,:,:),allocatable  :: gfuu,gfud,gfdu,gfdd
   real(double) :: weight, ep
@@ -48,7 +48,7 @@ subroutine eintshechi(q,e)
   chiorb_hf = cZero
 
   !$omp parallel default(none) &
-  !$omp& private(AllocateStatus,ix,ix2,i,j,mu,nu,gamma,xi,nep,nkp,ep,kp,weight,gf,gfuu,gfud,gfdu,gfdd,index1, index2) &
+  !$omp& private(AllocateStatus,ix,ix2,i,j,mu,nu,gamma,xi,nep,nkp,ep,kp,kpq,weight,gf,gfuu,gfud,gfdu,gfdd,index1, index2) &
   !$omp& shared(llineargfsoc,bzs,s,nOrb,nOrb2,realBZ,local_points,q,e,y,wght,x2,p2,pn2,real_points,E_k_imag_mesh,eta,etap,dim,sigmaimunu2i,Fint,chiorb_hf,EshiftBZ,ElectricFieldVector)
   allocate(gf  (nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
@@ -64,10 +64,11 @@ subroutine eintshechi(q,e)
       kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix)) + EshiftBZ*ElectricFieldVector
       weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix))
       ! Green function at (k+q,E_F+E+iy)
+      kpq = kp+q
       if(llineargfsoc) then
-        call greenlineargfsoc(s%Ef+e,ep+eta,s,kp+q,gf)
+        call greenlineargfsoc(s%Ef+e,ep+eta,s,kpq,gf)
       else
-        call green(s%Ef+e,ep+eta,s,kp+q,gf)
+        call green(s%Ef+e,ep+eta,s,kpq,gf)
       end if
       gfuu(:,:,:,:,1) = gf(     1:nOrb ,     1:nOrb ,:,:)
       gfud(:,:,:,:,1) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
@@ -137,10 +138,11 @@ subroutine eintshechi(q,e)
       kp = realBZ % kp(:,nkp) + EshiftBZ*ElectricFieldVector
       weight = p2(nep) * realBZ % w(nkp)
       ! Green function at (k+q,E'+E+i.eta)
+      kpq = kp+q
       if(llineargfsoc) then
-        call greenlineargfsoc(ep+e,eta,s,kp+q,gf)
+        call greenlineargfsoc(ep+e,eta,s,kpq,gf)
       else
-        call green(ep+e,eta,s,kp+q,gf)
+        call green(ep+e,eta,s,kpq,gf)
       end if
       gfuu(:,:,:,:,1) = gf(     1:nOrb ,     1:nOrb ,:,:)
       gfud(:,:,:,:,1) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
@@ -234,7 +236,7 @@ subroutine eintshechilinearsoc(q,e)
   integer :: AllocateStatus
   integer*8 :: ix,ix2, nep, nkp
   integer :: i,j,mu,nu,gamma,xi
-  real(double) :: kp(3), ep
+  real(double) :: kp(3), kpq(3), ep
   real(double) :: weight
   complex(double), dimension(:,:,:,:), allocatable :: gf,gvg
   complex(double), dimension(:,:,:,:,:), allocatable :: gfuu,gfud,gfdu,gfdd
@@ -261,7 +263,7 @@ subroutine eintshechilinearsoc(q,e)
   chiorb_hflsoc = cZero
 
   !$omp parallel default(none) &
-  !$omp& private(AllocateStatus,ix,ix2,i,j,mu,nu,nep,nkp,gamma,xi,kp,ep,weight,Fint,Fintlsoc,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,df1,df1lsoc) &
+  !$omp& private(AllocateStatus,ix,ix2,i,j,mu,nu,nep,nkp,gamma,xi,kp,kpq,ep,weight,Fint,Fintlsoc,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,df1,df1lsoc) &
   !$omp& shared(local_points,s,nOrb,nOrb2,bzs,realBZ,real_points,E_k_imag_mesh,q,e,y,wght,x2,p2,eta,etap,dim,sigmaimunu2i,chiorb_hf,chiorb_hflsoc,EshiftBZ,ElectricFieldVector)
   allocate(df1(dim,dim), Fint(dim,dim), &
            gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
@@ -289,7 +291,8 @@ subroutine eintshechilinearsoc(q,e)
       kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix)) + EshiftBZ*ElectricFieldVector
       weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix))
       ! Green function at (k+q,E_F+E+iy)
-      call greenlinearsoc(s%Ef+e,ep+eta,s,kp+q,gf,gvg)
+      kpq = kp+q
+      call greenlinearsoc(s%Ef+e,ep+eta,s,kpq,gf,gvg)
       gfuu (:,:,:,:,1) = gf (     1:nOrb ,     1:nOrb ,:,:)
       gfud (:,:,:,:,1) = gf (     1:nOrb ,nOrb+1:nOrb2,:,:)
       gfdu (:,:,:,:,1) = gf (nOrb+1:nOrb2,     1:nOrb ,:,:)
@@ -369,7 +372,8 @@ subroutine eintshechilinearsoc(q,e)
       weight = p2(nep) * realBZ % w(nkp)
 
       ! Green function at (k+q,E_F+E+iy)
-      call greenlinearsoc(ep+e,eta,s,kp+q,gf,gvg)
+      kpq = kp+q
+      call greenlinearsoc(ep+e,eta,s,kpq,gf,gvg)
       gfuu (:,:,:,:,1) = gf (     1:nOrb ,     1:nOrb ,:,:)
       gfud (:,:,:,:,1) = gf (     1:nOrb ,nOrb+1:nOrb2,:,:)
       gfdu (:,:,:,:,1) = gf (nOrb+1:nOrb2,     1:nOrb ,:,:)

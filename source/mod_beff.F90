@@ -299,11 +299,11 @@ contains
       do i = 1, s%nAtoms
         iw = 8000*idc+(sigma-1)*s%nAtoms+i
         ! Sorting effective field files
-        call sort_file(iw,.true.)
+        call sort_file(iw)
       end do
       iw = 8500*idc+sigma
       ! Sorting effective field files
-      call sort_file(iw,.true.)
+      call sort_file(iw)
     end do
 
     ! Closing effective field files

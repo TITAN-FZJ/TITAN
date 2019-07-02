@@ -743,14 +743,14 @@ contains
     integer :: i
 
     if(nQvec1/=1) then
-      write(unit=unit, fmt=*) "# ",band_cnt, nQvec
+      write(unit=unit, fmt="(a,2x,i0,2x,i0)") "# ", band_cnt, nQvec
       do i=1,band_cnt
-        write(unit=unit, fmt=*) "# ",bands(i), sum(partial_length(1:i))
+        write(unit=unit, fmt="(a,2x,a,2x,es16.9)") "# ",trim(bands(i)), sum(partial_length(1:i))
       end do
-      if(present(Ef)) write(unit=unit, fmt=*) "# Ef ",Ef
+      if(present(Ef)) write(unit=unit, fmt="(a,2x,es16.9)") "# Ef ",Ef
     end if
 
-    write(unit=unit, fmt=*) title_line
+    write(unit=unit, fmt="(a)") title_line
 
   end subroutine write_header
 

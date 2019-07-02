@@ -186,23 +186,28 @@ contains
   ! --------------------------------------------------------------------
   ! subroutine number_of_rows_cols():
   !    this subroutine returns the number of rows and cols of a data file
-  ! (given by "unit", already opened).
+  ! (given by "unit", already opened), as well as the number of commented 
+  ! rows
   ! --------------------------------------------------------------------
-  subroutine number_of_rows_cols(unit,rows,cols)
+  subroutine number_of_rows_cols(unit,rows,cols,commented_rows)
     implicit none
-    integer, intent(out) :: rows, cols
+    integer, intent(out) :: rows, cols, commented_rows
     integer, intent(in)  :: unit
     character(len=900)   :: stringtemp
     integer :: ios,i
 
     rewind unit
     ! Counting the number of lines
+    commented_rows = 0
     rows  = 0
     do
       read (unit=unit,fmt='(A)',iostat=ios) stringtemp
       if (ios/=0) exit
       ! Getting the number of rows
-      if ((stringtemp(1:1)=="#").or.(stringtemp(1:1)=="!").or.(stringtemp=="")) cycle
+      if ((stringtemp(1:1)=="#").or.(stringtemp(1:1)=="!").or.(stringtemp=="")) then
+        commented_rows = commented_rows + 1
+        cycle
+      end if
       rows = rows + 1
     end do
     cols = count([( stringtemp(i:i), i=1,len(stringtemp) )] == "E")
@@ -214,7 +219,7 @@ contains
   ! subroutine read_data():
   !    this subroutine reads a table of data (size rows,cols) from a file
   ! (given by "unit", already opened) and returns it on "data".
-  ! Blank lines and commented lines are ignored.
+  ! Blank lines are ignored.
   ! --------------------------------------------------------------------
   subroutine read_data(unit,rows,cols,data)
     use mod_f90_kind, only: double
@@ -244,45 +249,112 @@ contains
 
   end subroutine read_data
 
+
+  ! --------------------------------------------------------------------
+  ! subroutine read_data_with_comments():
+  !    this subroutine reads a table of data (size rows,cols) from a file
+  ! (given by "unit", already opened) and returns it on "data".
+  ! The comments are returned in the variable "comments".
+  ! "Mask" is an array of size total number of rows with .true. where data
+  ! is, and .false. for the comments
+  ! --------------------------------------------------------------------
+  subroutine read_data_with_comments(unit,rows,cols,commented_rows,data,comments,mask)
+    use mod_f90_kind, only: double
+    use mod_mpi_pars, only: abortProgram
+    implicit none
+    integer     , intent(in)  :: unit,rows,cols,commented_rows
+    real(double), intent(out) :: data(rows,cols)
+    character(len=900), dimension(commented_rows),      intent(out) :: comments
+    logical,            dimension(rows+commented_rows), intent(out) :: mask
+
+    character(len=900)        :: stringtemp
+    integer :: ios,i,j,k,l
+
+    rewind unit
+    i = 0
+    k = 0
+    l = 0
+    do
+      l = l+1
+      read(unit=unit,fmt='(A)',iostat=ios) stringtemp
+      if (ios/=0) exit
+      if ((stringtemp(1:1)=="#").or.(stringtemp(1:1)=="!").or.(stringtemp=="")) then
+        k = k + 1
+        comments(k) = trim(stringtemp)
+        mask(l) = .false.
+        cycle
+      end if
+      i=i+1
+      read(unit=stringtemp,fmt=*,iostat=ios) (data(i,j),j=1,cols)
+      if (ios/=0)  call abortProgram("[read_data] Incorrect number of cols: " // trim(itos(j)) // " when expecting " // trim(itos(cols)))
+      mask(l) = .true.
+    end do
+
+    if(i/=rows) call abortProgram("[read_data] Incorrect number of data rows: " // trim(itos(i)) // " when expecting " // trim(itos(rows)))
+    if(k/=commented_rows) call abortProgram("[read_data] Incorrect number of commented rows: " // trim(itos(k)) // " when expecting " // trim(itos(commented_rows)))
+    ! Writing data
+    ! do i=1,rows
+    !   write(*,"(10(es16.9,2x))") (data(i,j),j=1,cols)
+    ! end do
+
+  end subroutine read_data_with_comments
+
   ! --------------------------------------------------------------------
   ! subroutine sort_file():
-  !    This subroutine sorts the lines of file 'unit'
-  ! option to skip first line: header = .true.
+  !    This subroutine sorts the lines containing data of file 'unit'
   ! --------------------------------------------------------------------
-  subroutine sort_file(unit,header)
+  subroutine sort_file(unit)
     use mod_f90_kind, only: double
+    use mod_mpi_pars
+    ! use mod_mpi_pars, only: abortProgram
     implicit none
     integer, intent(in) :: unit
-    logical, intent(in) :: header
     character(len=50)   :: colformat
-    integer             :: i,j,rows,cols,ios
-    integer     , allocatable :: order(:)
-    real(double), allocatable :: data(:,:),x(:)
+    integer             :: i,j,k,l,rows,cols,commented_rows
+    character(len=900), allocatable :: comments(:)
+    integer     ,       allocatable :: order(:)
+    real(double),       allocatable :: data(:,:),x(:)
+    logical,            allocatable :: mask(:)
 
     ! Obtaining number of rows and cols in the file
-    call number_of_rows_cols(unit,rows,cols)
+    call number_of_rows_cols(unit,rows,cols,commented_rows)
 
     ! Allocating variables to read and sort data
-    allocate(data(rows,cols),x(rows),order(rows))
+    allocate(data(rows,cols),x(rows),order(rows),mask(rows+commented_rows))
 
     ! Reading data and storing to variable 'data'
-    call read_data(unit,rows,cols,data)
+    if(commented_rows==0) then
+      call read_data(unit,rows,cols,data)
+      mask = .false.
+    else
+      allocate( comments(commented_rows) )
+      call read_data_with_comments(unit,rows,cols,commented_rows,data,comments,mask)
+    end if
 
     ! Sorting by the first column
     x(:) = data(:,1)
     call sort(x,rows,order)
 
-    ! Restarting the file and optionally skipping first line (header)
+    ! Restarting the file
     rewind unit
-    if(header) read(unit=unit,fmt='(A)',iostat=ios) colformat
-
     ! Rewriting data, now sorted
     write(colformat,fmt="(a,i0,a)") '(',cols,'(es16.9,2x))'
-    do i=1,rows
-      write(unit=unit,fmt=trim(colformat)) (data(order(i),j),j=1,cols)
+    i = 0
+    k = 0
+    do l=1,rows+commented_rows
+      if(mask(l)) then
+        i = i + 1
+        write(unit=unit,fmt=trim(colformat)) (data(order(i),j),j=1,cols)
+      else
+        k = k + 1
+        write(unit=unit,fmt=*) trim(comments(k))
+      end if
     end do
+    if(i/=rows) call abortProgram("[sort_file] Incorrect number of data rows: " // trim(itos(i)) // " when expecting " // trim(itos(rows)))
+    if(k/=commented_rows) call abortProgram("[sort_file] Incorrect number of commented rows: " // trim(itos(k)) // " when expecting " // trim(itos(commented_rows)))
 
-    deallocate(data,x,order)
+    deallocate(data,x,order,mask)
+    if(commented_rows/=0) deallocate(comments)
 
   end subroutine sort_file
 

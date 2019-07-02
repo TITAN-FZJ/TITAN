@@ -698,13 +698,13 @@ contains
       ! Sorting total current files
       iw = 7000*idc+(neighbor-1)*7
       do j=1,7
-        call sort_file(iw+j,.true.)
+        call sort_file(iw+j)
       end do
 
       ! Sorting renormalized total currents
       if(renorm) then
         do j=1001,1007
-          call sort_file(iw+j,.true.)
+          call sort_file(iw+j)
         end do
       end if
 
@@ -713,13 +713,13 @@ contains
         ! Sorting current files
         iw = 5000*idc+(i-1)*n0sc2*7+(neighbor-1)*7
         do j=1,7
-          call sort_file(iw+j,.true.)
+          call sort_file(iw+j)
         end do
 
         ! Sorting renormalized currents
         if(renorm) then
           do j=1001,1007
-            call sort_file(iw+j,.true.)
+            call sort_file(iw+j)
           end do
         end if
       end do
@@ -728,7 +728,7 @@ contains
     ! Sorting DC spin currents
     do i=1,Npl ; do j=1,3
       iw = 8100*idc+(i-1)*3+j
-      call sort_file(iw,.true.)
+      call sort_file(iw)
     end do ; end do
 
     ! Closing current files

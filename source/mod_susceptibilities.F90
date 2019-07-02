@@ -311,7 +311,7 @@ contains
     integer,     intent(in) :: qcount
     real(double),intent(in) :: e
     character(len=100)      :: varm
-    integer                 :: i,j,k,iw,m,n
+    integer                 :: i,j,iw,m,n
 
     call open_chi_files()
 
@@ -472,7 +472,7 @@ contains
     implicit none
     integer,      intent(in) :: qcount
     character(len=100)       :: varm
-    integer                  :: i,j,k,iw,m,n
+    integer                  :: i,j,iw,m,n
 
     call open_dc_chi_files()
 
@@ -522,18 +522,18 @@ contains
        do i=1, s%nAtoms
          iw = 1050*idc + (j-1)*s%nAtoms + i
          if(.not.lhfresponses) then
-            call sort_file(iw,.true.)
+            call sort_file(iw)
          end if
 
          iw = iw+1000
-         call sort_file(iw,.true.)
+         call sort_file(iw)
        end do
     end do
 
     if((s%nAtoms>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
-       call sort_file(19900*idc,.true.)
+       call sort_file(19900*idc)
        do i=1,s%nAtoms
-          call sort_file(19900*idc+i,.true.)
+          call sort_file(19900*idc+i)
        end do
     end if
 

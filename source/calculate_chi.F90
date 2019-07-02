@@ -223,13 +223,12 @@ subroutine calculate_chi()
 
   end do ! Wave vector loop
 
-  ! Sorting results on files
+!   ! Sorting results on files
   if(rField == 0) call sort_all_files()
 
   call freeLocalEKMesh()
 
   call deallocate_susceptibilities()
-
   if(rFreq(1) == 0) deallocate(temp)
 
 end subroutine calculate_chi

@@ -7,7 +7,7 @@ subroutine setLoops(s)
   implicit none
   type(System), intent(in)  :: s
   integer                   :: count,i,j
-  real(double)              :: dir(3),total_length,total_length1
+  real(double)              :: dir(3),total_length
     interface
       subroutine read_band_points(kbands, a0, b1, b2, b3)
         use mod_f90_kind, only: double
