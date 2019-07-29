@@ -720,8 +720,8 @@ contains
        write(output%unit_loop,"(1x,'hwp_max =',f7.2)") hw_list(total_hw_npt1,3)
        !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps, each calculating ',i0,' points')") total_hw_npt1*nEner1,MPIsteps*MPIsteps_hw,MPIpts_hw*MPIpts
     case (11)
-      ! should I modify this?????????????????
-      write(output%unit_loop, fmt="('Input parameters:')" )
+      write(output%unit_loop, fmt="('Time propagation:')" )
+      ! integration_time, omega, sc_tol, step, hw1_e, hw1_m, hw_e, hw_m, tau_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
       !write(output%unit_loop,"(1x,'hw1 =',es9.2)") hw1
       !write(output%unit_loop,"(1x,'hw  =',es9.2)") hw
       !write(output%unit_loop,"(1x,'integration_time   =',es9.2)") integration_time
