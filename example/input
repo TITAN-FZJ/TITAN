@@ -17,6 +17,8 @@
 !-------------------------------------------------------------------------------!
 ! Electric field:
 -> electric = F
+! direction of the field
+-> field_direction_e = 0.d0 0.d0 1.d0
 ! Intensity of the field:
 -> hw1_e = 1.d0
 ! Frequency of oscillation hw_e.t:
@@ -30,6 +32,8 @@
 !-------------------------------------------------------------------------------!
 ! Magnetic field:
 -> magnetic = T
+! direction of the field
+-> field_direction_m = 0.d0 0.d0 1.d0
 Intensity of the field
 ! Intensity of the field:
 -> hw1_m = 1.d0 
