@@ -1,6 +1,5 @@
 import numpy as np 
 import matplotlib.pyplot as plt 
-import pandas as pd                           # Python Data Analysis Library
 import sys
 import matplotlib as mpl                      # Plotting library
 from matplotlib import rc                     # Improve math fonts
@@ -44,12 +43,11 @@ def read_header(file):
       # print name[i], point[i]
 
     Ef_line = f.readline().split()
-    fermi = 0.0
+    fermi = None
     if "Ef" in Ef_line[1]:
       fermi = float(Ef_line[2])
       # print fermi
   return npoints, name, point, fermi
-
 
 ################################################################################
 # Get the data from the file and save it into a matrix
@@ -67,15 +65,17 @@ def read_data(filename):
   return ndata
 
 
-
 ################################################################################
 # Main program
 ################################################################################
 if __name__ == "__main__":
   numplots = len(sys.argv)-1
-  titles = ["Band Structure w/o SOI", "Band Structure with SOI"]
+  titles = [r"no SOC", r"with SOC"]
+  # titles = [r"$\#_{k}=100$M, $\eta=5\times10^{-4}$, 2nn", r"$\#_{k}=100$M, $\eta=5\times10^{-4}$, 3nn"]
+  # titles = [r"$\#_{k}=10$M", r"$\#_{k}=100$k"])
+  # titles = [r"$\eta=5\times10^{-3}$", r"$\eta=5\times10^{-4}$"])
 
-  fig, axs = plt.subplots(1, numplots, sharey=True, squeeze=False, figsize=(5*numplots, 5))
+  fig, axs = plt.subplots(1, numplots, sharey=True, squeeze=False, figsize=(6*numplots, 5))
   axs[0,0].set_ylabel("Energy [Ry]")
 
   for i in range(numplots):
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     axs[0,i].set_title(titles[i])
     axs[0,i].set_xlim([point[0],point[npoints-1]])
     # axs[0,i].set_ylim(table[:,1:].min(),table[:,1:].max())
-    axs[0,i].set_ylim(table[:,1:].min(),fermi+0.2)
+    # axs[0,i].set_ylim(1.0/(table[:,1:].min()),1.0/(table[:,1:].max()))
 
     axs[0,i].set_xticks(point)
     axs[0,i].set_xticklabels(name)
@@ -97,11 +97,12 @@ if __name__ == "__main__":
     else:
       axs[0,i].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='-', linewidth=0.5)
 
-    for j in range(1,10):
-      axs[0,i].scatter(table[:,0],table[:,j], marker='.', c='r', s=0.1)
-    for j in range(10,19):
-      axs[0,i].scatter(table[:,0],table[:,j], marker='.', c='b', s=0.1)
+    for j in enumerate(table[:,1]):
+      if j[1] == point[4]:
+        print 'Value at ',name[4],': ',-1.0/table[j[0],2]
 
+    # Plotting the results
+    axs[0,i].plot(table[:,1],-1.0/table[:,2])
 
   plt.tight_layout()
   plt.show()
