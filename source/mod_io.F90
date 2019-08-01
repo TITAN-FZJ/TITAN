@@ -75,7 +75,7 @@ contains
     use mod_tools,            only: itos, rtos
     use adaptiveMesh,         only: minimumBZmesh
     use mod_mpi_pars
-    use mod_imRK4_parameters, only: integration_time, omega, sc_tol, step, hw1_e, hw1_m, hw_e, hw_m, tau_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
+    use mod_imRK4_parameters, only: integration_time, omega, sc_tol, step, hw1_e, hw1_m, hw_e, hw_m, tau_e, field_direction_m, field_direction_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
     implicit none
     character(len=*), intent(in)    :: filename
     type(System),     intent(inout) :: s
@@ -518,6 +518,11 @@ contains
         if(.not. get_parameter("pulse_m", lpulse_m,.false.)) &
           call log_warning("get_parameters", "'pulse_m' not found. Oscillatory Magnetic field is applied.")
         if(lpulse_m) then 
+          if(.not. get_parameter("field_direction_m", vector, cnt)) &
+            call log_error("get_parameters","'field_direction_m' missing.")
+          if(cnt /= 3) call log_error("get_parameters","'field_direction_m' has wrong size (size 3 required).")
+          field_direction_m(1:3) = vector(1:3)
+          deallocate(vector)
           if(.not. get_parameter("tau_m", tau_m)) &
             call log_error("get_parameters", "'tau_m' not found.")
           if(.not. get_parameter("delay_m", delay_m, 0.d0)) &
@@ -737,8 +742,8 @@ contains
     use mod_f90_kind,   only: double
     use mod_parameters, only: nQvec, nQvec1, bands, band_cnt, partial_length
 
-    integer,          intent(in) :: unit
-    character(len=*), intent(in) :: title_line
+    integer,          intent(in)           :: unit
+    character(len=*), intent(in)           :: title_line
     real(double),     intent(in), optional :: Ef
     integer :: i
 
@@ -753,6 +758,4 @@ contains
     write(unit=unit, fmt="(a)") title_line
 
   end subroutine write_header
-
-
 end module mod_io

@@ -28,4 +28,8 @@ module mod_imRK4_parameters
   !! Dimension: 2*dimension of the Hamiltonian (dimH)
   real(double) :: ERR
   !! Error for the calculation of the step size in time propagation
+  real(double) :: field_direction_m(3), field_direction_e(3)
+  !! Direction of the magnetic and electric field pulses
+  real(double) :: time_conv = 6.582d-7
+  !! Conversion of time units to picosecond
 end module mod_imRK4_parameters

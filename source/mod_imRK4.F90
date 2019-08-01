@@ -254,13 +254,21 @@ contains
 
     complex(double)  :: hext(nOrb2,nOrb2)
     integer          :: i, mu, nu
+    real(double)     :: b_pulse(3),e_pulse(3)
 
     hext = cZero
     do mu=1,nOrb
       nu=mu+nOrb
       if(lmagnetic) then
         if(lpulse_m) then
-          hext(nu,mu) = hext(nu,mu) + hw1_m*0.5d0*exp(-(t-4.d0*tau_m)**2/tau_m**2)*exp(hw_m*t*cI)
+          if (t <= 8.d0*tau_m) then
+          ! building external Hamiltonian (hext)
+            call magnetic_pulse_B(t,b_pulse)
+
+            hext(mu,mu) = hext(mu,mu) + b_pulse(3)
+            hext(nu,nu) = hext(nu,nu) - b_pulse(3)
+            hext(nu,mu) = hext(nu,mu) + b_pulse(1)-cI*b_pulse(2)
+          end if
         else
           hext(nu,mu) = hext(nu,mu) + (cos(hw_m*t) - cI*sin(hw_m*t))*hw1_m*0.5d0
         end if
@@ -268,7 +276,10 @@ contains
 
       if(lelectric) then
         if(lpulse_e) then
-          hext(nu,mu) = hext(nu,mu) + hw1_e*0.5d0*exp(-(t-4.d0*tau_e)**2/tau_e**2)*exp(hw_e*t*cI)
+          if (t <= 8.d0*tau_e) then
+            call electric_pulse_e(t,e_pulse)
+            hext(nu,mu) = hext(nu,mu) ! + hw1_e*0.5d0*exp(-(t-4.d0*tau_e)**2/tau_e**2)*real(exp(hw_e*t*cI))
+          end if 
         else
           hext(nu,mu) = hext(nu,mu) + (cos(hw_e*t) - cI*sin(hw_e*t))*hw1_e*0.5d0
         end if
@@ -307,6 +318,32 @@ contains
     ERR_kn = ERR_kn/dimH
     
   end subroutine calculate_step_error
+
+
+ subroutine magnetic_pulse_B(t,b_pulse)
+    use mod_f90_kind, only: double
+    use mod_imRK4_parameters, only: field_direction_m, hw1_m, hw_m, tau_m, delay_m
+    use mod_constants,  only: ci
+
+    real(double) , intent(in)  :: t
+    real(double) , intent(out) :: b_pulse(3)
+
+    b_pulse = [ field_direction_m(1), field_direction_m(2), field_direction_m(3) ] * (hw1_m*0.5d0*exp(-((t-delay_m)-4.d0*tau_m)**2/tau_m**2)*aimag(exp(hw_m*t*cI)))
+
+  end subroutine magnetic_pulse_B
+
+
+subroutine electric_pulse_e(t,e_pulse)
+    use mod_f90_kind, only: double
+    use mod_imRK4_parameters, only: field_direction_e, hw1_e, hw_e, tau_e
+    use mod_constants,  only: ci
+
+    real(double) , intent(in)  :: t
+    real(double) , intent(out) :: e_pulse(3)
+
+    e_pulse = [ field_direction_e(1), field_direction_e(2), field_direction_e(3) ] * (hw1_e*0.5d0*exp(-(t-4.d0*tau_e)**2/tau_e**2)*aimag(exp(hw_e*t*cI)))
+
+  end subroutine electric_pulse_e
 
 
 end module mod_imRK4

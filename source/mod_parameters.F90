@@ -170,6 +170,9 @@ module mod_parameters
      character(len=3)  :: hfr = ""
 
      character(len=50) :: info = ""
+     ! Strings for time-dependent calculations
+     character(len=100) :: time_field = ""
+     character(len=50),dimension(:), allocatable :: observable
   end type Filename
   type(Filename) :: output
 end module mod_parameters

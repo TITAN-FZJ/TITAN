@@ -5,9 +5,9 @@ contains
   subroutine time_propagator(s)
     use mod_f90_kind,         only: double
     use mod_constants,        only: cZero
-    use mod_imRK4_parameters, only: dimH2, time, step, integration_time, ERR, Delta
+    use mod_imRK4_parameters, only: dimH2, time, step, integration_time, ERR, Delta, lelectric, hw1_e, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
     use mod_RK_matrices,      only: A, id, id2, M1, build_identity
-    use mod_imRK4,            only: iterate_Zki, calculate_step_error
+    use mod_imRK4,            only: iterate_Zki, calculate_step_error, magnetic_pulse_B, electric_pulse_e
     use mod_BrillouinZone,    only: realBZ
     use mod_parameters,       only: dimH
     use mod_system,           only: System
@@ -20,7 +20,6 @@ contains
     implicit none
     type(System),         intent(in)  :: s
 
-    character(len=9)                  :: output_file = "time_prop"
     integer                           :: i, it, n, counter
     real(double)                      :: t, p, h_new, h_old, ERR_old, ERR_kn
     complex(double), dimension(dimH)  :: Yn, Yn_hat, Yn_new
@@ -39,13 +38,10 @@ contains
     complex(double), dimension(nOrb,s%nAtoms)   :: mp_t
     real(double),    dimension(s%nAtoms)        :: rhod_t, mxd_t, myd_t, mzd_t
     complex(double), dimension(s%nAtoms)        :: mpd_t
-
-    ! Open file and write headers
-    open(unit=5090,file=trim(output_file), status= 'replace')
-    write(unit=5090,fmt=*) '#      Time      ', '         N        ','        M_x       ', '        M_y       ', '        M_z       ', '         M        '
+    real(double), dimension(3)                  :: field_m, field_e
     
-    open(unit=5190,file=trim(output_file) // '_d', status= 'replace')
-    write(unit=5190,fmt=*) '#      Time      ', '         Nd       ','       Md_x       ', '       Md_y       ', '       Md_z       ', '        Md        '
+    ! Creating files and writing headers
+    call create_time_prop_files()
 
     ! Obtaining number of steps for the time loop
     time = int(integration_time/step)
@@ -81,7 +77,7 @@ contains
         rho_t = 0.d0
         mp_t  = cZero
         mz_t  = 0.d0
-        ERR = 0.d0
+        ERR   = 0.d0
 
         !$omp do reduction(+:rho_t,mp_t,mz_t,ERR)
         kpoints_loop: do iz = 1, realBZ%workload
@@ -149,7 +145,7 @@ contains
           ! this condition seems to mantain a small step size
           ! else if (step <= h_new <= 1.2*step) then
           ! step = step
-        else
+        else    
           ! Update the eignvectors array of dimension ( dimH * dimH , k )
           evec_kn = evec_kn_temp
           step = h_new
@@ -172,18 +168,198 @@ contains
 
       call update_Umatrix(mzd_t,mpd_t,rhod_t,rhod0,rho_t,rho0,s%nAtoms,nOrb)
 
-      write(unit=5090,fmt="(100(es16.9,2x))") t, (sum(rho_t(:,i)), sum(mx_t(:,i)), sum(my_t(:,i)), sum(mz_t(:,i)), sqrt(sum(mx_t(:,i))**2 + sum(my_t(:,i))**2 + sum(mz_t(:,i))**2), i=1,s%nAtoms)
-      write(unit=5190,fmt="(100(es16.9,2x))") t, (rhod_t(i), mxd_t(i), myd_t(i), mzd_t(i), sqrt(mxd_t(i)**2 + myd_t(i)**2 + mzd_t(i)**2), i=1,s%nAtoms)
-      
+      ! Calculating time-dependent field      
+      if (lmagnetic) then 
+        if (lpulse_m) then
+          if ((t >= delay_m).and.(t <= 8.d0*tau_m+delay_m)) then
+            call magnetic_pulse_B(t,field_m)
+          else
+            field_m(1)= 0.d0
+            field_m(2)= 0.d0
+            field_m(3)= 0.d0 
+          end if  
+        else
+          field_m = [ hw1_m*cos(hw_m*t), hw1_m*sin(hw_m*t), 0.d0 ]
+        end if 
+      end if 
+   
+      if (lelectric) then 
+        if (lpulse_e) then
+          if ((t >= delay_e).and.(t <= 8.d0*tau_e+delay_e)) then
+            call electric_pulse_e(t,field_e)
+          else
+            field_e(1)= 0.d0
+            field_e(2)= 0.d0
+            field_e(3)= 0.d0 
+          end if  
+        else
+          field_e = [ hw1_e*cos(hw_e*t), hw1_e*sin(hw_e*t), 0.d0 ]
+        end if 
+      end if 
+
+      call open_time_prop_files()
+      call write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t,field_m,field_e)
+      call close_time_prop_files()
+
+
       counter = counter + 1
       it = it + 1
 
     end do t_loop
 
-    close(unit=5090)
-    close(unit=5190)
-
   end subroutine time_propagator
 
+
+
+  ! Writing header for previously opened file of unit "unit"
+  subroutine write_header_time_prop(unit,title_line)
+    use mod_f90_kind,         only: double
+    use mod_imRK4_parameters, only: lelectric, hw1_e, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
+
+    integer,          intent(in)           :: unit
+    character(len=*), intent(in)           :: title_line
+    integer :: i
+
+    if(lmagnetic) then
+      write(unit=unit, fmt="('#.  hw1_m = ',es16.9)") hw1_m
+      write(unit=unit, fmt="('#    hw_m = ',es16.9)") hw_m
+      if(lpulse_m) then
+        write(unit=unit, fmt="('#   tau_m = ',es16.9)") tau_m
+        write(unit=unit, fmt="('# delay_m = ',es16.9)") delay_m
+      end if
+    end if
+    if(lelectric) then
+      write(unit=unit, fmt="('#.  hw1_e = ',es16.9)") hw1_e
+      write(unit=unit, fmt="('#    hw_e = ',es16.9)") hw_e
+      if(lpulse_e) then
+        write(unit=unit, fmt="('#   tau_e = ',es16.9)") tau_e
+        write(unit=unit, fmt="('# delay_e = ',es16.9)") delay_e
+      end if
+    end if
+
+    write(unit=unit, fmt="(a)") title_line
+
+  end subroutine write_header_time_prop
+
+  ! subroutine to create files with names and units
+  ! parameters: tau_m, tau_e, hw1, hw_m, hw1_m, hw_e, hw1_e, integration_time, 
+  ! logical parameters: lmagnetic, lpulse_m, lelectric, lpulse_e 
+  ! observables: <1>, <sigma>, <L>, <tau>, currents
+  subroutine create_time_prop_files()
+    use mod_parameters,       only: output
+    use mod_imRK4_parameters, only: lelectric, lpulse_e, lmagnetic, lpulse_m
+
+    character(len=500) :: output_file
+    integer :: i,unit
+     
+    allocate(output%observable(2))
+    output%observable(1) = "occupation"
+    output%observable(2) = "magnetization"
+
+    if(lmagnetic) then
+      output%time_field = "_magfield"
+      if(lpulse_m) then
+        output%time_field = output%time_field // "pulse"
+      end if
+    end if
+    if(lelectric) then
+      output%time_field = output%time_field // "_efield"
+      if(lpulse_e) then
+        output%time_field = output%time_field // "pulse"
+      end if
+    end if
+
+    do i=1,size(output%observable)
+      ! for all orbitals
+      unit = 5090+i
+      write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%observable(i)),trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+      open(unit=unit,file=trim(output_file), status= 'replace')
+      call write_header_time_prop(unit,'#      Time      , ' // output%observable(i))
+      close(unit)
+
+      ! for d orbitals
+      unit = 5190+i
+      write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%observable(i))//"_d",trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+      open(unit=unit,file=trim(output_file), status= 'replace')
+      call write_header_time_prop(unit,'#      Time      , ' // output%observable(i) // '_d')
+      close(unit)
+    end do
+
+    unit = 6090
+    write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/field',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+    open(unit=unit,file=trim(output_file), status= 'replace')
+    call write_header_time_prop(unit,'#      Time      ,      field     ' )
+    close(unit)
+
+  end subroutine create_time_prop_files
+
+      
+  ! subroutine to open time propagation output files
+  ! is this important or can be inside write_time_prop_files ??? it is also needed inside write
+  subroutine open_time_prop_files()
+    use mod_parameters, only: output
+
+    character(len=500) :: output_file
+    integer :: i,unit
+
+    do i=1,size(output%observable)
+      ! for all orbitals
+      unit = 5090+i
+      write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%observable(i)),trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+      open(unit=unit,file=trim(output_file), status= 'old')
+
+      ! for d orbitals
+      unit = 5190+i
+      write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%observable(i))//"_d",trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+      open(unit=unit,file=trim(output_file), status= 'old')
+    end do
+
+    unit = 6090
+    write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/field',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+    open(unit=unit,file=trim(output_file), status= 'old')
+
+  end subroutine open_time_prop_files
+
+  ! subroutine to close time propagation output files
+  subroutine close_time_prop_files()
+    use mod_parameters, only: output
+    integer :: i
+
+    do i=1,size(output%observable)
+      ! for all orbitals
+      close(5090+i)
+
+      ! for d orbitals
+      close(5190+i)
+    end do
+
+    close(6090)
+
+  end subroutine close_time_prop_files
+
+  ! subroutine to write in time propagation output files
+  subroutine write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t,field_m,field_e)
+    use mod_f90_kind, only: double
+    use mod_system,   only: System
+    use TightBinding, only: nOrb
+
+    type(System),                          intent(in) :: s
+    real(double),                          intent(in) :: t
+    real(double), dimension(nOrb,s%nAtoms),intent(in) :: rho_t, mx_t, my_t, mz_t
+    real(double), dimension(s%nAtoms)     ,intent(in) :: rhod_t, mxd_t, myd_t, mzd_t
+    real(double), dimension(3)            ,intent(in) :: field_m, field_e
+
+    integer      :: i
+    real(double) :: time
+
+    time = t*6.582d-7
+    write(unit=5091,fmt="(100(es16.9,2x))") time, (sum(rho_t(:,i)),i=1,s%nAtoms)
+    write(unit=5092,fmt="(100(es16.9,2x))") time, (sum(mx_t(:,i)),sum(my_t(:,i)),sum(mz_t(:,i)), sqrt(sum(mx_t(:,i))**2 + sum(my_t(:,i))**2 + sum(mz_t(:,i))**2) ,i=1,s%nAtoms)
+
+    write(unit=5191,fmt="(100(es16.9,2x))") time, (rhod_t(i),i=1,s%nAtoms)
+    write(unit=5192,fmt="(100(es16.9,2x))") time, (mxd_t(i),myd_t(i),mzd_t(i),sqrt(mxd_t(i)**2 + myd_t(i)**2 + mzd_t(i)**2),i=1,s%nAtoms)
+
+    write(unit=5191,fmt="(100(es16.9,2x))") time, (field_m(i),i=1,3), (field_e(i),i=1,3)
+  end subroutine write_time_prop_files
 end module mod_time_propagator
 
