@@ -5,6 +5,10 @@
 **A**ngular momentum of
 **N**anostructures
 
+A paper containing a detailed description of the method used in the code is in preparation. In the meantime, we shall greatly appreciate if scientific work done using **TITAN** will contain an explicit acknowledgement and the following reference:<br>
+F. S. M. Guimarães et al., Sci. Rep. 7, 3686 (2017)<br>
+https://www.nature.com/articles/s41598-017-03924-1
+
 This program calculates the electric and spin excitations for bulk
 and thin films. It can describe Ferromagnetic Resonance (FMR) experiments
 and intrinsic Spin and Orbital Momentum Hall Effects (including Anomalous 
@@ -23,8 +27,8 @@ responses are calculated (for each site in the unit cell):
  - effective magnetic fields;
  - spin and charge currents*;
  - orbital momentum currents*;
- - DC components of pumped spin currents*.
-(* current need reimplementation for the new generalized cell)
+ - DC components of pumped spin currents*.<br>
+(* currents need reimplementation for the new generalized cell)
 
 The full 4x4 magnetic susceptibility matrix, including transverse and 
 longitudinal blocks, is also evaluated.
