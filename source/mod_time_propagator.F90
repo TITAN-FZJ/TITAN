@@ -178,28 +178,22 @@ contains
       call update_Umatrix(mzd_t,mpd_t,rhod_t,rhod0,rho_t,rho0,s%nAtoms,nOrb)
 
       ! Calculating time-dependent field      
+      field_m = 0.d0
       if (lmagnetic) then 
         if (lpulse_m) then
           if ((t >= delay_m).and.(t <= 8.d0*tau_m+delay_m)) then
             call magnetic_pulse_B(t,field_m)
-          else
-            field_m(1)= 0.d0
-            field_m(2)= 0.d0
-            field_m(3)= 0.d0 
           end if  
         else
           field_m = [ hw1_m*cos(hw_m*t), hw1_m*sin(hw_m*t), 0.d0 ]
         end if 
       end if 
-   
+
+      field_e = 0.d0 
       if (lelectric) then 
         if (lpulse_e) then
           if ((t >= delay_e).and.(t <= 8.d0*tau_e+delay_e)) then
             call electric_pulse_e(t,field_e)
-          else
-            field_e(1)= 0.d0
-            field_e(2)= 0.d0
-            field_e(3)= 0.d0 
           end if  
         else
           field_e = [ hw1_e*cos(hw_e*t), hw1_e*sin(hw_e*t), 0.d0 ]
