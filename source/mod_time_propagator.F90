@@ -9,7 +9,7 @@ contains
     use mod_RK_matrices,      only: A, id, id2, M1, build_identity
     use mod_imRK4,            only: iterate_Zki, calculate_step_error, magnetic_pulse_B, electric_pulse_e
     use mod_BrillouinZone,    only: realBZ
-    use mod_parameters,       only: dimH
+    use mod_parameters,       only: dimH,output,laddresults
     use mod_system,           only: System
     use TightBinding,         only: nOrb
     use ElectricField,        only: EshiftBZ,ElectricFieldVector
@@ -17,6 +17,7 @@ contains
     use mod_Umatrix,          only: update_Umatrix
     use mod_magnet,           only: rhod0,rho0
     use mod_tools,            only: KronProd
+    use mod_mpi_pars
     implicit none
     type(System),         intent(in)  :: s
 
@@ -39,10 +40,15 @@ contains
     real(double),    dimension(s%nAtoms)        :: rhod_t, mxd_t, myd_t, mzd_t
     complex(double), dimension(s%nAtoms)        :: mpd_t
     real(double), dimension(3)                  :: field_m, field_e
-    
-    ! Creating files and writing headers
-    call create_time_prop_files()
-
+   
+    if(rFreq(1) == 0) then
+      write(output%unit_loop,"('CALCULATING TIME-PROPAGATION')")
+      ! Creating files and writing headers
+      if(.not.laddresults) then
+        call create_time_prop_files()
+      end if
+    end if
+ 
     ! Obtaining number of steps for the time loop
     time = int(integration_time/step)
 
@@ -66,6 +72,9 @@ contains
     it = 0  
     t_loop: do while (t <= integration_time)
       t = t + step
+      if(rField==0) &
+        write(output%unit_loop,"('[time_propagator] Time: ',es10.3,' of ',es10.3)") t, integration_time
+
       counter = 0 ! Counter for the calculation of error in the step size for each time t
 
       ! Propagation loop for a given time t, calculating the optimal step size
@@ -197,10 +206,7 @@ contains
         end if 
       end if 
 
-      call open_time_prop_files()
       call write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t,field_m,field_e)
-      call close_time_prop_files()
-
 
       counter = counter + 1
       it = it + 1
@@ -297,26 +303,36 @@ contains
   ! subroutine to open time propagation output files
   ! is this important or can be inside write_time_prop_files ??? it is also needed inside write
   subroutine open_time_prop_files()
-    use mod_parameters, only: output
+    use mod_parameters, only: output,missing_files
+    use mod_mpi_pars,   only: abortProgram
 
     character(len=500) :: output_file
-    integer :: i,unit
+    integer :: i,iw,err,errt=0
 
     do i=1,size(output%observable)
       ! for all orbitals
-      unit = 5090+i
+      iw = 5090+i
       write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%observable(i)),trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-      open(unit=unit,file=trim(output_file), status= 'old')
+      open (unit=iw, file=trim(output_file), status='old', position='append',form='formatted', iostat=err)
+      errt = errt + err
+      if(err/=0) missing_files = trim(missing_files) // " " // trim(output_file)
 
       ! for d orbitals
-      unit = 5190+i
+      iw = 5190+i
       write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%observable(i))//"_d",trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-      open(unit=unit,file=trim(output_file), status= 'old')
+      open (unit=iw, file=trim(output_file), status='old', position='append',form='formatted', iostat=err)
+      errt = errt + err
+      if(err/=0) missing_files = trim(missing_files) // " " // trim(output_file)
     end do
 
-    unit = 6090
+    iw = 6090
     write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/field',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-    open(unit=unit,file=trim(output_file), status= 'old')
+    open (unit=iw, file=trim(output_file), status='old', position='append',form='formatted', iostat=err)
+    errt = errt + err
+    if(err/=0) missing_files = trim(missing_files) // " " // trim(output_file)
+
+    ! Stop if some file does not exist
+    if(errt/=0) call abortProgram("[openclose_chi_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_line('A') // trim(missing_files))
 
   end subroutine open_time_prop_files
 
@@ -352,6 +368,8 @@ contains
     integer      :: i
     real(double) :: time
 
+    call open_time_prop_files()
+
     time = t*6.582d-7
     write(unit=5091,fmt="(100(es16.9,2x))") time, (sum(rho_t(:,i)),i=1,s%nAtoms)
     write(unit=5092,fmt="(100(es16.9,2x))") time, (sum(mx_t(:,i)),sum(my_t(:,i)),sum(mz_t(:,i)), sqrt(sum(mx_t(:,i))**2 + sum(my_t(:,i))**2 + sum(mz_t(:,i))**2) ,i=1,s%nAtoms)
@@ -359,7 +377,10 @@ contains
     write(unit=5191,fmt="(100(es16.9,2x))") time, (rhod_t(i),i=1,s%nAtoms)
     write(unit=5192,fmt="(100(es16.9,2x))") time, (mxd_t(i),myd_t(i),mzd_t(i),sqrt(mxd_t(i)**2 + myd_t(i)**2 + mzd_t(i)**2),i=1,s%nAtoms)
 
-    write(unit=5191,fmt="(100(es16.9,2x))") time, (field_m(i),i=1,3), (field_e(i),i=1,3)
+    write(unit=6090,fmt="(100(es16.9,2x))") time, (field_m(i),i=1,3), (field_e(i),i=1,3)
+
+    call close_time_prop_files()
+
   end subroutine write_time_prop_files
 end module mod_time_propagator
 

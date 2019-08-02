@@ -487,6 +487,7 @@ contains
     lzpm = 0.d0
     !$omp do reduction(+:lxm,lym,lzm,lxpm,lypm,lzpm) schedule(static)
     kloop: do iz = 1,realBZ%workload
+write(*,*) iz
       kp = realBZ%kp(1:3,iz) + EshiftBZ*ElectricFieldVector
       weight = realBZ%w(iz)
       ! Calculating the hamiltonian for a given k-point
