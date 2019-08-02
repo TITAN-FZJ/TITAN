@@ -13,10 +13,11 @@ This program calculates the electric and spin excitations for bulk
 and thin films. It can describe Ferromagnetic Resonance (FMR) experiments
 and intrinsic Spin and Orbital Momentum Hall Effects (including Anomalous 
 and Planar Hall effects), for example.
-A multi-orbital tight-binding model is used, with the el-el interaction 
+A multi-orbital tight-binding model (as parametrized by Slater and Koster [1]) 
+is used, with the el-el interaction 
 described by a Hubbard-like hamiltonian [2].  The spin-orbit interaction
 is present, and a static magnetic field can be applied in any direction.
-Excitations are obtained in Kubo's linear response approach [1].
+Excitations are obtained in Kubo's linear response approach [3].
 
 An applied AC electric field (described by a time-dependent potential
 vector) that couples to the current density is applied, and the following
@@ -38,7 +39,8 @@ coupling tensor (including DMI and anisotropic terms are also implemented.
 
 The program is currently written for 9 orbitals per site 
 (1 <i>s</i>,3 <i>p</i> and 5 <i>d</i>), for a given set of 
-nearest neighbours hopping parameters (as described by Slater and Koster [3]).
+nearest neighbours hopping parameters. The parameters obtained from DFT calculations
+can be found, for example, in the book of D. A. Papaconstantopoulus [4].
 The generalized response functions are obtained as a function of the frequency
 within the Random-Phase Approximation, which are calculated from the mean-field counterpart.
 These ones are evaluated in terms of the monoeletronic Green functions. 
@@ -49,15 +51,21 @@ The code is parallelized using openMP and MPI.
 
 Plotting scripts (in Python) are provided in the 'scripts' folder.
 
-[1] R. Kubo, Statistical-Mechanical Theory of Irreversible Processes. I. General Theory and Simple Applications to Magnetic and Conduction Problems, J. Phys. Soc. Jpn. 12, 570 (1957).
+[1] J. C. Slater and G. F. Koster, Simplified LCAO Method for the Periodic Potential Problem, Phys. Rev. 94, 1498 (1954).
 
 [2] J. Hubbard, Electron Correlations in Narrow Energy Bands, Proceedings of the Royal Society A: Mathematical, Physical and Engineering Sciences 276, 238 (1963).
 
-[3] J. C. Slater and G. F. Koster, Simplified LCAO Method for the Periodic Potential Problem, Phys. Rev. 94, 1498 (1954).
+[3] R. Kubo, Statistical-Mechanical Theory of Irreversible Processes. I. General Theory and Simple Applications to Magnetic and Conduction Problems, J. Phys. Soc. Jpn. 12, 570 (1957).
+
+[4] D. A. Papaconstantopoulos, Handbook of the Band Structure of Elemental Solids. From Z = 1 to Z = 112, Boston, MA: Springer (1986).
 
 OBS: Legacy version uses DFT parameters as described in
 
-[4] O. K. Andersen and O. Jepsen, Phys. Rev. Lett. 53, 2571 (1984).
+[5] O. K. Andersen and O. Jepsen, Phys. Rev. Lett. 53, 2571 (1984).
+
+with parameters provided by A. B. Klautau.
+
+Example files can be found in the `examples` folder.
 
 ```
 !*******************************************************************************!
@@ -104,21 +112,29 @@ OBS: Legacy version uses DFT parameters as described in
 !   sha           - Only calculate the SHA for input parameters                 !
 !   lgtv          - Only calculate total longitudinal and transverse currents   !
 !===============================================================================!
+!                                  PARAMETERS                                   !
+! Slater and Koster parameters given in Ref. [4] (above) can be found in        !
+! the 'parameters' folder.                                                      !
+!===============================================================================!
 !                           INTEGRATION VARIABLES                               !
-! k-points are obtained using Cunningham special points for BCC110 and FCC100   !
-! Ref.: S. Cunningham, Phys. Rev. B 10, 4988 (1974)                             !
+! k-points are obtained using equally spaced points generated in the 2D or 3D   !
+! parallelogram.                                                                !
+!                                                                               !
+! Legacy version uses Cunningham special points for BCC110 and FCC100           !
+! as described in Ref.:                                                         !
+! S. Cunningham, Phys. Rev. B 10, 4988 (1974)                                   !
 !                                                                               !
 ! Energy integration use Gauss-Legendre quadrature                              !
 !===============================================================================!
 !                                BAND STRUCTURE                                 !
-! K-points must be listed in file 'kbands' and the path is given in the input.  !
+! k-points must be listed in file 'kbands' and the path is given in the input.  !
 ! e.g.:                                                                         !
 -> band = G N M G
 ! where the file 'kbands' contains                                              !
 G	0.0	0.0	0.0
 N	0.0	0.5	0.0
 M 0.5 0.5 0.0
-! This can also be used to calculate the q-dependent susceptibility             !
+! This is also used to calculate the q-dependent susceptibility                 !
 !*******************************************************************************!
 ! To stop the program:                                                          !
 ! - after an energy step, just create a file called 'stop'                      !
