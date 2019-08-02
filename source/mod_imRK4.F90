@@ -328,7 +328,7 @@ contains
     real(double) , intent(in)  :: t
     real(double) , intent(out) :: b_pulse(3)
 
-    b_pulse = [ field_direction_m(1), field_direction_m(2), field_direction_m(3) ] * (hw1_m*0.5d0*exp(-((t-delay_m)-4.d0*tau_m)**2/tau_m**2)*aimag(exp(hw_m*t*cI)))
+    b_pulse = [ field_direction_m(1), field_direction_m(2), field_direction_m(3) ] * (hw1_m*0.5d0*exp(-((t-delay_m)-4.d0*tau_m)**2/tau_m**2)*cos(hw_m*t))
 
   end subroutine magnetic_pulse_B
 
