@@ -1,10 +1,10 @@
-<h1> TITAN </h1>
+# TITAN
 
-**T**ime-dependent description of
-**I**tinerant electrons:
-**T**ransport and
-**A**ngular momentum properties of
-**N**anostructures
+**T**ime-dependent description of  
+**I**tinerant electrons:  
+**T**ransport and  
+**A**ngular momentum properties of  
+**N**anostructures  
 
 This program calculates the intrinsic Spin and Orbital Momentum Hall
 Effects (including the Anomalous and Planar Hall effects) for
@@ -12,7 +12,7 @@ ultrathin films composed by (heavy + magnetic) transition metals
 in a system where the spin-orbit interaction is present. We use
 a multi-orbital tight-binding model in Kubo's linear response approach.
 The el-el interaction is described by a Hubbard-like hamiltonian.
-The program is written for 9 orbitals per site (1 <i>s</i>,3 <i>p</i> and 5 <i>d</i>),
+The program is written for 9 orbitals per site (1 _s_,3 _p_ and 5 _d_),
 including first and second nearest neighbours hopping matrices.
 
 We apply an AC electric field (described by a time-dependent potential
@@ -32,7 +32,7 @@ and full exchange coupling tensor (including DMI and anisotropic terms).
 We calculate the generalized response functions as a function of the frequency
 within Random Phase Approximation, writing them in terms
 of the mean field counterparts. These ones are written in terms of the
-monoeletronic Green functions. The integration in k<sub>//</sub> is calculated
+monoeletronic Green functions. The integration in k<sub>||</sub> is calculated
 using the generation of 2D points by Cunningham.
 It is parallelized using openMP. The number of points in the energy
 can be set in the input file - usually, it uses a set of 128 points
@@ -141,27 +141,27 @@ and it is parallelized with MPI.
 ## Compiling the code
 
 First clone the repository on your local computer or supercomputer of choice.
-```
+``` bash
 git clone https://iffgit.fz-juelich.de/titan/TITAN.git
 cd TITAN/build
 ``` 
 Depending on the system you are compiling on choose one of the following options.
 ### Jureca 
-```
+``` bash
 module load Intel IntelMPI NAG/Mark26 CMake
 cmake ../ -DPLATFORM=jureca 
 make -j12
 ```
 
 ### Juqueen 
-```
+``` bash
 module load nag 
 cmake ../ -DPLATFORM=juqueen
 make -j16
 ```
 
 ### Linux 
-```
+``` bash
 cmake ../ 
 make -j4
 ```
@@ -174,7 +174,7 @@ An example calculation can be found in `TITAN/example`
 
 ### Jureca 
 
-```
+``` bash
 #!/bin/bash -x 
 #SBATCH --nodes=1
 #SBATCH -J JobName
@@ -199,7 +199,7 @@ srun ~/TITAN/bin/titan_jureca.exe --exports=NAG_KUSARI_FILE --exports=OMP_NUM_TH
 ``` 
 
 ### Juqueen
-```
+``` bash
 # @ job_name = JobName
 # @ error = error-$(job_name).$(jobid).err
 # @ output = output-$(job_name).$(jobid).out
@@ -228,7 +228,7 @@ runjob --np ${NUMPROCS} --exp-env NAG_KUSARI_FILE --envs OMP_NUM_THREADS=${NUMTH
 ```
 
 ### Linux 
-``` 
+``` bash
 export OMP_NUM_THREADS=8
 mpirun -np 1 ~/TITAN/bin/titan.exe --exports=OMP_NUM_THREADS
 ```
