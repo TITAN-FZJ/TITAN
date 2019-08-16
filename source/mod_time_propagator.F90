@@ -5,7 +5,7 @@ contains
   subroutine time_propagator(s)
     use mod_f90_kind,         only: double
     use mod_constants,        only: cZero
-    use mod_imRK4_parameters, only: dimH2, time, step, integration_time, ERR, Delta, lelectric, hw1_e, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
+    use mod_imRK4_parameters, only: dimH2, time, step, integration_time, ERR, Delta, lelectric, hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
     use mod_RK_matrices,      only: A, id, id2, M1, build_identity
     use mod_imRK4,            only: iterate_Zki, calculate_step_error, magnetic_pulse_B, electric_pulse_e
     use mod_BrillouinZone,    only: realBZ
@@ -192,11 +192,11 @@ contains
       field_e = 0.d0 
       if (lelectric) then 
         if (lpulse_e) then
-          if ((t >= delay_e).and.(t <= 8.d0*tau_e+delay_e)) then
-            call electric_pulse_e(t,field_e)
+          if ((t >= delay_e).and.(t <= tau_e+delay_e)) then
+            call v_potent_e(t,field_e)
           end if  
         else
-          field_e = [ hw1_e*cos(hw_e*t), hw1_e*sin(hw_e*t), 0.d0 ]
+          field_e = [ hE_0*cos(hw_e*t), hE_0*sin(hw_e*t), 0.d0 ]
         end if 
       end if 
 
@@ -214,7 +214,7 @@ contains
   ! Writing header for previously opened file of unit "unit"
   subroutine write_header_time_prop(unit,title_line)
     use mod_f90_kind,         only: double
-    use mod_imRK4_parameters, only: lelectric, hw1_e, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
+    use mod_imRK4_parameters, only: lelectric, hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
 
     integer,          intent(in)           :: unit
     character(len=*), intent(in)           :: title_line
@@ -229,7 +229,7 @@ contains
       end if
     end if
     if(lelectric) then
-      write(unit=unit, fmt="('#.  hw1_e = ',es16.9)") hw1_e
+      write(unit=unit, fmt="('#.  hE_0 = ',es16.9)") hE_0
       write(unit=unit, fmt="('#    hw_e = ',es16.9)") hw_e
       if(lpulse_e) then
         write(unit=unit, fmt="('#   tau_e = ',es16.9)") tau_e
@@ -242,7 +242,7 @@ contains
   end subroutine write_header_time_prop
 
   ! subroutine to create files with names and units
-  ! parameters: tau_m, tau_e, hw1, hw_m, hw1_m, hw_e, hw1_e, integration_time, 
+  ! parameters: tau_m, tau_e, hw1, hw_m, hw1_m, hw_e, hE_0, integration_time, 
   ! logical parameters: lmagnetic, lpulse_m, lelectric, lpulse_e 
   ! observables: <1>, <sigma>, <L>, <tau>, currents
   subroutine create_time_prop_files()

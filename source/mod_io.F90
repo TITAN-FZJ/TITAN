@@ -75,7 +75,7 @@ contains
     use mod_tools,            only: itos, rtos
     use adaptiveMesh,         only: minimumBZmesh
     use mod_mpi_pars
-    use mod_imRK4_parameters, only: integration_time, omega, sc_tol, step, hw1_e, hw1_m, hw_e, hw_m, tau_e, field_direction_m, field_direction_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
+    use mod_imRK4_parameters, only: integration_time, omega, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, field_direction_m, field_direction_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
     implicit none
     character(len=*), intent(in)    :: filename
     type(System),     intent(inout) :: s
@@ -494,8 +494,8 @@ contains
       if(.not. get_parameter("electric", lelectric,.false.)) &
         call log_warning("get_parameters", "'electric' not found. Electric field is not applied.")
       if(lelectric) then 
-        if(.not. get_parameter("hw1_e", hw1_e)) &
-          call log_error("get_parameters", "'hw1_e' not found.")
+        if(.not. get_parameter("hE_0", hE_0)) &
+          call log_error("get_parameters", "'hE_0' not found.")
         if(.not. get_parameter("hw_e", hw_e)) &
           call log_error("get_parameters", "'hw_e' not found.")
         if(.not. get_parameter("pulse_e", lpulse_e,.false.)) &
@@ -605,7 +605,7 @@ contains
     use EnergyIntegration,    only: parts, parts3, n1gl, n3gl
     use ElectricField,        only: ElectricFieldMode, ElectricFieldVector, EFt, EFp, EshiftBZ
     use AdaptiveMesh,         only: minimumBZmesh
-    use mod_imRK4_parameters, only: integration_time, omega, sc_tol, step, hw1_e, hw1_m, hw_e, hw_m, tau_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
+    use mod_imRK4_parameters, only: integration_time, omega, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
     !$ use omp_lib
     implicit none
     type(System), intent(in) :: s
@@ -726,7 +726,7 @@ contains
        !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps, each calculating ',i0,' points')") total_hw_npt1*nEner1,MPIsteps*MPIsteps_hw,MPIpts_hw*MPIpts
     case (11)
       write(output%unit_loop, fmt="('Time propagation:')" )
-      ! integration_time, omega, sc_tol, step, hw1_e, hw1_m, hw_e, hw_m, tau_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
+      ! integration_time, omega, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
       !write(output%unit_loop,"(1x,'hw1 =',es9.2)") hw1
       !write(output%unit_loop,"(1x,'hw  =',es9.2)") hw
       !write(output%unit_loop,"(1x,'integration_time   =',es9.2)") integration_time

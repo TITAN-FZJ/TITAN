@@ -213,7 +213,7 @@ contains
 
 
   !> build time dependent Hamiltonian for each kp 
-  !> H(t)= S.B(t),  S= Pauli matricies of dimension 18? or dimH
+  !> H(t) = hk + hext_t
   subroutine build_td_hamiltonian(s,t,kp,hamilt_t)
     use mod_f90_kind,   only: double
     use mod_system,     only: System
@@ -243,18 +243,22 @@ contains
   function hext_t(nAtoms,t)
     use mod_f90_kind,         only: double
     use mod_constants,        only: cI,cZero
-    use mod_imRK4_parameters, only: lelectric, hw1_e, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
+    use mod_imRK4_parameters, only: lelectric, hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
     use TightBinding,         only: nOrb,nOrb2
-    use mod_System,           only: ia
+    use mod_System,           only: ia, s => sys
     use mod_parameters,       only: dimH
+ 
     implicit none
     real(double)     :: t
     integer          :: nAtoms
     complex(double)  :: hext_t(dimH,dimH)
 
-    complex(double)  :: hext(nOrb2,nOrb2)
-    integer          :: i, mu, nu
-    real(double)     :: b_pulse(3),e_pulse(3)
+    complex(double)  :: hext(nOrb2,nOrb2), temp(nOrb2,nOrb2)
+    integer          :: i, j,  mu, nu
+    real(double)     :: b_pulse(3),e_pulse(3), A_t
+
+   real(double)                                          :: kp(3)
+   complex(double),dimension(nOrb,nOrb,s%nAtoms,s%nAtoms):: dtdk
 
     hext = cZero
     do mu=1,nOrb
@@ -273,17 +277,6 @@ contains
           hext(nu,mu) = hext(nu,mu) + (cos(hw_m*t) - cI*sin(hw_m*t))*hw1_m*0.5d0
         end if
       end if
-
-      if(lelectric) then
-        if(lpulse_e) then
-          if (t <= 8.d0*tau_e) then
-            call electric_pulse_e(t,e_pulse)
-            hext(nu,mu) = hext(nu,mu) ! + hw1_e*0.5d0*exp(-(t-4.d0*tau_e)**2/tau_e**2)*real(exp(hw_e*t*cI))
-          end if 
-        else
-          hext(nu,mu) = hext(nu,mu) + (cos(hw_e*t) - cI*sin(hw_e*t))*hw1_e*0.5d0
-        end if
-      end if
       hext(mu,nu) = conjg(hext(nu,mu))
     end do
 
@@ -291,6 +284,36 @@ contains
     do i=1, nAtoms
       hext_t(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = hext(1:nOrb2,1:nOrb2)
     end do
+
+
+    if(lelectric) then
+      if(lpulse_e) then
+        if (t <= tau_e) then
+          call v_potent_e(t,A_t)
+          ! since nAtoms is an input to the subroutine 
+          ! do i = 1,s%nAtoms
+          !   do j = 1,s%nAtoms
+          do i = 1, nAtoms
+            do j = 1, nAtoms
+              call dtdksub(kp,dtdk)
+              temp = dtdk(:,:,i,j)*A_t
+              hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) = hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) + temp
+              hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) = hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) + temp
+            end do
+          end do
+        end if 
+      else
+        do i = 1, nAtoms
+          do j = 1, nAtoms
+            call dtdksub(kp,dtdk)
+                                   !> use A(t) not E(t)
+            temp = dtdk(:,:,i,j) * ( (cos(hw_e*t) + sin(hw_e*t))*hE_0 )
+            hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) = hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) + temp
+            hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) = hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) + temp
+        end do
+          end do
+      end if
+    end if
 
   end function hext_t
 
@@ -335,15 +358,33 @@ contains
 
 subroutine electric_pulse_e(t,e_pulse)
     use mod_f90_kind, only: double
-    use mod_imRK4_parameters, only: field_direction_e, hw1_e, hw_e, tau_e
+    use mod_imRK4_parameters, only: field_direction_e, hE_0, hw_e, tau_e
     use mod_constants,  only: ci
 
     real(double) , intent(in)  :: t
     real(double) , intent(out) :: e_pulse(3)
 
-    e_pulse = [ field_direction_e(1), field_direction_e(2), field_direction_e(3) ] * (hw1_e*0.5d0*exp(-(t-4.d0*tau_e)**2/tau_e**2)*aimag(exp(hw_e*t*cI)))
+    e_pulse = [ field_direction_e(1), field_direction_e(2), field_direction_e(3) ] * (hE_0*0.5d0*exp(-(t-4.d0*tau_e)**2/tau_e**2)*aimag(exp(hw_e*t*cI)))
 
   end subroutine electric_pulse_e
+
+!> subroutine builds vector potential A(t) = integral(E(t)dt)
+!> From paper(DOI: 0.1038/s41567-019-0602-9) the vector potential is given by: 
+!> A(t) = (-E_pump/w_pump) * ( cos(pi*t/tau_pump) )^2        * sin(w_pump*t), add delay_e to get:
+!> A_t  = (-hE_0/hw_e)     * ( cos(pi*(t-delay_e)/tau_e) )^2 * sin(hw_e*t)
+
+! center the vector potential at delay_e
+subroutine v_potent_e(t,A_t)
+    use mod_f90_kind, only: double
+    use mod_imRK4_parameters, only: hE_0, hw_e, tau_e, delay_e
+    use mod_constants,  only: ci, pi
+
+    real(double) , intent(in)  :: t
+    real(double) , intent(out) :: A_t
+
+    A_t = (-hE_0/hw_e) * ( cos(pi*(t-delay_e)/tau_e) )**2 * sin(hw_e*(t-delay_e))
+    
+  end subroutine v_potent_e
 
 
 end module mod_imRK4

@@ -2,7 +2,7 @@
 module mod_imRK4_parameters
   use mod_f90_kind, only: double
   implicit none
-  real(double) :: hw1_e, hw1_m
+  real(double) :: hE_0, hw1_m
   !! Intensity of electric and magnetic fields
   real(double) :: hw_e, hw_m
   !! Frequency (hwt) of electric and magnetic fields
