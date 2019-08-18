@@ -255,7 +255,8 @@ contains
 
     complex(double)  :: hext(nOrb2,nOrb2), temp(nOrb2,nOrb2)
     integer          :: i, j,  mu, nu
-    real(double)     :: b_pulse(3),e_pulse(3), A_t
+    real(double)     :: b_pulse(3),e_pulse(3), A_t(3)
+    real(double)     :: A_t_abs
 
    real(double)                                          :: kp(3)
    complex(double),dimension(nOrb,nOrb,s%nAtoms,s%nAtoms):: dtdk
@@ -289,14 +290,14 @@ contains
     if(lelectric) then
       if(lpulse_e) then
         if (t <= tau_e) then
-          call v_potent_e(t,A_t)
+          call v_potent_e(t,A_t,A_t_abs)
           ! since nAtoms is an input to the subroutine 
           ! do i = 1,s%nAtoms
           !   do j = 1,s%nAtoms
           do i = 1, nAtoms
             do j = 1, nAtoms
               call dtdksub(kp,dtdk)
-              temp = dtdk(:,:,i,j)*A_t
+              temp = dtdk(:,:,i,j)*A_t_abs
               hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) = hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) + temp
               hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) = hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) + temp
             end do
@@ -374,16 +375,17 @@ contains
   !> A_t  = (-hE_0/hw_e)     * ( cos(pi*(t-delay_e)/tau_e) )^2 * sin(hw_e*t)
 
   ! center the vector potential at delay_e
-  subroutine v_potent_e(t,A_t)
+  subroutine v_potent_e(t,A_t,A_t_abs)
     use mod_f90_kind, only: double
     use mod_imRK4_parameters, only: field_direction_e, hE_0, hw_e, tau_e, delay_e
     use mod_constants,  only: ci, pi
     implicit none 
     real(double) , intent(in)  :: t
     real(double) , intent(out) :: A_t(3)
+    real(double) , intent(out) :: A_t_abs
 
     A_t = [ field_direction_e(1), field_direction_e(2), field_direction_e(3) ] * (-hE_0/hw_e) * ( cos(pi*(t-delay_e)/tau_e) )**2 * sin(hw_e*(t-delay_e))
-    
+    A_t_abs = (-hE_0/hw_e) * ( cos(pi*(t-delay_e)/tau_e) )**2 * sin(hw_e*(t-delay_e))
   end subroutine v_potent_e
 
 

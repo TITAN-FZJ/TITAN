@@ -40,6 +40,7 @@ contains
     real(double),    dimension(s%nAtoms)        :: rhod_t, mxd_t, myd_t, mzd_t
     complex(double), dimension(s%nAtoms)        :: mpd_t
     real(double), dimension(3)                  :: field_m, field_e
+    real(double)                                :: A_t_abs
    
     if(rFreq(1) == 0) then
       write(output%unit_loop,"('CALCULATING TIME-PROPAGATION')")
@@ -193,7 +194,7 @@ contains
       if (lelectric) then 
         if (lpulse_e) then
           if ((t >= delay_e).and.(t <= tau_e+delay_e)) then
-            call v_potent_e(t,field_e)
+            call v_potent_e(t,field_e,A_t_abs)
           end if  
         else
           field_e = [ hE_0*cos(hw_e*t), hE_0*sin(hw_e*t), 0.d0 ]
