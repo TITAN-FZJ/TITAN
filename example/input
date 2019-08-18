@@ -18,7 +18,7 @@
 ! Electric field:
 -> electric = T
 ! direction of the field
--> field_direction_e = 0.d0 0.d0 1.d0
+-> field_direction_e = 1.d0 0.d0 0.d0
 ! Intensity of the field:
 -> hE_0 = 1.886E-03
 ! Frequency of oscillation hw_e.t:

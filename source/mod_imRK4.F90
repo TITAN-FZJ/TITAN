@@ -347,7 +347,7 @@ contains
     use mod_f90_kind, only: double
     use mod_imRK4_parameters, only: field_direction_m, hw1_m, hw_m, tau_m, delay_m
     use mod_constants,  only: ci
-
+    implicit none
     real(double) , intent(in)  :: t
     real(double) , intent(out) :: b_pulse(3)
 
@@ -356,11 +356,11 @@ contains
   end subroutine magnetic_pulse_B
 
 
-subroutine electric_pulse_e(t,e_pulse)
+ subroutine electric_pulse_e(t,e_pulse)
     use mod_f90_kind, only: double
     use mod_imRK4_parameters, only: field_direction_e, hE_0, hw_e, tau_e
     use mod_constants,  only: ci
-
+    implicit none
     real(double) , intent(in)  :: t
     real(double) , intent(out) :: e_pulse(3)
 
@@ -368,21 +368,21 @@ subroutine electric_pulse_e(t,e_pulse)
 
   end subroutine electric_pulse_e
 
-!> subroutine builds vector potential A(t) = integral(E(t)dt)
-!> From paper(DOI: 0.1038/s41567-019-0602-9) the vector potential is given by: 
-!> A(t) = (-E_pump/w_pump) * ( cos(pi*t/tau_pump) )^2        * sin(w_pump*t), add delay_e to get:
-!> A_t  = (-hE_0/hw_e)     * ( cos(pi*(t-delay_e)/tau_e) )^2 * sin(hw_e*t)
+  !> subroutine builds vector potential A(t) = integral(E(t)dt)
+  !> From paper(DOI: 0.1038/s41567-019-0602-9) the vector potential is given by: 
+  !> A(t) = (-E_pump/w_pump) * ( cos(pi*t/tau_pump) )^2        * sin(w_pump*t), add delay_e to get:
+  !> A_t  = (-hE_0/hw_e)     * ( cos(pi*(t-delay_e)/tau_e) )^2 * sin(hw_e*t)
 
-! center the vector potential at delay_e
-subroutine v_potent_e(t,A_t)
+  ! center the vector potential at delay_e
+  subroutine v_potent_e(t,A_t)
     use mod_f90_kind, only: double
-    use mod_imRK4_parameters, only: hE_0, hw_e, tau_e, delay_e
+    use mod_imRK4_parameters, only: field_direction_e, hE_0, hw_e, tau_e, delay_e
     use mod_constants,  only: ci, pi
-
+    implicit none 
     real(double) , intent(in)  :: t
-    real(double) , intent(out) :: A_t
+    real(double) , intent(out) :: A_t(3)
 
-    A_t = (-hE_0/hw_e) * ( cos(pi*(t-delay_e)/tau_e) )**2 * sin(hw_e*(t-delay_e))
+    A_t = [ field_direction_e(1), field_direction_e(2), field_direction_e(3) ] * (-hE_0/hw_e) * ( cos(pi*(t-delay_e)/tau_e) )**2 * sin(hw_e*(t-delay_e))
     
   end subroutine v_potent_e
 
