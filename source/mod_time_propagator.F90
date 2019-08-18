@@ -352,6 +352,7 @@ contains
     use mod_f90_kind, only: double
     use mod_system,   only: System
     use TightBinding, only: nOrb
+    use mod_imRK4_parameters, only: lmagnetic, lelectric
 
     type(System),                          intent(in) :: s
     real(double),                          intent(in) :: t
@@ -363,8 +364,12 @@ contains
     real(double) :: time
 
     call open_time_prop_files()
-
-    time = t*6.582d-7
+    
+    if (lmagnetic) then
+      time = t*6.582d-7
+    else if (lelectric) then
+      time = t* 24.39d0
+    end if 
     write(unit=5091,fmt="(100(es16.9,2x))") time, (sum(rho_t(:,i)),i=1,s%nAtoms)
     write(unit=5092,fmt="(100(es16.9,2x))") time, (sum(mx_t(:,i)),sum(my_t(:,i)),sum(mz_t(:,i)), sqrt(sum(mx_t(:,i))**2 + sum(my_t(:,i))**2 + sum(mz_t(:,i))**2) ,i=1,s%nAtoms)
 

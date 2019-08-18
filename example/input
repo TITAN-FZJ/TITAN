@@ -16,22 +16,22 @@
 -> Delta = 0.9d0
 !-------------------------------------------------------------------------------!
 ! Electric field:
--> electric = F
+-> electric = T
 ! direction of the field
 -> field_direction_e = 0.d0 0.d0 1.d0
 ! Intensity of the field:
--> hE_0 = 1.d0
+-> hE_0 = 1.886E-03
 ! Frequency of oscillation hw_e.t:
--> hw_e = 100.d0
+-> hw_e = 8.77d0
 ! Pulse (if F, oscillatory field)
--> pulse_e = F
+-> pulse_e = T
 ! Length of the pulse (must be given if pulse=T)
--> tau_e = 100.d0 
+-> tau_e = 820.d0
 ! Delay of the pulse 
--> delay_e = 0.d0 ! Center of the pulse is located at 4tau when delay_e=0.d0 
+-> delay_e = 0.d0 ! Center of the pulse is located at 0.5tau when delay_e=0.d0 
 !-------------------------------------------------------------------------------!
 ! Magnetic field:
--> magnetic = T
+-> magnetic = F
 ! direction of the field
 -> field_direction_m = 0.d0 0.d0 1.d0
 Intensity of the field
