@@ -245,7 +245,7 @@ contains
     use mod_constants,        only: cI,cZero
     use mod_imRK4_parameters, only: lelectric, hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
     use TightBinding,         only: nOrb,nOrb2
-    use mod_System,           only: ia, s => sys
+    use mod_System,           only: ia !, s => sys
     use mod_parameters,       only: dimH
  
     implicit none
@@ -258,8 +258,12 @@ contains
     real(double)     :: b_pulse(3),e_pulse(3), A_t(3)
     real(double)     :: A_t_abs
 
-   real(double)                                          :: kp(3)
-   complex(double),dimension(nOrb,nOrb,s%nAtoms,s%nAtoms):: dtdk
+    real(double)                                            :: kp(3)
+    ! complex(double),dimension(nOrb,nOrb,s%nAtoms,s%nAtoms):: dtdk
+    complex(double), dimension(nOrb,nOrb,nAtoms,nAtoms)     :: dtdk
+    ! complex(double), dimension(:,:,:,:), allocatable      :: dtdk
+
+    ! allocate(dtdk(nOrb,nOrb,nAtoms,nAtoms))
 
     hext = cZero
     do mu=1,nOrb
@@ -290,7 +294,7 @@ contains
     if(lelectric) then
       if(lpulse_e) then
         if (t <= tau_e) then
-          call v_potent_e(t,A_t,A_t_abs)
+          call evec_potent(t,A_t,A_t_abs)
           ! since nAtoms is an input to the subroutine 
           ! do i = 1,s%nAtoms
           !   do j = 1,s%nAtoms
@@ -375,18 +379,18 @@ contains
   !> A_t  = (-hE_0/hw_e)     * ( cos(pi*(t-delay_e)/tau_e) )^2 * sin(hw_e*t)
 
   ! center the vector potential at delay_e
-  subroutine v_potent_e(t,A_t,A_t_abs)
+  subroutine evec_potent(t,A_t,A_t_abs)
     use mod_f90_kind, only: double
     use mod_imRK4_parameters, only: field_direction_e, hE_0, hw_e, tau_e, delay_e
     use mod_constants,  only: ci, pi
-    implicit none 
+    !implicit none 
     real(double) , intent(in)  :: t
     real(double) , intent(out) :: A_t(3)
     real(double) , intent(out) :: A_t_abs
 
     A_t = [ field_direction_e(1), field_direction_e(2), field_direction_e(3) ] * (-hE_0/hw_e) * ( cos(pi*(t-delay_e)/tau_e) )**2 * sin(hw_e*(t-delay_e))
     A_t_abs = (-hE_0/hw_e) * ( cos(pi*(t-delay_e)/tau_e) )**2 * sin(hw_e*(t-delay_e))
-  end subroutine v_potent_e
+  end subroutine evec_potent
 
 
 end module mod_imRK4
