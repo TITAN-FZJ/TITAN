@@ -5,7 +5,7 @@
 !===============================================================================!
 !                         TIME-DEPENDENT PERTURBATION                           !
 ! Total time to propagate:
--> integration_time = 10.d0
+-> integration_time = 10.d3
 ! Tolerance for propagation loop:
 -> sc_tol = 0.01d0
 ! Absolute tolerance for step size control:
@@ -111,16 +111,16 @@ Intensity of the field
 -> n3gl = 64
 !===============================================================================!
 !                              PLOTTING VARIABLES                               !
-!           PLOTTING VARIABLES         !             BAND STRUCTURE             !
-! Minimum and maximum value of energy: ! High symmetry direction                !
--> emin =  1.0E-6
--> emax =  1.0E-6
-!-> kdirection = GH
+! Energy range and number of points:                                            !
+-> emin =  0.d0
+-> emax =  5.d-2
+-> nEner = 500
+!-> skip_steps = 0
 !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -!
-!                              Number of points:                                !
--> band = G A G B D A G C G
--> npts = 1
--> skip_steps = 0
+! Wave vector path and number of points:                                        !
+-> band = G
+-> nQvec = 1
+-> qbasis = cartesian
 !===============================================================================!
 !                              SELF-CONSISTENCY                                 !
 !        (Finding center of the bands for the given number of particles)        !
