@@ -273,21 +273,21 @@ contains
       unit = 5090+i
       write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%observable(i)),trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       open(unit=unit,file=trim(output_file), status= 'replace')
-      call write_header_time_prop(unit,'#      Time      , ' // output%observable(i))
+      call write_header_time_prop(unit,'#    Time [ps]   , ' // output%observable(i))
       close(unit)
 
       ! for d orbitals
       unit = 5190+i
       write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%observable(i))//"_d",trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       open(unit=unit,file=trim(output_file), status= 'replace')
-      call write_header_time_prop(unit,'#      Time      , ' // output%observable(i) // '_d')
+      call write_header_time_prop(unit,'#    Time [ps]   , ' // output%observable(i) // '_d')
       close(unit)
     end do
 
     unit = 6090
     write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/field',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
     open(unit=unit,file=trim(output_file), status= 'replace')
-    call write_header_time_prop(unit,'#      Time      ,    field_m x   ,    field_m y   ,    field_m z   ,    field_e x   ,    field_e y   ,    field_e z   ' )
+    call write_header_time_prop(unit,'#    Time [ps]   ,    field_m x   ,    field_m y   ,    field_m z   ,    field_e x   ,    field_e y   ,    field_e z   ' )
     close(unit)
 
   end subroutine create_time_prop_files
@@ -364,11 +364,8 @@ contains
 
     call open_time_prop_files()
     
-    if (lmagnetic) then
-      time = t*6.582d-7
-    else if (lelectric) then
-      time = t* 4.84d-5
-    end if 
+    time = t*4.84d-5
+
     write(unit=5091,fmt="(100(es16.9,2x))") time, (sum(rho_t(:,i)),i=1,s%nAtoms)
     write(unit=5092,fmt="(100(es16.9,2x))") time, (sum(mx_t(:,i)),sum(my_t(:,i)),sum(mz_t(:,i)), sqrt(sum(mx_t(:,i))**2 + sum(my_t(:,i))**2 + sum(mz_t(:,i))**2) ,i=1,s%nAtoms)
 
