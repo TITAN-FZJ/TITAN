@@ -20,13 +20,12 @@ contains
     real(double)                     , intent(in)    :: eval
     complex(double), dimension(dimH) , intent(inout) :: Yn_new, Yn_hat, Yn
    
-    integer                                 :: i, k
+    integer                                 :: k
     real(double)                            :: step, error, norm_k_old, norm_k_new, theta_k, eta_k, tol
     complex(double), dimension(dimH2)       :: deltaZ_k_old, deltaZ_k  
     complex(double), dimension(dimH2,dimH2) :: M2n
     complex(double), dimension(dimH2)       :: Fun 
     complex(double), dimension(dimH2)       :: Z_k 
-    real(double),    dimension(dimH)        :: Eta
 
     ! z = (g - Y)
     ! z = 0.0 is the solution
@@ -255,7 +254,7 @@ contains
 
     complex(double)  :: hext(nOrb2,nOrb2), temp(nOrb2,nOrb2)
     integer          :: i, j,  mu, nu
-    real(double)     :: b_pulse(3),e_pulse(3), A_t(3)
+    real(double)     :: b_pulse(3), A_t(3)
     real(double)     :: A_t_abs
 
     real(double)                                            :: kp(3)
@@ -270,7 +269,7 @@ contains
       nu=mu+nOrb
       if(lmagnetic) then
         if(lpulse_m) then
-          if (t <= 8.d0*tau_m) then
+          if ((t >= delay_m).and.(t <= 8.d0*tau_m+delay_m)) then
           ! building external Hamiltonian (hext)
             call magnetic_pulse_B(t,b_pulse)
 
@@ -293,7 +292,7 @@ contains
 
     if(lelectric) then
       if(lpulse_e) then
-        if (t <= tau_e) then
+        if ((t >= delay_e).and.(t <= tau_e+delay_e)) then
           call evec_potent(t,A_t,A_t_abs)
           ! since nAtoms is an input to the subroutine 
           ! do i = 1,s%nAtoms
@@ -315,8 +314,8 @@ contains
             temp = dtdk(:,:,i,j) * ( (cos(hw_e*t) + sin(hw_e*t))*hE_0 )
             hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) = hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) + temp
             hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) = hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) + temp
-        end do
           end do
+        end do
       end if
     end if
 

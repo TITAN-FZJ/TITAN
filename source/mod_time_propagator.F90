@@ -217,7 +217,6 @@ contains
 
     integer,          intent(in)           :: unit
     character(len=*), intent(in)           :: title_line
-    integer :: i
 
     if(lmagnetic) then
       write(unit=unit, fmt="('#.  hw1_m = ',es16.9)") hw1_m
@@ -351,7 +350,6 @@ contains
     use mod_f90_kind, only: double
     use mod_system,   only: System
     use TightBinding, only: nOrb
-    use mod_imRK4_parameters, only: lmagnetic, lelectric
 
     type(System),                          intent(in) :: s
     real(double),                          intent(in) :: t
