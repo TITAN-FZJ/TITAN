@@ -73,61 +73,61 @@ contains
     it = 0  
     t_loop: do while (t <= integration_time)
       t = t + step
-      if(rField==0) &
-        write(output%unit_loop,"('[time_propagator] Time: ',es10.3,' of ',es10.3)") t, integration_time
+      ! if(rField==0) &
+      !   write(output%unit_loop,"('[time_propagator] Time: ',es10.3,' of ',es10.3)") t, integration_time
 
-      counter = 0 ! Counter for the calculation of error in the step size for each time t
+      ! counter = 0 ! Counter for the calculation of error in the step size for each time t
 
-      ! Propagation loop for a given time t, calculating the optimal step size
-      do
-        !$omp parallel default(none) &
-        !$omp& private(iz,n,i,kp,weight,hk,ERR_kn,Yn, Yn_new, Yn_hat, eval,work,rwork,info,expec_0,expec_p,expec_z) &
-        !$omp& shared(ERR, counter, step, s,t,it,dimH,realBZ,evec_kn_temp,evec_kn,eval_kn,rho_t,mp_t,mz_t,lwork,EshiftBZ,ElectricFieldVector)
+      ! ! Propagation loop for a given time t, calculating the optimal step size
+      ! do
+      !   !$omp parallel default(none) &
+      !   !$omp& private(iz,n,i,kp,weight,hk,ERR_kn,Yn, Yn_new, Yn_hat, eval,work,rwork,info,expec_0,expec_p,expec_z) &
+      !   !$omp& shared(ERR, counter, step, s,t,it,dimH,realBZ,evec_kn_temp,evec_kn,eval_kn,rho_t,mp_t,mz_t,lwork,EshiftBZ,ElectricFieldVector)
 
-        rho_t = 0.d0
-        mp_t  = cZero
-        mz_t  = 0.d0
-        ERR   = 0.d0
+      !   rho_t = 0.d0
+      !   mp_t  = cZero
+      !   mz_t  = 0.d0
+      !   ERR   = 0.d0
 
-        !$omp do reduction(+:rho_t,mp_t,mz_t,ERR)
-        kpoints_loop: do iz = 1, realBZ%workload
-          kp = realBZ%kp(1:3,iz) + EshiftBZ*ElectricFieldVector
-          weight = realBZ%w(iz)   
-          if (it==0) then
-            ! Calculating the hamiltonian for a given k-point
-            call hamiltk(s,kp,hk)
-            ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-            call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
-            eval_kn(:,iz) = eval(:)
-          end if
-          evs_loop: do n = 1, dimH
-            if (it==0) then
-              Yn(:)= hk(:,n)
-            else
-              Yn(:)= evec_kn(:,n,iz)
-            end if
+      !   !$omp do reduction(+:rho_t,mp_t,mz_t,ERR)
+      !   kpoints_loop: do iz = 1, realBZ%workload
+      !     kp = realBZ%kp(1:3,iz) + EshiftBZ*ElectricFieldVector
+      !     weight = realBZ%w(iz)   
+      !     if (it==0) then
+      !       ! Calculating the hamiltonian for a given k-point
+      !       call hamiltk(s,kp,hk)
+      !       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
+      !       call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
+      !       eval_kn(:,iz) = eval(:)
+      !     end if
+      !     evs_loop: do n = 1, dimH
+      !       if (it==0) then
+      !         Yn(:)= hk(:,n)
+      !       else
+      !         Yn(:)= evec_kn(:,n,iz)
+      !       end if
 
-            call iterate_Zki(s,t,kp,eval_kn(n,iz),step,Yn_new,Yn,Yn_hat)
+      !       call iterate_Zki(s,t,kp,eval_kn(n,iz),step,Yn_new,Yn,Yn_hat)
              
-            ! Calculating expectation values for the nth eigenvector 
-            call expec_val_n(s, dimH, Yn_new, eval_kn(n,iz), expec_0, expec_p, expec_z)
+      !       ! Calculating expectation values for the nth eigenvector 
+      !       call expec_val_n(s, dimH, Yn_new, eval_kn(n,iz), expec_0, expec_p, expec_z)
 
-            rho_t = rho_t + expec_0 * weight 
-            mp_t  = mp_t  + expec_p * weight 
-            mz_t  = mz_t  + expec_z * weight 
+      !       rho_t = rho_t + expec_0 * weight 
+      !       mp_t  = mp_t  + expec_p * weight 
+      !       mz_t  = mz_t  + expec_z * weight 
 
-            ! Calculation of the error and the new step size
-            call calculate_step_error(Yn,Yn_new,Yn_hat,ERR_kn)
+      !       ! Calculation of the error and the new step size
+      !       call calculate_step_error(Yn,Yn_new,Yn_hat,ERR_kn)
                                       
-            ERR = ERR + ERR_kn * weight
+      !       ERR = ERR + ERR_kn * weight
 
-            ! Storing temporary propagated vector before checking if it's Accepted
-            evec_kn_temp(:,n,iz) = Yn_new(:)
+      !       ! Storing temporary propagated vector before checking if it's Accepted
+      !       evec_kn_temp(:,n,iz) = Yn_new(:)
 
-          end do evs_loop
-        end do kpoints_loop
-        !$omp end do
-        !$omp end parallel
+      !     end do evs_loop
+      !   end do kpoints_loop
+      !   !$omp end do
+      !   !$omp end parallel
 
       !   ERR = sqrt(ERR)
       !   ! Find the new step size h_new
