@@ -501,6 +501,11 @@ contains
         if(.not. get_parameter("pulse_e", lpulse_e,.false.)) &
           call log_warning("get_parameters", "'pulse_e' not found. Oscillatory electric field is applied.")
         if(lpulse_e) then 
+          if(.not. get_parameter("field_direction_e", vector, cnt)) &
+            call log_error("get_parameters","'field_direction_e' missing.")
+          if(cnt /= 3) call log_error("get_parameters","'field_direction_e' has wrong size (size 3 required).")
+          field_direction_e(1:3) = vector(1:3)
+          deallocate(vector)
           if(.not. get_parameter("tau_e", tau_e)) &
             call log_error("get_parameters", "'tau_e' not found.")
           if(.not. get_parameter("delay_e", delay_e, 0.d0)) &

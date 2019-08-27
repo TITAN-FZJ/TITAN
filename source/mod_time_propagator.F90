@@ -73,110 +73,108 @@ contains
     it = 0  
     t_loop: do while (t <= integration_time)
       t = t + step
-      ! if(rField==0) &
-      !   write(output%unit_loop,"('[time_propagator] Time: ',es10.3,' of ',es10.3)") t, integration_time
+      if(rField==0) &
+        write(output%unit_loop,"('[time_propagator] Time: ',es10.3,' of ',es10.3)") t, integration_time
 
-      ! counter = 0 ! Counter for the calculation of error in the step size for each time t
+      counter = 0 ! Counter for the calculation of error in the step size for each time t
+      ! Propagation loop for a given time t, calculating the optimal step size
+      do
+        !$omp parallel default(none) &
+        !$omp& private(iz,n,i,kp,weight,hk,ERR_kn,Yn, Yn_new, Yn_hat, eval,work,rwork,info,expec_0,expec_p,expec_z) &
+        !$omp& shared(ERR, counter, step, s,t,it,dimH,realBZ,evec_kn_temp,evec_kn,eval_kn,rho_t,mp_t,mz_t,lwork,EshiftBZ,ElectricFieldVector)
 
-      ! ! Propagation loop for a given time t, calculating the optimal step size
-      ! do
-      !   !$omp parallel default(none) &
-      !   !$omp& private(iz,n,i,kp,weight,hk,ERR_kn,Yn, Yn_new, Yn_hat, eval,work,rwork,info,expec_0,expec_p,expec_z) &
-      !   !$omp& shared(ERR, counter, step, s,t,it,dimH,realBZ,evec_kn_temp,evec_kn,eval_kn,rho_t,mp_t,mz_t,lwork,EshiftBZ,ElectricFieldVector)
+        rho_t = 0.d0
+        mp_t  = cZero
+        mz_t  = 0.d0
+        ERR   = 0.d0
+        !$omp do reduction(+:rho_t,mp_t,mz_t,ERR)
+        kpoints_loop: do iz = 1, realBZ%workload
+          kp = realBZ%kp(1:3,iz) + EshiftBZ*ElectricFieldVector
+          weight = realBZ%w(iz)   
+          if (it==0) then
+            ! Calculating the hamiltonian for a given k-point
+            call hamiltk(s,kp,hk)
+            ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
+            call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
+            eval_kn(:,iz) = eval(:)
+          end if
+          evs_loop: do n = 1, dimH
+            if (it==0) then
+              Yn(:)= hk(:,n)
+            else
+              Yn(:)= evec_kn(:,n,iz)
+            end if
 
-      !   rho_t = 0.d0
-      !   mp_t  = cZero
-      !   mz_t  = 0.d0
-      !   ERR   = 0.d0
-
-      !   !$omp do reduction(+:rho_t,mp_t,mz_t,ERR)
-      !   kpoints_loop: do iz = 1, realBZ%workload
-      !     kp = realBZ%kp(1:3,iz) + EshiftBZ*ElectricFieldVector
-      !     weight = realBZ%w(iz)   
-      !     if (it==0) then
-      !       ! Calculating the hamiltonian for a given k-point
-      !       call hamiltk(s,kp,hk)
-      !       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-      !       call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
-      !       eval_kn(:,iz) = eval(:)
-      !     end if
-      !     evs_loop: do n = 1, dimH
-      !       if (it==0) then
-      !         Yn(:)= hk(:,n)
-      !       else
-      !         Yn(:)= evec_kn(:,n,iz)
-      !       end if
-
-      !       call iterate_Zki(s,t,kp,eval_kn(n,iz),step,Yn_new,Yn,Yn_hat)
+            call iterate_Zki(s,t,kp,eval_kn(n,iz),step,Yn_new,Yn,Yn_hat)
              
-      !       ! Calculating expectation values for the nth eigenvector 
-      !       call expec_val_n(s, dimH, Yn_new, eval_kn(n,iz), expec_0, expec_p, expec_z)
+            ! Calculating expectation values for the nth eigenvector 
+            call expec_val_n(s, dimH, Yn_new, eval_kn(n,iz), expec_0, expec_p, expec_z)
 
-      !       rho_t = rho_t + expec_0 * weight 
-      !       mp_t  = mp_t  + expec_p * weight 
-      !       mz_t  = mz_t  + expec_z * weight 
+            rho_t = rho_t + expec_0 * weight 
+            mp_t  = mp_t  + expec_p * weight 
+            mz_t  = mz_t  + expec_z * weight 
 
-      !       ! Calculation of the error and the new step size
-      !       call calculate_step_error(Yn,Yn_new,Yn_hat,ERR_kn)
+            ! Calculation of the error and the new step size
+            call calculate_step_error(Yn,Yn_new,Yn_hat,ERR_kn)
                                       
-      !       ERR = ERR + ERR_kn * weight
+            ERR = ERR + ERR_kn * weight
 
-      !       ! Storing temporary propagated vector before checking if it's Accepted
-      !       evec_kn_temp(:,n,iz) = Yn_new(:)
+            ! Storing temporary propagated vector before checking if it's Accepted
+            evec_kn_temp(:,n,iz) = Yn_new(:)
 
-      !     end do evs_loop
-      !   end do kpoints_loop
-      !   !$omp end do
-      !   !$omp end parallel
+          end do evs_loop
+        end do kpoints_loop
+        !$omp end do
+        !$omp end parallel
 
-        ! ERR = sqrt(ERR)
-        ! ! Find the new step size h_new
-        ! ! h_new = delta * h_used / (ERR)^(1/p+1) where p = 2*s, delta is some saftey factor 
-        ! ! delta = 0.9 * (2*K_max + 1)/ (2*K_max + NEWT) where NEWT is the number of newton iterations
-        ! p = 2.0*size(A,1) 
-        ! ! h_new = delta * step * (ERR)**(-1.0/(2.0*s)) !! simpler formula
-        ! if (counter /= 0) then
-        !   h_new = delta * step * (ERR)**(-1.0/p) * (step/h_old) * (ERR_old/ERR)**(1.0/p)!! Gustafsson (1994) formula          
-        ! else 
-        !   h_new = delta * step * (ERR)**(-1.0/p)
-        ! end if 
-        ! ! Tests if the step size is good:
-        ! ! the condition (h_new < delta* step) is equivalent to the condition (ERR > 1)
-        ! ! if ( h_new < 0.9 * step) then
-        !    ! do while ( h_new < step) 
-        ! ! save ERR from iterate_Zki to ERR_old
-        ! ERR_old = ERR
-        ! if ( ERR > 1.d0) then
-        !   ! repeat the calculation using h_new
-        !   t = t - step + h_new
-        !   h_old = step
-        !   step = h_new
-        !   write(*,*) t, step, ERR
-        !   ! this condition seems to mantain a small step size
-        !   ! else if (step <= h_new <= 1.2*step) then
-        !   ! step = step
-        ! else    
-        !   ! Update the eignvectors array of dimension ( dimH * dimH , k )
-        !   evec_kn = evec_kn_temp
-        !   step = h_new
-        !   exit
-        ! end if
+        ERR = sqrt(ERR)
+        ! Find the new step size h_new
+        ! h_new = delta * h_used / (ERR)^(1/p+1) where p = 2*s, delta is some saftey factor 
+        ! delta = 0.9 * (2*K_max + 1)/ (2*K_max + NEWT) where NEWT is the number of newton iterations
+        p = 2.0*size(A,1) 
+        ! h_new = delta * step * (ERR)**(-1.0/(2.0*s)) !! simpler formula
+        if (counter /= 0) then
+          h_new = delta * step * (ERR)**(-1.0/p) * (step/h_old) * (ERR_old/ERR)**(1.0/p)!! Gustafsson (1994) formula          
+        else 
+          h_new = delta * step * (ERR)**(-1.0/p)
+        end if 
+        ! Tests if the step size is good:
+        ! the condition (h_new < delta* step) is equivalent to the condition (ERR > 1)
+        ! if ( h_new < 0.9 * step) then
+           ! do while ( h_new < step) 
+        ! save ERR from iterate_Zki to ERR_old
+        ERR_old = ERR
+        if ( ERR > 1.d0) then
+          ! repeat the calculation using h_new
+          t = t - step + h_new
+          h_old = step
+          step = h_new
+          write(*,*) t, step, ERR
+          ! this condition seems to mantain a small step size
+          ! else if (step <= h_new <= 1.2*step) then
+          ! step = step
+        else    
+          ! Update the eignvectors array of dimension ( dimH * dimH , k )
+          evec_kn = evec_kn_temp
+          step = h_new
+          exit
+        end if
           
-      ! end do
+      end do
 
-      ! write(*,*)  "Accepted", t, step, ERR 
+      write(*,*)  "Accepted", t, step, ERR 
 
-      ! mx_t = real(mp_t)
-      ! my_t = aimag(mp_t)
-      ! do i = 1, s%nAtoms
-      !   rhod_t(i) = sum(rho_t(5:9,i))
-      !   mpd_t(i)  = sum(mp_t(5:9,i))
-      !   mxd_t(i)  = sum(mx_t(5:9,i))
-      !   myd_t(i)  = sum(my_t(5:9,i))
-      !   mzd_t(i)  = sum(mz_t(5:9,i))
-      ! end do
+      mx_t = real(mp_t)
+      my_t = aimag(mp_t)
+      do i = 1, s%nAtoms
+        rhod_t(i) = sum(rho_t(5:9,i))
+        mpd_t(i)  = sum(mp_t(5:9,i))
+        mxd_t(i)  = sum(mx_t(5:9,i))
+        myd_t(i)  = sum(my_t(5:9,i))
+        mzd_t(i)  = sum(mz_t(5:9,i))
+      end do
 
-      ! call update_Umatrix(mzd_t,mpd_t,rhod_t,rhod0,rho_t,rho0,s%nAtoms,nOrb)
+      call update_Umatrix(mzd_t,mpd_t,rhod_t,rhod0,rho_t,rho0,s%nAtoms,nOrb)
 
       ! Calculating time-dependent field      
       field_m = 0.d0
@@ -203,12 +201,8 @@ contains
 
       call write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t,field_m,field_e)
 
-      
-      ! write t, field on screen
-      write(*,*) t, field_e
-
-      ! counter = counter + 1
-      ! it = it + 1
+      counter = counter + 1
+      it = it + 1
 
     end do t_loop
 
@@ -293,7 +287,7 @@ contains
     unit = 6090
     write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/field',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
     open(unit=unit,file=trim(output_file), status= 'replace')
-    call write_header_time_prop(unit,'#      Time      ,      field     ' )
+    call write_header_time_prop(unit,'#      Time      ,    field_m x   ,    field_m y   ,    field_m z   ,    field_e x   ,    field_e y   ,    field_e z   ' )
     close(unit)
 
   end subroutine create_time_prop_files

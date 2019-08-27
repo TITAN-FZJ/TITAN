@@ -388,8 +388,13 @@ contains
     real(double) , intent(out) :: A_t(3)
     real(double) , intent(out) :: A_t_abs
 
-    A_t = [ field_direction_e(1), field_direction_e(2), field_direction_e(3) ] * (-hE_0/hw_e) * ( cos(pi*(t-delay_e)/tau_e) )**2 * sin(hw_e*(t-delay_e))
-    A_t_abs = (-hE_0/hw_e) * ( cos(pi*(t-delay_e)/tau_e) )**2 * sin(hw_e*(t-delay_e))
+    real(double) :: delay
+
+    delay = 0.5d0*tau_e-delay_e
+    
+    A_t_abs = (-hE_0/hw_e) * ( cos(pi*(t-delay)/tau_e) )**2 * sin(hw_e*(t-delay))
+    A_t = [ field_direction_e(1), field_direction_e(2), field_direction_e(3) ] * A_t_abs
+
   end subroutine evec_potent
 
 
