@@ -75,18 +75,19 @@ contains
       t = t + step
       if(rField==0) &
         write(output%unit_loop,"('[time_propagator] Time: ',es10.3,' of ',es10.3)") t, integration_time
-
+       
       counter = 0 ! Counter for the calculation of error in the step size for each time t
       ! Propagation loop for a given time t, calculating the optimal step size
       do
         !$omp parallel default(none) &
-        !$omp& private(iz,n,i,kp,weight,hk,ERR_kn,Yn, Yn_new, Yn_hat,Yn_e, Yn_new_e, Yn_hat_e, eval,work,rwork,info,expec_0,expec_p,expec_z) &
-        !$omp& shared(ERR, counter, step, s,t,it,dimH,realBZ,evec_kn_temp,evec_kn,eval_kn,rho_t,mp_t,mz_t,lwork,EshiftBZ,ElectricFieldVector)
+        !$omp& private(Yn_e,Yn_new_e,Yn_hat_e,iz,n,i,kp,weight,hk,ERR_kn,Yn, Yn_new, Yn_hat, eval,work,rwork,info,expec_0,expec_p,expec_z) &
+        !$omp& shared( ERR,counter,step,s,t,it,dimH,realBZ,evec_kn_temp,evec_kn,eval_kn,rho_t,mp_t,mz_t,lwork,EshiftBZ,ElectricFieldVector)
 
         rho_t = 0.d0
         mp_t  = cZero
         mz_t  = 0.d0
         ERR   = 0.d0
+  
         !$omp do reduction(+:rho_t,mp_t,mz_t,ERR)
         kpoints_loop: do iz = 1, realBZ%workload
           kp = realBZ%kp(1:3,iz) + EshiftBZ*ElectricFieldVector
@@ -97,7 +98,12 @@ contains
             ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
             call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
             eval_kn(:,iz) = eval(:)
+
+          ! write(*,*) t, 'evalues=', eval
+          ! stop
+
           end if
+
           evs_loop: do n = 1, dimH
             if (it==0) then
               Yn(:)= hk(:,n)
@@ -111,8 +117,9 @@ contains
     !----------------------------------------------------------------------------------------!
     !----------------------------------------------------------------------------------------!
               ! Geting the intitial vector Yn^~, setting Yn to Yn^~ for propagation, hbar = 1
-              Yn = Yn * exp(cI*eval_kn(n,iz)*t) 
-          
+              ! Yn = Yn * exp(cI*eval_kn(n,iz)*t) 
+                Yn = Yn * exp(cI*eval_kn(n,iz)*t)
+                
             else
               ! Is the propagated vector Yn^~
               Yn(:) = evec_kn(:,n,iz)
@@ -173,7 +180,7 @@ contains
           t = t - step + h_new
           h_old = step
           step = h_new
-          write(*,*) t, step, ERR
+          write(*,*) "Rejected", t, step, ERR
           ! this condition seems to mantain a small step size
           ! else if (step <= h_new <= 1.2*step) then
           ! step = step
