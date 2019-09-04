@@ -154,9 +154,8 @@ elseif(PLATFORM MATCHES RWTH)
                                               -mkl -$ENV{FLAGS_MATH_INCLUDE}
                                               -xHost)
 elseif(PLATFORM MATCHES iff)
-  target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe)
+  target_link_libraries(${TITAN_EXE} -mkl -L/usr/local/nag/lib -lnag)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                              -D_OSX
                                               -DVERSION="${GIT_VERSION}"
                                               -fpp
                                               -static-intel
