@@ -44,7 +44,7 @@ contains
       ! Build M2n matrix
       call M_2n(s, t, kp, eval, Yn, step, M2n)
       ! Build Fun vector
-      call Fsystem(s, t, kp, Yn, step, Z_k, Fun)
+      call Fsystem(s, t, kp, eval, Yn, step, Z_k, Fun)
       ! Solve the Ax=b linear equation
       call LS_solver(dimH2,M2n,Fun)
 
@@ -108,7 +108,7 @@ contains
   end subroutine M_2n
 
   !> subroutine f(Z_k) that builds the right side of the linear system.
-  subroutine Fsystem(s, t, kp, Yn, step, Z_k, Fun) 
+  subroutine Fsystem(s, t, kp, eval, Yn, step, Z_k, Fun) 
     use mod_f90_kind,         only: double
     use mod_constants,        only: cI
     use mod_parameters,       only: dimH
@@ -117,7 +117,7 @@ contains
     use mod_RK_matrices,      only: M1, c1, c2
     implicit none
     type(System)                    ,  intent(in)  :: s
-    real(double)                    ,  intent(in)  :: t, step
+    real(double)                    ,  intent(in)  :: t, step, eval
     real(double)                    ,  intent(in)  :: kp(3)
     complex(double), dimension(dimH),  intent(in)  :: Yn
     complex(double), dimension(dimH2), intent(in)  :: Z_k
@@ -127,11 +127,11 @@ contains
     complex(double), dimension(dimH) :: F1, F2   
 
     t1 = t + step * c1
-    call build_td_hamiltonian(s,t1,kp,hamilt_t)
+    call build_td_hamiltonian(s, t1, kp, eval, hamilt_t)
     F1 = -cI * matmul( hamilt_t , Z_k(1:dimH) + Yn )
 
     t2 = t + step * c2
-    call build_td_hamiltonian(s,t2,kp,hamilt_t)
+    call build_td_hamiltonian(s, t2, kp, eval, hamilt_t)
     F2 = -cI * matmul( hamilt_t , Z_k(dimH+1:dimH2) + Yn )
 
     Fun = [ F1, F2 ]
@@ -158,7 +158,7 @@ contains
 
     complex(double), dimension(dimH,dimH)  :: hamilt_t,dHdc
 
-    call build_td_hamiltonian(s, t, kp, hamilt_t)
+    call build_td_hamiltonian(s, t, kp, eval, hamilt_t)
     call build_term_Jacobian(s, eval, Yn, dHdc)
 
     Jacobian_t = -cI*(hamilt_t + dHdc)
@@ -213,22 +213,27 @@ contains
 
   !> build time dependent Hamiltonian for each kp 
   !> H(t) = hk + hext_t
-  subroutine build_td_hamiltonian(s,t,kp,hamilt_t)
+  subroutine build_td_hamiltonian(s,t,kp,eval,hamilt_t)
     use mod_f90_kind,   only: double
     use mod_system,     only: System
     use mod_parameters, only: dimH
+    use mod_RK_matrices
     implicit none
-    type(System),   intent(in) :: s
-    real(double),   intent(in) :: t
-    real(double),   intent(in) :: kp(3)
-    complex(double), intent(out)  :: hamilt_t(dimH,dimH)
+    type(System),    intent(in)  :: s
+    real(double),    intent(in)  :: t, eval
+    real(double),    intent(in)  :: kp(3)
+    complex(double), intent(out) :: hamilt_t(dimH,dimH)
+
     complex(double), dimension(dimH,dimH)  :: hk
+    complex(double), dimension(dimH,dimH)  :: ident
 
     ! Calculating the "ground state" Hamiltonian for a given k-point (with time-dependent expectation values included)
     call hamiltk(s,kp,hk)
 
+    ! building identity matrix I(dimH, dimH)
+    call build_identity(dimH,ident)
     ! Calculating the time-dependent Hamiltonian
-    hamilt_t = hk + hext_t(s%nAtoms,t)
+    hamilt_t = eval * ident - hk + hext_t(s%nAtoms,t)
 
     ! Checking if Hamiltonian is hermitian
     if( sum(abs(conjg(transpose(hamilt_t))-hamilt_t)) > 1.d-12 ) then
@@ -390,7 +395,7 @@ contains
     real(double) :: delay
 
     delay = 0.5d0*tau_e-delay_e
-    
+
     A_t_abs = (-hE_0/hw_e) * ( cos(pi*(t-delay)/tau_e) )**2 * sin(hw_e*(t-delay))
     A_t = [ field_direction_e(1), field_direction_e(2), field_direction_e(3) ] * A_t_abs
 

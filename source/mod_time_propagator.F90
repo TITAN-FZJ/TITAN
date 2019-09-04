@@ -4,7 +4,7 @@ contains
 
   subroutine time_propagator(s)
     use mod_f90_kind,         only: double
-    use mod_constants,        only: cZero
+    use mod_constants,        only: cZero, cI
     use mod_imRK4_parameters, only: dimH2, time, step, integration_time, ERR, Delta, lelectric, hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
     use mod_RK_matrices,      only: A, id, id2, M1, build_identity
     use mod_imRK4,            only: iterate_Zki, calculate_step_error, magnetic_pulse_B, electric_pulse_e, evec_potent
@@ -23,7 +23,7 @@ contains
 
     integer                           :: i, it, n, counter
     real(double)                      :: t, p, h_new, h_old, ERR_old, ERR_kn
-    complex(double), dimension(dimH)  :: Yn, Yn_hat, Yn_new
+    complex(double), dimension(dimH)  :: Yn, Yn_hat, Yn_new, Yn_e, Yn_hat_e, Yn_new_e
     complex(double), dimension(:,:,:), allocatable  :: evec_kn,evec_kn_temp
     real(double),    dimension(:,:),   allocatable  :: eval_kn
 
@@ -75,18 +75,19 @@ contains
       t = t + step
       if(rField==0) &
         write(output%unit_loop,"('[time_propagator] Time: ',es10.3,' of ',es10.3)") t, integration_time
-
+       
       counter = 0 ! Counter for the calculation of error in the step size for each time t
       ! Propagation loop for a given time t, calculating the optimal step size
       do
         !$omp parallel default(none) &
-        !$omp& private(iz,n,i,kp,weight,hk,ERR_kn,Yn, Yn_new, Yn_hat, eval,work,rwork,info,expec_0,expec_p,expec_z) &
-        !$omp& shared(ERR, counter, step, s,t,it,dimH,realBZ,evec_kn_temp,evec_kn,eval_kn,rho_t,mp_t,mz_t,lwork,EshiftBZ,ElectricFieldVector)
+        !$omp& private(Yn_e,Yn_new_e,Yn_hat_e,iz,n,i,kp,weight,hk,ERR_kn,Yn, Yn_new, Yn_hat, eval,work,rwork,info,expec_0,expec_p,expec_z) &
+        !$omp& shared( ERR,counter,step,s,t,it,dimH,realBZ,evec_kn_temp,evec_kn,eval_kn,rho_t,mp_t,mz_t,lwork,EshiftBZ,ElectricFieldVector)
 
         rho_t = 0.d0
         mp_t  = cZero
         mz_t  = 0.d0
         ERR   = 0.d0
+  
         !$omp do reduction(+:rho_t,mp_t,mz_t,ERR)
         kpoints_loop: do iz = 1, realBZ%workload
           kp = realBZ%kp(1:3,iz) + EshiftBZ*ElectricFieldVector
@@ -97,29 +98,59 @@ contains
             ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
             call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
             eval_kn(:,iz) = eval(:)
+
+          ! write(*,*) t, 'evalues=', eval
+          ! stop
+
           end if
+
           evs_loop: do n = 1, dimH
             if (it==0) then
               Yn(:)= hk(:,n)
+    !----------------------------------------------------------------------------------------!
+    !-------- These steps are to control the error by solving for c^~ instead of c ----------!
+    !----------------------------------------------------------------------------------------!
+      ! 1- find Yn^~ = Yn * e^(i*En*t/hbar) >>>> for each n and k point (only once).
+      ! 2- propagate Yn^~ using H^~ = H(t) - En.
+      ! 3- find Yn = Yn^~ * exp( (-i*En*t/hbar) ) at each step.
+      ! 4- calculate the error at each step from Yn but propagate with Yn^~.
+    !----------------------------------------------------------------------------------------!
+    !----------------------------------------------------------------------------------------!
+              ! Geting the intitial vector Yn^~, setting Yn to Yn^~ for propagation, hbar = 1
+              ! Yn = Yn * exp(cI*eval_kn(n,iz)*t) 
+                Yn = Yn * exp(cI*eval_kn(n,iz)*t)
+                
             else
-              Yn(:)= evec_kn(:,n,iz)
+              ! Is the propagated vector Yn^~
+              Yn(:) = evec_kn(:,n,iz)
+               
             end if
 
             call iterate_Zki(s,t,kp,eval_kn(n,iz),step,Yn_new,Yn,Yn_hat)
-             
-            ! Calculating expectation values for the nth eigenvector 
-            call expec_val_n(s, dimH, Yn_new, eval_kn(n,iz), expec_0, expec_p, expec_z)
+            ! Note: all iteration outputs corresponds to Yn^~ 
+
+            ! Getting Yn's again; Yn = Yn^~ * exp( (-i*En*t/hbar) ), hbar=1, rename Yn to Yn_e
+            Yn_e(:)     = Yn     * exp(-cI*eval_kn(n,iz)*t) 
+            Yn_new_e(:) = Yn_new * exp(-cI*eval_kn(n,iz)*t) 
+            Yn_hat_e(:) = Yn_hat * exp(-cI*eval_kn(n,iz)*t) 
+
+
+            ! Calculating expectation values for the nth eigenvector
+            ! Note: use the Yn_new_e or Yn_nw >>> should give the same result
+            call expec_val_n(s, dimH, Yn_new_e, eval_kn(n,iz), expec_0, expec_p, expec_z)
 
             rho_t = rho_t + expec_0 * weight 
             mp_t  = mp_t  + expec_p * weight 
             mz_t  = mz_t  + expec_z * weight 
 
-            ! Calculation of the error and the new step size
-            call calculate_step_error(Yn,Yn_new,Yn_hat,ERR_kn)
+            ! Calculation of the error and the new step size.
+            ! Note: use Yn_e, Yn_new_e, Yn_hat_e.
+            call calculate_step_error(Yn_e,Yn_new_e,Yn_hat_e,ERR_kn)
                                       
             ERR = ERR + ERR_kn * weight
 
-            ! Storing temporary propagated vector before checking if it's Accepted
+            ! Storing temporary propagated vector before checking if it's Accepted.
+            ! Note: save the Yn^~ outputs to be propagated.
             evec_kn_temp(:,n,iz) = Yn_new(:)
 
           end do evs_loop
@@ -149,7 +180,7 @@ contains
           t = t - step + h_new
           h_old = step
           step = h_new
-          write(*,*) t, step, ERR
+          write(*,*) "Rejected", t, step, ERR
           ! this condition seems to mantain a small step size
           ! else if (step <= h_new <= 1.2*step) then
           ! step = step
