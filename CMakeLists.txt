@@ -1,5 +1,6 @@
 # Minimum required Version
 cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Projects name
 project(TITAN)
@@ -20,7 +21,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_distributions.F90
                                   source/dtdksub.F90
                                   source/invers.F90
-                                  source/U_matrix.F90
+                                  source/mod_U_matrix.F90
                                   source/mod_initial_expectation.F90
                                   source/mod_expectation.F90
                                   source/initConversionMatrices.F90
@@ -77,6 +78,10 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/read_band_points.F90
                                   source/TorqueTorqueResponse.F90
                                   source/TorqueSpinResponse.F90
+                                  source/mod_RK_matrices.F90
+                                  source/mod_imRK4.F90
+                                  source/mod_time_propagator.F90
+                                  source/mod_imRK4_parameters.F90
                                   )
 
 # Execulable names
@@ -122,6 +127,7 @@ elseif(PLATFORM MATCHES osx)
                                               -D_OSX
                                               -fpp
                                               -DVERSION="${GIT_VERSION}"
+                                              -qopenmp
                                               -mkl
                                               -xHost)
 elseif(PLATFORM MATCHES booster)
@@ -148,9 +154,8 @@ elseif(PLATFORM MATCHES RWTH)
                                               -mkl -$ENV{FLAGS_MATH_INCLUDE}
                                               -xHost)
 elseif(PLATFORM MATCHES iff)
-  target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe)
+  target_link_libraries(${TITAN_EXE} -mkl -L/usr/local/nag/lib -lnag)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                              -D_OSX
                                               -DVERSION="${GIT_VERSION}"
                                               -fpp
                                               -static-intel
@@ -196,6 +201,7 @@ if(DEBUG)
                                               -warn all
                                               -ftrapuv
                                               -traceback
+                                              -qopenmp
                                               -fpp
                                               -DVERSION="${GIT_VERSION}"
                                               -g
