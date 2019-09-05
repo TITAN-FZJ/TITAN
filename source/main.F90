@@ -28,6 +28,7 @@ program TITAN
   use mod_Atom_variables, only: allocate_Atom_variables, deallocate_Atom_variables
   use mod_tools, only: rtos
   use mod_initial_expectation, only: calc_initial_Uterms
+  use mod_superconductivity
   !use mod_define_system TODO: Re-include
   !use mod_prefactors TODO: Re-include
   !use mod_lgtv_currents TODO: Re-include
@@ -78,6 +79,17 @@ program TITAN
   !--- Generating integration points of the complex energy integral ----
   call allocate_energy_points()
   call generate_imag_epoints()
+
+  !-------------------------- Debugging part -------------------------
+  if(ldebug) then
+    call hamilt_sc(sys)
+    !call hamilt_sc(s,rho,mp,mx,my,mz,sys,kp,hk)
+    !if(myrank==0) then
+    ! call debugging()
+    !end if
+    !MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+    stop
+  end if
 
   !----- Calculating initial values in the hamiltonian with mag=0 ------
   if(.not.lsortfiles) call calc_initial_Uterms(sys)
@@ -167,7 +179,7 @@ program TITAN
     call sb_matrix(sys%nAtoms, nOrb)
 
     !-------------------------- Debugging part -------------------------
-    if(ldebug) then 
+    if(ldebug) then
       !if(myrank==0) then
       ! call debugging()
       !end if

@@ -21,7 +21,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_distributions.F90
                                   source/dtdksub.F90
                                   source/invers.F90
-                                  source/mod_U_matrix.F90
+                                  source/U_matrix.F90
                                   source/mod_initial_expectation.F90
                                   source/mod_expectation.F90
                                   source/initConversionMatrices.F90
@@ -78,13 +78,10 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/read_band_points.F90
                                   source/TorqueTorqueResponse.F90
                                   source/TorqueSpinResponse.F90
-                                  source/mod_RK_matrices.F90
-                                  source/mod_imRK4.F90
-                                  source/mod_time_propagator.F90
-                                  source/mod_imRK4_parameters.F90
-                                  )
+                                  source/mod_superconductivity.F90
+                                 )
 
-# Execulable names
+# Executable names
 if(PLATFORM MATCHES jureca)
   set(TITAN_EXE titan_jureca.exe)
   set(CMAKE_Fortran_COMPILER mpiifort)
