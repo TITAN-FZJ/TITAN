@@ -3,45 +3,30 @@ module mod_superconductivity
 
 contains
 
-  subroutine hamilt_sc(s)
-  ! subroutine hamilt_sc(s,rho,mp,mx,my,mz,sys,kp,hk)
+  subroutine hamilt_sc(sys)
+  ! subroutine hamilt_sc(sys,rho,mp,mx,my,mz,sys,kp,hk)
     use mod_f90_kind,       only: double
     use mod_BrillouinZone,  only: realBZ
-  !   use mod_parameters,     only: output
-    use mod_system,         only: System
-    use TightBinding,       only: nOrb,nOrb2
-  !   use ElectricField,      only: EshiftBZ,ElectricFieldVector
+    use mod_parameters,     only: output, kpoints
+    use mod_system,         only: System, initHamiltkStride, ia
+    use TightBinding,       only: nOrb,nOrb2, initTightBinding
+    use ElectricField,      only: EshiftBZ,ElectricFieldVector
+    use mod_constants,  only: cZero,cOne
+    use mod_parameters, only: offset
     implicit none
-    type(System),                              intent(in)  :: s
+    type(System),                              intent(in)  :: sys
   !   real(double),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
   !   complex(double), dimension(nOrb,s%nAtoms), intent(out) :: mp
-    ! real(double), intent(in) :: kp(3)
     real(double) :: kp(3)
+    complex(double),dimension(sys%nAtoms*nOrb2, sys%nAtoms*nOrb2) :: hk
+    complex(double),dimension(sys%nAtoms*nOrb2*2, sys%nAtoms*nOrb2*2) :: hk_sc
+    integer :: j, i
 
-  !   type(System), intent(in) :: sys
-    complex(double),dimension(s%nAtoms*nOrb2, s%nAtoms*nOrb2) :: hk
-    !
-    ! integer                      :: iz, info !, mu,i
-    ! integer                      :: lwork,dimH
-    ! real(double)                 :: weight, kp(3)
-    ! real(double),    dimension(nOrb,s%nAtoms)   :: expec_0, expec_z
-    ! complex(double), dimension(nOrb,s%nAtoms)   :: expec_p
-    ! real(double),    dimension(:),  allocatable :: rwork(:), eval(:)
-    ! complex(double),                allocatable :: work(:), hk(:,:), dummyhk(:,:)
-    !
-    ! dimH  = (s%nAtoms)*nOrb2
-    ! lwork = 21*dimH
-    !
-    ! allocate( hk(dimH*2,dimH*2),dummyhk(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork) )
-    ! integer                      :: lwork,dimH
+    hk = cZero
 
-    write(*,*) kp(1:3)
+    kp = EshiftBZ*ElectricFieldVector
 
-    kp(1) = 3.0
-    kp(2) = 3.0
-    kp(3) = 3.0
-
-    write(*,*) kp(1:3)
+    ! write(*,*) kp
     ! kp = realBZ%kp(1:3,1)
 
     ! write(*,*) kp
@@ -56,18 +41,27 @@ contains
     ! mp  = 0.d0
     ! mz  = 0.d0
     !
-    ! call hamiltk(s,kp,hk)
-    !
-    ! hk(1:dimH,1:dimH) = dummyhk
-    ! hk(dimH+1:dimH*2,dimH+1:dimH*2) = -dummyhk
-    !
+    ! call initHamiltkStride(sys%nAtoms, nOrb)
+    call hamiltk(sys,kp,hk)
+
+    hk_sc = cZero
+    hk_sc(1:sys%nAtoms*nOrb2,1:sys%nAtoms*nOrb2) = hk
+    hk_sc(sys%nAtoms*nOrb2+1:sys%nAtoms*nOrb2*2,sys%nAtoms*nOrb2+1:sys%nAtoms*nOrb2*2) = -hk
+
+    do i = 1, sys%nAtoms*nOrb2*2
+      do j = 1, sys%nAtoms*nOrb2*2
+        write(*,*) real(hk_sc(i,j)), imag(hk_sc(i,j))
+      end do
+    end do
+
     ! ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
     ! !call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
     !
-    ! deallocate(hk,rwork,eval,work)
-    write(*,*) "You are an amazing man Uriel"
+    ! deallocate(rwork,eval,work)
 
-    write(*,*) "Also very handsome I may say"
+    ! write(*,*) "You are an amazing man Uriel"
+    !
+    ! write(*,*) "Also very handsome I may say"
 
   end subroutine hamilt_sc
 
@@ -110,6 +104,5 @@ contains
     ! end do
 
   end subroutine green_sc
-
 
 end module mod_superconductivity

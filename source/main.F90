@@ -82,12 +82,15 @@ program TITAN
 
   !-------------------------- Debugging part -------------------------
   if(ldebug) then
+    call initTightBinding(sys)
+    ! call allocate_magnet_variables(sys%nAtoms, nOrb)
     call hamilt_sc(sys)
     !call hamilt_sc(s,rho,mp,mx,my,mz,sys,kp,hk)
     !if(myrank==0) then
     ! call debugging()
     !end if
     !MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+    ! call deallocate_magnet_variables()
     stop
   end if
 
@@ -185,6 +188,20 @@ program TITAN
       !end if
     end if
 
+    ! if(ldebug) then
+    !   ! call initTightBinding(sys)
+    !   ! call allocate_magnet_variables(sys%nAtoms, nOrb)
+    !   call hamilt_sc(sys)
+    !   !call hamilt_sc(s,rho,mp,mx,my,mz,sys,kp,hk)
+    !   !if(myrank==0) then
+    !   ! call debugging()
+    !   !end if
+    !   !MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+    !   ! call deallocate_magnet_variables()
+    !   call MPI_Finalize(ierr)
+    !   stop
+    ! end if
+
     !----------------- Only create files with headers ------------------
     if(lcreatefiles) then
       if(rField == 0) call create_files()
@@ -232,6 +249,8 @@ program TITAN
       call write_time(output%unit_loop,'[main] Time before self-consistency: ')
 
     call doSelfConsistency()
+
+    call hamilt_sc(sys)
 
     if(rField==0) &
       call write_time(output%unit_loop,'[main] Time after self-consistency: ')
