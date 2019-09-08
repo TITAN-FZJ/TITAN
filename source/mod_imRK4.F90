@@ -251,13 +251,12 @@ contains
     use TightBinding,         only: nOrb,nOrb2
     use mod_System,           only: ia !, s => sys
     use mod_parameters,       only: dimH
- 
     implicit none
     real(double)     :: t
     integer          :: nAtoms
     complex(double)  :: hext_t(dimH,dimH)
 
-    complex(double)  :: hext(nOrb2,nOrb2), temp(nOrb2,nOrb2)
+    complex(double)  :: hext(nOrb2,nOrb2), temp(nOrb,nOrb)
     integer          :: i, j,  mu, nu
     real(double)     :: b_pulse(3), A_t(3)
     real(double)     :: A_t_abs
@@ -387,7 +386,7 @@ contains
     use mod_f90_kind, only: double
     use mod_imRK4_parameters, only: field_direction_e, hE_0, hw_e, tau_e, delay_e
     use mod_constants,  only: ci, pi
-    !implicit none 
+    implicit none 
     real(double) , intent(in)  :: t
     real(double) , intent(out) :: A_t(3)
     real(double) , intent(out) :: A_t_abs

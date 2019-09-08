@@ -245,7 +245,7 @@ contains
   subroutine write_header_time_prop(unit,title_line)
     use mod_f90_kind,         only: double
     use mod_imRK4_parameters, only: lelectric, hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
-
+    implicit none
     integer,          intent(in)           :: unit
     character(len=*), intent(in)           :: title_line
 
@@ -277,7 +277,7 @@ contains
   subroutine create_time_prop_files()
     use mod_parameters,       only: output
     use mod_imRK4_parameters, only: lelectric, lpulse_e, lmagnetic, lpulse_m
-
+    implicit none
     character(len=500) :: output_file
     integer :: i,unit
      
@@ -288,13 +288,13 @@ contains
     if(lmagnetic) then
       output%time_field = "_magfield"
       if(lpulse_m) then
-        output%time_field = output%time_field // "pulse"
+        output%time_field = trim(output%time_field) // "pulse"
       end if
     end if
     if(lelectric) then
-      output%time_field = output%time_field // "_efield"
+      output%time_field = trim(output%time_field) // "_efield"
       if(lpulse_e) then
-        output%time_field = output%time_field // "pulse"
+        output%time_field = trim(output%time_field) // "pulse"
       end if
     end if
 
@@ -328,7 +328,7 @@ contains
   subroutine open_time_prop_files()
     use mod_parameters, only: output,missing_files
     use mod_mpi_pars,   only: abortProgram
-
+    implicit none
     character(len=500) :: output_file
     integer :: i,iw,err,errt=0
 
@@ -362,6 +362,7 @@ contains
   ! subroutine to close time propagation output files
   subroutine close_time_prop_files()
     use mod_parameters, only: output
+    implicit none
     integer :: i
 
     do i=1,size(output%observable)
@@ -381,7 +382,7 @@ contains
     use mod_f90_kind, only: double
     use mod_system,   only: System
     use TightBinding, only: nOrb
-
+    implicit none
     type(System),                          intent(in) :: s
     real(double),                          intent(in) :: t
     real(double), dimension(nOrb,s%nAtoms),intent(in) :: rho_t, mx_t, my_t, mz_t
