@@ -54,26 +54,27 @@ contains
   end subroutine log_warning
 
   subroutine get_parameters(filename, s)
-    use mod_f90_kind,         only: double
-    use mod_input,            only: get_parameter, read_file, enable_input_logging, disable_input_logging
-    use mod_parameters,       only: output, laddresults, lverbose, ldebug, lkpoints, &
-                                    lpositions, lcreatefiles, lnolb, lhfresponses, &
-                                    lnodiag, lsha, lcreatefolders, lwriteonscreen, runoptions, lsimplemix, &
-                                    lcheckjac, llgtv, lsortfiles,leigenstates, &
-                                    itype, ry2ev, ltesla, eta, etap, dmax, emin, emax, &
-                                    skip_steps, nEner, nEner1, nQvec, nQvec1, qbasis, renorm, renormnb, bands, band_cnt, &
-                                    offset, dfttype, parField, parFreq, kptotal_in, kp_in
-    use mod_self_consistency, only: lslatec, lontheflysc, lnojac, lGSL, lforceoccup, lrotatemag, skipsc, scfile, magbasis, mag_tol
-    use mod_system,           only: System, n0sc1, n0sc2
-    use mod_SOC,              only: SOC, socscale, llinearsoc, llineargfsoc
-    use mod_magnet,           only: lfield, tesla, hwa_i, hwa_f, hwa_npts, hwa_npt1, hwt_i, hwt_f, &
-                                    hwt_npts, hwt_npt1, hwp_i, hwp_f, hwp_npts, hwp_npt1, hwx, hwy, &
-                                    hwz, hwscale, hwtrotate, hwprotate, skip_steps_hw
-    use TightBinding,         only: nOrb,nOrb2,tbmode, fermi_layer
-    use ElectricField,        only: ElectricFieldMode, ElectricFieldVector, EFp, EFt, EshiftBZ
-    use EnergyIntegration,    only: parts, parts3, pn1, pn2, pnt, n1gl, n3gl
-    use mod_tools,            only: itos, rtos
-    use adaptiveMesh,         only: minimumBZmesh
+    use mod_f90_kind,          only: double
+    use mod_input,             only: get_parameter, read_file, enable_input_logging, disable_input_logging
+    use mod_parameters,        only: output, laddresults, lverbose, ldebug, lkpoints, &
+                                     lpositions, lcreatefiles, lnolb, lhfresponses, &
+                                     lnodiag, lsha, lcreatefolders, lwriteonscreen, runoptions, lsimplemix, &
+                                     lcheckjac, llgtv, lsortfiles,leigenstates, &
+                                     itype, ry2ev, ltesla, eta, etap, dmax, emin, emax, &
+                                     skip_steps, nEner, nEner1, nQvec, nQvec1, qbasis, renorm, renormnb, bands, band_cnt, &
+                                     offset, dfttype, parField, parFreq, kptotal_in, kp_in
+    use mod_superconductivity, only: lsuperCond, superCond
+    use mod_self_consistency,  only: lslatec, lontheflysc, lnojac, lGSL, lforceoccup, lrotatemag, skipsc, scfile, magbasis, mag_tol
+    use mod_system,            only: System, n0sc1, n0sc2
+    use mod_SOC,               only: SOC, socscale, llinearsoc, llineargfsoc
+    use mod_magnet,            only: lfield, tesla, hwa_i, hwa_f, hwa_npts, hwa_npt1, hwt_i, hwt_f, &
+                                     hwt_npts, hwt_npt1, hwp_i, hwp_f, hwp_npts, hwp_npt1, hwx, hwy, &
+                                     hwz, hwscale, hwtrotate, hwprotate, skip_steps_hw
+    use TightBinding,          only: nOrb,nOrb2,tbmode, fermi_layer
+    use ElectricField,         only: ElectricFieldMode, ElectricFieldVector, EFp, EFt, EshiftBZ
+    use EnergyIntegration,     only: parts, parts3, pn1, pn2, pnt, n1gl, n3gl
+    use mod_tools,             only: itos, rtos
+    use adaptiveMesh,          only: minimumBZmesh
     use mod_mpi_pars
     implicit none
     character(len=*), intent(in)    :: filename
@@ -335,6 +336,10 @@ contains
        if(cnt >= dmax) hwprotate(1:dmax) = vector(1:dmax)
     end if
     if(allocated(vector)) deallocate(vector)
+    !------------------------------ Superconductivity Variables ------------------------------------
+    if(.not. get_parameter("superCond", lsuperCond, .false.)) &
+      call log_warning("get_parameters","'superCond' missing. Not using superconductivity.")
+      superCond = merge(2,1,lsuperCond)
     !------------------------------------ Integration Variables ------------------------------------
     if(.not. get_parameter("parts", parts)) &
       call log_error("get_parameters","'parts' missing.")
@@ -484,7 +489,7 @@ contains
       if(.not. disable_input_logging()) &
           call log_warning("get_parameters", "Could not disable logging.")
     end if
-    !==============================================================================================!    
+    !==============================================================================================!
     if(myrank==0) &
       write(output%unit,"('[get_parameters] Finished reading from ""',a,'"" file')") trim(filename)
 

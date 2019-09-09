@@ -1,9 +1,10 @@
 module mod_superconductivity
   implicit none
-
+  logical :: lsuperCond = .false.
+  integer :: superCond
 contains
 
-  subroutine hamilt_sc(sys)
+  subroutine hamiltk_sc(sys,kp,hk_sc)
   ! subroutine hamilt_sc(sys,rho,mp,mx,my,mz,sys,kp,hk)
     use mod_f90_kind,       only: double
     use mod_BrillouinZone,  only: realBZ
@@ -17,14 +18,14 @@ contains
     type(System),                              intent(in)  :: sys
   !   real(double),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
   !   complex(double), dimension(nOrb,s%nAtoms), intent(out) :: mp
-    real(double) :: kp(3)
+    real(double), intent(in)  :: kp(3)
     complex(double),dimension(sys%nAtoms*nOrb2, sys%nAtoms*nOrb2) :: hk
-    complex(double),dimension(sys%nAtoms*nOrb2*2, sys%nAtoms*nOrb2*2) :: hk_sc
+    complex(double),dimension(sys%nAtoms*nOrb2*2, sys%nAtoms*nOrb2*2), intent(out) :: hk_sc
     integer :: j, i
 
     hk = cZero
 
-    kp = EshiftBZ*ElectricFieldVector
+    !kp = EshiftBZ*ElectricFieldVector
 
     ! write(*,*) kp
     ! kp = realBZ%kp(1:3,1)
@@ -48,11 +49,11 @@ contains
     hk_sc(1:sys%nAtoms*nOrb2,1:sys%nAtoms*nOrb2) = hk
     hk_sc(sys%nAtoms*nOrb2+1:sys%nAtoms*nOrb2*2,sys%nAtoms*nOrb2+1:sys%nAtoms*nOrb2*2) = -hk
 
-    do i = 1, sys%nAtoms*nOrb2*2
-      do j = 1, sys%nAtoms*nOrb2*2
-        write(*,*) real(hk_sc(i,j)), imag(hk_sc(i,j))
-      end do
-    end do
+    ! do i = 1, sys%nAtoms*nOrb2*2
+    !   do j = 1, sys%nAtoms*nOrb2*2
+    !     write(*,*) real(hk_sc(i,j)), imag(hk_sc(i,j))
+    !   end do
+    ! end do
 
     ! ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
     ! !call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
@@ -63,7 +64,7 @@ contains
     !
     ! write(*,*) "Also very handsome I may say"
 
-  end subroutine hamilt_sc
+  end subroutine hamiltk_sc
 
   subroutine green_sc(er,ei,sys,kp,gf)
     use mod_f90_kind,   only: double
@@ -79,7 +80,7 @@ contains
     complex(double),dimension(sys%nAtoms*nOrb2*2, sys%nAtoms*nOrb2*2) :: gslab,hk
     complex(double),dimension(nOrb2, nOrb2, sys%nAtoms, sys%nAtoms), intent(out)  :: gf
     !
-    ! d = sys%nAtoms * nOrb2
+    ! d = sys%nAtoms * nOrb2 *2
     !
     ! ec    = cmplx(er,ei,double)
     !
@@ -88,7 +89,7 @@ contains
     !   gslab(i,i) = ec
     ! end do
     !
-    ! call hamiltk(sys,kp,hk)
+    ! call hamiltk_sc(sys,kp,hk)
     !
     ! call zaxpy(d*d,-cOne,hk,1,gslab,1)
     ! !gslab(i,j) = gslab(i,j) - hk(i,j)
