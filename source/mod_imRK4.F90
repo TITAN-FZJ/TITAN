@@ -354,7 +354,6 @@ contains
  subroutine magnetic_pulse_B(t,b_pulse)
     use mod_f90_kind, only: double
     use mod_imRK4_parameters, only: field_direction_m, hw1_m, hw_m, tau_m, delay_m
-    use mod_constants,  only: ci
     implicit none
     real(double) , intent(in)  :: t
     real(double) , intent(out) :: b_pulse(3)
@@ -364,17 +363,17 @@ contains
   end subroutine magnetic_pulse_B
 
 
- subroutine electric_pulse_e(t,e_pulse)
-    use mod_f90_kind, only: double
-    use mod_imRK4_parameters, only: field_direction_e, hE_0, hw_e, tau_e
-    use mod_constants,  only: ci
-    implicit none
-    real(double) , intent(in)  :: t
-    real(double) , intent(out) :: e_pulse(3)
+ ! subroutine electric_pulse_e(t,e_pulse)
+ !    use mod_f90_kind, only: double
+ !    use mod_imRK4_parameters, only: field_direction_e, hE_0, hw_e, tau_e
+ !    implicit none
+ !    real(double) , intent(in)  :: t
+ !    real(double) , intent(out) :: e_pulse(3)
 
-    e_pulse = [ field_direction_e(1), field_direction_e(2), field_direction_e(3) ] * (hE_0*0.5d0*exp(-(t-4.d0*tau_e)**2/tau_e**2)*aimag(exp(hw_e*t*cI)))
+ !    e_pulse = [ field_direction_e(1), field_direction_e(2), field_direction_e(3) ] * (hE_0*0.5d0*exp(-(t-4.d0*tau_e)**2/tau_e**2)*aimag(exp(hw_e*t*cI)))
 
-  end subroutine electric_pulse_e
+ !  end subroutine electric_pulse_e
+
 
   !> subroutine builds vector potential A(t) = integral(E(t)dt)
   !> From paper(DOI: 0.1038/s41567-019-0602-9) the vector potential is given by: 
@@ -385,7 +384,7 @@ contains
   subroutine evec_potent(t,A_t,A_t_abs)
     use mod_f90_kind, only: double
     use mod_imRK4_parameters, only: field_direction_e, hE_0, hw_e, tau_e, delay_e
-    use mod_constants,  only: ci, pi
+    use mod_constants,  only: pi
     implicit none 
     real(double) , intent(in)  :: t
     real(double) , intent(out) :: A_t(3)

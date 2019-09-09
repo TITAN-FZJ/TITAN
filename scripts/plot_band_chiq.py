@@ -70,7 +70,7 @@ def read_data(filename):
 ################################################################################
 if __name__ == "__main__":
   numplots = len(sys.argv)-1
-  titles = [r"no SOC", r"with SOC"]
+  titles = [r"with SOC", r"no SOC"]
   # titles = [r"$\#_{k}=100$M, $\eta=5\times10^{-4}$, 2nn", r"$\#_{k}=100$M, $\eta=5\times10^{-4}$, 3nn"]
   # titles = [r"$\#_{k}=10$M", r"$\#_{k}=100$k"])
   # titles = [r"$\eta=5\times10^{-3}$", r"$\eta=5\times10^{-4}$"])
@@ -92,17 +92,20 @@ if __name__ == "__main__":
       axs[0,i].axvline(x=j, color='k', linewidth=0.5)
 
     # Ploting the Fermi level or a line at y=0.0
-    if not (fermi == None):
-      axs[0,i].axhline(y=fermi, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--')
-    else:
+    if (fermi == None): # susceptibility
       axs[0,i].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='-', linewidth=0.5)
+    else: # band structure
+      axs[0,i].axhline(y=fermi, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--')
 
-    for j in enumerate(table[:,1]):
-      if j[1] == point[4]:
-        print 'Value at ',name[4],': ',-1.0/table[j[0],2]
+    # for j in enumerate(table[:,1]):
+    #   if j[1] == point[4]:
+    #     print 'Value at ',name[4],': ',-1.0/table[j[0],2]
 
     # Plotting the results
-    axs[0,i].plot(table[:,1],-1.0/table[:,2])
+    if (fermi == None): # susceptibility
+      axs[0,i].plot(table[:,1],-1.0/table[:,2])
+    else: # band structure
+      axs[0,i].plot(table[:,0],table[:,1:], color='k', linewidth=1.0, linestyle='-')
 
   plt.tight_layout()
   plt.show()

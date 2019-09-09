@@ -7,7 +7,7 @@ contains
     use mod_constants,        only: cZero, cI
     use mod_imRK4_parameters, only: dimH2, time, step, integration_time, ERR, Delta, lelectric, hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
     use mod_RK_matrices,      only: A, id, id2, M1, build_identity
-    use mod_imRK4,            only: iterate_Zki, calculate_step_error, magnetic_pulse_B, electric_pulse_e, evec_potent
+    use mod_imRK4,            only: iterate_Zki, calculate_step_error, magnetic_pulse_B, evec_potent
     use mod_BrillouinZone,    only: realBZ
     use mod_parameters,       only: dimH,output,laddresults
     use mod_system,           only: System
