@@ -484,7 +484,7 @@ contains
     ! Sorting total disturbance
     iw = 3500*idc
     do j=1,7
-     call sort_file(iw+j,.true.)
+     call sort_file(iw+j)
     end do
 
 
@@ -492,13 +492,13 @@ contains
      ! Sorting disturbance files
      iw = 3000*idc+(i-1)*7
      do j=1,7
-       call sort_file(iw+j,.true.)
+       call sort_file(iw+j)
      end do
 
      ! Sorting renormalized disturbances
      if(renorm) then
        do j=1001,1007
-        call sort_file(iw+j,.true.)
+        call sort_file(iw+j)
        end do
      end if
     end do

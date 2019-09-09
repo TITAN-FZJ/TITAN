@@ -418,17 +418,17 @@ contains
             iw = 9000*idc+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
 
             ! Sorting torque files
-            call sort_file(iw,.true.)
+            call sort_file(iw)
 
             ! Sorting renormalized torque files
             if(renorm) then
               iw = iw+1000
-              call sort_file(iw,.true.)
+              call sort_file(iw)
             end if
           end do
           iw = 9500*idc+(typetorque-1)*3+sigma
          ! Sorting total torque files
-         call sort_file(iw,.true.)
+         call sort_file(iw)
        end do
     end do
 

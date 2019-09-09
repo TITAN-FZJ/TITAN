@@ -29,6 +29,7 @@ program TITAN
   use mod_tools, only: rtos
   use mod_initial_expectation, only: calc_initial_Uterms
   use mod_superconductivity
+  use mod_time_propagator,   only: time_propagator
   !use mod_define_system TODO: Re-include
   !use mod_prefactors TODO: Re-include
   !use mod_lgtv_currents TODO: Re-include
@@ -115,6 +116,7 @@ program TITAN
   call allocate_Atom_variables(sys%nAtoms,nOrb)
 
   !---------------------------- Dimensions -----------------------------
+  dimH = sys%nAtoms*nOrb*2
   dimspinAtoms = 4 * sys%nAtoms
   dim = dimspinAtoms * nOrb * nOrb
 
@@ -134,6 +136,7 @@ program TITAN
 
   !-------------------------- Filename strings -------------------------
   write(output%info,"('_nkpt=',i0,'_eta=',a)") kptotal_in, trim(rtos(eta,"(es8.1)"))
+  if(leigenstates) output%info = trim(output%info) // "_ev"
 
   !------------------------ MAGNETIC FIELD LOOP ------------------------
   if(myrank == 0 .and. skip_steps_hw > 0) &
@@ -278,6 +281,8 @@ program TITAN
       call calculate_dc_limit()
     case(10) ! Calculation of Gilbert Damping by Kamberskys Torque Torque model
       call calculate_TCM()
+    case(11) ! Propagation of ( H(k) + S.B(t) )
+      call time_propagator(sys)
     end select
     !===================================================================
 

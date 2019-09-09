@@ -111,7 +111,7 @@ contains
     do i = 1, s%nAtoms
       do j = 1, size(filename)
         iw = 1000 + (i-1) * size(filename) + j
-        call sort_file(iw,.true.)
+        call sort_file(iw)
       end do
     end do
 

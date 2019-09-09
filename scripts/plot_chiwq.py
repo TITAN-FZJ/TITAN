@@ -1,5 +1,5 @@
 import numpy as np 
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
 import sys
 import matplotlib as mpl                      # Plotting library
 from matplotlib import rc                     # Improve math fonts
@@ -29,11 +29,11 @@ mpl.rcParams['legend.edgecolor'] = 'inherit'
 mpl.rcParams['legend.handlelength'] = 2
 mpl.rcParams["font.weight"] = "bold"
 mpl.rcParams["axes.labelweight"] = "bold"
-ry2mev = 1.0 
+ry2mev = 1.0
 
 
 ry2mev = 13605.7 # Conversion of energy units
-fact = 1         # Interpolation factor
+fact = 10         # Interpolation factor
 # ry2mev = 1.0
 
 ################################################################################
@@ -46,13 +46,8 @@ def read_header(file):
     # print npoints
     name = np.empty(npoints, dtype=str)
     point = np.empty(npoints, dtype=float)
-    name_out = []
     for i in range(npoints):
       name[i], point[i] = f.readline().split()[1:]
-      if name[i] == "G":
-        name_out.append(r"$\Gamma$")
-      else:
-        name_out.append(name[i])
       # print name[i], point[i]
 
     Ef_line = f.readline().split()
@@ -60,7 +55,7 @@ def read_header(file):
     if "Ef" in Ef_line[1]:
       fermi = float(Ef_line[2])
       # print fermi
-  return npoints, name_out, point, fermi
+  return npoints, name, point, fermi
 
 ################################################################################
 # Get the data from the file and save it into a matrix
@@ -142,13 +137,13 @@ if __name__ == "__main__":
 
   fig = plt.figure(figsize=(6*numplots, 5))
 
-  # Create a grid with 1 row and 'numplots' column 
-  grid = AxesGrid(fig, 111, 
-                     nrows_ncols=(1, numplots), 
+  # Create a grid with 1 row and 'numplots' column
+  grid = AxesGrid(fig, 111,
+                     nrows_ncols=(1, numplots),
                      axes_pad=0.2,
                      share_all=True,
-                     cbar_mode='single', 
-                     cbar_location='right', 
+                     cbar_mode='single',
+                     cbar_location='right',
                      cbar_pad=0.2 )
 
   for i in range(numplots):
@@ -158,7 +153,6 @@ if __name__ == "__main__":
     grid[i].set_title(titles[i])
     if i == 0:
       grid[i].set_ylabel("Energy [meV]")
-    grid[i].set_xlabel("Wave vector")
 
     grid[i].set_xlim([point[0],point[npoints-1]])
     # grid[i].set_ylim(y.min(),y.max())
@@ -196,7 +190,7 @@ if __name__ == "__main__":
     # grid[i].cbar_axes[0].ticklabel_format(style='sci', scilimits=(0,0))
     grid.cbar_axes[0].yaxis.set_offset_position('left')
     # grid.cbar_axes[0].set_title(prm.cbar_titles_SOT[i] if 'SOT' in prm.output_prefix else prm.cbar_titles_Beff[i], size=12) # Title of the colorbar
-    cb.solids.set_rasterized(True) 
+    cb.solids.set_rasterized(True)
     for axis in ['top','bottom','left','right']:
       grid.cbar_axes[0].spines[axis].set_linewidth(1.5)
 
@@ -204,4 +198,3 @@ if __name__ == "__main__":
 
   # plt.tight_layout()
   plt.show()
-

@@ -282,11 +282,11 @@ contains
     ! Sorting longitudinal and transverse currents files
     do i=1,Npl ; do j=1,7 ; do k=1,2
       iw = 8300*idc+(i-1)*7*2+(j-1)*2+k
-      call sort_file(iw,.true.)
+      call sort_file(iw)
     end do ; end do ; end do
     do j=1,7 ; do k=1,2
       iw = 8500*idc+(j-1)*2+k
-      call sort_file(iw,.true.)
+      call sort_file(iw)
     end do ; end do
 
     ! Closing longitudinal and transverse currents files

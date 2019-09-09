@@ -1,23 +1,21 @@
 !*******************************************************************************!
 !                           CHOOSE WHAT TO CALCULATE                            !
-->itype = 7
+->itype = 11
 !===============================================================================!
 !                                OUTPUT FILE                                    !
--> output = output/file.out
+-> output = output/out
 ! -> suffix = _-M
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
--> Options = kpoints createfolders positions GSL ! kpoints ! noUonPt ! addresults
+-> Options = kpoints createfolders positions GSL eigenstates nojac ! addresults
 !===============================================================================!
 -> bulk = .false.
 !                               SYSTEM VARIABLES                                !
-! Lattice and surface direction:                                                !
 -> nn_stages = 2
 ! Small imaginary part of the Green function:
 -> eta = 1e-3
 !===============================================================================!
 !                          STATIC MAGNETIC ZEEMAN FIELD                         !
-!                         (in the spin reference system)                        !
 -> FIELD = F  ! Magnetic field on (T) or off (F) (choose one form below)
 ! Spherical coordinates (default, angles in units of pi)                        !
 -> hwa   = 1.0E-04
@@ -31,19 +29,57 @@
 !                             SPIN-ORBIT COUPLING                               !
 -> SOC = T
 -> socscale = 1.00d0
+!-------------------------------------------------------------------------------!
+! Magnetization axis:                                                           !
+! (Basis to the initial magnetization direction read from file 'initialmag')    !
+!-> magbasis = cartesian
+!===============================================================================!
+!                         TIME-DEPENDENT PERTURBATION                           !
+! Total time to propagate:
+-> integration_time = 10.d3
+! Tolerance for propagation loop:
+-> sc_tol = 0.01d0
+! Absolute tolerance for step size control:
+-> abs_tol = 0.001d0
+! Relative tolerance for step size control:
+-> rel_tol = 0.001d0
+! Saftey factor for step size control:
+-> Delta = 0.9d0
+!-------------------------------------------------------------------------------!
+! Electric field:
+-> electric = T
+! direction of the field
+-> field_direction_e = 1.d0 0.d0 0.d0
+! Intensity of the field:
+-> hE_0 = 1.886E-03
+! Frequency of oscillation hw_e.t:
+-> hw_e = 8.77d0
+! Pulse (if F, oscillatory field)
+-> pulse_e = T
+! Length of the pulse (must be given if pulse=T)
+-> tau_e = 820.d0
+! Delay of the pulse
+-> delay_e = 0.d0 ! Center of the pulse is located at 0.5tau when delay_e=0.d0
+!-------------------------------------------------------------------------------!
+! Magnetic field:
+-> magnetic = F
+! direction of the field
+-> field_direction_m = 0.d0 0.d0 1.d0
+Intensity of the field
+! Intensity of the field:
+-> hw1_m = 1.d0
+! Frequency of oscillation hw_m.t:
+-> hw_m = 100.d0
+! Pulse (if F, oscillatory field)
+-> pulse_m = F
+! Length of the pulse (must be given if pulse=T)
+-> tau_m = 100.d0
+! Delay of the pulse
+-> delay_m = 0.d0 ! Center of the pulse is located at 4tau when delay_m=0.d0
 !===============================================================================!
 !                   DIRECTION OF IN-PLANE ELECTRIC FIELD                        !
 -> ebasis = cartesian
 -> dirEfield = 1.0 0.0 0.0
-!===============================================================================!
-!                        IN-PLANE CURRENTS TO CALCULATE                         !
--> n0sc1 = 1   ! First neighbor
--> n0sc2 = 6   ! Last neighbor
-!
-!                    CURRENT AND DISTURBANCE RENORMALIZATION                    !
-!          (only used when currents are calculated - itype=7 and 8)             !
--> renorm = T        ! Turn renormalization on (T) or off (F)
--> renormnb = 1      ! Reference neighbor (where the charge current will be 1)
 !===============================================================================!
 !                           INTEGRATION VARIABLES                               !
 ! Approximate number of k-points: (nkpt > 0)                                    !
@@ -57,13 +93,14 @@
 !===============================================================================!
 !                              PLOTTING VARIABLES                               !
 ! Energy range and number of points:                                            !
--> emin =  1.d-6
--> emax =  1.d-6
--> nEner = 1
+-> emin =  0.d0
+-> emax =  5.d-2
+-> nEner = 500
 !-> skip_steps = 0
 !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -!
 ! Wave vector path and number of points:                                        !
--> band = G N M G
+! (Points read from file 'kbands')                                              !
+-> band = G
 -> nQvec = 1
 -> qbasis = cartesian
 !===============================================================================!
@@ -74,5 +111,9 @@
 !-> scfile = Resultados/selfconsistency/selfconsistency_Npl=4_parts=2_U= 0.7E-01_hwx= 0.0E+00_hwy= 0.0E+00_hwz= 0.0E+00_ncp=6_eta= 0.5E-03.dat
 !===============================================================================!
 !                             Tight-Binding mode                                !
--> tbmode = 1   ! (1) Slater-Koster, (2) DFT (not implemented yet)
+-> tbmode = 1   ! (1) Slater-Koster, (2) DFT
+!-------------------------------------------------------------------------------!
+! Slater-Koster
+-> layers = Co
+-> fermi_layer = 1 ! Which layer should the Fermi-Level be taken from
 !*******************************************************************************!

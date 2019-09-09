@@ -1,17 +1,16 @@
 ! This is the main subroutine to calculate all quantities:
 ! currents, disturbances, torques, effective fields and susceptibilities
 subroutine calculate_all()
-  use mod_f90_kind, only: double
-  use mod_constants, only: cZero, cOne, cI, levi_civita
+  use mod_f90_kind,   only: double
+  use mod_constants,  only: cZero, cOne, cI, levi_civita
   use mod_parameters, only: lnodiag, renorm, U, offset, output, laddresults, skip_steps, count, lhfresponses, sigmaimunu2i, emin, emax, deltae, nQvec1, kpoints, dim, sigmai2i, dimspinAtoms
-  use mod_magnet, only: lfield, hhw, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, total_hw_npt1
-  use mod_SOC, only: llinearsoc
-  use mod_System, only: s => sys
+  use mod_magnet,     only: lfield, hhw, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, total_hw_npt1, lrot
+  use mod_SOC,        only: llinearsoc
+  use mod_System,     only: s => sys
   use mod_BrillouinZone, only: realBZ
-  use adaptiveMesh, only: genLocalEKMesh, freeLocalEKMesh
-  use mod_prefactors, only: prefactor, prefactorlsoc, &
-                            allocate_prefactors, deallocate_prefactors
-  use mod_susceptibilities, only: lrot, rottemp, rotmat_i, rotmat_j, &
+  use adaptiveMesh,      only: genLocalEKMesh, freeLocalEKMesh
+  use mod_prefactors,    only: prefactor, prefactorlsoc, allocate_prefactors, deallocate_prefactors
+  use mod_susceptibilities, only: rottemp, rotmat_i, rotmat_j, &
                                   schitemp, schirot, schi, schihf, &
                                   chiorb, chiorb_hf, chiorb_hflsoc, Umatorb, identt, &
                                   build_identity_and_U_matrix, diagonalize_susceptibilities, &
@@ -111,7 +110,7 @@ subroutine calculate_all()
         end if
 
         ! Checking sum rule for e=0.d0
-        if(e == 0.d0) call sumrule(chiorb_hf)
+        if((abs(e) < 1.d-8).and.(sum(abs(q)) < 1.d-8)) call sumrule(chiorb_hf)
 
         ! prefactor = (1 + chi_hf*Umat)^-1
         prefactor     = identt
@@ -420,7 +419,7 @@ subroutine calculate_all()
             if((.not.lhfresponses).and.(.not.lnodiag)) call diagonalize_susceptibilities()
 
             ! WRITING SUSCEPTIBILITIES
-            call write_susceptibilities(q,e)
+            call write_susceptibilities(qcount,e)
 
             ! Renormalizing disturbances and currents by the total charge current to neighbor renormnb
             !if(renorm) then !TODO: Re-Include

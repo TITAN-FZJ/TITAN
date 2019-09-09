@@ -46,6 +46,9 @@ subroutine create_folder()
     call execute_command_line(trim(folder))
   end do
 
+  write(folder, "(a,'time_propagation')") trim(base_command)
+  call execute_command_line(trim(folder))
+
   !! Create Disturbance Folder
   disturbance(:) = ["CD", "SD", "LD"]
   if(lhfresponses) disturbance(:) = ["CD_HF", "SD_HF", "LD_HF"]

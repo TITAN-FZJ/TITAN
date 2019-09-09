@@ -11,6 +11,8 @@ module mod_parameters
   real(double)  :: q(3)
   !! q-vector for the dependence of response functions (not used yet)
   ! Dimension variables:
+  integer       :: dimH
+  !! Dimension of the Hamiltonian: 2 spins x number of atoms in the unit cell
   integer       :: dimspinAtoms
   !! Dimension: 4 spins x number of atoms in the unit cell
   integer       :: dim
@@ -44,8 +46,12 @@ module mod_parameters
   !========================================================================================!
   character(len=10), dimension(:), allocatable :: bands
   !! Band structure points
-  integer :: band_cnt
+  integer           :: band_cnt
   !! Number of points along the loop path
+  character(len=20) :: kdirection
+  !! Path of symmetry points followed in the Brillouin Zone
+  real(double), allocatable :: partial_length(:)
+  !! Length of each segment on the Brillouin zone
   !========================================================================================!
   integer      :: nEner,nEner1,count
   ! Number of points of energy (frequency) loops
@@ -67,7 +73,7 @@ module mod_parameters
   character(len=400) :: bsfile
   !! Filename for band structure calculation
   !========================================================================================!
-  integer,allocatable :: sigmaimunu2i(:,:,:,:),sigmaijmunu2i(:,:,:,:,:),sigmai2i(:,:),isigmamu2n(:,:,:)
+  integer, allocatable :: sigmaimunu2i(:,:,:,:),sigmaijmunu2i(:,:,:,:,:),sigmai2i(:,:),isigmamu2n(:,:,:), n2isigmamu(:,:)
   !! Conversion arrays
   !========================================================================================!
   character(len=200)          :: runoptions
@@ -164,6 +170,9 @@ module mod_parameters
      character(len=3)  :: hfr = ""
 
      character(len=50) :: info = ""
+     ! Strings for time-dependent calculations
+     character(len=100) :: time_field = ""
+     character(len=50),dimension(:), allocatable :: observable
   end type Filename
   type(Filename) :: output
 end module mod_parameters

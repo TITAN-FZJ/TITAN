@@ -1,15 +1,16 @@
 ! Rotation matrices
 module mod_rotation_matrices
-  ! Build rotation matrices for the spin-spin susceptibility in the
-  ! +,up,down,- basis: chi' = A.chi.B
-  ! Due to the form of the susceptibility, the left
-  ! rotation matrix (A) is different than the right one (B).
-  ! iflag = 1 calculates A
-  ! iflag = 2 calculates B
-  ! Angles should be given in degrees
+  
 contains
 
   subroutine rotation_matrices_chi(theta_in,phi_in,rotmat,iflag)
+    ! Build rotation matrices for the spin-spin susceptibility in the
+    ! +,up,down,- basis: chi' = A.chi.B
+    ! Due to the form of the susceptibility, the left
+    ! rotation matrix (A) is different than the right one (B).
+    ! iflag = 1 calculates A
+    ! iflag = 2 calculates B
+    ! Angles should be given in degrees
     use mod_f90_kind, only: double
     use mod_constants, only: cI,deg2rad
     implicit none
