@@ -138,6 +138,9 @@ program TITAN
   write(output%info,"('_nkpt=',i0,'_eta=',a)") kptotal_in, trim(rtos(eta,"(es8.1)"))
   if(leigenstates) output%info = trim(output%info) // "_ev"
 
+  !--------------- Extra Token for Superconductivity files -------------
+  if(lsuperCond) output%info = trim(output%info) // "_sc"
+
   !------------------------ MAGNETIC FIELD LOOP ------------------------
   if(myrank == 0 .and. skip_steps_hw > 0) &
   write(output%unit,"('[main] Skipping first ',i0,' field step(s)...')") skip_steps_hw
