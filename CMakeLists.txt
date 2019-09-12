@@ -78,7 +78,6 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/read_band_points.F90
                                   source/TorqueTorqueResponse.F90
                                   source/TorqueSpinResponse.F90
-                                  source/mod_RK_matrices.F90
                                   )
 
 # Execulable names
