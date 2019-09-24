@@ -340,7 +340,7 @@ contains
     !------------------------------ Superconductivity Variables ------------------------------------
     if(.not. get_parameter("superCond", lsuperCond, .false.)) &
       call log_warning("get_parameters","'superCond' missing. Not using superconductivity.")
-      superCond = merge(2,1,lsuperCond)
+    superCond = merge(2,1,lsuperCond)
     !------------------------------------ Integration Variables ------------------------------------
     if(.not. get_parameter("parts", parts)) &
       call log_error("get_parameters","'parts' missing.")
@@ -498,14 +498,14 @@ contains
       ! Reading electric field variables
       if(.not. get_parameter("electric", lelectric,.false.)) &
         call log_warning("get_parameters", "'electric' not found. Electric field is not applied.")
-      if(lelectric) then 
+      if(lelectric) then
         if(.not. get_parameter("hE_0", hE_0)) &
           call log_error("get_parameters", "'hE_0' not found.")
         if(.not. get_parameter("hw_e", hw_e)) &
           call log_error("get_parameters", "'hw_e' not found.")
         if(.not. get_parameter("pulse_e", lpulse_e,.false.)) &
           call log_warning("get_parameters", "'pulse_e' not found. Oscillatory electric field is applied.")
-        if(lpulse_e) then 
+        if(lpulse_e) then
           if(.not. get_parameter("field_direction_e", vector, cnt)) &
             call log_error("get_parameters","'field_direction_e' missing.")
           if(cnt /= 3) call log_error("get_parameters","'field_direction_e' has wrong size (size 3 required).")
@@ -520,14 +520,14 @@ contains
       ! Reading magnetic field variables
       if(.not. get_parameter("magnetic", lmagnetic,.false.)) &
         call log_warning("get_parameters", "'magnetic' not found. Magnetic field is not applied.")
-      if(lmagnetic) then 
+      if(lmagnetic) then
         if(.not. get_parameter("hw1_m", hw1_m)) &
           call log_error("get_parameters", "'hw1_m' not found.")
         if(.not. get_parameter("hw_m", hw_m)) &
           call log_error("get_parameters", "'hw_m' not found.")
         if(.not. get_parameter("pulse_m", lpulse_m,.false.)) &
           call log_warning("get_parameters", "'pulse_m' not found. Oscillatory Magnetic field is applied.")
-        if(lpulse_m) then 
+        if(lpulse_m) then
           if(.not. get_parameter("field_direction_m", vector, cnt)) &
             call log_error("get_parameters","'field_direction_m' missing.")
           if(cnt /= 3) call log_error("get_parameters","'field_direction_m' has wrong size (size 3 required).")
@@ -539,7 +539,7 @@ contains
             call log_warning("get_parameters", "'delay_m' not found. Center of the pulse is located at t=4tau_m.")
         end if
       else
-        if(.not.lelectric) call log_error("get_parameters", "'magnetic' and 'electric' not found. Please, choose a type of perturbation.") 
+        if(.not.lelectric) call log_error("get_parameters", "'magnetic' and 'electric' not found. Please, choose a type of perturbation.")
       end if
 
     end if
@@ -667,6 +667,12 @@ contains
     write(output%unit_loop,"(8x,'parts = ',i0,'x',i0)") parts,n1gl
     write(output%unit_loop,"(7x,'parts3 = ',i0,'x',i0)") parts3,n3gl
     write(output%unit_loop,"(10x,'eta =',es9.2)") eta
+    if(lsuperCond) then
+       write(output%unit_loop,"(1x,'Superconductivity: ACTIVATED')")
+    else
+       write(output%unit_loop,"(1x,'Superconductivity: DEACTIVATED')")
+    end if
+
     if(lfield) then
        write(output%unit_loop,"(1x,'Static magnetic field: ACTIVATED')")
        write(output%unit_loop,"(10x,'hwx =',es9.2,5x,'|',5x,'hwa =',es9.2)") hwx,hw_list(hw_count,1)

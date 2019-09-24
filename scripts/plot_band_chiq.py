@@ -1,8 +1,9 @@
-import numpy as np 
-import matplotlib.pyplot as plt 
+import numpy as np
+import matplotlib.pyplot as plt
 import sys
 import matplotlib as mpl                      # Plotting library
 from matplotlib import rc                     # Improve math fonts
+import argparse
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 ## for Palatino and other serif fonts use:
 # rc('font',**{'family':'serif','serif':['Palatino']})
@@ -68,44 +69,104 @@ def read_data(filename):
 ################################################################################
 # Main program
 ################################################################################
+#
+# IMPORTANT: If you want to plot the superconductivity bands, then the way to
+# execute this script is
+#
+# $ ipython < route to script.py> <route to datafile> -- --superconductivity
+#
+
 if __name__ == "__main__":
-  numplots = len(sys.argv)-1
-  titles = [r"with SOC", r"no SOC"]
-  # titles = [r"$\#_{k}=100$M, $\eta=5\times10^{-4}$, 2nn", r"$\#_{k}=100$M, $\eta=5\times10^{-4}$, 3nn"]
-  # titles = [r"$\#_{k}=10$M", r"$\#_{k}=100$k"])
-  # titles = [r"$\eta=5\times10^{-3}$", r"$\eta=5\times10^{-4}$"])
 
-  fig, axs = plt.subplots(1, numplots, sharey=True, squeeze=False, figsize=(6*numplots, 5))
-  axs[0,0].set_ylabel("Energy [Ry]")
+    parser = argparse.ArgumentParser(description="Parse bool")
+    parser.add_argument("file", help="echo the string you use here")
+    parser.add_argument("--superconductivity", default=False, action="store_true" , help="Flag to do something")
+    args = parser.parse_args()
 
-  for i in range(numplots):
-    npoints, name, point, fermi = read_header(sys.argv[i+1])
-    table = read_data(sys.argv[i+1])
-    axs[0,i].set_title(titles[i])
-    axs[0,i].set_xlim([point[0],point[npoints-1]])
-    # axs[0,i].set_ylim(table[:,1:].min(),table[:,1:].max())
-    # axs[0,i].set_ylim(1.0/(table[:,1:].min()),1.0/(table[:,1:].max()))
+    print(args)
 
-    axs[0,i].set_xticks(point)
-    axs[0,i].set_xticklabels(name)
-    for j in point:
-      axs[0,i].axvline(x=j, color='k', linewidth=0.5)
+    if args.superconductivity:
+         numplots = len(sys.argv)-1
+         titles = [r"Original Bands", r"Negative Bands"]
+         # titles = [r"$\#_{k}=100$M, $\eta=5\times10^{-4}$, 2nn", r"$\#_{k}=100$M, $\eta=5\times10^{-4}$, 3nn"]
+         # titles = [r"$\#_{k}=10$M", r"$\#_{k}=100$k"])
+         # titles = [r"$\eta=5\times10^{-3}$", r"$\eta=5\times10^{-4}$"])
 
-    # Ploting the Fermi level or a line at y=0.0
-    if (fermi == None): # susceptibility
-      axs[0,i].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='-', linewidth=0.5)
-    else: # band structure
-      axs[0,i].axhline(y=fermi, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--')
+         fig, axs = plt.subplots(1, numplots, sharey=True, squeeze=False, figsize=(6*numplots, 5))
+         axs[0,0].set_ylabel("Energy [Ry]")
 
-    # for j in enumerate(table[:,1]):
-    #   if j[1] == point[4]:
-    #     print 'Value at ',name[4],': ',-1.0/table[j[0],2]
+         for i in range(numplots):
+           npoints, name, point, fermi = read_header(args.file)
+           table = read_data(args.file)
+           axs[0,i].set_title(titles[i])
+           axs[0,i].set_xlim([point[0],point[npoints-1]])
+           # axs[0,i].set_ylim(table[:,1:].min(),table[:,1:].max())
+           # axs[0,i].set_ylim(1.0/(table[:,1:].min()),1.0/(table[:,1:].max()))
 
-    # Plotting the results
-    if (fermi == None): # susceptibility
-      axs[0,i].plot(table[:,1],-1.0/table[:,2])
-    else: # band structure
-      axs[0,i].plot(table[:,0],table[:,1:], color='k', linewidth=1.0, linestyle='-')
+           axs[0,i].set_xticks(point)
+           axs[0,i].set_xticklabels(name)
+           for j in point:
+             axs[0,i].axvline(x=j, color='k', linewidth=0.5)
 
-  plt.tight_layout()
-  plt.show()
+           # Ploting the Fermi level or a line at y=0.0
+           if (fermi == None): # susceptibility
+             axs[0,i].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='-', linewidth=0.5)
+           else: # band structure
+             axs[0,i].axhline(y=fermi, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--')
+
+           # for j in enumerate(table[:,1]):
+           #   if j[1] == point[4]:
+           #     print 'Value at ',name[4],': ',-1.0/table[j[0],2]
+
+           # Plotting the results
+           if (fermi == None): # susceptibility
+             axs[0,i].plot(table[:,1],-1.0/table[:,2])
+           else: # band structure
+             if(i==0):
+                 axs[0,i].plot(table[:,0],table[:,(table.shape[1]-1)/2+1:], color='r', linewidth=1.0, linestyle='-')
+             else:
+                 axs[0,i].plot(table[:,0],table[:,1:(table.shape[1]-1)/2], color='k', linewidth=1.0, linestyle='-')
+
+         plt.tight_layout()
+         plt.show()
+    else:
+         numplots = len(sys.argv)-1
+         titles = [r"with SOC", r"no SOC"]
+         # titles = [r"$\#_{k}=100$M, $\eta=5\times10^{-4}$, 2nn", r"$\#_{k}=100$M, $\eta=5\times10^{-4}$, 3nn"]
+         # titles = [r"$\#_{k}=10$M", r"$\#_{k}=100$k"])
+         # titles = [r"$\eta=5\times10^{-3}$", r"$\eta=5\times10^{-4}$"])
+
+         fig, axs = plt.subplots(1, numplots, sharey=True, squeeze=False, figsize=(6*numplots, 5))
+         axs[0,0].set_ylabel("Energy [Ry]")
+
+         for i in range(numplots):
+           npoints, name, point, fermi = read_header(sys.argv[i+1])
+           table = read_data(sys.argv[i+1])
+           axs[0,i].set_title(titles[i])
+           axs[0,i].set_xlim([point[0],point[npoints-1]])
+           # axs[0,i].set_ylim(table[:,1:].min(),table[:,1:].max())
+           # axs[0,i].set_ylim(1.0/(table[:,1:].min()),1.0/(table[:,1:].max()))
+
+           axs[0,i].set_xticks(point)
+           axs[0,i].set_xticklabels(name)
+           for j in point:
+             axs[0,i].axvline(x=j, color='k', linewidth=0.5)
+
+           # Ploting the Fermi level or a line at y=0.0
+           if (fermi == None): # susceptibility
+             axs[0,i].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='-', linewidth=0.5)
+           else: # band structure
+             axs[0,i].axhline(y=fermi, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--')
+
+           # for j in enumerate(table[:,1]):
+           #   if j[1] == point[4]:
+           #     print 'Value at ',name[4],': ',-1.0/table[j[0],2]
+
+           # Plotting the results
+           if (fermi == None): # susceptibility
+             axs[0,i].plot(table[:,1],-1.0/table[:,2])
+           else: # band structure
+             axs[0,i].plot(table[:,0],table[:,1:], color='k', linewidth=1.0, linestyle='-')
+
+         plt.tight_layout()
+         plt.show()
