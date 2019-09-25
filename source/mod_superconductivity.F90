@@ -5,7 +5,6 @@ module mod_superconductivity
 contains
 
   subroutine hamiltk_sc(sys,kp,hk_sc)
-  ! subroutine hamilt_sc(sys,rho,mp,mx,my,mz,sys,kp,hk)
     use mod_f90_kind,       only: double
     use mod_BrillouinZone,  only: realBZ
     use mod_parameters,     only: output, kpoints
@@ -16,39 +15,52 @@ contains
     use mod_parameters, only: offset
     implicit none
     type(System),                              intent(in)  :: sys
-  !   real(double),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
-  !   complex(double), dimension(nOrb,s%nAtoms), intent(out) :: mp
     real(double), intent(in)  :: kp(3)
     complex(double),dimension(sys%nAtoms*nOrb2, sys%nAtoms*nOrb2) :: hk
     complex(double),dimension(sys%nAtoms*nOrb2*2, sys%nAtoms*nOrb2*2), intent(out) :: hk_sc
     integer :: j, i
+    ! Coupling constant fot the s-orbital pairing
+    ! For the moment it has a non-sensical value, for testing purposes
+    complex(double) :: delta_s = (1.0,0.5)
 
+    ! Initialize hk, this will be used to calculate the superconducting
+    ! counterpart, namely hk_sc
     hk = cZero
 
-    !kp = EshiftBZ*ElectricFieldVector
-
-    ! write(*,*) kp
-    ! kp = realBZ%kp(1:3,1)
-
-    ! write(*,*) kp
-    ! allocate( hk(dimH*2,dimH*2))
-    !
-    ! !$omp parallel default(none) &
-    ! !$omp& firstprivate(lwork,dimH) &
-    ! !$omp& private(iz,kp,weight,hk,eval,work,rwork,info,expec_0, expec_p, expec_z) &
-    ! !$omp& shared(s,output,nOrb2,realBZ,rho,mp,mz,EshiftBZ,ElectricFieldVector)
-    !
-    ! rho = 0.d0
-    ! mp  = 0.d0
-    ! mz  = 0.d0
-    !
-    ! call initHamiltkStride(sys%nAtoms, nOrb)
     call hamiltk(sys,kp,hk)
 
+    ! Populate the diagonal blocks of the hamiltonian. i.e. electron-electron
+    ! and hole-hole interactions
     hk_sc = cZero
     hk_sc(1:sys%nAtoms*nOrb2,1:sys%nAtoms*nOrb2) = hk
     hk_sc(sys%nAtoms*nOrb2+1:sys%nAtoms*nOrb2*2,sys%nAtoms*nOrb2+1:sys%nAtoms*nOrb2*2) = -conjg(hk)
 
+    ! Populate the entries for the singlet pairing of the s-orbitals
+    ! Assuming that the order to populate the hamiltonian hk was
+    ! First all up spins, then all down, from s to d
+    ! This is, s^ px^ py^ ... d^ s* px* ... d*, where ^ (*) means spin up (down)
+
+    ! The row and column of the s^ electron is 1
+    ! The row and column of the s* electron is sys%nAtoms*nOrb2/2
+    ! The row and column of the h^ hole is sys%nAtoms*nOrb2 + 1
+    ! The row and column of the h* hole is sys%nAtoms*nOrb2 + sys%nAtoms*nOrb2/2
+
+    ! s^ and h* couple with -delta_s
+    ! s* and h^ couple with delta_s
+    ! h^ and s* couple with delta_s*
+    ! h* and s^ couple with -delta_s*
+
+    ! write(*,*) 1,sys%nAtoms*nOrb2 + sys%nAtoms*nOrb2/2
+    hk_sc(1,sys%nAtoms*nOrb2 + sys%nAtoms*nOrb2/2) = -delta_s
+    hk_sc(sys%nAtoms*nOrb2/2, sys%nAtoms*nOrb2 + 1 ) = delta_s
+    hk_sc(sys%nAtoms*nOrb2 + 1, sys%nAtoms*nOrb2/2) = conjg(delta_s)
+    hk_sc(sys%nAtoms*nOrb2 + sys%nAtoms*nOrb2/2,1) = -conjg(delta_s)
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! Possibly useful part, so I don't delete it
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    ! Prints to check the shape of the matrix
     ! do i = 1, sys%nAtoms*nOrb2*2
     !   do j = 1, sys%nAtoms*nOrb2*2
     !     write(*,*) real(hk_sc(i,j)), imag(hk_sc(i,j))
@@ -57,12 +69,6 @@ contains
 
     ! ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
     ! !call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
-    !
-    ! deallocate(rwork,eval,work)
-
-    ! write(*,*) "You are an amazing man Uriel"
-    !
-    ! write(*,*) "Also very handsome I may say"
 
   end subroutine hamiltk_sc
 
