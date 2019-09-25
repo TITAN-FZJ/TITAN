@@ -47,7 +47,7 @@ contains
 
     hk_sc = cZero
     hk_sc(1:sys%nAtoms*nOrb2,1:sys%nAtoms*nOrb2) = hk
-    hk_sc(sys%nAtoms*nOrb2+1:sys%nAtoms*nOrb2*2,sys%nAtoms*nOrb2+1:sys%nAtoms*nOrb2*2) = -hk
+    hk_sc(sys%nAtoms*nOrb2+1:sys%nAtoms*nOrb2*2,sys%nAtoms*nOrb2+1:sys%nAtoms*nOrb2*2) = -conjg(hk)
 
     ! do i = 1, sys%nAtoms*nOrb2*2
     !   do j = 1, sys%nAtoms*nOrb2*2

@@ -609,13 +609,14 @@ contains
     use mod_mpi_pars
     use mod_parameters
     use mod_magnet
-    use mod_System,           only: System, n0sc1, n0sc2
-    use mod_BrillouinZone,    only: BZ => realBZ
-    use mod_SOC,              only: SOC, socscale
-    use EnergyIntegration,    only: parts, parts3, n1gl, n3gl
-    use ElectricField,        only: ElectricFieldMode, ElectricFieldVector, EFt, EFp, EshiftBZ
-    use AdaptiveMesh,         only: minimumBZmesh
-    use mod_imRK4_parameters, only: integration_time, omega, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
+    use mod_System,            only: System, n0sc1, n0sc2
+    use mod_BrillouinZone,     only: BZ => realBZ
+    use mod_SOC,               only: SOC, socscale
+    use EnergyIntegration,     only: parts, parts3, n1gl, n3gl
+    use ElectricField,         only: ElectricFieldMode, ElectricFieldVector, EFt, EFp, EshiftBZ
+    use AdaptiveMesh,          only: minimumBZmesh
+    use mod_imRK4_parameters,  only: integration_time, omega, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
+    use mod_superconductivity, only: lsupercond
     !$ use omp_lib
     implicit none
     type(System), intent(in) :: s
