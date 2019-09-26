@@ -11,6 +11,10 @@ module mod_tools
                       sort_double_int
   end interface sort
 
+  interface vec_norm
+    module procedure real_vec_norm, &
+                      complex_vec_norm
+  end interface vec_norm
 contains
 
   ! --------------------------------------------------------------------
@@ -411,22 +415,30 @@ contains
     end do
   end subroutine KronProd
 
-  ! function for vector norm.
-  function vec_norm(v, dim_v)
+  ! Function for real vector norm.
+  function real_vec_norm(v,dim_v)
     use mod_f90_kind, only: double
     implicit none
-    integer,                           intent(in) :: dim_v ! vector dimension
-    complex(double), dimension(dim_v), intent(in) :: v ! vector v
-    real(double)                                  :: vec_norm
-    real(double)                                  :: sum
-    integer                                       :: i
+    integer,                        intent(in) :: dim_v ! vector dimension
+    real(double), dimension(dim_v), intent(in) :: v ! vector v
+    real(double)                               :: real_vec_norm
 
-    sum= 0.d0
-    do i = 1, dim_v
-      sum = sum + v(i)*conjg(v(i))
-    end do
-    vec_norm= sqrt(sum)
-  end function vec_norm
+    real_vec_norm = sqrt( dot_product(v,v) )
+
+  end function real_vec_norm
+
+  ! function for complex vector norm.
+  function complex_vec_norm(v,dim_v)
+    use mod_f90_kind, only: double
+    implicit none
+    integer,                           intent(in) :: dim_v ! vector dimension    
+    complex(double), dimension(dim_v), intent(in) :: v ! vector v
+    real(double)                                  :: complex_vec_norm
+
+    complex_vec_norm = sqrt( dot_product(v,conjg(v)) )
+
+  end function complex_vec_norm
+
 
   ! interface to the LAPACK linear system solver A*X=B
   subroutine LS_solver(n,A,b)

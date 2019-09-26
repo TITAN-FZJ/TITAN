@@ -59,7 +59,7 @@ contains
     use mod_parameters,        only: output, laddresults, lverbose, ldebug, lkpoints, &
                                      lpositions, lcreatefiles, lnolb, lhfresponses, &
                                      lnodiag, lsha, lcreatefolders, lwriteonscreen, runoptions, lsimplemix, &
-                                     lcheckjac, llgtv, lsortfiles,leigenstates, &
+                                     lcheckjac, llgtv, lsortfiles,leigenstates, lprintfieldonly, &
                                      itype, ry2ev, ltesla, eta, etap, dmax, emin, emax, &
                                      skip_steps, nEner, nEner1, nQvec, nQvec1, qbasis, renorm, renormnb, bands, band_cnt, &
                                      offset, dfttype, parField, parFreq, kptotal_in, kp_in
@@ -73,7 +73,7 @@ contains
     use TightBinding,          only: nOrb,nOrb2,tbmode, fermi_layer
     use ElectricField,         only: ElectricFieldMode, ElectricFieldVector, EFp, EFt, EshiftBZ
     use EnergyIntegration,     only: parts, parts3, pn1, pn2, pnt, n1gl, n3gl
-    use mod_tools,             only: itos, rtos
+    use mod_tools,             only: itos, rtos, vec_norm
     use adaptiveMesh,          only: minimumBZmesh
     use mod_mpi_pars
     use mod_imRK4_parameters, only: integration_time, omega, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, field_direction_m, field_direction_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
@@ -209,6 +209,8 @@ contains
         lsimplemix = .true.
       case ("eigenstates")
         leigenstates = .true.
+      case ("printfieldonly")
+        lprintfieldonly = .true.
       case("!")
         exit
       case default
@@ -509,7 +511,7 @@ contains
           if(.not. get_parameter("field_direction_e", vector, cnt)) &
             call log_error("get_parameters","'field_direction_e' missing.")
           if(cnt /= 3) call log_error("get_parameters","'field_direction_e' has wrong size (size 3 required).")
-          field_direction_e(1:3) = vector(1:3)
+          field_direction_e(1:3) = vector(1:3)/vec_norm(vector,3)
           deallocate(vector)
           if(.not. get_parameter("tau_e", tau_e)) &
             call log_error("get_parameters", "'tau_e' not found.")

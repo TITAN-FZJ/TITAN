@@ -94,7 +94,7 @@ contains
     use mod_f90_kind, only: double
     use AtomTypes,    only: AtomType
     use mod_mpi_pars, only: abortProgram
-    use mod_tools,    only: itos
+    use mod_tools,    only: itos, vec_norm
     implicit none
     type(AtomType), intent(inout) :: material
     integer, intent(in) :: nStages
@@ -137,7 +137,7 @@ contains
     do j = 1, 3
       read(fu, fmt='(A)', iostat=ios) line
       read(unit=line, fmt=*, iostat=ios) (Bravais(i,j), i=1,3)
-      if(dot_product(Bravais(:,j),Bravais(:,j)) <= 1.d-9) call abortProgram("[readElementFile] Bravais vector a" // trim(itos(j)) //" not given properly!")
+      if(vec_norm(Bravais(:,j),3) <= 1.d-9) call abortProgram("[readElementFile] Bravais vector a" // trim(itos(j)) //" not given properly!")
     end do
     Bravais = Bravais * material%LatticeConstant
     material%a1 = Bravais(:,1)
@@ -254,7 +254,7 @@ contains
         if(i == 0 .and. j == 0 .and. k == 0) cycle
         m = m + 1
         vec = i * material%a1 + j * material%a2 + k * material%a3
-        dist = sqrt(dot_product(vec,vec))
+        dist = vec_norm(vec,3)
         localDistances(m) = dist
         l = m - 1
         do while(1 <= l)

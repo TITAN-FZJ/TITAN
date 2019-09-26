@@ -5,11 +5,11 @@ contains
   subroutine time_propagator(s)
     use mod_f90_kind,         only: double
     use mod_constants,        only: cZero, cI
-    use mod_imRK4_parameters, only: dimH2, time, step, integration_time, ERR, Delta, lelectric, hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
+    use mod_imRK4_parameters, only: dimH2, step, integration_time, ERR, Delta, lelectric, hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
     use mod_RK_matrices,      only: A, id, id2, M1, build_identity
     use mod_imRK4,            only: iterate_Zki, calculate_step_error, magnetic_pulse_B, evec_potent
     use mod_BrillouinZone,    only: realBZ
-    use mod_parameters,       only: dimH,output,laddresults
+    use mod_parameters,       only: dimH,output,laddresults,lprintfieldonly
     use mod_system,           only: System
     use TightBinding,         only: nOrb
     use ElectricField,        only: EshiftBZ,ElectricFieldVector
@@ -50,8 +50,10 @@ contains
       end if
     end if
  
-    ! Obtaining number of steps for the time loop
-    time = int(integration_time/step)
+    if(lprintfieldonly) then
+      call write_field()
+      return
+    end if
 
     ! working space for the eigenstate solver
     lwork = 21*dimH
@@ -230,7 +232,7 @@ contains
         end if 
       end if 
 
-      call write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t,field_m,field_e)
+      call write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t, field_m, field_e)
 
       counter = counter + 1
       it = it + 1
@@ -238,7 +240,6 @@ contains
     end do t_loop
 
   end subroutine time_propagator
-
 
 
   ! Writing header for previously opened file of unit "unit"
@@ -250,7 +251,7 @@ contains
     character(len=*), intent(in)           :: title_line
 
     if(lmagnetic) then
-      write(unit=unit, fmt="('#.  hw1_m = ',es16.9)") hw1_m
+      write(unit=unit, fmt="('#   hw1_m = ',es16.9)") hw1_m
       write(unit=unit, fmt="('#    hw_m = ',es16.9)") hw_m
       if(lpulse_m) then
         write(unit=unit, fmt="('#   tau_m = ',es16.9)") tau_m
@@ -258,7 +259,7 @@ contains
       end if
     end if
     if(lelectric) then
-      write(unit=unit, fmt="('#.  hE_0 = ',es16.9)") hE_0
+      write(unit=unit, fmt="('#   hE_0 = ',es16.9)") hE_0
       write(unit=unit, fmt="('#    hw_e = ',es16.9)") hw_e
       if(lpulse_e) then
         write(unit=unit, fmt="('#   tau_e = ',es16.9)") tau_e
@@ -275,7 +276,7 @@ contains
   ! logical parameters: lmagnetic, lpulse_m, lelectric, lpulse_e 
   ! observables: <1>, <sigma>, <L>, <tau>, currents
   subroutine create_time_prop_files()
-    use mod_parameters,       only: output
+    use mod_parameters,       only: output,lprintfieldonly
     use mod_imRK4_parameters, only: lelectric, lpulse_e, lmagnetic, lpulse_m
     implicit none
     character(len=500) :: output_file
@@ -298,6 +299,15 @@ contains
       end if
     end if
 
+    ! Time-dependent fields
+    unit = 6090
+    write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/field',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+    open(unit=unit,file=trim(output_file), status= 'replace')
+    call write_header_time_prop(unit,'#    Time [ps]   ,    field_m x   ,    field_m y   ,    field_m z   ,    field_e x   ,    field_e y   ,    field_e z   ' )
+    close(unit)
+
+    if(lprintfieldonly) return
+
     do i=1,size(output%observable)
       ! for all orbitals
       unit = 5090+i
@@ -313,12 +323,6 @@ contains
       call write_header_time_prop(unit,'#    Time [ps]   , ' // output%observable(i) // '_d')
       close(unit)
     end do
-
-    unit = 6090
-    write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/field',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-    open(unit=unit,file=trim(output_file), status= 'replace')
-    call write_header_time_prop(unit,'#    Time [ps]   ,    field_m x   ,    field_m y   ,    field_m z   ,    field_e x   ,    field_e y   ,    field_e z   ' )
-    close(unit)
 
   end subroutine create_time_prop_files
 
@@ -355,7 +359,7 @@ contains
     if(err/=0) missing_files = trim(missing_files) // " " // trim(output_file)
 
     ! Stop if some file does not exist
-    if(errt/=0) call abortProgram("[openclose_chi_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_line('A') // trim(missing_files))
+    if(errt/=0) call abortProgram("[open_time_prop_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_line('A') // trim(missing_files))
 
   end subroutine open_time_prop_files
 
@@ -377,8 +381,74 @@ contains
 
   end subroutine close_time_prop_files
 
+
+  ! subroutine to close time propagation output files
+  subroutine write_field()
+    use mod_f90_kind,         only: double
+    use mod_parameters,       only: output,missing_files
+    use mod_mpi_pars,         only: rFreq,abortProgram
+    use mod_imRK4_parameters, only: step, integration_time, lelectric, lpulse_e, delay_e, tau_e, hE_0, hw_e, lmagnetic, lpulse_m, delay_m, tau_m, hw1_m, hw_m
+    use mod_imRK4,            only: magnetic_pulse_B, evec_potent
+    implicit none
+    character(len=500)         :: output_file
+    real(double), dimension(3) :: field_m, field_e
+    real(double)               :: t, time, A_t_abs
+    integer :: i,iw,err,errt=0
+
+    if(rFreq(1) == 0) &
+      write(output%unit_loop,"('[write_field] Writing field... ')",advance="no")
+
+    iw = 6090
+    write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/field',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+    open (unit=iw, file=trim(output_file), status='old', position='append',form='formatted', iostat=err)
+    errt = errt + err
+    if(err/=0) missing_files = trim(missing_files) // " " // trim(output_file)
+
+    ! Stop if some file does not exist
+    if(errt/=0) call abortProgram("[write_field] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_line('A') // trim(missing_files))
+
+    t = 0.d0
+    t_loop_field: do while (t <= integration_time)
+      t = t + step
+  
+      time = t*4.84d-5
+
+      ! Calculating time-dependent field      
+      field_m = 0.d0
+      if (lmagnetic) then 
+        if (lpulse_m) then
+          if ((t >= delay_m).and.(t <= 8.d0*tau_m+delay_m)) then
+            call magnetic_pulse_B(t,field_m)
+          end if  
+        else
+          field_m = [ hw1_m*cos(hw_m*t), hw1_m*sin(hw_m*t), 0.d0 ]
+        end if 
+      end if 
+
+      field_e = 0.d0 
+      if (lelectric) then 
+        if (lpulse_e) then
+          if ((t >= delay_e).and.(t <= tau_e+delay_e)) then
+            call evec_potent(t,field_e,A_t_abs)
+          end if  
+        else
+          field_e = [ hE_0*cos(hw_e*t), hE_0*sin(hw_e*t), 0.d0 ]
+        end if 
+      end if 
+
+      write(unit=6090,fmt="(7(es16.9,2x))") time, (field_m(i),i=1,3), (field_e(i),i=1,3)
+    end do t_loop_field
+
+    close(6090)
+
+    if(rFreq(1) == 0) &
+      write(output%unit_loop,"('done!')")
+
+  end subroutine write_field
+
+
   ! subroutine to write in time propagation output files
-  subroutine write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t,field_m,field_e)
+  subroutine write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t, field_m, field_e)
     use mod_f90_kind, only: double
     use mod_system,   only: System
     use TightBinding, only: nOrb
@@ -402,7 +472,7 @@ contains
     write(unit=5191,fmt="(100(es16.9,2x))") time, (rhod_t(i),i=1,s%nAtoms)
     write(unit=5192,fmt="(100(es16.9,2x))") time, (mxd_t(i),myd_t(i),mzd_t(i),sqrt(mxd_t(i)**2 + myd_t(i)**2 + mzd_t(i)**2),i=1,s%nAtoms)
 
-    write(unit=6090,fmt="(100(es16.9,2x))") time, (field_m(i),i=1,3), (field_e(i),i=1,3)
+    write(unit=6090,fmt="(7(es16.9,2x))") time, (field_m(i),i=1,3), (field_e(i),i=1,3)
 
     call close_time_prop_files()
 

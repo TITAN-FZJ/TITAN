@@ -82,21 +82,22 @@ module mod_parameters
   !! Optional conversion of ry to eV
   !========================================================================================!
   ! Logical variables for runoptions
-  logical :: lkpoints       = .false.
-  logical :: lpositions     = .false.
-  logical :: ltesla         = .false.
-  logical :: lcreatefiles   = .false.
-  logical :: lcreatefolders = .false.
-  logical :: laddresults    = .false.
-  logical :: lnolb          = .false.
-  logical :: lnodiag        = .false.
-  logical :: lwriteonscreen = .false.
-  logical :: lsortfiles     = .false.
-  logical :: lsha           = .false.
-  logical :: llgtv          = .false.
-  logical :: lcheckjac      = .false.
-  logical :: lsimplemix     = .false.
-  logical :: leigenstates   = .false.
+  logical :: lkpoints        = .false.
+  logical :: lpositions      = .false.
+  logical :: ltesla          = .false.
+  logical :: lcreatefiles    = .false.
+  logical :: lcreatefolders  = .false.
+  logical :: laddresults     = .false.
+  logical :: lnolb           = .false.
+  logical :: lnodiag         = .false.
+  logical :: lwriteonscreen  = .false.
+  logical :: lsortfiles      = .false.
+  logical :: lsha            = .false.
+  logical :: llgtv           = .false.
+  logical :: lcheckjac       = .false.
+  logical :: lsimplemix      = .false.
+  logical :: leigenstates    = .false.
+  logical :: lprintfieldonly = .false.
   !========================================================================================!
   ! Activate debug options
   logical :: lverbose = .false.
