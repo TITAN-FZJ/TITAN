@@ -36,11 +36,13 @@ contains
     ! Later we can add conditional clauses that call or not this functions
     call bcs_s_pairing(sys, delta_s,hk_sc)
 
+    call bcs_p_pairing(sys, 2, delta_s, hk_sc)
+
     ! call bcs_s_pairing()
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! Possibly useful part, so I don't delete it
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Possibly useful part, so I don't delete it
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     ! Prints to check the shape of the matrix
     ! do i = 1, sys%nAtoms*nOrb2*2
@@ -94,6 +96,37 @@ contains
       hk_sc(sys%nAtoms*nOrb2 + sys%nAtoms*nOrb2/2,1) = -conjg(delta_s)
 
   end subroutine bcs_s_pairing
+
+  subroutine bcs_p_pairing(sys, label, delta_p, hk_sc)
+      use mod_f90_kind,       only: double
+      use mod_parameters,     only: output, kpoints
+      use mod_system,         only: System, initHamiltkStride
+      use TightBinding,       only: nOrb2, initTightBinding
+      use mod_constants,  only: cZero,cOne
+      use mod_parameters, only: offset
+      implicit none
+
+      ! TODO put a restriction so label can only be in {0,1,2}
+
+      type(System),                              intent(in)  :: sys
+      ! "label" is a parameter to pick the specific p orbital to couple, it can
+      ! be 0, 1, or 2
+      integer :: label, elecOrbs, indexJump
+      complex(double), intent(in) :: delta_p
+      complex(double), dimension(sys%nAtoms*nOrb2*2, sys%nAtoms*nOrb2*2), intent(inout) :: hk_sc
+
+      elecOrbs = sys%nAtoms*nOrb2 ! Number of up and down electron orbitals
+
+      ! Same idea to populate as in the s-pairing section above.
+
+      indexJump = 1 + label ! local variable, to find the p orbitals respect to s
+
+      hk_sc(1 + indexJump,elecOrbs + elecOrbs/2 + indexJump) = -delta_p
+      hk_sc(elecOrbs/2 + indexJump, elecOrbs + 1 + indexJump) = delta_p
+      hk_sc(elecOrbs + 1 + indexJump, elecOrbs/2 + indexJump) = conjg(delta_p)
+      hk_sc(elecOrbs + elecOrbs/2 + indexJump,1 + indexJump) = -conjg(delta_p)
+
+  end subroutine bcs_p_pairing
 
   ! subroutine green_sc(er,ei,sys,kp,gf)
   !   use mod_f90_kind,   only: double
