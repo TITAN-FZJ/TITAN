@@ -112,6 +112,10 @@ if __name__ == "__main__":
              axs[0,i].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='-', linewidth=0.5)
            else: # band structure
              axs[0,i].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--')
+             if(i==0):
+                 axs[0,i].axhline(y=fermi, xmin=point[0], xmax=point[npoints-1], color='b', linestyle='--')
+             else:
+                 axs[0,i].axhline(y=-fermi, xmin=point[0], xmax=point[npoints-1], color='b', linestyle='--')
 
            # for j in enumerate(table[:,1]):
            #   if j[1] == point[4]:
