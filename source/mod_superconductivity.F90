@@ -1,7 +1,9 @@
 module mod_superconductivity
-  implicit none
+  use mod_f90_kind,       only: double
+   implicit none
   logical :: lsuperCond = .false.
   integer :: superCond
+  complex(double), dimension(1:9)  :: lambda
 contains
 
   subroutine hamiltk_sc(sys,kp,hk_sc)
@@ -9,17 +11,20 @@ contains
     use mod_parameters,     only: output, kpoints
     use mod_system,         only: System, initHamiltkStride
     use TightBinding,       only: nOrb2, initTightBinding
-    use mod_constants,  only: cZero,cOne
-    use mod_parameters, only: offset
+    use mod_constants,      only: cZero,cOne
+    use mod_parameters,     only: offset
     implicit none
-    type(System),                              intent(in)  :: sys
+    type(System),   intent(in)  :: sys
     real(double), intent(in)  :: kp(3)
     complex(double),dimension(sys%nAtoms*nOrb2, sys%nAtoms*nOrb2) :: hk
     complex(double),dimension(sys%nAtoms*nOrb2*2, sys%nAtoms*nOrb2*2), intent(out) :: hk_sc
     integer :: j, i
     ! Coupling constant fot the s-orbital pairing
-    ! For the moment it has a non-sensical value, for testing purposes
-    complex(double) :: delta_s = (1.0,0.5)
+    complex(double) :: delta_s, delta_p, delta_d
+
+    delta_s = lambda(1)*cOne
+    delta_p = lambda(2)*cOne
+    delta_d = lambda(5)*cOne
 
     ! Initialize hk, this will be used to calculate the superconducting
     ! counterpart, namely hk_sc
@@ -35,15 +40,19 @@ contains
 
     ! Later we can add conditional clauses that call or not this functions
     call bcs_s_pairing(sys, delta_s,hk_sc)
-    !
-    call bcs_p_pairing(sys, 0, delta_s, hk_sc)
 
-    call bcs_d_pairing(sys, 0, delta_s, hk_sc)
+    call bcs_p_pairing(sys, 0, delta_p, hk_sc)
+    call bcs_p_pairing(sys, 1, delta_p, hk_sc)
+    call bcs_p_pairing(sys, 2, delta_p, hk_sc)
 
-    ! call bcs_s_pairing()
+    call bcs_d_pairing(sys, 0, delta_d, hk_sc)
+    call bcs_d_pairing(sys, 1, delta_d, hk_sc)
+    call bcs_d_pairing(sys, 3, delta_d, hk_sc)
+    call bcs_d_pairing(sys, 3, delta_d, hk_sc)
+    call bcs_d_pairing(sys, 4, delta_d, hk_sc)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! Possibly useful part, so I don't delete it
+    ! Block used to print the hamiltonian
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     ! Prints to check the shape of the matrix
