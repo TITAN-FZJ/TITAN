@@ -70,10 +70,14 @@ def read_data(filename):
 # Main program
 ################################################################################
 #
-# IMPORTANT: If you want to plot the superconductivity bands, then the way to
+# IMPORTANT: If you want to plot the superconductor bands, then the way to
 # execute this script is
 #
 # $ ipython < route to script.py> <route to datafile> -- --superconductivity
+# 
+# If the user wants to have the electron and hole bands in the same plot
+# then, the script has to be run as
+# $ ipython < route to script.py> <route to datafile> -- --superconductivity -- together
 #
 
 if __name__ == "__main__":

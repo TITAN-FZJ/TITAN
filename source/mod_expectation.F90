@@ -127,28 +127,30 @@ contains
 
   !   Calculates ground state quantities from eigenstates
   subroutine expectation_values_eigenstates(s,rho,mp,mx,my,mz)
-    use mod_f90_kind,      only: double
-    use mod_BrillouinZone, only: realBZ
-    use mod_parameters,    only: output
-    use mod_system,        only: System
-    use TightBinding,      only: nOrb,nOrb2
-    use ElectricField,     only: EshiftBZ,ElectricFieldVector
-    use mod_mpi_pars,      only: abortProgram
-    use mod_tools,         only: itos
+    use mod_f90_kind,          only: double
+    use mod_BrillouinZone,     only: realBZ
+    use mod_parameters,        only: output
+    use mod_system,            only: System
+    use TightBinding,          only: nOrb,nOrb2
+    use ElectricField,         only: EshiftBZ,ElectricFieldVector
+    use mod_mpi_pars,          only: abortProgram
+    use mod_tools,             only: itos
+    use mod_superconductivity, only: lsuperCond, superCond
     implicit none
     type(System),                              intent(in)  :: s
     real(double),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
     complex(double), dimension(nOrb,s%nAtoms), intent(out) :: mp
 
     integer                                      :: iz, info !, mu,i
-    integer                                      :: lwork,dimH
+    integer                                      :: lwork,dimH, dimE
     real(double)                                 :: weight, kp(3)
     real(double),    dimension(nOrb,s%nAtoms)    :: expec_0, expec_z
     complex(double), dimension(nOrb,s%nAtoms)    :: expec_p
     real(double),    dimension(:),  allocatable  :: rwork(:), eval(:)
     complex(double),                allocatable  :: work(:), hk(:,:)
 
-    dimH  = (s%nAtoms)*nOrb2
+    dimH  = (s%nAtoms)*nOrb2*superCond
+    dimE  = (s%nAtoms)*nOrb2
     lwork = 21*dimH
 
     allocate( hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork) )
@@ -156,7 +158,7 @@ contains
     !$omp parallel default(none) &
     !$omp& firstprivate(lwork) &
     !$omp& private(iz,kp,weight,hk,eval,work,rwork,info,expec_0, expec_p, expec_z) &
-    !$omp& shared(s,dimH,output,realBZ,rho,mp,mz,EshiftBZ,ElectricFieldVector)
+    !$omp& shared(s,dimE,dimH,output,realBZ,rho,mp,mz,EshiftBZ,ElectricFieldVector)
     rho = 0.d0
     mp  = 0.d0
     mz  = 0.d0
@@ -168,13 +170,13 @@ contains
       call hamiltk(s,kp,hk)
 
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-      call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
+      call zheev('V','L', dimH,hk,dimH,eval,work,lwork,rwork,info)
 
       if(info/=0) &
         call abortProgram("[expectation_values_eigenstates] Problem with diagonalization. info = " // itos(info))
 
       ! Calculating expectation values for a given k-point
-      call expec_val(s, dimH, hk, eval, expec_0, expec_p, expec_z)
+      call expec_val(s, dimE, dimH, hk, eval, expec_0, expec_p, expec_z)
 
       rho = rho + expec_0*weight
       mp  = mp  + expec_p*weight
@@ -191,15 +193,17 @@ contains
 
 
   ! subroutine expectation value of the operators 1 (occupation), Sp and Sz:
-  subroutine expec_val(s, dim, hk, eval, expec_0, expec_p, expec_z)
-    use mod_f90_kind,      only: double 
-    use mod_constants,     only: cOne,cZero,pi,pauli_mat
-    use mod_parameters,    only: eta, isigmamu2n
-    use mod_distributions, only: fd_dist
-    use TightBinding,      only: nOrb
-    use mod_system,        only: System
+  subroutine expec_val(s,dimE, dim, hk, eval, expec_0, expec_p, expec_z)
+    use mod_f90_kind,          only: double
+    use mod_constants,         only: cOne,cZero,pi,pauli_mat
+    use mod_parameters,        only: eta, isigmamu2n
+    use mod_distributions,     only: fd_dist
+    use TightBinding,          only: nOrb
+    use mod_system,            only: System
+    use mod_superconductivity, only: lsuperCond, superCond
     implicit none
     integer,                                   intent(in)  :: dim
+    integer,                                   intent(in)  :: dimE
     type(System),                              intent(in)  :: s
     real(double),    dimension(dim),           intent(in)  :: eval
     complex(double), dimension(dim,dim),       intent(in)  :: hk
@@ -213,7 +217,7 @@ contains
     expec_0 = 0.d0
     expec_z = 0.d0
     expec_p = cZero
-    do n = 1, dim
+    do n = 1, dimE
       ! Fermi-Dirac:
       f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval(n))
 
@@ -238,6 +242,8 @@ contains
       end do
     end do
 
+    if(.not. lsuperCond) &
+        return
 
   end subroutine expec_val
 
@@ -245,14 +251,14 @@ contains
   subroutine expec_val_n(s, dim, evec, eval, expec_0, expec_p, expec_z)
     !! Calculate the expectation value of the operators 1 (occupation), \sigma^+ and \sigma^z
     !! for a given state n (evec) with eigenenergy eval
-    use mod_f90_kind,      only: double 
+    use mod_f90_kind,      only: double
     use mod_constants,     only: cOne,cZero,pi,pauli_mat
     use mod_parameters,    only: eta, isigmamu2n
     use mod_distributions, only: fd_dist
     use TightBinding,      only: nOrb
     use mod_system,        only: System
     implicit none
-    
+
     type(System),                              intent(in)  :: s
     integer,                                   intent(in)  :: dim
     complex(double), dimension(dim),           intent(in)  :: evec
@@ -266,7 +272,7 @@ contains
     expec_0 = 0.d0
     expec_z = 0.d0
     expec_p = cZero
-  
+
     ! Fermi-Dirac:
     f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval)
 
@@ -369,7 +375,7 @@ contains
     use mod_parameters,    only: eta
     use EnergyIntegration, only: y, wght
     use ElectricField,     only: EshiftBZ,ElectricFieldVector
-    use mod_magnet,        only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz 
+    use mod_magnet,        only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
     use adaptiveMesh
     use mod_mpi_pars
     implicit none
@@ -528,5 +534,5 @@ contains
     deallocate(hk,rwork,eval,work)
 
   end subroutine calcLGS_eigenstates
-  
+
 end module mod_expectation
