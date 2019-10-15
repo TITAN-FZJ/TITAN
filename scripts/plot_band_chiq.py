@@ -74,7 +74,7 @@ def read_data(filename):
 # execute this script is
 #
 # $ ipython < route to script.py> <route to datafile> -- --superconductivity
-# 
+#
 # If the user wants to have the electron and hole bands in the same plot
 # then, the script has to be run as
 # $ ipython < route to script.py> <route to datafile> -- --superconductivity -- together
@@ -127,8 +127,10 @@ if __name__ == "__main__":
                if (fermi == None): # susceptibility
                  axs[0,i].plot(table[:,1],-1.0/table[:,2])
                else: # band structure
-                     axs[0,i].plot(table[:,0],table[:,(table.shape[1]-1)/2+1:]-fermi, color='r', linewidth=1.0, linestyle='-')
-                     axs[0,i].plot(table[:,0],table[:,1:(table.shape[1]-1)/2] + fermi, color='k', linewidth=1.0, linestyle='-')
+                     # axs[0,i].plot(table[:,0],table[:,(table.shape[1]-1)/2+1:]-fermi, color='r', linewidth=1.0, linestyle='-')
+                     # axs[0,i].plot(table[:,0],table[:,1:(table.shape[1]-1)/2] + fermi, color='k', linewidth=1.0, linestyle='-')
+                     axs[0,i].plot(table[:,0],table[:,(table.shape[1]-1)/2+1:], color='r', linewidth=1.0, linestyle='-')
+                     axs[0,i].plot(table[:,0],table[:,1:(table.shape[1]-1)/2+1], color='k', linewidth=1.0, linestyle='-')
 
              plt.tight_layout()
              plt.show()

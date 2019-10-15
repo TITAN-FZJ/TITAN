@@ -38,6 +38,11 @@ contains
     hk_sc(1:sys%nAtoms*nOrb2,1:sys%nAtoms*nOrb2) = hk
     hk_sc(sys%nAtoms*nOrb2+1:sys%nAtoms*nOrb2*2,sys%nAtoms*nOrb2+1:sys%nAtoms*nOrb2*2) = -conjg(hk)
 
+    ! do i = 1, sys%nAtoms*nOrb2
+    !     hk_sc(i,i) = hk_sc(i,i) - sys%Ef*cOne
+    !     hk_sc(sys%nAtoms*nOrb2+i,sys%nAtoms*nOrb2+i) = hk_sc(sys%nAtoms*nOrb2+i,sys%nAtoms*nOrb2+i) + sys%Ef*cOne
+    ! end do
+
     ! Later we can add conditional clauses that call or not this functions
     call bcs_s_pairing(sys, delta_s,hk_sc)
 
@@ -72,8 +77,8 @@ contains
       use mod_parameters,     only: output, kpoints
       use mod_system,         only: System, initHamiltkStride
       use TightBinding,       only: nOrb2, initTightBinding
-      use mod_constants,  only: cZero,cOne
-      use mod_parameters, only: offset
+      use mod_constants,      only: cZero,cOne
+      use mod_parameters,     only: offset
       implicit none
 
       type(System),                              intent(in)  :: sys

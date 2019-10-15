@@ -30,6 +30,7 @@ program TITAN
   use mod_initial_expectation, only: calc_initial_Uterms
   use mod_superconductivity
   use mod_time_propagator,   only: time_propagator
+  use mod_expectation
   !use mod_define_system TODO: Re-include
   !use mod_prefactors TODO: Re-include
   !use mod_lgtv_currents TODO: Re-include
@@ -225,16 +226,16 @@ program TITAN
     ! end if
 
     !------------------------ Begin first test part --------------------
-    if(rField == 0 .and. itype==0) then
-      write(output%unit_loop,"('[main] FIRST TEST PART')")
-      rho  = 0.d0
-      mz  = 0.d0
-      mp  = cZero
-      ! Variables used in the hamiltonian
-
-      call ldos()
-      ! call debugging()
-    end if
+    ! if(rField == 0 .and. itype==0) then
+    !   write(output%unit_loop,"('[main] FIRST TEST PART')")
+    !   rho  = 0.d0
+    !   mz  = 0.d0
+    !   mp  = cZero
+    !   ! Variables used in the hamiltonian
+    !
+    !   call ldos()
+    !   ! call debugging()
+    ! end if
 
     !------------------------- Self-consistency ------------------------
     if(rField == 0) &
@@ -248,6 +249,21 @@ program TITAN
 
     ! if(rField == 0) &
     ! call band_structure(sys)
+
+    if(rField == 0 .and. itype==0) then
+      write(output%unit_loop,"('[main] FIRST TEST PART')")
+      rho  = 0.d0
+      mz  = 0.d0
+      mp  = cZero
+      ! Variables used in the hamiltonian
+
+      ! write(*,*) lambda
+
+      call expectation_values_eigenstates(sys,rho,mp,mx,my,mz)
+
+      ! write(*,*) lambda
+      ! call debugging()
+    end if
 
     !-------------------------------------------------------------------
 

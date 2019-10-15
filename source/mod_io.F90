@@ -209,6 +209,8 @@ contains
         lsimplemix = .true.
       case ("eigenstates")
         leigenstates = .true.
+        lnojac = .true.
+        call log_warning("get_parameters","eigenstates is used, jacobian deactivated (not implemented yet)")
       case ("printfieldonly")
         lprintfieldonly = .true.
       case("!")
