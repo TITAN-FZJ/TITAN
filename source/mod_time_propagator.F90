@@ -7,7 +7,7 @@ contains
     use mod_constants,        only: cZero, cI
     use mod_imRK4_parameters, only: dimH2, step, integration_time, ERR, Delta, lelectric, hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
     use mod_RK_matrices,      only: A, id, id2, M1, build_identity
-    use mod_imRK4,            only: iterate_Zki, calculate_step_error, magnetic_pulse_B, evec_potent
+    use mod_imRK4,            only: iterate_Zki, calculate_step_error, magnetic_pulse_B, evec_potent, hext_t
     use mod_BrillouinZone,    only: realBZ
     use mod_parameters,       only: dimH,output,laddresults,lprintfieldonly
     use mod_system,           only: System
@@ -98,14 +98,12 @@ contains
             ! Calculating the hamiltonian for a given k-point
             call hamiltk(s,kp,hk)
             ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-            call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
+            call zheev('V','L',dimH,hkt,dimH,eval,work,lwork,rwork,info)
             eval_kn(:,iz) = eval(:)
-
-          ! write(*,*) t, 'evalues=', eval
-          ! stop
-
+          !>>>>> find eigenvalues again
+          ! Improve step control by diagonalizing the Hamiltonian after some number of steps:
+          ! calling H(t) instead of hamiltk, at t=0, H(0)= hamiltk
           end if
-
           evs_loop: do n = 1, dimH
             if (it==0) then
               Yn(:)= hk(:,n)

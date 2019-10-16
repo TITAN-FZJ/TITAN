@@ -233,7 +233,7 @@ contains
     ! building identity matrix I(dimH, dimH)
     call build_identity(dimH,ident)
     ! Calculating the time-dependent Hamiltonian
-    hamilt_t = eval * ident - hk + hext_t(s%nAtoms,t)
+    hamilt_t = eval * ident - (hk + hext_t(s%nAtoms,t))
 
     ! Checking if Hamiltonian is hermitian
     if( sum(abs(conjg(transpose(hamilt_t))-hamilt_t)) > 1.d-12 ) then
@@ -243,7 +243,8 @@ contains
   end subroutine build_td_hamiltonian
 
   !> build time dependent external perturbation Hamiltonian
-  !> H_ext(t)= S.B(t),  S= Pauli matricies
+  !> For a magnetic perturbation: H_ext(t)= S.B(t),  S= Pauli matricies
+  !> For an electric perturbation: H_ext(t)= ((P-e*A)^2)/2*m, here only the linear term is implemented.
   function hext_t(nAtoms,t)
     use mod_f90_kind,         only: double
     use mod_constants,        only: cI,cZero
