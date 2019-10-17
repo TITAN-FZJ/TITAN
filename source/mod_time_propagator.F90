@@ -94,9 +94,11 @@ contains
         kpoints_loop: do iz = 1, realBZ%workload
           kp = realBZ%kp(1:3,iz) + EshiftBZ*ElectricFieldVector
           weight = realBZ%w(iz)   
-          if (it==0) then
+          if (mod(it,100)==0) then
             ! Calculating the hamiltonian for a given k-point
             call hamiltk(s,kp,hk)
+            call hext_t(s%nAtoms,t)
+            hkt = hk + hext_t(s%nAtoms,t)
             ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
             call zheev('V','L',dimH,hkt,dimH,eval,work,lwork,rwork,info)
             eval_kn(:,iz) = eval(:)
