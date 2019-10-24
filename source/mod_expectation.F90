@@ -162,9 +162,6 @@ contains
     deltas = cZero
 
     allocate( hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork) )
-    write(*,*) " "
-    write(*,*) "singlet = ", expec_singlet
-    write(*,*) " "
 
     !$omp parallel default(none) &
     !$omp& firstprivate(lwork) &
@@ -197,6 +194,8 @@ contains
       mp  = mp  + expec_p*weight
       mz  = mz  + expec_z*weight
 
+      ! write(*,*) "Outside = ", expec_singlet
+
       deltas = deltas + expec_singlet*weight
     end do
     !$omp end do
@@ -204,14 +203,12 @@ contains
     mx = real(mp)
     my = aimag(mp)
 
-    write(*,*) " "
-    write(*,*) "singlet = ", expec_singlet
-    write(*,*) " "
-    write(*,*) "deltas = ", deltas
-    ! write(*,*) "Rho = ", rho
-    ! write(*,*) "mx, my = ", mx, ", ",my
-    ! write(*,*) "mz = ", mz
-    write(*,*) " "
+    ! write(*,*) " "
+    ! write(*,*) "deltas = ", deltas
+    ! ! ! write(*,*) "Rho = ", rho
+    ! ! ! write(*,*) "mx, my = ", mx, ", ",my
+    ! ! ! write(*,*) "mz = ", mz
+    ! write(*,*) " "
 
     deallocate(hk,rwork,eval,work)
 
@@ -251,19 +248,30 @@ contains
 
     ! write(*,*) "Offset = ", offset
     ! write(*,*) "Eigenvalues = ", eval(:)
+    ! write(*,*) 1.d0/(pi*eta)
 
-    do n = 1, dimE
+    ! do n = 1, dimE
+    do n = 1, dim
       ! Fermi-Dirac:
-      f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval(n+offset))
-
-      ! write(*,*) "Eigenvalue used = ", eval(n+offset)
-      ! write(*,*) "Parameter Fermi = ", s%Ef
+      ! f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval(n+offset))
       !
-      ! write(*,*) "Fermi Energy  = ", f_n
-      ! write(*,*) " "
+      ! write(10,*) "Eigenvalue used = ", eval(n+offset)
+      ! write(10,*) "Parameter Fermi = ", s%Ef
+      !
+      ! write(10,*) "Fermi Energy  = ", f_n
+      ! write(10,*) " "
+
+      f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval(n))
+
+      !write(10,*) "Eigenenergy = ", eval(n)
+      !write(10,*) "Fermi energy = ", s%Ef
+
+      !write(10,*) "Fermi dist  = ", f_n
+
 
       ! Getting eigenvector and its transpose conjugate
-      evec(:) = hk(:,n+offset)
+      ! evec(:) = hk(:,n+offset)
+      evec(:) = hk(:,n)
 
       ! write(*,*) " "
       ! write(*,*) "Eigenvector = ", evec(:)
@@ -278,6 +286,7 @@ contains
         do mu = 1, nOrb
           do sigma = 1, 2
             ! Charge
+            ! careful with the offset
             expec_0(mu,i) = expec_0(mu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,mu))
 
             do sigmap = 1, 2
@@ -291,6 +300,10 @@ contains
         end do
       end do
     end do
+
+    !write(10,*) "expec 0 = ", expec_0
+    !write(10,*) " "
+
 
     ! do i = 1, s%nAtoms
     !   write(*,*) expec_0(1,i)
@@ -307,20 +320,36 @@ contains
         return
 
     i = 1
-    do n = 1, dimE
+
+    do n = 1, dim
       ! Fermi-Dirac:
-      f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval(n+offset))
+      f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval(n))
+
+      ! write(*,*) "Eigenvalue used = ", eval(n+offset)
+      ! write(*,*) "Parameter Fermi = ", s%Ef
+      !
+      ! write(*,*) "Fermi Energy  = ", f_n
+      ! write(*,*) " "
 
       ! Getting eigenvector and its transpose conjugate
-      evec(:) = hk(:,n+offset)
+      evec(:) = hk(:,n)
+
+      ! do mu = 1, 36
+      !     write(*,*) real(evec(mu)),"    ", aimag(evec(mu))
+      ! end do
 
       do mu = 1, nOrb
-          expec_singlet(mu) = expec_singlet(mu) + 2*f_n*conjg(evec(isigmamu2n(i,2,mu)+nOrb*2))*evec(isigmamu2n(i,1,mu))
+          ! expec_singlet(mu) = expec_singlet(mu) + 2*f_n*conjg(evec(isigmamu2n(i,2,mu)+nOrb*2))*evec(isigmamu2n(i,1,mu))
+          ! expec_singlet(mu) = expec_singlet(mu) + 2*conjg(evec(isigmamu2n(i,1,mu)+nOrb*3))*evec(isigmamu2n(i,1,mu))
+          expec_singlet(mu) = expec_singlet(mu) + conjg(evec(isigmamu2n(i,1,mu)+nOrb*2))*evec(isigmamu2n(i,2,mu))*tanh(eval(n)*1.d0/(pi*eta)/2)
       end do
 
     end do
 
-    ! write(*,*) "Deltas = ", expec_singlet
+    ! write(*,*) "Inside = ", expec_singlet
+    !
+    ! !$omp barrier
+    ! stop
 
   end subroutine expec_val
 

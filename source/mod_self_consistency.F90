@@ -3,7 +3,7 @@ module mod_self_consistency
   implicit none
   integer            :: neq
   character(len=300) :: default_file
-  real(double)       :: mag_tol = 1.d-10
+  real(double)       :: mag_tol = 1.d-8
   character(len=200) :: scfile = ""
   !! Give a file to start self-consistency
   logical :: skipsc
@@ -1204,7 +1204,10 @@ contains
 
     call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
 
+    ! write(*,*) rho_in
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
+    ! call print_sc_step(sum(rho_in,2),mxd_in,myd_in,mzd_in,s%Ef)
+
 
     select case (iflag)
     case(1)
@@ -1290,7 +1293,9 @@ contains
 
     call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
 
+    ! write(*,*) rho_in
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
+    ! call print_sc_step(sum(rho_in,1),mxd_in,myd_in,mzd_in,s%Ef)
 
     if(leigenstates) then
       call expectation_values_eigenstates(s,rho,mp,mx,my,mz)

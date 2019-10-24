@@ -86,12 +86,13 @@ if __name__ == "__main__":
     parser.add_argument("file", help="File to plot")
     parser.add_argument("--superconductivity", default=False, action="store_true" , help="Flag to plot the bands as for superconductors")
     parser.add_argument("--together", default=False, action="store_true" , help="Plot superconductor bands in the same plot")
+    parser.add_argument("--gaps", default=False, action="store_true" , help="Plot just around 0 to check the gaps")
     args = parser.parse_args()
 
     if args.superconductivity:
          if args.together:
              numplots = 1
-             titles = [r"Band Structure"]
+             titles = [r"Band Structure $\Delta = 0.001$ Ry"]
              # titles = [r"$\#_{k}=100$M, $\eta=5\times10^{-4}$, 2nn", r"$\#_{k}=100$M, $\eta=5\times10^{-4}$, 3nn"]
              # titles = [r"$\#_{k}=10$M", r"$\#_{k}=100$k"])
              # titles = [r"$\eta=5\times10^{-3}$", r"$\eta=5\times10^{-4}$"])
@@ -104,6 +105,8 @@ if __name__ == "__main__":
                table = read_data(args.file)
                axs[0,i].set_title(titles[i])
                axs[0,i].set_xlim([point[0],point[npoints-1]])
+               if args.gaps:
+                   axs[0,i].set_ylim(-0.025,0.025)
                # axs[0,i].set_ylim(table[:,1:].min(),table[:,1:].max())
                # axs[0,i].set_ylim(1.0/(table[:,1:].min()),1.0/(table[:,1:].max()))
 
