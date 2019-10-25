@@ -3,7 +3,7 @@ module mod_superconductivity
    implicit none
   logical :: lsuperCond = .false.
   integer :: superCond
-  complex(double), dimension(1:9)  :: lambda
+  complex(double), dimension(1:9)  :: lambda, singlet_coupling
 contains
 
   subroutine hamiltk_sc(sys,kp,hk_sc)
@@ -22,9 +22,15 @@ contains
     ! Coupling constant fot the s-orbital pairing
     complex(double) :: delta_s, delta_p, delta_d
 
-    delta_s = lambda(1)*cOne
-    delta_p = lambda(2)*cOne !+ conjg(lambda(2)*cOne)
-    delta_d = lambda(5)*cOne
+    ! singlet_coupling = singlet_coupling*lambda
+
+    ! write(*,*) singlet_coupling(:)
+
+    ! delta_s = lambda(1)*cOne
+    ! delta_p = lambda(2)*cOne !+ conjg(lambda(2)*cOne)
+    ! delta_d = lambda(5)*cOne
+
+    ! singlet_coupling(:) = lambda(:)*cOne
 
     ! Initialize hk, this will be used to calculate the superconducting
     ! counterpart, namely hk_sc
@@ -44,17 +50,17 @@ contains
     end do
 
     ! Later we can add conditional clauses that call or not this functions
-    call bcs_s_pairing(sys, delta_s,hk_sc)
+    call bcs_s_pairing(sys, singlet_coupling(1),hk_sc)
 
-    call bcs_p_pairing(sys, 0, delta_p, hk_sc)
-    call bcs_p_pairing(sys, 1, delta_p, hk_sc)
-    call bcs_p_pairing(sys, 2, delta_p, hk_sc)
+    call bcs_p_pairing(sys, 0, singlet_coupling(2), hk_sc)
+    call bcs_p_pairing(sys, 1, singlet_coupling(3), hk_sc)
+    call bcs_p_pairing(sys, 2, singlet_coupling(4), hk_sc)
 
-    call bcs_d_pairing(sys, 0, delta_d, hk_sc)
-    call bcs_d_pairing(sys, 1, delta_d, hk_sc)
-    call bcs_d_pairing(sys, 2, delta_d, hk_sc)
-    call bcs_d_pairing(sys, 3, delta_d, hk_sc)
-    call bcs_d_pairing(sys, 4, delta_d, hk_sc)
+    call bcs_d_pairing(sys, 0, singlet_coupling(5), hk_sc)
+    call bcs_d_pairing(sys, 1, singlet_coupling(6), hk_sc)
+    call bcs_d_pairing(sys, 2, singlet_coupling(7), hk_sc)
+    call bcs_d_pairing(sys, 3, singlet_coupling(8), hk_sc)
+    call bcs_d_pairing(sys, 4, singlet_coupling(9), hk_sc)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Block used to print the hamiltonian
@@ -71,6 +77,24 @@ contains
     ! !call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
 
   end subroutine hamiltk_sc
+
+  subroutine update_singlet_couplings(couplings)
+      use mod_f90_kind,       only: double
+      use mod_parameters,     only: output, kpoints
+      use mod_system,         only: System, initHamiltkStride
+      use TightBinding,       only: nOrb2, initTightBinding
+      use mod_constants,      only: cZero,cOne
+      use mod_parameters,     only: offset
+      implicit none
+
+      complex(double), dimension(1:9)  :: couplings
+      integer :: i
+
+      do i = 1,9
+          singlet_coupling(i) = lambda(i)*cOne*couplings(i)
+      end do
+
+  end subroutine update_singlet_couplings
 
   subroutine bcs_s_pairing(sys,delta_s, hk_sc)
       use mod_f90_kind,       only: double
