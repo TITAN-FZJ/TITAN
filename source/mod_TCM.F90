@@ -126,17 +126,16 @@ contains
     use mod_constants,     only: cZero, pi, cOne, cI
     use mod_System,        only: s => sys
     use mod_BrillouinZone, only: realBZ, store_diff
-    use TightBinding,      only: nOrb2
-    use mod_parameters,    only: eta, output, kptotal_in
+    use mod_parameters,    only: nOrb2, eta, output, kptotal_in
     use mod_magnet,        only: mabs
     use mod_tools,         only: sort, itos, rtos
     use mod_mpi_pars
     implicit none
     interface
       subroutine torque_fct(torque)
-        use mod_f90_kind, only: double
-        use TightBinding, only: nOrb2
-        use mod_System,   only: sys
+        use mod_f90_kind,   only: double
+        use mod_parameters, only: nOrb2
+        use mod_System,     only: sys
         implicit none
         complex(double), dimension(nOrb2,nOrb2,3,sys%nAtoms), intent(out) :: torque
       end subroutine torque_fct
@@ -320,9 +319,8 @@ contains
   subroutine local_xc_torque(torque)
     use mod_f90_kind,   only: double
     use mod_constants,  only: cZero, cOne, cI, levi_civita, sigma => pauli_mat
-    use TightBinding,   only: nOrb,nOrb2
     use mod_System,     only: s => sys
-    use mod_parameters, only: U
+    use mod_parameters, only: nOrb, nOrb2, U
     use mod_magnet,     only: mvec_cartesian
 
     complex(double), dimension(nOrb2,nOrb2,3,s%nAtoms), intent(out) :: torque
@@ -353,11 +351,11 @@ contains
 
   !> This subroutine defines the spin-orbit torque operator/matrix
   subroutine local_SO_torque(torque)
-    use mod_f90_kind,  only: double
-    use mod_constants, only: cZero, levi_civita, sigma => pauli_mat, cI
-    use mod_System,    only: s => sys
-    use mod_magnet,    only: lvec
-    use TightBinding,  only: nOrb, nOrb2
+    use mod_f90_kind,   only: double
+    use mod_constants,  only: cZero, levi_civita, sigma => pauli_mat, cI
+    use mod_System,     only: s => sys
+    use mod_magnet,     only: lvec
+    use mod_parameters, only: nOrb, nOrb2
     use mod_mpi_pars
     implicit none
     integer :: i,m,n,k

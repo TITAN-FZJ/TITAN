@@ -31,7 +31,7 @@ module mod_BrillouinZone
    contains
       procedure :: free => deallocate_BrillouinZone
       procedure :: isAlloc => isAlloc_BrillouinZone
-      procedure :: count => count_BrillouinZone
+      procedure :: countBZ => count_BrillouinZone
       procedure :: print => output_kpoints
    end type BrillouinZone
 
@@ -51,13 +51,16 @@ module mod_BrillouinZone
 
 contains
 
-  subroutine genFraction(self, sys, rank, size, comm)
+  subroutine genFraction(self, sys, rank, size, comm, lkpoints)
     use mod_mpi_pars, only: calcWorkload
     use mod_System,   only: System
     implicit none
     class(FractionalBrillouinZone) :: self
     type(System),intent(in) :: sys
     integer*4,   intent(in) :: rank, size, comm
+    logical,     intent(in), optional :: lkpoints
+
+    character(len=50) :: filename
 
     if(allocated(self%kp)) deallocate(self%kp)
     if(allocated(self%w )) deallocate(self%w)
@@ -66,7 +69,7 @@ contains
     self % size = size
     self % comm = comm
 
-    call self%count(sys)
+    call self%countBZ(sys)
     call calcWorkload(self%nkpt, self%size, self%rank, self%first, self%last)
     self%workload = self%last - self%first + 1
     select case(sys%isysdim)
@@ -77,6 +80,13 @@ contains
     case default
       call self%generate_1d_fraction(sys,self%first,self%last)
     end select
+
+    if(present(lkpoints).and.lkpoints) then
+      filename = "kpoints_" // trim(sys%Name)
+      open (unit=3333, file=filename,status='replace')
+      call self%print(3333)
+      close(3333)
+    end if
 
   end subroutine genFraction
 
@@ -98,7 +108,6 @@ contains
       total = self%nkpt_x 
       self%nkpt = count_1D_BZ(total,sys%a1)
     end select
-
 
   end subroutine count_BrillouinZone
 
@@ -131,7 +140,7 @@ contains
     integer*8,    intent(in)       :: first, last
     real(double), dimension(3,8)   :: bz_vec
     real(double), dimension(3)     :: diff
-    real(double), dimension(3)     :: kp, b1, b2, b3
+    real(double), dimension(3)     :: kp, b1, b2, b3, largest
     real(double) :: vol
     real(double) :: smallest_dist, distance, ini_smallest_dist
     integer*8    :: nkpt, l
@@ -158,7 +167,8 @@ contains
 
     !Translate the k-points to the 1st BZ.
     !10*|b1+b2+b3|, bigger than the distance of any genarated kpoint
-    ini_smallest_dist = 10.d0 * vec_norm(b1 + b2 + b3, 3)
+    largest = b1 + b2 + b3
+    ini_smallest_dist = 10.d0 * vec_norm(largest, 3)
     count = 0
     added = 0
     !Run over all the kpoints generated initially.
@@ -212,7 +222,7 @@ contains
     implicit none
     integer*8,                  intent(in) :: nkpt_in
     real(double), dimension(3), intent(in) :: a1, a2, a3
-    real(double), dimension(3)   :: kp, b1, b2, b3
+    real(double), dimension(3)   :: kp, b1, b2, b3, largest
     real(double), dimension(3,8) :: bz_vec
     real(double), dimension(3)   :: diff
     real(double) :: smallest_dist, distance, ini_smallest_dist, vol
@@ -242,7 +252,8 @@ contains
 
     !Translate the k-points to the 1st BZ.
     !10*|b1+b2+b3|, bigger than the distance of any genarated kpoint
-    ini_smallest_dist = 10.d0 * vec_norm(b1 + b2 + b3, 3)
+    largest = b1 + b2 + b3
+    ini_smallest_dist = 10.d0 * vec_norm(largest, 3)
     numextrakbz = 0
     !Run over all the kpoints generated initially.
     !$omp parallel do default(none) reduction(+:numextrakbz) if(nkpt > 1000000) &
@@ -287,7 +298,7 @@ contains
     integer*8,    intent(in)       :: first, last
     real(double), dimension(3,4)   :: bz_vec
     real(double), dimension(3)     :: diff, zdir
-    real(double), dimension(3)     :: kp, b1, b2
+    real(double), dimension(3)     :: kp, b1, b2, largest
     real(double) :: vol
     real(double) :: smallest_dist, distance, ini_smallest_dist
     integer*8    :: nkpt, l
@@ -295,7 +306,7 @@ contains
     integer*8    :: count, added, weight, range
     integer      :: j
 
-    zdir = [0.0,0.0,1.0]
+    zdir = [0.d0,0.d0,1.d0]
     allocate( self%w(self%workload), self%kp(3,self%workload) )
     self%w = 1.d0
     nkpt = self%nkpt_x * self%nkpt_y
@@ -310,7 +321,8 @@ contains
 
     !Translate the k-points to the 1st BZ.
     !10*|b1+b2|, bigger than the distance of any genarated kpoint
-    ini_smallest_dist = 10.d0 * vec_norm(b1 + b2, 3)
+    largest = b1 + b2
+    ini_smallest_dist = 10.d0 * vec_norm(largest, 3)
     count = 0
     added = 0
     !Run over all the kpoints generated initially.
@@ -363,7 +375,7 @@ contains
     implicit none
     integer*8,                  intent(in) :: nkpt_in
     real(double), dimension(3), intent(in) :: a1,a2
-    real(double), dimension(3)   :: kp, b1, b2
+    real(double), dimension(3)   :: kp, b1, b2, largest
     real(double), dimension(3)   :: zdir
     real(double), dimension(3,4) :: bz_vec
     real(double), dimension(3)   :: diff
@@ -389,7 +401,8 @@ contains
 
     !Translate the k-points to the 1st BZ.
     !10*|b1+b2|, bigger than the distance of any genarated kpoint
-    ini_smallest_dist = 10.d0 * vec_norm(b1 + b2, 3)
+    largest = b1 + b2
+    ini_smallest_dist = 10.d0 * vec_norm(largest, 3)
     numextrakbz = 0
     !Run over all the kpoints generated initially.
     !$omp parallel do default(none) reduction(+:numextrakbz) if(nkpt > 1000000) &
@@ -441,8 +454,8 @@ contains
     integer*8    :: count, added, weight, range
     integer      :: j
 
-    zdir = [0.0,0.0,1.0]
-    ydir = [0.0,1.0,0.0]
+    zdir = [0.d0,0.d0,1.d0]
+    ydir = [0.d0,1.d0,0.d0]
     allocate( self%w(self%workload), self%kp(3,self%workload) )
     self%w = 1.d0
     nkpt = self%nkpt_x
@@ -506,12 +519,12 @@ contains
     implicit none
     integer*8,                  intent(in) :: nkpt_in
     real(double), dimension(3), intent(in) :: a1
-    real(double), dimension(3)   :: kp, b1, b2
+    real(double), dimension(3)   :: kp, b1
     real(double), dimension(3)   :: zdir, ydir
     real(double), dimension(3,2) :: bz_vec
     real(double), dimension(3)   :: diff
     real(double) :: smallest_dist, distance, ini_smallest_dist, vol
-    integer      :: j, nkpt_x, nkpt_y, nx, ny, nkpt_perdim
+    integer      :: j, nkpt_x, nx, nkpt_perdim
     integer*8    :: l, nkpt, numextrakbz
 
     zdir = [0.d0,0.d0,1.d0]
@@ -561,17 +574,15 @@ contains
   end function count_1D_BZ
   
 
-  subroutine output_kpoints(self)
+  subroutine output_kpoints(self,unit)
     implicit none
     class(BrillouinZone) :: self
-    integer :: i
+    integer :: i, unit
 
-    open (unit=3333, file='kpoints',status='replace')
-    write(unit=3333,fmt="(a)") ' #      kx            ky            kz            wk'
+    write(unit=unit,fmt="(a)") ' #      kx            ky            kz            wk'
     do i=1,self%nkpt
-       write(unit=3333,fmt="(4(f12.9,2x))") self%kp(1:3,i),self%w(i)
+       write(unit=unit,fmt="(4(f12.9,2x))") self%kp(1:3,i),self%w(i)
     end do
-    close(3333)
 
   end subroutine output_kpoints
 

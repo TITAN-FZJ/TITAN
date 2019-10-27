@@ -23,6 +23,15 @@ module mod_parameters
   integer*8 :: kptotal_in
   !! Total number of k-points
 
+  integer :: tbmode 
+  !! TIght-binding mode: (1) Slater-Koster, (2) DFT (not implemented yet)
+  integer :: nOrb, nOrb2
+  !! Number of orbitals and 2*(number of orbitals) (for spin)
+  integer :: fermi_layer   
+  !! Which site will be used for fermi level (Maybe remove it and read from outside?)
+  character(len=20), dimension(:), allocatable :: layers
+  !! Number of layers (Obsolete?)
+
   !========================================================================================!
   real(double), allocatable  :: U(:)
   !! Effective intra-site electron electron interaction

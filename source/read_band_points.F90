@@ -41,6 +41,7 @@ subroutine read_band_points(kbands, a0, b1, b2, b3)
     read(unit = line, fmt = *, iostat=ios) kband(i)%name, (kband(i)%kp(j), j = 1,3)
     ! read(unit=file_unit, fmt='(A)', iostat=ios) line
   end do
+
   ! Storing path points defined in input
   allocate(kbands(3,band_cnt))
   do i = 1, band_cnt

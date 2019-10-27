@@ -9,9 +9,8 @@ contains
     use mod_RK_matrices,      only: A, id, id2, M1, build_identity
     use mod_imRK4,            only: iterate_Zki, calculate_step_error, magnetic_pulse_B, evec_potent
     use mod_BrillouinZone,    only: realBZ
-    use mod_parameters,       only: dimH,output,laddresults,lprintfieldonly
+    use mod_parameters,       only: nOrb,dimH,output,laddresults,lprintfieldonly
     use mod_system,           only: System
-    use TightBinding,         only: nOrb
     use ElectricField,        only: EshiftBZ,ElectricFieldVector
     use mod_expectation,      only: expec_val_n
     use mod_Umatrix,          only: update_Umatrix
@@ -449,9 +448,9 @@ contains
 
   ! subroutine to write in time propagation output files
   subroutine write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t, field_m, field_e)
-    use mod_f90_kind, only: double
-    use mod_system,   only: System
-    use TightBinding, only: nOrb
+    use mod_f90_kind,   only: double
+    use mod_system,     only: System
+    use mod_parameters, only: nOrb
     implicit none
     type(System),                          intent(in) :: s
     real(double),                          intent(in) :: t

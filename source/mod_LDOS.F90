@@ -8,8 +8,8 @@ module mod_LDOS
 
 contains
   subroutine allocateLDOS()
-    use mod_System, only: s => sys
-    use TightBinding, only: nOrb
+    use mod_System,     only: s => sys
+    use mod_parameters, only: nOrb
     implicit none
 
     if(allocated(ldosu)) deallocate(ldosu)
@@ -27,7 +27,7 @@ contains
 
   subroutine createLDOSFiles()
     use mod_parameters, only: output
-    use mod_System, only: s => sys
+    use mod_System,     only: s => sys
     implicit none
     character(len=400) :: varm
     integer            :: i, iw, j
@@ -45,8 +45,8 @@ contains
 
   subroutine openLDOSFiles()
     use mod_parameters, only: output,missing_files
-    use mod_System, only: s => sys
-    use mod_mpi_pars, only: abortProgram
+    use mod_System,     only: s => sys
+    use mod_mpi_pars,   only: abortProgram
     implicit none
     character(len=400) :: varm
     integer            :: i, iw, j, err, errt=0
@@ -79,7 +79,7 @@ contains
 
   subroutine writeLDOS(e)
     use mod_f90_kind, only: double
-    use mod_System, only: s => sys
+    use mod_System,   only: s => sys
     implicit none
     real(double), intent(in) :: e
     integer :: i, iw, j
@@ -100,8 +100,8 @@ contains
   ! This subroutine sorts LDOS files
   subroutine sortLDOS()
     use mod_f90_kind, only: double
-    use mod_tools, only: sort_file
-    use mod_system, only: s => sys
+    use mod_tools,    only: sort_file
+    use mod_system,   only: s => sys
     implicit none
     integer :: i,j,iw
 

@@ -12,7 +12,7 @@ program TITAN
   use mod_polyBasis, only: read_basis
   use Lattice
   use mod_BrillouinZone
-  use TightBinding
+  use TightBinding, only: initTightBinding
   use mod_SOC
   use mod_magnet
   use ElectricField
@@ -87,7 +87,7 @@ program TITAN
   realBZ % nkpt_x = kp_in(1)
   realBZ % nkpt_y = kp_in(2)
   realBZ % nkpt_z = kp_in(3)
-  call realBZ % count(sys)
+  call realBZ % countBZ(sys)
 
   !---------------- Reading Tight Binding parameters -------------------
   call initTightBinding(sys)

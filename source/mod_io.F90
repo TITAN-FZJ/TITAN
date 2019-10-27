@@ -7,7 +7,7 @@ module mod_io
 contains
 
   subroutine log_message(procedure, message)
-    use mod_mpi_pars, only: myrank
+    use mod_mpi_pars,   only: myrank
     use mod_parameters, only: output
     implicit none
     character(len=*), intent(in) :: procedure
@@ -38,7 +38,7 @@ contains
   end subroutine log_error
 
   subroutine log_warning(procedure, message)
-    use mod_mpi_pars, only: myrank
+    use mod_mpi_pars,   only: myrank
     use mod_parameters, only: output
     implicit none
     character(len=*), intent(in) :: procedure
@@ -62,14 +62,14 @@ contains
                                     lcheckjac, llgtv, lsortfiles,leigenstates, lprintfieldonly, &
                                     itype, ry2ev, ltesla, eta, etap, dmax, emin, emax, &
                                     skip_steps, nEner, nEner1, nQvec, nQvec1, qbasis, renorm, renormnb, bands, band_cnt, &
-                                    offset, dfttype, parField, parFreq, kptotal_in, kp_in
+                                    offset, dfttype, parField, parFreq, kptotal_in, kp_in, &
+                                    nOrb, nOrb2, tbmode, fermi_layer
     use mod_self_consistency, only: lslatec, lontheflysc, lnojac, lGSL, lforceoccup, lrotatemag, skipsc, scfile, magbasis, mag_tol
     use mod_system,           only: System, n0sc1, n0sc2
     use mod_SOC,              only: SOC, socscale, llinearsoc, llineargfsoc
     use mod_magnet,           only: lfield, tesla, hwa_i, hwa_f, hwa_npts, hwa_npt1, hwt_i, hwt_f, &
                                     hwt_npts, hwt_npt1, hwp_i, hwp_f, hwp_npts, hwp_npt1, hwx, hwy, &
                                     hwz, hwscale, hwtrotate, hwprotate, skip_steps_hw
-    use TightBinding,         only: nOrb,nOrb2,tbmode, fermi_layer
     use ElectricField,        only: ElectricFieldMode, ElectricFieldVector, EFp, EFt, EshiftBZ
     use EnergyIntegration,    only: parts, parts3, pn1, pn2, pnt, n1gl, n3gl
     use mod_tools,            only: itos, rtos, vec_norm
@@ -127,11 +127,11 @@ contains
         kptotal_in = int( kp_in(1) * kp_in(2) * kp_in(3), kind(kptotal_in) )
       case(2)
         kp_in(1:2) = ceiling((dble(kptotal_in))**(1.d0/2.d0), kind(kp_in(1)) )
-        kp_in(3)   = 0
+        kp_in(3)   = 1
         kptotal_in = int( kp_in(1) * kp_in(2), kind(kptotal_in) )
       case default
         kp_in(1)   = ceiling((dble(kptotal_in)), kind(kp_in(1)) )
-        kp_in(2:3) = 0
+        kp_in(2:3) = 1
         kptotal_in = int( kp_in(1), kind(kptotal_in) )
       end select
 
@@ -214,6 +214,8 @@ contains
         lsimplemix = .true.
       case ("eigenstates")
         leigenstates = .true.
+        lnojac = .true.
+        call log_warning("get_parameters","eigenstates is used, jacobian deactivated (not implemented yet)")
       case ("printfieldonly")
         lprintfieldonly = .true.
       case("!")
@@ -705,7 +707,7 @@ contains
        write(output%unit_loop,"(1x,'Number of points to calculate: ',i0)") nEner1
     case (4)
        write(output%unit_loop,"(1x,'Band structure')")
-       write(output%unit_loop,"(2x,'Path along BZ: ',a)") (trim(adjustl(bands(i))), i = 1,band_cnt)
+       write(output%unit_loop,"(2x,'Path along BZ: ',10(a,1x))") (trim(adjustl(bands(i))), i = 1,band_cnt)
        write(output%unit_loop,"(2x,'Number of wave vectors to calculate: ',i0)") nQvec1
     case (5)
        write(output%unit_loop,"(1x,'Charge and spin density at Fermi surface')")

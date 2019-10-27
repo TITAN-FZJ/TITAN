@@ -64,7 +64,6 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_progress.F90
                                   source/mod_sumrule.F90
                                   source/EnergyIntegration.F90
-                                  source/SK_TightBinding.F90
                                   source/TightBinding.F90
                                   source/mod_self_consistency.F90
                                   source/mod_susceptibilities.F90

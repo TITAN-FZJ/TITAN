@@ -266,7 +266,7 @@ contains
   subroutine l_matrix()
     use mod_f90_kind
     use mod_constants
-    use TightBinding, only: nOrb
+    use mod_parameters, only: nOrb
     implicit none
     complex(double), dimension(nOrb,nOrb) :: Lp,Lm
 

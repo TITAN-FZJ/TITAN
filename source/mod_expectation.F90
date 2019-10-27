@@ -12,8 +12,7 @@ contains
     use EnergyIntegration, only: y,wght
     use mod_system,        only: System
     use adaptiveMesh,      only: bzs,E_k_imag_mesh,activeComm,local_points
-    use TightBinding,      only: nOrb,nOrb2
-    use mod_parameters,    only: eta
+    use mod_parameters,    only: nOrb,nOrb2,eta
     use ElectricField,     only: EshiftBZ,ElectricFieldVector
     use mod_mpi_pars
     implicit none
@@ -129,9 +128,8 @@ contains
   subroutine expectation_values_eigenstates(s,rho,mp,mx,my,mz)
     use mod_f90_kind,      only: double
     use mod_BrillouinZone, only: realBZ
-    use mod_parameters,    only: output
+    use mod_parameters,    only: nOrb,nOrb2,output
     use mod_system,        only: System
-    use TightBinding,      only: nOrb,nOrb2
     use ElectricField,     only: EshiftBZ,ElectricFieldVector
     use mod_mpi_pars,      only: abortProgram
     use mod_tools,         only: itos
@@ -194,9 +192,8 @@ contains
   subroutine expec_val(s, dim, hk, eval, expec_0, expec_p, expec_z)
     use mod_f90_kind,      only: double 
     use mod_constants,     only: cOne,cZero,pi,pauli_mat
-    use mod_parameters,    only: eta, isigmamu2n
+    use mod_parameters,    only: nOrb, eta, isigmamu2n
     use mod_distributions, only: fd_dist
-    use TightBinding,      only: nOrb
     use mod_system,        only: System
     implicit none
     integer,                                   intent(in)  :: dim
@@ -247,9 +244,8 @@ contains
     !! for a given state n (evec) with eigenenergy eval
     use mod_f90_kind,      only: double 
     use mod_constants,     only: cOne,cZero,pi,pauli_mat
-    use mod_parameters,    only: eta, isigmamu2n
+    use mod_parameters,    only: nOrb, eta, isigmamu2n
     use mod_distributions, only: fd_dist
-    use TightBinding,      only: nOrb
     use mod_system,        only: System
     implicit none
     
@@ -365,8 +361,7 @@ contains
     use mod_f90_kind,      only: double
     use mod_constants,     only: cZero,pi
     use mod_System,        only: s => sys
-    use TightBinding,      only: nOrb,nOrb2
-    use mod_parameters,    only: eta
+    use mod_parameters,    only: nOrb, nOrb2, eta
     use EnergyIntegration, only: y, wght
     use ElectricField,     only: EshiftBZ,ElectricFieldVector
     use mod_magnet,        only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz 
@@ -453,9 +448,8 @@ contains
     use mod_f90_kind,      only: double
     use mod_BrillouinZone, only: realBZ
     use mod_constants,     only: pi
-    use mod_parameters,    only: output,eta,isigmamu2n
+    use mod_parameters,    only: nOrb,nOrb2,output,eta,isigmamu2n
     use mod_System,        only: s => sys
-    use TightBinding,      only: nOrb,nOrb2
     use ElectricField,     only: EshiftBZ,ElectricFieldVector
     use mod_magnet,        only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
     use mod_distributions, only: fd_dist

@@ -2,8 +2,7 @@
 subroutine eintshe(q,e)
   use mod_f90_kind,      only: double
   use mod_constants,     only: cZero, cOne, cI, tpi
-  use mod_parameters,    only: dim, sigmaimunu2i, eta, etap, sigmai2i, offset
-  use TightBinding,      only: nOrb,nOrb2
+  use mod_parameters,    only: nOrb, nOrb2, dim, sigmaimunu2i, eta, etap, sigmai2i, offset
   use mod_SOC,           only: llineargfsoc
   use EnergyIntegration, only: y, wght, x2, p2, generate_real_epoints, pn2
   use mod_system,        only: s => sys !, n0sc1, n0sc2
@@ -359,8 +358,7 @@ end subroutine eintshe
 subroutine eintshelinearsoc(q,e)
   use mod_f90_kind,      only: double
   use mod_constants,     only: cZero, cOne, cI, tpi
-  use mod_parameters,    only: dim, eta, etap, sigmai2i, sigmaimunu2i, offset
-  use TightBinding,      only: nOrb,nOrb2
+  use mod_parameters,    only: nOrb, nOrb2, dim, eta, etap, sigmai2i, sigmaimunu2i, offset
   use mod_system,        only: s => sys
   use mod_BrillouinZone, only: realBZ
   use EnergyIntegration, only: y, wght, x2, p2, generate_real_epoints, pn2

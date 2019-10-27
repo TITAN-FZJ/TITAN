@@ -8,7 +8,7 @@ subroutine band_structure(s)
   use mod_io,         only: write_header
   implicit none
   type(System), intent(in) :: s
-  integer :: j, info, count, f_unit=666
+  integer :: i, j, info, count, f_unit=666
   integer :: lwork,dimbs
   real(double), dimension(:), allocatable :: rwork,eval
   complex(double), allocatable :: work(:),hk(:,:)
@@ -33,8 +33,7 @@ subroutine band_structure(s)
       write(output%unit_loop,"('[band_structure] Problem with diagonalization. info = ',i0)") info
       stop
     end if
-    ! Transform energy to eV if runoption is on
-    ! eval = eval
+
     write(unit=f_unit,fmt='(1000(es16.8))') dble((count-1.d0)*deltak), (eval(j),j=1,dimbs)
   end do
   close(f_unit)

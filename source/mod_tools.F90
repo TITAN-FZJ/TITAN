@@ -470,9 +470,8 @@ contains
     integer,                           intent(in) :: dim_v ! vector dimension
     complex(double), dimension(dim_v), intent(in) :: v ! vector v
     complex(double), dimension(dim_v)             :: normalize_complex
-    real(double)                                  :: vec_norm
 
-    normalize_complex = v/vec_norm_complex(v,dim_v)
+    normalize_complex = v/vec_norm(v,dim_v)
   end function normalize_complex
 
 
@@ -487,9 +486,8 @@ contains
     integer,                        intent(in) :: dim_v ! vector dimension
     real(double), dimension(dim_v), intent(in) :: v ! vector v
     real(double), dimension(dim_v)             :: normalize_real
-    real(double)                               :: vec_norm
 
-    normalize_real = v/vec_norm_real(v,dim_v)
+    normalize_real = v/vec_norm(v,dim_v)
   end function normalize_real
 
 
