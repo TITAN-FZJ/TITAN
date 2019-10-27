@@ -42,9 +42,9 @@ and it is parallelized with MPI.
 !*******************************************************************************!
 !                           CHOOSE WHAT TO CALCULATE                            !
 !  Options:                                                                     !
-!   0 - Test before SC                                                          !
-!   1 - Self consistency only                                                   !
-!   2 - Test after SC                                                           !
+!   0 - Test part (before self-consistency)                                     !
+!   1 - Self-consistency only                                                   !
+!   2 - LDOS as a function of the energy                                        !
 !   3 - LDOS and exchange interactions as a function of energy                  !
 !   4 - Band structure                                                          !
 !   5 - Charge and spin density at Fermi surface                                !
@@ -54,6 +54,8 @@ and it is parallelized with MPI.
 !       effective fields as a function of energy                                !
 !   9 - dc-limit as a function of magnetic field (abs, theta or phi)            !
 !       (use 'emin' as frequency)                                               !
+!  10 - Gilbert Damping using Torque correlation models                         !
+!  11 - Real-time propagation (using eigenstates only)
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
 !   noUonall      - Set U=0 on all layers                                       !

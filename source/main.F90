@@ -255,7 +255,7 @@ program TITAN
       call calculate_all()
     case (9) ! All responses to an electric field as a function of magnetic field
       call calculate_dc_limit()
-    case(10) ! Calculation of Gilbert Damping by Kamberskys Torque Torque model
+    case(10) ! Calculation of Gilbert Damping using Torque correlation models
       call calculate_TCM()
     case(11) ! Propagation of ( H(k) + S.B(t) )
       call time_propagator(sys)
