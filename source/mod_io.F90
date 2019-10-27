@@ -115,20 +115,26 @@ contains
       call log_warning("get_parameters","'nn_stages' missing. Using default value: 2")
     if(.not. get_parameter("relTol", s%relTol,0.05d0)) &
       call log_warning("get_parameters","'relTol' missing. Using default value: 0.05")
-    if(.not. get_parameter("bulk", s%lbulk, .true.)) &
-      call log_warning("get_parameters", "'bulk' missing. Using default value: .true.")
+    if(.not. get_parameter("sysdim", s%isysdim, 3)) &
+      call log_warning("get_parameters", "'sysdim' missing. Using default value: 3")
     if(.not. get_parameter("nkpt", i_vector,cnt)) &
       call log_error("get_parameters","'nkpt' missing.")
     if(cnt == 1) then
       kptotal_in = int( i_vector(1), kind(kptotal_in) )
-      if(s%lbulk) then
-        kp_in(:) = ceiling((dble(kptotal_in))**(1.d0/3.d0), kind(kp_in(1)) )
+      select case(s%isysdim)
+      case(3)
+        kp_in(:)   = ceiling((dble(kptotal_in))**(1.d0/3.d0), kind(kp_in(1)) )
         kptotal_in = int( kp_in(1) * kp_in(2) * kp_in(3), kind(kptotal_in) )
-      else
+      case(2)
         kp_in(1:2) = ceiling((dble(kptotal_in))**(1.d0/2.d0), kind(kp_in(1)) )
-        kp_in(3) = 0
+        kp_in(3)   = 0
         kptotal_in = int( kp_in(1) * kp_in(2), kind(kptotal_in) )
-      end if
+      case default
+        kp_in(1)   = ceiling((dble(kptotal_in)), kind(kp_in(1)) )
+        kp_in(2:3) = 0
+        kptotal_in = int( kp_in(1), kind(kptotal_in) )
+      end select
+
     else if(cnt == 3) then
       kp_in(1) = int( i_vector(1), kind(kp_in(1)) )
       kp_in(2) = int( i_vector(2), kind(kp_in(2)) )

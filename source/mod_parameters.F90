@@ -29,15 +29,6 @@ module mod_parameters
   logical       :: lhfresponses = .false.
   !! Use HF susceptibilities to calculate currents, disturbances and accumulations (don't renormalize)
   !========================================================================================!
-  ! Lattice and surface direction
-  character(len=6) :: latticeName
-  !! Lattice description; general or bcc, fcc, hcp, cubic
-  !integer          :: Npl,Npl_i,Npl_f,Npl_input
-  !integer          :: Npl_total
-  !! Obsolete?
-  logical          :: bulk = .false.
-  !! Flag turning on/off bulk calculations, default: .false., not used yet
-  !========================================================================================!
   real(double)       :: theta=0.d0,phi=0.d0
   !! Euler Angles for the magnetization frame of reference
   !========================================================================================!

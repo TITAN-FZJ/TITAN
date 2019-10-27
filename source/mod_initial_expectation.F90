@@ -15,7 +15,7 @@ contains
     use mod_mpi_pars,       only: myrank,FieldComm,rField,sField,rFreq,sFreq,FreqComm,abortProgram
     use Lattice,            only: initLattice
     use mod_progress,       only: write_time
-    use mod_tools,          only: rtos
+    use mod_tools,          only: rtos, vec_norm
     use mod_Atom_variables, only: allocate_Atom_variables,deallocate_Atom_variables
     use mod_BrillouinZone,  only: realBZ!,nkpt_x,nkpt_y,nkpt_z
     use EnergyIntegration,  only: pn1
@@ -38,13 +38,18 @@ contains
       sys0(i)%nStages = sys%nStages
       sys0(i)%relTol  = sys%relTol
       !---------- Generating k points for real axis integration ----------
-      if(dot_product(sys0(i)%a3,sys0(i)%a3) == 0.d0) then
-        sys0(i)%lbulk = .false.
+      if((vec_norm(sys0(i)%a2,3) <= 1.d-9).and.(vec_norm(sys0(i)%a3,3) <= 1.d-9)) then
+        sys0(i)%isysdim = 1
+        realBZ % nkpt_x = kp_in(1)
+        realBZ % nkpt_y = 1
+        realBZ % nkpt_z = 1
+      else if(vec_norm(sys0(i)%a3,3) <= 1.d-9) then
+        sys0(i)%isysdim = 2
         realBZ % nkpt_x = kp_in(1)
         realBZ % nkpt_y = kp_in(1)
         realBZ % nkpt_z = 1
       else
-        sys0(i)%lbulk = .true.
+        sys0(i)%isysdim = 3
         realBZ % nkpt_x = kp_in(1)
         realBZ % nkpt_y = kp_in(1)
         realBZ % nkpt_z = kp_in(1)

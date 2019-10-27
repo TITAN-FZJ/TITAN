@@ -24,7 +24,7 @@ contains
     use mod_system,    only: System
     use mod_mpi_pars,  only: myrank,abortProgram
     use mod_constants, only: tpi
-    use mod_tools,     only: cross
+    use mod_tools,     only: cross, vec_norm
     implicit none
 
     character(len=*), intent(in) :: filename
@@ -49,12 +49,11 @@ contains
 
     read(f_unit, fmt='(A)', iostat=ios) line
     read(unit=line, fmt=*, iostat=ios) (s%a1(i), i=1,3)
-    if((dot_product(s%a1,s%a1) <= 1.d-9).and.(myrank==0)) call abortProgram("[read_basis] a1 not given properly in '" // trim(filename) // "'!")
+    if((vec_norm(s%a1,3) <= 1.d-9).and.(myrank==0)) call abortProgram("[read_basis] a1 not given properly in '" // trim(filename) // "'!")
     s%a1 = s%a1 * s%a0
 
     read(f_unit, fmt='(A)', iostat=ios) line
     read(unit=line, fmt=*, iostat=ios) (s%a2(i), i=1,3)
-    if((dot_product(s%a2,s%a2) <= 1.d-9).and.(myrank==0)) call abortProgram("[read_basis] a2 not given properly in '" // trim(filename) // "'!")
     s%a2 = s%a2 * s%a0
 
     read(f_unit, fmt='(A)', iostat=ios) line
@@ -104,7 +103,8 @@ contains
         s%Basis(k)%Position = s%Basis(k)%Position * s%a0
       else
         ! Position of atoms given in Bravais (or Direct, Internal, Lattice) coordinates
-        if((s%lbulk).and.(dot_product(s%a3,s%a3) <= 1.d-9).and.(myrank==0)) call abortProgram("[read_basis] a3 not given properly in '" // trim(filename) // "'!")
+        if((s%isysdim==3).and.(vec_norm(s%a3,3) <= 1.d-9).and.(myrank==0)) call abortProgram("[read_basis] a3 not given properly in '" // trim(filename) // "'!")
+        if((s%isysdim==2).and.((vec_norm(s%a2,3) <= 1.d-9).or.(vec_norm(s%a3,3) <= 1.d-9)).and.(myrank==0)) call abortProgram("[read_basis] a2 and/or a3 not given properly in '" // trim(filename) // "'!")
         s%Basis(k)%Position = s%Basis(k)%Position(1) * s%a1 + s%Basis(k)%Position(2) * s%a2 + s%Basis(k)%Position(3) * s%a3
       end if
       end do
