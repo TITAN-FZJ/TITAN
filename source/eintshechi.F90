@@ -2,12 +2,11 @@
 subroutine eintshechi(q,e)
   use mod_f90_kind,         only: double
   use mod_constants,        only: cZero, cOne, cI, tpi
-  use mod_parameters,       only: eta, etap, dim, sigmaimunu2i
+  use mod_parameters,       only: nOrb, nOrb2, eta, etap, dim, sigmaimunu2i
   use EnergyIntegration,    only: generate_real_epoints, y, wght, x2, p2, pn2
   use mod_susceptibilities, only: chiorb_hf
   use mod_system,           only: s => sys
   use mod_BrillouinZone,    only: realBZ
-  use TightBinding,         only: nOrb,nOrb2
   use mod_SOC,              only: llineargfsoc
   use ElectricField,        only: EshiftBZ,ElectricFieldVector
   use adaptiveMesh
@@ -221,12 +220,11 @@ end subroutine eintshechi
 subroutine eintshechilinearsoc(q,e)
   use mod_f90_kind,         only: double
   use mod_constants,        only: cZero, cOne, cI, tpi
-  use mod_parameters,       only: eta, etap, dim, sigmaimunu2i
+  use mod_parameters,       only: nOrb, nOrb2, eta, etap, dim, sigmaimunu2i
   use EnergyIntegration,    only: generate_real_epoints,y, wght, x2, p2, pn2
   use mod_susceptibilities, only: chiorb_hf,chiorb_hflsoc
   use mod_system,           only: s => sys
   use mod_BrillouinZone,    only: realBZ
-  use TightBinding,         only: nOrb,nOrb2
   use ElectricField,        only: EshiftBZ,ElectricFieldVector
   use adaptiveMesh
   use mod_mpi_pars

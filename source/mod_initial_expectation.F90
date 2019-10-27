@@ -6,16 +6,16 @@ contains
     use mod_f90_kind,       only: double
     use mod_constants,      only: cZero
     use mod_System,         only: System,initHamiltkStride
-    use TightBinding,       only: nOrb,initTightBinding
+    use TightBinding,       only: initTightBinding
     use mod_magnet,         only: l_matrix,lb,sb,allocate_magnet_variables,deallocate_magnet_variables,rho0,rhod0
     use mod_SOC,            only: ls,allocLS
     use adaptiveMesh,       only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh
-    use mod_parameters,     only: kp_in,kptotal_in,output,eta,leigenstates
+    use mod_parameters,     only: nOrb,kp_in,kptotal_in,output,eta,leigenstates,lkpoints
     use mod_polyBasis,      only: read_basis
     use mod_mpi_pars,       only: myrank,FieldComm,rField,sField,rFreq,sFreq,FreqComm,abortProgram
     use Lattice,            only: initLattice
     use mod_progress,       only: write_time
-    use mod_tools,          only: rtos
+    use mod_tools,          only: rtos, vec_norm
     use mod_Atom_variables, only: allocate_Atom_variables,deallocate_Atom_variables
     use mod_BrillouinZone,  only: realBZ!,nkpt_x,nkpt_y,nkpt_z
     use EnergyIntegration,  only: pn1
@@ -37,19 +37,6 @@ contains
       !------------- Setting the number of nearest neighbors -------------
       sys0(i)%nStages = sys%nStages
       sys0(i)%relTol  = sys%relTol
-      !---------- Generating k points for real axis integration ----------
-      if(dot_product(sys0(i)%a3,sys0(i)%a3) == 0.d0) then
-        sys0(i)%lbulk = .false.
-        realBZ % nkpt_x = kp_in(1)
-        realBZ % nkpt_y = kp_in(1)
-        realBZ % nkpt_z = 1
-      else
-        sys0(i)%lbulk = .true.
-        realBZ % nkpt_x = kp_in(1)
-        realBZ % nkpt_y = kp_in(1)
-        realBZ % nkpt_z = kp_in(1)
-      end if
-      call realBZ % count(sys0(i))
       
       call initLattice(sys0(i))
       ! if(myrank==0) call writeLattice(sys0(i))
@@ -60,6 +47,26 @@ contains
 
       !-------------------- Tight Binding parameters ---------------------
       call initTightBinding(sys0(i))
+
+      !---------- Generating k points for real axis integration ----------
+      select case(sys0(i)%Types(i)%isysdim)
+      case(3)
+        sys0(i)%isysdim = 3
+        realBZ % nkpt_x = kp_in(1)
+        realBZ % nkpt_y = kp_in(1)
+        realBZ % nkpt_z = kp_in(1)
+      case(2)
+        sys0(i)%isysdim = 2
+        realBZ % nkpt_x = kp_in(1)
+        realBZ % nkpt_y = kp_in(1)
+        realBZ % nkpt_z = 1
+      case default
+        sys0(i)%isysdim = 1
+        realBZ % nkpt_x = kp_in(1)
+        realBZ % nkpt_y = 1
+        realBZ % nkpt_z = 1
+      end select
+      call realBZ % countBZ(sys0(i))
 
       !---------------- Reading from previous calculations -----------------
       !------- and calculating if file doesn't exist (or different U) ------
@@ -89,9 +96,8 @@ contains
         call initConversionMatrices(sys0(i)%nAtoms,nOrb)
 
         ! Distribute Energy Integration across all points available
-        if(leigenstates) then
-          call realBZ % setup_fraction(sys0(i),rFreq(1), sFreq(1), FreqComm(1))
-        else
+        call realBZ % setup_fraction(sys0(i),rFreq(1), sFreq(1), FreqComm(1),lkpoints)
+        if(.not.leigenstates) then
           !-- Generating k meshes points for imaginary axis integration ----
           call generateAdaptiveMeshes(sys0(i),pn1)
           !--- Distribute Energy Integration across all points available ---
@@ -142,8 +148,7 @@ contains
     use mod_f90_kind,      only: double
     use mod_constants,     only: cZero,pi
     use mod_System,        only: System
-    use TightBinding,      only: nOrb
-    use mod_parameters,    only: leigenstates
+    use mod_parameters,    only: nOrb, leigenstates
     use mod_magnet,        only: rho,rhod,mp,mx,my,mz,mpd,mzd
     use mod_expectation,   only: expectation_values_greenfunction,expectation_values_eigenstates
     use mod_Umatrix
@@ -186,10 +191,9 @@ contains
 
   subroutine write_initial_Uterms(sys0)
     !! Writes the initial orbital dependent densities (calculated with tight-binding hamiltonian only) into files
-    use mod_parameters,    only: output, dfttype
+    use mod_parameters,    only: nOrb, output, dfttype
     use EnergyIntegration, only: parts
     use mod_System,        only: System
-    use TightBinding,      only: nOrb
     implicit none
     character(len=500) :: filename
     character(len=30) :: formatvar
@@ -218,10 +222,9 @@ contains
   function read_initial_Uterms(sys0,err) result(success)
     !! Writes the initial orbital dependent densities (calculated with tight-binding hamiltonian only) into files
     use mod_f90_kind,      only: double
-    use mod_parameters,    only: output, dfttype
+    use mod_parameters,    only: nOrb, output, dfttype
     use EnergyIntegration, only: parts
     use mod_System,        only: System
-    use TightBinding,      only: nOrb
     use mod_mpi_pars
     implicit none
     type(System), intent(inout) :: sys0

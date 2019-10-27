@@ -2,10 +2,9 @@
 subroutine ldos_energy(e,ldosu,ldosd)
   use mod_f90_kind,      only: double
   use mod_constants,     only: pi
-  use mod_parameters,    only: eta
+  use mod_parameters,    only: nOrb, nOrb2, eta
   use mod_system,        only: s => sys
   use mod_BrillouinZone, only: realBZ
-  use TightBinding,      only: nOrb,nOrb2
   use mod_mpi_pars
   implicit none
   real(double), intent(in) :: e

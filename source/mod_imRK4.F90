@@ -170,10 +170,9 @@ contains
   !> Given by \sum_j <i| dH/dc^n_k |j> * c_j^n(t)
   subroutine build_term_Jacobian(s, eval, Yn, dHdc)
     use mod_f90_kind,      only: double
-    use mod_parameters,    only: dimH, U, isigmamu2n, eta
+    use mod_parameters,    only: nOrb, dimH, U, isigmamu2n, eta
     use mod_system,        only: System
     use mod_distributions, only: fd_dist
-    use TightBinding,      only: nOrb
     use mod_constants,     only: cZero, pauli_mat, pi
     ! use mod_Umatrix,   only: hee
     implicit none
@@ -249,9 +248,8 @@ contains
     use mod_f90_kind,         only: double
     use mod_constants,        only: cI,cZero
     use mod_imRK4_parameters, only: lelectric, hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
-    use TightBinding,         only: nOrb,nOrb2
     use mod_System,           only: ia !, s => sys
-    use mod_parameters,       only: dimH
+    use mod_parameters,       only: nOrb,nOrb2,dimH
     implicit none
     real(double)     :: t
     integer          :: nAtoms

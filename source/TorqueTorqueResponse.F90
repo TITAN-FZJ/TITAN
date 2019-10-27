@@ -112,14 +112,13 @@ contains
 
 
   subroutine calcTTResponse(e)
-    use mod_constants, only: levi_civita, StoC, CtoS, cZero
-    use mod_System, only: s => sys
-    use mod_magnet, only: lvec
-    use TightBinding, only: nOrb
-    use mod_parameters, only: sigmaimunu2i
+    use mod_constants,        only: levi_civita, StoC, CtoS, cZero
+    use mod_System,           only: s => sys
+    use mod_magnet,           only: lvec
+    use mod_parameters,       only: nOrb, sigmaimunu2i
     use mod_susceptibilities, only: chiorb, chiorb_hf
-    use mod_mpi_pars, only: abortProgram
-    use mod_magnet, only: mabs
+    use mod_mpi_pars,         only: abortProgram
+    use mod_magnet,           only: mabs
     implicit none
     integer :: AllocateStatus
     integer :: i,j, m,n,k, mp,np,kp, mu,nu, gamma,zeta, p,q

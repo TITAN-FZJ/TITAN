@@ -1,15 +1,15 @@
 ! Calculate hamiltonian of the unit cell
 subroutine hamiltk(sys,kp,hk)
-  use mod_f90_kind,  only: double
-  use mod_constants, only: cI, cZero
-  use AtomTypes,     only: NeighborIndex
-  use mod_System,    only: ia, System
-  use TightBinding,  only: nOrb,nOrb2
-  use mod_magnet,    only: lb, sb
-  use mod_SOC,       only: ls
-  use mod_Umatrix,   only: hee
+  use mod_f90_kind,   only: double
+  use mod_constants,  only: cI, cZero
+  use AtomTypes,      only: NeighborIndex
+  use mod_System,     only: ia, System
+  use mod_parameters, only: nOrb,nOrb2
+  use mod_magnet,     only: lb, sb
+  use mod_SOC,        only: ls
+  use mod_Umatrix,    only: hee
   implicit none
-  integer :: i, j, k
+  integer :: i, j, k ,ii,jj
   real(double), intent(in) :: kp(3)
   type(System), intent(in) :: sys
   complex(double), dimension(sys%nAtoms*nOrb2, sys%nAtoms*nOrb2), intent(out) :: hk
@@ -65,14 +65,14 @@ end subroutine hamiltk
 ! Calculate hamiltonian of the unit cell
 ! and the spin-orbit coupling contribution separately
 subroutine hamiltklinearsoc(sys,kp,hk,vsoc)
-  use mod_f90_kind,  only: double
-  use mod_constants, only: cZero, cI
-  use mod_system,    only: ia, System
-  use AtomTypes,     only: NeighborIndex
-  use TightBinding,  only: nOrb,nOrb2
-  use mod_magnet,    only: lb, sb
-  use mod_SOC,       only: ls
-  use mod_Umatrix,   only: hee
+  use mod_f90_kind,   only: double
+  use mod_constants,  only: cZero, cI
+  use mod_system,     only: ia, System
+  use AtomTypes,      only: NeighborIndex
+  use mod_parameters, only: nOrb,nOrb2
+  use mod_magnet,     only: lb, sb
+  use mod_SOC,        only: ls
+  use mod_Umatrix,    only: hee
   implicit none
   integer :: i, j, k
   real(double), intent(in) :: kp(3)

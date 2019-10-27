@@ -28,16 +28,15 @@ contains
     use mod_BrillouinZone, only: realBZ
     use mod_mpi_pars,      only: rFreq, sFreq, FreqComm, rField, sField, FieldComm
     use mod_SOC,           only: SOC
-    use mod_parameters,    only: leigenstates
+    use mod_parameters,    only: leigenstates,lkpoints
     use mod_System,        only: s => sys
     use mod_expectation,   only: calcLGS
     implicit none
     logical :: lsuccess = .false.
 
     ! Distribute Energy Integration across all points available
-    if(leigenstates) then
-      call realBZ % setup_fraction(s,rFreq(1), sFreq(1), FreqComm(1))
-    else
+    call realBZ % setup_fraction(s,rFreq(1), sFreq(1), FreqComm(1),lkpoints)
+    if(.not.leigenstates) then
       call genLocalEKMesh(s,rField,sField, FieldComm)
     end if
 
@@ -72,9 +71,8 @@ contains
   subroutine read_previous_results(lsuccess)
     use mod_f90_kind,   only: double
     use mod_constants,  only: deg2rad
-    use mod_parameters, only: output
+    use mod_parameters, only: nOrb, output
     use mod_system,     only: s => sys
-    use TightBinding,   only: nOrb
     use mod_mpi_pars,   only: rField,abortProgram
     use mod_magnet,     only: mx,my,mz,mxd,myd,mzd,mpd,hw_count,hw_list, &
                               lfield,rho,rhod,rhod0,rho0
@@ -218,9 +216,8 @@ contains
   ! This subroutine reads previous band-shifting and magnetization results
   subroutine read_sc_results(err,lsuccess)
     use mod_f90_kind,      only: double
-    use mod_parameters,    only: output, dfttype
+    use mod_parameters,    only: nOrb, output, dfttype
     use EnergyIntegration, only: parts
-    use TightBinding,      only: nOrb
     use mod_system,        only: s => sys
     use mod_magnet,        only: rho, mp, mx, my, mz, rhod, &
                                  mpd, mxd, myd, mzd, hw_count
@@ -406,10 +403,9 @@ contains
   !! This subroutine performs the self-consistency
     use mod_f90_kind,   only: double
     use mod_constants,  only: pi
-    use mod_parameters, only: output
+    use mod_parameters, only: nOrb, output
     use mod_magnet,     only: iter, rho, mxd, myd, mzd
     use mod_mpi_pars,   only: rField
-    use TightBinding,   only: nOrb
     use mod_system,     only: s => sys
     use adaptiveMesh
     use mod_dnsqe
@@ -585,10 +581,9 @@ contains
   subroutine lsqfun(iflag,M,N,x,fvec,selfconjac,ljc,iw,liw,w,lw)
     use mod_f90_kind,    only: double
     use mod_system,      only: s => sys
-    use TightBinding,    only: nOrb
     use mod_magnet,      only: rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,     only: update_Umatrix
-    use mod_parameters,  only: leigenstates
+    use mod_parameters,  only: nOrb, leigenstates
     use mod_expectation, only: expectation_values_greenfunction, expectation_values_eigenstates
     ! use mod_mpi_pars
     implicit none
@@ -657,8 +652,7 @@ contains
     use mod_system,        only: s => sys
     use mod_magnet,        only: mx,my,mz,mp,rho,mxd,myd,mzd,mpd,rhod
     use adaptiveMesh,      only: bzs,E_k_imag_mesh,activeComm,local_points
-    use TightBinding,      only: nOrb,nOrb2
-    use mod_parameters,    only: eta
+    use mod_parameters,    only: nOrb, nOrb2, eta
     use ElectricField,     only: EshiftBZ,ElectricFieldVector
     use mod_mpi_pars
     implicit none
@@ -776,13 +770,12 @@ contains
     !! Calculated the Jacobian of the spin magnetization
     use mod_f90_kind,      only: double
     use mod_constants,     only: pi, ident_norb2, cZero, pauli_dorb, ident_dorb, cOne
-    use mod_parameters,    only: U, offset, eta
+    use mod_parameters,    only: nOrb, nOrb2, U, offset, eta
     use mod_SOC,           only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: y, wght
     use mod_System,        only: s => sys
     use adaptiveMesh,      only: local_points, E_k_imag_mesh, bzs, activeComm
     use mod_BrillouinZone, only: realBZ
-    use TightBinding,      only: nOrb,nOrb2
     use ElectricField,     only: EshiftBZ,ElectricFieldVector
     use mod_mpi_pars
     implicit none
@@ -1097,9 +1090,8 @@ contains
     use mod_constants,  only: deg2rad
     use mod_magnet,     only: lfield, hw_count, hw_list, hhw, mp, mx, my, mz, &
                                                               mpd, mxd, myd, mzd
-    use mod_parameters, only: output
+    use mod_parameters, only: nOrb, output
     use mod_System,     only: s => sys
-    use TightBinding,   only: nOrb
     use mod_mpi_pars,   only: rField
     implicit none
     integer      :: i,j,sign
@@ -1199,11 +1191,10 @@ contains
 
   subroutine write_sc_results()
     !! Writes the self-consistency results into files and broadcasts the scfile for the next iteration.
-    use mod_parameters,    only: output, dfttype
+    use mod_parameters,    only: nOrb, output, dfttype
     use EnergyIntegration, only: parts
     use mod_magnet,        only: rho, mx, my, mz
     use mod_system,        only: s => sys
-    use TightBinding,      only: nOrb
     use mod_mpi_pars
     implicit none
     character(len=30) :: formatvar
@@ -1234,10 +1225,9 @@ contains
   ! Writes the initial values for the self-consistency
   subroutine print_sc_step(n,mx,my,mz,Ef,fvec)
     use mod_f90_kind,   only: double
-    use mod_parameters, only: output
+    use mod_parameters, only: nOrb, output
     use mod_system,     only: s => sys
     use mod_magnet,     only: iter
-    use TightBinding,   only: nOrb
     use mod_mpi_pars
     implicit none
     real(double),dimension(neq), intent(in), optional :: fvec
@@ -1290,8 +1280,7 @@ contains
   subroutine sc_equations_and_jacobian(N,x,fvec,selfconjac,iuser,ruser,iflag)
     use mod_f90_kind,    only: double
     use mod_system,      only: s => sys
-    use TightBinding,    only: nOrb
-    use mod_parameters,  only: lcheckjac, leigenstates
+    use mod_parameters,  only: nOrb, lcheckjac, leigenstates
     use mod_magnet,      only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,     only: update_Umatrix
     use mod_tools,       only: itos
@@ -1377,10 +1366,9 @@ contains
     use mod_f90_kind,    only: double
     use mod_constants,   only: cI
     use mod_system,      only: s => sys
-    use TightBinding,    only: nOrb
     use mod_magnet,      only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,     only: update_Umatrix
-    use mod_parameters,  only: leigenstates
+    use mod_parameters,  only: nOrb, leigenstates
     use mod_expectation, only: expectation_values_greenfunction, expectation_values_eigenstates
     use mod_mpi_pars
     implicit none
@@ -1455,8 +1443,7 @@ contains
   subroutine sc_eqs_and_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
     use mod_f90_kind,    only: double
     use mod_system,      only: s => sys
-    use TightBinding,    only: nOrb
-    use mod_parameters,  only: lcheckjac, leigenstates
+    use mod_parameters,  only: nOrb, lcheckjac, leigenstates
     use mod_magnet,      only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,     only: update_Umatrix
     use mod_tools,       only: itos
@@ -1536,10 +1523,9 @@ contains
   subroutine sc_eqs_old(N,x,fvec,iflag)
     use mod_f90_kind,    only: double
     use mod_system,      only: s => sys
-    use TightBinding,    only: nOrb
     use mod_magnet,      only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,     only: update_Umatrix
-    use mod_parameters,  only: leigenstates
+    use mod_parameters,  only: nOrb, leigenstates
     use mod_expectation, only: expectation_values_greenfunction, expectation_values_eigenstates
     use mod_mpi_pars
     implicit none
@@ -1604,11 +1590,11 @@ contains
   !     mz - mz_in   = 0
   !  sum n - n_total = 0
   subroutine sc_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
-    use mod_f90_kind, only: double
-    use mod_system, only: s => sys
-    use TightBinding, only: nOrb
-    use mod_magnet, only: iter,rhod0,rho0,rho
-    use mod_Umatrix, only: update_Umatrix
+    use mod_f90_kind,   only: double
+    use mod_system,     only: s => sys
+    use mod_parameters, only: nOrb
+    use mod_magnet,     only: iter,rhod0,rho0,rho
+    use mod_Umatrix,    only: update_Umatrix
     implicit none
     integer       :: N,i,mu,ldfjac,iflag
     real(double)  :: x(N),fvec(N),selfconjac(ldfjac,N)

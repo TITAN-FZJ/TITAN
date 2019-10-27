@@ -6,11 +6,10 @@
 subroutine jij_energy(Jij)
   use mod_f90_kind,      only: double
   use mod_constants,     only: pi, cOne, cZero, pauli_dorb
-  use mod_parameters,    only: U, q, eta
+  use mod_parameters,    only: nOrb2, U, q, eta
   use EnergyIntegration, only: y, wght
   use mod_magnet,        only: mvec_cartesian,mabs
   use mod_system,        only: s => sys
-  use TightBinding,      only: nOrb2
   use mod_mpi_pars
   use adaptiveMesh
   use mod_mpi_pars

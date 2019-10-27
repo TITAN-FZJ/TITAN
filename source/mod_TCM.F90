@@ -18,8 +18,8 @@ contains
 
     do i = 1, size(filename)
       iw = 634893 + i
-      ! Skip files for integrated alpha if not in bulk
-      if((.not.s%lbulk).and.(scan(filename(i),"i")>0)) cycle
+      ! Skip files for integrated alpha if not in 3D
+      if((s%isysdim/=3).and.(scan(filename(i),"i")>0)) cycle
       write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(i)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       open (unit=iw, file=varm, status='replace', form='formatted')
       write(unit=iw, fmt="('# (k), i , m , Re(A_mx), Im(A_mx), Re(A_my), Im(A_my), Re(A_mz), Im(A_mz) ')")
@@ -53,8 +53,8 @@ contains
       end do
     end do
 
-    !! Writing k-dependent Gilbert damping alpha
-    if(s%lbulk) then
+    !! Writing k-dependent integrated Gilbert damping alpha (3D only)
+    if(s%isysdim==3) then
       do k=1,size(diff_k)
         write(unit=unit+1,fmt=*) diff_k(k), ( (ialpha(i,j,k), j=1,3), i=1,s%nAtoms ), iwght(k)
       end do
@@ -69,8 +69,8 @@ contains
 
     do i = 1, size(filename)
       iw = 634893 + i
-      ! Skip files for integrated alpha if not in bulk
-      if((.not.s%lbulk).and.(scan(filename(i),"i")>0)) cycle
+      ! Skip files for integrated alpha if not in 3D
+      if((s%isysdim/=3).and.(scan(filename(i),"i")>0)) cycle
       close(iw)
     end do
   end subroutine closeTCMFiles
@@ -126,17 +126,16 @@ contains
     use mod_constants,     only: cZero, pi, cOne, cI
     use mod_System,        only: s => sys
     use mod_BrillouinZone, only: realBZ, store_diff
-    use TightBinding,      only: nOrb2
-    use mod_parameters,    only: eta, output, kptotal_in
+    use mod_parameters,    only: nOrb2, eta, output, kptotal_in
     use mod_magnet,        only: mabs
     use mod_tools,         only: sort, itos, rtos
     use mod_mpi_pars
     implicit none
     interface
       subroutine torque_fct(torque)
-        use mod_f90_kind, only: double
-        use TightBinding, only: nOrb2
-        use mod_System,   only: sys
+        use mod_f90_kind,   only: double
+        use mod_parameters, only: nOrb2
+        use mod_System,     only: sys
         implicit none
         complex(double), dimension(nOrb2,nOrb2,3,sys%nAtoms), intent(out) :: torque
       end subroutine torque_fct
@@ -182,7 +181,8 @@ contains
       write(output%unit_loop, "('[TCM] Generating local k-points...')")
     call realBZ % setup_fraction(s,rField, sField, FieldComm)
 
-    if(s%lbulk) then
+    ! Calculating integrated k-dependent alpha (3D only)
+    if(s%isysdim==3) then
       ! Obtaining the different kz
       if(rField == 0) &
         write(output%unit_loop, "('[TCM] Obtaining different kz: ')", advance='no')
@@ -273,7 +273,7 @@ contains
               end do
               alpha_loc(j,i,n,m) = alpha_loc(j,i,n,m) + alphatemp
 
-              if((s%lbulk).and.(i == j).and.(m == n)) then
+              if((s%isysdim==3).and.(i == j).and.(m == n)) then
                 ! Testing if kz is not on the list of different kz calculated before
                 diffk: do k = 1, ndiffk
                   if ( abs(abs(kp(3)) - diff_k(k)) < 1.d-12 ) then
@@ -303,11 +303,11 @@ contains
       do j = 1, s%nAtoms
         alpha(j,i,:,:) = 2.d0 * alpha(j,i,:,:) / (sqrt(mabs(i)*mabs(j))*pi)
       end do
-      if(s%lbulk) ialpha(i,:,:) = 2.d0 * ialpha(i,:,:) / (mabs(i)*pi)
+      if(s%isysdim==3) ialpha(i,:,:) = 2.d0 * ialpha(i,:,:) / (mabs(i)*pi)
     end do
 
     call MPI_Allreduce(MPI_IN_PLACE, alpha , s%nAtoms*s%nAtoms*3*3, MPI_DOUBLE_COMPLEX  , MPI_SUM, FieldComm, ierr)
-    if(s%lbulk) then
+    if(s%isysdim==3) then
       call MPI_Allreduce(MPI_IN_PLACE, ialpha, s%nAtoms*3*ndiffk    , MPI_DOUBLE_PRECISION, MPI_SUM, FieldComm, ierr)
       call MPI_Allreduce(MPI_IN_PLACE, iwght , ndiffk               , MPI_DOUBLE_PRECISION, MPI_SUM, FieldComm, ierr)
       deallocate(order,diff_k_unsrt)
@@ -319,9 +319,8 @@ contains
   subroutine local_xc_torque(torque)
     use mod_f90_kind,   only: double
     use mod_constants,  only: cZero, cOne, cI, levi_civita, sigma => pauli_mat
-    use TightBinding,   only: nOrb,nOrb2
     use mod_System,     only: s => sys
-    use mod_parameters, only: U
+    use mod_parameters, only: nOrb, nOrb2, U
     use mod_magnet,     only: mvec_cartesian
 
     complex(double), dimension(nOrb2,nOrb2,3,s%nAtoms), intent(out) :: torque
@@ -352,11 +351,11 @@ contains
 
   !> This subroutine defines the spin-orbit torque operator/matrix
   subroutine local_SO_torque(torque)
-    use mod_f90_kind,  only: double
-    use mod_constants, only: cZero, levi_civita, sigma => pauli_mat, cI
-    use mod_System,    only: s => sys
-    use mod_magnet,    only: lvec
-    use TightBinding,  only: nOrb, nOrb2
+    use mod_f90_kind,   only: double
+    use mod_constants,  only: cZero, levi_civita, sigma => pauli_mat, cI
+    use mod_System,     only: s => sys
+    use mod_magnet,     only: lvec
+    use mod_parameters, only: nOrb, nOrb2
     use mod_mpi_pars
     implicit none
     integer :: i,m,n,k

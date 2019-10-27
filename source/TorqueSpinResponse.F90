@@ -88,8 +88,7 @@ contains
     use mod_constants,        only: delta, levi_civita, StoC, CtoS, cZero, cI
     use mod_System,           only: s => sys
     use mod_magnet,           only: lvec
-    use TightBinding,         only: nOrb
-    use mod_parameters,       only: sigmaimunu2i
+    use mod_parameters,       only: nOrb, sigmaimunu2i
     use mod_susceptibilities, only: chiorb, chiorb_hf
     use mod_mpi_pars, only: abortProgram
     use mod_magnet,           only: mabs
