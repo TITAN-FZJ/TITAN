@@ -273,16 +273,16 @@ contains
     do i = -3*nStages, 3*nStages
       do j = -3*nStages, 3*nStages
         do k = -3*nStages, 3*nStages
-          if(i == 0 .and. j == 0 .and. k == 0) cycle
+          if( (i == 0 .and. j == 0 .and. k == 0).or.((vec_norm(material%a3,3)==0).and.(i == 0 .and. j == 0)).or.((vec_norm(material%a3,3)==0).and.(vec_norm(material%a2,3)==0).and.(i == 0)) )cycle
           m = m + 1
           vec = i * material%a1 + j * material%a2 + k * material%a3
           dist = vec_norm(vec,3)
           localDistances(m) = dist
           l = m - 1
           do while(1 <= l)
-          if(localDistances(l) - dist < 1.d-9) exit
-          localDistances(l+1) = localDistances(l)
-          l = l - 1
+            if(localDistances(l) - dist < 1.d-9) exit
+            localDistances(l+1) = localDistances(l)
+            l = l - 1
           end do
           localDistances(l+1) = dist
         end do
@@ -297,7 +297,6 @@ contains
       if(l > nStages) exit
       material%stage(l) = localDistances(i)
     end do
-
     deallocate(localDistances)
   end subroutine readElementFile
 
