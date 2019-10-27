@@ -49,6 +49,8 @@ module AtomTypes
     !! Total, s, p and d occupations
     real(double) :: LatticeConstant
     !! Lattice constant
+    integer      :: isysdim
+    !! Dimension of the system (1D, 2D, 3D)
     real(double), dimension(3) :: a1,a2,a3
     !! Lattice vectors
     real(double), dimension(:), allocatable :: Stage

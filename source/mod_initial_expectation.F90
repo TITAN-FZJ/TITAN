@@ -37,24 +37,6 @@ contains
       !------------- Setting the number of nearest neighbors -------------
       sys0(i)%nStages = sys%nStages
       sys0(i)%relTol  = sys%relTol
-      !---------- Generating k points for real axis integration ----------
-      if((vec_norm(sys0(i)%a2,3) <= 1.d-9).and.(vec_norm(sys0(i)%a3,3) <= 1.d-9)) then
-        sys0(i)%isysdim = 1
-        realBZ % nkpt_x = kp_in(1)
-        realBZ % nkpt_y = 1
-        realBZ % nkpt_z = 1
-      else if(vec_norm(sys0(i)%a3,3) <= 1.d-9) then
-        sys0(i)%isysdim = 2
-        realBZ % nkpt_x = kp_in(1)
-        realBZ % nkpt_y = kp_in(1)
-        realBZ % nkpt_z = 1
-      else
-        sys0(i)%isysdim = 3
-        realBZ % nkpt_x = kp_in(1)
-        realBZ % nkpt_y = kp_in(1)
-        realBZ % nkpt_z = kp_in(1)
-      end if
-      call realBZ % countBZ(sys0(i))
       
       call initLattice(sys0(i))
       ! if(myrank==0) call writeLattice(sys0(i))
@@ -65,6 +47,26 @@ contains
 
       !-------------------- Tight Binding parameters ---------------------
       call initTightBinding(sys0(i))
+
+      !---------- Generating k points for real axis integration ----------
+      select case(sys0(i)%Types(i)%isysdim)
+      case(3)
+        sys0(i)%isysdim = 3
+        realBZ % nkpt_x = kp_in(1)
+        realBZ % nkpt_y = kp_in(1)
+        realBZ % nkpt_z = kp_in(1)
+      case(2)
+        sys0(i)%isysdim = 2
+        realBZ % nkpt_x = kp_in(1)
+        realBZ % nkpt_y = kp_in(1)
+        realBZ % nkpt_z = 1
+      case default
+        sys0(i)%isysdim = 1
+        realBZ % nkpt_x = kp_in(1)
+        realBZ % nkpt_y = 1
+        realBZ % nkpt_z = 1
+      end select
+      call realBZ % countBZ(sys0(i))
 
       !---------------- Reading from previous calculations -----------------
       !------- and calculating if file doesn't exist (or different U) ------

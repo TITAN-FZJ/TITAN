@@ -206,6 +206,10 @@ contains
       end do
     end do
 
+    ! Read dimension of the system
+    read(f_unit, fmt='(A)', iostat = ios) line
+    read(unit= line, fmt=*, iostat=ios) material%isysdim
+
     ! Read Fermi level
     read(f_unit, fmt='(A)', iostat = ios) line
     read(unit= line, fmt=*, iostat=ios) material%FermiLevel
@@ -271,9 +275,11 @@ contains
     m = 0
     material % stage = 10.d0 * material % LatticeConstant
     do i = -3*nStages, 3*nStages
+      if( (material%isysdim==1).and.(i == 0) ) cycle ! 1D case
       do j = -3*nStages, 3*nStages
+        if( (material%isysdim==2).and.(i == 0 .and. j == 0) ) cycle ! 2D case
         do k = -3*nStages, 3*nStages
-          if( (i == 0 .and. j == 0 .and. k == 0).or.((vec_norm(material%a3,3)==0).and.(i == 0 .and. j == 0)).or.((vec_norm(material%a3,3)==0).and.(vec_norm(material%a2,3)==0).and.(i == 0)) )cycle
+          if(i == 0 .and. j == 0 .and. k == 0)  cycle
           m = m + 1
           vec = i * material%a1 + j * material%a2 + k * material%a3
           dist = vec_norm(vec,3)
@@ -301,7 +307,7 @@ contains
   end subroutine readElementFile
 
   pure subroutine intd(sss,pps,ppp,dds,ddp,ddd,sps,sds,pds,pdp,w,b)
-    use mod_f90_kind, only: double
+    use mod_f90_kind,  only: double
     use mod_constants, only: sq3
     implicit none
     real(double), intent(in)  :: sss,sps,pps,ppp,sds,pds,pdp,dds,ddp,ddd,w(3)
