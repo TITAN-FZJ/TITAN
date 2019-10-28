@@ -402,22 +402,12 @@ contains
 
   subroutine calcMagneticSelfConsistency()
   !! This subroutine performs the self-consistency
-<<<<<<< HEAD
-    use mod_f90_kind,          only: double
-    use mod_constants,         only: pi
-    use mod_parameters,        only: output
-    use mod_magnet,            only: iter, rho, mxd, myd, mzd
-    use mod_mpi_pars,          only: rField
-    use TightBinding,          only: nOrb
-    use mod_system,            only: s => sys
-=======
     use mod_f90_kind,   only: double
     use mod_constants,  only: pi
     use mod_parameters, only: nOrb, output
     use mod_magnet,     only: iter, rho, mxd, myd, mzd
     use mod_mpi_pars,   only: rField
     use mod_system,     only: s => sys
->>>>>>> f5d881da7af7ed58c44c98947a7f1885cd89df50
     use adaptiveMesh
     use mod_dnsqe
     use mod_superconductivity, only: superCond, lsuperCond, singlet_coupling
@@ -662,8 +652,6 @@ contains
 
   end subroutine lsqfun
 
-<<<<<<< HEAD
-=======
   subroutine calcMagnetization()
     !! Calculates occupation density and magnetization.
     use mod_f90_kind,      only: double
@@ -786,7 +774,6 @@ contains
     deallocate(imguu,imgdd)
     deallocate(gdiagdu, gdiagud)
   end subroutine calcMagnetization
->>>>>>> f5d881da7af7ed58c44c98947a7f1885cd89df50
 
   subroutine calcJacobian(jacobian, N)
     !! Calculated the Jacobian of the spin magnetization

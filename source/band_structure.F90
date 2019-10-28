@@ -15,7 +15,6 @@ subroutine band_structure(s)
   integer :: lwork,dimbs
   real(double), dimension(:), allocatable :: rwork,eval
   complex(double), allocatable :: work(:),hk(:,:)
-  integer :: i
 
   dimbs = (s%nAtoms)*18*superCond
   lwork = 2*dimbs-1

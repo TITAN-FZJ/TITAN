@@ -8,9 +8,8 @@ contains
 
   subroutine hamiltk_sc(sys,kp,hk_sc)
     use mod_f90_kind,       only: double
-    use mod_parameters,     only: output, kpoints
+    use mod_parameters,     only: output, kpoints, nOrb2
     use mod_system,         only: System, initHamiltkStride
-    use TightBinding,       only: nOrb2, initTightBinding
     use mod_constants,      only: cZero,cOne
     use mod_parameters,     only: offset
     implicit none
@@ -80,9 +79,8 @@ contains
 
   subroutine update_singlet_couplings(couplings)
       use mod_f90_kind,       only: double
-      use mod_parameters,     only: output, kpoints
+      use mod_parameters,     only: output, kpoints, nOrb2
       use mod_system,         only: System, initHamiltkStride
-      use TightBinding,       only: nOrb2, initTightBinding
       use mod_constants,      only: cZero,cOne
       use mod_parameters,     only: offset
       implicit none
@@ -100,9 +98,8 @@ contains
 
   subroutine bcs_s_pairing(sys,delta_s, hk_sc)
       use mod_f90_kind,       only: double
-      use mod_parameters,     only: output, kpoints
+      use mod_parameters,     only: output, kpoints, nOrb2
       use mod_system,         only: System, initHamiltkStride
-      use TightBinding,       only: nOrb2, initTightBinding
       use mod_constants,      only: cZero,cOne
       use mod_parameters,     only: offset
       implicit none
@@ -142,9 +139,8 @@ contains
 
   subroutine bcs_p_pairing(sys, label, delta_p, hk_sc)
       use mod_f90_kind,       only: double
-      use mod_parameters,     only: output, kpoints
+      use mod_parameters,     only: output, kpoints, nOrb2
       use mod_system,         only: System, initHamiltkStride
-      use TightBinding,       only: nOrb2, initTightBinding
       use mod_constants,  only: cZero,cOne
       use mod_parameters, only: offset
       implicit none
@@ -173,9 +169,9 @@ contains
 
   subroutine bcs_d_pairing(sys, label, delta_d, hk_sc)
       use mod_f90_kind,       only: double
-      use mod_parameters,     only: output, kpoints
+      use mod_parameters,     only: output, kpoints, nOrb2
       use mod_system,         only: System, initHamiltkStride
-      use TightBinding,       only: nOrb2, initTightBinding
+      ! use TightBinding,       only:
       use mod_constants,  only: cZero,cOne
       use mod_parameters, only: offset
       implicit none
