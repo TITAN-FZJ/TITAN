@@ -7,7 +7,7 @@ module mod_io
 contains
 
   subroutine log_message(procedure, message)
-    use mod_mpi_pars, only: myrank
+    use mod_mpi_pars,   only: myrank
     use mod_parameters, only: output
     implicit none
     character(len=*), intent(in) :: procedure
@@ -38,7 +38,7 @@ contains
   end subroutine log_error
 
   subroutine log_warning(procedure, message)
-    use mod_mpi_pars, only: myrank
+    use mod_mpi_pars,   only: myrank
     use mod_parameters, only: output
     implicit none
     character(len=*), intent(in) :: procedure
@@ -62,7 +62,8 @@ contains
                                      lcheckjac, llgtv, lsortfiles,leigenstates, lprintfieldonly, &
                                      itype, ry2ev, ltesla, eta, etap, dmax, emin, emax, &
                                      skip_steps, nEner, nEner1, nQvec, nQvec1, qbasis, renorm, renormnb, bands, band_cnt, &
-                                     offset, dfttype, parField, parFreq, kptotal_in, kp_in
+                                     offset, dfttype, parField, parFreq, kptotal_in, kp_in, &
+                                     nOrb, nOrb2, tbmode, fermi_layer
     use mod_superconductivity, only: lsuperCond, superCond, lambda, singlet_coupling
     use mod_self_consistency,  only: lslatec, lontheflysc, lnojac, lGSL, lforceoccup, lrotatemag, skipsc, scfile, magbasis, mag_tol
     use mod_system,            only: System, n0sc1, n0sc2
@@ -116,20 +117,26 @@ contains
       call log_warning("get_parameters","'nn_stages' missing. Using default value: 2")
     if(.not. get_parameter("relTol", s%relTol,0.05d0)) &
       call log_warning("get_parameters","'relTol' missing. Using default value: 0.05")
-    if(.not. get_parameter("bulk", s%lbulk, .true.)) &
-      call log_warning("get_parameters", "'bulk' missing. Using default value: .true.")
+    if(.not. get_parameter("sysdim", s%isysdim, 3)) &
+      call log_warning("get_parameters", "'sysdim' missing. Using default value: 3")
     if(.not. get_parameter("nkpt", i_vector,cnt)) &
       call log_error("get_parameters","'nkpt' missing.")
     if(cnt == 1) then
       kptotal_in = int( i_vector(1), kind(kptotal_in) )
-      if(s%lbulk) then
-        kp_in(:) = ceiling((dble(kptotal_in))**(1.d0/3.d0), kind(kp_in(1)) )
+      select case(s%isysdim)
+      case(3)
+        kp_in(:)   = ceiling((dble(kptotal_in))**(1.d0/3.d0), kind(kp_in(1)) )
         kptotal_in = int( kp_in(1) * kp_in(2) * kp_in(3), kind(kptotal_in) )
-      else
+      case(2)
         kp_in(1:2) = ceiling((dble(kptotal_in))**(1.d0/2.d0), kind(kp_in(1)) )
-        kp_in(3) = 0
+        kp_in(3)   = 1
         kptotal_in = int( kp_in(1) * kp_in(2), kind(kptotal_in) )
-      end if
+      case default
+        kp_in(1)   = ceiling((dble(kptotal_in)), kind(kp_in(1)) )
+        kp_in(2:3) = 1
+        kptotal_in = int( kp_in(1), kind(kptotal_in) )
+      end select
+
     else if(cnt == 3) then
       kp_in(1) = int( i_vector(1), kind(kp_in(1)) )
       kp_in(2) = int( i_vector(2), kind(kp_in(2)) )
@@ -730,7 +737,7 @@ contains
        write(output%unit_loop,"(1x,'Number of points to calculate: ',i0)") nEner1
     case (4)
        write(output%unit_loop,"(1x,'Band structure')")
-       write(output%unit_loop,"(2x,'Path along BZ: ',a)") (trim(adjustl(bands(i))), i = 1,band_cnt)
+       write(output%unit_loop,"(2x,'Path along BZ: ',10(a,1x))") (trim(adjustl(bands(i))), i = 1,band_cnt)
        write(output%unit_loop,"(2x,'Number of wave vectors to calculate: ',i0)") nQvec1
     case (5)
        write(output%unit_loop,"(1x,'Charge and spin density at Fermi surface')")

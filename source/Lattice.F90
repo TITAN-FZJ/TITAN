@@ -22,7 +22,7 @@ contains
 
   subroutine initLattice(s)
     use mod_system, only: System
-    use AtomTypes, only: NeighborAtom
+    use AtomTypes,  only: NeighborAtom
     implicit none
     type(System), intent(inout) :: s
     type(NeighborAtom), dimension(:), allocatable :: list
@@ -34,15 +34,15 @@ contains
   end subroutine initLattice
 
   subroutine generateNeighbors(s,list,size)
-    use AtomTypes, only: NeighborAtom
+    use AtomTypes,  only: NeighborAtom
     use mod_system, only: System
-    use mod_tools, only: vecDist
+    use mod_tools,  only: vecDist
     implicit none
-    type(System), intent(inout) :: s
+    type(System),                                  intent(inout) :: s
     !! System for which lattice is generated
-    type(NeighborAtom), intent(out), dimension(:), allocatable :: list
+    type(NeighborAtom), dimension(:), allocatable, intent(out)   :: list
     !! Array containing all generated atoms
-    integer,intent(out) :: size
+    integer,                                       intent(out)   :: size
     !! Counter for number of atoms generated, return total number generated
     integer :: nCells
     !! Number of generated unit cells
@@ -52,10 +52,8 @@ contains
     !! Array containing *all* distances
 
     ! Number of unit cells to be generated along each dimensions
-    ! For two dimensions it is (2*n+1)^2
-    nCells = (2*s%nStages+1)*(2*s%nStages+1)
-    ! If it's three dimensions: (2*n+1)^3
-    if(s%lbulk) nCells = nCells * (2*s%nStages+1)
+    ! For d dimensions it is (2*n+1)^d
+    nCells = (2*s%nStages+1)**(s%isysdim)
 
     ! Allocate array for nn distances known to the system
     allocate(s%Distances(s%nStages, s%nAtoms))
@@ -72,10 +70,21 @@ contains
       do j = 1, s%nAtoms
         size = size + 1
 
-        ! Determine in-plane unit-cell indices
-        list(size)%Cell = [mod((i-1)/(2*s%nStages+1), (2*s%nStages+1))-s%nStages, mod((i-1),(2*s%nStages+1))-s%nStages, 0]
-        ! If bulk, also determine out-of plane index
-        if(s%lbulk) list(size)%Cell(3) = mod((i-1)/((2*s%nStages+1)*(2*s%nStages+1)), (2*s%nStages+1)) - s%nStages
+        ! Determine unit-cell indices
+        select case(s%isysdim)
+        case(3)
+          list(size)%Cell(1) = mod( (i-1),(2*s%nStages+1) ) - s%nStages
+          list(size)%Cell(2) = mod( (i-1)/(2*s%nStages+1),(2*s%nStages+1) ) - s%nStages
+          list(size)%Cell(3) = mod( (i-1)/((2*s%nStages+1)*(2*s%nStages+1)),(2*s%nStages+1) ) - s%nStages
+        case(2)
+          list(size)%Cell(1) = mod( (i-1),(2*s%nStages+1) ) - s%nStages
+          list(size)%Cell(2) = mod( (i-1)/(2*s%nStages+1),(2*s%nStages+1) ) - s%nStages
+          list(size)%Cell(3) = 0
+        case default
+          list(size)%Cell(1) = mod( (i-1),(2*s%nStages+1) ) - s%nStages
+          list(size)%Cell(2) = 0
+          list(size)%Cell(3) = 0
+        end select
 
         ! Cell position is R = i*a1 + j*a2 + k*a3
         list(size)%CellVector = list(size)%Cell(1) * s%a1 + list(size)%Cell(2) * s%a2 + list(size)%Cell(3) * s%a3
@@ -141,13 +150,13 @@ contains
   end subroutine generateNeighbors
 
   subroutine sortNeighbors(s,list, size)
-    use AtomTypes, only: NeighborAtom, add_elem
+    use AtomTypes,  only: NeighborAtom, add_elem
     use mod_system, only: System
     implicit none
-    type(System), intent(inout) :: s
-    integer, intent(in) :: size
-    integer :: nNeighbors
+    integer,                             intent(in)    :: size
+    type(System),                        intent(inout) :: s
     type(NeighborAtom), dimension(size), intent(inout) :: list
+    integer :: nNeighbors
 
     integer :: i,j,k
     integer :: matchedNeighbor(s%nAtoms)
@@ -198,7 +207,7 @@ contains
 
 
   subroutine writeLattice(s)
-    use AtomTypes, only: NeighborIndex
+    use AtomTypes,  only: NeighborIndex
     use mod_system, only: System
     implicit none
     type(System), intent(in) :: s

@@ -12,9 +12,14 @@ module mod_tools
   end interface sort
 
   interface vec_norm
-    module procedure real_vec_norm, &
-                      complex_vec_norm
+    module procedure vec_norm_real, &
+                      vec_norm_complex
   end interface vec_norm
+
+  interface normalize
+    module procedure normalize_real, &
+                      normalize_complex
+  end interface normalize
 contains
 
   ! --------------------------------------------------------------------
@@ -371,6 +376,7 @@ contains
     integer :: i
     write(I4toS, "(i0)") i
   end function I4toS
+
   character(len=100) function I8toS(i)
     implicit none
     integer*8 :: i
@@ -392,67 +398,116 @@ contains
   end function RtoS
 
 
-!-----------------------------------------------------------------------------------------------------!
-!                    These added subroutines are used in time propagator module                                               !
-!-----------------------------------------------------------------------------------------------------!
-
-! subroutine for kronecker product.
-  subroutine KronProd(nax,nay,nbx,nby,B1,B2,Kprod)
+  ! --------------------------------------------------------------------
+  ! subroutine KronProd():
+  !    This subroutine calculates the outer product (Kronecker product)
+  ! of two matrices A(nax,nay) and B(nbx,nby)
+  ! --------------------------------------------------------------------
+  subroutine KronProd(nax,nay,nbx,nby,A,B,AB)
     use mod_f90_kind, only: double
     implicit none
-    integer,          intent(in)  :: nax, nay, nbx, nby
-    integer                       :: i, j, p, q, l, m                                              
-    complex(double), intent(in)   :: B1(nax,nay), B2(nbx,nby) 
-    complex(double), intent(out)  :: Kprod(nax*nbx,nay*nby) 
+    integer,         intent(in)  :: nax, nay, nbx, nby
+    complex(double), intent(in)  :: A(nax,nay), B(nbx,nby) 
+    complex(double), intent(out) :: AB(nax*nbx,nay*nby) 
+    integer                      :: i, j, p, q, l, m                                              
     do i = 1,nax
       do j = 1,nay
         l=(i-1)*nbx + 1
         m=l+nbx-1
         p=(j-1)*nby + 1
         q=p+nby-1
-        Kprod(l:m,p:q) = B1(i,j)*B2
+        AB(l:m,p:q) = A(i,j)*B
       end do
     end do
   end subroutine KronProd
 
-  ! Function for real vector norm.
-  function real_vec_norm(v,dim_v)
+  ! --------------------------------------------------------------------
+  ! function vec_norm_complex():
+  !    This function calculates the norm of a complex vector v of dimension
+  ! dim_v.
+  ! --------------------------------------------------------------------
+  function vec_norm_complex(v, dim_v)
+    use mod_f90_kind, only: double
+    implicit none
+    integer,                           intent(in) :: dim_v ! vector dimension
+    complex(double), dimension(dim_v), intent(in) :: v ! vector v
+    real(double)                                  :: vec_norm_complex
+    real(double)                                  :: sum
+    integer                                       :: i
+
+    sum= 0.d0
+    do i = 1, dim_v
+      sum = sum + v(i)*conjg(v(i))
+    end do
+    vec_norm_complex= sqrt(sum)
+  end function vec_norm_complex
+
+
+  ! --------------------------------------------------------------------
+  ! function vec_norm_real():
+  !    This function calculates the norm of a real vector v of dimension
+  ! dim_v.
+  ! --------------------------------------------------------------------
+  function vec_norm_real(v, dim_v)
     use mod_f90_kind, only: double
     implicit none
     integer,                        intent(in) :: dim_v ! vector dimension
     real(double), dimension(dim_v), intent(in) :: v ! vector v
-    real(double)                               :: real_vec_norm
+    real(double)                               :: vec_norm_real
 
-    real_vec_norm = sqrt( dot_product(v,v) )
+    vec_norm_real = sqrt(dot_product(v,v))
+  end function vec_norm_real
 
-  end function real_vec_norm
 
-  ! function for complex vector norm.
-  function complex_vec_norm(v,dim_v)
+  ! --------------------------------------------------------------------
+  ! function normalize_complex():
+  !    This function normalizes the complex vector v of dimension
+  ! dim_v.
+  ! --------------------------------------------------------------------
+  function normalize_complex(v, dim_v)
     use mod_f90_kind, only: double
     implicit none
-    integer,                           intent(in) :: dim_v ! vector dimension    
+    integer,                           intent(in) :: dim_v ! vector dimension
     complex(double), dimension(dim_v), intent(in) :: v ! vector v
-    real(double)                                  :: complex_vec_norm
+    complex(double), dimension(dim_v)             :: normalize_complex
 
-    complex_vec_norm = sqrt( dot_product(v,conjg(v)) )
+    normalize_complex = v/vec_norm(v,dim_v)
+  end function normalize_complex
 
-  end function complex_vec_norm
+
+  ! --------------------------------------------------------------------
+  ! function normalize_real():
+  !    This function normalizes the real vector v of dimension
+  ! dim_v.
+  ! --------------------------------------------------------------------
+  function normalize_real(v, dim_v)
+    use mod_f90_kind, only: double
+    implicit none
+    integer,                        intent(in) :: dim_v ! vector dimension
+    real(double), dimension(dim_v), intent(in) :: v ! vector v
+    real(double), dimension(dim_v)             :: normalize_real
+
+    normalize_real = v/vec_norm(v,dim_v)
+  end function normalize_real
 
 
-  ! interface to the LAPACK linear system solver A*X=B
+  ! --------------------------------------------------------------------
+  ! subroutine LS_solver():
+  !    This subruotine is a simple interface for the LAPACK linear
+  ! system solver A*X = B.
+  ! --------------------------------------------------------------------
   subroutine LS_solver(n,A,b)
     use mod_f90_kind, only: double
     implicit none
     
-    integer,          intent(in)     :: n
-    complex(double),   intent(in)    :: A(n,n)
+    integer,         intent(in)      :: n
+    complex(double), intent(in)      :: A(n,n)
     complex(double), intent(out)     :: b(n)
     ! Workspace variables
     integer                          :: nrhs, lda, ldb, ldx, info
-    integer, allocatable             :: ipiv(:)
-    complex, allocatable             :: swork(:)
-    complex(double), allocatable     :: work(:), X(:)
+    integer,          allocatable    :: ipiv(:)
+    complex,          allocatable    :: swork(:)
+    complex(double),  allocatable    :: work(:), X(:)
     double precision, allocatable    :: rwork(:)
 
     lda= n

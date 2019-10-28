@@ -31,8 +31,8 @@ module mod_system
     !! Reciprocal vectors
     real(double) :: vol
     !! Volume of Brillouin Zone
-    logical :: lbulk = .false.
-    !! 3D or 2D logical variable
+    integer :: isysdim = 3
+    !! Dimension of the system: 3D (default), 2D or 1D
 
     integer :: nAtoms = 0
     !! Number of atoms in the system

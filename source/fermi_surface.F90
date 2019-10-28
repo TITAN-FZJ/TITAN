@@ -2,11 +2,10 @@
 subroutine fermi_surface(e)
   use mod_f90_kind,      only: double
   use mod_constants,     only: pi, pauli_orb, cZero, cOne
-  use mod_parameters,    only: output, eta
+  use mod_parameters,    only: nOrb, nOrb2, output, eta
   use mod_SOC,           only: llinearsoc, llineargfsoc
   use mod_system,        only: s => sys
   use mod_BrillouinZone, only: realBZ
-  use TightBinding,      only: nOrb,nOrb2
   use mod_mpi_pars
   implicit none
   character(len=400) :: varm

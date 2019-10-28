@@ -41,6 +41,7 @@ subroutine read_band_points(kbands, a0, b1, b2, b3)
     read(unit = line, fmt = *, iostat=ios) kband(i)%name, (kband(i)%kp(j), j = 1,3)
     ! read(unit=file_unit, fmt='(A)', iostat=ios) line
   end do
+
   ! Storing path points defined in input
   allocate(kbands(3,band_cnt))
   do i = 1, band_cnt
@@ -49,7 +50,7 @@ subroutine read_band_points(kbands, a0, b1, b2, b3)
       if(trim(kband(j)%name) == trim(bands(i))) then
         found = .true.
         if(qbasis(1:1) == "b") then
-          kbands(1:3,i) = (kband(j)%kp(1) * b1 + kband(j)%kp(2) * b2 + kband(j)%kp(3) * b3)*tpi/a0
+          kbands(1:3,i) = (kband(j)%kp(1) * b1 + kband(j)%kp(2) * b2 + kband(j)%kp(3) * b3)!*tpi/a0
         else if (qbasis(1:1) == "c") then
           kbands(1:3,i) = kband(j)%kp(:)*tpi/a0
         else

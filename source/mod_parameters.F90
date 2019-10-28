@@ -23,20 +23,20 @@ module mod_parameters
   integer*8 :: kptotal_in
   !! Total number of k-points
 
+  integer :: tbmode 
+  !! TIght-binding mode: (1) Slater-Koster, (2) DFT (not implemented yet)
+  integer :: nOrb, nOrb2
+  !! Number of orbitals and 2*(number of orbitals) (for spin)
+  integer :: fermi_layer   
+  !! Which site will be used for fermi level (Maybe remove it and read from outside?)
+  character(len=20), dimension(:), allocatable :: layers
+  !! Number of layers (Obsolete?)
+
   !========================================================================================!
   real(double), allocatable  :: U(:)
   !! Effective intra-site electron electron interaction
   logical       :: lhfresponses = .false.
   !! Use HF susceptibilities to calculate currents, disturbances and accumulations (don't renormalize)
-  !========================================================================================!
-  ! Lattice and surface direction
-  character(len=6) :: latticeName
-  !! Lattice description; general or bcc, fcc, hcp, cubic
-  !integer          :: Npl,Npl_i,Npl_f,Npl_input
-  !integer          :: Npl_total
-  !! Obsolete?
-  logical          :: bulk = .false.
-  !! Flag turning on/off bulk calculations, default: .false., not used yet
   !========================================================================================!
   real(double)       :: theta=0.d0,phi=0.d0
   !! Euler Angles for the magnetization frame of reference

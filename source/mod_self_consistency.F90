@@ -28,16 +28,15 @@ contains
     use mod_BrillouinZone, only: realBZ
     use mod_mpi_pars,      only: rFreq, sFreq, FreqComm, rField, sField, FieldComm
     use mod_SOC,           only: SOC
-    use mod_parameters,    only: leigenstates
+    use mod_parameters,    only: leigenstates,lkpoints
     use mod_System,        only: s => sys
     use mod_expectation,   only: calcLGS
     implicit none
     logical :: lsuccess = .false.
 
     ! Distribute Energy Integration across all points available
-    if(leigenstates) then
-      call realBZ % setup_fraction(s,rFreq(1), sFreq(1), FreqComm(1))
-    else
+    call realBZ % setup_fraction(s,rFreq(1), sFreq(1), FreqComm(1),lkpoints)
+    if(.not.leigenstates) then
       call genLocalEKMesh(s,rField,sField, FieldComm)
     end if
 
@@ -73,9 +72,8 @@ contains
   subroutine read_previous_results(lsuccess)
     use mod_f90_kind,   only: double
     use mod_constants,  only: deg2rad
-    use mod_parameters, only: output
+    use mod_parameters, only: nOrb, output
     use mod_system,     only: s => sys
-    use TightBinding,   only: nOrb
     use mod_mpi_pars,   only: rField,abortProgram
     use mod_magnet,     only: mx,my,mz,mxd,myd,mzd,mpd,hw_count,hw_list, &
                               lfield,rho,rhod,rhod0,rho0
@@ -219,9 +217,8 @@ contains
   ! This subroutine reads previous band-shifting and magnetization results
   subroutine read_sc_results(err,lsuccess)
     use mod_f90_kind,      only: double
-    use mod_parameters,    only: output, dfttype
+    use mod_parameters,    only: nOrb, output, dfttype
     use EnergyIntegration, only: parts
-    use TightBinding,      only: nOrb
     use mod_system,        only: s => sys
     use mod_magnet,        only: rho, mp, mx, my, mz, rhod, &
                                  mpd, mxd, myd, mzd, hw_count
@@ -405,6 +402,7 @@ contains
 
   subroutine calcMagneticSelfConsistency()
   !! This subroutine performs the self-consistency
+<<<<<<< HEAD
     use mod_f90_kind,          only: double
     use mod_constants,         only: pi
     use mod_parameters,        only: output
@@ -412,6 +410,14 @@ contains
     use mod_mpi_pars,          only: rField
     use TightBinding,          only: nOrb
     use mod_system,            only: s => sys
+=======
+    use mod_f90_kind,   only: double
+    use mod_constants,  only: pi
+    use mod_parameters, only: nOrb, output
+    use mod_magnet,     only: iter, rho, mxd, myd, mzd
+    use mod_mpi_pars,   only: rField
+    use mod_system,     only: s => sys
+>>>>>>> f5d881da7af7ed58c44c98947a7f1885cd89df50
     use adaptiveMesh
     use mod_dnsqe
     use mod_superconductivity, only: superCond, lsuperCond, singlet_coupling
@@ -593,10 +599,9 @@ contains
   subroutine lsqfun(iflag,M,N,x,fvec,selfconjac,ljc,iw,liw,w,lw)
     use mod_f90_kind,    only: double
     use mod_system,      only: s => sys
-    use TightBinding,    only: nOrb
     use mod_magnet,      only: rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,     only: update_Umatrix
-    use mod_parameters,  only: leigenstates
+    use mod_parameters,  only: nOrb, leigenstates
     use mod_expectation, only: expectation_values_greenfunction, expectation_values_eigenstates
     ! use mod_mpi_pars
     implicit none
@@ -657,18 +662,142 @@ contains
 
   end subroutine lsqfun
 
+<<<<<<< HEAD
+=======
+  subroutine calcMagnetization()
+    !! Calculates occupation density and magnetization.
+    use mod_f90_kind,      only: double
+    use mod_constants,     only: cI,pi,cZero
+    use mod_SOC,           only: llinearsoc,llineargfsoc
+    use EnergyIntegration, only: y,wght
+    use mod_system,        only: s => sys
+    use mod_magnet,        only: mx,my,mz,mp,rho,mxd,myd,mzd,mpd,rhod
+    use adaptiveMesh,      only: bzs,E_k_imag_mesh,activeComm,local_points
+    use mod_parameters,    only: nOrb, nOrb2, eta
+    use ElectricField,     only: EshiftBZ,ElectricFieldVector
+    use mod_mpi_pars
+    implicit none
+    integer  :: i,j, AllocateStatus
+    real(double),    dimension(3)                    :: kp
+    complex(double), dimension(:,:),     allocatable :: gdiagud,gdiagdu
+    real(double),    dimension(:,:),     allocatable :: imguu,imgdd
+    complex(double), dimension(:,:,:,:), allocatable :: gf
+    !--------------------- begin MPI vars --------------------
+    integer*8 :: ix
+    integer :: ncount
+    integer :: mu,mup
+    real(double) :: weight, ep
+    ncount = s%nAtoms * nOrb
+
+    allocate(imguu(nOrb,s%nAtoms),imgdd(nOrb,s%nAtoms), stat = AllocateStatus)
+    if(AllocateStatus/=0) &
+    call abortProgram("[calcMagnetization] Not enough memory for: imguu,imgdd")
+
+    allocate(gdiagud(s%nAtoms,nOrb), gdiagdu(s%nAtoms,nOrb), stat = AllocateStatus)
+    if(AllocateStatus /= 0) &
+    call abortProgram("[calcMagnetization] Not enough memory for: gdiagdu, gdiagud")
+
+    imguu   = 0.d0
+    imgdd   = 0.d0
+    gdiagud = cZero
+    gdiagdu = cZero
+
+    !$omp parallel default(none) &
+    !$omp& private(ix,ep,kp,weight,i,mu,mup,gf,AllocateStatus) &
+    !$omp& shared(llineargfsoc,llinearsoc,local_points,eta,wght,s,nOrb,nOrb2,bzs,E_k_imag_mesh,y,gdiagud,gdiagdu,imguu,imgdd,EshiftBZ,ElectricFieldVector)
+    allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat=AllocateStatus)
+    if(AllocateStatus /= 0) &
+    call AbortProgram("[calcMagnetization] Not enough memory for: gf")
+    gf = cZero
+
+    if(llineargfsoc .or. llinearsoc) then
+      !$omp do schedule(static) reduction(+:imguu) reduction(+:imgdd) reduction(+:gdiagud) reduction(+:gdiagdu)
+      do ix = 1, local_points
+         ep = y(E_k_imag_mesh(1,ix))
+         kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix)) + EshiftBZ*ElectricFieldVector
+         weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
+         call greenlineargfsoc(s%Ef,ep+eta,s,kp,gf)
+         do i=1,s%nAtoms
+           do mu=1,nOrb
+             mup = mu+nOrb
+             gdiagud(i,mu) = gdiagud(i,mu) + gf(mu,mup,i,i) * weight
+             gdiagdu(i,mu) = gdiagdu(i,mu) + gf(mup,mu,i,i) * weight
+
+             imguu(mu,i) = imguu(mu,i) + real(gf(mu ,mu ,i,i)) * weight
+             imgdd(mu,i) = imgdd(mu,i) + real(gf(mup,mup,i,i)) * weight
+           end do
+         end do
+      end do
+      !$omp end do
+    else
+      !$omp do schedule(static) reduction(+:imguu) reduction(+:imgdd) reduction(+:gdiagud) reduction(+:gdiagdu)
+      do ix = 1, local_points
+         ep = y(E_k_imag_mesh(1,ix))
+         kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix)) + EshiftBZ*ElectricFieldVector
+         weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
+         call green(s%Ef,ep+eta,s,kp,gf)
+         do i=1,s%nAtoms
+           do mu=1,nOrb
+             mup = mu+nOrb
+             gdiagud(i,mu) = gdiagud(i,mu) + gf(mu,mup,i,i) * weight
+             gdiagdu(i,mu) = gdiagdu(i,mu) + gf(mup,mu,i,i) * weight
+
+             imguu(mu,i) = imguu(mu,i) + real(gf(mu ,mu ,i,i)) * weight
+             imgdd(mu,i) = imgdd(mu,i) + real(gf(mup,mup,i,i)) * weight
+           end do
+         end do
+      end do
+      !$omp end do
+    end if
+
+    deallocate(gf)
+    !$omp end parallel
+    imguu = imguu / pi
+    imgdd = imgdd / pi
+
+    do j=1,s%nAtoms
+      mp(:,j)= gdiagdu(j,:) + conjg(gdiagud(j,:))
+      mpd(j) = sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9)))
+    end do
+
+    call MPI_Allreduce(MPI_IN_PLACE, imguu, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, imgdd, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, mp,    ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, mpd, s%nAtoms, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
+
+    mp      = mp/pi
+    mpd     = mpd/pi
+    mx      = real(mp)
+    my      = aimag(mp)
+    mxd     = real(mpd)
+    myd     = aimag(mpd)
+
+    do i = 1, s%nAtoms
+      do mu=1,nOrb
+        imguu(mu,i) = 0.5d0 + imguu(mu,i)
+        imgdd(mu,i) = 0.5d0 + imgdd(mu,i)
+        rho(mu,i) = imguu(mu,i) + imgdd(mu,i)
+        mz (mu,i) = imguu(mu,i) - imgdd(mu,i)
+      end do
+      rhod(i)   = sum(imguu(5:9,i)) + sum(imgdd(5:9,i))
+      mzd(i)    = sum(imguu(5:9,i)) - sum(imgdd(5:9,i))
+    end do
+
+    deallocate(imguu,imgdd)
+    deallocate(gdiagdu, gdiagud)
+  end subroutine calcMagnetization
+>>>>>>> f5d881da7af7ed58c44c98947a7f1885cd89df50
 
   subroutine calcJacobian(jacobian, N)
     !! Calculated the Jacobian of the spin magnetization
     use mod_f90_kind,      only: double
     use mod_constants,     only: pi, ident_norb2, cZero, pauli_dorb, ident_dorb, cOne
-    use mod_parameters,    only: U, offset, eta
+    use mod_parameters,    only: nOrb, nOrb2, U, offset, eta
     use mod_SOC,           only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: y, wght
     use mod_System,        only: s => sys
     use adaptiveMesh,      only: local_points, E_k_imag_mesh, bzs, activeComm
     use mod_BrillouinZone, only: realBZ
-    use TightBinding,      only: nOrb,nOrb2
     use ElectricField,     only: EshiftBZ,ElectricFieldVector
     use mod_mpi_pars
     implicit none
@@ -983,9 +1112,8 @@ contains
     use mod_constants,  only: deg2rad
     use mod_magnet,     only: lfield, hw_count, hw_list, hhw, mp, mx, my, mz, &
                                                               mpd, mxd, myd, mzd
-    use mod_parameters, only: output
+    use mod_parameters, only: nOrb, output
     use mod_System,     only: s => sys
-    use TightBinding,   only: nOrb
     use mod_mpi_pars,   only: rField
     implicit none
     integer      :: i,j,sign
@@ -1085,11 +1213,10 @@ contains
 
   subroutine write_sc_results()
     !! Writes the self-consistency results into files and broadcasts the scfile for the next iteration.
-    use mod_parameters,    only: output, dfttype
+    use mod_parameters,    only: nOrb, output, dfttype
     use EnergyIntegration, only: parts
     use mod_magnet,        only: rho, mx, my, mz
     use mod_system,        only: s => sys
-    use TightBinding,      only: nOrb
     use mod_mpi_pars
     implicit none
     character(len=30) :: formatvar
@@ -1120,10 +1247,9 @@ contains
   ! Writes the initial values for the self-consistency
   subroutine print_sc_step(n,mx,my,mz,Ef,fvec)
     use mod_f90_kind,   only: double
-    use mod_parameters, only: output
+    use mod_parameters, only: nOrb, output
     use mod_system,     only: s => sys
     use mod_magnet,     only: iter
-    use TightBinding,   only: nOrb
     use mod_mpi_pars
     implicit none
     real(double),dimension(neq), intent(in), optional :: fvec
@@ -1178,8 +1304,7 @@ contains
   subroutine sc_equations_and_jacobian(N,x,fvec,selfconjac,iuser,ruser,iflag)
     use mod_f90_kind,    only: double
     use mod_system,      only: s => sys
-    use TightBinding,    only: nOrb
-    use mod_parameters,  only: lcheckjac, leigenstates
+    use mod_parameters,  only: nOrb, lcheckjac, leigenstates
     use mod_magnet,      only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,     only: update_Umatrix
     use mod_tools,       only: itos
@@ -1269,10 +1394,9 @@ contains
     use mod_f90_kind,    only: double
     use mod_constants,   only: cI
     use mod_system,      only: s => sys
-    use TightBinding,    only: nOrb
     use mod_magnet,      only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,     only: update_Umatrix
-    use mod_parameters,  only: leigenstates
+    use mod_parameters,  only: nOrb, leigenstates
     use mod_expectation, only: expectation_values_greenfunction, expectation_values_eigenstates
     use mod_superconductivity, only: singlet_coupling, lsuperCond, update_singlet_couplings
     use mod_mpi_pars
@@ -1369,8 +1493,7 @@ contains
   subroutine sc_eqs_and_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
     use mod_f90_kind,    only: double
     use mod_system,      only: s => sys
-    use TightBinding,    only: nOrb
-    use mod_parameters,  only: lcheckjac, leigenstates
+    use mod_parameters,  only: nOrb, lcheckjac, leigenstates
     use mod_magnet,      only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,     only: update_Umatrix
     use mod_tools,       only: itos
@@ -1451,10 +1574,9 @@ contains
   subroutine sc_eqs_old(N,x,fvec,iflag)
     use mod_f90_kind,    only: double
     use mod_system,      only: s => sys
-    use TightBinding,    only: nOrb
     use mod_magnet,      only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,     only: update_Umatrix
-    use mod_parameters,  only: leigenstates
+    use mod_parameters,  only: nOrb, leigenstates
     use mod_expectation, only: expectation_values_greenfunction, expectation_values_eigenstates
     use mod_mpi_pars
     implicit none
@@ -1520,11 +1642,11 @@ contains
   !     mz - mz_in   = 0
   !  sum n - n_total = 0
   subroutine sc_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
-    use mod_f90_kind, only: double
-    use mod_system, only: s => sys
-    use TightBinding, only: nOrb
-    use mod_magnet, only: iter,rhod0,rho0,rho
-    use mod_Umatrix, only: update_Umatrix
+    use mod_f90_kind,   only: double
+    use mod_system,     only: s => sys
+    use mod_parameters, only: nOrb
+    use mod_magnet,     only: iter,rhod0,rho0,rho
+    use mod_Umatrix,    only: update_Umatrix
     implicit none
     integer       :: N,i,mu,ldfjac,iflag
     real(double)  :: x(N),fvec(N),selfconjac(ldfjac,N)

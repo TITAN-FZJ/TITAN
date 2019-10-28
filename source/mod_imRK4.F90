@@ -170,10 +170,9 @@ contains
   !> Given by \sum_j <i| dH/dc^n_k |j> * c_j^n(t)
   subroutine build_term_Jacobian(s, eval, Yn, dHdc)
     use mod_f90_kind,      only: double
-    use mod_parameters,    only: dimH, U, isigmamu2n, eta
+    use mod_parameters,    only: nOrb, dimH, U, isigmamu2n, eta
     use mod_system,        only: System
     use mod_distributions, only: fd_dist
-    use TightBinding,      only: nOrb
     use mod_constants,     only: cZero, pauli_mat, pi
     ! use mod_Umatrix,   only: hee
     implicit none
@@ -233,7 +232,7 @@ contains
     ! building identity matrix I(dimH, dimH)
     call build_identity(dimH,ident)
     ! Calculating the time-dependent Hamiltonian
-    hamilt_t = eval * ident - hk + hext_t(s%nAtoms,t)
+    hamilt_t = eval * ident - (hk + hext_t(s%nAtoms,t))
 
     ! Checking if Hamiltonian is hermitian
     if( sum(abs(conjg(transpose(hamilt_t))-hamilt_t)) > 1.d-12 ) then
@@ -243,14 +242,14 @@ contains
   end subroutine build_td_hamiltonian
 
   !> build time dependent external perturbation Hamiltonian
-  !> H_ext(t)= S.B(t),  S= Pauli matricies
+  !> For a magnetic perturbation: H_ext(t)= S.B(t),  S= Pauli matricies
+  !> For an electric perturbation: H_ext(t)= ((P-e*A)^2)/2*m, here only the linear term is implemented.
   function hext_t(nAtoms,t)
     use mod_f90_kind,         only: double
     use mod_constants,        only: cI,cZero
     use mod_imRK4_parameters, only: lelectric, hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
-    use TightBinding,         only: nOrb,nOrb2
     use mod_System,           only: ia !, s => sys
-    use mod_parameters,       only: dimH
+    use mod_parameters,       only: nOrb,nOrb2,dimH
     implicit none
     real(double)     :: t
     integer          :: nAtoms

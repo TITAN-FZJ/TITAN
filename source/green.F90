@@ -3,8 +3,7 @@ subroutine green(er,ei,sys,kp,gf)
   use mod_f90_kind,   only: double
   use mod_constants,  only: cZero,cOne
   use mod_System,     only: ia, System
-  use mod_parameters, only: offset
-  use TightBinding,   only: nOrb2
+  use mod_parameters, only: nOrb2, offset
   implicit none
   integer     :: i,j,d
   real(double), intent(in) :: er,ei,kp(3)
@@ -44,8 +43,7 @@ end subroutine green
 subroutine greenlinearsoc(er,ei,sys,kp,g0,g0vsocg0)
   use mod_f90_kind,   only: double
   use mod_constants,  only: cZero, cOne
-  use mod_parameters, only: offset
-  use TightBinding,   only: nOrb2
+  use mod_parameters, only: nOrb2, offset
   use mod_System,     only: ia, System
   !use mod_magnet, only:
   implicit none
@@ -89,9 +87,8 @@ end subroutine greenlinearsoc
 subroutine greenlineargfsoc(er,ei,sys,kp,gf)
   use mod_f90_kind,   only: double
   use mod_constants,  only: cZero, cOne
-  use mod_parameters, only: offset
+  use mod_parameters, only: nOrb2, offset
   use mod_System,     only: ia, System
-  use TightBinding,   only: nOrb2
   implicit none
   integer     :: i,j,d
   real(double), intent(in) :: er,ei,kp(3)

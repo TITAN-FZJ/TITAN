@@ -1,6 +1,6 @@
 <h1> TITAN </h1>
 
-**TI**me-dependent 
+**TI**me-dependent
 **T**ransport and
 **A**ngular momentum of
 **N**anostructures
@@ -11,10 +11,10 @@ https://www.nature.com/articles/s41598-017-03924-1
 
 This program calculates the electric and spin excitations for bulk
 and thin films. It can describe Ferromagnetic Resonance (FMR) experiments
-and intrinsic Spin and Orbital Momentum Hall Effects (including Anomalous 
+and intrinsic Spin and Orbital Momentum Hall Effects (including Anomalous
 and Planar Hall effects), for example.
-A multi-orbital tight-binding model (as parametrized by Slater and Koster [1]) 
-is used, with the el-el interaction 
+A multi-orbital tight-binding model (as parametrized by Slater and Koster [1])
+is used, with the el-el interaction
 described by a Hubbard-like hamiltonian [2].  The spin-orbit interaction
 is present, and a static magnetic field can be applied in any direction.
 Excitations are obtained in Kubo's linear response approach [3].
@@ -31,19 +31,19 @@ responses are calculated (for each site in the unit cell):
  - DC components of pumped spin currents*.<br>
 (* currents need reimplementation for the new generalized cell)
 
-The full 4x4 magnetic susceptibility matrix, including transverse and 
+The full 4x4 magnetic susceptibility matrix, including transverse and
 longitudinal blocks, is also evaluated.
 
-The LDOS in each site, band structure, Fermi surface, and full exchange 
+The LDOS in each site, band structure, Fermi surface, and full exchange
 coupling tensor (including DMI and anisotropic terms are also implemented.
 
-The program is currently written for 9 orbitals per site 
-(1 <i>s</i>,3 <i>p</i> and 5 <i>d</i>), for a given set of 
+The program is currently written for 9 orbitals per site
+(1 <i>s</i>,3 <i>p</i> and 5 <i>d</i>), for a given set of
 nearest neighbours hopping parameters. The parameters obtained from DFT calculations
 can be found, for example, in the book of D. A. Papaconstantopoulus [4].
 The generalized response functions are obtained as a function of the frequency
 within the Random-Phase Approximation, which are calculated from the mean-field counterpart.
-These ones are evaluated in terms of the monoeletronic Green functions. 
+These ones are evaluated in terms of the monoeletronic Green functions.
 The integration in k-space (2D or 3D) is calculated using a uniformly spaced k-mesh.
 The integration over energy is done in the complex plane - part in the imaginary axis
 and part in the real axis (for &#969;&#8800;0).
@@ -71,9 +71,9 @@ Example files can be found in the `examples` folder.
 !*******************************************************************************!
 !                           CHOOSE WHAT TO CALCULATE                            !
 !  Options:                                                                     !
-!   0 - Test before SC                                                          !
-!   1 - Self consistency only                                                   !
-!   2 - Test after SC                                                           !
+!   0 - Test part (before self-consistency)                                     !
+!   1 - Self-consistency only                                                   !
+!   2 - LDOS as a function of the energy                                        !
 !   3 - LDOS and exchange interactions as a function of energy                  !
 !   4 - Band structure                                                          !
 !   5 - Charge and spin density at Fermi surface                                !
@@ -83,8 +83,8 @@ Example files can be found in the `examples` folder.
 !       effective fields as a function of energy                                !
 !   9 - dc-limit as a function of magnetic field (abs, theta or phi)            !
 !       (use 'emin' as frequency)                                               !
-!  10 - Calculation of Gilbert Damping using Torque Correlation models          !
-!  11 - Real-time propagation (NEW!)                                            !
+!  10 - Gilbert Damping using Torque correlation models                         !
+!  11 - Real-time propagation (using eigenstates only)
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
 !   noUonall      - Set U=0 on all layers                                       !
@@ -150,38 +150,38 @@ First clone the repository on your local computer or supercomputer of choice.
 ```
 git clone https://iffgit.fz-juelich.de/titan/TITAN.git
 cd TITAN/build
-``` 
+```
 Depending on the system you are compiling on choose one of the following options.
-### Jureca 
+### Jureca
 ```
 module load Intel IntelMPI NAG/Mark26 CMake
-cmake ../ -DPLATFORM=jureca 
+cmake ../ -DPLATFORM=jureca
 make -j12
 ```
 
-### Juqueen 
+### Juqueen
 ```
-module load nag 
+module load nag
 cmake ../ -DPLATFORM=juqueen
 make -j16
 ```
 
-### Linux 
+### Linux
 ```
-cmake ../ 
+cmake ../
 make -j4
 ```
 
 The binary can be found in `TITAN/bin/`
-## Running the code 
+## Running the code
 
 After compiling you can start running the code.
 An example calculation can be found in `TITAN/example`
 
-### Jureca 
+### Jureca
 
 ```
-#!/bin/bash -x 
+#!/bin/bash -x
 #SBATCH --nodes=1
 #SBATCH -J JobName
 #SBATCH --ntasks-per-node=1
@@ -190,7 +190,7 @@ An example calculation can be found in `TITAN/example`
 #SBATCH -o output-%j
 #SBATCH --mail-user=your@mail
 #SBATCH --mail-type=ALL
-#SBATCH --partition=batch 
+#SBATCH --partition=batch
 #SBATCH --time=1:00:00
 
 module load Intel IntelMPI NAG/Mark26
@@ -202,7 +202,7 @@ export OMP_STACKSIZE=150m
 export KMP_AFFINITY=scatter
 
 srun ~/TITAN/bin/titan_jureca.exe --exports=NAG_KUSARI_FILE --exports=OMP_NUM_THREADS --exports=MKL_NUM_THREADS --exports=KMP_AFFINITY
-``` 
+```
 
 ### Juqueen
 ```
@@ -233,8 +233,8 @@ module load nag
 runjob --np ${NUMPROCS} --exp-env NAG_KUSARI_FILE --envs OMP_NUM_THREADS=${NUMTHREADS} --ranks-per-node ${RANKSPERNODE} --args " " --exe ~/TITAN/bin/titan_juqueen.exe
 ```
 
-### Linux 
-``` 
+### Linux
+```
 export OMP_NUM_THREADS=8
 mpirun -np 1 ~/TITAN/bin/titan.exe --exports=OMP_NUM_THREADS
 ```

@@ -1,11 +1,11 @@
 ! Calculate the derivative of H0 of a slab
 subroutine dtdksub(kp,dtdk)
-  use mod_f90_kind,  only: double
-  use mod_constants, only: cZero, cI
-  use AtomTypes,     only: NeighborIndex
-  use mod_system,    only: s => sys
-  use TightBinding,  only: nOrb
-  use ElectricField, only: ElectricFieldVector
+  use mod_f90_kind,   only: double
+  use mod_constants,  only: cZero, cI
+  use AtomTypes,      only: NeighborIndex
+  use mod_system,     only: s => sys
+  use mod_parameters, only: nOrb
+  use ElectricField,  only: ElectricFieldVector
   implicit none
   integer :: i, j, k
   real(double), intent(in)  :: kp(3)

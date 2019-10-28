@@ -12,7 +12,7 @@ program TITAN
   use mod_polyBasis, only: read_basis
   use Lattice
   use mod_BrillouinZone
-  use TightBinding
+  use TightBinding, only: initTightBinding
   use mod_SOC
   use mod_magnet
   use ElectricField
@@ -103,7 +103,7 @@ program TITAN
   realBZ % nkpt_x = kp_in(1)
   realBZ % nkpt_y = kp_in(2)
   realBZ % nkpt_z = kp_in(3)
-  call realBZ % count(sys)
+  call realBZ % countBZ(sys)
 
   !---------------- Reading Tight Binding parameters -------------------
   call initTightBinding(sys)
@@ -298,7 +298,7 @@ program TITAN
       call calculate_all()
     case (9) ! All responses to an electric field as a function of magnetic field
       call calculate_dc_limit()
-    case(10) ! Calculation of Gilbert Damping by Kamberskys Torque Torque model
+    case(10) ! Calculation of Gilbert Damping using Torque correlation models
       call calculate_TCM()
     case(11) ! Propagation of ( H(k) + S.B(t) )
       call time_propagator(sys)

@@ -1,10 +1,9 @@
 ! This subroutine calculates LDOS
 subroutine ldos()
   use mod_f90_kind,      only: double
-  use mod_parameters,    only: output, nEner1, emin, deltae,laddresults
+  use mod_parameters,    only: nOrb, output, nEner1, emin, deltae,laddresults
   use mod_system,        only: s => sys
   use mod_BrillouinZone, only: realBZ
-  use TightBinding,      only: nOrb
   use mod_LDOS
   use mod_mpi_pars
   implicit none
