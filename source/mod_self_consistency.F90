@@ -1,7 +1,7 @@
 module mod_self_consistency
   use mod_f90_kind, only: double
   implicit none
-  integer            :: neq
+  integer            :: neq, neq_per_atom
   character(len=300) :: default_file
   real(double)       :: mag_tol = 1.d-8
   character(len=200) :: scfile = ""
@@ -405,15 +405,16 @@ contains
 
   subroutine calcMagneticSelfConsistency()
   !! This subroutine performs the self-consistency
-    use mod_f90_kind,   only: double
-    use mod_constants,  only: pi
-    use mod_parameters, only: output
-    use mod_magnet,     only: iter, rho, mxd, myd, mzd
-    use mod_mpi_pars,   only: rField
-    use TightBinding,   only: nOrb
-    use mod_system,     only: s => sys
+    use mod_f90_kind,          only: double
+    use mod_constants,         only: pi
+    use mod_parameters,        only: output
+    use mod_magnet,            only: iter, rho, mxd, myd, mzd
+    use mod_mpi_pars,          only: rField
+    use TightBinding,          only: nOrb
+    use mod_system,            only: s => sys
     use adaptiveMesh
     use mod_dnsqe
+    use mod_superconductivity, only: superCond, lsuperCond, singlet_coupling
     implicit none
     real(double),allocatable      :: fvec(:),jac(:,:),wa(:),sc_solu(:)
     real(double),allocatable      :: diag(:),qtf(:)
@@ -426,19 +427,25 @@ contains
 #endif
     integer                       :: i,mu,maxfev,ml,mr,mode,nfev,njev,lwa,ifail=0
 
-    neq = 8*s%nAtoms+1
+    neq_per_atom = 8 + (superCond-1)*nOrb
+    neq = neq_per_atom*s%nAtoms+1
     allocate( sc_solu(neq),diag(neq),qtf(neq),fvec(neq),jac(neq,neq) )
 
     ! Putting read n and m existing solutions into sc_solu (first guess of the subroutine)
     do i = 1, s%nAtoms
       do mu = 5,nOrb
-        sc_solu((i-1)*8+(mu-4)) = rho(mu,i)
+        sc_solu((i-1)*neq_per_atom+(mu-4)) = rho(mu,i)
       end do
-      sc_solu((i-1)*8+6) = mxd(i)
-      sc_solu((i-1)*8+7) = myd(i)
-      sc_solu((i-1)*8+8) = mzd(i)
+      sc_solu((i-1)*neq_per_atom+6) = mxd(i)
+      sc_solu((i-1)*neq_per_atom+7) = myd(i)
+      sc_solu((i-1)*neq_per_atom+8) = mzd(i)
+      if(lsuperCond) then
+          do mu = 1, nOrb
+              sc_solu((i-1)*neq_per_atom+8+mu) = singlet_coupling(mu)
+          end do
+      end if
     end do
-    sc_solu(8*s%nAtoms+1) = s%Ef
+    sc_solu(neq_per_atom*s%nAtoms+1) = s%Ef
     iter  = 1
 
     if(rField == 0) &
@@ -600,6 +607,7 @@ contains
     real(double),   dimension(nOrb,s%nAtoms) :: rho_in
     real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
     complex(double),dimension(s%nAtoms)      :: mpd_in
+    complex(double), dimension(nOrb)         :: deltas
 
     w=w
     iw=iw
@@ -623,7 +631,7 @@ contains
 
     ! call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
     if(leigenstates) then
-      call expectation_values_eigenstates(s,rho,mp,mx,my,mz)
+      call expectation_values_eigenstates(s,rho,mp,mx,my,mz,deltas)
     else
       call expectation_values_greenfunction(s,rho,mp,mx,my,mz)
     end if
@@ -1132,6 +1140,8 @@ contains
             fvecsum = fvecsum + fvec((i-1)*8+(mu-4))
           end do
 
+          write(*,*) fvec(:)
+
           if(abs(cmplx(mx(i),my(i)))>1.d-10) then
             write(output%unit_loop,"('Site ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mx(i),i,my(i),i,mz(i)
             write(output%unit_loop,"(15x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvecsum,(i-1)*8+6,fvec((i-1)*8+6),(i-1)*8+7,fvec((i-1)*8+7),(i-1)*8+8,fvec((i-1)*8+8)
@@ -1184,6 +1194,7 @@ contains
     real(double),   dimension(nOrb,s%nAtoms) :: rho_in
     real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
     complex(double),dimension(s%nAtoms)      :: mpd_in
+    complex(double), dimension(nOrb)         :: deltas
 
     iuser = 0
     ruser = 0.d0
@@ -1212,7 +1223,7 @@ contains
     select case (iflag)
     case(1)
       if(leigenstates) then
-        call expectation_values_eigenstates(s,rho,mp,mx,my,mz)
+        call expectation_values_eigenstates(s,rho,mp,mx,my,mz,deltas)
       else
         call expectation_values_greenfunction(s,rho,mp,mx,my,mz)
       end if
@@ -1263,6 +1274,7 @@ contains
     use mod_Umatrix,     only: update_Umatrix
     use mod_parameters,  only: leigenstates
     use mod_expectation, only: expectation_values_greenfunction, expectation_values_eigenstates
+    use mod_superconductivity, only: singlet_coupling, lsuperCond, update_singlet_couplings
     use mod_mpi_pars
     implicit none
     integer  :: N,i,mu,iflag
@@ -1272,6 +1284,9 @@ contains
     real(double),   dimension(nOrb,s%nAtoms) :: rho_in
     real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
     complex(double),dimension(s%nAtoms)      :: mpd_in
+    complex(double),   dimension(nOrb)       :: singlet_coupling_in
+    complex(double), dimension(nOrb)        :: deltas
+
 
     iuser = 0
     ruser = 0.d0
@@ -1288,17 +1303,28 @@ contains
       myd_in(i) = x((i-1)*8+7)
       mzd_in(i) = x((i-1)*8+8)
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i))
+      if(lsuperCond) then
+          do mu = 1, nOrb
+              singlet_coupling_in(mu) = x((i-1)*8+8+mu)
+          end do
+      end if
     end do
-    s%Ef    = x(8*s%nAtoms+1)
+    s%Ef    = x(N)
 
     call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
-
+    call update_singlet_couplings(singlet_coupling_in)
     ! write(*,*) rho_in
+
+
+    !!!!!!!!!!!!! add prints
+
+
+
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
     ! call print_sc_step(sum(rho_in,1),mxd_in,myd_in,mzd_in,s%Ef)
 
     if(leigenstates) then
-      call expectation_values_eigenstates(s,rho,mp,mx,my,mz)
+      call expectation_values_eigenstates(s,rho,mp,mx,my,mz,deltas)
     else
       call expectation_values_greenfunction(s,rho,mp,mx,my,mz)
     end if
@@ -1316,8 +1342,13 @@ contains
       fvec((i-1)*8+6) =  mxd(i) -  mxd_in(i)
       fvec((i-1)*8+7) =  myd(i) -  myd_in(i)
       fvec((i-1)*8+8) =  mzd(i) -  mzd_in(i)
+      if(lsuperCond) then
+          do mu = 1, nOrb
+              fvec((i-1)*8+8+mu) = deltas(mu) - singlet_coupling_in(mu)
+          end do
+      end if
     end do
-    fvec(8*s%nAtoms+1) = sum(rho) - s%totalOccupation
+    fvec(N) = sum(rho) - s%totalOccupation
 
     call print_sc_step(rhod,mxd,myd,mzd,s%Ef,fvec)
 
@@ -1352,6 +1383,7 @@ contains
     real(double),   dimension(nOrb,s%nAtoms) :: rho_in
     real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
     complex(double),dimension(s%nAtoms)      :: mpd_in
+    complex(double), dimension(nOrb)         :: deltas
 
     ! Values used in the hamiltonian
     rho_in = rho
@@ -1374,7 +1406,7 @@ contains
     flag: select case (iflag)
     case(1)
       if(leigenstates) then
-        call expectation_values_eigenstates(s,rho,mp,mx,my,mz)
+        call expectation_values_eigenstates(s,rho,mp,mx,my,mz,deltas)
       else
         call expectation_values_greenfunction(s,rho,mp,mx,my,mz)
       end if
@@ -1431,6 +1463,7 @@ contains
     real(double),   dimension(nOrb,s%nAtoms) :: rho_in
     real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
     complex(double),dimension(s%nAtoms)      :: mpd_in
+    complex(double), dimension(nOrb)         :: deltas
 
     iflag=0
     ! Values used in the hamiltonian
@@ -1452,7 +1485,7 @@ contains
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,s%Ef)
 
     if(leigenstates) then
-      call expectation_values_eigenstates(s,rho,mp,mx,my,mz)
+      call expectation_values_eigenstates(s,rho,mp,mx,my,mz,deltas)
     else
       call expectation_values_greenfunction(s,rho,mp,mx,my,mz)
     end if

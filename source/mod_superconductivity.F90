@@ -94,6 +94,8 @@ contains
           singlet_coupling(i) = lambda(i)*cOne*couplings(i)
       end do
 
+      ! write(*,*) "Couplings: ", singlet_coupling
+
   end subroutine update_singlet_couplings
 
   subroutine bcs_s_pairing(sys,delta_s, hk_sc)

@@ -92,7 +92,7 @@ if __name__ == "__main__":
     if args.superconductivity:
          if args.together:
              numplots = 1
-             titles = [r"Band Structure $\Delta = 0.001$ Ry"]
+             titles = [r"Band Structure"] #$\Delta = 0.001$ Ry"]
              # titles = [r"$\#_{k}=100$M, $\eta=5\times10^{-4}$, 2nn", r"$\#_{k}=100$M, $\eta=5\times10^{-4}$, 3nn"]
              # titles = [r"$\#_{k}=10$M", r"$\#_{k}=100$k"])
              # titles = [r"$\eta=5\times10^{-3}$", r"$\eta=5\times10^{-4}$"])
@@ -136,6 +136,7 @@ if __name__ == "__main__":
                      axs[0,i].plot(table[:,0],table[:,1:(table.shape[1]-1)/2+1], color='k', linewidth=1.0, linestyle='-')
 
              plt.tight_layout()
+             # plt.savefig("gaps2.png",dpi=900)
              plt.show()
          else:
              numplots = len(sys.argv)-1

@@ -50,7 +50,7 @@ contains
         realBZ % nkpt_z = kp_in(1)
       end if
       call realBZ % count(sys0(i))
-      
+
       call initLattice(sys0(i))
       ! if(myrank==0) call writeLattice(sys0(i))
       ! stop
@@ -154,6 +154,9 @@ contains
     type(System),                      intent(inout) :: sys
     real(double),    dimension(:,:)    , allocatable :: rho0
     real(double),    dimension(:)      , allocatable :: rhod0
+    complex(double), dimension(nOrb)                 :: deltas
+
+    deltas = cZero
 
     allocate( rho0(nOrb,sys%nAtoms),rhod0(sys%nAtoms) )
 
@@ -167,7 +170,7 @@ contains
     rho  = rho0
     call init_Umatrix(mzd,mpd,rhod,rhod0,rho,rho0,sys%nAtoms,nOrb)
     if(leigenstates) then
-      call expectation_values_eigenstates(sys,rho0,mp,mx,my,mz)
+      call expectation_values_eigenstates(sys,rho0,mp,mx,my,mz,deltas)
     else
       call expectation_values_greenfunction(sys,rho0,mp,mx,my,mz)
     end if
@@ -237,7 +240,7 @@ contains
     open(unit=97,file=filename,status="old",iostat=err)
     if(err/=0) return
 
-    if(rField==0) then 
+    if(rField==0) then
       write(output%unit,"('[read_initial_Uterms] Initial density file for ""',a,'"" already exists. Reading it from file:')") trim(sys0%Types(1)%Name)
       write(output%unit,"(a)") trim(filename)
     end if

@@ -126,7 +126,7 @@ contains
 
 
   !   Calculates ground state quantities from eigenstates
-  subroutine expectation_values_eigenstates(s,rho,mp,mx,my,mz)
+  subroutine expectation_values_eigenstates(s,rho,mp,mx,my,mz,deltas)
     use mod_f90_kind,          only: double
     use mod_BrillouinZone,     only: realBZ
     use mod_parameters,        only: output
@@ -135,7 +135,7 @@ contains
     use ElectricField,         only: EshiftBZ,ElectricFieldVector
     use mod_mpi_pars,          only: abortProgram
     use mod_tools,             only: itos
-    use mod_superconductivity, only: lsuperCond, superCond, hamiltk_sc
+    use mod_superconductivity, only: lsuperCond, superCond, hamiltk_sc, update_singlet_couplings
 
     use mod_constants,         only: cOne,cZero
 
@@ -143,6 +143,7 @@ contains
     type(System),                              intent(in)  :: s
     real(double),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
     complex(double), dimension(nOrb,s%nAtoms), intent(out) :: mp
+    complex(double), dimension(nOrb),intent(out) :: deltas
     ! complex(double), dimension(nOrb)         , intent(out) :: expec_singlet
 
     integer                                      :: iz, info , i!, mu,i
@@ -151,7 +152,6 @@ contains
     real(double),    dimension(nOrb,s%nAtoms)    :: expec_0, expec_z
     complex(double), dimension(nOrb,s%nAtoms)    :: expec_p
     complex(double), dimension(nOrb)             :: expec_singlet
-    complex(double), dimension(nOrb)             :: deltas
     real(double),    dimension(:),  allocatable  :: rwork(:), eval(:)
     complex(double),                allocatable  :: work(:), hk(:,:)
 
@@ -209,6 +209,7 @@ contains
     ! ! ! write(*,*) "mx, my = ", mx, ", ",my
     ! ! ! write(*,*) "mz = ", mz
     ! write(*,*) " "
+    ! call update_singlet_couplings(deltas)
 
     deallocate(hk,rwork,eval,work)
 
