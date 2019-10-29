@@ -404,10 +404,11 @@ contains
   !! This subroutine performs the self-consistency
     use mod_f90_kind,   only: double
     use mod_constants,  only: pi
-    use mod_parameters, only: nOrb, output
+    use mod_parameters, only: nOrb, output, eta
     use mod_magnet,     only: iter, rho, mxd, myd, mzd
     use mod_mpi_pars,   only: rField
     use mod_system,     only: s => sys
+    use mod_BrillouinZone,     only: BZ => realBZ
     use adaptiveMesh
     use mod_dnsqe
     use mod_superconductivity, only: superCond, lsuperCond, singlet_coupling
@@ -500,6 +501,7 @@ contains
         mode = 1
         factor = 0.1d0
         call c05qcf(sc_equations,neq,sc_solu,fvec,mag_tol,maxfev,ml,mr,epsfcn,mode,diag,factor,0,nfev,jac,wa,qtf,iuser,ruser,ifail)
+        write(*,*) BZ%nkpt, eta, real(singlet_coupling(1)), aimag(singlet_coupling(1))
       else
         maxfev = 100*(neq+1)
         mode = 1
@@ -1253,7 +1255,7 @@ contains
             fvecsum = fvecsum + fvec((i-1)*8+(mu-4))
           end do
 
-          write(*,*) fvec(:)
+          ! write(*,*) fvec(:)
 
           if(abs(cmplx(mx(i),my(i)))>1.d-10) then
             write(output%unit_loop,"('Site ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mx(i),i,my(i),i,mz(i)
