@@ -1,3 +1,22 @@
+! This module implements BCS like superconductivity using the Bogoliuvob-de Gennes
+! method (check Bogoliubov-de Gennes Method and Its Applications - Jian-Xin Zhu
+! Springer Verlag, it is not implemented exactly like there, but the theory holds)
+!
+! The superconducting gap is given by \Delta = \lambda*singlet_coupling
+! lambda is supposed to hold the constant value that multiplies the
+! expected value of the the cooper channels (singlet_coupling)
+! singlet_coupling holds the expected value of c\up c\down for each orbital
+! check Uriel's thesis
+!
+! lambda is not supposed to change during the execution
+! singlet coupling is expected to change at every step until it converges,
+! therefore it is defined outside the subroutines so it can be called and
+! modified from other modules
+!
+! IMPORTANT: For the moment some things are hard-coded, for example in the arrays
+! lambda, singlet_coupling, it is assumed that only one atom is present, a therefore
+! just nine orbitals in total are needed. Sometimes this is made explicit, for
+! example when calculating the expected values
 module mod_superconductivity
   use mod_f90_kind,       only: double
    implicit none
@@ -18,22 +37,21 @@ contains
     complex(double),dimension(sys%nAtoms*nOrb2, sys%nAtoms*nOrb2) :: hk
     complex(double),dimension(sys%nAtoms*nOrb2*2, sys%nAtoms*nOrb2*2), intent(out) :: hk_sc
     integer :: j, i
-    ! Coupling constant fot the s-orbital pairing
-    complex(double) :: delta_s, delta_p, delta_d
-
-    ! singlet_coupling = singlet_coupling*lambda
-
-    ! write(*,*) singlet_coupling(:)
-
-    ! delta_s = lambda(1)*cOne
-    ! delta_p = lambda(2)*cOne !+ conjg(lambda(2)*cOne)
-    ! delta_d = lambda(5)*cOne
-
-    ! singlet_coupling(:) = lambda(:)*cOne
 
     ! Initialize hk, this will be used to calculate the superconducting
     ! counterpart, namely hk_sc
     hk = cZero
+
+    ! The form of the superconducting hamiltonian depends on a series of decisions,
+    ! such as how to choose the basis after the Bogoliuvob-de Gennes transformation
+    ! and how do we define this transformation. In our particular case, we choose to
+    ! have a basis (u_up, u_down, v_up, v_down), and the BdG transformation we perform
+    ! is c_{i\sigma} = sum_n u_{in\sigma}\gamma_n + v_{in\sigma}\gamma^{n*}\gamma_n^\dagger
+    ! The final form of the hamiltonian is something like
+    ! | H - E_f   Delta     |
+    ! | Delta^* -(H - E_f)* |
+    ! roughly. Look at this paper 10.1103/RevModPhys.87.1037 , and to Uriel's thesis to
+    ! get a better idea of how to construct this operator
 
     call hamiltk(sys,kp,hk)
 
@@ -42,11 +60,15 @@ contains
     hk_sc = cZero
     hk_sc(1:sys%nAtoms*nOrb2,1:sys%nAtoms*nOrb2) = hk
     hk_sc(sys%nAtoms*nOrb2+1:sys%nAtoms*nOrb2*2,sys%nAtoms*nOrb2+1:sys%nAtoms*nOrb2*2) = -conjg(hk)
-
+    ! The diagonal terms involve also the Fermi Energy/chemical potential, as we can see below
+    ! Check any superconductivity reference for this detail
     do i = 1, sys%nAtoms*nOrb2
         hk_sc(i,i) = hk_sc(i,i) - sys%Ef*cOne
         hk_sc(sys%nAtoms*nOrb2+i,sys%nAtoms*nOrb2+i) = hk_sc(sys%nAtoms*nOrb2+i,sys%nAtoms*nOrb2+i) + sys%Ef*cOne
     end do
+
+    ! Once this is done the remaining part is to populate the non-diagonal blocks
+    ! of the hamiltonian. There are several ways to do it.
 
     ! Later we can add conditional clauses that call or not this functions
     call bcs_s_pairing(sys, singlet_coupling(1),hk_sc)
@@ -71,9 +93,6 @@ contains
     !     write(*,*) real(hk_sc(i,j)), imag(hk_sc(i,j))
     !   end do
     ! end do
-
-    ! ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-    ! !call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
 
   end subroutine hamiltk_sc
 
@@ -123,13 +142,6 @@ contains
       ! h^ and s* couple with delta_s*
       ! h* and s^ couple with -delta_s*
 
-      ! write(*,*) sys%nAtoms*nOrb2 + 1, sys%nAtoms*nOrb2/2 +1
-      ! write(*,*) 1,sys%nAtoms*nOrb2 + sys%nAtoms*nOrb2/2 + 1
-      ! hk_sc(1,sys%nAtoms*nOrb2 + sys%nAtoms*nOrb2/2) = -delta_s
-      ! hk_sc(sys%nAtoms*nOrb2/2, sys%nAtoms*nOrb2 + 1 ) = delta_s
-      ! hk_sc(sys%nAtoms*nOrb2 + 1, sys%nAtoms*nOrb2/2) = conjg(delta_s)
-      ! hk_sc(sys%nAtoms*nOrb2 + sys%nAtoms*nOrb2/2,1) = -conjg(delta_s)
-
       hk_sc(1,sys%nAtoms*nOrb2 + sys%nAtoms*nOrb2/2 + 1) = -delta_s
       hk_sc(sys%nAtoms*nOrb2/2 + 1, sys%nAtoms*nOrb2 + 1 ) = delta_s
       hk_sc(sys%nAtoms*nOrb2 + 1, sys%nAtoms*nOrb2/2 + 1) = conjg(delta_s)
@@ -148,8 +160,8 @@ contains
       ! TODO put a restriction so label can only be in {0,1,2}
 
       type(System),                              intent(in)  :: sys
-      ! "label" is a parameter to pick the specific p orbital to couple, it can
-      ! be 0, 1, or 2
+      ! "label" is a parameter to pick the specific p orbital (one of the 3) to
+      ! couple, it can be 0, 1, or 2
       integer :: label, elecOrbs, indexJump
       complex(double), intent(in) :: delta_p
       complex(double), dimension(sys%nAtoms*nOrb2*2, sys%nAtoms*nOrb2*2), intent(inout) :: hk_sc
@@ -171,7 +183,6 @@ contains
       use mod_f90_kind,       only: double
       use mod_parameters,     only: output, kpoints, nOrb2
       use mod_system,         only: System, initHamiltkStride
-      ! use TightBinding,       only:
       use mod_constants,  only: cZero,cOne
       use mod_parameters, only: offset
       implicit none
@@ -197,45 +208,5 @@ contains
       hk_sc(elecOrbs + elecOrbs/2 + indexJump+ 1,1 + indexJump) = -conjg(delta_d)
 
   end subroutine bcs_d_pairing
-
-  ! subroutine green_sc(er,ei,sys,kp,gf)
-  !   use mod_f90_kind,   only: double
-  !   use mod_constants,  only: cZero,cOne
-  !   use mod_System,     only: ia, System
-  !   use mod_parameters, only: offset
-  !   use TightBinding,   only: nOrb2
-  !   implicit none
-  !   integer     :: i,j,d
-  !   real(double), intent(in) :: er,ei,kp(3)
-  !   type(System), intent(in) :: sys
-  !   complex(double) :: ec
-  !   complex(double),dimension(sys%nAtoms*nOrb2*2, sys%nAtoms*nOrb2*2) :: gslab,hk
-  !   complex(double),dimension(nOrb2, nOrb2, sys%nAtoms, sys%nAtoms), intent(out)  :: gf
-  !   !
-  !   ! d = sys%nAtoms * nOrb2 *2
-  !   !
-  !   ! ec    = cmplx(er,ei,double)
-  !   !
-  !   ! gslab = cZero
-  !   ! do i = 1, d
-  !   !   gslab(i,i) = ec
-  !   ! end do
-  !   !
-  !   ! call hamiltk_sc(sys,kp,hk)
-  !   !
-  !   ! call zaxpy(d*d,-cOne,hk,1,gslab,1)
-  !   ! !gslab(i,j) = gslab(i,j) - hk(i,j)
-  !   ! call invers(gslab, d)
-  !   !
-  !   ! ! Put the slab Green's function [A(nAtoms*18,nAtoms*18)] in the A(i,j,mu,nu) form
-  !   ! !dir$ ivdep:loop
-  !   ! do j = 1, sys%nAtoms
-  !   !   !dir$ ivdep:loop
-  !   !   do i = 1, sys%nAtoms
-  !   !     gf(:,:,i,j) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
-  !   !   end do
-  !   ! end do
-  !
-  ! end subroutine green_sc
 
 end module mod_superconductivity
