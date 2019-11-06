@@ -1,43 +1,72 @@
 <h1> TITAN </h1>
 
-**T**ime-dependent description of
-**I**tinerant electrons:
+**TI**me-dependent 
 **T**ransport and
-**A**ngular momentum properties of
+**A**ngular momentum of
 **N**anostructures
 
-This program calculates the intrinsic Spin and Orbital Momentum Hall
-Effects (including the Anomalous and Planar Hall effects) for
-ultrathin films composed by (heavy + magnetic) transition metals
-in a system where the spin-orbit interaction is present. We use
-a multi-orbital tight-binding model in Kubo's linear response approach.
-The el-el interaction is described by a Hubbard-like hamiltonian.
-The program is written for 9 orbitals per site (1 <i>s</i>,3 <i>p</i> and 5 <i>d</i>),
-including first and second nearest neighbours hopping matrices.
+A paper containing a detailed description of the method used in the code is in preparation. In the meantime, we shall greatly appreciate if scientific work done using **TITAN** will contain an explicit acknowledgement and the following reference:<br>
+F. S. M. Guimarães et al., Sci. Rep. 7, 3686 (2017)<br>
+https://www.nature.com/articles/s41598-017-03924-1
 
-We apply an AC electric field (described by a time-dependent potential
-vector) that couples to the current density, and we calculate the
-response of:
- - local spin accumulations in each layer;
- - local orbital momentum accumulations in each layer;
- - spin and charge currents that flow parallel to the layers;
- - orbital momentum currents that flow parallel to the layers;
+This program calculates the electric and spin excitations for bulk
+and thin films. It can describe Ferromagnetic Resonance (FMR) experiments
+and intrinsic Spin and Orbital Momentum Hall Effects (including Anomalous 
+and Planar Hall effects), for example.
+A multi-orbital tight-binding model (as parametrized by Slater and Koster [1]) 
+is used, with the el-el interaction 
+described by a Hubbard-like hamiltonian [2].  The spin-orbit interaction
+is present, and a static magnetic field can be applied in any direction.
+Excitations are obtained in Kubo's linear response approach [3].
+
+An applied AC electric field (described by a time-dependent potential
+vector) that couples to the current density is applied, and the following
+responses are calculated (for each site in the unit cell):
+ - local spin accumulations;
+ - local orbital momentum accumulations in each site;
  - spin-orbit, exchange and external torques;
  - effective magnetic fields;
- - DC components of pumped spin currents.
+ - spin and charge currents*;
+ - orbital momentum currents*;
+ - DC components of pumped spin currents*.<br>
+(* currents need reimplementation for the new generalized cell)
 
-We can also calculate LDOS in each layer, band structure, Fermi surface,
-and full exchange coupling tensor (including DMI and anisotropic terms).
+The full 4x4 magnetic susceptibility matrix, including transverse and 
+longitudinal blocks, is also evaluated.
 
-We calculate the generalized response functions as a function of the frequency
-within Random Phase Approximation, writing them in terms
-of the mean field counterparts. These ones are written in terms of the
-monoeletronic Green functions. The integration in k<sub>//</sub> is calculated
-using the generation of 2D points by Cunningham.
-It is parallelized using openMP. The number of points in the energy
-can be set in the input file - usually, it uses a set of 128 points
-in the imaginary axis and 64 points in the real axis (for &#969;&#8800;0)
-and it is parallelized with MPI.
+The LDOS in each site, band structure, Fermi surface, and full exchange 
+coupling tensor (including DMI and anisotropic terms are also implemented.
+
+The program is currently written for 9 orbitals per site 
+(1 <i>s</i>,3 <i>p</i> and 5 <i>d</i>), for a given set of 
+nearest neighbours hopping parameters. The parameters obtained from DFT calculations
+can be found, for example, in the book of D. A. Papaconstantopoulus [4].
+The generalized response functions are obtained as a function of the frequency
+within the Random-Phase Approximation, which are calculated from the mean-field counterpart.
+These ones are evaluated in terms of the monoeletronic Green functions. 
+The integration in k-space (2D or 3D) is calculated using a uniformly spaced k-mesh.
+The integration over energy is done in the complex plane - part in the imaginary axis
+and part in the real axis (for &#969;&#8800;0).
+The code is parallelized using openMP and MPI.
+
+Plotting scripts (in Python) are provided in the 'scripts' folder.
+
+[1] J. C. Slater and G. F. Koster, Simplified LCAO Method for the Periodic Potential Problem, Phys. Rev. 94, 1498 (1954).
+
+[2] J. Hubbard, Electron Correlations in Narrow Energy Bands, Proceedings of the Royal Society A: Mathematical, Physical and Engineering Sciences 276, 238 (1963).
+
+[3] R. Kubo, Statistical-Mechanical Theory of Irreversible Processes. I. General Theory and Simple Applications to Magnetic and Conduction Problems, J. Phys. Soc. Jpn. 12, 570 (1957).
+
+[4] D. A. Papaconstantopoulos, Handbook of the Band Structure of Elemental Solids. From Z = 1 to Z = 112, Boston, MA: Springer (1986).
+
+OBS: Legacy version uses DFT parameters as described in
+
+[5] O. K. Andersen and O. Jepsen, Phys. Rev. Lett. 53, 2571 (1984).
+
+with parameters provided by A. B. Klautau.
+
+Example files can be found in the `examples` folder.
+
 ```
 !*******************************************************************************!
 !                           CHOOSE WHAT TO CALCULATE                            !
@@ -83,54 +112,29 @@ and it is parallelized with MPI.
 !   sha           - Only calculate the SHA for input parameters                 !
 !   lgtv          - Only calculate total longitudinal and transverse currents   !
 !===============================================================================!
-!                             LATTICE DEFINITIONS                               !
-!         For spin quantization and direction of in-plane electric field        !
-!---------------------------------- BCC (110) ----------------------------------!
-! L - long axis (x - short axis; y - out-of-plane)                              !
-! S - short axis (x - long axis; y - out-of-plane)                              !
-! P - perpendicular out-of plane (x - short axis; y - long axis)                !
-!                                        ^(only for quantization)               !
-! O - other (specify in main program)  -> (only for external field)             !
-! or choose the direction of one of the neighbors                               !
-!                           L direction                                         !
-!                               |                                               !
-!                            1  |  4                                            !
-!                             \ | /                                             !
-!                   ------5-----|-----6-------  S direction                     !
-!                             / | \                                             !
-!                            2  |  3                                            !
-!                               |                                               !
-! Layers grow in the (-0.5,0.5,0.0) direction (in the lattice referential)      !
-!---------------------------------- FCC (100) ----------------------------------!
-! In the following, choose the direction of one of the neighbors                !
-!                (1-4) - first n.n. ; (5-8) second n.n.                         !
-!              (use 9 for out-of-plane z, x // dirEfield)                       !
-!                               6                                               !
-!                               |                                               !
-!                            2  |  1                                            !
-!                             \ | /                                             !
-!                   ------7-----|-----5-------                                  !
-!                             / | \                                             !
-!                            3  |  4                                            !
-!                               |                                               !
-!                               8                                               !
-! Layers grow in the +z direction (in the lattice referential)                  !
+!                                  PARAMETERS                                   !
+! Slater and Koster parameters given in Ref. [4] (above) can be found in        !
+! the 'parameters' folder.                                                      !
 !===============================================================================!
 !                           INTEGRATION VARIABLES                               !
-! k-points are obtained using Cunningham special points for BCC110 and FCC100   !
-! Ref.: S. Cunningham, Phys. Rev. B 10, 4988 (1974)                             !
+! k-points are obtained using equally spaced points generated in the 2D or 3D   !
+! parallelogram.                                                                !
+!                                                                               !
+! Legacy version uses Cunningham special points for BCC110 and FCC100           !
+! as described in Ref.:                                                         !
+! S. Cunningham, Phys. Rev. B 10, 4988 (1974)                                   !
 !                                                                               !
 ! Energy integration use Gauss-Legendre quadrature                              !
 !===============================================================================!
 !                                BAND STRUCTURE                                 !
-! Choose one of the following high symmetry direction in k space:               !
-!---------------------------------- BCC (110) ----------------------------------!
-! GH - HP - PN - NG  (or the opposite HG - PH - NP - GN)                        !
-!---------------------------------- FCC (100) ----------------------------------!
-! GM - MX - XG  (or the opposite GX - XM - MG)                                  !
-!===============================================================================!
-!                                DFT PARAMETERS                                 !
-! Ref.:	O. K. Andersen and O. Jepsen, Phys. Rev. Lett. 53, 2571 (1984).         !
+! k-points must be listed in file 'kbands' and the path is given in the input.  !
+! e.g.:                                                                         !
+-> band = G N M G
+! where the file 'kbands' contains                                              !
+G	0.0	0.0	0.0
+N	0.0	0.5	0.0
+M 0.5 0.5 0.0
+! This is also used to calculate the q-dependent susceptibility                 !
 !*******************************************************************************!
 ! To stop the program:                                                          !
 ! - after an energy step, just create a file called 'stop'                      !

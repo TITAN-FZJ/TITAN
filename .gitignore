@@ -22,7 +22,6 @@ results/*
 source/legacy*
 bin/*
 build/*
-example/*
 cmake/*
 .DS_Store
 
