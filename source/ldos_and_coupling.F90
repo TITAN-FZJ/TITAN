@@ -1,12 +1,11 @@
 ! This subroutine calculates LDOS and coupling as a function of energy
 subroutine ldos_and_coupling()
-  use mod_f90_kind, only: double
-  use mod_parameters, only: output, emin, deltae, nEner1, skip_steps
-  use mod_system, only: s => sys
+  use mod_f90_kind,      only: double
+  use mod_parameters,    only: nOrb, output, emin, deltae, nEner1, skip_steps
+  use mod_system,        only: s => sys
+  use mod_BrillouinZone, only: realBZ
   use mod_LDOS
   use mod_Coupling
-  use TightBinding, only: nOrb
-  use mod_BrillouinZone, only: realBZ
   use mod_mpi_pars
   implicit none
   integer :: i, j, mu, count, ncount,ncount2,ncount3

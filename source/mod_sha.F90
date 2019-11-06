@@ -275,10 +275,10 @@ contains
     do j=2,4
       do i=1,Npl
         iw = 8200*idc+(i-1)*3+j-1
-        call sort_file(iw,.true.)
+        call sort_file(iw)
       end do
       iw = 8200*idc+Npl*3+j-1
-      call sort_file(iw,.true.)
+      call sort_file(iw)
     end do
 
     ! Closing SHA files

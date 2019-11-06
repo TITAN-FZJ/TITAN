@@ -40,7 +40,7 @@ subroutine setup_long_and_trans_current_neighbors(s)
   stop "setup_long_and_trans_current_neighbors not Implemented."
     !
     ! ! Calculating vector in-plane perpendicular to electric field direction
-    ! if(s%lbulk) then
+    ! if(s%isysdim == 3) then
     !   versor_Eperp = 0.d0
     !   do i = l_nn(1,1), l_nn(1,2) - 1
     !     if(.not. is_parallel(r_nn(:,i), dirEfieldvec)) then
@@ -53,7 +53,7 @@ subroutine setup_long_and_trans_current_neighbors(s)
     !     if(0 == myrank) write(outputunit,*) "[lattice_defintions] Error dirEfieldvec"
     !     call MPI_Finalize(ierr)
     !   end if
-    ! else
+    ! else if(s%isysdim == 2) then
     !   versor_Eperp = cross_unit(zdir, dirEfieldvec)
     ! end if
     !

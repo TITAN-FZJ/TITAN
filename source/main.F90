@@ -12,7 +12,7 @@ program TITAN
   use mod_polyBasis, only: read_basis
   use Lattice
   use mod_BrillouinZone
-  use TightBinding
+  use TightBinding, only: initTightBinding
   use mod_SOC
   use mod_magnet
   use ElectricField
@@ -28,6 +28,7 @@ program TITAN
   use mod_Atom_variables, only: allocate_Atom_variables, deallocate_Atom_variables
   use mod_tools, only: rtos
   use mod_initial_expectation, only: calc_initial_Uterms
+  use mod_time_propagator,   only: time_propagator
   !use mod_define_system TODO: Re-include
   !use mod_prefactors TODO: Re-include
   !use mod_lgtv_currents TODO: Re-include
@@ -86,7 +87,7 @@ program TITAN
   realBZ % nkpt_x = kp_in(1)
   realBZ % nkpt_y = kp_in(2)
   realBZ % nkpt_z = kp_in(3)
-  call realBZ % count(sys)
+  call realBZ % countBZ(sys)
 
   !---------------- Reading Tight Binding parameters -------------------
   call initTightBinding(sys)
@@ -100,6 +101,7 @@ program TITAN
   call allocate_Atom_variables(sys%nAtoms,nOrb)
 
   !---------------------------- Dimensions -----------------------------
+  dimH = sys%nAtoms*nOrb*2
   dimspinAtoms = 4 * sys%nAtoms
   dim = dimspinAtoms * nOrb * nOrb
 
@@ -119,6 +121,7 @@ program TITAN
 
   !-------------------------- Filename strings -------------------------
   write(output%info,"('_nkpt=',i0,'_eta=',a)") kptotal_in, trim(rtos(eta,"(es8.1)"))
+  if(leigenstates) output%info = trim(output%info) // "_ev"
 
   !------------------------ MAGNETIC FIELD LOOP ------------------------
   if(myrank == 0 .and. skip_steps_hw > 0) &
@@ -252,8 +255,10 @@ program TITAN
       call calculate_all()
     case (9) ! All responses to an electric field as a function of magnetic field
       call calculate_dc_limit()
-    case(10) ! Calculation of Gilbert Damping by Kamberskys Torque Torque model
+    case(10) ! Calculation of Gilbert Damping using Torque correlation models
       call calculate_TCM()
+    case(11) ! Propagation of ( H(k) + S.B(t) )
+      call time_propagator(sys)
     end select
     !===================================================================
 

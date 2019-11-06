@@ -11,9 +11,8 @@ contains
     use mod_f90_kind,   only: double
     use mod_System,     only: s => sys
     use mod_constants,  only: levi_civita, StoC, CtoS, cZero
-    use TightBinding,   only: nOrb
     use mod_magnet,     only: mxd,myd,mzd
-    use mod_parameters, only: output, dim, sigmaimunu2i
+    use mod_parameters, only: nOrb, output, dim, sigmaimunu2i
     use mod_mpi_pars,   only: abortProgram,rField
     implicit none
     integer :: AllocateStatus
@@ -154,9 +153,8 @@ contains
     use mod_f90_kind,      only: double
     use mod_constants,     only: cZero,cI,tpi
     use mod_System,        only: s => sys
-    use TightBinding,      only: nOrb,nOrb2
     use EnergyIntegration, only: y, wght
-    use mod_parameters,    only: eta
+    use mod_parameters,    only: nOrb, nOrb2, eta
     use adaptiveMesh
     use mod_mpi_pars
     implicit none

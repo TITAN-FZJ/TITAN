@@ -11,6 +11,8 @@ module mod_parameters
   real(double)  :: q(3)
   !! q-vector for the dependence of response functions (not used yet)
   ! Dimension variables:
+  integer       :: dimH
+  !! Dimension of the Hamiltonian: 2 spins x number of atoms in the unit cell
   integer       :: dimspinAtoms
   !! Dimension: 4 spins x number of atoms in the unit cell
   integer       :: dim
@@ -21,20 +23,20 @@ module mod_parameters
   integer*8 :: kptotal_in
   !! Total number of k-points
 
+  integer :: tbmode 
+  !! TIght-binding mode: (1) Slater-Koster, (2) DFT (not implemented yet)
+  integer :: nOrb, nOrb2
+  !! Number of orbitals and 2*(number of orbitals) (for spin)
+  integer :: fermi_layer   
+  !! Which site will be used for fermi level (Maybe remove it and read from outside?)
+  character(len=20), dimension(:), allocatable :: layers
+  !! Number of layers (Obsolete?)
+
   !========================================================================================!
   real(double), allocatable  :: U(:)
   !! Effective intra-site electron electron interaction
   logical       :: lhfresponses = .false.
   !! Use HF susceptibilities to calculate currents, disturbances and accumulations (don't renormalize)
-  !========================================================================================!
-  ! Lattice and surface direction
-  character(len=6) :: latticeName
-  !! Lattice description; general or bcc, fcc, hcp, cubic
-  !integer          :: Npl,Npl_i,Npl_f,Npl_input
-  !integer          :: Npl_total
-  !! Obsolete?
-  logical          :: bulk = .false.
-  !! Flag turning on/off bulk calculations, default: .false., not used yet
   !========================================================================================!
   real(double)       :: theta=0.d0,phi=0.d0
   !! Euler Angles for the magnetization frame of reference
@@ -44,8 +46,12 @@ module mod_parameters
   !========================================================================================!
   character(len=10), dimension(:), allocatable :: bands
   !! Band structure points
-  integer :: band_cnt
+  integer           :: band_cnt
   !! Number of points along the loop path
+  character(len=20) :: kdirection
+  !! Path of symmetry points followed in the Brillouin Zone
+  real(double), allocatable :: partial_length(:)
+  !! Length of each segment on the Brillouin zone
   !========================================================================================!
   integer      :: nEner,nEner1,count
   ! Number of points of energy (frequency) loops
@@ -67,7 +73,7 @@ module mod_parameters
   character(len=400) :: bsfile
   !! Filename for band structure calculation
   !========================================================================================!
-  integer,allocatable :: sigmaimunu2i(:,:,:,:),sigmaijmunu2i(:,:,:,:,:),sigmai2i(:,:),isigmamu2n(:,:,:)
+  integer, allocatable :: sigmaimunu2i(:,:,:,:),sigmaijmunu2i(:,:,:,:,:),sigmai2i(:,:),isigmamu2n(:,:,:), n2isigmamu(:,:)
   !! Conversion arrays
   !========================================================================================!
   character(len=200)          :: runoptions
@@ -76,21 +82,22 @@ module mod_parameters
   !! Optional conversion of ry to eV
   !========================================================================================!
   ! Logical variables for runoptions
-  logical :: lkpoints       = .false.
-  logical :: lpositions     = .false.
-  logical :: ltesla         = .false.
-  logical :: lcreatefiles   = .false.
-  logical :: lcreatefolders = .false.
-  logical :: laddresults    = .false.
-  logical :: lnolb          = .false.
-  logical :: lnodiag        = .false.
-  logical :: lwriteonscreen = .false.
-  logical :: lsortfiles     = .false.
-  logical :: lsha           = .false.
-  logical :: llgtv          = .false.
-  logical :: lcheckjac      = .false.
-  logical :: lsimplemix     = .false.
-  logical :: leigenstates   = .false.
+  logical :: lkpoints        = .false.
+  logical :: lpositions      = .false.
+  logical :: ltesla          = .false.
+  logical :: lcreatefiles    = .false.
+  logical :: lcreatefolders  = .false.
+  logical :: laddresults     = .false.
+  logical :: lnolb           = .false.
+  logical :: lnodiag         = .false.
+  logical :: lwriteonscreen  = .false.
+  logical :: lsortfiles      = .false.
+  logical :: lsha            = .false.
+  logical :: llgtv           = .false.
+  logical :: lcheckjac       = .false.
+  logical :: lsimplemix      = .false.
+  logical :: leigenstates    = .false.
+  logical :: lprintfieldonly = .false.
   !========================================================================================!
   ! Activate debug options
   logical :: lverbose = .false.
@@ -164,6 +171,9 @@ module mod_parameters
      character(len=3)  :: hfr = ""
 
      character(len=50) :: info = ""
+     ! Strings for time-dependent calculations
+     character(len=100) :: time_field = ""
+     character(len=50),dimension(:), allocatable :: observable
   end type Filename
   type(Filename) :: output
 end module mod_parameters

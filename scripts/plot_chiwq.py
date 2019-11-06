@@ -33,7 +33,7 @@ ry2mev = 1.0
 
 
 ry2mev = 13605.7 # Conversion of energy units
-fact = 1         # Interpolation factor
+fact = 10         # Interpolation factor
 # ry2mev = 1.0
 
 ################################################################################

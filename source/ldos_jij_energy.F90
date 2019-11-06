@@ -2,10 +2,9 @@
 subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
   use mod_f90_kind,      only: double
   use mod_constants,     only: pi, cZero, cOne, pauli_dorb
-  use mod_parameters,    only: eta, U
+  use mod_parameters,    only: nOrb, nOrb2, eta, U
   use mod_system,        only: s => sys
   use mod_BrillouinZone, only: realBZ
-  use TightBinding,      only: nOrb,nOrb2
   use mod_magnet,        only: mvec_cartesian, mabs
   use mod_progress
   use mod_mpi_pars

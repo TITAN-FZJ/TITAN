@@ -2,11 +2,10 @@
 subroutine calculate_chi()
   use mod_f90_kind,          only: double
   use mod_constants,         only: cZero, cOne, StoC, CtoS
-  use mod_parameters,        only: count, emin, deltae, nQvec1, kpoints, dim, sigmaimunu2i, output, lhfresponses, lnodiag, laddresults, skip_steps, sigmai2i
-  use mod_magnet,            only: lfield,mvec_spherical,lvec
+  use mod_parameters,        only: nOrb, count, emin, deltae, nQvec1, kpoints, dim, sigmaimunu2i, output, lhfresponses, lnodiag, laddresults, skip_steps, sigmai2i
+  use mod_magnet,            only: lfield,mvec_spherical,lvec, lrot
   use mod_alpha,             only: create_alpha_files, write_alpha
   use mod_system,            only: s => sys
-  use TightBinding,          only: nOrb
   use mod_BrillouinZone,     only: realBZ
   use mod_tools,             only: itos
   use adaptiveMesh,          only: genLocalEKMesh, freeLocalEKMesh
@@ -17,7 +16,7 @@ subroutine calculate_chi()
   use mod_SOC,               only: SOC
   use mod_Coupling,          only: get_J_K_from_chi
   use mod_susceptibilities,  only: identt, Umatorb, schi, schihf, schiLS, schiSL, schiLL, schirot, rotmat_i, &
-      rotmat_j, rottemp, schitemp, lrot, chiorb_hf, chiorb, &
+      rotmat_j, rottemp, schitemp, chiorb_hf, chiorb, &
       build_identity_and_U_matrix, diagonalize_susceptibilities, &
       create_chi_files, write_susceptibilities, &
       allocate_susceptibilities, deallocate_susceptibilities
@@ -75,7 +74,7 @@ subroutine calculate_chi()
       call write_time(output%unit_loop,'[calculate_chi] Time after calculating chi HF: ')
 
       ! Checking sum rule for e=0.d0
-      if(abs(e) < 1.d-8) call sumrule(chiorb_hf)
+      if((abs(e) < 1.d-8).and.(sum(abs(q)) < 1.d-8)) call sumrule(chiorb_hf)
 
       ! From here on all other processes except for rFreq(1) == 0 are idle :/
       if(rFreq(1)==0) then
@@ -198,11 +197,11 @@ subroutine calculate_chi()
             if(abs(e)>1.d-8) then
               call write_alpha(e)
             else
-              call get_J_K_from_chi()
+              if(sum(abs(q)) < 1.d-8) call get_J_K_from_chi()
             end if
 
             ! WRITING RPA AND HF SUSCEPTIBILITIES
-            call write_susceptibilities(q,e)
+            call write_susceptibilities(qcount,e)
           end do
 
           write(time,"('[calculate_chi] Time after step ',i0,': ')") count
@@ -223,13 +222,12 @@ subroutine calculate_chi()
 
   end do ! Wave vector loop
 
-  ! Sorting results on files
+!   ! Sorting results on files
   if(rField == 0) call sort_all_files()
 
   call freeLocalEKMesh()
 
   call deallocate_susceptibilities()
-
   if(rFreq(1) == 0) deallocate(temp)
 
 end subroutine calculate_chi

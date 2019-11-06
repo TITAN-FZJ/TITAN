@@ -7,7 +7,7 @@ module mod_io
 contains
 
   subroutine log_message(procedure, message)
-    use mod_mpi_pars, only: myrank
+    use mod_mpi_pars,   only: myrank
     use mod_parameters, only: output
     implicit none
     character(len=*), intent(in) :: procedure
@@ -38,7 +38,7 @@ contains
   end subroutine log_error
 
   subroutine log_warning(procedure, message)
-    use mod_mpi_pars, only: myrank
+    use mod_mpi_pars,   only: myrank
     use mod_parameters, only: output
     implicit none
     character(len=*), intent(in) :: procedure
@@ -59,22 +59,23 @@ contains
     use mod_parameters,       only: output, laddresults, lverbose, ldebug, lkpoints, &
                                     lpositions, lcreatefiles, lnolb, lhfresponses, &
                                     lnodiag, lsha, lcreatefolders, lwriteonscreen, runoptions, lsimplemix, &
-                                    lcheckjac, llgtv, lsortfiles,leigenstates, &
+                                    lcheckjac, llgtv, lsortfiles,leigenstates, lprintfieldonly, &
                                     itype, ry2ev, ltesla, eta, etap, dmax, emin, emax, &
                                     skip_steps, nEner, nEner1, nQvec, nQvec1, qbasis, renorm, renormnb, bands, band_cnt, &
-                                    offset, dfttype, parField, parFreq, kptotal_in, kp_in
+                                    offset, dfttype, parField, parFreq, kptotal_in, kp_in, &
+                                    nOrb, nOrb2, tbmode, fermi_layer
     use mod_self_consistency, only: lslatec, lontheflysc, lnojac, lGSL, lforceoccup, lrotatemag, skipsc, scfile, magbasis, mag_tol
     use mod_system,           only: System, n0sc1, n0sc2
     use mod_SOC,              only: SOC, socscale, llinearsoc, llineargfsoc
     use mod_magnet,           only: lfield, tesla, hwa_i, hwa_f, hwa_npts, hwa_npt1, hwt_i, hwt_f, &
                                     hwt_npts, hwt_npt1, hwp_i, hwp_f, hwp_npts, hwp_npt1, hwx, hwy, &
                                     hwz, hwscale, hwtrotate, hwprotate, skip_steps_hw
-    use TightBinding,         only: nOrb,nOrb2,tbmode, fermi_layer
     use ElectricField,        only: ElectricFieldMode, ElectricFieldVector, EFp, EFt, EshiftBZ
     use EnergyIntegration,    only: parts, parts3, pn1, pn2, pnt, n1gl, n3gl
-    use mod_tools,            only: itos, rtos
+    use mod_tools,            only: itos, rtos, vec_norm
     use adaptiveMesh,         only: minimumBZmesh
     use mod_mpi_pars
+    use mod_imRK4_parameters, only: integration_time, omega, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, field_direction_m, field_direction_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
     implicit none
     character(len=*), intent(in)    :: filename
     type(System),     intent(inout) :: s
@@ -114,20 +115,26 @@ contains
       call log_warning("get_parameters","'nn_stages' missing. Using default value: 2")
     if(.not. get_parameter("relTol", s%relTol,0.05d0)) &
       call log_warning("get_parameters","'relTol' missing. Using default value: 0.05")
-    if(.not. get_parameter("bulk", s%lbulk, .true.)) &
-      call log_warning("get_parameters", "'bulk' missing. Using default value: .true.")
+    if(.not. get_parameter("sysdim", s%isysdim, 3)) &
+      call log_warning("get_parameters", "'sysdim' missing. Using default value: 3")
     if(.not. get_parameter("nkpt", i_vector,cnt)) &
       call log_error("get_parameters","'nkpt' missing.")
     if(cnt == 1) then
       kptotal_in = int( i_vector(1), kind(kptotal_in) )
-      if(s%lbulk) then
-        kp_in(:) = ceiling((dble(kptotal_in))**(1.d0/3.d0), kind(kp_in(1)) )
+      select case(s%isysdim)
+      case(3)
+        kp_in(:)   = ceiling((dble(kptotal_in))**(1.d0/3.d0), kind(kp_in(1)) )
         kptotal_in = int( kp_in(1) * kp_in(2) * kp_in(3), kind(kptotal_in) )
-      else
+      case(2)
         kp_in(1:2) = ceiling((dble(kptotal_in))**(1.d0/2.d0), kind(kp_in(1)) )
-        kp_in(3) = 0
+        kp_in(3)   = 1
         kptotal_in = int( kp_in(1) * kp_in(2), kind(kptotal_in) )
-      end if
+      case default
+        kp_in(1)   = ceiling((dble(kptotal_in)), kind(kp_in(1)) )
+        kp_in(2:3) = 1
+        kptotal_in = int( kp_in(1), kind(kptotal_in) )
+      end select
+
     else if(cnt == 3) then
       kp_in(1) = int( i_vector(1), kind(kp_in(1)) )
       kp_in(2) = int( i_vector(2), kind(kp_in(2)) )
@@ -207,6 +214,10 @@ contains
         lsimplemix = .true.
       case ("eigenstates")
         leigenstates = .true.
+        lnojac = .true.
+        call log_warning("get_parameters","eigenstates is used, jacobian deactivated (not implemented yet)")
+      case ("printfieldonly")
+        lprintfieldonly = .true.
       case("!")
         exit
       case default
@@ -474,6 +485,70 @@ contains
        call log_error("get_parameters", "'tbmode' Unknown mode selected. (Choose either 1 or 2)")
     end if
     !==============================================================================================!
+    ! REAL TIME PROPAGATION PARAMETERS
+    if(itype==11) then
+      if(.not. get_parameter("integration_time", integration_time)) &
+        call log_error("get_parameters", "'integration_time' not found.")
+      if(.not. get_parameter("step", step, integration_time/1.d4 )) &
+        call log_warning("get_parameters", "'step' not found. Using default value: integration_time/1.d4")
+      if(.not. get_parameter("sc_tol", sc_tol, 0.01d0)) &
+        call log_warning("get_parameters", "'sc_tol' not given. Using default value: sc_tol = 0.01d0")
+      if(.not. get_parameter("abs_tol", abs_tol, 1.d-3)) &
+        call log_warning("get_parameters", "'abs_tol' not given. Using default value: abs_tol = 0.001d0")
+      if(.not. get_parameter("rel_tol", rel_tol, 1.d-3)) &
+        call log_warning("get_parameters", "'rel_tol' not given. Using default value: rel_tol = 0.001d0")
+      if(.not. get_parameter("Delta", Delta, 0.9d0)) &
+        call log_warning("get_parameters", "'Delta' not given. Using default value: Delta = 0.9d0")
+
+      ! Reading electric field variables
+      if(.not. get_parameter("electric", lelectric,.false.)) &
+        call log_warning("get_parameters", "'electric' not found. Electric field is not applied.")
+      if(lelectric) then 
+        if(.not. get_parameter("hE_0", hE_0)) &
+          call log_error("get_parameters", "'hE_0' not found.")
+        if(.not. get_parameter("hw_e", hw_e)) &
+          call log_error("get_parameters", "'hw_e' not found.")
+        if(.not. get_parameter("pulse_e", lpulse_e,.false.)) &
+          call log_warning("get_parameters", "'pulse_e' not found. Oscillatory electric field is applied.")
+        if(lpulse_e) then 
+          if(.not. get_parameter("field_direction_e", vector, cnt)) &
+            call log_error("get_parameters","'field_direction_e' missing.")
+          if(cnt /= 3) call log_error("get_parameters","'field_direction_e' has wrong size (size 3 required).")
+          field_direction_e(1:3) = vector(1:3)/vec_norm(vector,3)
+          deallocate(vector)
+          if(.not. get_parameter("tau_e", tau_e)) &
+            call log_error("get_parameters", "'tau_e' not found.")
+          if(.not. get_parameter("delay_e", delay_e, 0.d0)) &
+            call log_warning("get_parameters", "'delay_e' not found. Center of the pulse is located at t=4tau_e.")
+        end if
+      end if
+      ! Reading magnetic field variables
+      if(.not. get_parameter("magnetic", lmagnetic,.false.)) &
+        call log_warning("get_parameters", "'magnetic' not found. Magnetic field is not applied.")
+      if(lmagnetic) then 
+        if(.not. get_parameter("hw1_m", hw1_m)) &
+          call log_error("get_parameters", "'hw1_m' not found.")
+        if(.not. get_parameter("hw_m", hw_m)) &
+          call log_error("get_parameters", "'hw_m' not found.")
+        if(.not. get_parameter("pulse_m", lpulse_m,.false.)) &
+          call log_warning("get_parameters", "'pulse_m' not found. Oscillatory Magnetic field is applied.")
+        if(lpulse_m) then 
+          if(.not. get_parameter("field_direction_m", vector, cnt)) &
+            call log_error("get_parameters","'field_direction_m' missing.")
+          if(cnt /= 3) call log_error("get_parameters","'field_direction_m' has wrong size (size 3 required).")
+          field_direction_m(1:3) = vector(1:3)
+          deallocate(vector)
+          if(.not. get_parameter("tau_m", tau_m)) &
+            call log_error("get_parameters", "'tau_m' not found.")
+          if(.not. get_parameter("delay_m", delay_m, 0.d0)) &
+            call log_warning("get_parameters", "'delay_m' not found. Center of the pulse is located at t=4tau_m.")
+        end if
+      else
+        if(.not.lelectric) call log_error("get_parameters", "'magnetic' and 'electric' not found. Please, choose a type of perturbation.") 
+      end if
+
+    end if
+    !==============================================================================================!
     if(.not. get_parameter("suffix", output%suffix)) &
       call log_warning("get_parameters","'suffix' missing. Using none.")
     if(.not. get_parameter("parField", parField, 1)) &
@@ -538,13 +613,14 @@ contains
   subroutine iowrite(s)
     use mod_mpi_pars
     use mod_parameters
-    use mod_System, only: System, n0sc1, n0sc2
-    use mod_BrillouinZone, only: BZ => realBZ
-    use mod_SOC, only: SOC, socscale
     use mod_magnet
-    use EnergyIntegration, only: parts, parts3, n1gl, n3gl
-    use ElectricField, only: ElectricFieldMode, ElectricFieldVector, EFt, EFp, EshiftBZ
-    use AdaptiveMesh, only: minimumBZmesh
+    use mod_System,           only: System, n0sc1, n0sc2
+    use mod_BrillouinZone,    only: BZ => realBZ
+    use mod_SOC,              only: SOC, socscale
+    use EnergyIntegration,    only: parts, parts3, n1gl, n3gl
+    use ElectricField,        only: ElectricFieldMode, ElectricFieldVector, EFt, EFp, EshiftBZ
+    use AdaptiveMesh,         only: minimumBZmesh
+    use mod_imRK4_parameters, only: integration_time, omega, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
     !$ use omp_lib
     implicit none
     type(System), intent(in) :: s
@@ -631,7 +707,7 @@ contains
        write(output%unit_loop,"(1x,'Number of points to calculate: ',i0)") nEner1
     case (4)
        write(output%unit_loop,"(1x,'Band structure')")
-       write(output%unit_loop,"(2x,'Path along BZ: ',a)") (trim(adjustl(bands(i))), i = 1,band_cnt)
+       write(output%unit_loop,"(2x,'Path along BZ: ',10(a,1x))") (trim(adjustl(bands(i))), i = 1,band_cnt)
        write(output%unit_loop,"(2x,'Number of wave vectors to calculate: ',i0)") nQvec1
     case (5)
        write(output%unit_loop,"(1x,'Charge and spin density at Fermi surface')")
@@ -663,8 +739,38 @@ contains
        write(output%unit_loop,"(1x,'hwp_min =',f7.2)") hw_list(1,3)
        write(output%unit_loop,"(1x,'hwp_max =',f7.2)") hw_list(total_hw_npt1,3)
        !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps, each calculating ',i0,' points')") total_hw_npt1*nEner1,MPIsteps*MPIsteps_hw,MPIpts_hw*MPIpts
+    case (11)
+      write(output%unit_loop, fmt="('Time propagation:')" )
+      ! integration_time, omega, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
+      !write(output%unit_loop,"(1x,'hw1 =',es9.2)") hw1
+      !write(output%unit_loop,"(1x,'hw  =',es9.2)") hw
+      !write(output%unit_loop,"(1x,'integration_time   =',es9.2)") integration_time
+      write(output%unit_loop,"(1x,'step   =',es9.2)") step
+      write(output%unit_loop,"(1x,'sc_tol   =',es9.2)") sc_tol
     end select write_itype
     write(output%unit_loop,"('|---------------------------------------------------------------------------|')")
   end subroutine iowrite
 
+
+  ! Writing header for previously opened file of unit "unit"
+  subroutine write_header(unit,title_line,Ef)
+    use mod_f90_kind,   only: double
+    use mod_parameters, only: nQvec, nQvec1, bands, band_cnt, partial_length
+
+    integer,          intent(in)           :: unit
+    character(len=*), intent(in)           :: title_line
+    real(double),     intent(in), optional :: Ef
+    integer :: i
+
+    if(nQvec1/=1) then
+      write(unit=unit, fmt="(a,2x,i0,2x,i0)") "# ", band_cnt, nQvec
+      do i=1,band_cnt
+        write(unit=unit, fmt="(a,2x,a,2x,es16.9)") "# ",trim(bands(i)), sum(partial_length(1:i))
+      end do
+      if(present(Ef)) write(unit=unit, fmt="(a,2x,es16.9)") "# Ef ",Ef
+    end if
+
+    write(unit=unit, fmt="(a)") title_line
+
+  end subroutine write_header
 end module mod_io
