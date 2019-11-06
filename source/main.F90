@@ -29,6 +29,7 @@ program TITAN
   use mod_tools, only: rtos
   use mod_initial_expectation, only: calc_initial_Uterms
   use mod_time_propagator,   only: time_propagator
+  use mod_impurity, only: limpurity, read_impurity, impurity_file
   !use mod_define_system TODO: Re-include
   !use mod_prefactors TODO: Re-include
   !use mod_lgtv_currents TODO: Re-include
@@ -61,6 +62,10 @@ program TITAN
   call read_basis("basis", sys)
   call initLattice(sys)
   write(output%Sites,fmt="(i0,'Sites')") sys%nAtoms
+  if(limpurity) then
+   ! write(*,*) "Hi"
+   call read_impurity(impurity_file,sys,sys_impurity)
+  end if
   ! Writing Positions into file
   if( lpositions .and. (myrank==0) ) call writeLattice(sys)
 
@@ -170,7 +175,7 @@ program TITAN
     call sb_matrix(sys%nAtoms, nOrb)
 
     !-------------------------- Debugging part -------------------------
-    if(ldebug) then 
+    if(ldebug) then
       !if(myrank==0) then
       ! call debugging()
       !end if
@@ -213,8 +218,8 @@ program TITAN
       mz  = 0.d0
       mp  = cZero
       ! Variables used in the hamiltonian
-
-      call ldos()
+      stop
+      !call ldos()
       ! call debugging()
     end if
 

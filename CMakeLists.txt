@@ -81,6 +81,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_imRK4.F90
                                   source/mod_time_propagator.F90
                                   source/mod_imRK4_parameters.F90
+                                  source/mod_impurity.F90
                                   )
 
 # Execulable names

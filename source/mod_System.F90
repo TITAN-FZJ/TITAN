@@ -56,6 +56,7 @@ module mod_system
   end type System
 
   type(System) :: sys
+  type(System) :: sys_impurity
 
   integer :: n0sc1 !< first neighbor to calculate the in-plane spin and charge current
   integer :: n0sc2 !< last neighbor to calculate the in-plane spin and charge current

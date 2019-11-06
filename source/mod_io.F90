@@ -76,6 +76,7 @@ contains
     use adaptiveMesh,         only: minimumBZmesh
     use mod_mpi_pars
     use mod_imRK4_parameters, only: integration_time, omega, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, field_direction_m, field_direction_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
+    use mod_impurity,         only: impurity_file, limpurity
     implicit none
     character(len=*), intent(in)    :: filename
     type(System),     intent(inout) :: s
@@ -149,6 +150,12 @@ contains
       call log_error("get_parameters","'eta' missing.")
     if(.not. get_parameter("etap", etap, eta)) &
       call log_warning("get_parameters", "'etap' not found. Using default value: eta = " // trim(rtos(eta,"(es8.1)")) )
+    !===============================================================================================
+    !================================= Impurity details ============================================
+    !===============================================================================================
+    if(.not. get_parameter("impurity", impurity_file)) &
+      call log_warning("get_parameters", "Impurity filename not given! Not adding impurities.")
+    if(trim(impurity_file).ne."") limpurity=.true.
     !===============================================================================================
     !===============================================================================================
     !------------------------------------- Type of Calculation -------------------------------------
@@ -503,14 +510,14 @@ contains
       ! Reading electric field variables
       if(.not. get_parameter("electric", lelectric,.false.)) &
         call log_warning("get_parameters", "'electric' not found. Electric field is not applied.")
-      if(lelectric) then 
+      if(lelectric) then
         if(.not. get_parameter("hE_0", hE_0)) &
           call log_error("get_parameters", "'hE_0' not found.")
         if(.not. get_parameter("hw_e", hw_e)) &
           call log_error("get_parameters", "'hw_e' not found.")
         if(.not. get_parameter("pulse_e", lpulse_e,.false.)) &
           call log_warning("get_parameters", "'pulse_e' not found. Oscillatory electric field is applied.")
-        if(lpulse_e) then 
+        if(lpulse_e) then
           if(.not. get_parameter("field_direction_e", vector, cnt)) &
             call log_error("get_parameters","'field_direction_e' missing.")
           if(cnt /= 3) call log_error("get_parameters","'field_direction_e' has wrong size (size 3 required).")
@@ -525,14 +532,14 @@ contains
       ! Reading magnetic field variables
       if(.not. get_parameter("magnetic", lmagnetic,.false.)) &
         call log_warning("get_parameters", "'magnetic' not found. Magnetic field is not applied.")
-      if(lmagnetic) then 
+      if(lmagnetic) then
         if(.not. get_parameter("hw1_m", hw1_m)) &
           call log_error("get_parameters", "'hw1_m' not found.")
         if(.not. get_parameter("hw_m", hw_m)) &
           call log_error("get_parameters", "'hw_m' not found.")
         if(.not. get_parameter("pulse_m", lpulse_m,.false.)) &
           call log_warning("get_parameters", "'pulse_m' not found. Oscillatory Magnetic field is applied.")
-        if(lpulse_m) then 
+        if(lpulse_m) then
           if(.not. get_parameter("field_direction_m", vector, cnt)) &
             call log_error("get_parameters","'field_direction_m' missing.")
           if(cnt /= 3) call log_error("get_parameters","'field_direction_m' has wrong size (size 3 required).")
@@ -544,7 +551,7 @@ contains
             call log_warning("get_parameters", "'delay_m' not found. Center of the pulse is located at t=4tau_m.")
         end if
       else
-        if(.not.lelectric) call log_error("get_parameters", "'magnetic' and 'electric' not found. Please, choose a type of perturbation.") 
+        if(.not.lelectric) call log_error("get_parameters", "'magnetic' and 'electric' not found. Please, choose a type of perturbation.")
       end if
 
     end if
@@ -559,7 +566,7 @@ contains
       if(.not. disable_input_logging()) &
           call log_warning("get_parameters", "Could not disable logging.")
     end if
-    !==============================================================================================!    
+    !==============================================================================================!
     if(myrank==0) &
       write(output%unit,"('[get_parameters] Finished reading from ""',a,'"" file')") trim(filename)
 
