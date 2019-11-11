@@ -192,8 +192,7 @@ contains
       mp  = mp  + expec_p*weight
       mz  = mz  + expec_z*weight
 
-      ! write(*,*) "Outside = ", expec_singlet
-
+      ! Superconducting order parameter
       deltas = deltas + expec_singlet*weight
     end do
     !$omp end do
@@ -244,47 +243,17 @@ contains
 
     offset = merge(dimE,0,lsupercond)
 
-    ! write(*,*) "Offset = ", offset
-    ! write(*,*) "Eigenvalues = ", eval(:)
-    ! write(*,*) 1.d0/(pi*eta)
-
-    ! do n = 1, dimE
     do n = 1, dim
-      ! Fermi-Dirac:
-      ! f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval(n+offset))
-      !
-      ! write(10,*) "Eigenvalue used = ", eval(n+offset)
-      ! write(10,*) "Parameter Fermi = ", s%Ef
-      !
-      ! write(10,*) "Fermi Energy  = ", f_n
-      ! write(10,*) " "
 
       f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval(n))
 
-      !write(10,*) "Eigenenergy = ", eval(n)
-      !write(10,*) "Fermi energy = ", s%Ef
-
-      !write(10,*) "Fermi dist  = ", f_n
-
-
       ! Getting eigenvector and its transpose conjugate
-      ! evec(:) = hk(:,n+offset)
       evec(:) = hk(:,n)
-
-      ! write(*,*) " "
-      ! write(*,*) "Eigenvector = ", evec(:)
-      ! write(*,*) " "
-      !
-      ! write(*,*) "A = ", conjg( evec(isigmamu2n(1,1,1)) )
-      ! write(*,*) "B = ", evec(isigmamu2n(1,1,1))
-
-
 
       do i = 1, s%nAtoms
         do mu = 1, nOrb
           do sigma = 1, 2
             ! Charge
-            ! careful with the offset
             expec_0(mu,i) = expec_0(mu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,mu))
 
             do sigmap = 1, 2
@@ -299,55 +268,27 @@ contains
       end do
     end do
 
-    !write(10,*) "expec 0 = ", expec_0
-    !write(10,*) " "
-
-
-    ! do i = 1, s%nAtoms
-    !   write(*,*) expec_0(1,i)
-    !
-    !         ! M_p
-    !   write(*,*) expec_p(1,i)
-    !
-    !         ! M_z
-    !   write(*,*) expec_z(1,i)
-    !
-    ! end do
-
+    ! If there is no superconductivity, then the calculation of the expected values is already completed
+    ! In case superconductivity is present then we have to carry extra calculations to get the superconducting
+    ! order parameter.
     if(.not. lsuperCond) &
         return
 
     i = 1
 
     do n = 1, dim
-      ! Fermi-Dirac:
+      ! Fermi-Dirac distribution at energy eval(n) and temperature proportional to eta:
+      ! IT IS NOT BEING USED, SO IT WILL BE DELETED SOON
       f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval(n))
-
-      ! write(*,*) "Eigenvalue used = ", eval(n+offset)
-      ! write(*,*) "Parameter Fermi = ", s%Ef
-      !
-      ! write(*,*) "Fermi Energy  = ", f_n
-      ! write(*,*) " "
 
       ! Getting eigenvector and its transpose conjugate
       evec(:) = hk(:,n)
 
-      ! do mu = 1, 36
-      !     write(*,*) real(evec(mu)),"    ", aimag(evec(mu))
-      ! end do
-
       do mu = 1, nOrb
-          ! expec_singlet(mu) = expec_singlet(mu) + 2*f_n*conjg(evec(isigmamu2n(i,2,mu)+nOrb*2))*evec(isigmamu2n(i,1,mu))
-          ! expec_singlet(mu) = expec_singlet(mu) + 2*conjg(evec(isigmamu2n(i,1,mu)+nOrb*3))*evec(isigmamu2n(i,1,mu))
           expec_singlet(mu) = expec_singlet(mu) + conjg(evec(isigmamu2n(i,1,mu)+nOrb*2))*evec(isigmamu2n(i,2,mu))*tanh(eval(n)*1.d0/(pi*eta)/2)
       end do
 
     end do
-
-    ! write(*,*) "Inside = ", expec_singlet
-    !
-    ! !$omp barrier
-    ! stop
 
   end subroutine expec_val
 
