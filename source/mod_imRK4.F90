@@ -45,7 +45,7 @@ contains
       call M_2n(s, t, kp, eval, Yn, step, M2n)
       ! Build Fun vector
       call Fsystem(s, t, kp, eval, Yn, step, Z_k, Fun)
-      ! Solve the Ax=b linear equation
+      ! Solve the Ax=b linear equation (Eq. 24 of the notes)
       call LS_solver(dimH2,M2n,Fun)
 
       deltaZ_k  = Fun
