@@ -520,7 +520,7 @@ contains
     ! b = X
     call zgesv( n, nrhs, a, lda, ipiv, b, ldb, info )
     
-    if (info /= 0) write(*,'("eigensolver: failure in zheev")')
+    if (info /= 0) write(*,'("eigensolver: failure in zgesv")')
     deallocate(work,swork,rwork,ipiv,X)
     
     end subroutine LS_solver
