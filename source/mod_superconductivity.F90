@@ -34,10 +34,18 @@ contains
     integer, intent(in) :: nOrbs
     integer :: AllocateStatus
 
+    write(*,*) ", I am Allocating"
+
     allocate( singlet_coupling(nOrbs,nAtoms), stat = AllocateStatus)
     if(AllocateStatus /= 0) call abortProgram("[allocate_super_variables] Not enough memory for: singlet_coupling")
 
 end subroutine allocate_super_variables
+
+  subroutine deallocate_super_variables()
+    implicit none
+
+    if(allocated(singlet_coupling)) deallocate(singlet_coupling)
+  end subroutine deallocate_super_variables
 
   subroutine hamiltk_sc(sys,kp,hk_sc)
     use mod_f90_kind,       only: double

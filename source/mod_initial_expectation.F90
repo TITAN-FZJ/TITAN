@@ -19,16 +19,20 @@ contains
     use mod_Atom_variables, only: allocate_Atom_variables,deallocate_Atom_variables
     use mod_BrillouinZone,  only: realBZ!,nkpt_x,nkpt_y,nkpt_z
     use EnergyIntegration,  only: pn1
-    use mod_superconducltivity
+    use mod_superconductivity
     implicit none
     integer :: i,j,mu,err
     type(System), intent(inout) :: sys
     type(System), allocatable   :: sys0(:)
 
+    !write(*,*) "inside initial terms ", singlet_coupling
+
     if(myrank == 0) &
       call write_time(output%unit,'[calc_initial_Uterms] Obtaining initial densities: ')
 
     allocate(sys0(sys%nTypes))
+
+    !write(*,*) "inside initial terms ", singlet_coupling
 
     types_of_atoms: do i = 1, sys%nTypes
       !------------------ Define the lattice structure -------------------
@@ -40,15 +44,18 @@ contains
       sys0(i)%relTol  = sys%relTol
 
       call initLattice(sys0(i))
+
       ! if(myrank==0) call writeLattice(sys0(i))
       ! stop
       !-------------------------- Filename strings -------------------------
       write(output%info,"('_nkpt=',i0,'_eta=',a)") kptotal_in, trim(rtos(eta,"(es8.1)"))
       if(leigenstates) output%info = trim(output%info) // "_ev"
 
+!write(*,*) "inside initial terms ", singlet_coupling
       !-------------------- Tight Binding parameters ---------------------
       call initTightBinding(sys0(i))
 
+!write(*,*) "inside initial terms ", singlet_coupling
       !---------- Generating k points for real axis integration ----------
       select case(sys0(i)%Types(i)%isysdim)
       case(3)
@@ -77,6 +84,7 @@ contains
         !----------- Allocating variables that depend on nAtoms ------------
         call allocate_magnet_variables(sys0(i)%nAtoms, nOrb)
         call allocLS(sys0(i)%nAtoms,nOrb)
+        !write(*,*) "inside calc initial terms ", singlet_coupling
         call allocate_super_variables(sys0(i)%nAtoms, nOrb)
         call allocate_Atom_variables(sys0(i)%nAtoms,nOrb)
 
@@ -93,6 +101,7 @@ contains
         lb = cZero
         sb = cZero
         ls = cZero
+        singlet_coupling = cZero
 
         !------------------------ Conversion arrays -------------------------
         call initConversionMatrices(sys0(i)%nAtoms,nOrb)
@@ -118,6 +127,7 @@ contains
         !-------------------- Deallocating variables -----------------------
         call deallocate_magnet_variables()
         call deallocate_Atom_variables()
+        call deallocate_super_variables()
 
       end if ! read_initial_Uterms
 
