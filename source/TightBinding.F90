@@ -22,7 +22,6 @@ contains
     use mod_f90_kind, only: double
     use AtomTypes,    only: NeighborIndex
     use mod_system,   only: System
-    use mod_superconductivity, only: singlet_coupling, allocate_super_variables
     implicit none
     type(System), intent(inout) :: s
     integer,      intent(in)    :: fermi_layer
@@ -34,9 +33,6 @@ contains
     real(double), dimension(10), parameter    :: expon = [1.0d0,3.0d0,3.0d0,5.0d0,5.0d0,5.0d0,2.0d0,3.0d0,4.0d0,4.0d0]
     nullify(current)
     allocate(bp(nOrb,nOrb))
-    !allocate(singlet_coupling(nOrb,s%nAtoms))
-    !call allocate_super_variables(s%nAtoms,nOrb)
-
 
     do i = 1, s%nTypes
       call readElementFile(s%Types(i), s%nStages, nOrb)
@@ -117,7 +113,7 @@ contains
     use mod_tools,    only: itos, vec_norm
     use mod_io,       only: log_warning, log_error
     use mod_input,    only: get_parameter
-    use mod_superconductivity, only: lsuperCond, singlet_coupling
+    use mod_superconductivity, only: lsuperCond
     implicit none
     type(AtomType), intent(inout) :: material
     integer,        intent(in)    :: nStages
@@ -240,17 +236,13 @@ contains
     ! Read the superconducting parameter
     if(lsupercond) then
         read(unit=f_unit, fmt='(A)', iostat=ios) line
-        ! str_arr = ""
         read(unit=line, fmt=*, iostat=ios) (str_arr(i), i=1,9)
-        ! write(*,*) "str_arr", str_arr
         cnt = 0
         do i = 1, 9
-            ! write(*,*) "len_trim(str_arr(i)), ", str_arr(i), len_trim(str_arr(i))
             if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
             cnt = cnt + 1
             read(unit=str_arr(i), fmt=*,iostat=ios ) tmp_arr(cnt)
         end do
-        ! write(*,*) "Temporary ", tmp_arr(:), cnt
 
         select case(cnt)
         ! case(1)
@@ -264,9 +256,7 @@ contains
         case default
           call log_error("readElementFile","Something wrong in the definition of 'lambda'.")
         end select
-        write(*,*) material%lambda(:)
-        ! singlet_coupling = 1.0
-        ! singlet_coupling(:,:) = material%lambda(:)*singlet_coupling(:)
+        ! write(*,*) trim(Name),material%lambda(:)
     end if
 
     ! Read next nearest neighbor stages

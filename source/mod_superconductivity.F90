@@ -34,8 +34,6 @@ contains
     integer, intent(in) :: nOrbs
     integer :: AllocateStatus
 
-    write(*,*) ", I am Allocating"
-
     allocate( singlet_coupling(nOrbs,nAtoms), stat = AllocateStatus)
     if(AllocateStatus /= 0) call abortProgram("[allocate_super_variables] Not enough memory for: singlet_coupling")
 

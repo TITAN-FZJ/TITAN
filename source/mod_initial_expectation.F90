@@ -171,9 +171,7 @@ contains
     type(System),                      intent(inout) :: sys
     real(double),    dimension(:,:)    , allocatable :: rho0
     real(double),    dimension(:)      , allocatable :: rhod0
-    complex(double), dimension(nOrb)                 :: deltas
-
-    deltas = cZero
+    complex(double), dimension(nOrb,sys%nAtoms)      :: deltas
 
     allocate( rho0(nOrb,sys%nAtoms),rhod0(sys%nAtoms) )
 

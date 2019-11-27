@@ -64,7 +64,7 @@ contains
                                      skip_steps, nEner, nEner1, nQvec, nQvec1, qbasis, renorm, renormnb, bands, band_cnt, &
                                      offset, dfttype, parField, parFreq, kptotal_in, kp_in, &
                                      nOrb, nOrb2, tbmode, fermi_layer
-    use mod_superconductivity, only: lsuperCond, superCond, singlet_coupling
+    use mod_superconductivity, only: lsuperCond, superCond
     use mod_self_consistency,  only: lslatec, lontheflysc, lnojac, lGSL, lforceoccup, lrotatemag, skipsc, scfile, magbasis, mag_tol
     use mod_system,            only: System, n0sc1, n0sc2
     use mod_SOC,               only: SOC, socscale, llinearsoc, llineargfsoc
@@ -643,7 +643,7 @@ contains
     use ElectricField,         only: ElectricFieldMode, ElectricFieldVector, EFt, EFp, EshiftBZ
     use AdaptiveMesh,          only: minimumBZmesh
     use mod_imRK4_parameters,  only: integration_time, omega, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
-    use mod_superconductivity, only: lsupercond, singlet_coupling
+    use mod_superconductivity, only: lsupercond
     !$ use omp_lib
     implicit none
     type(System), intent(in) :: s

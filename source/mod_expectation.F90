@@ -145,7 +145,7 @@ contains
     type(System),                              intent(in)  :: s
     real(double),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
     complex(double), dimension(nOrb,s%nAtoms), intent(out) :: mp
-    complex(double), dimension(nOrb,s%nAtoms),intent(out) :: deltas
+    complex(double), dimension(nOrb,s%nAtoms), intent(out) :: deltas
     ! complex(double), dimension(nOrb)         , intent(out) :: expec_singlet
 
     integer                                      :: iz, info , i!, mu,i
@@ -161,7 +161,6 @@ contains
     dimE  = (s%nAtoms)*nOrb2
     lwork = 21*dimH
 
-    deltas = cZero
 
     allocate( hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork) )
 
@@ -170,8 +169,9 @@ contains
     !$omp& private(iz,kp,weight,hk,eval,work,rwork,info,expec_0, expec_p, expec_z,  expec_singlet,i) &
     !$omp& shared(s,dimE,dimH,output,realBZ,rho,mp,mz,EshiftBZ,ElectricFieldVector, lsuperCond,deltas)
     rho = 0.d0
-    mp  = 0.d0
     mz  = 0.d0
+    mp  = cZero
+    deltas = cZero
     !$omp do reduction(+:rho,mp,mz,deltas)
     do iz = 1,realBZ%workload
       kp = realBZ%kp(1:3,iz) + EshiftBZ*ElectricFieldVector
