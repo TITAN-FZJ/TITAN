@@ -113,6 +113,7 @@ program TITAN
 
   !------------ Allocating variables that depend on nAtoms -------------
   call allocate_magnet_variables(sys%nAtoms, nOrb)
+  call allocate_super_variables(sys%nAtoms, nOrb)
   call allocLS(sys%nAtoms,nOrb)
   call allocate_Atom_variables(sys%nAtoms,nOrb)
 

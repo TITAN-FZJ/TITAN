@@ -145,7 +145,7 @@ contains
     type(System),                              intent(in)  :: s
     real(double),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
     complex(double), dimension(nOrb,s%nAtoms), intent(out) :: mp
-    complex(double), dimension(nOrb),intent(out) :: deltas
+    complex(double), dimension(nOrb,s%nAtoms),intent(out) :: deltas
     ! complex(double), dimension(nOrb)         , intent(out) :: expec_singlet
 
     integer                                      :: iz, info , i!, mu,i
@@ -153,7 +153,7 @@ contains
     real(double)                                 :: weight, kp(3)
     real(double),    dimension(nOrb,s%nAtoms)    :: expec_0, expec_z
     complex(double), dimension(nOrb,s%nAtoms)    :: expec_p
-    complex(double), dimension(nOrb)             :: expec_singlet
+    complex(double), dimension(nOrb,s%nAtoms)    :: expec_singlet
     real(double),    dimension(:),  allocatable  :: rwork(:), eval(:)
     complex(double),                allocatable  :: work(:), hk(:,:)
 
@@ -208,7 +208,7 @@ contains
     my = aimag(mp)
 
     ! if(flag) then
-        write(*,*) real(deltas(1))
+        write(*,*) real(deltas(1,1))
         ! flag = .false.
     ! end if
 
@@ -241,7 +241,7 @@ contains
     complex(double), dimension(dim,dim),       intent(in)  :: hk
     real(double),    dimension(nOrb,s%nAtoms), intent(out) :: expec_0, expec_z
     complex(double), dimension(nOrb,s%nAtoms), intent(out) :: expec_p
-    complex(double), dimension(nOrb), intent(out) :: expec_singlet
+    complex(double), dimension(nOrb,s%nAtoms), intent(out) :: expec_singlet
 
     integer                                     :: i, n, sigma, sigmap, mu
     real(double)                                :: f_n
@@ -286,7 +286,6 @@ contains
     if(.not. lsuperCond) &
         return
 
-    i = 1
 
     do n = 1, dim
       ! Fermi-Dirac distribution at energy eval(n) and temperature proportional to eta:
@@ -296,10 +295,11 @@ contains
       ! Getting eigenvector and its transpose conjugate
       evec(:) = hk(:,n)
 
-      do mu = 1, nOrb
-          expec_singlet(mu) = expec_singlet(mu) + conjg(evec(isigmamu2n(i,1,mu)+nOrb*2))*evec(isigmamu2n(i,2,mu))*tanh(eval(n)*1.d0/(pi*eta)/2)
+      do i = 1, s%nAtoms
+          do mu = 1, nOrb
+              expec_singlet(mu,i) = expec_singlet(mu,i) + conjg(evec(isigmamu2n(i,1,mu)+nOrb*2))*evec(isigmamu2n(i,2,mu))*tanh(eval(n)*1.d0/(pi*eta)/2)
+          end do
       end do
-
     end do
 
   end subroutine expec_val

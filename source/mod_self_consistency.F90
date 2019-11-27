@@ -75,11 +75,12 @@ contains
     use mod_parameters, only: nOrb, output
     use mod_system,     only: s => sys
     use mod_mpi_pars,   only: rField,abortProgram
+    use mod_superconductivity, only: singlet_coupling
     use mod_magnet,     only: mx,my,mz,mxd,myd,mzd,mpd,hw_count,hw_list, &
                               lfield,rho,rhod,rhod0,rho0
     use mod_Umatrix
     implicit none
-    integer             :: i,err
+    integer             :: i,err, mu
     logical,intent(out) :: lsuccess
 
     lsuccess = .false.
@@ -98,6 +99,17 @@ contains
         if(rField == 0) write(output%unit_loop,"('[read_previous_results] Existing results for other parameters were read. Updating values...')")
         lselfcon = .true.
       end if
+      ! Provisional lines below
+      do i = 1, s%nAtoms
+        mx(5:9,i) = 0.2d0*mxd(i)
+        my(5:9,i) = 0.2d0*myd(i)
+        mz(5:9,i) = 0.2d0*mzd(i)
+        rhod(i)   = rhod0(i) !s%Types(s%Basis(i)%Material)%OccupationD
+        do mu = 1,nOrb
+            singlet_coupling(mu,i) = s%Types(i)%lambda(mu)
+            write(*,*) "Read prev succ ", mu,i, singlet_coupling(mu,i)
+        end do
+      end do
     else !  If file doesn't exist
       if(rField == 0) then
         write(output%unit_loop,"('[read_previous_results] Self-consistency file does not exist:')")
@@ -140,7 +152,12 @@ contains
         my(5:9,i) = 0.2d0*myd(i)
         mz(5:9,i) = 0.2d0*mzd(i)
         rhod(i)   = rhod0(i) !s%Types(s%Basis(i)%Material)%OccupationD
+        do mu = 1,nOrb
+            singlet_coupling(mu,i) = s%Types(i)%lambda(mu)
+            write(*,*) "Read prev fail ", mu,i, singlet_coupling(mu,i)
+        end do
       end do
+      ! singlet_coupling = 1.0
 
     end if
 
@@ -439,7 +456,8 @@ contains
       sc_solu((i-1)*neq_per_atom+8) = mzd(i)
       if(lsuperCond) then
           do mu = 1, nOrb
-              sc_solu((i-1)*neq_per_atom+8+mu) = singlet_coupling(mu)/singlet_coupling(1)
+              sc_solu((i-1)*neq_per_atom+8+mu) = singlet_coupling(mu,i) !/singlet_coupling(1,1)
+              write(*,*) "Initial ", mu,i, singlet_coupling(mu,i)
           end do
       end if
     end do
@@ -502,7 +520,7 @@ contains
         mode = 1
         factor = 0.1d0
         call c05qcf(sc_equations,neq,sc_solu,fvec,mag_tol,maxfev,ml,mr,epsfcn,mode,diag,factor,0,nfev,jac,wa,qtf,iuser,ruser,ifail)
-        write(*,*) BZ%nkpt, eta, real(singlet_coupling(1)), aimag(singlet_coupling(1))
+        ! write(*,*) BZ%nkpt, eta, real(singlet_coupling(1,1)), aimag(singlet_coupling(1,1))
       else
         maxfev = 100*(neq+1)
         mode = 1
@@ -605,7 +623,7 @@ contains
     real(double),   dimension(nOrb,s%nAtoms) :: rho_in
     real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
     complex(double),dimension(s%nAtoms)      :: mpd_in
-    complex(double), dimension(nOrb)         :: deltas
+    complex(double), dimension(nOrb,s%nAtoms)         :: deltas
 
     w=w
     iw=iw
@@ -1309,7 +1327,7 @@ contains
     real(double),   dimension(nOrb,s%nAtoms) :: rho_in
     real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
     complex(double),dimension(s%nAtoms)      :: mpd_in
-    complex(double), dimension(nOrb)         :: deltas
+    complex(double), dimension(nOrb,s%nAtoms)         :: deltas
 
     iuser = 0
     ruser = 0.d0
@@ -1398,8 +1416,8 @@ contains
     real(double),   dimension(nOrb,s%nAtoms) :: rho_in
     real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
     complex(double),dimension(s%nAtoms)      :: mpd_in
-    complex(double),   dimension(nOrb)       :: singlet_coupling_in
-    complex(double), dimension(nOrb)        :: deltas
+    complex(double),dimension(nOrb,s%nAtoms) :: singlet_coupling_in
+    complex(double),dimension(nOrb,s%nAtoms) :: deltas
 
 
     iuser = 0
@@ -1419,7 +1437,7 @@ contains
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i))
       if(lsuperCond) then
           do mu = 1, nOrb
-              singlet_coupling_in(mu) = x((i-1)*8+8+mu)
+              singlet_coupling_in(mu,i) = x((i-1)*8+8+mu)
           end do
       end if
     end do
@@ -1458,7 +1476,7 @@ contains
       fvec((i-1)*8+8) =  mzd(i) -  mzd_in(i)
       if(lsuperCond) then
           do mu = 1, nOrb
-              fvec((i-1)*8+8+mu) = deltas(mu) - singlet_coupling_in(mu)
+              fvec((i-1)*8+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
           end do
       end if
     end do
@@ -1496,7 +1514,7 @@ contains
     real(double),   dimension(nOrb,s%nAtoms) :: rho_in
     real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
     complex(double),dimension(s%nAtoms)      :: mpd_in
-    complex(double), dimension(nOrb)         :: deltas
+    complex(double), dimension(nOrb,s%nAtoms)         :: deltas
 
     ! Values used in the hamiltonian
     rho_in = rho
@@ -1575,7 +1593,7 @@ contains
     real(double),   dimension(nOrb,s%nAtoms) :: rho_in
     real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
     complex(double),dimension(s%nAtoms)      :: mpd_in
-    complex(double), dimension(nOrb)         :: deltas
+    complex(double), dimension(nOrb,s%nAtoms):: deltas
 
     iflag=0
     ! Values used in the hamiltonian

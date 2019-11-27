@@ -22,10 +22,22 @@ module mod_superconductivity
    implicit none
   logical :: lsuperCond = .false.
   integer :: superCond
-  complex(double), dimension(1:9)  :: singlet_coupling
+  complex(double), dimension(:,:), allocatable  :: singlet_coupling
   integer :: flag = 0
 
 contains
+
+  subroutine allocate_super_variables(nAtoms,nOrbs)
+    use mod_mpi_pars, only: abortProgram
+    implicit none
+    integer, intent(in) :: nAtoms
+    integer, intent(in) :: nOrbs
+    integer :: AllocateStatus
+
+    allocate( singlet_coupling(nOrbs,nAtoms), stat = AllocateStatus)
+    if(AllocateStatus /= 0) call abortProgram("[allocate_super_variables] Not enough memory for: singlet_coupling")
+
+end subroutine allocate_super_variables
 
   subroutine hamiltk_sc(sys,kp,hk_sc)
     use mod_f90_kind,       only: double
@@ -73,28 +85,31 @@ contains
     ! of the hamiltonian. There are several ways to do it.
 
     ! Later we can add conditional clauses that call or not this functions
-    call bcs_s_pairing(sys, singlet_coupling(1),hk_sc)
 
-    call bcs_p_pairing(sys, 0, singlet_coupling(2), hk_sc)
-    call bcs_p_pairing(sys, 1, singlet_coupling(3), hk_sc)
-    call bcs_p_pairing(sys, 2, singlet_coupling(4), hk_sc)
+    call bcs_pairing(sys, singlet_coupling,hk_sc)
 
-    call bcs_d_pairing(sys, 0, singlet_coupling(5), hk_sc)
-    call bcs_d_pairing(sys, 1, singlet_coupling(6), hk_sc)
-    call bcs_d_pairing(sys, 2, singlet_coupling(7), hk_sc)
-    call bcs_d_pairing(sys, 3, singlet_coupling(8), hk_sc)
-    call bcs_d_pairing(sys, 4, singlet_coupling(9), hk_sc)
+    ! call bcs_p_pairing(sys, 0, singlet_coupling(2), hk_sc)
+    ! call bcs_p_pairing(sys, 1, singlet_coupling(3), hk_sc)
+    ! call bcs_p_pairing(sys, 2, singlet_coupling(4), hk_sc)
+    !
+    ! call bcs_d_pairing(sys, 0, singlet_coupling(5), hk_sc)
+    ! call bcs_d_pairing(sys, 1, singlet_coupling(6), hk_sc)
+    ! call bcs_d_pairing(sys, 2, singlet_coupling(7), hk_sc)
+    ! call bcs_d_pairing(sys, 3, singlet_coupling(8), hk_sc)
+    ! call bcs_d_pairing(sys, 4, singlet_coupling(9), hk_sc)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Block used to print the hamiltonian
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    ! !Prints to check the shape of the matrix
+    !Prints to check the shape of the matrix
     ! do i = 1, sys%nAtoms*nOrb2*2
     !   do j = 1, sys%nAtoms*nOrb2*2
     !     write(*,*) real(hk_sc(i,j)), imag(hk_sc(i,j))
     !   end do
     ! end do
+
+    stop
 
   end subroutine hamiltk_sc
 
@@ -103,37 +118,39 @@ contains
       use mod_parameters,     only: output, kpoints, nOrb2
       use mod_system,         only: System, initHamiltkStride
       use mod_constants,      only: cZero,cOne
-      use mod_parameters,     only: offset
+      use mod_parameters,     only: offset, nOrb
       implicit none
 
       type(System),   intent(in)  :: sys
 
-      complex(double), dimension(1:9)  :: couplings
-      integer :: i
+      complex(double), dimension(nOrb,sys%nAtoms)  :: couplings
+      integer :: i,mu
 
       ! sys%Types(i)%lambda(1:9)
       ! do i=sys%nAtoms
 
-
-      do i = 1,9
-          singlet_coupling(i) = sys%Types(1)%lambda(i)*cOne*couplings(i)
+      do i = 1,sys%nAtoms
+          do mu = 1,nOrb
+              singlet_coupling(mu,i) = sys%Types(i)%lambda(mu)*cOne*couplings(mu,i)
+          end do
       end do
 
       ! write(*,*) "Couplings: ", singlet_coupling
 
   end subroutine update_singlet_couplings
 
-  subroutine bcs_s_pairing(sys,delta_s, hk_sc)
+  subroutine bcs_pairing(sys,delta, hk_sc)
       use mod_f90_kind,       only: double
       use mod_parameters,     only: output, kpoints, nOrb2
       use mod_system,         only: System, initHamiltkStride
       use mod_constants,      only: cZero,cOne
-      use mod_parameters,     only: offset
+      use mod_parameters,     only: offset, nOrb, isigmamu2n
       implicit none
 
-      type(System),                              intent(in)  :: sys
-      complex(double), intent(in) :: delta_s
+      type(System),                                intent(in) :: sys
+      complex(double), dimension(nOrb,sys%nAtoms), intent(in) :: delta
       complex(double), dimension(sys%nAtoms*nOrb2*2, sys%nAtoms*nOrb2*2), intent(inout) :: hk_sc
+      integer :: dummy, i, mu
 
       ! Populate the entries for the singlet pairing of the s-orbitals
       ! Assuming that the order to populate the hamiltonian hk was
@@ -150,12 +167,21 @@ contains
       ! h^ and s* couple with delta_s*
       ! h* and s^ couple with -delta_s*
 
-      hk_sc(1,sys%nAtoms*nOrb2 + sys%nAtoms*nOrb2/2 + 1) = -delta_s
-      hk_sc(sys%nAtoms*nOrb2/2 + 1, sys%nAtoms*nOrb2 + 1 ) = delta_s
-      hk_sc(sys%nAtoms*nOrb2 + 1, sys%nAtoms*nOrb2/2 + 1) = conjg(delta_s)
-      hk_sc(sys%nAtoms*nOrb2 + sys%nAtoms*nOrb2/2 + 1,1) = -conjg(delta_s)
+      dummy = nOrb2*sys%nAtoms
 
-  end subroutine bcs_s_pairing
+      do i = 1,sys%nAtoms
+          do mu = 1,nOrb
+              hk_sc(isigmamu2n(i,1,mu),isigmamu2n(i,2,mu)+dummy) = - delta(mu,i)
+              hk_sc(isigmamu2n(i,2,mu),isigmamu2n(i,1,mu)+dummy) = delta(mu,i)
+              hk_sc(isigmamu2n(i,2,mu)+dummy,isigmamu2n(i,1,mu)) = - conjg(delta(mu,i))
+              hk_sc(isigmamu2n(i,1,mu)+dummy,isigmamu2n(i,2,mu)) = conjg(delta(mu,i))
+              write(*,*) i, " ", mu, " ", delta(mu,i)
+          end do
+      end do
+
+
+
+  end subroutine bcs_pairing
 
   subroutine bcs_p_pairing(sys, label, delta_p, hk_sc)
       use mod_f90_kind,       only: double

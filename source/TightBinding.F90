@@ -22,6 +22,7 @@ contains
     use mod_f90_kind, only: double
     use AtomTypes,    only: NeighborIndex
     use mod_system,   only: System
+    use mod_superconductivity, only: singlet_coupling
     implicit none
     type(System), intent(inout) :: s
     integer,      intent(in)    :: fermi_layer
@@ -33,6 +34,8 @@ contains
     real(double), dimension(10), parameter    :: expon = [1.0d0,3.0d0,3.0d0,5.0d0,5.0d0,5.0d0,2.0d0,3.0d0,4.0d0,4.0d0]
     nullify(current)
     allocate(bp(nOrb,nOrb))
+    allocate(singlet_coupling(nOrb,s%nAtoms))
+
 
     do i = 1, s%nTypes
       call readElementFile(s%Types(i), s%nStages, nOrb)
@@ -260,8 +263,9 @@ contains
         case default
           call log_error("readElementFile","Something wrong in the definition of 'lambda'.")
         end select
-        singlet_coupling = (/1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0/)
-        singlet_coupling(:) = material%lambda(:)*singlet_coupling(:)
+        write(*,*) material%lambda(:)
+        ! singlet_coupling = 1.0
+        ! singlet_coupling(:,:) = material%lambda(:)*singlet_coupling(:)
     end if
 
     ! Read next nearest neighbor stages

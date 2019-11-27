@@ -19,6 +19,7 @@ contains
     use mod_Atom_variables, only: allocate_Atom_variables,deallocate_Atom_variables
     use mod_BrillouinZone,  only: realBZ!,nkpt_x,nkpt_y,nkpt_z
     use EnergyIntegration,  only: pn1
+    use mod_superconducltivity
     implicit none
     integer :: i,j,mu,err
     type(System), intent(inout) :: sys
@@ -76,6 +77,7 @@ contains
         !----------- Allocating variables that depend on nAtoms ------------
         call allocate_magnet_variables(sys0(i)%nAtoms, nOrb)
         call allocLS(sys0(i)%nAtoms,nOrb)
+        call allocate_super_variables(sys0(i)%nAtoms, nOrb)
         call allocate_Atom_variables(sys0(i)%nAtoms,nOrb)
 
         !------- Initialize Stride Matrices for hamiltk and dtdksub --------
