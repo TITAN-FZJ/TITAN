@@ -429,6 +429,7 @@ contains
     allocate( sc_solu(neq),diag(neq),qtf(neq),fvec(neq),jac(neq,neq) )
 
     ! Putting read n and m existing solutions into sc_solu (first guess of the subroutine)
+    ! Initialization of the values
     do i = 1, s%nAtoms
       do mu = 5,nOrb
         sc_solu((i-1)*neq_per_atom+(mu-4)) = rho(mu,i)
@@ -438,7 +439,7 @@ contains
       sc_solu((i-1)*neq_per_atom+8) = mzd(i)
       if(lsuperCond) then
           do mu = 1, nOrb
-              sc_solu((i-1)*neq_per_atom+8+mu) = singlet_coupling(mu)
+              sc_solu((i-1)*neq_per_atom+8+mu) = singlet_coupling(mu)/singlet_coupling(1)
           end do
       end if
     end do
@@ -1425,7 +1426,7 @@ contains
     s%Ef    = x(N)
 
     call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
-    call update_singlet_couplings(singlet_coupling_in)
+    call update_singlet_couplings(s,singlet_coupling_in)
     ! write(*,*) rho_in
 
 

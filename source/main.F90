@@ -259,7 +259,7 @@ program TITAN
 
       ! write(*,*) lambda
 
-      call expectation_values_eigenstates(sys,rho,mp,mx,my,mz,singlet_coupling)
+      ! call expectation_values_eigenstates(sys,rho,mp,mx,my,mz,singlet_coupling)
 
       ! write(*,*) lambda
       ! call debugging()

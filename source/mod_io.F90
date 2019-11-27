@@ -64,7 +64,7 @@ contains
                                      skip_steps, nEner, nEner1, nQvec, nQvec1, qbasis, renorm, renormnb, bands, band_cnt, &
                                      offset, dfttype, parField, parFreq, kptotal_in, kp_in, &
                                      nOrb, nOrb2, tbmode, fermi_layer
-    use mod_superconductivity, only: lsuperCond, superCond, lambda, singlet_coupling
+    use mod_superconductivity, only: lsuperCond, superCond, singlet_coupling
     use mod_self_consistency,  only: lslatec, lontheflysc, lnojac, lGSL, lforceoccup, lrotatemag, skipsc, scfile, magbasis, mag_tol
     use mod_system,            only: System, n0sc1, n0sc2
     use mod_SOC,               only: SOC, socscale, llinearsoc, llineargfsoc
@@ -351,23 +351,23 @@ contains
     if(.not. get_parameter("superCond", lsuperCond, .false.)) &
       call log_warning("get_parameters","'superCond' missing. Not using superconductivity.")
     superCond = merge(2,1,lsuperCond)
-    if(lsupercond) then
-      if(.not. get_parameter("lambda", vector,cnt)) &
-        call log_error("get_parameters","'lambda' missing.")
-        select case(cnt)
-          case(3)
-            lambda(1)   = vector(1)
-            lambda(2:4) = vector(2)
-            lambda(5:9) = vector(3)
-          case(9)
-            lambda(:)   = vector(:)
-          case default
-            call log_error("get_parameters","Something wrong in the definition of 'lambda'.")
-          deallocate(vector)
-        end select
-        singlet_coupling = (/1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0/)
-        singlet_coupling(:) = lambda(:)*singlet_coupling(:)
-    end if
+    ! if(lsupercond) then
+    !   if(.not. get_parameter("lambda", vector,cnt)) &
+    !     call log_error("get_parameters","'lambda' missing.")
+    !     select case(cnt)
+    !       case(3)
+    !         lambda(1)   = vector(1)
+    !         lambda(2:4) = vector(2)
+    !         lambda(5:9) = vector(3)
+    !       case(9)
+    !         lambda(:)   = vector(:)
+    !       case default
+    !         call log_error("get_parameters","Something wrong in the definition of 'lambda'.")
+    !       deallocate(vector)
+    !     end select
+    !     singlet_coupling = (/1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0/)
+    !     singlet_coupling(:) = lambda(:)*singlet_coupling(:)
+    ! end if
     !------------------------------------ Integration Variables ------------------------------------
     if(.not. get_parameter("parts", parts)) &
       call log_error("get_parameters","'parts' missing.")
@@ -643,7 +643,7 @@ contains
     use ElectricField,         only: ElectricFieldMode, ElectricFieldVector, EFt, EFp, EshiftBZ
     use AdaptiveMesh,          only: minimumBZmesh
     use mod_imRK4_parameters,  only: integration_time, omega, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
-    use mod_superconductivity, only: lsupercond, lambda, singlet_coupling
+    use mod_superconductivity, only: lsupercond, singlet_coupling
     !$ use omp_lib
     implicit none
     type(System), intent(in) :: s

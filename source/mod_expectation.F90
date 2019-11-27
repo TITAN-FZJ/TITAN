@@ -3,6 +3,10 @@
 module mod_expectation
   implicit none
 
+  !!!!!!!!!!!!!
+  logical :: flag = .true.
+  !!!!!!!!!!!!!
+
 contains
   subroutine expectation_values_greenfunction(s,rho,mp,mx,my,mz)
     !! Calculates ground state (occupation and magnetization) quantities using the Green functions
@@ -133,7 +137,7 @@ contains
     use ElectricField,         only: EshiftBZ,ElectricFieldVector
     use mod_mpi_pars,          only: abortProgram
     use mod_tools,             only: itos
-    use mod_superconductivity, only: lsuperCond, superCond, hamiltk_sc, update_singlet_couplings
+    use mod_superconductivity, only: lsuperCond, superCond, hamiltk_sc, update_singlet_couplings, green_sc
 
     use mod_constants,         only: cOne,cZero
 
@@ -175,6 +179,9 @@ contains
       ! Calculating the hamiltonian for a given k-point
       if(lsuperCond) then
           call hamiltk_sc(s,kp,hk)
+          !!!!!Temporal For testing purposes
+          ! call green_sc(s,kp)
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       else
           call hamiltk(s,kp,hk)
       end if
@@ -199,6 +206,11 @@ contains
     !$omp end parallel
     mx = real(mp)
     my = aimag(mp)
+
+    ! if(flag) then
+        write(*,*) real(deltas(1))
+        ! flag = .false.
+    ! end if
 
     ! write(*,*) " "
     ! write(*,*) "deltas = ", deltas

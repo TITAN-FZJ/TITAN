@@ -14,7 +14,7 @@
 ! modified from other modules
 !
 ! IMPORTANT: For the moment some things are hard-coded, for example in the arrays
-! lambda, singlet_coupling, it is assumed that only one atom is present, a therefore
+! lambda, singlet_coupling, it is assumed that only one atom is present, and therefore
 ! just nine orbitals in total are needed. Sometimes this is made explicit, for
 ! example when calculating the expected values
 module mod_superconductivity
@@ -22,7 +22,9 @@ module mod_superconductivity
    implicit none
   logical :: lsuperCond = .false.
   integer :: superCond
-  complex(double), dimension(1:9)  :: lambda, singlet_coupling
+  complex(double), dimension(1:9)  :: singlet_coupling
+  integer :: flag = 0
+
 contains
 
   subroutine hamiltk_sc(sys,kp,hk_sc)
@@ -96,7 +98,7 @@ contains
 
   end subroutine hamiltk_sc
 
-  subroutine update_singlet_couplings(couplings)
+  subroutine update_singlet_couplings(sys,couplings)
       use mod_f90_kind,       only: double
       use mod_parameters,     only: output, kpoints, nOrb2
       use mod_system,         only: System, initHamiltkStride
@@ -104,11 +106,17 @@ contains
       use mod_parameters,     only: offset
       implicit none
 
+      type(System),   intent(in)  :: sys
+
       complex(double), dimension(1:9)  :: couplings
       integer :: i
 
+      ! sys%Types(i)%lambda(1:9)
+      ! do i=sys%nAtoms
+
+
       do i = 1,9
-          singlet_coupling(i) = lambda(i)*cOne*couplings(i)
+          singlet_coupling(i) = sys%Types(1)%lambda(i)*cOne*couplings(i)
       end do
 
       ! write(*,*) "Couplings: ", singlet_coupling
@@ -208,5 +216,75 @@ contains
       hk_sc(elecOrbs + elecOrbs/2 + indexJump+ 1,1 + indexJump) = -conjg(delta_d)
 
   end subroutine bcs_d_pairing
+
+  ! subroutine green_sc(er,ei,sys,kp,gf)
+  subroutine green_sc(sys,kp)
+    use mod_f90_kind,   only: double
+    use mod_constants,  only: cZero,cOne
+    use mod_System,     only: ia, System
+    use mod_parameters, only: nOrb2, offset
+    implicit none
+    integer     :: i,j,d
+    real(double) :: er,ei
+    real(double), intent(in) :: kp(3)
+    type(System), intent(in) :: sys
+    complex(double) :: ec
+    complex(double),dimension(sys%nAtoms*nOrb2*2.0, sys%nAtoms*nOrb2*2.0) :: gslab,hk
+    complex(double),dimension(nOrb2, nOrb2, sys%nAtoms, sys%nAtoms)  :: gf
+
+    ! real(double), intent(in) :: er,ei,kp(3)
+    ! type(System), intent(in) :: sys
+    ! complex(double) :: ec
+    ! complex(double),dimension(sys%nAtoms*nOrb2, sys%nAtoms*nOrb2) :: gslab,hk
+    ! complex(double),dimension(nOrb2, nOrb2, sys%nAtoms, sys%nAtoms), intent(out)  :: gf
+
+    ! Dimension of the matrices (they are square)
+    d = sys%nAtoms * nOrb2 * 2.0
+
+    if (flag < 1) then
+        write(*,*) "d = ", d
+        write(*,*) "sys%nAtoms = ", sys%nAtoms
+        write(*,*) "nOrb2 = ", nOrb2
+    end if
+
+    ec    = cmplx(er,ei,double)
+
+    if (flag < 1) then
+        write(*,*) "er = ", er
+        write(*,*) "ei = ", ei
+    end if
+
+    gslab = cZero
+    do i = 1, d
+      gslab(i,i) = ec
+    end do
+
+    call hamiltk_sc(sys,kp,hk)
+
+    call zaxpy(d*d,-cOne,hk,1,gslab,1)
+    ! !gslab(i,j) = gslab(i,j) - hk(i,j)
+    call invers(gslab, d)
+
+    if (flag < 1) then
+        !Prints to check the shape of the matrix
+        do i = 1, sys%nAtoms*nOrb2*2
+          do j = 1, sys%nAtoms*nOrb2*2
+            write(*,*) real(gslab(i,j)), imag(gslab(i,j))
+          end do
+        end do
+    end if
+    !
+    ! ! Put the slab Green's function [A(nAtoms*18,nAtoms*18)] in the A(i,j,mu,nu) form
+    ! !dir$ ivdep:loop
+    ! do j = 1, sys%nAtoms
+    !   !dir$ ivdep:loop
+    !   do i = 1, sys%nAtoms
+    !     gf(:,:,i,j) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
+    !   end do
+    ! end do
+
+    flag = flag + 1
+
+end subroutine green_sc
 
 end module mod_superconductivity
