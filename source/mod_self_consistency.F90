@@ -1320,6 +1320,7 @@ contains
     real(double),   dimension(nOrb,s%nAtoms) :: rho_in
     real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
     complex(double),dimension(s%nAtoms)      :: mpd_in
+    complex(double),dimension(nOrb,s%nAtoms) :: singlet_coupling_in
     complex(double), dimension(nOrb,s%nAtoms)         :: deltas
 
     iuser = 0

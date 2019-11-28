@@ -115,7 +115,6 @@ end subroutine allocate_super_variables
     !   end do
     ! end do
 
-    stop
 
   end subroutine hamiltk_sc
 
@@ -140,8 +139,6 @@ end subroutine allocate_super_variables
               singlet_coupling(mu,i) = sys%Types(i)%lambda(mu)*cOne*couplings(mu,i)
           end do
       end do
-
-      ! write(*,*) "Couplings: ", singlet_coupling
 
   end subroutine update_singlet_couplings
 
@@ -181,7 +178,7 @@ end subroutine allocate_super_variables
               hk_sc(isigmamu2n(i,2,mu),isigmamu2n(i,1,mu)+dummy) = delta(mu,i)
               hk_sc(isigmamu2n(i,2,mu)+dummy,isigmamu2n(i,1,mu)) = - conjg(delta(mu,i))
               hk_sc(isigmamu2n(i,1,mu)+dummy,isigmamu2n(i,2,mu)) = conjg(delta(mu,i))
-              write(*,*) i, " ", mu, " ", delta(mu,i)
+              ! write(*,*) i, " ", mu, " ", delta(mu,i)
           end do
       end do
 
