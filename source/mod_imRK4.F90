@@ -345,6 +345,7 @@ contains
     Eta = abs(Yn_new - Yn_hat)
     ! sum over the error components to get the scaled norm (ERR)
     ! ERR= sqrt[ 1\n Sum_i{ abs(Yn - Yn_hat)/( abs_tol + rel_tol * Yn(i) ) }^2 ]
+    ERR_kn = 0.d0
     ERR_loop: do i=1, dimH
       ERR_i = ( Eta(i)/(abs_tol+ rel_tol* abs(Yn(i)) ) )**2 
       ERR_kn = ERR_i + ERR_kn

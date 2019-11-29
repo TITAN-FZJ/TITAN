@@ -24,7 +24,7 @@ subroutine eintshe(q,e)
   !complex(double), dimension(:,:,:), allocatable      :: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl TODO:Re-Include
 
   integer :: i,j,l,mu,nu,gamma,xi,sigma,sigmap, neighbor
-  real(double) :: kp(3), ep
+  real(double) :: kp(3),kpq(3),ep
   complex(double) :: wkbzc
   !complex(double) :: expikr(n0sc1:n0sc2) TODO:Re-Include
   complex(double),dimension(:,:,:,:),allocatable    :: gf,dtdk
@@ -44,7 +44,6 @@ subroutine eintshe(q,e)
   ! Generating energy points in the real axis for third integration
   call generate_real_epoints(e)
 
-
   real_points = 0
   if(abs(e) >= 1.d-10) real_points = int(pn2,8) * int(realBZ%workload,8)
 
@@ -57,8 +56,8 @@ subroutine eintshe(q,e)
 
 
   !$omp parallel default(none) &
-  !$omp& private(AllocateStatus,ix,ix2,wkbzc,ep,kp,nep,nkp,i,j,l,mu,nu,gamma,xi,sigma,sigmap,neighbor,dtdk,gf,gfuu,gfud,gfdu,gfdd,df1iikl,pfdf1iikl,tFintiikl) & !,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,expikr,prett,preLxtt,preLytt,preLztt) &
-  !$omp& shared(llineargfsoc,s,nOrb,nOrb2,bzs,realBZ,E_k_imag_mesh,prefactor,e,y,x2,wght,p2,pn2,eta,etap,local_points,real_points,sigmai2i,sigmaimunu2i,dim,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
+  !$omp& private(AllocateStatus,ix,ix2,wkbzc,ep,kp,kpq,nep,nkp,i,j,l,mu,nu,gamma,xi,sigma,sigmap,neighbor,dtdk,gf,gfuu,gfud,gfdu,gfdd,df1iikl,pfdf1iikl,tFintiikl) & !,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,expikr,prett,preLxtt,preLytt,preLztt) &
+  !$omp& shared(llineargfsoc,s,nOrb,nOrb2,bzs,realBZ,E_k_imag_mesh,prefactor,q,e,y,x2,wght,p2,pn2,eta,etap,local_points,real_points,sigmai2i,sigmaimunu2i,dim,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
 
   allocate(df1iikl(dim,4),pfdf1iikl(dim,4), &
            gf(nOrb2,nOrb2, s%nAtoms,s%nAtoms), &
@@ -116,10 +115,11 @@ subroutine eintshe(q,e)
       ! end do
 
       ! Green function at (k+q,E_F+E+iy)
+      kpq = kp+q
       if(llineargfsoc) then
-        call greenlineargfsoc(s%Ef+e,ep+eta,s,kp,gf)
+        call greenlineargfsoc(s%Ef+e,ep+eta,s,kpq,gf)
       else
-        call green(s%Ef+e,ep+eta,s,kp,gf)
+        call green(s%Ef+e,ep+eta,s,kpq,gf)
       end if
       gfuu(:,:,:,:,1) = gf(     1:nOrb ,     1:nOrb ,:,:)
       gfud(:,:,:,:,1) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
@@ -234,10 +234,11 @@ subroutine eintshe(q,e)
       ! end do
 
         ! Green function at (k+q,E_F+E+iy)
+        kpq = kp+q
         if(llineargfsoc) then
-          call greenlineargfsoc(ep+e,eta,s,kp,gf)
+          call greenlineargfsoc(ep+e,eta,s,kpq,gf)
         else
-          call green(ep+e,eta,s,kp,gf)
+          call green(ep+e,eta,s,kpq,gf)
         end if
         gfuu(:,:,:,:,1) = gf(     1:nOrb ,     1:nOrb ,:,:)
         gfud(:,:,:,:,1) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
@@ -378,7 +379,7 @@ subroutine eintshelinearsoc(q,e)
 
 
   integer :: i,j,l,mu,nu,gamma,xi,sigma,sigmap,neighbor
-  real(double) :: kp(3), ep
+  real(double) :: kp(3), kpq(3), ep
   integer*8 :: nep, nkp
   !complex(double) :: expikr(n0sc1:n0sc2) !TODO: Re-Include
   complex(double) :: wkbzc
@@ -410,8 +411,8 @@ subroutine eintshelinearsoc(q,e)
   ! Lzttchiorbiikl  = cZero !TODO: Re-Include
 
   !$omp parallel default(none) &
-  !$omp& private(AllocateStatus,iz,wkbzc,kp,ep,nep,nkp,tFintiikl,df1iikl,pfdf1iikl,df1lsoc,dtdk,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &    !,expikr,prett,preLxtt,preLytt,preLztt
-  !$omp& shared(local_points,real_points,s,nOrb,nOrb2,bzs,E_k_imag_mesh,tchiorbiikl,prefactor,prefactorlsoc,realBZ,e,y,x2,wght,p2,eta,etap,sigmai2i,sigmaimunu2i,dim,offset)                                                                                 !,n0sc1,n0sc2,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,lxpt,lypt,lzpt,tlxp,tlyp,tlzp
+  !$omp& private(AllocateStatus,iz,wkbzc,kp,kpq,ep,nep,nkp,tFintiikl,df1iikl,pfdf1iikl,df1lsoc,dtdk,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &    !,expikr,prett,preLxtt,preLytt,preLztt
+  !$omp& shared(local_points,real_points,s,nOrb,nOrb2,bzs,E_k_imag_mesh,tchiorbiikl,prefactor,prefactorlsoc,realBZ,q,e,y,x2,wght,p2,eta,etap,sigmai2i,sigmaimunu2i,dim,offset)                                                                                 !,n0sc1,n0sc2,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,lxpt,lypt,lzpt,tlxp,tlyp,tlzp
 
   allocate( df1iikl(dim,4),pfdf1iikl(dim,4),df1lsoc(dim,4), &
             dtdk(nOrb,nOrb,s%nAtoms,s%nAtoms), &
@@ -472,7 +473,8 @@ subroutine eintshelinearsoc(q,e)
       ! end do
 
         ! Green function at (k+q,E_F+E+iy)
-        call greenlinearsoc(s%Ef+e,ep+eta,s,kp,gf,gvg)
+        kpq = kp+q
+        call greenlinearsoc(s%Ef+e,ep+eta,s,kpq,gf,gvg)
         gfuu (:,:,:,:,1) = gf (     1:nOrb ,     1:nOrb ,:,:)
         gfud (:,:,:,:,1) = gf (     1:nOrb ,nOrb+1:nOrb2,:,:)
         gfdu (:,:,:,:,1) = gf (nOrb+1:nOrb2,     1:nOrb ,:,:)
@@ -616,7 +618,8 @@ subroutine eintshelinearsoc(q,e)
       ! end do
 
       ! Green function at (k+q,E_F+E+iy)
-      call greenlinearsoc(ep+e,eta,s,kp,gf,gvg)
+      kpq = kp+q
+      call greenlinearsoc(ep+e,eta,s,kpq,gf,gvg)
       gfuu (:,:,:,:,1) = gf (     1:nOrb ,     1:nOrb ,:,:)
       gfud (:,:,:,:,1) = gf (     1:nOrb ,nOrb+1:nOrb2,:,:)
       gfdu (:,:,:,:,1) = gf (nOrb+1:nOrb2,     1:nOrb ,:,:)
