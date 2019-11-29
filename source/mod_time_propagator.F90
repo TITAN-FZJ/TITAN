@@ -178,7 +178,6 @@ contains
             ! Calculation of the error and the new step size.
             ! Note: use Yn_e, Yn_new_e, Yn_hat_e.
             call calculate_step_error(Yn_e,Yn_new_e,Yn_hat_e,ERR_kn)
-write(*,*) iz,kp,ERR_kn
 
             ERR = ERR + ERR_kn * weight
 
@@ -190,8 +189,7 @@ write(*,*) iz,kp,ERR_kn
         end do kpoints_loop
         !$omp end do
         !$omp end parallel
-write(*,*) 'ERR=',ERR
-stop
+
         ERR = sqrt(ERR)
         ! Find the new step size h_new
         ! h_new = safe_factor * h_used / (ERR)^(1/p+1) where p = 2*s, safe_factor is some safety factor 
