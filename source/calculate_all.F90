@@ -2,9 +2,9 @@
 ! currents, disturbances, torques, effective fields and susceptibilities
 subroutine calculate_all()
   use mod_f90_kind,   only: double
-  use mod_constants,  only: cZero, cOne, cI, levi_civita
-  use mod_parameters, only: lnodiag, renorm, U, offset, output, laddresults, skip_steps, count, lhfresponses, sigmaimunu2i, emin, emax, deltae, nQvec1, kpoints, dim, sigmai2i, dimspinAtoms
-  use mod_magnet,     only: lfield, hhw, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, total_hw_npt1, lrot
+  use mod_constants,  only: cZero, cOne, cI !, levi_civita
+  use mod_parameters, only: lnodiag, U, offset, output, laddresults, skip_steps, count, lhfresponses, sigmaimunu2i, emin, deltae, nQvec1, kpoints, dim, sigmai2i, dimspinAtoms
+  use mod_magnet,     only: lfield, hhw, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, lrot
   use mod_SOC,        only: llinearsoc
   use mod_System,     only: s => sys
   use mod_BrillouinZone, only: realBZ
@@ -39,8 +39,8 @@ subroutine calculate_all()
   implicit none
   character(len=50) :: time
   integer           :: mcount,qcount
-  integer           :: i,j,iw,sigma,sigmap,mu,nu,neighbor
-  real(double)      :: e,q(3),Icabs
+  integer           :: i,j,sigma,sigmap,mu,nu!,neighbor
+  real(double)      :: e,q(3)!,Icabs
 
   call allocate_prefactors()
   call allocate_susceptibilities()

@@ -75,7 +75,9 @@ contains
     use mod_tools,            only: itos, rtos, vec_norm
     use adaptiveMesh,         only: minimumBZmesh
     use mod_mpi_pars
-    use mod_imRK4_parameters, only: integration_time, omega, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, field_direction_m, field_direction_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
+    use mod_imRK4_parameters, only: integration_time, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, &
+                                    field_direction_m, field_direction_e, tau_m, delay_e, delay_m, lelectric, &
+                                    lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, safe_factor
     implicit none
     character(len=*), intent(in)    :: filename
     type(System),     intent(inout) :: s
@@ -497,8 +499,8 @@ contains
         call log_warning("get_parameters", "'abs_tol' not given. Using default value: abs_tol = 0.001d0")
       if(.not. get_parameter("rel_tol", rel_tol, 1.d-3)) &
         call log_warning("get_parameters", "'rel_tol' not given. Using default value: rel_tol = 0.001d0")
-      if(.not. get_parameter("Delta", Delta, 0.9d0)) &
-        call log_warning("get_parameters", "'Delta' not given. Using default value: Delta = 0.9d0")
+      if(.not. get_parameter("safe_factor", safe_factor, 0.9d0)) &
+        call log_warning("get_parameters", "'safe_factor' not given. Using default value: safe_factor = 0.9d0")
 
       ! Reading electric field variables
       if(.not. get_parameter("electric", lelectric,.false.)) &
@@ -620,7 +622,9 @@ contains
     use EnergyIntegration,    only: parts, parts3, n1gl, n3gl
     use ElectricField,        only: ElectricFieldMode, ElectricFieldVector, EFt, EFp, EshiftBZ
     use AdaptiveMesh,         only: minimumBZmesh
-    use mod_imRK4_parameters, only: integration_time, omega, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
+    use mod_imRK4_parameters, only: integration_time, sc_tol, hE_0, hw1_m, hw_e, hw_m, tau_e, &
+                                    tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, &
+                                    field_direction_e, field_direction_m, abs_tol, rel_tol, safe_factor
     !$ use omp_lib
     implicit none
     type(System), intent(in) :: s
@@ -741,12 +745,34 @@ contains
        !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps, each calculating ',i0,' points')") total_hw_npt1*nEner1,MPIsteps*MPIsteps_hw,MPIpts_hw*MPIpts
     case (11)
       write(output%unit_loop, fmt="('Time propagation:')" )
-      ! integration_time, omega, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
-      !write(output%unit_loop,"(1x,'hw1 =',es9.2)") hw1
-      !write(output%unit_loop,"(1x,'hw  =',es9.2)") hw
-      !write(output%unit_loop,"(1x,'integration_time   =',es9.2)") integration_time
-      write(output%unit_loop,"(1x,'step   =',es9.2)") step
-      write(output%unit_loop,"(1x,'sc_tol   =',es9.2)") sc_tol
+
+      write(output%unit_loop,"(1x,'integration_time =',es9.2)") integration_time
+      write(output%unit_loop,"(1x,'     sc_tol =',es9.2)") sc_tol
+      write(output%unit_loop,"(1x,'    abs_tol =',es9.2)") abs_tol
+      write(output%unit_loop,"(1x,'    rel_tol =',es9.2)") rel_tol
+      write(output%unit_loop,"(1x,'safe_factor =',es9.2)") safe_factor
+      if(lelectric) then
+        write(output%unit_loop, fmt="('Electric field: ON')" )
+        write(output%unit_loop,"(1x,'       hE_0 =',es9.2)") hE_0
+        write(output%unit_loop,"(1x,'       hw_e =',es9.2)") hw_e
+        if(lpulse_e) then 
+          write(output%unit_loop, fmt="('Electric pulse:')" )
+          write(output%unit_loop,"('Polarization = (',f6.3,',',f6.3,',',f6.3,')')") (field_direction_e(i), i=1,3)
+          write(output%unit_loop,"('       tau_e =',es9.2)") tau_e
+          write(output%unit_loop,"('     delay_e =',es9.2)") delay_e
+        end if
+      end if
+      if(lmagnetic) then
+        write(output%unit_loop, fmt="('Magnetic field: ON')" )
+        write(output%unit_loop,"(1x,'      hw1_m =',es9.2)") hw1_m
+        write(output%unit_loop,"(1x,'       hw_m =',es9.2)") hw_m
+        if(lpulse_m) then 
+          write(output%unit_loop, fmt="('Magnetic pulse:')" )
+          write(output%unit_loop,"('Polarization = (',f6.3,',',f6.3,',',f6.3,')')") (field_direction_m(i), i=1,3)
+          write(output%unit_loop,"('       tau_m =',es9.2)") tau_m
+          write(output%unit_loop,"('     delay_m =',es9.2)") delay_m
+        end if
+      end if
     end select write_itype
     write(output%unit_loop,"('|---------------------------------------------------------------------------|')")
   end subroutine iowrite

@@ -2,7 +2,7 @@
 ! (in particular, the dc-limit) response functions
 subroutine calculate_dc_limit()
   use mod_mpi_pars
-  use mod_constants,         only: cZero, cOne, cI, levi_civita, tpi
+  use mod_constants,         only: cZero, cOne, cI, tpi !, levi_civita
   use mod_parameters,        only: sigmaimunu2i, sigmai2i, dimspinAtoms, U, offset, lnodiag, output, count, emin, deltae, nQvec1, kpoints, laddresults, lhfresponses, dim, skip_steps
   use mod_magnet,            only: lfield, dcfield_dependence, dc_count, dcfield, hw_count, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, hhw, lrot
   use mod_SOC,               only: llinearsoc
@@ -34,8 +34,8 @@ subroutine calculate_dc_limit()
   implicit none
   character(len=50) :: time
   integer           :: mcount,qcount
-  integer           :: i,j,iw,sigma,sigmap,mu,nu,neighbor,hw_count_temp,count_temp,mpitag2
-  real(double)      :: e,q(3),Icabs,mvec_spherical_temp(3,s%nAtoms)
+  integer           :: i,j,sigma,sigmap,mu,nu,hw_count_temp,count_temp!,neighbor 
+  real(double)      :: e,q(3),mvec_spherical_temp(3,s%nAtoms)!,Icabs
 
   dc_count = dc_count + 1
 
