@@ -208,7 +208,9 @@ contains
     my = aimag(mp)
 
     ! if(flag) then
-        write(*,*) real(deltas(1,1))
+    do i =1,s%nAtoms
+        write(*,*) real(deltas(1,i))
+    end do
         ! flag = .false.
     ! end if
 
