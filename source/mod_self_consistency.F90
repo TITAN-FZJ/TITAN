@@ -510,7 +510,7 @@ contains
         factor = 0.1d0
         call c05qcf(sc_equations,neq,sc_solu,fvec,mag_tol,maxfev,ml,mr,epsfcn,mode,diag,factor,0,nfev,jac,wa,qtf,iuser,ruser,ifail)
         do i = 1, s%nAtoms
-            write(*,*) real(singlet_coupling(1,i))
+            write(*,*) real(singlet_coupling(1,igit stat))
         end do
         ! write(*,*) BZ%nkpt, eta, real(singlet_coupling(1,1)), aimag(singlet_coupling(1,1))
       else
@@ -664,129 +664,6 @@ contains
     call calcJacobian(selfconjac, N)
 
   end subroutine lsqfun
-
-  subroutine calcMagnetization()
-    !! Calculates occupation density and magnetization.
-    use mod_f90_kind,      only: double
-    use mod_constants,     only: cI,pi,cZero
-    use mod_SOC,           only: llinearsoc,llineargfsoc
-    use EnergyIntegration, only: y,wght
-    use mod_system,        only: s => sys
-    use mod_magnet,        only: mx,my,mz,mp,rho,mxd,myd,mzd,mpd,rhod
-    use adaptiveMesh,      only: bzs,E_k_imag_mesh,activeComm,local_points
-    use mod_parameters,    only: nOrb, nOrb2, eta
-    use ElectricField,     only: EshiftBZ,ElectricFieldVector
-    use mod_mpi_pars
-    implicit none
-    integer  :: i,j, AllocateStatus
-    real(double),    dimension(3)                    :: kp
-    complex(double), dimension(:,:),     allocatable :: gdiagud,gdiagdu
-    real(double),    dimension(:,:),     allocatable :: imguu,imgdd
-    complex(double), dimension(:,:,:,:), allocatable :: gf
-    !--------------------- begin MPI vars --------------------
-    integer*8 :: ix
-    integer :: ncount
-    integer :: mu,mup
-    real(double) :: weight, ep
-    ncount = s%nAtoms * nOrb
-
-    allocate(imguu(nOrb,s%nAtoms),imgdd(nOrb,s%nAtoms), stat = AllocateStatus)
-    if(AllocateStatus/=0) &
-    call abortProgram("[calcMagnetization] Not enough memory for: imguu,imgdd")
-
-    allocate(gdiagud(s%nAtoms,nOrb), gdiagdu(s%nAtoms,nOrb), stat = AllocateStatus)
-    if(AllocateStatus /= 0) &
-    call abortProgram("[calcMagnetization] Not enough memory for: gdiagdu, gdiagud")
-
-    imguu   = 0.d0
-    imgdd   = 0.d0
-    gdiagud = cZero
-    gdiagdu = cZero
-
-    !$omp parallel default(none) &
-    !$omp& private(ix,ep,kp,weight,i,mu,mup,gf,AllocateStatus) &
-    !$omp& shared(llineargfsoc,llinearsoc,local_points,eta,wght,s,nOrb,nOrb2,bzs,E_k_imag_mesh,y,gdiagud,gdiagdu,imguu,imgdd,EshiftBZ,ElectricFieldVector)
-    allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat=AllocateStatus)
-    if(AllocateStatus /= 0) &
-    call AbortProgram("[calcMagnetization] Not enough memory for: gf")
-    gf = cZero
-
-    if(llineargfsoc .or. llinearsoc) then
-      !$omp do schedule(static) reduction(+:imguu) reduction(+:imgdd) reduction(+:gdiagud) reduction(+:gdiagdu)
-      do ix = 1, local_points
-         ep = y(E_k_imag_mesh(1,ix))
-         kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix)) + EshiftBZ*ElectricFieldVector
-         weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
-         call greenlineargfsoc(s%Ef,ep+eta,s,kp,gf)
-         do i=1,s%nAtoms
-           do mu=1,nOrb
-             mup = mu+nOrb
-             gdiagud(i,mu) = gdiagud(i,mu) + gf(mu,mup,i,i) * weight
-             gdiagdu(i,mu) = gdiagdu(i,mu) + gf(mup,mu,i,i) * weight
-
-             imguu(mu,i) = imguu(mu,i) + real(gf(mu ,mu ,i,i)) * weight
-             imgdd(mu,i) = imgdd(mu,i) + real(gf(mup,mup,i,i)) * weight
-           end do
-         end do
-      end do
-      !$omp end do
-    else
-      !$omp do schedule(static) reduction(+:imguu) reduction(+:imgdd) reduction(+:gdiagud) reduction(+:gdiagdu)
-      do ix = 1, local_points
-         ep = y(E_k_imag_mesh(1,ix))
-         kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix)) + EshiftBZ*ElectricFieldVector
-         weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
-         call green(s%Ef,ep+eta,s,kp,gf)
-         do i=1,s%nAtoms
-           do mu=1,nOrb
-             mup = mu+nOrb
-             gdiagud(i,mu) = gdiagud(i,mu) + gf(mu,mup,i,i) * weight
-             gdiagdu(i,mu) = gdiagdu(i,mu) + gf(mup,mu,i,i) * weight
-
-             imguu(mu,i) = imguu(mu,i) + real(gf(mu ,mu ,i,i)) * weight
-             imgdd(mu,i) = imgdd(mu,i) + real(gf(mup,mup,i,i)) * weight
-           end do
-         end do
-      end do
-      !$omp end do
-    end if
-
-    deallocate(gf)
-    !$omp end parallel
-    imguu = imguu / pi
-    imgdd = imgdd / pi
-
-    do j=1,s%nAtoms
-      mp(:,j)= gdiagdu(j,:) + conjg(gdiagud(j,:))
-      mpd(j) = sum(gdiagdu(j,5:9)) + sum(conjg(gdiagud(j,5:9)))
-    end do
-
-    call MPI_Allreduce(MPI_IN_PLACE, imguu, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, imgdd, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, mp,    ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, mpd, s%nAtoms, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
-
-    mp      = mp/pi
-    mpd     = mpd/pi
-    mx      = real(mp)
-    my      = aimag(mp)
-    mxd     = real(mpd)
-    myd     = aimag(mpd)
-
-    do i = 1, s%nAtoms
-      do mu=1,nOrb
-        imguu(mu,i) = 0.5d0 + imguu(mu,i)
-        imgdd(mu,i) = 0.5d0 + imgdd(mu,i)
-        rho(mu,i) = imguu(mu,i) + imgdd(mu,i)
-        mz (mu,i) = imguu(mu,i) - imgdd(mu,i)
-      end do
-      rhod(i)   = sum(imguu(5:9,i)) + sum(imgdd(5:9,i))
-      mzd(i)    = sum(imguu(5:9,i)) - sum(imgdd(5:9,i))
-    end do
-
-    deallocate(imguu,imgdd)
-    deallocate(gdiagdu, gdiagud)
-  end subroutine calcMagnetization
 
   subroutine calcJacobian(jacobian, N)
     !! Calculated the Jacobian of the spin magnetization

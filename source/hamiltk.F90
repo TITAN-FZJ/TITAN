@@ -9,7 +9,7 @@ subroutine hamiltk(sys,kp,hk)
   use mod_SOC,        only: ls
   use mod_Umatrix,    only: hee
   implicit none
-  integer :: i, j, k ,ii,jj
+  integer :: i, j, k
   real(double), intent(in) :: kp(3)
   type(System), intent(in) :: sys
   complex(double), dimension(sys%nAtoms*nOrb2, sys%nAtoms*nOrb2), intent(out) :: hk

@@ -11,7 +11,7 @@ subroutine band_structure(s)
 
   implicit none
   type(System), intent(in) :: s
-  integer :: i, j, info, count, f_unit=666
+  integer :: i, info, count, f_unit=666
   integer :: lwork,dimbs
   real(double), dimension(:), allocatable :: rwork,eval
   complex(double), allocatable :: work(:),hk(:,:)
@@ -24,7 +24,7 @@ subroutine band_structure(s)
 
   write(bsfile,"('./results/',a1,'SOC/',a,'/BS/bandstructure_kdir=',a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(adjustl(kdirection)),trim(output%info),trim(output%BField),trim(output%SOC)
   open (unit=f_unit, file=bsfile, status='replace')
-  call write_header(f_unit,"# dble((count-1.d0)*deltak), (eval(j),j=1,dimbs)",s%Ef)
+  call write_header(f_unit,"# dble((count-1.d0)*deltak), (eval(i),i=1,dimbs)",s%Ef)
 
   do count=1,nQvec1
     write(output%unit_loop,"('[band_structure] ',i0,' of ',i0,' points',', i = ',es10.3)") count,nQvec1,dble((count-1.d0)/nQvec)
@@ -59,7 +59,7 @@ subroutine band_structure(s)
       stop
     end if
 
-    write(unit=f_unit,fmt='(1000(es16.8))') dble((count-1.d0)*deltak), (eval(j),j=1,dimbs)
+    write(unit=f_unit,fmt='(1000(es16.8))') dble((count-1.d0)*deltak), (eval(i),i=1,dimbs)
   end do
 
   close(f_unit)

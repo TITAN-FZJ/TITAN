@@ -12,16 +12,14 @@ module mod_imRK4_parameters
   !! Time delay in electric and magnetic fields pulses
   logical      :: lelectric, lmagnetic, lpulse_e, lpulse_m
   !! Logical variables for choosing between (oscilatory or laser fields)
-  real(double) :: omega
-  !! Mix of frequencies
   real(double) :: integration_time
   !! Real integration time 
   real(double) :: step
   !! Step size
   real(double) :: sc_tol
   !! Time propagation self consistency tolerence 
-  real(double) :: abs_tol, rel_tol, Delta
-  !! Step size control error(ERR) tolerence
+  real(double) :: abs_tol, rel_tol, safe_factor
+  !! Step size control error(ERR) tolerance
   integer      :: time
   !! Integer integration time
   integer      :: dimH2

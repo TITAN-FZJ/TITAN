@@ -1,4 +1,4 @@
-import numpy as np 
+import numpy as np
 import matplotlib.pyplot as plt
 import sys
 import matplotlib as mpl                      # Plotting library
@@ -46,8 +46,13 @@ def read_header(file):
     # print npoints
     name = np.empty(npoints, dtype=str)
     point = np.empty(npoints, dtype=float)
+    name_out = []
     for i in range(npoints):
       name[i], point[i] = f.readline().split()[1:]
+      if name[i] == "G":
+        name_out.append(r"$\Gamma$")
+      else:
+        name_out.append(name[i])
       # print name[i], point[i]
 
     Ef_line = f.readline().split()
@@ -55,7 +60,7 @@ def read_header(file):
     if "Ef" in Ef_line[1]:
       fermi = float(Ef_line[2])
       # print fermi
-  return npoints, name, point, fermi
+  return npoints, name_out, point, fermi
 
 ################################################################################
 # Get the data from the file and save it into a matrix
@@ -153,6 +158,7 @@ if __name__ == "__main__":
     grid[i].set_title(titles[i])
     if i == 0:
       grid[i].set_ylabel("Energy [meV]")
+    grid[i].set_xlabel("Wave vector")
 
     grid[i].set_xlim([point[0],point[npoints-1]])
     # grid[i].set_ylim(y.min(),y.max())

@@ -122,7 +122,7 @@ if(PLATFORM MATCHES jureca)
                                               -mkl
                                               -xHost)
 elseif(PLATFORM MATCHES osx)
-  target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe)
+  target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                               -D_OSX
                                               -fpp
@@ -154,10 +154,11 @@ elseif(PLATFORM MATCHES RWTH)
                                               -mkl -$ENV{FLAGS_MATH_INCLUDE}
                                               -xHost)
 elseif(PLATFORM MATCHES iff)
-  target_link_libraries(${TITAN_EXE} -mkl -L/usr/local/nag/lib -lnag)
+  target_link_libraries(${TITAN_EXE} -mkl -L/usr/local/nag/lib -lnag -qopenmp)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                               -DVERSION="${GIT_VERSION}"
                                               -fpp
+                                              -qopenmp
                                               -static-intel
                                               -mkl
                                               -xHost)

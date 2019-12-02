@@ -5,7 +5,7 @@ contains
   subroutine time_propagator(s)
     use mod_f90_kind,         only: double
     use mod_constants,        only: cZero, cI
-    use mod_imRK4_parameters, only: dimH2, step, integration_time, ERR, Delta, lelectric, hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
+    use mod_imRK4_parameters, only: dimH2, step, integration_time, ERR, safe_factor, lelectric, hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
     use mod_RK_matrices,      only: A, id, id2, M1, build_identity
     use mod_imRK4,            only: iterate_Zki, calculate_step_error, magnetic_pulse_B, evec_potent, hext_t
     use mod_BrillouinZone,    only: realBZ
@@ -145,7 +145,7 @@ contains
             ! Calculation of the error and the new step size.
             ! Note: use Yn_e, Yn_new_e, Yn_hat_e.
             call calculate_step_error(Yn_e,Yn_new_e,Yn_hat_e,ERR_kn)
-                                      
+
             ERR = ERR + ERR_kn * weight
 
             ! Storing temporary propagated vector before checking if it's Accepted.
@@ -159,17 +159,17 @@ contains
 
         ERR = sqrt(ERR)
         ! Find the new step size h_new
-        ! h_new = delta * h_used / (ERR)^(1/p+1) where p = 2*s, delta is some saftey factor 
-        ! delta = 0.9 * (2*K_max + 1)/ (2*K_max + NEWT) where NEWT is the number of newton iterations
+        ! h_new = safe_factor * h_used / (ERR)^(1/p+1) where p = 2*s, safe_factor is some safety factor 
+        ! safe_factor = 0.9 * (2*K_max + 1)/ (2*K_max + NEWT) where NEWT is the number of newton iterations
         p = 2.0*size(A,1) 
-        ! h_new = delta * step * (ERR)**(-1.0/(2.0*s)) !! simpler formula
+        ! h_new = safe_factor * step * (ERR)**(-1.0/(2.0*s)) !! simpler formula
         if (counter /= 0) then
-          h_new = delta * step * (ERR)**(-1.0/p) * (step/h_old) * (ERR_old/ERR)**(1.0/p)!! Gustafsson (1994) formula          
+          h_new = safe_factor * step * (ERR)**(-1.0/p) * (step/h_old) * (ERR_old/ERR)**(1.0/p)!! Gustafsson (1994) formula          
         else 
-          h_new = delta * step * (ERR)**(-1.0/p)
+          h_new = safe_factor * step * (ERR)**(-1.0/p)
         end if 
         ! Tests if the step size is good:
-        ! the condition (h_new < delta* step) is equivalent to the condition (ERR > 1)
+        ! the condition (h_new < safe_factor * step) is equivalent to the condition (ERR > 1)
         ! if ( h_new < 0.9 * step) then
            ! do while ( h_new < step) 
         ! save ERR from iterate_Zki to ERR_old
