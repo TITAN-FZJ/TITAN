@@ -510,7 +510,7 @@ contains
         factor = 0.1d0
         call c05qcf(sc_equations,neq,sc_solu,fvec,mag_tol,maxfev,ml,mr,epsfcn,mode,diag,factor,0,nfev,jac,wa,qtf,iuser,ruser,ifail)
         do i = 1, s%nAtoms
-            write(*,*) real(singlet_coupling(1,igit stat))
+            write(*,*) real(singlet_coupling(1,i))
         end do
         ! write(*,*) BZ%nkpt, eta, real(singlet_coupling(1,1)), aimag(singlet_coupling(1,1))
       else
