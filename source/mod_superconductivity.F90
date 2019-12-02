@@ -123,7 +123,7 @@ end subroutine allocate_super_variables
       use mod_parameters,     only: output, kpoints, nOrb2
       use mod_system,         only: System, initHamiltkStride
       use mod_constants,      only: cZero,cOne
-      use mod_parameters,     only: offset, nOrb
+      use mod_parameters,     only: nOrb
       implicit none
 
       type(System),   intent(in)  :: sys
@@ -131,12 +131,9 @@ end subroutine allocate_super_variables
       complex(double), dimension(nOrb,sys%nAtoms)  :: couplings
       integer :: i,mu
 
-      ! sys%Types(i)%lambda(1:9)
-      ! do i=sys%nAtoms
-
       do i = 1,sys%nAtoms
           do mu = 1,nOrb
-              singlet_coupling(mu,i) = sys%Types(i)%lambda(mu)*cOne*couplings(mu,i)
+              singlet_coupling(mu,i) = sys%Types(sys%Basis(i)%Material)%lambda(mu)*cOne*couplings(mu,i)
           end do
       end do
 

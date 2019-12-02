@@ -142,7 +142,7 @@ contains
         mz(5:9,i) = 0.2d0*mzd(i)
         rhod(i)   = rhod0(i) !s%Types(s%Basis(i)%Material)%OccupationD
         do mu = 1,nOrb
-            singlet_coupling(mu,i) = s%Types(i)%lambda(mu)
+            singlet_coupling(mu,i) = s%Types(s%Basis(i)%Material)%lambda(mu)
         end do
       end do
       ! singlet_coupling = 1.0
