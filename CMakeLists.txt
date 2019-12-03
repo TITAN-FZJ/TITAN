@@ -158,7 +158,6 @@ elseif(PLATFORM MATCHES iff)
                                               -DVERSION="${GIT_VERSION}"
                                               -fpp
                                               -qopenmp
-                                              -static-intel
                                               -mkl
                                               -xHost)
 elseif(PLATFORM MATCHES hh)
