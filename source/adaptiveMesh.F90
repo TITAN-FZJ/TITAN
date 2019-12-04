@@ -14,6 +14,8 @@ module adaptiveMesh
 
 contains
 
+  !! Get the number of points in the Brillouin Zone
+  !! for all the energies in the imaginary axis
   subroutine generateAdaptiveMeshes(sys,pn1)
     use mod_f90_kind,      only: double
     use mod_parameters,    only: total_nkpt => kptotal_in
@@ -55,6 +57,8 @@ contains
     end do
   end subroutine generateAdaptiveMeshes
 
+  !! Generate the distributed combined points {e,kx,ky,kz}
+  !! (locally for a given MPI process)
   subroutine genLocalEKMesh(sys,rank,size,comm)
     use mod_parameters,    only: total_nkpt => kptotal_in
     use EnergyIntegration, only: pn1, y
@@ -143,6 +147,9 @@ contains
     deallocate(bzs, E_k_imag_mesh)
   end subroutine freeLocalEKMesh
 
+  !! Calculate the number of k-points for a given energy
+  !! by using a power decay of the ratio of the imaginary parts
+  !! to the dimension of the system (4-bit integer version)
   integer function get_nkpt_int4(e, e0, nkpt_total, sysdim)
     use mod_f90_kind, only: double
     implicit none
@@ -162,6 +169,9 @@ contains
     if(get_nkpt_int4 < minimumBZmesh ) get_nkpt_int4 = minimumBZmesh
   end function get_nkpt_int4
 
+  !! Calculate the number of k-points for a given energy
+  !! by using a power decay of the ratio of the imaginary parts
+  !! to the dimension of the system (8-bit integer version)
   integer*8 function get_nkpt_int8(e, e0, nkpt_total, sysdim)
     use mod_f90_kind, only: double
     implicit none
