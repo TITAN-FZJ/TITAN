@@ -108,7 +108,7 @@ end subroutine allocate_super_variables
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     !Prints to check the shape of the matrix
-    ! if(flag==60000) then
+    ! if(flag==23157) then
     !     do i = 1, sys%nAtoms*nOrb2*2
     !       do j = 1, sys%nAtoms*nOrb2*2
     !         write(*,*) real(hk_sc(i,j)), imag(hk_sc(i,j))
@@ -116,6 +116,19 @@ end subroutine allocate_super_variables
     !     end do
     !     ! write(*,*) sys%nAtoms,nOrb2,sys%nAtoms*nOrb2*2
     ! end if
+
+    ! write(*,*) flag
+
+    ! if(flag==23157) then
+    !     write(*,*) "First section"
+    !     write(*,*) "couplings ", singlet_coupling(1,1), singlet_coupling(1,2)
+    ! end if
+
+    ! if(flag==23157) & stop
+
+    ! if(flag==46502) & stop
+
+    ! flag = flag + 1
 
 
   end subroutine hamiltk_sc

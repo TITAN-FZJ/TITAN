@@ -1301,16 +1301,16 @@ contains
     rho_in = rho
     do i = 1, s%nAtoms
       do mu = 5,nOrb
-        rho_in(mu,i) = x((i-1)*8+(mu-4))
+        rho_in(mu,i) = x((i-1)*neq_per_atom+(mu-4))
       end do
       rhod_in(i)= sum(rho_in(5:9,i))
-      mxd_in(i) = x((i-1)*8+6)
-      myd_in(i) = x((i-1)*8+7)
-      mzd_in(i) = x((i-1)*8+8)
+      mxd_in(i) = x((i-1)*neq_per_atom+6)
+      myd_in(i) = x((i-1)*neq_per_atom+7)
+      mzd_in(i) = x((i-1)*neq_per_atom+8)
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i))
       if(lsuperCond) then
           do mu = 1, nOrb
-              singlet_coupling_in(mu,i) = x((i-1)*(8+nOrb)+8+mu)
+              singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
           end do
       end if
     end do
@@ -1335,14 +1335,14 @@ contains
     end do
     do i = 1, s%nAtoms
       do mu = 5,nOrb
-        fvec((i-1)*8+(mu-4)) = rho(mu,i) - rho_in(mu,i)
+        fvec((i-1)*neq_per_atom+(mu-4)) = rho(mu,i) - rho_in(mu,i)
       end do
-      fvec((i-1)*8+6) =  mxd(i) -  mxd_in(i)
-      fvec((i-1)*8+7) =  myd(i) -  myd_in(i)
-      fvec((i-1)*8+8) =  mzd(i) -  mzd_in(i)
+      fvec((i-1)*neq_per_atom+6) =  mxd(i) -  mxd_in(i)
+      fvec((i-1)*neq_per_atom+7) =  myd(i) -  myd_in(i)
+      fvec((i-1)*neq_per_atom+8) =  mzd(i) -  mzd_in(i)
       if(lsuperCond) then
           do mu = 1, nOrb
-              fvec((i-1)*8+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
+              fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
           end do
       end if
     end do
@@ -1397,7 +1397,7 @@ contains
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i))
       if(lsuperCond) then
           do mu = 1, nOrb
-              singlet_coupling_in(mu,i) = x((i-1)*8+8+mu)
+              singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
           end do
       end if
     end do
@@ -1490,7 +1490,7 @@ contains
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i))
       if(lsuperCond) then
           do mu = 1, nOrb
-              singlet_coupling_in(mu,i) = x((i-1)*8+8+mu)
+              singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
           end do
       end if
     end do
@@ -1571,7 +1571,7 @@ contains
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i))
       if(lsuperCond) then
           do mu = 1, nOrb
-              singlet_coupling_in(mu,i) = x((i-1)*8+8+mu)
+              singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
           end do
       end if
     end do

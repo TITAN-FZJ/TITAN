@@ -234,7 +234,7 @@ contains
     use mod_parameters,        only: nOrb, eta, isigmamu2n
     use mod_distributions,     only: fd_dist
     use mod_system,            only: System
-    use mod_superconductivity, only: lsuperCond, superCond
+    use mod_superconductivity, only: lsuperCond, superCond, flag
     implicit none
     integer,                                   intent(in)  :: dim
     integer,                                   intent(in)  :: dimE
@@ -299,10 +299,14 @@ contains
 
       do i = 1, s%nAtoms
           do mu = 1, nOrb
-              expec_singlet(mu,i) = expec_singlet(mu,i) + conjg(evec(isigmamu2n(i,1,mu)+nOrb*2))*evec(isigmamu2n(i,2,mu))*tanh(eval(n)*1.d0/(pi*eta)/2)
+              expec_singlet(mu,i) = expec_singlet(mu,i) + conjg(evec(isigmamu2n(i,1,mu)+nOrb*2*s%nAtoms))*evec(isigmamu2n(i,2,mu))*tanh(eval(n)*1.d0/(pi*eta)/2)
+              ! if(flag==46502) & write(*,*) "indices eigenvector ", isigmamu2n(i,1,mu)+nOrb*2*s%nAtoms, isigmamu2n(i,2,mu),  expec_singlet(mu,i)
           end do
+          ! if(flag==46502) & write(*,*) "Another atom"
       end do
     end do
+
+    ! stop
 
   end subroutine expec_val
 
