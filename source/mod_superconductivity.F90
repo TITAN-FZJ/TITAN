@@ -47,16 +47,15 @@ end subroutine allocate_super_variables
 
   subroutine hamiltk_sc(sys,kp,hk_sc)
     use mod_f90_kind,       only: double
-    use mod_parameters,     only: output, kpoints, nOrb2
+    use mod_parameters,     only: nOrb2
     use mod_system,         only: System, initHamiltkStride
     use mod_constants,      only: cZero,cOne
-    use mod_parameters,     only: offset
     implicit none
     type(System),   intent(in)  :: sys
     real(double), intent(in)  :: kp(3)
     complex(double),dimension(sys%nAtoms*nOrb2, sys%nAtoms*nOrb2) :: hk
     complex(double),dimension(sys%nAtoms*nOrb2*2, sys%nAtoms*nOrb2*2), intent(out) :: hk_sc
-    integer :: j, i
+    integer :: i, j, mu
 
     ! Initialize hk, this will be used to calculate the superconducting
     ! counterpart, namely hk_sc
@@ -109,18 +108,21 @@ end subroutine allocate_super_variables
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     !Prints to check the shape of the matrix
-    ! do i = 1, sys%nAtoms*nOrb2*2
-    !   do j = 1, sys%nAtoms*nOrb2*2
-    !     write(*,*) real(hk_sc(i,j)), imag(hk_sc(i,j))
-    !   end do
-    ! end do
+    ! if(flag==60000) then
+    !     do i = 1, sys%nAtoms*nOrb2*2
+    !       do j = 1, sys%nAtoms*nOrb2*2
+    !         write(*,*) real(hk_sc(i,j)), imag(hk_sc(i,j))
+    !       end do
+    !     end do
+    !     ! write(*,*) sys%nAtoms,nOrb2,sys%nAtoms*nOrb2*2
+    ! end if
 
 
   end subroutine hamiltk_sc
 
   subroutine update_singlet_couplings(sys,couplings)
       use mod_f90_kind,       only: double
-      use mod_parameters,     only: output, kpoints, nOrb2
+      ! use mod_parameters,     only: nOrb2
       use mod_system,         only: System, initHamiltkStride
       use mod_constants,      only: cZero,cOne
       use mod_parameters,     only: nOrb
@@ -141,10 +143,10 @@ end subroutine allocate_super_variables
 
   subroutine bcs_pairing(sys,delta, hk_sc)
       use mod_f90_kind,       only: double
-      use mod_parameters,     only: output, kpoints, nOrb2
+      use mod_parameters,     only: nOrb2
       use mod_system,         only: System, initHamiltkStride
       use mod_constants,      only: cZero,cOne
-      use mod_parameters,     only: offset, nOrb, isigmamu2n
+      use mod_parameters,     only: nOrb, isigmamu2n
       implicit none
 
       type(System),                                intent(in) :: sys
@@ -183,72 +185,70 @@ end subroutine allocate_super_variables
 
   end subroutine bcs_pairing
 
-  subroutine bcs_p_pairing(sys, label, delta_p, hk_sc)
-      use mod_f90_kind,       only: double
-      use mod_parameters,     only: output, kpoints, nOrb2
-      use mod_system,         only: System, initHamiltkStride
-      use mod_constants,  only: cZero,cOne
-      use mod_parameters, only: offset
-      implicit none
-
-      ! TODO put a restriction so label can only be in {0,1,2}
-
-      type(System),                              intent(in)  :: sys
-      ! "label" is a parameter to pick the specific p orbital (one of the 3) to
-      ! couple, it can be 0, 1, or 2
-      integer :: label, elecOrbs, indexJump
-      complex(double), intent(in) :: delta_p
-      complex(double), dimension(sys%nAtoms*nOrb2*2, sys%nAtoms*nOrb2*2), intent(inout) :: hk_sc
-
-      elecOrbs = sys%nAtoms*nOrb2 ! Number of up and down electron orbitals
-
-      ! Same idea to populate as in the s-pairing section above.
-
-      indexJump = 1 + label ! local variable, to find the p orbitals respect to s
-
-      hk_sc(1 + indexJump,elecOrbs + elecOrbs/2 + indexJump + 1 ) = -delta_p
-      hk_sc(elecOrbs/2 + indexJump + 1, elecOrbs + 1 + indexJump) = delta_p
-      hk_sc(elecOrbs + 1 + indexJump, elecOrbs/2 + indexJump + 1) = conjg(delta_p)
-      hk_sc(elecOrbs + elecOrbs/2 + indexJump + 1 ,1 + indexJump) = -conjg(delta_p)
-
-  end subroutine bcs_p_pairing
-
-  subroutine bcs_d_pairing(sys, label, delta_d, hk_sc)
-      use mod_f90_kind,       only: double
-      use mod_parameters,     only: output, kpoints, nOrb2
-      use mod_system,         only: System, initHamiltkStride
-      use mod_constants,  only: cZero,cOne
-      use mod_parameters, only: offset
-      implicit none
-
-      ! TODO put a restriction so label can only be in {0,1,2,3,4}
-
-      type(System),                              intent(in)  :: sys
-      ! "label" is a parameter to pick the specific p orbital to couple, it can
-      ! be in {0,1,2,3,4}
-      integer :: label, elecOrbs, indexJump
-      complex(double), intent(in) :: delta_d
-      complex(double), dimension(sys%nAtoms*nOrb2*2, sys%nAtoms*nOrb2*2), intent(inout) :: hk_sc
-
-      elecOrbs = sys%nAtoms*nOrb2 ! Number of up and down electron orbitals
-
-      ! Same idea to populate as in the s-pairing section above.
-
-      indexJump = 4 + label ! local variable, to find the p orbitals respect to s
-
-      hk_sc(1 + indexJump,elecOrbs + elecOrbs/2 + indexJump+ 1) = -delta_d
-      hk_sc(elecOrbs/2 + indexJump + 1, elecOrbs + 1 + indexJump) = delta_d
-      hk_sc(elecOrbs + 1 + indexJump, elecOrbs/2 + indexJump + 1) = conjg(delta_d)
-      hk_sc(elecOrbs + elecOrbs/2 + indexJump+ 1,1 + indexJump) = -conjg(delta_d)
-
-  end subroutine bcs_d_pairing
+  ! subroutine bcs_p_pairing(sys, label, delta_p, hk_sc)
+  !     use mod_f90_kind,       only: double
+  !     use mod_parameters,     only: nOrb2
+  !     use mod_system,         only: System, initHamiltkStride
+  !     use mod_constants,  only: cZero,cOne
+  !     implicit none
+  !
+  !     ! TODO put a restriction so label can only be in {0,1,2}
+  !
+  !     type(System),                              intent(in)  :: sys
+  !     ! "label" is a parameter to pick the specific p orbital (one of the 3) to
+  !     ! couple, it can be 0, 1, or 2
+  !     integer :: label, elecOrbs, indexJump
+  !     complex(double), intent(in) :: delta_p
+  !     complex(double), dimension(sys%nAtoms*nOrb2*2, sys%nAtoms*nOrb2*2), intent(inout) :: hk_sc
+  !
+  !     elecOrbs = sys%nAtoms*nOrb2 ! Number of up and down electron orbitals
+  !
+  !     ! Same idea to populate as in the s-pairing section above.
+  !
+  !     indexJump = 1 + label ! local variable, to find the p orbitals respect to s
+  !
+  !     hk_sc(1 + indexJump,elecOrbs + elecOrbs/2 + indexJump + 1 ) = -delta_p
+  !     hk_sc(elecOrbs/2 + indexJump + 1, elecOrbs + 1 + indexJump) = delta_p
+  !     hk_sc(elecOrbs + 1 + indexJump, elecOrbs/2 + indexJump + 1) = conjg(delta_p)
+  !     hk_sc(elecOrbs + elecOrbs/2 + indexJump + 1 ,1 + indexJump) = -conjg(delta_p)
+  !
+  ! end subroutine bcs_p_pairing
+  !
+  ! subroutine bcs_d_pairing(sys, label, delta_d, hk_sc)
+  !     use mod_f90_kind,       only: double
+  !     use mod_parameters,     only: kpoints, nOrb2
+  !     use mod_system,         only: System, initHamiltkStride
+  !     use mod_constants,  only: cZero,cOne
+  !     implicit none
+  !
+  !     ! TODO put a restriction so label can only be in {0,1,2,3,4}
+  !
+  !     type(System),                              intent(in)  :: sys
+  !     ! "label" is a parameter to pick the specific p orbital to couple, it can
+  !     ! be in {0,1,2,3,4}
+  !     integer :: label, elecOrbs, indexJump
+  !     complex(double), intent(in) :: delta_d
+  !     complex(double), dimension(sys%nAtoms*nOrb2*2, sys%nAtoms*nOrb2*2), intent(inout) :: hk_sc
+  !
+  !     elecOrbs = sys%nAtoms*nOrb2 ! Number of up and down electron orbitals
+  !
+  !     ! Same idea to populate as in the s-pairing section above.
+  !
+  !     indexJump = 4 + label ! local variable, to find the p orbitals respect to s
+  !
+  !     hk_sc(1 + indexJump,elecOrbs + elecOrbs/2 + indexJump+ 1) = -delta_d
+  !     hk_sc(elecOrbs/2 + indexJump + 1, elecOrbs + 1 + indexJump) = delta_d
+  !     hk_sc(elecOrbs + 1 + indexJump, elecOrbs/2 + indexJump + 1) = conjg(delta_d)
+  !     hk_sc(elecOrbs + elecOrbs/2 + indexJump+ 1,1 + indexJump) = -conjg(delta_d)
+  !
+  ! end subroutine bcs_d_pairing
 
   ! subroutine green_sc(er,ei,sys,kp,gf)
   subroutine green_sc(sys,kp)
     use mod_f90_kind,   only: double
     use mod_constants,  only: cZero,cOne
-    use mod_System,     only: ia, System
-    use mod_parameters, only: nOrb2, offset
+    use mod_System,     only: System
+    use mod_parameters, only: nOrb2
     implicit none
     integer     :: i,j,d
     real(double) :: er,ei

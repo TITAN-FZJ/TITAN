@@ -1310,7 +1310,7 @@ contains
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i))
       if(lsuperCond) then
           do mu = 1, nOrb
-              singlet_coupling_in(mu,i) = x((i-1)*8+8+mu)
+              singlet_coupling_in(mu,i) = x((i-1)*(8+nOrb)+8+mu)
           end do
       end if
     end do
