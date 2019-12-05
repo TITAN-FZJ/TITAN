@@ -248,7 +248,7 @@ contains
     lsuccess = .false.
     !   Reading previous results (mx, my, mz and n) from files (if available)
     if(trim(scfile)=="") then ! If a filename is not given in inputcard (or don't exist), use the default one
-      write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),dfttype,parts,trim(output%BField),trim(output%info),trim(output%SOC)
+      write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),dfttype,parts,trim(output%BField),trim(output%info),trim(output%SOC),trim(output%suffix)
       open(unit=99,file=file,status="old",iostat=err)
       if((err==0).and.(rField==0)) then
         write(output%unit_loop,"('[read_sc_results] Self-consistency file already exists. Reading it now...')")
@@ -264,7 +264,7 @@ contains
           write(output%unit_loop,"(a)") trim(scfile)
         end if
       else ! 2nd+ iteration, cheking if default file exists
-        write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),dfttype,parts,trim(output%BField),trim(output%info),trim(output%SOC)
+        write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),dfttype,parts,trim(output%BField),trim(output%info),trim(output%SOC),trim(output%suffix)
         open(unit=99,file=file,status="old",iostat=err)
         if(err == 0) then ! Reading file for the same parameters
           if(rField == 0) then
@@ -1103,7 +1103,7 @@ contains
     if(rField == 0) then
       ! Writing new results (mx, my, mz and n) to file
       write(output%unit_loop,"('[write_sc_results] Writing new n, mx, my, mz and Ef to file...')")
-      write(scfile,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,a,a,a,'.dat')") output%SOCchar, trim(output%Sites),dfttype,parts,trim(output%BField),trim(output%info),trim(output%SOC)
+      write(scfile,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,a,a,a,a,'.dat')") output%SOCchar, trim(output%Sites),dfttype,parts,trim(output%BField),trim(output%info),trim(output%SOC),trim(output%suffix)
       open (unit=99,status='replace',file=scfile)
 
       write(formatvar,fmt="(a,i0,a)") '(',6*nOrb,'(es21.11,2x))'
