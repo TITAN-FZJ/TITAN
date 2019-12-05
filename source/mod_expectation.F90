@@ -209,7 +209,7 @@ contains
 
     ! if(flag) then
     do i =1,s%nAtoms
-        write(*,*) real(deltas(1,i))
+        write(*,*) real(deltas(1,i)), aimag(deltas(1,i)), abs(deltas(1,i))
     end do
         ! flag = .false.
     ! end if
