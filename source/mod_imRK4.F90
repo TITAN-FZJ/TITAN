@@ -102,6 +102,7 @@ contains
     ! Calculating the Jacobian at previous time
     call build_td_Jacobian(s, t-step, kp, eval, Yn, Jacobian_t)
 
+
     ! TODO: test if size(A) works
     call KronProd(size(A,1),size(A,1),dimH,dimH,A,Jacobian_t,Kprod)
     M2n = id2 - step * Kprod
@@ -137,7 +138,6 @@ contains
     Fun = [ F1, F2 ]
 
     Fun = -Z_k + step * matmul(M1,Fun)
-
   end subroutine Fsystem
 
 
@@ -216,7 +216,7 @@ contains
     use mod_f90_kind,   only: double
     use mod_system,     only: System
     use mod_parameters, only: dimH
-    use mod_RK_matrices
+    use mod_RK_matrices, only: id
     implicit none
     type(System),    intent(in)  :: s
     real(double),    intent(in)  :: t, eval
@@ -231,17 +231,18 @@ contains
 
     ! building identity matrix I(dimH, dimH)
     call build_identity(dimH,ident)
-    ! Calculating the time-dependent Hamiltonian 
-    hamilt_t =  hk + hext_t(s%nAtoms,t) - ( eval * ident )
 
     ! calculating the original hamiltonian H(t) without the eigenvalue term.
     hamilt_0 = hk + hext_t(s%nAtoms,t)
 
+    ! Calculating the time-dependent Hamiltonian 
+    hamilt_t = hamilt_0 - ( eval * ident )
+
     ! Checking if Hamiltonian is hermitian
-    if( sum(abs(conjg(transpose(hamilt_t))-hamilt_t)) > 1.d-12 ) then
-      write(*,"('[build_td_hamiltonian] Hamiltonian is not hermitian!')")
-      stop
-    end if
+    !if( sum(abs(conjg(transpose(hamilt_t))-hamilt_t)) > 1.d-12 ) then
+    !  write(*,"('[build_td_hamiltonian] Hamiltonian is not hermitian!')")
+    !  stop
+    !end if
   end subroutine build_td_hamiltonian
 
   !> build time dependent external perturbation Hamiltonian
@@ -269,11 +270,13 @@ contains
     ! complex(double), dimension(:,:,:,:), allocatable      :: dtdk
 
     ! allocate(dtdk(nOrb,nOrb,nAtoms,nAtoms))
+ 
+    hext_t = cZero
 
     hext = cZero
-    do mu=1,nOrb
-      nu=mu+nOrb
-      if(lmagnetic) then
+    if(lmagnetic) then
+      do mu=1,nOrb
+        nu=mu+nOrb
         if(lpulse_m) then
           if ((t >= delay_m).and.(t <= 8.d0*tau_m+delay_m)) then
           ! building external Hamiltonian (hext)
@@ -286,14 +289,13 @@ contains
         else
           hext(nu,mu) = hext(nu,mu) + (cos(hw_m*t) - cI*sin(hw_m*t))*hw1_m*0.5d0
         end if
-      end if
-      hext(mu,nu) = conjg(hext(nu,mu))
-    end do
+        hext(mu,nu) = conjg(hext(nu,mu))
+      end do
 
-    hext_t = cZero
-    do i=1, nAtoms
-      hext_t(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = hext(1:nOrb2,1:nOrb2)
-    end do
+      do i=1, nAtoms
+        hext_t(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = hext(1:nOrb2,1:nOrb2)
+      end do
+    end if
 
 
     if(lelectric) then

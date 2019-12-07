@@ -75,13 +75,10 @@ contains
     use mod_tools,            only: itos, rtos, vec_norm
     use adaptiveMesh,         only: minimumBZmesh
     use mod_mpi_pars
-<<<<<<< HEAD
-    use mod_imRK4_parameters, only: integration_time, omega, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, field_direction_m, polarization_vector_e, polarization_type_e, helicity, shape_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
-=======
     use mod_imRK4_parameters, only: integration_time, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, &
-                                    field_direction_m, field_direction_e, tau_m, delay_e, delay_m, lelectric, &
-                                    lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, safe_factor
->>>>>>> Fixed bug in the calculation of the error.
+                                    polarization_vector_e, polarization_type_e, helicity, &
+                                    shape_e, field_direction_m tau_m, delay_e, delay_m, lelectric, &
+                                    lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
     implicit none
     character(len=*), intent(in)    :: filename
     type(System),     intent(inout) :: s

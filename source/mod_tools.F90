@@ -496,13 +496,13 @@ contains
   !    This subruotine is a simple interface for the LAPACK linear
   ! system solver A*X = B.
   ! --------------------------------------------------------------------
-  subroutine LS_solver(n,A,b)
+  subroutine LS_solver(n,a,b)
     use mod_f90_kind, only: double
     implicit none
     
     integer,         intent(in)      :: n
-    complex(double), intent(in)      :: A(n,n)
-    complex(double), intent(out)     :: b(n)
+    complex(double), intent(inout)   :: a(n,n)
+    complex(double), intent(inout)   :: b(n)
     ! Workspace variables
     integer                          :: nrhs, lda, ldb, ldx, info
     integer,          allocatable    :: ipiv(:)
