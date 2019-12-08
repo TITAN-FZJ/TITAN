@@ -26,7 +26,7 @@ contains
     complex(double), dimension(:,:,:), allocatable  :: evec_kn,evec_kn_temp
     real(double),    dimension(:,:),   allocatable  :: eval_kn
 
-    integer                                     :: iz, info 
+    integer                                     :: iz, info, ncount
     integer                                     :: lwork
     real(double)                                :: weight, kp(3)
     real(double),    dimension(nOrb,s%nAtoms)   :: expec_0, expec_z
@@ -50,9 +50,13 @@ contains
     end if
  
     if(lprintfieldonly) then
-      call write_field()
+      if(rFreq(1) == 0) &
+        call write_field()
       return
     end if
+
+    ! number of elements in the MPI communication
+    ncount = nOrb*s%nAtoms
 
     ! working space for the eigenstate solver
     lwork = 21*dimH
@@ -74,7 +78,7 @@ contains
     it = 0  
     t_loop: do while (t <= integration_time)
       t = t + step
-      if(rField==0) &
+      if(rFreq(1) == 0) &
         write(output%unit_loop,"('[time_propagator] Time: ',es10.3,' of ',es10.3)") t, integration_time
        
       counter = 0 ! Counter for the calculation of error in the step size for each time t
@@ -157,6 +161,11 @@ contains
         !$omp end do
         !$omp end parallel
 
+        call MPI_Allreduce(MPI_IN_PLACE, rho_t, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, mz_t , ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, mp_t , ncount, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, ERR  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+
         ERR = sqrt(ERR)
         ! Find the new step size h_new
         ! h_new = safe_factor * h_used / (ERR)^(1/p+1) where p = 2*s, safe_factor is some safety factor 
@@ -179,7 +188,7 @@ contains
           t = t - step + h_new
           h_old = step
           step = h_new
-          write(*,*) "Rejected", t, step, ERR
+          if(rFreq(1) == 0) write(*,*) "Rejected", t, step, ERR
           ! this condition seems to mantain a small step size
           ! else if (step <= h_new <= 1.2*step) then
           ! step = step
@@ -192,7 +201,7 @@ contains
           
       end do
 
-      write(*,*)  "Accepted", t, step, ERR 
+      if(rFreq(1) == 0) write(*,*)  "Accepted", t, step, ERR 
 
       mx_t = real(mp_t)
       my_t = aimag(mp_t)
@@ -229,7 +238,8 @@ contains
         end if 
       end if 
 
-      call write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t, field_m, field_e)
+      if(rFreq(1) == 0) &
+        call write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t, field_m, field_e)
 
       counter = counter + 1
       it = it + 1
@@ -383,7 +393,7 @@ contains
   subroutine write_field()
     use mod_f90_kind,         only: double
     use mod_parameters,       only: output,missing_files
-    use mod_mpi_pars,         only: rFreq,abortProgram
+    use mod_mpi_pars,         only: abortProgram
     use mod_imRK4_parameters, only: step, integration_time, lelectric, lpulse_e, delay_e, tau_e, hE_0, hw_e, lmagnetic, lpulse_m, delay_m, tau_m, hw1_m, hw_m
     use mod_imRK4,            only: magnetic_pulse_B, evec_potent
     implicit none
@@ -392,8 +402,7 @@ contains
     real(double)               :: t, time, A_t_abs
     integer :: i,iw,err,errt=0
 
-    if(rFreq(1) == 0) &
-      write(output%unit_loop,"('[write_field] Writing field... ')",advance="no")
+    write(output%unit_loop,"('[write_field] Writing field... ')",advance="no")
 
     iw = 6090
     write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/field',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
@@ -438,8 +447,7 @@ contains
 
     close(6090)
 
-    if(rFreq(1) == 0) &
-      write(output%unit_loop,"('done!')")
+    write(output%unit_loop,"('done!')")
 
   end subroutine write_field
 
