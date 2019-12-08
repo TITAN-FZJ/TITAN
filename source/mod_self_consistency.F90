@@ -6,11 +6,11 @@ module mod_self_consistency
   real(double)       :: mag_tol = 1.d-10
   character(len=200) :: scfile = ""
   !! Give a file to start self-consistency
-  logical :: skipsc
+  logical            :: skipsc
   !! Skip self-consistency
   character(len=50)  :: magbasis = ""
   !! Basis to give initial magnetization in 'initialmag' file
-  real(double),allocatable       :: initialmag(:,:)
+  real(double), allocatable :: initialmag(:,:)
   !! Initial guess for magnetization
   logical :: lselfcon    = .false.
   logical :: lGSL        = .false.
