@@ -135,11 +135,10 @@ contains
     use mod_parameters,        only: nOrb,nOrb2,output
     use mod_system,            only: System
     use ElectricField,         only: EshiftBZ,ElectricFieldVector
-    use mod_mpi_pars,          only: abortProgram
     use mod_tools,             only: itos
     use mod_superconductivity, only: lsuperCond, superCond, hamiltk_sc, update_singlet_couplings, green_sc
-
     use mod_constants,         only: cOne,cZero
+    use mod_mpi_pars
 
     implicit none
     type(System),                              intent(in)  :: s
@@ -148,7 +147,7 @@ contains
     complex(double), dimension(nOrb,s%nAtoms), intent(out) :: deltas
     ! complex(double), dimension(nOrb)         , intent(out) :: expec_singlet
 
-    integer                                      :: iz, info , i!, mu,i
+    integer                                      :: iz, info, ncount, i !, mu,i
     integer                                      :: lwork,dimH, dimE
     real(double)                                 :: weight, kp(3)
     real(double),    dimension(nOrb,s%nAtoms)    :: expec_0, expec_z
@@ -160,6 +159,7 @@ contains
     dimH  = (s%nAtoms)*nOrb2*superCond
     dimE  = (s%nAtoms)*nOrb2
     lwork = 21*dimH
+    ncount = nOrb*s%nAtoms
 
 
     allocate( hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork) )
@@ -204,15 +204,19 @@ contains
     end do
     !$omp end do
     !$omp end parallel
+
+    !Gather and sum all the results from the different processes using an Allreduce clause
+    call MPI_Allreduce(MPI_IN_PLACE, rho   , ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, mz    , ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, mp    , ncount, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, deltas, ncount, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
+
     mx = real(mp)
     my = aimag(mp)
 
-    ! if(flag) then
     do i =1,s%nAtoms
         write(*,*) real(deltas(1,i)), aimag(deltas(1,i)), abs(deltas(1,i))
     end do
-        ! flag = .false.
-    ! end if
 
     ! write(*,*) " "
     ! write(*,*) "deltas = ", deltas
@@ -288,25 +292,16 @@ contains
     if(.not. lsuperCond) &
         return
 
-
     do n = 1, dim
-      ! Fermi-Dirac distribution at energy eval(n) and temperature proportional to eta:
-      ! IT IS NOT BEING USED, SO IT WILL BE DELETED SOON
-      f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval(n))
-
       ! Getting eigenvector and its transpose conjugate
       evec(:) = hk(:,n)
 
       do i = 1, s%nAtoms
           do mu = 1, nOrb
               expec_singlet(mu,i) = expec_singlet(mu,i) + conjg(evec(isigmamu2n(i,1,mu)+nOrb*2*s%nAtoms))*evec(isigmamu2n(i,2,mu))*tanh(eval(n)*1.d0/(pi*eta)/2)
-              ! if(flag==46502) & write(*,*) "indices eigenvector ", isigmamu2n(i,1,mu)+nOrb*2*s%nAtoms, isigmamu2n(i,2,mu),  expec_singlet(mu,i)
           end do
-          ! if(flag==46502) & write(*,*) "Another atom"
       end do
     end do
-
-    ! stop
 
   end subroutine expec_val
 
@@ -519,39 +514,34 @@ contains
   subroutine calcLGS_eigenstates()
     use mod_f90_kind,      only: double
     use mod_BrillouinZone, only: realBZ
-    use mod_constants,     only: pi
+    use mod_constants,     only: pi,cZero
     use mod_parameters,    only: nOrb,nOrb2,output,eta,isigmamu2n
     use mod_System,        only: s => sys
     use ElectricField,     only: EshiftBZ,ElectricFieldVector
     use mod_magnet,        only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
     use mod_distributions, only: fd_dist
-    use mod_mpi_pars,      only: abortProgram
     use mod_tools,         only: itos
+    use mod_mpi_pars
     implicit none
-    integer                                      :: iz, info , n, i, mu, nu, sigma
-    integer                                      :: lwork,dimH
-    real(double)                                 :: weight, kp(3), f_n
-    complex(double)                              :: prod
-    real(double),    dimension(:),  allocatable  :: rwork(:), eval(:)
-    complex(double),                allocatable  :: work(:), hk(:,:), evec(:)
+    integer                                        :: iz, info , n, i, mu, nu, sigma
+    integer                                        :: lwork,dimH
+    real(double)                                   :: weight, kp(3), f_n
+    complex(double), dimension(:,:,:), allocatable :: prod
+    real(double),    dimension(:),     allocatable :: rwork(:), eval(:)
+    complex(double),                   allocatable :: work(:), hk(:,:), evec(:)
 
     dimH  = (s%nAtoms)*nOrb2
     lwork = 21*dimH
 
-    allocate( hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),evec(dimH),work(lwork) )
+    allocate( hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),evec(dimH),work(lwork),prod(nOrb,nOrb,s%nAtoms) )
 
     !$omp parallel default(none) &
     !$omp& firstprivate(lwork) &
-    !$omp& private(iz,n,i,sigma,mu,nu,kp,weight,hk,eval,f_n,evec,work,rwork,info,prod) &
-    !$omp& shared(s,nOrb,dimH,output,realBZ,eta,isigmamu2n,lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz,EshiftBZ,ElectricFieldVector)
+    !$omp& private(iz,n,i,sigma,mu,nu,kp,weight,hk,eval,f_n,evec,work,rwork,info) &
+    !$omp& shared(s,nOrb,dimH,output,realBZ,eta,isigmamu2n,prod,EshiftBZ,ElectricFieldVector)
 
-    lxm  = 0.d0
-    lym  = 0.d0
-    lzm  = 0.d0
-    lxpm = 0.d0
-    lypm = 0.d0
-    lzpm = 0.d0
-    !$omp do reduction(+:lxm,lym,lzm,lxpm,lypm,lzpm) schedule(static)
+    prod = cZero
+    !$omp do reduction(+:prod) schedule(static)
     kloop: do iz = 1,realBZ%workload
       kp = realBZ%kp(1:3,iz) + EshiftBZ*ElectricFieldVector
       weight = realBZ%w(iz)
@@ -560,9 +550,9 @@ contains
 
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
       call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
-
       if(info/=0) &
         call abortProgram("[expectation_values_eigenstates] Problem with diagonalization. info = " // itos(info))
+
       eval_loop: do n = 1, dimH
         ! Fermi-Dirac:
         f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval(n))
@@ -571,25 +561,41 @@ contains
         evec(:) = hk(:,n)
 
         sites_loop: do i = 1, s%nAtoms
-          do sigma = 1, 2
-            do nu = 1, nOrb
-              do mu = 1, nOrb
-                prod = f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,nu))*weight
-                lxm (i) = lxm (i) + prod*lx (mu,nu  )
-                lym (i) = lym (i) + prod*ly (mu,nu  )
-                lzm (i) = lzm (i) + prod*lz (mu,nu  )
-                lxpm(i) = lxpm(i) + prod*lxp(mu,nu,i)
-                lypm(i) = lypm(i) + prod*lyp(mu,nu,i)
-                lzpm(i) = lzpm(i) + prod*lzp(mu,nu,i)
+          do nu = 1, nOrb
+            do mu = 1, nOrb
+              do sigma = 1, 2
+                prod(mu,nu,i) = prod(mu,nu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,nu))*weight
               end do
             end do
           end do
         end do sites_loop
+
       end do eval_loop
     end do kloop
     !$omp end do
     !$omp end parallel
 
+    call MPI_Allreduce(MPI_IN_PLACE, prod, nOrb*nOrb*s%nAtoms, MPI_DOUBLE_COMPLEX, MPI_SUM, FreqComm(1) , ierr)
+
+    ! Building different components of the orbital angular momentum
+    lxm  = 0.d0
+    lym  = 0.d0
+    lzm  = 0.d0
+    lxpm = 0.d0
+    lypm = 0.d0
+    lzpm = 0.d0
+    do i = 1, s%nAtoms
+      do nu = 1, nOrb
+        do mu = 1, nOrb
+          lxm (i) = lxm (i) + prod(mu,nu,i)*lx (mu,nu  )
+          lym (i) = lym (i) + prod(mu,nu,i)*ly (mu,nu  )
+          lzm (i) = lzm (i) + prod(mu,nu,i)*lz (mu,nu  )
+          lxpm(i) = lxpm(i) + prod(mu,nu,i)*lxp(mu,nu,i)
+          lypm(i) = lypm(i) + prod(mu,nu,i)*lyp(mu,nu,i)
+          lzpm(i) = lzpm(i) + prod(mu,nu,i)*lzp(mu,nu,i)
+        end do
+      end do
+    end do
 
     deallocate(hk,rwork,eval,work)
 
