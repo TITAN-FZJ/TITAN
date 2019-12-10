@@ -256,42 +256,24 @@ end subroutine allocate_super_variables
   !
   ! end subroutine bcs_d_pairing
 
-  ! subroutine green_sc(er,ei,sys,kp,gf)
-  subroutine green_sc(sys,kp)
+  subroutine green_sc(er,ei,sys,kp,gf)
     use mod_f90_kind,   only: double
     use mod_constants,  only: cZero,cOne
-    use mod_System,     only: System
-    use mod_parameters, only: nOrb2
+    use mod_System,     only: ia_sc, System
+    use mod_parameters, only: nOrb2, offset
     implicit none
     integer     :: i,j,d
-    real(double) :: er,ei
-    real(double), intent(in) :: kp(3)
+
+    real(double), intent(in) :: er,ei,kp(3)
     type(System), intent(in) :: sys
     complex(double) :: ec
-    complex(double),dimension(sys%nAtoms*nOrb2*2.0, sys%nAtoms*nOrb2*2.0) :: gslab,hk
-    complex(double),dimension(nOrb2, nOrb2, sys%nAtoms, sys%nAtoms)  :: gf
-
-    ! real(double), intent(in) :: er,ei,kp(3)
-    ! type(System), intent(in) :: sys
-    ! complex(double) :: ec
-    ! complex(double),dimension(sys%nAtoms*nOrb2, sys%nAtoms*nOrb2) :: gslab,hk
-    ! complex(double),dimension(nOrb2, nOrb2, sys%nAtoms, sys%nAtoms), intent(out)  :: gf
+    complex(double),dimension(sys%nAtoms*nOrb2*superCond, sys%nAtoms*nOrb2*superCond) :: gslab,hk
+    complex(double),dimension(nOrb2*superCond, nOrb2*superCond, sys%nAtoms, sys%nAtoms), intent(out)  :: gf
 
     ! Dimension of the matrices (they are square)
-    d = sys%nAtoms * nOrb2 * 2.0
-
-    if (flag < 1) then
-        write(*,*) "d = ", d
-        write(*,*) "sys%nAtoms = ", sys%nAtoms
-        write(*,*) "nOrb2 = ", nOrb2
-    end if
+    d = sys%nAtoms * nOrb2 * superCond
 
     ec    = cmplx(er,ei,double)
-
-    if (flag < 1) then
-        write(*,*) "er = ", er
-        write(*,*) "ei = ", ei
-    end if
 
     gslab = cZero
     do i = 1, d
@@ -304,25 +286,17 @@ end subroutine allocate_super_variables
     ! !gslab(i,j) = gslab(i,j) - hk(i,j)
     call invers(gslab, d)
 
-    if (flag < 1) then
-        !Prints to check the shape of the matrix
-        do i = 1, sys%nAtoms*nOrb2*2
-          do j = 1, sys%nAtoms*nOrb2*2
-            write(*,*) real(gslab(i,j)), imag(gslab(i,j))
-          end do
-        end do
-    end if
-    !
-    ! ! Put the slab Green's function [A(nAtoms*18,nAtoms*18)] in the A(i,j,mu,nu) form
-    ! !dir$ ivdep:loop
-    ! do j = 1, sys%nAtoms
-    !   !dir$ ivdep:loop
-    !   do i = 1, sys%nAtoms
-    !     gf(:,:,i,j) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
-    !   end do
-    ! end do
-
-    flag = flag + 1
+    ! Put the slab Green's function [A(nAtoms*36,nAtoms*36)] in the A(i,j,mu,nu) form
+    !dir$ ivdep:loop
+    do j = 1, sys%nAtoms
+      !dir$ ivdep:loop
+      do i = 1, sys%nAtoms
+        gf(      1:  nOrb2,      1:  nOrb2,i,j) = gslab(ia_sc(1,i):ia_sc(2,i),ia_sc(1,j):ia_sc(2,j))
+        gf(      1:  nOrb2,nOrb2+1:2*nOrb2,i,j) = gslab(ia_sc(1,i):ia_sc(2,i),ia_sc(3,j):ia_sc(4,j))
+        gf(nOrb2+1:2*nOrb2,      1:  nOrb2,i,j) = gslab(ia_sc(3,i):ia_sc(4,i),ia_sc(1,j):ia_sc(2,j))
+        gf(nOrb2+1:2*nOrb2,nOrb2+1:2*nOrb2,i,j) = gslab(ia_sc(3,i):ia_sc(4,i),ia_sc(3,j):ia_sc(4,j))
+      end do
+    end do
 
 end subroutine green_sc
 

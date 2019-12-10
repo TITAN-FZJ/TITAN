@@ -6,10 +6,11 @@ subroutine ldos_energy(e,ldosu,ldosd)
   use mod_system,        only: s => sys
   use mod_BrillouinZone, only: realBZ
   use mod_mpi_pars
+  use mod_superconductivity, only: lsupercond, green_sc, superCond
   implicit none
   real(double), intent(in) :: e
   real(double), dimension(s%nAtoms, nOrb), intent(out) :: ldosu, ldosd
-  complex(double), dimension(nOrb2, nOrb2, s%nAtoms, s%nAtoms) :: gf
+  complex(double), dimension(nOrb2*superCond, nOrb2*superCond, s%nAtoms, s%nAtoms) :: gf
   complex(double), dimension(s%nAtoms, nOrb) :: gfdiagu,gfdiagd
   real(double), dimension(3) :: kp
   real(double) :: weight
@@ -21,14 +22,18 @@ subroutine ldos_energy(e,ldosu,ldosd)
 
 !$omp parallel default(none) &
 !$omp& private(iz,kp,weight,gf,i,mu,nu,gfdiagu,gfdiagd) &
-!$omp& shared(s,realBZ,e,nOrb,eta,ldosu,ldosd)
+!$omp& shared(s,realBZ,e,nOrb,eta,ldosu,ldosd,lsupercond,nOrb2)
 
 !$omp do reduction(+:ldosu,ldosd)
   do iz = 1,realBZ%workload
     kp = realBZ%kp(1:3,iz)
     weight = realBZ%w(iz)
     ! Green function on energy E + ieta, and wave vector kp
-    call green(e,eta,s,kp,gf)
+    if(lsupercond == .true.) then
+        call green_sc(e,eta,s,kp,gf)
+    else
+        call green(e,eta,s,kp,gf)
+    end if
 
     ! Density of states
     do mu=1,nOrb
@@ -36,6 +41,10 @@ subroutine ldos_energy(e,ldosu,ldosd)
          nu = mu + nOrb
          gfdiagu(i,mu) = - aimag(gf(mu,mu,i,i)) * weight
          gfdiagd(i,mu) = - aimag(gf(nu,nu,i,i)) * weight
+         if(lsupercond) then
+             gfdiagu(i,mu) = gfdiagu(i,mu) - aimag(gf(mu+nOrb2,mu+nOrb2,i,i)) * weight
+             gfdiagd(i,mu) = gfdiagd(i,mu) - aimag(gf(nu+nOrb2,nu+nOrb2,i,i)) * weight
+         end if
       end do
    end do
 
@@ -49,12 +58,8 @@ subroutine ldos_energy(e,ldosu,ldosd)
   ldosu  = ldosu/pi
   ldosd  = ldosd/pi
 
-    if(rFreq(1) == 0) then
-       call MPI_Reduce(MPI_IN_PLACE, ldosu , s%nAtoms*nOrb, MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
-       call MPI_Reduce(MPI_IN_PLACE, ldosd , s%nAtoms*nOrb, MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
-    else
-       call MPI_Reduce(ldosu , ldosu , s%nAtoms*nOrb, MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
-       call MPI_Reduce(ldosd , ldosd , s%nAtoms*nOrb, MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
-    end if
+  call MPI_Allreduce(MPI_IN_PLACE, ldosu , s%nAtoms*nOrb*superCond, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1), ierr)
+  call MPI_Allreduce(MPI_IN_PLACE, ldosd , s%nAtoms*nOrb*superCond, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1), ierr)
+
 
 end subroutine ldos_energy

@@ -13,7 +13,8 @@ font = {'family': 'arial',
 
 # plt.xkcd()
 
-Ef= 0.81848251
+# Manually inserted Fermi Energy
+Ef= 0.0
 
 ry2ev = 1.0
 if(ry2ev != 1.0):
@@ -57,8 +58,8 @@ plt.ylabel(labely)
 plt.title('LDOS')
 plt.legend()
 
-if(Ef != 0.0):
-  plt.axvline(0.0, color='k', linestyle='--', linewidth=0.75)
+# if(Ef != 0.0):
+plt.axvline(0.0, color='k', linestyle='--', linewidth=0.75)
 
 # fig = plt.gcf()
 # fig.set_size_inches(3., 2.2)
@@ -66,4 +67,3 @@ plt.savefig('LDOS.pdf')
 # plt.savefig(filename,transparent=True,dpi=2540, bbox_inches='tight')
 
 plt.show()
-
