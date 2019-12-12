@@ -810,22 +810,27 @@ contains
   ! Writing header for previously opened file of unit "unit"
   subroutine write_header(unit,title_line,Ef)
     use mod_f90_kind,   only: double
-    use mod_parameters, only: nQvec, nQvec1, bands, band_cnt, partial_length
-
+    use mod_parameters, only: nQvec, nQvec1, bands, band_cnt, partial_length, itype
+    implicit none
     integer,          intent(in)           :: unit
     character(len=*), intent(in)           :: title_line
     real(double),     intent(in), optional :: Ef
     integer :: i
 
-    if(nQvec1/=1) then
-      write(unit=unit, fmt="(a,2x,i0,2x,i0)") "# ", band_cnt, nQvec
-      do i=1,band_cnt
-        write(unit=unit, fmt="(a,2x,a,2x,es16.9)") "# ",trim(bands(i)), sum(partial_length(1:i))
-      end do
-      if(present(Ef)) write(unit=unit, fmt="(a,2x,es16.9)") "# Ef ",Ef
+    ! LDOS header
+    if(itype==2) then
+      write(unit=unit, fmt="(a,2x,es16.9)") "# Ef ",Ef
+    else ! Band structure and chi(q) header
+      if(nQvec1/=1) then
+        write(unit=unit, fmt="(a,2x,i0,2x,i0)") "# ", band_cnt, nQvec
+        do i=1,band_cnt
+          write(unit=unit, fmt="(a,2x,a,2x,es16.9)") "# ",trim(bands(i)), sum(partial_length(1:i))
+        end do
+        if(present(Ef)) write(unit=unit, fmt="(a,2x,es16.9)") "# Ef ",Ef
+      end if
     end if
 
-    write(unit=unit, fmt="(a)") title_line
+    write(unit=unit, fmt="(a)") trim(title_line)
 
   end subroutine write_header
 end module mod_io

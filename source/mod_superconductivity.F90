@@ -47,19 +47,15 @@ end subroutine allocate_super_variables
 
   subroutine hamiltk_sc(sys,kp,hk_sc)
     use mod_f90_kind,       only: double
-    use mod_parameters,     only: nOrb2
+    use mod_parameters,     only: nOrb2, dimH
     use mod_system,         only: System, initHamiltkStride
     use mod_constants,      only: cZero,cOne
     implicit none
-    type(System),   intent(in)  :: sys
+    type(System), intent(in)  :: sys
     real(double), intent(in)  :: kp(3)
-    complex(double),dimension(sys%nAtoms*nOrb2, sys%nAtoms*nOrb2) :: hk
-    complex(double),dimension(sys%nAtoms*nOrb2*2, sys%nAtoms*nOrb2*2), intent(out) :: hk_sc
+    complex(double),dimension(2*dimH,2*dimH), intent(inout) :: hk_sc
+    complex(double),dimension(  dimH,  dimH) :: hk
     integer :: i, j, mu
-
-    ! Initialize hk, this will be used to calculate the superconducting
-    ! counterpart, namely hk_sc
-    hk = cZero
 
     ! The form of the superconducting hamiltonian depends on a series of decisions,
     ! such as how to choose the basis after the Bogoliuvob-de Gennes transformation
@@ -77,13 +73,13 @@ end subroutine allocate_super_variables
     ! Populate the diagonal blocks of the hamiltonian. i.e. electron-electron
     ! and hole-hole interactions
     hk_sc = cZero
-    hk_sc(1:sys%nAtoms*nOrb2,1:sys%nAtoms*nOrb2) = hk
-    hk_sc(sys%nAtoms*nOrb2+1:sys%nAtoms*nOrb2*2,sys%nAtoms*nOrb2+1:sys%nAtoms*nOrb2*2) = -conjg(hk)
+    hk_sc(     1:  dimH,     1:  dimH) = hk
+    hk_sc(dimH+1:2*dimH,dimH+1:2*dimH) = -conjg(hk)
     ! The diagonal terms involve also the Fermi Energy/chemical potential, as we can see below
     ! Check any superconductivity reference for this detail
-    do i = 1, sys%nAtoms*nOrb2
-        hk_sc(i,i) = hk_sc(i,i) - sys%Ef*cOne
-        hk_sc(sys%nAtoms*nOrb2+i,sys%nAtoms*nOrb2+i) = hk_sc(sys%nAtoms*nOrb2+i,sys%nAtoms*nOrb2+i) + sys%Ef*cOne
+    do i = 1, dimH
+        hk_sc(     i,     i) = hk_sc(     i,     i) - sys%Ef*cOne
+        hk_sc(dimH+i,dimH+i) = hk_sc(dimH+i,dimH+i) + sys%Ef*cOne
     end do
 
     ! Once this is done the remaining part is to populate the non-diagonal blocks
@@ -159,13 +155,13 @@ end subroutine allocate_super_variables
       use mod_parameters,     only: nOrb2
       use mod_system,         only: System, initHamiltkStride
       use mod_constants,      only: cZero,cOne
-      use mod_parameters,     only: nOrb, isigmamu2n
+      use mod_parameters,     only: nOrb, isigmamu2n, dimH
       implicit none
 
-      type(System),                                intent(in) :: sys
-      complex(double), dimension(nOrb,sys%nAtoms), intent(in) :: delta
-      complex(double), dimension(sys%nAtoms*nOrb2*2, sys%nAtoms*nOrb2*2), intent(inout) :: hk_sc
-      integer :: dummy, i, mu
+      type(System),                                 intent(in) :: sys
+      complex(double), dimension(nOrb,sys%nAtoms),  intent(in) :: delta
+      complex(double), dimension(2*dimH,2*dimH), intent(inout) :: hk_sc
+      integer :: i, mu
 
       ! Populate the entries for the singlet pairing of the s-orbitals
       ! Assuming that the order to populate the hamiltonian hk was
@@ -182,19 +178,15 @@ end subroutine allocate_super_variables
       ! h^ and s* couple with delta_s*
       ! h* and s^ couple with -delta_s*
 
-      dummy = nOrb2*sys%nAtoms
-
       do i = 1,sys%nAtoms
           do mu = 1,nOrb
-              hk_sc(isigmamu2n(i,1,mu),isigmamu2n(i,2,mu)+dummy) = - delta(mu,i)
-              hk_sc(isigmamu2n(i,2,mu),isigmamu2n(i,1,mu)+dummy) = delta(mu,i)
-              hk_sc(isigmamu2n(i,2,mu)+dummy,isigmamu2n(i,1,mu)) = - conjg(delta(mu,i))
-              hk_sc(isigmamu2n(i,1,mu)+dummy,isigmamu2n(i,2,mu)) = conjg(delta(mu,i))
+              hk_sc(isigmamu2n(i,1,mu)     ,isigmamu2n(i,2,mu)+dimH) = - delta(mu,i)
+              hk_sc(isigmamu2n(i,2,mu)     ,isigmamu2n(i,1,mu)+dimH) =   delta(mu,i)
+              hk_sc(isigmamu2n(i,2,mu)+dimH,isigmamu2n(i,1,mu)     ) = - conjg(delta(mu,i))
+              hk_sc(isigmamu2n(i,1,mu)+dimH,isigmamu2n(i,2,mu)     ) =   conjg(delta(mu,i))
               ! write(*,*) i, " ", mu, " ", delta(mu,i)
           end do
       end do
-
-
 
   end subroutine bcs_pairing
 
@@ -260,18 +252,19 @@ end subroutine allocate_super_variables
     use mod_f90_kind,   only: double
     use mod_constants,  only: cZero,cOne
     use mod_System,     only: ia_sc, System
-    use mod_parameters, only: nOrb2, offset
+    use mod_parameters, only: nOrb2, offset, dimH
     implicit none
     integer     :: i,j,d
 
     real(double), intent(in) :: er,ei,kp(3)
     type(System), intent(in) :: sys
-    complex(double) :: ec
-    complex(double),dimension(sys%nAtoms*nOrb2*superCond, sys%nAtoms*nOrb2*superCond) :: gslab,hk
     complex(double),dimension(nOrb2*superCond, nOrb2*superCond, sys%nAtoms, sys%nAtoms), intent(out)  :: gf
 
+    complex(double) :: ec
+    complex(double),dimension(dimH*superCond, dimH*superCond) :: gslab,hk
+
     ! Dimension of the matrices (they are square)
-    d = sys%nAtoms * nOrb2 * superCond
+    d = dimH * superCond
 
     ec    = cmplx(er,ei,double)
 
@@ -297,7 +290,6 @@ end subroutine allocate_super_variables
         gf(nOrb2+1:2*nOrb2,nOrb2+1:2*nOrb2,i,j) = gslab(ia_sc(3,i):ia_sc(4,i),ia_sc(3,j):ia_sc(4,j))
       end do
     end do
-
-end subroutine green_sc
+  end subroutine green_sc
 
 end module mod_superconductivity

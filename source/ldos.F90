@@ -38,9 +38,9 @@ subroutine ldos()
                call writeLDOS(e)
             end do
          else
-            call MPI_Recv(e,     1            ,MPI_DOUBLE_PRECISION,0,1000,FreqComm(2),stat,ierr)
-            call MPI_Recv(ldosd, s%nAtoms*nOrb,MPI_DOUBLE_PRECISION,0,1100,FreqComm(2),stat,ierr)
-            call MPI_Recv(ldosu, s%nAtoms*nOrb,MPI_DOUBLE_PRECISION,0,1200,FreqComm(2),stat,ierr)
+            call MPI_Send(e,     1            ,MPI_DOUBLE_PRECISION,0,1000,FreqComm(2),stat,ierr)
+            call MPI_Send(ldosd, s%nAtoms*nOrb,MPI_DOUBLE_PRECISION,0,1100,FreqComm(2),stat,ierr)
+            call MPI_Send(ldosu, s%nAtoms*nOrb,MPI_DOUBLE_PRECISION,0,1200,FreqComm(2),stat,ierr)
          end if
       end if
       call MPI_Barrier(FieldComm, ierr)

@@ -10,7 +10,7 @@ contains
     use mod_magnet,         only: l_matrix,lb,sb,allocate_magnet_variables,deallocate_magnet_variables,rho0,rhod0
     use mod_SOC,            only: ls,allocLS
     use adaptiveMesh,       only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh
-    use mod_parameters,     only: nOrb,kp_in,kptotal_in,output,eta,leigenstates,lkpoints
+    use mod_parameters,     only: nOrb,kp_in,kptotal_in,output,eta,leigenstates,lkpoints,dimH
     use mod_polyBasis,      only: read_basis
     use mod_mpi_pars,       only: myrank,FieldComm,rField,sField,rFreq,sFreq,FreqComm,abortProgram
     use Lattice,            only: initLattice
@@ -38,6 +38,9 @@ contains
       !------------------ Define the lattice structure -------------------
       call read_basis(trim(sys%Types(i)%Name), sys0(i))
       if(sys0(i)%nTypes/=1) call abortProgram("[calc_initial_Uterms] Not implemented for parameter file with more than 1 type of atom!")
+
+      !---------------------------- Dimensions -----------------------------
+      dimH = sys0(i)%nAtoms*nOrb*2
 
       !------------- Setting the number of nearest neighbors -------------
       sys0(i)%nStages = sys%nStages

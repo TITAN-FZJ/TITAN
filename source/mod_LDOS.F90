@@ -28,16 +28,21 @@ contains
   subroutine createLDOSFiles()
     use mod_parameters, only: output
     use mod_System,     only: s => sys
+    use mod_io,         only: write_header
     implicit none
-    character(len=400) :: varm
+    character(len=400) :: varm,title(size(filename))
     integer            :: i, iw, j
+
+    title(1:2) = "#    energy      ,  LDOS SUM       ,  LDOS S         ,  LDOS P         ,  LDOS D         "
+    title(3:4) = "#    energy      ,  LDOS S         ,  LDOS PX        ,  LDOS PY        ,  LDOS PZ        ,  LDOS DXY       ,  LDOS DYZ       ,  LDOS DZX       ,  LDOS DX2       ,  LDOS DZ2       "
 
     do i = 1, s%nAtoms
       do j = 1, size(filename)
         iw = 1000 + (i-1) * size(filename) + j
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_site=',i0,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%info),trim(output%BField),trim(output%SOC)
         open (unit=iw, file=varm,status='replace', form='formatted')
-        write(unit=iw, fmt="('#   energy      ,  LDOS SUM        ,  LDOS S          ,  LDOS P          ,  LDOS T2G        ,  LDOS EG         ')")
+        call write_header(iw,title(j),s%Ef)
+        ! write(unit=iw, fmt="('#   energy      ,  LDOS SUM        ,  LDOS S          ,  LDOS P          ,  LDOS T2G        ,  LDOS EG         ')")
         close(unit=iw)
       end do
     end do

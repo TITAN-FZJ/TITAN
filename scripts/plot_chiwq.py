@@ -29,7 +29,6 @@ mpl.rcParams['legend.edgecolor'] = 'inherit'
 mpl.rcParams['legend.handlelength'] = 2
 mpl.rcParams["font.weight"] = "bold"
 mpl.rcParams["axes.labelweight"] = "bold"
-ry2mev = 1.0
 
 
 ry2mev = 13605.7 # Conversion of energy units
