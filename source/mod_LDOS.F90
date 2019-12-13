@@ -26,9 +26,10 @@ contains
   end subroutine deallocateLDOS
 
   subroutine createLDOSFiles()
-    use mod_parameters, only: output
-    use mod_System,     only: s => sys
-    use mod_io,         only: write_header
+    use mod_parameters,        only: output
+    use mod_System,            only: s => sys
+    use mod_io,                only: write_header
+    use mod_superconductivity, only: lsuperCond
     implicit none
     character(len=400) :: varm,title(size(filename))
     integer            :: i, iw, j
@@ -41,7 +42,8 @@ contains
         iw = 1000 + (i-1) * size(filename) + j
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_site=',i0,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%info),trim(output%BField),trim(output%SOC)
         open (unit=iw, file=varm,status='replace', form='formatted')
-        call write_header(iw,title(j),s%Ef)
+        !                             if lsuperCond is true then it writes 0.0, otherwise it writes s%Ef
+        call write_header(iw,title(j),merge(0.0,s%Ef,lsuperCond))
         ! write(unit=iw, fmt="('#   energy      ,  LDOS SUM        ,  LDOS S          ,  LDOS P          ,  LDOS T2G        ,  LDOS EG         ')")
         close(unit=iw)
       end do

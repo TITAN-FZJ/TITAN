@@ -18,7 +18,7 @@ nSites=1
 
 ry2ev = 13.6
 if(ry2ev != 1.0):
-  label = r'$E-E_F$ [eV]'
+  label = r'$E-E_F$ [Ry]'
 else:
   label = r'$E-E_F$ [Ry]'
 
@@ -47,73 +47,142 @@ else:
 
 fermi = 0.0
 
-with open(bsstruct, "r") as f:
- count = np.array([int(s) for s in f.readline().split()])
- fermi = float(f.readline())
- name = np.empty([count[0]], dtype=str)
- point = np.empty([count[0]], dtype=float)
- for i in range(count[0]):
-  name[i], point[i] = f.readline().split()
+def read_header(file):
+  with open(file, "r") as f:
+    count = [s for s in f.readline().split()]
+    npoints = int(count[1])
+    # print npoints
+    name = np.empty(npoints, dtype=str)
+    point = np.empty(npoints, dtype=float)
+    for i in range(npoints):
+      name[i], point[i] = f.readline().split()[1:]
+      # print name[i], point[i]
 
- table = np.loadtxt(f)
- data = []
+    Ef_line = f.readline().split()
+    fermi = None
+    if "Ef" in Ef_line[1]:
+      fermi = float(Ef_line[2])
+      # print fermi
+  return npoints, name, point, fermi
 
- for i, dat in enumerate(table):
-  #if( ( i % 25 == 0 )):
-  for j in range(18*nSites):
-   data.append([dat[0],dat[1+j]])
+def read_data(filename):
+  # open a file using with statement
+  data = []
+  with open(filename,'r') as file:
+    for line in file:
+      # check if the current line
+      # starts with "#"
+      if not (line.startswith("#") or line.startswith(" #")):
+        data.append([float(x) for x in line.split()])
+  ndata = np.array(data)
+  return ndata
 
- table = np.array(data)
+def read_header_ldos(file):
+   with open(file, "r") as f:
+     Ef_line = f.readline().split()
+     fermi = None
+     if "Ef" in Ef_line[1]:
+       fermi = float(Ef_line[2])
+       # print fermi
+   return fermi
 
- ax[1].set_xticks(point)
- ax[1].set_xticklabels(name)
- for i in point:
-  ax[1].axvline(x=i, color='k', linewidth=0.75)
- ax[1].axhline(y=0.0, xmin=point[0], xmax=point[count[0]-1], color='k', linestyle='--', linewidth=0.75)
+def read_data_ldos(filename):
+  # open a file using with statement
+  data = []
+  with open(filename,'r') as file:
+    for line in file:
+      # check if the current line
+      # starts with "#"
+      if not (line.startswith("#") or line.startswith(" #")):
+        data.append([float(x) for x in line.split()])
+  ndata = np.array(data)
+  return ndata
+
+npoints, name, point, fermi = read_header(sys.argv[1])
+table = read_data(sys.argv[1])
+fermi_ldos = read_header_ldos(sys.argv[2])
+
+ndatau=read_data_ldos(sys.argv[2])
+ndatad=read_data_ldos(sys.argv[3])
+
+print(table)
+
+print(npoints, name, point, fermi)
+
+# with open(bsstruct, "r") as f:
+#  count = np.array([int(s) for s in f.readline().split()[-2:]])
+#  # fermi = float(f.readline())
+#  # name = np.empty([count[0]], dtype=str)
+#  # point = np.empty([count[0]], dtype=float)
+#  for i in range(count[0]):
+#   name[i], point[i] = f.readline().split()[-2:]
+#
+#  table = np.loadtxt(f)
+#  data = []
+#
+#  for i, dat in enumerate(table):
+#   #if( ( i % 25 == 0 )):
+#   for j in range(18*nSites):
+#    data.append([dat[0],dat[1+j]])
+#
+#  table = np.array(data)
+#
+ax[1].set_xticks(point)
+ax[1].set_xticklabels(name)
+for i in point:
+    ax[1].axvline(x=i, color='k', linewidth=0.75)
+ax[1].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--', linewidth=0.75)
  #ax[1].axhline(y=0.0, xmin=point[0], xmax=point[count[0]-1], color='k', linestyle='--')
 
  # for i in range(2,19):
  #  ax2.scatter(table[:,0],[(a-fermi) for a in table[:,i]], marker='.', c='k', s=0.2)
- ax[1].scatter(table[:,0],[(a-fermi)*ry2ev for a in table[:,1]], marker='.', c='k', s=1.0)
+if (fermi == None): # susceptibility
+  ax[1].plot(table[:,1],-1.0/table[:,2])
+else: # band structure
+      # axs[0,i].plot(table[:,0],table[:,(table.shape[1]-1)/2+1:]-fermi, color='r', linewidth=1.0, linestyle='-')
+      # axs[0,i].plot(table[:,0],table[:,1:(table.shape[1]-1)/2] + fermi, color='k', linewidth=1.0, linestyle='-')
+  ax[1].plot(table[:,0],table[:,(table.shape[1]-1)/2+1:], color='r', linewidth=1.0, linestyle='-')
+  ax[1].plot(table[:,0],table[:,1:(table.shape[1]-1)/2+1], color='k', linewidth=1.0, linestyle='-')
 
- if(ry2ev != 1.0):
-  ax[1].set_ylim([-12.0,9])
-  ax[1].set_yticks([-12, -8, -4, 0, 4, 8])
- else:
-  ax[1].set_ylim([-1.0,0.7])
+# if(ry2ev != 1.0):
+#     # ax[1].set_ylim([-12.0,9])
+#     # ax[1].set_yticks([-12, -8, -4, 0, 4, 8])
+# else:
+#     # ax[1].set_ylim([-1.0,0.7])
 
- ax[1].tick_params(axis='y', direction='in', left=True, right=True)
+ax[1].tick_params(axis='y', direction='in', left=True, right=True)
 
  # ax2.set_title("TITAN")
- ax[1].set_xlim([point[0],point[count[0]-1]])
+ax[1].set_xlim([point[0],point[npoints-1]])
 
-if(len(sys.argv)==4):
+# if(len(sys.argv)==4):
+#
+#   datau = np.loadtxt(ldosu)
+#   datau = datau[datau[:,0].argsort()]
+x = ndatau[:,0]
+for i in range(1,len(ndatau[0,:])):
+    ax[0].plot(-ndatau[:,i],(x-fermi_ldos), color=colors[i-1], label=legends[i-1],marker=1,markersize=1)
+#
+#   datad = np.loadtxt(ldosd)
+#   datad = datad[datad[:,0].argsort()]
+x = ndatad[:,0]
+for i in range(1,len(ndatad[0,:])):
+    ax[2].plot(ndatad[:,i],(x-fermi_ldos), color=colors[i-1],marker=1,markersize=1)
+#
+a1 = max(ndatau[:,1])
+a2 = max(ndatad[:,1])
+# max_ldos = max(a1,a2)
+# xlim = 1.1*abs(max_ldos)
+# ax[2].set_xlim([0.0,xlim])
+# ax[0].set_xlim([-xlim,0.0])
+ax[1].set_ylim([-2,2])
 
-  datau = np.loadtxt(ldosu)
-  datau = datau[datau[:,0].argsort()]
-  x = datau[:,0]
-  for i in range(1,len(datau[0,:])):
-    ax[0].plot(-datau[:,i]/ry2ev,(x-fermi)*ry2ev, color=colors[i-1], label=legends[i-1])
+ax[2].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--', linewidth=0.75)
+ax[0].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--', linewidth=0.75)
 
-  datad = np.loadtxt(ldosd)
-  datad = datad[datad[:,0].argsort()]
-  x = datad[:,0]
-  for i in range(1,len(datad[0,:])):
-    ax[2].plot(datad[:,i]/ry2ev,(x-fermi)*ry2ev, color=colors[i-1])
-
-  a1 = max(datau[:,1]/ry2ev)
-  a2 = max(datad[:,1]/ry2ev)
-  max_ldos = max(a1,a2)
-  xlim = 1.1*abs(max_ldos)
-  ax[2].set_xlim([0.0,xlim])
-  ax[0].set_xlim([-xlim,0.0])
-
-  ax[2].axhline(y=0.0, xmin=point[0], xmax=point[count[0]-1], color='k', linestyle='--', linewidth=0.75)
-  ax[0].axhline(y=0.0, xmin=point[0], xmax=point[count[0]-1], color='k', linestyle='--', linewidth=0.75)
-
-  ax[0].legend(loc=3, prop={'size': 7})
-
-#tikz_save("plot.tex", figurewidth="10cm", figureheight="10cm")
+ax[0].legend(loc=3, prop={'size': 7})
+#
+# #tikz_save("plot.tex", figurewidth="10cm", figureheight="10cm")
 plt.savefig(filename)
 
 plt.show()

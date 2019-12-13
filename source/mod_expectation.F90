@@ -249,21 +249,24 @@ contains
     complex(double), dimension(nOrb,s%nAtoms), intent(out) :: expec_p
     complex(double), dimension(nOrb,s%nAtoms), intent(out) :: expec_singlet
 
-    integer                                     :: i, n, sigma, sigmap, mu
-    real(double)                                :: f_n
-    complex(double)                             :: evec(dim)
-    integer                                     :: offset
+    real(double)    :: fermi_surface
+    integer         :: i, n, sigma, sigmap, mu
+    real(double)    :: f_n
+    complex(double) :: evec(dim)
+    integer         :: offset
 
     expec_0 = 0.d0
     expec_z = 0.d0
     expec_p = cZero
     expec_singlet = cZero
 
-    offset = merge(dimE,0,lsupercond)
+    offset = merge(dimE,0,lsuperCond)
+    !If lsupercond is true then fermi_surface is 0.0 otherwise is s%Ef
+    fermi_surface = merge(0.0,s%Ef,lsuperCond)
 
     do n = 1, dim
 
-      f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval(n))
+      f_n = fd_dist(fermi_surface, 1.d0/(pi*eta), eval(n))
 
       ! Getting eigenvector and its transpose conjugate
       evec(:) = hk(:,n)
@@ -309,11 +312,12 @@ contains
   subroutine expec_val_n(s, dim, evec, eval, expec_0, expec_p, expec_z)
     !! Calculate the expectation value of the operators 1 (occupation), \sigma^+ and \sigma^z
     !! for a given state n (evec) with eigenenergy eval
-    use mod_f90_kind,      only: double
-    use mod_constants,     only: cOne,cZero,pi,pauli_mat
-    use mod_parameters,    only: nOrb, eta, isigmamu2n
-    use mod_distributions, only: fd_dist
-    use mod_system,        only: System
+    use mod_f90_kind,          only: double
+    use mod_constants,         only: cOne,cZero,pi,pauli_mat
+    use mod_parameters,        only: nOrb, eta, isigmamu2n
+    use mod_distributions,     only: fd_dist
+    use mod_system,            only: System
+    use mod_superconductivity, only: lsuperCond
     implicit none
 
     type(System),                              intent(in)  :: s
@@ -325,13 +329,16 @@ contains
 
     integer      :: i, sigma, sigmap, mu
     real(double) :: f_n
+    real(double) :: fermi_surface
 
     expec_0 = 0.d0
     expec_z = 0.d0
     expec_p = cZero
 
+    !If lsupercond is true then fermi_surface is 0.0 otherwise is s%Ef
+    fermi_surface = merge(0.0,s%Ef,lsuperCond)
     ! Fermi-Dirac:
-    f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval)
+    f_n = fd_dist(fermi_surface, 1.d0/(pi*eta), eval)
 
     do i = 1, s%nAtoms
       do mu = 1, nOrb
@@ -512,33 +519,36 @@ contains
 
   !   Calculates ground state quantities from eigenstates
   subroutine calcLGS_eigenstates()
-    use mod_f90_kind,      only: double
-    use mod_BrillouinZone, only: realBZ
-    use mod_constants,     only: pi,cZero
-    use mod_parameters,    only: nOrb,nOrb2,output,eta,isigmamu2n
-    use mod_System,        only: s => sys
-    use ElectricField,     only: EshiftBZ,ElectricFieldVector
-    use mod_magnet,        only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
-    use mod_distributions, only: fd_dist
-    use mod_tools,         only: itos
+    use mod_f90_kind,          only: double
+    use mod_BrillouinZone,     only: realBZ
+    use mod_constants,         only: pi,cZero
+    use mod_parameters,        only: nOrb,nOrb2,output,eta,isigmamu2n
+    use mod_System,            only: s => sys
+    use ElectricField,         only: EshiftBZ,ElectricFieldVector
+    use mod_magnet,            only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
+    use mod_distributions,     only: fd_dist
+    use mod_tools,             only: itos
+    use mod_superconductivity, only: lsuperCond
     use mod_mpi_pars
     implicit none
     integer                                        :: iz, info , n, i, mu, nu, sigma
     integer                                        :: lwork,dimH
-    real(double)                                   :: weight, kp(3), f_n
+    real(double)                                   :: weight, kp(3), f_n, fermi_surface
     complex(double), dimension(:,:,:), allocatable :: prod
     real(double),    dimension(:),     allocatable :: rwork(:), eval(:)
     complex(double),                   allocatable :: work(:), hk(:,:), evec(:)
 
     dimH  = (s%nAtoms)*nOrb2
     lwork = 21*dimH
+    !If lsupercond is true then fermi_surface is 0.0 otherwise is s%Ef
+    fermi_surface = merge(0.0,s%Ef,lsuperCond)
 
     allocate( hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),evec(dimH),work(lwork),prod(nOrb,nOrb,s%nAtoms) )
 
     !$omp parallel default(none) &
     !$omp& firstprivate(lwork) &
     !$omp& private(iz,n,i,sigma,mu,nu,kp,weight,hk,eval,f_n,evec,work,rwork,info) &
-    !$omp& shared(s,nOrb,dimH,output,realBZ,eta,isigmamu2n,prod,EshiftBZ,ElectricFieldVector)
+    !$omp& shared(s,nOrb,dimH,output,realBZ,eta,isigmamu2n,prod,EshiftBZ,ElectricFieldVector,fermi_surface)
 
     prod = cZero
     !$omp do reduction(+:prod) schedule(static)
@@ -555,7 +565,7 @@ contains
 
       eval_loop: do n = 1, dimH
         ! Fermi-Dirac:
-        f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval(n))
+        f_n = fd_dist(fermi_surface, 1.d0/(pi*eta), eval(n))
 
         ! Getting eigenvector and its transpose conjugate
         evec(:) = hk(:,n)

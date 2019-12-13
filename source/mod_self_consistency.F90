@@ -1033,11 +1033,12 @@ contains
 
   ! Writes the self-consistency results on the screen
   subroutine print_sc_results()
-    use mod_parameters, only: output
-    use mod_system,     only: s => sys
-    use mod_SOC,        only: SOC
-    use mod_magnet,     only: rho, mvec_cartesian, mp, mvec_spherical, &
-                              lxm, lym, lzm, ltheta, lphi, labs
+    use mod_parameters,        only: output
+    use mod_system,            only: s => sys
+    use mod_SOC,               only: SOC
+    use mod_magnet,            only: rho, mvec_cartesian, mp, mvec_spherical, &
+                                     lxm, lym, lzm, ltheta, lphi, labs
+    use mod_superconductivity, only: lsuperCond, singlet_coupling
     implicit none
     integer :: i
 
@@ -1047,6 +1048,13 @@ contains
     do i=1,s%nAtoms
       write(output%unit_loop,"(a,':',2x,'Ns(',i2.0,')=',f11.8,4x,'Np(',i2.0,')=',f11.8,4x,'Nd(',i2.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i, rho(1,i),i, sum(rho(2:4,i)),i, sum(rho(5:9,i))
     end do
+    if(lsupercond) then
+        write(output%unit_loop,"(11x,' ******** Superconducting gap parameter: ********')")
+        write(output%unit_loop,"(11x,' *** (Averages of the norms per orbital type) ***')")
+        do i=1,s%nAtoms
+          write(output%unit_loop,"(a,':',2x,'Ds(',i2.0,')=',f11.8,4x,'Dp(',i2.0,')=',f11.8,4x,'Dd(',i2.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i, abs(singlet_coupling(1,i)),i, (abs(singlet_coupling(2,i))+abs(singlet_coupling(3,i))+abs(singlet_coupling(4,i)))/3.0,i, (abs(singlet_coupling(5,i))+abs(singlet_coupling(6,i))+abs(singlet_coupling(7,i))+abs(singlet_coupling(8,i))+abs(singlet_coupling(9,i)))/5.0
+        end do
+    end if
     write(output%unit_loop,"(11x,' *********** Magnetization components: **********')")
     if(abs(sum(mp(:,:)))>1.d-8) then
       do i=1,s%nAtoms
