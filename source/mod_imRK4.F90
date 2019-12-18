@@ -223,41 +223,41 @@ contains
     real(double),    intent(in)  :: kp(3)
     complex(double), intent(out) :: hamilt_t(dimH,dimH), hamilt_0(dimH,dimH)
 
-    complex(double), dimension(dimH,dimH)  :: hk
-    complex(double), dimension(dimH,dimH)  :: ident
+    complex(double), dimension(dimH,dimH)  :: hk,hext_t
 
     ! Calculating the "ground state" Hamiltonian for a given k-point (with time-dependent expectation values included)
     call hamiltk(s,kp,hk)
 
-    ! building identity matrix I(dimH, dimH)
-    call build_identity(dimH,ident)
+    ! Builginf time dependent hamiltonian
+    call build_hext(s%nAtoms,t, hext_t)
 
     ! calculating the original hamiltonian H(t) without the eigenvalue term.
     hamilt_0 = hk + hext_t(s%nAtoms,t)
 
     ! Calculating the time-dependent Hamiltonian 
-    hamilt_t = hamilt_0 - ( eval * ident )
+    hamilt_t = hamilt_0 - ( eval * id )
 
     ! Checking if Hamiltonian is hermitian
-    !if( sum(abs(conjg(transpose(hamilt_t))-hamilt_t)) > 1.d-12 ) then
+    ! if( sum(abs(conjg(transpose(hamilt_t))-hamilt_t)) > 1.d-12 ) then
     !  write(*,"('[build_td_hamiltonian] Hamiltonian is not hermitian!')")
     !  stop
-    !end if
+    ! end if
+
   end subroutine build_td_hamiltonian
 
   !> build time dependent external perturbation Hamiltonian
   !> For a magnetic perturbation: H_ext(t)= S.B(t),  S= Pauli matricies
   !> For an electric perturbation: H_ext(t)= ((P-e*A)^2)/2*m, here only the linear term is implemented.
-  function hext_t(nAtoms,t)
+  subroutine build_hext(nAtoms,t,hext_t)
     use mod_f90_kind,         only: double
     use mod_constants,        only: cI,cZero
     use mod_imRK4_parameters, only: lelectric, hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
     use mod_System,           only: ia !, s => sys
     use mod_parameters,       only: nOrb,nOrb2,dimH
     implicit none
-    real(double)     :: t
-    integer          :: nAtoms
-    complex(double)  :: hext_t(dimH,dimH)
+    integer,         intent(in)  :: nAtoms
+    real(double),    intent(in)  :: t
+    complex(double), intent(out) :: hext_t(dimH,dimH)
 
     complex(double)  :: hext(nOrb2,nOrb2), temp(nOrb,nOrb)
     integer          :: i, j,  mu, nu
@@ -322,13 +322,13 @@ contains
                                    !> use A(t) not E(t)
             temp = dtdk(:,:,i,j) * ( (cos(hw_e*t) + sin(hw_e*t))* hE_0 )
             hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) = hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) + temp
-            hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) = hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) + temp
+            hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) = hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) + temp
           end do
         end do
       end if
     end if
 
-  end function hext_t
+  end subroutine build_hext
 
   !> subroutine to calculate the error in the step size control
   subroutine calculate_step_error(Yn,Yn_new,Yn_hat,ERR_kn)
@@ -443,5 +443,3 @@ contains
 
 
 end module mod_imRK4
-
-
