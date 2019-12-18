@@ -90,6 +90,9 @@ if(PLATFORM MATCHES jureca)
 elseif(PLATFORM MATCHES osx)
   set(TITAN_EXE titan_osx.exe)
   set(CMAKE_Fortran_COMPILER mpif90)
+elseif(PLATFORM MATCHES rwth)
+  set(TITAN_EXE titan_rwth.exe)
+  set(CMAKE_Fortran_COMPILER mpiifort)
 elseif(PLATFORM MATCHES booster)
   set(TITAN_EXE titan_booster.exe)
   set(CMAKE_Fortran_COMPILER mpiifort)
@@ -143,14 +146,14 @@ elseif(PLATFORM MATCHES booster)
                                               -I$ENV{HOME}/BoosterNAG/nag_interface_blocks
                                               -xMIC-AVX512
                                               -qopenmp)
-elseif(PLATFORM MATCHES RWTH)
-  target_link_libraries(${TITAN_EXE} -mkl $ENV{FLAGS_MATH_LINKER} -qopenmp)
+elseif(PLATFORM MATCHES rwth)
+  target_link_libraries(${TITAN_EXE} -mkl $ENV{FLAGS_NAG_LINKER} -qopenmp)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                               -fpp
                                               -DVERSION="${GIT_VERSION}"
-                                              -g
                                               -qopenmp
-                                              -mkl -$ENV{FLAGS_MATH_INCLUDE}
+                                              -mkl
+                                              $ENV{FLAGS_NAG_INCLUDE}
                                               -xHost)
 elseif(PLATFORM MATCHES iff)
   target_link_libraries(${TITAN_EXE} -mkl -L/usr/local/nag/lib -lnag -qopenmp)
