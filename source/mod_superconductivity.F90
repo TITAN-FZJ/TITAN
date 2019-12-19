@@ -12,11 +12,7 @@
 ! singlet coupling is expected to change at every step until it converges,
 ! therefore it is defined outside the subroutines so it can be called and
 ! modified from other modules
-!
-! IMPORTANT: For the moment some things are hard-coded, for example in the arrays
-! lambda, singlet_coupling, it is assumed that only one atom is present, and therefore
-! just nine orbitals in total are needed. Sometimes this is made explicit, for
-! example when calculating the expected values
+
 module mod_superconductivity
   use mod_f90_kind,       only: double
    implicit none
@@ -85,19 +81,7 @@ end subroutine allocate_super_variables
     ! Once this is done the remaining part is to populate the non-diagonal blocks
     ! of the hamiltonian. There are several ways to do it.
 
-    ! Later we can add conditional clauses that call or not this functions
-
     call bcs_pairing(sys, singlet_coupling,hk_sc)
-
-    ! call bcs_p_pairing(sys, 0, singlet_coupling(2), hk_sc)
-    ! call bcs_p_pairing(sys, 1, singlet_coupling(3), hk_sc)
-    ! call bcs_p_pairing(sys, 2, singlet_coupling(4), hk_sc)
-    !
-    ! call bcs_d_pairing(sys, 0, singlet_coupling(5), hk_sc)
-    ! call bcs_d_pairing(sys, 1, singlet_coupling(6), hk_sc)
-    ! call bcs_d_pairing(sys, 2, singlet_coupling(7), hk_sc)
-    ! call bcs_d_pairing(sys, 3, singlet_coupling(8), hk_sc)
-    ! call bcs_d_pairing(sys, 4, singlet_coupling(9), hk_sc)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Block used to print the hamiltonian
@@ -119,10 +103,6 @@ end subroutine allocate_super_variables
     !     write(*,*) "First section"
     !     write(*,*) "couplings ", singlet_coupling(1,1), singlet_coupling(1,2)
     ! end if
-
-    ! if(flag==23157) & stop
-
-    ! if(flag==46502) & stop
 
     ! flag = flag + 1
 
@@ -190,69 +170,11 @@ end subroutine allocate_super_variables
 
   end subroutine bcs_pairing
 
-  ! subroutine bcs_p_pairing(sys, label, delta_p, hk_sc)
-  !     use mod_f90_kind,       only: double
-  !     use mod_parameters,     only: nOrb2
-  !     use mod_system,         only: System, initHamiltkStride
-  !     use mod_constants,  only: cZero,cOne
-  !     implicit none
-  !
-  !     ! TODO put a restriction so label can only be in {0,1,2}
-  !
-  !     type(System),                              intent(in)  :: sys
-  !     ! "label" is a parameter to pick the specific p orbital (one of the 3) to
-  !     ! couple, it can be 0, 1, or 2
-  !     integer :: label, elecOrbs, indexJump
-  !     complex(double), intent(in) :: delta_p
-  !     complex(double), dimension(sys%nAtoms*nOrb2*2, sys%nAtoms*nOrb2*2), intent(inout) :: hk_sc
-  !
-  !     elecOrbs = sys%nAtoms*nOrb2 ! Number of up and down electron orbitals
-  !
-  !     ! Same idea to populate as in the s-pairing section above.
-  !
-  !     indexJump = 1 + label ! local variable, to find the p orbitals respect to s
-  !
-  !     hk_sc(1 + indexJump,elecOrbs + elecOrbs/2 + indexJump + 1 ) = -delta_p
-  !     hk_sc(elecOrbs/2 + indexJump + 1, elecOrbs + 1 + indexJump) = delta_p
-  !     hk_sc(elecOrbs + 1 + indexJump, elecOrbs/2 + indexJump + 1) = conjg(delta_p)
-  !     hk_sc(elecOrbs + elecOrbs/2 + indexJump + 1 ,1 + indexJump) = -conjg(delta_p)
-  !
-  ! end subroutine bcs_p_pairing
-  !
-  ! subroutine bcs_d_pairing(sys, label, delta_d, hk_sc)
-  !     use mod_f90_kind,       only: double
-  !     use mod_parameters,     only: kpoints, nOrb2
-  !     use mod_system,         only: System, initHamiltkStride
-  !     use mod_constants,  only: cZero,cOne
-  !     implicit none
-  !
-  !     ! TODO put a restriction so label can only be in {0,1,2,3,4}
-  !
-  !     type(System),                              intent(in)  :: sys
-  !     ! "label" is a parameter to pick the specific p orbital to couple, it can
-  !     ! be in {0,1,2,3,4}
-  !     integer :: label, elecOrbs, indexJump
-  !     complex(double), intent(in) :: delta_d
-  !     complex(double), dimension(sys%nAtoms*nOrb2*2, sys%nAtoms*nOrb2*2), intent(inout) :: hk_sc
-  !
-  !     elecOrbs = sys%nAtoms*nOrb2 ! Number of up and down electron orbitals
-  !
-  !     ! Same idea to populate as in the s-pairing section above.
-  !
-  !     indexJump = 4 + label ! local variable, to find the p orbitals respect to s
-  !
-  !     hk_sc(1 + indexJump,elecOrbs + elecOrbs/2 + indexJump+ 1) = -delta_d
-  !     hk_sc(elecOrbs/2 + indexJump + 1, elecOrbs + 1 + indexJump) = delta_d
-  !     hk_sc(elecOrbs + 1 + indexJump, elecOrbs/2 + indexJump + 1) = conjg(delta_d)
-  !     hk_sc(elecOrbs + elecOrbs/2 + indexJump+ 1,1 + indexJump) = -conjg(delta_d)
-  !
-  ! end subroutine bcs_d_pairing
-
   subroutine green_sc(er,ei,sys,kp,gf)
     use mod_f90_kind,   only: double
     use mod_constants,  only: cZero,cOne
     use mod_System,     only: ia_sc, System
-    use mod_parameters, only: nOrb2, offset, dimH
+    use mod_parameters, only: nOrb2, dimH
     implicit none
     integer     :: i,j,d
 
@@ -275,9 +197,28 @@ end subroutine allocate_super_variables
 
     call hamiltk_sc(sys,kp,hk)
 
+    !zaxpy performs gslab = gslab + (-cOne)*hk
+    !d*d si the dimension of the array
+    !both 1's are for the strides to use on each array
+    !for example we can add each second or third entry of the array
+    !on this case we just use every component
     call zaxpy(d*d,-cOne,hk,1,gslab,1)
-    ! !gslab(i,j) = gslab(i,j) - hk(i,j)
+
     call invers(gslab, d)
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !! Block to print
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! if(flag == 1) then
+    !     do i =1,dimH*superCond
+    !         do j = 1, dimH*superCond
+    !             write(*,*) real(gslab(i,j)), aimag(gslab(i,j))
+    !         end do
+    !     end do
+    !     stop
+    ! end if
+    !
+    ! flag = flag + 1
 
     ! Put the slab Green's function [A(nAtoms*36,nAtoms*36)] in the A(i,j,mu,nu) form
     !dir$ ivdep:loop
@@ -290,6 +231,7 @@ end subroutine allocate_super_variables
         gf(nOrb2+1:2*nOrb2,nOrb2+1:2*nOrb2,i,j) = gslab(ia_sc(3,i):ia_sc(4,i),ia_sc(3,j):ia_sc(4,j))
       end do
     end do
+
   end subroutine green_sc
 
 end module mod_superconductivity

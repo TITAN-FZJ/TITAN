@@ -9,9 +9,9 @@ subroutine ldos_energy(e,ldosu,ldosd)
   use mod_superconductivity, only: lsupercond, green_sc, superCond
   implicit none
   real(double), intent(in) :: e
-  real(double), dimension(s%nAtoms, nOrb), intent(out) :: ldosu, ldosd
+  real(double), dimension(s%nAtoms, nOrb*superCond), intent(out) :: ldosu, ldosd
   complex(double), dimension(nOrb2*superCond, nOrb2*superCond, s%nAtoms, s%nAtoms) :: gf
-  complex(double), dimension(s%nAtoms, nOrb) :: gfdiagu,gfdiagd
+  complex(double), dimension(s%nAtoms, nOrb*superCond) :: gfdiagu,gfdiagd
   real(double), dimension(3) :: kp
   real(double) :: weight
   integer :: i,mu,nu
@@ -42,8 +42,8 @@ subroutine ldos_energy(e,ldosu,ldosd)
          gfdiagu(i,mu) = - aimag(gf(mu,mu,i,i)) * weight
          gfdiagd(i,mu) = - aimag(gf(nu,nu,i,i)) * weight
          if(lsupercond) then
-             gfdiagu(i,mu) = gfdiagu(i,mu) - aimag(gf(mu+nOrb2,mu+nOrb2,i,i)) * weight
-             gfdiagd(i,mu) = gfdiagd(i,mu) - aimag(gf(nu+nOrb2,nu+nOrb2,i,i)) * weight
+             gfdiagu(i,mu+nOrb) = - aimag(gf(mu+nOrb2,mu+nOrb2,i,i)) * weight
+             gfdiagd(i,mu+nOrb) = - aimag(gf(nu+nOrb2,nu+nOrb2,i,i)) * weight
          end if
       end do
    end do

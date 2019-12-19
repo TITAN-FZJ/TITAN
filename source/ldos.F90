@@ -4,6 +4,7 @@ subroutine ldos()
   use mod_parameters,    only: nOrb, output, nEner1, emin, deltae,laddresults
   use mod_system,        only: s => sys
   use mod_BrillouinZone, only: realBZ
+  use mod_superconductivity, only: superCond
   use mod_LDOS
   use mod_mpi_pars
   implicit none
@@ -30,8 +31,8 @@ subroutine ldos()
            do j = 1, sFreq(2)
              if (j /= 1) then
                call MPI_Recv(e,     1            ,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE  ,1000,FreqComm(2),stat,ierr)
-               call MPI_Recv(ldosd, s%nAtoms*nOrb,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1100,FreqComm(2),stat,ierr)
-               call MPI_Recv(ldosu, s%nAtoms*nOrb,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1200,FreqComm(2),stat,ierr)
+               call MPI_Recv(ldosd, s%nAtoms*nOrb*superCond,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1100,FreqComm(2),stat,ierr)
+               call MPI_Recv(ldosu, s%nAtoms*nOrb*superCond,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1200,FreqComm(2),stat,ierr)
                end if
 
                ! Writing into files
@@ -39,8 +40,8 @@ subroutine ldos()
             end do
          else
             call MPI_Send(e,     1            ,MPI_DOUBLE_PRECISION,0,1000,FreqComm(2),stat,ierr)
-            call MPI_Send(ldosd, s%nAtoms*nOrb,MPI_DOUBLE_PRECISION,0,1100,FreqComm(2),stat,ierr)
-            call MPI_Send(ldosu, s%nAtoms*nOrb,MPI_DOUBLE_PRECISION,0,1200,FreqComm(2),stat,ierr)
+            call MPI_Send(ldosd, s%nAtoms*nOrb*superCond,MPI_DOUBLE_PRECISION,0,1100,FreqComm(2),stat,ierr)
+            call MPI_Send(ldosu, s%nAtoms*nOrb*superCond,MPI_DOUBLE_PRECISION,0,1200,FreqComm(2),stat,ierr)
          end if
       end if
       call MPI_Barrier(FieldComm, ierr)

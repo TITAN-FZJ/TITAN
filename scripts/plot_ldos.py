@@ -6,6 +6,7 @@ from matplotlib import rc                     # Improve math fonts
 from mpl_toolkits.axes_grid1 import AxesGrid  # Grid plotting
 import matplotlib.colors as colors            # Color selection and manipulation
 import scipy.interpolate                      # Interpolation library
+import argparse
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 ## for Palatino and other serif fonts use:
 # rc('font',**{'family':'serif','serif':['Palatino']})
@@ -32,10 +33,16 @@ mpl.rcParams["axes.labelweight"] = "bold"
 
 
 ry2ev = 1.0
-# ry2ev = 13.6057 # Conversion of energy units
 
-# plt.xkcd()
+parser = argparse.ArgumentParser(description="Parse bool")
+parser.add_argument("fileu", help="File to plot")
+parser.add_argument("filed", help="File to plot")
+parser.add_argument("--superconductivity", default=False, action="store_true" , help="Flag to plot the bands as for superconductors")
+parser.add_argument("--mev", default=False, action="store_true" , help="Plot superconductor bands in the same plot")
+args = parser.parse_args()
 
+if args.mev:
+    ry2ev = 13.6057*1000 # Conversion of energy units
 
 
 ################################################################################
@@ -69,22 +76,28 @@ def read_data(filename):
 if __name__ == "__main__":
 
   if(ry2ev != 1.0):
-    labelx = r'$E-E_F$ [eV]'
-    labely = r'LDOS [states/eV]'
+    labelx = r'$E-E_F$ [meV]'
+    labely = r'LDOS [states/meV]'
   else:
     labelx = r'$E-E_F$ [Ry]'
     labely = r'LDOS [states/Ry]'
 
-  filenameu = sys.argv[1]
-  filenamed = sys.argv[2]
+  filenameu = args.fileu
+  filenamed = args.filed
 
   # Getting fermi energy from ldos up file
   fermi = read_header(filenameu)
 
-  # colors = brewer2mpl.get_map('Set1', 'qualitative', 5).mpl_colors
-  colors = ['#e41a1c','#377eb8','#4daf4a','#984ea3','#a65628']
-  # colors = np.array(['k', 'g', 'r', 'b']) # The colors you wish to cycle through
-  legends = np.array(['Total', 's', 'p', 'd'])
+  if args.superconductivity:
+      # colors = brewer2mpl.get_map('Set1', 'qualitative', 5).mpl_colors
+      colors = ['#e41a1c','#377eb8','#4daf4a','#984ea3','#a65628', '#b98600', '#000000']
+      # colors = np.array(['k', 'g', 'r', 'b']) # The colors you wish to cycle through
+      legends = np.array(['Total', r'$u_s$', r'$u_p$', r'$u_d$',r'$v_s$', r'$v_p$', r'$v_d$'])
+  else:
+      # colors = brewer2mpl.get_map('Set1', 'qualitative', 5).mpl_colors
+      colors = ['#e41a1c','#377eb8','#4daf4a','#984ea3','#a65628']
+      # colors = np.array(['k', 'g', 'r', 'b']) # The colors you wish to cycle through
+      legends = np.array(['Total', 's', 'p', 'd'])
 
   plt.axhline(0.0, color='k', linewidth=0.75)
 
@@ -100,6 +113,7 @@ if __name__ == "__main__":
   datad = datad[datad[:,0].argsort()]
   x = datad[:,0]
   for i in range(1,len(datad[0,:])):
+    # plt.plot((x-fermi)*ry2ev,datad[:,i]/ry2ev)
     plt.plot((x-fermi)*ry2ev,-datad[:,i]/ry2ev, color=colors[i-1])
 
   a1 = max(datau[:,1]/ry2ev)
@@ -112,14 +126,14 @@ if __name__ == "__main__":
   plt.xlabel(labelx)
   plt.ylabel(labely)
   plt.title('LDOS')
-  plt.legend()
+  plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
   # if(Ef != 0.0):
   plt.axvline(0.0, color='k', linestyle='--', linewidth=0.75)
 
   # fig = plt.gcf()
   # fig.set_size_inches(3., 2.2)
-  plt.savefig('LDOS.pdf')
+  plt.savefig('LDOS.pdf', bbox_inches='tight')
   # plt.savefig(filename,transparent=True,dpi=2540, bbox_inches='tight')
 
   plt.show()
