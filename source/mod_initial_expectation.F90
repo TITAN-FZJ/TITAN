@@ -60,7 +60,7 @@ contains
 
 !write(*,*) "inside initial terms ", singlet_coupling
       !---------- Generating k points for real axis integration ----------
-      select case(sys0(i)%Types(i)%isysdim)
+      select case(sys0(i)%Types(1)%isysdim)
       case(3)
         sys0(i)%isysdim = 3
         realBZ % nkpt_x = kp_in(1)
