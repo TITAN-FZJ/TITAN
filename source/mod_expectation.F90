@@ -285,6 +285,7 @@ contains
 
   end subroutine expec_val_n
 
+
   subroutine calcLGS()
     !! Calculates the expectation value of the orbital angular momentum in the ground state
     use mod_parameters,    only: output, leigenstates
@@ -443,6 +444,90 @@ contains
     deallocate(gupgd)
   end subroutine calcLGS_greenfunction
 
+
+!! Calculate the expectation value of the orbital momentum in the propagated states:
+subroutine expec_L_n(s, dim, evec, eval, lxm, lxpm, lym, lypm, lzm, lzpm)
+  use mod_f90_kind,      only: double
+  use mod_constants,     only: pi
+  use mod_parameters,    only: nOrb,nOrb2,output,eta,isigmamu2n
+  use mod_System,        only: system
+  use ElectricField,     only: ElectricFieldVector
+  use mod_magnet,        only: lxp,lyp,lzp,lx,ly,lz
+  use mod_distributions, only: fd_dist
+  implicit none 
+  type(System),                         intent(in)  :: s
+  real(double),                         intent(in)  :: eval
+  integer,                              intent(in)  :: dim
+  real(double),    dimension(s%nAtoms), intent(out) :: lxm, lxpm, lym, lypm, lzm, lzpm
+  complex(double), dimension(dim),      intent(in)  :: evec
+  integer                                           :: i, mu, nu, sigma
+  real(double)                                      :: f_n
+  complex(double)                                   :: prod
+
+  lxm  = 0.d0
+  lym  = 0.d0
+  lzm  = 0.d0
+  lxpm = 0.d0
+  lypm = 0.d0
+  lzpm = 0.d0
+
+  ! Fermi-Dirac:
+  f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval)
+
+  sites_loop: do i = 1, s%nAtoms
+    do sigma = 1, 2
+      do nu = 1, nOrb
+        do mu = 1, nOrb
+          prod = f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,nu))
+          lxm (i) = lxm (i) + prod*lx (mu,nu  ) !> angular momentum at atomic site (i)
+          lym (i) = lym (i) + prod*ly (mu,nu  )
+          lzm (i) = lzm (i) + prod*lz (mu,nu  )
+          lxpm(i) = lxpm(i) + prod*lxp(mu,nu,i)
+          lypm(i) = lypm(i) + prod*lyp(mu,nu,i)
+          lzpm(i) = lzpm(i) + prod*lzp(mu,nu,i)
+        end do
+      end do
+    end do
+  end do sites_loop
+
+end subroutine expec_L_n
+
+
+!! Calculate the expectation value of the time-dependent Hamiltonian in the propagated states
+subroutine expec_H_n(s, kp, t, dim, evec, eval, E_0)
+  use mod_f90_kind,          only: double
+  use mod_constants,     only: pi
+  use mod_parameters,    only: nOrb,nOrb2,output,eta
+  use mod_System,        only: system
+  use mod_distributions, only: fd_dist
+  implicit none
+
+  type(System),                    intent(in)  :: s
+  integer,                         intent(in)  :: dim
+  complex(double), dimension(dim), intent(in)  :: evec
+  real(double),                    intent(in)  :: eval, t, kp(3)
+  integer                                      :: i, j
+  real(double)                                 :: f_n, expec_H_0, E_0
+  complex(double)                              :: prod
+  complex(double)                              :: hamilt_t(dim,dim)
+
+  ! Fermi-Dirac:
+  f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval)
+
+  call build_td_hamiltonian(s,t,kp,eval,hamilt_t)
+
+  E_0 = 0.d0
+
+  do i=0, dim
+    do j=0, dim
+      expec_H_0 = real( conjg( evec(i) ) * hamilt_t(i,j) * evec(j) )
+      E_0       =  E_0 + f_n * expec_H_0
+    end do 
+  end do
+  
+end subroutine expec_H_n
+
+
   !   Calculates ground state quantities from eigenstates
   subroutine calcLGS_eigenstates()
     use mod_f90_kind,      only: double
@@ -503,7 +588,7 @@ contains
             do nu = 1, nOrb
               do mu = 1, nOrb
                 prod = f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,nu))*weight
-                lxm (i) = lxm (i) + prod*lx (mu,nu  )
+                lxm (i) = lxm (i) + prod*lx (mu,nu  ) !> angular momentum at atomic site (i)
                 lym (i) = lym (i) + prod*ly (mu,nu  )
                 lzm (i) = lzm (i) + prod*lz (mu,nu  )
                 lxpm(i) = lxpm(i) + prod*lxp(mu,nu,i)
