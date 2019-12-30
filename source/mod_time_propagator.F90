@@ -318,8 +318,8 @@ contains
     allocate(output%observable(4))
     output%observable(1) = "occupation"
     output%observable(2) = "magnetization"
-    output%observable(3) = "AngularMomentum"
-    output%observable(4) = "Energy"
+    output%observable(3) = "Energy"
+    output%observable(4) = "AngularMomentum"
 
     if(lmagnetic) then
       output%time_field = "_magfield"
