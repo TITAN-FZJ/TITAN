@@ -500,6 +500,7 @@ subroutine expec_H_n(s, kp, t, dim, evec, eval, E_0)
   use mod_parameters,    only: nOrb,nOrb2,output,eta
   use mod_System,        only: system
   use mod_distributions, only: fd_dist
+  use mod_imRK4,         only: build_td_hamiltonian
   implicit none
 
   type(System),                    intent(in)  :: s
