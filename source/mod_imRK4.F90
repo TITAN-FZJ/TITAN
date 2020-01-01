@@ -231,8 +231,8 @@ contains
 
     ! building identity matrix I(dimH, dimH)
     call build_identity(dimH,ident)
-    ! Calculating the time-dependent Hamiltonian
-    hamilt_t = eval * ident - (hk + hext_t(s%nAtoms,t))
+    ! Calculating the time-dependent Hamiltonian 
+    hamilt_t =  hk + hext_t(s%nAtoms,t) - ( eval * ident )
 
     ! calculating the original hamiltonian H(t) without the eigenvalue term.
     hamilt_0 = hk + hext_t(s%nAtoms,t)
