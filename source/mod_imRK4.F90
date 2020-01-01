@@ -123,15 +123,15 @@ contains
     complex(double), dimension(dimH2), intent(in)  :: Z_k
     complex(double), dimension(dimH2), intent(out) :: Fun 
     real(double)                     :: t1, t2
-    complex(double)                  :: hamilt_t(dimH,dimH)
+    complex(double)                  :: hamilt_t(dimH,dimH), hamilt_0(dimH,dimH)
     complex(double), dimension(dimH) :: F1, F2   
 
     t1 = t + step * c1
-    call build_td_hamiltonian(s, t1, kp, eval, hamilt_t)
+    call build_td_hamiltonian(s, t1, kp, eval, hamilt_t, hamilt_0)
     F1 = -cI * matmul( hamilt_t , Z_k(1:dimH) + Yn )
 
     t2 = t + step * c2
-    call build_td_hamiltonian(s, t2, kp, eval, hamilt_t)
+    call build_td_hamiltonian(s, t2, kp, eval, hamilt_t, hamilt_0)
     F2 = -cI * matmul( hamilt_t , Z_k(dimH+1:dimH2) + Yn )
 
     Fun = [ F1, F2 ]
@@ -156,9 +156,9 @@ contains
     complex(double), dimension(dimH)      , intent(in)  :: Yn
     complex(double), dimension(dimH,dimH) , intent(out) :: Jacobian_t
 
-    complex(double), dimension(dimH,dimH)  :: hamilt_t,dHdc
+    complex(double), dimension(dimH,dimH)  :: hamilt_t, dHdc, hamilt_0
 
-    call build_td_hamiltonian(s, t, kp, eval, hamilt_t)
+    call build_td_hamiltonian(s, t, kp, eval, hamilt_t, hamilt_0)
     call build_term_Jacobian(s, eval, Yn, dHdc)
 
     Jacobian_t = -cI*(hamilt_t + dHdc)
@@ -212,7 +212,7 @@ contains
 
   !> build time dependent Hamiltonian for each kp 
   !> H(t) = hk + hext_t
-  subroutine build_td_hamiltonian(s,t,kp,eval,hamilt_t)
+  subroutine build_td_hamiltonian(s,t,kp,eval,hamilt_t, hamilt_0)
     use mod_f90_kind,   only: double
     use mod_system,     only: System
     use mod_parameters, only: dimH
@@ -221,7 +221,7 @@ contains
     type(System),    intent(in)  :: s
     real(double),    intent(in)  :: t, eval
     real(double),    intent(in)  :: kp(3)
-    complex(double), intent(out) :: hamilt_t(dimH,dimH)
+    complex(double), intent(out) :: hamilt_t(dimH,dimH), hamilt_0(dimH,dimH)
 
     complex(double), dimension(dimH,dimH)  :: hk
     complex(double), dimension(dimH,dimH)  :: ident
@@ -233,6 +233,9 @@ contains
     call build_identity(dimH,ident)
     ! Calculating the time-dependent Hamiltonian
     hamilt_t = eval * ident - (hk + hext_t(s%nAtoms,t))
+
+    ! calculating the original hamiltonian H(t) without the eigenvalue term.
+    hamilt_0 = hk + hext_t(s%nAtoms,t)
 
     ! Checking if Hamiltonian is hermitian
     if( sum(abs(conjg(transpose(hamilt_t))-hamilt_t)) > 1.d-12 ) then

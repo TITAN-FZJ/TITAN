@@ -510,18 +510,19 @@ subroutine expec_H_n(s, kp, t, dim, evec, eval, E_0)
   integer                                      :: i, j
   real(double)                                 :: f_n, expec_H_0, E_0
   complex(double)                              :: prod
-  complex(double)                              :: hamilt_t(dim,dim)
+  complex(double)                              :: hamilt_t(dim,dim), hamilt_0(dim,dim)
 
   ! Fermi-Dirac:
   f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval)
 
-  call build_td_hamiltonian(s,t,kp,eval,hamilt_t)
+  call build_td_hamiltonian(s,t,kp,eval,hamilt_t,hamilt_0)
 
   E_0 = 0.d0
 
   do i=0, dim
     do j=0, dim
-      expec_H_0 = real( conjg( evec(i) ) * hamilt_t(i,j) * evec(j) )
+      ! expec_H_0 = real( conjg( evec(i) ) * hamilt_t(i,j) * evec(j) )
+      expec_H_0 = real( conjg( evec(i) ) * hamilt_0(i,j) * evec(j) )
       E_0       =  E_0 + f_n * expec_H_0
     end do 
   end do
