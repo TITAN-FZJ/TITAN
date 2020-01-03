@@ -1,3 +1,9 @@
+################################################################################
+# This script with all its options is to be run like this
+# ipython <script_location> <band_file> <ldosu_file> <ldosd_file> -- --superconductivity --mev --title="desired title"
+# the arguments starting with "--" are optional and can be ommited
+################################################################################
+
 import numpy as np
 import matplotlib.pyplot as plt
 #from matplotlib2tikz import save as tikz_save
@@ -22,6 +28,7 @@ parser.add_argument("fileu", help="File to plot")
 parser.add_argument("filed", help="File to plot")
 parser.add_argument("--superconductivity", default=False, action="store_true" , help="Flag to plot the bands as for superconductors")
 parser.add_argument("--mev", default=False, action="store_true" , help="Plot superconductor bands in the same plot")
+parser.add_argument("--title", action="store", dest="title", default="")
 args = parser.parse_args()
 
 ry2ev = 1.0
@@ -52,6 +59,10 @@ ldosd = args.filed
 filename = 'BS_LDOS.pdf'
 fig, ax = plt.subplots(1,3, sharey=True, gridspec_kw = {'width_ratios':[1,4,1]})
 fig.subplots_adjust(wspace=0.15)
+
+if args.title != "":
+    fig.suptitle(args.title)
+
 ax[0].tick_params(axis='y', direction='in', left=True, right=True)
 ax[0].set_ylabel(label)
 ax[2].tick_params(axis='y', direction='in', left=True, right=True)
