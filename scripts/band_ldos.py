@@ -29,15 +29,17 @@ parser.add_argument("filed", help="File to plot")
 parser.add_argument("--superconductivity", default=False, action="store_true" , help="Flag to plot the bands as for superconductors")
 parser.add_argument("--mev", default=False, action="store_true" , help="Plot superconductor bands in the same plot")
 parser.add_argument("--title", action="store", dest="title", default="")
+parser.add_argument("--onlyS", default=False, action="store_true" , help="Plot only the s orbital in the LDOS")
+parser.add_argument("--gaps", default=False, action="store_true" , help="Plot just around 0 to check the gaps")
 args = parser.parse_args()
 
-ry2ev = 1.0
+ry2ev = 13.6057
 
 if args.mev:
     ry2ev = 13.6057*1000 # Conversion of energy units
 
 if(ry2ev != 1.0):
-  label = r'$E-E_F$ [meV]'
+  label = r'$E-E_F$ [eV]'
 else:
   label = r'$E-E_F$ [Ry]'
 
@@ -61,10 +63,10 @@ fig, ax = plt.subplots(1,3, sharey=True, gridspec_kw = {'width_ratios':[1,4,1]})
 fig.subplots_adjust(wspace=0.15)
 
 if args.title != "":
-    fig.suptitle(args.title)
+    fig.suptitle(args.title,fontsize=24)
 
 ax[0].tick_params(axis='y', direction='in', left=True, right=True)
-ax[0].set_ylabel(label)
+ax[0].set_ylabel(label, fontsize=14)
 ax[2].tick_params(axis='y', direction='in', left=True, right=True)
 
 
@@ -140,8 +142,11 @@ ax[1].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle=
 if (fermi == None): # susceptibility
   ax[1].plot(table[:,1],-1.0/table[:,2])
 else: # band structure
-  ax[1].plot(table[:,0],table[:,(table.shape[1]-1)/2+1:]*ry2ev, color='r', linewidth=1.0, linestyle='-')
-  ax[1].plot(table[:,0],table[:,1:(table.shape[1]-1)/2+1]*ry2ev, color='k', linewidth=1.0, linestyle='-')
+  if args.superconductivity:
+      ax[1].plot(table[:,0],table[:,(table.shape[1]-1)/2+1:]*ry2ev-fermi_ldos*ry2ev, color='r', linewidth=1.0, linestyle='-')
+      ax[1].plot(table[:,0],table[:,1:(table.shape[1]-1)/2+1]*ry2ev-fermi_ldos*ry2ev, color='k', linewidth=1.0, linestyle='-')
+  else:
+      ax[1].plot(table[:,0],table[:,1:]*ry2ev-fermi_ldos*ry2ev, color='k', linewidth=1.0, linestyle='-')
 
 ax[1].tick_params(axis='y', direction='in', left=True, right=True)
 
@@ -149,25 +154,64 @@ ax[1].set_xlim([point[0],point[npoints-1]])
 
 x = ndatau[:,0]
 
-for i in range(1,len(ndatau[0,:])):
-    ax[0].plot(-ndatau[:,i]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[i-1], label=legends[i-1],marker=1,markersize=1)
+if args.onlyS:
+    ax[0].plot(-ndatau[:,2]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[2-1], label=legends[2-1],marker=1,markersize=1)
+    if args.superconductivity:
+        ax[0].plot(-ndatau[:,5]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[5-1], label=legends[5-1],marker=1,markersize=1)
+        ax[0].plot(-ndatau[:,5]/ry2ev - ndatau[:,2]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[1-1], label="sum",marker=1,markersize=1)
+else:
+    for i in range(1,len(ndatau[0,:])):
+        # ax[0].plot(-ndatau[:,i]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[i-1], label=legends[i-1],marker=1,markersize=1)
+        ax[0].plot(-ndatau[:,i]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[i-1], label=legends[i-1],marker=1,markersize=1)
+
+
 
 x = ndatad[:,0]
-for i in range(1,len(ndatad[0,:])):
-    ax[2].plot(ndatad[:,i]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[i-1],marker=1,markersize=1)
+if args.onlyS:
+    ax[2].plot(ndatad[:,2]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[2-1], label=legends[2-1],marker=1,markersize=1)
+    if args.superconductivity:
+        ax[2].plot(ndatad[:,5]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[5-1], label=legends[5-1],marker=1,markersize=1)
+        ax[2].plot(ndatad[:,5]/ry2ev + ndatad[:,2]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[1-1], label="sum",marker=1,markersize=1)
+else:
+    for i in range(1,len(ndatad[0,:])):
+        # ax[2].plot(ndatad[:,i]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[i-1],marker=1,markersize=1)
+        ax[2].plot(ndatad[:,i]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[i-1],marker=1,markersize=1)
+
 #
 a1 = max(ndatau[:,1]/ry2ev)
 a2 = max(ndatad[:,1]/ry2ev)
+
 max_ldos = max(a1,a2)
 xlim = 1.1*abs(max_ldos)
-ax[2].set_xlim([0.0,xlim])
-ax[0].set_xlim([-xlim,0.0])
-ax[1].set_ylim([(x-fermi_ldos)[0]*ry2ev,(x-fermi_ldos)[-1]*ry2ev])
+if args.superconductivity:
+    # ax[2].set_xlim([0.0,xlim])
+    # ax[0].set_xlim([-xlim,0.0])
+    if args.gaps:
+        # ax[2].set_xlim([0.0,xlim])
+        # ax[0].set_xlim([-1.5,0.0])
+        ax[1].set_ylim([-0.2,0.2])
+    else:
+        ax[1].set_ylim([(x-fermi_ldos)[0]*ry2ev,(x-fermi_ldos)[-1]*ry2ev])
+else:
+    ax[2].set_xlim([0.0,xlim])
+    ax[0].set_xlim([-xlim,0.0])
+    ax[1].set_ylim([(x-fermi_ldos)[0]*ry2ev,(x-fermi_ldos)[-1]*ry2ev])
+#
+# ax[2].axhline(y=1000.0, xmin=point[0], xmax=point[npoints-1], color='b', linestyle='--', linewidth=0.75)
+# ax[2].axhline(y=-1000.0, xmin=point[0], xmax=point[npoints-1], color='b', linestyle='--', linewidth=0.75)
+#
+# ax[0].axhline(y=1000.0, xmin=point[0], xmax=point[npoints-1], color='b', linestyle='--', linewidth=0.75)
+# ax[0].axhline(y=-1000.0, xmin=point[0], xmax=point[npoints-1], color='b', linestyle='--', linewidth=0.75)
 
 ax[2].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--', linewidth=0.75)
 ax[0].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--', linewidth=0.75)
+ax[0].legend(loc=2, prop={'size': 12})
 
-ax[0].legend(loc=3, prop={'size': 7})
+
+ax[0].tick_params(axis='both', which='major', labelsize=14)
+ax[1].tick_params(axis='both', which='major', labelsize=14)
+ax[2].tick_params(axis='both', which='major', labelsize=14)
+
 
 plt.savefig(filename)
 

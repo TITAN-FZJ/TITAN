@@ -5,6 +5,7 @@ module mod_expectation
 
   !!!!!!!!!!!!!
   logical :: flag = .true.
+  integer :: bandera = 0
   !!!!!!!!!!!!!
 
 contains
@@ -136,7 +137,7 @@ contains
     use mod_system,            only: System
     use ElectricField,         only: EshiftBZ,ElectricFieldVector
     use mod_tools,             only: itos
-    use mod_superconductivity, only: lsuperCond, superCond, hamiltk_sc, update_singlet_couplings, green_sc
+    use mod_superconductivity, only: lsuperCond, superCond, hamiltk_sc, update_singlet_couplings, green_sc, print_hamilt
     use mod_constants,         only: cOne,cZero
     use mod_mpi_pars
 
@@ -147,7 +148,7 @@ contains
     complex(double), dimension(nOrb,s%nAtoms), intent(out) :: deltas
     ! complex(double), dimension(nOrb)         , intent(out) :: expec_singlet
 
-    integer                                      :: iz, info, ncount, i !, mu,i
+    integer                                      :: iz, info, ncount, i ,j
     integer                                      :: lwork,dimH, dimE
     real(double)                                 :: weight, kp(3)
     real(double),    dimension(nOrb,s%nAtoms)    :: expec_0, expec_z
@@ -160,7 +161,6 @@ contains
     dimE  = (s%nAtoms)*nOrb2
     lwork = 21*dimH
     ncount = nOrb*s%nAtoms
-
 
     allocate( hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork) )
 
@@ -179,6 +179,8 @@ contains
       ! Calculating the hamiltonian for a given k-point
       if(lsuperCond) then
           call hamiltk_sc(s,kp,hk)
+          ! call print_hamilt(s,hk)
+          ! stop
           !!!!!Temporal For testing purposes
           ! call green_sc(s,kp)
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -211,20 +213,13 @@ contains
     call MPI_Allreduce(MPI_IN_PLACE, mp    , ncount, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
     call MPI_Allreduce(MPI_IN_PLACE, deltas, ncount, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
 
+    !!Uncomment this block to see the development of the charge and the gap
+    ! write(*,*) "rho = ",rho
+    ! write(*,*) "deltas = ", deltas
+    ! stop
+
     mx = real(mp)
     my = aimag(mp)
-
-    do i =1,s%nAtoms
-        write(*,*) real(deltas(1,i)), aimag(deltas(1,i)), abs(deltas(1,i))
-    end do
-
-    ! write(*,*) " "
-    ! write(*,*) "deltas = ", deltas
-    ! ! ! write(*,*) "Rho = ", rho
-    ! ! ! write(*,*) "mx, my = ", mx, ", ",my
-    ! ! ! write(*,*) "mz = ", mz
-    ! write(*,*) " "
-    ! call update_singlet_couplings(deltas)
 
     deallocate(hk,rwork,eval,work)
 
@@ -238,7 +233,7 @@ contains
     use mod_parameters,        only: nOrb, eta, isigmamu2n
     use mod_distributions,     only: fd_dist
     use mod_system,            only: System
-    use mod_superconductivity, only: lsuperCond, superCond, flag
+    use mod_superconductivity, only: lsuperCond, superCond, flag, print_hamilt
     implicit none
     integer,                                   intent(in)  :: dim
     integer,                                   intent(in)  :: dimE
@@ -251,8 +246,8 @@ contains
 
     real(double)    :: fermi_surface
     integer         :: i, n, sigma, sigmap, mu
-    real(double)    :: f_n
-    complex(double) :: evec(dim)
+    real(double)    :: f_n,f_n_negative
+    complex(double) :: evec(dim) !dim = 2*nOrb*nAtoms
     integer         :: offset
 
     expec_0 = 0.d0
@@ -275,7 +270,9 @@ contains
         do mu = 1, nOrb
           do sigma = 1, 2
             ! Charge
-            expec_0(mu,i) = expec_0(mu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,mu))
+            if(lsupercond == .false.) then
+                expec_0(mu,i) = expec_0(mu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,mu))
+            end if
 
             do sigmap = 1, 2
               ! M_p
@@ -299,8 +296,16 @@ contains
       ! Getting eigenvector and its transpose conjugate
       evec(:) = hk(:,n)
 
+      f_n = fd_dist(fermi_surface, 1.d0/(pi*eta), eval(n))
+      f_n_negative = fd_dist(fermi_surface, 1.d0/(pi*eta), -1.d0*eval(n))
+
       do i = 1, s%nAtoms
           do mu = 1, nOrb
+              !! up spin (using u's)
+              expec_0(mu,i) = expec_0(mu,i) + f_n*conjg(evec(nOrb*2*(i-1)+mu))*evec(nOrb*2*(i-1)+mu)
+              !! down spin (using v's)
+              expec_0(mu,i) = expec_0(mu,i) + f_n_negative*conjg(evec(nOrb*s%nAtoms*2+mu+(i-1)*nOrb*2))*evec(nOrb*s%nAtoms*2+mu+(i-1)*nOrb*2)
+
               expec_singlet(mu,i) = expec_singlet(mu,i) + conjg(evec(isigmamu2n(i,1,mu)+nOrb*2*s%nAtoms))*evec(isigmamu2n(i,2,mu))*tanh(eval(n)*1.d0/(pi*eta)/2)
           end do
       end do

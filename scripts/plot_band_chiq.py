@@ -87,6 +87,7 @@ if __name__ == "__main__":
     parser.add_argument("--superconductivity", default=False, action="store_true" , help="Flag to plot the bands as for superconductors")
     parser.add_argument("--together", default=False, action="store_true" , help="Plot superconductor bands in the same plot")
     parser.add_argument("--gaps", default=False, action="store_true" , help="Plot just around 0 to check the gaps")
+    parser.add_argument("--title", action="store", dest="title", default="")
     args = parser.parse_args()
 
     if args.superconductivity:
@@ -103,10 +104,13 @@ if __name__ == "__main__":
              for i in range(numplots):
                npoints, name, point, fermi = read_header(args.file)
                table = read_data(args.file)
-               axs[0,i].set_title(titles[i])
+               if args.title != "":
+                   axs[0,i].set_title(args.title)
+               else:
+                   axs[0,i].set_title(titles[i])
                axs[0,i].set_xlim([point[0],point[npoints-1]])
                if args.gaps:
-                   axs[0,i].set_ylim(-0.025,0.025)
+                   axs[0,i].set_ylim(-0.5,0.5)
                # axs[0,i].set_ylim(table[:,1:].min(),table[:,1:].max())
                # axs[0,i].set_ylim(1.0/(table[:,1:].min()),1.0/(table[:,1:].max()))
 

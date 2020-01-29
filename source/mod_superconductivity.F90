@@ -50,7 +50,7 @@ end subroutine allocate_super_variables
     type(System), intent(in)  :: sys
     real(double), intent(in)  :: kp(3)
     complex(double),dimension(2*dimH,2*dimH), intent(inout) :: hk_sc
-    complex(double),dimension(  dimH,  dimH) :: hk
+    complex(double),dimension(  dimH,  dimH) :: hk, dummy
     integer :: i, j, mu
 
     ! The form of the superconducting hamiltonian depends on a series of decisions,
@@ -64,7 +64,20 @@ end subroutine allocate_super_variables
     ! roughly. Look at this paper 10.1103/RevModPhys.87.1037 , and to Uriel's thesis to
     ! get a better idea of how to construct this operator
 
-    call hamiltk(sys,kp,hk)
+    !!This part is neccessary since hamiltk returns a hamiltonian, hermitian
+    !!up to 1e-16 precision. This interfered with some expectation value calculations
+    !!causing an artificial anisotropy
+    !!With this I'm just making sure that diagonal blocks of the superconducting
+    !!Hamiltonian are hermitian, and therefore the total hamiltonian is hermitian.
+
+    call hamiltk(sys,kp,dummy)
+
+    do i = 1, dimH
+        do j = 1, dimH
+            hk(i,j) = (dummy(i,j) + conjg(dummy(j,i)))/2.d0
+        end do
+    end do
+
 
     ! Populate the diagonal blocks of the hamiltonian. i.e. electron-electron
     ! and hole-hole interactions
@@ -108,6 +121,44 @@ end subroutine allocate_super_variables
 
 
   end subroutine hamiltk_sc
+
+  subroutine print_hamilt(sys,hk)
+
+      use mod_f90_kind,       only: double
+      use mod_parameters,     only: nOrb2
+      use mod_system,         only: System, initHamiltkStride
+      use mod_constants,      only: cZero,cOne
+      use mod_parameters,     only: nOrb, isigmamu2n, dimH
+      implicit none
+
+      type(System),                                 intent(in) :: sys
+      complex(double), dimension(2*dimH,2*dimH), intent(in) :: hk
+      integer :: i,j
+
+      do j = 1, sys%nAtoms*nOrb2*2
+        do i = 1, sys%nAtoms*nOrb2*2
+          write(*,*) real(hk(i,j)), imag(hk(i,j))
+        end do
+      end do
+
+  end subroutine print_hamilt
+
+  subroutine print_hamilt_entry(sys,hk,i,j)
+
+      use mod_f90_kind,       only: double
+      use mod_parameters,     only: nOrb2
+      use mod_system,         only: System, initHamiltkStride
+      use mod_constants,      only: cZero,cOne
+      use mod_parameters,     only: nOrb, isigmamu2n, dimH
+      implicit none
+
+      type(System),                                 intent(in) :: sys
+      complex(double), dimension(2*dimH,2*dimH), intent(in) :: hk
+      integer, intent(in):: i,j
+
+      write(*,*) real(hk(i,j)), imag(hk(i,j))
+
+  end subroutine print_hamilt_entry
 
   subroutine update_singlet_couplings(sys,couplings)
       use mod_f90_kind,       only: double
