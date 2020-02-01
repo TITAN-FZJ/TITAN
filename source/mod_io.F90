@@ -75,7 +75,7 @@ contains
     use mod_tools,            only: itos, rtos, vec_norm
     use adaptiveMesh,         only: minimumBZmesh
     use mod_mpi_pars
-    use mod_imRK4_parameters, only: integration_time, omega, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, field_direction_m, field_direction_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
+    use mod_imRK4_parameters, only: integration_time, omega, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, field_direction_m, polarization_vector_e, polarization_type_e, helicity, shape_e, tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
     implicit none
     character(len=*), intent(in)    :: filename
     type(System),     intent(inout) :: s
@@ -510,16 +510,26 @@ contains
           call log_error("get_parameters", "'hw_e' not found.")
         if(.not. get_parameter("pulse_e", lpulse_e,.false.)) &
           call log_warning("get_parameters", "'pulse_e' not found. Oscillatory electric field is applied.")
+        
+        if(.not. get_parameter("polarization_vector_e", vector, cnt)) &
+            call log_error("get_parameters","'polarization_vector_e' missing.")
+            if(cnt /= 3) call log_error("get_parameters","'polarization_vector_e' has wrong size (size 3 required).")
+            polarization_vector_e(1:3) = vector(1:3)/vec_norm(vector,3)
+            deallocate(vector)
+
         if(lpulse_e) then 
-          if(.not. get_parameter("field_direction_e", vector, cnt)) &
-            call log_error("get_parameters","'field_direction_e' missing.")
-          if(cnt /= 3) call log_error("get_parameters","'field_direction_e' has wrong size (size 3 required).")
-          field_direction_e(1:3) = vector(1:3)/vec_norm(vector,3)
-          deallocate(vector)
           if(.not. get_parameter("tau_e", tau_e)) &
             call log_error("get_parameters", "'tau_e' not found.")
+
           if(.not. get_parameter("delay_e", delay_e, 0.d0)) &
             call log_warning("get_parameters", "'delay_e' not found. Center of the pulse is located at t=4tau_e.")
+        
+          if(.not. get_parameter("polarization_type_e", polarization_type_e)) &
+            call log_error("get_parameters", "'polarization_type_e' not found.")
+          if(.not. get_parameter("shape_e", shape_e)) &
+            call log_error("get_parameters", "'shape_e' not found.")
+          if(.not. get_parameter("helicity", helicity)) &
+            call log_error("get_parameters", "'helicity' not found.")
         end if
       end if
       ! Reading magnetic field variables

@@ -28,8 +28,17 @@ module mod_imRK4_parameters
   !! Dimension: 2*dimension of the Hamiltonian (dimH)
   real(double) :: ERR
   !! Error for the calculation of the step size in time propagation
-  real(double) :: field_direction_m(3), field_direction_e(3)
-  !! Direction of the magnetic and electric field pulses
+  real(double) :: field_direction_m(3)
+  !! Direction of the magnetic field
   real(double) :: time_conv = 6.582d-7
   !! Conversion of time units to picosecond
+  real(double)         :: polarization_vector_e(3)
+  !! Polarization vector of electric field 
+  character(len = 20)  :: shape_e
+  !! Shape of the electric pulse
+  character(len = 20)  ::  polarization_type_e 
+  !! Electric field polarization type 
+  real(double)         :: helicity
+  !! Helicity of the circular electric field
+
 end module mod_imRK4_parameters

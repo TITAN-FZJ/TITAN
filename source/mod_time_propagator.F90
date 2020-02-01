@@ -41,8 +41,8 @@ contains
     complex(double), dimension(nOrb,s%nAtoms)   :: mp_t
     real(double),    dimension(s%nAtoms)        :: rhod_t, mxd_t, myd_t, mzd_t
     complex(double), dimension(s%nAtoms)        :: mpd_t
-    real(double),    dimension(3)               :: field_m, field_e
-    real(double)                                :: A_t_abs, E_t, E_0
+    real(double),    dimension(3)               :: field_m, field_e, A_t
+    real(double)                                :: E_t, E_0
    
     if(rFreq(1) == 0) then
       write(output%unit_loop,"('CALCULATING TIME-PROPAGATION')")
@@ -247,6 +247,9 @@ contains
       if (lmagnetic) then 
         if (lpulse_m) then
           if ((t >= delay_m).and.(t <= 8.d0*tau_m+delay_m)) then
+
+            ! ************** update here ******************
+
             call magnetic_pulse_B(t,field_m)
           end if  
         else
@@ -258,7 +261,8 @@ contains
       if (lelectric) then 
         if (lpulse_e) then
           if ((t >= delay_e).and.(t <= tau_e+delay_e)) then
-            call evec_potent(t,field_e,A_t_abs)
+            call evec_potent(t, A_t)
+            field_e = A_t
           end if  
         else
           field_e = [ hE_0*cos(hw_e*t), hE_0*sin(hw_e*t), 0.d0 ]
@@ -426,8 +430,8 @@ contains
     use mod_imRK4,            only: magnetic_pulse_B, evec_potent
     implicit none
     character(len=500)         :: output_file
-    real(double), dimension(3) :: field_m, field_e
-    real(double)               :: t, time, A_t_abs
+    real(double), dimension(3) :: field_m, field_e, A_t
+    real(double)               :: t, time
     integer :: i,iw,err,errt=0
 
     if(rFreq(1) == 0) &
@@ -464,7 +468,8 @@ contains
       if (lelectric) then 
         if (lpulse_e) then
           if ((t >= delay_e).and.(t <= tau_e+delay_e)) then
-            call evec_potent(t,field_e,A_t_abs)
+            call evec_potent(t,A_t)
+            field_e = A_t
           end if  
         else
           field_e = [ hE_0*cos(hw_e*t), hE_0*sin(hw_e*t), 0.d0 ]

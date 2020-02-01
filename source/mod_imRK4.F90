@@ -298,15 +298,16 @@ contains
 
     if(lelectric) then
       if(lpulse_e) then
-        if ((t >= delay_e).and.(t <= tau_e+delay_e)) then
-          call evec_potent(t,A_t,A_t_abs)
+        if ((t >= delay_e).and.(t <= tau_e+delay_e)) then 
+          ! call evec_potent(t,A_t)
           ! since nAtoms is an input to the subroutine 
           ! do i = 1,s%nAtoms
           !   do j = 1,s%nAtoms
           do i = 1, nAtoms
             do j = 1, nAtoms
-              call dtdksub(kp,dtdk)
-              temp = dtdk(:,:,i,j)*A_t_abs
+              call dtdksub_e(kp,dtdk)
+              ! temp = dtdk(:,:,i,j) * A_t_abs
+              temp = dtdk(:,:,i,j)
               hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) = hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) + temp
               hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) = hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) + temp
             end do
@@ -317,7 +318,7 @@ contains
           do j = 1, nAtoms
             call dtdksub(kp,dtdk)
                                    !> use A(t) not E(t)
-            temp = dtdk(:,:,i,j) * ( (cos(hw_e*t) + sin(hw_e*t))*hE_0 )
+            temp = dtdk(:,:,i,j) * ( (cos(hw_e*t) + sin(hw_e*t))* hE_0 )
             hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) = hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) + temp
             hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) = hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) + temp
           end do
@@ -353,7 +354,7 @@ contains
   end subroutine calculate_step_error
 
 
- subroutine magnetic_pulse_B(t,b_pulse)
+ subroutine magnetic_pulse_B(t, b_pulse)
     use mod_f90_kind, only: double
     use mod_imRK4_parameters, only: field_direction_m, hw1_m, hw_m, tau_m, delay_m
     implicit none
@@ -378,28 +379,64 @@ contains
 
 
   !> subroutine builds vector potential A(t) = integral(E(t)dt)
-  !> From paper(DOI: 0.1038/s41567-019-0602-9) the vector potential is given by: 
+  !> From paper(DOI: 0.1038/s41567-019-0602-9) the vector potential for a cos^2 pulse is given by: 
   !> A(t) = (-E_pump/w_pump) * ( cos(pi*t/tau_pump) )^2        * sin(w_pump*t), add delay_e to get:
   !> A_t  = (-hE_0/hw_e)     * ( cos(pi*(t-delay_e)/tau_e) )^2 * sin(hw_e*t)
-
   ! center the vector potential at delay_e
-  subroutine evec_potent(t,A_t,A_t_abs)
+
+  ! Vector potential for linearly or circularly polarized electric field
+  subroutine evec_potent(t, A_t)
     use mod_f90_kind, only: double
-    use mod_imRK4_parameters, only: field_direction_e, hE_0, hw_e, tau_e, delay_e
+    use mod_imRK4_parameters, only: polarization_vector_e, hE_0, hw_e, tau_e, delay_e, polarization_type_e, helicity
     use mod_constants,  only: pi
     implicit none 
     real(double) , intent(in)  :: t
     real(double) , intent(out) :: A_t(3)
-    real(double) , intent(out) :: A_t_abs
+
+    real(double) :: delay, shape, A_t_abs
+
+    delay = 0.5d0*tau_e - delay_e
+
+    call pulse_shape(t, shape) 
+
+    select case(polarization_type_e)
+      case("linear")
+        A_t = shape * [polarization_vector_e(1),polarization_vector_e(2),polarization_vector_e(3)] * cos(hw_e*(t-delay))
+      case("circular")
+        if (polarization_vector_e(1)==0.d0) then
+          ! A_t = [polarization_vector_e(1),polarization_vector_e(2),polarization_vector_e(3)] * shape * ( cos(hw_e*(t-delay)) + helicity * sin(hw_e*(t-delay)) )
+          A_t = shape * [0.d0,polarization_vector_e(2)*cos(hw_e*(t-delay)), polarization_vector_e(3)*helicity * sin(hw_e*(t-delay))] 
+        else if (polarization_vector_e(2)==0.d0) then
+          A_t = shape * [polarization_vector_e(1)*cos(hw_e*(t-delay)), 0.d0, polarization_vector_e(3)*helicity * sin(hw_e*(t-delay))]
+        else if (polarization_vector_e(3)==0.d0) then
+          A_t = shape * [polarization_vector_e(1)*cos(hw_e*(t-delay)), polarization_vector_e(2)*helicity * sin(hw_e*(t-delay)), 0.d0]
+        end if
+    end select
+
+  end subroutine evec_potent
+
+
+  ! shape of the pulse:    
+  subroutine pulse_shape(t, shape)
+    use mod_f90_kind, only: double
+    use mod_imRK4_parameters, only: hE_0, hw_e, tau_e, delay_e, shape_e
+    use mod_constants,  only: pi
+    implicit none 
+    real(double) , intent(in)  :: t
+    real(double) , intent(out) :: shape
 
     real(double) :: delay
 
-    delay = 0.5d0*tau_e-delay_e
+    delay = 0.5d0*tau_e - delay_e
 
-    A_t_abs = (-hE_0/hw_e) * ( cos(pi*(t-delay)/tau_e) )**2 * sin(hw_e*(t-delay))
-    A_t = [ field_direction_e(1), field_direction_e(2), field_direction_e(3) ] * A_t_abs
+    select case (shape_e)
+      case ("Gaussian") 
+        shape = (-hE_0/hw_e) * exp(-2*log(2*(t-delay/tau_e)**2))
+      case ("cos_squared") 
+        shape = (-hE_0/hw_e) * ( cos(pi*(t-delay)/tau_e) )**2 
+    end select
 
-  end subroutine evec_potent
+  end subroutine pulse_shape
 
 
 end module mod_imRK4
