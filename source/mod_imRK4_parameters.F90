@@ -2,6 +2,10 @@
 module mod_imRK4_parameters
   use mod_f90_kind, only: double
   implicit none
+  logical      :: lelectric, lmagnetic, lpulse_e, lpulse_m
+  !! Logical variables for choosing which field is applied
+  logical      :: npulse_e, npulse_m
+  !! Number of pulses (electric and magnetic)
   real(double) :: hE_0, hw1_m
   !! Intensity of electric and magnetic fields
   real(double) :: hw_e, hw_m
@@ -10,8 +14,6 @@ module mod_imRK4_parameters
   !! Pulse length of electric and magnetic fields
   real(double) :: delay_e, delay_m
   !! Time delay in electric and magnetic fields pulses
-  logical      :: lelectric, lmagnetic, lpulse_e, lpulse_m
-  !! Logical variables for choosing between (oscilatory or laser fields)
   real(double) :: integration_time
   !! Real integration time 
   real(double) :: step
