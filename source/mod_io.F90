@@ -76,9 +76,9 @@ contains
     use adaptiveMesh,         only: minimumBZmesh
     use mod_mpi_pars
     use mod_imRK4_parameters, only: integration_time, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, &
-                                    polarization_vector_e, polarization_type_e, helicity, &
-                                    shape_e, field_direction_m tau_m, delay_e, delay_m, lelectric, &
-                                    lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol, Delta
+                                    polarization_e, polarization_m, polarization_vec_e, polarization_vec_m, &
+                                    npulse_e, npulse_m, tau_m, delay_e, delay_m, lelectric, safe_factor, &
+                                    lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol
     implicit none
     character(len=*), intent(in)    :: filename
     type(System),     intent(inout) :: s
@@ -375,8 +375,8 @@ contains
     if(.not. get_parameter("nQvec", nQvec, 0)) &
       call log_warning("get_parameters","'nQvec' not found. No wave vector loop will be done.")
     nQvec1 = nQvec + 1
-    if(.not. get_parameter("renorm", renorm)) & ! Delete?
-      call log_error("get_parameters","'renorm' missing.")
+    if(.not. get_parameter("renorm", renorm, .false.)) & ! Delete?
+      call log_warning("get_parameters","'renorm' missing. Using default value .false.")
     if(renorm) then ! Delete?
       if(.not. get_parameter("renormnb", renormnb)) &
         call log_error("get_parameters","'renormnb' missing.")
@@ -411,8 +411,8 @@ contains
       call log_warning("get_parameters","'scfile' missing. Using none.")
     !======================================== Tight-Binding ========================================
 
-    if(.not. get_parameter("tbmode", tbmode)) &
-      call log_error("get_parameters", "'tbmode' missing.")
+    if(.not. get_parameter("tbmode", tbmode, 1)) &
+      call log_warning("get_parameters", "'tbmode' missing. Using default value 1 (SK parameters).")
     if(.not. get_parameter("nOrb",nOrb,9)) &
       call log_warning("get_parameters", "'nOrb' missing. Using default value: 9")
     nOrb2 = 2*nOrb
@@ -503,70 +503,286 @@ contains
       if(.not. get_parameter("safe_factor", safe_factor, 0.9d0)) &
         call log_warning("get_parameters", "'safe_factor' not given. Using default value: safe_factor = 0.9d0")
 
-      ! Reading electric field variables
+      ! Reading ELECTRIC field variables
       if(.not. get_parameter("electric", lelectric,.false.)) &
         call log_warning("get_parameters", "'electric' not found. Electric field is not applied.")
+      ! Electric field options:
       if(lelectric) then 
-        if(.not. get_parameter("hE_0", hE_0)) &
-          call log_error("get_parameters", "'hE_0' not found.")
-        if(.not. get_parameter("hw_e", hw_e)) &
-          call log_error("get_parameters", "'hw_e' not found.")
+        ! Pulse:
         if(.not. get_parameter("pulse_e", lpulse_e,.false.)) &
           call log_warning("get_parameters", "'pulse_e' not found. Oscillatory electric field is applied.")
-        
-        if(.not. get_parameter("polarization_vector_e", vector, cnt)) &
-            call log_error("get_parameters","'polarization_vector_e' missing.")
-            if(cnt /= 3) call log_error("get_parameters","'polarization_vector_e' has wrong size (size 3 required).")
-            polarization_vector_e(1:3) = vector(1:3)/vec_norm(vector,3)
-            deallocate(vector)
 
         if(lpulse_e) then 
           if(.not. get_parameter("npulse_e", npulse_e, 1)) &
             call log_warning("get_parameters","'npulse_e' missing. Using default npulse_e=1.")
-          if(.not. get_parameter("field_direction_e", vector, cnt)) &
-            call log_error("get_parameters","'field_direction_e' missing.")
-          if(cnt /= 3) call log_error("get_parameters","'field_direction_e' has wrong size (size 3 required).")
-          field_direction_e(1:3) = vector(1:3)/vec_norm(vector,3)
-          deallocate(vector)
-          if(.not. get_parameter("tau_e", tau_e)) &
-            call log_error("get_parameters", "'tau_e' not found.")
 
-          if(.not. get_parameter("delay_e", delay_e, 0.d0)) &
-            call log_warning("get_parameters", "'delay_e' not found. Center of the pulse is located at t=4tau_e.")
-        
-          if(.not. get_parameter("polarization_type_e", polarization_type_e)) &
-            call log_error("get_parameters", "'polarization_type_e' not found.")
-          if(.not. get_parameter("shape_e", shape_e)) &
-            call log_error("get_parameters", "'shape_e' not found.")
-          if(.not. get_parameter("helicity", helicity)) &
-            call log_error("get_parameters", "'helicity' not found.")
+          ! Allocating variables that depend on number of pulses
+          allocate(polarization_e(npulse_e),polarization_vec_e(npulse_e,2,3),hE_0(npulse_e),hw_e(npulse_e),tau_e(npulse_e),delay_e(npulse_e))
+
+          ! if(.not. get_parameter("field_direction_e", vector, cnt)) &
+          !   call log_error("get_parameters","'field_direction_e' missing.")
+          ! if(cnt /= 3) call log_error("get_parameters","'field_direction_e' has wrong size (size 3 required).")
+          ! field_direction_e(1:3) = vector(1:3)/vec_norm(vector,3)
+          ! deallocate(vector)
+
+          if(.not. get_parameter("polarization_e", s_vector, cnt)) then
+            ! If 'polarization_e' is not given, try to find 'polarization_vec_ip_e' and/or 'polarization_vec_op_e'
+            if(get_parameter("polarization_vec_ip_e", vector, cnt)) then
+              if(cnt /= 3*npulse_e) call log_error("get_parameters","'polarization_vec_ip_e' has wrong size (size 3*npulse_e=" // trim(itos(3*npulse_e)) // " required).")
+              forall(i=1:npulse_e) polarization_vec_e(i,1,:) = vector((i-1)*3+1:(i-1)*3+3)
+              deallocate(vector)
+            end if
+            if(get_parameter("polarization_vec_op_e", vector, cnt)) then
+              if(cnt /= 3*npulse_e) call log_error("get_parameters","'polarization_vec_op_e' has wrong size (size 3*npulse_e=" // trim(itos(3*npulse_e)) // " required).")
+              forall(i=1:npulse_e) polarization_vec_e(i,2,:) = vector((i-1)*3+1:(i-1)*3+3)
+              deallocate(vector)
+            end if
+            do i=1,npulse_e
+              if( sum(abs(polarization_vec_e(i,:,:))) < 1.d-12 ) &
+                call log_error("get_parameters", "'polarization_vec_e' is zero for pulse " // trim(itos(i)) // ". Use polarization_vec_ip_e/polarization_vec_op_e or polarization_e to set the polarization.")
+            end do
+          else
+            if(cnt /= npulse_e) call log_error("get_parameters","'polarization_e' has wrong size (size npulse_e=" // trim(itos(npulse_e)) // " required).")
+            forall(i=1:npulse_e) polarization_e(i) = trim(s_vector(i))
+            deallocate(s_vector)
+            do i=1,npulse_e
+              select case(polarization_e(i))
+              case("x")
+                polarization_vec_e(i,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
+                polarization_vec_e(i,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+              case("y")
+                polarization_vec_e(i,1,:) = [ 0.d0, 1.d0, 0.d0] ! in-phase     (cos(wt))
+                polarization_vec_e(i,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+              case("z")
+                polarization_vec_e(i,1,:) = [ 0.d0, 0.d0, 1.d0] ! in-phase     (cos(wt))
+                polarization_vec_e(i,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+              case("p")
+                polarization_vec_e(i,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
+                polarization_vec_e(i,2,:) = [ 0.d0, 1.d0, 0.d0] ! out-of-phase (sin(wt))
+              case("m")
+                polarization_vec_e(i,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
+                polarization_vec_e(i,2,:) = [ 0.d0,-1.d0, 0.d0] ! out-of-phase (sin(wt))
+              case default
+                call log_error("get_parameters", "Electric polarization 'polarization_e = '"// trim(polarization_e(i)) //" not found.")
+              end select
+            end do
+          end if
+
+          if(.not. get_parameter("hE_0", vector, cnt)) &
+            call log_error("get_parameters", "'hE_0' not found.")
+          if(cnt /= npulse_e) call log_error("get_parameters","'hE_0' has wrong size (size npulse_e=" // trim(itos(npulse_e)) // " required).")
+          hE_0(:) = vector(:)
+          deallocate(vector)
+          if(.not. get_parameter("hw_e", vector, cnt)) &
+            call log_error("get_parameters", "'hw_e' not found.")
+          if(cnt /= npulse_e) call log_error("get_parameters","'hw_e' has wrong size (size npulse_e=" // trim(itos(npulse_e)) // " required).")
+          hw_e(:) = vector(:)
+          deallocate(vector)
+          if(.not. get_parameter("tau_e", vector, cnt)) &
+            call log_error("get_parameters", "'tau_e' not found.")
+          if(cnt /= npulse_e) call log_error("get_parameters","'tau_e' has wrong size (size npulse_e=" // trim(itos(npulse_e)) // " required).")
+          tau_e(:) = vector(:)
+          deallocate(vector)
+
+          if(.not. get_parameter("delay_e", vector, cnt)) then
+            call log_warning("get_parameters", "'delay_e' not found. Center of the pulses is located at t=tau_e/2.")
+            delay_e(:) = 0.d0 ! No extra delay
+          else
+            if(cnt /= npulse_e) call log_error("get_parameters","'delay_e' has wrong size (size npulse_e=" // trim(itos(npulse_e)) // " required).")
+            delay_e(:) = vector(:)
+            deallocate(vector)            
+          end if
+        else ! If not pulse:
+          allocate(polarization_e(1),polarization_vec_e(1,2,3),hE_0(1),hw_e(1))
+          if(.not. get_parameter("polarization_e", s_vector, cnt)) then
+            ! If 'polarization_e' is not given, try to find 'polarization_vec_ip_e' and/or 'polarization_vec_op_e'
+            if(get_parameter("polarization_vec_ip_e", vector, cnt)) then
+              if(cnt /= 3) call log_error("get_parameters","'polarization_vec_ip_e' has wrong size (size 3 required).")
+              polarization_vec_e(1,1,:) = vector(:)
+              deallocate(vector)
+            end if
+            if(get_parameter("polarization_vec_op_e", vector, cnt)) then
+              if(cnt /= 3) call log_error("get_parameters","'polarization_vec_op_e' has wrong size (size 3 required).")
+              polarization_vec_e(1,2,:) = vector(:)
+              deallocate(vector)
+            end if
+            if( sum(abs(polarization_vec_e(1,:,:))) < 1.d-12 ) &
+              call log_error("get_parameters", "'polarization_vec_e' is zero for oscillatory field. Use polarization_vec_ip_e/polarization_vec_op_e or polarization_e to set the polarization.")
+          else
+            if(cnt > 1) call log_warning("get_parameters","Only first element of 'polarization_e' will be used.")
+            polarization_e(1) = trim(s_vector(1))
+            deallocate(s_vector)
+            select case(polarization_e(1))
+            case("x")
+              polarization_vec_e(1,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
+              polarization_vec_e(1,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+            case("y")
+              polarization_vec_e(1,1,:) = [ 0.d0, 1.d0, 0.d0] ! in-phase     (cos(wt))
+              polarization_vec_e(1,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+            case("z")
+              polarization_vec_e(1,1,:) = [ 0.d0, 0.d0, 1.d0] ! in-phase     (cos(wt))
+              polarization_vec_e(1,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+            case("p")
+              polarization_vec_e(1,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
+              polarization_vec_e(1,2,:) = [ 0.d0, 1.d0, 0.d0] ! out-of-phase (sin(wt))
+            case("m")
+              polarization_vec_e(1,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
+              polarization_vec_e(1,2,:) = [ 0.d0,-1.d0, 0.d0] ! out-of-phase (sin(wt))
+            case default
+              call log_error("get_parameters", "Electric polarization 'polarization_e = '"// trim(polarization_e(1)) //" not found.")
+            end select
+          end if
+
+          if(.not. get_parameter("hE_0", vector, cnt)) &
+            call log_error("get_parameters", "'hE_0' not found.")
+          if(cnt > 1) call log_warning("get_parameters","Only first element of 'hE_0' will be used.")
+          hE_0(1) = vector(1)
+          deallocate(vector)
+          if(.not. get_parameter("hw_e", vector, cnt)) &
+            call log_error("get_parameters", "'hw_e' not found.")
+          if(cnt > 1) call log_warning("get_parameters","Only first element of 'hw_e' will be used.")
+          hw_e(1) = vector(1)
+          deallocate(vector)
         end if
       end if
-      ! Reading magnetic field variables
+
+      ! Reading MAGNETIC field variables
       if(.not. get_parameter("magnetic", lmagnetic,.false.)) &
         call log_warning("get_parameters", "'magnetic' not found. Magnetic field is not applied.")
+      ! Electric field options:
       if(lmagnetic) then 
-        if(.not. get_parameter("hw1_m", hw1_m)) &
-          call log_error("get_parameters", "'hw1_m' not found.")
-        if(.not. get_parameter("hw_m", hw_m)) &
-          call log_error("get_parameters", "'hw_m' not found.")
+        ! Pulse:
         if(.not. get_parameter("pulse_m", lpulse_m,.false.)) &
-          call log_warning("get_parameters", "'pulse_m' not found. Oscillatory Magnetic field is applied.")
-        if(lpulse_m) then 
-          if(.not. get_parameter("field_direction_m", vector, cnt)) &
-            call log_error("get_parameters","'field_direction_m' missing.")
-          if(cnt /= 3) call log_error("get_parameters","'field_direction_m' has wrong size (size 3 required).")
-          field_direction_m(1:3) = vector(1:3)
-          deallocate(vector)
-          if(.not. get_parameter("tau_m", tau_m)) &
-            call log_error("get_parameters", "'tau_m' not found.")
-          if(.not. get_parameter("delay_m", delay_m, 0.d0)) &
-            call log_warning("get_parameters", "'delay_m' not found. Center of the pulse is located at t=4tau_m.")
-        end if
-      else
-        if(.not.lelectric) call log_error("get_parameters", "'magnetic' and 'electric' not found. Please, choose a type of perturbation.") 
-      end if
+          call log_warning("get_parameters", "'pulse_m' not found. Oscillatory magnetic field is applied.")
 
+        if(lpulse_m) then 
+          if(.not. get_parameter("npulse_m", npulse_m, 1)) &
+            call log_warning("get_parameters","'npulse_m' missing. Using default npulse_m=1.")
+
+          ! Allocating variables that depend on number of pulses
+          allocate(polarization_m(npulse_m),polarization_vec_m(npulse_m,2,3),hw1_m(npulse_m),hw_m(npulse_m),tau_m(npulse_m),delay_m(npulse_m))
+
+          polarization_vec_m(:,:,:) = 0.d0
+          if(.not. get_parameter("polarization_m", s_vector, cnt)) then
+            ! If 'polarization_m' is not given, try to find 'polarization_vec_ip_m' and/or 'polarization_vec_op_m'
+            if(get_parameter("polarization_vec_ip_m", vector, cnt)) then
+              if(cnt /= 3*npulse_m) call log_error("get_parameters","'polarization_vec_ip_m' has wrong size (size 3*npulse_m=" // trim(itos(3*npulse_m)) // " required).")
+              forall(i=1:npulse_m) polarization_vec_m(i,1,:) = vector((i-1)*3+1:(i-1)*3+3)
+              deallocate(vector)
+            end if
+            if(get_parameter("polarization_vec_op_m", vector, cnt)) then
+              if(cnt /= 3*npulse_m) call log_error("get_parameters","'polarization_vec_op_m' has wrong size (size 3*npulse_m=" // trim(itos(3*npulse_m)) // " required).")
+              forall(i=1:npulse_m) polarization_vec_m(i,2,:) = vector((i-1)*3+1:(i-1)*3+3)
+              deallocate(vector)
+            end if
+            do i=1,npulse_m
+              if( sum(abs(polarization_vec_m(i,:,:))) < 1.d-12 ) &
+                call log_error("get_parameters", "'polarization_vec_m' is zero for pulse " // trim(itos(i)) // ". Use polarization_vec_m_ip/polarization_vec_m_op or polarization_m to set the polarization.")
+            end do
+          else
+            if(cnt /= npulse_m) call log_error("get_parameters","'polarization_m' has wrong size (size npulse_m=" // trim(itos(npulse_m)) // " required).")
+            forall(i=1:npulse_m) polarization_m(i) = trim(s_vector(i))
+            deallocate(s_vector)
+            do i=1,npulse_m
+              select case(polarization_m(i))
+              case("x")
+                polarization_vec_m(i,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
+                polarization_vec_m(i,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+              case("y")
+                polarization_vec_m(i,1,:) = [ 0.d0, 1.d0, 0.d0] ! in-phase     (cos(wt))
+                polarization_vec_m(i,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+              case("z")
+                polarization_vec_m(i,1,:) = [ 0.d0, 0.d0, 1.d0] ! in-phase     (cos(wt))
+                polarization_vec_m(i,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+              case("p")
+                polarization_vec_m(i,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
+                polarization_vec_m(i,2,:) = [ 0.d0, 1.d0, 0.d0] ! out-of-phase (sin(wt))
+              case("m")
+                polarization_vec_m(i,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
+                polarization_vec_m(i,2,:) = [ 0.d0,-1.d0, 0.d0] ! out-of-phase (sin(wt))
+              case default
+                call log_error("get_parameters", "Magnetic polarization 'polarization_m = '"// trim(polarization_m(i)) //" not found.")
+              end select
+            end do
+          end if
+
+          if(.not. get_parameter("hw1_m", vector, cnt)) &
+            call log_error("get_parameters", "'hw1_m' not found.")
+          if(cnt /= npulse_m) call log_error("get_parameters","'hw1_m' has wrong size (size npulse_m=" // trim(itos(npulse_m)) // " required).")
+          hE_0(:) = vector(:)
+          deallocate(vector)
+          if(.not. get_parameter("hw_m", vector, cnt)) &
+            call log_error("get_parameters", "'hw_m' not found.")
+          if(cnt /= npulse_m) call log_error("get_parameters","'hw_m' has wrong size (size npulse_m=" // trim(itos(npulse_m)) // " required).")
+          hw_m(:) = vector(:)
+          deallocate(vector)
+          if(.not. get_parameter("tau_m", vector, cnt)) &
+            call log_error("get_parameters", "'tau_m' not found.")
+          if(cnt /= npulse_m) call log_error("get_parameters","'tau_m' has wrong size (size npulse_m=" // trim(itos(npulse_m)) // " required).")
+          tau_m(:) = vector(:)
+          deallocate(vector)
+
+          if(.not. get_parameter("delay_m", vector, cnt)) then
+            call log_warning("get_parameters", "'delay_m' not found. Center of the pulses is located at t=tau_m/2.")
+            delay_m(:) = 0.d0 ! No extra delay
+          else
+            if(cnt /= npulse_m) call log_error("get_parameters","'delay_m' has wrong size (size npulse_m=" // trim(itos(npulse_m)) // " required).")
+            delay_m(:) = vector(:)
+            deallocate(vector)            
+          end if
+        else ! If not pulse:
+          allocate(polarization_m(1),polarization_vec_m(1,2,3),hw1_m(1),hw_m(1))
+          if(.not. get_parameter("polarization_m", s_vector, cnt)) then
+            ! If 'polarization_m' is not given, try to find 'polarization_vec_ip_m' and/or 'polarization_vec_op_m'
+            if(get_parameter("polarization_vec_ip_m", vector, cnt)) then
+              if(cnt /= 3) call log_error("get_parameters","'polarization_vec_ip_m' has wrong size (size 3 required).")
+              polarization_vec_m(1,1,:) = vector(:)
+              deallocate(vector)
+            end if
+            if(get_parameter("polarization_vec_op_m", vector, cnt)) then
+              if(cnt /= 3) call log_error("get_parameters","'polarization_vec_op_m' has wrong size (size 3 required).")
+              polarization_vec_m(1,2,:) = vector(:)
+              deallocate(vector)
+            end if
+            if( sum(abs(polarization_vec_m(1,:,:))) < 1.d-12 ) &
+              call log_error("get_parameters", "'polarization_vec_m' is zero for oscillatory field. Use polarization_vec_m_ip/polarization_vec_m_op or polarization_m to set the polarization.")
+          else
+            if(cnt > 1) call log_warning("get_parameters","Only first element of 'polarization_m' will be used.")
+            polarization_m(1) = trim(s_vector(1))
+            deallocate(s_vector)
+            select case(polarization_m(1))
+            case("x")
+              polarization_vec_m(1,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
+              polarization_vec_m(1,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+            case("y")
+              polarization_vec_m(1,1,:) = [ 0.d0, 1.d0, 0.d0] ! in-phase     (cos(wt))
+              polarization_vec_m(1,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+            case("z")
+              polarization_vec_m(1,1,:) = [ 0.d0, 0.d0, 1.d0] ! in-phase     (cos(wt))
+              polarization_vec_m(1,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+            case("p")
+              polarization_vec_m(1,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
+              polarization_vec_m(1,2,:) = [ 0.d0, 1.d0, 0.d0] ! out-of-phase (sin(wt))
+            case("m")
+              polarization_vec_m(1,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
+              polarization_vec_m(1,2,:) = [ 0.d0,-1.d0, 0.d0] ! out-of-phase (sin(wt))
+            case default
+              call log_error("get_parameters", "Magnetic polarization 'polarization_m = '"// trim(polarization_m(1)) //" not found.")
+            end select
+          end if
+
+          if(.not. get_parameter("hw1_m", vector, cnt)) &
+            call log_error("get_parameters", "'hw1_m' not found.")
+          if(cnt > 1) call log_warning("get_parameters","Only first element of 'hw1_m' will be used.")
+          hw1_m(1) = vector(1)
+          deallocate(vector)
+          if(.not. get_parameter("hw_m", vector, cnt)) &
+            call log_error("get_parameters", "'hw_m' not found.")
+          if(cnt > 1) call log_warning("get_parameters","Only first element of 'hw_m' will be used.")
+          hw_m(1) = vector(1)
+          deallocate(vector)
+        end if
+      end if
     end if
     !==============================================================================================!
     if(.not. get_parameter("suffix", output%suffix)) &
@@ -641,12 +857,12 @@ contains
     use ElectricField,        only: ElectricFieldMode, ElectricFieldVector, EFt, EFp, EshiftBZ
     use AdaptiveMesh,         only: minimumBZmesh
     use mod_imRK4_parameters, only: integration_time, sc_tol, hE_0, hw1_m, hw_e, hw_m, tau_e, &
-                                    tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, lpulse_m, &
-                                    field_direction_e, field_direction_m, abs_tol, rel_tol, safe_factor
+                                    tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, npulse_e, lpulse_m, npulse_m, &
+                                    polarization_vec_e, polarization_vec_m, abs_tol, rel_tol, safe_factor
     !$ use omp_lib
     implicit none
     type(System), intent(in) :: s
-    integer :: i
+    integer :: i,j
 #ifdef _OPENMP
     write(output%unit_loop,"(10x,'Running on ',i0,' MPI process(es) WITH ',i0,' openMP')") numprocs, omp_get_max_threads()
 #else
@@ -771,24 +987,42 @@ contains
       write(output%unit_loop,"(1x,'safe_factor =',es9.2)") safe_factor
       if(lelectric) then
         write(output%unit_loop, fmt="('Electric field: ON')" )
-        write(output%unit_loop,"(1x,'       hE_0 =',es9.2)") hE_0
-        write(output%unit_loop,"(1x,'       hw_e =',es9.2)") hw_e
         if(lpulse_e) then 
-          write(output%unit_loop, fmt="('Electric pulse:')" )
-          write(output%unit_loop,"('Polarization = (',f6.3,',',f6.3,',',f6.3,')')") (field_direction_e(i), i=1,3)
-          write(output%unit_loop,"('       tau_e =',es9.2)") tau_e
-          write(output%unit_loop,"('     delay_e =',es9.2)") delay_e
+          write(output%unit_loop, fmt="(i0, ' electric pulse(s):')" ) npulse_e
+          do i = 1,npulse_e
+            write(output%unit_loop,"(1x,'        hE_0 =',es9.2)") hE_0(i)
+            write(output%unit_loop,"(1x,'        hw_e =',es9.2)") hw_e(i)
+            write(output%unit_loop,"(1x,'Polarization = (',f6.3,',',f6.3,',',f6.3,') in-phase    ')") (polarization_vec_e(i,1,j), j=1,3)
+            write(output%unit_loop,"(1x,'             = (',f6.3,',',f6.3,',',f6.3,') out-of-phase')") (polarization_vec_e(i,2,j), j=1,3)
+            write(output%unit_loop,"(1x,'       tau_e =',es9.2)") tau_e(i)
+            write(output%unit_loop,"(1x,'     delay_e =',es9.2)") delay_e(i)
+          end do
+        else
+          write(output%unit_loop, fmt="(1x,'Oscillatory electric field:')" )
+          write(output%unit_loop,"(1x,'        hE_0 =',es9.2)") hE_0(1)
+          write(output%unit_loop,"(1x,'        hw_e =',es9.2)") hw_e(1)
+          write(output%unit_loop,"(1x,'Polarization = (',f6.3,',',f6.3,',',f6.3,') in-phase    ')") (polarization_vec_e(1,1,j), j=1,3)
+          write(output%unit_loop,"(1x,'             = (',f6.3,',',f6.3,',',f6.3,') out-of-phase')") (polarization_vec_e(1,2,j), j=1,3)
         end if
       end if
       if(lmagnetic) then
         write(output%unit_loop, fmt="('Magnetic field: ON')" )
-        write(output%unit_loop,"(1x,'      hw1_m =',es9.2)") hw1_m
-        write(output%unit_loop,"(1x,'       hw_m =',es9.2)") hw_m
         if(lpulse_m) then 
-          write(output%unit_loop, fmt="('Magnetic pulse:')" )
-          write(output%unit_loop,"('Polarization = (',f6.3,',',f6.3,',',f6.3,')')") (field_direction_m(i), i=1,3)
-          write(output%unit_loop,"('       tau_m =',es9.2)") tau_m
-          write(output%unit_loop,"('     delay_m =',es9.2)") delay_m
+          write(output%unit_loop, fmt="(i0, ' electric pulse(s):')" ) npulse_m
+          do i = 1,npulse_m
+            write(output%unit_loop,"(1x,'       hw1_m =',es9.2)") hw1_m(i)
+            write(output%unit_loop,"(1x,'        hw_m =',es9.2)") hw_m(i)
+            write(output%unit_loop,"(1x,'Polarization = (',f6.3,',',f6.3,',',f6.3,') in-phase    ')") (polarization_vec_m(i,1,j), j=1,3)
+            write(output%unit_loop,"(1x,'             = (',f6.3,',',f6.3,',',f6.3,') out-of-phase')") (polarization_vec_m(i,2,j), j=1,3)
+            write(output%unit_loop,"(1x,'       tau_m =',es9.2)") tau_m(i)
+            write(output%unit_loop,"(1x,'     delay_m =',es9.2)") delay_m(i)
+          end do
+        else
+          write(output%unit_loop, fmt="(1x,'Oscillatory electric field:')" )
+          write(output%unit_loop,"(1x,'       hw1_m =',es9.2)") hw1_m(1)
+          write(output%unit_loop,"(1x,'        hw_m =',es9.2)") hw_m(1)
+          write(output%unit_loop,"(1x,'Polarization = (',f6.3,',',f6.3,',',f6.3,') in-phase    ')") (polarization_vec_m(1,1,j), j=1,3)
+          write(output%unit_loop,"(1x,'             = (',f6.3,',',f6.3,',',f6.3,') out-of-phase')") (polarization_vec_m(1,2,j), j=1,3)
         end if
       end if
     end select write_itype

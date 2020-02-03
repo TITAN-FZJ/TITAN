@@ -303,7 +303,7 @@ contains
     integer      :: i,AllocateStatus
 
     if(rField == 0) &
-    write(output%unit_loop,"('[calcLGS_greenfunction] Calculating Orbital Angular Momentum ground state... ')")
+    write(output%unit_loop,"('[calcLGS] Calculating Orbital Angular Momentum ground state... ')")
 
     if(allocated(lxm)) deallocate(lxm)
     if(allocated(lym)) deallocate(lym)
@@ -455,9 +455,8 @@ contains
 subroutine expec_L_n(s, dim, evec, eval, lxm, lxpm, lym, lypm, lzm, lzpm)
   use mod_f90_kind,      only: double
   use mod_constants,     only: pi
-  use mod_parameters,    only: nOrb,nOrb2,output,eta,isigmamu2n
+  use mod_parameters,    only: nOrb,eta,isigmamu2n
   use mod_System,        only: system
-  use ElectricField,     only: ElectricFieldVector
   use mod_magnet,        only: lxp,lyp,lzp,lx,ly,lz
   use mod_distributions, only: fd_dist
   implicit none 
@@ -501,9 +500,9 @@ end subroutine expec_L_n
 
 !! Calculate the expectation value of the time-dependent Hamiltonian in the propagated states
 subroutine expec_H_n(s, kp, t, dim, evec, eval, E_0)
-  use mod_f90_kind,          only: double
+  use mod_f90_kind,      only: double
   use mod_constants,     only: pi
-  use mod_parameters,    only: nOrb,nOrb2,output,eta
+  use mod_parameters,    only: eta
   use mod_System,        only: system
   use mod_distributions, only: fd_dist
   use mod_imRK4,         only: build_td_hamiltonian
@@ -515,7 +514,6 @@ subroutine expec_H_n(s, kp, t, dim, evec, eval, E_0)
   real(double),                    intent(in)  :: eval, t, kp(3)
   integer                                      :: i, j
   real(double)                                 :: f_n, expec_H_0, E_0
-  complex(double)                              :: prod
   complex(double)                              :: hamilt_t(dim,dim), hamilt_0(dim,dim)
 
   ! Fermi-Dirac:
@@ -577,7 +575,7 @@ end subroutine expec_H_n
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
       call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
       if(info/=0) &
-        call abortProgram("[expectation_values_eigenstates] Problem with diagonalization. info = " // itos(info))
+        call abortProgram("[calcLGS_eigenstates] Problem with diagonalization. info = " // itos(info))
 
       eval_loop: do n = 1, dimH
         ! Fermi-Dirac:
