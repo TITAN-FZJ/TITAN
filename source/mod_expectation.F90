@@ -521,8 +521,8 @@ subroutine expec_H_n(s, kp, t, dim, evec, eval, E_0)
 
   E_0 = 0.d0
 
-  do i=0, dim
-    do j=0, dim
+  do i=1, dim
+    do j=1, dim
       ! expec_H_0 = real( conjg( evec(i) ) * hamilt_t(i,j) * evec(j) )
       expec_H_0 = real( conjg( evec(i) ) * hamilt_0(i,j) * evec(j) )
       E_0       =  E_0 + f_n * expec_H_0

@@ -528,12 +528,12 @@ contains
           if(.not. get_parameter("polarization_e", s_vector, cnt)) then
             ! If 'polarization_e' is not given, try to find 'polarization_vec_ip_e' and/or 'polarization_vec_op_e'
             if(get_parameter("polarization_vec_ip_e", vector, cnt)) then
-              if(cnt /= 3*npulse_e) call log_error("get_parameters","'polarization_vec_ip_e' has wrong size (size 3*npulse_e=" // trim(itos(3*npulse_e)) // " required).")
+              if(cnt < 3*npulse_e) call log_error("get_parameters","'polarization_vec_ip_e' has wrong size (size 3*npulse_e=" // trim(itos(3*npulse_e)) // " required).")
               forall(i=1:npulse_e) polarization_vec_e(i,1,:) = vector((i-1)*3+1:(i-1)*3+3)
               deallocate(vector)
             end if
             if(get_parameter("polarization_vec_op_e", vector, cnt)) then
-              if(cnt /= 3*npulse_e) call log_error("get_parameters","'polarization_vec_op_e' has wrong size (size 3*npulse_e=" // trim(itos(3*npulse_e)) // " required).")
+              if(cnt < 3*npulse_e) call log_error("get_parameters","'polarization_vec_op_e' has wrong size (size 3*npulse_e=" // trim(itos(3*npulse_e)) // " required).")
               forall(i=1:npulse_e) polarization_vec_e(i,2,:) = vector((i-1)*3+1:(i-1)*3+3)
               deallocate(vector)
             end if
@@ -542,7 +542,7 @@ contains
                 call log_error("get_parameters", "'polarization_vec_e' is zero for pulse " // trim(itos(i)) // ". Use polarization_vec_ip_e/polarization_vec_op_e or polarization_e to set the polarization.")
             end do
           else
-            if(cnt /= npulse_e) call log_error("get_parameters","'polarization_e' has wrong size (size npulse_e=" // trim(itos(npulse_e)) // " required).")
+            if(cnt < npulse_e) call log_error("get_parameters","'polarization_e' has wrong size (size npulse_e=" // trim(itos(npulse_e)) // " required).")
             forall(i=1:npulse_e) polarization_e(i) = trim(s_vector(i))
             deallocate(s_vector)
             do i=1,npulse_e
@@ -570,26 +570,26 @@ contains
 
           if(.not. get_parameter("hE_0", vector, cnt)) &
             call log_error("get_parameters", "'hE_0' not found.")
-          if(cnt /= npulse_e) call log_error("get_parameters","'hE_0' has wrong size (size npulse_e=" // trim(itos(npulse_e)) // " required).")
-          hE_0(:) = vector(:)
+          if(cnt < npulse_e) call log_error("get_parameters","'hE_0' has wrong size (size npulse_e=" // trim(itos(npulse_e)) // " required).")
+          hE_0(:) = vector(1:npulse_e)
           deallocate(vector)
           if(.not. get_parameter("hw_e", vector, cnt)) &
             call log_error("get_parameters", "'hw_e' not found.")
-          if(cnt /= npulse_e) call log_error("get_parameters","'hw_e' has wrong size (size npulse_e=" // trim(itos(npulse_e)) // " required).")
-          hw_e(:) = vector(:)
+          if(cnt < npulse_e) call log_error("get_parameters","'hw_e' has wrong size (size npulse_e=" // trim(itos(npulse_e)) // " required).")
+          hw_e(:) = vector(1:npulse_e)
           deallocate(vector)
           if(.not. get_parameter("tau_e", vector, cnt)) &
             call log_error("get_parameters", "'tau_e' not found.")
-          if(cnt /= npulse_e) call log_error("get_parameters","'tau_e' has wrong size (size npulse_e=" // trim(itos(npulse_e)) // " required).")
-          tau_e(:) = vector(:)
+          if(cnt < npulse_e) call log_error("get_parameters","'tau_e' has wrong size (size npulse_e=" // trim(itos(npulse_e)) // " required).")
+          tau_e(:) = vector(1:npulse_e)
           deallocate(vector)
 
           if(.not. get_parameter("delay_e", vector, cnt)) then
             call log_warning("get_parameters", "'delay_e' not found. Center of the pulses is located at t=tau_e/2.")
             delay_e(:) = 0.d0 ! No extra delay
           else
-            if(cnt /= npulse_e) call log_error("get_parameters","'delay_e' has wrong size (size npulse_e=" // trim(itos(npulse_e)) // " required).")
-            delay_e(:) = vector(:)
+            if(cnt < npulse_e) call log_error("get_parameters","'delay_e' has wrong size (size npulse_e=" // trim(itos(npulse_e)) // " required).")
+            delay_e(:) = vector(1:npulse_e)
             deallocate(vector)            
           end if
         else ! If not pulse:
@@ -597,13 +597,13 @@ contains
           if(.not. get_parameter("polarization_e", s_vector, cnt)) then
             ! If 'polarization_e' is not given, try to find 'polarization_vec_ip_e' and/or 'polarization_vec_op_e'
             if(get_parameter("polarization_vec_ip_e", vector, cnt)) then
-              if(cnt /= 3) call log_error("get_parameters","'polarization_vec_ip_e' has wrong size (size 3 required).")
-              polarization_vec_e(1,1,:) = vector(:)
+              if(cnt < 3) call log_error("get_parameters","'polarization_vec_ip_e' has wrong size (size 3 required).")
+              polarization_vec_e(1,1,:) = vector(1:3)
               deallocate(vector)
             end if
             if(get_parameter("polarization_vec_op_e", vector, cnt)) then
-              if(cnt /= 3) call log_error("get_parameters","'polarization_vec_op_e' has wrong size (size 3 required).")
-              polarization_vec_e(1,2,:) = vector(:)
+              if(cnt < 3) call log_error("get_parameters","'polarization_vec_op_e' has wrong size (size 3 required).")
+              polarization_vec_e(1,2,:) = vector(1:3)
               deallocate(vector)
             end if
             if( sum(abs(polarization_vec_e(1,:,:))) < 1.d-12 ) &
@@ -666,12 +666,12 @@ contains
           if(.not. get_parameter("polarization_m", s_vector, cnt)) then
             ! If 'polarization_m' is not given, try to find 'polarization_vec_ip_m' and/or 'polarization_vec_op_m'
             if(get_parameter("polarization_vec_ip_m", vector, cnt)) then
-              if(cnt /= 3*npulse_m) call log_error("get_parameters","'polarization_vec_ip_m' has wrong size (size 3*npulse_m=" // trim(itos(3*npulse_m)) // " required).")
+              if(cnt < 3*npulse_m) call log_error("get_parameters","'polarization_vec_ip_m' has wrong size (size 3*npulse_m=" // trim(itos(3*npulse_m)) // " required).")
               forall(i=1:npulse_m) polarization_vec_m(i,1,:) = vector((i-1)*3+1:(i-1)*3+3)
               deallocate(vector)
             end if
             if(get_parameter("polarization_vec_op_m", vector, cnt)) then
-              if(cnt /= 3*npulse_m) call log_error("get_parameters","'polarization_vec_op_m' has wrong size (size 3*npulse_m=" // trim(itos(3*npulse_m)) // " required).")
+              if(cnt < 3*npulse_m) call log_error("get_parameters","'polarization_vec_op_m' has wrong size (size 3*npulse_m=" // trim(itos(3*npulse_m)) // " required).")
               forall(i=1:npulse_m) polarization_vec_m(i,2,:) = vector((i-1)*3+1:(i-1)*3+3)
               deallocate(vector)
             end if
@@ -680,7 +680,7 @@ contains
                 call log_error("get_parameters", "'polarization_vec_m' is zero for pulse " // trim(itos(i)) // ". Use polarization_vec_m_ip/polarization_vec_m_op or polarization_m to set the polarization.")
             end do
           else
-            if(cnt /= npulse_m) call log_error("get_parameters","'polarization_m' has wrong size (size npulse_m=" // trim(itos(npulse_m)) // " required).")
+            if(cnt < npulse_m) call log_error("get_parameters","'polarization_m' has wrong size (size npulse_m=" // trim(itos(npulse_m)) // " required).")
             forall(i=1:npulse_m) polarization_m(i) = trim(s_vector(i))
             deallocate(s_vector)
             do i=1,npulse_m
@@ -708,26 +708,26 @@ contains
 
           if(.not. get_parameter("hw1_m", vector, cnt)) &
             call log_error("get_parameters", "'hw1_m' not found.")
-          if(cnt /= npulse_m) call log_error("get_parameters","'hw1_m' has wrong size (size npulse_m=" // trim(itos(npulse_m)) // " required).")
-          hE_0(:) = vector(:)
+          if(cnt < npulse_m) call log_error("get_parameters","'hw1_m' has wrong size (size npulse_m=" // trim(itos(npulse_m)) // " required).")
+          hE_0(:) = vector(1:npulse_m)
           deallocate(vector)
           if(.not. get_parameter("hw_m", vector, cnt)) &
             call log_error("get_parameters", "'hw_m' not found.")
-          if(cnt /= npulse_m) call log_error("get_parameters","'hw_m' has wrong size (size npulse_m=" // trim(itos(npulse_m)) // " required).")
-          hw_m(:) = vector(:)
+          if(cnt < npulse_m) call log_error("get_parameters","'hw_m' has wrong size (size npulse_m=" // trim(itos(npulse_m)) // " required).")
+          hw_m(:) = vector(1:npulse_m)
           deallocate(vector)
           if(.not. get_parameter("tau_m", vector, cnt)) &
             call log_error("get_parameters", "'tau_m' not found.")
-          if(cnt /= npulse_m) call log_error("get_parameters","'tau_m' has wrong size (size npulse_m=" // trim(itos(npulse_m)) // " required).")
-          tau_m(:) = vector(:)
+          if(cnt < npulse_m) call log_error("get_parameters","'tau_m' has wrong size (size npulse_m=" // trim(itos(npulse_m)) // " required).")
+          tau_m(:) = vector(1:npulse_m)
           deallocate(vector)
 
           if(.not. get_parameter("delay_m", vector, cnt)) then
             call log_warning("get_parameters", "'delay_m' not found. Center of the pulses is located at t=tau_m/2.")
             delay_m(:) = 0.d0 ! No extra delay
           else
-            if(cnt /= npulse_m) call log_error("get_parameters","'delay_m' has wrong size (size npulse_m=" // trim(itos(npulse_m)) // " required).")
-            delay_m(:) = vector(:)
+            if(cnt < npulse_m) call log_error("get_parameters","'delay_m' has wrong size (size npulse_m=" // trim(itos(npulse_m)) // " required).")
+            delay_m(:) = vector(1:npulse_m)
             deallocate(vector)            
           end if
         else ! If not pulse:
@@ -735,13 +735,13 @@ contains
           if(.not. get_parameter("polarization_m", s_vector, cnt)) then
             ! If 'polarization_m' is not given, try to find 'polarization_vec_ip_m' and/or 'polarization_vec_op_m'
             if(get_parameter("polarization_vec_ip_m", vector, cnt)) then
-              if(cnt /= 3) call log_error("get_parameters","'polarization_vec_ip_m' has wrong size (size 3 required).")
-              polarization_vec_m(1,1,:) = vector(:)
+              if(cnt < 3) call log_error("get_parameters","'polarization_vec_ip_m' has wrong size (size 3 required).")
+              polarization_vec_m(1,1,:) = vector(1:3)
               deallocate(vector)
             end if
             if(get_parameter("polarization_vec_op_m", vector, cnt)) then
-              if(cnt /= 3) call log_error("get_parameters","'polarization_vec_op_m' has wrong size (size 3 required).")
-              polarization_vec_m(1,2,:) = vector(:)
+              if(cnt < 3) call log_error("get_parameters","'polarization_vec_op_m' has wrong size (size 3 required).")
+              polarization_vec_m(1,2,:) = vector(1:3)
               deallocate(vector)
             end if
             if( sum(abs(polarization_vec_m(1,:,:))) < 1.d-12 ) &
