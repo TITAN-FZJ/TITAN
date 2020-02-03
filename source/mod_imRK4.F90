@@ -228,7 +228,7 @@ contains
     ! Calculating the "ground state" Hamiltonian for a given k-point (with time-dependent expectation values included)
     call hamiltk(s,kp,hk)
 
-    ! Builginf time dependent hamiltonian
+    ! Building time dependent hamiltonian
     call build_hext(s%nAtoms,t,hext_t)
 
     ! calculating the original hamiltonian H(t) without the eigenvalue term.

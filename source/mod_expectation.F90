@@ -240,8 +240,6 @@ contains
         end do
       end do
     end do
-
-
   end subroutine expec_val
 
 
