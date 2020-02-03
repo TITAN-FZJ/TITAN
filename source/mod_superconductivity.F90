@@ -70,8 +70,10 @@ end subroutine allocate_super_variables
     !!With this I'm just making sure that diagonal blocks of the superconducting
     !!Hamiltonian are hermitian, and therefore the total hamiltonian is hermitian.
 
-    call hamiltk(sys,kp,dummy)
+    ! call hamiltk(sys,kp,hk)
 
+    call hamiltk(sys,kp,dummy)
+    !
     do i = 1, dimH
         do j = 1, dimH
             hk(i,j) = (dummy(i,j) + conjg(dummy(j,i)))/2.d0
