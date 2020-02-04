@@ -235,7 +235,7 @@ contains
     hamilt_0 = hk + hext_t
 
     ! Calculating the time-dependent Hamiltonian 
-    hamilt_t = hamilt_0 - ( eval * id )
+    hamilt_t = ( eval * id ) - hamilt_0
 
     ! Checking if Hamiltonian is hermitian
     ! if( sum(abs(conjg(transpose(hamilt_t))-hamilt_t)) > 1.d-12 ) then
