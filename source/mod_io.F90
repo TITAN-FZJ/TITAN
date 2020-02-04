@@ -528,13 +528,23 @@ contains
           if(.not. get_parameter("polarization_e", s_vector, cnt)) then
             ! If 'polarization_e' is not given, try to find 'polarization_vec_ip_e' and/or 'polarization_vec_op_e'
             if(get_parameter("polarization_vec_ip_e", vector, cnt)) then
-              if(cnt < 3*npulse_e) call log_error("get_parameters","'polarization_vec_ip_e' has wrong size (size 3*npulse_e=" // trim(itos(3*npulse_e)) // " required).")
-              forall(i=1:npulse_e) polarization_vec_e(i,1,:) = vector((i-1)*3+1:(i-1)*3+3)
+              if((cnt == 3).and.(npulse_e > 1)) then
+                call log_warning("get_parameters","'polarization_vec_ip_e' has size 3. Using same in-phase polarization to all pulses.")
+                forall(i=1:npulse_e) polarization_vec_e(i,1,:) = vector(1:3)
+              else
+                if(cnt < 3*npulse_e) call log_error("get_parameters","'polarization_vec_ip_e' has wrong size (size 3*npulse_e=" // trim(itos(3*npulse_e)) // " required).")
+                forall(i=1:npulse_e) polarization_vec_e(i,1,:) = vector((i-1)*3+1:(i-1)*3+3)
+              end if
               deallocate(vector)
             end if
             if(get_parameter("polarization_vec_op_e", vector, cnt)) then
-              if(cnt < 3*npulse_e) call log_error("get_parameters","'polarization_vec_op_e' has wrong size (size 3*npulse_e=" // trim(itos(3*npulse_e)) // " required).")
-              forall(i=1:npulse_e) polarization_vec_e(i,2,:) = vector((i-1)*3+1:(i-1)*3+3)
+              if((cnt == 3).and.(npulse_e > 1)) then
+                call log_warning("get_parameters","'polarization_vec_op_e' has size 3. Using same out-of-phase polarization to all pulses.")
+                forall(i=1:npulse_e) polarization_vec_e(i,2,:) = vector(1:3)
+              else
+                if(cnt < 3*npulse_e) call log_error("get_parameters","'polarization_vec_op_e' has wrong size (size 3*npulse_e=" // trim(itos(3*npulse_e)) // " required).")
+                forall(i=1:npulse_e) polarization_vec_e(i,2,:) = vector((i-1)*3+1:(i-1)*3+3)
+              end if
               deallocate(vector)
             end if
             do i=1,npulse_e
@@ -589,7 +599,10 @@ contains
             delay_e(:) = 0.d0 ! No extra delay
           else
             if(cnt < npulse_e) call log_error("get_parameters","'delay_e' has wrong size (size npulse_e=" // trim(itos(npulse_e)) // " required).")
-            delay_e(:) = vector(1:npulse_e)
+            delay_e(1) = vector(1)
+            do i=2,npulse_e
+              delay_e(i) = delay_e(i-1)+vector(i)
+            end do
             deallocate(vector)            
           end if
         else ! If not pulse:
@@ -666,13 +679,23 @@ contains
           if(.not. get_parameter("polarization_m", s_vector, cnt)) then
             ! If 'polarization_m' is not given, try to find 'polarization_vec_ip_m' and/or 'polarization_vec_op_m'
             if(get_parameter("polarization_vec_ip_m", vector, cnt)) then
-              if(cnt < 3*npulse_m) call log_error("get_parameters","'polarization_vec_ip_m' has wrong size (size 3*npulse_m=" // trim(itos(3*npulse_m)) // " required).")
-              forall(i=1:npulse_m) polarization_vec_m(i,1,:) = vector((i-1)*3+1:(i-1)*3+3)
+              if((cnt == 3).and.(npulse_m > 1)) then
+                call log_warning("get_parameters","'polarization_vec_ip_m' has size 3. Using same in-phase polarization to all pulses.")
+                forall(i=1:npulse_m) polarization_vec_m(i,1,:) = vector(1:3)
+              else
+                if(cnt < 3*npulse_m) call log_error("get_parameters","'polarization_vec_ip_m' has wrong size (size 3*npulse_m=" // trim(itos(3*npulse_m)) // " required).")
+                forall(i=1:npulse_m) polarization_vec_m(i,1,:) = vector((i-1)*3+1:(i-1)*3+3)
+              end if
               deallocate(vector)
             end if
             if(get_parameter("polarization_vec_op_m", vector, cnt)) then
-              if(cnt < 3*npulse_m) call log_error("get_parameters","'polarization_vec_op_m' has wrong size (size 3*npulse_m=" // trim(itos(3*npulse_m)) // " required).")
-              forall(i=1:npulse_m) polarization_vec_m(i,2,:) = vector((i-1)*3+1:(i-1)*3+3)
+              if((cnt == 3).and.(npulse_m > 1)) then
+                call log_warning("get_parameters","'polarization_vec_op_m' has size 3. Using same out-of-phase polarization to all pulses.")
+                forall(i=1:npulse_m) polarization_vec_m(i,2,:) = vector(1:3)
+              else
+                if(cnt < 3*npulse_m) call log_error("get_parameters","'polarization_vec_op_m' has wrong size (size 3*npulse_m=" // trim(itos(3*npulse_m)) // " required).")
+                forall(i=1:npulse_m) polarization_vec_m(i,2,:) = vector((i-1)*3+1:(i-1)*3+3)
+              end if
               deallocate(vector)
             end if
             do i=1,npulse_m
@@ -727,7 +750,10 @@ contains
             delay_m(:) = 0.d0 ! No extra delay
           else
             if(cnt < npulse_m) call log_error("get_parameters","'delay_m' has wrong size (size npulse_m=" // trim(itos(npulse_m)) // " required).")
-            delay_m(:) = vector(1:npulse_m)
+            delay_m(1) = vector(1)
+            do i=2,npulse_m
+              delay_m(i) = delay_m(i-1)+vector(i)
+            end do
             deallocate(vector)            
           end if
         else ! If not pulse:

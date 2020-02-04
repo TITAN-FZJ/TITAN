@@ -4,7 +4,7 @@ module mod_input
   integer, parameter :: word_length = 50
   integer, parameter :: line_length = 300
   integer, parameter :: max_lines   = 100
-  integer, parameter :: max_elements = 50
+  integer, parameter :: max_elements = 300
   character(line_length) :: out_file = ""
   integer :: out_unit = -1
   character(len=line_length), dimension(max_lines) :: key, val
