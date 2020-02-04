@@ -5,24 +5,26 @@ contains
   subroutine time_propagator(s)
     use mod_f90_kind,         only: double
     use mod_constants,        only: cZero, cI
-    use mod_imRK4_parameters, only: dimH2, step, integration_time, ERR, safe_factor, lelectric, hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
+    use mod_imRK4_parameters, only: dimH2, step, integration_time, ERR, safe_factor, lelectric, &
+                                    hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, &
+                                    lpulse_m, tau_m, delay_m, polarization_e, polarization_m
     use mod_RK_matrices,      only: A, id, id2, M1, build_identity
-    use mod_imRK4,            only: iterate_Zki, calculate_step_error, magnetic_pulse_B, evec_potent
+    use mod_imRK4,            only: iterate_Zki, calculate_step_error, magnetic_field, vector_potential
     use mod_BrillouinZone,    only: realBZ
     use mod_parameters,       only: nOrb,dimH,output,laddresults,lprintfieldonly
     use mod_system,           only: System
     use ElectricField,        only: EshiftBZ,ElectricFieldVector
-    use mod_expectation,      only: expec_val_n
+    use mod_expectation,      only: expec_val_n, expec_H_n, expec_L_n
     use mod_Umatrix,          only: update_Umatrix
     use mod_magnet,           only: rhod0,rho0
     use mod_tools,            only: KronProd
     use mod_mpi_pars
     implicit none
-    type(System),         intent(in)  :: s
+    type(System), intent(in)   :: s
 
-    integer                           :: i, it, n, counter
-    real(double)                      :: t, p, h_new, h_old, ERR_old, ERR_kn
-    complex(double), dimension(dimH)  :: Yn, Yn_hat, Yn_new, Yn_e, Yn_hat_e, Yn_new_e
+    integer                                         :: i, it, n, counter
+    real(double)                                    :: t, p, h_new, h_old, ERR_old, ERR_kn
+    complex(double), dimension(dimH)                :: Yn, Yn_hat, Yn_new, Yn_e, Yn_hat_e, Yn_new_e
     complex(double), dimension(:,:,:), allocatable  :: evec_kn,evec_kn_temp
     real(double),    dimension(:,:),   allocatable  :: eval_kn
 
@@ -35,11 +37,13 @@ contains
     complex(double),                allocatable :: work(:), hk(:,:)
 
     real(double),    dimension(nOrb,s%nAtoms)   :: rho_t, mx_t, my_t, mz_t
+    real(double),    dimension(s%nAtoms)        :: lxm, lxpm, lym, lypm, lzm, lzpm
+    real(double),    dimension(s%nAtoms)        :: lxm_t, lxpm_t, lym_t, lypm_t, lzm_t, lzpm_t
     complex(double), dimension(nOrb,s%nAtoms)   :: mp_t
     real(double),    dimension(s%nAtoms)        :: rhod_t, mxd_t, myd_t, mzd_t
     complex(double), dimension(s%nAtoms)        :: mpd_t
-    real(double), dimension(3)                  :: field_m, field_e
-    real(double)                                :: A_t_abs
+    real(double),    dimension(3)               :: field_m, field_e
+    real(double)                                :: E_t, E_0
    
     if(rFreq(1) == 0) then
       write(output%unit_loop,"('CALCULATING TIME-PROPAGATION')")
@@ -85,13 +89,23 @@ contains
       ! Propagation loop for a given time t, calculating the optimal step size
       do
         !$omp parallel default(none) &
-        !$omp& private(Yn_e,Yn_new_e,Yn_hat_e,iz,n,i,kp,weight,hk,ERR_kn,Yn, Yn_new, Yn_hat, eval,work,rwork,info,expec_0,expec_p,expec_z) &
-        !$omp& shared( ERR,counter,step,s,t,it,dimH,realBZ,evec_kn_temp,evec_kn,eval_kn,rho_t,mp_t,mz_t,lwork,EshiftBZ,ElectricFieldVector)
+        !$omp& private(Yn_e,Yn_new_e,Yn_hat_e,iz,n,i,kp,weight,hk,ERR_kn,Yn, Yn_new, Yn_hat, eval,work,rwork,info,expec_0,expec_p,expec_z,E_0,lxm,lxpm,lym,lypm,lzm,lzpm) &
+        !$omp& shared( ERR,counter,step,s,t,it,dimH,realBZ,evec_kn_temp,evec_kn,eval_kn,rho_t,mp_t,mz_t,E_t, Lxm_t,Lxpm_t,Lym_t,Lypm_t,Lzm_t,Lzpm_t,lwork,EshiftBZ,ElectricFieldVector)
 
-        rho_t = 0.d0
-        mp_t  = cZero
-        mz_t  = 0.d0
-        ERR   = 0.d0
+        rho_t  = 0.d0
+        mp_t   = cZero
+        mz_t   = 0.d0
+
+        E_t    = 0.d0
+
+        Lxm_t  = 0.d0
+        Lxpm_t = 0.d0
+        Lym_t  = 0.d0
+        Lypm_t = 0.d0
+        Lzm_t  = 0.d0
+        Lzpm_t = 0.d0
+
+        ERR    = 0.d0
   
         !$omp do reduction(+:rho_t,mp_t,mz_t,ERR)
         kpoints_loop: do iz = 1, realBZ%workload
@@ -118,7 +132,6 @@ contains
       ! 3- find Yn = Yn^~ * exp( (-i*En*t/hbar) ) at each step.
       ! 4- calculate the error at each step from Yn but propagate with Yn^~.
     !----------------------------------------------------------------------------------------!
-    !----------------------------------------------------------------------------------------!
               ! Geting the intitial vector Yn^~, setting Yn to Yn^~ for propagation, hbar = 1
               ! Yn = Yn * exp(cI*eval_kn(n,iz)*t) 
                 Yn = Yn * exp(cI*eval_kn(n,iz)*t)
@@ -137,14 +150,31 @@ contains
             Yn_new_e(:) = Yn_new * exp(-cI*eval_kn(n,iz)*t) 
             Yn_hat_e(:) = Yn_hat * exp(-cI*eval_kn(n,iz)*t) 
 
-
             ! Calculating expectation values for the nth eigenvector
             ! Note: use the Yn_new_e or Yn_nw >>> should give the same result
+
+            ! calculating expectation value for magnetization in eigenvector (n)
             call expec_val_n(s, dimH, Yn_new_e, eval_kn(n,iz), expec_0, expec_p, expec_z)
 
-            rho_t = rho_t + expec_0 * weight 
-            mp_t  = mp_t  + expec_p * weight 
-            mz_t  = mz_t  + expec_z * weight 
+            ! calculating expectation value for the T.D Hamiltonian in eigenvector (n)
+            call expec_H_n(s, kp, t, dimH, Yn_new_e, eval_kn(n,iz), E_0)
+
+            ! calculating expectation value of angular momentum in eigenvector (n)
+            call expec_L_n(s, dimH, Yn_new_e, eval_kn(n,iz), lxm, lxpm, lym, lypm, lzm, lzpm)
+
+
+            rho_t = rho_t + expec_0  * weight 
+            mp_t  = mp_t  + expec_p  * weight 
+            mz_t  = mz_t  + expec_z  * weight 
+
+            E_t = E_t + E_0 * weight
+
+            Lxm_t  = Lxm_t   + lxm  * weight
+            Lxpm_t = Lxpm_t  + lxpm * weight
+            Lym_t  = Lym_t   + lym  * weight
+            Lypm_t = Lypm_t  + lypm * weight
+            Lzm_t  = Lzm_t   + lzm  * weight
+            Lzpm_t = Lzpm_t  + lzpm * weight
 
             ! Calculation of the error and the new step size.
             ! Note: use Yn_e, Yn_new_e, Yn_hat_e.
@@ -205,6 +235,8 @@ contains
 
       mx_t = real(mp_t)
       my_t = aimag(mp_t)
+
+      ! obtaining expectation values for d-orbitals
       do i = 1, s%nAtoms
         rhod_t(i) = sum(rho_t(5:9,i))
         mpd_t(i)  = sum(mp_t(5:9,i))
@@ -212,39 +244,32 @@ contains
         myd_t(i)  = sum(my_t(5:9,i))
         mzd_t(i)  = sum(mz_t(5:9,i))
       end do
-
+ 
       call update_Umatrix(mzd_t,mpd_t,rhod_t,rhod0,rho_t,rho0,s%nAtoms,nOrb)
 
-      ! Calculating time-dependent field      
+      ! Calculating time-dependent field
       field_m = 0.d0
-      if (lmagnetic) then 
-        if (lpulse_m) then
-          if ((t >= delay_m).and.(t <= 8.d0*tau_m+delay_m)) then
-            call magnetic_pulse_B(t,field_m)
-          end if  
-        else
-          field_m = [ hw1_m*cos(hw_m*t), hw1_m*sin(hw_m*t), 0.d0 ]
-        end if 
-      end if 
-
+      if (lmagnetic) call magnetic_field(t,field_m)
       field_e = 0.d0 
-      if (lelectric) then 
-        if (lpulse_e) then
-          if ((t >= delay_e).and.(t <= tau_e+delay_e)) then
-            call evec_potent(t,field_e,A_t_abs)
-          end if  
-        else
-          field_e = [ hE_0*cos(hw_e*t), hE_0*sin(hw_e*t), 0.d0 ]
-        end if 
-      end if 
+      if (lelectric) call vector_potential(t, field_e)
 
       if(rFreq(1) == 0) &
-        call write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t, field_m, field_e)
+        call write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t, field_m, field_e, E_t, lxm_t, lxpm_t, lym_t, lypm_t, lzm_t, lzpm_t) 
 
       counter = counter + 1
       it = it + 1
 
     end do t_loop
+
+    if(lelectric) then
+      deallocate(polarization_e,hE_0,hw_e)
+      if(lpulse_e) deallocate(tau_e,delay_e) 
+    end if
+
+    if(lmagnetic) then
+      deallocate(polarization_m,hw1_m,hw_m)
+      if(lpulse_m) deallocate(tau_m,delay_m) 
+    end if
 
   end subroutine time_propagator
 
@@ -252,25 +277,46 @@ contains
   ! Writing header for previously opened file of unit "unit"
   subroutine write_header_time_prop(unit,title_line)
     use mod_f90_kind,         only: double
-    use mod_imRK4_parameters, only: lelectric, hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
+    use mod_imRK4_parameters, only: lelectric, hE_0, hw_e, lpulse_e, npulse_e, polarization_vec_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, npulse_m, polarization_vec_m, tau_m, delay_m
     implicit none
     integer,          intent(in)           :: unit
     character(len=*), intent(in)           :: title_line
+    integer :: i,j
 
     if(lmagnetic) then
-      write(unit=unit, fmt="('#   hw1_m = ',es16.9)") hw1_m
-      write(unit=unit, fmt="('#    hw_m = ',es16.9)") hw_m
       if(lpulse_m) then
-        write(unit=unit, fmt="('#   tau_m = ',es16.9)") tau_m
-        write(unit=unit, fmt="('# delay_m = ',es16.9)") delay_m
+        write(unit=unit, fmt="('# npulse_m = ',i0)") npulse_m
+        do i = 1,npulse_m
+          write(unit=unit,fmt="('#    pol_m = (',f6.3,',',f6.3,',',f6.3,') in-phase    ')") (polarization_vec_m(i,1,j), j=1,3)
+          write(unit=unit,fmt="('#          = (',f6.3,',',f6.3,',',f6.3,') out-of-phase')") (polarization_vec_m(i,2,j), j=1,3)
+          write(unit=unit,fmt="('#    hw1_m = ',es9.2)") hw1_m(i)
+          write(unit=unit,fmt="('#     hw_m = ',es9.2)") hw_m(i)
+          write(unit=unit,fmt="('#    tau_m = ',es9.2)") tau_m(i)
+          write(unit=unit,fmt="('#  delay_m = ',es9.2)") delay_m(i)
+        end do
+      else
+        write(unit=unit,fmt="('# pol_m = (',f6.3,',',f6.3,',',f6.3,') in-phase    ')") (polarization_vec_m(1,1,j), j=1,3)
+        write(unit=unit,fmt="('#       = (',f6.3,',',f6.3,',',f6.3,') out-of-phase')") (polarization_vec_m(1,2,j), j=1,3)
+        write(unit=unit,fmt="('# hw1_m = ',es16.9)") hw1_m(1)
+        write(unit=unit,fmt="('#  hw_m = ',es16.9)") hw_m(1)
       end if
     end if
     if(lelectric) then
-      write(unit=unit, fmt="('#   hE_0 = ',es16.9)") hE_0
-      write(unit=unit, fmt="('#    hw_e = ',es16.9)") hw_e
       if(lpulse_e) then
-        write(unit=unit, fmt="('#   tau_e = ',es16.9)") tau_e
-        write(unit=unit, fmt="('# delay_e = ',es16.9)") delay_e
+        write(unit=unit,fmt="('# npulse_e = ',i0)") npulse_e
+        do i = 1,npulse_e
+          write(unit=unit,fmt="('#    pol_e = (',f6.3,',',f6.3,',',f6.3,') in-phase    ')") (polarization_vec_e(i,1,j), j=1,3)
+          write(unit=unit,fmt="('#          = (',f6.3,',',f6.3,',',f6.3,') out-of-phase')") (polarization_vec_e(i,2,j), j=1,3)
+          write(unit=unit,fmt="('#     hE_0 =',es9.2)") hE_0(i)
+          write(unit=unit,fmt="('#     hw_e =',es9.2)") hw_e(i)
+          write(unit=unit,fmt="('#    tau_e =',es9.2)") tau_e(i)
+          write(unit=unit,fmt="('#  delay_e =',es9.2)") delay_e(i)
+        end do
+      else
+        write(unit=unit,fmt="('# pol_e = (',f6.3,',',f6.3,',',f6.3,') in-phase    ')") (polarization_vec_e(1,1,j), j=1,3)
+        write(unit=unit,fmt="('#       = (',f6.3,',',f6.3,',',f6.3,') out-of-phase')") (polarization_vec_e(1,2,j), j=1,3)
+        write(unit=unit,fmt="('#  hE_0 = ',es16.9)") hE_0
+        write(unit=unit,fmt="('#  hw_e = ',es16.9)") hw_e
       end if
     end if
 
@@ -289,9 +335,11 @@ contains
     character(len=500) :: output_file
     integer :: i,unit
      
-    allocate(output%observable(2))
+    allocate(output%observable(4))
     output%observable(1) = "occupation"
     output%observable(2) = "magnetization"
+    output%observable(3) = "Energy"
+    output%observable(4) = "AngularMomentum"
 
     if(lmagnetic) then
       output%time_field = "_magfield"
@@ -310,7 +358,7 @@ contains
     unit = 6090
     write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/field',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
     open(unit=unit,file=trim(output_file), status= 'replace')
-    call write_header_time_prop(unit,'#    Time [ps]   ,    field_m x   ,    field_m y   ,    field_m z   ,    field_e x   ,    field_e y   ,    field_e z   ' )
+    call write_header_time_prop(unit,'#    Time [ps]   ,    field_m x    ,    field_m y    ,    field_m z    ,    field_e x    ,    field_e y    ,    field_e z    ' )
     close(unit)
 
     if(lprintfieldonly) return
@@ -394,12 +442,12 @@ contains
     use mod_f90_kind,         only: double
     use mod_parameters,       only: output,missing_files
     use mod_mpi_pars,         only: abortProgram
-    use mod_imRK4_parameters, only: step, integration_time, lelectric, lpulse_e, delay_e, tau_e, hE_0, hw_e, lmagnetic, lpulse_m, delay_m, tau_m, hw1_m, hw_m
-    use mod_imRK4,            only: magnetic_pulse_B, evec_potent
+    use mod_imRK4_parameters, only: step, time_conv, integration_time, lelectric, lmagnetic
+    use mod_imRK4,            only: magnetic_field, vector_potential
     implicit none
     character(len=500)         :: output_file
     real(double), dimension(3) :: field_m, field_e
-    real(double)               :: t, time, A_t_abs
+    real(double)               :: t, time
     integer :: i,iw,err,errt=0
 
     write(output%unit_loop,"('[write_field] Writing field... ')",advance="no")
@@ -416,31 +464,14 @@ contains
     t = 0.d0
     t_loop_field: do while (t <= integration_time)
       t = t + step
-  
-      time = t*4.84d-5
 
-      ! Calculating time-dependent field      
+      ! Calculating time-dependent field
       field_m = 0.d0
-      if (lmagnetic) then 
-        if (lpulse_m) then
-          if ((t >= delay_m).and.(t <= 8.d0*tau_m+delay_m)) then
-            call magnetic_pulse_B(t,field_m)
-          end if  
-        else
-          field_m = [ hw1_m*cos(hw_m*t), hw1_m*sin(hw_m*t), 0.d0 ]
-        end if 
-      end if 
-
+      if (lmagnetic) call magnetic_field(t,field_m)
       field_e = 0.d0 
-      if (lelectric) then 
-        if (lpulse_e) then
-          if ((t >= delay_e).and.(t <= tau_e+delay_e)) then
-            call evec_potent(t,field_e,A_t_abs)
-          end if  
-        else
-          field_e = [ hE_0*cos(hw_e*t), hE_0*sin(hw_e*t), 0.d0 ]
-        end if 
-      end if 
+      if (lelectric) call vector_potential(t, field_e)
+
+      time = t*time_conv
 
       write(unit=6090,fmt="(7(es16.9,2x))") time, (field_m(i),i=1,3), (field_e(i),i=1,3)
     end do t_loop_field
@@ -453,15 +484,16 @@ contains
 
 
   ! subroutine to write in time propagation output files
-  subroutine write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t, field_m, field_e)
-    use mod_f90_kind,   only: double
-    use mod_system,     only: System
-    use mod_parameters, only: nOrb
+  subroutine write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t, field_m, field_e, E_t, Lxm_t, Lxpm_t, Lym_t, Lypm_t, Lzm_t, Lzpm_t) 
+    use mod_f90_kind,         only: double
+    use mod_system,           only: System
+    use mod_parameters,       only: nOrb
+    use mod_imRK4_parameters, only: time_conv
     implicit none
     type(System),                          intent(in) :: s
-    real(double),                          intent(in) :: t
+    real(double),                          intent(in) :: t, E_t
     real(double), dimension(nOrb,s%nAtoms),intent(in) :: rho_t, mx_t, my_t, mz_t
-    real(double), dimension(s%nAtoms)     ,intent(in) :: rhod_t, mxd_t, myd_t, mzd_t
+    real(double), dimension(s%nAtoms)     ,intent(in) :: rhod_t, mxd_t, myd_t, mzd_t, Lxm_t, Lxpm_t, Lym_t, Lypm_t, Lzm_t, Lzpm_t 
     real(double), dimension(3)            ,intent(in) :: field_m, field_e
 
     integer      :: i
@@ -469,7 +501,7 @@ contains
 
     call open_time_prop_files()
     
-    time = t*4.84d-5
+    time = t*time_conv
 
     write(unit=5091,fmt="(100(es16.9,2x))") time, (sum(rho_t(:,i)),i=1,s%nAtoms)
     write(unit=5092,fmt="(100(es16.9,2x))") time, (sum(mx_t(:,i)),sum(my_t(:,i)),sum(mz_t(:,i)), sqrt(sum(mx_t(:,i))**2 + sum(my_t(:,i))**2 + sum(mz_t(:,i))**2) ,i=1,s%nAtoms)
@@ -479,6 +511,11 @@ contains
 
     write(unit=6090,fmt="(7(es16.9,2x))") time, (field_m(i),i=1,3), (field_e(i),i=1,3)
 
+    write(unit=5093,fmt="(100(es16.9,2x))") time, E_t
+
+    ! write(unit=5094, fmt="(100(es16.9,2x))") time,  sum(Lxm_t(i)), sum(Lym_t(i)), sum(Lzm_t(i)), sum(Lxpm_t(i)),sum(Lypm_t(i)), sum(Lzpm_t(i)), sqrt(sum(Lxm_t(i))**2 + sum(Lym_t(i))**2 + sum(Lzm_t(i))**2 )  
+    write(unit=5094, fmt="(100(es16.9,2x))") time, sum(Lxm_t), sum(Lym_t), sum(Lzm_t), sum(Lxpm_t), sum(Lypm_t), sum(Lzpm_t), sqrt(Lxm_t**2 + Lym_t**2 + Lzm_t**2)
+   
     call close_time_prop_files()
 
   end subroutine write_time_prop_files

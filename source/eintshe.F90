@@ -9,6 +9,7 @@ subroutine eintshe(q,e)
   use mod_BrillouinZone, only: realBZ
   use mod_prefactors,    only: prefactor !, lxpt, lypt, lzpt, tlxp, tlyp, tlzp
   use mod_disturbances,  only: tchiorbiikl
+  use ElectricField,     only: ElectricFieldVector
   use adaptiveMesh
   use mod_mpi_pars
 
@@ -57,7 +58,7 @@ subroutine eintshe(q,e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,wkbzc,ep,kp,kpq,nep,nkp,i,j,l,mu,nu,gamma,xi,sigma,sigmap,neighbor,dtdk,gf,gfuu,gfud,gfdu,gfdd,df1iikl,pfdf1iikl,tFintiikl) & !,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,expikr,prett,preLxtt,preLytt,preLztt) &
-  !$omp& shared(llineargfsoc,s,nOrb,nOrb2,bzs,realBZ,E_k_imag_mesh,prefactor,q,e,y,x2,wght,p2,pn2,eta,etap,local_points,real_points,sigmai2i,sigmaimunu2i,dim,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
+  !$omp& shared(llineargfsoc,s,nOrb,nOrb2,bzs,realBZ,E_k_imag_mesh,ElectricFieldVector,prefactor,q,e,y,x2,wght,p2,pn2,eta,etap,local_points,real_points,sigmai2i,sigmaimunu2i,dim,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
 
   allocate(df1iikl(dim,4),pfdf1iikl(dim,4), &
            gf(nOrb2,nOrb2, s%nAtoms,s%nAtoms), &
@@ -92,7 +93,7 @@ subroutine eintshe(q,e)
       df1iikl = cZero
 
       ! Calculating derivative of in-plane and n.n. inter-plane hoppings
-      call dtdksub(kp, dtdk)
+      call dtdksub(ElectricFieldVector, kp, dtdk)
 
       ! TODO: Fix currents
       !do neighbor = n0sc1,n0sc2
@@ -211,7 +212,7 @@ subroutine eintshe(q,e)
       df1iikl = cZero
 
       ! Calculating derivative of in-plane and n.n. inter-plane hoppings
-      call dtdksub(kp, dtdk)
+      call dtdksub(ElectricFieldVector, kp, dtdk)
 
       ! TODO: Fix currents
       !do neighbor = n0sc1,n0sc2
@@ -365,6 +366,7 @@ subroutine eintshelinearsoc(q,e)
   use EnergyIntegration, only: y, wght, x2, p2, generate_real_epoints, pn2
   use mod_prefactors,    only: prefactor, prefactorlsoc
   use mod_disturbances,  only: tchiorbiikl
+  use ElectricField,     only: ElectricFieldVector
   use adaptiveMesh
   use mod_mpi_pars
 
@@ -412,7 +414,7 @@ subroutine eintshelinearsoc(q,e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,iz,wkbzc,kp,kpq,ep,nep,nkp,tFintiikl,df1iikl,pfdf1iikl,df1lsoc,dtdk,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &    !,expikr,prett,preLxtt,preLytt,preLztt
-  !$omp& shared(local_points,real_points,s,nOrb,nOrb2,bzs,E_k_imag_mesh,tchiorbiikl,prefactor,prefactorlsoc,realBZ,q,e,y,x2,wght,p2,eta,etap,sigmai2i,sigmaimunu2i,dim,offset)                                                                                 !,n0sc1,n0sc2,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,lxpt,lypt,lzpt,tlxp,tlyp,tlzp
+  !$omp& shared(local_points,real_points,s,nOrb,nOrb2,bzs,E_k_imag_mesh,ElectricFieldVector,tchiorbiikl,prefactor,prefactorlsoc,realBZ,q,e,y,x2,wght,p2,eta,etap,sigmai2i,sigmaimunu2i,dim,offset)                                                                                 !,n0sc1,n0sc2,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,lxpt,lypt,lzpt,tlxp,tlyp,tlzp
 
   allocate( df1iikl(dim,4),pfdf1iikl(dim,4),df1lsoc(dim,4), &
             dtdk(nOrb,nOrb,s%nAtoms,s%nAtoms), &
@@ -452,7 +454,7 @@ subroutine eintshelinearsoc(q,e)
       df1lsoc = cZero
 
       ! Calculating derivative of in-plane and n.n. inter-plane hoppings
-      call dtdksub(kp,dtdk)
+      call dtdksub(ElectricFieldVector, kp,dtdk)
 
       ! do neighbor=n0sc1,n0sc2 !TODO: Re-Include
       !   expikr(neighbor) = exp(cI*dot_product(kp, r_nn(:,neighbor)))
@@ -597,7 +599,7 @@ subroutine eintshelinearsoc(q,e)
       df1lsoc = cZero
 
       ! Calculating derivative of in-plane and n.n. inter-plane hoppings
-      call dtdksub(kp,dtdk)
+      call dtdksub(ElectricFieldVector, kp,dtdk)
 
       ! do neighbor=n0sc1,n0sc2 !TODO: Re-Include
       !   expikr(neighbor) = exp(cI*dot_product(kp, r_nn(:,neighbor)))

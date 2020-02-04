@@ -124,15 +124,15 @@ contains
     complex(double), dimension(dimH2), intent(in)  :: Z_k
     complex(double), dimension(dimH2), intent(out) :: Fun 
     real(double)                     :: t1, t2
-    complex(double)                  :: hamilt_t(dimH,dimH)
+    complex(double)                  :: hamilt_t(dimH,dimH), hamilt_0(dimH,dimH)
     complex(double), dimension(dimH) :: F1, F2   
 
     t1 = t + step * c1
-    call build_td_hamiltonian(s, t1, kp, eval, hamilt_t)
+    call build_td_hamiltonian(s, t1, kp, eval, hamilt_t, hamilt_0)
     F1 = -cI * matmul( hamilt_t , Z_k(1:dimH) + Yn )
 
     t2 = t + step * c2
-    call build_td_hamiltonian(s, t2, kp, eval, hamilt_t)
+    call build_td_hamiltonian(s, t2, kp, eval, hamilt_t, hamilt_0)
     F2 = -cI * matmul( hamilt_t , Z_k(dimH+1:dimH2) + Yn )
 
     Fun = [ F1, F2 ]
@@ -156,9 +156,9 @@ contains
     complex(double), dimension(dimH)      , intent(in)  :: Yn
     complex(double), dimension(dimH,dimH) , intent(out) :: Jacobian_t
 
-    complex(double), dimension(dimH,dimH)  :: hamilt_t,dHdc
+    complex(double), dimension(dimH,dimH)  :: hamilt_t, dHdc, hamilt_0
 
-    call build_td_hamiltonian(s, t, kp, eval, hamilt_t)
+    call build_td_hamiltonian(s, t, kp, eval, hamilt_t, hamilt_0)
     call build_term_Jacobian(s, eval, Yn, dHdc)
 
     Jacobian_t = -cI*(hamilt_t + dHdc)
@@ -212,26 +212,30 @@ contains
 
   !> build time dependent Hamiltonian for each kp 
   !> H(t) = hk + hext_t
-  subroutine build_td_hamiltonian(s,t,kp,eval,hamilt_t)
-    use mod_f90_kind,    only: double
-    use mod_system,      only: System
-    use mod_parameters,  only: dimH
+  subroutine build_td_hamiltonian(s,t,kp,eval,hamilt_t, hamilt_0)
+    use mod_f90_kind,   only: double
+    use mod_system,     only: System
+    use mod_parameters, only: dimH
     use mod_RK_matrices, only: id
     implicit none
     type(System),    intent(in)  :: s
     real(double),    intent(in)  :: t, eval
     real(double),    intent(in)  :: kp(3)
-    complex(double), intent(out) :: hamilt_t(dimH,dimH)
+    complex(double), intent(out) :: hamilt_t(dimH,dimH), hamilt_0(dimH,dimH)
 
     complex(double), dimension(dimH,dimH)  :: hk,hext_t
 
     ! Calculating the "ground state" Hamiltonian for a given k-point (with time-dependent expectation values included)
     call hamiltk(s,kp,hk)
 
-    call build_hext(s%nAtoms,t, hext_t)
+    ! Building time dependent hamiltonian
+    call build_hext(s%nAtoms,t,hext_t)
 
-    ! Calculating the time-dependent Hamiltonian
-    hamilt_t = eval * id - (hk + hext_t)
+    ! calculating the original hamiltonian H(t) without the eigenvalue term.
+    hamilt_0 = hk + hext_t
+
+    ! Calculating the time-dependent Hamiltonian 
+    hamilt_t = hamilt_0 - ( eval * id )
 
     ! Checking if Hamiltonian is hermitian
     ! if( sum(abs(conjg(transpose(hamilt_t))-hamilt_t)) > 1.d-12 ) then
@@ -247,7 +251,7 @@ contains
   subroutine build_hext(nAtoms,t,hext_t)
     use mod_f90_kind,         only: double
     use mod_constants,        only: cI,cZero
-    use mod_imRK4_parameters, only: lelectric, hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, tau_m, delay_m
+    use mod_imRK4_parameters, only: lelectric, lmagnetic
     use mod_System,           only: ia !, s => sys
     use mod_parameters,       only: nOrb,nOrb2,dimH
     implicit none
@@ -257,8 +261,7 @@ contains
 
     complex(double)  :: hext(nOrb2,nOrb2), temp(nOrb,nOrb)
     integer          :: i, j,  mu, nu
-    real(double)     :: b_pulse(3), A_t(3)
-    real(double)     :: A_t_abs
+    real(double)     :: b_field(3), A_t(3)
 
     real(double)                                            :: kp(3)
     ! complex(double),dimension(nOrb,nOrb,s%nAtoms,s%nAtoms):: dtdk
@@ -273,18 +276,10 @@ contains
     if(lmagnetic) then
       do mu=1,nOrb
         nu=mu+nOrb
-        if(lpulse_m) then
-          if ((t >= delay_m).and.(t <= 8.d0*tau_m+delay_m)) then
-          ! building external Hamiltonian (hext)
-            call magnetic_pulse_B(t,b_pulse)
-
-            hext(mu,mu) = hext(mu,mu) + b_pulse(3)
-            hext(nu,nu) = hext(nu,nu) - b_pulse(3)
-            hext(nu,mu) = hext(nu,mu) + b_pulse(1)-cI*b_pulse(2)
-          end if
-        else
-          hext(nu,mu) = hext(nu,mu) + (cos(hw_m*t) - cI*sin(hw_m*t))*hw1_m*0.5d0
-        end if
+        call magnetic_field(t,b_field)
+        hext(mu,mu) = hext(mu,mu) + b_field(3)
+        hext(nu,nu) = hext(nu,nu) - b_field(3)
+        hext(nu,mu) = hext(nu,mu) + b_field(1)-cI*b_field(2)
         hext(mu,nu) = conjg(hext(nu,mu))
       end do
 
@@ -293,34 +288,16 @@ contains
       end do
     end if
 
-
     if(lelectric) then
-      if(lpulse_e) then
-        if ((t >= delay_e).and.(t <= tau_e+delay_e)) then
-          call evec_potent(t,A_t,A_t_abs)
-          ! since nAtoms is an input to the subroutine 
-          ! do i = 1,s%nAtoms
-          !   do j = 1,s%nAtoms
-          do i = 1, nAtoms
-            do j = 1, nAtoms
-              call dtdksub(kp,dtdk)
-              temp = dtdk(:,:,i,j)*A_t_abs
-              hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) = hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) + temp
-              hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) = hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) + temp
-            end do
-          end do
-        end if 
-      else
-        do i = 1, nAtoms
-          do j = 1, nAtoms
-            call dtdksub(kp,dtdk)
-                                   !> use A(t) not E(t)
-            temp = dtdk(:,:,i,j) * ( (cos(hw_e*t) + sin(hw_e*t))*hE_0 )
-            hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) = hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) + temp
-            hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) = hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) + temp
-          end do
+      call vector_potential(t, A_t)
+      call dtdksub(A_t,kp,dtdk)
+      do i = 1, nAtoms
+        do j = 1, nAtoms
+          temp = dtdk(:,:,i,j)
+          hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) = hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) + temp
+          hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) = hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) + temp
         end do
-      end if
+      end do
     end if
 
   end subroutine build_hext
@@ -352,53 +329,75 @@ contains
   end subroutine calculate_step_error
 
 
- subroutine magnetic_pulse_B(t,b_pulse)
-    use mod_f90_kind, only: double
-    use mod_imRK4_parameters, only: field_direction_m, hw1_m, hw_m, tau_m, delay_m
+ subroutine magnetic_field(t,b_field)
+    use mod_f90_kind,         only: double
+    use mod_imRK4_parameters, only: hw1_m, hw_m, npulse_m, lpulse_m, tau_m, delay_m, polarization_vec_m
+    use mod_constants,        only: pi
     implicit none
     real(double) , intent(in)  :: t
-    real(double) , intent(out) :: b_pulse(3)
+    real(double) , intent(out) :: b_field(3)
+    integer      :: np
+    real(double) :: delay, arg
 
-    b_pulse = [ field_direction_m(1), field_direction_m(2), field_direction_m(3) ] * (hw1_m*0.5d0*exp(-((t-delay_m)-4.d0*tau_m)**2/tau_m**2)*cos(hw_m*t))
+    b_field(:) = 0.d0
+    if(lpulse_m) then
+      pulses_m: do np = 1, npulse_m
+        if ((t >= delay_m(np)).and.(t <= tau_m(np)+delay_m(np))) then
 
-  end subroutine magnetic_pulse_B
+          delay = 0.5d0*tau_m(np) - delay_m(np)
+          arg   = hw_m(np)*(t-delay)
+
+          b_field(:) = cos(arg)*polarization_vec_m(np,1,:) + sin(arg)*polarization_vec_m(np,2,:)
+
+          ! Cos-squared pulse
+          b_field(:) =  b_field(:) * hw1_m(np) * 0.5d0 * ( cos(pi*(t-delay)/tau_m(np)) )**2  
+          ! Gaussian pulse
+          ! b_pulse = b_pulse * (0.5d0 * hw1_m * exp(-2*log(2*(t-delay/tau_m)**2))
+          ! b_pulse = b_pulse * (0.5d0 * hw1_m * exp(-((t-delay)-4.d0*tau_m)**2/tau_m**2))
+
+        end if
+      end do pulses_m
+    else
+      b_field(:) = 0.5d0*hw1_m(1)*( cos(hw_m(1)*t)*polarization_vec_m(1,1,:)+sin(hw_m(1)*t)*polarization_vec_m(1,2,:) )
+    end if
+  end subroutine magnetic_field
 
 
- ! subroutine electric_pulse_e(t,e_pulse)
- !    use mod_f90_kind, only: double
- !    use mod_imRK4_parameters, only: field_direction_e, hE_0, hw_e, tau_e
- !    implicit none
- !    real(double) , intent(in)  :: t
- !    real(double) , intent(out) :: e_pulse(3)
-
- !    e_pulse = [ field_direction_e(1), field_direction_e(2), field_direction_e(3) ] * (hE_0*0.5d0*exp(-(t-4.d0*tau_e)**2/tau_e**2)*aimag(exp(hw_e*t*cI)))
-
- !  end subroutine electric_pulse_e
-
-
-  !> subroutine builds vector potential A(t) = integral(E(t)dt)
-  !> From paper(DOI: 0.1038/s41567-019-0602-9) the vector potential is given by: 
+  !> Subroutine builds vector potential A(t) = - integral(E(t)dt)
+  ! Pulse:
+  !> From paper(DOI: 0.1038/s41567-019-0602-9) the vector potential for a cos^2 pulse is given by: 
   !> A(t) = (-E_pump/w_pump) * ( cos(pi*t/tau_pump) )^2        * sin(w_pump*t), add delay_e to get:
-  !> A_t  = (-hE_0/hw_e)     * ( cos(pi*(t-delay_e)/tau_e) )^2 * sin(hw_e*t)
-
+  !> A_t  = (-hE_0/hw_e)     * (A cos(pi*(t-delay_e)/tau_e) )^2 * sin(hw_e*t)
   ! center the vector potential at delay_e
-  subroutine evec_potent(t,A_t,A_t_abs)
-    use mod_f90_kind, only: double
-    use mod_imRK4_parameters, only: field_direction_e, hE_0, hw_e, tau_e, delay_e
-    use mod_constants,  only: pi
+  subroutine vector_potential(t, A_t)
+    use mod_f90_kind,         only: double
+    use mod_imRK4_parameters, only: hE_0, hw_e, lpulse_e, npulse_e, tau_e, delay_e, polarization_vec_e
+    use mod_constants,        only: pi
     implicit none 
     real(double) , intent(in)  :: t
     real(double) , intent(out) :: A_t(3)
-    real(double) , intent(out) :: A_t_abs
+    integer      :: np
+    real(double) :: delay, arg
 
-    real(double) :: delay
+    A_t(:) = 0.d0
+    if(lpulse_e) then
+      pulses_e: do np = 1, npulse_e
+        if ((t >= delay_e(np)).and.(t <= tau_e(np)+delay_e(np))) then 
+          delay = 0.5d0*tau_e(np) - delay_e(np)
+          arg   = hw_e(np)*(t-delay)
 
-    delay = 0.5d0*tau_e-delay_e
+          A_t(:) = cos(arg)*polarization_vec_e(np,1,:) + sin(arg)*polarization_vec_e(np,2,:)
 
-    A_t_abs = (-hE_0/hw_e) * ( cos(pi*(t-delay)/tau_e) )**2 * sin(hw_e*(t-delay))
-    A_t = [ field_direction_e(1), field_direction_e(2), field_direction_e(3) ] * A_t_abs
-
-  end subroutine evec_potent
-
+          ! Cos-squared pulse:
+          A_t(:) = A_t(:) * (-hE_0(np)/hw_e(np)) * ( cos(pi*(t-delay)/tau_e(np)) )**2 
+          ! Gaussian pulse:
+          ! A_t = A_t * (-hE_0/hw_e) * exp(-2*log(2*(t-delay/tau_e)**2))
+        end if
+      end do pulses_e
+    else
+      ! For the electric field cos(wt), vector potential is sin(wt)/w
+      A_t(:) = -(hE_0(1)/hw_e(1))*(sin(hw_e(1)*t)*polarization_vec_e(1,1,:)-cos(hw_e(1)*t)*polarization_vec_e(1,2,:)) 
+    end if
+  end subroutine vector_potential
 
 end module mod_imRK4
