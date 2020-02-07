@@ -74,6 +74,7 @@ contains
     read(f_unit, fmt='(A)', iostat=ios) line
     read(unit=line, fmt=*, iostat=ios) (str_arr(i), i = 1, max_elements)
     do i = 1, max_elements
+      if(str_arr(i)(1:1) == "!") exit
       if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
       s%nTypes = s%nTypes + 1
     end do
@@ -82,6 +83,7 @@ contains
     allocate(s%Types(s%nTypes))
     j = 1
     do i = 1, max_elements
+      if(str_arr(i)(1:1) == "!") exit
       if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
       s%Types(j)%Name = str_arr(i)
 

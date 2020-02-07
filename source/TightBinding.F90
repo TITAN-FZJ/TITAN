@@ -170,6 +170,7 @@ contains
     read(unit=line, fmt=*, iostat=ios) (str_arr(i), i = 1, max_elements)
     nTypes = 0
     do i = 1, max_elements
+      if(str_arr(i)(1:1) == "!") exit
       if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
       nTypes = nTypes + 1
     end do
