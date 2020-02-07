@@ -386,7 +386,7 @@ contains
           delay = 0.5d0*tau_e(np) - delay_e(np)
           arg   = hw_e(np)*(t-delay)
 
-          A_t(:) = cos(arg)*polarization_vec_e(np,1,:) + sin(arg)*polarization_vec_e(np,2,:)
+          A_t(:) = sin(arg)*polarization_vec_e(np,1,:) - cos(arg)*polarization_vec_e(np,2,:)
 
           ! Cos-squared pulse:
           A_t(:) = A_t(:) * (-hE_0(np)/hw_e(np)) * ( cos(pi*(t-delay)/tau_e(np)) )**2 
