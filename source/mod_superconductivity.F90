@@ -50,7 +50,7 @@ end subroutine allocate_super_variables
     type(System), intent(in)  :: sys
     real(double), intent(in)  :: kp(3)
     complex(double),dimension(2*dimH,2*dimH), intent(inout) :: hk_sc
-    complex(double),dimension(  dimH,  dimH) :: hk, dummy
+    complex(double),dimension(  dimH,  dimH) :: hk, dummy, hk2
     integer :: i, j, mu
 
     ! The form of the superconducting hamiltonian depends on a series of decisions,
@@ -80,12 +80,21 @@ end subroutine allocate_super_variables
         end do
     end do
 
+    dummy = cZero
+
+    call hamiltk(sys,-kp,dummy)
+    !
+    do i = 1, dimH
+        do j = 1, dimH
+            hk2(i,j) = (dummy(i,j) + conjg(dummy(j,i)))/2.d0
+        end do
+    end do
 
     ! Populate the diagonal blocks of the hamiltonian. i.e. electron-electron
     ! and hole-hole interactions
     hk_sc = cZero
     hk_sc(     1:  dimH,     1:  dimH) = hk
-    hk_sc(dimH+1:2*dimH,dimH+1:2*dimH) = -conjg(hk)
+    hk_sc(dimH+1:2*dimH,dimH+1:2*dimH) = -conjg(hk2)
     ! The diagonal terms involve also the Fermi Energy/chemical potential, as we can see below
     ! Check any superconductivity reference for this detail
     do i = 1, dimH
@@ -97,30 +106,6 @@ end subroutine allocate_super_variables
     ! of the hamiltonian. There are several ways to do it.
 
     call bcs_pairing(sys, singlet_coupling,hk_sc)
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! Block used to print the hamiltonian
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    !Prints to check the shape of the matrix
-    ! if(flag==23157) then
-    !     do i = 1, sys%nAtoms*nOrb2*2
-    !       do j = 1, sys%nAtoms*nOrb2*2
-    !         write(*,*) real(hk_sc(i,j)), imag(hk_sc(i,j))
-    !       end do
-    !     end do
-    !     ! write(*,*) sys%nAtoms,nOrb2,sys%nAtoms*nOrb2*2
-    ! end if
-
-    ! write(*,*) flag
-
-    ! if(flag==23157) then
-    !     write(*,*) "First section"
-    !     write(*,*) "couplings ", singlet_coupling(1,1), singlet_coupling(1,2)
-    ! end if
-
-    ! flag = flag + 1
-
 
   end subroutine hamiltk_sc
 
@@ -177,7 +162,7 @@ end subroutine allocate_super_variables
 
       do i = 1,sys%nAtoms
           do mu = 1,nOrb
-              singlet_coupling(mu,i) = sys%Types(sys%Basis(i)%Material)%lambda(mu)*cOne*couplings(mu,i)
+              singlet_coupling(mu,i) = cOne*couplings(mu,i)
           end do
       end do
 

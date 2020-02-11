@@ -161,6 +161,8 @@ contains
     dimE  = (s%nAtoms)*nOrb2
     lwork = 21*dimH
     ncount = nOrb*s%nAtoms
+    deltas = cZero
+    expec_singlet = cZero
 
     allocate( hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork),dummy(dimE,dimE) )
 
@@ -179,21 +181,6 @@ contains
       ! Calculating the hamiltonian for a given k-point
       if(lsuperCond) then
           call hamiltk_sc(s,kp,hk)
-          ! call print_hamilt(s,hk)
-          ! stop
-          !!!!!Temporal For testing purposes
-          ! call green_sc(s,kp)
-          ! if(iz == 6691) then
-          ! !     call hamiltk(s,kp,dummy)
-          !     do i = 1,dimH
-          !         do j = 1,dimH
-          !             write(*,*) real(hk(i,j)), aimag(hk(i,j))
-          !         end do
-          !     end do
-          !     ! write(*,*) "hi", kp
-          !     stop
-          ! end if
-          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       else
           call hamiltk(s,kp,hk)
       end if
@@ -207,26 +194,9 @@ contains
       ! Calculating expectation values for a given k-point
       call expec_val(s, dimE, dimH, hk, eval, expec_0, expec_p, expec_z, expec_singlet)
 
-      ! if(iz == 6691) then
-      !     call generateDiagHamiltk(s,kp,dummy)
-      !     do i = 1,dimE
-      !         do j = 1,dimE
-      !             write(*,*) real(dummy(i,j)), aimag(dummy(i,j))
-      !         end do
-      !     end do
-      !     ! write(*,*) "hi", kp
-      !     stop
-      ! end if
-
       rho = rho + expec_0*weight
       mp  = mp  + expec_p*weight
       mz  = mz  + expec_z*weight
-
-      ! if(abs(rho(1,1) - rho(1,2)) > 1e-5) then
-      !     write(*,*) iz, " ", abs(expec_0(1,1) - expec_0(1,2))
-      !     write(*,*) iz, " ", abs(rho(1,1) - rho(1,2))
-      !     stop
-      ! end if
 
       ! Superconducting order parameter
       deltas = deltas + expec_singlet*weight
@@ -240,13 +210,22 @@ contains
     call MPI_Allreduce(MPI_IN_PLACE, mp    , ncount, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
     call MPI_Allreduce(MPI_IN_PLACE, deltas, ncount, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
 
-    if(bandera == 0) then
-        write(*,*) "initial ", rho
-    else
-        write(*,*) bandera, rho(1,1), rho(1,2), rho(1,3), rho(1,4), rho(1,2)-rho(1,1), rho(1,3)-rho(1,1), rho(1,4)-rho(1,1)
-    end if
 
-    bandera = bandera + 1
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! This block is here to help testing the evolution of the charge density
+    ! when the supercell has more than one atom. It should be removed in 
+    ! posterior versions. Once the superconductivity implementation is found to
+    ! be stable
+    !
+    !if(bandera == 0) then
+    !    write(*,*) "initial ", rho
+    !else
+    !    write(*,*) bandera, rho(1,1), rho(1,2), rho(1,3), rho(1,4), rho(1,2)-rho(1,1), rho(1,3)-rho(1,1), rho(1,4)-rho(1,1)
+    !end if
+    !
+    !bandera = bandera + 1
+    !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     !!Uncomment this block to see the development of the charge and the gap
     ! write(*,*) "deltas = ", deltas
@@ -292,7 +271,7 @@ contains
 
     offset = merge(dimE,0,lsuperCond)
     !If lsupercond is true then fermi_surface is 0.0 otherwise is s%Ef
-    fermi_surface = merge(0.0,s%Ef,lsuperCond)
+    fermi_surface = merge(0.0d0,s%Ef,lsuperCond)
 
     do n = 1, dim
 
@@ -336,13 +315,15 @@ contains
 
       do i = 1, s%nAtoms
           do mu = 1, nOrb
-              lam = s%Types(s%Basis(i)%Material)%lambda(mu)*cOne*0.5
+              lam = s%Types(s%Basis(i)%Material)%lambda(mu)*cOne*0.5d0
               ! up spin (using u's)
               expec_0(mu,i) = expec_0(mu,i) + f_n*conjg(evec(nOrb*2*(i-1)+mu))*evec(nOrb*2*(i-1)+mu)
               ! down spin (using v's)
               expec_0(mu,i) = expec_0(mu,i) + f_n_negative*conjg(evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2))*evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2)
 
+
               expec_singlet(mu,i) = expec_singlet(mu,i) + lam*conjg(evec(isigmamu2n(i,1,mu)+nOrb*2*s%nAtoms))*evec(isigmamu2n(i,2,mu))*tanh(eval(n)*1.d0/(pi*eta)/2)
+
           end do
       end do
     end do
