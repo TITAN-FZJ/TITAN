@@ -321,7 +321,6 @@ contains
               ! down spin (using v's)
               expec_0(mu,i) = expec_0(mu,i) + f_n_negative*conjg(evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2))*evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2)
 
-
               expec_singlet(mu,i) = expec_singlet(mu,i) + lam*conjg(evec(isigmamu2n(i,1,mu)+nOrb*2*s%nAtoms))*evec(isigmamu2n(i,2,mu))*tanh(eval(n)*1.d0/(pi*eta)/2)
 
           end do
