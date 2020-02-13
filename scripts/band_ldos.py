@@ -30,7 +30,7 @@ parser.add_argument("--superconductivity", default=False, action="store_true" , 
 parser.add_argument("--mev", default=False, action="store_true" , help="Plot superconductor bands in the same plot")
 parser.add_argument("--title", action="store", dest="title", default="")
 parser.add_argument("--onlyS", default=False, action="store_true" , help="Plot only the s orbital in the LDOS")
-parser.add_argument("--gaps", default=False, action="store_true" , help="Plot just around 0 to check the gaps")
+parser.add_argument("--zoom", default=0.0, type=float)
 args = parser.parse_args()
 
 ry2ev = 13.6057
@@ -186,10 +186,10 @@ xlim = 1.1*abs(max_ldos)
 if args.superconductivity:
     # ax[2].set_xlim([0.0,xlim])
     # ax[0].set_xlim([-xlim,0.0])
-    if args.gaps:
+    if args.zoom != 0.0 :
         # ax[2].set_xlim([0.0,xlim])
         # ax[0].set_xlim([-1.5,0.0])
-        ax[1].set_ylim([-0.2,0.2])
+        ax[1].set_ylim([-args.zoom,args.zoom])
     else:
         ax[1].set_ylim([(x-fermi_ldos)[0]*ry2ev,(x-fermi_ldos)[-1]*ry2ev])
 else:
