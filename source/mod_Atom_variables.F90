@@ -10,7 +10,7 @@ contains
     implicit none
     integer, intent(in) :: nAtoms,nOrbs
 
-    allocate( sigmai2i(4,nAtoms),sigmaimunu2i(4,nAtoms,nOrbs,nOrbs),sigmaijmunu2i(4,nAtoms,nAtoms,nOrbs,nOrbs),isigmamu2n(nAtoms,2,nOrbs), n2isigmamu(nAtoms*2*nOrbs,3) )
+    allocate( sigmai2i(4,nAtoms),sigmaimunu2i(4,nAtoms,nOrbs,nOrbs),sigmaijmunu2i(4,nAtoms,nAtoms,nOrbs,nOrbs),isigmamu2n(nAtoms,2,nOrbs), n2isigmamu(nAtoms*2*nOrbs,3))
 
     allocate( U(nAtoms) )
 

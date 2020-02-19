@@ -74,6 +74,7 @@ contains
     use EnergyIntegration,    only: parts, parts3, pn1, pn2, pnt, n1gl, n3gl
     use mod_tools,            only: itos, rtos, vec_norm
     use adaptiveMesh,         only: minimumBZmesh
+    use mod_fermi_surface,    only: lfs_loop, fs_energy_npts, fs_energy_npt1, fs_energy_i, fs_energy_f
     use mod_mpi_pars
     use mod_imRK4_parameters, only: integration_time, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, &
                                     polarization_e, polarization_m, polarization_vec_e, polarization_vec_m, &
@@ -236,6 +237,22 @@ contains
       call log_warning("get_parameters","'n0sc1' missing.")
     if(.not. get_parameter("n0sc2", n0sc2)) &
       call log_warning("get_parameters","'n0sc2' missing.")
+
+    !------------------------------------- Fermi Surface -------------------------------------
+    if(itype==5) then
+      if(.not. get_parameter("fs_energy", vector, cnt)) then
+        call log_warning("get_parameters","'fs_energy' missing. Using Fermi level only.")
+      else
+        if(cnt < 1) call log_error("get_parameters","'fs_energy' doesn't contain any parameter.")
+        fs_energy_i = vector(1)
+        if(cnt >= 2) fs_energy_f = vector(2)
+        if(cnt >= 3) fs_energy_npts = vector(3)
+        deallocate(vector)
+        fs_energy_npt1 = fs_energy_npts + 1
+        lfs_loop = .true.
+      end if
+    end if
+
     !------------------------------------- Spin-Orbit-Coupling -------------------------------------
     if(.not. get_parameter("SOC", SOC,.true.)) &
       call log_warning("get_parameters","'SOC' missing. Using default value: .true.")

@@ -400,4 +400,42 @@ contains
     end if
   end subroutine vector_potential
 
+  !> Subroutine builds vector potential A(t) = - integral(E(t)dt)
+  ! Pulse:
+  !> From paper(DOI: 0.1038/s41567-019-0602-9) the vector potential for a cos^2 pulse is given by: 
+  !> A(t) = (-E_pump/w_pump) * ( cos(pi*t/tau_pump) )^2        * sin(w_pump*t), add delay_e to get:
+  !> A_t  = (-hE_0/hw_e)     * (A cos(pi*(t-delay_e)/tau_e) )^2 * sin(hw_e*t)
+  ! center the vector potential at delay_e
+  subroutine electric_field(t, E_t)
+    use mod_f90_kind,         only: double
+    use mod_imRK4_parameters, only: hE_0, hw_e, lpulse_e, npulse_e, tau_e, delay_e, polarization_vec_e
+    use mod_constants,        only: pi
+    implicit none 
+    real(double) , intent(in)  :: t
+    real(double) , intent(out) :: E_t(3)
+    integer      :: np
+    real(double) :: delay, arg
+
+    E_t(:) = 0.d0
+    if(lpulse_e) then
+      pulses_e: do np = 1, npulse_e
+        if ((t >= delay_e(np)).and.(t <= tau_e(np)+delay_e(np))) then 
+          delay = 0.5d0*tau_e(np) - delay_e(np)
+          arg   = hw_e(np)*(t-delay)
+
+          E_t(:) = (cos(pi*(t-delay)/tau_e(np)))**2 * (cos(arg)*polarization_vec_e(np,1,:) + sin(arg)*polarization_vec_e(np,2,:)) &
+                 - (pi/(tau_e(np)*hw_e(np))) * sin(2*pi*(t-delay)/tau_e(np)) * ( sin(arg)*polarization_vec_e(np,1,:) - cos(arg)*polarization_vec_e(np,2,:) )
+
+          ! Cos-squared pulse:
+          E_t(:) = E_t(:) * hE_0(np)
+          ! Gaussian pulse:
+          ! E_t = E_t * (-hE_0) * exp(-2*log(2*(t-delay/tau_e)**2))
+        end if
+      end do pulses_e
+    else
+      ! For the electric field cos(wt), vector potential is sin(wt)/w
+      E_t(:) = hE_0(1)*(cos(hw_e(1)*t)*polarization_vec_e(1,1,:)+sin(hw_e(1)*t)*polarization_vec_e(1,2,:)) 
+    end if
+  end subroutine electric_field
+
 end module mod_imRK4

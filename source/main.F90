@@ -19,11 +19,13 @@ program TITAN
   use adaptiveMesh
   use AtomTypes
   use mod_TCM
+  use mod_ldos
   use mod_self_consistency
   use EnergyIntegration
   use mod_progress
   use mod_mpi_pars
   use mod_Umatrix
+  use mod_fermi_surface, only: fermi_surface
   use mod_check_stop
   use mod_Atom_variables, only: allocate_Atom_variables, deallocate_Atom_variables
   use mod_tools, only: rtos
@@ -244,9 +246,10 @@ program TITAN
       call ldos_and_coupling()
     case (4) ! Band structure (not parallelized)
       if(rField == 0) &
-      call band_structure(sys)
+        call band_structure(sys)
     case (5) ! Iso-energy surface (for input = sys%Ef - Fermi surface)
-      call fermi_surface(sys%Ef)
+      if(rField == 0) & ! Temporary working only for 1 MPI process (TO DO: Add MPI on energy loop)
+        call fermi_surface()
     case (6) ! Coupling tensor
       call coupling()
     case (7) ! Full magnetic susceptibility as a function of the frequency
