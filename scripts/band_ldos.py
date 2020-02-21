@@ -27,16 +27,16 @@ parser.add_argument("fileband", help="File to plot")
 parser.add_argument("fileu", help="File to plot")
 parser.add_argument("filed", help="File to plot")
 parser.add_argument("--superconductivity", default=False, action="store_true" , help="Flag to plot the bands as for superconductors")
-parser.add_argument("--mev", default=False, action="store_true" , help="Plot superconductor bands in the same plot")
+parser.add_argument("--ev", default=False, action="store_true" , help="Plot superconductor bands in the same plot")
 parser.add_argument("--title", action="store", dest="title", default="")
 parser.add_argument("--onlyS", default=False, action="store_true" , help="Plot only the s orbital in the LDOS")
 parser.add_argument("--zoom", default=0.0, type=float)
 args = parser.parse_args()
 
-ry2ev = 13.6057
+ry2ev = 1.0#13.6057
 
-if args.mev:
-    ry2ev = 13.6057*1000 # Conversion of energy units
+if args.ev:
+    ry2ev = 13.6057 # Conversion of energy units
 
 if(ry2ev != 1.0):
   label = r'$E-E_F$ [eV]'
@@ -137,7 +137,10 @@ ax[1].set_xticks(point)
 ax[1].set_xticklabels(name)
 for i in point:
     ax[1].axvline(x=i, color='k', linewidth=0.75)
-ax[1].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--', linewidth=0.75)
+ax[1].axhline(y=0.0, color='k', linestyle='--', linewidth=0.75)
+
+ax[1].axhline(y=-0.00719*ry2ev, color='r', linestyle='-.', linewidth=0.75)
+ax[1].axhline(y=0.00719*ry2ev, color='r', linestyle='-.', linewidth=0.75)
 
 if (fermi == None): # susceptibility
   ax[1].plot(table[:,1],-1.0/table[:,2])

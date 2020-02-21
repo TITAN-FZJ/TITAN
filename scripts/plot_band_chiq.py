@@ -86,7 +86,7 @@ if __name__ == "__main__":
     parser.add_argument("file", help="File to plot")
     parser.add_argument("--superconductivity", default=False, action="store_true" , help="Flag to plot the bands as for superconductors")
     parser.add_argument("--together", default=False, action="store_true" , help="Plot superconductor bands in the same plot")
-    parser.add_argument("--gaps", default=False, action="store_true" , help="Plot just around 0 to check the gaps")
+    parser.add_argument("--zoom", default=0.0, type=float)
     parser.add_argument("--title", action="store", dest="title", default="")
     args = parser.parse_args()
 
@@ -109,8 +109,8 @@ if __name__ == "__main__":
                else:
                    axs[0,i].set_title(titles[i])
                axs[0,i].set_xlim([point[0],point[npoints-1]])
-               if args.gaps:
-                   axs[0,i].set_ylim(-0.5,0.5)
+               if args.zoom != 0.0:
+                   axs[0,i].set_ylim(-args.zoom,args.zoom)
                # axs[0,i].set_ylim(table[:,1:].min(),table[:,1:].max())
                # axs[0,i].set_ylim(1.0/(table[:,1:].min()),1.0/(table[:,1:].max()))
 
@@ -124,7 +124,7 @@ if __name__ == "__main__":
                if (fermi == None): # susceptibility
                  axs[0,i].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='-', linewidth=0.5)
                else: # band structure
-                 axs[0,i].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='b', linestyle='--')
+                 axs[0,i].axhline(y=0.0, color='b', linestyle='--')
 
                # for j in enumerate(table[:,1]):
                #   if j[1] == point[4]:
