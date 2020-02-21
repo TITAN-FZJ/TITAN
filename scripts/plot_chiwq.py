@@ -1,5 +1,5 @@
-import numpy as np 
-import matplotlib.pyplot as plt 
+import numpy as np
+import matplotlib.pyplot as plt
 import sys
 import matplotlib as mpl                      # Plotting library
 from matplotlib import rc                     # Improve math fonts
@@ -29,7 +29,6 @@ mpl.rcParams['legend.edgecolor'] = 'inherit'
 mpl.rcParams['legend.handlelength'] = 2
 mpl.rcParams["font.weight"] = "bold"
 mpl.rcParams["axes.labelweight"] = "bold"
-ry2mev = 1.0 
 
 
 ry2mev = 13605.7 # Conversion of energy units
@@ -142,13 +141,13 @@ if __name__ == "__main__":
 
   fig = plt.figure(figsize=(6*numplots, 5))
 
-  # Create a grid with 1 row and 'numplots' column 
-  grid = AxesGrid(fig, 111, 
-                     nrows_ncols=(1, numplots), 
+  # Create a grid with 1 row and 'numplots' column
+  grid = AxesGrid(fig, 111,
+                     nrows_ncols=(1, numplots),
                      axes_pad=0.2,
                      share_all=True,
-                     cbar_mode='single', 
-                     cbar_location='right', 
+                     cbar_mode='single',
+                     cbar_location='right',
                      cbar_pad=0.2 )
 
   for i in range(numplots):
@@ -196,7 +195,7 @@ if __name__ == "__main__":
     # grid[i].cbar_axes[0].ticklabel_format(style='sci', scilimits=(0,0))
     grid.cbar_axes[0].yaxis.set_offset_position('left')
     # grid.cbar_axes[0].set_title(prm.cbar_titles_SOT[i] if 'SOT' in prm.output_prefix else prm.cbar_titles_Beff[i], size=12) # Title of the colorbar
-    cb.solids.set_rasterized(True) 
+    cb.solids.set_rasterized(True)
     for axis in ['top','bottom','left','right']:
       grid.cbar_axes[0].spines[axis].set_linewidth(1.5)
 
@@ -204,4 +203,3 @@ if __name__ == "__main__":
 
   # plt.tight_layout()
   plt.show()
-

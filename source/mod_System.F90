@@ -63,21 +63,31 @@ module mod_system
   real(double), dimension(3) :: pln_normal
 
   integer, dimension(:,:), allocatable :: ia
+  integer, dimension(:,:), allocatable :: ia_sc
 
 contains
 
   subroutine initHamiltkStride(nAtoms, nOrb)
     implicit none
     integer, intent(in) :: nAtoms, nOrb
-    integer :: i
+    integer :: i, offsetParameter
+
+    offsetParameter = nAtoms*nOrb*2
 
     if(allocated(ia)) deallocate(ia)
+    if(allocated(ia_sc)) deallocate(ia_sc)
     allocate(ia(4,nAtoms))
+    allocate(ia_sc(4,nAtoms))
     do i = 1, nAtoms
       ia(1,i) = (i-1) * 2 * nOrb + 1
       ia(2,i) = ia(1,i) + nOrb - 1
       ia(3,i) = ia(1,i) + nOrb
       ia(4,i) = ia(3,i) + nOrb - 1
+      !superconductivity block has doubled dimensions in each spin
+      ia_sc(1,i) = (i-1) * 2 * nOrb + 1
+      ia_sc(2,i) = ia_sc(1,i) + nOrb*2 - 1
+      ia_sc(3,i) = ia_sc(1,i) + offsetParameter
+      ia_sc(4,i) = ia_sc(3,i) + nOrb*2 - 1
     end do
   end subroutine initHamiltkStride
 end module mod_system

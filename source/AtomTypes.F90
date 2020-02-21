@@ -57,6 +57,8 @@ module AtomTypes
     !! Neighbor distances
     real(double) :: U
     !! Effective Coulomb interaction strength - Hubbard U
+    real(double), dimension(9) :: lambda
+    !! Superconducting coupling strength
     real(double), dimension(:,:), allocatable :: rho0
     !! Initial occupation per orbital obtained from hopping parameters only
     real(double), dimension(:), allocatable   :: rhod0

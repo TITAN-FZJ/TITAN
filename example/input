@@ -32,7 +32,7 @@
 !-------------------------------------------------------------------------------!
 ! Magnetization axis:                                                           !
 ! (Basis to the initial magnetization direction read from file 'initialmag')    !
-!-> magbasis = cartesian 
+!-> magbasis = cartesian
 !===============================================================================!
 !                         TIME-DEPENDENT PERTURBATION                           !
 ! Total time to propagate:
@@ -58,8 +58,8 @@
 -> pulse_e = T
 ! Length of the pulse (must be given if pulse=T)
 -> tau_e = 820.d0
-! Delay of the pulse 
--> delay_e = 0.d0 ! Center of the pulse is located at 0.5tau when delay_e=0.d0 
+! Delay of the pulse
+-> delay_e = 0.d0 ! Center of the pulse is located at 0.5tau when delay_e=0.d0
 !-------------------------------------------------------------------------------!
 ! Magnetic field:
 -> magnetic = F
@@ -67,15 +67,15 @@
 -> field_direction_m = 0.d0 0.d0 1.d0
 Intensity of the field
 ! Intensity of the field:
--> hw1_m = 1.d0 
+-> hw1_m = 1.d0
 ! Frequency of oscillation hw_m.t:
 -> hw_m = 100.d0
 ! Pulse (if F, oscillatory field)
 -> pulse_m = F
 ! Length of the pulse (must be given if pulse=T)
--> tau_m = 100.d0 
-! Delay of the pulse 
--> delay_m = 0.d0 ! Center of the pulse is located at 4tau when delay_m=0.d0 
+-> tau_m = 100.d0
+! Delay of the pulse
+-> delay_m = 0.d0 ! Center of the pulse is located at 4tau when delay_m=0.d0
 !===============================================================================!
 !                   DIRECTION OF IN-PLANE ELECTRIC FIELD                        !
 -> ebasis = cartesian

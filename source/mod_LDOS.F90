@@ -10,12 +10,13 @@ contains
   subroutine allocateLDOS()
     use mod_System,     only: s => sys
     use mod_parameters, only: nOrb
+    use mod_superconductivity, only: superCond
     implicit none
 
     if(allocated(ldosu)) deallocate(ldosu)
     if(allocated(ldosd)) deallocate(ldosd)
-    allocate(ldosu(s%nAtoms,nOrb))
-    allocate(ldosd(s%nAtoms,nOrb))
+    allocate(ldosu(s%nAtoms,nOrb*superCond))
+    allocate(ldosd(s%nAtoms,nOrb*superCond))
 
   end subroutine allocateLDOS
 
@@ -401,18 +402,25 @@ contains
 
 
   subroutine createLDOSFiles()
-    use mod_parameters, only: output
-    use mod_System,     only: s => sys
+    use mod_parameters,        only: output
+    use mod_System,            only: s => sys
+    use mod_io,                only: write_header
+    use mod_superconductivity, only: lsuperCond
     implicit none
-    character(len=400) :: varm
+    character(len=400) :: varm,title(size(filename))
     integer            :: i, iw, j
+
+    title(1:2) = "#    energy      ,  LDOS SUM       ,  LDOS S         ,  LDOS P         ,  LDOS D         "
+    title(3:4) = "#    energy      ,  LDOS S         ,  LDOS PX        ,  LDOS PY        ,  LDOS PZ        ,  LDOS DXY       ,  LDOS DYZ       ,  LDOS DZX       ,  LDOS DX2       ,  LDOS DZ2       "
 
     do i = 1, s%nAtoms
       do j = 1, size(filename)
         iw = 1000 + (i-1) * size(filename) + j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_site=',i0,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%info),trim(output%BField),trim(output%SOC)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_site=',i0,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
         open (unit=iw, file=varm,status='replace', form='formatted')
-        write(unit=iw, fmt="('#   energy      ,  LDOS SUM        ,  LDOS S          ,  LDOS P          ,  LDOS T2G        ,  LDOS EG         ')")
+        !                             if lsuperCond is true then it writes 0.0, otherwise it writes s%Ef
+        call write_header(iw,title(j),merge(0.0,s%Ef,lsuperCond))
+        ! write(unit=iw, fmt="('#   energy      ,  LDOS SUM        ,  LDOS S          ,  LDOS P          ,  LDOS T2G        ,  LDOS EG         ')")
         close(unit=iw)
       end do
     end do
@@ -429,7 +437,7 @@ contains
     do i = 1, s%nAtoms
       do j = 1, size(filename)
         iw = 1000 + (i-1) * size(filename) + j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_site=',i0,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%info),trim(output%BField),trim(output%SOC)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_site=',i0,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -455,20 +463,34 @@ contains
   subroutine writeLDOS(e)
     use mod_f90_kind, only: double
     use mod_System,   only: s => sys
+    use mod_superconductivity, only: lsuperCond
     implicit none
     real(double), intent(in) :: e
     integer :: i, iw, j
 
-    do i = 1, s%nAtoms
-       iw = 1000 + (i-1) * size(filename) + 1
-       write(unit=iw,fmt="( 6(es16.9,2x))") e, sum(ldosu(i,:)),ldosu(i,1),sum(ldosu(i,2:4)),sum(ldosu(i,5:9))
-       iw = iw + 1
-       write(unit=iw,fmt="( 6(es16.9,2x))") e, sum(ldosd(i,:)),ldosd(i,1),sum(ldosd(i,2:4)),sum(ldosd(i,5:9))
-       iw = iw + 1
-       write(unit=iw,fmt="(10(es16.9,2x))") e, (ldosu(i,j), j = 1,9) !sum(ldosu(i,:)),ldosu(i,1),sum(ldosu(i,2:4)),sum(ldosu(i,5:9))
-       iw = iw + 1
-       write(unit=iw,fmt="(10(es16.9,2x))") e, (ldosd(i,j), j = 1,9) !sum(ldosd(i,:)),ldosd(i,1),sum(ldosd(i,2:4)),sum(ldosd(i,5:9))
-    end do
+    if(lsuperCond) then
+        do i = 1, s%nAtoms
+           iw = 1000 + (i-1) * size(filename) + 1
+           write(unit=iw,fmt="( 8(es16.9,2x))") e, sum(ldosu(i,:)),ldosu(i,1),sum(ldosu(i,2:4)),sum(ldosu(i,5:9)), ldosu(i,10),sum(ldosu(i,11:13)),sum(ldosu(i,14:18))
+           iw = iw + 1
+           write(unit=iw,fmt="( 8(es16.9,2x))") e, sum(ldosd(i,:)),ldosd(i,1),sum(ldosd(i,2:4)),sum(ldosd(i,5:9)), ldosd(i,10),sum(ldosd(i,11:13)),sum(ldosd(i,14:18))
+           iw = iw + 1
+           write(unit=iw,fmt="(19(es16.9,2x))") e, (ldosu(i,j), j = 1,18) !sum(ldosu(i,:)),ldosu(i,1),sum(ldosu(i,2:4)),sum(ldosu(i,5:9))
+           iw = iw + 1
+           write(unit=iw,fmt="(19(es16.9,2x))") e, (ldosd(i,j), j = 1,18) !sum(ldosd(i,:)),ldosd(i,1),sum(ldosd(i,2:4)),sum(ldosd(i,5:9))
+        end do
+    else
+        do i = 1, s%nAtoms
+           iw = 1000 + (i-1) * size(filename) + 1
+           write(unit=iw,fmt="( 5(es16.9,2x))") e, sum(ldosu(i,:)),ldosu(i,1),sum(ldosu(i,2:4)),sum(ldosu(i,5:9))
+           iw = iw + 1
+           write(unit=iw,fmt="( 5(es16.9,2x))") e, sum(ldosd(i,:)),ldosd(i,1),sum(ldosd(i,2:4)),sum(ldosd(i,5:9))
+           iw = iw + 1
+           write(unit=iw,fmt="(10(es16.9,2x))") e, (ldosu(i,j), j = 1,9) !sum(ldosu(i,:)),ldosu(i,1),sum(ldosu(i,2:4)),sum(ldosu(i,5:9))
+           iw = iw + 1
+           write(unit=iw,fmt="(10(es16.9,2x))") e, (ldosd(i,j), j = 1,9) !sum(ldosd(i,:)),ldosd(i,1),sum(ldosd(i,2:4)),sum(ldosd(i,5:9))
+        end do
+    end if
 
   end subroutine writeLDOS
 

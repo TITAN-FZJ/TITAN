@@ -10,7 +10,7 @@ contains
     use mod_magnet,         only: l_matrix,lb,sb,allocate_magnet_variables,deallocate_magnet_variables,rho0,rhod0
     use mod_SOC,            only: ls,allocLS
     use adaptiveMesh,       only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh
-    use mod_parameters,     only: nOrb,kp_in,kptotal_in,output,eta,leigenstates,lkpoints
+    use mod_parameters,     only: nOrb,kp_in,kptotal_in,output,eta,leigenstates,lkpoints,dimH
     use mod_polyBasis,      only: read_basis
     use mod_mpi_pars,       only: myrank,FieldComm,rField,sField,rFreq,sFreq,FreqComm,abortProgram
     use Lattice,            only: initLattice
@@ -19,37 +19,48 @@ contains
     use mod_Atom_variables, only: allocate_Atom_variables,deallocate_Atom_variables
     use mod_BrillouinZone,  only: realBZ!,nkpt_x,nkpt_y,nkpt_z
     use EnergyIntegration,  only: pn1
+    use mod_superconductivity
     implicit none
     integer :: i,j,mu,err
     type(System), intent(inout) :: sys
     type(System), allocatable   :: sys0(:)
+
+    !write(*,*) "inside initial terms ", singlet_coupling
 
     if(myrank == 0) &
       call write_time(output%unit,'[calc_initial_Uterms] Obtaining initial densities: ')
 
     allocate(sys0(sys%nTypes))
 
+    !write(*,*) "inside initial terms ", singlet_coupling
+
     types_of_atoms: do i = 1, sys%nTypes
       !------------------ Define the lattice structure -------------------
       call read_basis(trim(sys%Types(i)%Name), sys0(i))
       if(sys0(i)%nTypes/=1) call abortProgram("[calc_initial_Uterms] Not implemented for parameter file with more than 1 type of atom!")
 
+      !---------------------------- Dimensions -----------------------------
+      dimH = sys0(i)%nAtoms*nOrb*2
+
       !------------- Setting the number of nearest neighbors -------------
       sys0(i)%nStages = sys%nStages
       sys0(i)%relTol  = sys%relTol
-      
+
       call initLattice(sys0(i))
+
       ! if(myrank==0) call writeLattice(sys0(i))
       ! stop
       !-------------------------- Filename strings -------------------------
       write(output%info,"('_nkpt=',i0,'_eta=',a)") kptotal_in, trim(rtos(eta,"(es8.1)"))
       if(leigenstates) output%info = trim(output%info) // "_ev"
 
+!write(*,*) "inside initial terms ", singlet_coupling
       !-------------------- Tight Binding parameters ---------------------
       call initTightBinding(sys0(i))
 
+!write(*,*) "inside initial terms ", singlet_coupling
       !---------- Generating k points for real axis integration ----------
-      select case(sys0(i)%Types(i)%isysdim)
+      select case(sys0(i)%Types(1)%isysdim)
       case(3)
         sys0(i)%isysdim = 3
         realBZ % nkpt_x = kp_in(1)
@@ -76,6 +87,8 @@ contains
         !----------- Allocating variables that depend on nAtoms ------------
         call allocate_magnet_variables(sys0(i)%nAtoms, nOrb)
         call allocLS(sys0(i)%nAtoms,nOrb)
+        !write(*,*) "inside calc initial terms ", singlet_coupling
+        call allocate_super_variables(sys0(i)%nAtoms, nOrb)
         call allocate_Atom_variables(sys0(i)%nAtoms,nOrb)
 
         !------- Initialize Stride Matrices for hamiltk and dtdksub --------
@@ -91,6 +104,7 @@ contains
         lb = cZero
         sb = cZero
         ls = cZero
+        singlet_coupling = cZero
 
         !------------------------ Conversion arrays -------------------------
         call initConversionMatrices(sys0(i)%nAtoms,nOrb)
@@ -116,6 +130,7 @@ contains
         !-------------------- Deallocating variables -----------------------
         call deallocate_magnet_variables()
         call deallocate_Atom_variables()
+        call deallocate_super_variables()
 
       end if ! read_initial_Uterms
 
@@ -159,6 +174,7 @@ contains
     type(System),                      intent(inout) :: sys
     real(double),    dimension(:,:)    , allocatable :: rho0
     real(double),    dimension(:)      , allocatable :: rhod0
+    complex(double), dimension(nOrb,sys%nAtoms)      :: deltas
 
     allocate( rho0(nOrb,sys%nAtoms),rhod0(sys%nAtoms) )
 
@@ -172,7 +188,7 @@ contains
     rho  = rho0
     call init_Umatrix(mzd,mpd,rhod,rhod0,rho,rho0,sys%nAtoms,nOrb)
     if(leigenstates) then
-      call expectation_values_eigenstates(sys,rho0,mp,mx,my,mz)
+      call expectation_values_eigenstates(sys,rho0,mp,mx,my,mz,deltas)
     else
       call expectation_values_greenfunction(sys,rho0,mp,mx,my,mz)
     end if
@@ -240,7 +256,7 @@ contains
     open(unit=97,file=filename,status="old",iostat=err)
     if(err/=0) return
 
-    if(rField==0) then 
+    if(rField==0) then
       write(output%unit,"('[read_initial_Uterms] Initial density file for ""',a,'"" already exists. Reading it from file:')") trim(sys0%Types(1)%Name)
       write(output%unit,"(a)") trim(filename)
     end if

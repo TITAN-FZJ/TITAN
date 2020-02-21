@@ -3,6 +3,11 @@
 module mod_expectation
   implicit none
 
+  !!!!!!!!!!!!!
+  logical :: flag = .true.
+  integer :: bandera = 0
+  !!!!!!!!!!!!!
+
 contains
   subroutine expectation_values_greenfunction(s,rho,mp,mx,my,mz)
     !! Calculates ground state (occupation and magnetization) quantities using the Green functions
@@ -78,7 +83,7 @@ contains
          ep = y(E_k_imag_mesh(1,ix))
          kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix)) + EshiftBZ*ElectricFieldVector
          weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
-         call green(s%Ef,ep+eta,s,kp,gf)
+         call green(0.d0,ep+eta,s,kp,gf)
          do i=1,s%nAtoms
            do mu=1,nOrb
              mup = mu+nOrb
@@ -125,66 +130,107 @@ contains
 
 
   !   Calculates ground state quantities from eigenstates
-  subroutine expectation_values_eigenstates(s,rho,mp,mx,my,mz)
-    use mod_f90_kind,      only: double
-    use mod_BrillouinZone, only: realBZ
-    use mod_parameters,    only: nOrb,nOrb2,output
-    use mod_system,        only: System
-    use ElectricField,     only: EshiftBZ,ElectricFieldVector
-    use mod_tools,         only: itos
+  subroutine expectation_values_eigenstates(s,rho,mp,mx,my,mz,deltas)
+    use mod_f90_kind,          only: double
+    use mod_BrillouinZone,     only: realBZ
+    use mod_parameters,        only: nOrb,nOrb2,output
+    use mod_system,            only: System
+    use ElectricField,         only: EshiftBZ,ElectricFieldVector
+    use mod_tools,             only: itos
+    use mod_superconductivity, only: lsuperCond, superCond, hamiltk_sc, update_singlet_couplings, green_sc, print_hamilt
+    use mod_constants,         only: cOne,cZero
     use mod_mpi_pars
+
     implicit none
     type(System),                              intent(in)  :: s
     real(double),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
     complex(double), dimension(nOrb,s%nAtoms), intent(out) :: mp
+    complex(double), dimension(nOrb,s%nAtoms), intent(out) :: deltas
+    ! complex(double), dimension(nOrb)         , intent(out) :: expec_singlet
 
-    integer                                      :: iz, info, ncount !, mu,i
-    integer                                      :: lwork,dimH
+    integer                                      :: iz, info, ncount, i ,j
+    integer                                      :: lwork,dimH, dimE
     real(double)                                 :: weight, kp(3)
     real(double),    dimension(nOrb,s%nAtoms)    :: expec_0, expec_z
     complex(double), dimension(nOrb,s%nAtoms)    :: expec_p
+    complex(double), dimension(nOrb,s%nAtoms)    :: expec_singlet
     real(double),    dimension(:),  allocatable  :: rwork(:), eval(:)
-    complex(double),                allocatable  :: work(:), hk(:,:)
+    complex(double),                allocatable  :: work(:), hk(:,:), dummy(:,:)
 
-    dimH  = (s%nAtoms)*nOrb2
+    dimH  = (s%nAtoms)*nOrb2*superCond
+    dimE  = (s%nAtoms)*nOrb2
     lwork = 21*dimH
     ncount = nOrb*s%nAtoms
+    deltas = cZero
+    expec_singlet = cZero
 
-    allocate( hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork) )
+    allocate( hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork),dummy(dimE,dimE) )
 
     !$omp parallel default(none) &
     !$omp& firstprivate(lwork) &
-    !$omp& private(iz,kp,weight,hk,eval,work,rwork,info,expec_0, expec_p, expec_z) &
-    !$omp& shared(s,dimH,output,realBZ,rho,mp,mz,EshiftBZ,ElectricFieldVector)
+    !$omp& private(iz,kp,weight,hk,eval,work,rwork,info,expec_0, expec_p, expec_z,  expec_singlet,i,dummy) &
+    !$omp& shared(s,dimE,dimH,output,realBZ,rho,mp,mz,EshiftBZ,ElectricFieldVector, lsuperCond,deltas)
     rho = 0.d0
-    mp  = 0.d0
     mz  = 0.d0
-    !$omp do reduction(+:rho,mp,mz)
+    mp  = cZero
+    deltas = cZero
+    !$omp do reduction(+:rho,mp,mz,deltas)
     do iz = 1,realBZ%workload
       kp = realBZ%kp(1:3,iz) + EshiftBZ*ElectricFieldVector
       weight = realBZ%w(iz)
       ! Calculating the hamiltonian for a given k-point
-      call hamiltk(s,kp,hk)
+      if(lsuperCond) then
+          call hamiltk_sc(s,kp,hk)
+      else
+          call hamiltk(s,kp,hk)
+      end if
 
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-      call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
+      call zheev('V','L', dimH,hk,dimH,eval,work,lwork,rwork,info)
 
       if(info/=0) &
         call abortProgram("[expectation_values_eigenstates] Problem with diagonalization. info = " // itos(info))
 
       ! Calculating expectation values for a given k-point
-      call expec_val(s, dimH, hk, eval, expec_0, expec_p, expec_z)
+      call expec_val(s, dimE, dimH, hk, eval, expec_0, expec_p, expec_z, expec_singlet)
 
       rho = rho + expec_0*weight
       mp  = mp  + expec_p*weight
       mz  = mz  + expec_z*weight
+
+      ! Superconducting order parameter
+      deltas = deltas + expec_singlet*weight
     end do
     !$omp end do
     !$omp end parallel
 
-    call MPI_Allreduce(MPI_IN_PLACE, rho, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, mz , ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, mp , ncount, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
+    !Gather and sum all the results from the different processes using an Allreduce clause
+    call MPI_Allreduce(MPI_IN_PLACE, rho   , ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, mz    , ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, mp    , ncount, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, deltas, ncount, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! This block is here to help testing the evolution of the charge density
+    ! when the supercell has more than one atom. It should be removed in
+    ! posterior versions. Once the superconductivity implementation is found to
+    ! be stable
+    !
+    !if(bandera == 0) then
+    !    write(*,*) "initial ", rho
+    !else
+    !    write(*,*) bandera, rho(1,1), rho(1,2), rho(1,3), rho(1,4), rho(1,2)-rho(1,1), rho(1,3)-rho(1,1), rho(1,4)-rho(1,1)
+    !end if
+    !
+    !bandera = bandera + 1
+    !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    !!Uncomment this block to see the development of the charge and the gap
+    ! write(*,*) "deltas = ", deltas
+    ! stop
+    ! write(*,*) rho
 
     mx = real(mp)
     my = aimag(mp)
@@ -195,30 +241,41 @@ contains
 
 
   ! subroutine expectation value of the operators 1 (occupation), Sp and Sz:
-  subroutine expec_val(s, dim, hk, eval, expec_0, expec_p, expec_z)
-    use mod_f90_kind,      only: double 
-    use mod_constants,     only: cOne,cZero,pi,pauli_mat
-    use mod_parameters,    only: nOrb, eta, isigmamu2n
-    use mod_distributions, only: fd_dist
-    use mod_system,        only: System
+  subroutine expec_val(s,dimE, dim, hk, eval, expec_0, expec_p, expec_z,expec_singlet)
+    use mod_f90_kind,          only: double
+    use mod_constants,         only: cOne,cZero,pi,pauli_mat
+    use mod_parameters,        only: nOrb, eta, isigmamu2n
+    use mod_distributions,     only: fd_dist
+    use mod_system,            only: System
+    use mod_superconductivity, only: lsuperCond, superCond, flag, print_hamilt
     implicit none
     integer,                                   intent(in)  :: dim
+    integer,                                   intent(in)  :: dimE
     type(System),                              intent(in)  :: s
     real(double),    dimension(dim),           intent(in)  :: eval
     complex(double), dimension(dim,dim),       intent(in)  :: hk
     real(double),    dimension(nOrb,s%nAtoms), intent(out) :: expec_0, expec_z
     complex(double), dimension(nOrb,s%nAtoms), intent(out) :: expec_p
+    complex(double), dimension(nOrb,s%nAtoms), intent(out) :: expec_singlet
 
-    integer                                     :: i, n, sigma, sigmap, mu
-    real(double)                                :: f_n
-    complex(double)                             :: evec(dim)
+    real(double)    :: fermi_surface
+    integer         :: i, n, sigma, sigmap, mu
+    real(double)    :: f_n,f_n_negative
+    complex(double) :: evec(dim), lam !dim = 2*nOrb*nAtoms
+    integer         :: offset
 
     expec_0 = 0.d0
     expec_z = 0.d0
     expec_p = cZero
+    expec_singlet = cZero
+
+    offset = merge(dimE,0,lsuperCond)
+    !If lsupercond is true then fermi_surface is 0.0 otherwise is s%Ef
+    fermi_surface = merge(0.0d0,s%Ef,lsuperCond)
+
     do n = 1, dim
-      ! Fermi-Dirac:
-      f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval(n))
+
+      f_n = fd_dist(fermi_surface, 1.d0/(pi*eta), eval(n))
 
       ! Getting eigenvector and its transpose conjugate
       evec(:) = hk(:,n)
@@ -227,7 +284,9 @@ contains
         do mu = 1, nOrb
           do sigma = 1, 2
             ! Charge
-            expec_0(mu,i) = expec_0(mu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,mu))
+            if(lsupercond == .false.) then
+                expec_0(mu,i) = expec_0(mu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,mu))
+            end if
 
             do sigmap = 1, 2
               ! M_p
@@ -240,19 +299,48 @@ contains
         end do
       end do
     end do
+
+    ! If there is no superconductivity, then the calculation of the expected values is already completed
+    ! In case superconductivity is present then we have to carry extra calculations to get the superconducting
+    ! order parameter.
+    if(.not. lsuperCond) &
+        return
+
+    do n = 1, dim
+      ! Getting eigenvector and its transpose conjugate
+      evec(:) = hk(:,n)
+
+      f_n = fd_dist(fermi_surface, 1.d0/(pi*eta), eval(n))
+      f_n_negative = fd_dist(fermi_surface, 1.d0/(pi*eta), -1.d0*eval(n))
+
+      do i = 1, s%nAtoms
+          do mu = 1, nOrb
+              lam = s%Types(s%Basis(i)%Material)%lambda(mu)*cOne*0.5d0
+              ! up spin (using u's)
+              expec_0(mu,i) = expec_0(mu,i) + f_n*conjg(evec(nOrb*2*(i-1)+mu))*evec(nOrb*2*(i-1)+mu)
+              ! down spin (using v's)
+              expec_0(mu,i) = expec_0(mu,i) + f_n_negative*conjg(evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2))*evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2)
+
+              expec_singlet(mu,i) = expec_singlet(mu,i) + lam*conjg(evec(isigmamu2n(i,1,mu)+nOrb*2*s%nAtoms))*evec(isigmamu2n(i,2,mu))*tanh(eval(n)*1.d0/(pi*eta)/2)
+
+          end do
+      end do
+    end do
+
   end subroutine expec_val
 
 
   subroutine expec_val_n(s, dim, evec, eval, expec_0, expec_p, expec_z)
     !! Calculate the expectation value of the operators 1 (occupation), \sigma^+ and \sigma^z
     !! for a given state n (evec) with eigenenergy eval
-    use mod_f90_kind,      only: double 
-    use mod_constants,     only: cOne,cZero,pi,pauli_mat
-    use mod_parameters,    only: nOrb, eta, isigmamu2n
-    use mod_distributions, only: fd_dist
-    use mod_system,        only: System
+    use mod_f90_kind,          only: double
+    use mod_constants,         only: cOne,cZero,pi,pauli_mat
+    use mod_parameters,        only: nOrb, eta, isigmamu2n
+    use mod_distributions,     only: fd_dist
+    use mod_system,            only: System
+    use mod_superconductivity, only: lsuperCond
     implicit none
-    
+
     type(System),                              intent(in)  :: s
     integer,                                   intent(in)  :: dim
     complex(double), dimension(dim),           intent(in)  :: evec
@@ -262,13 +350,16 @@ contains
 
     integer      :: i, sigma, sigmap, mu
     real(double) :: f_n
+    real(double) :: fermi_surface
 
     expec_0 = 0.d0
     expec_z = 0.d0
     expec_p = cZero
-  
+
+    !If lsupercond is true then fermi_surface is 0.0 otherwise is s%Ef
+    fermi_surface = merge(0.0,s%Ef,lsuperCond)
     ! Fermi-Dirac:
-    f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval)
+    f_n = fd_dist(fermi_surface, 1.d0/(pi*eta), eval)
 
     do i = 1, s%nAtoms
       do mu = 1, nOrb
@@ -369,7 +460,7 @@ contains
     use mod_parameters,    only: nOrb, nOrb2, eta
     use EnergyIntegration, only: y, wght
     use ElectricField,     only: EshiftBZ,ElectricFieldVector
-    use mod_magnet,        only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz 
+    use mod_magnet,        only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
     use adaptiveMesh
     use mod_mpi_pars
     implicit none
@@ -457,7 +548,7 @@ contains
     use mod_System,        only: system
     use mod_magnet,        only: lxp,lyp,lzp,lx,ly,lz
     use mod_distributions, only: fd_dist
-    implicit none 
+    implicit none
     type(System),                         intent(in)  :: s
     real(double),                         intent(in)  :: eval
     integer,                              intent(in)  :: dim
@@ -526,41 +617,44 @@ contains
         ! expec_H_0 = real( conjg( evec(i) ) * hamilt_t(i,j) * evec(j) )
         expec_H_0 = real( conjg( evec(i) ) * hamilt_0(i,j) * evec(j) )
         E_0       =  E_0 + f_n * expec_H_0
-      end do 
+      end do
     end do
-    
+
   end subroutine expec_H_n
 
 
   !   Calculates ground state quantities from eigenstates
   subroutine calcLGS_eigenstates()
-    use mod_f90_kind,      only: double
-    use mod_BrillouinZone, only: realBZ
-    use mod_constants,     only: pi,cZero
-    use mod_parameters,    only: nOrb,nOrb2,output,eta,isigmamu2n
-    use mod_System,        only: s => sys
-    use ElectricField,     only: EshiftBZ,ElectricFieldVector
-    use mod_magnet,        only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
-    use mod_distributions, only: fd_dist
-    use mod_tools,         only: itos
+    use mod_f90_kind,          only: double
+    use mod_BrillouinZone,     only: realBZ
+    use mod_constants,         only: pi,cZero
+    use mod_parameters,        only: nOrb,nOrb2,output,eta,isigmamu2n
+    use mod_System,            only: s => sys
+    use ElectricField,         only: EshiftBZ,ElectricFieldVector
+    use mod_magnet,            only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
+    use mod_distributions,     only: fd_dist
+    use mod_tools,             only: itos
+    use mod_superconductivity, only: lsuperCond
     use mod_mpi_pars
     implicit none
     integer                                        :: iz, info , n, i, mu, nu, sigma
     integer                                        :: lwork,dimH
-    real(double)                                   :: weight, kp(3), f_n
+    real(double)                                   :: weight, kp(3), f_n, fermi_surface
     complex(double), dimension(:,:,:), allocatable :: prod
     real(double),    dimension(:),     allocatable :: rwork(:), eval(:)
     complex(double),                   allocatable :: work(:), hk(:,:), evec(:)
 
     dimH  = (s%nAtoms)*nOrb2
     lwork = 21*dimH
+    !If lsupercond is true then fermi_surface is 0.0 otherwise is s%Ef
+    fermi_surface = merge(0.0,s%Ef,lsuperCond)
 
     allocate( hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),evec(dimH),work(lwork),prod(nOrb,nOrb,s%nAtoms) )
 
     !$omp parallel default(none) &
     !$omp& firstprivate(lwork) &
     !$omp& private(iz,n,i,sigma,mu,nu,kp,weight,hk,eval,f_n,evec,work,rwork,info) &
-    !$omp& shared(s,nOrb,dimH,output,realBZ,eta,isigmamu2n,prod,EshiftBZ,ElectricFieldVector)
+    !$omp& shared(s,nOrb,dimH,output,realBZ,eta,isigmamu2n,prod,EshiftBZ,ElectricFieldVector,fermi_surface)
 
     prod = cZero
     !$omp do reduction(+:prod) schedule(static)
@@ -577,7 +671,7 @@ contains
 
       eval_loop: do n = 1, dimH
         ! Fermi-Dirac:
-        f_n = fd_dist(s%Ef, 1.d0/(pi*eta), eval(n))
+        f_n = fd_dist(fermi_surface, 1.d0/(pi*eta), eval(n))
 
         ! Getting eigenvector and its transpose conjugate
         evec(:) = hk(:,n)
@@ -587,7 +681,7 @@ contains
             do mu = 1, nOrb
               do sigma = 1, 2
                 prod(mu,nu,i) = prod(mu,nu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,nu))*weight
-              end do    
+              end do
             end do
           end do
         end do sites_loop
@@ -622,5 +716,5 @@ contains
     deallocate(hk,rwork,eval,work)
 
   end subroutine calcLGS_eigenstates
-  
+
 end module mod_expectation

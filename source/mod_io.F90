@@ -54,9 +54,9 @@ contains
   end subroutine log_warning
 
   subroutine get_parameters(filename, s)
-    use mod_f90_kind,         only: double
-    use mod_input,            only: get_parameter, read_file, enable_input_logging, disable_input_logging
-    use mod_parameters,       only: output, laddresults, lverbose, ldebug, lkpoints, &
+    use mod_f90_kind,          only: double
+    use mod_input,             only: get_parameter, read_file, enable_input_logging, disable_input_logging
+    use mod_parameters,        only: output, laddresults, lverbose, ldebug, lkpoints, &
                                     lpositions, lcreatefiles, lnolb, lhfresponses, &
                                     lnodiag, lsha, lcreatefolders, lwriteonscreen, runoptions, lsimplemix, &
                                     lcheckjac, llgtv, lsortfiles,leigenstates, lprintfieldonly, &
@@ -64,17 +64,18 @@ contains
                                     skip_steps, nEner, nEner1, nQvec, nQvec1, qbasis, renorm, renormnb, bands, band_cnt, &
                                     offset, dfttype, parField, parFreq, kptotal_in, kp_in, &
                                     nOrb, nOrb2, tbmode, fermi_layer
-    use mod_self_consistency, only: lslatec, lontheflysc, lnojac, lGSL, lforceoccup, lrotatemag, skipsc, scfile, magbasis, mag_tol
-    use mod_system,           only: System, n0sc1, n0sc2
-    use mod_SOC,              only: SOC, socscale, llinearsoc, llineargfsoc
-    use mod_magnet,           only: lfield, tesla, hwa_i, hwa_f, hwa_npts, hwa_npt1, hwt_i, hwt_f, &
+    use mod_superconductivity, only: lsuperCond, superCond
+    use mod_self_consistency,  only: lslatec, lontheflysc, lnojac, lGSL, lforceoccup, lrotatemag, skipsc, scfile, magbasis, mag_tol
+    use mod_system,            only: System, n0sc1, n0sc2
+    use mod_SOC,               only: SOC, socscale, llinearsoc, llineargfsoc
+    use mod_magnet,            only: lfield, tesla, hwa_i, hwa_f, hwa_npts, hwa_npt1, hwt_i, hwt_f, &
                                     hwt_npts, hwt_npt1, hwp_i, hwp_f, hwp_npts, hwp_npt1, hwx, hwy, &
                                     hwz, hwscale, hwtrotate, hwprotate, skip_steps_hw
-    use ElectricField,        only: ElectricFieldMode, ElectricFieldVector, EFp, EFt, EshiftBZ
-    use EnergyIntegration,    only: parts, parts3, pn1, pn2, pnt, n1gl, n3gl
-    use mod_tools,            only: itos, rtos, vec_norm
-    use adaptiveMesh,         only: minimumBZmesh
-    use mod_fermi_surface,    only: lfs_loop, fs_energy_npts, fs_energy_npt1, fs_energy_i, fs_energy_f
+    use ElectricField,         only: ElectricFieldMode, ElectricFieldVector, EFp, EFt, EshiftBZ
+    use EnergyIntegration,     only: parts, parts3, pn1, pn2, pnt, n1gl, n3gl
+    use mod_tools,             only: itos, rtos, vec_norm
+    use adaptiveMesh,          only: minimumBZmesh
+    use mod_fermi_surface,     only: lfs_loop, fs_energy_npts, fs_energy_npt1, fs_energy_i, fs_energy_f
     use mod_mpi_pars
     use mod_imRK4_parameters, only: integration_time, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, &
                                     polarization_e, polarization_m, polarization_vec_e, polarization_vec_m, &
@@ -366,6 +367,27 @@ contains
        if(cnt >= dmax) hwprotate(1:dmax) = vector(1:dmax)
     end if
     if(allocated(vector)) deallocate(vector)
+    !------------------------------ Superconductivity Variables ------------------------------------
+    if(.not. get_parameter("superCond", lsuperCond, .false.)) &
+      call log_warning("get_parameters","'superCond' missing. Not using superconductivity.")
+    superCond = merge(2,1,lsuperCond)
+    ! if(lsupercond) then
+    !   if(.not. get_parameter("lambda", vector,cnt)) &
+    !     call log_error("get_parameters","'lambda' missing.")
+    !     select case(cnt)
+    !       case(3)
+    !         lambda(1)   = vector(1)
+    !         lambda(2:4) = vector(2)
+    !         lambda(5:9) = vector(3)
+    !       case(9)
+    !         lambda(:)   = vector(:)
+    !       case default
+    !         call log_error("get_parameters","Something wrong in the definition of 'lambda'.")
+    !       deallocate(vector)
+    !     end select
+    !     singlet_coupling = (/1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0/)
+    !     singlet_coupling(:) = lambda(:)*singlet_coupling(:)
+    ! end if
     !------------------------------------ Integration Variables ------------------------------------
     if(.not. get_parameter("parts", parts)) &
       call log_error("get_parameters","'parts' missing.")
@@ -524,12 +546,12 @@ contains
       if(.not. get_parameter("electric", lelectric,.false.)) &
         call log_warning("get_parameters", "'electric' not found. Electric field is not applied.")
       ! Electric field options:
-      if(lelectric) then 
+      if(lelectric) then
         ! Pulse:
         if(.not. get_parameter("pulse_e", lpulse_e,.false.)) &
           call log_warning("get_parameters", "'pulse_e' not found. Oscillatory electric field is applied.")
 
-        if(lpulse_e) then 
+        if(lpulse_e) then
           if(.not. get_parameter("npulse_e", npulse_e, 1)) &
             call log_warning("get_parameters","'npulse_e' missing. Using default npulse_e=1.")
 
@@ -620,7 +642,7 @@ contains
             do i=2,npulse_e
               delay_e(i) = delay_e(i-1)+vector(i)
             end do
-            deallocate(vector)            
+            deallocate(vector)
           end if
         else ! If not pulse:
           allocate(polarization_e(1),polarization_vec_e(1,2,3),hE_0(1),hw_e(1))
@@ -680,12 +702,12 @@ contains
       if(.not. get_parameter("magnetic", lmagnetic,.false.)) &
         call log_warning("get_parameters", "'magnetic' not found. Magnetic field is not applied.")
       ! Electric field options:
-      if(lmagnetic) then 
+      if(lmagnetic) then
         ! Pulse:
         if(.not. get_parameter("pulse_m", lpulse_m,.false.)) &
           call log_warning("get_parameters", "'pulse_m' not found. Oscillatory magnetic field is applied.")
 
-        if(lpulse_m) then 
+        if(lpulse_m) then
           if(.not. get_parameter("npulse_m", npulse_m, 1)) &
             call log_warning("get_parameters","'npulse_m' missing. Using default npulse_m=1.")
 
@@ -771,7 +793,7 @@ contains
             do i=2,npulse_m
               delay_m(i) = delay_m(i-1)+vector(i)
             end do
-            deallocate(vector)            
+            deallocate(vector)
           end if
         else ! If not pulse:
           allocate(polarization_m(1),polarization_vec_m(1,2,3),hw1_m(1),hw_m(1))
@@ -838,7 +860,7 @@ contains
       if(.not. disable_input_logging()) &
           call log_warning("get_parameters", "Could not disable logging.")
     end if
-    !==============================================================================================!    
+    !==============================================================================================!
     if(myrank==0) &
       write(output%unit,"('[get_parameters] Finished reading from ""',a,'"" file')") trim(filename)
 
@@ -893,13 +915,14 @@ contains
     use mod_mpi_pars
     use mod_parameters
     use mod_magnet
-    use mod_System,           only: System, n0sc1, n0sc2
-    use mod_BrillouinZone,    only: BZ => realBZ
-    use mod_SOC,              only: SOC, socscale
-    use EnergyIntegration,    only: parts, parts3, n1gl, n3gl
-    use ElectricField,        only: ElectricFieldMode, ElectricFieldVector, EFt, EFp, EshiftBZ
-    use AdaptiveMesh,         only: minimumBZmesh
-    use mod_imRK4_parameters, only: integration_time, sc_tol, hE_0, hw1_m, hw_e, hw_m, tau_e, &
+    use mod_System,            only: System, n0sc1, n0sc2
+    use mod_BrillouinZone,     only: BZ => realBZ
+    use mod_SOC,               only: SOC, socscale
+    use EnergyIntegration,     only: parts, parts3, n1gl, n3gl
+    use ElectricField,         only: ElectricFieldMode, ElectricFieldVector, EFt, EFp, EshiftBZ
+    use AdaptiveMesh,          only: minimumBZmesh
+    use mod_superconductivity, only: lsupercond
+    use mod_imRK4_parameters,  only: integration_time, sc_tol, hE_0, hw1_m, hw_e, hw_m, tau_e, &
                                     tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, npulse_e, lpulse_m, npulse_m, &
                                     polarization_vec_e, polarization_vec_m, abs_tol, rel_tol, safe_factor
     !$ use omp_lib
@@ -953,6 +976,12 @@ contains
     write(output%unit_loop,"(8x,'parts = ',i0,'x',i0)") parts,n1gl
     write(output%unit_loop,"(7x,'parts3 = ',i0,'x',i0)") parts3,n3gl
     write(output%unit_loop,"(10x,'eta =',es9.2)") eta
+    if(lsuperCond) then
+       write(output%unit_loop,"(1x,'Superconductivity: ACTIVATED')")
+    else
+       write(output%unit_loop,"(1x,'Superconductivity: DEACTIVATED')")
+    end if
+
     if(lfield) then
        write(output%unit_loop,"(1x,'Static magnetic field: ACTIVATED')")
        write(output%unit_loop,"(10x,'hwx =',es9.2,5x,'|',5x,'hwa =',es9.2)") hwx,hw_list(hw_count,1)
@@ -1030,7 +1059,7 @@ contains
       write(output%unit_loop,"(1x,'safe_factor =',es9.2)") safe_factor
       if(lelectric) then
         write(output%unit_loop, fmt="('Electric field: ON')" )
-        if(lpulse_e) then 
+        if(lpulse_e) then
           write(output%unit_loop, fmt="(i0, ' electric pulse(s):')" ) npulse_e
           do i = 1,npulse_e
             write(output%unit_loop,"(1x,'        hE_0 =',es9.2)") hE_0(i)
@@ -1050,7 +1079,7 @@ contains
       end if
       if(lmagnetic) then
         write(output%unit_loop, fmt="('Magnetic field: ON')" )
-        if(lpulse_m) then 
+        if(lpulse_m) then
           write(output%unit_loop, fmt="(i0, ' electric pulse(s):')" ) npulse_m
           do i = 1,npulse_m
             write(output%unit_loop,"(1x,'       hw1_m =',es9.2)") hw1_m(i)
@@ -1076,22 +1105,27 @@ contains
   ! Writing header for previously opened file of unit "unit"
   subroutine write_header(unit,title_line,Ef)
     use mod_f90_kind,   only: double
-    use mod_parameters, only: nQvec, nQvec1, bands, band_cnt, partial_length
-
+    use mod_parameters, only: nQvec, nQvec1, bands, band_cnt, partial_length, itype
+    implicit none
     integer,          intent(in)           :: unit
     character(len=*), intent(in)           :: title_line
     real(double),     intent(in), optional :: Ef
     integer :: i
 
-    if(nQvec1/=1) then
-      write(unit=unit, fmt="(a,2x,i0,2x,i0)") "# ", band_cnt, nQvec
-      do i=1,band_cnt
-        write(unit=unit, fmt="(a,2x,a,2x,es16.9)") "# ",trim(bands(i)), sum(partial_length(1:i))
-      end do
-      if(present(Ef)) write(unit=unit, fmt="(a,2x,es16.9)") "# Ef ",Ef
+    ! LDOS header
+    if(itype==2) then
+      write(unit=unit, fmt="(a,2x,es16.9)") "# Ef ",Ef
+    else ! Band structure and chi(q) header
+      if(nQvec1/=1) then
+        write(unit=unit, fmt="(a,2x,i0,2x,i0)") "# ", band_cnt, nQvec
+        do i=1,band_cnt
+          write(unit=unit, fmt="(a,2x,a,2x,es16.9)") "# ",trim(bands(i)), sum(partial_length(1:i))
+        end do
+        if(present(Ef)) write(unit=unit, fmt="(a,2x,es16.9)") "# Ef ",Ef
+      end if
     end if
 
-    write(unit=unit, fmt="(a)") title_line
+    write(unit=unit, fmt="(a)") trim(title_line)
 
   end subroutine write_header
 end module mod_io

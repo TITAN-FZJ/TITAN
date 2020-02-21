@@ -30,7 +30,9 @@ program TITAN
   use mod_Atom_variables, only: allocate_Atom_variables, deallocate_Atom_variables
   use mod_tools, only: rtos
   use mod_initial_expectation, only: calc_initial_Uterms
+  use mod_superconductivity
   use mod_time_propagator,   only: time_propagator
+  use mod_expectation
   !use mod_define_system TODO: Re-include
   !use mod_prefactors TODO: Re-include
   !use mod_lgtv_currents TODO: Re-include
@@ -82,6 +84,20 @@ program TITAN
   call allocate_energy_points()
   call generate_imag_epoints()
 
+  !-------------------------- Debugging part -------------------------
+  if(ldebug) then
+    ! call initTightBinding(sys)
+    ! call allocate_magnet_variables(sys%nAtoms, nOrb)
+    ! call hamilt_sc(sys)
+    !call hamilt_sc(s,rho,mp,mx,my,mz,sys,kp,hk)
+    !if(myrank==0) then
+    ! call debugging()
+    !end if
+    !MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+    ! call deallocate_magnet_variables()
+    ! stop
+  end if
+
   !----- Calculating initial values in the hamiltonian with mag=0 ------
   if(.not.lsortfiles) call calc_initial_Uterms(sys)
 
@@ -99,6 +115,7 @@ program TITAN
 
   !------------ Allocating variables that depend on nAtoms -------------
   call allocate_magnet_variables(sys%nAtoms, nOrb)
+  call allocate_super_variables(sys%nAtoms, nOrb)
   call allocLS(sys%nAtoms,nOrb)
   call allocate_Atom_variables(sys%nAtoms,nOrb)
 
@@ -124,6 +141,9 @@ program TITAN
   !-------------------------- Filename strings -------------------------
   write(output%info,"('_nkpt=',i0,'_eta=',a)") kptotal_in, trim(rtos(eta,"(es8.1)"))
   if(leigenstates) output%info = trim(output%info) // "_ev"
+
+  !--------------- Extra Token for Superconductivity files -------------
+  if(lsuperCond) output%info = trim(output%info) // "_sc"
 
   !------------------------ MAGNETIC FIELD LOOP ------------------------
   if(myrank == 0 .and. skip_steps_hw > 0) &
@@ -172,7 +192,7 @@ program TITAN
     call sb_matrix(sys%nAtoms, nOrb)
 
     !-------------------------- Debugging part -------------------------
-    if(ldebug) then 
+    if(ldebug) then
       !if(myrank==0) then
       ! call debugging()
       !end if
@@ -209,6 +229,30 @@ program TITAN
     ! end if
 
     !------------------------ Begin first test part --------------------
+    ! if(rField == 0 .and. itype==0) then
+    !   write(output%unit_loop,"('[main] FIRST TEST PART')")
+    !   rho  = 0.d0
+    !   mz  = 0.d0
+    !   mp  = cZero
+    !   ! Variables used in the hamiltonian
+    !
+    !   call ldos()
+    !   ! call debugging()
+    ! end if
+
+    !------------------------- Self-consistency ------------------------
+    if(rField == 0) &
+      call write_time(output%unit_loop,'[main] Time before self-consistency: ')
+
+    call doSelfConsistency()
+
+    !--------- Temporary execution to test this function ---------------
+
+    ! call hamilt_sc(sys)
+
+    ! if(rField == 0) &
+    ! call band_structure(sys)
+
     if(rField == 0 .and. itype==0) then
       write(output%unit_loop,"('[main] FIRST TEST PART')")
       rho  = 0.d0
@@ -216,15 +260,15 @@ program TITAN
       mp  = cZero
       ! Variables used in the hamiltonian
 
-      call ldos()
+      ! write(*,*) lambda
+
+      ! call expectation_values_eigenstates(sys,rho,mp,mx,my,mz,singlet_coupling)
+
+      ! write(*,*) lambda
       ! call debugging()
     end if
 
-    !------------------------- Self-consistency ------------------------
-    if(rField == 0) &
-      call write_time(output%unit_loop,'[main] Time before self-consistency: ')
-
-    call doSelfConsistency()
+    !-------------------------------------------------------------------
 
     if(rField==0) &
       call write_time(output%unit_loop,'[main] Time after self-consistency: ')

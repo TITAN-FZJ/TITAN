@@ -111,7 +111,9 @@ contains
     use AtomTypes,    only: AtomType
     use mod_mpi_pars, only: abortProgram
     use mod_tools,    only: itos, vec_norm
-    use mod_io,       only: log_warning
+    use mod_io,       only: log_warning, log_error
+    use mod_input,    only: get_parameter
+    use mod_superconductivity, only: lsuperCond
     implicit none
     type(AtomType), intent(inout) :: material
     integer,        intent(in)    :: nStages
@@ -130,11 +132,12 @@ contains
     real(double), dimension(3)   :: vec
     real(double), dimension(3,3) :: Bravais
     real(double), dimension(4)   :: on_site
+    real(double), dimension(9)   :: tmp_arr
     real(double), dimension(:,:), allocatable :: position
     real(double), dimension(:),   allocatable :: localDistances
     character(len=1)   :: coord_type
     character(len=100) :: Name
-    integer :: f_unit = 995594
+    integer :: f_unit = 995594, cnt = 0
 
     allocate(material%onSite(nOrb,nOrb))
     allocate(material%Hopping(10,nStages))
@@ -231,9 +234,41 @@ contains
     read(f_unit, fmt='(A)', iostat = ios) line
     read(unit= line, fmt=*, iostat=ios) material%LambdaP, material%LambdaD
 
-    ! Read next nearest neighbor stages
-    read(f_unit, fmt='(A)', iostat = ios) line
-    read(unit= line, fmt=*, iostat=ios) nn_stages
+    ! Read the superconducting parameter and/or the nn_stages parameter
+    read(unit=f_unit, fmt='(A)', iostat=ios) line
+    read(unit=line, fmt=*, iostat=ios) (str_arr(i), i=1,9)
+    cnt = 0
+    do i = 1, 9
+        if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
+        cnt = cnt + 1
+        read(unit=str_arr(i), fmt=*,iostat=ios ) tmp_arr(cnt)
+    end do
+
+    select case(cnt)
+    case(1)
+      if(lsupercond) &
+        call log_error("readElementFile","Something wrong in the definition of 'lambda'.")
+      ! Read next nearest neighbor stages
+      nn_stages = tmp_arr(1)
+    case(3)
+      material%lambda(1)   = tmp_arr(1)
+      material%lambda(2:4) = tmp_arr(2)
+      material%lambda(5:9) = tmp_arr(3)
+
+      ! Read next nearest neighbor stages
+      read(f_unit, fmt='(A)', iostat = ios) line
+      read(unit= line, fmt=*, iostat=ios) nn_stages
+
+    case(9)
+      material%lambda(:)   = tmp_arr(:)
+
+      ! Read next nearest neighbor stages
+      read(f_unit, fmt='(A)', iostat = ios) line
+      read(unit= line, fmt=*, iostat=ios) nn_stages
+    case default
+      call log_error("readElementFile","Something wrong in the definition of 'lambda'.")
+    end select
+    ! write(*,*) trim(Name),material%lambda(:)
 
     ! Read Hopping Parameter
     do i = 1, nTypes

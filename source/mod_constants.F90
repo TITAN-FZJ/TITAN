@@ -155,8 +155,3 @@ contains
     if(i==j) delta = 1
   end function delta
 end module mod_constants
-
-
-
-
-
