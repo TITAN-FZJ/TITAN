@@ -11,10 +11,11 @@ subroutine band_structure(s)
 
   implicit none
   type(System), intent(in) :: s
-  integer :: i, info, count, f_unit=666
+  integer :: i, info, count, f_unit=666, n
   integer :: lwork,dimbs
   real(double), dimension(:), allocatable :: rwork,eval
   complex(double), allocatable :: work(:),hk(:,:)
+  character(len=30) :: formatvar
 
   dimbs = (s%nAtoms)*18*superCond
   lwork = 2*dimbs-1
@@ -26,6 +27,10 @@ subroutine band_structure(s)
   open (unit=f_unit, file=bsfile, status='replace')
   call write_header(f_unit,"# dble((count-1.d0)*deltak), (eval(i),i=1,dimbs)",s%Ef)
 
+  write(unit=f_unit, fmt="(a,2x,i3)") "# dimbs ",dimbs
+  write(formatvar,fmt="(a,i0,a)") '(',1+dimbs*(dimbs+1),'(es16.8e3,2x))'
+
+
   do count=1,nQvec1
     write(output%unit_loop,"('[band_structure] ',i0,' of ',i0,' points',', i = ',es10.3)") count,nQvec1,dble((count-1.d0)/nQvec)
 
@@ -35,31 +40,14 @@ subroutine band_structure(s)
         call hamiltk(s,kpoints(:,count),hk)
     end if
 
-    ! if(count == 1) then
-    !     do i = 1, 18*2
-    !       do j = 1, 18*2
-    !         write(*,*) real(hk(i,j)), imag(hk(i,j))
-    !       end do
-    !     end do
-    ! end if
-
-    ! ! Test if hamiltonian is Hermitian (to be commented out, uncomment to use it)
-    ! do i = 1, 18*2
-    !   do j = 1, 18*2
-    !     if(abs(hk(j,i)-conjg(hk(i,j))) > 1.d-12) then
-    !       write(*,"('Hamiltonian not hermitian',i0,2x,i0,2x,es11.4)") i,j,abs(hk(j,i)-conjg(hk(i,j)))
-    !     end if
-    !   end do
-    ! end do
-
-    call zheev('N','U',dimbs,hk,dimbs,eval,work,lwork,rwork,info)
+    call zheev('V','U',dimbs,hk,dimbs,eval,work,lwork,rwork,info)
 
     if(info/=0) then
       write(output%unit_loop,"('[band_structure] Problem with diagonalization. info = ',i0)") info
       stop
     end if
 
-    write(unit=f_unit,fmt='(1000(es16.8))') dble((count-1.d0)*deltak), (eval(i),i=1,dimbs)
+    write(unit=f_unit,fmt=formatvar) dble((count-1.d0)*deltak), (eval(i),i=1,dimbs), ((abs(hk(i,n))**2,i=1,dimbs),n=1,dimbs)
   end do
 
   close(f_unit)
