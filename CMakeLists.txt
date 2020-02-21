@@ -35,10 +35,6 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_Coupling.F90
                                   source/ElectricField.F90
                                   source/mod_io.F90
-                                  source/ldos.F90
-                                  source/ldos_and_coupling.F90
-                                  source/ldos_energy.F90
-                                  source/ldos_jij_energy.F90
                                   source/coupling.F90
                                   source/jij_energy.F90
                                   source/mod_TCM.F90
