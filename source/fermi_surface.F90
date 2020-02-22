@@ -6,7 +6,7 @@ module mod_fermi_surface
   real(double) :: fs_energy_i, fs_energy_f, fs_energy_s
   real(double), allocatable :: fs_energies(:)
 
-  character(len=4), dimension(2), private :: filename = ["orb_","tot_"]
+  character(len=4), dimension(2), private :: filename = ["orb","tot"]
   character(len=50)  :: epart
 
 contains
@@ -158,10 +158,10 @@ contains
     integer            :: i
 
     do i=1,s%nAtoms
-      write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'atom',i0,'_',a,a,a,'.dat')") &
+      write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'atom',i0,a,a,a,'.dat')") &
        output%SOCchar,trim(output%Sites),trim(epart),i,trim(output%info),trim(output%BField),trim(output%SOC)
       open (unit=17+i, file=varm,status='replace', form='formatted')
-      write(unit=17+i, fmt="('#      kx       ,        ky       ,        kz       ,     charge      ,     spin x      ,     spin y      ,     spin z      ')")
+      write(unit=17+i, fmt="('#      kx       ,        ky       ,        kz       ,      charge     ,      spin x     ,      spin y     ,      spin z     ')")
       close(unit=17+i)
     end do
     ! Orbital-depedent
@@ -190,7 +190,7 @@ contains
 
     ! Opening files for writing
     do i=1,s%nAtoms
-      write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'atom',i0,'_',a,a,a,'.dat')") &
+      write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'atom',i0,a,a,a,'.dat')") &
        output%SOCchar,trim(output%Sites),trim(epart),i,trim(output%info),trim(output%BField),trim(output%SOC)
       open (unit=17+i, file=varm, status='old', position='append', form='formatted', iostat=err)
       errt = errt + err
@@ -228,17 +228,20 @@ contains
     use mod_BrillouinZone, only: realBZ
     implicit none
     real(double), intent(in) :: fs_atom(s%nAtoms,realBZ%nkpt,4),fs_orb(nOrb,realBZ%nkpt,4),fs_total(realBZ%nkpt,4)
-    real(double) :: kp(3)
-    integer      :: iz, i, mu, sigma
+    character(len=30) :: formatvar
+    real(double)      :: kp(3)
+    integer           :: iz, i, mu, sigma
+
+    write(formatvar,fmt="(a,i0,a)") '(',nOrb*4+3,'(es16.9,2x))'
 
     do iz = 1, realBZ%nkpt
       kp = realBZ%kp(1:3,iz)
       do i = 1, s%nAtoms
-        write(unit=17+i,fmt="(6(es16.9,2x))") kp(1), kp(2), kp(3), (fs_atom(i,iz,sigma),sigma=1,4)
+        write(unit=17+i,fmt="(7(es16.9,2x))") kp(1), kp(2), kp(3), (fs_atom(i,iz,sigma),sigma=1,4)
       end do
 
-      write(unit=96,fmt="(6(es16.9,2x))") kp(1), kp(2), kp(3),( (fs_orb(mu,iz,sigma),mu=1,nOrb),sigma=1,4)
-      write(unit=97,fmt="(6(es16.9,2x))") kp(1), kp(2), kp(3),(fs_total(iz,sigma),sigma=1,4)
+      write(unit=96,fmt=formatvar) kp(1), kp(2), kp(3),( (fs_orb(mu,iz,sigma),mu=1,nOrb),sigma=1,4)
+      write(unit=97,fmt="(7(es16.9,2x))") kp(1), kp(2), kp(3),(fs_total(iz,sigma),sigma=1,4)
     end do
   end subroutine writeFS
 
