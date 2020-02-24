@@ -53,7 +53,8 @@ end subroutine allocate_super_variables
     real(double), intent(in)  :: kp(3)
     complex(double),dimension(2*dimH,2*dimH), intent(inout) :: hk_sc
     complex(double),dimension(  dimH,  dimH) :: hk, dummy, hk2
-    integer :: i, j
+    integer      :: i, j
+    real(double) :: mkp(3)
 
     ! The form of the superconducting hamiltonian depends on a series of decisions,
     ! such as how to choose the basis after the Bogoliuvob-de Gennes transformation
@@ -61,8 +62,8 @@ end subroutine allocate_super_variables
     ! have a basis (u_up, u_down, v_up, v_down), and the BdG transformation we perform
     ! is c_{i\sigma} = sum_n u_{in\sigma}\gamma_n + v_{in\sigma}\gamma^{n*}\gamma_n^\dagger
     ! The final form of the hamiltonian is something like
-    ! | H - E_f   Delta     |
-    ! | Delta^* -(H - E_f)* |
+    ! | H(k) - E_f        Delta     |
+    ! |   Delta^*   -(H(-k) - E_f)* |
     ! roughly. Look at this paper 10.1103/RevModPhys.87.1037 , and to Uriel's thesis to
     ! get a better idea of how to construct this operator
 
@@ -84,7 +85,8 @@ end subroutine allocate_super_variables
 
     dummy = cZero
 
-    call hamiltk(sys,-kp,dummy)
+    mkp = -kp
+    call hamiltk(sys,mkp,dummy)
     !
     do i = 1, dimH
         do j = 1, dimH

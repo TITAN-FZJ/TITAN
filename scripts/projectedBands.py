@@ -34,7 +34,7 @@ mpl.rcParams["xtick.minor.width"] = 1.0
 mpl.rcParams["ytick.major.width"] = 1.5
 mpl.rcParams["ytick.minor.width"] = 1.0
 linewidth = 1.5
-colors = [(0.07, 0.19, 0.40),(0.37, 0.05, 0.07),(0.10, 0.26, 0.13)]
+colors = [(0.07, 0.19, 0.60),(0.57, 0.05, 0.07),(0.10, 0.46, 0.13)]
 
 ################################################################################
 # Get the header from the file
@@ -123,7 +123,7 @@ if __name__ == "__main__":
   parser.add_argument("--ev", default=False, action="store_true" , help="Plot superconductor bands in the same plot")
   parser.add_argument("--title", action="store", dest="title", default="")
   parser.add_argument("--guide", default=False, action="store_true" , help="Guide for band structures")
-  parser.add_argument('--project', help='Array of integers', default="[[1,2,3,4,5,6,7,8,9],[19,20,21,22,23,24,25,26,27]]")
+  parser.add_argument('--project', help='Array of integers', default="[[1,2,3,4,5,6,7,8,9],[10,11,12,13,14,15,16,17,18]]")
   args = parser.parse_args()
 
   if args.ev == True:
@@ -237,37 +237,73 @@ if __name__ == "__main__":
                 orb = k
                 for j in range(1,dimbs+1):
                   weight = table[:,dimbs+orb+dimbs*(j-1)]
-                  axs[0,i].scatter(table[:,0],table[:,j]*ry2ev,c=[(colors[g][0],colors[g][1],colors[g][2], a) for a in weight],s=10)
+                  axs[0,i].scatter(table[:,0],table[:,j]*ry2ev,c=[(colors[g][0],colors[g][1],colors[g][2], a) for a in weight],s=8)
 
   else: # args.superconductivity:
-    numplots = len(sys.argv)-1
-    titles = [r"with SOC", r"no SOC"]
-
+    numplots = 1
+    titles = [r"Band Structure"]
     fig, axs = plt.subplots(1, numplots, sharey=True, squeeze=False, figsize=(6*numplots, 5))
-    axs[0,0].set_ylabel("Energy [Ry]")
+    # Setting the units
+    if args.ev == True:
+      axs[0,0].set_ylabel(r"E - E$_\mathrm{F}$ [eV]")
+    else:
+      axs[0,0].set_ylabel(r"E - E$_\mathrm{F}$ [Ry]")
 
     for i in range(numplots):
-      npoints, name, point, fermi = read_header(sys.argv[i+1])
-      table = read_data(sys.argv[i+1])
-      axs[0,i].set_title(titles[i])
+      # Reads and stores the high symmetry points
+      npoints, name, point, fermi, dimbs = read_header(args.file)
+      # Reads the data points
+      table = read_data(args.file)
+      # Set custom title or default title
+      if args.title != "":
+        axs[0,i].set_title(args.title)
+      else:
+        axs[0,i].set_title(titles[i])
+
       axs[0,i].set_xlim([point[0],point[npoints-1]])
+      # Used to zoom in a symmetrical region around Ef
+      if args.zoom != 0.0:
+        # print(fermi*ry2ev-args.zoom,fermi*ry2ev+args.zoom)
+        axs[0,i].set_ylim(-args.zoom,args.zoom)
 
       axs[0,i].set_xticks(point)
       axs[0,i].set_xticklabels(name)
+
+      # High symmetry points vertical lines
       for j in point:
-        axs[0,i].axvline(x=j, color='k', linewidth=0.5)
+        axs[0,i].axvline(x=j, color='k', linewidth=linewidth)
 
       # Ploting the Fermi level or a line at y=0.0
       if (fermi == None): # susceptibility
         axs[0,i].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='-', linewidth=0.5)
       else: # band structure
-        axs[0,i].axhline(y=fermi, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--')
+        axs[0,i].axhline(y=0.0, color='k', linestyle='--',linewidth=1)
+
+      # Wider lines for the frame
+      for axis in ['top','bottom','left','right']:
+        axs[0,i].spines[axis].set_linewidth(linewidth)
 
       # Plotting the results
       if (fermi == None): # susceptibility
         axs[0,i].plot(table[:,1],-1.0/table[:,2])
       else: # band structure
-        axs[0,i].plot(table[:,0],table[:,1:], color='k', linewidth=1.0, linestyle='-')
+        # Print band structures as guides
+        if args.guide == True:
+          for j in range(1,dimbs+1):
+            axs[0,i].scatter(table[:,0],(table[:,j]-fermi)*ry2ev,c='k',s=0.01,marker="o")
+
+        for g, group in enumerate(eval(args.project)):
+          if isinstance(group, int):
+            orb = group
+            for j in range(1,dimbs+1):
+              weight = table[:,dimbs+orb+dimbs*(j-1)]
+              axs[0,i].scatter(table[:,0],(table[:,j]-fermi)*ry2ev,c=[(0.07, 0.19, 0.40, a) for a in weight],s=10)
+          else:
+            for k in group:
+              orb = k
+              for j in range(1,dimbs+1):
+                weight = table[:,dimbs+orb+dimbs*(j-1)]
+                axs[0,i].scatter(table[:,0],(table[:,j]-fermi)*ry2ev,c=[(colors[g][0],colors[g][1],colors[g][2], a) for a in weight],s=8)
 
   plt.tight_layout()
   if args.output != "":
