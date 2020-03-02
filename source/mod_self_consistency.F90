@@ -70,15 +70,15 @@ contains
 
   ! Tries to read n and m if available
   subroutine read_previous_results(lsuccess)
-    use mod_f90_kind,   only: double
-    use mod_constants,  only: deg2rad
-    use mod_parameters, only: nOrb, output
-    use mod_system,     only: s => sys
-    use mod_mpi_pars,   only: rField,abortProgram
-    use mod_superconductivity, only: singlet_coupling
-    use mod_magnet,     only: mx,my,mz,mxd,myd,mzd,mpd,hw_count,hw_list, &
-                              lfield,rho,rhod,rhod0,rho0
-    use mod_Umatrix
+    use mod_f90_kind,          only: double
+    use mod_constants,         only: deg2rad
+    use mod_parameters,        only: nOrb, output
+    use mod_system,            only: s => sys
+    use mod_mpi_pars,          only: rField,abortProgram
+    use mod_superconductivity, only: singlet_coupling, lsuperCond
+    use mod_Umatrix,           only: init_Umatrix
+    use mod_magnet,            only: mx,my,mz,mxd,myd,mzd,mpd,hw_count,hw_list, &
+                                     lfield,rho,rhod,rhod0,rho0
     implicit none
     integer             :: i,err, mu
     logical,intent(out) :: lsuccess
@@ -141,9 +141,11 @@ contains
         my(5:9,i) = 0.2d0*myd(i)
         mz(5:9,i) = 0.2d0*mzd(i)
         rhod(i)   = rhod0(i) !s%Types(s%Basis(i)%Material)%OccupationD
-        do mu = 1,nOrb
-            singlet_coupling(mu,i) = s%Types(s%Basis(i)%Material)%lambda(mu)
-        end do
+        if(lsuperCond) then
+          do mu = 1,nOrb
+              singlet_coupling(mu,i) = s%Types(s%Basis(i)%Material)%lambda(mu)
+          end do
+        end if
       end do
       ! singlet_coupling = 1.0
 
@@ -324,12 +326,12 @@ contains
           write(output%unit_loop,"('[read_sc_results] Updating values obtained for parts-1...')")
           write(output%unit_loop,"(a)") file
           do i=1,s%nAtoms
-            read(99,fmt=*) (previous_results(j,i), j=1,5*nOrb)
+            read(99,fmt=*) (previous_results(j,i), j=1,6*nOrb)
           end do
           read(99,fmt=*) previous_Ef
         end if
 
-        call MPI_Bcast(previous_results,5*nOrb*s%nAtoms,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
+        call MPI_Bcast(previous_results,6*nOrb*s%nAtoms,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
         call MPI_Bcast(previous_Ef,1,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
 
         rho(:,:) = previous_results(       1:  nOrb,:)
@@ -337,7 +339,7 @@ contains
         my (:,:) = previous_results(2*nOrb+1:3*nOrb,:)
         mz (:,:) = previous_results(3*nOrb+1:4*nOrb,:)
         mp       = cmplx(mx,my)
-        singlet_coupling(:,:) = previous_results(4*nOrb+1:5*nOrb,:)
+        singlet_coupling(:,:) = cmplx(previous_results(4*nOrb+1:5*nOrb-1:2,:),previous_results(4*nOrb+2:5*nOrb:2,:))
 
         rhod(:) = sum(rho(5:9,:),dim=1)
         mxd(:)  = sum(mx (5:9,:),dim=1)
@@ -1201,15 +1203,15 @@ contains
     use mod_mpi_pars
     implicit none
     integer  :: N,i,mu,iflag
-    integer     ,  intent(inout)             :: iuser(1)
-    real(double),  intent(inout)             :: ruser(1)
-    real(double),   dimension(N)             :: x,fvec
-    real(double),   dimension(N,N)           :: selfconjac
-    real(double),   dimension(nOrb,s%nAtoms) :: rho_in
-    real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
-    complex(double),dimension(s%nAtoms)      :: mpd_in
-    complex(double),dimension(nOrb,s%nAtoms) :: singlet_coupling_in
-    complex(double), dimension(nOrb,s%nAtoms)         :: deltas
+    integer     ,    intent(inout)            :: iuser(1)
+    real(double),    intent(inout)            :: ruser(1)
+    real(double),    dimension(N)             :: x,fvec
+    real(double),    dimension(N,N)           :: selfconjac
+    real(double),    dimension(nOrb,s%nAtoms) :: rho_in
+    real(double),    dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
+    complex(double), dimension(s%nAtoms)      :: mpd_in
+    complex(double), dimension(nOrb,s%nAtoms) :: singlet_coupling_in
+    complex(double), dimension(nOrb,s%nAtoms) :: deltas
 
     iuser = 0
     ruser = 0.d0
@@ -1325,7 +1327,7 @@ contains
     s%Ef    = x(N)
 
     call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
-    call update_singlet_couplings(s,singlet_coupling_in)
+    if(lsuperCond) call update_singlet_couplings(s,singlet_coupling_in)
 
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,singlet_coupling_in,s%Ef)
 
@@ -1412,7 +1414,7 @@ contains
     s%Ef    = x(N)
 
     call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
-    call update_singlet_couplings(s,singlet_coupling_in)
+    if(lsuperCond) call update_singlet_couplings(s,singlet_coupling_in)
 
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,singlet_coupling_in,s%Ef)
 
@@ -1505,7 +1507,7 @@ contains
     s%Ef    = x(N)
 
     call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
-    call update_singlet_couplings(s,singlet_coupling_in)
+    if(lsuperCond) call update_singlet_couplings(s,singlet_coupling_in)
 
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,singlet_coupling_in,s%Ef)
 
@@ -1586,7 +1588,7 @@ contains
     s%Ef    = x(N)
 
     call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
-    call update_singlet_couplings(s,singlet_coupling_in)
+    if(lsuperCond) call update_singlet_couplings(s,singlet_coupling_in)
 
     fvec=fvec
 

@@ -24,13 +24,15 @@ module mod_superconductivity
 contains
 
   subroutine allocate_super_variables(nAtoms,nOrbs)
-    use mod_mpi_pars, only: abortProgram
+    use mod_mpi_pars,  only: abortProgram
+    use mod_constants, only: cZero
     implicit none
     integer, intent(in) :: nAtoms
     integer, intent(in) :: nOrbs
     integer :: AllocateStatus
 
     allocate( singlet_coupling(nOrbs,nAtoms), stat = AllocateStatus)
+    singlet_coupling = cZero
     if(AllocateStatus /= 0) call abortProgram("[allocate_super_variables] Not enough memory for: singlet_coupling")
 
 end subroutine allocate_super_variables
@@ -43,7 +45,7 @@ end subroutine allocate_super_variables
 
   subroutine hamiltk_sc(sys,kp,hk_sc)
     use mod_f90_kind,       only: double
-    use mod_parameters,     only: nOrb2, dimH
+    use mod_parameters,     only: dimH
     use mod_system,         only: System, initHamiltkStride
     use mod_constants,      only: cZero,cOne
     implicit none
@@ -51,7 +53,8 @@ end subroutine allocate_super_variables
     real(double), intent(in)  :: kp(3)
     complex(double),dimension(2*dimH,2*dimH), intent(inout) :: hk_sc
     complex(double),dimension(  dimH,  dimH) :: hk, dummy, hk2
-    integer :: i, j, mu
+    integer      :: i, j
+    real(double) :: mkp(3)
 
     ! The form of the superconducting hamiltonian depends on a series of decisions,
     ! such as how to choose the basis after the Bogoliuvob-de Gennes transformation
@@ -59,8 +62,8 @@ end subroutine allocate_super_variables
     ! have a basis (u_up, u_down, v_up, v_down), and the BdG transformation we perform
     ! is c_{i\sigma} = sum_n u_{in\sigma}\gamma_n + v_{in\sigma}\gamma^{n*}\gamma_n^\dagger
     ! The final form of the hamiltonian is something like
-    ! | H - E_f   Delta     |
-    ! | Delta^* -(H - E_f)* |
+    ! | H(k) - E_f        Delta     |
+    ! |   Delta^*   -(H(-k) - E_f)* |
     ! roughly. Look at this paper 10.1103/RevModPhys.87.1037 , and to Uriel's thesis to
     ! get a better idea of how to construct this operator
 
@@ -82,7 +85,8 @@ end subroutine allocate_super_variables
 
     dummy = cZero
 
-    call hamiltk(sys,-kp,dummy)
+    mkp = -kp
+    call hamiltk(sys,mkp,dummy)
     !
     do i = 1, dimH
         do j = 1, dimH
@@ -110,12 +114,11 @@ end subroutine allocate_super_variables
   end subroutine hamiltk_sc
 
   subroutine print_hamilt(sys,hk)
-
       use mod_f90_kind,       only: double
       use mod_parameters,     only: nOrb2
       use mod_system,         only: System, initHamiltkStride
       use mod_constants,      only: cZero,cOne
-      use mod_parameters,     only: nOrb, isigmamu2n, dimH
+      use mod_parameters,     only: dimH
       implicit none
 
       type(System),                                 intent(in) :: sys
@@ -130,16 +133,12 @@ end subroutine allocate_super_variables
 
   end subroutine print_hamilt
 
-  subroutine print_hamilt_entry(sys,hk,i,j)
-
+  subroutine print_hamilt_entry(hk,i,j)
       use mod_f90_kind,       only: double
-      use mod_parameters,     only: nOrb2
       use mod_system,         only: System, initHamiltkStride
       use mod_constants,      only: cZero,cOne
-      use mod_parameters,     only: nOrb, isigmamu2n, dimH
+      use mod_parameters,     only: dimH
       implicit none
-
-      type(System),                                 intent(in) :: sys
       complex(double), dimension(2*dimH,2*dimH), intent(in) :: hk
       integer, intent(in):: i,j
 
@@ -170,7 +169,6 @@ end subroutine allocate_super_variables
 
   subroutine bcs_pairing(sys,delta, hk_sc)
       use mod_f90_kind,       only: double
-      use mod_parameters,     only: nOrb2
       use mod_system,         only: System, initHamiltkStride
       use mod_constants,      only: cZero,cOne
       use mod_parameters,     only: nOrb, isigmamu2n, dimH

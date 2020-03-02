@@ -213,9 +213,9 @@ contains
   !> build time dependent Hamiltonian for each kp 
   !> H(t) = hk + hext_t
   subroutine build_td_hamiltonian(s,t,kp,eval,hamilt_t, hamilt_0)
-    use mod_f90_kind,   only: double
-    use mod_system,     only: System
-    use mod_parameters, only: dimH
+    use mod_f90_kind,    only: double
+    use mod_system,      only: System
+    use mod_parameters,  only: dimH
     use mod_RK_matrices, only: id
     implicit none
     type(System),    intent(in)  :: s
@@ -229,7 +229,7 @@ contains
     call hamiltk(s,kp,hk)
 
     ! Building time dependent hamiltonian
-    call build_hext(s%nAtoms,t,hext_t)
+    call build_hext(kp,t,hext_t)
 
     ! calculating the original hamiltonian H(t) without the eigenvalue term.
     hamilt_0 = hk + hext_t
@@ -248,27 +248,22 @@ contains
   !> build time dependent external perturbation Hamiltonian
   !> For a magnetic perturbation: H_ext(t)= S.B(t),  S= Pauli matricies
   !> For an electric perturbation: H_ext(t)= ((P-e*A)^2)/2*m, here only the linear term is implemented.
-  subroutine build_hext(nAtoms,t,hext_t)
+  subroutine build_hext(kp,t,hext_t)
     use mod_f90_kind,         only: double
     use mod_constants,        only: cI,cZero
     use mod_imRK4_parameters, only: lelectric, lmagnetic
-    use mod_System,           only: ia !, s => sys
+    use mod_System,           only: ia, s => sys
     use mod_parameters,       only: nOrb,nOrb2,dimH
     implicit none
-    integer,         intent(in)  :: nAtoms
+    real(double),    intent(in)  :: kp(3)
     real(double),    intent(in)  :: t
     complex(double), intent(out) :: hext_t(dimH,dimH)
 
     complex(double)  :: hext(nOrb2,nOrb2), temp(nOrb,nOrb)
-    integer          :: i, j,  mu, nu
+    integer          :: i, j, k, mu, nu
     real(double)     :: b_field(3), A_t(3)
+    complex(double)  :: kpExp, kpA_t
 
-    real(double)                                            :: kp(3)
-    ! complex(double),dimension(nOrb,nOrb,s%nAtoms,s%nAtoms):: dtdk
-    complex(double), dimension(nOrb,nOrb,nAtoms,nAtoms)     :: dtdk
-    ! complex(double), dimension(:,:,:,:), allocatable      :: dtdk
-
-    ! allocate(dtdk(nOrb,nOrb,nAtoms,nAtoms))
  
     hext_t = cZero
 
@@ -283,21 +278,37 @@ contains
         hext(mu,nu) = conjg(hext(nu,mu))
       end do
 
-      do i=1, nAtoms
+      do i=1, s%nAtoms
         hext_t(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = hext(1:nOrb2,1:nOrb2)
       end do
     end if
 
+    ! The electric field is implemented via a vector potential-renormalization of the hoppings,
+    ! as described in Eq. (12) of Ref.:
+    ! Electromagnetic fields and dielectric response in empirical tight-binding theory
+    ! M. Graf and P. Vogl Phys. Rev. B 51, 4940 (1995)
     if(lelectric) then
       call vector_potential(t, A_t)
-      call dtdksub(A_t,kp,dtdk)
-      do i = 1, nAtoms
-        do j = 1, nAtoms
-          temp = dtdk(:,:,i,j)
-          hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) = hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) + temp
-          hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) = hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) + temp
+      ! Inter-site hopping terms
+      !dir$ ivdep:loop
+      do k = 1, s%nNeighbors
+        j = s%Neighbors(k)%BasisIndex
+        ! exp(ik.(R_i-R_j))
+        kpExp = exp( cI * dot_product(kp , s%Neighbors(k)%CellVector))
+
+        !dir$ ivdep:loop
+        do i = 1, s%nAtoms
+          if(.not. s%Neighbors(k)%isHopping(i)) cycle
+          kpA_t = exp(-cI * dot_product(A_t, s%Basis(i)%Position(:)-(s%Basis(j)%Position(:)+s%Neighbors(k)%CellVector)))
+
+          temp(1:nOrb,1:nOrb) = s%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp * (kpA_t - 1.d0) ! The -1.d0 term is to discount the usual t(k) term that is already included in H_0
+          ! Spin-up
+          hext_t(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hext_t(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + temp(1:nOrb,1:nOrb)
+          ! Spin-down
+          hext_t(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hext_t(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + temp(1:nOrb,1:nOrb)
         end do
       end do
+
     end if
 
   end subroutine build_hext

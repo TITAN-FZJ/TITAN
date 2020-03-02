@@ -148,7 +148,7 @@ contains
     complex(double), dimension(nOrb,s%nAtoms), intent(out) :: deltas
     ! complex(double), dimension(nOrb)         , intent(out) :: expec_singlet
 
-    integer                                      :: iz, info, ncount, i ,j
+    integer                                      :: iz, info, ncount, i
     integer                                      :: lwork,dimH, dimE
     real(double)                                 :: weight, kp(3)
     real(double),    dimension(nOrb,s%nAtoms)    :: expec_0, expec_z
@@ -247,7 +247,7 @@ contains
     use mod_parameters,        only: nOrb, eta, isigmamu2n
     use mod_distributions,     only: fd_dist
     use mod_system,            only: System
-    use mod_superconductivity, only: lsuperCond, superCond, flag, print_hamilt
+    use mod_superconductivity, only: lsuperCond, print_hamilt
     implicit none
     integer,                                   intent(in)  :: dim
     integer,                                   intent(in)  :: dimE
