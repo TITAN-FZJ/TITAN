@@ -240,11 +240,9 @@ contains
     case(1)
         material%Un = tmp_arr(1)
         material%Um = tmp_arr(1)
-        material%U  = tmp_arr(1)
     case(2)
         material%Un = tmp_arr(1)
         material%Um = tmp_arr(2)
-        material%U  = tmp_arr(1)
     case default
         call log_error("readElementFile","Something wrong in the definition of 'U'.")
     end select

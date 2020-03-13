@@ -33,7 +33,7 @@ module mod_parameters
   !! Number of layers (Obsolete?)
 
   !========================================================================================!
-  real(double), allocatable  :: Um(:), Un(:), U(:)
+  real(double), allocatable  :: Um(:), Un(:)
   !! Effective intra-site electron electron interaction
   logical       :: lhfresponses = .false.
   !! Use HF susceptibilities to calculate currents, disturbances and accumulations (don't renormalize)

@@ -87,8 +87,6 @@ Example files can be found in the `examples` folder.
 !  11 - Real-time propagation (using eigenstates only)
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
-!   noUonall      - Set U=0 on all layers                                       !
-!   noUonNM       - Set U=0 on NM layers                                        !
 !   GSL           - Calculate ground state of Orbital Angular Momentum L        !
 !   verbose       - Write intermediate steps and progress ars                   !
 !   ry2ev         - Convert energy units to eV                                  !

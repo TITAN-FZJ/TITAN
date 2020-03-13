@@ -46,7 +46,7 @@ contains
       end do
       write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(5)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
       open (unit=55+4*s%nAtoms+i, file=varm, status='replace', form='formatted')
-      write(unit=55+4*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  (ReX(w))^(-2),     U^2,   v1  ,  v2  ,  v3,    v4')")
+      write(unit=55+4*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  (ReX(w))^(-2),     Um^2,   v1  ,  v2  ,  v3,    v4')")
 
       write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(6)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%EFieldBZ),trim(output%SOC),trim(output%suffix)
       open (unit=55+5*s%nAtoms+i, file=varm, status='replace', form='formatted')
@@ -109,7 +109,7 @@ contains
     use mod_f90_kind,         only: double
     use mod_constants,        only: cI, StoC, CtoS
     use mod_susceptibilities, only: schi, schihf, schiLS, schiSL, schiLL
-    use mod_parameters,       only: sigmai2i, U
+    use mod_parameters,       only: sigmai2i, Um
     use mod_system,           only: s => sys
     use mod_magnet,           only: mabs
     use mod_SOC,              only: SOC
@@ -155,7 +155,7 @@ contains
       alpha_v1 = - gammaM * aimag(m_chi_inv(sigmai2i(1,i),sigmai2i(1,i))) / e
       alpha_v2 = - gammaM * aimag(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i))) / e
       alpha_v3 =   gammaM * aimag(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i))) / e * real(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)))**2
-      alpha_v4 =   gammaM * aimag(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i))) / e * U(i)**2
+      alpha_v4 =   gammaM * aimag(m_chi_hf(sigmai2i(1,i),sigmai2i(1,i))) / e * Um(i)**2
 
       write(55 +            i,"(36(es16.9,2x))") e, -1.d0 * aimag(acart(2,2))/aimag(acart(2,3)), e / (mabs(i) * aimag(acart(2,3))), -mabs(i)*aimag(acart(2,2)) / e, &
                                                 ((real(acart(q,p)), aimag(acart(q,p)), q = 1, 4), p = 1, 4)
@@ -165,7 +165,7 @@ contains
                                                 ((real(acartinv(q,p)), aimag(acartinv(q,p)), q = 1, 4), p = 1, 4)
       write(55 + 3*s%nAtoms+i,"(36(es16.9,2x))") e, -1.d0 * aimag(acarthfinv(2,2))/aimag(acarthfinv(2,3)), e / (mabs(i) * aimag(acarthfinv(2,3))), -mabs(i)*aimag(acarthfinv(2,2)) / e, &
                                                 ((real(acarthfinv(q,p)), aimag(acarthfinv(q,p)), q = 1, 4), p = 1, 4)
-      write(55 + 4*s%nAtoms+i,"(8(es16.9,2x))") e, gammaM, real(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)))**2, U(i)**2, alpha_v1, alpha_v2, alpha_v3, alpha_v4
+      write(55 + 4*s%nAtoms+i,"(8(es16.9,2x))") e, gammaM, real(m_chi_hf_inv(sigmai2i(1,i),sigmai2i(1,i)))**2, Um(i)**2, alpha_v1, alpha_v2, alpha_v3, alpha_v4
 
       if(SOC) then
         do p = 1, 3

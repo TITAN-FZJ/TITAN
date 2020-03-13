@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt    # Plotting library
 import matplotlib as mpl           # Plotting library
 from matplotlib import rc          # Improve math fonts
 
+################################################################
+# Initial block to redefine defaults
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 ## for Palatino and other serif fonts use:
 # rc('font',**{'family':'serif','serif':['Palatino']})
@@ -29,6 +31,7 @@ mpl.rcParams['legend.edgecolor']    = 'inherit'
 mpl.rcParams["axes.labelweight"]    = "bold"
 mpl.rcParams['legend.framealpha']   = None
 mpl.rcParams['legend.handlelength'] = 2
+################################################################
 
 # Getting filename from 1st argument of command line
 filename = sys.argv[1]

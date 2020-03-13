@@ -320,7 +320,7 @@ contains
     use mod_f90_kind,   only: double
     use mod_constants,  only: cZero, cOne, cI, levi_civita, sigma => pauli_mat
     use mod_System,     only: s => sys
-    use mod_parameters, only: nOrb, nOrb2, U
+    use mod_parameters, only: nOrb, nOrb2, Um
     use mod_magnet,     only: mvec_cartesian
 
     complex(double), dimension(nOrb2,nOrb2,3,s%nAtoms), intent(out) :: torque
@@ -344,7 +344,7 @@ contains
           end do
         end do
       end do
-      torque(:,:,:,i) = - 0.5d0 * U(i) * torque(:,:,:,i)
+      torque(:,:,:,i) = - 0.5d0 * Um(i) * torque(:,:,:,i)
     end do
   end subroutine local_xc_torque
 
