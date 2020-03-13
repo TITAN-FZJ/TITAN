@@ -111,7 +111,7 @@ contains
     use mod_constants,  only: cZero
     use mod_parameters, only: dim, sigmaimunu2i, offset
     use mod_SOC,        only: SOC, socscale
-    use mod_parameters, only: U
+    use mod_parameters, only: Un
     use mod_magnet,     only: lvec, lfield, hhw
     use mod_System,     only: s => sys
     implicit none
@@ -135,7 +135,7 @@ contains
           end if
           ! d block
           if(mu>=5) then
-            Beff(sigmaimunu2i(sigma+1,i,mu,mu)) = Beff(sigmaimunu2i(sigma+1,i,mu,mu)) - 0.5d0*U(i+offset) * mvec(sigma,i)
+            Beff(sigmaimunu2i(sigma+1,i,mu,mu)) = Beff(sigmaimunu2i(sigma+1,i,mu,mu)) - 0.5d0*Un(i+offset) * mvec(sigma,i)
             if(SOC) then
               do nu=5,nOrb
                 Beff(sigmaimunu2i(sigma+1,i,mu,nu))  = Beff(sigmaimunu2i(sigma+1,i,mu,nu)) + 0.5d0*socscale * s%Types(s%Basis(i)%Material)%LambdaD * lvec(mu,nu,sigma)

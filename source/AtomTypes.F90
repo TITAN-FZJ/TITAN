@@ -55,7 +55,7 @@ module AtomTypes
     !! Lattice vectors
     real(double), dimension(:), allocatable :: Stage
     !! Neighbor distances
-    real(double) :: U
+    real(double) :: Un, Um, U
     !! Effective Coulomb interaction strength - Hubbard U
     real(double), dimension(9) :: lambda
     !! Superconducting coupling strength
