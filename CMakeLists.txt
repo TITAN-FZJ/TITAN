@@ -93,6 +93,9 @@ elseif(PLATFORM MATCHES rwth)
 elseif(PLATFORM MATCHES booster)
   set(TITAN_EXE titan_booster.exe)
   set(CMAKE_Fortran_COMPILER mpiifort)
+elseif(PLATFORM MATCHES juwels)
+  set(TITAN_EXE titan_juwels.exe)
+  set(CMAKE_Fortran_COMPILER mpif90)
 elseif(PLATFORM MATCHES iff)
   set(TITAN_EXE titan_iff.exe)
   set(CMAKE_Fortran_COMPILER mpiifort)
@@ -113,6 +116,14 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 execute_process(COMMAND git describe --abbrev=4 --dirty --always --tags OUTPUT_VARIABLE GIT_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 if(PLATFORM MATCHES jureca)
+  target_link_libraries(${TITAN_EXE} -mkl -lnag -qopenmp)
+  target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
+                                              -fpp
+                                              -DVERSION="${GIT_VERSION}"
+                                              -qopenmp
+                                              -mkl
+                                              -xHost)
+elseif(PLATFORM MATCHES juwels)
   target_link_libraries(${TITAN_EXE} -mkl -lnag -qopenmp)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                               -fpp
