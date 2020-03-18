@@ -353,8 +353,7 @@ contains
     if(lpulse_m) then
       pulses_m: do np = 1, npulse_m
         if ((t >= delay_m(np)).and.(t <= tau_m(np)+delay_m(np))) then
-
-          delay = 0.5d0*tau_m(np) - delay_m(np)
+          delay = 0.5d0*tau_m(np) + delay_m(np)
           arg   = hw_m(np)*(t-delay)
 
           b_field(:) = cos(arg)*polarization_vec_m(np,1,:) + sin(arg)*polarization_vec_m(np,2,:)
@@ -393,7 +392,7 @@ contains
     if(lpulse_e) then
       pulses_e: do np = 1, npulse_e
         if ((t >= delay_e(np)).and.(t <= tau_e(np)+delay_e(np))) then 
-          delay = 0.5d0*tau_e(np) - delay_e(np)
+          delay = 0.5d0*tau_e(np) + delay_e(np)
           arg   = hw_e(np)*(t-delay)
 
           A_t(:) = sin(arg)*polarization_vec_e(np,1,:) - cos(arg)*polarization_vec_e(np,2,:)
@@ -430,7 +429,7 @@ contains
     if(lpulse_e) then
       pulses_e: do np = 1, npulse_e
         if ((t >= delay_e(np)).and.(t <= tau_e(np)+delay_e(np))) then 
-          delay = 0.5d0*tau_e(np) - delay_e(np)
+          delay = 0.5d0*tau_e(np) + delay_e(np)
           arg   = hw_e(np)*(t-delay)
 
           E_t(:) = (cos(pi*(t-delay)/tau_e(np)))**2 * (cos(arg)*polarization_vec_e(np,1,:) + sin(arg)*polarization_vec_e(np,2,:)) &
