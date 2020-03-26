@@ -2,7 +2,7 @@ module adaptiveMesh
   use mod_BrillouinZone, only: FractionalBrillouinZone
   integer*8,                     dimension(:,:), allocatable :: E_k_imag_mesh
   type(FractionalBrillouinZone), dimension(:),   allocatable :: bzs
-  integer*8,                     dimension(:),   allocatable :: all_nkpt
+  integer*8,                     dimension(:),   allocatable :: all_nkpt,all_nkpt_rep
   integer*8 :: total_points, local_points
   integer*4 :: activeComm, activeRank, activeSize
   integer   :: minimumBZmesh
@@ -29,7 +29,7 @@ contains
     integer      :: nx, ny, nz
     integer*8    :: nall
 
-    if(.not.allocated(all_nkpt)) allocate(all_nkpt(pn1))
+    if(.not.allocated(all_nkpt)) allocate(all_nkpt(pn1),all_nkpt_rep(pn1))
     total_points = 0
     do i = 1, pn1
       nall = get_nkpt(y(i), y(1), total_nkpt, sys%isysdim)
@@ -39,19 +39,19 @@ contains
         ny = ceiling( (dble(nall))**(1.d0/3.d0), kind(ny) )
         nz = ceiling( (dble(nall))**(1.d0/3.d0), kind(nz) )
         nall = int( nx*ny*nz, kind(nall) )
-        all_nkpt(i) = count_3D_BZ(nall,sys%a1,sys%a2,sys%a3)
+        call count_3D_BZ(nall,sys%a1,sys%a2,sys%a3,all_nkpt(i),all_nkpt_rep(i))
       case(2)
         nx = ceiling( (dble(nall))**(1.d0/2.d0), kind(nx) )
         ny = ceiling( (dble(nall))**(1.d0/2.d0), kind(ny) )
         nz = 0
         nall = int( nx*ny, kind(nall) )
-        all_nkpt(i) = count_2D_BZ(nall,sys%a1,sys%a2)
+        call count_2D_BZ(nall,sys%a1,sys%a2,all_nkpt(i),all_nkpt_rep(i))
       case default
         nx = ceiling( (dble(nall)), kind(nx) )
         ny = 0
         nz = 0
         nall = int( nx, kind(nall) )
-        all_nkpt(i) = count_1D_BZ(nall,sys%a1)
+        call count_1D_BZ(nall,sys%a1,all_nkpt(i),all_nkpt_rep(i))
       end select
       total_points = total_points + all_nkpt(i)
     end do
@@ -115,17 +115,17 @@ contains
         bzs(i) % nkpt_x = ceiling( (dble(nall))**(1.d0/3.d0), kind(bzs(i) % nkpt_x) )
         bzs(i) % nkpt_y = ceiling( (dble(nall))**(1.d0/3.d0), kind(bzs(i) % nkpt_y) )
         bzs(i) % nkpt_z = ceiling( (dble(nall))**(1.d0/3.d0), kind(bzs(i) % nkpt_z) )
-        call bzs(i) % generate_3d_fraction(sys,p,q)
+        call bzs(i) % gen3DFraction(sys,p,q)
       case(2)
         bzs(i) % nkpt_x = ceiling( (dble(nall))**(1.d0/2.d0), kind(bzs(i) % nkpt_x) )
         bzs(i) % nkpt_y = ceiling( (dble(nall))**(1.d0/2.d0), kind(bzs(i) % nkpt_y) )
         bzs(i) % nkpt_z = 1
-        call bzs(i) % generate_2d_fraction(sys,p,q)
+        call bzs(i) % gen2DFraction(sys,p,q)
       case default
         bzs(i) % nkpt_x = ceiling( (dble(nall)), kind(bzs(i) % nkpt_x) )
         bzs(i) % nkpt_y = 1
         bzs(i) % nkpt_z = 1
-        call bzs(i) % generate_1d_fraction(sys,p,q)
+        call bzs(i) % gen1DFraction(sys,p,q)
       end select
 
       do j = 1, bzs(i)%workload
