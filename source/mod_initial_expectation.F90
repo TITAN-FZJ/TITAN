@@ -25,14 +25,10 @@ contains
     type(System), intent(inout) :: sys
     type(System), allocatable   :: sys0(:)
 
-    !write(*,*) "inside initial terms ", singlet_coupling
-
     if(myrank == 0) &
       call write_time(output%unit,'[calc_initial_Uterms] Obtaining initial densities: ')
 
     allocate(sys0(sys%nTypes))
-
-    !write(*,*) "inside initial terms ", singlet_coupling
 
     types_of_atoms: do i = 1, sys%nTypes
       !------------------ Define the lattice structure -------------------
@@ -54,26 +50,24 @@ contains
       write(output%info,"('_nkpt=',i0,'_eta=',a)") kptotal_in, trim(rtos(eta,"(es8.1)"))
       if(leigenstates) output%info = trim(output%info) // "_ev"
 
-!write(*,*) "inside initial terms ", singlet_coupling
       !-------------------- Tight Binding parameters ---------------------
       call initTightBinding(sys0(i))
 
-!write(*,*) "inside initial terms ", singlet_coupling
       !---------- Generating k points for real axis integration ----------
       select case(sys0(i)%Types(1)%isysdim)
       case(3)
         sys0(i)%isysdim = 3
-        realBZ % nkpt_x = kp_in(1)
-        realBZ % nkpt_y = kp_in(1)
-        realBZ % nkpt_z = kp_in(1)
+        realBZ % nkpt_x = ceiling((dble(kptotal_in))**(1.d0/3.d0),kind(kp_in(1)) )
+        realBZ % nkpt_y = realBZ % nkpt_x
+        realBZ % nkpt_z = realBZ % nkpt_x
       case(2)
         sys0(i)%isysdim = 2
-        realBZ % nkpt_x = kp_in(1)
-        realBZ % nkpt_y = kp_in(1)
+        realBZ % nkpt_x = ceiling((dble(kptotal_in))**(1.d0/2.d0),kind(kp_in(1)) )
+        realBZ % nkpt_y = realBZ % nkpt_x
         realBZ % nkpt_z = 1
       case default
         sys0(i)%isysdim = 1
-        realBZ % nkpt_x = kp_in(1)
+        realBZ % nkpt_x = ceiling((dble(kptotal_in)), kind(kp_in(1)) )
         realBZ % nkpt_y = 1
         realBZ % nkpt_z = 1
       end select
@@ -87,7 +81,6 @@ contains
         !----------- Allocating variables that depend on nAtoms ------------
         call allocate_magnet_variables(sys0(i)%nAtoms, nOrb)
         call allocLS(sys0(i)%nAtoms,nOrb)
-        !write(*,*) "inside calc initial terms ", singlet_coupling
         call allocate_super_variables(sys0(i)%nAtoms, nOrb)
         call allocate_Atom_variables(sys0(i)%nAtoms,nOrb)
 
@@ -200,8 +193,6 @@ contains
     allocate( sys%Types(1)%rho0(nOrb,sys%nAtoms),sys%Types(1)%rhod0(sys%nAtoms) )
     sys%Types(1)%rho0(:,:) = rho0(:,:)
     sys%Types(1)%rhod0(:)  = rhod0(:)
-
-    ! if(rField == 0) write(*,*) rhod0,sum(abs(rho0))
 
   end subroutine calc_expectation_values
 

@@ -268,7 +268,6 @@ contains
     case default
       call log_error("readElementFile","Something wrong in the definition of 'lambda'.")
     end select
-    ! write(*,*) trim(Name),material%lambda(:)
 
     ! Read Hopping Parameter
     do i = 1, nTypes
