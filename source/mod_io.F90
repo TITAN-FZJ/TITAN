@@ -71,7 +71,7 @@ contains
     use mod_magnet,            only: lfield, tesla, hwa_i, hwa_f, hwa_npts, hwa_npt1, hwt_i, hwt_f, &
                                     hwt_npts, hwt_npt1, hwp_i, hwp_f, hwp_npts, hwp_npt1, hwx, hwy, &
                                     hwz, hwscale, hwtrotate, hwprotate, skip_steps_hw
-    use ElectricField,         only: ElectricFieldMode, ElectricFieldVector, EFp, EFt, EshiftBZ
+    use ElectricField,         only: ElectricFieldMode, ElectricFieldVector, EFp, EFt
     use EnergyIntegration,     only: parts, parts3, pn1, pn2, pnt, n1gl, n3gl
     use mod_tools,             only: itos, rtos, vec_norm
     use adaptiveMesh,          only: minimumBZmesh
@@ -305,8 +305,6 @@ contains
       EFp = vector(2)
       deallocate(vector)
     end select
-    if(.not. get_parameter("EshiftBZ", EshiftBZ, 0.d0)) &
-      call log_warning("get_parameters", "'EshiftBZ' not found. Using default value: 0.d0")
     !------------------------------------- Static Magnetic Field -----------------------------------
     if(.not. get_parameter("FIELD", lfield, .false.)) &
       call log_warning("get_parameters","'lfield' missing. Using default value: .false.")
@@ -919,7 +917,7 @@ contains
     use mod_BrillouinZone,     only: BZ => realBZ
     use mod_SOC,               only: SOC, socscale
     use EnergyIntegration,     only: parts, parts3, n1gl, n3gl
-    use ElectricField,         only: ElectricFieldMode, ElectricFieldVector, EFt, EFp, EshiftBZ
+    use ElectricField,         only: ElectricFieldMode, ElectricFieldVector, EFt, EFp
     use AdaptiveMesh,          only: minimumBZmesh
     use mod_superconductivity, only: lsupercond
     use mod_imRK4_parameters,  only: integration_time, sc_tol, hE_0, hw1_m, hw_e, hw_m, tau_e, &
@@ -963,8 +961,6 @@ contains
     end select
     write(output%unit_loop,"(1x,'Direction: ')", advance='no')
     write(output%unit_loop,"('E = (',f6.3,',',f6.3,',',f6.3,')')") (ElectricFieldVector(i), i=1,3)
-    if(EshiftBZ > 1.d-8) write(output%unit_loop,"(2x,'Shift of BZ = ',es9.2)") EshiftBZ
-
     if(renorm) then
        write(output%unit_loop,"(1x,'Current renormalization: ACTIVATED')")
        write(output%unit_loop,"(5x,'renormnb = ',i0)") renormnb

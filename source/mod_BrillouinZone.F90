@@ -139,10 +139,10 @@ contains
     type(System), intent(in)       :: sys
     integer*8,    intent(in)       :: first, last
     real(double), dimension(3,8)   :: bz_vec
-    real(double), dimension(3)     :: diff
+    real(double), dimension(3,8)   :: diff
     real(double), dimension(3)     :: kp, b1, b2, b3, largest
     real(double) :: vol
-    real(double) :: smallest_dist, distance, ini_smallest_dist
+    real(double) :: smallest_dist, distance(8), ini_smallest_dist
     integer*8    :: nkpt, l
     integer      :: nx, ny, nz
     integer*8    :: count, added, weight, range
@@ -182,31 +182,29 @@ contains
       kp = dble(nx)*b1 / dble(self%nkpt_x) + dble(ny)*b2 / dble(self%nkpt_y) + dble(nz)*b3 / dble(self%nkpt_z)
 
       smallest_dist = ini_smallest_dist
-      !Checks to which of the 4 BZ's the kpoint belongs by checking
-      ! to which BZ it's closer.
+      ! Checks to which of the 4 BZ's the kpoint belongs by checking
+      ! to which BZ it's closer and stores the smallest_dist
       do j = 1, 8
-        diff = kp - bz_vec(:,j)
-        distance = vec_norm(diff, 3)
-        if(distance < smallest_dist) smallest_dist = distance
+        diff(:,j) = kp - bz_vec(:,j)
+        distance(j) = vec_norm(diff(:,j), 3)
+        if(distance(j) < smallest_dist) smallest_dist = distance(j)
       end do
 
-      !Checks if the kpoint is in the border between two or more
+      ! Checks if the kpoint is in the border between two or more
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 8
-        diff = kp - bz_vec(:,j)
-        distance = vec_norm(diff, 3)
-        if( abs(distance-smallest_dist) < 1.d-12 ) then
+        if( abs(distance(j)-smallest_dist) < 1.d-12 ) then
           count = count + 1
           weight = weight + 1
           if(count >= first .and. count <= last ) then
             added = added + 1
             range = range + 1
-            self%kp(:,added) = diff
+            self%kp(:,added) = diff(:,j)
           end if
         end if
       end do
-      self%w(added-range+1:added) = 1.0 / dble(weight)
+      self%w(added-range+1:added) = 1.d0 / dble(weight)
     end do
     self%w = self%w / dble(nkpt)
     if(added > self%workload) &
@@ -224,8 +222,8 @@ contains
     real(double), dimension(3), intent(in) :: a1, a2, a3
     real(double), dimension(3)   :: kp, b1, b2, b3, largest
     real(double), dimension(3,8) :: bz_vec
-    real(double), dimension(3)   :: diff
-    real(double) :: smallest_dist, distance, ini_smallest_dist, vol
+    real(double), dimension(3,8) :: diff
+    real(double) :: smallest_dist, distance(8), ini_smallest_dist, vol
     integer      :: j, nkpt_x, nkpt_y, nkpt_z, nx, ny, nz, nkpt_perdim
     integer*8    :: l, nkpt, numextrakbz
 
@@ -256,7 +254,7 @@ contains
     ini_smallest_dist = 10.d0 * vec_norm(largest, 3)
     numextrakbz = 0
     !Run over all the kpoints generated initially.
-    !$omp parallel do default(none) reduction(+:numextrakbz) if(nkpt > 1000000) &
+    !$omp parallel do default(none) reduction(+:numextrakbz) &
     !$omp& private(l, j, nx, ny, nz, kp, smallest_dist, diff, distance) &
     !$omp& shared(nkpt, ini_smallest_dist, bz_vec, b1, b2, b3, nkpt_x, nkpt_y, nkpt_z)
     do l=1, nkpt
@@ -267,19 +265,18 @@ contains
 
       smallest_dist=ini_smallest_dist
       ! Checks to which of the 4 BZ's the kpoint belongs by checking
-      ! to which BZ it's closer.
-      do j=1, 8
-        diff = kp - bz_vec(:,j)
-        distance = vec_norm(diff, 3)
-        if(distance < smallest_dist) smallest_dist = distance
+      ! to which BZ it's closer and stores the smallest_dist
+      do j = 1, 8
+        diff(:,j) = kp - bz_vec(:,j)
+        distance(j) = vec_norm(diff(:,j), 3)
+        if(distance(j) < smallest_dist) smallest_dist = distance(j)
       end do
+
       ! Checks if the kpoint is in the border between two or more
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 8
-        diff=kp - bz_vec(:,j)
-        distance = vec_norm(diff, 3)
-        if( abs(distance-smallest_dist) < 1.d-12 ) numextrakbz=numextrakbz+1
+        if( abs(distance(j)-smallest_dist) < 1.d-12 ) numextrakbz=numextrakbz+1
       end do
     end do
     !$omp end parallel do
@@ -297,10 +294,10 @@ contains
     type(System), intent(in)       :: sys
     integer*8,    intent(in)       :: first, last
     real(double), dimension(3,4)   :: bz_vec
-    real(double), dimension(3)     :: diff, zdir
-    real(double), dimension(3)     :: kp, b1, b2, largest
+    real(double), dimension(3,4)   :: diff
+    real(double), dimension(3)     :: kp, zdir, b1, b2, largest
     real(double) :: vol
-    real(double) :: smallest_dist, distance, ini_smallest_dist
+    real(double) :: smallest_dist, distance(4), ini_smallest_dist
     integer*8    :: nkpt, l
     integer      :: nx, ny
     integer*8    :: count, added, weight, range
@@ -336,26 +333,24 @@ contains
 
       smallest_dist = ini_smallest_dist
       ! Checks to which of the 4 BZ's the kpoint belongs by checking
-      ! to which BZ it's closer.
+      ! to which BZ it's closer and stores the smallest_dist
       do j = 1, 4
-        diff = kp - bz_vec(:,j)
-        distance = vec_norm(diff, 3)
-        if(distance < smallest_dist) smallest_dist = distance
+        diff(:,j) = kp - bz_vec(:,j)
+        distance(j) = vec_norm(diff(:,j), 3)
+        if(distance(j) < smallest_dist) smallest_dist = distance(j)
       end do
 
       ! Checks if the kpoint is in the border between two or more
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 4
-        diff = kp - bz_vec(:,j)
-        distance = vec_norm(diff, 3)
-        if( abs(distance-smallest_dist) < 1.d-12 ) then
+        if( abs(distance(j)-smallest_dist) < 1.d-12 ) then
           count = count + 1
           weight = weight + 1
           if(count >= first .and. count <= last ) then
             added = added + 1
             range = range + 1
-            self%kp(:,added) = diff
+            self%kp(:,added) = diff(:,j)
           end if
         end if
       end do
@@ -378,8 +373,8 @@ contains
     real(double), dimension(3)   :: kp, b1, b2, largest
     real(double), dimension(3)   :: zdir
     real(double), dimension(3,4) :: bz_vec
-    real(double), dimension(3)   :: diff
-    real(double) :: smallest_dist, distance, ini_smallest_dist, vol
+    real(double), dimension(3,4) :: diff
+    real(double) :: smallest_dist, distance(4), ini_smallest_dist, vol
     integer      :: j, nkpt_x, nkpt_y, nx, ny, nkpt_perdim
     integer*8    :: l, nkpt, numextrakbz
 
@@ -405,7 +400,7 @@ contains
     ini_smallest_dist = 10.d0 * vec_norm(largest, 3)
     numextrakbz = 0
     !Run over all the kpoints generated initially.
-    !$omp parallel do default(none) reduction(+:numextrakbz) if(nkpt > 1000000) &
+    !$omp parallel do default(none) reduction(+:numextrakbz) &
     !$omp& private(l,j,nx,ny,kp,smallest_dist, diff, distance) &
     !$omp& shared(nkpt, ini_smallest_dist, bz_vec, b1, b2, nkpt_x, nkpt_y)
     do l = 1, nkpt
@@ -415,19 +410,18 @@ contains
 
       smallest_dist = ini_smallest_dist
       ! Checks to which of the 4 BZ's the kpoint belongs by checking
-      ! to which BZ it's closer.
+      ! to which BZ it's closer and stores the smallest_dist
       do j = 1, 4
-        diff = kp - bz_vec(:,j)
-        distance = vec_norm(diff, 3)
-        if(distance < smallest_dist) smallest_dist = distance
+        diff(:,j) = kp - bz_vec(:,j)
+        distance(j) = vec_norm(diff(:,j), 3)
+        if(distance(j) < smallest_dist) smallest_dist = distance(j)
       end do
+
       !Checks if the kpoint is in the border between two or more
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j = 1, 4
-        diff = kp - bz_vec(:, j)
-        distance = vec_norm(diff, 3)
-        if( abs(distance-smallest_dist) < 1.d-12 ) numextrakbz = numextrakbz + 1
+        if( abs(distance(j)-smallest_dist) < 1.d-12 ) numextrakbz = numextrakbz + 1
       end do
     end do
     !$omp end parallel do
@@ -445,10 +439,10 @@ contains
     type(System), intent(in)       :: sys
     integer*8,    intent(in)       :: first, last
     real(double), dimension(3,2)   :: bz_vec
-    real(double), dimension(3)     :: diff, zdir, ydir
-    real(double), dimension(3)     :: kp, b1
+    real(double), dimension(3,2)   :: diff
+    real(double), dimension(3)     :: kp, b1, zdir, ydir
     real(double) :: vol
-    real(double) :: smallest_dist, distance, ini_smallest_dist
+    real(double) :: smallest_dist, distance(2), ini_smallest_dist
     integer*8    :: nkpt, l
     integer      :: nx
     integer*8    :: count, added, weight, range
@@ -480,26 +474,24 @@ contains
 
       smallest_dist = ini_smallest_dist
       ! Checks to which of the 2 BZ's the kpoint belongs by checking
-      ! to which BZ it's closer.
+      ! to which BZ it's closer and stores the smallest_dist
       do j = 1, 2
-        diff = kp - bz_vec(:,j)
-        distance = vec_norm(diff, 3)
-        if(distance < smallest_dist) smallest_dist = distance
+        diff(:,j) = kp - bz_vec(:,j)
+        distance(j) = vec_norm(diff(:,j), 3)
+        if(distance(j) < smallest_dist) smallest_dist = distance(j)
       end do
 
       ! Checks if the kpoint is in the border between two or more
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 2
-        diff = kp - bz_vec(:,j)
-        distance = vec_norm(diff, 3)
-        if( abs(distance-smallest_dist) < 1.d-12 ) then
+        if( abs(distance(j)-smallest_dist) < 1.d-12 ) then
           count = count + 1
           weight = weight + 1
           if(count >= first .and. count <= last ) then
             added = added + 1
             range = range + 1
-            self%kp(:,added) = diff
+            self%kp(:,added) = diff(:,j)
           end if
         end if
       end do
@@ -522,8 +514,8 @@ contains
     real(double), dimension(3)   :: kp, b1
     real(double), dimension(3)   :: zdir, ydir
     real(double), dimension(3,2) :: bz_vec
-    real(double), dimension(3)   :: diff
-    real(double) :: smallest_dist, distance, ini_smallest_dist, vol
+    real(double), dimension(3,2) :: diff
+    real(double) :: smallest_dist, distance(2), ini_smallest_dist, vol
     integer      :: j, nkpt_x, nx, nkpt_perdim
     integer*8    :: l, nkpt, numextrakbz
 
@@ -545,7 +537,7 @@ contains
     ini_smallest_dist = 10.d0 * vec_norm(b1, 3)
     numextrakbz = 0
     !Run over all the kpoints generated initially.
-    !$omp parallel do default(none) reduction(+:numextrakbz) if(nkpt > 1000000) &
+    !$omp parallel do default(none) reduction(+:numextrakbz) &
     !$omp& private(l,j,nx,kp,smallest_dist, diff, distance) &
     !$omp& shared(nkpt, ini_smallest_dist, bz_vec, b1, nkpt_x)
     do l = 1, nkpt
@@ -554,19 +546,17 @@ contains
 
       smallest_dist = ini_smallest_dist
       ! Checks to which of the 4 BZ's the kpoint belongs by checking
-      ! to which BZ it's closer.
+      ! to which BZ it's closer and stores the smallest_dist
       do j = 1, 2
-        diff = kp - bz_vec(:,j)
-        distance = vec_norm(diff, 3)
-        if(distance < smallest_dist) smallest_dist = distance
+        diff(:,j) = kp - bz_vec(:,j)
+        distance(j) = vec_norm(diff(:,j), 3)
+        if(distance(j) < smallest_dist) smallest_dist = distance(j)
       end do
       !Checks if the kpoint is in the border between two or more
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j = 1, 2
-        diff = kp - bz_vec(:, j)
-        distance = vec_norm(diff, 3)
-        if( abs(distance-smallest_dist) < 1.d-12 ) numextrakbz = numextrakbz + 1
+        if( abs(distance(j)-smallest_dist) < 1.d-12 ) numextrakbz = numextrakbz + 1
       end do
     end do
     !$omp end parallel do
@@ -654,7 +644,7 @@ contains
     !10*|b1+b2|, bigger than the distance of any genarated kpoint
     ini_smallest_dist = 10.d0 * sqrt(dot_product(b1 + b2 + b3, b1 + b2 + b3))
     !Run over all the kpoints generated initially.
-    !$omp parallel default(none) if(nkpt > 1000000) &
+    !$omp parallel default(none) &
     !$omp& private(l, j, nx, ny, nz, kp, smallest_dist, diff, distance, diff_k_loc, start, end, mythread) &
     !$omp& shared(count, ndiffk_max, nkpt, ini_smallest_dist, bz_vec, b1, b2, b3, nkpt_x, nkpt_y, nkpt_z, component, ndiffk_loc, diff_k_temp, maxdiffk)
 

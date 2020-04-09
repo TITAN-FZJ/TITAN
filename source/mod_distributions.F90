@@ -4,7 +4,7 @@ module mod_distributions
 contains
 
   !! Fermi-Dirac distribution
-  function fd_dist(ef,beta,ek)
+  pure function fd_dist(ef,beta,ek)
     use mod_f90_kind
     implicit none
     real(double), intent(in)  :: ef
