@@ -146,40 +146,36 @@ contains
     complex(double), dimension(nOrb,s%nAtoms), intent(out) :: deltas
 
     integer                                      :: iz, info, ncount, i
-    integer                                      :: lwork,dimH, dimE
-    real(double)                                 :: weight, kp(3)
+    integer                                      :: lwork,dimH
     real(double),    dimension(nOrb,s%nAtoms)    :: expec_0, expec_z
     complex(double), dimension(nOrb,s%nAtoms)    :: expec_p
     complex(double), dimension(nOrb,s%nAtoms)    :: expec_singlet
     real(double),    dimension(:),  allocatable  :: rwork(:), eval(:)
-    complex(double),                allocatable  :: work(:), hk(:,:), dummy(:,:)
+    complex(double),                allocatable  :: work(:), hk(:,:)
 
     dimH  = (s%nAtoms)*nOrb2*superCond
-    dimE  = (s%nAtoms)*nOrb2
     lwork = 21*dimH
     ncount = nOrb*s%nAtoms
     deltas = cZero
     expec_singlet = cZero
 
-    allocate( hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork),dummy(dimE,dimE) )
+    allocate( hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork) )
 
     !$omp parallel default(none) &
     !$omp& firstprivate(lwork) &
-    !$omp& private(iz,kp,weight,hk,eval,work,rwork,info,expec_0, expec_p, expec_z,expec_singlet,i,dummy) &
-    !$omp& shared(s,dimE,dimH,output,realBZ,rho,mp,mz,lsuperCond,deltas)
+    !$omp& private(iz,hk,eval,work,rwork,info,expec_0, expec_p, expec_z,expec_singlet,i) &
+    !$omp& shared(s,dimH,output,realBZ,rho,mp,mz,lsuperCond,deltas)
     rho = 0.d0
     mz  = 0.d0
     mp  = cZero
     deltas = cZero
     !$omp do reduction(+:rho,mp,mz,deltas)
     do iz = 1,realBZ%workload
-      kp = realBZ%kp(1:3,iz)
-      weight = realBZ%w(iz)
       ! Calculating the hamiltonian for a given k-point
       if(lsuperCond) then
-          call hamiltk_sc(s,kp,hk)
+          call hamiltk_sc(s,realBZ%kp(1:3,iz),hk)
       else
-          call hamiltk(s,kp,hk)
+          call hamiltk(s,realBZ%kp(1:3,iz),hk)
       end if
 
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
@@ -189,14 +185,14 @@ contains
         call abortProgram("[expectation_values_eigenstates] Problem with diagonalization. info = " // itos(info))
 
       ! Calculating expectation values for a given k-point
-      call expec_val(s, dimE, dimH, hk, eval, expec_0, expec_p, expec_z, expec_singlet)
+      call expec_val(s, dimH, hk, eval, expec_0, expec_p, expec_z, expec_singlet)
 
-      rho = rho + expec_0*weight
-      mp  = mp  + expec_p*weight
-      mz  = mz  + expec_z*weight
+      rho = rho + expec_0*realBZ%w(iz)
+      mp  = mp  + expec_p*realBZ%w(iz)
+      mz  = mz  + expec_z*realBZ%w(iz)
 
       ! Superconducting order parameter
-      deltas = deltas + expec_singlet*weight
+      deltas = deltas + expec_singlet*realBZ%w(iz)
     end do
     !$omp end do
     !$omp end parallel
@@ -238,7 +234,7 @@ contains
 
 
   ! subroutine expectation value of the operators 1 (occupation), Sp and Sz:
-  subroutine expec_val(s,dimE, dim, hk, eval, expec_0, expec_p, expec_z, expec_singlet)
+  subroutine expec_val(s, dim, hk, eval, expec_0, expec_p, expec_z, expec_singlet)
     use mod_f90_kind,          only: double
     use mod_constants,         only: cOne,cZero,pi,pauli_mat
     use mod_parameters,        only: nOrb, eta, isigmamu2n
@@ -247,7 +243,6 @@ contains
     use mod_superconductivity, only: lsuperCond, print_hamilt
     implicit none
     integer,                                   intent(in)  :: dim
-    integer,                                   intent(in)  :: dimE
     type(System),                              intent(in)  :: s
     real(double),    dimension(dim),           intent(in)  :: eval
     complex(double), dimension(dim,dim),       intent(in)  :: hk
@@ -259,7 +254,6 @@ contains
     integer         :: i, n, sigma, sigmap, mu
     real(double)    :: f_n(dim),f_n_negative(dim),tanh_n(dim)
     complex(double) :: evec_isigmamu, evec_isigmamu_cong, lam !dim = 2*nOrb*nAtoms
-    integer         :: offset
 
     beta = 1.d0/(pi*eta)
     expec_0 = 0.d0
@@ -267,7 +261,6 @@ contains
     expec_p = cZero
     expec_singlet = cZero
 
-    offset = merge(dimE,0,lsuperCond)
     !If lsupercond is true then fermi_surface is 0.0 otherwise is s%Ef
     fermi_surface = merge(0.0d0,s%Ef,lsuperCond)
 
@@ -347,12 +340,13 @@ contains
     integer         :: i, sigma, sigmap, mu
     real(double)    :: f_n, f_n_negative, tanh_n
     real(double)    :: fermi_surface,beta
-    complex(double) :: lam
+    complex(double) :: lam, evec_isigmamu, evec_isigmamu_cong
 
     beta = 1.d0/(pi*eta)
     expec_0 = 0.d0
     expec_z = 0.d0
     expec_p = cZero
+    expec_singlet = cZero
 
     !If lsupercond is true then fermi_surface is 0.0 otherwise is s%Ef
     fermi_surface = merge(0.0,s%Ef,lsuperCond)
@@ -362,15 +356,19 @@ contains
     do i = 1, s%nAtoms
       do mu = 1, nOrb
         do sigma = 1, 2
+          evec_isigmamu = evec(isigmamu2n(i,sigma,mu))
+          evec_isigmamu_cong = conjg( evec_isigmamu )
+
           ! Charge
-          if(.not.lsupercond) expec_0(mu,i) = expec_0(mu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,mu))
+          if(.not.lsupercond) expec_0(mu,i) = expec_0(mu,i) + f_n*evec_isigmamu_cong*evec_isigmamu
 
           do sigmap = 1, 2
+            evec_isigmamu = evec(isigmamu2n(i,sigmap,mu))
             ! M_p
-            expec_p(mu,i) = expec_p(mu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*pauli_mat(sigma,sigmap,4)*evec(isigmamu2n(i,sigmap,mu))
+            expec_p(mu,i) = expec_p(mu,i) + f_n*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
 
             ! M_z
-            expec_z(mu,i) = expec_z(mu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*pauli_mat(sigma,sigmap,3)*evec(isigmamu2n(i,sigmap,mu))
+            expec_z(mu,i) = expec_z(mu,i) + f_n*evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu
           end do
         end do
       end do
@@ -572,7 +570,7 @@ contains
     complex(double), dimension(dim),      intent(in)  :: evec
     integer                                           :: i, mu, nu, sigma
     real(double)                                      :: f_n
-    complex(double)                                   :: prod
+    complex(double)                                   :: prod, evec_isigmamu, evec_isigmamu_cong
 
     lxm  = 0.d0
     lym  = 0.d0
@@ -585,7 +583,9 @@ contains
       do sigma = 1, 2
         do nu = 1, nOrb
           do mu = 1, nOrb
-            prod = f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,nu))
+            evec_isigmamu = evec(isigmamu2n(i,sigma,mu))
+            evec_isigmamu_cong = conjg( evec_isigmamu )
+            prod = f_n*evec_isigmamu_cong*evec_isigmamu
             lxm (i) = lxm (i) + prod*lx (mu,nu) !> angular momentum at atomic site (i)
             lym (i) = lym (i) + prod*ly (mu,nu)
             lzm (i) = lzm (i) + prod*lz (mu,nu)
@@ -648,7 +648,7 @@ contains
     implicit none
     integer                                        :: iz, info , n, i, mu, nu, sigma
     integer                                        :: lwork,dimH
-    real(double)                                   :: weight, kp(3), f_n, fermi_surface
+    real(double)                                   :: f_n, fermi_surface
     complex(double), dimension(:,:,:), allocatable :: prod
     real(double),    dimension(:),     allocatable :: rwork(:), eval(:)
     complex(double),                   allocatable :: work(:), hk(:,:), evec(:)
@@ -662,16 +662,14 @@ contains
 
     !$omp parallel default(none) &
     !$omp& firstprivate(lwork) &
-    !$omp& private(iz,n,i,sigma,mu,nu,kp,weight,hk,eval,f_n,evec,work,rwork,info) &
+    !$omp& private(iz,n,i,sigma,mu,nu,hk,eval,f_n,evec,work,rwork,info) &
     !$omp& shared(s,nOrb,dimH,output,realBZ,eta,isigmamu2n,prod,fermi_surface)
 
     prod = cZero
     !$omp do reduction(+:prod) schedule(static)
     kloop: do iz = 1,realBZ%workload
-      kp = realBZ%kp(1:3,iz)
-      weight = realBZ%w(iz)
       ! Calculating the hamiltonian for a given k-point
-      call hamiltk(s,kp,hk)
+      call hamiltk(s,realBZ%kp(1:3,iz),hk)
 
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
       call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
@@ -689,7 +687,7 @@ contains
           do nu = 1, nOrb
             do mu = 1, nOrb
               do sigma = 1, 2
-                prod(mu,nu,i) = prod(mu,nu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,nu))*weight
+                prod(mu,nu,i) = prod(mu,nu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,nu))*realBZ%w(iz)
               end do
             end do
           end do
