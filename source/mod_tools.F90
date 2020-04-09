@@ -436,6 +436,7 @@ contains
     integer                                       :: i
 
     sum= 0.d0
+    !$omp simd reduction(+:sum)
     do i = 1, dim_v
       sum = sum + v(i)*conjg(v(i))
     end do

@@ -6,6 +6,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 project(TITAN)
 
 option(DEBUG "Enable debugging" OFF)
+option(PREP "Enable Instrumentation" OFF)
 option(BIGINT "Use 8byte integer" OFF)
 
 enable_language(Fortran)
@@ -82,30 +83,36 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
 
 # Executable names
 if(PLATFORM MATCHES jureca)
-  set(TITAN_EXE titan_jureca.exe)
-  set(CMAKE_Fortran_COMPILER mpiifort)
+  set(CMAKE_Fortran_COMPILER mpif90)
 elseif(PLATFORM MATCHES osx)
-  set(TITAN_EXE titan_osx.exe)
   set(CMAKE_Fortran_COMPILER mpif90)
 elseif(PLATFORM MATCHES rwth)
-  set(TITAN_EXE titan_rwth.exe)
   set(CMAKE_Fortran_COMPILER mpiifort)
 elseif(PLATFORM MATCHES booster)
-  set(TITAN_EXE titan_booster.exe)
-  set(CMAKE_Fortran_COMPILER mpiifort)
+  set(CMAKE_Fortran_COMPILER mpif90)
 elseif(PLATFORM MATCHES juwels)
-  set(TITAN_EXE titan_juwels.exe)
   set(CMAKE_Fortran_COMPILER mpif90)
 elseif(PLATFORM MATCHES iff)
-  set(TITAN_EXE titan_iff.exe)
   set(CMAKE_Fortran_COMPILER mpiifort)
 elseif(PLATFORM MATCHES hh)
-  set(TITAN_EXE titan_hh.exe)
   set(CMAKE_Fortran_COMPILER ftn)
 else()
-  set(TITAN_EXE titan.exe)
-  set(CMAKE_Fortran_COMPILER mpiifort)
+  message( FATAL_ERROR "PLATFORM is not set. Use -DPLATFORM=<machine>" )
 endif()
+
+if(NOT PREP)
+    set(PREP OFF)
+endif()
+
+if(PREP)
+  set(CMAKE_Fortran_COMPILER scorep-mpif90)
+  set(INSTRUMENT _inst)
+  execute_process(COMMAND echo "Instrumentation on")
+else()
+  set(INSTRUMENT)
+endif()
+
+set(TITAN_EXE titan_${PLATFORM}${INSTRUMENT}.exe)
 
 add_executable(${TITAN_EXE} ${SOURCE_TITAN})
 
@@ -124,9 +131,10 @@ if(PLATFORM MATCHES jureca)
                                               -mkl
                                               -xHost)
 elseif(PLATFORM MATCHES juwels)
-  target_link_libraries(${TITAN_EXE} -mkl -lnag -qopenmp)
+  target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
   target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                               -fpp
+                                              -D_OSX
                                               -DVERSION="${GIT_VERSION}"
                                               -qopenmp
                                               -mkl
@@ -220,3 +228,6 @@ else()
   target_compile_options(${TITAN_EXE} PRIVATE -O3)
 endif(DEBUG)
 #target_link_libraries(${EXEC_NAME} ${NAG}/lib/libnag_nag.a -qopenmp)
+
+unset(DEBUG CACHE)
+unset(PREP CACHE)

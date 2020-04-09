@@ -19,10 +19,11 @@ module mod_BrillouinZone
    implicit none
 
    type :: BrillouinZone
-      integer*8 :: nkpt   = 0
-      integer*4 :: nkpt_x = 0
-      integer*4 :: nkpt_y = 0
-      integer*4 :: nkpt_z = 0
+      integer*8 :: nkpt_rep = 0 ! K-points with repetitions on the edges
+      integer*8 :: nkpt     = 0 ! K-points without repetitions on the edges (weights take care of that)
+      integer*4 :: nkpt_x   = 0
+      integer*4 :: nkpt_y   = 0
+      integer*4 :: nkpt_z   = 0
 
       real(double), dimension(:,:), allocatable :: kp
       real(double), dimension(:),   allocatable :: w
@@ -31,7 +32,7 @@ module mod_BrillouinZone
    contains
       procedure :: free => deallocate_BrillouinZone
       procedure :: isAlloc => isAlloc_BrillouinZone
-      procedure :: countBZ => count_BrillouinZone
+      procedure :: countBZ
       procedure :: print => output_kpoints
    end type BrillouinZone
 
@@ -41,17 +42,17 @@ module mod_BrillouinZone
      integer*8 :: last = 0
      integer*4 :: size, rank, comm
    contains
-     procedure :: setup_fraction => genFraction
-     procedure :: generate_1d_fraction => gen1DFraction
-     procedure :: generate_2d_fraction => gen2DFraction
-     procedure :: generate_3d_fraction => gen3DFraction
+     procedure :: setup_fraction
+     procedure :: gen1DFraction
+     procedure :: gen2DFraction
+     procedure :: gen3DFraction
    end type FractionalBrillouinZone
 
    type(FractionalBrillouinZone) :: realBZ
 
 contains
 
-  subroutine genFraction(self, sys, rank, size, comm, lkpoints)
+  subroutine setup_fraction(self, sys, rank, size, comm, lkpoints)
     use mod_mpi_pars, only: calcWorkload
     use mod_System,   only: System
     implicit none
@@ -69,16 +70,16 @@ contains
     self % size = size
     self % comm = comm
 
-    call self%countBZ(sys)
+    ! call self%countBZ(sys)
     call calcWorkload(self%nkpt, self%size, self%rank, self%first, self%last)
     self%workload = self%last - self%first + 1
     select case(sys%isysdim)
     case(3)
-      call self%generate_3d_fraction(sys,self%first,self%last)
+      call self%gen3DFraction(sys,self%first,self%last)
     case(2)
-      call self%generate_2d_fraction(sys,self%first,self%last)
+      call self%gen2DFraction(sys,self%first,self%last)
     case default
-      call self%generate_1d_fraction(sys,self%first,self%last)
+      call self%gen1DFraction(sys,self%first,self%last)
     end select
 
     if(present(lkpoints).and.lkpoints) then
@@ -88,9 +89,9 @@ contains
       close(3333)
     end if
 
-  end subroutine genFraction
+  end subroutine setup_fraction
 
-  subroutine count_BrillouinZone(self,sys)
+  subroutine countBZ(self,sys)
     use mod_System, only: System
     implicit none
     class(BrillouinZone)     :: self
@@ -100,16 +101,16 @@ contains
     select case(sys%isysdim)
     case(3)
       total = self%nkpt_x * self%nkpt_y * self%nkpt_z
-      self%nkpt = count_3D_BZ(total,sys%a1,sys%a2,sys%a3)
+      call count_3D_BZ(total,sys%a1,sys%a2,sys%a3,self%nkpt,self%nkpt_rep)
     case(2)
       total = self%nkpt_x * self%nkpt_y
-      self%nkpt = count_2D_BZ(total,sys%a1,sys%a2)
+      call count_2D_BZ(total,sys%a1,sys%a2,self%nkpt,self%nkpt_rep)
     case default
       total = self%nkpt_x 
-      self%nkpt = count_1D_BZ(total,sys%a1)
+      call count_1D_BZ(total,sys%a1,self%nkpt,self%nkpt_rep)
     end select
 
-  end subroutine count_BrillouinZone
+  end subroutine countBZ
 
   subroutine deallocate_BrillouinZone(self)
     implicit none
@@ -213,19 +214,20 @@ contains
       call abortProgram("[gen3DFraction] Generated less points than it should have! added = " // trim(itos(added)) // ", self%workload = " // trim(itos(self%workload)))
   end subroutine gen3DFraction
 
-  integer*8 function count_3D_BZ(nkpt_in, a1, a2, a3)
+  subroutine count_3D_BZ(nkpt_in, a1, a2, a3, numextrakbz, nkpt)
     use mod_f90_kind,  only: double
     use mod_constants, only: tpi
     use mod_tools,     only: cross, vec_norm
     implicit none
-    integer*8,                  intent(in) :: nkpt_in
-    real(double), dimension(3), intent(in) :: a1, a2, a3
+    integer*8,                  intent(in)  :: nkpt_in
+    real(double), dimension(3), intent(in)  :: a1, a2, a3
+    integer*8,                  intent(out) :: numextrakbz, nkpt
     real(double), dimension(3)   :: kp, b1, b2, b3, largest
     real(double), dimension(3,8) :: bz_vec
     real(double), dimension(3,8) :: diff
     real(double) :: smallest_dist, distance(8), ini_smallest_dist, vol
     integer      :: j, nkpt_x, nkpt_y, nkpt_z, nx, ny, nz, nkpt_perdim
-    integer*8    :: l, nkpt, numextrakbz
+    integer*8    :: l
 
     nkpt_perdim = ceiling((dble(nkpt_in))**(1.d0/3.d0))
     nkpt_x = nkpt_perdim
@@ -280,8 +282,7 @@ contains
       end do
     end do
     !$omp end parallel do
-    count_3D_BZ = numextrakbz
-  end function count_3D_BZ
+  end subroutine count_3D_BZ
 
   subroutine gen2DFraction(self,sys,first,last)
     use mod_f90_kind,  only: double
@@ -363,20 +364,21 @@ contains
       call abortProgram("[gen2DFraction] Generated less points than it should have! added = " // trim(itos(added)) // ", self%workload = " // trim(itos(self%workload)))
   end subroutine gen2DFraction
 
-  integer*8 function count_2D_BZ(nkpt_in, a1, a2)
+  subroutine count_2D_BZ(nkpt_in, a1, a2, numextrakbz, nkpt)
     use mod_f90_kind,  only: double
     use mod_constants, only: tpi
     use mod_tools,     only: cross, vec_norm
     implicit none
-    integer*8,                  intent(in) :: nkpt_in
-    real(double), dimension(3), intent(in) :: a1,a2
+    integer*8,                  intent(in)  :: nkpt_in
+    real(double), dimension(3), intent(in)  :: a1,a2
+    integer*8,                  intent(out) :: numextrakbz, nkpt
     real(double), dimension(3)   :: kp, b1, b2, largest
     real(double), dimension(3)   :: zdir
     real(double), dimension(3,4) :: bz_vec
     real(double), dimension(3,4) :: diff
     real(double) :: smallest_dist, distance(4), ini_smallest_dist, vol
     integer      :: j, nkpt_x, nkpt_y, nx, ny, nkpt_perdim
-    integer*8    :: l, nkpt, numextrakbz
+    integer*8    :: l
 
     zdir = [0.d0,0.d0,1.d0]
     nkpt_perdim = ceiling(sqrt(dble(nkpt_in)))
@@ -425,8 +427,7 @@ contains
       end do
     end do
     !$omp end parallel do
-    count_2D_BZ = numextrakbz
-  end function count_2D_BZ
+  end subroutine count_2D_BZ
 
   subroutine gen1DFraction(self,sys,first,last)
     use mod_f90_kind,  only: double
@@ -504,20 +505,21 @@ contains
       call abortProgram("[gen1DFraction] Generated less points than it should have! added = " // trim(itos(added)) // ", self%workload = " // trim(itos(self%workload)))
   end subroutine gen1DFraction
 
-  integer*8 function count_1D_BZ(nkpt_in, a1)
+  subroutine count_1D_BZ(nkpt_in, a1, numextrakbz, nkpt)
     use mod_f90_kind,  only: double
     use mod_constants, only: tpi
     use mod_tools,     only: cross, vec_norm
     implicit none
-    integer*8,                  intent(in) :: nkpt_in
-    real(double), dimension(3), intent(in) :: a1
+    integer*8,                  intent(in)  :: nkpt_in
+    real(double), dimension(3), intent(in)  :: a1
+    integer*8,                  intent(out) :: numextrakbz, nkpt
     real(double), dimension(3)   :: kp, b1
     real(double), dimension(3)   :: zdir, ydir
     real(double), dimension(3,2) :: bz_vec
     real(double), dimension(3,2) :: diff
     real(double) :: smallest_dist, distance(2), ini_smallest_dist, vol
     integer      :: j, nkpt_x, nx, nkpt_perdim
-    integer*8    :: l, nkpt, numextrakbz
+    integer*8    :: l
 
     zdir = [0.d0,0.d0,1.d0]
     ydir = [0.d0,1.d0,0.d0]
@@ -560,8 +562,7 @@ contains
       end do
     end do
     !$omp end parallel do
-    count_1D_BZ = numextrakbz
-  end function count_1D_BZ
+  end subroutine count_1D_BZ
   
 
   subroutine output_kpoints(self,unit)
