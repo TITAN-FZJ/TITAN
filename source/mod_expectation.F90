@@ -258,7 +258,7 @@ contains
     real(double)    :: fermi_surface, beta
     integer         :: i, n, sigma, sigmap, mu
     real(double)    :: f_n(dim),f_n_negative(dim),tanh_n(dim)
-    complex(double) :: evec(dim), lam !dim = 2*nOrb*nAtoms
+    complex(double) :: evec_isigmamu, evec_isigmamu_cong, lam !dim = 2*nOrb*nAtoms
     integer         :: offset
 
     beta = 1.d0/(pi*eta)
@@ -277,21 +277,22 @@ contains
     end do
 
     do n = 1, dim
-      ! Getting eigenvector
-      evec(:) = hk(:,n)
-
       do i = 1, s%nAtoms
         do mu = 1, nOrb
           do sigma = 1, 2
+            evec_isigmamu = hk(isigmamu2n(i,sigma,mu),n)
+            evec_isigmamu_cong = conjg( evec_isigmamu )
+
             ! Charge
-            if(.not.lsupercond) expec_0(mu,i) = expec_0(mu,i) + f_n(n)*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,mu))
+            if(.not.lsupercond) expec_0(mu,i) = expec_0(mu,i) + f_n(n)*evec_isigmamu_cong*evec_isigmamu
 
             do sigmap = 1, 2
+              evec_isigmamu = hk(isigmamu2n(i,sigmap,mu),n)
               ! M_p
-              expec_p(mu,i) = expec_p(mu,i) + f_n(n)*conjg( evec(isigmamu2n(i,sigma,mu)) )*pauli_mat(sigma,sigmap,4)*evec(isigmamu2n(i,sigmap,mu))
+              expec_p(mu,i) = expec_p(mu,i) + f_n(n)*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
 
               ! M_z
-              expec_z(mu,i) = expec_z(mu,i) + f_n(n)*conjg( evec(isigmamu2n(i,sigma,mu)) )*pauli_mat(sigma,sigmap,3)*evec(isigmamu2n(i,sigmap,mu))
+              expec_z(mu,i) = expec_z(mu,i) + f_n(n)*evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu
             end do
           end do
         end do
@@ -310,16 +311,13 @@ contains
     end do
 
     do n = 1, dim
-      ! Getting eigenvector
-      evec(:) = hk(:,n)
-
       do i = 1, s%nAtoms
           do mu = 1, nOrb
               lam = s%Types(s%Basis(i)%Material)%lambda(mu)*cOne*0.5d0
               ! up spin (using u's) + down spin (using v's)
-              expec_0(mu,i) = expec_0(mu,i) + f_n(n)*conjg(evec(nOrb*2*(i-1)+mu))*evec(nOrb*2*(i-1)+mu) + f_n_negative(n)*conjg(evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2))*evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2)
+              expec_0(mu,i) = expec_0(mu,i) + f_n(n)*conjg(hk(nOrb*2*(i-1)+mu,n))*hk(nOrb*2*(i-1)+mu,n) + f_n_negative(n)*conjg(hk(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2,n))*hk(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2,n)
 
-              expec_singlet(mu,i) = expec_singlet(mu,i) + lam*tanh_n(n)*conjg(evec(isigmamu2n(i,1,mu)+nOrb*2*s%nAtoms))*evec(isigmamu2n(i,2,mu))
+              expec_singlet(mu,i) = expec_singlet(mu,i) + lam*tanh_n(n)*conjg(hk(isigmamu2n(i,1,mu)+nOrb*2*s%nAtoms,n))*hk(isigmamu2n(i,2,mu),n)
           end do
       end do
     end do
