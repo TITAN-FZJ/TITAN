@@ -92,6 +92,8 @@ elseif(PLATFORM MATCHES booster)
   set(CMAKE_Fortran_COMPILER mpif90)
 elseif(PLATFORM MATCHES juwels)
   set(CMAKE_Fortran_COMPILER mpif90)
+elseif(PLATFORM MATCHES jusuf)
+  set(CMAKE_Fortran_COMPILER mpif90)
 elseif(PLATFORM MATCHES iff)
   set(CMAKE_Fortran_COMPILER mpiifort)
 elseif(PLATFORM MATCHES hh)
@@ -112,7 +114,20 @@ else()
   set(INSTRUMENT)
 endif()
 
-set(TITAN_EXE titan_${PLATFORM}${INSTRUMENT}.exe)
+if(DEBUG)
+  set(DEBUGSUFFIX _debug)
+  execute_process(COMMAND echo "DEBUG on")
+else()
+  set(DEBUGSUFFIX)
+endif()
+
+if(SUFFIX)
+  set(SUFFIX _${SUFFIX})
+else()
+  set(SUFFIX)
+endif()
+
+set(TITAN_EXE titan_${PLATFORM}${DEBUGSUFFIX}${INSTRUMENT}${SUFFIX}.exe)
 
 add_executable(${TITAN_EXE} ${SOURCE_TITAN})
 
@@ -128,6 +143,7 @@ if(PLATFORM MATCHES jureca)
                                               -fpp
                                               -DVERSION="${GIT_VERSION}"
                                               -qopenmp
+                                              -g
                                               -mkl
                                               -xHost)
 elseif(PLATFORM MATCHES juwels)
@@ -137,6 +153,17 @@ elseif(PLATFORM MATCHES juwels)
                                               -D_OSX
                                               -DVERSION="${GIT_VERSION}"
                                               -qopenmp
+                                              -g
+                                              -mkl
+                                              -xHost)
+elseif(PLATFORM MATCHES jusuf)
+  target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
+  target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
+                                              -fpp
+                                              -D_OSX
+                                              -DVERSION="${GIT_VERSION}"
+                                              -qopenmp
+                                              -g
                                               -mkl
                                               -xHost)
 elseif(PLATFORM MATCHES osx)
@@ -146,6 +173,7 @@ elseif(PLATFORM MATCHES osx)
                                               -fpp
                                               -DVERSION="${GIT_VERSION}"
                                               -qopenmp
+                                              -g
                                               -mkl
                                               -xHost)
 elseif(PLATFORM MATCHES booster)
@@ -159,6 +187,7 @@ elseif(PLATFORM MATCHES booster)
                                               -fpp
                                               -DVERSION="${GIT_VERSION}"
                                               -mkl
+                                              -g
                                               -I$ENV{HOME}/BoosterNAG/nag_interface_blocks
                                               -xMIC-AVX512
                                               -qopenmp)
@@ -168,6 +197,7 @@ elseif(PLATFORM MATCHES rwth)
                                               -fpp
                                               -DVERSION="${GIT_VERSION}"
                                               -qopenmp
+                                              -g
                                               -mkl
                                               $ENV{FLAGS_NAG_INCLUDE}
                                               -xHost)
@@ -177,6 +207,7 @@ elseif(PLATFORM MATCHES iff)
                                               -DVERSION="${GIT_VERSION}"
                                               -fpp
                                               -qopenmp
+                                              -g
                                               -mkl
                                               -xHost)
 elseif(PLATFORM MATCHES hh)
@@ -186,6 +217,7 @@ elseif(PLATFORM MATCHES hh)
                                               -D_OSX
                                               -DVERSION="${GIT_VERSION}"
                                               -qopenmp
+                                              -g
                                               -mkl
                                               -xCORE-AVX2)
 else()
@@ -230,4 +262,6 @@ endif(DEBUG)
 #target_link_libraries(${EXEC_NAME} ${NAG}/lib/libnag_nag.a -qopenmp)
 
 unset(DEBUG CACHE)
+unset(DEBUGSUFFIX CACHE)
 unset(PREP CACHE)
+unset(SUFFIX CACHE)
