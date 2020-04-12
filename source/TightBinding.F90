@@ -227,8 +227,25 @@ contains
     material%Occupation  = material%OccupationS+material%OccupationP+material%OccupationD
 
     ! Read Hubbard effective Coulomb interaction strength
-    read(f_unit, fmt='(A)', iostat = ios) line
-    read(unit= line, fmt=*, iostat=ios) material%U
+    read(unit=f_unit, fmt='(A)', iostat=ios) line
+    read(unit=line, fmt=*, iostat=ios) (str_arr(i), i=1,2)
+    cnt = 0
+    do i = 1, 2
+        if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
+            cnt = cnt + 1
+            read(unit=str_arr(i), fmt=*,iostat=ios ) tmp_arr(cnt)
+    end do
+    
+    select case(cnt)
+    case(1)
+        material%Un = tmp_arr(1)
+        material%Um = tmp_arr(1)
+    case(2)
+        material%Un = tmp_arr(1)
+        material%Um = tmp_arr(2)
+    case default
+        call log_error("readElementFile","Something wrong in the definition of 'U'.")
+    end select
 
     ! Read Spin-Orbit interaction strength for p and d
     read(f_unit, fmt='(A)', iostat = ios) line

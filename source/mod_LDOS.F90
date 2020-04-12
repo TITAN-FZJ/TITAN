@@ -251,7 +251,7 @@ contains
   subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
     use mod_f90_kind,      only: double
     use mod_constants,     only: pi, cZero, cOne, pauli_dorb
-    use mod_parameters,    only: nOrb, nOrb2, eta, U
+    use mod_parameters,    only: nOrb, nOrb2, eta, Um
     use mod_system,        only: s => sys
     use mod_BrillouinZone, only: realBZ
     use mod_magnet,        only: mvec_cartesian, mabs
@@ -303,13 +303,13 @@ contains
 
       do i = 1, 3
         ! Derivative of Bxc*sigma*evec w.r.t. m_i (Bxc = -U.m/2)
-        dbxcdm(iz,i,:,:) = -0.5d0 * U(iz) * (pauli_dorb(i,:,:) - (paulievec(iz,:,:)) * evec(i,iz))
+        dbxcdm(iz,i,:,:) = -0.5d0 * Um(iz) * (pauli_dorb(i,:,:) - (paulievec(iz,:,:)) * evec(i,iz))
 
         ! Second derivative of Bxc w.r.t. m_i (Bxc = -U.m/2)
         do j=1,3
           d2bxcdm2(iz,i,j,:,:) = evec(i,iz)*pauli_dorb(j,:,:) + pauli_dorb(i,:,:)*evec(j,iz) - 3*paulievec(iz,:,:)*evec(i,iz)*evec(j,iz)
           if(i==j) d2bxcdm2(iz,i,j,:,:) = d2bxcdm2(iz,i,j,:,:) + paulievec(iz,:,:)
-          d2bxcdm2(iz,i,j,:,:) = 0.5d0*U(iz)*d2bxcdm2(iz,i,j,:,:)/(mabs(iz))
+          d2bxcdm2(iz,i,j,:,:) = 0.5d0*Um(iz)*d2bxcdm2(iz,i,j,:,:)/(mabs(iz))
         end do
       end do
     end do
@@ -318,7 +318,7 @@ contains
 
     !$omp parallel default(none) &
     !$omp& private(iz,kp,weight,gf,gij,gji,paulia,paulib,i,j,mu,nu,alpha,gfdiagu,gfdiagd,Jijk,Jijkan,temp1,temp2,ldosu_loc,ldosd_loc,Jijint_loc) &
-    !$omp& shared(s,realBZ,nOrb,nOrb2,e,eta,U,dbxcdm,d2bxcdm2,pauli_dorb,paulimatan,ldosu,ldosd,Jijint)
+    !$omp& shared(s,realBZ,nOrb,nOrb2,e,eta,Um,dbxcdm,d2bxcdm2,pauli_dorb,paulimatan,ldosu,ldosd,Jijint)
     allocate(ldosu_loc(s%nAtoms, nOrb), ldosd_loc(s%nAtoms, nOrb), Jijint_loc(s%nAtoms,s%nAtoms,3,3))
     ldosu_loc = 0.d0
     ldosd_loc = 0.d0

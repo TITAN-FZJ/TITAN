@@ -170,7 +170,7 @@ contains
   !> Given by \sum_j <i| dH/dc^n_k |j> * c_j^n(t)
   subroutine build_term_Jacobian(s, eval, Yn, dHdc)
     use mod_f90_kind,      only: double
-    use mod_parameters,    only: nOrb, dimH, U, isigmamu2n, eta
+    use mod_parameters,    only: nOrb, dimH, Um, Un, isigmamu2n, eta
     use mod_system,        only: System
     use mod_distributions, only: fd_dist
     use mod_constants,     only: cZero, pauli_mat, pi
@@ -188,13 +188,13 @@ contains
       do mu=5,nOrb
         do s1=1,2
           do s2=1,2
-            dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,mu)) = dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,mu)) + Yn(isigmamu2n(i,s1,mu))*conjg(Yn(isigmamu2n(i,s2,mu)))
+            dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,mu)) = dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,mu)) + Un(i)*Yn(isigmamu2n(i,s1,mu))*conjg(Yn(isigmamu2n(i,s2,mu)))
             do nu=5,nOrb
-              dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,nu)) = dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,nu)) - 0.5d0*Yn(isigmamu2n(i,s1,mu))*conjg(Yn(isigmamu2n(i,s2,nu)))
+              dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,nu)) = dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,nu)) - 0.5d0*Un(i)*Yn(isigmamu2n(i,s1,mu))*conjg(Yn(isigmamu2n(i,s2,nu)))
               do s3=1,2
                 do s4=1,2
                   do alpha = 1,3
-                    dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,nu)) = dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,nu)) - 0.5d0*pauli_mat(s1,s3,alpha)*Yn(isigmamu2n(i,s3,mu))*pauli_mat(s4,s2,alpha)*conjg(Yn(isigmamu2n(i,s4,nu)))
+                    dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,nu)) = dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,nu)) - 0.5d0*Um(i)*pauli_mat(s1,s3,alpha)*Yn(isigmamu2n(i,s3,mu))*pauli_mat(s4,s2,alpha)*conjg(Yn(isigmamu2n(i,s4,nu)))
                   end do
                 end do
               end do
@@ -202,7 +202,6 @@ contains
           end do
         end do
       end do
-      dHdc = U(i) * dHdc
     end do
     dHdc = fd_dist(s%Ef, 1.d0/(pi*eta), eval) * dHdc
 

@@ -3,7 +3,7 @@
 subroutine calculate_all()
   use mod_f90_kind,   only: double
   use mod_constants,  only: cZero, cOne, cI !, levi_civita
-  use mod_parameters, only: lnodiag, U, offset, output, laddresults, skip_steps, count, lhfresponses, sigmaimunu2i, emin, deltae, nQvec1, kpoints, dim, sigmai2i, dimspinAtoms
+  use mod_parameters, only: lnodiag, Un, offset, output, laddresults, skip_steps, count, lhfresponses, sigmaimunu2i, emin, deltae, nQvec1, kpoints, dim, sigmai2i, dimspinAtoms
   use mod_magnet,     only: lfield, hhw, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, lrot
   use mod_SOC,        only: llinearsoc
   use mod_System,     only: s => sys
@@ -328,9 +328,9 @@ subroutine calculate_all()
           torques(1,:,i) = 0.5d0*s%Types(s%Basis(i)%Material)%LambdaD*torques(1,:,i)
 
           ! Exchange-correlation torques (calculated in the spin frame of reference)
-          torques(2,1,i) = U(i+offset)*(mvec_cartesian(3,i)*disturbances(3,i)-mvec_cartesian(2,i)*disturbances(4,i))
-          torques(2,2,i) = U(i+offset)*(mvec_cartesian(1,i)*disturbances(4,i)-mvec_cartesian(3,i)*disturbances(2,i))
-          torques(2,3,i) = U(i+offset)*(mvec_cartesian(2,i)*disturbances(2,i)-mvec_cartesian(1,i)*disturbances(3,i))
+          torques(2,1,i) = Un(i+offset)*(mvec_cartesian(3,i)*disturbances(3,i)-mvec_cartesian(2,i)*disturbances(4,i))
+          torques(2,2,i) = Un(i+offset)*(mvec_cartesian(1,i)*disturbances(4,i)-mvec_cartesian(3,i)*disturbances(2,i))
+          torques(2,3,i) = Un(i+offset)*(mvec_cartesian(2,i)*disturbances(2,i)-mvec_cartesian(1,i)*disturbances(3,i))
 
           ! External torques (calculated in the spin frame of reference)
           if(lfield) then

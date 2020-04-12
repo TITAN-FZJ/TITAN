@@ -220,7 +220,7 @@ contains
     write(98,fmt=formatvar) (sys0%Types(1)%rhod0(j),j=1,sys0%nAtoms)
 
     ! Writing U to file (to be compared in other calculations)
-    write(98,fmt="(es21.11)") sys0%Types(1)%U ! Only works for 1 atom in unit cell of elemental file
+    write(98,fmt="(es21.11)") sys0%Types(1)%Un, sys0%Types(1)%Um ! Only works for 1 atom in unit cell of elemental file
 
     close(98)
   end subroutine write_initial_Uterms
@@ -239,7 +239,7 @@ contains
     logical            :: success
     character(len=500) :: filename
     integer            :: j,mu
-    real(double)       :: previous_results_rho0(nOrb,sys0%nAtoms),previous_results_rhod0(sys0%nAtoms),U_tmp
+    real(double)       :: previous_results_rho0(nOrb,sys0%nAtoms),previous_results_rhod0(sys0%nAtoms),Un_tmp,Um_tmp
 
     success = .false.
 
@@ -254,12 +254,12 @@ contains
 
     read(97,fmt=*) ((previous_results_rho0(mu,j),mu=1,nOrb),j=1,sys0%nAtoms)
     read(97,fmt=*) (previous_results_rhod0(j),j=1,sys0%nAtoms)
-    read(97,fmt=*) U_tmp
+    read(97,fmt=*) Un_tmp, Um_tmp
     close(97)
 
-    if(abs(U_tmp - sys0%Types(1)%U) > 1.d-10) then ! Only works for 1 atom in unit cell of elemental file
-      write(output%unit,"('[read_initial_Uterms] Different value of U:')")
-      write(output%unit,"('[read_initial_Uterms] Using for ',a,':', es16.9,', Read from previous calculations: ', es16.9)") trim(sys0%Types(1)%Name), sys0%Types(1)%U, U_tmp
+    if((abs(Un_tmp - sys0%Types(1)%Un) > 1.d-10).or.(abs(Um_tmp - sys0%Types(1)%Um) > 1.d-10)) then ! Only works for 1 atom in unit cell of elemental file
+      write(output%unit,"('[read_initial_Uterms] Different value of Un, Um:')")
+      write(output%unit,"('[read_initial_Uterms] Using for ',a,':', es16.9, es16.9,', Read from previous calculations: ', es16.9, es16.9)") trim(sys0%Types(1)%Name), sys0%Types(1)%Un, sys0%Types(1)%Um, Un_tmp, Um_tmp
       write(output%unit,"('[read_initial_Uterms] Recalculating expectation values...')")
       return
     end if

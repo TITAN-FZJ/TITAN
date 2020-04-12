@@ -3,7 +3,7 @@
 subroutine calculate_dc_limit()
   use mod_mpi_pars
   use mod_constants,         only: cZero, cOne, cI, tpi !, levi_civita
-  use mod_parameters,        only: sigmaimunu2i, sigmai2i, dimspinAtoms, U, offset, lnodiag, output, count, emin, deltae, nQvec1, kpoints, laddresults, lhfresponses, dim, skip_steps
+  use mod_parameters,        only: sigmaimunu2i, sigmai2i, dimspinAtoms, Um, offset, lnodiag, output, count, emin, deltae, nQvec1, kpoints, laddresults, lhfresponses, dim, skip_steps
   use mod_magnet,            only: lfield, dcfield_dependence, dc_count, dcfield, hw_count, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, hhw, lrot
   use mod_SOC,               only: llinearsoc
   use mod_System,            only: s => sys
@@ -315,9 +315,9 @@ subroutine calculate_dc_limit()
           torques(1,:,i) = 0.5d0*s%Types(s%Basis(i)%Material)%LambdaD*torques(1,:,i)
 
           ! Exchange-correlation torques (calculated in the spin frame of reference)
-          torques(2,1,i) = U(i+offset)*(mvec_cartesian(3,i)*disturbances(3,i)-mvec_cartesian(2,i)*disturbances(4,i))
-          torques(2,2,i) = U(i+offset)*(mvec_cartesian(1,i)*disturbances(4,i)-mvec_cartesian(3,i)*disturbances(2,i))
-          torques(2,3,i) = U(i+offset)*(mvec_cartesian(2,i)*disturbances(2,i)-mvec_cartesian(1,i)*disturbances(3,i))
+          torques(2,1,i) = Um(i+offset)*(mvec_cartesian(3,i)*disturbances(3,i)-mvec_cartesian(2,i)*disturbances(4,i))
+          torques(2,2,i) = Um(i+offset)*(mvec_cartesian(1,i)*disturbances(4,i)-mvec_cartesian(3,i)*disturbances(2,i))
+          torques(2,3,i) = Um(i+offset)*(mvec_cartesian(2,i)*disturbances(2,i)-mvec_cartesian(1,i)*disturbances(3,i))
 
           ! External torques (calculated in the spin frame of reference)
           if(lfield) then

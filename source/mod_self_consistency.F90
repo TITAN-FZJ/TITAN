@@ -671,7 +671,7 @@ contains
     !! Calculated the Jacobian of the spin magnetization
     use mod_f90_kind,      only: double
     use mod_constants,     only: pi, ident_norb2, cZero, pauli_dorb, ident_dorb, cOne
-    use mod_parameters,    only: nOrb, nOrb2, U, offset, eta
+    use mod_parameters,    only: nOrb, nOrb2, Un, Um, offset, eta
     use mod_SOC,           only: llinearsoc, llineargfsoc
     use EnergyIntegration, only: y, wght
     use mod_System,        only: s => sys
@@ -689,7 +689,7 @@ contains
     integer :: i,j,mu,nu,sigma,sigmap
     real(double)    :: kp(3), ep
     complex(double) :: weight
-    complex(double) :: halfU(s%nAtoms)
+    complex(double) :: halfUn(s%nAtoms),halfUm(s%nAtoms)
     complex(double), dimension(nOrb2, nOrb2, 4) :: pauli_a,pauli_b
 
     !--------------------- begin MPI vars --------------------
@@ -708,14 +708,15 @@ contains
 
     ! Prefactor -U/2 in dH/dn and dH/dm
     do i=1,s%nAtoms
-      halfU(i) = -0.5d0*U(i+offset)
+      halfUn(i) = -0.5d0*Un(i+offset)
+      halfUm(i) = -0.5d0*Um(i+offset)
     end do
 
     jacobian = 0.d0
 
     !$omp parallel default(none) &
     !$omp& private(AllocateStatus,ix,i,j,mu,nu,sigma,sigmap,ep,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp) &
-    !$omp& shared(llineargfsoc,llinearsoc,local_points,s,nOrb,nOrb2,realBZ,bzs,E_k_imag_mesh,y,eta,wght,halfU,pauli_a,pauli_b,jacobian)
+    !$omp& shared(llineargfsoc,llinearsoc,local_points,s,nOrb,nOrb2,realBZ,bzs,E_k_imag_mesh,y,eta,wght,halfUn,halfUm,pauli_a,pauli_b,jacobian)
     allocate( temp1(nOrb2, nOrb2, 4), &
               temp2(nOrb2, nOrb2, 4), &
               gij(nOrb2,nOrb2), gji(nOrb2,nOrb2), &
@@ -763,7 +764,7 @@ contains
             paulitemp = pauli_b(:,:, 1)
             paulitemp(nu  ,nu  ) = paulitemp(nu  ,nu  ) - 2.d0
             paulitemp(nu+9,nu+9) = paulitemp(nu+9,nu+9) - 2.d0
-            call zgemm('n','n',18,18,18,halfU(j),paulitemp,18,gji,18,cZero,temp,18)
+            call zgemm('n','n',18,18,18,halfUn(j),paulitemp,18,gji,18,cZero,temp,18)
             temp2(:,:,1) = temp
 
             ! Full product:  sigma.g.dHdx.g = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*sigma* g_ji
@@ -798,7 +799,7 @@ contains
           do sigmap = 2,4
             ! Second product: temp2 = (-U/2) * sigma* g_ji
             paulitemp = pauli_b(:,:,sigmap)
-            call zgemm('n','n',18,18,18,halfU(j),paulitemp,18,gji,18,cZero,temp,18)
+            call zgemm('n','n',18,18,18,halfUm(j),paulitemp,18,gji,18,cZero,temp,18)
             temp2(:,:,sigmap) = temp
           end do
 
@@ -849,7 +850,7 @@ contains
               paulitemp = pauli_b(:,:, 1)
               paulitemp(nu  ,nu  ) = paulitemp(nu  ,nu  ) - 2.d0
               paulitemp(nu+9,nu+9) = paulitemp(nu+9,nu+9) - 2.d0
-              call zgemm('n','n',18,18,18,halfU(j),paulitemp,18,gji,18,cZero,temp,18)
+              call zgemm('n','n',18,18,18,halfUn(j),paulitemp,18,gji,18,cZero,temp,18)
               temp2(:,:, 1) = temp
 
               ! Full product:  sigma.g.dHdx.g = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*sigma* g_ji
@@ -884,7 +885,7 @@ contains
             do sigmap = 2,4
               ! Second product: temp2 = (-U/2) * sigma* g_ji
               paulitemp = pauli_b(:,:, sigmap)
-              call zgemm('n','n',18,18,18,halfU(j),paulitemp,18,gji,18,cZero,temp,18)
+              call zgemm('n','n',18,18,18,halfUm(j),paulitemp,18,gji,18,cZero,temp,18)
               temp2(:,:, sigmap) = temp
             end do
 

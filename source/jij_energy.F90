@@ -6,7 +6,7 @@
 subroutine jij_energy(Jij)
   use mod_f90_kind,      only: double
   use mod_constants,     only: pi, cOne, cZero, pauli_dorb
-  use mod_parameters,    only: nOrb2, U, q, eta
+  use mod_parameters,    only: nOrb2, Um, q, eta
   use EnergyIntegration, only: y, wght
   use mod_magnet,        only: mvec_cartesian,mabs
   use mod_system,        only: s => sys
@@ -42,12 +42,12 @@ subroutine jij_energy(Jij)
 
     do mu = 1, 3
       ! Derivative of Bxc*sigma*evec w.r.t. m_i (Bxc = -U.m/2)
-      dBxc_dm(i,mu,:,:) = -0.5d0*U(i)*(pauli_dorb(mu,:,:) - (paulievec(i,:,:)) * evec(mu,i))
+      dBxc_dm(i,mu,:,:) = -0.5d0*Um(i)*(pauli_dorb(mu,:,:) - (paulievec(i,:,:)) * evec(mu,i))
       ! Second derivative of Bxc w.r.t. m_i (Bxc = -U.m/2)
       do nu=1,3
         d2Bxc_dm2(i,mu,nu,:,:) = evec(mu,i)*pauli_dorb(nu,:,:) + pauli_dorb(mu,:,:)*evec(nu,i) - 3*paulievec(i,:,:)*evec(mu,i)*evec(nu,i)
         if(mu==nu) d2Bxc_dm2(i,mu,nu,:,:) = d2Bxc_dm2(i,mu,nu,:,:) + paulievec(i,:,:)
-        d2Bxc_dm2(i,mu,nu,:,:) = 0.5d0*U(i)*d2Bxc_dm2(i,mu,nu,:,:)/mabs(i)
+        d2Bxc_dm2(i,mu,nu,:,:) = 0.5d0*Um(i)*d2Bxc_dm2(i,mu,nu,:,:)/mabs(i)
       end do
     end do
   end do
