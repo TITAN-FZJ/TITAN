@@ -3,21 +3,21 @@ module mod_time_propagator
 contains
 
   subroutine time_propagator(s)
-    use mod_f90_kind,         only: double
-    use mod_constants,        only: cZero, cI
-    use mod_imRK4_parameters, only: dimH2, step, integration_time, ERR, safe_factor, lelectric, &
-                                    hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, &
-                                    lpulse_m, tau_m, delay_m, polarization_e, polarization_m
-    use mod_RK_matrices,      only: A, id, id2, M1, build_identity
-    use mod_imRK4,            only: iterate_Zki, calculate_step_error, magnetic_field, vector_potential
-    use mod_BrillouinZone,    only: realBZ
-    use mod_parameters,       only: nOrb,dimH,output,laddresults,lprintfieldonly
-    use mod_system,           only: System
-    use ElectricField,        only: EshiftBZ,ElectricFieldVector
-    use mod_expectation,      only: expec_val_n, expec_H_n, expec_L_n
-    use mod_Umatrix,          only: update_Umatrix
-    use mod_magnet,           only: rhod0,rho0
-    use mod_tools,            only: KronProd
+    use mod_f90_kind,          only: double
+    use mod_constants,         only: cZero, cI
+    use mod_imRK4_parameters,  only: dimH2, step, integration_time, ERR, safe_factor, lelectric, &
+                                     hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, &
+                                     lpulse_m, tau_m, delay_m, polarization_e, polarization_m
+    use mod_RK_matrices,       only: A, id, id2, M1, build_identity
+    use mod_imRK4,             only: iterate_Zki, calculate_step_error, magnetic_field, vector_potential
+    use mod_BrillouinZone,     only: realBZ
+    use mod_parameters,        only: nOrb,dimH,output,laddresults,lprintfieldonly
+    use mod_system,            only: System
+    use mod_expectation,       only: expec_val_n, expec_H_n, expec_L_n
+    use mod_Umatrix,           only: update_Umatrix
+    use mod_magnet,            only: rhod0,rho0
+    use mod_tools,             only: KronProd
+    use mod_superconductivity, only: allocate_super_variables
     use mod_mpi_pars
     implicit none
     type(System), intent(in)   :: s
@@ -33,15 +33,17 @@ contains
     real(double)                                :: weight, kp(3)
     real(double),    dimension(nOrb,s%nAtoms)   :: expec_0, expec_z
     complex(double), dimension(nOrb,s%nAtoms)   :: expec_p
+    complex(double), dimension(nOrb,s%nAtoms)   :: expec_singlet
     real(double),    dimension(:),  allocatable :: rwork(:), eval(:)
     complex(double),                allocatable :: work(:), hk(:,:)
 
     real(double),    dimension(nOrb,s%nAtoms)   :: rho_t, mx_t, my_t, mz_t
-    real(double),    dimension(s%nAtoms)        :: lxm, lxpm, lym, lypm, lzm, lzpm
-    real(double),    dimension(s%nAtoms)        :: lxm_t, lxpm_t, lym_t, lypm_t, lzm_t, lzpm_t
     complex(double), dimension(nOrb,s%nAtoms)   :: mp_t
     real(double),    dimension(s%nAtoms)        :: rhod_t, mxd_t, myd_t, mzd_t
     complex(double), dimension(s%nAtoms)        :: mpd_t
+    real(double),    dimension(nOrb,s%nAtoms)   :: singlet_coupling_t
+    real(double),    dimension(s%nAtoms)        :: lxm, lym, lzm
+    real(double),    dimension(s%nAtoms)        :: lxm_t, lym_t, lzm_t
     real(double),    dimension(3)               :: field_m, field_e
     real(double)                                :: E_t, E_0
    
@@ -77,6 +79,9 @@ contains
     ! Building matrix M1
     call KronProd(size(A,1),size(A,1),dimH,dimH,A,id,M1)
 
+    ! Allocating superconductivity variables
+    call allocate_super_variables(s%nAtoms, nOrb)
+
     ! Time propagation over t, kpoints, eigenvectors(Yn) for each k
     t = 0.d0
     it = 0  
@@ -89,8 +94,8 @@ contains
       ! Propagation loop for a given time t, calculating the optimal step size
       do
         !$omp parallel default(none) &
-        !$omp& private(Yn_e,Yn_new_e,Yn_hat_e,iz,n,i,kp,weight,hk,ERR_kn,Yn, Yn_new, Yn_hat, eval,work,rwork,info,expec_0,expec_p,expec_z,E_0,lxm,lxpm,lym,lypm,lzm,lzpm) &
-        !$omp& shared( ERR,counter,step,s,t,it,dimH,realBZ,evec_kn_temp,evec_kn,eval_kn,rho_t,mp_t,mz_t,E_t, Lxm_t,Lxpm_t,Lym_t,Lypm_t,Lzm_t,Lzpm_t,lwork,EshiftBZ,ElectricFieldVector)
+        !$omp& private(Yn_e,Yn_new_e,Yn_hat_e,iz,n,i,kp,weight,hk,ERR_kn,Yn, Yn_new, Yn_hat, eval,work,rwork,info,expec_0,expec_p,expec_z,expec_singlet,E_0,lxm,lym,lzm) &
+        !$omp& shared( ERR,counter,step,s,t,it,dimH,realBZ,evec_kn_temp,evec_kn,eval_kn,rho_t,mp_t,mz_t,E_t, Lxm_t,Lym_t,Lzm_t,singlet_coupling_t,lwork)
 
         rho_t  = 0.d0
         mp_t   = cZero
@@ -99,17 +104,14 @@ contains
         E_t    = 0.d0
 
         Lxm_t  = 0.d0
-        Lxpm_t = 0.d0
         Lym_t  = 0.d0
-        Lypm_t = 0.d0
         Lzm_t  = 0.d0
-        Lzpm_t = 0.d0
 
         ERR    = 0.d0
   
-        !$omp do reduction(+:rho_t,mp_t,mz_t,ERR)
+        !$omp do reduction(+:rho_t,mp_t,mz_t,singlet_coupling_t,ERR,E_t,Lxm_t,Lym_t,Lzm_t)
         kpoints_loop: do iz = 1, realBZ%workload
-          kp = realBZ%kp(1:3,iz) + EshiftBZ*ElectricFieldVector
+          kp = realBZ%kp(1:3,iz)
           weight = realBZ%w(iz)   
           if (it==0) then
             ! Calculating the hamiltonian for a given k-point
@@ -154,27 +156,29 @@ contains
             ! Note: use the Yn_new_e or Yn_nw >>> should give the same result
 
             ! calculating expectation value for magnetization in eigenvector (n)
-            call expec_val_n(s, dimH, Yn_new_e, eval_kn(n,iz), expec_0, expec_p, expec_z)
+            call expec_val_n(s, dimH, Yn_new_e, eval_kn(n,iz), expec_0, expec_p, expec_z, expec_singlet)
 
             ! calculating expectation value for the T.D Hamiltonian in eigenvector (n)
             call expec_H_n(s, kp, t, dimH, Yn_new_e, eval_kn(n,iz), E_0)
 
             ! calculating expectation value of angular momentum in eigenvector (n)
-            call expec_L_n(s, dimH, Yn_new_e, eval_kn(n,iz), lxm, lxpm, lym, lypm, lzm, lzpm)
+            call expec_L_n(s, dimH, Yn_new_e, eval_kn(n,iz), lxm, lym, lzm)
 
 
             rho_t = rho_t + expec_0  * weight 
             mp_t  = mp_t  + expec_p  * weight 
             mz_t  = mz_t  + expec_z  * weight 
 
+            ! Superconducting order parameter
+            singlet_coupling_t = singlet_coupling_t + expec_singlet*weight
+
+            ! Expectation value of the energy
             E_t = E_t + E_0 * weight
 
+            ! Orbital angular momentum
             Lxm_t  = Lxm_t   + lxm  * weight
-            Lxpm_t = Lxpm_t  + lxpm * weight
             Lym_t  = Lym_t   + lym  * weight
-            Lypm_t = Lypm_t  + lypm * weight
             Lzm_t  = Lzm_t   + lzm  * weight
-            Lzpm_t = Lzpm_t  + lzpm * weight
 
             ! Calculation of the error and the new step size.
             ! Note: use Yn_e, Yn_new_e, Yn_hat_e.
@@ -254,7 +258,7 @@ contains
       if (lelectric) call vector_potential(t, field_e)
 
       if(rFreq(1) == 0) &
-        call write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t, field_m, field_e, E_t, lxm_t, lxpm_t, lym_t, lypm_t, lzm_t, lzpm_t) 
+        call write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t, field_m, field_e, E_t, lxm_t, lym_t, lzm_t) 
 
       counter = counter + 1
       it = it + 1
@@ -484,7 +488,7 @@ contains
 
 
   ! subroutine to write in time propagation output files
-  subroutine write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t, field_m, field_e, E_t, Lxm_t, Lxpm_t, Lym_t, Lypm_t, Lzm_t, Lzpm_t) 
+  subroutine write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t, field_m, field_e, E_t, Lxm_t, Lym_t, Lzm_t) 
     use mod_f90_kind,         only: double
     use mod_system,           only: System
     use mod_parameters,       only: nOrb
@@ -493,7 +497,7 @@ contains
     type(System),                          intent(in) :: s
     real(double),                          intent(in) :: t, E_t
     real(double), dimension(nOrb,s%nAtoms),intent(in) :: rho_t, mx_t, my_t, mz_t
-    real(double), dimension(s%nAtoms)     ,intent(in) :: rhod_t, mxd_t, myd_t, mzd_t, Lxm_t, Lxpm_t, Lym_t, Lypm_t, Lzm_t, Lzpm_t 
+    real(double), dimension(s%nAtoms)     ,intent(in) :: rhod_t, mxd_t, myd_t, mzd_t, Lxm_t, Lym_t, Lzm_t
     real(double), dimension(3)            ,intent(in) :: field_m, field_e
 
     integer      :: i
@@ -514,7 +518,7 @@ contains
     write(unit=5093,fmt="(100(es16.9,2x))") time, E_t
 
     ! write(unit=5094, fmt="(100(es16.9,2x))") time,  sum(Lxm_t(i)), sum(Lym_t(i)), sum(Lzm_t(i)), sum(Lxpm_t(i)),sum(Lypm_t(i)), sum(Lzpm_t(i)), sqrt(sum(Lxm_t(i))**2 + sum(Lym_t(i))**2 + sum(Lzm_t(i))**2 )  
-    write(unit=5094, fmt="(100(es16.9,2x))") time, sum(Lxm_t), sum(Lym_t), sum(Lzm_t), sum(Lxpm_t), sum(Lypm_t), sum(Lzpm_t), sqrt(Lxm_t**2 + Lym_t**2 + Lzm_t**2)
+    write(unit=5094, fmt="(100(es16.9,2x))") time, (Lxm_t(i), Lym_t(i), Lzm_t(i), sqrt(Lxm_t(i)**2 + Lym_t(i)**2 + Lzm_t(i)**2),i=1,s%nAtoms)
    
     call close_time_prop_files()
 

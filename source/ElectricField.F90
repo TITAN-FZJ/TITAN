@@ -7,7 +7,6 @@ implicit none
 integer :: ElectricFieldMode                          !< Direction of in-plane applied electric field
 real(double), dimension(3) :: ElectricFieldVector(3)  !< Direction vector of the electric field
 real(double) :: EFp = 0.d0, EFt = 0.d0                !< Phi and Theta angles of the electric field in spherical coordinates
-real(double) :: EshiftBZ                              !< Shift on the BZ points due to a small electric field
 
 contains
 
@@ -48,13 +47,6 @@ contains
     end if
 
     write(output%EField,"('_EFp=',a,'_EFt=',a)") trim(rtos(EFp,"(f7.2)")),trim(rtos(EFt,"(f7.2)"))
-
-    if(abs(EshiftBZ)>1.d-8) then
-      output%EField   = trim(output%EField) // "_EshiftBZ=" // trim(rtos(EshiftBZ,"(es8.1)"))
-      output%EFieldBZ = trim(output%EField)
-    else
-      output%EFieldBZ = ""
-    end if
 
   end subroutine initElectricField
 

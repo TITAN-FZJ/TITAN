@@ -353,6 +353,7 @@ contains
     if(lpulse_m) then
       pulses_m: do np = 1, npulse_m
         if ((t >= delay_m(np)).and.(t <= tau_m(np)+delay_m(np))) then
+
           delay = 0.5d0*tau_m(np) + delay_m(np)
           arg   = hw_m(np)*(t-delay)
 

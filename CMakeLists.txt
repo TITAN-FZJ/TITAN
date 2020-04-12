@@ -6,6 +6,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 project(TITAN)
 
 option(DEBUG "Enable debugging" OFF)
+option(PREP "Enable Instrumentation" OFF)
 option(BIGINT "Use 8byte integer" OFF)
 
 enable_language(Fortran)
@@ -82,27 +83,51 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
 
 # Executable names
 if(PLATFORM MATCHES jureca)
-  set(TITAN_EXE titan_jureca.exe)
-  set(CMAKE_Fortran_COMPILER mpiifort)
+  set(CMAKE_Fortran_COMPILER mpif90)
 elseif(PLATFORM MATCHES osx)
-  set(TITAN_EXE titan_osx.exe)
   set(CMAKE_Fortran_COMPILER mpif90)
 elseif(PLATFORM MATCHES rwth)
-  set(TITAN_EXE titan_rwth.exe)
   set(CMAKE_Fortran_COMPILER mpiifort)
 elseif(PLATFORM MATCHES booster)
-  set(TITAN_EXE titan_booster.exe)
-  set(CMAKE_Fortran_COMPILER mpiifort)
+  set(CMAKE_Fortran_COMPILER mpif90)
+elseif(PLATFORM MATCHES juwels)
+  set(CMAKE_Fortran_COMPILER mpif90)
+elseif(PLATFORM MATCHES jusuf)
+  set(CMAKE_Fortran_COMPILER mpif90)
 elseif(PLATFORM MATCHES iff)
-  set(TITAN_EXE titan_iff.exe)
   set(CMAKE_Fortran_COMPILER mpiifort)
 elseif(PLATFORM MATCHES hh)
-  set(TITAN_EXE titan_hh.exe)
   set(CMAKE_Fortran_COMPILER ftn)
 else()
-  set(TITAN_EXE titan.exe)
-  set(CMAKE_Fortran_COMPILER mpiifort)
+  message( FATAL_ERROR "PLATFORM is not set. Use -DPLATFORM=<machine>" )
 endif()
+
+if(NOT PREP)
+    set(PREP OFF)
+endif()
+
+if(PREP)
+  set(CMAKE_Fortran_COMPILER scorep-mpif90)
+  set(INSTRUMENT _inst)
+  execute_process(COMMAND echo "Instrumentation on")
+else()
+  set(INSTRUMENT)
+endif()
+
+if(DEBUG)
+  set(DEBUGSUFFIX _debug)
+  execute_process(COMMAND echo "DEBUG on")
+else()
+  set(DEBUGSUFFIX)
+endif()
+
+if(SUFFIX)
+  set(SUFFIX _${SUFFIX})
+else()
+  set(SUFFIX)
+endif()
+
+set(TITAN_EXE titan_${PLATFORM}${DEBUGSUFFIX}${INSTRUMENT}${SUFFIX}.exe)
 
 add_executable(${TITAN_EXE} ${SOURCE_TITAN})
 
@@ -118,6 +143,27 @@ if(PLATFORM MATCHES jureca)
                                               -fpp
                                               -DVERSION="${GIT_VERSION}"
                                               -qopenmp
+                                              -g
+                                              -mkl
+                                              -xHost)
+elseif(PLATFORM MATCHES juwels)
+  target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
+  target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
+                                              -fpp
+                                              -D_OSX
+                                              -DVERSION="${GIT_VERSION}"
+                                              -qopenmp
+                                              -g
+                                              -mkl
+                                              -xHost)
+elseif(PLATFORM MATCHES jusuf)
+  target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
+  target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
+                                              -fpp
+                                              -D_OSX
+                                              -DVERSION="${GIT_VERSION}"
+                                              -qopenmp
+                                              -g
                                               -mkl
                                               -xHost)
 elseif(PLATFORM MATCHES osx)
@@ -127,6 +173,7 @@ elseif(PLATFORM MATCHES osx)
                                               -fpp
                                               -DVERSION="${GIT_VERSION}"
                                               -qopenmp
+                                              -g
                                               -mkl
                                               -xHost)
 elseif(PLATFORM MATCHES booster)
@@ -140,6 +187,7 @@ elseif(PLATFORM MATCHES booster)
                                               -fpp
                                               -DVERSION="${GIT_VERSION}"
                                               -mkl
+                                              -g
                                               -I$ENV{HOME}/BoosterNAG/nag_interface_blocks
                                               -xMIC-AVX512
                                               -qopenmp)
@@ -149,6 +197,7 @@ elseif(PLATFORM MATCHES rwth)
                                               -fpp
                                               -DVERSION="${GIT_VERSION}"
                                               -qopenmp
+                                              -g
                                               -mkl
                                               $ENV{FLAGS_NAG_INCLUDE}
                                               -xHost)
@@ -158,6 +207,7 @@ elseif(PLATFORM MATCHES iff)
                                               -DVERSION="${GIT_VERSION}"
                                               -fpp
                                               -qopenmp
+                                              -g
                                               -mkl
                                               -xHost)
 elseif(PLATFORM MATCHES hh)
@@ -167,6 +217,7 @@ elseif(PLATFORM MATCHES hh)
                                               -D_OSX
                                               -DVERSION="${GIT_VERSION}"
                                               -qopenmp
+                                              -g
                                               -mkl
                                               -xCORE-AVX2)
 else()
@@ -209,3 +260,8 @@ else()
   target_compile_options(${TITAN_EXE} PRIVATE -O3)
 endif(DEBUG)
 #target_link_libraries(${EXEC_NAME} ${NAG}/lib/libnag_nag.a -qopenmp)
+
+unset(DEBUG CACHE)
+unset(DEBUGSUFFIX CACHE)
+unset(PREP CACHE)
+unset(SUFFIX CACHE)

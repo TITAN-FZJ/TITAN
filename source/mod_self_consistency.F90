@@ -610,14 +610,14 @@ contains
     use mod_expectation, only: expectation_values_greenfunction, expectation_values_eigenstates
     ! use mod_mpi_pars
     implicit none
-    integer  :: M,N,ljc,i,mu,iflag,lw,liw,iw(liw)
+    integer      :: M,N,ljc,i,mu,iflag,lw,liw,iw(liw)
     real(double) :: w(lw)
-    real(double),   dimension(N)             :: x,fvec
-    real(double),   dimension(M,ljc)         :: selfconjac
-    real(double),   dimension(nOrb,s%nAtoms) :: rho_in
-    real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
-    complex(double),dimension(s%nAtoms)      :: mpd_in
-    complex(double), dimension(nOrb,s%nAtoms)         :: deltas
+    real(double),   dimension(N)              :: x,fvec
+    real(double),   dimension(M,ljc)          :: selfconjac
+    real(double),   dimension(nOrb,s%nAtoms)  :: rho_in
+    real(double),   dimension(s%nAtoms)       :: mxd_in,myd_in,mzd_in,rhod_in
+    complex(double),dimension(s%nAtoms)       :: mpd_in
+    complex(double), dimension(nOrb,s%nAtoms) :: deltas
 
     w=w
     iw=iw
@@ -677,7 +677,6 @@ contains
     use mod_System,        only: s => sys
     use adaptiveMesh,      only: local_points, E_k_imag_mesh, bzs, activeComm
     use mod_BrillouinZone, only: realBZ
-    use ElectricField,     only: EshiftBZ,ElectricFieldVector
     use mod_mpi_pars
     implicit none
     integer,                           intent(in)    :: N
@@ -717,7 +716,7 @@ contains
 
     !$omp parallel default(none) &
     !$omp& private(AllocateStatus,ix,i,j,mu,nu,sigma,sigmap,ep,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp) &
-    !$omp& shared(llineargfsoc,llinearsoc,local_points,s,nOrb,nOrb2,realBZ,bzs,E_k_imag_mesh,y,eta,wght,halfUn,halfUm,pauli_a,pauli_b,jacobian,EshiftBZ,ElectricFieldVector)
+    !$omp& shared(llineargfsoc,llinearsoc,local_points,s,nOrb,nOrb2,realBZ,bzs,E_k_imag_mesh,y,eta,wght,halfUn,halfUm,pauli_a,pauli_b,jacobian)
     allocate( temp1(nOrb2, nOrb2, 4), &
               temp2(nOrb2, nOrb2, 4), &
               gij(nOrb2,nOrb2), gji(nOrb2,nOrb2), &
@@ -738,7 +737,7 @@ contains
    !$omp do schedule(static) reduction(+:jacobian)
    do ix = 1, local_points
       ep = y(E_k_imag_mesh(1,ix))
-      kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix)) + EshiftBZ*ElectricFieldVector
+      kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
       weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
       ! Green function on energy Ef + iy, and wave vector kp
       if(llineargfsoc .or. llinearsoc) then
@@ -930,7 +929,7 @@ contains
     ! No energy integral - only BZ integration of G(Ef)
     !$omp do schedule(static) reduction(+:jacobian)
     do ix = 1, realBZ%workload
-      kp = realBZ%kp(1:3,ix) + EshiftBZ*ElectricFieldVector
+      kp = realBZ%kp(1:3,ix)
       weight = cmplx(1.d0,0.d0) * realBZ%w(ix)
 
       ! Green function at Ef + ieta, and wave vector kp

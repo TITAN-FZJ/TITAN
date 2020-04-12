@@ -260,11 +260,8 @@ program TITAN
       mp  = cZero
       ! Variables used in the hamiltonian
 
-      ! write(*,*) lambda
-
       ! call expectation_values_eigenstates(sys,rho,mp,mx,my,mz,singlet_coupling)
 
-      ! write(*,*) lambda
       ! call debugging()
     end if
 
