@@ -602,22 +602,24 @@ contains
   end subroutine check_jacobian
 
   subroutine lsqfun(iflag,M,N,x,fvec,selfconjac,ljc,iw,liw,w,lw)
-    use mod_f90_kind,    only: double
-    use mod_system,      only: s => sys
-    use mod_magnet,      only: rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
-    use mod_Umatrix,     only: update_Umatrix
-    use mod_parameters,  only: nOrb, leigenstates
-    use mod_expectation, only: expectation_values_greenfunction, expectation_values_eigenstates
+    use mod_f90_kind,          only: double
+    use mod_system,            only: s => sys
+    use mod_magnet,            only: rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
+    use mod_Umatrix,           only: update_Umatrix
+    use mod_parameters,        only: nOrb, leigenstates
+    use mod_expectation,       only: expectation_values_greenfunction, expectation_values_eigenstates
+    use mod_superconductivity, only: lsuperCond, update_singlet_couplings
     ! use mod_mpi_pars
     implicit none
-    integer      :: M,N,ljc,i,mu,iflag,lw,liw,iw(liw)
+    integer  :: M,N,ljc,i,mu,iflag,lw,liw,iw(liw)
     real(double) :: w(lw)
-    real(double),   dimension(N)              :: x,fvec
-    real(double),   dimension(M,ljc)          :: selfconjac
-    real(double),   dimension(nOrb,s%nAtoms)  :: rho_in
-    real(double),   dimension(s%nAtoms)       :: mxd_in,myd_in,mzd_in,rhod_in
-    complex(double),dimension(s%nAtoms)       :: mpd_in
-    complex(double), dimension(nOrb,s%nAtoms) :: deltas
+    real(double),   dimension(N)             :: x,fvec
+    real(double),   dimension(M,ljc)         :: selfconjac
+    real(double),   dimension(nOrb,s%nAtoms) :: rho_in
+    real(double),   dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
+    complex(double),dimension(s%nAtoms)      :: mpd_in
+    complex(double),dimension(nOrb,s%nAtoms) :: singlet_coupling_in
+    complex(double),dimension(nOrb,s%nAtoms) :: deltas
 
     w=w
     iw=iw
@@ -627,17 +629,23 @@ contains
     rho_in = rho
     do i = 1, s%nAtoms
       do mu = 5,nOrb
-        rho_in(mu,i) = x((i-1)*8+(mu-4))
+        rho_in(mu,i) = x((i-1)*neq_per_atom+(mu-4))
       end do
       rhod_in(i)= sum(rho_in(5:9,i))
-      mxd_in(i) = x((i-1)*8+6)
-      myd_in(i) = x((i-1)*8+7)
-      mzd_in(i) = x((i-1)*8+8)
+      mxd_in(i) = x((i-1)*neq_per_atom+6)
+      myd_in(i) = x((i-1)*neq_per_atom+7)
+      mzd_in(i) = x((i-1)*neq_per_atom+8)
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i))
+      if(lsuperCond) then
+          do mu = 1, nOrb
+              singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
+          end do
+      end if
     end do
-    s%Ef    = x(8*s%nAtoms+1)
+    s%Ef    = x(N)
 
     call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
+    if(lsuperCond) call update_singlet_couplings(s,singlet_coupling_in)
 
     ! call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,singlet_coupling_in,s%Ef)
     if(leigenstates) then
@@ -652,22 +660,26 @@ contains
       myd(i)    = sum(my(5:9,i))
       mzd(i)    = sum(mz(5:9,i))
     end do
-
     do i = 1, s%nAtoms
       do mu = 5,nOrb
-        fvec((i-1)*8+(mu-4)) = rho(mu,i) - rho_in(mu,i)
+        fvec((i-1)*neq_per_atom+(mu-4)) = rho(mu,i) - rho_in(mu,i)
       end do
-      fvec((i-1)*8+6) =  mxd(i) -  mxd_in(i)
-      fvec((i-1)*8+7) =  myd(i) -  myd_in(i)
-      fvec((i-1)*8+8) =  mzd(i) -  mzd_in(i)
+      fvec((i-1)*neq_per_atom+6) =  mxd(i) -  mxd_in(i)
+      fvec((i-1)*neq_per_atom+7) =  myd(i) -  myd_in(i)
+      fvec((i-1)*neq_per_atom+8) =  mzd(i) -  mzd_in(i)
+      if(lsuperCond) then
+          do mu = 1, nOrb
+              fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
+          end do
+      end if
     end do
-    fvec(8*s%nAtoms+1) = sum(rho) - s%totalOccupation
+    fvec(N) = sum(rho) - s%totalOccupation
 
-    call calcJacobian(selfconjac, N)
+    call calcJacobian_greenfunction(selfconjac, N)
 
   end subroutine lsqfun
 
-  subroutine calcJacobian(jacobian, N)
+  subroutine calcJacobian_greenfunction(jacobian, N)
     !! Calculated the Jacobian of the spin magnetization
     use mod_f90_kind,      only: double
     use mod_constants,     only: pi, ident_norb2, cZero, pauli_dorb, ident_dorb, cOne
@@ -723,14 +735,14 @@ contains
               gf(nOrb2, nOrb2, s%nAtoms, s%nAtoms), &
               temp(nOrb2, nOrb2), paulitemp(nOrb2, nOrb2), stat = AllocateStatus)
     if (AllocateStatus/=0) &
-    call abortProgram("[calcJacobian] Not enough memory for: temp1, temp2, gij, gji, gf, temp")
+    call abortProgram("[calcJacobian_greenfunction] Not enough memory for: temp1, temp2, gij, gji, gf, temp")
     gf        = cZero
     temp      = cZero
 
     if(llineargfsoc .or. llinearsoc) then
       allocate(gvg(nOrb2, nOrb2, s%nAtoms, s%nAtoms), STAT = AllocateStatus  )
       if (AllocateStatus/=0) &
-      call abortProgram("[calcJacobian] Not enough memory for: gvg")
+      call abortProgram("[calcJacobian_greenfunction] Not enough memory for: gvg")
       gvg = cZero
     end if
 
@@ -983,7 +995,7 @@ contains
     do i = 1, 8*s%nAtoms
       jacobian(i,i) = jacobian(i,i) - 1.d0
     end do
-  end subroutine calcJacobian
+  end subroutine calcJacobian_greenfunction
 
   subroutine rotate_magnetization_to_field()
   !! Rotate the magnetization to the direction of the field (useful for SOC=F)
@@ -1175,7 +1187,7 @@ contains
             write(output%unit_loop,"('Site ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mz(i)
           end if
           if(lsuperCond) then
-            write(output%unit_loop,"('Site ',I2,': ',9('Delta(',I2,')=',es16.9,4x))") i,(mu, abs(singlet_coupling(mu,i)),mu=1,nOrb)
+            write(output%unit_loop,"('Site ',I2,': Deltas =',9(es14.7,2x))") i,(abs(singlet_coupling(mu,i)),mu=1,nOrb)
           end if
         end do
         write(output%unit_loop,"(13x,'Ef=',es16.9)") Ef
@@ -1200,6 +1212,7 @@ contains
     use mod_Umatrix,     only: update_Umatrix
     use mod_tools,       only: itos
     use mod_expectation, only: expectation_values_greenfunction,expectation_values_eigenstates
+    use mod_superconductivity, only: lsuperCond, update_singlet_couplings
     use mod_mpi_pars
     implicit none
     integer  :: N,i,mu,iflag
@@ -1220,22 +1233,25 @@ contains
     rho_in = rho
     do i = 1, s%nAtoms
       do mu = 5,nOrb
-        rho_in(mu,i) = x((i-1)*8+(mu-4))
+        rho_in(mu,i) = x((i-1)*neq_per_atom+(mu-4))
       end do
       rhod_in(i)= sum(rho_in(5:9,i))
-      mxd_in(i) = x((i-1)*8+6)
-      myd_in(i) = x((i-1)*8+7)
-      mzd_in(i) = x((i-1)*8+8)
+      mxd_in(i) = x((i-1)*neq_per_atom+6)
+      myd_in(i) = x((i-1)*neq_per_atom+7)
+      mzd_in(i) = x((i-1)*neq_per_atom+8)
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i))
+      if(lsuperCond) then
+          do mu = 1, nOrb
+              singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
+          end do
+      end if
     end do
-    s%Ef    = x(8*s%nAtoms+1)
+    s%Ef    = x(N)
 
     call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
+    if(lsuperCond) call update_singlet_couplings(s,singlet_coupling_in)
 
-    ! write(*,*) rho_in
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,singlet_coupling_in,s%Ef)
-    ! call print_sc_step(sum(rho_in,2),mxd_in,myd_in,mzd_in,s%Ef)
-
 
     select case (iflag)
     case(1)
@@ -1251,16 +1267,20 @@ contains
         myd(i)    = sum(my(5:9,i))
         mzd(i)    = sum(mz(5:9,i))
       end do
-
       do i = 1, s%nAtoms
         do mu = 5,nOrb
-          fvec((i-1)*8+(mu-4)) = rho(mu,i) - rho_in(mu,i)
+          fvec((i-1)*neq_per_atom+(mu-4)) = rho(mu,i) - rho_in(mu,i)
         end do
-        fvec((i-1)*8+6) =  mxd(i) -  mxd_in(i)
-        fvec((i-1)*8+7) =  myd(i) -  myd_in(i)
-        fvec((i-1)*8+8) =  mzd(i) -  mzd_in(i)
+        fvec((i-1)*neq_per_atom+6) =  mxd(i) -  mxd_in(i)
+        fvec((i-1)*neq_per_atom+7) =  myd(i) -  myd_in(i)
+        fvec((i-1)*neq_per_atom+8) =  mzd(i) -  mzd_in(i)
+        if(lsuperCond) then
+            do mu = 1, nOrb
+                fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
+            end do
+        end if
       end do
-      fvec(8*s%nAtoms+1) = sum(rho) - s%totalOccupation
+      fvec(N) = sum(rho) - s%totalOccupation
 
       call print_sc_step(rhod,mxd,myd,mzd,deltas,s%Ef,fvec)
 
@@ -1268,7 +1288,12 @@ contains
     case(2)
       if(lcheckjac) call check_jacobian(neq,x)
 
-      call calcJacobian(selfconjac, N)
+      if(leigenstates) then
+        call abortProgram("[sc_equations_and_jacobian] Jacobian not implemented for eigenstates yet!" )
+      else
+        call calcJacobian_greenfunction(selfconjac, N)
+      end if
+
     case default
       call abortProgram("[sc_equations_and_jacobian] Problem in self-consistency! iflag = " // trim(itos(iflag)))
     end select
@@ -1398,12 +1423,12 @@ contains
     rho_in = rho
     do i = 1, s%nAtoms
       do mu = 5,nOrb
-        rho_in(mu,i) = x((i-1)*8+(mu-4))
+        rho_in(mu,i) = x((i-1)*neq_per_atom+(mu-4))
       end do
       rhod_in(i)= sum(rho_in(5:9,i))
-      mxd_in(i) = x((i-1)*8+6)
-      myd_in(i) = x((i-1)*8+7)
-      mzd_in(i) = x((i-1)*8+8)
+      mxd_in(i) = x((i-1)*neq_per_atom+6)
+      myd_in(i) = x((i-1)*neq_per_atom+7)
+      mzd_in(i) = x((i-1)*neq_per_atom+8)
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i))
       if(lsuperCond) then
           do mu = 1, nOrb
@@ -1432,17 +1457,16 @@ contains
         myd(i)    = sum(my(5:9,i))
         mzd(i)    = sum(mz(5:9,i))
       end do
-
       do i = 1, s%nAtoms
         do mu = 5,nOrb
-          fvec((i-1)*8+(mu-4)) = rho(mu,i) - rho_in(mu,i)
+          fvec((i-1)*neq_per_atom+(mu-4)) = rho(mu,i) - rho_in(mu,i)
         end do
-        fvec((i-1)*8+6) =  mxd(i) -  mxd_in(i)
-        fvec((i-1)*8+7) =  myd(i) -  myd_in(i)
-        fvec((i-1)*8+8) =  mzd(i) -  mzd_in(i)
+        fvec((i-1)*neq_per_atom+6) =  mxd(i) -  mxd_in(i)
+        fvec((i-1)*neq_per_atom+7) =  myd(i) -  myd_in(i)
+        fvec((i-1)*neq_per_atom+8) =  mzd(i) -  mzd_in(i)
         if(lsuperCond) then
             do mu = 1, nOrb
-                fvec((i-1)*8+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
+                fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
             end do
         end if
       end do
@@ -1454,7 +1478,12 @@ contains
     case(2)
       if(lcheckjac) call check_jacobian(neq,x)
 
-      call calcJacobian(selfconjac, N)
+      if(leigenstates) then
+        call abortProgram("[sc_equations_and_jacobian] Jacobian not implemented for eigenstates yet!" )
+      else
+        call calcJacobian_greenfunction(selfconjac, N)
+      end if
+
     case default
       call abortProgram("[sc_eqs_and_jac_old] Problem in self-consistency! iflag = " // trim(itos(iflag)))
     end select flag
@@ -1491,12 +1520,12 @@ contains
     rho_in = rho
     do i = 1, s%nAtoms
       do mu = 5,nOrb
-        rho_in(mu,i) = x((i-1)*8+(mu-4))
+        rho_in(mu,i) = x((i-1)*neq_per_atom+(mu-4))
       end do
       rhod_in(i)= sum(rho_in(5:9,i))
-      mxd_in(i) = x((i-1)*8+6)
-      myd_in(i) = x((i-1)*8+7)
-      mzd_in(i) = x((i-1)*8+8)
+      mxd_in(i) = x((i-1)*neq_per_atom+6)
+      myd_in(i) = x((i-1)*neq_per_atom+7)
+      mzd_in(i) = x((i-1)*neq_per_atom+8)
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i))
       if(lsuperCond) then
           do mu = 1, nOrb
@@ -1525,14 +1554,14 @@ contains
     end do
     do i = 1, s%nAtoms
       do mu = 5,nOrb
-        fvec((i-1)*8+(mu-4)) = rho(mu,i) - rho_in(mu,i)
+        fvec((i-1)*neq_per_atom+(mu-4)) = rho(mu,i) - rho_in(mu,i)
       end do
-      fvec((i-1)*8+6) =  mxd(i) -  mxd_in(i)
-      fvec((i-1)*8+7) =  myd(i) -  myd_in(i)
-      fvec((i-1)*8+8) =  mzd(i) -  mzd_in(i)
+      fvec((i-1)*neq_per_atom+6) =  mxd(i) -  mxd_in(i)
+      fvec((i-1)*neq_per_atom+7) =  myd(i) -  myd_in(i)
+      fvec((i-1)*neq_per_atom+8) =  mzd(i) -  mzd_in(i)
       if(lsuperCond) then
           do mu = 1, nOrb
-              fvec((i-1)*8+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
+              fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
           end do
       end if
     end do
@@ -1572,12 +1601,12 @@ contains
     rho_in = rho
     do i = 1, s%nAtoms
       do mu = 5,nOrb
-        rho_in(mu,i) = x((i-1)*8+(mu-4))
+        rho_in(mu,i) = x((i-1)*neq_per_atom+(mu-4))
       end do
       rhod_in(i)= sum(rho_in(5:9,i))
-      mxd_in(i) = x((i-1)*8+6)
-      myd_in(i) = x((i-1)*8+7)
-      mzd_in(i) = x((i-1)*8+8)
+      mxd_in(i) = x((i-1)*neq_per_atom+6)
+      myd_in(i) = x((i-1)*neq_per_atom+7)
+      mzd_in(i) = x((i-1)*neq_per_atom+8)
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i))
       if(lsuperCond) then
           do mu = 1, nOrb
@@ -1592,7 +1621,7 @@ contains
 
     fvec=fvec
 
-    call calcJacobian(selfconjac, N)
+    call calcJacobian_greenfunction(selfconjac, N)
 
     iter = iter + 1
   end subroutine sc_jac_old
