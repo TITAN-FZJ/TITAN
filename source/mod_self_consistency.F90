@@ -425,7 +425,7 @@ contains
     real(double),allocatable      :: fvec(:),jac(:,:),wa(:),sc_solu(:)
     real(double),allocatable      :: diag(:),qtf(:)
     real(double)                  :: epsfcn,factor
-#if !defined(_OSX)
+#if !defined(_OSX) && !defined(_GNU)
     real(double)                  :: ruser(1)
     integer                       :: iuser(1)
 #else
@@ -490,7 +490,16 @@ contains
       end if
     end if
     deallocate( w )
-#else
+#elif defined(_GNU)
+    lwa=neq*(3*neq+13)/2
+    allocate( wa(lwa),w(neq,4) )
+    if(lnojac) then
+      call dnsqe(sc_eqs_old,sc_jac_old,2,neq,sc_solu,fvec,mag_tol,0,ifail,wa,lwa)
+    else
+      call dnsqe(sc_eqs_old,sc_jac_old,1,neq,sc_solu,fvec,mag_tol,0,ifail,wa,lwa)
+    end if
+    ifail = ifail-1
+#else 
     if(lslatec) then
       lwa=neq*(3*neq+13)/2
       allocate( wa(lwa) )
@@ -534,7 +543,7 @@ contains
 
   subroutine check_jacobian(neq,x)
     use mod_parameters, only: output,lcheckjac
-    use mod_mpi_pars,   only: rField
+    use mod_mpi_pars,   only: rField,abortProgram
     use mod_chkder
     implicit none
     integer :: liw,lw,ifail
@@ -559,12 +568,14 @@ contains
     if(rField == 0) &
     write(output%unit_loop,"('[check_jacobian] Checking Jacobian if Jacobian is correct...')", advance='no')
 
+#if !defined(_GNU)
     call e04yaf(neq,neq,lsqfun,x,fvec,jac,neq,iw,liw,w,lw,ifail)
 
     ! if(rField == 0) write(*,*) ifail
-
+#else
 !     call chkder(neq,neq,x,fvec,jac,neq,xp,fvecp,1,err)
-
+    call abortProgram("[check_jacobian] Not implemented for GNU compiler (with slatec).")
+#endif
 ! #if defined(_OSX)
 !     call sc_eqs_and_jac_old(neq,x ,fvec ,jac,neq,1)
 !     call sc_eqs_and_jac_old(neq,x ,fvec ,jac,neq,2)

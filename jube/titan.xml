@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jube>
+  <benchmark name="titan_benchmark" outpath="bench_run">
+    <comment>Benchmark for TITAN</comment>
+
+    <!-- Configuration of compilers -->
+    <parameterset name="compilationParameter">
+      <parameter name="compiler" tag="!pmpi+!gnu">impi</parameter>
+      <parameter name="compiler" tag="pmpi">pmpi</parameter>
+      <parameter name="compiler" tag="gnu">gnu</parameter>
+      <parameter name="flags" tag="pmpi">-DSUFFIX=pmpi</parameter>
+      <parameter name="flags" tag="gnu">-DCOMPILER=gnu</parameter>
+
+      <parameter name="parallel_type" tag="hybrid">hybrid</parameter>
+      <parameter name="parallel_type" tag="omp">omp</parameter>
+      <parameter name="parallel_type" tag="mpi">mpi</parameter>
+      <parameter name="machine" tag="jureca">jureca</parameter>
+      <parameter name="machine" tag="booster">booster</parameter>
+      <parameter name="machine" tag="juwels">juwels</parameter>
+      <parameter name="machine" tag="jusuf">jusuf</parameter>
+    </parameterset>
+
+    <!-- Configuration of submission script -->
+    <parameterset name="systemParameter" init_with="platform.xml">
+      <parameter name="mail"></parameter>
+      <!-- JURECA -->
+      <parameter name="queue" tag="jureca">devel</parameter>
+      <parameter name="taskspernode" type="int" mode="python" tag="jureca">
+      { "hybrid": "1,2,3,4,6,8,12,16,24,48", 
+        "mpi": "1,2,3,4,6,8,12,16,24,48", 
+        "omp": "1"}["${parallel_type}"]
+      </parameter>
+      <parameter name="threadspertask" type="int" mode="python" tag="jureca">
+      { "hybrid": { "1": "1,2,3,4,6,8,12,16,24,48", 
+                    "2": "1,2,3,4,6,8,12,16,24", 
+                    "3": "1,2,3,4,6,8,12,16", 
+                    "4": "1,2,3,4,6,8,12", 
+                    "6": "1,2,3,4,6,8", 
+                    "8": "1,2,3,4,6", 
+                    "12": "1,2,3,4", 
+                    "16": "1,2,3", 
+                    "24": "1,2", 
+                    "48": "1"}["${taskspernode}"], 
+        "mpi": "1", 
+        "omp": "1,2"}["${parallel_type}"]
+      </parameter>
+
+      <!-- JURECA Booster -->
+      <parameter name="queue" tag="booster">develbooster</parameter>
+      <parameter name="taskspernode" type="int" mode="python" tag="booster">
+      { "booster": {"hybrid": "1,2,4,17,34,68", 
+        "mpi": "1,2,4,17,34,68", 
+        "omp": "1"}["${parallel_type}"]
+      </parameter>
+      <parameter name="threadspertask" type="int" mode="python" tag="booster">
+      { "hybrid": { "1": "1,2,4,17,34,68", 
+                    "2": "1,2,4,17,34",
+                    "4": "1,2,4,17", 
+                    "17": "1,2,4", 
+                    "34": "1,2", 
+                    "68": "1"}["${taskspernode}"], 
+        "mpi": "1", 
+        "omp": "1,2,4,17,34,68"}["${parallel_type}"]
+      </parameter>
+
+      <!-- JUWELS -->
+      <parameter name="queue" tag="juwels">devel</parameter>
+      <parameter name="taskspernode" type="int" mode="python" tag="juwels">
+      { "hybrid": "1,2,3,4,6,8,12,16,24,48,96", 
+        "mpi": "1,2,3,4,6,8,12,16,24,48,96", 
+        "omp": "1"}["${parallel_type}"]
+      </parameter>
+      <parameter name="threadspertask" type="int" mode="python" tag="juwels">
+      { "hybrid": { "1": "1,2,3,4,6,8,12,16,24,32,48,96", 
+                    "2": "1,2,3,4,6,8,12,16,24,32,48", 
+                    "3": "1,2,3,4,6,8,12,16,24,32", 
+                    "4": "1,2,3,4,6,8,12,16,24", 
+                    "6": "1,2,3,4,6,8,12,16", 
+                    "8": "1,2,3,4,6,8,12", 
+                    "12": "1,2,3,4,6,8", 
+                    "16": "1,2,3,4,6", 
+                    "24": "1,2,3,4", 
+                    "32": "1,2,3", 
+                    "48": "1,2",
+                    "96": "1"}["${taskspernode}"], 
+        "mpi": "1", 
+        "omp": "1,2,3,4,6,8,12,16,24,48,96"}["${parallel_type}"]
+      </parameter>
+
+      <!-- JUSUF -->
+      <parameter name="queue" tag="jusuf">batch</parameter>
+      <parameter name="taskspernode" type="int" mode="python" tag="jusuf">
+      { "hybrid": "1,2,4,8,16,32,64,128", 
+        "mpi": "1,2,4,8,16,32,64,128", 
+        "omp": "1"}["${parallel_type}"]
+      </parameter>
+      <parameter name="threadspertask" type="int" mode="python" tag="jusuf">
+      { "hybrid": { "1": "1,2,4,8,16,32,64,128", 
+                    "2": "1,2,4,8,16,32,64", 
+                    "4": "1,2,4,8,16,32", 
+                    "8": "1,2,4,8,16", 
+                    "16": "1,2,4,8", 
+                    "32": "1,2,4", 
+                    "64": "1,2", 
+                    "128": "1"}["${taskspernode}"], 
+        "mpi": "1", 
+        "omp": "1,2,4,8,16,32,64,128"}["${parallel_type}"]
+      </parameter>
+
+      <parameter name="notification">ALL</parameter>
+      <parameter name="nodes" type="int">1</parameter>
+      <parameter name="timelimit">02:00:00</parameter>
+      <parameter name="account" tag="jureca|juwels|booster">cstao</parameter>
+      <parameter name="account" tag="jusuf">zam</parameter>
+      <parameter name="env">${load_modules}</parameter>
+      <parameter name="executable" mode="python">{"impi":"${folder}/bin/titan_${machine}.exe", "pmpi":"${folder}/bin/titan_${machine}_${compiler}.exe", "gnu":"${folder}/bin/titan_${machine}_${compiler}.exe"}["${compiler}"]</parameter>
+      <parameter name="preprocess"></parameter>
+    </parameterset>
+
+    <!-- Configuration of program -->
+    <parameterset name="programset" init_with="platform.xml:executeset">
+      <parameter name="folder">$$HOME/shared/TITAN</parameter>
+      <parameter name="inputsfolder">$$HOME/shared/TITAN/jube</parameter>
+    </parameterset>
+
+    <!-- Configuration of the environment -->
+    <parameterset name="modules">
+      <parameter name="load_modules" mode="python">{"jureca":{"impi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 IntelMPI/2019.6.154 imkl NAG/Mark26 CMake;",
+                                                              "pmpi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 ParaStationMPI/5.2.2-1 imkl NAG/Mark26 CMake",
+                                                               "gnu":"module purge; ml GCC/8.3.0 OpenMPI/4.0.2 imkl CMake"}["${compiler}"],
+                                                    "booster":{"impi":"module purge ; module load Architecture/KNL ; ml Intel/2019.5.281-GCC-8.3.0 IntelMPI/2019.6.154 imkl CMake ; export NAG_KUSARI_FILE=$$HOME/BoosterNAG/license.lic",
+                                                               "pmpi":"module purge ; module load Architecture/KNL ; ml Intel/2019.5.281-GCC-8.3.0 ParaStationMPI/5.2.2-1 imkl CMake ; export NAG_KUSARI_FILE=$$HOME/BoosterNAG/license.lic",
+                                                                "gnu":"module purge ; module load Architecture/KNL ; ml GCC/8.3.0 OpenMPI/4.0.2 imkl CMake ; export NAG_KUSARI_FILE=$$HOME/BoosterNAG/license.lic"}["${compiler}"],
+                                                    "juwels":{"impi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 IntelMPI/2019.6.154 imkl CMake;",
+                                                              "pmpi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 ParaStationMPI/5.2.2-1 CMake;",
+                                                               "gnu":"module purge; ml GCC/8.3.0 OpenMPI/4.0.2 imkl CMake;"}["${compiler}"],
+                                                    "jusuf":{"impi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 IntelMPI/2019.6.154 imkl CMake;",
+                                                             "pmpi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 ParaStationMPI/5.2.2-1 CMake;",
+                                                              "gnu":"module purge; ml GCC/8.3.0 OpenMPI/4.0.2 imkl/2019.5.281 CMake;"}["${compiler}"]
+                                                    }["${machine}"]</parameter>
+    </parameterset>
+
+    <!-- Configuration of input parameters -->
+    <parameterset name="inputParameter">
+      <parameter name="type" type="int" tag="sc">1</parameter>
+      <parameter name="type" type="int" tag="time_prop">11</parameter>
+      <parameter name="options">slatec createfolders positions ontheflysc eigenstates nojac</parameter>
+      <parameter name="eta" type="float">1.e-3</parameter>
+      <parameter name="kpoints" type="int">1000000</parameter>
+      <parameter name="output_file">output/out_${eta}_${kpoints}</parameter>
+      <parameter name="soc">T</parameter>
+      <parameter name="supercond">F</parameter>
+      <parameter name="skipsc">F</parameter>
+    </parameterset>
+
+    <!-- Configuration of element parameters -->
+    <parameterset name="elementParameter">
+      <parameter name="element">Ni</parameter>
+      <parameter name="uint" type="float">0.09559</parameter>
+      <parameter name="lambda" type="float">0.0</parameter> <!-- If one lambda is used -->
+      <parameter name="lambda_s" type="float">0.0</parameter>
+      <parameter name="lambda_p" type="float">0.0</parameter>
+      <parameter name="lambda_d" type="float">0.0</parameter>
+      <parameter name="same_lambda">$lambda $lambda $lambda</parameter>
+    </parameterset>
+
+
+    <!-- Files -->
+    <fileset name="input_files">
+      <copy>${inputsfolder}/input.in</copy>
+      <copy>${inputsfolder}/${element}.in</copy>
+      <copy>${inputsfolder}/basis</copy>
+      <copy>${inputsfolder}/kbands</copy>
+    </fileset>
+
+    <!-- Substitute -->
+    <substituteset name="inputSubstitutions">
+      <!-- Substitute files -->
+      <iofile in="input.in" out="input" />
+      <!-- Substitute commands -->
+      <sub source="#TYPE#" dest="$type" />
+      <sub source="#OUTPUT_FILE#" dest="$output_file" />
+      <sub source="#OPTIONS#" dest="$options" />
+      <sub source="#SOC#" dest="$soc" />
+      <sub source="#SUPERCOND#" dest="$supercond" />
+      <sub source="#ETA#" dest="$eta" />
+      <sub source="#KPOINTS#" dest="$kpoints" />
+      <sub source="#SKIPSC#" dest="$skipsc" />
+    </substituteset>
+
+    <substituteset name="elementSubstitutions">
+      <!-- Substitute files -->
+      <iofile in="$element.in" out="$element" />
+      <!-- Substitute commands -->
+      <sub source="#UINT#" dest="$uint" />
+      <sub source="#LAMBDA#" dest="$same_lambda" />
+    </substituteset>
+
+    <!-- Pattern for runtime -->
+    <patternset name="runtimePattern">
+      <pattern name="runtime" type="float" unit="s">Finished on:.*Elapsed time:\s*${jube_pat_fp}</pattern>
+      <pattern name="mpi_processes" type="int">Running on ${jube_pat_int}</pattern>
+      <pattern name="omp_threads" type="int">process\(es\) WITH ${jube_pat_int}</pattern>
+    </patternset>
+
+    <!-- Pattern for results -->
+    <patternset name="resultsPattern">
+      <pattern name="nkpt" type="int">nkpt = ${jube_pat_int}</pattern>
+      <pattern name="delta_d" type="float">Dd\( 1\)= ${jube_pat_fp}</pattern>
+      <pattern name="mag" type="float" unit="muB">M\( 1\)= ${jube_pat_fp}</pattern>
+      <pattern name="orb" type="float" unit="muB">L\( 1\)= ${jube_pat_fp}</pattern>
+    </patternset>
+
+    <!-- Pattern for job status -->
+    <patternset name="job_pat">
+      <pattern mode="pattern" name="job_id" type="int">Submitted batch job ${jube_pat_int}</pattern>
+      <pattern name="status" mode="perl">'`sacct --format State -j $job_id | head -n 3 | tail -n 1`'</pattern>
+      <pattern name="exit_code" mode="perl">'`sacct --format ExitCode -j $job_id | head -n 3 | tail -n 1`'</pattern>
+    </patternset>
+
+
+    <!-- Compilation -->
+    <step name="compile" suffix="${compiler}">
+      <use>compilationParameter</use>
+      <use tag="compile">modules</use>
+      <use tag="compile">programset</use>
+      <do tag="compile">${load_modules}</do>
+      <!-- patch for Jureca's GPUs -->
+      <do tag="compile" work_dir="${folder}/build">rm -r *</do>
+      <do tag="compile" work_dir="${folder}/build">cmake ../ -DPLATFORM=${machine} ${flags}</do>
+      <do tag="compile" work_dir="${folder}/build">make -j24</do>
+      <do tag="!compile">echo "'compile' tag was not used. Skipping compilation for ${compiler}..."</do>
+    </step>
+
+
+    <!-- Operation -->
+    <step name="execute" depend="compile">
+      <!-- Definint variables -->
+      <use>compilationParameter</use>     <!-- use compilation parameterset -->
+      <use>programset</use>               <!-- use program parameterset -->
+      <use>modules</use>                  <!-- use modules parameterset -->
+      <use>systemParameter</use>          <!-- use system parameterset -->
+      <use>elementParameter</use>         <!-- use element parameterset -->
+      <use>inputParameter</use>           <!-- use input parameterset -->
+      <!-- Using files -->
+      <use>input_files</use>                    <!-- use TITAN input fileset -->
+      <use from="platform.xml">jobfiles</use>   <!-- use job files -->
+      <!-- Making substitutions -->
+      <use>inputSubstitutions</use>              <!-- use input substitutions -->
+      <use>elementSubstitutions</use>            <!-- use element substitutions -->
+      <use from="platform.xml">executesub</use>  <!-- use job substitutions -->
+      <!-- Tasks -->
+      <do>mkdir -p $(dirname $output_file)</do>  <!-- create output folder if necessary -->
+      <do>$submit $submit_script</do>            <!-- Submitting job -->
+      <do done_file="$done_file"></do>           <!-- Creating "done" file -->
+    </step>
+
+    <!-- Analyse -->
+    <analyser name="analyse" reduce="false">
+      <use>runtimePattern</use> <!-- use runtime patternset -->
+      <use>resultsPattern</use> <!-- use results patternset -->
+      <analyse step="execute">
+        <file>$output_file</file>
+        <file use="job_pat">stdout</file>
+      </analyse>
+    </analyser>
+
+    <!-- Create result table -->
+    <result>
+      <use>analyse</use> <!-- use existing analyser -->
+      <table name="result" style="pretty" tag="!csv">
+        <column>nodes</column>
+        <column>parallel_type</column>
+        <column title="Processes">mpi_processes</column>
+        <column title="Threads">omp_threads</column>
+        <column title="SOC">soc</column>
+        <column title="U[Ry]">uint</column>
+        <column title="eta[Ry]">eta</column>
+        <column title="lambda[Ry]">lambda</column>
+        <column title="M[muB]" format=".3f">mag</column>
+        <column title="L[muB]" format=".3f">orb</column>
+        <column>delta_d</column>
+        <column>nkpt</column>
+        <column>runtime</column>
+        <column>status</column>
+      </table>
+
+      <table name="result-csv" style="csv" tag="csv">
+        <column>nodes</column>
+        <column>parallel_type</column>
+        <column title="Processes">mpi_processes</column>
+        <column title="Threads">omp_threads</column>
+        <column title="SOC">soc</column>
+        <column title="U[Ry]">uint</column>
+        <column title="eta[Ry]">eta</column>
+        <column title="lambda[Ry]">lambda</column>
+        <column title="M[muB]" format=".3f">mag</column>
+        <column title="L[muB]" format=".3f">orb</column>
+        <column>delta_d</column>
+        <column>nkpt</column>
+        <column>runtime</column>
+        <column>status</column>
+      </table>
+    </result>
+
+  </benchmark>
+</jube>

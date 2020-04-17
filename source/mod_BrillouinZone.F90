@@ -656,7 +656,7 @@ contains
     allocate( diff_k_loc(ndiffk_max) )
     diff_k_loc(:) = 999.d0
 
-    !$omp do schedule(static) reduction(+:count)
+    !$omp do schedule(dynamic) reduction(+:count)
     do l=1, nkpt
       nx = int(mod(floor(dble(l-1) / dble(nkpt_y*nkpt_z),kind(nx)), nkpt_x),kind(nx))
       ny = int(mod(floor(dble(l-1) / dble(nkpt_z),kind(ny)), nkpt_y),kind(nx))

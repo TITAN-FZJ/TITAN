@@ -1,0 +1,125 @@
+!*******************************************************************************!
+!                           CHOOSE WHAT TO CALCULATE                            !
+-> itype = #TYPE#
+!===============================================================================!
+!                                OUTPUT FILE                                    !
+-> output = #OUTPUT_FILE#
+!-> suffix = _p_l_x
+!===============================================================================!
+!                         OPTIONAL RUNNING VARIABLES                            !
+-> Options = #OPTIONS#  
+!===============================================================================!
+!                               SYSTEM VARIABLES                                !
+! System dimension: (1,2,3)
+-> sysdim = 3
+! Lattice and surface direction:                                                !
+-> nn_stages = 2
+! Small imaginary part of the Green function:
+-> eta = #ETA#
+!===============================================================================!
+!                          STATIC MAGNETIC ZEEMAN FIELD                         !
+!                         (in the spin reference system)                        !
+-> FIELD = F  ! Magnetic field on (T) or off (F) (choose one form below)
+! Spherical coordinates (default, angles in units of pi)                        !
+-> hwa   = 4.2561625e-5 
+-> hwt   = 0.0E+00
+-> hwp   = 0.0E+00
+! Cartesian coordinates                                                         !
+-> hwx = 0.0E+00
+-> hwy = 0.0E+00
+-> hwz = 0.0E+00
+!===============================================================================!
+!                             SPIN ORBIT COUPLING                               !
+-> SOC = #SOC#
+-> socscale = 1.00d0
+!===============================================================================!
+!                              SUPERCONDUCTIVITY                                !
+-> supercond = #SUPERCOND#
+!===============================================================================!
+!                      REAL-TIME PROPAGATION  (itype=11)                        !
+! Magnetic field:
+-> magnetic = F
+! Pulse (if F, oscillatory field)
+-> pulse_m = F
+! Number of pulses:
+-> npulse_m = 1
+
+! Intensity of transverse magnetic field:                                       !
+-> hw1_m = 4.2561625e-6
+! 2.12808125e-5
+!-> hw1_m = 5.788381e-6
+!-> hw1_m = 5.d-3
+
+! Frequency of transverse magnetic field:                                       !
+!-> hw_m = 11.576762e-5
+-> hw_m = 4.2561625e-5
+
+-> tau_m = 2.d3
+-> delay_m = 0.d0
+-> polarization_m = p
+!-------------------------------------------------------------------------------!
+! Electric field:
+-> electric = T
+! Pulse (if F, oscillatory field)
+-> pulse_e = T
+! Number of pulses:
+-> npulse_e = 2
+
+! direction of the field
+!-> polarization_e = x p
+
+-> polarization_vec_ip_e = 1.d0 0.d0 0.d0 1.d0 0.d0 0.d0 
+-> polarization_vec_op_e = 0.d0 0.d0 0.d0 0.d0 1.d0 0.d0
+
+! Intensity of the field:
+-> hE_0 = 2.6677E-1 2.0E-1
+! Frequency of oscillation hw_e.t:
+-> hw_e = 0.114e0 0.114e0
+
+! Length of the pulse (must be given if pulse=T)
+-> tau_e = 20.7d0 683.2d0
+! Delay of the pulse 
+-> delay_e = 0.d0 1138.7  ! Center of the pulse is located at 0.5tau when delay_e=0.d0 
+!-------------------------------------------------------------------------------!
+! Total time:                                                                   !
+-> integration_time = 2.e4
+! Absolute tolerance:
+-> abs_tol = 1.d-3
+! Relative tolerance:
+-> rel_tol = 1.d-3
+! Step size:                                                                    !
+! -> step = 1.e0
+!===============================================================================!
+!                           INTEGRATION VARIABLES                               !
+! Approxiamte number of k-points: (nkpt > 0)                                    !
+-> nkpt = #KPOINTS#
+! Number of parts to divide energy integral in complex plane:                   !
+-> parts = 2
+-> n1gl = 64
+!  Number of parts to divide energy integral in real axis:                      !
+-> parts3 = 1
+-> n3gl = 64
+!===============================================================================!
+!                              PLOTTING VARIABLES                               !
+! Energy range and number of points:                                            !
+-> emin =  0.d0
+-> emax =  5.d-2
+-> nEner = 500
+!-> skip_steps = 0
+!- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -!
+! Wave vector path and number of points:                                        !
+-> band = G
+-> nQvec = 1
+-> qbasis = cartesian
+!===============================================================================!
+!                              SELF-CONSISTENCY                                 !
+!        (Finding center of the bands for the given number of particles)        !
+-> skipsc = #SKIPSC# ! skip self-consistency calculation when it finds previous results
+! File to use as starting point:
+!-> scfile = CoSCTSOC.dat
+!===============================================================================!
+!                   DIRECTION OF IN-PLANE ELECTRIC FIELD                        !
+!                    (For linear response calculations)                         !
+-> ebasis = cartesian
+-> dirEfield = 1.0 0.0 0.0
+!*******************************************************************************!

@@ -1,0 +1,3 @@
+The titan.xml file can be used as a symlink
+ln -s titan.xml work_dir/
+

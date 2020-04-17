@@ -127,6 +127,12 @@ else()
   set(SUFFIX)
 endif()
 
+if(COMPILER MATCHES gfortran OR COMPILER MATCHES gcc OR COMPILER MATCHES gfort OR COMPILER MATCHES gnu)
+  set(COMPILER gnu)
+  set(SUFFIX ${SUFFIX}_gnu)
+  execute_process(COMMAND echo "Using GCC Compiler")
+endif()
+
 set(TITAN_EXE titan_${PLATFORM}${DEBUGSUFFIX}${INSTRUMENT}${SUFFIX}.exe)
 
 add_executable(${TITAN_EXE} ${SOURCE_TITAN})
@@ -137,100 +143,154 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
 execute_process(COMMAND git describe --abbrev=4 --dirty --always --tags OUTPUT_VARIABLE GIT_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-if(PLATFORM MATCHES jureca)
-  target_link_libraries(${TITAN_EXE} -mkl -lnag -qopenmp)
-  target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                              -fpp
+if(NOT COMPILER MATCHES gnu)
+  if(PLATFORM MATCHES jureca)
+    target_link_libraries(${TITAN_EXE} -mkl -lnag -qopenmp)
+    target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
+                                                -fpp
+                                                -DVERSION="${GIT_VERSION}"
+                                                -qopenmp
+                                                -g
+                                                -mkl
+                                                -xHost)
+  elseif(PLATFORM MATCHES juwels)
+    target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
+    target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
+                                                -fpp
+                                                -D_OSX
+                                                -DVERSION="${GIT_VERSION}"
+                                                -qopenmp
+                                                -g
+                                                -mkl
+                                                -xHost)
+  elseif(PLATFORM MATCHES jusuf)
+    target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
+    target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
+                                                -fpp
+                                                -D_OSX
+                                                -DVERSION="${GIT_VERSION}"
+                                                -qopenmp
+                                                -g
+                                                -mkl
+                                                -xHost)
+  elseif(PLATFORM MATCHES osx)
+    target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
+    target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
+                                                -D_OSX
+                                                -fpp
+                                                -DVERSION="${GIT_VERSION}"
+                                                -qopenmp
+                                                -g
+                                                -mkl
+                                                -xHost)
+  elseif(PLATFORM MATCHES booster)
+    link_directories($ENV{HOME}/BoosterNAG)
+    target_link_libraries(${TITAN_EXE} -mkl
+                                       -qopenmp
+                                       -I$ENV{HOME}/BoosterNAG/nag_interface_blocks
+                                       -L$ENV{HOME}/BoosterNAG
+                                       -lnag )
+    target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
+                                                -fpp
+                                                -DVERSION="${GIT_VERSION}"
+                                                -mkl
+                                                -g
+                                                -I$ENV{HOME}/BoosterNAG/nag_interface_blocks
+                                                -xMIC-AVX512
+                                                -qopenmp)
+  elseif(PLATFORM MATCHES rwth)
+    target_link_libraries(${TITAN_EXE} -mkl $ENV{FLAGS_NAG_LINKER} -qopenmp)
+    target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
+                                                -fpp
+                                                -DVERSION="${GIT_VERSION}"
+                                                -qopenmp
+                                                -g
+                                                -mkl
+                                                $ENV{FLAGS_NAG_INCLUDE}
+                                                -xHost)
+  elseif(PLATFORM MATCHES iff)
+    target_link_libraries(${TITAN_EXE} -mkl -L/usr/local/nag/lib -lnag -qopenmp)
+    target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
+                                                -DVERSION="${GIT_VERSION}"
+                                                -fpp
+                                                -qopenmp
+                                                -g
+                                                -mkl
+                                                -xHost)
+  elseif(PLATFORM MATCHES hh)
+    target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lnag -qopenmp)
+    target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
+                                                -fpp
+                                                -D_OSX
+                                                -DVERSION="${GIT_VERSION}"
+                                                -qopenmp
+                                                -g
+                                                -mkl
+                                                -xCORE-AVX2)
+  else()
+    target_link_libraries(${TITAN_EXE} -mkl -qopenmp /opt/NAG/fll6i26dcl/lib/libnag_nag.a)
+    target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
+                                             -fpp
+                                             -DVERSION="${GIT_VERSION}"
+                                             -qopenmp
+                                             -mkl
+                                             #-ipo
+                                             #-qopt-report=5
+                                             -g
+                                             -xHost)
+  endif()
+
+  if(DEBUG)
+    target_compile_options(${TITAN_EXE} PRIVATE -C
+                                                -CB
+                                                -check uninit
+                                                -debug all
+                                                -warn all
+                                                -ftrapuv
+                                                -traceback
+                                                -qopenmp
+                                                -fpp
+                                                -DVERSION="${GIT_VERSION}"
+                                                -g
+                                                -O0)
+  else()
+    target_compile_options(${TITAN_EXE} PRIVATE -O3)
+  endif(DEBUG)
+
+else() # GFORTRAN:
+  target_link_libraries(${TITAN_EXE} -I${MKLROOT}/include -L${MKLROOT}/lib/ -lmkl_core -lmkl_gnu_thread -lmkl_gf_lp64 -fopenmp)
+  target_compile_options(${TITAN_EXE} PRIVATE -cpp
+                                              -D_GNU
                                               -DVERSION="${GIT_VERSION}"
-                                              -qopenmp
+                                              -fopenmp
+                                              -ffree-form
+                                              -ffree-line-length-0 
                                               -g
-                                              -mkl
-                                              -xHost)
-elseif(PLATFORM MATCHES juwels)
-  target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
-  target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                              -fpp
-                                              -D_OSX
-                                              -DVERSION="${GIT_VERSION}"
-                                              -qopenmp
-                                              -g
-                                              -mkl
-                                              -xHost)
-elseif(PLATFORM MATCHES jusuf)
-  target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
-  target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                              -fpp
-                                              -D_OSX
-                                              -DVERSION="${GIT_VERSION}"
-                                              -qopenmp
-                                              -g
-                                              -mkl
-                                              -xHost)
-elseif(PLATFORM MATCHES osx)
-  target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
-  target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                              -D_OSX
-                                              -fpp
-                                              -DVERSION="${GIT_VERSION}"
-                                              -qopenmp
-                                              -g
-                                              -mkl
-                                              -xHost)
-elseif(PLATFORM MATCHES booster)
-  link_directories($ENV{HOME}/BoosterNAG)
-  target_link_libraries(${TITAN_EXE} -mkl
-                                     -qopenmp
-                                     -I$ENV{HOME}/BoosterNAG/nag_interface_blocks
-                                     -L$ENV{HOME}/BoosterNAG
-                                     -lnag )
-  target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                              -fpp
-                                              -DVERSION="${GIT_VERSION}"
-                                              -mkl
-                                              -g
-                                              -I$ENV{HOME}/BoosterNAG/nag_interface_blocks
-                                              -xMIC-AVX512
-                                              -qopenmp)
-elseif(PLATFORM MATCHES rwth)
-  target_link_libraries(${TITAN_EXE} -mkl $ENV{FLAGS_NAG_LINKER} -qopenmp)
-  target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                              -fpp
-                                              -DVERSION="${GIT_VERSION}"
-                                              -qopenmp
-                                              -g
-                                              -mkl
-                                              $ENV{FLAGS_NAG_INCLUDE}
-                                              -xHost)
-elseif(PLATFORM MATCHES iff)
-  target_link_libraries(${TITAN_EXE} -mkl -L/usr/local/nag/lib -lnag -qopenmp)
-  target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                              -DVERSION="${GIT_VERSION}"
-                                              -fpp
-                                              -qopenmp
-                                              -g
-                                              -mkl
-                                              -xHost)
-elseif(PLATFORM MATCHES hh)
-  target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lnag -qopenmp)
-  target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                              -fpp
-                                              -D_OSX
-                                              -DVERSION="${GIT_VERSION}"
-                                              -qopenmp
-                                              -g
-                                              -mkl
-                                              -xCORE-AVX2)
-else()
-  target_link_libraries(${TITAN_EXE} -mkl -qopenmp /opt/NAG/fll6i26dcl/lib/libnag_nag.a)
-  target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                           -fpp
-                                           -DVERSION="${GIT_VERSION}"
-                                           -qopenmp
-                                           -mkl
-                                           #-ipo
-                                           #-qopt-report=5
-                                           -g
-                                           -xHost)
+                                              -march=native)
+
+  if(DEBUG)
+    target_compile_options(${TITAN_EXE} PRIVATE -C
+                                                -Wall 
+                                                -Wextra 
+                                                -Warray-temporaries 
+                                                -Wconversion 
+                                                -fimplicit-none 
+                                                -fbacktrace 
+                                                -ffree-form
+                                                -ffree-line-length-0 
+                                                -fcheck=all 
+                                                -ffpe-trap=zero,overflow,underflow 
+                                                -finit-real=nan
+                                                -ftrapv
+                                                -fopenmp
+                                                -cpp
+                                                -DVERSION="${GIT_VERSION}"
+                                                -g
+                                                -O0)
+  else()
+    target_compile_options(${TITAN_EXE} PRIVATE -O3)
+  endif(DEBUG)
+
 endif()
 
 #target_compile_options(${EXEC_NAME} PRIVATE -no-wrap-margin
@@ -243,25 +303,10 @@ endif()
 #         -xHost
 #)
 
-if(DEBUG)
-  target_compile_options(${TITAN_EXE} PRIVATE -C
-                                              -CB
-                                              -check uninit
-                                              -debug all
-                                              -warn all
-                                              -ftrapuv
-                                              -traceback
-                                              -qopenmp
-                                              -fpp
-                                              -DVERSION="${GIT_VERSION}"
-                                              -g
-                                              -O0)
-else()
-  target_compile_options(${TITAN_EXE} PRIVATE -O3)
-endif(DEBUG)
 #target_link_libraries(${EXEC_NAME} ${NAG}/lib/libnag_nag.a -qopenmp)
 
-unset(DEBUG CACHE)
-unset(DEBUGSUFFIX CACHE)
-unset(PREP CACHE)
-unset(SUFFIX CACHE)
+# unset(DEBUG CACHE)
+# unset(DEBUGSUFFIX CACHE)
+# unset(PREP CACHE)
+# unset(SUFFIX CACHE)
+# unset(COMPILER CACHE)

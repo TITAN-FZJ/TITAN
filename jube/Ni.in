@@ -1,0 +1,40 @@
+Ni fcc bulk
+ 6.55
+ 0.5    0.5     0.0
+ 0.5    0.0     0.5
+ 0.0    0.5     0.5
+ Ni
+ 1
+ L
+ 0.0    0.0     0.0
+3
+0.6410
+0.69  0.34  8.97
+#UINT#
+0.0000 0.00978
+#LAMBDA#
+2
+  s on-site      1.1552640200      1                            Ni
+  p on-site      1.6058666706      2                            Ni
+  t2g on-site	 0.5606777072      3                            Ni
+   eg on-site	 0.5575338006      4                            Ni
+  sss 1st nn	-0.0952508897      5                            Ni
+  pps 1st nn	 0.2170848101      6                            Ni
+  ppp 1st nn	 0.0166009460      7                            Ni
+  dds 1st nn	-0.0371246748      8                            Ni
+  ddp 1st nn	 0.0262859277      9                            Ni
+  ddd 1st nn	-0.0060013193     10                            Ni
+  sps 1st nn	 0.1400250643     11                            Ni
+  sds 1st nn	-0.0388022438     12                            Ni
+  pds 1st nn	-0.0440008491     13                            Ni
+  pdp 1st nn	 0.0237692818     14                            Ni
+  sss 2nd nn	-0.0006464904     15                            Ni
+  pps 2nd nn	 0.0621984713     16                            Ni
+  ppp 2nd nn	 0.0068240496     17                            Ni
+  dds 2nd nn	-0.0065054153     18                            Ni
+  ddp 2nd nn	 0.0034442015     19                            Ni
+  ddd 2nd nn	-0.0002681518     20                            Ni
+  sps 2nd nn	 0.0144056119     21                            Ni
+  sds 2nd nn	-0.0101546962     22                            Ni
+  pds 2nd nn	-0.0101174628     23                            Ni
+  pdp 2nd nn	 0.0051021385     24                            Ni

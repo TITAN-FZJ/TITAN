@@ -177,7 +177,7 @@ contains
     call open_TTR_files()
     do i = 1, s%nAtoms
        do j = 1, s%nAtoms
-          write(unit=555+s%nAtoms*(i-1)+j, fmt="(es16.9,2x,i0,2x,i0,2x,18(es16.9,2x))") e, i,j,(((real(TTResponse(n,m,j,i)), aimag(TTResponse(n,m,j,i))), n=1,3), m = 1,3)
+          write(555+s%nAtoms*(i-1)+j, "(es16.9,2x,i0,2x,i0,2x,18(es16.9,2x))") e, i,j,(( real( TTResponse(n,m,j,i) ), aimag( TTResponse(n,m,j,i) ), n=1,3), m = 1,3)
        end do
     end do
 

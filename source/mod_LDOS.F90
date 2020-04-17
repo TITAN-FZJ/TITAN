@@ -68,9 +68,9 @@ contains
             call writeLDOS(e)
           end do
         else
-          call MPI_Send(e,     1            ,MPI_DOUBLE_PRECISION,0,1000,FreqComm(2),stat,ierr)
-          call MPI_Send(ldosd, s%nAtoms*nOrb*superCond,MPI_DOUBLE_PRECISION,0,1100,FreqComm(2),stat,ierr)
-          call MPI_Send(ldosu, s%nAtoms*nOrb*superCond,MPI_DOUBLE_PRECISION,0,1200,FreqComm(2),stat,ierr)
+          call MPI_Send(e,     1            ,MPI_DOUBLE_PRECISION,0,1000,FreqComm(2),ierr)
+          call MPI_Send(ldosd, s%nAtoms*nOrb*superCond,MPI_DOUBLE_PRECISION,0,1100,FreqComm(2),ierr)
+          call MPI_Send(ldosu, s%nAtoms*nOrb*superCond,MPI_DOUBLE_PRECISION,0,1200,FreqComm(2),ierr)
         end if
       end if
       call MPI_Barrier(FieldComm, ierr)
@@ -114,7 +114,7 @@ contains
       kp = realBZ%kp(1:3,iz)
       weight = realBZ%w(iz)
       ! Green function on energy E + ieta, and wave vector kp
-      if(lsupercond == .true.) then
+      if(lsupercond .eqv. .true.) then
           call green_sc(e,eta,s,kp,gf)
       else
           call green(e,eta,s,kp,gf)
@@ -428,7 +428,7 @@ contains
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_site=',i0,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
         open (unit=iw, file=varm,status='replace', form='formatted')
         !                             if lsuperCond is true then it writes 0.0, otherwise it writes s%Ef
-        call write_header(iw,title(j),merge(0.0,s%Ef,lsuperCond))
+        call write_header(iw,title(j),merge(0.d0,s%Ef,lsuperCond))
         ! write(unit=iw, fmt="('#   energy      ,  LDOS SUM        ,  LDOS S          ,  LDOS P          ,  LDOS T2G        ,  LDOS EG         ')")
         close(unit=iw)
       end do

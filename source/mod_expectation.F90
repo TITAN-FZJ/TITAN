@@ -58,7 +58,7 @@ contains
     gf = cZero
 
     if(llineargfsoc .or. llinearsoc) then
-      !$omp do schedule(static) reduction(+:imguu) reduction(+:imgdd) reduction(+:gdiagud) reduction(+:gdiagdu)
+      !$omp do schedule(dynamic) reduction(+:imguu) reduction(+:imgdd) reduction(+:gdiagud) reduction(+:gdiagdu)
       do ix = 1, local_points
          ep = y(E_k_imag_mesh(1,ix))
          kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
@@ -77,7 +77,7 @@ contains
       end do
       !$omp end do
     else
-      !$omp do schedule(static) reduction(+:imguu) reduction(+:imgdd) reduction(+:gdiagud) reduction(+:gdiagdu)
+      !$omp do schedule(dynamic) reduction(+:imguu) reduction(+:imgdd) reduction(+:gdiagud) reduction(+:gdiagdu)
       do ix = 1, local_points
          ep = y(E_k_imag_mesh(1,ix))
          kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
@@ -169,7 +169,7 @@ contains
     mz  = 0.d0
     mp  = cZero
     deltas = cZero
-    !$omp do reduction(+:rho,mp,mz,deltas)
+    !$omp do reduction(+:rho,mp,mz,deltas) schedule(dynamic)
     do iz = 1,realBZ%workload
       ! Calculating the hamiltonian for a given k-point
       if(lsuperCond) then
@@ -262,7 +262,7 @@ contains
     expec_singlet = cZero
 
     !If lsupercond is true then fermi_surface is 0.0 otherwise is s%Ef
-    fermi_surface = merge(0.0d0,s%Ef,lsuperCond)
+    fermi_surface = merge(0.d0,s%Ef,lsuperCond)
 
 
     do concurrent (n = 1:dim)
@@ -349,7 +349,7 @@ contains
     expec_singlet = cZero
 
     !If lsupercond is true then fermi_surface is 0.0 otherwise is s%Ef
-    fermi_surface = merge(0.0,s%Ef,lsuperCond)
+    fermi_surface = merge(0.d0,s%Ef,lsuperCond)
     ! Fermi-Dirac:
     f_n = fd_dist(fermi_surface, beta, eval)
 
@@ -504,7 +504,7 @@ contains
     call abortProgram("[calcLGS_greenfunction] Not enough memory for: gf")
 
     gf = cZero
-    !$omp do schedule(static) reduction(+:gupgd)
+    !$omp do schedule(dynamic) reduction(+:gupgd)
     do ix = 1, local_points
         kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
         ep = y(E_k_imag_mesh(1,ix))
@@ -656,7 +656,7 @@ contains
     dimH  = (s%nAtoms)*nOrb2
     lwork = 21*dimH
     !If lsupercond is true then fermi_surface is 0.0 otherwise is s%Ef
-    fermi_surface = merge(0.0,s%Ef,lsuperCond)
+    fermi_surface = merge(0.d0,s%Ef,lsuperCond)
 
     allocate( hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),evec(dimH),work(lwork),prod(nOrb,nOrb,s%nAtoms) )
 
@@ -666,7 +666,7 @@ contains
     !$omp& shared(s,nOrb,dimH,output,realBZ,eta,isigmamu2n,prod,fermi_surface)
 
     prod = cZero
-    !$omp do reduction(+:prod) schedule(static)
+    !$omp do reduction(+:prod) schedule(dynamic)
     kloop: do iz = 1,realBZ%workload
       ! Calculating the hamiltonian for a given k-point
       call hamiltk(s,realBZ%kp(1:3,iz),hk)
