@@ -79,9 +79,6 @@ contains
     ! Building matrix M1
     call KronProd(size(A,1),size(A,1),dimH,dimH,A,id,M1)
 
-    ! Allocating superconductivity variables
-    call allocate_super_variables(s%nAtoms, nOrb)
-
     ! Time propagation over t, kpoints, eigenvectors(Yn) for each k
     t = 0.d0
     it = 0  
