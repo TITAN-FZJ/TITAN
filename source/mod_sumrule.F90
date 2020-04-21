@@ -47,7 +47,7 @@ contains
                   do xi = 1, nOrb
                     do p = 1, 4
                       do q = 1, 4
-                        if(StoC(p,r) == cZero .or. CtoS(t,q) == cZero) cycle
+                        if(abs(StoC(p,r)) < 1.d-15 .or. abs(CtoS(t,q))  < 1.d-15) cycle
                         chiorb_hf_cart(sigmaimunu2i(p,i,mu,nu),sigmaimunu2i(q,j,gamma,xi)) = chiorb_hf_cart(sigmaimunu2i(p,i,mu,nu),sigmaimunu2i(q,j,gamma,xi)) &
                                                                           + StoC(p,r) * chiorb_hf(sigmaimunu2i(r,i,mu,nu),sigmaimunu2i(t,j,gamma,xi))* CtoS(t,q)
                       end do
@@ -71,7 +71,8 @@ contains
           do m = 1, 3
             do n = 1, 3
               do k = 1, 3
-                if(levi_civita(m,n,k) /= 0.d0) lhs(m,n,mu,nu,i) = lhs(m,n,mu,nu,i) + levi_civita(m,n,k)*Smunuiivec(mu,nu,k,i)
+                if(abs(levi_civita(m,n,k)) > 1.d-15) &
+                  lhs(m,n,mu,nu,i) = lhs(m,n,mu,nu,i) + levi_civita(m,n,k)*Smunuiivec(mu,nu,k,i)
               end do
 
               do j = 1, s%nAtoms
@@ -79,8 +80,8 @@ contains
                   do xi = 1, nOrb
                     do q = 1,3
                       do p = 1,3
-                        if(levi_civita(n,q,p) == 0.d0) cycle
-                        rhs(m,n,mu,nu,i) = rhs(m,n,mu,nu,i) + levi_civita(n,q,p)*chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi))*Beff(sigmaimunu2i(q+1,j,gamma,xi))
+                        if(abs(levi_civita(n,q,p)) > 1.d-15) &
+                          rhs(m,n,mu,nu,i) = rhs(m,n,mu,nu,i) + levi_civita(n,q,p)*chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi))*Beff(sigmaimunu2i(q+1,j,gamma,xi))
                       end do
                     end do
                   end do
@@ -245,23 +246,23 @@ end module mod_sumrule
 
 ! if(rField == 0) then
 ! do i = 1, s%nAtoms ; do k = 1, 3 ; do nu = 1, nOrb ; do mu = 1, nOrb
-! if(abs(Smunuiivec(mu,nu,k,i)) > 1.d-10) write(15,"(a,2x,4(i0,2x),2(es16.9,2x))")'Smunuiivec',mu,nu,k,i,real(Smunuiivec(mu,nu,k,i)),aimag(Smunuiivec(mu,nu,k,i))
+! if(abs(Smunuiivec(mu,nu,k,i)) > 1.d-15) write(15,"(a,2x,4(i0,2x),2(es16.9,2x))")'Smunuiivec',mu,nu,k,i,real(Smunuiivec(mu,nu,k,i)),aimag(Smunuiivec(mu,nu,k,i))
 ! end do ; end do ; end do ; end do
 ! do i = 1, s%nAtoms ; do j = 1, s%nAtoms ; do p = 1,3 ; do m = 1,3 ; do mu = 1, nOrb ; do nu = 1, nOrb ; do gamma = 1, nOrb ; do xi = 1, nOrb
-! if(abs(chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi))) > 1.d-10) write(16,"(a,2x,8(i0,2x),2(es16.9,2x))")'chiorb_hf_cart',i,j,m+1,p+1,mu,nu,gamma,xi,real(chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi))),aimag(chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi)))
+! if(abs(chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi))) > 1.d-15) write(16,"(a,2x,8(i0,2x),2(es16.9,2x))")'chiorb_hf_cart',i,j,m+1,p+1,mu,nu,gamma,xi,real(chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi))),aimag(chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi)))
 ! end do ; end do ; end do ; end do ; end do ; end do ; end do ; end do
 ! do j = 1, s%nAtoms ; do q = 1, 3 ; do gamma = 1, nOrb ; do xi = 1, nOrb
-! if(abs(Beff(sigmaimunu2i(q+1,j,gamma,xi))) > 1.d-10) write(17,"(a,2x,4(i0,2x),2(es16.9,2x))") 'Beff',q,j,gamma,xi,real(Beff(sigmaimunu2i(q+1,j,gamma,xi))),aimag(Beff(sigmaimunu2i(q+1,j,gamma,xi)))
+! if(abs(Beff(sigmaimunu2i(q+1,j,gamma,xi))) > 1.d-15) write(17,"(a,2x,4(i0,2x),2(es16.9,2x))") 'Beff',q,j,gamma,xi,real(Beff(sigmaimunu2i(q+1,j,gamma,xi))),aimag(Beff(sigmaimunu2i(q+1,j,gamma,xi)))
 ! end do ; end do ; end do ; end do
 ! do i = 1, s%nAtoms ; do m = 1, 3 ; do n = 1, 3 ; do nu = 1, nOrb ; do mu = 1, nOrb
-! if(abs(lhs(m,n,mu,nu,i) - rhs(m,n,mu,nu,i)) > 1.d-10) write(18,"(a,2x,5(i0,2x),2(es16.9,2x))") 'sum',m,n,mu,nu,i,real(lhs(m,n,mu,nu,i) - rhs(m,n,mu,nu,i)),aimag(lhs(m,n,mu,nu,i) - rhs(m,n,mu,nu,i))
+! if(abs(lhs(m,n,mu,nu,i) - rhs(m,n,mu,nu,i)) > 1.d-15) write(18,"(a,2x,5(i0,2x),2(es16.9,2x))") 'sum',m,n,mu,nu,i,real(lhs(m,n,mu,nu,i) - rhs(m,n,mu,nu,i)),aimag(lhs(m,n,mu,nu,i) - rhs(m,n,mu,nu,i))
 ! end do ; end do ; end do ; end do ; end do
 ! do i = 1, s%nAtoms ; do m = 1, 3 ; do n = 1, 3 ; do nu = 1, nOrb ; do mu = 1, nOrb
-! if(abs(lhs(m,n,mu,nu,i)) > 1.d-10) write(19,"(a,2x,5(i0,2x),2(es16.9,2x))") 'lhs',m,n,mu,nu,i,real(lhs(m,n,mu,nu,i)),aimag(lhs(m,n,mu,nu,i))
+! if(abs(lhs(m,n,mu,nu,i)) > 1.d-15) write(19,"(a,2x,5(i0,2x),2(es16.9,2x))") 'lhs',m,n,mu,nu,i,real(lhs(m,n,mu,nu,i)),aimag(lhs(m,n,mu,nu,i))
 ! end do ; end do ; end do ; end do ; end do
 
 ! do i = 1, s%nAtoms ; do m = 1, 3 ; do n = 1, 3 ; do nu = 1, nOrb ; do mu = 1, nOrb
-! if(abs(rhs(m,n,mu,nu,i)) > 1.d-10) write(20,"(a,2x,5(i0,2x),2(es16.9,2x))") 'rhs',m,n,mu,nu,i,real(rhs(m,n,mu,nu,i)),aimag(rhs(m,n,mu,nu,i))
+! if(abs(rhs(m,n,mu,nu,i)) > 1.d-15) write(20,"(a,2x,5(i0,2x),2(es16.9,2x))") 'rhs',m,n,mu,nu,i,real(rhs(m,n,mu,nu,i)),aimag(rhs(m,n,mu,nu,i))
 ! end do ; end do ; end do ; end do ; end do
 ! test1=cZero
 ! test2=cZero

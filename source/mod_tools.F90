@@ -438,7 +438,7 @@ contains
     sum= 0.d0
     !$omp simd reduction(+:sum)
     do i = 1, dim_v
-      sum = sum + v(i)*conjg(v(i))
+      sum = sum + real(v(i)*conjg(v(i)))
     end do
     vec_norm_complex= sqrt(sum)
   end function vec_norm_complex

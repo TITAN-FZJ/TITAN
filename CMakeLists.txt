@@ -258,21 +258,22 @@ if(NOT COMPILER MATCHES gnu)
   endif(DEBUG)
 
 else() # GFORTRAN:
-  target_link_libraries(${TITAN_EXE} -I${MKLROOT}/include -L${MKLROOT}/lib/ -lmkl_core -lmkl_gnu_thread -lmkl_gf_lp64 -fopenmp)
+  target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib -Wl,-rpath,$ENV{MKLROOT}/lib -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl -fopenmp)
   target_compile_options(${TITAN_EXE} PRIVATE -cpp
                                               -D_GNU
                                               -DVERSION="${GIT_VERSION}"
+                                              -I$ENV{MKLROOT}/include
                                               -fopenmp
                                               -ffree-form
                                               -ffree-line-length-0 
                                               -g
+                                              -O3
                                               -march=native)
 
   if(DEBUG)
     target_compile_options(${TITAN_EXE} PRIVATE -C
                                                 -Wall 
                                                 -Wextra 
-                                                -Warray-temporaries 
                                                 -Wconversion 
                                                 -fimplicit-none 
                                                 -fbacktrace 
@@ -287,8 +288,6 @@ else() # GFORTRAN:
                                                 -DVERSION="${GIT_VERSION}"
                                                 -g
                                                 -O0)
-  else()
-    target_compile_options(${TITAN_EXE} PRIVATE -O3)
   endif(DEBUG)
 
 endif()
@@ -305,7 +304,7 @@ endif()
 
 #target_link_libraries(${EXEC_NAME} ${NAG}/lib/libnag_nag.a -qopenmp)
 
-# unset(DEBUG CACHE)
+unset(DEBUG CACHE)
 # unset(DEBUGSUFFIX CACHE)
 # unset(PREP CACHE)
 # unset(SUFFIX CACHE)

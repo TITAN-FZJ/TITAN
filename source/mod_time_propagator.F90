@@ -22,18 +22,19 @@ contains
     implicit none
     type(System), intent(in)   :: s
 
-    integer                                         :: i, it, n, counter
+    integer*4                                       :: i, it, n, counter
     real(double)                                    :: t, p, h_new, h_old, ERR_old, ERR_kn
     complex(double), dimension(dimH)                :: Yn, Yn_hat, Yn_new, Yn_e, Yn_hat_e, Yn_new_e
     complex(double), dimension(:,:,:), allocatable  :: evec_kn,evec_kn_temp
     real(double),    dimension(:,:),   allocatable  :: eval_kn
 
-    integer                                     :: iz, info, ncount
-    integer                                     :: lwork
+    integer*8                                   :: iz
+    integer*4                                   :: info, ncount
+    integer*4                                   :: lwork
     real(double)                                :: weight, kp(3)
     real(double),    dimension(nOrb,s%nAtoms)   :: expec_0, expec_z
     complex(double), dimension(nOrb,s%nAtoms)   :: expec_p
-    complex(double), dimension(nOrb,s%nAtoms)   :: expec_singlet
+    real(double),    dimension(nOrb,s%nAtoms)   :: expec_singlet
     real(double),    dimension(:),  allocatable :: rwork(:), eval(:)
     complex(double),                allocatable :: work(:), hk(:,:)
 
@@ -280,12 +281,11 @@ contains
 
   ! Writing header for previously opened file of unit "unit"
   subroutine write_header_time_prop(unit,title_line)
-    use mod_f90_kind,         only: double
     use mod_imRK4_parameters, only: lelectric, hE_0, hw_e, lpulse_e, npulse_e, polarization_vec_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, npulse_m, polarization_vec_m, tau_m, delay_m
     implicit none
-    integer,          intent(in)           :: unit
-    character(len=*), intent(in)           :: title_line
-    integer :: i,j
+    integer*4,        intent(in) :: unit
+    character(len=*), intent(in) :: title_line
+    integer*4 :: i,j
 
     if(lmagnetic) then
       if(lpulse_m) then

@@ -60,7 +60,7 @@ contains
         norm_k_old = vec_norm(deltaZ_k_old, dimH2)
         norm_k_new = vec_norm(Z_k, dimH2)
         theta_k    = norm_k_new/norm_k_old
-        if (theta_k == 1.d0) then 
+        if (abs(theta_k - 1.d0) < 1.d-15) then 
           error = 0.d0
         else
           eta_k = theta_k/(1.d0-theta_k)
@@ -237,7 +237,7 @@ contains
     hamilt_t = ( eval * id ) - hamilt_0
 
     ! Checking if Hamiltonian is hermitian
-    ! if( sum(abs(conjg(transpose(hamilt_t))-hamilt_t)) > 1.d-12 ) then
+    ! if( sum(abs(conjg(transpose(hamilt_t))-hamilt_t)) > 1.d-15 ) then
     !  write(*,"('[build_td_hamiltonian] Hamiltonian is not hermitian!')")
     !  stop
     ! end if
@@ -315,7 +315,6 @@ contains
   !> subroutine to calculate the error in the step size control
   subroutine calculate_step_error(Yn,Yn_new,Yn_hat,ERR_kn)
     use mod_f90_kind,         only: double
-    use mod_RK_matrices,      only: A
     use mod_parameters,       only: dimH
     use mod_imRK4_parameters, only: abs_tol, rel_tol
     implicit none

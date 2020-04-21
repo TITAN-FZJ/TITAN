@@ -52,8 +52,8 @@ contains
 
 
   subroutine initLongAndTransCurentNeighbors()
-    use mod_f90_kind, only: double
-    use mod_system,   only: System
+    ! use mod_f90_kind, only: double
+    ! use mod_system,   only: System
     use mod_mpi_pars, only: abortProgram
     implicit none
 

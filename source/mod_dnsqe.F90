@@ -1,10 +1,11 @@
 module mod_dnsqe
   use mod_f90_kind
   implicit none
+  real(double), private :: TOL1 = 1.d-15
 contains
       SUBROUTINE DNSQE (FCN, JAC, IOPT, N, X, FVEC, TOL, NPRINT, INFO, WA, LWA)
 !***BEGIN PROLOGUE  DNSQE
-!***PURPOSE  An easy-to-use code to find a cZero of a system of N
+!***PURPOSE  An easy-to-use code to find a ZERO of a system of N
 !            nonlinear functions in N variables by a modification of
 !            the Powell hybrid method.
 !***LIBRARY   SLATEC
@@ -17,7 +18,7 @@ contains
 !
 ! 1. Purpose.
 !
-!       The purpose of DNSQE is to find a cZero of a system of N
+!       The purpose of DNSQE is to find a ZERO of a system of N
 !       nonlinear functions in N variables by a modification of the
 !       Powell hybrid method.  This is done by using the more general
 !       nonlinear equation solver DNSQ.  The user must provide a
@@ -203,13 +204,13 @@ contains
 !         then either use DNSQ and set the step length or use IOPT=1
 !         and supply the Jacobian.
 !
-!       Lack of Good Progress.  DNSQE searches for a cZero of the system
+!       Lack of Good Progress.  DNSQE searches for a ZERO of the system
 !         by minimizing the sum of the squares of the functions.  In so
 !         doing, it can become trapped in a region where the minimum
-!         does not correspond to a cZero of the system and, in this
+!         does not correspond to a ZERO of the system and, in this
 !         situation, the iteration eventually fails to make good
 !         progress.  In particular, this will happen if the system does
-!         not have a cZero.  If the system has a cZero, rerunning DNSQE
+!         not have a ZERO.  If the system has a ZERO, rerunning DNSQE
 !         from a different starting point may be helpful.
 !
 ! 6. Characteristics of The Algorithm.
@@ -294,14 +295,14 @@ contains
 !       INTEGER      :: N,IFLAG
 !       REAL(DOUBLE) :: X(N),FVEC(N)
 !       INTEGER      :: K
-!       REAL(DOUBLE) :: ONE,TEMP,TEMP1,TEMP2,THREE,TWO,cZero
-!       DATA cZero,ONE,TWO,THREE /0.E0,1.E0,2.E0,3.E0/
+!       REAL(DOUBLE) :: ONE,TEMP,TEMP1,TEMP2,THREE,TWO,ZERO
+!       DATA ZERO,ONE,TWO,THREE /0.E0,1.E0,2.E0,3.E0/
 ! C
 !       DO 10 K = 1, N
 !          TEMP = (THREE - TWO*X(K))*X(K)
-!          TEMP1 = cZero
+!          TEMP1 = ZERO
 !          IF (K /= 1) TEMP1 = X(K-1)
-!          TEMP2 = cZero
+!          TEMP2 = ZERO
 !          IF (K /= N) TEMP2 = X(K+1)
 !          FVEC(K) = TEMP - TEMP1 - TWO*TEMP2 + ONE
 !    10    CONTINUE
@@ -338,10 +339,10 @@ contains
       INTEGER      :: INDEX, INFO, IOPT, J, LR, LWA, MAXFEV, ML, MODE, MU, N, &
            NFEV, NJEV, NPRINT
       REAL(DOUBLE) :: EPSFCN, FACTOR, FVEC(*), ONE, TOL, WA(*), &
-           X(*), XTOL, cZero
+           X(*), XTOL, ZERO
       EXTERNAL FCN, JAC
-      SAVE FACTOR, ONE, cZero
-      DATA FACTOR,ONE,cZero /1.0D2,1.0D0,0.0D0/
+      SAVE FACTOR, ONE, ZERO
+      DATA FACTOR,ONE,ZERO /1.0D2,1.0D0,0.0D0/
 !     BEGIN BLOCK PERMITTING ...EXITS TO 20
 !***FIRST EXECUTABLE STATEMENT  DNSQE
          INFO = 0
@@ -350,7 +351,7 @@ contains
 !
 !     ...EXIT
          IF (IOPT < 1 .OR. IOPT > 2 .OR. N <= 0 &
-             .OR. TOL < cZero .OR. LWA < (3*N**2 + 13*N)/2) &
+             .OR. TOL < ZERO .OR. LWA < (3*N**2 + 13*N)/2) &
             GO TO 20
 !
 !        CALL DNSQ.
@@ -361,7 +362,7 @@ contains
          ML = N - 1
          MU = N - 1
          EPSFCN = D1MACH(4)
-!          EPSFCN = cZero
+!          EPSFCN = ZERO
          MODE = 2
          DO 10 J = 1, N
             WA(J) = ONE
@@ -383,7 +384,7 @@ contains
 
       SUBROUTINE DNSQ (FCN, JAC, IOPT, N, X, FVEC, FJAC, LDFJAC, XTOL, MAXFEV, ML, MU, EPSFCN, DIAG, MODE, FACTOR, NPRINT, INFO, NFEV, NJEV, R, LR, QTF, WA1, WA2, WA3, WA4)
 !***BEGIN PROLOGUE  DNSQ
-!***PURPOSE  Find a cZero of a system of a N nonlinear functions in N
+!***PURPOSE  Find a ZERO of a system of a N nonlinear functions in N
 !            variables by a modification of the Powell hybrid method.
 !***LIBRARY   SLATEC
 !***CATEGORY  F2A
@@ -394,7 +395,7 @@ contains
 !
 ! 1. Purpose.
 !
-!       The purpose of DNSQ is to find a cZero of a system of N nonlinear
+!       The purpose of DNSQ is to find a ZERO of a system of N nonlinear
 !       functions in N variables by a modification of the Powell
 !       hybrid method.  The user must provide a subroutine which
 !       calculates the functions.  The user has the option of either to
@@ -566,7 +567,7 @@ contains
 !         FCN.
 !
 !       NJEV is an integer output variable set to the number of calls to
-!         JAC. (If IOPT=2, then NJEV is set to cZero.)
+!         JAC. (If IOPT=2, then NJEV is set to ZERO.)
 !
 !       R is an output array of length LR which contains the upper
 !         triangular matrix produced by the QR factorization of the
@@ -643,13 +644,13 @@ contains
 !         of good progress is usually diagnosed earlier by DNSQ,
 !         causing termination with info = 4 or INFO = 5.
 !
-!       Lack of Good Progress.  DNSQ searches for a cZero of the system
+!       Lack of Good Progress.  DNSQ searches for a ZERO of the system
 !         by minimizing the sum of the squares of the functions.  In so
 !         doing, it can become trapped in a region where the minimum
-!         does not correspond to a cZero of the system and, in this
+!         does not correspond to a ZERO of the system and, in this
 !         situation, the iteration eventually fails to make good
 !         progress.  In particular, this will happen if the system does
-!         not have a cZero.  If the system has a cZero, rerunning DNSQ
+!         not have a ZERO.  If the system has a ZERO, rerunning DNSQ
 !         from a different starting point may be helpful.
 !
 !
@@ -750,8 +751,8 @@ contains
 !       INTEGER      :: N,IFLAG
 !       REAL(DOUBLE) :: X(N),FVEC(N)
 !       INTEGER      :: K
-!       REAL(DOUBLE) :: ONE,TEMP,TEMP1,TEMP2,THREE,TWO,cZero
-!       DATA cZero,ONE,TWO,THREE /0.E0,1.E0,2.E0,3.E0/
+!       REAL(DOUBLE) :: ONE,TEMP,TEMP1,TEMP2,THREE,TWO,ZERO
+!       DATA ZERO,ONE,TWO,THREE /0.E0,1.E0,2.E0,3.E0/
 ! C
 !       IF (IFLAG /= 0) GO TO 5
 ! C
@@ -761,9 +762,9 @@ contains
 !     5 CONTINUE
 !       DO 10 K = 1, N
 !          TEMP = (THREE - TWO*X(K))*X(K)
-!          TEMP1 = cZero
+!          TEMP1 = ZERO
 !          IF (K /= 1) TEMP1 = X(K-1)
-!          TEMP2 = cZero
+!          TEMP2 = ZERO
 !          IF (K /= N) TEMP2 = X(K+1)
 !          FVEC(K) = TEMP - TEMP1 - TWO*TEMP2 + ONE
 !    10    CONTINUE
@@ -807,11 +808,11 @@ contains
       REAL(DOUBLE) :: ACTRED, DELTA, DIAG(*), EPSFCN, EPSMCH, FACTOR, &
            FJAC(LDFJAC,*), FNORM, FNORM1, FVEC(*), ONE, P0001, P001, &
            P1, P5, PNORM, PRERED, QTF(*), R(*), RATIO, SUM, TEMP, &
-           WA1(*), WA2(*), WA3(*), WA4(*), X(*), XNORM, XTOL, cZero
+           WA1(*), WA2(*), WA3(*), WA4(*), X(*), XNORM, XTOL, ZERO
       EXTERNAL FCN, JAC
       LOGICAL      :: JEVAL,SING
-      SAVE ONE, P1, P5, P001, P0001, cZero
-      DATA ONE,P1,P5,P001,P0001,cZero &
+      SAVE ONE, P1, P5, P001, P0001, ZERO
+      DATA ONE,P1,P5,P001,P0001,ZERO &
            /1.0D0,1.0D-1,5.0D-1,1.0D-3,1.0D-4,0.0D0/
 !
 !     BEGIN BLOCK PERMITTING ...EXITS TO 320
@@ -828,13 +829,13 @@ contains
 !
 !     ...EXIT
          IF (IOPT < 1 .OR. IOPT > 2 .OR. N <= 0 &
-             .OR. XTOL < cZero .OR. MAXFEV <= 0 .OR. ML < 0 &
-             .OR. MU < 0 .OR. FACTOR <= cZero .OR. LDFJAC < N &
+             .OR. XTOL < ZERO .OR. MAXFEV <= 0 .OR. ML < 0 &
+             .OR. MU < 0 .OR. FACTOR <= ZERO .OR. LDFJAC < N &
              .OR. LR < (N*(N + 1))/2) GO TO 320
          IF (MODE /= 2) GO TO 20
             DO 10 J = 1, N
 !     .........EXIT
-               IF (DIAG(J) <= cZero) GO TO 320
+               IF (DIAG(J) <= ZERO) GO TO 320
    10       CONTINUE
    20    CONTINUE
 !
@@ -897,7 +898,7 @@ contains
                IF (MODE == 2) GO TO 70
                   DO 60 J = 1, N
                      DIAG(J) = WA2(J)
-                     IF (WA2(J) == cZero) DIAG(J) = ONE
+                     IF (ABS(WA2(J)) < TOL1) DIAG(J) = ONE
    60             CONTINUE
    70          CONTINUE
 !
@@ -910,7 +911,7 @@ contains
 !                CALL DENORMSUB(N,WA3,XNORM)
                XNORM = DENORM(N,WA3)
                DELTA = FACTOR*XNORM
-               IF (DELTA == cZero) DELTA = FACTOR
+               IF (ABS(DELTA) < TOL1) DELTA = FACTOR
    90       CONTINUE
 !
 !           FORM (Q TRANSPOSE)*FVEC AND STORE IN QTF.
@@ -919,8 +920,8 @@ contains
                QTF(I) = FVEC(I)
   100       CONTINUE
             DO 140 J = 1, N
-               IF (FJAC(J,J) == cZero) GO TO 130
-                  SUM = cZero
+               IF (ABS(FJAC(J,J)) < TOL1) GO TO 130
+                  SUM = ZERO
                   DO 110 I = J, N
                      SUM = SUM + FJAC(I,J)*QTF(I)
   110             CONTINUE
@@ -944,7 +945,7 @@ contains
   150          CONTINUE
   160          CONTINUE
                R(L) = WA1(J)
-               IF (WA1(J) == cZero) SING = .TRUE.
+               IF (ABS(WA1(J)) < TOL1) SING = .TRUE.
   170       CONTINUE
 !
 !           ACCUMULATE THE ORTHOGONAL FACTOR IN FJAC.
@@ -1010,7 +1011,7 @@ contains
 !
                L = 1
                DO 240 I = 1, N
-                  SUM = cZero
+                  SUM = ZERO
                   DO 230 J = I, N
                      SUM = SUM + R(L)*WA1(J)
                      L = L + 1
@@ -1019,14 +1020,14 @@ contains
   240          CONTINUE
 !                CALL DENORMSUB(N,WA3,TEMP)
                TEMP = DENORM(N,WA3)
-               PRERED = cZero
+               PRERED = ZERO
                IF (TEMP < FNORM) PRERED = ONE - (TEMP/FNORM)**2
 !
 !              COMPUTE THE RATIO OF THE ACTUAL TO THE PREDICTED
 !              REDUCTION.
 !
-               RATIO = cZero
-               IF (PRERED > cZero) RATIO = ACTRED/PRERED
+               RATIO = ZERO
+               IF (PRERED > ZERO) RATIO = ACTRED/PRERED
 !
 !              UPDATE THE STEP BOUND.
 !
@@ -1091,7 +1092,7 @@ contains
 !              AND UPDATE QTF IF NECESSARY.
 !
                DO 300 J = 1, N
-                  SUM = cZero
+                  SUM = ZERO
                   DO 290 I = 1, N
                      SUM = SUM + FJAC(I,J)*WA4(I)
   290             CONTINUE
@@ -1352,7 +1353,7 @@ contains
 !         above.
 !
 !       SING is a LOGICAL      :: output variable. SING is set TRUE if any
-!         of the diagonal elements of the output S are cZero. Otherwise
+!         of the diagonal elements of the output S are ZERO. Otherwise
 !         SING is set FALSE.
 !
 !***SEE ALSO  DNSQ, DNSQE
@@ -1369,10 +1370,10 @@ contains
 !       REAL(DOUBLE) :: D1MACH
       INTEGER      :: I, J, JJ, L, M, N, NM1, NMJ
       REAL(DOUBLE) :: COS, COTAN, GIANT, ONE, P25, P5, S(*), &
-           SIN, TAN, TAU, TEMP, U(*), V(*), W(*), cZero
+           SIN, TAN, TAU, TEMP, U(*), V(*), W(*), ZERO
       LOGICAL      :: SING
-      SAVE ONE, P5, P25, cZero
-      DATA ONE,P5,P25,cZero /1.0D0,5.0D-1,2.5D-1,0.0D0/
+      SAVE ONE, P5, P25, ZERO
+      DATA ONE,P5,P25,ZERO /1.0D0,5.0D-1,2.5D-1,0.0D0/
 !
 !     GIANT IS THE LARGEST MAGNITUDE.
 !
@@ -1400,8 +1401,8 @@ contains
       DO 60 NMJ = 1, NM1
          J = N - NMJ
          JJ = JJ - (M - J + 1)
-         W(J) = cZero
-         IF (V(J) == cZero) GO TO 50
+         W(J) = ZERO
+         IF (ABS(V(J)) < TOL1) GO TO 50
 !
 !        DETERMINE A GIVENS ROTATION WHICH ELIMINATES THE
 !        J-TH ELEMENT OF V.
@@ -1450,7 +1451,7 @@ contains
       SING = .FALSE.
       IF (NM1 < 1) GO TO 140
       DO 130 J = 1, NM1
-         IF (W(J) == cZero) GO TO 120
+         IF (ABS(W(J)) < TOL1) GO TO 120
 !
 !        DETERMINE A GIVENS ROTATION WHICH ELIMINATES THE
 !        J-TH ELEMENT OF THE SPIKE.
@@ -1485,9 +1486,9 @@ contains
          W(J) = TAU
   120    CONTINUE
 !
-!        TEST FOR cZero DIAGONAL ELEMENTS IN THE OUTPUT S.
+!        TEST FOR ZERO DIAGONAL ELEMENTS IN THE OUTPUT S.
 !
-         IF (S(JJ) == cZero) SING = .TRUE.
+         IF (ABS(S(JJ)) < TOL1) SING = .TRUE.
          JJ = JJ + (M - J + 1)
   130    CONTINUE
   140 CONTINUE
@@ -1499,7 +1500,7 @@ contains
          S(L) = W(I)
          L = L + 1
   150    CONTINUE
-      IF (S(JJ) == cZero) SING = .TRUE.
+      IF (ABS(S(JJ)) < TOL1) SING = .TRUE.
 
 !     LAST CARD OF SUBROUTINE D1UPDT.
 !
@@ -1572,9 +1573,9 @@ contains
       INTEGER      :: I, J, JJ, JP1, K, L, N
       REAL(DOUBLE) :: ALPHA, BNORM, DELTA, DIAG(*), EPSMCH, GNORM, &
            ONE, QNORM, QTB(*), R(*), SGNORM, SUM, TEMP, WA1(*), &
-           WA2(*), X(*), cZero
-      SAVE ONE, cZero
-      DATA ONE,cZero /1.0D0,0.0D0/
+           WA2(*), X(*), ZERO
+      SAVE ONE, ZERO
+      DATA ONE,ZERO /1.0D0,0.0D0/
 !
 !     EPSMCH IS THE MACHINE PRECISION.
 !
@@ -1590,7 +1591,7 @@ contains
          JP1 = J + 1
          JJ = JJ - K
          L = JJ + 1
-         SUM = cZero
+         SUM = ZERO
          IF (N < JP1) GO TO 20
          DO 10 I = JP1, N
             SUM = SUM + R(L)*X(I)
@@ -1598,14 +1599,14 @@ contains
    10       CONTINUE
    20    CONTINUE
          TEMP = R(JJ)
-         IF (TEMP /= cZero) GO TO 40
+         IF (ABS(TEMP) > TOL1) GO TO 40
          L = J
          DO 30 I = 1, J
             TEMP = MAX(TEMP,ABS(R(L)))
             L = L + N - I
    30       CONTINUE
          TEMP = EPSMCH*TEMP
-         IF (TEMP == cZero) TEMP = EPSMCH
+         IF (ABS(TEMP) < TOL1) TEMP = EPSMCH
    40    CONTINUE
          X(J) = (QTB(J) - SUM)/TEMP
    50    CONTINUE
@@ -1613,7 +1614,7 @@ contains
 !     TEST WHETHER THE GAUSS-NEWTON DIRECTION IS ACCEPTABLE.
 !
       DO 60 J = 1, N
-         WA1(J) = cZero
+         WA1(J) = ZERO
          WA2(J) = DIAG(J)*X(J)
    60    CONTINUE
 !       CALL DENORMSUB(N,WA2,QNORM)
@@ -1634,13 +1635,13 @@ contains
    80    CONTINUE
 !
 !     CALCULATE THE NORM OF THE SCALED GRADIENT AND TEST FOR
-!     THE SPECIAL CASE IN WHICH THE SCALED GRADIENT IS cZero.
+!     THE SPECIAL CASE IN WHICH THE SCALED GRADIENT IS ZERO.
 !
 !       CALL DENORMSUB(N,WA1,GNORM)
       GNORM = DENORM(N,WA1)
-      SGNORM = cZero
+      SGNORM = ZERO
       ALPHA = DELTA/QNORM
-      IF (GNORM == cZero) GO TO 120
+      IF (ABS(GNORM) < TOL1) GO TO 120
 !
 !     CALCULATE THE POINT ALONG THE SCALED GRADIENT
 !     AT WHICH THE QUADRATIC IS MINIMIZED.
@@ -1650,7 +1651,7 @@ contains
    90    CONTINUE
       L = 1
       DO 110 J = 1, N
-         SUM = cZero
+         SUM = ZERO
          DO 100 I = J, N
             SUM = SUM + R(L)*WA1(I)
             L = L + 1
@@ -1663,7 +1664,7 @@ contains
 !
 !     TEST WHETHER THE SCALED GRADIENT DIRECTION IS ACCEPTABLE.
 !
-      ALPHA = cZero
+      ALPHA = ZERO
       IF (SGNORM >= DELTA) GO TO 120
 !
 !     THE SCALED GRADIENT DIRECTION IS NOT ACCEPTABLE.
@@ -1740,15 +1741,15 @@ contains
       REAL(DOUBLE) :: DENORM
       INTEGER      :: I, N
       REAL(DOUBLE) :: AGIANT, FLOATN, ONE, RDWARF, RGIANT, S1, S2, S3, &
-           X(*), X1MAX, X3MAX, XABS, cZero
-      SAVE ONE, cZero, RDWARF, RGIANT
-      DATA ONE,cZero,RDWARF,RGIANT /1.0D0,0.0D0,3.834D-20,1.304D19/
+           X(*), X1MAX, X3MAX, XABS, ZERO
+      SAVE ONE, ZERO, RDWARF, RGIANT
+      DATA ONE,ZERO,RDWARF,RGIANT /1.0D0,0.0D0,3.834D-20,1.304D19/
 !***FIRST EXECUTABLE STATEMENT  DENORM
-      S1 = cZero
-      S2 = cZero
-      S3 = cZero
-      X1MAX = cZero
-      X3MAX = cZero
+      S1 = ZERO
+      S2 = ZERO
+      S3 = ZERO
+      X1MAX = ZERO
+      X3MAX = ZERO
       FLOATN = N
       AGIANT = RGIANT/FLOATN
       DO 90 I = 1, N
@@ -1775,7 +1776,7 @@ contains
                   X3MAX = XABS
                   GO TO 50
    40          CONTINUE
-                  IF (XABS /= cZero) S3 = S3 + (XABS/X3MAX)**2
+                  IF (ABS(XABS) > TOL1) S3 = S3 + (XABS/X3MAX)**2
    50          CONTINUE
    60       CONTINUE
             GO TO 80
@@ -1789,11 +1790,11 @@ contains
 !
 !     CALCULATION OF NORM.
 !
-      IF (S1 == cZero) GO TO 100
+      IF (ABS(S1) < TOL1) GO TO 100
          DENORM = X1MAX*SQRT(S1+(S2/X1MAX)/X1MAX)
          GO TO 130
   100 CONTINUE
-         IF (S2 == cZero) GO TO 110
+         IF (ABS(S2) < TOL1) GO TO 110
             IF (S2 >= X3MAX) &
                DENORM = SQRT(S2*(ONE+(X3MAX/S2)*(X3MAX*S3)))
             IF (S2 < X3MAX) &
@@ -1901,10 +1902,10 @@ contains
 !       REAL(DOUBLE) :: D1MACH
       INTEGER      :: I, IFLAG, J, K, LDFJAC, ML, MSUM, MU, N
       REAL(DOUBLE) :: EPS, EPSFCN, EPSMCH, FJAC(LDFJAC,*), &
-           FVEC(*), H, TEMP, WA1(*), WA2(*), X(*), cZero
+           FVEC(*), H, TEMP, WA1(*), WA2(*), X(*), ZERO
       EXTERNAL FCN
-      SAVE cZero
-      DATA cZero /0.0D0/
+      SAVE ZERO
+      DATA ZERO /0.0D0/
 !
 !     EPSMCH IS THE MACHINE PRECISION.
 !
@@ -1921,7 +1922,7 @@ contains
          DO 20 J = 1, N
             TEMP = X(J)
             H = EPS*ABS(TEMP)
-            IF (H == cZero) H = EPS
+            IF (ABS(H) < TOL1) H = EPS
             X(J) = TEMP + H
             CALL FCN(N,X,WA1,IFLAG)
             IF (IFLAG < 0) GO TO 30
@@ -1940,7 +1941,7 @@ contains
             DO 60 J = K, N, MSUM
                WA2(J) = X(J)
                H = EPS*ABS(WA2(J))
-               IF (H == cZero) H = EPS
+               IF (ABS(H) < TOL1) H = EPS
                X(J) = WA2(J) + H
    60          CONTINUE
             CALL FCN(N,X,WA1,IFLAG)
@@ -1948,9 +1949,9 @@ contains
             DO 80 J = K, N, MSUM
                X(J) = WA2(J)
                H = EPS*ABS(WA2(J))
-               IF (H == cZero) H = EPS
+               IF (ABS(H) < TOL1) H = EPS
                DO 70 I = 1, N
-                  FJAC(I,J) = cZero
+                  FJAC(I,J) = ZERO
                   IF (I >= J - MU .AND. I <= J + ML) &
                      FJAC(I,J) = (WA1(I) - FVEC(I))/H
    70             CONTINUE
@@ -2009,11 +2010,11 @@ contains
 !   900328  Added TYPE section.  (WRB)
 !***END PROLOGUE  DQFORM
       INTEGER      :: I, J, JM1, K, L, LDQ, M, MINMN, N, NP1
-      REAL(DOUBLE) :: ONE, Q(LDQ,*), SUM, TEMP, WA(*), cZero
-      SAVE ONE, cZero
-      DATA ONE,cZero /1.0D0,0.0D0/
+      REAL(DOUBLE) :: ONE, Q(LDQ,*), SUM, TEMP, WA(*), ZERO
+      SAVE ONE, ZERO
+      DATA ONE,ZERO /1.0D0,0.0D0/
 !
-!     cZero OUT UPPER TRIANGLE OF Q IN THE FIRST MIN(M,N) COLUMNS.
+!     ZERO OUT UPPER TRIANGLE OF Q IN THE FIRST MIN(M,N) COLUMNS.
 !
 !***FIRST EXECUTABLE STATEMENT  DQFORM
       MINMN = MIN(M,N)
@@ -2021,7 +2022,7 @@ contains
       DO 20 J = 2, MINMN
          JM1 = J - 1
          DO 10 I = 1, JM1
-            Q(I,J) = cZero
+            Q(I,J) = ZERO
    10       CONTINUE
    20    CONTINUE
    30 CONTINUE
@@ -2032,7 +2033,7 @@ contains
       IF (M < NP1) GO TO 60
       DO 50 J = NP1, M
          DO 40 I = 1, M
-            Q(I,J) = cZero
+            Q(I,J) = ZERO
    40       CONTINUE
          Q(J,J) = ONE
    50    CONTINUE
@@ -2044,12 +2045,12 @@ contains
          K = MINMN - L + 1
          DO 70 I = K, M
             WA(I) = Q(I,K)
-            Q(I,K) = cZero
+            Q(I,K) = ZERO
    70       CONTINUE
          Q(K,K) = ONE
-         IF (WA(K) == cZero) GO TO 110
+         IF (ABS(WA(K)) < TOL1) GO TO 110
          DO 100 J = K, M
-            SUM = cZero
+            SUM = ZERO
             DO 80 I = K, M
                SUM = SUM + Q(I,J)*WA(I)
    80          CONTINUE
@@ -2151,12 +2152,12 @@ contains
       INTEGER      :: M,N,LDA
       INTEGER      :: IPVT(*)
       LOGICAL      :: PIVOT
-      SAVE ONE, P05, cZero
+      SAVE ONE, P05, ZERO
       REAL(DOUBLE) :: A(LDA,*),SIGMA(*),ACNORM(*),WA(*)
       INTEGER      :: I,J,JP1,K,KMAX,MINMN
-      REAL(DOUBLE) :: AJNORM,EPSMCH,ONE,P05,SUM,TEMP,cZero
+      REAL(DOUBLE) :: AJNORM,EPSMCH,ONE,P05,SUM,TEMP,ZERO
 !       REAL(DOUBLE) :: D1MACH,DENORM
-      DATA ONE,P05,cZero /1.0D0,5.0D-2,0.0D0/
+      DATA ONE,P05,ZERO /1.0D0,5.0D-2,0.0D0/
 !***FIRST EXECUTABLE STATEMENT  DQRFAC
 !       CALL D1MACHSUB(4,EPSMCH)
       EPSMCH = D1MACH(4)
@@ -2201,8 +2202,8 @@ contains
 !
 !          CALL DENORMSUB(M-J+1,A(J,J),AJNORM)
          AJNORM = DENORM(M-J+1,A(J,J))
-         IF (AJNORM == cZero) GO TO 100
-         IF (A(J,J) < cZero) AJNORM = -AJNORM
+         IF (ABS(AJNORM) < TOL1) GO TO 100
+         IF (A(J,J) < ZERO) AJNORM = -AJNORM
          DO 50 I = J, M
             A(I,J) = A(I,J)/AJNORM
    50       CONTINUE
@@ -2214,7 +2215,7 @@ contains
          JP1 = J + 1
          IF (N < JP1) GO TO 100
          DO 90 K = JP1, N
-            SUM = cZero
+            SUM = ZERO
             DO 60 I = J, M
                SUM = SUM + A(I,J)*A(I,K)
    60          CONTINUE
@@ -2222,9 +2223,9 @@ contains
             DO 70 I = J, M
                A(I,K) = A(I,K) - TEMP*A(I,J)
    70          CONTINUE
-            IF (.NOT.PIVOT .OR. SIGMA(K) == cZero) GO TO 80
+            IF (.NOT.PIVOT .OR. ABS(SIGMA(K)) < TOL1) GO TO 80
             TEMP = A(J,K)/SIGMA(K)
-            SIGMA(K) = SIGMA(K)*SQRT(MAX(cZero,ONE-TEMP**2))
+            SIGMA(K) = SIGMA(K)*SQRT(MAX(ZERO,ONE-TEMP**2))
             IF (P05*(SIGMA(K)/WA(K))**2 > EPSMCH) GO TO 80
 !             CALL DENORMSUB(M-J,A(JP1,K),SIGMA(K))
             SIGMA(K) = DENORM(M-J,A(JP1,K))
@@ -2703,7 +2704,7 @@ contains
       MKNTRL = ABS(LKNTRL)
 !
 !       SKIP PRINTING IF THE CONTROL FLAG VALUE AS RESET IN XERCNT IS
-!       cZero AND THE ERROR IS NOT FATAL.
+!       ZERO AND THE ERROR IS NOT FATAL.
 !
       IF (LEVEL<2 .AND. LKNTRL==0) GO TO 30
       IF (LEVEL==0 .AND. KOUNT>MAXMES) GO TO 30
@@ -2713,7 +2714,7 @@ contains
 !       ANNOUNCE THE NAMES OF THE LIBRARY AND SUBROUTINE BY BUILDING A
 !       MESSAGE IN CHARACTER VARIABLE TEMP (NOT EXCEEDING 66 CHARACTERS)
 !       AND SENDING IT OUT VIA XERPRN.  PRINT ONLY IF CONTROL FLAG
-!       IS NOT cZero.
+!       IS NOT ZERO.
 !
       IF (LKNTRL /= 0) THEN
          TEMP(1:21) = 'MESSAGE FROM ROUTINE '
@@ -2802,7 +2803,7 @@ contains
          CALL FDUMP
       ENDIF
 !
-!       IF LKNTRL IS NOT cZero, PRINT A BLANK LINE AND AN END OF MESSAGE.
+!       IF LKNTRL IS NOT ZERO, PRINT A BLANK LINE AND AN END OF MESSAGE.
 !
       IF (LKNTRL /= 0) THEN
          CALL XERPRN (' *  ', -1, ' ', 72)
@@ -2857,7 +2858,7 @@ contains
 ! NPREF   Input argument of type INTEGER.  This argument is the number
 !         of characters to use from PREFIX.  If it is negative, the
 !         intrinsic function LEN is used to determine its length.  If
-!         it is cZero, PREFIX is not used.  If it exceeds 16 or if
+!         it is ZERO, PREFIX is not used.  If it exceeds 16 or if
 !         LEN(PREFIX) exceeds 16, only the first 16 characters will be
 !         used.  If NPREF is positive and the length of PREFIX is less
 !         than NPREF, a copy of PREFIX extended with blanks to length
@@ -2917,7 +2918,7 @@ contains
 !***FIRST EXECUTABLE STATEMENT  XERPRN
       CALL XGETUA(IU,NUNIT)
 !
-!       A cZero VALUE FOR A LOGICAL      :: UNIT NUMBER MEANS TO USE THE STANDARD
+!       A ZERO VALUE FOR A LOGICAL      :: UNIT NUMBER MEANS TO USE THE STANDARD
 !       ERROR MESSAGE UNIT INSTEAD.  I1MACH(4) RETRIEVES THE STANDARD
 !       ERROR MESSAGE UNIT.
 !
@@ -2969,7 +2970,7 @@ contains
 !       WE LOOP BACK TO LABEL 50 UNTIL ALL PIECES HAVE BEEN PRINTED.
 !
 !       WE LOOK FOR THE NEXT OCCURRENCE OF THE NEW LINE SENTINEL.  THE
-!       INDEX INTRINSIC FUNCTION RETURNS cZero IF THERE IS NO OCCURRENCE
+!       INDEX INTRINSIC FUNCTION RETURNS ZERO IF THERE IS NO OCCURRENCE
 !       OR IF THE LENGTH OF THE FIRST ARGUMENT IS LESS THAN THE LENGTH
 !       OF THE SECOND ARGUMENT.
 !
@@ -2984,7 +2985,7 @@ contains
 !                       WHICHEVER IS LESS.
 !
 !       LPIECE == 1   THE NEW LINE SENTINEL STARTS AT MESSG(NEXTC:
-!                       NEXTC).  LPIECE IS EFFECTIVELY cZero, AND WE
+!                       NEXTC).  LPIECE IS EFFECTIVELY ZERO, AND WE
 !                       PRINT NOTHING TO AVOID PRODUCING UNNECESSARY
 !                       BLANK LINES.  THIS TAKES CARE OF THE SITUATION
 !                       WHERE THE LIBRARY ROUTINE HAS A MESSAGE OF
@@ -3092,7 +3093,7 @@ contains
 !        NERR   :IN    is the error number.
 !        LEVEL  :IN    is the error severity.
 !        ICOUNT :OUT   the number of times this message has been seen,
-!                      or cZero if the table has overflowed and does not
+!                      or ZERO if the table has overflowed and does not
 !                      contain this message specifically.  When KFLAG=0,
 !                      ICOUNT will not be altered.
 !
@@ -3231,7 +3232,7 @@ contains
 !     Description of Parameters
 !      --Output--
 !        IUNIT - an array of one to five unit numbers, depending
-!                on the value of N.  A value of cZero refers to the
+!                on the value of N.  A value of ZERO refers to the
 !                default unit, as defined by the I1MACH machine
 !                constant routine.  Only IUNIT(1),...,IUNIT(N) are
 !                defined by XGETUA.  The values of IUNIT(N+1),...,

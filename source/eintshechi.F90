@@ -1,33 +1,33 @@
 ! ---------- Spin disturbance: Energy integration ---------
 subroutine eintshechi(q,e)
   use mod_f90_kind,         only: double
-  use mod_constants,        only: cZero, cOne, cI, tpi
+  use mod_constants,        only: cZero, cI, tpi
   use mod_parameters,       only: nOrb, nOrb2, eta, etap, dim, sigmaimunu2i
   use EnergyIntegration,    only: generate_real_epoints, y, wght, x2, p2, pn2
   use mod_susceptibilities, only: chiorb_hf
   use mod_system,           only: s => sys
   use mod_BrillouinZone,    only: realBZ
   use mod_SOC,              only: llineargfsoc
-  use adaptiveMesh
   use mod_mpi_pars
+  use adaptiveMesh
   implicit none
   real(double), intent(in)    :: e, q(3)
 
-  integer :: AllocateStatus
+  integer*4 :: AllocateStatus
   complex(double), dimension(:,:),allocatable :: Fint
 
-  integer         :: i,j,mu,nu,gamma,xi
+  integer*4       :: i,j,mu,nu,gamma,xi
   real(double)    :: kp(3),kpq(3)
   complex(double),dimension(:,:,:,:),allocatable    :: gf
   complex(double),dimension(:,:,:,:,:),allocatable  :: gfuu,gfud,gfdu,gfdd
   real(double) :: weight, ep
-  integer, dimension(4) :: index1, index2
+  integer*4, dimension(4) :: index1, index2
 
 !--------------------- begin MPI vars --------------------
   integer*8 :: ix
   integer*8 :: ix2, nep,nkp
   integer*8 :: real_points
-  integer   :: ncount
+  integer*4 :: ncount
   ncount=dim*dim
 !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -35,7 +35,7 @@ subroutine eintshechi(q,e)
   call generate_real_epoints(e)
 
   real_points = 0
-  if(abs(e) >= 1.d-10) real_points = int(pn2,8) * int(realBZ%workload,8)
+  if(abs(e) >= 1.d-15) real_points = int(pn2*realBZ%workload,8)
 
   ! Starting to calculate energy integral
 
@@ -218,20 +218,20 @@ end subroutine eintshechi
 ! -------------- to be used in the calculation of linear SOC chi ---------------
 subroutine eintshechilinearsoc(q,e)
   use mod_f90_kind,         only: double
-  use mod_constants,        only: cZero, cOne, cI, tpi
+  use mod_constants,        only: cZero, cI, tpi
   use mod_parameters,       only: nOrb, nOrb2, eta, etap, dim, sigmaimunu2i
   use EnergyIntegration,    only: generate_real_epoints,y, wght, x2, p2, pn2
   use mod_susceptibilities, only: chiorb_hf,chiorb_hflsoc
   use mod_system,           only: s => sys
   use mod_BrillouinZone,    only: realBZ
-  use adaptiveMesh
   use mod_mpi_pars
+  use adaptiveMesh
   implicit none
   real(double), intent(in) :: e,q(3)
 
-  integer :: AllocateStatus
+  integer*4 :: AllocateStatus
+  integer*4 :: i,j,mu,nu,gamma,xi
   integer*8 :: ix,ix2, nep, nkp
-  integer :: i,j,mu,nu,gamma,xi
   real(double) :: kp(3), kpq(3), ep
   real(double) :: weight
   complex(double), dimension(:,:,:,:), allocatable :: gf,gvg
@@ -241,8 +241,8 @@ subroutine eintshechilinearsoc(q,e)
   complex(double), dimension(:,:), allocatable :: df1,df1lsoc
 
   !--------------------- begin MPI vars --------------------
-  integer :: ncount
-  integer :: real_points
+  integer*4 :: ncount
+  integer*8 :: real_points
   ncount=dim*dim
   !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -250,7 +250,7 @@ subroutine eintshechilinearsoc(q,e)
   call generate_real_epoints(e)
 
   real_points = 0
-  if(abs(e) >= 1.d-10) real_points = int(pn2,8) * int(realBZ%workload,8)
+  if(abs(e) >= 1.d-15) real_points = int(pn2*realBZ%workload,8)
 
   !------------------------------------------------------
 

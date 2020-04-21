@@ -98,7 +98,7 @@ contains
     integer :: i,j,k
     real(double) :: e1,e2
 
-    if (abs(e)>=1.d-10) then
+    if (abs(e)>=1.d-15) then
       nepoints = pnt
       do k=1,parts3
         e1 = s%Ef-((parts3-(k-1))*e/parts3)

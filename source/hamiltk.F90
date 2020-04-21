@@ -54,7 +54,7 @@ subroutine hamiltk(sys,kp,hk)
   ! ! Test if hamiltonian is Hermitian (to be commented out, uncomment to use it)
   ! do i = ia(1,1), ia(4,sys%nAtoms)
   !   do j = i, ia(4,sys%nAtoms)
-  !     if(abs(hk(j,i)-conjg(hk(i,j))) > 1.d-12) then
+  !     if(abs(hk(j,i)-conjg(hk(i,j))) > 1.d-15) then
   !       write(*,"('Hamiltonian not hermitian',i0,2x,i0,2x,es11.4)") i,j,abs(hk(j,i)-conjg(hk(i,j)))
   !     end if
   !   end do

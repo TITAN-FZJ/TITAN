@@ -36,7 +36,8 @@ contains
     use mod_superconductivity, only: superCond
     use mod_mpi_pars
     implicit none
-    integer :: i, j
+    integer*8 :: i
+    integer*4 :: j
     real(double) :: e
 
     call allocateLDOS()
@@ -86,21 +87,21 @@ contains
 
   ! Calculates spin-resolved LDOS and energy-dependence of exchange interactions
   subroutine ldos_energy(e,ldosu,ldosd)
-    use mod_f90_kind,      only: double
-    use mod_constants,     only: pi
-    use mod_parameters,    only: nOrb, nOrb2, eta
-    use mod_system,        only: s => sys
-    use mod_BrillouinZone, only: realBZ
+    use mod_f90_kind,          only: double
+    use mod_constants,         only: pi
+    use mod_parameters,        only: nOrb, nOrb2, eta
+    use mod_system,            only: s => sys
+    use mod_BrillouinZone,     only: realBZ
     use mod_superconductivity, only: lsupercond, green_sc, superCond
     use mod_mpi_pars
     implicit none
     real(double), intent(in) :: e
-    real(double), dimension(s%nAtoms, nOrb*superCond), intent(out) :: ldosu, ldosd
+    real(double),    dimension(s%nAtoms, nOrb*superCond), intent(out) :: ldosu, ldosd
+    real(double),    dimension(s%nAtoms, nOrb*superCond) :: gfdiagu,gfdiagd
+    real(double),    dimension(3) :: kp
     complex(double), dimension(nOrb2*superCond, nOrb2*superCond, s%nAtoms, s%nAtoms) :: gf
-    complex(double), dimension(s%nAtoms, nOrb*superCond) :: gfdiagu,gfdiagd
-    real(double), dimension(3) :: kp
     real(double) :: weight
-    integer :: i,mu,nu
+    integer*4 :: i,mu,nu
     integer*8 :: iz
 
     ldosu = 0.d0
@@ -127,8 +128,8 @@ contains
           gfdiagu(i,mu) = - aimag(gf(mu,mu,i,i)) * weight
           gfdiagd(i,mu) = - aimag(gf(nu,nu,i,i)) * weight
           if(lsupercond) then
-              gfdiagu(i,mu+nOrb) = - aimag(gf(mu+nOrb2,mu+nOrb2,i,i)) * weight
-              gfdiagd(i,mu+nOrb) = - aimag(gf(nu+nOrb2,nu+nOrb2,i,i)) * weight
+            gfdiagu(i,mu+nOrb) = - aimag(gf(mu+nOrb2,mu+nOrb2,i,i)) * weight
+            gfdiagd(i,mu+nOrb) = - aimag(gf(nu+nOrb2,nu+nOrb2,i,i)) * weight
           end if
         end do
      end do
@@ -163,7 +164,8 @@ contains
     use mod_Coupling
     use mod_mpi_pars
     implicit none
-    integer :: i, j, mu, count, ncount,ncount2,ncount3
+    integer*4    :: i, j, mu, ncount,ncount2,ncount3
+    integer*8    :: count
     real(double) :: e
 
     ncount  = s%nAtoms*nOrb
@@ -262,8 +264,8 @@ contains
     real(double),intent(out)    :: ldosu(s%nAtoms, nOrb),ldosd(s%nAtoms, nOrb)
     real(double),intent(out)    :: Jijint(s%nAtoms,s%nAtoms,3,3)
     complex(double), dimension(nOrb2, nOrb2, s%nAtoms, s%nAtoms) :: gf
-    complex(double), dimension(s%nAtoms, nOrb)   :: gfdiagu,gfdiagd
     complex(double), dimension(nOrb2, nOrb2)     :: gij,gji,temp1,temp2,paulia,paulib
+    real(double),    dimension(s%nAtoms, nOrb)   :: gfdiagu,gfdiagd
     real(double),    dimension(:,:),allocatable     :: ldosu_loc,ldosd_loc
     real(double),    dimension(:,:,:,:),allocatable :: Jijint_loc
     real(double),    dimension(3) :: kp
@@ -505,7 +507,6 @@ contains
 
   ! This subroutine sorts LDOS files
   subroutine sortLDOS()
-    use mod_f90_kind, only: double
     use mod_tools,    only: sort_file
     use mod_system,   only: s => sys
     implicit none

@@ -124,7 +124,7 @@ contains
     integer,      dimension(:), allocatable :: type_count
     real(double), dimension(3) :: dens
     integer            :: i, j, k, l, m, ios, line_count = 0
-    integer, parameter :: line_length = 300, word_length = 50, max_elements = 50
+    integer, parameter :: word_length = 50, max_elements = 50
     character(len=word_length), dimension(max_elements) :: str_arr
     character(200) :: line
     character(50)  :: words(10)
@@ -266,7 +266,7 @@ contains
       if(lsupercond) &
         call log_error("readElementFile","Something wrong in the definition of 'lambda'.")
       ! Read next nearest neighbor stages
-      nn_stages = tmp_arr(1)
+      nn_stages = int(tmp_arr(1))
     case(3)
       material%lambda(1)   = tmp_arr(1)
       material%lambda(2:4) = tmp_arr(2)

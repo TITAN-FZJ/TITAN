@@ -21,7 +21,6 @@ contains
 
   subroutine allocate_susceptibilities()
     !! This subroutine allocates variables related to the susceptibility calculation
-    use mod_f90_kind,   only: double
     use mod_parameters, only: dim
     use mod_SOC,        only: llinearsoc
     use mod_system,     only: s => sys
@@ -106,9 +105,10 @@ contains
 
   subroutine build_identity_and_U_matrix()
     !! Mounts U and identity matrix
+    use mod_f90_kind,   only: double
     use mod_parameters, only: offset, Un, Um, sigmaimunu2i, dim
-    use mod_constants, only: cZero, cOne
-    use mod_system, only: s => sys
+    use mod_constants,  only: cZero, cOne
+    use mod_system,     only: s => sys
     implicit none
     integer :: xi,gamma,nu,mu,i
 
@@ -119,10 +119,10 @@ contains
              do mu=5,9
                 do i=1,s%nAtoms
                    if((mu/=nu).or.(gamma/=xi)) cycle
-                   Umatorb(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(1,i,gamma,xi)) = cmplx(Um(i+offset),0.d0)
-                   Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = cmplx(Un(i+offset),0.d0)
-                   Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = cmplx(Un(i+offset),0.d0)
-                   Umatorb(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,i,gamma,xi)) = cmplx(Um(i+offset),0.d0)
+                   Umatorb(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(1,i,gamma,xi)) = cmplx(Um(i+offset),0.d0,double)
+                   Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = cmplx(Un(i+offset),0.d0,double)
+                   Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = cmplx(Un(i+offset),0.d0,double)
+                   Umatorb(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,i,gamma,xi)) = cmplx(Um(i+offset),0.d0,double)
                 end do
              end do
           end do
@@ -134,10 +134,10 @@ contains
              do mu=5,9
                 do i=1,s%nAtoms
                    if((mu/=xi).or.(nu/=gamma)) cycle
-                   Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi))-cmplx(Un(i+offset),0.d0)
-                   Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gamma,xi))-cmplx(Un(i+offset),0.d0)
-                   Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gamma,xi))-cmplx(Un(i+offset),0.d0)
-                   Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi))-cmplx(Un(i+offset),0.d0)
+                   Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi))-cmplx(Un(i+offset),0.d0,double)
+                   Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gamma,xi))-cmplx(Un(i+offset),0.d0,double)
+                   Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gamma,xi))-cmplx(Un(i+offset),0.d0,double)
+                   Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi))-cmplx(Un(i+offset),0.d0,double)
                 end do
              end do
           end do
@@ -152,9 +152,8 @@ contains
   end subroutine build_identity_and_U_matrix
 
 
-  ! This subroutine diagonalize the transverse susceptibility
   subroutine diagonalize_susceptibilities()
-    use mod_f90_kind,   only: double
+  !! This subroutine diagonalize the transverse susceptibility
     use mod_system,     only: s => sys
     use mod_parameters, only: sigmai2i
     use mod_tools,      only: itos
@@ -461,14 +460,13 @@ contains
   end subroutine close_dc_chi_files
 
 
-  ! This subroutine write all the susceptibilities into files
-  ! (already opened with openclose_chi_files(1))
-  ! Some information is also written on the screen
   subroutine write_dc_susceptibilities(qcount)
-    use mod_f90_kind, only: double
+  !! This subroutine write all the susceptibilities into files
+  !! (already opened with openclose_chi_files(1))
+  !! Some information is also written on the screen
     use mod_parameters, only: lwriteonscreen, output, lhfresponses, lnodiag, sigmai2i, deltak
-    use mod_magnet, only: hw_count, dc_fields, dcfield_dependence, dcfield
-    use mod_system, only: s => sys
+    use mod_magnet,     only: hw_count, dc_fields, dcfield_dependence, dcfield
+    use mod_system,     only: s => sys
     implicit none
     integer,      intent(in) :: qcount
     character(len=100)       :: varm
@@ -501,12 +499,11 @@ contains
     call close_dc_chi_files()
   end subroutine write_dc_susceptibilities
 
-  ! This subroutine sorts susceptibilities files
   subroutine sort_susceptibilities()
-    use mod_f90_kind, only: double
+  !! This subroutine sorts susceptibilities files
     use mod_parameters, only: itype, lhfresponses, lnodiag
-    use mod_tools, only: sort_file
-    use mod_system, only: s => sys
+    use mod_tools,      only: sort_file
+    use mod_system,     only: s => sys
     implicit none
     integer :: i,j,iw,idc=1
 

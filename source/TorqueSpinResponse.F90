@@ -7,9 +7,9 @@ module TorqueSpinResponse
   character(len=7), dimension(nFiles), parameter, private :: folder = ["A/Slope", "A/Slope", "A/Slope"]
   character(len=5), dimension(nFiles), parameter, private :: filename = ["TSR  ", "TSAHF", "TSInv"]
   integer, dimension(nFiles) :: unitBase = [12000,13000,14000]
-  character(len=50), dimension(nFiles) :: FileHeader = [ "#     energy    ,  Torque Spin Response ((i,j, i=1,3), j=1,3)", &
-                                                         "#     energy    ,  Torque Spin Response ((i,j, i=1,3), j=1,3)", &
-                                                         "#     energy    ,  Inverse Chi TS       ((i,j, i=1,2), j=1,2)" ]
+  character(len=100), dimension(nFiles) :: FileHeader = [ "#     energy    ,  Torque Spin Response ((i,j, i=1,3), j=1,3)", &
+                                                          "#     energy    ,  Torque Spin Response ((i,j, i=1,3), j=1,3)", &
+                                                          "#     energy    ,  Inverse Chi TS       ((i,j, i=1,2), j=1,2)" ]
 contains
   subroutine allocTSResponse(nAtoms)
     use mod_mpi_pars, only: abortProgram
@@ -85,7 +85,7 @@ contains
 
 
   subroutine calcTSResponse(e)
-    use mod_constants,        only: delta, levi_civita, StoC, CtoS, cZero, cI
+    use mod_constants,        only: delta, levi_civita, StoC, CtoS, cI
     use mod_System,           only: s => sys
     use mod_magnet,           only: lvec
     use mod_parameters,       only: nOrb, sigmaimunu2i
@@ -93,26 +93,27 @@ contains
     use mod_mpi_pars, only: abortProgram
     use mod_magnet,           only: mabs
     implicit none
-    integer :: i,j, m,n,k, mp,mu,nu, gamma, p,q
     real(double), intent(in) :: e
+
+    integer :: i,j, m,n,k, mp,mu,nu, gamma, p,q
     complex(double), dimension(2,2) :: chits
 
-    TSResponse = cmplx(0.d0, 0.d0)
-    TSResponseHF = cmplx(0.d0, 0.d0)
+    TSResponse   = cmplx(0.d0, 0.d0, double)
+    TSResponseHF = cmplx(0.d0, 0.d0, double)
     do i = 1, s%nAtoms
        do j = 1, s%nAtoms
           do m = 1, 3
              do n = 1, 3
                 do k = 1, 3
-                   if(levi_civita(m,n,k) == 0.d0) cycle
+                   if(abs(levi_civita(m,n,k)) < 1.d-15) cycle
                    do mp = 1,3
                       do mu = 5, nOrb
                          do nu = 5, nOrb
-                            if(lvec(mu,nu,n) == cZero) cycle
+                            if(abs(lvec(mu,nu,n)) < 1.d-15) cycle
                             do gamma = 5, nOrb
                                do p = 1, 4
                                   do q = 1, 4
-                                     if(StoC(k+1,p) == cZero .or. CtoS(q,mp+1) == cZero) cycle
+                                     if(abs(StoC(k+1,p)) < 1.d-15 .or. abs(CtoS(q,mp+1)) < 1.d-15) cycle
                                      TSResponse(m, mp, i, j) = TSResponse(m, mp, i, j) &
                                           + s%Types(s%Basis(i)%Material)%LambdaD * levi_civita(m,n,k) * lvec(mu, nu, n) &
                                           * StoC(k+1,p) * chiorb(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma, gamma)) * CtoS(q,mp+1)

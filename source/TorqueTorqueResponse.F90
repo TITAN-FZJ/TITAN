@@ -112,7 +112,7 @@ contains
 
 
   subroutine calcTTResponse(e)
-    use mod_constants,        only: levi_civita, StoC, CtoS, cZero
+    use mod_constants,        only: levi_civita, StoC, CtoS
     use mod_System,           only: s => sys
     use mod_magnet,           only: lvec
     use mod_parameters,       only: nOrb, sigmaimunu2i
@@ -127,27 +127,27 @@ contains
     allocate(TTInverse(s%nAtoms*3, s%nAtoms*3), stat=AllocateStatus)
     if(AllocateStatus /= 0) call abortProgram("[calcTTResponse] Couldn't allocate memory for: TTInverse")
 
-    TTResponse = cmplx(0.d0, 0.d0)
-    TTResponseHF = cmplx(0.d0, 0.d0)
+    TTResponse   = cmplx(0.d0, 0.d0, double)
+    TTResponseHF = cmplx(0.d0, 0.d0, double)
     do i = 1, s%nAtoms
        do j = 1, s%nAtoms
           do m = 1, 3
              do n = 1, 3
                 do k = 1, 3
-                   if(levi_civita(m,n,k) == 0.d0) cycle
+                   if(abs(levi_civita(m,n,k)) < 1.d-15) cycle
                    do mp = 1,3
                       do np = 1, 3
                          do kp = 1, 3
-                            if(levi_civita(mp,np,kp) == 0.d0) cycle
+                            if(abs(levi_civita(mp,np,kp)) < 1.d-15) cycle
                             do mu = 5, nOrb
                                do nu = 5, nOrb
-                                 if(lvec(nu,mu,n) == cZero) cycle
+                                 if(abs(lvec(nu,mu,n)) < 1.d-15) cycle
                                   do gamma = 5, nOrb
                                      do zeta = 5, nOrb
-                                        if(lvec(gamma,zeta,np) == cZero) cycle
+                                        if(abs(lvec(gamma,zeta,np)) < 1.d-15) cycle
                                         do p = 1, 4
                                            do q = 1, 4
-                                              if(StoC(k+1,p) == cZero .or. CtoS(q,kp+1) == cZero) cycle
+                                              if(abs(StoC(k+1,p)) < 1.d-15 .or. abs(CtoS(q,kp+1)) < 1.d-15) cycle
                                               TTResponse(mp, m, j, i) = TTResponse(mp, m, j, i) &
                                                    - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%LambdaD * s%Types(s%Basis(j)%Material)%LambdaD &
                                                    * levi_civita(m,n,k) * levi_civita(mp, np, kp) &

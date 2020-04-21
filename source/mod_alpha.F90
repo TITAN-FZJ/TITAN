@@ -107,7 +107,7 @@ contains
 
   subroutine write_alpha(e)
     use mod_f90_kind,         only: double
-    use mod_constants,        only: cI, StoC, CtoS
+    use mod_constants,        only: StoC, CtoS
     use mod_susceptibilities, only: schi, schihf, schiLS, schiSL, schiLL
     use mod_parameters,       only: sigmai2i, Um
     use mod_system,           only: s => sys

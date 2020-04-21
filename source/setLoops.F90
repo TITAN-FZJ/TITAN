@@ -23,7 +23,7 @@ subroutine setLoops(s)
   else
     deltae = (emax - emin)/nEner
   end if
-  if(deltae<=1.d-14) nEner1 = 1
+  if(deltae<=1.d-15) nEner1 = 1
 
   ! Wave vector loop
   if((itype == 4).or.((itype >= 7).and.(itype <= 9))) then

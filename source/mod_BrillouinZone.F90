@@ -145,9 +145,9 @@ contains
     real(double) :: vol
     real(double) :: smallest_dist, distance(8), ini_smallest_dist
     integer*8    :: nkpt, l
-    integer      :: nx, ny, nz
+    integer*4    :: nx, ny, nz
     integer*8    :: count, added, weight, range
-    integer      :: j
+    integer*4    :: j
 
     allocate( self%w(self%workload), self%kp(3,self%workload) )
     self%w = 1.d0
@@ -195,7 +195,7 @@ contains
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 8
-        if( abs(distance(j)-smallest_dist) < 1.d-12 ) then
+        if( abs(distance(j)-smallest_dist) < 1.d-15 ) then
           count = count + 1
           weight = weight + 1
           if(count >= first .and. count <= last ) then
@@ -226,7 +226,7 @@ contains
     real(double), dimension(3,8) :: bz_vec
     real(double), dimension(3,8) :: diff
     real(double) :: smallest_dist, distance(8), ini_smallest_dist, vol
-    integer      :: j, nkpt_x, nkpt_y, nkpt_z, nx, ny, nz, nkpt_perdim
+    integer*4    :: j, nkpt_x, nkpt_y, nkpt_z, nx, ny, nz, nkpt_perdim
     integer*8    :: l
 
     nkpt_perdim = ceiling((dble(nkpt_in))**(1.d0/3.d0))
@@ -278,7 +278,7 @@ contains
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 8
-        if( abs(distance(j)-smallest_dist) < 1.d-12 ) numextrakbz=numextrakbz+1
+        if( abs(distance(j)-smallest_dist) < 1.d-15 ) numextrakbz=numextrakbz+1
       end do
     end do
     !$omp end parallel do
@@ -300,9 +300,9 @@ contains
     real(double) :: vol
     real(double) :: smallest_dist, distance(4), ini_smallest_dist
     integer*8    :: nkpt, l
-    integer      :: nx, ny
+    integer*4    :: nx, ny
     integer*8    :: count, added, weight, range
-    integer      :: j
+    integer*4    :: j
 
     zdir = [0.d0,0.d0,1.d0]
     allocate( self%w(self%workload), self%kp(3,self%workload) )
@@ -345,7 +345,7 @@ contains
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 4
-        if( abs(distance(j)-smallest_dist) < 1.d-12 ) then
+        if( abs(distance(j)-smallest_dist) < 1.d-15 ) then
           count = count + 1
           weight = weight + 1
           if(count >= first .and. count <= last ) then
@@ -377,7 +377,7 @@ contains
     real(double), dimension(3,4) :: bz_vec
     real(double), dimension(3,4) :: diff
     real(double) :: smallest_dist, distance(4), ini_smallest_dist, vol
-    integer      :: j, nkpt_x, nkpt_y, nx, ny, nkpt_perdim
+    integer*4    :: j, nkpt_x, nkpt_y, nx, ny, nkpt_perdim
     integer*8    :: l
 
     zdir = [0.d0,0.d0,1.d0]
@@ -423,7 +423,7 @@ contains
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j = 1, 4
-        if( abs(distance(j)-smallest_dist) < 1.d-12 ) numextrakbz = numextrakbz + 1
+        if( abs(distance(j)-smallest_dist) < 1.d-15 ) numextrakbz = numextrakbz + 1
       end do
     end do
     !$omp end parallel do
@@ -445,9 +445,9 @@ contains
     real(double) :: vol
     real(double) :: smallest_dist, distance(2), ini_smallest_dist
     integer*8    :: nkpt, l
-    integer      :: nx
+    integer*4    :: nx
     integer*8    :: count, added, weight, range
-    integer      :: j
+    integer*4    :: j
 
     zdir = [0.d0,0.d0,1.d0]
     ydir = [0.d0,1.d0,0.d0]
@@ -486,7 +486,7 @@ contains
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 2
-        if( abs(distance(j)-smallest_dist) < 1.d-12 ) then
+        if( abs(distance(j)-smallest_dist) < 1.d-15 ) then
           count = count + 1
           weight = weight + 1
           if(count >= first .and. count <= last ) then
@@ -518,12 +518,12 @@ contains
     real(double), dimension(3,2) :: bz_vec
     real(double), dimension(3,2) :: diff
     real(double) :: smallest_dist, distance(2), ini_smallest_dist, vol
-    integer      :: j, nkpt_x, nx, nkpt_perdim
+    integer*4    :: j, nkpt_x, nkpt_perdim, nx
     integer*8    :: l
 
     zdir = [0.d0,0.d0,1.d0]
     ydir = [0.d0,1.d0,0.d0]
-    nkpt_perdim = nkpt_in
+    nkpt_perdim = ceiling(dble(nkpt_in)) 
     nkpt_x = nkpt_perdim
 
     nkpt = nkpt_x
@@ -558,7 +558,7 @@ contains
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j = 1, 2
-        if( abs(distance(j)-smallest_dist) < 1.d-12 ) numextrakbz = numextrakbz + 1
+        if( abs(distance(j)-smallest_dist) < 1.d-15 ) numextrakbz = numextrakbz + 1
       end do
     end do
     !$omp end parallel do
@@ -568,7 +568,8 @@ contains
   subroutine output_kpoints(self,unit)
     implicit none
     class(BrillouinZone) :: self
-    integer :: i, unit
+    integer*8 :: i
+    integer*4 :: unit
 
     write(unit=unit,fmt="(a)") ' #      kx            ky            kz            wk'
     do i=1,self%nkpt
@@ -583,7 +584,6 @@ contains
 ! component "component" (1,2,3)
   subroutine store_diff(nkpt_in, b1, b2, b3, component, ndiffk, diff_k_unsrt)
     use mod_f90_kind,   only: double
-    use mod_constants,  only: tpi
     use mod_tools,      only: itos
     use mod_mpi_pars,   only: abortProgram, myrank
     use mod_parameters, only: kptotal_in
@@ -608,12 +608,12 @@ contains
     real(double), dimension(3) :: kp
     integer, dimension(:), allocatable :: ndiffk_loc
     integer*8  :: l, nkpt
-    integer    :: nkpt_perdim, nkpt_x, nkpt_y, nkpt_z
+    integer*4  :: nkpt_perdim, nkpt_x, nkpt_y, nkpt_z
     !! Number of k points per dimension
-    integer    :: nx, ny, nz , start, end
-    integer    :: maxdiffk, ndiffk_max, count
+    integer*4  :: nx, ny, nz , start, end
+    integer*4  :: maxdiffk, ndiffk_max, count
     !! Number of different k points, maximum value, and counter
-    integer    :: j, mythread, nthreads
+    integer*4  :: j, mythread, nthreads
 
     nkpt_perdim = ceiling((dble(nkpt_in))**(1.d0/3.d0))
     nkpt_x = nkpt_perdim
@@ -677,10 +677,10 @@ contains
       do j=1, 8
         diff=kp - bz_vec(:,j)
         distance=sqrt(dot_product(diff,diff))
-        if( abs(distance-smallest_dist) < 1.d-12 ) then
+        if( abs(distance-smallest_dist) < 1.d-15 ) then
           count = count + 1 ! Counting the total number of points generated
           ! Checking if all numbers are different than current local list (if any of them is zero, the point is already stored)
-          if( all(abs( diff_k_loc(:) - abs(diff(component)) )> 1.d-12,1)  ) then
+          if( all(abs( diff_k_loc(:) - abs(diff(component)) )> 1.d-15,1)  ) then
             ndiffk_loc(mythread) = ndiffk_loc(mythread) + 1
             diff_k_loc(ndiffk_loc(mythread)) = abs(diff(component))
           end if
@@ -709,7 +709,7 @@ contains
     ndiffk = 0
     do j=1,maxdiffk
 
-      if( all(abs( diff_k_temp2(:) - diff_k_temp(j) )> 1.d-12,1)  ) then
+      if( all(abs( diff_k_temp2(:) - diff_k_temp(j) )> 1.d-15,1)  ) then
         ndiffk = ndiffk + 1
         diff_k_temp2(ndiffk) = diff_k_temp(j)
       end if

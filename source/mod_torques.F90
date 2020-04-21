@@ -13,12 +13,10 @@ contains
 
   ! This subroutine allocates variables related to the torques calculation
   subroutine allocate_torques()
-    use mod_f90_kind,   only: double
     use mod_parameters, only: renorm
     use mod_System,     only: s => sys
     use mod_magnet,     only: lfield, total_hw_npt1
-    use mod_mpi_pars, only: abortProgram
-    use mod_mpi_pars,   only: rFreq
+    use mod_mpi_pars,   only: rFreq,abortProgram
     implicit none
     integer :: AllocateStatus
 
@@ -88,8 +86,8 @@ contains
   subroutine open_torque_files()
     !! This subroutine opens all the files needed for the disturbances
     use mod_parameters, only: output, renorm, missing_files
-    use mod_mpi_pars
-    use mod_system, only: s => sys
+    use mod_system,     only: s => sys
+    use mod_mpi_pars,   only: abortProgram
     implicit none
 
     character(len=500)  :: varm
@@ -171,7 +169,7 @@ contains
         do i=1,s%nAtoms
           iw = 9000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
 
-          if(abs(torques(typetorque,sigma,i))>=1.d-10) then
+          if(abs(torques(typetorque,sigma,i))>=1.d-15) then
             phase  = atan2(aimag(torques(typetorque,sigma,i)),real(torques(typetorque,sigma,i)))
             sine   = real(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
             cosine = aimag(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
@@ -187,7 +185,7 @@ contains
           if(renorm) then
             iw = iw+1000
 
-            if(abs(rtorques(typetorque,sigma,i))>=1.d-10) then
+            if(abs(rtorques(typetorque,sigma,i))>=1.d-15) then
               phase  = atan2(aimag(rtorques(typetorque,sigma,i)),real(rtorques(typetorque,sigma,i)))
               sine   = real(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
               cosine = aimag(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
@@ -203,7 +201,7 @@ contains
          ! Writing total torques
          iw = 9500+(typetorque-1)*3+sigma
 
-         if(abs(total_torques(typetorque,sigma))>=1.d-10) then
+         if(abs(total_torques(typetorque,sigma))>=1.d-15) then
             phase  = atan2(aimag(total_torques(typetorque,sigma)),real(total_torques(typetorque,sigma)))
             sine   = real(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
             cosine = aimag(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
@@ -263,9 +261,9 @@ contains
   subroutine open_dc_torque_files()
   !! This subroutine opens all the files needed for the disturbances
     use mod_parameters, only: output, count, missing_files, renorm
-    use mod_magnet, only: dcprefix, dcfield_dependence, dcfield
-    use mod_mpi_pars
-    use mod_system, only: s => sys
+    use mod_magnet,     only: dcprefix, dcfield_dependence, dcfield
+    use mod_system,     only: s => sys
+    use mod_mpi_pars,   only: abortProgram
     implicit none
 
     character(len=500)  :: varm
@@ -331,10 +329,10 @@ contains
   !! This subroutine write all the torques into files
   !! (already opened with openclose_torque_files(1))
   !! Some information may also be written on the screen
-    use mod_f90_kind, only: double
+    use mod_f90_kind,   only: double
     use mod_parameters, only: renorm
-    use mod_magnet, only: mvec_spherical,mtotal_spherical,dc_fields,hw_count
-    use mod_System, only: s => sys
+    use mod_magnet,     only: mvec_spherical,mtotal_spherical,dc_fields,hw_count
+    use mod_System,     only: s => sys
     implicit none
     integer      :: i,iw,sigma,typetorque
     real(double) :: phase,sine,cosine
@@ -346,7 +344,7 @@ contains
         do i=1,s%nAtoms
           iw = 90000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
 
-          if(abs(torques(typetorque,sigma,i))>=1.d-10) then
+          if(abs(torques(typetorque,sigma,i))>=1.d-15) then
             phase  = atan2(aimag(torques(typetorque,sigma,i)),real(torques(typetorque,sigma,i)))
             sine   = real(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
             cosine = aimag(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
@@ -361,7 +359,7 @@ contains
           if(renorm) then
             iw = iw+1000
 
-            if(abs(rtorques(typetorque,sigma,i))>=1.d-10) then
+            if(abs(rtorques(typetorque,sigma,i))>=1.d-15) then
               phase  = atan2(aimag(rtorques(typetorque,sigma,i)),real(rtorques(typetorque,sigma,i)))
               sine   = real(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
               cosine = aimag(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
@@ -377,7 +375,7 @@ contains
         ! Writing total torques
       iw = 95000+(typetorque-1)*3+sigma
 
-      if(abs(total_torques(typetorque,sigma))>=1.d-10) then
+      if(abs(total_torques(typetorque,sigma))>=1.d-15) then
         phase  = atan2(aimag(total_torques(typetorque,sigma)),real(total_torques(typetorque,sigma)))
         sine   = real(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
         cosine = aimag(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
@@ -397,10 +395,9 @@ contains
 
   ! This subroutine sorts torque files
   subroutine sort_torques()
-    use mod_f90_kind, only: double
     use mod_parameters, only: renorm,itype
-    use mod_tools, only: sort_file
-    use mod_System, only: s => sys
+    use mod_tools,      only: sort_file
+    use mod_System,     only: s => sys
     implicit none
     integer  :: i,iw,sigma,typetorque,idc=1
 

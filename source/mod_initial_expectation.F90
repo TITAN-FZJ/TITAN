@@ -3,7 +3,6 @@ module mod_initial_expectation
 contains
 
   subroutine calc_initial_Uterms(sys)
-    use mod_f90_kind,       only: double
     use mod_constants,      only: cZero
     use mod_System,         only: System,initHamiltkStride
     use TightBinding,       only: initTightBinding
@@ -97,7 +96,7 @@ contains
         lb = cZero
         sb = cZero
         ls = cZero
-        singlet_coupling = cZero
+        singlet_coupling = 0.d0
 
         !------------------------ Conversion arrays -------------------------
         call initConversionMatrices(sys0(i)%nAtoms,nOrb)
@@ -154,20 +153,19 @@ contains
   subroutine calc_expectation_values(sys)
     !! Calculates the expectation values of n_mu^s and n_i/2
     use mod_f90_kind,      only: double
-    use mod_constants,     only: cZero,pi
+    use mod_constants,     only: cZero
     use mod_System,        only: System
     use mod_parameters,    only: nOrb, leigenstates
     use mod_magnet,        only: rho,rhod,mp,mx,my,mz,mpd,mzd
     use mod_expectation,   only: expectation_values_greenfunction,expectation_values_eigenstates
     use mod_Umatrix
     use adaptiveMesh
-    use mod_mpi_pars
     implicit none
     integer      :: i
-    type(System),                      intent(inout) :: sys
-    real(double),    dimension(:,:)    , allocatable :: rho0
-    real(double),    dimension(:)      , allocatable :: rhod0
-    complex(double), dimension(nOrb,sys%nAtoms)      :: deltas
+    type(System),                   intent(inout) :: sys
+    real(double), dimension(:,:)    , allocatable :: rho0
+    real(double), dimension(:)      , allocatable :: rhod0
+    real(double), dimension(nOrb,sys%nAtoms)      :: deltas
 
     allocate( rho0(nOrb,sys%nAtoms),rhod0(sys%nAtoms) )
 
@@ -257,7 +255,7 @@ contains
     read(97,fmt=*) Un_tmp, Um_tmp
     close(97)
 
-    if((abs(Un_tmp - sys0%Types(1)%Un) > 1.d-10).or.(abs(Um_tmp - sys0%Types(1)%Um) > 1.d-10)) then ! Only works for 1 atom in unit cell of elemental file
+    if((abs(Un_tmp - sys0%Types(1)%Un) > 1.d-15).or.(abs(Um_tmp - sys0%Types(1)%Um) > 1.d-15)) then ! Only works for 1 atom in unit cell of elemental file
       write(output%unit,"('[read_initial_Uterms] Different value of Un, Um:')")
       write(output%unit,"('[read_initial_Uterms] Using for ',a,':', es16.9, es16.9,', Read from previous calculations: ', es16.9, es16.9)") trim(sys0%Types(1)%Name), sys0%Types(1)%Un, sys0%Types(1)%Um, Un_tmp, Um_tmp
       write(output%unit,"('[read_initial_Uterms] Recalculating expectation values...')")

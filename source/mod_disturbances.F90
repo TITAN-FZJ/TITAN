@@ -22,11 +22,9 @@ contains
 
   subroutine allocate_disturbances()
   !! This subroutine allocates variables related to the disturbance calculation
-    use mod_f90_kind,   only: double
     use mod_parameters, only: renorm,dim,dimspinAtoms
     use mod_System,     only: s => sys
-    use mod_mpi_pars, only: abortProgram
-    use mod_mpi_pars,   only: rFreq
+    use mod_mpi_pars,   only: rFreq, abortProgram
     implicit none
     integer           :: AllocateStatus
 
@@ -60,8 +58,7 @@ contains
   subroutine create_disturbance_files()
   !! This subroutine creates all the files needed for the disturbances
     use mod_parameters, only: output, renorm, renormnb
-    use mod_mpi_pars
-    use mod_system, only: s => sys
+    use mod_system,     only: s => sys
     implicit none
 
     character(len=500)  :: varm
@@ -95,8 +92,8 @@ contains
   subroutine open_disturbance_files()
   !! This subroutine opens all the files needed for the disturbances
     use mod_parameters, only: output, renorm, renormnb, missing_files
-    use mod_mpi_pars
-    use mod_system, only: s => sys
+    use mod_system,     only: s => sys
+    use mod_mpi_pars,   only: abortProgram
     implicit none
 
     character(len=500)  :: varm
@@ -264,11 +261,9 @@ contains
   subroutine create_dc_disturbance_files
   !! This subroutine creates all the files needed for the dc-limit disturbances
     use mod_parameters, only: count, output, renorm, renormnb
-    use mod_magnet, only: dcprefix, dcfield_dependence, dcfield, dc_header
-    use mod_mpi_pars
-    use mod_system, only: s => sys
+    use mod_magnet,     only: dcprefix, dcfield_dependence, dcfield, dc_header
+    use mod_system,     only: s => sys
     implicit none
-
     character(len=500)  :: varm
     integer :: i,j,iw
 
@@ -298,40 +293,40 @@ contains
 
   subroutine open_dc_disturbance_files
   ! This subroutine opens all the files needed for the dc-limit disturbances
-   use mod_parameters, only: output, count, renorm, renormnb, missing_files
-   use mod_magnet,     only: dcprefix, dcfield_dependence, dcfield
-   use mod_mpi_pars, only: abortProgram
-   use mod_system,     only: s => sys
-   implicit none
+    use mod_parameters, only: output, count, renorm, renormnb, missing_files
+    use mod_magnet,     only: dcprefix, dcfield_dependence, dcfield
+    use mod_mpi_pars,   only: abortProgram
+    use mod_system,     only: s => sys
+    implicit none
 
-   character(len=500)  :: varm
-   integer :: i,j,iw,err,errt=0
+    character(len=500)  :: varm
+    integer :: i,j,iw,err,errt=0
 
-   do j=1,7
-    do i=1,s%nAtoms
-      iw = 30000+(i-1)*7+j
-      write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
+    do j=1,7
+     do i=1,s%nAtoms
+       iw = 30000+(i-1)*7+j
+       write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
+       open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+       errt = errt + err
+       if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
+       if(renorm) then
+         iw = iw+1000
+         write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'r',a,'_',a,'_pos=',i0,a,a,a,a,a,'_renormnb=',i0,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),renormnb,trim(output%suffix)
+         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
+         errt = errt + err
+         if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
+       end if
+     end do
+      ! Total disturbances files
+      iw = 35000+j
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
       open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
       errt = errt + err
       if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
-      if(renorm) then
-        iw = iw+1000
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'r',a,'_',a,'_pos=',i0,a,a,a,a,a,'_renormnb=',i0,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),renormnb,trim(output%suffix)
-        open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
-        errt = errt + err
-        if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
-      end if
     end do
-     ! Total disturbances files
-     iw = 35000+j
-     write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
-     open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
-     errt = errt + err
-     if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
-   end do
 
-   ! Stop if some file does not exist
-   if(errt/=0) call abortProgram("[openclose_dc_disturbance_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
+    ! Stop if some file does not exist
+    if(errt/=0) call abortProgram("[openclose_dc_disturbance_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
   end subroutine open_dc_disturbance_files
 
   subroutine close_dc_disturbance_files()
@@ -362,10 +357,9 @@ contains
     !! This subroutine write all the dc-limit disturbances into files
     !! (already opened with openclose_dc_disturbance_files(1))
     !! Some information may also be written on the screen
-    use mod_f90_kind
     use mod_parameters, only: renorm,output,lwriteonscreen
-    use mod_magnet, only: mvec_spherical, mtotal_spherical, dcfield, dcfield_dependence, dc_fields, hw_count
-    use mod_System, only: s => sys
+    use mod_magnet,     only: mvec_spherical, mtotal_spherical, dcfield, dcfield_dependence, dc_fields, hw_count
+    use mod_System,     only: s => sys
     implicit none
     integer  :: i,iw
 
@@ -466,7 +460,6 @@ contains
 
   ! This subroutine sorts disturbance files
   subroutine sort_disturbances()
-    use mod_f90_kind
     use mod_parameters, only: renorm,itype
     use mod_tools, only: sort_file
     use mod_System, only: s => sys

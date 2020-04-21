@@ -111,10 +111,10 @@ contains
 
   subroutine genMPIGrid(nFields, nFieldPoints, nFreq, nFreqPoints)
     implicit none
-    integer, intent(in) :: nFields
-    integer, intent(in) :: nFreq
-    integer, intent(in) :: nFieldPoints
-    integer, intent(in) :: nFreqPoints
+    integer*4, intent(in) :: nFields
+    integer*4, intent(in) :: nFreq
+    integer*4, intent(in) :: nFieldPoints
+    integer*4, intent(in) :: nFreqPoints
     integer*4 :: FreqID, FieldID
 
     integer*4 :: i, ierr

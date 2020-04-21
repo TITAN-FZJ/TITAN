@@ -84,7 +84,7 @@ subroutine debugging()
 
 !   test = transpose(conjg(hk))
 !   test2 = hk-test
-!   if(sum(abs((test2)))>1.d-10) then
+!   if(sum(abs((test2)))>1.d-15) then
 !     write(*,*) 'Hamiltonian is not hermitian!'
 !   else
 !     write(*,*) 'Hamiltonian is hermitian'
@@ -92,10 +92,10 @@ subroutine debugging()
 
 !   test = transpose(hk)
 !   test2 = hk-test
-!   if(sum(abs((test2)))>1.d-10) then
+!   if(sum(abs((test2)))>1.d-15) then
 !     write(*,*) 'Hamiltonian is not symmetric!'
 !     do i=1,(Npl+2)*18 ; do j=1,(Npl+2)*18
-!       if(abs(test2(i,j))>1.d-10) write(*,*) i,j,test2(i,j)
+!       if(abs(test2(i,j))>1.d-15) write(*,*) i,j,test2(i,j)
 !     end do ; end do
 !   else
 !     write(*,*) 'Hamiltonian is symmetric'
@@ -237,7 +237,7 @@ subroutine debugging()
 !       i1 = i0+17
 !       j0 = (j-1)*18+1
 !       j1 = j0+17
-!       if(sum(abs(hk(i0:i1,j0:j1)))>1.d-10) then
+!       if(sum(abs(hk(i0:i1,j0:j1)))>1.d-15) then
 !         write(*,*) 'Non cZero values out-of tri-diagonal part!'
 !       end if
 !     end if
@@ -380,7 +380,7 @@ subroutine debugging()
 
 ! !   test = transpose(conjg(hk))
 ! !   test2 = hk-test
-! !   if(sum(abs((test2)))>1.d-10) then
+! !   if(sum(abs((test2)))>1.d-15) then
 ! !     write(*,*) 'Green function is not hermitian!'
 ! !   else
 ! !     write(*,*) 'Green function is hermitian'
@@ -388,10 +388,10 @@ subroutine debugging()
 
 ! !   test = transpose(hk)
 ! !   test2 = hk-test
-! !   if(sum(abs((test2)))>1.d-10) then
+! !   if(sum(abs((test2)))>1.d-15) then
 ! !     write(*,*) 'Green function is not symmetric!'
 ! !     do i=1,(Npl+2)*18 ; do j=1,(Npl+2)*18
-! !       if(abs(test2(i,j))>1.d-10) write(*,*) i,j,test2(i,j)
+! !       if(abs(test2(i,j))>1.d-15) write(*,*) i,j,test2(i,j)
 ! !     end do ; end do
 ! !   else
 ! !     write(*,*) 'Green function is symmetric'
@@ -413,10 +413,10 @@ subroutine debugging()
 ! !   write(*,*) sum(abs(hk(i0:i1,i0:i1))),sum(hk(i0:i1,i0:i1))
 ! !   write(*,*) sum(abs(hk(j0:j1,j0:j1))),sum(hk(j0:j1,j0:j1))
 ! !   test(1:18,1:18) = hk(i0:i1,i0:i1) - hk(j0:j1,j0:j1)
-! !   if(sum(abs(test(1:18,1:18)))>1.d-10) then
+! !   if(sum(abs(test(1:18,1:18)))>1.d-15) then
 ! !     write(*,*) '11 e 77 diferentes'
 ! !     do i=1,18 ; do j=1,18
-! !       if(abs(test(i,j))>1.d-10) write(*,*) i,j,test(i,j)
+! !       if(abs(test(i,j))>1.d-15) write(*,*) i,j,test(i,j)
 ! !     end do ; end do
 ! !   end if
 

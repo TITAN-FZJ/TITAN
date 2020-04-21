@@ -149,7 +149,7 @@ program TITAN
   if(myrank == 0 .and. skip_steps_hw > 0) &
   write(output%unit,"('[main] Skipping first ',i0,' field step(s)...')") skip_steps_hw
 
-  do hw_count = startField, endField
+  do hw_count = int(startField,4), int(endField,4)
     !---------- Opening files (general and one for each field) ---------
     if(rField == 0) then
       if(total_hw_npt1 == 1 .or. itype == 6 ) then

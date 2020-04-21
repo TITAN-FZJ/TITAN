@@ -16,32 +16,33 @@
 
 module Lattice
   use mod_f90_kind, only: double
+  use AtomTypes,    only: NeighborAtom
   implicit none
+
+  type(NeighborAtom), dimension(:), allocatable, private :: list
+  !! Array containing all generated atoms
 
 contains
 
   subroutine initLattice(s)
     use mod_system, only: System
-    use AtomTypes,  only: NeighborAtom
     implicit none
     type(System), intent(inout) :: s
-    type(NeighborAtom), dimension(:), allocatable :: list
     integer :: size
 
-    call generateNeighbors(s, list, size)
-    call sortNeighbors(s, list,size)
+    call generateNeighbors(s, size)
+    call sortNeighbors(s, size)
+
+    deallocate(list)
 
   end subroutine initLattice
 
-  subroutine generateNeighbors(s,list,size)
-    use AtomTypes,  only: NeighborAtom
+  subroutine generateNeighbors(s,size)
     use mod_system, only: System
     use mod_tools,  only: vecDist
     implicit none
     type(System),                                  intent(inout) :: s
     !! System for which lattice is generated
-    type(NeighborAtom), dimension(:), allocatable, intent(out)   :: list
-    !! Array containing all generated atoms
     integer,                                       intent(out)   :: size
     !! Counter for number of atoms generated, return total number generated
     integer :: nCells
@@ -149,13 +150,12 @@ contains
     deallocate(localDistances)
   end subroutine generateNeighbors
 
-  subroutine sortNeighbors(s,list, size)
-    use AtomTypes,  only: NeighborAtom, add_elem
+  subroutine sortNeighbors(s, size)
+    use AtomTypes,  only: add_elem
     use mod_system, only: System
     implicit none
-    integer,                             intent(in)    :: size
-    type(System),                        intent(inout) :: s
-    type(NeighborAtom), dimension(size), intent(inout) :: list
+    integer,      intent(in)    :: size
+    type(System), intent(inout) :: s
     integer :: nNeighbors
 
     integer :: i,j,k
@@ -195,7 +195,7 @@ contains
 
       do j = 1, s%nAtoms
         if(matchedNeighbor(j) == 0) cycle
-        call add_elem(s%Basis(j)%NeighborList(matchedNeighbor(j), list(nNeighbors)%BasisIndex), nNeighbors)
+        call add_elem(s%Basis(j)%NeighborList(matchedNeighbor(j),list(nNeighbors)%BasisIndex), nNeighbors)
       end do
     end do
 

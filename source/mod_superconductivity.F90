@@ -6,6 +6,7 @@
 ! lambda is supposed to hold the constant value that multiplies the
 ! expected value of the the cooper channels (singlet_coupling)
 ! singlet_coupling holds the expected value of c\up c\down for each orbital
+! singlet_coupling is expected to be real within BCS
 ! check Uriel's thesis
 !
 ! lambda is not supposed to change during the execution
@@ -15,24 +16,23 @@
 
 module mod_superconductivity
   use mod_f90_kind,       only: double
-   implicit none
+  implicit none
   logical :: lsuperCond = .false.
   integer :: superCond
-  complex(double), dimension(:,:), allocatable  :: singlet_coupling
+  real(double), dimension(:,:), allocatable  :: singlet_coupling
   integer :: flag = 0
 
 contains
 
   subroutine allocate_super_variables(nAtoms,nOrbs)
     use mod_mpi_pars,  only: abortProgram
-    use mod_constants, only: cZero
     implicit none
     integer, intent(in) :: nAtoms
     integer, intent(in) :: nOrbs
     integer :: AllocateStatus
 
     allocate( singlet_coupling(nOrbs,nAtoms), stat = AllocateStatus)
-    singlet_coupling = cZero
+    singlet_coupling = 0.d0
     if(AllocateStatus /= 0) call abortProgram("[allocate_super_variables] Not enough memory for: singlet_coupling")
 
 end subroutine allocate_super_variables
@@ -78,9 +78,9 @@ end subroutine allocate_super_variables
     call hamiltk(sys,kp,dummy)
     !
     do i = 1, dimH
-        do j = 1, dimH
-            hk(i,j) = (dummy(i,j) + conjg(dummy(j,i)))/2.d0
-        end do
+      do j = 1, dimH
+        hk(i,j) = (dummy(i,j) + conjg(dummy(j,i)))/2.d0
+      end do
     end do
 
     dummy = cZero
@@ -89,9 +89,9 @@ end subroutine allocate_super_variables
     call hamiltk(sys,mkp,dummy)
     !
     do i = 1, dimH
-        do j = 1, dimH
-            hk2(i,j) = (dummy(i,j) + conjg(dummy(j,i)))/2.d0
-        end do
+      do j = 1, dimH
+        hk2(i,j) = (dummy(i,j) + conjg(dummy(j,i)))/2.d0
+      end do
     end do
 
     ! Populate the diagonal blocks of the hamiltonian. i.e. electron-electron
@@ -102,107 +102,114 @@ end subroutine allocate_super_variables
     ! The diagonal terms involve also the Fermi Energy/chemical potential, as we can see below
     ! Check any superconductivity reference for this detail
     do i = 1, dimH
-        hk_sc(     i,     i) = hk_sc(     i,     i) - sys%Ef*cOne
-        hk_sc(dimH+i,dimH+i) = hk_sc(dimH+i,dimH+i) + sys%Ef*cOne
+      hk_sc(     i,     i) = hk_sc(     i,     i) - sys%Ef*cOne
+      hk_sc(dimH+i,dimH+i) = hk_sc(dimH+i,dimH+i) + sys%Ef*cOne
     end do
 
     ! Once this is done the remaining part is to populate the non-diagonal blocks
     ! of the hamiltonian. There are several ways to do it.
 
-    call bcs_pairing(sys, singlet_coupling,hk_sc)
+    call bcs_pairing(sys, singlet_coupling, hk_sc)
 
   end subroutine hamiltk_sc
 
+  ! TODO: Either remove this function or write to a file
   subroutine print_hamilt(sys,hk)
-      use mod_f90_kind,       only: double
-      use mod_parameters,     only: nOrb2
-      use mod_system,         only: System, initHamiltkStride
-      use mod_constants,      only: cZero,cOne
-      use mod_parameters,     only: dimH
-      implicit none
+    use mod_f90_kind,       only: double
+    use mod_parameters,     only: nOrb2
+    use mod_system,         only: System, initHamiltkStride
+    use mod_parameters,     only: dimH
+    implicit none
 
-      type(System),                                 intent(in) :: sys
-      complex(double), dimension(2*dimH,2*dimH), intent(in) :: hk
-      integer :: i,j
+    type(System),                              intent(in) :: sys
+    complex(double), dimension(2*dimH,2*dimH), intent(in) :: hk
+    integer :: i,j
 
-      do j = 1, sys%nAtoms*nOrb2*2
-        do i = 1, sys%nAtoms*nOrb2*2
-          write(*,*) real(hk(i,j)), imag(hk(i,j))
-        end do
+    do j = 1, sys%nAtoms*nOrb2*2
+      do i = 1, sys%nAtoms*nOrb2*2
+        write(*,*) real(hk(i,j)), imag(hk(i,j))
       end do
+    end do
 
   end subroutine print_hamilt
 
+  ! TODO: Either remove this function or write to a file
   subroutine print_hamilt_entry(hk,i,j)
-      use mod_f90_kind,       only: double
-      use mod_system,         only: System, initHamiltkStride
-      use mod_constants,      only: cZero,cOne
-      use mod_parameters,     only: dimH
-      implicit none
-      complex(double), dimension(2*dimH,2*dimH), intent(in) :: hk
-      integer, intent(in):: i,j
+    use mod_f90_kind,       only: double
+    use mod_system,         only: System, initHamiltkStride
+    use mod_parameters,     only: dimH
+    implicit none
+    complex(double), dimension(2*dimH,2*dimH), intent(in) :: hk
+    integer, intent(in):: i,j
 
-      write(*,*) real(hk(i,j)), imag(hk(i,j))
-
+    write(*,*) real(hk(i,j)), imag(hk(i,j))
   end subroutine print_hamilt_entry
 
   subroutine update_singlet_couplings(sys,couplings)
-      use mod_f90_kind,       only: double
-      ! use mod_parameters,     only: nOrb2
-      use mod_system,         only: System, initHamiltkStride
-      use mod_constants,      only: cZero,cOne
-      use mod_parameters,     only: nOrb
-      implicit none
+    use mod_f90_kind,       only: double
+    use mod_system,         only: System, initHamiltkStride
+    use mod_parameters,     only: nOrb
+    implicit none
 
-      type(System),   intent(in)  :: sys
+    type(System),   intent(in)  :: sys
 
-      complex(double), dimension(nOrb,sys%nAtoms)  :: couplings
-      integer :: i,mu
+    real(double), dimension(nOrb,sys%nAtoms)  :: couplings
+    integer :: i,mu
 
-      do i = 1,sys%nAtoms
-          do mu = 1,nOrb
-              singlet_coupling(mu,i) = cOne*couplings(mu,i)
-          end do
+    do i = 1,sys%nAtoms
+      do mu = 1,nOrb
+        singlet_coupling(mu,i) = couplings(mu,i)
       end do
+    end do
 
   end subroutine update_singlet_couplings
 
   subroutine bcs_pairing(sys,delta, hk_sc)
-      use mod_f90_kind,       only: double
-      use mod_system,         only: System, initHamiltkStride
-      use mod_constants,      only: cZero,cOne
-      use mod_parameters,     only: nOrb, isigmamu2n, dimH
-      implicit none
+    use mod_f90_kind,       only: double
+    use mod_system,         only: System, initHamiltkStride
+    use mod_parameters,     only: nOrb, isigmamu2n, dimH
+    implicit none
 
-      type(System),                                 intent(in) :: sys
-      complex(double), dimension(nOrb,sys%nAtoms),  intent(in) :: delta
-      complex(double), dimension(2*dimH,2*dimH), intent(inout) :: hk_sc
-      integer :: i, mu
+    type(System),                                 intent(in) :: sys
+    real(double),    dimension(nOrb,sys%nAtoms),  intent(in) :: delta
+    complex(double), dimension(2*dimH,2*dimH), intent(inout) :: hk_sc
+    integer :: i, mu
 
-      ! Populate the entries for the singlet pairing of the s-orbitals
-      ! Assuming that the order to populate the hamiltonian hk was
-      ! First all up spins, then all down, from s to d
-      ! This is, s^ px^ py^ ... d^ s* px* ... d*, where ^ (*) means spin up (down)
+    ! Populate the entries for the singlet pairing of the s-orbitals
+    ! Assuming that the order to populate the hamiltonian hk was
+    ! First all up spins, then all down, from s to d
+    ! This is, s^ px^ py^ ... d^ s* px* ... d*, where ^ (*) means spin up (down)
 
-      ! The row and column of the s^ electron is 1
-      ! The row and column of the s* electron is sys%nAtoms*nOrb2/2
-      ! The row and column of the h^ hole is sys%nAtoms*nOrb2 + 1
-      ! The row and column of the h* hole is sys%nAtoms*nOrb2 + sys%nAtoms*nOrb2/2
+    ! The row and column of the s^ electron is 1
+    ! The row and column of the s* electron is sys%nAtoms*nOrb2/2
+    ! The row and column of the h^ hole is sys%nAtoms*nOrb2 + 1
+    ! The row and column of the h* hole is sys%nAtoms*nOrb2 + sys%nAtoms*nOrb2/2
 
-      ! s^ and h* couple with -delta_s
-      ! s* and h^ couple with delta_s
-      ! h^ and s* couple with delta_s*
-      ! h* and s^ couple with -delta_s*
+    ! s^ and h* couple with -delta_s
+    ! s* and h^ couple with delta_s
+    ! h^ and s* couple with delta_s*
+    ! h* and s^ couple with -delta_s*
 
-      do i = 1,sys%nAtoms
-          do mu = 1,nOrb
-              hk_sc(isigmamu2n(i,1,mu)     ,isigmamu2n(i,2,mu)+dimH) = - delta(mu,i)
-              hk_sc(isigmamu2n(i,2,mu)     ,isigmamu2n(i,1,mu)+dimH) =   delta(mu,i)
-              hk_sc(isigmamu2n(i,2,mu)+dimH,isigmamu2n(i,1,mu)     ) = - conjg(delta(mu,i))
-              hk_sc(isigmamu2n(i,1,mu)+dimH,isigmamu2n(i,2,mu)     ) =   conjg(delta(mu,i))
-              ! write(*,*) i, " ", mu, " ", delta(mu,i)
-          end do
+    do i = 1,sys%nAtoms
+      do mu = 1,nOrb
+        hk_sc(isigmamu2n(i,1,mu)     ,isigmamu2n(i,2,mu)+dimH) = - cmplx(delta(mu,i),0.d0,double)
+        hk_sc(isigmamu2n(i,2,mu)     ,isigmamu2n(i,1,mu)+dimH) =   cmplx(delta(mu,i),0.d0,double)
+        hk_sc(isigmamu2n(i,2,mu)+dimH,isigmamu2n(i,1,mu)     ) = - cmplx(delta(mu,i),0.d0,double)
+        hk_sc(isigmamu2n(i,1,mu)+dimH,isigmamu2n(i,2,mu)     ) =   cmplx(delta(mu,i),0.d0,double)
+        ! write(*,*) i, " ", mu, " ", delta(mu,i)
       end do
+    end do
+
+
+    ! do i = 1,sys%nAtoms
+    !   do mu = 1,nOrb
+    !     hk_sc(isigmamu2n(i,1,mu)     ,isigmamu2n(i,2,mu)+dimH) = - delta(mu,i)
+    !     hk_sc(isigmamu2n(i,2,mu)     ,isigmamu2n(i,1,mu)+dimH) =   delta(mu,i)
+    !     hk_sc(isigmamu2n(i,2,mu)+dimH,isigmamu2n(i,1,mu)     ) = - conjg(delta(mu,i))
+    !     hk_sc(isigmamu2n(i,1,mu)+dimH,isigmamu2n(i,2,mu)     ) =   conjg(delta(mu,i))
+    !     ! write(*,*) i, " ", mu, " ", delta(mu,i)
+    !   end do
+    ! end do
 
   end subroutine bcs_pairing
 

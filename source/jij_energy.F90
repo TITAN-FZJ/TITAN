@@ -16,18 +16,18 @@ subroutine jij_energy(Jij)
   implicit none
   real(double),dimension(s%nAtoms,s%nAtoms,3,3)             :: Jijint
   real(double),dimension(s%nAtoms,s%nAtoms,3,3),intent(out) :: Jij
-  integer :: ix
-  integer :: i,j,mu,nu,alpha
+  integer*8 :: ix
+  integer*4 :: i,j,mu,nu,alpha
   real(double) :: kp(3), kminusq(3), ep
   real(double) :: evec(3,s%nAtoms)
   real(double) :: Jijk(s%nAtoms,s%nAtoms,3,3)
   real(double) :: Jijkan(s%nAtoms,3,3)
+  real(double) :: weight
   complex(double), dimension(s%nAtoms,3,nOrb2,nOrb2)        :: dBxc_dm
   complex(double), dimension(s%nAtoms,3,3,nOrb2,nOrb2)      :: d2Bxc_dm2
   complex(double), dimension(s%nAtoms,nOrb2,nOrb2)          :: paulievec
   complex(double), dimension(nOrb2,nOrb2)                   :: gij, gji, temp1, temp2, paulia, paulib
   complex(double), dimension(nOrb2,nOrb2,s%nAtoms,s%nAtoms) :: gf,gfq
-  complex(double) :: weight
   !--------------------- begin MPI vars --------------------
   integer :: ncount
   !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^

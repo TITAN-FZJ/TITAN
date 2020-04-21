@@ -17,12 +17,10 @@ contains
   !! Get the number of points in the Brillouin Zone
   !! for all the energies in the imaginary axis
   subroutine generateAdaptiveMeshes(sys,pn1)
-    use mod_f90_kind,      only: double
     use mod_parameters,    only: total_nkpt => kptotal_in
     use EnergyIntegration, only: y
     use mod_System,        only: System
     use mod_BrillouinZone, only: count_3D_BZ, count_2D_BZ, count_1D_BZ
-    use mod_mpi_pars
     implicit none
     type(System) :: sys
     integer      :: i,pn1
@@ -159,11 +157,11 @@ contains
 
     select case(sysdim)
     case(3)
-      get_nkpt_int4 = nkpt_total / (e/e0)**sqrt(3.d0) !**log(3.d0)
+      get_nkpt_int4 = ceiling( nkpt_total/((e/e0)**sqrt(3.d0)) ) !**log(3.d0)
     case(2)
-      get_nkpt_int4 = nkpt_total / (e/e0)**sqrt(2.d0) !**log(2.d0)
+      get_nkpt_int4 = ceiling( nkpt_total/((e/e0)**sqrt(2.d0)) ) !**log(2.d0)
     case default
-      get_nkpt_int4 = nkpt_total / (e/e0)**sqrt(1.d0) !**log(1.d0)
+      get_nkpt_int4 = ceiling( nkpt_total/((e/e0)**sqrt(1.d0)) ) !**log(1.d0)
     end select
 
     if(get_nkpt_int4 < minimumBZmesh ) get_nkpt_int4 = minimumBZmesh
@@ -181,11 +179,11 @@ contains
 
     select case(sysdim)
     case(3)
-      get_nkpt_int8 = nkpt_total / (e/e0)**sqrt(3.d0) !**log(3.d0)
+      get_nkpt_int8 = ceiling( nkpt_total/((e/e0)**sqrt(3.d0)) ) !**log(3.d0)
     case(2)
-      get_nkpt_int8 = nkpt_total / (e/e0)**sqrt(2.d0) !**log(2.d0)
+      get_nkpt_int8 = ceiling( nkpt_total/((e/e0)**sqrt(2.d0)) ) !**log(2.d0)
     case default
-      get_nkpt_int8 = nkpt_total / (e/e0)**sqrt(1.d0) !**log(1.d0)
+      get_nkpt_int8 = ceiling( nkpt_total/((e/e0)**sqrt(1.d0)) ) !**log(1.d0)
     end select
 
     if(get_nkpt_int8 < int(minimumBZmesh,8) ) get_nkpt_int8 = int(minimumBZmesh,8)
