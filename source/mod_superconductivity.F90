@@ -35,7 +35,7 @@ contains
     singlet_coupling = 0.d0
     if(AllocateStatus /= 0) call abortProgram("[allocate_super_variables] Not enough memory for: singlet_coupling")
 
-end subroutine allocate_super_variables
+  end subroutine allocate_super_variables
 
   subroutine deallocate_super_variables()
     implicit none
@@ -76,22 +76,18 @@ end subroutine allocate_super_variables
     ! call hamiltk(sys,kp,hk)
 
     call hamiltk(sys,kp,dummy)
-    !
-    do i = 1, dimH
-      do j = 1, dimH
-        hk(i,j) = (dummy(i,j) + conjg(dummy(j,i)))/2.d0
-      end do
+
+    do concurrent (i = 1:dimH , j = 1:dimH)
+      hk(i,j) = (dummy(i,j) + conjg(dummy(j,i)))/2.d0
     end do
 
     dummy = cZero
 
     mkp = -kp
     call hamiltk(sys,mkp,dummy)
-    !
-    do i = 1, dimH
-      do j = 1, dimH
-        hk2(i,j) = (dummy(i,j) + conjg(dummy(j,i)))/2.d0
-      end do
+
+    do concurrent (i = 1:dimH , j = 1:dimH)
+      hk2(i,j) = (dummy(i,j) + conjg(dummy(j,i)))/2.d0
     end do
 
     ! Populate the diagonal blocks of the hamiltonian. i.e. electron-electron
@@ -101,7 +97,7 @@ end subroutine allocate_super_variables
     hk_sc(dimH+1:2*dimH,dimH+1:2*dimH) = -conjg(hk2)
     ! The diagonal terms involve also the Fermi Energy/chemical potential, as we can see below
     ! Check any superconductivity reference for this detail
-    do i = 1, dimH
+    do concurrent (i = 1:dimH)
       hk_sc(     i,     i) = hk_sc(     i,     i) - sys%Ef*cOne
       hk_sc(dimH+i,dimH+i) = hk_sc(dimH+i,dimH+i) + sys%Ef*cOne
     end do
@@ -143,6 +139,7 @@ end subroutine allocate_super_variables
     integer, intent(in):: i,j
 
     write(*,*) real(hk(i,j)), imag(hk(i,j))
+
   end subroutine print_hamilt_entry
 
   subroutine update_singlet_couplings(sys,couplings)
@@ -156,10 +153,8 @@ end subroutine allocate_super_variables
     real(double), dimension(nOrb,sys%nAtoms)  :: couplings
     integer :: i,mu
 
-    do i = 1,sys%nAtoms
-      do mu = 1,nOrb
-        singlet_coupling(mu,i) = couplings(mu,i)
-      end do
+    do concurrent (i = 1:sys%nAtoms, mu = 1:nOrb)
+      singlet_coupling(mu,i) = couplings(mu,i)
     end do
 
   end subroutine update_singlet_couplings
@@ -190,14 +185,12 @@ end subroutine allocate_super_variables
     ! h^ and s* couple with delta_s*
     ! h* and s^ couple with -delta_s*
 
-    do i = 1,sys%nAtoms
-      do mu = 1,nOrb
-        hk_sc(isigmamu2n(i,1,mu)     ,isigmamu2n(i,2,mu)+dimH) = - cmplx(delta(mu,i),0.d0,double)
-        hk_sc(isigmamu2n(i,2,mu)     ,isigmamu2n(i,1,mu)+dimH) =   cmplx(delta(mu,i),0.d0,double)
-        hk_sc(isigmamu2n(i,2,mu)+dimH,isigmamu2n(i,1,mu)     ) = - cmplx(delta(mu,i),0.d0,double)
-        hk_sc(isigmamu2n(i,1,mu)+dimH,isigmamu2n(i,2,mu)     ) =   cmplx(delta(mu,i),0.d0,double)
-        ! write(*,*) i, " ", mu, " ", delta(mu,i)
-      end do
+    do concurrent (i = 1:sys%nAtoms, mu = 1:nOrb)
+      hk_sc(isigmamu2n(i,1,mu)     ,isigmamu2n(i,2,mu)+dimH) = - cmplx(delta(mu,i),0.d0,double)
+      hk_sc(isigmamu2n(i,2,mu)     ,isigmamu2n(i,1,mu)+dimH) =   cmplx(delta(mu,i),0.d0,double)
+      hk_sc(isigmamu2n(i,2,mu)+dimH,isigmamu2n(i,1,mu)     ) = - cmplx(delta(mu,i),0.d0,double)
+      hk_sc(isigmamu2n(i,1,mu)+dimH,isigmamu2n(i,2,mu)     ) =   cmplx(delta(mu,i),0.d0,double)
+      ! write(*,*) i, " ", mu, " ", delta(mu,i)
     end do
 
 
@@ -234,7 +227,7 @@ end subroutine allocate_super_variables
     ec    = cmplx(er,ei,double)
 
     gslab = cZero
-    do i = 1, d
+    do concurrent (i = 1:d)
       gslab(i,i) = ec
     end do
 
@@ -264,15 +257,11 @@ end subroutine allocate_super_variables
     ! flag = flag + 1
 
     ! Put the slab Green's function [A(nAtoms*36,nAtoms*36)] in the A(i,j,mu,nu) form
-    !dir$ ivdep:loop
-    do j = 1, sys%nAtoms
-      !dir$ ivdep:loop
-      do i = 1, sys%nAtoms
-        gf(      1:  nOrb2,      1:  nOrb2,i,j) = gslab(ia_sc(1,i):ia_sc(2,i),ia_sc(1,j):ia_sc(2,j))
-        gf(      1:  nOrb2,nOrb2+1:2*nOrb2,i,j) = gslab(ia_sc(1,i):ia_sc(2,i),ia_sc(3,j):ia_sc(4,j))
-        gf(nOrb2+1:2*nOrb2,      1:  nOrb2,i,j) = gslab(ia_sc(3,i):ia_sc(4,i),ia_sc(1,j):ia_sc(2,j))
-        gf(nOrb2+1:2*nOrb2,nOrb2+1:2*nOrb2,i,j) = gslab(ia_sc(3,i):ia_sc(4,i),ia_sc(3,j):ia_sc(4,j))
-      end do
+    do concurrent (j = 1:sys%nAtoms, i = 1:sys%nAtoms)
+      gf(      1:  nOrb2,      1:  nOrb2,i,j) = gslab(ia_sc(1,i):ia_sc(2,i),ia_sc(1,j):ia_sc(2,j))
+      gf(      1:  nOrb2,nOrb2+1:2*nOrb2,i,j) = gslab(ia_sc(1,i):ia_sc(2,i),ia_sc(3,j):ia_sc(4,j))
+      gf(nOrb2+1:2*nOrb2,      1:  nOrb2,i,j) = gslab(ia_sc(3,i):ia_sc(4,i),ia_sc(1,j):ia_sc(2,j))
+      gf(nOrb2+1:2*nOrb2,nOrb2+1:2*nOrb2,i,j) = gslab(ia_sc(3,i):ia_sc(4,i),ia_sc(3,j):ia_sc(4,j))
     end do
 
   end subroutine green_sc

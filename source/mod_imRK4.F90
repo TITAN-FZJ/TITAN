@@ -289,15 +289,12 @@ contains
     if(lelectric) then
       call vector_potential(t, A_t)
       ! Inter-site hopping terms
-      !dir$ ivdep:loop
       do k = 1, s%nNeighbors
         j = s%Neighbors(k)%BasisIndex
         ! exp(ik.(R_i-R_j))
         kpExp = exp( cI * dot_product(kp , s%Neighbors(k)%CellVector))
 
-        !dir$ ivdep:loop
-        do i = 1, s%nAtoms
-          if(.not. s%Neighbors(k)%isHopping(i)) cycle
+        do concurrent (i = 1:s%nAtoms, s%Neighbors(k)%isHopping(i))
           kpA_t = exp(-cI * dot_product(A_t, s%Basis(i)%Position(:)-(s%Basis(j)%Position(:)+s%Neighbors(k)%CellVector)))
 
           temp(1:nOrb,1:nOrb) = s%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp * (kpA_t - 1.d0) ! The -1.d0 term is to discount the usual t(k) term that is already included in H_0

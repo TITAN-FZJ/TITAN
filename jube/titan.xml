@@ -90,21 +90,22 @@
       <!-- JUSUF -->
       <parameter name="queue" tag="jusuf">batch</parameter>
       <parameter name="taskspernode" type="int" mode="python" tag="jusuf">
-      { "hybrid": "1,2,4,8,16,32,64,128", 
-        "mpi": "1,2,4,8,16,32,64,128", 
+      { "hybrid": "1,2,4,8,16,32,64,128,256", 
+        "mpi": "1,2,4,8,16,32,64,128,256", 
         "omp": "1"}["${parallel_type}"]
       </parameter>
       <parameter name="threadspertask" type="int" mode="python" tag="jusuf">
-      { "hybrid": { "1": "1,2,4,8,16,32,64,128", 
-                    "2": "1,2,4,8,16,32,64", 
-                    "4": "1,2,4,8,16,32", 
-                    "8": "1,2,4,8,16", 
-                    "16": "1,2,4,8", 
-                    "32": "1,2,4", 
-                    "64": "1,2", 
-                    "128": "1"}["${taskspernode}"], 
+      { "hybrid": { "1": "1,2,4,8,16,32,64,128,256", 
+                    "2": "1,2,4,8,16,32,64,128", 
+                    "4": "1,2,4,8,16,32,64", 
+                    "8": "1,2,4,8,16,32", 
+                    "16": "1,2,4,8,16", 
+                    "32": "1,2,4,8", 
+                    "64": "1,2,4", 
+                    "128": "1,2",
+                    "256": "1"}["${taskspernode}"], 
         "mpi": "1", 
-        "omp": "1,2,4,8,16,32,64,128"}["${parallel_type}"]
+        "omp": "1,2,4,8,16,32,64,128,256"}["${parallel_type}"]
       </parameter>
 
       <parameter name="notification">ALL</parameter>
@@ -136,7 +137,7 @@
                                                                "gnu":"module purge; ml GCC/8.3.0 OpenMPI/4.0.2 imkl CMake;"}["${compiler}"],
                                                     "jusuf":{"impi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 IntelMPI/2019.6.154 imkl CMake;",
                                                              "pmpi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 ParaStationMPI/5.2.2-1 CMake;",
-                                                              "gnu":"module purge; ml GCC/8.3.0 OpenMPI/4.0.2 imkl/2019.5.281 CMake;"}["${compiler}"]
+                                                              "gnu":"module purge; module use $OTHERSTAGES; ml Stages/Devel-2019a; ml GCC/8.3.0 OpenMPI/4.0.2 imkl/2019.3.199 CMake;"}["${compiler}"]
                                                     }["${machine}"]</parameter>
     </parameterset>
 

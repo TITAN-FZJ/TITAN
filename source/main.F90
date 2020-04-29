@@ -9,10 +9,8 @@ program TITAN
   use mod_parameters
   use mod_io
   use mod_system
-  use mod_polyBasis, only: read_basis
   use Lattice
   use mod_BrillouinZone
-  use TightBinding, only: initTightBinding
   use mod_SOC
   use mod_magnet
   use ElectricField
@@ -25,13 +23,15 @@ program TITAN
   use mod_progress
   use mod_mpi_pars
   use mod_Umatrix
-  use mod_fermi_surface, only: fermi_surface
+  use mod_polyBasis,           only: read_basis
+  use TightBinding,            only: initTightBinding
+  use mod_fermi_surface,       only: fermi_surface
   use mod_check_stop
-  use mod_Atom_variables, only: allocate_Atom_variables, deallocate_Atom_variables
-  use mod_tools, only: rtos
+  use mod_Atom_variables,      only: allocate_Atom_variables, deallocate_Atom_variables
+  use mod_tools,               only: rtos
   use mod_initial_expectation, only: calc_initial_Uterms
+  use mod_time_propagator,     only: time_propagator
   use mod_superconductivity
-  use mod_time_propagator,   only: time_propagator
   use mod_expectation
   !use mod_define_system TODO: Re-include
   !use mod_prefactors TODO: Re-include
@@ -315,10 +315,11 @@ program TITAN
       close(output%unit_loop)
   end do ! Ending of magnetic field loop
 
-  !------------ Deallocating variables that depend on nAtoms------------
+  !----------------------- Deallocating variables ----------------------
   call deallocate_Atom_variables()
   call deallocate_magnet_variables()
-
+  call deallocate_System_variables()
+  
   !---------------------- Deallocating variables -----------------------
   !deallocate(r_nn, c_nn, l_nn)
   !deallocate(kbz,wkbz) !,kbz2d)

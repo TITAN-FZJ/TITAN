@@ -262,55 +262,76 @@ contains
     !If lsupercond is true then fermi_surface is 0.0 otherwise is s%Ef
     fermi_surface = merge(0.d0,s%Ef,lsuperCond)
 
-
     do concurrent (n = 1:dim)
       f_n(n) = fd_dist(fermi_surface, beta, eval(n))
     end do
 
-    do n = 1, dim
-      do i = 1, s%nAtoms
-        do mu = 1, nOrb
-          do sigma = 1, 2
-            evec_isigmamu = hk(isigmamu2n(i,sigma,mu),n)
-            evec_isigmamu_cong = conjg( evec_isigmamu )
-
-            ! Charge
-            if(.not.lsupercond) expec_0(mu,i) = expec_0(mu,i) + f_n(n)*real( evec_isigmamu_cong*evec_isigmamu )
-
-            do sigmap = 1, 2
-              evec_isigmamu = hk(isigmamu2n(i,sigmap,mu),n)
-              ! M_p
-              expec_p(mu,i) = expec_p(mu,i) + f_n(n)*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
-
-              ! M_z
-              expec_z(mu,i) = expec_z(mu,i) + f_n(n)*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
-            end do
-          end do
-        end do
-      end do
-    end do
-
-    ! If there is no superconductivity, then the calculation of the expected values is already completed
-    ! In case superconductivity is present then we have to carry extra calculations to get the superconducting
-    ! order parameter.
-    if(.not. lsuperCond) &
-        return
-
-    do concurrent (n = 1:dim)
+    do concurrent (n = 1:dim, lsuperCond)
       f_n_negative(n) = fd_dist(fermi_surface, beta, -eval(n))
       tanh_n(n) = tanh(eval(n)*beta/2.d0)
     end do
 
-    do n = 1, dim
-      do i = 1, s%nAtoms
-          do mu = 1, nOrb
-              ! up spin (using u's) + down spin (using v's)
-              expec_0(mu,i) = expec_0(mu,i) + f_n(n)*real( conjg(hk(nOrb*2*(i-1)+mu,n))*hk(nOrb*2*(i-1)+mu,n) ) + f_n_negative(n)*real( conjg(hk(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2,n))*hk(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2,n) )
 
-              expec_singlet(mu,i) = expec_singlet(mu,i) + 0.5d0*s%Types(s%Basis(i)%Material)%lambda(mu)*tanh_n(n)*real( conjg(hk(isigmamu2n(i,1,mu)+nOrb*2*s%nAtoms,n))*hk(isigmamu2n(i,2,mu),n) )
-          end do
+    if(.not.lsupercond) then
+      do concurrent(n = 1:dim, i = 1:s%nAtoms, mu = 1:nOrb, sigma = 1:2)
+        evec_isigmamu = hk(isigmamu2n(i,sigma,mu),n)
+        evec_isigmamu_cong = conjg( evec_isigmamu )
+
+        ! Charge
+        expec_0(mu,i) = expec_0(mu,i) + f_n(n)*real( evec_isigmamu_cong*evec_isigmamu )
+
+        !$OMP SIMD
+        do sigmap = 1, 2
+          evec_isigmamu = hk(isigmamu2n(i,sigmap,mu),n)
+          ! M_p
+          expec_p(mu,i) = expec_p(mu,i) + f_n(n)*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
+
+          ! M_z
+          expec_z(mu,i) = expec_z(mu,i) + f_n(n)*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
+        end do
       end do
-    end do
+      ! !$OMP SIMD
+      ! do i = 1, s%nAtoms
+      !   !$OMP SIMD
+      !   do mu = 1, nOrb
+      !     !$OMP SIMD
+      !     do sigma = 1, 2
+      !       evec_isigmamu = hk(isigmamu2n(i,sigma,mu),n)
+      !       evec_isigmamu_cong = conjg( evec_isigmamu )
+
+      !       ! Charge
+      !       expec_0(mu,i) = expec_0(mu,i) + f_n(n)*real( evec_isigmamu_cong*evec_isigmamu )
+
+      !       !$OMP SIMD
+      !       do sigmap = 1, 2
+      !         evec_isigmamu = hk(isigmamu2n(i,sigmap,mu),n)
+      !         ! M_p
+      !         expec_p(mu,i) = expec_p(mu,i) + f_n(n)*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
+
+      !         ! M_z
+      !         expec_z(mu,i) = expec_z(mu,i) + f_n(n)*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
+      !       end do ! sigmap
+      !     end do ! sigma
+      !   end do ! mu
+      ! end do ! i
+    else
+      do concurrent(n = 1:dim, i = 1:s%nAtoms, mu = 1:nOrb)
+        ! up spin (using u's) + down spin (using v's)
+        expec_0(mu,i) = expec_0(mu,i) + f_n(n)*real( conjg(hk(nOrb*2*(i-1)+mu,n))*hk(nOrb*2*(i-1)+mu,n) ) + f_n_negative(n)*real( conjg(hk(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2,n))*hk(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2,n) )
+
+        expec_singlet(mu,i) = expec_singlet(mu,i) + 0.5d0*s%Types(s%Basis(i)%Material)%lambda(mu)*tanh_n(n)*real( conjg(hk(isigmamu2n(i,1,mu)+nOrb*2*s%nAtoms,n))*hk(isigmamu2n(i,2,mu),n) )
+      end do
+
+      do concurrent(n = 1:dim, i = 1:s%nAtoms, mu = 1:nOrb, sigma = 1:2, sigmap = 1:2)
+        evec_isigmamu_cong = conjg( hk(isigmamu2n(i,sigma,mu),n) )
+        evec_isigmamu = hk(isigmamu2n(i,sigmap,mu),n)
+        ! M_p
+        expec_p(mu,i) = expec_p(mu,i) + f_n(n)*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
+
+        ! M_z
+        expec_z(mu,i) = expec_z(mu,i) + f_n(n)*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
+      end do
+    end if
 
   end subroutine expec_val
 
@@ -350,44 +371,97 @@ contains
     ! Fermi-Dirac:
     f_n = fd_dist(fermi_surface, beta, eval)
 
-    do i = 1, s%nAtoms
-      do mu = 1, nOrb
-        do sigma = 1, 2
-          evec_isigmamu = evec(isigmamu2n(i,sigma,mu))
-          evec_isigmamu_cong = conjg( evec_isigmamu )
+    if(.not.lsupercond) then
+      do concurrent(i = 1:s%nAtoms, mu = 1:nOrb, sigma = 1:2)
+        evec_isigmamu = evec(isigmamu2n(i,sigma,mu))
+        evec_isigmamu_cong = conjg( evec_isigmamu )
 
-          ! Charge
-          if(.not.lsupercond) expec_0(mu,i) = expec_0(mu,i) + f_n*real( evec_isigmamu_cong*evec_isigmamu )
+        ! Charge
+        expec_0(mu,i) = expec_0(mu,i) + f_n*real( evec_isigmamu_cong*evec_isigmamu )
 
-          do sigmap = 1, 2
-            evec_isigmamu = evec(isigmamu2n(i,sigmap,mu))
-            ! M_p
-            expec_p(mu,i) = expec_p(mu,i) + f_n*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
+        !$OMP SIMD
+        do sigmap = 1, 2
+          evec_isigmamu = evec(isigmamu2n(i,sigmap,mu))
+          ! M_p
+          expec_p(mu,i) = expec_p(mu,i) + f_n*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
 
-            ! M_z
-            expec_z(mu,i) = expec_z(mu,i) + f_n*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
-          end do
+          ! M_z
+          expec_z(mu,i) = expec_z(mu,i) + f_n*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
         end do
       end do
-    end do
 
-    ! If there is no superconductivity, then the calculation of the expected values is already completed
-    ! In case superconductivity is present then we have to carry extra calculations to get the superconducting
-    ! order parameter.
-    if(.not. lsuperCond) &
-        return
 
-    f_n_negative = fd_dist(fermi_surface, beta, -eval)
-    tanh_n = tanh(eval*beta/2.d0)
+      ! !$OMP SIMD
+      ! do i = 1, s%nAtoms
+      !   !$OMP SIMD
+      !   do mu = 1, nOrb
+      !     !$OMP SIMD
+      !     do sigma = 1, 2
+      !       evec_isigmamu = evec(isigmamu2n(i,sigma,mu))
+      !       evec_isigmamu_cong = conjg( evec_isigmamu )
 
-    do i = 1, s%nAtoms
-        do mu = 1, nOrb
-            ! up spin (using u's) + down spin (using v's)
-            expec_0(mu,i) = expec_0(mu,i) + f_n*real( conjg(evec(nOrb*2*(i-1)+mu))*evec(nOrb*2*(i-1)+mu) ) + f_n_negative*real( conjg(evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2))*evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2) )
-            
-            expec_singlet(mu,i) = expec_singlet(mu,i) + 0.5d0*s%Types(s%Basis(i)%Material)%lambda(mu)*tanh_n*real( conjg(evec(isigmamu2n(i,1,mu)+nOrb*2*s%nAtoms))*evec(isigmamu2n(i,2,mu)) )
-        end do
-    end do
+      !       ! Charge
+      !       expec_0(mu,i) = expec_0(mu,i) + f_n*real( evec_isigmamu_cong*evec_isigmamu )
+
+      !       !$OMP SIMD
+      !       do sigmap = 1, 2
+      !         evec_isigmamu = evec(isigmamu2n(i,sigmap,mu))
+      !         ! M_p
+      !         expec_p(mu,i) = expec_p(mu,i) + f_n*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
+
+      !         ! M_z
+      !         expec_z(mu,i) = expec_z(mu,i) + f_n*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
+      !       end do
+      !     end do
+      !   end do
+      ! end do
+    else
+
+      f_n_negative = fd_dist(fermi_surface, beta, -eval)
+      tanh_n = tanh(eval*beta/2.d0)
+      do concurrent( i = 1:s%nAtoms, mu = 1:nOrb)
+        ! up spin (using u's) + down spin (using v's)
+        expec_0(mu,i) = expec_0(mu,i) + f_n*real( conjg(evec(nOrb*2*(i-1)+mu))*evec(nOrb*2*(i-1)+mu) ) + f_n_negative*real( conjg(evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2))*evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2) )
+
+        expec_singlet(mu,i) = expec_singlet(mu,i) + 0.5d0*s%Types(s%Basis(i)%Material)%lambda(mu)*tanh_n*real( conjg(evec(isigmamu2n(i,1,mu)+nOrb*2*s%nAtoms))*evec(isigmamu2n(i,2,mu)) )
+      end do
+
+      do concurrent( i = 1:s%nAtoms, mu = 1:nOrb, sigma = 1:2, sigmap = 1:2)
+        evec_isigmamu_cong = conjg( evec(isigmamu2n(i,sigma,mu)) )
+        evec_isigmamu = evec(isigmamu2n(i,sigmap,mu))
+        ! M_p
+        expec_p(mu,i) = expec_p(mu,i) + f_n*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
+
+        ! M_z
+        expec_z(mu,i) = expec_z(mu,i) + f_n*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
+      end do
+      ! !$OMP SIMD
+      ! do i = 1, s%nAtoms
+      !   !$OMP SIMD
+      !   do mu = 1, nOrb
+      !     ! up spin (using u's) + down spin (using v's)
+      !     expec_0(mu,i) = expec_0(mu,i) + f_n*real( conjg(evec(nOrb*2*(i-1)+mu))*evec(nOrb*2*(i-1)+mu) ) + f_n_negative*real( conjg(evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2))*evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2) )
+
+      !     expec_singlet(mu,i) = expec_singlet(mu,i) + 0.5d0*s%Types(s%Basis(i)%Material)%lambda(mu)*tanh_n*real( conjg(evec(isigmamu2n(i,1,mu)+nOrb*2*s%nAtoms))*evec(isigmamu2n(i,2,mu)) )
+
+      !     !$OMP SIMD
+      !     do sigma = 1, 2
+      !       evec_isigmamu_cong = conjg( evec(isigmamu2n(i,sigma,mu)) )
+
+      !       !$OMP SIMD
+      !       do sigmap = 1, 2
+      !         evec_isigmamu = evec(isigmamu2n(i,sigmap,mu))
+      !         ! M_p
+      !         expec_p(mu,i) = expec_p(mu,i) + f_n*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
+
+      !         ! M_z
+      !         expec_z(mu,i) = expec_z(mu,i) + f_n*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
+      !       end do
+      !     end do
+      !   end do
+      ! end do
+
+    end if
 
   end subroutine expec_val_n
 

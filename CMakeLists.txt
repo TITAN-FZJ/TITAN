@@ -148,6 +148,7 @@ if(NOT COMPILER MATCHES gnu)
     target_link_libraries(${TITAN_EXE} -mkl -lnag -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
+                                                -no-prec-sqrt
                                                 -DVERSION="${GIT_VERSION}"
                                                 -qopenmp
                                                 -g
@@ -157,16 +158,21 @@ if(NOT COMPILER MATCHES gnu)
     target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
+                                                -no-prec-sqrt 
+                                                -xCORE-AVX2
+                                                -fma
+                                                -qopt-zmm-usage=high
                                                 -D_OSX
                                                 -DVERSION="${GIT_VERSION}"
                                                 -qopenmp
                                                 -g
                                                 -mkl
-                                                -xHost)
+                                                )
   elseif(PLATFORM MATCHES jusuf)
     target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
+                                                -no-prec-sqrt
                                                 -D_OSX
                                                 -DVERSION="${GIT_VERSION}"
                                                 -qopenmp
@@ -176,8 +182,9 @@ if(NOT COMPILER MATCHES gnu)
   elseif(PLATFORM MATCHES osx)
     target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                                -D_OSX
                                                 -fpp
+                                                -no-prec-sqrt
+                                                -D_OSX
                                                 -DVERSION="${GIT_VERSION}"
                                                 -qopenmp
                                                 -g
@@ -192,6 +199,7 @@ if(NOT COMPILER MATCHES gnu)
                                        -lnag )
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
+                                                -no-prec-sqrt
                                                 -DVERSION="${GIT_VERSION}"
                                                 -mkl
                                                 -g
@@ -202,6 +210,7 @@ if(NOT COMPILER MATCHES gnu)
     target_link_libraries(${TITAN_EXE} -mkl $ENV{FLAGS_NAG_LINKER} -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
+                                                -no-prec-sqrt
                                                 -DVERSION="${GIT_VERSION}"
                                                 -qopenmp
                                                 -g
@@ -213,6 +222,7 @@ if(NOT COMPILER MATCHES gnu)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -DVERSION="${GIT_VERSION}"
                                                 -fpp
+                                                -no-prec-sqrt
                                                 -qopenmp
                                                 -g
                                                 -mkl
@@ -221,6 +231,7 @@ if(NOT COMPILER MATCHES gnu)
     target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lnag -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
+                                                -no-prec-sqrt
                                                 -D_OSX
                                                 -DVERSION="${GIT_VERSION}"
                                                 -qopenmp
@@ -230,14 +241,15 @@ if(NOT COMPILER MATCHES gnu)
   else()
     target_link_libraries(${TITAN_EXE} -mkl -qopenmp /opt/NAG/fll6i26dcl/lib/libnag_nag.a)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                             -fpp
-                                             -DVERSION="${GIT_VERSION}"
-                                             -qopenmp
-                                             -mkl
-                                             #-ipo
-                                             #-qopt-report=5
-                                             -g
-                                             -xHost)
+                                                -fpp
+                                                -no-prec-sqrt
+                                                -DVERSION="${GIT_VERSION}"
+                                                -qopenmp
+                                                -mkl
+                                                #-ipo
+                                                #-qopt-report=5
+                                                -g
+                                                -xHost)
   endif()
 
   if(DEBUG)
@@ -249,6 +261,7 @@ if(NOT COMPILER MATCHES gnu)
                                                 -ftrapuv
                                                 -traceback
                                                 -qopenmp
+                                                -no-prec-sqrt
                                                 -fpp
                                                 -DVERSION="${GIT_VERSION}"
                                                 -g

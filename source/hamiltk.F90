@@ -21,8 +21,7 @@ subroutine hamiltk(sys,kp,hk)
   ! Mouting slab hamiltonian
 
   ! On-site terms
-  !dir$ ivdep:loop
-  do i=1, sys%nAtoms
+  do concurrent (i=1:sys%nAtoms)
     ! spin-up on-site tight-binding term
     hk(ia(1,i):ia(2,i), ia(1,i):ia(2,i)) = sys%Types(sys%Basis(i)%Material)%onSite(1:nOrb,1:nOrb)
     ! spin-down on-site tight-binding term
@@ -34,15 +33,12 @@ subroutine hamiltk(sys,kp,hk)
   end do
 
   ! Inter-site hopping terms
-  !dir$ ivdep:loop
   do k = 1, sys%nNeighbors
     j = sys%Neighbors(k)%BasisIndex
     ! exp(ik.(R_i-R_j))
     kpExp = exp(cI * dot_product(kp, sys%Neighbors(k)%CellVector))
 
-    !dir$ ivdep:loop
-    do i = 1, sys%nAtoms
-      if(.not. sys%Neighbors(k)%isHopping(i)) cycle
+    do concurrent (i = 1:sys%nAtoms, sys%Neighbors(k)%isHopping(i))
       tmp(1:nOrb,1:nOrb) = sys%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp
       ! Spin-up
       hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + tmp(1:nOrb,1:nOrb)
@@ -87,8 +83,7 @@ subroutine hamiltklinearsoc(sys,kp,hk,vsoc)
   ! Mouting slab hamiltonian
 
   ! On-site terms
-  !dir$ ivdep:loop
-  do i=1,sys%nAtoms
+  do concurrent (i=1:sys%nAtoms)
     ! spin-up on-site tight-binding term
     hk(ia(1,i):ia(2,i), ia(1,i):ia(2,i)) = sys%Types(sys%Basis(i)%Material)%onSite(1:nOrb,1:nOrb)
     ! spin-down on-site tight-binding term
@@ -101,15 +96,12 @@ subroutine hamiltklinearsoc(sys,kp,hk,vsoc)
   end do
 
   ! Inter-site hopping terms
-  !dir$ ivdep:loop
   do k = 1, sys%nNeighbors
     j = sys%Neighbors(k)%BasisIndex
     ! exp(ik.(R_i-R_j))
     kpExp = exp(cI * dot_product(kp,sys%Neighbors(k)%CellVector))
 
-    !dir$ ivdep:loop
-    do i = 1, sys%nAtoms
-      if(.not. sys%Neighbors(k)%isHopping(i)) cycle
+    do concurrent (i = 1:sys%nAtoms, sys%Neighbors(k)%isHopping(i))
       tmp(1:nOrb,1:nOrb) = sys%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp
       ! Spin-up
       hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + tmp(1:nOrb,1:nOrb)

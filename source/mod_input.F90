@@ -67,15 +67,13 @@ contains
     implicit none
     character(len=*), intent(in) :: filename
     character(len=line_length) :: line
-    integer :: eof, iunit
-    logical :: success
-    integer :: eq_pos, com_pos
-
-    eof = 0
-    iunit = 92412
-    success = .false.
+    logical   :: success
+    integer*4 :: eof=0, iunit=92412
+    integer*4 :: eq_pos, com_pos
 
     nlines = 0
+
+    success = .false.
 
     val = " "
     open(unit=iunit, file=trim(filename), status='old', iostat=eof)
@@ -94,8 +92,7 @@ contains
        end if
 
     end do
-    close(unit=iunit, iostat = eof)
-    if(eof /= 0) return
+    close(unit=iunit)
 
     success = .true.
   end function read_file

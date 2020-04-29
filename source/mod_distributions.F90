@@ -4,7 +4,8 @@ module mod_distributions
 contains
 
   !! Fermi-Dirac distribution
-  pure function fd_dist(ef,beta,ek)
+  pure elemental function fd_dist(ef,beta,ek)
+    !$OMP DECLARE SIMD
     use mod_f90_kind
     implicit none
     real(double), intent(in)  :: ef

@@ -645,11 +645,9 @@ contains
       myd_in(i) = x((i-1)*neq_per_atom+7)
       mzd_in(i) = x((i-1)*neq_per_atom+8)
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i),double)
-      if(lsuperCond) then
-          do concurrent (mu = 1:nOrb)
-              singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
-          end do
-      end if
+      do concurrent (mu = 1:nOrb, lsuperCond)
+        singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
+      end do
     end do
     s%Ef    = x(N)
 
@@ -676,11 +674,9 @@ contains
       fvec((i-1)*neq_per_atom+6) =  mxd(i) -  mxd_in(i)
       fvec((i-1)*neq_per_atom+7) =  myd(i) -  myd_in(i)
       fvec((i-1)*neq_per_atom+8) =  mzd(i) -  mzd_in(i)
-      if(lsuperCond) then
-          do concurrent (mu = 1:nOrb)
-              fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
-          end do
-      end if
+      do concurrent (mu = 1:nOrb, lsuperCond)
+        fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
+      end do
     end do
     fvec(N) = sum(rho) - s%totalOccupation
 
@@ -1249,11 +1245,9 @@ contains
       myd_in(i) = x((i-1)*neq_per_atom+7)
       mzd_in(i) = x((i-1)*neq_per_atom+8)
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i),double)
-      if(lsuperCond) then
-          do concurrent (mu = 1:nOrb)
-              singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
-          end do
-      end if
+      do concurrent (mu = 1:nOrb, lsuperCond)
+        singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
+      end do
     end do
     s%Ef    = x(N)
 
@@ -1283,11 +1277,9 @@ contains
         fvec((i-1)*neq_per_atom+6) =  mxd(i) -  mxd_in(i)
         fvec((i-1)*neq_per_atom+7) =  myd(i) -  myd_in(i)
         fvec((i-1)*neq_per_atom+8) =  mzd(i) -  mzd_in(i)
-        if(lsuperCond) then
-            do concurrent (mu = 1:nOrb)
-                fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
-            end do
-        end if
+        do concurrent (mu = 1:nOrb, lsuperCond)
+          fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
+        end do
       end do
       fvec(N) = sum(rho) - s%totalOccupation
 
@@ -1351,11 +1343,9 @@ contains
       myd_in(i) = x((i-1)*neq_per_atom+7)
       mzd_in(i) = x((i-1)*neq_per_atom+8)
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i),double)
-      if(lsuperCond) then
-          do concurrent (mu = 1:nOrb)
-              singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
-          end do
-      end if
+      do concurrent (mu = 1:nOrb, lsuperCond)
+        singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
+      end do
     end do
     s%Ef    = x(N)
 
@@ -1383,11 +1373,9 @@ contains
       fvec((i-1)*neq_per_atom+6) =  mxd(i) -  mxd_in(i)
       fvec((i-1)*neq_per_atom+7) =  myd(i) -  myd_in(i)
       fvec((i-1)*neq_per_atom+8) =  mzd(i) -  mzd_in(i)
-      if(lsuperCond) then
-          do concurrent (mu = 1:nOrb)
-              fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
-          end do
-      end if
+      do concurrent (mu = 1:nOrb,lsuperCond)
+        fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
+      end do
     end do
     fvec(N) = sum(rho) - s%totalOccupation
 
@@ -1438,11 +1426,9 @@ contains
       myd_in(i) = x((i-1)*neq_per_atom+7)
       mzd_in(i) = x((i-1)*neq_per_atom+8)
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i),double)
-      if(lsuperCond) then
-          do concurrent (mu = 1:nOrb)
-              singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
-          end do
-      end if
+      do concurrent (mu = 1:nOrb, lsuperCond)
+        singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
+      end do
     end do
     s%Ef    = x(N)
 
@@ -1472,11 +1458,9 @@ contains
         fvec((i-1)*neq_per_atom+6) =  mxd(i) -  mxd_in(i)
         fvec((i-1)*neq_per_atom+7) =  myd(i) -  myd_in(i)
         fvec((i-1)*neq_per_atom+8) =  mzd(i) -  mzd_in(i)
-        if(lsuperCond) then
-            do concurrent (mu = 1:nOrb)
-                fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
-            end do
-        end if
+        do concurrent (mu = 1:nOrb, lsuperCond)
+          fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
+        end do
       end do
       fvec(N) = sum(rho) - s%totalOccupation
 
@@ -1535,11 +1519,9 @@ contains
       myd_in(i) = x((i-1)*neq_per_atom+7)
       mzd_in(i) = x((i-1)*neq_per_atom+8)
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i),double)
-      if(lsuperCond) then
-          do concurrent (mu = 1:nOrb)
-              singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
-          end do
-      end if
+      do concurrent (mu = 1:nOrb, lsuperCond)
+        singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
+      end do
     end do
     s%Ef    = x(N)
 
@@ -1567,11 +1549,9 @@ contains
       fvec((i-1)*neq_per_atom+6) =  mxd(i) -  mxd_in(i)
       fvec((i-1)*neq_per_atom+7) =  myd(i) -  myd_in(i)
       fvec((i-1)*neq_per_atom+8) =  mzd(i) -  mzd_in(i)
-      if(lsuperCond) then
-          do concurrent (mu = 1:nOrb)
-              fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
-          end do
-      end if
+      do concurrent (mu = 1:nOrb, lsuperCond)
+        fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
+      end do
     end do
     fvec(N) = sum(rho) - s%totalOccupation
 
@@ -1616,11 +1596,9 @@ contains
       myd_in(i) = x((i-1)*neq_per_atom+7)
       mzd_in(i) = x((i-1)*neq_per_atom+8)
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i),double)
-      if(lsuperCond) then
-          do concurrent (mu = 1:nOrb)
-              singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
-          end do
-      end if
+      do concurrent (mu = 1:nOrb, lsuperCond)
+        singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
+      end do
     end do
     s%Ef    = x(N)
 
