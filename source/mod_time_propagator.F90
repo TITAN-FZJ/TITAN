@@ -7,7 +7,8 @@ contains
     use mod_constants,         only: cZero, cI
     use mod_imRK4_parameters,  only: dimH2, step, integration_time, ERR, safe_factor, lelectric, &
                                      hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, &
-                                     lpulse_m, tau_m, delay_m, polarization_e, polarization_m
+                                     lpulse_m, tau_m, delay_m, polarization_e, polarization_vec_e, &
+                                     polarization_m, polarization_vec_m
     use mod_RK_matrices,       only: A, id, id2, M1, build_identity
     use mod_imRK4,             only: iterate_Zki, calculate_step_error, magnetic_field, vector_potential
     use mod_BrillouinZone,     only: realBZ
@@ -17,7 +18,7 @@ contains
     use mod_Umatrix,           only: update_Umatrix
     use mod_magnet,            only: rhod0,rho0
     use mod_tools,             only: KronProd
-    use mod_superconductivity, only: allocate_super_variables
+    use mod_superconductivity, only: allocate_supercond_variables
     use mod_mpi_pars
     implicit none
     type(System), intent(in)   :: s
@@ -263,13 +264,15 @@ contains
 
     end do t_loop
 
+    deallocate( id,id2,hk,rwork,eval,work,eval_kn,evec_kn,evec_kn_temp, M1, output%observable )
+
     if(lelectric) then
-      deallocate(polarization_e,hE_0,hw_e)
+      deallocate(polarization_e,polarization_vec_e,hE_0,hw_e)
       if(lpulse_e) deallocate(tau_e,delay_e) 
     end if
 
     if(lmagnetic) then
-      deallocate(polarization_m,hw1_m,hw_m)
+      deallocate(polarization_m,polarization_vec_m,hw1_m,hw_m)
       if(lpulse_m) deallocate(tau_m,delay_m) 
     end if
 
