@@ -368,7 +368,7 @@ contains
         end do
       end do
     end do
-stop
+
     close(f_unit)
 
     ! Determine neighbor distances
