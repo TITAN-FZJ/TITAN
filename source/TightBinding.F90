@@ -299,56 +299,56 @@ contains
       read(f_unit, fmt='(A)', iostat = ios) line
       read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
       read(unit=words(3), fmt=*, iostat=ios) on_site(1)
-      if(words(5) /= "Nb") &
+      if(ios /= 0) &
         call log_error("readElementFile","Something wrong in the s tight-binding parameter of element " // trim(Name) //".")
 
       ! p
       read(f_unit, fmt='(A)', iostat = ios) line
       read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
-      if(words(5) == "Nb") then
+      if(words(4) == "2") then
         read(unit=words(3), fmt=*, iostat=ios) on_site(2)
-        on_site(3:4) = on_site(2)
-        if(words(5) /= "Nb") &
+        if(ios /= 0)  &
           call log_error("readElementFile","Something wrong in the p tight-binding parameters of element " // trim(Name) //".")
+        on_site(3:4) = on_site(2)
       else
         do j=3,5
           read(unit=words(j), fmt=*, iostat=ios) on_site(j-1)
+          if(ios /= 0)  &
+            call log_error("readElementFile","Something wrong in the p tight-binding parameters of element " // trim(Name) //".")
         end do
-        if(words(7) /= "Nb") &
-          call log_error("readElementFile","Something wrong in the p tight-binding parameters of element " // trim(Name) //".")
       end if
 
 
       ! t2g
       read(f_unit, fmt='(A)', iostat = ios) line
       read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
-      if(words(5) == "Nb") then
+      if(words(4) == "3") then
         read(unit=words(3), fmt=*, iostat=ios) on_site(5)
         on_site(6:7) = on_site(5)
-        if(words(5) /= "Nb") &
+        if(ios /= 0)  &
           call log_error("readElementFile","Something wrong in the t2g tight-binding parameters of element " // trim(Name) //".")
       else
         do j=3,5
           read(unit=words(j), fmt=*, iostat=ios) on_site(j+2)
+          if(ios /= 0)  &
+            call log_error("readElementFile","Something wrong in the t2g tight-binding parameters of element " // trim(Name) //".")
         end do
-        if(words(7) /= "Nb") &
-          call log_error("readElementFile","Something wrong in the t2g tight-binding parameters of element " // trim(Name) //".")
       end if
 
       ! eg
       read(f_unit, fmt='(A)', iostat = ios) line
       read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
-      if(words(5) == "Nb") then
+      if(words(4) == "4") then
         read(unit=words(3), fmt=*, iostat=ios) on_site(8)
         on_site(9) = on_site(8)
-        if(words(5) /= "Nb") &
+        if(ios /= 0)  &
           call log_error("readElementFile","Something wrong in the eg tight-binding parameters of element " // trim(Name) //".")
       else
         do j=3,4
           read(unit=words(j), fmt=*, iostat=ios) on_site(j+5)
+          if(ios /= 0)  &
+            call log_error("readElementFile","Something wrong in the eg tight-binding parameters of element " // trim(Name) //".")
         end do
-        if(words(6) /= "Nb") &
-          call log_error("readElementFile","Something wrong in the eg tight-binding parameters of element " // trim(Name) //".")
       end if
 
       ! Setting up on-site terms
