@@ -1166,12 +1166,12 @@ contains
 
     if(rField==0) then
       if(present(fvec)) then
+        write(output%unit_loop,"('|------------------------------- Iteration ',i0,' ------------------------------|')") iter
         do i=1,s%nAtoms
           fvecsum = 0.0
           do mu = 5,nOrb
             fvecsum = fvecsum + fvec((i-1)*8+(mu-4))
           end do
-          write(output%unit_loop,"('|------------------------------- Iteration ',i0,' ------------------------------|')") iter
           if(abs(cmplx(mx(i),my(i),double))>1.d-15) then
             write(output%unit_loop,"('Site ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mx(i),i,my(i),i,mz(i)
             write(output%unit_loop,"(15x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvecsum,(i-1)*8+6,fvec((i-1)*8+6),(i-1)*8+7,fvec((i-1)*8+7),(i-1)*8+8,fvec((i-1)*8+8)
