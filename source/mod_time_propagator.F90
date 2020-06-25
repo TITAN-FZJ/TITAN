@@ -23,7 +23,7 @@ contains
     implicit none
     type(System), intent(in)   :: s
 
-    integer*4                                       :: i, it, n, counter
+    integer*4                                       :: i, it, n, counter, iter_rej, iter_tot
     real(double)                                    :: t, p, h_new, h_old, ERR_old, ERR_kn
     complex(double), dimension(dimH)                :: Yn, Yn_hat, Yn_new, Yn_e, Yn_hat_e, Yn_new_e
     complex(double), dimension(:,:,:), allocatable  :: evec_kn,evec_kn_temp
@@ -83,13 +83,15 @@ contains
 
     ! Time propagation over t, kpoints, eigenvectors(Yn) for each k
     t = 0.d0
-    it = 0  
+    it = 0       ! Counter of accepted iterations
+    iter_tot = 0 ! Counter of total number of iterations (rejected + accepted)
     t_loop: do while (t <= integration_time)
       t = t + step
       if(rFreq(1) == 0) &
-        write(output%unit_loop,"('[time_propagator] Time: ',es10.3,' of ',es10.3)") t, integration_time
+        write(output%unit_loop,"('[time_propagator] Time: ',es10.3,' of ',es10.3)", advance='no') t, integration_time
        
-      counter = 0 ! Counter for the calculation of error in the step size for each time t
+      counter = 0  ! Counter for the calculation of error in the step size for each time t
+      iter_rej = 0 ! Counter of rejected steps (for each accepted one)
       ! Propagation loop for a given time t, calculating the optimal step size
       do
         !$omp parallel default(none) &
@@ -107,8 +109,10 @@ contains
         Lzm_t  = 0.d0
 
         ERR    = 0.d0
+
+        singlet_coupling_t = 0.d0
   
-        !$omp do reduction(+:rho_t,mp_t,mz_t,singlet_coupling_t,ERR,E_t,Lxm_t,Lym_t,Lzm_t)
+        !$omp do reduction(+:rho_t,mp_t,mz_t,E_t,Lxm_t,Lym_t,Lzm_t,singlet_coupling_t,ERR)
         kpoints_loop: do iz = 1, realBZ%workload
           kp = realBZ%kp(1:3,iz)
           weight = realBZ%w(iz)   
@@ -216,12 +220,15 @@ contains
            ! do while ( h_new < step) 
         ! save ERR from iterate_Zki to ERR_old
         ERR_old = ERR
+
+        iter_tot = iter_tot + 1 ! Counter of total number of iterations
         if ( ERR > 1.d0) then
           ! repeat the calculation using h_new
           t = t - step + h_new
           h_old = step
           step = h_new
           if(rFreq(1) == 0) write(*,*) "Rejected", t, step, ERR
+          iter_rej = iter_rej + 1 ! Counter of rejected steps
           ! this condition seems to mantain a small step size
           ! else if (step <= h_new <= 1.2*step) then
           ! step = step
@@ -233,6 +240,9 @@ contains
         end if
           
       end do
+
+      if(rFreq(1) == 0) &
+        write(output%unit_loop,"(' (',i0,' rejected iterations)')") iter_rej
 
       if(rFreq(1) == 0) write(*,*)  "Accepted", t, step, ERR 
 
@@ -260,11 +270,14 @@ contains
         call write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t, field_m, field_e, E_t, lxm_t, lym_t, lzm_t) 
 
       counter = counter + 1
-      it = it + 1
+      it = it + 1 ! Counter of accepted iterations
 
     end do t_loop
 
     deallocate( id,id2,hk,rwork,eval,work,eval_kn,evec_kn,evec_kn_temp, M1, output%observable )
+
+    if(rFreq(1) == 0) &
+      write(output%unit_loop,"('[time_propagator] Integration time reached. ',i0,' total iterations, with ',i0,' accepted.')") iter_tot,it
 
     if(lelectric) then
       deallocate(polarization_e,polarization_vec_e,hE_0,hw_e)

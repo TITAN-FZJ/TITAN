@@ -47,8 +47,14 @@ def read_header(file):
     fermi = None
     if "Ef" in Ef_line[1]:
       fermi = float(Ef_line[2])
-      # print fermi
-  return npoints, name, point, fermi
+      # print(fermi)
+    f.readline().split()
+    dim_line = f.readline().split()
+    dimbs = None
+    if "dimbs" in dim_line[1]:
+      dimbs = int(dim_line[2])
+      # print(dimbs)
+  return npoints, name, point, fermi, dimbs
 
 ################################################################################
 # Get the data from the file and save it into a matrix
@@ -102,7 +108,7 @@ if __name__ == "__main__":
              axs[0,0].set_ylabel("Energy [Ry]")
 
              for i in range(numplots):
-               npoints, name, point, fermi = read_header(args.file)
+               npoints, name, point, fermi, dimbs = read_header(args.file)
                table = read_data(args.file)
                if args.title != "":
                    axs[0,i].set_title(args.title)
@@ -153,7 +159,7 @@ if __name__ == "__main__":
              axs[0,0].set_ylabel("Energy [Ry]")
 
              for i in range(numplots):
-               npoints, name, point, fermi = read_header(args.file)
+               npoints, name, point, fermi, dimbs = read_header(args.file)
                table = read_data(args.file)
                axs[0,i].set_title(titles[i])
                axs[0,i].set_xlim([point[0],point[npoints-1]])
@@ -192,8 +198,8 @@ if __name__ == "__main__":
              plt.tight_layout()
              plt.show()
     else:
-         numplots = len(sys.argv)-1
-         titles = [r"with SOC", r"no SOC"]
+         numplots = 1
+         titles = [r"Band structure"]
          # titles = [r"$\#_{k}=100$M, $\eta=5\times10^{-4}$, 2nn", r"$\#_{k}=100$M, $\eta=5\times10^{-4}$, 3nn"]
          # titles = [r"$\#_{k}=10$M", r"$\#_{k}=100$k"])
          # titles = [r"$\eta=5\times10^{-3}$", r"$\eta=5\times10^{-4}$"])
@@ -202,17 +208,25 @@ if __name__ == "__main__":
          axs[0,0].set_ylabel("Energy [Ry]")
 
          for i in range(numplots):
-           npoints, name, point, fermi = read_header(sys.argv[i+1])
-           table = read_data(sys.argv[i+1])
+           npoints, name, point, fermi, dimbs = read_header(args.file)
+           table = read_data(args.file)
            axs[0,i].set_title(titles[i])
            axs[0,i].set_xlim([point[0],point[npoints-1]])
            # axs[0,i].set_ylim(table[:,1:].min(),table[:,1:].max())
            # axs[0,i].set_ylim(1.0/(table[:,1:].min()),1.0/(table[:,1:].max()))
 
+           if args.title != "":
+               axs[0,i].set_title(args.title)
+           else:
+               axs[0,i].set_title(titles[i])
+
            axs[0,i].set_xticks(point)
            axs[0,i].set_xticklabels(name)
            for j in point:
              axs[0,i].axvline(x=j, color='k', linewidth=0.5)
+
+           if args.zoom != 0.0:
+               axs[0,i].set_ylim(-args.zoom,args.zoom)
 
            # Ploting the Fermi level or a line at y=0.0
            if (fermi == None): # susceptibility
@@ -228,7 +242,7 @@ if __name__ == "__main__":
            if (fermi == None): # susceptibility
              axs[0,i].plot(table[:,1],-1.0/table[:,2])
            else: # band structure
-             axs[0,i].plot(table[:,0],table[:,1:], color='k', linewidth=1.0, linestyle='-')
+             axs[0,i].plot(table[:,0],table[:,1:dimbs], color='k', linewidth=1.0, linestyle='-')
 
          plt.tight_layout()
          plt.show()

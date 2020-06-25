@@ -7,7 +7,7 @@ contains
     use mod_System,         only: System,initHamiltkStride
     use TightBinding,       only: initTightBinding
     use mod_magnet,         only: l_matrix,lb,sb,allocate_magnet_variables,deallocate_magnet_variables,rho0,rhod0
-    use mod_SOC,            only: ls,allocLS
+    use mod_SOC,            only: ls,allocateLS
     use adaptiveMesh,       only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh
     use mod_parameters,     only: nOrb,kp_in,kptotal_in,output,eta,leigenstates,lkpoints,dimH
     use mod_polyBasis,      only: read_basis
@@ -79,8 +79,8 @@ contains
 
         !----------- Allocating variables that depend on nAtoms ------------
         call allocate_magnet_variables(sys0(i)%nAtoms, nOrb)
-        call allocLS(sys0(i)%nAtoms,nOrb)
-        call allocate_super_variables(sys0(i)%nAtoms, nOrb)
+        call allocateLS(sys0(i)%nAtoms,nOrb)
+        call allocate_supercond_variables(sys0(i)%nAtoms, nOrb)
         call allocate_Atom_variables(sys0(i)%nAtoms,nOrb)
 
         !------- Initialize Stride Matrices for hamiltk and dtdksub --------
@@ -122,7 +122,7 @@ contains
         !-------------------- Deallocating variables -----------------------
         call deallocate_magnet_variables()
         call deallocate_Atom_variables()
-        call deallocate_super_variables()
+        call deallocate_supercond_variables()
 
       end if ! read_initial_Uterms
 

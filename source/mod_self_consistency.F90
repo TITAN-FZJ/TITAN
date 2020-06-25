@@ -413,7 +413,7 @@ contains
   !! This subroutine performs the self-consistency
     use mod_f90_kind,   only: double
     use mod_parameters, only: nOrb, output
-    use mod_magnet,     only: iter, rho, mxd, myd, mzd
+    use mod_magnet,     only: rho, mxd, myd, mzd
     use mod_mpi_pars,   only: rField
     use mod_system,     only: s => sys
     use adaptiveMesh
@@ -454,7 +454,6 @@ contains
       end if
     end do
     sc_solu(neq_per_atom*s%nAtoms+1) = s%Ef
-    iter  = 1
 
     if(rField == 0) &
     write(output%unit_loop,"('[self_consistency] Starting self-consistency:')")
@@ -1056,7 +1055,7 @@ contains
     use mod_system,            only: s => sys
     use mod_SOC,               only: SOC
     use mod_magnet,            only: rho, mvec_cartesian, mp, mvec_spherical, &
-                                     lxm, lym, lzm, ltheta, lphi, labs
+                                     lxm, lym, lzm, ltheta, lphi, labs, iter
     use mod_superconductivity, only: lsuperCond, singlet_coupling
     implicit none
     integer :: i
@@ -1111,7 +1110,7 @@ contains
         write(output%unit_loop,"(a,':',6x,' N(',i2.0,') =',f11.8,4x,' M(',i2.0,') =',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,sum(rho(:,i)),i,mvec_spherical(1,i)
       end do
     end if
-    write(output%unit_loop,"('|----------=============================================================----------|')")
+    write(output%unit_loop,"('|----------===================== (',i3,' iterations ) =====================----------|')") iter
   end subroutine print_sc_results
 
 
@@ -1172,7 +1171,7 @@ contains
           do mu = 5,nOrb
             fvecsum = fvecsum + fvec((i-1)*8+(mu-4))
           end do
-
+          write(output%unit_loop,"('|------------------------------- Iteration ',i0,' ------------------------------|')") iter
           if(abs(cmplx(mx(i),my(i),double))>1.d-15) then
             write(output%unit_loop,"('Site ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mx(i),i,my(i),i,mz(i)
             write(output%unit_loop,"(15x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvecsum,(i-1)*8+6,fvec((i-1)*8+6),(i-1)*8+7,fvec((i-1)*8+7),(i-1)*8+8,fvec((i-1)*8+8)
@@ -1183,7 +1182,7 @@ contains
         end do
         write(output%unit_loop,"(13x,'Ef=',es16.9)") Ef
         write(output%unit_loop,"(15x,'fvec(',I2,')=',es16.9)") neq,fvec(neq)
-      else if(iter == 1) then
+      else if(iter == 0) then
         write(output%unit_loop,"('|---------------- Starting charge density, magnetization and Ef ----------------|')")
         do i=1,s%nAtoms
           if(abs(cmplx(mx(i),my(i),double))>1.d-15) then
@@ -1233,6 +1232,7 @@ contains
 
     iuser = 0
     ruser = 0.d0
+    iter = iter + 1
 
     ! Values used in the hamiltonian
     rho_in = rho
@@ -1299,7 +1299,6 @@ contains
       call abortProgram("[sc_equations_and_jacobian] Problem in self-consistency! iflag = " // trim(itos(iflag)))
     end select
 
-    iter = iter + 1
   end subroutine sc_equations_and_jacobian
 
   ! This subroutine calculates the self-consistency equations
@@ -1330,6 +1329,7 @@ contains
 
     iuser = 0
     ruser = 0.d0
+    iter = iter + 1
 
     iflag=0
     ! Values used in the hamiltonian
@@ -1383,7 +1383,6 @@ contains
 
     if(lontheflysc) call write_sc_results()
 
-    iter = iter + 1
   end subroutine sc_equations
 
 #endif
@@ -1414,6 +1413,8 @@ contains
     real(double),    dimension(nOrb,s%nAtoms) :: singlet_coupling_in
     real(double),    dimension(nOrb,s%nAtoms) :: deltas
     complex(double), dimension(s%nAtoms)      :: mpd_in
+
+    iter = iter + 1
 
     ! Values used in the hamiltonian
     rho_in = rho
@@ -1480,7 +1481,6 @@ contains
       call abortProgram("[sc_eqs_and_jac_old] Problem in self-consistency! iflag = " // trim(itos(iflag)))
     end select flag
 
-    iter = iter + 1
   end subroutine sc_eqs_and_jac_old
 
   ! This subroutine calculates the self-consistency equations
@@ -1508,6 +1508,7 @@ contains
     complex(double), dimension(s%nAtoms)      :: mpd_in
 
     iflag=0
+    iter = iter + 1
     ! Values used in the hamiltonian
     rho_in = rho
     do concurrent (i = 1:s%nAtoms)
@@ -1559,7 +1560,6 @@ contains
 
     if(lontheflysc) call write_sc_results()
 
-    iter = iter + 1
   end subroutine sc_eqs_old
 
   ! This subroutine calculates the jacobian of the system of equations
@@ -1585,6 +1585,7 @@ contains
     !--------------------- begin MPI vars --------------------
 
     iflag=0
+    iter = iter + 1
     ! Values used in the hamiltonian
     rho_in = rho
     do concurrent (i = 1:s%nAtoms)
@@ -1609,7 +1610,6 @@ contains
 
     call calcJacobian_greenfunction(selfconjac, N)
 
-    iter = iter + 1
   end subroutine sc_jac_old
 
 end module mod_self_consistency

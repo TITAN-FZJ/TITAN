@@ -539,12 +539,6 @@ contains
           ! Allocating variables that depend on number of pulses
           allocate(polarization_e(npulse_e),polarization_vec_e(npulse_e,2,3),hE_0(npulse_e),hw_e(npulse_e),tau_e(npulse_e),delay_e(npulse_e))
 
-          ! if(.not. get_parameter("field_direction_e", vector, cnt)) &
-          !   call log_error("get_parameters","'field_direction_e' missing.")
-          ! if(cnt /= 3) call log_error("get_parameters","'field_direction_e' has wrong size (size 3 required).")
-          ! field_direction_e(1:3) = vector(1:3)/vec_norm(vector,3)
-          ! deallocate(vector)
-
           if(.not. get_parameter("polarization_e", s_vector, cnt)) then
             ! If 'polarization_e' is not given, try to find 'polarization_vec_ip_e' and/or 'polarization_vec_op_e'
             if(get_parameter("polarization_vec_ip_e", vector, cnt)) then
@@ -695,7 +689,6 @@ contains
           ! Allocating variables that depend on number of pulses
           allocate(polarization_m(npulse_m),polarization_vec_m(npulse_m,2,3),hw1_m(npulse_m),hw_m(npulse_m),tau_m(npulse_m),delay_m(npulse_m))
 
-          polarization_vec_m(:,:,:) = 0.d0
           if(.not. get_parameter("polarization_m", s_vector, cnt)) then
             ! If 'polarization_m' is not given, try to find 'polarization_vec_ip_m' and/or 'polarization_vec_op_m'
             if(get_parameter("polarization_vec_ip_m", vector, cnt)) then

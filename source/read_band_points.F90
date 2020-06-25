@@ -34,6 +34,7 @@ subroutine read_band_points(kbands, a0, b1, b2, b3)
   i = 0
   ios=0
   do while (ios == 0)
+    line = ""
     read(unit=file_unit, fmt='(A)', iostat=ios) line
     if(len_trim(line) <= 0 .or. len_trim(line) >= 200 .or. index(adjustl(line),"#") == 1) cycle
     if(index(line, "#") > 0) line = line(1:index(line, "#")-1)

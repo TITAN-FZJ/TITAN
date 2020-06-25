@@ -24,7 +24,7 @@ module mod_superconductivity
 
 contains
 
-  subroutine allocate_super_variables(nAtoms,nOrbs)
+  subroutine allocate_supercond_variables(nAtoms,nOrbs)
     use mod_mpi_pars,  only: abortProgram
     implicit none
     integer, intent(in) :: nAtoms
@@ -33,15 +33,15 @@ contains
 
     allocate( singlet_coupling(nOrbs,nAtoms), stat = AllocateStatus)
     singlet_coupling = 0.d0
-    if(AllocateStatus /= 0) call abortProgram("[allocate_super_variables] Not enough memory for: singlet_coupling")
+    if(AllocateStatus /= 0) call abortProgram("[allocate_supercond_variables] Not enough memory for: singlet_coupling")
 
-  end subroutine allocate_super_variables
+  end subroutine allocate_supercond_variables
 
-  subroutine deallocate_super_variables()
+  subroutine deallocate_supercond_variables()
     implicit none
 
     if(allocated(singlet_coupling)) deallocate(singlet_coupling)
-  end subroutine deallocate_super_variables
+  end subroutine deallocate_supercond_variables
 
   subroutine hamiltk_sc(sys,kp,hk_sc)
     use mod_f90_kind,       only: double

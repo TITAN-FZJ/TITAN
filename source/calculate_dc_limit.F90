@@ -481,8 +481,6 @@ subroutine calculate_dc_limit()
 
   end do ! Wave vector loop
 
-  call freeLocalEKMesh()
-
   ! Sorting results on files
   if(rField==0) then
     call sort_all_files()

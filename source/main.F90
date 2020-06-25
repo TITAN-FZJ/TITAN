@@ -115,8 +115,8 @@ program TITAN
 
   !------------ Allocating variables that depend on nAtoms -------------
   call allocate_magnet_variables(sys%nAtoms, nOrb)
-  call allocate_super_variables(sys%nAtoms, nOrb)
-  call allocLS(sys%nAtoms,nOrb)
+  call allocate_supercond_variables(sys%nAtoms, nOrb)
+  call allocateLS(sys%nAtoms,nOrb)
   call allocate_Atom_variables(sys%nAtoms,nOrb)
 
   !---------------------------- Dimensions -----------------------------
@@ -319,6 +319,17 @@ program TITAN
   call deallocate_Atom_variables()
   call deallocate_magnet_variables()
   call deallocate_System_variables()
+  call deallocate_Umatrix()
+  call deallocate_energy_points()
+  call deallocateLoops()
+  if(leigenstates) then
+    call realBZ%free()
+  else
+    call freeLocalEKMesh()
+  end if
+  call deallocateAdaptiveMeshes()
+  call deallocateLS()
+  call deallocate_supercond_variables()
   
   !---------------------- Deallocating variables -----------------------
   !deallocate(r_nn, c_nn, l_nn)

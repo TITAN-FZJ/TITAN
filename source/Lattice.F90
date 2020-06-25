@@ -151,7 +151,7 @@ contains
   end subroutine generateNeighbors
 
   subroutine sortNeighbors(s, size)
-    use AtomTypes,  only: add_elem
+    use AtomTypes,  only: NeighborIndex
     use mod_system, only: System
     implicit none
     integer,      intent(in)    :: size
@@ -161,6 +161,7 @@ contains
     integer :: i,j,k
     integer :: matchedNeighbor(s%nAtoms)
     logical :: found
+    type(NeighborIndex), pointer :: local => null()
 
     ! Initialize Neighbor Lists for all Basis Atoms
     do i = 1, s%nAtoms
@@ -195,7 +196,19 @@ contains
 
       do j = 1, s%nAtoms
         if(matchedNeighbor(j) == 0) cycle
-        call add_elem(s%Basis(j)%NeighborList(matchedNeighbor(j),list(nNeighbors)%BasisIndex), nNeighbors)
+
+        ! Storing the location of the current first element of the (basis list) 
+        local => s%Basis(j)%NeighborList(matchedNeighbor(j),list(nNeighbors)%BasisIndex)%head
+
+        ! Creates resetting the pointer of the (basis list) and pointing it to a newly created element
+        nullify( s%Basis(j)%NeighborList(matchedNeighbor(j),list(nNeighbors)%BasisIndex)%head )
+        allocate( s%Basis(j)%NeighborList(matchedNeighbor(j),list(nNeighbors)%BasisIndex)%head )
+        ! At this point (basis list)%head points to a list with one element 
+
+        ! Now make this new first element to be "nNeighbors" that is being counted outside, and the next element will be the previous head.
+        s%Basis(j)%NeighborList(matchedNeighbor(j),list(nNeighbors)%BasisIndex)%head%index = nNeighbors
+        s%Basis(j)%NeighborList(matchedNeighbor(j),list(nNeighbors)%BasisIndex)%head%next  => local
+
       end do
     end do
 

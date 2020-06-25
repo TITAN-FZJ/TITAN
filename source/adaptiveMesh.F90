@@ -55,6 +55,15 @@ contains
     end do
   end subroutine generateAdaptiveMeshes
 
+
+  !! Deallocate energy meshes
+  subroutine deallocateAdaptiveMeshes()
+    implicit none
+
+    if(allocated(all_nkpt))     deallocate( all_nkpt )
+    if(allocated(all_nkpt_rep)) deallocate( all_nkpt_rep )
+  end subroutine deallocateAdaptiveMeshes
+
   !! Generate the distributed combined points {e,kx,ky,kz}
   !! (locally for a given MPI process)
   subroutine genLocalEKMesh(sys,rank,size,comm)
@@ -139,10 +148,14 @@ contains
   subroutine freeLocalEKMesh()
     implicit none
     integer*8 :: i
+
     do i = 1, local_points
       call bzs(E_k_imag_mesh(1,i)) % free()
     end do
-    deallocate(bzs, E_k_imag_mesh)
+
+    if( allocated(bzs) ) deallocate(bzs)
+    if( allocated(E_k_imag_mesh) ) deallocate(E_k_imag_mesh)
+
   end subroutine freeLocalEKMesh
 
   !! Calculate the number of k-points for a given energy

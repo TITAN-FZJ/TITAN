@@ -65,26 +65,4 @@ module AtomTypes
     !! Initial occupation of d orbitals obtained from hopping parameters only
   end type AtomType
 
-contains
-  subroutine add_elem(list, index)
-    !! This subroutine adds the element "index" at the beginning of the list
-    implicit none
-    type(NeighborHead), intent(inout) :: list
-    integer :: index
-    type(NeighborIndex), pointer :: local => null()
-
-    ! Storing the location of the current first element of the list 
-    local => list%head
-
-    ! Creates resetting the pointer of the list and pointing it to a newly created element
-    nullify(list%head)
-    allocate(list%head)
-    ! At this point list%head points to a list with one element 
-
-    ! Now make this new first element to be "index" that is being counted outside, and the next element will be the previous head.
-    list%head%index = index
-    list%head%next  => local
-
-  end subroutine add_elem
-
 end module AtomTypes

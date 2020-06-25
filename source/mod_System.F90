@@ -99,6 +99,8 @@ contains
     deallocate( sys%Neighbors )
     deallocate( sys%Distances )
     deallocate( sys%Types )
+    deallocate( ia )
+    deallocate( ia_sc )
 
   end subroutine deallocate_System_variables
 
