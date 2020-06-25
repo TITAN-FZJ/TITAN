@@ -131,7 +131,7 @@ contains
     real(double)                 :: dist
     real(double), dimension(3)   :: vec
     real(double), dimension(3,3) :: Bravais
-    real(double), dimension(4)   :: on_site
+    real(double), dimension(9)   :: on_site
     real(double), dimension(9)   :: tmp_arr
     real(double), dimension(:,:), allocatable :: position
     real(double), dimension(:),   allocatable :: localDistances
@@ -159,8 +159,6 @@ contains
     do j = 1, 3
       read(f_unit, fmt='(A)', iostat=ios) line
       read(unit=line, fmt=*, iostat=ios) (Bravais(i,j), i=1,3)
-      if(vec_norm(Bravais(:,j),3) <= 1.d-9) &
-        call log_warning("readElementFile", "Bravais vector a" // trim(itos(j)) // "'not given.")
     end do
     Bravais = Bravais * material%LatticeConstant
     material%a1 = Bravais(:,1)
@@ -213,6 +211,11 @@ contains
     ! Read dimension of the system
     read(f_unit, fmt='(A)', iostat = ios) line
     read(unit= line, fmt=*, iostat=ios) material%isysdim
+
+    do i = 1, material%isysdim
+      if(vec_norm(Bravais(:,i),3) <= 1.d-9) &
+        call log_warning("readElementFile", "Bravais vector a" // trim(itos(i)) // "not given.")
+    end do
 
     ! Read Fermi level
     read(f_unit, fmt='(A)', iostat = ios) line
@@ -291,23 +294,67 @@ contains
     ! Read Hopping Parameter
     do i = 1, nTypes
       ! Read on-site terms
-      do j = 1, 4
-        read(f_unit, fmt='(A)', iostat = ios) line
-        read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
-        read(unit=words(3), fmt=*, iostat=ios) on_site(j)
-      end do
+
+      ! s
+      read(f_unit, fmt='(A)', iostat = ios) line
+      read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
+      read(unit=words(3), fmt=*, iostat=ios) on_site(1)
+      if(words(5) /= "Nb") &
+        call log_error("readElementFile","Something wrong in the s tight-binding parameter of element " // trim(Name) //".")
+
+      ! p
+      read(f_unit, fmt='(A)', iostat = ios) line
+      read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
+      if(words(5) == "Nb") then
+        read(unit=words(3), fmt=*, iostat=ios) on_site(2)
+        on_site(3:4) = on_site(2)
+        if(words(5) /= "Nb") &
+          call log_error("readElementFile","Something wrong in the p tight-binding parameters of element " // trim(Name) //".")
+      else
+        do j=3,5
+          read(unit=words(j), fmt=*, iostat=ios) on_site(j-1)
+        end do
+        if(words(7) /= "Nb") &
+          call log_error("readElementFile","Something wrong in the p tight-binding parameters of element " // trim(Name) //".")
+      end if
+
+
+      ! t2g
+      read(f_unit, fmt='(A)', iostat = ios) line
+      read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
+      if(words(5) == "Nb") then
+        read(unit=words(3), fmt=*, iostat=ios) on_site(5)
+        on_site(6:7) = on_site(5)
+        if(words(5) /= "Nb") &
+          call log_error("readElementFile","Something wrong in the t2g tight-binding parameters of element " // trim(Name) //".")
+      else
+        do j=3,5
+          read(unit=words(j), fmt=*, iostat=ios) on_site(j+2)
+        end do
+        if(words(7) /= "Nb") &
+          call log_error("readElementFile","Something wrong in the t2g tight-binding parameters of element " // trim(Name) //".")
+      end if
+
+      ! eg
+      read(f_unit, fmt='(A)', iostat = ios) line
+      read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
+      if(words(5) == "Nb") then
+        read(unit=words(3), fmt=*, iostat=ios) on_site(8)
+        on_site(9) = on_site(8)
+        if(words(5) /= "Nb") &
+          call log_error("readElementFile","Something wrong in the eg tight-binding parameters of element " // trim(Name) //".")
+      else
+        do j=3,4
+          read(unit=words(j), fmt=*, iostat=ios) on_site(j+5)
+        end do
+        if(words(6) /= "Nb") &
+          call log_error("readElementFile","Something wrong in the eg tight-binding parameters of element " // trim(Name) //".")
+      end if
 
       ! Setting up on-site terms
       material%onSite = 0.d0
-      material%onSite(1,1) = on_site(1)
-      do j=2,4
-        material%onSite(j,j) = on_site(2)
-      end do
-      do j=5,7
-        material%onSite(j,j) = on_site(3)
-      end do
-      do j=8,9
-        material%onSite(j,j) = on_site(4)
+      do j=1,9
+        material%onSite(j,j) = on_site(j)
       end do
 
       ! Reading two-center integrals
@@ -315,12 +362,13 @@ contains
         do k = 1, 10
           read(f_unit, fmt='(A)', iostat = ios) line
           read(unit=line, fmt=*, iostat=ios) (words(l), l=1,10)
-          if(j<=nStages) read(unit=words(4), fmt=*, iostat=ios) material%Hopping(k,j)
+          if(j>nStages) exit
+          read(unit=words(4), fmt=*, iostat=ios) material%Hopping(k,j)
           !material%Hopping(j,i) = material%Hopping(j,i) * (a0_corr ** expon(j)) ! Correction of hopping parameter by scaling law.
         end do
       end do
     end do
-
+stop
     close(f_unit)
 
     ! Determine neighbor distances
