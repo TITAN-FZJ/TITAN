@@ -53,7 +53,7 @@ module AtomTypes
     !! Dimension of the system (1D, 2D, 3D)
     real(double), dimension(3) :: a1,a2,a3
     !! Lattice vectors
-    real(double), dimension(:), allocatable :: Stage
+    real(double), dimension(:,:), allocatable :: Stage
     !! Neighbor distances
     real(double) :: Un, Um
     !! Effective Coulomb interaction strength - Hubbard U (charge and magnetic)

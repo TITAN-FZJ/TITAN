@@ -22,6 +22,7 @@ contains
     use mod_f90_kind, only: double
     use AtomTypes,    only: NeighborIndex
     use mod_system,   only: System
+use mod_mpi_pars
     implicit none
     type(System), intent(inout) :: s
     integer,      intent(in)    :: fermi_layer
@@ -35,7 +36,7 @@ contains
     allocate(bp(nOrb,nOrb))
 
     do i = 1, s%nTypes
-      call readElementFile(s%Types(i), s%nStages, nOrb)
+      call readElementFile(s%Types(i), s%nStages, nOrb, s%relTol)
     end do
 
     s%Ef = s%Types(fermi_layer)%FermiLevel
@@ -58,8 +59,8 @@ contains
         do k = 1, s%nStages
           current => s%Basis(i)%NeighborList(k,j)%head
           do while(associated(current))
-            scale_factor(1) = s%Types(s%Basis(i)%Material)%stage(k) / s%Neighbors(current%index)%Distance(i)
-            scale_factor(2) = s%Types(s%Basis(j)%Material)%stage(k) / s%Neighbors(current%index)%Distance(i)
+            scale_factor(1) = s%Types(s%Basis(i)%Material)%stage(k,i) / s%Neighbors(current%index)%Distance(i)
+            scale_factor(2) = s%Types(s%Basis(j)%Material)%stage(k,i) / s%Neighbors(current%index)%Distance(i)
             do l = 1, 10
               mix(l,1) = s%Types(s%Basis(i)%Material)%Hopping(l,k) * scale_factor(1) ** expon(l)
               mix(l,2) = s%Types(s%Basis(j)%Material)%Hopping(l,k) * scale_factor(2) ** expon(l)
@@ -106,35 +107,36 @@ contains
   end subroutine set_hopping_matrix
 
   !! Reading element file, including all the parameters
-  subroutine readElementFile(material, nStages, nOrb)
-    use mod_f90_kind, only: double
-    use AtomTypes,    only: AtomType
-    use mod_mpi_pars, only: abortProgram
-    use mod_tools,    only: itos, vec_norm
-    use mod_io,       only: log_warning, log_error
-    use mod_input,    only: get_parameter
+  subroutine readElementFile(material, nStages, nOrb, relTol)
+    use mod_f90_kind,          only: double
+    use AtomTypes,             only: AtomType,NeighborAtom
+    use mod_mpi_pars,          only: abortProgram
+    use mod_tools,             only: itos, vec_norm, vecDist
+    use mod_io,                only: log_warning, log_error
+    use mod_input,             only: get_parameter
     use mod_superconductivity, only: lsuperCond
     implicit none
     type(AtomType), intent(inout) :: material
     integer,        intent(in)    :: nStages
     integer,        intent(in)    :: nOrb
+    real(double),   intent(in)    :: relTol
     integer :: nTypes
     integer :: nn_stages
     integer :: nAtoms
+    integer,      dimension(:), allocatable :: iMaterial
     integer,      dimension(:), allocatable :: type_count
     real(double), dimension(3) :: dens
-    integer            :: i, j, k, l, m, ios, line_count = 0
+    integer            :: i, j, k, l, size, nCells, ios, line_count = 0
     integer, parameter :: word_length = 50, max_elements = 50
     character(len=word_length), dimension(max_elements) :: str_arr
     character(200) :: line
     character(50)  :: words(10)
-    real(double)                 :: dist
-    real(double), dimension(3)   :: vec
     real(double), dimension(3,3) :: Bravais
     real(double), dimension(9)   :: on_site
     real(double), dimension(9)   :: tmp_arr
     real(double), dimension(:,:), allocatable :: position
-    real(double), dimension(:),   allocatable :: localDistances
+    real(double), dimension(:,:), allocatable :: localDistances
+    type(NeighborAtom), dimension(:), allocatable :: list
     character(len=1)   :: coord_type
     character(len=100) :: Name
     integer :: f_unit = 995594, cnt = 0
@@ -189,14 +191,17 @@ contains
     read(f_unit, fmt='(A)', iostat=ios) line
     read(unit=line, fmt=*, iostat=ios) coord_type
 
+    allocate(imaterial(nAtoms))
+
     ! Read atom positions
     allocate(position(3,nAtoms))
     k = 0
     do i = 1, nTypes
       do j = 1, type_count(i)
-        k = k + 1
         read(f_unit, fmt='(A)', iostat=ios) line
         if(ios /= 0) call abortProgram("[readElementFile] Not enough basis atoms given!")
+        k = k + 1
+        imaterial(k) = i
         read(unit=line, fmt=*, iostat=ios) (position(l,k), l=1,3)
         if(coord_type == 'C' .or. coord_type == 'c' .or. coord_type == 'K' .or. coord_type == 'k') then
           ! Position of atoms given in Cartesian coordinates
@@ -318,7 +323,6 @@ contains
         end do
       end if
 
-
       ! t2g
       read(f_unit, fmt='(A)', iostat = ios) line
       read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
@@ -371,41 +375,124 @@ contains
 
     close(f_unit)
 
-    ! Determine neighbor distances
-    allocate(material%stage(nStages))
-    allocate(localDistances((6*nStages+1)**3))
-    m = 0
-    material % stage = 10.d0 * material % LatticeConstant
-    do i = -3*nStages, 3*nStages
-      if( (material%isysdim==1).and.(i == 0) ) cycle ! 1D case
-      do j = -3*nStages, 3*nStages
-        if( (material%isysdim==2).and.(i == 0 .and. j == 0) ) cycle ! 2D case
-        do k = -3*nStages, 3*nStages
-          if(i == 0 .and. j == 0 .and. k == 0)  cycle
-          m = m + 1
-          vec = i * material%a1 + j * material%a2 + k * material%a3
-          dist = vec_norm(vec,3)
-          localDistances(m) = dist
-          l = m - 1
+    ! Number of unit cells to be generated along each dimensions
+    ! For d dimensions it is (2*n+1)^d
+    nCells = (2*nStages+1)**(material%isysdim)
+
+    ! Allocate array for nn distances known to the system
+    allocate(material%stage(nStages, nAtoms))
+    ! Allocate array for all atoms in all unit cells
+    allocate(list(nCells*nAtoms))
+
+    allocate( localDistances(nCells * nAtoms, nAtoms))
+
+    size = 0
+
+    localDistances = 1.d+12
+    material%stage = 1.d+12
+    do i = 1, nCells
+      do j = 1, nAtoms
+        size = size + 1
+
+        ! Determine unit-cell indices
+        select case(material%isysdim)
+        case(3)
+          list(size)%Cell(1) = mod( (i-1),(2*nStages+1) ) - nStages
+          list(size)%Cell(2) = mod( (i-1)/(2*nStages+1),(2*nStages+1) ) - nStages
+          list(size)%Cell(3) = mod( (i-1)/((2*nStages+1)*(2*nStages+1)),(2*nStages+1) ) - nStages
+        case(2)
+          list(size)%Cell(1) = mod( (i-1),(2*nStages+1) ) - nStages
+          list(size)%Cell(2) = mod( (i-1)/(2*nStages+1),(2*nStages+1) ) - nStages
+          list(size)%Cell(3) = 0
+        case default
+          list(size)%Cell(1) = mod( (i-1),(2*nStages+1) ) - nStages
+          list(size)%Cell(2) = 0
+          list(size)%Cell(3) = 0
+        end select
+
+        ! Cell position is R = i*a1 + j*a2 + k*a3
+        list(size)%CellVector = list(size)%Cell(1) * material%a1 + list(size)%Cell(2) * material%a2 + list(size)%Cell(3) * material%a3
+        ! Atom position is r = R + r_j
+        list(size)%Position = position(:,j) + list(size)%CellVector
+
+        ! Defining what kind of atom it is
+        list(size)%BasisIndex = j
+        list(size)%Material = imaterial(j)
+
+        ! Allocate arrays for distances and directional cosines to all atoms in the central unit cell
+        allocate(list(size)%Distance(nAtoms))
+        allocate(list(size)%dirCos(3,nAtoms))
+
+        ! Calculate distances and directional cosines
+        do k = 1, nAtoms
+          list(size)%Distance(k) = vecDist(list(size)%Position, position(:,k))
+          list(size)%dirCos(:,k) = 0.d0
+          if(list(size)%Distance(k) <= 1.d-9) cycle
+          list(size)%dirCos(:,k) = (list(size)%Position - position(:,k)) / list(size)%Distance(k)
+
+          ! Sort distances *new*
+          localDistances(size,k) = list(size)%Distance(k)
+          l = size - 1
           do while(1 <= l)
-            if(localDistances(l) - dist < 1.d-9) exit
-            localDistances(l+1) = localDistances(l)
+            ! If distance of current atoms is larger than what is saved at position l, exit loop
+            if(localDistances(l,k) - list(size)%Distance(k) < 1.d-9) exit
+            localDistances(l+1,k) = localDistances(l,k)
             l = l - 1
           end do
-          localDistances(l+1) = dist
+          localDistances(l+1,k) = list(size)%Distance(k)
         end do
       end do
     end do
 
-    l = 1
-    material%stage(1) = localDistances(1)
-    do i = 1, m
-      if(abs(localDistances(i) - material%stage(l)) < material%stage(1) * 0.01) cycle
-      l = l + 1
-      if(l > nStages) exit
-      material%stage(l) = localDistances(i)
+
+    ! ! Determine neighbor distances
+    ! allocate(material%stage(nStages,nAtoms))
+    ! allocate(localDistances((2*nStages+1)**(material%isysdim)*nAtoms,nAtoms))
+    ! m = 0
+    ! material % stage = 10.d0 * material % LatticeConstant
+    ! do i = -3*nStages, 3*nStages
+    !   if( (material%isysdim==1).and.(i == 0) ) cycle ! 1D case
+    !   do j = -3*nStages, 3*nStages
+    !     if( (material%isysdim==2).and.(i == 0 .and. j == 0) ) cycle ! 2D case
+    !     do k = -3*nStages, 3*nStages
+    !       if(i == 0 .and. j == 0 .and. k == 0)  cycle
+    !       m = m + 1
+    !       vec = i * material%a1 + j * material%a2 + k * material%a3
+    !       dist = vec_norm(vec,3)
+    !       localDistances(m) = dist
+    !       l = m - 1
+    !       do while(1 <= l)
+    !         if(localDistances(l) - dist < 1.d-9) exit
+    !         localDistances(l+1) = localDistances(l)
+    !         l = l - 1
+    !       end do
+    !       localDistances(l+1) = dist
+    !     end do
+    !   end do
+    ! end do
+
+    material%stage(1,:) = localDistances(1,:)
+    do j = 1, nAtoms
+      l = 1
+      do i = 2, size
+        if(abs(localDistances(i,j) - material%stage(l,j)) < material%stage(1,j) * relTol) cycle
+        l = l + 1
+        if(l > nStages) exit
+        material%stage(l,j) = localDistances(i,j)
+      end do
     end do
     deallocate(localDistances)
+
+
+    ! l = 1
+    ! material%stage(1) = localDistances(1)
+    ! do i = 1, m
+    !   if(abs(localDistances(i) - material%stage(l)) < material%stage(1) * 0.01) cycle
+    !   l = l + 1
+    !   if(l > nStages) exit
+    !   material%stage(l) = localDistances(i)
+    ! end do
+    ! deallocate(localDistances)
   end subroutine readElementFile
 
   pure subroutine intd(sss,pps,ppp,dds,ddp,ddd,sps,sds,pds,pdp,w,b)
