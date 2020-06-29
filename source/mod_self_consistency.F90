@@ -1232,7 +1232,6 @@ contains
 
     iuser = 0
     ruser = 0.d0
-    iter = iter + 1
 
     ! Values used in the hamiltonian
     rho_in = rho
@@ -1255,6 +1254,8 @@ contains
     if(lsuperCond) call update_singlet_couplings(s,singlet_coupling_in)
 
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,singlet_coupling_in,s%Ef)
+
+    iter = iter + 1
 
     select case (iflag)
     case(1)
@@ -1329,7 +1330,6 @@ contains
 
     iuser = 0
     ruser = 0.d0
-    iter = iter + 1
 
     iflag=0
     ! Values used in the hamiltonian
@@ -1353,6 +1353,8 @@ contains
     if(lsuperCond) call update_singlet_couplings(s,singlet_coupling_in)
 
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,singlet_coupling_in,s%Ef)
+
+    iter = iter + 1
 
     if(leigenstates) then
       call expectation_values_eigenstates(s,rho,mp,mx,my,mz,deltas)
@@ -1414,8 +1416,6 @@ contains
     real(double),    dimension(nOrb,s%nAtoms) :: deltas
     complex(double), dimension(s%nAtoms)      :: mpd_in
 
-    iter = iter + 1
-
     ! Values used in the hamiltonian
     rho_in = rho
     do concurrent (i = 1:s%nAtoms)
@@ -1437,6 +1437,8 @@ contains
     if(lsuperCond) call update_singlet_couplings(s,singlet_coupling_in)
 
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,singlet_coupling_in,s%Ef)
+
+    iter = iter + 1
 
     flag: select case (iflag)
     case(1)
@@ -1508,7 +1510,7 @@ contains
     complex(double), dimension(s%nAtoms)      :: mpd_in
 
     iflag=0
-    iter = iter + 1
+
     ! Values used in the hamiltonian
     rho_in = rho
     do concurrent (i = 1:s%nAtoms)
@@ -1530,6 +1532,8 @@ contains
     if(lsuperCond) call update_singlet_couplings(s,singlet_coupling_in)
 
     call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,singlet_coupling_in,s%Ef)
+
+    iter = iter + 1
 
     if(leigenstates) then
       call expectation_values_eigenstates(s,rho,mp,mx,my,mz,deltas)
@@ -1585,7 +1589,7 @@ contains
     !--------------------- begin MPI vars --------------------
 
     iflag=0
-    iter = iter + 1
+
     ! Values used in the hamiltonian
     rho_in = rho
     do concurrent (i = 1:s%nAtoms)
@@ -1609,6 +1613,8 @@ contains
     fvec=fvec
 
     call calcJacobian_greenfunction(selfconjac, N)
+
+    iter = iter + 1
 
   end subroutine sc_jac_old
 

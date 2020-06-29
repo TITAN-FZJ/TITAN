@@ -444,33 +444,6 @@ use mod_mpi_pars
       end do
     end do
 
-
-    ! ! Determine neighbor distances
-    ! allocate(material%stage(nStages,nAtoms))
-    ! allocate(localDistances((2*nStages+1)**(material%isysdim)*nAtoms,nAtoms))
-    ! m = 0
-    ! material % stage = 10.d0 * material % LatticeConstant
-    ! do i = -3*nStages, 3*nStages
-    !   if( (material%isysdim==1).and.(i == 0) ) cycle ! 1D case
-    !   do j = -3*nStages, 3*nStages
-    !     if( (material%isysdim==2).and.(i == 0 .and. j == 0) ) cycle ! 2D case
-    !     do k = -3*nStages, 3*nStages
-    !       if(i == 0 .and. j == 0 .and. k == 0)  cycle
-    !       m = m + 1
-    !       vec = i * material%a1 + j * material%a2 + k * material%a3
-    !       dist = vec_norm(vec,3)
-    !       localDistances(m) = dist
-    !       l = m - 1
-    !       do while(1 <= l)
-    !         if(localDistances(l) - dist < 1.d-9) exit
-    !         localDistances(l+1) = localDistances(l)
-    !         l = l - 1
-    !       end do
-    !       localDistances(l+1) = dist
-    !     end do
-    !   end do
-    ! end do
-
     material%stage(1,:) = localDistances(1,:)
     do j = 1, nAtoms
       l = 1
@@ -483,16 +456,6 @@ use mod_mpi_pars
     end do
     deallocate(localDistances)
 
-
-    ! l = 1
-    ! material%stage(1) = localDistances(1)
-    ! do i = 1, m
-    !   if(abs(localDistances(i) - material%stage(l)) < material%stage(1) * 0.01) cycle
-    !   l = l + 1
-    !   if(l > nStages) exit
-    !   material%stage(l) = localDistances(i)
-    ! end do
-    ! deallocate(localDistances)
   end subroutine readElementFile
 
   pure subroutine intd(sss,pps,ppp,dds,ddp,ddd,sps,sds,pds,pdp,w,b)
