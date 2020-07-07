@@ -29,14 +29,14 @@ contains
 
   ! This subroutine calculates LDOS
   subroutine ldos()
-    use mod_f90_kind,      only: double
-    use mod_parameters,    only: nOrb, output, nEner1, emin, deltae,laddresults
-    use mod_system,        only: s => sys
-    use mod_BrillouinZone, only: realBZ
+    use mod_f90_kind,          only: double
+    use mod_parameters,        only: nOrb, output, nEner1, emin, deltae, laddresults
+    use mod_system,            only: s => sys
+    use mod_BrillouinZone,     only: realBZ
     use mod_superconductivity, only: superCond
     use mod_mpi_pars
     implicit none
-    integer :: i, j
+    integer      :: i, j
     real(double) :: e
 
     call allocateLDOS()
@@ -59,16 +59,16 @@ contains
         if(rFreq(2) == 0) then
           do j = 1, sFreq(2)
             if (j /= 1) then
-              call MPI_Recv(e,     1            ,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE  ,1000,FreqComm(2),stat,ierr)
-              call MPI_Recv(ldosd, s%nAtoms*nOrb*superCond,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1100,FreqComm(2),stat,ierr)
-              call MPI_Recv(ldosu, s%nAtoms*nOrb*superCond,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1200,FreqComm(2),stat,ierr)
+              call MPI_Recv(e    ,          1             ,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE ,1000,FreqComm(2),stat,ierr)
+              call MPI_Recv(ldosd, s%nAtoms*nOrb*superCond,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,1100,FreqComm(2),stat,ierr)
+              call MPI_Recv(ldosu, s%nAtoms*nOrb*superCond,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,1200,FreqComm(2),stat,ierr)
             end if
 
             ! Writing into files
             call writeLDOS(e)
           end do
         else
-          call MPI_Send(e,     1            ,MPI_DOUBLE_PRECISION,0,1000,FreqComm(2),ierr)
+          call MPI_Send(e    ,           1            ,MPI_DOUBLE_PRECISION,0,1000,FreqComm(2),ierr)
           call MPI_Send(ldosd, s%nAtoms*nOrb*superCond,MPI_DOUBLE_PRECISION,0,1100,FreqComm(2),ierr)
           call MPI_Send(ldosu, s%nAtoms*nOrb*superCond,MPI_DOUBLE_PRECISION,0,1200,FreqComm(2),ierr)
         end if
@@ -207,13 +207,13 @@ contains
         if(rFreq(2) == 0) then
           do i = 1, sFreq(2)
             if (i /= 1) then
-              call MPI_Recv(e,     1       ,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE  ,1000,FreqComm(2),stat,ierr)
-              call MPI_Recv(ldosd, ncount  ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1100,FreqComm(2),stat,ierr)
-              call MPI_Recv(ldosu, ncount  ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1200,FreqComm(2),stat,ierr)
-              call MPI_Recv(trJij, ncount2 ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1300,FreqComm(2),stat,ierr)
-              call MPI_Recv(Jij,   ncount3 ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1400,FreqComm(2),stat,ierr)
-              call MPI_Recv(Jijs,  ncount3 ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1500,FreqComm(2),stat,ierr)
-              call MPI_Recv(Jija,  ncount3 ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1600,FreqComm(2),stat,ierr)
+              call MPI_Recv(e    ,    1    ,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE ,1000,FreqComm(2),stat,ierr)
+              call MPI_Recv(ldosd, ncount  ,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,1100,FreqComm(2),stat,ierr)
+              call MPI_Recv(ldosu, ncount  ,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,1200,FreqComm(2),stat,ierr)
+              call MPI_Recv(trJij, ncount2 ,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,1300,FreqComm(2),stat,ierr)
+              call MPI_Recv(Jij  , ncount3 ,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,1400,FreqComm(2),stat,ierr)
+              call MPI_Recv(Jijs , ncount3 ,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,1500,FreqComm(2),stat,ierr)
+              call MPI_Recv(Jija , ncount3 ,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,1600,FreqComm(2),stat,ierr)
             end if
 
             ! Writing into files
@@ -222,13 +222,13 @@ contains
             call writeCoupling(e)
           end do
         else
-          call MPI_Recv(e,     1       ,MPI_DOUBLE_PRECISION,0,1000,FreqComm(2),stat,ierr)
+          call MPI_Recv(e    ,   1     ,MPI_DOUBLE_PRECISION,0,1000,FreqComm(2),stat,ierr)
           call MPI_Recv(ldosd, ncount  ,MPI_DOUBLE_PRECISION,0,1100,FreqComm(2),stat,ierr)
           call MPI_Recv(ldosu, ncount  ,MPI_DOUBLE_PRECISION,0,1200,FreqComm(2),stat,ierr)
           call MPI_Recv(trJij, ncount2 ,MPI_DOUBLE_PRECISION,0,1300,FreqComm(2),stat,ierr)
-          call MPI_Recv(Jij,   ncount3 ,MPI_DOUBLE_PRECISION,0,1400,FreqComm(2),stat,ierr)
-          call MPI_Recv(Jijs,  ncount3 ,MPI_DOUBLE_PRECISION,0,1500,FreqComm(2),stat,ierr)
-          call MPI_Recv(Jija,  ncount3 ,MPI_DOUBLE_PRECISION,0,1600,FreqComm(2),stat,ierr)
+          call MPI_Recv(Jij  , ncount3 ,MPI_DOUBLE_PRECISION,0,1400,FreqComm(2),stat,ierr)
+          call MPI_Recv(Jijs , ncount3 ,MPI_DOUBLE_PRECISION,0,1500,FreqComm(2),stat,ierr)
+          call MPI_Recv(Jija , ncount3 ,MPI_DOUBLE_PRECISION,0,1600,FreqComm(2),stat,ierr)
         end if
       end if
       call MPI_Barrier(FieldComm, ierr)

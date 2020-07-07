@@ -1,10 +1,13 @@
 module adaptiveMesh
   use mod_BrillouinZone, only: FractionalBrillouinZone
+  use MPI_f08,           only: MPI_Comm
+  implicit none
   integer*8,                     dimension(:,:), allocatable :: E_k_imag_mesh
   type(FractionalBrillouinZone), dimension(:),   allocatable :: bzs
   integer*8,                     dimension(:),   allocatable :: all_nkpt,all_nkpt_rep
   integer*8 :: total_points, local_points
-  integer*4 :: activeComm, activeRank, activeSize
+  integer*4 :: activeRank, activeSize
+  type(MPI_Comm) :: activeComm
   integer   :: minimumBZmesh
 
   interface get_nkpt
@@ -63,12 +66,12 @@ contains
     use mod_parameters,    only: total_nkpt => kptotal_in
     use EnergyIntegration, only: pn1, y
     use mod_System,        only: System
-    use mod_mpi_pars,      only: calcWorkload
+    use mod_mpi_pars,      only: calcWorkload, MPI_Comm
     implicit none
-    type(System), intent(in) :: sys
-    integer*4,    intent(in) :: rank
-    integer*4,    intent(in) :: size
-    integer*4,    intent(in) :: comm
+    type(System),   intent(in) :: sys
+    integer*4,      intent(in) :: rank
+    integer*4,      intent(in) :: size
+    type(MPI_Comm), intent(in) :: comm
     integer*8 :: firstPoint, lastPoint
     integer*8 :: j, m, n, p, q, nall
     integer   :: i

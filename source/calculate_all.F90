@@ -394,25 +394,25 @@ subroutine calculate_all()
         if(rFreq(2) == 0) then
           do mcount = 1, sFreq(2)
             if (mcount/=1) then ! Receive all points except the first (that was calculated at myrank_row_hw)
-              call MPI_Recv(e                ,1                ,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE  ,4000,FreqComm(2),stat,ierr)
-              call MPI_Recv(q                ,3                ,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE  ,4001,FreqComm(2),stat,ierr)
-              call MPI_Recv(mvec_spherical   ,3*s%nAtoms       ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),4100,FreqComm(2),stat,ierr)
+              call MPI_Recv(e                ,1                ,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE ,4000,FreqComm(2),stat,ierr)
+              call MPI_Recv(q                ,3                ,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,4001,FreqComm(2),stat,ierr)
+              call MPI_Recv(mvec_spherical   ,3*s%nAtoms       ,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,4100,FreqComm(2),stat,ierr)
               if(.not.lhfresponses) &
-                call MPI_Recv(schi             , s%nAtoms*s%nAtoms*16   , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4200,FreqComm(2),stat,ierr)
-              call MPI_Recv(schihf             , s%nAtoms*s%nAtoms*16   , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4300,FreqComm(2),stat,ierr)
-              call MPI_Recv(Beff_cart          , 4*s%nAtoms             , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4400,FreqComm(2),stat,ierr)
-              call MPI_Recv(total_Beff         , 4                      , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4450,FreqComm(2),stat,ierr)
-              call MPI_Recv(disturbances       , 7*s%nAtoms             , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4500,FreqComm(2),stat,ierr)
-              call MPI_Recv(total_disturbances , 7                      , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4550,FreqComm(2),stat,ierr)
-              call MPI_Recv(torques            , ntypetorque*3*s%nAtoms , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4800,FreqComm(2),stat,ierr)
-              call MPI_Recv(total_torques      , ntypetorque*3          , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4850,FreqComm(2),stat,ierr)
-              !call MPI_Recv(currents         ,7*n0sc*s%nAtoms  ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4600,FreqComm(2),stat,ierr)  !TODO:Re-Include
-              !call MPI_Recv(dc_currents      ,3*s%nAtoms       ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),5100,FreqComm(2),stat,ierr) !TODO:Re-Include
-              !call MPI_Recv(total_currents   ,7*n0sc           ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4700,FreqComm(2),stat,ierr) !TODO:Re-Include
-              !call MPI_Recv(sha_re           ,4*s%nAtoms       ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),5200,FreqComm(2),stat,ierr) !TODO:Re-Include
-              !call MPI_Recv(sha_re_total     ,4                ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),5300,FreqComm(2),stat,ierr) !TODO:Re-Include
-              !call MPI_Recv(sha_complex      ,4*s%nAtoms       ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),5400,FreqComm(2),stat,ierr) !TODO:Re-Include
-              !call MPI_Recv(sha_complex_total,4                ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),5500,FreqComm(2),stat,ierr) !TODO:Re-Include
+                call MPI_Recv(schi             , s%nAtoms*s%nAtoms*16   , MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,4200,FreqComm(2),stat,ierr)
+              call MPI_Recv(schihf             , s%nAtoms*s%nAtoms*16   , MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,4300,FreqComm(2),stat,ierr)
+              call MPI_Recv(Beff_cart          , 4*s%nAtoms             , MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,4400,FreqComm(2),stat,ierr)
+              call MPI_Recv(total_Beff         , 4                      , MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,4450,FreqComm(2),stat,ierr)
+              call MPI_Recv(disturbances       , 7*s%nAtoms             , MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,4500,FreqComm(2),stat,ierr)
+              call MPI_Recv(total_disturbances , 7                      , MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,4550,FreqComm(2),stat,ierr)
+              call MPI_Recv(torques            , ntypetorque*3*s%nAtoms , MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,4800,FreqComm(2),stat,ierr)
+              call MPI_Recv(total_torques      , ntypetorque*3          , MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,4850,FreqComm(2),stat,ierr)
+              !call MPI_Recv(currents         ,7*n0sc*s%nAtoms  ,MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,4600,FreqComm(2),stat,ierr) !TODO:Re-Include
+              !call MPI_Recv(dc_currents      ,3*s%nAtoms       ,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,5100,FreqComm(2),stat,ierr) !TODO:Re-Include
+              !call MPI_Recv(total_currents   ,7*n0sc           ,MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,4700,FreqComm(2),stat,ierr) !TODO:Re-Include
+              !call MPI_Recv(sha_re           ,4*s%nAtoms       ,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,5200,FreqComm(2),stat,ierr) !TODO:Re-Include
+              !call MPI_Recv(sha_re_total     ,4                ,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,5300,FreqComm(2),stat,ierr) !TODO:Re-Include
+              !call MPI_Recv(sha_complex      ,4*s%nAtoms       ,MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,5400,FreqComm(2),stat,ierr) !TODO:Re-Include
+              !call MPI_Recv(sha_complex_total,4                ,MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,5500,FreqComm(2),stat,ierr) !TODO:Re-Include
             end if
 
             ! DIAGONALIZING SUSCEPTIBILITY

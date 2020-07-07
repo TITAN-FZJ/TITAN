@@ -180,10 +180,10 @@ subroutine calculate_chi()
         if(rFreq(2) == 0) then
           do mcount=1, sFreq(2)
             if (mcount/=1) then
-              call MPI_Recv(e,     1,                   MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,1000,FreqComm(2),stat,ierr)
-              call MPI_Recv(q,     3,                   MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,1200,FreqComm(2),stat,ierr)
-              call MPI_Recv(schi,  s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),1300,FreqComm(2),stat,ierr)
-              call MPI_Recv(schihf,s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX,stat(MPI_SOURCE),1400,FreqComm(2),stat,ierr)
+              call MPI_Recv(e,     1,                   MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE ,1000,FreqComm(2),stat,ierr)
+              call MPI_Recv(q,     3,                   MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,1200,FreqComm(2),stat,ierr)
+              call MPI_Recv(schi,  s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,1300,FreqComm(2),stat,ierr)
+              call MPI_Recv(schihf,s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,1400,FreqComm(2),stat,ierr)
             end if
 
             ! DIAGONALIZING SUSCEPTIBILITY

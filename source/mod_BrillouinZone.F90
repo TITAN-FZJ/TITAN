@@ -16,6 +16,7 @@
 !-------------------------------------------------------------------------------------!
 module mod_BrillouinZone
    use mod_f90_kind, only: double
+   use MPI_f08,      only: MPI_Comm
    implicit none
 
    type :: BrillouinZone
@@ -40,7 +41,8 @@ module mod_BrillouinZone
      integer*8 :: workload = 0
      integer*8 :: first = 0
      integer*8 :: last = 0
-     integer*4 :: size, rank, comm
+     integer*4 :: size, rank
+     type(MPI_Comm) :: comm
    contains
      procedure :: setup_fraction
      procedure :: gen1DFraction
@@ -57,9 +59,10 @@ contains
     use mod_System,   only: System
     implicit none
     class(FractionalBrillouinZone) :: self
-    type(System),intent(in) :: sys
-    integer*4,   intent(in) :: rank, size, comm
-    logical,     intent(in), optional :: lkpoints
+    type(System),   intent(in) :: sys
+    integer*4,      intent(in) :: rank, size
+    type(MPI_Comm), intent(in) :: comm
+    logical,        intent(in), optional :: lkpoints
 
     character(len=50) :: filename
 
