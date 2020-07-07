@@ -23,7 +23,7 @@ subroutine setLoops(s)
   else
     deltae = (emax - emin)/nEner
   end if
-  if(deltae<=1.d-14) nEner1 = 1
+  if(deltae<=1.d-15) nEner1 = 1
 
   ! Wave vector loop
   if((itype == 4).or.((itype >= 7).and.(itype <= 9))) then
@@ -76,3 +76,24 @@ subroutine setLoops(s)
   end if ! itype
 
 end subroutine setLoops
+
+
+
+! Deallocate loop variables
+subroutine deallocateLoops()
+  use mod_parameters, only: itype, kpoints, partial_length
+  use mod_magnet,     only: hw_list
+  implicit none
+
+  if(allocated(hw_list)) deallocate(hw_list)
+
+  ! Wave vector loop
+  if((itype == 4).or.((itype >= 7).and.(itype <= 9))) then
+    if(allocated(kpoints)) deallocate(kpoints)
+    if(allocated(partial_length)) deallocate(partial_length)
+  end if ! itype
+
+end subroutine deallocateLoops
+
+
+

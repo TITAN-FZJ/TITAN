@@ -19,6 +19,13 @@ contains
 
   end subroutine allocate_Umatrix
 
+  subroutine deallocate_Umatrix()
+    implicit none
+
+    if(allocated(hee)) deallocate(hee)
+
+  end subroutine deallocate_Umatrix
+
   subroutine update_Umatrix(mz,mp,rhod,rhod0,rho,rho0,nAtoms,nOrb)
     use mod_f90_kind,   only: double
     use mod_constants,  only: cZero

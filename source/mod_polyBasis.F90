@@ -152,29 +152,6 @@ contains
     end if
 
     close(f_unit)
-    ! write(unit=out_unit, fmt=*) ""
-    ! write(unit=out_unit, fmt=*) "|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|"
-    ! write(unit=out_unit, fmt=*) "|     /     -     \    Reading Lattice basis    /     -     \     |"
-    ! write(unit=out_unit, fmt=*) "|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|"
-    ! write(unit=out_unit, fmt=*) ""
-    ! write(unit=out_unit, fmt=*) "System Name: ", trim(s%Name)
-    ! write(unit=out_unit, fmt=*) "Number of Atoms: ", s%nAtoms
-    ! write(unit=out_unit, fmt=*) "a0: ", s%a0
-    ! write(unit=out_unit, fmt=*) "a1: ", s%a1
-    ! write(unit=out_unit, fmt=*) "a2: ", s%a2
-    ! write(unit=out_unit, fmt=*) "a3: ", s%a3
-    ! write(unit=out_unit, fmt=*) "Types: ", (trim(s%Types(i)%Name), i = 1, s%nTypes)
-    ! write(unit=out_unit, fmt=*) "Type Count: ", (type_count(i), i = 1, s%nTypes)
-    ! write(unit=out_unit, fmt=*) "Number of Types: ", s%nTypes
-    ! write(unit=out_unit, fmt=*) "Coordinates Type: ", coord_type
-    ! do i = 1, s%nAtoms
-    !   write(unit=out_unit, fmt=*) trim(s%Types(s%Basis(i)%Material)%Name), s%Basis(i)%Position
-    ! end do
-    ! write(unit=out_unit, fmt=*) ""
-    ! write(unit=out_unit, fmt=*) "|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|"
-    ! write(unit=out_unit, fmt=*) "|-----|-----|-----|  End Reading Lattice basis  |-----|-----|-----|"
-    ! write(unit=out_unit, fmt=*) "|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|"
-    ! write(unit=out_unit, fmt=*) ""
   end subroutine read_basis
 
 end module mod_polyBasis

@@ -17,7 +17,7 @@ subroutine green(er,ei,sys,kp,gf)
   ec    = cmplx(er,ei,double)
 
   gslab = cZero
-  do i = 1, d
+  do concurrent (i=1:d)
     gslab(i,i) = ec
   end do
 
@@ -28,12 +28,8 @@ subroutine green(er,ei,sys,kp,gf)
   call invers(gslab, d)
 
   ! Put the slab Green's function [A(nAtoms*18,nAtoms*18)] in the A(i,j,mu,nu) form
-  !dir$ ivdep:loop
-  do j = 1, sys%nAtoms
-    !dir$ ivdep:loop
-    do i = 1, sys%nAtoms
-      gf(:,:,i,j) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
-    end do
+  do concurrent (j = 1:sys%nAtoms, i = 1:sys%nAtoms)
+    gf(:,:,i,j) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
   end do
 
 end subroutine green
@@ -59,7 +55,7 @@ subroutine greenlinearsoc(er,ei,sys,kp,g0,g0vsocg0)
   ec = cmplx(er,ei,double)
 
   gslab0 = cZero
-  do i=1,d
+  do concurrent(i=1:d)
    gslab0(i,i) = ec
   end do
 
@@ -74,11 +70,9 @@ subroutine greenlinearsoc(er,ei,sys,kp,g0,g0vsocg0)
   call zgemm('n','n',d,d,d,cOne,gslab0,d,temp,d,cZero,temp2,d) ! temp2 = gslab0*vsoc*gslab0
 
   ! Put the slab Green's function [A(nAtoms*18,nAtoms*18)] in the A(i,j,mu,nu) form
-  do j=1,sys%nAtoms
-    do i=1,sys%nAtoms
-      g0(:,:,i,j) = gslab0(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
-      g0vsocg0(:,:,i,j) = temp2(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
-    end do
+  do concurrent (j = 1:sys%nAtoms, i = 1:sys%nAtoms)
+    g0(:,:,i,j) = gslab0(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
+    g0vsocg0(:,:,i,j) = temp2(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
   end do
 end subroutine greenlinearsoc
 
@@ -103,7 +97,7 @@ subroutine greenlineargfsoc(er,ei,sys,kp,gf)
 
   temp   = cZero
   gslab0 = cZero
-  do i=1,d
+  do concurrent(i=1:d)
    temp(i,i)   = cOne
    gslab0(i,i) = ec
   end do
@@ -119,9 +113,7 @@ subroutine greenlineargfsoc(er,ei,sys,kp,gf)
   call zgemm('n','n',d,d,d,cOne,gslab0,d,temp,d,cZero,gslab,d) ! gslab = gslab0(1+vsoc*gslab0)
 
   ! Put the slab Green's function [A(nAtoms*18,nAtoms*18)] in the A(i,j,mu,nu) form
-  do j=1,sys%nAtoms
-    do i=1,sys%nAtoms
-      gf(:,:,i,j) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
-    end do
+  do concurrent (j = 1:sys%nAtoms, i = 1:sys%nAtoms)
+    gf(:,:,i,j) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
   end do
 end subroutine greenlineargfsoc

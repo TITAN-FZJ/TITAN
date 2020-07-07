@@ -90,4 +90,18 @@ contains
       ia_sc(4,i) = ia_sc(3,i) + nOrb*2 - 1
     end do
   end subroutine initHamiltkStride
+
+  subroutine deallocate_System_variables()
+  !! This subroutine deallocates the system variables
+    implicit none
+
+    deallocate( sys%Basis )
+    deallocate( sys%Neighbors )
+    deallocate( sys%Distances )
+    deallocate( sys%Types )
+    deallocate( ia )
+    deallocate( ia_sc )
+
+  end subroutine deallocate_System_variables
+
 end module mod_system

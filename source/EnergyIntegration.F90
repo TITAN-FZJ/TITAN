@@ -35,6 +35,13 @@ contains
     if(AllocateStatus/=0) call abortProgram("[allocate_energy_points] Not enough memory for: x1, p1, y, wght, x2, p2")
   end subroutine allocate_energy_points
 
+  subroutine deallocate_energy_points()
+  !! Allocating arrays for real and imaginary energy integrations
+    implicit none
+    deallocate( y,wght,x2,p2 )
+  end subroutine deallocate_energy_points
+
+
   subroutine generate_imag_epoints()
   !! Generating integration points of the complex energy integral
   !! Generates points from zero until infinity
@@ -98,7 +105,7 @@ contains
     integer :: i,j,k
     real(double) :: e1,e2
 
-    if (abs(e)>=1.d-10) then
+    if (abs(e)>=1.d-15) then
       nepoints = pnt
       do k=1,parts3
         e1 = s%Ef-((parts3-(k-1))*e/parts3)

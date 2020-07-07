@@ -247,7 +247,7 @@ contains
         if(cnt < 1) call log_error("get_parameters","'fs_energy' doesn't contain any parameter.")
         fs_energy_i = vector(1)
         if(cnt >= 2) fs_energy_f = vector(2)
-        if(cnt >= 3) fs_energy_npts = vector(3)
+        if(cnt >= 3) fs_energy_npts = int(vector(3))
         deallocate(vector)
         fs_energy_npt1 = fs_energy_npts + 1
         lfs_loop = .true.
@@ -271,8 +271,8 @@ contains
       output%SOCchar = "F"
     end if
     !---------------------------------------- Magnetization -----------------------------------------
-    if(.not. get_parameter("magtol", mag_tol, 1.d-12)) &
-      call log_warning("get_parameters", "'magtol' not found. Using default value: 1.d-12")
+    if(.not. get_parameter("magtol", mag_tol, 1.d-15)) &
+      call log_warning("get_parameters", "'magtol' not found. Using default value: 1.d-15")
     if(.not. get_parameter("magbasis", magbasis)) &
       call log_warning("get_parameters","'magbasis' missing. Using default values for initial magnetization")
     !--------------------------------------- Electric Field ----------------------------------------
@@ -314,7 +314,7 @@ contains
       if(cnt < 1) call log_error("get_parameters","'hwa' doesn't contain any parameter.")
       hwa_i = vector(1)
       if(cnt >= 2) hwa_f = vector(2)
-      if(cnt >= 3) hwa_npts = vector(3)
+      if(cnt >= 3) hwa_npts = int(vector(3))
       deallocate(vector)
       hwa_npt1 = hwa_npts + 1
 
@@ -323,7 +323,7 @@ contains
       if(cnt < 1) call log_error("get_parameters","'hwt' doesn't contain any parameter.")
       hwt_i = vector(1)
       if(cnt >= 2) hwt_f = vector(2)
-      if(cnt >= 3) hwt_npts = vector(3)
+      if(cnt >= 3) hwt_npts = int(vector(3))
       deallocate(vector)
       hwt_npt1 = hwt_npts + 1
 
@@ -332,7 +332,7 @@ contains
       if(cnt < 1) call log_error("get_parameters","'hwp' doesn't contain any parameter.")
       hwp_i = vector(1)
       if(cnt >= 2) hwp_f = vector(2)
-      if(cnt >= 3) hwp_npts = vector(3)
+      if(cnt >= 3) hwp_npts = int(vector(3))
       deallocate(vector)
       hwp_npt1 = hwp_npts + 1
 
@@ -369,23 +369,6 @@ contains
     if(.not. get_parameter("superCond", lsuperCond, .false.)) &
       call log_warning("get_parameters","'superCond' missing. Not using superconductivity.")
     superCond = merge(2,1,lsuperCond)
-    ! if(lsupercond) then
-    !   if(.not. get_parameter("lambda", vector,cnt)) &
-    !     call log_error("get_parameters","'lambda' missing.")
-    !     select case(cnt)
-    !       case(3)
-    !         lambda(1)   = vector(1)
-    !         lambda(2:4) = vector(2)
-    !         lambda(5:9) = vector(3)
-    !       case(9)
-    !         lambda(:)   = vector(:)
-    !       case default
-    !         call log_error("get_parameters","Something wrong in the definition of 'lambda'.")
-    !       deallocate(vector)
-    !     end select
-    !     singlet_coupling = (/1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0/)
-    !     singlet_coupling(:) = lambda(:)*singlet_coupling(:)
-    ! end if
     !------------------------------------ Integration Variables ------------------------------------
     if(.not. get_parameter("parts", parts)) &
       call log_error("get_parameters","'parts' missing.")
@@ -556,12 +539,6 @@ contains
           ! Allocating variables that depend on number of pulses
           allocate(polarization_e(npulse_e),polarization_vec_e(npulse_e,2,3),hE_0(npulse_e),hw_e(npulse_e),tau_e(npulse_e),delay_e(npulse_e))
 
-          ! if(.not. get_parameter("field_direction_e", vector, cnt)) &
-          !   call log_error("get_parameters","'field_direction_e' missing.")
-          ! if(cnt /= 3) call log_error("get_parameters","'field_direction_e' has wrong size (size 3 required).")
-          ! field_direction_e(1:3) = vector(1:3)/vec_norm(vector,3)
-          ! deallocate(vector)
-
           if(.not. get_parameter("polarization_e", s_vector, cnt)) then
             ! If 'polarization_e' is not given, try to find 'polarization_vec_ip_e' and/or 'polarization_vec_op_e'
             if(get_parameter("polarization_vec_ip_e", vector, cnt)) then
@@ -585,7 +562,7 @@ contains
               deallocate(vector)
             end if
             do i=1,npulse_e
-              if( sum(abs(polarization_vec_e(i,:,:))) < 1.d-12 ) &
+              if( sum(abs(polarization_vec_e(i,:,:))) < 1.d-15 ) &
                 call log_error("get_parameters", "'polarization_vec_e' is zero for pulse " // trim(itos(i)) // ". Use polarization_vec_ip_e/polarization_vec_op_e or polarization_e to set the polarization.")
             end do
           else
@@ -656,7 +633,7 @@ contains
               polarization_vec_e(1,2,:) = vector(1:3)
               deallocate(vector)
             end if
-            if( sum(abs(polarization_vec_e(1,:,:))) < 1.d-12 ) &
+            if( sum(abs(polarization_vec_e(1,:,:))) < 1.d-15 ) &
               call log_error("get_parameters", "'polarization_vec_e' is zero for oscillatory field. Use polarization_vec_ip_e/polarization_vec_op_e or polarization_e to set the polarization.")
           else
             if(cnt > 1) call log_warning("get_parameters","Only first element of 'polarization_e' will be used.")
@@ -712,7 +689,6 @@ contains
           ! Allocating variables that depend on number of pulses
           allocate(polarization_m(npulse_m),polarization_vec_m(npulse_m,2,3),hw1_m(npulse_m),hw_m(npulse_m),tau_m(npulse_m),delay_m(npulse_m))
 
-          polarization_vec_m(:,:,:) = 0.d0
           if(.not. get_parameter("polarization_m", s_vector, cnt)) then
             ! If 'polarization_m' is not given, try to find 'polarization_vec_ip_m' and/or 'polarization_vec_op_m'
             if(get_parameter("polarization_vec_ip_m", vector, cnt)) then
@@ -736,7 +712,7 @@ contains
               deallocate(vector)
             end if
             do i=1,npulse_m
-              if( sum(abs(polarization_vec_m(i,:,:))) < 1.d-12 ) &
+              if( sum(abs(polarization_vec_m(i,:,:))) < 1.d-15 ) &
                 call log_error("get_parameters", "'polarization_vec_m' is zero for pulse " // trim(itos(i)) // ". Use polarization_vec_m_ip/polarization_vec_m_op or polarization_m to set the polarization.")
             end do
           else
@@ -807,7 +783,7 @@ contains
               polarization_vec_m(1,2,:) = vector(1:3)
               deallocate(vector)
             end if
-            if( sum(abs(polarization_vec_m(1,:,:))) < 1.d-12 ) &
+            if( sum(abs(polarization_vec_m(1,:,:))) < 1.d-15 ) &
               call log_error("get_parameters", "'polarization_vec_m' is zero for oscillatory field. Use polarization_vec_m_ip/polarization_vec_m_op or polarization_m to set the polarization.")
           else
             if(cnt > 1) call log_warning("get_parameters","Only first element of 'polarization_m' will be used.")

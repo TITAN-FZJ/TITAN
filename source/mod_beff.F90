@@ -13,8 +13,7 @@ contains
 
   subroutine allocate_beff()
   !! This subroutine allocates variables related to the effective field calculation
-    use mod_f90_kind,   only: double
-    use mod_mpi_pars, only: abortProgram
+    use mod_mpi_pars,   only: abortProgram
     use mod_mpi_pars,   only: rFreq
     use mod_parameters, only: dimspinAtoms
     use mod_System,     only: s => sys
@@ -130,7 +129,7 @@ contains
       do i=1,s%nAtoms
         iw = 8000+(sigma-1)*s%nAtoms+i
 
-        if(abs(Beff_cart(sigma,i))>=1.d-10) then
+        if(abs(Beff_cart(sigma,i))>=1.d-15) then
           phase  = atan2(aimag(Beff_cart(sigma,i)),real(Beff_cart(sigma,i)))
           sine   = real(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
           cosine = aimag(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
@@ -144,7 +143,7 @@ contains
       end do
       ! Writing total Beff
       iw = 8500+sigma
-      if(abs(total_Beff(sigma))>=1.d-10) then
+      if(abs(total_Beff(sigma))>=1.d-15) then
         phase  = atan2(aimag(total_Beff(sigma)),real(total_Beff(sigma)))
         sine   = real(total_Beff(sigma))/abs(total_Beff(sigma))
         cosine = aimag(total_Beff(sigma))/abs(total_Beff(sigma))
@@ -163,14 +162,14 @@ contains
 
   subroutine create_dc_beff_files()
     !! This subroutine creates all the files needed for the effective field
-    use mod_parameters, only: output
+    use mod_parameters, only: count,output
     use mod_magnet,     only: dcprefix, dc_header, dcfield, dcfield_dependence
     use mod_mpi_pars, only: abortProgram
     use mod_system,     only: s => sys
     implicit none
 
     character(len=500)  :: varm
-    integer :: i,sigma,iw, count
+    integer :: i,sigma,iw
 
     do sigma=1,4
       do i=1,s%nAtoms
@@ -192,14 +191,14 @@ contains
 
   subroutine open_dc_beff_files()
   !! This subroutine opens all the files needed for the effective field
-    use mod_parameters, only: missing_files, output
+    use mod_parameters, only: count, missing_files, output
     use mod_magnet,     only: dcprefix, dcfield, dcfield_dependence
-    use mod_mpi_pars, only: abortProgram
+    use mod_mpi_pars,   only: abortProgram
     use mod_system,     only: s => sys
     implicit none
 
     character(len=500)  :: varm
-    integer :: i,sigma,iw,err,errt=0, count
+    integer :: i,sigma,iw,err,errt=0
 
     do sigma=1,4
       do i=1,s%nAtoms
@@ -239,8 +238,8 @@ contains
     !! (already opened with openclose_dc_beff_files(1))
     !! Some information may also be written on the screen
     use mod_f90_kind, only: double
-    use mod_magnet, only: mvec_spherical, dc_fields, hw_count
-    use mod_system, only: s => sys
+    use mod_magnet,   only: mvec_spherical, dc_fields, hw_count
+    use mod_system,   only: s => sys
     implicit none
     integer      :: i,iw,sigma
     real(double) :: phase,sine,cosine
@@ -251,7 +250,7 @@ contains
       do i=1,s%nAtoms
          iw = 80000+(sigma-1)*s%nAtoms+i
 
-         if(abs(Beff_cart(sigma,i))>=1.d-10) then
+         if(abs(Beff_cart(sigma,i))>=1.d-15) then
            phase  = atan2(aimag(Beff_cart(sigma,i)),real(Beff_cart(sigma,i)))
            sine   = real(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
            cosine = aimag(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
@@ -264,7 +263,7 @@ contains
          write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(Beff_cart(sigma,i)) , real(Beff_cart(sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
       end do
       iw = 85000+sigma
-      if(abs(total_Beff(sigma))>=1.d-10) then
+      if(abs(total_Beff(sigma))>=1.d-15) then
         phase  = atan2(aimag(total_Beff(sigma)),real(total_Beff(sigma)))
         sine   = real(total_Beff(sigma))/abs(total_Beff(sigma))
         cosine = aimag(total_Beff(sigma))/abs(total_Beff(sigma))

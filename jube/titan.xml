@@ -23,54 +23,105 @@
     <!-- Configuration of submission script -->
     <parameterset name="systemParameter" init_with="platform.xml">
       <parameter name="mail"></parameter>
+      <!-- <parameter name="additional_job_config"  tag="jureca">#SBATCH &#45;&#45;reservation=system_maint.20200406_083747</parameter -->
+      <!-- parameter name="additional_job_config"  tag="juwels">#SBATCH &#45;&#45;reservation=maint-restarttests</parameter -->
+
       <!-- JURECA -->
       <parameter name="queue" tag="jureca">devel</parameter>
-      <parameter name="taskspernode" type="int" mode="python" tag="jureca">
+
+      <parameter name="taskspernode" type="int" mode="python" tag="jureca+sc" update_mode="step">
       { "hybrid": "1,2,3,4,6,8,12,16,24,48", 
         "mpi": "1,2,3,4,6,8,12,16,24,48", 
         "omp": "1"}["${parallel_type}"]
       </parameter>
-      <parameter name="threadspertask" type="int" mode="python" tag="jureca">
+      <parameter name="threadspertask" type="int" mode="python" tag="jureca+sc" update_mode="step">
       { "hybrid": { "1": "1,2,3,4,6,8,12,16,24,48", 
                     "2": "1,2,3,4,6,8,12,16,24", 
                     "3": "1,2,3,4,6,8,12,16", 
                     "4": "1,2,3,4,6,8,12", 
                     "6": "1,2,3,4,6,8", 
-                    "8": "1,2,3,4,6", 
+                    "8": "1,2,3,4,6",
                     "12": "1,2,3,4", 
                     "16": "1,2,3", 
                     "24": "1,2", 
                     "48": "1"}["${taskspernode}"], 
         "mpi": "1", 
-        "omp": "1,2"}["${parallel_type}"]
+        "omp": "1,2,3,4,6,8,12,16,24,48"}["${parallel_type}"]
       </parameter>
+
+      <parameter name="taskspernode" type="int" mode="python" tag="jureca+time_prop" update_mode="step">
+      { "selfconsistency": "1", 
+        "timepropagation": { "hybrid": "1,2,3,4,6,8,12,16,24,48", 
+                              "mpi": "1,2,3,4,6,8,12,16,24,48", 
+                              "omp": "1"}["${parallel_type}"] }["$jube_step_name"]
+      </parameter>
+      <parameter name="threadspertask" type="int" mode="python" tag="jureca+time_prop" update_mode="step">
+      { "selfconsistency": "48", 
+        "timepropagation": { "hybrid": { "1": "1,2,3,4,6,8,12,16,24,48", 
+                                         "2": "1,2,3,4,6,8,12,16,24", 
+                                         "3": "1,2,3,4,6,8,12,16", 
+                                         "4": "1,2,3,4,6,8,12", 
+                                         "6": "1,2,3,4,6,8", 
+                                         "8": "1,2,3,4,6",
+                                         "12": "1,2,3,4", 
+                                         "16": "1,2,3", 
+                                         "24": "1,2", 
+                                         "48": "1"}["${taskspernode}"], 
+                             "mpi": "1", 
+                             "omp": "1,2,3,4,6,8,12,16,24,48"}["${parallel_type}"] }["$jube_step_name"]
+      </parameter>
+
 
       <!-- JURECA Booster -->
       <parameter name="queue" tag="booster">develbooster</parameter>
-      <parameter name="taskspernode" type="int" mode="python" tag="booster">
-      { "booster": {"hybrid": "1,2,4,17,34,68", 
-        "mpi": "1,2,4,17,34,68", 
+
+      <parameter name="taskspernode" type="int" mode="python" tag="booster+sc" update_mode="step">
+      { "hybrid": "1,2,4,17,34,68,136,272", 
+        "mpi": "1,2,4,17,34,68,136,272", 
         "omp": "1"}["${parallel_type}"]
       </parameter>
-      <parameter name="threadspertask" type="int" mode="python" tag="booster">
-      { "hybrid": { "1": "1,2,4,17,34,68", 
-                    "2": "1,2,4,17,34",
-                    "4": "1,2,4,17", 
-                    "17": "1,2,4", 
-                    "34": "1,2", 
-                    "68": "1"}["${taskspernode}"], 
+      <parameter name="threadspertask" type="int" mode="python" tag="booster+sc" update_mode="step">
+      { "hybrid": { "1": "1,2,4,17,34,68,136,272", 
+                    "2": "1,2,4,17,34,68,136",
+                    "4": "1,2,4,17,34,68", 
+                    "17": "1,2,4,17,34", 
+                    "34": "1,2,4,17", 
+                    "68": "1,2,4",
+                    "136": "1,2",
+                    "272": "1"}["${taskspernode}"], 
         "mpi": "1", 
-        "omp": "1,2,4,17,34,68"}["${parallel_type}"]
+        "omp": "1,2,4,17,34,68,136,272"}["${parallel_type}"]
+      </parameter>
+
+      <parameter name="taskspernode" type="int" mode="python" tag="booster+time_prop" update_mode="step">
+      { "selfconsistency": "1",     
+        "timepropagation": { "hybrid": "1,2,4,17,34,68,136,272", 
+                             "mpi": "1,2,4,17,34,68,136,272", 
+                             "omp": "1"}["${parallel_type}"] }["$jube_step_name"]
+      </parameter>
+      <parameter name="threadspertask" type="int" mode="python" tag="booster+time_prop" update_mode="step">
+      { "selfconsistency": "272", 
+        "timepropagation": { "hybrid": { "1": "1,2,4,17,34,68,136,272", 
+                                         "2": "1,2,4,17,34,68,136",
+                                         "4": "1,2,4,17,34,68", 
+                                         "17": "1,2,4,17,34", 
+                                         "34": "1,2,4,17", 
+                                         "68": "1,2,4",
+                                         "136": "1,2",
+                                         "272": "1"}["${taskspernode}"], 
+                             "mpi": "1", 
+                             "omp": "1,2,4,17,34,68,136,272"}["${parallel_type}"] }["$jube_step_name"]
       </parameter>
 
       <!-- JUWELS -->
       <parameter name="queue" tag="juwels">devel</parameter>
-      <parameter name="taskspernode" type="int" mode="python" tag="juwels">
+
+      <parameter name="taskspernode" type="int" mode="python" tag="juwels+sc" update_mode="step">
       { "hybrid": "1,2,3,4,6,8,12,16,24,48,96", 
         "mpi": "1,2,3,4,6,8,12,16,24,48,96", 
         "omp": "1"}["${parallel_type}"]
       </parameter>
-      <parameter name="threadspertask" type="int" mode="python" tag="juwels">
+      <parameter name="threadspertask" type="int" mode="python" tag="juwels+sc" update_mode="step">
       { "hybrid": { "1": "1,2,3,4,6,8,12,16,24,32,48,96", 
                     "2": "1,2,3,4,6,8,12,16,24,32,48", 
                     "3": "1,2,3,4,6,8,12,16,24,32", 
@@ -87,70 +138,120 @@
         "omp": "1,2,3,4,6,8,12,16,24,48,96"}["${parallel_type}"]
       </parameter>
 
-      <!-- JUSUF -->
-      <parameter name="queue" tag="jusuf">batch</parameter>
-      <parameter name="taskspernode" type="int" mode="python" tag="jusuf">
-      { "hybrid": "1,2,4,8,16,32,64,128", 
-        "mpi": "1,2,4,8,16,32,64,128", 
-        "omp": "1"}["${parallel_type}"]
+      <parameter name="queue" tag="juwels">devel</parameter>
+      <parameter name="taskspernode" type="int" mode="python" tag="juwels+time_prop" update_mode="step">
+      { "selfconsistency": "1", 
+        "timepropagation": { "hybrid": "1,2,3,4,6,8,12,16,24,48,96", 
+                             "mpi": "1,2,3,4,6,8,12,16,24,48,96", 
+                             "omp": "1"}["${parallel_type}"] }["$jube_step_name"]
       </parameter>
-      <parameter name="threadspertask" type="int" mode="python" tag="jusuf">
-      { "hybrid": { "1": "1,2,4,8,16,32,64,128", 
-                    "2": "1,2,4,8,16,32,64", 
-                    "4": "1,2,4,8,16,32", 
-                    "8": "1,2,4,8,16", 
-                    "16": "1,2,4,8", 
-                    "32": "1,2,4", 
-                    "64": "1,2", 
-                    "128": "1"}["${taskspernode}"], 
-        "mpi": "1", 
-        "omp": "1,2,4,8,16,32,64,128"}["${parallel_type}"]
+      <parameter name="threadspertask" type="int" mode="python" tag="juwels+time_prop" update_mode="step">
+      { "selfconsistency": "96", 
+        "timepropagation": { "hybrid": { "1": "1,2,3,4,6,8,12,16,24,32,48,96", 
+                                         "2": "1,2,3,4,6,8,12,16,24,32,48", 
+                                         "3": "1,2,3,4,6,8,12,16,24,32", 
+                                         "4": "1,2,3,4,6,8,12,16,24", 
+                                         "6": "1,2,3,4,6,8,12,16", 
+                                         "8": "1,2,3,4,6,8,12", 
+                                         "12": "1,2,3,4,6,8", 
+                                         "16": "1,2,3,4,6", 
+                                         "24": "1,2,3,4", 
+                                         "32": "1,2,3", 
+                                         "48": "1,2",
+                                         "96": "1"}["${taskspernode}"], 
+                             "mpi": "1", 
+                             "omp": "1,2,3,4,6,8,12,16,24,48,96"}["${parallel_type}"] }["$jube_step_name"]
       </parameter>
 
-      <parameter name="notification">ALL</parameter>
+      <!-- JUSUF -->
+      <parameter name="queue" tag="jusuf">batch</parameter>
+
+      <parameter name="taskspernode" type="int" mode="python" tag="jusuf+sc" update_mode="step">
+      { "hybrid": "1,2,4,8,16,32,64,128,256", 
+        "mpi": "1,2,4,8,16,32,64,128,256", 
+        "omp": "1"}["${parallel_type}"]
+      </parameter>
+      <parameter name="threadspertask" type="int" mode="python" tag="jusuf+sc" update_mode="step">
+      { "hybrid": { "1": "1,2,4,8,16,32,64,128,256", 
+                    "2": "1,2,4,8,16,32,64,128", 
+                    "4": "1,2,4,8,16,32,64", 
+                    "8": "1,2,4,8,16,32", 
+                    "16": "1,2,4,8,16", 
+                    "32": "1,2,4,8", 
+                    "64": "1,2,4", 
+                    "128": "1,2",
+                    "256": "1"}["${taskspernode}"], 
+        "mpi": "1", 
+        "omp": "1,2,4,8,16,32,64,128,256"}["${parallel_type}"]
+      </parameter>
+
+      <parameter name="taskspernode" type="int" mode="python" tag="jusuf+time_prop" update_mode="step">
+      { "selfconsistency": "1", 
+        "timepropagation": { "hybrid": "1,2,4,8,16,32,64,128,256", 
+                             "mpi": "1,2,4,8,16,32,64,128,256", 
+                             "omp": "1"}["${parallel_type}"] }["$jube_step_name"]
+      </parameter>
+      <parameter name="threadspertask" type="int" mode="python" tag="jusuf+time_prop" update_mode="step">
+      { "selfconsistency": "256", 
+        "timepropagation": { "hybrid": { "1": "1,2,4,8,16,32,64,128,256", 
+                                         "2": "1,2,4,8,16,32,64,128", 
+                                         "4": "1,2,4,8,16,32,64", 
+                                         "8": "1,2,4,8,16,32", 
+                                         "16": "1,2,4,8,16", 
+                                         "32": "1,2,4,8", 
+                                         "64": "1,2,4", 
+                                         "128": "1,2",
+                                         "256": "1"}["${taskspernode}"], 
+                             "mpi": "1", 
+                             "omp": "1,2,4,8,16,32,64,128,256"}["${parallel_type}"] }["$jube_step_name"]
+      </parameter>
+
       <parameter name="nodes" type="int">1</parameter>
+      <parameter name="tasks" mode="python" type="int" update_mode="step">$nodes * $taskspernode</parameter>
+      <parameter name="notification">ALL</parameter>
       <parameter name="timelimit">02:00:00</parameter>
       <parameter name="account" tag="jureca|juwels|booster">cstao</parameter>
       <parameter name="account" tag="jusuf">zam</parameter>
-      <parameter name="env">${load_modules}</parameter>
+      <parameter name="env">${load_modules}; export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK</parameter>
       <parameter name="executable" mode="python">{"impi":"${folder}/bin/titan_${machine}.exe", "pmpi":"${folder}/bin/titan_${machine}_${compiler}.exe", "gnu":"${folder}/bin/titan_${machine}_${compiler}.exe"}["${compiler}"]</parameter>
       <parameter name="preprocess"></parameter>
     </parameterset>
 
     <!-- Configuration of program -->
     <parameterset name="programset" init_with="platform.xml:executeset">
+      <parameter name="args_starter">--cpu-bind=rank</parameter>
       <parameter name="folder">$$HOME/shared/TITAN</parameter>
       <parameter name="inputsfolder">$$HOME/shared/TITAN/jube</parameter>
     </parameterset>
 
     <!-- Configuration of the environment -->
     <parameterset name="modules">
-      <parameter name="load_modules" mode="python">{"jureca":{"impi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 IntelMPI/2019.6.154 imkl NAG/Mark26 CMake;",
+      <parameter name="load_modules" mode="python">{"jureca":{"impi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 IntelMPI/2019.6.154 imkl NAG/Mark26 CMake",
                                                               "pmpi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 ParaStationMPI/5.2.2-1 imkl NAG/Mark26 CMake",
                                                                "gnu":"module purge; ml GCC/8.3.0 OpenMPI/4.0.2 imkl CMake"}["${compiler}"],
                                                     "booster":{"impi":"module purge ; module load Architecture/KNL ; ml Intel/2019.5.281-GCC-8.3.0 IntelMPI/2019.6.154 imkl CMake ; export NAG_KUSARI_FILE=$$HOME/BoosterNAG/license.lic",
                                                                "pmpi":"module purge ; module load Architecture/KNL ; ml Intel/2019.5.281-GCC-8.3.0 ParaStationMPI/5.2.2-1 imkl CMake ; export NAG_KUSARI_FILE=$$HOME/BoosterNAG/license.lic",
                                                                 "gnu":"module purge ; module load Architecture/KNL ; ml GCC/8.3.0 OpenMPI/4.0.2 imkl CMake ; export NAG_KUSARI_FILE=$$HOME/BoosterNAG/license.lic"}["${compiler}"],
-                                                    "juwels":{"impi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 IntelMPI/2019.6.154 imkl CMake;",
-                                                              "pmpi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 ParaStationMPI/5.2.2-1 CMake;",
-                                                               "gnu":"module purge; ml GCC/8.3.0 OpenMPI/4.0.2 imkl CMake;"}["${compiler}"],
-                                                    "jusuf":{"impi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 IntelMPI/2019.6.154 imkl CMake;",
-                                                             "pmpi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 ParaStationMPI/5.2.2-1 CMake;",
-                                                              "gnu":"module purge; ml GCC/8.3.0 OpenMPI/4.0.2 imkl/2019.5.281 CMake;"}["${compiler}"]
+                                                    "juwels":{"impi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 IntelMPI/2019.6.154 imkl CMake",
+                                                              "pmpi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 ParaStationMPI/5.2.2-1 CMake",
+                                                               "gnu":"module purge; ml GCC/8.3.0 OpenMPI/4.0.2 imkl CMake"}["${compiler}"],
+                                                    "jusuf":{"impi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 IntelMPI/2019.6.154 imkl CMake",
+                                                             "pmpi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 ParaStationMPI/5.2.2-1 CMake",
+                                                              "gnu":"module purge; module use $OTHERSTAGES; ml Stages/Devel-2019a; ml GCC/8.3.0 OpenMPI/4.0.2 imkl/2019.3.199 CMake"}["${compiler}"]
                                                     }["${machine}"]</parameter>
     </parameterset>
 
     <!-- Configuration of input parameters -->
     <parameterset name="inputParameter">
-      <parameter name="type" type="int" tag="sc">1</parameter>
-      <parameter name="type" type="int" tag="time_prop">11</parameter>
+      <parameter name="type" type="int" mode="python" update_mode="step">{"selfconsistency": 1, 
+                                                                          "timepropagation": 11 }["$jube_step_name"]</parameter>
       <parameter name="options">slatec createfolders positions ontheflysc eigenstates nojac</parameter>
       <parameter name="eta" type="float">1.e-3</parameter>
-      <parameter name="kpoints" type="int">1000000</parameter>
+      <parameter name="kpoints" type="int">10000</parameter>
       <parameter name="output_file">output/out_${eta}_${kpoints}</parameter>
       <parameter name="soc">T</parameter>
       <parameter name="supercond">F</parameter>
-      <parameter name="skipsc">F</parameter>
+      <parameter name="skipsc">T</parameter>
     </parameterset>
 
     <!-- Configuration of element parameters -->
@@ -164,13 +265,17 @@
       <parameter name="same_lambda">$lambda $lambda $lambda</parameter>
     </parameterset>
 
-
     <!-- Files -->
     <fileset name="input_files">
       <copy>${inputsfolder}/input.in</copy>
       <copy>${inputsfolder}/${element}.in</copy>
       <copy>${inputsfolder}/basis</copy>
       <copy>${inputsfolder}/kbands</copy>
+    </fileset>
+
+    <!-- Files -->
+    <fileset name="time_prop_files">
+      <copy>${jube_wp_abspath}/selfconsistency/*</copy>
     </fileset>
 
     <!-- Substitute -->
@@ -211,6 +316,11 @@
       <pattern name="orb" type="float" unit="muB">L\( 1\)= ${jube_pat_fp}</pattern>
     </patternset>
 
+    <!-- Pattern for results -->
+    <patternset name="timepropPattern">
+      <pattern name="time" type="float" unit="ps" dotall="true">^.*(\d+\.\d+E[+-]\d+)\s+\d+\.\d+E[+-]\d+$</pattern>
+    </patternset>
+
     <!-- Pattern for job status -->
     <patternset name="job_pat">
       <pattern mode="pattern" name="job_id" type="int">Submitted batch job ${jube_pat_int}</pattern>
@@ -233,9 +343,9 @@
     </step>
 
 
-    <!-- Operation -->
-    <step name="execute" depend="compile">
-      <!-- Definint variables -->
+    <!-- Self-consistency operation -->
+    <step name="selfconsistency" depend="compile" tag="sc,time_prop">
+      <!-- Defining variables -->
       <use>compilationParameter</use>     <!-- use compilation parameterset -->
       <use>programset</use>               <!-- use program parameterset -->
       <use>modules</use>                  <!-- use modules parameterset -->
@@ -255,13 +365,46 @@
       <do done_file="$done_file"></do>           <!-- Creating "done" file -->
     </step>
 
+    <!-- Time Propagation Operation -->
+    <step name="timepropagation" depend="selfconsistency"  tag="time_prop">
+      <use>compilationParameter</use>     <!-- use compilation parameterset -->
+      <use>programset</use>               <!-- use program parameterset -->
+      <use>modules</use>                  <!-- use modules parameterset -->
+      <use>systemParameter</use>          <!-- use system parameterset -->
+      <use>elementParameter</use>         <!-- use element parameterset -->
+      <use>inputParameter</use>           <!-- use input parameterset -->
+      <!-- Using files -->
+      <use>time_prop_files</use>
+      <use>input_files</use>                    <!-- use TITAN input fileset -->
+      <use from="platform.xml">jobfiles</use>   <!-- use job files -->
+      <!-- Making substitutions -->
+      <use>inputSubstitutions</use>              <!-- use input substitutions -->
+      <use>elementSubstitutions</use>            <!-- use element substitutions -->
+      <use from="platform.xml">executesub</use>  <!-- use job substitutions -->
+      <do>$submit $submit_script</do>            <!-- Submitting job -->
+      <do done_file="$done_file"></do>           <!-- Creating "done" file -->
+    </step>
+
     <!-- Analyse -->
-    <analyser name="analyse" reduce="false">
+    <analyser name="analyse" reduce="false" tag="sc">
       <use>runtimePattern</use> <!-- use runtime patternset -->
       <use>resultsPattern</use> <!-- use results patternset -->
-      <analyse step="execute">
+      <analyse step="selfconsistency">
         <file>$output_file</file>
         <file use="job_pat">stdout</file>
+      </analyse>
+    </analyser>
+
+    <!-- Analyse -->
+    <analyser name="analyse" reduce="false" tag="time_prop">
+      <use>runtimePattern</use> <!-- use runtime patternset -->
+      <use>resultsPattern</use> <!-- use results patternset -->
+      <analyse step="timepropagation">
+        <file>$output_file</file>
+        <file use="job_pat">stdout</file>
+      </analyse>
+      <analyse step="timepropagation">
+        <file use="timepropPattern">${jube_wp_abspath}/results/TSOC/1Sites/time_propagation/occupation_efieldpulse_nkpt=10648_eta=1.0E-03_ev.dat</file>
       </analyse>
     </analyser>
 
@@ -281,6 +424,7 @@
         <column title="L[muB]" format=".3f">orb</column>
         <column>delta_d</column>
         <column>nkpt</column>
+        <column tag="time_prop" format=".3e">time_last</column>
         <column>runtime</column>
         <column>status</column>
       </table>
@@ -298,6 +442,7 @@
         <column title="L[muB]" format=".3f">orb</column>
         <column>delta_d</column>
         <column>nkpt</column>
+        <column tag="time_prop">time</column>
         <column>runtime</column>
         <column>status</column>
       </table>

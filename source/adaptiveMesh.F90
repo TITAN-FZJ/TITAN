@@ -20,12 +20,10 @@ contains
   !! Get the number of points in the Brillouin Zone
   !! for all the energies in the imaginary axis
   subroutine generateAdaptiveMeshes(sys,pn1)
-    use mod_f90_kind,      only: double
     use mod_parameters,    only: total_nkpt => kptotal_in
     use EnergyIntegration, only: y
     use mod_System,        only: System
     use mod_BrillouinZone, only: count_3D_BZ, count_2D_BZ, count_1D_BZ
-    use mod_mpi_pars
     implicit none
     type(System) :: sys
     integer      :: i,pn1
@@ -59,6 +57,15 @@ contains
       total_points = total_points + all_nkpt(i)
     end do
   end subroutine generateAdaptiveMeshes
+
+
+  !! Deallocate energy meshes
+  subroutine deallocateAdaptiveMeshes()
+    implicit none
+
+    if(allocated(all_nkpt))     deallocate( all_nkpt )
+    if(allocated(all_nkpt_rep)) deallocate( all_nkpt_rep )
+  end subroutine deallocateAdaptiveMeshes
 
   !! Generate the distributed combined points {e,kx,ky,kz}
   !! (locally for a given MPI process)
@@ -144,10 +151,14 @@ contains
   subroutine freeLocalEKMesh()
     implicit none
     integer*8 :: i
+
     do i = 1, local_points
       call bzs(E_k_imag_mesh(1,i)) % free()
     end do
-    deallocate(bzs, E_k_imag_mesh)
+
+    if( allocated(bzs) ) deallocate(bzs)
+    if( allocated(E_k_imag_mesh) ) deallocate(E_k_imag_mesh)
+
   end subroutine freeLocalEKMesh
 
   !! Calculate the number of k-points for a given energy
@@ -162,11 +173,11 @@ contains
 
     select case(sysdim)
     case(3)
-      get_nkpt_int4 = nkpt_total / (e/e0)**sqrt(3.d0) !**log(3.d0)
+      get_nkpt_int4 = ceiling( nkpt_total/((e/e0)**sqrt(3.d0)) ) !**log(3.d0)
     case(2)
-      get_nkpt_int4 = nkpt_total / (e/e0)**sqrt(2.d0) !**log(2.d0)
+      get_nkpt_int4 = ceiling( nkpt_total/((e/e0)**sqrt(2.d0)) ) !**log(2.d0)
     case default
-      get_nkpt_int4 = nkpt_total / (e/e0)**sqrt(1.d0) !**log(1.d0)
+      get_nkpt_int4 = ceiling( nkpt_total/((e/e0)**sqrt(1.d0)) ) !**log(1.d0)
     end select
 
     if(get_nkpt_int4 < minimumBZmesh ) get_nkpt_int4 = minimumBZmesh
@@ -184,11 +195,11 @@ contains
 
     select case(sysdim)
     case(3)
-      get_nkpt_int8 = nkpt_total / (e/e0)**sqrt(3.d0) !**log(3.d0)
+      get_nkpt_int8 = ceiling( nkpt_total/((e/e0)**sqrt(3.d0)) ) !**log(3.d0)
     case(2)
-      get_nkpt_int8 = nkpt_total / (e/e0)**sqrt(2.d0) !**log(2.d0)
+      get_nkpt_int8 = ceiling( nkpt_total/((e/e0)**sqrt(2.d0)) ) !**log(2.d0)
     case default
-      get_nkpt_int8 = nkpt_total / (e/e0)**sqrt(1.d0) !**log(1.d0)
+      get_nkpt_int8 = ceiling( nkpt_total/((e/e0)**sqrt(1.d0)) ) !**log(1.d0)
     end select
 
     if(get_nkpt_int8 < int(minimumBZmesh,8) ) get_nkpt_int8 = int(minimumBZmesh,8)

@@ -53,7 +53,7 @@ module AtomTypes
     !! Dimension of the system (1D, 2D, 3D)
     real(double), dimension(3) :: a1,a2,a3
     !! Lattice vectors
-    real(double), dimension(:), allocatable :: Stage
+    real(double), dimension(:,:), allocatable :: Stage
     !! Neighbor distances
     real(double) :: Un, Um
     !! Effective Coulomb interaction strength - Hubbard U (charge and magnetic)
@@ -64,21 +64,5 @@ module AtomTypes
     real(double), dimension(:), allocatable   :: rhod0
     !! Initial occupation of d orbitals obtained from hopping parameters only
   end type AtomType
-
-contains
-  subroutine add_elem(list, index)
-    implicit none
-    type(NeighborHead), intent(inout) :: list
-    integer :: index
-    type(NeighborIndex), pointer :: local => null()
-
-    local => list%head
-    nullify(list%head)
-    allocate(list%head)
-
-    list%head%index = index
-    list%head%next  => local
-
-  end subroutine add_elem
 
 end module AtomTypes

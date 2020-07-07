@@ -37,16 +37,16 @@ module mod_constants
   complex(double) :: pauli_dorb(5,18,18)
   !! Pauli matrices in spin and orbital space (x,y,z,+,-) (only non-zero on d-orbitals)
 
-  complex(double), dimension(4,4) :: StoC = reshape([cmplx(0.0d0,0.d0), cmplx(0.5d0,0.d0),  cmplx(0.0d0,-0.5d0),  cmplx( 0.0d0,0.d0), &
-                                                     cmplx(1.0d0,0.d0), cmplx(0.0d0,0.d0),  cmplx(0.0d0, 0.0d0),  cmplx( 0.5d0,0.d0), &
-                                                     cmplx(1.0d0,0.d0), cmplx(0.0d0,0.d0),  cmplx(0.0d0, 0.0d0),  cmplx(-0.5d0,0.d0), &
-                                                     cmplx(0.0d0,0.d0), cmplx(0.5d0,0.d0),  cmplx(0.0d0, 0.5d0),  cmplx( 0.0d0,0.d0)], [4,4])
+  complex(double), dimension(4,4) :: StoC = reshape([cmplx(0.0d0,0.d0,double), cmplx(0.5d0,0.d0,double),  cmplx(0.0d0,-0.5d0,double),  cmplx( 0.0d0,0.d0,double), &
+                                                     cmplx(1.0d0,0.d0,double), cmplx(0.0d0,0.d0,double),  cmplx(0.0d0, 0.0d0,double),  cmplx( 0.5d0,0.d0,double), &
+                                                     cmplx(1.0d0,0.d0,double), cmplx(0.0d0,0.d0,double),  cmplx(0.0d0, 0.0d0,double),  cmplx(-0.5d0,0.d0,double), &
+                                                     cmplx(0.0d0,0.d0,double), cmplx(0.5d0,0.d0,double),  cmplx(0.0d0, 0.5d0,double),  cmplx( 0.0d0,0.d0,double)], [4,4])
   !! Transformation matrix spin (+,up,down,-) to cartesian (0,x,y,z)
 
-  complex(double), dimension(4,4) :: CtoS = reshape([cmplx(0.0d0,0.d0), cmplx(0.5d0,0.d0),  cmplx( 0.5d0, 0.d0),  cmplx( 0.0d0, 0.d0), &
-                                                    cmplx(1.0d0,0.d0), cmplx(0.0d0,0.d0),  cmplx( 0.0d0, 0.d0),  cmplx( 1.0d0, 0.d0), &
-                                                    cmplx(0.0d0,1.d0), cmplx(0.0d0,0.d0),  cmplx( 0.0d0, 0.d0),  cmplx( 0.0d0,-1.d0), &
-                                                    cmplx(0.0d0,0.d0), cmplx(1.0d0,0.d0),  cmplx(-1.0d0, 0.d0),  cmplx( 0.0d0, 0.d0)], [4,4])
+  complex(double), dimension(4,4) :: CtoS = reshape([cmplx(0.0d0,0.d0,double), cmplx(0.5d0,0.d0,double),  cmplx( 0.5d0, 0.d0,double),  cmplx( 0.0d0, 0.d0,double), &
+                                                     cmplx(1.0d0,0.d0,double), cmplx(0.0d0,0.d0,double),  cmplx( 0.0d0, 0.d0,double),  cmplx( 1.0d0, 0.d0,double), &
+                                                     cmplx(0.0d0,1.d0,double), cmplx(0.0d0,0.d0,double),  cmplx( 0.0d0, 0.d0,double),  cmplx( 0.0d0,-1.d0,double), &
+                                                     cmplx(0.0d0,0.d0,double), cmplx(1.0d0,0.d0,double),  cmplx(-1.0d0, 0.d0,double),  cmplx( 0.0d0, 0.d0,double)], [4,4])
   !! Transformation matrix cartesian (0,x,y,z) to spin (+,up,down,-)
 contains
   subroutine define_constants()

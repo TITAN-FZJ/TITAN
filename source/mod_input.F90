@@ -32,10 +32,10 @@ contains
     implicit none
     character(len=*), intent(in) :: filename
     logical :: success
-    integer :: eof
+    integer :: ios
     success = .false.
-    open(unit = 123456788, file=trim(filename), status='replace', iostat=eof)
-    if(eof /= 0) return
+    open(unit = 123456788, file=trim(filename), status='replace', iostat=ios)
+    if(ios /= 0) return
     out_unit = 123456788
     success = .true.
   end function enable_input_logging
@@ -43,12 +43,12 @@ contains
   function disable_input_logging() result(success)
     implicit none
     logical :: success
-    integer :: eof
+    integer :: ios
     success = .true.
     if(out_unit < 0) return
     success = .false.
-    close(unit=out_unit, iostat=eof)
-    if(eof /= 0) return
+    close(unit=out_unit, iostat=ios)
+    if(ios /= 0) return
     success = .true.
   end function disable_input_logging
 
@@ -66,22 +66,22 @@ contains
   function read_file(filename) result(success)
     implicit none
     character(len=*), intent(in) :: filename
-    character(len=line_length) :: line
-    integer :: eof, iunit
-    logical :: success
-    integer :: eq_pos, com_pos
-
-    eof = 0
-    iunit = 92412
-    success = .false.
+    character(len=line_length)   :: line
+    logical   :: success
+    integer*4 :: ios=0, iunit=92412
+    integer*4 :: eq_pos, com_pos
 
     nlines = 0
 
+    success = .false.
+
     val = " "
-    open(unit=iunit, file=trim(filename), status='old', iostat=eof)
-    if(eof /= 0) return
-    do while(eof == 0)
-       read(unit=iunit, fmt='(A)', iostat=eof) line
+    open(unit=iunit, file=trim(filename), status='old', iostat=ios)
+    if(ios /= 0) return
+
+    do
+       read(unit=iunit, fmt='(A)', iostat=ios) line
+       if (ios/=0) exit
        if(line(1:2) /= "->") cycle
        nlines = nlines + 1
        eq_pos = index(line, "=")
@@ -92,10 +92,8 @@ contains
        else
           val(nlines) = adjustl(line(eq_pos+1:))
        end if
-
     end do
-    close(unit=iunit, iostat = eof)
-    if(eof /= 0) return
+    close(unit=iunit)
 
     success = .true.
   end function read_file

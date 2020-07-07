@@ -28,7 +28,7 @@ contains
       ! Calculating energy-step size
       fs_energy_s = (fs_energy_f - fs_energy_i)/fs_energy_npts
       ! If 0.0, then final and initial are the same; use one point only
-      if(abs(fs_energy_s) <= 1.d-10) fs_energy_npt1 = 1
+      if(abs(fs_energy_s) <= 1.d-15) fs_energy_npt1 = 1
 
       ! Creating list of energies
       do i = 1, fs_energy_npt1
@@ -94,7 +94,8 @@ contains
     use mod_mpi_pars
     implicit none
     real(double),intent(in)    :: e
-    integer            :: i,mu,nu,iz,sigma
+    integer*8          :: iz
+    integer*4          :: i,mu,nu,sigma
     real(double)       :: fs_atom(s%nAtoms,realBZ%nkpt,4),fs_orb(nOrb,realBZ%nkpt,4),fs_total(realBZ%nkpt,4)
     real(double)       :: kp(3)
     complex(double),dimension(nOrb2,nOrb2,s%nAtoms,s%nAtoms)    :: gf
@@ -230,7 +231,8 @@ contains
     real(double), intent(in) :: fs_atom(s%nAtoms,realBZ%nkpt,4),fs_orb(nOrb,realBZ%nkpt,4),fs_total(realBZ%nkpt,4)
     character(len=30) :: formatvar
     real(double)      :: kp(3)
-    integer           :: iz, i, mu, sigma
+    integer*8         :: iz
+    integer*4         :: i, mu, sigma
 
     write(formatvar,fmt="(a,i0,a)") '(',nOrb*4+3,'(es16.9,2x))'
 

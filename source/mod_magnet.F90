@@ -5,7 +5,7 @@ module mod_magnet
 
   logical :: lfield
   !! Turn on/off static magnetic field
-  integer                     :: iter
+  integer                     :: iter=0
   !! self-consistency iteration
   real(double),allocatable    :: rho(:,:)
   !! orbital-dependent and d-orbital charge density per site
@@ -72,11 +72,11 @@ module mod_magnet
   logical :: lhwrotate       = .false.
   real(double) :: hwtrotate(dmax) = 0.d0, hwprotate(dmax) = 0.d0
 
-  integer :: skip_steps_hw = 0
+  integer*4 :: skip_steps_hw = 0
   !! How many iterations are to be skipped from the beginning
-  integer :: hw_count
+  integer*4 :: hw_count
   !! Current iteration of magnetic field loop.
-  integer :: total_hw_npt1
+  integer*4 :: total_hw_npt1
   !! Total number of magnetic field iterations.
 
 contains
@@ -104,11 +104,11 @@ contains
         end if
         ! External field angular loops steps
         hwa_s = (hwa_f - hwa_i)/hwa_npts
-        if(abs(hwa_s) <= 1.d-10) hwa_npt1 = 1
+        if(abs(hwa_s) <= 1.d-15) hwa_npt1 = 1
         hwt_s = (hwt_f - hwt_i)/hwt_npts
-        if(abs(hwt_s) <= 1.d-10) hwt_npt1 = 1
+        if(abs(hwt_s) <= 1.d-15) hwt_npt1 = 1
         hwp_s = (hwp_f - hwp_i)/hwp_npts
-        if(abs(hwp_s) <= 1.d-10) hwp_npt1 = 1
+        if(abs(hwp_s) <= 1.d-15) hwp_npt1 = 1
       else ! hwa_i and hwa_f = 0
         hwa_i   = sqrt(hwx**2+hwy**2+hwz**2)
         hwa_f   = hwa_i
@@ -163,9 +163,8 @@ contains
   end subroutine setMagneticLoopPoints
 
   subroutine initMagneticField(nAtoms)
-    use mod_f90_kind, only: double
     use mod_constants, only: cZero, deg2rad
-    use mod_mpi_pars, only: abortProgram
+    use mod_mpi_pars,  only: abortProgram
     implicit none
 
     integer, intent(in) :: nAtoms
@@ -238,7 +237,6 @@ contains
 
   ! Spin Zeeman hamiltonian
   subroutine sb_matrix(nAtoms, nOrbs)
-    use mod_f90_kind, only: double
     use mod_constants, only: cZero, cI
     implicit none
     integer, intent(in) :: nAtoms, nOrbs
@@ -264,8 +262,8 @@ contains
 
   ! This subroutine calculate the orbital angular momentum matrix in the cubic system of coordinates
   subroutine l_matrix()
-    use mod_f90_kind
-    use mod_constants
+    use mod_f90_kind,   only: double
+    use mod_constants,  only: cI, cZero, cOne, sq3
     use mod_parameters, only: nOrb
     implicit none
     complex(double), dimension(nOrb,nOrb) :: Lp,Lm

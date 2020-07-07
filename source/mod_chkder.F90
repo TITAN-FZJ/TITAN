@@ -1,6 +1,7 @@
 module mod_chkder
-  use mod_f90_kind
-!   implicit none
+  use mod_f90_kind, only: double
+  implicit none
+  real(double), private :: TOL = 1.d-15
 contains
       SUBROUTINE CHKDER (M, N, X, FVEC, FJAC, LDFJAC, XP, FVECP, MODE,ERR)
 !***BEGIN PROLOGUE  CHKDER
@@ -120,7 +121,7 @@ contains
 !
          DO 10 J = 1, N
             TEMP = EPS*ABS(X(J))
-            IF (TEMP == ZERO) TEMP = EPS
+            IF (ABS(TEMP) < TOL) TEMP = EPS
             XP(J) = X(J) + TEMP
    10       CONTINUE
          GO TO 70
@@ -135,14 +136,14 @@ contains
    30       CONTINUE
          DO 50 J = 1, N
             TEMP = ABS(X(J))
-            IF (TEMP == ZERO) TEMP = ONE
+            IF (ABS(TEMP) < TOL) TEMP = ONE
             DO 40 I = 1, M
                ERR(I) = ERR(I) + TEMP*FJAC(I,J)
    40          CONTINUE
    50       CONTINUE
          DO 60 I = 1, M
             TEMP = ONE
-            IF (FVEC(I) /= ZERO .AND. FVECP(I) /= ZERO &
+            IF (ABS(FVEC(I)) > TOL .AND. ABS(FVECP(I)) > TOL &
                 .AND. ABS(FVECP(I)-FVEC(I)) >= EPSF*ABS(FVEC(I))) &
                TEMP = EPS*ABS((FVECP(I)-FVEC(I))/EPS-ERR(I)) &
                       /(ABS(FVEC(I)) + ABS(FVECP(I)))

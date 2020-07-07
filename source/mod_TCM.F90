@@ -276,7 +276,7 @@ contains
               if((s%isysdim==3).and.(i == j).and.(m == n)) then
                 ! Testing if kz is not on the list of different kz calculated before
                 diffk: do k = 1, ndiffk
-                  if ( abs(abs(kp(3)) - diff_k(k)) < 1.d-12 ) then
+                  if ( abs(abs(kp(3)) - diff_k(k)) < 1.d-15 ) then
                     ialpha(i,m,k) = ialpha(i,m,k) + real(alphatemp)
                     if( (i==1) .and. (m==1) ) iwght(k) = iwght(k) + wght
                     exit diffk
@@ -318,7 +318,7 @@ contains
   !> This subroutine defines the exchange-correlation torque operator/matrix
   subroutine local_xc_torque(torque)
     use mod_f90_kind,   only: double
-    use mod_constants,  only: cZero, cOne, cI, levi_civita, sigma => pauli_mat
+    use mod_constants,  only: cZero, cOne, levi_civita, sigma => pauli_mat
     use mod_System,     only: s => sys
     use mod_parameters, only: nOrb, nOrb2, Um
     use mod_magnet,     only: mvec_cartesian
@@ -352,7 +352,7 @@ contains
   !> This subroutine defines the spin-orbit torque operator/matrix
   subroutine local_SO_torque(torque)
     use mod_f90_kind,   only: double
-    use mod_constants,  only: cZero, levi_civita, sigma => pauli_mat, cI
+    use mod_constants,  only: cZero, levi_civita, sigma => pauli_mat
     use mod_System,     only: s => sys
     use mod_magnet,     only: lvec
     use mod_parameters, only: nOrb, nOrb2

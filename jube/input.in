@@ -63,10 +63,10 @@
 ! Pulse (if F, oscillatory field)
 -> pulse_e = T
 ! Number of pulses:
--> npulse_e = 2
+-> npulse_e = 1
 
 ! direction of the field
-!-> polarization_e = x p
+-> polarization_e = p
 
 -> polarization_vec_ip_e = 1.d0 0.d0 0.d0 1.d0 0.d0 0.d0 
 -> polarization_vec_op_e = 0.d0 0.d0 0.d0 0.d0 1.d0 0.d0
@@ -82,7 +82,7 @@
 -> delay_e = 0.d0 1138.7  ! Center of the pulse is located at 0.5tau when delay_e=0.d0 
 !-------------------------------------------------------------------------------!
 ! Total time:                                                                   !
--> integration_time = 2.e4
+-> integration_time = 3.e0
 ! Absolute tolerance:
 -> abs_tol = 1.d-3
 ! Relative tolerance:
@@ -91,7 +91,7 @@
 ! -> step = 1.e0
 !===============================================================================!
 !                           INTEGRATION VARIABLES                               !
-! Approxiamte number of k-points: (nkpt > 0)                                    !
+! Approximate number of k-points: (nkpt > 0)                                    !
 -> nkpt = #KPOINTS#
 ! Number of parts to divide energy integral in complex plane:                   !
 -> parts = 2

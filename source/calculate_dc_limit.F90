@@ -2,7 +2,7 @@
 ! (in particular, the dc-limit) response functions
 subroutine calculate_dc_limit()
   use mod_mpi_pars
-  use mod_constants,         only: cZero, cOne, cI, tpi !, levi_civita
+  use mod_constants,         only: cZero, cOne, cI
   use mod_parameters,        only: sigmaimunu2i, sigmai2i, dimspinAtoms, Um, offset, lnodiag, output, count, emin, deltae, nQvec1, kpoints, laddresults, lhfresponses, dim, skip_steps
   use mod_magnet,            only: lfield, dcfield_dependence, dc_count, dcfield, hw_count, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, hhw, lrot
   use mod_SOC,               only: llinearsoc
@@ -33,8 +33,9 @@ subroutine calculate_dc_limit()
   !use mod_sha !TODO: Re-Include
   implicit none
   character(len=50) :: time
-  integer           :: mcount,qcount
-  integer           :: i,j,sigma,sigmap,mu,nu,hw_count_temp,count_temp!,neighbor 
+  integer*4         :: mcount,qcount
+  integer*8         :: count_temp
+  integer*4         :: i,j,sigma,sigmap,mu,nu,hw_count_temp!,neighbor 
   real(double)      :: e,q(3),mvec_spherical_temp(3,s%nAtoms)!,Icabs
 
   dc_count = dc_count + 1
@@ -479,8 +480,6 @@ subroutine calculate_dc_limit()
     end do ! Energy (frequency) loop
 
   end do ! Wave vector loop
-
-  call freeLocalEKMesh()
 
   ! Sorting results on files
   if(rField==0) then

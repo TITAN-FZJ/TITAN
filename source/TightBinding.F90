@@ -22,6 +22,7 @@ contains
     use mod_f90_kind, only: double
     use AtomTypes,    only: NeighborIndex
     use mod_system,   only: System
+use mod_mpi_pars
     implicit none
     type(System), intent(inout) :: s
     integer,      intent(in)    :: fermi_layer
@@ -35,7 +36,7 @@ contains
     allocate(bp(nOrb,nOrb))
 
     do i = 1, s%nTypes
-      call readElementFile(s%Types(i), s%nStages, nOrb)
+      call readElementFile(s%Types(i), s%nStages, nOrb, s%relTol)
     end do
 
     s%Ef = s%Types(fermi_layer)%FermiLevel
@@ -58,8 +59,8 @@ contains
         do k = 1, s%nStages
           current => s%Basis(i)%NeighborList(k,j)%head
           do while(associated(current))
-            scale_factor(1) = s%Types(s%Basis(i)%Material)%stage(k) / s%Neighbors(current%index)%Distance(i)
-            scale_factor(2) = s%Types(s%Basis(j)%Material)%stage(k) / s%Neighbors(current%index)%Distance(i)
+            scale_factor(1) = s%Types(s%Basis(i)%Material)%stage(k,i) / s%Neighbors(current%index)%Distance(i)
+            scale_factor(2) = s%Types(s%Basis(j)%Material)%stage(k,i) / s%Neighbors(current%index)%Distance(i)
             do l = 1, 10
               mix(l,1) = s%Types(s%Basis(i)%Material)%Hopping(l,k) * scale_factor(1) ** expon(l)
               mix(l,2) = s%Types(s%Basis(j)%Material)%Hopping(l,k) * scale_factor(2) ** expon(l)
@@ -106,35 +107,36 @@ contains
   end subroutine set_hopping_matrix
 
   !! Reading element file, including all the parameters
-  subroutine readElementFile(material, nStages, nOrb)
-    use mod_f90_kind, only: double
-    use AtomTypes,    only: AtomType
-    use mod_mpi_pars, only: abortProgram
-    use mod_tools,    only: itos, vec_norm
-    use mod_io,       only: log_warning, log_error
-    use mod_input,    only: get_parameter
+  subroutine readElementFile(material, nStages, nOrb, relTol)
+    use mod_f90_kind,          only: double
+    use AtomTypes,             only: AtomType,NeighborAtom
+    use mod_mpi_pars,          only: abortProgram
+    use mod_tools,             only: itos, vec_norm, vecDist
+    use mod_io,                only: log_warning, log_error
+    use mod_input,             only: get_parameter
     use mod_superconductivity, only: lsuperCond
     implicit none
     type(AtomType), intent(inout) :: material
     integer,        intent(in)    :: nStages
     integer,        intent(in)    :: nOrb
+    real(double),   intent(in)    :: relTol
     integer :: nTypes
     integer :: nn_stages
     integer :: nAtoms
+    integer,      dimension(:), allocatable :: iMaterial
     integer,      dimension(:), allocatable :: type_count
     real(double), dimension(3) :: dens
-    integer            :: i, j, k, l, m, ios, line_count = 0
-    integer, parameter :: line_length = 300, word_length = 50, max_elements = 50
+    integer            :: i, j, k, l, size, nCells, ios, line_count = 0
+    integer, parameter :: word_length = 50, max_elements = 50
     character(len=word_length), dimension(max_elements) :: str_arr
     character(200) :: line
     character(50)  :: words(10)
-    real(double)                 :: dist
-    real(double), dimension(3)   :: vec
     real(double), dimension(3,3) :: Bravais
-    real(double), dimension(4)   :: on_site
+    real(double), dimension(9)   :: on_site
     real(double), dimension(9)   :: tmp_arr
     real(double), dimension(:,:), allocatable :: position
-    real(double), dimension(:),   allocatable :: localDistances
+    real(double), dimension(:,:), allocatable :: localDistances
+    type(NeighborAtom), dimension(:), allocatable :: list
     character(len=1)   :: coord_type
     character(len=100) :: Name
     integer :: f_unit = 995594, cnt = 0
@@ -159,8 +161,6 @@ contains
     do j = 1, 3
       read(f_unit, fmt='(A)', iostat=ios) line
       read(unit=line, fmt=*, iostat=ios) (Bravais(i,j), i=1,3)
-      if(vec_norm(Bravais(:,j),3) <= 1.d-9) &
-        call log_warning("readElementFile", "Bravais vector a" // trim(itos(j)) // "'not given.")
     end do
     Bravais = Bravais * material%LatticeConstant
     material%a1 = Bravais(:,1)
@@ -191,14 +191,17 @@ contains
     read(f_unit, fmt='(A)', iostat=ios) line
     read(unit=line, fmt=*, iostat=ios) coord_type
 
+    allocate(imaterial(nAtoms))
+
     ! Read atom positions
     allocate(position(3,nAtoms))
     k = 0
     do i = 1, nTypes
       do j = 1, type_count(i)
-        k = k + 1
         read(f_unit, fmt='(A)', iostat=ios) line
         if(ios /= 0) call abortProgram("[readElementFile] Not enough basis atoms given!")
+        k = k + 1
+        imaterial(k) = i
         read(unit=line, fmt=*, iostat=ios) (position(l,k), l=1,3)
         if(coord_type == 'C' .or. coord_type == 'c' .or. coord_type == 'K' .or. coord_type == 'k') then
           ! Position of atoms given in Cartesian coordinates
@@ -213,6 +216,11 @@ contains
     ! Read dimension of the system
     read(f_unit, fmt='(A)', iostat = ios) line
     read(unit= line, fmt=*, iostat=ios) material%isysdim
+
+    do i = 1, material%isysdim
+      if(vec_norm(Bravais(:,i),3) <= 1.d-9) &
+        call log_warning("readElementFile", "Bravais vector a" // trim(itos(i)) // "not given.")
+    end do
 
     ! Read Fermi level
     read(f_unit, fmt='(A)', iostat = ios) line
@@ -231,20 +239,21 @@ contains
     read(unit=line, fmt=*, iostat=ios) (str_arr(i), i=1,2)
     cnt = 0
     do i = 1, 2
-        if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
-            cnt = cnt + 1
-            read(unit=str_arr(i), fmt=*,iostat=ios ) tmp_arr(cnt)
+      if(str_arr(i)(1:1) == "!") exit
+      if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
+      cnt = cnt + 1
+      read(unit=str_arr(i), fmt=*,iostat=ios ) tmp_arr(cnt)
     end do
     
     select case(cnt)
     case(1)
-        material%Un = tmp_arr(1)
-        material%Um = tmp_arr(1)
+      material%Un = tmp_arr(1)
+      material%Um = tmp_arr(1)
     case(2)
-        material%Un = tmp_arr(1)
-        material%Um = tmp_arr(2)
+      material%Un = tmp_arr(1)
+      material%Um = tmp_arr(2)
     case default
-        call log_error("readElementFile","Something wrong in the definition of 'U'.")
+      call log_error("readElementFile","Something wrong in the definition of 'U'.")
     end select
 
     ! Read Spin-Orbit interaction strength for p and d
@@ -256,9 +265,10 @@ contains
     read(unit=line, fmt=*, iostat=ios) (str_arr(i), i=1,9)
     cnt = 0
     do i = 1, 9
-        if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
-        cnt = cnt + 1
-        read(unit=str_arr(i), fmt=*,iostat=ios ) tmp_arr(cnt)
+      if(str_arr(i)(1:1) == "!") exit
+      if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
+      cnt = cnt + 1
+      read(unit=str_arr(i), fmt=*,iostat=ios ) tmp_arr(cnt)
     end do
 
     select case(cnt)
@@ -266,7 +276,7 @@ contains
       if(lsupercond) &
         call log_error("readElementFile","Something wrong in the definition of 'lambda'.")
       ! Read next nearest neighbor stages
-      nn_stages = tmp_arr(1)
+      nn_stages = int(tmp_arr(1))
     case(3)
       material%lambda(1)   = tmp_arr(1)
       material%lambda(2:4) = tmp_arr(2)
@@ -289,23 +299,66 @@ contains
     ! Read Hopping Parameter
     do i = 1, nTypes
       ! Read on-site terms
-      do j = 1, 4
-        read(f_unit, fmt='(A)', iostat = ios) line
-        read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
-        read(unit=words(3), fmt=*, iostat=ios) on_site(j)
-      end do
+
+      ! s
+      read(f_unit, fmt='(A)', iostat = ios) line
+      read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
+      read(unit=words(3), fmt=*, iostat=ios) on_site(1)
+      if(ios /= 0) &
+        call log_error("readElementFile","Something wrong in the s tight-binding parameter of element " // trim(Name) //".")
+
+      ! p
+      read(f_unit, fmt='(A)', iostat = ios) line
+      read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
+      if(words(4) == "2") then
+        read(unit=words(3), fmt=*, iostat=ios) on_site(2)
+        if(ios /= 0)  &
+          call log_error("readElementFile","Something wrong in the p tight-binding parameters of element " // trim(Name) //".")
+        on_site(3:4) = on_site(2)
+      else
+        do j=3,5
+          read(unit=words(j), fmt=*, iostat=ios) on_site(j-1)
+          if(ios /= 0)  &
+            call log_error("readElementFile","Something wrong in the p tight-binding parameters of element " // trim(Name) //".")
+        end do
+      end if
+
+      ! t2g
+      read(f_unit, fmt='(A)', iostat = ios) line
+      read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
+      if(words(4) == "3") then
+        read(unit=words(3), fmt=*, iostat=ios) on_site(5)
+        on_site(6:7) = on_site(5)
+        if(ios /= 0)  &
+          call log_error("readElementFile","Something wrong in the t2g tight-binding parameters of element " // trim(Name) //".")
+      else
+        do j=3,5
+          read(unit=words(j), fmt=*, iostat=ios) on_site(j+2)
+          if(ios /= 0)  &
+            call log_error("readElementFile","Something wrong in the t2g tight-binding parameters of element " // trim(Name) //".")
+        end do
+      end if
+
+      ! eg
+      read(f_unit, fmt='(A)', iostat = ios) line
+      read(unit=line, fmt=*, iostat=ios) (words(k), k=1,10)
+      if(words(4) == "4") then
+        read(unit=words(3), fmt=*, iostat=ios) on_site(8)
+        on_site(9) = on_site(8)
+        if(ios /= 0)  &
+          call log_error("readElementFile","Something wrong in the eg tight-binding parameters of element " // trim(Name) //".")
+      else
+        do j=3,4
+          read(unit=words(j), fmt=*, iostat=ios) on_site(j+5)
+          if(ios /= 0)  &
+            call log_error("readElementFile","Something wrong in the eg tight-binding parameters of element " // trim(Name) //".")
+        end do
+      end if
 
       ! Setting up on-site terms
       material%onSite = 0.d0
-      material%onSite(1,1) = on_site(1)
-      do j=2,4
-        material%onSite(j,j) = on_site(2)
-      end do
-      do j=5,7
-        material%onSite(j,j) = on_site(3)
-      end do
-      do j=8,9
-        material%onSite(j,j) = on_site(4)
+      do j=1,9
+        material%onSite(j,j) = on_site(j)
       end do
 
       ! Reading two-center integrals
@@ -313,7 +366,8 @@ contains
         do k = 1, 10
           read(f_unit, fmt='(A)', iostat = ios) line
           read(unit=line, fmt=*, iostat=ios) (words(l), l=1,10)
-          if(j<=nStages) read(unit=words(4), fmt=*, iostat=ios) material%Hopping(k,j)
+          if(j>nStages) exit
+          read(unit=words(4), fmt=*, iostat=ios) material%Hopping(k,j)
           !material%Hopping(j,i) = material%Hopping(j,i) * (a0_corr ** expon(j)) ! Correction of hopping parameter by scaling law.
         end do
       end do
@@ -321,41 +375,87 @@ contains
 
     close(f_unit)
 
-    ! Determine neighbor distances
-    allocate(material%stage(nStages))
-    allocate(localDistances((6*nStages+1)**3))
-    m = 0
-    material % stage = 10.d0 * material % LatticeConstant
-    do i = -3*nStages, 3*nStages
-      if( (material%isysdim==1).and.(i == 0) ) cycle ! 1D case
-      do j = -3*nStages, 3*nStages
-        if( (material%isysdim==2).and.(i == 0 .and. j == 0) ) cycle ! 2D case
-        do k = -3*nStages, 3*nStages
-          if(i == 0 .and. j == 0 .and. k == 0)  cycle
-          m = m + 1
-          vec = i * material%a1 + j * material%a2 + k * material%a3
-          dist = vec_norm(vec,3)
-          localDistances(m) = dist
-          l = m - 1
+    ! Number of unit cells to be generated along each dimensions
+    ! For d dimensions it is (2*n+1)^d
+    nCells = (2*nStages+1)**(material%isysdim)
+
+    ! Allocate array for nn distances known to the system
+    allocate(material%stage(nStages, nAtoms))
+    ! Allocate array for all atoms in all unit cells
+    allocate(list(nCells*nAtoms))
+
+    allocate( localDistances(nCells * nAtoms, nAtoms))
+
+    size = 0
+
+    localDistances = 1.d+12
+    material%stage = 1.d+12
+    do i = 1, nCells
+      do j = 1, nAtoms
+        size = size + 1
+
+        ! Determine unit-cell indices
+        select case(material%isysdim)
+        case(3)
+          list(size)%Cell(1) = mod( (i-1),(2*nStages+1) ) - nStages
+          list(size)%Cell(2) = mod( (i-1)/(2*nStages+1),(2*nStages+1) ) - nStages
+          list(size)%Cell(3) = mod( (i-1)/((2*nStages+1)*(2*nStages+1)),(2*nStages+1) ) - nStages
+        case(2)
+          list(size)%Cell(1) = mod( (i-1),(2*nStages+1) ) - nStages
+          list(size)%Cell(2) = mod( (i-1)/(2*nStages+1),(2*nStages+1) ) - nStages
+          list(size)%Cell(3) = 0
+        case default
+          list(size)%Cell(1) = mod( (i-1),(2*nStages+1) ) - nStages
+          list(size)%Cell(2) = 0
+          list(size)%Cell(3) = 0
+        end select
+
+        ! Cell position is R = i*a1 + j*a2 + k*a3
+        list(size)%CellVector = list(size)%Cell(1) * material%a1 + list(size)%Cell(2) * material%a2 + list(size)%Cell(3) * material%a3
+        ! Atom position is r = R + r_j
+        list(size)%Position = position(:,j) + list(size)%CellVector
+
+        ! Defining what kind of atom it is
+        list(size)%BasisIndex = j
+        list(size)%Material = imaterial(j)
+
+        ! Allocate arrays for distances and directional cosines to all atoms in the central unit cell
+        allocate(list(size)%Distance(nAtoms))
+        allocate(list(size)%dirCos(3,nAtoms))
+
+        ! Calculate distances and directional cosines
+        do k = 1, nAtoms
+          list(size)%Distance(k) = vecDist(list(size)%Position, position(:,k))
+          list(size)%dirCos(:,k) = 0.d0
+          if(list(size)%Distance(k) <= 1.d-9) cycle
+          list(size)%dirCos(:,k) = (list(size)%Position - position(:,k)) / list(size)%Distance(k)
+
+          ! Sort distances *new*
+          localDistances(size,k) = list(size)%Distance(k)
+          l = size - 1
           do while(1 <= l)
-            if(localDistances(l) - dist < 1.d-9) exit
-            localDistances(l+1) = localDistances(l)
+            ! If distance of current atoms is larger than what is saved at position l, exit loop
+            if(localDistances(l,k) - list(size)%Distance(k) < 1.d-9) exit
+            localDistances(l+1,k) = localDistances(l,k)
             l = l - 1
           end do
-          localDistances(l+1) = dist
+          localDistances(l+1,k) = list(size)%Distance(k)
         end do
       end do
     end do
 
-    l = 1
-    material%stage(1) = localDistances(1)
-    do i = 1, m
-      if(abs(localDistances(i) - material%stage(l)) < material%stage(1) * 0.01) cycle
-      l = l + 1
-      if(l > nStages) exit
-      material%stage(l) = localDistances(i)
+    material%stage(1,:) = localDistances(1,:)
+    do j = 1, nAtoms
+      l = 1
+      do i = 2, size
+        if(abs(localDistances(i,j) - material%stage(l,j)) < material%stage(1,j) * relTol) cycle
+        l = l + 1
+        if(l > nStages) exit
+        material%stage(l,j) = localDistances(i,j)
+      end do
     end do
     deallocate(localDistances)
+
   end subroutine readElementFile
 
   pure subroutine intd(sss,pps,ppp,dds,ddp,ddd,sps,sds,pds,pdp,w,b)

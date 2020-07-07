@@ -15,7 +15,7 @@ contains
   subroutine updateLS(sys,theta, phi)
     use mod_System,            only: System
     use mod_f90_kind,          only: double
-    use mod_constants,         only: pauli_mat, cZero,cI,sq3
+    use mod_constants,         only: pauli_mat, cZero
     use mod_magnet,            only: lvec
     use mod_rotation_matrices, only: rotation_matrix_ry, rotation_matrix_rz
     use mod_System,            only: System
@@ -66,13 +66,13 @@ contains
 
   end subroutine updateLS
 
-  subroutine allocLS(nAtoms,nOrb)
+  subroutine allocateLS(nAtoms,nOrb)
     use mod_constants, only: cZero
-    use mod_mpi_pars, only: abortProgram
+    use mod_mpi_pars,  only: abortProgram
     use mod_mpi_pars,  only: myrank
     implicit none
     integer, intent(in) :: nOrb,nAtoms
-    if((myrank==0).and.(nOrb /= 9)) call abortProgram("[allocLS] LS Matrix only implemented for nOrb = 9.")
+    if((myrank==0).and.(nOrb /= 9)) call abortProgram("[allocateLS] LS Matrix only implemented for nOrb = 9.")
 
     if(allocated(ls)) deallocate(ls)
     allocate(ls(2*nOrb, 2*nOrb,nAtoms))
@@ -80,5 +80,14 @@ contains
     ! the spin-orbit matrix
     ls = cZero
 
-  end subroutine allocLS
+  end subroutine allocateLS
+  
+
+  subroutine deallocateLS()
+    implicit none
+
+    deallocate(ls)
+
+  end subroutine deallocateLS
+
 end module mod_SOC
