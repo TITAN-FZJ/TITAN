@@ -35,8 +35,7 @@ mpl.rcParams["axes.labelweight"] = "bold"
 ry2ev = 1.0
 
 parser = argparse.ArgumentParser(description="Parse bool")
-parser.add_argument("fileu", help="File to plot")
-parser.add_argument("filed", help="File to plot")
+parser.add_argument("files", nargs="+", help="File(s) to plot")
 parser.add_argument("--superconductivity", default=False, action="store_true" , help="Flag to plot the bands as for superconductors")
 parser.add_argument("--mev", default=False, action="store_true" , help="Plot superconductor bands in the same plot")
 args = parser.parse_args()
@@ -82,44 +81,44 @@ if __name__ == "__main__":
     labelx = r'$E-E_F$ [Ry]'
     labely = r'LDOS [states/Ry]'
 
-  filenameu = args.fileu
-  filenamed = args.filed
+
+  numplots = len(args.files)
+  if numplots > 2:
+    sys.exit("Too many input files")
 
   # Getting fermi energy from ldos up file
-  fermi = read_header(filenameu)
+  fermi = read_header(args.files[0])
 
   if args.superconductivity:
       # colors = brewer2mpl.get_map('Set1', 'qualitative', 5).mpl_colors
       colors = ['#e41a1c','#377eb8','#4daf4a','#984ea3','#a65628', '#b98600', '#000000']
       # colors = np.array(['k', 'g', 'r', 'b']) # The colors you wish to cycle through
-      legends = np.array(['Total', r'$u_s$', r'$u_p$', r'$u_d$',r'$v_s$', r'$v_p$', r'$v_d$'])
+      legends = np.array(['Total', r'$u_s$', r'$u_p$', r'$u_d$',r'$v_s$', r'$v_p$', r'$v_d$','', '', '', '','', '', ''])
   else:
       # colors = brewer2mpl.get_map('Set1', 'qualitative', 5).mpl_colors
       colors = ['#e41a1c','#377eb8','#4daf4a','#984ea3','#a65628']
       # colors = np.array(['k', 'g', 'r', 'b']) # The colors you wish to cycle through
-      legends = np.array(['Total', 's', 'p', 'd'])
+      legends = np.array(['Total', 's', 'p', 'd', '', '', '', ''])
+
+  fig, ax = plt.subplots(1, 1, figsize=(6, 1 + 1.5*numplots))
 
   plt.axhline(0.0, color='k', linewidth=0.75)
 
-  datau = read_data(filenameu)
-  # datau = np.loadtxt(filenameu)
-  datau = datau[datau[:,0].argsort()]
-  x = datau[:,0]
-  for i in range(1,len(datau[0,:])):
-    plt.plot((x-fermi)*ry2ev,datau[:,i]/ry2ev, color=colors[i-1], label=legends[i-1])
+  a1 = []
+  for j in range(numplots):
+    data = read_data(args.files[j])
+    # datau = np.loadtxt(filenameu)
+    data = data[data[:,0].argsort()]
+    x = [(data[k,0]-fermi)*ry2ev for k in range(len(data[:,0]))]
+    signal = (-1)**j
+    for i in range(1,len(data[0,:])):
+      y = [signal*data[k,i]/ry2ev for k in range(len(data[:,i]))]
+      plt.plot(x, y, color=colors[i-1], label=legends[j*(len(data[0,:])-1)+(i-1)])
 
-  datad = read_data(filenamed)
-  # datad = np.loadtxt(filenamed)
-  datad = datad[datad[:,0].argsort()]
-  x = datad[:,0]
-  for i in range(1,len(datad[0,:])):
-    # plt.plot((x-fermi)*ry2ev,datad[:,i]/ry2ev)
-    plt.plot((x-fermi)*ry2ev,-datad[:,i]/ry2ev, color=colors[i-1])
+    a1.append(max(data[:,1]/ry2ev))
+  max_ldos = max(a1)
 
-  a1 = max(datau[:,1]/ry2ev)
-  a2 = max(datad[:,1]/ry2ev)
-  max_ldos = max(a1,a2)
-  ylim = [-1.1*abs(max_ldos),1.1*abs(max_ldos)]
+  ylim = [(-1.1*abs(max_ldos) if numplots > 1 else 0.0),1.1*abs(max_ldos)]
   plt.ylim(ylim)
 
 
@@ -133,7 +132,8 @@ if __name__ == "__main__":
 
   # fig = plt.gcf()
   # fig.set_size_inches(3., 2.2)
-  plt.savefig('LDOS.pdf', bbox_inches='tight')
+  plt.tight_layout()
+  plt.savefig('LDOS.pdf')
   # plt.savefig(filename,transparent=True,dpi=2540, bbox_inches='tight')
 
   plt.show()
