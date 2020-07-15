@@ -211,11 +211,15 @@ contains
       self%w(added-range+1:added) = 1.d0 / dble(weight)
     end do
     self%w = self%w / dble(nkpt)
-    if(added > self%workload) &
+
+    if(added == self%workload) return
+
+    if(added > self%workload) then
       call abortProgram("[gen3DFraction] Generated more points than it should have! added = " // trim(itos(added)) // ", self%workload = " // trim(itos(self%workload)))
-    if(added < self%workload) &
+    else
       call abortProgram("[gen3DFraction] Generated less points than it should have! added = " // trim(itos(added)) // ", self%workload = " // trim(itos(self%workload)))
-  end subroutine gen3DFraction
+    end if
+ end subroutine gen3DFraction
 
   subroutine count_3D_BZ(nkpt_in, a1, a2, a3, numextrakbz, nkpt)
     use mod_f90_kind,  only: double
@@ -361,10 +365,14 @@ contains
       self%w(added-range+1:added) = 1.0 / dble(weight)
     end do
     self%w = self%w / dble(nkpt)
-    if(added > self%workload) &
+
+    if(added == self%workload) return
+
+    if(added > self%workload) then
       call abortProgram("[gen2DFraction] Generated more points than it should have! added = " // trim(itos(added)) // ", self%workload = " // trim(itos(self%workload)))
-    if(added < self%workload) &
+    else
       call abortProgram("[gen2DFraction] Generated less points than it should have! added = " // trim(itos(added)) // ", self%workload = " // trim(itos(self%workload)))
+    end if
   end subroutine gen2DFraction
 
   subroutine count_2D_BZ(nkpt_in, a1, a2, numextrakbz, nkpt)
@@ -502,10 +510,14 @@ contains
       self%w(added-range+1:added) = 1.0 / dble(weight)
     end do
     self%w = self%w / dble(nkpt)
-    if(added > self%workload) &
+
+    if(added == self%workload) return
+
+    if(added > self%workload) then
       call abortProgram("[gen1DFraction] Generated more points than it should have! added = " // trim(itos(added)) // ", self%workload = " // trim(itos(self%workload)))
-    if(added < self%workload) &
+    else
       call abortProgram("[gen1DFraction] Generated less points than it should have! added = " // trim(itos(added)) // ", self%workload = " // trim(itos(self%workload)))
+    end if
   end subroutine gen1DFraction
 
   subroutine count_1D_BZ(nkpt_in, a1, numextrakbz, nkpt)

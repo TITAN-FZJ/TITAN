@@ -98,6 +98,7 @@ contains
     integer*4          :: i,mu,nu,sigma
     real(double)       :: fs_atom(s%nAtoms,realBZ%nkpt,4),fs_orb(nOrb,realBZ%nkpt,4),fs_total(realBZ%nkpt,4)
     real(double)       :: kp(3)
+    real(double)       :: temp
     complex(double),dimension(nOrb2,nOrb2,s%nAtoms,s%nAtoms)    :: gf
     complex(double),dimension(nOrb2,nOrb2)    :: temp1,temp2,pauli_gf
 
@@ -105,7 +106,7 @@ contains
     call realBZ % setup_fraction(s,0, 1, FreqComm(1))
 
     !$omp parallel default(none) &
-    !$omp& private(iz,kp,gf,i,mu,nu,sigma,temp1,temp2) &
+    !$omp& private(iz,kp,gf,i,mu,nu,sigma,temp,temp1,temp2) &
     !$omp& shared(llineargfsoc,llinearsoc,s,nOrb,nOrb2,realBZ,e,eta,pauli_orb,pauli_gf,fs_atom,fs_orb,fs_total)
 
     fs_atom  = 0.d0
@@ -133,8 +134,9 @@ contains
            end if
            do mu=1,nOrb
              nu = mu + nOrb
-             fs_orb(mu,iz,sigma) = fs_orb(mu,iz,sigma) - aimag(pauli_gf(mu,mu)+pauli_gf(nu,nu))/pi
-             fs_atom(i,iz,sigma) = fs_atom(i,iz,sigma) - aimag(pauli_gf(mu,mu)+pauli_gf(nu,nu))/pi
+             temp = - aimag(pauli_gf(mu,mu)+pauli_gf(nu,nu))/pi
+             fs_orb(mu,iz,sigma) = fs_orb(mu,iz,sigma) + temp
+             fs_atom(i,iz,sigma) = fs_atom(i,iz,sigma) + temp
            end do
          end do
       end do
