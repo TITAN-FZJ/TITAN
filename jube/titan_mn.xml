@@ -22,7 +22,7 @@
 
     <!-- Configuration of submission script -->
     <parameterset name="systemParameter" init_with="platform.xml">
-      <parameter name="scaling_factor" type="int" mode="python">",".join(str(n**3) for n in range(1,3))</parameter>
+      <parameter name="scaling_factor" type="int" mode="python">",".join(str(n**3) for n in range(7,10))</parameter>
 
       <parameter name="mail"></parameter>
       <!-- <parameter name="additional_job_config"  tag="jureca">#SBATCH &#45;&#45;reservation=system_maint.20200406_083747</parameter -->
@@ -193,7 +193,7 @@
 
 
     <!-- Self-consistency operation -->
-    <step name="selfconsistency" depend="compile" tag="sc,time_prop">
+    <step name="selfconsistency" depend="compile" tag="sc|time_prop">
       <!-- Defining variables -->
       <use>compilationParameter</use>     <!-- use compilation parameterset -->
       <use>programset</use>               <!-- use program parameterset -->

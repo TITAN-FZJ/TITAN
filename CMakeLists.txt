@@ -153,7 +153,9 @@ if(NOT COMPILER MATCHES gnu)
                                                 -qopenmp
                                                 -g
                                                 -mkl
-                                                -xHost)
+                                                -xHost
+                                                -qopt-prefetch=5
+                                                )
   elseif(PLATFORM MATCHES juwels)
     target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
@@ -167,6 +169,7 @@ if(NOT COMPILER MATCHES gnu)
                                                 -qopenmp
                                                 -g
                                                 -mkl
+                                                -qopt-prefetch=5
                                                 )
   elseif(PLATFORM MATCHES jusuf)
     target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
@@ -178,7 +181,9 @@ if(NOT COMPILER MATCHES gnu)
                                                 -qopenmp
                                                 -g
                                                 -mkl
-                                                -xHost)
+                                                -xHost
+                                                -qopt-prefetch=5
+                                                )
   elseif(PLATFORM MATCHES osx)
     target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
@@ -189,7 +194,9 @@ if(NOT COMPILER MATCHES gnu)
                                                 -qopenmp
                                                 -g
                                                 -mkl
-                                                -xHost)
+                                                -xHost
+                                                -qopt-prefetch=5
+                                                )
   elseif(PLATFORM MATCHES booster)
     link_directories($ENV{HOME}/BoosterNAG)
     target_link_libraries(${TITAN_EXE} -mkl
@@ -205,7 +212,9 @@ if(NOT COMPILER MATCHES gnu)
                                                 -g
                                                 -I$ENV{HOME}/BoosterNAG/nag_interface_blocks
                                                 -xMIC-AVX512
-                                                -qopenmp)
+                                                -qopenmp
+                                                -qopt-prefetch=5
+                                                )
   elseif(PLATFORM MATCHES rwth)
     target_link_libraries(${TITAN_EXE} -mkl $ENV{FLAGS_NAG_LINKER} -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
@@ -216,7 +225,9 @@ if(NOT COMPILER MATCHES gnu)
                                                 -g
                                                 -mkl
                                                 $ENV{FLAGS_NAG_INCLUDE}
-                                                -xHost)
+                                                -xHost
+                                                -qopt-prefetch=5
+                                                )
   elseif(PLATFORM MATCHES iff)
     target_link_libraries(${TITAN_EXE} -mkl -L/usr/local/nag/lib -lnag -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
@@ -226,7 +237,9 @@ if(NOT COMPILER MATCHES gnu)
                                                 -qopenmp
                                                 -g
                                                 -mkl
-                                                -xHost)
+                                                -xHost
+                                                -qopt-prefetch=5
+                                                )
   elseif(PLATFORM MATCHES hh)
     target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lnag -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
@@ -237,7 +250,9 @@ if(NOT COMPILER MATCHES gnu)
                                                 -qopenmp
                                                 -g
                                                 -mkl
-                                                -xCORE-AVX2)
+                                                -xCORE-AVX2
+                                                -qopt-prefetch=5
+                                                )
   else()
     target_link_libraries(${TITAN_EXE} -mkl -qopenmp /opt/NAG/fll6i26dcl/lib/libnag_nag.a)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
@@ -249,7 +264,9 @@ if(NOT COMPILER MATCHES gnu)
                                                 #-ipo
                                                 #-qopt-report=5
                                                 -g
-                                                -xHost)
+                                                -xHost
+                                                -qopt-prefetch=5
+                                                )
   endif()
 
   if(DEBUG)

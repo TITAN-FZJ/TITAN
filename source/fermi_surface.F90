@@ -33,6 +33,7 @@ contains
       ! Creating list of energies
       do i = 1, fs_energy_npt1
         fs_energies(i) = fs_energy_i + (i-1)*fs_energy_s
+        if( abs(fs_energies(i))<1.d-12 ) fs_energies(i) = 0.d0
       end do
     else
       ! If no loop is given, calculate Fermi surface
@@ -52,7 +53,7 @@ contains
     integer :: i
 
     if(rField == 0) &
-      write(output%unit_loop,"('CALCULATING CHARGE AND SPIN DENSITY AT ENERGY SURFACE')")
+      write(output%unit_loop,"('CALCULATING CHARGE, SPIN AND ORBITAL DENSITY AT ENERGY SURFACE')")
 
     ! Set energy values for the loop
     call setFSloop()
@@ -91,14 +92,16 @@ contains
     use mod_SOC,           only: llinearsoc, llineargfsoc
     use mod_system,        only: s => sys
     use mod_BrillouinZone, only: realBZ
+    use mod_magnet,        only: lx,ly,lz
     use mod_mpi_pars
     implicit none
     real(double),intent(in)    :: e
     integer*8          :: iz
-    integer*4          :: i,mu,nu,sigma
-    real(double)       :: fs_atom(s%nAtoms,realBZ%nkpt,4),fs_orb(nOrb,realBZ%nkpt,4),fs_total(realBZ%nkpt,4)
+    integer*4          :: i,mu,nu,mup,nup,sigma
+    real(double)       :: fs_atom(s%nAtoms,realBZ%nkpt,7),fs_orb(nOrb,realBZ%nkpt,7),fs_total(realBZ%nkpt,7)
     real(double)       :: kp(3)
     real(double)       :: temp
+    complex(double)    :: templ
     complex(double),dimension(nOrb2,nOrb2,s%nAtoms,s%nAtoms)    :: gf
     complex(double),dimension(nOrb2,nOrb2)    :: temp1,temp2,pauli_gf
 
@@ -106,8 +109,8 @@ contains
     call realBZ % setup_fraction(s,0, 1, FreqComm(1))
 
     !$omp parallel default(none) &
-    !$omp& private(iz,kp,gf,i,mu,nu,sigma,temp,temp1,temp2) &
-    !$omp& shared(llineargfsoc,llinearsoc,s,nOrb,nOrb2,realBZ,e,eta,pauli_orb,pauli_gf,fs_atom,fs_orb,fs_total)
+    !$omp& private(iz,kp,gf,i,mu,nu,mup,nup,sigma,temp,temp1,temp2,templ) &
+    !$omp& shared(llineargfsoc,llinearsoc,s,nOrb,nOrb2,realBZ,e,eta,pauli_orb,pauli_gf,lx,ly,lz,fs_atom,fs_orb,fs_total)
 
     fs_atom  = 0.d0
     fs_orb   = 0.d0
@@ -123,23 +126,41 @@ contains
         call green(e,eta,s,kp,gf)
       end if
 
-      do sigma=1,4
-        do i=1,s%nAtoms
-           if(sigma==1) then
-             pauli_gf = gf(:,:,i,i)
-           else
-             temp1 = pauli_orb(sigma-1,:,:)
-             temp2 = gf(:,:,i,i)
-             call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp1,nOrb2,temp2,nOrb2,cZero,pauli_gf,nOrb2)
-           end if
-           do mu=1,nOrb
-             nu = mu + nOrb
-             temp = - aimag(pauli_gf(mu,mu)+pauli_gf(nu,nu))/pi
-             fs_orb(mu,iz,sigma) = fs_orb(mu,iz,sigma) + temp
-             fs_atom(i,iz,sigma) = fs_atom(i,iz,sigma) + temp
-           end do
-         end do
-      end do
+      site_i: do i=1,s%nAtoms
+        do sigma=1,4
+          if(sigma==1) then
+            pauli_gf = gf(:,:,i,i)
+          else
+            temp1 = pauli_orb(sigma-1,:,:)
+            temp2 = gf(:,:,i,i)
+            call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp1,nOrb2,temp2,nOrb2,cZero,pauli_gf,nOrb2)
+          end if
+          do mu=1,nOrb
+            nu = mu + nOrb
+            temp = - aimag(pauli_gf(mu,mu)+pauli_gf(nu,nu))/pi
+            fs_orb(mu,iz,sigma) = fs_orb(mu,iz,sigma) + temp
+            fs_atom(i,iz,sigma) = fs_atom(i,iz,sigma) + temp
+          end do
+        end do
+
+        orb_mu: do mu=1,nOrb
+          mup = mu+nOrb
+          orb_nu: do nu=1,nOrb
+            nup = nu+nOrb
+            templ = (gf(nu,mu,i,i) + gf(nup,mup,i,i))/pi
+            temp  = real( lx(mu,nu)*templ )
+            fs_orb(mu,iz,5) = fs_orb(mu,iz,5) + temp
+            fs_atom(i,iz,5) = fs_atom(i,iz,5) + temp
+            temp  = real( ly(mu,nu)*templ )
+            fs_orb(mu,iz,6) = fs_orb(mu,iz,6) + temp
+            fs_atom(i,iz,6) = fs_atom(i,iz,6) + temp
+            temp  = real( lz(mu,nu)*templ )
+            fs_orb(mu,iz,7) = fs_orb(mu,iz,7) + temp
+            fs_atom(i,iz,7) = fs_atom(i,iz,7) + temp
+          end do orb_nu
+        end do orb_mu
+
+      end do site_i
 
       do mu=1,nOrb      
         fs_total(iz,:) = fs_total(iz,:) + fs_orb(mu,iz,:)
@@ -153,6 +174,7 @@ contains
 
   end subroutine calculate_fermi_surface
 
+
   subroutine createFSfiles()
     use mod_parameters,    only: output
     use mod_System,        only: s => sys
@@ -161,23 +183,23 @@ contains
     integer            :: i
 
     do i=1,s%nAtoms
-      write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'atom',i0,a,a,a,'.dat')") &
-       output%SOCchar,trim(output%Sites),trim(epart),i,trim(output%info),trim(output%BField),trim(output%SOC)
+      write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'atom',i0,a,a,a,a,'.dat')") &
+       output%SOCchar,trim(output%Sites),trim(epart),i,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       open (unit=17+i, file=varm,status='replace', form='formatted')
-      write(unit=17+i, fmt="('#      kx       ,        ky       ,        kz       ,      charge     ,      spin x     ,      spin y     ,      spin z     ')")
+      write(unit=17+i, fmt="('#      kx       ,        ky       ,        kz       ,      charge     ,      spin x     ,      spin y     ,      spin z     ,      morb x     ,      morb y     ,      morb z     ')")
       close(unit=17+i)
     end do
     ! Orbital-depedent
-    write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,a,a,a,a,'.dat')") &
-     output%SOCchar,trim(output%Sites),trim(epart),trim(filename(1)),trim(output%info),trim(output%BField),trim(output%SOC)
+    write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,a,a,a,a,a,'.dat')") &
+     output%SOCchar,trim(output%Sites),trim(epart),trim(filename(1)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
     open (unit=96, file=varm,status='replace', form='formatted')
-    write(unit=96, fmt="('#      kx       ,        ky       ,        kz       ,  charge(*nOrb)  ,  spin x(*nOrb)  ,  spin y(*nOrb)  ,  spin z(*nOrb)  ')")
+    write(unit=96, fmt="('#      kx       ,        ky       ,        kz       ,  charge(*nOrb)  ,  spin x(*nOrb)  ,  spin y(*nOrb)  ,  spin z(*nOrb)  ,  morb x(*nOrb)  ,  morb y(*nOrb)  ,  morb z(*nOrb)  ')")
     close(unit=96)
     ! Total
-    write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,a,a,a,a,'.dat')") &
-     output%SOCchar,trim(output%Sites),trim(epart),trim(filename(2)),trim(output%info),trim(output%BField),trim(output%SOC)
+    write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,a,a,a,a,a,'.dat')") &
+     output%SOCchar,trim(output%Sites),trim(epart),trim(filename(2)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
     open (unit=97, file=varm,status='replace', form='formatted')
-    write(unit=97, fmt="('#      kx       ,        ky       ,        kz       ,      charge     ,      spin x     ,      spin y     ,      spin z     ')")
+    write(unit=97, fmt="('#      kx       ,        ky       ,        kz       ,      charge     ,      spin x     ,      spin y     ,      spin z     ,      morb x     ,      morb y     ,      morb z     ')")
     close(unit=97)
 
   end subroutine createFSfiles
@@ -193,15 +215,15 @@ contains
 
     ! Opening files for writing
     do i=1,s%nAtoms
-      write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'atom',i0,a,a,a,'.dat')") &
-       output%SOCchar,trim(output%Sites),trim(epart),i,trim(output%info),trim(output%BField),trim(output%SOC)
+      write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'atom',i0,a,a,a,a,'.dat')") &
+       output%SOCchar,trim(output%Sites),trim(epart),i,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       open (unit=17+i, file=varm, status='old', position='append', form='formatted', iostat=err)
       errt = errt + err
       if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
     end do
     do j = 1, size(filename)
-      write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,a,a,a,a,'.dat')") &
-       output%SOCchar,trim(output%Sites),trim(epart),trim(filename(j)),trim(output%info),trim(output%BField),trim(output%SOC)
+      write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,a,a,a,a,a,'.dat')") &
+       output%SOCchar,trim(output%Sites),trim(epart),trim(filename(j)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       open (unit=95+j, file=varm, status='old', position='append', form='formatted', iostat=err)
       errt = errt + err
       if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -211,6 +233,7 @@ contains
     if(errt/=0) call abortProgram("[openFSfiles] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_line('A') // trim(missing_files))
 
   end subroutine openFSfiles
+
 
   subroutine closeFSfiles()
     use mod_System, only: s => sys
@@ -224,28 +247,29 @@ contains
     end do
   end subroutine closeFSfiles
 
+
   ! This subtoutine writes the iso-surfaces to the files
   subroutine writeFS(fs_atom,fs_orb,fs_total)
     use mod_parameters,    only: nOrb
     use mod_System,        only: s => sys
     use mod_BrillouinZone, only: realBZ
     implicit none
-    real(double), intent(in) :: fs_atom(s%nAtoms,realBZ%nkpt,4),fs_orb(nOrb,realBZ%nkpt,4),fs_total(realBZ%nkpt,4)
-    character(len=30) :: formatvar
-    real(double)      :: kp(3)
-    integer*8         :: iz
-    integer*4         :: i, mu, sigma
+    real(double), intent(in) :: fs_atom(s%nAtoms,realBZ%nkpt,7),fs_orb(nOrb,realBZ%nkpt,7),fs_total(realBZ%nkpt,7)
+    character(len=30)        :: formatvar
+    real(double)             :: kp(3)
+    integer*8                :: iz
+    integer*4                :: i, mu, sigma
 
-    write(formatvar,fmt="(a,i0,a)") '(',nOrb*4+3,'(es16.9,2x))'
+    write(formatvar,fmt="(a,i0,a)") '(',nOrb*7+3,'(es16.9,2x))'
 
     do iz = 1, realBZ%nkpt
       kp = realBZ%kp(1:3,iz)
       do i = 1, s%nAtoms
-        write(unit=17+i,fmt="(7(es16.9,2x))") kp(1), kp(2), kp(3), (fs_atom(i,iz,sigma),sigma=1,4)
+        write(unit=17+i,fmt="(10(es16.9,2x))") kp(1), kp(2), kp(3), (fs_atom(i,iz,sigma),sigma=1,7)
       end do
 
-      write(unit=96,fmt=formatvar) kp(1), kp(2), kp(3),( (fs_orb(mu,iz,sigma),mu=1,nOrb),sigma=1,4)
-      write(unit=97,fmt="(7(es16.9,2x))") kp(1), kp(2), kp(3),(fs_total(iz,sigma),sigma=1,4)
+      write(unit=96,fmt=formatvar) kp(1), kp(2), kp(3),( (fs_orb(mu,iz,sigma),mu=1,nOrb),sigma=1,7)
+      write(unit=97,fmt="(10(es16.9,2x))") kp(1), kp(2), kp(3),(fs_total(iz,sigma),sigma=1,7)
     end do
   end subroutine writeFS
 

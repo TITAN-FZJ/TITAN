@@ -207,7 +207,7 @@ contains
 
     ! Defining and opening file:
     write(output%unit,"('[write_initial_Uterms] Writing initial densities of ""',a,'"" to file:')") trim(sys0%Name)
-    write(filename,"('./results/FSOC/selfconsistency/initialrho_',a,'_dfttype=',a,'_parts=',i0,a,'.dat')") trim(sys0%Types(1)%Name), dfttype, parts,trim(output%info)
+    write(filename,"('./results/FSOC/selfconsistency/initialrho_',a,'_dfttype=',a,'_parts=',i0,a,a,'.dat')") trim(sys0%Types(1)%Name),dfttype,parts,trim(output%info),trim(output%suffix)
     write(output%unit,"('[write_initial_Uterms] ',a)") trim(filename)
     open (unit=98,status='replace',file=filename)
 
@@ -241,7 +241,7 @@ contains
 
     success = .false.
 
-    write(filename,"('./results/FSOC/selfconsistency/initialrho_',a,'_dfttype=',a,'_parts=',i0,a,'.dat')") trim(sys0%Types(1)%Name), dfttype, parts,trim(output%info)
+    write(filename,"('./results/FSOC/selfconsistency/initialrho_',a,'_dfttype=',a,'_parts=',i0,a,a,'.dat')") trim(sys0%Types(1)%Name),dfttype, parts,trim(output%info),trim(output%suffix)
     open(unit=97,file=filename,status="old",iostat=err)
     if(err/=0) return
 

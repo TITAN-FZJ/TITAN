@@ -11,9 +11,9 @@
 !===============================================================================!
 !                               SYSTEM VARIABLES                                !
 ! System dimension: (1,2,3)
--> sysdim = 3
+-> sysdim = #DIM#
 ! Lattice and surface direction:                                                !
--> nn_stages = 2
+-> nn_stages = #NNSTAGES#
 ! Small imaginary part of the Green function:
 -> eta = #ETA#
 !===============================================================================!

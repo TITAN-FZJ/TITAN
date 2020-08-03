@@ -891,6 +891,7 @@ contains
     use mod_magnet
     use mod_System,            only: System, n0sc1, n0sc2
     use mod_BrillouinZone,     only: BZ => realBZ
+    use mod_fermi_surface,     only: lfs_loop, fs_energy_i, fs_energy_f, fs_energy_npts
     use mod_SOC,               only: SOC, socscale
     use EnergyIntegration,     only: parts, parts3, n1gl, n3gl
     use ElectricField,         only: ElectricFieldMode, ElectricFieldVector, EFt, EFp
@@ -918,30 +919,30 @@ contains
     !    write(output%unit_loop,"('Orthogonal basis')")
     ! end select dft_type
     if(SOC) then
-       write(output%unit_loop,"(1x,'Spin Orbit Coupling: ACTIVATED')")
-       write(output%unit_loop,"(5x,'socscale =',es9.2)") socscale
+      write(output%unit_loop,"(1x,'Spin Orbit Coupling: ACTIVATED')")
+      write(output%unit_loop,"(5x,'socscale =',es9.2)") socscale
     else
-       write(output%unit_loop,"(1x,'Spin Orbit Coupling: DEACTIVATED')")
+      write(output%unit_loop,"(1x,'Spin Orbit Coupling: DEACTIVATED')")
     end if
 
     write(output%unit_loop,"(1x,'Electric field direction: ')", advance='no')
     select case(ElectricFieldMode)
     case(-3)
-       write(output%unit_loop,"('Spherical theta=',f7.3,' phi=',f7.3)") EFt, EFp
+      write(output%unit_loop,"('Spherical theta=',f7.3,' phi=',f7.3)") EFt, EFp
     case(-2)
-       write(output%unit_loop,"('Bravais ')")
+      write(output%unit_loop,"('Bravais ')")
     case(-1)
-       write(output%unit_loop,"('Cartesian')")
+      write(output%unit_loop,"('Cartesian')")
     case(1:99)
-       write(output%unit_loop, "('Neighbor ',i0)") ElectricFieldMode
+      write(output%unit_loop, "('Neighbor ',i0)") ElectricFieldMode
     end select
     write(output%unit_loop,"(1x,'Direction: ')", advance='no')
     write(output%unit_loop,"('E = (',f6.3,',',f6.3,',',f6.3,')')") (ElectricFieldVector(i), i=1,3)
     if(renorm) then
-       write(output%unit_loop,"(1x,'Current renormalization: ACTIVATED')")
-       write(output%unit_loop,"(5x,'renormnb = ',i0)") renormnb
+      write(output%unit_loop,"(1x,'Current renormalization: ACTIVATED')")
+      write(output%unit_loop,"(5x,'renormnb = ',i0)") renormnb
     else
-       write(output%unit_loop,"(1x,'Current renormalization: DEACTIVATED')")
+      write(output%unit_loop,"(1x,'Current renormalization: DEACTIVATED')")
     end if
     write(output%unit_loop,"(9x,'nkpt = ',i0,' : ',i0,' x ',i0,' x ',i0)") BZ%nkpt, BZ%nkpt_x, BZ%nkpt_y, BZ%nkpt_z
     if(minimumBZmesh/=1000) write(output%unit_loop,"(9x,'minimumBZmesh = ',i0)") minimumBZmesh
@@ -949,78 +950,86 @@ contains
     write(output%unit_loop,"(7x,'parts3 = ',i0,'x',i0)") parts3,n3gl
     write(output%unit_loop,"(10x,'eta =',es9.2)") eta
     if(lsuperCond) then
-       write(output%unit_loop,"(1x,'Superconductivity: ACTIVATED')")
+      write(output%unit_loop,"(1x,'Superconductivity: ACTIVATED')")
     else
-       write(output%unit_loop,"(1x,'Superconductivity: DEACTIVATED')")
+      write(output%unit_loop,"(1x,'Superconductivity: DEACTIVATED')")
     end if
 
     if(lfield) then
-       write(output%unit_loop,"(1x,'Static magnetic field: ACTIVATED')")
-       write(output%unit_loop,"(10x,'hwx =',es9.2,5x,'|',5x,'hwa =',es9.2)") hwx,hw_list(hw_count,1)
-       write(output%unit_loop,"(10x,'hwy =',es9.2,5x,'|',5x,'hwt =',f7.2)") hwy,hw_list(hw_count,2)
-       write(output%unit_loop,"(10x,'hwz =',es9.2,5x,'|',5x,'hwp =',f7.2)") hwz,hw_list(hw_count,3)
+      write(output%unit_loop,"(1x,'Static magnetic field: ACTIVATED')")
+      write(output%unit_loop,"(10x,'hwx =',es9.2,5x,'|',5x,'hwa =',es9.2)") hwx,hw_list(hw_count,1)
+      write(output%unit_loop,"(10x,'hwy =',es9.2,5x,'|',5x,'hwt =',f7.2)") hwy,hw_list(hw_count,2)
+      write(output%unit_loop,"(10x,'hwz =',es9.2,5x,'|',5x,'hwp =',f7.2)") hwz,hw_list(hw_count,3)
     else
-       write(output%unit_loop,"(1x,'Static magnetic field: DEACTIVATED')")
+      write(output%unit_loop,"(1x,'Static magnetic field: DEACTIVATED')")
     end if
     if(runoptions/="") write(output%unit_loop,"(6x,'Activated options:',/,4x,a)") trim(runoptions)
 
     write(output%unit_loop,"('|------------------------------ TO CALCULATE: ------------------------------|')")
     write_itype: select case (itype)
     case (0)
-       write(output%unit_loop,"(1x,'Test before SC')")
-       write(output%unit_loop,"(8x,'n0sc1 = ',i0)") n0sc1
-       write(output%unit_loop,"(8x,'n0sc2 = ',i0)") n0sc2
-       write(output%unit_loop,"(9x,'emin =',es9.2)") emin
-       write(output%unit_loop,"(9x,'emax =',es9.2)") emax
-       write(output%unit_loop,"(1x,'Number of points to calculate: ',i0)") nEner1
+      write(output%unit_loop,"(1x,'Test before SC')")
+      write(output%unit_loop,"(8x,'n0sc1 = ',i0)") n0sc1
+      write(output%unit_loop,"(8x,'n0sc2 = ',i0)") n0sc2
+      write(output%unit_loop,"(9x,'emin =',es9.2)") emin
+      write(output%unit_loop,"(9x,'emax =',es9.2)") emax
+      write(output%unit_loop,"(1x,'Number of points to calculate: ',i0)") nEner1
     case (1)
-       write(output%unit_loop,"(1x,'Self-consistency only')")
+      write(output%unit_loop,"(1x,'Self-consistency only')")
     case (2)
-       write(output%unit_loop,"(1x,'Test after SC')")
-       write(output%unit_loop,"(8x,'n0sc1 = ',i0)") n0sc1
-       write(output%unit_loop,"(8x,'n0sc2 = ',i0)") n0sc2
-       write(output%unit_loop,"(9x,'emin =',es9.2)") emin
-       write(output%unit_loop,"(9x,'emax =',es9.2)") emax
-       write(output%unit_loop,"(1x,'Number of points to calculate: ',i0)") nEner1
+      write(output%unit_loop,"(1x,'Test after SC')")
+      write(output%unit_loop,"(8x,'n0sc1 = ',i0)") n0sc1
+      write(output%unit_loop,"(8x,'n0sc2 = ',i0)") n0sc2
+      write(output%unit_loop,"(9x,'emin =',es9.2)") emin
+      write(output%unit_loop,"(9x,'emax =',es9.2)") emax
+      write(output%unit_loop,"(1x,'Number of points to calculate: ',i0)") nEner1
     case (3)
-       write(output%unit_loop,"(1x,'LDOS and exchange interactions as a function of energy')")
-       write(output%unit_loop,"(9x,'emin =',es9.2)") emin
-       write(output%unit_loop,"(9x,'emax =',es9.2)") emax
-       write(output%unit_loop,"(1x,'Number of points to calculate: ',i0)") nEner1
+      write(output%unit_loop,"(1x,'LDOS and exchange interactions as a function of energy')")
+      write(output%unit_loop,"(9x,'emin =',es9.2)") emin
+      write(output%unit_loop,"(9x,'emax =',es9.2)") emax
+      write(output%unit_loop,"(1x,'Number of points to calculate: ',i0)") nEner1
     case (4)
-       write(output%unit_loop,"(1x,'Band structure')")
-       write(output%unit_loop,"(2x,'Path along BZ: ',10(a,1x))") (trim(adjustl(bands(i))), i = 1,band_cnt)
-       write(output%unit_loop,"(2x,'Number of wave vectors to calculate: ',i0)") nQvec1
+      write(output%unit_loop,"(1x,'Band structure')")
+      write(output%unit_loop,"(2x,'Path along BZ: ',10(a,1x))") (trim(adjustl(bands(i))), i = 1,band_cnt)
+      write(output%unit_loop,"(2x,'Number of wave vectors to calculate: ',i0)") nQvec1
     case (5)
-       write(output%unit_loop,"(1x,'Charge and spin density at Fermi surface')")
+      if(lfs_loop) then
+        write(output%unit_loop,"(1x,'Charge, spin and orbital density at energy surface')")
+        write(output%unit_loop,"(9x,'emin =',es9.2)") fs_energy_i
+        write(output%unit_loop,"(9x,'emax =',es9.2)") fs_energy_f
+        write(output%unit_loop,"(1x,'Number of points to calculate: ',i0)") fs_energy_npts
+      else
+        write(output%unit_loop,"(1x,'Charge, spin and orbital density at Fermi surface')")
+      end if
+
     case (6)
-       write(output%unit_loop,"(1x,'Exhange interactions and anisotropies (full tensor)')")
-       if(s%nAtoms==1) write(output%unit_loop,"(1x,'Only 1 atom in the unit cell: calculating only anisotropies')")
-       !write(outputunit_loop,"(8x,'from Npl = ',i0,' to ',i0)") Npl_i,Npl_f
+      write(output%unit_loop,"(1x,'Exhange interactions and anisotropies (full tensor)')")
+      if(s%nAtoms==1) write(output%unit_loop,"(1x,'Only 1 atom in the unit cell: calculating only anisotropies')")
+      !write(outputunit_loop,"(8x,'from Npl = ',i0,' to ',i0)") Npl_i,Npl_f
     case (7)
-       write(output%unit_loop,"(1x,'Local susceptibility as a function of energy')")
-       write(output%unit_loop,"(2x,'Path along BZ: ',10(a,1x))") (trim(adjustl(bands(i))), i = 1,band_cnt)
-       write(output%unit_loop,"(2x,'Number of wave vectors to calculate: ',i0)") nQvec1
-       write(output%unit_loop,"(9x,'emin =',es9.2)") emin
-       write(output%unit_loop,"(9x,'emax =',es9.2)") emax
-       !write(output%unit_loop,"(1x,i0,' points divided into ',i0,' steps of size',es10.3,' each calculating ',i0,' points')") nEner1,MPIsteps,MPIdelta,MPIpts
+      write(output%unit_loop,"(1x,'Local susceptibility as a function of energy')")
+      write(output%unit_loop,"(2x,'Path along BZ: ',10(a,1x))") (trim(adjustl(bands(i))), i = 1,band_cnt)
+      write(output%unit_loop,"(2x,'Number of wave vectors to calculate: ',i0)") nQvec1
+      write(output%unit_loop,"(9x,'emin =',es9.2)") emin
+      write(output%unit_loop,"(9x,'emax =',es9.2)") emax
+      !write(output%unit_loop,"(1x,i0,' points divided into ',i0,' steps of size',es10.3,' each calculating ',i0,' points')") nEner1,MPIsteps,MPIdelta,MPIpts
     case (8)
-       write(output%unit_loop,"(1x,'Parallel currents, disturbances and local susc. as a function of energy')")
-       write(output%unit_loop,"(8x,'n0sc1 = ',i0)") n0sc1
-       write(output%unit_loop,"(8x,'n0sc2 = ',i0)") n0sc2
-       write(output%unit_loop,"(9x,'emin =',es9.2)") emin
-       write(output%unit_loop,"(9x,'emax =',es9.2)") emax
-       !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps of energy size',es10.3,' each calculating ',i0,' points')") total_hw_npt1*nEner1,MPIsteps*MPIsteps_hw,MPIdelta,MPIpts_hw*MPIpts
+      write(output%unit_loop,"(1x,'Parallel currents, disturbances and local susc. as a function of energy')")
+      write(output%unit_loop,"(8x,'n0sc1 = ',i0)") n0sc1
+      write(output%unit_loop,"(8x,'n0sc2 = ',i0)") n0sc2
+      write(output%unit_loop,"(9x,'emin =',es9.2)") emin
+      write(output%unit_loop,"(9x,'emax =',es9.2)") emax
+      !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps of energy size',es10.3,' each calculating ',i0,' points')") total_hw_npt1*nEner1,MPIsteps*MPIsteps_hw,MPIdelta,MPIpts_hw*MPIpts
     case (9)
-       write(output%unit_loop,"(1x,'dc limit calculations as a function of ',a)") trim(dcfield(dcfield_dependence))
-       write(output%unit_loop,"(1x,'e =',es9.2)") emin
-       write(output%unit_loop,"(1x,'hwa_min =',es9.2)") hw_list(1,1)
-       write(output%unit_loop,"(1x,'hwa_max =',es9.2)") hw_list(total_hw_npt1,1)
-       write(output%unit_loop,"(1x,'hwt_min =',f7.2)") hw_list(1,2)
-       write(output%unit_loop,"(1x,'hwt_max =',f7.2)") hw_list(total_hw_npt1,2)
-       write(output%unit_loop,"(1x,'hwp_min =',f7.2)") hw_list(1,3)
-       write(output%unit_loop,"(1x,'hwp_max =',f7.2)") hw_list(total_hw_npt1,3)
-       !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps, each calculating ',i0,' points')") total_hw_npt1*nEner1,MPIsteps*MPIsteps_hw,MPIpts_hw*MPIpts
+      write(output%unit_loop,"(1x,'dc limit calculations as a function of ',a)") trim(dcfield(dcfield_dependence))
+      write(output%unit_loop,"(1x,'e =',es9.2)") emin
+      write(output%unit_loop,"(1x,'hwa_min =',es9.2)") hw_list(1,1)
+      write(output%unit_loop,"(1x,'hwa_max =',es9.2)") hw_list(total_hw_npt1,1)
+      write(output%unit_loop,"(1x,'hwt_min =',f7.2)") hw_list(1,2)
+      write(output%unit_loop,"(1x,'hwt_max =',f7.2)") hw_list(total_hw_npt1,2)
+      write(output%unit_loop,"(1x,'hwp_min =',f7.2)") hw_list(1,3)
+      write(output%unit_loop,"(1x,'hwp_max =',f7.2)") hw_list(total_hw_npt1,3)
+      !write(outputunit_loop,"(1x,i0,' points divided into ',i0,' steps, each calculating ',i0,' points')") total_hw_npt1*nEner1,MPIsteps*MPIsteps_hw,MPIpts_hw*MPIpts
     case (11)
       write(output%unit_loop, fmt="('Time propagation:')" )
 

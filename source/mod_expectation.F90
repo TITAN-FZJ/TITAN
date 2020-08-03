@@ -576,22 +576,22 @@ contains
     gf = cZero
     !$omp do schedule(dynamic) reduction(+:gupgd)
     do ix = 1, local_points
-        kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
-        ep = y(E_k_imag_mesh(1,ix))
-        weight = bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix)) * wght(E_k_imag_mesh(1,ix))
-        !Green function on energy Ef + iy, and wave vector kp
-        call green(s%Ef,ep+eta,s,kp,gf)
+      kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
+      ep = y(E_k_imag_mesh(1,ix))
+      weight = bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix)) * wght(E_k_imag_mesh(1,ix))
+      !Green function on energy Ef + iy, and wave vector kp
+      call green(s%Ef,ep+eta,s,kp,gf)
 
-        do i=1,s%nAtoms
-          do mu=1,nOrb
-            mup = mu+nOrb
-            do nu=1,nOrb
-              nup = nu+nOrb
-              gupgd(mu,nu,i) = gupgd(mu,nu,i) + (gf(mu,nu,i,i) + gf(mup,nup,i,i)) * weight
-            end do
-          end do
-        end do
-      end do
+      site_i: do i=1,s%nAtoms
+        orb_mu: do mu=1,nOrb
+          mup = mu+nOrb
+          orb_nu: do nu=1,nOrb
+            nup = nu+nOrb
+            gupgd(mu,nu,i) = gupgd(mu,nu,i) + (gf(mu,nu,i,i) + gf(mup,nup,i,i)) * weight
+          end do orb_nu
+        end do orb_mu
+      end do site_i
+    end do
     !$omp end do
 
     deallocate(gf)
@@ -610,12 +610,12 @@ contains
     do nu=5,9
       do mu=5,9
         do i=1,s%nAtoms
-          lxpm(i) = lxpm(i) + real(lxp(mu,nu,i)*gupgd(nu,mu,i))
-          lypm(i) = lypm(i) + real(lyp(mu,nu,i)*gupgd(nu,mu,i))
-          lzpm(i) = lzpm(i) + real(lzp(mu,nu,i)*gupgd(nu,mu,i))
-          lxm (i) = lxm (i) + real(lx (mu,nu  )*gupgd(nu,mu,i))
-          lym (i) = lym (i) + real(ly (mu,nu  )*gupgd(nu,mu,i))
-          lzm (i) = lzm (i) + real(lz (mu,nu  )*gupgd(nu,mu,i))
+          lxpm(i) = lxpm(i) + real( lxp(mu,nu,i)*gupgd(nu,mu,i) )
+          lypm(i) = lypm(i) + real( lyp(mu,nu,i)*gupgd(nu,mu,i) )
+          lzpm(i) = lzpm(i) + real( lzp(mu,nu,i)*gupgd(nu,mu,i) )
+          lxm (i) = lxm (i) + real( lx (mu,nu  )*gupgd(nu,mu,i) )
+          lym (i) = lym (i) + real( ly (mu,nu  )*gupgd(nu,mu,i) )
+          lzm (i) = lzm (i) + real( lz (mu,nu  )*gupgd(nu,mu,i) )
         end do
       end do
     end do
