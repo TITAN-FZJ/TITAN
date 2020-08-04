@@ -1110,7 +1110,7 @@ contains
         write(output%unit_loop,"(a,':',6x,' N(',i4.0,') =',f11.8,4x,' M(',i4.0,') =',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,sum(rho(:,i)),i,mvec_spherical(1,i)
       end do
     end if
-    write(output%unit_loop,"('|----------===================== (',i3,' iterations ) =====================----------|')") iter
+    write(output%unit_loop,"('|----------===================== (',i4.0,' iterations ) =====================----------|')") iter
   end subroutine print_sc_results
 
 
