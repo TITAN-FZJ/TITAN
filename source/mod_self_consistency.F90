@@ -1064,50 +1064,50 @@ contains
     write(output%unit_loop,"(28x,'Ef=',f11.8)") s%Ef
     write(output%unit_loop,"(11x,' *************** Charge density: ****************')")
     do i=1,s%nAtoms
-      write(output%unit_loop,"(a,':',2x,'Ns(',i2.0,')=',f11.8,4x,'Np(',i2.0,')=',f11.8,4x,'Nd(',i2.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i, rho(1,i),i, sum(rho(2:4,i)),i, sum(rho(5:9,i))
+      write(output%unit_loop,"(a,':',2x,'Ns(',i4.0,')=',f11.8,4x,'Np(',i4.0,')=',f11.8,4x,'Nd(',i4.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i, rho(1,i),i, sum(rho(2:4,i)),i, sum(rho(5:9,i))
     end do
     if(lsupercond) then
         write(output%unit_loop,"(11x,' ******** Superconducting gap parameter: ********')")
         write(output%unit_loop,"(11x,' *** (Averages of the norms per orbital type) ***')")
         do i=1,s%nAtoms
-          write(output%unit_loop,"(a,':',2x,'Ds(',i2.0,')=',f11.8,4x,'Dp(',i2.0,')=',f11.8,4x,'Dd(',i2.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i, singlet_coupling(1,i),i, sum(singlet_coupling(2:4,i))/3.0,i, sum(singlet_coupling(5:9,i))/5.0
+          write(output%unit_loop,"(a,':',2x,'Ds(',i4.0,')=',f11.8,4x,'Dp(',i4.0,')=',f11.8,4x,'Dd(',i4.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i, singlet_coupling(1,i),i, sum(singlet_coupling(2:4,i))/3.0,i, sum(singlet_coupling(5:9,i))/5.0
         end do
     end if
     write(output%unit_loop,"(11x,' *********** Magnetization components: **********')")
     if(abs(sum(mp(:,:)))>1.d-8) then
       do i=1,s%nAtoms
-        write(output%unit_loop,"(a,':',2x,'Mx(',i2.0,')=',f11.8,4x,'My(',i2.0,')=',f11.8,4x,'Mz(',i2.0,')=',f11.8,4x,'theta = ',f11.6,4x,'phi = ',f11.6)") trim(s%Types(s%Basis(i)%Material)%Name),i,mvec_cartesian(1,i),i,mvec_cartesian(2,i),i,mvec_cartesian(3,i),mvec_spherical(2,i),mvec_spherical(3,i)
+        write(output%unit_loop,"(a,':',2x,'Mx(',i4.0,')=',f11.8,4x,'My(',i4.0,')=',f11.8,4x,'Mz(',i4.0,')=',f11.8,4x,'theta = ',f11.6,4x,'phi = ',f11.6)") trim(s%Types(s%Basis(i)%Material)%Name),i,mvec_cartesian(1,i),i,mvec_cartesian(2,i),i,mvec_cartesian(3,i),mvec_spherical(2,i),mvec_spherical(3,i)
       end do
     else
       do i=1,s%nAtoms
-        write(output%unit_loop,"(a,':',2x,'Mx(',i2.0,')=',f11.8,4x,'My(',i2.0,')=',f11.8,4x,'Mz(',i2.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,mvec_cartesian(1,i),i,mvec_cartesian(2,i),i,mvec_cartesian(3,i)
+        write(output%unit_loop,"(a,':',2x,'Mx(',i4.0,')=',f11.8,4x,'My(',i4.0,')=',f11.8,4x,'Mz(',i4.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,mvec_cartesian(1,i),i,mvec_cartesian(2,i),i,mvec_cartesian(3,i)
       end do
     end if
     if((lGSL).or.(SOC)) then
       write(output%unit_loop,"(11x,' ****** Orbital components in global frame: *****')")
       if(sum(lxm(:)**2+lym(:)**2)>1.d-8) then
         do i=1,s%nAtoms
-          write(output%unit_loop,"(a,':',2x,'Lx(',i2.0,')=',f11.8,4x,'Ly(',i2.0,')=',f11.8,4x,'Lz(',i2.0,')=',f11.8,4x,'theta = ',f11.6,4x,'phi = ',f11.6)") trim(s%Types(s%Basis(i)%Material)%Name),i,lxm(i),i,lym(i),i,lzm(i),ltheta(i),lphi(i)
+          write(output%unit_loop,"(a,':',2x,'Lx(',i4.0,')=',f11.8,4x,'Ly(',i4.0,')=',f11.8,4x,'Lz(',i4.0,')=',f11.8,4x,'theta = ',f11.6,4x,'phi = ',f11.6)") trim(s%Types(s%Basis(i)%Material)%Name),i,lxm(i),i,lym(i),i,lzm(i),ltheta(i),lphi(i)
         end do
       else
         do i=1,s%nAtoms
-          write(output%unit_loop,"(a,':',2x,'Lx(',i2.0,')=',f11.8,4x,'Ly(',i2.0,')=',f11.8,4x,'Lz(',i2.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,lxm(i),i,lym(i),i,lzm(i)
+          write(output%unit_loop,"(a,':',2x,'Lx(',i4.0,')=',f11.8,4x,'Ly(',i4.0,')=',f11.8,4x,'Lz(',i4.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,lxm(i),i,lym(i),i,lzm(i)
         end do
       end if
       ! write(output%unit_loop,"(11x,' *** Orbital components in local frame:  ***')")
       ! do i=1,s%nAtoms
-      !   write(output%unit_loop,"(4x,'Lxp(',i2.0,')=',f11.8,4x,'Lyp(',i2.0,')=',f11.8,4x,'Lzp(',i2.0,')=',f11.8)") i,lxpm(i),i,lypm(i),i,lzpm(i)
+      !   write(output%unit_loop,"(4x,'Lxp(',i4.0,')=',f11.8,4x,'Lyp(',i4.0,')=',f11.8,4x,'Lzp(',i4.0,')=',f11.8)") i,lxpm(i),i,lypm(i),i,lzpm(i)
       !   if(sqrt(lxpm(i)**2+lypm(i)**2)/=0) &
       !   write(output%unit_loop,"(12x,'theta = ',f11.6,'  ',4x,'phi = ',f11.6)") lptheta(i),lpphi(i)
       ! end do
       write(output%unit_loop,"(11x,' ******************** Total: ********************')")
       do i=1,s%nAtoms
-        write(output%unit_loop,"(a,':',2x,' N(',i2.0,')=',f11.8,4x,' M(',i2.0,')=',f11.8,4x,' L(',i2.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,sum(rho(:,i)),i,mvec_spherical(1,i),i,labs(i)
+        write(output%unit_loop,"(a,':',2x,' N(',i4.0,')=',f11.8,4x,' M(',i4.0,')=',f11.8,4x,' L(',i4.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,sum(rho(:,i)),i,mvec_spherical(1,i),i,labs(i)
       end do
     else
       write(output%unit_loop,"(11x,' ******************** Total: ********************')")
       do i=1,s%nAtoms
-        write(output%unit_loop,"(a,':',6x,' N(',i2.0,') =',f11.8,4x,' M(',i2.0,') =',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,sum(rho(:,i)),i,mvec_spherical(1,i)
+        write(output%unit_loop,"(a,':',6x,' N(',i4.0,') =',f11.8,4x,' M(',i4.0,') =',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,sum(rho(:,i)),i,mvec_spherical(1,i)
       end do
     end if
     write(output%unit_loop,"('|----------===================== (',i3,' iterations ) =====================----------|')") iter
@@ -1173,25 +1173,25 @@ contains
             fvecsum = fvecsum + fvec((i-1)*8+(mu-4))
           end do
           if(abs(cmplx(mx(i),my(i),double))>1.d-15) then
-            write(output%unit_loop,"('Site ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mx(i),i,my(i),i,mz(i)
-            write(output%unit_loop,"(15x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvecsum,(i-1)*8+6,fvec((i-1)*8+6),(i-1)*8+7,fvec((i-1)*8+7),(i-1)*8+8,fvec((i-1)*8+8)
+            write(output%unit_loop,"('Site ',i4,': N(',i4,')=',es16.9,4x,'Mx(',i4,')=',es16.9,4x,'My(',i4,')=',es16.9,4x,'Mz(',i4,')=',es16.9)") i,i,n(i),i,mx(i),i,my(i),i,mz(i)
+            write(output%unit_loop,"(15x,'fvec(',i4,')=',es16.9,2x,'fvec(',i4,')=',es16.9,2x,'fvec(',i4,')=',es16.9,2x,'fvec(',i4,')=',es16.9)") i,fvecsum,(i-1)*8+6,fvec((i-1)*8+6),(i-1)*8+7,fvec((i-1)*8+7),(i-1)*8+8,fvec((i-1)*8+8)
           else
-            write(output%unit_loop,"('Site ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mz(i)
-            write(output%unit_loop,"(15x,'fvec(',I2,')=',es16.9,2x,'fvec(',I2,')=',es16.9)") i,fvecsum,(i-1)*8+8,fvec((i-1)*8+8)
+            write(output%unit_loop,"('Site ',i4,': N(',i4,')=',es16.9,4x,'Mz(',i4,')=',es16.9)") i,i,n(i),i,mz(i)
+            write(output%unit_loop,"(15x,'fvec(',i4,')=',es16.9,2x,'fvec(',i4,')=',es16.9)") i,fvecsum,(i-1)*8+8,fvec((i-1)*8+8)
           end if
         end do
         write(output%unit_loop,"(13x,'Ef=',es16.9)") Ef
-        write(output%unit_loop,"(15x,'fvec(',I2,')=',es16.9)") neq,fvec(neq)
+        write(output%unit_loop,"(15x,'fvec(',i4,')=',es16.9)") neq,fvec(neq)
       else if(iter == 0) then
         write(output%unit_loop,"('|---------------- Starting charge density, magnetization and Ef ----------------|')")
         do i=1,s%nAtoms
           if(abs(cmplx(mx(i),my(i),double))>1.d-15) then
-            write(output%unit_loop,"('Site ',I2,': N(',I2,')=',es16.9,4x,'Mx(',I2,')=',es16.9,4x,'My(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mx(i),i,my(i),i,mz(i)
+            write(output%unit_loop,"('Site ',i4,': N(',i4,')=',es16.9,4x,'Mx(',i4,')=',es16.9,4x,'My(',i4,')=',es16.9,4x,'Mz(',i4,')=',es16.9)") i,i,n(i),i,mx(i),i,my(i),i,mz(i)
           else
-            write(output%unit_loop,"('Site ',I2,': N(',I2,')=',es16.9,4x,'Mz(',I2,')=',es16.9)") i,i,n(i),i,mz(i)
+            write(output%unit_loop,"('Site ',i4,': N(',i4,')=',es16.9,4x,'Mz(',i4,')=',es16.9)") i,i,n(i),i,mz(i)
           end if
           if(lsuperCond) then
-            write(output%unit_loop,"('Site ',I2,': Deltas =',9(es14.7,2x))") i,(singlet_coupling(mu,i),mu=1,nOrb)
+            write(output%unit_loop,"('Site ',i4,': Deltas =',9(es14.7,2x))") i,(singlet_coupling(mu,i),mu=1,nOrb)
           end if
         end do
         write(output%unit_loop,"(13x,'Ef=',es16.9)") Ef

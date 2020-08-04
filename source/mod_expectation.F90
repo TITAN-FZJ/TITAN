@@ -3,11 +3,6 @@
 module mod_expectation
   implicit none
 
-  !!!!!!!!!!!!!
-  logical :: flag = .true.
-  integer :: bandera = 0
-  !!!!!!!!!!!!!
-
 contains
   subroutine expectation_values_greenfunction(s,rho,mp,mx,my,mz)
     !! Calculates ground state (occupation and magnetization) quantities using the Green functions
@@ -200,28 +195,6 @@ contains
     call MPI_Allreduce(MPI_IN_PLACE, mz    , ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
     call MPI_Allreduce(MPI_IN_PLACE, mp    , ncount, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
     call MPI_Allreduce(MPI_IN_PLACE, deltas, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
-
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! This block is here to help testing the evolution of the charge density
-    ! when the supercell has more than one atom. It should be removed in
-    ! posterior versions. Once the superconductivity implementation is found to
-    ! be stable
-    !
-    !if(bandera == 0) then
-    !    write(*,*) "initial ", rho
-    !else
-    !    write(*,*) bandera, rho(1,1), rho(1,2), rho(1,3), rho(1,4), rho(1,2)-rho(1,1), rho(1,3)-rho(1,1), rho(1,4)-rho(1,1)
-    !end if
-    !
-    !bandera = bandera + 1
-    !
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    !!Uncomment this block to see the development of the charge and the gap
-    ! write(*,*) "deltas = ", deltas
-    ! stop
-    ! write(*,*) rho
 
     mx = real(mp)
     my = aimag(mp)
