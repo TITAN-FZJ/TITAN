@@ -216,6 +216,7 @@ contains
     use mod_system,      only: System
     use mod_parameters,  only: dimH
     use mod_RK_matrices, only: id
+    use mod_hamiltonian, only: hamiltk
     implicit none
     type(System),    intent(in)  :: s
     real(double),    intent(in)  :: t, eval

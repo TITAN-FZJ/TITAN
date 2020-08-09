@@ -8,7 +8,7 @@ subroutine band_structure(s)
   use mod_mpi_pars,          only: rField
   use mod_superconductivity, only: superCond, hamiltk_sc, lsuperCond
   use mod_io,                only: write_header
-
+  use mod_hamiltonian,       only: hamiltk
   implicit none
   type(System), intent(in) :: s
   integer :: i, info, count, f_unit=666, n

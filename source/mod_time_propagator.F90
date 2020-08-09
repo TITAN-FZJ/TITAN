@@ -19,6 +19,7 @@ contains
     use mod_magnet,            only: rhod0,rho0
     use mod_tools,             only: KronProd
     use mod_superconductivity, only: allocate_supercond_variables
+    use mod_hamiltonian,       only: hamiltk
     use mod_mpi_pars
     implicit none
     type(System), intent(in)   :: s

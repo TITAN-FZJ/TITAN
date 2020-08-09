@@ -132,6 +132,7 @@ contains
     use mod_tools,             only: itos
     use mod_superconductivity, only: lsuperCond, superCond, hamiltk_sc, green_sc, print_hamilt
     use mod_constants,         only: cZero
+    use mod_hamiltonian,       only: hamiltk
     use mod_mpi_pars
 
     implicit none
@@ -687,6 +688,7 @@ contains
     use mod_distributions,     only: fd_dist
     use mod_tools,             only: itos
     use mod_superconductivity, only: lsuperCond
+    use mod_hamiltonian,       only: hamiltk
     use mod_mpi_pars
     implicit none
     integer*8                                      :: iz

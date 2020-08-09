@@ -48,6 +48,7 @@ contains
     use mod_parameters,     only: dimH
     use mod_system,         only: System, initHamiltkStride
     use mod_constants,      only: cZero,cOne
+    use mod_hamiltonian,    only: hamiltk
     implicit none
     type(System), intent(in)  :: sys
     real(double), intent(in)  :: kp(3)

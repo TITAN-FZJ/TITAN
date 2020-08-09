@@ -1,9 +1,10 @@
 ! Calculate green function (E - H)^-1
 subroutine green(er,ei,sys,kp,gf)
-  use mod_f90_kind,   only: double
-  use mod_constants,  only: cZero,cOne
-  use mod_System,     only: ia, System
-  use mod_parameters, only: nOrb2, offset
+  use mod_f90_kind,    only: double
+  use mod_constants,   only: cZero,cOne
+  use mod_System,      only: ia, System
+  use mod_parameters,  only: nOrb2, offset
+  use mod_hamiltonian, only: hamiltk
   implicit none
   integer     :: i,j,d
   real(double), intent(in) :: er,ei,kp(3)
@@ -37,11 +38,11 @@ end subroutine green
 
 ! Calculate green function (E - H)^-1 without SOC and the linear term G0.H_so.G0
 subroutine greenlinearsoc(er,ei,sys,kp,g0,g0vsocg0)
-  use mod_f90_kind,   only: double
-  use mod_constants,  only: cZero, cOne
-  use mod_parameters, only: nOrb2, offset
-  use mod_System,     only: ia, System
-  !use mod_magnet, only:
+  use mod_f90_kind,    only: double
+  use mod_constants,   only: cZero, cOne
+  use mod_parameters,  only: nOrb2, offset
+  use mod_System,      only: ia, System
+  use mod_hamiltonian, only: hamiltklinearsoc
   implicit none
   integer     :: i,j,d
   real(double), intent(in) :: er,ei,kp(3)
@@ -79,10 +80,11 @@ end subroutine greenlinearsoc
 
 ! Calculate green function (E - H)^-1 with linear SOC: G = G0+G0.H_so.G0
 subroutine greenlineargfsoc(er,ei,sys,kp,gf)
-  use mod_f90_kind,   only: double
-  use mod_constants,  only: cZero, cOne
-  use mod_parameters, only: nOrb2, offset
-  use mod_System,     only: ia, System
+  use mod_f90_kind,    only: double
+  use mod_constants,   only: cZero, cOne
+  use mod_parameters,  only: nOrb2, offset
+  use mod_System,      only: ia, System
+  use mod_hamiltonian, only: hamiltklinearsoc
   implicit none
   integer     :: i,j,d
   real(double), intent(in) :: er,ei,kp(3)
