@@ -23,7 +23,7 @@ subroutine band_structure(s)
 
   if(rField == 0) write(output%unit_loop,"('CALCULATING THE BAND STRUCTURE')")
 
-  write(bsfile,"('./results/',a1,'SOC/',a,'/BS/bandstructure_kdir=',a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(adjustl(kdirection)),trim(output%info),trim(output%BField),trim(output%SOC)
+  write(bsfile,"('./results/',a1,'SOC/',a,'/BS/bandstructure_kdir=',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(adjustl(kdirection)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
   open (unit=f_unit, file=bsfile, status='replace')
   call write_header(f_unit,"# dble((count-1.d0)*deltak), (eval(i),i=1,dimbs)",s%Ef)
 

@@ -22,29 +22,31 @@ contains
     use mod_f90_kind, only: double
     use AtomTypes,    only: NeighborIndex
     use mod_system,   only: System
-use mod_mpi_pars
     implicit none
     type(System), intent(inout) :: s
     integer,      intent(in)    :: fermi_layer
     integer,      intent(in)    :: nOrb
     integer                     :: i,j,k,l
     real(double), dimension(:,:), allocatable :: bp
-    real(double)                              :: scale_factor(2), mix(10,2)
+    real(double)                              :: scale_factor(2), mix(10,2), temp
     type(NeighborIndex), pointer              :: current
     real(double), dimension(10), parameter    :: expon = [1.0d0,3.0d0,3.0d0,5.0d0,5.0d0,5.0d0,2.0d0,3.0d0,4.0d0,4.0d0]
     nullify(current)
     allocate(bp(nOrb,nOrb))
 
+    ! Getting information from all the elements of "basis" in the element files
     do i = 1, s%nTypes
       call readElementFile(s%Types(i), s%nStages, nOrb, s%relTol)
     end do
 
+    ! Shifting all energies to a common Fermi level
     s%Ef = s%Types(fermi_layer)%FermiLevel
     do i = 1, s%nTypes
       do j = 1, nOrb
         s%Types(i)%onSite(j,j) = s%Types(i)%onSite(j,j) - s%Types(i)%FermiLevel + s%Ef
       end do
     end do
+
     ! Allocate & initialize Hopping variables
     do i = 1, s%nNeighbors
       allocate(s%Neighbors(i)%t0i(nOrb,nOrb,s%nAtoms))
@@ -53,14 +55,36 @@ use mod_mpi_pars
       s%Neighbors(i)%isHopping = .false.
     end do
 
+    ! Setting up hopping matrices between all neighbors of the elements in basis file
+    ! A mix (defaul: geometric; optional: simple average) between different elements is used
+    !
+    ! Scaling law by Andersen et al. O.K. Andersen, O. Jepsen, Physica 91B, 317 (1977); O.K. Andersen, W. Close. H. Nohl, Phys. Rev. B17, 1209 (1978)
+    ! Distance dependence of tight binding matrix elements is given by V = C * d^(-[l+l'+1])
+    ! e.g for ss hopping distance dependence is d^-1, for sp hopping d^-2
+    ! do mu = 1, nOrb
+    !   do nu = 1, nOrb
+    !     s%Neighbors(current%index)%t0i(mu,nu,i) = s%Neighbors(current%index)%t0i(mu,nu,i) * scale_factor ** (mu + nu + 1)
+    !   end do
+    ! end do
     do i = 1, s%nAtoms
       s%totalOccupation = s%totalOccupation + s%Types(s%Basis(i)%Material)%Occupation
       do j = 1, s%nAtoms
         do k = 1, s%nStages
           current => s%Basis(i)%NeighborList(k,j)%head
           do while(associated(current))
-            scale_factor(1) = s%Types(s%Basis(i)%Material)%stage(k,i) / s%Neighbors(current%index)%Distance(i)
-            scale_factor(2) = s%Types(s%Basis(j)%Material)%stage(k,i) / s%Neighbors(current%index)%Distance(i)
+            ! Getting the smallest scale factor from the atoms in element file
+            scale_factor = 0.d0
+            do l=1,s%Types(s%Basis(i)%Material)%nAtoms
+              if(s%Types(s%Basis(i)%Material)%lelement(l) == .false.) cycle
+              temp = s%Types(s%Basis(i)%Material)%stage(k,l) / s%Neighbors(current%index)%Distance(i)
+              if(abs(temp-1.d0) < abs(scale_factor(1)-1.d0) ) scale_factor(1) = temp
+            end do
+            do l=1,s%Types(s%Basis(j)%Material)%nAtoms
+              if(s%Types(s%Basis(j)%Material)%lelement(l) == .false.) cycle
+              temp = s%Types(s%Basis(j)%Material)%stage(k,l) / s%Neighbors(current%index)%Distance(i)
+              if(abs(temp-1.d0) < abs(scale_factor(2)-1.d0) ) scale_factor(2) = temp
+            end do
+
             do l = 1, 10
               mix(l,1) = s%Types(s%Basis(i)%Material)%Hopping(l,k) * scale_factor(1) ** expon(l)
               mix(l,2) = s%Types(s%Basis(j)%Material)%Hopping(l,k) * scale_factor(2) ** expon(l)
@@ -69,14 +93,6 @@ use mod_mpi_pars
                                     s%Neighbors(current%index)%dirCos(:,i), &
                                     mix(:,1), mix(:,2), nOrb)
             s%Neighbors(current%index)%isHopping(i) = .true.
-            ! Scaling law by Andersen et al. O.K. Andersen, O. Jepsen, Physica 91B, 317 (1977); O.K. Andersen, W. Close. H. Nohl, Phys. Rev. B17, 1209 (1978)
-            ! Distance dependence of tight binding matrix elements is given by V = C * d^(-[l+l'+1])
-            ! e.g for ss hopping distance dependence is d^-1, for sp hopping d^-2
-            ! do mu = 1, nOrb
-            !   do nu = 1, nOrb
-            !     s%Neighbors(current%index)%t0i(mu,nu,i) = s%Neighbors(current%index)%t0i(mu,nu,i) * scale_factor ** (mu + nu + 1)
-            !   end do
-            ! end do
             current => current%next
           end do
         end do
@@ -122,7 +138,6 @@ use mod_mpi_pars
     real(double),   intent(in)    :: relTol
     integer :: nTypes
     integer :: nn_stages
-    integer :: nAtoms
     integer,      dimension(:), allocatable :: iMaterial
     integer,      dimension(:), allocatable :: type_count
     real(double), dimension(3) :: dens
@@ -132,8 +147,8 @@ use mod_mpi_pars
     character(200) :: line
     character(50)  :: words(10)
     real(double), dimension(3,3) :: Bravais
-    real(double), dimension(9)   :: on_site
-    real(double), dimension(9)   :: tmp_arr
+    real(double), dimension(nOrb)   :: on_site
+    real(double), dimension(nOrb)   :: tmp_arr
     real(double), dimension(:,:), allocatable :: position
     real(double), dimension(:,:), allocatable :: localDistances
     type(NeighborAtom), dimension(:), allocatable :: list
@@ -178,23 +193,44 @@ use mod_mpi_pars
       nTypes = nTypes + 1
     end do
 
+    ! Reading name of elements
+    allocate(material%Types(nTypes))
+    j = 1
+    do i = 1, max_elements
+      if(str_arr(i)(1:1) == "!") exit
+      if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
+      material%Types(j) = str_arr(i)
+      if(trim(material%Types(j)) == trim(material%Name)) material%nAtomEl = material%nAtomEl + 1
+
+      j = j + 1
+    end do
+
+    select case(material%nAtomEl)
+    case(0)
+      call log_error("readElementFile", "Element " // trim(material%Name) // "not found in elemental file!")
+    case(2:)
+      call log_warning("readElementFile", "More than one instance of element " // trim(itos(i)) // "found in elemental file. Using the scale factor closest to 1.")
+    end select
+
+
     ! Read amount of atoms per element
     allocate(type_count(nTypes))
     read(f_unit, fmt='(A)', iostat=ios) line
     read(unit=line, fmt=*, iostat=ios) (type_count(i), i = 1, nTypes)
 
     ! Count number of atoms
-    nAtoms = sum(type_count(1:nTypes))
-    if(nAtoms <= 0) call abortProgram("[readElementFile] No basis atoms given!")
+    material%nAtoms = sum(type_count(1:nTypes))
+    if(material%nAtoms <= 0) call abortProgram("[readElementFile] No basis atoms given!")
 
     ! Read coordinate type
     read(f_unit, fmt='(A)', iostat=ios) line
     read(unit=line, fmt=*, iostat=ios) coord_type
-
-    allocate(imaterial(nAtoms))
+    allocate(imaterial(material%nAtoms),material%lelement(material%nAtoms))
+    material%lelement = .false.
 
     ! Read atom positions
-    allocate(position(3,nAtoms))
+    allocate(position(3,material%nAtoms))
+
     k = 0
     do i = 1, nTypes
       do j = 1, type_count(i)
@@ -202,6 +238,7 @@ use mod_mpi_pars
         if(ios /= 0) call abortProgram("[readElementFile] Not enough basis atoms given!")
         k = k + 1
         imaterial(k) = i
+        if(trim(material%Types(i)) == trim(material%Name)) material%lelement(k) = .true.
         read(unit=line, fmt=*, iostat=ios) (position(l,k), l=1,3)
         if(coord_type == 'C' .or. coord_type == 'c' .or. coord_type == 'K' .or. coord_type == 'k') then
           ! Position of atoms given in Cartesian coordinates
@@ -219,7 +256,7 @@ use mod_mpi_pars
 
     do i = 1, material%isysdim
       if(vec_norm(Bravais(:,i),3) <= 1.d-9) &
-        call log_warning("readElementFile", "Bravais vector a" // trim(itos(i)) // "not given.")
+        call log_error("readElementFile", "Bravais vector a" // trim(itos(i)) // "not given.")
     end do
 
     ! Read Fermi level
@@ -264,7 +301,7 @@ use mod_mpi_pars
     read(unit=f_unit, fmt='(A)', iostat=ios) line
     read(unit=line, fmt=*, iostat=ios) (str_arr(i), i=1,9)
     cnt = 0
-    do i = 1, 9
+    do i = 1, nOrb
       if(str_arr(i)(1:1) == "!") exit
       if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
       cnt = cnt + 1
@@ -357,7 +394,7 @@ use mod_mpi_pars
 
       ! Setting up on-site terms
       material%onSite = 0.d0
-      do j=1,9
+      do j=1,nOrb
         material%onSite(j,j) = on_site(j)
       end do
 
@@ -380,18 +417,18 @@ use mod_mpi_pars
     nCells = (2*nStages+1)**(material%isysdim)
 
     ! Allocate array for nn distances known to the system
-    allocate(material%stage(nStages, nAtoms))
+    allocate(material%stage(nStages, material%nAtoms))
     ! Allocate array for all atoms in all unit cells
-    allocate(list(nCells*nAtoms))
+    allocate(list(nCells*material%nAtoms))
 
-    allocate( localDistances(nCells * nAtoms, nAtoms))
+    allocate( localDistances(nCells * material%nAtoms, material%nAtoms))
 
     size = 0
 
     localDistances = 1.d+12
     material%stage = 1.d+12
     do i = 1, nCells
-      do j = 1, nAtoms
+      do j = 1, material%nAtoms
         size = size + 1
 
         ! Determine unit-cell indices
@@ -420,11 +457,11 @@ use mod_mpi_pars
         list(size)%Material = imaterial(j)
 
         ! Allocate arrays for distances and directional cosines to all atoms in the central unit cell
-        allocate(list(size)%Distance(nAtoms))
-        allocate(list(size)%dirCos(3,nAtoms))
+        allocate(list(size)%Distance(material%nAtoms))
+        allocate(list(size)%dirCos(3,material%nAtoms))
 
         ! Calculate distances and directional cosines
-        do k = 1, nAtoms
+        do k = 1, material%nAtoms
           list(size)%Distance(k) = vecDist(list(size)%Position, position(:,k))
           list(size)%dirCos(:,k) = 0.d0
           if(list(size)%Distance(k) <= 1.d-9) cycle
@@ -445,7 +482,7 @@ use mod_mpi_pars
     end do
 
     material%stage(1,:) = localDistances(1,:)
-    do j = 1, nAtoms
+    do j = 1, material%nAtoms
       l = 1
       do i = 2, size
         if(abs(localDistances(i,j) - material%stage(l,j)) < material%stage(1,j) * relTol) cycle

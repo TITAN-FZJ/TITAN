@@ -37,6 +37,14 @@ module AtomTypes
     !! Store information for each element type
     character(len=50) :: Name
     !! Element name
+    integer :: nAtoms
+    !! Number of atoms in elemental file
+    integer :: nAtomEl=0
+    !! Number of atoms of a given element in elemental file
+    character(len=50), dimension(:), allocatable :: Types
+    !! Element Types inside elemental file
+    logical, dimension(:), allocatable :: lelement
+    !! Logical variable storing where are the elements of a given element in elemental file
     real(double), dimension(:,:), allocatable :: onSite
     !! on site matrix; size (nOrb, nOrb)
     real(double), dimension(:,:), allocatable :: Hopping

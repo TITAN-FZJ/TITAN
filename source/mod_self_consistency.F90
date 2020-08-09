@@ -792,9 +792,9 @@ contains
 
             do mu = 1,nOrb
               ! Last line (Total charge neutrality)
-              jacobian(  8*s%nAtoms+1,(j-1)*8+(nu-4)) = jacobian(  8*s%nAtoms+1,(j-1)*8+(nu-4)) + real(temp(mu,mu) + temp(mu+9,mu+9))
+              jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+(nu-4)) = jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+(nu-4)) + real(temp(mu,mu) + temp(mu+9,mu+9))
               if(mu<5) cycle
-              jacobian((i-1)*8+(mu-4),(j-1)*8+(nu-4)) = jacobian((i-1)*8+(mu-4),(j-1)*8+(nu-4)) + real(temp(mu,mu) + temp(mu+9,mu+9))
+              jacobian((i-1)*neq_per_atom+(mu-4),(j-1)*neq_per_atom+(nu-4)) = jacobian((i-1)*neq_per_atom+(mu-4),(j-1)*neq_per_atom+(nu-4)) + real(temp(mu,mu) + temp(mu+9,mu+9))
             end do
 
             ! Magnetic density-charge density part
@@ -804,7 +804,7 @@ contains
               call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
 
               do mu = 5,nOrb
-                jacobian((i-1)*8+4+sigma,(j-1)*8+(nu-4)) = jacobian((i-1)*8+4+sigma,(j-1)*8+(nu-4)) + real(temp(mu,mu) + temp(mu+9,mu+9))
+                jacobian((i-1)*neq_per_atom+4+sigma,(j-1)*neq_per_atom+(nu-4)) = jacobian((i-1)*neq_per_atom+4+sigma,(j-1)*neq_per_atom+(nu-4)) + real(temp(mu,mu) + temp(mu+9,mu+9))
               end do
             end do
 
@@ -829,9 +829,9 @@ contains
 
             do mu = 1,nOrb
               ! Last line (Total charge neutrality)
-              jacobian(  8*s%nAtoms+1,(j-1)*8+4+sigmap) = jacobian(  8*s%nAtoms+1,(j-1)*8+4+sigmap) + real(temp(mu,mu) + temp(mu+9,mu+9))
+              jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+4+sigmap) = jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+4+sigmap) + real(temp(mu,mu) + temp(mu+9,mu+9))
               if(mu<5) cycle
-              jacobian((i-1)*8+(mu-4),(j-1)*8+4+sigmap) = jacobian((i-1)*8+(mu-4),(j-1)*8+4+sigmap) + real(temp(mu,mu) + temp(mu+9,mu+9))
+              jacobian((i-1)*neq_per_atom+(mu-4),(j-1)*neq_per_atom+4+sigmap) = jacobian((i-1)*neq_per_atom+(mu-4),(j-1)*neq_per_atom+4+sigmap) + real(temp(mu,mu) + temp(mu+9,mu+9))
             end do
           end do
 
@@ -843,7 +843,7 @@ contains
               call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
 
               do mu = 5,nOrb
-                jacobian((i-1)*8+4+sigma,(j-1)*8+4+sigmap) = jacobian((i-1)*8+4+sigma,(j-1)*8+4+sigmap) + real(temp(mu,mu) + temp(mu+9,mu+9))
+                jacobian((i-1)*neq_per_atom+4+sigma,(j-1)*neq_per_atom+4+sigmap) = jacobian((i-1)*neq_per_atom+4+sigma,(j-1)*neq_per_atom+4+sigmap) + real(temp(mu,mu) + temp(mu+9,mu+9))
               end do
             end do
           end do
@@ -878,9 +878,9 @@ contains
 
               do mu = 1,nOrb
                 ! Last line (Total charge neutrality)
-                jacobian(  8*s%nAtoms+1,(j-1)*8+(nu-4)) = jacobian(  8*s%nAtoms+1,(j-1)*8+(nu-4)) - real(temp(mu,mu) + temp(mu+9,mu+9))
+                jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+(nu-4)) = jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+(nu-4)) - real(temp(mu,mu) + temp(mu+9,mu+9))
                 if(mu<5) cycle
-                jacobian((i-1)*8+(mu-4),(j-1)*8+(nu-4)) = jacobian((i-1)*8+(mu-4),(j-1)*8+(nu-4)) - real(temp(mu,mu) + temp(mu+9,mu+9))
+                jacobian((i-1)*neq_per_atom+(mu-4),(j-1)*neq_per_atom+(nu-4)) = jacobian((i-1)*neq_per_atom+(mu-4),(j-1)*neq_per_atom+(nu-4)) - real(temp(mu,mu) + temp(mu+9,mu+9))
               end do
 
               ! Magnetic density-charge density part
@@ -890,7 +890,7 @@ contains
                 call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
 
                 do mu = 5,nOrb
-                  jacobian((i-1)*8+4+sigma,(j-1)*8+(nu-4)) = jacobian((i-1)*8+4+sigma,(j-1)*8+(nu-4)) - real(temp(mu,mu) + temp(mu+9,mu+9))
+                  jacobian((i-1)*neq_per_atom+4+sigma,(j-1)*neq_per_atom+(nu-4)) = jacobian((i-1)*neq_per_atom+4+sigma,(j-1)*neq_per_atom+(nu-4)) - real(temp(mu,mu) + temp(mu+9,mu+9))
                 end do
               end do
 
@@ -915,9 +915,9 @@ contains
 
               do mu = 1,nOrb
                 ! Last line (Total charge neutrality)
-                jacobian(  8*s%nAtoms+1,(j-1)*8+4+sigmap) = jacobian(  8*s%nAtoms+1,(j-1)*8+4+sigmap) - real(temp(mu,mu) + temp(mu+9,mu+9))
+                jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+4+sigmap) = jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+4+sigmap) - real(temp(mu,mu) + temp(mu+9,mu+9))
                 if(mu<5) cycle
-                jacobian((i-1)*8+(mu-4),(j-1)*8+4+sigmap) = jacobian((i-1)*8+(mu-4),(j-1)*8+4+sigmap) - real(temp(mu,mu) + temp(mu+9,mu+9))
+                jacobian((i-1)*neq_per_atom+(mu-4),(j-1)*neq_per_atom+4+sigmap) = jacobian((i-1)*neq_per_atom+(mu-4),(j-1)*neq_per_atom+4+sigmap) - real(temp(mu,mu) + temp(mu+9,mu+9))
               end do
             end do
 
@@ -929,7 +929,7 @@ contains
                 call zgemm('n','n',18,18,18,weight,gij,18,gji,18,cZero,temp,18)
 
                 do mu = 5,nOrb
-                  jacobian((i-1)*8+4+sigma,(j-1)*8+4+sigmap) = jacobian((i-1)*8+4+sigma,(j-1)*8+4+sigmap) - real(temp(mu,mu) + temp(mu+9,mu+9))
+                  jacobian((i-1)*neq_per_atom+4+sigma,(j-1)*neq_per_atom+4+sigmap) = jacobian((i-1)*neq_per_atom+4+sigma,(j-1)*neq_per_atom+4+sigmap) - real(temp(mu,mu) + temp(mu+9,mu+9))
                 end do
               end do
             end do
@@ -966,9 +966,9 @@ contains
 
         do mu = 1,nOrb
           ! Last line (Total charge neutrality)
-          jacobian(  8*s%nAtoms+1,8*s%nAtoms+1) = jacobian(  8*s%nAtoms+1,8*s%nAtoms+1) - aimag(temp(mu,mu) + temp(mu+9,mu+9))
+          jacobian(  neq_per_atom*s%nAtoms+1,neq_per_atom*s%nAtoms+1) = jacobian(  neq_per_atom*s%nAtoms+1,neq_per_atom*s%nAtoms+1) - aimag(temp(mu,mu) + temp(mu+9,mu+9))
           if(mu<5) cycle
-          jacobian((i-1)*8+(mu-4),8*s%nAtoms+1) = jacobian((i-1)*8+(mu-4),8*s%nAtoms+1) - aimag(temp(mu,mu) + temp(mu+9,mu+9))
+          jacobian((i-1)*neq_per_atom+(mu-4),neq_per_atom*s%nAtoms+1) = jacobian((i-1)*neq_per_atom+(mu-4),neq_per_atom*s%nAtoms+1) - aimag(temp(mu,mu) + temp(mu+9,mu+9))
         end do
 
         do sigma = 2,4
@@ -977,7 +977,7 @@ contains
           call zgemm('n','n',18,18,18,weight,paulitemp,18,gij,18,cZero,temp,18)
 
           do mu = 5,nOrb
-            jacobian((i-1)*8+4+sigma,8*s%nAtoms+1) = jacobian((i-1)*8+4+sigma,8*s%nAtoms+1) - aimag(temp(mu,mu) + temp(mu+9,mu+9))
+            jacobian((i-1)*neq_per_atom+4+sigma,neq_per_atom*s%nAtoms+1) = jacobian((i-1)*neq_per_atom+4+sigma,neq_per_atom*s%nAtoms+1) - aimag(temp(mu,mu) + temp(mu+9,mu+9))
           end do
         end do
 
@@ -996,7 +996,7 @@ contains
     call MPI_Allreduce(MPI_IN_PLACE, jacobian, ncount2, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
 
     jacobian = jacobian/pi
-    do i = 1, 8*s%nAtoms
+    do i = 1, neq_per_atom*s%nAtoms
       jacobian(i,i) = jacobian(i,i) - 1.d0
     end do
   end subroutine calcJacobian_greenfunction
@@ -1170,14 +1170,14 @@ contains
         do i=1,s%nAtoms
           fvecsum = 0.0
           do mu = 5,nOrb
-            fvecsum = fvecsum + fvec((i-1)*8+(mu-4))
+            fvecsum = fvecsum + fvec((i-1)*neq_per_atom+(mu-4))
           end do
-          if(abs(cmplx(mx(i),my(i),double))>1.d-15) then
+          if(abs(cmplx(mx(i),my(i),double))>1.d-12) then
             write(output%unit_loop,"('Site ',i4,': N(',i4,')=',es16.9,4x,'Mx(',i4,')=',es16.9,4x,'My(',i4,')=',es16.9,4x,'Mz(',i4,')=',es16.9)") i,i,n(i),i,mx(i),i,my(i),i,mz(i)
-            write(output%unit_loop,"(15x,'fvec(',i4,')=',es16.9,2x,'fvec(',i4,')=',es16.9,2x,'fvec(',i4,')=',es16.9,2x,'fvec(',i4,')=',es16.9)") i,fvecsum,(i-1)*8+6,fvec((i-1)*8+6),(i-1)*8+7,fvec((i-1)*8+7),(i-1)*8+8,fvec((i-1)*8+8)
+            write(output%unit_loop,"(15x,'fvec(',i4,')=',es16.9,2x,'fvec(',i4,')=',es16.9,2x,'fvec(',i4,')=',es16.9,2x,'fvec(',i4,')=',es16.9)") i,fvecsum,(i-1)*neq_per_atom+6,fvec((i-1)*neq_per_atom+6),(i-1)*neq_per_atom+7,fvec((i-1)*neq_per_atom+7),(i-1)*neq_per_atom+8,fvec((i-1)*neq_per_atom+8)
           else
             write(output%unit_loop,"('Site ',i4,': N(',i4,')=',es16.9,4x,'Mz(',i4,')=',es16.9)") i,i,n(i),i,mz(i)
-            write(output%unit_loop,"(15x,'fvec(',i4,')=',es16.9,2x,'fvec(',i4,')=',es16.9)") i,fvecsum,(i-1)*8+8,fvec((i-1)*8+8)
+            write(output%unit_loop,"(15x,'fvec(',i4,')=',es16.9,2x,'fvec(',i4,')=',es16.9)") i,fvecsum,(i-1)*neq_per_atom+8,fvec((i-1)*neq_per_atom+8)
           end if
         end do
         write(output%unit_loop,"(13x,'Ef=',es16.9)") Ef
@@ -1185,7 +1185,7 @@ contains
       else if(iter == 0) then
         write(output%unit_loop,"('|---------------- Starting charge density, magnetization and Ef ----------------|')")
         do i=1,s%nAtoms
-          if(abs(cmplx(mx(i),my(i),double))>1.d-15) then
+          if(abs(cmplx(mx(i),my(i),double))>1.d-12) then
             write(output%unit_loop,"('Site ',i4,': N(',i4,')=',es16.9,4x,'Mx(',i4,')=',es16.9,4x,'My(',i4,')=',es16.9,4x,'Mz(',i4,')=',es16.9)") i,i,n(i),i,mx(i),i,my(i),i,mz(i)
           else
             write(output%unit_loop,"('Site ',i4,': N(',i4,')=',es16.9,4x,'Mz(',i4,')=',es16.9)") i,i,n(i),i,mz(i)

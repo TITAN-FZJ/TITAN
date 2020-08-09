@@ -271,8 +271,8 @@ contains
       output%SOCchar = "F"
     end if
     !---------------------------------------- Magnetization -----------------------------------------
-    if(.not. get_parameter("magtol", mag_tol, 1.d-15)) &
-      call log_warning("get_parameters", "'magtol' not found. Using default value: 1.d-15")
+    if(.not. get_parameter("magtol", mag_tol, 1.d-12)) &
+      call log_warning("get_parameters", "'magtol' not found. Using default value: 1.d-12")
     if(.not. get_parameter("magbasis", magbasis)) &
       call log_warning("get_parameters","'magbasis' missing. Using default values for initial magnetization")
     !--------------------------------------- Electric Field ----------------------------------------

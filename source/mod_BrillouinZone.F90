@@ -198,7 +198,7 @@ contains
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 8
-        if( abs(distance(j)-smallest_dist) < 1.d-15 ) then
+        if( abs(distance(j)-smallest_dist) < 1.d-12 ) then
           count = count + 1
           weight = weight + 1
           if(count >= first .and. count <= last ) then
@@ -285,7 +285,7 @@ contains
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 8
-        if( abs(distance(j)-smallest_dist) < 1.d-15 ) numextrakbz=numextrakbz+1
+        if( abs(distance(j)-smallest_dist) < 1.d-12 ) numextrakbz=numextrakbz+1
       end do
     end do
     !$omp end parallel do
@@ -352,7 +352,7 @@ contains
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 4
-        if( abs(distance(j)-smallest_dist) < 1.d-15 ) then
+        if( abs(distance(j)-smallest_dist) < 1.d-12 ) then
           count = count + 1
           weight = weight + 1
           if(count >= first .and. count <= last ) then
@@ -434,7 +434,7 @@ contains
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j = 1, 4
-        if( abs(distance(j)-smallest_dist) < 1.d-15 ) numextrakbz = numextrakbz + 1
+        if( abs(distance(j)-smallest_dist) < 1.d-12 ) numextrakbz = numextrakbz + 1
       end do
     end do
     !$omp end parallel do
@@ -497,7 +497,7 @@ contains
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 2
-        if( abs(distance(j)-smallest_dist) < 1.d-15 ) then
+        if( abs(distance(j)-smallest_dist) < 1.d-12 ) then
           count = count + 1
           weight = weight + 1
           if(count >= first .and. count <= last ) then
@@ -573,7 +573,7 @@ contains
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j = 1, 2
-        if( abs(distance(j)-smallest_dist) < 1.d-15 ) numextrakbz = numextrakbz + 1
+        if( abs(distance(j)-smallest_dist) < 1.d-12 ) numextrakbz = numextrakbz + 1
       end do
     end do
     !$omp end parallel do
@@ -692,10 +692,10 @@ contains
       do j=1, 8
         diff=kp - bz_vec(:,j)
         distance=sqrt(dot_product(diff,diff))
-        if( abs(distance-smallest_dist) < 1.d-15 ) then
+        if( abs(distance-smallest_dist) < 1.d-12 ) then
           count = count + 1 ! Counting the total number of points generated
           ! Checking if all numbers are different than current local list (if any of them is zero, the point is already stored)
-          if( all(abs( diff_k_loc(:) - abs(diff(component)) )> 1.d-15,1)  ) then
+          if( all(abs( diff_k_loc(:) - abs(diff(component)) )> 1.d-12,1)  ) then
             ndiffk_loc(mythread) = ndiffk_loc(mythread) + 1
             diff_k_loc(ndiffk_loc(mythread)) = abs(diff(component))
           end if
@@ -724,7 +724,7 @@ contains
     ndiffk = 0
     do j=1,maxdiffk
 
-      if( all(abs( diff_k_temp2(:) - diff_k_temp(j) )> 1.d-15,1)  ) then
+      if( all(abs( diff_k_temp2(:) - diff_k_temp(j) )> 1.d-12,1)  ) then
         ndiffk = ndiffk + 1
         diff_k_temp2(ndiffk) = diff_k_temp(j)
       end if
