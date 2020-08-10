@@ -10,12 +10,13 @@ subroutine jij_energy(Jij)
   use EnergyIntegration, only: y, wght
   use mod_magnet,        only: mvec_cartesian,mabs
   use mod_system,        only: s => sys
+  use mod_hamiltonian,   only: hamilt_local,h0
   use mod_mpi_pars
   use adaptiveMesh
   use mod_mpi_pars
   implicit none
-  real(double),dimension(s%nAtoms,s%nAtoms,3,3)             :: Jijint
-  real(double),dimension(s%nAtoms,s%nAtoms,3,3),intent(out) :: Jij
+  real(double),dimension(s%nAtoms,s%nAtoms,3,3)              :: Jijint
+  real(double),dimension(s%nAtoms,s%nAtoms,3,3), intent(out) :: Jij
   integer*8 :: ix
   integer*4 :: i,j,mu,nu,alpha
   real(double) :: kp(3), kminusq(3), ep
@@ -51,6 +52,9 @@ subroutine jij_energy(Jij)
       end do
     end do
   end do
+
+  ! Build local hamiltonian
+  call hamilt_local(s)
 
   ! Calculating the number of particles for each spin and orbital using a complex integral
   Jij = 0.d0
@@ -126,5 +130,8 @@ subroutine jij_energy(Jij)
   else
      call MPI_Reduce(Jij, Jij, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, 0, activeComm, ierr)
   end if
+
+  ! Deallocate local hamiltonian
+  deallocate(h0)
 
 end subroutine jij_energy

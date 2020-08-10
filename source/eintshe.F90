@@ -10,6 +10,7 @@ subroutine eintshe(q,e)
   use mod_prefactors,    only: prefactor !, lxpt, lypt, lzpt, tlxp, tlyp, tlzp
   use mod_disturbances,  only: tchiorbiikl
   use ElectricField,     only: ElectricFieldVector
+  use mod_hamiltonian,   only: hamilt_local,h0
   use adaptiveMesh
   use mod_mpi_pars
 
@@ -55,6 +56,8 @@ subroutine eintshe(q,e)
   ! Lyttchiorbiikl  = cZero !TODO: Re-Include
   ! Lzttchiorbiikl  = cZero !TODO: Re-Include
 
+  ! Build local hamiltonian
+  if(.not.llineargfsoc) call hamilt_local(s)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,wkbzc,ep,kp,kpq,nep,nkp,i,j,l,mu,nu,gamma,xi,sigma,sigmap,neighbor,dtdk,gf,gfuu,gfud,gfdu,gfdd,df1iikl,pfdf1iikl,tFintiikl) & !,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,expikr,prett,preLxtt,preLytt,preLztt) &
@@ -315,6 +318,8 @@ subroutine eintshe(q,e)
   deallocate(tFintiikl) !, ttFintiikl, LxttFintiikl, LyttFintiikl, LzttFintiikl)
   !$omp end parallel
 
+  ! Deallocate local hamiltonian
+  if(.not.llineargfsoc) deallocate(h0)
 
   if(rFreq(1) == 0) then
     call MPI_Reduce(MPI_IN_PLACE, tchiorbiikl, ncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr)
@@ -354,7 +359,6 @@ subroutine eintshelinearsoc(q,e)
   integer :: AllocateStatus
   complex(double), dimension(:,:),allocatable :: tFintiikl
   !complex(double), dimension(:,:,:), allocatable :: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl !TODO: Re-Include
-
 
   integer :: i,j,l,mu,nu,gamma,xi,sigma,sigmap,neighbor
   real(double) :: kp(3), kpq(3), ep
@@ -696,8 +700,7 @@ subroutine eintshelinearsoc(q,e)
   deallocate(df1iikl,pfdf1iikl,df1lsoc)
   deallocate(gvg,gvguu,gvgud,gvgdu,gvgdd)
   deallocate(gf,dtdk,gfuu,gfud,gfdu,gfdd)
-!$omp end parallel
-
+  !$omp end parallel
 
   if(rFreq(1) == 0) then
     call MPI_Reduce(MPI_IN_PLACE, tchiorbiikl, ncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr)

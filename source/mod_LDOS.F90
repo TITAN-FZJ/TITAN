@@ -93,6 +93,7 @@ contains
     use mod_system,            only: s => sys
     use mod_BrillouinZone,     only: realBZ
     use mod_superconductivity, only: lsupercond, green_sc, superCond
+    use mod_hamiltonian,       only: hamilt_local,h0
     use mod_mpi_pars
     implicit none
     real(double), intent(in) :: e
@@ -106,6 +107,9 @@ contains
 
     ldosu = 0.d0
     ldosd = 0.d0
+
+    ! Build local hamiltonian
+    call hamilt_local(s)
 
     !$omp parallel default(none) &
     !$omp& private(iz,kp,weight,gf,i,mu,nu,gfdiagu,gfdiagd) &
@@ -151,6 +155,9 @@ contains
       call MPI_Reduce(ldosu , ldosu , s%nAtoms*nOrb*superCond, MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
       call MPI_Reduce(ldosd , ldosd , s%nAtoms*nOrb*superCond, MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
     end if
+
+    ! Deallocate local hamiltonian
+    deallocate(h0)
 
   end subroutine ldos_energy
 
@@ -257,6 +264,7 @@ contains
     use mod_system,        only: s => sys
     use mod_BrillouinZone, only: realBZ
     use mod_magnet,        only: mvec_cartesian, mabs
+    use mod_hamiltonian,   only: hamilt_local,h0
     use mod_progress
     use mod_mpi_pars
     implicit none
@@ -316,7 +324,8 @@ contains
       end do
     end do
 
-
+    ! Build local hamiltonian
+    call hamilt_local(s)
 
     !$omp parallel default(none) &
     !$omp& private(iz,kp,weight,gf,gij,gji,paulia,paulib,i,j,mu,nu,alpha,gfdiagu,gfdiagd,Jijk,Jijkan,temp1,temp2,ldosu_loc,ldosd_loc,Jijint_loc) &
@@ -409,6 +418,10 @@ contains
        call MPI_Reduce(ldosd , ldosd , ncount  , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
        call MPI_Reduce(Jijint, Jijint, ncount2 , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
     end if
+
+    ! Deallocate local hamiltonian
+    deallocate(h0)
+
   end subroutine ldos_jij_energy
 
 

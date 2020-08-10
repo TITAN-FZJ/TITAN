@@ -19,7 +19,7 @@ contains
     use mod_magnet,            only: rhod0,rho0
     use mod_tools,             only: KronProd
     use mod_superconductivity, only: allocate_supercond_variables
-    use mod_hamiltonian,       only: hamiltk
+    use mod_hamiltonian,       only: hamiltk,hamilt_local,h0
     use mod_mpi_pars
     implicit none
     type(System), intent(in)   :: s
@@ -74,6 +74,9 @@ contains
     dimH2  = 2*dimH
 
     allocate( id(dimH,dimH),id2(dimH2,dimH2),hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork),eval_kn(dimH,realBZ%workload),evec_kn(dimH,dimH,realBZ%workload),evec_kn_temp(dimH,dimH,realBZ%workload), M1(dimH2,dimH2) )
+
+    ! Build local hamiltonian
+    call hamilt_local(s)
 
     ! Building identities
     call build_identity(dimH,id)
@@ -275,7 +278,7 @@ contains
 
     end do t_loop
 
-    deallocate( id,id2,hk,rwork,eval,work,eval_kn,evec_kn,evec_kn_temp, M1, output%observable )
+    deallocate( id,id2,h0,hk,rwork,eval,work,eval_kn,evec_kn,evec_kn_temp, M1, output%observable )
 
     if(rFreq(1) == 0) &
       write(output%unit_loop,"('[time_propagator] Integration time reached. ',i0,' total iterations, with ',i0,' accepted.')") iter_tot,it

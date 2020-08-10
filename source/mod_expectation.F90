@@ -13,6 +13,7 @@ contains
     use mod_system,        only: System
     use adaptiveMesh,      only: bzs,E_k_imag_mesh,activeComm,local_points
     use mod_parameters,    only: nOrb,nOrb2,eta
+    use mod_hamiltonian,   only: hamilt_local,h0
     use mod_mpi_pars
     implicit none
     type(System),                              intent(in)  :: s
@@ -43,6 +44,9 @@ contains
     imgdd   = 0.d0
     gdiagud = cZero
     gdiagdu = cZero
+
+    ! Build local hamiltonian
+    if((.not.llineargfsoc) .and. (.not.llinearsoc)) call hamilt_local(s)
 
     !$omp parallel default(none) &
     !$omp& private(ix,ep,kp,weight,i,mu,mup,gf,AllocateStatus) &
@@ -118,6 +122,9 @@ contains
       end do
     end do
 
+    ! Deallocate local hamiltonian
+    if((.not.llineargfsoc) .and. (.not.llinearsoc)) deallocate(h0)
+
     deallocate(imguu,imgdd)
     deallocate(gdiagdu, gdiagud)
   end subroutine expectation_values_greenfunction
@@ -130,9 +137,9 @@ contains
     use mod_parameters,        only: nOrb,nOrb2,output
     use mod_system,            only: System
     use mod_tools,             only: itos
-    use mod_superconductivity, only: lsuperCond, superCond, hamiltk_sc, green_sc, print_hamilt
+    use mod_superconductivity, only: lsuperCond, superCond, hamiltk_sc
     use mod_constants,         only: cZero
-    use mod_hamiltonian,       only: hamiltk
+    use mod_hamiltonian,       only: hamiltk,hamilt_local,h0
     use mod_mpi_pars
 
     implicit none
@@ -154,6 +161,8 @@ contains
     ncount = nOrb*s%nAtoms
 
     allocate( hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork) )
+
+    call hamilt_local(s)
 
     !$omp parallel default(none) &
     !$omp& firstprivate(lwork) &
@@ -200,7 +209,7 @@ contains
     mx = real(mp)
     my = aimag(mp)
 
-    deallocate(hk,rwork,eval,work)
+    deallocate(h0,hk,rwork,eval,work)
 
   end subroutine expectation_values_eigenstates
 
@@ -212,7 +221,7 @@ contains
     use mod_parameters,        only: nOrb, eta, isigmamu2n
     use mod_distributions,     only: fd_dist
     use mod_system,            only: System
-    use mod_superconductivity, only: lsuperCond, print_hamilt
+    use mod_superconductivity, only: lsuperCond
     implicit none
     integer,                                   intent(in)  :: dim
     type(System),                              intent(in)  :: s
@@ -519,6 +528,7 @@ contains
     use mod_parameters,    only: nOrb, nOrb2, eta
     use EnergyIntegration, only: y, wght
     use mod_magnet,        only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
+    use mod_hamiltonian,   only: hamilt_local,h0
     use adaptiveMesh
     use mod_mpi_pars
     implicit none
@@ -537,6 +547,9 @@ contains
     allocate(gupgd(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
     if(AllocateStatus/=0) &
     call abortProgram("[calcLGS_greenfunction] Not enough memory for: gupgd")
+
+    ! Build local hamiltonian
+    call hamilt_local(s)
 
     ! Calculating the jacobian using a complex integral
     gupgd  = cZero
@@ -594,7 +607,7 @@ contains
       end do
     end do
 
-    deallocate(gupgd)
+    deallocate(h0,gupgd)
   end subroutine calcLGS_greenfunction
 
 
@@ -688,7 +701,7 @@ contains
     use mod_distributions,     only: fd_dist
     use mod_tools,             only: itos
     use mod_superconductivity, only: lsuperCond
-    use mod_hamiltonian,       only: hamiltk
+    use mod_hamiltonian,       only: hamiltk,hamilt_local,h0
     use mod_mpi_pars
     implicit none
     integer*8                                      :: iz
@@ -704,6 +717,8 @@ contains
     fermi_surface = merge(0.d0,s%Ef,lsuperCond)
 
     allocate( hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),evec(dimH),work(lwork),prod(nOrb,nOrb,s%nAtoms) )
+
+    call hamilt_local(s)
 
     !$omp parallel default(none) &
     !$omp& firstprivate(lwork) &
@@ -765,7 +780,7 @@ contains
       end do
     end do
 
-    deallocate(hk,rwork,eval,work)
+    deallocate(h0,hk,rwork,eval,work)
 
   end subroutine calcLGS_eigenstates
 

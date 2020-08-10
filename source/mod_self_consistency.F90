@@ -693,6 +693,7 @@ contains
     use mod_System,        only: s => sys
     use adaptiveMesh,      only: local_points, E_k_imag_mesh, bzs, activeComm
     use mod_BrillouinZone, only: realBZ
+    use mod_hamiltonian,   only: hamilt_local,h0
     use mod_mpi_pars
     implicit none
     integer,                           intent(in)    :: N
@@ -727,6 +728,9 @@ contains
       halfUn(i) = -0.5d0*Un(i+offset)
       halfUm(i) = -0.5d0*Um(i+offset)
     end do
+
+    ! Build local hamiltonian
+    if((.not.llineargfsoc) .and. (.not.llinearsoc)) call hamilt_local(s)
 
     jacobian = 0.d0
 
@@ -992,6 +996,9 @@ contains
     deallocate(gf, gij, gji)
     if(allocated(gvg)) deallocate(gvg)
     !$omp end parallel
+
+    ! Deallocate local hamiltonian
+    if((.not.llineargfsoc) .and. (.not.llinearsoc)) deallocate(h0)
 
     call MPI_Allreduce(MPI_IN_PLACE, jacobian, ncount2, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
 

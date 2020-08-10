@@ -129,6 +129,7 @@ contains
     use mod_parameters,    only: nOrb2, eta, output, kptotal_in
     use mod_magnet,        only: mabs
     use mod_tools,         only: sort, itos, rtos
+    use mod_hamiltonian,   only: hamilt_local,h0
     use mod_mpi_pars
     implicit none
     interface
@@ -234,8 +235,12 @@ contains
     !! M = magnetic moment
     alpha(:,:,:,:) = cZero
 
+    ! Build local hamiltonian
+    call hamilt_local(s)
+
     if(rField == 0) &
       write(output%unit_loop, "('[TCM] Calculating alpha...')")
+
     !$omp parallel default(none) reduction(+:ialpha,iwght) &
     !$omp& private(m,n,i,j,k,mu,iz,kp,wght,gf,temp1,temp2,temp3, alpha_loc,alphatemp) &
     !$omp& shared(s,realBZ,nOrb2,eta,torque,alpha,rField,order,ndiffk,diff_k)
@@ -312,6 +317,10 @@ contains
       call MPI_Allreduce(MPI_IN_PLACE, iwght , ndiffk               , MPI_DOUBLE_PRECISION, MPI_SUM, FieldComm, ierr)
       deallocate(order,diff_k_unsrt)
     end if
+
+    ! Deallocate local hamiltonian
+    deallocate(h0)
+
   end subroutine TCM
 
 

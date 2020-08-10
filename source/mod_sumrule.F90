@@ -156,6 +156,7 @@ contains
     use mod_System,        only: s => sys
     use EnergyIntegration, only: y, wght
     use mod_parameters,    only: nOrb, nOrb2, eta
+    use mod_hamiltonian,   only: hamilt_local,h0
     use adaptiveMesh
     use mod_mpi_pars
     implicit none
@@ -180,6 +181,9 @@ contains
     imgdd = cZero
     imgud = cZero
     imgdu = cZero
+
+    ! Build local hamiltonian
+    call hamilt_local(s)
 
     !$omp parallel default(none) &
     !$omp& private(AllocateStatus,ix,i,mu,nu,mup,nup,kp,ep,weight,gf) &
@@ -231,7 +235,7 @@ contains
     Smunuiivec(:,:,2,:) = (imgud(:,:,:) - imgdu(:,:,:))*cI
     Smunuiivec(:,:,3,:) =  imguu(:,:,:) - imgdd(:,:,:)
 
-    deallocate(imguu,imgdd,imgud,imgdu)
+    deallocate(h0,imguu,imgdd,imgud,imgdu)
 
   end subroutine calcSmunu
 

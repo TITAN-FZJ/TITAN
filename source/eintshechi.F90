@@ -8,6 +8,7 @@ subroutine eintshechi(q,e)
   use mod_system,           only: s => sys
   use mod_BrillouinZone,    only: realBZ
   use mod_SOC,              only: llineargfsoc
+  use mod_hamiltonian,      only: hamilt_local,h0
   use mod_mpi_pars
   use adaptiveMesh
   implicit none
@@ -37,8 +38,10 @@ subroutine eintshechi(q,e)
   real_points = 0
   if(abs(e) >= 1.d-15) real_points = int(pn2*realBZ%workload,8)
 
-  ! Starting to calculate energy integral
+  ! Build local hamiltonian
+  if(.not.llineargfsoc) call hamilt_local(s)
 
+  ! Starting to calculate energy integral
   allocate(Fint(dim,dim), STAT = AllocateStatus  )
   if (AllocateStatus/=0) &
   call abortProgram("[eintshechi] Not enough memory for: Fint")
@@ -179,6 +182,7 @@ subroutine eintshechi(q,e)
 
   call MPI_Allreduce(MPI_IN_PLACE, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, FreqComm(1), ierr)
 
+  if(.not.llineargfsoc) deallocate(h0)
   deallocate(Fint)
 end subroutine eintshechi
 

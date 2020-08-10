@@ -99,61 +99,66 @@ contains
   subroutine sumk_idia(e,ep,Idia)
     use mod_f90_kind
     use mod_constants
-    use mod_parameters, only: nOrb,nOrb2,Npl,llineargfsoc,outputunit
-    use mod_system,     only: n0sc1,n0sc2,r_nn,nkpt,kbz,wkbz, s=>sys
+    use mod_parameters,  only: nOrb,nOrb2,Npl,llineargfsoc,outputunit
+    use mod_system,      only: n0sc1,n0sc2,r_nn,nkpt,kbz,wkbz, s=>sys
+    use mod_hamiltonian, only: hamilt_local,h0
     !use mod_generate_kpoints
     use mod_mpi_pars
 !$  use omp_lib
     implicit none
 !$  integer       :: nthreads,mythread
+    real(double),                             intent(in)  :: e,ep
+    real(double), dimension(n0sc1:n0sc2,Npl), intent(out) :: Idia
+
     integer         :: neighbor,iz,i,mu,nu,mup,nup
     real(double)    :: kp(3)
     complex(double) :: expikr(n0sc1:n0sc2)
-    real(double),intent(in)    :: e,ep
-    real(double),dimension(n0sc1:n0sc2,Npl),intent(out) :: Idia
-    complex(double),dimension(Npl,Npl,nOrb2,nOrb2)            :: gf
-    complex(double),dimension(nOrb,nOrb,Npl,Npl)              :: dtdk
-    complex(double),dimension(n0sc1:n0sc2,Npl,nOrb,nOrb)      :: pij
-    complex(double),dimension(n0sc1:n0sc2,Npl,nOrb2,nOrb2)    :: gij,gji
+    complex(double), dimension(Npl,Npl,nOrb2,nOrb2)            :: gf
+    complex(double), dimension(nOrb,nOrb,Npl,Npl)              :: dtdk
+    complex(double), dimension(n0sc1:n0sc2,Npl,nOrb,nOrb)      :: pij
+    complex(double), dimension(n0sc1:n0sc2,Npl,nOrb2,nOrb2)    :: gij,gji
 
     pij = cZero
     gji = cZero
     gij = cZero
 
-  !$omp parallel default(none) &
-  !$omp& private(mythread,neighbor,iz,kp,i,dtdk,expikr,gf) &
-  !$omp& shared(kbz,nkpt,wkbz,myrank,nthreads,n0sc1,n0sc2,llineargfsoc,Npl,r_nn,e,ep,pij,gij,gji, outputunit)
-  !$  mythread = omp_get_thread_num()
-  !$  if((mythread==0).and.(myrank==0)) then
-  !$    nthreads = omp_get_num_threads()
-  !$    write(outputunit,"('[sumk_idia] Number of threads: ',i0)") nthreads
-  !$  end if
+    ! Build local hamiltonian
+    if(.not.llineargfsoc) call hamilt_local(s)
 
-  !$omp do reduction(+:pij,gij,gji)
-  kpoints: do iz=1,nkpt
-    kp = kbz(:,iz)
+    !$omp parallel default(none) &
+    !$omp& private(mythread,neighbor,iz,kp,i,dtdk,expikr,gf) &
+    !$omp& shared(kbz,nkpt,wkbz,myrank,nthreads,n0sc1,n0sc2,llineargfsoc,Npl,r_nn,e,ep,pij,gij,gji, outputunit)
+    !$  mythread = omp_get_thread_num()
+    !$  if((mythread==0).and.(myrank==0)) then
+    !$    nthreads = omp_get_num_threads()
+    !$    write(outputunit,"('[sumk_idia] Number of threads: ',i0)") nthreads
+    !$  end if
 
-    do neighbor=n0sc1,n0sc2
-      expikr(neighbor) = exp(-cI*dot_product(kp, r_nn(:,neighbor)))
-    end do
+    !$omp do reduction(+:pij,gij,gji)
+    kpoints: do iz=1,nkpt
+      kp = kbz(:,iz)
 
-    ! Calculating derivative of in-plane and n.n. inter-plane hoppings
-    call dtdksub(kp,dtdk)
-
-    ! Green function at (k+q,E_F+E+iy)
-    if(llineargfsoc) then
-      call greenlineargfsoc(e,ep,s,kp,gf)
-    else
-      call green(e,ep,s,kp,gf)
-    end if
-
-    do neighbor=n0sc1,n0sc2
-      do i=1,Npl
-        pij(neighbor,i,:,:) = pij(neighbor,i,:,:) + expikr(neighbor)*dtdk(:,:,i,i)*wkbz(iz)
-        gij(neighbor,i,:,:) = gij(neighbor,i,:,:) + expikr(neighbor)*gf(:,:,i,i)*wkbz(iz)
-        gji(neighbor,i,:,:) = gji(neighbor,i,:,:) + conjg(expikr(neighbor))*gf(:,:,i,i)*wkbz(iz)
+      do neighbor=n0sc1,n0sc2
+        expikr(neighbor) = exp(-cI*dot_product(kp, r_nn(:,neighbor)))
       end do
-    end do
+
+      ! Calculating derivative of in-plane and n.n. inter-plane hoppings
+      call dtdksub(kp,dtdk)
+
+      ! Green function at (k+q,E_F+E+iy)
+      if(llineargfsoc) then
+        call greenlineargfsoc(e,ep,s,kp,gf)
+      else
+        call green(e,ep,s,kp,gf)
+      end if
+
+      do neighbor=n0sc1,n0sc2
+        do i=1,Npl
+          pij(neighbor,i,:,:) = pij(neighbor,i,:,:) + expikr(neighbor)*dtdk(:,:,i,i)*wkbz(iz)
+          gij(neighbor,i,:,:) = gij(neighbor,i,:,:) + expikr(neighbor)*gf(:,:,i,i)*wkbz(iz)
+          gji(neighbor,i,:,:) = gji(neighbor,i,:,:) + conjg(expikr(neighbor))*gf(:,:,i,i)*wkbz(iz)
+        end do
+      end do
 
   !       !$omp critical
   !       do neighbor=n0sc1,n0sc2 ; do i=1,Npl ; do mu=1,9 ; do nu=1,9
@@ -201,6 +206,9 @@ contains
         end do
       end do
     end do
+
+    ! Deallocate local hamiltonian
+    if(.not.llineargfsoc) deallocate(h0)
 
   end subroutine sumk_idia
 end module mod_diamagnetic_current
