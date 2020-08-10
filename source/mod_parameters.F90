@@ -72,8 +72,8 @@ module mod_parameters
   !! Kpoints in the wave vector loop
   character(len=50)  :: qbasis = ""
   !! Basis to use on kpoints given in kbands file. Default: reciprocal lattice vectors
-  character(len=400) :: bsfile
-  !! Filename for band structure calculation
+  character(len=400) :: bsfile, wsfile
+  !! Filename for band structure and weights calculations
   !========================================================================================!
   integer*4, allocatable :: sigmaimunu2i(:,:,:,:),sigmaijmunu2i(:,:,:,:,:),sigmai2i(:,:),isigmamu2n(:,:,:), n2isigmamu(:,:)
   !! Conversion arrays

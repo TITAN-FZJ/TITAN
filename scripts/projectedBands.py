@@ -145,6 +145,9 @@ if __name__ == "__main__":
       for i in range(numplots):
         npoints, name, point, fermi = read_header(args.file)
         table = read_data(args.file)
+        if(len(args.project) > 0):
+          weights = read_data(args.file.replace("bandstructure","weights"))
+
         axs[0,i].set_title(titles[i])
         axs[0,i].set_xlim([point[0],point[npoints-1]])
 
@@ -189,6 +192,9 @@ if __name__ == "__main__":
         npoints, name, point, fermi, dimbs = read_header(args.file)
         # Reads the data points
         table = read_data(args.file)
+        # Reads the weigths for projected band structure
+        if(len(args.project) > 0):
+          weights = read_data(args.file.replace("bandstructure","weights"))
         # Set custom title or default title
         if args.title != "":
           axs[0,i].set_title(args.title)
@@ -230,13 +236,13 @@ if __name__ == "__main__":
             if isinstance(group, int):
               orb = group
               for j in range(1,dimbs+1):
-                weight = table[:,dimbs+orb+dimbs*(j-1)]
+                weight = weights[:,orb+dimbs*(j-1)-1]
                 axs[0,i].scatter(table[:,0],table[:,j]*ry2ev,c=[(0.07, 0.19, 0.40, a) for a in weight],s=10)
             else:
               for k in group:
                 orb = k
                 for j in range(1,dimbs+1):
-                  weight = table[:,dimbs+orb+dimbs*(j-1)]
+                  weight = weights[:,orb+dimbs*(j-1)-1]
                   axs[0,i].scatter(table[:,0],table[:,j]*ry2ev,c=[(colors[g][0],colors[g][1],colors[g][2], a) for a in weight],s=8)
 
   else: # args.superconductivity:
@@ -254,6 +260,9 @@ if __name__ == "__main__":
       npoints, name, point, fermi, dimbs = read_header(args.file)
       # Reads the data points
       table = read_data(args.file)
+      # Reads the weigths for projected band structure
+      if(len(args.project) > 0):
+        weights = read_data(args.file.replace("bandstructure","weights"))
       # Set custom title or default title
       if args.title != "":
         axs[0,i].set_title(args.title)
@@ -296,13 +305,13 @@ if __name__ == "__main__":
           if isinstance(group, int):
             orb = group
             for j in range(1,dimbs+1):
-              weight = table[:,dimbs+orb+dimbs*(j-1)]
+              weight = weights[:,orb+dimbs*(j-1)-1]
               axs[0,i].scatter(table[:,0],(table[:,j]-fermi)*ry2ev,c=[(0.07, 0.19, 0.40, a) for a in weight],s=10)
           else:
             for k in group:
               orb = k
               for j in range(1,dimbs+1):
-                weight = table[:,dimbs+orb+dimbs*(j-1)]
+                weight = weights[:,orb+dimbs*(j-1)-1]
                 axs[0,i].scatter(table[:,0],(table[:,j]-fermi)*ry2ev,c=[(colors[g][0],colors[g][1],colors[g][2], a) for a in weight],s=8)
 
   plt.tight_layout()

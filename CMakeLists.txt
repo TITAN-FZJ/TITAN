@@ -18,7 +18,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/check_files.F90
                                   source/sort_all_files.F90
                                   source/green.F90
-                                  source/hamiltk.F90
+                                  source/mod_hamiltonian.F90
                                   source/mod_distributions.F90
                                   source/dtdksub.F90
                                   source/invers.F90
