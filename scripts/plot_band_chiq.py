@@ -94,6 +94,7 @@ if __name__ == "__main__":
   parser.add_argument("--together", default=False, action="store_true" , help="Plot superconductor bands in the same plot")
   parser.add_argument("--zoom", default=0.0, type=float)
   parser.add_argument("--title", action="store", dest="title", default="")
+  parser.add_argument("--noef", default=True, action="store_false" , help="Do not plot the line at Ef")
   parser.add_argument("--output", action="store", dest="output", default="")
   args = parser.parse_args()
 
@@ -127,11 +128,11 @@ if __name__ == "__main__":
           axs[0,i].axvline(x=j, color='k', linewidth=0.5)
 
         # Ploting the Fermi level or a line at y=0.0
-
-        if (fermi == None): # susceptibility
-          axs[0,i].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='-', linewidth=0.5)
-        else: # band structure
-          axs[0,i].axhline(y=0.0, color='b', linestyle='--')
+        if args.noef:
+          if (fermi == None): # susceptibility
+            axs[0,i].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='-', linewidth=0.5)
+          else: # band structure
+            axs[0,i].axhline(y=0.0, color='b', linestyle='--', linewidth=0.5)
 
         # for j in enumerate(table[:,1]):
         #   if j[1] == point[4]:
@@ -173,15 +174,15 @@ if __name__ == "__main__":
           axs[0,i].axvline(x=j, color='k', linewidth=0.5)
 
         # Ploting the Fermi level or a line at y=0.0
-
-        if (fermi == None): # susceptibility
-          axs[0,i].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='-', linewidth=0.5)
-        else: # band structure
-          axs[0,i].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--')
-          if(i==0):
-            axs[0,i].axhline(y=fermi, xmin=point[0], xmax=point[npoints-1], color='b', linestyle='--')
-          else:
-            axs[0,i].axhline(y=-fermi, xmin=point[0], xmax=point[npoints-1], color='b', linestyle='--')
+        if args.noef:
+          if (fermi == None): # susceptibility
+            axs[0,i].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='-', linewidth=0.5)
+          else: # band structure
+            axs[0,i].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--', linewidth=0.5)
+            if(i==0):
+              axs[0,i].axhline(y=fermi, xmin=point[0], xmax=point[npoints-1], color='b', linestyle='--', linewidth=0.5)
+            else:
+              axs[0,i].axhline(y=-fermi, xmin=point[0], xmax=point[npoints-1], color='b', linestyle='--', linewidth=0.5)
 
         # for j in enumerate(table[:,1]):
         #   if j[1] == point[4]:
@@ -230,10 +231,11 @@ if __name__ == "__main__":
         axs[0,i].set_ylim(-args.zoom,args.zoom)
 
       # Ploting the Fermi level or a line at y=0.0
-      if (fermi == None): # susceptibility
-        axs[0,i].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='-', linewidth=0.5)
-      else: # band structure
-        axs[0,i].axhline(y=fermi, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--')
+      if args.noef:
+        if (fermi == None): # susceptibility
+          axs[0,i].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='-', linewidth=0.5)
+        else: # band structure
+          axs[0,i].axhline(y=fermi, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--', linewidth=0.5)
 
       # for j in enumerate(table[:,1]):
       #   if j[1] == point[4]:

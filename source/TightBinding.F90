@@ -207,9 +207,9 @@ contains
 
     select case(material%nAtomEl)
     case(0)
-      call log_error("readElementFile", "Element " // trim(material%Name) // "not found in elemental file!")
+      call log_error("readElementFile", "Element " // trim(material%Name) // " not found in elemental file!")
     case(2:)
-      call log_warning("readElementFile", "More than one instance of element " // trim(itos(i)) // "found in elemental file. Using the scale factor closest to 1.")
+      call log_warning("readElementFile", "More than one instance of element " // trim(itos(i)) // " found in elemental file. Using the scale factor closest to 1.")
     end select
 
 
@@ -256,7 +256,7 @@ contains
 
     do i = 1, material%isysdim
       if(vec_norm(Bravais(:,i),3) <= 1.d-9) &
-        call log_error("readElementFile", "Bravais vector a" // trim(itos(i)) // "not given.")
+        call log_error("readElementFile", "Bravais vector a" // trim(itos(i)) // " not given.")
     end do
 
     ! Read Fermi level
