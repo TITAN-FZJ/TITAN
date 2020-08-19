@@ -1,7 +1,7 @@
 module mod_dnsqe
-  use mod_f90_kind
+  use mod_kind, only: sp,dp
   implicit none
-  real(double), private :: TOL1 = 1.d-15
+  real(dp), private :: TOL1 = 1.e-15_dp
 contains
       SUBROUTINE DNSQE (FCN, JAC, IOPT, N, X, FVEC, TOL, NPRINT, INFO, WA, LWA)
 !***BEGIN PROLOGUE  DNSQE
@@ -10,7 +10,7 @@ contains
 !            the Powell hybrid method.
 !***LIBRARY   SLATEC
 !***CATEGORY  F2A
-!***TYPE      REAL(DOUBLE) :: (SNSQE-S, DNSQE-D)
+!***TYPE      REAL(dp) :: (SNSQE-S, DNSQE-D)
 !***KEYWORDS  EASY-TO-USE, NONLINEAR SQUARE SYSTEM,
 !             POWELL HYBRID METHOD, ZEROS
 !***AUTHOR  Hiebert, K. L. (SNLA)
@@ -33,8 +33,8 @@ contains
 !       SUBROUTINE DNSQE(FCN,JAC,IOPT,N,X,FVEC,TOL,NPRINT,INFO,
 !      *                  WA,LWA)
 !       INTEGER      :: IOPT,N,NPRINT,INFO,LWA
-!       REAL(DOUBLE) :: TOL
-!       REAL(DOUBLE) :: X(N),FVEC(N),WA(LWA)
+!       REAL(dp) :: TOL
+!       REAL(dp) :: X(N),FVEC(N),WA(LWA)
 !       EXTERNAL FCN,JAC
 !
 ! 3. Parameters.
@@ -50,7 +50,7 @@ contains
 !
 !         SUBROUTINE FCN(N,X,FVEC,IFLAG)
 !         INTEGER      :: N,IFLAG
-!         REAL(DOUBLE) :: X(N),FVEC(N)
+!         REAL(dp) :: X(N),FVEC(N)
 !         ----------
 !         Calculate the functions at X and
 !         return this vector in FVEC.
@@ -69,7 +69,7 @@ contains
 !
 !         SUBROUTINE JAC(N,X,FVEC,FJAC,LDFJAC,IFLAG)
 !         INTEGER      :: N,LDFJAC,IFLAG
-!         REAL(DOUBLE) :: X(N),FVEC(N),FJAC(LDFJAC,N)
+!         REAL(dp) :: X(N),FVEC(N),FJAC(LDFJAC,N)
 !         ----------
 !         Calculate the Jacobian at X and return this
 !         matrix in FJAC.  FVEC contains the function
@@ -259,9 +259,9 @@ contains
 ! C     DRIVER FOR DNSQE EXAMPLE.
 ! C
 !       INTEGER      :: J,N,IOPT,NPRINT,INFO,LWA,NWRITE
-!       REAL(DOUBLE) :: TOL,FNORM
-!       REAL(DOUBLE) :: X(9),FVEC(9),WA(180)
-!       REAL(DOUBLE) :: DENORM,D1MACH
+!       REAL(dp) :: TOL,FNORM
+!       REAL(dp) :: X(9),FVEC(9),WA(180)
+!       REAL(dp) :: DENORM,D1MACH
 !       EXTERNAL FCN
 !       DATA NWRITE /6/
 ! C
@@ -293,9 +293,9 @@ contains
 !       END
 !       SUBROUTINE FCN(N,X,FVEC,IFLAG)
 !       INTEGER      :: N,IFLAG
-!       REAL(DOUBLE) :: X(N),FVEC(N)
+!       REAL(dp) :: X(N),FVEC(N)
 !       INTEGER      :: K
-!       REAL(DOUBLE) :: ONE,TEMP,TEMP1,TEMP2,THREE,TWO,ZERO
+!       REAL(dp) :: ONE,TEMP,TEMP1,TEMP2,THREE,TWO,ZERO
 !       DATA ZERO,ONE,TWO,THREE /0.E0,1.E0,2.E0,3.E0/
 ! C
 !       DO 10 K = 1, N
@@ -338,11 +338,11 @@ contains
 !***END PROLOGUE  DNSQE
       INTEGER      :: INDEX, INFO, IOPT, J, LR, LWA, MAXFEV, ML, MODE, MU, N, &
            NFEV, NJEV, NPRINT
-      REAL(DOUBLE) :: EPSFCN, FACTOR, FVEC(*), ONE, TOL, WA(*), &
+      REAL(dp) :: EPSFCN, FACTOR, FVEC(*), ONE, TOL, WA(*), &
            X(*), XTOL, ZERO
       EXTERNAL FCN, JAC
       SAVE FACTOR, ONE, ZERO
-      DATA FACTOR,ONE,ZERO /1.0D2,1.0D0,0.0D0/
+      DATA FACTOR,ONE,ZERO /1.0D2,1.0_dp,0.0_dp/
 !     BEGIN BLOCK PERMITTING ...EXITS TO 20
 !***FIRST EXECUTABLE STATEMENT  DNSQE
          INFO = 0
@@ -388,7 +388,7 @@ contains
 !            variables by a modification of the Powell hybrid method.
 !***LIBRARY   SLATEC
 !***CATEGORY  F2A
-!***TYPE      REAL(DOUBLE) :: (SNSQ-S, DNSQ-D)
+!***TYPE      REAL(dp) :: (SNSQ-S, DNSQ-D)
 !***KEYWORDS  NONLINEAR SQUARE SYSTEM, POWELL HYBRID METHOD, ZEROS
 !***AUTHOR  Hiebert, K. L. (SNLA)
 !***DESCRIPTION
@@ -410,8 +410,8 @@ contains
 !      *                 ML,MU,EPSFCN,DIAG,MODE,FACTOR,NPRINT,INFO,NFEV,
 !      *                 NJEV,R,LR,QTF,WA1,WA2,WA3,WA4)
 !       INTEGER      :: IOPT,N,MAXFEV,ML,MU,MODE,NPRINT,INFO,NFEV,LDFJAC,NJEV,LR
-!       REAL(DOUBLE) :: XTOL,EPSFCN,FACTOR
-!       REAL(DOUBLE)
+!       REAL(dp) :: XTOL,EPSFCN,FACTOR
+!       REAL(dp)
 !       X(N),FVEC(N),DIAG(N),FJAC(LDFJAC,N),R(LR),QTF(N),
 !      *     WA1(N),WA2(N),WA3(N),WA4(N)
 !       EXTERNAL FCN,JAC
@@ -429,7 +429,7 @@ contains
 !
 !         SUBROUTINE FCN(N,X,FVEC,IFLAG)
 !         INTEGER      :: N,IFLAG
-!         REAL(DOUBLE) :: X(N),FVEC(N)
+!         REAL(dp) :: X(N),FVEC(N)
 !         ----------
 !         CALCULATE THE FUNCTIONS AT X AND
 !         RETURN THIS VECTOR IN FVEC.
@@ -448,7 +448,7 @@ contains
 !
 !         SUBROUTINE JAC(N,X,FVEC,FJAC,LDFJAC,IFLAG)
 !         INTEGER      :: N,LDFJAC,IFLAG
-!         REAL(DOUBLE) :: X(N),FVEC(N),FJAC(LDFJAC,N)
+!         REAL(dp) :: X(N),FVEC(N),FJAC(LDFJAC,N)
 !         ----------
 !         Calculate the Jacobian at X and return this
 !         matrix in FJAC.  FVEC contains the function
@@ -700,10 +700,10 @@ contains
 ! C
 !       INTEGER      :: J,IOPT,N,MAXFEV,ML,MU,MODE,NPRINT,INFO,NFEV,LDFJAC,LR,
 !      *        NWRITE
-!       REAL(DOUBLE) :: XTOL,EPSFCN,FACTOR,FNORM
-!       REAL(DOUBLE) :: X(9),FVEC(9),DIAG(9),FJAC(9,9),R(45),QTF(9),
+!       REAL(dp) :: XTOL,EPSFCN,FACTOR,FNORM
+!       REAL(dp) :: X(9),FVEC(9),DIAG(9),FJAC(9,9),R(45),QTF(9),
 !      *     WA1(9),WA2(9),WA3(9),WA4(9)
-!       REAL(DOUBLE) :: DENORM,D1MACH
+!       REAL(dp) :: DENORM,D1MACH
 !       EXTERNAL FCN
 !       DATA NWRITE /6/
 ! C
@@ -749,9 +749,9 @@ contains
 !       END
 !       SUBROUTINE FCN(N,X,FVEC,IFLAG)
 !       INTEGER      :: N,IFLAG
-!       REAL(DOUBLE) :: X(N),FVEC(N)
+!       REAL(dp) :: X(N),FVEC(N)
 !       INTEGER      :: K
-!       REAL(DOUBLE) :: ONE,TEMP,TEMP1,TEMP2,THREE,TWO,ZERO
+!       REAL(dp) :: ONE,TEMP,TEMP1,TEMP2,THREE,TWO,ZERO
 !       DATA ZERO,ONE,TWO,THREE /0.E0,1.E0,2.E0,3.E0/
 ! C
 !       IF (IFLAG /= 0) GO TO 5
@@ -801,11 +801,11 @@ contains
 !   900315  CALLs to XERROR changed to CALLs to XERMSG.  (THJ)
 !   920501  Reformatted the REFERENCES section.  (WRB)
 !***END PROLOGUE  DNSQ
-!       REAL(DOUBLE) :: D1MACH,DENORM
+!       REAL(dp) :: D1MACH,DENORM
       INTEGER      :: I, IFLAG, INFO, IOPT, ITER, IWA(1), J, JM1, L, LDFJAC, &
            LR, MAXFEV, ML, MODE, MU, N, NCFAIL, NCSUC, NFEV, NJEV, &
            NPRINT, NSLOW1, NSLOW2
-      REAL(DOUBLE) :: ACTRED, DELTA, DIAG(*), EPSFCN, EPSMCH, FACTOR, &
+      REAL(dp) :: ACTRED, DELTA, DIAG(*), EPSFCN, EPSMCH, FACTOR, &
            FJAC(LDFJAC,*), FNORM, FNORM1, FVEC(*), ONE, P0001, P001, &
            P1, P5, PNORM, PRERED, QTF(*), R(*), RATIO, SUM, TEMP, &
            WA1(*), WA2(*), WA3(*), WA4(*), X(*), XNORM, XTOL, ZERO
@@ -813,7 +813,7 @@ contains
       LOGICAL      :: JEVAL,SING
       SAVE ONE, P1, P5, P001, P0001, ZERO
       DATA ONE,P1,P5,P001,P0001,ZERO &
-           /1.0D0,1.0D-1,5.0D-1,1.0D-3,1.0D-4,0.0D0/
+           /1.0_dp,1.0e-1_dp,5.0e-1_dp,1.0e-3_dp,1.0e-4_dp,0.0_dp/
 !
 !     BEGIN BLOCK PERMITTING ...EXITS TO 320
 !***FIRST EXECUTABLE STATEMENT  DNSQ
@@ -1174,7 +1174,7 @@ contains
 
       IMPLICIT NONE
       INTEGER      :: I
-      REAL(DOUBLE) :: D1MACH, B, X = 1.D0
+      REAL(dp) :: D1MACH, B, X = 1._dp
 
       B = RADIX(X)
 
@@ -1200,7 +1200,7 @@ contains
 !***SUBSIDIARY
 !***PURPOSE  Subsidiary to DNSQ and DNSQE
 !***LIBRARY   SLATEC
-!***TYPE      REAL(DOUBLE) :: (R1MPYQ-S, D1MPYQ-D)
+!***TYPE      REAL(dp) :: (R1MPYQ-S, D1MPYQ-D)
 !***AUTHOR  (UNKNOWN)
 !***DESCRIPTION
 !
@@ -1253,9 +1253,9 @@ contains
 !   900328  Added TYPE section.  (WRB)
 !***END PROLOGUE  D1MPYQ
       INTEGER      :: I, J, LDA, M, N, NM1, NMJ
-      REAL(DOUBLE) :: A(LDA,*), COS, ONE, SIN, TEMP, V(*), W(*)
+      REAL(dp) :: A(LDA,*), COS, ONE, SIN, TEMP, V(*), W(*)
       SAVE ONE
-      DATA ONE /1.0D0/
+      DATA ONE /1.0_dp/
 !
 !     APPLY THE FIRST SET OF GIVENS ROTATIONS TO A.
 !
@@ -1299,7 +1299,7 @@ contains
 !***SUBSIDIARY
 !***PURPOSE  Subsidiary to DNSQ and DNSQE
 !***LIBRARY   SLATEC
-!***TYPE      REAL(DOUBLE) :: (R1UPDT-S, D1UPDT-D)
+!***TYPE      REAL(dp) :: (R1UPDT-S, D1UPDT-D)
 !***AUTHOR  (UNKNOWN)
 !***DESCRIPTION
 !
@@ -1367,13 +1367,13 @@ contains
 !           (WRB)
 !   900328  Added TYPE section.  (WRB)
 !***END PROLOGUE  D1UPDT
-!       REAL(DOUBLE) :: D1MACH
+!       REAL(dp) :: D1MACH
       INTEGER      :: I, J, JJ, L, M, N, NM1, NMJ
-      REAL(DOUBLE) :: COS, COTAN, GIANT, ONE, P25, P5, S(*), &
+      REAL(dp) :: COS, COTAN, GIANT, ONE, P25, P5, S(*), &
            SIN, TAN, TAU, TEMP, U(*), V(*), W(*), ZERO
       LOGICAL      :: SING
       SAVE ONE, P5, P25, ZERO
-      DATA ONE,P5,P25,ZERO /1.0D0,5.0D-1,2.5D-1,0.0D0/
+      DATA ONE,P5,P25,ZERO /1.0_dp,5.0e-1_dp,2.5e-1_dp,0.0_dp/
 !
 !     GIANT IS THE LARGEST MAGNITUDE.
 !
@@ -1511,7 +1511,7 @@ contains
 !***SUBSIDIARY
 !***PURPOSE  Subsidiary to DNSQ and DNSQE
 !***LIBRARY   SLATEC
-!***TYPE      REAL(DOUBLE) :: (DOGLEG-S, DDOGLG-D)
+!***TYPE      REAL(dp) :: (DOGLEG-S, DDOGLG-D)
 !***AUTHOR  (UNKNOWN)
 !***DESCRIPTION
 !
@@ -1569,13 +1569,13 @@ contains
 !           (WRB)
 !   900328  Added TYPE section.  (WRB)
 !***END PROLOGUE  DDOGLG
-!       REAL(DOUBLE) :: D1MACH,DENORM
+!       REAL(dp) :: D1MACH,DENORM
       INTEGER      :: I, J, JJ, JP1, K, L, N
-      REAL(DOUBLE) :: ALPHA, BNORM, DELTA, DIAG(*), EPSMCH, GNORM, &
+      REAL(dp) :: ALPHA, BNORM, DELTA, DIAG(*), EPSMCH, GNORM, &
            ONE, QNORM, QTB(*), R(*), SGNORM, SUM, TEMP, WA1(*), &
            WA2(*), X(*), ZERO
       SAVE ONE, ZERO
-      DATA ONE,ZERO /1.0D0,0.0D0/
+      DATA ONE,ZERO /1.0_dp,0.0_dp/
 !
 !     EPSMCH IS THE MACHINE PRECISION.
 !
@@ -1698,7 +1698,7 @@ contains
 !***SUBSIDIARY
 !***PURPOSE  Subsidiary to DNSQ and DNSQE
 !***LIBRARY   SLATEC
-!***TYPE      REAL(DOUBLE) :: (ENORM-S, DENORM-D)
+!***TYPE      REAL(dp) :: (ENORM-S, DENORM-D)
 !***AUTHOR  (UNKNOWN)
 !***DESCRIPTION
 !
@@ -1738,12 +1738,12 @@ contains
 !           (WRB)
 !   900328  Added TYPE section.  (WRB)
 !***END PROLOGUE  DENORM
-      REAL(DOUBLE) :: DENORM
+      REAL(dp) :: DENORM
       INTEGER      :: I, N
-      REAL(DOUBLE) :: AGIANT, FLOATN, ONE, RDWARF, RGIANT, S1, S2, S3, &
+      REAL(dp) :: AGIANT, FLOATN, ONE, RDWARF, RGIANT, S1, S2, S3, &
            X(*), X1MAX, X3MAX, XABS, ZERO
       SAVE ONE, ZERO, RDWARF, RGIANT
-      DATA ONE,ZERO,RDWARF,RGIANT /1.0D0,0.0D0,3.834D-20,1.304D19/
+      DATA ONE,ZERO,RDWARF,RGIANT /1.0_dp,0.0_dp,3.834e-20_dp,1.304D19/
 !***FIRST EXECUTABLE STATEMENT  DENORM
       S1 = ZERO
       S2 = ZERO
@@ -1814,7 +1814,7 @@ contains
 !***SUBSIDIARY
 !***PURPOSE  Subsidiary to DNSQ and DNSQE
 !***LIBRARY   SLATEC
-!***TYPE      REAL(DOUBLE) :: (FDJAC1-S, DFDJC1-D)
+!***TYPE      REAL(dp) :: (FDJAC1-S, DFDJC1-D)
 !***AUTHOR  (UNKNOWN)
 !***DESCRIPTION
 !
@@ -1838,7 +1838,7 @@ contains
 !
 !         SUBROUTINE FCN(N,X,FVEC,IFLAG)
 !         INTEGER      :: N,IFLAG
-!         REAL(DOUBLE) :: X(N),FVEC(N)
+!         REAL(dp) :: X(N),FVEC(N)
 !         ----------
 !         Calculate the functions at X and
 !         return this vector in FVEC.
@@ -1899,13 +1899,13 @@ contains
 !           (WRB)
 !   900328  Added TYPE section.  (WRB)
 !***END PROLOGUE  DFDJC1
-!       REAL(DOUBLE) :: D1MACH
+!       REAL(dp) :: D1MACH
       INTEGER      :: I, IFLAG, J, K, LDFJAC, ML, MSUM, MU, N
-      REAL(DOUBLE) :: EPS, EPSFCN, EPSMCH, FJAC(LDFJAC,*), &
+      REAL(dp) :: EPS, EPSFCN, EPSMCH, FJAC(LDFJAC,*), &
            FVEC(*), H, TEMP, WA1(*), WA2(*), X(*), ZERO
       EXTERNAL FCN
       SAVE ZERO
-      DATA ZERO /0.0D0/
+      DATA ZERO /0.0_dp/
 !
 !     EPSMCH IS THE MACHINE PRECISION.
 !
@@ -1969,7 +1969,7 @@ contains
 !***SUBSIDIARY
 !***PURPOSE  Subsidiary to DNSQ and DNSQE
 !***LIBRARY   SLATEC
-!***TYPE      REAL(DOUBLE) :: (QFORM-S, DQFORM-D)
+!***TYPE      REAL(dp) :: (QFORM-S, DQFORM-D)
 !***AUTHOR  (UNKNOWN)
 !***DESCRIPTION
 !
@@ -2010,9 +2010,9 @@ contains
 !   900328  Added TYPE section.  (WRB)
 !***END PROLOGUE  DQFORM
       INTEGER      :: I, J, JM1, K, L, LDQ, M, MINMN, N, NP1
-      REAL(DOUBLE) :: ONE, Q(LDQ,*), SUM, TEMP, WA(*), ZERO
+      REAL(dp) :: ONE, Q(LDQ,*), SUM, TEMP, WA(*), ZERO
       SAVE ONE, ZERO
-      DATA ONE,ZERO /1.0D0,0.0D0/
+      DATA ONE,ZERO /1.0_dp,0.0_dp/
 !
 !     ZERO OUT UPPER TRIANGLE OF Q IN THE FIRST MIN(M,N) COLUMNS.
 !
@@ -2071,7 +2071,7 @@ contains
 !***SUBSIDIARY
 !***PURPOSE  Subsidiary to DNLS1, DNLS1E, DNSQ and DNSQE
 !***LIBRARY   SLATEC
-!***TYPE      REAL(DOUBLE) :: (QRFAC-S, DQRFAC-D)
+!***TYPE      REAL(dp) :: (QRFAC-S, DQRFAC-D)
 !***AUTHOR  (UNKNOWN)
 !***DESCRIPTION
 !
@@ -2153,11 +2153,11 @@ contains
       INTEGER      :: IPVT(*)
       LOGICAL      :: PIVOT
       SAVE ONE, P05, ZERO
-      REAL(DOUBLE) :: A(LDA,*),SIGMA(*),ACNORM(*),WA(*)
+      REAL(dp) :: A(LDA,*),SIGMA(*),ACNORM(*),WA(*)
       INTEGER      :: I,J,JP1,K,KMAX,MINMN
-      REAL(DOUBLE) :: AJNORM,EPSMCH,ONE,P05,SUM,TEMP,ZERO
-!       REAL(DOUBLE) :: D1MACH,DENORM
-      DATA ONE,P05,ZERO /1.0D0,5.0D-2,0.0D0/
+      REAL(dp) :: AJNORM,EPSMCH,ONE,P05,SUM,TEMP,ZERO
+!       REAL(dp) :: D1MACH,DENORM
+      DATA ONE,P05,ZERO /1.0_dp,5.0e-2_dp,0.0_dp/
 !***FIRST EXECUTABLE STATEMENT  DQRFAC
 !       CALL D1MACHSUB(4,EPSMCH)
       EPSMCH = D1MACH(4)
@@ -2333,8 +2333,8 @@ contains
 
       IMPLICIT NONE
       INTEGER      :: I
-      REAL :: X_single  = 1.0
-      REAL(DOUBLE) :: X_double = 1.D0
+      REAL(sp) :: X_single = 1.0_sp
+      REAL(dp) :: X_double = 1._dp
 
       SELECT CASE (I)
         CASE (1)

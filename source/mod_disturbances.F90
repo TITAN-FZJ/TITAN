@@ -1,18 +1,18 @@
 module mod_disturbances
-  use mod_f90_kind, only: double
+  use mod_kind, only: dp
   implicit none
   ! Disturbances and renormalized disturbances: chd,sdx,sdy,sdz,ldx,ldy,ldz
-  complex(double),allocatable   :: disturbances(:,:)
+  complex(dp),allocatable   :: disturbances(:,:)
   !! Disturbances
-  complex(double),allocatable   :: total_disturbances(:)
+  complex(dp),allocatable   :: total_disturbances(:)
   !! Total Disturbances
-  complex(double),allocatable   :: rdisturbances(:,:)
+  complex(dp),allocatable   :: rdisturbances(:,:)
   !! Renormalized disturbances
-  complex(double), dimension(:,:),   allocatable :: tchiorbiikl
+  complex(dp), dimension(:,:),   allocatable :: tchiorbiikl
   !! Full disturbance response function
-  complex(double), dimension(:,:,:), allocatable :: ldmat
+  complex(dp), dimension(:,:,:), allocatable :: ldmat
   !! Angular Momentum Disturbance Matrix
-  complex(double),dimension(:),allocatable       :: sdmat
+  complex(dp),dimension(:),allocatable       :: sdmat
   !! Spin Disturbance Matrix
 
   character(len=5), dimension(7), parameter, private :: folder = ["CD", "SD", "SD", "SD", "LD", "LD", "LD"]
@@ -155,13 +155,13 @@ contains
   ! (already opened with openclose_disturbance_files(1))
   ! Some information may also be written on the screen
   subroutine write_disturbances(e)
-    use mod_f90_kind
+    use, intrinsic :: iso_fortran_env
     use mod_parameters, only: renorm,output,lwriteonscreen
     use mod_magnet, only: mvec_spherical,mtotal_spherical
     use mod_System, only: s => sys
     implicit none
     integer  :: i,iw
-    real(double),intent(in) :: e
+    real(dp),intent(in) :: e
 
     call open_disturbance_files()
 

@@ -38,7 +38,7 @@ contains
   if(Npl_input==1) set2 = set1
   set2g = (set2-1)*6
 
-  ! i = ceiling((Npl_input+2)/2.d0)
+  ! i = ceiling((Npl_input+2)/2._dp)
   ! do j=1,i
   !   if(j<=6) then
   !     mmlayer(j) = j + set1g

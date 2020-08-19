@@ -12,13 +12,13 @@ contains
 ! This is useful to run different jobs with the same loop
 ! (in conjunction with variable skip_steps_hw)
   subroutine check_stop(filename,hw_count,e)
-    use mod_f90_kind,   only: double
+    use mod_kind, only: dp
     use mod_parameters, only: output
     use mod_magnet,     only: hw_list
     use mod_mpi_pars
     implicit none
     integer,          intent(in) :: hw_count     !! Counter for magnetic field
-    real(double),     intent(in), optional :: e  !! Current frequency 
+    real(dp),     intent(in), optional :: e  !! Current frequency 
     character(len=*), intent(in) :: filename     !! Initial filename to check
     character(len=8)  :: date
     character(len=10) :: time

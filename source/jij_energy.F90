@@ -4,7 +4,7 @@
 ! where e_i and e_j are unit vectors along the magnetization direction
 ! and the sum covers all sites.
 subroutine jij_energy(Jij)
-  use mod_f90_kind,      only: double
+  use mod_kind, only: dp
   use mod_constants,     only: pi, cOne, cZero, pauli_dorb
   use mod_parameters,    only: nOrb2, Um, q, eta
   use EnergyIntegration, only: y, wght
@@ -15,20 +15,20 @@ subroutine jij_energy(Jij)
   use adaptiveMesh
   use mod_mpi_pars
   implicit none
-  real(double),dimension(s%nAtoms,s%nAtoms,3,3)              :: Jijint
-  real(double),dimension(s%nAtoms,s%nAtoms,3,3), intent(out) :: Jij
-  integer*8 :: ix
-  integer*4 :: i,j,mu,nu,alpha
-  real(double) :: kp(3), kminusq(3), ep
-  real(double) :: evec(3,s%nAtoms)
-  real(double) :: Jijk(s%nAtoms,s%nAtoms,3,3)
-  real(double) :: Jijkan(s%nAtoms,3,3)
-  real(double) :: weight
-  complex(double), dimension(s%nAtoms,3,nOrb2,nOrb2)        :: dBxc_dm
-  complex(double), dimension(s%nAtoms,3,3,nOrb2,nOrb2)      :: d2Bxc_dm2
-  complex(double), dimension(s%nAtoms,nOrb2,nOrb2)          :: paulievec
-  complex(double), dimension(nOrb2,nOrb2)                   :: gij, gji, temp1, temp2, paulia, paulib
-  complex(double), dimension(nOrb2,nOrb2,s%nAtoms,s%nAtoms) :: gf,gfq
+  real(dp),dimension(s%nAtoms,s%nAtoms,3,3)              :: Jijint
+  real(dp),dimension(s%nAtoms,s%nAtoms,3,3), intent(out) :: Jij
+  integer(int64) :: ix
+  integer(int32) :: i,j,mu,nu,alpha
+  real(dp) :: kp(3), kminusq(3), ep
+  real(dp) :: evec(3,s%nAtoms)
+  real(dp) :: Jijk(s%nAtoms,s%nAtoms,3,3)
+  real(dp) :: Jijkan(s%nAtoms,3,3)
+  real(dp) :: weight
+  complex(dp), dimension(s%nAtoms,3,nOrb2,nOrb2)        :: dBxc_dm
+  complex(dp), dimension(s%nAtoms,3,3,nOrb2,nOrb2)      :: d2Bxc_dm2
+  complex(dp), dimension(s%nAtoms,nOrb2,nOrb2)          :: paulievec
+  complex(dp), dimension(nOrb2,nOrb2)                   :: gij, gji, temp1, temp2, paulia, paulib
+  complex(dp), dimension(nOrb2,nOrb2,s%nAtoms,s%nAtoms) :: gf,gfq
   !--------------------- begin MPI vars --------------------
   integer :: ncount
   !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
@@ -43,12 +43,12 @@ subroutine jij_energy(Jij)
 
     do mu = 1, 3
       ! Derivative of Bxc*sigma*evec w.r.t. m_i (Bxc = -U.m/2)
-      dBxc_dm(i,mu,:,:) = -0.5d0*Um(i)*(pauli_dorb(mu,:,:) - (paulievec(i,:,:)) * evec(mu,i))
+      dBxc_dm(i,mu,:,:) = -0.5_dp*Um(i)*(pauli_dorb(mu,:,:) - (paulievec(i,:,:)) * evec(mu,i))
       ! Second derivative of Bxc w.r.t. m_i (Bxc = -U.m/2)
       do nu=1,3
         d2Bxc_dm2(i,mu,nu,:,:) = evec(mu,i)*pauli_dorb(nu,:,:) + pauli_dorb(mu,:,:)*evec(nu,i) - 3*paulievec(i,:,:)*evec(mu,i)*evec(nu,i)
         if(mu==nu) d2Bxc_dm2(i,mu,nu,:,:) = d2Bxc_dm2(i,mu,nu,:,:) + paulievec(i,:,:)
-        d2Bxc_dm2(i,mu,nu,:,:) = 0.5d0*Um(i)*d2Bxc_dm2(i,mu,nu,:,:)/mabs(i)
+        d2Bxc_dm2(i,mu,nu,:,:) = 0.5_dp*Um(i)*d2Bxc_dm2(i,mu,nu,:,:)/mabs(i)
       end do
     end do
   end do
@@ -57,13 +57,13 @@ subroutine jij_energy(Jij)
   call hamilt_local(s)
 
   ! Calculating the number of particles for each spin and orbital using a complex integral
-  Jij = 0.d0
+  Jij = 0._dp
 
   !$omp parallel default(none) &
   !$omp& private(ix,i,j,mu,nu,alpha,kp,ep,weight,kminusq,gf,gfq,gij,gji,paulia,paulib,temp1,temp2,Jijkan,Jijk,Jijint) &
   !$omp& shared(s,nOrb2,eta,y,wght,q,local_points,dBxc_dm,d2Bxc_dm2,Jij,bzs,E_k_imag_mesh)
 
-  Jijint = 0.d0
+  Jijint = 0._dp
 
   !$omp do schedule(static)
   do ix = 1, local_points
@@ -77,8 +77,8 @@ subroutine jij_energy(Jij)
       kminusq = kp-q
       call green(s%Ef,ep+eta,s,kminusq,gfq)
 
-      Jijk   = 0.d0
-      Jijkan = 0.d0
+      Jijk   = 0._dp
+      Jijkan = 0._dp
       do j = 1,s%nAtoms
         do i = 1,s%nAtoms
           gij = gf(:,:,i,j)

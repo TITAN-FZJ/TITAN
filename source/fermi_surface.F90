@@ -1,10 +1,10 @@
 module mod_fermi_surface
-  use mod_f90_kind, only: double
+  use mod_kind, only: dp
   implicit none
   logical      :: lfs_loop = .false.
   integer      :: fs_energy_npts = 0, fs_energy_npt1 = 1
-  real(double) :: fs_energy_i, fs_energy_f, fs_energy_s
-  real(double), allocatable :: fs_energies(:)
+  real(dp) :: fs_energy_i, fs_energy_f, fs_energy_s
+  real(dp), allocatable :: fs_energies(:)
 
   character(len=4), dimension(2), private :: filename = ["orb","tot"]
   character(len=50)  :: epart
@@ -28,12 +28,12 @@ contains
       ! Calculating energy-step size
       fs_energy_s = (fs_energy_f - fs_energy_i)/fs_energy_npts
       ! If 0.0, then final and initial are the same; use one point only
-      if(abs(fs_energy_s) <= 1.d-15) fs_energy_npt1 = 1
+      if(abs(fs_energy_s) <= 1.e-15_dp) fs_energy_npt1 = 1
 
       ! Creating list of energies
       do i = 1, fs_energy_npt1
         fs_energies(i) = fs_energy_i + (i-1)*fs_energy_s
-        if( abs(fs_energies(i))<1.d-12 ) fs_energies(i) = 0.d0
+        if( abs(fs_energies(i))<1.e-12_dp ) fs_energies(i) = 0._dp
       end do
     else
       ! If no loop is given, calculate Fermi surface
@@ -62,7 +62,7 @@ contains
       if(rField == 0) &
         write(output%unit_loop,"(i0,' of ',i0,' iso-energy surfaces. Energy e = ',es8.1)") i,fs_energy_npt1,fs_energies(i)
       ! Setting filename
-      if((fs_energies(i)-s%Ef>1.d-6).or.(lfs_loop)) then
+      if((fs_energies(i)-s%Ef>1.e-6_dp).or.(lfs_loop)) then
         write(epart,fmt="('isoe_e=',a,'_')") trim(rtos(fs_energies(i),"(es8.1)"))
       else
         write(epart,fmt="('fs_')")
@@ -86,7 +86,7 @@ contains
 
   !   Calculates iso-energy surface (e=Ef for Fermi surface)
   subroutine calculate_fermi_surface(e)
-    use mod_f90_kind,      only: double
+    use mod_kind, only: dp, int32, int64
     use mod_constants,     only: pi, pauli_orb, cZero, cOne
     use mod_parameters,    only: nOrb, nOrb2, eta
     use mod_SOC,           only: llinearsoc, llineargfsoc
@@ -96,15 +96,15 @@ contains
     use mod_hamiltonian,   only: hamilt_local,h0
     use mod_mpi_pars
     implicit none
-    real(double),intent(in)    :: e
-    integer*8          :: iz
-    integer*4          :: i,mu,nu,mup,nup,sigma
-    real(double)       :: fs_atom(s%nAtoms,realBZ%nkpt,7),fs_orb(nOrb,realBZ%nkpt,7),fs_total(realBZ%nkpt,7)
-    real(double)       :: kp(3)
-    real(double)       :: temp
-    complex(double)    :: templ
-    complex(double),dimension(nOrb2,nOrb2,s%nAtoms,s%nAtoms)    :: gf
-    complex(double),dimension(nOrb2,nOrb2)    :: temp1,temp2,pauli_gf
+    real(dp),intent(in)    :: e
+    integer(int64)          :: iz
+    integer(int32)          :: i,mu,nu,mup,nup,sigma
+    real(dp)       :: fs_atom(s%nAtoms,realBZ%nkpt,7),fs_orb(nOrb,realBZ%nkpt,7),fs_total(realBZ%nkpt,7)
+    real(dp)       :: kp(3)
+    real(dp)       :: temp
+    complex(dp)    :: templ
+    complex(dp),dimension(nOrb2,nOrb2,s%nAtoms,s%nAtoms)    :: gf
+    complex(dp),dimension(nOrb2,nOrb2)    :: temp1,temp2,pauli_gf
 
     ! Allocating Brillouin Zone without parallelization
     call realBZ % setup_fraction(s,0, 1, FreqComm(1))
@@ -116,9 +116,9 @@ contains
     !$omp& private(iz,kp,gf,i,mu,nu,mup,nup,sigma,temp,temp1,temp2,templ) &
     !$omp& shared(llineargfsoc,llinearsoc,s,nOrb,nOrb2,realBZ,e,eta,pauli_orb,pauli_gf,lx,ly,lz,fs_atom,fs_orb,fs_total)
 
-    fs_atom  = 0.d0
-    fs_orb   = 0.d0
-    fs_total = 0.d0
+    fs_atom  = 0._dp
+    fs_orb   = 0._dp
+    fs_total = 0._dp
 
     !$omp do
     do iz = 1, realBZ%nkpt
@@ -257,15 +257,16 @@ contains
 
   ! This subtoutine writes the iso-surfaces to the files
   subroutine writeFS(fs_atom,fs_orb,fs_total)
+    use mod_kind, only: int32, int64
     use mod_parameters,    only: nOrb
     use mod_System,        only: s => sys
     use mod_BrillouinZone, only: realBZ
     implicit none
-    real(double), intent(in) :: fs_atom(s%nAtoms,realBZ%nkpt,7),fs_orb(nOrb,realBZ%nkpt,7),fs_total(realBZ%nkpt,7)
+    real(dp), intent(in) :: fs_atom(s%nAtoms,realBZ%nkpt,7),fs_orb(nOrb,realBZ%nkpt,7),fs_total(realBZ%nkpt,7)
     character(len=30)        :: formatvar
-    real(double)             :: kp(3)
-    integer*8                :: iz
-    integer*4                :: i, mu, sigma
+    real(dp)             :: kp(3)
+    integer(int64)                :: iz
+    integer(int32)                :: i, mu, sigma
 
     write(formatvar,fmt="(a,i0,a)") '(',nOrb*7+3,'(es16.9,2x))'
 

@@ -1,32 +1,39 @@
 module mod_mpi_pars
-  use mod_f90_kind, only: double
-  use mpi_f08
+  use mod_kind, only: dp, int32, int64
+  use MPI
+  ! use MPI_f08
   implicit none
-  integer*4 :: ierr, errorcode
-  integer*4 :: myrank,numprocs
-  TYPE(MPI_Status) :: stat
+  integer(int32) :: ierr, errorcode
+  integer(int32) :: myrank,numprocs
+  integer(int32), dimension(MPI_STATUS_SIZE) :: stat
+  ! MPI_f08:
+  ! TYPE(MPI_Status) :: stat
 
-  type(MPI_Comm) :: FieldComm
+  integer(int32) :: FieldComm
+  ! MPI_f08:
+  ! type(MPI_Comm) :: FieldComm
   !! Magnetic Field Communicator
-  integer*4 :: sField
+  integer(int32) :: sField
   !! Size of Magnetic Field Communicator
-  integer*4 :: rField
+  integer(int32) :: rField
   !! Rank in Magnetic Field Communicator
 
-  type(MPI_Comm), dimension(2) :: FreqComm
+  integer(int32), dimension(2) :: FreqComm
+  ! MPI_f08:
+  ! type(MPI_Comm), dimension(2) :: FreqComm
   !! Frequency Communicators, (1) Row, (2) Col (for sending to 1 Process)
-  integer*4, dimension(2) :: sFreq
+  integer(int32), dimension(2) :: sFreq
   !! Size of Frequency Communicators
-  integer*4, dimension(2) :: rFreq
+  integer(int32), dimension(2) :: rFreq
   !! Rank in Frequency Communicators
 
-  integer*8 :: startField
+  integer(int64) :: startField
   !! First Point of Magnetic Field workload
-  integer*8 :: endField
+  integer(int64) :: endField
   !! Last Point of Magnetic Field workload
-  integer*8 :: startFreq
+  integer(int64) :: startFreq
   !! First Point of Frequency workload
-  integer*8 :: endFreq
+  integer(int64) :: endFreq
   !! Last Point of Frequency workload
 
 contains
@@ -34,7 +41,7 @@ contains
   subroutine Initialize_MPI()
     implicit none
 
-    integer*4 :: provided
+    integer(int32) :: provided
 
 #ifdef _OPENMP
 #ifdef _UFF
@@ -68,15 +75,24 @@ contains
 
   function genFieldComm(nFields, FieldID, comm)
     implicit none
-    integer*4, intent(in)      :: nFields
+    integer(int32), intent(in)      :: nFields
     !! Number of field points to be calculated in parallel
-    integer*4, intent(out)     :: FieldID
+    integer(int32), intent(out)     :: FieldID
     !! Communicator ID
-    type(MPI_Comm), intent(in) :: comm
+    integer(int32), intent(in) :: comm
+    ! MPI_f08:
+    ! type(MPI_Comm), intent(in) :: comm
     !! MPI Communicator to split up
-    type(MPI_Comm) :: genFieldComm
-    integer*4      :: rank, procs, ierr
-    integer*4      :: group
+
+    integer(int32) :: genFieldComm
+    integer(int32) :: rank, procs, ierr
+    integer(int32) :: group
+
+    ! MPI_f08:
+    ! type(MPI_Comm) :: genFieldComm
+    ! integer(int32)      :: rank, procs, ierr
+    ! integer(int32)      :: group
+
     call MPI_Comm_rank(comm, rank, ierr)
     call MPI_Comm_size(comm, procs, ierr)
     if(mod(procs,nFields) /= 0) call abortProgram("[genFieldComm] Number of MPI processes have to be divisible by nFields")
@@ -87,16 +103,21 @@ contains
 
   function genFreqComm(nFreq, FreqID, comm)
     implicit none
-    integer*4,        intent(in) :: nFreq
+    integer(int32),        intent(in) :: nFreq
     !! Number of frequency points to be calculated in parallel
-    integer*4,       intent(out) :: FreqID
+    integer(int32),       intent(out) :: FreqID
     !! Communicator ID
-    type(MPI_Comm),   intent(in) :: comm
+    integer(int32), intent(in) :: comm
+    ! MPI_f08:
+    ! type(MPI_Comm),   intent(in) :: comm
+    
     !! MPI Communicator to split up
-    type(MPI_Comm), dimension(2) :: genFreqComm
+    integer(int32), dimension(2) :: genFreqComm
+    ! MPI_f08:
+    ! type(MPI_Comm), dimension(2) :: genFreqComm
 
-    integer*4 :: rank, rank_row, procs, ierr
-    integer*4 :: group
+    integer(int32) :: rank, rank_row, procs, ierr
+    integer(int32) :: group
 
     call MPI_Comm_rank(comm, rank, ierr)
     call MPI_Comm_size(comm, procs,ierr)
@@ -111,13 +132,13 @@ contains
 
   subroutine genMPIGrid(nFields, nFieldPoints, nFreq, nFreqPoints)
     implicit none
-    integer*4, intent(in) :: nFields
-    integer*4, intent(in) :: nFreq
-    integer*4, intent(in) :: nFieldPoints
-    integer*4, intent(in) :: nFreqPoints
-    integer*4 :: FreqID, FieldID
+    integer(int32), intent(in) :: nFields
+    integer(int32), intent(in) :: nFreq
+    integer(int32), intent(in) :: nFieldPoints
+    integer(int32), intent(in) :: nFreqPoints
+    integer(int32) :: FreqID, FieldID
 
-    integer*4 :: i, ierr
+    integer(int32) :: i, ierr
 
     FieldComm = genFieldComm(int(nFields,4), FieldID, MPI_COMM_WORLD)
     FreqComm = genFreqComm(int(nFreq,4), FreqID, FieldComm)
@@ -137,17 +158,17 @@ contains
 
   subroutine calcWorkload(points, procs, rank, firstPoint, lastPoint)
     implicit none
-    integer*8, intent(in) :: points
+    integer(int64), intent(in) :: points
     !! Number of points to split up
-    integer*4, intent(in) :: procs
+    integer(int32), intent(in) :: procs
     !! Number of processes
-    integer*4, intent(in) :: rank
+    integer(int32), intent(in) :: rank
     !! MPI Rank
-    integer*8, intent(out) :: firstPoint
+    integer(int64), intent(out) :: firstPoint
     !! First point of workload
-    integer*8, intent(out) :: lastPoint
+    integer(int64), intent(out) :: lastPoint
     !! Last point of workload
-    integer*8 :: work, remainder
+    integer(int64) :: work, remainder
 
     remainder = mod( points, int(procs,kind(points)) )
     if( int( rank,kind(remainder) ) < remainder ) then

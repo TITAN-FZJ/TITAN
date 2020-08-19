@@ -50,7 +50,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_rotation_matrices.F90
                                   source/mod_check_stop.F90
                                   source/band_structure.F90
-                                  source/mod_f90_kind.F90
+                                  source/mod_kind.F90
                                   source/mod_constants.F90
                                   source/mod_parameters.F90
                                   source/mod_mpi_pars.F90
@@ -133,6 +133,17 @@ if(COMPILER MATCHES gfortran OR COMPILER MATCHES gcc OR COMPILER MATCHES gfort O
   execute_process(COMMAND echo "Using GCC Compiler")
 endif()
 
+if(COMPILER MATCHES psmpi OR COMPILER MATCHES pmpi OR COMPILER MATCHES parastation OR COMPILER MATCHES ps)
+  set(SUFFIX ${SUFFIX}_pmpi)
+  execute_process(COMMAND echo "Using ParaStationMPI")
+endif()
+
+if(COMPILER MATCHES pgi)
+  set(COMPILER pgi)
+  set(SUFFIX ${SUFFIX}_pgi)
+  execute_process(COMMAND echo "Using PGI Compiler")
+endif()
+
 set(TITAN_EXE titan_${PLATFORM}${DEBUGSUFFIX}${INSTRUMENT}${SUFFIX}.exe)
 
 add_executable(${TITAN_EXE} ${SOURCE_TITAN})
@@ -143,7 +154,7 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
 execute_process(COMMAND git describe --abbrev=4 --dirty --always --tags OUTPUT_VARIABLE GIT_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-if(NOT COMPILER MATCHES gnu)
+if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
   if(PLATFORM MATCHES jureca)
     target_link_libraries(${TITAN_EXE} -mkl -lnag -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
@@ -267,7 +278,7 @@ if(NOT COMPILER MATCHES gnu)
                                                 -xHost
                                                 -qopt-prefetch=5
                                                 )
-  endif()
+  endif(PLATFORM MATCHES jureca)
 
   if(DEBUG)
     target_compile_options(${TITAN_EXE} PRIVATE -C
@@ -282,29 +293,38 @@ if(NOT COMPILER MATCHES gnu)
                                                 -fpp
                                                 -DVERSION="${GIT_VERSION}"
                                                 -g
-                                                -O0)
+                                                -O0
+                                                )
   else()
     target_compile_options(${TITAN_EXE} PRIVATE -O3)
   endif(DEBUG)
 
-else() # GFORTRAN:
+elseif(COMPILER MATCHES gnu) # GFORTRAN:
   target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib -Wl,-rpath,$ENV{MKLROOT}/lib -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl -fopenmp)
-  target_compile_options(${TITAN_EXE} PRIVATE -cpp
-                                              -D_GNU
-                                              -DVERSION="${GIT_VERSION}"
-                                              -I$ENV{MKLROOT}/include
-                                              -fopenmp
-                                              -ffree-form
-                                              -ffree-line-length-0 
-                                              -g
-                                              -O3
-                                              -march=native)
+  if(NOT DEBUG MATCHES "ON")
+    target_compile_options(${TITAN_EXE} PRIVATE -cpp
+                                                -D_GNU
+                                                -DVERSION="${GIT_VERSION}"
+                                                -I$ENV{MKLROOT}/include
+                                                -fopenmp
+                                                -ffree-form
+                                                -ffree-line-length-0 
+                                                -g
+                                                -O3
+                                                -march=native
+                                                )
 
-  if(DEBUG)
+  else(NOT DEBUG MATCHES "ON")
     target_compile_options(${TITAN_EXE} PRIVATE -C
                                                 -Wall 
                                                 -Wextra 
-                                                -Wconversion 
+                                                -Wconversion
+                                                -Wline-truncation 
+                                                -Wcharacter-truncation 
+                                                -Wsurprising 
+                                                -Waliasing 
+                                                -Wunused-parameter 
+                                                -fwhole-file
                                                 -fimplicit-none 
                                                 -fbacktrace 
                                                 -ffree-form
@@ -315,12 +335,50 @@ else() # GFORTRAN:
                                                 -ftrapv
                                                 -fopenmp
                                                 -cpp
+                                                -D_GNU
                                                 -DVERSION="${GIT_VERSION}"
+                                                -I$ENV{MKLROOT}/include
                                                 -g
-                                                -O0)
-  endif(DEBUG)
+                                                -O0
+                                                )
+  endif(NOT DEBUG MATCHES "ON")
 
-endif()
+elseif(COMPILER MATCHES pgi) # PGI:
+  target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core)
+  if(NOT DEBUG MATCHES "ON")
+    target_compile_options(${TITAN_EXE} PRIVATE -cpp
+                                                -D_GNU
+                                                -DVERSION="${GIT_VERSION}"
+                                                -I$ENV{MKLROOT}/include
+                                                -g
+                                                -O3
+                                                -lm
+                                                -fast 
+                                                #-acc 
+                                                #-ta=multicore
+                                                #-Minfo=accel 
+                                                -mp
+                                                )
+
+  else(NOT DEBUG MATCHES "ON")
+    target_compile_options(${TITAN_EXE} PRIVATE -cpp
+                                                -DVERSION="${GIT_VERSION}"
+                                                -D_GNU
+                                                -I$ENV{MKLROOT}/include
+                                                -g
+                                                -Mdclchk                  # instructs the compiler to require that all program variables be declared
+                                                -Minform=inform           # instructs the compiler to display all error messages (inform, warn, severe and fatal).
+                                                -Mbounds                  # enables array bounds checking. 
+                                                -Mchkptr                  # instructs the compiler to check for pointers that are dereferenced while initialized to NULL (Fortran only).
+                                                -Mchkstk                  # instructs the compiler to check the stack for available space in the prologue of a function and before the start of a parallel region. 
+                                                -traceback
+                                                -Ktrap=fp,unf             # fp, unf is equivalent to inv,divz,ovf, unf  correspond to the processor’s exception mask bits: invalid operation, divide-by-zero, overflow, and underflow, respectively.
+                                                -mp                       # openmp
+                                                -O0
+                                                )
+  endif(NOT DEBUG MATCHES "ON")
+
+endif(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
 
 #target_compile_options(${EXEC_NAME} PRIVATE -no-wrap-margin
 #                                        -fpp

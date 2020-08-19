@@ -1,9 +1,9 @@
 module mod_diamagnetic_current
-  use mod_f90_kind, only: double
+  use mod_kind, only: dp
   implicit none
 
   ! Diamagnetic current for each neighbor and each plane
-  real(double),dimension(:,:), allocatable :: Idia_total
+  real(dp),dimension(:,:), allocatable :: Idia_total
 contains
   ! This subroutine allocates variables related to the diamagnetic current
   subroutine allocate_idia()
@@ -25,7 +25,7 @@ contains
 
   ! ---------- Diamagnetic current: Energy integration ---------
   subroutine calculate_idia()
-    use mod_f90_kind,         only: double
+    use mod_kind, only: dp
     use MPI,                  only: MPI_INTEGER, MPI_DOUBLE_PRECISION, MPI_SOURCE, MPI_ANY_TAG, MPI_ANY_SOURCE, MPI_COMM_WORLD
     use mod_mpi_pars,         only: myrank, numprocs, stat, ierr
     use mod_generate_epoints, only: y, wght
@@ -36,7 +36,7 @@ contains
     implicit none
 
     integer           :: i,j
-    real(double),dimension(n0sc1:n0sc2,Npl) :: Idia
+    real(dp),dimension(n0sc1:n0sc2,Npl) :: Idia
     !--------------------- begin MPI vars --------------------
     integer :: ix,itask
     integer :: ncount
@@ -97,7 +97,7 @@ contains
 
   !   Calculates the momentum matrix in real space
   subroutine sumk_idia(e,ep,Idia)
-    use mod_f90_kind
+    use, intrinsic :: iso_fortran_env
     use mod_constants
     use mod_parameters,  only: nOrb,nOrb2,Npl,llineargfsoc,outputunit
     use mod_system,      only: n0sc1,n0sc2,r_nn,nkpt,kbz,wkbz, s=>sys
@@ -107,16 +107,16 @@ contains
 !$  use omp_lib
     implicit none
 !$  integer       :: nthreads,mythread
-    real(double),                             intent(in)  :: e,ep
-    real(double), dimension(n0sc1:n0sc2,Npl), intent(out) :: Idia
+    real(dp),                             intent(in)  :: e,ep
+    real(dp), dimension(n0sc1:n0sc2,Npl), intent(out) :: Idia
 
     integer         :: neighbor,iz,i,mu,nu,mup,nup
-    real(double)    :: kp(3)
-    complex(double) :: expikr(n0sc1:n0sc2)
-    complex(double), dimension(Npl,Npl,nOrb2,nOrb2)            :: gf
-    complex(double), dimension(nOrb,nOrb,Npl,Npl)              :: dtdk
-    complex(double), dimension(n0sc1:n0sc2,Npl,nOrb,nOrb)      :: pij
-    complex(double), dimension(n0sc1:n0sc2,Npl,nOrb2,nOrb2)    :: gij,gji
+    real(dp)    :: kp(3)
+    complex(dp) :: expikr(n0sc1:n0sc2)
+    complex(dp), dimension(Npl,Npl,nOrb2,nOrb2)            :: gf
+    complex(dp), dimension(nOrb,nOrb,Npl,Npl)              :: dtdk
+    complex(dp), dimension(n0sc1:n0sc2,Npl,nOrb,nOrb)      :: pij
+    complex(dp), dimension(n0sc1:n0sc2,Npl,nOrb2,nOrb2)    :: gij,gji
 
     pij = cZero
     gji = cZero
@@ -193,7 +193,7 @@ contains
       ! call MPI_Finalize(ierr)
       ! stop
 
-    Idia = 0.d0
+    Idia = 0._dp
     do neighbor=n0sc1,n0sc2
       do i=1,Npl
         do mu=1,9

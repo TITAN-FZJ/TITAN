@@ -1,31 +1,31 @@
 module mod_currents
-  use mod_f90_kind
+  use, intrinsic :: iso_fortran_env
   implicit none
   ! Currents, total currents and renormalized currents: Ich, Isx, Isy, Isz, Ilx, Ily,Ilz
-  complex(double),allocatable :: currents(:,:,:)
+  complex(dp),allocatable :: currents(:,:,:)
   !! Currents
-  complex(double),allocatable :: total_currents(:,:)
+  complex(dp),allocatable :: total_currents(:,:)
   !! Total Currents
-  complex(double),allocatable :: rcurrents(:,:,:)
+  complex(dp),allocatable :: rcurrents(:,:,:)
   !! Renormalized Currents
-  complex(double),allocatable :: rtotal_currents(:,:)
+  complex(dp),allocatable :: rtotal_currents(:,:)
   !! Total renormalized currents
 
-  real(double),allocatable      :: dc_currents(:,:)
+  real(dp),allocatable      :: dc_currents(:,:)
   ! Full response functions
-  complex(double), dimension(:,:,:), allocatable :: ttchiorbiikl
+  complex(dp), dimension(:,:,:), allocatable :: ttchiorbiikl
   !! Currents response function
-  complex(double), dimension(:,:,:), allocatable :: Lxttchiorbiikl
+  complex(dp), dimension(:,:,:), allocatable :: Lxttchiorbiikl
   !! Orbital Current Lx response function
-  complex(double), dimension(:,:,:), allocatable :: Lyttchiorbiikl
+  complex(dp), dimension(:,:,:), allocatable :: Lyttchiorbiikl
   !! Orbital Current Ly response function
-  complex(double), dimension(:,:,:), allocatable :: Lzttchiorbiikl
+  complex(dp), dimension(:,:,:), allocatable :: Lzttchiorbiikl
   !! Orbital Current Lz response function
 contains
 
   ! This subroutine allocates variables related to the current calculation
   subroutine allocate_currents()
-    use mod_f90_kind
+    use, intrinsic :: iso_fortran_env
     use mod_mpi_pars
     use mod_prefactors,only: prefactor,prefactorlsoc
     use mod_parameters, only: Npl,dimspinAtoms,renorm,llinearsoc,dim,outputunit
@@ -79,7 +79,7 @@ contains
 
   ! This subroutine allocates variables related to the current calculation
   subroutine deallocate_currents()
-    use mod_f90_kind
+    use, intrinsic :: iso_fortran_env
     use mod_mpi_pars
     use mod_prefactors,only: prefactor,prefactorlsoc
     use mod_parameters, only: renorm
@@ -253,13 +253,13 @@ contains
   ! (already opened with openclose_currents_files(1))
   ! Some information is also written on the screen
   subroutine write_currents(e)
-    use mod_f90_kind
+    use, intrinsic :: iso_fortran_env
     use mod_parameters, only: renorm,outputunit_loop,lwriteonscreen
     use mod_magnet, only: mvec_spherical,mtotal_spherical
     use mod_system, only: n0sc1, n0sc2
     implicit none
     integer  :: neighbor,i,j,iw
-    real(double),intent(in) :: e
+    real(dp),intent(in) :: e
 
     if(lwriteonscreen) write(outputunit_loop,"(' ################# Currents: #################')")
     do neighbor=n0sc1,n0sc2
@@ -547,7 +547,7 @@ contains
   ! change it to the real part in such a way that the phase we calculate
   ! is directly related to the applied electric field.
   subroutine write_dc_currents()
-    use mod_f90_kind
+    use, intrinsic :: iso_fortran_env
     use mod_parameters
     use mod_magnet, only: mvec_spherical,mtotal_spherical
     use mod_system, only: n0sc1, n0sc2
@@ -679,7 +679,7 @@ contains
 
   ! This subroutine sorts current files
   subroutine sort_currents()
-    use mod_f90_kind
+    use, intrinsic :: iso_fortran_env
     use mod_parameters, only: Npl,renorm,itype
     use mod_tools, only: sort_file
     use mod_system, only: n0sc1, n0sc2

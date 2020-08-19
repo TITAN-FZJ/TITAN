@@ -1,9 +1,9 @@
 module mod_beff
-   use mod_f90_kind, only: double
+   use mod_kind, only: dp
    implicit none
    ! Effective field
-   complex(double),dimension(:,:), allocatable :: chiinv, Beff_cart
-   complex(double),dimension(:), allocatable :: Beff, total_Beff
+   complex(dp),dimension(:,:), allocatable :: chiinv, Beff_cart
+   complex(dp),dimension(:), allocatable :: Beff, total_Beff
 
    character(len=7), parameter, private :: folder = "Beff"
    character(len=4), parameter, private :: filename = "Beff"
@@ -115,13 +115,13 @@ contains
     !! This subroutine write all the effective fields into files
     !! (already opened with openclose_beff_files(1))
     !! Some information may also be written on the screen
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     use mod_magnet, only: mvec_spherical
     use mod_system, only: s => sys
     implicit none
     integer      :: i,iw,sigma
-    real(double) :: phase,sine,cosine
-    real(double),intent(in) :: e
+    real(dp) :: phase,sine,cosine
+    real(dp),intent(in) :: e
 
     call open_beff_files()
 
@@ -129,28 +129,28 @@ contains
       do i=1,s%nAtoms
         iw = 8000+(sigma-1)*s%nAtoms+i
 
-        if(abs(Beff_cart(sigma,i))>=1.d-15) then
+        if(abs(Beff_cart(sigma,i))>=1.e-15_dp) then
           phase  = atan2(aimag(Beff_cart(sigma,i)),real(Beff_cart(sigma,i)))
           sine   = real(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
           cosine = aimag(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
         else
-          phase  = 0.d0
-          sine   = 0.d0
-          cosine = 0.d0
+          phase  = 0._dp
+          sine   = 0._dp
+          cosine = 0._dp
         end if
 
         write(unit=iw,fmt="(9(es16.9,2x))") e , abs(Beff_cart(sigma,i)) , real(Beff_cart(sigma,i)) , aimag(Beff_cart(sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
       end do
       ! Writing total Beff
       iw = 8500+sigma
-      if(abs(total_Beff(sigma))>=1.d-15) then
+      if(abs(total_Beff(sigma))>=1.e-15_dp) then
         phase  = atan2(aimag(total_Beff(sigma)),real(total_Beff(sigma)))
         sine   = real(total_Beff(sigma))/abs(total_Beff(sigma))
         cosine = aimag(total_Beff(sigma))/abs(total_Beff(sigma))
       else
-        phase  = 0.d0
-        sine   = 0.d0
-        cosine = 0.d0
+        phase  = 0._dp
+        sine   = 0._dp
+        cosine = 0._dp
       end if
 
       write(unit=iw,fmt="(9(es16.9,2x))") e , abs(total_Beff(sigma)) , real(total_Beff(sigma)) , aimag(total_Beff(sigma)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
@@ -237,12 +237,12 @@ contains
     !! This subroutine write all the effective fields into files
     !! (already opened with openclose_dc_beff_files(1))
     !! Some information may also be written on the screen
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     use mod_magnet,   only: mvec_spherical, dc_fields, hw_count
     use mod_system,   only: s => sys
     implicit none
     integer      :: i,iw,sigma
-    real(double) :: phase,sine,cosine
+    real(dp) :: phase,sine,cosine
 
     call open_dc_beff_files()
 
@@ -250,27 +250,27 @@ contains
       do i=1,s%nAtoms
          iw = 80000+(sigma-1)*s%nAtoms+i
 
-         if(abs(Beff_cart(sigma,i))>=1.d-15) then
+         if(abs(Beff_cart(sigma,i))>=1.e-15_dp) then
            phase  = atan2(aimag(Beff_cart(sigma,i)),real(Beff_cart(sigma,i)))
            sine   = real(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
            cosine = aimag(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
          else
-           phase  = 0.d0
-           sine   = 0.d0
-           cosine = 0.d0
+           phase  = 0._dp
+           sine   = 0._dp
+           cosine = 0._dp
          end if
 
          write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(Beff_cart(sigma,i)) , real(Beff_cart(sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
       end do
       iw = 85000+sigma
-      if(abs(total_Beff(sigma))>=1.d-15) then
+      if(abs(total_Beff(sigma))>=1.e-15_dp) then
         phase  = atan2(aimag(total_Beff(sigma)),real(total_Beff(sigma)))
         sine   = real(total_Beff(sigma))/abs(total_Beff(sigma))
         cosine = aimag(total_Beff(sigma))/abs(total_Beff(sigma))
       else
-        phase  = 0.d0
-        sine   = 0.d0
-        cosine = 0.d0
+        phase  = 0._dp
+        sine   = 0._dp
+        cosine = 0._dp
       end if
       write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_Beff(sigma)) , real(total_Beff(sigma)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
    end do

@@ -54,7 +54,7 @@ contains
   end subroutine log_warning
 
   subroutine get_parameters(filename, s)
-    use mod_f90_kind,          only: double
+    use mod_kind, only: dp
     use mod_input,             only: get_parameter, read_file, enable_input_logging, disable_input_logging
     use mod_parameters,        only: output, laddresults, lverbose, ldebug, lkpoints, &
                                     lpositions, lcreatefiles, lnolb, lhfresponses, &
@@ -85,8 +85,8 @@ contains
     character(len=*), intent(in)    :: filename
     type(System),     intent(inout) :: s
     character(len=20), allocatable  :: s_vector(:)
-    real(double),      allocatable  :: vector(:)
-    integer*8,         allocatable  :: i_vector(:)
+    real(dp),      allocatable  :: vector(:)
+    integer(int64),         allocatable  :: i_vector(:)
     integer :: i, cnt
     character(len=20) :: tmp_string
 
@@ -118,7 +118,7 @@ contains
     !===============================================================================================
     if(.not. get_parameter("nn_stages", s%nStages,2)) &
       call log_warning("get_parameters","'nn_stages' missing. Using default value: 2")
-    if(.not. get_parameter("relTol", s%relTol,0.05d0)) &
+    if(.not. get_parameter("relTol", s%relTol,0.05_dp)) &
       call log_warning("get_parameters","'relTol' missing. Using default value: 0.05")
     if(.not. get_parameter("sysdim", s%isysdim, 3)) &
       call log_warning("get_parameters", "'sysdim' missing. Using default value: 3")
@@ -128,10 +128,10 @@ contains
       kptotal_in = int( i_vector(1), kind(kptotal_in) )
       select case(s%isysdim)
       case(3)
-        kp_in(:)   = ceiling((dble(kptotal_in))**(1.d0/3.d0), kind(kp_in(1)) )
+        kp_in(:)   = ceiling((dble(kptotal_in))**(1._dp/3._dp), kind(kp_in(1)) )
         kptotal_in = int( kp_in(1) * kp_in(2) * kp_in(3), kind(kptotal_in) )
       case(2)
-        kp_in(1:2) = ceiling((dble(kptotal_in))**(1.d0/2.d0), kind(kp_in(1)) )
+        kp_in(1:2) = ceiling((dble(kptotal_in))**(1._dp/2._dp), kind(kp_in(1)) )
         kp_in(3)   = 1
         kptotal_in = int( kp_in(1) * kp_in(2), kind(kptotal_in) )
       case default
@@ -165,9 +165,9 @@ contains
     do i = 1, cnt
       select case (s_vector(i))
       case ("ry2ev")
-        ry2ev = 13.6d0
+        ry2ev = 13.6_dp
       case ("tesla")
-        tesla = 5.7883817555d-5/13.6d0 ! Ry/T
+        tesla = 5.7883817555e-5_dp/13.6_dp ! Ry/T
         ltesla = .true.
       case ("verbose")
         lverbose = .true.
@@ -258,21 +258,21 @@ contains
     if(.not. get_parameter("SOC", SOC,.true.)) &
       call log_warning("get_parameters","'SOC' missing. Using default value: .true.")
     if(SOC) then
-      if(.not. get_parameter("socscale", socscale, 1.d0)) &
-        call log_warning("get_parameters","'socscale' missing. Using default value: 1.d0")
+      if(.not. get_parameter("socscale", socscale, 1._dp)) &
+        call log_warning("get_parameters","'socscale' missing. Using default value: 1._dp")
       if(llinearsoc) then
         output%SOCchar = "L"
       else
         output%SOCchar = "T"
       end if
-      if(abs(socscale-1.d0)>1.d-6) write(output%SOC,"('_socscale=',f5.2)") socscale
+      if(abs(socscale-1._dp)>1.e-6_dp) write(output%SOC,"('_socscale=',f5.2)") socscale
       if((llineargfsoc).or.(llinearsoc)) output%SOC = trim(output%SOC) // "_linearsoc"
     else
       output%SOCchar = "F"
     end if
     !---------------------------------------- Magnetization -----------------------------------------
-    if(.not. get_parameter("magtol", mag_tol, 1.d-12)) &
-      call log_warning("get_parameters", "'magtol' not found. Using default value: 1.d-12")
+    if(.not. get_parameter("magtol", mag_tol, 1.e-12_dp)) &
+      call log_warning("get_parameters", "'magtol' not found. Using default value: 1.e-12_dp")
     if(.not. get_parameter("magbasis", magbasis)) &
       call log_warning("get_parameters","'magbasis' missing. Using default values for initial magnetization")
     !--------------------------------------- Electric Field ----------------------------------------
@@ -336,7 +336,7 @@ contains
       deallocate(vector)
       hwp_npt1 = hwp_npts + 1
 
-      if(abs(hwa_i) < 1.d-9) then
+      if(abs(hwa_i) < 1.e-9_dp) then
         if(.not. get_parameter("hwx", hwx)) &
           call log_error("get_parameters","'hwx' missing.")
         if(.not. get_parameter("hwy", hwy)) &
@@ -514,14 +514,14 @@ contains
         call log_error("get_parameters", "'integration_time' not found.")
       if(.not. get_parameter("step", step, integration_time/1.d4 )) &
         call log_warning("get_parameters", "'step' not found. Using default value: integration_time/1.d4")
-      if(.not. get_parameter("sc_tol", sc_tol, 0.01d0)) &
-        call log_warning("get_parameters", "'sc_tol' not given. Using default value: sc_tol = 0.01d0")
-      if(.not. get_parameter("abs_tol", abs_tol, 1.d-3)) &
-        call log_warning("get_parameters", "'abs_tol' not given. Using default value: abs_tol = 0.001d0")
-      if(.not. get_parameter("rel_tol", rel_tol, 1.d-3)) &
-        call log_warning("get_parameters", "'rel_tol' not given. Using default value: rel_tol = 0.001d0")
-      if(.not. get_parameter("safe_factor", safe_factor, 0.9d0)) &
-        call log_warning("get_parameters", "'safe_factor' not given. Using default value: safe_factor = 0.9d0")
+      if(.not. get_parameter("sc_tol", sc_tol, 0.01_dp)) &
+        call log_warning("get_parameters", "'sc_tol' not given. Using default value: sc_tol = 0.01_dp")
+      if(.not. get_parameter("abs_tol", abs_tol, 1.e-3_dp)) &
+        call log_warning("get_parameters", "'abs_tol' not given. Using default value: abs_tol = 0.001_dp")
+      if(.not. get_parameter("rel_tol", rel_tol, 1.e-3_dp)) &
+        call log_warning("get_parameters", "'rel_tol' not given. Using default value: rel_tol = 0.001_dp")
+      if(.not. get_parameter("safe_factor", safe_factor, 0.9_dp)) &
+        call log_warning("get_parameters", "'safe_factor' not given. Using default value: safe_factor = 0.9_dp")
 
       ! Reading ELECTRIC field variables
       if(.not. get_parameter("electric", lelectric,.false.)) &
@@ -562,7 +562,7 @@ contains
               deallocate(vector)
             end if
             do i=1,npulse_e
-              if( sum(abs(polarization_vec_e(i,:,:))) < 1.d-15 ) &
+              if( sum(abs(polarization_vec_e(i,:,:))) < 1.e-15_dp ) &
                 call log_error("get_parameters", "'polarization_vec_e' is zero for pulse " // trim(itos(i)) // ". Use polarization_vec_ip_e/polarization_vec_op_e or polarization_e to set the polarization.")
             end do
           else
@@ -572,20 +572,20 @@ contains
             do i=1,npulse_e
               select case(polarization_e(i))
               case("x")
-                polarization_vec_e(i,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
-                polarization_vec_e(i,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+                polarization_vec_e(i,1,:) = [ 1._dp, 0._dp, 0._dp] ! in-phase     (cos(wt))
+                polarization_vec_e(i,2,:) = [ 0._dp, 0._dp, 0._dp] ! out-of-phase (sin(wt))
               case("y")
-                polarization_vec_e(i,1,:) = [ 0.d0, 1.d0, 0.d0] ! in-phase     (cos(wt))
-                polarization_vec_e(i,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+                polarization_vec_e(i,1,:) = [ 0._dp, 1._dp, 0._dp] ! in-phase     (cos(wt))
+                polarization_vec_e(i,2,:) = [ 0._dp, 0._dp, 0._dp] ! out-of-phase (sin(wt))
               case("z")
-                polarization_vec_e(i,1,:) = [ 0.d0, 0.d0, 1.d0] ! in-phase     (cos(wt))
-                polarization_vec_e(i,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+                polarization_vec_e(i,1,:) = [ 0._dp, 0._dp, 1._dp] ! in-phase     (cos(wt))
+                polarization_vec_e(i,2,:) = [ 0._dp, 0._dp, 0._dp] ! out-of-phase (sin(wt))
               case("p")
-                polarization_vec_e(i,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
-                polarization_vec_e(i,2,:) = [ 0.d0, 1.d0, 0.d0] ! out-of-phase (sin(wt))
+                polarization_vec_e(i,1,:) = [ 1._dp, 0._dp, 0._dp] ! in-phase     (cos(wt))
+                polarization_vec_e(i,2,:) = [ 0._dp, 1._dp, 0._dp] ! out-of-phase (sin(wt))
               case("m")
-                polarization_vec_e(i,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
-                polarization_vec_e(i,2,:) = [ 0.d0,-1.d0, 0.d0] ! out-of-phase (sin(wt))
+                polarization_vec_e(i,1,:) = [ 1._dp, 0._dp, 0._dp] ! in-phase     (cos(wt))
+                polarization_vec_e(i,2,:) = [ 0._dp,-1._dp, 0._dp] ! out-of-phase (sin(wt))
               case default
                 call log_error("get_parameters", "Electric polarization 'polarization_e = '"// trim(polarization_e(i)) //" not found.")
               end select
@@ -610,7 +610,7 @@ contains
 
           if(.not. get_parameter("delay_e", vector, cnt)) then
             call log_warning("get_parameters", "'delay_e' not found. Center of the pulses is located at t=tau_e/2.")
-            delay_e(:) = 0.d0 ! No extra delay
+            delay_e(:) = 0._dp ! No extra delay
           else
             if(cnt < npulse_e) call log_error("get_parameters","'delay_e' has wrong size (size npulse_e=" // trim(itos(npulse_e)) // " required).")
             delay_e(1) = vector(1)
@@ -633,7 +633,7 @@ contains
               polarization_vec_e(1,2,:) = vector(1:3)
               deallocate(vector)
             end if
-            if( sum(abs(polarization_vec_e(1,:,:))) < 1.d-15 ) &
+            if( sum(abs(polarization_vec_e(1,:,:))) < 1.e-15_dp ) &
               call log_error("get_parameters", "'polarization_vec_e' is zero for oscillatory field. Use polarization_vec_ip_e/polarization_vec_op_e or polarization_e to set the polarization.")
           else
             if(cnt > 1) call log_warning("get_parameters","Only first element of 'polarization_e' will be used.")
@@ -641,20 +641,20 @@ contains
             deallocate(s_vector)
             select case(polarization_e(1))
             case("x")
-              polarization_vec_e(1,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
-              polarization_vec_e(1,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+              polarization_vec_e(1,1,:) = [ 1._dp, 0._dp, 0._dp] ! in-phase     (cos(wt))
+              polarization_vec_e(1,2,:) = [ 0._dp, 0._dp, 0._dp] ! out-of-phase (sin(wt))
             case("y")
-              polarization_vec_e(1,1,:) = [ 0.d0, 1.d0, 0.d0] ! in-phase     (cos(wt))
-              polarization_vec_e(1,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+              polarization_vec_e(1,1,:) = [ 0._dp, 1._dp, 0._dp] ! in-phase     (cos(wt))
+              polarization_vec_e(1,2,:) = [ 0._dp, 0._dp, 0._dp] ! out-of-phase (sin(wt))
             case("z")
-              polarization_vec_e(1,1,:) = [ 0.d0, 0.d0, 1.d0] ! in-phase     (cos(wt))
-              polarization_vec_e(1,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+              polarization_vec_e(1,1,:) = [ 0._dp, 0._dp, 1._dp] ! in-phase     (cos(wt))
+              polarization_vec_e(1,2,:) = [ 0._dp, 0._dp, 0._dp] ! out-of-phase (sin(wt))
             case("p")
-              polarization_vec_e(1,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
-              polarization_vec_e(1,2,:) = [ 0.d0, 1.d0, 0.d0] ! out-of-phase (sin(wt))
+              polarization_vec_e(1,1,:) = [ 1._dp, 0._dp, 0._dp] ! in-phase     (cos(wt))
+              polarization_vec_e(1,2,:) = [ 0._dp, 1._dp, 0._dp] ! out-of-phase (sin(wt))
             case("m")
-              polarization_vec_e(1,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
-              polarization_vec_e(1,2,:) = [ 0.d0,-1.d0, 0.d0] ! out-of-phase (sin(wt))
+              polarization_vec_e(1,1,:) = [ 1._dp, 0._dp, 0._dp] ! in-phase     (cos(wt))
+              polarization_vec_e(1,2,:) = [ 0._dp,-1._dp, 0._dp] ! out-of-phase (sin(wt))
             case default
               call log_error("get_parameters", "Electric polarization 'polarization_e = '"// trim(polarization_e(1)) //" not found.")
             end select
@@ -712,7 +712,7 @@ contains
               deallocate(vector)
             end if
             do i=1,npulse_m
-              if( sum(abs(polarization_vec_m(i,:,:))) < 1.d-15 ) &
+              if( sum(abs(polarization_vec_m(i,:,:))) < 1.e-15_dp ) &
                 call log_error("get_parameters", "'polarization_vec_m' is zero for pulse " // trim(itos(i)) // ". Use polarization_vec_m_ip/polarization_vec_m_op or polarization_m to set the polarization.")
             end do
           else
@@ -722,20 +722,20 @@ contains
             do i=1,npulse_m
               select case(polarization_m(i))
               case("x")
-                polarization_vec_m(i,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
-                polarization_vec_m(i,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+                polarization_vec_m(i,1,:) = [ 1._dp, 0._dp, 0._dp] ! in-phase     (cos(wt))
+                polarization_vec_m(i,2,:) = [ 0._dp, 0._dp, 0._dp] ! out-of-phase (sin(wt))
               case("y")
-                polarization_vec_m(i,1,:) = [ 0.d0, 1.d0, 0.d0] ! in-phase     (cos(wt))
-                polarization_vec_m(i,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+                polarization_vec_m(i,1,:) = [ 0._dp, 1._dp, 0._dp] ! in-phase     (cos(wt))
+                polarization_vec_m(i,2,:) = [ 0._dp, 0._dp, 0._dp] ! out-of-phase (sin(wt))
               case("z")
-                polarization_vec_m(i,1,:) = [ 0.d0, 0.d0, 1.d0] ! in-phase     (cos(wt))
-                polarization_vec_m(i,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+                polarization_vec_m(i,1,:) = [ 0._dp, 0._dp, 1._dp] ! in-phase     (cos(wt))
+                polarization_vec_m(i,2,:) = [ 0._dp, 0._dp, 0._dp] ! out-of-phase (sin(wt))
               case("p")
-                polarization_vec_m(i,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
-                polarization_vec_m(i,2,:) = [ 0.d0, 1.d0, 0.d0] ! out-of-phase (sin(wt))
+                polarization_vec_m(i,1,:) = [ 1._dp, 0._dp, 0._dp] ! in-phase     (cos(wt))
+                polarization_vec_m(i,2,:) = [ 0._dp, 1._dp, 0._dp] ! out-of-phase (sin(wt))
               case("m")
-                polarization_vec_m(i,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
-                polarization_vec_m(i,2,:) = [ 0.d0,-1.d0, 0.d0] ! out-of-phase (sin(wt))
+                polarization_vec_m(i,1,:) = [ 1._dp, 0._dp, 0._dp] ! in-phase     (cos(wt))
+                polarization_vec_m(i,2,:) = [ 0._dp,-1._dp, 0._dp] ! out-of-phase (sin(wt))
               case default
                 call log_error("get_parameters", "Magnetic polarization 'polarization_m = '"// trim(polarization_m(i)) //" not found.")
               end select
@@ -760,7 +760,7 @@ contains
 
           if(.not. get_parameter("delay_m", vector, cnt)) then
             call log_warning("get_parameters", "'delay_m' not found. Center of the pulses is located at t=tau_m/2.")
-            delay_m(:) = 0.d0 ! No extra delay
+            delay_m(:) = 0._dp ! No extra delay
           else
             if(cnt < npulse_m) call log_error("get_parameters","'delay_m' has wrong size (size npulse_m=" // trim(itos(npulse_m)) // " required).")
             delay_m(1) = vector(1)
@@ -783,7 +783,7 @@ contains
               polarization_vec_m(1,2,:) = vector(1:3)
               deallocate(vector)
             end if
-            if( sum(abs(polarization_vec_m(1,:,:))) < 1.d-15 ) &
+            if( sum(abs(polarization_vec_m(1,:,:))) < 1.e-15_dp ) &
               call log_error("get_parameters", "'polarization_vec_m' is zero for oscillatory field. Use polarization_vec_m_ip/polarization_vec_m_op or polarization_m to set the polarization.")
           else
             if(cnt > 1) call log_warning("get_parameters","Only first element of 'polarization_m' will be used.")
@@ -791,20 +791,20 @@ contains
             deallocate(s_vector)
             select case(polarization_m(1))
             case("x")
-              polarization_vec_m(1,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
-              polarization_vec_m(1,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+              polarization_vec_m(1,1,:) = [ 1._dp, 0._dp, 0._dp] ! in-phase     (cos(wt))
+              polarization_vec_m(1,2,:) = [ 0._dp, 0._dp, 0._dp] ! out-of-phase (sin(wt))
             case("y")
-              polarization_vec_m(1,1,:) = [ 0.d0, 1.d0, 0.d0] ! in-phase     (cos(wt))
-              polarization_vec_m(1,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+              polarization_vec_m(1,1,:) = [ 0._dp, 1._dp, 0._dp] ! in-phase     (cos(wt))
+              polarization_vec_m(1,2,:) = [ 0._dp, 0._dp, 0._dp] ! out-of-phase (sin(wt))
             case("z")
-              polarization_vec_m(1,1,:) = [ 0.d0, 0.d0, 1.d0] ! in-phase     (cos(wt))
-              polarization_vec_m(1,2,:) = [ 0.d0, 0.d0, 0.d0] ! out-of-phase (sin(wt))
+              polarization_vec_m(1,1,:) = [ 0._dp, 0._dp, 1._dp] ! in-phase     (cos(wt))
+              polarization_vec_m(1,2,:) = [ 0._dp, 0._dp, 0._dp] ! out-of-phase (sin(wt))
             case("p")
-              polarization_vec_m(1,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
-              polarization_vec_m(1,2,:) = [ 0.d0, 1.d0, 0.d0] ! out-of-phase (sin(wt))
+              polarization_vec_m(1,1,:) = [ 1._dp, 0._dp, 0._dp] ! in-phase     (cos(wt))
+              polarization_vec_m(1,2,:) = [ 0._dp, 1._dp, 0._dp] ! out-of-phase (sin(wt))
             case("m")
-              polarization_vec_m(1,1,:) = [ 1.d0, 0.d0, 0.d0] ! in-phase     (cos(wt))
-              polarization_vec_m(1,2,:) = [ 0.d0,-1.d0, 0.d0] ! out-of-phase (sin(wt))
+              polarization_vec_m(1,1,:) = [ 1._dp, 0._dp, 0._dp] ! in-phase     (cos(wt))
+              polarization_vec_m(1,2,:) = [ 0._dp,-1._dp, 0._dp] ! out-of-phase (sin(wt))
             case default
               call log_error("get_parameters", "Magnetic polarization 'polarization_m = '"// trim(polarization_m(1)) //" not found.")
             end select
@@ -1085,12 +1085,12 @@ contains
 
   ! Writing header for previously opened file of unit "unit"
   subroutine write_header(unit,title_line,Ef)
-    use mod_f90_kind,   only: double
+    use mod_kind, only: dp
     use mod_parameters, only: nQvec, nQvec1, bands, band_cnt, partial_length, itype
     implicit none
     integer,          intent(in)           :: unit
     character(len=*), intent(in)           :: title_line
-    real(double),     intent(in), optional :: Ef
+    real(dp),     intent(in), optional :: Ef
     integer :: i
 
     ! LDOS header

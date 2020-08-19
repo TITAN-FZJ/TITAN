@@ -1,5 +1,5 @@
 module AtomTypes
-  use mod_f90_kind, only: double
+  use mod_kind, only: dp
 
   type NeighborIndex
     integer :: index
@@ -11,7 +11,7 @@ module AtomTypes
   end type
 
   type :: Atom
-    real(double), dimension(3) :: Position
+    real(dp), dimension(3) :: Position
     integer :: Material
   end type
 
@@ -22,12 +22,12 @@ module AtomTypes
   type, extends(Atom) :: NeighborAtom
     integer :: BasisIndex
     integer, dimension(3) :: Cell
-    real(double), dimension(3) :: CellVector
-    real(double), dimension(:), allocatable :: Distance
+    real(dp), dimension(3) :: CellVector
+    real(dp), dimension(:), allocatable :: Distance
     !! Distance to basis atoms
-    real(double), dimension(:,:), allocatable :: dirCos
+    real(dp), dimension(:,:), allocatable :: dirCos
     !! Directional cosine to basis atoms
-    real(double), dimension(:,:,:), allocatable :: t0i
+    real(dp), dimension(:,:,:), allocatable :: t0i
     !! Hopping to basis atoms; size (nOrb, nOrb, nAtoms)
     logical, dimension(:), allocatable :: isHopping
     !! Flags saying that the atom is in neighbor range of basis atoms; size (nAtoms)
@@ -45,31 +45,31 @@ module AtomTypes
     !! Element Types inside elemental file
     logical, dimension(:), allocatable :: lelement
     !! Logical variable storing where are the elements of a given element in elemental file
-    real(double), dimension(:,:), allocatable :: onSite
+    real(dp), dimension(:,:), allocatable :: onSite
     !! on site matrix; size (nOrb, nOrb)
-    real(double), dimension(:,:), allocatable :: Hopping
+    real(dp), dimension(:,:), allocatable :: Hopping
     !! hopping matrix; size (10, nStages)
-    real(double) :: LambdaP=0.d0, LambdaD=0.d0
+    real(dp) :: LambdaP=0._dp, LambdaD=0._dp
     !! SOC Coupling constants
-    real(double) :: FermiLevel
+    real(dp) :: FermiLevel
     !! Fermi level
-    real(double) :: Occupation, OccupationS, OccupationP, OccupationD
+    real(dp) :: Occupation, OccupationS, OccupationP, OccupationD
     !! Total, s, p and d occupations
-    real(double) :: LatticeConstant
+    real(dp) :: LatticeConstant
     !! Lattice constant
     integer      :: isysdim
     !! Dimension of the system (1D, 2D, 3D)
-    real(double), dimension(3) :: a1,a2,a3
+    real(dp), dimension(3) :: a1,a2,a3
     !! Lattice vectors
-    real(double), dimension(:,:), allocatable :: Stage
+    real(dp), dimension(:,:), allocatable :: Stage
     !! Neighbor distances
-    real(double) :: Un, Um
+    real(dp) :: Un, Um
     !! Effective Coulomb interaction strength - Hubbard U (charge and magnetic)
-    real(double), dimension(9) :: lambda
+    real(dp), dimension(9) :: lambda
     !! Superconducting coupling strength
-    real(double), dimension(:,:), allocatable :: rho0
+    real(dp), dimension(:,:), allocatable :: rho0
     !! Initial occupation per orbital obtained from hopping parameters only
-    real(double), dimension(:), allocatable   :: rhod0
+    real(dp), dimension(:), allocatable   :: rhod0
     !! Initial occupation of d orbitals obtained from hopping parameters only
   end type AtomType
 

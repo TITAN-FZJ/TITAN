@@ -1,8 +1,8 @@
 module TorqueTorqueResponse
-  use mod_f90_kind, only: double
+  use mod_kind, only: dp
   implicit none
 
-  complex(double), dimension(:,:,:,:), allocatable :: TTResponse, TTResponseHF
+  complex(dp), dimension(:,:,:,:), allocatable :: TTResponse, TTResponseHF
   character(len=7), dimension(2), parameter, private :: folder = ["RPA    ", "A/Slope"]
   character(len=6), dimension(3), parameter, private :: filename = ["TTR   ", "TTAinv", "TTA   "]
 
@@ -122,39 +122,39 @@ contains
     implicit none
     integer :: AllocateStatus
     integer :: i,j, m,n,k, mp,np,kp, mu,nu, gamma,zeta, p,q
-    real(double), intent(in) :: e
-    complex(double), dimension(:,:), allocatable :: TTInverse
+    real(dp), intent(in) :: e
+    complex(dp), dimension(:,:), allocatable :: TTInverse
     allocate(TTInverse(s%nAtoms*3, s%nAtoms*3), stat=AllocateStatus)
     if(AllocateStatus /= 0) call abortProgram("[calcTTResponse] Couldn't allocate memory for: TTInverse")
 
-    TTResponse   = cmplx(0.d0, 0.d0, double)
-    TTResponseHF = cmplx(0.d0, 0.d0, double)
+    TTResponse   = cmplx(0._dp,0._dp,dp)
+    TTResponseHF = cmplx(0._dp,0._dp,dp)
     do i = 1, s%nAtoms
        do j = 1, s%nAtoms
           do m = 1, 3
              do n = 1, 3
                 do k = 1, 3
-                   if(abs(levi_civita(m,n,k)) < 1.d-15) cycle
+                   if(abs(levi_civita(m,n,k)) < 1.e-15_dp) cycle
                    do mp = 1,3
                       do np = 1, 3
                          do kp = 1, 3
-                            if(abs(levi_civita(mp,np,kp)) < 1.d-15) cycle
+                            if(abs(levi_civita(mp,np,kp)) < 1.e-15_dp) cycle
                             do mu = 5, nOrb
                                do nu = 5, nOrb
-                                 if(abs(lvec(nu,mu,n)) < 1.d-15) cycle
+                                 if(abs(lvec(nu,mu,n)) < 1.e-15_dp) cycle
                                   do gamma = 5, nOrb
                                      do zeta = 5, nOrb
-                                        if(abs(lvec(gamma,zeta,np)) < 1.d-15) cycle
+                                        if(abs(lvec(gamma,zeta,np)) < 1.e-15_dp) cycle
                                         do p = 1, 4
                                            do q = 1, 4
-                                              if(abs(StoC(k+1,p)) < 1.d-15 .or. abs(CtoS(q,kp+1)) < 1.d-15) cycle
+                                              if(abs(StoC(k+1,p)) < 1.e-15_dp .or. abs(CtoS(q,kp+1)) < 1.e-15_dp) cycle
                                               TTResponse(mp, m, j, i) = TTResponse(mp, m, j, i) &
-                                                   - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%LambdaD * s%Types(s%Basis(j)%Material)%LambdaD &
+                                                   - 2.0_dp / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%LambdaD * s%Types(s%Basis(j)%Material)%LambdaD &
                                                    * levi_civita(m,n,k) * levi_civita(mp, np, kp) &
                                                    * lvec(mu, nu, n) * lvec(gamma, zeta, np) &
                                                    * StoC(k+1,p) * chiorb(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma,zeta)) * CtoS(q,kp+1)
                                               TTResponseHF(mp, m, j, i) = TTResponseHF(mp, m, j, i) &
-                                                   - 2.0d0 / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%LambdaD * s%Types(s%Basis(j)%Material)%LambdaD &
+                                                   - 2.0_dp / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%LambdaD * s%Types(s%Basis(j)%Material)%LambdaD &
                                                    * levi_civita(m,n,k) * levi_civita(mp, np, kp) &
                                                    * lvec(mu, nu, n) * lvec(gamma, zeta, np) &
                                                    * StoC(k+1,p) * chiorb_hf(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma,zeta)) * CtoS(q,kp+1)

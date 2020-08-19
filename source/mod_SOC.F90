@@ -1,34 +1,34 @@
 module mod_SOC
-  use mod_f90_kind, only: double
+  use mod_kind, only: dp
   implicit none
   logical :: SOC
   !! Turn on/off SOC
   logical :: llineargfsoc = .false.
   logical :: llinearsoc = .false.
   !! Linear SOC
-  real(double) :: socscale = 1.d0
+  real(dp) :: socscale = 1._dp
   !! Rescale of SOC parameter
-  complex(double), dimension(:,:,:), allocatable :: ls
+  complex(dp), dimension(:,:,:), allocatable :: ls
   !! L.S matrix
 contains
 
   subroutine updateLS(sys,theta, phi)
     use mod_System,            only: System
-    use mod_f90_kind,          only: double
+    use mod_kind, only: dp
     use mod_constants,         only: pauli_mat, cZero
     use mod_magnet,            only: lvec
     use mod_rotation_matrices, only: rotation_matrix_ry, rotation_matrix_rz
     use mod_System,            only: System
     implicit none
     type(System), intent(in) :: sys
-    real(double), intent(in) :: theta, phi
-    real(double),dimension(3,3) :: ry,rz,rzy
+    real(dp), intent(in) :: theta, phi
+    real(dp),dimension(3,3) :: ry,rz,rzy
     integer :: i,m,n,mu,nu,mup,nup
 
     call rotation_matrix_ry(theta,ry)
     call rotation_matrix_rz(phi,rz)
 
-    call dgemm('n','n',3,3,3,1.d0,rz,3,ry,3,0.d0,rzy,3)
+    call dgemm('n','n',3,3,3,1._dp,rz,3,ry,3,0._dp,rzy,3)
 
     ls = cZero
     do i=1,sys%nAtoms
@@ -62,7 +62,7 @@ contains
     end do
 
     ! rescale
-    ls = 0.5d0 * socscale * ls
+    ls = 0.5_dp * socscale * ls
 
   end subroutine updateLS
 

@@ -1,21 +1,21 @@
 module mod_susceptibilities
-  use mod_f90_kind, only: double
+  use mod_kind, only: dp
   implicit none
   ! Spin and orbital susceptibilities
-  complex(double), dimension(:,:), allocatable :: schi, schihf
-  complex(double), dimension(:,:), allocatable :: schiLS, schiSL, schiLL
+  complex(dp), dimension(:,:), allocatable :: schi, schihf
+  complex(dp), dimension(:,:), allocatable :: schiLS, schiSL, schiLL
   ! Full response functions
-  complex(double), dimension(:,:), allocatable :: chiorb_hf,chiorb_hflsoc,chiorb
-  complex(double), dimension(:,:), allocatable :: identt,Umatorb
+  complex(dp), dimension(:,:), allocatable :: chiorb_hf,chiorb_hflsoc,chiorb
+  complex(dp), dimension(:,:), allocatable :: identt,Umatorb
   ! Rotation of spin susceptibilities
-  complex(double), dimension(:,:,:), allocatable :: rotmat_i, rotmat_j
-  complex(double), dimension(:,:),   allocatable :: rottemp, schitemp, schirot
+  complex(dp), dimension(:,:,:), allocatable :: rotmat_i, rotmat_j
+  complex(dp), dimension(:,:),   allocatable :: rottemp, schitemp, schirot
 
   ! Susceptibility diagonalization
   integer :: lwork
-  real(double),    dimension(:),   allocatable :: rwork
-  complex(double), dimension(:),   allocatable :: eval, work
-  complex(double), dimension(:,:), allocatable :: chimag,evecl,evecr
+  real(dp),    dimension(:),   allocatable :: rwork
+  complex(dp), dimension(:),   allocatable :: eval, work
+  complex(dp), dimension(:,:), allocatable :: chimag,evecl,evecr
 
 contains
 
@@ -105,7 +105,7 @@ contains
 
   subroutine build_identity_and_U_matrix()
     !! Mounts U and identity matrix
-    use mod_f90_kind,   only: double
+    use mod_kind, only: dp
     use mod_parameters, only: offset, Un, Um, sigmaimunu2i, dim
     use mod_constants,  only: cZero, cOne
     use mod_system,     only: s => sys
@@ -119,10 +119,10 @@ contains
              do mu=5,9
                 do i=1,s%nAtoms
                    if((mu/=nu).or.(gamma/=xi)) cycle
-                   Umatorb(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(1,i,gamma,xi)) = cmplx(Um(i+offset),0.d0,double)
-                   Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = cmplx(Un(i+offset),0.d0,double)
-                   Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = cmplx(Un(i+offset),0.d0,double)
-                   Umatorb(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,i,gamma,xi)) = cmplx(Um(i+offset),0.d0,double)
+                   Umatorb(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(1,i,gamma,xi)) = cmplx(Um(i+offset),0._dp,dp)
+                   Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = cmplx(Un(i+offset),0._dp,dp)
+                   Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = cmplx(Un(i+offset),0._dp,dp)
+                   Umatorb(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,i,gamma,xi)) = cmplx(Um(i+offset),0._dp,dp)
                 end do
              end do
           end do
@@ -134,10 +134,10 @@ contains
              do mu=5,9
                 do i=1,s%nAtoms
                    if((mu/=xi).or.(nu/=gamma)) cycle
-                   Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi))-cmplx(Un(i+offset),0.d0,double)
-                   Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gamma,xi))-cmplx(Un(i+offset),0.d0,double)
-                   Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gamma,xi))-cmplx(Un(i+offset),0.d0,double)
-                   Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi))-cmplx(Un(i+offset),0.d0,double)
+                   Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi))-cmplx(Un(i+offset),0._dp,dp)
+                   Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gamma,xi))-cmplx(Un(i+offset),0._dp,dp)
+                   Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gamma,xi))-cmplx(Un(i+offset),0._dp,dp)
+                   Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi))-cmplx(Un(i+offset),0._dp,dp)
                 end do
              end do
           end do
@@ -303,12 +303,12 @@ contains
   ! (already opened with openclose_chi_files(1))
   ! Some information may be written on the screen
   subroutine write_susceptibilities(qcount,e)
-    use mod_f90_kind,   only: double
+    use mod_kind, only: dp
     use mod_parameters, only: lwriteonscreen, lhfresponses, lnodiag, output, sigmai2i, deltak
     use mod_system,     only: s => sys
     implicit none
     integer,     intent(in) :: qcount
-    real(double),intent(in) :: e
+    real(dp),intent(in) :: e
     character(len=100)      :: varm
     integer                 :: i,j,iw,m,n
 
@@ -319,20 +319,20 @@ contains
        do i=1, s%nAtoms
            iw = 1050 + (j-1)*s%nAtoms + i
            if(.not.lhfresponses) then
-              write(unit=iw,fmt="(34(es16.9,2x))") e, dble((qcount-1.d0)*deltak), ((real(schi(sigmai2i(n,i),sigmai2i(m,j))), aimag(schi(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
+              write(unit=iw,fmt="(34(es16.9,2x))") e, dble((qcount-1._dp)*deltak), ((real(schi(sigmai2i(n,i),sigmai2i(m,j))), aimag(schi(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
               if(i == j .and. lwriteonscreen) write(output%unit_loop,"('E = ',es11.4,', Plane: ',i0,' Chi+- = (',es16.9,') + i(',es16.9,')')") e,i,real(schi(sigmai2i(1,i),sigmai2i(1,j))),aimag(schi(sigmai2i(1,i),sigmai2i(1,j)))
            end if
 
            iw = iw+1000
-           write(unit=iw,fmt="(34(es16.9,2x))") e, dble((qcount-1.d0)*deltak), ((real(schihf(sigmai2i(n,i),sigmai2i(m,j))), aimag(schihf(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
+           write(unit=iw,fmt="(34(es16.9,2x))") e, dble((qcount-1._dp)*deltak), ((real(schihf(sigmai2i(n,i),sigmai2i(m,j))), aimag(schihf(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
        end do
     end do
 
     if(s%nAtoms > 1 .and. (.not. lhfresponses) .and. (.not. lnodiag)) then
        write(varm,fmt="('(',i0,'(es16.9,2x))')") 2*s%nAtoms+2
-       write(unit=19900,fmt=varm) e,dble((qcount-1.d0)*deltak),(real(eval(i)),aimag(eval(i)),i=1,s%nAtoms)
+       write(unit=19900,fmt=varm) e,dble((qcount-1._dp)*deltak),(real(eval(i)),aimag(eval(i)),i=1,s%nAtoms)
        do i=1,s%nAtoms
-          write(unit=19900+i,fmt=varm) e,dble((qcount-1.d0)*deltak),(real(evecr(j,i)),aimag(evecr(j,i)),j=1,s%nAtoms)
+          write(unit=19900+i,fmt=varm) e,dble((qcount-1._dp)*deltak),(real(evecr(j,i)),aimag(evecr(j,i)),j=1,s%nAtoms)
        end do
     end if
 
@@ -479,20 +479,20 @@ contains
       do i=1,s%nAtoms
        iw = 10500 + (j-1)*s%nAtoms + i
        if(.not.lhfresponses) then
-          write(unit=iw,fmt="(a,2x,33(es16.9,2x))") trim(dc_fields(hw_count)) , dble((qcount-1.d0)*deltak), ((real(schi(sigmai2i(n,i),sigmai2i(m,j))), aimag(schi(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
+          write(unit=iw,fmt="(a,2x,33(es16.9,2x))") trim(dc_fields(hw_count)) , dble((qcount-1._dp)*deltak), ((real(schi(sigmai2i(n,i),sigmai2i(m,j))), aimag(schi(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
           if( i == j .and. lwriteonscreen ) write(output%unit_loop,"(a,' = ',a,', Plane: ',i0,' Chi+- = (',es16.9,') + i(',es16.9,')')") trim(dcfield(dcfield_dependence)),trim(dc_fields(hw_count)),i,real(schi(sigmai2i(1,i),sigmai2i(1,j))),aimag(schi(sigmai2i(1,i),sigmai2i(1,j)))
        end if
 
        iw = iw+1000
-       write(unit=iw,fmt="(a,2x,33(es16.9,2x))") trim(dc_fields(hw_count)) , dble((qcount-1.d0)*deltak), ((real(schi(sigmai2i(n,i),sigmai2i(m,j))), aimag(schi(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
+       write(unit=iw,fmt="(a,2x,33(es16.9,2x))") trim(dc_fields(hw_count)) , dble((qcount-1._dp)*deltak), ((real(schi(sigmai2i(n,i),sigmai2i(m,j))), aimag(schi(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
       end do
     end do
 
     if((s%nAtoms>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
        write(varm,fmt="(a,i0,a)") '(a,2x,',2*s%nAtoms+1,'(es16.9,2x))'
-       write(unit=199000,fmt=varm) trim(dc_fields(hw_count)) , dble((qcount-1.d0)*deltak), (real(eval(i)) , aimag(eval(i)),i=1,s%nAtoms)
+       write(unit=199000,fmt=varm) trim(dc_fields(hw_count)) , dble((qcount-1._dp)*deltak), (real(eval(i)) , aimag(eval(i)),i=1,s%nAtoms)
        do i=1,s%nAtoms
-          write(unit=199000+i,fmt=varm) trim(dc_fields(hw_count)) , dble((qcount-1.d0)*deltak), (real(evecr(j,i)) , aimag(evecr(j,i)),j=1,s%nAtoms)
+          write(unit=199000+i,fmt=varm) trim(dc_fields(hw_count)) , dble((qcount-1._dp)*deltak), (real(evecr(j,i)) , aimag(evecr(j,i)),j=1,s%nAtoms)
        end do
     end if ! s%nAtoms
 

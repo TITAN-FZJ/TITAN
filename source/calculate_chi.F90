@@ -1,6 +1,6 @@
 ! This is the main subroutine to calculate the susceptibilities
 subroutine calculate_chi()
-  use mod_f90_kind,          only: double
+  use mod_kind, only: dp
   use mod_constants,         only: cZero, cOne, StoC, CtoS
   use mod_parameters,        only: nOrb, count, emin, deltae, nQvec1, kpoints, dim, sigmaimunu2i, output, lhfresponses, lnodiag, laddresults, skip_steps, sigmai2i
   use mod_magnet,            only: lfield,mvec_spherical,lvec, lrot
@@ -27,8 +27,8 @@ subroutine calculate_chi()
   character(len=50) :: time
   integer           :: mcount,qcount
   integer           :: i,j,sigma,sigmap,mu,nu,gamma,xi,p
-  real(double)      :: e,q(3)
-  complex(double), dimension(:,:),   allocatable :: temp
+  real(dp)      :: e,q(3)
+  complex(dp), dimension(:,:),   allocatable :: temp
   call allocate_susceptibilities()
   call allocTTResponse(s%nAtoms)
   call allocTSResponse(s%nAtoms)
@@ -73,8 +73,8 @@ subroutine calculate_chi()
       if(rField == 0) &
       call write_time(output%unit_loop,'[calculate_chi] Time after calculating chi HF: ')
 
-      ! Checking sum rule for e=0.d0
-      if((abs(e) < 1.d-8).and.(sum(abs(q)) < 1.d-8)) call sumrule(chiorb_hf)
+      ! Checking sum rule for e=0._dp
+      if((abs(e) < 1.e-8_dp).and.(sum(abs(q)) < 1.e-8_dp)) call sumrule(chiorb_hf)
 
       ! From here on all other processes except for rFreq(1) == 0 are idle :/
       if(rFreq(1)==0) then
@@ -135,10 +135,10 @@ subroutine calculate_chi()
         if(lrot) then
           do i=1, s%nAtoms
             ! Left rotation matrix
-            call rotation_matrices_chi(180.d0-mvec_spherical(2,i),180.d0+mvec_spherical(3,i),rottemp,1)
+            call rotation_matrices_chi(180._dp-mvec_spherical(2,i),180._dp+mvec_spherical(3,i),rottemp,1)
             rotmat_i(:,:,i) = rottemp
             ! Right rotation matrix
-            call rotation_matrices_chi(180.d0-mvec_spherical(2,i),180.d0+mvec_spherical(3,i),rottemp,2)
+            call rotation_matrices_chi(180._dp-mvec_spherical(2,i),180._dp+mvec_spherical(3,i),rottemp,2)
             rotmat_j(:,:,i) = rottemp
           end do
           do j=1, s%nAtoms
@@ -181,9 +181,9 @@ subroutine calculate_chi()
           do mcount=1, sFreq(2)
             if (mcount/=1) then
               call MPI_Recv(e,     1,                   MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE ,1000,FreqComm(2),stat,ierr)
-              call MPI_Recv(q,     3,                   MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,1200,FreqComm(2),stat,ierr)
-              call MPI_Recv(schi,  s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,1300,FreqComm(2),stat,ierr)
-              call MPI_Recv(schihf,s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,1400,FreqComm(2),stat,ierr)
+              call MPI_Recv(q,     3,                   MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1200,FreqComm(2),stat,ierr)
+              call MPI_Recv(schi,  s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),1300,FreqComm(2),stat,ierr)
+              call MPI_Recv(schihf,s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),1400,FreqComm(2),stat,ierr)
             end if
 
             ! DIAGONALIZING SUSCEPTIBILITY
@@ -194,10 +194,10 @@ subroutine calculate_chi()
               call calcTSResponse(e)
             end if
             ! WRITING GILBERT DAMPING
-            if(abs(e)>1.d-8) then
+            if(abs(e)>1.e-8_dp) then
               call write_alpha(e)
             else
-              if(sum(abs(q)) < 1.d-8) call get_J_K_from_chi()
+              if(sum(abs(q)) < 1.e-8_dp) call get_J_K_from_chi()
             end if
 
             ! WRITING RPA AND HF SUSCEPTIBILITIES

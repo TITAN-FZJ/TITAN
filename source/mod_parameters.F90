@@ -1,86 +1,86 @@
 module mod_parameters
-  use mod_f90_kind, only: double
+  use mod_kind, only: dp, int32, int64
   implicit none
   !========================================================================================!
-  integer*4,parameter :: dmax=20
+  integer(int32),parameter :: dmax=20
   !! Maximum dimension for Npl-dependent quantities that must be read from input (obsolete?)
-  real(double)  :: eta
+  real(dp)  :: eta
   !! Small imaginary part included in the energy of GF or susceptibility z = w + i.eta
-  real(double)  :: etap
+  real(dp)  :: etap
   !! Small imaginary part included in the energy of GF  z = E + i.eta'
-  real(double)  :: q(3)
+  real(dp)  :: q(3)
   !! q-vector for the dependence of response functions (not used yet)
   ! Dimension variables:
-  integer*4     :: dimH
+  integer(int32)     :: dimH
   !! Dimension of the Hamiltonian: 2 spins x number of atoms in the unit cell
-  integer*4     :: dimspinAtoms
+  integer(int32)     :: dimspinAtoms
   !! Dimension: 4 spins x number of atoms in the unit cell
-  integer*4     :: dim
+  integer(int32)     :: dim
   !! Dimension: 4 spins x number of atoms in the unit cell x number of orbitals^2
 
-  integer*4, dimension(3) :: kp_in
+  integer(int32), dimension(3) :: kp_in
   !! Number of k-points in each direction
-  integer*8 :: kptotal_in
+  integer(int64) :: kptotal_in
   !! Total number of k-points
 
-  integer*4 :: tbmode 
+  integer(int32) :: tbmode 
   !! TIght-binding mode: (1) Slater-Koster, (2) DFT (not implemented yet)
-  integer*4 :: nOrb, nOrb2
+  integer(int32) :: nOrb, nOrb2
   !! Number of orbitals and 2*(number of orbitals) (for spin)
-  integer*4 :: fermi_layer   
+  integer(int32) :: fermi_layer   
   !! Which site will be used for fermi level (Maybe remove it and read from outside?)
   character(len=20), dimension(:), allocatable :: layers
   !! Number of layers (Obsolete?)
 
   !========================================================================================!
-  real(double), allocatable  :: Um(:), Un(:)
+  real(dp), allocatable  :: Um(:), Un(:)
   !! Effective intra-site electron electron interaction
   logical       :: lhfresponses = .false.
   !! Use HF susceptibilities to calculate currents, disturbances and accumulations (don't renormalize)
   !========================================================================================!
-  real(double)       :: theta=0.d0,phi=0.d0
+  real(dp)       :: theta=0._dp,phi=0._dp
   !! Euler Angles for the magnetization frame of reference
   !========================================================================================!
-  integer*4 :: itype
+  integer(int32) :: itype
   !! type of calculation - defined in input file 'input'
   !========================================================================================!
   character(len=10), dimension(:), allocatable :: bands
   !! Band structure points
-  integer*4         :: band_cnt
+  integer(int32)         :: band_cnt
   !! Number of points along the loop path
   character(len=20) :: kdirection
   !! Path of symmetry points followed in the Brillouin Zone
-  real(double), allocatable :: partial_length(:)
+  real(dp), allocatable :: partial_length(:)
   !! Length of each segment on the Brillouin zone
   !========================================================================================!
-  integer*4    :: nEner,nEner1
+  integer(int32)    :: nEner,nEner1
   ! Number of points of energy (frequency) loops
-  integer*8    :: count
+  integer(int64)    :: count
   ! Counter for frequency loops
-  real(double) :: emin,emax,deltae
+  real(dp) :: emin,emax,deltae
   !! Minimum and maximum energy (frequency), and step size
-  integer*4    :: skip_steps = 0
+  integer(int32)    :: skip_steps = 0
   !! Number of steps to skip from the beginning
   !! (useful to get the same points after a calculation has stopped)
-  integer*4    :: nQvec,nQvec1
+  integer(int32)    :: nQvec,nQvec1
   !! Number of points of wave vector loops, and step size (band structure and susceptibility)
-  real(double) :: deltak
+  real(dp) :: deltak
   !! Step size of wave vector loops (band structure and susceptibility)
-  real(double), dimension(:,:), allocatable :: band_points
+  real(dp), dimension(:,:), allocatable :: band_points
   !! Band points used in wave vector loop
-  real(double), allocatable :: kpoints(:,:)
+  real(dp), allocatable :: kpoints(:,:)
   !! Kpoints in the wave vector loop
   character(len=50)  :: qbasis = ""
   !! Basis to use on kpoints given in kbands file. Default: reciprocal lattice vectors
   character(len=400) :: bsfile, wsfile
   !! Filename for band structure and weights calculations
   !========================================================================================!
-  integer*4, allocatable :: sigmaimunu2i(:,:,:,:),sigmaijmunu2i(:,:,:,:,:),sigmai2i(:,:),isigmamu2n(:,:,:), n2isigmamu(:,:)
+  integer(int32), allocatable :: sigmaimunu2i(:,:,:,:),sigmaijmunu2i(:,:,:,:,:),sigmai2i(:,:),isigmamu2n(:,:,:), n2isigmamu(:,:)
   !! Conversion arrays
   !========================================================================================!
   character(len=200)          :: runoptions
   !! Run options are stored in this string
-  real(double)                :: ry2ev=1.d0
+  real(dp)                :: ry2ev=1._dp
   !! Optional conversion of ry to eV
   !========================================================================================!
   ! Logical variables for runoptions
@@ -106,13 +106,13 @@ module mod_parameters
   logical :: ldebug   = .false.
   !========================================================================================!
   ! Longitudinal and transverse, and Spin Hall Angle calculation
-  integer*4, dimension(:),  allocatable :: sha_longitudinal,sha_transverse
+  integer(int32), dimension(:),  allocatable :: sha_longitudinal,sha_transverse
   !! In-plane longitudinal and transverse neighbors
-  real(double), dimension(:),  allocatable :: long_cos(:),transv_cos(:)
+  real(dp), dimension(:),  allocatable :: long_cos(:),transv_cos(:)
   !! In-plane longitudinal and transverse cosines
-  integer*4 :: longitudinal_neighbors
+  integer(int32) :: longitudinal_neighbors
   !! Number of longitudinal neighbors
-  integer*4 :: transverse_neighbors
+  integer(int32) :: transverse_neighbors
   !! Number of transverse neighbors
 
   !! String for HF Responses
@@ -124,7 +124,7 @@ module mod_parameters
   !========================================================================================!
   ! Current renormalization (obsolete)
   logical   :: renorm
-  integer*4 :: renormnb
+  integer(int32) :: renormnb
   !========================================================================================!
   character(len=500)  :: missing_files=""
   !! Variable to store missing filenames
@@ -140,14 +140,14 @@ module mod_parameters
   ! Set of tight-binding parameters to be used
   ! in the first half (set1) and second half (set2) of the slab
   ! NOTE: the Fermi energy is obtained from the first half.
-  integer*4 :: set1,set2
+  integer(int32) :: set1,set2
   ! Layers to add after set2 (maximum of 10) - Must include empty spheres on the list
-  integer*4 :: addlayers(10),naddlayers=0
+  integer(int32) :: addlayers(10),naddlayers=0
   !========================================================================================!
-  integer*4 :: offset = 0
+  integer(int32) :: offset = 0
 
-  integer*4 :: parField = 1
-  integer*4 :: parFreq = 1
+  integer(int32) :: parField = 1
+  integer(int32) :: parFreq = 1
 
   type :: Filename
      integer :: unit=123456789

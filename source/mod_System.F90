@@ -15,7 +15,7 @@
 ! 28 April 2017 - Initial Version
 !-------------------------------------------------------------------------------
 module mod_system
-  use mod_f90_kind, only: double
+  use mod_kind, only: dp
   use AtomTypes, only: BasisAtom, NeighborAtom, AtomType
   implicit none
 
@@ -23,13 +23,13 @@ module mod_system
     !! Variables for the system to be calculated
     character(len=200) :: Name = ""
     !! Name of the system
-    real(double) :: a0
+    real(dp) :: a0
     !! Lattice parameter
-    real(double), dimension(3) :: a1, a2, a3
+    real(dp), dimension(3) :: a1, a2, a3
     !! Lattice vectors
-    real(double), dimension(3) :: b1, b2, b3
+    real(dp), dimension(3) :: b1, b2, b3
     !! Reciprocal vectors
-    real(double) :: vol
+    real(dp) :: vol
     !! Volume of Brillouin Zone
     integer :: isysdim = 3
     !! Dimension of the system: 3D (default), 2D or 1D
@@ -38,16 +38,16 @@ module mod_system
     !! Number of atoms in the system
     type(BasisAtom), dimension(:), allocatable :: Basis
     integer :: nNeighbors
-    real(double)  :: Ef
+    real(dp)  :: Ef
     !! Fermi energy
-    real(double)  :: totalOccupation = 0
+    real(dp)  :: totalOccupation = 0
     !! Total occupation of the system
     type(NeighborAtom), dimension(:), allocatable :: Neighbors
     integer :: nStages = 0
     !! Number of nearest neighbors
-    real(double) :: relTol
+    real(dp) :: relTol
     !! Tolerance for shell radius
-    real(double), dimension(:,:), allocatable :: Distances
+    real(dp), dimension(:,:), allocatable :: Distances
     !! List of all distances in nnstages range; size (nStages, nAtoms)
     integer :: nTypes = 0
     !! Number of different atom types
@@ -60,7 +60,7 @@ module mod_system
   integer :: n0sc1 !< first neighbor to calculate the in-plane spin and charge current
   integer :: n0sc2 !< last neighbor to calculate the in-plane spin and charge current
   integer :: n0sc  !< Number of neighbors to calculate currents
-  real(double), dimension(3) :: pln_normal
+  real(dp), dimension(3) :: pln_normal
 
   integer, dimension(:,:), allocatable :: ia
   integer, dimension(:,:), allocatable :: ia_sc

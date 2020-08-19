@@ -1,10 +1,10 @@
 module mod_LDOS
-  use mod_f90_kind, only: double
+  use mod_kind, only: dp
   implicit none
   character(len=4), private :: folder = "LDOS"
   character(len=6), dimension(4), private :: filename = ["ldosu ","ldosd ","lmdosu", "lmdosd"]
 
-  real(double),dimension(:,:),allocatable :: ldosu,ldosd
+  real(dp),dimension(:,:),allocatable :: ldosu,ldosd
 
 contains
   subroutine allocateLDOS()
@@ -29,16 +29,16 @@ contains
 
   ! This subroutine calculates LDOS
   subroutine ldos()
-    use mod_f90_kind,          only: double
+    use mod_kind, only: dp
     use mod_parameters,        only: nOrb, output, nEner1, emin, deltae, laddresults
     use mod_system,            only: s => sys
     use mod_BrillouinZone,     only: realBZ
     use mod_superconductivity, only: superCond
     use mod_mpi_pars
     implicit none
-    integer*8    :: i
-    integer*4    :: j
-    real(double) :: e
+    integer(int64)    :: i
+    integer(int32)    :: j
+    real(dp) :: e
 
     call allocateLDOS()
     call realBZ % setup_fraction(s,rFreq(1), sFreq(1), FreqComm(1))
@@ -61,8 +61,8 @@ contains
           do j = 1, sFreq(2)
             if (j /= 1) then
               call MPI_Recv(e    ,          1             ,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE ,1000,FreqComm(2),stat,ierr)
-              call MPI_Recv(ldosd, s%nAtoms*nOrb*superCond,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,1100,FreqComm(2),stat,ierr)
-              call MPI_Recv(ldosu, s%nAtoms*nOrb*superCond,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,1200,FreqComm(2),stat,ierr)
+              call MPI_Recv(ldosd, s%nAtoms*nOrb*superCond,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1100,FreqComm(2),stat,ierr)
+              call MPI_Recv(ldosu, s%nAtoms*nOrb*superCond,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1200,FreqComm(2),stat,ierr)
             end if
 
             ! Writing into files
@@ -87,7 +87,7 @@ contains
 
   ! Calculates spin-resolved LDOS and energy-dependence of exchange interactions
   subroutine ldos_energy(e,ldosu,ldosd)
-    use mod_f90_kind,          only: double
+    use mod_kind, only: dp
     use mod_constants,         only: pi
     use mod_parameters,        only: nOrb, nOrb2, eta
     use mod_system,            only: s => sys
@@ -96,17 +96,17 @@ contains
     use mod_hamiltonian,       only: hamilt_local,h0
     use mod_mpi_pars
     implicit none
-    real(double), intent(in) :: e
-    real(double),    dimension(s%nAtoms, nOrb*superCond), intent(out) :: ldosu, ldosd
-    real(double),    dimension(s%nAtoms, nOrb*superCond) :: gfdiagu,gfdiagd
-    real(double),    dimension(3) :: kp
-    complex(double), dimension(nOrb2*superCond, nOrb2*superCond, s%nAtoms, s%nAtoms) :: gf
-    real(double) :: weight
-    integer*4 :: i,mu,nu
-    integer*8 :: iz
+    real(dp), intent(in) :: e
+    real(dp),    dimension(s%nAtoms, nOrb*superCond), intent(out) :: ldosu, ldosd
+    real(dp),    dimension(s%nAtoms, nOrb*superCond) :: gfdiagu,gfdiagd
+    real(dp),    dimension(3) :: kp
+    complex(dp), dimension(nOrb2*superCond, nOrb2*superCond, s%nAtoms, s%nAtoms) :: gf
+    real(dp) :: weight
+    integer(int32) :: i,mu,nu
+    integer(int64) :: iz
 
-    ldosu = 0.d0
-    ldosd = 0.d0
+    ldosu = 0._dp
+    ldosd = 0._dp
 
     ! Build local hamiltonian
     call hamilt_local(s)
@@ -164,16 +164,16 @@ contains
 
   ! This subroutine calculates LDOS and coupling as a function of energy
   subroutine ldos_and_coupling()
-    use mod_f90_kind,      only: double
+    use mod_kind, only: dp
     use mod_parameters,    only: nOrb, output, emin, deltae, nEner1, skip_steps
     use mod_system,        only: s => sys
     use mod_BrillouinZone, only: realBZ
     use mod_Coupling
     use mod_mpi_pars
     implicit none
-    integer*4    :: i, j, mu, ncount,ncount2,ncount3
-    integer*8    :: count
-    real(double) :: e
+    integer(int32)    :: i, j, mu, ncount,ncount2,ncount3
+    integer(int64)    :: count
+    real(dp) :: e
 
     ncount  = s%nAtoms*nOrb
     ncount2 = s%nAtoms*s%nAtoms
@@ -203,9 +203,9 @@ contains
       if(rFreq(1) == 0) then
         do i = 1, s%nAtoms
           do j = 1, s%nAtoms
-            trJij(i,j)    = 0.5d0*(Jij(i,j,1,1) + Jij(i,j,2,2))
-            Jija(i,j,:,:) = 0.5d0*(Jij(i,j,:,:) - transpose(Jij(i,j,:,:)))
-            Jijs(i,j,:,:) = 0.5d0*(Jij(i,j,:,:) + transpose(Jij(i,j,:,:)))
+            trJij(i,j)    = 0.5_dp*(Jij(i,j,1,1) + Jij(i,j,2,2))
+            Jija(i,j,:,:) = 0.5_dp*(Jij(i,j,:,:) - transpose(Jij(i,j,:,:)))
+            Jijs(i,j,:,:) = 0.5_dp*(Jij(i,j,:,:) + transpose(Jij(i,j,:,:)))
             do mu = 1, 3
               Jijs(i,j,mu,mu) = Jijs(i,j,mu,mu) - trJij(i,j)
             end do
@@ -217,12 +217,12 @@ contains
           do i = 1, sFreq(2)
             if (i /= 1) then
               call MPI_Recv(e    ,    1    ,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE ,1000,FreqComm(2),stat,ierr)
-              call MPI_Recv(ldosd, ncount  ,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,1100,FreqComm(2),stat,ierr)
-              call MPI_Recv(ldosu, ncount  ,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,1200,FreqComm(2),stat,ierr)
-              call MPI_Recv(trJij, ncount2 ,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,1300,FreqComm(2),stat,ierr)
-              call MPI_Recv(Jij  , ncount3 ,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,1400,FreqComm(2),stat,ierr)
-              call MPI_Recv(Jijs , ncount3 ,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,1500,FreqComm(2),stat,ierr)
-              call MPI_Recv(Jija , ncount3 ,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,1600,FreqComm(2),stat,ierr)
+              call MPI_Recv(ldosd, ncount  ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1100,FreqComm(2),stat,ierr)
+              call MPI_Recv(ldosu, ncount  ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1200,FreqComm(2),stat,ierr)
+              call MPI_Recv(trJij, ncount2 ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1300,FreqComm(2),stat,ierr)
+              call MPI_Recv(Jij  , ncount3 ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1400,FreqComm(2),stat,ierr)
+              call MPI_Recv(Jijs , ncount3 ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1500,FreqComm(2),stat,ierr)
+              call MPI_Recv(Jija , ncount3 ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1600,FreqComm(2),stat,ierr)
             end if
 
             ! Writing into files
@@ -258,7 +258,7 @@ contains
 
   ! Calculates spin-resolved LDOS and energy-dependence of exchange interactions
   subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
-    use mod_f90_kind,      only: double
+    use mod_kind, only: dp
     use mod_constants,     only: pi, cZero, cOne, pauli_dorb
     use mod_parameters,    only: nOrb, nOrb2, eta, Um
     use mod_system,        only: s => sys
@@ -268,25 +268,25 @@ contains
     use mod_progress
     use mod_mpi_pars
     implicit none
-    real(double),intent(in)     :: e
-    real(double),intent(out)    :: ldosu(s%nAtoms, nOrb),ldosd(s%nAtoms, nOrb)
-    real(double),intent(out)    :: Jijint(s%nAtoms,s%nAtoms,3,3)
-    complex(double), dimension(nOrb2, nOrb2, s%nAtoms, s%nAtoms) :: gf
-    complex(double), dimension(nOrb2, nOrb2)     :: gij,gji,temp1,temp2,paulia,paulib
-    real(double),    dimension(s%nAtoms, nOrb)   :: gfdiagu,gfdiagd
-    real(double),    dimension(:,:),allocatable     :: ldosu_loc,ldosd_loc
-    real(double),    dimension(:,:,:,:),allocatable :: Jijint_loc
-    real(double),    dimension(3) :: kp
-    complex(double) :: paulimatan(3,3,nOrb2, nOrb2)
-    real(double)    :: Jijkan(s%nAtoms,3,3), Jijk(s%nAtoms,s%nAtoms,3,3)
-    real(double)    :: weight
+    real(dp),intent(in)     :: e
+    real(dp),intent(out)    :: ldosu(s%nAtoms, nOrb),ldosd(s%nAtoms, nOrb)
+    real(dp),intent(out)    :: Jijint(s%nAtoms,s%nAtoms,3,3)
+    complex(dp), dimension(nOrb2, nOrb2, s%nAtoms, s%nAtoms) :: gf
+    complex(dp), dimension(nOrb2, nOrb2)     :: gij,gji,temp1,temp2,paulia,paulib
+    real(dp),    dimension(s%nAtoms, nOrb)   :: gfdiagu,gfdiagd
+    real(dp),    dimension(:,:),allocatable     :: ldosu_loc,ldosd_loc
+    real(dp),    dimension(:,:,:,:),allocatable :: Jijint_loc
+    real(dp),    dimension(3) :: kp
+    complex(dp) :: paulimatan(3,3,nOrb2, nOrb2)
+    real(dp)    :: Jijkan(s%nAtoms,3,3), Jijk(s%nAtoms,s%nAtoms,3,3)
+    real(dp)    :: weight
     integer         :: i,j,mu,nu,alpha,ncount,ncount2
-    integer*8       :: iz
+    integer(int64)       :: iz
 
-    real(double),    dimension(3,s%nAtoms)               :: evec
-    complex(double), dimension(s%nAtoms,3,nOrb2,nOrb2)   :: dbxcdm
-    complex(double), dimension(s%nAtoms,3,3,nOrb2,nOrb2) :: d2bxcdm2
-    complex(double), dimension(s%nAtoms,nOrb2,nOrb2)     :: paulievec
+    real(dp),    dimension(3,s%nAtoms)               :: evec
+    complex(dp), dimension(s%nAtoms,3,nOrb2,nOrb2)   :: dbxcdm
+    complex(dp), dimension(s%nAtoms,3,3,nOrb2,nOrb2) :: d2bxcdm2
+    complex(dp), dimension(s%nAtoms,nOrb2,nOrb2)     :: paulievec
 
     ncount  = s%nAtoms*nOrb
     ncount2 = s%nAtoms*s%nAtoms*9
@@ -300,9 +300,9 @@ contains
     paulimatan(2,3,:,:) = -pauli_dorb(2,:,:)
     paulimatan(3,2,:,:) = -pauli_dorb(2,:,:)
 
-    ldosu = 0.d0
-    ldosd = 0.d0
-    Jijint = 0.d0
+    ldosu = 0._dp
+    ldosd = 0._dp
+    Jijint = 0._dp
 
     do iz = 1, s%nAtoms
       ! Unit vector along the direction of the magnetization of each magnetic plane
@@ -313,13 +313,13 @@ contains
 
       do i = 1, 3
         ! Derivative of Bxc*sigma*evec w.r.t. m_i (Bxc = -U.m/2)
-        dbxcdm(iz,i,:,:) = -0.5d0 * Um(iz) * (pauli_dorb(i,:,:) - (paulievec(iz,:,:)) * evec(i,iz))
+        dbxcdm(iz,i,:,:) = -0.5_dp * Um(iz) * (pauli_dorb(i,:,:) - (paulievec(iz,:,:)) * evec(i,iz))
 
         ! Second derivative of Bxc w.r.t. m_i (Bxc = -U.m/2)
         do j=1,3
           d2bxcdm2(iz,i,j,:,:) = evec(i,iz)*pauli_dorb(j,:,:) + pauli_dorb(i,:,:)*evec(j,iz) - 3*paulievec(iz,:,:)*evec(i,iz)*evec(j,iz)
           if(i==j) d2bxcdm2(iz,i,j,:,:) = d2bxcdm2(iz,i,j,:,:) + paulievec(iz,:,:)
-          d2bxcdm2(iz,i,j,:,:) = 0.5d0*Um(iz)*d2bxcdm2(iz,i,j,:,:)/(mabs(iz))
+          d2bxcdm2(iz,i,j,:,:) = 0.5_dp*Um(iz)*d2bxcdm2(iz,i,j,:,:)/(mabs(iz))
         end do
       end do
     end do
@@ -331,9 +331,9 @@ contains
     !$omp& private(iz,kp,weight,gf,gij,gji,paulia,paulib,i,j,mu,nu,alpha,gfdiagu,gfdiagd,Jijk,Jijkan,temp1,temp2,ldosu_loc,ldosd_loc,Jijint_loc) &
     !$omp& shared(s,realBZ,nOrb,nOrb2,e,eta,Um,dbxcdm,d2bxcdm2,pauli_dorb,paulimatan,ldosu,ldosd,Jijint)
     allocate(ldosu_loc(s%nAtoms, nOrb), ldosd_loc(s%nAtoms, nOrb), Jijint_loc(s%nAtoms,s%nAtoms,3,3))
-    ldosu_loc = 0.d0
-    ldosd_loc = 0.d0
-    Jijint_loc = 0.d0
+    ldosu_loc = 0._dp
+    ldosd_loc = 0._dp
+    Jijint_loc = 0._dp
 
     !$omp do schedule(static)
     do iz = 1, realBZ%workload
@@ -343,8 +343,8 @@ contains
       call green(e,eta,s,kp,gf)
 
       ! Exchange interaction tensor
-      Jijk   = 0.d0
-      Jijkan = 0.d0
+      Jijk   = 0._dp
+      Jijkan = 0._dp
       do j = 1,s%nAtoms
         do i = 1,s%nAtoms
           gij = gf(:,:,i,j)
@@ -443,7 +443,7 @@ contains
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_site=',i0,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
         open (unit=iw, file=varm,status='replace', form='formatted')
         !                             if lsuperCond is true then it writes 0.0, otherwise it writes s%Ef
-        call write_header(iw,title(j),merge(0.d0,s%Ef,lsuperCond))
+        call write_header(iw,title(j),merge(0._dp,s%Ef,lsuperCond))
         ! write(unit=iw, fmt="('#   energy      ,  LDOS SUM        ,  LDOS S          ,  LDOS P          ,  LDOS T2G        ,  LDOS EG         ')")
         close(unit=iw)
       end do
@@ -485,11 +485,11 @@ contains
   end subroutine closeLDOSFiles
 
   subroutine writeLDOS(e)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     use mod_System,   only: s => sys
     use mod_superconductivity, only: lsuperCond
     implicit none
-    real(double), intent(in) :: e
+    real(dp), intent(in) :: e
     integer :: i, iw, j
 
     if(lsuperCond) then

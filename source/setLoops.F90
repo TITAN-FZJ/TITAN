@@ -1,19 +1,19 @@
 ! Set energy (frequency) and wave vector loops
 subroutine setLoops(s)
-  use mod_f90_kind,   only: double
+  use mod_kind, only: dp
   use mod_parameters, only: itype, nEner, nEner1, emin, emax, deltae, nQvec, nQvec1, deltak, kdirection, band_points, band_cnt, bands, kpoints, partial_length
   use mod_system,     only: System
   use mod_tools,      only: vecDist
   implicit none
   type(System), intent(in)  :: s
   integer                   :: count,i,j
-  real(double)              :: dir(3),total_length
+  real(dp)              :: dir(3),total_length
     interface
       subroutine read_band_points(kbands, a0, b1, b2, b3)
-        use mod_f90_kind, only: double
-        real(double), dimension(:,:), allocatable, intent(out) :: kbands
-        real(double), dimension(3), intent(in) :: b1, b2, b3
-        real(double),               intent(in) :: a0
+        use mod_kind, only: dp
+        real(dp), dimension(:,:), allocatable, intent(out) :: kbands
+        real(dp), dimension(3), intent(in) :: b1, b2, b3
+        real(dp),               intent(in) :: a0
       end subroutine
     end interface
 
@@ -23,19 +23,19 @@ subroutine setLoops(s)
   else
     deltae = (emax - emin)/nEner
   end if
-  if(deltae<=1.d-15) nEner1 = 1
+  if(deltae<=1.e-15_dp) nEner1 = 1
 
   ! Wave vector loop
   if((itype == 4).or.((itype >= 7).and.(itype <= 9))) then
     if(nQvec1==1) then
-      deltak = 0.d0
+      deltak = 0._dp
       allocate(kpoints(3,1))
 
       if(band_cnt == 1) then
         call read_band_points(band_points,s%a0,s%b1,s%b2,s%b3)
         kpoints(:,1) = band_points(:,1)
       else
-        kpoints(:,1) = [0.d0,0.d0,0.d0]
+        kpoints(:,1) = [0._dp,0._dp,0._dp]
       end if
 
     else ! If a path is given
@@ -43,7 +43,7 @@ subroutine setLoops(s)
       call read_band_points(band_points,s%a0,s%b1,s%b2,s%b3)
 
       ! Calculating total length
-      total_length = 0.d0
+      total_length = 0._dp
       do i = 1, band_cnt - 1
         total_length = total_length + vecDist(band_points(:,i),band_points(:,i+1))
       end do
@@ -57,7 +57,7 @@ subroutine setLoops(s)
 
       ! Obtaining the k-points in the chosen path and the partial lenghts
       i = 0
-      partial_length(1) = 0.d0
+      partial_length(1) = 0._dp
       do count = 1, nQvec1
         ! if( (deltak*count >= total_length1).and.(i < band_cnt - 1) ) then
         if( (deltak*count >= sum(partial_length(1:i+1))).and.(i < band_cnt - 1) ) then

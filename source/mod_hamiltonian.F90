@@ -1,15 +1,14 @@
 module mod_hamiltonian
-  use mod_f90_kind,   only: double
+  use mod_kind, only: dp
   implicit none
   
-  complex(double), dimension(:,:), allocatable :: h0
+  complex(dp), dimension(:,:), allocatable :: h0
 
 contains
 
 
   ! Calculate local part of the hamiltonian of the unit cell
   subroutine hamilt_local(sys)
-    use mod_f90_kind,   only: double
     use mod_constants,  only: cZero
     use mod_System,     only: ia, System
     use mod_parameters, only: nOrb,nOrb2
@@ -43,17 +42,17 @@ contains
 
   ! Calculate hamiltonian of the unit cell
   subroutine hamiltk(sys,kp,hk)
-    use mod_f90_kind,   only: double
+    use mod_kind, only: dp
     use mod_constants,  only: cI
     use mod_System,     only: ia, System
     use mod_parameters, only: nOrb,nOrb2
     implicit none
     integer :: i, j, k
-    real(double), intent(in) :: kp(3)
+    real(dp), intent(in) :: kp(3)
     type(System), intent(in) :: sys
-    complex(double), dimension(sys%nAtoms*nOrb2, sys%nAtoms*nOrb2), intent(out) :: hk
-    complex(double) :: tmp(nOrb,nOrb)
-    complex(double) :: kpExp
+    complex(dp), dimension(sys%nAtoms*nOrb2, sys%nAtoms*nOrb2), intent(out) :: hk
+    complex(dp) :: tmp(nOrb,nOrb)
+    complex(dp) :: kpExp
 
     hk = h0
 
@@ -75,7 +74,7 @@ contains
     ! ! Test if hamiltonian is Hermitian (to be commented out, uncomment to use it)
     ! do i = ia(1,1), ia(4,sys%nAtoms)
     !   do j = i, ia(4,sys%nAtoms)
-    !     if(abs(hk(j,i)-conjg(hk(i,j))) > 1.d-15) then
+    !     if(abs(hk(j,i)-conjg(hk(i,j))) > 1.e-15_dp) then
     !       write(*,"('Hamiltonian not hermitian',i0,2x,i0,2x,es11.4)") i,j,abs(hk(j,i)-conjg(hk(i,j)))
     !     end if
     !   end do
@@ -86,7 +85,7 @@ contains
   ! Calculate hamiltonian of the unit cell
   ! and the spin-orbit coupling contribution separately
   subroutine hamiltklinearsoc(sys,kp,hk,vsoc)
-    use mod_f90_kind,   only: double
+    use mod_kind, only: dp
     use mod_constants,  only: cZero, cI
     use mod_system,     only: ia, System
     use mod_parameters, only: nOrb,nOrb2
@@ -95,11 +94,11 @@ contains
     use mod_Umatrix,    only: hee
     implicit none
     integer :: i, j, k
-    real(double), intent(in) :: kp(3)
+    real(dp), intent(in) :: kp(3)
     type(System), intent(in) :: sys
-    complex(double),dimension(sys%nAtoms*nOrb2,sys%nAtoms*nOrb2),intent(out)  :: hk,vsoc
-    complex(double) :: tmp(nOrb, nOrb)
-    complex(double) :: kpExp
+    complex(dp),dimension(sys%nAtoms*nOrb2,sys%nAtoms*nOrb2),intent(out)  :: hk,vsoc
+    complex(dp) :: tmp(nOrb, nOrb)
+    complex(dp) :: kpExp
 
     hk = cZero
     vsoc = cZero

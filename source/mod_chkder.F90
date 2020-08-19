@@ -1,7 +1,7 @@
 module mod_chkder
-  use mod_f90_kind, only: double
+  use mod_kind, only: sp, dp
   implicit none
-  real(double), private :: TOL = 1.d-15
+  real(dp), private :: TOL = 1.e-15_dp
 contains
       SUBROUTINE CHKDER (M, N, X, FVEC, FJAC, LDFJAC, XP, FVECP, MODE,ERR)
 !***BEGIN PROLOGUE  CHKDER
@@ -103,10 +103,10 @@ contains
 !   920501  Reformatted the REFERENCES section.  (WRB)
 !***END PROLOGUE  CHKDER
       INTEGER      :: M,N,LDFJAC,MODE
-      REAL(DOUBLE) :: X(*),FVEC(*),FJAC(LDFJAC,*),XP(*),FVECP(*),ERR(*)
+      REAL(dp) :: X(*),FVEC(*),FJAC(LDFJAC,*),XP(*),FVECP(*),ERR(*)
       INTEGER      :: I,J
-      REAL(DOUBLE) :: EPS,EPSF,EPSLOG,EPSMCH,FACTOR,ONE,TEMP,ZERO
-      REAL(DOUBLE) :: R1MACH(5)
+      REAL(dp) :: EPS,EPSF,EPSLOG,EPSMCH,FACTOR,ONE,TEMP,ZERO
+      REAL(dp) :: R1MACH(5)
       SAVE FACTOR, ONE, ZERO
 !
       DATA FACTOR,ONE,ZERO /1.0E2,1.0E0,0.0E0/
@@ -251,8 +251,8 @@ contains
 
       IMPLICIT NONE
       INTEGER      :: I
-      REAL(DOUBLE) :: X_single  = 1.0
-      REAL(DOUBLE) :: X_double = 1.D0
+      REAL(sp) :: X_single  = 1.0_sp
+      REAL(dp) :: X_double = 1._dp
 
       SELECT CASE (I)
         CASE (1)
@@ -414,7 +414,7 @@ contains
 
       IMPLICIT NONE
       INTEGER      :: I
-      REAL(DOUBLE) :: B, X, R1MACH(5)
+      REAL(dp) :: B, X, R1MACH(5)
 
       X = 1.0
       B = RADIX(X)

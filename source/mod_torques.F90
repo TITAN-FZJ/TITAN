@@ -1,9 +1,9 @@
 module mod_torques
-  use mod_f90_kind
+  use mod_kind, only: dp
   implicit none
   ! Torques (sot,xc-torque,external torque ; x,y,z ; layers)
   integer       :: ntypetorque=2 ! Number of types of torques implemented
-  complex(double),allocatable   :: torques(:,:,:),total_torques(:,:), rtorques(:,:,:)
+  complex(dp),allocatable   :: torques(:,:,:),total_torques(:,:), rtorques(:,:,:)
 
   character(len=6), parameter, private :: folder = "SOT"
   character(len=3), dimension(3), parameter, private :: filename = ["SOT", "XCT", "EXT"]
@@ -153,14 +153,14 @@ contains
   !! This subroutine write all the torques into files
   !! (already opened with openclose_torque_files(1))
   !! Some information may also be written on the screen
-    use mod_f90_kind,   only: double
+    use mod_kind, only: dp
     use mod_parameters, only: renorm
     use mod_magnet,     only: mvec_spherical,mtotal_spherical
     use mod_System,     only: s => sys
     implicit none
     integer  :: i,iw,sigma,typetorque
-    real(double) :: phase,sine,cosine
-    real(double),intent(in) :: e
+    real(dp) :: phase,sine,cosine
+    real(dp),intent(in) :: e
 
     call open_torque_files()
 
@@ -169,14 +169,14 @@ contains
         do i=1,s%nAtoms
           iw = 9000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
 
-          if(abs(torques(typetorque,sigma,i))>=1.d-15) then
+          if(abs(torques(typetorque,sigma,i))>=1.e-15_dp) then
             phase  = atan2(aimag(torques(typetorque,sigma,i)),real(torques(typetorque,sigma,i)))
             sine   = real(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
             cosine = aimag(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
           else
-            phase  = 0.d0
-            sine   = 0.d0
-            cosine = 0.d0
+            phase  = 0._dp
+            sine   = 0._dp
+            cosine = 0._dp
           end if
 
           write(unit=iw,fmt="(9(es16.9,2x))") e , abs(torques(typetorque,sigma,i)) , real(torques(typetorque,sigma,i)) , aimag(torques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
@@ -185,14 +185,14 @@ contains
           if(renorm) then
             iw = iw+1000
 
-            if(abs(rtorques(typetorque,sigma,i))>=1.d-15) then
+            if(abs(rtorques(typetorque,sigma,i))>=1.e-15_dp) then
               phase  = atan2(aimag(rtorques(typetorque,sigma,i)),real(rtorques(typetorque,sigma,i)))
               sine   = real(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
               cosine = aimag(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
             else
-              phase  = 0.d0
-              sine   = 0.d0
-              cosine = 0.d0
+              phase  = 0._dp
+              sine   = 0._dp
+              cosine = 0._dp
             end if
 
             write(unit=iw,fmt="(9(es16.9,2x))") e , abs(rtorques(typetorque,sigma,i)) , real(rtorques(typetorque,sigma,i)) , aimag(rtorques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
@@ -201,14 +201,14 @@ contains
          ! Writing total torques
          iw = 9500+(typetorque-1)*3+sigma
 
-         if(abs(total_torques(typetorque,sigma))>=1.d-15) then
+         if(abs(total_torques(typetorque,sigma))>=1.e-15_dp) then
             phase  = atan2(aimag(total_torques(typetorque,sigma)),real(total_torques(typetorque,sigma)))
             sine   = real(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
             cosine = aimag(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
          else
-            phase  = 0.d0
-            sine   = 0.d0
-            cosine = 0.d0
+            phase  = 0._dp
+            sine   = 0._dp
+            cosine = 0._dp
          end if
 
          write(unit=iw,fmt="(9(es16.9,2x))") e , abs(total_torques(typetorque,sigma)) , real(total_torques(typetorque,sigma)) , aimag(total_torques(typetorque,sigma)) , phase , sine , cosine , mtotal_spherical(2) , mtotal_spherical(3)
@@ -329,13 +329,13 @@ contains
   !! This subroutine write all the torques into files
   !! (already opened with openclose_torque_files(1))
   !! Some information may also be written on the screen
-    use mod_f90_kind,   only: double
+    use mod_kind, only: dp
     use mod_parameters, only: renorm
     use mod_magnet,     only: mvec_spherical,mtotal_spherical,dc_fields,hw_count
     use mod_System,     only: s => sys
     implicit none
     integer      :: i,iw,sigma,typetorque
-    real(double) :: phase,sine,cosine
+    real(dp) :: phase,sine,cosine
 
     call open_dc_torque_files()
 
@@ -344,14 +344,14 @@ contains
         do i=1,s%nAtoms
           iw = 90000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
 
-          if(abs(torques(typetorque,sigma,i))>=1.d-15) then
+          if(abs(torques(typetorque,sigma,i))>=1.e-15_dp) then
             phase  = atan2(aimag(torques(typetorque,sigma,i)),real(torques(typetorque,sigma,i)))
             sine   = real(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
             cosine = aimag(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
           else
-            phase  = 0.d0
-            sine   = 0.d0
-            cosine = 0.d0
+            phase  = 0._dp
+            sine   = 0._dp
+            cosine = 0._dp
           end if
           write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(torques(typetorque,sigma,i)) , real(torques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
 
@@ -359,14 +359,14 @@ contains
           if(renorm) then
             iw = iw+1000
 
-            if(abs(rtorques(typetorque,sigma,i))>=1.d-15) then
+            if(abs(rtorques(typetorque,sigma,i))>=1.e-15_dp) then
               phase  = atan2(aimag(rtorques(typetorque,sigma,i)),real(rtorques(typetorque,sigma,i)))
               sine   = real(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
               cosine = aimag(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
             else
-              phase  = 0.d0
-              sine   = 0.d0
-              cosine = 0.d0
+              phase  = 0._dp
+              sine   = 0._dp
+              cosine = 0._dp
             end if
 
             write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(rtorques(typetorque,sigma,i)) , real(rtorques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
@@ -375,14 +375,14 @@ contains
         ! Writing total torques
       iw = 95000+(typetorque-1)*3+sigma
 
-      if(abs(total_torques(typetorque,sigma))>=1.d-15) then
+      if(abs(total_torques(typetorque,sigma))>=1.e-15_dp) then
         phase  = atan2(aimag(total_torques(typetorque,sigma)),real(total_torques(typetorque,sigma)))
         sine   = real(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
         cosine = aimag(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
       else
-        phase  = 0.d0
-        sine   = 0.d0
-        cosine = 0.d0
+        phase  = 0._dp
+        sine   = 0._dp
+        cosine = 0._dp
       end if
       write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_torques(typetorque,sigma)) , real(total_torques(typetorque,sigma)) , phase , sine , cosine , mtotal_spherical(2) , mtotal_spherical(3)
 

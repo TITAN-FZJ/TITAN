@@ -15,11 +15,11 @@
 ! modified from other modules
 
 module mod_superconductivity
-  use mod_f90_kind,       only: double
+  use mod_kind, only: dp
   implicit none
   logical :: lsuperCond = .false.
   integer :: superCond
-  real(double), dimension(:,:), allocatable  :: singlet_coupling
+  real(dp), dimension(:,:), allocatable  :: singlet_coupling
   integer :: flag = 0
 
 contains
@@ -32,7 +32,7 @@ contains
     integer :: AllocateStatus
 
     allocate( singlet_coupling(nOrbs,nAtoms), stat = AllocateStatus)
-    singlet_coupling = 0.d0
+    singlet_coupling = 0._dp
     if(AllocateStatus /= 0) call abortProgram("[allocate_supercond_variables] Not enough memory for: singlet_coupling")
 
   end subroutine allocate_supercond_variables
@@ -44,18 +44,18 @@ contains
   end subroutine deallocate_supercond_variables
 
   subroutine hamiltk_sc(sys,kp,hk_sc)
-    use mod_f90_kind,       only: double
+    use mod_kind, only: dp
     use mod_parameters,     only: dimH
     use mod_system,         only: System, initHamiltkStride
     use mod_constants,      only: cZero,cOne
     use mod_hamiltonian,    only: hamiltk
     implicit none
     type(System), intent(in)  :: sys
-    real(double), intent(in)  :: kp(3)
-    complex(double),dimension(2*dimH,2*dimH), intent(inout) :: hk_sc
-    complex(double),dimension(  dimH,  dimH) :: hk, dummy, hk2
+    real(dp), intent(in)  :: kp(3)
+    complex(dp),dimension(2*dimH,2*dimH), intent(inout) :: hk_sc
+    complex(dp),dimension(  dimH,  dimH) :: hk, dummy, hk2
     integer      :: i, j
-    real(double) :: mkp(3)
+    real(dp) :: mkp(3)
 
     ! The form of the superconducting hamiltonian depends on a series of decisions,
     ! such as how to choose the basis after the Bogoliuvob-de Gennes transformation
@@ -79,7 +79,7 @@ contains
     call hamiltk(sys,kp,dummy)
 
     do concurrent (i = 1:dimH , j = 1:dimH)
-      hk(i,j) = (dummy(i,j) + conjg(dummy(j,i)))/2.d0
+      hk(i,j) = (dummy(i,j) + conjg(dummy(j,i)))/2._dp
     end do
 
     dummy = cZero
@@ -88,7 +88,7 @@ contains
     call hamiltk(sys,mkp,dummy)
 
     do concurrent (i = 1:dimH , j = 1:dimH)
-      hk2(i,j) = (dummy(i,j) + conjg(dummy(j,i)))/2.d0
+      hk2(i,j) = (dummy(i,j) + conjg(dummy(j,i)))/2._dp
     end do
 
     ! Populate the diagonal blocks of the hamiltonian. i.e. electron-electron
@@ -112,14 +112,14 @@ contains
 
   ! TODO: Either remove this function or write to a file
   subroutine print_hamilt(sys,hk)
-    use mod_f90_kind,       only: double
+    use mod_kind, only: dp
     use mod_parameters,     only: nOrb2
     use mod_system,         only: System, initHamiltkStride
     use mod_parameters,     only: dimH
     implicit none
 
     type(System),                              intent(in) :: sys
-    complex(double), dimension(2*dimH,2*dimH), intent(in) :: hk
+    complex(dp), dimension(2*dimH,2*dimH), intent(in) :: hk
     integer :: i,j
 
     do j = 1, sys%nAtoms*nOrb2*2
@@ -132,11 +132,11 @@ contains
 
   ! TODO: Either remove this function or write to a file
   subroutine print_hamilt_entry(hk,i,j)
-    use mod_f90_kind,       only: double
+    use mod_kind, only: dp
     use mod_system,         only: System, initHamiltkStride
     use mod_parameters,     only: dimH
     implicit none
-    complex(double), dimension(2*dimH,2*dimH), intent(in) :: hk
+    complex(dp), dimension(2*dimH,2*dimH), intent(in) :: hk
     integer, intent(in):: i,j
 
     write(*,*) real(hk(i,j)), imag(hk(i,j))
@@ -144,14 +144,12 @@ contains
   end subroutine print_hamilt_entry
 
   subroutine update_singlet_couplings(sys,couplings)
-    use mod_f90_kind,       only: double
+    use mod_kind, only: dp
     use mod_system,         only: System, initHamiltkStride
     use mod_parameters,     only: nOrb
     implicit none
-
     type(System),   intent(in)  :: sys
-
-    real(double), dimension(nOrb,sys%nAtoms)  :: couplings
+    real(dp), dimension(nOrb,sys%nAtoms)  :: couplings
     integer :: i,mu
 
     do concurrent (i = 1:sys%nAtoms, mu = 1:nOrb)
@@ -161,14 +159,14 @@ contains
   end subroutine update_singlet_couplings
 
   subroutine bcs_pairing(sys,delta, hk_sc)
-    use mod_f90_kind,       only: double
+    use mod_kind, only: dp
     use mod_system,         only: System, initHamiltkStride
     use mod_parameters,     only: nOrb, isigmamu2n, dimH
     implicit none
 
     type(System),                                 intent(in) :: sys
-    real(double),    dimension(nOrb,sys%nAtoms),  intent(in) :: delta
-    complex(double), dimension(2*dimH,2*dimH), intent(inout) :: hk_sc
+    real(dp),    dimension(nOrb,sys%nAtoms),  intent(in) :: delta
+    complex(dp), dimension(2*dimH,2*dimH), intent(inout) :: hk_sc
     integer :: i, mu
 
     ! Populate the entries for the singlet pairing of the s-orbitals
@@ -187,10 +185,10 @@ contains
     ! h* and s^ couple with -delta_s*
 
     do concurrent (i = 1:sys%nAtoms, mu = 1:nOrb)
-      hk_sc(isigmamu2n(i,1,mu)     ,isigmamu2n(i,2,mu)+dimH) = - cmplx(delta(mu,i),0.d0,double)
-      hk_sc(isigmamu2n(i,2,mu)     ,isigmamu2n(i,1,mu)+dimH) =   cmplx(delta(mu,i),0.d0,double)
-      hk_sc(isigmamu2n(i,2,mu)+dimH,isigmamu2n(i,1,mu)     ) = - cmplx(delta(mu,i),0.d0,double)
-      hk_sc(isigmamu2n(i,1,mu)+dimH,isigmamu2n(i,2,mu)     ) =   cmplx(delta(mu,i),0.d0,double)
+      hk_sc(isigmamu2n(i,1,mu)     ,isigmamu2n(i,2,mu)+dimH) = - cmplx(delta(mu,i),0._dp,dp)
+      hk_sc(isigmamu2n(i,2,mu)     ,isigmamu2n(i,1,mu)+dimH) =   cmplx(delta(mu,i),0._dp,dp)
+      hk_sc(isigmamu2n(i,2,mu)+dimH,isigmamu2n(i,1,mu)     ) = - cmplx(delta(mu,i),0._dp,dp)
+      hk_sc(isigmamu2n(i,1,mu)+dimH,isigmamu2n(i,2,mu)     ) =   cmplx(delta(mu,i),0._dp,dp)
       ! write(*,*) i, " ", mu, " ", delta(mu,i)
     end do
 
@@ -208,24 +206,24 @@ contains
   end subroutine bcs_pairing
 
   subroutine green_sc(er,ei,sys,kp,gf)
-    use mod_f90_kind,   only: double
+    use mod_kind, only: dp
     use mod_constants,  only: cZero,cOne
     use mod_System,     only: ia_sc, System
     use mod_parameters, only: nOrb2, dimH
     implicit none
     integer     :: i,j,d
 
-    real(double), intent(in) :: er,ei,kp(3)
+    real(dp), intent(in) :: er,ei,kp(3)
     type(System), intent(in) :: sys
-    complex(double),dimension(nOrb2*superCond, nOrb2*superCond, sys%nAtoms, sys%nAtoms), intent(out)  :: gf
+    complex(dp),dimension(nOrb2*superCond, nOrb2*superCond, sys%nAtoms, sys%nAtoms), intent(out)  :: gf
 
-    complex(double) :: ec
-    complex(double),dimension(dimH*superCond, dimH*superCond) :: gslab,hk
+    complex(dp) :: ec
+    complex(dp),dimension(dimH*superCond, dimH*superCond) :: gslab,hk
 
     ! Dimension of the matrices (they are square)
     d = dimH * superCond
 
-    ec    = cmplx(er,ei,double)
+    ec    = cmplx(er,ei,dp)
 
     gslab = cZero
     do concurrent (i = 1:d)

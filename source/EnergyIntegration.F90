@@ -1,5 +1,5 @@
 module EnergyIntegration
-  use mod_f90_kind, only: double
+  use mod_kind, only: dp
   use mod_System, only: s => sys
   implicit none
 
@@ -11,14 +11,14 @@ module EnergyIntegration
 ! Energy integration variables
 ! Number of parts to divide energy integral I1+I2 and I3
   integer :: nepoints
-  real(double), allocatable :: y(:)
+  real(dp), allocatable :: y(:)
   !! Energy integration points along imaginary axis
-  real(double), allocatable :: wght(:)
+  real(dp), allocatable :: wght(:)
   !! Weights of energy integration points along imaginary axis
 
-  real(double), allocatable :: x2(:)
+  real(dp), allocatable :: x2(:)
   !! Energy integration points along real axis
-  real(double), allocatable :: p2(:)
+  real(dp), allocatable :: p2(:)
   !! Weights of energy integration points along real axis
 
 contains
@@ -48,8 +48,8 @@ contains
     use mod_mpi_pars, only: abortProgram
     implicit none
     integer                       :: i,j,k,AllocateStatus
-    real(double)                  :: e1,e2,et1,xx, tmp1, tmp2
-    real(double),allocatable      :: x1(:),p1(:)
+    real(dp)                  :: e1,e2,et1,xx, tmp1, tmp2
+    real(dp),allocatable      :: x1(:),p1(:)
 
     allocate(x1(pn1),p1(pn1), STAT=AllocateStatus)
     if(AllocateStatus/=0) call abortProgram("[generate_imag_epoints] Not enough memory: x1,p1")
@@ -57,27 +57,27 @@ contains
     do k=parts,1,-1
       if(parts/=1)then
         if(k==1) then
-          e1 = 10.d0**(-2)
-          e2 = 1.d0
+          e1 = 10._dp**(-2)
+          e2 = 1._dp
         else if(k/=parts) then
-          e1 = 10.d0**(-k-1)
-          e2 = 10.d0**(-k)
+          e1 = 10._dp**(-k-1)
+          e2 = 10._dp**(-k)
         else
-          e1 = 0.d0
-          e2 = 10.d0**(-k)
+          e1 = 0._dp
+          e2 = 10._dp**(-k)
         end if
       else
-        e1 = 0.d0
-        e2 = 1.d0
+        e1 = 0._dp
+        e2 = 1._dp
       end if
       i = (k-1)*n1gl+1
       j = k*n1gl
       call gauleg(e1,e2,x1(i:j),p1(i:j),n1gl)
     end do
-    et1 = 1.d0
+    et1 = 1._dp
     do k = 1, pn1
-      y(k)  = x1(k)/(1.d0-x1(k))
-      xx    = (1.d0-x1(k))*(1.d0-x1(k))
+      y(k)  = x1(k)/(1._dp-x1(k))
+      xx    = (1._dp-x1(k))*(1._dp-x1(k))
       wght(k) = et1*p1(k)/xx
     end do
     deallocate(x1,p1)
@@ -100,12 +100,12 @@ contains
   !! Generating energy points in the real axis for third integration
   !! Generates points from Ef-e to Ef
     implicit none
-    real(double),intent(in) :: e
+    real(dp),intent(in) :: e
     !! Energy defining the lower boundary [Ef-e,Ef]
     integer :: i,j,k
-    real(double) :: e1,e2
+    real(dp) :: e1,e2
 
-    if (abs(e)>=1.d-15) then
+    if (abs(e)>=1.e-15_dp) then
       nepoints = pnt
       do k=1,parts3
         e1 = s%Ef-((parts3-(k-1))*e/parts3)
@@ -125,33 +125,33 @@ contains
   subroutine gauleg(x1,x2,x,w,n)
     implicit none
     integer,      intent(in) :: n
-    real(double), intent(in) :: x1, x2
-    real(double), dimension(n), intent(out) :: x, w
+    real(dp), intent(in) :: x1, x2
+    real(dp), dimension(n), intent(out) :: x, w
     integer :: i, j, m
-    real(double) :: p1, p2, p3, pp, xl, xm, z, z1
-    real(double), parameter :: eps=3.d-14
+    real(dp) :: p1, p2, p3, pp, xl, xm, z, z1
+    real(dp), parameter :: eps=3.e-14_dp
 
     m = (n+1)/2
-    xm = 0.5d0*(x2+x1)
-    xl = 0.5d0*(x2-x1)
+    xm = 0.5_dp*(x2+x1)
+    xl = 0.5_dp*(x2-x1)
     do i=1,m
-      z = cos(3.141592654d0*(i-0.25d0)/(n+0.5d0))
+      z = cos(3.141592654_dp*(i-0.25_dp)/(n+0.5_dp))
       z1 = 0.0
       do while(abs(z-z1)> eps)
-        p1 = 1.0d0
-        p2 = 0.0d0
+        p1 = 1.0_dp
+        p2 = 0.0_dp
         do j=1,n
           p3 = p2
           p2 = p1
-          p1 = ((2.0d0*j-1.0d0)*z*p2-(j-1.0d0)*p3)/j
+          p1 = ((2.0_dp*j-1.0_dp)*z*p2-(j-1.0_dp)*p3)/j
         end do
-        pp = n*(z*p1-p2)/(z*z-1.0d0)
+        pp = n*(z*p1-p2)/(z*z-1.0_dp)
         z1 = z
         z = z1 - p1/pp
       end do
       x(i) = xm - xl*z
       x(n+1-i) = xm + xl*z
-      w(i) = (2.0d0*xl)/((1.0d0-z*z)*pp*pp)
+      w(i) = (2.0_dp*xl)/((1.0_dp-z*z)*pp*pp)
       w(n+1-i) = w(i)
     end do
   end subroutine gauleg

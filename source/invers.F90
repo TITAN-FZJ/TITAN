@@ -1,14 +1,14 @@
 ! This subroutine calculates the inverse of NNxNN matrix 'matriz'
 subroutine invers(matriz,nn)
-  use mod_f90_kind
+  use, intrinsic :: iso_fortran_env
   use mod_mpi_pars
   use mod_parameters, only: output
   implicit none
   integer :: nn,info
   integer :: lwork
   integer, dimension(nn) :: ipiv
-  complex(double), dimension(nn,nn) :: matriz
-  complex(double), dimension(nn*4) :: work
+  complex(dp), dimension(nn,nn) :: matriz
+  complex(dp), dimension(nn*4) :: work
 
   lwork = 4*nn
   info = 0
@@ -34,19 +34,19 @@ end subroutine invers
 
 ! ! This subroutine calculates the inverse of NNxNN matrix 'matriz'
 ! subroutine invers(matriz,nn)
-!   use mod_f90_kind
+!   use, intrinsic :: iso_fortran_env
 !   use mod_mpi_pars
 !   use mod_parameters, only: outputunit
 !   implicit none
 !   integer :: nn,info,i
 !   integer, dimension(nn) :: ipiv
-!   complex(double), dimension(nn,nn), intent(inout) :: matriz !< matrix to be inverted
-!   complex(double), dimension(nn,nn) :: ident
+!   complex(dp), dimension(nn,nn), intent(inout) :: matriz !< matrix to be inverted
+!   complex(dp), dimension(nn,nn) :: ident
 
 !   ! First define identity | rhs of G*(z-H) = 1
-!   ident = cmplx(0.0d0, 0.d0)
+!   ident = cmplx(0.0_dp, 0._dp)
 !   do i=1,nn
-!     ident(i,i) = cmplx(1.0d0, 0.d0)
+!     ident(i,i) = cmplx(1.0_dp, 0._dp)
 !   end do
 
 !   info = 0

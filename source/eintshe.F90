@@ -1,6 +1,6 @@
 ! ---------- Parallel spin current: Energy integration ---------
 subroutine eintshe(q,e)
-  use mod_f90_kind,      only: double
+  use mod_kind, only: dp
   use mod_constants,     only: cZero, cI, tpi
   use mod_parameters,    only: nOrb, nOrb2, dim, sigmaimunu2i, eta, etap, sigmai2i, offset
   use mod_SOC,           only: llineargfsoc
@@ -19,24 +19,24 @@ subroutine eintshe(q,e)
   !use mod_system,        only: r_nn, npln, n0sc1, n0sc2
   implicit none
 
-  real(double),intent(in)   :: e,q(3)
+  real(dp),intent(in)   :: e,q(3)
 
   integer :: AllocateStatus
-  complex(double), dimension(:,:),allocatable         :: tFintiikl
-  !complex(double), dimension(:,:,:), allocatable      :: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl TODO:Re-Include
+  complex(dp), dimension(:,:),allocatable         :: tFintiikl
+  !complex(dp), dimension(:,:,:), allocatable      :: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl TODO:Re-Include
 
   integer :: i,j,l,mu,nu,gamma,xi,sigma,sigmap, neighbor
-  real(double) :: kp(3),kpq(3),ep
-  complex(double) :: wkbzc
-  !complex(double) :: expikr(n0sc1:n0sc2) TODO:Re-Include
-  complex(double),dimension(:,:,:,:),allocatable    :: gf,dtdk
-  complex(double),dimension(:,:,:,:,:),allocatable  :: gfuu,gfud,gfdu,gfdd
-  complex(double),dimension(:,:),allocatable        :: df1iikl,pfdf1iikl
-  !complex(double),dimension(n0sc1:n0sc2,s%nAtoms,nOrb, nOrb)    :: prett,preLxtt,preLytt,preLztt !TODO: Re-Include
-  !complex(double),dimension(n0sc1:n0sc2,dimspinAtoms,4), intent(out) :: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl !TODO:Re-Include
+  real(dp) :: kp(3),kpq(3),ep
+  complex(dp) :: wkbzc
+  !complex(dp) :: expikr(n0sc1:n0sc2) TODO:Re-Include
+  complex(dp),dimension(:,:,:,:),allocatable    :: gf,dtdk
+  complex(dp),dimension(:,:,:,:,:),allocatable  :: gfuu,gfud,gfdu,gfdd
+  complex(dp),dimension(:,:),allocatable        :: df1iikl,pfdf1iikl
+  !complex(dp),dimension(n0sc1:n0sc2,s%nAtoms,nOrb, nOrb)    :: prett,preLxtt,preLytt,preLztt !TODO: Re-Include
+  !complex(dp),dimension(n0sc1:n0sc2,dimspinAtoms,4), intent(out) :: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl !TODO:Re-Include
   !--------------------- begin MPI vars --------------------
-  integer*8 :: ix, ix2, nep,nkp
-  integer*8 :: real_points
+  integer(int64) :: ix, ix2, nep,nkp
+  integer(int64) :: real_points
   integer   :: ncountkl !,nncountkl !TODO: Re-Include
   ncountkl = dim*4
   !nncountkl = n0sc*dimspinAtoms*4 !TODO: Re-Include
@@ -47,7 +47,7 @@ subroutine eintshe(q,e)
   call generate_real_epoints(e)
 
   real_points = 0
-  if(abs(e) >= 1.d-15) real_points = int(pn2*realBZ%workload,8)
+  if(abs(e) >= 1.e-15_dp) real_points = int(pn2*realBZ%workload,8)
 
   ! Starting to calculate energy integral
   tchiorbiikl     = cZero
@@ -91,7 +91,7 @@ subroutine eintshe(q,e)
   do ix = 1, local_points
       ep = y( E_k_imag_mesh(1,ix) )
       kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix))
-      wkbzc = cmplx(wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix)),0.d0,double)
+      wkbzc = cmplx(wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix)),0._dp,dp)
 
       df1iikl = cZero
 
@@ -198,7 +198,7 @@ subroutine eintshe(q,e)
       nkp = mod(ix2-1, int(realBZ % workload,8))+1
       ep = x2(nep)
       kp = realBZ % kp(:,nkp)
-      wkbzc = cmplx(p2(nep) * realBZ % w(nkp), 0.d0,double)
+      wkbzc = cmplx(p2(nep) * realBZ % w(nkp), 0._dp,dp)
 
       df1iikl = cZero
 
@@ -339,7 +339,7 @@ end subroutine eintshe
 
 
 subroutine eintshelinearsoc(q,e)
-  use mod_f90_kind,      only: double
+  use mod_kind, only: dp
   use mod_constants,     only: cZero, cOne, cI, tpi
   use mod_parameters,    only: nOrb, nOrb2, dim, eta, etap, sigmai2i, sigmaimunu2i, offset
   use mod_system,        only: s => sys
@@ -355,24 +355,24 @@ subroutine eintshelinearsoc(q,e)
   !use mod_currents,         only: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl !TODO: Re-Include
   !use mod_system,           only: n0sc1, n0sc2, n0sc
   implicit none
-  real(double),intent(in) :: e,q(3)
+  real(dp),intent(in) :: e,q(3)
   integer :: AllocateStatus
-  complex(double), dimension(:,:),allocatable :: tFintiikl
-  !complex(double), dimension(:,:,:), allocatable :: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl !TODO: Re-Include
+  complex(dp), dimension(:,:),allocatable :: tFintiikl
+  !complex(dp), dimension(:,:,:), allocatable :: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl !TODO: Re-Include
 
   integer :: i,j,l,mu,nu,gamma,xi,sigma,sigmap,neighbor
-  real(double) :: kp(3), kpq(3), ep
-  integer*8 :: nep, nkp
-  !complex(double) :: expikr(n0sc1:n0sc2) !TODO: Re-Include
-  complex(double) :: wkbzc
-  complex(double),dimension(:,:,:,:),allocatable    :: gf,dtdk,gvg
-  complex(double),dimension(:,:,:,:,:),allocatable  :: gfuu,gfud,gfdu,gfdd,gvguu,gvgud,gvgdu,gvgdd
-  complex(double),dimension(:,:),allocatable        :: df1iikl,pfdf1iikl,df1lsoc
-  !complex(double),dimension(n0sc1:n0sc2,Npl,9,9)    :: prett,preLxtt,preLytt,preLztt !TODO: Re-Include
+  real(dp) :: kp(3), kpq(3), ep
+  integer(int64) :: nep, nkp
+  !complex(dp) :: expikr(n0sc1:n0sc2) !TODO: Re-Include
+  complex(dp) :: wkbzc
+  complex(dp),dimension(:,:,:,:),allocatable    :: gf,dtdk,gvg
+  complex(dp),dimension(:,:,:,:,:),allocatable  :: gfuu,gfud,gfdu,gfdd,gvguu,gvgud,gvgdu,gvgdd
+  complex(dp),dimension(:,:),allocatable        :: df1iikl,pfdf1iikl,df1lsoc
+  !complex(dp),dimension(n0sc1:n0sc2,Npl,9,9)    :: prett,preLxtt,preLytt,preLztt !TODO: Re-Include
 
 !--------------------- begin MPI vars --------------------
-  integer*8 :: ix,ix2, iz
-  integer*8 :: real_points
+  integer(int64) :: ix,ix2, iz
+  integer(int64) :: real_points
   integer :: ncountkl !,nncountkl !TODO: Re-Include
   ncountkl = dim*4
   !nncountkl = n0sc*dimspinAtoms*4 !TODO: Re-Include
@@ -383,7 +383,7 @@ subroutine eintshelinearsoc(q,e)
   call generate_real_epoints(e)
 
   real_points = 0
-  if(abs(e) >= 1.d-15) real_points = int(pn2*realBZ%workload,8)
+  if(abs(e) >= 1.e-15_dp) real_points = int(pn2*realBZ%workload,8)
 
   ! Starting to calculate energy integral
   tchiorbiikl     = cZero
@@ -428,7 +428,7 @@ subroutine eintshelinearsoc(q,e)
   do ix = 1, local_points
       ep = y( E_k_imag_mesh(1,ix) )
       kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix))
-      wkbzc = cmplx(wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix)),0.d0,double)
+      wkbzc = cmplx(wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix)),0._dp,dp)
 
       df1iikl = cZero
       df1lsoc = cZero
@@ -560,7 +560,7 @@ subroutine eintshelinearsoc(q,e)
       nkp = mod(ix2-1, int(realBZ % workload,8))+1
       ep = x2(nep)
       kp = realBZ % kp(:,nkp)
-      wkbzc = cmplx(p2(nep) * realBZ % w(nkp),0.d0,double)
+      wkbzc = cmplx(p2(nep) * realBZ % w(nkp),0._dp,dp)
 
       df1iikl = cZero
       df1lsoc = cZero

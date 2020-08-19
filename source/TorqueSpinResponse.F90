@@ -1,9 +1,9 @@
 module TorqueSpinResponse
-  use mod_f90_kind, only: double
+  use mod_kind, only: dp
   implicit none
 
   integer, parameter, private :: nFiles = 3
-  complex(double), dimension(:,:,:,:), allocatable :: TSResponse, TSResponseHF
+  complex(dp), dimension(:,:,:,:), allocatable :: TSResponse, TSResponseHF
   character(len=7), dimension(nFiles), parameter, private :: folder = ["A/Slope", "A/Slope", "A/Slope"]
   character(len=5), dimension(nFiles), parameter, private :: filename = ["TSR  ", "TSAHF", "TSInv"]
   integer, dimension(nFiles) :: unitBase = [12000,13000,14000]
@@ -93,27 +93,27 @@ contains
     use mod_mpi_pars, only: abortProgram
     use mod_magnet,           only: mabs
     implicit none
-    real(double), intent(in) :: e
+    real(dp), intent(in) :: e
 
     integer :: i,j, m,n,k, mp,mu,nu, gamma, p,q
-    complex(double), dimension(2,2) :: chits
+    complex(dp), dimension(2,2) :: chits
 
-    TSResponse   = cmplx(0.d0, 0.d0, double)
-    TSResponseHF = cmplx(0.d0, 0.d0, double)
+    TSResponse   = cmplx(0._dp,0._dp,dp)
+    TSResponseHF = cmplx(0._dp,0._dp,dp)
     do i = 1, s%nAtoms
        do j = 1, s%nAtoms
           do m = 1, 3
              do n = 1, 3
                 do k = 1, 3
-                   if(abs(levi_civita(m,n,k)) < 1.d-15) cycle
+                   if(abs(levi_civita(m,n,k)) < 1.e-15_dp) cycle
                    do mp = 1,3
                       do mu = 5, nOrb
                          do nu = 5, nOrb
-                            if(abs(lvec(mu,nu,n)) < 1.d-15) cycle
+                            if(abs(lvec(mu,nu,n)) < 1.e-15_dp) cycle
                             do gamma = 5, nOrb
                                do p = 1, 4
                                   do q = 1, 4
-                                     if(abs(StoC(k+1,p)) < 1.d-15 .or. abs(CtoS(q,mp+1)) < 1.d-15) cycle
+                                     if(abs(StoC(k+1,p)) < 1.e-15_dp .or. abs(CtoS(q,mp+1)) < 1.e-15_dp) cycle
                                      TSResponse(m, mp, i, j) = TSResponse(m, mp, i, j) &
                                           + s%Types(s%Basis(i)%Material)%LambdaD * levi_civita(m,n,k) * lvec(mu, nu, n) &
                                           * StoC(k+1,p) * chiorb(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma, gamma)) * CtoS(q,mp+1)
@@ -136,13 +136,13 @@ contains
     do i = 1, s%nAtoms
        do j = 1, s%nAtoms
           chits(1,1) = TSResponse(1,1,i,j)
-          chits(1,2) = TSResponse(1,2,i,j) + 0.5d0*mabs(i)*delta(i,j)
-          chits(2,1) = TSResponse(2,1,i,j) - 0.5d0*mabs(i)*delta(i,j)
+          chits(1,2) = TSResponse(1,2,i,j) + 0.5_dp*mabs(i)*delta(i,j)
+          chits(2,1) = TSResponse(2,1,i,j) - 0.5_dp*mabs(i)*delta(i,j)
           chits(2,2) = TSResponse(2,2,i,j)
 
           call invers(chits, 2)
 
-          chits = chits*cI*sqrt(mabs(i)*mabs(j))  * 0.5d0 ! last part is 1/gamma
+          chits = chits*cI*sqrt(mabs(i)*mabs(j))  * 0.5_dp ! last part is 1/gamma
 
           write(unitBase(1)+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TSResponse(q,p,j,i)), aimag(TSResponse(q,p,j,i)), q = 1, 3), p = 1, 3)
           write(unitBase(2)+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TSResponseHF(q,p,j,i)), aimag(TSResponseHF(q,p,j,i)), q = 1, 3), p = 1, 3)

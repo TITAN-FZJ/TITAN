@@ -6,26 +6,26 @@ contains
   !! Fermi-Dirac distribution
   pure elemental function fd_dist(ef,beta,ek)
     !$OMP DECLARE SIMD
-    use mod_f90_kind
+    use mod_kind, only: dp
     implicit none
-    real(double), intent(in)  :: ef
+    real(dp), intent(in)  :: ef
   !! Fermi energy
-    real(double), intent(in)  :: beta
+    real(dp), intent(in)  :: beta
   !! Inverse temperature
-    real(double), intent(in)  :: ek
+    real(dp), intent(in)  :: ek
   !!  Energy
-    real(double)              :: fd_dist
+    real(dp)              :: fd_dist
   !! Fermi-Dirac distribution
   ! ----------------------------------------------------------------------
-    real(double) :: x
+    real(dp) :: x
 
-    x = 0.5d0*beta*(ef-ek)
-    if (abs(x) < 10.d0) then
-      fd_dist = 0.5d0*(1.d0 + tanh(x))
-    else if (x > 0.d0) then
-      fd_dist = 1.d0
+    x = 0.5_dp*beta*(ef-ek)
+    if (abs(x) < 10._dp) then
+      fd_dist = 0.5_dp*(1._dp + tanh(x))
+    else if (x > 0._dp) then
+      fd_dist = 1._dp
     else
-      fd_dist = 0.d0
+      fd_dist = 0._dp
     end if
   end function fd_dist
 

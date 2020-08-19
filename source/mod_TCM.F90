@@ -1,7 +1,7 @@
 !> This subroutine includes the calculation of the Gilbert damping
 !> and the related subroutines.
 module mod_TCM
-  use mod_f90_kind, only: double
+  use mod_kind, only: dp
   implicit none
   character(len=5),               private :: folder = "A/TCM"
   character(len=3), dimension(4), private :: filename = ["SO ", "SOi", "XC ", "XCi"]
@@ -36,14 +36,14 @@ contains
     !! File unit
     integer, intent(in) :: ndiffk
     !! Number of different kzs
-    real(double), dimension(ndiffk), intent(in) :: diff_k
+    real(dp), dimension(ndiffk), intent(in) :: diff_k
     !! Different kzs
-    real(double), dimension(ndiffk), intent(in) :: iwght
+    real(dp), dimension(ndiffk), intent(in) :: iwght
     !! Weights of different kzs
-    real(double), dimension(s%nAtoms,3,ndiffk), intent(in) :: ialpha
+    real(dp), dimension(s%nAtoms,3,ndiffk), intent(in) :: ialpha
     !! Contributions of each kz to alpha
     integer :: i,j,k
-    complex(double), dimension(s%nAtoms,s%nAtoms,3,3),intent(in) :: alpha
+    complex(dp), dimension(s%nAtoms,s%nAtoms,3,3),intent(in) :: alpha
     !! Total Gilbert damping matrix alpha
 
     !! Writing Gilbert damping
@@ -77,16 +77,16 @@ contains
 
   !> Driver routine to call the different torque-correlation methods and their I/O
   subroutine calculate_TCM()
-    use mod_f90_kind,   only: double
+    use mod_kind, only: dp
     use mod_parameters, only: output
     use mod_System,     only: s => sys
     use mod_mpi_pars,   only: rField
     use mod_progress,   only: write_time
     implicit none
     integer :: ndiffk
-    real(double),    dimension(:),     allocatable    :: diff_k, iwght
-    real(double),    dimension(:,:,:), allocatable    :: ialphaSO, ialphaXC
-    complex(double), dimension(s%nAtoms,s%nAtoms,3,3) :: alphaSO, alphaXC
+    real(dp),    dimension(:),     allocatable    :: diff_k, iwght
+    real(dp),    dimension(:,:,:), allocatable    :: ialphaSO, ialphaXC
+    complex(dp), dimension(s%nAtoms,s%nAtoms,3,3) :: alphaSO, alphaXC
 
     if(rField == 0) &
       write(output%unit_loop, "('[calculate_gilbert_damping] Starting to calculate Gilbert damping within the TCM:')")
@@ -122,7 +122,7 @@ contains
 
   !> This subroutine calculates the Gilbert damping using the torque-correlation method
   subroutine TCM(torque_fct, alpha, ndiffk, diff_k, ialpha, iwght)
-    use mod_f90_kind,      only: double
+    use mod_kind, only: dp
     use mod_constants,     only: cZero, pi, cOne, cI
     use mod_System,        only: s => sys
     use mod_BrillouinZone, only: realBZ, store_diff
@@ -134,46 +134,46 @@ contains
     implicit none
     interface
       subroutine torque_fct(torque)
-        use mod_f90_kind,   only: double
+        use mod_kind, only: dp
         use mod_parameters, only: nOrb2
         use mod_System,     only: sys
         implicit none
-        complex(double), dimension(nOrb2,nOrb2,3,sys%nAtoms), intent(out) :: torque
+        complex(dp), dimension(nOrb2,nOrb2,3,sys%nAtoms), intent(out) :: torque
       end subroutine torque_fct
     end interface
 
-    complex(double), dimension(s%nAtoms,s%nAtoms,3,3), intent(out) :: alpha
+    complex(dp), dimension(s%nAtoms,s%nAtoms,3,3), intent(out) :: alpha
     !! Contains the Gilbert Damping as matrix in sites and cartesian coordinates (nAtoms,nAtoms,3,3)
-    integer*8 :: iz
+    integer(int64) :: iz
     integer   :: i, j, m, n, k, mu, ios
 
     integer   :: ndiffk
     !! Number of different abs(k_z) in the k points list
-    integer*8 :: nk
+    integer(int64) :: nk
     !! Total number of k points
-    real(double), dimension(:), allocatable :: diff_k_unsrt
+    real(dp), dimension(:), allocatable :: diff_k_unsrt
     !! Different values of abs(k_z) - unsorted
-    real(double), dimension(:), allocatable :: diff_k
+    real(dp), dimension(:), allocatable :: diff_k
     !! Different values of abs(k_z) - sorted
     integer,      dimension(:), allocatable :: order
     !! Order of increasing abs(k_z) in the different k points list
 
-    real(double), dimension(3) :: kp
+    real(dp), dimension(3) :: kp
     !! k-point
-    real(double) :: wght
+    real(dp) :: wght
     !! k-point weight
-    real(double), dimension(:), allocatable :: iwght
+    real(dp), dimension(:), allocatable :: iwght
     !! integrated weight (up to k_z^max)
-    real(double), dimension(:,:,:), allocatable, intent(out) :: ialpha
+    real(dp), dimension(:,:,:), allocatable, intent(out) :: ialpha
     !! Integrated alpha (as a function of the maximum kz summed) $ \alpha = \sum_{k_z}^{k_z^\text{max}} \alpha(k_z)$
-    complex(double), dimension(nOrb2,nOrb2,3,s%nAtoms) :: torque
+    complex(dp), dimension(nOrb2,nOrb2,3,s%nAtoms) :: torque
     !! Torque operator (SO or XC)
-    complex(double),dimension(:,:,:,:),allocatable :: gf
+    complex(dp),dimension(:,:,:,:),allocatable :: gf
     !! Green function
-    complex(double),dimension(:,:),allocatable :: temp1, temp2, temp3
-    complex(double) :: alphatemp
+    complex(dp),dimension(:,:),allocatable :: temp1, temp2, temp3
+    complex(dp) :: alphatemp
     !! Temporary k-dependent alpha
-    complex(double), dimension(:,:,:,:), allocatable :: alpha_loc
+    complex(dp), dimension(:,:,:,:), allocatable :: alpha_loc
     !! Local (in-processor) alpha
 
 
@@ -215,14 +215,14 @@ contains
         diff_k(k) = diff_k_unsrt(order(k))
       end do sort_diffk
 
-      iwght = 0.d0
+      iwght = 0._dp
 
       !! k-dependent alpha(k_z)
       !! $\alpha(k_z) = \frac{1}{N}\sum_{k_x,k_y}\alpha(k_x,k_y,k_z)$
 
       !! Allocating integrated alpha
       allocate( ialpha(s%nAtoms,3,ndiffk) )
-      ialpha = 0.d0
+      ialpha = 0._dp
     end if
 
     call torque_fct(torque)
@@ -281,7 +281,7 @@ contains
               if((s%isysdim==3).and.(i == j).and.(m == n)) then
                 ! Testing if kz is not on the list of different kz calculated before
                 diffk: do k = 1, ndiffk
-                  if ( abs(abs(kp(3)) - diff_k(k)) < 1.d-15 ) then
+                  if ( abs(abs(kp(3)) - diff_k(k)) < 1.e-15_dp ) then
                     ialpha(i,m,k) = ialpha(i,m,k) + real(alphatemp)
                     if( (i==1) .and. (m==1) ) iwght(k) = iwght(k) + wght
                     exit diffk
@@ -306,9 +306,9 @@ contains
 
     do i = 1, s%nAtoms
       do j = 1, s%nAtoms
-        alpha(j,i,:,:) = 2.d0 * alpha(j,i,:,:) / (sqrt(mabs(i)*mabs(j))*pi)
+        alpha(j,i,:,:) = 2._dp * alpha(j,i,:,:) / (sqrt(mabs(i)*mabs(j))*pi)
       end do
-      if(s%isysdim==3) ialpha(i,:,:) = 2.d0 * ialpha(i,:,:) / (mabs(i)*pi)
+      if(s%isysdim==3) ialpha(i,:,:) = 2._dp * ialpha(i,:,:) / (mabs(i)*pi)
     end do
 
     call MPI_Allreduce(MPI_IN_PLACE, alpha , s%nAtoms*s%nAtoms*3*3, MPI_DOUBLE_COMPLEX  , MPI_SUM, FieldComm, ierr)
@@ -326,14 +326,14 @@ contains
 
   !> This subroutine defines the exchange-correlation torque operator/matrix
   subroutine local_xc_torque(torque)
-    use mod_f90_kind,   only: double
+    use mod_kind, only: dp
     use mod_constants,  only: cZero, cOne, levi_civita, sigma => pauli_mat
     use mod_System,     only: s => sys
     use mod_parameters, only: nOrb, nOrb2, Um
     use mod_magnet,     only: mvec_cartesian
 
-    complex(double), dimension(nOrb2,nOrb2,3,s%nAtoms), intent(out) :: torque
-    complex(double), dimension(nOrb,nOrb) :: ident
+    complex(dp), dimension(nOrb2,nOrb2,3,s%nAtoms), intent(out) :: torque
+    complex(dp), dimension(nOrb,nOrb) :: ident
     integer :: i,m,n,k
 
     ident = cZero
@@ -353,14 +353,14 @@ contains
           end do
         end do
       end do
-      torque(:,:,:,i) = - 0.5d0 * Um(i) * torque(:,:,:,i)
+      torque(:,:,:,i) = - 0.5_dp * Um(i) * torque(:,:,:,i)
     end do
   end subroutine local_xc_torque
 
 
   !> This subroutine defines the spin-orbit torque operator/matrix
   subroutine local_SO_torque(torque)
-    use mod_f90_kind,   only: double
+    use mod_kind, only: dp
     use mod_constants,  only: cZero, levi_civita, sigma => pauli_mat
     use mod_System,     only: s => sys
     use mod_magnet,     only: lvec
@@ -368,7 +368,7 @@ contains
     use mod_mpi_pars
     implicit none
     integer :: i,m,n,k
-    complex(double), dimension(nOrb2,nOrb2,3, s%nAtoms), intent(out) :: torque
+    complex(dp), dimension(nOrb2,nOrb2,3, s%nAtoms), intent(out) :: torque
 
     torque = cZero
 
@@ -388,16 +388,16 @@ contains
       end do
 
       ! p-block
-      torque( 2: 4, 2: 4,:,i) = 0.5d0 * s%Types(s%Basis(i)%Material)%LambdaP * torque( 2: 4, 2: 4,:,i)
-      torque( 2: 4,11:13,:,i) = 0.5d0 * s%Types(s%Basis(i)%Material)%LambdaP * torque( 2: 4,11:13,:,i)
-      torque(11:13, 2: 4,:,i) = 0.5d0 * s%Types(s%Basis(i)%Material)%LambdaP * torque(11:13, 2: 4,:,i)
-      torque(11:13,11:13,:,i) = 0.5d0 * s%Types(s%Basis(i)%Material)%LambdaP * torque(11:13,11:13,:,i)
+      torque( 2: 4, 2: 4,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque( 2: 4, 2: 4,:,i)
+      torque( 2: 4,11:13,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque( 2: 4,11:13,:,i)
+      torque(11:13, 2: 4,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque(11:13, 2: 4,:,i)
+      torque(11:13,11:13,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque(11:13,11:13,:,i)
 
       ! d-block
-      torque( 5: 9, 5: 9,:,i) = 0.5d0 * s%Types(s%Basis(i)%Material)%LambdaD * torque( 5: 9, 5: 9,:,i)
-      torque( 5: 9,14:18,:,i) = 0.5d0 * s%Types(s%Basis(i)%Material)%LambdaD * torque( 5: 9,14:18,:,i)
-      torque(14:18, 5: 9,:,i) = 0.5d0 * s%Types(s%Basis(i)%Material)%LambdaD * torque(14:18, 5: 9,:,i)
-      torque(14:18,14:18,:,i) = 0.5d0 * s%Types(s%Basis(i)%Material)%LambdaD * torque(14:18,14:18,:,i)
+      torque( 5: 9, 5: 9,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque( 5: 9, 5: 9,:,i)
+      torque( 5: 9,14:18,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque( 5: 9,14:18,:,i)
+      torque(14:18, 5: 9,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque(14:18, 5: 9,:,i)
+      torque(14:18,14:18,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque(14:18,14:18,:,i)
     end do
   end subroutine local_SO_torque
 

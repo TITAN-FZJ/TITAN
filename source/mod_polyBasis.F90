@@ -15,7 +15,7 @@
 !------------------------------------------------------------------------------------!
 
 module mod_polyBasis
-  use mod_f90_kind, only: double
+  use mod_kind, only: dp
   implicit none
 
 contains
@@ -40,7 +40,7 @@ contains
     character(len=line_length) :: line
     character(len=1)           :: coord_type
     integer, dimension(50)     :: type_count
-    real(double), dimension(3) :: zdir, ydir
+    real(dp), dimension(3) :: zdir, ydir
 
     open(unit = f_unit, file=trim(filename), status='old', iostat = ios)
     if((ios /= 0).and.(myrank==0)) call abortProgram("[read_basis] Error reading " // trim(filename))
@@ -56,7 +56,7 @@ contains
     ! Reading first Bravais vector (in units of a0), and multiplying by a0
     read(f_unit, fmt='(A)', iostat=ios) line
     read(unit=line, fmt=*, iostat=ios) (s%a1(i), i=1,3)
-    if((vec_norm(s%a1,3) <= 1.d-9).and.(myrank==0)) call abortProgram("[read_basis] a1 not given properly in '" // trim(filename) // "'!")
+    if((vec_norm(s%a1,3) <= 1.e-9_dp).and.(myrank==0)) call abortProgram("[read_basis] a1 not given properly in '" // trim(filename) // "'!")
     s%a1 = s%a1 * s%a0
 
     ! Reading second Bravais vector (in units of a0), and multiplying by a0
@@ -121,9 +121,9 @@ contains
           s%Basis(k)%Position = s%Basis(k)%Position * s%a0
         else
           ! Position of atoms given in Bravais (or Direct, Internal, Lattice) coordinates
-          if((vec_norm(s%a2,3) <= 1.d-9).and.(myrank==0)) &
+          if((vec_norm(s%a2,3) <= 1.e-9_dp).and.(myrank==0)) &
             call log_warning("read_basis", "a2 not given in '" // trim(filename) // "', while Bravais used for atom positions!")
-          if((vec_norm(s%a3,3) <= 1.d-9).and.(myrank==0)) &
+          if((vec_norm(s%a3,3) <= 1.e-9_dp).and.(myrank==0)) &
             call log_warning("read_basis", "a3 not given in '" // trim(filename) // "', while Bravais used for atom positions!")
           s%Basis(k)%Position = s%Basis(k)%Position(1) * s%a1 + s%Basis(k)%Position(2) * s%a2 + s%Basis(k)%Position(3) * s%a3
         end if
@@ -131,19 +131,19 @@ contains
     end do
 
     ! Calculating volume of BZ and reciprocal lattice vectors
-    if((vec_norm(s%a2,3) <= 1.d-9).and.(vec_norm(s%a3,3) <= 1.d-9)) then
-      zdir  = [0.d0,0.d0,1.d0]
-      ydir  = [0.d0,1.d0,0.d0]
+    if((vec_norm(s%a2,3) <= 1.e-9_dp).and.(vec_norm(s%a3,3) <= 1.e-9_dp)) then
+      zdir  = [0._dp,0._dp,1._dp]
+      ydir  = [0._dp,1._dp,0._dp]
       s%vol = tpi / dot_product(zdir, cross(s%a1,ydir))
       s%b1  = s%vol * cross(zdir,ydir)
-      s%b2  = 0.d0
-      s%b3  = 0.d0
-    else if(vec_norm(s%a3,3) <= 1.d-9) then
-      zdir  = [0.d0,0.d0,1.d0]
+      s%b2  = 0._dp
+      s%b3  = 0._dp
+    else if(vec_norm(s%a3,3) <= 1.e-9_dp) then
+      zdir  = [0._dp,0._dp,1._dp]
       s%vol = tpi / dot_product(zdir, cross(s%a1,s%a2))
       s%b1  = s%vol * cross(s%a1,zdir)
       s%b2  = s%vol * cross(zdir,s%a2)
-      s%b3  = 0.d0
+      s%b3  = 0._dp
     else
       s%vol = tpi / dot_product(s%a1, cross(s%a2,s%a3))
       s%b1  = s%vol * cross(s%a2, s%a3)

@@ -1,20 +1,19 @@
-module mod_f90_kind
+module mod_kind
   implicit none
 
   intrinsic kind,selected_int_kind,selected_real_kind ! we use these,
-  private kind,selected_int_kind,selected_real_kind ! but do not force
-                            ! them on the user.
+  private   kind,selected_int_kind,selected_real_kind ! but do not force them on the user.
 !
 ! Indicator that the KIND= is not available for this compiler/host
   integer, parameter :: not_available = -1
 !
 ! Real and Complex numbers
 !   Single precision
-  integer, parameter :: single  = kind(0.0)
+  integer, parameter :: sp      = kind(0.0)
 !   Double precision
-  integer, parameter :: double  = kind(0.0d0)
+  integer, parameter :: dp      = selected_real_kind(p=15,r=100)
 !   Quadruple precision
-  integer, parameter :: quad    = selected_real_kind(p=30)
+  integer, parameter :: qp      = selected_real_kind(p=30,r=100)
 !
 ! Integers numbers
 !   Single byte integer
@@ -37,4 +36,4 @@ module mod_f90_kind
 !   Character itype
 !   Normal single byte character (ASCII sequence)
   integer, parameter :: ascii   = kind('x')
-end module mod_f90_kind
+end module mod_kind

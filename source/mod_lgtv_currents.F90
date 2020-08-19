@@ -1,14 +1,14 @@
 module mod_lgtv_currents
-  use mod_f90_kind
+  use, intrinsic :: iso_fortran_env
   implicit none
   ! Longitudinal and transverse currents
-  complex(double),allocatable   :: long_currents(:,:),total_long_currents(:),transv_currents(:,:),total_transv_currents(:)
+  complex(dp),allocatable   :: long_currents(:,:),total_long_currents(:),transv_currents(:,:),total_transv_currents(:)
 
 contains
 
   ! This subroutine allocates variables related to the longitudinal and transverse currents calculation
   subroutine allocate_lgtv_currents()
-    use mod_f90_kind
+    use, intrinsic :: iso_fortran_env
     use mod_mpi_pars
     use mod_parameters, only: Npl,outputunit
     implicit none
@@ -26,7 +26,7 @@ contains
 
   ! This subroutine allocates variables related to the longitudinal and transverse currents calculation
   subroutine deallocate_lgtv_currents()
-    use mod_f90_kind
+    use, intrinsic :: iso_fortran_env
     use mod_mpi_pars
     implicit none
 
@@ -216,12 +216,12 @@ contains
   ! This subroutine write all the longitudinal and transverse currents into files
   ! (already opened with openclose_lgtv_files(1))
   subroutine write_lgtv_currents(e)
-    use mod_f90_kind
+    use, intrinsic :: iso_fortran_env
     use mod_parameters, only: Npl
     use mod_magnet, only: mvec_spherical,mtotal_spherical
     implicit none
     integer  :: i,j,iw
-    real(double),intent(in) :: e
+    real(dp),intent(in) :: e
 
     do i=1,Npl ; do j=1,7
       iw = 8300+(i-1)*7*2+(j-1)*2+1
@@ -242,7 +242,7 @@ contains
   ! This subroutine write all the longitudinal and transverse currents for fixed frequency into files
   ! (already opened with openclose_dc_lgtv_files(1))
   subroutine write_dc_lgtv_currents()
-    use mod_f90_kind
+    use, intrinsic :: iso_fortran_env
     use mod_parameters
     use mod_magnet, only: mvec_spherical,mtotal_spherical
     implicit none
@@ -265,7 +265,7 @@ contains
 
   ! This subroutine sorts longitudinal and transverse currents files
   subroutine sort_lgtv_currents()
-    use mod_f90_kind
+    use, intrinsic :: iso_fortran_env
     use mod_parameters, only: Npl,itype
     use mod_tools, only: sort_file
     implicit none
@@ -312,9 +312,9 @@ contains
     implicit none
     character(len=50) :: formatvar
     integer           :: i,j,k,iw,neighbor,rows,cols,idc,ie,iemin
-    real(double)      :: idia
-    real(double)   , allocatable :: data(:,:),x(:,:),e(:),mangles(:,:,:)
-    complex(double), allocatable :: currents_from_file(:,:,:,:),total_currents_from_file(:,:,:)
+    real(dp)      :: idia
+    real(dp)   , allocatable :: data(:,:),x(:,:),e(:),mangles(:,:,:)
+    complex(dp), allocatable :: currents_from_file(:,:,:,:),total_currents_from_file(:,:,:)
 
     write(outputunit,"('[read_calculate_lgtv_currents] Reading current files and calculating longitudinal and transverse currents...')")
     ! Opening disturbance files
@@ -356,14 +356,14 @@ contains
           call read_data(iw,rows,cols,data)
 
           ! Checking if energy list is the same
-          if(sum(abs(e(:)-data(:,1)))>1.d-8) then
+          if(sum(abs(e(:)-data(:,1)))>1.e-8_dp) then
             write(outputunit,"('[read_calculate_lgtv_currents] Different energies on current files!')")
             call MPI_Finalize(ierr)
             stop
           end if
         end if
         ! Obtaining diamagnetic current (if the minimum energy is small enough)
-        if(e(iemin)<=1.d-5) then
+        if(e(iemin)<=1.e-5_dp) then
           idia = data(iemin,4)
           data(:,4) = data(:,4) - idia
         else
@@ -381,13 +381,13 @@ contains
         call read_data(iw,rows,cols,data)
 
         ! Checking if energy list is the same
-        if(sum(abs(e(:)-data(:,1)))>1.d-8) then
+        if(sum(abs(e(:)-data(:,1)))>1.e-8_dp) then
           write(outputunit,"('[read_calculate_lgtv_currents] Different energies on current files!')")
           call MPI_Finalize(ierr)
           stop
         end if
         ! Obtaining diamagnetic current (if the minimum energy is small enough)
-        if(e(iemin)<=1.d-5) then
+        if(e(iemin)<=1.e-5_dp) then
           idia = data(iemin,4)
           data(:,4) = data(:,4) - idia
         else
@@ -436,7 +436,7 @@ contains
           call openclose_dc_lgtv_files(1)
           call openclose_dc_currents_files(1)
 
-          idc = ceiling((dble(dcfield_dependence)-0.01d0)/3.d0)
+          idc = ceiling((dble(dcfield_dependence)-0.01_dp)/3._dp)
           ! Currents per plane per neighbor
           do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
             iw = 50000+(i-1)*n0sc2*7+(neighbor-1)*7+j
@@ -459,7 +459,7 @@ contains
                        currents_from_file       (7,n0sc1:n0sc2,Npl,rows), &
                        total_currents_from_file (7,n0sc1:n0sc2,rows), &
                        mangles(rows,Npl,2))
-              mangles = 999.d0
+              mangles = 999._dp
               ! Reading data and storing to variable 'data'
               call read_data(iw,rows,cols,data)
               ! Getting fields list
@@ -473,15 +473,15 @@ contains
               call read_data(iw,rows,cols,data)
 
               ! Checking if fields list is the same
-              if(sum(abs(x(:,1:idc)-data(:,1:idc)))>1.d-8) then
+              if(sum(abs(x(:,1:idc)-data(:,1:idc)))>1.e-8_dp) then
                 write(outputunit,"('[read_calculate_lgtv_currents] Different fields on current files!')")
                 call MPI_Finalize(ierr)
                 stop
               end if
 
               ! Checking if angles are the same or getting next plane values
-              if(sum(abs(mangles(:,i,:)))<10.d0) then
-                if(sum(abs(mangles(:,i,:)-data(:,cols-1:cols)))>1.d-8) then
+              if(sum(abs(mangles(:,i,:)))<10._dp) then
+                if(sum(abs(mangles(:,i,:)-data(:,cols-1:cols)))>1.e-8_dp) then
                   write(outputunit,"('[read_calculate_lgtv_currents] Different angles on current files!')")
                   call MPI_Finalize(ierr)
                   stop
@@ -503,14 +503,14 @@ contains
             call read_data(iw,rows,cols,data)
 
             ! Checking if fields list is the same
-            if(sum(abs(x(:,1:idc)-data(:,1:idc)))>1.d-8) then
+            if(sum(abs(x(:,1:idc)-data(:,1:idc)))>1.e-8_dp) then
               write(outputunit,"('[read_calculate_lgtv_currents] Different fields on current files!')")
               call MPI_Finalize(ierr)
               stop
             end if
 
             ! Checking if angles are the same
-            if(sum(abs(mangles(:,1,:)-data(:,cols-1:cols)))>1.d-8) then
+            if(sum(abs(mangles(:,1,:)-data(:,cols-1:cols)))>1.e-8_dp) then
               write(outputunit,"('[read_calculate_lgtv_currents] Different angles on current files!')")
               call MPI_Finalize(ierr)
               stop

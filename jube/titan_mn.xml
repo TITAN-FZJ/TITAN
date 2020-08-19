@@ -5,11 +5,11 @@
 
     <!-- Configuration of compilers -->
     <parameterset name="compilationParameter">
-      <parameter name="compiler" tag="!pmpi+!gnu">impi</parameter>
+      <parameter name="compiler" tag="!pmpi+!gnu+!pgi">impi</parameter>
       <parameter name="compiler" tag="pmpi">pmpi</parameter>
       <parameter name="compiler" tag="gnu">gnu</parameter>
-      <parameter name="flags" tag="pmpi">-DSUFFIX=pmpi</parameter>
-      <parameter name="flags" tag="gnu">-DCOMPILER=gnu</parameter>
+      <parameter name="compiler" tag="pgi">pgi</parameter>
+      <parameter name="flags">-DCOMPILER=${compiler}</parameter>
 
       <!-- parallel_type: "mpi" uses only mpi (intra and internode), "hybrid" uses full omp in each node, mpi for different nodes. -->
       <parameter name="parallel_type" tag="mpi">mpi</parameter>
@@ -22,22 +22,29 @@
 
     <!-- Configuration of submission script -->
     <parameterset name="systemParameter" init_with="platform.xml">
-      <parameter name="scaling_factor" type="int" mode="python">",".join(str(n**3) for n in range(7,10))</parameter>
+      <parameter name="min_scale" type="int">0</parameter>
+      <parameter name="max_scale" type="int">9</parameter>
+      <parameter name="dimension" type="int">1</parameter>
+      <!-- Power law scaling ${dimension} being the exponent -->
+      <!-- <parameter name="scaling_factor" type="int" mode="python">",".join(str(n**$dimension) for n in range(${min_scale},${max_scale}+1))</parameter> -->
+      <!-- Exponential scaling -->
+      <parameter name="scaling_factor" type="int" mode="python">",".join(str(2**n) for n in range(${min_scale},${max_scale}+1))</parameter>
 
       <parameter name="mail"></parameter>
       <!-- <parameter name="additional_job_config"  tag="jureca">#SBATCH &#45;&#45;reservation=system_maint.20200406_083747</parameter -->
-      <!-- parameter name="additional_job_config"  tag="juwels">#SBATCH &#45;&#45;reservation=maint-restarttests</parameter -->
 
       <parameter name="nodes" type="int" mode="python" tag="sc">$scaling_factor</parameter>
       <parameter name="nodes" type="int" mode="python" tag="time_prop" update_mode="step">
-      { "selfconsistency": "216",     
+      { "selfconsistency": "$scaling_factor",     
         "timepropagation": "$scaling_factor" }["$jube_step_name"]
       </parameter>
 
-      <parameter name="maxjobspernode" tag="jureca">48</parameter>
-      <parameter name="maxjobspernode" tag="booster">272</parameter>
-      <parameter name="maxjobspernode" tag="juwels">96</parameter>
-      <parameter name="maxjobspernode" tag="jusuf">256</parameter>
+      <parameter name="ht" tag="ht">True</parameter>
+
+      <parameter name="maxjobspernode" tag="jureca"  mode="python"> 48  if ${ht} == True else 24 </parameter>
+      <parameter name="maxjobspernode" tag="booster" mode="python"> 272 if ${ht} == True else 68 </parameter>
+      <parameter name="maxjobspernode" tag="juwels"  mode="python"> 96  if ${ht} == True else 48 </parameter>
+      <parameter name="maxjobspernode" tag="jusuf"   mode="python"> 256 if ${ht} == True else 128</parameter>
 
       <parameter name="queue" tag="jureca">batch</parameter>
       <parameter name="queue" tag="booster">booster</parameter>
@@ -60,7 +67,10 @@
       <parameter name="account" tag="jureca|juwels|booster">cstao</parameter>
       <parameter name="account" tag="jusuf">zam</parameter>
       <parameter name="env">${load_modules}; export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK</parameter>
-      <parameter name="executable" mode="python">{"impi":"${folder}/bin/titan_${machine}.exe", "pmpi":"${folder}/bin/titan_${machine}_${compiler}.exe", "gnu":"${folder}/bin/titan_${machine}_${compiler}.exe"}["${compiler}"]</parameter>
+      <parameter name="executable" mode="python">{"impi":"${folder}/bin/titan_${machine}.exe", 
+                                                  "pmpi":"${folder}/bin/titan_${machine}_${compiler}.exe", 
+                                                   "gnu":"${folder}/bin/titan_${machine}_${compiler}.exe",
+                                                   "pgi":"${folder}/bin/titan_${machine}_${compiler}.exe"}["${compiler}"]</parameter>
       <parameter name="preprocess"></parameter>
     </parameterset>
 
@@ -75,13 +85,15 @@
     <parameterset name="modules">
       <parameter name="load_modules" mode="python">{"jureca":{"impi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 IntelMPI/2019.6.154 imkl/2019.5.281 NAG/Mark26 CMake",
                                                               "pmpi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 ParaStationMPI/5.2.2-1 imkl/2019.5.281 NAG/Mark26 CMake",
-                                                               "gnu":"module purge; ml GCC/8.3.0 OpenMPI/4.0.2 imkl/2019.5.281 CMake"}["${compiler}"],
+                                                               "gnu":"module purge; ml GCC/8.3.0 OpenMPI/4.0.2 imkl/2019.5.281 CMake",
+                                                               "pgi":"module purge; ml PGI/19.10-GCC-8.3.0 MVAPICH2/2.3.3-GDR imkl/2019.5.281 CMake"}["${compiler}"],
                                                     "booster":{"impi":"module purge ; module load Architecture/KNL ; ml Intel/2019.5.281-GCC-8.3.0 IntelMPI/2019.6.154 imkl/2019.5.281 CMake ; export NAG_KUSARI_FILE=$$HOME/BoosterNAG/license.lic",
                                                                "pmpi":"module purge ; module load Architecture/KNL ; ml Intel/2019.5.281-GCC-8.3.0 ParaStationMPI/5.2.2-1 imkl/2019.5.281 CMake ; export NAG_KUSARI_FILE=$$HOME/BoosterNAG/license.lic",
                                                                 "gnu":"module purge ; module load Architecture/KNL ; ml GCC/8.3.0 OpenMPI/4.0.2 imkl/2019.5.281 CMake ; export NAG_KUSARI_FILE=$$HOME/BoosterNAG/license.lic"}["${compiler}"],
                                                     "juwels":{"impi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 IntelMPI/2019.6.154 imkl/2019.5.281 CMake",
                                                               "pmpi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 ParaStationMPI/5.2.2-1 CMake",
-                                                               "gnu":"module purge; ml GCC/8.3.0 OpenMPI/4.0.2 imkl/2019.5.281 CMake"}["${compiler}"],
+                                                               "gnu":"module purge; ml GCC/8.3.0 OpenMPI/4.0.2 imkl/2019.5.281 CMake",
+                                                               "pgi":"module purge; ml PGI/19.10-GCC-8.3.0 MVAPICH2/2.3.3-GDR imkl/2019.5.281 CMake"}["${compiler}"],
                                                     "jusuf":{"impi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 IntelMPI/2019.6.154 imkl/2019.5.281 CMake",
                                                              "pmpi":"module purge; ml Intel/2019.5.281-GCC-8.3.0 ParaStationMPI/5.2.2-1 CMake",
                                                               "gnu":"module purge; module use $OTHERSTAGES; ml Stages/Devel-2019a; ml GCC/8.3.0 OpenMPI/4.0.2 imkl/2019.5.281/2019.3.199 CMake"}["${compiler}"]
@@ -93,9 +105,11 @@
       <parameter name="type" type="int" mode="python" update_mode="step">{"selfconsistency": 1, 
                                                                           "timepropagation": 11 }["$jube_step_name"]</parameter>
       <parameter name="options">slatec createfolders positions ontheflysc eigenstates nojac</parameter>
-      <parameter name="eta" type="float">1.e-3</parameter>
-      <parameter name="kpoints" type="int" mode="python" update_mode="step">8000000*$scaling_factor</parameter>
+      <parameter name="eta" type="float">1.e-3_dp</parameter>
+      <parameter name="kpoints" type="int" mode="python" update_mode="step">4800*$scaling_factor</parameter>
       <parameter name="output_file">output/out_${type}_${eta}_${kpoints}</parameter>
+      <parameter name="dim">1</parameter>
+      <parameter name="nn_stages">1</parameter>
       <parameter name="soc">T</parameter>
       <parameter name="supercond">F</parameter>
       <parameter name="skipsc">T</parameter>
@@ -103,8 +117,10 @@
 
     <!-- Configuration of element parameters -->
     <parameterset name="elementParameter">
-      <parameter name="element">Ni</parameter>
-      <parameter name="uint" type="float">0.09559</parameter>
+      <parameter name="element">Gr</parameter>
+      <parameter name="uint" type="float">0.0</parameter>
+      <parameter name="soc_p" type="float">0.4</parameter>
+      <parameter name="soc_d" type="float">0.0</parameter>
       <parameter name="lambda" type="float">0.0</parameter> <!-- If one lambda is used -->
       <parameter name="lambda_s" type="float">0.0</parameter>
       <parameter name="lambda_p" type="float">0.0</parameter>
@@ -116,7 +132,7 @@
     <fileset name="input_files">
       <copy>${inputsfolder}/input.in</copy>
       <copy>${inputsfolder}/${element}.in</copy>
-      <copy>${inputsfolder}/basis</copy>
+      <copy>${inputsfolder}/basis${element}.in</copy>
       <copy>${inputsfolder}/kbands</copy>
     </fileset>
 
@@ -133,6 +149,8 @@
       <sub source="#TYPE#" dest="$type" />
       <sub source="#OUTPUT_FILE#" dest="$output_file" />
       <sub source="#OPTIONS#" dest="$options" />
+      <sub source="#DIM#" dest="$dim" />
+      <sub source="#NNSTAGES#" dest="$nn_states" />
       <sub source="#SOC#" dest="$soc" />
       <sub source="#SUPERCOND#" dest="$supercond" />
       <sub source="#ETA#" dest="$eta" />
@@ -140,11 +158,21 @@
       <sub source="#SKIPSC#" dest="$skipsc" />
     </substituteset>
 
+    <substituteset name="basisSubstitutions">
+      <!-- Substitute files -->
+      <iofile in="basis${element}.in" out="basis" />
+      <!-- Substitute commands -->
+      <sub source="#ELEMENT#" dest="$element" />
+    </substituteset>
+
     <substituteset name="elementSubstitutions">
       <!-- Substitute files -->
       <iofile in="$element.in" out="$element" />
       <!-- Substitute commands -->
+      <sub source="#ELEMENT#" dest="$element" />
       <sub source="#UINT#" dest="$uint" />
+      <sub source="#SOC_D#" dest="$soc_d" />
+      <sub source="#SOC_P#" dest="$soc_p" />
       <sub source="#LAMBDA#" dest="$same_lambda" />
     </substituteset>
 
@@ -184,6 +212,7 @@
       <use tag="compile">modules</use>
       <use tag="compile">programset</use>
       <do tag="compile">${load_modules}</do>
+      <do tag="compile">ml</do>
       <!-- patch for Jureca's GPUs -->
       <do tag="compile" work_dir="${folder}/build">rm -r *</do>
       <do tag="compile" work_dir="${folder}/build">cmake ../ -DPLATFORM=${machine} ${flags}</do>
@@ -207,6 +236,7 @@
       <!-- Making substitutions -->
       <use>inputSubstitutions</use>              <!-- use input substitutions -->
       <use>elementSubstitutions</use>            <!-- use element substitutions -->
+      <use>basisSubstitutions</use>              <!-- use basis substitutions -->
       <use from="platform.xml">executesub</use>  <!-- use job substitutions -->
       <!-- Tasks -->
       <do>mkdir -p $(dirname $output_file)</do>  <!-- create output folder if necessary -->
@@ -229,6 +259,7 @@
       <!-- Making substitutions -->
       <use>inputSubstitutions</use>              <!-- use input substitutions -->
       <use>elementSubstitutions</use>            <!-- use element substitutions -->
+      <use>basisSubstitutions</use>              <!-- use basis substitutions -->
       <use from="platform.xml">executesub</use>  <!-- use job substitutions -->
       <do>$submit $submit_script</do>            <!-- Submitting job -->
       <do done_file="$done_file"></do>           <!-- Creating "done" file -->

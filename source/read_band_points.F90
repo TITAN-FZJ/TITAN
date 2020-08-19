@@ -1,15 +1,15 @@
 ! Read reciprocal points from file kbands
 ! IN UNITS OF 2pi/a0
 subroutine read_band_points(kbands, a0, b1, b2, b3)
-  use mod_f90_kind,   only: double
+  use mod_kind, only: dp
   use mod_parameters, only: bands, band_cnt, qbasis
   use mod_mpi_pars,   only: abortProgram
   use mod_tools,      only: itos, number_of_lines
   use mod_constants,  only: tpi
   implicit none
-  real(double), dimension(:,:), allocatable, intent(out) :: kbands
-  real(double), dimension(3),                intent(in)  :: b1, b2, b3
-  real(double),                              intent(in)  :: a0
+  real(dp), dimension(:,:), allocatable, intent(out) :: kbands
+  real(dp), dimension(3),                intent(in)  :: b1, b2, b3
+  real(dp),                              intent(in)  :: a0
   character(len=40)  :: band_file = "kbands"
   integer :: file_unit = 666999
 
@@ -18,7 +18,7 @@ subroutine read_band_points(kbands, a0, b1, b2, b3)
   logical :: found
   type :: band_point
     character(len=5) :: name
-    real(double), dimension(3) :: kp
+    real(dp), dimension(3) :: kp
   end type
   type(band_point), dimension(:), allocatable :: kband
 

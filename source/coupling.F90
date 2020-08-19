@@ -11,7 +11,7 @@ subroutine coupling()
 
   if(rField == 0) write(output%unit_loop,"('CALCULATING FULL TENSOR OF EXHANGE INTERACTIONS AND ANISOTROPIES')")
 
-  if(sum(mabs(:))<1.d-8) &
+  if(sum(mabs(:))<1.e-8_dp) &
   call abortProgram("[main] No magnetic layers for coupling calculation!")
 
   if(rField == 0) call openCouplingFiles()
@@ -19,16 +19,16 @@ subroutine coupling()
   call allocateCoupling()
 
   call genLocalEKMesh(s,rField,sField, FieldComm)
-  q = [ 0.d0 , 0.d0 , 0.d0 ]
+  q = [ 0._dp , 0._dp , 0._dp ]
   call jij_energy(Jij)
   call freeLocalEKMesh()
 
   if(rField == 0) then
     do i=1,s%nAtoms
       do j=1,s%nAtoms
-        trJij(i,j)    = 0.5d0*(Jij(i,j,1,1)+Jij(i,j,2,2))
-        Jija(i,j,:,:) = 0.5d0*(Jij(i,j,:,:) - transpose(Jij(i,j,:,:)))
-        Jijs(i,j,:,:) = 0.5d0*(Jij(i,j,:,:) + transpose(Jij(i,j,:,:)))
+        trJij(i,j)    = 0.5_dp*(Jij(i,j,1,1)+Jij(i,j,2,2))
+        Jija(i,j,:,:) = 0.5_dp*(Jij(i,j,:,:) - transpose(Jij(i,j,:,:)))
+        Jijs(i,j,:,:) = 0.5_dp*(Jij(i,j,:,:) + transpose(Jij(i,j,:,:)))
         do mu = 1, 3
           Jijs(i,j,mu,mu) = Jijs(i,j,mu,mu) - trJij(i,j)
         end do
@@ -78,7 +78,7 @@ subroutine coupling()
 
     ! Writing into files
     ! Exchange interactions
-    call writeCoupling(0.d0)
+    call writeCoupling(0._dp)
 
     ! Closing files
     call closeCouplingFiles()

@@ -1,17 +1,17 @@
 module mod_sha
-  use mod_f90_kind
+  use, intrinsic :: iso_fortran_env
   implicit none
   ! Spin Hall Angle
-  real(double), allocatable :: sha_re(:,:)
-  real(double) :: sha_re_total(4)
-  complex(double), allocatable :: sha_complex(:,:)
-  complex(double) :: sha_complex_total(4)
+  real(dp), allocatable :: sha_re(:,:)
+  real(dp) :: sha_re_total(4)
+  complex(dp), allocatable :: sha_complex(:,:)
+  complex(dp) :: sha_complex_total(4)
 
 contains
 
   ! This subroutine allocates variables related to the sha calculation
   subroutine allocate_sha()
-    use mod_f90_kind
+    use, intrinsic :: iso_fortran_env
     use mod_mpi_pars
     use mod_parameters, only: Npl,outputunit
     implicit none
@@ -29,7 +29,7 @@ contains
 
   ! This subroutine allocates variables related to the sha calculation
   subroutine deallocate_sha()
-    use mod_f90_kind
+    use, intrinsic :: iso_fortran_env
     use mod_mpi_pars
     implicit none
 
@@ -126,12 +126,12 @@ contains
   ! This subroutine write all the SHA into files
   ! (already opened with openclose_sha_files(1))
   subroutine write_sha(e)
-    use mod_f90_kind
+    use, intrinsic :: iso_fortran_env
     use mod_parameters, only: Npl
     use mod_magnet, only: mvec_spherical,mtotal_spherical
     implicit none
     integer  :: i,j,iw
-    real(double),intent(in) :: e
+    real(dp),intent(in) :: e
 
     do j=2,4
       do i=1,Npl
@@ -238,7 +238,7 @@ contains
   ! This subroutine write all the sha in the dc limit into files
   ! (already opened with openclose_dc_sha_files(1))
   subroutine write_dc_sha()
-    use mod_f90_kind
+    use, intrinsic :: iso_fortran_env
     use mod_parameters
     use mod_magnet, only: mvec_spherical,mtotal_spherical
     implicit none
@@ -257,7 +257,7 @@ contains
 
   ! This subroutine sorts SHA files
   subroutine sort_sha()
-    use mod_f90_kind
+    use, intrinsic :: iso_fortran_env
     use mod_parameters, only: Npl,itype
     use mod_tools, only: sort_file
     implicit none
@@ -304,9 +304,9 @@ contains
     implicit none
     character(len=50) :: formatvar
     integer           :: i,j,k,iw,neighbor,rows,cols,idc,ie,iemin
-    real(double)      :: idia
-    real(double)   , allocatable :: data(:,:),x(:,:),e(:),mangles(:,:,:)
-    complex(double), allocatable :: currents_from_file(:,:,:,:),total_currents_from_file(:,:,:)
+    real(dp)      :: idia
+    real(dp)   , allocatable :: data(:,:),x(:,:),e(:),mangles(:,:,:)
+    complex(dp), allocatable :: currents_from_file(:,:,:,:),total_currents_from_file(:,:,:)
 
     write(outputunit,"('[read_currents_and_calculate_sha] Reading current files and calculating SHA...')")
     ! Opening disturbance files
@@ -348,14 +348,14 @@ contains
           call read_data(iw,rows,cols,data)
 
           ! Checking if energy list is the same
-          if(sum(abs(e(:)-data(:,1)))>1.d-8) then
+          if(sum(abs(e(:)-data(:,1)))>1.e-8_dp) then
             write(outputunit,"('[read_currents_and_calculate_sha] Different energies on current files!')")
             call MPI_Finalize(ierr)
             stop
           end if
         end if
         ! Obtaining diamagnetic current (if the minimum energy is small enough)
-        if(e(iemin)<=1.d-5) then
+        if(e(iemin)<=1.e-5_dp) then
           idia = data(iemin,4)
           data(:,4) = data(:,4) - idia
         else
@@ -373,13 +373,13 @@ contains
         call read_data(iw,rows,cols,data)
 
         ! Checking if energy list is the same
-        if(sum(abs(e(:)-data(:,1)))>1.d-8) then
+        if(sum(abs(e(:)-data(:,1)))>1.e-8_dp) then
           write(outputunit,"('[read_currents_and_calculate_sha] Different energies on current files!')")
           call MPI_Finalize(ierr)
           stop
         end if
         ! Obtaining diamagnetic current (if the minimum energy is small enough)
-        if(e(iemin)<=1.d-5) then
+        if(e(iemin)<=1.e-5_dp) then
           idia = data(iemin,4)
           data(:,4) = data(:,4) - idia
         else
@@ -419,7 +419,7 @@ contains
           call openclose_dc_sha_files(1)
           call openclose_dc_currents_files(1)
 
-          idc = ceiling((dble(dcfield_dependence)-0.01d0)/3.d0)
+          idc = ceiling((dble(dcfield_dependence)-0.01_dp)/3._dp)
           ! Currents per plane per neighbor
           do i=1,Npl ; do neighbor=n0sc1,n0sc2 ; do j=1,7
             iw = 50000+(i-1)*n0sc2*7+(neighbor-1)*7+j
@@ -456,15 +456,15 @@ contains
               call read_data(iw,rows,cols,data)
 
               ! Checking if fields list is the same
-              if(sum(abs(x(:,1:idc)-data(:,1:idc)))>1.d-8) then
+              if(sum(abs(x(:,1:idc)-data(:,1:idc)))>1.e-8_dp) then
                 write(outputunit,"('[read_currents_and_calculate_sha] Different fields on current files!')")
                 call MPI_Finalize(ierr)
                 stop
               end if
 
               ! Checking if angles are the same or getting next plane values
-              if(sum(abs(mangles(:,i,:)))<10.d0) then
-                if(sum(abs(mangles(:,i,:)-data(:,cols-1:cols)))>1.d-8) then
+              if(sum(abs(mangles(:,i,:)))<10._dp) then
+                if(sum(abs(mangles(:,i,:)-data(:,cols-1:cols)))>1.e-8_dp) then
                   write(outputunit,"('[read_calculate_lgtv_currents] Different angles on current files!')")
                   call MPI_Finalize(ierr)
                   stop
@@ -486,14 +486,14 @@ contains
             call read_data(iw,rows,cols,data)
 
             ! Checking if fields list is the same
-            if(sum(abs(x(:,1:idc)-data(:,1:idc)))>1.d-8) then
+            if(sum(abs(x(:,1:idc)-data(:,1:idc)))>1.e-8_dp) then
               write(outputunit,"('[read_currents_and_calculate_sha] Different fields on current files!')")
               call MPI_Finalize(ierr)
               stop
             end if
 
             ! Checking if angles are the same
-            if(sum(abs(mangles(:,1,:)-data(:,cols-1:cols)))>1.d-8) then
+            if(sum(abs(mangles(:,1,:)-data(:,cols-1:cols)))>1.e-8_dp) then
               write(outputunit,"('[read_calculate_lgtv_currents] Different angles on current files!')")
               call MPI_Finalize(ierr)
               stop
@@ -541,7 +541,7 @@ contains
 
   ! This subroutine calculates the spin hall angle
   ! given by
-  ! SHA = (2.d0*e/\hbar) I_S/I_C
+  ! SHA = (2._dp*e/\hbar) I_S/I_C
   ! NOTE: THIS IS DEFINED AS A CURRENT RATIO, NOT CURRENT DENSITY!
   subroutine calculate_sha()
     use mod_parameters
@@ -551,9 +551,9 @@ contains
     implicit none
     integer      :: i,j,neighbor
 
-    sha_re = 0.d0
+    sha_re = 0._dp
     sha_complex = cZero
-    sha_re_total = 0.d0
+    sha_re_total = 0._dp
     sha_complex_total = cZero
     do neighbor=n0sc1,n0sc2
       ! Summing charge currents flowing on longitudinal direction
@@ -580,11 +580,11 @@ contains
     end do
     ! Calculating real and imaginary part of spin Hall angles
     do i=1,Npl
-      sha_re(2:4,i) = 2.d0*sha_re(2:4,i)/sha_re(1,i)
-      sha_complex(2:4,i) = 2.d0*sha_complex(2:4,i)/sha_complex(1,i)
+      sha_re(2:4,i) = 2._dp*sha_re(2:4,i)/sha_re(1,i)
+      sha_complex(2:4,i) = 2._dp*sha_complex(2:4,i)/sha_complex(1,i)
     end do
-    sha_re_total(2:4) = 2.d0*sha_re_total(2:4)/sha_re_total(1)
-    sha_complex_total(2:4) = 2.d0*sha_complex_total(2:4)/sha_complex_total(1)
+    sha_re_total(2:4) = 2._dp*sha_re_total(2:4)/sha_re_total(1)
+    sha_complex_total(2:4) = 2._dp*sha_complex_total(2:4)/sha_complex_total(1)
 
   end subroutine calculate_sha
 end module mod_sha

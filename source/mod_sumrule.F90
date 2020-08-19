@@ -1,14 +1,14 @@
 module mod_sumrule
-  use mod_f90_kind, only: double
+  use mod_kind, only: dp
   implicit none
 
-  complex(double), dimension(:,:,:,:), allocatable :: Smunuiivec
+  complex(dp), dimension(:,:,:,:), allocatable :: Smunuiivec
 
 contains
 
   ! This subroutine checks if the sum rules are being satisfied
   subroutine sumrule(chiorb_hf)
-    use mod_f90_kind,   only: double
+    use mod_kind, only: dp
     use mod_System,     only: s => sys
     use mod_constants,  only: levi_civita, StoC, CtoS, cZero
     use mod_magnet,     only: mxd,myd,mzd
@@ -17,11 +17,11 @@ contains
     implicit none
     integer :: AllocateStatus
     integer :: i,j,r,t,p,q,mu,nu,gamma,xi,m,n,k
-    real(double)   , dimension(3,s%nAtoms)             :: mvec
-    complex(double), dimension(dim)                    :: Beff
-    complex(double), dimension(dim,dim), intent(in)    :: chiorb_hf
-    complex(double), dimension(:,:,:,:,:),allocatable  :: lhs,rhs
-    complex(double), dimension(:,:)      ,allocatable  :: chiorb_hf_cart
+    real(dp)   , dimension(3,s%nAtoms)             :: mvec
+    complex(dp), dimension(dim)                    :: Beff
+    complex(dp), dimension(dim,dim), intent(in)    :: chiorb_hf
+    complex(dp), dimension(:,:,:,:,:),allocatable  :: lhs,rhs
+    complex(dp), dimension(:,:)      ,allocatable  :: chiorb_hf_cart
 
     if(rField == 0) &
     write(output%unit_loop,"('[sumrule] Checking if the sum rule is satisfied... ')", advance='no')
@@ -47,7 +47,7 @@ contains
                   do xi = 1, nOrb
                     do p = 1, 4
                       do q = 1, 4
-                        if(abs(StoC(p,r)) < 1.d-15 .or. abs(CtoS(t,q))  < 1.d-15) cycle
+                        if(abs(StoC(p,r)) < 1.e-15_dp .or. abs(CtoS(t,q))  < 1.e-15_dp) cycle
                         chiorb_hf_cart(sigmaimunu2i(p,i,mu,nu),sigmaimunu2i(q,j,gamma,xi)) = chiorb_hf_cart(sigmaimunu2i(p,i,mu,nu),sigmaimunu2i(q,j,gamma,xi)) &
                                                                           + StoC(p,r) * chiorb_hf(sigmaimunu2i(r,i,mu,nu),sigmaimunu2i(t,j,gamma,xi))* CtoS(t,q)
                       end do
@@ -71,7 +71,7 @@ contains
           do m = 1, 3
             do n = 1, 3
               do k = 1, 3
-                if(abs(levi_civita(m,n,k)) > 1.d-15) &
+                if(abs(levi_civita(m,n,k)) > 1.e-15_dp) &
                   lhs(m,n,mu,nu,i) = lhs(m,n,mu,nu,i) + levi_civita(m,n,k)*Smunuiivec(mu,nu,k,i)
               end do
 
@@ -80,7 +80,7 @@ contains
                   do xi = 1, nOrb
                     do q = 1,3
                       do p = 1,3
-                        if(abs(levi_civita(n,q,p)) > 1.d-15) &
+                        if(abs(levi_civita(n,q,p)) > 1.e-15_dp) &
                           rhs(m,n,mu,nu,i) = rhs(m,n,mu,nu,i) + levi_civita(n,q,p)*chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi))*Beff(sigmaimunu2i(q+1,j,gamma,xi))
                       end do
                     end do
@@ -92,9 +92,9 @@ contains
         end do
       end do
     end do
-    rhs = 2.d0*rhs
+    rhs = 2._dp*rhs
 
-    if(sum(abs(lhs - rhs)) < 1.d-5) then
+    if(sum(abs(lhs - rhs)) < 1.e-5_dp) then
       if(rField == 0) write(output%unit_loop,"(' YES! ')")
     else
       if(rField == 0) write(output%unit_loop,"(' NO! Difference: ',es16.9)") sum(abs(lhs - rhs))
@@ -108,7 +108,7 @@ contains
   ! This subroutine calculates the effective field on the Hamiltonian
   ! H = H_0 + \sigma.B_eff
   subroutine Beffective(mvec,nAtoms,nOrb,Beff)
-    use mod_f90_kind,   only: double
+    use mod_kind, only: dp
     use mod_constants,  only: cZero
     use mod_parameters, only: dim, sigmaimunu2i, offset
     use mod_SOC,        only: SOC, socscale
@@ -118,8 +118,8 @@ contains
     implicit none
     integer :: i,mu,nu,sigma
     integer                             , intent(in)  :: nAtoms, nOrb
-    real(double)   , dimension(3,nAtoms), intent(in)  :: mvec
-    complex(double), dimension(dim)     , intent(out) :: Beff
+    real(dp)   , dimension(3,nAtoms), intent(in)  :: mvec
+    complex(dp), dimension(dim)     , intent(out) :: Beff
 
     Beff = cZero
     do i=1,nAtoms
@@ -130,16 +130,16 @@ contains
           if(SOC) then
             if((mu>=2).and.(mu<=4)) then
               do nu=2,4
-                Beff(sigmaimunu2i(sigma+1,i,mu,nu))  = Beff(sigmaimunu2i(sigma+1,i,mu,nu)) + 0.5d0*socscale * s%Types(s%Basis(i)%Material)%LambdaP * lvec(mu,nu,sigma)
+                Beff(sigmaimunu2i(sigma+1,i,mu,nu))  = Beff(sigmaimunu2i(sigma+1,i,mu,nu)) + 0.5_dp*socscale * s%Types(s%Basis(i)%Material)%LambdaP * lvec(mu,nu,sigma)
               end do
             end if
           end if
           ! d block
           if(mu>=5) then
-            Beff(sigmaimunu2i(sigma+1,i,mu,mu)) = Beff(sigmaimunu2i(sigma+1,i,mu,mu)) - 0.5d0*Un(i+offset) * mvec(sigma,i)
+            Beff(sigmaimunu2i(sigma+1,i,mu,mu)) = Beff(sigmaimunu2i(sigma+1,i,mu,mu)) - 0.5_dp*Un(i+offset) * mvec(sigma,i)
             if(SOC) then
               do nu=5,nOrb
-                Beff(sigmaimunu2i(sigma+1,i,mu,nu))  = Beff(sigmaimunu2i(sigma+1,i,mu,nu)) + 0.5d0*socscale * s%Types(s%Basis(i)%Material)%LambdaD * lvec(mu,nu,sigma)
+                Beff(sigmaimunu2i(sigma+1,i,mu,nu))  = Beff(sigmaimunu2i(sigma+1,i,mu,nu)) + 0.5_dp*socscale * s%Types(s%Basis(i)%Material)%LambdaD * lvec(mu,nu,sigma)
               end do
             end if
           end if
@@ -151,7 +151,7 @@ contains
 
   subroutine calcSmunu()
     !! Calculates the expectation value <S^munu_ii> = <c^+_imu c_inu>
-    use mod_f90_kind,      only: double
+    use mod_kind, only: dp
     use mod_constants,     only: cZero,cI,tpi
     use mod_System,        only: s => sys
     use EnergyIntegration, only: y, wght
@@ -161,12 +161,12 @@ contains
     use mod_mpi_pars
     implicit none
     integer      :: AllocateStatus
-    integer*8    :: ix
+    integer(int64)    :: ix
     integer      :: i,mu,nu,mup,nup
-    real(double) :: kp(3)
-    real(double) :: weight, ep
-    complex(double), dimension(:,:,:,:), allocatable :: gf
-    complex(double), dimension(:,:,:),   allocatable :: imguu,imgdd,imgud,imgdu
+    real(dp) :: kp(3)
+    real(dp) :: weight, ep
+    complex(dp), dimension(:,:,:,:), allocatable :: gf
+    complex(dp), dimension(:,:,:),   allocatable :: imguu,imgdd,imgud,imgdu
     !--------------------- begin MPI vars --------------------
     integer :: ncount
     ncount=s%nAtoms*nOrb*nOrb
@@ -227,8 +227,8 @@ contains
     call MPI_Allreduce(MPI_IN_PLACE, imgdu, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
 
     do mu=1,nOrb
-      imguu(mu,mu,:) = 0.5d0 + imguu(mu,mu,:)
-      imgdd(mu,mu,:) = 0.5d0 + imgdd(mu,mu,:)
+      imguu(mu,mu,:) = 0.5_dp + imguu(mu,mu,:)
+      imgdd(mu,mu,:) = 0.5_dp + imgdd(mu,mu,:)
     end do
 
     Smunuiivec(:,:,1,:) =  imgud(:,:,:) + imgdu(:,:,:)
@@ -245,28 +245,28 @@ end module mod_sumrule
 
 ! To be used in sumrule for test
 
-! complex(double) :: test1,test2
+! complex(dp) :: test1,test2
 
 
 ! if(rField == 0) then
 ! do i = 1, s%nAtoms ; do k = 1, 3 ; do nu = 1, nOrb ; do mu = 1, nOrb
-! if(abs(Smunuiivec(mu,nu,k,i)) > 1.d-15) write(15,"(a,2x,4(i0,2x),2(es16.9,2x))")'Smunuiivec',mu,nu,k,i,real(Smunuiivec(mu,nu,k,i)),aimag(Smunuiivec(mu,nu,k,i))
+! if(abs(Smunuiivec(mu,nu,k,i)) > 1.e-15_dp) write(15,"(a,2x,4(i0,2x),2(es16.9,2x))")'Smunuiivec',mu,nu,k,i,real(Smunuiivec(mu,nu,k,i)),aimag(Smunuiivec(mu,nu,k,i))
 ! end do ; end do ; end do ; end do
 ! do i = 1, s%nAtoms ; do j = 1, s%nAtoms ; do p = 1,3 ; do m = 1,3 ; do mu = 1, nOrb ; do nu = 1, nOrb ; do gamma = 1, nOrb ; do xi = 1, nOrb
-! if(abs(chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi))) > 1.d-15) write(16,"(a,2x,8(i0,2x),2(es16.9,2x))")'chiorb_hf_cart',i,j,m+1,p+1,mu,nu,gamma,xi,real(chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi))),aimag(chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi)))
+! if(abs(chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi))) > 1.e-15_dp) write(16,"(a,2x,8(i0,2x),2(es16.9,2x))")'chiorb_hf_cart',i,j,m+1,p+1,mu,nu,gamma,xi,real(chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi))),aimag(chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi)))
 ! end do ; end do ; end do ; end do ; end do ; end do ; end do ; end do
 ! do j = 1, s%nAtoms ; do q = 1, 3 ; do gamma = 1, nOrb ; do xi = 1, nOrb
-! if(abs(Beff(sigmaimunu2i(q+1,j,gamma,xi))) > 1.d-15) write(17,"(a,2x,4(i0,2x),2(es16.9,2x))") 'Beff',q,j,gamma,xi,real(Beff(sigmaimunu2i(q+1,j,gamma,xi))),aimag(Beff(sigmaimunu2i(q+1,j,gamma,xi)))
+! if(abs(Beff(sigmaimunu2i(q+1,j,gamma,xi))) > 1.e-15_dp) write(17,"(a,2x,4(i0,2x),2(es16.9,2x))") 'Beff',q,j,gamma,xi,real(Beff(sigmaimunu2i(q+1,j,gamma,xi))),aimag(Beff(sigmaimunu2i(q+1,j,gamma,xi)))
 ! end do ; end do ; end do ; end do
 ! do i = 1, s%nAtoms ; do m = 1, 3 ; do n = 1, 3 ; do nu = 1, nOrb ; do mu = 1, nOrb
-! if(abs(lhs(m,n,mu,nu,i) - rhs(m,n,mu,nu,i)) > 1.d-15) write(18,"(a,2x,5(i0,2x),2(es16.9,2x))") 'sum',m,n,mu,nu,i,real(lhs(m,n,mu,nu,i) - rhs(m,n,mu,nu,i)),aimag(lhs(m,n,mu,nu,i) - rhs(m,n,mu,nu,i))
+! if(abs(lhs(m,n,mu,nu,i) - rhs(m,n,mu,nu,i)) > 1.e-15_dp) write(18,"(a,2x,5(i0,2x),2(es16.9,2x))") 'sum',m,n,mu,nu,i,real(lhs(m,n,mu,nu,i) - rhs(m,n,mu,nu,i)),aimag(lhs(m,n,mu,nu,i) - rhs(m,n,mu,nu,i))
 ! end do ; end do ; end do ; end do ; end do
 ! do i = 1, s%nAtoms ; do m = 1, 3 ; do n = 1, 3 ; do nu = 1, nOrb ; do mu = 1, nOrb
-! if(abs(lhs(m,n,mu,nu,i)) > 1.d-15) write(19,"(a,2x,5(i0,2x),2(es16.9,2x))") 'lhs',m,n,mu,nu,i,real(lhs(m,n,mu,nu,i)),aimag(lhs(m,n,mu,nu,i))
+! if(abs(lhs(m,n,mu,nu,i)) > 1.e-15_dp) write(19,"(a,2x,5(i0,2x),2(es16.9,2x))") 'lhs',m,n,mu,nu,i,real(lhs(m,n,mu,nu,i)),aimag(lhs(m,n,mu,nu,i))
 ! end do ; end do ; end do ; end do ; end do
 
 ! do i = 1, s%nAtoms ; do m = 1, 3 ; do n = 1, 3 ; do nu = 1, nOrb ; do mu = 1, nOrb
-! if(abs(rhs(m,n,mu,nu,i)) > 1.d-15) write(20,"(a,2x,5(i0,2x),2(es16.9,2x))") 'rhs',m,n,mu,nu,i,real(rhs(m,n,mu,nu,i)),aimag(rhs(m,n,mu,nu,i))
+! if(abs(rhs(m,n,mu,nu,i)) > 1.e-15_dp) write(20,"(a,2x,5(i0,2x),2(es16.9,2x))") 'rhs',m,n,mu,nu,i,real(rhs(m,n,mu,nu,i)),aimag(rhs(m,n,mu,nu,i))
 ! end do ; end do ; end do ; end do ; end do
 ! test1=cZero
 ! test2=cZero

@@ -1,14 +1,14 @@
 subroutine setup_electric_field(s)
-  use mod_f90_kind, only: double
+  use mod_kind, only: dp
   use mod_constants, only: deg2rad
   use mod_parameters, only: outputunit, dirEfield, dirEfieldvec, EFp, EFt
   use mod_System, only: System
   use mod_mpi_pars, only: myrank, ierr, MPI_Finalize
   implicit none
   type(System), intent(inout) :: s
-  real(double), dimension(3) :: zdir
+  real(dp), dimension(3) :: zdir
 
-  zdir = [0.d0,0.d0,1.d0]
+  zdir = [0._dp,0._dp,1._dp]
 
   if(dirEfield == -1) then
     continue
@@ -30,7 +30,7 @@ subroutine setup_electric_field(s)
 end subroutine setup_electric_field
 
 subroutine setup_long_and_trans_current_neighbors(s)
-  use mod_f90_kind, only: double
+  use mod_kind, only: dp
   use mod_system, only: System
 
   implicit none
@@ -41,14 +41,14 @@ subroutine setup_long_and_trans_current_neighbors(s)
     !
     ! ! Calculating vector in-plane perpendicular to electric field direction
     ! if(s%isysdim == 3) then
-    !   versor_Eperp = 0.d0
+    !   versor_Eperp = 0._dp
     !   do i = l_nn(1,1), l_nn(1,2) - 1
     !     if(.not. is_parallel(r_nn(:,i), dirEfieldvec)) then
     !       versor_Eperp = cross_unit(r_nn(:,i), dirEfieldvec)
     !       exit
     !     end if
     !   end do
-    !   if(0.d0 == dot_product(versor_Eperp, versor_Eperp)) then
+    !   if(0._dp == dot_product(versor_Eperp, versor_Eperp)) then
     !     !TODO: proper error message
     !     if(0 == myrank) write(outputunit,*) "[lattice_defintions] Error dirEfieldvec"
     !     call MPI_Finalize(ierr)
@@ -65,12 +65,12 @@ subroutine setup_long_and_trans_current_neighbors(s)
     ! transverse_neighbors = 0
     ! do i=l_nn(1,1), l_nn(1,2)-1
     !   long_cos(i) = dot_product(c_nn(:,i), dirEfieldvec)
-    !   if(long_cos(i)>1.d-8) then
+    !   if(long_cos(i)>1.e-8_dp) then
     !     longitudinal_neighbors = longitudinal_neighbors+1
     !     sha_longitudinal(longitudinal_neighbors) = i
     !   end if
     !   transv_cos(i) = dot_product(c_nn(:,i),versor_Eperp)
-    !   if(transv_cos(i)>1.d-8) then
+    !   if(transv_cos(i)>1.e-8_dp) then
     !     transverse_neighbors = transverse_neighbors+1
     !     sha_transverse(transverse_neighbors) = i
     !   end if
@@ -85,7 +85,7 @@ end subroutine setup_long_and_trans_current_neighbors
 
 !
 ! subroutine lattice_definitions(s)
-!   use mod_f90_kind, only: double
+!   use mod_kind, only: dp
 !   use mod_constants, only: pi
 !   use mod_mpi_pars
 !   use mod_System, only: System
@@ -94,9 +94,9 @@ end subroutine setup_long_and_trans_current_neighbors
 !   implicit none
 !   type(System), intent(inout) :: s
 !   integer :: i
-!   real(double),dimension(3) :: versor_Eperp
-!   real(double), dimension(3) :: zdir
-!   zdir = [0.d0,0.d0,1.d0]
+!   real(dp),dimension(3) :: versor_Eperp
+!   real(dp), dimension(3) :: zdir
+!   zdir = [0._dp,0._dp,1._dp]
 !
 !   if(dirEfield == -1) then
 !     dirEfieldvec = dirEfieldvec / sqrt(dot_product(dirEfieldvec, dirEfieldvec))

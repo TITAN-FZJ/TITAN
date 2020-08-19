@@ -64,12 +64,13 @@ contains
   end subroutine log_parameter
 
   function read_file(filename) result(success)
+    use mod_kind, only: int32
     implicit none
     character(len=*), intent(in) :: filename
     character(len=line_length)   :: line
     logical   :: success
-    integer*4 :: ios=0, iunit=92412
-    integer*4 :: eq_pos, com_pos
+    integer(int32) :: ios=0, iunit=92412
+    integer(int32) :: eq_pos, com_pos
 
     nlines = 0
 
@@ -176,13 +177,14 @@ contains
   end function get_int4_array
 
   function get_int8_array(key_val, ret_val, ret_cnt) result(success)
+    use mod_kind, only: int64
     implicit none
     character(len=*), intent(in) :: key_val
-    integer*8, allocatable, intent(out) :: ret_val(:)
+    integer(int64), allocatable, intent(out) :: ret_val(:)
     integer, intent(out) :: ret_cnt
     logical :: success
     integer :: ind , ios, i
-    integer*8 :: tmp_arr(max_elements)
+    integer(int64) :: tmp_arr(max_elements)
     character(len=word_length) :: str_arr(max_elements)
 
     success = find_val(key_val, ind)
@@ -203,10 +205,10 @@ contains
   end function get_int8_array
 
   function get_real(key_val, ret_val) result(success)
-    use mod_f90_kind, only:double
+    use mod_kind, only: dp
     implicit none
     character(len=*), intent(in) :: key_val
-    real(double), intent(out) :: ret_val
+    real(dp), intent(out) :: ret_val
     logical :: success
     integer :: ind , ios
 
@@ -218,11 +220,11 @@ contains
   end function get_real
 
   function get_real_default(key_val, ret_val, default) result(success)
-    use mod_f90_kind, only:double
+    use mod_kind, only: dp
     implicit none
     character(len=*), intent(in) :: key_val
-    real(double), intent(out) :: ret_val
-    real(double), intent(in) :: default
+    real(dp), intent(out) :: ret_val
+    real(dp), intent(in) :: default
     logical :: success
     character(len=50) :: default_string
 
@@ -235,14 +237,14 @@ contains
   end function get_real_default
 
   function get_real_array(key_val, ret_val, ret_cnt) result(success)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     implicit none
     character(len=*), intent(in) :: key_val
-    real(double), allocatable, intent(out) :: ret_val(:)
+    real(dp), allocatable, intent(out) :: ret_val(:)
     integer, intent(out) :: ret_cnt
     logical :: success
     integer :: ind , ios, i
-    real(double) :: tmp_arr(max_elements)
+    real(dp) :: tmp_arr(max_elements)
     character(len=word_length) :: str_arr(max_elements)
 
     success = find_val(key_val, ind)
@@ -263,10 +265,10 @@ contains
   end function get_real_array
 
   function get_complex(key_val, ret_val) result(success)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     implicit none
     character(len=*), intent(in) :: key_val
-    complex(double), intent(out) :: ret_val
+    complex(dp), intent(out) :: ret_val
     logical :: success
     integer :: ind , ios
 
@@ -278,11 +280,11 @@ contains
   end function get_complex
 
   function get_complex_default(key_val, ret_val, default) result(success)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     implicit none
     character(len=*), intent(in) :: key_val
-    complex(double), intent(out) :: ret_val
-    complex(double), intent(in) :: default
+    complex(dp), intent(out) :: ret_val
+    complex(dp), intent(in) :: default
     logical :: success
     character(len=50) :: default_string
 
@@ -295,14 +297,14 @@ contains
   end function get_complex_default
 
   function get_complex_array(key_val, ret_val, ret_cnt) result(success)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     implicit none
     character(len=*), intent(in) :: key_val
-    complex(double), allocatable, intent(out) :: ret_val(:)
+    complex(dp), allocatable, intent(out) :: ret_val(:)
     integer, intent(out) :: ret_cnt
     logical :: success
     integer :: ind , ios, i
-    complex(double) :: tmp_arr(max_elements)
+    complex(dp) :: tmp_arr(max_elements)
     character(len=word_length) :: str_arr(max_elements)
 
     success = find_val(key_val, ind)

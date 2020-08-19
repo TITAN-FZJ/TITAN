@@ -3,7 +3,7 @@ module mod_time_propagator
 contains
 
   subroutine time_propagator(s)
-    use mod_f90_kind,          only: double
+    use mod_kind, only: dp, int32, int64
     use mod_constants,         only: cZero, cI
     use mod_imRK4_parameters,  only: dimH2, step, integration_time, ERR, safe_factor, lelectric, &
                                      hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, &
@@ -24,31 +24,31 @@ contains
     implicit none
     type(System), intent(in)   :: s
 
-    integer*4                                       :: i, it, n, counter, iter_rej, iter_tot
-    real(double)                                    :: t, p, h_new, h_old, ERR_old, ERR_kn
-    complex(double), dimension(dimH)                :: Yn, Yn_hat, Yn_new, Yn_e, Yn_hat_e, Yn_new_e
-    complex(double), dimension(:,:,:), allocatable  :: evec_kn,evec_kn_temp
-    real(double),    dimension(:,:),   allocatable  :: eval_kn
+    integer(int32)                              :: i, it, n, counter, iter_rej, iter_tot
+    real(dp)                                    :: t, p, h_new, h_old, ERR_old, ERR_kn
+    complex(dp), dimension(dimH)                :: Yn, Yn_hat, Yn_new, Yn_e, Yn_hat_e, Yn_new_e
+    complex(dp), dimension(:,:,:), allocatable  :: evec_kn,evec_kn_temp
+    real(dp),    dimension(:,:),   allocatable  :: eval_kn
 
-    integer*8                                   :: iz
-    integer*4                                   :: info, ncount
-    integer*4                                   :: lwork
-    real(double)                                :: weight, kp(3)
-    real(double),    dimension(nOrb,s%nAtoms)   :: expec_0, expec_z
-    complex(double), dimension(nOrb,s%nAtoms)   :: expec_p
-    real(double),    dimension(nOrb,s%nAtoms)   :: expec_singlet
-    real(double),    dimension(:),  allocatable :: rwork(:), eval(:)
-    complex(double),                allocatable :: work(:), hk(:,:)
+    integer(int64)                              :: iz
+    integer(int32)                              :: info, ncount
+    integer(int32)                              :: lwork
+    real(dp)                                :: weight, kp(3)
+    real(dp),    dimension(nOrb,s%nAtoms)   :: expec_0, expec_z
+    complex(dp), dimension(nOrb,s%nAtoms)   :: expec_p
+    real(dp),    dimension(nOrb,s%nAtoms)   :: expec_singlet
+    real(dp),    dimension(:),  allocatable :: rwork(:), eval(:)
+    complex(dp),                allocatable :: work(:), hk(:,:)
 
-    real(double),    dimension(nOrb,s%nAtoms)   :: rho_t, mx_t, my_t, mz_t
-    complex(double), dimension(nOrb,s%nAtoms)   :: mp_t
-    real(double),    dimension(s%nAtoms)        :: rhod_t, mxd_t, myd_t, mzd_t
-    complex(double), dimension(s%nAtoms)        :: mpd_t
-    real(double),    dimension(nOrb,s%nAtoms)   :: singlet_coupling_t
-    real(double),    dimension(s%nAtoms)        :: lxm, lym, lzm
-    real(double),    dimension(s%nAtoms)        :: lxm_t, lym_t, lzm_t
-    real(double),    dimension(3)               :: field_m, field_e
-    real(double)                                :: E_t, E_0
+    real(dp),    dimension(nOrb,s%nAtoms)   :: rho_t, mx_t, my_t, mz_t
+    complex(dp), dimension(nOrb,s%nAtoms)   :: mp_t
+    real(dp),    dimension(s%nAtoms)        :: rhod_t, mxd_t, myd_t, mzd_t
+    complex(dp), dimension(s%nAtoms)        :: mpd_t
+    real(dp),    dimension(nOrb,s%nAtoms)   :: singlet_coupling_t
+    real(dp),    dimension(s%nAtoms)        :: lxm, lym, lzm
+    real(dp),    dimension(s%nAtoms)        :: lxm_t, lym_t, lzm_t
+    real(dp),    dimension(3)               :: field_m, field_e
+    real(dp)                                :: E_t, E_0
    
     if(rFreq(1) == 0) then
       write(output%unit_loop,"('CALCULATING TIME-PROPAGATION')")
@@ -86,7 +86,7 @@ contains
     call KronProd(size(A,1),size(A,1),dimH,dimH,A,id,M1)
 
     ! Time propagation over t, kpoints, eigenvectors(Yn) for each k
-    t = 0.d0
+    t = 0._dp
     it = 0       ! Counter of accepted iterations
     iter_tot = 0 ! Counter of total number of iterations (rejected + accepted)
     t_loop: do while (t <= integration_time)
@@ -102,19 +102,19 @@ contains
         !$omp& private(Yn_e,Yn_new_e,Yn_hat_e,iz,n,i,kp,weight,hk,ERR_kn,Yn, Yn_new, Yn_hat, eval,work,rwork,info,expec_0,expec_p,expec_z,expec_singlet,E_0,lxm,lym,lzm) &
         !$omp& shared( ERR,counter,step,s,t,it,dimH,realBZ,evec_kn_temp,evec_kn,eval_kn,rho_t,mp_t,mz_t,E_t, Lxm_t,Lym_t,Lzm_t,singlet_coupling_t,lwork)
 
-        rho_t  = 0.d0
+        rho_t  = 0._dp
         mp_t   = cZero
-        mz_t   = 0.d0
+        mz_t   = 0._dp
 
-        E_t    = 0.d0
+        E_t    = 0._dp
 
-        Lxm_t  = 0.d0
-        Lym_t  = 0.d0
-        Lzm_t  = 0.d0
+        Lxm_t  = 0._dp
+        Lym_t  = 0._dp
+        Lzm_t  = 0._dp
 
-        ERR    = 0.d0
+        ERR    = 0._dp
 
-        singlet_coupling_t = 0.d0
+        singlet_coupling_t = 0._dp
   
         !$omp do reduction(+:rho_t,mp_t,mz_t,E_t,Lxm_t,Lym_t,Lzm_t,singlet_coupling_t,ERR)
         kpoints_loop: do iz = 1, realBZ%workload
@@ -226,7 +226,7 @@ contains
         ERR_old = ERR
 
         iter_tot = iter_tot + 1 ! Counter of total number of iterations
-        if ( ERR > 1.d0) then
+        if ( ERR > 1._dp) then
           ! repeat the calculation using h_new
           t = t - step + h_new
           h_old = step
@@ -265,9 +265,9 @@ contains
       call update_Umatrix(mzd_t,mpd_t,rhod_t,rhod0,rho_t,rho0,s%nAtoms,nOrb)
 
       ! Calculating time-dependent field
-      field_m = 0.d0
+      field_m = 0._dp
       if (lmagnetic) call magnetic_field(t,field_m)
-      field_e = 0.d0 
+      field_e = 0._dp 
       if (lelectric) call vector_potential(t, field_e)
 
       if(rFreq(1) == 0) &
@@ -298,11 +298,12 @@ contains
 
   ! Writing header for previously opened file of unit "unit"
   subroutine write_header_time_prop(unit,title_line)
+    use mod_kind, only: int32
     use mod_imRK4_parameters, only: lelectric, hE_0, hw_e, lpulse_e, npulse_e, polarization_vec_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, npulse_m, polarization_vec_m, tau_m, delay_m
     implicit none
-    integer*4,        intent(in) :: unit
+    integer(int32),   intent(in) :: unit
     character(len=*), intent(in) :: title_line
-    integer*4 :: i,j
+    integer(int32) :: i,j
 
     if(lmagnetic) then
       if(lpulse_m) then
@@ -460,15 +461,15 @@ contains
 
   ! subroutine to close time propagation output files
   subroutine write_field()
-    use mod_f90_kind,         only: double
+    use mod_kind, only: dp
     use mod_parameters,       only: output,missing_files
     use mod_mpi_pars,         only: abortProgram
     use mod_imRK4_parameters, only: step, time_conv, integration_time, lelectric, lmagnetic
     use mod_imRK4,            only: magnetic_field, vector_potential
     implicit none
     character(len=500)         :: output_file
-    real(double), dimension(3) :: field_m, field_e
-    real(double)               :: t, time
+    real(dp), dimension(3) :: field_m, field_e
+    real(dp)               :: t, time
     integer :: i,iw,err,errt=0
 
     write(output%unit_loop,"('[write_field] Writing field... ')",advance="no")
@@ -482,14 +483,14 @@ contains
     ! Stop if some file does not exist
     if(errt/=0) call abortProgram("[write_field] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_line('A') // trim(missing_files))
 
-    t = 0.d0
+    t = 0._dp
     t_loop_field: do while (t <= integration_time)
       t = t + step
 
       ! Calculating time-dependent field
-      field_m = 0.d0
+      field_m = 0._dp
       if (lmagnetic) call magnetic_field(t,field_m)
-      field_e = 0.d0 
+      field_e = 0._dp 
       if (lelectric) call vector_potential(t, field_e)
 
       time = t*time_conv
@@ -506,19 +507,19 @@ contains
 
   ! subroutine to write in time propagation output files
   subroutine write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t, field_m, field_e, E_t, Lxm_t, Lym_t, Lzm_t) 
-    use mod_f90_kind,         only: double
+    use mod_kind, only: dp
     use mod_system,           only: System
     use mod_parameters,       only: nOrb
     use mod_imRK4_parameters, only: time_conv
     implicit none
     type(System),                          intent(in) :: s
-    real(double),                          intent(in) :: t, E_t
-    real(double), dimension(nOrb,s%nAtoms),intent(in) :: rho_t, mx_t, my_t, mz_t
-    real(double), dimension(s%nAtoms)     ,intent(in) :: rhod_t, mxd_t, myd_t, mzd_t, Lxm_t, Lym_t, Lzm_t
-    real(double), dimension(3)            ,intent(in) :: field_m, field_e
+    real(dp),                          intent(in) :: t, E_t
+    real(dp), dimension(nOrb,s%nAtoms),intent(in) :: rho_t, mx_t, my_t, mz_t
+    real(dp), dimension(s%nAtoms)     ,intent(in) :: rhod_t, mxd_t, myd_t, mzd_t, Lxm_t, Lym_t, Lzm_t
+    real(dp), dimension(3)            ,intent(in) :: field_m, field_e
 
     integer      :: i
-    real(double) :: time
+    real(dp) :: time
 
     call open_time_prop_files()
     

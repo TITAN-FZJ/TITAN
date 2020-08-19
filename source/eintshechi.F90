@@ -1,6 +1,6 @@
 ! ---------- Spin disturbance: Energy integration ---------
 subroutine eintshechi(q,e)
-  use mod_f90_kind,         only: double
+  use mod_kind, only: dp
   use mod_constants,        only: cZero, cI, tpi
   use mod_parameters,       only: nOrb, nOrb2, eta, etap, dim, sigmaimunu2i
   use EnergyIntegration,    only: generate_real_epoints, y, wght, x2, p2, pn2
@@ -12,23 +12,23 @@ subroutine eintshechi(q,e)
   use mod_mpi_pars
   use adaptiveMesh
   implicit none
-  real(double), intent(in)    :: e, q(3)
+  real(dp), intent(in)    :: e, q(3)
 
-  integer*4 :: AllocateStatus
-  complex(double), dimension(:,:),allocatable :: Fint
+  integer(int32) :: AllocateStatus
+  complex(dp), dimension(:,:),allocatable :: Fint
 
-  integer*4       :: i,j,mu,nu,gamma,xi
-  real(double)    :: kp(3),kpq(3)
-  complex(double),dimension(:,:,:,:),allocatable    :: gf
-  complex(double),dimension(:,:,:,:,:),allocatable  :: gfuu,gfud,gfdu,gfdd
-  real(double) :: weight, ep
-  integer*4, dimension(4) :: index1, index2
+  integer(int32)       :: i,j,mu,nu,gamma,xi
+  real(dp)    :: kp(3),kpq(3)
+  complex(dp),dimension(:,:,:,:),allocatable    :: gf
+  complex(dp),dimension(:,:,:,:,:),allocatable  :: gfuu,gfud,gfdu,gfdd
+  real(dp) :: weight, ep
+  integer(int32), dimension(4) :: index1, index2
 
 !--------------------- begin MPI vars --------------------
-  integer*8 :: ix
-  integer*8 :: ix2, nep,nkp
-  integer*8 :: real_points
-  integer*4 :: ncount
+  integer(int64) :: ix
+  integer(int64) :: ix2, nep,nkp
+  integer(int64) :: real_points
+  integer(int32) :: ncount
   ncount=dim*dim
 !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -36,7 +36,7 @@ subroutine eintshechi(q,e)
   call generate_real_epoints(e)
 
   real_points = 0
-  if(abs(e) >= 1.d-15) real_points = int(pn2*realBZ%workload,8)
+  if(abs(e) >= 1.e-15_dp) real_points = int(pn2*realBZ%workload,8)
 
   ! Build local hamiltonian
   if(.not.llineargfsoc) call hamilt_local(s)
@@ -189,7 +189,7 @@ end subroutine eintshechi
 ! -------------------- Spin disturbance: Energy integration --------------------
 ! -------------- to be used in the calculation of linear SOC chi ---------------
 subroutine eintshechilinearsoc(q,e)
-  use mod_f90_kind,         only: double
+  use mod_kind, only: dp
   use mod_constants,        only: cZero, cI, tpi
   use mod_parameters,       only: nOrb, nOrb2, eta, etap, dim, sigmaimunu2i
   use EnergyIntegration,    only: generate_real_epoints,y, wght, x2, p2, pn2
@@ -199,22 +199,22 @@ subroutine eintshechilinearsoc(q,e)
   use mod_mpi_pars
   use adaptiveMesh
   implicit none
-  real(double), intent(in) :: e,q(3)
+  real(dp), intent(in) :: e,q(3)
 
-  integer*4 :: AllocateStatus
-  integer*4 :: i,j,mu,nu,gamma,xi
-  integer*8 :: ix,ix2, nep, nkp
-  real(double) :: kp(3), kpq(3), ep
-  real(double) :: weight
-  complex(double), dimension(:,:,:,:), allocatable :: gf,gvg
-  complex(double), dimension(:,:,:,:,:), allocatable :: gfuu,gfud,gfdu,gfdd
-  complex(double), dimension(:,:,:,:,:), allocatable :: gvguu,gvgud,gvgdu,gvgdd
-  complex(double), dimension(:,:), allocatable :: Fint,Fintlsoc
-  complex(double), dimension(:,:), allocatable :: df1,df1lsoc
+  integer(int32) :: AllocateStatus
+  integer(int32) :: i,j,mu,nu,gamma,xi
+  integer(int64) :: ix,ix2, nep, nkp
+  real(dp) :: kp(3), kpq(3), ep
+  real(dp) :: weight
+  complex(dp), dimension(:,:,:,:), allocatable :: gf,gvg
+  complex(dp), dimension(:,:,:,:,:), allocatable :: gfuu,gfud,gfdu,gfdd
+  complex(dp), dimension(:,:,:,:,:), allocatable :: gvguu,gvgud,gvgdu,gvgdd
+  complex(dp), dimension(:,:), allocatable :: Fint,Fintlsoc
+  complex(dp), dimension(:,:), allocatable :: df1,df1lsoc
 
   !--------------------- begin MPI vars --------------------
-  integer*4 :: ncount
-  integer*8 :: real_points
+  integer(int32) :: ncount
+  integer(int64) :: real_points
   ncount=dim*dim
   !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -222,7 +222,7 @@ subroutine eintshechilinearsoc(q,e)
   call generate_real_epoints(e)
 
   real_points = 0
-  if(abs(e) >= 1.d-15) real_points = int(pn2*realBZ%workload,8)
+  if(abs(e) >= 1.e-15_dp) real_points = int(pn2*realBZ%workload,8)
 
   !------------------------------------------------------
 

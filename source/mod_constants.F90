@@ -1,52 +1,52 @@
 module mod_constants
   !! Contains commonly used constants
-  use mod_f90_kind
+  use mod_kind, only: dp
   implicit none
-  complex(double), parameter :: cZero=(0.d0,0.d0)
+  complex(dp), parameter :: cZero=(0._dp,0._dp)
   !! Complex scalar cZero
-  complex(double), parameter :: cOne=(1.d0,0.d0)
+  complex(dp), parameter :: cOne=(1._dp,0._dp)
   !! Complex scalar one
-  complex(double), parameter :: cI=(0.d0,1.d0)
+  complex(dp), parameter :: cI=(0._dp,1._dp)
   !! Complex scalar i
-  real(double), parameter :: pi = 4.d0 * atan(1.d0)
+  real(dp), parameter :: pi = 4._dp * atan(1._dp)
   !! Pi
-  real(double), parameter :: tpi = 2.d0 * pi
+  real(dp), parameter :: tpi = 2._dp * pi
   !! 2*Pi
-  real(double), parameter :: sq2 = sqrt(2.d0)
+  real(dp), parameter :: sq2 = sqrt(2._dp)
   !! Square root of 2
-  real(double), parameter :: hsq2 = 0.5d0 * sq2
+  real(dp), parameter :: hsq2 = 0.5_dp * sq2
   !! (Square root of 2) / 2
-  real(double), parameter :: sq3 = sqrt(3.d0)
+  real(dp), parameter :: sq3 = sqrt(3._dp)
   !! Square root of 3
-  real(double), parameter :: deg2rad = pi/180
+  real(dp), parameter :: deg2rad = pi/180
   !! degrees to radians
-  real(double), parameter :: rad2deg = 180/pi
+  real(dp), parameter :: rad2deg = 180/pi
   !! radians to degrees
-  real(double)    :: levi_civita(3,3,3)
+  real(dp)    :: levi_civita(3,3,3)
   !! Levi Civita Tensor
-  complex(double) :: ident_norb(9,9)
+  complex(dp) :: ident_norb(9,9)
   !! Identity in orbital space
-  complex(double) :: ident_norb2(18,18)
+  complex(dp) :: ident_norb2(18,18)
   !! Identity in spin and orbital space
-  complex(double) :: ident_dorb(18,18)
+  complex(dp) :: ident_dorb(18,18)
   !! Identity in spin and orbital space (only non-zero on d-orbitals)
-  complex(double) :: pauli_mat(2,2,0:5)
+  complex(dp) :: pauli_mat(2,2,0:5)
   !! Identity and pauli matrices  (0,x,y,z,+,-)
-  complex(double) :: pauli_orb(5,18,18)
+  complex(dp) :: pauli_orb(5,18,18)
   !! Pauli matrices in spin and orbital space (x,y,z,+,-)
-  complex(double) :: pauli_dorb(5,18,18)
+  complex(dp) :: pauli_dorb(5,18,18)
   !! Pauli matrices in spin and orbital space (x,y,z,+,-) (only non-zero on d-orbitals)
 
-  complex(double), dimension(4,4) :: StoC = reshape([cmplx(0.0d0,0.d0,double), cmplx(0.5d0,0.d0,double),  cmplx(0.0d0,-0.5d0,double),  cmplx( 0.0d0,0.d0,double), &
-                                                     cmplx(1.0d0,0.d0,double), cmplx(0.0d0,0.d0,double),  cmplx(0.0d0, 0.0d0,double),  cmplx( 0.5d0,0.d0,double), &
-                                                     cmplx(1.0d0,0.d0,double), cmplx(0.0d0,0.d0,double),  cmplx(0.0d0, 0.0d0,double),  cmplx(-0.5d0,0.d0,double), &
-                                                     cmplx(0.0d0,0.d0,double), cmplx(0.5d0,0.d0,double),  cmplx(0.0d0, 0.5d0,double),  cmplx( 0.0d0,0.d0,double)], [4,4])
+  complex(dp), dimension(4,4) :: StoC = reshape([cmplx(0.0_dp,0._dp,dp), cmplx(0.5_dp,0._dp,dp),  cmplx(0.0_dp,-0.5_dp,dp),  cmplx( 0.0_dp,0._dp,dp), &
+                                                     cmplx(1.0_dp,0._dp,dp), cmplx(0.0_dp,0._dp,dp),  cmplx(0.0_dp, 0.0_dp,dp),  cmplx( 0.5_dp,0._dp,dp), &
+                                                     cmplx(1.0_dp,0._dp,dp), cmplx(0.0_dp,0._dp,dp),  cmplx(0.0_dp, 0.0_dp,dp),  cmplx(-0.5_dp,0._dp,dp), &
+                                                     cmplx(0.0_dp,0._dp,dp), cmplx(0.5_dp,0._dp,dp),  cmplx(0.0_dp, 0.5_dp,dp),  cmplx( 0.0_dp,0._dp,dp)], [4,4])
   !! Transformation matrix spin (+,up,down,-) to cartesian (0,x,y,z)
 
-  complex(double), dimension(4,4) :: CtoS = reshape([cmplx(0.0d0,0.d0,double), cmplx(0.5d0,0.d0,double),  cmplx( 0.5d0, 0.d0,double),  cmplx( 0.0d0, 0.d0,double), &
-                                                     cmplx(1.0d0,0.d0,double), cmplx(0.0d0,0.d0,double),  cmplx( 0.0d0, 0.d0,double),  cmplx( 1.0d0, 0.d0,double), &
-                                                     cmplx(0.0d0,1.d0,double), cmplx(0.0d0,0.d0,double),  cmplx( 0.0d0, 0.d0,double),  cmplx( 0.0d0,-1.d0,double), &
-                                                     cmplx(0.0d0,0.d0,double), cmplx(1.0d0,0.d0,double),  cmplx(-1.0d0, 0.d0,double),  cmplx( 0.0d0, 0.d0,double)], [4,4])
+  complex(dp), dimension(4,4) :: CtoS = reshape([cmplx(0.0_dp,0._dp,dp), cmplx(0.5_dp,0._dp,dp),  cmplx( 0.5_dp, 0._dp,dp),  cmplx( 0.0_dp, 0._dp,dp), &
+                                                     cmplx(1.0_dp,0._dp,dp), cmplx(0.0_dp,0._dp,dp),  cmplx( 0.0_dp, 0._dp,dp),  cmplx( 1.0_dp, 0._dp,dp), &
+                                                     cmplx(0.0_dp,1._dp,dp), cmplx(0.0_dp,0._dp,dp),  cmplx( 0.0_dp, 0._dp,dp),  cmplx( 0.0_dp,-1._dp,dp), &
+                                                     cmplx(0.0_dp,0._dp,dp), cmplx(1.0_dp,0._dp,dp),  cmplx(-1.0_dp, 0._dp,dp),  cmplx( 0.0_dp, 0._dp,dp)], [4,4])
   !! Transformation matrix cartesian (0,x,y,z) to spin (+,up,down,-)
 contains
   subroutine define_constants()
@@ -111,15 +111,15 @@ contains
     pauli_dorb(4,:,:) = pauli_dorb(1,:,:) + cI*pauli_dorb(2,:,:)
     pauli_dorb(5,:,:) = pauli_dorb(1,:,:) - cI*pauli_dorb(2,:,:)
 
-    levi_civita(1,1,:) = [ 0.d0 , 0.d0 , 0.d0 ]
-    levi_civita(1,2,:) = [ 0.d0 , 0.d0 , 1.d0 ]
-    levi_civita(1,3,:) = [ 0.d0 ,-1.d0 , 0.d0 ]
-    levi_civita(2,1,:) = [ 0.d0 , 0.d0 ,-1.d0 ]
-    levi_civita(2,2,:) = [ 0.d0 , 0.d0 , 0.d0 ]
-    levi_civita(2,3,:) = [ 1.d0 , 0.d0 , 0.d0 ]
-    levi_civita(3,1,:) = [ 0.d0 , 1.d0 , 0.d0 ]
-    levi_civita(3,2,:) = [-1.d0 , 0.d0 , 0.d0 ]
-    levi_civita(3,3,:) = [ 0.d0 , 0.d0 , 0.d0 ]
+    levi_civita(1,1,:) = [ 0._dp , 0._dp , 0._dp ]
+    levi_civita(1,2,:) = [ 0._dp , 0._dp , 1._dp ]
+    levi_civita(1,3,:) = [ 0._dp ,-1._dp , 0._dp ]
+    levi_civita(2,1,:) = [ 0._dp , 0._dp ,-1._dp ]
+    levi_civita(2,2,:) = [ 0._dp , 0._dp , 0._dp ]
+    levi_civita(2,3,:) = [ 1._dp , 0._dp , 0._dp ]
+    levi_civita(3,1,:) = [ 0._dp , 1._dp , 0._dp ]
+    levi_civita(3,2,:) = [-1._dp , 0._dp , 0._dp ]
+    levi_civita(3,3,:) = [ 0._dp , 0._dp , 0._dp ]
 
 !   ! Pauli matrices in spin and orbital space
 !     pauli  = cZero

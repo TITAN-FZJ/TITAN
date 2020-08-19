@@ -19,7 +19,7 @@ contains
 
 
   subroutine get_SK_parameter(s, fermi_layer, nOrb)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     use AtomTypes,    only: NeighborIndex
     use mod_system,   only: System
     implicit none
@@ -27,10 +27,10 @@ contains
     integer,      intent(in)    :: fermi_layer
     integer,      intent(in)    :: nOrb
     integer                     :: i,j,k,l
-    real(double), dimension(:,:), allocatable :: bp
-    real(double)                              :: scale_factor(2), mix(10,2), temp
+    real(dp), dimension(:,:), allocatable :: bp
+    real(dp)                              :: scale_factor(2), mix(10,2), temp
     type(NeighborIndex), pointer              :: current
-    real(double), dimension(10), parameter    :: expon = [1.0d0,3.0d0,3.0d0,5.0d0,5.0d0,5.0d0,2.0d0,3.0d0,4.0d0,4.0d0]
+    real(dp), dimension(10), parameter    :: expon = [1.0_dp,3.0_dp,3.0_dp,5.0_dp,5.0_dp,5.0_dp,2.0_dp,3.0_dp,4.0_dp,4.0_dp]
     nullify(current)
     allocate(bp(nOrb,nOrb))
 
@@ -51,7 +51,7 @@ contains
     do i = 1, s%nNeighbors
       allocate(s%Neighbors(i)%t0i(nOrb,nOrb,s%nAtoms))
       allocate(s%Neighbors(i)%isHopping(s%nAtoms))
-      s%Neighbors(i)%t0i = 0.d0
+      s%Neighbors(i)%t0i = 0._dp
       s%Neighbors(i)%isHopping = .false.
     end do
 
@@ -73,16 +73,16 @@ contains
           current => s%Basis(i)%NeighborList(k,j)%head
           do while(associated(current))
             ! Getting the smallest scale factor from the atoms in element file
-            scale_factor = 0.d0
+            scale_factor = 0._dp
             do l=1,s%Types(s%Basis(i)%Material)%nAtoms
-              if(s%Types(s%Basis(i)%Material)%lelement(l) == .false.) cycle
+              if(s%Types(s%Basis(i)%Material)%lelement(l) .eqv. .false.) cycle
               temp = s%Types(s%Basis(i)%Material)%stage(k,l) / s%Neighbors(current%index)%Distance(i)
-              if(abs(temp-1.d0) < abs(scale_factor(1)-1.d0) ) scale_factor(1) = temp
+              if(abs(temp-1._dp) < abs(scale_factor(1)-1._dp) ) scale_factor(1) = temp
             end do
             do l=1,s%Types(s%Basis(j)%Material)%nAtoms
-              if(s%Types(s%Basis(j)%Material)%lelement(l) == .false.) cycle
+              if(s%Types(s%Basis(j)%Material)%lelement(l) .eqv. .false.) cycle
               temp = s%Types(s%Basis(j)%Material)%stage(k,l) / s%Neighbors(current%index)%Distance(i)
-              if(abs(temp-1.d0) < abs(scale_factor(2)-1.d0) ) scale_factor(2) = temp
+              if(abs(temp-1._dp) < abs(scale_factor(2)-1._dp) ) scale_factor(2) = temp
             end do
 
             do l = 1, 10
@@ -101,19 +101,19 @@ contains
   end subroutine get_SK_parameter
 
   subroutine set_hopping_matrix(t0i, dirCos, t1, t2, nOrb)
-    use mod_f90_kind,   only: double
+    use mod_kind, only: dp
     use mod_parameters, only: lsimplemix
     implicit none
-    real(double), dimension(nOrb,nOrb), intent(inout) :: t0i
-    real(double), dimension(3),         intent(in)    :: dirCos
-    real(double), dimension(10),        intent(in)    :: t1, t2
+    real(dp), dimension(nOrb,nOrb), intent(inout) :: t0i
+    real(dp), dimension(3),         intent(in)    :: dirCos
+    real(dp), dimension(10),        intent(in)    :: t1, t2
     integer,                            intent(in)    :: nOrb
     integer                     :: i
-    real(double), dimension(10) :: mix
+    real(dp), dimension(10) :: mix
 
     do i = 1, 10
       if(lsimplemix) then
-        mix(i) = 0.5d0*(t1(i) + t2(i))
+        mix(i) = 0.5_dp*(t1(i) + t2(i))
       else
         mix(i) = sign(sqrt(abs(t1(i)) * abs(t2(i))), t1(i) + t2(i))
       end if
@@ -124,7 +124,7 @@ contains
 
   !! Reading element file, including all the parameters
   subroutine readElementFile(material, nStages, nOrb, relTol)
-    use mod_f90_kind,          only: double
+    use mod_kind, only: dp
     use AtomTypes,             only: AtomType,NeighborAtom
     use mod_mpi_pars,          only: abortProgram
     use mod_tools,             only: itos, vec_norm, vecDist
@@ -135,22 +135,22 @@ contains
     type(AtomType), intent(inout) :: material
     integer,        intent(in)    :: nStages
     integer,        intent(in)    :: nOrb
-    real(double),   intent(in)    :: relTol
+    real(dp),   intent(in)    :: relTol
     integer :: nTypes
     integer :: nn_stages
     integer,      dimension(:), allocatable :: iMaterial
     integer,      dimension(:), allocatable :: type_count
-    real(double), dimension(3) :: dens
+    real(dp), dimension(3) :: dens
     integer            :: i, j, k, l, size, nCells, ios, line_count = 0
     integer, parameter :: word_length = 50, max_elements = 50
     character(len=word_length), dimension(max_elements) :: str_arr
     character(200) :: line
     character(50)  :: words(10)
-    real(double), dimension(3,3) :: Bravais
-    real(double), dimension(nOrb)   :: on_site
-    real(double), dimension(nOrb)   :: tmp_arr
-    real(double), dimension(:,:), allocatable :: position
-    real(double), dimension(:,:), allocatable :: localDistances
+    real(dp), dimension(3,3) :: Bravais
+    real(dp), dimension(nOrb)   :: on_site
+    real(dp), dimension(nOrb)   :: tmp_arr
+    real(dp), dimension(:,:), allocatable :: position
+    real(dp), dimension(:,:), allocatable :: localDistances
     type(NeighborAtom), dimension(:), allocatable :: list
     character(len=1)   :: coord_type
     character(len=100) :: Name
@@ -255,7 +255,7 @@ contains
     read(unit= line, fmt=*, iostat=ios) material%isysdim
 
     do i = 1, material%isysdim
-      if(vec_norm(Bravais(:,i),3) <= 1.d-9) &
+      if(vec_norm(Bravais(:,i),3) <= 1.e-9_dp) &
         call log_error("readElementFile", "Bravais vector a" // trim(itos(i)) // " not given.")
     end do
 
@@ -393,7 +393,7 @@ contains
       end if
 
       ! Setting up on-site terms
-      material%onSite = 0.d0
+      material%onSite = 0._dp
       do j=1,nOrb
         material%onSite(j,j) = on_site(j)
       end do
@@ -463,8 +463,8 @@ contains
         ! Calculate distances and directional cosines
         do k = 1, material%nAtoms
           list(size)%Distance(k) = vecDist(list(size)%Position, position(:,k))
-          list(size)%dirCos(:,k) = 0.d0
-          if(list(size)%Distance(k) <= 1.d-9) cycle
+          list(size)%dirCos(:,k) = 0._dp
+          if(list(size)%Distance(k) <= 1.e-9_dp) cycle
           list(size)%dirCos(:,k) = (list(size)%Position - position(:,k)) / list(size)%Distance(k)
 
           ! Sort distances *new*
@@ -472,7 +472,7 @@ contains
           l = size - 1
           do while(1 <= l)
             ! If distance of current atoms is larger than what is saved at position l, exit loop
-            if(localDistances(l,k) - list(size)%Distance(k) < 1.d-9) exit
+            if(localDistances(l,k) - list(size)%Distance(k) < 1.e-9_dp) exit
             localDistances(l+1,k) = localDistances(l,k)
             l = l - 1
           end do
@@ -496,13 +496,13 @@ contains
   end subroutine readElementFile
 
   pure subroutine intd(sss,pps,ppp,dds,ddp,ddd,sps,sds,pds,pdp,w,b)
-    use mod_f90_kind,  only: double
+    use mod_kind, only: dp
     use mod_constants, only: sq3
     implicit none
-    real(double), intent(in)  :: sss,sps,pps,ppp,sds,pds,pdp,dds,ddp,ddd,w(3)
-    real(double), intent(out) :: b(9,9)
-    real(double)  :: x,y,z,xx,xy,yy,yz,zz,zx,xxyy,yyzz,zzxx
-    real(double)  :: aux,aux1,aux2,aux3,aux4,r3,f1,f2,f3,f4,f5,f8,g1,g2
+    real(dp), intent(in)  :: sss,sps,pps,ppp,sds,pds,pdp,dds,ddp,ddd,w(3)
+    real(dp), intent(out) :: b(9,9)
+    real(dp)  :: x,y,z,xx,xy,yy,yz,zz,zx,xxyy,yyzz,zzxx
+    real(dp)  :: aux,aux1,aux2,aux3,aux4,r3,f1,f2,f3,f4,f5,f8,g1,g2
     x=w(1)
     y=w(2)
     z=w(3)
@@ -520,19 +520,19 @@ contains
 
     f1=xx+yy
     f2=xx-yy
-    f3=zz-.5d0*f1
-    f8=3.d0*zz-1.d0
-    f4=.5d0*r3*f2*pds
-    f5=.5d0*f8*pds
+    f3=zz-.5_dp*f1
+    f8=3._dp*zz-1._dp
+    f4=.5_dp*r3*f2*pds
+    f5=.5_dp*f8*pds
 
-    g1=1.5d0*f2*dds
+    g1=1.5_dp*f2*dds
     g2=r3*f3*dds
 
     aux=pps-ppp
     aux1=r3*sds
-    aux2=r3*xx*pds+(1.d0-2.d0*xx)*pdp
-    aux3=(r3*yy*pds+(1.d0-2.d0*yy)*pdp)
-    aux4=r3*zz*pds+(1.d0-2.d0*zz)*pdp
+    aux2=r3*xx*pds+(1._dp-2._dp*xx)*pdp
+    aux3=(r3*yy*pds+(1._dp-2._dp*yy)*pdp)
+    aux4=r3*zz*pds+(1._dp-2._dp*zz)*pdp
 
     b(1,1)=sss
     b(1,2)=x*sps
@@ -541,33 +541,33 @@ contains
     b(1,5)=xy*aux1
     b(1,6)=yz*aux1
     b(1,7)=zx*aux1
-    b(1,8)=.5d0*f2*aux1
-    b(1,9)=.5d0*f8*sds
+    b(1,8)=.5_dp*f2*aux1
+    b(1,9)=.5_dp*f8*sds
 
     b(2,1)=-b(1,2)
-    b(2,2)=xx*pps+(1.d0-xx)*ppp
+    b(2,2)=xx*pps+(1._dp-xx)*ppp
     b(2,3)=xy*aux
     b(2,4)=zx*aux
     b(2,5)=aux2*y
-    b(2,6)=(r3*pds-2.d0*pdp)*xy*z
+    b(2,6)=(r3*pds-2._dp*pdp)*xy*z
     b(2,7)=aux2*z
-    b(2,8)=(f4+(1.d0-f2)*pdp)*x
+    b(2,8)=(f4+(1._dp-f2)*pdp)*x
     b(2,9)=(f5-r3*zz*pdp)*x
 
     b(3,1)=-b(1,3)
     b(3,2)= b(2,3)
-    b(3,3)=yy*pps+(1.d0-yy)*ppp
+    b(3,3)=yy*pps+(1._dp-yy)*ppp
     b(3,4)=yz*aux
     b(3,5)=aux3*x
     b(3,6)=aux3*z
     b(3,7)= b(2,6)
-    b(3,8)=(f4-(1.d0+f2)*pdp)*y
+    b(3,8)=(f4-(1._dp+f2)*pdp)*y
     b(3,9)=(f5-r3*zz*pdp)*y
 
     b(4,1)=-b(1,4)
     b(4,2)= b(2,4)
     b(4,3)= b(3,4)
-    b(4,4)=zz*pps+(1.d0-zz)*ppp
+    b(4,4)=zz*pps+(1._dp-zz)*ppp
     b(4,5)= b(2,6)
     b(4,6)=aux4*y
     b(4,7)=aux4*x
@@ -578,21 +578,21 @@ contains
     b(5,2)=-b(2,5)
     b(5,3)=-b(3,5)
     b(5,4)=-b(4,5)
-    b(5,5)=3.d0*xxyy*dds+(f1-4.d0*xxyy)*ddp+(zz+xxyy)*ddd
-    b(5,6)=(3.d0*yy*dds+(1.d0-4.d0*yy)*ddp+(yy-1.d0)*ddd)*zx
-    b(5,7)=(3.d0*xx*dds+(1.d0-4.d0*xx)*ddp+(xx-1.d0)*ddd)*yz
-    b(5,8)=(g1-2.d0*f2*ddp+.5d0*f2*ddd)*xy
-    b(5,9)=(g2-2.d0*r3*zz*ddp+.5d0*r3*(1.d0+zz)*ddd)*xy
+    b(5,5)=3._dp*xxyy*dds+(f1-4._dp*xxyy)*ddp+(zz+xxyy)*ddd
+    b(5,6)=(3._dp*yy*dds+(1._dp-4._dp*yy)*ddp+(yy-1._dp)*ddd)*zx
+    b(5,7)=(3._dp*xx*dds+(1._dp-4._dp*xx)*ddp+(xx-1._dp)*ddd)*yz
+    b(5,8)=(g1-2._dp*f2*ddp+.5_dp*f2*ddd)*xy
+    b(5,9)=(g2-2._dp*r3*zz*ddp+.5_dp*r3*(1._dp+zz)*ddd)*xy
 
     b(6,1)= b(1,6)
     b(6,2)=-b(2,6)
     b(6,3)=-b(3,6)
     b(6,4)=-b(4,6)
     b(6,5)= b(5,6)
-    b(6,6)=3.d0*yyzz*dds+(yy+zz-4.d0*yyzz)*ddp+(xx+yyzz)*ddd
-    b(6,7)=(3.d0*zz*dds+(1.d0-4.d0*zz)*ddp+(zz-1.d0)*ddd)*xy
-    b(6,8)=(g1-(1.d0+2.d0*f2)*ddp+(1.d0+.5d0*f2)*ddd)*yz
-    b(6,9)=(g2+r3*(f1-zz)*ddp-.5d0*r3*f1*ddd)*yz
+    b(6,6)=3._dp*yyzz*dds+(yy+zz-4._dp*yyzz)*ddp+(xx+yyzz)*ddd
+    b(6,7)=(3._dp*zz*dds+(1._dp-4._dp*zz)*ddp+(zz-1._dp)*ddd)*xy
+    b(6,8)=(g1-(1._dp+2._dp*f2)*ddp+(1._dp+.5_dp*f2)*ddd)*yz
+    b(6,9)=(g2+r3*(f1-zz)*ddp-.5_dp*r3*f1*ddd)*yz
 
     b(7,1)= b(1,7)
     b(7,2)=-b(2,7)
@@ -600,9 +600,9 @@ contains
     b(7,4)=-b(4,7)
     b(7,5)= b(5,7)
     b(7,6)= b(6,7)
-    b(7,7)=3.d0*zzxx*dds+(zz+xx-4.d0*zzxx)*ddp+(yy+zzxx)*ddd
-    b(7,8)=(g1+(1.d0-2.d0*f2)*ddp-(1.d0-.5d0*f2)*ddd)*zx
-    b(7,9)=(g2+r3*(f1-zz)*ddp-.5d0*r3*f1*ddd)*zx
+    b(7,7)=3._dp*zzxx*dds+(zz+xx-4._dp*zzxx)*ddp+(yy+zzxx)*ddd
+    b(7,8)=(g1+(1._dp-2._dp*f2)*ddp-(1._dp-.5_dp*f2)*ddd)*zx
+    b(7,9)=(g2+r3*(f1-zz)*ddp-.5_dp*r3*f1*ddd)*zx
 
     b(8,1)= b(1,8)
     b(8,2)=-b(2,8)
@@ -611,8 +611,8 @@ contains
     b(8,5)= b(5,8)
     b(8,6)= b(6,8)
     b(8,7)= b(7,8)
-    b(8,8)=.75d0*f2*f2*dds+(f1-f2*f2)*ddp+(zz+.25d0*f2*f2)*ddd
-    b(8,9)=.5d0*f2*g2-r3*zz*f2*ddp+.25d0*r3*(1.d0+zz)*f2*ddd
+    b(8,8)=.75_dp*f2*f2*dds+(f1-f2*f2)*ddp+(zz+.25_dp*f2*f2)*ddd
+    b(8,9)=.5_dp*f2*g2-r3*zz*f2*ddp+.25_dp*r3*(1._dp+zz)*f2*ddd
 
     b(9,1)= b(1,9)
     b(9,2)=-b(2,9)
@@ -622,7 +622,7 @@ contains
     b(9,6)= b(6,9)
     b(9,7)= b(7,9)
     b(9,8)= b(8,9)
-    b(9,9)=f3*f3*dds+3.d0*zz*f1*ddp+.75d0*f1*f1*ddd
+    b(9,9)=f3*f3*dds+3._dp*zz*f1*ddp+.75_dp*f1*f1*ddd
   end subroutine intd
 
 end module TightBinding

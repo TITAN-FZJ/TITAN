@@ -1,16 +1,16 @@
 module mod_self_consistency
-  use mod_f90_kind, only: double
+  use mod_kind, only: dp
   implicit none
   integer            :: neq, neq_per_atom
   character(len=300) :: default_file
-  real(double)       :: mag_tol = 1.d-8
+  real(dp)       :: mag_tol = 1.e-8_dp
   character(len=200) :: scfile = ""
   !! Give a file to start self-consistency
   logical            :: skipsc
   !! Skip self-consistency
   character(len=50)  :: magbasis = ""
   !! Basis to give initial magnetization in 'initialmag' file
-  real(double), allocatable :: initialmag(:,:)
+  real(dp), allocatable :: initialmag(:,:)
   !! Initial guess for magnetization
   logical :: lselfcon    = .false.
   logical :: lGSL        = .false.
@@ -70,7 +70,7 @@ contains
 
   ! Tries to read n and m if available
   subroutine read_previous_results(lsuccess)
-    use mod_f90_kind,          only: double
+    use mod_kind, only: dp
     use mod_constants,         only: deg2rad
     use mod_parameters,        only: nOrb, output
     use mod_system,            only: s => sys
@@ -112,14 +112,14 @@ contains
         call read_initialmag("initialmag",trim(magbasis),s%nAtoms)
       else
         do i=1,s%nAtoms
-          initialmag(i,:) = [0.d0, 0.d0, sign(2.0d0, hw_list(hw_count,1))]
+          initialmag(i,:) = [0._dp, 0._dp, sign(2.0_dp, hw_list(hw_count,1))]
         end do
 
         ! Rotating magnetization to field direction
         if(lfield) then
-          initialmag(:,1) = sign(2.0d0, hw_list(hw_count,1))*sin(hw_list(hw_count,2)*deg2rad) * cos(hw_list(hw_count,3)*deg2rad)
-          initialmag(:,2) = sign(2.0d0, hw_list(hw_count,1))*sin(hw_list(hw_count,2)*deg2rad) * sin(hw_list(hw_count,3)*deg2rad)
-          initialmag(:,3) = sign(2.0d0, hw_list(hw_count,1))*cos(hw_list(hw_count,2)*deg2rad)
+          initialmag(:,1) = sign(2.0_dp, hw_list(hw_count,1))*sin(hw_list(hw_count,2)*deg2rad) * cos(hw_list(hw_count,3)*deg2rad)
+          initialmag(:,2) = sign(2.0_dp, hw_list(hw_count,1))*sin(hw_list(hw_count,2)*deg2rad) * sin(hw_list(hw_count,3)*deg2rad)
+          initialmag(:,3) = sign(2.0_dp, hw_list(hw_count,1))*cos(hw_list(hw_count,2)*deg2rad)
         end if
 
       end if
@@ -129,17 +129,17 @@ contains
         myd(i) = initialmag(i,2)
         mzd(i) = initialmag(i,3)
       end do
-      mpd = cmplx(mxd,myd,double)
+      mpd = cmplx(mxd,myd,dp)
 
-      mx = 0.d0
-      my = 0.d0
-      mz = 0.d0
+      mx = 0._dp
+      my = 0._dp
+      mz = 0._dp
       ! Initialize hamiltonian using occupations from elemental files and rho=rho0
       rho = rho0
       do i = 1, s%nAtoms
-        mx(5:9,i) = 0.2d0*mxd(i)
-        my(5:9,i) = 0.2d0*myd(i)
-        mz(5:9,i) = 0.2d0*mzd(i)
+        mx(5:9,i) = 0.2_dp*mxd(i)
+        my(5:9,i) = 0.2_dp*myd(i)
+        mz(5:9,i) = 0.2_dp*mzd(i)
         rhod(i)   = rhod0(i) !s%Types(s%Basis(i)%Material)%OccupationD
         if(lsuperCond) then
           do mu = 1,nOrb
@@ -156,7 +156,7 @@ contains
 
   ! Reads the initial magnetization for nAtoms in 'filename'
   subroutine read_initialmag(filename,basis,nAtoms)
-    use mod_f90_kind,   only: double
+    use mod_kind, only: dp
     use mod_parameters, only: output
     use mod_constants,  only: deg2rad
     use mod_tools,      only: read_data
@@ -166,7 +166,7 @@ contains
     character(len=*), intent(in) :: filename,basis
     integer         , intent(in) :: nAtoms
     integer      :: i,err
-    real(double) :: temp(nAtoms,3)
+    real(dp) :: temp(nAtoms,3)
 
     if(rField == 0) &
     write(output%unit_loop,"('[read_initialmag] Reading initial magnetization from file ',a)") "'" // filename // "'"
@@ -209,7 +209,7 @@ contains
     ! else if(magaxis == -3) then
     !   magaxisvec = [cos(magaxisvec(2)*deg2rad)*sin(magaxisvec(1)*deg2rad), sin(magaxisvec(2)*deg2rad)*sin(magaxisvec(1)*deg2rad), cos(magaxisvec(1)*deg2rad)]
     ! else if(magaxis == 0) then
-    !   magaxisvec = [0.d0, 0.d0, sign(1.0d0, hw_list(hw_count,1))]
+    !   magaxisvec = [0._dp, 0._dp, sign(1.0_dp, hw_list(hw_count,1))]
     ! else if(magaxis >=1 .and. magaxis <= s%nAtoms) then
     !   !magaxisvec(1:3) = c_nn(1:3, magaxis)
     !   if(rField == 0) call abortProgram("[read_previous_results] Magaxis along neighbor not implemented!")
@@ -217,13 +217,13 @@ contains
     !   if(rField == 0) call abortProgram("[read_previous_results] Unknown magnetization direction!")
     ! end if
     ! magaxisvec = magaxisvec / sqrt(dot_product(magaxisvec, magaxisvec))
-    ! magaxisvec = magaxisvec * 0.5d0
+    ! magaxisvec = magaxisvec * 0.5_dp
 
   end subroutine read_initialmag
 
   ! This subroutine reads previous band-shifting and magnetization results
   subroutine read_sc_results(err,lsuccess)
-    use mod_f90_kind,          only: double
+    use mod_kind, only: dp
     use mod_parameters,        only: nOrb, output, dfttype
     use EnergyIntegration,     only: parts
     use mod_system,            only: s => sys
@@ -235,7 +235,7 @@ contains
     integer,intent(out) :: err
     logical,intent(out) :: lsuccess
     integer             :: i,j
-    real(double)        :: previous_results(5*nOrb,s%nAtoms), previous_Ef
+    real(dp)        :: previous_results(5*nOrb,s%nAtoms), previous_Ef
 
     if(trim(scfile) /= "") then
       open(unit=99,file=scfile,status="old",iostat=err)
@@ -297,14 +297,14 @@ contains
       mx (:,:) = previous_results(  nOrb+1:2*nOrb,:)
       my (:,:) = previous_results(2*nOrb+1:3*nOrb,:)
       mz (:,:) = previous_results(3*nOrb+1:4*nOrb,:)
-      mp       = cmplx(mx,my,double)
+      mp       = cmplx(mx,my,dp)
       singlet_coupling(:,:) = previous_results(4*nOrb+1:5*nOrb,:)
 
       rhod(:) = sum(rho(5:9,:),dim=1)
       mxd(:)  = sum(mx (5:9,:),dim=1)
       myd(:)  = sum(my (5:9,:),dim=1)
       mzd(:)  = sum(mz (5:9,:),dim=1)
-      mpd     = cmplx(mxd,myd,double)
+      mpd     = cmplx(mxd,myd,dp)
 
       call calcMagAngle()
 
@@ -337,14 +337,14 @@ contains
         mx (:,:) = previous_results(  nOrb+1:2*nOrb,:)
         my (:,:) = previous_results(2*nOrb+1:3*nOrb,:)
         mz (:,:) = previous_results(3*nOrb+1:4*nOrb,:)
-        mp       = cmplx(mx,my,double)
+        mp       = cmplx(mx,my,dp)
         singlet_coupling(:,:) = previous_results(4*nOrb+1:5*nOrb,:)
 
         rhod(:) = sum(rho(5:9,:),dim=1)
         mxd(:)  = sum(mx (5:9,:),dim=1)
         myd(:)  = sum(my (5:9,:),dim=1)
         mzd(:)  = sum(mz (5:9,:),dim=1)
-        mpd     = cmplx(mxd,myd,double)
+        mpd     = cmplx(mxd,myd,dp)
 
         call calcMagAngle()
 
@@ -368,20 +368,20 @@ contains
     ! Calculating new angles of GS magnetization in units of pi and magnetization vector
     do i = 1,s%nAtoms
       mabs(i)   = sqrt((sum(mx(:,i))**2)+(sum(my(:,i))**2)+(sum(mz(:,i))**2))
-      if(mabs(i)>1.d-8) then
+      if(mabs(i)>1.e-8_dp) then
         mtheta(i) = acos(sum(mz(:,i))/mabs(i))*rad2deg
       else
-        mtheta(i) = 0.d0
+        mtheta(i) = 0._dp
       end if
-      if(abs(mtheta(i))>1.d-8) then
-        if(abs(abs(mtheta(i))-180.d0)>1.d-8) then
+      if(abs(mtheta(i))>1.e-8_dp) then
+        if(abs(abs(mtheta(i))-180._dp)>1.e-8_dp) then
           mphi(i)   = atan2(sum(my(:,i)),sum(mx(:,i)))*rad2deg
         else
-          mphi(i) = 0.d0
+          mphi(i) = 0._dp
         end if
         lrot = .true. ! Susceptibilities need to be rotated
       else
-        mphi(i) = 0.d0
+        mphi(i) = 0._dp
       end if
       mvec_cartesian(1,i) = sum(mx(:,i))
       mvec_cartesian(2,i) = sum(my(:,i))
@@ -396,22 +396,22 @@ contains
     mtotal_cartesian(3) = sum(mvec_cartesian(3,:))
 
     mtotal_spherical(1) = sqrt((mtotal_cartesian(1)**2)+(mtotal_cartesian(2)**2)+(mtotal_cartesian(3)**2))
-    if(mtotal_spherical(1)>1.d-8) then
+    if(mtotal_spherical(1)>1.e-8_dp) then
       mtotal_spherical(2) = acos(mtotal_cartesian(3)/mtotal_spherical(1))*rad2deg
     else
-      mtotal_spherical(2) = 0.d0
+      mtotal_spherical(2) = 0._dp
     end if
-    if((abs(mtotal_spherical(2))>1.d-8).and.(abs(abs(mtotal_spherical(2))-180.d0)>1.d-8)) then
+    if((abs(mtotal_spherical(2))>1.e-8_dp).and.(abs(abs(mtotal_spherical(2))-180._dp)>1.e-8_dp)) then
       mtotal_spherical(3)   = atan2(mtotal_cartesian(2),mtotal_cartesian(1))*rad2deg
     else
-      mtotal_spherical(3) = 0.d0
+      mtotal_spherical(3) = 0._dp
     end if
 
   end  subroutine calcMagAngle
 
   subroutine calcMagneticSelfConsistency()
   !! This subroutine performs the self-consistency
-    use mod_f90_kind,   only: double
+    use mod_kind, only: dp
     use mod_parameters, only: nOrb, output
     use mod_magnet,     only: rho, mxd, myd, mzd
     use mod_mpi_pars,   only: rField
@@ -420,17 +420,17 @@ contains
     use mod_dnsqe
     use mod_superconductivity, only: superCond, lsuperCond, singlet_coupling
     implicit none
-    real(double),allocatable      :: fvec(:),jac(:,:),wa(:),sc_solu(:)
-    real(double),allocatable      :: diag(:),qtf(:)
+    real(dp),allocatable      :: fvec(:),jac(:,:),wa(:),sc_solu(:)
+    real(dp),allocatable      :: diag(:),qtf(:)
 #if !defined(_GNU)
-    real(double)                  :: epsfcn,factor
+    real(dp)                  :: epsfcn,factor
     integer                       :: maxfev,ml,mr,mode,nfev,njev
 #endif
 #if !defined(_OSX) && !defined(_GNU)
-    real(double)                  :: ruser(1)
+    real(dp)                  :: ruser(1)
     integer                       :: iuser(1)
 #else
-    real(double),allocatable      :: w(:,:)
+    real(dp),allocatable      :: w(:,:)
 #endif
     integer                       :: i,mu,lwa,ifail=0
 
@@ -476,16 +476,16 @@ contains
         maxfev = 200*(neq+1)
         ml = neq-1
         mr = neq-1
-        epsfcn = 1.d-5
+        epsfcn = 1.e-5_dp
         mode = 1
-        factor = 0.1d0
+        factor = 0.1_dp
         call c05ncf(sc_eqs_old,neq,sc_solu,fvec,mag_tol,maxfev,ml,mr,epsfcn,diag,mode,factor,0,nfev,jac,neq,wa,lwa,qtf,w,ifail)
       else
 !         call c05pbf(sc_equations_and_jacobian,neq,sc_solu,fvec,jac,neq,mag_tol,wa,lwa,ifail)
         maxfev = 100*(neq+1)
         mode = 1
-        diag = 1.d0
-        factor = 0.1d0
+        diag = 1._dp
+        factor = 0.1_dp
         call c05pcf(sc_eqs_and_jac_old,neq,sc_solu,fvec,jac,neq,mag_tol,maxfev,diag,mode,factor,0,nfev,njev,wa,lwa,qtf,w,ifail)
       end if
     end if
@@ -516,15 +516,15 @@ contains
         maxfev = 200*(neq+1)
         ml = neq-1
         mr = neq-1
-        epsfcn = 1.d-5
+        epsfcn = 1.e-5_dp
         mode = 1
-        factor = 0.1d0
+        factor = 0.1_dp
         call c05qcf(sc_equations,neq,sc_solu,fvec,mag_tol,maxfev,ml,mr,epsfcn,mode,diag,factor,0,nfev,jac,wa,qtf,iuser,ruser,ifail)
       else
         maxfev = 100*(neq+1)
         mode = 1
-        diag = 1.d0
-        factor = 0.1d0
+        diag = 1._dp
+        factor = 0.1_dp
         call c05rcf(sc_equations_and_jacobian,neq,sc_solu,fvec,jac,mag_tol,maxfev,mode,diag,factor,0,nfev,njev,wa,qtf,iuser,ruser,ifail)
       end if
     end if
@@ -544,15 +544,15 @@ contains
     implicit none
     integer :: liw,lw,ifail
     integer     , allocatable :: iw(:)
-    real(double), allocatable :: w(:)
+    real(dp), allocatable :: w(:)
     integer     , intent(in)  :: neq
-    real(double), intent(in)  :: x(neq)
-    real(double) :: jac(neq,neq)
-    real(double) :: fvec(neq)
+    real(dp), intent(in)  :: x(neq)
+    real(dp) :: jac(neq,neq)
+    real(dp) :: fvec(neq)
     ! integer :: i
-    ! real(double) :: fvecp(neq),xp(neq),err(neq)
+    ! real(dp) :: fvecp(neq),xp(neq),err(neq)
 ! #if !defined(_OSX)
-!     real(double) :: ruser(1)
+!     real(dp) :: ruser(1)
 !     integer      :: iuser(1)
 ! #endif
 
@@ -595,7 +595,7 @@ contains
     !   ! write(*,*) "fvecp"
     !   ! write(*,*) (fvecp(i),i=1,neq)
     !   do i=1,neq
-    !     if(abs(err(i)-1.d0)>1.d-8) write(*,*) i,err(i)
+    !     if(abs(err(i)-1._dp)>1.e-8_dp) write(*,*) i,err(i)
     !   end do
     ! end if
 
@@ -610,7 +610,7 @@ contains
   end subroutine check_jacobian
 
   subroutine lsqfun(iflag,M,N,x,fvec,selfconjac,ljc,iw,liw,w,lw)
-    use mod_f90_kind,          only: double
+    use mod_kind, only: dp
     use mod_system,            only: s => sys
     use mod_magnet,            only: rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,           only: update_Umatrix
@@ -620,14 +620,14 @@ contains
     ! use mod_mpi_pars
     implicit none
     integer      :: M,N,ljc,i,mu,iflag,lw,liw,iw(liw)
-    real(double) :: w(lw)
-    real(double),    dimension(N)             :: x,fvec
-    real(double),    dimension(M,ljc)         :: selfconjac
-    real(double),    dimension(nOrb,s%nAtoms) :: rho_in
-    real(double),    dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
-    real(double),    dimension(nOrb,s%nAtoms) :: singlet_coupling_in
-    real(double),    dimension(nOrb,s%nAtoms) :: deltas
-    complex(double), dimension(s%nAtoms)      :: mpd_in
+    real(dp) :: w(lw)
+    real(dp),    dimension(N)             :: x,fvec
+    real(dp),    dimension(M,ljc)         :: selfconjac
+    real(dp),    dimension(nOrb,s%nAtoms) :: rho_in
+    real(dp),    dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
+    real(dp),    dimension(nOrb,s%nAtoms) :: singlet_coupling_in
+    real(dp),    dimension(nOrb,s%nAtoms) :: deltas
+    complex(dp), dimension(s%nAtoms)      :: mpd_in
 
     w=w
     iw=iw
@@ -643,7 +643,7 @@ contains
       mxd_in(i) = x((i-1)*neq_per_atom+6)
       myd_in(i) = x((i-1)*neq_per_atom+7)
       mzd_in(i) = x((i-1)*neq_per_atom+8)
-      mpd_in(i) = cmplx(mxd_in(i),myd_in(i),double)
+      mpd_in(i) = cmplx(mxd_in(i),myd_in(i),dp)
       do concurrent (mu = 1:nOrb, lsuperCond)
         singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
       end do
@@ -685,7 +685,7 @@ contains
 
   subroutine calcJacobian_greenfunction(jacobian, N)
     !! Calculated the Jacobian of the spin magnetization
-    use mod_f90_kind,      only: double
+    use mod_kind, only: dp, int64
     use mod_constants,     only: pi, ident_norb2, cZero, pauli_dorb, ident_dorb, cOne
     use mod_parameters,    only: nOrb, nOrb2, Un, Um, offset, eta
     use mod_SOC,           only: llinearsoc, llineargfsoc
@@ -697,17 +697,17 @@ contains
     use mod_mpi_pars
     implicit none
     integer,                           intent(in)    :: N
-    real(double),    dimension(N,N),   intent(inout) :: jacobian
-    complex(double), dimension(:,:),     allocatable :: gij,gji,temp,paulitemp
-    complex(double), dimension(:,:,:),   allocatable :: temp1,temp2
-    complex(double), dimension(:,:,:,:), allocatable :: gf,gvg
-    integer*8 :: ix
+    real(dp),    dimension(N,N),   intent(inout) :: jacobian
+    complex(dp), dimension(:,:),     allocatable :: gij,gji,temp,paulitemp
+    complex(dp), dimension(:,:,:),   allocatable :: temp1,temp2
+    complex(dp), dimension(:,:,:,:), allocatable :: gf,gvg
+    integer(int64) :: ix
     integer :: AllocateStatus
     integer :: i,j,mu,nu,sigma,sigmap
-    real(double)    :: kp(3), ep
-    complex(double) :: weight
-    complex(double) :: halfUn(s%nAtoms),halfUm(s%nAtoms)
-    complex(double), dimension(nOrb2, nOrb2, 4) :: pauli_a,pauli_b
+    real(dp)    :: kp(3), ep
+    complex(dp) :: weight
+    complex(dp) :: halfUn(s%nAtoms),halfUm(s%nAtoms)
+    complex(dp), dimension(nOrb2, nOrb2, 4) :: pauli_a,pauli_b
 
     !--------------------- begin MPI vars --------------------
     integer :: ncount2
@@ -725,14 +725,14 @@ contains
 
     ! Prefactor -U/2 in dH/dn and dH/dm
     do i=1,s%nAtoms
-      halfUn(i) = -0.5d0*Un(i+offset)
-      halfUm(i) = -0.5d0*Um(i+offset)
+      halfUn(i) = -0.5_dp*Un(i+offset)
+      halfUm(i) = -0.5_dp*Um(i+offset)
     end do
 
     ! Build local hamiltonian
     if((.not.llineargfsoc) .and. (.not.llinearsoc)) call hamilt_local(s)
 
-    jacobian = 0.d0
+    jacobian = 0._dp
 
     !$omp parallel default(none) &
     !$omp& private(AllocateStatus,ix,i,j,mu,nu,sigma,sigmap,ep,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp) &
@@ -782,8 +782,8 @@ contains
             ! Second product: temp2 = (U_j\delta_{mu,nu} -U_j/2) * sigma * g_ji
             gji = gf(:,:,j,i)
             paulitemp = pauli_b(:,:, 1)
-            paulitemp(nu  ,nu  ) = paulitemp(nu  ,nu  ) - 2.d0
-            paulitemp(nu+9,nu+9) = paulitemp(nu+9,nu+9) - 2.d0
+            paulitemp(nu  ,nu  ) = paulitemp(nu  ,nu  ) - 2._dp
+            paulitemp(nu+9,nu+9) = paulitemp(nu+9,nu+9) - 2._dp
             call zgemm('n','n',18,18,18,halfUn(j),paulitemp,18,gji,18,cZero,temp,18)
             temp2(:,:,1) = temp
 
@@ -868,8 +868,8 @@ contains
 
               ! Second product: temp2 = (-U/2) * sigma* g_ji
               paulitemp = pauli_b(:,:, 1)
-              paulitemp(nu  ,nu  ) = paulitemp(nu  ,nu  ) - 2.d0
-              paulitemp(nu+9,nu+9) = paulitemp(nu+9,nu+9) - 2.d0
+              paulitemp(nu  ,nu  ) = paulitemp(nu  ,nu  ) - 2._dp
+              paulitemp(nu+9,nu+9) = paulitemp(nu+9,nu+9) - 2._dp
               call zgemm('n','n',18,18,18,halfUn(j),paulitemp,18,gji,18,cZero,temp,18)
               temp2(:,:, 1) = temp
 
@@ -950,7 +950,7 @@ contains
     !$omp do schedule(static) reduction(+:jacobian)
     do ix = 1, realBZ%workload
       kp = realBZ%kp(1:3,ix)
-      weight = cmplx( realBZ%w(ix),0.d0,double )
+      weight = cmplx(realBZ%w(ix),0._dp,dp)
 
       ! Green function at Ef + ieta, and wave vector kp
       if(llineargfsoc .or. llinearsoc) then
@@ -1004,13 +1004,13 @@ contains
 
     jacobian = jacobian/pi
     do i = 1, neq_per_atom*s%nAtoms
-      jacobian(i,i) = jacobian(i,i) - 1.d0
+      jacobian(i,i) = jacobian(i,i) - 1._dp
     end do
   end subroutine calcJacobian_greenfunction
 
   subroutine rotate_magnetization_to_field()
   !! Rotate the magnetization to the direction of the field (useful for SOC=F)
-    use mod_f90_kind,   only: double
+    use mod_kind, only: dp
     use mod_constants,  only: deg2rad
     use mod_magnet,     only: lfield, hw_count, hw_list, hhw, mp, mx, my, mz, &
                                                               mpd, mxd, myd, mzd
@@ -1019,7 +1019,7 @@ contains
     use mod_mpi_pars,   only: rField
     implicit none
     integer      :: i,j,sign
-    real(double) :: mdotb,mabs(nOrb,s%nAtoms)
+    real(dp) :: mdotb,mabs(nOrb,s%nAtoms)
 
     if(rField == 0) &
       write(output%unit_loop,"('[rotate_magnetization_to_field] Rotating previous magnetization to the direction of the field...')")
@@ -1038,14 +1038,14 @@ contains
         mx  (j,i) = sign*mabs(j,i)*sin(hw_list(hw_count,2)*deg2rad)*cos(hw_list(hw_count,3)*deg2rad)
         my  (j,i) = sign*mabs(j,i)*sin(hw_list(hw_count,2)*deg2rad)*sin(hw_list(hw_count,3)*deg2rad)
         mz  (j,i) = sign*mabs(j,i)*cos(hw_list(hw_count,2)*deg2rad)
-        mp  (j,i) = cmplx(mx(j,i),my(j,i),double)
+        mp  (j,i) = cmplx(mx(j,i),my(j,i),dp)
       end do
     end do
 
     mxd(:)  = sum(mx (5:9,:),dim=1)
     myd(:)  = sum(my (5:9,:),dim=1)
     mzd(:)  = sum(mz (5:9,:),dim=1)
-    mpd     = cmplx(mxd,myd,double)
+    mpd     = cmplx(mxd,myd,dp)
 
     call calcMagAngle()
 
@@ -1081,7 +1081,7 @@ contains
         end do
     end if
     write(output%unit_loop,"(11x,' *********** Magnetization components: **********')")
-    if(abs(sum(mp(:,:)))>1.d-8) then
+    if(abs(sum(mp(:,:)))>1.e-8_dp) then
       do i=1,s%nAtoms
         write(output%unit_loop,"(a,':',2x,'Mx(',i4.0,')=',f11.8,4x,'My(',i4.0,')=',f11.8,4x,'Mz(',i4.0,')=',f11.8,4x,'theta = ',f11.6,4x,'phi = ',f11.6)") trim(s%Types(s%Basis(i)%Material)%Name),i,mvec_cartesian(1,i),i,mvec_cartesian(2,i),i,mvec_cartesian(3,i),mvec_spherical(2,i),mvec_spherical(3,i)
       end do
@@ -1092,7 +1092,7 @@ contains
     end if
     if((lGSL).or.(SOC)) then
       write(output%unit_loop,"(11x,' ****** Orbital components in global frame: *****')")
-      if(sum(lxm(:)**2+lym(:)**2)>1.d-8) then
+      if(sum(lxm(:)**2+lym(:)**2)>1.e-8_dp) then
         do i=1,s%nAtoms
           write(output%unit_loop,"(a,':',2x,'Lx(',i4.0,')=',f11.8,4x,'Ly(',i4.0,')=',f11.8,4x,'Lz(',i4.0,')=',f11.8,4x,'theta = ',f11.6,4x,'phi = ',f11.6)") trim(s%Types(s%Basis(i)%Material)%Name),i,lxm(i),i,lym(i),i,lzm(i),ltheta(i),lphi(i)
         end do
@@ -1157,19 +1157,19 @@ contains
 
   ! Writes the initial values for the self-consistency
   subroutine print_sc_step(n,mx,my,mz,singlet_coupling,Ef,fvec)
-    use mod_f90_kind,          only: double
+    use mod_kind, only: dp
     use mod_parameters,        only: nOrb, output
     use mod_system,            only: s => sys
     use mod_magnet,            only: iter
     use mod_superconductivity, only: lsuperCond
     use mod_mpi_pars
     implicit none
-    real(double),dimension(neq),           intent(in), optional :: fvec
-    real(double),dimension(s%nAtoms),      intent(in) :: n,mx,my,mz
-    real(double)                    ,      intent(in) :: Ef
-    real(double),dimension(nOrb,s%nAtoms), intent(in) :: singlet_coupling
+    real(dp),dimension(neq),           intent(in), optional :: fvec
+    real(dp),dimension(s%nAtoms),      intent(in) :: n,mx,my,mz
+    real(dp)                    ,      intent(in) :: Ef
+    real(dp),dimension(nOrb,s%nAtoms), intent(in) :: singlet_coupling
     integer :: i,mu
-    real(double) :: fvecsum
+    real(dp) :: fvecsum
 
     if(rField==0) then
       if(present(fvec)) then
@@ -1179,7 +1179,7 @@ contains
           do mu = 5,nOrb
             fvecsum = fvecsum + fvec((i-1)*neq_per_atom+(mu-4))
           end do
-          if(abs(cmplx(mx(i),my(i),double))>1.d-12) then
+          if(abs(cmplx(mx(i),my(i),dp))>1.e-12_dp) then
             write(output%unit_loop,"('Site ',i4,': N(',i4,')=',es16.9,4x,'Mx(',i4,')=',es16.9,4x,'My(',i4,')=',es16.9,4x,'Mz(',i4,')=',es16.9)") i,i,n(i),i,mx(i),i,my(i),i,mz(i)
             write(output%unit_loop,"(15x,'fvec(',i4,')=',es16.9,2x,'fvec(',i4,')=',es16.9,2x,'fvec(',i4,')=',es16.9,2x,'fvec(',i4,')=',es16.9)") i,fvecsum,(i-1)*neq_per_atom+6,fvec((i-1)*neq_per_atom+6),(i-1)*neq_per_atom+7,fvec((i-1)*neq_per_atom+7),(i-1)*neq_per_atom+8,fvec((i-1)*neq_per_atom+8)
           else
@@ -1192,7 +1192,7 @@ contains
       else if(iter == 0) then
         write(output%unit_loop,"('|---------------- Starting charge density, magnetization and Ef ----------------|')")
         do i=1,s%nAtoms
-          if(abs(cmplx(mx(i),my(i),double))>1.d-12) then
+          if(abs(cmplx(mx(i),my(i),dp))>1.e-12_dp) then
             write(output%unit_loop,"('Site ',i4,': N(',i4,')=',es16.9,4x,'Mx(',i4,')=',es16.9,4x,'My(',i4,')=',es16.9,4x,'Mz(',i4,')=',es16.9)") i,i,n(i),i,mx(i),i,my(i),i,mz(i)
           else
             write(output%unit_loop,"('Site ',i4,': N(',i4,')=',es16.9,4x,'Mz(',i4,')=',es16.9)") i,i,n(i),i,mz(i)
@@ -1216,7 +1216,7 @@ contains
   ! and the correspondent jacobian
 #if !defined(_OSX)
   subroutine sc_equations_and_jacobian(N,x,fvec,selfconjac,iuser,ruser,iflag)
-    use mod_f90_kind,          only: double
+    use mod_kind, only: dp
     use mod_system,            only: s => sys
     use mod_parameters,        only: nOrb, lcheckjac, leigenstates
     use mod_magnet,            only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
@@ -1228,17 +1228,17 @@ contains
     implicit none
     integer  :: N,i,mu,iflag
     integer     ,    intent(inout)            :: iuser(1)
-    real(double),    intent(inout)            :: ruser(1)
-    real(double),    dimension(N)             :: x,fvec
-    real(double),    dimension(N,N)           :: selfconjac
-    real(double),    dimension(nOrb,s%nAtoms) :: rho_in
-    real(double),    dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
-    real(double),    dimension(nOrb,s%nAtoms) :: singlet_coupling_in
-    real(double),    dimension(nOrb,s%nAtoms) :: deltas
-    complex(double), dimension(s%nAtoms)      :: mpd_in
+    real(dp),    intent(inout)            :: ruser(1)
+    real(dp),    dimension(N)             :: x,fvec
+    real(dp),    dimension(N,N)           :: selfconjac
+    real(dp),    dimension(nOrb,s%nAtoms) :: rho_in
+    real(dp),    dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
+    real(dp),    dimension(nOrb,s%nAtoms) :: singlet_coupling_in
+    real(dp),    dimension(nOrb,s%nAtoms) :: deltas
+    complex(dp), dimension(s%nAtoms)      :: mpd_in
 
     iuser = 0
-    ruser = 0.d0
+    ruser = 0._dp
 
     ! Values used in the hamiltonian
     rho_in = rho
@@ -1250,7 +1250,7 @@ contains
       mxd_in(i) = x((i-1)*neq_per_atom+6)
       myd_in(i) = x((i-1)*neq_per_atom+7)
       mzd_in(i) = x((i-1)*neq_per_atom+8)
-      mpd_in(i) = cmplx(mxd_in(i),myd_in(i),double)
+      mpd_in(i) = cmplx(mxd_in(i),myd_in(i),dp)
       do concurrent (mu = 1:nOrb, lsuperCond)
         singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
       end do
@@ -1316,7 +1316,7 @@ contains
   !     mz - mz_in   = 0
   !  sum n - n_total = 0
   subroutine sc_equations(N,x,fvec,iuser,ruser,iflag)
-    use mod_f90_kind,          only: double
+    use mod_kind, only: dp
     use mod_system,            only: s => sys
     use mod_magnet,            only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,           only: update_Umatrix
@@ -1327,16 +1327,16 @@ contains
     implicit none
     integer  :: N,i,mu,iflag
     integer     ,    intent(inout)            :: iuser(1)
-    real(double),    intent(inout)            :: ruser(1)
-    real(double),    dimension(N)             :: x,fvec
-    real(double),    dimension(nOrb,s%nAtoms) :: rho_in
-    real(double),    dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
-    real(double),    dimension(nOrb,s%nAtoms) :: singlet_coupling_in
-    real(double),    dimension(nOrb,s%nAtoms) :: deltas
-    complex(double), dimension(s%nAtoms)      :: mpd_in
+    real(dp),    intent(inout)            :: ruser(1)
+    real(dp),    dimension(N)             :: x,fvec
+    real(dp),    dimension(nOrb,s%nAtoms) :: rho_in
+    real(dp),    dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
+    real(dp),    dimension(nOrb,s%nAtoms) :: singlet_coupling_in
+    real(dp),    dimension(nOrb,s%nAtoms) :: deltas
+    complex(dp), dimension(s%nAtoms)      :: mpd_in
 
     iuser = 0
-    ruser = 0.d0
+    ruser = 0._dp
 
     iflag=0
     ! Values used in the hamiltonian
@@ -1349,7 +1349,7 @@ contains
       mxd_in(i) = x((i-1)*neq_per_atom+6)
       myd_in(i) = x((i-1)*neq_per_atom+7)
       mzd_in(i) = x((i-1)*neq_per_atom+8)
-      mpd_in(i) = cmplx(mxd_in(i),myd_in(i),double)
+      mpd_in(i) = cmplx(mxd_in(i),myd_in(i),dp)
       do concurrent (mu = 1:nOrb, lsuperCond)
         singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
       end do
@@ -1404,7 +1404,7 @@ contains
   !  sum n - n_total = 0
   ! and the correspondent jacobian
   subroutine sc_eqs_and_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
-    use mod_f90_kind,          only: double
+    use mod_kind, only: dp
     use mod_system,            only: s => sys
     use mod_parameters,        only: nOrb, lcheckjac, leigenstates
     use mod_magnet,            only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
@@ -1415,13 +1415,13 @@ contains
     use mod_mpi_pars
     implicit none
     integer  :: N,i,mu,iflag,ldfjac
-    real(double),    dimension(N)             :: x,fvec
-    real(double),    dimension(ldfjac,N)      :: selfconjac
-    real(double),    dimension(nOrb,s%nAtoms) :: rho_in
-    real(double),    dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
-    real(double),    dimension(nOrb,s%nAtoms) :: singlet_coupling_in
-    real(double),    dimension(nOrb,s%nAtoms) :: deltas
-    complex(double), dimension(s%nAtoms)      :: mpd_in
+    real(dp),    dimension(N)             :: x,fvec
+    real(dp),    dimension(ldfjac,N)      :: selfconjac
+    real(dp),    dimension(nOrb,s%nAtoms) :: rho_in
+    real(dp),    dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
+    real(dp),    dimension(nOrb,s%nAtoms) :: singlet_coupling_in
+    real(dp),    dimension(nOrb,s%nAtoms) :: deltas
+    complex(dp), dimension(s%nAtoms)      :: mpd_in
 
     ! Values used in the hamiltonian
     rho_in = rho
@@ -1433,7 +1433,7 @@ contains
       mxd_in(i) = x((i-1)*neq_per_atom+6)
       myd_in(i) = x((i-1)*neq_per_atom+7)
       mzd_in(i) = x((i-1)*neq_per_atom+8)
-      mpd_in(i) = cmplx(mxd_in(i),myd_in(i),double)
+      mpd_in(i) = cmplx(mxd_in(i),myd_in(i),dp)
       do concurrent (mu = 1:nOrb, lsuperCond)
         singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
       end do
@@ -1499,7 +1499,7 @@ contains
   !     mz - mz_in   = 0
   !  sum n - n_total = 0
   subroutine sc_eqs_old(N,x,fvec,iflag)
-    use mod_f90_kind,          only: double
+    use mod_kind, only: dp
     use mod_system,            only: s => sys
     use mod_magnet,            only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,           only: update_Umatrix
@@ -1509,12 +1509,12 @@ contains
     use mod_mpi_pars
     implicit none
     integer  :: N,i,mu,iflag
-    real(double),    dimension(N)             :: x,fvec
-    real(double),    dimension(nOrb,s%nAtoms) :: rho_in
-    real(double),    dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
-    real(double),    dimension(nOrb,s%nAtoms) :: singlet_coupling_in
-    real(double),    dimension(nOrb,s%nAtoms) :: deltas
-    complex(double), dimension(s%nAtoms)      :: mpd_in
+    real(dp),    dimension(N)             :: x,fvec
+    real(dp),    dimension(nOrb,s%nAtoms) :: rho_in
+    real(dp),    dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
+    real(dp),    dimension(nOrb,s%nAtoms) :: singlet_coupling_in
+    real(dp),    dimension(nOrb,s%nAtoms) :: deltas
+    complex(dp), dimension(s%nAtoms)      :: mpd_in
 
     iflag=0
 
@@ -1528,7 +1528,7 @@ contains
       mxd_in(i) = x((i-1)*neq_per_atom+6)
       myd_in(i) = x((i-1)*neq_per_atom+7)
       mzd_in(i) = x((i-1)*neq_per_atom+8)
-      mpd_in(i) = cmplx(mxd_in(i),myd_in(i),double)
+      mpd_in(i) = cmplx(mxd_in(i),myd_in(i),dp)
       do concurrent (mu = 1:nOrb, lsuperCond)
         singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
       end do
@@ -1580,7 +1580,7 @@ contains
   !     mz - mz_in   = 0
   !  sum n - n_total = 0
   subroutine sc_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
-    use mod_f90_kind,          only: double
+    use mod_kind, only: dp
     use mod_system,            only: s => sys
     use mod_parameters,        only: nOrb
     use mod_magnet,            only: iter,rhod0,rho0,rho
@@ -1588,11 +1588,11 @@ contains
     use mod_superconductivity, only: lsuperCond, update_singlet_couplings
     implicit none
     integer       :: N,i,mu,ldfjac,iflag
-    real(double)  :: x(N),fvec(N),selfconjac(ldfjac,N)
-    real(double),    dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
-    real(double),    dimension(nOrb,s%nAtoms) :: rho_in
-    real(double),    dimension(nOrb,s%nAtoms) :: singlet_coupling_in
-    complex(double), dimension(s%nAtoms)      :: mpd_in
+    real(dp)  :: x(N),fvec(N),selfconjac(ldfjac,N)
+    real(dp),    dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
+    real(dp),    dimension(nOrb,s%nAtoms) :: rho_in
+    real(dp),    dimension(nOrb,s%nAtoms) :: singlet_coupling_in
+    complex(dp), dimension(s%nAtoms)      :: mpd_in
     !--------------------- begin MPI vars --------------------
 
     iflag=0
@@ -1607,7 +1607,7 @@ contains
       mxd_in(i) = x((i-1)*neq_per_atom+6)
       myd_in(i) = x((i-1)*neq_per_atom+7)
       mzd_in(i) = x((i-1)*neq_per_atom+8)
-      mpd_in(i) = cmplx(mxd_in(i),myd_in(i),double)
+      mpd_in(i) = cmplx(mxd_in(i),myd_in(i),dp)
       do concurrent (mu = 1:nOrb, lsuperCond)
         singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
       end do

@@ -1,12 +1,12 @@
 module mod_Coupling
-  use mod_f90_kind, only: double
+  use mod_kind, only: dp
   implicit none
   character(len=3), private :: folder = "Jij"
   character(len=3), dimension(3), private :: filename = ["Jij", "J  ", "Dz "]
 
   ! Exchange interaction
-  real(double), dimension(:,:), allocatable :: trJij
-  real(double), dimension(:,:,:,:), allocatable :: Jij,Jijs,Jija
+  real(dp), dimension(:,:), allocatable :: trJij
+  real(dp), dimension(:,:,:,:), allocatable :: Jij,Jijs,Jija
 
 contains
 
@@ -79,10 +79,10 @@ contains
   end subroutine closeCouplingFiles
 
   subroutine writeCoupling(e)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     use mod_System,     only: s => sys
     implicit none
-    real(double), intent(in) :: e
+    real(dp), intent(in) :: e
     integer :: i, j, iw
 
     do j=1,s%nAtoms
@@ -104,7 +104,7 @@ contains
 ! This subroutine calculates Js and Ks from the inverse static susceptibility
 ! It only works for FM or AFM alignments
   subroutine get_J_K_from_chi()
-    use mod_f90_kind,         only: double
+    use mod_kind, only: dp
     use mod_susceptibilities, only: schi
     use mod_parameters,       only: output,sigmai2i
     use mod_system,           only: s => sys
@@ -113,9 +113,9 @@ contains
     implicit none
     integer :: AllocateStatus
     integer,         dimension(:),     allocatable :: fmalign
-    real(double),    dimension(:),     allocatable :: Kx_minus_Ky, Kx_plus_Ky, Kx, Ky, Jtotal
-    real(double),    dimension(:,:),   allocatable :: Jij_chi
-    complex(double), dimension(:,:),   allocatable :: chi_inv
+    real(dp),    dimension(:),     allocatable :: Kx_minus_Ky, Kx_plus_Ky, Kx, Ky, Jtotal
+    real(dp),    dimension(:,:),   allocatable :: Jij_chi
+    complex(dp), dimension(:,:),   allocatable :: chi_inv
     integer :: i, j
 
     write(output%unit_loop, "('**********************************************************************')")
@@ -141,16 +141,16 @@ contains
     ! Definition: $E = -(J/2) \sum_{ij} m_i.m_j = -(J/2) \sum_{ij} M_i.M_j/(|M_i| |M_j|)$
     ! i.e.: J > 0 - FM coupling
     !       J < 0 - AFM coupling
-    Jtotal  = 0.d0
-    Jij_chi = 0.d0
+    Jtotal  = 0._dp
+    Jij_chi = 0._dp
     do j = 1,s%nAtoms
       do i = 1,s%nAtoms
-        if( (i == j) .or. (mabs(i) < 1.d-8) .or. (mabs(j) < 1.d-8) ) cycle
+        if( (i == j) .or. (mabs(i) < 1.e-8_dp) .or. (mabs(j) < 1.e-8_dp) ) cycle
 
-        if(dot_product(mvec_cartesian(:,i),mvec_cartesian(:,j))>0.d0) then
+        if(dot_product(mvec_cartesian(:,i),mvec_cartesian(:,j))>0._dp) then
           ! FM alignment:
           ! $J_{ij} = [\chi_{SS}^{-1}]^{+-}_{ij} |M_i| |M_j| / 2$
-          Jij_chi(i,j) = 0.5d0*real(chi_inv(sigmai2i(1,i),sigmai2i(1,j)))*mabs(i)*mabs(j)*13606.d0
+          Jij_chi(i,j) = 0.5_dp*real(chi_inv(sigmai2i(1,i),sigmai2i(1,j)))*mabs(i)*mabs(j)*13606._dp
           write(output%unit_loop,"('J(',i0,',',i0,') = ',es16.9,' meV (FM alignment)')") i,j,Jij_chi(i,j)
           Jtotal(i) = Jtotal(i) + Jij_chi(i,j)
 
@@ -163,7 +163,7 @@ contains
         else
           ! AFM alignment:
           ! $J_{ij} = -[\chi_{SS}^{-1}]^{++}_{ij} |M_i| |M_j| / 2$
-          Jij_chi(i,j) = -0.5d0*real(chi_inv(sigmai2i(1,i),sigmai2i(4,j)))*mabs(i)*mabs(j)*13606.d0
+          Jij_chi(i,j) = -0.5_dp*real(chi_inv(sigmai2i(1,i),sigmai2i(4,j)))*mabs(i)*mabs(j)*13606._dp
           write(output%unit_loop,"('J(',i0,',',i0,') = ',es16.9,' meV (AFM alignment)')") i,j,Jij_chi(i,j)
           Jtotal(i) = Jtotal(i) - Jij_chi(i,j)
 
@@ -183,21 +183,21 @@ contains
     ! i.e.: Kx,Ky > 0 - z is hard axis
     !       Kx,Ky < 0 - z is easy axis
     do i = 1,s%nAtoms
-      if(mabs(i) < 1.d-8) cycle
+      if(mabs(i) < 1.e-8_dp) cycle
 
-      Kx_plus_Ky(i)  = 0.5d0*real(chi_inv(sigmai2i(1,i),sigmai2i(1,i)))*mabs(i)*mabs(i)*13606.d0 + Jtotal(i)
-      Kx_minus_Ky(i) = 0.5d0*real(chi_inv(sigmai2i(1,i),sigmai2i(4,i)))*mabs(i)*mabs(i)*13606.d0
+      Kx_plus_Ky(i)  = 0.5_dp*real(chi_inv(sigmai2i(1,i),sigmai2i(1,i)))*mabs(i)*mabs(i)*13606._dp + Jtotal(i)
+      Kx_minus_Ky(i) = 0.5_dp*real(chi_inv(sigmai2i(1,i),sigmai2i(4,i)))*mabs(i)*mabs(i)*13606._dp
 
-      Kx(i) = 0.5d0*( Kx_plus_Ky(i) + Kx_minus_Ky(i) )
-      Ky(i) = 0.5d0*( Kx_plus_Ky(i) - Kx_minus_Ky(i) )
+      Kx(i) = 0.5_dp*( Kx_plus_Ky(i) + Kx_minus_Ky(i) )
+      Ky(i) = 0.5_dp*( Kx_plus_Ky(i) - Kx_minus_Ky(i) )
 
       write(output%unit_loop,"('Kx(',i0,') = ',es16.9,' meV , Ky(',i0,') = ',es16.9,' meV ')") i, Kx(i), i, Ky(i)
 
-      if(Kx_minus_Ky(i)<1.d-8) &
+      if(Kx_minus_Ky(i)<1.e-8_dp) &
         write(output%unit_loop,"('-> Uniaxial anisotropy: Kx(',i0,') = Ky(',i0,')')") i,i
-      if((Kx(i)<0.d0) .and. (Ky(i)<0.d0)) then
+      if((Kx(i)<0._dp) .and. (Ky(i)<0._dp)) then
         write(output%unit_loop,"('-> z is easy axis: Kx(',i0,'), Ky(',i0,') < 0')") i,i
-      else if((Kx(i)>0.d0) .and. (Ky(i)>0.d0)) then
+      else if((Kx(i)>0._dp) .and. (Ky(i)>0._dp)) then
         write(output%unit_loop,"('-> z is hard axis: Kx(',i0,'), Ky(',i0,') > 0')") i,i
       end if
 

@@ -56,12 +56,12 @@ contains
       select case(sys0(i)%Types(1)%isysdim)
       case(3)
         sys0(i)%isysdim = 3
-        realBZ % nkpt_x = ceiling((dble(kptotal_in))**(1.d0/3.d0),kind(kp_in(1)) )
+        realBZ % nkpt_x = ceiling((dble(kptotal_in))**(1._dp/3._dp),kind(kp_in(1)) )
         realBZ % nkpt_y = realBZ % nkpt_x
         realBZ % nkpt_z = realBZ % nkpt_x
       case(2)
         sys0(i)%isysdim = 2
-        realBZ % nkpt_x = ceiling((dble(kptotal_in))**(1.d0/2.d0),kind(kp_in(1)) )
+        realBZ % nkpt_x = ceiling((dble(kptotal_in))**(1._dp/2._dp),kind(kp_in(1)) )
         realBZ % nkpt_y = realBZ % nkpt_x
         realBZ % nkpt_z = 1
       case default
@@ -96,7 +96,7 @@ contains
         lb = cZero
         sb = cZero
         ls = cZero
-        singlet_coupling = 0.d0
+        singlet_coupling = 0._dp
 
         !------------------------ Conversion arrays -------------------------
         call initConversionMatrices(sys0(i)%nAtoms,nOrb)
@@ -152,7 +152,7 @@ contains
 
   subroutine calc_expectation_values(sys)
     !! Calculates the expectation values of n_mu^s and n_i/2
-    use mod_f90_kind,      only: double
+    use mod_kind, only: dp
     use mod_constants,     only: cZero
     use mod_System,        only: System
     use mod_parameters,    only: nOrb, leigenstates
@@ -163,19 +163,19 @@ contains
     implicit none
     integer      :: i
     type(System),                   intent(inout) :: sys
-    real(double), dimension(:,:)    , allocatable :: rho0
-    real(double), dimension(:)      , allocatable :: rhod0
-    real(double), dimension(nOrb,sys%nAtoms)      :: deltas
+    real(dp), dimension(:,:)    , allocatable :: rho0
+    real(dp), dimension(:)      , allocatable :: rhod0
+    real(dp), dimension(nOrb,sys%nAtoms)      :: deltas
 
     allocate( rho0(nOrb,sys%nAtoms),rhod0(sys%nAtoms) )
 
-    mzd = 0.d0
+    mzd = 0._dp
     mpd = cZero
     do i = 1, sys%nAtoms
       rhod (i) = sys%Types(sys%Basis(i)%Material)%OccupationD
       rhod0(i) = sys%Types(sys%Basis(i)%Material)%OccupationD
     end do
-    rho0 = 0.d0
+    rho0 = 0._dp
     rho  = rho0
     call init_Umatrix(mzd,mpd,rhod,rhod0,rho,rho0,sys%nAtoms,nOrb)
     if(leigenstates) then
@@ -226,7 +226,7 @@ contains
 
   function read_initial_Uterms(sys0,err) result(success)
     !! Writes the initial orbital dependent densities (calculated with tight-binding hamiltonian only) into files
-    use mod_f90_kind,      only: double
+    use mod_kind, only: dp
     use mod_parameters,    only: nOrb, output, dfttype
     use EnergyIntegration, only: parts
     use mod_System,        only: System
@@ -237,7 +237,7 @@ contains
     logical            :: success
     character(len=500) :: filename
     integer            :: j,mu
-    real(double)       :: previous_results_rho0(nOrb,sys0%nAtoms),previous_results_rhod0(sys0%nAtoms),Un_tmp,Um_tmp
+    real(dp)       :: previous_results_rho0(nOrb,sys0%nAtoms),previous_results_rhod0(sys0%nAtoms),Un_tmp,Um_tmp
 
     success = .false.
 
@@ -255,7 +255,7 @@ contains
     read(97,fmt=*) Un_tmp, Um_tmp
     close(97)
 
-    if((abs(Un_tmp - sys0%Types(1)%Un) > 1.d-15).or.(abs(Um_tmp - sys0%Types(1)%Um) > 1.d-15)) then ! Only works for 1 atom in unit cell of elemental file
+    if((abs(Un_tmp - sys0%Types(1)%Un) > 1.e-15_dp).or.(abs(Um_tmp - sys0%Types(1)%Um) > 1.e-15_dp)) then ! Only works for 1 atom in unit cell of elemental file
       write(output%unit,"('[read_initial_Uterms] Different value of Un, Um:')")
       write(output%unit,"('[read_initial_Uterms] Using for ',a,':', es16.9, es16.9,', Read from previous calculations: ', es16.9, es16.9)") trim(sys0%Types(1)%Name), sys0%Types(1)%Un, sys0%Types(1)%Um, Un_tmp, Um_tmp
       write(output%unit,"('[read_initial_Uterms] Recalculating expectation values...')")

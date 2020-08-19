@@ -11,22 +11,22 @@ contains
     ! iflag = 1 calculates A
     ! iflag = 2 calculates B
     ! Angles should be given in degrees
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     use mod_constants, only: cI,deg2rad
     implicit none
     integer,                        intent(in)  :: iflag
-    real(double),                   intent(in)  :: theta_in,phi_in
-    real(double)                                :: theta,phi,onepluscos,oneminuscos,sintheta
-    complex(double)                             :: expphi,expmphi
-    complex(double),dimension(4,4), intent(out) :: rotmat
+    real(dp),                   intent(in)  :: theta_in,phi_in
+    real(dp)                                :: theta,phi,onepluscos,oneminuscos,sintheta
+    complex(dp)                             :: expphi,expmphi
+    complex(dp),dimension(4,4), intent(out) :: rotmat
 
     theta = theta_in*deg2rad
     phi   = phi_in*deg2rad
 
     expphi      = exp(cI*phi)
     expmphi     = conjg(expphi)
-    onepluscos  = 1.d0 + cos(theta)
-    oneminuscos = 1.d0 - cos(theta)
+    onepluscos  = 1._dp + cos(theta)
+    oneminuscos = 1._dp - cos(theta)
     sintheta    = sin(theta)
 
     if(iflag==1) then ! left matrix
@@ -71,22 +71,22 @@ contains
       rotmat(4,4) = expmphi*onepluscos
     end if
 
-    rotmat = 0.5d0*rotmat
+    rotmat = 0.5_dp*rotmat
 
   end subroutine rotation_matrices_chi
 
   ! Rotation matrix of an angle theta (in degrees) around y axis
   subroutine rotation_matrix_ry(theta,ry)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     use mod_constants, only: deg2rad
     implicit none
-    real(double),                intent(in)  :: theta
-    real(double),dimension(3,3), intent(out) :: ry
+    real(dp),                intent(in)  :: theta
+    real(dp),dimension(3,3), intent(out) :: ry
 
-    ry = 0.d0
+    ry = 0._dp
     ry(1,1) = cos(theta*deg2rad)
     ry(1,3) = sin(theta*deg2rad)
-    ry(2,2) = 1.d0
+    ry(2,2) = 1._dp
     ry(3,1) =-sin(theta*deg2rad)
     ry(3,3) = cos(theta*deg2rad)
 
@@ -94,18 +94,18 @@ contains
 
   ! Rotation matrix of an angle phi (in degrees)  around z axis
   subroutine rotation_matrix_rz(phi,rz)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     use mod_constants, only: deg2rad
     implicit none
-    real(double),                intent(in)  :: phi
-    real(double),dimension(3,3), intent(out) :: rz
+    real(dp),                intent(in)  :: phi
+    real(dp),dimension(3,3), intent(out) :: rz
 
-    rz = 0.d0
+    rz = 0._dp
     rz(1,1) = cos(phi*deg2rad)
     rz(1,2) =-sin(phi*deg2rad)
     rz(2,1) = sin(phi*deg2rad)
     rz(2,2) = cos(phi*deg2rad)
-    rz(3,3) = 1.d0
+    rz(3,3) = 1._dp
 
   end subroutine rotation_matrix_rz
 end module mod_rotation_matrices

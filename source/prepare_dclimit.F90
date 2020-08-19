@@ -1,10 +1,10 @@
 ! This subroutine sets up external magnetic fields and related loop
 subroutine prepare_dclimit()
-  use mod_f90_kind
+  use, intrinsic :: iso_fortran_env
   use mod_parameters
   use mod_mpi_pars, only: myrank,ierr
   implicit none
-  real(double) :: e
+  real(dp) :: e
 
   ! Inicial checks
   if(.not.lfield) then
@@ -25,7 +25,7 @@ subroutine prepare_dclimit()
   ! Prefix for filenames containing the frequency/energy
   do count=1,nEner1
     e = emin + deltae*(count-1)
-    if(e<2.d-6) then
+    if(e<2.e-6_dp) then
       write(dcprefix(count),fmt="('dc')")
     else
       write(dcprefix(count),fmt="('hw=',es8.1,'_')") e

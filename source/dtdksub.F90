@@ -1,16 +1,16 @@
 ! Calculate the derivative of H0 of a slab in the direction ue
 subroutine dtdksub(ue,kp,dtdk)
-  use mod_f90_kind,         only: double
+  use mod_kind, only: dp
   use mod_constants,        only: cZero, cI
   use AtomTypes,            only: NeighborIndex
   use mod_system,           only: s => sys
   use mod_parameters,       only: nOrb
   implicit none
   integer :: i, j, k
-  real(double), intent(in)  :: kp(3)
-  real(double), intent(in)  :: ue(3)
-  complex(double),dimension(nOrb,nOrb,s%nAtoms,s%nAtoms),intent(out)  :: dtdk
-  complex(double) :: kpExp
+  real(dp), intent(in)  :: kp(3)
+  real(dp), intent(in)  :: ue(3)
+  complex(dp),dimension(nOrb,nOrb,s%nAtoms,s%nAtoms),intent(out)  :: dtdk
+  complex(dp) :: kpExp
 
   dtdk = cZero
   ! Mouting derivative of slab's hamiltonian

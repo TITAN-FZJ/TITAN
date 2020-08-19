@@ -1,7 +1,7 @@
 ! This is the main subroutine to calculate all quantities:
 ! currents, disturbances, torques, effective fields and susceptibilities
 subroutine calculate_all()
-  use mod_f90_kind,   only: double
+  use mod_kind, only: dp
   use mod_constants,  only: cZero, cOne, cI !, levi_civita
   use mod_parameters, only: lnodiag, Un, offset, output, laddresults, skip_steps, count, lhfresponses, sigmaimunu2i, emin, deltae, nQvec1, kpoints, dim, sigmai2i, dimspinAtoms
   use mod_magnet,     only: lfield, hhw, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, lrot
@@ -40,7 +40,7 @@ subroutine calculate_all()
   character(len=50) :: time
   integer           :: mcount,qcount
   integer           :: i,j,sigma,sigmap,mu,nu!,neighbor
-  real(double)      :: e,q(3)!,Icabs
+  real(dp)      :: e,q(3)!,Icabs
 
   call allocate_prefactors()
   call allocate_susceptibilities()
@@ -109,8 +109,8 @@ subroutine calculate_all()
           call eintshechi(q,e)
         end if
 
-        ! Checking sum rule for e=0.d0
-        if((abs(e) < 1.d-8).and.(sum(abs(q)) < 1.d-8)) call sumrule(chiorb_hf)
+        ! Checking sum rule for e=0._dp
+        if((abs(e) < 1.e-8_dp).and.(sum(abs(q)) < 1.e-8_dp)) call sumrule(chiorb_hf)
 
         ! prefactor = (1 + chi_hf*Umat)^-1
         prefactor     = identt
@@ -325,7 +325,7 @@ subroutine calculate_all()
                                               - (   lyp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
             end do
           end do
-          torques(1,:,i) = 0.5d0*s%Types(s%Basis(i)%Material)%LambdaD*torques(1,:,i)
+          torques(1,:,i) = 0.5_dp*s%Types(s%Basis(i)%Material)%LambdaD*torques(1,:,i)
 
           ! Exchange-correlation torques (calculated in the spin frame of reference)
           torques(2,1,i) = Un(i+offset)*(mvec_cartesian(3,i)*disturbances(3,i)-mvec_cartesian(2,i)*disturbances(4,i))
@@ -334,9 +334,9 @@ subroutine calculate_all()
 
           ! External torques (calculated in the spin frame of reference)
           if(lfield) then
-            torques(3,1,i) = 2.d0*(hhw(2,i+offset)*disturbances(4,i)-hhw(3,i+offset)*disturbances(3,i))
-            torques(3,2,i) = 2.d0*(hhw(3,i+offset)*disturbances(2,i)-hhw(1,i+offset)*disturbances(4,i))
-            torques(3,3,i) = 2.d0*(hhw(1,i+offset)*disturbances(3,i)-hhw(2,i+offset)*disturbances(2,i))
+            torques(3,1,i) = 2._dp*(hhw(2,i+offset)*disturbances(4,i)-hhw(3,i+offset)*disturbances(3,i))
+            torques(3,2,i) = 2._dp*(hhw(3,i+offset)*disturbances(2,i)-hhw(1,i+offset)*disturbances(4,i))
+            torques(3,3,i) = 2._dp*(hhw(1,i+offset)*disturbances(3,i)-hhw(2,i+offset)*disturbances(2,i))
           end if
 
           ! ! Calculating spin and charge current for each neighbor TODO : Re-Include
@@ -356,13 +356,13 @@ subroutine calculate_all()
 
         end do
 
-        disturbances(2:4,:) = 0.5d0*disturbances(2:4,:)
-        sdmat    = 0.5d0*sdmat
+        disturbances(2:4,:) = 0.5_dp*disturbances(2:4,:)
+        sdmat    = 0.5_dp*sdmat
         total_disturbances  = sum(disturbances,dim=2)
         total_torques       = sum(torques,dim=3)
 
         ! currents = currents !TODO:Re-Include
-        ! currents(2:4,:,:) =-0.5d0*currents(2:4,:,:) !TODO:Re-Include
+        ! currents(2:4,:,:) =-0.5_dp*currents(2:4,:,:) !TODO:Re-Include
         ! currents(3,:,:)   = currents(3,:,:)/cI !TODO:Re-Include
 
         ! Total currents for each neighbor direction (Sum of currents over all planes)
@@ -372,7 +372,7 @@ subroutine calculate_all()
         !call calculate_sha() !TODO: Re-Include
 
         ! DC spin current (second order)
-        ! dc_currents = 0.d0  !TODO:Re-Include
+        ! dc_currents = 0._dp  !TODO:Re-Include
         ! plane_loop_dc_current_all: do i=1,Npl
         !   do j=1,3 ; do mu = 1,3 ; do nu = 1,3
         !     dc_currents(j,i) = dc_currents(j,i) + levi_civita(j,mu,nu)*abs(disturbances(mu+1,i))*abs(disturbances(nu+1,i))*sin(atan2(aimag(disturbances(nu+1,i)),real(disturbances(nu+1,i))) - atan2(aimag(disturbances(mu+1,i)),real(disturbances(mu+1,i))))
@@ -384,9 +384,9 @@ subroutine calculate_all()
         ! plane_loop_effective_field_all
         do i = 1, s%nAtoms
           Beff_cart(1,i) =          (Beff(sigmai2i(2,i)) + Beff(sigmai2i(3,i))) ! 0
-          Beff_cart(2,i) = 0.5d0*   (Beff(sigmai2i(1,i)) + Beff(sigmai2i(4,i))) ! x
-          Beff_cart(3,i) =-0.5d0*cI*(Beff(sigmai2i(1,i)) - Beff(sigmai2i(4,i))) ! y
-          Beff_cart(4,i) = 0.5d0*   (Beff(sigmai2i(2,i)) - Beff(sigmai2i(3,i))) ! z
+          Beff_cart(2,i) = 0.5_dp*   (Beff(sigmai2i(1,i)) + Beff(sigmai2i(4,i))) ! x
+          Beff_cart(3,i) =-0.5_dp*cI*(Beff(sigmai2i(1,i)) - Beff(sigmai2i(4,i))) ! y
+          Beff_cart(4,i) = 0.5_dp*   (Beff(sigmai2i(2,i)) - Beff(sigmai2i(3,i))) ! z
         end do
         total_Beff  = sum(Beff_cart,dim=2)
 
@@ -395,24 +395,24 @@ subroutine calculate_all()
           do mcount = 1, sFreq(2)
             if (mcount/=1) then ! Receive all points except the first (that was calculated at myrank_row_hw)
               call MPI_Recv(e                ,1                ,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE ,4000,FreqComm(2),stat,ierr)
-              call MPI_Recv(q                ,3                ,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,4001,FreqComm(2),stat,ierr)
-              call MPI_Recv(mvec_spherical   ,3*s%nAtoms       ,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,4100,FreqComm(2),stat,ierr)
+              call MPI_Recv(q                ,3                ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),4001,FreqComm(2),stat,ierr)
+              call MPI_Recv(mvec_spherical   ,3*s%nAtoms       ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),4100,FreqComm(2),stat,ierr)
               if(.not.lhfresponses) &
-                call MPI_Recv(schi             , s%nAtoms*s%nAtoms*16   , MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,4200,FreqComm(2),stat,ierr)
-              call MPI_Recv(schihf             , s%nAtoms*s%nAtoms*16   , MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,4300,FreqComm(2),stat,ierr)
-              call MPI_Recv(Beff_cart          , 4*s%nAtoms             , MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,4400,FreqComm(2),stat,ierr)
-              call MPI_Recv(total_Beff         , 4                      , MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,4450,FreqComm(2),stat,ierr)
-              call MPI_Recv(disturbances       , 7*s%nAtoms             , MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,4500,FreqComm(2),stat,ierr)
-              call MPI_Recv(total_disturbances , 7                      , MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,4550,FreqComm(2),stat,ierr)
-              call MPI_Recv(torques            , ntypetorque*3*s%nAtoms , MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,4800,FreqComm(2),stat,ierr)
-              call MPI_Recv(total_torques      , ntypetorque*3          , MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,4850,FreqComm(2),stat,ierr)
-              !call MPI_Recv(currents         ,7*n0sc*s%nAtoms  ,MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,4600,FreqComm(2),stat,ierr) !TODO:Re-Include
-              !call MPI_Recv(dc_currents      ,3*s%nAtoms       ,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,5100,FreqComm(2),stat,ierr) !TODO:Re-Include
-              !call MPI_Recv(total_currents   ,7*n0sc           ,MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,4700,FreqComm(2),stat,ierr) !TODO:Re-Include
-              !call MPI_Recv(sha_re           ,4*s%nAtoms       ,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,5200,FreqComm(2),stat,ierr) !TODO:Re-Include
-              !call MPI_Recv(sha_re_total     ,4                ,MPI_DOUBLE_PRECISION,stat%MPI_SOURCE,5300,FreqComm(2),stat,ierr) !TODO:Re-Include
-              !call MPI_Recv(sha_complex      ,4*s%nAtoms       ,MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,5400,FreqComm(2),stat,ierr) !TODO:Re-Include
-              !call MPI_Recv(sha_complex_total,4                ,MPI_DOUBLE_COMPLEX  ,stat%MPI_SOURCE,5500,FreqComm(2),stat,ierr) !TODO:Re-Include
+                call MPI_Recv(schi             , s%nAtoms*s%nAtoms*16   , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4200,FreqComm(2),stat,ierr)
+              call MPI_Recv(schihf             , s%nAtoms*s%nAtoms*16   , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4300,FreqComm(2),stat,ierr)
+              call MPI_Recv(Beff_cart          , 4*s%nAtoms             , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4400,FreqComm(2),stat,ierr)
+              call MPI_Recv(total_Beff         , 4                      , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4450,FreqComm(2),stat,ierr)
+              call MPI_Recv(disturbances       , 7*s%nAtoms             , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4500,FreqComm(2),stat,ierr)
+              call MPI_Recv(total_disturbances , 7                      , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4550,FreqComm(2),stat,ierr)
+              call MPI_Recv(torques            , ntypetorque*3*s%nAtoms , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4800,FreqComm(2),stat,ierr)
+              call MPI_Recv(total_torques      , ntypetorque*3          , MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4850,FreqComm(2),stat,ierr)
+              !call MPI_Recv(currents         ,7*n0sc*s%nAtoms  ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4600,FreqComm(2),stat,ierr) !TODO:Re-Include
+              !call MPI_Recv(dc_currents      ,3*s%nAtoms       ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),5100,FreqComm(2),stat,ierr) !TODO:Re-Include
+              !call MPI_Recv(total_currents   ,7*n0sc           ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),4700,FreqComm(2),stat,ierr) !TODO:Re-Include
+              !call MPI_Recv(sha_re           ,4*s%nAtoms       ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),5200,FreqComm(2),stat,ierr) !TODO:Re-Include
+              !call MPI_Recv(sha_re_total     ,4                ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),5300,FreqComm(2),stat,ierr) !TODO:Re-Include
+              !call MPI_Recv(sha_complex      ,4*s%nAtoms       ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),5400,FreqComm(2),stat,ierr) !TODO:Re-Include
+              !call MPI_Recv(sha_complex_total,4                ,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),5500,FreqComm(2),stat,ierr) !TODO:Re-Include
             end if
 
             ! DIAGONALIZING SUSCEPTIBILITY

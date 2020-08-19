@@ -27,10 +27,10 @@ contains
   !    This subroutine calculates the cross product of arrays a and b
   ! --------------------------------------------------------------------
   function cross(a, b)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     implicit none
-    real(double), dimension(3) :: cross
-    real(double), dimension(3), intent(in) :: a, b
+    real(dp), dimension(3) :: cross
+    real(dp), dimension(3), intent(in) :: a, b
 
     cross(1) = a(2) * b(3) - a(3) * b(2)
     cross(2) = a(3) * b(1) - a(1) * b(3)
@@ -42,10 +42,10 @@ contains
   !    Calculating the distance of two 3D points a and b
   ! --------------------------------------------------------------------
   function vecDist(a,b)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     implicit none
-    real(double) :: vecDist
-    real(double), dimension(3), intent(in) :: a, b
+    real(dp) :: vecDist
+    real(dp), dimension(3), intent(in) :: a, b
 
     vecDist = sqrt(dot_product(a - b, a - b))
   end function vecDist
@@ -56,15 +56,15 @@ contains
   ! --------------------------------------------------------------------
 
   function is_parallel(a,b)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     implicit none
     logical :: is_parallel
-    real(double), dimension(3) :: crs
-    real(double), dimension(3), intent(in) :: a, b
+    real(dp), dimension(3) :: crs
+    real(dp), dimension(3), intent(in) :: a, b
 
     is_parallel = .false.
     crs = cross(a,b)
-    if( 1d-9 > dot_product(crs(1:3),crs(1:3)) ) then
+    if( 1e-9_dp > dot_product(crs(1:3),crs(1:3)) ) then
       is_parallel = .true.
     end if
   end function is_parallel
@@ -75,13 +75,13 @@ contains
   ! --------------------------------------------------------------------
 
   function is_perpendicular(a,b)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     implicit none
     logical :: is_perpendicular
-    real(double), dimension(3), intent(in) :: a, b
+    real(dp), dimension(3), intent(in) :: a, b
 
     is_perpendicular = .false.
-    if( 1.d-9 > abs(dot_product(a,b)) ) then
+    if( 1.e-9_dp > abs(dot_product(a,b)) ) then
       is_perpendicular = .true.
     end if
   end function is_perpendicular
@@ -92,10 +92,10 @@ contains
   ! of the cross product of arrays a and b
   ! --------------------------------------------------------------------
   function cross_unit(a, b)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     implicit none
-    real(double), dimension(3) :: cross_unit
-    real(double), dimension(3), intent(in) :: a, b
+    real(dp), dimension(3) :: cross_unit
+    real(dp), dimension(3), intent(in) :: a, b
 
     cross_unit(1) = a(2) * b(3) - a(3) * b(2)
     cross_unit(2) = a(3) * b(1) - a(1) * b(3)
@@ -110,10 +110,10 @@ contains
   !  'order' with the positions of ascending numbers of x.
   ! --------------------------------------------------------------------
   subroutine sort_int(x, size, order)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     implicit none
     integer,                       intent(in)  :: size
-    real(double), dimension(size), intent(in)  :: x
+    real(dp), dimension(size), intent(in)  :: x
     integer     , dimension(size), intent(out) :: order
     integer                                    :: i
     logical,      dimension(:), allocatable    :: mask
@@ -136,12 +136,12 @@ contains
   !  'order' with the positions of ascending numbers of x.
   ! --------------------------------------------------------------------
   subroutine sort_double_int(x, size, order)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp, int64
     implicit none
-    integer*8,                     intent(in)  :: size
-    real(double), dimension(size), intent(in)  :: x
-    integer*8   , dimension(size), intent(out) :: order
-    integer*8                                  :: i
+    integer(int64),                     intent(in)  :: size
+    real(dp), dimension(size), intent(in)  :: x
+    integer(int64)   , dimension(size), intent(out) :: order
+    integer(int64)                                  :: i
     logical,      dimension(:), allocatable    :: mask
 
     allocate( mask(size) )
@@ -231,11 +231,11 @@ contains
   ! Blank lines are ignored.
   ! --------------------------------------------------------------------
   subroutine read_data(unit,rows,cols,data)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     use mod_mpi_pars, only: abortProgram
     implicit none
     integer     , intent(in)  :: unit,rows,cols
-    real(double), intent(out) :: data(rows,cols)
+    real(dp), intent(out) :: data(rows,cols)
     character(len=900)        :: stringtemp
     integer :: ios,i,j
 
@@ -268,11 +268,11 @@ contains
   ! is, and .false. for the comments
   ! --------------------------------------------------------------------
   subroutine read_data_with_comments(unit,rows,cols,commented_rows,data,comments,mask)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     use mod_mpi_pars, only: abortProgram
     implicit none
     integer     , intent(in)  :: unit,rows,cols,commented_rows
-    real(double), intent(out) :: data(rows,cols)
+    real(dp), intent(out) :: data(rows,cols)
     character(len=900), dimension(commented_rows),      intent(out) :: comments
     logical,            dimension(rows+commented_rows), intent(out) :: mask
 
@@ -313,7 +313,7 @@ contains
   !    This subroutine sorts the lines containing data of file 'unit'
   ! --------------------------------------------------------------------
   subroutine sort_file(unit)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     use mod_mpi_pars
     ! use mod_mpi_pars, only: abortProgram
     implicit none
@@ -322,7 +322,7 @@ contains
     integer             :: i,j,k,l,rows,cols,commented_rows
     character(len=900), allocatable :: comments(:)
     integer     ,       allocatable :: order(:)
-    real(double),       allocatable :: data(:,:),x(:)
+    real(dp),       allocatable :: data(:,:),x(:)
     logical,            allocatable :: mask(:)
 
     ! Obtaining number of rows and cols in the file
@@ -378,8 +378,9 @@ contains
   end function I4toS
 
   character(len=100) function I8toS(i)
+    use mod_kind, only: int64
     implicit none
-    integer*8 :: i
+    integer(int64) :: i
     write(I8toS, "(i0)") i
   end function I8toS
 
@@ -389,9 +390,9 @@ contains
   ! It also cuts leading spaces (on the left)
   ! --------------------------------------------------------------------
   character(len=900) function RtoS(r,format)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     implicit none
-    real(double)     :: r
+    real(dp)     :: r
     character(len=*) :: format
     write(Rtos, fmt=format) r
     RtoS = adjustl(RtoS)
@@ -404,11 +405,11 @@ contains
   ! of two matrices A(nax,nay) and B(nbx,nby)
   ! --------------------------------------------------------------------
   subroutine KronProd(nax,nay,nbx,nby,A,B,AB)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     implicit none
     integer,         intent(in)  :: nax, nay, nbx, nby
-    complex(double), intent(in)  :: A(nax,nay), B(nbx,nby) 
-    complex(double), intent(out) :: AB(nax*nbx,nay*nby) 
+    complex(dp), intent(in)  :: A(nax,nay), B(nbx,nby) 
+    complex(dp), intent(out) :: AB(nax*nbx,nay*nby) 
     integer                      :: i, j, p, q, l, m                                              
     do i = 1,nax
       do j = 1,nay
@@ -427,15 +428,15 @@ contains
   ! dim_v.
   ! --------------------------------------------------------------------
   function vec_norm_complex(v, dim_v)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     implicit none
     integer,                           intent(in) :: dim_v ! vector dimension
-    complex(double), dimension(dim_v), intent(in) :: v ! vector v
-    real(double)                                  :: vec_norm_complex
-    real(double)                                  :: sum
+    complex(dp), dimension(dim_v), intent(in) :: v ! vector v
+    real(dp)                                  :: vec_norm_complex
+    real(dp)                                  :: sum
     integer                                       :: i
 
-    sum= 0.d0
+    sum= 0._dp
     !$omp simd reduction(+:sum)
     do i = 1, dim_v
       sum = sum + real(v(i)*conjg(v(i)))
@@ -450,11 +451,11 @@ contains
   ! dim_v.
   ! --------------------------------------------------------------------
   function vec_norm_real(v, dim_v)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     implicit none
     integer,                        intent(in) :: dim_v ! vector dimension
-    real(double), dimension(dim_v), intent(in) :: v ! vector v
-    real(double)                               :: vec_norm_real
+    real(dp), dimension(dim_v), intent(in) :: v ! vector v
+    real(dp)                               :: vec_norm_real
 
     vec_norm_real = sqrt(dot_product(v,v))
   end function vec_norm_real
@@ -466,11 +467,11 @@ contains
   ! dim_v.
   ! --------------------------------------------------------------------
   function normalize_complex(v, dim_v)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     implicit none
     integer,                           intent(in) :: dim_v ! vector dimension
-    complex(double), dimension(dim_v), intent(in) :: v ! vector v
-    complex(double), dimension(dim_v)             :: normalize_complex
+    complex(dp), dimension(dim_v), intent(in) :: v ! vector v
+    complex(dp), dimension(dim_v)             :: normalize_complex
 
     normalize_complex = v/vec_norm(v,dim_v)
   end function normalize_complex
@@ -482,11 +483,11 @@ contains
   ! dim_v.
   ! --------------------------------------------------------------------
   function normalize_real(v, dim_v)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     implicit none
     integer,                        intent(in) :: dim_v ! vector dimension
-    real(double), dimension(dim_v), intent(in) :: v ! vector v
-    real(double), dimension(dim_v)             :: normalize_real
+    real(dp), dimension(dim_v), intent(in) :: v ! vector v
+    real(dp), dimension(dim_v)             :: normalize_real
 
     normalize_real = v/vec_norm(v,dim_v)
   end function normalize_real
@@ -498,17 +499,17 @@ contains
   ! system solver A*X = B.
   ! --------------------------------------------------------------------
   subroutine LS_solver(n,a,b)
-    use mod_f90_kind, only: double
+    use mod_kind, only: dp
     implicit none
     
     integer,         intent(in)      :: n
-    complex(double), intent(inout)   :: a(n,n)
-    complex(double), intent(inout)   :: b(n)
+    complex(dp), intent(inout)   :: a(n,n)
+    complex(dp), intent(inout)   :: b(n)
     ! Workspace variables
     integer                          :: nrhs, lda, ldb, ldx, info
     integer,          allocatable    :: ipiv(:)
     complex,          allocatable    :: swork(:)
-    complex(double),  allocatable    :: work(:), X(:)
+    complex(dp),  allocatable    :: work(:), X(:)
     double precision, allocatable    :: rwork(:)
 
     lda= n

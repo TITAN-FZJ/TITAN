@@ -15,7 +15,7 @@
 !------------------------------------------------------------------------------------!
 
 module Lattice
-  use mod_f90_kind, only: double
+  use mod_kind, only: dp
   use AtomTypes,    only: NeighborAtom
   implicit none
 
@@ -49,7 +49,7 @@ contains
     !! Number of generated unit cells
     integer :: i,j,k,l
     !! Loop variables
-    real(double), allocatable, dimension(:,:) :: localDistances
+    real(dp), allocatable, dimension(:,:) :: localDistances
     !! Array containing *all* distances
 
     ! Number of unit cells to be generated along each dimensions
@@ -103,8 +103,8 @@ contains
         ! Calculate distances and directional cosines
         do k = 1, s%nAtoms
           list(size)%Distance(k) = vecDist(list(size)%Position, s%Basis(k)%Position)
-          list(size)%dirCos(:,k) = 0.d0
-          if(list(size)%Distance(k) <= 1.0d-9) cycle
+          list(size)%dirCos(:,k) = 0._dp
+          if(list(size)%Distance(k) <= 1.0e-9_dp) cycle
           list(size)%dirCos(:,k) = (list(size)%Position - s%Basis(k)%Position) / list(size)%Distance(k)
 
           ! Sort distances *new*
@@ -112,7 +112,7 @@ contains
           l = size - 1
           do while(1 <= l)
             ! If distance of current atoms is larger than what is saved at position l, exit loop
-            if(localDistances(l,k) - list(size)%Distance(k) < 1.d-9) exit
+            if(localDistances(l,k) - list(size)%Distance(k) < 1.e-9_dp) exit
             localDistances(l+1,k) = localDistances(l,k)
             l = l - 1
           end do
@@ -122,7 +122,7 @@ contains
           ! l = s%nStages
           ! do while(1 <= l)
           !   ! If distance of current atoms is larger than what is saved for the current nn stage, exit loop
-          !   if(s%Distances(l,k) - list(size)%Distance(k) < 1.d-9) exit
+          !   if(s%Distances(l,k) - list(size)%Distance(k) < 1.e-9_dp) exit
           !
           !   ! When a larger stage exists, move current stage l one up and set new value
           !   if(l < s%nStages) s%Distances(l+1,k) = s%Distances(l,k)
@@ -130,7 +130,7 @@ contains
           ! end do
           ! if(l == 0) then
           !   s%Distances(l+1,k) = list(size)%Distance(k)
-          ! elseif(abs(s%Distances(l,k)-list(size)%Distance(k)) >= 1.d-9 .and. l < s%nStages) then
+          ! elseif(abs(s%Distances(l,k)-list(size)%Distance(k)) >= 1.e-9_dp .and. l < s%nStages) then
           !   s%Distances(l+1,k) = list(size)%Distance(k)
           ! end if
         end do

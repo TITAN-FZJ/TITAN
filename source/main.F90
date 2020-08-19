@@ -4,7 +4,7 @@ program TITAN
   !! loops over number of planes and magnetic field to do the
   !! magnetic self-consistency and calculate either ground state
   !! quantities or response functions
-  !use mod_f90_kind
+  !use, intrinsic :: iso_fortran_env
   use mod_constants
   use mod_parameters
   use mod_io
@@ -57,7 +57,6 @@ program TITAN
   end if
 
   if(myrank == 0) call write_time(output%unit,'[main] Started on: ')
-
   !------------------- Useful constants and matrices -------------------
   call define_constants() ! TODO: Review
 
@@ -231,8 +230,8 @@ program TITAN
     !------------------------ Begin first test part --------------------
     ! if(rField == 0 .and. itype==0) then
     !   write(output%unit_loop,"('[main] FIRST TEST PART')")
-    !   rho  = 0.d0
-    !   mz  = 0.d0
+    !   rho  = 0._dp
+    !   mz  = 0._dp
     !   mp  = cZero
     !   ! Variables used in the hamiltonian
     !
@@ -255,8 +254,8 @@ program TITAN
 
     if(rField == 0 .and. itype==0) then
       write(output%unit_loop,"('[main] FIRST TEST PART')")
-      rho  = 0.d0
-      mz  = 0.d0
+      rho  = 0._dp
+      mz  = 0._dp
       mp  = cZero
       ! Variables used in the hamiltonian
 

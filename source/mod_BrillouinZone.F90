@@ -15,54 +15,61 @@
 ! 26 September 2017 - Last Changes
 !-------------------------------------------------------------------------------------!
 module mod_BrillouinZone
-   use mod_f90_kind, only: double
-   use MPI_f08,      only: MPI_Comm
-   implicit none
+  use mod_kind, only: dp, int32, int64
+  ! use MPI_f08,      only: MPI_Comm
+  implicit none
 
-   type :: BrillouinZone
-      integer*8 :: nkpt_rep = 0 ! K-points with repetitions on the edges
-      integer*8 :: nkpt     = 0 ! K-points without repetitions on the edges (weights take care of that)
-      integer*4 :: nkpt_x   = 0
-      integer*4 :: nkpt_y   = 0
-      integer*4 :: nkpt_z   = 0
+  type :: BrillouinZone
+    integer(int64) :: nkpt_rep = 0 ! K-points with repetitions on the edges
+    integer(int64) :: nkpt     = 0 ! K-points without repetitions on the edges (weights take care of that)
+    integer(int32) :: nkpt_x   = 0
+    integer(int32) :: nkpt_y   = 0
+    integer(int32) :: nkpt_z   = 0
 
-      real(double), dimension(:,:), allocatable :: kp
-      real(double), dimension(:),   allocatable :: w
-      real(double), dimension(3) :: b1, b2, b3
+    real(dp), dimension(:,:), allocatable :: kp
+    real(dp), dimension(:),   allocatable :: w
+    real(dp), dimension(3) :: b1, b2, b3
 
-   contains
-      procedure :: free => deallocate_BrillouinZone
-      procedure :: isAlloc => isAlloc_BrillouinZone
-      procedure :: countBZ
-      procedure :: print => output_kpoints
-   end type BrillouinZone
+  contains
+    procedure :: free => deallocate_BrillouinZone
+    procedure :: isAlloc => isAlloc_BrillouinZone
+    procedure :: countBZ
+    procedure :: print => output_kpoints
+  end type BrillouinZone
 
-   type, extends(BrillouinZone) :: FractionalBrillouinZone
-     integer*8 :: workload = 0
-     integer*8 :: first = 0
-     integer*8 :: last = 0
-     integer*4 :: size, rank
-     type(MPI_Comm) :: comm
-   contains
-     procedure :: setup_fraction
-     procedure :: gen1DFraction
-     procedure :: gen2DFraction
-     procedure :: gen3DFraction
-   end type FractionalBrillouinZone
+  type, extends(BrillouinZone) :: FractionalBrillouinZone
+    integer(int64) :: workload = 0
+    integer(int64) :: first = 0
+    integer(int64) :: last = 0
+    integer(int32) :: size, rank, comm
+    ! MPI_f08:
+    ! integer(int32) :: size, rank
+    ! type(MPI_Comm) :: comm
+  contains
+    procedure :: setup_fraction
+    procedure :: gen1DFraction
+    procedure :: gen2DFraction
+    procedure :: gen3DFraction
+  end type FractionalBrillouinZone
 
-   type(FractionalBrillouinZone) :: realBZ
+  type(FractionalBrillouinZone) :: realBZ
 
 contains
 
   subroutine setup_fraction(self, sys, rank, size, comm, lkpoints)
+    use mod_kind, only: int32
     use mod_mpi_pars, only: calcWorkload
     use mod_System,   only: System
     implicit none
     class(FractionalBrillouinZone) :: self
-    type(System),   intent(in) :: sys
-    integer*4,      intent(in) :: rank, size
-    type(MPI_Comm), intent(in) :: comm
-    logical,        intent(in), optional :: lkpoints
+    type(System),intent(in) :: sys
+    integer(int32),   intent(in) :: rank, size, comm
+    logical,     intent(in), optional :: lkpoints
+    ! MPI_f08:
+    ! type(System),   intent(in) :: sys
+    ! integer(int32),      intent(in) :: rank, size
+    ! type(MPI_Comm), intent(in) :: comm
+    ! logical,        intent(in), optional :: lkpoints
 
     character(len=50) :: filename
 
@@ -95,11 +102,12 @@ contains
   end subroutine setup_fraction
 
   subroutine countBZ(self,sys)
+    use mod_kind, only: int64
     use mod_System, only: System
     implicit none
     class(BrillouinZone)     :: self
     type(System), intent(in) :: sys
-    integer*8                :: total
+    integer(int64)                :: total
 
     select case(sys%isysdim)
     case(3)
@@ -133,7 +141,7 @@ contains
   end function isAlloc_BrillouinZone
 
   subroutine gen3DFraction(self,sys,first,last)
-    use mod_f90_kind,  only: double
+    use mod_kind, only: dp, int32, int64
     use mod_constants, only: tpi
     use mod_tools,     only: cross, itos, vec_norm
     use mod_mpi_pars,  only: abortProgram
@@ -141,26 +149,26 @@ contains
     implicit none
     class(FractionalBrillouinZone) :: self
     type(System), intent(in)       :: sys
-    integer*8,    intent(in)       :: first, last
-    real(double), dimension(3,8)   :: bz_vec
-    real(double), dimension(3,8)   :: diff
-    real(double), dimension(3)     :: kp, b1, b2, b3, largest
-    real(double) :: vol
-    real(double) :: smallest_dist, distance(8), ini_smallest_dist
-    integer*8    :: nkpt, l
-    integer*4    :: nx, ny, nz
-    integer*8    :: count, added, weight, range
-    integer*4    :: j
+    integer(int64),    intent(in)       :: first, last
+    real(dp), dimension(3,8)   :: bz_vec
+    real(dp), dimension(3,8)   :: diff
+    real(dp), dimension(3)     :: kp, b1, b2, b3, largest
+    real(dp) :: vol
+    real(dp) :: smallest_dist, distance(8), ini_smallest_dist
+    integer(int64)    :: nkpt, l
+    integer(int32)    :: nx, ny, nz
+    integer(int64)    :: count, added, weight, range
+    integer(int32)    :: j
 
     allocate( self%w(self%workload), self%kp(3,self%workload) )
-    self%w = 1.d0
+    self%w = 1._dp
     nkpt = self%nkpt_x * self%nkpt_y * self%nkpt_z
     vol  = tpi / dot_product(sys%a1, cross(sys%a2,sys%a3))
     b1   = vol * cross(sys%a2,sys%a3)
     b2   = vol * cross(sys%a3,sys%a1)
     b3   = vol * cross(sys%a1,sys%a2)
 
-    bz_vec(1:3,1) = 0.d0
+    bz_vec(1:3,1) = 0._dp
     bz_vec(1:3,2) = b1
     bz_vec(1:3,3) = b2
     bz_vec(1:3,4) = b1 + b2
@@ -172,7 +180,7 @@ contains
     !Translate the k-points to the 1st BZ.
     !10*|b1+b2+b3|, bigger than the distance of any genarated kpoint
     largest = b1 + b2 + b3
-    ini_smallest_dist = 10.d0 * vec_norm(largest, 3)
+    ini_smallest_dist = 10._dp * vec_norm(largest, 3)
     count = 0
     added = 0
     !Run over all the kpoints generated initially.
@@ -198,7 +206,7 @@ contains
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 8
-        if( abs(distance(j)-smallest_dist) < 1.d-12 ) then
+        if( abs(distance(j)-smallest_dist) < 1.e-12_dp ) then
           count = count + 1
           weight = weight + 1
           if(count >= first .and. count <= last ) then
@@ -208,7 +216,7 @@ contains
           end if
         end if
       end do
-      self%w(added-range+1:added) = 1.d0 / dble(weight)
+      self%w(added-range+1:added) = 1._dp / dble(weight)
     end do
     self%w = self%w / dble(nkpt)
 
@@ -222,21 +230,21 @@ contains
  end subroutine gen3DFraction
 
   subroutine count_3D_BZ(nkpt_in, a1, a2, a3, numextrakbz, nkpt)
-    use mod_f90_kind,  only: double
+    use mod_kind, only: dp, int32, int64
     use mod_constants, only: tpi
     use mod_tools,     only: cross, vec_norm
     implicit none
-    integer*8,                  intent(in)  :: nkpt_in
-    real(double), dimension(3), intent(in)  :: a1, a2, a3
-    integer*8,                  intent(out) :: numextrakbz, nkpt
-    real(double), dimension(3)   :: kp, b1, b2, b3, largest
-    real(double), dimension(3,8) :: bz_vec
-    real(double), dimension(3,8) :: diff
-    real(double) :: smallest_dist, distance(8), ini_smallest_dist, vol
-    integer*4    :: j, nkpt_x, nkpt_y, nkpt_z, nx, ny, nz, nkpt_perdim
-    integer*8    :: l
+    integer(int64),                  intent(in)  :: nkpt_in
+    real(dp), dimension(3), intent(in)  :: a1, a2, a3
+    integer(int64),                  intent(out) :: numextrakbz, nkpt
+    real(dp), dimension(3)   :: kp, b1, b2, b3, largest
+    real(dp), dimension(3,8) :: bz_vec
+    real(dp), dimension(3,8) :: diff
+    real(dp) :: smallest_dist, distance(8), ini_smallest_dist, vol
+    integer(int32)    :: j, nkpt_x, nkpt_y, nkpt_z, nx, ny, nz, nkpt_perdim
+    integer(int64)    :: l
 
-    nkpt_perdim = ceiling((dble(nkpt_in))**(1.d0/3.d0))
+    nkpt_perdim = ceiling((dble(nkpt_in))**(1._dp/3._dp))
     nkpt_x = nkpt_perdim
     nkpt_y = nkpt_perdim
     nkpt_z = nkpt_perdim
@@ -248,7 +256,7 @@ contains
     b2  = vol * cross(a3, a1)
     b3  = vol * cross(a1, a2)
 
-    bz_vec(1:3,1) = 0.d0
+    bz_vec(1:3,1) = 0._dp
     bz_vec(1:3,2) = b1
     bz_vec(1:3,3) = b2
     bz_vec(1:3,4) = b1 + b2
@@ -260,7 +268,7 @@ contains
     !Translate the k-points to the 1st BZ.
     !10*|b1+b2+b3|, bigger than the distance of any genarated kpoint
     largest = b1 + b2 + b3
-    ini_smallest_dist = 10.d0 * vec_norm(largest, 3)
+    ini_smallest_dist = 10._dp * vec_norm(largest, 3)
     numextrakbz = 0
     !Run over all the kpoints generated initially.
     !$omp parallel do default(none) reduction(+:numextrakbz) &
@@ -285,14 +293,14 @@ contains
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 8
-        if( abs(distance(j)-smallest_dist) < 1.d-12 ) numextrakbz=numextrakbz+1
+        if( abs(distance(j)-smallest_dist) < 1.e-12_dp ) numextrakbz=numextrakbz+1
       end do
     end do
     !$omp end parallel do
   end subroutine count_3D_BZ
 
   subroutine gen2DFraction(self,sys,first,last)
-    use mod_f90_kind,  only: double
+    use mod_kind, only: dp, int32, int64
     use mod_constants, only: tpi
     use mod_tools,     only: cross, itos, vec_norm
     use mod_mpi_pars,  only: abortProgram
@@ -300,26 +308,26 @@ contains
     implicit none
     class(FractionalBrillouinZone) :: self
     type(System), intent(in)       :: sys
-    integer*8,    intent(in)       :: first, last
-    real(double), dimension(3,4)   :: bz_vec
-    real(double), dimension(3,4)   :: diff
-    real(double), dimension(3)     :: kp, zdir, b1, b2, largest
-    real(double) :: vol
-    real(double) :: smallest_dist, distance(4), ini_smallest_dist
-    integer*8    :: nkpt, l
-    integer*4    :: nx, ny
-    integer*8    :: count, added, weight, range
-    integer*4    :: j
+    integer(int64),    intent(in)       :: first, last
+    real(dp), dimension(3,4)   :: bz_vec
+    real(dp), dimension(3,4)   :: diff
+    real(dp), dimension(3)     :: kp, zdir, b1, b2, largest
+    real(dp) :: vol
+    real(dp) :: smallest_dist, distance(4), ini_smallest_dist
+    integer(int64)    :: nkpt, l
+    integer(int32)    :: nx, ny
+    integer(int64)    :: count, added, weight, range
+    integer(int32)    :: j
 
-    zdir = [0.d0,0.d0,1.d0]
+    zdir = [0._dp,0._dp,1._dp]
     allocate( self%w(self%workload), self%kp(3,self%workload) )
-    self%w = 1.d0
+    self%w = 1._dp
     nkpt = self%nkpt_x * self%nkpt_y
     vol  = tpi/dot_product(zdir, cross(sys%a1,sys%a2))
     b1   = vol*cross(sys%a1,zdir)
     b2   = vol*cross(zdir,sys%a2)
 
-    bz_vec(:,1) = 0.d0
+    bz_vec(:,1) = 0._dp
     bz_vec(:,2) = b1
     bz_vec(:,3) = b2
     bz_vec(:,4) = b1 + b2
@@ -327,7 +335,7 @@ contains
     !Translate the k-points to the 1st BZ.
     !10*|b1+b2|, bigger than the distance of any genarated kpoint
     largest = b1 + b2
-    ini_smallest_dist = 10.d0 * vec_norm(largest, 3)
+    ini_smallest_dist = 10._dp * vec_norm(largest, 3)
     count = 0
     added = 0
     !Run over all the kpoints generated initially.
@@ -352,7 +360,7 @@ contains
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 4
-        if( abs(distance(j)-smallest_dist) < 1.d-12 ) then
+        if( abs(distance(j)-smallest_dist) < 1.e-12_dp ) then
           count = count + 1
           weight = weight + 1
           if(count >= first .and. count <= last ) then
@@ -376,22 +384,22 @@ contains
   end subroutine gen2DFraction
 
   subroutine count_2D_BZ(nkpt_in, a1, a2, numextrakbz, nkpt)
-    use mod_f90_kind,  only: double
+    use mod_kind, only: dp, int32, int64
     use mod_constants, only: tpi
     use mod_tools,     only: cross, vec_norm
     implicit none
-    integer*8,                  intent(in)  :: nkpt_in
-    real(double), dimension(3), intent(in)  :: a1,a2
-    integer*8,                  intent(out) :: numextrakbz, nkpt
-    real(double), dimension(3)   :: kp, b1, b2, largest
-    real(double), dimension(3)   :: zdir
-    real(double), dimension(3,4) :: bz_vec
-    real(double), dimension(3,4) :: diff
-    real(double) :: smallest_dist, distance(4), ini_smallest_dist, vol
-    integer*4    :: j, nkpt_x, nkpt_y, nx, ny, nkpt_perdim
-    integer*8    :: l
+    integer(int64),                  intent(in)  :: nkpt_in
+    real(dp), dimension(3), intent(in)  :: a1,a2
+    integer(int64),                  intent(out) :: numextrakbz, nkpt
+    real(dp), dimension(3)   :: kp, b1, b2, largest
+    real(dp), dimension(3)   :: zdir
+    real(dp), dimension(3,4) :: bz_vec
+    real(dp), dimension(3,4) :: diff
+    real(dp) :: smallest_dist, distance(4), ini_smallest_dist, vol
+    integer(int32)    :: j, nkpt_x, nkpt_y, nx, ny, nkpt_perdim
+    integer(int64)    :: l
 
-    zdir = [0.d0,0.d0,1.d0]
+    zdir = [0._dp,0._dp,1._dp]
     nkpt_perdim = ceiling(sqrt(dble(nkpt_in)))
     nkpt_x = nkpt_perdim
     nkpt_y = nkpt_perdim
@@ -402,7 +410,7 @@ contains
     b1  = vol * cross(a1, zdir)
     b2  = vol * cross(zdir, a2)
 
-    bz_vec(:,1) = 0.d0
+    bz_vec(:,1) = 0._dp
     bz_vec(:,2) = b1
     bz_vec(:,3) = b2
     bz_vec(:,4) = b1 + b2
@@ -410,7 +418,7 @@ contains
     !Translate the k-points to the 1st BZ.
     !10*|b1+b2|, bigger than the distance of any genarated kpoint
     largest = b1 + b2
-    ini_smallest_dist = 10.d0 * vec_norm(largest, 3)
+    ini_smallest_dist = 10._dp * vec_norm(largest, 3)
     numextrakbz = 0
     !Run over all the kpoints generated initially.
     !$omp parallel do default(none) reduction(+:numextrakbz) &
@@ -434,14 +442,14 @@ contains
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j = 1, 4
-        if( abs(distance(j)-smallest_dist) < 1.d-12 ) numextrakbz = numextrakbz + 1
+        if( abs(distance(j)-smallest_dist) < 1.e-12_dp ) numextrakbz = numextrakbz + 1
       end do
     end do
     !$omp end parallel do
   end subroutine count_2D_BZ
 
   subroutine gen1DFraction(self,sys,first,last)
-    use mod_f90_kind,  only: double
+    use mod_kind, only: dp, int32, int64
     use mod_constants, only: tpi
     use mod_tools,     only: cross, itos, vec_norm
     use mod_mpi_pars,  only: abortProgram
@@ -449,31 +457,31 @@ contains
     implicit none
     class(FractionalBrillouinZone) :: self
     type(System), intent(in)       :: sys
-    integer*8,    intent(in)       :: first, last
-    real(double), dimension(3,2)   :: bz_vec
-    real(double), dimension(3,2)   :: diff
-    real(double), dimension(3)     :: kp, b1, zdir, ydir
-    real(double) :: vol
-    real(double) :: smallest_dist, distance(2), ini_smallest_dist
-    integer*8    :: nkpt, l
-    integer*4    :: nx
-    integer*8    :: count, added, weight, range
-    integer*4    :: j
+    integer(int64),    intent(in)       :: first, last
+    real(dp), dimension(3,2)   :: bz_vec
+    real(dp), dimension(3,2)   :: diff
+    real(dp), dimension(3)     :: kp, b1, zdir, ydir
+    real(dp) :: vol
+    real(dp) :: smallest_dist, distance(2), ini_smallest_dist
+    integer(int64)    :: nkpt, l
+    integer(int32)    :: nx
+    integer(int64)    :: count, added, weight, range
+    integer(int32)    :: j
 
-    zdir = [0.d0,0.d0,1.d0]
-    ydir = [0.d0,1.d0,0.d0]
+    zdir = [0._dp,0._dp,1._dp]
+    ydir = [0._dp,1._dp,0._dp]
     allocate( self%w(self%workload), self%kp(3,self%workload) )
-    self%w = 1.d0
+    self%w = 1._dp
     nkpt = self%nkpt_x
     vol  = tpi/dot_product(zdir, cross(sys%a1,ydir))
     b1   = vol*cross(zdir,ydir)
 
-    bz_vec(:,1) = 0.d0
+    bz_vec(:,1) = 0._dp
     bz_vec(:,2) = b1
 
     !Translate the k-points to the 1st BZ.
     !10*|b1|, bigger than the distance of any genarated kpoint
-    ini_smallest_dist = 10.d0 * vec_norm(b1, 3)
+    ini_smallest_dist = 10._dp * vec_norm(b1, 3)
     count = 0
     added = 0
     !Run over all the kpoints generated initially.
@@ -497,7 +505,7 @@ contains
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 2
-        if( abs(distance(j)-smallest_dist) < 1.d-12 ) then
+        if( abs(distance(j)-smallest_dist) < 1.e-12_dp ) then
           count = count + 1
           weight = weight + 1
           if(count >= first .and. count <= last ) then
@@ -521,23 +529,23 @@ contains
   end subroutine gen1DFraction
 
   subroutine count_1D_BZ(nkpt_in, a1, numextrakbz, nkpt)
-    use mod_f90_kind,  only: double
+    use mod_kind, only: dp, int32, int64
     use mod_constants, only: tpi
     use mod_tools,     only: cross, vec_norm
     implicit none
-    integer*8,                  intent(in)  :: nkpt_in
-    real(double), dimension(3), intent(in)  :: a1
-    integer*8,                  intent(out) :: numextrakbz, nkpt
-    real(double), dimension(3)   :: kp, b1
-    real(double), dimension(3)   :: zdir, ydir
-    real(double), dimension(3,2) :: bz_vec
-    real(double), dimension(3,2) :: diff
-    real(double) :: smallest_dist, distance(2), ini_smallest_dist, vol
-    integer*4    :: j, nkpt_x, nkpt_perdim, nx
-    integer*8    :: l
+    integer(int64),                  intent(in)  :: nkpt_in
+    real(dp), dimension(3), intent(in)  :: a1
+    integer(int64),                  intent(out) :: numextrakbz, nkpt
+    real(dp), dimension(3)   :: kp, b1
+    real(dp), dimension(3)   :: zdir, ydir
+    real(dp), dimension(3,2) :: bz_vec
+    real(dp), dimension(3,2) :: diff
+    real(dp) :: smallest_dist, distance(2), ini_smallest_dist, vol
+    integer(int32)    :: j, nkpt_x, nkpt_perdim, nx
+    integer(int64)    :: l
 
-    zdir = [0.d0,0.d0,1.d0]
-    ydir = [0.d0,1.d0,0.d0]
+    zdir = [0._dp,0._dp,1._dp]
+    ydir = [0._dp,1._dp,0._dp]
     nkpt_perdim = ceiling(dble(nkpt_in)) 
     nkpt_x = nkpt_perdim
 
@@ -546,12 +554,12 @@ contains
     vol = tpi / dot_product(zdir, cross(a1,ydir))
     b1  = vol * cross(zdir, ydir)
 
-    bz_vec(:,1) = 0.d0
+    bz_vec(:,1) = 0._dp
     bz_vec(:,2) = b1
 
     !Translate the k-points to the 1st BZ.
     !10*|b1+b2|, bigger than the distance of any genarated kpoint
-    ini_smallest_dist = 10.d0 * vec_norm(b1, 3)
+    ini_smallest_dist = 10._dp * vec_norm(b1, 3)
     numextrakbz = 0
     !Run over all the kpoints generated initially.
     !$omp parallel do default(none) reduction(+:numextrakbz) &
@@ -573,7 +581,7 @@ contains
       ! BZ's. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j = 1, 2
-        if( abs(distance(j)-smallest_dist) < 1.d-12 ) numextrakbz = numextrakbz + 1
+        if( abs(distance(j)-smallest_dist) < 1.e-12_dp ) numextrakbz = numextrakbz + 1
       end do
     end do
     !$omp end parallel do
@@ -581,10 +589,11 @@ contains
   
 
   subroutine output_kpoints(self,unit)
+    use mod_kind, only: int32, int64
     implicit none
     class(BrillouinZone) :: self
-    integer*8 :: i
-    integer*4 :: unit
+    integer(int64) :: i
+    integer(int32) :: unit
 
     write(unit=unit,fmt="(a)") ' #      kx            ky            kz            wk'
     do i=1,self%nkpt
@@ -598,39 +607,39 @@ contains
 ! and store the different values of the
 ! component "component" (1,2,3)
   subroutine store_diff(nkpt_in, b1, b2, b3, component, ndiffk, diff_k_unsrt)
-    use mod_f90_kind,   only: double
+    use mod_kind, only: dp, int32, int64
     use mod_tools,      only: itos
     use mod_mpi_pars,   only: abortProgram, myrank
     use mod_parameters, only: kptotal_in
     !$ use omp_lib
     implicit none
 
-    integer*8,  intent(in) :: nkpt_in
+    integer(int64),  intent(in) :: nkpt_in
     !! Initial kpoints (as given by realBZ%nkpt_x * realBZ%nkpt_y * realBZ%nkpt_z)
-    real(double), dimension(3), intent(in)  :: b1, b2, b3
+    real(dp), dimension(3), intent(in)  :: b1, b2, b3
     !! Reciprocal vectors
     integer,   intent(in)  :: component
     !! Which component to store the different values and the map
     integer,   intent(out) :: ndiffk
     !! Number of different kp(component)
-    real(double), dimension(:), allocatable, intent(out) :: diff_k_unsrt
+    real(dp), dimension(:), allocatable, intent(out) :: diff_k_unsrt
     !! Different values of kp(component)
-    real(double), dimension(:), allocatable              :: diff_k_loc,diff_k_temp,diff_k_temp2
+    real(dp), dimension(:), allocatable              :: diff_k_loc,diff_k_temp,diff_k_temp2
     !! Local and temporary array for different values of kp(component)
-    real(double), dimension(3,8) :: bz_vec
-    real(double) :: smallest_dist, distance, ini_smallest_dist
-    real(double), dimension(3) :: diff
-    real(double), dimension(3) :: kp
+    real(dp), dimension(3,8) :: bz_vec
+    real(dp) :: smallest_dist, distance, ini_smallest_dist
+    real(dp), dimension(3) :: diff
+    real(dp), dimension(3) :: kp
     integer, dimension(:), allocatable :: ndiffk_loc
-    integer*8  :: l, nkpt
-    integer*4  :: nkpt_perdim, nkpt_x, nkpt_y, nkpt_z
+    integer(int64)  :: l, nkpt
+    integer(int32)  :: nkpt_perdim, nkpt_x, nkpt_y, nkpt_z
     !! Number of k points per dimension
-    integer*4  :: nx, ny, nz , start, end
-    integer*4  :: maxdiffk, ndiffk_max, count
+    integer(int32)  :: nx, ny, nz , start, end
+    integer(int32)  :: maxdiffk, ndiffk_max, count
     !! Number of different k points, maximum value, and counter
-    integer*4  :: j, mythread, nthreads
+    integer(int32)  :: j, mythread, nthreads
 
-    nkpt_perdim = ceiling((dble(nkpt_in))**(1.d0/3.d0))
+    nkpt_perdim = ceiling((dble(nkpt_in))**(1._dp/3._dp))
     nkpt_x = nkpt_perdim
     nkpt_y = nkpt_perdim
     nkpt_z = nkpt_perdim
@@ -647,7 +656,7 @@ contains
     ! Counter of total number of points
     count = 0
 
-    bz_vec(1:3,1) = 0.d0
+    bz_vec(1:3,1) = 0._dp
     bz_vec(1:3,2) = b1
     bz_vec(1:3,3) = b2
     bz_vec(1:3,4) = b1 + b2
@@ -658,7 +667,7 @@ contains
 
     !Translate the k-points to the 1st BZ.
     !10*|b1+b2|, bigger than the distance of any genarated kpoint
-    ini_smallest_dist = 10.d0 * sqrt(dot_product(b1 + b2 + b3, b1 + b2 + b3))
+    ini_smallest_dist = 10._dp * sqrt(dot_product(b1 + b2 + b3, b1 + b2 + b3))
     !Run over all the kpoints generated initially.
     !$omp parallel default(none) &
     !$omp& private(l, j, nx, ny, nz, kp, smallest_dist, diff, distance, diff_k_loc, start, end, mythread) &
@@ -669,7 +678,7 @@ contains
 
     !! Allocating large temporary vector to store different values of kp(component)
     allocate( diff_k_loc(ndiffk_max) )
-    diff_k_loc(:) = 999.d0
+    diff_k_loc(:) = 999._dp
 
     !$omp do schedule(dynamic) reduction(+:count)
     do l=1, nkpt
@@ -692,10 +701,10 @@ contains
       do j=1, 8
         diff=kp - bz_vec(:,j)
         distance=sqrt(dot_product(diff,diff))
-        if( abs(distance-smallest_dist) < 1.d-12 ) then
+        if( abs(distance-smallest_dist) < 1.e-12_dp ) then
           count = count + 1 ! Counting the total number of points generated
           ! Checking if all numbers are different than current local list (if any of them is zero, the point is already stored)
-          if( all(abs( diff_k_loc(:) - abs(diff(component)) )> 1.d-12,1)  ) then
+          if( all(abs( diff_k_loc(:) - abs(diff(component)) )> 1.e-12_dp,1)  ) then
             ndiffk_loc(mythread) = ndiffk_loc(mythread) + 1
             diff_k_loc(ndiffk_loc(mythread)) = abs(diff(component))
           end if
@@ -720,11 +729,11 @@ contains
 
     ! Checking for different kp(component) between the locally generated ones
     allocate( diff_k_temp2(maxdiffk) )
-    diff_k_temp2(:) = 999.d0
+    diff_k_temp2(:) = 999._dp
     ndiffk = 0
     do j=1,maxdiffk
 
-      if( all(abs( diff_k_temp2(:) - diff_k_temp(j) )> 1.d-12,1)  ) then
+      if( all(abs( diff_k_temp2(:) - diff_k_temp(j) )> 1.e-12_dp,1)  ) then
         ndiffk = ndiffk + 1
         diff_k_temp2(ndiffk) = diff_k_temp(j)
       end if

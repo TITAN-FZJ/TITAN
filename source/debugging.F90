@@ -1,6 +1,6 @@
 ! This subroutine may be used to do tests on the program
 subroutine debugging()
-  use mod_f90_kind
+  use, intrinsic :: iso_fortran_env
   use mod_constants
   use mod_parameters
   use mod_magnet
@@ -14,16 +14,16 @@ subroutine debugging()
   if(myrank==0) write(outputunit,"('[debugging] Starting to debug...')")
 
 !   integer   :: i,i0,i1,j,j0,j1
-!   real(double)  :: kp(3)
-!   complex(double),dimension((Npl+2)*18,(Npl+2)*18)  :: hk,test,test2
-!   complex(double),dimension(Npl+2,Npl+2,18,18)  :: gf
+!   real(dp)  :: kp(3)
+!   complex(dp),dimension((Npl+2)*18,(Npl+2)*18)  :: hk,test,test2
+!   complex(dp),dimension(Npl+2,Npl+2,18,18)  :: gf
 
 !   write(*,*) 'Hamiltonian:'
-  mz    = 2.d0
+  mz    = 2._dp
   mp  = cZero
   ! Variables used in the hamiltonian
-  eps1 = 0.d0
-!   lambda=0.d0
+  eps1 = 0._dp
+!   lambda=0._dp
   ! call calculate_idia()
 
 !   write(*,*) 'Real space hoppings:'
@@ -73,18 +73,18 @@ subroutine debugging()
 
 
 !   write(*,*) 'Hamiltonian:'
-!   mz    = 0.5d0
+!   mz    = 0.5_dp
 !   mp  = cZero
 !   ! Variables used in the hamiltonian
-!   eps1 = 0.d0
-!   lambda=0.d0
+!   eps1 = 0._dp
+!   lambda=0._dp
 
-!   kp = 0.d0!kbz(1,:)
+!   kp = 0._dp!kbz(1,:)
 !   call hamiltk(sys,kp,hk)
 
 !   test = transpose(conjg(hk))
 !   test2 = hk-test
-!   if(sum(abs((test2)))>1.d-15) then
+!   if(sum(abs((test2)))>1.e-15_dp) then
 !     write(*,*) 'Hamiltonian is not hermitian!'
 !   else
 !     write(*,*) 'Hamiltonian is hermitian'
@@ -92,10 +92,10 @@ subroutine debugging()
 
 !   test = transpose(hk)
 !   test2 = hk-test
-!   if(sum(abs((test2)))>1.d-15) then
+!   if(sum(abs((test2)))>1.e-15_dp) then
 !     write(*,*) 'Hamiltonian is not symmetric!'
 !     do i=1,(Npl+2)*18 ; do j=1,(Npl+2)*18
-!       if(abs(test2(i,j))>1.d-15) write(*,*) i,j,test2(i,j)
+!       if(abs(test2(i,j))>1.e-15_dp) write(*,*) i,j,test2(i,j)
 !     end do ; end do
 !   else
 !     write(*,*) 'Hamiltonian is symmetric'
@@ -237,7 +237,7 @@ subroutine debugging()
 !       i1 = i0+17
 !       j0 = (j-1)*18+1
 !       j1 = j0+17
-!       if(sum(abs(hk(i0:i1,j0:j1)))>1.d-15) then
+!       if(sum(abs(hk(i0:i1,j0:j1)))>1.e-15_dp) then
 !         write(*,*) 'Non cZero values out-of tri-diagonal part!'
 !       end if
 !     end if
@@ -348,9 +348,9 @@ subroutine debugging()
 
 
 !   write(*,*) 'Green function:'
-!   lambda=0.d0
-!   kp = 0.d0 !kbz(1,:)
-!   call green_es(-1.d0,0.d0,kp,gf)
+!   lambda=0._dp
+!   kp = 0._dp !kbz(1,:)
+!   call green_es(-1._dp,0._dp,kp,gf)
 
 !   write(*,*) '*********************'
 !   write(*,*) sum(abs(gf(1,1,:,:))),sum(gf(1,1,:,:))
@@ -380,7 +380,7 @@ subroutine debugging()
 
 ! !   test = transpose(conjg(hk))
 ! !   test2 = hk-test
-! !   if(sum(abs((test2)))>1.d-15) then
+! !   if(sum(abs((test2)))>1.e-15_dp) then
 ! !     write(*,*) 'Green function is not hermitian!'
 ! !   else
 ! !     write(*,*) 'Green function is hermitian'
@@ -388,10 +388,10 @@ subroutine debugging()
 
 ! !   test = transpose(hk)
 ! !   test2 = hk-test
-! !   if(sum(abs((test2)))>1.d-15) then
+! !   if(sum(abs((test2)))>1.e-15_dp) then
 ! !     write(*,*) 'Green function is not symmetric!'
 ! !     do i=1,(Npl+2)*18 ; do j=1,(Npl+2)*18
-! !       if(abs(test2(i,j))>1.d-15) write(*,*) i,j,test2(i,j)
+! !       if(abs(test2(i,j))>1.e-15_dp) write(*,*) i,j,test2(i,j)
 ! !     end do ; end do
 ! !   else
 ! !     write(*,*) 'Green function is symmetric'
@@ -413,10 +413,10 @@ subroutine debugging()
 ! !   write(*,*) sum(abs(hk(i0:i1,i0:i1))),sum(hk(i0:i1,i0:i1))
 ! !   write(*,*) sum(abs(hk(j0:j1,j0:j1))),sum(hk(j0:j1,j0:j1))
 ! !   test(1:18,1:18) = hk(i0:i1,i0:i1) - hk(j0:j1,j0:j1)
-! !   if(sum(abs(test(1:18,1:18)))>1.d-15) then
+! !   if(sum(abs(test(1:18,1:18)))>1.e-15_dp) then
 ! !     write(*,*) '11 e 77 diferentes'
 ! !     do i=1,18 ; do j=1,18
-! !       if(abs(test(i,j))>1.d-15) write(*,*) i,j,test(i,j)
+! !       if(abs(test(i,j))>1.e-15_dp) write(*,*) i,j,test(i,j)
 ! !     end do ; end do
 ! !   end if
 
