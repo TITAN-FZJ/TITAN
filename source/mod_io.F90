@@ -822,7 +822,22 @@ contains
           deallocate(vector)
         end if
       end if
-    end if
+
+      ! Setup output variable for filename
+      if(lmagnetic) then
+        output%time_field = "_magfield"
+        if(lpulse_m) then
+          output%time_field = trim(output%time_field) // "pulse"
+        end if
+      end if
+      if(lelectric) then
+        output%time_field = trim(output%time_field) // "_efield"
+        if(lpulse_e) then
+          output%time_field = trim(output%time_field) // "pulse"
+        end if
+      end if
+
+    end if ! itype=11 - time_prop_input
     !==============================================================================================!
     if(.not. get_parameter("suffix", output%suffix)) &
       call log_warning("get_parameters","'suffix' missing. Using none.")
