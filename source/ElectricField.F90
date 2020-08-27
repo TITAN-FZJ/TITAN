@@ -53,11 +53,11 @@ contains
 
   subroutine initLongAndTransCurentNeighbors()
     ! use mod_kind, only: dp
-    ! use mod_system,   only: System
+    ! use mod_system,   only: System_type
     use mod_mpi_pars, only: abortProgram
     implicit none
 
-    ! type(System), intent(inout) :: s
+    ! type(System_type), intent(inout) :: s
 
     call abortProgram("[initLongAndTransCurentNeighbors] Not Implemented!")
       !

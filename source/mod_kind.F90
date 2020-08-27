@@ -9,11 +9,12 @@ module mod_kind
 !
 ! Real and Complex numbers
 !   Single precision
-  integer, parameter :: sp      = kind(0.0)
+  integer, parameter :: sp      = selected_real_kind(p=6, r=37)
 !   Double precision
-  integer, parameter :: dp      = selected_real_kind(p=15,r=100)
+  !integer, parameter :: dp      = selected_real_kind(p=6,r=37)
+  integer, parameter :: dp      = selected_real_kind(p=15,r=307)
 !   Quadruple precision
-  integer, parameter :: qp      = selected_real_kind(p=30,r=100)
+  integer, parameter :: qp      = selected_real_kind(p=33,r=4931)
 !
 ! Integers numbers
 !   Single byte integer

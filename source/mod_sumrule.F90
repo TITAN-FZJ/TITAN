@@ -156,7 +156,7 @@ contains
     use mod_System,        only: s => sys
     use EnergyIntegration, only: y, wght
     use mod_parameters,    only: nOrb, nOrb2, eta
-    use mod_hamiltonian,   only: hamilt_local,h0
+    use mod_hamiltonian,   only: hamilt_local
     use adaptiveMesh
     use mod_mpi_pars
     implicit none
@@ -235,7 +235,7 @@ contains
     Smunuiivec(:,:,2,:) = (imgud(:,:,:) - imgdu(:,:,:))*cI
     Smunuiivec(:,:,3,:) =  imguu(:,:,:) - imgdd(:,:,:)
 
-    deallocate(h0,imguu,imgdd,imgud,imgdu)
+    deallocate(imguu,imgdd,imgud,imgdu)
 
   end subroutine calcSmunu
 

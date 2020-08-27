@@ -26,10 +26,10 @@ contains
     use mod_kind, only: dp, int64
     use mod_parameters,    only: total_nkpt => kptotal_in
     use EnergyIntegration, only: y
-    use mod_System,        only: System
+    use mod_System,        only: System_type
     use mod_BrillouinZone, only: count_3D_BZ, count_2D_BZ, count_1D_BZ
     implicit none
-    type(System) :: sys
+    type(System_type) :: sys
     integer      :: i,pn1
     integer      :: nx, ny, nz
     integer(int64)    :: nall
@@ -77,16 +77,16 @@ contains
     use mod_kind, only: dp, int32, int64
     use mod_parameters,    only: total_nkpt => kptotal_in
     use EnergyIntegration, only: pn1, y
-    use mod_System,        only: System
+    use mod_System,        only: System_type
     use mod_mpi_pars,      only: calcWorkload!, MPI_Comm
     implicit none
 
-    type(System), intent(in) :: sys
+    type(System_type), intent(in) :: sys
     integer(int32),    intent(in) :: rank
     integer(int32),    intent(in) :: size
     integer(int32),    intent(in) :: comm
     ! MPI_f08:
-    ! type(System),   intent(in) :: sys
+    ! type(System_type),   intent(in) :: sys
     ! integer(int32),      intent(in) :: rank
     ! integer(int32),      intent(in) :: size
     ! type(MPI_Comm), intent(in) :: comm

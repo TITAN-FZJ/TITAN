@@ -3,21 +3,38 @@
 module mod_expectation
   implicit none
 
+  procedure(expectation_values_sub), pointer :: expectation_values => expectation_values_greenfunction
+
+  abstract interface
+    subroutine expectation_values_sub(s,rho,mp,mx,my,mz,deltas)
+      use mod_kind, only: dp
+      use mod_parameters, only: nOrb
+      use mod_System,     only: System_type
+      implicit none
+      type(System_type),                          intent(in)  :: s
+      real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
+      real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: deltas
+      complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: mp
+    end subroutine
+  end interface
+
 contains
-  subroutine expectation_values_greenfunction(s,rho,mp,mx,my,mz)
+  subroutine expectation_values_greenfunction(s,rho,mp,mx,my,mz,deltas)
     !! Calculates ground state (occupation and magnetization) quantities using the Green functions
     use mod_kind, only: dp
     use mod_constants,     only: pi,cZero
     use mod_SOC,           only: llinearsoc,llineargfsoc
     use EnergyIntegration, only: y,wght
-    use mod_system,        only: System
+    use mod_system,        only: System_type
     use adaptiveMesh,      only: bzs,E_k_imag_mesh,activeComm,local_points
     use mod_parameters,    only: nOrb,nOrb2,eta
-    use mod_hamiltonian,   only: hamilt_local,h0
+    use mod_hamiltonian,   only: hamilt_local
+    use mod_superconductivity, only: lsupercond
     use mod_mpi_pars
     implicit none
-    type(System),                              intent(in)  :: s
+    type(System_type),                          intent(in)  :: s
     real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
+    real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: deltas
     complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: mp
 
     integer  :: i,j, AllocateStatus
@@ -34,16 +51,20 @@ contains
 
     allocate(imguu(nOrb,s%nAtoms),imgdd(nOrb,s%nAtoms), stat = AllocateStatus)
     if(AllocateStatus/=0) &
-    call abortProgram("[expectation_values_greenfunction] Not enough memory for: imguu,imgdd")
+      call abortProgram("[expectation_values_greenfunction] Not enough memory for: imguu,imgdd")
 
     allocate(gdiagud(s%nAtoms,nOrb), gdiagdu(s%nAtoms,nOrb), stat = AllocateStatus)
     if(AllocateStatus /= 0) &
-    call abortProgram("[expectation_values_greenfunction] Not enough memory for: gdiagdu, gdiagud")
+      call abortProgram("[expectation_values_greenfunction] Not enough memory for: gdiagdu, gdiagud")
+
+    if(lsupercond) &
+      call abortProgram("[expectation_values_greenfunction] Calculation of superconducting parameter Delta is not yet implemented with Green Functions.")
 
     imguu   = 0._dp
     imgdd   = 0._dp
     gdiagud = cZero
     gdiagdu = cZero
+    deltas = 0._dp
 
     ! Build local hamiltonian
     if((.not.llineargfsoc) .and. (.not.llinearsoc)) call hamilt_local(s)
@@ -122,9 +143,6 @@ contains
       end do
     end do
 
-    ! Deallocate local hamiltonian
-    if((.not.llineargfsoc) .and. (.not.llinearsoc)) deallocate(h0)
-
     deallocate(imguu,imgdd)
     deallocate(gdiagdu, gdiagud)
   end subroutine expectation_values_greenfunction
@@ -132,24 +150,23 @@ contains
 
   !   Calculates ground state quantities from eigenstates
   subroutine expectation_values_eigenstates(s,rho,mp,mx,my,mz,deltas)
-    use mod_kind, only: dp
+    use mod_kind, only: dp,int64
     use mod_BrillouinZone,     only: realBZ
     use mod_parameters,        only: nOrb,nOrb2,output
-    use mod_system,            only: System
+    use mod_system,            only: System_type
     use mod_tools,             only: itos
-    use mod_superconductivity, only: lsuperCond, superCond, hamiltk_sc
+    use mod_superconductivity, only: lsuperCond, superCond
     use mod_constants,         only: cZero
-    use mod_hamiltonian,       only: hamiltk,hamilt_local,h0
-    use mod_mpi_pars
-
+    use mod_hamiltonian,       only: hamilt_local,hamiltk
+    use mod_mpi_pars,          only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
     implicit none
-    type(System),                              intent(in)  :: s
+    type(System_type),                     intent(in)  :: s
     real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
     real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: deltas
     complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: mp
 
-    integer(int64)                                    :: iz
-    integer                                      :: info, ncount, lwork, dimH
+    integer(int64)                           :: iz
+    integer                                  :: info, ncount, lwork, dimH
     real(dp),    dimension(nOrb,s%nAtoms)    :: expec_0, expec_z
     complex(dp), dimension(nOrb,s%nAtoms)    :: expec_p
     real(dp),    dimension(nOrb,s%nAtoms)    :: expec_singlet
@@ -172,14 +189,12 @@ contains
     mz  = 0._dp
     mp  = cZero
     deltas = 0._dp
+    !!$acc kernels 
+    !!$acc parallel loop ! firstprivate(lwork) private(iz,hk,eval,work,rwork,info,expec_0, expec_p, expec_z,expec_singlet) shared(s,dimH,output,realBZ,rho,mp,mz,lsuperCond,deltas) reduction(+:rho,mp,mz,deltas)
     !$omp do reduction(+:rho,mp,mz,deltas) schedule(dynamic)
     do iz = 1,realBZ%workload
       ! Calculating the hamiltonian for a given k-point
-      if(lsuperCond) then
-          call hamiltk_sc(s,realBZ%kp(1:3,iz),hk)
-      else
-          call hamiltk(s,realBZ%kp(1:3,iz),hk)
-      end if
+      call hamiltk(s,realBZ%kp(1:3,iz),hk)
 
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
       call zheev('V','L', dimH,hk,dimH,eval,work,lwork,rwork,info)
@@ -199,6 +214,8 @@ contains
     end do
     !$omp end do
     !$omp end parallel
+    !!$acc end kernels
+    !!$acc end parallel loop
 
     !Gather and sum all the results from the different processes using an Allreduce clause
     call MPI_Allreduce(MPI_IN_PLACE, rho   , ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
@@ -209,9 +226,94 @@ contains
     mx = real(mp)
     my = aimag(mp)
 
-    deallocate(h0,hk,rwork,eval,work)
+    deallocate(hk,rwork,eval,work)
 
   end subroutine expectation_values_eigenstates
+
+
+
+  !   Calculates ground state quantities from eigenstates
+  subroutine expectation_eigenstates_fullhk(s,rho,mp,mx,my,mz,deltas)
+    use mod_kind, only: dp,int64
+    use mod_BrillouinZone,     only: realBZ
+    use mod_parameters,        only: nOrb,dimH,output
+    use mod_system,            only: System_type
+    use mod_tools,             only: itos
+    use mod_superconductivity, only: lsuperCond, superCond
+    use mod_constants,         only: cZero
+    use mod_hamiltonian,       only: hamilt_local,h0,fullhk
+    use mod_mpi_pars,          only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
+    implicit none
+    type(System_type),                     intent(in)  :: s
+    real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
+    real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: deltas
+    complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: mp
+
+    integer(int64)                           :: iz
+    integer                                  :: info, ncount, lwork, dimHsc
+    real(dp),    dimension(nOrb,s%nAtoms)    :: expec_0, expec_z
+    complex(dp), dimension(nOrb,s%nAtoms)    :: expec_p
+    real(dp),    dimension(nOrb,s%nAtoms)    :: expec_singlet
+    real(dp),    dimension(:),  allocatable  :: rwork(:), eval(:)
+    complex(dp),                allocatable  :: work(:), hk(:,:)
+
+    dimHsc  = dimH*superCond
+    lwork = 21*dimHsc
+    ncount = nOrb*s%nAtoms
+
+    allocate( hk(dimHsc,dimHsc),rwork(3*dimHsc-2),eval(dimHsc),work(lwork) )
+
+    call hamilt_local(s)
+
+    !$omp parallel default(none) &
+    !$omp& firstprivate(lwork) &
+    !$omp& private(iz,hk,eval,work,rwork,info,expec_0, expec_p, expec_z,expec_singlet) &
+    !$omp& shared(s,dimHsc,h0,fullhk,output,realBZ,rho,mp,mz,lsuperCond,deltas)
+    rho = 0._dp
+    mz  = 0._dp
+    mp  = cZero
+    deltas = 0._dp
+    !!$acc kernels 
+    !!$acc parallel loop ! firstprivate(lwork) private(iz,hk,eval,work,rwork,info,expec_0, expec_p, expec_z,expec_singlet) shared(s,dimH,output,realBZ,rho,mp,mz,lsuperCond,deltas) reduction(+:rho,mp,mz,deltas)
+    !$omp do reduction(+:rho,mp,mz,deltas) schedule(dynamic)
+    do iz = 1,realBZ%workload
+      ! hamiltonian for a given k-point
+      hk = h0 + fullhk(:,:,iz)
+
+      ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
+      call zheev('V','L', dimHsc,hk,dimHsc,eval,work,lwork,rwork,info)
+
+      if(info/=0) &
+        call abortProgram("[expectation_values_eigenstates] Problem with diagonalization. info = " // itos(info))
+
+      ! Calculating expectation values for a given k-point
+      call expec_val(s, dimHsc, hk, eval, expec_0, expec_p, expec_z, expec_singlet)
+
+      rho = rho + expec_0*realBZ%w(iz)
+      mp  = mp  + expec_p*realBZ%w(iz)
+      mz  = mz  + expec_z*realBZ%w(iz)
+
+      ! Superconducting order parameter
+      deltas = deltas + expec_singlet*realBZ%w(iz)
+    end do
+    !$omp end do
+    !$omp end parallel
+    !!$acc end kernels
+    !!$acc end parallel loop
+
+    !Gather and sum all the results from the different processes using an Allreduce clause
+    call MPI_Allreduce(MPI_IN_PLACE, rho   , ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, mz    , ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, mp    , ncount, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, deltas, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+
+    mx = real(mp)
+    my = aimag(mp)
+
+    deallocate(hk,rwork,eval,work)
+
+  end subroutine expectation_eigenstates_fullhk
+
 
 
   ! subroutine expectation value of the operators 1 (occupation), Sp and Sz:
@@ -220,19 +322,19 @@ contains
     use mod_constants,         only: cZero,pi,pauli_mat
     use mod_parameters,        only: nOrb, eta, isigmamu2n
     use mod_distributions,     only: fd_dist
-    use mod_system,            only: System
+    use mod_system,            only: System_type
     use mod_superconductivity, only: lsuperCond
     implicit none
-    integer,                                   intent(in)  :: dim
-    type(System),                              intent(in)  :: s
+    integer,                               intent(in)  :: dim
+    type(System_type),                          intent(in)  :: s
     real(dp),    dimension(dim),           intent(in)  :: eval
     complex(dp), dimension(dim,dim),       intent(in)  :: hk
     real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: expec_0, expec_z
     complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: expec_p
     real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: expec_singlet
 
-    real(dp)    :: fermi_surface, beta
-    integer         :: i, n, sigma, sigmap, mu
+    real(dp)    :: fermi, beta
+    integer     :: i, n, sigma, sigmap, mu
     real(dp)    :: f_n(dim),f_n_negative(dim),tanh_n(dim)
     complex(dp) :: evec_isigmamu, evec_isigmamu_cong !dim = 2*nOrb*nAtoms
 
@@ -242,15 +344,15 @@ contains
     expec_p = cZero
     expec_singlet = 0._dp
 
-    !If lsupercond is true then fermi_surface is 0.0 otherwise is s%Ef
-    fermi_surface = merge(0._dp,s%Ef,lsuperCond)
+    !If lsupercond is true then fermi is 0.0 otherwise is s%Ef
+    fermi = merge(0._dp,s%Ef,lsuperCond)
 
     do concurrent (n = 1:dim)
-      f_n(n) = fd_dist(fermi_surface, beta, eval(n))
+      f_n(n) = fd_dist(fermi, beta, eval(n))
     end do
 
     do concurrent (n = 1:dim, lsuperCond)
-      f_n_negative(n) = fd_dist(fermi_surface, beta, -eval(n))
+      f_n_negative(n) = fd_dist(fermi, beta, -eval(n))
       tanh_n(n) = tanh(eval(n)*beta/2._dp)
     end do
 
@@ -326,11 +428,11 @@ contains
     use mod_constants,         only: cZero,pi,pauli_mat
     use mod_parameters,        only: nOrb, eta, isigmamu2n
     use mod_distributions,     only: fd_dist
-    use mod_system,            only: System
+    use mod_system,            only: System_type
     use mod_superconductivity, only: lsuperCond
     implicit none
 
-    type(System),                              intent(in)  :: s
+    type(System_type),                              intent(in)  :: s
     integer,                                   intent(in)  :: dim
     complex(dp), dimension(dim),           intent(in)  :: evec
     real(dp),                              intent(in)  :: eval
@@ -338,9 +440,9 @@ contains
     complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: expec_p
     real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: expec_singlet
 
-    integer         :: i, sigma, sigmap, mu
+    integer     :: i, sigma, sigmap, mu
     real(dp)    :: f_n, f_n_negative, tanh_n
-    real(dp)    :: fermi_surface, beta
+    real(dp)    :: fermi, beta
     complex(dp) :: evec_isigmamu, evec_isigmamu_cong
 
     beta = 1._dp/(pi*eta)
@@ -349,10 +451,10 @@ contains
     expec_p = cZero
     expec_singlet = 0._dp
 
-    !If lsupercond is true then fermi_surface is 0.0 otherwise is s%Ef
-    fermi_surface = merge(0._dp,s%Ef,lsuperCond)
+    !If lsupercond is true then fermi is 0.0 otherwise is s%Ef
+    fermi = merge(0._dp,s%Ef,lsuperCond)
     ! Fermi-Dirac:
-    f_n = fd_dist(fermi_surface, beta, eval)
+    f_n = fd_dist(fermi, beta, eval)
 
     if(.not.lsupercond) then
       do concurrent(i = 1:s%nAtoms, mu = 1:nOrb, sigma = 1:2)
@@ -400,7 +502,7 @@ contains
       ! end do
     else
 
-      f_n_negative = fd_dist(fermi_surface, beta, -eval)
+      f_n_negative = fd_dist(fermi, beta, -eval)
       tanh_n = tanh(eval*beta/2._dp)
       do concurrent( i = 1:s%nAtoms, mu = 1:nOrb)
         ! up spin (using u's) + down spin (using v's)
@@ -461,7 +563,7 @@ contains
     integer      :: i,AllocateStatus
 
     if(rField == 0) &
-    write(output%unit_loop,"('[calcLGS] Calculating Orbital Angular Momentum ground state... ')")
+      write(output%unit_loop,"('[calcLGS] Calculating Orbital Angular Momentum ground state... ')")
 
     if(allocated(lxm)) deallocate(lxm)
     if(allocated(lym)) deallocate(lym)
@@ -476,7 +578,7 @@ contains
               lypm(s%nAtoms), &
               lzpm(s%nAtoms), stat = AllocateStatus )
     if (AllocateStatus/=0) &
-    call abortProgram("[calcLGS] Not enough memory for: lxm,lym,lzm,lxpm,lypm,lzpm")
+      call abortProgram("[calcLGS] Not enough memory for: lxm,lym,lzm,lxpm,lypm,lzpm")
 
     if(leigenstates) then
       call calcLGS_eigenstates()
@@ -523,15 +625,15 @@ contains
 
   subroutine calcLGS_greenfunction()
     !! Calculates the expectation value of the orbital angular momentum in the ground state using green functions
-    use mod_kind, only: dp
+    use mod_kind, only: dp,int64
     use mod_constants,     only: cZero,pi
     use mod_System,        only: s => sys
     use mod_parameters,    only: nOrb, nOrb2, eta
     use EnergyIntegration, only: y, wght
     use mod_magnet,        only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
-    use mod_hamiltonian,   only: hamilt_local,h0
-    use adaptiveMesh
-    use mod_mpi_pars
+    use mod_hamiltonian,   only: hamilt_local
+    use adaptiveMesh,      only: local_points,activeComm,E_k_imag_mesh,bzs
+    use mod_mpi_pars,      only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_COMPLEX,MPI_SUM,ierr
     implicit none
     integer(int64)    :: ix
     integer      :: AllocateStatus
@@ -547,7 +649,7 @@ contains
 
     allocate(gupgd(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
     if(AllocateStatus/=0) &
-    call abortProgram("[calcLGS_greenfunction] Not enough memory for: gupgd")
+      call abortProgram("[calcLGS_greenfunction] Not enough memory for: gupgd")
 
     ! Build local hamiltonian
     call hamilt_local(s)
@@ -559,7 +661,7 @@ contains
     !$omp& shared(local_points,s,nOrb,nOrb2,E_k_imag_mesh,bzs,eta,y,wght,gupgd)
     allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat = AllocateStatus)
     if (AllocateStatus/=0) &
-    call abortProgram("[calcLGS_greenfunction] Not enough memory for: gf")
+      call abortProgram("[calcLGS_greenfunction] Not enough memory for: gf")
 
     gf = cZero
     !$omp do schedule(dynamic) reduction(+:gupgd)
@@ -608,7 +710,7 @@ contains
       end do
     end do
 
-    deallocate(h0,gupgd)
+    deallocate(gupgd)
   end subroutine calcLGS_greenfunction
 
 
@@ -617,16 +719,16 @@ contains
     use mod_kind, only: dp
     use mod_constants,     only: pi
     use mod_parameters,    only: nOrb,eta,isigmamu2n
-    use mod_System,        only: system
+    use mod_System,        only: System_type
     use mod_magnet,        only: lx,ly,lz
     use mod_distributions, only: fd_dist
     implicit none
-    type(System),                         intent(in)  :: s
+    type(System_type),                intent(in)  :: s
     real(dp),                         intent(in)  :: eval
-    integer,                              intent(in)  :: dim
+    integer,                          intent(in)  :: dim
     real(dp),    dimension(s%nAtoms), intent(out) :: lxm, lym, lzm
     complex(dp), dimension(dim),      intent(in)  :: evec
-    integer                                           :: i, mu, nu, sigma
+    integer                                       :: i, mu, nu, sigma
     real(dp)                                      :: f_n
     complex(dp)                                   :: prod, evec_isigmamu, evec_isigmamu_cong
 
@@ -660,16 +762,16 @@ contains
     use mod_kind, only: dp
     use mod_constants,     only: pi
     use mod_parameters,    only: eta
-    use mod_System,        only: system
+    use mod_System,        only: System_type
     use mod_distributions, only: fd_dist
     use mod_imRK4,         only: build_td_hamiltonian
     implicit none
 
-    type(System),                    intent(in)  :: s
-    integer,                         intent(in)  :: dim
+    type(System_type),           intent(in)  :: s
+    integer,                     intent(in)  :: dim
     complex(dp), dimension(dim), intent(in)  :: evec
     real(dp),                    intent(in)  :: eval, t, kp(3)
-    integer                                      :: i, j
+    integer                                  :: i, j
     real(dp)                                 :: f_n, expec_H_0, E_0
     complex(dp)                              :: hamilt_t(dim,dim), hamilt_0(dim,dim)
 
@@ -693,38 +795,39 @@ contains
 
   !   Calculates ground state quantities from eigenstates
   subroutine calcLGS_eigenstates()
-    use mod_kind, only: dp
+    use mod_kind, only: dp,int64
     use mod_BrillouinZone,     only: realBZ
     use mod_constants,         only: pi,cZero
-    use mod_parameters,        only: nOrb,nOrb2,output,eta,isigmamu2n
+    use mod_parameters,        only: nOrb,dimH,output,eta,isigmamu2n
     use mod_System,            only: s => sys
     use mod_magnet,            only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
     use mod_distributions,     only: fd_dist
     use mod_tools,             only: itos
-    use mod_superconductivity, only: lsuperCond
-    use mod_hamiltonian,       only: hamiltk,hamilt_local,h0
-    use mod_mpi_pars
+    use mod_superconductivity, only: lsuperCond,superCond
+    use mod_hamiltonian,       only: hamiltk,hamilt_local
+    use mod_mpi_pars,          only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
     implicit none
-    integer(int64)                                      :: iz
-    integer                                        :: lwork, dimH, info , n, i, mu, nu, sigma
-    real(dp)                                   :: f_n, fermi_surface
+    integer(int64)                             :: iz
+    integer                                    :: lwork,dimHsc,info,n,i,mu,nu,sigma
+    real(dp)                                   :: fermi,beta
     complex(dp), dimension(:,:,:), allocatable :: prod
-    real(dp),    dimension(:),     allocatable :: rwork(:), eval(:)
-    complex(dp),                   allocatable :: work(:), hk(:,:), evec(:)
+    real(dp),    dimension(:),     allocatable :: rwork(:),eval(:),f_n(:),f_n_negative(:)
+    complex(dp),                   allocatable :: work(:),hk(:,:)
 
-    dimH  = (s%nAtoms)*nOrb2
-    lwork = 21*dimH
-    !If lsupercond is true then fermi_surface is 0.0 otherwise is s%Ef
-    fermi_surface = merge(0._dp,s%Ef,lsuperCond)
+    dimHsc = dimH*superCond
+    lwork  = 21*dimHsc
+    !If lsupercond is true then fermi is 0.0 otherwise is s%Ef
+    fermi = merge(0._dp,s%Ef,lsuperCond)
+    beta = 1._dp/(pi*eta)
 
-    allocate( hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),evec(dimH),work(lwork),prod(nOrb,nOrb,s%nAtoms) )
+    allocate( hk(dimHsc,dimHsc),rwork(3*dimHsc-2),eval(dimHsc),f_n(dimHsc),f_n_negative(dimHsc),work(lwork),prod(nOrb,nOrb,s%nAtoms) )
 
     call hamilt_local(s)
 
     !$omp parallel default(none) &
     !$omp& firstprivate(lwork) &
-    !$omp& private(iz,n,i,sigma,mu,nu,hk,eval,f_n,evec,work,rwork,info) &
-    !$omp& shared(s,nOrb,dimH,output,realBZ,eta,isigmamu2n,prod,fermi_surface)
+    !$omp& private(iz,n,i,sigma,mu,nu,hk,eval,work,rwork,info) &
+    !$omp& shared(s,nOrb,dimH,dimHsc,output,realBZ,fermi,beta,f_n,f_n_negative,eta,isigmamu2n,prod,lsupercond)
 
     prod = cZero
     !$omp do reduction(+:prod) schedule(dynamic)
@@ -733,28 +836,27 @@ contains
       call hamiltk(s,realBZ%kp(1:3,iz),hk)
 
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-      call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
+      call zheev('V','L',dimHsc,hk,dimHsc,eval,work,lwork,rwork,info)
       if(info/=0) &
         call abortProgram("[calcLGS_eigenstates] Problem with diagonalization. info = " // itos(info))
 
-      eval_loop: do n = 1, dimH
-        ! Fermi-Dirac:
-        f_n = fd_dist(fermi_surface, 1._dp/(pi*eta), eval(n))
+      do concurrent (n = 1:dimHsc)
+        f_n(n) = fd_dist(fermi, beta, eval(n))
+      end do
 
-        ! Getting eigenvector and its transpose conjugate
-        evec(:) = hk(:,n)
+      if(.not.lsupercond) then
+        do concurrent(n = 1:dimHsc, i = 1:s%nAtoms, nu = 1:nOrb, mu = 1:nOrb, sigma=1:2)
+          prod(mu,nu,i) = prod(mu,nu,i) + f_n(n)*conjg( hk(isigmamu2n(i,sigma,mu),n) )*hk(isigmamu2n(i,sigma,nu),n)*realBZ%w(iz)
+        end do      
+      else
+        do concurrent (n = 1:dimHsc, lsuperCond)
+          f_n_negative(n) = fd_dist(fermi, beta, -eval(n))
+        end do
 
-        sites_loop: do i = 1, s%nAtoms
-          do nu = 1, nOrb
-            do mu = 1, nOrb
-              do sigma = 1, 2
-                prod(mu,nu,i) = prod(mu,nu,i) + f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,nu))*realBZ%w(iz)
-              end do
-            end do
-          end do
-        end do sites_loop
-
-      end do eval_loop
+        do concurrent(n = 1:dimHsc, i = 1:s%nAtoms, nu = 1:nOrb, mu = 1:nOrb)
+          prod(mu,nu,i) = prod(mu,nu,i) + ( f_n(n)*conjg( hk(isigmamu2n(i,1,mu),n) )*hk(isigmamu2n(i,1,nu),n)+f_n_negative(n)*conjg( hk(isigmamu2n(i,2,mu)+dimH,n))*hk(isigmamu2n(i,2,nu)+dimH,n) )*realBZ%w(iz)
+        end do      
+      end if
     end do kloop
     !$omp end do
     !$omp end parallel
@@ -781,7 +883,7 @@ contains
       end do
     end do
 
-    deallocate(h0,hk,rwork,eval,work)
+    deallocate(hk,rwork,eval,work)
 
   end subroutine calcLGS_eigenstates
 

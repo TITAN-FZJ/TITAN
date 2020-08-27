@@ -406,11 +406,11 @@ contains
   ! subroutine to write in time propagation output files
   subroutine write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t, field_m, field_e, E_t, Lxm_t, Lym_t, Lzm_t) 
     use mod_kind, only: dp
-    use mod_system,           only: System
+    use mod_system,           only: System_type
     use mod_parameters,       only: nOrb
     use mod_imRK4_parameters, only: time_conv
     implicit none
-    type(System),                      intent(in) :: s
+    type(System_type),                      intent(in) :: s
     real(dp),                          intent(in) :: t, E_t
     real(dp), dimension(nOrb,s%nAtoms),intent(in) :: rho_t, mx_t, my_t, mz_t
     real(dp), dimension(s%nAtoms)     ,intent(in) :: rhod_t, mxd_t, myd_t, mzd_t, Lxm_t, Lym_t, Lzm_t

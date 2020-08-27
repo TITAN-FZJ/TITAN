@@ -59,14 +59,14 @@ contains
   subroutine setup_fraction(self, sys, rank, size, comm, lkpoints)
     use mod_kind, only: int32
     use mod_mpi_pars, only: calcWorkload
-    use mod_System,   only: System
+    use mod_System,   only: System_type
     implicit none
     class(FractionalBrillouinZone) :: self
-    type(System),intent(in) :: sys
+    type(System_type),intent(in) :: sys
     integer(int32),   intent(in) :: rank, size, comm
     logical,     intent(in), optional :: lkpoints
     ! MPI_f08:
-    ! type(System),   intent(in) :: sys
+    ! type(System_type),   intent(in) :: sys
     ! integer(int32),      intent(in) :: rank, size
     ! type(MPI_Comm), intent(in) :: comm
     ! logical,        intent(in), optional :: lkpoints
@@ -103,10 +103,10 @@ contains
 
   subroutine countBZ(self,sys)
     use mod_kind, only: int64
-    use mod_System, only: System
+    use mod_System, only: System_type
     implicit none
     class(BrillouinZone)     :: self
-    type(System), intent(in) :: sys
+    type(System_type), intent(in) :: sys
     integer(int64)                :: total
 
     select case(sys%isysdim)
@@ -145,10 +145,10 @@ contains
     use mod_constants, only: tpi
     use mod_tools,     only: cross, itos, vec_norm
     use mod_mpi_pars,  only: abortProgram
-    use mod_System,    only: System
+    use mod_System,    only: System_type
     implicit none
     class(FractionalBrillouinZone) :: self
-    type(System), intent(in)       :: sys
+    type(System_type), intent(in)       :: sys
     integer(int64),    intent(in)       :: first, last
     real(dp), dimension(3,8)   :: bz_vec
     real(dp), dimension(3,8)   :: diff
@@ -304,10 +304,10 @@ contains
     use mod_constants, only: tpi
     use mod_tools,     only: cross, itos, vec_norm
     use mod_mpi_pars,  only: abortProgram
-    use mod_System,    only: System
+    use mod_System,    only: System_type
     implicit none
     class(FractionalBrillouinZone) :: self
-    type(System), intent(in)       :: sys
+    type(System_type), intent(in)       :: sys
     integer(int64),    intent(in)       :: first, last
     real(dp), dimension(3,4)   :: bz_vec
     real(dp), dimension(3,4)   :: diff
@@ -453,10 +453,10 @@ contains
     use mod_constants, only: tpi
     use mod_tools,     only: cross, itos, vec_norm
     use mod_mpi_pars,  only: abortProgram
-    use mod_System,    only: System
+    use mod_System,    only: System_type
     implicit none
     class(FractionalBrillouinZone) :: self
-    type(System), intent(in)       :: sys
+    type(System_type), intent(in)       :: sys
     integer(int64),    intent(in)       :: first, last
     real(dp), dimension(3,2)   :: bz_vec
     real(dp), dimension(3,2)   :: diff

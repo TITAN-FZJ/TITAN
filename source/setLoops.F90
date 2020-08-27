@@ -2,10 +2,10 @@
 subroutine setLoops(s)
   use mod_kind, only: dp
   use mod_parameters, only: itype, nEner, nEner1, emin, emax, deltae, nQvec, nQvec1, deltak, kdirection, band_points, band_cnt, bands, kpoints, partial_length
-  use mod_system,     only: System
+  use mod_system,     only: System_type
   use mod_tools,      only: vecDist
   implicit none
-  type(System), intent(in)  :: s
+  type(System_type), intent(in)  :: s
   integer                   :: count,i,j
   real(dp)              :: dir(3),total_length
     interface

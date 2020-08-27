@@ -1,9 +1,9 @@
 ! This subroutine builds the U vector from the elemental files
 subroutine build_U(sys)
   use mod_parameters, only: Un, Um
-  use mod_System,     only: System
+  use mod_System,     only: System_type
   implicit none
-  type(System), intent(in) :: sys
+  type(System_type), intent(in) :: sys
   integer :: i
   
   do i=1,sys%nAtoms

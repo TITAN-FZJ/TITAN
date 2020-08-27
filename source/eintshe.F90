@@ -10,7 +10,7 @@ subroutine eintshe(q,e)
   use mod_prefactors,    only: prefactor !, lxpt, lypt, lzpt, tlxp, tlyp, tlzp
   use mod_disturbances,  only: tchiorbiikl
   use ElectricField,     only: ElectricFieldVector
-  use mod_hamiltonian,   only: hamilt_local,h0
+  use mod_hamiltonian,   only: hamilt_local
   use adaptiveMesh
   use mod_mpi_pars
 
@@ -317,9 +317,6 @@ subroutine eintshe(q,e)
   deallocate(gf,dtdk,gfuu,gfud,gfdu,gfdd)
   deallocate(tFintiikl) !, ttFintiikl, LxttFintiikl, LyttFintiikl, LzttFintiikl)
   !$omp end parallel
-
-  ! Deallocate local hamiltonian
-  if(.not.llineargfsoc) deallocate(h0)
 
   if(rFreq(1) == 0) then
     call MPI_Reduce(MPI_IN_PLACE, tchiorbiikl, ncountkl, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, FreqComm(1), ierr)

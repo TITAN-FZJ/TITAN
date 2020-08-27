@@ -10,7 +10,7 @@ subroutine jij_energy(Jij)
   use EnergyIntegration, only: y, wght
   use mod_magnet,        only: mvec_cartesian,mabs
   use mod_system,        only: s => sys
-  use mod_hamiltonian,   only: hamilt_local,h0
+  use mod_hamiltonian,   only: hamilt_local
   use mod_mpi_pars
   use adaptiveMesh
   use mod_mpi_pars
@@ -130,8 +130,5 @@ subroutine jij_energy(Jij)
   else
      call MPI_Reduce(Jij, Jij, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, 0, activeComm, ierr)
   end if
-
-  ! Deallocate local hamiltonian
-  deallocate(h0)
 
 end subroutine jij_energy

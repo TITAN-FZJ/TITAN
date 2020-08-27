@@ -30,7 +30,8 @@ contains
     use mod_SOC,           only: SOC
     use mod_parameters,    only: leigenstates,lkpoints
     use mod_System,        only: s => sys
-    use mod_expectation,   only: calcLGS
+    use mod_expectation,   only: calcLGS,expectation_values, expectation_eigenstates_fullhk
+    use mod_hamiltonian, only: fullhamiltk
     implicit none
     logical :: lsuccess = .false.
 
@@ -39,6 +40,9 @@ contains
     if(.not.leigenstates) then
       call genLocalEKMesh(s,rField,sField, FieldComm)
     end if
+
+    !--- Checking if full tight-binding hamiltonian can be calculating ---
+    if( fullhamiltk(s) ) expectation_values => expectation_eigenstates_fullhk
 
     !--------------------------- Self-consistency --------------------------
     ! Trying to read previous densities and Ef from files
@@ -614,8 +618,8 @@ contains
     use mod_system,            only: s => sys
     use mod_magnet,            only: rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,           only: update_Umatrix
-    use mod_parameters,        only: nOrb, leigenstates
-    use mod_expectation,       only: expectation_values_greenfunction, expectation_values_eigenstates
+    use mod_parameters,        only: nOrb
+    use mod_expectation,       only: expectation_values
     use mod_superconductivity, only: lsuperCond, update_singlet_couplings
     ! use mod_mpi_pars
     implicit none
@@ -654,11 +658,7 @@ contains
     if(lsuperCond) call update_singlet_couplings(s,singlet_coupling_in)
 
     ! call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,singlet_coupling_in,s%Ef)
-    if(leigenstates) then
-      call expectation_values_eigenstates(s,rho,mp,mx,my,mz,deltas)
-    else
-      call expectation_values_greenfunction(s,rho,mp,mx,my,mz)
-    end if
+    call expectation_values(s,rho,mp,mx,my,mz,deltas)
     do concurrent (i = 1:s%nAtoms)
       rhod(i)   = sum(rho(5:9,i))
       mpd(i)    = sum(mp(5:9,i))
@@ -693,7 +693,7 @@ contains
     use mod_System,        only: s => sys
     use adaptiveMesh,      only: local_points, E_k_imag_mesh, bzs, activeComm
     use mod_BrillouinZone, only: realBZ
-    use mod_hamiltonian,   only: hamilt_local,h0
+    use mod_hamiltonian,   only: hamilt_local
     use mod_mpi_pars
     implicit none
     integer,                           intent(in)    :: N
@@ -997,9 +997,6 @@ contains
     if(allocated(gvg)) deallocate(gvg)
     !$omp end parallel
 
-    ! Deallocate local hamiltonian
-    if((.not.llineargfsoc) .and. (.not.llinearsoc)) deallocate(h0)
-
     call MPI_Allreduce(MPI_IN_PLACE, jacobian, ncount2, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
 
     jacobian = jacobian/pi
@@ -1222,12 +1219,12 @@ contains
     use mod_magnet,            only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,           only: update_Umatrix
     use mod_tools,             only: itos
-    use mod_expectation,       only: expectation_values_greenfunction,expectation_values_eigenstates
+    use mod_expectation,       only: expectation_values
     use mod_superconductivity, only: lsuperCond, update_singlet_couplings
     use mod_mpi_pars
     implicit none
     integer  :: N,i,mu,iflag
-    integer     ,    intent(inout)            :: iuser(1)
+    integer,     intent(inout)            :: iuser(1)
     real(dp),    intent(inout)            :: ruser(1)
     real(dp),    dimension(N)             :: x,fvec
     real(dp),    dimension(N,N)           :: selfconjac
@@ -1266,11 +1263,7 @@ contains
 
     select case (iflag)
     case(1)
-      if(leigenstates) then
-        call expectation_values_eigenstates(s,rho,mp,mx,my,mz,deltas)
-      else
-        call expectation_values_greenfunction(s,rho,mp,mx,my,mz)
-      end if
+      call expectation_values(s,rho,mp,mx,my,mz,deltas)
       do concurrent (i = 1:s%nAtoms)
         rhod(i)   = sum(rho(5:9,i))
         mpd(i)    = sum(mp(5:9,i))
@@ -1320,13 +1313,13 @@ contains
     use mod_system,            only: s => sys
     use mod_magnet,            only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,           only: update_Umatrix
-    use mod_parameters,        only: nOrb, leigenstates
-    use mod_expectation,       only: expectation_values_greenfunction, expectation_values_eigenstates
+    use mod_parameters,        only: nOrb
+    use mod_expectation,       only: expectation_values
     use mod_superconductivity, only: lsuperCond, update_singlet_couplings
     use mod_mpi_pars
     implicit none
     integer  :: N,i,mu,iflag
-    integer     ,    intent(inout)            :: iuser(1)
+    integer,     intent(inout)            :: iuser(1)
     real(dp),    intent(inout)            :: ruser(1)
     real(dp),    dimension(N)             :: x,fvec
     real(dp),    dimension(nOrb,s%nAtoms) :: rho_in
@@ -1363,11 +1356,7 @@ contains
 
     iter = iter + 1
 
-    if(leigenstates) then
-      call expectation_values_eigenstates(s,rho,mp,mx,my,mz,deltas)
-    else
-      call expectation_values_greenfunction(s,rho,mp,mx,my,mz)
-    end if
+    call expectation_values(s,rho,mp,mx,my,mz,deltas)
     do concurrent (i = 1:s%nAtoms)
       rhod(i)   = sum(rho(5:9,i))
       mpd(i)    = sum(mp(5:9,i))
@@ -1410,7 +1399,7 @@ contains
     use mod_magnet,            only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,           only: update_Umatrix
     use mod_tools,             only: itos
-    use mod_expectation,       only: expectation_values_greenfunction, expectation_values_eigenstates
+    use mod_expectation,       only: expectation_values
     use mod_superconductivity, only: lsuperCond, update_singlet_couplings
     use mod_mpi_pars
     implicit none
@@ -1449,11 +1438,7 @@ contains
 
     flag: select case (iflag)
     case(1)
-      if(leigenstates) then
-        call expectation_values_eigenstates(s,rho,mp,mx,my,mz,deltas)
-      else
-        call expectation_values_greenfunction(s,rho,mp,mx,my,mz)
-      end if
+      call expectation_values(s,rho,mp,mx,my,mz,deltas)
       do concurrent (i = 1:s%nAtoms)
         rhod(i)   = sum(rho(5:9,i))
         mpd(i)    = sum(mp(5:9,i))
@@ -1503,8 +1488,8 @@ contains
     use mod_system,            only: s => sys
     use mod_magnet,            only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,           only: update_Umatrix
-    use mod_parameters,        only: nOrb, leigenstates
-    use mod_expectation,       only: expectation_values_greenfunction, expectation_values_eigenstates
+    use mod_parameters,        only: nOrb
+    use mod_expectation,       only: expectation_values
     use mod_superconductivity, only: lsuperCond, update_singlet_couplings
     use mod_mpi_pars
     implicit none
@@ -1542,11 +1527,7 @@ contains
 
     iter = iter + 1
 
-    if(leigenstates) then
-      call expectation_values_eigenstates(s,rho,mp,mx,my,mz,deltas)
-    else
-      call expectation_values_greenfunction(s,rho,mp,mx,my,mz)
-    end if
+    call expectation_values(s,rho,mp,mx,my,mz,deltas)
     do concurrent (i = 1:s%nAtoms)
       rhod(i)   = sum(rho(5:9,i))
       mpd(i)    = sum(mp(5:9,i))

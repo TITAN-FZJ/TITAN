@@ -1,16 +1,15 @@
 !   Calculates band structure
 subroutine band_structure(s)
-
   use mod_kind, only: dp
   use mod_parameters,        only: output, kdirection, nQvec, nQvec1, kpoints, bsfile, wsfile, deltak
-  use mod_system,            only: System
+  use mod_system,            only: System_type
   use mod_tools,             only: cross
   use mod_mpi_pars,          only: rField
-  use mod_superconductivity, only: superCond, hamiltk_sc, lsuperCond
+  use mod_superconductivity, only: superCond
   use mod_io,                only: write_header
-  use mod_hamiltonian,       only: hamiltk,hamilt_local,h0
+  use mod_hamiltonian,       only: hamilt_local,hamiltk
   implicit none
-  type(System), intent(in) :: s
+  type(System_type), intent(in) :: s
   integer :: i, info, count, f_unit=666, w_unit=667, n
   integer :: lwork,dimbs
   real(dp), dimension(:), allocatable :: rwork,eval
@@ -41,12 +40,8 @@ subroutine band_structure(s)
   do count=1,nQvec1
     write(output%unit_loop,"('[band_structure] ',i0,' of ',i0,' points',', i = ',es10.3)") count,nQvec1,dble((count-1._dp)/nQvec)
 
-    if(lsuperCond) then
-        call hamiltk_sc(s,kpoints(:,count),hk)
-    else
-        call hamiltk(s,kpoints(:,count),hk)
-    end if
-
+    call hamiltk(s,kpoints(:,count),hk)
+  
     call zheev('V','U',dimbs,hk,dimbs,eval,work,lwork,rwork,info)
 
     if(info/=0) then
@@ -60,6 +55,6 @@ subroutine band_structure(s)
 
   close(f_unit)
   close(w_unit)
-  deallocate(h0,hk,rwork,eval,work)
+  deallocate(hk,rwork,eval,work)
 
 end subroutine band_structure

@@ -92,8 +92,8 @@ contains
     use mod_parameters,        only: nOrb, nOrb2, eta
     use mod_system,            only: s => sys
     use mod_BrillouinZone,     only: realBZ
-    use mod_superconductivity, only: lsupercond, green_sc, superCond
-    use mod_hamiltonian,       only: hamilt_local,h0
+    use mod_superconductivity, only: lsupercond, superCond
+    use mod_hamiltonian,       only: hamilt_local
     use mod_mpi_pars
     implicit none
     real(dp), intent(in) :: e
@@ -119,11 +119,7 @@ contains
       kp = realBZ%kp(1:3,iz)
       weight = realBZ%w(iz)
       ! Green function on energy E + ieta, and wave vector kp
-      if(lsupercond .eqv. .true.) then
-          call green_sc(e,eta,s,kp,gf)
-      else
-          call green(e,eta,s,kp,gf)
-      end if
+      call green(e,eta,s,kp,gf)
 
       ! Density of states
       do mu=1,nOrb
@@ -155,9 +151,6 @@ contains
       call MPI_Reduce(ldosu , ldosu , s%nAtoms*nOrb*superCond, MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
       call MPI_Reduce(ldosd , ldosd , s%nAtoms*nOrb*superCond, MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
     end if
-
-    ! Deallocate local hamiltonian
-    deallocate(h0)
 
   end subroutine ldos_energy
 
@@ -264,7 +257,7 @@ contains
     use mod_system,        only: s => sys
     use mod_BrillouinZone, only: realBZ
     use mod_magnet,        only: mvec_cartesian, mabs
-    use mod_hamiltonian,   only: hamilt_local,h0
+    use mod_hamiltonian,   only: hamilt_local
     use mod_progress
     use mod_mpi_pars
     implicit none
@@ -418,9 +411,6 @@ contains
        call MPI_Reduce(ldosd , ldosd , ncount  , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
        call MPI_Reduce(Jijint, Jijint, ncount2 , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
     end if
-
-    ! Deallocate local hamiltonian
-    deallocate(h0)
 
   end subroutine ldos_jij_energy
 

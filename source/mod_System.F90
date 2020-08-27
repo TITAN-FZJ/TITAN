@@ -19,7 +19,7 @@ module mod_system
   use AtomTypes, only: BasisAtom, NeighborAtom, AtomType
   implicit none
 
-  type :: System
+  type :: System_type
     !! Variables for the system to be calculated
     character(len=200) :: Name = ""
     !! Name of the system
@@ -53,9 +53,9 @@ module mod_system
     !! Number of different atom types
     type(AtomType), dimension(:), allocatable :: Types
     !! List of types
-  end type System
+  end type System_type
 
-  type(System) :: sys
+  type(System_type) :: sys
 
   integer :: n0sc1 !< first neighbor to calculate the in-plane spin and charge current
   integer :: n0sc2 !< last neighbor to calculate the in-plane spin and charge current
@@ -83,11 +83,11 @@ contains
       ia(2,i) = ia(1,i) + nOrb - 1
       ia(3,i) = ia(1,i) + nOrb
       ia(4,i) = ia(3,i) + nOrb - 1
-      !superconductivity block has doubled dimensions in each spin
-      ia_sc(1,i) = (i-1) * 2 * nOrb + 1
-      ia_sc(2,i) = ia_sc(1,i) + nOrb*2 - 1
-      ia_sc(3,i) = ia_sc(1,i) + offsetParameter
-      ia_sc(4,i) = ia_sc(3,i) + nOrb*2 - 1
+      ! Superconductivity block has doubled dimensions in each spin
+      ia_sc(1,i) = (i-1) * 2 * nOrb + 1           ! Begin first block (electrons) 1 to 2*nOrb
+      ia_sc(2,i) = ia_sc(1,i) + nOrb*2 - 1        ! End first block (electrons)
+      ia_sc(3,i) = ia_sc(1,i) + offsetParameter   ! Begin second block (holes) 1 to 2*nOrb + dimH
+      ia_sc(4,i) = ia_sc(3,i) + nOrb*2 - 1        ! End second block (holes)
     end do
   end subroutine initHamiltkStride
 

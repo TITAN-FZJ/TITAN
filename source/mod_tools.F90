@@ -509,7 +509,7 @@ contains
     integer                          :: nrhs, lda, ldb, ldx, info
     integer,          allocatable    :: ipiv(:)
     complex,          allocatable    :: swork(:)
-    complex(dp),  allocatable    :: work(:), X(:)
+    complex(dp),      allocatable    :: work(:), X(:)
     double precision, allocatable    :: rwork(:)
 
     lda= n
@@ -526,6 +526,54 @@ contains
     deallocate(work,swork,rwork,ipiv,X)
     
     end subroutine LS_solver
+
+
+  ! --------------------------------------------------------------------
+  ! function get_memory():
+  !    This function returns the free memory in the computer the job is running
+  ! --------------------------------------------------------------------
+  function get_memory(units,mem) result(success)
+    use mod_parameters, only: output
+    use mod_mpi_pars, only: rField
+    use mod_kind, only: int32
+    ! use mod_io, only: log_warning
+    implicit none
+    character(len=1), intent(in)  :: units
+    !! In which units the result will be returned: g = GB, m = MB, k = KB
+    integer(int32),   intent(out) :: mem
+    !! Amount of free memory
+    logical :: success
+
+    character(len=13) :: type,filename = "/proc/meminfo"
+    integer :: ios,file_unit = 931
+
+    open (unit=file_unit, file=trim(filename), status='old', action='read', iostat=ios)
+    if(ios/=0) then
+      if(rField == 0) write(unit=output%unit, fmt="('[Warning] [get_memory] Could not get memory from file ',a,'.')") trim(filename)
+      success = .false.
+      return
+    end if
+
+    do
+      read(unit=file_unit,fmt=*, iostat=ios) type, mem
+      if(ios/=0) exit
+      if(trim(type) == "MemFree:" ) then
+        select case(units)
+        case("m")
+          mem = mem/1024
+        case("g")
+          mem = mem/1024/1024
+        end select
+        close(file_unit)
+        success = .true.
+        return
+      end if
+    end do
+    if(rField == 0) write(unit=output%unit, fmt="('[Warning] [get_memory] Could not find MemFree on file',a,'.')") trim(filename)
+
+    success = .false.
+    close(file_unit)
+  end function get_memory
 
 end module mod_tools
 

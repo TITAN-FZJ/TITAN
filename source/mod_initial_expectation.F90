@@ -3,8 +3,9 @@ module mod_initial_expectation
 contains
 
   subroutine calc_initial_Uterms(sys)
+    use mod_kind, only: dp
     use mod_constants,      only: cZero
-    use mod_System,         only: System,initHamiltkStride
+    use mod_System,         only: System_type,initHamiltkStride
     use TightBinding,       only: initTightBinding
     use mod_magnet,         only: l_matrix,lb,sb,allocate_magnet_variables,deallocate_magnet_variables,rho0,rhod0
     use mod_SOC,            only: ls,allocateLS
@@ -18,11 +19,13 @@ contains
     use mod_Atom_variables, only: allocate_Atom_variables,deallocate_Atom_variables
     use mod_BrillouinZone,  only: realBZ!,nkpt_x,nkpt_y,nkpt_z
     use EnergyIntegration,  only: pn1
-    use mod_superconductivity
+    use mod_hamiltonian,    only: deallocate_hamiltonian
+    use mod_superconductivity, only: lsupercond,supercond,allocate_supercond_variables,deallocate_supercond_variables,singlet_coupling
     implicit none
-    integer :: i,j,mu,err
-    type(System), intent(inout) :: sys
-    type(System), allocatable   :: sys0(:)
+    logical :: lsupercond_temp
+    integer :: i,j,mu,err,supercond_temp
+    type(System_type), intent(inout) :: sys
+    type(System_type), allocatable   :: sys0(:)
 
     if(myrank == 0) &
       call write_time(output%unit,'[calc_initial_Uterms] Obtaining initial densities: ')
@@ -97,6 +100,11 @@ contains
         sb = cZero
         ls = cZero
         singlet_coupling = 0._dp
+        ! Turning off superconductivity
+        lsuperCond_temp = lsuperCond
+        supercond_temp  = supercond
+        lsuperCond = .false.
+        supercond = 1
 
         !------------------------ Conversion arrays -------------------------
         call initConversionMatrices(sys0(i)%nAtoms,nOrb)
@@ -119,10 +127,15 @@ contains
         !------------------------ Freeing memory ---------------------------
         if(.not.leigenstates) call freeLocalEKMesh()
 
+        ! Recovering superconductivity
+        lsuperCond = lsuperCond_temp
+        supercond  = supercond_temp
+
         !-------------------- Deallocating variables -----------------------
         call deallocate_magnet_variables()
         call deallocate_Atom_variables()
         call deallocate_supercond_variables()
+        call deallocate_hamiltonian()
 
       end if ! read_initial_Uterms
 
@@ -154,15 +167,15 @@ contains
     !! Calculates the expectation values of n_mu^s and n_i/2
     use mod_kind, only: dp
     use mod_constants,     only: cZero
-    use mod_System,        only: System
-    use mod_parameters,    only: nOrb, leigenstates
+    use mod_System,        only: System_type
+    use mod_parameters,    only: nOrb
     use mod_magnet,        only: rho,rhod,mp,mx,my,mz,mpd,mzd
-    use mod_expectation,   only: expectation_values_greenfunction,expectation_values_eigenstates
+    use mod_expectation,   only: expectation_values
     use mod_Umatrix
     use adaptiveMesh
     implicit none
     integer      :: i
-    type(System),                   intent(inout) :: sys
+    type(System_type),                   intent(inout) :: sys
     real(dp), dimension(:,:)    , allocatable :: rho0
     real(dp), dimension(:)      , allocatable :: rhod0
     real(dp), dimension(nOrb,sys%nAtoms)      :: deltas
@@ -178,11 +191,9 @@ contains
     rho0 = 0._dp
     rho  = rho0
     call init_Umatrix(mzd,mpd,rhod,rhod0,rho,rho0,sys%nAtoms,nOrb)
-    if(leigenstates) then
-      call expectation_values_eigenstates(sys,rho0,mp,mx,my,mz,deltas)
-    else
-      call expectation_values_greenfunction(sys,rho0,mp,mx,my,mz)
-    end if
+
+    call expectation_values(sys,rho0,mp,mx,my,mz,deltas)
+
     do i = 1, sys%nAtoms
       rhod0(i)   = sum(rho0(5:9,i))
     end do
@@ -198,11 +209,11 @@ contains
     !! Writes the initial orbital dependent densities (calculated with tight-binding hamiltonian only) into files
     use mod_parameters,    only: nOrb, output, dfttype
     use EnergyIntegration, only: parts
-    use mod_System,        only: System
+    use mod_System,        only: System_type
     implicit none
     character(len=500) :: filename
     character(len=30) :: formatvar
-    type(System), intent(in) :: sys0
+    type(System_type), intent(in) :: sys0
     integer           :: j,mu
 
     ! Defining and opening file:
@@ -229,10 +240,10 @@ contains
     use mod_kind, only: dp
     use mod_parameters,    only: nOrb, output, dfttype
     use EnergyIntegration, only: parts
-    use mod_System,        only: System
+    use mod_System,        only: System_type
     use mod_mpi_pars
     implicit none
-    type(System), intent(inout) :: sys0
+    type(System_type), intent(inout) :: sys0
     integer,      intent(out)   :: err
     logical            :: success
     character(len=500) :: filename
@@ -243,7 +254,13 @@ contains
 
     write(filename,"('./results/FSOC/selfconsistency/initialrho_',a,'_dfttype=',a,'_parts=',i0,a,a,'.dat')") trim(sys0%Types(1)%Name),dfttype, parts,trim(output%info),trim(output%suffix)
     open(unit=97,file=filename,status="old",iostat=err)
-    if(err/=0) return
+    if(err/=0) then
+      if(rField==0) then
+        write(output%unit,"('[read_initial_Uterms] Initial density file for ""',a,'"" does not exist:')") trim(sys0%Types(1)%Name)
+        write(output%unit,"('[read_initial_Uterms] ',a)") trim(filename)
+      end if
+      return
+    end if
 
     if(rField==0) then
       write(output%unit,"('[read_initial_Uterms] Initial density file for ""',a,'"" already exists. Reading it from file:')") trim(sys0%Types(1)%Name)

@@ -13,19 +13,19 @@ contains
     use mod_imRK4,             only: iterate_Zki, calculate_step_error, magnetic_field, vector_potential
     use mod_BrillouinZone,     only: realBZ
     use mod_parameters,        only: nOrb,dimH,output,laddresults,lprintfieldonly
-    use mod_system,            only: Systemtype => System
+    use mod_system,            only: System_type
     use mod_expectation,       only: expec_val_n, expec_H_n, expec_L_n
     use mod_Umatrix,           only: update_Umatrix
     use mod_magnet,            only: rhod0,rho0
     use mod_tools,             only: KronProd
     use mod_superconductivity, only: allocate_supercond_variables
-    use mod_hamiltonian,       only: hamiltk,hamilt_local,h0
+    use mod_hamiltonian,       only: hamiltk,hamilt_local
     use mod_checkpoint,        only: save_state, recover_state
     use mod_io,                only: log_warning
     use mod_time_propagator_io, only: create_time_prop_files, write_header_time_prop, write_field, write_time_prop_files
     use mod_mpi_pars
     implicit none
-    type(Systemtype), intent(in)   :: s
+    type(System_type), intent(in)   :: s
 
     integer(int32)                              :: i, it, n, counter, iter_rej, iter_tot
     real(dp)                                    :: t, p, h_new, h_old, ERR_old, ERR_kn
@@ -307,7 +307,7 @@ contains
     ! Creating checkpoint in the last state
     call save_state(rFreq(1),dimH,realBZ%workload,t,step,eval_kn,evec_kn)
 
-    deallocate( id,id2,h0,hk,rwork,eval,work,eval_kn,evec_kn,evec_kn_temp, M1, output%observable )
+    deallocate( id,id2,hk,rwork,eval,work,eval_kn,evec_kn,evec_kn_temp, M1, output%observable )
 
     if(rFreq(1) == 0) &
       write(output%unit_loop,"('[time_propagator] Integration time reached. ',i0,' total iterations, with ',i0,' accepted.')") iter_tot,it

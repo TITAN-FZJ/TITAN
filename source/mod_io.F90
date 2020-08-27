@@ -23,7 +23,7 @@ contains
   end subroutine log_message
 
   subroutine log_error(procedure, message)
-    use mod_mpi_pars
+    use mod_mpi_pars, only: myrank,MPI_Abort,MPI_COMM_WORLD,errorcode,ierr
     use mod_parameters, only: output
     implicit none
     character(len=*), intent(in) :: procedure
@@ -66,7 +66,7 @@ contains
                                     nOrb, nOrb2, tbmode, fermi_layer
     use mod_superconductivity, only: lsuperCond, superCond
     use mod_self_consistency,  only: lslatec, lontheflysc, lnojac, lGSL, lforceoccup, lrotatemag, skipsc, scfile, magbasis, mag_tol
-    use mod_system,            only: System, n0sc1, n0sc2
+    use mod_system,            only: System_type, n0sc1, n0sc2
     use mod_SOC,               only: SOC, socscale, llinearsoc, llineargfsoc
     use mod_magnet,            only: lfield, tesla, hwa_i, hwa_f, hwa_npts, hwa_npt1, hwt_i, hwt_f, &
                                     hwt_npts, hwt_npt1, hwp_i, hwp_f, hwp_npts, hwp_npt1, hwx, hwy, &
@@ -77,16 +77,17 @@ contains
     use adaptiveMesh,          only: minimumBZmesh
     use mod_fermi_surface,     only: lfs_loop, fs_energy_npts, fs_energy_npt1, fs_energy_i, fs_energy_f
     use mod_mpi_pars
-    use mod_imRK4_parameters, only: integration_time, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, &
-                                    polarization_e, polarization_m, polarization_vec_e, polarization_vec_m, &
-                                    npulse_e, npulse_m, tau_m, delay_e, delay_m, lelectric, safe_factor, &
-                                    lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol
+    use mod_imRK4_parameters,  only: integration_time, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, &
+                                     polarization_e, polarization_m, polarization_vec_e, polarization_vec_m, &
+                                     npulse_e, npulse_m, tau_m, delay_e, delay_m, lelectric, safe_factor, &
+                                     lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol
+    use mod_expectation,       only: expectation_values, expectation_values_eigenstates
     implicit none
-    character(len=*), intent(in)    :: filename
-    type(System),     intent(inout) :: s
-    character(len=20), allocatable  :: s_vector(:)
-    real(dp),      allocatable  :: vector(:)
-    integer(int64),         allocatable  :: i_vector(:)
+    character(len=*),  intent(in)    :: filename
+    type(System_type), intent(inout) :: s
+    character(len=20), allocatable   :: s_vector(:)
+    real(dp),           allocatable  :: vector(:)
+    integer(int64),     allocatable  :: i_vector(:)
     integer :: i, cnt
     character(len=20) :: tmp_string
 
@@ -219,6 +220,7 @@ contains
         lsimplemix = .true.
       case ("eigenstates")
         leigenstates = .true.
+        expectation_values => expectation_values_eigenstates
         lnojac = .true.
         call log_warning("get_parameters","eigenstates is used, jacobian deactivated (not implemented yet)")
       case ("printfieldonly")
@@ -512,7 +514,7 @@ contains
     if(itype==11) then
       if(.not. get_parameter("integration_time", integration_time)) &
         call log_error("get_parameters", "'integration_time' not found.")
-      if(.not. get_parameter("step", step, integration_time/1.d4 )) &
+      if(.not. get_parameter("step", step, integration_time/1.e4_dp )) &
         call log_warning("get_parameters", "'step' not found. Using default value: integration_time/1.d4")
       if(.not. get_parameter("sc_tol", sc_tol, 0.01_dp)) &
         call log_warning("get_parameters", "'sc_tol' not given. Using default value: sc_tol = 0.01_dp")
@@ -904,7 +906,7 @@ contains
     use mod_mpi_pars
     use mod_parameters
     use mod_magnet
-    use mod_System,            only: System, n0sc1, n0sc2
+    use mod_System,            only: System_type, n0sc1, n0sc2
     use mod_BrillouinZone,     only: BZ => realBZ
     use mod_fermi_surface,     only: lfs_loop, fs_energy_i, fs_energy_f, fs_energy_npts
     use mod_SOC,               only: SOC, socscale
@@ -917,7 +919,7 @@ contains
                                     polarization_vec_e, polarization_vec_m, abs_tol, rel_tol, safe_factor
     !$ use omp_lib
     implicit none
-    type(System), intent(in) :: s
+    type(System_type), intent(in) :: s
     integer :: i,j
 #ifdef _OPENMP
     write(output%unit_loop,"(10x,'Running on ',i0,' MPI process(es) WITH ',i0,' openMP')") numprocs, omp_get_max_threads()

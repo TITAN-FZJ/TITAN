@@ -13,14 +13,14 @@ module mod_SOC
 contains
 
   subroutine updateLS(sys,theta, phi)
-    use mod_System,            only: System
+    use mod_System,            only: System_type
     use mod_kind, only: dp
     use mod_constants,         only: pauli_mat, cZero
     use mod_magnet,            only: lvec
     use mod_rotation_matrices, only: rotation_matrix_ry, rotation_matrix_rz
-    use mod_System,            only: System
+    use mod_System,            only: System_type
     implicit none
-    type(System), intent(in) :: sys
+    type(System_type), intent(in) :: sys
     real(dp), intent(in) :: theta, phi
     real(dp),dimension(3,3) :: ry,rz,rzy
     integer :: i,m,n,mu,nu,mup,nup

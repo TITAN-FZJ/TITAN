@@ -5,7 +5,7 @@ contains
   ! This subroutine allocates variables that depend on nAtom
   subroutine allocate_Atom_variables(nAtoms,nOrbs)
     use mod_mpi_pars,   only: abortProgram
-    use mod_System,     only: System
+    use mod_System,     only: System_type
     use mod_parameters, only: sigmai2i, sigmaimunu2i, sigmaijmunu2i, isigmamu2n, n2isigmamu, Un, Um
     implicit none
     integer, intent(in) :: nAtoms,nOrbs

@@ -4,11 +4,11 @@ module TightBinding
 contains
 
   subroutine initTightBinding(s)
-    use mod_system,     only: System
+    use mod_system,     only: System_type
     use mod_mpi_pars,   only: abortProgram
     use mod_parameters, only: tbmode, fermi_layer, nOrb
     implicit none
-    type(System), intent(inout) :: s
+    type(System_type), intent(inout) :: s
     if(tbmode == 1) then
       call get_SK_parameter(s, fermi_layer, nOrb)
     else if(tbmode == 2) then
@@ -21,9 +21,9 @@ contains
   subroutine get_SK_parameter(s, fermi_layer, nOrb)
     use mod_kind, only: dp
     use AtomTypes,    only: NeighborIndex
-    use mod_system,   only: System
+    use mod_system,   only: System_type
     implicit none
-    type(System), intent(inout) :: s
+    type(System_type), intent(inout) :: s
     integer,      intent(in)    :: fermi_layer
     integer,      intent(in)    :: nOrb
     integer                     :: i,j,k,l
@@ -75,12 +75,12 @@ contains
             ! Getting the smallest scale factor from the atoms in element file
             scale_factor = 0._dp
             do l=1,s%Types(s%Basis(i)%Material)%nAtoms
-              if(s%Types(s%Basis(i)%Material)%lelement(l) .eqv. .false.) cycle
+              if(.not.s%Types(s%Basis(i)%Material)%lelement(l)) cycle
               temp = s%Types(s%Basis(i)%Material)%stage(k,l) / s%Neighbors(current%index)%Distance(i)
               if(abs(temp-1._dp) < abs(scale_factor(1)-1._dp) ) scale_factor(1) = temp
             end do
             do l=1,s%Types(s%Basis(j)%Material)%nAtoms
-              if(s%Types(s%Basis(j)%Material)%lelement(l) .eqv. .false.) cycle
+              if(.not.s%Types(s%Basis(j)%Material)%lelement(l)) cycle
               temp = s%Types(s%Basis(j)%Material)%stage(k,l) / s%Neighbors(current%index)%Distance(i)
               if(abs(temp-1._dp) < abs(scale_factor(2)-1._dp) ) scale_factor(2) = temp
             end do
@@ -425,8 +425,8 @@ contains
 
     size = 0
 
-    localDistances = 1.d+12
-    material%stage = 1.d+12
+    localDistances = 1.e12_dp
+    material%stage = 1.e12_dp
     do i = 1, nCells
       do j = 1, material%nAtoms
         size = size + 1

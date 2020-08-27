@@ -101,7 +101,7 @@ contains
     use mod_constants
     use mod_parameters,  only: nOrb,nOrb2,Npl,llineargfsoc,outputunit
     use mod_system,      only: n0sc1,n0sc2,r_nn,nkpt,kbz,wkbz, s=>sys
-    use mod_hamiltonian, only: hamilt_local,h0
+    use mod_hamiltonian, only: hamilt_local
     !use mod_generate_kpoints
     use mod_mpi_pars
 !$  use omp_lib
@@ -206,9 +206,6 @@ contains
         end do
       end do
     end do
-
-    ! Deallocate local hamiltonian
-    if(.not.llineargfsoc) deallocate(h0)
 
   end subroutine sumk_idia
 end module mod_diamagnetic_current

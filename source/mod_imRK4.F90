@@ -7,14 +7,14 @@ contains
   subroutine iterate_Zki(s,t,kp,eval,step,Yn_new,Yn,Yn_hat)
     use mod_kind, only: dp
     use mod_parameters,       only: dimH
-    use mod_system,           only: System
+    use mod_system,           only: System_type
     use mod_imRK4_parameters, only: dimH2, sc_tol
     use mod_tools,            only: vec_norm, LS_solver
     use mod_constants,        only: cZero
     use mod_RK_matrices
     implicit none
     ! define the variables: 
-    type(System)                     , intent(in)    :: s
+    type(System_type)                     , intent(in)    :: s
     real(dp)                     , intent(in)    :: t
     real(dp)                     , intent(in)    :: kp(3)
     real(dp)                     , intent(in)    :: eval
@@ -84,12 +84,12 @@ contains
   subroutine M_2n(s, t, kp, eval, Yn, step, M2n)
     use mod_kind, only: dp
     use mod_parameters,       only: dimH
-    use mod_system,           only: System
+    use mod_system,           only: System_type
     use mod_imRK4_parameters, only: dimH2
     use mod_RK_matrices,      only: A, id2
     use mod_tools,            only: KronProd
     implicit none
-    type(System)                           , intent(in)  :: s
+    type(System_type)                           , intent(in)  :: s
     real(dp)                           , intent(in)  :: t, step
     real(dp)                           , intent(in)  :: kp(3)
     real(dp)                           , intent(in)  :: eval
@@ -114,10 +114,10 @@ contains
     use mod_constants,        only: cI
     use mod_parameters,       only: dimH
     use mod_imRK4_parameters, only: dimH2
-    use mod_system,           only: System
+    use mod_system,           only: System_type
     use mod_RK_matrices,      only: M1, c1, c2
     implicit none
-    type(System)                    ,  intent(in)  :: s
+    type(System_type)                    ,  intent(in)  :: s
     real(dp)                    ,  intent(in)  :: t, step, eval
     real(dp)                    ,  intent(in)  :: kp(3)
     complex(dp), dimension(dimH),  intent(in)  :: Yn
@@ -146,10 +146,10 @@ contains
     use mod_kind, only: dp
     use mod_constants,  only: cI
     use mod_parameters, only: dimH
-    use mod_system,     only: System
+    use mod_system,     only: System_type
     ! use mod_Umatrix,   only: hee
     implicit none
-    type(System)                          , intent(in)  :: s
+    type(System_type)                          , intent(in)  :: s
     real(dp)                          , intent(in)  :: t
     real(dp)                          , intent(in)  :: kp(3)
     real(dp)                          , intent(in)  :: eval
@@ -171,12 +171,12 @@ contains
   subroutine build_term_Jacobian(s, eval, Yn, dHdc)
     use mod_kind, only: dp
     use mod_parameters,    only: nOrb, dimH, Um, Un, isigmamu2n, eta
-    use mod_system,        only: System
+    use mod_system,        only: System_type
     use mod_distributions, only: fd_dist
     use mod_constants,     only: cZero, pauli_mat, pi
     ! use mod_Umatrix,   only: hee
     implicit none
-    type(System)                          , intent(in)  :: s
+    type(System_type)                          , intent(in)  :: s
     real(dp)                          , intent(in)  :: eval
     complex(dp), dimension(dimH)      , intent(in)  :: Yn
     complex(dp), dimension(dimH,dimH) , intent(out) :: dHdc
@@ -213,12 +213,12 @@ contains
   !> H(t) = hk + hext_t
   subroutine build_td_hamiltonian(s,t,kp,eval,hamilt_t, hamilt_0)
     use mod_kind, only: dp
-    use mod_system,      only: System
+    use mod_system,      only: System_type
     use mod_parameters,  only: dimH
     use mod_RK_matrices, only: id
     use mod_hamiltonian, only: hamiltk
     implicit none
-    type(System),    intent(in)  :: s
+    type(System_type),    intent(in)  :: s
     real(dp),    intent(in)  :: t, eval
     real(dp),    intent(in)  :: kp(3)
     complex(dp), intent(out) :: hamilt_t(dimH,dimH), hamilt_0(dimH,dimH)

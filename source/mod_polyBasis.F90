@@ -23,7 +23,7 @@ contains
   !! Reading basis file 'filename' 
   !! (also used to read original lattice for mod_initial_expectation)
   subroutine read_basis(filename, s)
-    use mod_system,    only: System
+    use mod_system,    only: System_type
     use mod_mpi_pars,  only: myrank,abortProgram
     use mod_constants, only: tpi
     use mod_tools,     only: cross, vec_norm
@@ -31,7 +31,7 @@ contains
     implicit none
 
     character(len=*), intent(in)    :: filename
-    type(System),     intent(inout) :: s
+    type(System_type),     intent(inout) :: s
 
     integer, parameter :: line_length = 300, word_length = 50, max_elements = 50
     integer :: i, j, k, l

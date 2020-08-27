@@ -8,7 +8,7 @@ subroutine eintshechi(q,e)
   use mod_system,           only: s => sys
   use mod_BrillouinZone,    only: realBZ
   use mod_SOC,              only: llineargfsoc
-  use mod_hamiltonian,      only: hamilt_local,h0
+  use mod_hamiltonian,      only: hamilt_local
   use mod_mpi_pars
   use adaptiveMesh
   implicit none
@@ -182,7 +182,6 @@ subroutine eintshechi(q,e)
 
   call MPI_Allreduce(MPI_IN_PLACE, chiorb_hf, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, FreqComm(1), ierr)
 
-  if(.not.llineargfsoc) deallocate(h0)
   deallocate(Fint)
 end subroutine eintshechi
 

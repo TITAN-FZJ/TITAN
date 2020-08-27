@@ -2,10 +2,10 @@ subroutine setup_electric_field(s)
   use mod_kind, only: dp
   use mod_constants, only: deg2rad
   use mod_parameters, only: outputunit, dirEfield, dirEfieldvec, EFp, EFt
-  use mod_System, only: System
+  use mod_System, only: System_type
   use mod_mpi_pars, only: myrank, ierr, MPI_Finalize
   implicit none
-  type(System), intent(inout) :: s
+  type(System_type), intent(inout) :: s
   real(dp), dimension(3) :: zdir
 
   zdir = [0._dp,0._dp,1._dp]
@@ -31,11 +31,11 @@ end subroutine setup_electric_field
 
 subroutine setup_long_and_trans_current_neighbors(s)
   use mod_kind, only: dp
-  use mod_system, only: System
+  use mod_system, only: System_type
 
   implicit none
 
-  type(System), intent(inout) :: s
+  type(System_type), intent(inout) :: s
 
   stop "setup_long_and_trans_current_neighbors not Implemented."
     !
@@ -88,11 +88,11 @@ end subroutine setup_long_and_trans_current_neighbors
 !   use mod_kind, only: dp
 !   use mod_constants, only: pi
 !   use mod_mpi_pars
-!   use mod_System, only: System
+!   use mod_System, only: System_type
 !   use mod_parameters
 !   use mod_tools, only: cross_unit, is_parallel
 !   implicit none
-!   type(System), intent(inout) :: s
+!   type(System_type), intent(inout) :: s
 !   integer :: i
 !   real(dp),dimension(3) :: versor_Eperp
 !   real(dp), dimension(3) :: zdir

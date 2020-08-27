@@ -129,7 +129,7 @@ contains
     use mod_parameters,    only: nOrb2, eta, output, kptotal_in
     use mod_magnet,        only: mabs
     use mod_tools,         only: sort, itos, rtos
-    use mod_hamiltonian,   only: hamilt_local,h0
+    use mod_hamiltonian,   only: hamilt_local
     use mod_mpi_pars
     implicit none
     interface
@@ -317,9 +317,6 @@ contains
       call MPI_Allreduce(MPI_IN_PLACE, iwght , ndiffk               , MPI_DOUBLE_PRECISION, MPI_SUM, FieldComm, ierr)
       deallocate(order,diff_k_unsrt)
     end if
-
-    ! Deallocate local hamiltonian
-    deallocate(h0)
 
   end subroutine TCM
 

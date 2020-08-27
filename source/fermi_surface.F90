@@ -46,7 +46,7 @@ contains
   !   Calculates iso-energy surface (e=Ef for Fermi surface)
   subroutine fermi_surface()
     use mod_parameters,    only: output, laddresults
-    use mod_system,        only: s => sys
+    use mod_System,        only: s => sys
     use mod_tools,         only: rtos
     use mod_mpi_pars,      only: rField
     implicit none
@@ -93,7 +93,7 @@ contains
     use mod_system,        only: s => sys
     use mod_BrillouinZone, only: realBZ
     use mod_magnet,        only: lx,ly,lz
-    use mod_hamiltonian,   only: hamilt_local,h0
+    use mod_hamiltonian,   only: hamilt_local
     use mod_mpi_pars
     implicit none
     real(dp),intent(in)    :: e
@@ -175,9 +175,6 @@ contains
     !$omp end parallel
 
     if(rField == 0) call writeFS(fs_atom,fs_orb,fs_total)
-
-    ! Deallocate local hamiltonian
-    if((.not.llineargfsoc) .and. (.not.llinearsoc)) deallocate(h0)
 
   end subroutine calculate_fermi_surface
 

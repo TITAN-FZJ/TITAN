@@ -2,18 +2,20 @@
 subroutine green(er,ei,sys,kp,gf)
   use mod_kind, only: dp
   use mod_constants,   only: cZero,cOne
-  use mod_System,      only: ia, System
-  use mod_parameters,  only: nOrb2, offset
+  use mod_System,      only: ia,ia_sc,System_type
+  use mod_parameters,  only: nOrb2,offset,dimH
   use mod_hamiltonian, only: hamiltk
+  use mod_superconductivity, only: lsupercond,superCond
   implicit none
-  integer     :: i,j,d
-  real(dp), intent(in) :: er,ei,kp(3)
-  type(System), intent(in) :: sys
-  complex(dp) :: ec
-  complex(dp),dimension(sys%nAtoms*nOrb2, sys%nAtoms*nOrb2) :: gslab,hk
-  complex(dp),dimension(nOrb2, nOrb2, sys%nAtoms, sys%nAtoms), intent(out)  :: gf
+  real(dp),          intent(in) :: er,ei,kp(3)
+  type(System_type), intent(in) :: sys
+  complex(dp), dimension(nOrb2*superCond,nOrb2*superCond,sys%nAtoms,sys%nAtoms), intent(out)  :: gf
 
-  d = sys%nAtoms * nOrb2
+  integer     :: i,j,d
+  complex(dp) :: ec
+  complex(dp),dimension(dimH*superCond, dimH*superCond) :: gslab,hk
+
+  d = dimH * superCond
 
   ec    = cmplx(er,ei,dp)
 
@@ -24,14 +26,30 @@ subroutine green(er,ei,sys,kp,gf)
 
   call hamiltk(sys,kp,hk)
 
+  !zaxpy performs gslab = gslab + (-cOne)*hk
+  !d*d si the dimension of the array
+  !both 1's are for the strides to use on each array
+  !for example we can add each second or third entry of the array
+  !on this case we just use every component
   call zaxpy(d*d,-cOne,hk,1,gslab,1)
   !gslab(i,j) = gslab(i,j) - hk(i,j)
   call invers(gslab, d)
 
-  ! Put the slab Green's function [A(nAtoms*18,nAtoms*18)] in the A(i,j,mu,nu) form
-  do concurrent (j = 1:sys%nAtoms, i = 1:sys%nAtoms)
-    gf(:,:,i,j) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
-  end do
+
+  if(.not.lsupercond) then
+    ! Put the slab Green's function [A(nAtoms*18,nAtoms*18)] in the A(i,j,mu,nu) form
+    do concurrent (j = 1:sys%nAtoms, i = 1:sys%nAtoms)
+      gf(:,:,i,j) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
+    end do
+  else
+    ! Put the slab Green's function [A(nAtoms*36,nAtoms*36)] in the A(i,j,mu,nu) form
+    do concurrent (j = 1:sys%nAtoms, i = 1:sys%nAtoms)
+      gf(      1:  nOrb2,      1:  nOrb2,i,j) = gslab(ia_sc(1,i):ia_sc(2,i),ia_sc(1,j):ia_sc(2,j))
+      gf(      1:  nOrb2,nOrb2+1:2*nOrb2,i,j) = gslab(ia_sc(1,i):ia_sc(2,i),ia_sc(3,j):ia_sc(4,j))
+      gf(nOrb2+1:2*nOrb2,      1:  nOrb2,i,j) = gslab(ia_sc(3,i):ia_sc(4,i),ia_sc(1,j):ia_sc(2,j))
+      gf(nOrb2+1:2*nOrb2,nOrb2+1:2*nOrb2,i,j) = gslab(ia_sc(3,i):ia_sc(4,i),ia_sc(3,j):ia_sc(4,j))
+    end do
+  end if
 
 end subroutine green
 
@@ -41,15 +59,16 @@ subroutine greenlinearsoc(er,ei,sys,kp,g0,g0vsocg0)
   use mod_kind, only: dp
   use mod_constants,   only: cZero, cOne
   use mod_parameters,  only: nOrb2, offset
-  use mod_System,      only: ia, System
+  use mod_System,      only: ia, System_type
   use mod_hamiltonian, only: hamiltklinearsoc
   implicit none
+  real(dp),          intent(in) :: er,ei,kp(3)
+  type(System_type), intent(in) :: sys
+  complex(dp), dimension(nOrb2,nOrb2,sys%nAtoms,sys%nAtoms), intent(out)  :: g0,g0vsocg0
+
   integer     :: i,j,d
-  real(dp), intent(in) :: er,ei,kp(3)
-  type(System), intent(in) :: sys
   complex(dp) :: ec
   complex(dp), dimension(sys%nAtoms*nOrb2, sys%nAtoms*nOrb2)  :: gslab0,hk,vsoc,temp,temp2
-  complex(dp), dimension(nOrb2,nOrb2,sys%nAtoms,sys%nAtoms), intent(out)  :: g0,g0vsocg0
 
   d = sys%nAtoms*nOrb2
 
@@ -83,15 +102,16 @@ subroutine greenlineargfsoc(er,ei,sys,kp,gf)
   use mod_kind, only: dp
   use mod_constants,   only: cZero, cOne
   use mod_parameters,  only: nOrb2, offset
-  use mod_System,      only: ia, System
+  use mod_System,      only: ia, System_type
   use mod_hamiltonian, only: hamiltklinearsoc
   implicit none
+  real(dp),          intent(in) :: er,ei,kp(3)
+  type(System_type), intent(in) :: sys
+  complex(dp),dimension(nOrb2, nOrb2,sys%nAtoms,sys%nAtoms),intent(out)  :: gf
+
   integer     :: i,j,d
-  real(dp), intent(in) :: er,ei,kp(3)
-  type(System), intent(in) :: sys
   complex(dp) :: ec
   complex(dp),dimension(sys%nAtoms*nOrb2, sys%nAtoms*nOrb2)  :: gslab,gslab0,hk,vsoc,temp
-  complex(dp),dimension(nOrb2, nOrb2,sys%nAtoms,sys%nAtoms),intent(out)  :: gf
 
   d = sys%nAtoms*nOrb2
 

@@ -4,35 +4,38 @@ program TITAN
   !! loops over number of planes and magnetic field to do the
   !! magnetic self-consistency and calculate either ground state
   !! quantities or response functions
-  !use, intrinsic :: iso_fortran_env
-  use mod_constants
-  use mod_parameters
-  use mod_io
-  use mod_system
-  use Lattice
-  use mod_BrillouinZone
-  use mod_SOC
-  use mod_magnet
-  use ElectricField
-  use adaptiveMesh
-  use AtomTypes
-  use mod_TCM
-  use mod_ldos
-  use mod_self_consistency
-  use EnergyIntegration
-  use mod_progress
-  use mod_mpi_pars
-  use mod_Umatrix
-  use mod_polyBasis,           only: read_basis
-  use TightBinding,            only: initTightBinding
-  use mod_fermi_surface,       only: fermi_surface
-  use mod_check_stop
-  use mod_Atom_variables,      only: allocate_Atom_variables, deallocate_Atom_variables
-  use mod_tools,               only: rtos
+  use mod_kind, only: dp
+  use mod_constants, only: cZero,define_constants
+  use mod_parameters, only: output,lpositions,lcreatefolders,parField,parFreq,nEner1,skip_steps,ldebug, &
+                            nOrb,kp_in,dimH,dimspinAtoms,dim,kptotal_in,eta,leigenstates,itype,theta,phi, &
+                            laddresults,lsortfiles,lcreatefiles
+  use mod_io, only: get_parameters,iowrite
+  use mod_system, only: sys,initHamiltkStride,deallocate_System_variables
+  use Lattice, only: initLattice,writeLattice
+  use mod_BrillouinZone, only: realBZ,countBZ
+  use mod_SOC, only: llinearsoc,SOC,allocateLS,updateLS,deallocateLS
+  use mod_magnet, only: total_hw_npt1,skip_steps_hw,hw_count,lfield,rho,mz,mp,setMagneticLoopPoints,&
+                        allocate_magnet_variables,initMagneticField,set_fieldpart,l_matrix,lb_matrix,&
+                        sb_matrix,deallocate_magnet_variables
+  use ElectricField, only: initElectricField
+  use adaptiveMesh, only: generateAdaptiveMeshes,freeLocalEKMesh,deallocateAdaptiveMeshes
+  use mod_TCM, only: calculate_TCM
+  use mod_ldos, only: ldos,ldos_and_coupling
+  use mod_self_consistency, only: doSelfConsistency
+  use EnergyIntegration, only: pn1,allocate_energy_points,generate_imag_epoints,deallocate_energy_points
+  use mod_progress, only: start_program,write_time
+  use mod_mpi_pars, only: MPI_Wtime,myrank,startField,endField,rField,ierr,Initialize_MPI,genMPIGrid,abortProgram
+  use mod_Umatrix, only: deallocate_Umatrix
+  use mod_polyBasis, only: read_basis
+  use TightBinding, only: initTightBinding
+  use mod_fermi_surface, only: fermi_surface
+  use mod_check_stop, only: check_stop
+  use mod_Atom_variables, only: allocate_Atom_variables, deallocate_Atom_variables
+  use mod_tools, only: rtos
   use mod_initial_expectation, only: calc_initial_Uterms
-  use mod_time_propagator,     only: time_propagator
-  use mod_superconductivity
-  use mod_expectation
+  use mod_time_propagator, only: time_propagator
+  use mod_hamiltonian, only: deallocate_hamiltonian
+  use mod_superconductivity, only: lsuperCond,allocate_supercond_variables,deallocate_supercond_variables
   !use mod_define_system TODO: Re-include
   !use mod_prefactors TODO: Re-include
   !use mod_lgtv_currents TODO: Re-include
@@ -321,6 +324,7 @@ program TITAN
   call deallocate_Umatrix()
   call deallocate_energy_points()
   call deallocateLoops()
+  call deallocate_hamiltonian()
   if(leigenstates) then
     call realBZ%free()
   else

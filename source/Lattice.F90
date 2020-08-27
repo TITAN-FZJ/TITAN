@@ -25,9 +25,9 @@ module Lattice
 contains
 
   subroutine initLattice(s)
-    use mod_system, only: System
+    use mod_system, only: System_type
     implicit none
-    type(System), intent(inout) :: s
+    type(System_type), intent(inout) :: s
     integer :: size
 
     call generateNeighbors(s, size)
@@ -38,10 +38,10 @@ contains
   end subroutine initLattice
 
   subroutine generateNeighbors(s,size)
-    use mod_system, only: System
+    use mod_system, only: System_type
     use mod_tools,  only: vecDist
     implicit none
-    type(System),                                  intent(inout) :: s
+    type(System_type),                                  intent(inout) :: s
     !! System for which lattice is generated
     integer,                                       intent(out)   :: size
     !! Counter for number of atoms generated, return total number generated
@@ -65,8 +65,8 @@ contains
 
     size = 0
     ! Set known distances to value which is guaranteed to be bigger than any possible distance in the system
-    localDistances = 1.d+12
-    s%Distances = 1.d+12
+    localDistances = 1.e12_dp
+    s%Distances = 1.e12_dp
     do i = 1, nCells
       do j = 1, s%nAtoms
         size = size + 1
@@ -152,10 +152,10 @@ contains
 
   subroutine sortNeighbors(s, size)
     use AtomTypes,  only: NeighborIndex
-    use mod_system, only: System
+    use mod_system, only: System_type
     implicit none
     integer,      intent(in)    :: size
-    type(System), intent(inout) :: s
+    type(System_type), intent(inout) :: s
     integer :: nNeighbors
 
     integer :: i,j,k
@@ -221,9 +221,9 @@ contains
 
   subroutine writeLattice(s)
     use AtomTypes,  only: NeighborIndex
-    use mod_system, only: System
+    use mod_system, only: System_type
     implicit none
-    type(System), intent(in) :: s
+    type(System_type), intent(in) :: s
     integer :: i,j,k,ios
     integer :: out_unit = 99
     type(NeighborIndex), pointer :: current
