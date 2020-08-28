@@ -2,7 +2,7 @@
 subroutine calculate_chi()
   use mod_kind, only: dp
   use mod_constants,         only: cZero, cOne, StoC, CtoS
-  use mod_parameters,        only: nOrb, count, emin, deltae, nQvec1, kpoints, dim, sigmaimunu2i, output, lhfresponses, lnodiag, laddresults, skip_steps, sigmai2i
+  use mod_parameters,        only: nOrb, kount, emin, deltae, nQvec1, kpoints, dimens, sigmaimunu2i, output, lhfresponses, lnodiag, laddresults, skip_steps, sigmai2i
   use mod_magnet,            only: lfield,mvec_spherical,lvec, lrot
   use mod_alpha,             only: create_alpha_files, write_alpha
   use mod_system,            only: s => sys
@@ -36,7 +36,7 @@ subroutine calculate_chi()
   call realBZ % setup_fraction(s,rFreq(1), sFreq(1), FreqComm(1))
 
 
-  if(rFreq(1) == 0) allocate(temp(dim,dim))
+  if(rFreq(1) == 0) allocate(temp(dimens,dimens))
   if(rField == 0) then
     write(output%unit_loop,"('CALCULATING LOCAL SUSCEPTIBILITY AS A FUNCTION OF ENERGY')")
     ! write(outputunit_loop,"('Qx = ',es10.3,', Qz = ',es10.3)") q(1),q(3)
@@ -61,10 +61,10 @@ subroutine calculate_chi()
       write(output%unit_loop,"('[calculate_chi] Wave vector Q loop: ',i0,' of ',i0,' points',', Q = [',es10.3,es10.3,es10.3,']')") qcount,nQvec1,(kpoints(i,qcount),i=1,3)
     q = kpoints(:,qcount)
     ! Chi Energy (frequency) Loop
-    do count = startFreq+skip_steps, endFreq
-      e = emin + deltae * (count-1)
+    do kount = startFreq+skip_steps, endFreq
+      e = emin + deltae * (kount-1)
       if(rField==0) &
-        write(output%unit_loop,"('[calculate_chi] Starting MPI step ',i0,' of ',i0,':',10x,'E =  ',es10.3)") count - startFreq - skip_steps + 1, endFreq - startFreq + 1, e
+        write(output%unit_loop,"('[calculate_chi] Starting MPI step ',i0,' of ',i0,':',10x,'E =  ',es10.3)") kount - startFreq - skip_steps + 1, endFreq - startFreq + 1, e
 
       ! Start parallelized processes to calculate chiorb_hf and chiorbi0_hf for energy e
       call eintshechi(q,e)
@@ -80,10 +80,10 @@ subroutine calculate_chi()
       if(rFreq(1)==0) then
         ! (1 + chi_hf*Umat)^-1
         temp = identt
-        call zgemm('n','n',dim,dim,dim,cOne,chiorb_hf,dim,Umatorb,dim,cOne,temp,dim)
+        call zgemm('n','n',dimens,dimens,dimens,cOne,chiorb_hf,dimens,Umatorb,dimens,cOne,temp,dimens)
         ! temp = identt + temp
-        call invers(temp,dim)
-        call zgemm('n','n',dim,dim,dim,cOne,temp,dim,chiorb_hf,dim,cZero,chiorb,dim)
+        call invers(temp,dimens)
+        call zgemm('n','n',dimens,dimens,dimens,cOne,temp,dimens,chiorb_hf,dimens,cZero,chiorb,dimens)
 
         schi   = cZero
         schihf = cZero
@@ -204,7 +204,7 @@ subroutine calculate_chi()
             call write_susceptibilities(qcount,e)
           end do
 
-          write(time,"('[calculate_chi] Time after step ',i0,': ')") count
+          write(time,"('[calculate_chi] Time after step ',i0,': ')") kount
           call write_time(output%unit_loop,time)
 
         else

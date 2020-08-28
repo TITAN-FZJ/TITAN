@@ -157,7 +157,7 @@ contains
     real(dp) :: smallest_dist, distance(8), ini_smallest_dist
     integer(int64)    :: nkpt, l
     integer(int32)    :: nx, ny, nz
-    integer(int64)    :: count, added, weight, range
+    integer(int64)    :: kount, added, weight, range
     integer(int32)    :: j
 
     allocate( self%w(self%workload), self%kp(3,self%workload) )
@@ -181,11 +181,11 @@ contains
     !10*|b1+b2+b3|, bigger than the distance of any genarated kpoint
     largest = b1 + b2 + b3
     ini_smallest_dist = 10._dp * vec_norm(largest, 3)
-    count = 0
+    kount = 0
     added = 0
     !Run over all the kpoints generated initially.
     do l = 1, nkpt
-      if(count > last) exit
+      if(kount > last) exit
       weight = 0
       range = 0
       nx = int(mod(floor(dble(l-1) / dble(self%nkpt_y*self%nkpt_z),kind(nx)), self%nkpt_x),kind(nx))
@@ -207,9 +207,9 @@ contains
       ! the 1st BZ.
       do j=1, 8
         if( abs(distance(j)-smallest_dist) < 1.e-12_dp ) then
-          count = count + 1
+          kount = kount + 1
           weight = weight + 1
-          if(count >= first .and. count <= last ) then
+          if(kount >= first .and. kount <= last ) then
             added = added + 1
             range = range + 1
             self%kp(:,added) = diff(:,j)
@@ -316,7 +316,7 @@ contains
     real(dp) :: smallest_dist, distance(4), ini_smallest_dist
     integer(int64)    :: nkpt, l
     integer(int32)    :: nx, ny
-    integer(int64)    :: count, added, weight, range
+    integer(int64)    :: kount, added, weight, range
     integer(int32)    :: j
 
     zdir = [0._dp,0._dp,1._dp]
@@ -336,11 +336,11 @@ contains
     !10*|b1+b2|, bigger than the distance of any genarated kpoint
     largest = b1 + b2
     ini_smallest_dist = 10._dp * vec_norm(largest, 3)
-    count = 0
+    kount = 0
     added = 0
     !Run over all the kpoints generated initially.
     do l=1, nkpt
-      if(count > last) exit
+      if(kount > last) exit
       weight = 0
       range = 0
       nx = int(mod(floor(dble(l-1) / dble(self%nkpt_y),kind(nx)), self%nkpt_x),kind(nx))
@@ -361,9 +361,9 @@ contains
       ! the 1st BZ.
       do j=1, 4
         if( abs(distance(j)-smallest_dist) < 1.e-12_dp ) then
-          count = count + 1
+          kount = kount + 1
           weight = weight + 1
-          if(count >= first .and. count <= last ) then
+          if(kount >= first .and. kount <= last ) then
             added = added + 1
             range = range + 1
             self%kp(:,added) = diff(:,j)
@@ -465,7 +465,7 @@ contains
     real(dp) :: smallest_dist, distance(2), ini_smallest_dist
     integer(int64)    :: nkpt, l
     integer(int32)    :: nx
-    integer(int64)    :: count, added, weight, range
+    integer(int64)    :: kount, added, weight, range
     integer(int32)    :: j
 
     zdir = [0._dp,0._dp,1._dp]
@@ -482,11 +482,11 @@ contains
     !Translate the k-points to the 1st BZ.
     !10*|b1|, bigger than the distance of any genarated kpoint
     ini_smallest_dist = 10._dp * vec_norm(b1, 3)
-    count = 0
+    kount = 0
     added = 0
     !Run over all the kpoints generated initially.
     do l=1, nkpt
-      if(count > last) exit
+      if(kount > last) exit
       weight = 0
       range = 0
       nx = int(mod(l-1, self%nkpt_x),kind(nx))
@@ -506,9 +506,9 @@ contains
       ! the 1st BZ.
       do j=1, 2
         if( abs(distance(j)-smallest_dist) < 1.e-12_dp ) then
-          count = count + 1
+          kount = kount + 1
           weight = weight + 1
-          if(count >= first .and. count <= last ) then
+          if(kount >= first .and. kount <= last ) then
             added = added + 1
             range = range + 1
             self%kp(:,added) = diff(:,j)
@@ -635,7 +635,7 @@ contains
     integer(int32)  :: nkpt_perdim, nkpt_x, nkpt_y, nkpt_z
     !! Number of k points per dimension
     integer(int32)  :: nx, ny, nz , start, end
-    integer(int32)  :: maxdiffk, ndiffk_max, count
+    integer(int32)  :: maxdiffk, ndiffk_max, kount
     !! Number of different k points, maximum value, and counter
     integer(int32)  :: j, mythread, nthreads
 
@@ -654,7 +654,7 @@ contains
     ndiffk_loc(0) = 1
 
     ! Counter of total number of points
-    count = 0
+    kount = 0
 
     bz_vec(1:3,1) = 0._dp
     bz_vec(1:3,2) = b1
@@ -671,7 +671,7 @@ contains
     !Run over all the kpoints generated initially.
     !$omp parallel default(none) &
     !$omp& private(l, j, nx, ny, nz, kp, smallest_dist, diff, distance, diff_k_loc, start, end, mythread) &
-    !$omp& shared(count, ndiffk_max, nkpt, ini_smallest_dist, bz_vec, b1, b2, b3, nkpt_x, nkpt_y, nkpt_z, component, ndiffk_loc, diff_k_temp, maxdiffk)
+    !$omp& shared(kount, ndiffk_max, nkpt, ini_smallest_dist, bz_vec, b1, b2, b3, nkpt_x, nkpt_y, nkpt_z, component, ndiffk_loc, diff_k_temp, maxdiffk)
 
     mythread = 1
     !$ mythread = omp_get_thread_num()+1
@@ -680,7 +680,7 @@ contains
     allocate( diff_k_loc(ndiffk_max) )
     diff_k_loc(:) = 999._dp
 
-    !$omp do schedule(dynamic) reduction(+:count)
+    !$omp do schedule(dynamic) reduction(+:kount)
     do l=1, nkpt
       nx = int(mod(floor(dble(l-1) / dble(nkpt_y*nkpt_z),kind(nx)), nkpt_x),kind(nx))
       ny = int(mod(floor(dble(l-1) / dble(nkpt_z),kind(ny)), nkpt_y),kind(nx))
@@ -702,7 +702,7 @@ contains
         diff=kp - bz_vec(:,j)
         distance=sqrt(dot_product(diff,diff))
         if( abs(distance-smallest_dist) < 1.e-12_dp ) then
-          count = count + 1 ! Counting the total number of points generated
+          kount = kount + 1 ! Counting the total number of points generated
           ! Checking if all numbers are different than current local list (if any of them is zero, the point is already stored)
           if( all(abs( diff_k_loc(:) - abs(diff(component)) )> 1.e-12_dp,1)  ) then
             ndiffk_loc(mythread) = ndiffk_loc(mythread) + 1
@@ -724,8 +724,8 @@ contains
 
     !$omp end parallel
 
-    if(count/=realBZ%nkpt) &
-      call abortProgram("[store_diff] Generated different number of points than it should have! count = " // trim(itos(count)) // ", nkpt = " // trim(itos(realBZ%nkpt)))
+    if(kount/=realBZ%nkpt) &
+      call abortProgram("[store_diff] Generated different number of points than it should have! kount = " // trim(itos(kount)) // ", nkpt = " // trim(itos(realBZ%nkpt)))
 
     ! Checking for different kp(component) between the locally generated ones
     allocate( diff_k_temp2(maxdiffk) )

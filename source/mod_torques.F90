@@ -223,7 +223,7 @@ contains
 
   subroutine create_dc_torque_files()
   !! This subroutine creates all the files needed for the disturbances
-    use mod_parameters, only: output, count, renorm
+    use mod_parameters, only: output, kount, renorm
     use mod_magnet, only: dcprefix, dcfield_dependence, dcfield, dc_header
     use mod_system, only: s => sys
     implicit none
@@ -235,13 +235,13 @@ contains
       do sigma=1,3
         do i=1,s%nAtoms
           iw = 90000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(dcprefix(kount)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#',a,'  imaginary part of ',a,a,' ,  real part of ',a,a,'  , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
           close(unit=iw)
           if(renorm) then
             iw = iw+1000
-            write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'r',a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
+            write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'r',a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(dcprefix(kount)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
             open (unit=iw, file=varm, status='replace', form='formatted')
             write(unit=iw, fmt="('#',a,'  imaginary part of ',a,a,' ,  real part of ',a,a,'  , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
             close(unit=iw)
@@ -249,7 +249,7 @@ contains
         end do
         ! Total torque files
         iw = 95000+(typetorque-1)*3+sigma
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(dcprefix(kount)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,'  imaginary part of ',a,a,' ,  real part of ',a,a,'  , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma),trim(filename(typetorque)),direction(sigma)
         close(unit=iw)
@@ -260,7 +260,7 @@ contains
 
   subroutine open_dc_torque_files()
   !! This subroutine opens all the files needed for the disturbances
-    use mod_parameters, only: output, count, missing_files, renorm
+    use mod_parameters, only: output, kount, missing_files, renorm
     use mod_magnet,     only: dcprefix, dcfield_dependence, dcfield
     use mod_system,     only: s => sys
     use mod_mpi_pars,   only: abortProgram
@@ -273,13 +273,13 @@ contains
       do sigma=1,3
         do i=1,s%nAtoms
           iw = 90000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(dcprefix(kount)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
           if(renorm) then
             iw = iw+1000
-            write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'r',a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
+            write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'r',a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(dcprefix(kount)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
             open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
             errt = errt + err
             if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -287,7 +287,7 @@ contains
         end do
         ! Total torque files
         iw = 95000+(typetorque-1)*3+sigma
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(dcprefix(count)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(dcprefix(kount)),trim(filename(typetorque)),direction(sigma),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)

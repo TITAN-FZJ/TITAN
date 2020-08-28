@@ -2,7 +2,7 @@
 subroutine eintshe(q,e)
   use mod_kind, only: dp
   use mod_constants,     only: cZero, cI, tpi
-  use mod_parameters,    only: nOrb, nOrb2, dim, sigmaimunu2i, eta, etap, sigmai2i, offset
+  use mod_parameters,    only: nOrb, nOrb2, dimens, sigmaimunu2i, eta, etap, sigmai2i, offset
   use mod_SOC,           only: llineargfsoc
   use EnergyIntegration, only: y, wght, x2, p2, generate_real_epoints, pn2
   use mod_system,        only: s => sys !, n0sc1, n0sc2
@@ -38,7 +38,7 @@ subroutine eintshe(q,e)
   integer(int64) :: ix, ix2, nep,nkp
   integer(int64) :: real_points
   integer   :: ncountkl !,nncountkl !TODO: Re-Include
-  ncountkl = dim*4
+  ncountkl = dimens*4
   !nncountkl = n0sc*dimspinAtoms*4 !TODO: Re-Include
   !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -61,9 +61,9 @@ subroutine eintshe(q,e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,wkbzc,ep,kp,kpq,nep,nkp,i,j,l,mu,nu,gamma,xi,sigma,sigmap,neighbor,dtdk,gf,gfuu,gfud,gfdu,gfdd,df1iikl,pfdf1iikl,tFintiikl) & !,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,expikr,prett,preLxtt,preLytt,preLztt) &
-  !$omp& shared(llineargfsoc,s,nOrb,nOrb2,bzs,realBZ,E_k_imag_mesh,ElectricFieldVector,prefactor,q,e,y,x2,wght,p2,pn2,eta,etap,local_points,real_points,sigmai2i,sigmaimunu2i,dim,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
+  !$omp& shared(llineargfsoc,s,nOrb,nOrb2,bzs,realBZ,E_k_imag_mesh,ElectricFieldVector,prefactor,q,e,y,x2,wght,p2,pn2,eta,etap,local_points,real_points,sigmai2i,sigmaimunu2i,dimens,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
 
-  allocate(df1iikl(dim,4),pfdf1iikl(dim,4), &
+  allocate(df1iikl(dimens,4),pfdf1iikl(dimens,4), &
            gf(nOrb2,nOrb2, s%nAtoms,s%nAtoms), &
            dtdk(nOrb,nOrb,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
@@ -73,7 +73,7 @@ subroutine eintshe(q,e)
   if(AllocateStatus/=0) &
   call abortProgram("[eintshe] Not enough memory for: df1iikl,pfdf1iikl,gf,dtdk,gfuu,gfud,gfdu,gfdd")
 
-  allocate( tFintiikl(dim,4), STAT = AllocateStatus ) !, &
+  allocate( tFintiikl(dimens,4), STAT = AllocateStatus ) !, &
             !ttFintiikl   (n0sc1:n0sc2, dimspinAtoms, 4), &
             !LxttFintiikl (n0sc1:n0sc2, dimspinAtoms, 4), &
             !LyttFintiikl (n0sc1:n0sc2, dimspinAtoms, 4), &
@@ -166,7 +166,7 @@ subroutine eintshe(q,e)
 
       ! Multiplying the prefactor by the susceptibility and the k-point weight
       ! pfdf1iikl = prefactor*df1iikl
-      call zgemm('n','n',dim,4,dim,wkbzc,prefactor,dim,df1iikl,dim,cZero,pfdf1iikl,dim)
+      call zgemm('n','n',dimens,4,dimens,wkbzc,prefactor,dimens,df1iikl,dimens,cZero,pfdf1iikl,dimens)
 
       tFintiikl = tFintiikl + pfdf1iikl
 
@@ -273,7 +273,7 @@ subroutine eintshe(q,e)
 
       ! Multiplying the prefactor by the susceptibility and the k-point weight
       ! pfdf1iikl = prefactor*df1iikl
-      call zgemm('n','n',dim,4,dim,wkbzc,prefactor,dim,df1iikl,dim,cZero,pfdf1iikl,dim)
+      call zgemm('n','n',dimens,4,dimens,wkbzc,prefactor,dimens,df1iikl,dimens,cZero,pfdf1iikl,dimens)
 
       ! Integrating matrices
       tFintiikl = tFintiikl + pfdf1iikl
@@ -338,7 +338,7 @@ end subroutine eintshe
 subroutine eintshelinearsoc(q,e)
   use mod_kind, only: dp
   use mod_constants,     only: cZero, cOne, cI, tpi
-  use mod_parameters,    only: nOrb, nOrb2, dim, eta, etap, sigmai2i, sigmaimunu2i, offset
+  use mod_parameters,    only: nOrb, nOrb2, dimens, eta, etap, sigmai2i, sigmaimunu2i, offset
   use mod_system,        only: s => sys
   use mod_BrillouinZone, only: realBZ
   use EnergyIntegration, only: y, wght, x2, p2, generate_real_epoints, pn2
@@ -371,7 +371,7 @@ subroutine eintshelinearsoc(q,e)
   integer(int64) :: ix,ix2, iz
   integer(int64) :: real_points
   integer :: ncountkl !,nncountkl !TODO: Re-Include
-  ncountkl = dim*4
+  ncountkl = dimens*4
   !nncountkl = n0sc*dimspinAtoms*4 !TODO: Re-Include
 !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -391,9 +391,9 @@ subroutine eintshelinearsoc(q,e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,iz,wkbzc,kp,kpq,ep,nep,nkp,tFintiikl,df1iikl,pfdf1iikl,df1lsoc,dtdk,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &    !,expikr,prett,preLxtt,preLytt,preLztt
-  !$omp& shared(local_points,real_points,s,nOrb,nOrb2,bzs,E_k_imag_mesh,ElectricFieldVector,tchiorbiikl,prefactor,prefactorlsoc,realBZ,q,e,y,x2,wght,p2,eta,etap,sigmai2i,sigmaimunu2i,dim,offset)                                                                                 !,n0sc1,n0sc2,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,lxpt,lypt,lzpt,tlxp,tlyp,tlzp
+  !$omp& shared(local_points,real_points,s,nOrb,nOrb2,bzs,E_k_imag_mesh,ElectricFieldVector,tchiorbiikl,prefactor,prefactorlsoc,realBZ,q,e,y,x2,wght,p2,eta,etap,sigmai2i,sigmaimunu2i,dimens,offset)                                                                                 !,n0sc1,n0sc2,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,lxpt,lypt,lzpt,tlxp,tlyp,tlzp
 
-  allocate( df1iikl(dim,4),pfdf1iikl(dim,4),df1lsoc(dim,4), &
+  allocate( df1iikl(dimens,4),pfdf1iikl(dimens,4),df1lsoc(dimens,4), &
             dtdk(nOrb,nOrb,s%nAtoms,s%nAtoms), &
             gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
             gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
@@ -409,7 +409,7 @@ subroutine eintshelinearsoc(q,e)
             gvgdd(nOrb,nOrb,s%nAtoms,s%nAtoms,2), STAT = AllocateStatus  )
   if (AllocateStatus/=0) call abortProgram("[sumklinearsoc] Not enough memory for: gvg,gvguu,gvgud,gvgdu,gvgdd")
 
-  allocate( tFintiikl(dim,4), STAT = AllocateStatus ) !, & !TODO: Re-Include
+  allocate( tFintiikl(dimens,4), STAT = AllocateStatus ) !, & !TODO: Re-Include
             !ttFintiikl   (n0sc1:n0sc2, dimspinAtoms, 4), &
             !LxttFintiikl (n0sc1:n0sc2, dimspinAtoms, 4), &
             !LyttFintiikl (n0sc1:n0sc2, dimspinAtoms, 4), &
@@ -521,9 +521,9 @@ subroutine eintshelinearsoc(q,e)
 
       ! Multiplying the prefactor by the susceptibility and the k-point weight
       ! pfdf1iikl = prefactorlsoc*df1iikl
-      call zgemm('n','n',dim,4,dim,wkbzc,prefactorlsoc,dim,df1iikl,dim,cZero,pfdf1iikl,dim)
+      call zgemm('n','n',dimens,4,dimens,wkbzc,prefactorlsoc,dimens,df1iikl,dimens,cZero,pfdf1iikl,dimens)
       ! pfdf1lsoc = prefactorlsoc*df1iikl + prefactor*df1lsoc
-      call zgemm('n','n',dim,4,dim,wkbzc,prefactor,dim,df1lsoc,dim,cOne,pfdf1iikl,dim)
+      call zgemm('n','n',dimens,4,dimens,wkbzc,prefactor,dimens,df1lsoc,dimens,cOne,pfdf1iikl,dimens)
 
 
       ! Integrating matrices
@@ -652,9 +652,9 @@ subroutine eintshelinearsoc(q,e)
 
       ! Multiplying the prefactor by the susceptibility and the k-point weight
       ! pfdf1iikl = prefactorlsoc*df1iikl
-      call zgemm('n','n',dim,4,dim,wkbzc,prefactorlsoc,dim,df1iikl,dim,cZero,pfdf1iikl,dim)
+      call zgemm('n','n',dimens,4,dimens,wkbzc,prefactorlsoc,dimens,df1iikl,dimens,cZero,pfdf1iikl,dimens)
       ! pfdf1lsoc = prefactorlsoc*df1iikl + prefactor*df1lsoc
-      call zgemm('n','n',dim,4,dim,wkbzc,prefactor,dim,df1lsoc,dim,cOne,pfdf1iikl,dim)
+      call zgemm('n','n',dimens,4,dimens,wkbzc,prefactor,dimens,df1lsoc,dimens,cOne,pfdf1iikl,dimens)
 
       ! Integrating matrices
       tFintiikl = tFintiikl + pfdf1iikl

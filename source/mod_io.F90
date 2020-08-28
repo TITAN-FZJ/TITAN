@@ -81,7 +81,7 @@ contains
                                      polarization_e, polarization_m, polarization_vec_e, polarization_vec_m, &
                                      npulse_e, npulse_m, tau_m, delay_e, delay_m, lelectric, safe_factor, &
                                      lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol
-    use mod_expectation,       only: expectation_values, expectation_values_eigenstates
+    use mod_expectation,       only: expectation_values, expectation_values_eigenstates, calcLGS, calcLGS_eigenstates
     implicit none
     character(len=*),  intent(in)    :: filename
     type(System_type), intent(inout) :: s
@@ -221,6 +221,7 @@ contains
       case ("eigenstates")
         leigenstates = .true.
         expectation_values => expectation_values_eigenstates
+        calcLGS => calcLGS_eigenstates
         lnojac = .true.
         call log_warning("get_parameters","eigenstates is used, jacobian deactivated (not implemented yet)")
       case ("printfieldonly")

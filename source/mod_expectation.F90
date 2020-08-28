@@ -4,6 +4,7 @@ module mod_expectation
   implicit none
 
   procedure(expectation_values_sub), pointer :: expectation_values => expectation_values_greenfunction
+  procedure(calcLGS_sub),            pointer :: calcLGS => calcLGS_greenfunction
 
   abstract interface
     subroutine expectation_values_sub(s,rho,mp,mx,my,mz,deltas)
@@ -15,6 +16,12 @@ module mod_expectation
       real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
       real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: deltas
       complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: mp
+    end subroutine
+  end interface
+
+  abstract interface
+    subroutine calcLGS_sub()
+      implicit none
     end subroutine
   end interface
 
@@ -317,7 +324,7 @@ contains
 
 
   ! subroutine expectation value of the operators 1 (occupation), Sp and Sz:
-  subroutine expec_val(s, dim, hk, eval, expec_0, expec_p, expec_z, expec_singlet)
+  subroutine expec_val(s, dimens, hk, eval, expec_0, expec_p, expec_z, expec_singlet)
     use mod_kind, only: dp
     use mod_constants,         only: cZero,pi,pauli_mat
     use mod_parameters,        only: nOrb, eta, isigmamu2n
@@ -325,18 +332,18 @@ contains
     use mod_system,            only: System_type
     use mod_superconductivity, only: lsuperCond
     implicit none
-    integer,                               intent(in)  :: dim
-    type(System_type),                          intent(in)  :: s
-    real(dp),    dimension(dim),           intent(in)  :: eval
-    complex(dp), dimension(dim,dim),       intent(in)  :: hk
+    integer,                               intent(in)  :: dimens
+    type(System_type),                     intent(in)  :: s
+    real(dp),    dimension(dimens),        intent(in)  :: eval
+    complex(dp), dimension(dimens,dimens), intent(in)  :: hk
     real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: expec_0, expec_z
     complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: expec_p
     real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: expec_singlet
 
     real(dp)    :: fermi, beta
     integer     :: i, n, sigma, sigmap, mu
-    real(dp)    :: f_n(dim),f_n_negative(dim),tanh_n(dim)
-    complex(dp) :: evec_isigmamu, evec_isigmamu_cong !dim = 2*nOrb*nAtoms
+    real(dp)    :: f_n(dimens),f_n_negative(dimens),tanh_n(dimens)
+    complex(dp) :: evec_isigmamu, evec_isigmamu_cong !dimens = 2*nOrb*nAtoms
 
     beta = 1._dp/(pi*eta)
     expec_0 = 0._dp
@@ -347,18 +354,18 @@ contains
     !If lsupercond is true then fermi is 0.0 otherwise is s%Ef
     fermi = merge(0._dp,s%Ef,lsuperCond)
 
-    do concurrent (n = 1:dim)
+    do concurrent (n = 1:dimens)
       f_n(n) = fd_dist(fermi, beta, eval(n))
     end do
 
-    do concurrent (n = 1:dim, lsuperCond)
+    do concurrent (n = 1:dimens, lsuperCond)
       f_n_negative(n) = fd_dist(fermi, beta, -eval(n))
       tanh_n(n) = tanh(eval(n)*beta/2._dp)
     end do
 
 
     if(.not.lsupercond) then
-      do concurrent(n = 1:dim, i = 1:s%nAtoms, mu = 1:nOrb, sigma = 1:2)
+      do concurrent(n = 1:dimens, i = 1:s%nAtoms, mu = 1:nOrb, sigma = 1:2)
         evec_isigmamu = hk(isigmamu2n(i,sigma,mu),n)
         evec_isigmamu_cong = conjg( evec_isigmamu )
 
@@ -400,14 +407,14 @@ contains
       !   end do ! mu
       ! end do ! i
     else
-      do concurrent(n = 1:dim, i = 1:s%nAtoms, mu = 1:nOrb)
+      do concurrent(n = 1:dimens, i = 1:s%nAtoms, mu = 1:nOrb)
         ! up spin (using u's) + down spin (using v's)
         expec_0(mu,i) = expec_0(mu,i) + f_n(n)*real( conjg(hk(nOrb*2*(i-1)+mu,n))*hk(nOrb*2*(i-1)+mu,n) ) + f_n_negative(n)*real( conjg(hk(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2,n))*hk(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2,n) )
 
         expec_singlet(mu,i) = expec_singlet(mu,i) + 0.5_dp*s%Types(s%Basis(i)%Material)%lambda(mu)*tanh_n(n)*real( conjg(hk(isigmamu2n(i,1,mu)+nOrb*2*s%nAtoms,n))*hk(isigmamu2n(i,2,mu),n) )
       end do
 
-      do concurrent(n = 1:dim, i = 1:s%nAtoms, mu = 1:nOrb, sigma = 1:2, sigmap = 1:2)
+      do concurrent(n = 1:dimens, i = 1:s%nAtoms, mu = 1:nOrb, sigma = 1:2, sigmap = 1:2)
         evec_isigmamu_cong = conjg( hk(isigmamu2n(i,sigma,mu),n) )
         evec_isigmamu = hk(isigmamu2n(i,sigmap,mu),n)
         ! M_p
@@ -421,7 +428,7 @@ contains
   end subroutine expec_val
 
 
-  subroutine expec_val_n(s, dim, evec, eval, expec_0, expec_p, expec_z, expec_singlet)
+  subroutine expec_val_n(s, dimens, evec, eval, expec_0, expec_p, expec_z, expec_singlet)
     !! Calculate the expectation value of the operators 1 (occupation), \sigma^+ and \sigma^z
     !! for a given state n (evec) with eigenenergy eval
     use mod_kind, only: dp
@@ -432,9 +439,9 @@ contains
     use mod_superconductivity, only: lsuperCond
     implicit none
 
-    type(System_type),                              intent(in)  :: s
-    integer,                                   intent(in)  :: dim
-    complex(dp), dimension(dim),           intent(in)  :: evec
+    type(System_type),                     intent(in)  :: s
+    integer,                               intent(in)  :: dimens
+    complex(dp), dimension(dimens),        intent(in)  :: evec
     real(dp),                              intent(in)  :: eval
     real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: expec_0, expec_z
     complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: expec_p
@@ -551,10 +558,10 @@ contains
   end subroutine expec_val_n
 
 
-  subroutine calcLGS()
+  subroutine groundstate_L()
     !! Calculates the expectation value of the orbital angular momentum in the ground state
     use mod_kind, only: dp
-    use mod_parameters,    only: output, leigenstates
+    use mod_parameters,    only: output
     use mod_constants,     only: rad2deg
     use mod_System,        only: s => sys
     use mod_mpi_pars,      only: rField,abortProgram
@@ -580,11 +587,7 @@ contains
     if (AllocateStatus/=0) &
       call abortProgram("[calcLGS] Not enough memory for: lxm,lym,lzm,lxpm,lypm,lzpm")
 
-    if(leigenstates) then
-      call calcLGS_eigenstates()
-    else
-      call calcLGS_greenfunction()
-    end if
+    call calcLGS()
 
     ! Calculating angles of GS OAM (in degrees)
     do i = 1,s%nAtoms
@@ -620,7 +623,7 @@ contains
       end if
     end do
 
-  end subroutine calcLGS
+  end subroutine groundstate_L
 
 
   subroutine calcLGS_greenfunction()
@@ -715,7 +718,7 @@ contains
 
 
   !! Calculate the expectation value of the orbital momentum in the propagated states:
-  subroutine expec_L_n(s, dim, evec, eval, lxm, lym, lzm)
+  subroutine expec_L_n(s, dimens, evec, eval, lxm, lym, lzm)
     use mod_kind, only: dp
     use mod_constants,     only: pi
     use mod_parameters,    only: nOrb,eta,isigmamu2n
@@ -725,9 +728,9 @@ contains
     implicit none
     type(System_type),                intent(in)  :: s
     real(dp),                         intent(in)  :: eval
-    integer,                          intent(in)  :: dim
+    integer,                          intent(in)  :: dimens
     real(dp),    dimension(s%nAtoms), intent(out) :: lxm, lym, lzm
-    complex(dp), dimension(dim),      intent(in)  :: evec
+    complex(dp), dimension(dimens),   intent(in)  :: evec
     integer                                       :: i, mu, nu, sigma
     real(dp)                                      :: f_n
     complex(dp)                                   :: prod, evec_isigmamu, evec_isigmamu_cong
@@ -758,7 +761,7 @@ contains
 
 
   !! Calculate the expectation value of the time-dependent Hamiltonian in the propagated states
-  subroutine expec_H_n(s, kp, t, dim, evec, eval, E_0)
+  subroutine expec_H_n(s, kp, t, dimens, evec, eval, E_0)
     use mod_kind, only: dp
     use mod_constants,     only: pi
     use mod_parameters,    only: eta
@@ -768,12 +771,12 @@ contains
     implicit none
 
     type(System_type),           intent(in)  :: s
-    integer,                     intent(in)  :: dim
-    complex(dp), dimension(dim), intent(in)  :: evec
+    integer,                     intent(in)  :: dimens
+    complex(dp), dimension(dimens), intent(in)  :: evec
     real(dp),                    intent(in)  :: eval, t, kp(3)
     integer                                  :: i, j
     real(dp)                                 :: f_n, expec_H_0, E_0
-    complex(dp)                              :: hamilt_t(dim,dim), hamilt_0(dim,dim)
+    complex(dp)                              :: hamilt_t(dimens,dimens), hamilt_0(dimens,dimens)
 
     ! Fermi-Dirac:
     f_n = fd_dist(s%Ef, 1._dp/(pi*eta), eval)
@@ -782,8 +785,8 @@ contains
 
     E_0 = 0._dp
 
-    do i=1, dim
-      do j=1, dim
+    do i=1, dimens
+      do j=1, dimens
         ! expec_H_0 = real( conjg( evec(i) ) * hamilt_t(i,j) * evec(j) )
         expec_H_0 = real( conjg( evec(i) ) * hamilt_0(i,j) * evec(j) )
         E_0       =  E_0 + f_n * expec_H_0
@@ -810,9 +813,8 @@ contains
     integer(int64)                             :: iz
     integer                                    :: lwork,dimHsc,info,n,i,mu,nu,sigma
     real(dp)                                   :: fermi,beta
-    complex(dp), dimension(:,:,:), allocatable :: prod
-    real(dp),    dimension(:),     allocatable :: rwork(:),eval(:),f_n(:),f_n_negative(:)
-    complex(dp),                   allocatable :: work(:),hk(:,:)
+    real(dp),    dimension(:),     allocatable :: rwork,eval,f_n,f_n_negative
+    complex(dp),                   allocatable :: work(:),hk(:,:),prod(:,:,:)
 
     dimHsc = dimH*superCond
     lwork  = 21*dimHsc
@@ -826,8 +828,8 @@ contains
 
     !$omp parallel default(none) &
     !$omp& firstprivate(lwork) &
-    !$omp& private(iz,n,i,sigma,mu,nu,hk,eval,work,rwork,info) &
-    !$omp& shared(s,nOrb,dimH,dimHsc,output,realBZ,fermi,beta,f_n,f_n_negative,eta,isigmamu2n,prod,lsupercond)
+    !$omp& private(iz,n,f_n,f_n_negative,i,sigma,mu,nu,hk,eval,work,rwork,info) &
+    !$omp& shared(s,nOrb,dimH,dimHsc,output,realBZ,fermi,beta,eta,isigmamu2n,prod,lsupercond)
 
     prod = cZero
     !$omp do reduction(+:prod) schedule(dynamic)
@@ -845,16 +847,32 @@ contains
       end do
 
       if(.not.lsupercond) then
-        do concurrent(n = 1:dimHsc, i = 1:s%nAtoms, nu = 1:nOrb, mu = 1:nOrb, sigma=1:2)
-          prod(mu,nu,i) = prod(mu,nu,i) + f_n(n)*conjg( hk(isigmamu2n(i,sigma,mu),n) )*hk(isigmamu2n(i,sigma,nu),n)*realBZ%w(iz)
-        end do      
+
+        do n = 1,dimHsc
+          do i = 1,s%nAtoms
+            do nu = 1,nOrb
+              do mu = 1,nOrb
+                do sigma=1,2
+                  prod(mu,nu,i) = prod(mu,nu,i) + f_n(n)*conjg( hk(isigmamu2n(i,sigma,mu),n) )*hk(isigmamu2n(i,sigma,nu),n)*realBZ%w(iz)
+                end do
+              end do
+            end do
+          end do
+        end do
+
       else
-        do concurrent (n = 1:dimHsc, lsuperCond)
+        do concurrent (n = 1:dimHsc)
           f_n_negative(n) = fd_dist(fermi, beta, -eval(n))
         end do
 
-        do concurrent(n = 1:dimHsc, i = 1:s%nAtoms, nu = 1:nOrb, mu = 1:nOrb)
-          prod(mu,nu,i) = prod(mu,nu,i) + ( f_n(n)*conjg( hk(isigmamu2n(i,1,mu),n) )*hk(isigmamu2n(i,1,nu),n)+f_n_negative(n)*conjg( hk(isigmamu2n(i,2,mu)+dimH,n))*hk(isigmamu2n(i,2,nu)+dimH,n) )*realBZ%w(iz)
+        do n = 1,dimHsc
+          do i = 1,s%nAtoms
+            do nu = 1,nOrb
+              do mu = 1,nOrb
+                prod(mu,nu,i) = prod(mu,nu,i) + ( f_n(n)*conjg( hk(isigmamu2n(i,1,mu),n) )*hk(isigmamu2n(i,1,nu),n)+f_n_negative(n)*conjg( hk(isigmamu2n(i,2,mu)+dimH,n))*hk(isigmamu2n(i,2,nu)+dimH,n) )*realBZ%w(iz)
+              end do
+            end do
+          end do
         end do      
       end if
     end do kloop

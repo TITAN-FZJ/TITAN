@@ -6,7 +6,7 @@ subroutine setLoops(s)
   use mod_tools,      only: vecDist
   implicit none
   type(System_type), intent(in)  :: s
-  integer                   :: count,i,j
+  integer                   :: kount,i,j
   real(dp)              :: dir(3),total_length
     interface
       subroutine read_band_points(kbands, a0, b1, b2, b3)
@@ -58,16 +58,16 @@ subroutine setLoops(s)
       ! Obtaining the k-points in the chosen path and the partial lenghts
       i = 0
       partial_length(1) = 0._dp
-      do count = 1, nQvec1
-        ! if( (deltak*count >= total_length1).and.(i < band_cnt - 1) ) then
-        if( (deltak*count >= sum(partial_length(1:i+1))).and.(i < band_cnt - 1) ) then
+      do kount = 1, nQvec1
+        ! if( (deltak*kount >= total_length1).and.(i < band_cnt - 1) ) then
+        if( (deltak*kount >= sum(partial_length(1:i+1))).and.(i < band_cnt - 1) ) then
           i = i + 1
           partial_length(i+1) = vecDist(band_points(1:3,i),band_points(1:3,i+1))
           j = 0
           dir = (band_points(1:3,i+1) - band_points(1:3,i))
           dir = dir / partial_length(i+1)
         end if
-        kpoints(:,count) = band_points(:,i) + dir * j * deltak
+        kpoints(:,kount) = band_points(:,i) + dir * j * deltak
         j = j + 1
       end do
 

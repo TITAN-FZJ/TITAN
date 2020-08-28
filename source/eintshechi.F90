@@ -2,7 +2,7 @@
 subroutine eintshechi(q,e)
   use mod_kind, only: dp
   use mod_constants,        only: cZero, cI, tpi
-  use mod_parameters,       only: nOrb, nOrb2, eta, etap, dim, sigmaimunu2i
+  use mod_parameters,       only: nOrb, nOrb2, eta, etap, dimens, sigmaimunu2i
   use EnergyIntegration,    only: generate_real_epoints, y, wght, x2, p2, pn2
   use mod_susceptibilities, only: chiorb_hf
   use mod_system,           only: s => sys
@@ -29,7 +29,7 @@ subroutine eintshechi(q,e)
   integer(int64) :: ix2, nep,nkp
   integer(int64) :: real_points
   integer(int32) :: ncount
-  ncount=dim*dim
+  ncount=dimens*dimens
 !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
   ! Generating energy points in the real axis for third integration
@@ -42,7 +42,7 @@ subroutine eintshechi(q,e)
   if(.not.llineargfsoc) call hamilt_local(s)
 
   ! Starting to calculate energy integral
-  allocate(Fint(dim,dim), STAT = AllocateStatus  )
+  allocate(Fint(dimens,dimens), STAT = AllocateStatus  )
   if (AllocateStatus/=0) &
   call abortProgram("[eintshechi] Not enough memory for: Fint")
   Fint = cZero
@@ -50,7 +50,7 @@ subroutine eintshechi(q,e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,i,j,mu,nu,gamma,xi,nep,nkp,ep,kp,kpq,weight,gf,gfuu,gfud,gfdu,gfdd,index1, index2) &
-  !$omp& shared(llineargfsoc,bzs,s,nOrb,nOrb2,realBZ,local_points,q,e,y,wght,x2,p2,pn2,real_points,E_k_imag_mesh,eta,etap,dim,sigmaimunu2i,Fint,chiorb_hf)
+  !$omp& shared(llineargfsoc,bzs,s,nOrb,nOrb2,realBZ,local_points,q,e,y,wght,x2,p2,pn2,real_points,E_k_imag_mesh,eta,etap,dimens,sigmaimunu2i,Fint,chiorb_hf)
   allocate(gf  (nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
            gfud(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
@@ -110,7 +110,7 @@ subroutine eintshechi(q,e)
         chiorb_hf(index1(4),index2(3)) = chiorb_hf(index1(4),index2(3)) + weight*(gfud(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
         chiorb_hf(index1(4),index2(4)) = chiorb_hf(index1(4),index2(4)) + weight*(gfuu(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
       end do
-      !call zaxpy(dim*dim,weight,df1,1,Fint,1)
+      !call zaxpy(dimens*dimens,weight,df1,1,Fint,1)
       !Fint = Fint + df1*weight
   end do !end ix <= pn1 loop
   !$omp end do nowait
@@ -170,7 +170,7 @@ subroutine eintshechi(q,e)
       end do
 
       ! Locally add up df1
-      ! call zaxpy(dim*dim,(p2(ix2)*s%wkbz(iz)),df1,1,Fint,1)
+      ! call zaxpy(dimens*dimens,(p2(ix2)*s%wkbz(iz)),df1,1,Fint,1)
       !Fint = Fint + df1*(p2(ix2)*s%wkbz(iz))
   end do !end pn1+1, nepoints loop
   !$omp end do nowait
@@ -190,7 +190,7 @@ end subroutine eintshechi
 subroutine eintshechilinearsoc(q,e)
   use mod_kind, only: dp
   use mod_constants,        only: cZero, cI, tpi
-  use mod_parameters,       only: nOrb, nOrb2, eta, etap, dim, sigmaimunu2i
+  use mod_parameters,       only: nOrb, nOrb2, eta, etap, dimens, sigmaimunu2i
   use EnergyIntegration,    only: generate_real_epoints,y, wght, x2, p2, pn2
   use mod_susceptibilities, only: chiorb_hf,chiorb_hflsoc
   use mod_system,           only: s => sys
@@ -214,7 +214,7 @@ subroutine eintshechilinearsoc(q,e)
   !--------------------- begin MPI vars --------------------
   integer(int32) :: ncount
   integer(int64) :: real_points
-  ncount=dim*dim
+  ncount=dimens*dimens
   !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
   ! Generating energy points in the real axis for third integration
@@ -231,8 +231,8 @@ subroutine eintshechilinearsoc(q,e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,i,j,mu,nu,nep,nkp,gamma,xi,kp,kpq,ep,weight,Fint,Fintlsoc,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,df1,df1lsoc) &
-  !$omp& shared(local_points,s,nOrb,nOrb2,bzs,realBZ,real_points,E_k_imag_mesh,q,e,y,wght,x2,p2,eta,etap,dim,sigmaimunu2i,chiorb_hf,chiorb_hflsoc)
-  allocate(df1(dim,dim), Fint(dim,dim), &
+  !$omp& shared(local_points,s,nOrb,nOrb2,bzs,realBZ,real_points,E_k_imag_mesh,q,e,y,wght,x2,p2,eta,etap,dimens,sigmaimunu2i,chiorb_hf,chiorb_hflsoc)
+  allocate(df1(dimens,dimens), Fint(dimens,dimens), &
            gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
            gfud(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
@@ -240,7 +240,7 @@ subroutine eintshechilinearsoc(q,e)
            gfdd(nOrb,nOrb,s%nAtoms,s%nAtoms,2), STAT = AllocateStatus  )
   if (AllocateStatus/=0) call abortProgram("[eintshechilinearsoc] Not enough memory for: df1,Fint,gf,gfuu,gfud,gfdu,gfdd")
 
-  allocate( df1lsoc(dim,dim), Fintlsoc(dim,dim), &
+  allocate( df1lsoc(dimens,dimens), Fintlsoc(dimens,dimens), &
             gvg(nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
             gvguu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
             gvgud(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &

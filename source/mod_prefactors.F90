@@ -40,7 +40,7 @@ contains
   !     ! end subroutine OAM_curr_hopping_times_L
 
   subroutine allocate_prefactors() !TODO:Re-Include
-    use mod_parameters, only: dim
+    use mod_parameters, only: dimens
     use mod_SOC, only: llinearsoc
     use mod_mpi_pars, only: abortProgram
     !use mod_system, only: n0sc1, n0sc2
@@ -48,13 +48,13 @@ contains
     integer :: AllocateStatus
 
     if (.not. allocated(prefactor)) then
-      allocate(prefactor(dim,dim), STAT = AllocateStatus  )
+      allocate(prefactor(dimens,dimens), STAT = AllocateStatus  )
       if (AllocateStatus/=0) call abortProgram("[allocate_disturbances] Not enough memory for: prefactor")
     end if
 
     if (.not. allocated(prefactorlsoc)) then
       if(llinearsoc) then
-        allocate(prefactorlsoc(dim,dim), STAT = AllocateStatus  )
+        allocate(prefactorlsoc(dimens,dimens), STAT = AllocateStatus  )
         if (AllocateStatus/=0) call abortProgram("[allocate_disturbances] Not enough memory for: prefactorlsoc")
       end if
     end if

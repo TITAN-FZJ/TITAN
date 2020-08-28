@@ -164,7 +164,7 @@ contains
       ! Header for longitudinal and transverse currents per plane
       do i=1,Npl ; do j=1,7 ; do k=1,2
         iw = 83000+(i-1)*7*2+(j-1)*2+k
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(kount)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,' real part of ',a,', imag part of ',a,',   phase of ',a,'  , mag angle theta ,  mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j)
         close(unit=iw)
@@ -172,7 +172,7 @@ contains
       ! Header for total longitudinal and transverse currents
       do j=1,7 ; do k=1,2
         iw = 85000+(j-1)*2+k
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(kount)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,' real part of ',a,', imag part of ',a,',   phase of ',a,'  , mag angle theta ,  mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j)
         close(unit=iw)
@@ -181,7 +181,7 @@ contains
       ! Header for longitudinal and transverse currents per plane
       do i=1,Npl ; do j=1,7 ; do k=1,2
         iw = 83000+(i-1)*7*2+(j-1)*2+k
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(kount)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -189,7 +189,7 @@ contains
       ! Header for total longitudinal and transverse currents
       do j=1,7 ; do k=1,2
         iw = 85000+(j-1)*2+k
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(count)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'prll',a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(j)),trim(dcprefix(kount)),filename(j),typec(k),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         errt = errt + err
         if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -427,7 +427,7 @@ contains
         call allocate_currents()
         call allocate_lgtv_currents()
 
-        energy_loop: do count=1,nEner1
+        energy_loop: do kount=1,nEner1
 
           ! Creating longitudinal and transverse currents files with headers
           call openclose_dc_lgtv_files(0)

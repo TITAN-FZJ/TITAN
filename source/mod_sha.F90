@@ -185,13 +185,13 @@ contains
       do j=2,4
         do i=1,Npl
           iw = 82000+(i-1)*3+j-1
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),trim(dcprefix(kount)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#',a,'    SHA reIs/reIc   ,    SHA abs(Is/Ic)   ,    SHA atan(Is/Ic)   ,    SHA re(Is/Ic)   ,    SHA im(Is/Ic)   ')") trim(dc_header)
           close(unit=iw)
         end do
         iw = 82000+Npl*3+j-1
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),trim(dcprefix(kount)),filename(j),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,'    SHA reIs/reIc   ,    SHA abs(Is/Ic)   ,    SHA atan(Is/Ic)   ,    SHA re(Is/Ic)   ,    SHA im(Is/Ic)   ')") trim(dc_header)
         close(unit=iw)
@@ -202,7 +202,7 @@ contains
       do j=2,4
         do i=1,Npl
           iw = 82000+(i-1)*3+j-1
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),trim(dcprefix(kount)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           if(.not.lsha) then
             errt = errt + err
@@ -210,7 +210,7 @@ contains
           end if
         end do
         iw = 82000+Npl*3+j-1
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'SHA_',a,'_',a,'_total',a,a,a,a,a,a,'.dat')") SOCc,trim(strSites),trim(folder(8)),trim(dcprefix(kount)),filename(j),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(dcfieldpart),trim(socpart),trim(strElectricField),trim(suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
         if(.not.lsha) then
           errt = errt + err
@@ -411,7 +411,7 @@ contains
         ! Allocating current and SHA variables
         call allocate_currents()
         call allocate_sha()
-        energy_loop: do count=1,nEner1
+        energy_loop: do kount=1,nEner1
           ! Creating SHA files with headers
           call openclose_dc_sha_files(0)
 

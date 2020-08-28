@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## 2020-08-28
+
+### Added
+
+- Interface for calcLGS
+
+### Changed
+
+- Changed some variable names of intrinsic Fortran functions
+
+### Fixed
+
+- Variables for f_n and f_n_negative changed to private in calcLGS_eigenstates
+
+
 ## 2020-08-27
 
 ### Added

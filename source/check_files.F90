@@ -14,7 +14,7 @@ subroutine check_files()
   !use mod_currents, only: openclose_currents_files, openclose_dc_currents_files !TODO: Re-Include
   !use mod_sha, only: openclose_sha_files, openclose_dc_sha_files !TODO: Re-Include
   implicit none
-  integer :: count
+  integer :: kount
   write(output%unit,"('[check_files] Checking if files exist...')")
   select case (itype)
   case (2)
@@ -38,7 +38,7 @@ subroutine check_files()
     !call close_sha_files(2) !TODO: Re-Include
   case (9)
     if(hw_count==1) then
-      do count=1, nEner1
+      do kount=1, nEner1
         call open_dc_chi_files()
         call close_dc_chi_files()
         call open_dc_disturbance_files()

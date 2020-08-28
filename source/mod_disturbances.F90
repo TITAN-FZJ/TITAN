@@ -22,7 +22,7 @@ contains
 
   subroutine allocate_disturbances()
   !! This subroutine allocates variables related to the disturbance calculation
-    use mod_parameters, only: renorm,dim,dimspinAtoms
+    use mod_parameters, only: renorm,dimens,dimspinAtoms
     use mod_System,     only: s => sys
     use mod_mpi_pars,   only: rFreq, abortProgram
     implicit none
@@ -38,7 +38,7 @@ contains
       end if
     end if
 
-    allocate( tchiorbiikl(dim,4), STAT = AllocateStatus  )
+    allocate( tchiorbiikl(dimens,4), STAT = AllocateStatus  )
     if (AllocateStatus/=0) call abortProgram("[allocate_disturbances] Not enough memory for: tchiorbiikl")
 
   end subroutine allocate_disturbances
@@ -260,7 +260,7 @@ contains
 
   subroutine create_dc_disturbance_files
   !! This subroutine creates all the files needed for the dc-limit disturbances
-    use mod_parameters, only: count, output, renorm, renormnb
+    use mod_parameters, only: kount, output, renorm, renormnb
     use mod_magnet,     only: dcprefix, dcfield_dependence, dcfield, dc_header
     use mod_system,     only: s => sys
     implicit none
@@ -270,13 +270,13 @@ contains
     do i=1,s%nAtoms
       do j=1,7
         iw = 30000+(i-1)*7+j
-        write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(kount)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#',a,' imag part of ',a,' , real part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
         if(renorm) then
           iw = iw+1000
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'r',a,'_',a,'_pos=',i0,a,a,a,a,a,'_renormnb=',i0,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),renormnb,trim(output%suffix)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'r',a,'_',a,'_pos=',i0,a,a,a,a,a,'_renormnb=',i0,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(kount)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),renormnb,trim(output%suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#',a,' imag part of ',a,' , real part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
           close(unit=iw)
@@ -284,7 +284,7 @@ contains
       end do
       ! Total disturbances files
       iw = 35000+j
-      write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(kount)),filename(j),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
       open (unit=iw, file=varm, status='replace', form='formatted')
       write(unit=iw, fmt="('#',a,' imag part of ',a,' , real part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
       close(unit=iw)
@@ -293,7 +293,7 @@ contains
 
   subroutine open_dc_disturbance_files
   ! This subroutine opens all the files needed for the dc-limit disturbances
-    use mod_parameters, only: output, count, renorm, renormnb, missing_files
+    use mod_parameters, only: output, kount, renorm, renormnb, missing_files
     use mod_magnet,     only: dcprefix, dcfield_dependence, dcfield
     use mod_mpi_pars,   only: abortProgram
     use mod_system,     only: s => sys
@@ -305,13 +305,13 @@ contains
     do j=1,7
      do i=1,s%nAtoms
        iw = 30000+(i-1)*7+j
-       write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
+       write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(kount)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
        open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
        errt = errt + err
        if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
        if(renorm) then
          iw = iw+1000
-         write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'r',a,'_',a,'_pos=',i0,a,a,a,a,a,'_renormnb=',i0,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),renormnb,trim(output%suffix)
+         write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'r',a,'_',a,'_pos=',i0,a,a,a,a,a,'_renormnb=',i0,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(kount)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),renormnb,trim(output%suffix)
          open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
          errt = errt + err
          if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -319,7 +319,7 @@ contains
      end do
       ! Total disturbances files
       iw = 35000+j
-      write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(count)),filename(j),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
+      write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(kount)),filename(j),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
       open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
       errt = errt + err
       if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)

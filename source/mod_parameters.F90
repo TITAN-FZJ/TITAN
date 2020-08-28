@@ -15,7 +15,7 @@ module mod_parameters
   !! Dimension of the Hamiltonian: 2 spins x number of atoms in the unit cell
   integer(int32)     :: dimspinAtoms
   !! Dimension: 4 spins x number of atoms in the unit cell
-  integer(int32)     :: dim
+  integer(int32)     :: dimens
   !! Dimension: 4 spins x number of atoms in the unit cell x number of orbitals^2
 
   integer(int32), dimension(3) :: kp_in
@@ -55,7 +55,7 @@ module mod_parameters
   !========================================================================================!
   integer(int32)    :: nEner,nEner1
   ! Number of points of energy (frequency) loops
-  integer(int64)    :: count
+  integer(int64)    :: kount
   ! Counter for frequency loops
   real(dp) :: emin,emax,deltae
   !! Minimum and maximum energy (frequency), and step size

@@ -3,7 +3,7 @@
 subroutine calculate_dc_limit()
   use mod_mpi_pars
   use mod_constants,         only: cZero, cOne, cI
-  use mod_parameters,        only: sigmaimunu2i, sigmai2i, dimspinAtoms, Um, offset, lnodiag, output, count, emin, deltae, nQvec1, kpoints, laddresults, lhfresponses, dim, skip_steps
+  use mod_parameters,        only: sigmaimunu2i, sigmai2i, dimspinAtoms, Um, offset, lnodiag, output, kount, emin, deltae, nQvec1, kpoints, laddresults, lhfresponses, dimens, skip_steps
   use mod_magnet,            only: lfield, dcfield_dependence, dc_count, dcfield, hw_count, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, hhw, lrot
   use mod_SOC,               only: llinearsoc
   use mod_System,            only: s => sys
@@ -72,8 +72,8 @@ subroutine calculate_dc_limit()
     q = kpoints(:,qcount)
     ! Chi Energy (frequency) Loop
     do count_temp = startFreq + skip_steps, endFreq + skip_steps
-      count = count_temp
-      e = emin + deltae*(count-1)
+      kount = count_temp
+      e = emin + deltae*(kount-1)
 
       ! Creating files and writing headers
       if((.not.laddresults).and. myrank == 0 .and. hw_count == 1) then
@@ -99,25 +99,25 @@ subroutine calculate_dc_limit()
         if(llinearsoc) then
           call eintshechilinearsoc(q,e) ! Note: chiorb_hflsoc = lambda*dchi_hf/dlambda(lambda=0)
           ! Broadcast chiorb_hflsoc to all processors of the same row
-          call MPI_Bcast(chiorb_hflsoc,dim*dim,MPI_DOUBLE_COMPLEX,0,FreqComm(1),ierr)
+          call MPI_Bcast(chiorb_hflsoc,dimens*dimens,MPI_DOUBLE_COMPLEX,0,FreqComm(1),ierr)
         else
           call eintshechi(q,e)
         end if
 
         ! Broadcast chiorb_hf to all processors of the same row
-        call MPI_Bcast(chiorb_hf,dim*dim,MPI_DOUBLE_COMPLEX,0,FreqComm(1),ierr)
+        call MPI_Bcast(chiorb_hf,dimens*dimens,MPI_DOUBLE_COMPLEX,0,FreqComm(1),ierr)
 
         ! prefactor = (1 + chi_hf*Umat)^-1
         prefactor     = identt
-        call zgemm('n','n',dim,dim,dim,cOne,chiorb_hf,dim,Umatorb,dim,cOne,prefactor,dim) ! prefactor = 1+chi_hf*Umat
-        call invers(prefactor,dim)
+        call zgemm('n','n',dimens,dimens,dimens,cOne,chiorb_hf,dimens,Umatorb,dimens,cOne,prefactor,dimens) ! prefactor = 1+chi_hf*Umat
+        call invers(prefactor,dimens)
         if(llinearsoc) then
           prefactorlsoc = identt
-          if (.not. allocated(chiorb)) allocate(chiorb(dim,dim))
+          if (.not. allocated(chiorb)) allocate(chiorb(dimens,dimens))
           chiorb = chiorb_hf-chiorb_hflsoc ! the array chiorb will be used as a temporary array
-          call zgemm('n','n',dim,dim,dim,cOne,chiorb,dim,Umatorb,dim,cOne,prefactorlsoc,dim) ! prefactorlsoc = 1+chiorb*Umat = 1+(chi_hf + dchi_hf/dlambda)*Umat
-          call zgemm('n','n',dim,dim,dim,cOne,prefactor,dim,prefactorlsoc,dim,cZero,chiorb,dim) ! chiorb = prefactor*prefactorlsoc
-          call zgemm('n','n',dim,dim,dim,cOne,chiorb,dim,prefactor,dim,cZero,prefactorlsoc,dim) ! prefactorlsoc = chiorb*prefactor = prefactor*prefactorlsoc*prefactor
+          call zgemm('n','n',dimens,dimens,dimens,cOne,chiorb,dimens,Umatorb,dimens,cOne,prefactorlsoc,dimens) ! prefactorlsoc = 1+chiorb*Umat = 1+(chi_hf + dchi_hf/dlambda)*Umat
+          call zgemm('n','n',dimens,dimens,dimens,cOne,prefactor,dimens,prefactorlsoc,dimens,cZero,chiorb,dimens) ! chiorb = prefactor*prefactorlsoc
+          call zgemm('n','n',dimens,dimens,dimens,cOne,chiorb,dimens,prefactor,dimens,cZero,prefactorlsoc,dimens) ! prefactorlsoc = chiorb*prefactor = prefactor*prefactorlsoc*prefactor
         end if
         if(rField == 0) &
           call write_time(output%unit_loop,'[calculate_dc_limit] Time after prefactor calculation: ')
@@ -138,11 +138,11 @@ subroutine calculate_dc_limit()
           ! Calculating the full matrix of RPA and HF susceptibilities for energy e
           if(llinearsoc) then
             ! chiorb = prefactorlsoc*chi_hf + prefactor*chi_hflsoc
-            call zgemm('n','n',dim,dim,dim,cOne,prefactorlsoc,dim,chiorb_hf,dim,cZero,chiorb,dim)
-            call zgemm('n','n',dim,dim,dim,cOne,prefactor,dim,chiorb_hflsoc,dim,cOne,chiorb,dim)
+            call zgemm('n','n',dimens,dimens,dimens,cOne,prefactorlsoc,dimens,chiorb_hf,dimens,cZero,chiorb,dimens)
+            call zgemm('n','n',dimens,dimens,dimens,cOne,prefactor,dimens,chiorb_hflsoc,dimens,cOne,chiorb,dimens)
           else
             ! chiorb = prefactor*chi_hf
-            call zgemm('n','n',dim,dim,dim,cOne,prefactor,dim,chiorb_hf,dim,cZero,chiorb,dim) ! (1+chi_hf*Umat)^-1 * chi_hf
+            call zgemm('n','n',dimens,dimens,dimens,cOne,prefactor,dimens,chiorb_hf,dimens,cZero,chiorb,dimens) ! (1+chi_hf*Umat)^-1 * chi_hf
           end if
 
           schi = cZero
@@ -388,7 +388,7 @@ subroutine calculate_dc_limit()
           do mcount = 1, sFreq(2)
             if (mcount/=1) then ! Receive all points except the first (that was calculated at myrank_row_hw)
               call MPI_Recv(hw_count          ,1                     ,MPI_INTEGER         ,MPI_ANY_SOURCE ,44000,FreqComm(2),stat,ierr) ! hw_count needed to get correct values of fields on hw_list
-              call MPI_Recv(count             ,1                     ,MPI_INTEGER         ,stat(MPI_SOURCE),44100,FreqComm(2),stat,ierr) ! count needed to write correct energy on the filename
+              call MPI_Recv(kount             ,1                     ,MPI_INTEGER         ,stat(MPI_SOURCE),44100,FreqComm(2),stat,ierr) ! kount needed to write correct energy on the filename
               call MPI_Recv(q                 ,3                     ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),44101,FreqComm(2),stat,ierr)
               call MPI_Recv(mvec_spherical    ,3*s%nAtoms            ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),44200,FreqComm(2),stat,ierr)
               if(.not.lhfresponses) &

@@ -165,7 +165,7 @@ contains
     use mod_mpi_pars
     implicit none
     integer(int32)    :: i, j, mu, ncount,ncount2,ncount3
-    integer(int64)    :: count
+    integer(int64)    :: kount
     real(dp) :: e
 
     ncount  = s%nAtoms*nOrb
@@ -187,9 +187,9 @@ contains
     call allocateLDOS()
     call allocateCoupling()
 
-    do count = startFreq + skip_steps, endFreq + skip_steps
-      e = emin + (count-1) * deltae
-      if(rFreq(1) == 0) write(output%unit_loop,"('[ldos_and_coupling] ',i0,' of ',i0,' points',', e = ',es10.3)") count,nEner1,e
+    do kount = startFreq + skip_steps, endFreq + skip_steps
+      e = emin + (kount-1) * deltae
+      if(rFreq(1) == 0) write(output%unit_loop,"('[ldos_and_coupling] ',i0,' of ',i0,' points',', e = ',es10.3)") kount,nEner1,e
 
       call ldos_jij_energy(e,ldosu,ldosd,Jij)
 

@@ -578,7 +578,7 @@ contains
 !             to ignore trailing blanks.  Another feature is that
 !             the substring '$$' is treated as a new line sentinel
 !             by XERPRN.  If you want to construct a multiline
-!             message without having to count out multiples of 72
+!             message without having to kount out multiples of 72
 !             characters, just use '$$' as a separator.  '$$'
 !             obviously must occur within 72 characters of the
 !             start of each line to have its intended effect since
@@ -910,7 +910,7 @@ contains
 !
 ! NWRAP   Input argument of type INTEGER.  This gives the maximum size
 !         piece into which to break MESSG for printing on multiple
-!         lines.  An embedded '$$' ends a line, and the count restarts
+!         lines.  An embedded '$$' ends a line, and the kount restarts
 !         at the following character.  If a line break does not occur
 !         on a blank (it would split a word) that word is moved to the
 !         next line.  Values of NWRAP less than 16 will be treated as

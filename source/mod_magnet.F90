@@ -418,15 +418,15 @@ contains
     if(allocated(lzpm)) deallocate(lzpm)
   end subroutine
 
-  subroutine set_fieldpart(count)
+  subroutine set_fieldpart(kount)
     use mod_parameters, only: ltesla, lnolb, output
     use mod_tools,      only: rtos
     implicit none
-    integer :: count
+    integer :: kount
 
     output%BField = ""
     if(lfield) then
-      write(output%BField, "('_hwa=',a,'_hwt=',a,'_hwp=',a)") trim(rtos(hw_list(count,1),"(es9.2)")),trim(rtos(hw_list(count,2),"(f7.2)")),trim(rtos(hw_list(count,3),"(f7.2)"))
+      write(output%BField, "('_hwa=',a,'_hwt=',a,'_hwp=',a)") trim(rtos(hw_list(kount,1),"(es9.2)")),trim(rtos(hw_list(kount,2),"(f7.2)")),trim(rtos(hw_list(kount,3),"(f7.2)"))
       if(ltesla)    output%BField = trim(output%BField) // "_tesla"
       if(lnolb)     output%BField = trim(output%BField) // "_nolb"
       if(lhwscale)  output%BField = trim(output%BField) // "_hwscale"

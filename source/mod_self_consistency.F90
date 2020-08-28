@@ -3,7 +3,7 @@ module mod_self_consistency
   implicit none
   integer            :: neq, neq_per_atom
   character(len=300) :: default_file
-  real(dp)       :: mag_tol = 1.e-8_dp
+  real(dp)           :: mag_tol = 1.e-8_dp
   character(len=200) :: scfile = ""
   !! Give a file to start self-consistency
   logical            :: skipsc
@@ -30,7 +30,7 @@ contains
     use mod_SOC,           only: SOC
     use mod_parameters,    only: leigenstates,lkpoints
     use mod_System,        only: s => sys
-    use mod_expectation,   only: calcLGS,expectation_values, expectation_eigenstates_fullhk
+    use mod_expectation,   only: groundstate_L,expectation_values,expectation_eigenstates_fullhk
     use mod_hamiltonian, only: fullhamiltk
     implicit none
     logical :: lsuccess = .false.
@@ -63,7 +63,7 @@ contains
     call lp_matrix(mtheta, mphi)
 
     ! Calculating ground state Orbital Angular Momentum
-    if((lGSL).or.(SOC)) call calcLGS()
+    if((lGSL).or.(SOC)) call groundstate_L()
 
     ! Writing self-consistency results on screen
     if(rField == 0)  call print_sc_results()
@@ -1015,7 +1015,7 @@ contains
     use mod_System,     only: s => sys
     use mod_mpi_pars,   only: rField
     implicit none
-    integer      :: i,j,sign
+    integer      :: i,j,signal
     real(dp) :: mdotb,mabs(nOrb,s%nAtoms)
 
     if(rField == 0) &
@@ -1030,11 +1030,11 @@ contains
     do i = 1, s%nAtoms
       do j=1,nOrb
         mdotb   = hhw(1,i)*mx(j,i)+hhw(2,i)*my(j,i)+hhw(3,i)*mz(j,i)
-        sign    = int(mdotb/abs(mdotb))
+        signal  = int(mdotb/abs(mdotb))
         mabs(j,i) = sqrt((mx(j,i)**2)+(my(j,i)**2)+(mz(j,i)**2))
-        mx  (j,i) = sign*mabs(j,i)*sin(hw_list(hw_count,2)*deg2rad)*cos(hw_list(hw_count,3)*deg2rad)
-        my  (j,i) = sign*mabs(j,i)*sin(hw_list(hw_count,2)*deg2rad)*sin(hw_list(hw_count,3)*deg2rad)
-        mz  (j,i) = sign*mabs(j,i)*cos(hw_list(hw_count,2)*deg2rad)
+        mx  (j,i) = signal*mabs(j,i)*sin(hw_list(hw_count,2)*deg2rad)*cos(hw_list(hw_count,3)*deg2rad)
+        my  (j,i) = signal*mabs(j,i)*sin(hw_list(hw_count,2)*deg2rad)*sin(hw_list(hw_count,3)*deg2rad)
+        mz  (j,i) = signal*mabs(j,i)*cos(hw_list(hw_count,2)*deg2rad)
         mp  (j,i) = cmplx(mx(j,i),my(j,i),dp)
       end do
     end do

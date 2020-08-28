@@ -3,7 +3,7 @@
 subroutine calculate_all()
   use mod_kind, only: dp
   use mod_constants,  only: cZero, cOne, cI !, levi_civita
-  use mod_parameters, only: lnodiag, Un, offset, output, laddresults, skip_steps, count, lhfresponses, sigmaimunu2i, emin, deltae, nQvec1, kpoints, dim, sigmai2i, dimspinAtoms
+  use mod_parameters, only: lnodiag, Un, offset, output, laddresults, skip_steps, kount, lhfresponses, sigmaimunu2i, emin, deltae, nQvec1, kpoints, dimens, sigmai2i, dimspinAtoms
   use mod_magnet,     only: lfield, hhw, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, lrot
   use mod_SOC,        only: llinearsoc
   use mod_System,     only: s => sys
@@ -87,10 +87,10 @@ subroutine calculate_all()
       write(output%unit_loop,"('[calculate_all] Wave vector Q loop: ',i0,' of ',i0,' points',', Q = [',es10.3,es10.3,es10.3,']')") qcount,nQvec1,(kpoints(i,qcount),i=1,3)
     q = kpoints(:,qcount)
     ! Responses Energy Loop
-    do count = startFreq+skip_steps, endFreq
-      e = emin + deltae * (count-1)
+    do kount = startFreq+skip_steps, endFreq
+      e = emin + deltae * (kount-1)
       if(rField==0) &
-        write(output%unit_loop,"('[calculate_chi] Starting MPI step ',i0,' of ',i0,':',10x,'E =  ',es10.3)") count - startFreq - skip_steps + 1, endFreq - startFreq + 1, e
+        write(output%unit_loop,"('[calculate_chi] Starting MPI step ',i0,' of ',i0,':',10x,'E =  ',es10.3)") kount - startFreq - skip_steps + 1, endFreq - startFreq + 1, e
 
       if(lhfresponses) then
         if(rFreq(1) == 0) &
@@ -114,15 +114,15 @@ subroutine calculate_all()
 
         ! prefactor = (1 + chi_hf*Umat)^-1
         prefactor     = identt
-        call zgemm('n','n',dim,dim,dim,cOne,chiorb_hf,dim,Umatorb,dim,cOne,prefactor,dim) ! prefactor = 1+chi_hf*Umat
-        call invers(prefactor,dim)
+        call zgemm('n','n',dimens,dimens,dimens,cOne,chiorb_hf,dimens,Umatorb,dimens,cOne,prefactor,dimens) ! prefactor = 1+chi_hf*Umat
+        call invers(prefactor,dimens)
         if(llinearsoc) then
           prefactorlsoc = identt
-          if (.not. allocated(chiorb)) allocate(chiorb(dim,dim))
+          if (.not. allocated(chiorb)) allocate(chiorb(dimens,dimens))
           chiorb = chiorb_hf-chiorb_hflsoc ! the array chiorb will be used as a temporary array
-          call zgemm('n','n',dim,dim,dim,cOne,chiorb,dim,Umatorb,dim,cOne,prefactorlsoc,dim) ! prefactorlsoc = 1+chiorb*Umat = 1+(chi_hf + dchi_hf/dlambda)*Umat
-          call zgemm('n','n',dim,dim,dim,cOne,prefactor,dim,prefactorlsoc,dim,cZero,chiorb,dim) ! chiorb = prefactor*prefactorlsoc
-          call zgemm('n','n',dim,dim,dim,cOne,chiorb,dim,prefactor,dim,cZero,prefactorlsoc,dim) ! prefactorlsoc = chiorb*prefactor = prefactor*prefactorlsoc*prefactor
+          call zgemm('n','n',dimens,dimens,dimens,cOne,chiorb,dimens,Umatorb,dimens,cOne,prefactorlsoc,dimens) ! prefactorlsoc = 1+chiorb*Umat = 1+(chi_hf + dchi_hf/dlambda)*Umat
+          call zgemm('n','n',dimens,dimens,dimens,cOne,prefactor,dimens,prefactorlsoc,dimens,cZero,chiorb,dimens) ! chiorb = prefactor*prefactorlsoc
+          call zgemm('n','n',dimens,dimens,dimens,cOne,chiorb,dimens,prefactor,dimens,cZero,prefactorlsoc,dimens) ! prefactorlsoc = chiorb*prefactor = prefactor*prefactorlsoc*prefactor
         end if
         if(rField == 0) &
           call write_time(output%unit_loop,'[calculate_all] Time after prefactor calculation: ')
@@ -146,11 +146,11 @@ subroutine calculate_all()
           ! Calculate RPA susceptibility
           if(llinearsoc) then
             ! chiorb = prefactorlsoc*chi_hf + prefactor*chi_hflsoc
-            call zgemm('n','n',dim,dim,dim,cOne,prefactorlsoc,dim,chiorb_hf,dim,cZero,chiorb,dim)
-            call zgemm('n','n',dim,dim,dim,cOne,prefactor,dim,chiorb_hflsoc,dim,cOne,chiorb,dim)
+            call zgemm('n','n',dimens,dimens,dimens,cOne,prefactorlsoc,dimens,chiorb_hf,dimens,cZero,chiorb,dimens)
+            call zgemm('n','n',dimens,dimens,dimens,cOne,prefactor,dimens,chiorb_hflsoc,dimens,cOne,chiorb,dimens)
           else
             ! chiorb = prefactor*chi_hf
-            call zgemm('n','n',dim,dim,dim,cOne,prefactor,dim,chiorb_hf,dim,cZero,chiorb,dim) ! (1+chi_hf*Umat)^-1 * chi_hf
+            call zgemm('n','n',dimens,dimens,dimens,cOne,prefactor,dimens,chiorb_hf,dimens,cZero,chiorb,dimens) ! (1+chi_hf*Umat)^-1 * chi_hf
           end if
 
           schi = cZero
@@ -448,7 +448,7 @@ subroutine calculate_all()
             !call write_sha(e) !TODO: Re-Include
           end do
 
-          write(time,"('[calculate_all] Time after step ',i0,': ')") count
+          write(time,"('[calculate_all] Time after step ',i0,': ')") kount
           call write_time(output%unit_loop,time)
 
         else

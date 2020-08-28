@@ -12,21 +12,22 @@ contains
     use mod_System,     only: s => sys
     use mod_constants,  only: levi_civita, StoC, CtoS, cZero
     use mod_magnet,     only: mxd,myd,mzd
-    use mod_parameters, only: nOrb, output, dim, sigmaimunu2i
+    use mod_parameters, only: nOrb, output, dimens, sigmaimunu2i
     use mod_mpi_pars,   only: abortProgram,rField
     implicit none
+    complex(dp), dimension(dimens,dimens), intent(in)    :: chiorb_hf
+
     integer :: AllocateStatus
     integer :: i,j,r,t,p,q,mu,nu,gamma,xi,m,n,k
     real(dp)   , dimension(3,s%nAtoms)             :: mvec
-    complex(dp), dimension(dim)                    :: Beff
-    complex(dp), dimension(dim,dim), intent(in)    :: chiorb_hf
+    complex(dp), dimension(dimens)                 :: Beff
     complex(dp), dimension(:,:,:,:,:),allocatable  :: lhs,rhs
     complex(dp), dimension(:,:)      ,allocatable  :: chiorb_hf_cart
 
     if(rField == 0) &
     write(output%unit_loop,"('[sumrule] Checking if the sum rule is satisfied... ')", advance='no')
 
-    allocate(chiorb_hf_cart(dim,dim),lhs(3,3,nOrb,nOrb,s%nAtoms),rhs(3,3,nOrb,nOrb,s%nAtoms), stat = AllocateStatus)
+    allocate(chiorb_hf_cart(dimens,dimens),lhs(3,3,nOrb,nOrb,s%nAtoms),rhs(3,3,nOrb,nOrb,s%nAtoms), stat = AllocateStatus)
     if(AllocateStatus/=0) call abortProgram("[sumrule] Not enough memory for: chiorb_hf_cart,lhs,rhs")
 
     mvec(1,:) = mxd(:)
@@ -110,7 +111,7 @@ contains
   subroutine Beffective(mvec,nAtoms,nOrb,Beff)
     use mod_kind, only: dp
     use mod_constants,  only: cZero
-    use mod_parameters, only: dim, sigmaimunu2i, offset
+    use mod_parameters, only: dimens, sigmaimunu2i, offset
     use mod_SOC,        only: SOC, socscale
     use mod_parameters, only: Un
     use mod_magnet,     only: lvec, lfield, hhw
@@ -119,7 +120,7 @@ contains
     integer :: i,mu,nu,sigma
     integer                             , intent(in)  :: nAtoms, nOrb
     real(dp)   , dimension(3,nAtoms), intent(in)  :: mvec
-    complex(dp), dimension(dim)     , intent(out) :: Beff
+    complex(dp), dimension(dimens)     , intent(out) :: Beff
 
     Beff = cZero
     do i=1,nAtoms

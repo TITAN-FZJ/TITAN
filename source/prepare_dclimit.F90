@@ -23,12 +23,12 @@ subroutine prepare_dclimit()
   allocate(dc_fields(total_hw_npt1),dcprefix(nEner1))
 
   ! Prefix for filenames containing the frequency/energy
-  do count=1,nEner1
-    e = emin + deltae*(count-1)
+  do kount=1,nEner1
+    e = emin + deltae*(kount-1)
     if(e<2.e-6_dp) then
-      write(dcprefix(count),fmt="('dc')")
+      write(dcprefix(kount),fmt="('dc')")
     else
-      write(dcprefix(count),fmt="('hw=',es8.1,'_')") e
+      write(dcprefix(kount),fmt="('hw=',es8.1,'_')") e
     end if
   end do
 

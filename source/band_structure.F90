@@ -10,7 +10,7 @@ subroutine band_structure(s)
   use mod_hamiltonian,       only: hamilt_local,hamiltk
   implicit none
   type(System_type), intent(in) :: s
-  integer :: i, info, count, f_unit=666, w_unit=667, n
+  integer :: i, info, kount, f_unit=666, w_unit=667, n
   integer :: lwork,dimbs
   real(dp), dimension(:), allocatable :: rwork,eval
   complex(dp), allocatable :: work(:),hk(:,:)
@@ -27,7 +27,7 @@ subroutine band_structure(s)
   ! Band structure file
   write(bsfile,"('./results/',a1,'SOC/',a,'/BS/bandstructure_kdir=',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(adjustl(kdirection)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
   open (unit=f_unit, file=bsfile, status='replace')
-  call write_header(f_unit,"# dble((count-1._dp)*deltak), (eval(i),i=1,dimbs)",s%Ef)
+  call write_header(f_unit,"# dble((kount-1._dp)*deltak), (eval(i),i=1,dimbs)",s%Ef)
 
   write(wsfile,"('./results/',a1,'SOC/',a,'/BS/weights_kdir=',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(adjustl(kdirection)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
   open (unit=w_unit, file=wsfile, status='replace')
@@ -37,10 +37,10 @@ subroutine band_structure(s)
   write(formatvar1,fmt="(a,i0,a)") '(',1+dimbs,'(es16.8e3,2x))'
   write(formatvar2,fmt="(a,i0,a)") '(',dimbs*dimbs,'(es16.8e3,2x))'
 
-  do count=1,nQvec1
-    write(output%unit_loop,"('[band_structure] ',i0,' of ',i0,' points',', i = ',es10.3)") count,nQvec1,dble((count-1._dp)/nQvec)
+  do kount=1,nQvec1
+    write(output%unit_loop,"('[band_structure] ',i0,' of ',i0,' points',', i = ',es10.3)") kount,nQvec1,dble((kount-1._dp)/nQvec)
 
-    call hamiltk(s,kpoints(:,count),hk)
+    call hamiltk(s,kpoints(:,kount),hk)
   
     call zheev('V','U',dimbs,hk,dimbs,eval,work,lwork,rwork,info)
 
@@ -49,7 +49,7 @@ subroutine band_structure(s)
       stop
     end if
 
-    write(unit=f_unit,fmt=formatvar1) dble((count-1._dp)*deltak), (eval(i),i=1,dimbs)
+    write(unit=f_unit,fmt=formatvar1) dble((kount-1._dp)*deltak), (eval(i),i=1,dimbs)
     write(unit=w_unit,fmt=formatvar2) ((abs(hk(i,n))**2,i=1,dimbs),n=1,dimbs)
   end do
 

@@ -7,7 +7,7 @@ program TITAN
   use mod_kind, only: dp
   use mod_constants, only: cZero,define_constants
   use mod_parameters, only: output,lpositions,lcreatefolders,parField,parFreq,nEner1,skip_steps,ldebug, &
-                            nOrb,kp_in,dimH,dimspinAtoms,dim,kptotal_in,eta,leigenstates,itype,theta,phi, &
+                            nOrb,kp_in,dimH,dimspinAtoms,dimens,kptotal_in,eta,leigenstates,itype,theta,phi, &
                             laddresults,lsortfiles,lcreatefiles
   use mod_io, only: get_parameters,iowrite
   use mod_system, only: sys,initHamiltkStride,deallocate_System_variables
@@ -124,7 +124,7 @@ program TITAN
   !---------------------------- Dimensions -----------------------------
   dimH = sys%nAtoms*nOrb*2
   dimspinAtoms = 4 * sys%nAtoms
-  dim = dimspinAtoms * nOrb * nOrb
+  dimens = dimspinAtoms * nOrb * nOrb
 
   !---------- Conversion arrays for dynamical quantities ---------------
   call initConversionMatrices(sys%nAtoms,nOrb)
