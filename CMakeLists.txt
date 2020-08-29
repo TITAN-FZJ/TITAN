@@ -168,7 +168,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -g
                                                 -mkl
                                                 -xHost
-                                                -qopt-prefetch=5
                                                 )
   elseif(PLATFORM MATCHES juwels)
     target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
@@ -183,7 +182,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -qopenmp
                                                 -g
                                                 -mkl
-                                                -qopt-prefetch=5
                                                 )
   elseif(PLATFORM MATCHES jusuf)
     target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
@@ -196,7 +194,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -g
                                                 -mkl
                                                 -xHost
-                                                -qopt-prefetch=5
                                                 )
   elseif(PLATFORM MATCHES osx)
     target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
@@ -209,7 +206,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -g
                                                 -mkl
                                                 -xHost
-                                                -qopt-prefetch=5
                                                 )
   elseif(PLATFORM MATCHES booster)
     link_directories($ENV{HOME}/BoosterNAG)
@@ -227,7 +223,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -I$ENV{HOME}/BoosterNAG/nag_interface_blocks
                                                 -xMIC-AVX512
                                                 -qopenmp
-                                                -qopt-prefetch=5
                                                 )
   elseif(PLATFORM MATCHES rwth)
     target_link_libraries(${TITAN_EXE} -mkl $ENV{FLAGS_NAG_LINKER} -qopenmp)
@@ -240,7 +235,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -mkl
                                                 $ENV{FLAGS_NAG_INCLUDE}
                                                 -xHost
-                                                -qopt-prefetch=5
                                                 )
   elseif(PLATFORM MATCHES iff)
     target_link_libraries(${TITAN_EXE} -mkl -L/usr/local/nag/lib -lnag -qopenmp)
@@ -252,7 +246,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -g
                                                 -mkl
                                                 -xHost
-                                                -qopt-prefetch=5
                                                 )
   elseif(PLATFORM MATCHES hh)
     target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lnag -qopenmp)
@@ -265,7 +258,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -g
                                                 -mkl
                                                 -xCORE-AVX2
-                                                -qopt-prefetch=5
                                                 )
   else()
     target_link_libraries(${TITAN_EXE} -mkl -qopenmp /opt/NAG/fll6i26dcl/lib/libnag_nag.a)
@@ -279,7 +271,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 #-qopt-report=5
                                                 -g
                                                 -xHost
-                                                -qopt-prefetch=5
                                                 )
   endif(PLATFORM MATCHES jureca)
 

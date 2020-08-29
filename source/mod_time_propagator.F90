@@ -12,7 +12,7 @@ contains
     use mod_RK_matrices,       only: A, id, id2, M1, build_identity
     use mod_imRK4,             only: iterate_Zki, calculate_step_error, magnetic_field, vector_potential
     use mod_BrillouinZone,     only: realBZ
-    use mod_parameters,        only: nOrb,dimH,output,laddresults,lprintfieldonly
+    use mod_parameters,        only: nOrb,dimH,output,lprintfieldonly
     use mod_system,            only: System_type
     use mod_expectation,       only: expec_val_n, expec_H_n, expec_L_n
     use mod_Umatrix,           only: update_Umatrix
@@ -56,13 +56,8 @@ contains
     real(dp),    dimension(3)               :: field_m, field_e
     real(dp)                                :: E_t, E_0
    
-    if(rFreq(1) == 0) then
+    if(rFreq(1) == 0) &
       write(output%unit_loop,"('CALCULATING TIME-PROPAGATION')")
-      ! Creating files and writing headers
-      if(.not.laddresults) then
-        call create_time_prop_files()
-      end if
-    end if
  
     if(lprintfieldonly) then
       if(rFreq(1) == 0) &
@@ -81,9 +76,6 @@ contains
 
     allocate( id(dimH,dimH),id2(dimH2,dimH2),hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork),eval_kn(dimH,realBZ%workload),evec_kn(dimH,dimH,realBZ%workload),evec_kn_temp(dimH,dimH,realBZ%workload), M1(dimH2,dimH2) )
 
-    ! Build local hamiltonian
-    call hamilt_local(s)
-
     ! Building identities
     call build_identity(dimH,id)
     call build_identity(size(A,1)*dimH,id2)
@@ -100,6 +92,9 @@ contains
       t = 0._dp
     end if
 
+    ! Creating files and writing headers
+    if(.not.(use_checkpoint)) call create_time_prop_files()
+
     if(rFreq(1) == 0) &
       write(output%unit_loop,"('[time_propagator] Starting propagation from t = ',es9.2)") t
 
@@ -111,6 +106,9 @@ contains
       t = t + step
       if(rFreq(1) == 0) &
         write(output%unit_loop,"('[time_propagator] Time: ',es10.3,' of ',es10.3)", advance='no') t, integration_time
+
+      ! Build local hamiltonian with m(t) and n(t)
+      call hamilt_local(s)
        
       counter = 0  ! Counter for the calculation of error in the step size for each time t
       iter_rej = 0 ! Counter of rejected steps (for each accepted one)
@@ -279,6 +277,7 @@ contains
         mzd_t(i)  = sum(mz_t(5:9,i))
       end do
  
+      ! Update U-term of the local hamiltonian
       call update_Umatrix(mzd_t,mpd_t,rhod_t,rhod0,rho_t,rho0,s%nAtoms,nOrb)
 
       ! Calculating time-dependent field

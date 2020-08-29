@@ -264,7 +264,7 @@ contains
   ! logical parameters: lmagnetic, lpulse_m, lelectric, lpulse_e 
   ! observables: <1>, <sigma>, <L>, <tau>, currents
   subroutine create_time_prop_files()
-    use mod_parameters,       only: output,lprintfieldonly
+    use mod_parameters, only: output,lprintfieldonly
     implicit none
     character(len=500) :: output_file
     integer :: i,unit
@@ -310,6 +310,14 @@ contains
     implicit none
     character(len=500) :: output_file
     integer :: i,iw,err,errt=0
+
+    if(.not.allocated(output%observable)) then 
+      allocate(output%observable(4))
+      output%observable(1) = "occupation"
+      output%observable(2) = "magnetization"
+      output%observable(3) = "Energy"
+      output%observable(4) = "AngularMomentum"
+    end if
 
     do i=1,size(output%observable)
       ! for all orbitals

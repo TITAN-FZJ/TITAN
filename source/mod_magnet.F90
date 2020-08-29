@@ -5,7 +5,7 @@ module mod_magnet
 
   logical :: lfield
   !! Turn on/off static magnetic field
-  integer                     :: iter=0
+  integer                 :: iter = 0
   !! self-consistency iteration
   real(dp),allocatable    :: rho(:,:)
   !! orbital-dependent and d-orbital charge density per site

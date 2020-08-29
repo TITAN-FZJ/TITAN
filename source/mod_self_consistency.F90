@@ -3,7 +3,7 @@ module mod_self_consistency
   implicit none
   integer            :: neq, neq_per_atom
   character(len=300) :: default_file
-  real(dp)           :: mag_tol = 1.e-8_dp
+  real(dp)           :: mag_tol = 1.e-12_dp
   character(len=200) :: scfile = ""
   !! Give a file to start self-consistency
   logical            :: skipsc

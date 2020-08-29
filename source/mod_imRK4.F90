@@ -219,9 +219,9 @@ contains
     use mod_hamiltonian, only: hamiltk
     implicit none
     type(System_type),    intent(in)  :: s
-    real(dp),    intent(in)  :: t, eval
-    real(dp),    intent(in)  :: kp(3)
-    complex(dp), intent(out) :: hamilt_t(dimH,dimH), hamilt_0(dimH,dimH)
+    real(dp),             intent(in)  :: t, eval
+    real(dp),             intent(in)  :: kp(3)
+    complex(dp),          intent(out) :: hamilt_t(dimH,dimH), hamilt_0(dimH,dimH)
 
     complex(dp), dimension(dimH,dimH)  :: hk,hext_t
 

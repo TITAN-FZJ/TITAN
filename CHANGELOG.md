@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## 2020-08-29
+
+### Changed
+
+- Removed 'addresults' from time-propagation, as 'checkpoints' is a better way to continue the results
+
+### Fixed
+
+- Removed flag '-qpre-fetch=5' that made time-propagation calculations slower
+- Fixed local hamiltonian calculation for time-propagation calculation (must be inside time-loop to update the U-term)
+- Fixed writing of time-propagated quantities when checkpoint is used
+
+
+
 ## 2020-08-28
 
 ### Added
@@ -15,6 +29,7 @@
 ### Fixed
 
 - Variables for f_n and f_n_negative changed to private in calcLGS_eigenstates
+
 
 
 ## 2020-08-27
