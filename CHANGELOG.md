@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+## 2020-09-01
+
+### Added
+
+- fullhk is also used for ground state L
+- fullhk is also used for time propagation
+
+### Changed
+
+- Removed "hermitianization" of the hamiltonian. In all the tests, there were no differences with and without
+- Separated a few do concurrent loops to avoid possible race conditions if the loop is done concurrently (and removed !$OMP directives that were causing errors)
+- Removed git tags and increased commit description size from initial git information
+
+### Fixed
+
+- Fixed the calculation of ground state L when supercond=T (it had different results with lambda=0 and supercond=F)
+
+
+
 ## 2020-08-29
 
 ### Changed

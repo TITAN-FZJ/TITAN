@@ -10,7 +10,8 @@ contains
                                      lpulse_m, tau_m, delay_m, polarization_e, polarization_vec_e, &
                                      polarization_m, polarization_vec_m
     use mod_RK_matrices,       only: A, id, id2, M1, build_identity
-    use mod_imRK4,             only: iterate_Zki, calculate_step_error, magnetic_field, vector_potential
+    use mod_imRK4,             only: iterate_Zki, calculate_step_error, magnetic_field, vector_potential, &
+                                     td_hamilt, build_td_hamilt_full
     use mod_BrillouinZone,     only: realBZ
     use mod_parameters,        only: nOrb,dimH,output,lprintfieldonly
     use mod_system,            only: System_type
@@ -19,7 +20,7 @@ contains
     use mod_magnet,            only: rhod0,rho0
     use mod_tools,             only: KronProd
     use mod_superconductivity, only: allocate_supercond_variables
-    use mod_hamiltonian,       only: hamiltk,hamilt_local
+    use mod_hamiltonian,       only: hamiltk,hamilt_local,lfullhk
     use mod_checkpoint,        only: save_state, recover_state
     use mod_io,                only: log_warning
     use mod_time_propagator_io, only: create_time_prop_files, write_header_time_prop, write_field, write_time_prop_files
@@ -36,7 +37,7 @@ contains
     logical  :: use_checkpoint
     real(dp) :: t_cp,step_cp
 
-    integer(int64)                              :: iz
+    integer(int64)                              :: ik
     integer(int32)                              :: info, ncount
     integer(int32)                              :: lwork
     real(dp)                                :: weight, kp(3)
@@ -95,6 +96,11 @@ contains
     ! Creating files and writing headers
     if(.not.(use_checkpoint)) call create_time_prop_files()
 
+    if( lfullhk ) then
+      td_hamilt => build_td_hamilt_full
+    end if
+
+
     if(rFreq(1) == 0) &
       write(output%unit_loop,"('[time_propagator] Starting propagation from t = ',es9.2)") t
 
@@ -115,7 +121,7 @@ contains
       ! Propagation loop for a given time t, calculating the optimal step size
       do
         !$omp parallel default(none) &
-        !$omp& private(Yn_e,Yn_new_e,Yn_hat_e,iz,n,i,kp,weight,hk,ERR_kn,Yn, Yn_new, Yn_hat, eval,work,rwork,info,expec_0,expec_p,expec_z,expec_singlet,E_0,lxm,lym,lzm) &
+        !$omp& private(Yn_e,Yn_new_e,Yn_hat_e,ik,n,i,kp,weight,hk,ERR_kn,Yn, Yn_new, Yn_hat, eval,work,rwork,info,expec_0,expec_p,expec_z,expec_singlet,E_0,lxm,lym,lzm) &
         !$omp& shared( ERR,counter,step,s,t,it,dimH,realBZ,evec_kn_temp,evec_kn,eval_kn,use_checkpoint,rho_t,mp_t,mz_t,E_t, Lxm_t,Lym_t,Lzm_t,singlet_coupling_t,lwork)
 
         rho_t  = 0._dp
@@ -133,15 +139,15 @@ contains
         singlet_coupling_t = 0._dp
   
         !$omp do reduction(+:rho_t,mp_t,mz_t,E_t,Lxm_t,Lym_t,Lzm_t,singlet_coupling_t,ERR)
-        kpoints_loop: do iz = 1, realBZ%workload
-          kp = realBZ%kp(1:3,iz)
-          weight = realBZ%w(iz)   
+        kpoints_loop: do ik = 1, realBZ%workload
+          kp = realBZ%kp(1:3,ik)
+          weight = realBZ%w(ik)   
           if ((it==0).and.(.not.use_checkpoint)) then
             ! Calculating the hamiltonian for a given k-point
             call hamiltk(s,kp,hk)
             ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
             call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
-            eval_kn(:,iz) = eval(:)
+            eval_kn(:,ik) = eval(:)
           !>>>>> find eigenvalues again
           ! Improve step control by diagonalizing the Hamiltonian after some number of steps:
           ! calling H(t) instead of hamiltk, at t=0, H(0)= hamiltk
@@ -158,33 +164,33 @@ contains
       ! 4- calculate the error at each step from Yn but propagate with Yn^~.
     !----------------------------------------------------------------------------------------!
               ! Geting the intitial vector Yn^~, setting Yn to Yn^~ for propagation, hbar = 1
-              Yn = Yn * exp(cI*eval_kn(n,iz)*t)
+              Yn = Yn * exp(cI*eval_kn(n,ik)*t)
                 
             else
               ! Is the propagated vector Yn^~
-              Yn(:) = evec_kn(:,n,iz)
+              Yn(:) = evec_kn(:,n,ik)
                
             end if
 
-            call iterate_Zki(s,t,kp,eval_kn(n,iz),step,Yn_new,Yn,Yn_hat)
+            call iterate_Zki(s,t,ik,kp,eval_kn(n,ik),step,Yn_new,Yn,Yn_hat)
             ! Note: all iteration outputs correspond to Yn^~ 
 
             ! Getting Yn's again; Yn = Yn^~ * exp( (-i*En*t/hbar) ), hbar=1, rename Yn to Yn_e
-            Yn_e(:)     = Yn     * exp(-cI*eval_kn(n,iz)*t) 
-            Yn_new_e(:) = Yn_new * exp(-cI*eval_kn(n,iz)*t) 
-            Yn_hat_e(:) = Yn_hat * exp(-cI*eval_kn(n,iz)*t) 
+            Yn_e(:)     = Yn     * exp(-cI*eval_kn(n,ik)*t) 
+            Yn_new_e(:) = Yn_new * exp(-cI*eval_kn(n,ik)*t) 
+            Yn_hat_e(:) = Yn_hat * exp(-cI*eval_kn(n,ik)*t) 
 
             ! Calculating expectation values of the nth eigenvector
             ! Note: use the Yn_new_e or Yn_nw >>> should give the same result
 
             ! calculating expectation value of magnetization in eigenvector (n)
-            call expec_val_n(s, dimH, Yn_new_e, eval_kn(n,iz), expec_0, expec_p, expec_z, expec_singlet)
+            call expec_val_n(s, dimH, Yn_new_e, eval_kn(n,ik), expec_0, expec_p, expec_z, expec_singlet)
 
             ! calculating expectation value of the T.D Hamiltonian in eigenvector (n)
-            call expec_H_n(s, kp, t, dimH, Yn_new_e, eval_kn(n,iz), E_0)
+            call expec_H_n(s,t,ik,kp,dimH,Yn_new_e,eval_kn(n,ik),E_0)
 
             ! calculating expectation value of angular momentum in eigenvector (n)
-            call expec_L_n(s, dimH, Yn_new_e, eval_kn(n,iz), lxm, lym, lzm)
+            call expec_L_n(s, dimH, Yn_new_e, eval_kn(n,ik), lxm, lym, lzm)
 
 
             rho_t = rho_t + expec_0  * weight 
@@ -210,7 +216,7 @@ contains
 
             ! Storing temporary propagated vector before checking if it's Accepted.
             ! Note: save the Yn^~ outputs to be propagated.
-            evec_kn_temp(:,n,iz) = Yn_new(:)
+            evec_kn_temp(:,n,ik) = Yn_new(:)
 
           end do evs_loop
         end do kpoints_loop

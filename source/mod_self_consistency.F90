@@ -30,8 +30,8 @@ contains
     use mod_SOC,           only: SOC
     use mod_parameters,    only: leigenstates,lkpoints
     use mod_System,        only: s => sys
-    use mod_expectation,   only: groundstate_L,expectation_values,expectation_eigenstates_fullhk
-    use mod_hamiltonian, only: fullhamiltk
+    use mod_expectation,   only: groundstate_L,expectation_values,expectation_eigenstates_fullhk,calcLGS,calcLGS_fullhk
+    use mod_hamiltonian, only: fullhamiltk,lfullhk
     implicit none
     logical :: lsuccess = .false.
 
@@ -42,7 +42,11 @@ contains
     end if
 
     !--- Checking if full tight-binding hamiltonian can be calculating ---
-    if( fullhamiltk(s) ) expectation_values => expectation_eigenstates_fullhk
+    lfullhk = fullhamiltk(s)
+    if( lfullhk ) then
+      expectation_values => expectation_eigenstates_fullhk
+      calcLGS => calcLGS_fullhk
+    end if
 
     !--------------------------- Self-consistency --------------------------
     ! Trying to read previous densities and Ef from files

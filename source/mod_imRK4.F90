@@ -2,10 +2,27 @@
 module mod_imRK4
   implicit none
 
+  procedure(td_hamilt_sub), pointer :: td_hamilt => build_td_hamilt
+
+  abstract interface
+    subroutine td_hamilt_sub(s,t,ik,kp,eval,hamilt_t,hamilt_0)
+      use mod_kind, only: dp,int64
+      use mod_system,      only: System_type
+      use mod_parameters,  only: dimH
+      implicit none
+      type(System_type),    intent(in)  :: s
+      real(dp),             intent(in)  :: t, eval
+      integer(int64),       intent(in)  :: ik
+      real(dp),             intent(in)  :: kp(3)
+      complex(dp),          intent(out) :: hamilt_t(dimH,dimH), hamilt_0(dimH,dimH)
+    end subroutine
+  end interface
+
+
 contains
   ! subroutine to find the vectors Z_ki
-  subroutine iterate_Zki(s,t,kp,eval,step,Yn_new,Yn,Yn_hat)
-    use mod_kind, only: dp
+  subroutine iterate_Zki(s,t,ik,kp,eval,step,Yn_new,Yn,Yn_hat)
+    use mod_kind, only: dp,int64
     use mod_parameters,       only: dimH
     use mod_system,           only: System_type
     use mod_imRK4_parameters, only: dimH2, sc_tol
@@ -14,8 +31,9 @@ contains
     use mod_RK_matrices
     implicit none
     ! define the variables: 
-    type(System_type)                     , intent(in)    :: s
+    type(System_type)            , intent(in)    :: s
     real(dp)                     , intent(in)    :: t
+    integer(int64)               , intent(in)    :: ik
     real(dp)                     , intent(in)    :: kp(3)
     real(dp)                     , intent(in)    :: eval
     complex(dp), dimension(dimH) , intent(inout) :: Yn_new, Yn_hat, Yn
@@ -42,9 +60,9 @@ contains
     !
     sc_loop: do while (error >= sc_tol) 
       ! Build M2n matrix
-      call M_2n(s, t, kp, eval, Yn, step, M2n)
+      call M_2n(s,t,ik,kp,eval,Yn,step,M2n)
       ! Build Fun vector
-      call Fsystem(s, t, kp, eval, Yn, step, Z_k, Fun)
+      call Fsystem(s,t,ik,kp,eval,Yn,step,Z_k,Fun)
       ! Solve the Ax=b linear equation (Eq. 24 of the notes)
       call LS_solver(dimH2,M2n,Fun)
 
@@ -81,16 +99,17 @@ contains
   end subroutine iterate_Zki
 
 ! Subroutine to build the matrix M_2n
-  subroutine M_2n(s, t, kp, eval, Yn, step, M2n)
-    use mod_kind, only: dp
+  subroutine M_2n(s,t,ik,kp,eval,Yn,step,M2n)
+    use mod_kind, only: dp,int64
     use mod_parameters,       only: dimH
     use mod_system,           only: System_type
     use mod_imRK4_parameters, only: dimH2
     use mod_RK_matrices,      only: A, id2
     use mod_tools,            only: KronProd
     implicit none
-    type(System_type)                           , intent(in)  :: s
+    type(System_type)                  , intent(in)  :: s
     real(dp)                           , intent(in)  :: t, step
+    integer(int64)                     , intent(in)  :: ik
     real(dp)                           , intent(in)  :: kp(3)
     real(dp)                           , intent(in)  :: eval
     complex(dp), dimension(dimH)       , intent(in)  :: Yn
@@ -100,27 +119,26 @@ contains
     complex(dp), dimension(dimH2,dimH2) :: Kprod(dimH2,dimH2)
 
     ! Calculating the Jacobian at previous time
-    call build_td_Jacobian(s, t-step, kp, eval, Yn, Jacobian_t)
+    call build_td_Jacobian(s,t-step,ik,kp,eval,Yn,Jacobian_t)
 
-
-    ! TODO: test if size(A) works
     call KronProd(size(A,1),size(A,1),dimH,dimH,A,Jacobian_t,Kprod)
     M2n = id2 - step * Kprod
   end subroutine M_2n
 
   !> subroutine f(Z_k) that builds the right side of the linear system.
-  subroutine Fsystem(s, t, kp, eval, Yn, step, Z_k, Fun) 
-    use mod_kind, only: dp
+  subroutine Fsystem(s,t,ik,kp,eval,Yn,step,Z_k,Fun) 
+    use mod_kind, only: dp,int64
     use mod_constants,        only: cI
     use mod_parameters,       only: dimH
     use mod_imRK4_parameters, only: dimH2
     use mod_system,           only: System_type
     use mod_RK_matrices,      only: M1, c1, c2
     implicit none
-    type(System_type)                    ,  intent(in)  :: s
-    real(dp)                    ,  intent(in)  :: t, step, eval
-    real(dp)                    ,  intent(in)  :: kp(3)
-    complex(dp), dimension(dimH),  intent(in)  :: Yn
+    type(System_type)            , intent(in)  :: s
+    real(dp)                     , intent(in)  :: t,step,eval
+    integer(int64)               , intent(in)  :: ik
+    real(dp)                     , intent(in)  :: kp(3)
+    complex(dp), dimension(dimH) , intent(in)  :: Yn
     complex(dp), dimension(dimH2), intent(in)  :: Z_k
     complex(dp), dimension(dimH2), intent(out) :: Fun 
     real(dp)                     :: t1, t2
@@ -128,12 +146,12 @@ contains
     complex(dp), dimension(dimH) :: F1, F2   
 
     t1 = t + step * c1
-    call build_td_hamiltonian(s, t1, kp, eval, hamilt_t, hamilt_0)
-    F1 = -cI * matmul( hamilt_t , Z_k(1:dimH) + Yn )
+    call td_hamilt(s,t1,ik,kp,eval,hamilt_t,hamilt_0)
+    F1 = -cI * matmul(hamilt_t,Z_k(1:dimH) + Yn)
 
     t2 = t + step * c2
-    call build_td_hamiltonian(s, t2, kp, eval, hamilt_t, hamilt_0)
-    F2 = -cI * matmul( hamilt_t , Z_k(dimH+1:dimH2) + Yn )
+    call td_hamilt(s,t2,ik,kp,eval,hamilt_t,hamilt_0)
+    F2 = -cI * matmul(hamilt_t,Z_k(dimH+1:dimH2) + Yn)
 
     Fun = [ F1, F2 ]
 
@@ -142,15 +160,16 @@ contains
 
 
   !> build time dependent jacobian for each kp 
-  subroutine build_td_Jacobian(s, t, kp, eval, Yn, Jacobian_t)
-    use mod_kind, only: dp
+  subroutine build_td_Jacobian(s,t,ik,kp,eval,Yn,Jacobian_t)
+    use mod_kind, only: dp,int64
     use mod_constants,  only: cI
     use mod_parameters, only: dimH
     use mod_system,     only: System_type
     ! use mod_Umatrix,   only: hee
     implicit none
-    type(System_type)                          , intent(in)  :: s
+    type(System_type)                 , intent(in)  :: s
     real(dp)                          , intent(in)  :: t
+    integer(int64)                    , intent(in)  :: ik
     real(dp)                          , intent(in)  :: kp(3)
     real(dp)                          , intent(in)  :: eval
     complex(dp), dimension(dimH)      , intent(in)  :: Yn
@@ -158,7 +177,7 @@ contains
 
     complex(dp), dimension(dimH,dimH)  :: hamilt_t, dHdc, hamilt_0
 
-    call build_td_hamiltonian(s, t, kp, eval, hamilt_t, hamilt_0)
+    call td_hamilt(s,t,ik,kp,eval,hamilt_t,hamilt_0)
     call build_term_Jacobian(s, eval, Yn, dHdc)
 
     Jacobian_t = -cI*(hamilt_t + dHdc)
@@ -176,7 +195,7 @@ contains
     use mod_constants,     only: cZero, pauli_mat, pi
     ! use mod_Umatrix,   only: hee
     implicit none
-    type(System_type)                          , intent(in)  :: s
+    type(System_type)                 , intent(in)  :: s
     real(dp)                          , intent(in)  :: eval
     complex(dp), dimension(dimH)      , intent(in)  :: Yn
     complex(dp), dimension(dimH,dimH) , intent(out) :: dHdc
@@ -211,8 +230,8 @@ contains
 
   !> build time dependent Hamiltonian for each kp 
   !> H(t) = hk + hext_t
-  subroutine build_td_hamiltonian(s,t,kp,eval,hamilt_t, hamilt_0)
-    use mod_kind, only: dp
+  subroutine build_td_hamilt(s,t,ik,kp,eval,hamilt_t, hamilt_0)
+    use mod_kind, only: dp,int64
     use mod_system,      only: System_type
     use mod_parameters,  only: dimH
     use mod_RK_matrices, only: id
@@ -220,6 +239,7 @@ contains
     implicit none
     type(System_type),    intent(in)  :: s
     real(dp),             intent(in)  :: t, eval
+    integer(int64),       intent(in)  :: ik
     real(dp),             intent(in)  :: kp(3)
     complex(dp),          intent(out) :: hamilt_t(dimH,dimH), hamilt_0(dimH,dimH)
 
@@ -239,11 +259,50 @@ contains
 
     ! Checking if Hamiltonian is hermitian
     ! if( sum(abs(conjg(transpose(hamilt_t))-hamilt_t)) > 1.e-15_dp ) then
-    !  write(*,"('[build_td_hamiltonian] Hamiltonian is not hermitian!')")
+    !  write(*,"('[build_td_hamilt] Hamiltonian is not hermitian!')")
     !  stop
     ! end if
 
-  end subroutine build_td_hamiltonian
+  end subroutine build_td_hamilt
+
+
+  !> build time dependent Hamiltonian for each kp using full hamiltonian previously calculated
+  !> H(t) = hk + hext_t
+  subroutine build_td_hamilt_full(s,t,ik,kp,eval,hamilt_t, hamilt_0)
+    use mod_kind, only: dp,int64
+    use mod_system,      only: System_type
+    use mod_parameters,  only: dimH
+    use mod_RK_matrices, only: id
+    use mod_hamiltonian, only: h0,fullhk
+    implicit none
+    type(System_type),    intent(in)  :: s
+    real(dp),             intent(in)  :: t, eval
+    integer(int64),       intent(in)  :: ik
+    real(dp),             intent(in)  :: kp(3)
+    complex(dp),          intent(out) :: hamilt_t(dimH,dimH), hamilt_0(dimH,dimH)
+
+    complex(dp), dimension(dimH,dimH)  :: hk,hext_t
+
+    ! Calculating the "ground state" Hamiltonian for a given k-point (with time-dependent expectation values included)
+    hk = h0 + fullhk(:,:,ik)
+
+    ! Building time dependent hamiltonian
+    call build_hext(kp,t,hext_t)
+
+    ! calculating the original hamiltonian H(t) without the eigenvalue term.
+    hamilt_0 = hk + hext_t
+
+    ! Calculating the time-dependent Hamiltonian 
+    hamilt_t = ( eval * id ) - hamilt_0
+
+    ! Checking if Hamiltonian is hermitian
+    ! if( sum(abs(conjg(transpose(hamilt_t))-hamilt_t)) > 1.e-15_dp ) then
+    !  write(*,"('[build_td_hamilt] Hamiltonian is not hermitian!')")
+    !  stop
+    ! end if
+
+  end subroutine build_td_hamilt_full
+
 
   !> build time dependent external perturbation Hamiltonian
   !> For a magnetic perturbation: H_ext(t)= S.B(t),  S= Pauli matricies

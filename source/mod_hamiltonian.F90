@@ -2,6 +2,7 @@ module mod_hamiltonian
   use mod_kind, only: dp
   implicit none
   
+  logical :: lfullhk = .false.
   complex(dp), dimension(:,:),   allocatable :: h0
   complex(dp), dimension(:,:,:), allocatable :: fullhk
 
@@ -117,14 +118,6 @@ contains
         end if
       end do
     end do
-
-    ! This part is neccessary since hamiltk returns a hamiltonian, hermitian
-    ! up to 1e-16 precision. This interfered with some expectation value calculations
-    ! causing an artificial anisotropy
-    ! With this I'm just making sure that diagonal blocks of the superconducting
-    ! Hamiltonian are hermitian, and therefore the total hamiltonian is hermitian.
-
-    hk = (hk + conjg(transpose(hk)))/2._dp
 
     ! ! Test if hamiltonian is Hermitian (to be commented out, uncomment to use it)
     ! do i = ia(1,1), ia(4,sys%nAtoms)
