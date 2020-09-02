@@ -36,6 +36,18 @@ else
     diff <(grep "$dummy" -A 11 $file1) <(grep "$dummy" -A 11 $file2)
 fi
 ###############################################
+printf "\nGap parameters\n"
+
+dummy="Averages of the norms per orbital type"
+
+diff <(grep "$dummy" -A 11 $file1) <(grep "$dummy" -A 11 $file2) > /dev/null
+
+if [ $? -eq 0 ]; then
+    printf ">>>The gap parameters are identical\n\n"
+else
+    diff <(grep "$dummy" -A 11 $file1) <(grep "$dummy" -A 11 $file2)
+fi
+###############################################
 printf "\nMagnetization components\n"
 
 dummy="Magnetization components"
@@ -67,7 +79,7 @@ dummy="Total"
 diff <(grep "$dummy" -A 11 $file1) <(grep "$dummy" -A 11 $file2) > /dev/null
 
 if [ $? -eq 0 ]; then
-    printf ">>>The orbital components are identical\n\n"
+    printf ">>>The total results are identical\n\n"
 else
     diff <(grep "$dummy" -A 11 $file1) <(grep "$dummy" -A 11 $file2)
 fi
