@@ -196,8 +196,6 @@ contains
     mz  = 0._dp
     mp  = cZero
     deltas = 0._dp
-    !!$acc kernels 
-    !!$acc parallel loop ! firstprivate(lwork) private(iz,hk,eval,work,rwork,info,expec_0, expec_p, expec_z,expec_singlet) shared(s,dimH,output,realBZ,rho,mp,mz,lsuperCond,deltas) reduction(+:rho,mp,mz,deltas)
     !$omp do reduction(+:rho,mp,mz,deltas) schedule(dynamic)
     do iz = 1,realBZ%workload
       ! Calculating the hamiltonian for a given k-point
@@ -222,8 +220,6 @@ contains
     end do
     !$omp end do
     !$omp end parallel
-    !!$acc end kernels
-    !!$acc end parallel loop
 
     !Gather and sum all the results from the different processes using an Allreduce clause
     call MPI_Allreduce(MPI_IN_PLACE, rho   , ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
@@ -272,6 +268,7 @@ contains
     allocate( hk(dimHsc,dimHsc),rwork(3*dimHsc-2),eval(dimHsc),work(lwork) )
 
     call hamilt_local(s)
+    !!$acc data copyin(h0,fullhk) copyout(rho,mp,mz,deltas)
 
     !$omp parallel default(none) &
     !$omp& firstprivate(lwork) &
@@ -282,7 +279,7 @@ contains
     mp  = cZero
     deltas = 0._dp
     !!$acc kernels 
-    !!$acc parallel loop ! firstprivate(lwork) private(iz,hk,eval,work,rwork,info,expec_0, expec_p, expec_z,expec_singlet) shared(s,dimH,output,realBZ,rho,mp,mz,lsuperCond,deltas) reduction(+:rho,mp,mz,deltas)
+    !$acc parallel loop private(iz,hk,eval,work,rwork,info,expec_0, expec_p, expec_z,expec_singlet) ! firstprivate(lwork) shared(s,dimH,output,realBZ,rho,mp,mz,lsuperCond,deltas) reduction(+:rho,mp,mz,deltas)
     !$omp do reduction(+:rho,mp,mz,deltas) schedule(dynamic)
     do iz = 1,realBZ%workload
       ! hamiltonian for a given k-point
@@ -307,8 +304,11 @@ contains
     end do
     !$omp end do
     !$omp end parallel
+    !$acc end parallel loop
+    !!$acc end data
     !!$acc end kernels
-    !!$acc end parallel loop
+
+
 
     !Gather and sum all the results from the different processes using an Allreduce clause
     call MPI_Allreduce(MPI_IN_PLACE, rho   , ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
@@ -327,6 +327,7 @@ contains
 
   ! subroutine expectation value of the operators 1 (occupation), Sp and Sz:
   subroutine expec_val(s, dimens, hk, eval, expec_0, expec_p, expec_z, expec_singlet)
+    !$acc routine
     use mod_kind, only: dp
     use mod_constants,         only: cZero,pi,pauli_mat
     use mod_parameters,        only: nOrb,eta,isigmamu2n,dimH
@@ -360,12 +361,6 @@ contains
       f_n(n) = fd_dist(fermi, beta, eval(n))
     end do
 
-    do concurrent (n = 1:dimens, lsuperCond)
-      f_n_negative(n) = fd_dist(fermi, beta, -eval(n))
-      tanh_n(n) = tanh(eval(n)*beta/2._dp)
-    end do
-
-
     if(.not.lsupercond) then
       do concurrent(i = 1:s%nAtoms, mu = 1:nOrb)
         do n = 1,dimens
@@ -388,6 +383,12 @@ contains
         end do
       end do
     else
+
+      do concurrent (n = 1:dimens)
+        f_n_negative(n) = fd_dist(fermi, beta, -eval(n))
+        tanh_n(n) = tanh(eval(n)*beta/2._dp)
+      end do
+
       do concurrent(i = 1:s%nAtoms, mu = 1:nOrb)
         do n = 1,dimens
           ! up spin (using u's) + down spin (using v's)
@@ -397,7 +398,7 @@ contains
         end do
       end do
 
-      do concurrent(n = 1:dimens, i = 1:s%nAtoms, mu = 1:nOrb, sigma = 1:2, sigmap = 1:2)
+      do concurrent(i = 1:s%nAtoms, mu = 1:nOrb)
         do n = 1,dimens
           do sigma = 1,2
             do sigmap = 1,2
@@ -453,21 +454,23 @@ contains
     f_n = fd_dist(fermi, beta, eval)
 
     if(.not.lsupercond) then
-      do concurrent(i = 1:s%nAtoms, mu = 1:nOrb, sigma = 1:2)
-        evec_isigmamu = evec(isigmamu2n(i,sigma,mu))
-        evec_isigmamu_cong = conjg( evec_isigmamu )
+      do concurrent(i = 1:s%nAtoms, mu = 1:nOrb)
+        do sigma = 1,2
 
-        ! Charge
-        expec_0(mu,i) = expec_0(mu,i) + f_n*real( evec_isigmamu_cong*evec_isigmamu )
+          evec_isigmamu = evec(isigmamu2n(i,sigma,mu))
+          evec_isigmamu_cong = conjg( evec_isigmamu )
 
-        !$OMP SIMD
-        do sigmap = 1, 2
-          evec_isigmamu = evec(isigmamu2n(i,sigmap,mu))
-          ! M_p
-          expec_p(mu,i) = expec_p(mu,i) + f_n*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
+          ! Charge
+          expec_0(mu,i) = expec_0(mu,i) + f_n*real( evec_isigmamu_cong*evec_isigmamu )
 
-          ! M_z
-          expec_z(mu,i) = expec_z(mu,i) + f_n*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
+          do sigmap = 1, 2
+            evec_isigmamu = evec(isigmamu2n(i,sigmap,mu))
+            ! M_p
+            expec_p(mu,i) = expec_p(mu,i) + f_n*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
+
+            ! M_z
+            expec_z(mu,i) = expec_z(mu,i) + f_n*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
+          end do
         end do
       end do
 
@@ -500,6 +503,7 @@ contains
 
       f_n_negative = fd_dist(fermi, beta, -eval)
       tanh_n = tanh(eval*beta/2._dp)
+
       do concurrent( i = 1:s%nAtoms, mu = 1:nOrb)
         ! up spin (using u's) + down spin (using v's)
         expec_0(mu,i) = expec_0(mu,i) + f_n*real( conjg(evec(nOrb*2*(i-1)+mu))*evec(nOrb*2*(i-1)+mu) ) + f_n_negative*real( conjg(evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2))*evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2) )
@@ -507,41 +511,20 @@ contains
         expec_singlet(mu,i) = expec_singlet(mu,i) + 0.5_dp*s%Types(s%Basis(i)%Material)%lambda(mu)*tanh_n*real( conjg(evec(isigmamu2n(i,1,mu)+nOrb*2*s%nAtoms))*evec(isigmamu2n(i,2,mu)) )
       end do
 
-      do concurrent( i = 1:s%nAtoms, mu = 1:nOrb, sigma = 1:2, sigmap = 1:2)
-        evec_isigmamu_cong = conjg( evec(isigmamu2n(i,sigma,mu)) )
-        evec_isigmamu = evec(isigmamu2n(i,sigmap,mu))
-        ! M_p
-        expec_p(mu,i) = expec_p(mu,i) + f_n*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
+      do concurrent(i = 1:s%nAtoms, mu = 1:nOrb)
+        do sigma = 1,2
+          do sigmap = 1,2
 
-        ! M_z
-        expec_z(mu,i) = expec_z(mu,i) + f_n*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
+            evec_isigmamu_cong = conjg( evec(isigmamu2n(i,sigma,mu)) )
+            evec_isigmamu = evec(isigmamu2n(i,sigmap,mu))
+            ! M_p
+            expec_p(mu,i) = expec_p(mu,i) + f_n*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
+
+            ! M_z
+            expec_z(mu,i) = expec_z(mu,i) + f_n*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
+          end do
+        end do
       end do
-      ! !$OMP SIMD
-      ! do i = 1, s%nAtoms
-      !   !$OMP SIMD
-      !   do mu = 1, nOrb
-      !     ! up spin (using u's) + down spin (using v's)
-      !     expec_0(mu,i) = expec_0(mu,i) + f_n*real( conjg(evec(nOrb*2*(i-1)+mu))*evec(nOrb*2*(i-1)+mu) ) + f_n_negative*real( conjg(evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2))*evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2) )
-
-      !     expec_singlet(mu,i) = expec_singlet(mu,i) + 0.5_dp*s%Types(s%Basis(i)%Material)%lambda(mu)*tanh_n*real( conjg(evec(isigmamu2n(i,1,mu)+nOrb*2*s%nAtoms))*evec(isigmamu2n(i,2,mu)) )
-
-      !     !$OMP SIMD
-      !     do sigma = 1, 2
-      !       evec_isigmamu_cong = conjg( evec(isigmamu2n(i,sigma,mu)) )
-
-      !       !$OMP SIMD
-      !       do sigmap = 1, 2
-      !         evec_isigmamu = evec(isigmamu2n(i,sigmap,mu))
-      !         ! M_p
-      !         expec_p(mu,i) = expec_p(mu,i) + f_n*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
-
-      !         ! M_z
-      !         expec_z(mu,i) = expec_z(mu,i) + f_n*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
-      !       end do
-      !     end do
-      !   end do
-      ! end do
-
     end if
 
   end subroutine expec_val_n

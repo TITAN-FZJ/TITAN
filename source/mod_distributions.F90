@@ -5,7 +5,7 @@ contains
 
   !! Fermi-Dirac distribution
   pure elemental function fd_dist(ef,beta,ek)
-    !$OMP DECLARE SIMD
+    !$acc routine
     use mod_kind, only: dp
     implicit none
     real(dp), intent(in)  :: ef

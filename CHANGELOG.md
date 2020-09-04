@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+
+## 2020-09-04
+
+### Added
+
+- Initial directives for openACC
+
+### Fixed
+
+- Fixed a "doubled" loop left behind in the previous changes
+
+
+
 ## 2020-09-01
 
 ### Added

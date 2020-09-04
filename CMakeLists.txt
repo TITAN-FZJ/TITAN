@@ -338,7 +338,7 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
   endif(NOT DEBUG MATCHES "ON")
 
 elseif(COMPILER MATCHES pgi) # PGI:
-  target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core)
+  target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -lsci_acc)
   if(NOT DEBUG MATCHES "ON")
     target_compile_options(${TITAN_EXE} PRIVATE -cpp
                                                 -D_GNU
@@ -367,6 +367,9 @@ elseif(COMPILER MATCHES pgi) # PGI:
                                                 -Mchkstk                  # instructs the compiler to check the stack for available space in the prologue of a function and before the start of a parallel region. 
                                                 -traceback
                                                 -Ktrap=fp,unf             # fp, unf is equivalent to inv,divz,ovf, unf  correspond to the processor’s exception mask bits: invalid operation, divide-by-zero, overflow, and underflow, respectively.
+                                                -acc 
+                                                -ta=tesla:cc35
+                                                -Minfo=accel 
                                                 #-mp                       # openmp
                                                 -O0
                                                 )
