@@ -60,12 +60,6 @@ contains
     if(rFreq(1) == 0) &
       write(output%unit_loop,"('CALCULATING TIME-PROPAGATION')")
  
-    if(lprintfieldonly) then
-      if(rFreq(1) == 0) &
-        call write_field()
-      return
-    end if
-
     ! number of elements in the MPI communication
     ncount = nOrb*s%nAtoms
 
@@ -95,6 +89,12 @@ contains
 
     ! Creating files and writing headers
     if(.not.(use_checkpoint)) call create_time_prop_files()
+
+    if(lprintfieldonly) then
+      if(rFreq(1) == 0) &
+        call write_field()
+      return
+    end if
 
     if( lfullhk ) then
       td_hamilt => build_td_hamilt_full

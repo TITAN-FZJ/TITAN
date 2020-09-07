@@ -3,6 +3,14 @@
 ## [Unreleased]
 
 
+## 2020-09-07
+
+### Fixed
+
+- Fixed time propagation when printfieldonly is used (files were being created after)
+
+
+
 ## 2020-09-04
 
 ### Added
