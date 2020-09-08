@@ -88,6 +88,10 @@ else
 fi
 ###############################################
 printf "\n"
+dummy="iterations"
+grep "$dummy" $file1
+grep "$dummy" $file2
+printf "\n"
 dummy="Time after self-consistency"
 grep "$dummy" $file1
 grep "$dummy" $file2
