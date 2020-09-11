@@ -815,13 +815,19 @@ contains
       ! if(info/=0) &
       !   call abortProgram("[calcLGS_eigenstates] Problem with diagonalization. info = " // itos(info))
 
-      do concurrent (n = 1:dimHsc)
+      do n = 1,dimHsc
         f_n(n) = fd_dist(fermi, beta, eval(n))
       end do
 
-      do concurrent(i = 1:s%nAtoms, nu = 1:nOrb, mu = 1:nOrb, sigma=1:2)
-        do n = 1,dimHsc
-          prod(mu,nu,i) = prod(mu,nu,i) + f_n(n)*conjg( hk(isigmamu2n(i,sigma,mu),n) )*hk(isigmamu2n(i,sigma,nu),n)*realBZ%w(iz)
+      do i = 1,s%nAtoms
+        do nu = 1,nOrb
+          do mu = 1,nOrb
+            do sigma=1,2
+              do n = 1,dimHsc
+                prod(mu,nu,i) = prod(mu,nu,i) + f_n(n)*conjg( hk(isigmamu2n(i,sigma,mu),n) )*hk(isigmamu2n(i,sigma,nu),n)*realBZ%w(iz)
+              end do
+            end do
+          end do
         end do
       end do
 
@@ -902,13 +908,19 @@ contains
       ! if(info/=0) &
       !   call abortProgram("[calcLGS_eigenstates] Problem with diagonalization. info = " // itos(info))
 
-      do concurrent (n = 1:dimHsc)
+      do n = 1,dimHsc
         f_n(n) = fd_dist(fermi, beta, eval(n))
       end do
 
-      do concurrent(i = 1:s%nAtoms, nu = 1:nOrb, mu = 1:nOrb, sigma=1:2)
-        do n = 1,dimHsc
-          prod(mu,nu,i) = prod(mu,nu,i) + f_n(n)*conjg( hk(isigmamu2n(i,sigma,mu),n) )*hk(isigmamu2n(i,sigma,nu),n)*realBZ%w(iz)
+      do i = 1,s%nAtoms
+        do nu = 1,nOrb
+          do mu = 1,nOrb
+            do sigma=1,2
+              do n = 1,dimHsc
+                prod(mu,nu,i) = prod(mu,nu,i) + f_n(n)*conjg( hk(isigmamu2n(i,sigma,mu),n) )*hk(isigmamu2n(i,sigma,nu),n)*realBZ%w(iz)
+              end do
+            end do
+          end do
         end do
       end do
 

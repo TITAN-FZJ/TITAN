@@ -3,6 +3,14 @@
 ## [Unreleased]
 
 
+## 2020-09-11
+
+### Changed
+
+- Removed some do concurrents due to complaints of some compilers
+
+
+
 ## 2020-09-07
 
 ### Fixed
