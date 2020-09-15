@@ -44,14 +44,19 @@ parser.add_argument('--output', help='Output file', default="LDOS.pdf")
 parser.add_argument('--title' , help='Title of the graph', default="")
 parser.add_argument('--xlim' , help='Limit of x-axis', default="")
 parser.add_argument('--ylim' , help='Limit of y-axis', default="")
+parser.add_argument('--domain' , help='Limit of x-axis', default="")
 parser.add_argument('--total' , default=False, action="store_true" , help='Plot the total DOS')
 parser.add_argument('--integrated' , default=False, action="store_true" , help='Plot the integrated DOS')
 parser.add_argument("--superconductivity", default=False, action="store_true" , help="Flag to plot the bands as for superconductors")
-parser.add_argument("--mev", default=False, action="store_true" , help="Plot superconductor bands in the same plot")
+parser.add_argument("--mev", default=False, action="store_true" , help="use meV")
+parser.add_argument("--ev", default=False, action="store_true" , help="use eV")
 args = parser.parse_args()
 
 if args.mev:
     ry2ev = 13.6057*1000 # Conversion of energy units
+
+if args.ev:
+    ry2ev = 13.6057 # Conversion of energy units
 
 
 ################################################################################
@@ -89,9 +94,12 @@ def read_data(filename,orbitals=[]):
 
 if __name__ == "__main__":
 
-  if(ry2ev != 1.0):
+  if(ry2ev == 13.6057*1000):
     labelx = r'$E-E_F$ [meV]'
     labely = r'LDOS [states/meV]'
+  elif(ry2ev == 13.6057):
+    labelx = r'$E-E_F$ [eV]'
+    labely = r'LDOS [states/eV]'
   else:
     labelx = r'$E-E_F$ [Ry]'
     labely = r'LDOS [states/Ry]'
@@ -177,6 +185,9 @@ if __name__ == "__main__":
   if args.xlim != "":
     xlim = [-eval(args.xlim),eval(args.xlim)]
     plt.xlim(xlim)
+
+  if args.domain != "":
+    plt.xlim(eval(args.domain))
 
   if args.ylim != "":
     ylim = [(-eval(args.ylim) if numplots > 1 else 0.0),eval(args.ylim)]
