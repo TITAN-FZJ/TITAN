@@ -24,7 +24,7 @@ contains
     use mod_checkpoint,        only: save_state, recover_state
     use mod_io,                only: log_warning
     use mod_time_propagator_io, only: create_time_prop_files, write_header_time_prop, write_field, write_time_prop_files
-    use mod_mpi_pars
+    use mod_mpi_pars,           only: rFreq,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,FieldComm,ierr
     implicit none
     type(System_type), intent(in)   :: s
 

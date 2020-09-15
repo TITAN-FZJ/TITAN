@@ -15,6 +15,7 @@
 - Removed remaining 'do concurrents' as its behaviour still seems to be discussed
 - Moved 'invers' subroutine to mod_tools
 - Changed 'green.F90' to a module 'mod_greenfunction.F90'
+- Changed 'hh' to 'hlrs' in CMakeLists
 
 ### Fixed
 

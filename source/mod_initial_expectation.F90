@@ -238,18 +238,18 @@ contains
 
   function read_initial_Uterms(sys0,err) result(success)
     !! Writes the initial orbital dependent densities (calculated with tight-binding hamiltonian only) into files
-    use mod_kind, only: dp
+    use mod_kind,          only: dp
     use mod_parameters,    only: nOrb, output, dfttype
     use EnergyIntegration, only: parts
     use mod_System,        only: System_type
-    use mod_mpi_pars
+    use mod_mpi_pars,      only: rField,MPI_DOUBLE_PRECISION,FieldComm,ierr
     implicit none
     type(System_type), intent(inout) :: sys0
     integer,      intent(out)   :: err
     logical            :: success
     character(len=500) :: filename
     integer            :: j,mu
-    real(dp)       :: previous_results_rho0(nOrb,sys0%nAtoms),previous_results_rhod0(sys0%nAtoms),Un_tmp,Um_tmp
+    real(dp)           :: previous_results_rho0(nOrb,sys0%nAtoms),previous_results_rhod0(sys0%nAtoms),Un_tmp,Um_tmp
 
     external :: MPI_Bcast
 

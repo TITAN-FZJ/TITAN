@@ -98,8 +98,8 @@ elseif(PLATFORM MATCHES jusuf)
   set(CMAKE_Fortran_COMPILER mpif90)
 elseif(PLATFORM MATCHES iff)
   set(CMAKE_Fortran_COMPILER mpiifort)
-elseif(PLATFORM MATCHES hh)
-  set(CMAKE_Fortran_COMPILER ftn)
+elseif(PLATFORM MATCHES hlrs)
+  set(CMAKE_Fortran_COMPILER mpif90)
 else()
   message( FATAL_ERROR "PLATFORM is not set. Use -DPLATFORM=<machine>" )
 endif()
@@ -246,17 +246,16 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -mkl
                                                 -xHost
                                                 )
-  elseif(PLATFORM MATCHES hh)
-    target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lnag -qopenmp)
+  elseif(PLATFORM MATCHES hlrs)
+    target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
                                                 -no-prec-sqrt
-                                                -D_OSX
+                                                -D_GNU
                                                 -DVERSION="${GIT_VERSION}"
                                                 -qopenmp
                                                 -g
                                                 -mkl
-                                                -xCORE-AVX2
                                                 )
   else()
     target_link_libraries(${TITAN_EXE} -mkl -qopenmp /opt/NAG/fll6i26dcl/lib/libnag_nag.a)
