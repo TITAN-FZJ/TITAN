@@ -35,7 +35,7 @@ contains
 
     ! Mouting slab hamiltonian
     ! On-site terms
-    do concurrent (i=1:sys%nAtoms)
+    do i=1,sys%nAtoms
       ! spin-up on-site tight-binding term
       h0(ia(1,i):ia(2,i), ia(1,i):ia(2,i)) = sys%Types(sys%Basis(i)%Material)%onSite(1:nOrb,1:nOrb)
       ! spin-down on-site tight-binding term
@@ -59,7 +59,7 @@ contains
 
     if(lsuperCond) then
       h0(dimH+1:2*dimH,dimH+1:2*dimH) = -conjg(h0(1:dimH,1:dimH))
-      do concurrent (i = 1:dimH)
+      do i = 1,dimH
         h0(     i,     i) = h0(     i,     i) - sys%Ef
         h0(dimH+i,dimH+i) = h0(dimH+i,dimH+i) + sys%Ef
       end do
@@ -96,25 +96,27 @@ contains
 
       if(lsuperCond) mkpExp = conjg(kpExp)
 
-      do concurrent (i = 1:sys%nAtoms, sys%Neighbors(k)%isHopping(i))
-        ! electrons
-        tmp(1:nOrb,1:nOrb) = sys%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp
-        ! Spin-up
-        hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + tmp(1:nOrb,1:nOrb)
-        ! Spin-down
-        hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + tmp(1:nOrb,1:nOrb)
-
-        if(lsuperCond) then
-          ! holes
-          tmp(1:nOrb,1:nOrb) = sys%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * mkpExp
+      do i = 1,sys%nAtoms
+        if(sys%Neighbors(k)%isHopping(i)) then
+          ! electrons
+          tmp(1:nOrb,1:nOrb) = sys%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp
           ! Spin-up
-          ia_temp_j = ia_sc(3,j) + nOrb - 1
-          ia_temp_i = ia_sc(3,i) + nOrb - 1 
-          hk(ia_sc(3,j):ia_temp_j, ia_sc(3,i):ia_temp_i) = hk(ia_sc(3,j):ia_temp_j, ia_sc(3,i):ia_temp_i) - conjg(tmp(1:nOrb,1:nOrb))
+          hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + tmp(1:nOrb,1:nOrb)
           ! Spin-down
-          ia_temp_j = ia_sc(4,j) - nOrb + 1
-          ia_temp_i = ia_sc(4,i) - nOrb + 1
-          hk(ia_temp_j:ia_sc(4,j), ia_temp_i:ia_sc(4,i)) = hk(ia_temp_j:ia_sc(4,j), ia_temp_i:ia_sc(4,i)) - conjg(tmp(1:nOrb,1:nOrb))
+          hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + tmp(1:nOrb,1:nOrb)
+
+          if(lsuperCond) then
+            ! holes
+            tmp(1:nOrb,1:nOrb) = sys%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * mkpExp
+            ! Spin-up
+            ia_temp_j = ia_sc(3,j) + nOrb - 1
+            ia_temp_i = ia_sc(3,i) + nOrb - 1 
+            hk(ia_sc(3,j):ia_temp_j, ia_sc(3,i):ia_temp_i) = hk(ia_sc(3,j):ia_temp_j, ia_sc(3,i):ia_temp_i) - conjg(tmp(1:nOrb,1:nOrb))
+            ! Spin-down
+            ia_temp_j = ia_sc(4,j) - nOrb + 1
+            ia_temp_i = ia_sc(4,i) - nOrb + 1
+            hk(ia_temp_j:ia_sc(4,j), ia_temp_i:ia_sc(4,i)) = hk(ia_temp_j:ia_sc(4,j), ia_temp_i:ia_sc(4,i)) - conjg(tmp(1:nOrb,1:nOrb))
+          end if
         end if
       end do
     end do
@@ -243,7 +245,7 @@ contains
     ! Mouting slab hamiltonian
 
     ! On-site terms
-    do concurrent (i=1:sys%nAtoms)
+    do i=1,sys%nAtoms
       ! spin-up on-site tight-binding term
       hk(ia(1,i):ia(2,i), ia(1,i):ia(2,i)) = sys%Types(sys%Basis(i)%Material)%onSite(1:nOrb,1:nOrb)
       ! spin-down on-site tight-binding term
@@ -261,12 +263,14 @@ contains
       ! exp(ik.(R_i-R_j))
       kpExp = exp(cI * dot_product(kp,sys%Neighbors(k)%CellVector))
 
-      do concurrent (i = 1:sys%nAtoms, sys%Neighbors(k)%isHopping(i))
-        tmp(1:nOrb,1:nOrb) = sys%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp
-        ! Spin-up
-        hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + tmp(1:nOrb,1:nOrb)
-        ! Spin-down
-        hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + tmp(1:nOrb,1:nOrb)
+      do i = 1,sys%nAtoms
+        if(sys%Neighbors(k)%isHopping(i)) then
+          tmp(1:nOrb,1:nOrb) = sys%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp
+          ! Spin-up
+          hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + tmp(1:nOrb,1:nOrb)
+          ! Spin-down
+          hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + tmp(1:nOrb,1:nOrb)
+        end if
       end do
     end do
   end subroutine hamiltklinearsoc

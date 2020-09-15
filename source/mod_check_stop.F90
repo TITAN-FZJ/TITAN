@@ -12,13 +12,13 @@ contains
 ! This is useful to run different jobs with the same loop
 ! (in conjunction with variable skip_steps_hw)
   subroutine check_stop(filename,hw_count,e)
-    use mod_kind, only: dp
+    use mod_kind,       only: dp
     use mod_parameters, only: output
     use mod_magnet,     only: hw_list
-    use mod_mpi_pars
+    use mod_mpi_pars,   only: abortProgram,myrank,MPI_CHARACTER,MPI_COMM_WORLD,ierr
     implicit none
     integer,          intent(in) :: hw_count     !! Counter for magnetic field
-    real(dp),     intent(in), optional :: e  !! Current frequency 
+    real(dp),         intent(in), optional :: e  !! Current frequency 
     character(len=*), intent(in) :: filename     !! Initial filename to check
     character(len=8)  :: date
     character(len=10) :: time
@@ -26,6 +26,8 @@ contains
     integer           :: values(8)
     integer           :: ios,istop
   
+    external :: MPI_Bcast
+
     ! Check if stop file exists (if hasn't been read before)
     if(trim(stopfilename)=="") then
       open(unit=911, file=trim(filename), status='old', iostat=ios)
@@ -57,9 +59,8 @@ contains
         ! close(911)
         ! call system ('rm stopout')
         ! write(outputunit,"('[check_stop] (""stopout"" file deleted!)')")
-        write(*,"('[check_stop] REMEMBER TO DELETE ""',a,'"" FILES!')") trim(filename)
+        call abortProgram("[check_stop] REMEMBER TO DELETE" // trim(filename) // "FILES!")
       end if
-      call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
 
     else 
       ! If a number > 1 is given, counts down the number of iterations:

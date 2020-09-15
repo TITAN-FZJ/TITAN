@@ -16,6 +16,8 @@ subroutine band_structure(s)
   complex(dp), allocatable :: work(:),hk(:,:)
   character(len=30) :: formatvar1,formatvar2
 
+  external :: zheev
+  
   if(rField == 0) write(output%unit_loop,"('CALCULATING THE BAND STRUCTURE')")
 
   dimbs = (s%nAtoms)*18*superCond

@@ -57,6 +57,8 @@ contains
     real(dp),    dimension(3)               :: field_m, field_e
     real(dp)                                :: E_t, E_0
    
+    external :: MPI_Allreduce,system,zheev
+
     if(rFreq(1) == 0) &
       write(output%unit_loop,"('CALCULATING TIME-PROPAGATION')")
  

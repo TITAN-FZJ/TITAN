@@ -512,6 +512,8 @@ contains
     complex(dp),      allocatable    :: work(:), X(:)
     double precision, allocatable    :: rwork(:)
 
+    external :: zgesv
+
     lda= n
     ldb=n
     ldx= n
@@ -526,6 +528,44 @@ contains
     deallocate(work,swork,rwork,ipiv,X)
     
     end subroutine LS_solver
+
+
+
+    ! --------------------------------------------------------------------
+    ! function invers(matriz,nn):
+    !    This subroutine calculates the inverse of nn x nn matrix 'matriz'
+    ! --------------------------------------------------------------------
+    subroutine invers(matriz,nn)
+      use, intrinsic :: iso_fortran_env
+      use mod_mpi_pars
+      use mod_parameters, only: output
+      implicit none
+      integer :: nn,info
+      integer :: lwork
+      integer, dimension(nn) :: ipiv
+      complex(dp), dimension(nn,nn) :: matriz
+      complex(dp), dimension(nn*4) :: work
+
+      external :: zgetrf,zgetri
+      lwork = 4*nn
+      info = 0
+      call zgetrf(nn,nn,matriz,nn,ipiv,info)
+      if (info>0) then
+        write(output%unit,"('[invers] Singular matrix! info = ',i0,' on rank ',i0)") info,myrank
+        call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+      end if
+      if (info<0) then
+        write(output%unit,"('[invers] Illegal value of argument ',i0,' on rank ',i0)") -info,myrank
+        call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+      end if
+      call zgetri(nn,matriz,nn,ipiv,work,lwork,info)
+
+      if (info/=0) then
+        write(output%unit,"('[invers] Singular matrix! info = ',i0,' on rank ',i0)") info,myrank
+        call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+      end if
+
+    end subroutine invers
 
 
   ! --------------------------------------------------------------------

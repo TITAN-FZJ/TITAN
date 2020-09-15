@@ -119,6 +119,7 @@ contains
     use mod_susceptibilities, only: chiorb, chiorb_hf
     use mod_mpi_pars,         only: abortProgram
     use mod_magnet,           only: mabs
+    use mod_tools,            only: invers
     implicit none
     integer :: AllocateStatus
     integer :: i,j, m,n,k, mp,np,kp, mu,nu, gamma,zeta, p,q

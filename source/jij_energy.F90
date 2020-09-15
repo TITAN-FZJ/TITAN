@@ -4,16 +4,16 @@
 ! where e_i and e_j are unit vectors along the magnetization direction
 ! and the sum covers all sites.
 subroutine jij_energy(Jij)
-  use mod_kind, only: dp
+  use mod_kind,          only: dp,int32,int64
   use mod_constants,     only: pi, cOne, cZero, pauli_dorb
   use mod_parameters,    only: nOrb2, Um, q, eta
   use EnergyIntegration, only: y, wght
   use mod_magnet,        only: mvec_cartesian,mabs
   use mod_system,        only: s => sys
   use mod_hamiltonian,   only: hamilt_local
-  use mod_mpi_pars
-  use adaptiveMesh
-  use mod_mpi_pars
+  use mod_greenfunction, only: green
+  use mod_mpi_pars,      only: MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_SUM,ierr
+  use adaptiveMesh,      only: activeComm,activeRank,local_points,bzs,E_k_imag_mesh
   implicit none
   real(dp),dimension(s%nAtoms,s%nAtoms,3,3)              :: Jijint
   real(dp),dimension(s%nAtoms,s%nAtoms,3,3), intent(out) :: Jij
@@ -29,9 +29,10 @@ subroutine jij_energy(Jij)
   complex(dp), dimension(s%nAtoms,nOrb2,nOrb2)          :: paulievec
   complex(dp), dimension(nOrb2,nOrb2)                   :: gij, gji, temp1, temp2, paulia, paulib
   complex(dp), dimension(nOrb2,nOrb2,s%nAtoms,s%nAtoms) :: gf,gfq
-  !--------------------- begin MPI vars --------------------
   integer :: ncount
-  !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
+
+  external :: zgemm,MPI_Reduce
+
   ncount = s%nAtoms * s%nAtoms * 3 * 3
 
   do i = 1, s%nAtoms

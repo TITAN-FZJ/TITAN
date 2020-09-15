@@ -90,8 +90,9 @@ contains
     use mod_magnet,           only: lvec
     use mod_parameters,       only: nOrb, sigmaimunu2i
     use mod_susceptibilities, only: chiorb, chiorb_hf
-    use mod_mpi_pars, only: abortProgram
+    use mod_mpi_pars,         only: abortProgram
     use mod_magnet,           only: mabs
+    use mod_tools,            only: invers
     implicit none
     real(dp), intent(in) :: e
 

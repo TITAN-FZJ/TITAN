@@ -1,13 +1,13 @@
 ! This is the main subroutine to calculate the susceptibilities
 subroutine calculate_chi()
-  use mod_kind, only: dp
+  use mod_kind,              only: dp
   use mod_constants,         only: cZero, cOne, StoC, CtoS
   use mod_parameters,        only: nOrb, kount, emin, deltae, nQvec1, kpoints, dimens, sigmaimunu2i, output, lhfresponses, lnodiag, laddresults, skip_steps, sigmai2i
   use mod_magnet,            only: lfield,mvec_spherical,lvec, lrot
   use mod_alpha,             only: create_alpha_files, write_alpha
   use mod_system,            only: s => sys
   use mod_BrillouinZone,     only: realBZ
-  use mod_tools,             only: itos
+  use mod_tools,             only: itos,invers
   use adaptiveMesh,          only: genLocalEKMesh, freeLocalEKMesh
   use mod_progress,          only: write_time
   use TorqueTorqueResponse,  only: calcTTResponse, create_TTR_files, allocTTResponse
@@ -16,25 +16,27 @@ subroutine calculate_chi()
   use mod_SOC,               only: SOC
   use mod_Coupling,          only: get_J_K_from_chi
   use mod_susceptibilities,  only: identt, Umatorb, schi, schihf, schiLS, schiSL, schiLL, schirot, rotmat_i, &
-      rotmat_j, rottemp, schitemp, chiorb_hf, chiorb, &
-      build_identity_and_U_matrix, diagonalize_susceptibilities, &
-      create_chi_files, write_susceptibilities, &
-      allocate_susceptibilities, deallocate_susceptibilities
-  use mod_sumrule
-  use mod_mpi_pars
-  use mod_check_stop
+                                   rotmat_j, rottemp, schitemp, chiorb_hf, chiorb, &
+                                   build_identity_and_U_matrix, diagonalize_susceptibilities, &
+                                   create_chi_files, write_susceptibilities, &
+                                   allocate_susceptibilities, deallocate_susceptibilities
+  use mod_sumrule,           only: sumrule
+  use mod_mpi_pars,          only: rFreq,sFreq,FreqComm,FieldComm,rField,startFreq,endFreq,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,stat,ierr,MPI_SOURCE,MPI_DOUBLE_COMPLEX
+  use mod_check_stop,        only: check_stop
   implicit none
   character(len=50) :: time
   integer           :: mcount,qcount
   integer           :: i,j,sigma,sigmap,mu,nu,gamma,xi,p
-  real(dp)      :: e,q(3)
+  real(dp)          :: e,q(3)
   complex(dp), dimension(:,:),   allocatable :: temp
+
+  external :: eintshechi,zgemm,MPI_Recv,MPI_Send,MPI_Barrier,sort_all_files
+
   call allocate_susceptibilities()
   call allocTTResponse(s%nAtoms)
   call allocTSResponse(s%nAtoms)
   call genLocalEKMesh(s,rFreq(1), sFreq(1), FreqComm(1))
   call realBZ % setup_fraction(s,rFreq(1), sFreq(1), FreqComm(1))
-
 
   if(rFreq(1) == 0) allocate(temp(dimens,dimens))
   if(rField == 0) then

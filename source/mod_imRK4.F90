@@ -354,14 +354,16 @@ contains
         ! exp(ik.(R_i-R_j))
         kpExp = exp( cI * dot_product(kp , s%Neighbors(k)%CellVector))
 
-        do concurrent (i = 1:s%nAtoms, s%Neighbors(k)%isHopping(i))
-          kpA_t = exp(-cI * dot_product(A_t, s%Basis(i)%Position(:)-(s%Basis(j)%Position(:)+s%Neighbors(k)%CellVector)))
+        do i = 1,s%nAtoms
+          if(s%Neighbors(k)%isHopping(i)) then
+            kpA_t = exp(-cI * dot_product(A_t, s%Basis(i)%Position(:)-(s%Basis(j)%Position(:)+s%Neighbors(k)%CellVector))) 
 
-          temp(1:nOrb,1:nOrb) = s%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp * (kpA_t - 1._dp) ! The -1._dp term is to discount the usual t(k) term that is already included in H_0
-          ! Spin-up
-          hext_t(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hext_t(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + temp(1:nOrb,1:nOrb)
-          ! Spin-down
-          hext_t(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hext_t(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + temp(1:nOrb,1:nOrb)
+            temp(1:nOrb,1:nOrb) = s%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp * (kpA_t - 1._dp) ! The -1._dp term is to discount the usual t(k) term that is already included in H_0
+            ! Spin-up
+            hext_t(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hext_t(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + temp(1:nOrb,1:nOrb)
+            ! Spin-down
+            hext_t(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hext_t(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + temp(1:nOrb,1:nOrb)
+          end if
         end do
       end do
 

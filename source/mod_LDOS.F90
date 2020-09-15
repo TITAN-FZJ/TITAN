@@ -29,16 +29,18 @@ contains
 
   ! This subroutine calculates LDOS
   subroutine ldos()
-    use mod_kind, only: dp
+    use mod_kind,              only: dp,int32,int64
     use mod_parameters,        only: nOrb, output, nEner1, emin, deltae, laddresults
     use mod_system,            only: s => sys
     use mod_BrillouinZone,     only: realBZ
     use mod_superconductivity, only: superCond
-    use mod_mpi_pars
+    use mod_mpi_pars,          only: rFreq,sFreq,rField,startFreq,endFreq,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,MPI_SOURCE,FreqComm,FieldComm,stat,ierr
     implicit none
     integer(int64)    :: i
     integer(int32)    :: j
     real(dp) :: e
+
+    external :: MPI_Recv,MPI_Send,MPI_Barrier
 
     call allocateLDOS()
     call realBZ % setup_fraction(s,rFreq(1), sFreq(1), FreqComm(1))
@@ -87,14 +89,15 @@ contains
 
   ! Calculates spin-resolved LDOS and energy-dependence of exchange interactions
   subroutine ldos_energy(e,ldosu,ldosd)
-    use mod_kind, only: dp
+    use mod_kind,              only: dp,int32,int64
     use mod_constants,         only: pi
     use mod_parameters,        only: nOrb, nOrb2, eta
     use mod_system,            only: s => sys
     use mod_BrillouinZone,     only: realBZ
     use mod_superconductivity, only: lsupercond, superCond
     use mod_hamiltonian,       only: hamilt_local
-    use mod_mpi_pars
+    use mod_mpi_pars,          only: rFreq,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_SUM,FreqComm,ierr
+    use mod_greenfunction,     only: green
     implicit none
     real(dp), intent(in) :: e
     real(dp),    dimension(s%nAtoms, nOrb*superCond), intent(out) :: ldosu, ldosd
@@ -104,6 +107,8 @@ contains
     real(dp) :: weight
     integer(int32) :: i,mu,nu
     integer(int64) :: iz
+
+    external :: MPI_Reduce
 
     ldosu = 0._dp
     ldosd = 0._dp
@@ -157,16 +162,18 @@ contains
 
   ! This subroutine calculates LDOS and coupling as a function of energy
   subroutine ldos_and_coupling()
-    use mod_kind, only: dp
-    use mod_parameters,    only: nOrb, output, emin, deltae, nEner1, skip_steps
+    use mod_kind,          only: dp,int32,int64
+    use mod_parameters,    only: nOrb,output,emin,deltae,nEner1,skip_steps
     use mod_system,        only: s => sys
     use mod_BrillouinZone, only: realBZ
-    use mod_Coupling
-    use mod_mpi_pars
+    use mod_Coupling,      only: Jij,trJij,Jija,Jijs,allocateCoupling,deallocateCoupling,openCouplingFiles,closeCouplingFiles,writeCoupling
+    use mod_mpi_pars,      only: rField,rFreq,sFreq,startFreq,endFreq,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,MPI_SOURCE,FreqComm,FieldComm,stat,ierr
     implicit none
     integer(int32)    :: i, j, mu, ncount,ncount2,ncount3
     integer(int64)    :: kount
-    real(dp) :: e
+    real(dp)          :: e
+
+    external :: MPI_Recv,MPI_Send,MPI_Barrier
 
     ncount  = s%nAtoms*nOrb
     ncount2 = s%nAtoms*s%nAtoms
@@ -204,7 +211,6 @@ contains
             end do
           end do
         end do
-
 
         if(rFreq(2) == 0) then
           do i = 1, sFreq(2)
@@ -251,15 +257,16 @@ contains
 
   ! Calculates spin-resolved LDOS and energy-dependence of exchange interactions
   subroutine ldos_jij_energy(e,ldosu,ldosd,Jijint)
-    use mod_kind, only: dp
+    use mod_kind,          only: dp,int64
     use mod_constants,     only: pi, cZero, cOne, pauli_dorb
     use mod_parameters,    only: nOrb, nOrb2, eta, Um
     use mod_system,        only: s => sys
     use mod_BrillouinZone, only: realBZ
     use mod_magnet,        only: mvec_cartesian, mabs
     use mod_hamiltonian,   only: hamilt_local
-    use mod_progress
-    use mod_mpi_pars
+    use mod_greenfunction, only: green
+    ! use mod_progress,      only:
+    use mod_mpi_pars,      only: rFreq,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_SUM,FreqComm,ierr
     implicit none
     real(dp),intent(in)     :: e
     real(dp),intent(out)    :: ldosu(s%nAtoms, nOrb),ldosd(s%nAtoms, nOrb)
@@ -270,16 +277,18 @@ contains
     real(dp),    dimension(:,:),allocatable     :: ldosu_loc,ldosd_loc
     real(dp),    dimension(:,:,:,:),allocatable :: Jijint_loc
     real(dp),    dimension(3) :: kp
-    complex(dp) :: paulimatan(3,3,nOrb2, nOrb2)
-    real(dp)    :: Jijkan(s%nAtoms,3,3), Jijk(s%nAtoms,s%nAtoms,3,3)
-    real(dp)    :: weight
+    complex(dp)     :: paulimatan(3,3,nOrb2, nOrb2)
+    real(dp)        :: Jijkan(s%nAtoms,3,3), Jijk(s%nAtoms,s%nAtoms,3,3)
+    real(dp)        :: weight
     integer         :: i,j,mu,nu,alpha,ncount,ncount2
-    integer(int64)       :: iz
+    integer(int64)  :: iz
 
     real(dp),    dimension(3,s%nAtoms)               :: evec
     complex(dp), dimension(s%nAtoms,3,nOrb2,nOrb2)   :: dbxcdm
     complex(dp), dimension(s%nAtoms,3,3,nOrb2,nOrb2) :: d2bxcdm2
     complex(dp), dimension(s%nAtoms,nOrb2,nOrb2)     :: paulievec
+
+    external :: zgemm,MPI_Reduce
 
     ncount  = s%nAtoms*nOrb
     ncount2 = s%nAtoms*s%nAtoms*9

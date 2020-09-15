@@ -1,7 +1,7 @@
 ! This is the main subroutine to calculate the fixed-frequency
 ! (in particular, the dc-limit) response functions
 subroutine calculate_dc_limit()
-  use mod_mpi_pars
+  use mod_kind,              only: dp,int32,int64
   use mod_constants,         only: cZero, cOne, cI
   use mod_parameters,        only: sigmaimunu2i, sigmai2i, dimspinAtoms, Um, offset, lnodiag, output, kount, emin, deltae, nQvec1, kpoints, laddresults, lhfresponses, dimens, skip_steps
   use mod_magnet,            only: lfield, dcfield_dependence, dc_count, dcfield, hw_count, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, hhw, lrot
@@ -13,30 +13,34 @@ subroutine calculate_dc_limit()
   use adaptiveMesh,          only: genLocalEKMesh, freeLocalEKMesh
   use mod_rotation_matrices, only: rotation_matrices_chi
   use mod_susceptibilities,  only: rottemp, rotmat_i, rotmat_j, &
-                                  schitemp, schirot, schi, schihf, &
-                                  chiorb, chiorb_hf, chiorb_hflsoc, Umatorb, identt, &
-                                  build_identity_and_U_matrix, diagonalize_susceptibilities, &
-                                  allocate_susceptibilities, deallocate_susceptibilities, &
-                                  create_dc_chi_files, write_dc_susceptibilities
+                                   schitemp, schirot, schi, schihf, &
+                                   chiorb, chiorb_hf, chiorb_hflsoc, Umatorb, identt, &
+                                   build_identity_and_U_matrix, diagonalize_susceptibilities, &
+                                   allocate_susceptibilities, deallocate_susceptibilities, &
+                                   create_dc_chi_files, write_dc_susceptibilities
   use mod_torques,           only: torques, total_torques, ntypetorque, &
-                                    allocate_torques, deallocate_torques, &
-                                    create_dc_torque_files, write_dc_torques
+                                   allocate_torques, deallocate_torques, &
+                                   create_dc_torque_files, write_dc_torques
   use mod_disturbances,      only: disturbances, total_disturbances, tchiorbiikl, sdmat, ldmat, &
-                                    allocate_disturbances, deallocate_disturbances, &
-                                    create_dc_disturbance_files, write_dc_disturbances
+                                   allocate_disturbances, deallocate_disturbances, &
+                                   create_dc_disturbance_files, write_dc_disturbances
   use mod_beff,              only: chiinv, Beff, total_Beff, Beff_cart, &
-                                    allocate_beff, deallocate_beff, &
-                                    create_dc_beff_files, write_dc_beff
-  use mod_check_stop
+                                   allocate_beff, deallocate_beff, &
+                                   create_dc_beff_files, write_dc_beff
+  use mod_check_stop,        only: check_stop
+  use mod_tools,             only: invers
+  use mod_mpi_pars,          only: rFreq,sFreq,FreqComm,FieldComm,rField,startFreq,endFreq,MPI_INTEGER,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,stat,ierr,MPI_SOURCE,MPI_DOUBLE_COMPLEX
   !use mod_system,          only: n0sc1, n0sc2, n0sc
   !use mod_currents !TODO: Re-Include
   !use mod_sha !TODO: Re-Include
   implicit none
   character(len=50) :: time
-  integer(int32)         :: mcount,qcount
-  integer(int64)         :: count_temp
-  integer(int32)         :: i,j,sigma,sigmap,mu,nu,hw_count_temp!,neighbor 
+  integer(int32)    :: mcount,qcount
+  integer(int64)    :: count_temp
+  integer(int32)    :: i,j,sigma,sigmap,mu,nu,hw_count_temp!,neighbor 
   real(dp)      :: e,q(3),mvec_spherical_temp(3,s%nAtoms)!,Icabs
+
+  external :: eintshechi,eintshelinearsoc,eintshechilinearsoc,eintshe,zgemm,MPI_Recv,MPI_Send,MPI_Barrier,sort_all_files,MPI_Bcast
 
   dc_count = dc_count + 1
 
@@ -76,7 +80,7 @@ subroutine calculate_dc_limit()
       e = emin + deltae*(kount-1)
 
       ! Creating files and writing headers
-      if((.not.laddresults).and. myrank == 0 .and. hw_count == 1) then
+      if((.not.laddresults).and. rField == 0 .and. hw_count == 1) then
         call create_dc_chi_files()
         call create_dc_disturbance_files()
         call create_dc_beff_files()

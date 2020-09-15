@@ -161,6 +161,8 @@ contains
     implicit none
     integer  :: i,j,ifail
 
+    external :: zgeev
+    
     if(s%nAtoms>1) then
        do i=1, s%nAtoms
           do j=1, s%nAtoms

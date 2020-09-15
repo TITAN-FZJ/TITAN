@@ -25,6 +25,8 @@ contains
     real(dp),dimension(3,3) :: ry,rz,rzy
     integer :: i,m,n,mu,nu,mup,nup
 
+    external :: dgemm
+
     call rotation_matrix_ry(theta,ry)
     call rotation_matrix_rz(phi,rz)
 

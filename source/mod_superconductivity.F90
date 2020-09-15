@@ -87,9 +87,9 @@ contains
     real(dp), dimension(nOrb,sys%nAtoms)  :: couplings
     integer :: i,mu
 
-    do concurrent (i = 1:sys%nAtoms, mu = 1:nOrb)
+    do i = 1,sys%nAtoms; do mu = 1,nOrb
       singlet_coupling(mu,i) = couplings(mu,i)
-    end do
+    end do; end do
 
   end subroutine update_singlet_couplings
 
@@ -119,13 +119,13 @@ contains
     ! h^ and s* couple with delta_s*
     ! h* and s^ couple with -delta_s*
 
-    do concurrent (i = 1:sys%nAtoms, mu = 1:nOrb)
+    do i = 1,sys%nAtoms; do mu = 1,nOrb
       hk_sc(isigmamu2n(i,1,mu)     ,isigmamu2n(i,2,mu)+dimH) = - cmplx(delta(mu,i),0._dp,dp)
       hk_sc(isigmamu2n(i,2,mu)     ,isigmamu2n(i,1,mu)+dimH) =   cmplx(delta(mu,i),0._dp,dp)
       hk_sc(isigmamu2n(i,2,mu)+dimH,isigmamu2n(i,1,mu)     ) = - cmplx(delta(mu,i),0._dp,dp)
       hk_sc(isigmamu2n(i,1,mu)+dimH,isigmamu2n(i,2,mu)     ) =   cmplx(delta(mu,i),0._dp,dp)
       ! write(*,*) i, " ", mu, " ", delta(mu,i)
-    end do
+    end do; end do
 
 
     ! do i = 1,sys%nAtoms

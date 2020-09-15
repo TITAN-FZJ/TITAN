@@ -122,7 +122,7 @@ contains
 
   !> This subroutine calculates the Gilbert damping using the torque-correlation method
   subroutine TCM(torque_fct, alpha, ndiffk, diff_k, ialpha, iwght)
-    use mod_kind, only: dp
+    use mod_kind,          only: dp,int64
     use mod_constants,     only: cZero, pi, cOne, cI
     use mod_System,        only: s => sys
     use mod_BrillouinZone, only: realBZ, store_diff
@@ -130,7 +130,8 @@ contains
     use mod_magnet,        only: mabs
     use mod_tools,         only: sort, itos, rtos
     use mod_hamiltonian,   only: hamilt_local
-    use mod_mpi_pars
+    use mod_greenfunction, only: green
+    use mod_mpi_pars,      only: rField,sField,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FieldComm,ierr
     implicit none
     interface
       subroutine torque_fct(torque)
@@ -176,6 +177,7 @@ contains
     complex(dp), dimension(:,:,:,:), allocatable :: alpha_loc
     !! Local (in-processor) alpha
 
+    external :: zgemm,MPI_Allreduce
 
     ! Calculate workload for each MPI process
     if(rField == 0) &
@@ -323,7 +325,7 @@ contains
 
   !> This subroutine defines the exchange-correlation torque operator/matrix
   subroutine local_xc_torque(torque)
-    use mod_kind, only: dp
+    use mod_kind,       only: dp
     use mod_constants,  only: cZero, cOne, levi_civita, sigma => pauli_mat
     use mod_System,     only: s => sys
     use mod_parameters, only: nOrb, nOrb2, Um

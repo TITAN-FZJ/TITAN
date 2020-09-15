@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+======================================================================================================================
+
+## 2020-09-15
+
+### Added
+
+- Declarations of external functions to avoid warnings on new ifort version
+
+### Changed
+
+- Removed remaining 'do concurrents' as its behaviour still seems to be discussed
+- Moved 'invers' subroutine to mod_tools
+- Changed 'green.F90' to a module 'mod_greenfunction.F90'
+
+### Fixed
+
+- Expectation value of the energy in time-propagation was not using the pointer
+
+======================================================================================================================
 
 ## 2020-09-11
 
@@ -9,7 +28,7 @@
 
 - Removed some do concurrents due to complaints of some compilers
 
-
+======================================================================================================================
 
 ## 2020-09-07
 
@@ -17,7 +36,7 @@
 
 - Fixed time propagation when printfieldonly is used (files were being created after)
 
-
+======================================================================================================================
 
 ## 2020-09-04
 
@@ -29,7 +48,7 @@
 
 - Fixed a "doubled" loop left behind in the previous changes
 
-
+======================================================================================================================
 
 ## 2020-09-01
 
@@ -48,7 +67,7 @@
 
 - Fixed the calculation of ground state L when supercond=T (it had different results with lambda=0 and supercond=F)
 
-
+======================================================================================================================
 
 ## 2020-08-29
 
@@ -62,7 +81,7 @@
 - Fixed local hamiltonian calculation for time-propagation calculation (must be inside time-loop to update the U-term)
 - Fixed writing of time-propagated quantities when checkpoint is used
 
-
+======================================================================================================================
 
 ## 2020-08-28
 
@@ -78,7 +97,7 @@
 
 - Variables for f_n and f_n_negative changed to private in calcLGS_eigenstates
 
-
+======================================================================================================================
 
 ## 2020-08-27
 
@@ -102,3 +121,5 @@
 - Turn off supercond for initial_expectations
 - Deallocate local hamiltonian after initial_expectations
 - A few missing `.d -> _dp` variables
+
+======================================================================================================================

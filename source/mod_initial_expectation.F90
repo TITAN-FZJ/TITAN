@@ -3,7 +3,7 @@ module mod_initial_expectation
 contains
 
   subroutine calc_initial_Uterms(sys)
-    use mod_kind, only: dp
+    use mod_kind,           only: dp
     use mod_constants,      only: cZero
     use mod_System,         only: System_type,initHamiltkStride
     use TightBinding,       only: initTightBinding
@@ -27,6 +27,7 @@ contains
     type(System_type), intent(inout) :: sys
     type(System_type), allocatable   :: sys0(:)
 
+    external :: build_U,initConversionMatrices
     if(myrank == 0) &
       call write_time(output%unit,'[calc_initial_Uterms] Obtaining initial densities: ')
 
@@ -249,6 +250,8 @@ contains
     character(len=500) :: filename
     integer            :: j,mu
     real(dp)       :: previous_results_rho0(nOrb,sys0%nAtoms),previous_results_rhod0(sys0%nAtoms),Un_tmp,Um_tmp
+
+    external :: MPI_Bcast
 
     success = .false.
 

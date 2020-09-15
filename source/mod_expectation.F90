@@ -12,7 +12,7 @@ module mod_expectation
       use mod_parameters, only: nOrb
       use mod_System,     only: System_type
       implicit none
-      type(System_type),                          intent(in)  :: s
+      type(System_type),                     intent(in)  :: s
       real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
       real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: deltas
       complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: mp
@@ -28,18 +28,19 @@ module mod_expectation
 contains
   subroutine expectation_values_greenfunction(s,rho,mp,mx,my,mz,deltas)
     !! Calculates ground state (occupation and magnetization) quantities using the Green functions
-    use mod_kind, only: dp
-    use mod_constants,     only: pi,cZero
-    use mod_SOC,           only: llinearsoc,llineargfsoc
-    use EnergyIntegration, only: y,wght
-    use mod_system,        only: System_type
-    use adaptiveMesh,      only: bzs,E_k_imag_mesh,activeComm,local_points
-    use mod_parameters,    only: nOrb,nOrb2,eta
-    use mod_hamiltonian,   only: hamilt_local
+    use mod_kind,              only: dp,int64
+    use mod_constants,         only: pi,cZero
+    use mod_SOC,               only: llinearsoc,llineargfsoc
+    use EnergyIntegration,     only: y,wght
+    use mod_system,            only: System_type
+    use adaptiveMesh,          only: bzs,E_k_imag_mesh,activeComm,local_points
+    use mod_parameters,        only: nOrb,nOrb2,eta
+    use mod_hamiltonian,       only: hamilt_local
+    use mod_greenfunction,     only: greenlineargfsoc,green
     use mod_superconductivity, only: lsupercond
-    use mod_mpi_pars
+    use mod_mpi_pars,          only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,ierr
     implicit none
-    type(System_type),                          intent(in)  :: s
+    type(System_type),                     intent(in)  :: s
     real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
     real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: deltas
     complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: mp
@@ -54,6 +55,9 @@ contains
     integer :: ncount
     integer :: mu,mup
     real(dp) :: weight, ep
+
+    external :: MPI_Allreduce
+
     ncount = s%nAtoms * nOrb
 
     allocate(imguu(nOrb,s%nAtoms),imgdd(nOrb,s%nAtoms), stat = AllocateStatus)
@@ -159,7 +163,7 @@ contains
   subroutine expectation_values_eigenstates(s,rho,mp,mx,my,mz,deltas)
     use mod_kind, only: dp,int64
     use mod_BrillouinZone,     only: realBZ
-    use mod_parameters,        only: nOrb,nOrb2,output,dimH
+    use mod_parameters,        only: nOrb,output,dimH
     use mod_system,            only: System_type
     use mod_tools,             only: itos
     use mod_superconductivity, only: lsuperCond, superCond
@@ -179,6 +183,8 @@ contains
     real(dp),    dimension(nOrb,s%nAtoms)    :: expec_singlet
     real(dp),    dimension(:),  allocatable  :: rwork(:), eval(:)
     complex(dp),                allocatable  :: work(:), hk(:,:)
+
+    external :: zheev,MPI_Allreduce
 
     dimHsc  = dimH*superCond
     lwork = 21*dimHsc
@@ -261,6 +267,8 @@ contains
     real(dp),    dimension(:),  allocatable  :: rwork(:), eval(:)
     complex(dp),                allocatable  :: work(:), hk(:,:)
 
+    external :: zheev,MPI_Allreduce
+
     dimHsc  = dimH*superCond
     lwork = 21*dimHsc
     ncount = nOrb*s%nAtoms
@@ -307,8 +315,6 @@ contains
     !$acc end parallel loop
     !!$acc end data
     !!$acc end kernels
-
-
 
     !Gather and sum all the results from the different processes using an Allreduce clause
     call MPI_Allreduce(MPI_IN_PLACE, rho   , ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
@@ -357,12 +363,12 @@ contains
     !If lsupercond is true then fermi is 0.0 otherwise is s%Ef
     fermi = merge(0._dp,s%Ef,lsuperCond)
 
-    do concurrent (n = 1:dimens)
+    do n = 1,dimens
       f_n(n) = fd_dist(fermi, beta, eval(n))
     end do
 
     if(.not.lsupercond) then
-      do concurrent(i = 1:s%nAtoms, mu = 1:nOrb)
+      do i = 1,s%nAtoms; do mu = 1,nOrb
         do n = 1,dimens
           do sigma = 1,2
             evec_isigmamu = hk(isigmamu2n(i,sigma,mu),n)
@@ -381,24 +387,24 @@ contains
             end do
           end do
         end do
-      end do
+      end do; end do
     else
 
-      do concurrent (n = 1:dimens)
+      do n = 1,dimens
         f_n_negative(n) = fd_dist(fermi, beta, -eval(n))
         tanh_n(n) = tanh(eval(n)*beta/2._dp)
       end do
 
-      do concurrent(i = 1:s%nAtoms, mu = 1:nOrb)
+      do i = 1,s%nAtoms; do mu = 1,nOrb
         do n = 1,dimens
           ! up spin (using u's) + down spin (using v's)
           expec_0(mu,i) = expec_0(mu,i) + f_n(n)*real( conjg(hk(isigmamu2n(i,1,mu),n))*hk(isigmamu2n(i,1,mu),n) ) + f_n_negative(n)*real( conjg(hk(isigmamu2n(i,2,mu)+dimH,n))*hk(isigmamu2n(i,2,mu)+dimH,n) )
 
           expec_singlet(mu,i) = expec_singlet(mu,i) + 0.5_dp*s%Types(s%Basis(i)%Material)%lambda(mu)*tanh_n(n)*real( conjg(hk(isigmamu2n(i,1,mu)+dimH,n))*hk(isigmamu2n(i,2,mu),n) )
         end do
-      end do
+      end do; end do
 
-      do concurrent(i = 1:s%nAtoms, mu = 1:nOrb)
+      do i = 1,s%nAtoms; do mu = 1,nOrb
         do n = 1,dimens
           do sigma = 1,2
             do sigmap = 1,2
@@ -412,7 +418,7 @@ contains
             end do
           end do
         end do
-      end do
+      end do; end do
     end if
 
   end subroutine expec_val
@@ -454,7 +460,7 @@ contains
     f_n = fd_dist(fermi, beta, eval)
 
     if(.not.lsupercond) then
-      do concurrent(i = 1:s%nAtoms, mu = 1:nOrb)
+      do i = 1,s%nAtoms; do mu = 1,nOrb
         do sigma = 1,2
 
           evec_isigmamu = evec(isigmamu2n(i,sigma,mu))
@@ -472,7 +478,7 @@ contains
             expec_z(mu,i) = expec_z(mu,i) + f_n*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
           end do
         end do
-      end do
+      end do; end do
 
 
       ! !$OMP SIMD
@@ -504,14 +510,14 @@ contains
       f_n_negative = fd_dist(fermi, beta, -eval)
       tanh_n = tanh(eval*beta/2._dp)
 
-      do concurrent( i = 1:s%nAtoms, mu = 1:nOrb)
+      do i = 1,s%nAtoms; do mu = 1,nOrb
         ! up spin (using u's) + down spin (using v's)
         expec_0(mu,i) = expec_0(mu,i) + f_n*real( conjg(evec(nOrb*2*(i-1)+mu))*evec(nOrb*2*(i-1)+mu) ) + f_n_negative*real( conjg(evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2))*evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2) )
 
         expec_singlet(mu,i) = expec_singlet(mu,i) + 0.5_dp*s%Types(s%Basis(i)%Material)%lambda(mu)*tanh_n*real( conjg(evec(isigmamu2n(i,1,mu)+nOrb*2*s%nAtoms))*evec(isigmamu2n(i,2,mu)) )
-      end do
+      end do; end do
 
-      do concurrent(i = 1:s%nAtoms, mu = 1:nOrb)
+      do i = 1,s%nAtoms; do mu = 1,nOrb
         do sigma = 1,2
           do sigmap = 1,2
 
@@ -524,7 +530,7 @@ contains
             expec_z(mu,i) = expec_z(mu,i) + f_n*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
           end do
         end do
-      end do
+      end do; end do
     end if
 
   end subroutine expec_val_n
@@ -600,13 +606,14 @@ contains
 
   subroutine calcLGS_greenfunction()
     !! Calculates the expectation value of the orbital angular momentum in the ground state using green functions
-    use mod_kind, only: dp,int64
+    use mod_kind,          only: dp,int64
     use mod_constants,     only: cZero,pi
     use mod_System,        only: s => sys
     use mod_parameters,    only: nOrb, nOrb2, eta
     use EnergyIntegration, only: y, wght
     use mod_magnet,        only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
     use mod_hamiltonian,   only: hamilt_local
+    use mod_greenfunction, only: green
     use adaptiveMesh,      only: local_points,activeComm,E_k_imag_mesh,bzs
     use mod_mpi_pars,      only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_COMPLEX,MPI_SUM,ierr
     implicit none
@@ -617,10 +624,11 @@ contains
     real(dp) :: weight, ep
     complex(dp), dimension(:,:,:,:), allocatable :: gf
     complex(dp), dimension(:,:,:),   allocatable :: gupgd
-    !--------------------- begin MPI vars --------------------
     integer :: ncount
+
+    external :: MPI_Allreduce
+
     ncount=s%nAtoms*nOrb*nOrb
-    !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
     allocate(gupgd(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
     if(AllocateStatus/=0) &
@@ -739,7 +747,7 @@ contains
     use mod_parameters,    only: eta
     use mod_System,        only: System_type
     use mod_distributions, only: fd_dist
-    use mod_imRK4,         only: build_td_hamilt
+    use mod_imRK4,         only: td_hamilt
     implicit none
     type(System_type),              intent(in)  :: s
     integer,                        intent(in)  :: dimens
@@ -754,7 +762,7 @@ contains
     ! Fermi-Dirac:
     f_n = fd_dist(s%Ef, 1._dp/(pi*eta), eval)
 
-    call build_td_hamilt(s,t,ik,kp,eval,hamilt_t,hamilt_0)
+    call td_hamilt(s,t,ik,kp,eval,hamilt_t,hamilt_0)
 
     E_0 = 0._dp
 
@@ -788,6 +796,8 @@ contains
     real(dp)                                   :: fermi,beta
     real(dp),    dimension(:),     allocatable :: rwork,eval,f_n
     complex(dp),                   allocatable :: work(:),hk(:,:),prod(:,:,:)
+
+    external :: zheev,MPI_Allreduce
 
     dimHsc = dimH*superCond
     lwork  = 21*dimHsc
@@ -881,6 +891,8 @@ contains
     real(dp)                                   :: fermi,beta
     real(dp),    dimension(:),     allocatable :: rwork,eval,f_n
     complex(dp),                   allocatable :: work(:),hk(:,:),prod(:,:,:)
+
+    external :: zheev,MPI_Allreduce
 
     dimHsc = dimH*superCond
     lwork  = 21*dimHsc

@@ -1,6 +1,6 @@
 ! ---------- Spin disturbance: Energy integration ---------
 subroutine eintshechi(q,e)
-  use mod_kind, only: dp
+  use mod_kind,             only: dp,int32,int64
   use mod_constants,        only: cZero, cI, tpi
   use mod_parameters,       only: nOrb, nOrb2, eta, etap, dimens, sigmaimunu2i
   use EnergyIntegration,    only: generate_real_epoints, y, wght, x2, p2, pn2
@@ -9,8 +9,9 @@ subroutine eintshechi(q,e)
   use mod_BrillouinZone,    only: realBZ
   use mod_SOC,              only: llineargfsoc
   use mod_hamiltonian,      only: hamilt_local
-  use mod_mpi_pars
-  use adaptiveMesh
+  use mod_greenfunction,    only: green,greenlineargfsoc
+  use adaptiveMesh,         only: bzs,E_k_imag_mesh,local_points
+  use mod_mpi_pars,         only: MPI_IN_PLACE,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr,abortProgram
   implicit none
   real(dp), intent(in)    :: e, q(3)
 
@@ -23,14 +24,14 @@ subroutine eintshechi(q,e)
   complex(dp),dimension(:,:,:,:,:),allocatable  :: gfuu,gfud,gfdu,gfdd
   real(dp) :: weight, ep
   integer(int32), dimension(4) :: index1, index2
-
-!--------------------- begin MPI vars --------------------
   integer(int64) :: ix
   integer(int64) :: ix2, nep,nkp
   integer(int64) :: real_points
   integer(int32) :: ncount
+
+  external :: MPI_Allreduce
+
   ncount=dimens*dimens
-!^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
   ! Generating energy points in the real axis for third integration
   call generate_real_epoints(e)
@@ -188,15 +189,16 @@ end subroutine eintshechi
 ! -------------------- Spin disturbance: Energy integration --------------------
 ! -------------- to be used in the calculation of linear SOC chi ---------------
 subroutine eintshechilinearsoc(q,e)
-  use mod_kind, only: dp
+  use mod_kind,             only: dp,int32,int64
   use mod_constants,        only: cZero, cI, tpi
   use mod_parameters,       only: nOrb, nOrb2, eta, etap, dimens, sigmaimunu2i
   use EnergyIntegration,    only: generate_real_epoints,y, wght, x2, p2, pn2
   use mod_susceptibilities, only: chiorb_hf,chiorb_hflsoc
   use mod_system,           only: s => sys
   use mod_BrillouinZone,    only: realBZ
-  use mod_mpi_pars
-  use adaptiveMesh
+  use mod_greenfunction,    only: greenlinearsoc
+  use adaptiveMesh,         only: bzs,E_k_imag_mesh,local_points
+  use mod_mpi_pars,         only: MPI_IN_PLACE,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr,abortProgram
   implicit none
   real(dp), intent(in) :: e,q(3)
 
@@ -210,12 +212,13 @@ subroutine eintshechilinearsoc(q,e)
   complex(dp), dimension(:,:,:,:,:), allocatable :: gvguu,gvgud,gvgdu,gvgdd
   complex(dp), dimension(:,:), allocatable :: Fint,Fintlsoc
   complex(dp), dimension(:,:), allocatable :: df1,df1lsoc
-
-  !--------------------- begin MPI vars --------------------
   integer(int32) :: ncount
   integer(int64) :: real_points
+
+  external :: MPI_Allreduce
+
   ncount=dimens*dimens
-  !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
+
 
   ! Generating energy points in the real axis for third integration
   call generate_real_epoints(e)

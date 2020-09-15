@@ -1,6 +1,6 @@
 ! ---------- Parallel spin current: Energy integration ---------
 subroutine eintshe(q,e)
-  use mod_kind, only: dp
+  use mod_kind,          only: dp,int64
   use mod_constants,     only: cZero, cI, tpi
   use mod_parameters,    only: nOrb, nOrb2, dimens, sigmaimunu2i, eta, etap, sigmai2i, offset
   use mod_SOC,           only: llineargfsoc
@@ -11,8 +11,9 @@ subroutine eintshe(q,e)
   use mod_disturbances,  only: tchiorbiikl
   use ElectricField,     only: ElectricFieldVector
   use mod_hamiltonian,   only: hamilt_local
-  use adaptiveMesh
-  use mod_mpi_pars
+  use mod_greenfunction, only: green,greenlineargfsoc
+  use adaptiveMesh,      only: bzs,E_k_imag_mesh,local_points
+  use mod_mpi_pars,      only: rFreq,MPI_IN_PLACE,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr,abortProgram
 
   !use mod_currents,         only: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl !TODO: Re-Include
   !use mod_system,           only: n0sc1, n0sc2, n0sc
@@ -38,6 +39,9 @@ subroutine eintshe(q,e)
   integer(int64) :: ix, ix2, nep,nkp
   integer(int64) :: real_points
   integer   :: ncountkl !,nncountkl !TODO: Re-Include
+
+  external :: dtdksub,zgemm,MPI_Reduce
+
   ncountkl = dimens*4
   !nncountkl = n0sc*dimspinAtoms*4 !TODO: Re-Include
   !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
@@ -336,7 +340,7 @@ end subroutine eintshe
 
 
 subroutine eintshelinearsoc(q,e)
-  use mod_kind, only: dp
+  use mod_kind,          only: dp,int64
   use mod_constants,     only: cZero, cOne, cI, tpi
   use mod_parameters,    only: nOrb, nOrb2, dimens, eta, etap, sigmai2i, sigmaimunu2i, offset
   use mod_system,        only: s => sys
@@ -345,8 +349,9 @@ subroutine eintshelinearsoc(q,e)
   use mod_prefactors,    only: prefactor, prefactorlsoc
   use mod_disturbances,  only: tchiorbiikl
   use ElectricField,     only: ElectricFieldVector
-  use adaptiveMesh
-  use mod_mpi_pars
+  use mod_greenfunction, only: greenlinearsoc
+  use adaptiveMesh,      only: bzs,E_k_imag_mesh,local_points
+  use mod_mpi_pars,      only: rFreq,MPI_IN_PLACE,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr,abortProgram
 
   !use mod_system, only: r_nn, npln, nkpt, kbz, wkbz, n0sc1, n0sc2
   !use mod_currents,         only: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl !TODO: Re-Include
@@ -367,13 +372,14 @@ subroutine eintshelinearsoc(q,e)
   complex(dp),dimension(:,:),allocatable        :: df1iikl,pfdf1iikl,df1lsoc
   !complex(dp),dimension(n0sc1:n0sc2,Npl,9,9)    :: prett,preLxtt,preLytt,preLztt !TODO: Re-Include
 
-!--------------------- begin MPI vars --------------------
   integer(int64) :: ix,ix2, iz
   integer(int64) :: real_points
   integer :: ncountkl !,nncountkl !TODO: Re-Include
+
+  external :: dtdksub,zgemm,MPI_Reduce
+
   ncountkl = dimens*4
   !nncountkl = n0sc*dimspinAtoms*4 !TODO: Re-Include
-!^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
 
   ! Generating energy points in the real axis for third integration

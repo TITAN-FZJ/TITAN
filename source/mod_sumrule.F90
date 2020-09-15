@@ -152,14 +152,15 @@ contains
 
   subroutine calcSmunu()
     !! Calculates the expectation value <S^munu_ii> = <c^+_imu c_inu>
-    use mod_kind, only: dp
+    use mod_kind,          only: dp,int64
     use mod_constants,     only: cZero,cI,tpi
     use mod_System,        only: s => sys
     use EnergyIntegration, only: y, wght
     use mod_parameters,    only: nOrb, nOrb2, eta
     use mod_hamiltonian,   only: hamilt_local
-    use adaptiveMesh
-    use mod_mpi_pars
+    use mod_greenfunction, only: green
+    use adaptiveMesh,      only: local_points,E_k_imag_mesh,activeComm,bzs
+    use mod_mpi_pars,      only: MPI_IN_PLACE,MPI_DOUBLE_COMPLEX,MPI_SUM,ierr,abortProgram
     implicit none
     integer      :: AllocateStatus
     integer(int64)    :: ix
@@ -168,10 +169,11 @@ contains
     real(dp) :: weight, ep
     complex(dp), dimension(:,:,:,:), allocatable :: gf
     complex(dp), dimension(:,:,:),   allocatable :: imguu,imgdd,imgud,imgdu
-    !--------------------- begin MPI vars --------------------
     integer :: ncount
+
+    external :: MPI_Allreduce
+    
     ncount=s%nAtoms*nOrb*nOrb
-    !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
 
     allocate(imguu(nOrb, nOrb,s%nAtoms),imgdd(nOrb, nOrb,s%nAtoms),imgud(nOrb, nOrb,s%nAtoms),imgdu(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
     if(AllocateStatus/=0) call abortProgram("[calcSmunu] Not enough memory for: imguu,imgdd,imgud,imgdu")

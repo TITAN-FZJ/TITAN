@@ -104,12 +104,13 @@ contains
 ! This subroutine calculates Js and Ks from the inverse static susceptibility
 ! It only works for FM or AFM alignments
   subroutine get_J_K_from_chi()
-    use mod_kind, only: dp
+    use mod_kind,             only: dp
     use mod_susceptibilities, only: schi
     use mod_parameters,       only: output,sigmai2i
     use mod_system,           only: s => sys
     use mod_magnet,           only: mabs,mvec_cartesian
     use mod_mpi_pars,         only: abortProgram
+    use mod_tools,            only: invers
     implicit none
     integer :: AllocateStatus
     integer,         dimension(:),     allocatable :: fmalign

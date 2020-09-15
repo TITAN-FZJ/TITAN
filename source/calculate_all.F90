@@ -1,46 +1,47 @@
 ! This is the main subroutine to calculate all quantities:
 ! currents, disturbances, torques, effective fields and susceptibilities
 subroutine calculate_all()
-  use mod_kind, only: dp
-  use mod_constants,  only: cZero, cOne, cI !, levi_civita
-  use mod_parameters, only: lnodiag, Un, offset, output, laddresults, skip_steps, kount, lhfresponses, sigmaimunu2i, emin, deltae, nQvec1, kpoints, dimens, sigmai2i, dimspinAtoms
-  use mod_magnet,     only: lfield, hhw, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, lrot
-  use mod_SOC,        only: llinearsoc
-  use mod_System,     only: s => sys
-  use mod_BrillouinZone, only: realBZ
-  use adaptiveMesh,      only: genLocalEKMesh, freeLocalEKMesh
-  use mod_prefactors,    only: prefactor, prefactorlsoc, allocate_prefactors, deallocate_prefactors
-  use mod_susceptibilities, only: rottemp, rotmat_i, rotmat_j, &
-                                  schitemp, schirot, schi, schihf, &
-                                  chiorb, chiorb_hf, chiorb_hflsoc, Umatorb, identt, &
-                                  build_identity_and_U_matrix, diagonalize_susceptibilities, &
-                                  allocate_susceptibilities, deallocate_susceptibilities, &
-                                  create_chi_files, write_susceptibilities
-  use mod_torques, only: torques, total_torques, ntypetorque, &
-                          allocate_torques, deallocate_torques, &
-                          create_torque_files, write_torques
-  use mod_disturbances, only: disturbances, total_disturbances, tchiorbiikl, sdmat, ldmat, &
-                              allocate_disturbances, deallocate_disturbances, &
-                              create_disturbance_files, write_disturbances
-  use mod_beff, only: chiinv, total_Beff, Beff, Beff_cart, &
-                      allocate_beff, deallocate_beff, &
-                      create_beff_files, write_beff
-  use mod_progress, only: write_time
+  use mod_kind,              only: dp
+  use mod_constants,         only: cZero, cOne, cI !, levi_civita
+  use mod_parameters,        only: lnodiag, Un, offset, output, laddresults, skip_steps, kount, lhfresponses, sigmaimunu2i, emin, deltae, nQvec1, kpoints, dimens, sigmai2i, dimspinAtoms
+  use mod_magnet,            only: lfield, hhw, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, lrot
+  use mod_SOC,               only: llinearsoc
+  use mod_System,            only: s => sys
+  use mod_BrillouinZone,     only: realBZ
+  use adaptiveMesh,          only: genLocalEKMesh, freeLocalEKMesh
+  use mod_prefactors,        only: prefactor, prefactorlsoc, allocate_prefactors, deallocate_prefactors
+  use mod_susceptibilities,  only: rottemp, rotmat_i, rotmat_j, &
+                                   schitemp, schirot, schi, schihf, &
+                                   chiorb, chiorb_hf, chiorb_hflsoc, Umatorb, identt, &
+                                   build_identity_and_U_matrix, diagonalize_susceptibilities, &
+                                   allocate_susceptibilities, deallocate_susceptibilities, &
+                                   create_chi_files, write_susceptibilities
+  use mod_torques,           only: torques, total_torques, ntypetorque, &
+                                    allocate_torques, deallocate_torques, &
+                                    create_torque_files, write_torques
+  use mod_disturbances,      only: disturbances, total_disturbances, tchiorbiikl, sdmat, ldmat, &
+                                   allocate_disturbances, deallocate_disturbances, &
+                                   create_disturbance_files, write_disturbances
+  use mod_beff,              only: chiinv, total_Beff, Beff, Beff_cart, &
+                                   allocate_beff, deallocate_beff, &
+                                   create_beff_files, write_beff
+  use mod_progress,          only: write_time
   use mod_rotation_matrices, only: rotation_matrices_chi
-  use mod_mpi_pars
-  use mod_sumrule
-  use mod_check_stop
+  use mod_sumrule,           only: sumrule
+  use mod_mpi_pars,          only: rFreq,sFreq,FreqComm,FieldComm,rField,startFreq,endFreq,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,stat,ierr,MPI_SOURCE,MPI_DOUBLE_COMPLEX
+  use mod_check_stop,        only: check_stop
+  use mod_tools,             only: invers
   !use mod_system, only: n0sc1, n0sc2, n0sc
   !use mod_currents !TODO: Re-Include
   !use mod_sha !TODO: Re-Include
-
-  !! use mod_diamagnetic_current
-
+  !use mod_diamagnetic_current
   implicit none
   character(len=50) :: time
   integer           :: mcount,qcount
   integer           :: i,j,sigma,sigmap,mu,nu!,neighbor
-  real(dp)      :: e,q(3)!,Icabs
+  real(dp)         :: e,q(3)!,Icabs
+
+  external :: eintshechi,eintshelinearsoc,eintshechilinearsoc,eintshe,zgemm,MPI_Recv,MPI_Send,MPI_Barrier,sort_all_files
 
   call allocate_prefactors()
   call allocate_susceptibilities()
@@ -78,7 +79,7 @@ subroutine calculate_all()
   ! call MPI_Finalize(ierr)
   ! stop
 
-  if(myrank == 0 .and. skip_steps > 0) &
+  if(rField == 0 .and. skip_steps > 0) &
     write(output%unit,"('[calculate_all] Skipping first ',i0,' step(s)...')") skip_steps
 
   ! Chi wave vector Loop

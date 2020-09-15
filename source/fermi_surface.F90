@@ -86,7 +86,7 @@ contains
 
   !   Calculates iso-energy surface (e=Ef for Fermi surface)
   subroutine calculate_fermi_surface(e)
-    use mod_kind, only: dp, int32, int64
+    use mod_kind,          only: dp, int32, int64
     use mod_constants,     only: pi, pauli_orb, cZero, cOne
     use mod_parameters,    only: nOrb, nOrb2, eta
     use mod_SOC,           only: llinearsoc, llineargfsoc
@@ -94,17 +94,20 @@ contains
     use mod_BrillouinZone, only: realBZ
     use mod_magnet,        only: lx,ly,lz
     use mod_hamiltonian,   only: hamilt_local
-    use mod_mpi_pars
+    use mod_greenfunction, only: greenlineargfsoc,green
+    use mod_mpi_pars,      only: rField,FreqComm
     implicit none
-    real(dp),intent(in)    :: e
-    integer(int64)          :: iz
-    integer(int32)          :: i,mu,nu,mup,nup,sigma
+    real(dp),intent(in) :: e
+    integer(int64)      :: iz
+    integer(int32)      :: i,mu,nu,mup,nup,sigma
     real(dp)       :: fs_atom(s%nAtoms,realBZ%nkpt,7),fs_orb(nOrb,realBZ%nkpt,7),fs_total(realBZ%nkpt,7)
     real(dp)       :: kp(3)
     real(dp)       :: temp
     complex(dp)    :: templ
     complex(dp),dimension(nOrb2,nOrb2,s%nAtoms,s%nAtoms)    :: gf
     complex(dp),dimension(nOrb2,nOrb2)    :: temp1,temp2,pauli_gf
+
+    external :: zgemm
 
     ! Allocating Brillouin Zone without parallelization
     call realBZ % setup_fraction(s,0, 1, FreqComm(1))

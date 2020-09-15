@@ -237,13 +237,15 @@ contains
     use mod_system,            only: s => sys
     use mod_superconductivity, only: singlet_coupling
     use mod_magnet,            only: rho, mp, mx, my, mz, rhod, mpd, mxd, myd, mzd, hw_count
-    use mod_mpi_pars
+    use mod_mpi_pars,          only: rField,FieldComm,ierr,MPI_DOUBLE_PRECISION
     implicit none
     character(len=300)  :: file = ""
     integer,intent(out) :: err
     logical,intent(out) :: lsuccess
     integer             :: i,j
     real(dp)        :: previous_results(5*nOrb,s%nAtoms), previous_Ef
+
+    external :: MPI_Bcast
 
     if(trim(scfile) /= "") then
       open(unit=99,file=scfile,status="old",iostat=err)
@@ -442,6 +444,8 @@ contains
 #endif
     integer                       :: i,mu,lwa,ifail=0
 
+    external :: c05ncf,c05pcf
+
     neq_per_atom = 8 + (superCond-1)*nOrb
     neq = neq_per_atom*s%nAtoms+1
     allocate( sc_solu(neq),diag(neq),qtf(neq),fvec(neq),jac(neq,neq) )
@@ -563,6 +567,7 @@ contains
 !     real(dp) :: ruser(1)
 !     integer      :: iuser(1)
 ! #endif
+    external :: e04yaf
 
     liw = 1
     lw  = (4+neq)*neq
@@ -643,8 +648,8 @@ contains
 
     ! Values used in the hamiltonian
     rho_in = rho
-    do concurrent (i = 1:s%nAtoms)
-      do concurrent (mu = 5:nOrb)
+    do i = 1,s%nAtoms
+      do mu = 5,nOrb
         rho_in(mu,i) = x((i-1)*neq_per_atom+(mu-4))
       end do
       rhod_in(i)= sum(rho_in(5:9,i))
@@ -652,9 +657,11 @@ contains
       myd_in(i) = x((i-1)*neq_per_atom+7)
       mzd_in(i) = x((i-1)*neq_per_atom+8)
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i),dp)
-      do concurrent (mu = 1:nOrb, lsuperCond)
-        singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
-      end do
+      if(lsupercond) then
+        do mu = 1,nOrb
+          singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
+        end do
+      end if
     end do
     s%Ef    = x(N)
 
@@ -663,23 +670,25 @@ contains
 
     ! call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,singlet_coupling_in,s%Ef)
     call expectation_values(s,rho,mp,mx,my,mz,deltas)
-    do concurrent (i = 1:s%nAtoms)
+    do i = 1,s%nAtoms
       rhod(i)   = sum(rho(5:9,i))
       mpd(i)    = sum(mp(5:9,i))
       mxd(i)    = sum(mx(5:9,i))
       myd(i)    = sum(my(5:9,i))
       mzd(i)    = sum(mz(5:9,i))
     end do
-    do concurrent (i = 1:s%nAtoms)
-      do concurrent (mu = 5:nOrb)
+    do i = 1,s%nAtoms
+      do mu = 5,nOrb
         fvec((i-1)*neq_per_atom+(mu-4)) = rho(mu,i) - rho_in(mu,i)
       end do
       fvec((i-1)*neq_per_atom+6) =  mxd(i) -  mxd_in(i)
       fvec((i-1)*neq_per_atom+7) =  myd(i) -  myd_in(i)
       fvec((i-1)*neq_per_atom+8) =  mzd(i) -  mzd_in(i)
-      do concurrent (mu = 1:nOrb, lsuperCond)
-        fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
-      end do
+      if(lsupercond) then
+        do mu = 1,nOrb
+          fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
+        end do
+      end if
     end do
     fvec(N) = sum(rho) - s%totalOccupation
 
@@ -698,7 +707,8 @@ contains
     use adaptiveMesh,      only: local_points, E_k_imag_mesh, bzs, activeComm
     use mod_BrillouinZone, only: realBZ
     use mod_hamiltonian,   only: hamilt_local
-    use mod_mpi_pars
+    use mod_greenfunction, only: greenlinearsoc,green
+    use mod_mpi_pars,      only: MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_SUM,ierr,abortProgram
     implicit none
     integer,                           intent(in)    :: N
     real(dp),    dimension(N,N),   intent(inout) :: jacobian
@@ -712,10 +722,10 @@ contains
     complex(dp) :: weight
     complex(dp) :: halfUn(s%nAtoms),halfUm(s%nAtoms)
     complex(dp), dimension(nOrb2, nOrb2, 4) :: pauli_a,pauli_b
-
-    !--------------------- begin MPI vars --------------------
     integer :: ncount2
-    !^^^^^^^^^^^^^^^^^^^^^ end MPI vars ^^^^^^^^^^^^^^^^^^^^^^
+
+    external :: zgemm,MPI_Allreduce
+
     ncount2=N*N
 
 !   Identity and Pauli matrices (excluding d orbitals)
@@ -1129,11 +1139,12 @@ contains
     use mod_magnet,            only: rho, mx, my, mz
     use mod_superconductivity, only: singlet_coupling
     use mod_system,            only: s => sys
-    use mod_mpi_pars
+    use mod_mpi_pars,          only: rField,MPI_CHARACTER,FieldComm,ierr
     implicit none
     character(len=30) :: formatvar
     integer           :: i,mu
 
+    external :: MPI_Bcast
     if(rField == 0) then
       ! Writing new results (mx, my, mz and n) to file
       write(output%unit_loop,"('[write_sc_results] Writing new n, mx, my, mz and Ef to file...')")
@@ -1158,12 +1169,12 @@ contains
 
   ! Writes the initial values for the self-consistency
   subroutine print_sc_step(n,mx,my,mz,singlet_coupling,Ef,fvec)
-    use mod_kind, only: dp
+    use mod_kind,              only: dp
     use mod_parameters,        only: nOrb, output
     use mod_system,            only: s => sys
     use mod_magnet,            only: iter
     use mod_superconductivity, only: lsuperCond
-    use mod_mpi_pars
+    use mod_mpi_pars,          only: rField
     implicit none
     real(dp),dimension(neq),           intent(in), optional :: fvec
     real(dp),dimension(s%nAtoms),      intent(in) :: n,mx,my,mz
@@ -1243,8 +1254,8 @@ contains
 
     ! Values used in the hamiltonian
     rho_in = rho
-    do concurrent (i = 1:s%nAtoms)
-      do concurrent (mu = 5:nOrb)
+    do i = 1,s%nAtoms
+      do mu = 5,nOrb
         rho_in(mu,i) = x((i-1)*neq_per_atom+(mu-4))
       end do
       rhod_in(i)= sum(rho_in(5:9,i))
@@ -1252,9 +1263,11 @@ contains
       myd_in(i) = x((i-1)*neq_per_atom+7)
       mzd_in(i) = x((i-1)*neq_per_atom+8)
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i),dp)
-      do concurrent (mu = 1:nOrb, lsuperCond)
-        singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
-      end do
+      if(lsupercond) then
+        do mu = 1,nOrb
+          singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
+        end do
+      end if
     end do
     s%Ef    = x(N)
 
@@ -1268,23 +1281,25 @@ contains
     select case (iflag)
     case(1)
       call expectation_values(s,rho,mp,mx,my,mz,deltas)
-      do concurrent (i = 1:s%nAtoms)
+      do i = 1,s%nAtoms
         rhod(i)   = sum(rho(5:9,i))
         mpd(i)    = sum(mp(5:9,i))
         mxd(i)    = sum(mx(5:9,i))
         myd(i)    = sum(my(5:9,i))
         mzd(i)    = sum(mz(5:9,i))
       end do
-      do concurrent (i = 1:s%nAtoms)
-        do concurrent (mu = 5:nOrb)
+      do i = 1,s%nAtoms
+        do mu = 5,nOrb
           fvec((i-1)*neq_per_atom+(mu-4)) = rho(mu,i) - rho_in(mu,i)
         end do
         fvec((i-1)*neq_per_atom+6) =  mxd(i) -  mxd_in(i)
         fvec((i-1)*neq_per_atom+7) =  myd(i) -  myd_in(i)
         fvec((i-1)*neq_per_atom+8) =  mzd(i) -  mzd_in(i)
-        do concurrent (mu = 1:nOrb, lsuperCond)
-          fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
-        end do
+        if(lsupercond) then
+          do mu = 1,nOrb
+            fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
+          end do
+        end if
       end do
       fvec(N) = sum(rho) - s%totalOccupation
 
@@ -1338,8 +1353,8 @@ contains
     iflag=0
     ! Values used in the hamiltonian
     rho_in = rho
-    do concurrent (i = 1:s%nAtoms)
-      do concurrent (mu = 5:nOrb)
+    do i = 1,s%nAtoms
+      do mu = 5,nOrb
         rho_in(mu,i) = x((i-1)*neq_per_atom+(mu-4))
       end do
       rhod_in(i)= sum(rho_in(5:9,i))
@@ -1347,9 +1362,11 @@ contains
       myd_in(i) = x((i-1)*neq_per_atom+7)
       mzd_in(i) = x((i-1)*neq_per_atom+8)
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i),dp)
-      do concurrent (mu = 1:nOrb, lsuperCond)
-        singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
-      end do
+      if(lsupercond) then
+        do mu = 1,nOrb
+          singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
+        end do
+      end if
     end do
     s%Ef    = x(N)
 
@@ -1361,23 +1378,25 @@ contains
     iter = iter + 1
 
     call expectation_values(s,rho,mp,mx,my,mz,deltas)
-    do concurrent (i = 1:s%nAtoms)
+    do i = 1,s%nAtoms
       rhod(i)   = sum(rho(5:9,i))
       mpd(i)    = sum(mp(5:9,i))
       mxd(i)    = sum(mx(5:9,i))
       myd(i)    = sum(my(5:9,i))
       mzd(i)    = sum(mz(5:9,i))
     end do
-    do concurrent (i = 1:s%nAtoms)
-      do concurrent (mu = 5:nOrb)
+    do i = 1,s%nAtoms
+      do mu = 5,nOrb
         fvec((i-1)*neq_per_atom+(mu-4)) = rho(mu,i) - rho_in(mu,i)
       end do
       fvec((i-1)*neq_per_atom+6) =  mxd(i) -  mxd_in(i)
       fvec((i-1)*neq_per_atom+7) =  myd(i) -  myd_in(i)
       fvec((i-1)*neq_per_atom+8) =  mzd(i) -  mzd_in(i)
-      do concurrent (mu = 1:nOrb,lsuperCond)
-        fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
-      end do
+      if(lsupercond) then
+        do mu = 1,nOrb
+          fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
+        end do
+      end if
     end do
     fvec(N) = sum(rho) - s%totalOccupation
 
@@ -1418,8 +1437,8 @@ contains
 
     ! Values used in the hamiltonian
     rho_in = rho
-    do concurrent (i = 1:s%nAtoms)
-      do concurrent (mu = 5:nOrb)
+    do i = 1,s%nAtoms
+      do mu = 5,nOrb
         rho_in(mu,i) = x((i-1)*neq_per_atom+(mu-4))
       end do
       rhod_in(i)= sum(rho_in(5:9,i))
@@ -1427,9 +1446,11 @@ contains
       myd_in(i) = x((i-1)*neq_per_atom+7)
       mzd_in(i) = x((i-1)*neq_per_atom+8)
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i),dp)
-      do concurrent (mu = 1:nOrb, lsuperCond)
-        singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
-      end do
+      if(lsupercond) then
+        do mu = 1,nOrb
+          singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
+        end do
+      end if
     end do
     s%Ef    = x(N)
 
@@ -1443,23 +1464,25 @@ contains
     flag: select case (iflag)
     case(1)
       call expectation_values(s,rho,mp,mx,my,mz,deltas)
-      do concurrent (i = 1:s%nAtoms)
+      do i = 1,s%nAtoms
         rhod(i)   = sum(rho(5:9,i))
         mpd(i)    = sum(mp(5:9,i))
         mxd(i)    = sum(mx(5:9,i))
         myd(i)    = sum(my(5:9,i))
         mzd(i)    = sum(mz(5:9,i))
       end do
-      do concurrent (i = 1:s%nAtoms)
-        do concurrent (mu = 5:nOrb)
+      do i = 1,s%nAtoms
+        do mu = 5,nOrb
           fvec((i-1)*neq_per_atom+(mu-4)) = rho(mu,i) - rho_in(mu,i)
         end do
         fvec((i-1)*neq_per_atom+6) =  mxd(i) -  mxd_in(i)
         fvec((i-1)*neq_per_atom+7) =  myd(i) -  myd_in(i)
         fvec((i-1)*neq_per_atom+8) =  mzd(i) -  mzd_in(i)
-        do concurrent (mu = 1:nOrb, lsuperCond)
-          fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
-        end do
+        if(lsupercond) then
+          do mu = 1,nOrb
+            fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
+          end do
+        end if
       end do
       fvec(N) = sum(rho) - s%totalOccupation
 
@@ -1509,8 +1532,8 @@ contains
 
     ! Values used in the hamiltonian
     rho_in = rho
-    do concurrent (i = 1:s%nAtoms)
-      do concurrent (mu = 5:nOrb)
+    do i = 1,s%nAtoms
+      do mu = 5,nOrb
         rho_in(mu,i) = x((i-1)*neq_per_atom+(mu-4))
       end do
       rhod_in(i)= sum(rho_in(5:9,i))
@@ -1518,9 +1541,11 @@ contains
       myd_in(i) = x((i-1)*neq_per_atom+7)
       mzd_in(i) = x((i-1)*neq_per_atom+8)
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i),dp)
-      do concurrent (mu = 1:nOrb, lsuperCond)
-        singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
-      end do
+      if(lsupercond) then
+        do mu = 1,nOrb
+          singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
+        end do
+      end if
     end do
     s%Ef    = x(N)
 
@@ -1532,23 +1557,25 @@ contains
     iter = iter + 1
 
     call expectation_values(s,rho,mp,mx,my,mz,deltas)
-    do concurrent (i = 1:s%nAtoms)
+    do i = 1,s%nAtoms
       rhod(i)   = sum(rho(5:9,i))
       mpd(i)    = sum(mp(5:9,i))
       mxd(i)    = sum(mx(5:9,i))
       myd(i)    = sum(my(5:9,i))
       mzd(i)    = sum(mz(5:9,i))
     end do
-    do concurrent (i = 1:s%nAtoms)
-      do concurrent (mu = 5:nOrb)
+    do i = 1,s%nAtoms
+      do mu = 5,nOrb
         fvec((i-1)*neq_per_atom+(mu-4)) = rho(mu,i) - rho_in(mu,i)
       end do
       fvec((i-1)*neq_per_atom+6) =  mxd(i) -  mxd_in(i)
       fvec((i-1)*neq_per_atom+7) =  myd(i) -  myd_in(i)
       fvec((i-1)*neq_per_atom+8) =  mzd(i) -  mzd_in(i)
-      do concurrent (mu = 1:nOrb, lsuperCond)
-        fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
-      end do
+      if(lsupercond) then
+        do mu = 1,nOrb
+          fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
+        end do
+      end if
     end do
     fvec(N) = sum(rho) - s%totalOccupation
 
@@ -1584,8 +1611,8 @@ contains
 
     ! Values used in the hamiltonian
     rho_in = rho
-    do concurrent (i = 1:s%nAtoms)
-      do concurrent (mu = 5:nOrb)
+    do i = 1,s%nAtoms
+      do mu = 5,nOrb
         rho_in(mu,i) = x((i-1)*neq_per_atom+(mu-4))
       end do
       rhod_in(i)= sum(rho_in(5:9,i))
@@ -1593,9 +1620,11 @@ contains
       myd_in(i) = x((i-1)*neq_per_atom+7)
       mzd_in(i) = x((i-1)*neq_per_atom+8)
       mpd_in(i) = cmplx(mxd_in(i),myd_in(i),dp)
-      do concurrent (mu = 1:nOrb, lsuperCond)
-        singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
-      end do
+      if(lsupercond) then
+        do mu = 1,nOrb
+          singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
+        end do
+      end if
     end do
     s%Ef    = x(N)
 

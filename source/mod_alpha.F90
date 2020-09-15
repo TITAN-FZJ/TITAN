@@ -106,13 +106,14 @@ contains
   end subroutine close_alpha_files
 
   subroutine write_alpha(e)
-    use mod_kind, only: dp
+    use mod_kind,             only: dp
     use mod_constants,        only: StoC, CtoS
     use mod_susceptibilities, only: schi, schihf, schiLS, schiSL, schiLL
     use mod_parameters,       only: sigmai2i, Um
     use mod_system,           only: s => sys
     use mod_magnet,           only: mabs
     use mod_SOC,              only: SOC
+    use mod_tools,            only: invers
     implicit none
     real(dp) :: e
     real(dp) :: gammaM, alpha_v1, alpha_v2, alpha_v3, alpha_v4

@@ -1,13 +1,16 @@
 ! Calculates the full 3x3 J tensor (including coupling, DMI and anisotropic pair interactions)
 subroutine coupling()
+  use mod_kind,       only: dp
   use mod_parameters, only: output, q
   use mod_magnet,     only: mvec_cartesian,mabs
   use mod_system,     only: s => sys
   use mod_mpi_pars,   only: abortProgram,rField,sField,FieldComm
-  use adaptiveMesh
-  use mod_Coupling
+  use adaptiveMesh,   only: genLocalEKMesh,freeLocalEKMesh
+  use mod_Coupling,   only: Jij,trJij,Jija,Jijs,allocateCoupling,deallocateCoupling,openCouplingFiles,closeCouplingFiles,writeCoupling
   implicit none
-  integer            :: i,j,mu
+  integer  :: i,j,mu
+
+  external :: jij_energy
 
   if(rField == 0) write(output%unit_loop,"('CALCULATING FULL TENSOR OF EXHANGE INTERACTIONS AND ANISOTROPIES')")
 
