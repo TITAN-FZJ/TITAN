@@ -50,10 +50,12 @@ parser.add_argument('--integrated' , default=False, action="store_true" , help='
 parser.add_argument("--superconductivity", default=False, action="store_true" , help="Flag to plot the bands as for superconductors")
 parser.add_argument("--onlyS", default=False, action="store_true" , help="Plot only the s orbital in the LDOS")
 parser.add_argument("--zoom", default=0.0, type=float)
+parser.add_argument("--together", default=False, action="store_true" , help="Plot superconductor bands in the same plot")
+parser.add_argument("--noef", default=True, action="store_false" , help="Do not plot the line at Ef")
 # In case we need to add arguments in the specific files
 # args, options = parser.parse_known_args()
 args = parser.parse_args()
-
+  
 ry2ev = 1.0
 
 if args.mev:

@@ -1,33 +1,7 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import sys
-import matplotlib as mpl                      # Plotting library
-from matplotlib import rc                     # Improve math fonts
-import argparse
-rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
-## for Palatino and other serif fonts use:
-# rc('font',**{'family':'serif','serif':['Palatino']})
-mpl.rcParams['text.usetex'] = True
-mpl.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}',r'\usepackage{siunitx}']
-# matplotlib.rcParams['text.latex.preamble'] = [r'\renewcommand{\seriesdefault}{\bfdefault}',r'\boldmath']
-#matplotlib.rcParams['text.latex.preamble'] = [r'\boldmath']
-# rc('mathtext', default='regular')
-# Default fonts
-mpl.rcParams['font.size']        = 12
-mpl.rcParams['font.family']      = 'serif'
-mpl.rcParams['figure.titlesize'] = 'large'
-mpl.rcParams['axes.titlepad'] = 10
-mpl.rcParams['lines.linewidth']  = 2
-#Legends:
-mpl.rcParams['legend.fontsize']  = 'medium'
-mpl.rcParams['legend.fancybox'] = False
-# rcParams['legend.loc'] = 'upper left'`
-mpl.rcParams['legend.framealpha'] = None
-mpl.rcParams['legend.edgecolor'] = 'inherit'
-mpl.rcParams['legend.handlelength'] = 2
-mpl.rcParams["font.weight"] = "bold"
-mpl.rcParams["axes.labelweight"] = "bold"
-
+################################################################################
+# Import the arguments and style
+################################################################################
+from head import *
 
 ################################################################################
 # Get the header from the file
@@ -88,30 +62,17 @@ def read_data(filename):
 
 if __name__ == "__main__":
 
-  parser = argparse.ArgumentParser(description="Parse bool")
-  parser.add_argument("file", help="File to plot")
-  parser.add_argument("--superconductivity", default=False, action="store_true" , help="Flag to plot the bands as for superconductors")
-  parser.add_argument("--together", default=False, action="store_true" , help="Plot superconductor bands in the same plot")
-  parser.add_argument("--zoom", default=0.0, type=float)
-  parser.add_argument("--title", action="store", dest="title", default="")
-  parser.add_argument("--noef", default=True, action="store_false" , help="Do not plot the line at Ef")
-  parser.add_argument("--output", action="store", dest="output", default="")
-  args = parser.parse_args()
-
   if args.superconductivity:
     if args.together:
       numplots = 1
-      titles = [r"Band Structure"] #$\Delta = 0.001$ Ry"]
-      # titles = [r"$\#_{k}=100$M, $\eta=5\times10^{-4}$, 2nn", r"$\#_{k}=100$M, $\eta=5\times10^{-4}$, 3nn"]
-      # titles = [r"$\#_{k}=10$M", r"$\#_{k}=100$k"])
-      # titles = [r"$\eta=5\times10^{-3}$", r"$\eta=5\times10^{-4}$"])
+      titles = [r"Band Structure"] 
 
       fig, axs = plt.subplots(1, numplots, sharey=True, squeeze=False, figsize=(6*numplots, 5))
       axs[0,0].set_ylabel("Energy [Ry]")
 
       for i in range(numplots):
-        npoints, name, point, fermi, dimbs = read_header(args.file)
-        table = read_data(args.file)
+        npoints, name, point, fermi, dimbs = read_header(args.files[0])
+        table = read_data(args.files[0])
         if args.title != "":
           axs[0,i].set_title(args.title)
         else:
@@ -161,8 +122,8 @@ if __name__ == "__main__":
       axs[0,0].set_ylabel("Energy [Ry]")
 
       for i in range(numplots):
-        npoints, name, point, fermi, dimbs = read_header(args.file)
-        table = read_data(args.file)
+        npoints, name, point, fermi, dimbs = read_header(args.files[0])
+        table = read_data(args.files[0])
         axs[0,i].set_title(titles[i])
         axs[0,i].set_xlim([point[0],point[npoints-1]])
         # axs[0,i].set_ylim(table[:,1:].min(),table[:,1:].max())
@@ -210,8 +171,8 @@ if __name__ == "__main__":
     axs[0,0].set_ylabel("Energy [Ry]")
 
     for i in range(numplots):
-      npoints, name, point, fermi, dimbs = read_header(args.file)
-      table = read_data(args.file)
+      npoints, name, point, fermi, dimbs = read_header(args.files[0])
+      table = read_data(args.files[0])
       axs[0,i].set_title(titles[i])
       axs[0,i].set_xlim([point[0],point[npoints-1]])
       # axs[0,i].set_ylim(table[:,1:].min(),table[:,1:].max())
@@ -248,7 +209,8 @@ if __name__ == "__main__":
         axs[0,i].plot(table[:,0],table[:,1:dimbs], color='k', linewidth=1.0, linestyle='-')
 
     plt.tight_layout()
-    if args.output == "":
+    if args.output == "output.pdf":
       plt.show()
     else:
       plt.savefig(args.output)
+      plt.show()
