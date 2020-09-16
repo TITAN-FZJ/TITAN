@@ -17,6 +17,7 @@
 ### Fixed
 
 - Time-propagated energy is now being reduced by MPI too
+- Time-propagated OAM and singlet_coupling are now being reduced by MPI too
 
 ======================================================================================================================
 
