@@ -4,39 +4,12 @@
 # the arguments starting with "--" are optional and can be ommited
 ################################################################################
 
-import numpy as np
-import matplotlib.pyplot as plt
-#from matplotlib2tikz import save as tikz_save
-import matplotlib.gridspec as gridspec
-import sys
-from matplotlib import rc
-import argparse
-rc('mathtext', default='regular')
-
-# Fonts
-font = {'family': 'arial',
-         'color': 'black',
-         'weight':'normal',
-         'size': 9,
-        }
+################################################################################
+# Import the arguments and style
+################################################################################
+from head import *
 
 nSites=1
-
-parser = argparse.ArgumentParser(description="Parse bool")
-parser.add_argument("fileband", help="File to plot")
-parser.add_argument("fileu", help="File to plot")
-parser.add_argument("filed", help="File to plot")
-parser.add_argument("--superconductivity", default=False, action="store_true" , help="Flag to plot the bands as for superconductors")
-parser.add_argument("--ev", default=False, action="store_true" , help="Plot superconductor bands in the same plot")
-parser.add_argument("--title", action="store", dest="title", default="")
-parser.add_argument("--onlyS", default=False, action="store_true" , help="Plot only the s orbital in the LDOS")
-parser.add_argument("--zoom", default=0.0, type=float)
-args = parser.parse_args()
-
-ry2ev = 1.0#13.6057
-
-if args.ev:
-    ry2ev = 13.6057 # Conversion of energy units
 
 if(ry2ev != 1.0):
   label = r'$E-E_F$ [eV]'
@@ -54,11 +27,11 @@ else:
     # colors = np.array(['k', 'g', 'r', 'b']) # The colors you wish to cycle through
     legends = np.array(['Total', 's', 'p', 'd'])
 
-bsstruct = args.fileband
+bsstruct = args.files[0]#args.fileband
 
-ldosu = args.fileu
-ldosd = args.filed
-filename = 'BS_LDOS.pdf'
+ldosu = args.files[1] #args.fileu
+ldosd = args.files[2] #args.filed
+filename = args.output
 fig, ax = plt.subplots(1,3, sharey=True, gridspec_kw = {'width_ratios':[1,4,1]})
 fig.subplots_adjust(wspace=0.15)
 
@@ -123,12 +96,12 @@ def read_data_ldos(filename):
   ndata = np.array(data)
   return ndata
 
-npoints, name, point, fermi = read_header(args.fileband)
-table = read_data(args.fileband)
-fermi_ldos = read_header_ldos(args.fileu)
+npoints, name, point, fermi = read_header(args.files[0])
+table = read_data(args.files[0])
+fermi_ldos = read_header_ldos(args.files[1])
 
-ndatau=read_data_ldos(args.fileu)
-ndatad=read_data_ldos(args.filed)
+ndatau=read_data_ldos(args.files[1])
+ndatad=read_data_ldos(args.files[2])
 
 ndatau = ndatau[ndatau[:,0].argsort()]
 ndatad = ndatad[ndatad[:,0].argsort()]
