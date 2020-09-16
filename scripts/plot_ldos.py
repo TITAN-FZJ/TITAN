@@ -1,63 +1,7 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import sys
-import matplotlib as mpl                      # Plotting library
-from matplotlib import rc                     # Improve math fonts
-from mpl_toolkits.axes_grid1 import AxesGrid  # Grid plotting
-import matplotlib.colors as colors            # Color selection and manipulation
-from scipy import integrate
-import argparse
-
-
-rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
-## for Palatino and other serif fonts use:
-# rc('font',**{'family':'serif','serif':['Palatino']})
-mpl.rcParams['text.usetex'] = True
-mpl.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}',r'\usepackage{siunitx}']
-# matplotlib.rcParams['text.latex.preamble'] = [r'\renewcommand{\seriesdefault}{\bfdefault}',r'\boldmath']
-#matplotlib.rcParams['text.latex.preamble'] = [r'\boldmath']
-# rc('mathtext', default='regular')
-# Default fonts
-mpl.rcParams['font.size']        = 12
-mpl.rcParams['font.family']      = 'Arial'
-mpl.rcParams['figure.titlesize'] = 'large'
-mpl.rcParams['axes.titlepad'] = 10
-mpl.rcParams['lines.linewidth']  = 2
-#Legends:
-mpl.rcParams['legend.fontsize']  = 'medium'
-mpl.rcParams['legend.fancybox'] = False
-# rcParams['legend.loc'] = 'upper left'`
-mpl.rcParams['legend.framealpha'] = None
-mpl.rcParams['legend.edgecolor'] = 'inherit'
-mpl.rcParams['legend.handlelength'] = 2
-mpl.rcParams["font.weight"] = "bold"
-mpl.rcParams["axes.labelweight"] = "bold"
-
-
-ry2ev = 1.0
-
-parser = argparse.ArgumentParser(description="Parse bool")
-parser.add_argument("files", nargs="+", help="File(s) to plot")
-parser.add_argument('--orbitals', help='Array of integers', default="[]")
-parser.add_argument('--legends' , help='Array of legends', default="[]")
-parser.add_argument('--output', help='Output file', default="LDOS.pdf")
-parser.add_argument('--title' , help='Title of the graph', default="")
-parser.add_argument('--xlim' , help='Limit of x-axis', default="")
-parser.add_argument('--ylim' , help='Limit of y-axis', default="")
-parser.add_argument('--domain' , help='Limit of x-axis', default="")
-parser.add_argument('--total' , default=False, action="store_true" , help='Plot the total DOS')
-parser.add_argument('--integrated' , default=False, action="store_true" , help='Plot the integrated DOS')
-parser.add_argument("--superconductivity", default=False, action="store_true" , help="Flag to plot the bands as for superconductors")
-parser.add_argument("--mev", default=False, action="store_true" , help="use meV")
-parser.add_argument("--ev", default=False, action="store_true" , help="use eV")
-args = parser.parse_args()
-
-if args.mev:
-    ry2ev = 13.6057*1000 # Conversion of energy units
-
-if args.ev:
-    ry2ev = 13.6057 # Conversion of energy units
-
+################################################################################
+# Import the arguments and style
+################################################################################
+from head import *
 
 ################################################################################
 # Get the header from the file

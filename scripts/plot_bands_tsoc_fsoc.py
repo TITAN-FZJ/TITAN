@@ -1,33 +1,7 @@
-import numpy as np 
-import matplotlib.pyplot as plt 
-import pandas as pd                           # Python Data Analysis Library
-import sys
-import matplotlib as mpl                      # Plotting library
-from matplotlib import rc                     # Improve math fonts
-rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
-## for Palatino and other serif fonts use:
-# rc('font',**{'family':'serif','serif':['Palatino']})
-mpl.rcParams['text.usetex'] = True
-mpl.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}',r'\usepackage{siunitx}']
-# matplotlib.rcParams['text.latex.preamble'] = [r'\renewcommand{\seriesdefault}{\bfdefault}',r'\boldmath']
-#matplotlib.rcParams['text.latex.preamble'] = [r'\boldmath']
-# rc('mathtext', default='regular')
-# Default fonts
-mpl.rcParams['font.size']        = 12
-mpl.rcParams['font.family']      = 'Arial'
-mpl.rcParams['figure.titlesize'] = 'large'
-mpl.rcParams['axes.titlepad'] = 10
-mpl.rcParams['lines.linewidth']  = 2
-#Legends:
-mpl.rcParams['legend.fontsize']  = 'medium'
-mpl.rcParams['legend.fancybox'] = False
-# rcParams['legend.loc'] = 'upper left'`
-mpl.rcParams['legend.framealpha'] = None
-mpl.rcParams['legend.edgecolor'] = 'inherit'
-mpl.rcParams['legend.handlelength'] = 2
-mpl.rcParams["font.weight"] = "bold"
-mpl.rcParams["axes.labelweight"] = "bold"
-
+################################################################################
+# Import the arguments and style
+################################################################################
+from head import *
 
 ################################################################################
 # Get the header from the file
@@ -72,15 +46,15 @@ def read_data(filename):
 # Main program
 ################################################################################
 if __name__ == "__main__":
-  numplots = len(sys.argv)-1
+  numplots = 2
   titles = ["Band Structure w/o SOI", "Band Structure with SOI"]
 
   fig, axs = plt.subplots(1, numplots, sharey=True, squeeze=False, figsize=(5*numplots, 5))
   axs[0,0].set_ylabel("Energy [Ry]")
 
   for i in range(numplots):
-    npoints, name, point, fermi = read_header(sys.argv[i+1])
-    table = read_data(sys.argv[i+1])
+    npoints, name, point, fermi = read_header(args.files[i])
+    table = read_data(args.files[i])
     axs[0,i].set_title(titles[i])
     axs[0,i].set_xlim([point[0],point[npoints-1]])
     # axs[0,i].set_ylim(table[:,1:].min(),table[:,1:].max())
