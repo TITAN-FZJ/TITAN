@@ -11,10 +11,12 @@ from head import *
 
 nSites=1
 
-if(ry2ev != 1.0):
-  label = r'$E-E_F$ [eV]'
+if(ry2ev == 13.6057*1000):
+  labely = r'$E-E_F$ [meV]'
+elif(ry2ev == 13.6057):
+  labely = r'$E-E_F$ [eV]'
 else:
-  label = r'$E-E_F$ [Ry]'
+  labely = r'$E-E_F$ [Ry]'
 
 if args.superconductivity:
     # colors = brewer2mpl.get_map('Set1', 'qualitative', 5).mpl_colors
@@ -39,9 +41,8 @@ if args.title != "":
     fig.suptitle(args.title,fontsize=24)
 
 ax[0].tick_params(axis='y', direction='in', left=True, right=True)
-ax[0].set_ylabel(label, fontsize=14)
+ax[0].set_ylabel(labely, fontsize=14)
 ax[2].tick_params(axis='y', direction='in', left=True, right=True)
-
 
 fermi = 0.0
 

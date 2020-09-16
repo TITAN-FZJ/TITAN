@@ -65,10 +65,18 @@ if __name__ == "__main__":
   if args.superconductivity:
     if args.together:
       numplots = 1
-      titles = [r"Band Structure"] 
+      titles = [r"Band Structure"]
 
       fig, axs = plt.subplots(1, numplots, sharey=True, squeeze=False, figsize=(6*numplots, 5))
-      axs[0,0].set_ylabel("Energy [Ry]")
+
+      if(ry2ev == 13.6057*1000):
+        labely = r'$E-E_F$ [meV]'
+      elif(ry2ev == 13.6057):
+        labely = r'$E-E_F$ [eV]'
+      else:
+        labely = r'$E-E_F$ [Ry]'
+
+      axs[0,0].set_ylabel(labely)
 
       for i in range(numplots):
         npoints, name, point, fermi, dimbs = read_header(args.files[0])
@@ -105,8 +113,8 @@ if __name__ == "__main__":
         else: # band structure
           # axs[0,i].plot(table[:,0],table[:,(table.shape[1]-1)/2+1:]-fermi, color='r', linewidth=1.0, linestyle='-')
           # axs[0,i].plot(table[:,0],table[:,1:(table.shape[1]-1)/2] + fermi, color='k', linewidth=1.0, linestyle='-')
-          axs[0,i].plot(table[:,0],table[:,(table.shape[1]-1)/2+1:], color='r', linewidth=1.0, linestyle='-')
-          axs[0,i].plot(table[:,0],table[:,1:(table.shape[1]-1)/2+1], color='k', linewidth=1.0, linestyle='-')
+          axs[0,i].plot(table[:,0],table[:,(table.shape[1]-1)/2+1:]*ry2ev, color='r', linewidth=1.0, linestyle='-')
+          axs[0,i].plot(table[:,0],table[:,1:(table.shape[1]-1)/2+1]*ry2ev, color='k', linewidth=1.0, linestyle='-')
 
         plt.tight_layout()
         # plt.savefig("gaps2.png",dpi=900)
@@ -119,7 +127,15 @@ if __name__ == "__main__":
       # titles = [r"$\eta=5\times10^{-3}$", r"$\eta=5\times10^{-4}$"])
 
       fig, axs = plt.subplots(1, numplots, sharey=True, squeeze=False, figsize=(6*numplots, 5))
-      axs[0,0].set_ylabel("Energy [Ry]")
+
+      if(ry2ev == 13.6057*1000):
+        labely = r'$E-E_F$ [meV]'
+      elif(ry2ev == 13.6057):
+        labely = r'$E-E_F$ [eV]'
+      else:
+        labely = r'$E-E_F$ [Ry]'
+
+      axs[0,0].set_ylabel(labely)
 
       for i in range(numplots):
         npoints, name, point, fermi, dimbs = read_header(args.files[0])
@@ -154,9 +170,9 @@ if __name__ == "__main__":
           axs[0,i].plot(table[:,1],-1.0/table[:,2])
         else: # band structure
           if(i==0):
-            axs[0,i].plot(table[:,0],table[:,(table.shape[1]-1)/2+1:], color='r', linewidth=1.0, linestyle='-')
+            axs[0,i].plot(table[:,0],table[:,(table.shape[1]-1)/2+1:]*ry2ev, color='r', linewidth=1.0, linestyle='-')
           else:
-            axs[0,i].plot(table[:,0],table[:,1:(table.shape[1]-1)/2], color='k', linewidth=1.0, linestyle='-')
+            axs[0,i].plot(table[:,0],table[:,1:(table.shape[1]-1)/2]*ry2ev, color='k', linewidth=1.0, linestyle='-')
 
       plt.tight_layout()
       plt.show()
@@ -168,7 +184,15 @@ if __name__ == "__main__":
     # titles = [r"$\eta=5\times10^{-3}$", r"$\eta=5\times10^{-4}$"])
 
     fig, axs = plt.subplots(1, numplots, sharey=True, squeeze=False, figsize=(6*numplots, 5))
-    axs[0,0].set_ylabel("Energy [Ry]")
+
+    if(ry2ev == 13.6057*1000):
+      labely = r'$E-E_F$ [meV]'
+    elif(ry2ev == 13.6057):
+      labely = r'$E-E_F$ [eV]'
+    else:
+      labely = r'$E-E_F$ [Ry]'
+
+    axs[0,0].set_ylabel(labely)
 
     for i in range(numplots):
       npoints, name, point, fermi, dimbs = read_header(args.files[0])
@@ -206,7 +230,7 @@ if __name__ == "__main__":
       if (fermi == None): # susceptibility
         axs[0,i].plot(table[:,1],-1.0/table[:,2])
       else: # band structure
-        axs[0,i].plot(table[:,0],table[:,1:dimbs], color='k', linewidth=1.0, linestyle='-')
+        axs[0,i].plot(table[:,0],table[:,1:dimbs]*ry2ev, color='k', linewidth=1.0, linestyle='-')
 
     plt.tight_layout()
     if args.output == "output.pdf":
