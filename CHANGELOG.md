@@ -8,6 +8,22 @@
 
 ### Added
 
+- Added flag '-align array64byte' to try to improve vectorisation
+
+### Changed
+
+- Changed some divisions by respective multiplications
+
+### Fixed
+
+- Time-propagated energy is now being reduced by MPI too
+
+======================================================================================================================
+
+## 2020-09-15
+
+### Added
+
 - Declarations of external functions to avoid warnings on new ifort version
 
 ### Changed

@@ -166,6 +166,7 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -qopenmp
                                                 -g
                                                 -mkl
+                                                -align array64byte
                                                 -xHost
                                                 )
   elseif(PLATFORM MATCHES juwels)
@@ -180,6 +181,7 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -DVERSION="${GIT_VERSION}"
                                                 -qopenmp
                                                 -g
+                                                -align array64byte
                                                 -mkl
                                                 )
   elseif(PLATFORM MATCHES jusuf)
@@ -192,6 +194,7 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -qopenmp
                                                 -g
                                                 -mkl
+                                                -align array64byte
                                                 -xHost
                                                 )
   elseif(PLATFORM MATCHES osx)
@@ -204,6 +207,7 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -qopenmp
                                                 -g
                                                 -mkl
+                                                -align array64byte
                                                 -xHost
                                                 )
   elseif(PLATFORM MATCHES booster)
@@ -221,6 +225,7 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -g
                                                 -I$ENV{HOME}/BoosterNAG/nag_interface_blocks
                                                 -xMIC-AVX512
+                                                -align array64byte
                                                 -qopenmp
                                                 )
   elseif(PLATFORM MATCHES rwth)
@@ -233,6 +238,7 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -g
                                                 -mkl
                                                 $ENV{FLAGS_NAG_INCLUDE}
+                                                -align array64byte
                                                 -xHost
                                                 )
   elseif(PLATFORM MATCHES iff)
@@ -244,6 +250,7 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -qopenmp
                                                 -g
                                                 -mkl
+                                                -align array64byte
                                                 -xHost
                                                 )
   elseif(PLATFORM MATCHES hlrs)
@@ -255,6 +262,7 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -DVERSION="${GIT_VERSION}"
                                                 -qopenmp
                                                 -g
+                                                -align array64byte
                                                 -mkl
                                                 )
   else()
@@ -268,6 +276,7 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 #-ipo
                                                 #-qopt-report=5
                                                 -g
+                                                -align array64byte
                                                 -xHost
                                                 )
   endif(PLATFORM MATCHES jureca)

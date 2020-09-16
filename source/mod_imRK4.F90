@@ -6,7 +6,7 @@ module mod_imRK4
 
   abstract interface
     subroutine td_hamilt_sub(s,t,ik,kp,eval,hamilt_t,hamilt_0)
-      use mod_kind, only: dp,int64
+      use mod_kind,        only: dp,int64
       use mod_system,      only: System_type
       use mod_parameters,  only: dimH
       implicit none
@@ -22,23 +22,23 @@ module mod_imRK4
 contains
   ! subroutine to find the vectors Z_ki
   subroutine iterate_Zki(s,t,ik,kp,eval,step,Yn_new,Yn,Yn_hat)
-    use mod_kind, only: dp,int64
+    use mod_kind,             only: dp,int64
     use mod_parameters,       only: dimH
     use mod_system,           only: System_type
     use mod_imRK4_parameters, only: dimH2, sc_tol
     use mod_tools,            only: vec_norm, LS_solver
     use mod_constants,        only: cZero
-    use mod_RK_matrices
+    use mod_RK_matrices,      only: d1,d2,d1_hat,d2_hat
     implicit none
     ! define the variables: 
-    type(System_type)            , intent(in)    :: s
-    real(dp)                     , intent(in)    :: t
-    integer(int64)               , intent(in)    :: ik
-    real(dp)                     , intent(in)    :: kp(3)
-    real(dp)                     , intent(in)    :: eval
-    complex(dp), dimension(dimH) , intent(inout) :: Yn_new, Yn_hat, Yn
+    type(System_type)           , intent(in)    :: s
+    real(dp)                    , intent(in)    :: t
+    integer(int64)              , intent(in)    :: ik
+    real(dp)                    , intent(in)    :: kp(3)
+    real(dp)                    , intent(in)    :: eval
+    complex(dp), dimension(dimH), intent(inout) :: Yn_new, Yn_hat, Yn
    
-    integer                                 :: k
+    integer                             :: k
     real(dp)                            :: step, error, norm_k_old, norm_k_new, theta_k, eta_k, tol
     complex(dp), dimension(dimH2)       :: deltaZ_k_old, deltaZ_k  
     complex(dp), dimension(dimH2,dimH2) :: M2n
@@ -100,7 +100,7 @@ contains
 
 ! Subroutine to build the matrix M_2n
   subroutine M_2n(s,t,ik,kp,eval,Yn,step,M2n)
-    use mod_kind, only: dp,int64
+    use mod_kind,             only: dp,int64
     use mod_parameters,       only: dimH
     use mod_system,           only: System_type
     use mod_imRK4_parameters, only: dimH2
@@ -127,7 +127,7 @@ contains
 
   !> subroutine f(Z_k) that builds the right side of the linear system.
   subroutine Fsystem(s,t,ik,kp,eval,Yn,step,Z_k,Fun) 
-    use mod_kind, only: dp,int64
+    use mod_kind,             only: dp,int64
     use mod_constants,        only: cI
     use mod_parameters,       only: dimH
     use mod_imRK4_parameters, only: dimH2
@@ -161,7 +161,7 @@ contains
 
   !> build time dependent jacobian for each kp 
   subroutine build_td_Jacobian(s,t,ik,kp,eval,Yn,Jacobian_t)
-    use mod_kind, only: dp,int64
+    use mod_kind,       only: dp,int64
     use mod_constants,  only: cI
     use mod_parameters, only: dimH
     use mod_system,     only: System_type
@@ -188,7 +188,7 @@ contains
   !> Calculate the last term of the Jacobian
   !> Given by \sum_j <i| dH/dc^n_k |j> * c_j^n(t)
   subroutine build_term_Jacobian(s, eval, Yn, dHdc)
-    use mod_kind, only: dp
+    use mod_kind,          only: dp
     use mod_parameters,    only: nOrb, dimH, Um, Un, isigmamu2n, eta
     use mod_system,        only: System_type
     use mod_distributions, only: fd_dist
@@ -231,7 +231,7 @@ contains
   !> build time dependent Hamiltonian for each kp 
   !> H(t) = hk + hext_t
   subroutine build_td_hamilt(s,t,ik,kp,eval,hamilt_t, hamilt_0)
-    use mod_kind, only: dp,int64
+    use mod_kind,        only: dp,int64
     use mod_system,      only: System_type
     use mod_parameters,  only: dimH
     use mod_RK_matrices, only: id
@@ -243,7 +243,7 @@ contains
     real(dp),             intent(in)  :: kp(3)
     complex(dp),          intent(out) :: hamilt_t(dimH,dimH), hamilt_0(dimH,dimH)
 
-    complex(dp), dimension(dimH,dimH)  :: hk,hext_t
+    complex(dp), dimension(dimH,dimH) :: hk,hext_t
 
     ! Calculating the "ground state" Hamiltonian for a given k-point (with time-dependent expectation values included)
     call hamiltk(s,kp,hk)
@@ -269,7 +269,7 @@ contains
   !> build time dependent Hamiltonian for each kp using full hamiltonian previously calculated
   !> H(t) = hk + hext_t
   subroutine build_td_hamilt_full(s,t,ik,kp,eval,hamilt_t, hamilt_0)
-    use mod_kind, only: dp,int64
+    use mod_kind,        only: dp,int64
     use mod_system,      only: System_type
     use mod_parameters,  only: dimH
     use mod_RK_matrices, only: id
@@ -281,7 +281,7 @@ contains
     real(dp),             intent(in)  :: kp(3)
     complex(dp),          intent(out) :: hamilt_t(dimH,dimH), hamilt_0(dimH,dimH)
 
-    complex(dp), dimension(dimH,dimH)  :: hk,hext_t
+    complex(dp), dimension(dimH,dimH) :: hk,hext_t
 
     ! Calculating the "ground state" Hamiltonian for a given k-point (with time-dependent expectation values included)
     hk = h0 + fullhk(:,:,ik)
@@ -308,7 +308,7 @@ contains
   !> For a magnetic perturbation: H_ext(t)= S.B(t),  S= Pauli matricies
   !> For an electric perturbation: H_ext(t)= ((P-e*A)^2)/2*m, here only the linear term is implemented.
   subroutine build_hext(kp,t,hext_t)
-    use mod_kind, only: dp
+    use mod_kind,             only: dp
     use mod_constants,        only: cI,cZero
     use mod_imRK4_parameters, only: lelectric, lmagnetic
     use mod_System,           only: ia, s => sys
@@ -319,7 +319,7 @@ contains
     complex(dp), intent(out) :: hext_t(dimH,dimH)
 
     complex(dp)  :: hext(nOrb2,nOrb2), temp(nOrb,nOrb)
-    integer          :: i, j, k, mu, nu
+    integer      :: i, j, k, mu, nu
     real(dp)     :: b_field(3), A_t(3)
     complex(dp)  :: kpExp, kpA_t
 
@@ -338,7 +338,7 @@ contains
       end do
 
       do i=1, s%nAtoms
-        hext_t(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = hext(1:nOrb2,1:nOrb2)
+        hext_t(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = hext
       end do
     end if
 
@@ -356,32 +356,32 @@ contains
 
         do i = 1,s%nAtoms
           if(s%Neighbors(k)%isHopping(i)) then
-            kpA_t = exp(-cI * dot_product(A_t, s%Basis(i)%Position(:)-(s%Basis(j)%Position(:)+s%Neighbors(k)%CellVector))) 
+            kpA_t =  kpExp * ( exp(-cI * dot_product(A_t, s%Basis(i)%Position(:)-(s%Basis(j)%Position(:)+s%Neighbors(k)%CellVector))) - 1._dp) ! The -1._dp term is to discount the usual t(k) term that is already included in H_0
 
-            temp(1:nOrb,1:nOrb) = s%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp * (kpA_t - 1._dp) ! The -1._dp term is to discount the usual t(k) term that is already included in H_0
+            !DIR$ VECTOR ALIGNED
+            temp = s%Neighbors(k)%t0i(:,:,i) * kpA_t 
             ! Spin-up
-            hext_t(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hext_t(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + temp(1:nOrb,1:nOrb)
+            hext_t(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hext_t(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + temp
             ! Spin-down
-            hext_t(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hext_t(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + temp(1:nOrb,1:nOrb)
+            hext_t(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hext_t(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + temp
           end if
         end do
       end do
-
     end if
 
   end subroutine build_hext
 
   !> subroutine to calculate the error in the step size control
   subroutine calculate_step_error(Yn,Yn_new,Yn_hat,ERR_kn)
-    use mod_kind, only: dp
+    use mod_kind,             only: dp
     use mod_parameters,       only: dimH
     use mod_imRK4_parameters, only: abs_tol, rel_tol
     implicit none
     complex(dp), dimension(dimH), intent(in) :: Yn, Yn_new, Yn_hat
-    real(dp), dimension(dimH)                :: Eta
     real(dp),                     intent(out):: ERR_kn
+    real(dp), dimension(dimH)                :: Eta
     real(dp)                                 :: ERR_i
-    integer                                      :: i
+    integer                                  :: i
 
     ! Find the difference Eta in the two solutions Yn_new and Yn_hat
     Eta = abs(Yn_new - Yn_hat)
@@ -398,13 +398,13 @@ contains
 
 
  subroutine magnetic_field(t,b_field)
-    use mod_kind, only: dp
+    use mod_kind,             only: dp
     use mod_imRK4_parameters, only: hw1_m, hw_m, npulse_m, lpulse_m, tau_m, delay_m, polarization_vec_m
     use mod_constants,        only: pi
     implicit none
     real(dp) , intent(in)  :: t
     real(dp) , intent(out) :: b_field(3)
-    integer      :: np
+    integer  :: np
     real(dp) :: delay, arg
 
     b_field(:) = 0._dp
@@ -438,13 +438,13 @@ contains
   !> A_t  = (-hE_0/hw_e)     * (A cos(pi*(t-delay_e)/tau_e) )^2 * sin(hw_e*t)
   ! center the vector potential at delay_e
   subroutine vector_potential(t, A_t)
-    use mod_kind, only: dp
+    use mod_kind,             only: dp
     use mod_imRK4_parameters, only: hE_0, hw_e, lpulse_e, npulse_e, tau_e, delay_e, polarization_vec_e
     use mod_constants,        only: pi
     implicit none 
     real(dp) , intent(in)  :: t
     real(dp) , intent(out) :: A_t(3)
-    integer      :: np
+    integer  :: np
     real(dp) :: delay, arg
 
     A_t(:) = 0._dp
@@ -475,13 +475,13 @@ contains
   !> A_t  = (-hE_0/hw_e)     * (A cos(pi*(t-delay_e)/tau_e) )^2 * sin(hw_e*t)
   ! center the vector potential at delay_e
   subroutine electric_field(t, E_t)
-    use mod_kind, only: dp
+    use mod_kind,             only: dp
     use mod_imRK4_parameters, only: hE_0, hw_e, lpulse_e, npulse_e, tau_e, delay_e, polarization_vec_e
     use mod_constants,        only: pi
     implicit none 
     real(dp) , intent(in)  :: t
     real(dp) , intent(out) :: E_t(3)
-    integer      :: np
+    integer  :: np
     real(dp) :: delay, arg
 
     E_t(:) = 0._dp

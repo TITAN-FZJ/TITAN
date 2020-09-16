@@ -392,7 +392,7 @@ contains
 
       do n = 1,dimens
         f_n_negative(n) = fd_dist(fermi, beta, -eval(n))
-        tanh_n(n) = tanh(eval(n)*beta/2._dp)
+        tanh_n(n) = tanh(eval(n)*beta*0.5_dp)
       end do
 
       do i = 1,s%nAtoms; do mu = 1,nOrb
@@ -508,7 +508,7 @@ contains
     else
 
       f_n_negative = fd_dist(fermi, beta, -eval)
-      tanh_n = tanh(eval*beta/2._dp)
+      tanh_n = tanh(eval*beta*0.5_dp)
 
       do i = 1,s%nAtoms; do mu = 1,nOrb
         ! up spin (using u's) + down spin (using v's)

@@ -15,7 +15,7 @@ module mod_RK_matrices
   real(dp)                   , parameter   :: d2_hat= -0.46410171_dp
   real(dp)                   , parameter   :: c1= 0.21132486540518713_dp
   real(dp)                   , parameter   :: c2= 0.5288675134594812_dp
-  real(dp)                   , parameter   :: c_avg= (c1+c2)/2._dp
+  real(dp)                   , parameter   :: c_avg= (c1+c2)*0.5_dp
 contains
 
   ! subroutine for identity matricies of dimension dim_I. 

@@ -60,12 +60,12 @@ contains
       select case(sys0(i)%Types(1)%isysdim)
       case(3)
         sys0(i)%isysdim = 3
-        realBZ % nkpt_x = ceiling((dble(kptotal_in))**(1._dp/3._dp),kind(kp_in(1)) )
+        realBZ % nkpt_x = ceiling((dble(kptotal_in))**(0.333333333333333_dp),kind(kp_in(1)) )
         realBZ % nkpt_y = realBZ % nkpt_x
         realBZ % nkpt_z = realBZ % nkpt_x
       case(2)
         sys0(i)%isysdim = 2
-        realBZ % nkpt_x = ceiling((dble(kptotal_in))**(1._dp/2._dp),kind(kp_in(1)) )
+        realBZ % nkpt_x = ceiling((dble(kptotal_in))**(0.5_dp),kind(kp_in(1)) )
         realBZ % nkpt_y = realBZ % nkpt_x
         realBZ % nkpt_z = 1
       case default

@@ -129,10 +129,10 @@ contains
       kptotal_in = int( i_vector(1), kind(kptotal_in) )
       select case(s%isysdim)
       case(3)
-        kp_in(:)   = ceiling((dble(kptotal_in))**(1._dp/3._dp), kind(kp_in(1)) )
+        kp_in(:)   = ceiling((dble(kptotal_in))**(0.333333333333333_dp), kind(kp_in(1)) )
         kptotal_in = int( kp_in(1) * kp_in(2) * kp_in(3), kind(kptotal_in) )
       case(2)
-        kp_in(1:2) = ceiling((dble(kptotal_in))**(1._dp/2._dp), kind(kp_in(1)) )
+        kp_in(1:2) = ceiling((dble(kptotal_in))**(0.5_dp), kind(kp_in(1)) )
         kp_in(3)   = 1
         kptotal_in = int( kp_in(1) * kp_in(2), kind(kptotal_in) )
       case default

@@ -29,7 +29,7 @@ contains
     type(System_type), intent(in)   :: s
 
     integer(int32)                              :: i, it, n, counter, iter_rej, iter_tot
-    real(dp)                                    :: t, p, h_new, h_old, ERR_old, ERR_kn
+    real(dp)                                    :: t, pinv, h_new, h_old, ERR_old, ERR_kn
     complex(dp), dimension(dimH)                :: Yn, Yn_hat, Yn_new, Yn_e, Yn_hat_e, Yn_new_e
     complex(dp), dimension(:,:,:), allocatable  :: evec_kn,evec_kn_temp
     real(dp),    dimension(:,:),   allocatable  :: eval_kn
@@ -228,18 +228,19 @@ contains
         call MPI_Allreduce(MPI_IN_PLACE, rho_t, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
         call MPI_Allreduce(MPI_IN_PLACE, mz_t , ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
         call MPI_Allreduce(MPI_IN_PLACE, mp_t , ncount, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
-        call MPI_Allreduce(MPI_IN_PLACE, ERR  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, E_t  , 1     , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, ERR  , 1     , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
 
         ERR = sqrt(ERR)
         ! Find the new step size h_new
         ! h_new = safe_factor * h_used / (ERR)^(1/p+1) where p = 2*s, safe_factor is some safety factor 
         ! safe_factor = 0.9 * (2*K_max + 1)/ (2*K_max + NEWT) where NEWT is the number of newton iterations
-        p = 2.0*size(A,1) 
+        pinv = 0.5_dp/size(A,1) 
         ! h_new = safe_factor * step * (ERR)**(-1.0/(2.0*s)) !! simpler formula
         if (counter /= 0) then
-          h_new = safe_factor * step * (ERR)**(-1.0/p) * (step/h_old) * (ERR_old/ERR)**(1.0/p)!! Gustafsson (1994) formula          
+          h_new = safe_factor * step * (ERR)**(-pinv) * (step/h_old) * (ERR_old/ERR)**(pinv)!! Gustafsson (1994) formula          
         else 
-          h_new = safe_factor * step * (ERR)**(-1.0/p)
+          h_new = safe_factor * step * (ERR)**(-pinv)
         end if 
         ! Tests if the step size is good:
         ! the condition (h_new < safe_factor * step) is equivalent to the condition (ERR > 1)
