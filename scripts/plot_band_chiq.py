@@ -103,10 +103,6 @@ if __name__ == "__main__":
           else: # band structure
             axs[0,i].axhline(y=0.0, color='b', linestyle='--', linewidth=0.5)
 
-        # for j in enumerate(table[:,1]):
-        #   if j[1] == point[4]:
-        #     print 'Value at ',name[4],': ',-1.0/table[j[0],2]
-
         # Plotting the results
         if (fermi == None): # susceptibility
           axs[0,i].plot(table[:,1],-1.0/table[:,2])
@@ -221,10 +217,6 @@ if __name__ == "__main__":
           axs[0,i].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='-', linewidth=0.5)
         else: # band structure
           axs[0,i].axhline(y=fermi, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--', linewidth=0.5)
-
-      # for j in enumerate(table[:,1]):
-      #   if j[1] == point[4]:
-      #     print 'Value at ',name[4],': ',-1.0/table[j[0],2]
 
       # Plotting the results
       if (fermi == None): # susceptibility
