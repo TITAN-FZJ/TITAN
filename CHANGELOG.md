@@ -4,6 +4,20 @@
 
 ======================================================================================================================
 
+## 2020-09-18
+
+### Changed
+
+- Moved 'build_hext' to 'mod_hamiltonian'
+- Moved calls to 'vector_potential' and 'magnetic_field' outside (to t loop)
+- Moved calculation of 'hamilt_nof = ( eval_kn(n,ik) * id ) - hk' outside (to mod_time_propagator)
+- 'td_hamilt' and the respective procedures were not necessary anymore
+- Added if( lfullhk ) to initial call to hamiltk
+- Changed KronProd from subroutine to function
+- Simplified LS_Solver
+
+======================================================================================================================
+
 ## 2020-09-15
 
 ### Added

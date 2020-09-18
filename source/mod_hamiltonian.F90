@@ -275,4 +275,67 @@ contains
     end do
   end subroutine hamiltklinearsoc
 
+  !> build time dependent external perturbation Hamiltonian
+  !> For a magnetic perturbation: H_ext(t)= S.B(t),  S= Pauli matricies
+  !> For an electric perturbation: H_ext(t)= ((P-e*A)^2)/2*m, here only the linear term is implemented.
+  subroutine build_hext(kp,b_field,A_t,hext_t)
+    use mod_kind,             only: dp
+    use mod_constants,        only: cI,cZero
+    use mod_imRK4_parameters, only: lelectric, lmagnetic
+    use mod_System,           only: ia, s => sys
+    use mod_parameters,       only: nOrb,nOrb2,dimH
+    implicit none
+    real(dp),    intent(in)  :: kp(3)
+    real(dp),    intent(in)  :: b_field(3), A_t(3)
+    complex(dp), intent(out) :: hext_t(dimH,dimH)
+
+    complex(dp)  :: hext(nOrb2,nOrb2), temp(nOrb,nOrb)
+    integer      :: i, j, k, mu, nu
+    complex(dp)  :: kpExp, kpA_t
+
+    hext_t = cZero
+
+    hext = cZero
+    if(lmagnetic) then
+      do mu=1,nOrb
+        nu=mu+nOrb
+        hext(mu,mu) = hext(mu,mu) + b_field(3)
+        hext(nu,nu) = hext(nu,nu) - b_field(3)
+        hext(nu,mu) = hext(nu,mu) + b_field(1)-cI*b_field(2)
+        hext(mu,nu) = conjg(hext(nu,mu))
+      end do
+
+      do i=1, s%nAtoms
+        hext_t(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = hext
+      end do
+    end if
+
+    ! The electric field is implemented via a vector potential-renormalization of the hoppings,
+    ! as described in Eq. (12) of Ref.:
+    ! Electromagnetic fields and dielectric response in empirical tight-binding theory
+    ! M. Graf and P. Vogl Phys. Rev. B 51, 4940 (1995)
+    if(lelectric) then
+      ! Inter-site hopping terms
+      do k = 1, s%nNeighbors
+        j = s%Neighbors(k)%BasisIndex
+        ! exp(ik.(R_i-R_j))
+        kpExp = exp( cI * dot_product(kp , s%Neighbors(k)%CellVector))
+
+        do i = 1,s%nAtoms
+          if(s%Neighbors(k)%isHopping(i)) then
+            kpA_t =  kpExp * ( exp(-cI * dot_product(A_t, s%Basis(i)%Position(:)-(s%Basis(j)%Position(:)+s%Neighbors(k)%CellVector))) - 1._dp) ! The -1._dp term is to discount the usual t(k) term that is already included in H_0
+
+            !DIR$ VECTOR ALIGNED
+            temp = s%Neighbors(k)%t0i(:,:,i) * kpA_t 
+            ! Spin-up
+            hext_t(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hext_t(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + temp
+            ! Spin-down
+            hext_t(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hext_t(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + temp
+          end if
+        end do
+      end do
+    end if
+
+  end subroutine build_hext
+
 end module mod_hamiltonian

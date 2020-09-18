@@ -404,23 +404,23 @@ contains
   !    This subroutine calculates the outer product (Kronecker product)
   ! of two matrices A(nax,nay) and B(nbx,nby)
   ! --------------------------------------------------------------------
-  subroutine KronProd(nax,nay,nbx,nby,A,B,AB)
+  function KronProd(nax,nay,nbx,nby,A,B) result(AB)
     use mod_kind, only: dp
     implicit none
-    integer,         intent(in)  :: nax, nay, nbx, nby
+    integer,     intent(in)  :: nax, nay, nbx, nby
     complex(dp), intent(in)  :: A(nax,nay), B(nbx,nby) 
-    complex(dp), intent(out) :: AB(nax*nbx,nay*nby) 
-    integer                      :: i, j, p, q, l, m                                              
+    complex(dp) :: AB(nax*nbx,nay*nby) 
+    integer     :: i, j, p, q, l, m                                              
     do i = 1,nax
       do j = 1,nay
         l=(i-1)*nbx + 1
         m=l+nbx-1
         p=(j-1)*nby + 1
         q=p+nby-1
-        AB(l:m,p:q) = A(i,j)*B
+        AB(l:m,p:q) = A(i,j)*B(:,:)
       end do
     end do
-  end subroutine KronProd
+  end function KronProd
 
   ! --------------------------------------------------------------------
   ! function vec_norm_complex():
@@ -430,11 +430,11 @@ contains
   function vec_norm_complex(v, dim_v)
     use mod_kind, only: dp
     implicit none
-    integer,                           intent(in) :: dim_v ! vector dimension
+    integer,                       intent(in) :: dim_v ! vector dimension
     complex(dp), dimension(dim_v), intent(in) :: v ! vector v
     real(dp)                                  :: vec_norm_complex
     real(dp)                                  :: sum
-    integer                                       :: i
+    integer                                   :: i
 
     sum= 0._dp
     !$omp simd reduction(+:sum)
@@ -485,7 +485,7 @@ contains
   function normalize_real(v, dim_v)
     use mod_kind, only: dp
     implicit none
-    integer,                        intent(in) :: dim_v ! vector dimension
+    integer,                    intent(in) :: dim_v ! vector dimension
     real(dp), dimension(dim_v), intent(in) :: v ! vector v
     real(dp), dimension(dim_v)             :: normalize_real
 
@@ -502,70 +502,55 @@ contains
     use mod_kind, only: dp
     implicit none
     
-    integer,         intent(in)      :: n
+    integer,     intent(in)      :: n
     complex(dp), intent(inout)   :: a(n,n)
     complex(dp), intent(inout)   :: b(n)
     ! Workspace variables
-    integer                          :: nrhs, lda, ldb, ldx, info
-    integer,          allocatable    :: ipiv(:)
-    complex,          allocatable    :: swork(:)
-    complex(dp),      allocatable    :: work(:), X(:)
-    double precision, allocatable    :: rwork(:)
+    integer           :: info
+    integer           :: ipiv(n)
 
     external :: zgesv
 
-    lda= n
-    ldb=n
-    ldx= n
-    nrhs=1
-
-    allocate(rwork(n),swork(n*(n+1)),work(n), ipiv(n), X(n) )
-    ! call zcgesv( n, nrhs, a, lda, ipiv, b, ldb, X, ldx, work, swork, rwork, iter, info )
-    ! b = X
-    call zgesv( n, nrhs, a, lda, ipiv, b, ldb, info )
-    
-    if (info /= 0) write(*,'("eigensolver: failure in zgesv")')
-    deallocate(work,swork,rwork,ipiv,X)
-    
-    end subroutine LS_solver
+    call zgesv( n, 1, a, n, ipiv, b, n, info )
+        
+  end subroutine LS_solver
 
 
+  ! --------------------------------------------------------------------
+  ! function invers(matriz,nn):
+  !    This subroutine calculates the inverse of nn x nn matrix 'matriz'
+  ! --------------------------------------------------------------------
+  subroutine invers(matriz,nn)
+    use, intrinsic :: iso_fortran_env
+    use mod_mpi_pars
+    use mod_parameters, only: output
+    implicit none
+    integer :: nn,info
+    integer :: lwork
+    integer,     dimension(nn)    :: ipiv
+    complex(dp), dimension(nn,nn) :: matriz
+    complex(dp), dimension(nn*4)  :: work
 
-    ! --------------------------------------------------------------------
-    ! function invers(matriz,nn):
-    !    This subroutine calculates the inverse of nn x nn matrix 'matriz'
-    ! --------------------------------------------------------------------
-    subroutine invers(matriz,nn)
-      use, intrinsic :: iso_fortran_env
-      use mod_mpi_pars
-      use mod_parameters, only: output
-      implicit none
-      integer :: nn,info
-      integer :: lwork
-      integer, dimension(nn) :: ipiv
-      complex(dp), dimension(nn,nn) :: matriz
-      complex(dp), dimension(nn*4) :: work
+    external :: zgetrf,zgetri
+    lwork = 4*nn
+    info = 0
+    call zgetrf(nn,nn,matriz,nn,ipiv,info)
+    if (info>0) then
+      write(output%unit,"('[invers] Singular matrix! info = ',i0,' on rank ',i0)") info,myrank
+      call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+    end if
+    if (info<0) then
+      write(output%unit,"('[invers] Illegal value of argument ',i0,' on rank ',i0)") -info,myrank
+      call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+    end if
+    call zgetri(nn,matriz,nn,ipiv,work,lwork,info)
 
-      external :: zgetrf,zgetri
-      lwork = 4*nn
-      info = 0
-      call zgetrf(nn,nn,matriz,nn,ipiv,info)
-      if (info>0) then
-        write(output%unit,"('[invers] Singular matrix! info = ',i0,' on rank ',i0)") info,myrank
-        call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-      end if
-      if (info<0) then
-        write(output%unit,"('[invers] Illegal value of argument ',i0,' on rank ',i0)") -info,myrank
-        call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-      end if
-      call zgetri(nn,matriz,nn,ipiv,work,lwork,info)
+    if (info/=0) then
+      write(output%unit,"('[invers] Singular matrix! info = ',i0,' on rank ',i0)") info,myrank
+      call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
+    end if
 
-      if (info/=0) then
-        write(output%unit,"('[invers] Singular matrix! info = ',i0,' on rank ',i0)") info,myrank
-        call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-      end if
-
-    end subroutine invers
+  end subroutine invers
 
 
   ! --------------------------------------------------------------------

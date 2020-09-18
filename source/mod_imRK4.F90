@@ -2,26 +2,9 @@
 module mod_imRK4
   implicit none
 
-  procedure(td_hamilt_sub), pointer :: td_hamilt => build_td_hamilt
-
-  abstract interface
-    subroutine td_hamilt_sub(s,t,ik,kp,eval,hamilt_t,hamilt_0)
-      use mod_kind,        only: dp,int64
-      use mod_system,      only: System_type
-      use mod_parameters,  only: dimH
-      implicit none
-      type(System_type),    intent(in)  :: s
-      real(dp),             intent(in)  :: t, eval
-      integer(int64),       intent(in)  :: ik
-      real(dp),             intent(in)  :: kp(3)
-      complex(dp),          intent(out) :: hamilt_t(dimH,dimH), hamilt_0(dimH,dimH)
-    end subroutine
-  end interface
-
-
 contains
   ! subroutine to find the vectors Z_ki
-  subroutine iterate_Zki(s,t,ik,kp,eval,step,Yn_new,Yn,Yn_hat)
+  subroutine iterate_Zki(s,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2,hamilt_nof,kp,eval,step,Yn_new,Yn,Yn_hat)
     use mod_kind,             only: dp,int64
     use mod_parameters,       only: dimH
     use mod_system,           only: System_type
@@ -31,12 +14,12 @@ contains
     use mod_RK_matrices,      only: d1,d2,d1_hat,d2_hat
     implicit none
     ! define the variables: 
-    type(System_type)           , intent(in)    :: s
-    real(dp)                    , intent(in)    :: t
-    integer(int64)              , intent(in)    :: ik
-    real(dp)                    , intent(in)    :: kp(3)
-    real(dp)                    , intent(in)    :: eval
-    complex(dp), dimension(dimH), intent(inout) :: Yn_new, Yn_hat, Yn
+    type(System_type),                 intent(in)    :: s
+    real(dp),    dimension(3),         intent(in)    :: b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2
+    complex(dp), dimension(dimH,dimH), intent(in)    :: hamilt_nof
+    real(dp),                          intent(in)    :: kp(3)
+    real(dp),                          intent(in)    :: eval
+    complex(dp), dimension(dimH),      intent(inout) :: Yn_new, Yn_hat, Yn
    
     integer                             :: k
     real(dp)                            :: step, error, norm_k_old, norm_k_new, theta_k, eta_k, tol
@@ -60,9 +43,9 @@ contains
     !
     sc_loop: do while (error >= sc_tol) 
       ! Build M2n matrix
-      call M_2n(s,t,ik,kp,eval,Yn,step,M2n)
+      call M_2n(s,b_fieldm,A_tm,hamilt_nof,kp,eval,Yn,step,M2n)
       ! Build Fun vector
-      call Fsystem(s,t,ik,kp,eval,Yn,step,Z_k,Fun)
+      call Fsystem(b_field1,A_t1,b_field2,A_t2,hamilt_nof,kp,Yn,step,Z_k,Fun)
       ! Solve the Ax=b linear equation (Eq. 24 of the notes)
       call LS_solver(dimH2,M2n,Fun)
 
@@ -99,7 +82,8 @@ contains
   end subroutine iterate_Zki
 
 ! Subroutine to build the matrix M_2n
-  subroutine M_2n(s,t,ik,kp,eval,Yn,step,M2n)
+! b_fieldm = b_field(t-step) , A_tm = A_t(t-step)
+  subroutine M_2n(s,b_fieldm,A_tm,hamilt_nof,kp,eval,Yn,step,M2n)
     use mod_kind,             only: dp,int64
     use mod_parameters,       only: dimH
     use mod_system,           only: System_type
@@ -107,77 +91,96 @@ contains
     use mod_RK_matrices,      only: A, id2
     use mod_tools,            only: KronProd
     implicit none
-    type(System_type)                  , intent(in)  :: s
-    real(dp)                           , intent(in)  :: t, step
-    integer(int64)                     , intent(in)  :: ik
-    real(dp)                           , intent(in)  :: kp(3)
-    real(dp)                           , intent(in)  :: eval
-    complex(dp), dimension(dimH)       , intent(in)  :: Yn
+    type(System_type),                   intent(in)  :: s
+    real(dp),    dimension(3),           intent(in)  :: b_fieldm,A_tm
+    real(dp),                            intent(in)  :: step
+    complex(dp), dimension(dimH,dimH),   intent(in)  :: hamilt_nof
+    real(dp),                            intent(in)  :: kp(3)
+    real(dp),                            intent(in)  :: eval
+    complex(dp), dimension(dimH),        intent(in)  :: Yn
     complex(dp), dimension(dimH2,dimH2), intent(out) :: M2n
 
     complex(dp), dimension(dimH,dimH)   :: Jacobian_t
     complex(dp), dimension(dimH2,dimH2) :: Kprod(dimH2,dimH2)
 
     ! Calculating the Jacobian at previous time
-    call build_td_Jacobian(s,t-step,ik,kp,eval,Yn,Jacobian_t)
+    call build_td_Jacobian(s,b_fieldm,A_tm,hamilt_nof,kp,eval,Yn,Jacobian_t)
 
-    call KronProd(size(A,1),size(A,1),dimH,dimH,A,Jacobian_t,Kprod)
+    Kprod = KronProd(size(A,1),size(A,1),dimH,dimH,A,Jacobian_t)
+
     M2n = id2 - step * Kprod
   end subroutine M_2n
 
   !> subroutine f(Z_k) that builds the right side of the linear system.
-  subroutine Fsystem(s,t,ik,kp,eval,Yn,step,Z_k,Fun) 
+  subroutine Fsystem(b_field1,A_t1,b_field2,A_t2,hamilt_nof,kp,Yn,step,Z_k,Fun) 
     use mod_kind,             only: dp,int64
-    use mod_constants,        only: cI
+    use mod_constants,        only: cI,cZero
     use mod_parameters,       only: dimH
     use mod_imRK4_parameters, only: dimH2
-    use mod_system,           only: System_type
-    use mod_RK_matrices,      only: M1, c1, c2
+    use mod_RK_matrices,      only: M1
+    use mod_hamiltonian,      only: build_hext
     implicit none
-    type(System_type)            , intent(in)  :: s
-    real(dp)                     , intent(in)  :: t,step,eval
-    integer(int64)               , intent(in)  :: ik
-    real(dp)                     , intent(in)  :: kp(3)
-    complex(dp), dimension(dimH) , intent(in)  :: Yn
-    complex(dp), dimension(dimH2), intent(in)  :: Z_k
-    complex(dp), dimension(dimH2), intent(out) :: Fun 
-    real(dp)                     :: t1, t2
-    complex(dp)                  :: hamilt_t(dimH,dimH), hamilt_0(dimH,dimH)
-    complex(dp), dimension(dimH) :: F1, F2   
+    real(dp),    dimension(3),         intent(in)  :: b_field1,A_t1,b_field2,A_t2
+    real(dp),                          intent(in)  :: step
+    complex(dp), dimension(dimH,dimH), intent(in)  :: hamilt_nof
+    real(dp),                          intent(in)  :: kp(3)
+    complex(dp), dimension(dimH) ,     intent(in)  :: Yn
+    complex(dp), dimension(dimH2),     intent(in)  :: Z_k
+    complex(dp), dimension(dimH2),     intent(out) :: Fun 
+    complex(dp)                   :: hamilt_t(dimH,dimH),hext_t(dimH,dimH)
+    complex(dp), dimension(dimH)  :: F1, F2, tempv
+    complex(dp), dimension(dimH2) :: temp
+    
+    external :: zgemv
 
-    t1 = t + step * c1
-    call td_hamilt(s,t1,ik,kp,eval,hamilt_t,hamilt_0)
-    F1 = -cI * matmul(hamilt_t,Z_k(1:dimH) + Yn)
+    ! Building time dependent hamiltonian
+    call build_hext(kp,b_field1,A_t1,hext_t)
+    hamilt_t = hamilt_nof - hext_t
 
-    t2 = t + step * c2
-    call td_hamilt(s,t2,ik,kp,eval,hamilt_t,hamilt_0)
-    F2 = -cI * matmul(hamilt_t,Z_k(dimH+1:dimH2) + Yn)
+    !F1 = -cI * matmul(hamilt_t,Z_k(1:dimH) + Yn)
+    tempv = Z_k(1:dimH)+Yn
+    call zgemv('n',dimH,dimH,-cI,hamilt_t,dimH,tempv,1,cZero,F1,1)
+
+    ! Building time dependent hamiltonian
+    call build_hext(kp,b_field2,A_t2,hext_t)
+    hamilt_t = hamilt_nof - hext_t
+
+    ! F2 = -cI * matmul(hamilt_t,Z_k(dimH+1:dimH2) + Yn)
+    tempv = Z_k(dimH+1:dimH2)+Yn
+    call zgemv('n',dimH,dimH,-cI,hamilt_t,dimH,tempv,1,cZero,F2,1)
 
     Fun = [ F1, F2 ]
 
-    Fun = -Z_k + step * matmul(M1,Fun)
+    ! Fun = -Z_k + step * matmul(M1,Fun)
+    ! First set: temp = step * matmul(M1,Fun)
+    call zgemv('n',dimH2,dimH2,cmplx(step,0._dp,dp),M1,dimH2,Fun,1,cZero,temp,1)
+    Fun = -Z_k + temp
+
   end subroutine Fsystem
 
 
   !> build time dependent jacobian for each kp 
-  subroutine build_td_Jacobian(s,t,ik,kp,eval,Yn,Jacobian_t)
-    use mod_kind,       only: dp,int64
-    use mod_constants,  only: cI
-    use mod_parameters, only: dimH
-    use mod_system,     only: System_type
-    ! use mod_Umatrix,   only: hee
+  subroutine build_td_Jacobian(s,b_field,A_t,hamilt_nof,kp,eval,Yn,Jacobian_t)
+    use mod_kind,        only: dp,int64
+    use mod_constants,   only: cI
+    use mod_parameters,  only: dimH
+    use mod_system,      only: System_type
+    use mod_hamiltonian, only: build_hext
     implicit none
-    type(System_type)                 , intent(in)  :: s
-    real(dp)                          , intent(in)  :: t
-    integer(int64)                    , intent(in)  :: ik
-    real(dp)                          , intent(in)  :: kp(3)
-    real(dp)                          , intent(in)  :: eval
-    complex(dp), dimension(dimH)      , intent(in)  :: Yn
-    complex(dp), dimension(dimH,dimH) , intent(out) :: Jacobian_t
+    type(System_type)                , intent(in)  :: s
+    real(dp),    dimension(3)        , intent(in)  :: b_field,A_t
+    complex(dp), dimension(dimH,dimH), intent(in)  :: hamilt_nof
+    real(dp)                         , intent(in)  :: kp(3)
+    real(dp)                         , intent(in)  :: eval
+    complex(dp), dimension(dimH)     , intent(in)  :: Yn
+    complex(dp), dimension(dimH,dimH), intent(out) :: Jacobian_t
 
-    complex(dp), dimension(dimH,dimH)  :: hamilt_t, dHdc, hamilt_0
+    complex(dp), dimension(dimH,dimH) :: hamilt_t,hext_t,dHdc
 
-    call td_hamilt(s,t,ik,kp,eval,hamilt_t,hamilt_0)
+    ! Building time dependent hamiltonian
+    call build_hext(kp,b_field,A_t,hext_t)
+    hamilt_t = hamilt_nof - hext_t
+
     call build_term_Jacobian(s, eval, Yn, dHdc)
 
     Jacobian_t = -cI*(hamilt_t + dHdc)
@@ -187,18 +190,17 @@ contains
 
   !> Calculate the last term of the Jacobian
   !> Given by \sum_j <i| dH/dc^n_k |j> * c_j^n(t)
-  subroutine build_term_Jacobian(s, eval, Yn, dHdc)
+  subroutine build_term_Jacobian(s,eval,Yn,dHdc)
     use mod_kind,          only: dp
     use mod_parameters,    only: nOrb, dimH, Um, Un, isigmamu2n, eta
     use mod_system,        only: System_type
     use mod_distributions, only: fd_dist
     use mod_constants,     only: cZero, pauli_mat, pi
-    ! use mod_Umatrix,   only: hee
     implicit none
-    type(System_type)                 , intent(in)  :: s
-    real(dp)                          , intent(in)  :: eval
-    complex(dp), dimension(dimH)      , intent(in)  :: Yn
-    complex(dp), dimension(dimH,dimH) , intent(out) :: dHdc
+    type(System_type),                 intent(in)  :: s
+    real(dp),                          intent(in)  :: eval
+    complex(dp), dimension(dimH),      intent(in)  :: Yn
+    complex(dp), dimension(dimH,dimH), intent(out) :: dHdc
 
     integer      :: i,mu,nu,s1,s2,s3,s4,alpha
 
@@ -227,161 +229,17 @@ contains
   end subroutine build_term_Jacobian
 
 
-
-  !> build time dependent Hamiltonian for each kp 
-  !> H(t) = hk + hext_t
-  subroutine build_td_hamilt(s,t,ik,kp,eval,hamilt_t, hamilt_0)
-    use mod_kind,        only: dp,int64
-    use mod_system,      only: System_type
-    use mod_parameters,  only: dimH
-    use mod_RK_matrices, only: id
-    use mod_hamiltonian, only: hamiltk
-    implicit none
-    type(System_type),    intent(in)  :: s
-    real(dp),             intent(in)  :: t, eval
-    integer(int64),       intent(in)  :: ik
-    real(dp),             intent(in)  :: kp(3)
-    complex(dp),          intent(out) :: hamilt_t(dimH,dimH), hamilt_0(dimH,dimH)
-
-    complex(dp), dimension(dimH,dimH) :: hk,hext_t
-
-    ! Calculating the "ground state" Hamiltonian for a given k-point (with time-dependent expectation values included)
-    call hamiltk(s,kp,hk)
-
-    ! Building time dependent hamiltonian
-    call build_hext(kp,t,hext_t)
-
-    ! calculating the original hamiltonian H(t) without the eigenvalue term.
-    hamilt_0 = hk + hext_t
-
-    ! Calculating the time-dependent Hamiltonian 
-    hamilt_t = ( eval * id ) - hamilt_0
-
-    ! Checking if Hamiltonian is hermitian
-    ! if( sum(abs(conjg(transpose(hamilt_t))-hamilt_t)) > 1.e-15_dp ) then
-    !  write(*,"('[build_td_hamilt] Hamiltonian is not hermitian!')")
-    !  stop
-    ! end if
-
-  end subroutine build_td_hamilt
-
-
-  !> build time dependent Hamiltonian for each kp using full hamiltonian previously calculated
-  !> H(t) = hk + hext_t
-  subroutine build_td_hamilt_full(s,t,ik,kp,eval,hamilt_t, hamilt_0)
-    use mod_kind,        only: dp,int64
-    use mod_system,      only: System_type
-    use mod_parameters,  only: dimH
-    use mod_RK_matrices, only: id
-    use mod_hamiltonian, only: h0,fullhk
-    implicit none
-    type(System_type),    intent(in)  :: s
-    real(dp),             intent(in)  :: t, eval
-    integer(int64),       intent(in)  :: ik
-    real(dp),             intent(in)  :: kp(3)
-    complex(dp),          intent(out) :: hamilt_t(dimH,dimH), hamilt_0(dimH,dimH)
-
-    complex(dp), dimension(dimH,dimH) :: hk,hext_t
-
-    ! Calculating the "ground state" Hamiltonian for a given k-point (with time-dependent expectation values included)
-    hk = h0 + fullhk(:,:,ik)
-
-    ! Building time dependent hamiltonian
-    call build_hext(kp,t,hext_t)
-
-    ! calculating the original hamiltonian H(t) without the eigenvalue term.
-    hamilt_0 = hk + hext_t
-
-    ! Calculating the time-dependent Hamiltonian 
-    hamilt_t = ( eval * id ) - hamilt_0
-
-    ! Checking if Hamiltonian is hermitian
-    ! if( sum(abs(conjg(transpose(hamilt_t))-hamilt_t)) > 1.e-15_dp ) then
-    !  write(*,"('[build_td_hamilt] Hamiltonian is not hermitian!')")
-    !  stop
-    ! end if
-
-  end subroutine build_td_hamilt_full
-
-
-  !> build time dependent external perturbation Hamiltonian
-  !> For a magnetic perturbation: H_ext(t)= S.B(t),  S= Pauli matricies
-  !> For an electric perturbation: H_ext(t)= ((P-e*A)^2)/2*m, here only the linear term is implemented.
-  subroutine build_hext(kp,t,hext_t)
-    use mod_kind,             only: dp
-    use mod_constants,        only: cI,cZero
-    use mod_imRK4_parameters, only: lelectric, lmagnetic
-    use mod_System,           only: ia, s => sys
-    use mod_parameters,       only: nOrb,nOrb2,dimH
-    implicit none
-    real(dp),    intent(in)  :: kp(3)
-    real(dp),    intent(in)  :: t
-    complex(dp), intent(out) :: hext_t(dimH,dimH)
-
-    complex(dp)  :: hext(nOrb2,nOrb2), temp(nOrb,nOrb)
-    integer      :: i, j, k, mu, nu
-    real(dp)     :: b_field(3), A_t(3)
-    complex(dp)  :: kpExp, kpA_t
-
- 
-    hext_t = cZero
-
-    hext = cZero
-    if(lmagnetic) then
-      do mu=1,nOrb
-        nu=mu+nOrb
-        call magnetic_field(t,b_field)
-        hext(mu,mu) = hext(mu,mu) + b_field(3)
-        hext(nu,nu) = hext(nu,nu) - b_field(3)
-        hext(nu,mu) = hext(nu,mu) + b_field(1)-cI*b_field(2)
-        hext(mu,nu) = conjg(hext(nu,mu))
-      end do
-
-      do i=1, s%nAtoms
-        hext_t(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = hext
-      end do
-    end if
-
-    ! The electric field is implemented via a vector potential-renormalization of the hoppings,
-    ! as described in Eq. (12) of Ref.:
-    ! Electromagnetic fields and dielectric response in empirical tight-binding theory
-    ! M. Graf and P. Vogl Phys. Rev. B 51, 4940 (1995)
-    if(lelectric) then
-      call vector_potential(t, A_t)
-      ! Inter-site hopping terms
-      do k = 1, s%nNeighbors
-        j = s%Neighbors(k)%BasisIndex
-        ! exp(ik.(R_i-R_j))
-        kpExp = exp( cI * dot_product(kp , s%Neighbors(k)%CellVector))
-
-        do i = 1,s%nAtoms
-          if(s%Neighbors(k)%isHopping(i)) then
-            kpA_t =  kpExp * ( exp(-cI * dot_product(A_t, s%Basis(i)%Position(:)-(s%Basis(j)%Position(:)+s%Neighbors(k)%CellVector))) - 1._dp) ! The -1._dp term is to discount the usual t(k) term that is already included in H_0
-
-            !DIR$ VECTOR ALIGNED
-            temp = s%Neighbors(k)%t0i(:,:,i) * kpA_t 
-            ! Spin-up
-            hext_t(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hext_t(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + temp
-            ! Spin-down
-            hext_t(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hext_t(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + temp
-          end if
-        end do
-      end do
-    end if
-
-  end subroutine build_hext
-
   !> subroutine to calculate the error in the step size control
   subroutine calculate_step_error(Yn,Yn_new,Yn_hat,ERR_kn)
     use mod_kind,             only: dp
     use mod_parameters,       only: dimH
-    use mod_imRK4_parameters, only: abs_tol, rel_tol
+    use mod_imRK4_parameters, only: abs_tol,rel_tol
     implicit none
-    complex(dp), dimension(dimH), intent(in) :: Yn, Yn_new, Yn_hat
-    real(dp),                     intent(out):: ERR_kn
-    real(dp), dimension(dimH)                :: Eta
-    real(dp)                                 :: ERR_i
-    integer                                  :: i
+    complex(dp), dimension(dimH), intent(in)  :: Yn, Yn_new, Yn_hat
+    real(dp),                     intent(out) :: ERR_kn
+    real(dp), dimension(dimH)                 :: Eta
+    real(dp)                                  :: ERR_i
+    integer                                   :: i
 
     ! Find the difference Eta in the two solutions Yn_new and Yn_hat
     Eta = abs(Yn_new - Yn_hat)
@@ -396,8 +254,9 @@ contains
     
   end subroutine calculate_step_error
 
-
- subroutine magnetic_field(t,b_field)
+  !> Subroutine builds magnetic field B(t)
+  !> Using the tame pulse form as the vector potential below
+  subroutine magnetic_field(t,b_field)
     use mod_kind,             only: dp
     use mod_imRK4_parameters, only: hw1_m, hw_m, npulse_m, lpulse_m, tau_m, delay_m, polarization_vec_m
     use mod_constants,        only: pi
@@ -468,7 +327,7 @@ contains
     end if
   end subroutine vector_potential
 
-  !> Subroutine builds vector potential A(t) = - integral(E(t)dt)
+  !> Subroutine builds Electric field potential E(t) = - dA(t)/dt
   ! Pulse:
   !> From paper(DOI: 0.1038/s41567-019-0602-9) the vector potential for a cos^2 pulse is given by: 
   !> A(t) = (-E_pump/w_pump) * ( cos(pi*t/tau_pump) )^2        * sin(w_pump*t), add delay_e to get:

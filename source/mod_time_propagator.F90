@@ -3,59 +3,61 @@ module mod_time_propagator
 contains
 
   subroutine time_propagator(s)
-    use mod_kind, only: dp, int32, int64
-    use mod_constants,         only: cZero, cI
-    use mod_imRK4_parameters,  only: dimH2, step, integration_time, ERR, safe_factor, lelectric, &
-                                     hE_0, hw_e, lpulse_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, &
-                                     lpulse_m, tau_m, delay_m, polarization_e, polarization_vec_e, &
-                                     polarization_m, polarization_vec_m
-    use mod_RK_matrices,       only: A, id, id2, M1, build_identity
-    use mod_imRK4,             only: iterate_Zki, calculate_step_error, magnetic_field, vector_potential, &
-                                     td_hamilt, build_td_hamilt_full
-    use mod_BrillouinZone,     only: realBZ
-    use mod_parameters,        only: nOrb,dimH,output,lprintfieldonly
-    use mod_system,            only: System_type
-    use mod_expectation,       only: expec_val_n, expec_H_n, expec_L_n
-    use mod_Umatrix,           only: update_Umatrix
-    use mod_magnet,            only: rhod0,rho0
-    use mod_tools,             only: KronProd
-    use mod_superconductivity, only: allocate_supercond_variables
-    use mod_hamiltonian,       only: hamiltk,hamilt_local,lfullhk
-    use mod_checkpoint,        only: save_state, recover_state
-    use mod_io,                only: log_warning
-    use mod_time_propagator_io, only: create_time_prop_files, write_header_time_prop, write_field, write_time_prop_files
+    use mod_kind,               only: dp,int32,int64
+    use mod_constants,          only: cZero,cI
+    use mod_imRK4_parameters,   only: dimH2,step,integration_time,ERR,safe_factor,lelectric, &
+                                      hE_0,hw_e,lpulse_e,tau_e,delay_e,lmagnetic,hw1_m,hw_m, &
+                                      lpulse_m,tau_m,delay_m,polarization_e,polarization_vec_e, &
+                                      polarization_m,polarization_vec_m
+    use mod_RK_matrices,        only: A,id,id2,M1,c1,c2,build_identity
+    use mod_imRK4,              only: iterate_Zki,calculate_step_error,magnetic_field,vector_potential
+    use mod_BrillouinZone,      only: realBZ
+    use mod_parameters,         only: nOrb,dimH,output,lprintfieldonly
+    use mod_system,             only: System_type
+    use mod_expectation,        only: expec_val_n, expec_H_n, expec_L_n
+    use mod_Umatrix,            only: update_Umatrix
+    use mod_magnet,             only: rhod0,rho0
+    use mod_tools,              only: KronProd
+    use mod_superconductivity,  only: allocate_supercond_variables
+    use mod_hamiltonian,        only: hamiltk,hamilt_local,lfullhk,h0,fullhk
+    use mod_checkpoint,         only: save_state,recover_state
+    use mod_io,                 only: log_warning
+    use mod_time_propagator_io, only: create_time_prop_files,write_header_time_prop,write_field,write_time_prop_files
     use mod_mpi_pars,           only: rFreq,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,FieldComm,ierr
     implicit none
     type(System_type), intent(in)   :: s
 
-    integer(int32)                              :: i, it, n, counter, iter_rej, iter_tot
-    real(dp)                                    :: t, pinv, h_new, h_old, ERR_old, ERR_kn
-    complex(dp), dimension(dimH)                :: Yn, Yn_hat, Yn_new, Yn_e, Yn_hat_e, Yn_new_e
+    integer(int32)                              :: i,it,n,counter,iter_rej,iter_tot
+    real(dp)                                    :: t,tm,t1,t2
+    real(dp)                                    :: pinv,h_new,h_old,ERR_old,ERR_kn
+    complex(dp), dimension(dimH)                :: Yn,Yn_hat,Yn_new,Yn_e,Yn_hat_e,Yn_new_e
     complex(dp), dimension(:,:,:), allocatable  :: evec_kn,evec_kn_temp
     real(dp),    dimension(:,:),   allocatable  :: eval_kn
+    real(dp),    dimension(3)                   :: b_field,A_t,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2
+    complex(dp), dimension(:,:),   allocatable  :: hamilt_nof
 
     logical  :: use_checkpoint
     real(dp) :: t_cp,step_cp
 
-    integer(int64)                              :: ik
-    integer(int32)                              :: info, ncount
-    integer(int32)                              :: lwork
+    integer(int64)                          :: ik
+    integer(int32)                          :: info, ncount
+    integer(int32)                          :: lwork
     real(dp)                                :: weight, kp(3)
     real(dp),    dimension(nOrb,s%nAtoms)   :: expec_0, expec_z
     complex(dp), dimension(nOrb,s%nAtoms)   :: expec_p
     real(dp),    dimension(nOrb,s%nAtoms)   :: expec_singlet
-    real(dp),    dimension(:),  allocatable :: rwork(:), eval(:)
-    complex(dp),                allocatable :: work(:), hk(:,:)
+    real(dp),    dimension(:),  allocatable :: rwork(:),eval(:)
+    complex(dp),                allocatable :: work(:),hk(:,:),hkev(:,:)
 
-    real(dp),    dimension(nOrb,s%nAtoms)   :: rho_t, mx_t, my_t, mz_t
+    real(dp),    dimension(nOrb,s%nAtoms)   :: rho_t,mx_t,my_t,mz_t
     complex(dp), dimension(nOrb,s%nAtoms)   :: mp_t
-    real(dp),    dimension(s%nAtoms)        :: rhod_t, mxd_t, myd_t, mzd_t
+    real(dp),    dimension(s%nAtoms)        :: rhod_t,mxd_t,myd_t,mzd_t
     complex(dp), dimension(s%nAtoms)        :: mpd_t
     real(dp),    dimension(nOrb,s%nAtoms)   :: singlet_coupling_t
-    real(dp),    dimension(s%nAtoms)        :: lxm, lym, lzm
-    real(dp),    dimension(s%nAtoms)        :: lxm_t, lym_t, lzm_t
-    real(dp),    dimension(3)               :: field_m, field_e
+    real(dp),    dimension(s%nAtoms)        :: lxm,lym,lzm
+    real(dp),    dimension(s%nAtoms)        :: lxm_t,lym_t,lzm_t
     real(dp)                                :: E_t, E_0
+    complex(dp)                             :: exp_eval
    
     external :: MPI_Allreduce,system,zheev
 
@@ -71,14 +73,15 @@ contains
     ! Dimensions for RK method
     dimH2  = 2*dimH
 
-    allocate( id(dimH,dimH),id2(dimH2,dimH2),hk(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork),eval_kn(dimH,realBZ%workload),evec_kn(dimH,dimH,realBZ%workload),evec_kn_temp(dimH,dimH,realBZ%workload), M1(dimH2,dimH2) )
+    allocate( id(dimH,dimH),id2(dimH2,dimH2),M1(dimH2,dimH2) )
+    allocate( hamilt_nof(dimH,dimH),hk(dimH,dimH),hkev(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork),eval_kn(dimH,realBZ%workload),evec_kn(dimH,dimH,realBZ%workload),evec_kn_temp(dimH,dimH,realBZ%workload) )
 
     ! Building identities
     call build_identity(dimH,id)
     call build_identity(size(A,1)*dimH,id2)
 
     ! Building matrix M1
-    call KronProd(size(A,1),size(A,1),dimH,dimH,A,id,M1)
+    M1 = KronProd(size(A,1),size(A,1),dimH,dimH,A,id)
 
     ! Checking for checkpoints
     use_checkpoint = recover_state(rFreq(1),dimH,realBZ%workload,t_cp,step_cp,eval_kn,evec_kn)
@@ -98,11 +101,6 @@ contains
       return
     end if
 
-    if( lfullhk ) then
-      td_hamilt => build_td_hamilt_full
-    end if
-
-
     if(rFreq(1) == 0) &
       write(output%unit_loop,"('[time_propagator] Starting propagation from t = ',es9.2)") t
 
@@ -117,14 +115,41 @@ contains
 
       ! Build local hamiltonian with m(t) and n(t)
       call hamilt_local(s)
-       
+
       counter = 0  ! Counter for the calculation of error in the step size for each time t
       iter_rej = 0 ! Counter of rejected steps (for each accepted one)
       ! Propagation loop for a given time t, calculating the optimal step size
-      do
+      find_step: do
+
+        ! Calculating required time-dependent fields
+        b_field  = 0._dp
+        b_fieldm = 0._dp
+        b_field1 = 0._dp
+        b_field2 = 0._dp
+        A_t  = 0._dp 
+        A_tm = 0._dp 
+        A_t1 = 0._dp 
+        A_t2 = 0._dp 
+        tm = t - step
+        t1 = t + step * c1
+        t2 = t + step * c2
+        if (lmagnetic) then
+          call magnetic_field(t,b_field)
+          call magnetic_field(tm,b_fieldm)
+          call magnetic_field(t1,b_field1)
+          call magnetic_field(t2,b_field2)
+        end if
+
+        if (lelectric) then
+          call vector_potential(t,A_t)
+          call vector_potential(tm, A_tm)
+          call vector_potential(t1, A_t1)
+          call vector_potential(t2, A_t2)
+        end if
+
         !$omp parallel default(none) &
-        !$omp& private(Yn_e,Yn_new_e,Yn_hat_e,ik,n,i,kp,weight,hk,ERR_kn,Yn, Yn_new, Yn_hat, eval,work,rwork,info,expec_0,expec_p,expec_z,expec_singlet,E_0,lxm,lym,lzm) &
-        !$omp& shared( ERR,counter,step,s,t,it,dimH,realBZ,evec_kn_temp,evec_kn,eval_kn,use_checkpoint,rho_t,mp_t,mz_t,E_t, Lxm_t,Lym_t,Lzm_t,singlet_coupling_t,lwork)
+        !$omp& private(Yn_e,Yn_new_e,Yn_hat_e,ik,n,i,kp,weight,hk,hkev,hamilt_nof,exp_eval,ERR_kn,Yn,Yn_new,Yn_hat,eval,work,rwork,info,expec_0,expec_p,expec_z,expec_singlet,E_0,lxm,lym,lzm) &
+        !$omp& shared(ERR,counter,step,s,t,it,id,dimH,realBZ,lfullhk,h0,fullhk,evec_kn_temp,evec_kn,eval_kn,use_checkpoint,rho_t,mp_t,mz_t,E_t,Lxm_t,Lym_t,Lzm_t,singlet_coupling_t,lwork,b_field,A_t,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2)
 
         rho_t  = 0._dp
         mp_t   = cZero
@@ -142,45 +167,57 @@ contains
   
         !$omp do reduction(+:rho_t,mp_t,mz_t,E_t,Lxm_t,Lym_t,Lzm_t,singlet_coupling_t,ERR)
         kpoints_loop: do ik = 1, realBZ%workload
-          kp = realBZ%kp(1:3,ik)
+          kp = realBZ%kp(:,ik)
           weight = realBZ%w(ik)   
-          if ((it==0).and.(.not.use_checkpoint)) then
-            ! Calculating the hamiltonian for a given k-point
+          ! Calculating the hamiltonian for a given k-point
+          if( lfullhk ) then
+            hk = h0 + fullhk(:,:,ik)
+          else
             call hamiltk(s,kp,hk)
-            ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-            call zheev('V','L',dimH,hk,dimH,eval,work,lwork,rwork,info)
-            eval_kn(:,ik) = eval(:)
-          !>>>>> find eigenvalues again
-          ! Improve step control by diagonalizing the Hamiltonian after some number of steps:
-          ! calling H(t) instead of hamiltk, at t=0, H(0)= hamiltk
           end if
+
+          ! For t=0.0, diagonalize the hamiltonian
+          if ((it==0).and.(.not.use_checkpoint)) then
+            hkev = hk
+            ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
+            call zheev('V','L',dimH,hkev,dimH,eval,work,lwork,rwork,info)
+            eval_kn(:,ik) = eval(:)
+            !>>>>> find eigenvalues again
+            ! Improve step control by diagonalizing the Hamiltonian after some number of steps:
+            ! calling H(t) instead of hamiltk, at t=0, H(0)= hamiltk
+          end if
+
           evs_loop: do n = 1, dimH
+            exp_eval = exp(-cI*eval_kn(n,ik)*t) 
             if ((it==0).and.(.not.use_checkpoint)) then
-              Yn(:)= hk(:,n)
-    !----------------------------------------------------------------------------------------!
-    !-------- These steps are to control the error by solving for c^~ instead of c ----------!
-    !----------------------------------------------------------------------------------------!
-      ! 1- find Yn^~ = Yn * e^(i*En*t/hbar) : for each n and k point (only once).
-      ! 2- propagate Yn^~ using H^~ = H(t) - En.
-      ! 3- find Yn = Yn^~ * exp( (-i*En*t/hbar) ) at each step.
-      ! 4- calculate the error at each step from Yn but propagate with Yn^~.
-    !----------------------------------------------------------------------------------------!
+              Yn(:)= hkev(:,n)
+              !----------------------------------------------------------------------------------------!
+              !-------- These steps are to control the error by solving for c^~ instead of c ----------!
+              !----------------------------------------------------------------------------------------!
+              ! 1- find Yn^~ = Yn * e^(i*En*t/hbar) : for each n and k point (only once).
+              ! 2- propagate Yn^~ using H^~ = H(t) - En.
+              ! 3- find Yn = Yn^~ * exp( (-i*En*t/hbar) ) at each step.
+              ! 4- calculate the error at each step from Yn but propagate with Yn^~.
+              !----------------------------------------------------------------------------------------!
               ! Geting the intitial vector Yn^~, setting Yn to Yn^~ for propagation, hbar = 1
-              Yn = Yn * exp(cI*eval_kn(n,ik)*t)
+              Yn = Yn * conjg(exp_eval)
                 
             else
               ! Is the propagated vector Yn^~
               Yn(:) = evec_kn(:,n,ik)
-               
             end if
 
-            call iterate_Zki(s,t,ik,kp,eval_kn(n,ik),step,Yn_new,Yn,Yn_hat)
+            ! Calculating the time-dependent Hamiltonian without the time-dependent field
+            ! hext_t must be subtracted from hamilt_t
+            hamilt_nof = ( eval_kn(n,ik) * id ) - hk
+
+            call iterate_Zki(s,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2,hamilt_nof,kp,eval_kn(n,ik),step,Yn_new,Yn,Yn_hat)
             ! Note: all iteration outputs correspond to Yn^~ 
 
             ! Getting Yn's again; Yn = Yn^~ * exp( (-i*En*t/hbar) ), hbar=1, rename Yn to Yn_e
-            Yn_e(:)     = Yn     * exp(-cI*eval_kn(n,ik)*t) 
-            Yn_new_e(:) = Yn_new * exp(-cI*eval_kn(n,ik)*t) 
-            Yn_hat_e(:) = Yn_hat * exp(-cI*eval_kn(n,ik)*t) 
+            Yn_e(:)     = Yn     * exp_eval
+            Yn_new_e(:) = Yn_new * exp_eval
+            Yn_hat_e(:) = Yn_hat * exp_eval
 
             ! Calculating expectation values of the nth eigenvector
             ! Note: use the Yn_new_e or Yn_nw >>> should give the same result
@@ -189,7 +226,8 @@ contains
             call expec_val_n(s, dimH, Yn_new_e, eval_kn(n,ik), expec_0, expec_p, expec_z, expec_singlet)
 
             ! calculating expectation value of the T.D Hamiltonian in eigenvector (n)
-            call expec_H_n(s,t,ik,kp,dimH,Yn_new_e,eval_kn(n,ik),E_0)
+            call expec_H_n(s,b_field,A_t,hk,kp,Yn_new_e,eval_kn(n,ik),E_0)
+
 
             ! calculating expectation value of angular momentum in eigenvector (n)
             call expec_L_n(s, dimH, Yn_new_e, eval_kn(n,ik), lxm, lym, lzm)
@@ -255,6 +293,7 @@ contains
 
         iter_tot = iter_tot + 1 ! Counter of total number of iterations
         if ( ERR > 1._dp) then
+          ! Error is too large! Reject step and
           ! repeat the calculation using h_new
           t = t - step + h_new
           h_old = step
@@ -265,13 +304,14 @@ contains
           ! else if (step <= h_new <= 1.2*step) then
           ! step = step
         else    
+          ! Error is low! Accept the step
           ! Update the eignvectors array of dimension ( dimH * dimH , k )
           evec_kn = evec_kn_temp
           step = h_new
           exit
         end if
           
-      end do
+      end do find_step
 
       if(rFreq(1) == 0) &
         write(output%unit_loop,"(' (',i0,' rejected iterations)')") iter_rej
@@ -293,14 +333,9 @@ contains
       ! Update U-term of the local hamiltonian
       call update_Umatrix(mzd_t,mpd_t,rhod_t,rhod0,rho_t,rho0,s%nAtoms,nOrb)
 
-      ! Calculating time-dependent field
-      field_m = 0._dp
-      if (lmagnetic) call magnetic_field(t,field_m)
-      field_e = 0._dp 
-      if (lelectric) call vector_potential(t, field_e)
-
+      ! Writing results to file
       if(rFreq(1) == 0) &
-        call write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t, field_m, field_e, E_t, lxm_t, lym_t, lzm_t) 
+        call write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t, b_field, A_t, E_t, lxm_t, lym_t, lzm_t) 
 
       counter = counter + 1
       it = it + 1 ! Counter of accepted iterations
@@ -319,7 +354,9 @@ contains
     ! Creating checkpoint in the last state
     call save_state(rFreq(1),dimH,realBZ%workload,t,step,eval_kn,evec_kn)
 
-    deallocate( id,id2,hk,rwork,eval,work,eval_kn,evec_kn,evec_kn_temp, M1, output%observable )
+    deallocate( id,id2,M1,output%observable )
+    deallocate( hamilt_nof,hk,hkev,rwork,eval,work,eval_kn,evec_kn,evec_kn_temp )
+
 
     if(rFreq(1) == 0) &
       write(output%unit_loop,"('[time_propagator] Integration time reached. ',i0,' total iterations, with ',i0,' accepted.')") iter_tot,it

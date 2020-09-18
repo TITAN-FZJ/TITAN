@@ -741,33 +741,34 @@ contains
 
 
   !! Calculate the expectation value of the time-dependent Hamiltonian in the propagated states
-  subroutine expec_H_n(s,t,ik,kp,dimens,evec,eval,E_0)
-    use mod_kind, only: dp,int64
+  subroutine expec_H_n(s,b_field,A_t,hk,kp,evec,eval,E_0)
+    use mod_kind,          only: dp,int64
     use mod_constants,     only: pi
-    use mod_parameters,    only: eta
+    use mod_parameters,    only: eta,dimH
     use mod_System,        only: System_type
     use mod_distributions, only: fd_dist
-    use mod_imRK4,         only: td_hamilt
+    use mod_hamiltonian,   only: build_hext
     implicit none
-    type(System_type),              intent(in)  :: s
-    integer,                        intent(in)  :: dimens
-    complex(dp), dimension(dimens), intent(in)  :: evec
-    integer(int64),                 intent(in)  :: ik
-    real(dp),                       intent(in)  :: eval, t, kp(3)
-
+    type(System_type),                 intent(in) :: s
+    complex(dp), dimension(dimH),      intent(in) :: evec
+    complex(dp), dimension(dimH,dimH), intent(in) :: hk
+    real(dp),                          intent(in) :: eval
+    real(dp),    dimension(3),         intent(in) :: b_field,A_t,kp
     integer     :: i, j
     real(dp)    :: f_n, expec_H_0, E_0
-    complex(dp) :: hamilt_t(dimens,dimens), hamilt_0(dimens,dimens)
+    complex(dp) :: hext_t(dimH,dimH),hamilt_0(dimH,dimH)
 
     ! Fermi-Dirac:
     f_n = fd_dist(s%Ef, 1._dp/(pi*eta), eval)
 
-    call td_hamilt(s,t,ik,kp,eval,hamilt_t,hamilt_0)
+    ! Building time dependent hamiltonian
+    call build_hext(kp,b_field,A_t,hext_t)
+    hamilt_0 = hk + hext_t
 
     E_0 = 0._dp
 
-    do i=1, dimens
-      do j=1, dimens
+    do i=1, dimH
+      do j=1, dimH
         ! expec_H_0 = real( conjg( evec(i) ) * hamilt_t(i,j) * evec(j) )
         expec_H_0 = real( conjg( evec(i) ) * hamilt_0(i,j) * evec(j) )
         E_0       =  E_0 + f_n * expec_H_0

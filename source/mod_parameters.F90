@@ -13,6 +13,8 @@ module mod_parameters
   ! Dimension variables:
   integer(int32)     :: dimH
   !! Dimension of the Hamiltonian: 2 spins x number of atoms in the unit cell
+  integer(int32)     :: dimHsc
+  !! Dimension of the Hamiltonian taking into account superconductivity (may be dimH or 2*dimH)
   integer(int32)     :: dimspinAtoms
   !! Dimension: 4 spins x number of atoms in the unit cell
   integer(int32)     :: dimens

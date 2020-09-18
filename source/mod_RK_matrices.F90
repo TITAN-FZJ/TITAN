@@ -4,7 +4,6 @@ module mod_RK_matrices
   use mod_kind, only: dp
   implicit none
   complex(dp), dimension(:,:), allocatable :: id(:,:),id2(:,:)
-  ! real(dp),    dimension(4,4), parameter   :: M1= reshape([ 0.25_dp,0._dp,-0.03867513_dp, 0._dp,0._dp,0.25_dp,0._dp,-0.03867513_dp,0.53867513_dp,0._dp,0.25_dp,0._dp,0._dp,0.53867513_dp,0._dp,0.25_dp ],[ 4,4 ],Order=[ 2,1 ])
   complex(dp), dimension(:,:), allocatable :: M1
   real(dp),    dimension(2,2), parameter   :: A_inverse= reshape([ 3._dp, 0.46410162_dp, -6.46410162_dp, 3._dp ],[ 2,2 ],Order=[ 2,1 ])
   complex(dp), dimension(2,2), parameter   :: A= reshape([ 0.25_dp, -0.03867513_dp, 0.53867513_dp, 0.25_dp ],[ 2,2 ],Order=[ 2,1 ])
@@ -22,7 +21,7 @@ contains
   subroutine build_identity(dim_I,ident)
     use mod_kind, only: dp
     implicit none
-    integer,                                 intent(in)  :: dim_I
+    integer,                             intent(in)  :: dim_I
     complex(dp), dimension(dim_I,dim_I), intent(out) :: ident
     integer :: n
 
