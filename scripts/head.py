@@ -35,9 +35,16 @@ mpl.rcParams['legend.handlelength'] = 2
 mpl.rcParams["font.weight"] = "bold"
 mpl.rcParams["axes.labelweight"] = "bold"
 
+mpl.rcParams["xtick.major.width"] = 1.5
+mpl.rcParams["xtick.minor.width"] = 1.0
+mpl.rcParams["ytick.major.width"] = 1.5
+mpl.rcParams["ytick.minor.width"] = 1.0
+linewidth = 1.5
+colors = [(0.07, 0.19, 0.60),(0.57, 0.05, 0.07),(0.10, 0.46, 0.13)]
+
 parser = argparse.ArgumentParser(description="Parse bool")
 parser.add_argument("files", nargs="+", help="File(s) to plot")
-parser.add_argument('--output', help='Output file', default="output.pdf")
+parser.add_argument('--output', help='Output file', default="output.png")
 parser.add_argument('--title' , help='Title of the graph', default="")
 parser.add_argument('--xlim' , help='Limit of x-axis', default="")
 parser.add_argument('--ylim' , help='Limit of y-axis', default="")
@@ -53,6 +60,10 @@ parser.add_argument("--onlyS", default=False, action="store_true" , help="Plot o
 parser.add_argument("--zoom", default=0.0, type=float)
 parser.add_argument("--together", default=False, action="store_true" , help="Plot superconductor bands in the same plot")
 parser.add_argument("--noef", default=True, action="store_false" , help="Do not plot the line at Ef")
+parser.add_argument("--separate", default=False, action="store_true" , help="Plot electron and hole bands in different plots")
+parser.add_argument("--guide", default=False, action="store_true" , help="Guide for band structures")
+parser.add_argument('--project', help='Array of integers', default="[[1,2,3,4,5,6,7,8,9],[10,11,12,13,14,15,16,17,18]]")
+parser.add_argument('--show' , default=False, action="store_true" , help='Show the plot at the end')
 # In case we need to add arguments in the specific files
 # args, options = parser.parse_known_args()
 args = parser.parse_args()

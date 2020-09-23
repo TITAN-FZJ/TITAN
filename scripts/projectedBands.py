@@ -1,40 +1,7 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import sys
-import matplotlib as mpl                      # Plotting library
-from matplotlib import rc                     # Improve math fonts
-import argparse
-rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
-## for Palatino and other serif fonts use:
-# rc('font',**{'family':'serif','serif':['Palatino']})
-mpl.rcParams['text.usetex'] = True
-mpl.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}',r'\usepackage{siunitx}']
-# matplotlib.rcParams['text.latex.preamble'] = [r'\renewcommand{\seriesdefault}{\bfdefault}',r'\boldmath']
-#matplotlib.rcParams['text.latex.preamble'] = [r'\boldmath']
-# rc('mathtext', default='regular')
-# Default fonts
-mpl.rcParams['font.size']        = 12
-mpl.rcParams['font.family']      = 'serif'
-mpl.rcParams['figure.titlesize'] = 'large'
-mpl.rcParams['axes.titlepad'] = 10
-mpl.rcParams['lines.linewidth']  = 2
-#Legends:
-mpl.rcParams['legend.fontsize']  = 'medium'
-mpl.rcParams['legend.fancybox'] = False
-# rcParams['legend.loc'] = 'upper left'`
-mpl.rcParams['legend.framealpha'] = None
-mpl.rcParams['legend.edgecolor'] = 'inherit'
-mpl.rcParams['legend.handlelength'] = 2
-mpl.rcParams["font.weight"] = "bold"
-mpl.rcParams["axes.labelweight"] = "bold"
-
-#Ticks:
-mpl.rcParams["xtick.major.width"] = 1.5
-mpl.rcParams["xtick.minor.width"] = 1.0
-mpl.rcParams["ytick.major.width"] = 1.5
-mpl.rcParams["ytick.minor.width"] = 1.0
-linewidth = 1.5
-colors = [(0.07, 0.19, 0.60),(0.57, 0.05, 0.07),(0.10, 0.46, 0.13)]
+################################################################################
+# Import the arguments and style
+################################################################################
+from head import *
 
 ################################################################################
 # Get the header from the file
@@ -114,23 +81,6 @@ def read_data(filename):
 # --separate does not work together with all the rest for the moment
 
 if __name__ == "__main__":
-  parser = argparse.ArgumentParser(description="Parse bool")
-  parser.add_argument("file", help="File to plot")
-  parser.add_argument("--superconductivity", default=False, action="store_true" , help="Flag to plot the bands as for superconductors")
-  parser.add_argument("--output", default="", action="store" , help="Output filename")
-  parser.add_argument("--separate", default=False, action="store_true" , help="Plot superconductor bands in the same plot")
-  parser.add_argument("--zoom", default=0.0, type=float)
-  parser.add_argument("--ev", default=False, action="store_true" , help="Plot superconductor bands in the same plot")
-  parser.add_argument("--noef", default=True, action="store_false" , help="Do not plot the line at Ef")
-  parser.add_argument("--title", action="store", dest="title", default="")
-  parser.add_argument("--guide", default=False, action="store_true" , help="Guide for band structures")
-  parser.add_argument('--project', help='Array of integers', default="[[1,2,3,4,5,6,7,8,9],[10,11,12,13,14,15,16,17,18]]")
-  args = parser.parse_args()
-
-  if args.ev == True:
-    ry2ev = 13.605662285137
-  else:
-    ry2ev = 1.0
 
   if args.superconductivity:
     if args.separate:
@@ -144,10 +94,10 @@ if __name__ == "__main__":
         axs[0,0].set_ylabel("Energy [Ry]")
 
       for i in range(numplots):
-        npoints, name, point, fermi = read_header(args.file)
-        table = read_data(args.file)
+        npoints, name, point, fermi = read_header(args.files[0])
+        table = read_data(args.files[0])
         if(len(args.project) > 0):
-          weights = read_data(args.file.replace("bandstructure","weights"))
+          weights = read_data(args.files[1])
 
         axs[0,i].set_title(titles[i])
         axs[0,i].set_xlim([point[0],point[npoints-1]])
@@ -191,12 +141,12 @@ if __name__ == "__main__":
 
       for i in range(numplots):
         # Reads and stores the high symmetry points
-        npoints, name, point, fermi, dimbs = read_header(args.file)
+        npoints, name, point, fermi, dimbs = read_header(args.files[0])
         # Reads the data points
-        table = read_data(args.file)
+        table = read_data(args.files[0])
         # Reads the weigths for projected band structure
         if(len(args.project) > 0):
-          weights = read_data(args.file.replace("bandstructure","weights"))
+          weights = read_data(args.files[1])
         # Set custom title or default title
         if args.title != "":
           axs[0,i].set_title(args.title)
@@ -260,12 +210,12 @@ if __name__ == "__main__":
 
     for i in range(numplots):
       # Reads and stores the high symmetry points
-      npoints, name, point, fermi, dimbs = read_header(args.file)
+      npoints, name, point, fermi, dimbs = read_header(args.files[0])
       # Reads the data points
-      table = read_data(args.file)
+      table = read_data(args.files[0])
       # Reads the weigths for projected band structure
       if(len(args.project) > 0):
-        weights = read_data(args.file.replace("bandstructure","weights"))
+        weights = read_data(args.files[1])
       # Set custom title or default title
       if args.title != "":
         axs[0,i].set_title(args.title)
@@ -321,4 +271,5 @@ if __name__ == "__main__":
   plt.tight_layout()
   if args.output != "":
     plt.savefig(args.output,dpi=200)
-  plt.show()
+  if args.show:
+    plt.show()
