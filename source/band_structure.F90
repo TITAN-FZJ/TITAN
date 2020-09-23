@@ -1,19 +1,19 @@
 !   Calculates band structure
 subroutine band_structure(s)
-  use mod_kind, only: dp
+  use mod_kind,              only: dp
   use mod_parameters,        only: output, kdirection, nQvec, nQvec1, kpoints, bsfile, wsfile, deltak
   use mod_system,            only: System_type
-  use mod_tools,             only: cross
+  use mod_tools,             only: cross,diagonalize
   use mod_mpi_pars,          only: rField
   use mod_superconductivity, only: superCond
   use mod_io,                only: write_header
   use mod_hamiltonian,       only: hamilt_local,hamiltk
   implicit none
   type(System_type), intent(in) :: s
-  integer :: i, info, kount, f_unit=666, w_unit=667, n
-  integer :: lwork,dimbs
-  real(dp), dimension(:), allocatable :: rwork,eval
-  complex(dp), allocatable :: work(:),hk(:,:)
+  integer :: i, kount, f_unit=666, w_unit=667, n
+  integer :: dimbs
+  real(dp), dimension(:), allocatable :: eval
+  complex(dp), allocatable :: hk(:,:)
   character(len=30) :: formatvar1,formatvar2
 
   external :: zheev
@@ -21,8 +21,7 @@ subroutine band_structure(s)
   if(rField == 0) write(output%unit_loop,"('CALCULATING THE BAND STRUCTURE')")
 
   dimbs = (s%nAtoms)*18*superCond
-  lwork = 2*dimbs-1
-  allocate( hk(dimbs,dimbs),rwork(3*dimbs-2),eval(dimbs),work(lwork) )
+  allocate( hk(dimbs,dimbs),eval(dimbs) )
 
   call hamilt_local(s)
 
@@ -37,19 +36,14 @@ subroutine band_structure(s)
 
   write(unit=f_unit, fmt="(a,2x,i3)") "# dimbs ",dimbs
   write(formatvar1,fmt="(a,i0,a)") '(',1+dimbs,'(es16.8e3,2x))'
-  write(formatvar2,fmt="(a,i0,a)") '(',dimbs*dimbs,'(es16.8e3,2x))'
+  write(formatvar2,fmt="(a,i0,a)") '(',dimbs*dimbs,'(es10.3e3,2x))'
 
   do kount=1,nQvec1
     write(output%unit_loop,"('[band_structure] ',i0,' of ',i0,' points',', i = ',es10.3)") kount,nQvec1,dble((kount-1._dp)/nQvec)
 
     call hamiltk(s,kpoints(:,kount),hk)
   
-    call zheev('V','U',dimbs,hk,dimbs,eval,work,lwork,rwork,info)
-
-    if(info/=0) then
-      write(output%unit_loop,"('[band_structure] Problem with diagonalization. info = ',i0)") info
-      stop
-    end if
+    call diagonalize(dimbs,hk,eval)
 
     write(unit=f_unit,fmt=formatvar1) dble((kount-1._dp)*deltak), (eval(i),i=1,dimbs)
     write(unit=w_unit,fmt=formatvar2) ((abs(hk(i,n))**2,i=1,dimbs),n=1,dimbs)
@@ -57,6 +51,6 @@ subroutine band_structure(s)
 
   close(f_unit)
   close(w_unit)
-  deallocate(hk,rwork,eval,work)
+  deallocate(hk,eval)
 
 end subroutine band_structure

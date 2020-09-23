@@ -494,14 +494,13 @@ contains
 
 
   ! --------------------------------------------------------------------
-  ! subroutine LS_solver():
-  !    This subruotine is a simple interface for the LAPACK linear
+  ! subroutine LS_solver(n,a,b):
+  !    This subroutine is a simple interface for the LAPACK linear
   ! system solver A*X = B.
   ! --------------------------------------------------------------------
   subroutine LS_solver(n,a,b)
     use mod_kind, only: dp
     implicit none
-    
     integer,     intent(in)      :: n
     complex(dp), intent(inout)   :: a(n,n)
     complex(dp), intent(inout)   :: b(n)
@@ -514,6 +513,30 @@ contains
     call zgesv( n, 1, a, n, ipiv, b, n, info )
         
   end subroutine LS_solver
+
+
+  ! --------------------------------------------------------------------
+  ! subroutine diagonalize():
+  !    This subruotine is a simple interface for the LAPACK zheev subroutine
+  ! --------------------------------------------------------------------
+  subroutine diagonalize(n,a,eval)
+    use mod_kind, only: dp
+    implicit none
+    integer,     intent(in)    :: n
+    complex(dp), intent(inout) :: a(n,n)
+    real(dp),    intent(out)   :: eval(n)
+    ! Workspace variables
+    real(dp)    :: rwork(3*n-2)
+    integer     :: info,lwork
+    complex(dp) :: work(2*n-1) ! dimension of lwork below
+
+    external :: zheev
+
+    lwork = 2*n-1
+
+    call zheev('V','U',n,a,n,eval,work,lwork,rwork,info)
+        
+  end subroutine diagonalize
 
 
   ! --------------------------------------------------------------------

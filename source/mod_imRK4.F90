@@ -5,7 +5,7 @@ module mod_imRK4
 contains
   ! subroutine to find the vectors Z_ki
   subroutine iterate_Zki(s,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2,hamilt_nof,kp,eval,step,Yn_new,Yn,Yn_hat)
-    use mod_kind,             only: dp,int64
+    use mod_kind,             only: dp
     use mod_parameters,       only: dimH
     use mod_system,           only: System_type
     use mod_imRK4_parameters, only: dimH2, sc_tol
@@ -84,7 +84,7 @@ contains
 ! Subroutine to build the matrix M_2n
 ! b_fieldm = b_field(t-step) , A_tm = A_t(t-step)
   subroutine M_2n(s,b_fieldm,A_tm,hamilt_nof,kp,eval,Yn,step,M2n)
-    use mod_kind,             only: dp,int64
+    use mod_kind,             only: dp
     use mod_parameters,       only: dimH
     use mod_system,           only: System_type
     use mod_imRK4_parameters, only: dimH2
@@ -113,7 +113,7 @@ contains
 
   !> subroutine f(Z_k) that builds the right side of the linear system.
   subroutine Fsystem(b_field1,A_t1,b_field2,A_t2,hamilt_nof,kp,Yn,step,Z_k,Fun) 
-    use mod_kind,             only: dp,int64
+    use mod_kind,             only: dp
     use mod_constants,        only: cI,cZero
     use mod_parameters,       only: dimH
     use mod_imRK4_parameters, only: dimH2
@@ -161,7 +161,7 @@ contains
 
   !> build time dependent jacobian for each kp 
   subroutine build_td_Jacobian(s,b_field,A_t,hamilt_nof,kp,eval,Yn,Jacobian_t)
-    use mod_kind,        only: dp,int64
+    use mod_kind,        only: dp
     use mod_constants,   only: cI
     use mod_parameters,  only: dimH
     use mod_system,      only: System_type

@@ -81,11 +81,9 @@ program TITAN
   !------------------ Set Loops and Integration Points -----------------
   call setMagneticLoopPoints()
   call setLoops(sys)
-
   !------------------ Creating grid of MPI processes  ------------------
   !call setup_MPI_grid(itype, pn1, nEner1, pnt,total_hw_npt1, nEner, deltae, emin, emax)
   call genMPIGrid(parField, total_hw_npt1, parFreq, nEner1 - skip_steps)
-
   !--- Generating integration points of the complex energy integral ----
   call allocate_energy_points()
   call generate_imag_epoints()

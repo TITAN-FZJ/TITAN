@@ -17,7 +17,7 @@ contains
     use mod_expectation,        only: expec_val_n, expec_H_n, expec_L_n
     use mod_Umatrix,            only: update_Umatrix
     use mod_magnet,             only: rhod0,rho0
-    use mod_tools,              only: KronProd
+    use mod_tools,              only: KronProd,diagonalize
     use mod_superconductivity,  only: allocate_supercond_variables
     use mod_hamiltonian,        only: hamiltk,hamilt_local,lfullhk,h0,fullhk
     use mod_checkpoint,         only: save_state,recover_state
@@ -40,14 +40,13 @@ contains
     real(dp) :: t_cp,step_cp
 
     integer(int64)                          :: ik
-    integer(int32)                          :: info, ncount
-    integer(int32)                          :: lwork
+    integer(int32)                          :: ncount,ios
     real(dp)                                :: weight, kp(3)
     real(dp),    dimension(nOrb,s%nAtoms)   :: expec_0, expec_z
     complex(dp), dimension(nOrb,s%nAtoms)   :: expec_p
     real(dp),    dimension(nOrb,s%nAtoms)   :: expec_singlet
-    real(dp),    dimension(:),  allocatable :: rwork(:),eval(:)
-    complex(dp),                allocatable :: work(:),hk(:,:),hkev(:,:)
+    real(dp),    dimension(:),  allocatable :: eval(:)
+    complex(dp),                allocatable :: hk(:,:),hkev(:,:)
 
     real(dp),    dimension(nOrb,s%nAtoms)   :: rho_t,mx_t,my_t,mz_t
     complex(dp), dimension(nOrb,s%nAtoms)   :: mp_t
@@ -59,7 +58,7 @@ contains
     real(dp)                                :: E_t, E_0
     complex(dp)                             :: exp_eval
    
-    external :: MPI_Allreduce,system,zheev
+    external :: MPI_Allreduce,system
 
     if(rFreq(1) == 0) &
       write(output%unit_loop,"('CALCULATING TIME-PROPAGATION')")
@@ -67,14 +66,11 @@ contains
     ! number of elements in the MPI communication
     ncount = nOrb*s%nAtoms
 
-    ! working space for the eigenstate solver
-    lwork = 21*dimH
-
     ! Dimensions for RK method
     dimH2  = 2*dimH
 
     allocate( id(dimH,dimH),id2(dimH2,dimH2),M1(dimH2,dimH2) )
-    allocate( hamilt_nof(dimH,dimH),hk(dimH,dimH),hkev(dimH,dimH),rwork(3*dimH-2),eval(dimH),work(lwork),eval_kn(dimH,realBZ%workload),evec_kn(dimH,dimH,realBZ%workload),evec_kn_temp(dimH,dimH,realBZ%workload) )
+    allocate( hamilt_nof(dimH,dimH),hk(dimH,dimH),hkev(dimH,dimH),eval(dimH),eval_kn(dimH,realBZ%workload),evec_kn(dimH,dimH,realBZ%workload),evec_kn_temp(dimH,dimH,realBZ%workload) )
 
     ! Building identities
     call build_identity(dimH,id)
@@ -148,8 +144,8 @@ contains
         end if
 
         !$omp parallel default(none) &
-        !$omp& private(Yn_e,Yn_new_e,Yn_hat_e,ik,n,i,kp,weight,hk,hkev,hamilt_nof,exp_eval,ERR_kn,Yn,Yn_new,Yn_hat,eval,work,rwork,info,expec_0,expec_p,expec_z,expec_singlet,E_0,lxm,lym,lzm) &
-        !$omp& shared(ERR,counter,step,s,t,it,id,dimH,realBZ,lfullhk,h0,fullhk,evec_kn_temp,evec_kn,eval_kn,use_checkpoint,rho_t,mp_t,mz_t,E_t,Lxm_t,Lym_t,Lzm_t,singlet_coupling_t,lwork,b_field,A_t,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2)
+        !$omp& private(Yn_e,Yn_new_e,Yn_hat_e,ik,n,i,kp,weight,hk,hkev,hamilt_nof,exp_eval,ERR_kn,Yn,Yn_new,Yn_hat,eval,expec_0,expec_p,expec_z,expec_singlet,E_0,lxm,lym,lzm) &
+        !$omp& shared(ERR,counter,step,s,t,it,id,dimH,realBZ,lfullhk,h0,fullhk,evec_kn_temp,evec_kn,eval_kn,use_checkpoint,rho_t,mp_t,mz_t,E_t,Lxm_t,Lym_t,Lzm_t,singlet_coupling_t,b_field,A_t,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2)
 
         rho_t  = 0._dp
         mp_t   = cZero
@@ -164,8 +160,8 @@ contains
         ERR    = 0._dp
 
         singlet_coupling_t = 0._dp
-  
-        !$omp do reduction(+:rho_t,mp_t,mz_t,E_t,Lxm_t,Lym_t,Lzm_t,singlet_coupling_t,ERR)
+
+        !$omp do schedule(dynamic,1) reduction(+:rho_t,mp_t,mz_t,E_t,Lxm_t,Lym_t,Lzm_t,singlet_coupling_t,ERR)
         kpoints_loop: do ik = 1, realBZ%workload
           kp = realBZ%kp(:,ik)
           weight = realBZ%w(ik)   
@@ -180,7 +176,7 @@ contains
           if ((it==0).and.(.not.use_checkpoint)) then
             hkev = hk
             ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-            call zheev('V','L',dimH,hkev,dimH,eval,work,lwork,rwork,info)
+            call diagonalize(dimH,hkev,eval)
             eval_kn(:,ik) = eval(:)
             !>>>>> find eigenvalues again
             ! Improve step control by diagonalizing the Hamiltonian after some number of steps:
@@ -341,13 +337,13 @@ contains
       it = it + 1 ! Counter of accepted iterations
 
       ! Checking for "save" file to trigger checkpoint
-      open(unit=911, file="save", status='old', iostat=info)
-      if(info==0) then
+      open(unit=911, file="save", status='old', iostat=ios)
+      if(ios==0) then
         close(911)
         call save_state(rFreq(1),dimH,realBZ%workload,t,step,eval_kn,evec_kn)
         call MPI_Barrier(FieldComm, ierr)
         if(rFreq(1) == 0) &
-          call system('rm save')
+          call execute_command_line('rm save')
       end if
     end do t_loop
 
@@ -355,7 +351,7 @@ contains
     call save_state(rFreq(1),dimH,realBZ%workload,t,step,eval_kn,evec_kn)
 
     deallocate( id,id2,M1,output%observable )
-    deallocate( hamilt_nof,hk,hkev,rwork,eval,work,eval_kn,evec_kn,evec_kn_temp )
+    deallocate( hamilt_nof,hk,hkev,eval,eval_kn,evec_kn,evec_kn_temp )
 
 
     if(rFreq(1) == 0) &

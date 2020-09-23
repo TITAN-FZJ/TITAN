@@ -165,7 +165,7 @@ contains
     use mod_BrillouinZone,     only: realBZ
     use mod_parameters,        only: nOrb,output,dimH
     use mod_system,            only: System_type
-    use mod_tools,             only: itos
+    use mod_tools,             only: itos,diagonalize
     use mod_superconductivity, only: lsuperCond, superCond
     use mod_constants,         only: cZero
     use mod_hamiltonian,       only: hamilt_local,hamiltk
@@ -177,26 +177,24 @@ contains
     complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: mp
 
     integer(int64)                           :: iz
-    integer                                  :: info, ncount, lwork, dimHsc
-    real(dp),    dimension(nOrb,s%nAtoms)    :: expec_0, expec_z
+    integer                                  :: ncount,dimHsc
+    real(dp),    dimension(nOrb,s%nAtoms)    :: expec_0,expec_z
     complex(dp), dimension(nOrb,s%nAtoms)    :: expec_p
     real(dp),    dimension(nOrb,s%nAtoms)    :: expec_singlet
-    real(dp),    dimension(:),  allocatable  :: rwork(:), eval(:)
-    complex(dp),                allocatable  :: work(:), hk(:,:)
+    real(dp),    dimension(:),  allocatable  :: eval(:)
+    complex(dp),                allocatable  :: hk(:,:)
 
-    external :: zheev,MPI_Allreduce
+    external :: MPI_Allreduce
 
     dimHsc  = dimH*superCond
-    lwork = 21*dimHsc
     ncount = nOrb*s%nAtoms
 
-    allocate( hk(dimHsc,dimHsc),rwork(3*dimHsc-2),eval(dimHsc),work(lwork) )
+    allocate( hk(dimHsc,dimHsc),eval(dimHsc) )
 
     call hamilt_local(s)
 
     !$omp parallel default(none) &
-    !$omp& firstprivate(lwork) &
-    !$omp& private(iz,hk,eval,work,rwork,info,expec_0, expec_p, expec_z,expec_singlet) &
+    !$omp& private(iz,hk,eval,expec_0,expec_p,expec_z,expec_singlet) &
     !$omp& shared(s,dimHsc,output,realBZ,rho,mp,mz,lsuperCond,deltas)
     rho = 0._dp
     mz  = 0._dp
@@ -208,10 +206,7 @@ contains
       call hamiltk(s,realBZ%kp(1:3,iz),hk)
 
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-      call zheev('V','L', dimHsc,hk,dimHsc,eval,work,lwork,rwork,info)
-
-      ! if(info/=0) &
-      !   call abortProgram("[expectation_values_eigenstates] Problem with diagonalization. info = " // itos(info))
+      call diagonalize(dimHsc,hk,eval)
 
       ! Calculating expectation values for a given k-point
       call expec_val(s, dimHsc, hk, eval, expec_0, expec_p, expec_z, expec_singlet)
@@ -236,7 +231,7 @@ contains
     mx = real(mp)
     my = aimag(mp)
 
-    deallocate(hk,rwork,eval,work)
+    deallocate(hk,eval)
 
   end subroutine expectation_values_eigenstates
 
@@ -248,7 +243,7 @@ contains
     use mod_BrillouinZone,     only: realBZ
     use mod_parameters,        only: nOrb,dimH,output
     use mod_system,            only: System_type
-    use mod_tools,             only: itos
+    use mod_tools,             only: itos,diagonalize
     use mod_superconductivity, only: lsuperCond, superCond
     use mod_constants,         only: cZero
     use mod_hamiltonian,       only: hamilt_local,h0,fullhk
@@ -260,27 +255,25 @@ contains
     complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: mp
 
     integer(int64)                           :: iz
-    integer                                  :: info, ncount, lwork, dimHsc
-    real(dp),    dimension(nOrb,s%nAtoms)    :: expec_0, expec_z
+    integer                                  :: ncount,dimHsc
+    real(dp),    dimension(nOrb,s%nAtoms)    :: expec_0,expec_z
     complex(dp), dimension(nOrb,s%nAtoms)    :: expec_p
     real(dp),    dimension(nOrb,s%nAtoms)    :: expec_singlet
-    real(dp),    dimension(:),  allocatable  :: rwork(:), eval(:)
-    complex(dp),                allocatable  :: work(:), hk(:,:)
+    real(dp),    dimension(:),  allocatable  :: eval(:)
+    complex(dp),                allocatable  :: hk(:,:)
 
-    external :: zheev,MPI_Allreduce
+    external :: MPI_Allreduce
 
     dimHsc  = dimH*superCond
-    lwork = 21*dimHsc
     ncount = nOrb*s%nAtoms
 
-    allocate( hk(dimHsc,dimHsc),rwork(3*dimHsc-2),eval(dimHsc),work(lwork) )
+    allocate( hk(dimHsc,dimHsc),eval(dimHsc) )
 
     call hamilt_local(s)
     !!$acc data copyin(h0,fullhk) copyout(rho,mp,mz,deltas)
 
     !$omp parallel default(none) &
-    !$omp& firstprivate(lwork) &
-    !$omp& private(iz,hk,eval,work,rwork,info,expec_0, expec_p, expec_z,expec_singlet) &
+    !$omp& private(iz,hk,eval,expec_0,expec_p,expec_z,expec_singlet) &
     !$omp& shared(s,dimHsc,h0,fullhk,output,realBZ,rho,mp,mz,lsuperCond,deltas)
     rho = 0._dp
     mz  = 0._dp
@@ -294,7 +287,7 @@ contains
       hk = h0 + fullhk(:,:,iz)
 
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-      call zheev('V','L', dimHsc,hk,dimHsc,eval,work,lwork,rwork,info)
+      call diagonalize(dimHsc,hk,eval)
 
       ! if(info/=0) &
       !   call abortProgram("[expectation_values_eigenstates] Problem with diagonalization. info = " // itos(info))
@@ -325,7 +318,7 @@ contains
     mx = real(mp)
     my = aimag(mp)
 
-    deallocate(hk,rwork,eval,work)
+    deallocate(hk,eval)
 
   end subroutine expectation_eigenstates_fullhk
 
@@ -742,7 +735,7 @@ contains
 
   !! Calculate the expectation value of the time-dependent Hamiltonian in the propagated states
   subroutine expec_H_n(s,b_field,A_t,hk,kp,evec,eval,E_0)
-    use mod_kind,          only: dp,int64
+    use mod_kind,          only: dp
     use mod_constants,     only: pi
     use mod_parameters,    only: eta,dimH
     use mod_System,        only: System_type
@@ -787,32 +780,30 @@ contains
     use mod_System,            only: s => sys
     use mod_magnet,            only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
     use mod_distributions,     only: fd_dist
-    use mod_tools,             only: itos
+    use mod_tools,             only: itos,diagonalize
     use mod_superconductivity, only: lsuperCond,superCond
     use mod_hamiltonian,       only: hamiltk,hamilt_local
     use mod_mpi_pars,          only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
     implicit none
     integer(int64)                             :: iz
-    integer                                    :: lwork,dimHsc,info,n,i,mu,nu,sigma
+    integer                                    :: dimHsc,n,i,mu,nu,sigma
     real(dp)                                   :: fermi,beta
-    real(dp),    dimension(:),     allocatable :: rwork,eval,f_n
-    complex(dp),                   allocatable :: work(:),hk(:,:),prod(:,:,:)
+    real(dp),    dimension(:),     allocatable :: eval,f_n
+    complex(dp),                   allocatable :: hk(:,:),prod(:,:,:)
 
-    external :: zheev,MPI_Allreduce
+    external :: MPI_Allreduce
 
     dimHsc = dimH*superCond
-    lwork  = 21*dimHsc
     !If lsupercond is true then fermi is 0.0 otherwise is s%Ef
     fermi = merge(0._dp,s%Ef,lsuperCond)
     beta = 1._dp/(pi*eta)
 
-    allocate( hk(dimHsc,dimHsc),rwork(3*dimHsc-2),eval(dimHsc),f_n(dimHsc),work(lwork),prod(nOrb,nOrb,s%nAtoms) )
+    allocate( hk(dimHsc,dimHsc),eval(dimHsc),f_n(dimHsc),prod(nOrb,nOrb,s%nAtoms) )
 
     call hamilt_local(s)
 
     !$omp parallel default(none) &
-    !$omp& firstprivate(lwork) &
-    !$omp& private(iz,n,f_n,i,sigma,mu,nu,hk,eval,work,rwork,info) &
+    !$omp& private(iz,n,f_n,i,sigma,mu,nu,hk,eval) &
     !$omp& shared(s,nOrb,dimH,dimHsc,output,realBZ,fermi,beta,eta,isigmamu2n,prod,lsupercond)
 
     prod = cZero
@@ -822,9 +813,7 @@ contains
       call hamiltk(s,realBZ%kp(1:3,iz),hk)
 
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-      call zheev('V','L',dimHsc,hk,dimHsc,eval,work,lwork,rwork,info)
-      ! if(info/=0) &
-      !   call abortProgram("[calcLGS_eigenstates] Problem with diagonalization. info = " // itos(info))
+      call diagonalize(dimHsc,hk,eval)
 
       do n = 1,dimHsc
         f_n(n) = fd_dist(fermi, beta, eval(n))
@@ -868,7 +857,7 @@ contains
       end do
     end do
 
-    deallocate(hk,rwork,eval,work)
+    deallocate(hk,eval)
 
   end subroutine calcLGS_eigenstates
 
@@ -882,32 +871,30 @@ contains
     use mod_System,            only: s => sys
     use mod_magnet,            only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
     use mod_distributions,     only: fd_dist
-    use mod_tools,             only: itos
+    use mod_tools,             only: itos,diagonalize
     use mod_superconductivity, only: lsuperCond,superCond
     use mod_hamiltonian,       only: hamilt_local,h0,fullhk
     use mod_mpi_pars,          only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
     implicit none
     integer(int64)                             :: iz
-    integer                                    :: lwork,dimHsc,info,n,i,mu,nu,sigma
+    integer                                    :: dimHsc,n,i,mu,nu,sigma
     real(dp)                                   :: fermi,beta
-    real(dp),    dimension(:),     allocatable :: rwork,eval,f_n
-    complex(dp),                   allocatable :: work(:),hk(:,:),prod(:,:,:)
+    real(dp),    dimension(:),     allocatable :: eval,f_n
+    complex(dp),                   allocatable :: hk(:,:),prod(:,:,:)
 
-    external :: zheev,MPI_Allreduce
+    external :: MPI_Allreduce
 
     dimHsc = dimH*superCond
-    lwork  = 21*dimHsc
     !If lsupercond is true then fermi is 0.0 otherwise is s%Ef
     fermi = merge(0._dp,s%Ef,lsuperCond)
     beta = 1._dp/(pi*eta)
 
-    allocate( hk(dimHsc,dimHsc),rwork(3*dimHsc-2),eval(dimHsc),f_n(dimHsc),work(lwork),prod(nOrb,nOrb,s%nAtoms) )
+    allocate( hk(dimHsc,dimHsc),eval(dimHsc),f_n(dimHsc),prod(nOrb,nOrb,s%nAtoms) )
 
     call hamilt_local(s)
 
     !$omp parallel default(none) &
-    !$omp& firstprivate(lwork) &
-    !$omp& private(iz,n,f_n,i,sigma,mu,nu,hk,eval,work,rwork,info) &
+    !$omp& private(iz,n,f_n,i,sigma,mu,nu,hk,eval) &
     !$omp& shared(s,nOrb,dimH,dimHsc,h0,fullhk,output,realBZ,fermi,beta,eta,isigmamu2n,prod,lsupercond)
 
     prod = cZero
@@ -917,9 +904,7 @@ contains
       hk = h0 + fullhk(:,:,iz)
 
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-      call zheev('V','L',dimHsc,hk,dimHsc,eval,work,lwork,rwork,info)
-      ! if(info/=0) &
-      !   call abortProgram("[calcLGS_eigenstates] Problem with diagonalization. info = " // itos(info))
+      call diagonalize(dimHsc,hk,eval)
 
       do n = 1,dimHsc
         f_n(n) = fd_dist(fermi, beta, eval(n))
@@ -963,7 +948,7 @@ contains
       end do
     end do
 
-    deallocate(hk,rwork,eval,work)
+    deallocate(hk,eval)
 
   end subroutine calcLGS_fullhk
 
