@@ -70,11 +70,11 @@ if __name__ == "__main__":
       fig, axs = plt.subplots(1, numplots, sharey=True, squeeze=False, figsize=(6*numplots, 5))
 
       if(ry2ev == 13.6057*1000):
-        labely = r'$E-E_F$ [meV]'
+        labely = r'$E$ [meV]'
       elif(ry2ev == 13.6057):
-        labely = r'$E-E_F$ [eV]'
+        labely = r'$E$ [eV]'
       else:
-        labely = r'$E-E_F$ [Ry]'
+        labely = r'$E$ [Ry]'
 
       axs[0,0].set_ylabel(labely)
 
@@ -125,11 +125,11 @@ if __name__ == "__main__":
       fig, axs = plt.subplots(1, numplots, sharey=True, squeeze=False, figsize=(6*numplots, 5))
 
       if(ry2ev == 13.6057*1000):
-        labely = r'$E-E_F$ [meV]'
+        labely = r'$E$ [meV]'
       elif(ry2ev == 13.6057):
-        labely = r'$E-E_F$ [eV]'
+        labely = r'$E$ [eV]'
       else:
-        labely = r'$E-E_F$ [Ry]'
+        labely = r'$E$ [Ry]'
 
       axs[0,0].set_ylabel(labely)
 
@@ -182,11 +182,11 @@ if __name__ == "__main__":
     fig, axs = plt.subplots(1, numplots, sharey=True, squeeze=False, figsize=(6*numplots, 5))
 
     if(ry2ev == 13.6057*1000):
-      labely = r'$E-E_F$ [meV]'
+      labely = r'$E$ [meV]'
     elif(ry2ev == 13.6057):
-      labely = r'$E-E_F$ [eV]'
+      labely = r'$E$ [eV]'
     else:
-      labely = r'$E-E_F$ [Ry]'
+      labely = r'$E$ [Ry]'
 
     axs[0,0].set_ylabel(labely)
 
@@ -216,7 +216,7 @@ if __name__ == "__main__":
         if (fermi == None): # susceptibility
           axs[0,i].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='-', linewidth=0.5)
         else: # band structure
-          axs[0,i].axhline(y=fermi, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--', linewidth=0.5)
+          axs[0,i].axhline(y=fermi*ry2ev, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--', linewidth=0.5)
 
       # Plotting the results
       if (fermi == None): # susceptibility
