@@ -83,7 +83,7 @@ contains
     do
        read(unit=iunit, fmt='(A)', iostat=ios) line
        if (ios/=0) exit
-       if(line(1:2) /= "->") cycle
+       if(adjustl(line(1:2)) /= "->") cycle
        nlines = nlines + 1
        eq_pos = index(line, "=")
        com_pos = index(line, "!")

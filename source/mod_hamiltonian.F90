@@ -160,7 +160,7 @@ contains
 
     ! Comparing memory needed with 90% of available memory
     !       nkpt      *  hamilt dim       *cmplx (kb) (mb)
-    mem_req = int((dimH*supercond)**2* 16/1024/1024*realBZ%workload)
+    mem_req = int(dble((dimH*supercond)**2)*16/1024/1024*dble(realBZ%workload))
     if(mem_req > floor(0.9*mem_avail)) then
       if(rField == 0) &
         write(unit=output%unit, fmt="('[fullhamiltk] Full tight-binding hamiltonian does not fit in 90% of available memory. It must be re-calculated for each k-point.')")
