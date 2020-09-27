@@ -68,9 +68,9 @@ contains
 
     character(len=100) :: line
     character(len=20), dimension(7) :: title_line
-    integer(int32) :: tnpulse_e, tnpulse_m, tdimH
+    integer(int32) :: tnpulse_e,tnpulse_m,tdimH,tol=1.e-8_dp
     integer(int64) :: tnkpt
-    real(dp)       :: thE_0, thw_e, tpolarization_vec_e(2,3), ttau_e, tdelay_e, thw1_m, thw_m, tpolarization_vec_m(2,3), ttau_m, tdelay_m
+    real(dp)       :: thE_0,thw_e,tpolarization_vec_e(2,3),ttau_e,tdelay_e,thw1_m,thw_m,tpolarization_vec_m(2,3),ttau_m,tdelay_m
 
     success = .true.
 
@@ -90,7 +90,7 @@ contains
           ! Out-of-phase
           read(unit=unit, fmt="(a)") line
           read(unit=line(15:66), fmt=*) (tpolarization_vec_m(2,j), j=1,3)
-          if(sum(abs(tpolarization_vec_m(:,:)-polarization_vec_m(i,:,:)))  > 1.e-12_dp) then
+          if(sum(abs(tpolarization_vec_m(:,:)-polarization_vec_m(i,:,:)))  > tol) then
             call log_warning("check_header_time_prop", "polarization_vec_m(" // trim(itos(i)) // ") from input differs from checkpoint.") 
             success = .false.
           end if
@@ -98,7 +98,7 @@ contains
           ! Intensity
           read(unit=unit, fmt="(a)") line
           read(unit=line(13:), fmt=*) thw1_m
-          if(sum(abs(thw1_m-hw1_m)) > 1.e-12_dp) then
+          if(abs(thw1_m-hw1_m(i)) > tol) then
             call log_warning("check_header_time_prop", "hw1_m(" // trim(itos(i)) // ") from input: " // trim(rtos(hw1_m(i),"(es16.9)")) // ", read: " // trim(rtos(thw1_m,"(es16.9)")) // ".") 
             success = .false.
           end if
@@ -106,7 +106,7 @@ contains
           ! Frequency
           read(unit=unit, fmt="(a)") line
           read(unit=line(13:), fmt=*) thw_m
-          if(sum(abs(thw_m-hw_m)) > 1.e-12_dp) then
+          if(abs(thw_m-hw_m(i)) > tol) then
             call log_warning("check_header_time_prop", "hw_m(" // trim(itos(i)) // ") from input: " // trim(rtos(hw_m(i),"(es16.9)")) // ", read: " // trim(rtos(thw_m,"(es16.9)")) // ".") 
             success = .false.
           end if
@@ -114,7 +114,7 @@ contains
           ! Linewidth
           read(unit=unit, fmt="(a)") line
           read(unit=line(13:), fmt=*) ttau_m
-          if(sum(abs(ttau_m-tau_m)) > 1.e-12_dp) then
+          if(abs(ttau_m-tau_m(i)) > tol) then
             call log_warning("check_header_time_prop", "tau_m(" // trim(itos(i)) // ") from input: " // trim(rtos(tau_m(i),"(es16.9)")) // ", read: " // trim(rtos(ttau_m,"(es16.9)")) // ".") 
             success = .false.
           end if
@@ -122,7 +122,7 @@ contains
           ! Delay
           read(unit=unit, fmt="(a)") line
           read(unit=line(13:), fmt=*) tdelay_m
-          if(sum(abs(tdelay_m-delay_m)) > 1.e-12_dp) then
+          if(abs(tdelay_m-delay_m(i)) > tol) then
             call log_warning("check_header_time_prop", "delay_m(" // trim(itos(i)) // ") from input: " // trim(rtos(delay_m(i),"(es16.9)")) // ", read: " // trim(rtos(tdelay_m,"(es16.9)")) // ".") 
             success = .false.
           end if
@@ -134,7 +134,7 @@ contains
         ! Out-of-phase
         read(unit=unit, fmt="(a)") line
         read(unit=line(15:66), fmt=*) (tpolarization_vec_m(2,j), j=1,3)
-        if(sum(abs(tpolarization_vec_m(:,:)-polarization_vec_m(1,:,:)))  > 1.e-12_dp) then
+        if(sum(abs(tpolarization_vec_m(:,:)-polarization_vec_m(1,:,:)))  > tol) then
           call log_warning("check_header_time_prop", "polarization_vec_m from input differs from checkpoint.") 
           success = .false.
         end if
@@ -142,7 +142,7 @@ contains
         ! Intensity
         read(unit=unit, fmt="(a)") line
         read(unit=line(13:), fmt=*) thw1_m
-        if(sum(abs(thw1_m-hw1_m)) > 1.e-12_dp) then
+        if(abs(thw1_m-hw1_m(1)) > tol) then
           call log_warning("check_header_time_prop", "hw1_m from input: " // trim(rtos(hw1_m(1),"(es16.9)")) // ", read: " // trim(rtos(thw1_m,"(es16.9)")) // ".") 
           success = .false.
         end if
@@ -150,7 +150,7 @@ contains
         ! Frequency
         read(unit=unit, fmt="(a)") line
         read(unit=line(13:), fmt=*) thw_m
-        if(sum(abs(thw_m-hw_m)) > 1.e-12_dp) then
+        if(abs(thw_m-hw_m(1)) > tol) then
           call log_warning("check_header_time_prop", "hw_m from input: " // trim(rtos(hw_m(1),"(es16.9)")) // ", read: " // trim(rtos(thw_m,"(es16.9)")) // ".") 
           success = .false.
         end if
@@ -173,7 +173,7 @@ contains
           ! Out-of-phase
           read(unit=unit, fmt="(a)") line
           read(unit=line(15:66), fmt=*) (tpolarization_vec_e(2,j), j=1,3)
-          if(sum(abs(tpolarization_vec_e(:,:)-polarization_vec_e(i,:,:)))  > 1.e-12_dp) then
+          if(sum(abs(tpolarization_vec_e(:,:)-polarization_vec_e(i,:,:)))  > tol) then
             call log_warning("check_header_time_prop", "polarization_vec_e(" // trim(itos(i)) // ") from input differs from checkpoint.") 
             success = .false.
           end if
@@ -181,7 +181,7 @@ contains
           ! Intensity
           read(unit=unit, fmt="(a)") line
           read(unit=line(13:), fmt=*) thE_0
-          if(sum(abs(thE_0-hE_0)) > 1.e-12_dp) then
+          if(abs(thE_0-hE_0(i)) > tol) then
             call log_warning("check_header_time_prop", "hE_0(" // trim(itos(i)) // ") from input: " // trim(rtos(hE_0(i),"(es16.9)")) // ", read: " // trim(rtos(thE_0,"(es16.9)")) // ".") 
             success = .false.
           end if
@@ -189,7 +189,7 @@ contains
           ! Frequency
           read(unit=unit, fmt="(a)") line
           read(unit=line(13:), fmt=*) thw_e
-          if(sum(abs(thw_e-hw_e)) > 1.e-12_dp) then
+          if(abs(thw_e-hw_e(i)) > tol) then
             call log_warning("check_header_time_prop", "hw_e(" // trim(itos(i)) // ") from input: " // trim(rtos(hw_e(i),"(es16.9)")) // ", read: " // trim(rtos(thw_e,"(es16.9)")) // ".") 
             success = .false.
           end if
@@ -197,7 +197,7 @@ contains
           ! Linewidth
           read(unit=unit, fmt="(a)") line
           read(unit=line(13:), fmt=*) ttau_e
-          if(sum(abs(ttau_e-tau_e)) > 1.e-12_dp) then
+          if(abs(ttau_e-tau_e(i)) > tol) then
             call log_warning("check_header_time_prop", "tau_e(" // trim(itos(i)) // ") from input: " // trim(rtos(tau_e(i),"(es16.9)")) // ", read: " // trim(rtos(ttau_e,"(es16.9)")) // ".") 
             success = .false.
           end if
@@ -205,7 +205,7 @@ contains
           ! Delay
           read(unit=unit, fmt="(a)") line
           read(unit=line(13:), fmt=*) tdelay_e
-          if(sum(abs(tdelay_e-delay_e)) > 1.e-12_dp) then
+          if(abs(tdelay_e-delay_e(i)) > tol) then
             call log_warning("check_header_time_prop", "delay_e(" // trim(itos(i)) // ") from input: " // trim(rtos(delay_e(i),"(es16.9)")) // ", read: " // trim(rtos(tdelay_e,"(es16.9)")) // ".") 
             success = .false.
           end if
@@ -217,7 +217,7 @@ contains
         ! Out-of-phase
         read(unit=unit, fmt="(a)") line
         read(unit=line(15:66), fmt=*) (tpolarization_vec_e(2,j), j=1,3)
-        if(sum(abs(tpolarization_vec_e(:,:)-polarization_vec_e(1,:,:)))  > 1.e-12_dp) then
+        if(sum(abs(tpolarization_vec_e(:,:)-polarization_vec_e(1,:,:)))  > tol) then
           call log_warning("check_header_time_prop", "polarization_vec_e from input differs from checkpoint.") 
           success = .false.
         end if
@@ -225,7 +225,7 @@ contains
         ! Intensity
         read(unit=unit, fmt="(a)") line
         read(unit=line(13:), fmt=*) thE_0
-        if(sum(abs(thE_0-hE_0)) > 1.e-12_dp) then
+        if(abs(thE_0-hE_0(1)) > tol) then
           call log_warning("check_header_time_prop", "hE_0 from input: " // trim(rtos(hE_0(1),"(es16.9)")) // ", read: " // trim(rtos(thE_0,"(es16.9)")) // ".") 
           success = .false.
         end if
@@ -233,7 +233,7 @@ contains
         ! Frequency
         read(unit=unit, fmt="(a)") line
         read(unit=line(13:), fmt=*) thw_e
-        if(sum(abs(thw_e-hw_e)) > 1.e-12_dp) then
+        if(abs(thw_e-hw_e(1)) > tol) then
           call log_warning("check_header_time_prop", "hw_e from input: " // trim(rtos(hw_e(1),"(es16.9)")) // ", read: " // trim(rtos(thw_e,"(es16.9)")) // ".") 
           success = .false.
         end if
@@ -293,11 +293,13 @@ contains
       close(unit)
 
       ! for d orbitals
-      unit = 5190+i
-      write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%observable(i))//"_d",trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-      open(unit=unit,file=trim(output_file), status= 'replace')
-      call write_header_time_prop(unit,'#    Time [ps]   , ' // output%observable(i) // '_d')
-      close(unit)
+      if(i<=2) then
+        unit = 5190+i
+        write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%observable(i))//"_d",trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        open(unit=unit,file=trim(output_file), status= 'replace')
+        call write_header_time_prop(unit,'#    Time [ps]   , ' // output%observable(i) // '_d')
+        close(unit)
+      end if
     end do
 
   end subroutine create_time_prop_files
@@ -328,11 +330,13 @@ contains
       if(err/=0) missing_files = trim(missing_files) // " " // trim(output_file)
 
       ! for d orbitals
-      iw = 5190+i
-      write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%observable(i))//"_d",trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-      open (unit=iw, file=trim(output_file), status='old', position='append',form='formatted', iostat=err)
-      errt = errt + err
-      if(err/=0) missing_files = trim(missing_files) // " " // trim(output_file)
+      if(i<=2) then
+        iw = 5190+i
+        write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%observable(i))//"_d",trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        open (unit=iw, file=trim(output_file), status='old', position='append',form='formatted', iostat=err)
+        errt = errt + err
+        if(err/=0) missing_files = trim(missing_files) // " " // trim(output_file)
+      end if
     end do
 
     iw = 6090
@@ -357,10 +361,12 @@ contains
       close(5090+i)
 
       ! for d orbitals
-      close(5190+i)
+      if(i<=2) close(5190+i)
     end do
 
     close(6090)
+
+    deallocate( output%observable )
 
   end subroutine close_time_prop_files
 
@@ -418,13 +424,13 @@ contains
     use mod_parameters,       only: nOrb
     use mod_imRK4_parameters, only: time_conv
     implicit none
-    type(System_type),                      intent(in) :: s
-    real(dp),                          intent(in) :: t, E_t
-    real(dp), dimension(nOrb,s%nAtoms),intent(in) :: rho_t, mx_t, my_t, mz_t
-    real(dp), dimension(s%nAtoms)     ,intent(in) :: rhod_t, mxd_t, myd_t, mzd_t, Lxm_t, Lym_t, Lzm_t
-    real(dp), dimension(3)            ,intent(in) :: field_m, field_e
+    type(System_type),                  intent(in) :: s
+    real(dp),                           intent(in) :: t, E_t
+    real(dp), dimension(nOrb,s%nAtoms), intent(in) :: rho_t, mx_t, my_t, mz_t
+    real(dp), dimension(s%nAtoms),      intent(in) :: rhod_t, mxd_t, myd_t, mzd_t, Lxm_t, Lym_t, Lzm_t
+    real(dp), dimension(3),             intent(in) :: field_m, field_e
 
-    integer      :: i
+    integer  :: i
     real(dp) :: time
 
     call open_time_prop_files()
@@ -433,17 +439,14 @@ contains
 
     write(unit=5091,fmt="(100(es16.9,2x))") time, (sum(rho_t(:,i)),i=1,s%nAtoms)
     write(unit=5092,fmt="(100(es16.9,2x))") time, (sum(mx_t(:,i)),sum(my_t(:,i)),sum(mz_t(:,i)), sqrt(sum(mx_t(:,i))**2 + sum(my_t(:,i))**2 + sum(mz_t(:,i))**2) ,i=1,s%nAtoms)
+    write(unit=5093,fmt="(100(es16.9,2x))") time, E_t
+    write(unit=5094,fmt="(100(es16.9,2x))") time, (Lxm_t(i), Lym_t(i), Lzm_t(i), sqrt(Lxm_t(i)**2 + Lym_t(i)**2 + Lzm_t(i)**2),i=1,s%nAtoms)
 
     write(unit=5191,fmt="(100(es16.9,2x))") time, (rhod_t(i),i=1,s%nAtoms)
     write(unit=5192,fmt="(100(es16.9,2x))") time, (mxd_t(i),myd_t(i),mzd_t(i),sqrt(mxd_t(i)**2 + myd_t(i)**2 + mzd_t(i)**2),i=1,s%nAtoms)
 
     write(unit=6090,fmt="(7(es16.9,2x))") time, (field_m(i),i=1,3), (field_e(i),i=1,3)
 
-    write(unit=5093,fmt="(100(es16.9,2x))") time, E_t
-
-    ! write(unit=5094, fmt="(100(es16.9,2x))") time,  sum(Lxm_t(i)), sum(Lym_t(i)), sum(Lzm_t(i)), sum(Lxpm_t(i)),sum(Lypm_t(i)), sum(Lzpm_t(i)), sqrt(sum(Lxm_t(i))**2 + sum(Lym_t(i))**2 + sum(Lzm_t(i))**2 )  
-    write(unit=5094, fmt="(100(es16.9,2x))") time, (Lxm_t(i), Lym_t(i), Lzm_t(i), sqrt(Lxm_t(i)**2 + Lym_t(i)**2 + Lzm_t(i)**2),i=1,s%nAtoms)
-   
     call close_time_prop_files()
 
   end subroutine write_time_prop_files

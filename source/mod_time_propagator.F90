@@ -350,7 +350,7 @@ contains
     ! Creating checkpoint in the last state
     call save_state(rFreq(1),dimH,realBZ%workload,t,step,eval_kn,evec_kn)
 
-    deallocate( id,id2,M1,output%observable )
+    deallocate( id,id2,M1 )
     deallocate( hamilt_nof,hk,hkev,eval,eval_kn,evec_kn,evec_kn_temp )
 
 
