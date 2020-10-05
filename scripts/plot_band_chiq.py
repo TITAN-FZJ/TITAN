@@ -109,14 +109,14 @@ if __name__ == "__main__":
         else: # band structure
           # axs[0,i].plot(table[:,0],table[:,(table.shape[1]-1)/2+1:]-fermi, color='r', linewidth=1.0, linestyle='-')
           # axs[0,i].plot(table[:,0],table[:,1:(table.shape[1]-1)/2] + fermi, color='k', linewidth=1.0, linestyle='-')
-          axs[0,i].plot(table[:,0],table[:,(table.shape[1]-1)/2+1:]*ry2ev, color='r', linewidth=1.0, linestyle='-')
-          axs[0,i].plot(table[:,0],table[:,1:(table.shape[1]-1)/2+1]*ry2ev, color='k', linewidth=1.0, linestyle='-')
+          axs[0,i].plot(table[:,0],table[:,int((table.shape[1]-1)/2+1):]*ry2ev, color='r', linewidth=1.0, linestyle='-')
+          axs[0,i].plot(table[:,0],table[:,1:int((table.shape[1]-1)/2+1)]*ry2ev, color='k', linewidth=1.0, linestyle='-')
 
         plt.tight_layout()
         # plt.savefig("gaps2.png",dpi=900)
         plt.show()
     else:
-      numplots = len(sys.argv)-1
+      numplots = 2
       titles = [r"Electron Bands", r"Hole Bands"]
       # titles = [r"$\#_{k}=100$M, $\eta=5\times10^{-4}$, 2nn", r"$\#_{k}=100$M, $\eta=5\times10^{-4}$, 3nn"]
       # titles = [r"$\#_{k}=10$M", r"$\#_{k}=100$k"])
@@ -136,6 +136,7 @@ if __name__ == "__main__":
       for i in range(numplots):
         npoints, name, point, fermi, dimbs = read_header(args.files[0])
         table = read_data(args.files[0])
+        titles = ["Electrons", "Holes"]
         axs[0,i].set_title(titles[i])
         axs[0,i].set_xlim([point[0],point[npoints-1]])
         # axs[0,i].set_ylim(table[:,1:].min(),table[:,1:].max())
@@ -166,9 +167,9 @@ if __name__ == "__main__":
           axs[0,i].plot(table[:,1],-1.0/table[:,2])
         else: # band structure
           if(i==0):
-            axs[0,i].plot(table[:,0],table[:,(table.shape[1]-1)/2+1:]*ry2ev, color='r', linewidth=1.0, linestyle='-')
+            axs[0,i].plot(table[:,0],table[:,int((table.shape[1]-1)/2+1):]*ry2ev, color='r', linewidth=1.0, linestyle='-')
           else:
-            axs[0,i].plot(table[:,0],table[:,1:(table.shape[1]-1)/2]*ry2ev, color='k', linewidth=1.0, linestyle='-')
+            axs[0,i].plot(table[:,0],table[:,1:int((table.shape[1]-1)/2)]*ry2ev, color='k', linewidth=1.0, linestyle='-')
 
       plt.tight_layout()
       plt.show()
