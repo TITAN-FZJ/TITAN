@@ -1,0 +1,58 @@
+# docker image that is used for all ci jobs; see https://hub.docker.com/ for a list of valid docker images
+# Image with the centos 7 compilers
+# image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/extended
+image: iffregistry.fz-juelich.de/docker-images/centos8-intel-compilers:latest
+# list with commands that are executed before each job; every job starts with a fresh docker container
+before_script:
+  - echo before scripts
+  - set +e && source compilervars.sh intel64 && set -e
+
+# pipeline stages; a stage is only run if the previous stage is completed. Each stage contains user-defined jobs
+# that are run in parallel
+stages:
+  - build
+#  - test
+#   # - deploy:doc
+#
+# a build job (see `stage` key); jobs can have arbitrary names
+build:intel:normal:
+  stage: build
+  script:
+    - cd build
+    - cmake ../ -DPLATFORM=iff
+    - make
+
+build:intel:debug:
+  stage: build
+  script:
+    - cd build
+    - cmake ../ -DPLATFORM=iff -DDEBUG=ON
+    - make
+
+# after build job(s) are completed, tests can be run; artifacts from all previous stages are transferred automatically
+# test:titan:
+#   stage: test
+#   script:
+#     - echo testing
+#     - which ifort
+#     - which mpiifort
+#     - which gfortran
+
+# # `pages` is a special job that builds the gitlab page for this project; all artifacts must be saved in a `public`
+# # directory to be published as a static site (that can be accessed from the whole www)
+# pages:
+#   stage: deploy:doc
+#   script:
+#     - apt install -y ffmpeg python-pip
+#     # ubuntu ships with an old pip version -> upgrade before python packages are installed via pip
+#     - pip install -U pip
+#     # install sphinx (documentation generator) from PyPI to get the latest stable version
+#     - pip install sphinx sphinx_rtd_theme
+#     - make doc
+#     - mv doc/_build/html/ public/
+#   artifacts:
+#     paths:
+#       - public
+#   # only publish a new site if commits are pushed to the master branch -> stable release
+#   only:
+#     - master
