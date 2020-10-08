@@ -28,14 +28,12 @@ build:intel:debug:
     - cd build
     - cmake ../ -DPLATFORM=iff -DDEBUG=ON
     - make 2> >(tee make.warnings)
-    - if [[ -s make.warnings ]] ; then warnings=true ; fi 
-  rules:
-    - if: '$warnings == "true"'
-      allow_failure: true
+    - test ! -s make.warnings 
   artifacts:
     paths:
       - make.warnings
     expire_in: 1 day
+  allow_failure: true
 
 # after build job(s) are completed, tests can be run; artifacts from all previous stages are transferred automatically
 # test:titan:
