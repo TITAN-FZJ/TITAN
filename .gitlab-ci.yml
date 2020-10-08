@@ -27,7 +27,13 @@ build:intel:debug:
   script:
     - cd build
     - cmake ../ -DPLATFORM=iff -DDEBUG=ON
-    - make
+    - make 2> >(tee make.warnings)
+    - [ ! -s make.warnings ]
+  artifacts:
+    paths:
+      - make.warnings
+    expire_in: 1 day
+  allow_failure: true
 
 # after build job(s) are completed, tests can be run; artifacts from all previous stages are transferred automatically
 # test:titan:

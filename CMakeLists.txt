@@ -287,7 +287,7 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -CB
                                                 -check uninit
                                                 -debug all
-                                                -warn all,errors
+                                                -warn all
                                                 -e18
                                                 -ftrapuv
                                                 -traceback

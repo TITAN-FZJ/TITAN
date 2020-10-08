@@ -58,7 +58,7 @@ contains
     real(dp)                                :: E_t, E_0
     complex(dp)                             :: exp_eval
    
-    external :: MPI_Allreduce,MPI_Barrier
+    external :: MPI_Allreduce
 
     if(rFreq(1) == 0) &
       write(output%unit_loop,"('CALCULATING TIME-PROPAGATION')")
