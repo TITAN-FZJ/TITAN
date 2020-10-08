@@ -28,10 +28,10 @@ build:intel:debug:
     - cd build
     - cmake ../ -DPLATFORM=iff -DDEBUG=ON
     - make 2> >(tee make.warnings)
-    - if [[ -s make.warnings ]] ; then warnings=true; fi
+    - if [[ -s make.warnings ]] ; then warnings=true ; fi 
   rules:
-    - if: '$warnings == true'
-        allow_failure: true
+    - if: '$warnings == "true"'
+      allow_failure: true
   artifacts:
     paths:
       - make.warnings
