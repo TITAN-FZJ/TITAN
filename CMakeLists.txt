@@ -287,12 +287,14 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -CB
                                                 -check uninit
                                                 -debug all
-                                                -warn all
+                                                -warn all,errors
+                                                -e18
                                                 -ftrapuv
                                                 -traceback
                                                 -qopenmp
                                                 -no-prec-sqrt
                                                 -fpp
+                                                -D_GNU
                                                 -DVERSION="${GIT_VERSION}"
                                                 -g
                                                 -O0
