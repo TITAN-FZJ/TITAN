@@ -28,7 +28,7 @@ build:intel:debug:
     - cd build
     - cmake ../ -DPLATFORM=iff -DDEBUG=ON
     - make 2> >(tee make.warnings)
-    - [ ! -s make.warnings ]
+    - test ! -s make.warnings 
   artifacts:
     paths:
       - make.warnings
