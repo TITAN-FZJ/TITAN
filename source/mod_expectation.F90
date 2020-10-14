@@ -4,7 +4,7 @@ module mod_expectation
   implicit none
 
   procedure(expectation_values_sub), pointer :: expectation_values => expectation_values_greenfunction
-  procedure(calcLGS_sub),            pointer :: calcLGS => calcLGS_greenfunction
+  procedure(calc_GS_L_and_E_sub),    pointer :: calc_GS_L_and_E => calc_GS_L_and_E_greenfunction
 
   abstract interface
     subroutine expectation_values_sub(s,rho,mp,mx,my,mz,deltas)
@@ -16,13 +16,13 @@ module mod_expectation
       real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
       real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: deltas
       complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: mp
-    end subroutine
+    end subroutine expectation_values_sub
   end interface
 
   abstract interface
-    subroutine calcLGS_sub()
+    subroutine calc_GS_L_and_E_sub()
       implicit none
-    end subroutine
+    end subroutine calc_GS_L_and_E_sub
   end interface
 
 contains
@@ -529,9 +529,9 @@ contains
   end subroutine expec_val_n
 
 
-  subroutine groundstate_L()
+  subroutine groundstate_L_and_E()
     !! Calculates the expectation value of the orbital angular momentum in the ground state
-    use mod_kind, only: dp
+    use mod_kind,          only: dp
     use mod_parameters,    only: output
     use mod_constants,     only: rad2deg
     use mod_System,        only: s => sys
@@ -541,7 +541,7 @@ contains
     integer      :: i,AllocateStatus
 
     if(rField == 0) &
-      write(output%unit_loop,"('[calcLGS] Calculating Orbital Angular Momentum ground state... ')")
+      write(output%unit_loop,"('[groundstate_L_and_E] Calculating Orbital Angular Momentum and Band energy of ground state... ')")
 
     if(allocated(lxm)) deallocate(lxm)
     if(allocated(lym)) deallocate(lym)
@@ -556,9 +556,9 @@ contains
               lypm(s%nAtoms), &
               lzpm(s%nAtoms), stat = AllocateStatus )
     if (AllocateStatus/=0) &
-      call abortProgram("[calcLGS] Not enough memory for: lxm,lym,lzm,lxpm,lypm,lzpm")
+      call abortProgram("[groundstate_L_and_E] Not enough memory for: lxm,lym,lzm,lxpm,lypm,lzpm")
 
-    call calcLGS()
+    call calc_GS_L_and_E()
 
     ! Calculating angles of GS OAM (in degrees)
     do i = 1,s%nAtoms
@@ -594,21 +594,21 @@ contains
       end if
     end do
 
-  end subroutine groundstate_L
+  end subroutine groundstate_L_and_E
 
 
-  subroutine calcLGS_greenfunction()
+  subroutine calc_GS_L_and_E_greenfunction()
     !! Calculates the expectation value of the orbital angular momentum in the ground state using green functions
     use mod_kind,          only: dp,int64
     use mod_constants,     only: cZero,pi
     use mod_System,        only: s => sys
-    use mod_parameters,    only: nOrb, nOrb2, eta
+    use mod_parameters,    only: nOrb,nOrb2,eta,output
     use EnergyIntegration, only: y, wght
     use mod_magnet,        only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
-    use mod_hamiltonian,   only: hamilt_local
+    use mod_hamiltonian,   only: hamilt_local,energy
     use mod_greenfunction, only: green
     use adaptiveMesh,      only: local_points,activeComm,E_k_imag_mesh,bzs
-    use mod_mpi_pars,      only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_COMPLEX,MPI_SUM,ierr
+    use mod_mpi_pars,      only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_COMPLEX,MPI_SUM,ierr,myrank
     implicit none
     integer(int64)    :: ix
     integer      :: AllocateStatus
@@ -625,10 +625,14 @@ contains
 
     allocate(gupgd(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
     if(AllocateStatus/=0) &
-      call abortProgram("[calcLGS_greenfunction] Not enough memory for: gupgd")
+      call abortProgram("[calc_GS_L_and_E_greenfunction] Not enough memory for: gupgd")
 
     ! Build local hamiltonian
     call hamilt_local(s)
+
+    if(myrank == 0) &
+      write(output%unit, "('[Warning] [calc_GS_L_and_E_greenfunction] Band energy not implemented with greenfunctions.')")
+    energy = 0._dp
 
     ! Calculating the jacobian using a complex integral
     gupgd  = cZero
@@ -637,7 +641,7 @@ contains
     !$omp& shared(local_points,s,nOrb,nOrb2,E_k_imag_mesh,bzs,eta,y,wght,gupgd)
     allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat = AllocateStatus)
     if (AllocateStatus/=0) &
-      call abortProgram("[calcLGS_greenfunction] Not enough memory for: gf")
+      call abortProgram("[calc_GS_L_and_E_greenfunction] Not enough memory for: gf")
 
     gf = cZero
     !$omp do schedule(dynamic) reduction(+:gupgd)
@@ -687,12 +691,12 @@ contains
     end do
 
     deallocate(gupgd)
-  end subroutine calcLGS_greenfunction
+  end subroutine calc_GS_L_and_E_greenfunction
 
 
   !! Calculate the expectation value of the orbital momentum in the propagated states:
   subroutine expec_L_n(s,dimens,evec,eval,lxm,lym,lzm)
-    use mod_kind, only: dp
+    use mod_kind,          only: dp
     use mod_constants,     only: pi
     use mod_parameters,    only: nOrb,eta,isigmamu2n
     use mod_System,        only: System_type
@@ -762,7 +766,6 @@ contains
 
     do i=1, dimH
       do j=1, dimH
-        ! expec_H_0 = real( conjg( evec(i) ) * hamilt_t(i,j) * evec(j) )
         expec_H_0 = real( conjg( evec(i) ) * hamilt_0(i,j) * evec(j) )
         E_0       =  E_0 + f_n * expec_H_0
       end do
@@ -772,18 +775,18 @@ contains
 
 
   !   Calculates ground state quantities from eigenstates
-  subroutine calcLGS_eigenstates()
-    use mod_kind, only: dp,int64
+  subroutine calc_GS_L_and_E_eigenstates()
+    use mod_kind,              only: dp,int64
     use mod_BrillouinZone,     only: realBZ
     use mod_constants,         only: pi,cZero
-    use mod_parameters,        only: nOrb,dimH,output,eta,isigmamu2n
+    use mod_parameters,        only: nOrb,dimH,eta,isigmamu2n
     use mod_System,            only: s => sys
     use mod_magnet,            only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
     use mod_distributions,     only: fd_dist
     use mod_tools,             only: itos,diagonalize
     use mod_superconductivity, only: lsuperCond,superCond
-    use mod_hamiltonian,       only: hamiltk,hamilt_local
-    use mod_mpi_pars,          only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
+    use mod_hamiltonian,       only: hamiltk,hamilt_local,energy
+    use mod_mpi_pars,          only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
     implicit none
     integer(int64)                             :: iz
     integer                                    :: dimHsc,n,i,mu,nu,sigma
@@ -804,10 +807,11 @@ contains
 
     !$omp parallel default(none) &
     !$omp& private(iz,n,f_n,i,sigma,mu,nu,hk,eval) &
-    !$omp& shared(s,nOrb,dimH,dimHsc,output,realBZ,fermi,beta,eta,isigmamu2n,prod,lsupercond)
+    !$omp& shared(s,nOrb,dimHsc,realBZ,fermi,beta,isigmamu2n,energy,prod)
 
     prod = cZero
-    !$omp do reduction(+:prod) schedule(dynamic)
+    energy = 0._dp
+    !$omp do reduction(+:prod,energy) schedule(dynamic)
     kloop: do iz = 1,realBZ%workload
       ! Calculating the hamiltonian for a given k-point
       call hamiltk(s,realBZ%kp(1:3,iz),hk)
@@ -816,7 +820,9 @@ contains
       call diagonalize(dimHsc,hk,eval)
 
       do n = 1,dimHsc
+        ! Fermi-Dirac distrubution
         f_n(n) = fd_dist(fermi, beta, eval(n))
+        energy =  energy + f_n(n) * eval(n)
       end do
 
       do i = 1,s%nAtoms
@@ -835,7 +841,8 @@ contains
     !$omp end do
     !$omp end parallel
 
-    call MPI_Allreduce(MPI_IN_PLACE, prod, nOrb*nOrb*s%nAtoms, MPI_DOUBLE_COMPLEX, MPI_SUM, FreqComm(1) , ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, prod   , nOrb*nOrb*s%nAtoms, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, energy , 1                 , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
 
     ! Building different components of the orbital angular momentum
     lxm  = 0._dp
@@ -859,22 +866,22 @@ contains
 
     deallocate(hk,eval)
 
-  end subroutine calcLGS_eigenstates
+  end subroutine calc_GS_L_and_E_eigenstates
 
 
   !   Calculates ground state quantities from eigenstates
-  subroutine calcLGS_fullhk()
+  subroutine calc_GS_L_and_E_fullhk()
     use mod_kind, only: dp,int64
     use mod_BrillouinZone,     only: realBZ
     use mod_constants,         only: pi,cZero
-    use mod_parameters,        only: nOrb,dimH,output,eta,isigmamu2n
+    use mod_parameters,        only: nOrb,dimH,eta,isigmamu2n
     use mod_System,            only: s => sys
     use mod_magnet,            only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
     use mod_distributions,     only: fd_dist
     use mod_tools,             only: itos,diagonalize
     use mod_superconductivity, only: lsuperCond,superCond
-    use mod_hamiltonian,       only: hamilt_local,h0,fullhk
-    use mod_mpi_pars,          only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
+    use mod_hamiltonian,       only: hamilt_local,h0,fullhk,energy
+    use mod_mpi_pars,          only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
     implicit none
     integer(int64)                             :: iz
     integer                                    :: dimHsc,n,i,mu,nu,sigma
@@ -895,10 +902,11 @@ contains
 
     !$omp parallel default(none) &
     !$omp& private(iz,n,f_n,i,sigma,mu,nu,hk,eval) &
-    !$omp& shared(s,nOrb,dimH,dimHsc,h0,fullhk,output,realBZ,fermi,beta,eta,isigmamu2n,prod,lsupercond)
+    !$omp& shared(s,nOrb,dimHsc,h0,fullhk,realBZ,fermi,beta,isigmamu2n,prod,energy)
 
     prod = cZero
-    !$omp do reduction(+:prod) schedule(dynamic)
+    energy = 0._dp
+    !$omp do reduction(+:prod,energy) schedule(dynamic)
     kloop: do iz = 1,realBZ%workload
       ! hamiltonian for a given k-point
       hk = h0 + fullhk(:,:,iz)
@@ -908,6 +916,7 @@ contains
 
       do n = 1,dimHsc
         f_n(n) = fd_dist(fermi, beta, eval(n))
+        energy = energy + f_n(n) * eval(n)
       end do
 
       do i = 1,s%nAtoms
@@ -926,7 +935,8 @@ contains
     !$omp end do
     !$omp end parallel
 
-    call MPI_Allreduce(MPI_IN_PLACE, prod, nOrb*nOrb*s%nAtoms, MPI_DOUBLE_COMPLEX, MPI_SUM, FreqComm(1) , ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, prod   , nOrb*nOrb*s%nAtoms, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, energy , 1                 , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
 
     ! Building different components of the orbital angular momentum
     lxm  = 0._dp
@@ -950,6 +960,6 @@ contains
 
     deallocate(hk,eval)
 
-  end subroutine calcLGS_fullhk
+  end subroutine calc_GS_L_and_E_fullhk
 
 end module mod_expectation

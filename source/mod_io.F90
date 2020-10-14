@@ -30,9 +30,9 @@ contains
     character(len=*), intent(in) :: message
 
     if(myrank == 0) then
-      if(log_unit) write(output%unit, "('[Error] [',a,'] ',a,'')") procedure, trim(message)
+      if(log_unit) write(output%unit, "('[Error] [',a,'] ',a)") procedure, trim(message)
     end if
-    write(*, "('[Error] [',a,'] ',a,'')") procedure, trim(message)
+    write(*, "('[Error] [',a,'] ',a)") procedure, trim(message)
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
     stop
   end subroutine log_error
@@ -46,9 +46,9 @@ contains
 
     if(myrank == 0) then
        if(log_unit) then
-          write(output%unit, "('[Warning] [',a,'] ',a,'')") procedure, trim(message)
+          write(output%unit, "('[Warning] [',a,'] ',a)") procedure, trim(message)
        else
-          write(*, "('[Warning] [',a,'] ',a,'')") procedure, trim(message)
+          write(*, "('[Warning] [',a,'] ',a)") procedure, trim(message)
        end if
     end if
   end subroutine log_warning
@@ -65,7 +65,7 @@ contains
                                     offset, dfttype, parField, parFreq, kptotal_in, kp_in, &
                                     nOrb, nOrb2, tbmode, fermi_layer
     use mod_superconductivity, only: lsuperCond, superCond
-    use mod_self_consistency,  only: lslatec, lontheflysc, lnojac, lGSL, lforceoccup, lrotatemag, skipsc, scfile, magbasis, mag_tol
+    use mod_self_consistency,  only: lontheflysc, lnojac, lforceoccup, lrotatemag, skipsc, scfile, magbasis, mag_tol
     use mod_system,            only: System_type, n0sc1, n0sc2
     use mod_SOC,               only: SOC, socscale, llinearsoc, llineargfsoc
     use mod_magnet,            only: lfield, tesla, hwa_i, hwa_f, hwa_npts, hwa_npt1, hwt_i, hwt_f, &
@@ -81,7 +81,7 @@ contains
                                      polarization_e, polarization_m, polarization_vec_e, polarization_vec_m, &
                                      npulse_e, npulse_m, tau_m, delay_e, delay_m, lelectric, safe_factor, &
                                      lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol
-    use mod_expectation,       only: expectation_values, expectation_values_eigenstates, calcLGS, calcLGS_eigenstates
+    use mod_expectation,       only: expectation_values, expectation_values_eigenstates, calc_GS_L_and_E, calc_GS_L_and_E_eigenstates
     implicit none
     character(len=*),  intent(in)    :: filename
     type(System_type), intent(inout) :: s
@@ -180,10 +180,6 @@ contains
         lcreatefiles = .true.
       case("createfolders")
         lcreatefolders = .true.
-      case ("slatec")
-        lslatec = .true.
-      case ("GSL")
-        lGSL = .true.
       case ("kpoints")
         lkpoints = .true.
       case ("positions")
@@ -221,7 +217,7 @@ contains
       case ("eigenstates")
         leigenstates = .true.
         expectation_values => expectation_values_eigenstates
-        calcLGS => calcLGS_eigenstates
+        calc_GS_L_and_E => calc_GS_L_and_E_eigenstates
         lnojac = .true.
         call log_warning("get_parameters","eigenstates is used, jacobian deactivated (not implemented yet)")
       case ("printfieldonly")

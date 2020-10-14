@@ -44,11 +44,7 @@ contains
     integer(int32) :: provided
 
 #ifdef _OPENMP
-#ifdef _UFF
-      call MPI_Init(ierr)
-#else
       call MPI_Init_thread(MPI_THREAD_FUNNELED,provided,ierr)
-#endif
       call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ierr)
       call MPI_Comm_size(MPI_COMM_WORLD,numprocs,ierr)
 #else
