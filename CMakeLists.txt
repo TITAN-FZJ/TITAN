@@ -131,6 +131,7 @@ endif()
 
 if(COMPILER MATCHES gfortran OR COMPILER MATCHES gcc OR COMPILER MATCHES gfort OR COMPILER MATCHES gnu)
   set(COMPILER gnu)
+  set(CMAKE_Fortran_COMPILER mpif90)
   set(SUFFIX ${SUFFIX}_gnu)
   execute_process(COMMAND echo "Using GCC Compiler")
 endif()
@@ -173,7 +174,7 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
     target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
-                                                -no-prec-sqrt 
+                                                -no-prec-sqrt
                                                 -xCORE-AVX2
                                                 -fma
                                                 -qopt-zmm-usage=high
@@ -237,6 +238,7 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -DVERSION="${GIT_VERSION}"
                                                 -fpp
                                                 -no-prec-sqrt
+                                                -D_GNU
                                                 -qopenmp
                                                 -g
                                                 -mkl
@@ -276,11 +278,13 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -check uninit
                                                 -debug all
                                                 -warn all
+                                                -e18
                                                 -ftrapuv
                                                 -traceback
                                                 -qopenmp
                                                 -no-prec-sqrt
                                                 -fpp
+                                                -D_GNU
                                                 -DVERSION="${GIT_VERSION}"
                                                 -g
                                                 -O0
@@ -297,7 +301,7 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
                                                 -I$ENV{MKLROOT}/include
                                                 -fopenmp
                                                 -ffree-form
-                                                -ffree-line-length-0 
+                                                -ffree-line-length-0
                                                 -g
                                                 -O3
                                                 -march=native
@@ -305,21 +309,21 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
 
   else(NOT DEBUG MATCHES "ON")
     target_compile_options(${TITAN_EXE} PRIVATE -C
-                                                -Wall 
-                                                -Wextra 
+                                                -Wall
+                                                -Wextra
                                                 -Wconversion
-                                                -Wline-truncation 
-                                                -Wcharacter-truncation 
-                                                -Wsurprising 
-                                                -Waliasing 
-                                                -Wunused-parameter 
+                                                -Wline-truncation
+                                                -Wcharacter-truncation
+                                                -Wsurprising
+                                                -Waliasing
+                                                -Wunused-parameter
                                                 -fwhole-file
-                                                -fimplicit-none 
-                                                -fbacktrace 
+                                                -fimplicit-none
+                                                -fbacktrace
                                                 -ffree-form
-                                                -ffree-line-length-0 
-                                                -fcheck=all 
-                                                -ffpe-trap=zero,overflow,underflow 
+                                                -ffree-line-length-0
+                                                -fcheck=all
+                                                -ffpe-trap=zero,overflow,underflow
                                                 -finit-real=nan
                                                 -ftrapv
                                                 -fopenmp
@@ -340,10 +344,10 @@ elseif(COMPILER MATCHES pgi) # PGI:
                                                 -g
                                                 -O3
                                                 -lm
-                                                -fast 
-                                                -acc 
+                                                -fast
+                                                -acc
                                                 -ta=tesla:cc35
-                                                -Minfo=accel 
+                                                -Minfo=accel
                                                 #-mp
                                                 )
 
@@ -354,14 +358,14 @@ elseif(COMPILER MATCHES pgi) # PGI:
                                                 -g
                                                 -Mdclchk                  # instructs the compiler to require that all program variables be declared
                                                 -Minform=inform           # instructs the compiler to display all error messages (inform, warn, severe and fatal).
-                                                -Mbounds                  # enables array bounds checking. 
+                                                -Mbounds                  # enables array bounds checking.
                                                 -Mchkptr                  # instructs the compiler to check for pointers that are dereferenced while initialized to NULL (Fortran only).
-                                                -Mchkstk                  # instructs the compiler to check the stack for available space in the prologue of a function and before the start of a parallel region. 
+                                                -Mchkstk                  # instructs the compiler to check the stack for available space in the prologue of a function and before the start of a parallel region.
                                                 -traceback
                                                 -Ktrap=fp,unf             # fp, unf is equivalent to inv,divz,ovf, unf  correspond to the processor’s exception mask bits: invalid operation, divide-by-zero, overflow, and underflow, respectively.
-                                                -acc 
+                                                -acc
                                                 -ta=tesla:cc35
-                                                -Minfo=accel 
+                                                -Minfo=accel
                                                 #-mp                       # openmp
                                                 -O0
                                                 )
