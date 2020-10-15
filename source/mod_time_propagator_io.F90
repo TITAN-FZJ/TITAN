@@ -55,11 +55,11 @@ contains
 
   ! Writing header for previously opened file of unit "unit"
   subroutine check_header_time_prop(unit,success)
-    use mod_kind, only: dp,int32,int64
-    use mod_parameters, only: dimH
-    use mod_BrillouinZone, only: realBZ
-    use mod_io, only: log_warning
-    use mod_tools, only: itos, rtos
+    use mod_kind,             only: dp,int32,int64
+    use mod_parameters,       only: dimH
+    use mod_BrillouinZone,    only: realBZ
+    use mod_io,               only: log_warning
+    use mod_tools,            only: itos, rtos
     use mod_imRK4_parameters, only: lelectric, hE_0, hw_e, lpulse_e, npulse_e, polarization_vec_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, npulse_m, polarization_vec_m, tau_m, delay_m
     implicit none
     integer(int32),   intent(in) :: unit
@@ -68,8 +68,9 @@ contains
 
     character(len=100) :: line
     character(len=20), dimension(7) :: title_line
-    integer(int32) :: tnpulse_e,tnpulse_m,tdimH,tol=1.e-8_dp
+    integer(int32) :: tnpulse_e,tnpulse_m,tdimH
     integer(int64) :: tnkpt
+    real(dp)       :: tol=1.e-8_dp
     real(dp)       :: thE_0,thw_e,tpolarization_vec_e(2,3),ttau_e,tdelay_e,thw1_m,thw_m,tpolarization_vec_m(2,3),ttau_m,tdelay_m
 
     success = .true.
