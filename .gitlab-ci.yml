@@ -35,6 +35,27 @@ build:intel:debug:
     expire_in: 1 day
   allow_failure: true
 
+build:gnu:normal:
+  stage: build
+  script:
+    - cd build
+    - cmake ../ -DPLATFORM=iff -DCOMPILER=gnu
+    - make
+
+build:gnu:debug:
+  stage: build
+  script:
+    - cd build
+    - cmake ../ -DPLATFORM=iff -DCOMPILER=gnu -DDEBUG=ON
+    - make 2> >(tee make.warnings)
+    - test ! -s make.warnings 
+  artifacts:
+    paths:
+      - make.warnings
+    expire_in: 1 day
+  allow_failure: true
+
+
 # after build job(s) are completed, tests can be run; artifacts from all previous stages are transferred automatically
 # test:titan:
 #   stage: test
