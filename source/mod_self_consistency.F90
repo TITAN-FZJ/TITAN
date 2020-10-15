@@ -13,9 +13,7 @@ module mod_self_consistency
   real(dp), allocatable :: initialmag(:,:)
   !! Initial guess for magnetization
   logical :: lselfcon    = .false.
-  logical :: lGSL        = .false.
   logical :: lontheflysc = .false.
-  logical :: lslatec     = .false.
   logical :: lnojac      = .false.
   logical :: lrotatemag  = .false.
   logical :: lforceoccup = .false.
@@ -27,11 +25,10 @@ contains
     use adaptiveMesh,      only: genLocalEKMesh, freeLocalEKMesh
     use mod_BrillouinZone, only: realBZ
     use mod_mpi_pars,      only: rFreq, sFreq, FreqComm, rField, sField, FieldComm
-    use mod_SOC,           only: SOC
     use mod_parameters,    only: leigenstates,lkpoints
     use mod_System,        only: s => sys
-    use mod_expectation,   only: groundstate_L,expectation_values,expectation_eigenstates_fullhk,calcLGS,calcLGS_fullhk
-    use mod_hamiltonian, only: fullhamiltk,lfullhk
+    use mod_expectation,   only: groundstate_L_and_E,expectation_values,expectation_eigenstates_fullhk,calc_GS_L_and_E,calc_GS_L_and_E_fullhk
+    use mod_hamiltonian,   only: fullhamiltk,lfullhk
     implicit none
     logical :: lsuccess = .false.
 
@@ -45,7 +42,7 @@ contains
     lfullhk = fullhamiltk(s)
     if( lfullhk ) then
       expectation_values => expectation_eigenstates_fullhk
-      calcLGS => calcLGS_fullhk
+      calc_GS_L_and_E => calc_GS_L_and_E_fullhk
     end if
 
     !--------------------------- Self-consistency --------------------------
@@ -66,8 +63,8 @@ contains
     ! L matrix in local frame for given quantization direction
     call lp_matrix(mtheta, mphi)
 
-    ! Calculating ground state Orbital Angular Momentum
-    if((lGSL).or.(SOC)) call groundstate_L()
+    ! Calculating ground state Orbital Angular Momentum and Band Energy
+    call groundstate_L_and_E()
 
     ! Writing self-consistency results on screen
     if(rField == 0)  call print_sc_results()
@@ -78,7 +75,7 @@ contains
 
   ! Tries to read n and m if available
   subroutine read_previous_results(lsuccess)
-    use mod_kind, only: dp
+    use mod_kind,              only: dp
     use mod_constants,         only: deg2rad
     use mod_parameters,        only: nOrb, output
     use mod_system,            only: s => sys
@@ -164,7 +161,7 @@ contains
 
   ! Reads the initial magnetization for nAtoms in 'filename'
   subroutine read_initialmag(filename,basis,nAtoms)
-    use mod_kind, only: dp
+    use mod_kind,       only: dp
     use mod_parameters, only: output
     use mod_constants,  only: deg2rad
     use mod_tools,      only: read_data
@@ -173,7 +170,7 @@ contains
     implicit none
     character(len=*), intent(in) :: filename,basis
     integer         , intent(in) :: nAtoms
-    integer      :: i,err
+    integer  :: i,err
     real(dp) :: temp(nAtoms,3)
 
     if(rField == 0) &
@@ -209,24 +206,6 @@ contains
 
     close(unit=321)
 
-
-    ! if(magbasis == "") then
-    !   continue
-    ! else if(magaxis == -2) then
-    !   magaxisvec = magaxisvec(1) * s%a1 + magaxisvec(2) * s%a2 + magaxisvec(3) * s%a3
-    ! else if(magaxis == -3) then
-    !   magaxisvec = [cos(magaxisvec(2)*deg2rad)*sin(magaxisvec(1)*deg2rad), sin(magaxisvec(2)*deg2rad)*sin(magaxisvec(1)*deg2rad), cos(magaxisvec(1)*deg2rad)]
-    ! else if(magaxis == 0) then
-    !   magaxisvec = [0._dp, 0._dp, sign(1.0_dp, hw_list(hw_count,1))]
-    ! else if(magaxis >=1 .and. magaxis <= s%nAtoms) then
-    !   !magaxisvec(1:3) = c_nn(1:3, magaxis)
-    !   if(rField == 0) call abortProgram("[read_previous_results] Magaxis along neighbor not implemented!")
-    ! else
-    !   if(rField == 0) call abortProgram("[read_previous_results] Unknown magnetization direction!")
-    ! end if
-    ! magaxisvec = magaxisvec / sqrt(dot_product(magaxisvec, magaxisvec))
-    ! magaxisvec = magaxisvec * 0.5_dp
-
   end subroutine read_initialmag
 
   ! This subroutine reads previous band-shifting and magnetization results
@@ -243,7 +222,7 @@ contains
     integer,intent(out) :: err
     logical,intent(out) :: lsuccess
     integer             :: i,j
-    real(dp)        :: previous_results(5*nOrb,s%nAtoms), previous_Ef
+    real(dp)            :: previous_results(5*nOrb,s%nAtoms), previous_Ef
 
     external :: MPI_Bcast
 
@@ -421,30 +400,18 @@ contains
 
   subroutine calcMagneticSelfConsistency()
   !! This subroutine performs the self-consistency
-    use mod_kind, only: dp
-    use mod_parameters, only: nOrb, output
-    use mod_magnet,     only: rho, mxd, myd, mzd
-    use mod_mpi_pars,   only: rField
-    use mod_system,     only: s => sys
-    use adaptiveMesh
-    use mod_dnsqe
+    use mod_kind,              only: dp
+    use mod_parameters,        only: nOrb,output
+    use mod_magnet,            only: rho,mxd,myd,mzd
+    use mod_mpi_pars,          only: rField
+    use mod_system,            only: s => sys
+    use adaptiveMesh,          only:
+    use mod_dnsqe,             only: dnsqe
     use mod_superconductivity, only: superCond, lsuperCond, singlet_coupling
     implicit none
-    real(dp),allocatable      :: fvec(:),jac(:,:),wa(:),sc_solu(:)
-    real(dp),allocatable      :: diag(:),qtf(:)
-#if !defined(_GNU)
-    real(dp)                  :: epsfcn,factor
-    integer                       :: maxfev,ml,mr,mode,nfev,njev
-#endif
-#if !defined(_OSX) && !defined(_GNU)
-    real(dp)                  :: ruser(1)
-    integer                       :: iuser(1)
-#else
-    real(dp),allocatable      :: w(:,:)
-#endif
-    integer                       :: i,mu,lwa,ifail=0
-
-    external :: c05ncf,c05pcf
+    real(dp), allocatable :: fvec(:),jac(:,:),wa(:),sc_solu(:)
+    real(dp), allocatable :: diag(:),qtf(:)
+    integer               :: i,mu,lwa,ifail=0
 
     neq_per_atom = 8 + (superCond-1)*nOrb
     neq = neq_per_atom*s%nAtoms+1
@@ -468,79 +435,16 @@ contains
     sc_solu(neq_per_atom*s%nAtoms+1) = s%Ef
 
     if(rField == 0) &
-    write(output%unit_loop,"('[self_consistency] Starting self-consistency:')")
+      write(output%unit_loop,"('[self_consistency] Starting self-consistency:')")
 
-#if defined(_OSX)
-    if(lslatec) then
-      lwa=neq*(3*neq+13)/2
-      allocate( wa(lwa),w(neq,4) )
-      if(lnojac) then
-        call dnsqe(sc_eqs_old,sc_jac_old,2,neq,sc_solu,fvec,mag_tol,0,ifail,wa,lwa)
-      else
-        call dnsqe(sc_eqs_old,sc_jac_old,1,neq,sc_solu,fvec,mag_tol,0,ifail,wa,lwa)
-      end if
-      ifail = ifail-1
-    else
-      lwa=neq*(neq+1)/2
-      allocate( wa(lwa),w(neq,4) )
-      if(lnojac) then
-!         call c05nbf(sc_equations,neq,sc_solu,fvec,mag_tol,wa,lwa,ifail)
-        maxfev = 200*(neq+1)
-        ml = neq-1
-        mr = neq-1
-        epsfcn = 1.e-5_dp
-        mode = 1
-        factor = 0.1_dp
-        call c05ncf(sc_eqs_old,neq,sc_solu,fvec,mag_tol,maxfev,ml,mr,epsfcn,diag,mode,factor,0,nfev,jac,neq,wa,lwa,qtf,w,ifail)
-      else
-!         call c05pbf(sc_equations_and_jacobian,neq,sc_solu,fvec,jac,neq,mag_tol,wa,lwa,ifail)
-        maxfev = 100*(neq+1)
-        mode = 1
-        diag = 1._dp
-        factor = 0.1_dp
-        call c05pcf(sc_eqs_and_jac_old,neq,sc_solu,fvec,jac,neq,mag_tol,maxfev,diag,mode,factor,0,nfev,njev,wa,lwa,qtf,w,ifail)
-      end if
-    end if
-    deallocate( w )
-#elif defined(_GNU)
     lwa=neq*(3*neq+13)/2
-    allocate( wa(lwa),w(neq,4) )
+    allocate( wa(lwa) )
     if(lnojac) then
-      call dnsqe(sc_eqs_old,sc_jac_old,2,neq,sc_solu,fvec,mag_tol,0,ifail,wa,lwa)
+      call dnsqe(sc_eqs,sc_jac,2,neq,sc_solu,fvec,mag_tol,0,ifail,wa,lwa)
     else
-      call dnsqe(sc_eqs_old,sc_jac_old,1,neq,sc_solu,fvec,mag_tol,0,ifail,wa,lwa)
+      call dnsqe(sc_eqs,sc_jac,1,neq,sc_solu,fvec,mag_tol,0,ifail,wa,lwa)
     end if
     ifail = ifail-1
-#else 
-    if(lslatec) then
-      lwa=neq*(3*neq+13)/2
-      allocate( wa(lwa) )
-      if(lnojac) then
-        call dnsqe(sc_eqs_old,sc_jac_old,2,neq,sc_solu,fvec,mag_tol,0,ifail,wa,lwa)
-      else
-        call dnsqe(sc_eqs_old,sc_jac_old,1,neq,sc_solu,fvec,mag_tol,0,ifail,wa,lwa)
-      end if
-      ifail = ifail-1
-    else
-      lwa=neq*(neq+1)/2
-      allocate( wa(lwa) )
-      if(lnojac) then
-        maxfev = 200*(neq+1)
-        ml = neq-1
-        mr = neq-1
-        epsfcn = 1.e-5_dp
-        mode = 1
-        factor = 0.1_dp
-        call c05qcf(sc_equations,neq,sc_solu,fvec,mag_tol,maxfev,ml,mr,epsfcn,mode,diag,factor,0,nfev,jac,wa,qtf,iuser,ruser,ifail)
-      else
-        maxfev = 100*(neq+1)
-        mode = 1
-        diag = 1._dp
-        factor = 0.1_dp
-        call c05rcf(sc_equations_and_jacobian,neq,sc_solu,fvec,jac,mag_tol,maxfev,mode,diag,factor,0,nfev,njev,wa,qtf,iuser,ruser,ifail)
-      end if
-    end if
-#endif
 
     deallocate(sc_solu,diag,qtf,fvec,jac,wa)
 
@@ -552,22 +456,17 @@ contains
   subroutine check_jacobian(neq,x)
     use mod_parameters, only: output,lcheckjac
     use mod_mpi_pars,   only: rField,abortProgram
-    use mod_chkder
+    use mod_chkder,     only: chkder
     implicit none
     integer :: liw,lw,ifail
-    integer     , allocatable :: iw(:)
+    integer , allocatable :: iw(:)
     real(dp), allocatable :: w(:)
-    integer     , intent(in)  :: neq
+    integer , intent(in)  :: neq
     real(dp), intent(in)  :: x(neq)
     real(dp) :: jac(neq,neq)
     real(dp) :: fvec(neq)
     ! integer :: i
-    ! real(dp) :: fvecp(neq),xp(neq),err(neq)
-! #if !defined(_OSX)
-!     real(dp) :: ruser(1)
-!     integer      :: iuser(1)
-! #endif
-    external :: e04yaf
+    real(dp) :: fvecp(neq),xp(neq),err(neq)
 
     liw = 1
     lw  = (4+neq)*neq
@@ -578,39 +477,8 @@ contains
     if(rField == 0) &
     write(output%unit_loop,"('[check_jacobian] Checking Jacobian if Jacobian is correct...')", advance='no')
 
-#if !defined(_GNU)
-    call e04yaf(neq,neq,lsqfun,x,fvec,jac,neq,iw,liw,w,lw,ifail)
-
-    ! if(rField == 0) write(*,*) ifail
-#else
-!     call chkder(neq,neq,x,fvec,jac,neq,xp,fvecp,1,err)
-    call abortProgram("[check_jacobian] Not implemented for GNU compiler (with slatec).")
-#endif
-! #if defined(_OSX)
-    call sc_eqs_and_jac_old(neq,x ,fvec ,jac,neq,1)
-!     call sc_eqs_and_jac_old(neq,x ,fvec ,jac,neq,2)
-!     call sc_eqs_and_jac_old(neq,xp,fvecp,jac,neq,1)
-! #else
-!     call sc_equations_and_jacobian(neq,x ,fvec ,jac,iuser,ruser,1)
-!     call sc_equations_and_jacobian(neq,x ,fvec ,jac,iuser,ruser,2)
-!     call sc_equations_and_jacobian(neq,xp,fvecp,jac,iuser,ruser,1)
-! #endif
-
-!     call chkder(neq,neq,x,fvec,jac,neq,xp,fvecp,2,err)
-
-    ! do i = 1,neq
-    !   fvecp(i) = fvecp(i) - fvec(i)
-    ! end do
-
-    ! if(rField == 0) then
-    !   ! write(*,*) "fvec"
-    !   ! write(*,*) (fvec (i),i=1,neq)
-    !   ! write(*,*) "fvecp"
-    !   ! write(*,*) (fvecp(i),i=1,neq)
-    !   do i=1,neq
-    !     if(abs(err(i)-1._dp)>1.e-8_dp) write(*,*) i,err(i)
-    !   end do
-    ! end if
+    call chkder(neq,neq,x,fvec,jac,neq,xp,fvecp,1,err)
+    call abortProgram("[check_jacobian] Not implemented for slatec).")
 
     if(ifail == 0) then
       if(rField == 0) write(output%unit_loop,"(' YES! ')")
@@ -1071,7 +939,7 @@ contains
   subroutine print_sc_results()
     use mod_parameters,        only: output
     use mod_system,            only: s => sys
-    use mod_SOC,               only: SOC
+    use mod_hamiltonian,       only: energy
     use mod_magnet,            only: rho, mvec_cartesian, mp, mvec_spherical, &
                                      lxm, lym, lzm, ltheta, lphi, labs, iter
     use mod_superconductivity, only: lsuperCond, singlet_coupling
@@ -1079,7 +947,7 @@ contains
     integer :: i
 
     write(output%unit_loop,"('|----------=============== Self-consistent ground state: ===============----------|')")
-    write(output%unit_loop,"(28x,'Ef=',f11.8)") s%Ef
+    write(output%unit_loop,"(14x,'Ef=',f11.8,4x,'Eband=',f15.7)") s%Ef,energy
     write(output%unit_loop,"(11x,' *************** Charge density: ****************')")
     do i=1,s%nAtoms
       write(output%unit_loop,"(a,':',2x,'Ns(',i4.0,')=',f11.8,4x,'Np(',i4.0,')=',f11.8,4x,'Nd(',i4.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i, rho(1,i),i, sum(rho(2:4,i)),i, sum(rho(5:9,i))
@@ -1101,33 +969,27 @@ contains
         write(output%unit_loop,"(a,':',2x,'Mx(',i4.0,')=',f11.8,4x,'My(',i4.0,')=',f11.8,4x,'Mz(',i4.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,mvec_cartesian(1,i),i,mvec_cartesian(2,i),i,mvec_cartesian(3,i)
       end do
     end if
-    if((lGSL).or.(SOC)) then
-      write(output%unit_loop,"(11x,' ****** Orbital components in global frame: *****')")
-      if(sum(lxm(:)**2+lym(:)**2)>1.e-8_dp) then
-        do i=1,s%nAtoms
-          write(output%unit_loop,"(a,':',2x,'Lx(',i4.0,')=',f11.8,4x,'Ly(',i4.0,')=',f11.8,4x,'Lz(',i4.0,')=',f11.8,4x,'theta = ',f11.6,4x,'phi = ',f11.6)") trim(s%Types(s%Basis(i)%Material)%Name),i,lxm(i),i,lym(i),i,lzm(i),ltheta(i),lphi(i)
-        end do
-      else
-        do i=1,s%nAtoms
-          write(output%unit_loop,"(a,':',2x,'Lx(',i4.0,')=',f11.8,4x,'Ly(',i4.0,')=',f11.8,4x,'Lz(',i4.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,lxm(i),i,lym(i),i,lzm(i)
-        end do
-      end if
-      ! write(output%unit_loop,"(11x,' *** Orbital components in local frame:  ***')")
-      ! do i=1,s%nAtoms
-      !   write(output%unit_loop,"(4x,'Lxp(',i4.0,')=',f11.8,4x,'Lyp(',i4.0,')=',f11.8,4x,'Lzp(',i4.0,')=',f11.8)") i,lxpm(i),i,lypm(i),i,lzpm(i)
-      !   if(sqrt(lxpm(i)**2+lypm(i)**2)/=0) &
-      !   write(output%unit_loop,"(12x,'theta = ',f11.6,'  ',4x,'phi = ',f11.6)") lptheta(i),lpphi(i)
-      ! end do
-      write(output%unit_loop,"(11x,' ******************** Total: ********************')")
+
+    write(output%unit_loop,"(11x,' ****** Orbital components in global frame: *****')")
+    if(sum(lxm(:)**2+lym(:)**2)>1.e-8_dp) then
       do i=1,s%nAtoms
-        write(output%unit_loop,"(a,':',2x,' N(',i4.0,')=',f11.8,4x,' M(',i4.0,')=',f11.8,4x,' L(',i4.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,sum(rho(:,i)),i,mvec_spherical(1,i),i,labs(i)
+        write(output%unit_loop,"(a,':',2x,'Lx(',i4.0,')=',f11.8,4x,'Ly(',i4.0,')=',f11.8,4x,'Lz(',i4.0,')=',f11.8,4x,'theta = ',f11.6,4x,'phi = ',f11.6)") trim(s%Types(s%Basis(i)%Material)%Name),i,lxm(i),i,lym(i),i,lzm(i),ltheta(i),lphi(i)
       end do
     else
-      write(output%unit_loop,"(11x,' ******************** Total: ********************')")
       do i=1,s%nAtoms
-        write(output%unit_loop,"(a,':',6x,' N(',i4.0,') =',f11.8,4x,' M(',i4.0,') =',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,sum(rho(:,i)),i,mvec_spherical(1,i)
+        write(output%unit_loop,"(a,':',2x,'Lx(',i4.0,')=',f11.8,4x,'Ly(',i4.0,')=',f11.8,4x,'Lz(',i4.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,lxm(i),i,lym(i),i,lzm(i)
       end do
     end if
+    ! write(output%unit_loop,"(11x,' *** Orbital components in local frame:  ***')")
+    ! do i=1,s%nAtoms
+    !   write(output%unit_loop,"(4x,'Lxp(',i4.0,')=',f11.8,4x,'Lyp(',i4.0,')=',f11.8,4x,'Lzp(',i4.0,')=',f11.8)") i,lxpm(i),i,lypm(i),i,lzpm(i)
+    !   if(sqrt(lxpm(i)**2+lypm(i)**2)/=0) &
+    !   write(output%unit_loop,"(12x,'theta = ',f11.6,'  ',4x,'phi = ',f11.6)") lptheta(i),lpphi(i)
+    ! end do
+    write(output%unit_loop,"(11x,' ******************** Total: ********************')")
+    do i=1,s%nAtoms
+      write(output%unit_loop,"(a,':',2x,' N(',i4.0,')=',f11.8,4x,' M(',i4.0,')=',f11.8,4x,' L(',i4.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i,sum(rho(:,i)),i,mvec_spherical(1,i),i,labs(i)
+    end do
     write(output%unit_loop,"('|----------===================== (',i4.0,' iterations ) =====================----------|')") iter
   end subroutine print_sc_results
 
@@ -1225,292 +1087,7 @@ contains
   !     my - my_in   = 0
   !     mz - mz_in   = 0
   !  sum n - n_total = 0
-  ! and the correspondent jacobian
-#if !defined(_OSX)
-  subroutine sc_equations_and_jacobian(N,x,fvec,selfconjac,iuser,ruser,iflag)
-    use mod_kind, only: dp
-    use mod_system,            only: s => sys
-    use mod_parameters,        only: nOrb, lcheckjac, leigenstates
-    use mod_magnet,            only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
-    use mod_Umatrix,           only: update_Umatrix
-    use mod_tools,             only: itos
-    use mod_expectation,       only: expectation_values
-    use mod_superconductivity, only: lsuperCond, update_singlet_couplings
-    use mod_mpi_pars
-    implicit none
-    integer  :: N,i,mu,iflag
-    integer,     intent(inout)            :: iuser(1)
-    real(dp),    intent(inout)            :: ruser(1)
-    real(dp),    dimension(N)             :: x,fvec
-    real(dp),    dimension(N,N)           :: selfconjac
-    real(dp),    dimension(nOrb,s%nAtoms) :: rho_in
-    real(dp),    dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
-    real(dp),    dimension(nOrb,s%nAtoms) :: singlet_coupling_in
-    real(dp),    dimension(nOrb,s%nAtoms) :: deltas
-    complex(dp), dimension(s%nAtoms)      :: mpd_in
-
-    iuser = 0
-    ruser = 0._dp
-
-    ! Values used in the hamiltonian
-    rho_in = rho
-    do i = 1,s%nAtoms
-      do mu = 5,nOrb
-        rho_in(mu,i) = x((i-1)*neq_per_atom+(mu-4))
-      end do
-      rhod_in(i)= sum(rho_in(5:9,i))
-      mxd_in(i) = x((i-1)*neq_per_atom+6)
-      myd_in(i) = x((i-1)*neq_per_atom+7)
-      mzd_in(i) = x((i-1)*neq_per_atom+8)
-      mpd_in(i) = cmplx(mxd_in(i),myd_in(i),dp)
-      if(lsupercond) then
-        do mu = 1,nOrb
-          singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
-        end do
-      end if
-    end do
-    s%Ef    = x(N)
-
-    call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
-    if(lsuperCond) call update_singlet_couplings(s,singlet_coupling_in)
-
-    call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,singlet_coupling_in,s%Ef)
-
-    iter = iter + 1
-
-    select case (iflag)
-    case(1)
-      call expectation_values(s,rho,mp,mx,my,mz,deltas)
-      do i = 1,s%nAtoms
-        rhod(i)   = sum(rho(5:9,i))
-        mpd(i)    = sum(mp(5:9,i))
-        mxd(i)    = sum(mx(5:9,i))
-        myd(i)    = sum(my(5:9,i))
-        mzd(i)    = sum(mz(5:9,i))
-      end do
-      do i = 1,s%nAtoms
-        do mu = 5,nOrb
-          fvec((i-1)*neq_per_atom+(mu-4)) = rho(mu,i) - rho_in(mu,i)
-        end do
-        fvec((i-1)*neq_per_atom+6) =  mxd(i) -  mxd_in(i)
-        fvec((i-1)*neq_per_atom+7) =  myd(i) -  myd_in(i)
-        fvec((i-1)*neq_per_atom+8) =  mzd(i) -  mzd_in(i)
-        if(lsupercond) then
-          do mu = 1,nOrb
-            fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
-          end do
-        end if
-      end do
-      fvec(N) = sum(rho) - s%totalOccupation
-
-      call print_sc_step(rhod,mxd,myd,mzd,deltas,s%Ef,fvec)
-
-      if(lontheflysc) call write_sc_results()
-    case(2)
-      if(lcheckjac) call check_jacobian(neq,x)
-
-      if(leigenstates) then
-        call abortProgram("[sc_equations_and_jacobian] Jacobian not implemented for eigenstates yet!" )
-      else
-        call calcJacobian_greenfunction(selfconjac, N)
-      end if
-
-    case default
-      call abortProgram("[sc_equations_and_jacobian] Problem in self-consistency! iflag = " // trim(itos(iflag)))
-    end select
-
-  end subroutine sc_equations_and_jacobian
-
-  ! This subroutine calculates the self-consistency equations
-  !     n  - rho_in    = 0
-  !     mx - mx_in   = 0
-  !     my - my_in   = 0
-  !     mz - mz_in   = 0
-  !  sum n - n_total = 0
-  subroutine sc_equations(N,x,fvec,iuser,ruser,iflag)
-    use mod_kind, only: dp
-    use mod_system,            only: s => sys
-    use mod_magnet,            only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
-    use mod_Umatrix,           only: update_Umatrix
-    use mod_parameters,        only: nOrb
-    use mod_expectation,       only: expectation_values
-    use mod_superconductivity, only: lsuperCond, update_singlet_couplings
-    use mod_mpi_pars
-    implicit none
-    integer  :: N,i,mu,iflag
-    integer,     intent(inout)            :: iuser(1)
-    real(dp),    intent(inout)            :: ruser(1)
-    real(dp),    dimension(N)             :: x,fvec
-    real(dp),    dimension(nOrb,s%nAtoms) :: rho_in
-    real(dp),    dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
-    real(dp),    dimension(nOrb,s%nAtoms) :: singlet_coupling_in
-    real(dp),    dimension(nOrb,s%nAtoms) :: deltas
-    complex(dp), dimension(s%nAtoms)      :: mpd_in
-
-    iuser = 0
-    ruser = 0._dp
-
-    iflag=0
-    ! Values used in the hamiltonian
-    rho_in = rho
-    do i = 1,s%nAtoms
-      do mu = 5,nOrb
-        rho_in(mu,i) = x((i-1)*neq_per_atom+(mu-4))
-      end do
-      rhod_in(i)= sum(rho_in(5:9,i))
-      mxd_in(i) = x((i-1)*neq_per_atom+6)
-      myd_in(i) = x((i-1)*neq_per_atom+7)
-      mzd_in(i) = x((i-1)*neq_per_atom+8)
-      mpd_in(i) = cmplx(mxd_in(i),myd_in(i),dp)
-      if(lsupercond) then
-        do mu = 1,nOrb
-          singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
-        end do
-      end if
-    end do
-    s%Ef    = x(N)
-
-    call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
-    if(lsuperCond) call update_singlet_couplings(s,singlet_coupling_in)
-
-    call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,singlet_coupling_in,s%Ef)
-
-    iter = iter + 1
-
-    call expectation_values(s,rho,mp,mx,my,mz,deltas)
-    do i = 1,s%nAtoms
-      rhod(i)   = sum(rho(5:9,i))
-      mpd(i)    = sum(mp(5:9,i))
-      mxd(i)    = sum(mx(5:9,i))
-      myd(i)    = sum(my(5:9,i))
-      mzd(i)    = sum(mz(5:9,i))
-    end do
-    do i = 1,s%nAtoms
-      do mu = 5,nOrb
-        fvec((i-1)*neq_per_atom+(mu-4)) = rho(mu,i) - rho_in(mu,i)
-      end do
-      fvec((i-1)*neq_per_atom+6) =  mxd(i) -  mxd_in(i)
-      fvec((i-1)*neq_per_atom+7) =  myd(i) -  myd_in(i)
-      fvec((i-1)*neq_per_atom+8) =  mzd(i) -  mzd_in(i)
-      if(lsupercond) then
-        do mu = 1,nOrb
-          fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
-        end do
-      end if
-    end do
-    fvec(N) = sum(rho) - s%totalOccupation
-
-    call print_sc_step(rhod,mxd,myd,mzd,deltas,s%Ef,fvec)
-
-    if(lontheflysc) call write_sc_results()
-
-  end subroutine sc_equations
-
-#endif
-
-  ! This subroutine calculates the self-consistency equations
-  !     n  - rho_in    = 0
-  !     mx - mx_in   = 0
-  !     my - my_in   = 0
-  !     mz - mz_in   = 0
-  !  sum n - n_total = 0
-  ! and the correspondent jacobian
-  subroutine sc_eqs_and_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
-    use mod_kind, only: dp
-    use mod_system,            only: s => sys
-    use mod_parameters,        only: nOrb, lcheckjac, leigenstates
-    use mod_magnet,            only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
-    use mod_Umatrix,           only: update_Umatrix
-    use mod_tools,             only: itos
-    use mod_expectation,       only: expectation_values
-    use mod_superconductivity, only: lsuperCond, update_singlet_couplings
-    use mod_mpi_pars
-    implicit none
-    integer  :: N,i,mu,iflag,ldfjac
-    real(dp),    dimension(N)             :: x,fvec
-    real(dp),    dimension(ldfjac,N)      :: selfconjac
-    real(dp),    dimension(nOrb,s%nAtoms) :: rho_in
-    real(dp),    dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
-    real(dp),    dimension(nOrb,s%nAtoms) :: singlet_coupling_in
-    real(dp),    dimension(nOrb,s%nAtoms) :: deltas
-    complex(dp), dimension(s%nAtoms)      :: mpd_in
-
-    ! Values used in the hamiltonian
-    rho_in = rho
-    do i = 1,s%nAtoms
-      do mu = 5,nOrb
-        rho_in(mu,i) = x((i-1)*neq_per_atom+(mu-4))
-      end do
-      rhod_in(i)= sum(rho_in(5:9,i))
-      mxd_in(i) = x((i-1)*neq_per_atom+6)
-      myd_in(i) = x((i-1)*neq_per_atom+7)
-      mzd_in(i) = x((i-1)*neq_per_atom+8)
-      mpd_in(i) = cmplx(mxd_in(i),myd_in(i),dp)
-      if(lsupercond) then
-        do mu = 1,nOrb
-          singlet_coupling_in(mu,i) = x((i-1)*(neq_per_atom)+8+mu)
-        end do
-      end if
-    end do
-    s%Ef    = x(N)
-
-    call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
-    if(lsuperCond) call update_singlet_couplings(s,singlet_coupling_in)
-
-    call print_sc_step(rhod_in,mxd_in,myd_in,mzd_in,singlet_coupling_in,s%Ef)
-
-    iter = iter + 1
-
-    flag: select case (iflag)
-    case(1)
-      call expectation_values(s,rho,mp,mx,my,mz,deltas)
-      do i = 1,s%nAtoms
-        rhod(i)   = sum(rho(5:9,i))
-        mpd(i)    = sum(mp(5:9,i))
-        mxd(i)    = sum(mx(5:9,i))
-        myd(i)    = sum(my(5:9,i))
-        mzd(i)    = sum(mz(5:9,i))
-      end do
-      do i = 1,s%nAtoms
-        do mu = 5,nOrb
-          fvec((i-1)*neq_per_atom+(mu-4)) = rho(mu,i) - rho_in(mu,i)
-        end do
-        fvec((i-1)*neq_per_atom+6) =  mxd(i) -  mxd_in(i)
-        fvec((i-1)*neq_per_atom+7) =  myd(i) -  myd_in(i)
-        fvec((i-1)*neq_per_atom+8) =  mzd(i) -  mzd_in(i)
-        if(lsupercond) then
-          do mu = 1,nOrb
-            fvec((i-1)*neq_per_atom+8+mu) = deltas(mu,i) - singlet_coupling_in(mu,i)
-          end do
-        end if
-      end do
-      fvec(N) = sum(rho) - s%totalOccupation
-
-      call print_sc_step(rhod,mxd,myd,mzd,deltas,s%Ef,fvec)
-
-      if(lontheflysc) call write_sc_results()
-    case(2)
-      if(lcheckjac) call check_jacobian(neq,x)
-
-      if(leigenstates) then
-        call abortProgram("[sc_equations_and_jacobian] Jacobian not implemented for eigenstates yet!" )
-      else
-        call calcJacobian_greenfunction(selfconjac, N)
-      end if
-
-    case default
-      call abortProgram("[sc_eqs_and_jac_old] Problem in self-consistency! iflag = " // trim(itos(iflag)))
-    end select flag
-
-  end subroutine sc_eqs_and_jac_old
-
-  ! This subroutine calculates the self-consistency equations
-  !     n  - rho_in    = 0
-  !     mx - mx_in   = 0
-  !     my - my_in   = 0
-  !     mz - mz_in   = 0
-  !  sum n - n_total = 0
-  subroutine sc_eqs_old(N,x,fvec,iflag)
+  subroutine sc_eqs(N,x,fvec,iflag)
     use mod_kind, only: dp
     use mod_system,            only: s => sys
     use mod_magnet,            only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
@@ -1583,7 +1160,7 @@ contains
 
     if(lontheflysc) call write_sc_results()
 
-  end subroutine sc_eqs_old
+  end subroutine sc_eqs
 
   ! This subroutine calculates the jacobian of the system of equations
   !     n  - rho_in    = 0
@@ -1591,7 +1168,7 @@ contains
   !     my - my_in   = 0
   !     mz - mz_in   = 0
   !  sum n - n_total = 0
-  subroutine sc_jac_old(N,x,fvec,selfconjac,ldfjac,iflag)
+  subroutine sc_jac(N,x,fvec,selfconjac,ldfjac,iflag)
     use mod_kind, only: dp
     use mod_system,            only: s => sys
     use mod_parameters,        only: nOrb
@@ -1637,6 +1214,6 @@ contains
 
     iter = iter + 1
 
-  end subroutine sc_jac_old
+  end subroutine sc_jac
 
 end module mod_self_consistency

@@ -1,10 +1,15 @@
 module mod_hamiltonian
   use mod_kind, only: dp
   implicit none
-  
+
   logical :: lfullhk = .false.
+  !! Logical variable to say when full hk (for every k) is used
   complex(dp), dimension(:,:),   allocatable :: h0
+  !! Local hamiltonian
   complex(dp), dimension(:,:,:), allocatable :: fullhk
+  !! Full non-local hamiltonian hk (for every k)
+  real(dp) :: energy
+  !! Band energy
 
 contains
 
@@ -135,15 +140,15 @@ contains
 
   ! Calculate the k-dependent tight-binding hamiltonian of the unit cell for all k-points
   function fullhamiltk(sys) result(success)
-    use mod_kind, only: dp,int32,int64
-    use mod_BrillouinZone, only: realBZ
-    use mod_constants, only: cI,cZero
-    use mod_System,     only: ia,ia_sc,System_type
-    use mod_parameters, only: nOrb,dimH,output
-    use mod_mpi_pars, only: rField
-    use mod_tools, only: get_memory
+    use mod_kind,              only: dp,int32,int64
+    use mod_BrillouinZone,     only: realBZ
+    use mod_constants,         only: cI,cZero
+    use mod_System,            only: ia,ia_sc,System_type
+    use mod_parameters,        only: nOrb,dimH,output
+    use mod_mpi_pars,          only: rField
+    use mod_tools,             only: get_memory
     use mod_superconductivity, only: lsuperCond,supercond
-    use mod_progress, only: write_time
+    use mod_progress,          only: write_time
     implicit none
     type(System_type), intent(in) :: sys
     integer(int32) :: i, j, k, ia_temp_i, ia_temp_j

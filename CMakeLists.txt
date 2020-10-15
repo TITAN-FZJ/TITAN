@@ -158,7 +158,7 @@ execute_process(COMMAND git describe --abbrev=8 --dirty --always OUTPUT_VARIABLE
 
 if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
   if(PLATFORM MATCHES jureca)
-    target_link_libraries(${TITAN_EXE} -mkl -lnag -qopenmp)
+    target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
                                                 -no-prec-sqrt
@@ -170,14 +170,13 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -xHost
                                                 )
   elseif(PLATFORM MATCHES juwels)
-    target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
+    target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
                                                 -no-prec-sqrt
                                                 -xCORE-AVX2
                                                 -fma
                                                 -qopt-zmm-usage=high
-                                                -D_OSX
                                                 -DVERSION="${GIT_VERSION}"
                                                 -qopenmp
                                                 -g
@@ -185,11 +184,10 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -mkl
                                                 )
   elseif(PLATFORM MATCHES jusuf)
-    target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
+    target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
                                                 -no-prec-sqrt
-                                                -D_OSX
                                                 -DVERSION="${GIT_VERSION}"
                                                 -qopenmp
                                                 -g
@@ -198,11 +196,10 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -xHost
                                                 )
   elseif(PLATFORM MATCHES osx)
-    target_link_libraries(${TITAN_EXE} -mkl -L$ENV{HOME}/lib -lkibe -qopenmp)
+    target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
                                                 -no-prec-sqrt
-                                                -D_OSX
                                                 -DVERSION="${GIT_VERSION}"
                                                 -qopenmp
                                                 -g
@@ -211,25 +208,19 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -xHost
                                                 )
   elseif(PLATFORM MATCHES booster)
-    link_directories($ENV{HOME}/BoosterNAG)
-    target_link_libraries(${TITAN_EXE} -mkl
-                                       -qopenmp
-                                       -I$ENV{HOME}/BoosterNAG/nag_interface_blocks
-                                       -L$ENV{HOME}/BoosterNAG
-                                       -lnag )
+    target_link_libraries(${TITAN_EXE} -mkl -qopenmp )
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
                                                 -no-prec-sqrt
                                                 -DVERSION="${GIT_VERSION}"
                                                 -mkl
                                                 -g
-                                                -I$ENV{HOME}/BoosterNAG/nag_interface_blocks
                                                 -xMIC-AVX512
                                                 -align array64byte
                                                 -qopenmp
                                                 )
   elseif(PLATFORM MATCHES rwth)
-    target_link_libraries(${TITAN_EXE} -mkl $ENV{FLAGS_NAG_LINKER} -qopenmp)
+    target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
                                                 -no-prec-sqrt
@@ -237,12 +228,11 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -qopenmp
                                                 -g
                                                 -mkl
-                                                $ENV{FLAGS_NAG_INCLUDE}
                                                 -align array64byte
                                                 -xHost
                                                 )
   elseif(PLATFORM MATCHES iff)
-    target_link_libraries(${TITAN_EXE} -mkl -L/usr/local/nag/lib -qopenmp)
+    target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -DVERSION="${GIT_VERSION}"
                                                 -fpp
@@ -259,7 +249,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
                                                 -no-prec-sqrt
-                                                -D_GNU
                                                 -DVERSION="${GIT_VERSION}"
                                                 -qopenmp
                                                 -g
@@ -267,7 +256,7 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -mkl
                                                 )
   else()
-    target_link_libraries(${TITAN_EXE} -mkl -qopenmp /opt/NAG/fll6i26dcl/lib/libnag_nag.a)
+    target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
                                                 -no-prec-sqrt
@@ -307,7 +296,6 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
   target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib -Wl,-rpath,$ENV{MKLROOT}/lib -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl -fopenmp)
   if(NOT DEBUG MATCHES "ON")
     target_compile_options(${TITAN_EXE} PRIVATE -cpp
-                                                -D_GNU
                                                 -DVERSION="${GIT_VERSION}"
                                                 -I$ENV{MKLROOT}/include
                                                 -fopenmp
@@ -339,7 +327,6 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
                                                 -ftrapv
                                                 -fopenmp
                                                 -cpp
-                                                -D_GNU
                                                 -DVERSION="${GIT_VERSION}"
                                                 -I$ENV{MKLROOT}/include
                                                 -g
@@ -351,7 +338,6 @@ elseif(COMPILER MATCHES pgi) # PGI:
   target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -lsci_acc)
   if(NOT DEBUG MATCHES "ON")
     target_compile_options(${TITAN_EXE} PRIVATE -cpp
-                                                -D_GNU
                                                 -DVERSION="${GIT_VERSION}"
                                                 -I$ENV{MKLROOT}/include
                                                 -g
@@ -367,7 +353,6 @@ elseif(COMPILER MATCHES pgi) # PGI:
   else(NOT DEBUG MATCHES "ON")
     target_compile_options(${TITAN_EXE} PRIVATE -cpp
                                                 -DVERSION="${GIT_VERSION}"
-                                                -D_GNU
                                                 -I$ENV{MKLROOT}/include
                                                 -g
                                                 -Mdclchk                  # instructs the compiler to require that all program variables be declared
