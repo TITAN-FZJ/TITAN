@@ -1,7 +1,7 @@
 # docker image that is used for all ci jobs; see https://hub.docker.com/ for a list of valid docker images
 # Image with the centos 7 compilers
 # image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/extended
-# image: iffregistry.fz-juelich.de/docker-images/centos8-intel-compilers:latest
+image: iffregistry.fz-juelich.de/docker-images/centos8-intel-compilers:latest
 # list with commands that are executed before each job; every job starts with a fresh docker container
 before_script:
   - echo before scripts
@@ -16,7 +16,6 @@ stages:
 #
 # a build job (see `stage` key); jobs can have arbitrary names
 build:intel:normal:
-  image: iffregistry.fz-juelich.de/docker-images/centos8-intel-compilers:latest
   stage: build
   script:
     - cd build
@@ -24,7 +23,6 @@ build:intel:normal:
     - make
 
 build:intel:debug:
-  image: iffregistry.fz-juelich.de/docker-images/centos8-intel-compilers:latest
   stage: build
   script:
     - cd build
@@ -38,7 +36,6 @@ build:intel:debug:
   allow_failure: true
 
 build:gnu:normal:
-  image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/extended
   stage: build
   script:
     - cd build
@@ -46,7 +43,6 @@ build:gnu:normal:
     - make
 
 build:gnu:debug:
-  image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/extended
   stage: build
   script:
     - cd build
