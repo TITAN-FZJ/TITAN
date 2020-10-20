@@ -11,7 +11,7 @@ before_script:
 # that are run in parallel
 stages:
   - build
-#  - test
+  - test:monolayer
 #   # - deploy:doc
 #
 # a build job (see `stage` key); jobs can have arbitrary names
@@ -21,6 +21,10 @@ build:intel:normal:
     - cd build
     - cmake ../ -DPLATFORM=iff
     - make
+  artifacts:
+    paths:
+      - bin/
+    expire_in: 1 day
 
 build:intel:debug:
   stage: build
@@ -28,10 +32,11 @@ build:intel:debug:
     - cd build
     - cmake ../ -DPLATFORM=iff -DDEBUG=ON
     - make 2> >(tee make.warnings)
-    - test ! -s make.warnings 
+    - test ! -s make.warnings
   artifacts:
     paths:
       - make.warnings
+      - bin
     expire_in: 1 day
   allow_failure: true
 
@@ -41,6 +46,10 @@ build:gnu:normal:
     - cd build
     - cmake ../ -DPLATFORM=iff -DCOMPILER=gnu
     - make
+  artifacts:
+    paths:
+      - bin/
+    expire_in: 1 day
 
 build:gnu:debug:
   stage: build
@@ -48,22 +57,29 @@ build:gnu:debug:
     - cd build
     - cmake ../ -DPLATFORM=iff -DCOMPILER=gnu -DDEBUG=ON
     - make 2> >(tee make.warnings)
-    - test ! -s make.warnings 
+    - test ! -s make.warnings
   artifacts:
     paths:
       - make.warnings
+      - bin
     expire_in: 1 day
   allow_failure: true
 
 
 # after build job(s) are completed, tests can be run; artifacts from all previous stages are transferred automatically
-# test:titan:
-#   stage: test
-#   script:
-#     - echo testing
-#     - which ifort
-#     - which mpiifort
-#     - which gfortran
+test:monolayer:
+   stage: test:monolayer
+   needs: ["build:intel:normal"]
+   script:
+     - which ifort
+     - which mpiifort
+     - which gfortran
+     - cd examples/Nb_100_Monolayer
+     - export OMP_NUM_THREADS=4
+     - mpirun -n 1 ../../bin/titan_iff.exe
+     # Up until this point the files are generated and ready to be compared
+     - cat ./results/TSOC/selfconsistency/selfconsistency_1Sites_dfttype=S_parts=2_nkpt=1024_eta=1.0E-03_evlambda.dat
+     - tail -n 14 ./output/selfCons
 
 # # `pages` is a special job that builds the gitlab page for this project; all artifacts must be saved in a `public`
 # # directory to be published as a static site (that can be accessed from the whole www)

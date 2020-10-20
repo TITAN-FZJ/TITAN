@@ -1,0 +1,96 @@
+!*******************************************************************************!
+!                           CHOOSE WHAT TO CALCULATE                            !
+-> itype = 1               
+!===============================================================================!
+!                                OUTPUT FILE                                    !
+-> output = output/selfCons 
+-> suffix = lambda                        
+!===============================================================================!
+!                              IMPURITY FILE                                    !
+-> impurity = impurity          
+!===============================================================================!
+!                         OPTIONAL RUNNING VARIABLES                            !
+-> Options = slatec createfolders positions ontheflysc eigenstates nojac ! debug ! GSL ! kpoints ! noUonPt ! addresults
+!===============================================================================!
+!                               SYSTEM VARIABLES                                !
+! Lattice and surface direction:                                                !
+-> nn_stages = 1                
+! Small imaginary part of the Green function:                   
+-> eta = 1e-3                    
+!===============================================================================!
+!                               
+-> sysdim = 2                   
+!===============================================================================!
+!                          STATIC MAGNETIC ZEEMAN FIELD                         !
+!                         (in the spin reference system)                        !
+-> FIELD = F  ! Magnetic field on (T) or off (F) (choose one form below)
+! Spherical coordinates (default, angles in units of pi)                        !
+-> hwa   = 5.788381e-5          
+-> hwt   = 0.0E+00              
+-> hwp   = 0.0E+00              
+! Cartesian coordinates                                                         !
+-> hwx = 0.0E+00                
+-> hwy = 0.0E+00                
+-> hwz = 0.0E+00                
+!===============================================================================!
+!                             SPIN ORBIT COUPLING                               !
+-> SOC = T                      
+-> socscale = 1.00d0            
+!===============================================================================!
+!                      REAL-TIME PROPAGATION  (itype=11)                        !
+! Intensity of transverse magnetic field:                                       !
+-> hw1 = 5.788381e-6            
+! Frequency of transverse magnetic field:                                       !
+-> hw = 11.576762e-5            
+! Total time:                                                                   !
+-> integration_time = 5.e6                                      
+! Step size:                                                                    !
+-> step = 120                   
+!===============================================================================!
+!                   DIRECTION OF IN-PLANE ELECTRIC FIELD                        !
+-> ebasis = cartesian           
+-> dirEfield = 1.0 0.0 0.0                                      
+!===============================================================================!
+!                        IN-PLANE CURRENTS TO CALCULATE                         !
+-> n0sc1 = 1   ! First neighbor                                 
+-> n0sc2 = 6   ! Last neighbor                                  
+!                               
+!                    CURRENT AND DISTURBANCE RENORMALIZATION                    !
+!          (only used when currents are calculated - itype=7 and 8)             !
+-> renorm = T        ! Turn renormalization on (T) or off (F)
+-> renormnb = 1      ! Reference neighbor (where the charge current will be 1)
+!===============================================================================!
+!                           INTEGRATION VARIABLES                               !
+! Approximate number of k-points: (nkpt > 0)                                    !
+-> nkpt = 1d3                  
+! Number of parts to divide energy integral in complex plane:                   !
+-> parts = 2                    
+-> n1gl = 128                   
+!  Number of parts to divide energy integral in real axis:                      !
+-> parts3 = 1                   
+-> n3gl = 128                   
+!===============================================================================!
+!                       SUPERCONDUCTING VARIABLES                               !
+-> superCond = F                
+!===============================================================================!
+!                              PLOTTING VARIABLES                               !
+! Energy range and number of points:                                            !
+-> emin =  -2.0                
+-> emax =  2.0                  
+-> nEner = 100                  
+!-> skip_steps = 0              
+!- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -!
+! Wave vector path and number of points:                                        !
+-> band = G A B N G !G H N G M N                                
+-> nQvec = 200                
+-> qbasis = bravais             
+!===============================================================================!
+!                              SELF-CONSISTENCY                                 !
+!        (Finding center of the bands for the given number of particles)        !
+-> skipsc = F ! skip self-consistency calculation when it finds previous results
+! File to use as starting point:                                
+!-> scfile = CoSCTSOC.dat                                       
+!===============================================================================!
+-> fermi_layer = 1 ! Which layer should the Fermi-Level be taken from
+!*******************************************************************************!
+-> tbmode = 1
