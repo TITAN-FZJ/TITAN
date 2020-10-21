@@ -272,6 +272,7 @@ contains
     material%Occupation  = material%OccupationS+material%OccupationP+material%OccupationD
 
     ! Read Hubbard effective Coulomb interaction strength
+    str_arr = ""
     read(unit=f_unit, fmt='(A)', iostat=ios) line
     read(unit=line, fmt=*, iostat=ios) (str_arr(i), i=1,2)
     cnt = 0
@@ -298,6 +299,7 @@ contains
     read(unit= line, fmt=*, iostat=ios) material%LambdaP, material%LambdaD
 
     ! Read the superconducting parameter and/or the nn_stages parameter
+    str_arr = ""
     read(unit=f_unit, fmt='(A)', iostat=ios) line
     read(unit=line, fmt=*, iostat=ios) (str_arr(i), i=1,9)
     cnt = 0
