@@ -1,11 +1,13 @@
 # docker image that is used for all ci jobs; see https://hub.docker.com/ for a list of valid docker images
 # Image with the centos 7 compilers
 # image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/extended
-image: iffregistry.fz-juelich.de/docker-images/centos8-intel-compilers:latest
+# image: iffregistry.fz-juelich.de/docker-images/centos8-intel-compilers:latest
+image: iffregistry.fz-juelich.de/docker-images/centos8-intel-compilers:latest-ipython3
 # list with commands that are executed before each job; every job starts with a fresh docker container
 before_script:
   - echo before scripts
   - set +e && source compilervars.sh intel64 && set -e
+  - pip3 install --user numpy
 
 # pipeline stages; a stage is only run if the previous stage is completed. Each stage contains user-defined jobs
 # that are run in parallel
@@ -15,17 +17,6 @@ stages:
 #   # - deploy:doc
 #
 # a build job (see `stage` key); jobs can have arbitrary names
-build:intel:normal:
-  stage: build
-  script:
-    - cd build
-    - cmake ../ -DPLATFORM=iff
-    - make
-  artifacts:
-    paths:
-      - bin/
-    expire_in: 1 day
-
 build:intel:debug:
   stage: build
   script:
@@ -65,6 +56,17 @@ build:gnu:debug:
     expire_in: 1 day
   allow_failure: true
 
+build:intel:normal:
+  stage: build
+  script:
+    - cd build
+    - cmake ../ -DPLATFORM=iff
+    - make
+  artifacts:
+    paths:
+      - bin/
+    expire_in: 1 day
+
 
 # after build job(s) are completed, tests can be run; artifacts from all previous stages are transferred automatically
 test:monolayer:
@@ -74,12 +76,12 @@ test:monolayer:
      - which ifort
      - which mpiifort
      - which gfortran
+     - python3 --version
      - cd examples/Nb_100_Monolayer
      - export OMP_NUM_THREADS=4
      - mpirun -n 1 ../../bin/titan_iff.exe
-     # Up until this point the files are generated and ready to be compared
-     - cat ./results/TSOC/selfconsistency/selfconsistency_1Sites_dfttype=S_parts=2_nkpt=1024_eta=1.0E-03_evlambda.dat
-     - tail -n 14 ./output/selfCons
+     - python3 ../../scripts/compare_output.py results_correct/FSOC/selfconsistency/initialrho_Fe_dfttype=S_parts=2_nkpt=1024_eta=1.0E-03_evlambda.dat results/FSOC/selfconsistency/initialrho_Fe_dfttype=S_parts=2_nkpt=1024_eta=1.0E-03_evlambda.dat
+     - python3 ../../scripts/compare_output.py results_correct/TSOC/selfconsistency/selfconsistency_1Sites_dfttype=S_parts=2_nkpt=1024_eta=1.0E-03_evlambda.dat results/TSOC/selfconsistency/selfconsistency_1Sites_dfttype=S_parts=2_nkpt=1024_eta=1.0E-03_evlambda.dat
 
 # # `pages` is a special job that builds the gitlab page for this project; all artifacts must be saved in a `public`
 # # directory to be published as a static site (that can be accessed from the whole www)
