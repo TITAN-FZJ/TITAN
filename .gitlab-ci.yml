@@ -83,8 +83,8 @@ test:monolayer:
     - cd examples/Nb_100_Monolayer
     - export OMP_NUM_THREADS=4
     - mpirun -np 2 ../../bin/titan_iff.exe
-    - python3 ../../scripts/compare_output.py results_correct/FSOC/selfconsistency/initialrho_Fe_dfttype=S_parts=2_nkpt=1024_eta=1.0E-03_evlambda.dat results/FSOC/selfconsistency/initialrho_Fe_dfttype=S_parts=2_nkpt=1024_eta=1.0E-03_evlambda.dat
-    - python3 ../../scripts/compare_output.py results_correct/TSOC/selfconsistency/selfconsistency_1Sites_dfttype=S_parts=2_nkpt=1024_eta=1.0E-03_evlambda.dat results/TSOC/selfconsistency/selfconsistency_1Sites_dfttype=S_parts=2_nkpt=1024_eta=1.0E-03_evlambda.dat
+    - python ../../scripts/compare_output.py results_correct/FSOC/selfconsistency/initialrho_Fe_dfttype=S_parts=2_nkpt=1024_eta=1.0E-03_evlambda.dat results/FSOC/selfconsistency/initialrho_Fe_dfttype=S_parts=2_nkpt=1024_eta=1.0E-03_evlambda.dat
+    - python ../../scripts/compare_output.py results_correct/TSOC/selfconsistency/selfconsistency_1Sites_dfttype=S_parts=2_nkpt=1024_eta=1.0E-03_evlambda.dat results/TSOC/selfconsistency/selfconsistency_1Sites_dfttype=S_parts=2_nkpt=1024_eta=1.0E-03_evlambda.dat
 
 test:timeprop:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -95,8 +95,8 @@ test:timeprop:
     - cd examples/Ni_bulk_timeprop
     - export OMP_NUM_THREADS=4
     - mpirun -np 2 ../../bin/titan_iff.exe
-    - python3 ../../scripts/compare_output.py results_correct/FSOC/selfconsistency/initialrho_Ni_dfttype\=S_parts\=2_nkpt\=10648_eta\=1.0E-03_ev.dat results/FSOC/selfconsistency/initialrho_Ni_dfttype\=S_parts\=2_nkpt\=10648_eta\=1.0E-03_ev.dat
-    - python3 ../../scripts/compare_output.py results_correct/TSOC/selfconsistency/selfconsistency_1Sites_dfttype\=S_parts\=2_nkpt\=10648_eta\=1.0E-03_ev.dat results_correct/TSOC/selfconsistency/selfconsistency_1Sites_dfttype\=S_parts\=2_nkpt\=10648_eta\=1.0E-03_ev.dat
+    - python ../../scripts/compare_output.py results_correct/FSOC/selfconsistency/initialrho_Ni_dfttype\=S_parts\=2_nkpt\=10648_eta\=1.0E-03_ev.dat results/FSOC/selfconsistency/initialrho_Ni_dfttype\=S_parts\=2_nkpt\=10648_eta\=1.0E-03_ev.dat
+    - python ../../scripts/compare_output.py results_correct/TSOC/selfconsistency/selfconsistency_1Sites_dfttype\=S_parts\=2_nkpt\=10648_eta\=1.0E-03_ev.dat results_correct/TSOC/selfconsistency/selfconsistency_1Sites_dfttype\=S_parts\=2_nkpt\=10648_eta\=1.0E-03_ev.dat
     - for i in `ls results_correct/TSOC/1Sites/time_propagation/` ; do echo "Comparing file ${i}" ; python3 ../../scripts/compare_output.py results_correct/TSOC/1Sites/time_propagation/${i} results/TSOC/1Sites/time_propagation/${i} ; done
 
 # # `pages` is a special job that builds the gitlab page for this project; all artifacts must be saved in a `public`
