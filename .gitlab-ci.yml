@@ -90,7 +90,8 @@ test:monolayer:
     - export OMP_NUM_THREADS=4
     - mpirun -np 2 ../../bin/titan_iff.exe
     - grep "Finished on" output/selfCons
-    - export TOL="1.e-8"; *compare_files
+    - export TOL="1.e-8"
+    - *compare_files
 
 test:timeprop:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -102,7 +103,8 @@ test:timeprop:
     - export OMP_NUM_THREADS=4
     - mpirun -np 2 ../../bin/titan_iff.exe
     - grep "Finished on" output/time_prop_efield
-    - export TOL="1.e-6"; *compare_files
+    - export TOL="1.e-6"
+    - *compare_files
 
 # # `pages` is a special job that builds the gitlab page for this project; all artifacts must be saved in a `public`
 # # directory to be published as a static site (that can be accessed from the whole www)
