@@ -178,7 +178,7 @@ contains
     call open_TTR_files()
     do i = 1, s%nAtoms
        do j = 1, s%nAtoms
-          write(555+s%nAtoms*(i-1)+j, "(es16.9,2x,i0,2x,i0,2x,18(es16.9,2x))") e, i,j,(( real( TTResponse(n,m,j,i) ), aimag( TTResponse(n,m,j,i) ), n=1,3), m = 1,3)
+          write(555+s%nAtoms*(i-1)+j, "(es16.9,2x,i0,2x,i0,2x,18(es16.9,2x))") e, i,j,(( real( TTResponse(n,m,j,i) ), dimag( TTResponse(n,m,j,i) ), n=1,3), m = 1,3)
        end do
     end do
 
@@ -195,9 +195,9 @@ contains
 
     do i = 1, s%nAtoms
        do j = 1, s%nAtoms
-          write(666+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TTInverse(3*(j-1)+q, 3*(i-1)+p)), aimag(TTInverse(3*(j-1)+q, 3*(i-1)+p)), q = 1, 3), p = 1, 3)
-          write(777+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TTResponse(q,p,j,i)), aimag(TTResponse(q,p,j,i)), q = 1, 3), p = 1, 3)
-          write(888+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TTResponseHF(q,p,j,i)), aimag(TTResponseHF(q,p,j,i)), q = 1, 3), p = 1, 3)
+          write(666+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TTInverse(3*(j-1)+q, 3*(i-1)+p)), dimag(TTInverse(3*(j-1)+q, 3*(i-1)+p)), q = 1, 3), p = 1, 3)
+          write(777+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TTResponse(q,p,j,i)), dimag(TTResponse(q,p,j,i)), q = 1, 3), p = 1, 3)
+          write(888+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TTResponseHF(q,p,j,i)), dimag(TTResponseHF(q,p,j,i)), q = 1, 3), p = 1, 3)
        end do
     end do
     call close_TTR_files()

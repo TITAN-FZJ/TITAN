@@ -2,11 +2,11 @@ module mod_constants
   !! Contains commonly used constants
   use mod_kind, only: dp
   implicit none
-  complex(dp), parameter :: cZero=(0._dp,0._dp)
+  complex(dp), parameter :: cZero=cmplx(0._dp,0._dp,dp)
   !! Complex scalar cZero
-  complex(dp), parameter :: cOne=(1._dp,0._dp)
+  complex(dp), parameter :: cOne=cmplx(1._dp,0._dp,dp)
   !! Complex scalar one
-  complex(dp), parameter :: cI=(0._dp,1._dp)
+  complex(dp), parameter :: cI=cmplx(0._dp,1._dp,dp)
   !! Complex scalar i
   real(dp), parameter :: pi = 4._dp * atan(1._dp)
   !! Pi
@@ -38,15 +38,15 @@ module mod_constants
   !! Pauli matrices in spin and orbital space (x,y,z,+,-) (only non-zero on d-orbitals)
 
   complex(dp), dimension(4,4) :: StoC = reshape([cmplx(0.0_dp,0._dp,dp), cmplx(0.5_dp,0._dp,dp),  cmplx(0.0_dp,-0.5_dp,dp),  cmplx( 0.0_dp,0._dp,dp), &
-                                                     cmplx(1.0_dp,0._dp,dp), cmplx(0.0_dp,0._dp,dp),  cmplx(0.0_dp, 0.0_dp,dp),  cmplx( 0.5_dp,0._dp,dp), &
-                                                     cmplx(1.0_dp,0._dp,dp), cmplx(0.0_dp,0._dp,dp),  cmplx(0.0_dp, 0.0_dp,dp),  cmplx(-0.5_dp,0._dp,dp), &
-                                                     cmplx(0.0_dp,0._dp,dp), cmplx(0.5_dp,0._dp,dp),  cmplx(0.0_dp, 0.5_dp,dp),  cmplx( 0.0_dp,0._dp,dp)], [4,4])
+                                                 cmplx(1.0_dp,0._dp,dp), cmplx(0.0_dp,0._dp,dp),  cmplx(0.0_dp, 0.0_dp,dp),  cmplx( 0.5_dp,0._dp,dp), &
+                                                 cmplx(1.0_dp,0._dp,dp), cmplx(0.0_dp,0._dp,dp),  cmplx(0.0_dp, 0.0_dp,dp),  cmplx(-0.5_dp,0._dp,dp), &
+                                                 cmplx(0.0_dp,0._dp,dp), cmplx(0.5_dp,0._dp,dp),  cmplx(0.0_dp, 0.5_dp,dp),  cmplx( 0.0_dp,0._dp,dp)], [4,4])
   !! Transformation matrix spin (+,up,down,-) to cartesian (0,x,y,z)
 
   complex(dp), dimension(4,4) :: CtoS = reshape([cmplx(0.0_dp,0._dp,dp), cmplx(0.5_dp,0._dp,dp),  cmplx( 0.5_dp, 0._dp,dp),  cmplx( 0.0_dp, 0._dp,dp), &
-                                                     cmplx(1.0_dp,0._dp,dp), cmplx(0.0_dp,0._dp,dp),  cmplx( 0.0_dp, 0._dp,dp),  cmplx( 1.0_dp, 0._dp,dp), &
-                                                     cmplx(0.0_dp,1._dp,dp), cmplx(0.0_dp,0._dp,dp),  cmplx( 0.0_dp, 0._dp,dp),  cmplx( 0.0_dp,-1._dp,dp), &
-                                                     cmplx(0.0_dp,0._dp,dp), cmplx(1.0_dp,0._dp,dp),  cmplx(-1.0_dp, 0._dp,dp),  cmplx( 0.0_dp, 0._dp,dp)], [4,4])
+                                                 cmplx(1.0_dp,0._dp,dp), cmplx(0.0_dp,0._dp,dp),  cmplx( 0.0_dp, 0._dp,dp),  cmplx( 1.0_dp, 0._dp,dp), &
+                                                 cmplx(0.0_dp,1._dp,dp), cmplx(0.0_dp,0._dp,dp),  cmplx( 0.0_dp, 0._dp,dp),  cmplx( 0.0_dp,-1._dp,dp), &
+                                                 cmplx(0.0_dp,0._dp,dp), cmplx(1.0_dp,0._dp,dp),  cmplx(-1.0_dp, 0._dp,dp),  cmplx( 0.0_dp, 0._dp,dp)], [4,4])
   !! Transformation matrix cartesian (0,x,y,z) to spin (+,up,down,-)
 contains
   subroutine define_constants()

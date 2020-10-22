@@ -1,6 +1,8 @@
 module mod_tools
   implicit none
 
+  integer :: lwork
+  
   interface itos
     module procedure i4tos, &
                       i8tos
@@ -527,12 +529,10 @@ contains
     real(dp),    intent(out)   :: eval(n)
     ! Workspace variables
     real(dp)    :: rwork(3*n-2)
-    integer     :: info,lwork
+    integer     :: info
     complex(dp) :: work(2*n-1) ! dimension of lwork below
 
-    external :: zheev
-
-    lwork = 2*n-1
+    external :: zheev    
 
     call zheev('V','U',n,a,n,eval,work,lwork,rwork,info)
         

@@ -143,7 +143,7 @@ contains
 
     mp      = mp/pi
     mx      = real(mp)
-    my      = aimag(mp)
+    my      = dimag(mp)
 
     do i = 1, s%nAtoms
       do mu=1,nOrb
@@ -165,7 +165,7 @@ contains
     use mod_BrillouinZone,     only: realBZ
     use mod_parameters,        only: nOrb,output,dimH
     use mod_system,            only: System_type
-    use mod_tools,             only: itos,diagonalize
+    use mod_tools,             only: itos,diagonalize,lwork
     use mod_superconductivity, only: lsuperCond, superCond
     use mod_constants,         only: cZero
     use mod_hamiltonian,       only: hamilt_local,hamiltk
@@ -177,19 +177,22 @@ contains
     complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: mp
 
     integer(int64)                           :: iz
-    integer                                  :: ncount,dimHsc
+    integer                                  :: ncount,dimHsc,ilaenv
     real(dp),    dimension(nOrb,s%nAtoms)    :: expec_0,expec_z
     complex(dp), dimension(nOrb,s%nAtoms)    :: expec_p
     real(dp),    dimension(nOrb,s%nAtoms)    :: expec_singlet
     real(dp),    dimension(:),  allocatable  :: eval(:)
     complex(dp),                allocatable  :: hk(:,:)
 
-    external :: MPI_Allreduce
+    external :: MPI_Allreduce,ilaenv
 
     dimHsc  = dimH*superCond
     ncount = nOrb*s%nAtoms
 
     allocate( hk(dimHsc,dimHsc),eval(dimHsc) )
+
+    ! Getting lwork for diagonalization
+    lwork = (ilaenv( 1, 'zhetrd', 'VU', dimHsc, -1, -1, -1 )+1)*dimHsc
 
     call hamilt_local(s)
 
@@ -229,7 +232,7 @@ contains
     call MPI_Allreduce(MPI_IN_PLACE, deltas, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
 
     mx = real(mp)
-    my = aimag(mp)
+    my = dimag(mp)
 
     deallocate(hk,eval)
 
@@ -243,7 +246,7 @@ contains
     use mod_BrillouinZone,     only: realBZ
     use mod_parameters,        only: nOrb,dimH,output
     use mod_system,            only: System_type
-    use mod_tools,             only: itos,diagonalize
+    use mod_tools,             only: itos,diagonalize,lwork
     use mod_superconductivity, only: lsuperCond, superCond
     use mod_constants,         only: cZero
     use mod_hamiltonian,       only: hamilt_local,h0,fullhk
@@ -255,19 +258,22 @@ contains
     complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: mp
 
     integer(int64)                           :: iz
-    integer                                  :: ncount,dimHsc
+    integer                                  :: ncount,dimHsc,ilaenv
     real(dp),    dimension(nOrb,s%nAtoms)    :: expec_0,expec_z
     complex(dp), dimension(nOrb,s%nAtoms)    :: expec_p
     real(dp),    dimension(nOrb,s%nAtoms)    :: expec_singlet
     real(dp),    dimension(:),  allocatable  :: eval(:)
     complex(dp),                allocatable  :: hk(:,:)
 
-    external :: MPI_Allreduce
+    external :: MPI_Allreduce,ilaenv
 
     dimHsc  = dimH*superCond
     ncount = nOrb*s%nAtoms
 
     allocate( hk(dimHsc,dimHsc),eval(dimHsc) )
+
+    ! Getting lwork for diagonalization
+    lwork = (ilaenv( 1, 'zhetrd', 'VU', dimHsc, -1, -1, -1 )+1)*dimHsc
 
     call hamilt_local(s)
     !!$acc data copyin(h0,fullhk) copyout(rho,mp,mz,deltas)
@@ -316,7 +322,7 @@ contains
     call MPI_Allreduce(MPI_IN_PLACE, deltas, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
 
     mx = real(mp)
-    my = aimag(mp)
+    my = dimag(mp)
 
     deallocate(hk,eval)
 
@@ -420,7 +426,7 @@ contains
   subroutine expec_val_n(s, dimens, evec, eval, expec_0, expec_p, expec_z, expec_singlet)
     !! Calculate the expectation value of the operators 1 (occupation), \sigma^+ and \sigma^z
     !! for a given state n (evec) with eigenenergy eval
-    use mod_kind, only: dp
+    use mod_kind,              only: dp
     use mod_constants,         only: cZero,pi,pauli_mat
     use mod_parameters,        only: nOrb, eta, isigmamu2n
     use mod_distributions,     only: fd_dist
@@ -465,7 +471,7 @@ contains
           do sigmap = 1, 2
             evec_isigmamu = evec(isigmamu2n(i,sigmap,mu))
             ! M_p
-            expec_p(mu,i) = expec_p(mu,i) + f_n*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
+            expec_p(mu,i) = expec_p(mu,i) + cmplx(f_n,0._dp,dp)*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
 
             ! M_z
             expec_z(mu,i) = expec_z(mu,i) + f_n*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
@@ -783,18 +789,18 @@ contains
     use mod_System,            only: s => sys
     use mod_magnet,            only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
     use mod_distributions,     only: fd_dist
-    use mod_tools,             only: itos,diagonalize
+    use mod_tools,             only: itos,diagonalize,lwork
     use mod_superconductivity, only: lsuperCond,superCond
     use mod_hamiltonian,       only: hamiltk,hamilt_local,energy
     use mod_mpi_pars,          only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
     implicit none
     integer(int64)                             :: iz
-    integer                                    :: dimHsc,n,i,mu,nu,sigma
+    integer                                    :: dimHsc,n,i,mu,nu,sigma,ilaenv
     real(dp)                                   :: fermi,beta
     real(dp),    dimension(:),     allocatable :: eval,f_n
     complex(dp),                   allocatable :: hk(:,:),prod(:,:,:)
 
-    external :: MPI_Allreduce
+    external :: MPI_Allreduce,ilaenv
 
     dimHsc = dimH*superCond
     !If lsupercond is true then fermi is 0.0 otherwise is s%Ef
@@ -802,6 +808,9 @@ contains
     beta = 1._dp/(pi*eta)
 
     allocate( hk(dimHsc,dimHsc),eval(dimHsc),f_n(dimHsc),prod(nOrb,nOrb,s%nAtoms) )
+
+    ! Getting lwork for diagonalization
+    lwork = (ilaenv( 1, 'zhetrd', 'VU', dimHsc, -1, -1, -1 )+1)*dimHsc
 
     call hamilt_local(s)
 
@@ -878,18 +887,18 @@ contains
     use mod_System,            only: s => sys
     use mod_magnet,            only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
     use mod_distributions,     only: fd_dist
-    use mod_tools,             only: itos,diagonalize
+    use mod_tools,             only: itos,diagonalize,lwork
     use mod_superconductivity, only: lsuperCond,superCond
     use mod_hamiltonian,       only: hamilt_local,h0,fullhk,energy
     use mod_mpi_pars,          only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
     implicit none
     integer(int64)                             :: iz
-    integer                                    :: dimHsc,n,i,mu,nu,sigma
+    integer                                    :: dimHsc,n,i,mu,nu,sigma,ilaenv
     real(dp)                                   :: fermi,beta
     real(dp),    dimension(:),     allocatable :: eval,f_n
     complex(dp),                   allocatable :: hk(:,:),prod(:,:,:)
 
-    external :: MPI_Allreduce
+    external :: MPI_Allreduce,ilaenv
 
     dimHsc = dimH*superCond
     !If lsupercond is true then fermi is 0.0 otherwise is s%Ef
@@ -897,6 +906,9 @@ contains
     beta = 1._dp/(pi*eta)
 
     allocate( hk(dimHsc,dimHsc),eval(dimHsc),f_n(dimHsc),prod(nOrb,nOrb,s%nAtoms) )
+
+    ! Getting lwork for diagonalization
+    lwork = (ilaenv( 1, 'zhetrd', 'VU', dimHsc, -1, -1, -1 )+1)*dimHsc
 
     call hamilt_local(s)
 

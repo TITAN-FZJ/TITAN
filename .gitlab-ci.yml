@@ -7,13 +7,18 @@ image: iffregistry.fz-juelich.de/docker-images/centos8-intel-compilers:latest-ip
 before_script:
   - echo before scripts
   - set +e && source compilervars.sh intel64 && set -e
-  - pip3 install --user numpy
+  - which ifort
+  - ifort --version
+  - which mpiifort
+  - mpiifort -v
+  # - pip3 install --user numpy
 
 # pipeline stages; a stage is only run if the previous stage is completed. Each stage contains user-defined jobs
 # that are run in parallel
 stages:
   - build
-  - test
+  - test_results
+  # - test_runtime
 #   # - deploy:doc
 #
 # a build job (see `stage` key); jobs can have arbitrary names
@@ -27,7 +32,7 @@ build:intel:debug:
   artifacts:
     paths:
       - make.warnings
-      - bin
+      - bin/
     expire_in: 1 day
   allow_failure: true
 
@@ -52,7 +57,7 @@ build:gnu:debug:
   artifacts:
     paths:
       - make.warnings
-      - bin
+      - bin/
     expire_in: 1 day
   allow_failure: true
 
@@ -67,21 +72,39 @@ build:intel:normal:
       - bin/
     expire_in: 1 day
 
+.run_test: &run_test
+    - python --version
+    - cd ${TEST_FOLDER}
+    - export OMP_NUM_THREADS=4
+    - mpirun -np 2 ../../bin/titan_iff.exe
+    - grep "Finished on" output/*
+
+.compare_files: &compare_files |
+    for file in `find results_correct/ -type f`
+    do
+      echo "Comparing file $(basename ${file}) with tolerance ${TOL}"
+      python ../../scripts/compare_output.py ${file} ${file/results_correct/results} ${TOL}
+    done
 
 # after build job(s) are completed, tests can be run; artifacts from all previous stages are transferred automatically
 test:monolayer:
-   stage: test
-   needs: ["build:intel:normal"]
-   script:
-     - which ifort
-     - which mpiifort
-     - which gfortran
-     - python3 --version
-     - cd examples/Nb_100_Monolayer
-     - export OMP_NUM_THREADS=4
-     - mpirun -n 1 ../../bin/titan_iff.exe
-     - python3 ../../scripts/compare_output.py results_correct/FSOC/selfconsistency/initialrho_Fe_dfttype=S_parts=2_nkpt=1024_eta=1.0E-03_evlambda.dat results/FSOC/selfconsistency/initialrho_Fe_dfttype=S_parts=2_nkpt=1024_eta=1.0E-03_evlambda.dat
-     - python3 ../../scripts/compare_output.py results_correct/TSOC/selfconsistency/selfconsistency_1Sites_dfttype=S_parts=2_nkpt=1024_eta=1.0E-03_evlambda.dat results/TSOC/selfconsistency/selfconsistency_1Sites_dfttype=S_parts=2_nkpt=1024_eta=1.0E-03_evlambda.dat
+  image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
+  stage: test_results
+  needs: ["build:intel:normal"]
+  script:
+    - export TEST_FOLDER="examples/Nb_100_Monolayer"
+    - *run_test
+    - *compare_files
+
+test:timeprop:
+  image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
+  stage: test_results
+  needs: ["build:intel:normal"]
+  script:
+    - export TEST_FOLDER="examples/Ni_bulk_timeprop"
+    - *run_test
+    - export TOL="1.e-7"
+    - *compare_files
 
 # # `pages` is a special job that builds the gitlab page for this project; all artifacts must be saved in a `public`
 # # directory to be published as a static site (that can be accessed from the whole www)

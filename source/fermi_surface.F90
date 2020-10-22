@@ -144,7 +144,7 @@ contains
           end if
           do mu=1,nOrb
             nu = mu + nOrb
-            temp = - aimag(pauli_gf(mu,mu)+pauli_gf(nu,nu))/pi
+            temp = - dimag(pauli_gf(mu,mu)+pauli_gf(nu,nu))/pi
             fs_orb(mu,iz,sigma) = fs_orb(mu,iz,sigma) + temp
             fs_atom(i,iz,sigma) = fs_atom(i,iz,sigma) + temp
           end do

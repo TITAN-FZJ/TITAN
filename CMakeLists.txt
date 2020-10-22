@@ -162,7 +162,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
     target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
-                                                -no-prec-sqrt
                                                 -DVERSION="${GIT_VERSION}"
                                                 -qopenmp
                                                 -g
@@ -174,7 +173,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
     target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
-                                                -no-prec-sqrt
                                                 -xCORE-AVX2
                                                 -fma
                                                 -qopt-zmm-usage=high
@@ -188,7 +186,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
     target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
-                                                -no-prec-sqrt
                                                 -DVERSION="${GIT_VERSION}"
                                                 -qopenmp
                                                 -g
@@ -200,7 +197,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
     target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
-                                                -no-prec-sqrt
                                                 -DVERSION="${GIT_VERSION}"
                                                 -qopenmp
                                                 -g
@@ -212,7 +208,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
     target_link_libraries(${TITAN_EXE} -mkl -qopenmp )
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
-                                                -no-prec-sqrt
                                                 -DVERSION="${GIT_VERSION}"
                                                 -mkl
                                                 -g
@@ -224,7 +219,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
     target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
-                                                -no-prec-sqrt
                                                 -DVERSION="${GIT_VERSION}"
                                                 -qopenmp
                                                 -g
@@ -237,7 +231,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -DVERSION="${GIT_VERSION}"
                                                 -fpp
-                                                -no-prec-sqrt
                                                 -D_GNU
                                                 -qopenmp
                                                 -g
@@ -249,7 +242,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
     target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
-                                                -no-prec-sqrt
                                                 -DVERSION="${GIT_VERSION}"
                                                 -qopenmp
                                                 -g
@@ -260,7 +252,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
     target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
-                                                -no-prec-sqrt
                                                 -DVERSION="${GIT_VERSION}"
                                                 -qopenmp
                                                 -mkl
@@ -282,7 +273,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -ftrapuv
                                                 -traceback
                                                 -qopenmp
-                                                -no-prec-sqrt
                                                 -fpp
                                                 -D_GNU
                                                 -DVERSION="${GIT_VERSION}"
