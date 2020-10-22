@@ -90,7 +90,6 @@ test:monolayer:
     - export OMP_NUM_THREADS=4
     - mpirun -np 2 ../../bin/titan_iff.exe
     - grep "Finished on" output/selfCons
-  after_script:
     - *compare_files
 
 test:timeprop:
@@ -103,8 +102,12 @@ test:timeprop:
     - export OMP_NUM_THREADS=4
     - mpirun -np 2 ../../bin/titan_iff.exe
     - grep "Finished on" output/time_prop_efield
-  after_script:
-    - *compare_files
+    - | 
+    for file in `find results_correct/ -type f`
+      do
+        echo "Comparing file ${file}"
+        python ../../scripts/compare_output.py ${file} ${file/results_correct/results}
+      done
 
 # # `pages` is a special job that builds the gitlab page for this project; all artifacts must be saved in a `public`
 # # directory to be published as a static site (that can be accessed from the whole www)
