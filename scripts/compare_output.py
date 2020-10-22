@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 import sys            # System library (to read arguments from command line)
-import numpy as np
 
 # Defining the tolerance
-tol = 1.e-8
+tol = 1.e-6
 
 ################################################################################
 # Checks if a string is a number

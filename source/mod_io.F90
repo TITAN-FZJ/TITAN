@@ -101,7 +101,12 @@ contains
     if(.not. get_parameter("output", output%file)) &
       call log_error("get_parameters", "Output filename not given!")
 
-    if(myrank==0) open(unit=output%unit, file=trim(output%file), status='replace')
+    if(myrank==0) then
+      !! Create folder for output file, if necessary
+      call execute_command_line('mkdir -p $(dirname "'// trim(output%file) // '")')
+      !! Open output file
+      open(unit=output%unit, file=trim(output%file), status='replace')
+    end if
 
     log_unit = .true.
 
