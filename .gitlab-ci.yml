@@ -75,7 +75,7 @@ build:intel:normal:
 .compare_files: &compare_files |
     for file in `find results_correct/ -type f`
     do
-      echo "Comparing file ${file} with tolerance ${TOL}"
+      echo "Comparing file $(basename ${file}) with tolerance ${TOL}"
       python ../../scripts/compare_output.py ${file} ${file/results_correct/results} ${TOL}
     done
 
@@ -90,7 +90,6 @@ test:monolayer:
     - export OMP_NUM_THREADS=4
     - mpirun -np 2 ../../bin/titan_iff.exe
     - grep "Finished on" output/selfCons
-    - export TOL="1.e-8"
     - *compare_files
 
 test:timeprop:
@@ -103,7 +102,7 @@ test:timeprop:
     - export OMP_NUM_THREADS=4
     - mpirun -np 2 ../../bin/titan_iff.exe
     - grep "Finished on" output/time_prop_efield
-    - export TOL="1.e-6"
+    - export TOL="5.e-6"
     - *compare_files
 
 # # `pages` is a special job that builds the gitlab page for this project; all artifacts must be saved in a `public`
