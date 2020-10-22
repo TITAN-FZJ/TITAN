@@ -13,7 +13,7 @@ before_script:
 # that are run in parallel
 stages:
   - build
-  - test:monolayer
+  - test
 #   # - deploy:doc
 #
 # a build job (see `stage` key); jobs can have arbitrary names
@@ -70,7 +70,7 @@ build:intel:normal:
 
 # after build job(s) are completed, tests can be run; artifacts from all previous stages are transferred automatically
 test:monolayer:
-   stage: test:monolayer
+   stage: test
    needs: ["build:intel:normal"]
    script:
      - which ifort
