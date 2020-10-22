@@ -74,10 +74,10 @@ build:intel:normal:
 
 .compare_files: &compare_files |
     for file in `find results_correct/ -type f`
-      do
-        echo "Comparing file ${file}"
-        python ../../scripts/compare_output.py ${file} ${file/results_correct/results}
-      done
+    do
+      echo "Comparing file ${file}"
+      python ../../scripts/compare_output.py ${file} ${file/results_correct/results}
+    done
 
 # after build job(s) are completed, tests can be run; artifacts from all previous stages are transferred automatically
 test:monolayer:
@@ -103,11 +103,11 @@ test:timeprop:
     - mpirun -np 2 ../../bin/titan_iff.exe
     - grep "Finished on" output/time_prop_efield
     - | 
-    for file in `find results_correct/ -type f`
-      do
-        echo "Comparing file ${file}"
-        python ../../scripts/compare_output.py ${file} ${file/results_correct/results}
-      done
+       for file in `find results_correct/ -type f`
+       do
+          echo "Comparing file ${file}"
+          python ../../scripts/compare_output.py ${file} ${file/results_correct/results}
+       done
 
 # # `pages` is a special job that builds the gitlab page for this project; all artifacts must be saved in a `public`
 # # directory to be published as a static site (that can be accessed from the whole www)
