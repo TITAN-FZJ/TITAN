@@ -76,6 +76,7 @@ build:intel:normal:
 
 # after build job(s) are completed, tests can be run; artifacts from all previous stages are transferred automatically
 test:monolayer:
+  image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: test_results
   needs: ["build:intel:normal"]
   script:
@@ -86,6 +87,7 @@ test:monolayer:
     - python3 ../../scripts/compare_output.py results_correct/TSOC/selfconsistency/selfconsistency_1Sites_dfttype=S_parts=2_nkpt=1024_eta=1.0E-03_evlambda.dat results/TSOC/selfconsistency/selfconsistency_1Sites_dfttype=S_parts=2_nkpt=1024_eta=1.0E-03_evlambda.dat
 
 test:timeprop:
+  image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: test_results
   needs: ["build:intel:normal"]
   script:
