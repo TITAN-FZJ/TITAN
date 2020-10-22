@@ -852,9 +852,9 @@ contains
 
         do mu = 1,nOrb
           ! Last line (Total charge neutrality)
-          jacobian(  neq_per_atom*s%nAtoms+1,neq_per_atom*s%nAtoms+1) = jacobian(  neq_per_atom*s%nAtoms+1,neq_per_atom*s%nAtoms+1) - aimag(temp(mu,mu) + temp(mu+9,mu+9))
+          jacobian(  neq_per_atom*s%nAtoms+1,neq_per_atom*s%nAtoms+1) = jacobian(  neq_per_atom*s%nAtoms+1,neq_per_atom*s%nAtoms+1) - dimag(temp(mu,mu) + temp(mu+9,mu+9))
           if(mu<5) cycle
-          jacobian((i-1)*neq_per_atom+(mu-4),neq_per_atom*s%nAtoms+1) = jacobian((i-1)*neq_per_atom+(mu-4),neq_per_atom*s%nAtoms+1) - aimag(temp(mu,mu) + temp(mu+9,mu+9))
+          jacobian((i-1)*neq_per_atom+(mu-4),neq_per_atom*s%nAtoms+1) = jacobian((i-1)*neq_per_atom+(mu-4),neq_per_atom*s%nAtoms+1) - dimag(temp(mu,mu) + temp(mu+9,mu+9))
         end do
 
         do sigma = 2,4
@@ -863,7 +863,7 @@ contains
           call zgemm('n','n',18,18,18,weight,paulitemp,18,gij,18,cZero,temp,18)
 
           do mu = 5,nOrb
-            jacobian((i-1)*neq_per_atom+4+sigma,neq_per_atom*s%nAtoms+1) = jacobian((i-1)*neq_per_atom+4+sigma,neq_per_atom*s%nAtoms+1) - aimag(temp(mu,mu) + temp(mu+9,mu+9))
+            jacobian((i-1)*neq_per_atom+4+sigma,neq_per_atom*s%nAtoms+1) = jacobian((i-1)*neq_per_atom+4+sigma,neq_per_atom*s%nAtoms+1) - dimag(temp(mu,mu) + temp(mu+9,mu+9))
           end do
         end do
 

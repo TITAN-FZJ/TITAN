@@ -376,7 +376,7 @@ subroutine calculate_all()
         ! dc_currents = 0._dp  !TODO:Re-Include
         ! plane_loop_dc_current_all: do i=1,Npl
         !   do j=1,3 ; do mu = 1,3 ; do nu = 1,3
-        !     dc_currents(j,i) = dc_currents(j,i) + levi_civita(j,mu,nu)*abs(disturbances(mu+1,i))*abs(disturbances(nu+1,i))*sin(atan2(aimag(disturbances(nu+1,i)),real(disturbances(nu+1,i))) - atan2(aimag(disturbances(mu+1,i)),real(disturbances(mu+1,i))))
+        !     dc_currents(j,i) = dc_currents(j,i) + levi_civita(j,mu,nu)*abs(disturbances(mu+1,i))*abs(disturbances(nu+1,i))*sin(atan2(dimag(disturbances(nu+1,i)),real(disturbances(nu+1,i))) - atan2(dimag(disturbances(mu+1,i)),real(disturbances(mu+1,i))))
         !   end do ; end do ; end do
         ! end do plane_loop_dc_current_all
 

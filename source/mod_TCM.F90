@@ -49,7 +49,7 @@ contains
     !! Writing Gilbert damping
     do i = 1, s%nAtoms
       do j = 1, 3
-        write(unit=unit  ,fmt=*) i, j, (real(alpha(i,i,j,k)), aimag(alpha(i,i,j,k)), k = 1, 3)
+        write(unit=unit  ,fmt=*) i, j, (real(alpha(i,i,j,k)), dimag(alpha(i,i,j,k)), k = 1, 3)
       end do
     end do
 

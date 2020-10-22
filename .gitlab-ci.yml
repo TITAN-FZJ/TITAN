@@ -72,6 +72,13 @@ build:intel:normal:
       - bin/
     expire_in: 1 day
 
+.run_test: &run_test
+    - python --version
+    - cd ${TEST_FOLDER}
+    - export OMP_NUM_THREADS=4
+    - mpirun -np 2 ../../bin/titan_iff.exe
+    - grep "Finished on" output/*
+
 .compare_files: &compare_files |
     for file in `find results_correct/ -type f`
     do
@@ -85,11 +92,8 @@ test:monolayer:
   stage: test_results
   needs: ["build:intel:normal"]
   script:
-    - python --version
-    - cd examples/Nb_100_Monolayer
-    - export OMP_NUM_THREADS=4
-    - mpirun -np 2 ../../bin/titan_iff.exe
-    - grep "Finished on" output/selfCons
+    - export TEST_FOLDER="examples/Nb_100_Monolayer"
+    - *run_test
     - *compare_files
 
 test:timeprop:
@@ -97,12 +101,9 @@ test:timeprop:
   stage: test_results
   needs: ["build:intel:normal"]
   script:
-    - python --version
-    - cd examples/Ni_bulk_timeprop
-    - export OMP_NUM_THREADS=4
-    - mpirun -np 2 ../../bin/titan_iff.exe
-    - grep "Finished on" output/time_prop_efield
-    - export TOL="5.e-6"
+    - export TEST_FOLDER="examples/Ni_bulk_timeprop"
+    - *run_test
+    - export TOL="1.e-7"
     - *compare_files
 
 # # `pages` is a special job that builds the gitlab page for this project; all artifacts must be saved in a `public`

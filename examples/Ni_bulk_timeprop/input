@@ -79,11 +79,11 @@
 -> delay_e = 0.d0 1138.7  ! Center of the pulse is located at 0.5tau when delay_e=0.d0 
 !-------------------------------------------------------------------------------!
 ! Total time:                                                                   !
--> integration_time = 3.e0
+-> integration_time = 1.e-1
 ! Absolute tolerance:
--> abs_tol = 1.d-3
+-> abs_tol = 1.d-8
 ! Relative tolerance:
--> rel_tol = 1.d-3
+-> rel_tol = 1.d-8
 ! Step size:                                                                    !
 -> step = 1.e-2
 !===============================================================================!
