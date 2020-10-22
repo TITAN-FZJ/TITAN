@@ -11,7 +11,7 @@ before_script:
   - ifort --version
   - which mpiifort
   - mpiifort -v
-  - python3 --version
+  - python --version
   # - pip3 install --user numpy
 
 # pipeline stages; a stage is only run if the previous stage is completed. Each stage contains user-defined jobs

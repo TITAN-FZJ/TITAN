@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import sys            # System library (to read arguments from command line)
 
 # Defining the tolerance
