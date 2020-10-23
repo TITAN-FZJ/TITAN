@@ -85,7 +85,7 @@ build:intel:normal:
     # Going to current test folder
     - cd ${TEST_FOLDER}
     # Setting up 
-    - sed -i 's/-> itype = 1/-> itype = ${ITYPE}/g' input
+    - sed -i "s/-> itype = .*/-> itype = ${ITYPE}/g" input
     # Setting up 4 omp threads
     - export OMP_NUM_THREADS=4
     # Running the code with 2 MPI ranks
