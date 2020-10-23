@@ -17,12 +17,14 @@ before_script:
 # that are run in parallel
 stages:
   - build
-  - test_results
-  - test_supercond
+  - test:selfcon:normal
+  - test:selfcon:supercond
+  - test:results
   # - test_runtime
-#   # - deploy:doc
+  # - deploy:doc
 #
 # a build job (see `stage` key); jobs can have arbitrary names
+#===================================== BUILDS =====================================
 build:intel:debug:
   stage: build
   script:
@@ -73,79 +75,105 @@ build:intel:normal:
       - bin/
     expire_in: 1 day
 
+#===================================== TESTS =====================================
+# after build job(s) are completed, tests can be run; artifacts from all previous stages are transferred automatically
+
+# ** Anchors **
 .run_test: &run_test
+    # Printing Python version
     - python --version
+    # Going to current test folder
     - cd ${TEST_FOLDER}
+    # Setting up 
+    - sed -i 's/-> itype = 1/-> itype = ${ITYPE}/g' input
+    # Setting up 4 omp threads
     - export OMP_NUM_THREADS=4
+    # Running the code with 2 MPI ranks
     - mpirun -np 2 ../../bin/titan_iff.exe
+    # Printing runtime
     - grep "Finished on" output/*
 
 .compare_files: &compare_files |
+# Excluding files if they are not supposed to be checked
+    if [ ! -z ${EXCLUDE} ]
+    then
+    find ./results -name *${EXCLUDE}* -delete
+    fi
+# Comparing all remaining files in results folder with the ones in ./results_correct, using tolerance ${TOL}
     for file in `find results/ -type f`
     do
       echo "Comparing file $(basename ${file}) with tolerance ${TOL}"
       python ../../scripts/compare_output.py ${file} ${file/results/results_correct} ${TOL}
     done
 
-# after build job(s) are completed, tests can be run; artifacts from all previous stages are transferred automatically
+# ** Jobs **
+#============ Normal Self-consistency ============#
 test:monolayer:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
-  stage: test_results
+  stage: test:selfcon:normal
   needs: ["build:intel:normal"]
   script:
     - export TEST_FOLDER="examples/Nb_100_Monolayer"
+    - export ITYPE=1
     - *run_test
     - *compare_files
 
-test:timeprop:
+test:Nibulk:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
-  stage: test_results
+  stage: test:selfcon:normal
   needs: ["build:intel:normal"]
   script:
     - export TEST_FOLDER="examples/Ni_bulk_timeprop"
+    - export ITYPE=1
     - *run_test
-    - export TOL="1.e-7"
+    - export EXCLUDE="checkpoint"
     - *compare_files
 
+#============ Superconductor Self-consistency ============#
 test:supercond:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
-  stage: test_supercond
+  stage: test:selfcon:supercond
   needs: ["build:intel:normal","test:monolayer"]
   script:
     - export TEST_FOLDER="examples/Nb_100_Superconducting_Monolayer"
+    - export ITYPE=1
     - *run_test
-    - export TOL="1.e-7"
     - *compare_files
 
+#============ Other results ============#
 test:ldos:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
-  stage: test_supercond
+  stage: test:results
   needs: ["build:intel:normal","test:monolayer"]
   script:
     - export TEST_FOLDER="examples/Nb_100_Monolayer"
-    - cd ${TEST_FOLDER}
-    - sed -i 's/-> itype = 1/-> itype = 2/g' input
-    - export OMP_NUM_THREADS=4
-    - mpirun -np 2 ../../bin/titan_iff.exe
-    - grep "Finished on" output/*
-    - export TOL="1.e-7"
+    - export ITYPE=2
+    - *run_test
     - *compare_files
 
 test:bands:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
-  stage: test_supercond
+  stage: test:results
   needs: ["build:intel:normal","test:monolayer"]
   script:
     - export TEST_FOLDER="examples/Nb_100_Monolayer"
-    - cd ${TEST_FOLDER}
-    - sed -i 's/-> itype = 1/-> itype = 4/g' input
-    - export OMP_NUM_THREADS=4
-    - mpirun -np 2 ../../bin/titan_iff.exe
-    - grep "Finished on" output/*
+    - export ITYPE=4
+    - *run_test
+    - export EXCLUDE="weights"
+    - *compare_files
+
+test:timeprop:
+  image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
+  stage: test:selfcon:normal
+  needs: ["build:intel:normal","test:Nibulk"]
+  script:
+    - export TEST_FOLDER="examples/Ni_bulk_timeprop"
+    - export ITYPE=11
+    - *run_test
+    - export EXCLUDE="checkpoint"
     - export TOL="1.e-7"
     - *compare_files
 
->>>>>>> 04ee3c69587973937c071aabab917c39f1f7dd15
 
 # # `pages` is a special job that builds the gitlab page for this project; all artifacts must be saved in a `public`
 # # directory to be published as a static site (that can be accessed from the whole www)
