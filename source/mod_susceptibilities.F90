@@ -321,20 +321,20 @@ contains
        do i=1, s%nAtoms
            iw = 1050 + (j-1)*s%nAtoms + i
            if(.not.lhfresponses) then
-              write(unit=iw,fmt="(34(es16.9,2x))") e, dble((qcount-1._dp)*deltak), ((real(schi(sigmai2i(n,i),sigmai2i(m,j))), aimag(schi(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
-              if(i == j .and. lwriteonscreen) write(output%unit_loop,"('E = ',es11.4,', Plane: ',i0,' Chi+- = (',es16.9,') + i(',es16.9,')')") e,i,real(schi(sigmai2i(1,i),sigmai2i(1,j))),aimag(schi(sigmai2i(1,i),sigmai2i(1,j)))
+              write(unit=iw,fmt="(34(es16.9,2x))") e, dble((qcount-1._dp)*deltak), ((real(schi(sigmai2i(n,i),sigmai2i(m,j))), dimag(schi(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
+              if(i == j .and. lwriteonscreen) write(output%unit_loop,"('E = ',es11.4,', Plane: ',i0,' Chi+- = (',es16.9,') + i(',es16.9,')')") e,i,real(schi(sigmai2i(1,i),sigmai2i(1,j))),dimag(schi(sigmai2i(1,i),sigmai2i(1,j)))
            end if
 
            iw = iw+1000
-           write(unit=iw,fmt="(34(es16.9,2x))") e, dble((qcount-1._dp)*deltak), ((real(schihf(sigmai2i(n,i),sigmai2i(m,j))), aimag(schihf(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
+           write(unit=iw,fmt="(34(es16.9,2x))") e, dble((qcount-1._dp)*deltak), ((real(schihf(sigmai2i(n,i),sigmai2i(m,j))), dimag(schihf(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
        end do
     end do
 
     if(s%nAtoms > 1 .and. (.not. lhfresponses) .and. (.not. lnodiag)) then
        write(varm,fmt="('(',i0,'(es16.9,2x))')") 2*s%nAtoms+2
-       write(unit=19900,fmt=varm) e,dble((qcount-1._dp)*deltak),(real(eval(i)),aimag(eval(i)),i=1,s%nAtoms)
+       write(unit=19900,fmt=varm) e,dble((qcount-1._dp)*deltak),(real(eval(i)),dimag(eval(i)),i=1,s%nAtoms)
        do i=1,s%nAtoms
-          write(unit=19900+i,fmt=varm) e,dble((qcount-1._dp)*deltak),(real(evecr(j,i)),aimag(evecr(j,i)),j=1,s%nAtoms)
+          write(unit=19900+i,fmt=varm) e,dble((qcount-1._dp)*deltak),(real(evecr(j,i)),dimag(evecr(j,i)),j=1,s%nAtoms)
        end do
     end if
 
@@ -481,20 +481,20 @@ contains
       do i=1,s%nAtoms
        iw = 10500 + (j-1)*s%nAtoms + i
        if(.not.lhfresponses) then
-          write(unit=iw,fmt="(a,2x,33(es16.9,2x))") trim(dc_fields(hw_count)) , dble((qcount-1._dp)*deltak), ((real(schi(sigmai2i(n,i),sigmai2i(m,j))), aimag(schi(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
-          if( i == j .and. lwriteonscreen ) write(output%unit_loop,"(a,' = ',a,', Plane: ',i0,' Chi+- = (',es16.9,') + i(',es16.9,')')") trim(dcfield(dcfield_dependence)),trim(dc_fields(hw_count)),i,real(schi(sigmai2i(1,i),sigmai2i(1,j))),aimag(schi(sigmai2i(1,i),sigmai2i(1,j)))
+          write(unit=iw,fmt="(a,2x,33(es16.9,2x))") trim(dc_fields(hw_count)) , dble((qcount-1._dp)*deltak), ((real(schi(sigmai2i(n,i),sigmai2i(m,j))), dimag(schi(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
+          if( i == j .and. lwriteonscreen ) write(output%unit_loop,"(a,' = ',a,', Plane: ',i0,' Chi+- = (',es16.9,') + i(',es16.9,')')") trim(dcfield(dcfield_dependence)),trim(dc_fields(hw_count)),i,real(schi(sigmai2i(1,i),sigmai2i(1,j))),dimag(schi(sigmai2i(1,i),sigmai2i(1,j)))
        end if
 
        iw = iw+1000
-       write(unit=iw,fmt="(a,2x,33(es16.9,2x))") trim(dc_fields(hw_count)) , dble((qcount-1._dp)*deltak), ((real(schi(sigmai2i(n,i),sigmai2i(m,j))), aimag(schi(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
+       write(unit=iw,fmt="(a,2x,33(es16.9,2x))") trim(dc_fields(hw_count)) , dble((qcount-1._dp)*deltak), ((real(schi(sigmai2i(n,i),sigmai2i(m,j))), dimag(schi(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
       end do
     end do
 
     if((s%nAtoms>1).and.(.not.lhfresponses).and.(.not.lnodiag)) then
        write(varm,fmt="(a,i0,a)") '(a,2x,',2*s%nAtoms+1,'(es16.9,2x))'
-       write(unit=199000,fmt=varm) trim(dc_fields(hw_count)) , dble((qcount-1._dp)*deltak), (real(eval(i)) , aimag(eval(i)),i=1,s%nAtoms)
+       write(unit=199000,fmt=varm) trim(dc_fields(hw_count)) , dble((qcount-1._dp)*deltak), (real(eval(i)) , dimag(eval(i)),i=1,s%nAtoms)
        do i=1,s%nAtoms
-          write(unit=199000+i,fmt=varm) trim(dc_fields(hw_count)) , dble((qcount-1._dp)*deltak), (real(evecr(j,i)) , aimag(evecr(j,i)),j=1,s%nAtoms)
+          write(unit=199000+i,fmt=varm) trim(dc_fields(hw_count)) , dble((qcount-1._dp)*deltak), (real(evecr(j,i)) , dimag(evecr(j,i)),j=1,s%nAtoms)
        end do
     end if ! s%nAtoms
 

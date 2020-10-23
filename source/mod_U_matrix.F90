@@ -27,11 +27,11 @@ contains
   end subroutine deallocate_Umatrix
 
   subroutine update_Umatrix(mz,mp,rhod,rhod0,rho,rho0,nAtoms,nOrb)
-    use mod_kind, only: dp
+    use mod_kind,       only: dp
     use mod_constants,  only: cZero
     use mod_parameters, only: Un, Um
     implicit none
-    integer,                              intent(in) :: nAtoms, nOrb
+    integer,                          intent(in) :: nAtoms, nOrb
     real(dp),    dimension(nAtoms),   intent(in) :: mz,rhod,rhod0
     complex(dp), dimension(nAtoms),   intent(in) :: mp
     real(dp), dimension(nOrb,nAtoms), intent(in) :: rho,rho0
@@ -52,10 +52,10 @@ contains
   end subroutine update_Umatrix
 
   subroutine init_Umatrix(mz,mp,rhod,rhod0,rho,rho0,nAtoms,nOrb)
-    use mod_kind, only: dp
+    use mod_kind,     only: dp
     use mod_mpi_pars, only: abortProgram
     implicit none
-    integer,                              intent(in) :: nAtoms,nOrb
+    integer,                          intent(in) :: nAtoms,nOrb
     real(dp),    dimension(nAtoms),   intent(in) :: mz,rhod,rhod0
     complex(dp), dimension(nAtoms),   intent(in) :: mp
     real(dp), dimension(nOrb,nAtoms), intent(in) :: rho,rho0

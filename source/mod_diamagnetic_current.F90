@@ -200,7 +200,7 @@ contains
           do nu=1,9
             mup = mu+9
             nup = nu+9
-            ! Idia(neighbor,i) = Idia(neighbor,i) + cI*pij(neighbor,i,mu,nu)*aimag(gij(neighbor,i,nu,mu)+gji(neighbor,i,mu,nu)+gij(neighbor,i,nup,mup)+gji(neighbor,i,mup,nup))
+            ! Idia(neighbor,i) = Idia(neighbor,i) + cI*pij(neighbor,i,mu,nu)*dimag(gij(neighbor,i,nu,mu)+gji(neighbor,i,mu,nu)+gij(neighbor,i,nup,mup)+gji(neighbor,i,mup,nup))
             Idia(neighbor,i) = Idia(neighbor,i) + real(pij(neighbor,i,mu,nu)*( (gji(neighbor,i,nu,mu)+gij(neighbor,i,mu,nu)) + (gji(neighbor,i,nup,mup)+gij(neighbor,i,mup,nup)) ))/pi
           end do
         end do

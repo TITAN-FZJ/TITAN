@@ -1,6 +1,5 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import sys            # System library (to read arguments from command line)
-import numpy as np
 
 # Defining the tolerance
 tol = 1.e-8
@@ -39,6 +38,10 @@ if __name__ == "__main__":
   file2 = sys.argv[2]
   # Reading file 2
   nlines2, data2 = read_data(file2)
+
+  # Getting tolerance from command line, when given
+  if(len(sys.argv)>3):
+    tol = float(sys.argv[3])
 
   # Check if number of lines is the same
   if ( nlines1 != nlines2 ):

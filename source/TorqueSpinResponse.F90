@@ -145,9 +145,9 @@ contains
 
           chits = chits*cI*sqrt(mabs(i)*mabs(j))  * 0.5_dp ! last part is 1/gamma
 
-          write(unitBase(1)+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TSResponse(q,p,j,i)), aimag(TSResponse(q,p,j,i)), q = 1, 3), p = 1, 3)
-          write(unitBase(2)+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TSResponseHF(q,p,j,i)), aimag(TSResponseHF(q,p,j,i)), q = 1, 3), p = 1, 3)
-          write(unitBase(3)+s%nAtoms*(i-1)+j, "( 9(es16.9,2x))") e, ((real(chits(q,p)), aimag(chits(q,p)), q= 1,2),p=1,2)
+          write(unitBase(1)+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TSResponse(q,p,j,i)), dimag(TSResponse(q,p,j,i)), q = 1, 3), p = 1, 3)
+          write(unitBase(2)+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TSResponseHF(q,p,j,i)), dimag(TSResponseHF(q,p,j,i)), q = 1, 3), p = 1, 3)
+          write(unitBase(3)+s%nAtoms*(i-1)+j, "( 9(es16.9,2x))") e, ((real(chits(q,p)), dimag(chits(q,p)), q= 1,2),p=1,2)
        end do
     end do
     call close_TSR_files()

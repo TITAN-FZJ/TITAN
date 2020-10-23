@@ -17,7 +17,7 @@ contains
     use mod_expectation,        only: expec_val_n, expec_H_n, expec_L_n
     use mod_Umatrix,            only: update_Umatrix
     use mod_magnet,             only: rhod0,rho0
-    use mod_tools,              only: KronProd,diagonalize
+    use mod_tools,              only: KronProd,diagonalize,lwork
     use mod_superconductivity,  only: allocate_supercond_variables
     use mod_hamiltonian,        only: hamiltk,hamilt_local,lfullhk,h0,fullhk
     use mod_checkpoint,         only: save_state,recover_state
@@ -40,7 +40,7 @@ contains
     real(dp) :: t_cp,step_cp
 
     integer(int64)                          :: ik
-    integer(int32)                          :: ncount,ios
+    integer(int32)                          :: ncount,ios,ilaenv
     real(dp)                                :: weight, kp(3)
     real(dp),    dimension(nOrb,s%nAtoms)   :: expec_0, expec_z
     complex(dp), dimension(nOrb,s%nAtoms)   :: expec_p
@@ -58,7 +58,7 @@ contains
     real(dp)                                :: E_t, E_0
     complex(dp)                             :: exp_eval
    
-    external :: MPI_Allreduce,MPI_Barrier
+    external :: MPI_Allreduce,MPI_Barrier,ilaenv
 
     if(rFreq(1) == 0) &
       write(output%unit_loop,"('CALCULATING TIME-PROPAGATION')")
@@ -96,6 +96,9 @@ contains
         call write_field()
       return
     end if
+
+    ! Getting lwork for diagonalization
+    lwork = (ilaenv( 1, 'zhetrd', 'VU', dimH, -1, -1, -1 )+1)*dimH
 
     if(rFreq(1) == 0) &
       write(output%unit_loop,"('[time_propagator] Starting propagation from t = ',es9.2)") t
@@ -143,10 +146,6 @@ contains
           call vector_potential(t2, A_t2)
         end if
 
-        !$omp parallel default(none) &
-        !$omp& private(Yn_e,Yn_new_e,Yn_hat_e,ik,n,i,kp,weight,hk,hkev,hamilt_nof,exp_eval,ERR_kn,Yn,Yn_new,Yn_hat,eval,expec_0,expec_p,expec_z,expec_singlet,E_0,lxm,lym,lzm) &
-        !$omp& shared(ERR,counter,step,s,t,it,id,dimH,realBZ,lfullhk,h0,fullhk,evec_kn_temp,evec_kn,eval_kn,use_checkpoint,rho_t,mp_t,mz_t,E_t,Lxm_t,Lym_t,Lzm_t,singlet_coupling_t,b_field,A_t,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2)
-
         rho_t  = 0._dp
         mp_t   = cZero
         mz_t   = 0._dp
@@ -161,7 +160,10 @@ contains
 
         singlet_coupling_t = 0._dp
 
-        !$omp do schedule(dynamic,1) reduction(+:rho_t,mp_t,mz_t,E_t,Lxm_t,Lym_t,Lzm_t,singlet_coupling_t,ERR)
+        !$omp parallel do default(none) &
+        !$omp& private(Yn_e,Yn_new_e,Yn_hat_e,ik,n,i,kp,weight,hk,hkev,hamilt_nof,exp_eval,ERR_kn,Yn,Yn_new,Yn_hat,eval,expec_0,expec_p,expec_z,expec_singlet,E_0,lxm,lym,lzm) &
+        !$omp& shared(counter,step,s,t,it,id,dimH,realBZ,lfullhk,h0,fullhk,evec_kn_temp,evec_kn,eval_kn,use_checkpoint,b_field,A_t,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2) &
+        !$omp& reduction(+:rho_t,mp_t,mz_t,E_t,Lxm_t,Lym_t,Lzm_t,singlet_coupling_t,ERR) schedule(dynamic,1) 
         kpoints_loop: do ik = 1, realBZ%workload
           kp = realBZ%kp(:,ik)
           weight = realBZ%w(ik)   
@@ -230,7 +232,7 @@ contains
 
 
             rho_t = rho_t + expec_0  * weight 
-            mp_t  = mp_t  + expec_p  * weight 
+            mp_t  = mp_t  + expec_p  * cmplx(weight,0._dp,dp)
             mz_t  = mz_t  + expec_z  * weight 
 
             ! Superconducting order parameter
@@ -256,8 +258,7 @@ contains
 
           end do evs_loop
         end do kpoints_loop
-        !$omp end do
-        !$omp end parallel
+        !$omp end parallel do
 
         call MPI_Allreduce(MPI_IN_PLACE, rho_t, ncount  , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
         call MPI_Allreduce(MPI_IN_PLACE, mz_t , ncount  , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
@@ -315,7 +316,7 @@ contains
       ! if(rFreq(1) == 0) write(*,*)  "Accepted", t, step, ERR 
 
       mx_t = real(mp_t)
-      my_t = aimag(mp_t)
+      my_t = dimag(mp_t)
 
       ! obtaining expectation values for d-orbitals
       do i = 1, s%nAtoms

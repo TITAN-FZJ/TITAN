@@ -130,11 +130,11 @@ contains
       do mu=1,nOrb
         do i=1,s%nAtoms
           nu = mu + nOrb
-          gfdiagu(i,mu) = - aimag(gf(mu,mu,i,i)) * weight
-          gfdiagd(i,mu) = - aimag(gf(nu,nu,i,i)) * weight
+          gfdiagu(i,mu) = - dimag(gf(mu,mu,i,i)) * weight
+          gfdiagd(i,mu) = - dimag(gf(nu,nu,i,i)) * weight
           if(lsupercond) then
-            gfdiagu(i,mu+nOrb) = - aimag(gf(mu+nOrb2,mu+nOrb2,i,i)) * weight
-            gfdiagd(i,mu+nOrb) = - aimag(gf(nu+nOrb2,nu+nOrb2,i,i)) * weight
+            gfdiagu(i,mu+nOrb) = - dimag(gf(mu+nOrb2,mu+nOrb2,i,i)) * weight
+            gfdiagd(i,mu+nOrb) = - dimag(gf(nu+nOrb2,nu+nOrb2,i,i)) * weight
           end if
         end do
      end do
@@ -388,8 +388,8 @@ contains
       do mu=1,nOrb
         do i=1,s%nAtoms
            nu=mu+nOrb
-           gfdiagu(i,mu) = - aimag(gf(mu,mu,i,i))*weight
-           gfdiagd(i,mu) = - aimag(gf(nu,nu,i,i))*weight
+           gfdiagu(i,mu) = - dimag(gf(mu,mu,i,i))*weight
+           gfdiagd(i,mu) = - dimag(gf(nu,nu,i,i))*weight
          end do
       end do
 

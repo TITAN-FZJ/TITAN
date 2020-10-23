@@ -1,0 +1,40 @@
+Ni fcc bulk
+ 6.55 ! a0 - lattice parameter
+ 0.5    0.5     0.0 ! a1
+ 0.5    0.0     0.5 ! a2 - Bravais vectors
+ 0.0    0.5     0.5 ! a3
+ Ni ! element(s)
+ 1 ! Number of sites for each element
+ C ! Units of the positions below (C - cartesian, B - bravais)
+ 0.0    0.0     0.0 ! Positions of the atoms in the unit cell
+3 ! Dimension of the system
+0.6410 ! Fermi energy
+0.69  0.34  8.97 ! s, p and d occupations
+-0.09559 0.09559 ! Effetive local electron-electron interaction
+0.0000 0.00978 ! p and d spin-orbit interaction strength
+0.0000 0.00000 0.00000 
+2 ! Number of neighbors (with parameters given below)
+ s on-site	 1.1552640200      1                            Ni
+  p on-site	 1.6058666706      2                            Ni
+  t2g on-site	 0.5606777072      3                            Ni
+   eg on-site	 0.5575338006      4                            Ni
+  sss 1st nn	-0.0952508897      5                            Ni
+  pps 1st nn	 0.2170848101      6                            Ni
+  ppp 1st nn	 0.0166009460      7                            Ni
+  dds 1st nn	-0.0371246748      8                            Ni
+  ddp 1st nn	 0.0262859277      9                            Ni
+  ddd 1st nn	-0.0060013193     10                            Ni
+  sps 1st nn	 0.1400250643     11                            Ni
+  sds 1st nn	-0.0388022438     12                            Ni
+  pds 1st nn	-0.0440008491     13                            Ni
+  pdp 1st nn	 0.0237692818     14                            Ni
+  sss 2nd nn	-0.0006464904     15                            Ni
+  pps 2nd nn	 0.0621984713     16                            Ni
+  ppp 2nd nn	 0.0068240496     17                            Ni
+  dds 2nd nn	-0.0065054153     18                            Ni
+  ddp 2nd nn	 0.0034442015     19                            Ni
+  ddd 2nd nn	-0.0002681518     20                            Ni
+  sps 2nd nn	 0.0144056119     21                            Ni
+  sds 2nd nn	-0.0101546962     22                            Ni
+  pds 2nd nn	-0.0101174628     23                            Ni
+  pdp 2nd nn	 0.0051021385     24                            Ni

@@ -4,7 +4,7 @@ contains
 
   ! Writing header for previously opened file of unit "unit"
   subroutine write_header_time_prop(unit,title_line)
-    use mod_kind, only: int32
+    use mod_kind,             only: int32
     use mod_imRK4_parameters, only: lelectric, hE_0, hw_e, lpulse_e, npulse_e, polarization_vec_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, npulse_m, polarization_vec_m, tau_m, delay_m
     implicit none
     integer(int32),   intent(in) :: unit
@@ -298,7 +298,7 @@ contains
         unit = 5190+i
         write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%observable(i))//"_d",trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
         open(unit=unit,file=trim(output_file), status= 'replace')
-        call write_header_time_prop(unit,'#    Time [ps]   , ' // output%observable(i) // '_d')
+        call write_header_time_prop(unit,'#    Time [ps]   , ' // trim(output%observable(i)) // '_d')
         close(unit)
       end if
     end do
@@ -374,7 +374,7 @@ contains
 
   ! subroutine to write field output files
   subroutine write_field()
-    use mod_kind, only: dp
+    use mod_kind,             only: dp
     use mod_parameters,       only: output,missing_files
     use mod_mpi_pars,         only: abortProgram
     use mod_imRK4_parameters, only: step, time_conv, integration_time, lelectric, lmagnetic
@@ -420,7 +420,7 @@ contains
 
   ! subroutine to write in time propagation output files
   subroutine write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t, field_m, field_e, E_t, Lxm_t, Lym_t, Lzm_t) 
-    use mod_kind, only: dp
+    use mod_kind,             only: dp
     use mod_system,           only: System_type
     use mod_parameters,       only: nOrb
     use mod_imRK4_parameters, only: time_conv

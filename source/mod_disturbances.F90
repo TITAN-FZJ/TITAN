@@ -171,88 +171,88 @@ contains
       if(lwriteonscreen) then
         write(output%unit_loop,"('|--------------- Energy = ',es11.4,' , Plane: ',i0,' ---------------|')") e,i
 
-        write(output%unit_loop,"('     Cd  = (',es16.9,') + i(',es16.9,')')") real(disturbances(1,i)),aimag(disturbances(1,i))
+        write(output%unit_loop,"('     Cd  = (',es16.9,') + i(',es16.9,')')") real(disturbances(1,i)),dimag(disturbances(1,i))
         write(output%unit_loop,"(' abs(Cd) = ',es16.9)") abs(disturbances(1,i))
-        write(output%unit_loop,"('atan(Cd) = ',es16.9)") atan2(aimag(disturbances(1,i)),real(disturbances(1,i)))
+        write(output%unit_loop,"('atan(Cd) = ',es16.9)") atan2(dimag(disturbances(1,i)),real(disturbances(1,i)))
 
-        write(output%unit_loop,"('     Sdx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(2,i)),aimag(disturbances(2,i))
+        write(output%unit_loop,"('     Sdx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(2,i)),dimag(disturbances(2,i))
         write(output%unit_loop,"(' abs(Sdx) = ',es16.9)") abs(disturbances(2,i))
-        write(output%unit_loop,"('atan(Sdx) = ',es16.9)") atan2(aimag(disturbances(2,i)),real(disturbances(2,i)))
+        write(output%unit_loop,"('atan(Sdx) = ',es16.9)") atan2(dimag(disturbances(2,i)),real(disturbances(2,i)))
 
-        write(output%unit_loop,"('     Sdy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(3,i)),aimag(disturbances(3,i))
+        write(output%unit_loop,"('     Sdy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(3,i)),dimag(disturbances(3,i))
         write(output%unit_loop,"(' abs(Sdy) = ',es16.9)") abs(disturbances(3,i))
-        write(output%unit_loop,"('atan(Sdy) = ',es16.9)") atan2(aimag(disturbances(3,i)),real(disturbances(3,i)))
+        write(output%unit_loop,"('atan(Sdy) = ',es16.9)") atan2(dimag(disturbances(3,i)),real(disturbances(3,i)))
 
-        write(output%unit_loop,"('     Sdz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(4,i)),aimag(disturbances(4,i))
+        write(output%unit_loop,"('     Sdz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(4,i)),dimag(disturbances(4,i))
         write(output%unit_loop,"(' abs(Sdz) = ',es16.9)") abs(disturbances(4,i))
-        write(output%unit_loop,"('atan(Sdz) = ',es16.9)") atan2(aimag(disturbances(4,i)),real(disturbances(4,i)))
+        write(output%unit_loop,"('atan(Sdz) = ',es16.9)") atan2(dimag(disturbances(4,i)),real(disturbances(4,i)))
 
-        write(output%unit_loop,"('     Ldx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(5,i)),aimag(disturbances(5,i))
+        write(output%unit_loop,"('     Ldx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(5,i)),dimag(disturbances(5,i))
         write(output%unit_loop,"(' abs(Ldx) = ',es16.9)") abs(disturbances(5,i))
-        write(output%unit_loop,"('atan(Ldx) = ',es16.9)") atan2(aimag(disturbances(5,i)),real(disturbances(5,i)))
+        write(output%unit_loop,"('atan(Ldx) = ',es16.9)") atan2(dimag(disturbances(5,i)),real(disturbances(5,i)))
 
-        write(output%unit_loop,"('     Ldy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(6,i)),aimag(disturbances(6,i))
+        write(output%unit_loop,"('     Ldy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(6,i)),dimag(disturbances(6,i))
         write(output%unit_loop,"(' abs(Ldy) = ',es16.9)") abs(disturbances(6,i))
-        write(output%unit_loop,"('atan(Ldy) = ',es16.9)") atan2(aimag(disturbances(6,i)),real(disturbances(6,i)))
+        write(output%unit_loop,"('atan(Ldy) = ',es16.9)") atan2(dimag(disturbances(6,i)),real(disturbances(6,i)))
 
-        write(output%unit_loop,"('     Ldz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(7,i)),aimag(disturbances(7,i))
+        write(output%unit_loop,"('     Ldz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(7,i)),dimag(disturbances(7,i))
         write(output%unit_loop,"(' abs(Ldz) = ',es16.9)") abs(disturbances(7,i))
-        write(output%unit_loop,"('atan(Ldz) = ',es16.9)") atan2(aimag(disturbances(7,i)),real(disturbances(7,i)))
+        write(output%unit_loop,"('atan(Ldz) = ',es16.9)") atan2(dimag(disturbances(7,i)),real(disturbances(7,i)))
       end if
 
       ! Writing charge disturbance
       iw = 3000+(i-1)*7
-      write(unit=iw+1,fmt="(9(es16.9,2x))") e, abs(disturbances(1,i)) , real(disturbances(1,i)) , aimag(disturbances(1,i)) , atan2(aimag(disturbances(1,i)),real(disturbances(1,i))) , real(disturbances(1,i))/abs(disturbances(1,i)) , aimag(disturbances(1,i))/abs(disturbances(1,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+      write(unit=iw+1,fmt="(9(es16.9,2x))") e, abs(disturbances(1,i)) , real(disturbances(1,i)) , dimag(disturbances(1,i)) , atan2(dimag(disturbances(1,i)),real(disturbances(1,i))) , real(disturbances(1,i))/abs(disturbances(1,i)) , dimag(disturbances(1,i))/abs(disturbances(1,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
       ! Writing x-component spin disturbance
-      write(unit=iw+2,fmt="(9(es16.9,2x))") e, abs(disturbances(2,i)) , real(disturbances(2,i)) , aimag(disturbances(2,i)) , atan2(aimag(disturbances(2,i)),real(disturbances(2,i))) , real(disturbances(2,i))/abs(disturbances(2,i)) , aimag(disturbances(2,i))/abs(disturbances(2,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+      write(unit=iw+2,fmt="(9(es16.9,2x))") e, abs(disturbances(2,i)) , real(disturbances(2,i)) , dimag(disturbances(2,i)) , atan2(dimag(disturbances(2,i)),real(disturbances(2,i))) , real(disturbances(2,i))/abs(disturbances(2,i)) , dimag(disturbances(2,i))/abs(disturbances(2,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
       ! Writing y-component spin disturbance
-      write(unit=iw+3,fmt="(9(es16.9,2x))") e, abs(disturbances(3,i)) , real(disturbances(3,i)) , aimag(disturbances(3,i)) , atan2(aimag(disturbances(3,i)),real(disturbances(3,i))) , real(disturbances(3,i))/abs(disturbances(3,i)) , aimag(disturbances(3,i))/abs(disturbances(3,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+      write(unit=iw+3,fmt="(9(es16.9,2x))") e, abs(disturbances(3,i)) , real(disturbances(3,i)) , dimag(disturbances(3,i)) , atan2(dimag(disturbances(3,i)),real(disturbances(3,i))) , real(disturbances(3,i))/abs(disturbances(3,i)) , dimag(disturbances(3,i))/abs(disturbances(3,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
       ! Writing z-component spin disturbance
-      write(unit=iw+4,fmt="(9(es16.9,2x))") e, abs(disturbances(4,i)) , real(disturbances(4,i)) , aimag(disturbances(4,i)) , atan2(aimag(disturbances(4,i)),real(disturbances(4,i))) , real(disturbances(4,i))/abs(disturbances(4,i)) , aimag(disturbances(4,i))/abs(disturbances(4,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+      write(unit=iw+4,fmt="(9(es16.9,2x))") e, abs(disturbances(4,i)) , real(disturbances(4,i)) , dimag(disturbances(4,i)) , atan2(dimag(disturbances(4,i)),real(disturbances(4,i))) , real(disturbances(4,i))/abs(disturbances(4,i)) , dimag(disturbances(4,i))/abs(disturbances(4,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
 
       ! Writing x-component orbital disturbance
-      write(unit=iw+5,fmt="(9(es16.9,2x))") e, abs(disturbances(5,i)) , real(disturbances(5,i)) , aimag(disturbances(5,i)) , atan2(aimag(disturbances(5,i)),real(disturbances(5,i))) , real(disturbances(5,i))/abs(disturbances(5,i)) , aimag(disturbances(5,i))/abs(disturbances(5,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+      write(unit=iw+5,fmt="(9(es16.9,2x))") e, abs(disturbances(5,i)) , real(disturbances(5,i)) , dimag(disturbances(5,i)) , atan2(dimag(disturbances(5,i)),real(disturbances(5,i))) , real(disturbances(5,i))/abs(disturbances(5,i)) , dimag(disturbances(5,i))/abs(disturbances(5,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
       ! Writing y-component orbital disturbance
-      write(unit=iw+6,fmt="(9(es16.9,2x))") e, abs(disturbances(6,i)) , real(disturbances(6,i)) , aimag(disturbances(6,i)) , atan2(aimag(disturbances(6,i)),real(disturbances(6,i))) , real(disturbances(6,i))/abs(disturbances(6,i)) , aimag(disturbances(6,i))/abs(disturbances(6,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+      write(unit=iw+6,fmt="(9(es16.9,2x))") e, abs(disturbances(6,i)) , real(disturbances(6,i)) , dimag(disturbances(6,i)) , atan2(dimag(disturbances(6,i)),real(disturbances(6,i))) , real(disturbances(6,i))/abs(disturbances(6,i)) , dimag(disturbances(6,i))/abs(disturbances(6,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
       ! Writing z-component orbital disturbance
-      write(unit=iw+7,fmt="(9(es16.9,2x))") e, abs(disturbances(7,i)) , real(disturbances(7,i)) , aimag(disturbances(7,i)) , atan2(aimag(disturbances(7,i)),real(disturbances(7,i))) , real(disturbances(7,i))/abs(disturbances(7,i)) , aimag(disturbances(7,i))/abs(disturbances(7,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+      write(unit=iw+7,fmt="(9(es16.9,2x))") e, abs(disturbances(7,i)) , real(disturbances(7,i)) , dimag(disturbances(7,i)) , atan2(dimag(disturbances(7,i)),real(disturbances(7,i))) , real(disturbances(7,i))/abs(disturbances(7,i)) , dimag(disturbances(7,i))/abs(disturbances(7,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
 
       ! Writing renormalized disturbances
       if(renorm) then
         ! Writing renormalized charge disturbance
-        write(unit=iw+1001,fmt="(9(es16.9,2x))") e, abs(rdisturbances(1,i)) , real(rdisturbances(1,i)) , aimag(rdisturbances(1,i)) , atan2(aimag(rdisturbances(1,i)),real(rdisturbances(1,i))) , real(rdisturbances(1,i))/abs(rdisturbances(1,i)) , aimag(rdisturbances(1,i))/abs(rdisturbances(1,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+        write(unit=iw+1001,fmt="(9(es16.9,2x))") e, abs(rdisturbances(1,i)) , real(rdisturbances(1,i)) , dimag(rdisturbances(1,i)) , atan2(dimag(rdisturbances(1,i)),real(rdisturbances(1,i))) , real(rdisturbances(1,i))/abs(rdisturbances(1,i)) , dimag(rdisturbances(1,i))/abs(rdisturbances(1,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
         ! Writing renormalized x-component spin disturbance
-        write(unit=iw+1002,fmt="(9(es16.9,2x))") e, abs(rdisturbances(2,i)) , real(rdisturbances(2,i)) , aimag(rdisturbances(2,i)) , atan2(aimag(rdisturbances(2,i)),real(rdisturbances(2,i))) , real(rdisturbances(2,i))/abs(rdisturbances(2,i)) , aimag(rdisturbances(2,i))/abs(rdisturbances(2,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+        write(unit=iw+1002,fmt="(9(es16.9,2x))") e, abs(rdisturbances(2,i)) , real(rdisturbances(2,i)) , dimag(rdisturbances(2,i)) , atan2(dimag(rdisturbances(2,i)),real(rdisturbances(2,i))) , real(rdisturbances(2,i))/abs(rdisturbances(2,i)) , dimag(rdisturbances(2,i))/abs(rdisturbances(2,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
         ! Writing renormalized y-component spin disturbance
-        write(unit=iw+1003,fmt="(9(es16.9,2x))") e, abs(rdisturbances(3,i)) , real(rdisturbances(3,i)) , aimag(rdisturbances(3,i)) , atan2(aimag(rdisturbances(3,i)),real(rdisturbances(3,i))) , real(rdisturbances(3,i))/abs(rdisturbances(3,i)) , aimag(rdisturbances(3,i))/abs(rdisturbances(3,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+        write(unit=iw+1003,fmt="(9(es16.9,2x))") e, abs(rdisturbances(3,i)) , real(rdisturbances(3,i)) , dimag(rdisturbances(3,i)) , atan2(dimag(rdisturbances(3,i)),real(rdisturbances(3,i))) , real(rdisturbances(3,i))/abs(rdisturbances(3,i)) , dimag(rdisturbances(3,i))/abs(rdisturbances(3,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
         ! Writing renormalized z-component spin disturbance
-        write(unit=iw+1004,fmt="(9(es16.9,2x))") e, abs(rdisturbances(4,i)) , real(rdisturbances(4,i)) , aimag(rdisturbances(4,i)) , atan2(aimag(rdisturbances(4,i)),real(rdisturbances(4,i))) , real(rdisturbances(4,i))/abs(rdisturbances(4,i)) , aimag(rdisturbances(4,i))/abs(rdisturbances(4,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+        write(unit=iw+1004,fmt="(9(es16.9,2x))") e, abs(rdisturbances(4,i)) , real(rdisturbances(4,i)) , dimag(rdisturbances(4,i)) , atan2(dimag(rdisturbances(4,i)),real(rdisturbances(4,i))) , real(rdisturbances(4,i))/abs(rdisturbances(4,i)) , dimag(rdisturbances(4,i))/abs(rdisturbances(4,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
 
         ! Writing renormalized x-component orbital disturbance
-        write(unit=iw+1005,fmt="(9(es16.9,2x))") e, abs(rdisturbances(5,i)) , real(rdisturbances(5,i)) , aimag(rdisturbances(5,i)) , atan2(aimag(rdisturbances(5,i)),real(rdisturbances(5,i))) , real(rdisturbances(5,i))/abs(rdisturbances(5,i)) , aimag(rdisturbances(5,i))/abs(rdisturbances(5,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+        write(unit=iw+1005,fmt="(9(es16.9,2x))") e, abs(rdisturbances(5,i)) , real(rdisturbances(5,i)) , dimag(rdisturbances(5,i)) , atan2(dimag(rdisturbances(5,i)),real(rdisturbances(5,i))) , real(rdisturbances(5,i))/abs(rdisturbances(5,i)) , dimag(rdisturbances(5,i))/abs(rdisturbances(5,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
         ! Writing renormalized y-component orbital disturbance
-        write(unit=iw+1006,fmt="(9(es16.9,2x))") e, abs(rdisturbances(6,i)) , real(rdisturbances(6,i)) , aimag(rdisturbances(6,i)) , atan2(aimag(rdisturbances(6,i)),real(rdisturbances(6,i))) , real(rdisturbances(6,i))/abs(rdisturbances(6,i)) , aimag(rdisturbances(6,i))/abs(rdisturbances(6,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+        write(unit=iw+1006,fmt="(9(es16.9,2x))") e, abs(rdisturbances(6,i)) , real(rdisturbances(6,i)) , dimag(rdisturbances(6,i)) , atan2(dimag(rdisturbances(6,i)),real(rdisturbances(6,i))) , real(rdisturbances(6,i))/abs(rdisturbances(6,i)) , dimag(rdisturbances(6,i))/abs(rdisturbances(6,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
         ! Writing renormalized z-component orbital disturbance
-        write(unit=iw+1007,fmt="(9(es16.9,2x))") e, abs(rdisturbances(7,i)) , real(rdisturbances(7,i)) , aimag(rdisturbances(7,i)) , atan2(aimag(rdisturbances(7,i)),real(rdisturbances(7,i))) , real(rdisturbances(7,i))/abs(rdisturbances(7,i)) , aimag(rdisturbances(7,i))/abs(rdisturbances(7,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+        write(unit=iw+1007,fmt="(9(es16.9,2x))") e, abs(rdisturbances(7,i)) , real(rdisturbances(7,i)) , dimag(rdisturbances(7,i)) , atan2(dimag(rdisturbances(7,i)),real(rdisturbances(7,i))) , real(rdisturbances(7,i))/abs(rdisturbances(7,i)) , dimag(rdisturbances(7,i))/abs(rdisturbances(7,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
       end if
     end do
 
     ! Writing total charge disturbance
     iw = 3500
-    write(unit=iw+1,fmt="(9(es16.9,2x))") e, abs(total_disturbances(1)) , real(total_disturbances(1)) , aimag(total_disturbances(1)) , atan2(aimag(total_disturbances(1)),real(total_disturbances(1))) , real(total_disturbances(1))/abs(total_disturbances(1)) , aimag(total_disturbances(1))/abs(total_disturbances(1)) , mtotal_spherical(2) , mtotal_spherical(3)
+    write(unit=iw+1,fmt="(9(es16.9,2x))") e, abs(total_disturbances(1)) , real(total_disturbances(1)) , dimag(total_disturbances(1)) , atan2(dimag(total_disturbances(1)),real(total_disturbances(1))) , real(total_disturbances(1))/abs(total_disturbances(1)) , dimag(total_disturbances(1))/abs(total_disturbances(1)) , mtotal_spherical(2) , mtotal_spherical(3)
     ! Writing x-component total spin disturbance
-    write(unit=iw+2,fmt="(9(es16.9,2x))") e, abs(total_disturbances(2)) , real(total_disturbances(2)) , aimag(total_disturbances(2)) , atan2(aimag(total_disturbances(2)),real(total_disturbances(2))) , real(total_disturbances(2))/abs(total_disturbances(2)) , aimag(total_disturbances(2))/abs(total_disturbances(2)) , mtotal_spherical(2) , mtotal_spherical(3)
+    write(unit=iw+2,fmt="(9(es16.9,2x))") e, abs(total_disturbances(2)) , real(total_disturbances(2)) , dimag(total_disturbances(2)) , atan2(dimag(total_disturbances(2)),real(total_disturbances(2))) , real(total_disturbances(2))/abs(total_disturbances(2)) , dimag(total_disturbances(2))/abs(total_disturbances(2)) , mtotal_spherical(2) , mtotal_spherical(3)
     ! Writing y-component total spin disturbance
-    write(unit=iw+3,fmt="(9(es16.9,2x))") e, abs(total_disturbances(3)) , real(total_disturbances(3)) , aimag(total_disturbances(3)) , atan2(aimag(total_disturbances(3)),real(total_disturbances(3))) , real(total_disturbances(3))/abs(total_disturbances(3)) , aimag(total_disturbances(3))/abs(total_disturbances(3)) , mtotal_spherical(2) , mtotal_spherical(3)
+    write(unit=iw+3,fmt="(9(es16.9,2x))") e, abs(total_disturbances(3)) , real(total_disturbances(3)) , dimag(total_disturbances(3)) , atan2(dimag(total_disturbances(3)),real(total_disturbances(3))) , real(total_disturbances(3))/abs(total_disturbances(3)) , dimag(total_disturbances(3))/abs(total_disturbances(3)) , mtotal_spherical(2) , mtotal_spherical(3)
     ! Writing z-component total spin disturbance
-    write(unit=iw+4,fmt="(9(es16.9,2x))") e, abs(total_disturbances(4)) , real(total_disturbances(4)) , aimag(total_disturbances(4)) , atan2(aimag(total_disturbances(4)),real(total_disturbances(4))) , real(total_disturbances(4))/abs(total_disturbances(4)) , aimag(total_disturbances(4))/abs(total_disturbances(4)) , mtotal_spherical(2) , mtotal_spherical(3)
+    write(unit=iw+4,fmt="(9(es16.9,2x))") e, abs(total_disturbances(4)) , real(total_disturbances(4)) , dimag(total_disturbances(4)) , atan2(dimag(total_disturbances(4)),real(total_disturbances(4))) , real(total_disturbances(4))/abs(total_disturbances(4)) , dimag(total_disturbances(4))/abs(total_disturbances(4)) , mtotal_spherical(2) , mtotal_spherical(3)
 
     ! Writing x-component total orbital disturbance
-    write(unit=iw+5,fmt="(9(es16.9,2x))") e, abs(total_disturbances(5)) , real(total_disturbances(5)) , aimag(total_disturbances(5)) , atan2(aimag(total_disturbances(5)),real(total_disturbances(5))) , real(total_disturbances(5))/abs(total_disturbances(5)) , aimag(total_disturbances(5))/abs(total_disturbances(5)) , mtotal_spherical(2) , mtotal_spherical(3)
+    write(unit=iw+5,fmt="(9(es16.9,2x))") e, abs(total_disturbances(5)) , real(total_disturbances(5)) , dimag(total_disturbances(5)) , atan2(dimag(total_disturbances(5)),real(total_disturbances(5))) , real(total_disturbances(5))/abs(total_disturbances(5)) , dimag(total_disturbances(5))/abs(total_disturbances(5)) , mtotal_spherical(2) , mtotal_spherical(3)
     ! Writing y-component total orbital disturbance
-    write(unit=iw+6,fmt="(9(es16.9,2x))") e, abs(total_disturbances(6)) , real(total_disturbances(6)) , aimag(total_disturbances(6)) , atan2(aimag(total_disturbances(6)),real(total_disturbances(6))) , real(total_disturbances(6))/abs(total_disturbances(6)) , aimag(total_disturbances(6))/abs(total_disturbances(6)) , mtotal_spherical(2) , mtotal_spherical(3)
+    write(unit=iw+6,fmt="(9(es16.9,2x))") e, abs(total_disturbances(6)) , real(total_disturbances(6)) , dimag(total_disturbances(6)) , atan2(dimag(total_disturbances(6)),real(total_disturbances(6))) , real(total_disturbances(6))/abs(total_disturbances(6)) , dimag(total_disturbances(6))/abs(total_disturbances(6)) , mtotal_spherical(2) , mtotal_spherical(3)
     ! Writing z-component total orbital disturbance
-    write(unit=iw+7,fmt="(9(es16.9,2x))") e, abs(total_disturbances(7)) , real(total_disturbances(7)) , aimag(total_disturbances(7)) , atan2(aimag(total_disturbances(7)),real(total_disturbances(7))) , real(total_disturbances(7))/abs(total_disturbances(7)) , aimag(total_disturbances(7))/abs(total_disturbances(7)) , mtotal_spherical(2) , mtotal_spherical(3)
+    write(unit=iw+7,fmt="(9(es16.9,2x))") e, abs(total_disturbances(7)) , real(total_disturbances(7)) , dimag(total_disturbances(7)) , atan2(dimag(total_disturbances(7)),real(total_disturbances(7))) , real(total_disturbances(7))/abs(total_disturbances(7)) , dimag(total_disturbances(7))/abs(total_disturbances(7)) , mtotal_spherical(2) , mtotal_spherical(3)
 
 
     call close_disturbance_files()
@@ -371,88 +371,88 @@ contains
       if(lwriteonscreen) then
         write(output%unit_loop,"('|--------------- ',a,' = ',a,' , Plane: ',i0,' ---------------|')") trim(dcfield(dcfield_dependence)),trim(dc_fields(hw_count)),i
 
-        write(output%unit_loop,"('     Cd  = (',es16.9,') + i(',es16.9,')')") real(disturbances(1,i)),aimag(disturbances(1,i))
+        write(output%unit_loop,"('     Cd  = (',es16.9,') + i(',es16.9,')')") real(disturbances(1,i)),dimag(disturbances(1,i))
         write(output%unit_loop,"(' abs(Cd) = ',es16.9)") abs(disturbances(1,i))
-        write(output%unit_loop,"('atan(Cd) = ',es16.9)") atan2(aimag(disturbances(1,i)),real(disturbances(1,i)))
+        write(output%unit_loop,"('atan(Cd) = ',es16.9)") atan2(dimag(disturbances(1,i)),real(disturbances(1,i)))
 
-        write(output%unit_loop,"('     Sdx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(2,i)),aimag(disturbances(2,i))
+        write(output%unit_loop,"('     Sdx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(2,i)),dimag(disturbances(2,i))
         write(output%unit_loop,"(' abs(Sdx) = ',es16.9)") abs(disturbances(2,i))
-        write(output%unit_loop,"('atan(Sdx) = ',es16.9)") atan2(aimag(disturbances(2,i)),real(disturbances(2,i)))
+        write(output%unit_loop,"('atan(Sdx) = ',es16.9)") atan2(dimag(disturbances(2,i)),real(disturbances(2,i)))
 
-        write(output%unit_loop,"('     Sdy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(3,i)),aimag(disturbances(3,i))
+        write(output%unit_loop,"('     Sdy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(3,i)),dimag(disturbances(3,i))
         write(output%unit_loop,"(' abs(Sdy) = ',es16.9)") abs(disturbances(3,i))
-        write(output%unit_loop,"('atan(Sdy) = ',es16.9)") atan2(aimag(disturbances(3,i)),real(disturbances(3,i)))
+        write(output%unit_loop,"('atan(Sdy) = ',es16.9)") atan2(dimag(disturbances(3,i)),real(disturbances(3,i)))
 
-        write(output%unit_loop,"('     Sdz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(4,i)),aimag(disturbances(4,i))
+        write(output%unit_loop,"('     Sdz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(4,i)),dimag(disturbances(4,i))
         write(output%unit_loop,"(' abs(Sdz) = ',es16.9)") abs(disturbances(4,i))
-        write(output%unit_loop,"('atan(Sdz) = ',es16.9)") atan2(aimag(disturbances(4,i)),real(disturbances(4,i)))
+        write(output%unit_loop,"('atan(Sdz) = ',es16.9)") atan2(dimag(disturbances(4,i)),real(disturbances(4,i)))
 
-        write(output%unit_loop,"('     Ldx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(5,i)),aimag(disturbances(5,i))
+        write(output%unit_loop,"('     Ldx  = (',es16.9,') + i(',es16.9,')')") real(disturbances(5,i)),dimag(disturbances(5,i))
         write(output%unit_loop,"(' abs(Ldx) = ',es16.9)") abs(disturbances(5,i))
-        write(output%unit_loop,"('atan(Ldx) = ',es16.9)") atan2(aimag(disturbances(5,i)),real(disturbances(5,i)))
+        write(output%unit_loop,"('atan(Ldx) = ',es16.9)") atan2(dimag(disturbances(5,i)),real(disturbances(5,i)))
 
-        write(output%unit_loop,"('     Ldy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(6,i)),aimag(disturbances(6,i))
+        write(output%unit_loop,"('     Ldy  = (',es16.9,') + i(',es16.9,')')") real(disturbances(6,i)),dimag(disturbances(6,i))
         write(output%unit_loop,"(' abs(Ldy) = ',es16.9)") abs(disturbances(6,i))
-        write(output%unit_loop,"('atan(Ldy) = ',es16.9)") atan2(aimag(disturbances(6,i)),real(disturbances(6,i)))
+        write(output%unit_loop,"('atan(Ldy) = ',es16.9)") atan2(dimag(disturbances(6,i)),real(disturbances(6,i)))
 
-        write(output%unit_loop,"('     Ldz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(7,i)),aimag(disturbances(7,i))
+        write(output%unit_loop,"('     Ldz  = (',es16.9,') + i(',es16.9,')')") real(disturbances(7,i)),dimag(disturbances(7,i))
         write(output%unit_loop,"(' abs(Ldz) = ',es16.9)") abs(disturbances(7,i))
-        write(output%unit_loop,"('atan(Ldz) = ',es16.9)") atan2(aimag(disturbances(7,i)),real(disturbances(7,i)))
+        write(output%unit_loop,"('atan(Ldz) = ',es16.9)") atan2(dimag(disturbances(7,i)),real(disturbances(7,i)))
       end if
 
       ! Writing charge disturbance
       iw = 30000+(i-1)*7
-      write(unit=iw+1,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(disturbances(1,i)) , real(disturbances(1,i)) , atan2(aimag(disturbances(1,i)),real(disturbances(1,i))) , real(disturbances(1,i))/abs(disturbances(1,i)) , aimag(disturbances(1,i))/abs(disturbances(1,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+      write(unit=iw+1,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(disturbances(1,i)) , real(disturbances(1,i)) , atan2(dimag(disturbances(1,i)),real(disturbances(1,i))) , real(disturbances(1,i))/abs(disturbances(1,i)) , dimag(disturbances(1,i))/abs(disturbances(1,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
       ! Writing x-component spin disturbance
-      write(unit=iw+2,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(disturbances(2,i)) , real(disturbances(2,i)) , atan2(aimag(disturbances(2,i)),real(disturbances(2,i))) , real(disturbances(2,i))/abs(disturbances(2,i)) , aimag(disturbances(2,i))/abs(disturbances(2,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+      write(unit=iw+2,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(disturbances(2,i)) , real(disturbances(2,i)) , atan2(dimag(disturbances(2,i)),real(disturbances(2,i))) , real(disturbances(2,i))/abs(disturbances(2,i)) , dimag(disturbances(2,i))/abs(disturbances(2,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
       ! Writing y-component spin disturbance
-      write(unit=iw+3,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(disturbances(3,i)) , real(disturbances(3,i)) , atan2(aimag(disturbances(3,i)),real(disturbances(3,i))) , real(disturbances(3,i))/abs(disturbances(3,i)) , aimag(disturbances(3,i))/abs(disturbances(3,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+      write(unit=iw+3,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(disturbances(3,i)) , real(disturbances(3,i)) , atan2(dimag(disturbances(3,i)),real(disturbances(3,i))) , real(disturbances(3,i))/abs(disturbances(3,i)) , dimag(disturbances(3,i))/abs(disturbances(3,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
       ! Writing z-component spin disturbance
-      write(unit=iw+4,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(disturbances(4,i)) , real(disturbances(4,i)) , atan2(aimag(disturbances(4,i)),real(disturbances(4,i))) , real(disturbances(4,i))/abs(disturbances(4,i)) , aimag(disturbances(4,i))/abs(disturbances(4,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+      write(unit=iw+4,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(disturbances(4,i)) , real(disturbances(4,i)) , atan2(dimag(disturbances(4,i)),real(disturbances(4,i))) , real(disturbances(4,i))/abs(disturbances(4,i)) , dimag(disturbances(4,i))/abs(disturbances(4,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
 
       ! Writing x-component orbital disturbance
-      write(unit=iw+5,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(disturbances(5,i)) , real(disturbances(5,i)) , atan2(aimag(disturbances(5,i)),real(disturbances(5,i))) , real(disturbances(5,i))/abs(disturbances(5,i)) , aimag(disturbances(5,i))/abs(disturbances(5,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+      write(unit=iw+5,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(disturbances(5,i)) , real(disturbances(5,i)) , atan2(dimag(disturbances(5,i)),real(disturbances(5,i))) , real(disturbances(5,i))/abs(disturbances(5,i)) , dimag(disturbances(5,i))/abs(disturbances(5,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
       ! Writing y-component orbital disturbance
-      write(unit=iw+6,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(disturbances(6,i)) , real(disturbances(6,i)) , atan2(aimag(disturbances(6,i)),real(disturbances(6,i))) , real(disturbances(6,i))/abs(disturbances(6,i)) , aimag(disturbances(6,i))/abs(disturbances(6,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+      write(unit=iw+6,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(disturbances(6,i)) , real(disturbances(6,i)) , atan2(dimag(disturbances(6,i)),real(disturbances(6,i))) , real(disturbances(6,i))/abs(disturbances(6,i)) , dimag(disturbances(6,i))/abs(disturbances(6,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
       ! Writing z-component orbital disturbance
-      write(unit=iw+7,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(disturbances(7,i)) , real(disturbances(7,i)) , atan2(aimag(disturbances(7,i)),real(disturbances(7,i))) , real(disturbances(7,i))/abs(disturbances(7,i)) , aimag(disturbances(7,i))/abs(disturbances(7,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+      write(unit=iw+7,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(disturbances(7,i)) , real(disturbances(7,i)) , atan2(dimag(disturbances(7,i)),real(disturbances(7,i))) , real(disturbances(7,i))/abs(disturbances(7,i)) , dimag(disturbances(7,i))/abs(disturbances(7,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
 
       ! Writing renormalized disturbances
       if(renorm) then
         ! Writing renormalized charge disturbance
-        write(unit=iw+1001,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(rdisturbances(1,i)) , real(rdisturbances(1,i)) , atan2(aimag(rdisturbances(1,i)),real(rdisturbances(1,i))) , real(rdisturbances(1,i))/abs(rdisturbances(1,i)) , aimag(rdisturbances(1,i))/abs(rdisturbances(1,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+        write(unit=iw+1001,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(rdisturbances(1,i)) , real(rdisturbances(1,i)) , atan2(dimag(rdisturbances(1,i)),real(rdisturbances(1,i))) , real(rdisturbances(1,i))/abs(rdisturbances(1,i)) , dimag(rdisturbances(1,i))/abs(rdisturbances(1,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
         ! Writing renormalized x-component spin disturbance
-        write(unit=iw+1002,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(rdisturbances(2,i)) , real(rdisturbances(2,i)) , atan2(aimag(rdisturbances(2,i)),real(rdisturbances(2,i))) , real(rdisturbances(2,i))/abs(rdisturbances(2,i)) , aimag(rdisturbances(2,i))/abs(rdisturbances(2,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+        write(unit=iw+1002,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(rdisturbances(2,i)) , real(rdisturbances(2,i)) , atan2(dimag(rdisturbances(2,i)),real(rdisturbances(2,i))) , real(rdisturbances(2,i))/abs(rdisturbances(2,i)) , dimag(rdisturbances(2,i))/abs(rdisturbances(2,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
         ! Writing renormalized y-component spin disturbance
-        write(unit=iw+1003,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(rdisturbances(3,i)) , real(rdisturbances(3,i)) , atan2(aimag(rdisturbances(3,i)),real(rdisturbances(3,i))) , real(rdisturbances(3,i))/abs(rdisturbances(3,i)) , aimag(rdisturbances(3,i))/abs(rdisturbances(3,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+        write(unit=iw+1003,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(rdisturbances(3,i)) , real(rdisturbances(3,i)) , atan2(dimag(rdisturbances(3,i)),real(rdisturbances(3,i))) , real(rdisturbances(3,i))/abs(rdisturbances(3,i)) , dimag(rdisturbances(3,i))/abs(rdisturbances(3,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
         ! Writing renormalized z-component spin disturbance
-        write(unit=iw+1004,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(rdisturbances(4,i)) , real(rdisturbances(4,i)) , atan2(aimag(rdisturbances(4,i)),real(rdisturbances(4,i))) , real(rdisturbances(4,i))/abs(rdisturbances(4,i)) , aimag(rdisturbances(4,i))/abs(rdisturbances(4,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+        write(unit=iw+1004,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(rdisturbances(4,i)) , real(rdisturbances(4,i)) , atan2(dimag(rdisturbances(4,i)),real(rdisturbances(4,i))) , real(rdisturbances(4,i))/abs(rdisturbances(4,i)) , dimag(rdisturbances(4,i))/abs(rdisturbances(4,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
 
         ! Writing renormalized x-component orbital disturbance
-        write(unit=iw+1005,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(rdisturbances(5,i)) , real(rdisturbances(5,i)) , atan2(aimag(rdisturbances(5,i)),real(rdisturbances(5,i))) , real(rdisturbances(5,i))/abs(rdisturbances(5,i)) , aimag(rdisturbances(5,i))/abs(rdisturbances(5,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+        write(unit=iw+1005,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(rdisturbances(5,i)) , real(rdisturbances(5,i)) , atan2(dimag(rdisturbances(5,i)),real(rdisturbances(5,i))) , real(rdisturbances(5,i))/abs(rdisturbances(5,i)) , dimag(rdisturbances(5,i))/abs(rdisturbances(5,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
         ! Writing renormalized y-component orbital disturbance
-        write(unit=iw+1006,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(rdisturbances(6,i)) , real(rdisturbances(6,i)) , atan2(aimag(rdisturbances(6,i)),real(rdisturbances(6,i))) , real(rdisturbances(6,i))/abs(rdisturbances(6,i)) , aimag(rdisturbances(6,i))/abs(rdisturbances(6,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+        write(unit=iw+1006,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(rdisturbances(6,i)) , real(rdisturbances(6,i)) , atan2(dimag(rdisturbances(6,i)),real(rdisturbances(6,i))) , real(rdisturbances(6,i))/abs(rdisturbances(6,i)) , dimag(rdisturbances(6,i))/abs(rdisturbances(6,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
         ! Writing renormalized z-component orbital disturbance
-        write(unit=iw+1007,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(rdisturbances(7,i)) , real(rdisturbances(7,i)) , atan2(aimag(rdisturbances(7,i)),real(rdisturbances(7,i))) , real(rdisturbances(7,i))/abs(rdisturbances(7,i)) , aimag(rdisturbances(7,i))/abs(rdisturbances(7,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
+        write(unit=iw+1007,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(rdisturbances(7,i)) , real(rdisturbances(7,i)) , atan2(dimag(rdisturbances(7,i)),real(rdisturbances(7,i))) , real(rdisturbances(7,i))/abs(rdisturbances(7,i)) , dimag(rdisturbances(7,i))/abs(rdisturbances(7,i)) , mvec_spherical(2,i) , mvec_spherical(3,i)
       end if
     end do
 
     ! Writing total charge disturbance
     iw = 35000
-    write(unit=iw+1,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_disturbances(1)) , real(total_disturbances(1)) , atan2(aimag(total_disturbances(1)),real(total_disturbances(1))) , real(total_disturbances(1))/abs(total_disturbances(1)) , aimag(total_disturbances(1))/abs(total_disturbances(1)) , mtotal_spherical(2) , mtotal_spherical(3)
+    write(unit=iw+1,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(total_disturbances(1)) , real(total_disturbances(1)) , atan2(dimag(total_disturbances(1)),real(total_disturbances(1))) , real(total_disturbances(1))/abs(total_disturbances(1)) , dimag(total_disturbances(1))/abs(total_disturbances(1)) , mtotal_spherical(2) , mtotal_spherical(3)
     ! Writing x-component total spin disturbance
-    write(unit=iw+2,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_disturbances(2)) , real(total_disturbances(2)) , atan2(aimag(total_disturbances(2)),real(total_disturbances(2))) , real(total_disturbances(2))/abs(total_disturbances(2)) , aimag(total_disturbances(2))/abs(total_disturbances(2)) , mtotal_spherical(2) , mtotal_spherical(3)
+    write(unit=iw+2,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(total_disturbances(2)) , real(total_disturbances(2)) , atan2(dimag(total_disturbances(2)),real(total_disturbances(2))) , real(total_disturbances(2))/abs(total_disturbances(2)) , dimag(total_disturbances(2))/abs(total_disturbances(2)) , mtotal_spherical(2) , mtotal_spherical(3)
     ! Writing y-component total spin disturbance
-    write(unit=iw+3,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_disturbances(3)) , real(total_disturbances(3)) , atan2(aimag(total_disturbances(3)),real(total_disturbances(3))) , real(total_disturbances(3))/abs(total_disturbances(3)) , aimag(total_disturbances(3))/abs(total_disturbances(3)) , mtotal_spherical(2) , mtotal_spherical(3)
+    write(unit=iw+3,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(total_disturbances(3)) , real(total_disturbances(3)) , atan2(dimag(total_disturbances(3)),real(total_disturbances(3))) , real(total_disturbances(3))/abs(total_disturbances(3)) , dimag(total_disturbances(3))/abs(total_disturbances(3)) , mtotal_spherical(2) , mtotal_spherical(3)
     ! Writing z-component total spin disturbance
-    write(unit=iw+4,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_disturbances(4)) , real(total_disturbances(4)) , atan2(aimag(total_disturbances(4)),real(total_disturbances(4))) , real(total_disturbances(4))/abs(total_disturbances(4)) , aimag(total_disturbances(4))/abs(total_disturbances(4)) , mtotal_spherical(2) , mtotal_spherical(3)
+    write(unit=iw+4,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(total_disturbances(4)) , real(total_disturbances(4)) , atan2(dimag(total_disturbances(4)),real(total_disturbances(4))) , real(total_disturbances(4))/abs(total_disturbances(4)) , dimag(total_disturbances(4))/abs(total_disturbances(4)) , mtotal_spherical(2) , mtotal_spherical(3)
 
     ! Writing x-component total orbital disturbance
-    write(unit=iw+5,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_disturbances(5)) , real(total_disturbances(5)) , atan2(aimag(total_disturbances(5)),real(total_disturbances(5))) , real(total_disturbances(5))/abs(total_disturbances(5)) , aimag(total_disturbances(5))/abs(total_disturbances(5)) , mtotal_spherical(2) , mtotal_spherical(3)
+    write(unit=iw+5,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(total_disturbances(5)) , real(total_disturbances(5)) , atan2(dimag(total_disturbances(5)),real(total_disturbances(5))) , real(total_disturbances(5))/abs(total_disturbances(5)) , dimag(total_disturbances(5))/abs(total_disturbances(5)) , mtotal_spherical(2) , mtotal_spherical(3)
     ! Writing y-component total orbital disturbance
-    write(unit=iw+6,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_disturbances(6)) , real(total_disturbances(6)) , atan2(aimag(total_disturbances(6)),real(total_disturbances(6))) , real(total_disturbances(6))/abs(total_disturbances(6)) , aimag(total_disturbances(6))/abs(total_disturbances(6)) , mtotal_spherical(2) , mtotal_spherical(3)
+    write(unit=iw+6,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(total_disturbances(6)) , real(total_disturbances(6)) , atan2(dimag(total_disturbances(6)),real(total_disturbances(6))) , real(total_disturbances(6))/abs(total_disturbances(6)) , dimag(total_disturbances(6))/abs(total_disturbances(6)) , mtotal_spherical(2) , mtotal_spherical(3)
     ! Writing z-component total orbital disturbance
-    write(unit=iw+7,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_disturbances(7)) , real(total_disturbances(7)) , atan2(aimag(total_disturbances(7)),real(total_disturbances(7))) , real(total_disturbances(7))/abs(total_disturbances(7)) , aimag(total_disturbances(7))/abs(total_disturbances(7)) , mtotal_spherical(2) , mtotal_spherical(3)
+    write(unit=iw+7,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(total_disturbances(7)) , real(total_disturbances(7)) , atan2(dimag(total_disturbances(7)),real(total_disturbances(7))) , real(total_disturbances(7))/abs(total_disturbances(7)) , dimag(total_disturbances(7))/abs(total_disturbances(7)) , mtotal_spherical(2) , mtotal_spherical(3)
 
     call close_dc_disturbance_files()
 
