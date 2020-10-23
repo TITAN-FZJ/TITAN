@@ -110,7 +110,7 @@ test:timeprop:
 test:supercond:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: test_supercond
-  needs: ["test:monolayer"]
+  needs: ["build:intel:normal","test:monolayer"]
   script:
     - export TEST_FOLDER="examples/Nb_100_Superconducting_Monolayer"
     - *run_test
