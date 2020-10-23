@@ -18,6 +18,7 @@ before_script:
 stages:
   - build
   - test_results
+  - test_supercond
   # - test_runtime
 #   # - deploy:doc
 #
@@ -80,10 +81,10 @@ build:intel:normal:
     - grep "Finished on" output/*
 
 .compare_files: &compare_files |
-    for file in `find results_correct/ -type f`
+    for file in `find results/ -type f`
     do
       echo "Comparing file $(basename ${file}) with tolerance ${TOL}"
-      python ../../scripts/compare_output.py ${file} ${file/results_correct/results} ${TOL}
+      python ../../scripts/compare_output.py ${file} ${file/results/results_correct} ${TOL}
     done
 
 # after build job(s) are completed, tests can be run; artifacts from all previous stages are transferred automatically
@@ -105,6 +106,46 @@ test:timeprop:
     - *run_test
     - export TOL="1.e-7"
     - *compare_files
+
+test:supercond:
+  image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
+  stage: test_supercond
+  needs: ["build:intel:normal","test:monolayer"]
+  script:
+    - export TEST_FOLDER="examples/Nb_100_Superconducting_Monolayer"
+    - *run_test
+    - export TOL="1.e-7"
+    - *compare_files
+
+test:ldos:
+  image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
+  stage: test_supercond
+  needs: ["build:intel:normal","test:monolayer"]
+  script:
+    - export TEST_FOLDER="examples/Nb_100_Monolayer"
+    - cd ${TEST_FOLDER}
+    - sed -i 's/-> itype = 1/-> itype = 2/g' input
+    - export OMP_NUM_THREADS=4
+    - mpirun -np 2 ../../bin/titan_iff.exe
+    - grep "Finished on" output/*
+    - export TOL="1.e-7"
+    - *compare_files
+
+test:bands:
+  image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
+  stage: test_supercond
+  needs: ["build:intel:normal","test:monolayer"]
+  script:
+    - export TEST_FOLDER="examples/Nb_100_Monolayer"
+    - cd ${TEST_FOLDER}
+    - sed -i 's/-> itype = 1/-> itype = 4/g' input
+    - export OMP_NUM_THREADS=4
+    - mpirun -np 2 ../../bin/titan_iff.exe
+    - grep "Finished on" output/*
+    - export TOL="1.e-7"
+    - *compare_files
+
+>>>>>>> 04ee3c69587973937c071aabab917c39f1f7dd15
 
 # # `pages` is a special job that builds the gitlab page for this project; all artifacts must be saved in a `public`
 # # directory to be published as a static site (that can be accessed from the whole www)
