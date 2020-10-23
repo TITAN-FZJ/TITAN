@@ -93,13 +93,13 @@ build:intel:normal:
     # Printing runtime
     - grep "Finished on" output/*
 
+# Excluding files if they are not supposed to be checked and
+# Comparing all remaining files in results folder with the ones in ./results_correct, using tolerance ${TOL}
 .compare_files: &compare_files |
-# Excluding files if they are not supposed to be checked
     if [ ! -z ${EXCLUDE} ]
     then
     find ./results -name *${EXCLUDE}* -delete
     fi
-# Comparing all remaining files in results folder with the ones in ./results_correct, using tolerance ${TOL}
     for file in `find results/ -type f`
     do
       echo "Comparing file $(basename ${file}) with tolerance ${TOL}"
@@ -164,7 +164,7 @@ test:bands:
 
 test:timeprop:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
-  stage: test:selfcon:normal
+  stage: test:results
   needs: ["build:intel:normal","test:Nibulk"]
   script:
     - export TEST_FOLDER="examples/Ni_bulk_timeprop"
