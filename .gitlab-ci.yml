@@ -117,6 +117,20 @@ test:supercond:
     - export TOL="1.e-7"
     - *compare_files
 
+test:bands:
+  image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
+  stage: test_supercond
+  needs: ["build:intel:normal","test:monolayer"]
+  script:
+    - export TEST_FOLDER="examples/Nb_100_Monolayer"
+    - sed -i 's/-> itype = 1/-> itype = 2/g' input
+    - sed -i 's/-> skipsc = F/-> skipsc = T/g' input
+    - *run_test
+    - export TOL="1.e-7"
+    - *compare_files
+
+
+
 # # `pages` is a special job that builds the gitlab page for this project; all artifacts must be saved in a `public`
 # # directory to be published as a static site (that can be accessed from the whole www)
 # pages:
