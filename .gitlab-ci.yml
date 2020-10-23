@@ -125,7 +125,6 @@ test:ldos:
     - export TEST_FOLDER="examples/Nb_100_Monolayer"
     - cd ${TEST_FOLDER}
     - sed -i 's/-> itype = 1/-> itype = 2/g' input
-    - sed -i 's/-> skipsc = F/-> skipsc = T/g' input
     - export OMP_NUM_THREADS=4
     - mpirun -np 2 ../../bin/titan_iff.exe
     - grep "Finished on" output/*
@@ -140,7 +139,6 @@ test:bands:
     - export TEST_FOLDER="examples/Nb_100_Monolayer"
     - cd ${TEST_FOLDER}
     - sed -i 's/-> itype = 1/-> itype = 4/g' input
-    - sed -i 's/-> skipsc = F/-> skipsc = T/g' input
     - export OMP_NUM_THREADS=4
     - mpirun -np 2 ../../bin/titan_iff.exe
     - grep "Finished on" output/*
