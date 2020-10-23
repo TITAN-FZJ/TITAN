@@ -81,10 +81,10 @@ build:intel:normal:
     - grep "Finished on" output/*
 
 .compare_files: &compare_files |
-    for file in `find results_correct/ -type f`
+    for file in `find results/ -type f`
     do
       echo "Comparing file $(basename ${file}) with tolerance ${TOL}"
-      python ../../scripts/compare_output.py ${file} ${file/results_correct/results} ${TOL}
+      python ../../scripts/compare_output.py ${file} ${file/results/results_correct} ${TOL}
     done
 
 # after build job(s) are completed, tests can be run; artifacts from all previous stages are transferred automatically
