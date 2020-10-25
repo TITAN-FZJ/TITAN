@@ -87,9 +87,6 @@ contains
         call allocate_supercond_variables(sys0(i)%nAtoms, nOrb)
         call allocate_Atom_variables(sys0(i)%nAtoms,nOrb)
 
-        !------- Initialize Stride Matrices for hamiltk and dtdksub --------
-        call initHamiltkStride(sys0(i)%nAtoms, nOrb)
-
         !---- L matrix in global frame for given quantization direction ----
         call l_matrix()
 
@@ -108,7 +105,7 @@ contains
         supercond = 1
 
         !------------------------ Conversion arrays -------------------------
-        call initConversionMatrices(sys0(i)%nAtoms,nOrb)
+        call initHamiltkStride(sys0(i),supercond)
 
         ! Distribute Energy Integration across all points available
         call realBZ % setup_fraction(sys0(i),rFreq(1), sFreq(1), FreqComm(1),lkpoints)

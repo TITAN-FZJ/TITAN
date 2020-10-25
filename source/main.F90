@@ -7,7 +7,7 @@ program TITAN
   use mod_kind,                only: dp
   use mod_constants,           only: cZero,define_constants
   use mod_parameters,          only: output,lpositions,lcreatefolders,parField,parFreq,nEner1,skip_steps,ldebug, &
-                                     nOrb,kp_in,dimH,dimspinAtoms,dimens,kptotal_in,eta,leigenstates,itype,theta,phi, &
+                                     nOrb,kp_in,kptotal_in,eta,leigenstates,itype,theta,phi, &
                                      laddresults,lsortfiles,lcreatefiles
   use mod_io,                  only: get_parameters,iowrite
   use mod_system,              only: sys,initHamiltkStride,deallocate_System_variables
@@ -21,6 +21,7 @@ program TITAN
   use adaptiveMesh,            only: generateAdaptiveMeshes,freeLocalEKMesh,deallocateAdaptiveMeshes
   use mod_TCM,                 only: calculate_TCM
   use mod_ldos,                only: ldos,ldos_and_coupling
+  use mod_band_structure,      only: band_structure
   use mod_self_consistency,    only: doSelfConsistency
   use EnergyIntegration,       only: pn1,allocate_energy_points,generate_imag_epoints,deallocate_energy_points
   use mod_progress,            only: start_program,write_time
@@ -35,7 +36,7 @@ program TITAN
   use mod_initial_expectation, only: calc_initial_Uterms
   use mod_time_propagator,     only: time_propagator
   use mod_hamiltonian,         only: deallocate_hamiltonian
-  use mod_superconductivity,   only: lsuperCond,allocate_supercond_variables,deallocate_supercond_variables
+  use mod_superconductivity,   only: lsuperCond,supercond,allocate_supercond_variables,deallocate_supercond_variables
   !use mod_define_system TODO: Re-include
   !use mod_prefactors TODO: Re-include
   !use mod_lgtv_currents TODO: Re-include
@@ -46,7 +47,7 @@ program TITAN
   character(len=500) :: arg = ""
 
   external :: create_folder,create_files,check_files,sort_all_files
-  external :: band_structure,coupling,calculate_chi,calculate_all,calculate_dc_limit
+  external :: coupling,calculate_chi,calculate_all,calculate_dc_limit
   external :: setLoops,initConversionMatrices,build_U,MPI_Finalize,deallocateLoops
 
   !------------------------ MPI initialization -------------------------
@@ -123,16 +124,11 @@ program TITAN
   call allocateLS(sys%nAtoms,nOrb)
   call allocate_Atom_variables(sys%nAtoms,nOrb)
 
-  !---------------------------- Dimensions -----------------------------
-  dimH = sys%nAtoms*nOrb*2
-  dimspinAtoms = 4 * sys%nAtoms
-  dimens = dimspinAtoms * nOrb * nOrb
+  !------- Initialize Stride Matrices for hamiltk and dtdksub ----------
+  call initHamiltkStride(sys,supercond)
 
   !---------- Conversion arrays for dynamical quantities ---------------
   call initConversionMatrices(sys%nAtoms,nOrb)
-
-  !------- Initialize Stride Matrices for hamiltk and dtdksub ----------
-  call initHamiltkStride(sys%nAtoms, nOrb)
 
   !--------------------- Lattice specific variables --------------------
   call initElectricField(sys%a1, sys%a2, sys%a3)
