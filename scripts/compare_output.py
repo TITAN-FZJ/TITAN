@@ -2,7 +2,7 @@
 import sys            # System library (to read arguments from command line)
 
 # Defining the tolerance
-tol = 1.e-8
+tol = 1.e-7
 
 ################################################################################
 # Checks if a string is a number

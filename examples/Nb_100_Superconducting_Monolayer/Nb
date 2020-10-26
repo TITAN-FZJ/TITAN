@@ -1,0 +1,51 @@
+Nb bcc bulk
+ 6.23610
+ 0.5     0.5     -0.5
+ 0.5     -0.5    0.5
+ -0.5    0.5     0.5
+ Nb
+ 1
+ L
+ 0.0    0.0     0.0
+ 3
+ 0.6655
+0.64  0.25  1.1
+ 0.073498618
+ 0.000  0.007
+ 0.8 0.8 0.8
+3
+s on-site    1.12855      1                             Nb
+p on-site    1.54674      2                             Nb
+t2g on-site  0.87358      3                             Nb
+eg on-site   0.78444      4                             Nb
+sss 1st nn  -0.10924      5                             Nb
+pps 1st nn   0.16935      6                             Nb
+ppp 1st nn   0.03944      7                             Nb
+dds 1st nn  -0.09786      8                             Nb
+ddp 1st nn   0.04451      9                             Nb
+ddd 1st nn   0.00214     10                             Nb
+sps 1st nn   0.10087     11                             Nb
+sds 1st nn  -0.10570     12                             Nb
+pds 1st nn  -0.14396     13                             Nb
+pdp 1st nn   0.02362     14                             Nb
+sss 2nd nn  -0.02174     15                             Nb
+pps 2nd nn   0.19817     16                             Nb
+ppp 2nd nn   0.00536     17                             Nb
+dds 2nd nn  -0.06165     18                             Nb
+ddp 2nd nn  -0.00955     19                             Nb
+ddd 2nd nn   0.00600     20                             Nb
+sps 2nd nn   0.07223     21                             Nb
+sds 2nd nn  -0.05088     22                             Nb
+pds 2nd nn  -0.09164     23                             Nb
+pdp 2nd nn  -0.00854     24                             Nb
+sss 3rd nn   0.00913     25                             Nb
+pps 3rd nn   0.02321     26                             Nb
+ppp 3rd nn  -0.00568     27                             Nb
+dds 3rd nn   0.01259     28                             Nb
+ddp 3rd nn  -0.00161     29                             Nb
+ddd 3rd nn   0.00028     30                             Nb
+sps 3rd nn   0.00170     31                             Nb
+sds 3rd nn   0.00587     32                             Nb
+pds 3rd nn   0.00201     33                             Nb
+pdp 3rd nn   0.00040     34                             Nb
+
