@@ -1,5 +1,5 @@
 module mod_magnet
-  use mod_kind, only: dp, int32
+  use mod_kind,       only: dp, int32
   use mod_parameters, only: dmax
   implicit none
 
@@ -207,7 +207,7 @@ contains
   end subroutine initMagneticField
 
   subroutine lb_matrix(nAtoms, nOrbs)
-    use mod_kind, only: dp
+    use mod_kind,       only: dp
     use mod_constants,  only: cZero
     use mod_parameters, only: lnolb
     implicit none
@@ -262,7 +262,7 @@ contains
 
   ! This subroutine calculate the orbital angular momentum matrix in the cubic system of coordinates
   subroutine l_matrix()
-    use mod_kind, only: dp
+    use mod_kind,       only: dp
     use mod_constants,  only: cI, cZero, cOne, sq3
     use mod_parameters, only: nOrb
     implicit none
@@ -316,9 +316,9 @@ contains
 
   ! This subroutine calculate the orbital angular momentum matrix in the local system of coordinates
   subroutine lp_matrix(theta, phi)
-    use mod_kind, only: dp
+    use mod_kind,      only: dp
     use mod_constants, only: deg2rad
-    use mod_System, only: s => sys
+    use mod_System,    only: s => sys
     implicit none
     real(dp), dimension(s%nAtoms), intent(in) :: theta, phi
     integer :: i

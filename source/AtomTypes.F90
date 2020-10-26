@@ -1,6 +1,11 @@
 module AtomTypes
   use mod_kind, only: dp
 
+  character(len=3), parameter, dimension(9) :: orbitals = ["s  ","px ","py ","pz ","dxy","dyz","dzx","dx2","dz2"]
+  !! Orbitals that are implemented and recognized on TITAN
+  logical :: lorbital_selection = .false.
+  !! Logical flag to indicate orbital selection
+
   type NeighborIndex
     integer :: index
     type(NeighborIndex), pointer :: next => null()

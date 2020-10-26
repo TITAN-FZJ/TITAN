@@ -1,21 +1,14 @@
 ! Set energy (frequency) and wave vector loops
 subroutine setLoops(s)
-  use mod_kind, only: dp
-  use mod_parameters, only: itype, nEner, nEner1, emin, emax, deltae, nQvec, nQvec1, deltak, kdirection, band_points, band_cnt, bands, kpoints, partial_length
-  use mod_system,     only: System_type
-  use mod_tools,      only: vecDist
+  use mod_kind,           only: dp
+  use mod_parameters,     only: itype, nEner, nEner1, emin, emax, deltae, nQvec, nQvec1, deltak, kdirection, band_points, band_cnt, bands, kpoints, partial_length
+  use mod_system,         only: System_type
+  use mod_tools,          only: vecDist
+  use mod_band_structure, only: read_band_points
   implicit none
   type(System_type), intent(in)  :: s
-  integer                   :: kount,i,j
-  real(dp)              :: dir(3),total_length
-    interface
-      subroutine read_band_points(kbands, a0, b1, b2, b3)
-        use mod_kind, only: dp
-        real(dp), dimension(:,:), allocatable, intent(out) :: kbands
-        real(dp), dimension(3), intent(in) :: b1, b2, b3
-        real(dp),               intent(in) :: a0
-      end subroutine
-    end interface
+  integer                        :: kount,i,j
+  real(dp)                       :: dir(3),total_length
 
   ! Energy loop step
   if(nEner < 1) then

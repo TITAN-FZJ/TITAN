@@ -5,7 +5,7 @@ contains
   subroutine calc_initial_Uterms(sys)
     use mod_kind,           only: dp
     use mod_constants,      only: cZero
-    use mod_System,         only: System_type,initHamiltkStride
+    use mod_System,         only: System_type,initHamiltkStride,initConversionMatrices
     use TightBinding,       only: initTightBinding
     use mod_magnet,         only: l_matrix,lb,sb,allocate_magnet_variables,deallocate_magnet_variables,rho0,rhod0
     use mod_SOC,            only: ls,allocateLS
@@ -27,7 +27,7 @@ contains
     type(System_type), intent(inout) :: sys
     type(System_type), allocatable   :: sys0(:)
 
-    external :: build_U,initConversionMatrices
+    external :: build_U
     if(myrank == 0) &
       call write_time(output%unit,'[calc_initial_Uterms] Obtaining initial densities: ')
 
@@ -87,9 +87,6 @@ contains
         call allocate_supercond_variables(sys0(i)%nAtoms, nOrb)
         call allocate_Atom_variables(sys0(i)%nAtoms,nOrb)
 
-        !------- Initialize Stride Matrices for hamiltk and dtdksub --------
-        call initHamiltkStride(sys0(i)%nAtoms, nOrb)
-
         !---- L matrix in global frame for given quantization direction ----
         call l_matrix()
 
@@ -106,6 +103,9 @@ contains
         supercond_temp  = supercond
         lsuperCond = .false.
         supercond = 1
+
+        !------- Initialize Stride Matrices for hamiltk and dtdksub --------
+        call initHamiltkStride(sys0(i),supercond)
 
         !------------------------ Conversion arrays -------------------------
         call initConversionMatrices(sys0(i)%nAtoms,nOrb)
@@ -203,7 +203,6 @@ contains
     allocate( sys%Types(1)%rho0(nOrb,sys%nAtoms),sys%Types(1)%rhod0(sys%nAtoms) )
     sys%Types(1)%rho0(:,:) = rho0(:,:)
     sys%Types(1)%rhod0(:)  = rhod0(:)
-
   end subroutine calc_expectation_values
 
   subroutine write_initial_Uterms(sys0)

@@ -48,7 +48,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_Atom_variables.F90
                                   source/mod_rotation_matrices.F90
                                   source/mod_check_stop.F90
-                                  source/band_structure.F90
+                                  source/mod_band_structure.F90
                                   source/mod_kind.F90
                                   source/mod_constants.F90
                                   source/mod_parameters.F90
@@ -70,7 +70,6 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_prefactors.F90
                                   source/adaptiveMesh.F90
                                   source/setLoops.F90
-                                  source/read_band_points.F90
                                   source/TorqueTorqueResponse.F90
                                   source/TorqueSpinResponse.F90
                                   source/mod_superconductivity.F90
