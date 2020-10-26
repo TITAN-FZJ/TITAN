@@ -161,15 +161,14 @@ contains
 
   !   Calculates ground state quantities from eigenstates
   subroutine expectation_values_eigenstates(s,rho,mp,mx,my,mz,deltas)
-    use mod_kind, only: dp,int64
-    use mod_BrillouinZone,     only: realBZ
-    use mod_parameters,        only: nOrb,output,dimH
-    use mod_system,            only: System_type
-    use mod_tools,             only: itos,diagonalize,lwork
-    use mod_superconductivity, only: lsuperCond, superCond
-    use mod_constants,         only: cZero
-    use mod_hamiltonian,       only: hamilt_local,hamiltk
-    use mod_mpi_pars,          only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
+    use mod_kind,          only: dp,int64
+    use mod_BrillouinZone, only: realBZ
+    use mod_parameters,    only: nOrb,output,dimHsc
+    use mod_system,        only: System_type
+    use mod_tools,         only: itos,diagonalize,lwork
+    use mod_constants,     only: cZero
+    use mod_hamiltonian,   only: hamilt_local,h0,calchk
+    use mod_mpi_pars,      only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
     implicit none
     type(System_type),                     intent(in)  :: s
     real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
@@ -177,7 +176,7 @@ contains
     complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: mp
 
     integer(int64)                           :: iz
-    integer                                  :: ncount,dimHsc,ilaenv
+    integer                                  :: ncount,ilaenv
     real(dp),    dimension(nOrb,s%nAtoms)    :: expec_0,expec_z
     complex(dp), dimension(nOrb,s%nAtoms)    :: expec_p
     real(dp),    dimension(nOrb,s%nAtoms)    :: expec_singlet
@@ -186,7 +185,6 @@ contains
 
     external :: MPI_Allreduce,ilaenv
 
-    dimHsc  = dimH*superCond
     ncount = nOrb*s%nAtoms
 
     allocate( hk(dimHsc,dimHsc),eval(dimHsc) )
@@ -196,23 +194,24 @@ contains
 
     call hamilt_local(s)
 
-    !$omp parallel default(none) &
-    !$omp& private(iz,hk,eval,expec_0,expec_p,expec_z,expec_singlet) &
-    !$omp& shared(s,dimHsc,output,realBZ,rho,mp,mz,lsuperCond,deltas)
     rho = 0._dp
     mz  = 0._dp
     mp  = cZero
     deltas = 0._dp
-    !$omp do reduction(+:rho,mp,mz,deltas) schedule(dynamic)
+
+    !$omp parallel do default(none) schedule(dynamic) &
+    !$omp& private(iz,hk,eval,expec_0,expec_p,expec_z,expec_singlet) &
+    !$omp& shared(s,h0,dimHsc,output,realBZ) &
+    !$omp& reduction(+:rho,mp,mz,deltas)
     do iz = 1,realBZ%workload
       ! Calculating the hamiltonian for a given k-point
-      call hamiltk(s,realBZ%kp(1:3,iz),hk)
+      hk = h0 + calchk(s,realBZ%kp(1:3,iz))
 
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
       call diagonalize(dimHsc,hk,eval)
 
       ! Calculating expectation values for a given k-point
-      call expec_val(s, dimHsc, hk, eval, expec_0, expec_p, expec_z, expec_singlet)
+      call expec_val(s,dimHsc,hk,eval,expec_0,expec_p,expec_z,expec_singlet)
 
       ! Occupation
       rho = rho + expec_0*realBZ%w(iz)
@@ -222,8 +221,7 @@ contains
       ! Superconducting order parameter
       deltas = deltas + expec_singlet*realBZ%w(iz)
     end do
-    !$omp end do
-    !$omp end parallel
+    !$omp end parallel do
 
     !Gather and sum all the results from the different processes using an Allreduce clause
     call MPI_Allreduce(MPI_IN_PLACE, rho   , ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
@@ -242,12 +240,11 @@ contains
 
   !   Calculates ground state quantities from eigenstates
   subroutine expectation_eigenstates_fullhk(s,rho,mp,mx,my,mz,deltas)
-    use mod_kind, only: dp,int64
+    use mod_kind,              only: dp,int64
     use mod_BrillouinZone,     only: realBZ
-    use mod_parameters,        only: nOrb,dimH,output
+    use mod_parameters,        only: nOrb,dimHsc,output
     use mod_system,            only: System_type
     use mod_tools,             only: itos,diagonalize,lwork
-    use mod_superconductivity, only: lsuperCond, superCond
     use mod_constants,         only: cZero
     use mod_hamiltonian,       only: hamilt_local,h0,fullhk
     use mod_mpi_pars,          only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
@@ -258,7 +255,7 @@ contains
     complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: mp
 
     integer(int64)                           :: iz
-    integer                                  :: ncount,dimHsc,ilaenv
+    integer                                  :: ncount,ilaenv
     real(dp),    dimension(nOrb,s%nAtoms)    :: expec_0,expec_z
     complex(dp), dimension(nOrb,s%nAtoms)    :: expec_p
     real(dp),    dimension(nOrb,s%nAtoms)    :: expec_singlet
@@ -267,7 +264,6 @@ contains
 
     external :: MPI_Allreduce,ilaenv
 
-    dimHsc  = dimH*superCond
     ncount = nOrb*s%nAtoms
 
     allocate( hk(dimHsc,dimHsc),eval(dimHsc) )
@@ -278,16 +274,17 @@ contains
     call hamilt_local(s)
     !!$acc data copyin(h0,fullhk) copyout(rho,mp,mz,deltas)
 
-    !$omp parallel default(none) &
-    !$omp& private(iz,hk,eval,expec_0,expec_p,expec_z,expec_singlet) &
-    !$omp& shared(s,dimHsc,h0,fullhk,output,realBZ,rho,mp,mz,lsuperCond,deltas)
     rho = 0._dp
     mz  = 0._dp
     mp  = cZero
     deltas = 0._dp
+
+    !$omp parallel do default(none) schedule(dynamic) &
+    !$omp& private(iz,hk,eval,expec_0,expec_p,expec_z,expec_singlet) &
+    !$omp& shared(s,dimHsc,h0,fullhk,output,realBZ) &
+    !$omp& reduction(+:rho,mp,mz,deltas)
     !!$acc kernels 
-    !$acc parallel loop private(iz,hk,eval,work,rwork,info,expec_0, expec_p, expec_z,expec_singlet) ! firstprivate(lwork) shared(s,dimH,output,realBZ,rho,mp,mz,lsuperCond,deltas) reduction(+:rho,mp,mz,deltas)
-    !$omp do reduction(+:rho,mp,mz,deltas) schedule(dynamic)
+    !$acc parallel loop private(iz,hk,eval,work,rwork,info,expec_0, expec_p, expec_z,expec_singlet) ! firstprivate(lwork) shared(s,dimHsc,output,realBZ,rho,mp,mz,lsuperCond,deltas) reduction(+:rho,mp,mz,deltas)
     do iz = 1,realBZ%workload
       ! hamiltonian for a given k-point
       hk = h0 + fullhk(:,:,iz)
@@ -295,11 +292,8 @@ contains
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
       call diagonalize(dimHsc,hk,eval)
 
-      ! if(info/=0) &
-      !   call abortProgram("[expectation_values_eigenstates] Problem with diagonalization. info = " // itos(info))
-
       ! Calculating expectation values for a given k-point
-      call expec_val(s, dimHsc, hk, eval, expec_0, expec_p, expec_z, expec_singlet)
+      call expec_val(s,dimHsc,hk,eval,expec_0,expec_p,expec_z,expec_singlet)
 
       ! Occupation
       rho = rho + expec_0*realBZ%w(iz)
@@ -309,11 +303,10 @@ contains
       ! Superconducting order parameter
       deltas = deltas + expec_singlet*realBZ%w(iz)
     end do
-    !$omp end do
-    !$omp end parallel
     !$acc end parallel loop
     !!$acc end data
     !!$acc end kernels
+    !$omp end parallel do
 
     !Gather and sum all the results from the different processes using an Allreduce clause
     call MPI_Allreduce(MPI_IN_PLACE, rho   , ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
@@ -331,11 +324,11 @@ contains
 
 
   ! subroutine expectation value of the operators 1 (occupation), Sp and Sz:
-  subroutine expec_val(s, dimens, hk, eval, expec_0, expec_p, expec_z, expec_singlet)
+  subroutine expec_val(s,dimens,hk,eval,expec_0,expec_p,expec_z,expec_singlet)
     !$acc routine
-    use mod_kind, only: dp
+    use mod_kind,              only: dp
     use mod_constants,         only: cZero,pi,pauli_mat
-    use mod_parameters,        only: nOrb,eta,isigmamu2n,dimH
+    use mod_parameters,        only: nOrb,eta,isigmamu2n
     use mod_distributions,     only: fd_dist
     use mod_system,            only: System_type
     use mod_superconductivity, only: lsuperCond
@@ -348,8 +341,8 @@ contains
     complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: expec_p
     real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: expec_singlet
 
-    real(dp)    :: fermi, beta
-    integer     :: i, n, sigma, sigmap, mu
+    real(dp)    :: fermi,beta
+    integer     :: i,n,sigma,sigmap,mu,hdimens
     real(dp)    :: f_n(dimens),f_n_negative(dimens),tanh_n(dimens)
     complex(dp) :: evec_isigmamu, evec_isigmamu_cong !dimens = 2*nOrb*nAtoms
 
@@ -367,57 +360,64 @@ contains
     end do
 
     if(.not.lsupercond) then
-      do i = 1,s%nAtoms; do mu = 1,nOrb
-        do n = 1,dimens
-          do sigma = 1,2
-            evec_isigmamu = hk(isigmamu2n(i,sigma,mu),n)
-            evec_isigmamu_cong = conjg( evec_isigmamu )
+      do i = 1,s%nAtoms
+        do mu = 1,nOrb
+          do n = 1,dimens
+            do sigma = 1,2
+              evec_isigmamu = hk(isigmamu2n(i,sigma,mu),n)
+              evec_isigmamu_cong = conjg( evec_isigmamu )
 
-            ! Charge
-            expec_0(mu,i) = expec_0(mu,i) + f_n(n)*real( evec_isigmamu_cong*evec_isigmamu )
+              ! Charge
+              expec_0(mu,i) = expec_0(mu,i) + f_n(n)*real( evec_isigmamu_cong*evec_isigmamu )
 
-            do sigmap = 1, 2
-              evec_isigmamu = hk(isigmamu2n(i,sigmap,mu),n)
-              ! M_p
-              expec_p(mu,i) = expec_p(mu,i) + f_n(n)*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
+              do sigmap = 1, 2
+                evec_isigmamu = hk(isigmamu2n(i,sigmap,mu),n)
+                ! M_p
+                expec_p(mu,i) = expec_p(mu,i) + f_n(n)*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
 
-              ! M_z
-              expec_z(mu,i) = expec_z(mu,i) + f_n(n)*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
+                ! M_z
+                expec_z(mu,i) = expec_z(mu,i) + f_n(n)*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
+              end do
             end do
           end do
         end do
-      end do; end do
+      end do
     else
+      hdimens=dimens/2
 
       do n = 1,dimens
         f_n_negative(n) = fd_dist(fermi, beta, -eval(n))
         tanh_n(n) = tanh(eval(n)*beta*0.5_dp)
       end do
 
-      do i = 1,s%nAtoms; do mu = 1,nOrb
-        do n = 1,dimens
-          ! up spin (using u's) + down spin (using v's)
-          expec_0(mu,i) = expec_0(mu,i) + f_n(n)*real( conjg(hk(isigmamu2n(i,1,mu),n))*hk(isigmamu2n(i,1,mu),n) ) + f_n_negative(n)*real( conjg(hk(isigmamu2n(i,2,mu)+dimH,n))*hk(isigmamu2n(i,2,mu)+dimH,n) )
+      do i = 1,s%nAtoms
+        do mu = 1,nOrb
+          do n = 1,dimens
+            ! up spin (using u's) + down spin (using v's)
+            expec_0(mu,i) = expec_0(mu,i) + f_n(n)*real( conjg(hk(isigmamu2n(i,1,mu),n))*hk(isigmamu2n(i,1,mu),n) ) + f_n_negative(n)*real( conjg(hk(isigmamu2n(i,2,mu)+hdimens,n))*hk(isigmamu2n(i,2,mu)+hdimens,n) )
 
-          expec_singlet(mu,i) = expec_singlet(mu,i) + 0.5_dp*s%Types(s%Basis(i)%Material)%lambda(mu)*tanh_n(n)*real( conjg(hk(isigmamu2n(i,1,mu)+dimH,n))*hk(isigmamu2n(i,2,mu),n) )
+            expec_singlet(mu,i) = expec_singlet(mu,i) + 0.5_dp*s%Types(s%Basis(i)%Material)%lambda(mu)*tanh_n(n)*real( conjg(hk(isigmamu2n(i,1,mu)+hdimens,n))*hk(isigmamu2n(i,2,mu),n) )
+          end do
         end do
-      end do; end do
+      end do
 
-      do i = 1,s%nAtoms; do mu = 1,nOrb
-        do n = 1,dimens
-          do sigma = 1,2
-            do sigmap = 1,2
-              evec_isigmamu_cong = conjg( hk(isigmamu2n(i,sigma,mu),n) )
-              evec_isigmamu = hk(isigmamu2n(i,sigmap,mu),n)
-              ! M_p
-              expec_p(mu,i) = expec_p(mu,i) + f_n(n)*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
+      do i = 1,s%nAtoms
+        do mu = 1,nOrb
+          do n = 1,dimens
+            do sigma = 1,2
+              do sigmap = 1,2
+                evec_isigmamu_cong = conjg( hk(isigmamu2n(i,sigma,mu),n) )
+                evec_isigmamu = hk(isigmamu2n(i,sigmap,mu),n)
+                ! M_p
+                expec_p(mu,i) = expec_p(mu,i) + f_n(n)*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
 
-              ! M_z
-              expec_z(mu,i) = expec_z(mu,i) + f_n(n)*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
+                ! M_z
+                expec_z(mu,i) = expec_z(mu,i) + f_n(n)*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
+              end do
             end do
           end do
         end do
-      end do; end do
+      end do
     end if
 
   end subroutine expec_val
@@ -459,25 +459,27 @@ contains
     f_n = fd_dist(fermi, beta, eval)
 
     if(.not.lsupercond) then
-      do i = 1,s%nAtoms; do mu = 1,nOrb
-        do sigma = 1,2
+      do i = 1,s%nAtoms
+        do mu = 1,nOrb
+          do sigma = 1,2
 
-          evec_isigmamu = evec(isigmamu2n(i,sigma,mu))
-          evec_isigmamu_cong = conjg( evec_isigmamu )
+            evec_isigmamu = evec(isigmamu2n(i,sigma,mu))
+            evec_isigmamu_cong = conjg( evec_isigmamu )
 
-          ! Charge
-          expec_0(mu,i) = expec_0(mu,i) + f_n*real( evec_isigmamu_cong*evec_isigmamu )
+            ! Charge
+            expec_0(mu,i) = expec_0(mu,i) + f_n*real( evec_isigmamu_cong*evec_isigmamu )
 
-          do sigmap = 1, 2
-            evec_isigmamu = evec(isigmamu2n(i,sigmap,mu))
-            ! M_p
-            expec_p(mu,i) = expec_p(mu,i) + cmplx(f_n,0._dp,dp)*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
+            do sigmap = 1, 2
+              evec_isigmamu = evec(isigmamu2n(i,sigmap,mu))
+              ! M_p
+              expec_p(mu,i) = expec_p(mu,i) + cmplx(f_n,0._dp,dp)*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
 
-            ! M_z
-            expec_z(mu,i) = expec_z(mu,i) + f_n*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
+              ! M_z
+              expec_z(mu,i) = expec_z(mu,i) + f_n*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
+            end do
           end do
         end do
-      end do; end do
+      end do
 
 
       ! !$OMP SIMD
@@ -505,31 +507,34 @@ contains
       !   end do
       ! end do
     else
-
       f_n_negative = fd_dist(fermi, beta, -eval)
       tanh_n = tanh(eval*beta*0.5_dp)
 
-      do i = 1,s%nAtoms; do mu = 1,nOrb
-        ! up spin (using u's) + down spin (using v's)
-        expec_0(mu,i) = expec_0(mu,i) + f_n*real( conjg(evec(nOrb*2*(i-1)+mu))*evec(nOrb*2*(i-1)+mu) ) + f_n_negative*real( conjg(evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2))*evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2) )
+      do i = 1,s%nAtoms
+        do mu = 1,nOrb
+          ! up spin (using u's) + down spin (using v's)
+          expec_0(mu,i) = expec_0(mu,i) + f_n*real( conjg(evec(nOrb*2*(i-1)+mu))*evec(nOrb*2*(i-1)+mu) ) + f_n_negative*real( conjg(evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2))*evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2) )
 
-        expec_singlet(mu,i) = expec_singlet(mu,i) + 0.5_dp*s%Types(s%Basis(i)%Material)%lambda(mu)*tanh_n*real( conjg(evec(isigmamu2n(i,1,mu)+nOrb*2*s%nAtoms))*evec(isigmamu2n(i,2,mu)) )
-      end do; end do
+          expec_singlet(mu,i) = expec_singlet(mu,i) + 0.5_dp*s%Types(s%Basis(i)%Material)%lambda(mu)*tanh_n*real( conjg(evec(isigmamu2n(i,1,mu)+nOrb*2*s%nAtoms))*evec(isigmamu2n(i,2,mu)) )
+        end do
+      end do
 
-      do i = 1,s%nAtoms; do mu = 1,nOrb
-        do sigma = 1,2
-          do sigmap = 1,2
+      do i = 1,s%nAtoms
+        do mu = 1,nOrb
+          do sigma = 1,2
+            do sigmap = 1,2
 
-            evec_isigmamu_cong = conjg( evec(isigmamu2n(i,sigma,mu)) )
-            evec_isigmamu = evec(isigmamu2n(i,sigmap,mu))
-            ! M_p
-            expec_p(mu,i) = expec_p(mu,i) + f_n*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
+              evec_isigmamu_cong = conjg( evec(isigmamu2n(i,sigma,mu)) )
+              evec_isigmamu = evec(isigmamu2n(i,sigmap,mu))
+              ! M_p
+              expec_p(mu,i) = expec_p(mu,i) + f_n*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
 
-            ! M_z
-            expec_z(mu,i) = expec_z(mu,i) + f_n*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
+              ! M_z
+              expec_z(mu,i) = expec_z(mu,i) + f_n*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
+            end do
           end do
         end do
-      end do; end do
+      end do
     end if
 
   end subroutine expec_val_n
@@ -785,24 +790,23 @@ contains
     use mod_kind,              only: dp,int64
     use mod_BrillouinZone,     only: realBZ
     use mod_constants,         only: pi,cZero
-    use mod_parameters,        only: nOrb,dimH,eta,isigmamu2n
+    use mod_parameters,        only: nOrb,dimHsc,eta,isigmamu2n
     use mod_System,            only: s => sys
     use mod_magnet,            only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
     use mod_distributions,     only: fd_dist
     use mod_tools,             only: itos,diagonalize,lwork
-    use mod_superconductivity, only: lsuperCond,superCond
-    use mod_hamiltonian,       only: hamiltk,hamilt_local,energy
+    use mod_superconductivity, only: lsuperCond
+    use mod_hamiltonian,       only: calchk,h0,hamilt_local,energy
     use mod_mpi_pars,          only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
     implicit none
     integer(int64)                             :: iz
-    integer                                    :: dimHsc,n,i,mu,nu,sigma,ilaenv
+    integer                                    :: n,i,mu,nu,sigma,ilaenv
     real(dp)                                   :: fermi,beta
     real(dp),    dimension(:),     allocatable :: eval,f_n
     complex(dp),                   allocatable :: hk(:,:),prod(:,:,:)
 
     external :: MPI_Allreduce,ilaenv
 
-    dimHsc = dimH*superCond
     !If lsupercond is true then fermi is 0.0 otherwise is s%Ef
     fermi = merge(0._dp,s%Ef,lsuperCond)
     beta = 1._dp/(pi*eta)
@@ -814,16 +818,16 @@ contains
 
     call hamilt_local(s)
 
-    !$omp parallel default(none) &
-    !$omp& private(iz,n,f_n,i,sigma,mu,nu,hk,eval) &
-    !$omp& shared(s,nOrb,dimHsc,realBZ,fermi,beta,isigmamu2n,energy,prod)
-
     prod = cZero
     energy = 0._dp
-    !$omp do reduction(+:prod,energy) schedule(dynamic)
+
+    !$omp parallel do default(none) schedule(dynamic) &
+    !$omp& private(iz,n,f_n,i,sigma,mu,nu,hk,eval) &
+    !$omp& shared(s,nOrb,dimHsc,realBZ,h0,fermi,beta,isigmamu2n) &
+    !$omp& reduction(+:prod,energy)
     kloop: do iz = 1,realBZ%workload
       ! Calculating the hamiltonian for a given k-point
-      call hamiltk(s,realBZ%kp(1:3,iz),hk)
+      hk = h0 + calchk(s,realBZ%kp(1:3,iz))
 
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
       call diagonalize(dimHsc,hk,eval)
@@ -847,8 +851,7 @@ contains
       end do
 
     end do kloop
-    !$omp end do
-    !$omp end parallel
+    !$omp end parallel do
 
     call MPI_Allreduce(MPI_IN_PLACE, prod   , nOrb*nOrb*s%nAtoms, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
     call MPI_Allreduce(MPI_IN_PLACE, energy , 1                 , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
@@ -880,27 +883,27 @@ contains
 
   !   Calculates ground state quantities from eigenstates
   subroutine calc_GS_L_and_E_fullhk()
-    use mod_kind, only: dp,int64
+    use mod_kind,              only: dp,int64
     use mod_BrillouinZone,     only: realBZ
     use mod_constants,         only: pi,cZero
-    use mod_parameters,        only: nOrb,dimH,eta,isigmamu2n
+    use mod_parameters,        only: nOrb,dimHsc,eta,isigmamu2n
     use mod_System,            only: s => sys
     use mod_magnet,            only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
     use mod_distributions,     only: fd_dist
     use mod_tools,             only: itos,diagonalize,lwork
-    use mod_superconductivity, only: lsuperCond,superCond
+    use mod_superconductivity, only: lsuperCond
     use mod_hamiltonian,       only: hamilt_local,h0,fullhk,energy
     use mod_mpi_pars,          only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
     implicit none
     integer(int64)                             :: iz
-    integer                                    :: dimHsc,n,i,mu,nu,sigma,ilaenv
+    integer                                    :: n,i,mu,nu,sigma,ilaenv
     real(dp)                                   :: fermi,beta
     real(dp),    dimension(:),     allocatable :: eval,f_n
     complex(dp),                   allocatable :: hk(:,:),prod(:,:,:)
 
     external :: MPI_Allreduce,ilaenv
 
-    dimHsc = dimH*superCond
+
     !If lsupercond is true then fermi is 0.0 otherwise is s%Ef
     fermi = merge(0._dp,s%Ef,lsuperCond)
     beta = 1._dp/(pi*eta)
@@ -912,13 +915,13 @@ contains
 
     call hamilt_local(s)
 
-    !$omp parallel default(none) &
-    !$omp& private(iz,n,f_n,i,sigma,mu,nu,hk,eval) &
-    !$omp& shared(s,nOrb,dimHsc,h0,fullhk,realBZ,fermi,beta,isigmamu2n,prod,energy)
-
     prod = cZero
     energy = 0._dp
-    !$omp do reduction(+:prod,energy) schedule(dynamic)
+
+    !$omp parallel do default(none) schedule(dynamic) &
+    !$omp& private(iz,n,f_n,i,sigma,mu,nu,hk,eval) &
+    !$omp& shared(s,nOrb,dimHsc,h0,fullhk,realBZ,fermi,beta,isigmamu2n) &
+    !$omp& reduction(+:prod,energy)
     kloop: do iz = 1,realBZ%workload
       ! hamiltonian for a given k-point
       hk = h0 + fullhk(:,:,iz)
@@ -944,8 +947,7 @@ contains
       end do
 
     end do kloop
-    !$omp end do
-    !$omp end parallel
+    !$omp end parallel do
 
     call MPI_Allreduce(MPI_IN_PLACE, prod   , nOrb*nOrb*s%nAtoms, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
     call MPI_Allreduce(MPI_IN_PLACE, energy , 1                 , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)

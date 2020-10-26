@@ -116,10 +116,10 @@ contains
     ! Build local hamiltonian
     call hamilt_local(s)
 
-    !$omp parallel default(none) &
+    !$omp parallel do default(none) &
     !$omp& private(iz,kp,weight,gf,i,mu,nu,gfdiagu,gfdiagd) &
-    !$omp& shared(s,realBZ,e,nOrb,eta,ldosu,ldosd,lsupercond,nOrb2)
-    !$omp do reduction(+:ldosu,ldosd)
+    !$omp& shared(s,realBZ,e,nOrb,eta,lsupercond,nOrb2) &
+    !$omp& reduction(+:ldosu,ldosd)
     do iz = 1,realBZ%workload
       kp = realBZ%kp(1:3,iz)
       weight = realBZ%w(iz)
@@ -143,8 +143,7 @@ contains
       ldosd = ldosd + gfdiagd
 
     end do
-    !$omp end do
-    !$omp end parallel
+    !$omp end parallel do
 
     ldosu  = ldosu/pi
     ldosd  = ldosd/pi
@@ -274,8 +273,6 @@ contains
     complex(dp), dimension(nOrb2, nOrb2, s%nAtoms, s%nAtoms) :: gf
     complex(dp), dimension(nOrb2, nOrb2)     :: gij,gji,temp1,temp2,paulia,paulib
     real(dp),    dimension(s%nAtoms, nOrb)   :: gfdiagu,gfdiagd
-    real(dp),    dimension(:,:),allocatable     :: ldosu_loc,ldosd_loc
-    real(dp),    dimension(:,:,:,:),allocatable :: Jijint_loc
     real(dp),    dimension(3) :: kp
     complex(dp)     :: paulimatan(3,3,nOrb2, nOrb2)
     real(dp)        :: Jijkan(s%nAtoms,3,3), Jijk(s%nAtoms,s%nAtoms,3,3)
@@ -329,15 +326,10 @@ contains
     ! Build local hamiltonian
     call hamilt_local(s)
 
-    !$omp parallel default(none) &
-    !$omp& private(iz,kp,weight,gf,gij,gji,paulia,paulib,i,j,mu,nu,alpha,gfdiagu,gfdiagd,Jijk,Jijkan,temp1,temp2,ldosu_loc,ldosd_loc,Jijint_loc) &
-    !$omp& shared(s,realBZ,nOrb,nOrb2,e,eta,Um,dbxcdm,d2bxcdm2,pauli_dorb,paulimatan,ldosu,ldosd,Jijint)
-    allocate(ldosu_loc(s%nAtoms, nOrb), ldosd_loc(s%nAtoms, nOrb), Jijint_loc(s%nAtoms,s%nAtoms,3,3))
-    ldosu_loc = 0._dp
-    ldosd_loc = 0._dp
-    Jijint_loc = 0._dp
-
-    !$omp do schedule(static)
+    !$omp parallel do default(none) &
+    !$omp& private(iz,kp,weight,gf,gij,gji,paulia,paulib,i,j,mu,nu,alpha,gfdiagu,gfdiagd,Jijk,Jijkan,temp1,temp2) &
+    !$omp& shared(s,realBZ,nOrb,nOrb2,e,eta,Um,dbxcdm,d2bxcdm2,pauli_dorb,paulimatan) &
+    !$omp& reduction(+:ldosu,ldosd,Jijint) schedule(static)
     do iz = 1, realBZ%workload
       kp = realBZ%kp(:,iz)
       weight = realBZ%w(iz)
@@ -393,19 +385,12 @@ contains
          end do
       end do
 
-      ldosu_loc = ldosu_loc + gfdiagu
-      ldosd_loc = ldosd_loc + gfdiagd
-      Jijint_loc = Jijint_loc + Jijk
+      ldosu = ldosu + gfdiagu
+      ldosd = ldosd + gfdiagd
+      Jijint = Jijint + Jijk
 
     end do
-    !$omp end do nowait
-
-    !$omp critical
-      ldosu = ldosu + ldosu_loc
-      ldosd = ldosd + ldosd_loc
-      Jijint = Jijint + Jijint_loc
-    !$omp end critical
-    !$omp end parallel
+    !$omp end parallel do
 
     ldosu  = ldosu/pi
     ldosd  = ldosd/pi

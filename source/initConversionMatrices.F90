@@ -1,6 +1,6 @@
 !! This subroutine mounts the conversion matrices from 4 to 2 ranks
 subroutine initConversionMatrices(nAtoms, nOrbs)
-  use mod_parameters, only: sigmai2i, sigmaimunu2i, sigmaijmunu2i, isigmamu2n, n2isigmamu
+  use mod_parameters, only: sigmai2i,sigmaimunu2i,sigmaijmunu2i,isigmamu2n,n2isigmamu
   implicit none
   integer, intent(in) :: nAtoms, nOrbs
   integer :: nu, mu, i, sigma, j, kount

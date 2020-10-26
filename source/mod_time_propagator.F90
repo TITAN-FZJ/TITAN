@@ -12,14 +12,14 @@ contains
     use mod_RK_matrices,        only: A,id,id2,M1,c1,c2,build_identity
     use mod_imRK4,              only: iterate_Zki,calculate_step_error,magnetic_field,vector_potential
     use mod_BrillouinZone,      only: realBZ
-    use mod_parameters,         only: nOrb,dimH,output,lprintfieldonly
+    use mod_parameters,         only: nOrb,dimHsc,output,lprintfieldonly
     use mod_system,             only: System_type
     use mod_expectation,        only: expec_val_n, expec_H_n, expec_L_n
     use mod_Umatrix,            only: update_Umatrix
     use mod_magnet,             only: rhod0,rho0
     use mod_tools,              only: KronProd,diagonalize,lwork
     use mod_superconductivity,  only: allocate_supercond_variables
-    use mod_hamiltonian,        only: hamiltk,hamilt_local,lfullhk,h0,fullhk
+    use mod_hamiltonian,        only: calchk,hamilt_local,lfullhk,h0,fullhk
     use mod_checkpoint,         only: save_state,recover_state
     use mod_io,                 only: log_warning
     use mod_time_propagator_io, only: create_time_prop_files,write_header_time_prop,write_field,write_time_prop_files
@@ -30,7 +30,7 @@ contains
     integer(int32)                              :: i,it,n,counter,iter_rej,iter_tot
     real(dp)                                    :: t,tm,t1,t2
     real(dp)                                    :: pinv,h_new,h_old,ERR_old,ERR_kn
-    complex(dp), dimension(dimH)                :: Yn,Yn_hat,Yn_new,Yn_e,Yn_hat_e,Yn_new_e
+    complex(dp), dimension(dimHsc)              :: Yn,Yn_hat,Yn_new,Yn_e,Yn_hat_e,Yn_new_e
     complex(dp), dimension(:,:,:), allocatable  :: evec_kn,evec_kn_temp
     real(dp),    dimension(:,:),   allocatable  :: eval_kn
     real(dp),    dimension(3)                   :: b_field,A_t,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2
@@ -67,20 +67,20 @@ contains
     ncount = nOrb*s%nAtoms
 
     ! Dimensions for RK method
-    dimH2  = 2*dimH
+    dimH2  = 2*dimHsc
 
-    allocate( id(dimH,dimH),id2(dimH2,dimH2),M1(dimH2,dimH2) )
-    allocate( hamilt_nof(dimH,dimH),hk(dimH,dimH),hkev(dimH,dimH),eval(dimH),eval_kn(dimH,realBZ%workload),evec_kn(dimH,dimH,realBZ%workload),evec_kn_temp(dimH,dimH,realBZ%workload) )
+    allocate( id(dimHsc,dimHsc),id2(dimH2,dimH2),M1(dimH2,dimH2) )
+    allocate( hamilt_nof(dimHsc,dimHsc),hk(dimHsc,dimHsc),hkev(dimHsc,dimHsc),eval(dimHsc),eval_kn(dimHsc,realBZ%workload),evec_kn(dimHsc,dimHsc,realBZ%workload),evec_kn_temp(dimHsc,dimHsc,realBZ%workload) )
 
     ! Building identities
-    call build_identity(dimH,id)
-    call build_identity(size(A,1)*dimH,id2)
+    call build_identity(dimHsc,id)
+    call build_identity(size(A,1)*dimHsc,id2)
 
     ! Building matrix M1
-    M1 = KronProd(size(A,1),size(A,1),dimH,dimH,A,id)
+    M1 = KronProd(size(A,1),size(A,1),dimHsc,dimHsc,A,id)
 
     ! Checking for checkpoints
-    use_checkpoint = recover_state(rFreq(1),dimH,realBZ%workload,t_cp,step_cp,eval_kn,evec_kn)
+    use_checkpoint = recover_state(rFreq(1),dimHsc,realBZ%workload,t_cp,step_cp,eval_kn,evec_kn)
     if(use_checkpoint) then
       t = t_cp
       step = step_cp
@@ -98,7 +98,7 @@ contains
     end if
 
     ! Getting lwork for diagonalization
-    lwork = (ilaenv( 1, 'zhetrd', 'VU', dimH, -1, -1, -1 )+1)*dimH
+    lwork = (ilaenv( 1, 'zhetrd', 'VU', dimHsc, -1, -1, -1 )+1)*dimHsc
 
     if(rFreq(1) == 0) &
       write(output%unit_loop,"('[time_propagator] Starting propagation from t = ',es9.2)") t
@@ -160,10 +160,10 @@ contains
 
         singlet_coupling_t = 0._dp
 
-        !$omp parallel do default(none) &
+        !$omp parallel do default(none) schedule(dynamic,1) &
         !$omp& private(Yn_e,Yn_new_e,Yn_hat_e,ik,n,i,kp,weight,hk,hkev,hamilt_nof,exp_eval,ERR_kn,Yn,Yn_new,Yn_hat,eval,expec_0,expec_p,expec_z,expec_singlet,E_0,lxm,lym,lzm) &
-        !$omp& shared(counter,step,s,t,it,id,dimH,realBZ,lfullhk,h0,fullhk,evec_kn_temp,evec_kn,eval_kn,use_checkpoint,b_field,A_t,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2) &
-        !$omp& reduction(+:rho_t,mp_t,mz_t,E_t,Lxm_t,Lym_t,Lzm_t,singlet_coupling_t,ERR) schedule(dynamic,1) 
+        !$omp& shared(counter,step,s,t,it,id,dimHsc,realBZ,lfullhk,h0,fullhk,evec_kn_temp,evec_kn,eval_kn,use_checkpoint,b_field,A_t,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2) &
+        !$omp& reduction(+:rho_t,mp_t,mz_t,E_t,Lxm_t,Lym_t,Lzm_t,singlet_coupling_t,ERR)
         kpoints_loop: do ik = 1, realBZ%workload
           kp = realBZ%kp(:,ik)
           weight = realBZ%w(ik)   
@@ -171,21 +171,21 @@ contains
           if( lfullhk ) then
             hk = h0 + fullhk(:,:,ik)
           else
-            call hamiltk(s,kp,hk)
+            hk = h0 + calchk(s,kp)
           end if
 
           ! For t=0.0, diagonalize the hamiltonian
           if ((it==0).and.(.not.use_checkpoint)) then
             hkev = hk
             ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-            call diagonalize(dimH,hkev,eval)
+            call diagonalize(dimHsc,hkev,eval)
             eval_kn(:,ik) = eval(:)
             !>>>>> find eigenvalues again
             ! Improve step control by diagonalizing the Hamiltonian after some number of steps:
-            ! calling H(t) instead of hamiltk, at t=0, H(0)= hamiltk
+            ! calling H(t) instead of H(k), at t=0, H(0)= H(k)
           end if
 
-          evs_loop: do n = 1, dimH
+          evs_loop: do n = 1, dimHsc
             exp_eval = exp(-cI*eval_kn(n,ik)*t) 
             if ((it==0).and.(.not.use_checkpoint)) then
               Yn(:)= hkev(:,n)
@@ -221,14 +221,14 @@ contains
             ! Note: use the Yn_new_e or Yn_nw >>> should give the same result
 
             ! calculating expectation value of magnetization in eigenvector (n)
-            call expec_val_n(s, dimH, Yn_new_e, eval_kn(n,ik), expec_0, expec_p, expec_z, expec_singlet)
+            call expec_val_n(s,dimHsc,Yn_new_e,eval_kn(n,ik),expec_0,expec_p,expec_z,expec_singlet)
 
             ! calculating expectation value of the T.D Hamiltonian in eigenvector (n)
             call expec_H_n(s,b_field,A_t,hk,kp,Yn_new_e,eval_kn(n,ik),E_0)
 
 
             ! calculating expectation value of angular momentum in eigenvector (n)
-            call expec_L_n(s, dimH, Yn_new_e, eval_kn(n,ik), lxm, lym, lzm)
+            call expec_L_n(s, dimHsc, Yn_new_e, eval_kn(n,ik), lxm, lym, lzm)
 
 
             rho_t = rho_t + expec_0  * weight 
@@ -302,7 +302,7 @@ contains
           ! step = step
         else    
           ! Error is low! Accept the step
-          ! Update the eignvectors array of dimension ( dimH * dimH , k )
+          ! Update the eignvectors array of dimension ( dimHsc * dimHsc , k )
           evec_kn = evec_kn_temp
           step = h_new
           exit
@@ -341,7 +341,7 @@ contains
       open(unit=911, file="save", status='old', iostat=ios)
       if(ios==0) then
         close(911)
-        call save_state(rFreq(1),dimH,realBZ%workload,t,step,eval_kn,evec_kn)
+        call save_state(rFreq(1),dimHsc,realBZ%workload,t,step,eval_kn,evec_kn)
         call MPI_Barrier(FieldComm, ierr)
         if(rFreq(1) == 0) &
           call execute_command_line('rm save')
@@ -349,7 +349,7 @@ contains
     end do t_loop
 
     ! Creating checkpoint in the last state
-    call save_state(rFreq(1),dimH,realBZ%workload,t,step,eval_kn,evec_kn)
+    call save_state(rFreq(1),dimHsc,realBZ%workload,t,step,eval_kn,evec_kn)
 
     deallocate( id,id2,M1 )
     deallocate( hamilt_nof,hk,hkev,eval,eval_kn,evec_kn,evec_kn_temp )

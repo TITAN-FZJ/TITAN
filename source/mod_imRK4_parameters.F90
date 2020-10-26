@@ -46,7 +46,7 @@ module mod_imRK4_parameters
   integer      :: time
   !! Integer integration time
   integer      :: dimH2
-  !! Dimension: 2*dimension of the Hamiltonian (dimH)
+  !! Dimension: 2*dimension of the Hamiltonian (dimHsc)
   real(dp) :: ERR
   !! Error for the calculation of the step size in time propagation
   real(dp) :: time_conv = 4.84e-5_dp
