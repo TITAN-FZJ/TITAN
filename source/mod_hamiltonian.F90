@@ -79,22 +79,22 @@ contains
 
 
   ! Calculate the k-dependent tight-binding hamiltonian of the unit cell
-  subroutine hamiltk(sys,kp,hk)
+  function calchk(sys,kp)
     use mod_kind,              only: dp
-    use mod_constants,         only: cI
+    use mod_constants,         only: cZero,cI
     use mod_System,            only: ia,ia_sc,System_type
     use mod_parameters,        only: nOrb,dimHsc
     use mod_superconductivity, only: lsuperCond
     implicit none
     real(dp),          intent(in) :: kp(3)
     type(System_type), intent(in) :: sys
-    complex(dp), dimension(dimHsc,dimHsc), intent(out) :: hk
+    complex(dp), dimension(dimHsc,dimHsc) :: calchk
 
     integer     :: i,j,k,ia_temp_i,ia_temp_j
     complex(dp) :: tmp(nOrb,nOrb)
     complex(dp) :: kpExp,mkpExp
 
-    hk = h0
+    calchk = cZero
 
     ! Inter-site hopping terms
     do k = 1, sys%nNeighbors
@@ -109,9 +109,9 @@ contains
           ! electrons
           tmp(1:nOrb,1:nOrb) = sys%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp
           ! Spin-up
-          hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + tmp(1:nOrb,1:nOrb)
+          calchk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = calchk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + tmp(1:nOrb,1:nOrb)
           ! Spin-down
-          hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + tmp(1:nOrb,1:nOrb)
+          calchk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = calchk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + tmp(1:nOrb,1:nOrb)
 
           if(lsuperCond) then
             ! holes
@@ -119,45 +119,39 @@ contains
             ! Spin-up
             ia_temp_j = ia_sc(3,j) + nOrb - 1
             ia_temp_i = ia_sc(3,i) + nOrb - 1 
-            hk(ia_sc(3,j):ia_temp_j, ia_sc(3,i):ia_temp_i) = hk(ia_sc(3,j):ia_temp_j, ia_sc(3,i):ia_temp_i) - conjg(tmp(1:nOrb,1:nOrb))
+            calchk(ia_sc(3,j):ia_temp_j, ia_sc(3,i):ia_temp_i) = calchk(ia_sc(3,j):ia_temp_j, ia_sc(3,i):ia_temp_i) - conjg(tmp(1:nOrb,1:nOrb))
             ! Spin-down
             ia_temp_j = ia_sc(4,j) - nOrb + 1
             ia_temp_i = ia_sc(4,i) - nOrb + 1
-            hk(ia_temp_j:ia_sc(4,j), ia_temp_i:ia_sc(4,i)) = hk(ia_temp_j:ia_sc(4,j), ia_temp_i:ia_sc(4,i)) - conjg(tmp(1:nOrb,1:nOrb))
+            calchk(ia_temp_j:ia_sc(4,j), ia_temp_i:ia_sc(4,i)) = calchk(ia_temp_j:ia_sc(4,j), ia_temp_i:ia_sc(4,i)) - conjg(tmp(1:nOrb,1:nOrb))
           end if
         end if
       end do
     end do
-
     ! ! Test if hamiltonian is Hermitian (to be commented out, uncomment to use it)
     ! do i = ia(1,1), ia(4,sys%nAtoms)
     !   do j = i, ia(4,sys%nAtoms)
-    !     if(abs(hk(j,i)-conjg(hk(i,j))) > 1.e-15_dp) then
+    !     if(abs(calchk(j,i)-conjg(calchk(i,j))) > 1.e-15_dp) then
     !       write(*,"('Hamiltonian not hermitian',i0,2x,i0,2x,es11.4)") i,j,abs(hk(j,i)-conjg(hk(i,j)))
     !     end if
     !   end do
     ! end do
 
-  end subroutine hamiltk
+  end function calchk
 
 
   ! Calculate the k-dependent tight-binding hamiltonian of the unit cell for all k-points
-  function fullhamiltk(sys) result(success)
-    use mod_kind,              only: dp,int32,int64
+  function fullhamiltk(s) result(success)
+    use mod_kind,              only: int64
     use mod_BrillouinZone,     only: realBZ
-    use mod_constants,         only: cI,cZero
-    use mod_System,            only: ia,ia_sc,System_type
-    use mod_parameters,        only: nOrb,dimHsc,output
+    use mod_System,            only: System_type
+    use mod_parameters,        only: dimHsc,output
     use mod_mpi_pars,          only: rField
     use mod_tools,             only: get_memory
-    use mod_superconductivity, only: lsuperCond
     use mod_progress,          only: write_time
     implicit none
-    type(System_type), intent(in) :: sys
-    integer(int32) :: i,j,k,ia_temp_i,ia_temp_j
+    type(System_type), intent(in) :: s
     integer(int64) :: iz
-    complex(dp) :: tmp(nOrb,nOrb)
-    complex(dp) :: kpExp,mkpExp
 
     logical :: success
     integer :: mem_avail,mem_req
@@ -182,45 +176,16 @@ contains
     end if
 
     allocate(fullhk(dimHsc,dimHsc,realBZ%workload))
-    fullhk = cZero
 
     ! Inter-site hopping terms
-    !$omp parallel do default(none) shared(fullhk,realBZ,nOrb,ia,sys,lsuperCond,ia_sc) private(i,j,k,iz,ia_temp_i,ia_temp_j,kpExp,mkpExp,tmp) schedule(dynamic)
-    do iz = 1,realBZ%workload
-
-      do k = 1, sys%nNeighbors
-        j = sys%Neighbors(k)%BasisIndex
-        ! exp(ik.(R_i-R_j))
-        kpExp = exp(cI * dot_product(realBZ%kp(1:3,iz), sys%Neighbors(k)%CellVector))
-
-        if(lsuperCond) mkpExp = conjg(kpExp)
-
-        do i = 1,sys%nAtoms
-          if(.not.sys%Neighbors(k)%isHopping(i)) cycle
-
-          tmp(1:nOrb,1:nOrb) = sys%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * kpExp
-          ! Spin-up
-          fullhk(ia(1,j):ia(2,j), ia(1,i):ia(2,i),iz) = fullhk(ia(1,j):ia(2,j), ia(1,i):ia(2,i),iz) + tmp(1:nOrb,1:nOrb)
-          ! Spin-down
-          fullhk(ia(3,j):ia(4,j), ia(3,i):ia(4,i),iz) = fullhk(ia(3,j):ia(4,j), ia(3,i):ia(4,i),iz) + tmp(1:nOrb,1:nOrb)
-
-          if(lsuperCond) then
-            ! holes
-            tmp(1:nOrb,1:nOrb) = sys%Neighbors(k)%t0i(1:nOrb, 1:nOrb, i) * mkpExp
-            ! Spin-up
-            ia_temp_j = ia_sc(3,j) + nOrb - 1
-            ia_temp_i = ia_sc(3,i) + nOrb - 1 
-            fullhk(ia_sc(3,j):ia_temp_j, ia_sc(3,i):ia_temp_i,iz) = fullhk(ia_sc(3,j):ia_temp_j, ia_sc(3,i):ia_temp_i,iz) - conjg(tmp(1:nOrb,1:nOrb))
-            ! Spin-down
-            ia_temp_j = ia_sc(4,j) - nOrb + 1
-            ia_temp_i = ia_sc(4,i) - nOrb + 1
-            fullhk(ia_temp_j:ia_sc(4,j), ia_temp_i:ia_sc(4,i),iz) = fullhk(ia_temp_j:ia_sc(4,j), ia_temp_i:ia_sc(4,i),iz) - conjg(tmp(1:nOrb,1:nOrb))
-          end if
-
-        end do
-
-      end do
-    end do
+    !$omp parallel do default(none) schedule(dynamic) &
+    !$omp& shared(fullhk,realBZ,dimHsc,s) &
+!    !$omp& shared(fullhk,realBZ,dimHsc,s) &
+    !$omp& private(iz)
+    kloop: do iz = 1,realBZ%workload
+      ! Calculating the hamiltonian for a given k-point
+      fullhk(:,:,iz) = calchk(s,realBZ%kp(1:3,iz))
+    end do kloop
     !$omp end parallel do
 
     if(rField == 0) call write_time(output%unit,'[fullhamiltk] Finished calculating full Hamiltonian on: ')
@@ -332,11 +297,11 @@ contains
     use mod_constants,        only: cI,cZero
     use mod_imRK4_parameters, only: lelectric, lmagnetic
     use mod_System,           only: ia, s => sys
-    use mod_parameters,       only: nOrb,nOrb2,dimH
+    use mod_parameters,       only: nOrb,nOrb2,dimHsc
     implicit none
     real(dp),    intent(in)  :: kp(3)
     real(dp),    intent(in)  :: b_field(3), A_t(3)
-    complex(dp), intent(out) :: hext_t(dimH,dimH)
+    complex(dp), intent(out) :: hext_t(dimHsc,dimHsc)
 
     complex(dp)  :: hext(nOrb2,nOrb2), temp(nOrb,nOrb)
     integer      :: i, j, k, mu, nu

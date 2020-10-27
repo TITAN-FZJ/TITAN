@@ -80,7 +80,6 @@ subroutine debugging()
 !   lambda=0._dp
 
 !   kp = 0._dp!kbz(1,:)
-!   call hamiltk(sys,kp,hk)
 
 !   test = transpose(conjg(hk))
 !   test2 = hk-test

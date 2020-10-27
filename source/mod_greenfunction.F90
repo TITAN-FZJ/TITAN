@@ -7,7 +7,7 @@ contains
     use mod_constants,         only: cZero,cOne
     use mod_System,            only: ia,ia_sc,System_type
     use mod_parameters,        only: nOrb2,offset,dimHsc
-    use mod_hamiltonian,       only: hamiltk
+    use mod_hamiltonian,       only: calchk,h0
     use mod_superconductivity, only: lsupercond,superCond
     use mod_tools,             only: invers
     implicit none
@@ -28,7 +28,7 @@ contains
       gslab(i,i) = ec
     end do
 
-    call hamiltk(sys,kp,hk)
+    hk = h0 + calchk(sys,kp)
 
     !zaxpy performs gslab = gslab + (-cOne)*hk
     !dimHsc*dimHsc si the dimension of the array

@@ -81,7 +81,7 @@ contains
     use mod_tools,             only: cross,diagonalize,lwork
     use mod_mpi_pars,          only: rField
     use mod_io,                only: write_header
-    use mod_hamiltonian,       only: hamilt_local,hamiltk
+    use mod_hamiltonian,       only: hamilt_local,h0,calchk
     implicit none
     type(System_type), intent(in) :: s
     integer :: i,kount,f_unit=666,w_unit=667,n
@@ -118,7 +118,7 @@ contains
       write(output%unit_loop,"('[band_structure] ',i0,' of ',i0,' points',', i = ',es10.3)") kount,nQvec1,dble((kount-1._dp)/nQvec)
 
       ! Calculating the hamiltonian for a given k-point
-      call hamiltk(s,kpoints(:,kount),hk)
+      hk = h0 + calchk(s,kpoints(:,kount))
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
       call diagonalize(dimHsc,hk,eval)
 

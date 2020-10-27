@@ -10,7 +10,7 @@ program TITAN
                                      nOrb,kp_in,kptotal_in,eta,leigenstates,itype,theta,phi, &
                                      laddresults,lsortfiles,lcreatefiles
   use mod_io,                  only: get_parameters,iowrite
-  use mod_system,              only: sys,initHamiltkStride,deallocate_System_variables
+  use mod_System,              only: sys,initHamiltkStride,initConversionMatrices,deallocate_System_variables
   use Lattice,                 only: initLattice,writeLattice
   use mod_BrillouinZone,       only: realBZ,countBZ
   use mod_SOC,                 only: llinearsoc,SOC,allocateLS,updateLS,deallocateLS
@@ -48,7 +48,7 @@ program TITAN
 
   external :: create_folder,create_files,check_files,sort_all_files
   external :: coupling,calculate_chi,calculate_all,calculate_dc_limit
-  external :: setLoops,initConversionMatrices,build_U,MPI_Finalize,deallocateLoops
+  external :: setLoops,build_U,MPI_Finalize,deallocateLoops
 
   !------------------------ MPI initialization -------------------------
   call Initialize_MPI()
