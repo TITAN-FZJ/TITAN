@@ -144,40 +144,41 @@ M 0.5 0.5 0.0
 
 ## Compiling the code
 
+### Download:
+
 First clone the repository on your local computer or supercomputer of choice.
 ```
 git clone https://iffgit.fz-juelich.de/titan/TITAN.git
 cd TITAN/build
 ```
-Depending on the system you are compiling on choose one of the following options.
-### Jureca
+
+### Compile:
+
+To use `TITAN` in the super computers, the compiler and MPI modules, as well as `CMake` must be loaded. 
+
+For example, to use the intel compiler:
+`module load Intel IntelMPI CMake`
+or to use GFortran:
+`module load GCC ParaStationMPI CMake`
+
+`TITAN` uses CMake to create the Makefile for compilation. The following options are available:
 ```
-module load Intel IntelMPI NAG/Mark26 CMake
-cmake ../ -DPLATFORM=jureca
+cmake ../ -DPLATFORM=system [-DCOMPILER=compiler -DDEBUG=ON]
 make -j12
 ```
+The system is defined for the intel compiler, and can be `jureca`, `booster` (for JURECA Booster), `juwels`, `jusuf`, `iff`. 
+TITAN was tested for the compilers: `ifort` (default), `gfortran` (gnu) and `pgi`.
 
-### Juqueen
-```
-module load nag
-cmake ../ -DPLATFORM=juqueen
-make -j16
-```
+The generated binary can be found in `TITAN/bin/`, and its filename contains the system, compiler (if not ifort) and `debug` if the respective flag was used.
 
-### Linux
-```
-cmake ../
-make -j4
-```
-
-The binary can be found in `TITAN/bin/`
 ## Running the code
 
 After compiling you can start running the code.
 An example calculation can be found in `TITAN/example`
 
-### Jureca
+### SLURM
 
+One example of a submission script used for the SLURM workload manager:
 ```
 #!/bin/bash -x
 #SBATCH --nodes=1
@@ -202,37 +203,36 @@ export KMP_AFFINITY=scatter
 srun ~/TITAN/bin/titan_jureca.exe --exports=NAG_KUSARI_FILE --exports=OMP_NUM_THREADS --exports=MKL_NUM_THREADS --exports=KMP_AFFINITY
 ```
 
-### Juqueen
-```
-# @ job_name = JobName
-# @ error = error-$(job_name).$(jobid).err
-# @ output = output-$(job_name).$(jobid).out
-# @ environment = COPY_ALL
-# @ wall_clock_limit = 24:00:00
-# @ notification = always
-# @ notify_user = your@mail
-# @ job_type = bluegene
-## @ bg_connectivity = TORUS
-# @ bg_size = 1024
-# @ queue
-
-# IMPORTANT RELATIONS
-#
-# np = number of points*256 (2*64 + 2*64)
-NUMPROCS=1024
-# bg_size*ranks_per_node = np (or bg_size = np/ranks_per_node)
-# threads_per_cpu*ranks_per_node = 64
-NUMTHREADS=64
-RANKSPERNODE=1
-#
-
-module load nag
-
-runjob --np ${NUMPROCS} --exp-env NAG_KUSARI_FILE --envs OMP_NUM_THREADS=${NUMTHREADS} --ranks-per-node ${RANKSPERNODE} --args " " --exe ~/TITAN/bin/titan_juqueen.exe
-```
-
 ### Linux
+
+To directly run the code with 2 MPI processes and 4 openMP threads:
 ```
-export OMP_NUM_THREADS=8
-mpirun -np 1 ~/TITAN/bin/titan.exe --exports=OMP_NUM_THREADS
+export OMP_NUM_THREADS=4
+mpirun -np 2 ~/TITAN/bin/titan.exe --exports=OMP_NUM_THREADS
 ```
+
+## Automatic tests
+
+`TITAN` contains various examples that are used as automatic tests using gitlab-ci. They are located in TITAN/examples.
+
+### How to make your own automatic test on TITAN:
+
+- Start a new empty folder in `TITAN/examples`. This folder will be used in `.gitlab-ci.yml` in the `TEST_FOLDER` variable.
+- Copy/create only the necessary files: `input`, `basis`, elemental files and maybe `kbands` and `inputmag`.
+- If there is no self-consistency for this system: 
+  * Run a calculation with `-> itype=1`
+  * `cp -r results results_correct`
+  * `sed -n '/Self-consistent ground state/,/\(.*iterations \)/p' output/* | head -n -1 | cut -c-77 > results_correct/scResult`
+  * Add a job for the self-consistency in the `.gitlab-ci.yml` following the pattern there
+  * Push the changes and check if the pipeline will work (otherwise, work on the fix)
+- For a new calculation (`itype>1`)
+  * run the calculation with the desired itype
+  * `cp -r results results_correct`
+  * Add a job in `.gitlab-ci.yml` following the pattern, with the corresponding self-consistency as dependency
+
+*Notes:*
+- Have in mind that good tests are finished in ~<1min. They don’t need to have physical meaning or accuracy, so the number of points can be used to speed it up.
+- It is recommended to run a local test (a second and maybe even third run) after copying the files to `results_correct`, and do the local comparison with:
+```for file in `find results/ -type f` ; do echo "Comparig file $(basename ${file})" ; python ../../scripts/compare_output.py ${file} ${file/results/results_correct} ; done```
+- If there are temporary files that should not be compared, use the EXCLUDE variable in `.gitlab-ci.yml`
+- The default tolerance (`TOL=1.d-7`) is preferable. If it needs to be increased, maybe something is wrong in the calculation.
