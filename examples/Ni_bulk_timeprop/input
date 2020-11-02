@@ -7,7 +7,7 @@
 !-> suffix = _p_l_x
 !===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
--> Options = createfolders positions ontheflysc eigenstates nojac ! addresults
+-> Options = createfolders positions ontheflysc eigenstates nojac 
 !===============================================================================!
 !                               SYSTEM VARIABLES                                !
 ! System dimension: (1,2,3)

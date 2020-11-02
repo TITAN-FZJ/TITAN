@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import sys            # System library (to read arguments from command line)
+import sys   # System library (to read arguments from command line)
 
 # Defining the tolerance
 tol = 1.e-7
@@ -24,7 +24,7 @@ def read_data(filename):
     for line in file:
       # check if the current line starts with "#" or "!"
       if not (line.startswith("#") or line.startswith(" #") or line.startswith("!")):
-        data_temp = [float(x) for x in line.split() if is_number(x)]
+        data_temp = [float(item) for sublist in [x.split() for x in line.split("=")] for item in sublist if is_number(item)]
         data.append(data_temp)
   return len(data),data
 

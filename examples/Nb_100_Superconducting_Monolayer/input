@@ -90,7 +90,4 @@
 -> skipsc = F ! skip self-consistency calculation when it finds previous results
 ! File to use as starting point:                                
 !-> scfile = CoSCTSOC.dat                                       
-!===============================================================================!
--> fermi_layer = 1 ! Which layer should the Fermi-Level be taken from
 !*******************************************************************************!
--> tbmode = 1
