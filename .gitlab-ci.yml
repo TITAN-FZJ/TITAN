@@ -116,6 +116,9 @@ test:monolayer:
     - export TEST_FOLDER="examples/Nb_100_Monolayer"
     - export ITYPE=1
     - *run_test
+    - sed -n '/Self-consistent ground state/,/\(.*iterations \)/p' output/* | head -n -1 | cut -c-77 > results/scResult
+    - cat results/scResult
+    - cat results_correct/scResult
     - *compare_files
 
 test:Nibulk:
@@ -126,6 +129,9 @@ test:Nibulk:
     - export TEST_FOLDER="examples/Ni_bulk_timeprop"
     - export ITYPE=1
     - *run_test
+    - sed -n '/Self-consistent ground state/,/\(.*iterations \)/p' output/* | head -n -1 | cut -c-77 > results/scResult
+    - cat results/scResult
+    - cat results_correct/scResult
     - export EXCLUDE="checkpoint"
     - *compare_files
 
@@ -138,6 +144,9 @@ test:supercond:
     - export TEST_FOLDER="examples/Nb_100_Superconducting_Monolayer"
     - export ITYPE=1
     - *run_test
+    - sed -n '/Self-consistent ground state/,/\(.*iterations \)/p' output/* | head -n -1 | cut -c-77 > results/scResult
+    - cat results/scResult
+    - cat results_correct/scResult
     - *compare_files
 
 #============ Other results ============#
