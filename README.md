@@ -154,7 +154,7 @@ cd TITAN/build
 
 ### Compile:
 
-To use `TITAN` in the super computers, the compiler and MPI modules, as well as `CMake` must be loaded. 
+To use `TITAN` in the super computers, the compiler and MPI modules, as well as `CMake` must be loaded.
 
 For example, to use the intel compiler:
 `module load Intel IntelMPI CMake`
@@ -166,7 +166,7 @@ or to use GFortran:
 cmake ../ -DPLATFORM=system [-DCOMPILER=compiler -DDEBUG=ON]
 make -j12
 ```
-The system is defined for the intel compiler, and can be `jureca`, `booster` (for JURECA Booster), `juwels`, `jusuf`, `iff`. 
+The system is defined for the intel compiler, and can be `jureca`, `booster` (for JURECA Booster), `juwels`, `jusuf`, `iff`.
 TITAN was tested for the compilers: `ifort` (default), `gfortran` (gnu) and `pgi`.
 
 The generated binary can be found in `TITAN/bin/`, and its filename contains the system, compiler (if not ifort) and `debug` if the respective flag was used.
@@ -210,29 +210,6 @@ To directly run the code with 2 MPI processes and 4 openMP threads:
 export OMP_NUM_THREADS=4
 mpirun -np 2 ~/TITAN/bin/titan.exe --exports=OMP_NUM_THREADS
 ```
-
 ## Automatic tests
 
 `TITAN` contains various examples that are used as automatic tests using gitlab-ci. They are located in TITAN/examples.
-
-### How to make your own automatic test on TITAN:
-
-- Start a new empty folder in `TITAN/examples`. This folder will be used in `.gitlab-ci.yml` in the `TEST_FOLDER` variable.
-- Copy/create only the necessary files: `input`, `basis`, elemental files and maybe `kbands` and `inputmag`.
-- If there is no self-consistency for this system: 
-  * Run a calculation with `-> itype=1`
-  * `cp -r results results_correct`
-  * `sed -n '/Self-consistent ground state/,/\(.*iterations \)/p' output/* | head -n -1 | cut -c-77 > results_correct/scResult`
-  * Add a job for the self-consistency in the `.gitlab-ci.yml` following the pattern there
-  * Push the changes and check if the pipeline will work (otherwise, work on the fix)
-- For a new calculation (`itype>1`)
-  * run the calculation with the desired itype
-  * `cp -r results results_correct`
-  * Add a job in `.gitlab-ci.yml` following the pattern, with the corresponding self-consistency as dependency
-
-*Notes:*
-- Have in mind that good tests are finished in ~<1min. They don’t need to have physical meaning or accuracy, so the number of points can be used to speed it up.
-- It is recommended to run a local test (a second and maybe even third run) after copying the files to `results_correct`, and do the local comparison with:
-```for file in `find results/ -type f` ; do echo "Comparig file $(basename ${file})" ; python ../../scripts/compare_output.py ${file} ${file/results/results_correct} ; done```
-- If there are temporary files that should not be compared, use the EXCLUDE variable in `.gitlab-ci.yml`
-- The default tolerance (`TOL=1.d-7`) is preferable. If it needs to be increased, maybe something is wrong in the calculation.
