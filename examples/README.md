@@ -7,10 +7,11 @@
   * `cp -r results results_correct`
   * `sed -n '/Self-consistent ground state/,/\(.*iterations \)/p' output/* | head -n -1 | cut -c-77 > results_correct/scResult`
   * Add a job for the self-consistency in the `.gitlab-ci.yml` following the pattern there
-  * Push the changes and check if the pipeline will work (otherwise, work on the fix)
+  * `git add` the necessary files (listed above) and `git add -f results_correct` folder 
+  * Commit and push the changes and check if the pipeline will work (otherwise, work on the fix)
 - For a new calculation (`itype>1`)
   * run the calculation with the desired itype
-  * `cp -r results results_correct`
+  * `cp -r results results_correct` (be careful not to copy `results` inside `results_correct`)
   * Add a job in `.gitlab-ci.yml` following the pattern, with the corresponding self-consistency as dependency
 
 *Notes:*
