@@ -1,0 +1,68 @@
+!*******************************************************************************!
+!                           CHOOSE WHAT TO CALCULATE                            !
+-> itype = 1
+!===============================================================================!
+!                                OUTPUT FILE                                    !
+-> output = output/susc
+!-> suffix = 
+!===============================================================================!
+!                         OPTIONAL RUNNING VARIABLES                            !
+-> Options = createfolders positions ontheflysc
+!===============================================================================!
+!                               SYSTEM VARIABLES                                !
+! System dimension: (1,2,3)
+-> sysdim = 3
+! Lattice and surface direction:                                                !
+-> nn_stages = 3
+! Small imaginary part of the Green function:
+-> eta = 1e-3
+!===============================================================================!
+!                          STATIC MAGNETIC ZEEMAN FIELD                         !
+!                         (in the spin reference system)                        !
+-> FIELD = F  ! Magnetic field on (T) or off (F) (choose one form below)
+! Spherical coordinates (default, angles in units of pi)                        !
+-> hwa   = 4.2561625e-5 
+-> hwt   = 0.0E+00
+-> hwp   = 0.0E+00
+! Cartesian coordinates                                                         !
+-> hwx = 0.0E+00
+-> hwy = 0.0E+00
+-> hwz = 0.0E+00
+!===============================================================================!
+!                             SPIN ORBIT COUPLING                               !
+-> SOC = T
+-> socscale = 1.00d0
+!===============================================================================!
+!                           INTEGRATION VARIABLES                               !
+! Approxiamte number of k-points: (nkpt > 0)                                    !
+-> nkpt = 1000
+! Number of parts to divide energy integral in complex plane:                   !
+-> parts = 2
+-> n1gl = 64
+!  Number of parts to divide energy integral in real axis:                      !
+-> parts3 = 1
+-> n3gl = 64
+!===============================================================================!
+!                              PLOTTING VARIABLES                               !
+! Energy range and number of points:                                            !
+-> emin =  0.d0
+-> emax =  1.d-6
+-> nEner = 5
+!-> skip_steps = 0
+!- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -!
+! Wave vector path and number of points:                                        !
+-> band = G
+-> nQvec = 1
+-> qbasis = cartesian
+!===============================================================================!
+!                              SELF-CONSISTENCY                                 !
+!        (Finding center of the bands for the given number of particles)        !
+-> skipsc = T ! skip self-consistency calculation when it finds previous results
+! File to use as starting point:
+!-> scfile = CoSCTSOC.dat
+!===============================================================================!
+!                   DIRECTION OF IN-PLANE ELECTRIC FIELD                        !
+!                    (For linear response calculations)                         !
+-> ebasis = cartesian
+-> dirEfield = 1.0 0.0 0.0
+!*******************************************************************************!

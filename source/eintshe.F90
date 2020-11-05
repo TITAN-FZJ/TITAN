@@ -11,7 +11,7 @@ subroutine eintshe(q,e)
   use mod_disturbances,  only: tchiorbiikl
   use ElectricField,     only: ElectricFieldVector
   use mod_hamiltonian,   only: hamilt_local
-  use mod_greenfunction, only: green,greenlineargfsoc
+  use mod_greenfunction, only: calc_green
   use adaptiveMesh,      only: bzs,E_k_imag_mesh,local_points
   use mod_mpi_pars,      only: rFreq,MPI_IN_PLACE,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr,abortProgram
 
@@ -65,7 +65,7 @@ subroutine eintshe(q,e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,wkbzc,ep,kp,kpq,nep,nkp,i,j,l,mu,nu,gamma,xi,sigma,sigmap,neighbor,dtdk,gf,gfuu,gfud,gfdu,gfdd,df1iikl,pfdf1iikl,tFintiikl) & !,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,expikr,prett,preLxtt,preLytt,preLztt) &
-  !$omp& shared(llineargfsoc,s,nOrb,nOrb2,bzs,realBZ,E_k_imag_mesh,ElectricFieldVector,prefactor,q,e,y,x2,wght,p2,pn2,eta,etap,local_points,real_points,sigmai2i,sigmaimunu2i,dimens,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
+  !$omp& shared(s,calc_green,nOrb,nOrb2,bzs,realBZ,E_k_imag_mesh,ElectricFieldVector,prefactor,q,e,y,x2,wght,p2,pn2,eta,etap,local_points,real_points,sigmai2i,sigmaimunu2i,dimens,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
 
   allocate(df1iikl(dimens,4),pfdf1iikl(dimens,4), &
            gf(nOrb2,nOrb2, s%nAtoms,s%nAtoms), &
@@ -124,22 +124,14 @@ subroutine eintshe(q,e)
 
       ! Green function at (k+q,E_F+E+iy)
       kpq = kp+q
-      if(llineargfsoc) then
-        call greenlineargfsoc(s%Ef+e,ep+eta,s,kpq,gf)
-      else
-        call green(s%Ef+e,ep+eta,s,kpq,gf)
-      end if
+      call calc_green(s%Ef+e,ep+eta,s,kpq,gf)
       gfuu(:,:,:,:,1) = gf(     1:nOrb ,     1:nOrb ,:,:)
       gfud(:,:,:,:,1) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
       gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:nOrb ,:,:)
       gfdd(:,:,:,:,1) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
 
       ! Green function at (k,E_F+iy)
-      if(llineargfsoc) then
-        call greenlineargfsoc(s%Ef,ep+etap,s,kp,gf)
-      else
-        call green(s%Ef,ep+etap,s,kp,gf)
-      end if
+      call calc_green(s%Ef,ep+etap,s,kp,gf)
       gfuu(:,:,:,:,2) = gf(     1:nOrb ,     1:nOrb ,:,:)
       gfud(:,:,:,:,2) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
       gfdu(:,:,:,:,2) = gf(nOrb+1:nOrb2,     1:nOrb ,:,:)
@@ -231,22 +223,14 @@ subroutine eintshe(q,e)
 
         ! Green function at (k+q,E_F+E+iy)
         kpq = kp+q
-        if(llineargfsoc) then
-          call greenlineargfsoc(ep+e,eta,s,kpq,gf)
-        else
-          call green(ep+e,eta,s,kpq,gf)
-        end if
+        call calc_green(ep+e,eta,s,kpq,gf)
         gfuu(:,:,:,:,1) = gf(     1:nOrb ,     1:nOrb ,:,:)
         gfud(:,:,:,:,1) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
         gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:nOrb ,:,:)
         gfdd(:,:,:,:,1) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
 
         ! Green function at (k,E_F+iy)
-        if(llineargfsoc) then
-          call greenlineargfsoc(ep,etap,s,kp,gf)
-        else
-          call green(ep,etap,s,kp,gf)
-        end if
+        call calc_green(ep,etap,s,kp,gf)
         gfuu(:,:,:,:,2) = gf(     1:nOrb ,     1:nOrb ,:,:)
         gfud(:,:,:,:,2) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
         gfdu(:,:,:,:,2) = gf(nOrb+1:nOrb2,     1:nOrb ,:,:)

@@ -1,5 +1,5 @@
 module adaptiveMesh
-  use mod_kind, only: int32, int64
+  use mod_kind,          only: int32, int64
   use mod_BrillouinZone, only: FractionalBrillouinZone
   ! use MPI_f08,           only: MPI_Comm
   implicit none
@@ -23,15 +23,15 @@ contains
   !! Get the number of points in the Brillouin Zone
   !! for all the energies in the imaginary axis
   subroutine generateAdaptiveMeshes(sys,pn1)
-    use mod_kind, only: dp, int64
+    use mod_kind,          only: dp, int64
     use mod_parameters,    only: total_nkpt => kptotal_in
     use EnergyIntegration, only: y
     use mod_System,        only: System_type
     use mod_BrillouinZone, only: count_3D_BZ, count_2D_BZ, count_1D_BZ
     implicit none
     type(System_type) :: sys
-    integer      :: i,pn1
-    integer      :: nx, ny, nz
+    integer           :: i,pn1
+    integer           :: nx, ny, nz
     integer(int64)    :: nall
 
     if(.not.allocated(all_nkpt)) allocate(all_nkpt(pn1),all_nkpt_rep(pn1))
@@ -74,7 +74,7 @@ contains
   !! Generate the distributed combined points {e,kx,ky,kz}
   !! (locally for a given MPI process)
   subroutine genLocalEKMesh(sys,rank,size,comm)
-    use mod_kind, only: dp, int32, int64
+    use mod_kind,          only: dp, int32, int64
     use mod_parameters,    only: total_nkpt => kptotal_in
     use EnergyIntegration, only: pn1, y
     use mod_System,        only: System_type
@@ -92,7 +92,7 @@ contains
     ! type(MPI_Comm), intent(in) :: comm
     integer(int64) :: firstPoint, lastPoint
     integer(int64) :: j, m, n, p, q, nall
-    integer   :: i
+    integer        :: i
 
     activeComm = comm
     activeRank = rank
@@ -180,8 +180,8 @@ contains
     use mod_kind, only: dp
     implicit none
     real(dp), intent(in) :: e, e0
-    integer,      intent(in) :: sysdim
-    integer,      intent(in) :: nkpt_total
+    integer,  intent(in) :: sysdim
+    integer,  intent(in) :: nkpt_total
 
     select case(sysdim)
     case(3)
@@ -201,9 +201,9 @@ contains
   integer(int64) function get_nkpt_int8(e, e0, nkpt_total, sysdim)
     use mod_kind, only: dp, int64
     implicit none
-    real(dp), intent(in) :: e, e0
-    integer,      intent(in) :: sysdim
-    integer(int64),    intent(in) :: nkpt_total
+    real(dp),       intent(in) :: e, e0
+    integer,        intent(in) :: sysdim
+    integer(int64), intent(in) :: nkpt_total
 
     select case(sysdim)
     case(3)

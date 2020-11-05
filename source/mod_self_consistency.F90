@@ -22,7 +22,7 @@ contains
 
   subroutine doSelfConsistency()
     use mod_magnet,        only: lp_matrix, mtheta, mphi, lb_matrix, sb_matrix
-    use adaptiveMesh,      only: genLocalEKMesh, freeLocalEKMesh
+    use adaptiveMesh,      only: genLocalEKMesh,freeLocalEKMesh
     use mod_BrillouinZone, only: realBZ
     use mod_mpi_pars,      only: rFreq, sFreq, FreqComm, rField, sField, FieldComm
     use mod_parameters,    only: leigenstates,lkpoints
@@ -38,11 +38,11 @@ contains
       call genLocalEKMesh(s,rField,sField, FieldComm)
     end if
 
-    !--- Checking if full tight-binding hamiltonian can be calculating ---
-    lfullhk = fullhamiltk(s)
-    if( lfullhk ) then
+    !---- Checking if full tight-binding hamiltonian can be calculated ----
+    if(leigenstates) lfullhk = fullhamiltk(s)
+    if(lfullhk) then
       expectation_values => expectation_eigenstates_fullhk
-      calc_GS_L_and_E => calc_GS_L_and_E_fullhk
+      calc_GS_L_and_E    => calc_GS_L_and_E_fullhk
     end if
 
     !--------------------------- Self-consistency --------------------------
@@ -564,28 +564,28 @@ contains
 
   end subroutine lsqfun
 
-  subroutine calcJacobian_greenfunction(jacobian, N)
+  subroutine calcJacobian_greenfunction(jacobian,N)
     !! Calculated the Jacobian of the spin magnetization
-    use mod_kind, only: dp, int64
-    use mod_constants,     only: pi, ident_norb2, cZero, pauli_dorb, ident_dorb, cOne
-    use mod_parameters,    only: nOrb, nOrb2, Un, Um, offset, eta
-    use mod_SOC,           only: llinearsoc, llineargfsoc
-    use EnergyIntegration, only: y, wght
+    use mod_kind,          only: dp,int64
+    use mod_constants,     only: pi,ident_norb2,cZero,pauli_dorb,ident_dorb,cOne
+    use mod_parameters,    only: nOrb,nOrb2,Un,Um,offset,eta,output
+    use mod_SOC,           only: llinearsoc,llineargfsoc
+    use EnergyIntegration, only: y,wght
     use mod_System,        only: s => sys
-    use adaptiveMesh,      only: local_points, E_k_imag_mesh, bzs, activeComm
+    use adaptiveMesh,      only: local_points,E_k_imag_mesh,bzs,activeComm
     use mod_BrillouinZone, only: realBZ
     use mod_hamiltonian,   only: hamilt_local
     use mod_greenfunction, only: greenlinearsoc,green
-    use mod_mpi_pars,      only: MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_SUM,ierr,abortProgram
+    use mod_mpi_pars,      only: rField,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_SUM,ierr,abortProgram
     implicit none
-    integer,                           intent(in)    :: N
+    integer,                       intent(in)    :: N
     real(dp),    dimension(N,N),   intent(inout) :: jacobian
     complex(dp), dimension(:,:),     allocatable :: gij,gji,temp,paulitemp
     complex(dp), dimension(:,:,:),   allocatable :: temp1,temp2
     complex(dp), dimension(:,:,:,:), allocatable :: gf,gvg
     integer(int64) :: ix
-    integer :: AllocateStatus
-    integer :: i,j,mu,nu,sigma,sigmap
+    integer     :: AllocateStatus
+    integer     :: i,j,mu,nu,sigma,sigmap
     real(dp)    :: kp(3), ep
     complex(dp) :: weight
     complex(dp) :: halfUn(s%nAtoms),halfUm(s%nAtoms)
@@ -593,6 +593,9 @@ contains
     integer :: ncount2
 
     external :: zgemm,MPI_Allreduce
+
+    if(rField == 0) &
+      write(output%unit_loop,"('[calcJacobian_greenfunction] Calculating the Jacobian...')")
 
     ncount2=N*N
 
@@ -625,14 +628,14 @@ contains
               gf(nOrb2, nOrb2, s%nAtoms, s%nAtoms), &
               temp(nOrb2, nOrb2), paulitemp(nOrb2, nOrb2), stat = AllocateStatus)
     if (AllocateStatus/=0) &
-    call abortProgram("[calcJacobian_greenfunction] Not enough memory for: temp1, temp2, gij, gji, gf, temp")
+      call abortProgram("[calcJacobian_greenfunction] Not enough memory for: temp1, temp2, gij, gji, gf, temp")
     gf        = cZero
     temp      = cZero
 
     if(llineargfsoc .or. llinearsoc) then
       allocate(gvg(nOrb2, nOrb2, s%nAtoms, s%nAtoms), STAT = AllocateStatus  )
       if (AllocateStatus/=0) &
-      call abortProgram("[calcJacobian_greenfunction] Not enough memory for: gvg")
+        call abortProgram("[calcJacobian_greenfunction] Not enough memory for: gvg")
       gvg = cZero
     end if
 
@@ -889,11 +892,10 @@ contains
 
   subroutine rotate_magnetization_to_field()
   !! Rotate the magnetization to the direction of the field (useful for SOC=F)
-    use mod_kind, only: dp
+    use mod_kind,       only: dp
     use mod_constants,  only: deg2rad
-    use mod_magnet,     only: lfield, hw_count, hw_list, hhw, mp, mx, my, mz, &
-                                                              mpd, mxd, myd, mzd
-    use mod_parameters, only: nOrb, output
+    use mod_magnet,     only: lfield,hw_count,hw_list,hhw,mp,mx,my,mz,mpd,mxd,myd,mzd
+    use mod_parameters, only: nOrb,output
     use mod_System,     only: s => sys
     use mod_mpi_pars,   only: rField
     implicit none
@@ -937,7 +939,7 @@ contains
 
   ! Writes the self-consistency results on the screen
   subroutine print_sc_results()
-    use mod_parameters,        only: output
+    use mod_parameters,        only: output,leigenstates
     use mod_system,            only: s => sys
     use mod_hamiltonian,       only: energy
     use mod_magnet,            only: rho, mvec_cartesian, mp, mvec_spherical, &
@@ -947,7 +949,11 @@ contains
     integer :: i
 
     write(output%unit_loop,"('|----------=============== Self-consistent ground state: ===============----------|')")
-    write(output%unit_loop,"(14x,'Ef=',f11.8,4x,'Eband=',f15.7)") s%Ef,energy
+    if(leigenstates) then
+      write(output%unit_loop,"(14x,'Ef=',f11.8,4x,'Eband=',f15.7)") s%Ef,energy
+    else
+      write(output%unit_loop,"(28x,'Ef=',f11.8)") s%Ef
+    end if
     write(output%unit_loop,"(11x,' *************** Charge density: ****************')")
     do i=1,s%nAtoms
       write(output%unit_loop,"(a,':',2x,'Ns(',i4.0,')=',f11.8,4x,'Np(',i4.0,')=',f11.8,4x,'Nd(',i4.0,')=',f11.8)") trim(s%Types(s%Basis(i)%Material)%Name),i, rho(1,i),i, sum(rho(2:4,i)),i, sum(rho(5:9,i))

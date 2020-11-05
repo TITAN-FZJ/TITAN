@@ -105,7 +105,6 @@ contains
 
   subroutine build_identity_and_U_matrix()
     !! Mounts U and identity matrix
-    use mod_kind, only: dp
     use mod_parameters, only: offset, Un, Um, sigmaimunu2i, dimens
     use mod_constants,  only: cZero, cOne
     use mod_system,     only: s => sys

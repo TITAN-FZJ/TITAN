@@ -8,11 +8,11 @@ contains
 
   ! This subroutine checks if the sum rules are being satisfied
   subroutine sumrule(chiorb_hf)
-    use mod_kind, only: dp
+    use mod_kind,       only: dp
     use mod_System,     only: s => sys
-    use mod_constants,  only: levi_civita, StoC, CtoS, cZero
+    use mod_constants,  only: levi_civita,StoC,CtoS,cZero
     use mod_magnet,     only: mxd,myd,mzd
-    use mod_parameters, only: nOrb, output, dimens, sigmaimunu2i
+    use mod_parameters, only: nOrb,output,dimens,sigmaimunu2i
     use mod_mpi_pars,   only: abortProgram,rField
     implicit none
     complex(dp), dimension(dimens,dimens), intent(in)    :: chiorb_hf
@@ -109,18 +109,18 @@ contains
   ! This subroutine calculates the effective field on the Hamiltonian
   ! H = H_0 + \sigma.B_eff
   subroutine Beffective(mvec,nAtoms,nOrb,Beff)
-    use mod_kind, only: dp
+    use mod_kind,       only: dp
     use mod_constants,  only: cZero
     use mod_parameters, only: dimens, sigmaimunu2i, offset
     use mod_SOC,        only: SOC, socscale
-    use mod_parameters, only: Un
+    use mod_parameters, only: Um
     use mod_magnet,     only: lvec, lfield, hhw
     use mod_System,     only: s => sys
     implicit none
     integer :: i,mu,nu,sigma
-    integer                             , intent(in)  :: nAtoms, nOrb
+    integer                         , intent(in)  :: nAtoms, nOrb
     real(dp)   , dimension(3,nAtoms), intent(in)  :: mvec
-    complex(dp), dimension(dimens)     , intent(out) :: Beff
+    complex(dp), dimension(dimens)  , intent(out) :: Beff
 
     Beff = cZero
     do i=1,nAtoms
@@ -137,7 +137,7 @@ contains
           end if
           ! d block
           if(mu>=5) then
-            Beff(sigmaimunu2i(sigma+1,i,mu,mu)) = Beff(sigmaimunu2i(sigma+1,i,mu,mu)) - 0.5_dp*Un(i+offset) * mvec(sigma,i)
+            Beff(sigmaimunu2i(sigma+1,i,mu,mu)) = Beff(sigmaimunu2i(sigma+1,i,mu,mu)) - 0.5_dp*Um(i+offset) * mvec(sigma,i)
             if(SOC) then
               do nu=5,nOrb
                 Beff(sigmaimunu2i(sigma+1,i,mu,nu))  = Beff(sigmaimunu2i(sigma+1,i,mu,nu)) + 0.5_dp*socscale * s%Types(s%Basis(i)%Material)%LambdaD * lvec(mu,nu,sigma)
@@ -158,13 +158,13 @@ contains
     use EnergyIntegration, only: y, wght
     use mod_parameters,    only: nOrb, nOrb2, eta
     use mod_hamiltonian,   only: hamilt_local
-    use mod_greenfunction, only: green
+    use mod_greenfunction, only: calc_green
     use adaptiveMesh,      only: local_points,E_k_imag_mesh,activeComm,bzs
     use mod_mpi_pars,      only: MPI_IN_PLACE,MPI_DOUBLE_COMPLEX,MPI_SUM,ierr,abortProgram
     implicit none
-    integer      :: AllocateStatus
-    integer(int64)    :: ix
-    integer      :: i,mu,nu,mup,nup
+    integer         :: AllocateStatus
+    integer(int64)  :: ix
+    integer         :: i,mu,nu,mup,nup
     real(dp) :: kp(3)
     real(dp) :: weight, ep
     complex(dp), dimension(:,:,:,:), allocatable :: gf
@@ -188,19 +188,20 @@ contains
     ! Build local hamiltonian
     call hamilt_local(s)
 
-    !$omp parallel default(none) &
-    !$omp& private(AllocateStatus,ix,i,mu,nu,mup,nup,kp,ep,weight,gf) &
-    !$omp& shared(local_points,s,nOrb,nOrb2,E_k_imag_mesh,bzs,eta,y,wght,imguu,imgdd,imgud,imgdu)
     allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat = AllocateStatus)
     gf = cZero
 
-    !$omp do schedule(static) reduction(+:imguu) reduction(+:imgdd) reduction(+:imgud), reduction(+:imgdu)
+    !$omp parallel do schedule(static) &
+    !$omp& default(none) &
+    !$omp& private(AllocateStatus,ix,i,mu,nu,mup,nup,kp,ep,weight,gf) &
+    !$omp& shared(calc_green,local_points,s,nOrb,nOrb2,E_k_imag_mesh,bzs,eta,y,wght) &
+    !$omp& reduction(+:imguu,imgdd,imgud,imgdu)
     do ix = 1, local_points
       ep = y(E_k_imag_mesh(1,ix))
       kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
       weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
       !Green function on energy Ef + iy, and wave vector kp
-      call green(s%Ef,ep+eta,s,kp,gf)
+      call calc_green(s%Ef,ep+eta,s,kp,gf)
       do i=1,s%nAtoms
         do mu=1,nOrb
           mup = mu+nOrb
@@ -215,10 +216,7 @@ contains
         end do
       end do
     end do
-    !$omp end do
-
-    deallocate(gf)
-    !$omp end parallel
+    !$omp end parallel do
     imguu = imguu / tpi
     imgdd = imgdd / tpi
     imgud = imgud / tpi
@@ -238,6 +236,7 @@ contains
     Smunuiivec(:,:,2,:) = (imgud(:,:,:) - imgdu(:,:,:))*cI
     Smunuiivec(:,:,3,:) =  imguu(:,:,:) - imgdd(:,:,:)
 
+    deallocate(gf)
     deallocate(imguu,imgdd,imgud,imgdu)
 
   end subroutine calcSmunu

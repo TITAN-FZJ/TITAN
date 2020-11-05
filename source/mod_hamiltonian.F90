@@ -188,7 +188,7 @@ contains
     end do kloop
     !$omp end parallel do
 
-    if(rField == 0) call write_time(output%unit,'[fullhamiltk] Finished calculating full Hamiltonian on: ')
+    if(rField == 0) call write_time('[fullhamiltk] Finished calculating full Hamiltonian on: ',output%unit)
     success = .true.
 
   end function fullhamiltk

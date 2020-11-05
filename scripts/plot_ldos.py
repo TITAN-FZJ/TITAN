@@ -38,10 +38,10 @@ def read_data(filename,orbitals=[]):
 
 if __name__ == "__main__":
 
-  if(ry2ev == 13.6057*1000):
+  if(args.mev):
     labelx = r'$E-E_F$ [meV]'
     labely = r'LDOS [states/meV]'
-  elif(ry2ev == 13.6057):
+  elif(args.ev):
     labelx = r'$E-E_F$ [eV]'
     labely = r'LDOS [states/eV]'
   else:

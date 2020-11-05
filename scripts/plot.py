@@ -1,37 +1,7 @@
 ################################################################################
-# Routine to plot {x,y} from a data file with many columns 
-# (x is obtained from column 0)
-# @author Filipe Guimarães
+# Import the arguments and style
 ################################################################################
-import numpy 	as np              # Numerical library
-import sys                         # System library (to read arguments from command line)
-import matplotlib.pyplot as plt    # Plotting library
-import matplotlib as mpl           # Plotting library
-from matplotlib import rc          # Improve math fonts
-
-################################################################
-# Initial block to redefine defaults
-rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
-## for Palatino and other serif fonts use:
-# rc('font',**{'family':'serif','serif':['Palatino']})
-mpl.rcParams['text.usetex']         = True
-mpl.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}']
-# Default fonts
-mpl.rcParams['font.size']        = 11
-mpl.rcParams['font.family']      = 'Arial'
-mpl.rcParams['figure.titlesize'] = 'large'
-mpl.rcParams['axes.titlepad']    = 10
-mpl.rcParams['lines.linewidth']  = 2
-#Legends:
-mpl.rcParams['legend.fontsize']     = 'medium'
-mpl.rcParams['legend.fancybox']     = False
-# mpl.rcParams['legend.loc']          = 'upper left'`
-mpl.rcParams["font.weight"]         = "bold"
-mpl.rcParams['legend.edgecolor']    = 'inherit'
-mpl.rcParams["axes.labelweight"]    = "bold"
-mpl.rcParams['legend.framealpha']   = None
-mpl.rcParams['legend.handlelength'] = 2
-################################################################
+from head import *
 
 # Getting filename from 1st argument of command line
 filename = sys.argv[1]
@@ -50,7 +20,7 @@ legends = ['curve 1', 'curve 2', 'curve 3', 'curve 4', 'curve 5', 'curve 6', 'cu
 
 # Loop over columns i from 1 to ncol
 for i in np.arange(1,ncol):
-	# Plot column i against column 0 (first column)
+  # Plot column i against column 0 (first column)
   plt.plot(data[:,0],data[:,i], color=colors[i-1], label=legends[i-1])
 
 # Labels and title

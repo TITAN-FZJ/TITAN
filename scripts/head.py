@@ -11,14 +11,13 @@ from matplotlib import rc                     # Improve math fonts
 import matplotlib.colors as colors            # Color selection and manipulation
 from scipy import integrate
 import argparse
-import pandas as pd                           # Python Data Analysis Library
 import matplotlib.gridspec as gridspec
 
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 ## for Palatino and other serif fonts use:
 # rc('font',**{'family':'serif','serif':['Palatino']})
 mpl.rcParams['text.usetex'] = True
-mpl.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}',r'\usepackage{siunitx}']
+mpl.rcParams['text.latex.preamble'] = r'\usepackage{amsmath} \usepackage{siunitx}'
 # Default fonts
 mpl.rcParams['font.size']        = 12
 mpl.rcParams['font.family']      = 'serif'

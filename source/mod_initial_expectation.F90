@@ -29,7 +29,7 @@ contains
 
     external :: build_U
     if(myrank == 0) &
-      call write_time(output%unit,'[calc_initial_Uterms] Obtaining initial densities: ')
+      call write_time('[calc_initial_Uterms] Obtaining initial densities: ',output%unit)
 
     allocate(sys0(sys%nTypes))
 
@@ -159,26 +159,25 @@ contains
     end do
 
     if(myrank == 0) &
-    call write_time(output%unit,'[calc_initial_Uterms] Finished calculating initial density: ')
+      call write_time('[calc_initial_Uterms] Finished calculating initial density: ',output%unit)
 
   end subroutine calc_initial_Uterms
 
 
   subroutine calc_expectation_values(sys)
     !! Calculates the expectation values of n_mu^s and n_i/2
-    use mod_kind, only: dp
-    use mod_constants,     only: cZero
-    use mod_System,        only: System_type
-    use mod_parameters,    only: nOrb
-    use mod_magnet,        only: rho,rhod,mp,mx,my,mz,mpd,mzd
-    use mod_expectation,   only: expectation_values
-    use mod_Umatrix
-    use adaptiveMesh
+    use mod_kind,        only: dp
+    use mod_constants,   only: cZero
+    use mod_System,      only: System_type
+    use mod_parameters,  only: nOrb
+    use mod_magnet,      only: rho,rhod,mp,mx,my,mz,mpd,mzd
+    use mod_expectation, only: expectation_values
+    use mod_Umatrix,     only: init_Umatrix
     implicit none
     integer      :: i
-    type(System_type),                   intent(inout) :: sys
-    real(dp), dimension(:,:)    , allocatable :: rho0
-    real(dp), dimension(:)      , allocatable :: rhod0
+    type(System_type),          intent(inout) :: sys
+    real(dp), dimension(:,:),     allocatable :: rho0
+    real(dp), dimension(:),       allocatable :: rhod0
     real(dp), dimension(nOrb,sys%nAtoms)      :: deltas
 
     allocate( rho0(nOrb,sys%nAtoms),rhod0(sys%nAtoms) )
@@ -207,7 +206,7 @@ contains
 
   subroutine write_initial_Uterms(sys0)
     !! Writes the initial orbital dependent densities (calculated with tight-binding hamiltonian only) into files
-    use mod_parameters,    only: nOrb, output, dfttype
+    use mod_parameters,    only: nOrb,output,dfttype
     use EnergyIntegration, only: parts
     use mod_System,        only: System_type
     implicit none
@@ -238,13 +237,13 @@ contains
   function read_initial_Uterms(sys0,err) result(success)
     !! Writes the initial orbital dependent densities (calculated with tight-binding hamiltonian only) into files
     use mod_kind,          only: dp
-    use mod_parameters,    only: nOrb, output, dfttype
+    use mod_parameters,    only: nOrb,output,dfttype
     use EnergyIntegration, only: parts
     use mod_System,        only: System_type
     use mod_mpi_pars,      only: rField,MPI_DOUBLE_PRECISION,FieldComm,ierr
     implicit none
     type(System_type), intent(inout) :: sys0
-    integer,      intent(out)   :: err
+    integer,           intent(out)   :: err
     logical            :: success
     character(len=500) :: filename
     integer            :: j,mu

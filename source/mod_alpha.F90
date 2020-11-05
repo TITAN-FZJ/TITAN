@@ -9,7 +9,7 @@ module mod_alpha
 contains
 
   subroutine allocate_alpha()
-    use mod_System, only: s => sys
+    use mod_System,   only: s => sys
     use mod_mpi_pars, only: abortProgram
     implicit none
     integer :: AllocateStatus
@@ -32,49 +32,52 @@ contains
   end subroutine deallocate_alpha
 
   subroutine create_alpha_files()
-    use mod_System, only: s => sys
+    use mod_System,     only: s => sys
     use mod_parameters, only: output
+    use mod_SOC,        only: SOC
     implicit none
-    character(len=500)  :: varm
+    character(len=500) :: varm
     integer :: i,j
 
     do i=1, s%nAtoms
       do j = 1, size(filename)-6
-         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-         open (unit=55+(j-1)*s%nAtoms+i, file=varm, status='replace', form='formatted')
-         write(unit=55+(j-1)*s%nAtoms+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ,  ((real[chi(j,i)], imag[chi(j,i)], j=1,4),i=1,4)  ')")
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        open (unit=55+(j-1)*s%nAtoms+i, file=varm, status='replace', form='formatted')
+        write(unit=55+(j-1)*s%nAtoms+i, fmt="('#     energy    ,  alpha   ,  gamma  ,  alpha/gamma  ,  ((real[chi(j,i)], imag[chi(j,i)], j=1,4),i=1,4)  ')")
       end do
       write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(5)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       open (unit=55+4*s%nAtoms+i, file=varm, status='replace', form='formatted')
       write(unit=55+4*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  (ReX(w))^(-2),     Um^2,   v1  ,  v2  ,  v3,    v4')")
 
-      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(6)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-      open (unit=55+5*s%nAtoms+i, file=varm, status='replace', form='formatted')
-      write(unit=55+5*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  alpha_LS')")
+      if(SOC) then
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(6)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        open (unit=55+5*s%nAtoms+i, file=varm, status='replace', form='formatted')
+        write(unit=55+5*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  alpha_LS')")
 
-      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(7)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-      open (unit=55+6*s%nAtoms+i, file=varm, status='replace', form='formatted')
-      write(unit=55+6*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  alpha_SL')")
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(7)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        open (unit=55+6*s%nAtoms+i, file=varm, status='replace', form='formatted')
+        write(unit=55+6*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  alpha_SL')")
 
-      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(8)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-      open (unit=55+7*s%nAtoms+i, file=varm, status='replace', form='formatted')
-      write(unit=55+7*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  alpha_LL')")
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(8)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        open (unit=55+7*s%nAtoms+i, file=varm, status='replace', form='formatted')
+        write(unit=55+7*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  alpha_LL')")
 
-      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(9)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-      open (unit=55+8*s%nAtoms+i, file=varm, status='replace', form='formatted')
-      write(unit=55+8*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  alpha_St')")
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(9)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        open (unit=55+8*s%nAtoms+i, file=varm, status='replace', form='formatted')
+        write(unit=55+8*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  alpha_St')")
 
-      write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(10)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-      open (unit=55+9*s%nAtoms+i, file=varm, status='replace', form='formatted')
-      write(unit=55+9*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  alpha_t')")
-
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(10)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        open (unit=55+9*s%nAtoms+i, file=varm, status='replace', form='formatted')
+        write(unit=55+9*s%nAtoms+i, fmt="('#     energy    ,  gammaM   ,  alpha_t')")
+      end if
     end do
   end subroutine create_alpha_files
 
   subroutine open_alpha_files()
     use mod_parameters, only: output
-    use mod_system, only: s => sys
-    use mod_mpi_pars, only: abortProgram
+    use mod_system,     only: s => sys
+    use mod_SOC,        only: SOC
+    use mod_mpi_pars,   only: abortProgram
     implicit none
 
     character(len=500) :: varm
@@ -83,12 +86,20 @@ contains
     errt = 0
 
     do i=1, s%nAtoms
-      do j = 1, size(filename)
-         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-         open (unit=55+(j-1)*s%nAtoms+i, file=varm, status='old', position='append', form='formatted', iostat=err)
-         errt = errt + err
-         if(err /= 0) missing_files = trim(missing_files) // " " // trim(varm)
+      do j = 1, size(filename)-6
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        open (unit=55+(j-1)*s%nAtoms+i, file=varm, status='old', position='append', form='formatted', iostat=err)
+        errt = errt + err
+        if(err /= 0) missing_files = trim(missing_files) // " " // trim(varm)
       end do
+      if(SOC) then
+        do j = size(filename)-5,size(filename)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(j)),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+          open (unit=55+(j-1)*s%nAtoms+i, file=varm, status='old', position='append', form='formatted', iostat=err)
+          errt = errt + err
+          if(err /= 0) missing_files = trim(missing_files) // " " // trim(varm)
+        end do
+      end if
     end do
     if(errt/=0) call abortProgram("[open_alpha_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
 
@@ -96,19 +107,28 @@ contains
 
   subroutine close_alpha_files()
     use mod_system, only: s => sys
+    use mod_SOC,    only: SOC
     implicit none
-    integer :: i
+    integer :: i,j
 
-    do i = 1, s%nAtoms*size(filename)
-      close(unit=55+i)
+    do i=1, s%nAtoms
+      do j = 1, size(filename)-6
+         close(unit=55+(j-1)*s%nAtoms+i)
+      end do
+      if(SOC) then
+        do j = size(filename)-5,size(filename)
+          close(unit=55+(j-1)*s%nAtoms+i)
+        end do
+      end if
     end do
+
 
   end subroutine close_alpha_files
 
   subroutine write_alpha(e)
     use mod_kind,             only: dp
-    use mod_constants,        only: StoC, CtoS
-    use mod_susceptibilities, only: schi, schihf, schiLS, schiSL, schiLL
+    use mod_constants,        only: StoC,CtoS,cZero
+    use mod_susceptibilities, only: schi,schihf,schiLS,schiSL,schiLL
     use mod_parameters,       only: sigmai2i, Um
     use mod_system,           only: s => sys
     use mod_magnet,           only: mabs
@@ -132,19 +152,20 @@ contains
     call invers(m_chi_inv,    4*s%nAtoms)
     call invers(m_chi_hf_inv, 4*s%nAtoms)
 
-    acart = 0._dp
-    acarthf = 0._dp
-    acartinv = 0._dp
-    acarthfinv = 0._dp
+    acart      = cZero
+    acarthf    = cZero
+    acartinv   = cZero
+    acarthfinv = cZero
+
     do i = 1, s%nAtoms
 
       do p = 1, 4
         do q = 1, 4
           do r = 1, 4
             do t = 1, 4
-              acart(p,q) = acart(p,q) + StoC(p,r) * m_chi(sigmai2i(r,i), sigmai2i(t,i)) * CtoS(t,q)
-              acarthf(p,q) = acarthf(p,q) + StoC(p,r) * m_chi_hf(sigmai2i(r,i), sigmai2i(t,i)) * CtoS(t,q)
-              acartinv(p,q) = acartinv(p,q) + StoC(p,r) * m_chi_inv(sigmai2i(t,i),sigmai2i(r,i)) * CtoS(t,q)
+              acart(p,q)      = acart(p,q)      + StoC(p,r) * m_chi(sigmai2i(r,i), sigmai2i(t,i))        * CtoS(t,q)
+              acarthf(p,q)    = acarthf(p,q)    + StoC(p,r) * m_chi_hf(sigmai2i(r,i), sigmai2i(t,i))     * CtoS(t,q)
+              acartinv(p,q)   = acartinv(p,q)   + StoC(p,r) * m_chi_inv(sigmai2i(t,i),sigmai2i(r,i))     * CtoS(t,q)
               acarthfinv(p,q) = acarthfinv(p,q) + StoC(p,r) * m_chi_hf_inv(sigmai2i(r,i), sigmai2i(t,i)) * CtoS(t,q)
             end do
           end do
@@ -174,8 +195,8 @@ contains
             acart_LS_inv(p,q) = schiLS(sigmai2i(p,i),sigmai2i(q,i))
             acart_SL_inv(p,q) = schiSL(sigmai2i(p,i),sigmai2i(q,i))
             acart_LL_inv(p,q) = schiLL(sigmai2i(p,i),sigmai2i(q,i))
-            acart_St_inv(p,q) = 4._dp*acart(p+1,q+1) + 2._dp*schiSL(sigmai2i(p,i),sigmai2i(q,i))
-            acart_t_inv(p,q)  = 4._dp*acart(p+1,q+1) + 2._dp*schiLS(sigmai2i(p,i),sigmai2i(q,i)) + 2._dp*schiSL(sigmai2i(p,i),sigmai2i(q,i)) + schiLL(sigmai2i(p,i),sigmai2i(q,i))
+            acart_St_inv(p,q) = 4._dp*acart(p+1,q+1) + 2._dp*acart_SL_inv(p,q)
+            acart_t_inv(p,q)  = 4._dp*acart(p+1,q+1) + 2._dp*acart_LS_inv(p,q) + 2._dp*acart_SL_inv(p,q) + acart_LL_inv(p,q)
           end do
         end do
 

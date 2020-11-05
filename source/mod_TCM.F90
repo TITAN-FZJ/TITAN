@@ -103,7 +103,7 @@ contains
     if(rField == 0) then
       write(output%unit_loop, "('[calculate_gilbert_damping] Writing results of SO-TCM to file...')")
       call writeTCM(634894, alphaSO, ndiffk, diff_k, ialphaSO, iwght)
-      call write_time(output%unit_loop,'[main] Time after SO-TCM: ')
+      call write_time('[main] Time after SO-TCM: ',output%unit_loop)
       write(output%unit_loop, "('[calculate_gilbert_damping] XC-TCM...')")
     end if
 
@@ -113,7 +113,7 @@ contains
     if(rField == 0) then
       write(output%unit_loop, "('[calculate_gilbert_damping] Writing results of XC-TCM to file...')")
       call writeTCM(634896, alphaXC, ndiffk, diff_k, ialphaXC, iwght)
-      call write_time(output%unit_loop,'[main] Time after XC-TCM: ')
+      call write_time('[main] Time after XC-TCM: ',output%unit_loop)
       call closeTCMFiles()
     end if
 

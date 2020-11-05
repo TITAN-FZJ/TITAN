@@ -64,7 +64,7 @@ program TITAN
     call get_parameters("input",sys)
   end if
 
-  if(myrank == 0) call write_time(output%unit,'[main] Started on: ')
+  if(myrank == 0) call write_time('[main] Started on: ',output%unit)
   !------------------- Useful constants and matrices -------------------
   call define_constants() ! TODO: Review
 
@@ -242,7 +242,7 @@ program TITAN
 
     !------------------------- Self-consistency ------------------------
     if(rField == 0) &
-      call write_time(output%unit_loop,'[main] Time before self-consistency: ')
+      call write_time('[main] Time before self-consistency: ',output%unit_loop)
 
     call doSelfConsistency()
 
@@ -268,7 +268,7 @@ program TITAN
     !-------------------------------------------------------------------
 
     if(rField==0) &
-      call write_time(output%unit_loop,'[main] Time after self-consistency: ')
+      call write_time('[main] Time after self-consistency: ',output%unit_loop)
 
     !-- Only calculate long. and transv. currents from existing files --
     ! if(llgtv) then TODO: Re-include
@@ -323,11 +323,7 @@ program TITAN
   call deallocate_energy_points()
   call deallocateLoops()
   call deallocate_hamiltonian()
-  if(leigenstates) then
-    call realBZ%free()
-  else
-    call freeLocalEKMesh()
-  end if
+  if(leigenstates) call realBZ%free()
   call deallocateAdaptiveMeshes()
   call deallocateLS()
   call deallocate_supercond_variables()
@@ -337,7 +333,7 @@ program TITAN
   !deallocate(kbz,wkbz) !,kbz2d)
 
   !---------------------- Finalizing the program -----------------------
-  if(myrank == 0) call write_time(output%unit,'[main] Finished on: ')
+  if(myrank == 0) call write_time('[main] Finished on: ',output%unit)
   if(myrank == 0) close(unit=output%unit)
   call MPI_Finalize(ierr)
   call exit(0)

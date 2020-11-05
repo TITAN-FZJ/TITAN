@@ -1,15 +1,15 @@
 ! ---------- Spin disturbance: Energy integration ---------
 subroutine eintshechi(q,e)
   use mod_kind,             only: dp,int32,int64
-  use mod_constants,        only: cZero, cI, tpi
-  use mod_parameters,       only: nOrb, nOrb2, eta, etap, dimens, sigmaimunu2i
-  use EnergyIntegration,    only: generate_real_epoints, y, wght, x2, p2, pn2
+  use mod_constants,        only: cZero,cI,tpi
+  use mod_parameters,       only: nOrb,nOrb2,eta,etap,dimens,sigmaimunu2i
+  use EnergyIntegration,    only: generate_real_epoints,y,wght,x2,p2,pn2
   use mod_susceptibilities, only: chiorb_hf
   use mod_system,           only: s => sys
   use mod_BrillouinZone,    only: realBZ
   use mod_SOC,              only: llineargfsoc
   use mod_hamiltonian,      only: hamilt_local
-  use mod_greenfunction,    only: green,greenlineargfsoc
+  use mod_greenfunction,    only: calc_green
   use adaptiveMesh,         only: bzs,E_k_imag_mesh,local_points
   use mod_mpi_pars,         only: MPI_IN_PLACE,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr,abortProgram
   implicit none
@@ -18,16 +18,16 @@ subroutine eintshechi(q,e)
   integer(int32) :: AllocateStatus
   complex(dp), dimension(:,:),allocatable :: Fint
 
-  integer(int32)       :: i,j,mu,nu,gamma,xi
-  real(dp)    :: kp(3),kpq(3)
-  complex(dp),dimension(:,:,:,:),allocatable    :: gf
-  complex(dp),dimension(:,:,:,:,:),allocatable  :: gfuu,gfud,gfdu,gfdd
-  real(dp) :: weight, ep
   integer(int32), dimension(4) :: index1, index2
+  integer(int32) :: i,j,mu,nu,gamma,xi
+  real(dp)       :: kp(3),kpq(3)
+  real(dp)       :: weight, ep
   integer(int64) :: ix
   integer(int64) :: ix2, nep,nkp
   integer(int64) :: real_points
   integer(int32) :: ncount
+  complex(dp), dimension(:,:,:,:),   allocatable  :: gf
+  complex(dp), dimension(:,:,:,:,:), allocatable  :: gfuu,gfud,gfdu,gfdd
 
   external :: MPI_Allreduce
 
@@ -45,20 +45,20 @@ subroutine eintshechi(q,e)
   ! Starting to calculate energy integral
   allocate(Fint(dimens,dimens), STAT = AllocateStatus  )
   if (AllocateStatus/=0) &
-  call abortProgram("[eintshechi] Not enough memory for: Fint")
+    call abortProgram("[eintshechi] Not enough memory for: Fint")
   Fint = cZero
   chiorb_hf = cZero
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,i,j,mu,nu,gamma,xi,nep,nkp,ep,kp,kpq,weight,gf,gfuu,gfud,gfdu,gfdd,index1, index2) &
-  !$omp& shared(llineargfsoc,bzs,s,nOrb,nOrb2,realBZ,local_points,q,e,y,wght,x2,p2,pn2,real_points,E_k_imag_mesh,eta,etap,dimens,sigmaimunu2i,Fint,chiorb_hf)
+  !$omp& shared(bzs,s,calc_green,nOrb,nOrb2,realBZ,local_points,q,e,y,wght,x2,p2,pn2,real_points,E_k_imag_mesh,eta,etap,dimens,sigmaimunu2i,Fint,chiorb_hf)
   allocate(gf  (nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
            gfud(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
            gfdu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
            gfdd(nOrb,nOrb,s%nAtoms,s%nAtoms,2), STAT = AllocateStatus  )
   if (AllocateStatus/=0) &
-  call abortProgram("[eintshechi] Not enough memory for: gf,gfuu,gfud,gfdu,gfdd")
+    call abortProgram("[eintshechi] Not enough memory for: gf,gfuu,gfud,gfdu,gfdd")
 
   !$omp do schedule(static) reduction(+:chiorb_hf)
   do ix = 1, local_points
@@ -67,22 +67,14 @@ subroutine eintshechi(q,e)
     weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix))
     ! Green function at (k+q,E_F+E+iy)
     kpq = kp+q
-    if(llineargfsoc) then
-      call greenlineargfsoc(s%Ef+e,ep+eta,s,kpq,gf)
-    else
-      call green(s%Ef+e,ep+eta,s,kpq,gf)
-    end if
+    call calc_green(s%Ef+e,ep+eta,s,kpq,gf)
     gfuu(:,:,:,:,1) = gf(     1:nOrb ,     1:nOrb ,:,:)
     gfud(:,:,:,:,1) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
     gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:nOrb ,:,:)
     gfdd(:,:,:,:,1) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
 
     ! Green function at (k,E_F+iy)
-    if(llineargfsoc) then
-      call greenlineargfsoc(s%Ef,ep+etap,s,kp,gf)
-    else
-      call green(s%Ef,ep+etap,s,kp,gf)
-    end if
+    call calc_green(s%Ef,ep+etap,s,kp,gf)
     gfuu(:,:,:,:,2) = gf(     1:nOrb ,     1:nOrb ,:,:)
     gfud(:,:,:,:,2) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
     gfdu(:,:,:,:,2) = gf(nOrb+1:nOrb2,     1:nOrb ,:,:)
@@ -125,22 +117,14 @@ subroutine eintshechi(q,e)
     weight = p2(nep) * realBZ % w(nkp)
     ! Green function at (k+q,E'+E+i.eta)
     kpq = kp+q
-    if(llineargfsoc) then
-      call greenlineargfsoc(ep+e,eta,s,kpq,gf)
-    else
-      call green(ep+e,eta,s,kpq,gf)
-    end if
+    call calc_green(ep+e,eta,s,kpq,gf)
     gfuu(:,:,:,:,1) = gf(     1:nOrb ,     1:nOrb ,:,:)
     gfud(:,:,:,:,1) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
     gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:nOrb ,:,:)
     gfdd(:,:,:,:,1) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
 
     ! Green function at (k,E'+i.eta)
-    if(llineargfsoc) then
-      call greenlineargfsoc(ep,etap,s,kp,gf)
-    else
-      call green(ep,etap,s,kp,gf)
-    end if
+    call calc_green(ep,etap,s,kp,gf)
     gfuu(:,:,:,:,2) = gf(     1:nOrb ,     1:nOrb ,:,:)
     gfud(:,:,:,:,2) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
     gfdu(:,:,:,:,2) = gf(nOrb+1:nOrb2,     1:nOrb ,:,:)
@@ -175,7 +159,6 @@ subroutine eintshechi(q,e)
     !Fint = Fint + df1*(p2(ix2)*s%wkbz(iz))
   end do !end pn1+1, nepoints loop
   !$omp end do nowait
-
   deallocate(gf,gfuu,gfud,gfdu,gfdd)
   !$omp end parallel
 

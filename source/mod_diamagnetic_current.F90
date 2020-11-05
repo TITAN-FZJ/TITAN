@@ -25,13 +25,13 @@ contains
 
   ! ---------- Diamagnetic current: Energy integration ---------
   subroutine calculate_idia()
-    use mod_kind, only: dp
+    use mod_kind,             only: dp
     use MPI,                  only: MPI_INTEGER, MPI_DOUBLE_PRECISION, MPI_SOURCE, MPI_ANY_TAG, MPI_ANY_SOURCE, MPI_COMM_WORLD
     use mod_mpi_pars,         only: myrank, numprocs, stat, ierr
     use mod_generate_epoints, only: y, wght
     use mod_progress,         only: progress_bar
     use mod_system,           only: n0sc1, n0sc2, n0sc, s => sys
-    use mod_parameters
+    use mod_parameters,       only: 
 
     implicit none
 
@@ -54,7 +54,7 @@ contains
 
       if(lverbose) write(outputunit,"(' Finished point ',i0,' in rank ',i0)") ix,myrank
       do i=2,pn1
-        if(lverbose) call progress_bar(outputunit,"energy points",i,pn1)
+        if(lverbose) call progress_bar("energy points",i,pn1,outputunit)
 
         call MPI_Recv(Idia,ncount,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,1604,MPI_COMM_WORLD,stat,ierr)
 
@@ -97,20 +97,21 @@ contains
 
   !   Calculates the momentum matrix in real space
   subroutine sumk_idia(e,ep,Idia)
-    use, intrinsic :: iso_fortran_env
-    use mod_constants
-    use mod_parameters,  only: nOrb,nOrb2,Npl,llineargfsoc,outputunit
-    use mod_system,      only: n0sc1,n0sc2,r_nn,nkpt,kbz,wkbz, s=>sys
-    use mod_hamiltonian, only: hamilt_local
+    use mod_kind,          only: dp
+    use mod_constants,     only: cI
+    use mod_parameters,    only: nOrb,nOrb2,Npl,llineargfsoc,outputunit
+    use mod_system,        only: n0sc1,n0sc2,r_nn,nkpt,kbz,wkbz, s=>sys
+    use mod_hamiltonian,   only: hamilt_local
+    use mod_mpi_pars,      only: 
+    use mod_greenfunction, only: calc_green
     !use mod_generate_kpoints
-    use mod_mpi_pars
 !$  use omp_lib
     implicit none
 !$  integer       :: nthreads,mythread
     real(dp),                             intent(in)  :: e,ep
     real(dp), dimension(n0sc1:n0sc2,Npl), intent(out) :: Idia
 
-    integer         :: neighbor,iz,i,mu,nu,mup,nup
+    integer     :: neighbor,iz,i,mu,nu,mup,nup
     real(dp)    :: kp(3)
     complex(dp) :: expikr(n0sc1:n0sc2)
     complex(dp), dimension(Npl,Npl,nOrb2,nOrb2)            :: gf
@@ -127,7 +128,7 @@ contains
 
     !$omp parallel default(none) &
     !$omp& private(mythread,neighbor,iz,kp,i,dtdk,expikr,gf) &
-    !$omp& shared(kbz,nkpt,wkbz,myrank,nthreads,n0sc1,n0sc2,llineargfsoc,Npl,r_nn,e,ep,pij,gij,gji, outputunit)
+    !$omp& shared(kbz,nkpt,wkbz,myrank,nthreads,n0sc1,n0sc2,Npl,r_nn,e,ep,pij,gij,gji, outputunit)
     !$  mythread = omp_get_thread_num()
     !$  if((mythread==0).and.(myrank==0)) then
     !$    nthreads = omp_get_num_threads()
@@ -146,11 +147,7 @@ contains
       call dtdksub(kp,dtdk)
 
       ! Green function at (k+q,E_F+E+iy)
-      if(llineargfsoc) then
-        call greenlineargfsoc(e,ep,s,kp,gf)
-      else
-        call green(e,ep,s,kp,gf)
-      end if
+      call calc_green(e,ep,s,kp,gf)
 
       do neighbor=n0sc1,n0sc2
         do i=1,Npl

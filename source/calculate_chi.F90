@@ -24,10 +24,9 @@ subroutine calculate_chi()
   use mod_mpi_pars,          only: rFreq,sFreq,FreqComm,FieldComm,rField,startFreq,endFreq,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,stat,ierr,MPI_SOURCE,MPI_DOUBLE_COMPLEX
   use mod_check_stop,        only: check_stop
   implicit none
-  character(len=50) :: time
-  integer           :: mcount,qcount
-  integer           :: i,j,sigma,sigmap,mu,nu,gamma,xi,p
-  real(dp)          :: e,q(3)
+  integer  :: mcount,qcount
+  integer  :: i,j,sigma,sigmap,mu,nu,gamma,xi,p
+  real(dp) :: e,q(3)
   complex(dp), dimension(:,:),   allocatable :: temp
 
   external :: eintshechi,zgemm,MPI_Recv,MPI_Send,MPI_Barrier,sort_all_files
@@ -46,7 +45,7 @@ subroutine calculate_chi()
     if(.not.laddresults) then
       call create_chi_files()
       call create_alpha_files()
-      call create_TTR_files
+      call create_TTR_files()
       call create_TSR_files()
     end if
   end if
@@ -73,7 +72,7 @@ subroutine calculate_chi()
 
       ! Time now
       if(rField == 0) &
-      call write_time(output%unit_loop,'[calculate_chi] Time after calculating chi HF: ')
+        call write_time('[calculate_chi] Time after calculating chi HF: ',output%unit_loop)
 
       ! Checking sum rule for e=0._dp
       if((abs(e) < 1.e-8_dp).and.(sum(abs(q)) < 1.e-8_dp)) call sumrule(chiorb_hf)
@@ -118,8 +117,8 @@ subroutine calculate_chi()
                     do mu=1, nOrb
                       do gamma=1, nOrb
                         do p=1, 4
-                          schiLS(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiLS(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + lvec(mu,gamma,sigma)*( chiorb(sigmaimunu2i(2,i,mu,gamma),sigmaimunu2i(p,j,nu,nu)) + chiorb(sigmaimunu2i(3,i,mu,gamma),sigmaimunu2i(p,j,nu,nu)) )*CtoS(p,sigmap+1)
-                          schiSL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiSL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + StoC(sigma+1,p)*( chiorb(sigmaimunu2i(p,i,mu,mu),sigmaimunu2i(2,j,nu,gamma)) + chiorb(sigmaimunu2i(p,i,mu,mu),sigmaimunu2i(3,j,nu,gamma)) )*lvec(nu,gamma,sigmap)
+                          schiLS(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiLS(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + lvec(mu,gamma,sigma)*( chiorb(sigmaimunu2i(2,i,mu,gamma),sigmaimunu2i(p,j,nu,nu)   ) + chiorb(sigmaimunu2i(3,i,mu,gamma),sigmaimunu2i(p,j,nu,nu)   ) )*CtoS(p,sigmap+1)
+                          schiSL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiSL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) +      StoC(sigma+1,p)*( chiorb(sigmaimunu2i(p,i,mu,mu)   ,sigmaimunu2i(2,j,nu,gamma)) + chiorb(sigmaimunu2i(p,i,mu,mu)   ,sigmaimunu2i(3,j,nu,gamma)) )*lvec(nu,gamma,sigmap)
                         end do
                         do xi=1, nOrb
                           schiLL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiLL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + lvec(mu,nu,sigma)*( chiorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) + chiorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) + chiorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) + chiorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) )*lvec(gamma,xi,sigmap)
@@ -182,7 +181,7 @@ subroutine calculate_chi()
         if(rFreq(2) == 0) then
           do mcount=1, sFreq(2)
             if (mcount/=1) then
-              call MPI_Recv(e,     1,                   MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE ,1000,FreqComm(2),stat,ierr)
+              call MPI_Recv(e,     1,                   MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE  ,1000,FreqComm(2),stat,ierr)
               call MPI_Recv(q,     3,                   MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1200,FreqComm(2),stat,ierr)
               call MPI_Recv(schi,  s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),1300,FreqComm(2),stat,ierr)
               call MPI_Recv(schihf,s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX  ,stat(MPI_SOURCE),1400,FreqComm(2),stat,ierr)
@@ -206,8 +205,7 @@ subroutine calculate_chi()
             call write_susceptibilities(qcount,e)
           end do
 
-          write(time,"('[calculate_chi] Time after step ',i0,': ')") kount
-          call write_time(output%unit_loop,time)
+          call write_time("[calculate_chi] Time after step " // trim(itos(kount)) // ": ",output%unit_loop)
 
         else
           call MPI_Send(e,     1,                   MPI_DOUBLE_PRECISION,0,1000, FreqComm(2),ierr)
