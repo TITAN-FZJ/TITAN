@@ -94,16 +94,16 @@ contains
     use mod_BrillouinZone, only: realBZ
     use mod_magnet,        only: lx,ly,lz
     use mod_hamiltonian,   only: hamilt_local
-    use mod_greenfunction, only: greenlineargfsoc,green
+    use mod_greenfunction, only: calc_green
     use mod_mpi_pars,      only: rField,FreqComm
     implicit none
     real(dp),intent(in) :: e
     integer(int64)      :: iz
     integer(int32)      :: i,mu,nu,mup,nup,sigma
-    real(dp)       :: fs_atom(s%nAtoms,realBZ%nkpt,7),fs_orb(nOrb,realBZ%nkpt,7),fs_total(realBZ%nkpt,7)
-    real(dp)       :: kp(3)
-    real(dp)       :: temp
-    complex(dp)    :: templ
+    real(dp)            :: fs_atom(s%nAtoms,realBZ%nkpt,7),fs_orb(nOrb,realBZ%nkpt,7),fs_total(realBZ%nkpt,7)
+    real(dp)            :: kp(3)
+    real(dp)            :: temp
+    complex(dp)         :: templ
     complex(dp),dimension(nOrb2,nOrb2,s%nAtoms,s%nAtoms)    :: gf
     complex(dp),dimension(nOrb2,nOrb2)    :: temp1,temp2,pauli_gf
 
@@ -115,23 +115,18 @@ contains
     ! Build local hamiltonian
     if((.not.llineargfsoc) .and. (.not.llinearsoc)) call hamilt_local(s)
 
-    !$omp parallel default(none) &
-    !$omp& private(iz,kp,gf,i,mu,nu,mup,nup,sigma,temp,temp1,temp2,templ) &
-    !$omp& shared(llineargfsoc,llinearsoc,s,nOrb,nOrb2,realBZ,e,eta,pauli_orb,pauli_gf,lx,ly,lz,fs_atom,fs_orb,fs_total)
-
     fs_atom  = 0._dp
     fs_orb   = 0._dp
     fs_total = 0._dp
 
-    !$omp do
+    !$omp parallel do &
+    !$omp& default(none) &
+    !$omp& private(iz,kp,gf,i,mu,nu,mup,nup,sigma,temp,temp1,temp2,templ) &
+    !$omp& shared(s,calc_green,nOrb,nOrb2,realBZ,e,eta,pauli_orb,pauli_gf,lx,ly,lz,fs_atom,fs_orb,fs_total)
     do iz = 1, realBZ%nkpt
       kp = realBZ%kp(1:3,iz)
       ! Green function on energy Ef + ieta, and wave vector kp
-      if((llinearsoc).or.(llineargfsoc)) then
-        call greenlineargfsoc(e,eta,s,kp,gf)
-      else
-        call green(e,eta,s,kp,gf)
-      end if
+      call calc_green(e,eta,s,kp,gf)
 
       site_i: do i=1,s%nAtoms
         do sigma=1,4
@@ -174,8 +169,7 @@ contains
       end do
 
     end do
-    !$omp end do
-    !$omp end parallel
+    !$omp end parallel do
 
     if(rField == 0) call writeFS(fs_atom,fs_orb,fs_total)
 

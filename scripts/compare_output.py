@@ -68,10 +68,18 @@ if __name__ == "__main__":
     # Loop over the columns of line i (that are equal due to the check above)
     col = 1
     for value1,value2 in zip(line1,line2):
-      if ( abs(value1 - value2) > tol ):
-        print("Column {} of line {} has different values: {} {}, difference: {}".format(col,line,value1,value2,abs(value1-value2)))
-        err = err + 1
-      col = col + 1
+      if ( abs(value1) > tol ) and ( abs(value2) > tol ):
+        if ( abs(value1 - value2) > tol ) and ( abs(value1 - value2)/value2 > tol ):
+          print("Column {} of line {} has different values: {} {}, difference: {} ({} %)".format(col,line,value1,value2,abs(value1-value2),100.*abs(value1 - value2)/value2))
+          err = err + 1
+        col = col + 1
+      elif ( abs(value1) < tol ) or ( abs(value2) < tol ):
+        if ( abs(value1 - value2) > tol ):
+          print("Column {} of line {} has different values: {} {}, difference: {}".format(col,line,value1,value2,abs(value1-value2)))
+          err = err + 1
+        col = col + 1
+      else:
+        col = col + 1
 
     line = line + 1
 

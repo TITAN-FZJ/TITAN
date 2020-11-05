@@ -491,7 +491,7 @@ subroutine debugging()
 ! !   write(*,*) '*********************'
 
 !   Finalizing program
-  if(myrank==0) call write_time(outputunit,'[main] Finished on: ')
+  if(myrank==0) call write_time('[main] Finished on: ',outputunit)
   call MPI_Finalize(ierr)
   if ((ierr/=0).and.(myrank==0)) write(outputunit,"('[main] Something went wrong in the parallelization! ierr = ',i0)") ierr
   stop

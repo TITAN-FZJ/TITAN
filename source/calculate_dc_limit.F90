@@ -28,17 +28,16 @@ subroutine calculate_dc_limit()
                                    allocate_beff, deallocate_beff, &
                                    create_dc_beff_files, write_dc_beff
   use mod_check_stop,        only: check_stop
-  use mod_tools,             only: invers
+  use mod_tools,             only: invers,itos
   use mod_mpi_pars,          only: rFreq,sFreq,FreqComm,FieldComm,rField,startFreq,endFreq,MPI_INTEGER,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,stat,ierr,MPI_SOURCE,MPI_DOUBLE_COMPLEX
   !use mod_system,          only: n0sc1, n0sc2, n0sc
   !use mod_currents !TODO: Re-Include
   !use mod_sha !TODO: Re-Include
   implicit none
-  character(len=50) :: time
-  integer(int32)    :: mcount,qcount
-  integer(int64)    :: count_temp
-  integer(int32)    :: i,j,sigma,sigmap,mu,nu,hw_count_temp!,neighbor 
-  real(dp)      :: e,q(3),mvec_spherical_temp(3,s%nAtoms)!,Icabs
+  integer(int32) :: mcount,qcount
+  integer(int64) :: count_temp
+  integer(int32) :: i,j,sigma,sigmap,mu,nu,hw_count_temp!,neighbor 
+  real(dp)       :: e,q(3),mvec_spherical_temp(3,s%nAtoms)!,Icabs
 
   external :: eintshechi,eintshelinearsoc,eintshechilinearsoc,eintshe,zgemm,MPI_Recv,MPI_Send,MPI_Barrier,sort_all_files,MPI_Bcast
 
@@ -96,7 +95,7 @@ subroutine calculate_dc_limit()
         if(llinearsoc) prefactorlsoc = identt
         call eintshechi(q,e)
         if(rField == 0) &
-          call write_time(output%unit_loop,'[calculate_dc_limit] Time after susceptibility calculation: ')
+          call write_time('[calculate_dc_limit] Time after susceptibility calculation: ',output%unit_loop)
       else
         if(rField == 0) &
           write(output%unit_loop,"('[calculate_dc_limit] Calculating prefactor to use in currents and disturbances calculation. ')")
@@ -124,7 +123,7 @@ subroutine calculate_dc_limit()
           call zgemm('n','n',dimens,dimens,dimens,cOne,chiorb,dimens,prefactor,dimens,cZero,prefactorlsoc,dimens) ! prefactorlsoc = chiorb*prefactor = prefactor*prefactorlsoc*prefactor
         end if
         if(rField == 0) &
-          call write_time(output%unit_loop,'[calculate_dc_limit] Time after prefactor calculation: ')
+          call write_time('[calculate_dc_limit] Time after prefactor calculation: ',output%unit_loop)
       end if
 
       ! Start parallelized processes to calculate disturbances and currents for energy e
@@ -135,7 +134,7 @@ subroutine calculate_dc_limit()
       end if
 
       if(rField == 0) &
-        call write_time(output%unit_loop,'[calculate_dc_limit] Time after energy integral: ')
+        call write_time('[calculate_dc_limit] Time after energy integral: ',output%unit_loop)
 
       if(rFreq(1) == 0) then
         if(.not.lhfresponses) then
@@ -446,14 +445,11 @@ subroutine calculate_dc_limit()
             !call write_dc_sha() !TODO:Re-Include
           end do
 
-          write(time,"('[calculate_dc_limit] Time after step ',i0,': ')") dc_count
-          call write_time(output%unit_loop,time)
-
           ! Recovering rank 0 counter and magnetization direction
           hw_count       = hw_count_temp
           mvec_spherical = mvec_spherical_temp
-          write(time,"('[calculate_dc_limit] Time after step ',i0,': ')") dc_count
-          call write_time(output%unit_loop,time)
+
+          call write_time("[calculate_dc_limit] Time after step " // trim(itos(dc_count)) // ": ",output%unit_loop)
         else
           call MPI_Send(hw_count         ,1                ,MPI_INTEGER         ,0,44000, FreqComm(2),ierr)
           call MPI_Send(count_temp       ,1                ,MPI_INTEGER         ,0,44100, FreqComm(2),ierr)
@@ -461,12 +457,12 @@ subroutine calculate_dc_limit()
           call MPI_Send(mvec_spherical   ,3*s%nAtoms       ,MPI_DOUBLE_PRECISION,0,44200, FreqComm(2),ierr)
           if(.not.lhfresponses) &
            call MPI_Send(schi             ,s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX  ,0,44300, FreqComm(2),ierr)
-          call MPI_Send(schihf           ,s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX  ,0,44400, FreqComm(2),ierr)
-          call MPI_Send(Beff_cart        , 4*s%nAtoms      ,MPI_DOUBLE_COMPLEX  ,0,44500, FreqComm(2),ierr)
+          call MPI_Send(schihf            ,s%nAtoms*s%nAtoms*16,MPI_DOUBLE_COMPLEX  ,0,44400, FreqComm(2),ierr)
+          call MPI_Send(Beff_cart         , 4*s%nAtoms      ,MPI_DOUBLE_COMPLEX  ,0,44500, FreqComm(2),ierr)
           call MPI_Send(total_Beff        ,4                ,MPI_DOUBLE_COMPLEX  ,0,44550, FreqComm(2),ierr)
-          call MPI_Send(disturbances     ,7*s%nAtoms       ,MPI_DOUBLE_COMPLEX  ,0,44600, FreqComm(2),ierr)
+          call MPI_Send(disturbances      ,7*s%nAtoms       ,MPI_DOUBLE_COMPLEX  ,0,44600, FreqComm(2),ierr)
           call MPI_Send(total_disturbances,7                ,MPI_DOUBLE_COMPLEX  ,0,44650, FreqComm(2),ierr)
-          call MPI_Send(torques          ,ntypetorque*3*s%nAtoms,MPI_DOUBLE_COMPLEX  ,0,44900, FreqComm(2),ierr)
+          call MPI_Send(torques           ,ntypetorque*3*s%nAtoms,MPI_DOUBLE_COMPLEX  ,0,44900, FreqComm(2),ierr)
           call MPI_Send(total_torques     ,ntypetorque*3    ,MPI_DOUBLE_COMPLEX  ,0,44950, FreqComm(2),ierr)
           !call MPI_Send(currents         ,7*n0sc*s%nAtoms  ,MPI_DOUBLE_COMPLEX  ,0,44700, FreqComm(2),ierr) !TODO:Re-Include
           !call MPI_Send(dc_currents      ,3*s%nAtoms       ,MPI_DOUBLE_PRECISION,0,45200, FreqComm(2),ierr) !TODO:Re-Include

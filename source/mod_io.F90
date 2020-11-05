@@ -53,43 +53,46 @@ contains
     end if
   end subroutine log_warning
 
-  subroutine get_parameters(filename, s)
-    use mod_kind, only: dp
-    use mod_input,             only: get_parameter, read_file, enable_input_logging, disable_input_logging
-    use mod_parameters,        only: output, laddresults, lverbose, ldebug, lkpoints, &
-                                    lpositions, lcreatefiles, lnolb, lhfresponses, &
-                                    lnodiag, lsha, lcreatefolders, lwriteonscreen, runoptions, lsimplemix, &
-                                    lcheckjac, llgtv, lsortfiles,leigenstates, lprintfieldonly, &
-                                    itype, ry2ev, ltesla, eta, etap, dmax, emin, emax, &
-                                    skip_steps, nEner, nEner1, nQvec, nQvec1, qbasis, renorm, renormnb, bands, band_cnt, &
-                                    offset, dfttype, parField, parFreq, kptotal_in, kp_in, &
-                                    nOrb, nOrb2, tbmode, fermi_layer
-    use mod_superconductivity, only: lsuperCond, superCond
-    use mod_self_consistency,  only: lontheflysc, lnojac, lforceoccup, lrotatemag, skipsc, scfile, magbasis, mag_tol
-    use mod_system,            only: System_type, n0sc1, n0sc2
-    use mod_SOC,               only: SOC, socscale, llinearsoc, llineargfsoc
-    use mod_magnet,            only: lfield, tesla, hwa_i, hwa_f, hwa_npts, hwa_npt1, hwt_i, hwt_f, &
-                                    hwt_npts, hwt_npt1, hwp_i, hwp_f, hwp_npts, hwp_npt1, hwx, hwy, &
-                                    hwz, hwscale, hwtrotate, hwprotate, skip_steps_hw
-    use ElectricField,         only: ElectricFieldMode, ElectricFieldVector, EFp, EFt
-    use EnergyIntegration,     only: parts, parts3, pn1, pn2, pnt, n1gl, n3gl
-    use mod_tools,             only: itos, rtos, vec_norm
+  subroutine get_parameters(filename,s)
+    use mod_kind,              only: dp,int64
+    use mod_input,             only: get_parameter,read_file,enable_input_logging,disable_input_logging
+    use mod_parameters,        only: output,laddresults,lverbose,ldebug,lkpoints,&
+                                     lpositions,lcreatefiles,lnolb,lhfresponses,&
+                                     lnodiag,lsha,lcreatefolders,lwriteonscreen,runoptions,lsimplemix,&
+                                     lcheckjac,llgtv,lsortfiles,leigenstates,lprintfieldonly,&
+                                     itype,ry2ev,ltesla,eta,etap,dmax,emin,emax,&
+                                     skip_steps,nEner,nEner1,nQvec,nQvec1,qbasis,renorm,renormnb,bands,band_cnt,&
+                                     offset,dfttype,parField,parFreq,kptotal_in,kp_in,&
+                                     nOrb,nOrb2,tbmode,fermi_layer
+    use mod_superconductivity, only: lsuperCond,superCond
+    use mod_self_consistency,  only: lontheflysc,lnojac,lforceoccup,lrotatemag,skipsc,scfile,magbasis,mag_tol
+    use mod_system,            only: System_type,n0sc1,n0sc2
+    use mod_SOC,               only: SOC,socscale,llinearsoc,llineargfsoc
+    use mod_magnet,            only: lfield,tesla,hwa_i,hwa_f,hwa_npts,hwa_npt1,hwt_i,hwt_f,&
+                                     hwt_npts,hwt_npt1,hwp_i,hwp_f,hwp_npts,hwp_npt1,hwx,hwy,&
+                                     hwz,hwscale,hwtrotate,hwprotate,skip_steps_hw
+    use ElectricField,         only: ElectricFieldMode,ElectricFieldVector,EFp,EFt
+    use EnergyIntegration,     only: parts,parts3,pn1,pn2,pnt,n1gl,n3gl
+    use mod_tools,             only: itos,rtos,vec_norm
     use adaptiveMesh,          only: minimumBZmesh
-    use mod_fermi_surface,     only: lfs_loop, fs_energy_npts, fs_energy_npt1, fs_energy_i, fs_energy_f
-    use mod_mpi_pars
-    use mod_imRK4_parameters,  only: integration_time, sc_tol, step, hE_0, hw1_m, hw_e, hw_m, tau_e, &
-                                     polarization_e, polarization_m, polarization_vec_e, polarization_vec_m, &
-                                     npulse_e, npulse_m, tau_m, delay_e, delay_m, lelectric, safe_factor, &
-                                     lmagnetic, lpulse_e, lpulse_m, abs_tol, rel_tol
-    use mod_expectation,       only: expectation_values, expectation_values_eigenstates, calc_GS_L_and_E, calc_GS_L_and_E_eigenstates
+    use mod_fermi_surface,     only: lfs_loop,fs_energy_npts,fs_energy_npt1,fs_energy_i,fs_energy_f
+    use mod_mpi_pars,          only: myrank,ierr
+    use mod_imRK4_parameters,  only: integration_time,sc_tol,step,hE_0,hw1_m,hw_e,hw_m,tau_e,&
+                                     polarization_e,polarization_m,polarization_vec_e,polarization_vec_m,&
+                                     npulse_e,npulse_m,tau_m,delay_e,delay_m,lelectric,safe_factor,&
+                                     lmagnetic,lpulse_e,lpulse_m,abs_tol,rel_tol
+    use mod_expectation,       only: expectation_values,expectation_values_eigenstates,calc_GS_L_and_E,calc_GS_L_and_E_eigenstates
+    use mod_greenfunction,     only: calc_green,greenlineargfsoc
     implicit none
     character(len=*),  intent(in)    :: filename
     type(System_type), intent(inout) :: s
     character(len=20), allocatable   :: s_vector(:)
-    real(dp),           allocatable  :: vector(:)
-    integer(int64),     allocatable  :: i_vector(:)
-    integer :: i, cnt
+    real(dp),          allocatable   :: vector(:)
+    integer(int64),    allocatable   :: i_vector(:)
+    integer :: i,cnt
     character(len=20) :: tmp_string
+
+    external :: MPI_Finalize
 
     if(.not. read_file(filename)) &
       call log_error("get_parameters", "File " // trim(filename) // " not found!")
@@ -191,8 +194,10 @@ contains
         lpositions = .true.
       case ("lineargfsoc")
         llineargfsoc = .true.
+        calc_green => greenlineargfsoc
       case ("linearsoc")
         llinearsoc = .true.
+        calc_green => greenlineargfsoc
       case ("nojac")
         lnojac = .true.
       case ("hfresponses")

@@ -1,7 +1,7 @@
 ! Set energy (frequency) and wave vector loops
 subroutine setLoops(s)
   use mod_kind,           only: dp
-  use mod_parameters,     only: itype, nEner, nEner1, emin, emax, deltae, nQvec, nQvec1, deltak, kdirection, band_points, band_cnt, bands, kpoints, partial_length
+  use mod_parameters,     only: itype,nEner,nEner1,emin,emax,deltae,nQvec,nQvec1,deltak,kdirection,band_points,band_cnt,bands,kpoints,partial_length
   use mod_system,         only: System_type
   use mod_tools,          only: vecDist
   use mod_band_structure, only: read_band_points

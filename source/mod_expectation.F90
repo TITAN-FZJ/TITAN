@@ -8,7 +8,7 @@ module mod_expectation
 
   abstract interface
     subroutine expectation_values_sub(s,rho,mp,mx,my,mz,deltas)
-      use mod_kind, only: dp
+      use mod_kind,       only: dp
       use mod_parameters, only: nOrb
       use mod_System,     only: System_type
       implicit none
@@ -36,25 +36,25 @@ contains
     use adaptiveMesh,          only: bzs,E_k_imag_mesh,activeComm,local_points
     use mod_parameters,        only: nOrb,nOrb2,eta
     use mod_hamiltonian,       only: hamilt_local
-    use mod_greenfunction,     only: greenlineargfsoc,green
-    use mod_superconductivity, only: lsupercond
+    use mod_greenfunction,     only: calc_green
+    use mod_superconductivity, only: lsuperCond
     use mod_mpi_pars,          only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,ierr
     implicit none
     type(System_type),                     intent(in)  :: s
-    real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
+    real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: rho,mx,my,mz
     real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: deltas
     complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: mp
 
-    integer  :: i,j, AllocateStatus
+    integer  :: i,j,AllocateStatus
     real(dp),    dimension(3)                    :: kp
     complex(dp), dimension(:,:),     allocatable :: gdiagud,gdiagdu
     real(dp),    dimension(:,:),     allocatable :: imguu,imgdd
     complex(dp), dimension(:,:,:,:), allocatable :: gf
     !--------------------- begin MPI vars --------------------
     integer(int64) :: ix
-    integer :: ncount
-    integer :: mu,mup
-    real(dp) :: weight, ep
+    integer  :: ncount
+    integer  :: mu,mup
+    real(dp) :: weight,ep,fermi
 
     external :: MPI_Allreduce
 
@@ -68,68 +68,49 @@ contains
     if(AllocateStatus /= 0) &
       call abortProgram("[expectation_values_greenfunction] Not enough memory for: gdiagdu, gdiagud")
 
-    if(lsupercond) &
+    if(lsuperCond) &
       call abortProgram("[expectation_values_greenfunction] Calculation of superconducting parameter Delta is not yet implemented with Green Functions.")
+
+    allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat=AllocateStatus)
+    if(AllocateStatus /= 0) &
+      call AbortProgram("[expectation_values_greenfunction] Not enough memory for: gf")
+    gf = cZero
+
+    !If lsupercond is true then fermi is 0.0 otherwise is s%Ef
+    fermi = merge(0._dp,s%Ef,lsuperCond)
 
     imguu   = 0._dp
     imgdd   = 0._dp
     gdiagud = cZero
     gdiagdu = cZero
-    deltas = 0._dp
+    deltas  = 0._dp
 
     ! Build local hamiltonian
     if((.not.llineargfsoc) .and. (.not.llinearsoc)) call hamilt_local(s)
 
-    !$omp parallel default(none) &
-    !$omp& private(ix,ep,kp,weight,i,mu,mup,gf,AllocateStatus) &
-    !$omp& shared(llineargfsoc,llinearsoc,local_points,eta,wght,s,nOrb,nOrb2,bzs,E_k_imag_mesh,y,gdiagud,gdiagdu,imguu,imgdd)
-    allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat=AllocateStatus)
-    if(AllocateStatus /= 0) &
-    call AbortProgram("[expectation_values_greenfunction] Not enough memory for: gf")
-    gf = cZero
+    !$omp parallel do schedule(dynamic) &
+    !$omp& default(none) &
+    !$omp& firstprivate(gf) &
+    !$omp& private(ix,ep,kp,weight,i,mu,mup,AllocateStatus) &
+    !$omp& shared(calc_green,local_points,fermi,eta,wght,s,nOrb,nOrb2,bzs,E_k_imag_mesh,y) &
+    !$omp& reduction(+:imguu,imgdd,gdiagud,gdiagdu)
+    do ix = 1, local_points
+       ep = y(E_k_imag_mesh(1,ix))
+       kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
+       weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
+       call calc_green(fermi,ep+eta,s,kp,gf)
+       do i=1,s%nAtoms
+         do mu=1,nOrb
+           mup = mu+nOrb
+           gdiagud(i,mu) = gdiagud(i,mu) + gf(mu,mup,i,i) * weight
+           gdiagdu(i,mu) = gdiagdu(i,mu) + gf(mup,mu,i,i) * weight
 
-    if(llineargfsoc .or. llinearsoc) then
-      !$omp do schedule(dynamic) reduction(+:imguu) reduction(+:imgdd) reduction(+:gdiagud) reduction(+:gdiagdu)
-      do ix = 1, local_points
-         ep = y(E_k_imag_mesh(1,ix))
-         kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
-         weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
-         call greenlineargfsoc(s%Ef,ep+eta,s,kp,gf)
-         do i=1,s%nAtoms
-           do mu=1,nOrb
-             mup = mu+nOrb
-             gdiagud(i,mu) = gdiagud(i,mu) + gf(mu,mup,i,i) * weight
-             gdiagdu(i,mu) = gdiagdu(i,mu) + gf(mup,mu,i,i) * weight
-
-             imguu(mu,i) = imguu(mu,i) + real(gf(mu ,mu ,i,i)) * weight
-             imgdd(mu,i) = imgdd(mu,i) + real(gf(mup,mup,i,i)) * weight
-           end do
+           imguu(mu,i) = imguu(mu,i) + real(gf(mu ,mu ,i,i)) * weight
+           imgdd(mu,i) = imgdd(mu,i) + real(gf(mup,mup,i,i)) * weight
          end do
-      end do
-      !$omp end do
-    else
-      !$omp do schedule(dynamic) reduction(+:imguu) reduction(+:imgdd) reduction(+:gdiagud) reduction(+:gdiagdu)
-      do ix = 1, local_points
-         ep = y(E_k_imag_mesh(1,ix))
-         kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
-         weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
-         call green(0._dp,ep+eta,s,kp,gf)
-         do i=1,s%nAtoms
-           do mu=1,nOrb
-             mup = mu+nOrb
-             gdiagud(i,mu) = gdiagud(i,mu) + gf(mu,mup,i,i) * weight
-             gdiagdu(i,mu) = gdiagdu(i,mu) + gf(mup,mu,i,i) * weight
-
-             imguu(mu,i) = imguu(mu,i) + real(gf(mu ,mu ,i,i)) * weight
-             imgdd(mu,i) = imgdd(mu,i) + real(gf(mup,mup,i,i)) * weight
-           end do
-         end do
-      end do
-      !$omp end do
-    end if
-
-    deallocate(gf)
-    !$omp end parallel
+       end do
+    end do
+    !$omp end parallel do
     imguu = imguu / pi
     imgdd = imgdd / pi
 
@@ -139,7 +120,7 @@ contains
 
     call MPI_Allreduce(MPI_IN_PLACE, imguu, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
     call MPI_Allreduce(MPI_IN_PLACE, imgdd, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, mp,    ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, mp   , ncount, MPI_DOUBLE_COMPLEX  , MPI_SUM, activeComm, ierr)
 
     mp      = mp/pi
     mx      = real(mp)
@@ -154,6 +135,7 @@ contains
       end do
     end do
 
+    deallocate(gf)
     deallocate(imguu,imgdd)
     deallocate(gdiagdu, gdiagud)
   end subroutine expectation_values_greenfunction

@@ -1,31 +1,7 @@
-import numpy as np 
-import matplotlib.pyplot as plt 
-import sys
-import matplotlib as mpl                      # Plotting library
-from matplotlib import rc                     # Improve math fonts
-rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
-## for Palatino and other serif fonts use:
-# rc('font',**{'family':'serif','serif':['Palatino']})
-mpl.rcParams['text.usetex'] = True
-mpl.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}',r'\usepackage{siunitx}']
-# matplotlib.rcParams['text.latex.preamble'] = [r'\renewcommand{\seriesdefault}{\bfdefault}',r'\boldmath']
-#matplotlib.rcParams['text.latex.preamble'] = [r'\boldmath']
-# rc('mathtext', default='regular')
-# Default fonts
-mpl.rcParams['font.size']        = 12
-mpl.rcParams['font.family']      = 'Arial'
-mpl.rcParams['figure.titlesize'] = 'large'
-mpl.rcParams['axes.titlepad'] = 10
-mpl.rcParams['lines.linewidth']  = 2
-#Legends:
-mpl.rcParams['legend.fontsize']  = 'medium'
-mpl.rcParams['legend.fancybox'] = False
-# rcParams['legend.loc'] = 'upper left'`
-mpl.rcParams['legend.framealpha'] = None
-mpl.rcParams['legend.edgecolor'] = 'inherit'
-mpl.rcParams['legend.handlelength'] = 2
-mpl.rcParams["font.weight"] = "bold"
-mpl.rcParams["axes.labelweight"] = "bold"
+################################################################################
+# Import the arguments and style
+################################################################################
+from head import *
 
 
 ################################################################################

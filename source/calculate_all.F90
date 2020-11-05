@@ -30,16 +30,15 @@ subroutine calculate_all()
   use mod_sumrule,           only: sumrule
   use mod_mpi_pars,          only: rFreq,sFreq,FreqComm,FieldComm,rField,startFreq,endFreq,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,stat,ierr,MPI_SOURCE,MPI_DOUBLE_COMPLEX
   use mod_check_stop,        only: check_stop
-  use mod_tools,             only: invers
+  use mod_tools,             only: invers,itos
   !use mod_system, only: n0sc1, n0sc2, n0sc
   !use mod_currents !TODO: Re-Include
   !use mod_sha !TODO: Re-Include
   !use mod_diamagnetic_current
   implicit none
-  character(len=50) :: time
-  integer           :: mcount,qcount
-  integer           :: i,j,sigma,sigmap,mu,nu!,neighbor
-  real(dp)         :: e,q(3)!,Icabs
+  integer  :: mcount,qcount
+  integer  :: i,j,sigma,sigmap,mu,nu!,neighbor
+  real(dp) :: e,q(3)!,Icabs
 
   external :: eintshechi,eintshelinearsoc,eintshechilinearsoc,eintshe,zgemm,MPI_Recv,MPI_Send,MPI_Barrier,sort_all_files
 
@@ -100,7 +99,7 @@ subroutine calculate_all()
         if(llinearsoc) prefactorlsoc = identt
         call eintshechi(q,e)
         if(rField == 0) &
-          call write_time(output%unit_loop,'[calculate_all] Time after susceptibility calculation: ')
+          call write_time('[calculate_all] Time after susceptibility calculation: ',output%unit_loop)
       else
         if(rField == 0) &
           write(output%unit_loop,"('[calculate_all] Calculating prefactor to use in currents and disturbances calculation. ')")
@@ -126,7 +125,7 @@ subroutine calculate_all()
           call zgemm('n','n',dimens,dimens,dimens,cOne,chiorb,dimens,prefactor,dimens,cZero,prefactorlsoc,dimens) ! prefactorlsoc = chiorb*prefactor = prefactor*prefactorlsoc*prefactor
         end if
         if(rField == 0) &
-          call write_time(output%unit_loop,'[calculate_all] Time after prefactor calculation: ')
+          call write_time('[calculate_all] Time after prefactor calculation: ',output%unit_loop)
       end if
 
       ! Start parallelized processes to calculate all quantities for energy e
@@ -137,7 +136,7 @@ subroutine calculate_all()
       end if
 
       if(rField == 0) &
-        call write_time(output%unit_loop,'[calculate_all] Time after energy integral: ')
+        call write_time('[calculate_all] Time after energy integral: ',output%unit_loop)
 
       if(rFreq(1) == 0) then
 
@@ -449,8 +448,7 @@ subroutine calculate_all()
             !call write_sha(e) !TODO: Re-Include
           end do
 
-          write(time,"('[calculate_all] Time after step ',i0,': ')") kount
-          call write_time(output%unit_loop,time)
+          call write_time("[calculate_all] Time after step " // trim(itos(kount)) // ": ",output%unit_loop)
 
         else
           call MPI_Send(e                  , 1                      , MPI_DOUBLE_PRECISION , 0 , 4000 , FreqComm(2) , ierr)
