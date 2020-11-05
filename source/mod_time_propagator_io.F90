@@ -294,11 +294,12 @@ contains
       close(unit)
 
       ! for d orbitals
+      ! for seperate orbitals
       if(i<=2) then
         unit = 5190+i
-        write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%observable(i))//"_d",trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%observable(i))//"_orb",trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
         open(unit=unit,file=trim(output_file), status= 'replace')
-        call write_header_time_prop(unit,'#    Time [ps]   , ' // trim(output%observable(i)) // '_d')
+        call write_header_time_prop(unit,'#    Time [ps]   , ' // trim(output%observable(i)) // '_orb')
         close(unit)
       end if
     end do
@@ -330,10 +331,10 @@ contains
       errt = errt + err
       if(err/=0) missing_files = trim(missing_files) // " " // trim(output_file)
 
-      ! for d orbitals
+      ! for seperate orbitals
       if(i<=2) then
         iw = 5190+i
-        write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%observable(i))//"_d",trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%observable(i))//"_orb",trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
         open (unit=iw, file=trim(output_file), status='old', position='append',form='formatted', iostat=err)
         errt = errt + err
         if(err/=0) missing_files = trim(missing_files) // " " // trim(output_file)
@@ -431,7 +432,7 @@ contains
     real(dp), dimension(s%nAtoms),      intent(in) :: rhod_t, mxd_t, myd_t, mzd_t, Lxm_t, Lym_t, Lzm_t
     real(dp), dimension(3),             intent(in) :: field_m, field_e
 
-    integer  :: i
+    integer  :: i, mu
     real(dp) :: time
 
     call open_time_prop_files()
@@ -444,7 +445,9 @@ contains
     write(unit=5094,fmt="(100(es16.9,2x))") time, (Lxm_t(i), Lym_t(i), Lzm_t(i), sqrt(Lxm_t(i)**2 + Lym_t(i)**2 + Lzm_t(i)**2),i=1,s%nAtoms)
 
     write(unit=5191,fmt="(100(es16.9,2x))") time, (rhod_t(i),i=1,s%nAtoms)
-    write(unit=5192,fmt="(100(es16.9,2x))") time, (mxd_t(i),myd_t(i),mzd_t(i),sqrt(mxd_t(i)**2 + myd_t(i)**2 + mzd_t(i)**2),i=1,s%nAtoms)
+    
+  ! write(unit=5192,fmt="(100(es16.9,2x))") time, (mxd_t(i),myd_t(i),mzd_t(i),sqrt(mxd_t(i)**2 + myd_t(i)**2 + mzd_t(i)**2),i=1,s%nAtoms)
+    write(unit=5192,fmt="(100(es16.9,2x))") time, ( (mx_t(mu,i),my_t(mu,i),mz_t(mu,i), mu=1,nOrb),i=1,s%nAtoms)
 
     write(unit=6090,fmt="(7(es16.9,2x))") time, (field_m(i),i=1,3), (field_e(i),i=1,3)
 
