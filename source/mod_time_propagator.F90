@@ -332,7 +332,7 @@ contains
 
       ! Writing results to file
       if(rFreq(1) == 0) &
-        call write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t, b_field, A_t, E_t, lxm_t, lym_t, lzm_t) 
+        call write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,b_field,A_t,E_t,lxm_t,lym_t,lzm_t) 
 
       counter = counter + 1
       it = it + 1 ! Counter of accepted iterations

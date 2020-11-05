@@ -293,8 +293,7 @@ contains
       call write_header_time_prop(unit,'#    Time [ps]   , ' // output%observable(i))
       close(unit)
 
-      ! for d orbitals
-      ! for seperate orbitals
+      ! for separate orbitals
       if(i<=2) then
         unit = 5190+i
         write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%observable(i))//"_orb",trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
@@ -331,7 +330,7 @@ contains
       errt = errt + err
       if(err/=0) missing_files = trim(missing_files) // " " // trim(output_file)
 
-      ! for seperate orbitals
+      ! for separate orbitals
       if(i<=2) then
         iw = 5190+i
         write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%observable(i))//"_orb",trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
@@ -362,7 +361,7 @@ contains
       ! for all orbitals
       close(5090+i)
 
-      ! for d orbitals
+      ! for separate orbitals
       if(i<=2) close(5190+i)
     end do
 
@@ -420,16 +419,16 @@ contains
 
 
   ! subroutine to write in time propagation output files
-  subroutine write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,rhod_t, mxd_t, myd_t, mzd_t, field_m, field_e, E_t, Lxm_t, Lym_t, Lzm_t) 
+  subroutine write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,field_m,field_e,E_t, Lxm_t,Lym_t,Lzm_t) 
     use mod_kind,             only: dp
     use mod_system,           only: System_type
     use mod_parameters,       only: nOrb
     use mod_imRK4_parameters, only: time_conv
     implicit none
     type(System_type),                  intent(in) :: s
-    real(dp),                           intent(in) :: t, E_t
-    real(dp), dimension(nOrb,s%nAtoms), intent(in) :: rho_t, mx_t, my_t, mz_t
-    real(dp), dimension(s%nAtoms),      intent(in) :: rhod_t, mxd_t, myd_t, mzd_t, Lxm_t, Lym_t, Lzm_t
+    real(dp),                           intent(in) :: t,E_t
+    real(dp), dimension(nOrb,s%nAtoms), intent(in) :: rho_t,mx_t,my_t,mz_t
+    real(dp), dimension(s%nAtoms),      intent(in) :: Lxm_t,Lym_t,Lzm_t
     real(dp), dimension(3),             intent(in) :: field_m, field_e
 
     integer  :: i, mu
@@ -444,10 +443,10 @@ contains
     write(unit=5093,fmt="(100(es16.9,2x))") time, E_t
     write(unit=5094,fmt="(100(es16.9,2x))") time, (Lxm_t(i), Lym_t(i), Lzm_t(i), sqrt(Lxm_t(i)**2 + Lym_t(i)**2 + Lzm_t(i)**2),i=1,s%nAtoms)
 
-    write(unit=5191,fmt="(100(es16.9,2x))") time, (rhod_t(i),i=1,s%nAtoms)
+    write(unit=5191,fmt="(100(es16.9,2x))") time, ((rho_t(mu,i), mu=1,nOrb), i=1,s%nAtoms)
     
   ! write(unit=5192,fmt="(100(es16.9,2x))") time, (mxd_t(i),myd_t(i),mzd_t(i),sqrt(mxd_t(i)**2 + myd_t(i)**2 + mzd_t(i)**2),i=1,s%nAtoms)
-    write(unit=5192,fmt="(100(es16.9,2x))") time, ( (mx_t(mu,i),my_t(mu,i),mz_t(mu,i), mu=1,nOrb),i=1,s%nAtoms)
+    write(unit=5192,fmt="(100(es16.9,2x))") time, ( (mx_t(mu,i),my_t(mu,i),mz_t(mu,i), mu=1,nOrb), i=1,s%nAtoms)
 
     write(unit=6090,fmt="(7(es16.9,2x))") time, (field_m(i),i=1,3), (field_e(i),i=1,3)
 
