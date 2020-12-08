@@ -83,7 +83,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
 
 
 # Executable names
-if(PLATFORM MATCHES jureca)
+if(PLATFORM MATCHES jurecadc)
   set(CMAKE_Fortran_COMPILER mpif90)
 elseif(PLATFORM MATCHES osx)
   set(CMAKE_Fortran_COMPILER mpif90)
@@ -157,7 +157,7 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 execute_process(COMMAND git describe --abbrev=8 --dirty --always OUTPUT_VARIABLE GIT_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
-  if(PLATFORM MATCHES jureca)
+  if(PLATFORM MATCHES jurecadc)
     target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
@@ -260,7 +260,7 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -align array64byte
                                                 -xHost
                                                 )
-  endif(PLATFORM MATCHES jureca)
+  endif(PLATFORM MATCHES jurecadc)
 
   if(DEBUG)
     target_compile_options(${TITAN_EXE} PRIVATE -C
