@@ -63,7 +63,7 @@ contains
                                      itype,ry2ev,ltesla,eta,etap,dmax,emin,emax,&
                                      skip_steps,nEner,nEner1,nQvec,nQvec1,qbasis,renorm,renormnb,bands,band_cnt,&
                                      offset,dfttype,parField,parFreq,kptotal_in,kp_in,&
-                                     nOrb,nOrb2,tbmode,fermi_layer
+                                     nOrb,nOrb2,tbmode,fermi_layer,lfixEf,lEf_overwrite,Ef_overwrite
     use mod_superconductivity, only: lsuperCond,superCond
     use mod_self_consistency,  only: lontheflysc,lnojac,lforceoccup,lrotatemag,skipsc,scfile,magbasis,mag_tol
     use mod_system,            only: System_type,n0sc1,n0sc2
@@ -224,6 +224,8 @@ contains
         lforceoccup = .true.
       case ("simplemix")
         lsimplemix = .true.
+      case ("fixEf")
+        lfixEf = .true.
       case ("eigenstates")
         leigenstates = .true.
         expectation_values => expectation_values_eigenstates
@@ -439,7 +441,6 @@ contains
     if(.not. get_parameter("scfile", scfile))&
       call log_warning("get_parameters","'scfile' missing. Using none.")
     !======================================== Tight-Binding ========================================
-
     if(.not. get_parameter("tbmode", tbmode, 1)) &
       call log_warning("get_parameters", "'tbmode' missing. Using default value 1 (SK parameters).")
     if(.not. get_parameter("nOrb",nOrb,9)) &
@@ -470,6 +471,10 @@ contains
 
       if(.not. get_parameter("fermi_layer", fermi_layer, 1)) &
         call log_warning("get_parameters", "'fermi_layer' not given. Using default value: fermi_layer = 1")
+      if(get_parameter("Ef", Ef_overwrite)) then
+        call log_warning("get_parameters", "Ef = " // trim(rtos(Ef_overwrite,"(es8.1)")) //" given. Overwriting (initial) Fermi energy. (use fixEf runoption to fix)")
+        lEf_overwrite = .true.
+      end if
 
     !--------------------------------------------- DFT ---------------------------------------------
     else if(2 == tbmode) then

@@ -31,6 +31,9 @@ module mod_parameters
   !! Number of orbitals and 2*(number of orbitals) (for spin)
   integer(int32) :: fermi_layer   
   !! Which site will be used for fermi level (Maybe remove it and read from outside?)
+  real(dp) :: Ef_overwrite
+  logical  :: lEf_overwrite = .false.
+  !! Overwrite Fermi energy variables (that is set immediately before self-consistency)
   character(len=20), dimension(:), allocatable :: layers
   !! Number of layers (Obsolete?)
 
@@ -102,6 +105,7 @@ module mod_parameters
   logical :: lsimplemix      = .false.
   logical :: leigenstates    = .false.
   logical :: lprintfieldonly = .false.
+  logical :: lfixEf          = .false.
   !========================================================================================!
   ! Activate debug options
   logical :: lverbose = .false.
