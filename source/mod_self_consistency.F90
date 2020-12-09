@@ -25,7 +25,7 @@ contains
     use adaptiveMesh,      only: genLocalEKMesh,freeLocalEKMesh
     use mod_BrillouinZone, only: realBZ
     use mod_mpi_pars,      only: rFreq, sFreq, FreqComm, rField, sField, FieldComm
-    use mod_parameters,    only: leigenstates,lkpoints
+    use mod_parameters,    only: leigenstates,lkpoints,lEf_overwrite,Ef_overwrite
     use mod_System,        only: s => sys
     use mod_expectation,   only: groundstate_L_and_E,expectation_values,expectation_eigenstates_fullhk,calc_GS_L_and_E,calc_GS_L_and_E_fullhk
     use mod_hamiltonian,   only: fullhamiltk,lfullhk
@@ -55,6 +55,10 @@ contains
       call rotate_magnetization_to_field()
     end if
 
+    ! Overwriting Fermi energy with input value
+    if(lEf_overwrite) s%Ef = Ef_overwrite
+
+    ! Performing self-consistency
     if(lselfcon) call calcMagneticSelfConsistency()
 
     ! Writing new n and mz to file after self-consistency is done
@@ -401,11 +405,10 @@ contains
   subroutine calcMagneticSelfConsistency()
   !! This subroutine performs the self-consistency
     use mod_kind,              only: dp
-    use mod_parameters,        only: nOrb,output
+    use mod_parameters,        only: nOrb,output,lfixEf
     use mod_magnet,            only: rho,mxd,myd,mzd
     use mod_mpi_pars,          only: rField
     use mod_system,            only: s => sys
-    use adaptiveMesh,          only:
     use mod_dnsqe,             only: dnsqe
     use mod_superconductivity, only: superCond, lsuperCond, singlet_coupling
     implicit none
@@ -414,7 +417,8 @@ contains
     integer               :: i,mu,lwa,ifail=0
 
     neq_per_atom = 8 + (superCond-1)*nOrb
-    neq = neq_per_atom*s%nAtoms+1
+    neq = neq_per_atom*s%nAtoms
+    if(.not.lfixEf) neq = neq+1
     allocate( sc_solu(neq),diag(neq),qtf(neq),fvec(neq),jac(neq,neq) )
 
     ! Putting read n and m existing solutions into sc_solu (first guess of the subroutine)
@@ -432,7 +436,7 @@ contains
         end do
       end if
     end do
-    sc_solu(neq_per_atom*s%nAtoms+1) = s%Ef
+    if(.not.lfixEf) sc_solu(neq_per_atom*s%nAtoms+1) = s%Ef
 
     if(rField == 0) &
       write(output%unit_loop,"('[self_consistency] Starting self-consistency:')")
@@ -491,17 +495,17 @@ contains
   end subroutine check_jacobian
 
   subroutine lsqfun(iflag,M,N,x,fvec,selfconjac,ljc,iw,liw,w,lw)
-    use mod_kind, only: dp
+    use mod_kind,              only: dp
     use mod_system,            only: s => sys
     use mod_magnet,            only: rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,           only: update_Umatrix
-    use mod_parameters,        only: nOrb
+    use mod_parameters,        only: nOrb,lfixEf
     use mod_expectation,       only: expectation_values
     use mod_superconductivity, only: lsuperCond, update_singlet_couplings
     ! use mod_mpi_pars
     implicit none
     integer      :: M,N,ljc,i,mu,iflag,lw,liw,iw(liw)
-    real(dp) :: w(lw)
+    real(dp)     :: w(lw)
     real(dp),    dimension(N)             :: x,fvec
     real(dp),    dimension(M,ljc)         :: selfconjac
     real(dp),    dimension(nOrb,s%nAtoms) :: rho_in
@@ -531,7 +535,7 @@ contains
         end do
       end if
     end do
-    s%Ef    = x(N)
+    if(.not.lfixEf) s%Ef    = x(N)
 
     call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
     if(lsuperCond) call update_singlet_couplings(s,singlet_coupling_in)
@@ -558,7 +562,7 @@ contains
         end do
       end if
     end do
-    fvec(N) = sum(rho) - s%totalOccupation
+    if(.not.lfixEf) fvec(N) = sum(rho) - s%totalOccupation
 
     call calcJacobian_greenfunction(selfconjac, N)
 
@@ -568,7 +572,7 @@ contains
     !! Calculated the Jacobian of the spin magnetization
     use mod_kind,          only: dp,int64
     use mod_constants,     only: pi,ident_norb2,cZero,pauli_dorb,ident_dorb,cOne
-    use mod_parameters,    only: nOrb,nOrb2,Un,Um,offset,eta,output
+    use mod_parameters,    only: nOrb,nOrb2,Un,Um,offset,eta,output,lfixEf
     use mod_SOC,           only: llinearsoc,llineargfsoc
     use EnergyIntegration, only: y,wght
     use mod_System,        only: s => sys
@@ -621,7 +625,7 @@ contains
 
     !$omp parallel default(none) &
     !$omp& private(AllocateStatus,ix,i,j,mu,nu,sigma,sigmap,ep,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp) &
-    !$omp& shared(llineargfsoc,llinearsoc,local_points,s,nOrb,nOrb2,neq_per_atom,realBZ,bzs,E_k_imag_mesh,y,eta,wght,halfUn,halfUm,pauli_a,pauli_b,jacobian)
+    !$omp& shared(llineargfsoc,llinearsoc,lfixEf,local_points,s,nOrb,nOrb2,neq_per_atom,realBZ,bzs,E_k_imag_mesh,y,eta,wght,halfUn,halfUm,pauli_a,pauli_b,jacobian)
     allocate( temp1(nOrb2, nOrb2, 4), &
               temp2(nOrb2, nOrb2, 4), &
               gij(nOrb2,nOrb2), gji(nOrb2,nOrb2), &
@@ -681,7 +685,7 @@ contains
 
             do mu = 1,nOrb
               ! Last line (Total charge neutrality)
-              jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+(nu-4)) = jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+(nu-4)) + real(temp(mu,mu) + temp(mu+9,mu+9))
+              if(.not.lfixEf) jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+(nu-4)) = jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+(nu-4)) + real(temp(mu,mu) + temp(mu+9,mu+9))
               if(mu<5) cycle
               jacobian((i-1)*neq_per_atom+(mu-4),(j-1)*neq_per_atom+(nu-4)) = jacobian((i-1)*neq_per_atom+(mu-4),(j-1)*neq_per_atom+(nu-4)) + real(temp(mu,mu) + temp(mu+9,mu+9))
             end do
@@ -718,7 +722,7 @@ contains
 
             do mu = 1,nOrb
               ! Last line (Total charge neutrality)
-              jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+4+sigmap) = jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+4+sigmap) + real(temp(mu,mu) + temp(mu+9,mu+9))
+              if(.not.lfixEf) jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+4+sigmap) = jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+4+sigmap) + real(temp(mu,mu) + temp(mu+9,mu+9))
               if(mu<5) cycle
               jacobian((i-1)*neq_per_atom+(mu-4),(j-1)*neq_per_atom+4+sigmap) = jacobian((i-1)*neq_per_atom+(mu-4),(j-1)*neq_per_atom+4+sigmap) + real(temp(mu,mu) + temp(mu+9,mu+9))
             end do
@@ -767,7 +771,7 @@ contains
 
               do mu = 1,nOrb
                 ! Last line (Total charge neutrality)
-                jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+(nu-4)) = jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+(nu-4)) - real(temp(mu,mu) + temp(mu+9,mu+9))
+                if(.not.lfixEf) jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+(nu-4)) = jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+(nu-4)) - real(temp(mu,mu) + temp(mu+9,mu+9))
                 if(mu<5) cycle
                 jacobian((i-1)*neq_per_atom+(mu-4),(j-1)*neq_per_atom+(nu-4)) = jacobian((i-1)*neq_per_atom+(mu-4),(j-1)*neq_per_atom+(nu-4)) - real(temp(mu,mu) + temp(mu+9,mu+9))
               end do
@@ -804,7 +808,7 @@ contains
 
               do mu = 1,nOrb
                 ! Last line (Total charge neutrality)
-                jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+4+sigmap) = jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+4+sigmap) - real(temp(mu,mu) + temp(mu+9,mu+9))
+                if(.not.lfixEf) jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+4+sigmap) = jacobian(  neq_per_atom*s%nAtoms+1,(j-1)*neq_per_atom+4+sigmap) - real(temp(mu,mu) + temp(mu+9,mu+9))
                 if(mu<5) cycle
                 jacobian((i-1)*neq_per_atom+(mu-4),(j-1)*neq_per_atom+4+sigmap) = jacobian((i-1)*neq_per_atom+(mu-4),(j-1)*neq_per_atom+4+sigmap) - real(temp(mu,mu) + temp(mu+9,mu+9))
               end do
@@ -832,49 +836,51 @@ contains
 
     ! Last column: Derivatives with respect to the Fermi level
     ! No energy integral - only BZ integration of G(Ef)
-    !$omp do schedule(static) reduction(+:jacobian)
-    do ix = 1, realBZ%workload
-      kp = realBZ%kp(1:3,ix)
-      weight = cmplx(realBZ%w(ix),0._dp,dp)
+    if(.not.lfixEf) then
+      !$omp do schedule(static) reduction(+:jacobian)
+      do ix = 1, realBZ%workload
+        kp = realBZ%kp(1:3,ix)
+        weight = cmplx(realBZ%w(ix),0._dp,dp)
 
-      ! Green function at Ef + ieta, and wave vector kp
-      if(llineargfsoc .or. llinearsoc) then
-        call greenlinearsoc(s%Ef,eta,s,kp,gf,gvg)
-        gf = gf + gvg
-      else
-        call green(s%Ef,eta,s,kp,gf)
-      end if
+        ! Green function at Ef + ieta, and wave vector kp
+        if(llineargfsoc .or. llinearsoc) then
+          call greenlinearsoc(s%Ef,eta,s,kp,gf,gvg)
+          gf = gf + gvg
+        else
+          call green(s%Ef,eta,s,kp,gf)
+        end if
 
-      do i=1,s%nAtoms
-        gij = gf(:,:,i,i)
+        do i=1,s%nAtoms
+          gij = gf(:,:,i,i)
 
-        ! Charge density per orbital lines
-        ! temp1 =  pauli*g_ii
-        paulitemp = pauli_a(:,:, 1)
-        call zgemm('n','n',18,18,18,weight,paulitemp,18,gij,18,cZero,temp,18)
-
-        do mu = 1,nOrb
-          ! Last line (Total charge neutrality)
-          jacobian(  neq_per_atom*s%nAtoms+1,neq_per_atom*s%nAtoms+1) = jacobian(  neq_per_atom*s%nAtoms+1,neq_per_atom*s%nAtoms+1) - dimag(temp(mu,mu) + temp(mu+9,mu+9))
-          if(mu<5) cycle
-          jacobian((i-1)*neq_per_atom+(mu-4),neq_per_atom*s%nAtoms+1) = jacobian((i-1)*neq_per_atom+(mu-4),neq_per_atom*s%nAtoms+1) - dimag(temp(mu,mu) + temp(mu+9,mu+9))
-        end do
-
-        do sigma = 2,4
+          ! Charge density per orbital lines
           ! temp1 =  pauli*g_ii
-          paulitemp = pauli_a(:,:, sigma)
+          paulitemp = pauli_a(:,:, 1)
           call zgemm('n','n',18,18,18,weight,paulitemp,18,gij,18,cZero,temp,18)
 
-          do mu = 5,nOrb
-            jacobian((i-1)*neq_per_atom+4+sigma,neq_per_atom*s%nAtoms+1) = jacobian((i-1)*neq_per_atom+4+sigma,neq_per_atom*s%nAtoms+1) - dimag(temp(mu,mu) + temp(mu+9,mu+9))
+          do mu = 1,nOrb
+            ! Last line (Total charge neutrality)
+            jacobian(  neq_per_atom*s%nAtoms+1,neq_per_atom*s%nAtoms+1) = jacobian(  neq_per_atom*s%nAtoms+1,neq_per_atom*s%nAtoms+1) - dimag(temp(mu,mu) + temp(mu+9,mu+9))
+            if(mu<5) cycle
+            jacobian((i-1)*neq_per_atom+(mu-4),neq_per_atom*s%nAtoms+1) = jacobian((i-1)*neq_per_atom+(mu-4),neq_per_atom*s%nAtoms+1) - dimag(temp(mu,mu) + temp(mu+9,mu+9))
           end do
-        end do
 
-        ! No linear correction is needed since it's a single Green function
+          do sigma = 2,4
+            ! temp1 =  pauli*g_ii
+            paulitemp = pauli_a(:,:, sigma)
+            call zgemm('n','n',18,18,18,weight,paulitemp,18,gij,18,cZero,temp,18)
 
-      end do ! End nAtoms i loop
-    end do ! End nkpt loop
-    !$omp end do nowait
+            do mu = 5,nOrb
+              jacobian((i-1)*neq_per_atom+4+sigma,neq_per_atom*s%nAtoms+1) = jacobian((i-1)*neq_per_atom+4+sigma,neq_per_atom*s%nAtoms+1) - dimag(temp(mu,mu) + temp(mu+9,mu+9))
+            end do
+          end do
+
+          ! No linear correction is needed since it's a single Green function
+
+        end do ! End nAtoms i loop
+      end do ! End nkpt loop
+      !$omp end do nowait
+    end if
 
     deallocate(paulitemp)
     deallocate(temp1, temp2, temp)
@@ -1094,11 +1100,11 @@ contains
   !     mz - mz_in   = 0
   !  sum n - n_total = 0
   subroutine sc_eqs(N,x,fvec,iflag)
-    use mod_kind, only: dp
+    use mod_kind,              only: dp
     use mod_system,            only: s => sys
     use mod_magnet,            only: iter,rho,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,           only: update_Umatrix
-    use mod_parameters,        only: nOrb
+    use mod_parameters,        only: nOrb,lfixEf
     use mod_expectation,       only: expectation_values
     use mod_superconductivity, only: lsuperCond, update_singlet_couplings
     use mod_mpi_pars
@@ -1130,7 +1136,7 @@ contains
         end do
       end if
     end do
-    s%Ef    = x(N)
+    if(.not.lfixEf) s%Ef    = x(N)
 
     call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
     if(lsuperCond) call update_singlet_couplings(s,singlet_coupling_in)
@@ -1160,7 +1166,7 @@ contains
         end do
       end if
     end do
-    fvec(N) = sum(rho) - s%totalOccupation
+    if(.not.lfixEf) fvec(N) = sum(rho) - s%totalOccupation
 
     call print_sc_step(rhod,mxd,myd,mzd,deltas,s%Ef,fvec)
 
@@ -1175,15 +1181,15 @@ contains
   !     mz - mz_in   = 0
   !  sum n - n_total = 0
   subroutine sc_jac(N,x,fvec,selfconjac,ldfjac,iflag)
-    use mod_kind, only: dp
+    use mod_kind,              only: dp
     use mod_system,            only: s => sys
-    use mod_parameters,        only: nOrb
+    use mod_parameters,        only: nOrb,lfixEf
     use mod_magnet,            only: iter,rhod0,rho0,rho
     use mod_Umatrix,           only: update_Umatrix
     use mod_superconductivity, only: lsuperCond, update_singlet_couplings
     implicit none
-    integer       :: N,i,mu,ldfjac,iflag
-    real(dp)  :: x(N),fvec(N),selfconjac(ldfjac,N)
+    integer      :: N,i,mu,ldfjac,iflag
+    real(dp)     :: x(N),fvec(N),selfconjac(ldfjac,N)
     real(dp),    dimension(s%nAtoms)      :: mxd_in,myd_in,mzd_in,rhod_in
     real(dp),    dimension(nOrb,s%nAtoms) :: rho_in
     real(dp),    dimension(nOrb,s%nAtoms) :: singlet_coupling_in
@@ -1209,7 +1215,7 @@ contains
         end do
       end if
     end do
-    s%Ef    = x(N)
+    if(.not.lfixEf) s%Ef    = x(N)
 
     call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s%nAtoms,nOrb)
     if(lsuperCond) call update_singlet_couplings(s,singlet_coupling_in)
