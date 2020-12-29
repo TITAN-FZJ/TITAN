@@ -82,6 +82,10 @@ module mod_parameters
   !========================================================================================!
   integer(int32), allocatable :: sigmaimunu2i(:,:,:,:),sigmaijmunu2i(:,:,:,:,:),sigmai2i(:,:),isigmamu2n(:,:,:), n2isigmamu(:,:)
   !! Conversion arrays
+#ifdef _GPU
+  integer(int32), allocatable, device :: isigmamu2n_d(:,:,:)
+  !! Conversion arrays on GPUs
+#endif
   !========================================================================================!
   character(len=200)          :: runoptions
   !! Run options are stored in this string

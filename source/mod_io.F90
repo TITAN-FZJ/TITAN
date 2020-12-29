@@ -23,7 +23,7 @@ contains
   end subroutine log_message
 
   subroutine log_error(procedure, message)
-    use mod_mpi_pars, only: myrank,MPI_Abort,MPI_COMM_WORLD,errorcode,ierr
+    use mod_mpi_pars,   only: myrank,MPI_Abort,MPI_COMM_WORLD,errorcode,ierr
     use mod_parameters, only: output
     implicit none
     character(len=*), intent(in) :: procedure
@@ -581,7 +581,9 @@ contains
             end do
           else
             if(cnt < npulse_e) call log_error("get_parameters","'polarization_e' has wrong size (size npulse_e=" // trim(itos(npulse_e)) // " required).")
-            forall(i=1:npulse_e) polarization_e(i) = trim(s_vector(i))
+            do i=1,npulse_e
+              polarization_e(i) = trim(s_vector(i))
+            end do
             deallocate(s_vector)
             do i=1,npulse_e
               select case(polarization_e(i))
@@ -731,7 +733,9 @@ contains
             end do
           else
             if(cnt < npulse_m) call log_error("get_parameters","'polarization_m' has wrong size (size npulse_m=" // trim(itos(npulse_m)) // " required).")
-            forall(i=1:npulse_m) polarization_m(i) = trim(s_vector(i))
+            do i=1,npulse_m
+              polarization_m(i) = trim(s_vector(i))
+            end do
             deallocate(s_vector)
             do i=1,npulse_m
               select case(polarization_m(i))

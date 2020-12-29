@@ -1,3 +1,5 @@
+#include "macros.fi"
+
 !> Main program:
 program TITAN
   !! Initialize MPI, reads input, define lattice quantities then
@@ -10,7 +12,6 @@ program TITAN
                                      nOrb,kp_in,kptotal_in,eta,leigenstates,itype,theta,phi, &
                                      laddresults,lsortfiles,lcreatefiles
   use mod_io,                  only: get_parameters,iowrite
-  use mod_System,              only: sys,initHamiltkStride,initConversionMatrices,deallocate_System_variables
   use Lattice,                 only: initLattice,writeLattice
   use mod_BrillouinZone,       only: realBZ,countBZ
   use mod_SOC,                 only: llinearsoc,SOC,allocateLS,updateLS,deallocateLS
@@ -37,6 +38,10 @@ program TITAN
   use mod_time_propagator,     only: time_propagator
   use mod_hamiltonian,         only: deallocate_hamiltonian
   use mod_superconductivity,   only: lsuperCond,supercond,allocate_supercond_variables,deallocate_supercond_variables
+  use mod_System,              only: sys,initHamiltkStride,initConversionMatrices,deallocate_System_variables
+#ifdef _GPU
+  use mod_cuda,                only: num_gpus,result,create_handle,destroy_handle,cudaGetDeviceCount,cudaSetDevice,cudaGetErrorString 
+#endif
   !use mod_define_system TODO: Re-include
   !use mod_prefactors TODO: Re-include
   !use mod_lgtv_currents TODO: Re-include
@@ -53,6 +58,17 @@ program TITAN
   !------------------------ MPI initialization -------------------------
   call Initialize_MPI()
 
+#ifdef _GPU
+  !------------------------ GPU initialization -------------------------
+  ! Getting number of GPUs seen by currrent MPI
+  CUDA_CALL( cudaGetDeviceCount(num_gpus) )
+  ! Setting up the device for this process
+  CUDA_CALL( cudaSetDevice(mod(myrank,num_gpus)) ) 
+  ! Creating handle for cusolver
+  call create_handle()
+  !$acc init device_type(acc_device_nvidia)
+#endif
+
   !------------------------- Starting program --------------------------
   start_program = MPI_Wtime()
 
@@ -64,7 +80,15 @@ program TITAN
     call get_parameters("input",sys)
   end if
 
-  if(myrank == 0) call write_time('[main] Started on: ',output%unit)
+  arg = ""
+#ifdef DEBUG
+  arg = trim(arg) // " DEBUG"
+#endif
+#ifdef _GPU
+  arg = trim(arg) // " GPU"
+#endif
+  if(myrank == 0) call write_time('[main]' // trim(arg) // ' Started on: ',output%unit)
+
   !------------------- Useful constants and matrices -------------------
   call define_constants() ! TODO: Review
 
@@ -260,7 +284,7 @@ program TITAN
       mp  = cZero
       ! Variables used in the hamiltonian
 
-      ! call expectation_values_eigenstates(sys,rho,mp,mx,my,mz,singlet_coupling)
+      ! call expectation_values_eigenstates(sys,rho,mp,mx,my,mz,delta_sc)
 
       ! call debugging()
     end if
@@ -333,7 +357,11 @@ program TITAN
   !deallocate(kbz,wkbz) !,kbz2d)
 
   !---------------------- Finalizing the program -----------------------
-  if(myrank == 0) call write_time('[main] Finished on: ',output%unit)
+#ifdef _GPU
+  call destroy_handle()
+#endif
+
+  if(myrank == 0) call write_time('[main]' // trim(arg) // ' Finished on: ',output%unit)
   if(myrank == 0) close(unit=output%unit)
   call MPI_Finalize(ierr)
   call exit(0)
