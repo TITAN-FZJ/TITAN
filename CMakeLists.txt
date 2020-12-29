@@ -79,11 +79,12 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_checkpoint.F90
                                   source/mod_imRK4_parameters.F90
                                   source/mod_time_propagator_io.F90
+                                  source/mod_cuda.F90
                                   )
 
 
 # Executable names
-if(PLATFORM MATCHES jurecadc)
+if(PLATFORM MATCHES jurecadc OR PLATFORM MATCHES juwelsbooster OR PLATFORM MATCHES jusuf)
   set(CMAKE_Fortran_COMPILER mpif90)
 elseif(PLATFORM MATCHES osx)
   set(CMAKE_Fortran_COMPILER mpif90)
@@ -92,8 +93,6 @@ elseif(PLATFORM MATCHES rwth)
 elseif(PLATFORM MATCHES booster)
   set(CMAKE_Fortran_COMPILER mpif90)
 elseif(PLATFORM MATCHES juwels)
-  set(CMAKE_Fortran_COMPILER mpif90)
-elseif(PLATFORM MATCHES jusuf)
   set(CMAKE_Fortran_COMPILER mpif90)
 elseif(PLATFORM MATCHES iff)
   set(CMAKE_Fortran_COMPILER mpiifort)
@@ -140,10 +139,10 @@ if(COMPILER MATCHES psmpi OR COMPILER MATCHES pmpi OR COMPILER MATCHES parastati
   execute_process(COMMAND echo "Using ParaStationMPI")
 endif()
 
-if(COMPILER MATCHES pgi)
-  set(COMPILER pgi)
-  set(SUFFIX ${SUFFIX}_pgi)
-  execute_process(COMMAND echo "Using PGI Compiler")
+if(COMPILER MATCHES pgi OR COMPILER MATCHES nv OR COMPILER MATCHES nvidia)
+  set(COMPILER nv)
+  set(SUFFIX ${SUFFIX}_nv)
+  execute_process(COMMAND echo "Using NVIDIA Compiler")
 endif()
 
 set(TITAN_EXE titan_${PLATFORM}${DEBUGSUFFIX}${INSTRUMENT}${SUFFIX}.exe)
@@ -156,8 +155,8 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
 execute_process(COMMAND git describe --abbrev=8 --dirty --always OUTPUT_VARIABLE GIT_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
-  if(PLATFORM MATCHES jurecadc)
+if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES nv)
+  if(PLATFORM MATCHES jurecadc OR PLATFORM MATCHES juwelsbooster OR PLATFORM MATCHES jusuf)
     target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
@@ -180,17 +179,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -g
                                                 -align array64byte
                                                 -mkl
-                                                )
-  elseif(PLATFORM MATCHES jusuf)
-    target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
-    target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                                -fpp
-                                                -DVERSION="${GIT_VERSION}"
-                                                -qopenmp
-                                                -g
-                                                -mkl
-                                                -align array64byte
-                                                -xHost
                                                 )
   elseif(PLATFORM MATCHES osx)
     target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
@@ -230,7 +218,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -DVERSION="${GIT_VERSION}"
                                                 -fpp
-                                                -D_GNU
                                                 -qopenmp
                                                 -g
                                                 -mkl
@@ -260,9 +247,10 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -align array64byte
                                                 -xHost
                                                 )
-  endif(PLATFORM MATCHES jurecadc)
+  endif(PLATFORM MATCHES jurecadc OR PLATFORM MATCHES juwelsbooster OR PLATFORM MATCHES jusuf)
 
   if(DEBUG)
+    target_compile_definitions(${TITAN_EXE} PRIVATE DEBUG)
     target_compile_options(${TITAN_EXE} PRIVATE -C
                                                 -CB
                                                 -check uninit
@@ -273,7 +261,6 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
                                                 -traceback
                                                 -qopenmp
                                                 -fpp
-                                                -D_GNU
                                                 -DVERSION="${GIT_VERSION}"
                                                 -g
                                                 -O0
@@ -297,6 +284,7 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
                                                 )
 
   else(NOT DEBUG MATCHES "ON")
+    target_compile_definitions(${TITAN_EXE} PRIVATE DEBUG)
     target_compile_options(${TITAN_EXE} PRIVATE -C
                                                 -Wall
                                                 -Wextra
@@ -324,27 +312,33 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
                                                 )
   endif(NOT DEBUG MATCHES "ON")
 
-elseif(COMPILER MATCHES pgi) # PGI:
-  target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -lsci_acc)
+# elseif(COMPILER MATCHES pgi) # PGI:
+#   target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -lsci_acc)
+elseif(COMPILER MATCHES nv) # NVIDIA:
+  target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -I${CUDA_ROOT}/include -Mcuda -L${CUDA_ROOT}/lib64 -lcusolver -lcudart -acc)
   if(NOT DEBUG MATCHES "ON")
+    target_compile_definitions(${TITAN_EXE} PRIVATE _GPU)
     target_compile_options(${TITAN_EXE} PRIVATE -cpp
                                                 -DVERSION="${GIT_VERSION}"
-                                                -I$ENV{MKLROOT}/include
-                                                -g
                                                 -O3
                                                 -lm
                                                 -fast
-                                                -acc
-                                                -ta=tesla:cc35
+                                                -acc=multicore
+                                                -ta=tesla
                                                 -Minfo=accel
+                                                -Mcuda
+                                                -lineinfo
+                                                -acc
                                                 #-mp
                                                 )
 
   else(NOT DEBUG MATCHES "ON")
+    target_compile_definitions(${TITAN_EXE} PRIVATE _GPU DEBUG)
     target_compile_options(${TITAN_EXE} PRIVATE -cpp
                                                 -DVERSION="${GIT_VERSION}"
-                                                -I$ENV{MKLROOT}/include
+                                                -lineinfo
                                                 -g
+                                                -G
                                                 -Mdclchk                  # instructs the compiler to require that all program variables be declared
                                                 -Minform=inform           # instructs the compiler to display all error messages (inform, warn, severe and fatal).
                                                 -Mbounds                  # enables array bounds checking.
@@ -355,12 +349,13 @@ elseif(COMPILER MATCHES pgi) # PGI:
                                                 -acc
                                                 -ta=tesla:cc35
                                                 -Minfo=accel
+                                                -acc
                                                 #-mp                       # openmp
                                                 -O0
                                                 )
   endif(NOT DEBUG MATCHES "ON")
 
-endif(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES pgi)
+endif(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES nv)
 
 #target_compile_options(${EXEC_NAME} PRIVATE -no-wrap-margin
 #                                        -fpp

@@ -3,24 +3,28 @@ module mod_initial_expectation
 contains
 
   subroutine calc_initial_Uterms(sys)
-    use mod_kind,           only: dp
-    use mod_constants,      only: cZero
-    use mod_System,         only: System_type,initHamiltkStride,initConversionMatrices
-    use TightBinding,       only: initTightBinding
-    use mod_magnet,         only: l_matrix,lb,sb,allocate_magnet_variables,deallocate_magnet_variables,rho0,rhod0
-    use mod_SOC,            only: ls,allocateLS
-    use adaptiveMesh,       only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh
-    use mod_parameters,     only: nOrb,kp_in,kptotal_in,output,eta,leigenstates,lkpoints,dimH
-    use mod_polyBasis,      only: read_basis
-    use mod_mpi_pars,       only: myrank,FieldComm,rField,sField,rFreq,sFreq,FreqComm,abortProgram
-    use Lattice,            only: initLattice
-    use mod_progress,       only: write_time
-    use mod_tools,          only: rtos, vec_norm
-    use mod_Atom_variables, only: allocate_Atom_variables,deallocate_Atom_variables
-    use mod_BrillouinZone,  only: realBZ!,nkpt_x,nkpt_y,nkpt_z
-    use EnergyIntegration,  only: pn1
-    use mod_hamiltonian,    only: deallocate_hamiltonian
-    use mod_superconductivity, only: lsupercond,supercond,allocate_supercond_variables,deallocate_supercond_variables,singlet_coupling
+    use mod_kind,              only: dp
+    use mod_constants,         only: cZero
+    use mod_System,            only: System_type,initHamiltkStride,initConversionMatrices
+    use TightBinding,          only: initTightBinding
+    use mod_magnet,            only: l_matrix,lb,sb,allocate_magnet_variables,deallocate_magnet_variables,rho0,rhod0
+    use mod_SOC,               only: ls,allocateLS
+    use adaptiveMesh,          only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh
+    use mod_parameters,        only: nOrb,kp_in,kptotal_in,output,eta,leigenstates,lkpoints,dimH
+    use mod_polyBasis,         only: read_basis
+    use mod_mpi_pars,          only: myrank,FieldComm,rField,sField,rFreq,sFreq,FreqComm,abortProgram
+    use Lattice,               only: initLattice
+    use mod_progress,          only: write_time
+    use mod_tools,             only: rtos, vec_norm
+    use mod_Atom_variables,    only: allocate_Atom_variables,deallocate_Atom_variables
+    use mod_BrillouinZone,     only: realBZ!,nkpt_x,nkpt_y,nkpt_z
+    use EnergyIntegration,     only: pn1
+    use mod_hamiltonian,       only: deallocate_hamiltonian
+#ifdef _GPU
+    use mod_superconductivity, only: lsupercond,supercond,allocate_supercond_variables,deallocate_supercond_variables,delta_sc,delta_sc_d
+#else
+    use mod_superconductivity, only: lsupercond,supercond,allocate_supercond_variables,deallocate_supercond_variables,delta_sc
+#endif
     implicit none
     logical :: lsupercond_temp
     integer :: i,j,mu,err,supercond_temp
@@ -97,7 +101,11 @@ contains
         lb = cZero
         sb = cZero
         ls = cZero
-        singlet_coupling = 0._dp
+        delta_sc = 0._dp
+#ifdef _GPU
+        delta_sc_d = delta_sc
+#endif
+
         ! Turning off superconductivity
         lsuperCond_temp = lsuperCond
         supercond_temp  = supercond

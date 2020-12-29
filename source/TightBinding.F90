@@ -124,7 +124,7 @@ contains
 
   !! Reading element file, including all the parameters
   subroutine readElementFile(material, nStages, nOrb, relTol)
-    use mod_kind, only: dp
+    use mod_kind,              only: dp
     use AtomTypes,             only: AtomType,NeighborAtom
     use mod_mpi_pars,          only: abortProgram
     use mod_tools,             only: itos, vec_norm, vecDist
@@ -135,11 +135,11 @@ contains
     type(AtomType), intent(inout) :: material
     integer,        intent(in)    :: nStages
     integer,        intent(in)    :: nOrb
-    real(dp),   intent(in)    :: relTol
+    real(dp),       intent(in)    :: relTol
     integer :: nTypes
     integer :: nn_stages
-    integer,      dimension(:), allocatable :: iMaterial
-    integer,      dimension(:), allocatable :: type_count
+    integer,  dimension(:), allocatable :: iMaterial
+    integer,  dimension(:), allocatable :: type_count
     real(dp), dimension(3) :: dens
     integer            :: i, j, k, l, size, nCells, ios, line_count = 0
     integer, parameter :: word_length = 50, max_elements = 50

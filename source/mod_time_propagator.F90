@@ -44,7 +44,7 @@ contains
     real(dp)                                :: weight, kp(3)
     real(dp),    dimension(nOrb,s%nAtoms)   :: expec_0, expec_z
     complex(dp), dimension(nOrb,s%nAtoms)   :: expec_p
-    real(dp),    dimension(nOrb,s%nAtoms)   :: expec_singlet
+    real(dp),    dimension(nOrb,s%nAtoms)   :: expec_d
     real(dp),    dimension(:),  allocatable :: eval(:)
     complex(dp),                allocatable :: hk(:,:),hkev(:,:)
 
@@ -52,7 +52,7 @@ contains
     complex(dp), dimension(nOrb,s%nAtoms)   :: mp_t
     real(dp),    dimension(s%nAtoms)        :: rhod_t,mxd_t,myd_t,mzd_t
     complex(dp), dimension(s%nAtoms)        :: mpd_t
-    real(dp),    dimension(nOrb,s%nAtoms)   :: singlet_coupling_t
+    real(dp),    dimension(nOrb,s%nAtoms)   :: delta_sc_t
     real(dp),    dimension(s%nAtoms)        :: lxm,lym,lzm
     real(dp),    dimension(s%nAtoms)        :: lxm_t,lym_t,lzm_t
     real(dp)                                :: E_t, E_0
@@ -158,12 +158,12 @@ contains
 
         ERR    = 0._dp
 
-        singlet_coupling_t = 0._dp
+        delta_sc_t = 0._dp
 
         !$omp parallel do default(none) schedule(dynamic,1) &
-        !$omp& private(Yn_e,Yn_new_e,Yn_hat_e,ik,n,i,kp,weight,hk,hkev,hamilt_nof,exp_eval,ERR_kn,Yn,Yn_new,Yn_hat,eval,expec_0,expec_p,expec_z,expec_singlet,E_0,lxm,lym,lzm) &
+        !$omp& private(Yn_e,Yn_new_e,Yn_hat_e,ik,n,i,kp,weight,hk,hkev,hamilt_nof,exp_eval,ERR_kn,Yn,Yn_new,Yn_hat,eval,expec_0,expec_p,expec_z,expec_d,E_0,lxm,lym,lzm) &
         !$omp& shared(counter,step,s,t,it,id,dimHsc,realBZ,lfullhk,h0,fullhk,evec_kn_temp,evec_kn,eval_kn,use_checkpoint,b_field,A_t,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2) &
-        !$omp& reduction(+:rho_t,mp_t,mz_t,E_t,Lxm_t,Lym_t,Lzm_t,singlet_coupling_t,ERR)
+        !$omp& reduction(+:rho_t,mp_t,mz_t,E_t,Lxm_t,Lym_t,Lzm_t,delta_sc_t,ERR)
         kpoints_loop: do ik = 1, realBZ%workload
           kp = realBZ%kp(:,ik)
           weight = realBZ%w(ik)   
@@ -221,7 +221,7 @@ contains
             ! Note: use the Yn_new_e or Yn_nw >>> should give the same result
 
             ! calculating expectation value of magnetization in eigenvector (n)
-            call expec_val_n(s,dimHsc,Yn_new_e,eval_kn(n,ik),expec_0,expec_p,expec_z,expec_singlet)
+            call expec_val_n(s,dimHsc,Yn_new_e,eval_kn(n,ik),expec_0,expec_p,expec_z,expec_d)
 
             ! calculating expectation value of the T.D Hamiltonian in eigenvector (n)
             call expec_H_n(s,b_field,A_t,hk,kp,Yn_new_e,eval_kn(n,ik),E_0)
@@ -236,7 +236,7 @@ contains
             mz_t  = mz_t  + expec_z  * weight 
 
             ! Superconducting order parameter
-            singlet_coupling_t = singlet_coupling_t + expec_singlet*weight
+            delta_sc_t = delta_sc_t + expec_d*weight
 
             ! Expectation value of the energy
             E_t = E_t + E_0 * weight
@@ -266,7 +266,7 @@ contains
         call MPI_Allreduce(MPI_IN_PLACE, Lxm_t, s%nAtoms, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
         call MPI_Allreduce(MPI_IN_PLACE, Lym_t, s%nAtoms, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
         call MPI_Allreduce(MPI_IN_PLACE, Lzm_t, s%nAtoms, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
-        call MPI_Allreduce(MPI_IN_PLACE, singlet_coupling_t, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, delta_sc_t, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
         call MPI_Allreduce(MPI_IN_PLACE, E_t  , 1       , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
         call MPI_Allreduce(MPI_IN_PLACE, ERR  , 1       , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
 

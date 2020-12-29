@@ -2,11 +2,11 @@
 ! method (check Bogoliubov-de Gennes Method and Its Applications - Jian-Xin Zhu
 ! Springer Verlag, it is not implemented exactly like there, but the theory holds)
 !
-! The superconducting gap is given by \Delta = \lambda*singlet_coupling
+! The superconducting gap is given by \Delta = \lambda*delta_sc
 ! lambda is supposed to hold the constant value that multiplies the
-! expected value of the the cooper channels (singlet_coupling)
-! singlet_coupling holds the expected value of c\up c\down for each orbital
-! singlet_coupling is expected to be real within BCS
+! expected value of the the cooper channels (delta_sc)
+! delta_sc holds the expected value of c\up c\down for each orbital
+! delta_sc is expected to be real within BCS
 ! check Uriel's thesis
 !
 ! lambda is not supposed to change during the execution
@@ -19,7 +19,10 @@ module mod_superconductivity
   implicit none
   logical :: lsuperCond = .false.
   integer :: superCond
-  real(dp), dimension(:,:), allocatable  :: singlet_coupling
+  real(dp), dimension(:,:), allocatable  :: delta_sc
+#ifdef _GPU
+  real(dp), dimension(:,:), allocatable,device  :: delta_sc_d
+#endif
   integer :: flag = 0
 
 contains
@@ -29,27 +32,31 @@ contains
     implicit none
     integer, intent(in) :: nAtoms
     integer, intent(in) :: nOrbs
-    integer :: AllocateStatus
 
-    allocate( singlet_coupling(nOrbs,nAtoms), stat = AllocateStatus)
-    singlet_coupling = 0._dp
-    if(AllocateStatus /= 0) call abortProgram("[allocate_supercond_variables] Not enough memory for: singlet_coupling")
+    allocate( delta_sc(nOrbs,nAtoms))
+    delta_sc = 0._dp
+#ifdef _GPU
+    allocate( delta_sc_d(nOrbs,nAtoms))
+#endif
 
   end subroutine allocate_supercond_variables
 
   subroutine deallocate_supercond_variables()
     implicit none
 
-    if(allocated(singlet_coupling)) deallocate(singlet_coupling)
+    if(allocated(delta_sc)) deallocate(delta_sc)
+#ifdef _GPU
+    if(allocated(delta_sc_d)) deallocate(delta_sc_d)
+#endif
   end subroutine deallocate_supercond_variables
 
 
   ! TODO: Either remove this function or write to a file
   subroutine print_hamilt(sys,hk)
-    use mod_kind, only: dp
-    use mod_parameters,     only: nOrb2
-    use mod_system,         only: System_type, initHamiltkStride
-    use mod_parameters,     only: dimH
+    use mod_kind,       only: dp
+    use mod_parameters, only: nOrb2
+    use mod_system,     only: System_type, initHamiltkStride
+    use mod_parameters, only: dimH
     implicit none
 
     type(System_type),                              intent(in) :: sys
@@ -67,41 +74,41 @@ contains
 
   ! TODO: Either remove this function or write to a file
   subroutine print_hamilt_entry(hk,i,j)
-    use mod_kind, only: dp
-    use mod_system,         only: System_type, initHamiltkStride
-    use mod_parameters,     only: dimH
+    use mod_kind,       only: dp
+    use mod_system,     only: System_type, initHamiltkStride
+    use mod_parameters, only: dimH
     implicit none
     complex(dp), dimension(2*dimH,2*dimH), intent(in) :: hk
-    integer, intent(in):: i,j
+    integer,                               intent(in):: i,j
 
     write(*,*) real(hk(i,j)), imag(hk(i,j))
 
   end subroutine print_hamilt_entry
 
-  subroutine update_singlet_couplings(sys,couplings)
-    use mod_kind, only: dp
-    use mod_system,         only: System_type, initHamiltkStride
-    use mod_parameters,     only: nOrb
+  subroutine update_delta_sc(sys,couplings)
+    use mod_kind,       only: dp
+    use mod_system,     only: System_type, initHamiltkStride
+    use mod_parameters, only: nOrb
     implicit none
-    type(System_type),   intent(in)  :: sys
+    type(System_type),        intent(in)  :: sys
     real(dp), dimension(nOrb,sys%nAtoms)  :: couplings
-    integer :: i,mu
 
-    do i = 1,sys%nAtoms; do mu = 1,nOrb
-      singlet_coupling(mu,i) = couplings(mu,i)
-    end do; end do
+    delta_sc = couplings
+#ifdef _GPU
+    delta_sc_d = delta_sc
+#endif
 
-  end subroutine update_singlet_couplings
+  end subroutine update_delta_sc
 
-  subroutine bcs_pairing(sys,delta, hk_sc)
-    use mod_kind, only: dp
-    use mod_system,         only: System_type, initHamiltkStride
-    use mod_parameters,     only: nOrb, isigmamu2n, dimH
+  subroutine bcs_pairing(sys,delta,hk_sc)
+    use mod_kind,       only: dp
+    use mod_system,     only: System_type
+    use mod_parameters, only: nOrb, isigmamu2n, dimH
     implicit none
 
-    type(System_type),                                 intent(in) :: sys
-    real(dp),    dimension(nOrb,sys%nAtoms),  intent(in) :: delta
-    complex(dp), dimension(2*dimH,2*dimH), intent(inout) :: hk_sc
+    type(System_type),                       intent(in)    :: sys
+    real(dp),    dimension(nOrb,sys%nAtoms), intent(in)    :: delta
+    complex(dp), dimension(2*dimH,2*dimH),   intent(inout) :: hk_sc
     integer :: i, mu
 
     ! Populate the entries for the singlet pairing of the s-orbitals
@@ -119,13 +126,14 @@ contains
     ! h^ and s* couple with delta_s*
     ! h* and s^ couple with -delta_s*
 
-    do i = 1,sys%nAtoms; do mu = 1,nOrb
-      hk_sc(isigmamu2n(i,1,mu)     ,isigmamu2n(i,2,mu)+dimH) = - cmplx(delta(mu,i),0._dp,dp)
-      hk_sc(isigmamu2n(i,2,mu)     ,isigmamu2n(i,1,mu)+dimH) =   cmplx(delta(mu,i),0._dp,dp)
-      hk_sc(isigmamu2n(i,2,mu)+dimH,isigmamu2n(i,1,mu)     ) = - cmplx(delta(mu,i),0._dp,dp)
-      hk_sc(isigmamu2n(i,1,mu)+dimH,isigmamu2n(i,2,mu)     ) =   cmplx(delta(mu,i),0._dp,dp)
-      ! write(*,*) i, " ", mu, " ", delta(mu,i)
-    end do; end do
+    do i = 1,sys%nAtoms
+      do mu = 1,nOrb
+        hk_sc(isigmamu2n(i,1,mu)     ,isigmamu2n(i,2,mu)+dimH) = - cmplx(delta(mu,i),0._dp,dp)
+        hk_sc(isigmamu2n(i,2,mu)     ,isigmamu2n(i,1,mu)+dimH) =   cmplx(delta(mu,i),0._dp,dp)
+        hk_sc(isigmamu2n(i,2,mu)+dimH,isigmamu2n(i,1,mu)     ) = - cmplx(delta(mu,i),0._dp,dp)
+        hk_sc(isigmamu2n(i,1,mu)+dimH,isigmamu2n(i,2,mu)     ) =   cmplx(delta(mu,i),0._dp,dp)
+      end do
+    end do
 
 
     ! do i = 1,sys%nAtoms

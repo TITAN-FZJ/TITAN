@@ -15,7 +15,7 @@
 ! 28 April 2017 - Initial Version
 !-------------------------------------------------------------------------------
 module mod_system
-  use mod_kind, only: dp
+  use mod_kind,  only: dp
   use AtomTypes, only: BasisAtom, NeighborAtom, AtomType
   implicit none
 
@@ -56,6 +56,7 @@ module mod_system
   end type System_type
 
   type(System_type) :: sys
+  !! System variables
 
   integer :: n0sc1 !< first neighbor to calculate the in-plane spin and charge current
   integer :: n0sc2 !< last neighbor to calculate the in-plane spin and charge current
@@ -63,6 +64,9 @@ module mod_system
   real(dp), dimension(3) :: pln_normal
 
   integer, dimension(:,:), allocatable :: ia
+#ifdef _GPU
+  integer, dimension(:,:), allocatable, device :: ia_d
+#endif
   integer, dimension(:,:), allocatable :: ia_sc
 
 contains
@@ -100,12 +104,23 @@ contains
         ia_sc(4,i) = ia_sc(3,i) + nOrb*2 - 1        ! End second block (holes)
       end do      
     end if
+
+#ifdef _GPU
+    if(allocated(ia_d)) deallocate(ia_d)
+    allocate(ia_d(4,s%nAtoms))
+    ia_d = ia
+#endif
+
   end subroutine initHamiltkStride
 
 
   subroutine initConversionMatrices(nAtoms, nOrbs)
-  !! This subroutine mounts the conversion matrices from 4 to 2 ranks
+  !> This subroutine mounts the conversion matrices from 4 to 2 ranks
+#ifdef _GPU
+    use mod_parameters, only: sigmai2i,sigmaimunu2i,sigmaijmunu2i,isigmamu2n,isigmamu2n_d,n2isigmamu
+#else
     use mod_parameters, only: sigmai2i,sigmaimunu2i,sigmaijmunu2i,isigmamu2n,n2isigmamu
+#endif
     implicit none
     integer, intent(in) :: nAtoms, nOrbs
     integer :: nu, mu, i, sigma, j, kount
@@ -142,6 +157,10 @@ contains
         end do
       end do
     end do
+
+#ifdef _GPU
+    isigmamu2n_d = isigmamu2n
+#endif
 
   end subroutine initConversionMatrices
 

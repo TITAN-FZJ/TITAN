@@ -8,6 +8,12 @@ module mod_hamiltonian
   !! Local hamiltonian
   complex(dp), dimension(:,:,:), allocatable :: fullhk
   !! Full non-local hamiltonian hk (for every k)
+#ifdef _GPU
+  complex(dp), dimension(:,:), device, allocatable :: h0_d
+  !! Local hamiltonian on GPUs
+  complex(dp), dimension(:,:,:), device, allocatable :: fullhk_d
+  !! Full non-local hamiltonian hk (for every k) on the GPUs
+#endif
   real(dp) :: energy
   !! Band energy
 
@@ -19,6 +25,10 @@ contains
 
     if(allocated(h0))     deallocate(h0)
     if(allocated(fullhk)) deallocate(fullhk)
+#ifdef _GPU
+    if(allocated(h0_d))     deallocate(h0_d)
+    if(allocated(fullhk_d)) deallocate(fullhk_d)
+#endif
   end subroutine deallocate_hamiltonian
 
   ! Calculate local part of the hamiltonian of the unit cell
@@ -29,7 +39,7 @@ contains
     use mod_magnet,            only: lb,sb
     use mod_SOC,               only: ls
     use mod_Umatrix,           only: hee
-    use mod_superconductivity, only: lsuperCond,bcs_pairing,singlet_coupling
+    use mod_superconductivity, only: lsuperCond,bcs_pairing,delta_sc
     implicit none
     integer :: i
     type(System_type), intent(in) :: sys
@@ -71,11 +81,96 @@ contains
         h0(dimH+i,dimH+i) = h0(dimH+i,dimH+i) + sys%Ef
       end do
       ! Populating the non-diagonal blocks of the hamiltonian. There are several ways to do it.
-      call bcs_pairing(sys, singlet_coupling, h0)
+      call bcs_pairing(sys, delta_sc, h0)
     end if
 
-
   end subroutine hamilt_local
+
+
+#ifdef _GPU
+  ! Calculate local part of the hamiltonian of the unit cell
+  subroutine hamilt_local_gpu(sys)
+    use mod_kind,              only: dp
+    use mod_constants,         only: cZero
+    use mod_System,            only: ia_d,System_type
+    use mod_parameters,        only: nOrb,nOrb2,dimH,dimHsc,isigmamu2n_d
+    use mod_magnet,            only: lb,sb
+    use mod_SOC,               only: ls
+    use mod_Umatrix,           only: hee
+    use mod_superconductivity, only: lsuperCond,delta_sc_d
+    implicit none
+    type(System_type), intent(in) :: sys
+    complex(dp), dimension(nOrb ,nOrb ,sys%nAtoms), device :: onSite_d
+    complex(dp), dimension(nOrb2,nOrb2,sys%nAtoms), device :: lb_d,sb_d,hee_d,ls_d
+    integer :: i,j,mu
+
+    if(.not.allocated(h0_d)) allocate( h0_d(dimHsc, dimHsc) )
+
+    h0_d = cZero
+
+    do i=1,sys%nAtoms
+      onSite_d(:,:,i) = sys%Types(sys%Basis(i)%Material)%onSite(1:nOrb,1:nOrb)
+    end do
+    lb_d = lb
+    sb_d = sb
+    hee_d = hee
+    ls_d = ls
+
+    ! Mouting slab hamiltonian
+    ! On-site terms
+    !$cuf kernel do <<< *, * >>>
+    do i=1,sys%nAtoms
+      ! spin-up on-site tight-binding term
+      h0_d(ia_d(1,i):ia_d(2,i),ia_d(1,i):ia_d(2,i)) = onSite_d(:,:,i)
+      ! spin-down on-site tight-binding term
+      h0_d(ia_d(3,i):ia_d(4,i),ia_d(3,i):ia_d(4,i)) = onSite_d(:,:,i)
+      ! External magnetic field (orbital + spin) + Electron-electron interaction (Hubbard) + Spin-orbit coupling
+      h0_d(ia_d(1,i):ia_d(4,i),ia_d(1,i):ia_d(4,i)) = h0_d(ia_d(1,i):ia_d(4,i), ia_d(1,i):ia_d(4,i)) &
+                                                    + lb_d(1:nOrb2,1:nOrb2,i) &
+                                                    + sb_d(1:nOrb2,1:nOrb2,i) &
+                                                    + hee_d(1:nOrb2,1:nOrb2,i) &
+                                                    + ls_d(1:nOrb2,1:nOrb2,i)
+    end do
+
+    ! The form of the superconducting hamiltonian depends on a series of decisions,
+    ! such as how to choose the basis after the Bogoliuvob-de Gennes transformation
+    ! and how do we define this transformation. In our particular case, we choose to
+    ! have a basis (u_up, u_down, v_up, v_down), and the BdG transformation we perform
+    ! is c_{i\sigma} = sum_n u_{in\sigma}\gamma_n + v_{in\sigma}\gamma^{n*}\gamma_n^\dagger
+    ! The final form of the hamiltonian is something like
+    ! | H(k) - E_f        Delta     |
+    ! |   Delta^*   -(H(-k) - E_f)* |
+    ! roughly. Look at this paper 10.1103/RevModPhys.87.1037 , and to Uriel's thesis to
+    ! get a better idea of how to construct this operator
+
+    if(lsuperCond) then
+      !$cuf kernel do(2) <<< *, * >>>
+      do j=1,dimH
+        do i=1,dimH
+          h0_d(dimH+i,dimH+j) = -conjg(h0_d(i,j))
+        end do
+      end do
+
+      !$cuf kernel do <<< *, * >>>
+      do i = 1,dimH
+        h0_d(     i,     i) = h0_d(     i,     i) - sys%Ef
+        h0_d(dimH+i,dimH+i) = h0_d(dimH+i,dimH+i) + sys%Ef
+      end do
+
+      ! Populating the non-diagonal blocks of the hamiltonian. There are several ways to do it.
+      !$cuf kernel do(2) <<< (1,*), (9,*) >>>
+      do i = 1,sys%nAtoms
+        do mu = 1,nOrb
+          h0_d(isigmamu2n_d(i,1,mu)     ,isigmamu2n_d(i,2,mu)+dimH) = - cmplx(delta_sc_d(mu,i),0._dp,dp)
+          h0_d(isigmamu2n_d(i,2,mu)     ,isigmamu2n_d(i,1,mu)+dimH) =   cmplx(delta_sc_d(mu,i),0._dp,dp)
+          h0_d(isigmamu2n_d(i,2,mu)+dimH,isigmamu2n_d(i,1,mu)     ) = - cmplx(delta_sc_d(mu,i),0._dp,dp)
+          h0_d(isigmamu2n_d(i,1,mu)+dimH,isigmamu2n_d(i,2,mu)     ) =   cmplx(delta_sc_d(mu,i),0._dp,dp)
+        end do
+      end do
+    end if
+
+  end subroutine hamilt_local_gpu
+#endif
 
 
   ! Calculate the k-dependent tight-binding hamiltonian of the unit cell
@@ -180,13 +275,17 @@ contains
     ! Inter-site hopping terms
     !$omp parallel do default(none) schedule(dynamic) &
     !$omp& shared(fullhk,realBZ,dimHsc,s) &
-!    !$omp& shared(fullhk,realBZ,dimHsc,s) &
     !$omp& private(iz)
     kloop: do iz = 1,realBZ%workload
       ! Calculating the hamiltonian for a given k-point
       fullhk(:,:,iz) = calchk(s,realBZ%kp(1:3,iz))
     end do kloop
     !$omp end parallel do
+
+#ifdef _GPU
+    allocate(fullhk_d(dimHsc,dimHsc,realBZ%workload))
+    fullhk_d = fullhk
+#endif
 
     if(rField == 0) call write_time('[fullhamiltk] Finished calculating full Hamiltonian on: ',output%unit)
     success = .true.
@@ -204,7 +303,7 @@ contains
     use mod_magnet,            only: lb,sb
     use mod_SOC,               only: ls
     use mod_Umatrix,           only: hee
-    use mod_superconductivity, only: lsuperCond,bcs_pairing,singlet_coupling
+    use mod_superconductivity, only: lsuperCond,bcs_pairing,delta_sc
     implicit none
     real(dp),          intent(in) :: kp(3)
     type(System_type), intent(in) :: sys
@@ -251,7 +350,7 @@ contains
         hk(dimH+i,dimH+i) = hk(dimH+i,dimH+i) + sys%Ef
       end do
       ! Populating the non-diagonal blocks of the hamiltonian. There are several ways to do it.
-      call bcs_pairing(sys, singlet_coupling, hk)
+      call bcs_pairing(sys, delta_sc, hk)
     end if
 
     ! Inter-site hopping terms

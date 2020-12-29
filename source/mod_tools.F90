@@ -22,6 +22,7 @@ module mod_tools
     module procedure normalize_real, &
                       normalize_complex
   end interface normalize
+
 contains
 
   ! --------------------------------------------------------------------
@@ -375,16 +376,27 @@ contains
   ! --------------------------------------------------------------------
   character(len=100) function I4toS(i)
     implicit none
-    integer :: i
+    integer, intent(in) :: i
     write(I4toS, "(i0)") i
   end function I4toS
 
   character(len=100) function I8toS(i)
     use mod_kind, only: int64
     implicit none
-    integer(int64) :: i
+    integer(int64), intent(in) :: i
     write(I8toS, "(i0)") i
   end function I8toS
+
+  ! --------------------------------------------------------------------
+  ! function StoI():
+  !    This function transforms a string to an integer StoI
+  ! --------------------------------------------------------------------
+  integer function StoI(str)
+    implicit none
+    character(len=:), allocatable, intent(in) :: str
+    read(unit=str, fmt=*) StoI
+  end function StoI
+
 
   ! --------------------------------------------------------------------
   ! function RtoS():
@@ -394,8 +406,8 @@ contains
   character(len=900) function RtoS(r,format)
     use mod_kind, only: dp
     implicit none
-    real(dp)     :: r
-    character(len=*) :: format
+    real(dp),         intent(in) :: r
+    character(len=*), intent(in) :: format
     write(Rtos, fmt=format) r
     RtoS = adjustl(RtoS)
   end function RtoS
@@ -581,9 +593,13 @@ contains
   !    This function returns the free memory in the computer the job is running
   ! --------------------------------------------------------------------
   function get_memory(units,mem) result(success)
+    use mod_kind,       only: int32
     use mod_parameters, only: output
-    use mod_mpi_pars, only: rField
-    use mod_kind, only: int32
+#ifdef _GPU
+    use mod_mpi_pars,   only: myrank,rField,FieldComm,ierr
+#else
+    use mod_mpi_pars,   only: rField,FieldComm,ierr
+#endif
     ! use mod_io, only: log_warning
     implicit none
     character(len=1), intent(in)  :: units
@@ -592,8 +608,24 @@ contains
     !! Amount of free memory
     logical :: success
 
-    character(len=13) :: type,filename = "/proc/meminfo"
-    integer :: ios,file_unit = 931
+#ifdef _GPU
+    character(len=13)  :: filename = "./gpu_memory", keyword="MiB"
+    integer            :: size =3 , memunit=1
+#else
+    character(len=13)  :: filename = "/proc/meminfo", keyword="MemFree:"
+    integer            :: size =0 , memunit=1024
+#endif
+    integer, parameter :: max_elements=50
+    integer            :: i,ios,pos,file_unit = 931
+    character(200)     :: line
+    character(len=80), dimension(max_elements) :: str_arr
+    character(len=:), allocatable  :: str_tmp
+
+    external :: MPI_Barrier
+#ifdef _GPU
+    if(myrank == 0) call execute_command_line( "nvidia-smi | sed 's|/||g' > " // trim(filename) )
+#endif
+    call MPI_Barrier(FieldComm,ierr)
 
     open (unit=file_unit, file=trim(filename), status='old', action='read', iostat=ios)
     if(ios/=0) then
@@ -602,23 +634,36 @@ contains
       return
     end if
 
-    do
-      read(unit=file_unit,fmt=*, iostat=ios) type, mem
+    lines: do
+      str_arr = ""
+      read(unit=file_unit, fmt='(A)', iostat=ios) line
       if(ios/=0) exit
-      if(trim(type) == "MemFree:" ) then
-        select case(units)
-        case("m")
-          mem = mem/1024
-        case("g")
-          mem = mem/1024/1024
-        end select
-        close(file_unit)
-        success = .true.
-        return
-      end if
-    end do
-    if(rField == 0) write(unit=output%unit, fmt="('[Warning] [get_memory] Could not find MemFree on file',a,'.')") trim(filename)
+      read(unit=line, fmt=*, iostat=ios) (str_arr(i), i = 1, max_elements)
+      do i = 1, max_elements
+        if(len_trim(str_arr(i)) == 0) cycle
+        pos = index(str_arr(i),trim(keyword))
+        if(pos/=0) then
+          str_tmp = str_arr(i+1)(1:len_trim(str_arr(i+1))-size)
+          select case(units)
+          case("m")
+            mem = int(dble(StoI(str_tmp))/memunit)
+          case("g")
+            mem = int(dble(StoI(str_tmp))/memunit/1024)
+          end select
+#ifdef _GPU
+          if(myrank == 0) call execute_command_line('rm '// trim(filename))
+#endif
+          close(file_unit)
+          success = .true.
+          return
+        end if
+      end do
+    end do lines
+    if(rField == 0) write(unit=output%unit, fmt="('[Warning] [get_memory] Could not find ',a,' on file ',a,'.')") trim(keyword),trim(filename)
 
+#ifdef _GPU
+    if(myrank == 0) call execute_command_line('rm '// trim(filename))
+#endif
     success = .false.
     close(file_unit)
   end function get_memory

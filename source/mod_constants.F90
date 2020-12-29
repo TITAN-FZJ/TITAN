@@ -32,6 +32,10 @@ module mod_constants
   !! Identity in spin and orbital space (only non-zero on d-orbitals)
   complex(dp) :: pauli_mat(2,2,0:5)
   !! Identity and pauli matrices  (0,x,y,z,+,-)
+#ifdef _GPU
+  complex(dp), device :: pauli_mat_d(2,2,0:5)
+  !! Identity and pauli matrices  (0,x,y,z,+,-) on the GPUs
+#endif
   complex(dp) :: pauli_orb(5,18,18)
   !! Pauli matrices in spin and orbital space (x,y,z,+,-)
   complex(dp) :: pauli_dorb(5,18,18)
@@ -75,6 +79,9 @@ contains
     pauli_mat(:,:,4) = pauli_mat(:,:,1) + cI*pauli_mat(:,:,2)
     pauli_mat(:,:,5) = pauli_mat(:,:,1) - cI*pauli_mat(:,:,2)
 
+#ifdef _GPU
+    pauli_mat_d = pauli_mat
+#endif
 
 ! Pauli matrices in spin and orbital space
     pauli_dorb = cZero
