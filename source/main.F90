@@ -11,7 +11,7 @@ program TITAN
   use mod_parameters,          only: output,lpositions,lcreatefolders,parField,parFreq,nEner1,skip_steps,ldebug, &
                                      nOrb,kp_in,kptotal_in,eta,leigenstates,itype,theta,phi, &
                                      laddresults,lsortfiles,lcreatefiles
-  use mod_io,                  only: get_parameters,iowrite
+  use mod_io,                  only: get_parameters,iowrite,log_error
   use Lattice,                 only: initLattice,writeLattice
   use mod_BrillouinZone,       only: realBZ,countBZ
   use mod_SOC,                 only: llinearsoc,SOC,allocateLS,updateLS,deallocateLS
@@ -58,17 +58,6 @@ program TITAN
   !------------------------ MPI initialization -------------------------
   call Initialize_MPI()
 
-#ifdef _GPU
-  !------------------------ GPU initialization -------------------------
-  ! Getting number of GPUs seen by currrent MPI
-  CUDA_CALL( cudaGetDeviceCount(num_gpus) )
-  ! Setting up the device for this process
-  CUDA_CALL( cudaSetDevice(mod(myrank,num_gpus)) ) 
-  ! Creating handle for cusolver
-  call create_handle()
-  !$acc init device_type(acc_device_nvidia)
-#endif
-
   !------------------------- Starting program --------------------------
   start_program = MPI_Wtime()
 
@@ -79,14 +68,28 @@ program TITAN
   else
     call get_parameters("input",sys)
   end if
-
   arg = ""
+
+#ifdef _GPU
+  !------------------------ GPU initialization -------------------------
+  ! Getting number of GPUs seen by currrent MPI
+  CUDA_CALL( cudaGetDeviceCount(num_gpus) )
+
+  if(num_gpus == 0) &
+    call log_error("main", "Something wrong in the setup: number of GPUS is zero!")
+  ! Setting up the device for this process
+  CUDA_CALL( cudaSetDevice(mod(myrank,num_gpus)) ) 
+  ! Creating handle for cusolver
+  call create_handle()
+  !$acc init device_type(acc_device_nvidia)
+  arg = trim(arg) // " GPU"
+#endif
+
 #ifdef DEBUG
   arg = trim(arg) // " DEBUG"
 #endif
-#ifdef _GPU
-  arg = trim(arg) // " GPU"
-#endif
+
+  !---------------- Writing time after initializations -----------------
   if(myrank == 0) call write_time('[main]' // trim(arg) // ' Started on: ',output%unit)
 
   !------------------- Useful constants and matrices -------------------

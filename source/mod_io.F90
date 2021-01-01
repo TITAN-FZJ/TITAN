@@ -919,10 +919,11 @@ contains
   end subroutine get_parameters
 
   subroutine iowrite(s)
-    use mod_mpi_pars
-    use mod_parameters
-    use mod_magnet
-    use mod_System,            only: System_type, n0sc1, n0sc2
+    use mod_mpi_pars,          only: numprocs
+    use mod_parameters,        only: output,runoptions,bands,band_cnt,renorm,renormnb,eta,itype, &
+                                     emin,emax,nener1,nqvec1
+    use mod_magnet,            only: lfield,hwx,hwy,hwz,hw_list,hw_count,dcfield,dcfield_dependence,total_hw_npt1
+    use mod_System,            only: System_type,n0sc1,n0sc2
     use mod_BrillouinZone,     only: BZ => realBZ
     use mod_fermi_surface,     only: lfs_loop, fs_energy_i, fs_energy_f, fs_energy_npts
     use mod_SOC,               only: SOC, socscale
@@ -931,8 +932,11 @@ contains
     use AdaptiveMesh,          only: minimumBZmesh
     use mod_superconductivity, only: lsupercond
     use mod_imRK4_parameters,  only: integration_time, sc_tol, hE_0, hw1_m, hw_e, hw_m, tau_e, &
-                                    tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, npulse_e, lpulse_m, npulse_m, &
-                                    polarization_vec_e, polarization_vec_m, abs_tol, rel_tol, safe_factor
+                                     tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, npulse_e, lpulse_m, npulse_m, &
+                                     polarization_vec_e, polarization_vec_m, abs_tol, rel_tol, safe_factor
+#ifdef _GPU
+    use mod_cuda,              only: num_gpus
+#endif
     !$ use omp_lib
     implicit none
     type(System_type), intent(in) :: s
@@ -942,6 +946,10 @@ contains
 #else
     write(output%unit_loop,"(10x,'Running on ',i0,' MPI process(es) WITHOUT openMP')") numprocs
 #endif
+#ifdef _GPU
+    write(output%unit_loop,"(10x,'      and ',i0,' GPUs per MPI process(es)')") num_gpus
+#endif
+
     write(output%unit_loop,"('|------------------------------- PARAMETERS: -------------------------------|')")
     write(output%unit_loop,"(10x,'nAtoms = ',i0)") s%nAtoms
     ! write(output%unit_loop,"(1x,'DFT parameters: ')", advance='no')
@@ -996,7 +1004,7 @@ contains
     else
       write(output%unit_loop,"(1x,'Static magnetic field: DEACTIVATED')")
     end if
-    if(runoptions/="") write(output%unit_loop,"(6x,'Activated options:',/,4x,a)") trim(runoptions)
+    if(trim(runoptions)/="") write(output%unit_loop,"(6x,'Activated options:',/,4x,a)") trim(runoptions)
 
     write(output%unit_loop,"('|------------------------------ TO CALCULATE: ------------------------------|')")
     write_itype: select case (itype)

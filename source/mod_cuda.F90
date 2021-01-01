@@ -24,7 +24,6 @@ contains
     integer :: stat
 
     CUDA_CALL( cusolverDnCreate(h) ) 
-    ! result = cusolverDnCreate(h)
 
   end subroutine create_handle
 
