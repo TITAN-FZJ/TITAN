@@ -90,7 +90,7 @@ elseif(PLATFORM MATCHES osx)
   set(CMAKE_Fortran_COMPILER mpif90)
 elseif(PLATFORM MATCHES rwth)
   set(CMAKE_Fortran_COMPILER mpiifort)
-elseif(PLATFORM MATCHES booster)
+elseif(PLATFORM MATCHES jurecabooster)
   set(CMAKE_Fortran_COMPILER mpif90)
 elseif(PLATFORM MATCHES juwels)
   set(CMAKE_Fortran_COMPILER mpif90)
@@ -191,7 +191,7 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES nv)
                                                 -align array64byte
                                                 -xHost
                                                 )
-  elseif(PLATFORM MATCHES booster)
+  elseif(PLATFORM MATCHES jurecabooster)
     target_link_libraries(${TITAN_EXE} -mkl -qopenmp )
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
