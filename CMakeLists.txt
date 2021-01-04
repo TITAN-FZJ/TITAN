@@ -83,6 +83,13 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   )
 
 
+if(NOT PLATFORM)
+  execute_process(COMMAND bash "-c" "cat /etc/FZJ/systemname | tr -d '\n'"
+                  OUTPUT_VARIABLE PLATFORM 
+                  )
+  execute_process(COMMAND echo "Setting PLATFORM=${PLATFORM}")
+endif()
+
 # Executable names
 if(PLATFORM MATCHES jurecadc OR PLATFORM MATCHES juwelsbooster OR PLATFORM MATCHES jusuf)
   set(CMAKE_Fortran_COMPILER mpif90)
@@ -103,7 +110,7 @@ else()
 endif()
 
 if(NOT PREP)
-    set(PREP OFF)
+  set(PREP OFF)
 endif()
 
 if(PREP)
