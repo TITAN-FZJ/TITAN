@@ -84,10 +84,12 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
 
 
 if(NOT PLATFORM)
-  execute_process(COMMAND bash "-c" "cat /etc/FZJ/systemname | tr -d '\n'"
+  execute_process(COMMAND bash "-c" "cat /etc/FZJ/systemname 2>/dev/null | tr -d '\n'"
                   OUTPUT_VARIABLE PLATFORM 
                   )
-  execute_process(COMMAND echo "Setting PLATFORM=${PLATFORM}")
+  if(PLATFORM)
+    execute_process(COMMAND echo "Setting PLATFORM=${PLATFORM}")
+  endif(PLATFORM)
 endif()
 
 # Executable names
