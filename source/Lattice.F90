@@ -15,8 +15,8 @@
 !------------------------------------------------------------------------------------!
 
 module Lattice
-  use mod_kind, only: dp
-  use AtomTypes,    only: NeighborAtom
+  use mod_kind,  only: dp
+  use AtomTypes, only: NeighborAtom
   implicit none
 
   type(NeighborAtom), dimension(:), allocatable, private :: list
@@ -41,7 +41,7 @@ contains
     use mod_system, only: System_type
     use mod_tools,  only: vecDist
     implicit none
-    type(System_type),                                  intent(inout) :: s
+    type(System_type),                             intent(inout) :: s
     !! System for which lattice is generated
     integer,                                       intent(out)   :: size
     !! Counter for number of atoms generated, return total number generated

@@ -1,8 +1,8 @@
 ! ---------- Parallel spin current: Energy integration ---------
 subroutine eintshe(q,e)
   use mod_kind,          only: dp,int64
-  use mod_constants,     only: cZero, cI, tpi
-  use mod_parameters,    only: nOrb, nOrb2, dimens, sigmaimunu2i, eta, etap, sigmai2i, offset
+  use mod_constants,     only: cZero,cI,tpi
+  use mod_parameters,    only: dimens,sigmaimunu2i,eta,etap,sigmai2i
   use mod_SOC,           only: llineargfsoc
   use EnergyIntegration, only: y, wght, x2, p2, generate_real_epoints, pn2
   use mod_system,        only: s => sys !, n0sc1, n0sc2
@@ -33,7 +33,7 @@ subroutine eintshe(q,e)
   complex(dp),dimension(:,:,:,:),allocatable    :: gf,dtdk
   complex(dp),dimension(:,:,:,:,:),allocatable  :: gfuu,gfud,gfdu,gfdd
   complex(dp),dimension(:,:),allocatable        :: df1iikl,pfdf1iikl
-  !complex(dp),dimension(n0sc1:n0sc2,s%nAtoms,nOrb, nOrb)    :: prett,preLxtt,preLytt,preLztt !TODO: Re-Include
+  !complex(dp),dimension(n0sc1:n0sc2,s%nAtoms,s%nOrb, s%nOrb)    :: prett,preLxtt,preLytt,preLztt !TODO: Re-Include
   !complex(dp),dimension(n0sc1:n0sc2,dimspinAtoms,4), intent(out) :: ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl !TODO:Re-Include
   !--------------------- begin MPI vars --------------------
   integer(int64) :: ix, ix2, nep,nkp
@@ -65,15 +65,14 @@ subroutine eintshe(q,e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,ix,ix2,wkbzc,ep,kp,kpq,nep,nkp,i,j,l,mu,nu,gamma,xi,sigma,sigmap,neighbor,dtdk,gf,gfuu,gfud,gfdu,gfdd,df1iikl,pfdf1iikl,tFintiikl) & !,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,expikr,prett,preLxtt,preLytt,preLztt) &
-  !$omp& shared(s,calc_green,nOrb,nOrb2,bzs,realBZ,E_k_imag_mesh,ElectricFieldVector,prefactor,q,e,y,x2,wght,p2,pn2,eta,etap,local_points,real_points,sigmai2i,sigmaimunu2i,dimens,offset, tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
-
+  !$omp& shared(s,calc_green,bzs,realBZ,E_k_imag_mesh,ElectricFieldVector,prefactor,q,e,y,x2,wght,p2,pn2,eta,etap,local_points,real_points,sigmai2i,sigmaimunu2i,dimens,tchiorbiikl) !,n0sc1,n0sc2,lxpt,lypt,lzpt,tlxp,tlyp,tlzp)
   allocate(df1iikl(dimens,4),pfdf1iikl(dimens,4), &
-           gf(nOrb2,nOrb2, s%nAtoms,s%nAtoms), &
-           dtdk(nOrb,nOrb,s%nAtoms,s%nAtoms), &
-           gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
-           gfud(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
-           gfdu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
-           gfdd(nOrb,nOrb,s%nAtoms,s%nAtoms,2), STAT = AllocateStatus)
+           gf(s%nOrb2,s%nOrb2, s%nAtoms,s%nAtoms), &
+           dtdk(s%nOrb,s%nOrb,s%nAtoms,s%nAtoms), &
+           gfuu(s%nOrb,s%nOrb,s%nAtoms,s%nAtoms,2), &
+           gfud(s%nOrb,s%nOrb,s%nAtoms,s%nAtoms,2), &
+           gfdu(s%nOrb,s%nOrb,s%nAtoms,s%nAtoms,2), &
+           gfdd(s%nOrb,s%nOrb,s%nAtoms,s%nAtoms,2), STAT = AllocateStatus)
   if(AllocateStatus/=0) &
   call abortProgram("[eintshe] Not enough memory for: df1iikl,pfdf1iikl,gf,dtdk,gfuu,gfud,gfdu,gfdd")
 
@@ -109,11 +108,11 @@ subroutine eintshe(q,e)
 
       ! Calculating the prefactor (L).t.exp - t.(L).exp
       ! TODO: Fix Currents
-      ! do nu=1,9
-      !   do mu=1,9
+      ! do nu=1,s%nOrb
+      !   do mu=1,s%nOrb
       !     do neighbor=n0sc1,n0sc2
       !       do i = 1, s%nAtoms
-      !         prett  (neighbor,i,mu,nu) = t0i(nu,mu,neighbor,i+offset)*expikr(neighbor)-(t0i(mu,nu,neighbor,i+offset)*conjg(expikr(neighbor)))
+      !         prett  (neighbor,i,mu,nu) = t0i(nu,mu,neighbor,i)*expikr(neighbor)-(t0i(mu,nu,neighbor,i)*conjg(expikr(neighbor)))
       !         preLxtt(neighbor,i,mu,nu) = lxpt(i,neighbor,mu,nu)*expikr(neighbor)-(tlxp(i,neighbor,mu,nu)*conjg(expikr(neighbor)))
       !         preLytt(neighbor,i,mu,nu) = lypt(i,neighbor,mu,nu)*expikr(neighbor)-(tlyp(i,neighbor,mu,nu)*conjg(expikr(neighbor)))
       !         preLztt(neighbor,i,mu,nu) = lzpt(i,neighbor,mu,nu)*expikr(neighbor)-(tlzp(i,neighbor,mu,nu)*conjg(expikr(neighbor)))
@@ -125,19 +124,19 @@ subroutine eintshe(q,e)
       ! Green function at (k+q,E_F+E+iy)
       kpq = kp+q
       call calc_green(s%Ef+e,ep+eta,s,kpq,gf)
-      gfuu(:,:,:,:,1) = gf(     1:nOrb ,     1:nOrb ,:,:)
-      gfud(:,:,:,:,1) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
-      gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:nOrb ,:,:)
-      gfdd(:,:,:,:,1) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
+      gfuu(:,:,:,:,1) = gf(       1:s%nOrb ,       1:s%nOrb ,:,:)
+      gfud(:,:,:,:,1) = gf(       1:s%nOrb ,s%nOrb+1:s%nOrb2,:,:)
+      gfdu(:,:,:,:,1) = gf(s%nOrb+1:s%nOrb2,       1:s%nOrb ,:,:)
+      gfdd(:,:,:,:,1) = gf(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,:,:)
 
       ! Green function at (k,E_F+iy)
       call calc_green(s%Ef,ep+etap,s,kp,gf)
-      gfuu(:,:,:,:,2) = gf(     1:nOrb ,     1:nOrb ,:,:)
-      gfud(:,:,:,:,2) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
-      gfdu(:,:,:,:,2) = gf(nOrb+1:nOrb2,     1:nOrb ,:,:)
-      gfdd(:,:,:,:,2) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
+      gfuu(:,:,:,:,2) = gf(       1:s%nOrb ,       1:s%nOrb ,:,:)
+      gfud(:,:,:,:,2) = gf(       1:s%nOrb ,s%nOrb+1:s%nOrb2,:,:)
+      gfdu(:,:,:,:,2) = gf(s%nOrb+1:s%nOrb2,       1:s%nOrb ,:,:)
+      gfdd(:,:,:,:,2) = gf(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,:,:)
 
-      do j=1,s%nAtoms; do i=1,s%nAtoms; do l=1,s%nAtoms; do gamma=1,nOrb; do mu=1,nOrb; do xi=1,nOrb; do nu=1,nOrb
+      do j=1,s%nAtoms; do i=1,s%nAtoms; do l=1,s%nAtoms; do gamma=1,s%nOrb; do mu=1,s%nOrb; do xi=1,s%nOrb; do nu=1,s%nOrb
         ! if(abs(j-l) > npln) cycle
         df1iikl(sigmaimunu2i(1,i,mu,nu),1) = df1iikl(sigmaimunu2i(1,i,mu,nu),1) + (gfdd(nu,gamma,i,j,1)*gfuu(xi,mu,l,i,2) + conjg(gfuu(mu,xi,i,l,2)*gfdd(gamma,nu,j,i,1)))*dtdk(gamma,xi,j,l)
         df1iikl(sigmaimunu2i(1,i,mu,nu),2) = df1iikl(sigmaimunu2i(1,i,mu,nu),2) + (gfdu(nu,gamma,i,j,1)*gfuu(xi,mu,l,i,2) + conjg(gfuu(mu,xi,i,l,2)*gfud(gamma,nu,j,i,1)))*dtdk(gamma,xi,j,l)
@@ -168,8 +167,8 @@ subroutine eintshe(q,e)
 
       ! TODO: Fix currents
       ! do sigmap = 1, 4
-      !   do nu = 1, 9
-      !     do mu = 1, 9
+      !   do nu = 1, s%nOrb
+      !     do mu = 1, s%nOrb
       !       do i = 1, s%nAtoms
       !         do sigma = 1, 4
       !           do neighbor = n0sc1, n0sc2
@@ -208,11 +207,11 @@ subroutine eintshe(q,e)
 
       ! Calculating the prefactor (L).t.exp - t.(L).exp
       ! TODO: Fix Currents
-      ! do nu=1,9
-      !   do mu=1,9
+      ! do nu=1,s%nOrb
+      !   do mu=1,s%nOrb
       !     do neighbor=n0sc1,n0sc2
       !       do i = 1, s%nAtoms
-      !         prett  (neighbor,i,mu,nu) = t0i(nu,mu,neighbor,i+offset)*expikr(neighbor)-(t0i(mu,nu,neighbor,i+offset)*conjg(expikr(neighbor)))
+      !         prett  (neighbor,i,mu,nu) = t0i(nu,mu,neighbor,i)*expikr(neighbor)-(t0i(mu,nu,neighbor,i)*conjg(expikr(neighbor)))
       !         preLxtt(neighbor,i,mu,nu) = lxpt(i,neighbor,mu,nu)*expikr(neighbor)-(tlxp(i,neighbor,mu,nu)*conjg(expikr(neighbor)))
       !         preLytt(neighbor,i,mu,nu) = lypt(i,neighbor,mu,nu)*expikr(neighbor)-(tlyp(i,neighbor,mu,nu)*conjg(expikr(neighbor)))
       !         preLztt(neighbor,i,mu,nu) = lzpt(i,neighbor,mu,nu)*expikr(neighbor)-(tlzp(i,neighbor,mu,nu)*conjg(expikr(neighbor)))
@@ -224,19 +223,19 @@ subroutine eintshe(q,e)
         ! Green function at (k+q,E_F+E+iy)
         kpq = kp+q
         call calc_green(ep+e,eta,s,kpq,gf)
-        gfuu(:,:,:,:,1) = gf(     1:nOrb ,     1:nOrb ,:,:)
-        gfud(:,:,:,:,1) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
-        gfdu(:,:,:,:,1) = gf(nOrb+1:nOrb2,     1:nOrb ,:,:)
-        gfdd(:,:,:,:,1) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
+        gfuu(:,:,:,:,1) = gf(       1:s%nOrb ,       1:s%nOrb ,:,:)
+        gfud(:,:,:,:,1) = gf(       1:s%nOrb ,s%nOrb+1:s%nOrb2,:,:)
+        gfdu(:,:,:,:,1) = gf(s%nOrb+1:s%nOrb2,       1:s%nOrb ,:,:)
+        gfdd(:,:,:,:,1) = gf(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,:,:)
 
         ! Green function at (k,E_F+iy)
         call calc_green(ep,etap,s,kp,gf)
-        gfuu(:,:,:,:,2) = gf(     1:nOrb ,     1:nOrb ,:,:)
-        gfud(:,:,:,:,2) = gf(     1:nOrb ,nOrb+1:nOrb2,:,:)
-        gfdu(:,:,:,:,2) = gf(nOrb+1:nOrb2,     1:nOrb ,:,:)
-        gfdd(:,:,:,:,2) = gf(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
+        gfuu(:,:,:,:,2) = gf(       1:s%nOrb ,       1:s%nOrb ,:,:)
+        gfud(:,:,:,:,2) = gf(       1:s%nOrb ,s%nOrb+1:s%nOrb2,:,:)
+        gfdu(:,:,:,:,2) = gf(s%nOrb+1:s%nOrb2,       1:s%nOrb ,:,:)
+        gfdd(:,:,:,:,2) = gf(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,:,:)
 
-        do j=1,s%nAtoms; do i=1,s%nAtoms; do l=1,s%nAtoms; do gamma=1,nOrb; do mu=1,nOrb; do xi=1,nOrb; do nu=1,nOrb
+        do j=1,s%nAtoms; do i=1,s%nAtoms; do l=1,s%nAtoms; do gamma=1,s%nOrb; do mu=1,s%nOrb; do xi=1,s%nOrb; do nu=1,s%nOrb
           df1iikl(sigmaimunu2i(1,i,mu,nu),1) = df1iikl(sigmaimunu2i(1,i,mu,nu),1)-cI*(gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,l,2))*dtdk(gamma,xi,j,l)
           df1iikl(sigmaimunu2i(1,i,mu,nu),2) = df1iikl(sigmaimunu2i(1,i,mu,nu),2)-cI*(gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,l,2))*dtdk(gamma,xi,j,l)
           df1iikl(sigmaimunu2i(1,i,mu,nu),3) = df1iikl(sigmaimunu2i(1,i,mu,nu),3)-cI*(gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,l,2))*dtdk(gamma,xi,j,l)
@@ -268,8 +267,8 @@ subroutine eintshe(q,e)
 
       ! TODO: Fix currents
       ! do sigmap=1,4
-      !   do nu=1,9
-      !     do mu=1,9
+      !   do nu=1,s%nOrb
+      !     do mu=1,s%nOrb
       !       do i=1,Npl
       !         do sigma=1,4
       !           do neighbor=n0sc1,n0sc2
@@ -325,12 +324,12 @@ end subroutine eintshe
 
 subroutine eintshelinearsoc(q,e)
   use mod_kind,          only: dp,int64
-  use mod_constants,     only: cZero, cOne, cI, tpi
-  use mod_parameters,    only: nOrb, nOrb2, dimens, eta, etap, sigmai2i, sigmaimunu2i, offset
+  use mod_constants,     only: cZero,cOne,cI,tpi
+  use mod_parameters,    only: dimens,eta,etap,sigmai2i,sigmaimunu2i
   use mod_system,        only: s => sys
   use mod_BrillouinZone, only: realBZ
-  use EnergyIntegration, only: y, wght, x2, p2, generate_real_epoints, pn2
-  use mod_prefactors,    only: prefactor, prefactorlsoc
+  use EnergyIntegration, only: y,wght,x2,p2,generate_real_epoints,pn2
+  use mod_prefactors,    only: prefactor,prefactorlsoc
   use mod_disturbances,  only: tchiorbiikl
   use ElectricField,     only: ElectricFieldVector
   use mod_greenfunction, only: greenlinearsoc
@@ -354,7 +353,7 @@ subroutine eintshelinearsoc(q,e)
   complex(dp),dimension(:,:,:,:),allocatable    :: gf,dtdk,gvg
   complex(dp),dimension(:,:,:,:,:),allocatable  :: gfuu,gfud,gfdu,gfdd,gvguu,gvgud,gvgdu,gvgdd
   complex(dp),dimension(:,:),allocatable        :: df1iikl,pfdf1iikl,df1lsoc
-  !complex(dp),dimension(n0sc1:n0sc2,Npl,9,9)    :: prett,preLxtt,preLytt,preLztt !TODO: Re-Include
+  !complex(dp),dimension(n0sc1:n0sc2,Npl,s%nOrb,s%nOrb)    :: prett,preLxtt,preLytt,preLztt !TODO: Re-Include
 
   integer(int64) :: ix,ix2, iz
   integer(int64) :: real_points
@@ -381,22 +380,22 @@ subroutine eintshelinearsoc(q,e)
 
   !$omp parallel default(none) &
   !$omp& private(AllocateStatus,iz,wkbzc,kp,kpq,ep,nep,nkp,tFintiikl,df1iikl,pfdf1iikl,df1lsoc,dtdk,gf,gfuu,gfud,gfdu,gfdd,gvg,gvguu,gvgud,gvgdu,gvgdd,sigma,sigmap,i,j,l,mu,nu,gamma,xi,neighbor) &    !,expikr,prett,preLxtt,preLytt,preLztt
-  !$omp& shared(local_points,real_points,s,nOrb,nOrb2,bzs,E_k_imag_mesh,ElectricFieldVector,tchiorbiikl,prefactor,prefactorlsoc,realBZ,q,e,y,x2,wght,p2,eta,etap,sigmai2i,sigmaimunu2i,dimens,offset)                                                                                 !,n0sc1,n0sc2,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,lxpt,lypt,lzpt,tlxp,tlyp,tlzp
+  !$omp& shared(local_points,real_points,s,bzs,E_k_imag_mesh,ElectricFieldVector,tchiorbiikl,prefactor,prefactorlsoc,realBZ,q,e,y,x2,wght,p2,eta,etap,sigmai2i,sigmaimunu2i,dimens)                                                                                 !,n0sc1,n0sc2,ttFintiikl,LxttFintiikl,LyttFintiikl,LzttFintiikl,lxpt,lypt,lzpt,tlxp,tlyp,tlzp
 
   allocate( df1iikl(dimens,4),pfdf1iikl(dimens,4),df1lsoc(dimens,4), &
-            dtdk(nOrb,nOrb,s%nAtoms,s%nAtoms), &
-            gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
-            gfuu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
-            gfud(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
-            gfdu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
-            gfdd(nOrb,nOrb,s%nAtoms,s%nAtoms,2), STAT = AllocateStatus  )
+            dtdk(s%nOrb,s%nOrb,s%nAtoms,s%nAtoms), &
+            gf(s%nOrb2,s%nOrb2,s%nAtoms,s%nAtoms), &
+            gfuu(s%nOrb,s%nOrb,s%nAtoms,s%nAtoms,2), &
+            gfud(s%nOrb,s%nOrb,s%nAtoms,s%nAtoms,2), &
+            gfdu(s%nOrb,s%nOrb,s%nAtoms,s%nAtoms,2), &
+            gfdd(s%nOrb,s%nOrb,s%nAtoms,s%nAtoms,2), STAT = AllocateStatus  )
   if (AllocateStatus/=0) call abortProgram("[sumklinearsoc] Not enough memory for: df1iikl,pfdf1iikl,df1lsoc,gf,dtdk,gfuu,gfud,gfdu,gfdd")
 
-  allocate( gvg(nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
-            gvguu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
-            gvgud(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
-            gvgdu(nOrb,nOrb,s%nAtoms,s%nAtoms,2), &
-            gvgdd(nOrb,nOrb,s%nAtoms,s%nAtoms,2), STAT = AllocateStatus  )
+  allocate( gvg(s%nOrb2,s%nOrb2,s%nAtoms,s%nAtoms), &
+            gvguu(s%nOrb,s%nOrb,s%nAtoms,s%nAtoms,2), &
+            gvgud(s%nOrb,s%nOrb,s%nAtoms,s%nAtoms,2), &
+            gvgdu(s%nOrb,s%nOrb,s%nAtoms,s%nAtoms,2), &
+            gvgdd(s%nOrb,s%nOrb,s%nAtoms,s%nAtoms,2), STAT = AllocateStatus  )
   if (AllocateStatus/=0) call abortProgram("[sumklinearsoc] Not enough memory for: gvg,gvguu,gvgud,gvgdu,gvgdd")
 
   allocate( tFintiikl(dimens,4), STAT = AllocateStatus ) !, & !TODO: Re-Include
@@ -428,11 +427,11 @@ subroutine eintshelinearsoc(q,e)
     ! end do
 
     ! Calculating the prefactor (L).t.exp - t.(L).exp
-    ! do nu=1,9 !TODO: Re-Include
-    !   do mu=1,9
+    ! do nu=1,s%nOrb !TODO: Re-Include
+    !   do mu=1,s%nOrb
     !     do i = 1, s%nAtoms
     !       do neighbor=n0sc1,n0sc2
-    !         prett  (neighbor,i,mu,nu) = t0i(nu,mu,neighbor,i+offset)*expikr(neighbor)-(t0i(mu,nu,neighbor,i+offset)*conjg(expikr(neighbor)))
+    !         prett  (neighbor,i,mu,nu) = t0i(nu,mu,neighbor,i)*expikr(neighbor)-(t0i(mu,nu,neighbor,i)*conjg(expikr(neighbor)))
     !         preLxtt(neighbor,i,mu,nu) = lxpt(i,neighbor,mu,nu)*expikr(neighbor)-(tlxp(i,neighbor,mu,nu)*conjg(expikr(neighbor)))
     !         preLytt(neighbor,i,mu,nu) = lypt(i,neighbor,mu,nu)*expikr(neighbor)-(tlyp(i,neighbor,mu,nu)*conjg(expikr(neighbor)))
     !         preLztt(neighbor,i,mu,nu) = lzpt(i,neighbor,mu,nu)*expikr(neighbor)-(tlzp(i,neighbor,mu,nu)*conjg(expikr(neighbor)))
@@ -444,27 +443,27 @@ subroutine eintshelinearsoc(q,e)
     ! Green function at (k+q,E_F+E+iy)
     kpq = kp+q
     call greenlinearsoc(s%Ef+e,ep+eta,s,kpq,gf,gvg)
-    gfuu (:,:,:,:,1) = gf (     1:nOrb ,     1:nOrb ,:,:)
-    gfud (:,:,:,:,1) = gf (     1:nOrb ,nOrb+1:nOrb2,:,:)
-    gfdu (:,:,:,:,1) = gf (nOrb+1:nOrb2,     1:nOrb ,:,:)
-    gfdd (:,:,:,:,1) = gf (nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
-    gvguu(:,:,:,:,1) = gvg(     1:nOrb ,     1:nOrb ,:,:)
-    gvgud(:,:,:,:,1) = gvg(     1:nOrb ,nOrb+1:nOrb2,:,:)
-    gvgdu(:,:,:,:,1) = gvg(nOrb+1:nOrb2,     1:nOrb ,:,:)
-    gvgdd(:,:,:,:,1) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
+    gfuu (:,:,:,:,1) = gf (       1:s%nOrb ,       1:s%nOrb ,:,:)
+    gfud (:,:,:,:,1) = gf (       1:s%nOrb ,s%nOrb+1:s%nOrb2,:,:)
+    gfdu (:,:,:,:,1) = gf (s%nOrb+1:s%nOrb2,       1:s%nOrb ,:,:)
+    gfdd (:,:,:,:,1) = gf (s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,:,:)
+    gvguu(:,:,:,:,1) = gvg(       1:s%nOrb ,       1:s%nOrb ,:,:)
+    gvgud(:,:,:,:,1) = gvg(       1:s%nOrb ,s%nOrb+1:s%nOrb2,:,:)
+    gvgdu(:,:,:,:,1) = gvg(s%nOrb+1:s%nOrb2,       1:s%nOrb ,:,:)
+    gvgdd(:,:,:,:,1) = gvg(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,:,:)
 
     ! Green function at (k,E_F+iy)
     call greenlinearsoc(s%Ef,ep+etap,s,kp,gf,gvg)
-    gfuu (:,:,:,:,2) = gf (     1:nOrb ,     1: nOrb,:,:)
-    gfud (:,:,:,:,2) = gf (     1:nOrb ,nOrb+1:nOrb2,:,:)
-    gfdu (:,:,:,:,2) = gf (nOrb+1:nOrb2,     1: nOrb,:,:)
-    gfdd (:,:,:,:,2) = gf (nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
-    gvguu(:,:,:,:,2) = gvg(     1:nOrb ,     1: nOrb,:,:)
-    gvgud(:,:,:,:,2) = gvg(     1:nOrb ,nOrb+1:nOrb2,:,:)
-    gvgdu(:,:,:,:,2) = gvg(nOrb+1:nOrb2,     1: nOrb,:,:)
-    gvgdd(:,:,:,:,2) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
+    gfuu (:,:,:,:,2) = gf (       1:s%nOrb ,       1: s%nOrb,:,:)
+    gfud (:,:,:,:,2) = gf (       1:s%nOrb ,s%nOrb+1:s%nOrb2,:,:)
+    gfdu (:,:,:,:,2) = gf (s%nOrb+1:s%nOrb2,       1: s%nOrb,:,:)
+    gfdd (:,:,:,:,2) = gf (s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,:,:)
+    gvguu(:,:,:,:,2) = gvg(       1:s%nOrb ,       1: s%nOrb,:,:)
+    gvgud(:,:,:,:,2) = gvg(       1:s%nOrb ,s%nOrb+1:s%nOrb2,:,:)
+    gvgdu(:,:,:,:,2) = gvg(s%nOrb+1:s%nOrb2,       1: s%nOrb,:,:)
+    gvgdd(:,:,:,:,2) = gvg(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,:,:)
 
-    do j=1,s%nAtoms;  do i=1,s%nAtoms; do l=1,s%nAtoms; do gamma=1,nOrb; do mu=1,nOrb; do xi=1,nOrb; do nu=1,nOrb
+    do j=1,s%nAtoms;  do i=1,s%nAtoms; do l=1,s%nAtoms; do gamma=1,s%nOrb; do mu=1,s%nOrb; do xi=1,s%nOrb; do nu=1,s%nOrb
       ! if(abs(j-l) > npln) cycle
       df1iikl(sigmaimunu2i(1,i,mu,nu),1) = df1iikl(sigmaimunu2i(1,i,mu,nu),1) + (gfdd(nu,gamma,i,j,1)*gfuu(xi,mu,l,i,2) + conjg(gfuu(mu,xi,i,l,2)*gfdd(gamma,nu,j,i,1)))*dtdk(gamma,xi,j,l)
       df1iikl(sigmaimunu2i(1,i,mu,nu),2) = df1iikl(sigmaimunu2i(1,i,mu,nu),2) + (gfdu(nu,gamma,i,j,1)*gfuu(xi,mu,l,i,2) + conjg(gfuu(mu,xi,i,l,2)*gfud(gamma,nu,j,i,1)))*dtdk(gamma,xi,j,l)
@@ -523,8 +522,8 @@ subroutine eintshelinearsoc(q,e)
     ! do sigmap=1,4 !TODO: Re-Include
     !   do i = 1, s%nAtoms
     !     do sigma=1,4
-    !       do nu=1,9
-    !         do mu=1,9
+    !       do nu=1,s%nOrb
+    !         do mu=1,s%nOrb
     !           do neighbor = n0sc1, n0sc2
     !             ttFintiikl  (neighbor,sigmai2i(sigma,i),sigmap) = ttFintiikl  (neighbor,sigmai2i(sigma,i),sigmap) + (prett  (neighbor,i,mu,nu)*pfdf1iikl(sigmaimunu2i(sigma,i,mu,nu),sigmap))
     !             ! Orbital angular momentum currents
@@ -560,11 +559,11 @@ subroutine eintshelinearsoc(q,e)
     ! end do
 
     ! Calculating the prefactor (L).t.exp - t.(L).exp
-    ! do nu=1,9 !TODO: Re-Include
-    !   do mu=1,9
+    ! do nu=1,s%nOrb !TODO: Re-Include
+    !   do mu=1,s%nOrb
     !     do neighbor=n0sc1,n0sc2
     !       do i = 1, s%nAtoms
-    !         prett  (neighbor,i,mu,nu) = t0i(nu,mu,neighbor,i+offset)*expikr(neighbor)-(t0i(mu,nu,neighbor,i+offset)*conjg(expikr(neighbor)))
+    !         prett  (neighbor,i,mu,nu) = t0i(nu,mu,neighbor,i)*expikr(neighbor)-(t0i(mu,nu,neighbor,i)*conjg(expikr(neighbor)))
     !         preLxtt(neighbor,i,mu,nu) = lxpt(i,neighbor,mu,nu)*expikr(neighbor)-(tlxp(i,neighbor,mu,nu)*conjg(expikr(neighbor)))
     !         preLytt(neighbor,i,mu,nu) = lypt(i,neighbor,mu,nu)*expikr(neighbor)-(tlyp(i,neighbor,mu,nu)*conjg(expikr(neighbor)))
     !         preLztt(neighbor,i,mu,nu) = lzpt(i,neighbor,mu,nu)*expikr(neighbor)-(tlzp(i,neighbor,mu,nu)*conjg(expikr(neighbor)))
@@ -576,27 +575,27 @@ subroutine eintshelinearsoc(q,e)
     ! Green function at (k+q,E_F+E+iy)
     kpq = kp+q
     call greenlinearsoc(ep+e,eta,s,kpq,gf,gvg)
-    gfuu (:,:,:,:,1) = gf (     1:nOrb ,     1:nOrb ,:,:)
-    gfud (:,:,:,:,1) = gf (     1:nOrb ,nOrb+1:nOrb2,:,:)
-    gfdu (:,:,:,:,1) = gf (nOrb+1:nOrb2,     1:nOrb ,:,:)
-    gfdd (:,:,:,:,1) = gf (nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
-    gvguu(:,:,:,:,1) = gvg(     1:nOrb ,     1:nOrb ,:,:)
-    gvgud(:,:,:,:,1) = gvg(     1:nOrb ,nOrb+1:nOrb2,:,:)
-    gvgdu(:,:,:,:,1) = gvg(nOrb+1:nOrb2,     1:nOrb ,:,:)
-    gvgdd(:,:,:,:,1) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
+    gfuu (:,:,:,:,1) = gf (       1:s%nOrb ,       1:s%nOrb ,:,:)
+    gfud (:,:,:,:,1) = gf (       1:s%nOrb ,s%nOrb+1:s%nOrb2,:,:)
+    gfdu (:,:,:,:,1) = gf (s%nOrb+1:s%nOrb2,       1:s%nOrb ,:,:)
+    gfdd (:,:,:,:,1) = gf (s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,:,:)
+    gvguu(:,:,:,:,1) = gvg(       1:s%nOrb ,       1:s%nOrb ,:,:)
+    gvgud(:,:,:,:,1) = gvg(       1:s%nOrb ,s%nOrb+1:s%nOrb2,:,:)
+    gvgdu(:,:,:,:,1) = gvg(s%nOrb+1:s%nOrb2,       1:s%nOrb ,:,:)
+    gvgdd(:,:,:,:,1) = gvg(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,:,:)
 
     ! Green function at (k,E_F+iy)
     call greenlinearsoc(ep,etap,s,kp,gf,gvg)
-    gfuu (:,:,:,:,2) = gf (     1:nOrb ,     1: nOrb,:,:)
-    gfud (:,:,:,:,2) = gf (     1:nOrb ,nOrb+1:nOrb2,:,:)
-    gfdu (:,:,:,:,2) = gf (nOrb+1:nOrb2,     1: nOrb,:,:)
-    gfdd (:,:,:,:,2) = gf (nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
-    gvguu(:,:,:,:,2) = gvg(     1:nOrb ,     1: nOrb,:,:)
-    gvgud(:,:,:,:,2) = gvg(     1:nOrb ,nOrb+1:nOrb2,:,:)
-    gvgdu(:,:,:,:,2) = gvg(nOrb+1:nOrb2,     1: nOrb,:,:)
-    gvgdd(:,:,:,:,2) = gvg(nOrb+1:nOrb2,nOrb+1:nOrb2,:,:)
+    gfuu (:,:,:,:,2) = gf (       1:s%nOrb ,       1: s%nOrb,:,:)
+    gfud (:,:,:,:,2) = gf (       1:s%nOrb ,s%nOrb+1:s%nOrb2,:,:)
+    gfdu (:,:,:,:,2) = gf (s%nOrb+1:s%nOrb2,       1: s%nOrb,:,:)
+    gfdd (:,:,:,:,2) = gf (s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,:,:)
+    gvguu(:,:,:,:,2) = gvg(       1:s%nOrb ,       1: s%nOrb,:,:)
+    gvgud(:,:,:,:,2) = gvg(       1:s%nOrb ,s%nOrb+1:s%nOrb2,:,:)
+    gvgdu(:,:,:,:,2) = gvg(s%nOrb+1:s%nOrb2,       1: s%nOrb,:,:)
+    gvgdd(:,:,:,:,2) = gvg(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,:,:)
 
-    do j=1,s%nAtoms;  do i=1,s%nAtoms; do l=1,s%nAtoms; do gamma=1,nOrb; do mu=1,nOrb; do xi=1,nOrb; do nu=1,nOrb
+    do j=1,s%nAtoms;  do i=1,s%nAtoms; do l=1,s%nAtoms; do gamma=1,s%nOrb; do mu=1,s%nOrb; do xi=1,s%nOrb; do nu=1,s%nOrb
       !if(abs(j-l) > npln) cycle
       df1iikl(sigmaimunu2i(1,i,mu,nu),1) = df1iikl(sigmaimunu2i(1,i,mu,nu),1)-cI*(gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,l,2))*dtdk(gamma,xi,j,l)
       df1iikl(sigmaimunu2i(1,i,mu,nu),2) = df1iikl(sigmaimunu2i(1,i,mu,nu),2)-cI*(gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,l,2))*dtdk(gamma,xi,j,l)
@@ -652,8 +651,8 @@ subroutine eintshelinearsoc(q,e)
     ! do sigmap=1,4 !TODO: Re-Include
     !   do i = 1, s%nAtoms
     !     do sigma = 1, 4
-    !       do nu=1,9
-    !         do mu=1,9
+    !       do nu=1,s%nOrb
+    !         do mu=1,s%nOrb
     !           do neighbor = n0sc1, n0sc2
     !             ttFintiikl  (neighbor,sigmai2i(sigma,i),sigmap) = ttFintiikl  (neighbor,sigmai2i(sigma,i),sigmap) + (prett  (neighbor,i,mu,nu)*pfdf1iikl(sigmaimunu2i(sigma,i,mu,nu),sigmap))
     !             ! Orbital angular momentum currents

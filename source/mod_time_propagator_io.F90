@@ -422,14 +422,13 @@ contains
   subroutine write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,field_m,field_e,E_t, Lxm_t,Lym_t,Lzm_t) 
     use mod_kind,             only: dp
     use mod_system,           only: System_type
-    use mod_parameters,       only: nOrb
     use mod_imRK4_parameters, only: time_conv
     implicit none
-    type(System_type),                  intent(in) :: s
-    real(dp),                           intent(in) :: t,E_t
-    real(dp), dimension(nOrb,s%nAtoms), intent(in) :: rho_t,mx_t,my_t,mz_t
-    real(dp), dimension(s%nAtoms),      intent(in) :: Lxm_t,Lym_t,Lzm_t
-    real(dp), dimension(3),             intent(in) :: field_m, field_e
+    type(System_type),                    intent(in) :: s
+    real(dp),                             intent(in) :: t,E_t
+    real(dp), dimension(s%nOrb,s%nAtoms), intent(in) :: rho_t,mx_t,my_t,mz_t
+    real(dp), dimension(s%nAtoms),        intent(in) :: Lxm_t,Lym_t,Lzm_t
+    real(dp), dimension(3),               intent(in) :: field_m, field_e
 
     integer  :: i, mu
     real(dp) :: time
@@ -443,10 +442,10 @@ contains
     write(unit=5093,fmt="(100(es16.9,2x))") time, E_t
     write(unit=5094,fmt="(100(es16.9,2x))") time, (Lxm_t(i), Lym_t(i), Lzm_t(i), sqrt(Lxm_t(i)**2 + Lym_t(i)**2 + Lzm_t(i)**2),i=1,s%nAtoms)
 
-    write(unit=5191,fmt="(100(es16.9,2x))") time, ((rho_t(mu,i), mu=1,nOrb), i=1,s%nAtoms)
+    write(unit=5191,fmt="(100(es16.9,2x))") time, ((rho_t(mu,i), mu=1,s%nOrb), i=1,s%nAtoms)
     
   ! write(unit=5192,fmt="(100(es16.9,2x))") time, (mxd_t(i),myd_t(i),mzd_t(i),sqrt(mxd_t(i)**2 + myd_t(i)**2 + mzd_t(i)**2),i=1,s%nAtoms)
-    write(unit=5192,fmt="(100(es16.9,2x))") time, ( (mx_t(mu,i),my_t(mu,i),mz_t(mu,i), mu=1,nOrb), i=1,s%nAtoms)
+    write(unit=5192,fmt="(100(es16.9,2x))") time, ( (mx_t(mu,i),my_t(mu,i),mz_t(mu,i), mu=1,s%nOrb), i=1,s%nAtoms)
 
     write(unit=6090,fmt="(7(es16.9,2x))") time, (field_m(i),i=1,3), (field_e(i),i=1,3)
 

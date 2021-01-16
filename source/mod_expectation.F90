@@ -9,13 +9,12 @@ module mod_expectation
   abstract interface
     subroutine expectation_values_sub(s,rho,mp,mx,my,mz,deltas)
       use mod_kind,       only: dp
-      use mod_parameters, only: nOrb
       use mod_System,     only: System_type
       implicit none
-      type(System_type),                     intent(in)  :: s
-      real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
-      real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: deltas
-      complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: mp
+      type(System_type),                       intent(in)  :: s
+      real(dp),    dimension(s%nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
+      real(dp),    dimension(s%nOrb,s%nAtoms), intent(out) :: deltas
+      complex(dp), dimension(s%nOrb,s%nAtoms), intent(out) :: mp
     end subroutine expectation_values_sub
   end interface
 
@@ -34,16 +33,16 @@ contains
     use EnergyIntegration,     only: y,wght
     use mod_system,            only: System_type
     use adaptiveMesh,          only: bzs,E_k_imag_mesh,activeComm,local_points
-    use mod_parameters,        only: nOrb,nOrb2,eta
+    use mod_parameters,        only: eta
     use mod_hamiltonian,       only: hamilt_local
     use mod_greenfunction,     only: calc_green
     use mod_superconductivity, only: lsuperCond
     use mod_mpi_pars,          only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,ierr
     implicit none
-    type(System_type),                     intent(in)  :: s
-    real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: rho,mx,my,mz
-    real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: deltas
-    complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: mp
+    type(System_type),                       intent(in)  :: s
+    real(dp),    dimension(s%nOrb,s%nAtoms), intent(out) :: rho,mx,my,mz
+    real(dp),    dimension(s%nOrb,s%nAtoms), intent(out) :: deltas
+    complex(dp), dimension(s%nOrb,s%nAtoms), intent(out) :: mp
 
     integer  :: i,j,AllocateStatus
     real(dp),    dimension(3)                    :: kp
@@ -58,20 +57,20 @@ contains
 
     external :: MPI_Allreduce
 
-    ncount = s%nAtoms * nOrb
+    ncount = s%nAtoms * s%nOrb
 
-    allocate(imguu(nOrb,s%nAtoms),imgdd(nOrb,s%nAtoms), stat = AllocateStatus)
+    allocate(imguu(s%nOrb,s%nAtoms),imgdd(s%nOrb,s%nAtoms), stat = AllocateStatus)
     if(AllocateStatus/=0) &
       call abortProgram("[expectation_values_greenfunction] Not enough memory for: imguu,imgdd")
 
-    allocate(gdiagud(s%nAtoms,nOrb), gdiagdu(s%nAtoms,nOrb), stat = AllocateStatus)
+    allocate(gdiagud(s%nAtoms,s%nOrb), gdiagdu(s%nAtoms,s%nOrb), stat = AllocateStatus)
     if(AllocateStatus /= 0) &
       call abortProgram("[expectation_values_greenfunction] Not enough memory for: gdiagdu, gdiagud")
 
     if(lsuperCond) &
       call abortProgram("[expectation_values_greenfunction] Calculation of superconducting parameter Delta is not yet implemented with Green Functions.")
 
-    allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat=AllocateStatus)
+    allocate(gf(s%nOrb2,s%nOrb2,s%nAtoms,s%nAtoms), stat=AllocateStatus)
     if(AllocateStatus /= 0) &
       call AbortProgram("[expectation_values_greenfunction] Not enough memory for: gf")
     gf = cZero
@@ -92,7 +91,7 @@ contains
     !$omp& default(none) &
     !$omp& firstprivate(gf) &
     !$omp& private(ix,ep,kp,weight,i,mu,mup,AllocateStatus) &
-    !$omp& shared(calc_green,local_points,fermi,eta,wght,s,nOrb,nOrb2,bzs,E_k_imag_mesh,y) &
+    !$omp& shared(calc_green,local_points,fermi,eta,wght,s,bzs,E_k_imag_mesh,y) &
     !$omp& reduction(+:imguu,imgdd,gdiagud,gdiagdu)
     do ix = 1, local_points
        ep = y(E_k_imag_mesh(1,ix))
@@ -100,8 +99,8 @@ contains
        weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
        call calc_green(fermi,ep+eta,s,kp,gf)
        do i=1,s%nAtoms
-         do mu=1,nOrb
-           mup = mu+nOrb
+         do mu=1,s%nOrb
+           mup = mu+s%nOrb
            gdiagud(i,mu) = gdiagud(i,mu) + gf(mu,mup,i,i) * weight
            gdiagdu(i,mu) = gdiagdu(i,mu) + gf(mup,mu,i,i) * weight
 
@@ -124,10 +123,10 @@ contains
 
     mp      = mp/pi
     mx      = real(mp)
-    my      = dimag(mp)
+    my      = aimag(mp)
 
-    do i = 1, s%nAtoms
-      do mu=1,nOrb
+    do i=1,s%nAtoms
+      do mu=1,s%nOrb
         imguu(mu,i) = 0.5_dp + imguu(mu,i)
         imgdd(mu,i) = 0.5_dp + imgdd(mu,i)
         rho(mu,i) = imguu(mu,i) + imgdd(mu,i)
@@ -145,29 +144,29 @@ contains
   !>  Calculates ground state quantities from eigenstates
     use mod_kind,          only: dp,int64
     use mod_BrillouinZone, only: realBZ
-    use mod_parameters,    only: nOrb,output,dimHsc
+    use mod_parameters,    only: output,dimHsc
     use mod_system,        only: System_type
     use mod_tools,         only: diagonalize,lwork
     use mod_constants,     only: cZero
     use mod_hamiltonian,   only: hamilt_local,h0,calchk
     use mod_mpi_pars,      only: MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
     implicit none
-    type(System_type),                     intent(in)  :: s
-    real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
-    real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: deltas
-    complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: mp
+    type(System_type),                       intent(in)  :: s
+    real(dp),    dimension(s%nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
+    real(dp),    dimension(s%nOrb,s%nAtoms), intent(out) :: deltas
+    complex(dp), dimension(s%nOrb,s%nAtoms), intent(out) :: mp
 
-    integer(int64)                           :: iz
-    integer                                  :: ncount,ilaenv
-    real(dp),    dimension(nOrb,s%nAtoms)    :: expec_0,expec_z
-    complex(dp), dimension(nOrb,s%nAtoms)    :: expec_p
-    real(dp),    dimension(nOrb,s%nAtoms)    :: expec_d
-    real(dp),    dimension(:),   allocatable :: eval
-    complex(dp), dimension(:,:), allocatable :: hk(:,:)
+    integer(int64)                             :: iz
+    integer                                    :: ncount,ilaenv
+    real(dp),    dimension(s%nOrb,s%nAtoms)    :: expec_0,expec_z
+    complex(dp), dimension(s%nOrb,s%nAtoms)    :: expec_p
+    real(dp),    dimension(s%nOrb,s%nAtoms)    :: expec_d
+    real(dp),    dimension(:),   allocatable   :: eval
+    complex(dp), dimension(:,:), allocatable   :: hk(:,:)
 
     external :: MPI_Allreduce,ilaenv
 
-    ncount = nOrb*s%nAtoms
+    ncount = s%nOrb*s%nAtoms
 
     allocate( hk(dimHsc,dimHsc),eval(dimHsc) )
 
@@ -212,7 +211,7 @@ contains
     call MPI_Allreduce(MPI_IN_PLACE, deltas, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
 
     mx = real(mp)
-    my = dimag(mp)
+    my = aimag(mp)
 
     deallocate(hk,eval)
 
@@ -225,29 +224,29 @@ contains
   !> full hamiltonian matrix
     use mod_kind,              only: dp,int64
     use mod_BrillouinZone,     only: realBZ
-    use mod_parameters,        only: nOrb,dimHsc,output
+    use mod_parameters,        only: dimHsc,output
     use mod_system,            only: System_type
     use mod_tools,             only: diagonalize,lwork
     use mod_constants,         only: cZero
     use mod_hamiltonian,       only: hamilt_local,h0,fullhk
     use mod_mpi_pars,          only: MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
     implicit none
-    type(System_type),                     intent(in)  :: s
-    real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
-    real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: deltas
-    complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: mp
+    type(System_type),                       intent(in)  :: s
+    real(dp),    dimension(s%nOrb,s%nAtoms), intent(out) :: rho, mx, my, mz
+    real(dp),    dimension(s%nOrb,s%nAtoms), intent(out) :: deltas
+    complex(dp), dimension(s%nOrb,s%nAtoms), intent(out) :: mp
 
     integer(int64)                           :: iz
     integer                                  :: ncount,ilaenv
-    real(dp),    dimension(nOrb,s%nAtoms)    :: expec_0,expec_z
-    complex(dp), dimension(nOrb,s%nAtoms)    :: expec_p
-    real(dp),    dimension(nOrb,s%nAtoms)    :: expec_d
+    real(dp),    dimension(s%nOrb,s%nAtoms)  :: expec_0,expec_z
+    complex(dp), dimension(s%nOrb,s%nAtoms)  :: expec_p
+    real(dp),    dimension(s%nOrb,s%nAtoms)  :: expec_d
     real(dp),    dimension(:),   allocatable :: eval
     complex(dp), dimension(:,:) ,allocatable :: hk
 
     external :: MPI_Allreduce,ilaenv
 
-    ncount = nOrb*s%nAtoms
+    ncount = s%nOrb*s%nAtoms
 
     allocate( hk(dimHsc,dimHsc),eval(dimHsc) )
 
@@ -292,7 +291,7 @@ contains
     call MPI_Allreduce(MPI_IN_PLACE, deltas, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
 
     mx = real(mp)
-    my = dimag(mp)
+    my = aimag(mp)
 
     deallocate(hk,eval)
 
@@ -305,34 +304,34 @@ contains
   !>  using full hamiltonian matrix
     use mod_kind,          only: dp,int64
     use mod_BrillouinZone, only: realBZ
-    use mod_parameters,    only: nOrb,dimHsc,output
+    use mod_parameters,    only: dimHsc,output
     use mod_system,        only: System_type
     use mod_cuda,          only: diagonalize_gpu
     use mod_constants,     only: cZero
     use mod_hamiltonian,   only: hamilt_local_gpu,h0_d,fullhk_d
     use mod_mpi_pars,      only: MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
     implicit none
-    type(System_type),                     intent(in)  :: s
-    real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: rho,mx,my,mz
-    real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: deltas
-    complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: mp
+    type(System_type),                       intent(in)  :: s
+    real(dp),    dimension(s%nOrb,s%nAtoms), intent(out) :: rho,mx,my,mz
+    real(dp),    dimension(s%nOrb,s%nAtoms), intent(out) :: deltas
+    complex(dp), dimension(s%nOrb,s%nAtoms), intent(out) :: mp
 
-    integer(int64)                                :: iz
-    integer                                       :: ncount,i,j
+    integer(int64)                                  :: iz
+    integer                                         :: ncount,i,j,mu
 
-    real(dp),    dimension(nOrb,s%nAtoms), device :: expec_0_d,rho_d
-    real(dp),    dimension(nOrb,s%nAtoms), device :: expec_z_d,mz_d
-    complex(dp), dimension(nOrb,s%nAtoms), device :: expec_p_d,mp_d
-    real(dp),    dimension(nOrb,s%nAtoms), device :: expec_d_d,deltas_d
-    real(dp),    dimension(nOrb,s%nAtoms), device :: mx_d,my_d
+    real(dp),    dimension(s%nOrb,s%nAtoms), device :: expec_0_d,rho_d
+    real(dp),    dimension(s%nOrb,s%nAtoms), device :: expec_z_d,mz_d
+    complex(dp), dimension(s%nOrb,s%nAtoms), device :: expec_p_d,mp_d
+    real(dp),    dimension(s%nOrb,s%nAtoms), device :: expec_d_d,deltas_d
+    real(dp),    dimension(s%nOrb,s%nAtoms), device :: mx_d,my_d
 
-    complex(dp), dimension(dimHsc,dimHsc), device :: hk_d
-    real(dp),    dimension(dimHsc),        device :: eval_d
+    complex(dp), dimension(dimHsc,dimHsc),   device :: hk_d
+    real(dp),    dimension(dimHsc),          device :: eval_d
     real(dp) :: weight_d
 
     external :: MPI_Allreduce
 
-    ncount = nOrb*s%nAtoms
+    ncount = s%nOrb*s%nAtoms
 
     call hamilt_local_gpu(s)
 
@@ -360,14 +359,14 @@ contains
 
       !$cuf kernel do(2) <<< (1,*), (9,*) >>>
       do j = 1,s%nAtoms
-        do i = 1,nOrb
+        do mu = 1,s%nOrb
           ! Occupation
-          rho_d(i,j) = rho_d(i,j) + expec_0_d(i,j)*weight_d
+          rho_d(mu,j) = rho_d(mu,j) + expec_0_d(mu,j)*weight_d
           ! Spin moments
-          mp_d(i,j)  = mp_d(i,j)  + expec_p_d(i,j)*weight_d
-          mz_d(i,j)  = mz_d(i,j)  + expec_z_d(i,j)*weight_d
+          mp_d(mu,j)  = mp_d(mu,j)  + expec_p_d(mu,j)*weight_d
+          mz_d(mu,j)  = mz_d(mu,j)  + expec_z_d(mu,j)*weight_d
           ! Superconducting order parameter
-          deltas_d(i,j) = deltas_d(i,j) + expec_d_d(i,j)*weight_d
+          deltas_d(mu,j) = deltas_d(mu,j) + expec_d_d(mu,j)*weight_d
         end do
       end do
     end do
@@ -383,7 +382,7 @@ contains
     mz  = mz_d
     deltas = deltas_d
     mx = real(mp)
-    my = dimag(mp)
+    my = aimag(mp)
 
   end subroutine expectation_eigenstates_fullhk_gpu
 
@@ -393,25 +392,25 @@ contains
   !> 1 (occupation), Sp, Sz, and superconducting delta
     use mod_kind,              only: dp
     use mod_constants,         only: cZero,pi,pauli_mat_d
-    use mod_parameters,        only: nOrb,eta,isigmamu2n_d
+    use mod_parameters,        only: eta,isigmamu2n_d
     use mod_system,            only: System_type
     use mod_superconductivity, only: lsuperCond
     use mod_distributions,     only: fd_dist_gpu
     implicit none
-    integer,                               intent(in)  :: dimens
-    type(System_type),                     intent(in)  :: s
-    real(dp),    dimension(dimens),        intent(in),  device :: eval_d
-    complex(dp), dimension(dimens,dimens), intent(in),  device :: hk_d
-    real(dp),    dimension(nOrb,s%nAtoms), intent(out), device :: expec_0_d, expec_z_d
-    complex(dp), dimension(nOrb,s%nAtoms), intent(out), device :: expec_p_d
-    real(dp),    dimension(nOrb,s%nAtoms), intent(out), device :: expec_d_d
+    integer,                                 intent(in)  :: dimens
+    type(System_type),                       intent(in)  :: s
+    real(dp),    dimension(dimens),          intent(in),  device :: eval_d
+    complex(dp), dimension(dimens,dimens),   intent(in),  device :: hk_d
+    real(dp),    dimension(s%nOrb,s%nAtoms), intent(out), device :: expec_0_d, expec_z_d
+    complex(dp), dimension(s%nOrb,s%nAtoms), intent(out), device :: expec_p_d
+    real(dp),    dimension(s%nOrb,s%nAtoms), intent(out), device :: expec_d_d
 
     integer     :: i,n,sigma,sigmap,mu,hdimens
     real(dp)    :: fermi,beta,x
     complex(dp) :: evec_isigmamu, evec_isigmamu_cong !dimens = 2*nOrb*nAtoms
     real(dp), device :: f_n_d(dimens),f_n_negative_d(dimens),tanh_n_d(dimens)
 
-    real(dp),    dimension(nOrb,s%nAtoms), device :: lambda_d
+    real(dp),    dimension(s%nOrb,s%nAtoms), device :: lambda_d
     complex(dp)  :: sum_c1
     real(dp)     :: sum_r1,sum_r2
 
@@ -429,7 +428,7 @@ contains
     if(.not.lsupercond) then
       !$cuf kernel do(2) <<< (1,*), (9,*) >>>
       do i = 1,s%nAtoms
-        do mu = 1,nOrb
+        do mu = 1,s%nOrb
           sum_r1 = 0._dp
           sum_r2 = 0._dp
           sum_c1 = cZero
@@ -461,7 +460,7 @@ contains
       end do
     else
       do i = 1,s%nAtoms
-        do mu = 1,nOrb
+        do mu = 1,s%nOrb
           lambda_d(mu,i) = s%Types(s%Basis(i)%Material)%lambda(mu)
         end do    
       end do
@@ -477,7 +476,7 @@ contains
 
       !$cuf kernel do(2) <<< (1,*), (9,*) >>>
       do i = 1,s%nAtoms
-        do mu = 1,nOrb
+        do mu = 1,s%nOrb
           sum_r1 = 0._dp
           sum_r2 = 0._dp
           do n = 1,dimens
@@ -494,7 +493,7 @@ contains
 
       !$cuf kernel do(2) <<< (1,*), (9,*) >>>
       do i = 1,s%nAtoms
-        do mu = 1,nOrb
+        do mu = 1,s%nOrb
           sum_c1 = cZero
           sum_r1 = 0._dp
           do n = 1,dimens
@@ -525,18 +524,18 @@ contains
   !> 1 (occupation), Sp, Sz, and superconducting delta
     use mod_kind,              only: dp
     use mod_constants,         only: cZero,pi,pauli_mat
-    use mod_parameters,        only: nOrb,eta,isigmamu2n
+    use mod_parameters,        only: eta,isigmamu2n
     use mod_distributions,     only: fd_dist
     use mod_system,            only: System_type
     use mod_superconductivity, only: lsuperCond
     implicit none
-    integer,                               intent(in)  :: dimens
-    type(System_type),                     intent(in)  :: s
-    real(dp),    dimension(dimens),        intent(in)  :: eval
-    complex(dp), dimension(dimens,dimens), intent(in)  :: hk
-    real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: expec_0, expec_z
-    complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: expec_p
-    real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: expec_d
+    integer,                                 intent(in)  :: dimens
+    type(System_type),                       intent(in)  :: s
+    real(dp),    dimension(dimens),          intent(in)  :: eval
+    complex(dp), dimension(dimens,dimens),   intent(in)  :: hk
+    real(dp),    dimension(s%nOrb,s%nAtoms), intent(out) :: expec_0, expec_z
+    complex(dp), dimension(s%nOrb,s%nAtoms), intent(out) :: expec_p
+    real(dp),    dimension(s%nOrb,s%nAtoms), intent(out) :: expec_d
 
     real(dp)    :: fermi,beta
     integer     :: i,n,sigma,sigmap,mu,hdimens
@@ -558,7 +557,7 @@ contains
 
     if(.not.lsupercond) then
       do i = 1,s%nAtoms
-        do mu = 1,nOrb
+        do mu = 1,s%nOrb
           do n = 1,dimens
             do sigma = 1,2
               evec_isigmamu = hk(isigmamu2n(i,sigma,mu),n)
@@ -588,7 +587,7 @@ contains
       end do
 
       do i = 1,s%nAtoms
-        do mu = 1,nOrb
+        do mu = 1,s%nOrb
           do n = 1,dimens
             ! up spin (using u's) + down spin (using v's)
             expec_0(mu,i) = expec_0(mu,i) + f_n(n)*real( conjg(hk(isigmamu2n(i,1,mu),n))*hk(isigmamu2n(i,1,mu),n) ) + f_n_negative(n)*real( conjg(hk(isigmamu2n(i,2,mu)+hdimens,n))*hk(isigmamu2n(i,2,mu)+hdimens,n) )
@@ -599,7 +598,7 @@ contains
       end do
 
       do i = 1,s%nAtoms
-        do mu = 1,nOrb
+        do mu = 1,s%nOrb
           do n = 1,dimens
             do sigma = 1,2
               do sigmap = 1,2
@@ -626,24 +625,24 @@ contains
   !> for a given state [n] ([evec]) with eigen-energy [eval]
     use mod_kind,              only: dp
     use mod_constants,         only: cZero,pi,pauli_mat
-    use mod_parameters,        only: nOrb, eta, isigmamu2n
+    use mod_parameters,        only: eta,isigmamu2n
     use mod_distributions,     only: fd_dist
     use mod_system,            only: System_type
     use mod_superconductivity, only: lsuperCond
     implicit none
 
-    type(System_type),                     intent(in)  :: s
-    integer,                               intent(in)  :: dimens
-    complex(dp), dimension(dimens),        intent(in)  :: evec
-    real(dp),                              intent(in)  :: eval
-    real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: expec_0, expec_z
-    complex(dp), dimension(nOrb,s%nAtoms), intent(out) :: expec_p
-    real(dp),    dimension(nOrb,s%nAtoms), intent(out) :: expec_d
+    type(System_type),                       intent(in)  :: s
+    integer,                                 intent(in)  :: dimens
+    complex(dp), dimension(dimens),          intent(in)  :: evec
+    real(dp),                                intent(in)  :: eval
+    real(dp),    dimension(s%nOrb,s%nAtoms), intent(out) :: expec_0, expec_z
+    complex(dp), dimension(s%nOrb,s%nAtoms), intent(out) :: expec_p
+    real(dp),    dimension(s%nOrb,s%nAtoms), intent(out) :: expec_d
 
-    integer     :: i, sigma, sigmap, mu
-    real(dp)    :: f_n, f_n_negative, tanh_n
-    real(dp)    :: fermi, beta
-    complex(dp) :: evec_isigmamu, evec_isigmamu_cong
+    integer     :: i,sigma,sigmap,mu,hdimens
+    real(dp)    :: f_n,f_n_negative,tanh_n
+    real(dp)    :: fermi,beta
+    complex(dp) :: evec_isigmamu,evec_isigmamu_cong
 
     beta = 1._dp/(pi*eta)
     expec_0 = 0._dp
@@ -658,7 +657,7 @@ contains
 
     if(.not.lsupercond) then
       do i = 1,s%nAtoms
-        do mu = 1,nOrb
+        do mu = 1,s%nOrb
           do sigma = 1,2
 
             evec_isigmamu = evec(isigmamu2n(i,sigma,mu))
@@ -668,41 +667,42 @@ contains
             expec_0(mu,i) = expec_0(mu,i) + f_n*real( evec_isigmamu_cong*evec_isigmamu )
 
             do sigmap = 1, 2
-              evec_isigmamu = evec(isigmamu2n(i,sigmap,mu))
+              evec_isigmamu = evec_isigmamu_cong*evec(isigmamu2n(i,sigmap,mu))
               ! M_p
-              expec_p(mu,i) = expec_p(mu,i) + cmplx(f_n,0._dp,dp)*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
+              expec_p(mu,i) = expec_p(mu,i) + f_n*pauli_mat(sigma,sigmap,4)*evec_isigmamu
 
               ! M_z
-              expec_z(mu,i) = expec_z(mu,i) + f_n*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
+              expec_z(mu,i) = expec_z(mu,i) + f_n*real( pauli_mat(sigma,sigmap,3)*evec_isigmamu )
             end do
           end do
         end do
       end do
     else
+      hdimens=dimens/2
+
       f_n_negative = fd_dist(fermi, beta, -eval)
       tanh_n = tanh(eval*beta*0.5_dp)
 
       do i = 1,s%nAtoms
-        do mu = 1,nOrb
+        do mu = 1,s%nOrb
           ! up spin (using u's) + down spin (using v's)
-          expec_0(mu,i) = expec_0(mu,i) + f_n*real( conjg(evec(nOrb*2*(i-1)+mu))*evec(nOrb*2*(i-1)+mu) ) + f_n_negative*real( conjg(evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2))*evec(nOrb*s%nAtoms*2+mu+nOrb+(i-1)*nOrb*2) )
+          expec_0(mu,i) = expec_0(mu,i) + f_n*real( conjg(evec(isigmamu2n(i,1,mu)))*evec(isigmamu2n(i,1,mu)) ) + f_n_negative*real( conjg(evec(isigmamu2n(i,2,mu)+hdimens))*evec(isigmamu2n(i,2,mu)+hdimens) )
 
-          expec_d(mu,i) = expec_d(mu,i) + 0.5_dp*s%Types(s%Basis(i)%Material)%lambda(mu)*tanh_n*real( conjg(evec(isigmamu2n(i,1,mu)+nOrb*2*s%nAtoms))*evec(isigmamu2n(i,2,mu)) )
+          expec_d(mu,i) = expec_d(mu,i) + 0.5_dp*s%Types(s%Basis(i)%Material)%lambda(mu)*tanh_n*real( conjg(evec(isigmamu2n(i,1,mu)+hdimens))*evec(isigmamu2n(i,2,mu)) )
         end do
       end do
 
       do i = 1,s%nAtoms
-        do mu = 1,nOrb
+        do mu = 1,s%nOrb
           do sigma = 1,2
             do sigmap = 1,2
+              evec_isigmamu_cong = conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigmap,mu))
 
-              evec_isigmamu_cong = conjg( evec(isigmamu2n(i,sigma,mu)) )
-              evec_isigmamu = evec(isigmamu2n(i,sigmap,mu))
               ! M_p
-              expec_p(mu,i) = expec_p(mu,i) + f_n*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)*evec_isigmamu
+              expec_p(mu,i) = expec_p(mu,i) + f_n*evec_isigmamu_cong*pauli_mat(sigma,sigmap,4)
 
               ! M_z
-              expec_z(mu,i) = expec_z(mu,i) + f_n*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3)*evec_isigmamu )
+              expec_z(mu,i) = expec_z(mu,i) + f_n*real( evec_isigmamu_cong*pauli_mat(sigma,sigmap,3) )
             end do
           end do
         end do
@@ -787,7 +787,7 @@ contains
     use mod_kind,          only: dp,int64
     use mod_constants,     only: cZero,pi
     use mod_System,        only: s => sys
-    use mod_parameters,    only: nOrb,nOrb2,eta,output
+    use mod_parameters,    only: eta,output
     use EnergyIntegration, only: y, wght
     use mod_magnet,        only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
     use mod_hamiltonian,   only: hamilt_local,energy
@@ -806,9 +806,9 @@ contains
 
     external :: MPI_Allreduce
 
-    ncount=s%nAtoms*nOrb*nOrb
+    ncount=s%nAtoms*s%nOrb*s%nOrb
 
-    allocate(gupgd(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
+    allocate(gupgd(s%nOrb,s%nOrb,s%nAtoms), stat = AllocateStatus)
     if(AllocateStatus/=0) &
       call abortProgram("[calc_GS_L_and_E_greenfunction] Not enough memory for: gupgd")
 
@@ -823,8 +823,8 @@ contains
     gupgd  = cZero
     !$omp parallel default(none) &
     !$omp& private(AllocateStatus,ix,i,mu,nu,mup,nup,kp,ep,weight,gf) &
-    !$omp& shared(local_points,s,nOrb,nOrb2,E_k_imag_mesh,bzs,eta,y,wght,gupgd)
-    allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat = AllocateStatus)
+    !$omp& shared(local_points,s,E_k_imag_mesh,bzs,eta,y,wght,gupgd)
+    allocate(gf(s%nOrb2,s%nOrb2,s%nAtoms,s%nAtoms), stat = AllocateStatus)
     if (AllocateStatus/=0) &
       call abortProgram("[calc_GS_L_and_E_greenfunction] Not enough memory for: gf")
 
@@ -838,10 +838,10 @@ contains
       call green(s%Ef,ep+eta,s,kp,gf)
 
       site_i: do i=1,s%nAtoms
-        orb_mu: do mu=1,nOrb
-          mup = mu+nOrb
-          orb_nu: do nu=1,nOrb
-            nup = nu+nOrb
+        orb_mu: do mu=1,s%nOrb
+          mup = mu+s%nOrb
+          orb_nu: do nu=1,s%nOrb
+            nup = nu+s%nOrb
             gupgd(mu,nu,i) = gupgd(mu,nu,i) + (gf(mu,nu,i,i) + gf(mup,nup,i,i)) * weight
           end do orb_nu
         end do orb_mu
@@ -862,8 +862,8 @@ contains
     lym  = 0._dp
     lzm  = 0._dp
 
-    do nu=5,9
-      do mu=5,9
+    do nu=1,s%nOrb
+      do mu=1,s%nOrb
         do i=1,s%nAtoms
           lxpm(i) = lxpm(i) + real( lxp(mu,nu,i)*gupgd(nu,mu,i) )
           lypm(i) = lypm(i) + real( lyp(mu,nu,i)*gupgd(nu,mu,i) )
@@ -884,7 +884,7 @@ contains
   !> for a given state [n] ([evec]) with eigen-energy [eval]
     use mod_kind,          only: dp
     use mod_constants,     only: pi
-    use mod_parameters,    only: nOrb,eta,isigmamu2n
+    use mod_parameters,    only: eta,isigmamu2n
     use mod_System,        only: System_type
     use mod_magnet,        only: lx,ly,lz
     use mod_distributions, only: fd_dist
@@ -905,10 +905,10 @@ contains
     ! Fermi-Dirac:
     f_n = fd_dist(s%Ef, 1._dp/(pi*eta), eval)
 
-    sites_loop: do i = 1, s%nAtoms
-      do sigma = 1, 2
-        do nu = 1, nOrb
-          do mu = 1, nOrb
+    sites_loop: do i = 1,s%nAtoms
+      do sigma = 1,2
+        do nu = 1,s%nOrb
+          do mu = 1,s%nOrb
             evec_isigmamu = evec(isigmamu2n(i,sigma,mu))
             evec_isigmamu_cong = conjg( evec_isigmamu )
             prod = f_n*evec_isigmamu_cong*evec_isigmamu
@@ -967,7 +967,7 @@ contains
     use mod_kind,              only: dp,int64
     use mod_BrillouinZone,     only: realBZ
     use mod_constants,         only: pi,cZero
-    use mod_parameters,        only: nOrb,dimHsc,eta,isigmamu2n
+    use mod_parameters,        only: dimHsc,eta,isigmamu2n
     use mod_System,            only: s => sys
     use mod_magnet,            only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
     use mod_distributions,     only: fd_dist
@@ -988,7 +988,7 @@ contains
     fermi = merge(0._dp,s%Ef,lsuperCond)
     beta = 1._dp/(pi*eta)
 
-    allocate( hk(dimHsc,dimHsc),eval(dimHsc),f_n(dimHsc),prod(nOrb,nOrb,s%nAtoms) )
+    allocate( hk(dimHsc,dimHsc),eval(dimHsc),f_n(dimHsc),prod(s%nOrb,s%nOrb,s%nAtoms) )
 
     ! Getting lwork for diagonalization
     lwork = (ilaenv( 1, 'zhetrd', 'VU', dimHsc, -1, -1, -1 )+1)*dimHsc
@@ -1000,7 +1000,7 @@ contains
 
     !$omp parallel do default(none) schedule(dynamic) &
     !$omp& private(iz,n,f_n,i,sigma,mu,nu,hk,eval) &
-    !$omp& shared(s,nOrb,dimHsc,realBZ,h0,fermi,beta,isigmamu2n) &
+    !$omp& shared(s,dimHsc,realBZ,h0,fermi,beta,isigmamu2n) &
     !$omp& reduction(+:prod,energy)
     kloop: do iz = 1,realBZ%workload
       ! Calculating the hamiltonian for a given k-point
@@ -1016,8 +1016,8 @@ contains
       end do
 
       do i = 1,s%nAtoms
-        do nu = 1,nOrb
-          do mu = 1,nOrb
+        do nu = 1,s%nOrb
+          do mu = 1,s%nOrb
             do sigma=1,2
               do n = 1,dimHsc
                 prod(mu,nu,i) = prod(mu,nu,i) + f_n(n)*conjg( hk(isigmamu2n(i,sigma,mu),n) )*hk(isigmamu2n(i,sigma,nu),n)*realBZ%w(iz)
@@ -1030,8 +1030,8 @@ contains
     end do kloop
     !$omp end parallel do
 
-    call MPI_Allreduce(MPI_IN_PLACE, prod   , nOrb*nOrb*s%nAtoms, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, energy , 1                 , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, prod   , s%nOrb*s%nOrb*s%nAtoms, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, energy , 1                     , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
 
     ! Building different components of the orbital angular momentum
     lxm  = 0._dp
@@ -1040,9 +1040,9 @@ contains
     lxpm = 0._dp
     lypm = 0._dp
     lzpm = 0._dp
-    do i = 1, s%nAtoms
-      do nu = 1, nOrb
-        do mu = 1, nOrb
+    do i = 1,s%nAtoms
+      do nu = 1,s%nOrb
+        do mu = 1,s%nOrb
           lxm (i) = lxm (i) + real( prod(mu,nu,i)*lx (mu,nu  ) )
           lym (i) = lym (i) + real( prod(mu,nu,i)*ly (mu,nu  ) )
           lzm (i) = lzm (i) + real( prod(mu,nu,i)*lz (mu,nu  ) )
@@ -1064,7 +1064,7 @@ contains
     use mod_kind,              only: dp,int64
     use mod_BrillouinZone,     only: realBZ
     use mod_constants,         only: pi,cZero
-    use mod_parameters,        only: nOrb,dimHsc,eta,isigmamu2n_d
+    use mod_parameters,        only: dimHsc,eta,isigmamu2n_d
     use mod_System,            only: s => sys
     use mod_magnet,            only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
     use mod_distributions,     only: fd_dist_gpu
@@ -1088,7 +1088,7 @@ contains
     fermi = merge(0._dp,s%Ef,lsuperCond)
     beta = 1._dp/(pi*eta)
 
-    allocate( hk_d(dimHsc,dimHsc),eval_d(dimHsc),f_n_d(dimHsc),prod_d(nOrb,nOrb,s%nAtoms),prod(nOrb,nOrb,s%nAtoms) )
+    allocate( hk_d(dimHsc,dimHsc),eval_d(dimHsc),f_n_d(dimHsc),prod_d(s%nOrb,s%nOrb,s%nAtoms),prod(s%nOrb,s%nOrb,s%nAtoms) )
 
     call hamilt_local_gpu(s)
 
@@ -1116,8 +1116,8 @@ contains
 
       !$cuf kernel do(3) <<< (1,1,*), (9,9,*) >>>
       do i = 1,s%nAtoms
-        do nu = 1,nOrb
-          do mu = 1,nOrb
+        do nu = 1,s%nOrb
+          do mu = 1,s%nOrb
             sum_c = cZero
             do sigma=1,2
               do n = 1,dimHsc
@@ -1130,8 +1130,8 @@ contains
       end do
     end do kloop
 
-    call MPI_Allreduce(MPI_IN_PLACE, prod_d , nOrb*nOrb*s%nAtoms, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, energy , 1                 , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, prod_d , s%nOrb*s%nOrb*s%nAtoms, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, energy , 1                     , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
 
     prod = prod_d
 
@@ -1142,9 +1142,9 @@ contains
     lxpm = 0._dp
     lypm = 0._dp
     lzpm = 0._dp
-    do i = 1, s%nAtoms
-      do nu = 1, nOrb
-        do mu = 1, nOrb
+    do i = 1,s%nAtoms
+      do nu = 1,s%nOrb
+        do mu = 1,s%nOrb
           lxm (i) = lxm (i) + real( prod(mu,nu,i)*lx (mu,nu  ) )
           lym (i) = lym (i) + real( prod(mu,nu,i)*ly (mu,nu  ) )
           lzm (i) = lzm (i) + real( prod(mu,nu,i)*lz (mu,nu  ) )
@@ -1165,7 +1165,7 @@ contains
     use mod_kind,              only: dp,int64
     use mod_BrillouinZone,     only: realBZ
     use mod_constants,         only: pi,cZero
-    use mod_parameters,        only: nOrb,dimHsc,eta,isigmamu2n
+    use mod_parameters,        only: dimHsc,eta,isigmamu2n
     use mod_System,            only: s => sys
     use mod_magnet,            only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
     use mod_distributions,     only: fd_dist
@@ -1187,7 +1187,7 @@ contains
     fermi = merge(0._dp,s%Ef,lsuperCond)
     beta = 1._dp/(pi*eta)
 
-    allocate( hk(dimHsc,dimHsc),eval(dimHsc),f_n(dimHsc),prod(nOrb,nOrb,s%nAtoms) )
+    allocate( hk(dimHsc,dimHsc),eval(dimHsc),f_n(dimHsc),prod(s%nOrb,s%nOrb,s%nAtoms) )
 
     ! Getting lwork for diagonalization
     lwork = (ilaenv( 1, 'zhetrd', 'VU', dimHsc, -1, -1, -1 )+1)*dimHsc
@@ -1199,7 +1199,7 @@ contains
 
     !$omp parallel do default(none) schedule(dynamic) &
     !$omp& private(iz,n,f_n,i,sigma,mu,nu,hk,eval) &
-    !$omp& shared(s,nOrb,dimHsc,h0,fullhk,realBZ,fermi,beta,isigmamu2n) &
+    !$omp& shared(s,dimHsc,h0,fullhk,realBZ,fermi,beta,isigmamu2n) &
     !$omp& reduction(+:prod,energy)
     kloop: do iz = 1,realBZ%workload
       ! hamiltonian for a given k-point
@@ -1214,8 +1214,8 @@ contains
       end do
 
       do i = 1,s%nAtoms
-        do nu = 1,nOrb
-          do mu = 1,nOrb
+        do nu = 1,s%nOrb
+          do mu = 1,s%nOrb
             do sigma=1,2
               do n = 1,dimHsc
                 prod(mu,nu,i) = prod(mu,nu,i) + f_n(n)*conjg( hk(isigmamu2n(i,sigma,mu),n) )*hk(isigmamu2n(i,sigma,nu),n)*realBZ%w(iz)
@@ -1228,8 +1228,8 @@ contains
     end do kloop
     !$omp end parallel do
 
-    call MPI_Allreduce(MPI_IN_PLACE, prod   , nOrb*nOrb*s%nAtoms, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
-    call MPI_Allreduce(MPI_IN_PLACE, energy , 1                 , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, prod   , s%nOrb*s%nOrb*s%nAtoms, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, energy , 1                     , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
 
     ! Building different components of the orbital angular momentum
     lxm  = 0._dp
@@ -1239,8 +1239,8 @@ contains
     lypm = 0._dp
     lzpm = 0._dp
     do i = 1, s%nAtoms
-      do nu = 1, nOrb
-        do mu = 1, nOrb
+      do nu = 1,s%nOrb
+        do mu = 1,s%nOrb
           lxm (i) = lxm (i) + real( prod(mu,nu,i)*lx (mu,nu  ) )
           lym (i) = lym (i) + real( prod(mu,nu,i)*ly (mu,nu  ) )
           lzm (i) = lzm (i) + real( prod(mu,nu,i)*lz (mu,nu  ) )

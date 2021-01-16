@@ -2,7 +2,7 @@
 
 module mod_cuda
 #ifdef _GPU
-  use cudafor, only: cudaGetErrorString,cudaGetDeviceCount,cudaSetDevice
+  use cudafor,    only: cudaGetErrorString,cudaGetDeviceCount,cudaSetDevice
   use cusolverDn, only: cusolverDnHandle
   implicit none
   integer :: num_gpus
@@ -19,7 +19,7 @@ contains
   !    This subruotine creates a CUDA handle for the cusolver zheev subroutine
   ! --------------------------------------------------------------------
   subroutine create_handle()
-    use cusolverDn,   only: cusolverDnCreate
+    use cusolverDn, only: cusolverDnCreate
     implicit none
     integer :: stat
 

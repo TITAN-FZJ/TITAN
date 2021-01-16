@@ -3,33 +3,32 @@ module mod_greenfunction
   procedure(calc_green_sub), pointer :: calc_green => green
 
   abstract interface
-    subroutine calc_green_sub(er,ei,sys,kp,gf)
+    subroutine calc_green_sub(er,ei,s,kp,gf)
       use mod_kind,              only: dp
       use mod_System,            only: System_type
-      use mod_parameters,        only: nOrb2
       use mod_superconductivity, only: superCond
       implicit none
       real(dp),          intent(in) :: er,ei,kp(3)
-      type(System_type), intent(in) :: sys
-      complex(dp), dimension(nOrb2*superCond,nOrb2*superCond,sys%nAtoms,sys%nAtoms), intent(out)  :: gf
+      type(System_type), intent(in) :: s
+      complex(dp), dimension(s%nOrb2*superCond,s%nOrb2*superCond,s%nAtoms,s%nAtoms), intent(out)  :: gf
     end subroutine calc_green_sub
   end interface
 
 contains
 
   ! Calculate green function (E - H)^-1
-  subroutine green(er,ei,sys,kp,gf)
+  subroutine green(er,ei,s,kp,gf)
     use mod_kind,              only: dp
     use mod_constants,         only: cZero,cOne
     use mod_System,            only: ia,ia_sc,System_type
-    use mod_parameters,        only: nOrb2,offset,dimHsc
+    use mod_parameters,        only: dimHsc
     use mod_hamiltonian,       only: calchk,h0
     use mod_superconductivity, only: lsupercond,superCond
     use mod_tools,             only: invers
     implicit none
     real(dp),          intent(in) :: er,ei,kp(3)
-    type(System_type), intent(in) :: sys
-    complex(dp), dimension(nOrb2*superCond,nOrb2*superCond,sys%nAtoms,sys%nAtoms), intent(out)  :: gf
+    type(System_type), intent(in) :: s
+    complex(dp), dimension(s%nOrb2*superCond,s%nOrb2*superCond,s%nAtoms,s%nAtoms), intent(out)  :: gf
 
     integer     :: i,j
     complex(dp) :: ec
@@ -44,7 +43,7 @@ contains
       gslab(i,i) = ec
     end do
 
-    hk = h0 + calchk(sys,kp)
+    hk = h0 + calchk(s,kp)
 
     !zaxpy performs gslab = gslab + (-cOne)*hk
     !dimHsc*dimHsc si the dimension of the array
@@ -57,19 +56,19 @@ contains
 
     if(.not.lsupercond) then
       ! Put the slab Green's function [A(nAtoms*18,nAtoms*18)] in the A(i,j,mu,nu) form
-      do j = 1,sys%nAtoms
-        do i = 1,sys%nAtoms
-          gf(:,:,i,j) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
+      do j = 1,s%nAtoms
+        do i = 1,s%nAtoms
+          gf(:,:,i,j) = gslab(ia(1,i):ia(4,i),ia(1,j):ia(4,j))
         end do
       end do
     else
       ! Put the slab Green's function [A(nAtoms*36,nAtoms*36)] in the A(i,j,mu,nu) form
-      do j = 1,sys%nAtoms
-        do i = 1,sys%nAtoms
-          gf(      1:  nOrb2,      1:  nOrb2,i,j) = gslab(ia_sc(1,i):ia_sc(2,i),ia_sc(1,j):ia_sc(2,j))
-          gf(      1:  nOrb2,nOrb2+1:2*nOrb2,i,j) = gslab(ia_sc(1,i):ia_sc(2,i),ia_sc(3,j):ia_sc(4,j))
-          gf(nOrb2+1:2*nOrb2,      1:  nOrb2,i,j) = gslab(ia_sc(3,i):ia_sc(4,i),ia_sc(1,j):ia_sc(2,j))
-          gf(nOrb2+1:2*nOrb2,nOrb2+1:2*nOrb2,i,j) = gslab(ia_sc(3,i):ia_sc(4,i),ia_sc(3,j):ia_sc(4,j))
+      do j = 1,s%nAtoms
+        do i = 1,s%nAtoms
+          gf(        1:  s%nOrb2,        1:  s%nOrb2,i,j) = gslab(ia_sc(1,i):ia_sc(2,i),ia_sc(1,j):ia_sc(2,j))
+          gf(        1:  s%nOrb2,s%nOrb2+1:2*s%nOrb2,i,j) = gslab(ia_sc(1,i):ia_sc(2,i),ia_sc(3,j):ia_sc(4,j))
+          gf(s%nOrb2+1:2*s%nOrb2,        1:  s%nOrb2,i,j) = gslab(ia_sc(3,i):ia_sc(4,i),ia_sc(1,j):ia_sc(2,j))
+          gf(s%nOrb2+1:2*s%nOrb2,s%nOrb2+1:2*s%nOrb2,i,j) = gslab(ia_sc(3,i):ia_sc(4,i),ia_sc(3,j):ia_sc(4,j))
         end do
       end do
     end if
@@ -78,18 +77,18 @@ contains
 
 
   ! ! Calculate green function (E - H)^-1
-  ! subroutine green_fullhk(er,ei,sys,kp,gf)
+  ! subroutine green_fullhk(er,ei,s,kp,gf)
   !   use mod_kind,              only: dp
   !   use mod_constants,         only: cZero,cOne
   !   use mod_System,            only: ia,ia_sc,System_type
-  !   use mod_parameters,        only: nOrb2,offset,dimHsc
+  !   use mod_parameters,        only: dimHsc
   !   use mod_hamiltonian,       only: calchk,h0
   !   use mod_superconductivity, only: lsupercond,superCond
   !   use mod_tools,             only: invers
   !   implicit none
   !   real(dp),          intent(in) :: er,ei,kp(3)
-  !   type(System_type), intent(in) :: sys
-  !   complex(dp), dimension(nOrb2*superCond,nOrb2*superCond,sys%nAtoms,sys%nAtoms), intent(out)  :: gf
+  !   type(System_type), intent(in) :: s
+  !   complex(dp), dimension(s%nOrb2*superCond,s%nOrb2*superCond,s%nAtoms,s%nAtoms), intent(out)  :: gf
 
   !   integer     :: i,j
   !   complex(dp) :: ec
@@ -117,19 +116,19 @@ contains
 
   !   if(.not.lsupercond) then
   !     ! Put the slab Green's function [A(nAtoms*18,nAtoms*18)] in the A(i,j,mu,nu) form
-  !     do j = 1,sys%nAtoms
-  !       do i = 1,sys%nAtoms
-  !         gf(:,:,i,j) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
+  !     do j = 1,s%nAtoms
+  !       do i = 1,s%nAtoms
+  !         gf(:,:,i,j) = gslab(ia(1,i):ia(4,i),ia(1,j):ia(4,j))
   !       end do
   !     end do
   !   else
   !     ! Put the slab Green's function [A(nAtoms*36,nAtoms*36)] in the A(i,j,mu,nu) form
-  !     do j = 1,sys%nAtoms
-  !       do i = 1,sys%nAtoms
-  !         gf(      1:  nOrb2,      1:  nOrb2,i,j) = gslab(ia_sc(1,i):ia_sc(2,i),ia_sc(1,j):ia_sc(2,j))
-  !         gf(      1:  nOrb2,nOrb2+1:2*nOrb2,i,j) = gslab(ia_sc(1,i):ia_sc(2,i),ia_sc(3,j):ia_sc(4,j))
-  !         gf(nOrb2+1:2*nOrb2,      1:  nOrb2,i,j) = gslab(ia_sc(3,i):ia_sc(4,i),ia_sc(1,j):ia_sc(2,j))
-  !         gf(nOrb2+1:2*nOrb2,nOrb2+1:2*nOrb2,i,j) = gslab(ia_sc(3,i):ia_sc(4,i),ia_sc(3,j):ia_sc(4,j))
+  !     do j = 1,s%nAtoms
+  !       do i = 1,s%nAtoms
+  !         gf(        1:  s%nOrb2,        1:  s%nOrb2,i,j) = gslab(ia_sc(1,i):ia_sc(2,i),ia_sc(1,j):ia_sc(2,j))
+  !         gf(        1:  s%nOrb2,s%nOrb2+1:2*s%nOrb2,i,j) = gslab(ia_sc(1,i):ia_sc(2,i),ia_sc(3,j):ia_sc(4,j))
+  !         gf(s%nOrb2+1:2*s%nOrb2,        1:  s%nOrb2,i,j) = gslab(ia_sc(3,i):ia_sc(4,i),ia_sc(1,j):ia_sc(2,j))
+  !         gf(s%nOrb2+1:2*s%nOrb2,s%nOrb2+1:2*s%nOrb2,i,j) = gslab(ia_sc(3,i):ia_sc(4,i),ia_sc(3,j):ia_sc(4,j))
   !       end do
   !     end do
   !   end if
@@ -138,18 +137,18 @@ contains
 
 
   ! Calculate green function (E - H)^-1 with linear SOC: G = G0+G0.H_so.G0
-  subroutine greenlineargfsoc(er,ei,sys,kp,gf)
+  subroutine greenlineargfsoc(er,ei,s,kp,gf)
     use mod_kind,              only: dp
     use mod_constants,         only: cZero,cOne
-    use mod_parameters,        only: nOrb2,offset,dimHsc
+    use mod_parameters,        only: dimHsc
     use mod_System,            only: ia,ia_sc,System_type
     use mod_hamiltonian,       only: hamiltklinearsoc
     use mod_tools,             only: invers
     use mod_superconductivity, only: lsupercond,superCond
     implicit none
     real(dp),          intent(in) :: er,ei,kp(3)
-    type(System_type), intent(in) :: sys
-    complex(dp), dimension(nOrb2*superCond,nOrb2*superCond,sys%nAtoms,sys%nAtoms),intent(out)  :: gf
+    type(System_type), intent(in) :: s
+    complex(dp), dimension(s%nOrb2*superCond,s%nOrb2*superCond,s%nAtoms,s%nAtoms),intent(out)  :: gf
 
     integer     :: i,j
     complex(dp) :: ec
@@ -166,7 +165,7 @@ contains
      gslab0(i,i) = ec
     end do
 
-    call hamiltklinearsoc(sys,kp,hk,vsoc)
+    call hamiltklinearsoc(s,kp,hk,vsoc)
 
     gslab0 = gslab0 - hk
 
@@ -178,19 +177,19 @@ contains
 
     if(.not.lsupercond) then
       ! Put the slab Green's function [A(nAtoms*18,nAtoms*18)] in the A(i,j,mu,nu) form
-      do j = 1,sys%nAtoms
-        do i = 1,sys%nAtoms
-          gf(:,:,i,j) = gslab(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
+      do j = 1,s%nAtoms
+        do i = 1,s%nAtoms
+          gf(:,:,i,j) = gslab(ia(1,i):ia(4,i),ia(1,j):ia(4,j))
         end do
       end do
     else
       ! Put the slab Green's function [A(nAtoms*36,nAtoms*36)] in the A(i,j,mu,nu) form
-      do j = 1,sys%nAtoms
-        do i = 1,sys%nAtoms
-          gf(      1:  nOrb2,      1:  nOrb2,i,j) = gslab(ia_sc(1,i):ia_sc(2,i),ia_sc(1,j):ia_sc(2,j))
-          gf(      1:  nOrb2,nOrb2+1:2*nOrb2,i,j) = gslab(ia_sc(1,i):ia_sc(2,i),ia_sc(3,j):ia_sc(4,j))
-          gf(nOrb2+1:2*nOrb2,      1:  nOrb2,i,j) = gslab(ia_sc(3,i):ia_sc(4,i),ia_sc(1,j):ia_sc(2,j))
-          gf(nOrb2+1:2*nOrb2,nOrb2+1:2*nOrb2,i,j) = gslab(ia_sc(3,i):ia_sc(4,i),ia_sc(3,j):ia_sc(4,j))
+      do j = 1,s%nAtoms
+        do i = 1,s%nAtoms
+          gf(        1:  s%nOrb2,        1:  s%nOrb2,i,j) = gslab(ia_sc(1,i):ia_sc(2,i),ia_sc(1,j):ia_sc(2,j))
+          gf(        1:  s%nOrb2,s%nOrb2+1:2*s%nOrb2,i,j) = gslab(ia_sc(1,i):ia_sc(2,i),ia_sc(3,j):ia_sc(4,j))
+          gf(s%nOrb2+1:2*s%nOrb2,        1:  s%nOrb2,i,j) = gslab(ia_sc(3,i):ia_sc(4,i),ia_sc(1,j):ia_sc(2,j))
+          gf(s%nOrb2+1:2*s%nOrb2,s%nOrb2+1:2*s%nOrb2,i,j) = gslab(ia_sc(3,i):ia_sc(4,i),ia_sc(3,j):ia_sc(4,j))
         end do
       end do
     end if
@@ -199,18 +198,18 @@ contains
 
 
   ! Calculate green function (E - H)^-1 without SOC and the linear term G0.H_so.G0
-  subroutine greenlinearsoc(er,ei,sys,kp,g0,g0vsocg0)
+  subroutine greenlinearsoc(er,ei,s,kp,g0,g0vsocg0)
     use mod_kind,              only: dp
     use mod_constants,         only: cZero,cOne
-    use mod_parameters,        only: nOrb2,offset,dimHsc
+    use mod_parameters,        only: dimHsc
     use mod_System,            only: ia,ia_sc,System_type
     use mod_hamiltonian,       only: hamiltklinearsoc
     use mod_tools,             only: invers
     use mod_superconductivity, only: lsupercond,superCond
     implicit none
     real(dp),          intent(in) :: er,ei,kp(3)
-    type(System_type), intent(in) :: sys
-    complex(dp), dimension(nOrb2*superCond,nOrb2*superCond,sys%nAtoms,sys%nAtoms), intent(out)  :: g0,g0vsocg0
+    type(System_type), intent(in) :: s
+    complex(dp), dimension(s%nOrb2*superCond,s%nOrb2*superCond,s%nAtoms,s%nAtoms), intent(out)  :: g0,g0vsocg0
 
     integer     :: i,j
     complex(dp) :: ec
@@ -225,7 +224,7 @@ contains
      gslab0(i,i) = ec
     end do
 
-    call hamiltklinearsoc(sys,kp,hk,vsoc)
+    call hamiltklinearsoc(s,kp,hk,vsoc)
 
     gslab0 = gslab0 - hk
 
@@ -238,25 +237,25 @@ contains
 
     if(.not.lsupercond) then
       ! Put the slab Green's function [A(nAtoms*18,nAtoms*18)] in the A(i,j,mu,nu) form
-      do j = 1,sys%nAtoms
-        do i = 1,sys%nAtoms
-          g0(:,:,i,j)      = gslab0(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
-          g0vsocg0(:,:,i,j) = temp2(ia(1,i+offset):ia(4,i+offset),ia(1,j+offset):ia(4,j+offset))
+      do j = 1,s%nAtoms
+        do i = 1,s%nAtoms
+          g0(:,:,i,j)      = gslab0(ia(1,i):ia(4,i),ia(1,j):ia(4,j))
+          g0vsocg0(:,:,i,j) = temp2(ia(1,i):ia(4,i),ia(1,j):ia(4,j))
         end do
       end do
     else
       ! Put the slab Green's function [A(nAtoms*36,nAtoms*36)] in the A(i,j,mu,nu) form
-      do j = 1,sys%nAtoms
-        do i = 1,sys%nAtoms
-          g0(      1:  nOrb2,      1:  nOrb2,i,j) = gslab0(ia_sc(1,i):ia_sc(2,i),ia_sc(1,j):ia_sc(2,j))
-          g0(      1:  nOrb2,nOrb2+1:2*nOrb2,i,j) = gslab0(ia_sc(1,i):ia_sc(2,i),ia_sc(3,j):ia_sc(4,j))
-          g0(nOrb2+1:2*nOrb2,      1:  nOrb2,i,j) = gslab0(ia_sc(3,i):ia_sc(4,i),ia_sc(1,j):ia_sc(2,j))
-          g0(nOrb2+1:2*nOrb2,nOrb2+1:2*nOrb2,i,j) = gslab0(ia_sc(3,i):ia_sc(4,i),ia_sc(3,j):ia_sc(4,j))
+      do j = 1,s%nAtoms
+        do i = 1,s%nAtoms
+          g0(        1:  s%nOrb2,        1:  s%nOrb2,i,j) = gslab0(ia_sc(1,i):ia_sc(2,i),ia_sc(1,j):ia_sc(2,j))
+          g0(        1:  s%nOrb2,s%nOrb2+1:2*s%nOrb2,i,j) = gslab0(ia_sc(1,i):ia_sc(2,i),ia_sc(3,j):ia_sc(4,j))
+          g0(s%nOrb2+1:2*s%nOrb2,        1:  s%nOrb2,i,j) = gslab0(ia_sc(3,i):ia_sc(4,i),ia_sc(1,j):ia_sc(2,j))
+          g0(s%nOrb2+1:2*s%nOrb2,s%nOrb2+1:2*s%nOrb2,i,j) = gslab0(ia_sc(3,i):ia_sc(4,i),ia_sc(3,j):ia_sc(4,j))
 
-          g0vsocg0(      1:  nOrb2,      1:  nOrb2,i,j) = temp2(ia_sc(1,i):ia_sc(2,i),ia_sc(1,j):ia_sc(2,j))
-          g0vsocg0(      1:  nOrb2,nOrb2+1:2*nOrb2,i,j) = temp2(ia_sc(1,i):ia_sc(2,i),ia_sc(3,j):ia_sc(4,j))
-          g0vsocg0(nOrb2+1:2*nOrb2,      1:  nOrb2,i,j) = temp2(ia_sc(3,i):ia_sc(4,i),ia_sc(1,j):ia_sc(2,j))
-          g0vsocg0(nOrb2+1:2*nOrb2,nOrb2+1:2*nOrb2,i,j) = temp2(ia_sc(3,i):ia_sc(4,i),ia_sc(3,j):ia_sc(4,j))
+          g0vsocg0(        1:  s%nOrb2,        1:  s%nOrb2,i,j) = temp2(ia_sc(1,i):ia_sc(2,i),ia_sc(1,j):ia_sc(2,j))
+          g0vsocg0(        1:  s%nOrb2,s%nOrb2+1:2*s%nOrb2,i,j) = temp2(ia_sc(1,i):ia_sc(2,i),ia_sc(3,j):ia_sc(4,j))
+          g0vsocg0(s%nOrb2+1:2*s%nOrb2,        1:  s%nOrb2,i,j) = temp2(ia_sc(3,i):ia_sc(4,i),ia_sc(1,j):ia_sc(2,j))
+          g0vsocg0(s%nOrb2+1:2*s%nOrb2,s%nOrb2+1:2*s%nOrb2,i,j) = temp2(ia_sc(3,i):ia_sc(4,i),ia_sc(3,j):ia_sc(4,j))
         end do
       end do
     end if

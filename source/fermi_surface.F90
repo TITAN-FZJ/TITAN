@@ -1,8 +1,8 @@
 module mod_fermi_surface
   use mod_kind, only: dp
   implicit none
-  logical      :: lfs_loop = .false.
-  integer      :: fs_energy_npts = 0, fs_energy_npt1 = 1
+  logical  :: lfs_loop = .false.
+  integer  :: fs_energy_npts = 0, fs_energy_npt1 = 1
   real(dp) :: fs_energy_i, fs_energy_f, fs_energy_s
   real(dp), allocatable :: fs_energies(:)
 
@@ -86,10 +86,10 @@ contains
 
   !   Calculates iso-energy surface (e=Ef for Fermi surface)
   subroutine calculate_fermi_surface(e)
-    use mod_kind,          only: dp, int32, int64
-    use mod_constants,     only: pi, pauli_orb, cZero, cOne
-    use mod_parameters,    only: nOrb, nOrb2, eta
-    use mod_SOC,           only: llinearsoc, llineargfsoc
+    use mod_kind,          only: dp,int32,int64
+    use mod_constants,     only: pi,pauli_orb,cZero,cOne
+    use mod_parameters,    only: eta
+    use mod_SOC,           only: llinearsoc,llineargfsoc
     use mod_system,        only: s => sys
     use mod_BrillouinZone, only: realBZ
     use mod_magnet,        only: lx,ly,lz
@@ -100,12 +100,12 @@ contains
     real(dp),intent(in) :: e
     integer(int64)      :: iz
     integer(int32)      :: i,mu,nu,mup,nup,sigma
-    real(dp)            :: fs_atom(s%nAtoms,realBZ%nkpt,7),fs_orb(nOrb,realBZ%nkpt,7),fs_total(realBZ%nkpt,7)
+    real(dp)            :: fs_atom(s%nAtoms,realBZ%nkpt,7),fs_orb(s%nOrb,realBZ%nkpt,7),fs_total(realBZ%nkpt,7)
     real(dp)            :: kp(3)
     real(dp)            :: temp
     complex(dp)         :: templ
-    complex(dp),dimension(nOrb2,nOrb2,s%nAtoms,s%nAtoms)    :: gf
-    complex(dp),dimension(nOrb2,nOrb2)    :: temp1,temp2,pauli_gf
+    complex(dp),dimension(s%nOrb2,s%nOrb2,s%nAtoms,s%nAtoms)    :: gf
+    complex(dp),dimension(s%nOrb2,s%nOrb2)    :: temp1,temp2,pauli_gf
 
     external :: zgemm
 
@@ -122,7 +122,7 @@ contains
     !$omp parallel do &
     !$omp& default(none) &
     !$omp& private(iz,kp,gf,i,mu,nu,mup,nup,sigma,temp,temp1,temp2,templ) &
-    !$omp& shared(s,calc_green,nOrb,nOrb2,realBZ,e,eta,pauli_orb,pauli_gf,lx,ly,lz,fs_atom,fs_orb,fs_total)
+    !$omp& shared(s,calc_green,realBZ,e,eta,pauli_orb,pauli_gf,lx,ly,lz,fs_atom,fs_orb,fs_total)
     do iz = 1, realBZ%nkpt
       kp = realBZ%kp(1:3,iz)
       ! Green function on energy Ef + ieta, and wave vector kp
@@ -135,20 +135,20 @@ contains
           else
             temp1 = pauli_orb(sigma-1,:,:)
             temp2 = gf(:,:,i,i)
-            call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp1,nOrb2,temp2,nOrb2,cZero,pauli_gf,nOrb2)
+            call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,cOne,temp1,s%nOrb2,temp2,s%nOrb2,cZero,pauli_gf,s%nOrb2)
           end if
-          do mu=1,nOrb
-            nu = mu + nOrb
-            temp = - dimag(pauli_gf(mu,mu)+pauli_gf(nu,nu))/pi
+          do mu=1,s%nOrb
+            nu = mu + s%nOrb
+            temp = - aimag(pauli_gf(mu,mu)+pauli_gf(nu,nu))/pi
             fs_orb(mu,iz,sigma) = fs_orb(mu,iz,sigma) + temp
             fs_atom(i,iz,sigma) = fs_atom(i,iz,sigma) + temp
           end do
         end do
 
-        orb_mu: do mu=1,nOrb
-          mup = mu+nOrb
-          orb_nu: do nu=1,nOrb
-            nup = nu+nOrb
+        orb_mu: do mu=1,s%nOrb
+          mup = mu+s%nOrb
+          orb_nu: do nu=1,s%nOrb
+            nup = nu+s%nOrb
             templ = (gf(nu,mu,i,i) + gf(nup,mup,i,i))/pi
             temp  = real( lx(mu,nu)*templ )
             fs_orb(mu,iz,5) = fs_orb(mu,iz,5) + temp
@@ -164,7 +164,7 @@ contains
 
       end do site_i
 
-      do mu=1,nOrb      
+      do mu=1,s%nOrb      
         fs_total(iz,:) = fs_total(iz,:) + fs_orb(mu,iz,:)
       end do
 
@@ -251,18 +251,17 @@ contains
 
   ! This subtoutine writes the iso-surfaces to the files
   subroutine writeFS(fs_atom,fs_orb,fs_total)
-    use mod_kind, only: int32, int64
-    use mod_parameters,    only: nOrb
+    use mod_kind,          only: int32, int64
     use mod_System,        only: s => sys
     use mod_BrillouinZone, only: realBZ
     implicit none
-    real(dp), intent(in) :: fs_atom(s%nAtoms,realBZ%nkpt,7),fs_orb(nOrb,realBZ%nkpt,7),fs_total(realBZ%nkpt,7)
-    character(len=30)        :: formatvar
+    real(dp), intent(in) :: fs_atom(s%nAtoms,realBZ%nkpt,7),fs_orb(s%nOrb,realBZ%nkpt,7),fs_total(realBZ%nkpt,7)
+    character(len=30)    :: formatvar
     real(dp)             :: kp(3)
     integer(int64)                :: iz
     integer(int32)                :: i, mu, sigma
 
-    write(formatvar,fmt="(a,i0,a)") '(',nOrb*7+3,'(es16.9,2x))'
+    write(formatvar,fmt="(a,i0,a)") '(',s%nOrb*7+3,'(es16.9,2x))'
 
     do iz = 1, realBZ%nkpt
       kp = realBZ%kp(1:3,iz)
@@ -270,7 +269,7 @@ contains
         write(unit=17+i,fmt="(10(es16.9,2x))") kp(1), kp(2), kp(3), (fs_atom(i,iz,sigma),sigma=1,7)
       end do
 
-      write(unit=96,fmt=formatvar) kp(1), kp(2), kp(3),( (fs_orb(mu,iz,sigma),mu=1,nOrb),sigma=1,7)
+      write(unit=96,fmt=formatvar) kp(1), kp(2), kp(3),( (fs_orb(mu,iz,sigma),mu=1,s%nOrb),sigma=1,7)
       write(unit=97,fmt="(10(es16.9,2x))") kp(1), kp(2), kp(3),(fs_total(iz,sigma),sigma=1,7)
     end do
   end subroutine writeFS

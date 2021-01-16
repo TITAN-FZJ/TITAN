@@ -130,30 +130,30 @@ contains
         iw = 8000+(sigma-1)*s%nAtoms+i
 
         if(abs(Beff_cart(sigma,i))>=1.e-15_dp) then
-          phase  = atan2(dimag(Beff_cart(sigma,i)),real(Beff_cart(sigma,i)))
+          phase  = atan2(aimag(Beff_cart(sigma,i)),real(Beff_cart(sigma,i)))
           sine   = real(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
-          cosine = dimag(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
+          cosine = aimag(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
         else
           phase  = 0._dp
           sine   = 0._dp
           cosine = 0._dp
         end if
 
-        write(unit=iw,fmt="(9(es16.9,2x))") e , abs(Beff_cart(sigma,i)) , real(Beff_cart(sigma,i)) , dimag(Beff_cart(sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
+        write(unit=iw,fmt="(9(es16.9,2x))") e , abs(Beff_cart(sigma,i)) , real(Beff_cart(sigma,i)) , aimag(Beff_cart(sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
       end do
       ! Writing total Beff
       iw = 8500+sigma
       if(abs(total_Beff(sigma))>=1.e-15_dp) then
-        phase  = atan2(dimag(total_Beff(sigma)),real(total_Beff(sigma)))
+        phase  = atan2(aimag(total_Beff(sigma)),real(total_Beff(sigma)))
         sine   = real(total_Beff(sigma))/abs(total_Beff(sigma))
-        cosine = dimag(total_Beff(sigma))/abs(total_Beff(sigma))
+        cosine = aimag(total_Beff(sigma))/abs(total_Beff(sigma))
       else
         phase  = 0._dp
         sine   = 0._dp
         cosine = 0._dp
       end if
 
-      write(unit=iw,fmt="(9(es16.9,2x))") e , abs(total_Beff(sigma)) , real(total_Beff(sigma)) , dimag(total_Beff(sigma)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
+      write(unit=iw,fmt="(9(es16.9,2x))") e , abs(total_Beff(sigma)) , real(total_Beff(sigma)) , aimag(total_Beff(sigma)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
     end do
 
     call close_beff_files()
@@ -251,28 +251,28 @@ contains
          iw = 80000+(sigma-1)*s%nAtoms+i
 
          if(abs(Beff_cart(sigma,i))>=1.e-15_dp) then
-           phase  = atan2(dimag(Beff_cart(sigma,i)),real(Beff_cart(sigma,i)))
+           phase  = atan2(aimag(Beff_cart(sigma,i)),real(Beff_cart(sigma,i)))
            sine   = real(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
-           cosine = dimag(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
+           cosine = aimag(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
          else
            phase  = 0._dp
            sine   = 0._dp
            cosine = 0._dp
          end if
 
-         write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(Beff_cart(sigma,i)) , real(Beff_cart(sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
+         write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(Beff_cart(sigma,i)) , real(Beff_cart(sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
       end do
       iw = 85000+sigma
       if(abs(total_Beff(sigma))>=1.e-15_dp) then
-        phase  = atan2(dimag(total_Beff(sigma)),real(total_Beff(sigma)))
+        phase  = atan2(aimag(total_Beff(sigma)),real(total_Beff(sigma)))
         sine   = real(total_Beff(sigma))/abs(total_Beff(sigma))
-        cosine = dimag(total_Beff(sigma))/abs(total_Beff(sigma))
+        cosine = aimag(total_Beff(sigma))/abs(total_Beff(sigma))
       else
         phase  = 0._dp
         sine   = 0._dp
         cosine = 0._dp
       end if
-      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(total_Beff(sigma)) , real(total_Beff(sigma)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
+      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_Beff(sigma)) , real(total_Beff(sigma)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
    end do
 
     call close_dc_beff_files()

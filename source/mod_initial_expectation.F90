@@ -2,7 +2,7 @@ module mod_initial_expectation
 
 contains
 
-  subroutine calc_initial_Uterms(sys)
+  subroutine calc_initial_Uterms(s)
     use mod_kind,              only: dp
     use mod_constants,         only: cZero
     use mod_System,            only: System_type,initHamiltkStride,initConversionMatrices
@@ -10,7 +10,7 @@ contains
     use mod_magnet,            only: l_matrix,lb,sb,allocate_magnet_variables,deallocate_magnet_variables,rho0,rhod0
     use mod_SOC,               only: ls,allocateLS
     use adaptiveMesh,          only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh
-    use mod_parameters,        only: nOrb,kp_in,kptotal_in,output,eta,leigenstates,lkpoints,dimH
+    use mod_parameters,        only: kp_in,kptotal_in,output,eta,leigenstates,lkpoints,dimH,dimHsc
     use mod_polyBasis,         only: read_basis
     use mod_mpi_pars,          only: myrank,FieldComm,rField,sField,rFreq,sFreq,FreqComm,abortProgram
     use Lattice,               only: initLattice
@@ -28,33 +28,52 @@ contains
     implicit none
     logical :: lsupercond_temp
     integer :: i,j,mu,err,supercond_temp
-    type(System_type), intent(inout) :: sys
+    type(System_type), intent(inout) :: s
     type(System_type), allocatable   :: sys0(:)
 
-    external :: build_U
     if(myrank == 0) &
       call write_time('[calc_initial_Uterms] Obtaining initial densities: ',output%unit)
 
-    allocate(sys0(sys%nTypes))
+    allocate(sys0(s%nTypes))
 
-    types_of_atoms: do i = 1, sys%nTypes
+    types_of_atoms: do i = 1, s%nTypes
       !------------------ Define the lattice structure -------------------
-      call read_basis(trim(sys%Types(i)%Name), sys0(i))
+      call read_basis(trim(s%Types(i)%Name), sys0(i))
       if(sys0(i)%nTypes/=1) call abortProgram("[calc_initial_Uterms] Not implemented for parameter file with more than 1 type of atom!")
 
       !---------------------------- Dimensions -----------------------------
-      dimH = sys0(i)%nAtoms*nOrb*2
+      dimH    = sys0(i)%nAtoms*sys0(i)%nOrb*2
+      dimHsc  = dimH
 
-      !------------- Setting the number of nearest neighbors -------------
-      sys0(i)%nStages = sys%nStages
-      sys0(i)%relTol  = sys%relTol
+      !------- Setting the subsystem properties from the general one -------
+      sys0(i)%nStages = s%nStages
+      sys0(i)%relTol  = s%relTol
+      sys0(i)%nOrb    = s%nOrb
+      sys0(i)%nOrb2   = s%nOrb2
+      allocate(sys0(i)%Orbs(s%nOrb))
+      sys0(i)%Orbs(:) = s%Orbs(:)
+      sys0(i)%nsOrb   = s%nsOrb
+      if(sys0(i)%nsOrb>0) then
+        allocate(sys0(i)%sOrbs(sys0(i)%nsOrb))
+        sys0(i)%sOrbs(:) = s%sOrbs(:)
+      end if
+      sys0(i)%npOrb   = s%npOrb
+      if(sys0(i)%npOrb>0) then
+        allocate(sys0(i)%pOrbs(sys0(i)%npOrb))
+        sys0(i)%pOrbs(:) = s%pOrbs(:)
+      end if
+      sys0(i)%ndOrb   = s%ndOrb
+      if(sys0(i)%ndOrb>0) then
+        allocate(sys0(i)%dOrbs(sys0(i)%ndOrb))
+        sys0(i)%dOrbs(:) = s%dOrbs(:)
+      end if
 
       call initLattice(sys0(i))
 
       ! if(myrank==0) call writeLattice(sys0(i))
       ! stop
       !-------------------------- Filename strings -------------------------
-      write(output%info,"('_nkpt=',i0,'_eta=',a)") kptotal_in, trim(rtos(eta,"(es8.1)"))
+      write(output%info,"('_norb=',i0,'_nkpt=',i0,'_eta=',a)") sys0(i)%nOrb,kptotal_in, trim(rtos(eta,"(es8.1)"))
       if(leigenstates) output%info = trim(output%info) // "_ev"
 
       !-------------------- Tight Binding parameters ---------------------
@@ -83,19 +102,16 @@ contains
       !---------------- Reading from previous calculations -----------------
       !------- and calculating if file doesn't exist (or different U) ------
       if(.not.read_initial_Uterms(sys0(i),err)) then
-        if(myrank == 0) write(output%unit,"('[calc_initial_Uterms] Initial density file for ""',a,'"" does not exist. Calculating...')") trim(sys%Types(i)%Name)
+        if(myrank == 0) write(output%unit,"('[calc_initial_Uterms] Initial density file for ""',a,'"" does not exist. Calculating...')") trim(s%Types(i)%Name)
 
         !----------- Allocating variables that depend on nAtoms ------------
-        call allocate_magnet_variables(sys0(i)%nAtoms, nOrb)
-        call allocateLS(sys0(i)%nAtoms,nOrb)
-        call allocate_supercond_variables(sys0(i)%nAtoms, nOrb)
-        call allocate_Atom_variables(sys0(i)%nAtoms,nOrb)
+        call allocate_magnet_variables(sys0(i)%nAtoms,sys0(i)%nOrb)
+        call allocateLS(sys0(i)%nAtoms,sys0(i)%nOrb)
+        call allocate_supercond_variables(sys0(i)%nAtoms,sys0(i)%nOrb)
+        call allocate_Atom_variables(sys0(i)%nAtoms,sys0(i)%nOrb)
 
         !---- L matrix in global frame for given quantization direction ----
-        call l_matrix()
-
-        !-------------------------- Build U array --------------------------
-        call build_U(sys0(i))
+        call l_matrix(sys0(i)%nOrb,sys0(i)%Orbs)
 
         !----- Removing L.B, S.B and L.S matrices from the hamiltonian -----
         lb = cZero
@@ -116,7 +132,7 @@ contains
         call initHamiltkStride(sys0(i),supercond)
 
         !------------------------ Conversion arrays -------------------------
-        call initConversionMatrices(sys0(i)%nAtoms,nOrb)
+        call initConversionMatrices(sys0(i)%nAtoms,sys0(i)%nOrb)
 
         ! Distribute Energy Integration across all points available
         call realBZ % setup_fraction(sys0(i),rFreq(1), sFreq(1), FreqComm(1),lkpoints)
@@ -152,18 +168,18 @@ contains
       if(myrank == 0) then
         write(output%unit,"('[calc_initial_Uterms] Initial densities from: ',a)") trim(sys0(i)%Name)
         do j = 1,sys0(i)%nAtoms
-          write(output%unit,"(a,i0,12(2x,es16.9))") trim(sys%Types(i)%Name), j, (sys0(i)%Types(1)%rho0(mu,j),mu=1,nOrb)
-          write(output%unit,"(a,i0,12(2x,es16.9))") trim(sys%Types(i)%Name), j, sys0(i)%Types(1)%rhod0(j)
+          write(output%unit,"(a,i0,12(2x,es16.9))") trim(s%Types(i)%Name), j, (sys0(i)%Types(1)%rho0(mu,j),mu=1,sys0(i)%nOrb)
+          write(output%unit,"(a,i0,12(2x,es16.9))") trim(s%Types(i)%Name), j, sys0(i)%Types(1)%rhod0(j)
         end do
       end if
     end do types_of_atoms
 
     ! Transfering from occupations stored on Type to variables used in the hamiltonian
-    if(.not.allocated(rho0 )) allocate(rho0(nOrb,sys%nAtoms))
-    if(.not.allocated(rhod0)) allocate(rhod0(sys%nAtoms))
-    do i=1,sys%nAtoms
-      rho0(:,i) = sys0(sys%Basis(i)%Material)%Types(1)%rho0(nOrb,1) ! Unit cell can have more than one atom (of one type)
-      rhod0(i)  = sys0(sys%Basis(i)%Material)%Types(1)%rhod0(1)     ! but here only the occupation of first atom is used
+    if(.not.allocated(rho0 )) allocate(rho0(s%nOrb,s%nAtoms))
+    if(.not.allocated(rhod0)) allocate(rhod0(s%nAtoms))
+    do i=1,s%nAtoms
+      rho0(:,i) = sys0(s%Basis(i)%Material)%Types(1)%rho0(s%nOrb,1) ! Unit cell can have more than one atom (of one type)
+      rhod0(i)  = sys0(s%Basis(i)%Material)%Types(1)%rhod0(1)     ! but here only the occupation of first atom is used
     end do
 
     if(myrank == 0) &
@@ -172,49 +188,52 @@ contains
   end subroutine calc_initial_Uterms
 
 
-  subroutine calc_expectation_values(sys)
+  subroutine calc_expectation_values(s)
     !! Calculates the expectation values of n_mu^s and n_i/2
     use mod_kind,        only: dp
     use mod_constants,   only: cZero
     use mod_System,      only: System_type
-    use mod_parameters,  only: nOrb
     use mod_magnet,      only: rho,rhod,mp,mx,my,mz,mpd,mzd
     use mod_expectation, only: expectation_values
     use mod_Umatrix,     only: init_Umatrix
     implicit none
-    integer      :: i
-    type(System_type),          intent(inout) :: sys
+    type(System_type),          intent(inout) :: s
+
     real(dp), dimension(:,:),     allocatable :: rho0
     real(dp), dimension(:),       allocatable :: rhod0
-    real(dp), dimension(nOrb,sys%nAtoms)      :: deltas
+    real(dp), dimension(s%nOrb,s%nAtoms)      :: deltas
+    integer      :: i,mu
 
-    allocate( rho0(nOrb,sys%nAtoms),rhod0(sys%nAtoms) )
+    allocate( rho0(s%nOrb,s%nAtoms),rhod0(s%nAtoms) )
 
     mzd = 0._dp
     mpd = cZero
-    do i = 1, sys%nAtoms
-      rhod (i) = sys%Types(sys%Basis(i)%Material)%OccupationD
-      rhod0(i) = sys%Types(sys%Basis(i)%Material)%OccupationD
+    do i = 1, s%nAtoms
+      rhod (i) = s%Types(s%Basis(i)%Material)%OccupationD
+      rhod0(i) = s%Types(s%Basis(i)%Material)%OccupationD
     end do
     rho0 = 0._dp
     rho  = rho0
-    call init_Umatrix(mzd,mpd,rhod,rhod0,rho,rho0,sys%nAtoms,nOrb)
+    call init_Umatrix(mzd,mpd,rhod,rhod0,rho,rho0,s)
 
-    call expectation_values(sys,rho0,mp,mx,my,mz,deltas)
+    call expectation_values(s,rho0,mp,mx,my,mz,deltas)
 
-    do i = 1, sys%nAtoms
-      rhod0(i)   = sum(rho0(5:9,i))
+    rhod0 = 0._dp
+    do i=1,s%nAtoms
+      do mu=1,s%ndOrb
+        rhod0(i) = rhod0(i) + rho0(s%dOrbs(mu),i)
+      end do
     end do
 
     ! The following lines only works for 1 type of atom in the unit cell
-    allocate( sys%Types(1)%rho0(nOrb,sys%nAtoms),sys%Types(1)%rhod0(sys%nAtoms) )
-    sys%Types(1)%rho0(:,:) = rho0(:,:)
-    sys%Types(1)%rhod0(:)  = rhod0(:)
+    allocate( s%Types(1)%rho0(s%nOrb,s%nAtoms),s%Types(1)%rhod0(s%nAtoms) )
+    s%Types(1)%rho0(:,:) = rho0(:,:)
+    s%Types(1)%rhod0(:)  = rhod0(:)
   end subroutine calc_expectation_values
 
   subroutine write_initial_Uterms(sys0)
     !! Writes the initial orbital dependent densities (calculated with tight-binding hamiltonian only) into files
-    use mod_parameters,    only: nOrb,output,dfttype
+    use mod_parameters,    only: output,dfttype
     use EnergyIntegration, only: parts
     use mod_System,        only: System_type
     implicit none
@@ -230,8 +249,8 @@ contains
     open (unit=98,status='replace',file=filename)
 
     ! Writing rho0(nOrb,nAtoms) and rhod0(nAtoms) to file
-    write(formatvar,fmt="(a,i0,a)") '(',nOrb*sys0%nAtoms,'(es21.11,2x))'
-    write(98,fmt=formatvar) ((sys0%Types(1)%rho0(mu,j),mu=1,nOrb),j=1,sys0%nAtoms)
+    write(formatvar,fmt="(a,i0,a)") '(',sys0%nOrb*sys0%nAtoms,'(es21.11,2x))'
+    write(98,fmt=formatvar) ((sys0%Types(1)%rho0(mu,j),mu=1,sys0%nOrb),j=1,sys0%nAtoms)
     write(formatvar,fmt="(a,i0,a)") '(',sys0%nAtoms,'(es21.11,2x))'
     write(98,fmt=formatvar) (sys0%Types(1)%rhod0(j),j=1,sys0%nAtoms)
 
@@ -245,7 +264,7 @@ contains
   function read_initial_Uterms(sys0,err) result(success)
     !! Writes the initial orbital dependent densities (calculated with tight-binding hamiltonian only) into files
     use mod_kind,          only: dp
-    use mod_parameters,    only: nOrb,output,dfttype
+    use mod_parameters,    only: output,dfttype
     use EnergyIntegration, only: parts
     use mod_System,        only: System_type
     use mod_mpi_pars,      only: rField,MPI_DOUBLE_PRECISION,FieldComm,ierr
@@ -255,7 +274,7 @@ contains
     logical            :: success
     character(len=500) :: filename
     integer            :: j,mu
-    real(dp)           :: previous_results_rho0(nOrb,sys0%nAtoms),previous_results_rhod0(sys0%nAtoms),Un_tmp,Um_tmp
+    real(dp)           :: previous_results_rho0(sys0%nOrb,sys0%nAtoms),previous_results_rhod0(sys0%nAtoms),Un_tmp,Um_tmp
 
     external :: MPI_Bcast
 
@@ -276,7 +295,7 @@ contains
       write(output%unit,"(a)") trim(filename)
     end if
 
-    read(97,fmt=*) ((previous_results_rho0(mu,j),mu=1,nOrb),j=1,sys0%nAtoms)
+    read(97,fmt=*) ((previous_results_rho0(mu,j),mu=1,sys0%nOrb),j=1,sys0%nAtoms)
     read(97,fmt=*) (previous_results_rhod0(j),j=1,sys0%nAtoms)
     read(97,fmt=*) Un_tmp, Um_tmp
     close(97)
@@ -288,14 +307,14 @@ contains
       return
     end if
 
-    call MPI_Bcast(previous_results_rho0 ,nOrb*sys0%nAtoms,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
+    call MPI_Bcast(previous_results_rho0 ,sys0%nOrb*sys0%nAtoms,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
     call MPI_Bcast(previous_results_rhod0,sys0%nAtoms     ,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
 
-    if(.not.allocated(sys0%Types(1)%rho0 )) allocate(sys0%Types(1)%rho0(nOrb,sys0%nAtoms))
+    if(.not.allocated(sys0%Types(1)%rho0 )) allocate(sys0%Types(1)%rho0(sys0%nOrb,sys0%nAtoms))
     if(.not.allocated(sys0%Types(1)%rhod0)) allocate(sys0%Types(1)%rhod0(sys0%nAtoms))
 
     do j=1,sys0%nAtoms
-      do mu=1,nOrb
+      do mu=1,sys0%nOrb
         sys0%Types(1)%rho0(mu,j) = previous_results_rho0(mu,j)
       end do
       sys0%Types(1)%rhod0(j) = previous_results_rhod0(j)

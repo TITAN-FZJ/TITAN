@@ -12,7 +12,7 @@ contains
     use mod_System,     only: s => sys
     use mod_constants,  only: levi_civita,StoC,CtoS,cZero
     use mod_magnet,     only: mxd,myd,mzd
-    use mod_parameters, only: nOrb,output,dimens,sigmaimunu2i
+    use mod_parameters, only: output,dimens,sigmaimunu2i
     use mod_mpi_pars,   only: abortProgram,rField
     implicit none
     complex(dp), dimension(dimens,dimens), intent(in)    :: chiorb_hf
@@ -27,7 +27,7 @@ contains
     if(rField == 0) &
     write(output%unit_loop,"('[sumrule] Checking if the sum rule is satisfied... ')", advance='no')
 
-    allocate(chiorb_hf_cart(dimens,dimens),lhs(3,3,nOrb,nOrb,s%nAtoms),rhs(3,3,nOrb,nOrb,s%nAtoms), stat = AllocateStatus)
+    allocate(chiorb_hf_cart(dimens,dimens),lhs(3,3,s%nOrb,s%nOrb,s%nAtoms),rhs(3,3,s%nOrb,s%nOrb,s%nAtoms), stat = AllocateStatus)
     if(AllocateStatus/=0) call abortProgram("[sumrule] Not enough memory for: chiorb_hf_cart,lhs,rhs")
 
     mvec(1,:) = mxd(:)
@@ -42,10 +42,10 @@ contains
       do j = 1, s%nAtoms
         do r = 1, 4
           do t = 1, 4
-            do mu = 1, nOrb
-              do nu = 1, nOrb
-                do gamma = 1, nOrb
-                  do xi = 1, nOrb
+            do mu = 1,s%nOrb
+              do nu = 1,s%nOrb
+                do gamma = 1,s%nOrb
+                  do xi = 1,s%nOrb
                     do p = 1, 4
                       do q = 1, 4
                         if(abs(StoC(p,r)) < 1.e-15_dp .or. abs(CtoS(t,q))  < 1.e-15_dp) cycle
@@ -62,23 +62,23 @@ contains
       end do
     end do
 
-    call Beffective(mvec,s%nAtoms,nOrb,Beff)
+    call Beffective(mvec,s,Beff)
 
     lhs = cZero
     rhs = cZero
-    do i = 1, s%nAtoms
-      do mu = 1, nOrb
-        do nu = 1, nOrb
-          do m = 1, 3
-            do n = 1, 3
-              do k = 1, 3
+    do i = 1,s%nAtoms
+      do mu = 1,s%nOrb
+        do nu = 1,s%nOrb
+          do m = 1,3
+            do n = 1,3
+              do k = 1,3
                 if(abs(levi_civita(m,n,k)) > 1.e-15_dp) &
                   lhs(m,n,mu,nu,i) = lhs(m,n,mu,nu,i) + levi_civita(m,n,k)*Smunuiivec(mu,nu,k,i)
               end do
 
-              do j = 1, s%nAtoms
-                do gamma = 1, nOrb
-                  do xi = 1, nOrb
+              do j = 1,s%nAtoms
+                do gamma = 1,s%nOrb
+                  do xi = 1,s%nOrb
                     do q = 1,3
                       do p = 1,3
                         if(abs(levi_civita(n,q,p)) > 1.e-15_dp) &
@@ -108,43 +108,52 @@ contains
 
   ! This subroutine calculates the effective field on the Hamiltonian
   ! H = H_0 + \sigma.B_eff
-  subroutine Beffective(mvec,nAtoms,nOrb,Beff)
+  subroutine Beffective(mvec,s,Beff)
     use mod_kind,       only: dp
     use mod_constants,  only: cZero
-    use mod_parameters, only: dimens, sigmaimunu2i, offset
-    use mod_SOC,        only: SOC, socscale
-    use mod_parameters, only: Um
+    use mod_parameters, only: dimens,sigmaimunu2i
+    use mod_SOC,        only: SOC
     use mod_magnet,     only: lvec, lfield, hhw
-    use mod_System,     only: s => sys
+    use mod_System,     only: System_type
     implicit none
-    integer :: i,mu,nu,sigma
-    integer                         , intent(in)  :: nAtoms, nOrb
-    real(dp)   , dimension(3,nAtoms), intent(in)  :: mvec
-    complex(dp), dimension(dimens)  , intent(out) :: Beff
+    type(System_type),                  intent(in)  :: s
+    real(dp)   , dimension(3,s%nAtoms), intent(in)  :: mvec
+    complex(dp), dimension(dimens)    , intent(out) :: Beff
+    integer :: i,mu,nu,mup,mud,nup,nud,sigma
 
     Beff = cZero
-    do i=1,nAtoms
+    do i=1,s%nAtoms
       do sigma=1,3
-        do mu=1, nOrb
-          if(lfield) Beff(sigmaimunu2i(sigma+1,i,mu,mu)) = Beff(sigmaimunu2i(sigma+1,i,mu,mu)) + hhw(sigma,i)
-          ! p block
-          if(SOC) then
-            if((mu>=2).and.(mu<=4)) then
-              do nu=2,4
-                Beff(sigmaimunu2i(sigma+1,i,mu,nu))  = Beff(sigmaimunu2i(sigma+1,i,mu,nu)) + 0.5_dp*socscale * s%Types(s%Basis(i)%Material)%LambdaP * lvec(mu,nu,sigma)
-              end do
-            end if
-          end if
-          ! d block
-          if(mu>=5) then
-            Beff(sigmaimunu2i(sigma+1,i,mu,mu)) = Beff(sigmaimunu2i(sigma+1,i,mu,mu)) - 0.5_dp*Um(i+offset) * mvec(sigma,i)
-            if(SOC) then
-              do nu=5,nOrb
-                Beff(sigmaimunu2i(sigma+1,i,mu,nu))  = Beff(sigmaimunu2i(sigma+1,i,mu,nu)) + 0.5_dp*socscale * s%Types(s%Basis(i)%Material)%LambdaD * lvec(mu,nu,sigma)
-              end do
-            end if
-          end if
+        ! Exchange term
+        do mud=1,s%ndOrb
+          mu = s%dOrbs(mud)
+          Beff(sigmaimunu2i(sigma+1,i,mu,mu)) = Beff(sigmaimunu2i(sigma+1,i,mu,mu)) - 0.5_dp*s%Basis(i)%Um * mvec(sigma,i)
         end do
+        ! External field term
+        if(lfield) then
+          do mu=1,s%nOrb
+            Beff(sigmaimunu2i(sigma+1,i,mu,mu)) = Beff(sigmaimunu2i(sigma+1,i,mu,mu)) + hhw(sigma,i)
+          end do
+        end if
+        ! SOC term
+        if(SOC) then
+          ! p block
+          do nup=1,s%npOrb
+            nu = s%pOrbs(nup)
+            do mup=1,s%npOrb
+              mu = s%pOrbs(mup)
+              Beff(sigmaimunu2i(sigma+1,i,mu,nu))  = Beff(sigmaimunu2i(sigma+1,i,mu,nu)) + 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * lvec(mu,nu,sigma)
+            end do
+          end do
+          ! d block
+          do nud=1,s%ndOrb
+            nu = s%dOrbs(nud)
+            do mud=1,s%ndOrb
+              mu = s%dOrbs(mud)
+              Beff(sigmaimunu2i(sigma+1,i,mu,nu))  = Beff(sigmaimunu2i(sigma+1,i,mu,nu)) + 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * lvec(mu,nu,sigma)
+            end do
+          end do
+        end if
       end do
     end do
 
@@ -156,7 +165,7 @@ contains
     use mod_constants,     only: cZero,cI,tpi
     use mod_System,        only: s => sys
     use EnergyIntegration, only: y, wght
-    use mod_parameters,    only: nOrb, nOrb2, eta
+    use mod_parameters,    only: eta
     use mod_hamiltonian,   only: hamilt_local
     use mod_greenfunction, only: calc_green
     use adaptiveMesh,      only: local_points,E_k_imag_mesh,activeComm,bzs
@@ -173,11 +182,11 @@ contains
 
     external :: MPI_Allreduce
     
-    ncount=s%nAtoms*nOrb*nOrb
+    ncount=s%nAtoms*s%nOrb*s%nOrb
 
-    allocate(imguu(nOrb, nOrb,s%nAtoms),imgdd(nOrb, nOrb,s%nAtoms),imgud(nOrb, nOrb,s%nAtoms),imgdu(nOrb, nOrb,s%nAtoms), stat = AllocateStatus)
+    allocate(imguu(s%nOrb, s%nOrb,s%nAtoms),imgdd(s%nOrb, s%nOrb,s%nAtoms),imgud(s%nOrb, s%nOrb,s%nAtoms),imgdu(s%nOrb, s%nOrb,s%nAtoms), stat = AllocateStatus)
     if(AllocateStatus/=0) call abortProgram("[calcSmunu] Not enough memory for: imguu,imgdd,imgud,imgdu")
-    allocate(Smunuiivec(nOrb,nOrb,3,s%nAtoms), stat = AllocateStatus)
+    allocate(Smunuiivec(s%nOrb,s%nOrb,3,s%nAtoms), stat = AllocateStatus)
     if(AllocateStatus/=0) call abortProgram("[calcSmunu] Not enough memory for: Smunuiivec")
 
     imguu = cZero
@@ -188,13 +197,13 @@ contains
     ! Build local hamiltonian
     call hamilt_local(s)
 
-    allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), stat = AllocateStatus)
+    allocate(gf(s%nOrb2,s%nOrb2,s%nAtoms,s%nAtoms), stat = AllocateStatus)
     gf = cZero
 
     !$omp parallel do schedule(static) &
     !$omp& default(none) &
     !$omp& private(AllocateStatus,ix,i,mu,nu,mup,nup,kp,ep,weight,gf) &
-    !$omp& shared(calc_green,local_points,s,nOrb,nOrb2,E_k_imag_mesh,bzs,eta,y,wght) &
+    !$omp& shared(calc_green,local_points,s,E_k_imag_mesh,bzs,eta,y,wght) &
     !$omp& reduction(+:imguu,imgdd,imgud,imgdu)
     do ix = 1, local_points
       ep = y(E_k_imag_mesh(1,ix))
@@ -203,10 +212,10 @@ contains
       !Green function on energy Ef + iy, and wave vector kp
       call calc_green(s%Ef,ep+eta,s,kp,gf)
       do i=1,s%nAtoms
-        do mu=1,nOrb
-          mup = mu+nOrb
-          do nu=1,nOrb
-            nup = nu+nOrb
+        do mu=1,s%nOrb
+          mup = mu+s%nOrb
+          do nu=1,s%nOrb
+            nup = nu+s%nOrb
 
             imguu(mu,nu,i) = imguu(mu,nu,i) + ( gf(nu ,mu ,i,i) + conjg(gf(mu ,nu ,i,i)) ) * weight
             imgdd(mu,nu,i) = imgdd(mu,nu,i) + ( gf(nup,mup,i,i) + conjg(gf(mup,nup,i,i)) ) * weight
@@ -227,7 +236,7 @@ contains
     call MPI_Allreduce(MPI_IN_PLACE, imgud, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
     call MPI_Allreduce(MPI_IN_PLACE, imgdu, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
 
-    do mu=1,nOrb
+    do mu=1,s%nOrb
       imguu(mu,mu,:) = 0.5_dp + imguu(mu,mu,:)
       imgdd(mu,mu,:) = 0.5_dp + imgdd(mu,mu,:)
     end do
@@ -242,49 +251,3 @@ contains
   end subroutine calcSmunu
 
 end module mod_sumrule
-
-
-
-! To be used in sumrule for test
-
-! complex(dp) :: test1,test2
-
-
-! if(rField == 0) then
-! do i = 1, s%nAtoms ; do k = 1, 3 ; do nu = 1, nOrb ; do mu = 1, nOrb
-! if(abs(Smunuiivec(mu,nu,k,i)) > 1.e-15_dp) write(15,"(a,2x,4(i0,2x),2(es16.9,2x))")'Smunuiivec',mu,nu,k,i,real(Smunuiivec(mu,nu,k,i)),dimag(Smunuiivec(mu,nu,k,i))
-! end do ; end do ; end do ; end do
-! do i = 1, s%nAtoms ; do j = 1, s%nAtoms ; do p = 1,3 ; do m = 1,3 ; do mu = 1, nOrb ; do nu = 1, nOrb ; do gamma = 1, nOrb ; do xi = 1, nOrb
-! if(abs(chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi))) > 1.e-15_dp) write(16,"(a,2x,8(i0,2x),2(es16.9,2x))")'chiorb_hf_cart',i,j,m+1,p+1,mu,nu,gamma,xi,real(chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi))),dimag(chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi)))
-! end do ; end do ; end do ; end do ; end do ; end do ; end do ; end do
-! do j = 1, s%nAtoms ; do q = 1, 3 ; do gamma = 1, nOrb ; do xi = 1, nOrb
-! if(abs(Beff(sigmaimunu2i(q+1,j,gamma,xi))) > 1.e-15_dp) write(17,"(a,2x,4(i0,2x),2(es16.9,2x))") 'Beff',q,j,gamma,xi,real(Beff(sigmaimunu2i(q+1,j,gamma,xi))),dimag(Beff(sigmaimunu2i(q+1,j,gamma,xi)))
-! end do ; end do ; end do ; end do
-! do i = 1, s%nAtoms ; do m = 1, 3 ; do n = 1, 3 ; do nu = 1, nOrb ; do mu = 1, nOrb
-! if(abs(lhs(m,n,mu,nu,i) - rhs(m,n,mu,nu,i)) > 1.e-15_dp) write(18,"(a,2x,5(i0,2x),2(es16.9,2x))") 'sum',m,n,mu,nu,i,real(lhs(m,n,mu,nu,i) - rhs(m,n,mu,nu,i)),dimag(lhs(m,n,mu,nu,i) - rhs(m,n,mu,nu,i))
-! end do ; end do ; end do ; end do ; end do
-! do i = 1, s%nAtoms ; do m = 1, 3 ; do n = 1, 3 ; do nu = 1, nOrb ; do mu = 1, nOrb
-! if(abs(lhs(m,n,mu,nu,i)) > 1.e-15_dp) write(19,"(a,2x,5(i0,2x),2(es16.9,2x))") 'lhs',m,n,mu,nu,i,real(lhs(m,n,mu,nu,i)),dimag(lhs(m,n,mu,nu,i))
-! end do ; end do ; end do ; end do ; end do
-
-! do i = 1, s%nAtoms ; do m = 1, 3 ; do n = 1, 3 ; do nu = 1, nOrb ; do mu = 1, nOrb
-! if(abs(rhs(m,n,mu,nu,i)) > 1.e-15_dp) write(20,"(a,2x,5(i0,2x),2(es16.9,2x))") 'rhs',m,n,mu,nu,i,real(rhs(m,n,mu,nu,i)),dimag(rhs(m,n,mu,nu,i))
-! end do ; end do ; end do ; end do ; end do
-! test1=cZero
-! test2=cZero
-! do mu=1,nOrb
-! test1 = test1 + lhs(1,2,mu,mu,1)
-! test2 = test2 + lhs(2,1,mu,mu,1)
-! end do
-! write(*,"(a,2x,3(es16.9,2x))") 'mz ',mvec_cartesian(3,1),real(test1),dimag(test1)
-! write(*,"(a,2x,3(es16.9,2x))") 'mz ',mvec_cartesian(3,1),real(test2),dimag(test2)
-! test1=cZero
-! test2=cZero
-! do mu=5,nOrb
-! test1 = test1 + lhs(1,2,mu,mu,1)
-! test2 = test2 + lhs(2,1,mu,mu,1)
-! end do
-! write(*,"(a,2x,3(es16.9,2x))") 'mzd',mvec(3,1),real(test1),dimag(test1)
-! write(*,"(a,2x,3(es16.9,2x))") 'mzd',mvec(3,1),real(test2),dimag(test2)
-! write(*,*) sum(abs(lhs(:,:,:,:,:) - rhs(:,:,:,:,:)))
-! end if

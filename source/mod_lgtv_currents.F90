@@ -225,15 +225,15 @@ contains
 
     do i=1,Npl ; do j=1,7
       iw = 8300+(i-1)*7*2+(j-1)*2+1
-      write(unit=iw,fmt="(6(es16.9,2x))") e , real(long_currents(j,i)) , dimag(long_currents(j,i)) , atan2(dimag(long_currents(j,i)),real(long_currents(j,i))) , mvec_spherical(2,i) , mvec_spherical(3,i)
+      write(unit=iw,fmt="(6(es16.9,2x))") e , real(long_currents(j,i)) , aimag(long_currents(j,i)) , atan2(aimag(long_currents(j,i)),real(long_currents(j,i))) , mvec_spherical(2,i) , mvec_spherical(3,i)
       iw = iw+1
-      write(unit=iw,fmt="(6(es16.9,2x))") e , real(transv_currents(j,i)) , dimag(transv_currents(j,i)) , atan2(dimag(transv_currents(j,i)),real(transv_currents(j,i))) , mvec_spherical(2,i) , mvec_spherical(3,i)
+      write(unit=iw,fmt="(6(es16.9,2x))") e , real(transv_currents(j,i)) , aimag(transv_currents(j,i)) , atan2(aimag(transv_currents(j,i)),real(transv_currents(j,i))) , mvec_spherical(2,i) , mvec_spherical(3,i)
     end do ; end do
     do j=1,7
       iw = 8500+(j-1)*2+1
-      write(unit=iw,fmt="(6(es16.9,2x))") e , real(total_long_currents(j)) , dimag(total_long_currents(j)) , atan2(dimag(total_long_currents(j)),real(total_long_currents(j))) , mtotal_spherical(2) , mtotal_spherical(3)
+      write(unit=iw,fmt="(6(es16.9,2x))") e , real(total_long_currents(j)) , aimag(total_long_currents(j)) , atan2(aimag(total_long_currents(j)),real(total_long_currents(j))) , mtotal_spherical(2) , mtotal_spherical(3)
       iw = iw+1
-      write(unit=iw,fmt="(6(es16.9,2x))") e , real(total_transv_currents(j)) , dimag(total_transv_currents(j)) , atan2(dimag(total_transv_currents(j)),real(total_transv_currents(j))) , mtotal_spherical(2) , mtotal_spherical(3)
+      write(unit=iw,fmt="(6(es16.9,2x))") e , real(total_transv_currents(j)) , aimag(total_transv_currents(j)) , atan2(aimag(total_transv_currents(j)),real(total_transv_currents(j))) , mtotal_spherical(2) , mtotal_spherical(3)
     end do
 
   end subroutine write_lgtv_currents
@@ -250,15 +250,15 @@ contains
 
     do i=1,Npl ; do j=1,7
       iw = 83000+(i-1)*7*2+(j-1)*2+1
-      write(unit=iw,fmt="(a,2x,5(es16.9,2x))") trim(dc_fields(hw_count)) , real(long_currents(j,i)) , dimag(long_currents(j,i)) , atan2(dimag(long_currents(j,i)),real(long_currents(j,i))) , mvec_spherical(2,i) , mvec_spherical(3,i)
+      write(unit=iw,fmt="(a,2x,5(es16.9,2x))") trim(dc_fields(hw_count)) , real(long_currents(j,i)) , aimag(long_currents(j,i)) , atan2(aimag(long_currents(j,i)),real(long_currents(j,i))) , mvec_spherical(2,i) , mvec_spherical(3,i)
       iw = iw+1
-      write(unit=iw,fmt="(a,2x,5(es16.9,2x))") trim(dc_fields(hw_count)) , real(transv_currents(j,i)) , dimag(transv_currents(j,i)) , atan2(dimag(transv_currents(j,i)),real(transv_currents(j,i))) , mvec_spherical(2,i) , mvec_spherical(3,i)
+      write(unit=iw,fmt="(a,2x,5(es16.9,2x))") trim(dc_fields(hw_count)) , real(transv_currents(j,i)) , aimag(transv_currents(j,i)) , atan2(aimag(transv_currents(j,i)),real(transv_currents(j,i))) , mvec_spherical(2,i) , mvec_spherical(3,i)
     end do ; end do
     do j=1,7
       iw = 85000+(j-1)*2+1
-      write(unit=iw,fmt="(a,2x,5(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_long_currents(j)) , dimag(total_long_currents(j)) , atan2(dimag(total_long_currents(j)),real(total_long_currents(j))) , mtotal_spherical(2) , mtotal_spherical(3)
+      write(unit=iw,fmt="(a,2x,5(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_long_currents(j)) , aimag(total_long_currents(j)) , atan2(aimag(total_long_currents(j)),real(total_long_currents(j))) , mtotal_spherical(2) , mtotal_spherical(3)
       iw = iw+1
-      write(unit=iw,fmt="(a,2x,5(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_transv_currents(j)) , dimag(total_transv_currents(j)) , atan2(dimag(total_transv_currents(j)),real(total_transv_currents(j))) , mtotal_spherical(2) , mtotal_spherical(3)
+      write(unit=iw,fmt="(a,2x,5(es16.9,2x))") trim(dc_fields(hw_count)) , real(total_transv_currents(j)) , aimag(total_transv_currents(j)) , atan2(aimag(total_transv_currents(j)),real(total_transv_currents(j))) , mtotal_spherical(2) , mtotal_spherical(3)
     end do
 
   end subroutine write_dc_lgtv_currents
