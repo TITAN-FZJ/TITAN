@@ -55,6 +55,7 @@ contains
 
   subroutine get_parameters(filename,s)
     use mod_kind,              only: dp,int64
+    use AtomTypes,             only: default_orbitals
     use mod_input,             only: get_parameter,read_file,enable_input_logging,disable_input_logging
     use mod_parameters,        only: output,laddresults,lverbose,ldebug,lkpoints,&
                                      lpositions,lcreatefiles,lnolb,lhfresponses,&
@@ -62,8 +63,8 @@ contains
                                      lcheckjac,llgtv,lsortfiles,leigenstates,lprintfieldonly,&
                                      itype,ry2ev,ltesla,eta,etap,dmax,emin,emax,&
                                      skip_steps,nEner,nEner1,nQvec,nQvec1,qbasis,renorm,renormnb,bands,band_cnt,&
-                                     offset,dfttype,parField,parFreq,kptotal_in,kp_in,&
-                                     nOrb,nOrb2,tbmode,fermi_layer,lfixEf,lEf_overwrite,Ef_overwrite
+                                     dfttype,parField,parFreq,kptotal_in,kp_in,&
+                                     tbmode,fermi_layer,lfixEf,lEf_overwrite,Ef_overwrite
     use mod_superconductivity, only: lsuperCond,superCond
     use mod_self_consistency,  only: lontheflysc,lnojac,lforceoccup,lrotatemag,skipsc,scfile,magbasis,mag_tol
     use mod_system,            only: System_type,n0sc1,n0sc2
@@ -73,7 +74,7 @@ contains
                                      hwz,hwscale,hwtrotate,hwprotate,skip_steps_hw
     use ElectricField,         only: ElectricFieldMode,ElectricFieldVector,EFp,EFt
     use EnergyIntegration,     only: parts,parts3,pn1,pn2,pnt,n1gl,n3gl
-    use mod_tools,             only: itos,rtos,vec_norm
+    use mod_tools,             only: itos,rtos,stoi,vec_norm,is_numeric
     use adaptiveMesh,          only: minimumBZmesh
     use mod_fermi_surface,     only: lfs_loop,fs_energy_npts,fs_energy_npt1,fs_energy_i,fs_energy_f
     use mod_mpi_pars,          only: myrank,ierr
@@ -89,8 +90,10 @@ contains
     character(len=20), allocatable   :: s_vector(:)
     real(dp),          allocatable   :: vector(:)
     integer(int64),    allocatable   :: i_vector(:)
-    integer :: i,cnt
-    character(len=20) :: tmp_string
+    integer :: i,cnt,iloc
+    integer,  dimension(:),allocatable :: itmps_arr,itmpp_arr,itmpd_arr
+    character(len=20)  :: tmp_string
+    character(len=100) :: selected_orbitals,selected_sorbitals,selected_porbitals,selected_dorbitals
 
     external :: MPI_Finalize
 
@@ -168,81 +171,83 @@ contains
     !------------------------------------- Type of Calculation -------------------------------------
     if(.not. get_parameter("itype", itype)) &
       call log_error("get_parameters","'itype' missing.")
-    if(.not. get_parameter("Options", s_vector, cnt)) &
+    if(.not. get_parameter("Options", s_vector, cnt)) then
       call log_warning("get_parameters","'Options' missing.")
-    runoptions = ""
-    do i = 1, cnt
-      select case (s_vector(i))
-      case ("ry2ev")
-        ry2ev = 13.6_dp
-      case ("tesla")
-        tesla = 5.7883817555e-5_dp/13.6_dp ! Ry/T
-        ltesla = .true.
-      case ("verbose")
-        lverbose = .true.
-      case ("debug")
-        ldebug = .true.
-      case ("addresults")
-        laddresults = .true.
-      case ("createfiles")
-        lcreatefiles = .true.
-      case("createfolders")
-        lcreatefolders = .true.
-      case ("kpoints")
-        lkpoints = .true.
-      case ("positions")
-        lpositions = .true.
-      case ("lineargfsoc")
-        llineargfsoc = .true.
-        calc_green => greenlineargfsoc
-      case ("linearsoc")
-        llinearsoc = .true.
-        calc_green => greenlineargfsoc
-      case ("nojac")
-        lnojac = .true.
-      case ("hfresponses")
-        lhfresponses  = .true.
-      case ("ontheflysc")
-        lontheflysc = .true.
-      case ("rotatemag")
-        lrotatemag = .true.
-      case ("nolb")
-        lnolb = .true.
-      case ("nodiag")
-        lnodiag = .true.
-      case ("sha")
-        lsha = .true.
-      case ("writeonscreen")
-        lwriteonscreen = .true.
-      case ("sortfiles")
-        lsortfiles = .true.
-      case ("lgtv")
-        llgtv = .true.
-      case ("checkjac")
-        lcheckjac = .true.
-      case ("forceoccupation")
-        lforceoccup = .true.
-      case ("simplemix")
-        lsimplemix = .true.
-      case ("fixEf")
-        lfixEf = .true.
-      case ("eigenstates")
-        leigenstates = .true.
-        expectation_values => expectation_values_eigenstates
-        calc_GS_L_and_E => calc_GS_L_and_E_eigenstates
-        lnojac = .true.
-        call log_warning("get_parameters","eigenstates is used, jacobian deactivated (not implemented yet)")
-      case ("printfieldonly")
-        lprintfieldonly = .true.
-      case("!")
-        exit
-      case default
-        call log_warning("get_parameters","Runoption " // trim(s_vector(i)) // " not found!")
-        cycle
-      end select
-      runoptions  = trim(runoptions) // " " // trim(s_vector(i))
-    end do
-    deallocate(s_vector)
+    else
+      runoptions = ""
+      do i = 1, cnt
+        select case (s_vector(i))
+        case ("ry2ev")
+          ry2ev = 13.6_dp
+        case ("tesla")
+          tesla = 5.7883817555e-5_dp/13.6_dp ! Ry/T
+          ltesla = .true.
+        case ("verbose")
+          lverbose = .true.
+        case ("debug")
+          ldebug = .true.
+        case ("addresults")
+          laddresults = .true.
+        case ("createfiles")
+          lcreatefiles = .true.
+        case("createfolders")
+          lcreatefolders = .true.
+        case ("kpoints")
+          lkpoints = .true.
+        case ("positions")
+          lpositions = .true.
+        case ("lineargfsoc")
+          llineargfsoc = .true.
+          calc_green => greenlineargfsoc
+        case ("linearsoc")
+          llinearsoc = .true.
+          calc_green => greenlineargfsoc
+        case ("nojac")
+          lnojac = .true.
+        case ("hfresponses")
+          lhfresponses  = .true.
+        case ("ontheflysc")
+          lontheflysc = .true.
+        case ("rotatemag")
+          lrotatemag = .true.
+        case ("nolb")
+          lnolb = .true.
+        case ("nodiag")
+          lnodiag = .true.
+        case ("sha")
+          lsha = .true.
+        case ("writeonscreen")
+          lwriteonscreen = .true.
+        case ("sortfiles")
+          lsortfiles = .true.
+        case ("lgtv")
+          llgtv = .true.
+        case ("checkjac")
+          lcheckjac = .true.
+        case ("forceoccupation")
+          lforceoccup = .true.
+        case ("simplemix")
+          lsimplemix = .true.
+        case ("fixEf")
+          lfixEf = .true.
+        case ("eigenstates")
+          leigenstates = .true.
+          expectation_values => expectation_values_eigenstates
+          calc_GS_L_and_E => calc_GS_L_and_E_eigenstates
+          lnojac = .true.
+          call log_warning("get_parameters","eigenstates is used, jacobian deactivated (not implemented yet)")
+        case ("printfieldonly")
+          lprintfieldonly = .true.
+        case("!")
+          exit
+        case default
+          call log_warning("get_parameters","Runoption " // trim(s_vector(i)) // " not found!")
+          cycle
+        end select
+        runoptions  = trim(runoptions) // " " // trim(s_vector(i))
+      end do
+      deallocate(s_vector)
+    end if
     !-------------------------------------- In-Plane Currents --------------------------------------
     ! Delete?
     if(.not. get_parameter("n0sc1", n0sc1)) &
@@ -443,12 +448,74 @@ contains
     !======================================== Tight-Binding ========================================
     if(.not. get_parameter("tbmode", tbmode, 1)) &
       call log_warning("get_parameters", "'tbmode' missing. Using default value 1 (SK parameters).")
-    if(.not. get_parameter("nOrb",nOrb,9)) &
-      call log_warning("get_parameters", "'nOrb' missing. Using default value: 9")
-    nOrb2 = 2*nOrb
+
+    if(.not.get_parameter("orbitals", s_vector, cnt)) then
+      call log_warning("get_parameters","'orbitals' missing. Using the default 9 orbitals.")
+      cnt = size(default_orbitals)
+      allocate(s_vector(cnt))
+      s_vector(:) = default_orbitals(:)
+    end if
+    s%nOrb = cnt
+    s%nOrb2 = 2*s%nOrb
+    allocate(s%Orbs(s%nOrb),itmps_arr(s%nOrb),itmpp_arr(s%nOrb),itmpd_arr(s%nOrb))
+    selected_orbitals = ""
+    selected_sorbitals = ""
+    selected_porbitals = ""
+    selected_dorbitals = ""
+    s%ndOrb = 0
+    ! Looping over selected orbitals
+    ! Transforms names to numbers
+    ! and count d orbitals
+    do i = 1,s%nOrb
+      ! If the name of the orbital is given instead of a number, convert:
+      if(.not.is_numeric( trim(s_vector(i)) )) then
+        iloc = findloc( default_orbitals,trim(s_vector(i)),dim=1 )
+        if(iloc == 0) &
+          call log_error("get_parameters","Orbital not recognized: " // trim(s_vector(i)) //". Use one of the following: " // NEW_line('A') // &
+               "(1|s), (2|px), (3|py), (4|pz), (5|dxy), (6|dyz), (7|dzx), (8|dx2), (9|dz2)")
+        s_vector(i) = itos( iloc )
+      end if
+      s%Orbs(i) = stoi( trim(s_vector(i)) )
+      selected_orbitals = trim(selected_orbitals)  // " " // trim(default_orbitals(s%Orbs(i)))
+      ! Checking orbital type, and storing information
+      if(s%Orbs(i)==1) then
+        s%nsOrb = s%nsOrb + 1
+        itmps_arr(s%nsOrb) = i
+        selected_sorbitals = trim(selected_sorbitals)  // " " // trim(default_orbitals(s%Orbs(i)))
+      end if
+      if((s%Orbs(i)>=2).and.(s%Orbs(i)<=4)) then
+        s%npOrb = s%npOrb + 1
+        itmpp_arr(s%npOrb) = i
+        selected_porbitals = trim(selected_porbitals)  // " " // trim(default_orbitals(s%Orbs(i)))
+      end if
+      if((s%Orbs(i)>=5).and.(s%Orbs(i)<=9)) then
+        s%ndOrb = s%ndOrb + 1
+        itmpd_arr(s%ndOrb) = i
+        selected_dorbitals = trim(selected_dorbitals)  // " " // trim(default_orbitals(s%Orbs(i)))
+      end if
+    end do
+    call log_message("get_parameters",trim(itos(s%nOrb)) // " orbitals selected:" // trim(selected_orbitals) // ", of which:")
+    deallocate(s_vector)
+    ! s-orbitals
+    if(s%nsOrb > 0) then
+      allocate(s%sOrbs(s%nsOrb))
+      s%sOrbs(1:s%nsOrb) = itmps_arr(1:s%nsOrb)
+      call log_message("get_parameters", trim(itos(s%nsOrb)) // " s orbitals:" // trim(selected_sorbitals) )
+    end if
+    ! p-orbitals
+    if(s%npOrb > 0) then
+      allocate(s%pOrbs(s%npOrb))
+      s%pOrbs(1:s%npOrb) = itmpp_arr(1:s%npOrb)
+      call log_message("get_parameters", trim(itos(s%npOrb)) // " p orbitals:" // trim(selected_porbitals) )
+    end if
+    ! d-orbitals
+    if(s%ndOrb > 0) then
+      allocate(s%dOrbs(s%ndOrb))
+      s%dOrbs(1:s%ndOrb) = itmpd_arr(1:s%ndOrb)
+      call log_message("get_parameters", trim(itos(s%ndOrb)) // " d orbitals:" // trim(selected_dorbitals) )
+    end if
     !---------------------------------------- Slater-Koster ----------------------------------------
     if(tbmode == 1) then
-      offset = 0
       dfttype = "S"
 
       ! if(.not. get_parameter("layers", layers, cnt)) call log_error("get_parameters", "'layers' missing.")
@@ -479,7 +546,6 @@ contains
     !--------------------------------------------- DFT ---------------------------------------------
     else if(2 == tbmode) then
       stop "Not Implemented"
-      !  offset = 1
       !  if(nstages /= 2) call log_error("get_parameters", "'tbmode' DFT Mode only supports nstages = 2")
        !
       !  if(.not. get_parameter("dfttype", dfttype)) call log_error("get_parameters","'dfttype' missing.")

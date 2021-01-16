@@ -21,11 +21,11 @@ contains
   !   tlxp = cZero
   !   tlyp = cZero
   !   tlzp = cZero
-  !   do nu=1,9
-  !     do mu=1,9
+  !   do nu=1,s%nOrb
+  !     do mu=1,s%nOrb
   !       do neighbor=n0sc1,n0sc2
   !         do i=1,Npl
-  !           do alpha=1,9
+  !           do alpha=1,s%nOrb
   !             lxpt(i,neighbor,mu,nu) = lxpt(i,neighbor,mu,nu) + lxp(mu,alpha,i)*t0i(nu,alpha,neighbor,i+offset)
   !             lypt(i,neighbor,mu,nu) = lypt(i,neighbor,mu,nu) + lyp(mu,alpha,i)*t0i(nu,alpha,neighbor,i+offset)
   !             lzpt(i,neighbor,mu,nu) = lzpt(i,neighbor,mu,nu) + lzp(mu,alpha,i)*t0i(nu,alpha,neighbor,i+offset)
@@ -60,12 +60,12 @@ contains
     end if
 
     ! TODO: Re-Include
-    ! allocate(lxpt(Npl,n0sc1:n0sc2,9,9), &
-    !          lypt(Npl,n0sc1:n0sc2,9,9), &
-    !          lzpt(Npl,n0sc1:n0sc2,9,9), &
-    !          tlxp(Npl,n0sc1:n0sc2,9,9), &
-    !          tlyp(Npl,n0sc1:n0sc2,9,9), &
-    !          tlzp(Npl,n0sc1:n0sc2,9,9), stat = AllocateStatus)
+    ! allocate(lxpt(Npl,n0sc1:n0sc2,s%nOrb,s%nOrb), &
+    !          lypt(Npl,n0sc1:n0sc2,s%nOrb,s%nOrb), &
+    !          lzpt(Npl,n0sc1:n0sc2,s%nOrb,s%nOrb), &
+    !          tlxp(Npl,n0sc1:n0sc2,s%nOrb,s%nOrb), &
+    !          tlyp(Npl,n0sc1:n0sc2,s%nOrb,s%nOrb), &
+    !          tlzp(Npl,n0sc1:n0sc2,s%nOrb,s%nOrb), stat = AllocateStatus)
     ! if (AllocateStatus/=0) call abortProgram("[allocate_prefactors] Not enough memory for: lxpt,lypt,lzpt,tlxp,tlyp,tlzp")
 
   end subroutine allocate_prefactors

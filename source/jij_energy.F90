@@ -5,9 +5,9 @@
 ! and the sum covers all sites.
 subroutine jij_energy(Jij)
   use mod_kind,          only: dp,int32,int64
-  use mod_constants,     only: pi, cOne, cZero, pauli_dorb
-  use mod_parameters,    only: nOrb2, Um, q, eta
-  use EnergyIntegration, only: y, wght
+  use mod_constants,     only: pi,cOne,cZero,pauli_dorb
+  use mod_parameters,    only: q,eta
+  use EnergyIntegration, only: y,wght
   use mod_magnet,        only: mvec_cartesian,mabs
   use mod_system,        only: s => sys
   use mod_hamiltonian,   only: hamilt_local
@@ -24,11 +24,11 @@ subroutine jij_energy(Jij)
   real(dp) :: Jijk(s%nAtoms,s%nAtoms,3,3)
   real(dp) :: Jijkan(s%nAtoms,3,3)
   real(dp) :: weight
-  complex(dp), dimension(s%nAtoms,3,nOrb2,nOrb2)        :: dBxc_dm
-  complex(dp), dimension(s%nAtoms,3,3,nOrb2,nOrb2)      :: d2Bxc_dm2
-  complex(dp), dimension(s%nAtoms,nOrb2,nOrb2)          :: paulievec
-  complex(dp), dimension(nOrb2,nOrb2)                   :: gij, gji, temp1, temp2, paulia, paulib
-  complex(dp), dimension(nOrb2,nOrb2,s%nAtoms,s%nAtoms) :: gf,gfq
+  complex(dp), dimension(s%nAtoms,3,s%nOrb2,s%nOrb2)        :: dBxc_dm
+  complex(dp), dimension(s%nAtoms,3,3,s%nOrb2,s%nOrb2)      :: d2Bxc_dm2
+  complex(dp), dimension(s%nAtoms,s%nOrb2,s%nOrb2)          :: paulievec
+  complex(dp), dimension(s%nOrb2,s%nOrb2)                   :: gij, gji, temp1, temp2, paulia, paulib
+  complex(dp), dimension(s%nOrb2,s%nOrb2,s%nAtoms,s%nAtoms) :: gf,gfq
   integer :: ncount
 
   external :: zgemm,MPI_Reduce
@@ -44,12 +44,12 @@ subroutine jij_energy(Jij)
 
     do mu = 1, 3
       ! Derivative of Bxc*sigma*evec w.r.t. m_i (Bxc = -U.m/2)
-      dBxc_dm(i,mu,:,:) = -0.5_dp*Um(i)*(pauli_dorb(mu,:,:) - (paulievec(i,:,:)) * evec(mu,i))
+      dBxc_dm(i,mu,:,:) = -0.5_dp*s%Basis(i)%Um*(pauli_dorb(mu,:,:) - (paulievec(i,:,:)) * evec(mu,i))
       ! Second derivative of Bxc w.r.t. m_i (Bxc = -U.m/2)
       do nu=1,3
         d2Bxc_dm2(i,mu,nu,:,:) = evec(mu,i)*pauli_dorb(nu,:,:) + pauli_dorb(mu,:,:)*evec(nu,i) - 3*paulievec(i,:,:)*evec(mu,i)*evec(nu,i)
         if(mu==nu) d2Bxc_dm2(i,mu,nu,:,:) = d2Bxc_dm2(i,mu,nu,:,:) + paulievec(i,:,:)
-        d2Bxc_dm2(i,mu,nu,:,:) = 0.5_dp*Um(i)*d2Bxc_dm2(i,mu,nu,:,:)/mabs(i)
+        d2Bxc_dm2(i,mu,nu,:,:) = 0.5_dp*s%Basis(i)%Um*d2Bxc_dm2(i,mu,nu,:,:)/mabs(i)
       end do
     end do
   end do
@@ -62,7 +62,7 @@ subroutine jij_energy(Jij)
 
   !$omp parallel default(none) &
   !$omp& private(ix,i,j,mu,nu,alpha,kp,ep,weight,kminusq,gf,gfq,gij,gji,paulia,paulib,temp1,temp2,Jijkan,Jijk,Jijint) &
-  !$omp& shared(s,nOrb2,eta,y,wght,q,local_points,dBxc_dm,d2Bxc_dm2,Jij,bzs,E_k_imag_mesh)
+  !$omp& shared(s,eta,y,wght,q,local_points,dBxc_dm,d2Bxc_dm2,Jij,bzs,E_k_imag_mesh)
 
   Jijint = 0._dp
 
@@ -88,11 +88,11 @@ subroutine jij_energy(Jij)
             do mu = 1,3
               paulia = dBxc_dm(i,mu,:,:)
               paulib = dBxc_dm(j,nu,:,:)
-              call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,paulia,nOrb2,gij,   nOrb2,cZero,temp1,nOrb2)
-              call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp1, nOrb2,paulib,nOrb2,cZero,temp2,nOrb2)
-              call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp2, nOrb2,gji,   nOrb2,cZero,temp1,nOrb2)
+              call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,cOne,paulia,s%nOrb2,gij,   s%nOrb2,cZero,temp1,s%nOrb2)
+              call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,cOne,temp1, s%nOrb2,paulib,s%nOrb2,cZero,temp2,s%nOrb2)
+              call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,cOne,temp2, s%nOrb2,gji,   s%nOrb2,cZero,temp1,s%nOrb2)
               ! Trace over orbitals and spins
-              do alpha = 1,nOrb2
+              do alpha = 1,s%nOrb2
                 Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + real(temp1(alpha,alpha))
               end do
             end do
@@ -104,9 +104,9 @@ subroutine jij_energy(Jij)
             do nu = 1,3
               do mu = 1,3
                 paulia = d2Bxc_dm2(i,mu,nu,:,:)
-                call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,gij,nOrb2,paulia,nOrb2,cZero,temp1,nOrb2)
+                call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,cOne,gij,s%nOrb2,paulia,s%nOrb2,cZero,temp1,s%nOrb2)
                 ! Trace over orbitals and spins
-                do alpha = 1,nOrb2
+                do alpha = 1,s%nOrb2
                   Jijkan(i,mu,nu) = Jijkan(i,mu,nu) + real(temp1(alpha,alpha))
                 end do
                 Jijk(i,i,mu,nu) = Jijk(i,i,mu,nu) + Jijkan(i,mu,nu)

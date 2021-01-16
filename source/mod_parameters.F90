@@ -11,13 +11,13 @@ module mod_parameters
   real(dp)  :: q(3)
   !! q-vector for the dependence of response functions (not used yet)
   ! Dimension variables:
-  integer(int32)     :: dimH
+  integer(int32) :: dimH
   !! Dimension of the Hamiltonian: 2 spins x number of atoms in the unit cell
-  integer(int32)     :: dimHsc
+  integer(int32) :: dimHsc
   !! Dimension of the Hamiltonian taking into account superconductivity (may be dimH or 2*dimH)
-  integer(int32)     :: dimspinAtoms
+  integer(int32) :: dimspinAtoms
   !! Dimension: 4 spins x number of atoms in the unit cell
-  integer(int32)     :: dimens
+  integer(int32) :: dimens
   !! Dimension: 4 spins x number of atoms in the unit cell x number of orbitals^2
 
   integer(int32), dimension(3) :: kp_in
@@ -26,9 +26,7 @@ module mod_parameters
   !! Total number of k-points
 
   integer(int32) :: tbmode 
-  !! TIght-binding mode: (1) Slater-Koster, (2) DFT (not implemented yet)
-  integer(int32) :: nOrb, nOrb2
-  !! Number of orbitals and 2*(number of orbitals) (for spin)
+  !! Tight-binding mode: (1) Slater-Koster, (2) DFT (not implemented yet)
   integer(int32) :: fermi_layer   
   !! Which site will be used for fermi level (Maybe remove it and read from outside?)
   real(dp) :: Ef_overwrite
@@ -38,8 +36,6 @@ module mod_parameters
   !! Number of layers (Obsolete?)
 
   !========================================================================================!
-  real(dp), allocatable  :: Um(:), Un(:)
-  !! Effective intra-site electron electron interaction
   logical       :: lhfresponses = .false.
   !! Use HF susceptibilities to calculate currents, disturbances and accumulations (don't renormalize)
   !========================================================================================!
@@ -154,7 +150,6 @@ module mod_parameters
   ! Layers to add after set2 (maximum of 10) - Must include empty spheres on the list
   integer(int32) :: addlayers(10),naddlayers=0
   !========================================================================================!
-  integer(int32) :: offset = 0
 
   integer(int32) :: parField = 1
   integer(int32) :: parFreq = 1

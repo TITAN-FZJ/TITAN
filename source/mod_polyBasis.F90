@@ -30,8 +30,8 @@ contains
     use mod_io,        only: log_warning
     implicit none
 
-    character(len=*), intent(in)    :: filename
-    type(System_type),     intent(inout) :: s
+    character(len=*),  intent(in)    :: filename
+    type(System_type), intent(inout) :: s
 
     integer, parameter :: line_length = 300, word_length = 50, max_elements = 50
     integer :: i, j, k, l

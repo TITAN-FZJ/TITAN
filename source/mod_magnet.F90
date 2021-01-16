@@ -3,14 +3,18 @@ module mod_magnet
   use mod_parameters, only: dmax
   implicit none
 
-  logical :: lfield
+  logical                 :: lfield
   !! Turn on/off static magnetic field
-  integer                 :: iter = 0
+  integer(int32)          :: iter = 0
   !! self-consistency iteration
+  real(dp)                :: rhot
+  !! Total occupation (summed over sites and orbitals)
   real(dp),allocatable    :: rho(:,:)
   !! orbital-dependent and d-orbital charge density per site
   real(dp),allocatable    :: mx(:,:),my(:,:),mz(:,:)
   !! orbital-dependent magnetization per site in cartesian coordinates
+  real(dp),allocatable    :: rhos(:),rhop(:)
+  !! s and p -orbital charge density
   real(dp),allocatable    :: rhod(:),mxd(:),myd(:),mzd(:)
   !! d-orbital charge density and magnetization per site
   complex(dp),allocatable :: mp(:,:),mpd(:)
@@ -55,13 +59,13 @@ module mod_magnet
   character(len=60) :: dc_header
   character(len=60), allocatable :: dc_fields(:),dcprefix(:)
   real(dp), allocatable :: hw_list(:,:)
-  integer :: dcfield_dependence = 0, dc_count = 0
+  integer(int32) :: dcfield_dependence = 0, dc_count = 0
 
   real(dp) :: hwx = 0._dp, hwy = 0._dp, hwz = 0._dp, tesla = 1._dp
 
-  integer :: hwa_npts = 0, hwa_npt1 = 1
-  integer :: hwt_npts = 0, hwt_npt1 = 1
-  integer :: hwp_npts = 0, hwp_npt1 = 1
+  integer(int32) :: hwa_npts = 0, hwa_npt1 = 1
+  integer(int32) :: hwt_npts = 0, hwt_npt1 = 1
+  integer(int32) :: hwp_npts = 0, hwp_npt1 = 1
   real(dp) :: hwa, hwa_i = 0._dp, hwa_f = 0._dp, hwa_s = 0._dp
   real(dp) :: hwt, hwt_i = 0._dp, hwt_f = 0._dp, hwt_s = 0._dp
   real(dp) :: hwp, hwp_i = 0._dp, hwp_f = 0._dp, hwp_s = 0._dp
@@ -167,7 +171,7 @@ contains
     use mod_mpi_pars,  only: abortProgram
     implicit none
 
-    integer, intent(in) :: nAtoms
+    integer(int32), intent(in) :: nAtoms
     integer :: i, AllocateStatus
 
     if(allocated(hhw)) deallocate(hhw)
@@ -206,12 +210,12 @@ contains
     end if
   end subroutine initMagneticField
 
-  subroutine lb_matrix(nAtoms, nOrbs)
+  subroutine lb_matrix(nAtoms,nOrbs)
     use mod_kind,       only: dp
     use mod_constants,  only: cZero
     use mod_parameters, only: lnolb
     implicit none
-    integer, intent(in) :: nOrbs, nAtoms
+    integer(int32), intent(in) :: nOrbs, nAtoms
     integer :: i,sigma
     complex(dp), dimension(:,:), allocatable :: lbsigma
 
@@ -236,10 +240,10 @@ contains
 
 
   ! Spin Zeeman hamiltonian
-  subroutine sb_matrix(nAtoms, nOrbs)
+  subroutine sb_matrix(nAtoms,nOrbs)
     use mod_constants, only: cZero, cI
     implicit none
-    integer, intent(in) :: nAtoms, nOrbs
+    integer(int32), intent(in) :: nAtoms,nOrbs
     integer :: i,mu,nu
 
     ! There is an extra  minus sign in the definition of hhw
@@ -261,22 +265,26 @@ contains
   end subroutine sb_matrix
 
   ! This subroutine calculate the orbital angular momentum matrix in the cubic system of coordinates
-  subroutine l_matrix()
+  subroutine l_matrix(nOrbs,Orbs)
     use mod_kind,       only: dp
     use mod_constants,  only: cI, cZero, cOne, sq3
-    use mod_parameters, only: nOrb
+    use AtomTypes,      only: default_orbitals
     implicit none
-    complex(dp), dimension(nOrb,nOrb) :: Lp,Lm
+    integer(int32), intent(in) :: nOrbs
+    integer(int32), intent(in) :: Orbs(nOrbs)
+    complex(dp), dimension(size(default_orbitals),size(default_orbitals)) :: Lp,Lm,Lzt
 
-    lz = cZero
+    integer :: mu,nu
 
-    lz(2,3) = -cI
-    lz(3,2) = cI
+    Lzt = cZero
 
-    lz(5,8) = 2._dp*cI
-    lz(8,5) = -2._dp*cI
-    lz(6,7) = cI
-    lz(7,6) = -cI
+    Lzt(2,3) = -cI
+    Lzt(3,2) = cI
+
+    Lzt(5,8) = 2._dp*cI
+    Lzt(8,5) = -2._dp*cI
+    Lzt(6,7) = cI
+    Lzt(7,6) = -cI
 
     Lp = cZero
     Lm = cZero
@@ -305,8 +313,14 @@ contains
 
     Lm = transpose(conjg(Lp))
 
-    lx = 0.5_dp*(Lp+Lm)
-    ly = -0.5_dp*cI*(Lp-Lm)
+    ! Selecting orbitals
+    do nu=1,nOrbs
+      do mu=1,nOrbs
+        lz(mu,nu) = Lzt(Orbs(mu),Orbs(nu))
+        lx(mu,nu) = 0.5_dp*   (Lp(Orbs(mu),Orbs(nu))+Lm(Orbs(mu),Orbs(nu)))
+        ly(mu,nu) =-0.5_dp*cI*(Lp(Orbs(mu),Orbs(nu))-Lm(Orbs(mu),Orbs(nu)))
+      end do
+    end do
 
     lvec(:,:,1) = lx
     lvec(:,:,2) = ly
@@ -333,7 +347,7 @@ contains
     end do
   end subroutine lp_matrix
 
-  subroutine allocate_magnet_variables(nAtoms, nOrbs)
+  subroutine allocate_magnet_variables(nAtoms,nOrbs)
     use mod_mpi_pars, only: abortProgram
     implicit none
     integer, intent(in) :: nAtoms
@@ -349,8 +363,8 @@ contains
     if (AllocateStatus/=0) call abortProgram("[allocate_magnet_variables] Not enough memory for: mx,my,mz,mp,mvec_cartesian,mvec_spherical")
 
     allocate( mxd(nAtoms), myd(nAtoms), mzd(nAtoms), mpd(nAtoms), &
-              rhod(nAtoms), STAT = AllocateStatus )
-    if (AllocateStatus/=0) call abortProgram("[allocate_magnet_variables] Not enough memory for: mx,my,mz,mp,mxd,myd,mzd,mvec_cartesian,mvec_spherical")
+              rhos(nAtoms), rhop(nAtoms), rhod(nAtoms), STAT = AllocateStatus )
+    if (AllocateStatus/=0) call abortProgram("[allocate_magnet_variables] Not enough memory for: mxd,myd,mzd,mpd,rhos,rhop,rhod")
 
     allocate( mabs(nAtoms), mtheta(nAtoms), mphi(nAtoms), &
               labs(nAtoms), ltheta(nAtoms), lphi(nAtoms), &
@@ -388,6 +402,8 @@ contains
     if(allocated(myd)) deallocate(myd)
     if(allocated(mzd)) deallocate(mzd)
     if(allocated(mpd)) deallocate(mpd)
+    if(allocated(rhos)) deallocate(rhos)
+    if(allocated(rhop)) deallocate(rhop)
     if(allocated(rhod)) deallocate(rhod)
     if(allocated(mabs)) deallocate(mabs)
     if(allocated(mtheta)) deallocate(mtheta)

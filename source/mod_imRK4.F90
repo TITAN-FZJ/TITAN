@@ -192,10 +192,10 @@ contains
   !> Given by \sum_j <i| dH/dc^n_k |j> * c_j^n(t)
   subroutine build_term_Jacobian(s,eval,Yn,dHdc)
     use mod_kind,              only: dp
-    use mod_parameters,        only: nOrb,dimHsc,Um,Un,isigmamu2n,eta
+    use mod_parameters,        only: dimHsc,isigmamu2n,eta
     use mod_system,            only: System_type
     use mod_distributions,     only: fd_dist
-    use mod_constants,         only: cZero, pauli_mat, pi
+    use mod_constants,         only: cZero,pauli_mat,pi
     use mod_superconductivity, only: lsupercond
     use mod_mpi_pars,          only: abortProgram
     implicit none
@@ -204,23 +204,25 @@ contains
     complex(dp), dimension(dimHsc),        intent(in)  :: Yn
     complex(dp), dimension(dimHsc,dimHsc), intent(out) :: dHdc
 
-    integer      :: i,mu,nu,s1,s2,s3,s4,alpha
+    integer      :: i,mu,nu,mud,nud,s1,s2,s3,s4,alpha
 
     if(lsupercond) & 
       call abortProgram("[build_term_Jacobian] Not implemented for superconductivity yet!") ! TODO
 
     dHdc = cZero
     do i=1,s%nAtoms
-      do mu=5,nOrb
+      do mud=1,s%ndOrb
+        mu=s%dOrbs(mud)
         do s1=1,2
           do s2=1,2
-            dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,mu)) = dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,mu)) + Un(i)*Yn(isigmamu2n(i,s1,mu))*conjg(Yn(isigmamu2n(i,s2,mu)))
-            do nu=5,nOrb
-              dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,nu)) = dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,nu)) - 0.5_dp*Un(i)*Yn(isigmamu2n(i,s1,mu))*conjg(Yn(isigmamu2n(i,s2,nu)))
+            dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,mu)) = dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,mu)) + s%Basis(i)%Un*Yn(isigmamu2n(i,s1,mu))*conjg(Yn(isigmamu2n(i,s2,mu)))
+            do nud=1,s%ndOrb
+              nu=s%dOrbs(nud)
+              dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,nu)) = dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,nu)) - 0.5_dp*s%Basis(i)%Un*Yn(isigmamu2n(i,s1,mu))*conjg(Yn(isigmamu2n(i,s2,nu)))
               do s3=1,2
                 do s4=1,2
                   do alpha = 1,3
-                    dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,nu)) = dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,nu)) - 0.5_dp*Um(i)*pauli_mat(s1,s3,alpha)*Yn(isigmamu2n(i,s3,mu))*pauli_mat(s4,s2,alpha)*conjg(Yn(isigmamu2n(i,s4,nu)))
+                    dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,nu)) = dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,nu)) - 0.5_dp*s%Basis(i)%Um*pauli_mat(s1,s3,alpha)*Yn(isigmamu2n(i,s3,mu))*pauli_mat(s4,s2,alpha)*conjg(Yn(isigmamu2n(i,s4,nu)))
                   end do
                 end do
               end do

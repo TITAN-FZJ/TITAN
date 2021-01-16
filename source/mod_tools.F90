@@ -8,6 +8,16 @@ module mod_tools
                       i8tos
   end interface itos
 
+  interface StoI
+    module procedure StoI_scalar, &
+                      StoI_array
+  end interface StoI
+
+  interface StoR
+    module procedure StoR_scalar, &
+                      StoR_array
+  end interface StoR
+
   interface sort
     module procedure sort_int, &
                       sort_double_int
@@ -23,13 +33,18 @@ module mod_tools
                       normalize_complex
   end interface normalize
 
+  interface print_matrix
+    module procedure print_matrix_real, &
+                      print_matrix_complex
+  end interface print_matrix
+
 contains
 
-  ! --------------------------------------------------------------------
-  ! double precision function cross():
-  !    This subroutine calculates the cross product of arrays a and b
-  ! --------------------------------------------------------------------
   function cross(a, b)
+  !! --------------------------------------------------------------------
+  !! double precision function cross():
+  !!    This subroutine calculates the cross product of arrays a and b
+  !! --------------------------------------------------------------------
     use mod_kind, only: dp
     implicit none
     real(dp), dimension(3) :: cross
@@ -40,11 +55,11 @@ contains
     cross(3) = a(1) * b(2) - a(2) * b(1)
   end function cross
 
-  ! --------------------------------------------------------------------
-  ! double precision function vecDist():
-  !    Calculating the distance of two 3D points a and b
-  ! --------------------------------------------------------------------
   function vecDist(a,b)
+  !! --------------------------------------------------------------------
+  !! double precision function vecDist():
+  !!    Calculating the distance of two 3D points a and b
+  !! --------------------------------------------------------------------
     use mod_kind, only: dp
     implicit none
     real(dp) :: vecDist
@@ -53,12 +68,26 @@ contains
     vecDist = sqrt(dot_product(a - b, a - b))
   end function vecDist
 
-  ! --------------------------------------------------------------------
-  ! logical function is_perpendicular(a,b):
-  !  This subroutines return whether a and b are perpendicular or not
-  ! --------------------------------------------------------------------
+  function is_numeric(string)
+  !! --------------------------------------------------------------------
+  !! logical function is_numeric(string):
+  !!  This subroutines return whether a string is numeric (.true.) or not (.false.)
+  !! --------------------------------------------------------------------
+    implicit none
+    character(len=*), intent(in) :: string
+    logical :: is_numeric
+    real    :: x
+    integer :: err
+    read(string,*,iostat=err) x
+    is_numeric = err == 0
+  end function is_numeric
+
 
   function is_parallel(a,b)
+  !! --------------------------------------------------------------------
+  !! logical function is_perpendicular(a,b):
+  !!  This subroutines return whether a and b are perpendicular or not
+  !! --------------------------------------------------------------------
     use mod_kind, only: dp
     implicit none
     logical :: is_parallel
@@ -72,12 +101,12 @@ contains
     end if
   end function is_parallel
 
-  ! --------------------------------------------------------------------
-  ! logical function is_parallel(a,b):
-  !  This subroutines return whether a and b are parallel or not
-  ! --------------------------------------------------------------------
 
   function is_perpendicular(a,b)
+  !! --------------------------------------------------------------------
+  !! logical function is_parallel(a,b):
+  !!  This subroutines return whether a and b are parallel or not
+  !! --------------------------------------------------------------------
     use mod_kind, only: dp
     implicit none
     logical :: is_perpendicular
@@ -89,12 +118,12 @@ contains
     end if
   end function is_perpendicular
 
-  ! --------------------------------------------------------------------
-  ! double precision function cross_unit():
-  !    This subroutine calculates the unit vector in the direction
-  ! of the cross product of arrays a and b
-  ! --------------------------------------------------------------------
   function cross_unit(a, b)
+  !! --------------------------------------------------------------------
+  !! double precision function cross_unit():
+  !!    This subroutine calculates the unit vector in the direction
+  !! of the cross product of arrays a and b
+  !! --------------------------------------------------------------------
     use mod_kind, only: dp
     implicit none
     real(dp), dimension(3) :: cross_unit
@@ -107,12 +136,13 @@ contains
     cross_unit = cross_unit/sqrt(dot_product(cross_unit,cross_unit))
   end function cross_unit
 
-  ! --------------------------------------------------------------------
-  ! subroutine sort_int():
-  !    This subroutine receives an array x() and returns an integer array
-  !  'order' with the positions of ascending numbers of x.
-  ! --------------------------------------------------------------------
+
   subroutine sort_int(x, size, order)
+  !! --------------------------------------------------------------------
+  !! subroutine sort_int():
+  !!    This subroutine receives an array x() and returns an integer array
+  !!  'order' with the positions of ascending numbers of x.
+  !! --------------------------------------------------------------------
     use mod_kind, only: dp
     implicit none
     integer,                       intent(in)  :: size
@@ -133,12 +163,12 @@ contains
 
   end subroutine sort_int
 
-  ! --------------------------------------------------------------------
-  ! subroutine sort_double_int():
-  !    This subroutine receives an array x() and returns an double integer array
-  !  'order' with the positions of ascending numbers of x.
-  ! --------------------------------------------------------------------
   subroutine sort_double_int(x, size, order)
+  !! --------------------------------------------------------------------
+  !! subroutine sort_double_int():
+  !!    This subroutine receives an array x() and returns an double integer array
+  !!  'order' with the positions of ascending numbers of x.
+  !! --------------------------------------------------------------------
     use mod_kind, only: dp, int64
     implicit none
     integer(int64),                     intent(in)  :: size
@@ -160,14 +190,14 @@ contains
   end subroutine sort_double_int
 
 
-  ! --------------------------------------------------------------------
-  ! subroutine number_of_lines():
-  !    this subroutine returns the number of lines (commented and
-  ! not commented) on a file (given by "unit", already opened).
-  ! Notes: - Blank lines are ignored.
-  !        - automatically rewinds the file
-  ! --------------------------------------------------------------------
   subroutine number_of_lines(unit,total_lines,non_commented)
+  !! --------------------------------------------------------------------
+  !! subroutine number_of_lines():
+  !!    this subroutine returns the number of lines (commented and
+  !! not commented) on a file (given by "unit", already opened).
+  !! Notes: - Blank lines are ignored.
+  !!        - automatically rewinds the file
+  !! --------------------------------------------------------------------
     implicit none
     integer, intent(out) :: total_lines, non_commented
     integer, intent(in)  :: unit
@@ -195,13 +225,13 @@ contains
   end subroutine number_of_lines
 
 
-  ! --------------------------------------------------------------------
-  ! subroutine number_of_rows_cols():
-  !    this subroutine returns the number of rows and cols of a data file
-  ! (given by "unit", already opened), as well as the number of commented 
-  ! rows
-  ! --------------------------------------------------------------------
   subroutine number_of_rows_cols(unit,rows,cols,commented_rows)
+  !! --------------------------------------------------------------------
+  !! subroutine number_of_rows_cols():
+  !!    this subroutine returns the number of rows and cols of a data file
+  !! (given by "unit", already opened), as well as the number of commented 
+  !! rows
+  !! --------------------------------------------------------------------
     implicit none
     integer, intent(out) :: rows, cols, commented_rows
     integer, intent(in)  :: unit
@@ -227,18 +257,18 @@ contains
   end subroutine number_of_rows_cols
 
 
-  ! --------------------------------------------------------------------
-  ! subroutine read_data():
-  !    this subroutine reads a table of data (size rows,cols) from a file
-  ! (given by "unit", already opened) and returns it on "data".
-  ! Blank lines are ignored.
-  ! --------------------------------------------------------------------
   subroutine read_data(unit,rows,cols,data)
+  !! --------------------------------------------------------------------
+  !! subroutine read_data():
+  !!    this subroutine reads a table of data (size rows,cols) from a file
+  !! (given by "unit", already opened) and returns it on "data".
+  !! Blank lines are ignored.
+  !! --------------------------------------------------------------------
     use mod_kind, only: dp
     use mod_mpi_pars, only: abortProgram
     implicit none
     integer     , intent(in)  :: unit,rows,cols
-    real(dp), intent(out) :: data(rows,cols)
+    real(dp), intent(out)     :: data(rows,cols)
     character(len=900)        :: stringtemp
     integer :: ios,i,j
 
@@ -262,15 +292,15 @@ contains
   end subroutine read_data
 
 
-  ! --------------------------------------------------------------------
-  ! subroutine read_data_with_comments():
-  !    this subroutine reads a table of data (size rows,cols) from a file
-  ! (given by "unit", already opened) and returns it on "data".
-  ! The comments are returned in the variable "comments".
-  ! "Mask" is an array of size total number of rows with .true. where data
-  ! is, and .false. for the comments
-  ! --------------------------------------------------------------------
   subroutine read_data_with_comments(unit,rows,cols,commented_rows,data,comments,mask)
+  !! --------------------------------------------------------------------
+  !! subroutine read_data_with_comments():
+  !!    this subroutine reads a table of data (size rows,cols) from a file
+  !! (given by "unit", already opened) and returns it on "data".
+  !! The comments are returned in the variable "comments".
+  !! "Mask" is an array of size total number of rows with .true. where data
+  !! is, and .false. for the comments
+  !! --------------------------------------------------------------------
     use mod_kind, only: dp
     use mod_mpi_pars, only: abortProgram
     implicit none
@@ -311,11 +341,11 @@ contains
 
   end subroutine read_data_with_comments
 
-  ! --------------------------------------------------------------------
-  ! subroutine sort_file():
-  !    This subroutine sorts the lines containing data of file 'unit'
-  ! --------------------------------------------------------------------
   subroutine sort_file(unit)
+  !! --------------------------------------------------------------------
+  !! subroutine sort_file():
+  !!    This subroutine sorts the lines containing data of file 'unit'
+  !! --------------------------------------------------------------------
     use mod_kind, only: dp
     use mod_mpi_pars
     ! use mod_mpi_pars, only: abortProgram
@@ -370,40 +400,67 @@ contains
 
   end subroutine sort_file
 
-  ! --------------------------------------------------------------------
-  ! function ItoS():
-  !    This function transforms an integer i into a character variable ItoS
-  ! --------------------------------------------------------------------
+
+  function next_line(procedure,f_unit,item)
+  !! --------------------------------------------------------------------
+  !! function next_line():
+  !!    This function reads the next non-comment line in file f_unit
+  !! --------------------------------------------------------------------
+    use mod_mpi_pars, only: abortProgram
+    implicit none
+    character(len=*), optional, intent(in) :: procedure
+    integer,                    intent(in) :: f_unit
+    character(len=*), optional, intent(in) :: item
+    integer             :: ios
+    character(len=200)  :: next_line
+
+    do
+      read(f_unit, fmt='(A)', iostat = ios) next_line
+      next_line = adjustl(next_line)
+      if(.not.(len_trim(next_line) == 0 .or. (next_line(1:1) == "!"))) exit
+    end do
+
+    if(ios/=0) then
+      if(present(item)) then
+        call abortProgram("[" // trim(procedure) // "] Something went wrong when reading " // trim(item) // " in file " // trim(itos(f_unit)) )
+      else
+        call abortProgram("[" // trim(procedure) // "] Something went wrong when reading the file " // trim(itos(f_unit)) )
+      end if
+    end if
+  end function next_line
+
+
+
   character(len=100) function I4toS(i)
+  !! --------------------------------------------------------------------
+  !! function I4toS():
+  !!    This function transforms a 4-bit integer i 
+  !! into a character variable ItoS
+  !! --------------------------------------------------------------------
     implicit none
     integer, intent(in) :: i
     write(I4toS, "(i0)") i
   end function I4toS
 
   character(len=100) function I8toS(i)
+  !! --------------------------------------------------------------------
+  !! function I4toS():
+  !!    This function transforms an 8-bit integer i 
+  !! into a character variable ItoS
+  !! --------------------------------------------------------------------
     use mod_kind, only: int64
     implicit none
     integer(int64), intent(in) :: i
     write(I8toS, "(i0)") i
   end function I8toS
 
-  ! --------------------------------------------------------------------
-  ! function StoI():
-  !    This function transforms a string to an integer StoI
-  ! --------------------------------------------------------------------
-  integer function StoI(str)
-    implicit none
-    character(len=:), allocatable, intent(in) :: str
-    read(unit=str, fmt=*) StoI
-  end function StoI
 
-
-  ! --------------------------------------------------------------------
-  ! function RtoS():
-  !    This function transforms a real r into a character variable RtoS.
-  ! It also cuts leading spaces (on the left)
-  ! --------------------------------------------------------------------
   character(len=900) function RtoS(r,format)
+  !! --------------------------------------------------------------------
+  !! function RtoS():
+  !!    This function transforms a real r into a character variable RtoS.
+  !! It also cuts leading spaces (on the left)
+  !! --------------------------------------------------------------------
     use mod_kind, only: dp
     implicit none
     real(dp),         intent(in) :: r
@@ -413,12 +470,97 @@ contains
   end function RtoS
 
 
-  ! --------------------------------------------------------------------
-  ! subroutine KronProd():
-  !    This subroutine calculates the outer product (Kronecker product)
-  ! of two matrices A(nax,nay) and B(nbx,nby)
-  ! --------------------------------------------------------------------
+  function StoI_scalar(string)
+  !! --------------------------------------------------------------------
+  !! function StoI():
+  !!    This function transforms a character variable into an integer StoI
+  !! --------------------------------------------------------------------
+    use mod_mpi_pars, only: abortProgram
+    implicit none
+    character(len=*) , intent(in):: string
+    integer  :: ios
+    integer  :: StoI_scalar
+
+    read(unit= string, fmt=*, iostat=ios) StoI_scalar
+    if(ios/=0) call abortProgram("[StoI_scalar] Something went wrong when reading the string: " // trim(string))
+  end function StoI_scalar
+
+
+  function StoI_array(string,dim_v)
+  !! --------------------------------------------------------------------
+  !! function StoI_array():
+  !!    This function transforms a character variable into an integer array StoI
+  !! --------------------------------------------------------------------
+    use mod_mpi_pars, only: abortProgram
+    implicit none
+    character(len=*), intent(in) :: string
+    integer,          intent(in) :: dim_v
+    integer  :: ios
+    integer  :: StoI_array(dim_v)
+
+    read(unit= string, fmt=*, iostat=ios) StoI_array(1:dim_v)
+    if(ios/=0) call abortProgram("[StoI_array] Something went wrong when reading the string: " // trim(string))
+  end function StoI_array
+
+
+  function StoR_scalar(string)
+  !! --------------------------------------------------------------------
+  !! function StoR_scalar():
+  !!    This function transforms a character variable into a real StoR
+  !! --------------------------------------------------------------------
+    use mod_kind, only: dp
+    use mod_mpi_pars, only: abortProgram
+    implicit none
+    character(len=*), intent(in) :: string
+    integer  :: ios
+    real(dp) :: StoR_scalar
+
+    read(unit= string, fmt=*, iostat=ios) StoR_scalar
+    if(ios/=0) call abortProgram("[StoR_scalar] Something went wrong when reading the string: " // trim(string))
+  end function StoR_scalar
+
+
+  function StoR_array(string,dim_v)
+  !! --------------------------------------------------------------------
+  !! function StoR_array():
+  !!    This function transforms a character variable into a real array StoR
+  !! --------------------------------------------------------------------
+    use mod_kind, only: dp
+    use mod_mpi_pars, only: abortProgram
+    implicit none
+    character(len=*), intent(in) :: string
+    integer,          intent(in) :: dim_v
+    integer  :: ios
+    real(dp) :: StoR_array(dim_v)
+
+    read(unit= string, fmt=*, iostat=ios) StoR_array(1:dim_v)
+    if(ios/=0) call abortProgram("[StoR_array] Something went wrong when reading the string: " // trim(string))
+  end function StoR_array
+
+
+  function StoArray(string,dim_v)
+  !! --------------------------------------------------------------------
+  !! function StoArray():
+  !!    This function transforms a character variable into a string array StoArray
+  !! --------------------------------------------------------------------
+    use mod_mpi_pars, only: abortProgram
+    implicit none
+    character(len=*), intent(in) :: string
+    integer,          intent(in) :: dim_v
+    integer           :: ios,i
+    character(len=50) :: StoArray(dim_v)
+
+    StoArray = ""
+    read(unit=string, fmt=*, iostat=ios) (StoArray(i), i=1,dim_v)
+  end function StoArray
+
+
   function KronProd(nax,nay,nbx,nby,A,B) result(AB)
+  !! --------------------------------------------------------------------
+  !! subroutine KronProd():
+  !!    This subroutine calculates the outer product (Kronecker product)
+  !! of two matrices A(nax,nay) and B(nbx,nby)
+  !! --------------------------------------------------------------------
     use mod_kind, only: dp
     implicit none
     integer,     intent(in)  :: nax, nay, nbx, nby
@@ -436,12 +578,12 @@ contains
     end do
   end function KronProd
 
-  ! --------------------------------------------------------------------
-  ! function vec_norm_complex():
-  !    This function calculates the norm of a complex vector v of dimension
-  ! dim_v.
-  ! --------------------------------------------------------------------
   function vec_norm_complex(v, dim_v)
+  !! --------------------------------------------------------------------
+  !! function vec_norm_complex():
+  !!    This function calculates the norm of a complex vector v of dimension
+  !! dim_v.
+  !! --------------------------------------------------------------------
     use mod_kind, only: dp
     implicit none
     integer,                       intent(in) :: dim_v ! vector dimension
@@ -459,12 +601,12 @@ contains
   end function vec_norm_complex
 
 
-  ! --------------------------------------------------------------------
-  ! function vec_norm_real():
-  !    This function calculates the norm of a real vector v of dimension
-  ! dim_v.
-  ! --------------------------------------------------------------------
   function vec_norm_real(v, dim_v)
+  !! --------------------------------------------------------------------
+  !! function vec_norm_real():
+  !!    This function calculates the norm of a real vector v of dimension
+  !! dim_v.
+  !! --------------------------------------------------------------------
     use mod_kind, only: dp
     implicit none
     integer,                        intent(in) :: dim_v ! vector dimension
@@ -475,12 +617,12 @@ contains
   end function vec_norm_real
 
 
-  ! --------------------------------------------------------------------
-  ! function normalize_complex():
-  !    This function normalizes the complex vector v of dimension
-  ! dim_v.
-  ! --------------------------------------------------------------------
   function normalize_complex(v, dim_v)
+  !! --------------------------------------------------------------------
+  !! function normalize_complex():
+  !!    This function normalizes the complex vector v of dimension
+  !! dim_v.
+  !! --------------------------------------------------------------------
     use mod_kind, only: dp
     implicit none
     integer,                           intent(in) :: dim_v ! vector dimension
@@ -491,12 +633,12 @@ contains
   end function normalize_complex
 
 
-  ! --------------------------------------------------------------------
-  ! function normalize_real():
-  !    This function normalizes the real vector v of dimension
-  ! dim_v.
-  ! --------------------------------------------------------------------
   function normalize_real(v, dim_v)
+  !! --------------------------------------------------------------------
+  !! function normalize_real():
+  !!    This function normalizes the real vector v of dimension
+  !! dim_v.
+  !! --------------------------------------------------------------------
     use mod_kind, only: dp
     implicit none
     integer,                    intent(in) :: dim_v ! vector dimension
@@ -507,12 +649,12 @@ contains
   end function normalize_real
 
 
-  ! --------------------------------------------------------------------
-  ! subroutine LS_solver(n,a,b):
-  !    This subroutine is a simple interface for the LAPACK linear
-  ! system solver A*X = B.
-  ! --------------------------------------------------------------------
   subroutine LS_solver(n,a,b)
+  !! --------------------------------------------------------------------
+  !! subroutine LS_solver(n,a,b):
+  !!    This subroutine is a simple interface for the LAPACK linear
+  !! system solver A*X = B.
+  !! --------------------------------------------------------------------
     use mod_kind, only: dp
     implicit none
     integer,     intent(in)      :: n
@@ -529,11 +671,11 @@ contains
   end subroutine LS_solver
 
 
-  ! --------------------------------------------------------------------
-  ! subroutine diagonalize():
-  !    This subruotine is a simple interface for the LAPACK zheev subroutine
-  ! --------------------------------------------------------------------
   subroutine diagonalize(n,a,eval)
+  !! --------------------------------------------------------------------
+  !! subroutine diagonalize():
+  !!    This subruotine is a simple interface for the LAPACK zheev subroutine
+  !! --------------------------------------------------------------------
     use mod_kind, only: dp
     implicit none
     integer,     intent(in)    :: n
@@ -551,11 +693,11 @@ contains
   end subroutine diagonalize
 
 
-  ! --------------------------------------------------------------------
-  ! function invers(matriz,nn):
-  !    This subroutine calculates the inverse of nn x nn matrix 'matriz'
-  ! --------------------------------------------------------------------
   subroutine invers(matriz,nn)
+  !! --------------------------------------------------------------------
+  !! function invers(matriz,nn):
+  !!    This subroutine calculates the inverse of nn x nn matrix 'matriz'
+  !! --------------------------------------------------------------------
     use, intrinsic :: iso_fortran_env
     use mod_mpi_pars
     use mod_parameters, only: output
@@ -588,11 +730,53 @@ contains
   end subroutine invers
 
 
-  ! --------------------------------------------------------------------
-  ! function get_memory():
-  !    This function returns the free memory in the computer the job is running
-  ! --------------------------------------------------------------------
+  subroutine print_matrix_real(unit,n,mat)
+  !! --------------------------------------------------------------------
+  !! function print_matrix_real():
+  !!      This subroutine prints the real elements of matrix 'mat'
+  !! --------------------------------------------------------------------
+    use mod_kind, only: dp
+    implicit none
+    integer,                  intent(in) :: unit,n
+    real(dp), dimension(n,n), intent(in) :: mat
+    integer :: i,j
+
+    do j = 1, n
+      do i = 1, n
+        write(unit=unit,fmt=*) mat(i,j)
+      end do
+    end do
+
+  end subroutine print_matrix_real
+
+
+  subroutine print_matrix_complex(unit,n,mat)
+  !! --------------------------------------------------------------------
+  !! function print_matrix_real():
+  !!      This subroutine prints the real and imaginary parts of 
+  !!  the elements of matrix 'mat'
+  !! --------------------------------------------------------------------
+    use mod_kind,   only: dp
+    implicit none
+    integer,                     intent(in) :: unit,n
+    complex(dp), dimension(n,n), intent(in) :: mat
+    integer :: i,j
+
+    do j = 1, n
+      do i = 1, n
+        write(unit=unit,fmt=*) mat(i,j)%re, mat(i,j)%im
+      end do
+    end do
+
+  end subroutine print_matrix_complex
+
+
   function get_memory(units,mem) result(success)
+  !! --------------------------------------------------------------------
+  !! function get_memory():
+  !!    This function returns the free memory in the cpu or gpu where
+  !! the job is running
+  !! --------------------------------------------------------------------
     use mod_kind,       only: int32
     use mod_parameters, only: output
 #ifdef _GPU

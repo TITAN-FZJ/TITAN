@@ -1,10 +1,8 @@
 module AtomTypes
   use mod_kind, only: dp
 
-  character(len=3), parameter, dimension(9) :: orbitals = ["s  ","px ","py ","pz ","dxy","dyz","dzx","dx2","dz2"]
+  character(len=3), dimension(9) :: default_orbitals = ["s  ","px ","py ","pz ","dxy","dyz","dzx","dx2","dz2"]
   !! Orbitals that are implemented and recognized on TITAN
-  logical :: lorbital_selection = .false.
-  !! Logical flag to indicate orbital selection
 
   type NeighborIndex
     integer :: index
@@ -16,18 +14,26 @@ module AtomTypes
   end type
 
   type :: Atom
+    integer  :: Material
+    !! Material index of neighboring atom
     real(dp), dimension(3) :: Position
-    integer :: Material
+    !! Position of the Atom
   end type
 
   type, extends(Atom) :: BasisAtom
     type(NeighborHead), dimension(:,:), allocatable :: NeighborList
+    !! List of Neighboring atoms
+    real(dp) :: Un=0._dp, Um=0._dp
+    !! Effective Coulomb interaction strength - Hubbard U (charge and magnetic)
   end type BasisAtom
 
   type, extends(Atom) :: NeighborAtom
     integer :: BasisIndex
+    !! Index to store atom of the Basis
     integer, dimension(3) :: Cell
+    !! Index of the cell (3D)
     real(dp), dimension(3) :: CellVector
+    !! Vector position of the cell
     real(dp), dimension(:), allocatable :: Distance
     !! Distance to basis atoms
     real(dp), dimension(:,:), allocatable :: dirCos
@@ -62,15 +68,15 @@ module AtomTypes
     !! Total, s, p and d occupations
     real(dp) :: LatticeConstant
     !! Lattice constant
-    integer      :: isysdim
+    integer  :: isysdim
     !! Dimension of the system (1D, 2D, 3D)
     real(dp), dimension(3) :: a1,a2,a3
     !! Lattice vectors
     real(dp), dimension(:,:), allocatable :: Stage
     !! Neighbor distances
-    real(dp) :: Un, Um
+    real(dp) :: Un=0._dp, Um=0._dp
     !! Effective Coulomb interaction strength - Hubbard U (charge and magnetic)
-    real(dp), dimension(9) :: lambda
+    real(dp), dimension(:), allocatable :: lambda
     !! Superconducting coupling strength
     real(dp), dimension(:,:), allocatable :: rho0
     !! Initial occupation per orbital obtained from hopping parameters only

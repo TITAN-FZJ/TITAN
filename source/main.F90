@@ -7,9 +7,9 @@ program TITAN
   !! magnetic self-consistency and calculate either ground state
   !! quantities or response functions
   use mod_kind,                only: dp
-  use mod_constants,           only: cZero,define_constants
+  use mod_constants,           only: cZero,allocate_constants,define_constants,deallocate_constants
   use mod_parameters,          only: output,lpositions,lcreatefolders,parField,parFreq,nEner1,skip_steps,ldebug, &
-                                     nOrb,kp_in,kptotal_in,eta,leigenstates,itype,theta,phi, &
+                                     kp_in,kptotal_in,eta,leigenstates,itype,theta,phi, &
                                      laddresults,lsortfiles,lcreatefiles
   use mod_io,                  only: get_parameters,iowrite,log_error
   use Lattice,                 only: initLattice,writeLattice
@@ -38,7 +38,7 @@ program TITAN
   use mod_time_propagator,     only: time_propagator
   use mod_hamiltonian,         only: deallocate_hamiltonian
   use mod_superconductivity,   only: lsuperCond,supercond,allocate_supercond_variables,deallocate_supercond_variables
-  use mod_System,              only: sys,initHamiltkStride,initConversionMatrices,deallocate_System_variables
+  use mod_System,              only: s=>sys,initHamiltkStride,initConversionMatrices,deallocate_System_variables
 #ifdef _GPU
   use mod_cuda,                only: num_gpus,result,create_handle,destroy_handle,cudaGetDeviceCount,cudaSetDevice,cudaGetErrorString 
 #endif
@@ -53,7 +53,7 @@ program TITAN
 
   external :: create_folder,create_files,check_files,sort_all_files
   external :: coupling,calculate_chi,calculate_all,calculate_dc_limit
-  external :: setLoops,build_U,MPI_Finalize,deallocateLoops
+  external :: setLoops,MPI_Finalize,deallocateLoops
 
   !------------------------ MPI initialization -------------------------
   call Initialize_MPI()
@@ -64,9 +64,9 @@ program TITAN
   !------------------------ Reading parameters -------------------------
   if(command_argument_count() >= 1) call get_command_argument(1, arg)
   if(len_trim(arg) > 0) then
-    call get_parameters(arg, sys)
+    call get_parameters(arg, s)
   else
-    call get_parameters("input",sys)
+    call get_parameters("input",s)
   end if
   arg = ""
 
@@ -93,14 +93,15 @@ program TITAN
   if(myrank == 0) call write_time('[main]' // trim(arg) // ' Started on: ',output%unit)
 
   !------------------- Useful constants and matrices -------------------
-  call define_constants() ! TODO: Review
+  call allocate_constants(s%nOrb)
+  call define_constants(s) ! TODO: Review
 
   !------------------- Define the lattice structure --------------------
-  call read_basis("basis", sys)
-  call initLattice(sys)
-  write(output%Sites,fmt="(i0,'Sites')") sys%nAtoms
+  call read_basis("basis", s)
+  call initLattice(s)
+  write(output%Sites,fmt="(i0,'Sites')") s%nAtoms
   ! Writing Positions into file
-  if( lpositions .and. (myrank==0) ) call writeLattice(sys)
+  if( lpositions .and. (myrank==0) ) call writeLattice(s)
 
   !------------- Creating folders for current calculation ------------
   if(lcreatefolders) &
@@ -108,7 +109,7 @@ program TITAN
 
   !------------------ Set Loops and Integration Points -----------------
   call setMagneticLoopPoints()
-  call setLoops(sys)
+  call setLoops(s)
   !------------------ Creating grid of MPI processes  ------------------
   !call setup_MPI_grid(itype, pn1, nEner1, pnt,total_hw_npt1, nEner, deltae, emin, emax)
   call genMPIGrid(parField, total_hw_npt1, parFreq, nEner1 - skip_steps)
@@ -118,10 +119,10 @@ program TITAN
 
   !-------------------------- Debugging part -------------------------
   if(ldebug) then
-    ! call initTightBinding(sys)
-    ! call allocate_magnet_variables(sys%nAtoms, nOrb)
-    ! call hamilt_sc(sys)
-    !call hamilt_sc(s,rho,mp,mx,my,mz,sys,kp,hk)
+    ! call initTightBinding(s)
+    ! call allocate_magnet_variables(s%nAtoms, s%nOrb)
+    ! call hamilt_sc(s)
+    !call hamilt_sc(s,rho,mp,mx,my,mz,s,kp,hk)
     !if(myrank==0) then
     ! call debugging()
     !end if
@@ -131,42 +132,38 @@ program TITAN
   end if
 
   !----- Calculating initial values in the hamiltonian with mag=0 ------
-  if(.not.lsortfiles) call calc_initial_Uterms(sys)
+  if(.not.lsortfiles) call calc_initial_Uterms(s)
 
   !----------- Generating k points for real axis integration -----------
   realBZ % nkpt_x = kp_in(1)
   realBZ % nkpt_y = kp_in(2)
   realBZ % nkpt_z = kp_in(3)
-  call realBZ % countBZ(sys)
+  call realBZ % countBZ(s)
 
   !---------------- Reading Tight Binding parameters -------------------
-  call initTightBinding(sys)
+  call initTightBinding(s)
 
   !---- Generating k meshes points for imaginary axis integration ------
-  call generateAdaptiveMeshes(sys,pn1)
+  call generateAdaptiveMeshes(s,pn1)
 
   !------------ Allocating variables that depend on nAtoms -------------
-  call allocate_magnet_variables(sys%nAtoms, nOrb)
-  call allocate_supercond_variables(sys%nAtoms, nOrb)
-  call allocateLS(sys%nAtoms,nOrb)
-  call allocate_Atom_variables(sys%nAtoms,nOrb)
+  call allocate_magnet_variables(s%nAtoms, s%nOrb)
+  call allocate_supercond_variables(s%nAtoms, s%nOrb)
+  call allocateLS(s%nAtoms,s%nOrb)
+  call allocate_Atom_variables(s%nAtoms,s%nOrb)
 
   !------- Initialize Stride Matrices for hamiltk and dtdksub ----------
-  call initHamiltkStride(sys,supercond)
+  call initHamiltkStride(s,supercond)
 
   !---------- Conversion arrays for dynamical quantities ---------------
-  call initConversionMatrices(sys%nAtoms,nOrb)
+  call initConversionMatrices(s%nAtoms,s%nOrb)
 
   !--------------------- Lattice specific variables --------------------
-  call initElectricField(sys%a1, sys%a2, sys%a3)
+  call initElectricField(s%a1, s%a2, s%a3)
 
-  !call setup_long_and_trans_current_neighbors(sys) !TODO: Not implemented TODO: Re-include
-
-  !--------------------------- Build U array ---------------------------
-  call build_U(sys)
-
+  !call setup_long_and_trans_current_neighbors(s) !TODO: Not implemented TODO: Re-include
   !-------------------------- Filename strings -------------------------
-  write(output%info,"('_nkpt=',i0,'_eta=',a)") kptotal_in, trim(rtos(eta,"(es8.1)"))
+  write(output%info,"('_norb=',i0,'_nkpt=',i0,'_eta=',a)") s%nOrb,kptotal_in,trim(rtos(eta,"(es8.1)"))
   if(leigenstates) output%info = trim(output%info) // "_ev"
 
   !--------------- Extra Token for Superconductivity files -------------
@@ -190,7 +187,7 @@ program TITAN
     end if
 
     !------------------- Initialize Magnetic Field ---------------------
-    call initMagneticField(sys%nAtoms)
+    call initMagneticField(s%nAtoms)
     if((llinearsoc) .or. (.not.SOC) .and. (.not.lfield) .and. (rField == 0)) &
       write(output%file_loop,"('[main] WARNING: No external magnetic field is applied and SOC is off/linear order: Goldstone mode is present!')")
 
@@ -204,19 +201,19 @@ program TITAN
     end if
 
     !----- Writing parameters and data to be calculated on screen ------
-    if(rField == 0) call iowrite(sys)
+    if(rField == 0) call iowrite(s)
 
     !---- L matrix in global frame for given quantization direction ----
-    call l_matrix()
+    call l_matrix(s%nOrb,s%Orbs)
 
     !---- Calculate L.S matrix for the given quantization direction ----
-    if(SOC) call updateLS(sys,theta, phi)
+    if(SOC) call updateLS(s,theta, phi)
 
     !---- Calculate L.B matrix for the given quantization direction ----
-    call lb_matrix(sys%nAtoms, nOrb)
+    call lb_matrix(s%nAtoms,s%nOrb)
 
     !---------------------- Calculate S.B matrix  ----------------------
-    call sb_matrix(sys%nAtoms, nOrb)
+    call sb_matrix(s%nAtoms,s%nOrb)
 
     !-------------------------- Debugging part -------------------------
     if(ldebug) then
@@ -275,10 +272,10 @@ program TITAN
 
     !--------- Temporary execution to test this function ---------------
 
-    ! call hamilt_sc(sys)
+    ! call hamilt_sc(s)
 
     ! if(rField == 0) &
-    ! call band_structure(sys)
+    ! call band_structure(s)
 
     if(rField == 0 .and. itype==0) then
       write(output%unit_loop,"('[main] FIRST TEST PART')")
@@ -287,7 +284,7 @@ program TITAN
       mp  = cZero
       ! Variables used in the hamiltonian
 
-      ! call expectation_values_eigenstates(sys,rho,mp,mx,my,mz,delta_sc)
+      ! call expectation_values_eigenstates(s,rho,mp,mx,my,mz,delta_sc)
 
       ! call debugging()
     end if
@@ -314,8 +311,8 @@ program TITAN
       call ldos_and_coupling()
     case (4) ! Band structure (not parallelized)
       if(rField == 0) &
-        call band_structure(sys)
-    case (5) ! Iso-energy surface (for input = sys%Ef - Fermi surface)
+        call band_structure(s)
+    case (5) ! Iso-energy surface (for input = s%Ef - Fermi surface)
       if(rField == 0) & ! Temporary working only for 1 MPI process (TO DO: Add MPI on energy loop)
         call fermi_surface()
     case (6) ! Coupling tensor
@@ -329,7 +326,7 @@ program TITAN
     case(10) ! Calculation of Gilbert Damping using Torque correlation models
       call calculate_TCM()
     case(11) ! Propagation of ( H(k) + S.B(t) )
-      call time_propagator(sys)
+      call time_propagator(s)
     end select
     !===================================================================
 
@@ -354,6 +351,7 @@ program TITAN
   call deallocateAdaptiveMeshes()
   call deallocateLS()
   call deallocate_supercond_variables()
+  call deallocate_constants()
   
   !---------------------- Deallocating variables -----------------------
   !deallocate(r_nn, c_nn, l_nn)

@@ -115,14 +115,14 @@ contains
     use mod_constants,        only: levi_civita, StoC, CtoS
     use mod_System,           only: s => sys
     use mod_magnet,           only: lvec
-    use mod_parameters,       only: nOrb, sigmaimunu2i
+    use mod_parameters,       only: sigmaimunu2i
     use mod_susceptibilities, only: chiorb, chiorb_hf
     use mod_mpi_pars,         only: abortProgram
     use mod_magnet,           only: mabs
     use mod_tools,            only: invers
     implicit none
     integer :: AllocateStatus
-    integer :: i,j, m,n,k, mp,np,kp, mu,nu, gamma,zeta, p,q
+    integer :: i,j, m,n,k, mp,np,kp, mu,nu, gamma,zeta,mud,nud,gammad,zetad, p,q
     real(dp), intent(in) :: e
     complex(dp), dimension(:,:), allocatable :: TTInverse
     allocate(TTInverse(s%nAtoms*3, s%nAtoms*3), stat=AllocateStatus)
@@ -131,54 +131,57 @@ contains
     TTResponse   = cmplx(0._dp,0._dp,dp)
     TTResponseHF = cmplx(0._dp,0._dp,dp)
     do i = 1, s%nAtoms
-       do j = 1, s%nAtoms
-          do m = 1, 3
-             do n = 1, 3
-                do k = 1, 3
-                   if(abs(levi_civita(m,n,k)) < 1.e-15_dp) cycle
-                   do mp = 1,3
-                      do np = 1, 3
-                         do kp = 1, 3
-                            if(abs(levi_civita(mp,np,kp)) < 1.e-15_dp) cycle
-                            do mu = 5, nOrb
-                               do nu = 5, nOrb
-                                 if(abs(lvec(nu,mu,n)) < 1.e-15_dp) cycle
-                                  do gamma = 5, nOrb
-                                     do zeta = 5, nOrb
-                                        if(abs(lvec(gamma,zeta,np)) < 1.e-15_dp) cycle
-                                        do p = 1, 4
-                                           do q = 1, 4
-                                              if(abs(StoC(k+1,p)) < 1.e-15_dp .or. abs(CtoS(q,kp+1)) < 1.e-15_dp) cycle
-                                              TTResponse(mp, m, j, i) = TTResponse(mp, m, j, i) &
-                                                   - 2.0_dp / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%LambdaD * s%Types(s%Basis(j)%Material)%LambdaD &
-                                                   * levi_civita(m,n,k) * levi_civita(mp, np, kp) &
-                                                   * lvec(mu, nu, n) * lvec(gamma, zeta, np) &
-                                                   * StoC(k+1,p) * chiorb(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma,zeta)) * CtoS(q,kp+1)
-                                              TTResponseHF(mp, m, j, i) = TTResponseHF(mp, m, j, i) &
-                                                   - 2.0_dp / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%LambdaD * s%Types(s%Basis(j)%Material)%LambdaD &
-                                                   * levi_civita(m,n,k) * levi_civita(mp, np, kp) &
-                                                   * lvec(mu, nu, n) * lvec(gamma, zeta, np) &
-                                                   * StoC(k+1,p) * chiorb_hf(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma,zeta)) * CtoS(q,kp+1)
-
-                                           end do
-                                        end do
-                                     end do
-                                  end do
-                               end do
+      do j = 1, s%nAtoms
+        do m = 1, 3
+          do n = 1, 3
+            do k = 1, 3
+              if(abs(levi_civita(m,n,k)) < 1.e-15_dp) cycle
+              do mp = 1,3
+                do np = 1, 3
+                  do kp = 1, 3
+                    if(abs(levi_civita(mp,np,kp)) < 1.e-15_dp) cycle
+                    do mud=1,s%ndOrb
+                      mu = s%dOrbs(mud)
+                      do nud=1,s%ndOrb
+                        nu = s%dOrbs(nud)
+                        if(abs(lvec(nu,mu,n)) < 1.e-15_dp) cycle
+                        do gammad=1,s%ndOrb
+                          gamma = s%dOrbs(gammad)
+                          do zetad=1,s%ndOrb
+                            zeta = s%dOrbs(zetad)
+                            if(abs(lvec(gamma,zeta,np)) < 1.e-15_dp) cycle
+                            do p = 1, 4
+                              do q = 1, 4
+                                if(abs(StoC(k+1,p)) < 1.e-15_dp .or. abs(CtoS(q,kp+1)) < 1.e-15_dp) cycle
+                                TTResponse(mp, m, j, i) = TTResponse(mp, m, j, i) &
+                                     - 2.0_dp / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%LambdaD * s%Types(s%Basis(j)%Material)%LambdaD &
+                                     * levi_civita(m,n,k) * levi_civita(mp, np, kp) &
+                                     * lvec(mu, nu, n) * lvec(gamma, zeta, np) &
+                                     * StoC(k+1,p) * chiorb(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma,zeta)) * CtoS(q,kp+1)
+                                TTResponseHF(mp, m, j, i) = TTResponseHF(mp, m, j, i) &
+                                     - 2.0_dp / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%LambdaD * s%Types(s%Basis(j)%Material)%LambdaD &
+                                     * levi_civita(m,n,k) * levi_civita(mp, np, kp) &
+                                     * lvec(mu, nu, n) * lvec(gamma, zeta, np) &
+                                     * StoC(k+1,p) * chiorb_hf(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma,zeta)) * CtoS(q,kp+1)
+                              end do
                             end do
-                         end do
+                          end do
+                        end do
                       end do
-                   end do
+                    end do
+                  end do
                 end do
-             end do
+              end do
+            end do
           end do
-       end do
+        end do
+      end do
     end do
 
     call open_TTR_files()
     do i = 1, s%nAtoms
        do j = 1, s%nAtoms
-          write(555+s%nAtoms*(i-1)+j, "(es16.9,2x,i0,2x,i0,2x,18(es16.9,2x))") e, i,j,(( real( TTResponse(n,m,j,i) ), dimag( TTResponse(n,m,j,i) ), n=1,3), m = 1,3)
+          write(555+s%nAtoms*(i-1)+j, "(es16.9,2x,i0,2x,i0,2x,18(es16.9,2x))") e, i,j,(( real( TTResponse(n,m,j,i) ), aimag( TTResponse(n,m,j,i) ), n=1,3), m = 1,3)
        end do
     end do
 
@@ -195,9 +198,9 @@ contains
 
     do i = 1, s%nAtoms
        do j = 1, s%nAtoms
-          write(666+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TTInverse(3*(j-1)+q, 3*(i-1)+p)), dimag(TTInverse(3*(j-1)+q, 3*(i-1)+p)), q = 1, 3), p = 1, 3)
-          write(777+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TTResponse(q,p,j,i)), dimag(TTResponse(q,p,j,i)), q = 1, 3), p = 1, 3)
-          write(888+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TTResponseHF(q,p,j,i)), dimag(TTResponseHF(q,p,j,i)), q = 1, 3), p = 1, 3)
+          write(666+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TTInverse(3*(j-1)+q, 3*(i-1)+p)), aimag(TTInverse(3*(j-1)+q, 3*(i-1)+p)), q = 1, 3), p = 1, 3)
+          write(777+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TTResponse(q,p,j,i)), aimag(TTResponse(q,p,j,i)), q = 1, 3), p = 1, 3)
+          write(888+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TTResponseHF(q,p,j,i)), aimag(TTResponseHF(q,p,j,i)), q = 1, 3), p = 1, 3)
        end do
     end do
     call close_TTR_files()

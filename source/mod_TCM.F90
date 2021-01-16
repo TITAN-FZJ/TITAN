@@ -49,7 +49,7 @@ contains
     !! Writing Gilbert damping
     do i = 1, s%nAtoms
       do j = 1, 3
-        write(unit=unit  ,fmt=*) i, j, (real(alpha(i,i,j,k)), dimag(alpha(i,i,j,k)), k = 1, 3)
+        write(unit=unit  ,fmt=*) i, j, (real(alpha(i,i,j,k)), aimag(alpha(i,i,j,k)), k = 1, 3)
       end do
     end do
 
@@ -121,25 +121,24 @@ contains
 
 
   !> This subroutine calculates the Gilbert damping using the torque-correlation method
-  subroutine TCM(torque_fct, alpha, ndiffk, diff_k, ialpha, iwght)
+  subroutine TCM(torque_fct,alpha,ndiffk,diff_k,ialpha,iwght)
     use mod_kind,          only: dp,int64
-    use mod_constants,     only: cZero, pi, cOne, cI
+    use mod_constants,     only: cZero,pi,cOne,cI
     use mod_System,        only: s => sys
-    use mod_BrillouinZone, only: realBZ, store_diff
-    use mod_parameters,    only: nOrb2, eta, output, kptotal_in
+    use mod_BrillouinZone, only: realBZ,store_diff
+    use mod_parameters,    only: eta,output,kptotal_in
     use mod_magnet,        only: mabs
-    use mod_tools,         only: sort, itos, rtos
+    use mod_tools,         only: sort,itos,rtos
     use mod_hamiltonian,   only: hamilt_local
     use mod_greenfunction, only: green
     use mod_mpi_pars,      only: rField,sField,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FieldComm,ierr
     implicit none
     interface
       subroutine torque_fct(torque)
-        use mod_kind, only: dp
-        use mod_parameters, only: nOrb2
+        use mod_kind,       only: dp
         use mod_System,     only: sys
         implicit none
-        complex(dp), dimension(nOrb2,nOrb2,3,sys%nAtoms), intent(out) :: torque
+        complex(dp), dimension(sys%nOrb2,sys%nOrb2,3,sys%nAtoms), intent(out) :: torque
       end subroutine torque_fct
     end interface
 
@@ -167,7 +166,7 @@ contains
     !! integrated weight (up to k_z^max)
     real(dp), dimension(:,:,:), allocatable, intent(out) :: ialpha
     !! Integrated alpha (as a function of the maximum kz summed) $ \alpha = \sum_{k_z}^{k_z^\text{max}} \alpha(k_z)$
-    complex(dp), dimension(nOrb2,nOrb2,3,s%nAtoms) :: torque
+    complex(dp), dimension(s%nOrb2,s%nOrb2,3,s%nAtoms) :: torque
     !! Torque operator (SO or XC)
     complex(dp),dimension(:,:,:,:),allocatable :: gf
     !! Green function
@@ -245,9 +244,9 @@ contains
 
     !$omp parallel default(none) reduction(+:ialpha,iwght) &
     !$omp& private(m,n,i,j,k,mu,iz,kp,wght,gf,temp1,temp2,temp3, alpha_loc,alphatemp) &
-    !$omp& shared(s,realBZ,nOrb2,eta,torque,alpha,rField,order,ndiffk,diff_k)
-    allocate(gf(nOrb2,nOrb2,s%nAtoms,s%nAtoms), &
-             temp1(nOrb2,nOrb2), temp2(nOrb2,nOrb2), temp3(nOrb2,nOrb2), &
+    !$omp& shared(s,realBZ,eta,torque,alpha,rField,order,ndiffk,diff_k)
+    allocate(gf(s%nOrb2,s%nOrb2,s%nAtoms,s%nAtoms), &
+             temp1(s%nOrb2,s%nOrb2), temp2(s%nOrb2,s%nOrb2), temp3(s%nOrb2,s%nOrb2), &
              alpha_loc(s%nAtoms,s%nAtoms,3,3))
     gf = cZero
     alpha_loc  = cZero
@@ -269,13 +268,13 @@ contains
               ! alpha^{mn}_{ij} = Tr ( Torque^m_i Im(G_ij(Ef)) * Torque^n_j * Im(G_ji(Ef)) )
               temp2 = cI * (gf(:,:,j,i) - transpose(conjg(gf(:,:,i,j))))
               temp3 = torque(:,:,n,j)
-              call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp3,nOrb2,temp2,nOrb2,cZero,temp1,nOrb2) ! Torque^n_j * Im(G_ji(Ef))
+              call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,cOne,temp3,s%nOrb2,temp2,s%nOrb2,cZero,temp1,s%nOrb2) ! Torque^n_j * Im(G_ji(Ef))
               temp2 = cI * (gf(:,:,i,j) - transpose(conjg(gf(:,:,i,j))))
-              call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp2,nOrb2,temp1,nOrb2,cZero,temp3,nOrb2) ! Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))
+              call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,cOne,temp2,s%nOrb2,temp1,s%nOrb2,cZero,temp3,s%nOrb2) ! Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))
               temp2 = torque(:,:,m,i)
-              call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp2,nOrb2,temp3,nOrb2,cZero,temp1,nOrb2) ! Torque^m_i * Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))
+              call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,cOne,temp2,s%nOrb2,temp3,s%nOrb2,cZero,temp1,s%nOrb2) ! Torque^m_i * Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))
 
-              do mu = 1, nOrb2
+              do mu = 1, s%nOrb2
                 alphatemp = alphatemp + temp1(mu,mu) * wght
               end do
               alpha_loc(j,i,n,m) = alpha_loc(j,i,n,m) + alphatemp
@@ -298,9 +297,9 @@ contains
     end do kpoints
     !$omp end do nowait
 
-    !$omp critical
+      !$omp critical
       alpha = alpha + alpha_loc
-    !$omp end critical
+      !$omp end critical
 
     deallocate(gf,temp1,temp2,temp3)
     deallocate(alpha_loc)
@@ -328,16 +327,14 @@ contains
     use mod_kind,       only: dp
     use mod_constants,  only: cZero, cOne, levi_civita, sigma => pauli_mat
     use mod_System,     only: s => sys
-    use mod_parameters, only: nOrb, nOrb2, Um
     use mod_magnet,     only: mvec_cartesian
-
-    complex(dp), dimension(nOrb2,nOrb2,3,s%nAtoms), intent(out) :: torque
-    complex(dp), dimension(nOrb,nOrb) :: ident
+    complex(dp), dimension(s%nOrb2,s%nOrb2,3,s%nAtoms), intent(out) :: torque
+    complex(dp), dimension(s%nOrb,s%nOrb) :: ident
     integer :: i,m,n,k
 
     ident = cZero
-    do i = 5, nOrb
-      ident(i,i) = cOne
+    do i=1,s%ndOrb
+      ident(s%dOrbs(i),s%dOrbs(i)) = cOne
     end do
 
     torque = cZero
@@ -345,29 +342,28 @@ contains
       do m = 1, 3
         do n = 1, 3
           do k = 1, 3
-            torque(     1: nOrb,     1: nOrb,m,i) = torque(     1: nOrb,     1: nOrb,m,i) + mvec_cartesian(n,i) * ident(:,:) * sigma(1,1,k) * levi_civita(m,n,k)
-            torque(nOrb+1:nOrb2,     1: nOrb,m,i) = torque(nOrb+1:nOrb2,     1: nOrb,m,i) + mvec_cartesian(n,i) * ident(:,:) * sigma(2,1,k) * levi_civita(m,n,k)
-            torque(     1: nOrb,nOrb+1:nOrb2,m,i) = torque(     1: nOrb,nOrb+1:nOrb2,m,i) + mvec_cartesian(n,i) * ident(:,:) * sigma(1,2,k) * levi_civita(m,n,k)
-            torque(nOrb+1:nOrb2,nOrb+1:nOrb2,m,i) = torque(nOrb+1:nOrb2,nOrb+1:nOrb2,m,i) + mvec_cartesian(n,i) * ident(:,:) * sigma(2,2,k) * levi_civita(m,n,k)
+            torque(       1: s%nOrb,       1: s%nOrb,m,i) = torque(       1: s%nOrb,       1: s%nOrb,m,i) + mvec_cartesian(n,i) * ident(:,:) * sigma(1,1,k) * levi_civita(m,n,k)
+            torque(s%nOrb+1:s%nOrb2,       1: s%nOrb,m,i) = torque(s%nOrb+1:s%nOrb2,       1: s%nOrb,m,i) + mvec_cartesian(n,i) * ident(:,:) * sigma(2,1,k) * levi_civita(m,n,k)
+            torque(       1: s%nOrb,s%nOrb+1:s%nOrb2,m,i) = torque(       1: s%nOrb,s%nOrb+1:s%nOrb2,m,i) + mvec_cartesian(n,i) * ident(:,:) * sigma(1,2,k) * levi_civita(m,n,k)
+            torque(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,m,i) = torque(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,m,i) + mvec_cartesian(n,i) * ident(:,:) * sigma(2,2,k) * levi_civita(m,n,k)
           end do
         end do
       end do
-      torque(:,:,:,i) = - 0.5_dp * Um(i) * torque(:,:,:,i)
+      torque(:,:,:,i) = - 0.5_dp * s%Basis(i)%Um * torque(:,:,:,i)
     end do
   end subroutine local_xc_torque
 
 
   !> This subroutine defines the spin-orbit torque operator/matrix
   subroutine local_SO_torque(torque)
-    use mod_kind, only: dp
+    use mod_kind,       only: dp
     use mod_constants,  only: cZero, levi_civita, sigma => pauli_mat
     use mod_System,     only: s => sys
     use mod_magnet,     only: lvec
-    use mod_parameters, only: nOrb, nOrb2
-    use mod_mpi_pars
+    ! use mod_mpi_pars,   only:
     implicit none
-    integer :: i,m,n,k
-    complex(dp), dimension(nOrb2,nOrb2,3, s%nAtoms), intent(out) :: torque
+    integer :: i,m,n,k,mu,nu,mup,nup,mupp,nupp
+    complex(dp), dimension(s%nOrb2,s%nOrb2,3, s%nAtoms), intent(out) :: torque
 
     torque = cZero
 
@@ -378,25 +374,41 @@ contains
       do m = 1, 3
         do n = 1, 3
           do k = 1, 3
-            torque(     1:nOrb ,     1:nOrb ,m,i) = torque(     1:nOrb ,     1:nOrb ,m,i) + lvec(1:nOrb,1:nOrb,n) * sigma(1,1,k) * levi_civita(m,n,k)
-            torque(nOrb+1:nOrb2,     1:nOrb ,m,i) = torque(nOrb+1:nOrb2,     1:nOrb ,m,i) + lvec(1:nOrb,1:nOrb,n) * sigma(2,1,k) * levi_civita(m,n,k)
-            torque(     1:nOrb ,nOrb+1:nOrb2,m,i) = torque(     1:nOrb ,nOrb+1:nOrb2,m,i) + lvec(1:nOrb,1:nOrb,n) * sigma(1,2,k) * levi_civita(m,n,k)
-            torque(nOrb+1:nOrb2,nOrb+1:nOrb2,m,i) = torque(nOrb+1:nOrb2,nOrb+1:nOrb2,m,i) + lvec(1:nOrb,1:nOrb,n) * sigma(2,2,k) * levi_civita(m,n,k)
+            torque(       1:s%nOrb ,       1:s%nOrb ,m,i) = torque(       1:s%nOrb ,       1:s%nOrb ,m,i) + lvec(1:s%nOrb,1:s%nOrb,n) * sigma(1,1,k) * levi_civita(m,n,k)
+            torque(s%nOrb+1:s%nOrb2,       1:s%nOrb ,m,i) = torque(s%nOrb+1:s%nOrb2,       1:s%nOrb ,m,i) + lvec(1:s%nOrb,1:s%nOrb,n) * sigma(2,1,k) * levi_civita(m,n,k)
+            torque(       1:s%nOrb ,s%nOrb+1:s%nOrb2,m,i) = torque(       1:s%nOrb ,s%nOrb+1:s%nOrb2,m,i) + lvec(1:s%nOrb,1:s%nOrb,n) * sigma(1,2,k) * levi_civita(m,n,k)
+            torque(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,m,i) = torque(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,m,i) + lvec(1:s%nOrb,1:s%nOrb,n) * sigma(2,2,k) * levi_civita(m,n,k)
           end do
         end do
       end do
 
-      ! p-block
-      torque( 2: 4, 2: 4,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque( 2: 4, 2: 4,:,i)
-      torque( 2: 4,11:13,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque( 2: 4,11:13,:,i)
-      torque(11:13, 2: 4,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque(11:13, 2: 4,:,i)
-      torque(11:13,11:13,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque(11:13,11:13,:,i)
+      ! p block
+      do nupp=1,s%npOrb
+        nu = s%pOrbs(nupp)
+        nup = nu + s%nOrb 
+        do mupp=1,s%npOrb
+          mu = s%pOrbs(mupp)
+          mup = mu + s%nOrb 
+          torque(mu ,nu ,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque(mu ,nu ,:,i)
+          torque(mu ,nup,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque(mu ,nup,:,i)
+          torque(mup,nu ,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque(mup,nu ,:,i)
+          torque(mup,nup,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque(mup,nup,:,i)
+        end do
+      end do
 
-      ! d-block
-      torque( 5: 9, 5: 9,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque( 5: 9, 5: 9,:,i)
-      torque( 5: 9,14:18,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque( 5: 9,14:18,:,i)
-      torque(14:18, 5: 9,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque(14:18, 5: 9,:,i)
-      torque(14:18,14:18,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque(14:18,14:18,:,i)
+      ! d block
+      do nupp=1,s%ndOrb
+        nu = s%dOrbs(nupp)
+        nup = nu + s%nOrb 
+        do mupp=1,s%ndOrb
+          mu = s%dOrbs(mupp)
+          mup = mu + s%nOrb 
+          torque(mu ,nu ,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque(mu ,nu ,:,i)
+          torque(mu ,nup,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque(mu ,nup,:,i)
+          torque(mup,nu ,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque(mup,nu ,:,i)
+          torque(mup,nup,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque(mup,nup,:,i)
+        end do
+      end do
     end do
   end subroutine local_SO_torque
 

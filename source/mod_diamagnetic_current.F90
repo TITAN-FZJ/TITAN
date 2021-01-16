@@ -158,7 +158,7 @@ contains
       end do
 
   !       !$omp critical
-  !       do neighbor=n0sc1,n0sc2 ; do i=1,Npl ; do mu=1,9 ; do nu=1,9
+  !       do neighbor=n0sc1,n0sc2 ; do i=1,Npl ; do mu=1,s%nOrb ; do nu=1,s%nOrb
   !         pij(neighbor,i,mu,nu) = pij(neighbor,i,mu,nu) + expikr(neighbor)*dtdk(mu,nu,i,i)*wkbz(iz)
   !       end do ; end do ; end do ; end do
   !       do neighbor=n0sc1,n0sc2 ; do i=1,Npl ; do mu=1,18 ; do nu=1,18
@@ -193,11 +193,11 @@ contains
     Idia = 0._dp
     do neighbor=n0sc1,n0sc2
       do i=1,Npl
-        do mu=1,9
-          do nu=1,9
-            mup = mu+9
-            nup = nu+9
-            ! Idia(neighbor,i) = Idia(neighbor,i) + cI*pij(neighbor,i,mu,nu)*dimag(gij(neighbor,i,nu,mu)+gji(neighbor,i,mu,nu)+gij(neighbor,i,nup,mup)+gji(neighbor,i,mup,nup))
+        do mu=1,s%nOrb
+          do nu=1,s%nOrb
+            mup = mu+s%nOrb
+            nup = nu+s%nOrb
+            ! Idia(neighbor,i) = Idia(neighbor,i) + cI*pij(neighbor,i,mu,nu)*aimag(gij(neighbor,i,nu,mu)+gji(neighbor,i,mu,nu)+gij(neighbor,i,nup,mup)+gji(neighbor,i,mup,nup))
             Idia(neighbor,i) = Idia(neighbor,i) + real(pij(neighbor,i,mu,nu)*( (gji(neighbor,i,nu,mu)+gij(neighbor,i,mu,nu)) + (gji(neighbor,i,nup,mup)+gij(neighbor,i,mup,nup)) ))/pi
           end do
         end do

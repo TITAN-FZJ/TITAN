@@ -170,48 +170,48 @@ contains
           iw = 9000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
 
           if(abs(torques(typetorque,sigma,i))>=1.e-15_dp) then
-            phase  = atan2(dimag(torques(typetorque,sigma,i)),real(torques(typetorque,sigma,i)))
+            phase  = atan2(aimag(torques(typetorque,sigma,i)),real(torques(typetorque,sigma,i)))
             sine   = real(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
-            cosine = dimag(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
+            cosine = aimag(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
           else
             phase  = 0._dp
             sine   = 0._dp
             cosine = 0._dp
           end if
 
-          write(unit=iw,fmt="(9(es16.9,2x))") e , abs(torques(typetorque,sigma,i)) , real(torques(typetorque,sigma,i)) , dimag(torques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
+          write(unit=iw,fmt="(9(es16.9,2x))") e , abs(torques(typetorque,sigma,i)) , real(torques(typetorque,sigma,i)) , aimag(torques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
 
           ! Writing renormalized torques
           if(renorm) then
             iw = iw+1000
 
             if(abs(rtorques(typetorque,sigma,i))>=1.e-15_dp) then
-              phase  = atan2(dimag(rtorques(typetorque,sigma,i)),real(rtorques(typetorque,sigma,i)))
+              phase  = atan2(aimag(rtorques(typetorque,sigma,i)),real(rtorques(typetorque,sigma,i)))
               sine   = real(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
-              cosine = dimag(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
+              cosine = aimag(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
             else
               phase  = 0._dp
               sine   = 0._dp
               cosine = 0._dp
             end if
 
-            write(unit=iw,fmt="(9(es16.9,2x))") e , abs(rtorques(typetorque,sigma,i)) , real(rtorques(typetorque,sigma,i)) , dimag(rtorques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
+            write(unit=iw,fmt="(9(es16.9,2x))") e , abs(rtorques(typetorque,sigma,i)) , real(rtorques(typetorque,sigma,i)) , aimag(rtorques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
           end if
         end do
          ! Writing total torques
          iw = 9500+(typetorque-1)*3+sigma
 
          if(abs(total_torques(typetorque,sigma))>=1.e-15_dp) then
-            phase  = atan2(dimag(total_torques(typetorque,sigma)),real(total_torques(typetorque,sigma)))
+            phase  = atan2(aimag(total_torques(typetorque,sigma)),real(total_torques(typetorque,sigma)))
             sine   = real(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
-            cosine = dimag(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
+            cosine = aimag(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
          else
             phase  = 0._dp
             sine   = 0._dp
             cosine = 0._dp
          end if
 
-         write(unit=iw,fmt="(9(es16.9,2x))") e , abs(total_torques(typetorque,sigma)) , real(total_torques(typetorque,sigma)) , dimag(total_torques(typetorque,sigma)) , phase , sine , cosine , mtotal_spherical(2) , mtotal_spherical(3)
+         write(unit=iw,fmt="(9(es16.9,2x))") e , abs(total_torques(typetorque,sigma)) , real(total_torques(typetorque,sigma)) , aimag(total_torques(typetorque,sigma)) , phase , sine , cosine , mtotal_spherical(2) , mtotal_spherical(3)
 
       end do
     end do
@@ -345,46 +345,46 @@ contains
           iw = 90000+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
 
           if(abs(torques(typetorque,sigma,i))>=1.e-15_dp) then
-            phase  = atan2(dimag(torques(typetorque,sigma,i)),real(torques(typetorque,sigma,i)))
+            phase  = atan2(aimag(torques(typetorque,sigma,i)),real(torques(typetorque,sigma,i)))
             sine   = real(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
-            cosine = dimag(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
+            cosine = aimag(torques(typetorque,sigma,i))/abs(torques(typetorque,sigma,i))
           else
             phase  = 0._dp
             sine   = 0._dp
             cosine = 0._dp
           end if
-          write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(torques(typetorque,sigma,i)) , real(torques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
+          write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(torques(typetorque,sigma,i)) , real(torques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
 
           ! Writing renormalized torques
           if(renorm) then
             iw = iw+1000
 
             if(abs(rtorques(typetorque,sigma,i))>=1.e-15_dp) then
-              phase  = atan2(dimag(rtorques(typetorque,sigma,i)),real(rtorques(typetorque,sigma,i)))
+              phase  = atan2(aimag(rtorques(typetorque,sigma,i)),real(rtorques(typetorque,sigma,i)))
               sine   = real(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
-              cosine = dimag(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
+              cosine = aimag(rtorques(typetorque,sigma,i))/abs(rtorques(typetorque,sigma,i))
             else
               phase  = 0._dp
               sine   = 0._dp
               cosine = 0._dp
             end if
 
-            write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(rtorques(typetorque,sigma,i)) , real(rtorques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
+            write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(rtorques(typetorque,sigma,i)) , real(rtorques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
           end if
         end do
         ! Writing total torques
       iw = 95000+(typetorque-1)*3+sigma
 
       if(abs(total_torques(typetorque,sigma))>=1.e-15_dp) then
-        phase  = atan2(dimag(total_torques(typetorque,sigma)),real(total_torques(typetorque,sigma)))
+        phase  = atan2(aimag(total_torques(typetorque,sigma)),real(total_torques(typetorque,sigma)))
         sine   = real(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
-        cosine = dimag(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
+        cosine = aimag(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
       else
         phase  = 0._dp
         sine   = 0._dp
         cosine = 0._dp
       end if
-      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , dimag(total_torques(typetorque,sigma)) , real(total_torques(typetorque,sigma)) , phase , sine , cosine , mtotal_spherical(2) , mtotal_spherical(3)
+      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_torques(typetorque,sigma)) , real(total_torques(typetorque,sigma)) , phase , sine , cosine , mtotal_spherical(2) , mtotal_spherical(3)
 
       end do
     end do

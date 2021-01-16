@@ -1,25 +1,25 @@
 ! This is the main subroutine to calculate the susceptibilities
 subroutine calculate_chi()
   use mod_kind,              only: dp
-  use mod_constants,         only: cZero, cOne, StoC, CtoS
-  use mod_parameters,        only: nOrb, kount, emin, deltae, nQvec1, kpoints, dimens, sigmaimunu2i, output, lhfresponses, lnodiag, laddresults, skip_steps, sigmai2i
-  use mod_magnet,            only: lfield,mvec_spherical,lvec, lrot
-  use mod_alpha,             only: create_alpha_files, write_alpha
+  use mod_constants,         only: cZero,cOne,StoC,CtoS
+  use mod_parameters,        only: kount,emin,deltae,nQvec1,kpoints,dimens,sigmaimunu2i,output,lhfresponses,lnodiag,laddresults,skip_steps,sigmai2i
+  use mod_magnet,            only: lfield,mvec_spherical,lvec,lrot
+  use mod_alpha,             only: create_alpha_files,write_alpha
   use mod_system,            only: s => sys
   use mod_BrillouinZone,     only: realBZ
   use mod_tools,             only: itos,invers
-  use adaptiveMesh,          only: genLocalEKMesh, freeLocalEKMesh
+  use adaptiveMesh,          only: genLocalEKMesh,freeLocalEKMesh
   use mod_progress,          only: write_time
-  use TorqueTorqueResponse,  only: calcTTResponse, create_TTR_files, allocTTResponse
-  use TorqueSpinResponse,    only: calcTSResponse, create_TSR_files, allocTSResponse
+  use TorqueTorqueResponse,  only: calcTTResponse,create_TTR_files,allocTTResponse
+  use TorqueSpinResponse,    only: calcTSResponse,create_TSR_files,allocTSResponse
   use mod_rotation_matrices, only: rotation_matrices_chi
   use mod_SOC,               only: SOC
   use mod_Coupling,          only: get_J_K_from_chi
-  use mod_susceptibilities,  only: identt, Umatorb, schi, schihf, schiLS, schiSL, schiLL, schirot, rotmat_i, &
-                                   rotmat_j, rottemp, schitemp, chiorb_hf, chiorb, &
-                                   build_identity_and_U_matrix, diagonalize_susceptibilities, &
-                                   create_chi_files, write_susceptibilities, &
-                                   allocate_susceptibilities, deallocate_susceptibilities
+  use mod_susceptibilities,  only: identt,Umatorb,schi,schihf,schiLS,schiSL,schiLL,schirot,rotmat_i,&
+                                   rotmat_j,rottemp,schitemp,chiorb_hf,chiorb,&
+                                   build_identity_and_U_matrix,diagonalize_susceptibilities,&
+                                   create_chi_files,write_susceptibilities,&
+                                   allocate_susceptibilities,deallocate_susceptibilities
   use mod_sumrule,           only: sumrule
   use mod_mpi_pars,          only: rFreq,sFreq,FreqComm,FieldComm,rField,startFreq,endFreq,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,stat,ierr,MPI_SOURCE,MPI_DOUBLE_COMPLEX
   use mod_check_stop,        only: check_stop
@@ -93,8 +93,8 @@ subroutine calculate_chi()
           do i=1, s%nAtoms
             do sigmap=1, 4
               do sigma=1, 4
-                do nu=1, nOrb
-                  do mu=1, nOrb
+                do nu=1, s%nOrb
+                  do mu=1, s%nOrb
                     schi  (sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schi  (sigmai2i(sigma,i),sigmai2i(sigmap,j)) + chiorb   (sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
                     schihf(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schihf(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + chiorb_hf(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
                   end do
@@ -113,14 +113,14 @@ subroutine calculate_chi()
             do i=1, s%nAtoms
               do sigmap=1, 3
                 do sigma=1, 3
-                  do nu=1, nOrb
-                    do mu=1, nOrb
-                      do gamma=1, nOrb
+                  do nu=1, s%nOrb
+                    do mu=1, s%nOrb
+                      do gamma=1, s%nOrb
                         do p=1, 4
                           schiLS(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiLS(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + lvec(mu,gamma,sigma)*( chiorb(sigmaimunu2i(2,i,mu,gamma),sigmaimunu2i(p,j,nu,nu)   ) + chiorb(sigmaimunu2i(3,i,mu,gamma),sigmaimunu2i(p,j,nu,nu)   ) )*CtoS(p,sigmap+1)
                           schiSL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiSL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) +      StoC(sigma+1,p)*( chiorb(sigmaimunu2i(p,i,mu,mu)   ,sigmaimunu2i(2,j,nu,gamma)) + chiorb(sigmaimunu2i(p,i,mu,mu)   ,sigmaimunu2i(3,j,nu,gamma)) )*lvec(nu,gamma,sigmap)
                         end do
-                        do xi=1, nOrb
+                        do xi=1, s%nOrb
                           schiLL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiLL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + lvec(mu,nu,sigma)*( chiorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) + chiorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) + chiorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) + chiorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) )*lvec(gamma,xi,sigmap)
                         end do
                       end do

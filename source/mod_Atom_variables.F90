@@ -7,9 +7,9 @@ contains
     use mod_mpi_pars,   only: abortProgram
     use mod_System,     only: System_type
 #ifdef _GPU
-    use mod_parameters, only: sigmai2i,sigmaimunu2i,sigmaijmunu2i,isigmamu2n,isigmamu2n_d,n2isigmamu,Un,Um
+    use mod_parameters, only: sigmai2i,sigmaimunu2i,sigmaijmunu2i,isigmamu2n,isigmamu2n_d,n2isigmamu
 #else
-    use mod_parameters, only: sigmai2i,sigmaimunu2i,sigmaijmunu2i,isigmamu2n,n2isigmamu,Un,Um
+    use mod_parameters, only: sigmai2i,sigmaimunu2i,sigmaijmunu2i,isigmamu2n,n2isigmamu
 #endif
     implicit none
     integer, intent(in) :: nAtoms,nOrbs
@@ -20,8 +20,6 @@ contains
     allocate( isigmamu2n_d(nAtoms,2,nOrbs) )
 #endif
 
-    allocate( Un(nAtoms), Um(nAtoms) )
-
     ! pln_cnt(1) contains # of in-plane neighbors TODO: Re-Include
     ! allocate(sha_longitudinal(pln_cnt(1)),sha_transverse(pln_cnt(1)),long_cos(pln_cnt(1)),transv_cos(pln_cnt(1)))
     ! if (AllocateStatus/=0) call abortProgram("[main] Not enough memory for: sha_longitudinal,sha_transverse,long_cos,transv_cos")
@@ -31,9 +29,9 @@ contains
   ! This subroutine deallocates variables that depend on nAtom
   subroutine deallocate_Atom_variables()
 #ifdef _GPU
-    use mod_parameters, only: sigmai2i,sigmaimunu2i,sigmaijmunu2i,isigmamu2n,isigmamu2n_d,n2isigmamu,Un,Um
+    use mod_parameters, only: sigmai2i,sigmaimunu2i,sigmaijmunu2i,isigmamu2n,isigmamu2n_d,n2isigmamu
 #else
-    use mod_parameters, only: sigmai2i,sigmaimunu2i,sigmaijmunu2i,isigmamu2n,n2isigmamu,Un,Um
+    use mod_parameters, only: sigmai2i,sigmaimunu2i,sigmaijmunu2i,isigmamu2n,n2isigmamu
 #endif
     use mod_magnet,     only: rho0,rhod0
     implicit none
@@ -43,8 +41,6 @@ contains
     if(allocated(sigmaijmunu2i)) deallocate( sigmaijmunu2i )
     if(allocated(isigmamu2n))    deallocate( isigmamu2n )
     if(allocated(n2isigmamu))    deallocate( n2isigmamu )
-    if(allocated(Un))            deallocate( Un )
-    if(allocated(Um))            deallocate( Um )
     if(allocated(rho0))          deallocate( rho0 )
     if(allocated(rhod0))         deallocate( rhod0 )
 #ifdef _GPU

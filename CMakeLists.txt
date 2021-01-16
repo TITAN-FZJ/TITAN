@@ -25,7 +25,6 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_initial_expectation.F90
                                   source/mod_expectation.F90
                                   source/initConversionMatrices.F90
-                                  source/build_U.F90
                                   source/mod_System.F90
                                   source/mod_polyBasis.F90
                                   source/mod_BrillouinZone.F90

@@ -2,31 +2,31 @@
 ! (in particular, the dc-limit) response functions
 subroutine calculate_dc_limit()
   use mod_kind,              only: dp,int32,int64
-  use mod_constants,         only: cZero, cOne, cI
-  use mod_parameters,        only: sigmaimunu2i, sigmai2i, dimspinAtoms, Um, offset, lnodiag, output, kount, emin, deltae, nQvec1, kpoints, laddresults, lhfresponses, dimens, skip_steps
-  use mod_magnet,            only: lfield, dcfield_dependence, dc_count, dcfield, hw_count, lxp, lyp, lzp, lx, ly, lz, mvec_cartesian, mvec_spherical, hhw, lrot
+  use mod_constants,         only: cZero,cOne,cI
+  use mod_parameters,        only: sigmaimunu2i,sigmai2i,dimspinAtoms,lnodiag,output,kount,emin,deltae,nQvec1,kpoints,laddresults,lhfresponses,dimens,skip_steps
+  use mod_magnet,            only: lfield,dcfield_dependence,dc_count,dcfield,hw_count,lxp,lyp,lzp,lx,ly,lz,mvec_cartesian,mvec_spherical,hhw,lrot
   use mod_SOC,               only: llinearsoc
   use mod_System,            only: s => sys
   use mod_BrillouinZone,     only: realBZ
-  use mod_prefactors,        only: prefactor, prefactorlsoc, allocate_prefactors, deallocate_prefactors
+  use mod_prefactors,        only: prefactor,prefactorlsoc,allocate_prefactors,deallocate_prefactors
   use mod_progress,          only: write_time
-  use adaptiveMesh,          only: genLocalEKMesh, freeLocalEKMesh
+  use adaptiveMesh,          only: genLocalEKMesh,freeLocalEKMesh
   use mod_rotation_matrices, only: rotation_matrices_chi
-  use mod_susceptibilities,  only: rottemp, rotmat_i, rotmat_j, &
-                                   schitemp, schirot, schi, schihf, &
-                                   chiorb, chiorb_hf, chiorb_hflsoc, Umatorb, identt, &
-                                   build_identity_and_U_matrix, diagonalize_susceptibilities, &
-                                   allocate_susceptibilities, deallocate_susceptibilities, &
-                                   create_dc_chi_files, write_dc_susceptibilities
-  use mod_torques,           only: torques, total_torques, ntypetorque, &
-                                   allocate_torques, deallocate_torques, &
-                                   create_dc_torque_files, write_dc_torques
-  use mod_disturbances,      only: disturbances, total_disturbances, tchiorbiikl, sdmat, ldmat, &
-                                   allocate_disturbances, deallocate_disturbances, &
-                                   create_dc_disturbance_files, write_dc_disturbances
-  use mod_beff,              only: chiinv, Beff, total_Beff, Beff_cart, &
-                                   allocate_beff, deallocate_beff, &
-                                   create_dc_beff_files, write_dc_beff
+  use mod_susceptibilities,  only: rottemp,rotmat_i,rotmat_j,&
+                                   schitemp,schirot,schi,schihf,&
+                                   chiorb,chiorb_hf,chiorb_hflsoc,Umatorb,identt,&
+                                   build_identity_and_U_matrix,diagonalize_susceptibilities,&
+                                   allocate_susceptibilities,deallocate_susceptibilities,&
+                                   create_dc_chi_files,write_dc_susceptibilities
+  use mod_torques,           only: torques,total_torques,ntypetorque,&
+                                   allocate_torques,deallocate_torques,&
+                                   create_dc_torque_files,write_dc_torques
+  use mod_disturbances,      only: disturbances,total_disturbances,tchiorbiikl,sdmat,ldmat,&
+                                   allocate_disturbances,deallocate_disturbances,&
+                                   create_dc_disturbance_files,write_dc_disturbances
+  use mod_beff,              only: chiinv,Beff,total_Beff,Beff_cart,&
+                                   allocate_beff,deallocate_beff,&
+                                   create_dc_beff_files,write_dc_beff
   use mod_check_stop,        only: check_stop
   use mod_tools,             only: invers,itos
   use mod_mpi_pars,          only: rFreq,sFreq,FreqComm,FieldComm,rField,startFreq,endFreq,MPI_INTEGER,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,stat,ierr,MPI_SOURCE,MPI_DOUBLE_COMPLEX
@@ -36,7 +36,7 @@ subroutine calculate_dc_limit()
   implicit none
   integer(int32) :: mcount,qcount
   integer(int64) :: count_temp
-  integer(int32) :: i,j,sigma,sigmap,mu,nu,hw_count_temp!,neighbor 
+  integer(int32) :: i,j,sigma,sigmap,mu,nu,mud,nud,hw_count_temp!,neighbor 
   real(dp)       :: e,q(3),mvec_spherical_temp(3,s%nAtoms)!,Icabs
 
   external :: eintshechi,eintshelinearsoc,eintshechilinearsoc,eintshe,zgemm,MPI_Recv,MPI_Send,MPI_Barrier,sort_all_files,MPI_Bcast
@@ -152,9 +152,9 @@ subroutine calculate_dc_limit()
           schihf = cZero
           ! Calculating RPA and HF susceptibilities
           do j = 1, s%nAtoms
-            do nu = 1, 9
+            do nu = 1, s%nOrb
               do i = 1, s%nAtoms
-                do mu = 1, 9
+                do mu = 1, s%nOrb
                   do sigmap = 1, 4
                     do sigma = 1, 4
                       schi  (sigmai2i(sigma,i), sigmai2i(sigmap,j)) = schi(sigmai2i(sigma,i), sigmai2i(sigmap,j))   + chiorb(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
@@ -217,9 +217,9 @@ subroutine calculate_dc_limit()
           schihf = cZero
           ! Calculating RPA and HF susceptibilities
           do j = 1, s%nAtoms
-            do nu = 1, 9
+            do nu = 1, s%nOrb
               do i = 1, s%nAtoms
-                do mu = 1, 9
+                do mu = 1, s%nOrb
                   do sigmap = 1, 4
                     do sigma = 1, 4
                       schihf(sigmai2i(sigma,i), sigmai2i(sigmap,j)) = schihf(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + chiorb_hf(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
@@ -260,10 +260,10 @@ subroutine calculate_dc_limit()
 
         ! Calculating inverse susceptibility to use on Beff calculation
         chiinv = cZero
-        do nu = 1, 9
+        do nu = 1, s%nOrb
           do j = 1, s%nAtoms
             do sigmap = 1, 4
-              do mu = 1, 9
+              do mu = 1, s%nOrb
                 do i = 1, s%nAtoms
                   do sigma = 1, 4
                     chiinv(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = chiinv(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + chiorb(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))    ! +- , up- , down- , --
@@ -279,7 +279,7 @@ subroutine calculate_dc_limit()
         torques      = cZero
         do i = 1, s%nAtoms
           ! Spin and charge disturbances
-          do mu=1,9
+          do mu=1,s%nOrb
             disturbances(1,i) = disturbances(1,i) + (tchiorbiikl(sigmaimunu2i(2,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,mu),3)+tchiorbiikl(sigmaimunu2i(3,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(3,i,mu,mu),3))
             disturbances(2,i) = disturbances(2,i) + (tchiorbiikl(sigmaimunu2i(1,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,mu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,mu),3))
             disturbances(3,i) = disturbances(3,i) + (tchiorbiikl(sigmaimunu2i(1,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,mu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,mu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,mu),3))/cI
@@ -293,8 +293,8 @@ subroutine calculate_dc_limit()
           sdmat(sigmai2i(4,i)) = disturbances(2,i) - cI*disturbances(3,i) ! -    = x - iy
 
           ! Orbital angular momentum disturbance in the global frame
-          do nu = 1, 9
-            do mu = 1, 9
+          do nu = 1, s%nOrb
+            do mu = 1, s%nOrb
               ldmat(i,mu,nu) = tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3)
               disturbances(5,i) = disturbances(5,i) + lx(mu,nu)*ldmat(i,mu,nu)
               disturbances(6,i) = disturbances(6,i) + ly(mu,nu)*ldmat(i,mu,nu)
@@ -303,8 +303,10 @@ subroutine calculate_dc_limit()
           end do
 
           ! Spin-orbit torques (calculated in the spin frame of reference), only for the D orbitals
-          do nu = 5, 9
-            do mu = 5, 9
+          do nud = 1,s%ndOrb
+            nu = s%dOrbs(nud)
+            do mud = 1,s%ndOrb
+              mu = s%dOrbs(mud)
               ! x component: (Ly*Sz - Lz*Sy)/2
               torques(1,1,i) = torques(1,1,i) + (   lyp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3))) &
                                           + (cI*lzp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
@@ -319,15 +321,15 @@ subroutine calculate_dc_limit()
           torques(1,:,i) = 0.5_dp*s%Types(s%Basis(i)%Material)%LambdaD*torques(1,:,i)
 
           ! Exchange-correlation torques (calculated in the spin frame of reference)
-          torques(2,1,i) = Um(i+offset)*(mvec_cartesian(3,i)*disturbances(3,i)-mvec_cartesian(2,i)*disturbances(4,i))
-          torques(2,2,i) = Um(i+offset)*(mvec_cartesian(1,i)*disturbances(4,i)-mvec_cartesian(3,i)*disturbances(2,i))
-          torques(2,3,i) = Um(i+offset)*(mvec_cartesian(2,i)*disturbances(2,i)-mvec_cartesian(1,i)*disturbances(3,i))
+          torques(2,1,i) = s%Basis(i)%Um*(mvec_cartesian(3,i)*disturbances(3,i)-mvec_cartesian(2,i)*disturbances(4,i))
+          torques(2,2,i) = s%Basis(i)%Um*(mvec_cartesian(1,i)*disturbances(4,i)-mvec_cartesian(3,i)*disturbances(2,i))
+          torques(2,3,i) = s%Basis(i)%Um*(mvec_cartesian(2,i)*disturbances(2,i)-mvec_cartesian(1,i)*disturbances(3,i))
 
           ! External torques (calculated in the spin frame of reference)
           if(lfield) then
-            torques(3,1,i) = 2._dp*(hhw(2,i+offset)*disturbances(4,i)-hhw(3,i+offset)*disturbances(3,i))
-            torques(3,2,i) = 2._dp*(hhw(3,i+offset)*disturbances(2,i)-hhw(1,i+offset)*disturbances(4,i))
-            torques(3,3,i) = 2._dp*(hhw(1,i+offset)*disturbances(3,i)-hhw(2,i+offset)*disturbances(2,i))
+            torques(3,1,i) = 2._dp*(hhw(2,i)*disturbances(4,i)-hhw(3,i)*disturbances(3,i))
+            torques(3,2,i) = 2._dp*(hhw(3,i)*disturbances(2,i)-hhw(1,i)*disturbances(4,i))
+            torques(3,3,i) = 2._dp*(hhw(1,i)*disturbances(3,i)-hhw(2,i)*disturbances(2,i))
           end if
 
           ! Calculating spin and charge current for each neighbor
@@ -366,7 +368,7 @@ subroutine calculate_dc_limit()
         !   do j=1,3
         !     do mu = 1, 3
         !       do nu = 1, 3
-        !         dc_currents(j,i) = dc_currents(j,i) + levi_civita(j,mu,nu)*abs(disturbances(mu+1,i))*abs(disturbances(nu+1,i))*sin(atan2(dimag(disturbances(nu+1,i)),real(disturbances(nu+1,i))) - atan2(dimag(disturbances(mu+1,i)),real(disturbances(mu+1,i))))/(tpi*e)
+        !         dc_currents(j,i) = dc_currents(j,i) + levi_civita(j,mu,nu)*abs(disturbances(mu+1,i))*abs(disturbances(nu+1,i))*sin(atan2(aimag(disturbances(nu+1,i)),real(disturbances(nu+1,i))) - atan2(aimag(disturbances(mu+1,i)),real(disturbances(mu+1,i))))/(tpi*e)
         !       end do
         !     end do
         !   end do

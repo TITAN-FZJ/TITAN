@@ -12,7 +12,7 @@ contains
     use mod_RK_matrices,        only: A,id,id2,M1,c1,c2,build_identity
     use mod_imRK4,              only: iterate_Zki,calculate_step_error,magnetic_field,vector_potential
     use mod_BrillouinZone,      only: realBZ
-    use mod_parameters,         only: nOrb,dimHsc,output,lprintfieldonly
+    use mod_parameters,         only: dimHsc,output,lprintfieldonly
     use mod_system,             only: System_type
     use mod_expectation,        only: expec_val_n, expec_H_n, expec_L_n
     use mod_Umatrix,            only: update_Umatrix
@@ -27,7 +27,7 @@ contains
     implicit none
     type(System_type), intent(in)   :: s
 
-    integer(int32)                              :: i,it,n,counter,iter_rej,iter_tot
+    integer(int32)                              :: i,mu,mud,it,n,counter,iter_rej,iter_tot
     real(dp)                                    :: t,tm,t1,t2
     real(dp)                                    :: pinv,h_new,h_old,ERR_old,ERR_kn
     complex(dp), dimension(dimHsc)              :: Yn,Yn_hat,Yn_new,Yn_e,Yn_hat_e,Yn_new_e
@@ -42,17 +42,17 @@ contains
     integer(int64)                          :: ik
     integer(int32)                          :: ncount,ios,ilaenv
     real(dp)                                :: weight, kp(3)
-    real(dp),    dimension(nOrb,s%nAtoms)   :: expec_0, expec_z
-    complex(dp), dimension(nOrb,s%nAtoms)   :: expec_p
-    real(dp),    dimension(nOrb,s%nAtoms)   :: expec_d
+    real(dp),    dimension(s%nOrb,s%nAtoms) :: expec_0, expec_z
+    complex(dp), dimension(s%nOrb,s%nAtoms) :: expec_p
+    real(dp),    dimension(s%nOrb,s%nAtoms) :: expec_d
     real(dp),    dimension(:),  allocatable :: eval(:)
     complex(dp),                allocatable :: hk(:,:),hkev(:,:)
 
-    real(dp),    dimension(nOrb,s%nAtoms)   :: rho_t,mx_t,my_t,mz_t
-    complex(dp), dimension(nOrb,s%nAtoms)   :: mp_t
+    real(dp),    dimension(s%nOrb,s%nAtoms) :: rho_t,mx_t,my_t,mz_t
+    complex(dp), dimension(s%nOrb,s%nAtoms) :: mp_t
     real(dp),    dimension(s%nAtoms)        :: rhod_t,mxd_t,myd_t,mzd_t
     complex(dp), dimension(s%nAtoms)        :: mpd_t
-    real(dp),    dimension(nOrb,s%nAtoms)   :: delta_sc_t
+    real(dp),    dimension(s%nOrb,s%nAtoms) :: delta_sc_t
     real(dp),    dimension(s%nAtoms)        :: lxm,lym,lzm
     real(dp),    dimension(s%nAtoms)        :: lxm_t,lym_t,lzm_t
     real(dp)                                :: E_t, E_0
@@ -64,7 +64,7 @@ contains
       write(output%unit_loop,"('CALCULATING TIME-PROPAGATION')")
  
     ! number of elements in the MPI communication
-    ncount = nOrb*s%nAtoms
+    ncount = s%nOrb*s%nAtoms
 
     ! Dimensions for RK method
     dimH2  = 2*dimHsc
@@ -316,19 +316,27 @@ contains
       ! if(rFreq(1) == 0) write(*,*)  "Accepted", t, step, ERR 
 
       mx_t = real(mp_t)
-      my_t = dimag(mp_t)
+      my_t = aimag(mp_t)
 
       ! obtaining expectation values for d-orbitals
+      rhod_t = 0._dp
+      mpd_t  = 0._dp
+      mxd_t  = 0._dp
+      myd_t  = 0._dp
+      mzd_t  = 0._dp
       do i = 1, s%nAtoms
-        rhod_t(i) = sum(rho_t(5:9,i))
-        mpd_t(i)  = sum(mp_t(5:9,i))
-        mxd_t(i)  = sum(mx_t(5:9,i))
-        myd_t(i)  = sum(my_t(5:9,i))
-        mzd_t(i)  = sum(mz_t(5:9,i))
+        do mud = 1,s%ndOrb
+          mu = s%dOrbs(mud)
+          rhod_t(i) = rhod_t(i) + rho_t(mu,i)
+          mpd_t (i) = mpd_t (i) + mp_t (mu,i)
+          mxd_t (i) = mxd_t (i) + mx_t (mu,i)
+          myd_t (i) = myd_t (i) + my_t (mu,i)
+          mzd_t (i) = mzd_t (i) + mz_t (mu,i)
+        end do
       end do
  
       ! Update U-term of the local hamiltonian
-      call update_Umatrix(mzd_t,mpd_t,rhod_t,rhod0,rho_t,rho0,s%nAtoms,nOrb)
+      call update_Umatrix(mzd_t,mpd_t,rhod_t,rhod0,rho_t,rho0,s)
 
       ! Writing results to file
       if(rFreq(1) == 0) &
