@@ -301,9 +301,11 @@ contains
     close(97)
 
     if((abs(Un_tmp - sys0%Types(1)%Un) > 1.e-15_dp).or.(abs(Um_tmp - sys0%Types(1)%Um) > 1.e-15_dp)) then ! Only works for 1 atom in unit cell of elemental file
-      write(output%unit,"('[read_initial_Uterms] Different value of Un, Um:')")
-      write(output%unit,"('[read_initial_Uterms] Using for ',a,':', es16.9, es16.9,', Read from previous calculations: ', es16.9, es16.9)") trim(sys0%Types(1)%Name), sys0%Types(1)%Un, sys0%Types(1)%Um, Un_tmp, Um_tmp
-      write(output%unit,"('[read_initial_Uterms] Recalculating expectation values...')")
+      if(rField==0) then
+        write(output%unit,"('[read_initial_Uterms] Different value of Un, Um:')")
+        write(output%unit,"('[read_initial_Uterms] Using for ',a,':', es16.9, es16.9,', Read from previous calculations: ', es16.9, es16.9)") trim(sys0%Types(1)%Name), sys0%Types(1)%Un, sys0%Types(1)%Um, Un_tmp, Um_tmp
+        write(output%unit,"('[read_initial_Uterms] Recalculating expectation values...')")
+      end if
       return
     end if
 
