@@ -331,11 +331,12 @@ elseif(COMPILER MATCHES nv) # NVIDIA:
                                                 -O3
                                                 -lm
                                                 -fast
-                                                -acc=multicore
-                                                -ta=tesla
+                                                -acc
+                                                -gpu:cc70,cc80
                                                 -Minfo=accel
                                                 -Mcuda
                                                 -lineinfo
+                                                -g
                                                 -acc
                                                 #-mp
                                                 )
@@ -355,7 +356,7 @@ elseif(COMPILER MATCHES nv) # NVIDIA:
                                                 -traceback
                                                 -Ktrap=fp,unf             # fp, unf is equivalent to inv,divz,ovf, unf  correspond to the processor’s exception mask bits: invalid operation, divide-by-zero, overflow, and underflow, respectively.
                                                 -acc
-                                                -ta=tesla:cc35
+                                                -gpu:cc70,cc80
                                                 -Minfo=accel
                                                 -acc
                                                 #-mp                       # openmp

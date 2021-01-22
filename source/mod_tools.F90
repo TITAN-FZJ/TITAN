@@ -431,7 +431,7 @@ contains
 
 
 
-  character(len=100) function I4toS(i)
+  character(len=20) function I4toS(i)
   !! --------------------------------------------------------------------
   !! function I4toS():
   !!    This function transforms a 4-bit integer i 
@@ -442,7 +442,7 @@ contains
     write(I4toS, "(i0)") i
   end function I4toS
 
-  character(len=100) function I8toS(i)
+  character(len=20) function I8toS(i)
   !! --------------------------------------------------------------------
   !! function I4toS():
   !!    This function transforms an 8-bit integer i 
@@ -803,7 +803,7 @@ contains
     integer            :: i,ios,pos,file_unit = 931
     character(200)     :: line
     character(len=80), dimension(max_elements) :: str_arr
-    character(len=:), allocatable  :: str_tmp
+    character(len=80)  :: str_tmp
 
     external :: MPI_Barrier
 #ifdef _GPU
@@ -823,7 +823,7 @@ contains
       read(unit=file_unit, fmt='(A)', iostat=ios) line
       if(ios/=0) exit
       read(unit=line, fmt=*, iostat=ios) (str_arr(i), i = 1, max_elements)
-      do i = 1, max_elements
+      do i = 1, max_elements-1
         if(len_trim(str_arr(i)) == 0) cycle
         pos = index(str_arr(i),trim(keyword))
         if(pos/=0) then

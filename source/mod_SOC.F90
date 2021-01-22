@@ -15,7 +15,7 @@ contains
   subroutine updateLS(s,theta,phi)
     use mod_kind,              only: dp
     use mod_System,            only: System_type
-    use mod_constants,         only: pauli_mat,cZero
+    use mod_constants,         only: pauli_mat
     use mod_magnet,            only: lvec
     use mod_rotation_matrices, only: rotation_matrix_ry,rotation_matrix_rz
     implicit none
