@@ -79,7 +79,6 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_imRK4_parameters.F90
                                   source/mod_time_propagator_io.F90
                                   source/mod_cuda.F90
-                                  source/mod_dft.F90
                                   )
 
 
@@ -333,10 +332,11 @@ elseif(COMPILER MATCHES nv) # NVIDIA:
                                                 -lm
                                                 -fast
                                                 -acc=multicore
-                                                -gpu=cc80
+                                                -ta=tesla
                                                 -Minfo=accel
                                                 -Mcuda
                                                 -lineinfo
+                                                -acc
                                                 #-mp
                                                 )
 
@@ -344,11 +344,9 @@ elseif(COMPILER MATCHES nv) # NVIDIA:
     target_compile_definitions(${TITAN_EXE} PRIVATE _GPU DEBUG)
     target_compile_options(${TITAN_EXE} PRIVATE -cpp
                                                 -DVERSION="${GIT_VERSION}"
-                                                -lineinfo                 # GPU-side light-weight info for profilers, but still helpful
-                                                -gpu=lineinfo             # Same, for OpenACC
-                                                -g                        # CPU debug information; almost no overhead
-                                                -G                        # GPU debug info (expensive, forces -O0)
-                                                -gpu=debug                # Same, for OpenACC
+                                                -lineinfo
+                                                -g
+                                                -G
                                                 -Mdclchk                  # instructs the compiler to require that all program variables be declared
                                                 -Minform=inform           # instructs the compiler to display all error messages (inform, warn, severe and fatal).
                                                 -Mbounds                  # enables array bounds checking.
@@ -357,11 +355,10 @@ elseif(COMPILER MATCHES nv) # NVIDIA:
                                                 -traceback
                                                 -Ktrap=fp,unf             # fp, unf is equivalent to inv,divz,ovf, unf  correspond to the processor’s exception mask bits: invalid operation, divide-by-zero, overflow, and underflow, respectively.
                                                 -acc
-                                                -gpu=cc80
-                                                -Minfo=accel              # Compiler output information about GPU
-                                                -Mcuda
+                                                -ta=tesla:cc35
+                                                -Minfo=accel
                                                 -acc
-                                                #-mp                      # openmp
+                                                #-mp                       # openmp
                                                 -O0
                                                 )
   endif(NOT DEBUG MATCHES "ON")
