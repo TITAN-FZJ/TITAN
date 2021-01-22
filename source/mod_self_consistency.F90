@@ -492,7 +492,6 @@ contains
 
   subroutine lsqfun(iflag,M,N,x,fvec,selfconjac,ljc,iw,liw,w,lw)
     use mod_kind,              only: dp
-    use mod_constants,         only: cZero
     use mod_system,            only: s => sys
     use mod_magnet,            only: rho,rhot,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,           only: update_Umatrix
