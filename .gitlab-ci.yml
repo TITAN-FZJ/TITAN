@@ -233,17 +233,6 @@ test:graphene_pz_isoenergy:
     - *run_test
     - *compare_files
 
-test:graphene_pz_bands:
-  image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
-  stage: test:results
-  needs: ["build:intel:normal","test:graphene_pz_ev"]
-  script:
-    - export TEST_FOLDER="examples/graphene"
-    - export ITYPE=4
-    - *run_test
-    - export EXCLUDE="weights"
-    - *compare_files
-
 test:Fe_bulk_susc:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: test:results
