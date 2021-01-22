@@ -323,7 +323,7 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
 # elseif(COMPILER MATCHES pgi) # PGI:
 #   target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -lsci_acc)
 elseif(COMPILER MATCHES nv) # NVIDIA:
-  target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -I${CUDA_ROOT}/include -Mcuda -L${CUDA_ROOT}/lib64 -lcusolver -lcudart -acc)
+  target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -I${CUDA_ROOT}/include -Mcuda -L${CUDA_ROOT}/lib64 -lcusolver -lcudart -acc -gpu=cc70,cc80)
   if(NOT DEBUG MATCHES "ON")
     target_compile_definitions(${TITAN_EXE} PRIVATE _GPU)
     target_compile_options(${TITAN_EXE} PRIVATE -cpp
@@ -332,7 +332,7 @@ elseif(COMPILER MATCHES nv) # NVIDIA:
                                                 -lm
                                                 -fast
                                                 -acc
-                                                -gpu:cc70,cc80
+                                                -gpu=cc70,cc80
                                                 -Minfo=accel
                                                 -Mcuda
                                                 -lineinfo
@@ -356,7 +356,7 @@ elseif(COMPILER MATCHES nv) # NVIDIA:
                                                 -traceback
                                                 -Ktrap=fp,unf             # fp, unf is equivalent to inv,divz,ovf, unf  correspond to the processor’s exception mask bits: invalid operation, divide-by-zero, overflow, and underflow, respectively.
                                                 -acc
-                                                -gpu:cc70,cc80
+                                                -gpu=cc70,cc80
                                                 -Minfo=accel
                                                 -acc
                                                 #-mp                       # openmp
