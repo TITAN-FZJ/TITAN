@@ -95,7 +95,8 @@ contains
     character(len=20)  :: tmp_string
     character(len=100) :: selected_orbitals,selected_sorbitals,selected_porbitals,selected_dorbitals
 
-    external :: MPI_Finalize
+    intrinsic :: findloc
+    external  :: MPI_Finalize
 
     if(.not. read_file(filename)) &
       call log_error("get_parameters", "File " // trim(filename) // " not found!")
@@ -469,9 +470,9 @@ contains
     do i = 1,s%nOrb
       ! If the name of the orbital is given instead of a number, convert:
       if(.not.is_numeric( trim(s_vector(i)) )) then
-        iloc = findloc( default_orbitals,trim(s_vector(i)),dim=1 )
+        iloc = findloc( default_orbitals,s_vector(i)(1:3),dim=1 )
         if(iloc == 0) &
-          call log_error("get_parameters","Orbital not recognized: " // trim(s_vector(i)) //". Use one of the following: " // NEW_line('A') // &
+          call log_error("get_parameters","Orbital not recognized: " // s_vector(i)(1:3) //". Use one of the following: " // NEW_line('A') // &
                "(1|s), (2|px), (3|py), (4|pz), (5|dxy), (6|dyz), (7|dzx), (8|dx2), (9|dz2)")
         s_vector(i) = itos( iloc )
       end if

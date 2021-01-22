@@ -79,6 +79,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_imRK4_parameters.F90
                                   source/mod_time_propagator_io.F90
                                   source/mod_cuda.F90
+                                  source/mod_dft.F90
                                   )
 
 
@@ -278,7 +279,7 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES nv)
   endif(DEBUG)
 
 elseif(COMPILER MATCHES gnu) # GFORTRAN:
-  target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib -Wl,-rpath,$ENV{MKLROOT}/lib -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl -fopenmp)
+  target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib -Wl,-rpath,$ENV{MKLROOT}/lib -static-libgfortran -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl -fopenmp)
   if(NOT DEBUG MATCHES "ON")
     target_compile_options(${TITAN_EXE} PRIVATE -cpp
                                                 -DVERSION="${GIT_VERSION}"
@@ -332,11 +333,10 @@ elseif(COMPILER MATCHES nv) # NVIDIA:
                                                 -lm
                                                 -fast
                                                 -acc=multicore
-                                                -ta=tesla
+                                                -gpu=cc80
                                                 -Minfo=accel
                                                 -Mcuda
                                                 -lineinfo
-                                                -acc
                                                 #-mp
                                                 )
 
@@ -344,9 +344,11 @@ elseif(COMPILER MATCHES nv) # NVIDIA:
     target_compile_definitions(${TITAN_EXE} PRIVATE _GPU DEBUG)
     target_compile_options(${TITAN_EXE} PRIVATE -cpp
                                                 -DVERSION="${GIT_VERSION}"
-                                                -lineinfo
-                                                -g
-                                                -G
+                                                -lineinfo                 # GPU-side light-weight info for profilers, but still helpful
+                                                -gpu=lineinfo             # Same, for OpenACC
+                                                -g                        # CPU debug information; almost no overhead
+                                                -G                        # GPU debug info (expensive, forces -O0)
+                                                -gpu=debug                # Same, for OpenACC
                                                 -Mdclchk                  # instructs the compiler to require that all program variables be declared
                                                 -Minform=inform           # instructs the compiler to display all error messages (inform, warn, severe and fatal).
                                                 -Mbounds                  # enables array bounds checking.
@@ -355,10 +357,11 @@ elseif(COMPILER MATCHES nv) # NVIDIA:
                                                 -traceback
                                                 -Ktrap=fp,unf             # fp, unf is equivalent to inv,divz,ovf, unf  correspond to the processor’s exception mask bits: invalid operation, divide-by-zero, overflow, and underflow, respectively.
                                                 -acc
-                                                -ta=tesla:cc35
-                                                -Minfo=accel
+                                                -gpu=cc80
+                                                -Minfo=accel              # Compiler output information about GPU
+                                                -Mcuda
                                                 -acc
-                                                #-mp                       # openmp
+                                                #-mp                      # openmp
                                                 -O0
                                                 )
   endif(NOT DEBUG MATCHES "ON")
