@@ -157,7 +157,7 @@ test:Fe_bulk:
     - *create_scResults_file
     - *compare_files
 
-test:graphene_pz_ev:
+test:graphene_pz:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: test:selfcon:normal
   needs: ["build:intel:normal"]
@@ -200,6 +200,37 @@ test:Nb_100_Monolayer_bands:
     - export ITYPE=4
     - *run_test
     - export EXCLUDE="weights"
+    - *compare_files
+
+test:graphene_pz_ldos:
+  image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
+  stage: test:results
+  needs: ["build:intel:normal","test:graphene_pz"]
+  script:
+    - export TEST_FOLDER="examples/graphene"
+    - export ITYPE=2
+    - *run_test
+    - *compare_files
+
+test:graphene_pz_bands:
+  image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
+  stage: test:results
+  needs: ["build:intel:normal","test:graphene_pz"]
+  script:
+    - export TEST_FOLDER="examples/graphene"
+    - export ITYPE=4
+    - *run_test
+    - export EXCLUDE="weights"
+    - *compare_files
+
+test:graphene_pz_isoenergy:
+  image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
+  stage: test:results
+  needs: ["build:intel:normal","test:graphene_pz"]
+  script:
+    - export TEST_FOLDER="examples/graphene"
+    - export ITYPE=5
+    - *run_test
     - *compare_files
 
 test:graphene_pz_bands:

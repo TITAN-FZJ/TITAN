@@ -78,6 +78,9 @@
 -> emax =  3.5d0
 -> nEner = 350
 !-> skip_steps = 0
+! Iso-Energy/Fermi Surface calculation: (itype=5)
+! Default: Fermi energy; Single value for one energy; or: Initial Final Npoints !
+-> fs_energy = -3.d0 0.d0 1
 !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -!
 ! Wave vector path and number of points:                                        !
 -> band = K G M K

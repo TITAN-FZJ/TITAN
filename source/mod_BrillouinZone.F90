@@ -57,14 +57,14 @@ module mod_BrillouinZone
 contains
 
   subroutine setup_fraction(self, sys, rank, size, comm, lkpoints)
-    use mod_kind, only: int32
+    use mod_kind,     only: int32
     use mod_mpi_pars, only: calcWorkload
     use mod_System,   only: System_type
     implicit none
     class(FractionalBrillouinZone) :: self
     type(System_type),intent(in) :: sys
     integer(int32),   intent(in) :: rank, size, comm
-    logical,     intent(in), optional :: lkpoints
+    logical,          intent(in), optional :: lkpoints
     ! MPI_f08:
     ! type(System_type),   intent(in) :: sys
     ! integer(int32),      intent(in) :: rank, size
@@ -102,7 +102,7 @@ contains
   end subroutine setup_fraction
 
   subroutine countBZ(self,sys)
-    use mod_kind, only: int64
+    use mod_kind,   only: int64
     use mod_System, only: System_type
     implicit none
     class(BrillouinZone)     :: self
@@ -141,15 +141,15 @@ contains
   end function isAlloc_BrillouinZone
 
   subroutine gen3DFraction(self,sys,first,last)
-    use mod_kind, only: dp, int32, int64
+    use mod_kind,      only: dp, int32, int64
     use mod_constants, only: tpi
     use mod_tools,     only: cross, itos, vec_norm
     use mod_mpi_pars,  only: abortProgram
     use mod_System,    only: System_type
     implicit none
     class(FractionalBrillouinZone) :: self
-    type(System_type), intent(in)       :: sys
-    integer(int64),    intent(in)       :: first, last
+    type(System_type), intent(in)  :: sys
+    integer(int64),    intent(in)  :: first, last
     real(dp), dimension(3,8)   :: bz_vec
     real(dp), dimension(3,8)   :: diff
     real(dp), dimension(3)     :: kp, b1, b2, b3, largest
@@ -230,13 +230,13 @@ contains
  end subroutine gen3DFraction
 
   subroutine count_3D_BZ(nkpt_in, a1, a2, a3, numextrakbz, nkpt)
-    use mod_kind, only: dp, int32, int64
+    use mod_kind,      only: dp, int32, int64
     use mod_constants, only: tpi
     use mod_tools,     only: cross, vec_norm
     implicit none
-    integer(int64),                  intent(in)  :: nkpt_in
+    integer(int64),         intent(in)  :: nkpt_in
     real(dp), dimension(3), intent(in)  :: a1, a2, a3
-    integer(int64),                  intent(out) :: numextrakbz, nkpt
+    integer(int64),         intent(out) :: numextrakbz, nkpt
     real(dp), dimension(3)   :: kp, b1, b2, b3, largest
     real(dp), dimension(3,8) :: bz_vec
     real(dp), dimension(3,8) :: diff
@@ -300,15 +300,15 @@ contains
   end subroutine count_3D_BZ
 
   subroutine gen2DFraction(self,sys,first,last)
-    use mod_kind, only: dp, int32, int64
+    use mod_kind,      only: dp, int32, int64
     use mod_constants, only: tpi
     use mod_tools,     only: cross, itos, vec_norm
     use mod_mpi_pars,  only: abortProgram
     use mod_System,    only: System_type
     implicit none
     class(FractionalBrillouinZone) :: self
-    type(System_type), intent(in)       :: sys
-    integer(int64),    intent(in)       :: first, last
+    type(System_type), intent(in)  :: sys
+    integer(int64),    intent(in)  :: first, last
     real(dp), dimension(3,4)   :: bz_vec
     real(dp), dimension(3,4)   :: diff
     real(dp), dimension(3)     :: kp, zdir, b1, b2, largest
@@ -384,13 +384,13 @@ contains
   end subroutine gen2DFraction
 
   subroutine count_2D_BZ(nkpt_in, a1, a2, numextrakbz, nkpt)
-    use mod_kind, only: dp, int32, int64
+    use mod_kind,      only: dp, int32, int64
     use mod_constants, only: tpi
     use mod_tools,     only: cross, vec_norm
     implicit none
-    integer(int64),                  intent(in)  :: nkpt_in
+    integer(int64),         intent(in)  :: nkpt_in
     real(dp), dimension(3), intent(in)  :: a1,a2
-    integer(int64),                  intent(out) :: numextrakbz, nkpt
+    integer(int64),         intent(out) :: numextrakbz, nkpt
     real(dp), dimension(3)   :: kp, b1, b2, largest
     real(dp), dimension(3)   :: zdir
     real(dp), dimension(3,4) :: bz_vec
@@ -449,15 +449,15 @@ contains
   end subroutine count_2D_BZ
 
   subroutine gen1DFraction(self,sys,first,last)
-    use mod_kind, only: dp, int32, int64
+    use mod_kind,      only: dp, int32, int64
     use mod_constants, only: tpi
     use mod_tools,     only: cross, itos, vec_norm
     use mod_mpi_pars,  only: abortProgram
     use mod_System,    only: System_type
     implicit none
     class(FractionalBrillouinZone) :: self
-    type(System_type), intent(in)       :: sys
-    integer(int64),    intent(in)       :: first, last
+    type(System_type), intent(in)  :: sys
+    integer(int64),    intent(in)  :: first, last
     real(dp), dimension(3,2)   :: bz_vec
     real(dp), dimension(3,2)   :: diff
     real(dp), dimension(3)     :: kp, b1, zdir, ydir
@@ -529,7 +529,7 @@ contains
   end subroutine gen1DFraction
 
   subroutine count_1D_BZ(nkpt_in, a1, numextrakbz, nkpt)
-    use mod_kind, only: dp, int32, int64
+    use mod_kind,      only: dp, int32, int64
     use mod_constants, only: tpi
     use mod_tools,     only: cross, vec_norm
     implicit none
@@ -607,7 +607,7 @@ contains
 ! and store the different values of the
 ! component "component" (1,2,3)
   subroutine store_diff(nkpt_in, b1, b2, b3, component, ndiffk, diff_k_unsrt)
-    use mod_kind, only: dp, int32, int64
+    use mod_kind,       only: dp, int32, int64
     use mod_tools,      only: itos
     use mod_mpi_pars,   only: abortProgram, myrank
     use mod_parameters, only: kptotal_in
