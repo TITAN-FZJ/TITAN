@@ -77,7 +77,11 @@ contains
       call calculate_fermi_surface(fs_energies(i))
 
       ! Closing files
-      if(rField == 0) call closeFSfiles()
+      if(rField == 0) then
+        call sortFermiSurface()
+        call closeFSfiles()
+      end if
+
     end do
 
   end subroutine fermi_surface
@@ -243,6 +247,28 @@ contains
     if(errt/=0) call abortProgram("[openFSfiles] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_line('A') // trim(missing_files))
 
   end subroutine openFSfiles
+
+
+  subroutine sortFermiSurface()
+    use mod_parameters, only: output
+    use mod_tools,      only: sort_command
+    use mod_System,     only: s => sys
+    implicit none
+    integer :: i,j
+    character(len=400) :: varm
+
+    varm = ""
+    do i=1,s%nAtoms
+      write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'atom',i0,a,a,a,a,'.dat')") &
+       output%SOCchar,trim(output%Sites),trim(epart),i,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+      call sort_command(varm,3,[1,2,3])
+    end do
+    do j = 1, size(filename)
+      write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,a,a,a,a,a,'.dat')") &
+       output%SOCchar,trim(output%Sites),trim(epart),trim(filename(j)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+      call sort_command(varm,3,[1,2,3])
+    end do
+  end subroutine sortFermiSurface
 
 
   subroutine closeFSfiles()

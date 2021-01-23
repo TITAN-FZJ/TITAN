@@ -393,6 +393,30 @@ contains
   end subroutine sort_file
 
 
+  subroutine sort_command(filename,ncols,cols)
+  !! --------------------------------------------------------------------
+  !! subroutine sort_command():
+  !!    This subroutine uses bash "sort" command to sort a file "filename"
+  !! using "cols" columns
+  !! --------------------------------------------------------------------
+    implicit none
+    character(len=400),        intent(in) :: filename
+    integer,                   intent(in) :: ncols
+    integer, dimension(ncols), intent(in) :: cols
+    integer :: i
+    character(len=500) :: command
+
+    command = "sort"
+    do i=1,ncols
+      command = trim(command) // " -k" // trim(itos(cols(i))) // "g"
+    end do
+    command = trim(command) // " -o " // trim(filename) // " " // trim(filename)
+
+    call execute_command_line(trim(command))
+
+  end subroutine sort_command
+
+
   function next_line(procedure,f_unit,item)
   !! --------------------------------------------------------------------
   !! function next_line():
