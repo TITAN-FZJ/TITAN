@@ -73,7 +73,7 @@ contains
     if(lEf_overwrite) s%Ef = Ef_overwrite
 
     ! Performing self-consistency
-    if(lselfcon) call calcMagneticSelfConsistency()
+    if(lselfcon) call calcSelfConsistency()
 
     ! Writing new n and mz to file after self-consistency is done
     if(.not. lontheflysc) call write_sc_results()
@@ -395,7 +395,7 @@ contains
 
   end  subroutine calcMagAngle
 
-  subroutine calcMagneticSelfConsistency()
+  subroutine calcSelfConsistency()
   !! This subroutine performs the self-consistency
     use mod_kind,              only: dp
     use mod_parameters,        only: output,lfixEf
@@ -450,7 +450,7 @@ contains
     ! Calculating the magnetization in cartesian and spherical coordinates
     call calcMagAngle()
 
-  end subroutine calcMagneticSelfConsistency
+  end subroutine calcSelfConsistency
 
 
   subroutine check_jacobian(neq,x)
@@ -521,7 +521,6 @@ contains
     ! Update electron-hole coupling in Hamiltonian
     if(lsuperCond) call update_delta_sc(s,delta_sc_in)
 
-    ! call print_sc_step(rhod_in,mpd_in,mzd_in,delta_sc_in,s)
     call expectation_values(s,rho,mp,mx,my,mz,deltas)
 
     rhod = 0._dp
@@ -1231,7 +1230,7 @@ contains
   !!  sum n - n_total = 0
     use mod_kind,              only: dp
     use mod_system,            only: s => sys
-    use mod_magnet,            only: iter,rho,rhot,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
+    use mod_magnet,            only: iter,maxiter,rho,rhot,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,           only: update_Umatrix
     use mod_expectation,       only: expectation_values
     use mod_superconductivity, only: lsuperCond, update_delta_sc
@@ -1244,6 +1243,8 @@ contains
     real(dp),    dimension(s%nOrb,s%nAtoms) :: deltas
     complex(dp), dimension(s%nAtoms)        :: mpd_in
 
+    external :: endTITAN
+
     iflag=0
 
     ! Values used in the hamiltonian
@@ -1254,9 +1255,6 @@ contains
     call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s)
     ! Update electron-hole coupling in Hamiltonian
     if(lsuperCond) call update_delta_sc(s,delta_sc_in)
-
-
-    ! call print_sc_step(rhod_in,mpd_in,mzd_in,delta_sc_in,s)
 
     iter = iter + 1
 
@@ -1286,7 +1284,10 @@ contains
     call print_sc_step(rhod,mpd,mzd,deltas,s,fvec)
 
     if(lontheflysc) call write_sc_results()
-
+    write(output%unit_loop,"('[sc_eqs] Maximum number of iterations reached!')")
+    if(iter>=maxiter) then
+      call endTITAN()
+    end if
   end subroutine sc_eqs
 
 

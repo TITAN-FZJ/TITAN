@@ -7,38 +7,36 @@ program TITAN
   !! magnetic self-consistency and calculate either ground state
   !! quantities or response functions
   use mod_kind,                only: dp
-  use mod_constants,           only: cZero,allocate_constants,define_constants,deallocate_constants
+  use mod_constants,           only: cZero,allocate_constants,define_constants
   use mod_parameters,          only: output,lpositions,lcreatefolders,parField,parFreq,nEner1,skip_steps,ldebug, &
                                      kp_in,kptotal_in,eta,leigenstates,itype,theta,phi, &
-                                     laddresults,lsortfiles,lcreatefiles
+                                     laddresults,lsortfiles,lcreatefiles,arg
   use mod_io,                  only: get_parameters,iowrite,log_error
   use Lattice,                 only: initLattice,writeLattice
   use mod_BrillouinZone,       only: realBZ,countBZ
-  use mod_SOC,                 only: llinearsoc,SOC,allocateLS,updateLS,deallocateLS
+  use mod_SOC,                 only: llinearsoc,SOC,allocateLS,updateLS
   use mod_magnet,              only: total_hw_npt1,skip_steps_hw,hw_count,lfield,rho,mz,mp,setMagneticLoopPoints,&
                                      allocate_magnet_variables,initMagneticField,set_fieldpart,l_matrix,lb_matrix,&
-                                     sb_matrix,deallocate_magnet_variables
+                                     sb_matrix
   use ElectricField,           only: initElectricField
-  use adaptiveMesh,            only: generateAdaptiveMeshes,freeLocalEKMesh,deallocateAdaptiveMeshes
+  use adaptiveMesh,            only: generateAdaptiveMeshes,freeLocalEKMesh
   use mod_TCM,                 only: calculate_TCM
   use mod_ldos,                only: ldos,ldos_and_coupling
   use mod_band_structure,      only: band_structure
   use mod_self_consistency,    only: doSelfConsistency
-  use EnergyIntegration,       only: pn1,allocate_energy_points,generate_imag_epoints,deallocate_energy_points
+  use EnergyIntegration,       only: pn1,allocate_energy_points,generate_imag_epoints
   use mod_progress,            only: start_program,write_time
   use mod_mpi_pars,            only: MPI_Wtime,myrank,startField,endField,rField,ierr,Initialize_MPI,genMPIGrid,abortProgram
-  use mod_Umatrix,             only: deallocate_Umatrix
   use mod_polyBasis,           only: read_basis
   use TightBinding,            only: initTightBinding
   use mod_fermi_surface,       only: fermi_surface
   use mod_check_stop,          only: check_stop
-  use mod_Atom_variables,      only: allocate_Atom_variables, deallocate_Atom_variables
+  use mod_Atom_variables,      only: allocate_Atom_variables
   use mod_tools,               only: rtos
   use mod_initial_expectation, only: calc_initial_Uterms
   use mod_time_propagator,     only: time_propagator
-  use mod_hamiltonian,         only: deallocate_hamiltonian
-  use mod_superconductivity,   only: lsuperCond,supercond,allocate_supercond_variables,deallocate_supercond_variables
-  use mod_System,              only: s=>sys,initHamiltkStride,initConversionMatrices,deallocate_System_variables
+  use mod_superconductivity,   only: lsuperCond,supercond,allocate_supercond_variables
+  use mod_System,              only: s=>sys,initHamiltkStride,initConversionMatrices
 #ifdef _GPU
   use mod_cuda,                only: num_gpus,result,create_handle,destroy_handle,cudaGetDeviceCount,cudaSetDevice,cudaGetErrorString 
 #endif
@@ -49,11 +47,9 @@ program TITAN
   !use mod_torques, only: ntypetorque
   implicit none
 
-  character(len=500) :: arg = ""
-
   external :: create_folder,create_files,check_files,sort_all_files
   external :: coupling,calculate_chi,calculate_all,calculate_dc_limit
-  external :: setLoops,MPI_Finalize,deallocateLoops
+  external :: setLoops,MPI_Finalize
 
   !------------------------ MPI initialization -------------------------
   call Initialize_MPI()
@@ -338,6 +334,34 @@ program TITAN
       close(output%unit_loop)
   end do ! Ending of magnetic field loop
 
+  call endTITAN()
+end program TITAN
+
+
+
+
+subroutine endTITAN()
+  use mod_parameters,          only: arg,output,leigenstates
+  use mod_progress,            only: write_time
+  use mod_BrillouinZone,       only: realBZ
+  use mod_constants,           only: deallocate_constants
+  use mod_SOC,                 only: deallocateLS
+  use mod_magnet,              only: deallocate_magnet_variables
+  use adaptiveMesh,            only: deallocateAdaptiveMeshes
+  use EnergyIntegration,       only: deallocate_energy_points
+  use mod_Umatrix,             only: deallocate_Umatrix
+  use mod_Atom_variables,      only: deallocate_Atom_variables
+  use mod_hamiltonian,         only: deallocate_hamiltonian
+  use mod_superconductivity,   only: deallocate_supercond_variables
+  use mod_System,              only: deallocate_System_variables
+  use mod_mpi_pars,            only: ierr,myrank
+#ifdef _GPU
+  use mod_cuda,                only: destroy_handle
+#endif
+  implicit none
+
+  external :: MPI_Finalize,deallocateLoops
+
   !----------------------- Deallocating variables ----------------------
   call deallocate_Atom_variables()
   call deallocate_magnet_variables()
@@ -361,8 +385,8 @@ program TITAN
   call destroy_handle()
 #endif
 
-  if(myrank == 0) call write_time('[main]' // trim(arg) // ' Finished on: ',output%unit)
+  if(myrank == 0) call write_time('[endTITAN]' // trim(arg) // ' Finished on: ',output%unit)
   if(myrank == 0) close(unit=output%unit)
   call MPI_Finalize(ierr)
   call exit(0)
-end program TITAN
+end subroutine endTITAN

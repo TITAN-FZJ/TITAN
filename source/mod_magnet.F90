@@ -7,6 +7,8 @@ module mod_magnet
   !! Turn on/off static magnetic field
   integer(int32)          :: iter = 0
   !! self-consistency iteration
+  integer(int32)          :: maxiter
+  !! Number of maximum iterations (useful for profiling and tracing)
   real(dp)                :: rhot
   !! Total occupation (summed over sites and orbitals)
   real(dp),allocatable    :: rho(:,:)

@@ -182,4 +182,9 @@ module mod_parameters
      character(len=50),dimension(:), allocatable :: observable
   end type Filename
   type(Filename) :: output
+  !! Strings to output filenames
+
+  character(len=500) :: arg = ""
+  !! String to store type of calculation (DEBUG, GPU)
+
 end module mod_parameters

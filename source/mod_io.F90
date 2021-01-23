@@ -71,7 +71,7 @@ contains
     use mod_SOC,               only: SOC,socscale,llinearsoc,llineargfsoc
     use mod_magnet,            only: lfield,tesla,hwa_i,hwa_f,hwa_npts,hwa_npt1,hwt_i,hwt_f,&
                                      hwt_npts,hwt_npt1,hwp_i,hwp_f,hwp_npts,hwp_npt1,hwx,hwy,&
-                                     hwz,hwscale,hwtrotate,hwprotate,skip_steps_hw
+                                     hwz,hwscale,hwtrotate,hwprotate,skip_steps_hw,maxiter
     use ElectricField,         only: ElectricFieldMode,ElectricFieldVector,EFp,EFt
     use EnergyIntegration,     only: parts,parts3,pn1,pn2,pnt,n1gl,n3gl
     use mod_tools,             only: itos,rtos,stoi,vec_norm,is_numeric
@@ -444,6 +444,8 @@ contains
     !---------------------------------- Magnetic Self-consistency ----------------------------------
     if(.not. get_parameter("skipsc", skipsc, .false.)) &
       call log_warning("get_parameters","'skipsc' missing. Using default value: .false.")
+    if(.not. get_parameter("maxiter", maxiter, 99999999)) &
+      call log_warning("get_parameters","'maxiter' missing. Using default value: 99999999 (no limit)")
     if(.not. get_parameter("scfile", scfile))&
       call log_warning("get_parameters","'scfile' missing. Using none.")
     !======================================== Tight-Binding ========================================

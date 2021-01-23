@@ -88,7 +88,7 @@
 -> step = 1.e-2
 !===============================================================================!
 !                           INTEGRATION VARIABLES                               !
-! Approxiamte number of k-points: (nkpt > 0)                                    !
+! Approximate number of k-points: (nkpt > 0)                                    !
 -> nkpt = 1000
 ! Number of parts to divide energy integral in complex plane:                   !
 -> parts = 2
