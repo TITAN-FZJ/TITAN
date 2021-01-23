@@ -98,7 +98,7 @@ contains
     use mod_magnet,        only: lx,ly,lz
     use mod_hamiltonian,   only: hamilt_local
     use mod_greenfunction, only: calc_green
-    use mod_mpi_pars,      only: rField,FreqComm
+    use mod_mpi_pars,      only: rField,rFreq,sFreq,FreqComm,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_SUM,ierr
     implicit none
     real(dp),intent(in) :: e
     integer(int64)      :: iz
@@ -110,10 +110,10 @@ contains
     complex(dp),dimension(s%nOrb2,s%nOrb2,s%nAtoms,s%nAtoms)    :: gf
     complex(dp),dimension(s%nOrb2,s%nOrb2)    :: temp1,temp2,pauli_gf
 
-    external :: zgemm
+    external :: zgemm,MPI_Reduce
 
-    ! Allocating Brillouin Zone without parallelization
-    call realBZ % setup_fraction(s,0, 1, FreqComm(1))
+    !  Distributing Brillouin Zone
+    call realBZ%setup_fraction(s,rFreq(1),sFreq(1),FreqComm(1))
 
     ! Build local hamiltonian
     if((.not.llineargfsoc) .and. (.not.llinearsoc)) call hamilt_local(s)
@@ -124,9 +124,9 @@ contains
 
     !$omp parallel do &
     !$omp& default(none) &
-    !$omp& private(iz,kp,gf,i,mu,nu,mup,nup,sigma,temp,temp1,temp2,templ) &
-    !$omp& shared(s,calc_green,realBZ,e,eta,pauli_orb,pauli_gf,lx,ly,lz,fs_atom,fs_orb,fs_total)
-    do iz = 1, realBZ%nkpt
+    !$omp& private(iz,kp,gf,i,mu,nu,mup,nup,sigma,temp,temp1,temp2,templ,pauli_gf) &
+    !$omp& shared(s,calc_green,realBZ,e,eta,pauli_orb,lx,ly,lz,fs_atom,fs_orb,fs_total)
+    do iz = 1,realBZ%workload
       kp = realBZ%kp(1:3,iz)
       ! Green function on energy Ef + ieta, and wave vector kp
       call calc_green(e,eta,s,kp,gf)
@@ -143,8 +143,8 @@ contains
           do mu=1,s%nOrb
             nu = mu + s%nOrb
             temp = - aimag(pauli_gf(mu,mu)+pauli_gf(nu,nu))/pi
-            fs_orb(mu,iz,sigma) = fs_orb(mu,iz,sigma) + temp
-            fs_atom(i,iz,sigma) = fs_atom(i,iz,sigma) + temp
+            fs_orb(mu,realBZ%first+iz-1,sigma) = fs_orb(mu,realBZ%first+iz-1,sigma) + temp
+            fs_atom(i,realBZ%first+iz-1,sigma) = fs_atom(i,realBZ%first+iz-1,sigma) + temp
           end do
         end do
 
@@ -154,25 +154,35 @@ contains
             nup = nu+s%nOrb
             templ = (gf(nu,mu,i,i) + gf(nup,mup,i,i))/pi
             temp  = real( lx(mu,nu)*templ )
-            fs_orb(mu,iz,5) = fs_orb(mu,iz,5) + temp
-            fs_atom(i,iz,5) = fs_atom(i,iz,5) + temp
+            fs_orb(mu,realBZ%first+iz-1,5) = fs_orb(mu,realBZ%first+iz-1,5) + temp
+            fs_atom(i,realBZ%first+iz-1,5) = fs_atom(i,realBZ%first+iz-1,5) + temp
             temp  = real( ly(mu,nu)*templ )
-            fs_orb(mu,iz,6) = fs_orb(mu,iz,6) + temp
-            fs_atom(i,iz,6) = fs_atom(i,iz,6) + temp
+            fs_orb(mu,realBZ%first+iz-1,6) = fs_orb(mu,realBZ%first+iz-1,6) + temp
+            fs_atom(i,realBZ%first+iz-1,6) = fs_atom(i,realBZ%first+iz-1,6) + temp
             temp  = real( lz(mu,nu)*templ )
-            fs_orb(mu,iz,7) = fs_orb(mu,iz,7) + temp
-            fs_atom(i,iz,7) = fs_atom(i,iz,7) + temp
+            fs_orb(mu,realBZ%first+iz-1,7) = fs_orb(mu,realBZ%first+iz-1,7) + temp
+            fs_atom(i,realBZ%first+iz-1,7) = fs_atom(i,realBZ%first+iz-1,7) + temp
           end do orb_nu
         end do orb_mu
 
       end do site_i
 
       do mu=1,s%nOrb      
-        fs_total(iz,:) = fs_total(iz,:) + fs_orb(mu,iz,:)
+        fs_total(realBZ%first+iz-1,:) = fs_total(realBZ%first+iz-1,:) + fs_orb(mu,realBZ%first+iz-1,:)
       end do
 
     end do
     !$omp end parallel do
+
+    if(rField == 0) then
+      call MPI_Reduce(MPI_IN_PLACE, fs_orb   , s%nOrb*realBZ%nkpt*7  , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+      call MPI_Reduce(MPI_IN_PLACE, fs_atom  , s%nAtoms*realBZ%nkpt*7, MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+      call MPI_Reduce(MPI_IN_PLACE, fs_total , realBZ%nkpt*7         , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+    else
+      call MPI_Reduce(fs_orb      , fs_orb   , s%nOrb*realBZ%nkpt*7  , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+      call MPI_Reduce(fs_atom     , fs_atom  , s%nAtoms*realBZ%nkpt*7, MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+      call MPI_Reduce(fs_total    , fs_total , realBZ%nkpt*7         , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+    end if
 
     if(rField == 0) call writeFS(fs_atom,fs_orb,fs_total)
 
@@ -271,12 +281,16 @@ contains
     use mod_kind,          only: int32, int64
     use mod_System,        only: s => sys
     use mod_BrillouinZone, only: realBZ
+    use mod_mpi_pars,      only: FreqComm
     implicit none
     real(dp), intent(in) :: fs_atom(s%nAtoms,realBZ%nkpt,7),fs_orb(s%nOrb,realBZ%nkpt,7),fs_total(realBZ%nkpt,7)
     character(len=30)    :: formatvar
     real(dp)             :: kp(3)
-    integer(int64)                :: iz
-    integer(int32)                :: i, mu, sigma
+    integer(int64)       :: iz
+    integer(int32)       :: i, mu, sigma
+
+    ! Generating all points at rank=0
+    call realBZ % setup_fraction(s,0, 1, FreqComm(1))
 
     write(formatvar,fmt="(a,i0,a)") '(',s%nOrb*7+3,'(es16.9,2x))'
 

@@ -145,21 +145,17 @@ contains
   !! --------------------------------------------------------------------
     use mod_kind, only: dp
     implicit none
-    integer,                       intent(in)  :: size
+    integer,                   intent(in)  :: size
     real(dp), dimension(size), intent(in)  :: x
-    integer     , dimension(size), intent(out) :: order
-    integer                                    :: i
-    logical,      dimension(:), allocatable    :: mask
-
-    allocate( mask(size) )
+    integer,  dimension(size), intent(out) :: order
+    integer                                :: i
+    logical,  dimension(size)              :: mask
 
     mask = .true.
     do i = 1,size
       order(i) = minloc( x, 1, mask(:) )
       mask(order(i)) = .false.
     end do
-
-    deallocate( mask )
 
   end subroutine sort_int
 
@@ -169,23 +165,19 @@ contains
   !!    This subroutine receives an array x() and returns an double integer array
   !!  'order' with the positions of ascending numbers of x.
   !! --------------------------------------------------------------------
-    use mod_kind, only: dp, int64
+    use mod_kind, only: dp,int64
     implicit none
-    integer(int64),                     intent(in)  :: size
-    real(dp), dimension(size), intent(in)  :: x
-    integer(int64)   , dimension(size), intent(out) :: order
-    integer(int64)                                  :: i
-    logical,      dimension(:), allocatable    :: mask
-
-    allocate( mask(size) )
+    integer(int64),                  intent(in)  :: size
+    real(dp),       dimension(size), intent(in)  :: x
+    integer(int64), dimension(size), intent(out) :: order
+    integer(int64)                               :: i
+    logical,        dimension(size)              :: mask
 
     mask(:) = .true.
     do i = 1,size
       order(i) = minloc( x, 1, mask(:) )
       mask(order(i)) = .false.
     end do
-
-    deallocate( mask )
 
   end subroutine sort_double_int
 
@@ -346,8 +338,8 @@ contains
   !! subroutine sort_file():
   !!    This subroutine sorts the lines containing data of file 'unit'
   !! --------------------------------------------------------------------
-    use mod_kind, only: dp
-    use mod_mpi_pars
+    use mod_kind,     only: dp
+    use mod_mpi_pars, only: abortProgram
     ! use mod_mpi_pars, only: abortProgram
     implicit none
     integer, intent(in) :: unit
@@ -355,7 +347,7 @@ contains
     integer             :: i,j,k,l,rows,cols,commented_rows
     character(len=900), allocatable :: comments(:)
     integer     ,       allocatable :: order(:)
-    real(dp),       allocatable :: data(:,:),x(:)
+    real(dp),           allocatable :: data(:,:),x(:)
     logical,            allocatable :: mask(:)
 
     ! Obtaining number of rows and cols in the file

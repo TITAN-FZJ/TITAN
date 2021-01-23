@@ -313,8 +313,7 @@ program TITAN
       if(rField == 0) &
         call band_structure(s)
     case (5) ! Iso-energy surface (for input = s%Ef - Fermi surface)
-      if(rField == 0) & ! Temporary working only for 1 MPI process (TO DO: Add MPI on energy loop)
-        call fermi_surface()
+      call fermi_surface()
     case (6) ! Coupling tensor
       call coupling()
     case (7) ! Full magnetic susceptibility as a function of the frequency
