@@ -77,7 +77,10 @@ contains
       call calculate_fermi_surface(fs_energies(i))
 
       ! Closing files
-      if(rField == 0) call closeFSfiles()
+      if(rField == 0) then
+        call sortFermiSurface()
+        call closeFSfiles()
+      end if
 
     end do
 
@@ -234,6 +237,20 @@ contains
     if(errt/=0) call abortProgram("[openFSfiles] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_line('A') // trim(missing_files))
 
   end subroutine openFSfiles
+
+
+  subroutine sortFermiSurface()
+    use mod_tools,  only: sort_file
+    use mod_System, only: s => sys
+    implicit none
+    integer i,j
+    do i=1,s%nAtoms
+      call sort_file(17+i)
+    end do
+    do j = 1, size(filename)
+      call sort_file(95+j)
+    end do
+  end subroutine sortFermiSurface
 
 
   subroutine closeFSfiles()

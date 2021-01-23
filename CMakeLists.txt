@@ -43,7 +43,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/calculate_chi.F90
                                   source/calculate_all.F90
                                   source/calculate_dc_limit.F90
-                                  source/fermi_surface.F90
+                                  source/mod_fermi_surface.F90
                                   source/mod_Atom_variables.F90
                                   source/mod_rotation_matrices.F90
                                   source/mod_check_stop.F90

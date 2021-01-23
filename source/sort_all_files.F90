@@ -1,12 +1,12 @@
 ! Sort all files
 subroutine sort_all_files()
-  use mod_parameters, only: itype,kount,nEner1,output
-  use mod_magnet, only: hw_count
-  use mod_susceptibilities
-  use mod_disturbances
-  use mod_beff
-  use mod_torques
-  use mod_LDOS, only: sortLDOS
+  use mod_parameters,       only: itype,kount,nEner1,output
+  use mod_magnet,           only: hw_count
+  use mod_susceptibilities, only: sort_susceptibilities
+  use mod_disturbances,     only: sort_disturbances
+  use mod_beff,             only: sort_beff
+  use mod_torques,          only: sort_torques
+  use mod_LDOS,             only: sortLDOS
   !use mod_currents!TODO: Re-Include
   !use mod_sha !TODO: Re-Include
   implicit none
