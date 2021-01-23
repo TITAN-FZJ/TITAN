@@ -26,7 +26,7 @@ program TITAN
   use mod_self_consistency,    only: doSelfConsistency
   use EnergyIntegration,       only: pn1,allocate_energy_points,generate_imag_epoints
   use mod_progress,            only: start_program,write_time
-  use mod_mpi_pars,            only: MPI_Wtime,myrank,startField,endField,rField,ierr,Initialize_MPI,genMPIGrid,abortProgram
+  use mod_mpi_pars,            only: MPI_Wtime,myrank,startField,endField,rField,Initialize_MPI,genMPIGrid,abortProgram
   use mod_polyBasis,           only: read_basis
   use TightBinding,            only: initTightBinding
   use mod_fermi_surface,       only: fermi_surface
@@ -49,7 +49,7 @@ program TITAN
 
   external :: create_folder,create_files,check_files,sort_all_files
   external :: coupling,calculate_chi,calculate_all,calculate_dc_limit
-  external :: setLoops,MPI_Finalize
+  external :: setLoops,endTITAN
 
   !------------------------ MPI initialization -------------------------
   call Initialize_MPI()
@@ -222,8 +222,7 @@ program TITAN
     if(lcreatefiles) then
       if(rField == 0) call create_files()
       if((itype==7).or.(itype==8)) cycle
-      call MPI_Finalize(ierr)
-      call exit(0)
+      call endTITAN()
     end if
     !----------- Check if files exist to add results or sort -----------
     if( (lsortfiles .or. laddresults) .and. rField == 0 ) call check_files()

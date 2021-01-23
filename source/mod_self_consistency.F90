@@ -1229,6 +1229,7 @@ contains
   !!     mz - mz_in   = 0
   !!  sum n - n_total = 0
     use mod_kind,              only: dp
+    use mod_parameters,        only: output
     use mod_system,            only: s => sys
     use mod_magnet,            only: iter,maxiter,rho,rhot,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
     use mod_Umatrix,           only: update_Umatrix
