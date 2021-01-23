@@ -404,6 +404,9 @@ contains
     use mod_system,            only: s => sys
     use mod_dnsqe,             only: dnsqe
     use mod_superconductivity, only: lsuperCond,delta_sc
+#ifdef _GPU
+    use nvtx,                  only: nvtxStartRange,nvtxEndRange
+#endif
     implicit none
     real(dp), allocatable :: fvec(:),jac(:,:),wa(:),sc_solu(:)
     real(dp), allocatable :: diag(:),qtf(:)
@@ -430,6 +433,11 @@ contains
       if(rField == 0) &
         write(output%unit_loop,"('[self_consistency] Starting self-consistency:')")
 
+#ifdef _GPU
+    ! Starting marker of dnsqe for profiler
+    call nvtxStartRange("dnsqe",1)
+#endif
+
       ! Performing selfconsistency finding root of non-linear system of equations (SLATEC)
       lwa=neq*(3*neq+13)/2
       allocate( wa(lwa) )
@@ -439,6 +447,11 @@ contains
         call dnsqe(sc_eqs,sc_jac,1,neq,sc_solu,fvec,mag_tol,0,ifail,wa,lwa)
       end if
       ifail = ifail-1
+
+#ifdef _GPU
+    ! End of dnsqe marker
+    call nvtxEndRange
+#endif
 
       ! Deallocating variables dependent on the number of equations
       deallocate(sc_solu,diag,qtf,fvec,jac,wa)
@@ -1285,8 +1298,9 @@ contains
     call print_sc_step(rhod,mpd,mzd,deltas,s,fvec)
 
     if(lontheflysc) call write_sc_results()
-    write(output%unit_loop,"('[sc_eqs] Maximum number of iterations reached!')")
+
     if(iter>=maxiter) then
+      write(output%unit_loop,"('[sc_eqs] Maximum number of iterations reached!')")
       call endTITAN()
     end if
   end subroutine sc_eqs

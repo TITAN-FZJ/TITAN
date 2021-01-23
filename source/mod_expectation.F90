@@ -307,6 +307,7 @@ contains
     use mod_parameters,    only: dimHsc,output
     use mod_system,        only: System_type
     use mod_cuda,          only: diagonalize_gpu
+    use nvtx,              only: nvtxStartRange,nvtxEndRange
     use mod_constants,     only: cZero
     use mod_hamiltonian,   only: hamilt_local_gpu,h0_d,fullhk_d
     use mod_mpi_pars,      only: MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
@@ -350,12 +351,23 @@ contains
         end do
       end do
 
+      ! Starting marker of diagonalization for profiler
+      call nvtxStartRange("Diagonalization",2)
+
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
       call diagonalize_gpu(dimHsc,hk_d,eval_d)
+
+      ! End of diagonalization marker
+      call nvtxEndRange
+
+      ! Starting marker of expectation value for profiler
+      call nvtxStartRange("Expectation",3)
 
       ! Calculating expectation values for a given k-point
       call expec_val_gpu(s,dimHsc,hk_d,eval_d,expec_0_d,expec_p_d,expec_z_d,expec_d_d)
 
+      ! End of expectation value marker
+      call nvtxEndRange
 
       !$cuf kernel do(2) <<< (1,*), (9,*) >>>
       do j = 1,s%nAtoms
@@ -369,7 +381,11 @@ contains
           deltas_d(mu,j) = deltas_d(mu,j) + expec_d_d(mu,j)*weight_d
         end do
       end do
+
     end do
+
+    ! Starting marker of MPI reduction for profiler
+    call nvtxStartRange("MPIReduction",4)
 
     !Gather and sum all the results from the different processes using an Allreduce clause
     call MPI_Allreduce(MPI_IN_PLACE, rho_d   , ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
@@ -377,12 +393,21 @@ contains
     call MPI_Allreduce(MPI_IN_PLACE, mp_d    , ncount, MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
     call MPI_Allreduce(MPI_IN_PLACE, deltas_d, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
 
+    ! End of MPI reduction marker
+    call nvtxEndRange
+
+    ! Starting marker of DevicetoHost copy for profiler
+    call nvtxStartRange("DevicetoHost",5)
+
     rho = rho_d
     mp  = mp_d
     mz  = mz_d
     deltas = deltas_d
     mx = real(mp)
     my = aimag(mp)
+
+    ! End of DevicetoHost copy marker
+    call nvtxEndRange
 
   end subroutine expectation_eigenstates_fullhk_gpu
 

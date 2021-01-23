@@ -79,6 +79,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_imRK4_parameters.F90
                                   source/mod_time_propagator_io.F90
                                   source/mod_cuda.F90
+                                  source/mod_nvtx.F90
                                   )
 
 
@@ -320,10 +321,8 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
                                                 )
   endif(NOT DEBUG MATCHES "ON")
 
-# elseif(COMPILER MATCHES pgi) # PGI:
-#   target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -lsci_acc)
 elseif(COMPILER MATCHES nv) # NVIDIA:
-  target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -I${CUDA_ROOT}/include -Mcuda -L${CUDA_ROOT}/lib64 -lcusolver -lcudart -acc -gpu=cc70,cc80)
+  target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -I${CUDA_ROOT}/include -Mcuda -L${CUDA_ROOT}/lib64 -lcusolver -lcudart -lnvToolsExt -acc -gpu=cc70,cc80)
   if(NOT DEBUG MATCHES "ON")
     target_compile_definitions(${TITAN_EXE} PRIVATE _GPU)
     target_compile_options(${TITAN_EXE} PRIVATE -cpp

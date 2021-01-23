@@ -38,6 +38,7 @@ program TITAN
   use mod_superconductivity,   only: lsuperCond,supercond,allocate_supercond_variables
   use mod_System,              only: s=>sys,initHamiltkStride,initConversionMatrices
 #ifdef _GPU
+  use nvtx,                    only: nvtxStartRange,nvtxEndRange
   use mod_cuda,                only: num_gpus,result,create_handle,destroy_handle,cudaGetDeviceCount,cudaSetDevice,cudaGetErrorString 
 #endif
   !use mod_define_system TODO: Re-include
@@ -263,7 +264,19 @@ program TITAN
     if(rField == 0) &
       call write_time('[main] Time before self-consistency: ',output%unit_loop)
 
+
+#ifdef _GPU
+    ! Starting marker of self-consistency for profiler
+    call nvtxStartRange("Self-consistency",0)
+#endif
+
     call doSelfConsistency()
+
+#ifdef _GPU
+    ! End of self-consistency marker
+    call nvtxEndRange
+#endif
+    
 
     !--------- Temporary execution to test this function ---------------
 
