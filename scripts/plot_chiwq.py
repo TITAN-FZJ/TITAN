@@ -199,7 +199,10 @@ if __name__ == "__main__":
     for axis in ['top','bottom','left','right']:
       grid.cbar_axes[0].spines[axis].set_linewidth(1.5)
 
-
-
   # plt.tight_layout()
-  plt.show()
+  if args.output == "":
+    plt.show()
+  else:
+    plt.savefig(args.output,dpi=200)
+    if args.show:
+      plt.show()

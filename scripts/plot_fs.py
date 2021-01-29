@@ -89,4 +89,9 @@ if __name__ == "__main__":
     plt.colorbar(im, cax=cax).outline.set_linewidth(1.5) # Similar to fig.colorbar(im, cax = cax)
     cax.set_ylabel(clabel)
 
-  plt.show()
+  if args.output == "":
+    plt.show()
+  else:
+    plt.savefig(args.output,dpi=200)
+    if args.show:
+      plt.show()

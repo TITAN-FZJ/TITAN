@@ -86,10 +86,12 @@ if __name__ == "__main__":
         else:
           axs[0,i].set_title(titles[i])
         axs[0,i].set_xlim([point[0],point[npoints-1]])
-        if args.zoom != 0.0:
-          axs[0,i].set_ylim(-args.zoom,args.zoom)
-        # axs[0,i].set_ylim(table[:,1:].min(),table[:,1:].max())
-        # axs[0,i].set_ylim(1.0/(table[:,1:].min()),1.0/(table[:,1:].max()))
+        if args.ylim != "":
+          ylim = eval(args.ylim)
+          axs[0,i].set_ylim(ylim)
+        # else:
+        #   axs[0,i].set_ylim(table[:,1:].min(),table[:,1:].max())
+        #   axs[0,i].set_ylim(1.0/(table[:,1:].min()),1.0/(table[:,1:].max()))
 
         axs[0,i].set_xticks(point)
         axs[0,i].set_xticklabels(name)
@@ -139,8 +141,12 @@ if __name__ == "__main__":
         titles = ["Electrons", "Holes"]
         axs[0,i].set_title(titles[i])
         axs[0,i].set_xlim([point[0],point[npoints-1]])
-        # axs[0,i].set_ylim(table[:,1:].min(),table[:,1:].max())
-        # axs[0,i].set_ylim(1.0/(table[:,1:].min()),1.0/(table[:,1:].max()))
+        if args.ylim != "":
+          ylim = eval(args.ylim)
+          axs[0,i].set_ylim(ylim)
+        # else:
+        #   axs[0,i].set_ylim(table[:,1:].min(),table[:,1:].max())
+        #   axs[0,i].set_ylim(1.0/(table[:,1:].min()),1.0/(table[:,1:].max()))
 
         axs[0,i].set_xticks(point)
         axs[0,i].set_xticklabels(name)
@@ -196,8 +202,12 @@ if __name__ == "__main__":
       table = read_data(args.files[0])
       axs[0,i].set_title(titles[i])
       axs[0,i].set_xlim([point[0],point[npoints-1]])
-      # axs[0,i].set_ylim(table[:,1:].min(),table[:,1:].max())
-      # axs[0,i].set_ylim(1.0/(table[:,1:].min()),1.0/(table[:,1:].max()))
+      if args.ylim != "":
+        ylim = eval(args.ylim)
+        axs[0,i].set_ylim(ylim)
+      # else:
+      #   axs[0,i].set_ylim(table[:,1:].min(),table[:,1:].max())
+      #   axs[0,i].set_ylim(1.0/(table[:,1:].min()),1.0/(table[:,1:].max()))
 
       if args.title != "":
         axs[0,i].set_title(args.title)
@@ -208,9 +218,6 @@ if __name__ == "__main__":
       axs[0,i].set_xticklabels(name)
       for j in point:
         axs[0,i].axvline(x=j, color='k', linewidth=0.5)
-
-      if args.zoom != 0.0:
-        axs[0,i].set_ylim(-args.zoom,args.zoom)
 
       # Ploting the Fermi level or a line at y=0.0
       if args.noef:
@@ -226,8 +233,9 @@ if __name__ == "__main__":
         axs[0,i].plot(table[:,0],table[:,1:dimbs]*ry2ev, color='k', linewidth=1.0, linestyle='-')
 
     plt.tight_layout()
-    if args.output == "output.pdf":
+    if args.output == "":
       plt.show()
     else:
-      plt.savefig(args.output)
-      plt.show()
+      plt.savefig(args.output,dpi=200)
+      if args.show:
+        plt.show()

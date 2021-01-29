@@ -81,4 +81,9 @@ if __name__ == "__main__":
     axs[0,i].plot(table[:,1],-1.0/table[:,2])
 
   plt.tight_layout()
-  plt.show()
+  if args.output == "":
+    plt.show()
+  else:
+    plt.savefig(args.output,dpi=200)
+    if args.show:
+      plt.show()

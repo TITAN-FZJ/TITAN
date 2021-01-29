@@ -127,7 +127,8 @@ if __name__ == "__main__":
   max_ldos = max(a1)
 
   if args.xlim != "":
-    xlim = [-eval(args.xlim),eval(args.xlim)]
+    xlim = eval(args.xlim)
+    # xlim = [-eval(args.xlim),eval(args.xlim)]
     plt.xlim(xlim)
 
   if args.domain != "":
@@ -156,6 +157,9 @@ if __name__ == "__main__":
   # fig = plt.gcf()
   # fig.set_size_inches(3., 2.2)
   plt.tight_layout()
-  plt.savefig(args.output)
-
-  plt.show()
+  if args.output == "":
+    plt.show()
+  else:
+    plt.savefig(args.output,dpi=200)
+    if args.show:
+      plt.show()

@@ -269,7 +269,9 @@ if __name__ == "__main__":
                 axs[0,i].scatter(table[:,0],(table[:,j]-fermi)*ry2ev,c=[(colors[g][0],colors[g][1],colors[g][2], a) for a in weight],s=8)
 
   plt.tight_layout()
-  if args.output != "":
-    plt.savefig(args.output,dpi=200)
-  if args.show:
+  if args.output == "":
     plt.show()
+  else:
+    plt.savefig(args.output,dpi=200)
+    if args.show:
+      plt.show()

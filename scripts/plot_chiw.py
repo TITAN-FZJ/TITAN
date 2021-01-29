@@ -69,4 +69,9 @@ if __name__ == "__main__":
   if args.legends != "[]":
     plt.legend()
 
-  plt.show()
+  if args.output == "":
+    plt.show()
+  else:
+    plt.savefig(args.output,dpi=200)
+    if args.show:
+      plt.show()
