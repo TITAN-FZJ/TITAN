@@ -10,7 +10,7 @@ rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 ## for Palatino and other serif fonts use:
 # rc('font',**{'family':'serif','serif':['Palatino']})
 mpl.rcParams['text.usetex'] = True
-mpl.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}',r'\usepackage{siunitx}']
+mpl.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}']
 # matplotlib.rcParams['text.latex.preamble'] = [r'\renewcommand{\seriesdefault}{\bfdefault}',r'\boldmath']
 #matplotlib.rcParams['text.latex.preamble'] = [r'\boldmath']
 # rc('mathtext', default='regular')

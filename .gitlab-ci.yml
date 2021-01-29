@@ -5,13 +5,34 @@
 # image: iffregistry.fz-juelich.de/docker-images/centos8-intel-compilers:latest-ipython3
 image: iffregistry.fz-juelich.de/docker-images/centos8-intel-compilers:latest-nvidia_hpc
 # list with commands that are executed before each job; every job starts with a fresh docker container
-before_script:
-  - echo before scripts
+
+.setup_ifort: &setup_ifort
+  - echo "Setting up Intel Fortran compiler"
+  # Setting up variables
   - set +e && source compilervars.sh intel64 && set -e
+  # Checking location of ifort
   - which ifort
+  # Checking ifort version
   - ifort --version
+  # Checking location of mpiifort
   - which mpiifort
+  # Checking mpiifort version
   - mpiifort -v
+
+.setup_gfortran: &setup_gfortran
+  - echo "Setting up GNU Fortran compiler"
+  # Setting up MPI variables
+  - set +e && source compilervars.sh intel64 
+  # Setting up GNU variables
+  - source /opt/rh/gcc-toolset-9/enable
+  # Checking location of gfortran
+  - which gfortran
+  # Checking gfortran version
+  - gfortran --version
+  # Checking location of mpif90
+  - which mpif90
+  # Checking mpif90 version
+  - mpif90 -v
 
 # pipeline stages; a stage is only run if the previous stage is completed. Each stage contains user-defined jobs
 # that are run in parallel
@@ -29,10 +50,7 @@ stages:
 build:gnu:normal:
   stage: build
   script:
-    - source /opt/rh/gcc-toolset-9/enable
-    - which gfortran
-    - gfortran --version
-    - mpif90 -v
+    - *setup_gfortran
     - cd build
     - cmake ../ -DPLATFORM=iff -DCOMPILER=gnu
     - make
@@ -44,38 +62,39 @@ build:gnu:normal:
 build:gnu:debug:
   stage: build
   script:
-    - source /opt/rh/gcc-toolset-9/enable
-    - which gfortran
-    - gfortran --version
-    - mpif90 -v
+    - *setup_gfortran
     - cd build
     - cmake ../ -DPLATFORM=iff -DCOMPILER=gnu -DDEBUG=ON
     - make 2> >(tee make.warnings)
-    - test ! -s make.warnings
+    - if [ -s make.warnings ] ; then echo "Compiled with warnings"; cat make.warnings ; exit 42 ; fi
   artifacts:
     paths:
       - make.warnings
       - bin/
     expire_in: 1 day
-  allow_failure: true
+  allow_failure:
+    exit_codes: 42
 
 build:intel:debug:
   stage: build
   script:
+    - *setup_ifort
     - cd build
     - cmake ../ -DPLATFORM=iff -DDEBUG=ON
     - make 2> >(tee make.warnings)
-    - test ! -s make.warnings
+    - if [ -s make.warnings ] ; then echo "Compiled with warnings"; cat make.warnings ; exit 42 ; fi
   artifacts:
     paths:
       - make.warnings
       - bin/
     expire_in: 1 day
-  allow_failure: true
+  allow_failure:
+    exit_codes: 42
 
 build:intel:normal:
   stage: build
   script:
+    - *setup_ifort
     - cd build
     - cmake ../ -DPLATFORM=iff
     - make
@@ -90,37 +109,37 @@ build:intel:normal:
 # ** Anchors **
 # Going to TEST_FOLDER, setting calculation type and running calculation
 .run_test: &run_test
-    # Printing Python version
-    - python --version
-    # Going to current test folder
-    - cd ${TEST_FOLDER}
-    # Setting up 
-    - sed -i "s/-> itype = .*/-> itype = ${ITYPE}/g" input
-    # Setting up 4 omp threads
-    - export OMP_NUM_THREADS=8
-    # Running the code with 2 MPI ranks
-    - mpirun -np 1 ../../bin/titan_iff.exe
-    # Printing any error file, if existing
-    - if [ -f error* ] ; then grep -H '' error* ; fi
-    # Printing runtime
-    - grep "Finished on" output/*
+  # Printing Python version
+  - python --version
+  # Going to current test folder
+  - cd ${TEST_FOLDER}
+  # Setting up 
+  - sed -i "s/-> itype = .*/-> itype = ${ITYPE}/g" input
+  # Setting up 4 omp threads
+  - export OMP_NUM_THREADS=8
+  # Running the code with 2 MPI ranks
+  - mpirun -np 1 ../../bin/titan_iff.exe
+  # Printing any error file, if existing
+  - if [ -f error* ] ; then grep -H '' error* ; fi
+  # Printing runtime
+  - grep "Finished on" output/*
 
 # Create scResults from output file
 .create_scResults_file: &create_scResults_file
-    - sed -n '/Self-consistent ground state/,/\(.*iterations \)/p' output/* | head -n -1 | cut -c-77 > results/scResult
+  - sed -n '/Self-consistent ground state/,/\(.*iterations \)/p' output/* | head -n -1 | cut -c-77 > results/scResult
 
 # Excluding files if they are not supposed to be checked and
 # Comparing all remaining files in results folder with the ones in ./results_correct, using tolerance ${TOL}
 .compare_files: &compare_files |
-    if [ ! -z ${EXCLUDE} ]
-    then
-    find ./results -name *${EXCLUDE}* -exec rm -rf {} +
-    fi
-    for file in `find results/ -type f`
-    do
-      [[ -z ${TOL} ]] && echo "Comparing file $(basename ${file}) with default tolerance `grep -m 1 "tol =" ../../scripts/compare_output.py | awk -F= '{print $2}'`" || echo "Comparing file $(basename ${file}) with tolerance ${TOL}"
-      python ../../scripts/compare_output.py ${file} ${file/results/results_correct} ${TOL}
-    done
+  if [ ! -z ${EXCLUDE} ]
+  then
+  find ./results -name *${EXCLUDE}* -exec rm -rf {} +
+  fi
+  for file in `find results/ -type f`
+  do
+    [[ -z ${TOL} ]] && echo "Comparing file $(basename ${file}) with default tolerance `grep -m 1 "tol =" ../../scripts/compare_output.py | awk -F= '{print $2}'`" || echo "Comparing file $(basename ${file}) with tolerance ${TOL}"
+    python ../../scripts/compare_output.py ${file} ${file/results/results_correct} ${TOL}
+  done
 
 # ** Jobs **
 #============ Normal Self-consistency ============#
@@ -131,6 +150,8 @@ Nb_100_Monolayer:
   script:
     - export TEST_FOLDER="examples/Nb_100_Monolayer"
     - export ITYPE=1
+    # Setting up Intel Fortran Compiler
+    - *setup_ifort
     - *run_test
     - *create_scResults_file
     - *compare_files
@@ -142,6 +163,8 @@ Ni_bulk:
   script:
     - export TEST_FOLDER="examples/Ni_bulk_timeprop"
     - export ITYPE=1
+    # Setting up Intel Fortran Compiler
+    - *setup_ifort
     - *run_test
     - *create_scResults_file
     - *compare_files
@@ -153,6 +176,8 @@ Fe_bulk:
   script:
     - export TEST_FOLDER="examples/Fe_bulk_susc"
     - export ITYPE=1
+    # Setting up Intel Fortran Compiler
+    - *setup_ifort
     - *run_test
     - *create_scResults_file
     - *compare_files
@@ -164,6 +189,8 @@ graphene_pz:
   script:
     - export TEST_FOLDER="examples/graphene"
     - export ITYPE=1
+    # Setting up Intel Fortran Compiler
+    - *setup_ifort
     - *run_test
     - *create_scResults_file
     - *compare_files
@@ -176,6 +203,8 @@ Nb_100_Superconducting_Monolayer:
   script:
     - export TEST_FOLDER="examples/Nb_100_Superconducting_Monolayer"
     - export ITYPE=1
+    # Setting up Intel Fortran Compiler
+    - *setup_ifort
     - *run_test
     - *create_scResults_file
     - *compare_files
@@ -188,8 +217,15 @@ Nb_100_Monolayer:ldos:
   script:
     - export TEST_FOLDER="examples/Nb_100_Monolayer"
     - export ITYPE=2
+    # Setting up Intel Fortran Compiler
+    - *setup_ifort
     - *run_test
     - *compare_files
+  artifacts:
+    paths:
+      - examples/Nb_100_Monolayer/results/
+    expire_in: 1 day
+
 
 Nb_100_Monolayer:bands:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -198,6 +234,8 @@ Nb_100_Monolayer:bands:
   script:
     - export TEST_FOLDER="examples/Nb_100_Monolayer"
     - export ITYPE=4
+    # Setting up Intel Fortran Compiler
+    - *setup_ifort
     - *run_test
     - export EXCLUDE="weights"
     - *compare_files
@@ -209,6 +247,8 @@ graphene_pz:ldos:
   script:
     - export TEST_FOLDER="examples/graphene"
     - export ITYPE=2
+    # Setting up Intel Fortran Compiler
+    - *setup_ifort
     - *run_test
     - *compare_files
 
@@ -219,6 +259,8 @@ graphene_pz:bands:
   script:
     - export TEST_FOLDER="examples/graphene"
     - export ITYPE=4
+    # Setting up Intel Fortran Compiler
+    - *setup_ifort
     - *run_test
     - export EXCLUDE="weights"
     - *compare_files
@@ -230,6 +272,8 @@ graphene_pz:isoenergy:
   script:
     - export TEST_FOLDER="examples/graphene"
     - export ITYPE=5
+    # Setting up Intel Fortran Compiler
+    - *setup_ifort
     - *run_test
     - *compare_files
 
@@ -240,6 +284,8 @@ Fe_bulk:susc:
   script:
     - export TEST_FOLDER="examples/Fe_bulk_susc"
     - export ITYPE=7
+    # Setting up Intel Fortran Compiler
+    - *setup_ifort
     - *run_test
     - export EXCLUDE="Slope"
     - export TOL=1e-5
@@ -252,20 +298,20 @@ Ni_bulk:timeprop:
   script:
     - export TEST_FOLDER="examples/Ni_bulk_timeprop"
     - export ITYPE=11
+    # Setting up Intel Fortran Compiler
+    - *setup_ifort
     - *run_test
     - export EXCLUDE="checkpoint"
     - *compare_files
 
 #============ Plots ============#
 Nb_100_Monolayer:ldos:plot:
-  image: iffregistry.fz-juelich.de/docker-images/centos8-intel-compilers:latest-ipython3
+  image: iffregistry.fz-juelich.de/docker-images/titan-images
   stage: plots
   needs: ["Nb_100_Monolayer:ldos"]
   script:
     # Checking python version
     - python --version
-    # install pip and numpy
-    - pip install numpy || curl -O https://bootstrap.pypa.io/get-pip.py && python get-pip.py && pip install numpy
     # Setting examples folder
     - export TEST_FOLDER="examples/Nb_100_Monolayer"
     # Going to current test folder
@@ -274,6 +320,7 @@ Nb_100_Monolayer:ldos:plot:
     - python ../../scripts/plot_ldos.py results/TSOC/1Sites/LDOS/ldosu_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosd_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat --xlim="[-0.5,1.5]" --output="./results/ldos.png"
     # Comparing with existing (correct) plot
     - python ../../scripts/compare_images.py ./results/ldos.png ./results_correct/ldos.png
+
 
 # # `pages` is a special job that builds the gitlab page for this project; all artifacts must be saved in a `public`
 # # directory to be published as a static site (that can be accessed from the whole www)
