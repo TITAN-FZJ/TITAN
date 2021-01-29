@@ -1,4 +1,4 @@
-# #!/usr/bin/env python3
+# #!/usr/bin/env python
 ##################################################################
 # Script to compare images
 # Adapted from: https://gist.github.com/astanin/626356
