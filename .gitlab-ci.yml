@@ -267,9 +267,9 @@ Nb_100_Monolayer:ldos:plot:
     # Going to current test folder
     - cd ${TEST_FOLDER}
     # Creating new plot
-    - python3 ../../scripts/plot_ldos.py results/TSOC/1Sites/LDOS/ldosu_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosd_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat --xlim="[-0.5,1.5]" --output="./results/ldos.png"
+    - python ../../scripts/plot_ldos.py results/TSOC/1Sites/LDOS/ldosu_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosd_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat --xlim="[-0.5,1.5]" --output="./results/ldos.png"
     # Comparing with existing (correct) plot
-    - python3 ../../scripts/compare_images.py ./results/ldos.png ./results_correct/ldos.png
+    - python ../../scripts/compare_images.py ./results/ldos.png ./results_correct/ldos.png
 
 # # `pages` is a special job that builds the gitlab page for this project; all artifacts must be saved in a `public`
 # # directory to be published as a static site (that can be accessed from the whole www)
