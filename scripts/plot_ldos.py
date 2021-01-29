@@ -151,8 +151,9 @@ if __name__ == "__main__":
 
   plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
-  # if(Ef != 0.0):
-  plt.axvline(0.0, color='k', linestyle='--', linewidth=0.75)
+  if args.noef:
+    plt.axvline(0.0, color='k', linestyle='--', linewidth=0.75)
+  
 
   # fig = plt.gcf()
   # fig.set_size_inches(3., 2.2)
