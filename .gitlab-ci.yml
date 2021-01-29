@@ -12,6 +12,9 @@ before_script:
   - ifort --version
   - which mpiifort
   - mpiifort -v
+  - python --version
+# install pip and numpy
+  - pip install numpy || curl -O https://bootstrap.pypa.io/get-pip.py && python get-pip.py && pip install numpy
   # - pip3 install --user numpy
 
 # pipeline stages; a stage is only run if the previous stage is completed. Each stage contains user-defined jobs
@@ -259,7 +262,7 @@ Ni_bulk:timeprop:
 
 #============ Plots ============#
 Nb_100_Monolayer:ldos:plot:
-  image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
+  # image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: plots
   needs: ["Nb_100_Monolayer:ldos"]
   script:
