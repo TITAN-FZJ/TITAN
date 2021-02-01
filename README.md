@@ -147,7 +147,7 @@ M 0.5 0.5 0.0
 ### Download:
 
 First clone the repository on your local computer or supercomputer of choice.
-```
+```batch
 git clone https://iffgit.fz-juelich.de/titan/TITAN.git
 cd TITAN/build
 ```
@@ -162,7 +162,7 @@ or to use GFortran:
 `module load GCC ParaStationMPI CMake`
 
 `TITAN` uses CMake to create the Makefile for compilation. The following options are available:
-```
+```batch
 cmake ../ -DPLATFORM=system [-DCOMPILER=compiler -DDEBUG=ON]
 make -j12
 ```
@@ -179,7 +179,7 @@ An example calculation can be found in `TITAN/example`
 ### SLURM
 
 One example of a submission script used for the SLURM workload manager:
-```
+```batch
 #!/bin/bash -x
 #SBATCH --nodes=1
 #SBATCH -J JobName
@@ -206,7 +206,7 @@ srun ~/TITAN/bin/titan_jureca.exe --exports=NAG_KUSARI_FILE --exports=OMP_NUM_TH
 ### Linux
 
 To directly run the code with 2 MPI processes and 4 openMP threads:
-```
+``` batch
 export OMP_NUM_THREADS=4
 mpirun -np 2 ~/TITAN/bin/titan.exe --exports=OMP_NUM_THREADS
 ```
