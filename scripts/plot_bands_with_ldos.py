@@ -10,10 +10,13 @@
 from head import *
 
 if(ry2ev == 13.6057*1000):
+  labelx = r'$\rho(E)$ [meV$^{-1}$]'
   labely = r'$E-E_F$ [meV]'
 elif(ry2ev == 13.6057):
+  labelx = r'$\rho(E)$ [eV$^{-1}$]'
   labely = r'$E-E_F$ [eV]'
 else:
+  labelx = r'$\rho(E)$ [Ry$^{-1}$]'
   labely = r'$E-E_F$ [Ry]'
 
 if args.superconductivity:
@@ -100,13 +103,14 @@ if __name__ == "__main__":
   nplots = len(args.files)
   filename = args.output
   fig, ax = plt.subplots(1,nplots, sharey=True, gridspec_kw = {'width_ratios':([1,4,1] if mag else [1,4])})
-  fig.subplots_adjust(left=0.15,wspace=0.15)
+  fig.subplots_adjust(left=0.1,wspace=0.15,top=0.95, bottom=0.15, right=0.9)
 
   if args.title != "":
       fig.suptitle(args.title,fontsize=24)
 
   ax[0].tick_params(axis='y', direction='in', left=True, right=True)
   ax[0].set_ylabel(labely, fontsize=14)
+  ax[0].set_xlabel(labelx, fontsize=14)
 
   npoints, name, point, fermi = read_header(args.files[0])
   table = read_data(args.files[0])
@@ -119,6 +123,7 @@ if __name__ == "__main__":
     ax[2].tick_params(axis='y', direction='in', left=True, right=True)
     ndatad=read_data_ldos(args.files[2])
     ndatad = ndatad[ndatad[:,0].argsort()]
+    ax[2].set_xlabel(labelx, fontsize=14)
 
   ax[1].set_xticks(point)
   ax[1].set_xticklabels(name)
