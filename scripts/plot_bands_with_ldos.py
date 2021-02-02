@@ -82,12 +82,24 @@ def read_data_ldos(filename):
 
 if __name__ == "__main__":
 
+  if len(args.files)<=1 or len(args.files) >=4:
+    print(f"Incorrect number of arguments: {len(args.files)}.")
+    print(f"At least one band structure and one LDOS file and at maximum")
+    print(f"one band structure and two LDOS files shoud be given.")
+    exit(1)
   bsstruct = args.files[0]#args.fileband
 
   ldosu = args.files[1] #args.fileu
-  ldosd = args.files[2] #args.filed
+
+  if len(args.files)==3 :
+    ldosd = args.files[2] #args.filed
+    mag = True
+  else:
+    mag = False
+
+  nplots = len(args.files)
   filename = args.output
-  fig, ax = plt.subplots(1,3, sharey=True, gridspec_kw = {'width_ratios':[1,4,1]})
+  fig, ax = plt.subplots(1,nplots, sharey=True, gridspec_kw = {'width_ratios':([1,4,1] if mag else [1,4])})
   fig.subplots_adjust(left=0.15,wspace=0.15)
 
   if args.title != "":
@@ -95,17 +107,18 @@ if __name__ == "__main__":
 
   ax[0].tick_params(axis='y', direction='in', left=True, right=True)
   ax[0].set_ylabel(labely, fontsize=14)
-  ax[2].tick_params(axis='y', direction='in', left=True, right=True)
 
   npoints, name, point, fermi = read_header(args.files[0])
   table = read_data(args.files[0])
   fermi_ldos = read_header_ldos(args.files[1])
 
   ndatau=read_data_ldos(args.files[1])
-  ndatad=read_data_ldos(args.files[2])
-
   ndatau = ndatau[ndatau[:,0].argsort()]
-  ndatad = ndatad[ndatad[:,0].argsort()]
+
+  if mag:
+    ax[2].tick_params(axis='y', direction='in', left=True, right=True)
+    ndatad=read_data_ldos(args.files[2])
+    ndatad = ndatad[ndatad[:,0].argsort()]
 
   ax[1].set_xticks(point)
   ax[1].set_xticklabels(name)
@@ -131,6 +144,8 @@ if __name__ == "__main__":
 
   ax[1].set_xlim([point[0],point[npoints-1]])
 
+  a1 = max(ndatau[:,1]/ry2ev)
+
   # Majority spin LDOS
   x = ndatau[:,0]
   if args.onlyS:
@@ -144,23 +159,22 @@ if __name__ == "__main__":
           ax[0].plot(-ndatau[:,i]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[i-1], label=legends[i-1],marker=1,markersize=1)
 
   # Minority spin LDOS
-  x = ndatad[:,0]
-  if args.onlyS:
-      ax[2].plot(ndatad[:,2]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[2-1], label=legends[2-1],marker=1,markersize=1)
-      if args.superconductivity:
-          ax[2].plot(ndatad[:,5]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[5-1], label=legends[5-1],marker=1,markersize=1)
-          ax[2].plot(ndatad[:,5]/ry2ev + ndatad[:,2]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[1-1], label="sum",marker=1,markersize=1)
-  else:
-      for i in range(1,len(ndatad[0,:])):
-          # ax[2].plot(ndatad[:,i]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[i-1],marker=1,markersize=1)
-          ax[2].plot(ndatad[:,i]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[i-1], label=legends[i-1],marker=1,markersize=1)
+  if mag:
+    x = ndatad[:,0]
+    if args.onlyS:
+        ax[2].plot(ndatad[:,2]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[2-1], label=legends[2-1],marker=1,markersize=1)
+        if args.superconductivity:
+            ax[2].plot(ndatad[:,5]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[5-1], label=legends[5-1],marker=1,markersize=1)
+            ax[2].plot(ndatad[:,5]/ry2ev + ndatad[:,2]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[1-1], label="sum",marker=1,markersize=1)
+    else:
+        for i in range(1,len(ndatad[0,:])):
+            # ax[2].plot(ndatad[:,i]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[i-1],marker=1,markersize=1)
+            ax[2].plot(ndatad[:,i]/ry2ev,(x-fermi_ldos)*ry2ev,linestyle='-', color=colors[i-1], label=legends[i-1],marker=1,markersize=1)
+    a2 = max(ndatad[:,1]/ry2ev)
 
 
   # Setting limits:
-  a1 = max(ndatau[:,1]/ry2ev)
-  a2 = max(ndatad[:,1]/ry2ev)
-
-  max_ldos = max(a1,a2)
+  max_ldos = max(a1,a2) if mag else a1
   xlim = 1.1*abs(max_ldos)
   ax[0].set_xlim([-xlim,0.0])
   if args.ylim != "":
@@ -168,7 +182,8 @@ if __name__ == "__main__":
       ax[1].set_ylim(ylim)
   else:
       ax[1].set_ylim([1.1*(x-fermi_ldos)[0]*ry2ev,1.1*(x-fermi_ldos)[-1]*ry2ev])
-  ax[2].set_xlim([0.0,xlim])
+  if mag:
+    ax[2].set_xlim([0.0,xlim])
 
   #
   # ax[2].axhline(y=1000.0, xmin=point[0], xmax=point[npoints-1], color='b', linestyle='--', linewidth=0.75)
@@ -177,16 +192,19 @@ if __name__ == "__main__":
   # ax[0].axhline(y=1000.0, xmin=point[0], xmax=point[npoints-1], color='b', linestyle='--', linewidth=0.75)
   # ax[0].axhline(y=-1000.0, xmin=point[0], xmax=point[npoints-1], color='b', linestyle='--', linewidth=0.75)
 
+  ax[0].set_zorder(1)
+  ax[1].set_zorder(0)
   ax[0].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--', linewidth=0.75)
-  ax[2].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--', linewidth=0.75)
+  # Getting position of the middle of the band structure frame to put legend from LDOS
   posx = ax[1].get_position().x0 + 0.5*ax[1].get_position().width
   posy = ax[1].get_position().y0 + 0.9*ax[1].get_position().height
-  ax[2].legend(loc="center", bbox_to_anchor=(posx,posy), bbox_transform=ax[1].transAxes)
-
-
+  leg = ax[0].legend(loc="center", bbox_to_anchor=(posx,posy), bbox_transform=ax[1].transAxes)
+  leg.set_zorder(2)
   ax[0].tick_params(axis='both', which='major', labelsize=14)
   ax[1].tick_params(axis='both', which='major', labelsize=14)
-  ax[2].tick_params(axis='both', which='major', labelsize=14)
+  if mag:
+    ax[2].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--', linewidth=0.75)
+    ax[2].tick_params(axis='both', which='major', labelsize=14)
 
   if args.output == "":
     plt.show()
