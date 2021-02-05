@@ -3,13 +3,11 @@ cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Projects name
-project(TITAN)
+project(TITAN Fortran CXX)
 
 option(DEBUG "Enable debugging" OFF)
 option(PREP "Enable Instrumentation" OFF)
 option(BIGINT "Use 8byte integer" OFF)
-
-enable_language(Fortran)
 
 set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/AtomTypes.F90
@@ -82,7 +80,6 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_nvtx.F90
                                   )
 
-
 if(NOT PLATFORM)
   execute_process(COMMAND bash "-c" "cat /etc/FZJ/systemname 2>/dev/null | tr -d '\n'"
                   OUTPUT_VARIABLE PLATFORM 
@@ -152,11 +149,17 @@ if(COMPILER MATCHES pgi OR COMPILER MATCHES nv OR COMPILER MATCHES nvidia)
   set(COMPILER nv)
   set(SUFFIX ${SUFFIX}_nv)
   execute_process(COMMAND echo "Using NVIDIA Compiler")
+  
+  set(CMAKE_CXX_COMPILER nvcc)
+  set(SOURCE_TITAN_CPP ${SOURCE_TITAN_CPP}  source/diagonalize_gpu.cpp
+                                  )
+
 endif()
 
 set(TITAN_EXE titan_${PLATFORM}${DEBUGSUFFIX}${INSTRUMENT}${SUFFIX}.exe)
 
-add_executable(${TITAN_EXE} ${SOURCE_TITAN})
+add_executable(${TITAN_EXE} ${SOURCE_TITAN} ${SOURCE_TITAN_CPP})
+set_property(TARGET ${TITAN_EXE} PROPERTY LINKER_LANGUAGE Fortran)
 
 set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
@@ -322,23 +325,47 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
   endif(NOT DEBUG MATCHES "ON")
 
 elseif(COMPILER MATCHES nv) # NVIDIA:
-  target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -I${CUDA_ROOT}/include -Mcuda -L${CUDA_ROOT}/lib64 -lcusolver -lcudart -lnvToolsExt -acc -gpu=cc70,cc80)
+  # target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -I${CUDA_ROOT}/include -Mcuda -L${CUDA_ROOT}/lib64 -lcusolver -lcudart -lnvToolsExt -acc -gpu=cc70,cc80)
+  set_target_properties(${TITAN_EXE} PROPERTIES LINK_FLAGS "-L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -I${CUDA_ROOT}/include -Mcuda -L${CUDA_ROOT}/lib64 -lcusolver -lcudart -lnvToolsExt -acc -gpu=cc70,cc80")
   if(NOT DEBUG MATCHES "ON")
     target_compile_definitions(${TITAN_EXE} PRIVATE _GPU)
-    target_compile_options(${TITAN_EXE} PRIVATE -cpp
-                                                -DVERSION="${GIT_VERSION}"
-                                                -O3
-                                                -lm
-                                                -fast
-                                                -acc
-                                                -gpu=cc70,cc80
-                                                -Minfo=accel
-                                                -Mcuda
-                                                -lineinfo
-                                                -g
-                                                -acc
-                                                #-mp
-                                                )
+
+    set_source_files_properties(${SOURCE_TITAN}     PROPERTIES COMPILE_FLAGS "-cpp -DVERSION=\\\"${GIT_VERSION}\\\" -lineinfo -O3 -lm -fast -acc -gpu=cc70,cc80 -Minfo=accel -Mcuda -g")
+    set_source_files_properties(${SOURCE_TITAN_CPP} PROPERTIES COMPILE_FLAGS "--gpu-architecture=sm_80 -lineinfo -g")
+    # SET_TARGET_PROPERTIES(${TITAN_EXE} PROPERTIES LINK_FLAGS "-L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -I${CUDA_ROOT}/include -Mcuda -L${CUDA_ROOT}/lib64 -lcusolver -lcudart -lnvToolsExt -acc -gpu=cc70,cc80")
+
+    # set(CMAKE_Fortran_FLAGS "-O3 -lm -fast -acc -gpu=cc70,cc80 -Minfo=accel -Mcuda -g")
+
+    # set(CMAKE_CXX_FLAGS "--gpu-architecture=sm_80 -lineinfo -g")
+    # target_compile_options(${SOURCE_TITAN} PRIVATE -cpp
+    #                                             -DVERSION="${GIT_VERSION}"
+    #                                             -O3
+    #                                             -lm
+    #                                             -fast
+    #                                             -acc
+    #                                             -gpu=cc70,cc80
+    #                                             -Minfo=accel
+    #                                             -Mcuda
+    #                                             -lineinfo
+    #                                             -g
+    #                                             #-mp
+    #                                             )
+
+
+
+    # target_compile_options(${SOURCE_TITAN_CPP} PRIVATE -cpp
+    #                                             # -O3
+    #                                             # -lm
+    #                                             # -fast
+    #                                             # -acc
+    #                                              -gencode=arch=compute_80,code=sm_80
+    #                                             # -Minfo=accel
+    #                                             # -Mcuda
+    #                                             -lineinfo
+    #                                             -g
+    #                                             # -acc
+    #                                             #-mp
+    #                                             )
 
   else(NOT DEBUG MATCHES "ON")
     target_compile_definitions(${TITAN_EXE} PRIVATE _GPU DEBUG)
@@ -354,7 +381,6 @@ elseif(COMPILER MATCHES nv) # NVIDIA:
                                                 -Mchkstk                  # instructs the compiler to check the stack for available space in the prologue of a function and before the start of a parallel region.
                                                 -traceback
                                                 -Ktrap=fp,unf             # fp, unf is equivalent to inv,divz,ovf, unf  correspond to the processor’s exception mask bits: invalid operation, divide-by-zero, overflow, and underflow, respectively.
-                                                -acc
                                                 -gpu=cc70,cc80
                                                 -Minfo=accel
                                                 -acc

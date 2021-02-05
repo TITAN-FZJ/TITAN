@@ -306,7 +306,7 @@ contains
     use mod_BrillouinZone, only: realBZ
     use mod_parameters,    only: dimHsc,output
     use mod_system,        only: System_type
-    use mod_cuda,          only: diagonalize_gpu
+    use mod_cuda,          only: h,diagonalize_gpu
     use nvtx,              only: nvtxStartRange,nvtxEndRange
     use mod_constants,     only: cZero
     use mod_hamiltonian,   only: hamilt_local_gpu,h0_d,fullhk_d
@@ -355,7 +355,7 @@ contains
       call nvtxStartRange("Diagonalization",2)
 
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-      call diagonalize_gpu(dimHsc,hk_d,eval_d)
+      call diagonalize_gpu(dimHsc,hk_d,eval_d,h)
 
       ! End of diagonalization marker
       call nvtxEndRange
@@ -907,12 +907,13 @@ contains
   subroutine expec_L_n(s,dimens,evec,eval,lxm,lym,lzm)
   !> Calculate the expectation value of the orbital momentum
   !> for a given state [n] ([evec]) with eigen-energy [eval]
-    use mod_kind,          only: dp
-    use mod_constants,     only: pi
-    use mod_parameters,    only: eta,isigmamu2n
-    use mod_System,        only: System_type
-    use mod_magnet,        only: lx,ly,lz
-    use mod_distributions, only: fd_dist
+    use mod_kind,              only: dp
+    use mod_constants,         only: pi
+    use mod_parameters,        only: eta,isigmamu2n
+    use mod_System,            only: System_type
+    use mod_magnet,            only: lx,ly,lz
+    use mod_distributions,     only: fd_dist
+    use mod_superconductivity, only: lsuperCond
     implicit none
     type(System_type),                intent(in)  :: s
     real(dp),                         intent(in)  :: eval
@@ -920,23 +921,25 @@ contains
     real(dp),    dimension(s%nAtoms), intent(out) :: lxm, lym, lzm
     complex(dp), dimension(dimens),   intent(in)  :: evec
     integer                                       :: i, mu, nu, sigma
-    real(dp)                                      :: f_n
-    complex(dp)                                   :: prod, evec_isigmamu, evec_isigmamu_cong
+    real(dp)                                      :: f_n,fermi,beta
+    complex(dp)                                   :: prod
 
     lxm  = 0._dp
     lym  = 0._dp
     lzm  = 0._dp
 
+    !If lsupercond is true then fermi is 0.0 otherwise is s%Ef
+    fermi = merge(0._dp,s%Ef,lsuperCond)
+    beta = 1._dp/(pi*eta)
+
     ! Fermi-Dirac:
-    f_n = fd_dist(s%Ef, 1._dp/(pi*eta), eval)
+    f_n = fd_dist(fermi, beta, eval) 
 
     sites_loop: do i = 1,s%nAtoms
-      do sigma = 1,2
-        do nu = 1,s%nOrb
-          do mu = 1,s%nOrb
-            evec_isigmamu = evec(isigmamu2n(i,sigma,mu))
-            evec_isigmamu_cong = conjg( evec_isigmamu )
-            prod = f_n*evec_isigmamu_cong*evec_isigmamu
+      do nu = 1,s%nOrb
+        do mu = 1,s%nOrb
+          do sigma = 1,2
+            prod = f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,nu))
             lxm (i) = lxm (i) + real( prod*lx (mu,nu) ) !> angular momentum at atomic site (i)
             lym (i) = lym (i) + real( prod*ly (mu,nu) )
             lzm (i) = lzm (i) + real( prod*lz (mu,nu) )
@@ -1093,7 +1096,7 @@ contains
     use mod_System,            only: s => sys
     use mod_magnet,            only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
     use mod_distributions,     only: fd_dist_gpu
-    use mod_cuda,              only: diagonalize_gpu
+    use mod_cuda,              only: h,diagonalize_gpu
     use mod_superconductivity, only: lsuperCond
     use mod_hamiltonian,       only: hamilt_local_gpu,h0_d,fullhk_d,energy
     use mod_mpi_pars,          only: MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
@@ -1130,7 +1133,7 @@ contains
         end do
       end do
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-      call diagonalize_gpu(dimHsc,hk_d,eval_d)
+      call diagonalize_gpu(dimHsc,hk_d,eval_d,h)
 
       !$acc parallel loop
       do n = 1,dimHsc
