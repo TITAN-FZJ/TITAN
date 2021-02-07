@@ -915,14 +915,14 @@ contains
     use mod_distributions,     only: fd_dist
     use mod_superconductivity, only: lsuperCond
     implicit none
-    type(System_type),                intent(in)  :: s
-    real(dp),                         intent(in)  :: eval
-    integer,                          intent(in)  :: dimens
-    real(dp),    dimension(s%nAtoms), intent(out) :: lxm, lym, lzm
-    complex(dp), dimension(dimens),   intent(in)  :: evec
-    integer                                       :: i, mu, nu, sigma
-    real(dp)                                      :: f_n,fermi,beta
-    complex(dp)                                   :: prod
+    type(System_type),                  intent(in)  :: s
+    real(dp),                           intent(in)  :: eval
+    integer,                            intent(in)  :: dimens
+    real(dp),    dimension(2,s%nAtoms), intent(out) :: lxm,lym,lzm
+    complex(dp), dimension(dimens),     intent(in)  :: evec
+    integer                                         :: i,mu,nu,mup,nup,mud,nud,sigma
+    real(dp)                                        :: f_n,fermi,beta
+    complex(dp)                                     :: prod
 
     lxm  = 0._dp
     lym  = 0._dp
@@ -936,13 +936,32 @@ contains
     f_n = fd_dist(fermi, beta, eval) 
 
     sites_loop: do i = 1,s%nAtoms
-      do nu = 1,s%nOrb
-        do mu = 1,s%nOrb
+      ! <L> for s orbitals is zero (l=0)
+
+      ! <L> for p orbitals:
+      do nup = 1,s%npOrb
+        nu = s%pOrbs(nup)
+        do mup = 1,s%npOrb
+          mu = s%pOrbs(mup)
           do sigma = 1,2
             prod = f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,nu))
-            lxm (i) = lxm (i) + real( prod*lx (mu,nu) ) !> angular momentum at atomic site (i)
-            lym (i) = lym (i) + real( prod*ly (mu,nu) )
-            lzm (i) = lzm (i) + real( prod*lz (mu,nu) )
+            lxm (1,i) = lxm (1,i) + real( prod*lx (mu,nu) ) !> angular momentum at atomic site (i)
+            lym (1,i) = lym (1,i) + real( prod*ly (mu,nu) )
+            lzm (1,i) = lzm (1,i) + real( prod*lz (mu,nu) )
+          end do
+        end do
+      end do
+
+      ! <L> for d orbitals:
+      do nud = 1,s%ndOrb
+        nu = s%dOrbs(nud)
+        do mud = 1,s%ndOrb
+          mu = s%dOrbs(mud)
+          do sigma = 1,2
+            prod = f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,nu))
+            lxm (2,i) = lxm (2,i) + real( prod*lx (mu,nu) ) !> angular momentum at atomic site (i)
+            lym (2,i) = lym (2,i) + real( prod*ly (mu,nu) )
+            lzm (2,i) = lzm (2,i) + real( prod*lz (mu,nu) )
           end do
         end do
       end do

@@ -294,7 +294,7 @@ contains
       close(unit)
 
       ! for separate orbitals
-      if(i<=2) then
+      if(i<=3) then
         unit = 5190+i
         write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%observable(i))//"_orb",trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
         open(unit=unit,file=trim(output_file), status= 'replace')
@@ -331,7 +331,7 @@ contains
       if(err/=0) missing_files = trim(missing_files) // " " // trim(output_file)
 
       ! for separate orbitals
-      if(i<=2) then
+      if(i<=3) then
         iw = 5190+i
         write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(output%observable(i))//"_orb",trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
         open (unit=iw, file=trim(output_file), status='old', position='append',form='formatted', iostat=err)
@@ -362,7 +362,7 @@ contains
       close(5090+i)
 
       ! for separate orbitals
-      if(i<=2) close(5190+i)
+      if(i<=3) close(5190+i)
     end do
 
     close(6090)
@@ -427,7 +427,7 @@ contains
     type(System_type),                    intent(in) :: s
     real(dp),                             intent(in) :: t,E_t
     real(dp), dimension(s%nOrb,s%nAtoms), intent(in) :: rho_t,mx_t,my_t,mz_t
-    real(dp), dimension(s%nAtoms),        intent(in) :: Lxm_t,Lym_t,Lzm_t
+    real(dp), dimension(2,s%nAtoms),      intent(in) :: Lxm_t,Lym_t,Lzm_t
     real(dp), dimension(3),               intent(in) :: field_m, field_e
 
     integer  :: i, mu
@@ -440,12 +440,16 @@ contains
     write(unit=5091,fmt="(100(es16.9,2x))") time, (sum(rho_t(:,i)),i=1,s%nAtoms)
     write(unit=5092,fmt="(100(es16.9,2x))") time, (sum(mx_t(:,i)),sum(my_t(:,i)),sum(mz_t(:,i)), sqrt(sum(mx_t(:,i))**2 + sum(my_t(:,i))**2 + sum(mz_t(:,i))**2) ,i=1,s%nAtoms)
     write(unit=5093,fmt="(100(es16.9,2x))") time, E_t
-    write(unit=5094,fmt="(100(es16.9,2x))") time, (Lxm_t(i), Lym_t(i), Lzm_t(i), sqrt(Lxm_t(i)**2 + Lym_t(i)**2 + Lzm_t(i)**2),i=1,s%nAtoms)
+    write(unit=5094,fmt="(100(es16.9,2x))") time, (sum(Lxm_t(:,i)), sum(Lym_t(:,i)), sum(Lzm_t(:,i)), sqrt(sum(Lxm_t(:,i))**2 + sum(Lym_t(:,i))**2 + sum(Lzm_t(:,i))**2),i=1,s%nAtoms)
 
+    ! Orbital dependent occupation:
     write(unit=5191,fmt="(100(es16.9,2x))") time, ((rho_t(mu,i), mu=1,s%nOrb), i=1,s%nAtoms)
-    
-  ! write(unit=5192,fmt="(100(es16.9,2x))") time, (mxd_t(i),myd_t(i),mzd_t(i),sqrt(mxd_t(i)**2 + myd_t(i)**2 + mzd_t(i)**2),i=1,s%nAtoms)
+
+    ! Orbital dependent magnetization:        
     write(unit=5192,fmt="(100(es16.9,2x))") time, ( (mx_t(mu,i),my_t(mu,i),mz_t(mu,i), mu=1,s%nOrb), i=1,s%nAtoms)
+
+    ! Orbital dependent OAM, for p (1) and d (2) orbitals
+    write(unit=5193,fmt="(100(es16.9,2x))") time, ( (Lxm_t(mu,i), Lym_t(mu,i), Lzm_t(mu,i), mu=1,2), i=1,s%nAtoms)
 
     write(unit=6090,fmt="(7(es16.9,2x))") time, (field_m(i),i=1,3), (field_e(i),i=1,3)
 

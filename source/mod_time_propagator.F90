@@ -53,8 +53,8 @@ contains
     real(dp),    dimension(s%nAtoms)        :: rhod_t,mxd_t,myd_t,mzd_t
     complex(dp), dimension(s%nAtoms)        :: mpd_t
     real(dp),    dimension(s%nOrb,s%nAtoms) :: delta_sc_t
-    real(dp),    dimension(s%nAtoms)        :: lxm,lym,lzm
-    real(dp),    dimension(s%nAtoms)        :: lxm_t,lym_t,lzm_t
+    real(dp),    dimension(2,s%nAtoms)      :: lxm,lym,lzm
+    real(dp),    dimension(2,s%nAtoms)      :: lxm_t,lym_t,lzm_t
     real(dp)                                :: E_t, E_0
     complex(dp)                             :: exp_eval
    
@@ -260,15 +260,15 @@ contains
         end do kpoints_loop
         !$omp end parallel do
 
-        call MPI_Allreduce(MPI_IN_PLACE, rho_t, ncount  , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
-        call MPI_Allreduce(MPI_IN_PLACE, mz_t , ncount  , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
-        call MPI_Allreduce(MPI_IN_PLACE, mp_t , ncount  , MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
-        call MPI_Allreduce(MPI_IN_PLACE, Lxm_t, s%nAtoms, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
-        call MPI_Allreduce(MPI_IN_PLACE, Lym_t, s%nAtoms, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
-        call MPI_Allreduce(MPI_IN_PLACE, Lzm_t, s%nAtoms, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, rho_t, ncount    , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, mz_t , ncount    , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, mp_t , ncount    , MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, Lxm_t, 2*s%nAtoms, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, Lym_t, 2*s%nAtoms, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, Lzm_t, 2*s%nAtoms, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
         call MPI_Allreduce(MPI_IN_PLACE, delta_sc_t, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
-        call MPI_Allreduce(MPI_IN_PLACE, E_t  , 1       , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
-        call MPI_Allreduce(MPI_IN_PLACE, ERR  , 1       , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, E_t  , 1         , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, ERR  , 1         , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
 
         ERR = sqrt(ERR)
         ! Find the new step size h_new
