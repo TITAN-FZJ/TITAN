@@ -273,8 +273,8 @@ contains
     allocate(output%observable(4))
     output%observable(1) = "occupation"
     output%observable(2) = "magnetization"
-    output%observable(3) = "Energy"
-    output%observable(4) = "AngularMomentum"
+    output%observable(3) = "AngularMomentum"
+    output%observable(4) = "Energy"
 
     ! Time-dependent fields
     unit = 6090
@@ -318,8 +318,8 @@ contains
       allocate(output%observable(4))
       output%observable(1) = "occupation"
       output%observable(2) = "magnetization"
-      output%observable(3) = "Energy"
-      output%observable(4) = "AngularMomentum"
+      output%observable(3) = "AngularMomentum"
+      output%observable(4) = "Energy"
     end if
 
     do i=1,size(output%observable)
@@ -437,20 +437,24 @@ contains
     
     time = t*time_conv
 
+    ! Site-dependent occupation
     write(unit=5091,fmt="(100(es16.9,2x))") time, (sum(rho_t(:,i)),i=1,s%nAtoms)
+    ! Site-dependent magnetization
     write(unit=5092,fmt="(100(es16.9,2x))") time, (sum(mx_t(:,i)),sum(my_t(:,i)),sum(mz_t(:,i)), sqrt(sum(mx_t(:,i))**2 + sum(my_t(:,i))**2 + sum(mz_t(:,i))**2) ,i=1,s%nAtoms)
-    write(unit=5093,fmt="(100(es16.9,2x))") time, E_t
-    write(unit=5094,fmt="(100(es16.9,2x))") time, (sum(Lxm_t(:,i)), sum(Lym_t(:,i)), sum(Lzm_t(:,i)), sqrt(sum(Lxm_t(:,i))**2 + sum(Lym_t(:,i))**2 + sum(Lzm_t(:,i))**2),i=1,s%nAtoms)
+    ! Site-dependent OAM
+    write(unit=5093,fmt="(100(es16.9,2x))") time, (sum(Lxm_t(:,i)), sum(Lym_t(:,i)), sum(Lzm_t(:,i)), sqrt(sum(Lxm_t(:,i))**2 + sum(Lym_t(:,i))**2 + sum(Lzm_t(:,i))**2),i=1,s%nAtoms)
+
+    ! Energy
+    write(unit=5094,fmt="(100(es16.9,2x))") time, E_t
 
     ! Orbital dependent occupation:
     write(unit=5191,fmt="(100(es16.9,2x))") time, ((rho_t(mu,i), mu=1,s%nOrb), i=1,s%nAtoms)
-
     ! Orbital dependent magnetization:        
     write(unit=5192,fmt="(100(es16.9,2x))") time, ( (mx_t(mu,i),my_t(mu,i),mz_t(mu,i), mu=1,s%nOrb), i=1,s%nAtoms)
-
     ! Orbital dependent OAM, for p (1) and d (2) orbitals
     write(unit=5193,fmt="(100(es16.9,2x))") time, ( (Lxm_t(mu,i), Lym_t(mu,i), Lzm_t(mu,i), mu=1,2), i=1,s%nAtoms)
 
+    ! Time-dependent field
     write(unit=6090,fmt="(7(es16.9,2x))") time, (field_m(i),i=1,3), (field_e(i),i=1,3)
 
     call close_time_prop_files()
