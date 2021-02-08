@@ -652,8 +652,9 @@ contains
       end if
 
       do j=1,s%nAtoms
-        kountj = neq_per_atom(j)
         do i=1,s%nAtoms
+          ! (Re)starting the column counter in each line
+          kountj = neq_per_atom(j)
 
           ! First product: temp1 =  pauli*g_ij
           gij = gf(:,:,i,j)

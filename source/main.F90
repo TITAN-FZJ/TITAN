@@ -26,7 +26,7 @@ program TITAN
   use mod_self_consistency,    only: doSelfConsistency
   use EnergyIntegration,       only: pn1,allocate_energy_points,generate_imag_epoints
   use mod_progress,            only: start_program,write_time
-  use mod_mpi_pars,            only: MPI_Wtime,myrank,startField,endField,rField,Initialize_MPI,genMPIGrid,abortProgram
+  use mod_mpi_pars,            only: MPI_Wtime,MPI_COMM_WORLD,ierr,myrank,startField,endField,rField,Initialize_MPI,genMPIGrid,abortProgram
   use mod_polyBasis,           only: read_basis
   use TightBinding,            only: initTightBinding
   use mod_fermi_surface,       only: fermi_surface
@@ -50,7 +50,7 @@ program TITAN
 
   external :: create_folder,create_files,check_files,sort_all_files
   external :: coupling,calculate_chi,calculate_all,calculate_dc_limit
-  external :: setLoops,endTITAN
+  external :: setLoops,endTITAN,MPI_Barrier
 
   !------------------------ MPI initialization -------------------------
   call Initialize_MPI()
@@ -101,15 +101,19 @@ program TITAN
   if( lpositions .and. (myrank==0) ) call writeLattice(s)
 
   !------------- Creating folders for current calculation ------------
-  if(lcreatefolders) &
-    call create_folder()
+  if(lcreatefolders) then
+    if (myrank == 0) call create_folder()
+    call MPI_Barrier(MPI_COMM_WORLD, ierr)
+  end if
 
   !------------------ Set Loops and Integration Points -----------------
   call setMagneticLoopPoints()
   call setLoops(s)
+
   !------------------ Creating grid of MPI processes  ------------------
   !call setup_MPI_grid(itype, pn1, nEner1, pnt,total_hw_npt1, nEner, deltae, emin, emax)
   call genMPIGrid(parField, total_hw_npt1, parFreq, nEner1 - skip_steps)
+
   !--- Generating integration points of the complex energy integral ----
   call allocate_energy_points()
   call generate_imag_epoints()
