@@ -112,14 +112,6 @@ if(NOT PREP)
   set(PREP OFF)
 endif()
 
-if(PREP)
-  set(CMAKE_Fortran_COMPILER scorep-mpif90)
-  set(INSTRUMENT _inst)
-  execute_process(COMMAND echo "Instrumentation on")
-else()
-  set(INSTRUMENT)
-endif()
-
 if(DEBUG)
   set(DEBUGSUFFIX _debug)
   execute_process(COMMAND echo "DEBUG on")
@@ -153,8 +145,17 @@ if(COMPILER MATCHES pgi OR COMPILER MATCHES nv OR COMPILER MATCHES nvidia)
   set(CMAKE_CXX_COMPILER nvcc)
   set(SOURCE_TITAN_CPP ${SOURCE_TITAN_CPP}  source/diagonalize_gpu.cpp
                                   )
-
 endif()
+
+if(PREP)
+  set(CMAKE_Fortran_COMPILER scorep-mpif90)
+  set(CMAKE_CXX_COMPILER scorep-nvcc)
+  set(INSTRUMENT _inst)
+  execute_process(COMMAND echo "Instrumentation on")
+else()
+  set(INSTRUMENT)
+endif()
+
 
 set(TITAN_EXE titan_${PLATFORM}${DEBUGSUFFIX}${INSTRUMENT}${SUFFIX}.exe)
 

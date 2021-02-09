@@ -821,11 +821,9 @@ contains
     character(len=80), dimension(max_elements) :: str_arr
     character(len=80)  :: str_tmp
 
-    external :: MPI_Barrier
 #ifdef _GPU
-    if(myrank == 0) call execute_command_line( "nvidia-smi | sed 's|/||g' > " // trim(filename) )
+    call execute_command_line( "nvidia-smi | sed 's|/||g' > " // trim(filename) // itos(myrank) )
 #endif
-    call MPI_Barrier(FieldComm,ierr)
 
     open (unit=file_unit, file=trim(filename), status='old', action='read', iostat=ios)
     if(ios/=0) then
@@ -862,7 +860,7 @@ contains
     if(rField == 0) write(unit=output%unit, fmt="('[Warning] [get_memory] Could not find ',a,' on file ',a,'.')") trim(keyword),trim(filename)
 
 #ifdef _GPU
-    if(myrank == 0) call execute_command_line('rm '// trim(filename))
+    call execute_command_line('rm '// trim(filename) // itos(myrank))
 #endif
     success = .false.
     close(file_unit)
