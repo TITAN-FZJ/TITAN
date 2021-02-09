@@ -33,7 +33,7 @@ contains
 #else
     use mod_parameters, only: sigmai2i,sigmaimunu2i,sigmaijmunu2i,isigmamu2n,n2isigmamu
 #endif
-    use mod_magnet,     only: rho0,rhod0
+    use mod_magnet,     only: mzd0,mpd0,rho0,rhod0
     implicit none
 
     if(allocated(sigmai2i))      deallocate( sigmai2i )
@@ -43,6 +43,8 @@ contains
     if(allocated(n2isigmamu))    deallocate( n2isigmamu )
     if(allocated(rho0))          deallocate( rho0 )
     if(allocated(rhod0))         deallocate( rhod0 )
+    if(allocated(mzd0))          deallocate( mzd0 )
+    if(allocated(mpd0))          deallocate( mpd0 )
 #ifdef _GPU
     if(allocated(isigmamu2n_d))    deallocate( isigmamu2n_d )
 #endif

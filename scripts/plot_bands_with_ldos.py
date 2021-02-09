@@ -9,10 +9,10 @@
 ################################################################################
 from head import *
 
-if(ry2ev == 13.6057*1000):
+if(ry2ev == 13.6057*1000) or (args.mevlabel is True):
   labelx = r'$\rho(E)$ [meV$^{-1}$]'
   labely = r'$E-E_F$ [meV]'
-elif(ry2ev == 13.6057):
+elif(ry2ev == 13.6057) or (args.evlabel is True):
   labelx = r'$\rho(E)$ [eV$^{-1}$]'
   labely = r'$E-E_F$ [eV]'
 else:

@@ -16,7 +16,7 @@ contains
     use mod_system,             only: System_type
     use mod_expectation,        only: expec_val_n, expec_H_n, expec_L_n
     use mod_Umatrix,            only: update_Umatrix
-    use mod_magnet,             only: rhod0,rho0
+    use mod_magnet,             only: mzd0,mpd0,rhod0,rho0
     use mod_tools,              only: KronProd,diagonalize,lwork
     use mod_superconductivity,  only: allocate_supercond_variables
     use mod_hamiltonian,        only: calchk,hamilt_local,lfullhk,h0,fullhk
@@ -336,7 +336,7 @@ contains
       end do
  
       ! Update U-term of the local hamiltonian
-      call update_Umatrix(mzd_t,mpd_t,rhod_t,rhod0,rho_t,rho0,s)
+      call update_Umatrix(mzd_t,mzd0,mpd_t,mpd0,rhod_t,rhod0,rho_t,rho0,s)
 
       ! Writing results to file
       if(rFreq(1) == 0) &

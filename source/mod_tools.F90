@@ -438,7 +438,7 @@ contains
 
     if(ios/=0) then
       if(present(item)) then
-        call abortProgram("[" // trim(procedure) // "] Something went wrong when reading " // trim(item) // " in file " // trim(itos(f_unit)) )
+        call abortProgram("[" // trim(procedure) // "] Something went wrong when reading " // trim(item) // " in file unit " // trim(itos(f_unit)) )
       else
         call abortProgram("[" // trim(procedure) // "] Something went wrong when reading the file " // trim(itos(f_unit)) )
       end if

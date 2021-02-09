@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jube>
+  <!-- Configuration of submission script -->
+  <parameterset name="systemParameter" init_with="platform.xml">
+    <parameter name="machine" tag="jurecadc">jurecadc</parameter>
+    <parameter name="machine" tag="booster">booster</parameter>
+    <parameter name="machine" tag="juwels">juwels</parameter>
+    <parameter name="machine" tag="juwelsbooster">juwelsbooster</parameter>
+    <parameter name="machine" tag="jusuf">jusuf</parameter>
+
+    <parameter name="min_scale" type="int">0</parameter>
+    <parameter name="max_scale" type="int">9</parameter>
+    <parameter name="dimension" type="int">1</parameter>
+    <!-- Power law scaling ${dimension} being the exponent -->
+    <!-- <parameter name="scaling_factor" type="int" mode="python">",".join(str(n**$dimension) for n in range(${min_scale},${max_scale}+1))</parameter> -->
+    <!-- Exponential scaling -->
+    <parameter name="scaling_factor" type="int" mode="python">",".join(str(2**n) for n in range(${min_scale},${max_scale}+1))</parameter>
+
+    <parameter name="mail"></parameter>
+    <!-- <parameter name="additional_job_config"  tag="jurecadc">#SBATCH &#45;&#45;reservation=system_maint.20200406_083747</parameter -->
+
+    <parameter name="nodes" type="int" mode="python" tag="sc">$scaling_factor</parameter>
+    <parameter name="nodes" type="int" mode="python" tag="time_prop" update_mode="step">
+                { "selfconsistency": "$scaling_factor",     
+                  "timepropagation": "$scaling_factor" }["$jube_step_name"]
+    </parameter>
+
+    <parameter name="ht" tag="ht">True</parameter>
+
+    <parameter name="maxjobspernode" tag="jurecadc" mode="python"> 48  if ${ht} == True else 24 </parameter>
+    <parameter name="maxjobspernode" tag="booster"  mode="python"> 272 if ${ht} == True else 68 </parameter>
+    <parameter name="maxjobspernode" tag="juwels"   mode="python"> 96  if ${ht} == True else 48 </parameter>
+    <parameter name="maxjobspernode" tag="jusuf"    mode="python"> 256 if ${ht} == True else 128</parameter>
+
+    <parameter name="queue" tag="jurecadc">batch</parameter>
+    <parameter name="queue" tag="booster">booster</parameter>
+    <parameter name="queue" tag="juwels">batch</parameter>
+    <parameter name="queue" tag="jusuf">batch</parameter>
+
+    <parameter name="taskspernode" type="int" mode="python">
+                { "hybrid": "1", 
+                  "mpi": "${maxjobspernode}"}["${parallel_type}"]
+    </parameter>
+    <parameter name="threadspertask" type="int" mode="python">
+                { "hybrid": "${maxjobspernode}",
+                  "mpi": "1"}["${parallel_type}"]
+    </parameter>
+
+
+    <parameter name="tasks" mode="python" type="int" update_mode="step">$nodes * $taskspernode</parameter>
+    <parameter name="notification">ALL</parameter>
+    <parameter name="timelimit">02:00:00</parameter>
+    <parameter name="account" tag="jurecadc|booster|juwels|juwelsbooster|jusuf">cstao</parameter>
+    <parameter name="env">${load_modules}; export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK</parameter>
+    <parameter name="executable" mode="python">
+                {"impi":"${folder}/bin/titan_${machine}.exe", 
+                 "pmpi":"${folder}/bin/titan_${machine}_${compiler}.exe", 
+                  "gnu":"${folder}/bin/titan_${machine}_${compiler}.exe",
+                   "nv":"${folder}/bin/titan_${machine}_${compiler}.exe"}["${compiler}"]
+    </parameter>
+    <parameter name="preprocess"></parameter>
+  </parameterset>
+
+</jube>

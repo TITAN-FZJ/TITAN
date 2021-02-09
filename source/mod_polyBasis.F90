@@ -21,8 +21,8 @@ module mod_polyBasis
 contains
 
   !! Reading basis file 'filename' 
-  !! (also used to read original lattice for mod_initial_expectation)
-  subroutine read_basis(filename, s)
+  !! (also used to read original lattice for mod_init_expec)
+  subroutine read_basis(filename, s, lread_sysdim)
     use mod_system,    only: System_type
     use mod_mpi_pars,  only: myrank,abortProgram
     use mod_constants, only: tpi
@@ -32,6 +32,7 @@ contains
 
     character(len=*),  intent(in)    :: filename
     type(System_type), intent(inout) :: s
+    logical,           intent(in), optional :: lread_sysdim
 
     integer, parameter :: line_length = 300, word_length = 50, max_elements = 50
     integer :: i, j, k, l
@@ -130,15 +131,21 @@ contains
       end do
     end do
 
+    ! Reading dimension for elemental file
+    if(present(lread_sysdim).and.(lread_sysdim)) then
+      read(f_unit, fmt='(A)', iostat=ios) line
+      read(unit=line, fmt=*, iostat=ios) s%isysdim
+    end if
+
     ! Calculating volume of BZ and reciprocal lattice vectors
-    if((vec_norm(s%a2,3) <= 1.e-9_dp).and.(vec_norm(s%a3,3) <= 1.e-9_dp)) then
+    if((s%isysdim==1).or.((vec_norm(s%a2,3) <= 1.e-9_dp).and.(vec_norm(s%a3,3) <= 1.e-9_dp))) then
       zdir  = [0._dp,0._dp,1._dp]
       ydir  = [0._dp,1._dp,0._dp]
       s%vol = tpi / dot_product(zdir, cross(s%a1,ydir))
       s%b1  = s%vol * cross(zdir,ydir)
       s%b2  = 0._dp
       s%b3  = 0._dp
-    else if(vec_norm(s%a3,3) <= 1.e-9_dp) then
+    else if((s%isysdim==2).or.(vec_norm(s%a3,3) <= 1.e-9_dp)) then
       zdir  = [0._dp,0._dp,1._dp]
       s%vol = tpi / dot_product(zdir, cross(s%a1,s%a2))
       s%b1  = s%vol * cross(s%a1,zdir)

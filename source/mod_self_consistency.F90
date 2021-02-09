@@ -104,7 +104,7 @@ contains
     use mod_superconductivity, only: delta_sc,lsuperCond
 #endif
     use mod_Umatrix,           only: init_Umatrix
-    use mod_magnet,            only: mx,my,mz,mxd,myd,mzd,mpd,hw_count,hw_list, &
+    use mod_magnet,            only: mx,my,mz,mxd,myd,mzd,mzd0,mpd,mpd0,hw_count,hw_list, &
                                      lfield,rho,rhod,rhod0,rho0
     implicit none
     integer             :: i,err,mu,mud
@@ -181,7 +181,7 @@ contains
     delta_sc_d = delta_sc
 #endif
 
-    call init_Umatrix(mzd,mpd,rhod,rhod0,rho,rho0,s)
+    call init_Umatrix(mzd,mzd0,mpd,mpd0,rhod,rhod0,rho,rho0,s)
   end subroutine read_previous_results
 
   ! Reads the initial magnetization for nAtoms in 'filename'
@@ -506,7 +506,7 @@ contains
   subroutine lsqfun(iflag,M,N,x,fvec,selfconjac,ljc,iw,liw,w,lw)
     use mod_kind,              only: dp
     use mod_system,            only: s => sys
-    use mod_magnet,            only: rho,rhot,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
+    use mod_magnet,            only: rho,rhot,rhod,mp,mx,my,mz,mpd,mpd0,mxd,myd,mzd,mzd0,rhod0,rho0
     use mod_Umatrix,           only: update_Umatrix
     use mod_expectation,       only: expectation_values
     use mod_superconductivity, only: lsuperCond,update_delta_sc
@@ -530,7 +530,7 @@ contains
     call set_hamiltonian_variables(.true.,s,N,x,rho_in,rhod_in,mxd_in,myd_in,mzd_in,mpd_in,delta_sc_in)
 
     ! Update Hubbard term in Hamiltonian
-    call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s)
+    call update_Umatrix(mzd_in,mzd0,mpd_in,mpd0,rhod_in,rhod0,rho_in,rho0,s)
     ! Update electron-hole coupling in Hamiltonian
     if(lsuperCond) call update_delta_sc(s,delta_sc_in)
 
@@ -1245,7 +1245,7 @@ contains
     use mod_kind,              only: dp
     use mod_parameters,        only: output
     use mod_system,            only: s => sys
-    use mod_magnet,            only: iter,maxiter,rho,rhot,rhod,mp,mx,my,mz,mpd,mxd,myd,mzd,rhod0,rho0
+    use mod_magnet,            only: iter,maxiter,rho,rhot,rhod,mp,mx,my,mz,mpd,mpd0,mxd,myd,mzd,mzd0,rhod0,rho0
     use mod_Umatrix,           only: update_Umatrix
     use mod_expectation,       only: expectation_values
     use mod_superconductivity, only: lsuperCond, update_delta_sc
@@ -1267,7 +1267,7 @@ contains
     call set_hamiltonian_variables(.true.,s,N,x,rho_in,rhod_in,mxd_in,myd_in,mzd_in,mpd_in,delta_sc_in)
 
     ! Update Hubbard term in Hamiltonian
-    call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s)
+    call update_Umatrix(mzd_in,mzd0,mpd_in,mpd0,rhod_in,rhod0,rho_in,rho0,s)
     ! Update electron-hole coupling in Hamiltonian
     if(lsuperCond) call update_delta_sc(s,delta_sc_in)
 
@@ -1316,7 +1316,7 @@ contains
   !!  sum n - n_total = 0
     use mod_kind,              only: dp
     use mod_system,            only: s => sys
-    use mod_magnet,            only: iter,rhod0,rho0,rho
+    use mod_magnet,            only: iter,mzd0,mpd0,rhod0,rho0,rho
     use mod_Umatrix,           only: update_Umatrix
     use mod_superconductivity, only: lsuperCond, update_delta_sc
     implicit none
@@ -1335,7 +1335,7 @@ contains
     call set_hamiltonian_variables(.true.,s,N,x,rho_in,rhod_in,mxd_in,myd_in,mzd_in,mpd_in,delta_sc_in)
 
     ! Update Hubbard term in Hamiltonian
-    call update_Umatrix(mzd_in,mpd_in,rhod_in,rhod0,rho_in,rho0,s)
+    call update_Umatrix(mzd_in,mzd0,mpd_in,mpd0,rhod_in,rhod0,rho_in,rho0,s)
     ! Update electron-hole coupling in Hamiltonian
     if(lsuperCond) call update_delta_sc(s,delta_sc_in)
 

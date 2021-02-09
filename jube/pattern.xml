@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jube>
+
+  <!-- Pattern for runtime -->
+  <patternset name="runtimePattern">
+    <pattern name="runtime" type="float" unit="s">Finished on:.*Elapsed time:\s*${jube_pat_fp}</pattern>
+    <pattern name="mpi_processes" type="int">Running on ${jube_pat_int}</pattern>
+    <pattern name="omp_threads" type="int">process\(es\) WITH ${jube_pat_int}</pattern>
+  </patternset>
+
+  <!-- Pattern for self-consistency results -->
+  <patternset name="resultsPattern">
+    <pattern name="nkpt" type="int">nkpt = ${jube_pat_int}</pattern>
+    <pattern name="delta_d" type="float" unit="Ry">Dd= ${jube_pat_fp}</pattern>
+    <pattern name="mag" type="float" unit="muB">\|M\|= ${jube_pat_fp}</pattern>
+    <pattern name="orb" type="float" unit="muB">\|L\|= ${jube_pat_fp}</pattern>
+    <pattern name="sc_iterations" type="int">\(\s*${jube_pat_int} iterations \)</pattern>
+  </patternset>
+
+  <!-- Pattern for time-propagation results -->
+  <patternset name="timepropPattern">
+    <pattern name="time" type="float" unit="ps" dotall="true">^.*(\d+\.\d+E[+-]\d+)\s+\d+\.\d+E[+-]\d+$</pattern>
+    <pattern name="timeprop_iterations" type="int">${jube_pat_int} total iterations</pattern>
+  </patternset>
+
+  <!-- Pattern for job status -->
+  <patternset name="job_pat">
+    <pattern mode="pattern" name="job_id" type="int">Submitted batch job ${jube_pat_int}</pattern>
+    <pattern name="status" mode="perl">'`sacct --format State -j $job_id | head -n 3 | tail -n 1`'</pattern>
+    <pattern name="exit_code" mode="perl">'`sacct --format ExitCode -j $job_id | head -n 3 | tail -n 1`'</pattern>
+  </patternset>
+
+</jube>

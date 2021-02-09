@@ -9,22 +9,57 @@ contains
     use mod_parameters, only: tbmode,fermi_layer
     implicit none
     type(System_type), intent(inout) :: s
-    if(tbmode == 1) then
-      call get_SK_parameter(s,fermi_layer)
-    else if(tbmode == 2) then
-      call abortProgram("[initTightBinding] tbmode == 2 not implemented yet.")
-      !call get_DFT_hopping()
-    end if
+
+    select case(tbmode)
+    case(1)
+      call get_SK_parameter(s,fermi_layer,tbmode)
+    case(2)
+      call get_DFT_parameters(s,tbmode)
+    case default
+      call abortProgram("[initTightBinding] Only tbmode = 1 (SK parameters) or = 2 (parameters from DFT)")
+    end select
+
   end subroutine initTightBinding
 
 
-  subroutine get_SK_parameter(s,fermi_layer)
-    use mod_kind,   only: dp
-    use AtomTypes,  only: NeighborIndex
+  subroutine get_DFT_parameters(s,tbmode)
+  !! Gets hamiltonian from DFT input and parameters from elemental file
     use mod_system, only: System_type
+    use mod_dft,    only: readHamiltonian
+    implicit none
+    type(System_type),   intent(inout) :: s
+    integer,             intent(in)    :: tbmode
+    integer                            :: i
+
+    ! Getting information from all the elements of "basis" in the element files
+    do i = 1, s%nTypes
+      call readElementFile(s%Types(i),s%nStages,s%nOrb,s%Orbs,s%relTol,tbmode)
+    end do
+
+    do i = 1, s%nAtoms
+      ! Getting total number of electrons on the system
+      s%totalOccupation = s%totalOccupation + s%Types(s%Basis(i)%Material)%Occupation
+      ! Storing Hubbard e-e interaction per basis atom
+      s%Basis(i)%Un = s%Types(s%Basis(i)%Material)%Un
+      s%Basis(i)%Um = s%Types(s%Basis(i)%Material)%Um
+    end do
+
+    ! Read hamiltonian and dft parameters
+    call readHamiltonian(s,s%Name)
+
+  end subroutine get_DFT_parameters
+
+
+  subroutine get_SK_parameter(s,fermi_layer,tbmode)
+  !! Gets parameters for SK two-center approximation and build hopping matrices
+    use mod_kind,      only: dp
+    use AtomTypes,     only: NeighborIndex
+    use mod_system,    only: System_type
+    use mod_constants, only: cZero
     implicit none
     type(System_type),   intent(inout) :: s
     integer,             intent(in)    :: fermi_layer
+    integer,             intent(in)    :: tbmode
     integer                            :: i,j,k,l
     real(dp)                           :: scale_factor(2), mix(10,2), temp
     type(NeighborIndex), pointer       :: current
@@ -34,7 +69,7 @@ contains
 
     ! Getting information from all the elements of "basis" in the element files
     do i = 1, s%nTypes
-      call readElementFile(s%Types(i),s%nStages,s%nOrb,s%Orbs,s%relTol)
+      call readElementFile(s%Types(i),s%nStages,s%nOrb,s%Orbs,s%relTol,tbmode)
     end do
 
     ! Shifting all energies to a common Fermi level
@@ -49,7 +84,7 @@ contains
     do i = 1, s%nNeighbors
       allocate(s%Neighbors(i)%t0i(s%nOrb,s%nOrb,s%nAtoms))
       allocate(s%Neighbors(i)%isHopping(s%nAtoms))
-      s%Neighbors(i)%t0i = 0._dp
+      s%Neighbors(i)%t0i = cZero
       s%Neighbors(i)%isHopping = .false.
     end do
 
@@ -108,11 +143,11 @@ contains
     use mod_parameters, only: lsimplemix
     use AtomTypes,      only: default_orbitals
     implicit none
-    real(dp), dimension(3),         intent(in)    :: dirCos
-    real(dp), dimension(10),        intent(in)    :: t1, t2
-    integer,                        intent(in)    :: nOrb
-    integer,  dimension(nOrb),      intent(in)    :: Orbs
-    real(dp), dimension(nOrb,nOrb), intent(inout) :: t0i
+    real(dp),    dimension(3),         intent(in)    :: dirCos
+    real(dp),    dimension(10),        intent(in)    :: t1, t2
+    integer,                           intent(in)    :: nOrb
+    integer,     dimension(nOrb),      intent(in)    :: Orbs
+    complex(dp), dimension(nOrb,nOrb), intent(inout) :: t0i
     integer                 :: i,j
     real(dp), dimension(10) :: mix
     real(dp), dimension(size(default_orbitals),size(default_orbitals)) :: bp
@@ -129,13 +164,13 @@ contains
     ! Selecting orbitals
     do j=1,nOrb
       do i=1,nOrb
-        t0i(i,j) = bp(Orbs(i),Orbs(j))
+        t0i(i,j) = cmplx(bp(Orbs(i),Orbs(j)),0.d0,dp)
       end do
     end do
 
   end subroutine set_hopping_matrix
 
-  subroutine readElementFile(material,nStages,nOrb,Orbs,relTol)
+  subroutine readElementFile(material,nStages,nOrb,Orbs,relTol,tbmode)
   !! Reading element file, including all the parameters
     use mod_kind,              only: dp
     use AtomTypes,             only: AtomType,NeighborAtom,default_orbitals
@@ -151,6 +186,7 @@ contains
     integer,        intent(in)    :: nOrb
     integer,        intent(in)    :: Orbs(nOrb)
     real(dp),       intent(in)    :: relTol
+    integer,        intent(in)    :: tbmode
     integer :: nTypes
     integer :: nn_stages
     integer,  dimension(:), allocatable :: iMaterial
@@ -180,88 +216,90 @@ contains
     read(f_unit, fmt='(A)', iostat=ios) Name
     Name = trim(adjustl(Name))
 
-    ! Reading lattice parameter a0
-    material%LatticeConstant = StoR(next_line("readElementFile",f_unit,"lattice parameter"))
+    if(tbmode==1) then
+      ! Reading lattice parameter a0
+      material%LatticeConstant = StoR(next_line("readElementFile",f_unit,"lattice parameter"))
 
-    ! Bravais lattice
-    do j = 1, 3
-      Bravais(1:3,j) = StoR( next_line("readElementFile",f_unit,"Bravais lattice") ,3) 
-    end do
-    Bravais = Bravais * material%LatticeConstant
-    material%a1 = Bravais(:,1)
-    material%a2 = Bravais(:,2)
-    material%a3 = Bravais(:,3)
-
-    ! Read Different Elements in File
-    str_arr(1:max_elements) = StoArray(next_line("readElementFile",f_unit,"different elements"),max_elements)
-    nTypes = 0
-    do i = 1, max_elements
-      if(str_arr(i)(1:1) == "!") exit
-      if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
-      nTypes = nTypes + 1
-    end do
-
-    ! Reading name of elements
-    allocate(material%Types(nTypes))
-    j = 1
-    do i = 1, max_elements
-      if(str_arr(i)(1:1) == "!") exit
-      if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
-      material%Types(j) = str_arr(i)
-      if(trim(material%Types(j)) == trim(material%Name)) material%nAtomEl = material%nAtomEl + 1
-
-      j = j + 1
-    end do
-
-    select case(material%nAtomEl)
-    case(0)
-      call log_error("readElementFile", "Element " // trim(material%Name) // " not found in elemental file!")
-    case(2:)
-      call log_warning("readElementFile", "More than one instance of element " // trim(itos(i)) // " found in elemental file. Using the scale factor closest to 1.")
-    end select
-
-    ! Read amount of atoms per element
-    allocate(type_count(nTypes))
-    type_count(1:nTypes) = StoI(next_line("readElementFile",f_unit,"atoms per element"),nTypes)
-
-    ! Count number of atoms
-    material%nAtoms = sum(type_count(1:nTypes))
-    if(material%nAtoms <= 0) call abortProgram("[readElementFile] No basis atoms given!")
-
-    ! Read coordinate type
-    str_arr(1:1) = StoArray(next_line("readElementFile",f_unit,"coordinate type"),1)
-    coord_type = trim(str_arr(1))
-
-    allocate(imaterial(material%nAtoms),material%lelement(material%nAtoms))
-    material%lelement = .false.
-
-    ! Read atom positions
-    allocate(position(3,material%nAtoms))
-
-    k = 0
-    do i = 1, nTypes
-      do j = 1, type_count(i)
-        k = k + 1
-        imaterial(k) = i
-        if(trim(material%Types(i)) == trim(material%Name)) material%lelement(k) = .true.
-        position(1:3,k) = StoR( next_line("readElementFile",f_unit,"basis atoms") ,3) 
-        if(coord_type == 'C' .or. coord_type == 'c' .or. coord_type == 'K' .or. coord_type == 'k') then
-          ! Position of atoms given in Cartesian coordinates
-          position(:,k) = position(:,k) * material%LatticeConstant
-        else
-          ! Position of atoms given in Bravais (or Direct, Internal, Lattice) coordinates
-          position(:,k) = position(1,k) * material%a1 + position(2,k) * material%a2 + position(3,k) * material%a3
-        end if
+      ! Bravais lattice
+      do j = 1, 3
+        Bravais(1:3,j) = StoR( next_line("readElementFile",f_unit,"Bravais lattice") ,3) 
       end do
-    end do
+      Bravais = Bravais * material%LatticeConstant
+      material%a1 = Bravais(:,1)
+      material%a2 = Bravais(:,2)
+      material%a3 = Bravais(:,3)
 
-    ! Read dimension of the system
-    material%isysdim = StoI(next_line("readElementFile",f_unit,"system dimension"))
+      ! Read Different Elements in File
+      str_arr(1:max_elements) = StoArray(next_line("readElementFile",f_unit,"different elements"),max_elements)
+      nTypes = 0
+      do i = 1, max_elements
+        if(str_arr(i)(1:1) == "!") exit
+        if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
+        nTypes = nTypes + 1
+      end do
 
-    do i = 1, material%isysdim
-      if(vec_norm(Bravais(:,i),3) <= 1.e-9_dp) &
-        call log_error("readElementFile", "Bravais vector a" // trim(itos(i)) // " not given.")
-    end do
+      ! Reading name of elements
+      allocate(material%Types(nTypes))
+      j = 1
+      do i = 1, max_elements
+        if(str_arr(i)(1:1) == "!") exit
+        if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
+        material%Types(j) = str_arr(i)
+        if(trim(material%Types(j)) == trim(material%Name)) material%nAtomEl = material%nAtomEl + 1
+
+        j = j + 1
+      end do
+
+      select case(material%nAtomEl)
+      case(0)
+        call log_error("readElementFile", "Element " // trim(material%Name) // " not found in elemental file!")
+      case(2:)
+        call log_warning("readElementFile", "More than one instance of element " // trim(itos(i)) // " found in elemental file. Using the scale factor closest to 1.")
+      end select
+
+      ! Read amount of atoms per element
+      allocate(type_count(nTypes))
+      type_count(1:nTypes) = StoI(next_line("readElementFile",f_unit,"atoms per element"),nTypes)
+
+      ! Count number of atoms
+      material%nAtoms = sum(type_count(1:nTypes))
+      if(material%nAtoms <= 0) call abortProgram("[readElementFile] No basis atoms given!")
+
+      ! Read coordinate type
+      str_arr(1:1) = StoArray(next_line("readElementFile",f_unit,"coordinate type"),1)
+      coord_type = trim(str_arr(1))
+
+      allocate(imaterial(material%nAtoms),material%lelement(material%nAtoms))
+      material%lelement = .false.
+
+      ! Read atom positions
+      allocate(position(3,material%nAtoms))
+
+      k = 0
+      do i = 1, nTypes
+        do j = 1, type_count(i)
+          k = k + 1
+          imaterial(k) = i
+          if(trim(material%Types(i)) == trim(material%Name)) material%lelement(k) = .true.
+          position(1:3,k) = StoR( next_line("readElementFile",f_unit,"basis atoms") ,3) 
+          if(coord_type == 'C' .or. coord_type == 'c' .or. coord_type == 'K' .or. coord_type == 'k') then
+            ! Position of atoms given in Cartesian coordinates
+            position(:,k) = position(:,k) * material%LatticeConstant
+          else
+            ! Position of atoms given in Bravais (or Direct, Internal, Lattice) coordinates
+            position(:,k) = position(1,k) * material%a1 + position(2,k) * material%a2 + position(3,k) * material%a3
+          end if
+        end do
+      end do
+
+      ! Read dimension of the system
+      material%isysdim = StoI(next_line("readElementFile",f_unit,"system dimension"))
+
+      do i = 1, material%isysdim
+        if(vec_norm(Bravais(:,i),3) <= 1.e-9_dp) &
+          call log_error("readElementFile", "Bravais vector a" // trim(itos(i)) // " not given.")
+      end do
+    end if
 
     ! Read Fermi level
     material%FermiLevel = StoR(next_line("readElementFile",f_unit,"Fermi level"))
@@ -341,6 +379,12 @@ contains
       if(lsupercond) &
         call log_error("readElementFile","Something wrong in the definition of 'lambda'.")
     end if      
+
+    ! Only continue for SK parameters
+    if(tbmode/=1) then
+      close(f_unit)
+      return
+    end if
 
     ! Read nearest neighbor stages
     nn_stages = StoI(next_line("readElementFile",f_unit,"nearest neighbor stages"))

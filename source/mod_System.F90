@@ -80,8 +80,8 @@ module mod_system
 
 contains
 
-  subroutine initHamiltkStride(s,superCond)
-  !! This subroutine builds 
+  subroutine init_Hamiltk_variables(s,superCond)
+  !! This subroutine builds hamiltonian variables (dimensions and conversions)
     use mod_parameters, only: dimH,dimspinAtoms,dimens,dimHsc
     implicit none
     type(System_type), intent(in) :: s
@@ -102,7 +102,7 @@ contains
     do i = 1, s%nAtoms
       ia(1,i) = (i-1) * 2 * s%nOrb + 1   ! Begin up
       ia(2,i) = ia(1,i) + s%nOrb - 1     ! End up
-      ia(3,i) = ia(2,i) + 1            ! Begin down
+      ia(3,i) = ia(2,i) + 1              ! Begin down
       ia(4,i) = ia(3,i) + s%nOrb - 1     ! End down
       ! Superconductivity block has doubled dimensions in each spin
       ia_sc(1,i) = (i-1) * 2 * s%nOrb + 1           ! Begin first block (electrons) 1 to 2*s%nOrb
@@ -117,7 +117,7 @@ contains
     ia_d = ia
 #endif
 
-  end subroutine initHamiltkStride
+  end subroutine init_Hamiltk_variables
 
 
   subroutine initConversionMatrices(nAtoms, nOrbs)

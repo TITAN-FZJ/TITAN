@@ -148,10 +148,10 @@ Nb_100_Monolayer:
   stage: selfcon:normal
   needs: ["build:intel:normal"]
   script:
-    - export TEST_FOLDER="examples/Nb_100_Monolayer"
-    - export ITYPE=1
     # Setting up Intel Fortran Compiler
     - *setup_ifort
+    - export TEST_FOLDER="examples/Nb_100_Monolayer"
+    - export ITYPE=1
     - *run_test
     - *create_scResults_file
     - *compare_files
@@ -161,10 +161,10 @@ Ni_bulk:
   stage: selfcon:normal
   needs: ["build:intel:normal"]
   script:
-    - export TEST_FOLDER="examples/Ni_bulk_timeprop"
-    - export ITYPE=1
     # Setting up Intel Fortran Compiler
     - *setup_ifort
+    - export TEST_FOLDER="examples/Ni_bulk_timeprop"
+    - export ITYPE=1
     - *run_test
     - *create_scResults_file
     - *compare_files
@@ -174,10 +174,10 @@ Fe_bulk:
   stage: selfcon:normal
   needs: ["build:intel:normal"]
   script:
-    - export TEST_FOLDER="examples/Fe_bulk_susc"
-    - export ITYPE=1
     # Setting up Intel Fortran Compiler
     - *setup_ifort
+    - export TEST_FOLDER="examples/Fe_bulk_susc"
+    - export ITYPE=1
     - *run_test
     - *create_scResults_file
     - *compare_files
@@ -187,10 +187,23 @@ graphene_pz:
   stage: selfcon:normal
   needs: ["build:intel:normal"]
   script:
-    - export TEST_FOLDER="examples/graphene"
-    - export ITYPE=1
     # Setting up Intel Fortran Compiler
     - *setup_ifort
+    - export TEST_FOLDER="examples/graphene"
+    - export ITYPE=1
+    - *run_test
+    - *create_scResults_file
+    - *compare_files
+
+Co_monolayer_paoflow:
+  image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
+  stage: selfcon:normal
+  needs: ["build:intel:normal"]
+  script:
+    # Setting up Intel Fortran Compiler
+    - *setup_ifort
+    - export TEST_FOLDER="examples/Co_monolayer_paoflow"
+    - export ITYPE=1
     - *run_test
     - *create_scResults_file
     - *compare_files
@@ -201,10 +214,10 @@ Nb_100_Superconducting_Monolayer:
   stage: selfcon:supercond
   needs: ["build:intel:normal","Nb_100_Monolayer"]
   script:
-    - export TEST_FOLDER="examples/Nb_100_Superconducting_Monolayer"
-    - export ITYPE=1
     # Setting up Intel Fortran Compiler
     - *setup_ifort
+    - export TEST_FOLDER="examples/Nb_100_Superconducting_Monolayer"
+    - export ITYPE=1
     - *run_test
     - *create_scResults_file
     - *compare_files
@@ -215,10 +228,10 @@ Nb_100_Monolayer:ldos:
   stage: results
   needs: ["build:intel:normal","Nb_100_Monolayer"]
   script:
-    - export TEST_FOLDER="examples/Nb_100_Monolayer"
-    - export ITYPE=2
     # Setting up Intel Fortran Compiler
     - *setup_ifort
+    - export TEST_FOLDER="examples/Nb_100_Monolayer"
+    - export ITYPE=2
     - *run_test
     - *compare_files
   artifacts:
@@ -226,16 +239,15 @@ Nb_100_Monolayer:ldos:
       - examples/Nb_100_Monolayer/results/
     expire_in: 1 day
 
-
 Nb_100_Monolayer:bands:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: results
   needs: ["build:intel:normal","Nb_100_Monolayer"]
   script:
-    - export TEST_FOLDER="examples/Nb_100_Monolayer"
-    - export ITYPE=4
     # Setting up Intel Fortran Compiler
     - *setup_ifort
+    - export TEST_FOLDER="examples/Nb_100_Monolayer"
+    - export ITYPE=4
     - *run_test
     - export EXCLUDE="weights"
     - *compare_files
@@ -245,10 +257,10 @@ graphene_pz:ldos:
   stage: results
   needs: ["build:intel:normal","graphene_pz"]
   script:
-    - export TEST_FOLDER="examples/graphene"
-    - export ITYPE=2
     # Setting up Intel Fortran Compiler
     - *setup_ifort
+    - export TEST_FOLDER="examples/graphene"
+    - export ITYPE=2
     - *run_test
     - *compare_files
 
@@ -257,10 +269,10 @@ graphene_pz:bands:
   stage: results
   needs: ["build:intel:normal","graphene_pz"]
   script:
-    - export TEST_FOLDER="examples/graphene"
-    - export ITYPE=4
     # Setting up Intel Fortran Compiler
     - *setup_ifort
+    - export TEST_FOLDER="examples/graphene"
+    - export ITYPE=4
     - *run_test
     - export EXCLUDE="weights"
     - *compare_files
@@ -270,10 +282,10 @@ graphene_pz:isoenergy:
   stage: results
   needs: ["build:intel:normal","graphene_pz"]
   script:
-    - export TEST_FOLDER="examples/graphene"
-    - export ITYPE=5
     # Setting up Intel Fortran Compiler
     - *setup_ifort
+    - export TEST_FOLDER="examples/graphene"
+    - export ITYPE=5
     - *run_test
     - *compare_files
 
@@ -282,10 +294,10 @@ Fe_bulk:susc:
   stage: results
   needs: ["build:intel:normal","Fe_bulk"]
   script:
-    - export TEST_FOLDER="examples/Fe_bulk_susc"
-    - export ITYPE=7
     # Setting up Intel Fortran Compiler
     - *setup_ifort
+    - export TEST_FOLDER="examples/Fe_bulk_susc"
+    - export ITYPE=7
     - *run_test
     - export EXCLUDE="Slope"
     - export TOL=1e-5
@@ -296,13 +308,37 @@ Ni_bulk:timeprop:
   stage: results
   needs: ["build:intel:normal","Ni_bulk"]
   script:
-    - export TEST_FOLDER="examples/Ni_bulk_timeprop"
-    - export ITYPE=11
     # Setting up Intel Fortran Compiler
     - *setup_ifort
+    - export TEST_FOLDER="examples/Ni_bulk_timeprop"
+    - export ITYPE=11
     - *run_test
     - export EXCLUDE="checkpoint"
     - *compare_files
+
+Co_monolayer_paoflow:bands_with_ldos:
+  image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
+  stage: results
+  needs: ["build:intel:normal","Co_monolayer_paoflow"]
+  script:
+    - export TEST_FOLDER="examples/Co_monolayer_paoflow"
+    # Setting up Intel Fortran Compiler
+    - *setup_ifort
+    # Calculating LDOS
+    - export ITYPE=2
+    - *run_test
+    # Returning to initial folder
+    - cd ../../
+    # Calculating Band structure
+    - export ITYPE=4
+    - *run_test
+    - export EXCLUDE="weights"
+    - *compare_files
+  artifacts:
+    paths:
+      - examples/Co_monolayer_paoflow/results/
+    expire_in: 1 day
+
 
 #============ Plots ============#
 Nb_100_Monolayer:ldos:plot:
@@ -321,6 +357,22 @@ Nb_100_Monolayer:ldos:plot:
     # Comparing with existing (correct) plot
     - python ../../scripts/compare_images.py ./results/ldos.png ./results_correct/ldos.png
 
+
+Co_monolayer_paoflow:bands_with_ldos:plot:
+  image: iffregistry.fz-juelich.de/docker-images/titan-images
+  stage: plots
+  needs: ["Co_monolayer_paoflow:bands_with_ldos"]
+  script:
+    # Checking python version
+    - python --version
+    # Setting examples folder
+    - export TEST_FOLDER="examples/Co_monolayer_paoflow"
+    # Going to current test folder
+    - cd ${TEST_FOLDER}
+    # Creating new plot
+    - python ../../scripts/plot_bands_with_ldos.py results/TSOC/1Sites/BS/bandstructure_kdir=GXMG_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosu_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosd_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat --evlabel --output="./results/bands_with_ldos.png"
+    # Comparing with existing (correct) plot
+    - python ../../scripts/compare_images.py ./results/bands_with_ldos.png ./results_correct/bands_with_ldos.png
 
 # # `pages` is a special job that builds the gitlab page for this project; all artifacts must be saved in a `public`
 # # directory to be published as a static site (that can be accessed from the whole www)

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jube>
+  <!-- Files -->
+  <fileset name="input_files">
+    <copy>${inputsfolder}/input.in</copy>
+    <copy>${inputsfolder}/${element}.in</copy>
+    <copy>${inputsfolder}/basis${element}.in</copy>
+    <copy>${inputsfolder}/kbands</copy>
+  </fileset>
+
+  <!-- Files -->
+  <fileset name="time_prop_files">
+    <copy>${jube_wp_abspath}/selfconsistency/*</copy>
+  </fileset>
+
+  <!-- Substituttions in input file -->
+  <substituteset name="inputSubstitutions">
+    <!-- Substitute files -->
+    <iofile in="input.in" out="input" />
+    <!-- Substitute commands -->
+    <sub source="#TYPE#" dest="$type" />
+    <sub source="#OUTPUT_FILE#" dest="$output_file" />
+    <sub source="#OPTIONS#" dest="$options" />
+    <sub source="#DIM#" dest="$dim" />
+    <sub source="#NNSTAGES#" dest="$nn_states" />
+    <sub source="#SOC#" dest="$soc" />
+    <sub source="#SUPERCOND#" dest="$supercond" />
+    <sub source="#ETA#" dest="$eta" />
+    <sub source="#KPOINTS#" dest="$kpoints" />
+    <sub source="#SKIPSC#" dest="$skipsc" />
+  </substituteset>
+
+  <!-- Substituttions in basis file -->
+  <substituteset name="basisSubstitutions">
+    <!-- Substitute files -->
+    <iofile in="basis${element}.in" out="basis" />
+    <!-- Substitute commands -->
+    <sub source="#ELEMENT#" dest="$element" />
+  </substituteset>
+
+  <!-- Substituttions in elemental file -->
+  <substituteset name="elementSubstitutions">
+    <!-- Substitute files -->
+    <iofile in="$element.in" out="$element" />
+    <!-- Substitute commands -->
+    <sub source="#ELEMENT#" dest="$element" />
+    <sub source="#UINT#" dest="$uint" />
+    <sub source="#SOC_D#" dest="$soc_d" />
+    <sub source="#SOC_P#" dest="$soc_p" />
+    <sub source="#LAMBDA#" dest="$all_lambda" />
+  </substituteset>
+
+</jube>

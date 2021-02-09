@@ -53,7 +53,7 @@ contains
 
   subroutine update_delta_sc(s,couplings)
     use mod_kind,       only: dp
-    use mod_system,     only: System_type, initHamiltkStride
+    use mod_system,     only: System_type
     implicit none
     type(System_type),                    intent(in)  :: s
     real(dp), dimension(s%nOrb,s%nAtoms), intent(in) :: couplings

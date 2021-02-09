@@ -223,6 +223,7 @@ contains
         end if
       end do
     end do
+
     ! ! Test if hamiltonian is Hermitian (to be commented out, uncomment to use it)
     ! do i = ia(1,1), ia(4,s%nAtoms)
     !   do j = i, ia(4,s%nAtoms)

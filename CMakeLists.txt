@@ -78,6 +78,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_time_propagator_io.F90
                                   source/mod_cuda.F90
                                   source/mod_nvtx.F90
+                                  source/mod_dft.F90
                                   )
 
 if(NOT PLATFORM)
