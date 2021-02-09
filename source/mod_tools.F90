@@ -796,9 +796,9 @@ contains
     use mod_kind,       only: int32
     use mod_parameters, only: output
 #ifdef _GPU
-    use mod_mpi_pars,   only: myrank,rField,FieldComm,ierr
+    use mod_mpi_pars,   only: myrank,rField
 #else
-    use mod_mpi_pars,   only: rField,FieldComm,ierr
+    use mod_mpi_pars,   only: rField
 #endif
     ! use mod_io, only: log_warning
     implicit none
