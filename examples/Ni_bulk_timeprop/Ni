@@ -12,7 +12,7 @@ Ni fcc bulk
 0.69  0.34  8.97 ! s, p and d occupations
 -0.09559 0.09559 ! Effetive local electron-electron interaction
 0.0000 0.00978 ! p and d spin-orbit interaction strength
-0.0000 0.00000 0.00000 
+0.0000 0.00000 0.00000  ! Superconducting parameters for s, p and d-type orbitals 
 2 ! Number of neighbors (with parameters given below)
  s on-site	 1.1552640200      1                            Ni
   p on-site	 1.6058666706      2                            Ni

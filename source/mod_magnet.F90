@@ -17,10 +17,10 @@ module mod_magnet
   !! orbital-dependent magnetization per site in cartesian coordinates
   real(dp),allocatable    :: rhos(:),rhop(:)
   !! s and p -orbital charge density
-  real(dp),allocatable    :: rhod(:),mxd(:),myd(:),mzd(:)
-  !! d-orbital charge density and magnetization per site
-  complex(dp),allocatable :: mp(:,:),mpd(:)
-  !! circular components (plus) of the total and d-orbital magnetization
+  real(dp),allocatable    :: rhod(:),mxd(:),myd(:),mzd(:),mzd0(:)
+  !! d-orbital charge density and magnetization per site and initial values
+  complex(dp),allocatable :: mp(:,:),mpd(:),mpd0(:)
+  !! circular components (plus) of the total and d-orbital magnetization and intial value
   real(dp), dimension(:,:), allocatable :: rho0
   !! initial occupation per orbital obtained from hopping parameters only (to be used in the hamiltonian)
   real(dp), dimension(:), allocatable :: rhod0

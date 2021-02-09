@@ -10,7 +10,7 @@ program TITAN
   use mod_constants,           only: cZero,allocate_constants,define_constants
   use mod_parameters,          only: output,lpositions,lcreatefolders,parField,parFreq,nEner1,skip_steps,ldebug, &
                                      kp_in,kptotal_in,eta,leigenstates,itype,theta,phi, &
-                                     laddresults,lsortfiles,lcreatefiles,arg
+                                     laddresults,lsortfiles,lcreatefiles,arg,tbmode
   use mod_io,                  only: get_parameters,iowrite,log_error
   use Lattice,                 only: initLattice,writeLattice
   use mod_BrillouinZone,       only: realBZ,countBZ
@@ -33,10 +33,10 @@ program TITAN
   use mod_check_stop,          only: check_stop
   use mod_Atom_variables,      only: allocate_Atom_variables
   use mod_tools,               only: rtos
-  use mod_initial_expectation, only: calc_initial_Uterms
+  use mod_init_expec,          only: calc_init_expec_SK,calc_init_expec_dft
   use mod_time_propagator,     only: time_propagator
   use mod_superconductivity,   only: lsuperCond,supercond,allocate_supercond_variables
-  use mod_System,              only: s=>sys,initHamiltkStride,initConversionMatrices
+  use mod_System,              only: s=>sys,init_Hamiltk_variables,initConversionMatrices
 #ifdef _GPU
   use nvtx,                    only: nvtxStartRange,nvtxEndRange
   use mod_cuda,                only: num_gpus,result,create_handle,destroy_handle,cudaGetDeviceCount,cudaSetDevice,cudaGetErrorString 
@@ -132,17 +132,17 @@ program TITAN
     ! stop
   end if
 
-  !----- Calculating initial values in the hamiltonian with mag=0 ------
-  if(.not.lsortfiles) call calc_initial_Uterms(s)
+  !---------------- Reading Tight Binding parameters -------------------
+  call initTightBinding(s)
+
+  !-- Calculating initial values in the SK tight-binding hamiltonian ---
+  if((tbmode==1).and.(.not.lsortfiles)) call calc_init_expec_SK(s)
 
   !----------- Generating k points for real axis integration -----------
   realBZ % nkpt_x = kp_in(1)
   realBZ % nkpt_y = kp_in(2)
   realBZ % nkpt_z = kp_in(3)
   call realBZ % countBZ(s)
-
-  !---------------- Reading Tight Binding parameters -------------------
-  call initTightBinding(s)
 
   !---- Generating k meshes points for imaginary axis integration ------
   call generateAdaptiveMeshes(s,pn1)
@@ -154,7 +154,7 @@ program TITAN
   call allocate_Atom_variables(s%nAtoms,s%nOrb)
 
   !------- Initialize Stride Matrices for hamiltk and dtdksub ----------
-  call initHamiltkStride(s,supercond)
+  call init_Hamiltk_variables(s,supercond)
 
   !---------- Conversion arrays for dynamical quantities ---------------
   call initConversionMatrices(s%nAtoms,s%nOrb)
@@ -166,6 +166,9 @@ program TITAN
   !-------------------------- Filename strings -------------------------
   write(output%info,"('_norb=',i0,'_nkpt=',i0,'_eta=',a)") s%nOrb,kptotal_in,trim(rtos(eta,"(es8.1)"))
   if(leigenstates) output%info = trim(output%info) // "_ev"
+
+  !-- Calculating initial values in the DFT tight-binding hamiltonian --
+  if((tbmode==2).and.(.not.lsortfiles)) call calc_init_expec_dft(s)
 
   !--------------- Extra Token for Superconductivity files -------------
   if(lsuperCond) output%info = trim(output%info) // "_sc"
@@ -218,6 +221,9 @@ program TITAN
 
     !-------------------------- Debugging part -------------------------
     if(ldebug) then
+      ! if(rField == 0) &
+      !   call band_structure(s)
+      ! call endTITAN()
       !if(myrank==0) then
       ! call debugging()
       !end if

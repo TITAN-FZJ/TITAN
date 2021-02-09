@@ -38,7 +38,7 @@ module AtomTypes
     !! Distance to basis atoms
     real(dp), dimension(:,:), allocatable :: dirCos
     !! Directional cosine to basis atoms
-    real(dp), dimension(:,:,:), allocatable :: t0i
+    complex(dp), dimension(:,:,:), allocatable :: t0i
     !! Hopping to basis atoms; size (nOrb, nOrb, nAtoms)
     logical, dimension(:), allocatable :: isHopping
     !! Flags saying that the atom is in neighbor range of basis atoms; size (nAtoms)
@@ -56,7 +56,7 @@ module AtomTypes
     !! Element Types inside elemental file
     logical, dimension(:), allocatable :: lelement
     !! Logical variable storing where are the elements of a given element in elemental file
-    real(dp), dimension(:,:), allocatable :: onSite
+    complex(dp), dimension(:,:), allocatable :: onSite
     !! on site matrix; size (nOrb, nOrb)
     real(dp), dimension(:,:), allocatable :: Hopping
     !! hopping matrix; size (10, nStages)
@@ -78,10 +78,12 @@ module AtomTypes
     !! Effective Coulomb interaction strength - Hubbard U (charge and magnetic)
     real(dp), dimension(:), allocatable :: lambda
     !! Superconducting coupling strength
-    real(dp), dimension(:,:), allocatable :: rho0
+    real(dp), dimension(:), allocatable :: rho0
     !! Initial occupation per orbital obtained from hopping parameters only
-    real(dp), dimension(:), allocatable   :: rhod0
-    !! Initial occupation of d orbitals obtained from hopping parameters only
+    real(dp)    :: rhod0,mzd0
+    !! Initial occupation and z-component of magnetization of d orbitals obtained from hopping parameters only
+    complex(dp) :: mpd0
+    !! Initial +-component of magnetization of d orbitals obtained from hopping parameters only
   end type AtomType
 
 end module AtomTypes

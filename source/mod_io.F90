@@ -541,14 +541,9 @@ contains
 
       if(.not. get_parameter("fermi_layer", fermi_layer, 1)) &
         call log_warning("get_parameters", "'fermi_layer' not given. Using default value: fermi_layer = 1")
-      if(get_parameter("Ef", Ef_overwrite)) then
-        call log_warning("get_parameters", "Ef = " // trim(rtos(Ef_overwrite,"(es8.1)")) //" given. Overwriting (initial) Fermi energy. (use fixEf runoption to fix)")
-        lEf_overwrite = .true.
-      end if
-
     !--------------------------------------------- DFT ---------------------------------------------
-    else if(2 == tbmode) then
-      stop "Not Implemented"
+    else if(tbmode == 2) then
+      dfttype = "D"
       !  if(nstages /= 2) call log_error("get_parameters", "'tbmode' DFT Mode only supports nstages = 2")
        !
       !  if(.not. get_parameter("dfttype", dfttype)) call log_error("get_parameters","'dfttype' missing.")
@@ -590,6 +585,11 @@ contains
     else
        call log_error("get_parameters", "'tbmode' Unknown mode selected. (Choose either 1 or 2)")
     end if
+    if(get_parameter("Ef", Ef_overwrite)) then
+      call log_warning("get_parameters", "Ef = " // trim(rtos(Ef_overwrite,"(es8.1)")) //" given. Overwriting (initial) Fermi energy. (use fixEf runoption to fix)")
+      lEf_overwrite = .true.
+    end if
+
     !==============================================================================================!
     ! REAL TIME PROPAGATION PARAMETERS
     if(itype==11) then

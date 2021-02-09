@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jube>
+
+  <!-- Configuration of program -->
+  <parameterset name="executeset" init_with="platform.xml:executeset">
+    <parameter name="args_starter">--cpu-bind=rank</parameter>
+    <parameter name="folder">$$TITAN_master</parameter>
+    <parameter name="inputsfolder">$$TITAN_master/jube</parameter>
+  </parameterset>
+
+
+  <!-- Configuration of paralle type to be used -->
+  <parameterset name="parallelParameter">
+    <!-- parallel_type: "mpi" uses only mpi (intra and internode), "hybrid" uses full omp in each node, mpi for different nodes. -->
+    <parameter name="parallel_type" tag="hybrid">hybrid</parameter>
+    <parameter name="parallel_type" tag="omp">omp</parameter>
+    <parameter name="parallel_type" tag="mpi">mpi</parameter>
+  </parameterset>
+
+  <!-- Configuration of paralle type to be used -->
+  <parameterset name="machineParameter">
+    <parameter name="machine" tag="jurecadc">jurecadc</parameter>
+    <parameter name="machine" tag="booster">booster</parameter>
+    <parameter name="machine" tag="juwels">juwels</parameter>
+    <parameter name="machine" tag="juwelsbooster">juwelsbooster</parameter>
+    <parameter name="machine" tag="jusuf">jusuf</parameter>
+  </parameterset>
+
+  <!-- Configuration of submission script for INTRA/Single-node jobs -->
+  <parameterset name="systemParameter" init_with="platform.xml:systemParameter" tag="single">
+
+    <!-- parallel_type: "mpi" uses only mpi (intra and internode), "hybrid" uses full omp in each node, mpi for different nodes. -->
+    <parameter name="mail"></parameter>
+    <!-- <parameter name="additional_job_config"  tag="jurecadc">#SBATCH &#45;&#45;reservation=system_maint.20200406_083747</parameter -->
+    <!-- parameter name="additional_job_config"  tag="juwels">#SBATCH &#45;&#45;reservation=maint-restarttests</parameter -->
+
+    <!-- JURECA-DC -->
+    <parameter name="queue" tag="jurecadc">dc-cpu-devel</parameter>
+
+    <parameter name="taskspernode" type="int" mode="python" tag="jurecadc+sc" update_mode="step">
+                { "hybrid": "1,2,4,8,16,32,64,128,256", 
+                  "mpi": "1,2,4,8,16,32,64,128,256", 
+                  "omp": "1"}["${parallel_type}"]
+    </parameter>
+    <parameter name="threadspertask" type="int" mode="python" tag="jurecadc+sc" update_mode="step">
+                { "hybrid": { "1":   "1,2,4,8,16,32,64,128,256", 
+                              "2":   "1,2,4,8,16,32,64,128", 
+                              "4":   "1,2,4,8,16,32,64", 
+                              "8":   "1,2,4,8,16,32", 
+                              "16":  "1,2,4,8,16", 
+                              "32":  "1,2,4,8",
+                              "64":  "1,2,4", 
+                              "128": "1,2", 
+                              "256": "1"}["${taskspernode}"], 
+                  "mpi": "1", 
+                  "omp": "1,2,4,8,16,32,64,128,256"}["${parallel_type}"]
+    </parameter>
+
+    <parameter name="taskspernode" type="int" mode="python" tag="jurecadc+time_prop" update_mode="step">
+                { "selfconsistency": "1", 
+                  "timepropagation": { "hybrid": "1,2,4,8,16,32,64,128,256", 
+                                        "mpi": "1,2,4,8,16,32,64,128,256", 
+                                        "omp": "1"}["${parallel_type}"] }["$jube_step_name"]
+    </parameter>
+    <parameter name="threadspertask" type="int" mode="python" tag="jurecadc+time_prop" update_mode="step">
+                { "selfconsistency": "256", 
+                  "timepropagation": { "hybrid": { "1":   "1,2,4,8,16,32,64,128,256", 
+                                                   "2":   "1,2,4,8,16,32,64,128", 
+                                                   "4":   "1,2,4,8,16,32,64", 
+                                                   "8":   "1,2,4,8,16,32", 
+                                                   "16":  "1,2,4,8,16", 
+                                                   "32":  "1,2,4,8",
+                                                   "64":  "1,2,4", 
+                                                   "128": "1,2", 
+                                                   "256": "1"}["${taskspernode}"], 
+                                       "mpi": "1", 
+                                       "omp": "1,2,4,8,16,32,64,128,256"}["${parallel_type}"] }["$jube_step_name"]
+    </parameter>
+
+
+    <!-- JURECA Booster -->
+    <parameter name="queue" tag="booster">develbooster</parameter>
+
+    <parameter name="taskspernode" type="int" mode="python" tag="booster+sc" update_mode="step">
+                { "hybrid": "1,2,4,17,34,68,136,272", 
+                  "mpi": "1,2,4,17,34,68,136,272", 
+                  "omp": "1"}["${parallel_type}"]
+    </parameter>
+    <parameter name="threadspertask" type="int" mode="python" tag="booster+sc" update_mode="step">
+                { "hybrid": { "1": "1,2,4,17,34,68,136,272", 
+                              "2": "1,2,4,17,34,68,136",
+                              "4": "1,2,4,17,34,68", 
+                              "17": "1,2,4,17,34", 
+                              "34": "1,2,4,17", 
+                              "68": "1,2,4",
+                              "136": "1,2",
+                              "272": "1"}["${taskspernode}"], 
+                  "mpi": "1", 
+                  "omp": "1,2,4,17,34,68,136,272"}["${parallel_type}"]
+    </parameter>
+
+    <parameter name="taskspernode" type="int" mode="python" tag="booster+time_prop" update_mode="step">
+                { "selfconsistency": "1",     
+                  "timepropagation": { "hybrid": "1,2,4,17,34,68,136,272", 
+                                       "mpi": "1,2,4,17,34,68,136,272", 
+                                       "omp": "1"}["${parallel_type}"] }["$jube_step_name"]
+    </parameter>
+    <parameter name="threadspertask" type="int" mode="python" tag="booster+time_prop" update_mode="step">
+                { "selfconsistency": "272", 
+                  "timepropagation": { "hybrid": { "1": "1,2,4,17,34,68,136,272", 
+                                                   "2": "1,2,4,17,34,68,136",
+                                                   "4": "1,2,4,17,34,68", 
+                                                   "17": "1,2,4,17,34", 
+                                                   "34": "1,2,4,17", 
+                                                   "68": "1,2,4",
+                                                   "136": "1,2",
+                                                   "272": "1"}["${taskspernode}"], 
+                                       "mpi": "1", 
+                                       "omp": "1,2,4,17,34,68,136,272"}["${parallel_type}"] }["$jube_step_name"]
+    </parameter>
+
+    <!-- JUWELS -->
+    <parameter name="queue" tag="juwels">devel</parameter>
+
+    <parameter name="taskspernode" type="int" mode="python" tag="juwels+sc" update_mode="step">
+                { "hybrid": "1,2,3,4,6,8,12,16,24,48,96", 
+                  "mpi": "1,2,3,4,6,8,12,16,24,48,96", 
+                  "omp": "1"}["${parallel_type}"]
+    </parameter>
+    <parameter name="threadspertask" type="int" mode="python" tag="juwels+sc" update_mode="step">
+                { "hybrid": { "1": "1,2,3,4,6,8,12,16,24,32,48,96", 
+                              "2": "1,2,3,4,6,8,12,16,24,32,48", 
+                              "3": "1,2,3,4,6,8,12,16,24,32", 
+                              "4": "1,2,3,4,6,8,12,16,24", 
+                              "6": "1,2,3,4,6,8,12,16", 
+                              "8": "1,2,3,4,6,8,12", 
+                              "12": "1,2,3,4,6,8", 
+                              "16": "1,2,3,4,6", 
+                              "24": "1,2,3,4", 
+                              "32": "1,2,3", 
+                              "48": "1,2",
+                              "96": "1"}["${taskspernode}"], 
+                  "mpi": "1", 
+                  "omp": "1,2,3,4,6,8,12,16,24,48,96"}["${parallel_type}"]
+    </parameter>
+
+    <parameter name="queue" tag="juwels">devel</parameter>
+    <parameter name="taskspernode" type="int" mode="python" tag="juwels+time_prop" update_mode="step">
+                { "selfconsistency": "1", 
+                  "timepropagation": { "hybrid": "1,2,3,4,6,8,12,16,24,48,96", 
+                                       "mpi": "1,2,3,4,6,8,12,16,24,48,96", 
+                                       "omp": "1"}["${parallel_type}"] }["$jube_step_name"]
+    </parameter>
+    <parameter name="threadspertask" type="int" mode="python" tag="juwels+time_prop" update_mode="step">
+                { "selfconsistency": "96", 
+                  "timepropagation": { "hybrid": { "1": "1,2,3,4,6,8,12,16,24,32,48,96", 
+                                                   "2": "1,2,3,4,6,8,12,16,24,32,48", 
+                                                   "3": "1,2,3,4,6,8,12,16,24,32", 
+                                                   "4": "1,2,3,4,6,8,12,16,24", 
+                                                   "6": "1,2,3,4,6,8,12,16", 
+                                                   "8": "1,2,3,4,6,8,12", 
+                                                   "12": "1,2,3,4,6,8", 
+                                                   "16": "1,2,3,4,6", 
+                                                   "24": "1,2,3,4", 
+                                                   "32": "1,2,3", 
+                                                   "48": "1,2",
+                                                   "96": "1"}["${taskspernode}"], 
+                                       "mpi": "1", 
+                                       "omp": "1,2,3,4,6,8,12,16,24,48,96"}["${parallel_type}"] }["$jube_step_name"]
+    </parameter>
+
+    <!-- JUSUF -->
+    <parameter name="queue" tag="jusuf">batch</parameter>
+
+    <parameter name="taskspernode" type="int" mode="python" tag="jusuf+sc" update_mode="step">
+                { "hybrid": "1,2,4,8,16,32,64,128,256", 
+                  "mpi": "1,2,4,8,16,32,64,128,256", 
+                  "omp": "1"}["${parallel_type}"]
+    </parameter>
+    <parameter name="threadspertask" type="int" mode="python" tag="jusuf+sc" update_mode="step">
+                { "hybrid": { "1": "1,2,4,8,16,32,64,128,256", 
+                              "2": "1,2,4,8,16,32,64,128", 
+                              "4": "1,2,4,8,16,32,64", 
+                              "8": "1,2,4,8,16,32", 
+                              "16": "1,2,4,8,16", 
+                              "32": "1,2,4,8", 
+                              "64": "1,2,4", 
+                              "128": "1,2",
+                              "256": "1"}["${taskspernode}"], 
+                  "mpi": "1", 
+                  "omp": "1,2,4,8,16,32,64,128,256"}["${parallel_type}"]
+    </parameter>
+
+    <parameter name="taskspernode" type="int" mode="python" tag="jusuf+time_prop" update_mode="step">
+                { "selfconsistency": "1", 
+                  "timepropagation": { "hybrid": "1,2,4,8,16,32,64,128,256", 
+                                       "mpi": "1,2,4,8,16,32,64,128,256", 
+                                       "omp": "1"}["${parallel_type}"] }["$jube_step_name"]
+    </parameter>
+    <parameter name="threadspertask" type="int" mode="python" tag="jusuf+time_prop" update_mode="step">
+                { "selfconsistency": "256", 
+                  "timepropagation": { "hybrid": { "1": "1,2,4,8,16,32,64,128,256", 
+                                                   "2": "1,2,4,8,16,32,64,128", 
+                                                   "4": "1,2,4,8,16,32,64", 
+                                                   "8": "1,2,4,8,16,32", 
+                                                   "16": "1,2,4,8,16", 
+                                                   "32": "1,2,4,8", 
+                                                   "64": "1,2,4", 
+                                                   "128": "1,2",
+                                                   "256": "1"}["${taskspernode}"], 
+                                       "mpi": "1", 
+                                       "omp": "1,2,4,8,16,32,64,128,256"}["${parallel_type}"] }["$jube_step_name"]
+    </parameter>
+
+    <parameter name="nodes" type="int">1</parameter>
+    <parameter name="tasks" mode="python" type="int" update_mode="step">${nodes} * ${taskspernode} </parameter>
+
+    <parameter name="scaling_factor" type="int" mode="python" tag="weak">${tasks} * ${threadspertask}</parameter>
+    <parameter name="scaling_factor" type="int" mode="python" tag="strong">1</parameter>
+
+    <parameter name="notification">ALL</parameter>
+    <parameter name="timelimit">02:00:00</parameter>
+    <parameter name="account" tag="jurecadc|booster">titan</parameter>
+    <parameter name="account" tag="juwels|juwelsbooster|jusuf">cstao</parameter>
+    <parameter name="env">${load_modules}; export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK; export OMP_STACKSIZE=1g; export KMP_AFFINITY=scatter;</parameter>
+    <parameter name="executable" mode="python">
+                {"impi":"${folder}/bin/titan_${machine}.exe", 
+                 "pmpi":"${folder}/bin/titan_${machine}_${compiler}.exe", 
+                  "gnu":"${folder}/bin/titan_${machine}_${compiler}.exe",
+                   "nv":"${folder}/bin/titan_${machine}_${compiler}.exe"}["${compiler}"]
+    </parameter>
+    <parameter name="preprocess"></parameter>
+  </parameterset>
+
+
+  <!-- Configuration of submission script for INTER/Multi-node jobs -->
+  <parameterset name="systemParameter" init_with="platform.xml:systemParameter" tag="multi">
+    <parameter name="machine" tag="jurecadc">jurecadc</parameter>
+    <parameter name="machine" tag="booster">booster</parameter>
+    <parameter name="machine" tag="juwels">juwels</parameter>
+    <parameter name="machine" tag="juwelsbooster">juwelsbooster</parameter>
+    <parameter name="machine" tag="jusuf">jusuf</parameter>
+
+    <parameter name="min_scale" type="int">0</parameter>
+    <parameter name="max_scale" type="int">6</parameter>
+    <parameter name="dimension" type="int">1</parameter>
+
+    <!-- Power law scaling ${dimension} being the exponent -->
+    <!-- <parameter name="scaling_factor" type="int" mode="python">",".join(str(n**$dimension) for n in range(${min_scale},${max_scale}+1))</parameter> -->
+    <!-- Exponential scaling -->
+    <parameter name="scaling_factor_nodes" type="int" mode="python">",".join(str(2**n) for n in range(${min_scale},${max_scale}+1))</parameter>
+    <parameter name="scaling_factor" type="int" mode="python" tag="weak">${maxjobspernode}*${scaling_factor_nodes}</parameter>
+    <parameter name="scaling_factor" type="int" mode="python" tag="strong">1</parameter>
+
+    <parameter name="mail"></parameter>
+    <!-- <parameter name="additional_job_config"  tag="jurecadc">#SBATCH &#45;&#45;reservation=system_maint.20200406_083747</parameter -->
+
+    <parameter name="nodes" type="int" mode="python" tag="sc">$scaling_factor_nodes</parameter>
+    <parameter name="nodes" type="int" mode="python" tag="time_prop" update_mode="step">
+                { "selfconsistency": "$scaling_factor_nodes",     
+                  "timepropagation": "$scaling_factor_nodes" }["$jube_step_name"]
+    </parameter>
+
+    <parameter name="ht" tag="ht">True</parameter>
+    <parameter name="ht" tag="!ht">False</parameter>
+
+    <parameter name="maxjobspernode" tag="jurecadc" mode="python"> 256 if ${ht} == True else 128 </parameter>
+    <parameter name="maxjobspernode" tag="booster"  mode="python"> 272 if ${ht} == True else 68 </parameter>
+    <parameter name="maxjobspernode" tag="juwels"   mode="python"> 96  if ${ht} == True else 48 </parameter>
+    <parameter name="maxjobspernode" tag="jusuf"    mode="python"> 256 if ${ht} == True else 128</parameter>
+
+    <parameter name="queue" tag="jurecadc">dc-cpu</parameter>
+    <parameter name="queue" tag="booster">booster</parameter>
+    <parameter name="queue" tag="juwels">batch</parameter>
+    <parameter name="queue" tag="jusuf">batch</parameter>
+    <parameter name="queue" tag="juwelsbooster">booster</parameter>
+    <parameter name="gres"  tag="juwelsbooster">gpu:4</parameter>
+
+    <parameter name="taskspernode" type="int" mode="python">
+                { "hybrid": "1", 
+                     "omp": "1", 
+                     "mpi": "${maxjobspernode}"}["${parallel_type}"]
+    </parameter>
+    <parameter name="threadspertask" type="int" mode="python">
+                { "hybrid": "${maxjobspernode}",
+                     "omp": "${maxjobspernode}",
+                     "mpi": "1"}["${parallel_type}"]
+    </parameter>
+
+
+    <parameter name="tasks" mode="python" type="int" update_mode="step">$nodes * $taskspernode</parameter>
+    <parameter name="notification">ALL</parameter>
+    <parameter name="timelimit">00:30:00</parameter>
+    <parameter name="account" tag="jurecadc|booster|juwels|juwelsbooster|jusuf">cstao</parameter>
+    <parameter name="env">${load_modules}; export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK; export OMP_STACKSIZE=1g; export KMP_AFFINITY=scatter;</parameter>
+    <parameter name="executable" mode="python">
+                {"impi":"${folder}/bin/titan_${machine}.exe", 
+                 "pmpi":"${folder}/bin/titan_${machine}_${compiler}.exe", 
+                  "gnu":"${folder}/bin/titan_${machine}_${compiler}.exe",
+                   "nv":"${folder}/bin/titan_${machine}_${compiler}.exe"}["${compiler}"]
+    </parameter>
+    <parameter name="preprocess"></parameter>
+  </parameterset>
+
+</jube>
