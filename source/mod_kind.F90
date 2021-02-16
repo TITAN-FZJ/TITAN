@@ -18,7 +18,7 @@ module mod_kind
 !
 ! Integers numbers
 !   Single byte integer
-  integer, parameter :: int8    = selected_int_kind(2)
+!  integer, parameter :: int8    = selected_int_kind(2)
 !   Two byte integer
   integer, parameter :: int16   = selected_int_kind(4)
 !   Four byte integer

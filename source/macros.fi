@@ -3,7 +3,7 @@
 #define CUDA_CALL(call) \
 result=call; \
 if(result/=CUDA_SUCCESS) \
-write(*,"('CUDA Error ',i0,' in ',a,':',a,': ',i0,' (',a,')')") result,trim(__FILE__),trim(__LINE__),trim(cudaGetErrorString(result)),#call;
+write(*,"('CUDA Error ',i0,' in ',a,':',a,': ',i0,' (',a,')')") result,__FILE__,__LINE__,trim(cudaGetErrorString(result)),#call;
 #else
 #define CUDA_CALL(call) \
 result=call;

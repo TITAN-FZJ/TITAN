@@ -20,8 +20,8 @@ contains
     integer,          intent(in) :: hw_count     !! Counter for magnetic field
     real(dp),         intent(in), optional :: e  !! Current frequency 
     character(len=*), intent(in) :: filename     !! Initial filename to check
-    character(len=8)  :: date
-    character(len=10) :: time
+    character(len=8)  :: cdate
+    character(len=10) :: ctime
     character(len=5)  :: zone
     integer           :: values(8)
     integer           :: ios,istop
@@ -35,7 +35,7 @@ contains
 
       ! If exists, generate a unique filename at myrank=0 and broadcast to all
       ! (to be able to run more than one version of the program at the same time)
-      call date_and_time(date, time, zone, values)
+      call date_and_time(cdate, ctime, zone, values)
       if(myrank==0) write(stopfilename,fmt="(a,'_',i0,i0,i0,i2.2,i2.2,i2.2)") trim(stopfilename),values(3),values(2),values(1),values(5),values(6),values(7)
       call MPI_Bcast(stopfilename,30,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
 

@@ -382,7 +382,7 @@ contains
     implicit none
     character(len=500)     :: output_file
     real(dp), dimension(3) :: field_m, field_e
-    real(dp)               :: t, time
+    real(dp)               :: t, rtime
     integer :: i,iw,err,errt=0
 
     write(output%unit_loop,"('[write_field] Writing field... ')",advance="no")
@@ -406,9 +406,9 @@ contains
       field_e = 0._dp 
       if (lelectric) call vector_potential(t, field_e)
 
-      time = t*time_conv
+      rtime = t*time_conv
 
-      write(unit=6090,fmt="(7(es16.9,2x))") time, (field_m(i),i=1,3), (field_e(i),i=1,3)
+      write(unit=6090,fmt="(7(es16.9,2x))") rtime, (field_m(i),i=1,3), (field_e(i),i=1,3)
     end do t_loop_field
 
     close(6090)
@@ -431,31 +431,31 @@ contains
     real(dp), dimension(3),               intent(in) :: field_m, field_e
 
     integer  :: i, mu
-    real(dp) :: time
+    real(dp) :: rtime
 
     call open_time_prop_files()
     
-    time = t*time_conv
+    rtime = t*time_conv
 
     ! Site-dependent occupation
-    write(unit=5091,fmt="(100(es16.9,2x))") time, (sum(rho_t(:,i)),i=1,s%nAtoms)
+    write(unit=5091,fmt="(100(es16.9,2x))") rtime, (sum(rho_t(:,i)),i=1,s%nAtoms)
     ! Site-dependent magnetization
-    write(unit=5092,fmt="(100(es16.9,2x))") time, (sum(mx_t(:,i)),sum(my_t(:,i)),sum(mz_t(:,i)), sqrt(sum(mx_t(:,i))**2 + sum(my_t(:,i))**2 + sum(mz_t(:,i))**2) ,i=1,s%nAtoms)
+    write(unit=5092,fmt="(100(es16.9,2x))") rtime, (sum(mx_t(:,i)),sum(my_t(:,i)),sum(mz_t(:,i)), sqrt(sum(mx_t(:,i))**2 + sum(my_t(:,i))**2 + sum(mz_t(:,i))**2) ,i=1,s%nAtoms)
     ! Site-dependent OAM
-    write(unit=5093,fmt="(100(es16.9,2x))") time, (sum(Lxm_t(:,i)), sum(Lym_t(:,i)), sum(Lzm_t(:,i)), sqrt(sum(Lxm_t(:,i))**2 + sum(Lym_t(:,i))**2 + sum(Lzm_t(:,i))**2),i=1,s%nAtoms)
+    write(unit=5093,fmt="(100(es16.9,2x))") rtime, (sum(Lxm_t(:,i)), sum(Lym_t(:,i)), sum(Lzm_t(:,i)), sqrt(sum(Lxm_t(:,i))**2 + sum(Lym_t(:,i))**2 + sum(Lzm_t(:,i))**2),i=1,s%nAtoms)
 
     ! Energy
-    write(unit=5094,fmt="(100(es16.9,2x))") time, E_t
+    write(unit=5094,fmt="(100(es16.9,2x))") rtime, E_t
 
     ! Orbital dependent occupation:
-    write(unit=5191,fmt="(100(es16.9,2x))") time, ((rho_t(mu,i), mu=1,s%nOrb), i=1,s%nAtoms)
+    write(unit=5191,fmt="(100(es16.9,2x))") rtime, ((rho_t(mu,i), mu=1,s%nOrb), i=1,s%nAtoms)
     ! Orbital dependent magnetization:        
-    write(unit=5192,fmt="(100(es16.9,2x))") time, ( (mx_t(mu,i),my_t(mu,i),mz_t(mu,i), mu=1,s%nOrb), i=1,s%nAtoms)
+    write(unit=5192,fmt="(100(es16.9,2x))") rtime, ( (mx_t(mu,i),my_t(mu,i),mz_t(mu,i), mu=1,s%nOrb), i=1,s%nAtoms)
     ! Orbital dependent OAM, for p (1) and d (2) orbitals
-    write(unit=5193,fmt="(100(es16.9,2x))") time, ( (Lxm_t(mu,i), Lym_t(mu,i), Lzm_t(mu,i), mu=1,2), i=1,s%nAtoms)
+    write(unit=5193,fmt="(100(es16.9,2x))") rtime, ( (Lxm_t(mu,i), Lym_t(mu,i), Lzm_t(mu,i), mu=1,2), i=1,s%nAtoms)
 
     ! Time-dependent field
-    write(unit=6090,fmt="(7(es16.9,2x))") time, (field_m(i),i=1,3), (field_e(i),i=1,3)
+    write(unit=6090,fmt="(7(es16.9,2x))") rtime, (field_m(i),i=1,3), (field_e(i),i=1,3)
 
     call close_time_prop_files()
 

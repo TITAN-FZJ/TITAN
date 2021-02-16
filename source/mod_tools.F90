@@ -137,7 +137,7 @@ contains
   end function cross_unit
 
 
-  subroutine sort_int(x, size, order)
+  subroutine sort_int(x, isize, order)
   !! --------------------------------------------------------------------
   !! subroutine sort_int():
   !!    This subroutine receives an array x() and returns an integer array
@@ -145,21 +145,21 @@ contains
   !! --------------------------------------------------------------------
     use mod_kind, only: dp
     implicit none
-    integer,                   intent(in)  :: size
-    real(dp), dimension(size), intent(in)  :: x
-    integer,  dimension(size), intent(out) :: order
-    integer                                :: i
-    logical,  dimension(size)              :: mask
+    integer,                    intent(in)  :: isize
+    real(dp), dimension(isize), intent(in)  :: x
+    integer,  dimension(isize), intent(out) :: order
+    integer                                 :: i
+    logical,  dimension(isize)              :: mask
 
     mask = .true.
-    do i = 1,size
+    do i = 1,isize
       order(i) = minloc( x, 1, mask(:) )
       mask(order(i)) = .false.
     end do
 
   end subroutine sort_int
 
-  subroutine sort_double_int(x, size, order)
+  subroutine sort_double_int(x, isize, order)
   !! --------------------------------------------------------------------
   !! subroutine sort_double_int():
   !!    This subroutine receives an array x() and returns an double integer array
@@ -167,14 +167,14 @@ contains
   !! --------------------------------------------------------------------
     use mod_kind, only: dp,int64
     implicit none
-    integer(int64),                  intent(in)  :: size
-    real(dp),       dimension(size), intent(in)  :: x
-    integer(int64), dimension(size), intent(out) :: order
-    integer(int64)                               :: i
-    logical,        dimension(size)              :: mask
+    integer(int64),                   intent(in)  :: isize
+    real(dp),       dimension(isize), intent(in)  :: x
+    integer(int64), dimension(isize), intent(out) :: order
+    integer(int64)                                :: i
+    logical,        dimension(isize)              :: mask
 
     mask(:) = .true.
-    do i = 1,size
+    do i = 1,isize
       order(i) = minloc( x, 1, mask(:) )
       mask(order(i)) = .false.
     end do
@@ -605,15 +605,15 @@ contains
     integer,                       intent(in) :: dim_v ! vector dimension
     complex(dp), dimension(dim_v), intent(in) :: v ! vector v
     real(dp)                                  :: vec_norm_complex
-    real(dp)                                  :: sum
+    real(dp)                                  :: rsum
     integer                                   :: i
 
-    sum= 0._dp
-    !$omp simd reduction(+:sum)
+    rsum= 0._dp
+    !$omp simd reduction(+:rsum)
     do i = 1, dim_v
-      sum = sum + real(v(i)*conjg(v(i)))
+      rsum = rsum + real(v(i)*conjg(v(i)))
     end do
-    vec_norm_complex= sqrt(sum)
+    vec_norm_complex= sqrt(rsum)
   end function vec_norm_complex
 
 
@@ -809,11 +809,11 @@ contains
     logical :: success
 
 #ifdef _GPU
-    character(len=13)  :: filename = "./gpu_memory", keyword="MiB"
-    integer            :: size =3 , memunit=1
+    character(len=20)  :: filename = "./gpu_memory", keyword="MiB"
+    integer            :: isize =3 , memunit=1
 #else
     character(len=13)  :: filename = "/proc/meminfo", keyword="MemFree:"
-    integer            :: size =0 , memunit=1024
+    integer            :: isize =0 , memunit=1024
 #endif
     integer, parameter :: max_elements=50
     integer            :: i,ios,pos,file_unit = 931
@@ -822,7 +822,8 @@ contains
     character(len=80)  :: str_tmp
 
 #ifdef _GPU
-    call execute_command_line( "nvidia-smi | sed 's|/||g' > " // trim(filename) // itos(myrank) )
+    filename = trim(filename) // itos(myrank)
+    call execute_command_line( "nvidia-smi | sed 's|/||g' > " // trim(filename) )
 #endif
 
     open (unit=file_unit, file=trim(filename), status='old', action='read', iostat=ios)
@@ -841,7 +842,7 @@ contains
         if(len_trim(str_arr(i)) == 0) cycle
         pos = index(str_arr(i),trim(keyword))
         if(pos/=0) then
-          str_tmp = str_arr(i+1)(1:len_trim(str_arr(i+1))-size)
+          str_tmp = str_arr(i+1)(1:len_trim(str_arr(i+1))-isize)
           select case(units)
           case("m")
             mem = int(dble(StoI(str_tmp))/memunit)
@@ -849,7 +850,7 @@ contains
             mem = int(dble(StoI(str_tmp))/memunit/1024)
           end select
 #ifdef _GPU
-          if(myrank == 0) call execute_command_line('rm '// trim(filename))
+          call execute_command_line('rm ' // trim(filename))
 #endif
           close(file_unit)
           success = .true.
@@ -860,7 +861,7 @@ contains
     if(rField == 0) write(unit=output%unit, fmt="('[Warning] [get_memory] Could not find ',a,' on file ',a,'.')") trim(keyword),trim(filename)
 
 #ifdef _GPU
-    call execute_command_line('rm '// trim(filename) // itos(myrank))
+    call execute_command_line('rm '// trim(filename) )
 #endif
     success = .false.
     close(file_unit)

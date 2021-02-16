@@ -285,7 +285,7 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES nv)
 
 elseif(COMPILER MATCHES gnu) # GFORTRAN:
   target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib -Wl,-rpath,$ENV{MKLROOT}/lib -static-libgfortran -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl -fopenmp)
-  if(NOT DEBUG MATCHES "ON")
+  if(NOT DEBUG)
     target_compile_options(${TITAN_EXE} PRIVATE -cpp
                                                 -DVERSION="${GIT_VERSION}"
                                                 -I$ENV{MKLROOT}/include
@@ -297,7 +297,7 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
                                                 -march=native
                                                 )
 
-  else(NOT DEBUG MATCHES "ON")
+  else(NOT DEBUG)
     target_compile_definitions(${TITAN_EXE} PRIVATE DEBUG)
     target_compile_options(${TITAN_EXE} PRIVATE -C
                                                 -Wall
@@ -324,72 +324,64 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
                                                 -g
                                                 -O0
                                                 )
-  endif(NOT DEBUG MATCHES "ON")
+  endif(NOT DEBUG)
 
 elseif(COMPILER MATCHES nv) # NVIDIA:
   # target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -I${CUDA_ROOT}/include -Mcuda -L${CUDA_ROOT}/lib64 -lcusolver -lcudart -lnvToolsExt -acc -gpu=cc70,cc80)
+
   set_target_properties(${TITAN_EXE} PROPERTIES LINK_FLAGS "-L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -I${CUDA_ROOT}/include -Mcuda -L${CUDA_ROOT}/lib64 -lcusolver -lcudart -lnvToolsExt -acc -gpu=cc70,cc80")
-  if(NOT DEBUG MATCHES "ON")
+  if(NOT DEBUG)
     target_compile_definitions(${TITAN_EXE} PRIVATE _GPU)
 
-    set_source_files_properties(${SOURCE_TITAN}     PROPERTIES COMPILE_FLAGS "-cpp -DVERSION=\\\"${GIT_VERSION}\\\" -lineinfo -O3 -lm -fast -acc -gpu=cc70,cc80 -Minfo=accel -Mcuda -g")
-    set_source_files_properties(${SOURCE_TITAN_CPP} PROPERTIES COMPILE_FLAGS "--gpu-architecture=sm_80 -lineinfo -g")
-    # SET_TARGET_PROPERTIES(${TITAN_EXE} PROPERTIES LINK_FLAGS "-L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -I${CUDA_ROOT}/include -Mcuda -L${CUDA_ROOT}/lib64 -lcusolver -lcudart -lnvToolsExt -acc -gpu=cc70,cc80")
+    string(CONCAT FORTRAN_FLAGS "-cpp "
+                                "-DVERSION=\\\"${GIT_VERSION}\\\"  "
+                                "-lineinfo "
+                                "-O3 "
+                                "-lm "
+                                "-fast "
+                                "-acc "
+                                "-gpu=cc70,cc80 "
+                                "-Minfo=accel "
+                                "-Mcuda "
+                                "-g "
+                                )
+    set_source_files_properties(${SOURCE_TITAN}     PROPERTIES COMPILE_FLAGS ${FORTRAN_FLAGS} )
+    string(CONCAT CXX_FLAGS "--gpu-architecture=sm_70,sm_80 "
+                            "-lineinfo "
+                            "-g "
+                            )
 
-    # set(CMAKE_Fortran_FLAGS "-O3 -lm -fast -acc -gpu=cc70,cc80 -Minfo=accel -Mcuda -g")
+    set_source_files_properties(${SOURCE_TITAN_CPP} PROPERTIES COMPILE_FLAGS ${CXX_FLAGS} )
 
-    # set(CMAKE_CXX_FLAGS "--gpu-architecture=sm_80 -lineinfo -g")
-    # target_compile_options(${SOURCE_TITAN} PRIVATE -cpp
-    #                                             -DVERSION="${GIT_VERSION}"
-    #                                             -O3
-    #                                             -lm
-    #                                             -fast
-    #                                             -acc
-    #                                             -gpu=cc70,cc80
-    #                                             -Minfo=accel
-    #                                             -Mcuda
-    #                                             -lineinfo
-    #                                             -g
-    #                                             #-mp
-    #                                             )
+  else(NOT DEBUG)
+    target_compile_definitions(${TITAN_EXE} PRIVATE _GPU DEBUG )
 
+    string(CONCAT FORTRAN_FLAGS "-cpp "
+                                "-DVERSION=\\\"${GIT_VERSION}\\\" "
+                                "-lineinfo "                
+                                "-g "                
+                                "-Mcuda "
+                                "-Mdclchk "                          # instructs the compiler to require that all program variables be declared
+                                "-Minform=inform "                   # instructs the compiler to display all error messages (inform, warn, severe and fatal).
+                                "-Mchkptr "                          # instructs the compiler to check for pointers that are dereferenced while initialized to NULL (Fortran only).
+                                "-Mchkstk "                          # instructs the compiler to check the stack for available space in the prologue of a function and before the start of a parallel region.
+                                "-traceback "                
+                                "-Ktrap=fp,unf "                     # fp, unf is equivalent to inv,divz,ovf, unf  correspond to the processor’s exception mask bits: invalid operation, divide-by-zero, overflow, and underflow, respectively.
+                                "-gpu=cc70,cc80 "                       
+                                "-Minfo=accel "                    
+                                "-acc "                  
+                                "-O0 "                
+                                )
+    set_source_files_properties(${SOURCE_TITAN}     PROPERTIES COMPILE_FLAGS ${FORTRAN_FLAGS})
 
+    string(CONCAT CXX_FLAGS "--gpu-architecture=sm_80 "
+                            "-g "
+                            "-G "
+                            )
 
-    # target_compile_options(${SOURCE_TITAN_CPP} PRIVATE -cpp
-    #                                             # -O3
-    #                                             # -lm
-    #                                             # -fast
-    #                                             # -acc
-    #                                              -gencode=arch=compute_80,code=sm_80
-    #                                             # -Minfo=accel
-    #                                             # -Mcuda
-    #                                             -lineinfo
-    #                                             -g
-    #                                             # -acc
-    #                                             #-mp
-    #                                             )
+    set_source_files_properties(${SOURCE_TITAN_CPP} PROPERTIES COMPILE_FLAGS ${CXX_FLAGS} )
 
-  else(NOT DEBUG MATCHES "ON")
-    target_compile_definitions(${TITAN_EXE} PRIVATE _GPU DEBUG)
-    target_compile_options(${TITAN_EXE} PRIVATE -cpp
-                                                -DVERSION="${GIT_VERSION}"
-                                                -lineinfo
-                                                -g
-                                                -G
-                                                -Mdclchk                  # instructs the compiler to require that all program variables be declared
-                                                -Minform=inform           # instructs the compiler to display all error messages (inform, warn, severe and fatal).
-                                                -Mbounds                  # enables array bounds checking.
-                                                -Mchkptr                  # instructs the compiler to check for pointers that are dereferenced while initialized to NULL (Fortran only).
-                                                -Mchkstk                  # instructs the compiler to check the stack for available space in the prologue of a function and before the start of a parallel region.
-                                                -traceback
-                                                -Ktrap=fp,unf             # fp, unf is equivalent to inv,divz,ovf, unf  correspond to the processor’s exception mask bits: invalid operation, divide-by-zero, overflow, and underflow, respectively.
-                                                -gpu=cc70,cc80
-                                                -Minfo=accel
-                                                -acc
-                                                #-mp                       # openmp
-                                                -O0
-                                                )
-  endif(NOT DEBUG MATCHES "ON")
+  endif(NOT DEBUG)
 
 endif(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES nv)
 
@@ -405,7 +397,7 @@ endif(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES nv)
 
 #target_link_libraries(${EXEC_NAME} ${NAG}/lib/libnag_nag.a -qopenmp)
 
-unset(DEBUG CACHE)
+# unset(DEBUG CACHE)
 # unset(DEBUGSUFFIX CACHE)
 # unset(PREP CACHE)
 # unset(SUFFIX CACHE)

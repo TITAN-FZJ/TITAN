@@ -26,7 +26,7 @@ contains
     use mod_system,    only: System_type
     use mod_mpi_pars,  only: myrank,abortProgram
     use mod_constants, only: tpi
-    use mod_tools,     only: cross, vec_norm
+    use mod_tools,     only: cross,vec_norm
     use mod_io,        only: log_warning
     implicit none
 
@@ -132,9 +132,11 @@ contains
     end do
 
     ! Reading dimension for elemental file
-    if(present(lread_sysdim).and.(lread_sysdim)) then
-      read(f_unit, fmt='(A)', iostat=ios) line
-      read(unit=line, fmt=*, iostat=ios) s%isysdim
+    if(present(lread_sysdim)) then
+      if(lread_sysdim) then
+        read(f_unit, fmt='(A)', iostat=ios) line
+        read(unit=line, fmt=*, iostat=ios) s%isysdim
+      end if
     end if
 
     ! Calculating volume of BZ and reciprocal lattice vectors

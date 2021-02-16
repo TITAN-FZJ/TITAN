@@ -1288,14 +1288,14 @@ contains
 !   920501  Reformatted the REFERENCES section.  (WRB)
 !***END PROLOGUE  XGETUA
       IMPLICIT NONE
-      INTEGER :: I, INDEX, IUNITA, N
+      INTEGER :: I, IDX, IUNITA, N
       DIMENSION IUNITA(5)
 !***FIRST EXECUTABLE STATEMENT  XGETUA
       N = J4SAVE(5,0,.FALSE.)
       DO 30 I=1,N
-         INDEX = I+4
-         IF (I==1) INDEX = 3
-         IUNITA(I) = J4SAVE(INDEX,0,.FALSE.)
+         IDX = I+4
+         IF (I==1) IDX = 3
+         IUNITA(I) = J4SAVE(IDX,0,.FALSE.)
    30 CONTINUE
       END SUBROUTINE XGETUA
 end module mod_chkder

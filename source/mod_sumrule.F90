@@ -18,7 +18,7 @@ contains
     complex(dp), dimension(dimens,dimens), intent(in)    :: chiorb_hf
 
     integer :: AllocateStatus
-    integer :: i,j,r,t,p,q,mu,nu,gamma,xi,m,n,k
+    integer :: i,j,r,t,p,q,mu,nu,gama,xi,m,n,k
     real(dp)   , dimension(3,s%nAtoms)             :: mvec
     complex(dp), dimension(dimens)                 :: Beff
     complex(dp), dimension(:,:,:,:,:),allocatable  :: lhs,rhs
@@ -44,13 +44,13 @@ contains
           do t = 1, 4
             do mu = 1,s%nOrb
               do nu = 1,s%nOrb
-                do gamma = 1,s%nOrb
+                do gama = 1,s%nOrb
                   do xi = 1,s%nOrb
                     do p = 1, 4
                       do q = 1, 4
                         if(abs(StoC(p,r)) < 1.e-15_dp .or. abs(CtoS(t,q))  < 1.e-15_dp) cycle
-                        chiorb_hf_cart(sigmaimunu2i(p,i,mu,nu),sigmaimunu2i(q,j,gamma,xi)) = chiorb_hf_cart(sigmaimunu2i(p,i,mu,nu),sigmaimunu2i(q,j,gamma,xi)) &
-                                                                          + StoC(p,r) * chiorb_hf(sigmaimunu2i(r,i,mu,nu),sigmaimunu2i(t,j,gamma,xi))* CtoS(t,q)
+                        chiorb_hf_cart(sigmaimunu2i(p,i,mu,nu),sigmaimunu2i(q,j,gama,xi)) = chiorb_hf_cart(sigmaimunu2i(p,i,mu,nu),sigmaimunu2i(q,j,gama,xi)) &
+                                                                          + StoC(p,r) * chiorb_hf(sigmaimunu2i(r,i,mu,nu),sigmaimunu2i(t,j,gama,xi))* CtoS(t,q)
                       end do
                     end do
                   end do
@@ -77,12 +77,12 @@ contains
               end do
 
               do j = 1,s%nAtoms
-                do gamma = 1,s%nOrb
+                do gama = 1,s%nOrb
                   do xi = 1,s%nOrb
                     do q = 1,3
                       do p = 1,3
                         if(abs(levi_civita(n,q,p)) > 1.e-15_dp) &
-                          rhs(m,n,mu,nu,i) = rhs(m,n,mu,nu,i) + levi_civita(n,q,p)*chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gamma,xi))*Beff(sigmaimunu2i(q+1,j,gamma,xi))
+                          rhs(m,n,mu,nu,i) = rhs(m,n,mu,nu,i) + levi_civita(n,q,p)*chiorb_hf_cart(sigmaimunu2i(m+1,i,mu,nu),sigmaimunu2i(p+1,j,gama,xi))*Beff(sigmaimunu2i(q+1,j,gama,xi))
                       end do
                     end do
                   end do

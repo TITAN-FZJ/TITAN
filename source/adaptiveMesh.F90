@@ -73,7 +73,7 @@ contains
 
   !! Generate the distributed combined points {e,kx,ky,kz}
   !! (locally for a given MPI process)
-  subroutine genLocalEKMesh(sys,rank,size,comm)
+  subroutine genLocalEKMesh(sys,rank,isize,comm)
     use mod_kind,          only: dp, int32, int64
     use mod_parameters,    only: total_nkpt => kptotal_in
     use EnergyIntegration, only: pn1, y
@@ -83,12 +83,12 @@ contains
 
     type(System_type), intent(in) :: sys
     integer(int32),    intent(in) :: rank
-    integer(int32),    intent(in) :: size
+    integer(int32),    intent(in) :: isize
     integer(int32),    intent(in) :: comm
     ! MPI_f08:
     ! type(System_type),   intent(in) :: sys
     ! integer(int32),      intent(in) :: rank
-    ! integer(int32),      intent(in) :: size
+    ! integer(int32),      intent(in) :: isize
     ! type(MPI_Comm), intent(in) :: comm
     integer(int64) :: firstPoint, lastPoint
     integer(int64) :: j, m, n, p, q, nall
@@ -96,7 +96,7 @@ contains
 
     activeComm = comm
     activeRank = rank
-    activeSize = size
+    activeSize = isize
     call calcWorkload(total_points,activeSize,activeRank,firstPoint,lastPoint)
     local_points = lastPoint - firstPoint + 1
     allocate(E_k_imag_mesh(2,local_points))
@@ -124,7 +124,7 @@ contains
       end if
 
       bzs(i) % rank = rank
-      bzs(i) % size = size
+      bzs(i) % isize = isize
       bzs(i) % comm = comm
 
       bzs(i) % workload = q - p + 1

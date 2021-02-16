@@ -336,7 +336,7 @@ contains
 !   900315  CALLs to XERROR changed to CALLs to XERMSG.  (THJ)
 !   920501  Reformatted the REFERENCES section.  (WRB)
 !***END PROLOGUE  DNSQE
-      INTEGER      :: INDEX, INFO, IOPT, J, LR, LWA, MAXFEV, ML, MODE, MU, N, &
+      INTEGER      :: IDX, INFO, IOPT, J, LR, LWA, MAXFEV, ML, MODE, MU, N, &
            NFEV, NJEV, NPRINT
       REAL(dp) :: EPSFCN, FACTOR, FVEC(*), ONE, TOL, WA(*), &
            X(*), XTOL, ZERO
@@ -368,8 +368,8 @@ contains
             WA(J) = ONE
    10    CONTINUE
          LR = (N*(N + 1))/2
-         INDEX = 6*N + LR
-         CALL DNSQ(FCN,JAC,IOPT,N,X,FVEC,WA(INDEX+1),N,XTOL,MAXFEV,ML, &
+         IDX = 6*N + LR
+         CALL DNSQ(FCN,JAC,IOPT,N,X,FVEC,WA(IDX+1),N,XTOL,MAXFEV,ML, &
                    MU,EPSFCN,WA(1),MODE,FACTOR,NPRINT,INFO,NFEV,NJEV, &
                    WA(6*N+1),LR,WA(N+1),WA(2*N+1),WA(3*N+1),WA(4*N+1), &
                    WA(5*N+1))
@@ -807,7 +807,7 @@ contains
            NPRINT, NSLOW1, NSLOW2
       REAL(dp) :: ACTRED, DELTA, DIAG(*), EPSFCN, EPSMCH, FACTOR, &
            FJAC(LDFJAC,*), FNORM, FNORM1, FVEC(*), ONE, P0001, P001, &
-           P1, P5, PNORM, PRERED, QTF(*), R(*), RATIO, SUM, TEMP, &
+           P1, P5, PNORM, PRERED, QTF(*), R(*), RATIO, RSUM, TEMP, &
            WA1(*), WA2(*), WA3(*), WA4(*), X(*), XNORM, XTOL, ZERO
       EXTERNAL FCN, JAC
       LOGICAL      :: JEVAL,SING
@@ -921,11 +921,11 @@ contains
   100       CONTINUE
             DO 140 J = 1, N
                IF (ABS(FJAC(J,J)) < TOL1) GO TO 130
-                  SUM = ZERO
+                  RSUM = ZERO
                   DO 110 I = J, N
-                     SUM = SUM + FJAC(I,J)*QTF(I)
+                     RSUM = RSUM + FJAC(I,J)*QTF(I)
   110             CONTINUE
-                  TEMP = -SUM/FJAC(J,J)
+                  TEMP = -RSUM/FJAC(J,J)
                   DO 120 I = J, N
                      QTF(I) = QTF(I) + FJAC(I,J)*TEMP
   120             CONTINUE
@@ -1011,12 +1011,12 @@ contains
 !
                L = 1
                DO 240 I = 1, N
-                  SUM = ZERO
+                  RSUM = ZERO
                   DO 230 J = I, N
-                     SUM = SUM + R(L)*WA1(J)
+                     RSUM = RSUM + R(L)*WA1(J)
                      L = L + 1
   230             CONTINUE
-                  WA3(I) = QTF(I) + SUM
+                  WA3(I) = QTF(I) + RSUM
   240          CONTINUE
 !                CALL DENORMSUB(N,WA3,TEMP)
                TEMP = DENORM(N,WA3)
@@ -1092,13 +1092,13 @@ contains
 !              AND UPDATE QTF IF NECESSARY.
 !
                DO 300 J = 1, N
-                  SUM = ZERO
+                  RSUM = ZERO
                   DO 290 I = 1, N
-                     SUM = SUM + FJAC(I,J)*WA4(I)
+                     RSUM = RSUM + FJAC(I,J)*WA4(I)
   290             CONTINUE
-                  WA2(J) = (SUM - WA3(J))/PNORM
+                  WA2(J) = (RSUM - WA3(J))/PNORM
                   WA1(J) = DIAG(J)*((DIAG(J)*WA1(J))/PNORM)
-                  IF (RATIO >= P0001) QTF(J) = SUM
+                  IF (RATIO >= P0001) QTF(J) = RSUM
   300          CONTINUE
 !
 !              COMPUTE THE QR FACTORIZATION OF THE UPDATED JACOBIAN.
@@ -1253,7 +1253,7 @@ contains
 !   900328  Added TYPE section.  (WRB)
 !***END PROLOGUE  D1MPYQ
       INTEGER      :: I, J, LDA, M, N, NM1, NMJ
-      REAL(dp) :: A(LDA,*), COS, ONE, SIN, TEMP, V(*), W(*)
+      REAL(dp) :: A(LDA,*), RCOS, ONE, RSIN, TEMP, V(*), W(*)
       SAVE ONE
       DATA ONE /1.0_dp/
 !
@@ -1264,13 +1264,13 @@ contains
       IF (NM1 < 1) GO TO 50
       DO 20 NMJ = 1, NM1
          J = N - NMJ
-         IF (ABS(V(J)) > ONE) COS = ONE/V(J)
-         IF (ABS(V(J)) > ONE) SIN = SQRT(ONE-COS**2)
-         IF (ABS(V(J)) <= ONE) SIN = V(J)
-         IF (ABS(V(J)) <= ONE) COS = SQRT(ONE-SIN**2)
+         IF (ABS(V(J)) > ONE) RCOS = ONE/V(J)
+         IF (ABS(V(J)) > ONE) RSIN = SQRT(ONE-RCOS**2)
+         IF (ABS(V(J)) <= ONE) RSIN = V(J)
+         IF (ABS(V(J)) <= ONE) RCOS = SQRT(ONE-RSIN**2)
          DO 10 I = 1, M
-            TEMP = COS*A(I,J) - SIN*A(I,N)
-            A(I,N) = SIN*A(I,J) + COS*A(I,N)
+            TEMP = RCOS*A(I,J) - RSIN*A(I,N)
+            A(I,N) = RSIN*A(I,J) + RCOS*A(I,N)
             A(I,J) = TEMP
    10       CONTINUE
    20    CONTINUE
@@ -1278,13 +1278,13 @@ contains
 !     APPLY THE SECOND SET OF GIVENS ROTATIONS TO A.
 !
       DO 40 J = 1, NM1
-         IF (ABS(W(J)) > ONE) COS = ONE/W(J)
-         IF (ABS(W(J)) > ONE) SIN = SQRT(ONE-COS**2)
-         IF (ABS(W(J)) <= ONE) SIN = W(J)
-         IF (ABS(W(J)) <= ONE) COS = SQRT(ONE-SIN**2)
+         IF (ABS(W(J)) > ONE) RCOS = ONE/W(J)
+         IF (ABS(W(J)) > ONE) RSIN = SQRT(ONE-RCOS**2)
+         IF (ABS(W(J)) <= ONE) RSIN = W(J)
+         IF (ABS(W(J)) <= ONE) RCOS = SQRT(ONE-RSIN**2)
          DO 30 I = 1, M
-            TEMP = COS*A(I,J) + SIN*A(I,N)
-            A(I,N) = -SIN*A(I,J) + COS*A(I,N)
+            TEMP = RCOS*A(I,J) + RSIN*A(I,N)
+            A(I,N) = -RSIN*A(I,J) + RCOS*A(I,N)
             A(I,J) = TEMP
    30       CONTINUE
    40    CONTINUE
@@ -1369,8 +1369,8 @@ contains
 !***END PROLOGUE  D1UPDT
 !       REAL(dp) :: D1MACH
       INTEGER      :: I, J, JJ, L, M, N, NM1, NMJ
-      REAL(dp) :: COS, COTAN, GIANT, ONE, P25, P5, S(*), &
-           SIN, TAN, TAU, TEMP, U(*), V(*), W(*), ZERO
+      REAL(dp) :: RCOS, COTAN, GIANT, ONE, P25, P5, S(*), &
+           RSIN, RTAN, TAU, TEMP, U(*), V(*), W(*), ZERO
       LOGICAL      :: SING
       SAVE ONE, P5, P25, ZERO
       DATA ONE,P5,P25,ZERO /1.0_dp,5.0e-1_dp,2.5e-1_dp,0.0_dp/
@@ -1409,30 +1409,30 @@ contains
 !
          IF (ABS(V(N)) >= ABS(V(J))) GO TO 20
             COTAN = V(N)/V(J)
-            SIN = P5/SQRT(P25+P25*COTAN**2)
-            COS = SIN*COTAN
+            RSIN = P5/SQRT(P25+P25*COTAN**2)
+            RCOS = RSIN*COTAN
             TAU = ONE
-            IF (ABS(COS)*GIANT > ONE) TAU = ONE/COS
+            IF (ABS(RCOS)*GIANT > ONE) TAU = ONE/RCOS
             GO TO 30
    20    CONTINUE
-            TAN = V(J)/V(N)
-            COS = P5/SQRT(P25+P25*TAN**2)
-            SIN = COS*TAN
-            TAU = SIN
+            RTAN = V(J)/V(N)
+            RCOS = P5/SQRT(P25+P25*RTAN**2)
+            RSIN = RCOS*RTAN
+            TAU = RSIN
    30    CONTINUE
 !
 !        APPLY THE TRANSFORMATION TO V AND STORE THE INFORMATION
 !        NECESSARY TO RECOVER THE GIVENS ROTATION.
 !
-         V(N) = SIN*V(J) + COS*V(N)
+         V(N) = RSIN*V(J) + RCOS*V(N)
          V(J) = TAU
 !
 !        APPLY THE TRANSFORMATION TO S AND EXTEND THE SPIKE IN W.
 !
          L = JJ
          DO 40 I = J, M
-            TEMP = COS*S(L) - SIN*W(I)
-            W(I) = SIN*S(L) + COS*W(I)
+            TEMP = RCOS*S(L) - RSIN*W(I)
+            W(I) = RSIN*S(L) + RCOS*W(I)
             S(L) = TEMP
             L = L + 1
    40       CONTINUE
@@ -1458,24 +1458,24 @@ contains
 !
          IF (ABS(S(JJ)) >= ABS(W(J))) GO TO 90
             COTAN = S(JJ)/W(J)
-            SIN = P5/SQRT(P25+P25*COTAN**2)
-            COS = SIN*COTAN
+            RSIN = P5/SQRT(P25+P25*COTAN**2)
+            RCOS = RSIN*COTAN
             TAU = ONE
-            IF (ABS(COS)*GIANT > ONE) TAU = ONE/COS
+            IF (ABS(RCOS)*GIANT > ONE) TAU = ONE/RCOS
             GO TO 100
    90    CONTINUE
-            TAN = W(J)/S(JJ)
-            COS = P5/SQRT(P25+P25*TAN**2)
-            SIN = COS*TAN
-            TAU = SIN
+            RTAN = W(J)/S(JJ)
+            RCOS = P5/SQRT(P25+P25*RTAN**2)
+            RSIN = RCOS*RTAN
+            TAU = RSIN
   100    CONTINUE
 !
 !        APPLY THE TRANSFORMATION TO S AND REDUCE THE SPIKE IN W.
 !
          L = JJ
          DO 110 I = J, M
-            TEMP = COS*S(L) + SIN*W(I)
-            W(I) = -SIN*S(L) + COS*W(I)
+            TEMP = RCOS*S(L) + RSIN*W(I)
+            W(I) = -RSIN*S(L) + RCOS*W(I)
             S(L) = TEMP
             L = L + 1
   110       CONTINUE
@@ -1572,7 +1572,7 @@ contains
 !       REAL(dp) :: D1MACH,DENORM
       INTEGER      :: I, J, JJ, JP1, K, L, N
       REAL(dp) :: ALPHA, BNORM, DELTA, DIAG(*), EPSMCH, GNORM, &
-           ONE, QNORM, QTB(*), R(*), SGNORM, SUM, TEMP, WA1(*), &
+           ONE, QNORM, QTB(*), R(*), SGNORM, RSUM, TEMP, WA1(*), &
            WA2(*), X(*), ZERO
       SAVE ONE, ZERO
       DATA ONE,ZERO /1.0_dp,0.0_dp/
@@ -1591,10 +1591,10 @@ contains
          JP1 = J + 1
          JJ = JJ - K
          L = JJ + 1
-         SUM = ZERO
+         RSUM = ZERO
          IF (N < JP1) GO TO 20
          DO 10 I = JP1, N
-            SUM = SUM + R(L)*X(I)
+            RSUM = RSUM + R(L)*X(I)
             L = L + 1
    10       CONTINUE
    20    CONTINUE
@@ -1608,7 +1608,7 @@ contains
          TEMP = EPSMCH*TEMP
          IF (ABS(TEMP) < TOL1) TEMP = EPSMCH
    40    CONTINUE
-         X(J) = (QTB(J) - SUM)/TEMP
+         X(J) = (QTB(J) - RSUM)/TEMP
    50    CONTINUE
 !
 !     TEST WHETHER THE GAUSS-NEWTON DIRECTION IS ACCEPTABLE.
@@ -1651,12 +1651,12 @@ contains
    90    CONTINUE
       L = 1
       DO 110 J = 1, N
-         SUM = ZERO
+         RSUM = ZERO
          DO 100 I = J, N
-            SUM = SUM + R(L)*WA1(I)
+            RSUM = RSUM + R(L)*WA1(I)
             L = L + 1
   100       CONTINUE
-         WA2(J) = SUM
+         WA2(J) = RSUM
   110    CONTINUE
 !       CALL DENORMSUB(N,WA2,TEMP)
       TEMP = DENORM(N,WA2)
@@ -2010,7 +2010,7 @@ contains
 !   900328  Added TYPE section.  (WRB)
 !***END PROLOGUE  DQFORM
       INTEGER      :: I, J, JM1, K, L, LDQ, M, MINMN, N, NP1
-      REAL(dp) :: ONE, Q(LDQ,*), SUM, TEMP, WA(*), ZERO
+      REAL(dp) :: ONE, Q(LDQ,*), RSUM, TEMP, WA(*), ZERO
       SAVE ONE, ZERO
       DATA ONE,ZERO /1.0_dp,0.0_dp/
 !
@@ -2050,11 +2050,11 @@ contains
          Q(K,K) = ONE
          IF (ABS(WA(K)) < TOL1) GO TO 110
          DO 100 J = K, M
-            SUM = ZERO
+            RSUM = ZERO
             DO 80 I = K, M
-               SUM = SUM + Q(I,J)*WA(I)
+               RSUM = RSUM + Q(I,J)*WA(I)
    80          CONTINUE
-            TEMP = SUM/WA(K)
+            TEMP = RSUM/WA(K)
             DO 90 I = K, M
                Q(I,J) = Q(I,J) - TEMP*WA(I)
    90          CONTINUE
@@ -2155,7 +2155,7 @@ contains
       SAVE ONE, P05, ZERO
       REAL(dp) :: A(LDA,*),SIGMA(*),ACNORM(*),WA(*)
       INTEGER      :: I,J,JP1,K,KMAX,MINMN
-      REAL(dp) :: AJNORM,EPSMCH,ONE,P05,SUM,TEMP,ZERO
+      REAL(dp) :: AJNORM,EPSMCH,ONE,P05,RSUM,TEMP,ZERO
 !       REAL(dp) :: D1MACH,DENORM
       DATA ONE,P05,ZERO /1.0_dp,5.0e-2_dp,0.0_dp/
 !***FIRST EXECUTABLE STATEMENT  DQRFAC
@@ -2215,11 +2215,11 @@ contains
          JP1 = J + 1
          IF (N < JP1) GO TO 100
          DO 90 K = JP1, N
-            SUM = ZERO
+            RSUM = ZERO
             DO 60 I = J, M
-               SUM = SUM + A(I,J)*A(I,K)
+               RSUM = RSUM + A(I,J)*A(I,K)
    60          CONTINUE
-            TEMP = SUM/A(J,J)
+            TEMP = RSUM/A(J,J)
             DO 70 I = J, M
                A(I,K) = A(I,K) - TEMP*A(I,J)
    70          CONTINUE
@@ -3252,14 +3252,14 @@ contains
 !   891214  Prologue converted to Version 4.0 format.  (BAB)
 !   920501  Reformatted the REFERENCES section.  (WRB)
 !***END PROLOGUE  XGETUA
-      INTEGER IUNITA, N, I, INDEX
+      INTEGER IUNITA, N, I, IDX
       DIMENSION IUNITA(5)
 !***FIRST EXECUTABLE STATEMENT  XGETUA
       N = J4SAVE(5,0,.FALSE.)
       DO 30 I=1,N
-         INDEX = I+4
-         IF (I==1) INDEX = 3
-         IUNITA(I) = J4SAVE(INDEX,0,.FALSE.)
+         IDX = I+4
+         IF (I==1) IDX = 3
+         IUNITA(I) = J4SAVE(IDX,0,.FALSE.)
    30 CONTINUE
       END SUBROUTINE XGETUA
 end module mod_dnsqe

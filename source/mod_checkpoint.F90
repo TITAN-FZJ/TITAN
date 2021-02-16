@@ -5,11 +5,11 @@ module mod_checkpoint
 contains
 
   !! This subroutine is to Save current state
-  subroutine save_state(rank,dimH,nkpt,time,step,eval_kn,evec_kn)
-    use mod_kind, only: dp, int32, int64
-    use mod_parameters, only: output
-    use mod_tools, only: itos
-    use mod_io, only: log_warning
+  subroutine save_state(rank,dimH,nkpt,rtime,step,eval_kn,evec_kn)
+    use mod_kind,               only: dp, int32, int64
+    use mod_parameters,         only: output
+    use mod_tools,              only: itos
+    use mod_io,                 only: log_warning
     use mod_time_propagator_io, only: write_header_time_prop
     implicit none
 
@@ -19,7 +19,7 @@ contains
     !! Dimension of the hamiltonian and eigenvalues/eigenvectors
     integer(int64), intent(in) :: nkpt
     !! Number of k-points
-    real(dp),                               intent(in) :: time
+    real(dp),                               intent(in) :: rtime
     !! Last calculated time instant
     real(dp),                               intent(in) :: step 
     !! Last step-size
@@ -44,7 +44,7 @@ contains
     call write_header_time_prop(file_unit, "# dim = " // trim(itos(dimH)) // " , nkpt = " // trim(itos(nkpt)) )
 
     ! Writing iteration, time and step size
-    write(unit=file_unit,fmt="(2(es16.9,2x))") time, step
+    write(unit=file_unit,fmt="(2(es16.9,2x))") rtime, step
 
     ! Writing eigenvalues and eigenvectors
     write(formatvar,fmt="(a,i0,a)") '(',dimH,'(es16.8e3,2x))'
@@ -63,10 +63,10 @@ contains
 
 
   !! This subroutine is to recover current state
-  function recover_state(rank,dimH,nkpt,time,step,eval_kn,evec_kn) result(success)
-    use mod_kind, only: dp, int32, int64
-    use mod_io, only: log_warning
-    use mod_parameters, only: output
+  function recover_state(rank,dimH,nkpt,rtime,step,eval_kn,evec_kn) result(success)
+    use mod_kind,               only: dp,int32,int64
+    use mod_io,                 only: log_warning
+    use mod_parameters,         only: output
     use mod_time_propagator_io, only: check_header_time_prop
     implicit none
     integer(int32), intent(in) :: rank
@@ -75,7 +75,7 @@ contains
     !! Dimension of the hamiltonian and eigenvalues/eigenvectors
     integer(int64), intent(in) :: nkpt
     !! Number of k-points
-    real(dp),                               intent(out) :: time
+    real(dp),                               intent(out) :: rtime
     !! Last calculated time instant
     real(dp),                               intent(out) :: step 
     !! Last step-size
@@ -117,7 +117,7 @@ contains
     end if
 
     ! Reading iteration, time and step size
-    read(unit=file_unit,fmt=*, iostat=stat_temp) time, step
+    read(unit=file_unit,fmt=*, iostat=stat_temp) rtime, step
     if (stat_check /= 0) then
       call log_warning("recover_state", "Checkpoint file with correct header found, but there was a problem reading previous time and step. Cannot continue from previous point.")
       close(file_unit)

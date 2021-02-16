@@ -28,16 +28,16 @@ contains
     use mod_system, only: System_type
     implicit none
     type(System_type), intent(inout) :: s
-    integer :: size
+    integer :: isize
 
-    call generateNeighbors(s, size)
-    call sortNeighbors(s, size)
+    call generateNeighbors(s, isize)
+    call sortNeighbors(s, isize)
 
     deallocate(list)
 
   end subroutine initLattice
 
-  subroutine generateNeighbors(s,size)
+  subroutine generateNeighbors(s,isize)
   !! Generate list of all possible Neighbors to the atoms in unit cell 0
   !! (including positions of cells, position of atoms, distances to atoms at unit cell 0,
   !! atom types and directional cosines) and stores the distances of each 
@@ -47,7 +47,7 @@ contains
     implicit none
     type(System_type), intent(inout) :: s
     !! System for which lattice is generated
-    integer,           intent(out)   :: size
+    integer,           intent(out)   :: isize
     !! Counter for number of atoms generated, return total number generated
     integer :: nCells
     !! Number of generated unit cells
@@ -67,8 +67,8 @@ contains
 
     allocate( localDistances(nCells * s%nAtoms, s%nAtoms))
 
-    ! "size" is added up until all atoms in all unit cells, nCells*s%nAtoms
-    size = 0
+    ! "isize" is added up until all atoms in all unit cells, nCells*s%nAtoms
+    isize = 0
     ! Set known distances to value which is guaranteed to be bigger than any possible distance in the system
     localDistances = 1.e12_dp
     s%Distances = 1.e12_dp
@@ -76,61 +76,61 @@ contains
     do i = 1, nCells
       ! ...and atoms in the unit cell
       do j = 1, s%nAtoms
-        ! "size" is the current atom
-        size = size + 1
+        ! "isize" is the current atom
+        isize = isize + 1
 
-        ! Determine the indices of the unit-cell containing atom "size"
+        ! Determine the indices of the unit-cell containing atom "isize"
         select case(s%isysdim)
         case(3)
-          list(size)%Cell(1) = mod( (i-1),(2*s%nStages+1) ) - s%nStages
-          list(size)%Cell(2) = mod( (i-1)/(2*s%nStages+1),(2*s%nStages+1) ) - s%nStages
-          list(size)%Cell(3) = mod( (i-1)/((2*s%nStages+1)*(2*s%nStages+1)),(2*s%nStages+1) ) - s%nStages
+          list(isize)%Cell(1) = mod( (i-1),(2*s%nStages+1) ) - s%nStages
+          list(isize)%Cell(2) = mod( (i-1)/(2*s%nStages+1),(2*s%nStages+1) ) - s%nStages
+          list(isize)%Cell(3) = mod( (i-1)/((2*s%nStages+1)*(2*s%nStages+1)),(2*s%nStages+1) ) - s%nStages
         case(2)
-          list(size)%Cell(1) = mod( (i-1),(2*s%nStages+1) ) - s%nStages
-          list(size)%Cell(2) = mod( (i-1)/(2*s%nStages+1),(2*s%nStages+1) ) - s%nStages
-          list(size)%Cell(3) = 0
+          list(isize)%Cell(1) = mod( (i-1),(2*s%nStages+1) ) - s%nStages
+          list(isize)%Cell(2) = mod( (i-1)/(2*s%nStages+1),(2*s%nStages+1) ) - s%nStages
+          list(isize)%Cell(3) = 0
         case default
-          list(size)%Cell(1) = mod( (i-1),(2*s%nStages+1) ) - s%nStages
-          list(size)%Cell(2) = 0
-          list(size)%Cell(3) = 0
+          list(isize)%Cell(1) = mod( (i-1),(2*s%nStages+1) ) - s%nStages
+          list(isize)%Cell(2) = 0
+          list(isize)%Cell(3) = 0
         end select
 
         ! Cell position is R_i = i*a1 + j*a2 + k*a3
-        list(size)%CellVector = list(size)%Cell(1) * s%a1 + list(size)%Cell(2) * s%a2 + list(size)%Cell(3) * s%a3
+        list(isize)%CellVector = list(isize)%Cell(1) * s%a1 + list(isize)%Cell(2) * s%a2 + list(isize)%Cell(3) * s%a3
         ! Atom position is r = R_i + r_j
-        list(size)%Position = s%Basis(j)%Position + list(size)%CellVector
+        list(isize)%Position = s%Basis(j)%Position + list(isize)%CellVector
 
         ! Defining what kind of atom it is (defined by which atom in the unit cell j)
-        list(size)%BasisIndex = j
-        list(size)%Material = s%Basis(j)%Material
+        list(isize)%BasisIndex = j
+        list(isize)%Material = s%Basis(j)%Material
 
         ! Allocate arrays for distances and directional cosines to all atoms in the central unit cell
-        allocate(list(size)%Distance(s%nAtoms))
-        allocate(list(size)%dirCos(3,s%nAtoms))
+        allocate(list(isize)%Distance(s%nAtoms))
+        allocate(list(isize)%dirCos(3,s%nAtoms))
 
         ! Calculate distances to other atoms k in the unit cell 0, and respective directional cosines
         do k = 1, s%nAtoms
-          list(size)%Distance(k) = vecDist(list(size)%Position, s%Basis(k)%Position)
-          list(size)%dirCos(:,k) = 0._dp
+          list(isize)%Distance(k) = vecDist(list(isize)%Position, s%Basis(k)%Position)
+          list(isize)%dirCos(:,k) = 0._dp
           ! If atom is the same, cycle
-          if(list(size)%Distance(k) <= 1.0e-9_dp) cycle
-          ! Unit vector pointing from atom "k" to "size"
-          list(size)%dirCos(:,k) = (list(size)%Position - s%Basis(k)%Position) / list(size)%Distance(k)
+          if(list(isize)%Distance(k) <= 1.0e-9_dp) cycle
+          ! Unit vector pointing from atom "k" to "isize"
+          list(isize)%dirCos(:,k) = (list(isize)%Position - s%Basis(k)%Position) / list(isize)%Distance(k)
 
-          ! Sort distances between all previous atoms "size" and unit cell 0 atoms "k"
+          ! Sort distances between all previous atoms "isize" and unit cell 0 atoms "k"
           ! The larger the first index, the larger the distance
-          localDistances(size,k) = list(size)%Distance(k)
-          l = size - 1
+          localDistances(isize,k) = list(isize)%Distance(k)
+          l = isize - 1
           do while(l >= 1)
             ! If distance of current atoms is larger than what is saved 
             ! at a previous position (l), exit loop
-            if( list(size)%Distance(k) > localDistances(l,k)) exit
+            if( list(isize)%Distance(k) > localDistances(l,k)) exit
             ! Otherwise, move previous position l one index up (to open space for current one)
             localDistances(l+1,k) = localDistances(l,k)
             l = l - 1
           end do
           ! When the position is larger, fits the current one in place (l+1, due to l = l-1 at the end of the loop)
-          localDistances(l+1,k) = list(size)%Distance(k)
+          localDistances(l+1,k) = list(isize)%Distance(k)
         end do
       end do
     end do
@@ -143,7 +143,7 @@ contains
     do j = 1, s%nAtoms
       l = 1
       ! Loop over all atoms (in all unit cells)
-      do i = 2, size
+      do i = 2, isize
         ! If current distance is inside tolerance (relTol percent of first stage distance), cycle
         if(abs(localDistances(i,j) - s%Distances(l,j)) < s%Distances(1,j) * s%relTol) cycle
 
@@ -156,12 +156,12 @@ contains
     deallocate(localDistances)
   end subroutine generateNeighbors
 
-  subroutine sortNeighbors(s, size)
+  subroutine sortNeighbors(s, isize)
   !! Sorts the neighbors that are inside the stages required
     use AtomTypes,  only: NeighborIndex
     use mod_system, only: System_type
     implicit none
-    integer,           intent(in)    :: size
+    integer,           intent(in)    :: isize
     type(System_type), intent(inout) :: s
     integer :: nNeighbors
 
@@ -182,7 +182,7 @@ contains
 
     nNeighbors = 0
     ! Loop over all atoms of all cells
-    do i = 1, size
+    do i = 1, isize
       matchedNeighbor = 0
       found = .false.
       ! Loop over all atoms of cell 0

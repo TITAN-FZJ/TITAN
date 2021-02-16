@@ -25,7 +25,7 @@ subroutine calculate_chi()
   use mod_check_stop,        only: check_stop
   implicit none
   integer  :: mcount,qcount
-  integer  :: i,j,sigma,sigmap,mu,nu,gamma,xi,p
+  integer  :: i,j,sigma,sigmap,mu,nu,gama,xi,p
   real(dp) :: e,q(3)
   complex(dp), dimension(:,:),   allocatable :: temp
 
@@ -115,13 +115,13 @@ subroutine calculate_chi()
                 do sigma=1, 3
                   do nu=1, s%nOrb
                     do mu=1, s%nOrb
-                      do gamma=1, s%nOrb
+                      do gama=1, s%nOrb
                         do p=1, 4
-                          schiLS(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiLS(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + lvec(mu,gamma,sigma)*( chiorb(sigmaimunu2i(2,i,mu,gamma),sigmaimunu2i(p,j,nu,nu)   ) + chiorb(sigmaimunu2i(3,i,mu,gamma),sigmaimunu2i(p,j,nu,nu)   ) )*CtoS(p,sigmap+1)
-                          schiSL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiSL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) +      StoC(sigma+1,p)*( chiorb(sigmaimunu2i(p,i,mu,mu)   ,sigmaimunu2i(2,j,nu,gamma)) + chiorb(sigmaimunu2i(p,i,mu,mu)   ,sigmaimunu2i(3,j,nu,gamma)) )*lvec(nu,gamma,sigmap)
+                          schiLS(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiLS(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + lvec(mu,gama,sigma)*( chiorb(sigmaimunu2i(2,i,mu,gama),sigmaimunu2i(p,j,nu,nu)   ) + chiorb(sigmaimunu2i(3,i,mu,gama),sigmaimunu2i(p,j,nu,nu)   ) )*CtoS(p,sigmap+1)
+                          schiSL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiSL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) +      StoC(sigma+1,p)*( chiorb(sigmaimunu2i(p,i,mu,mu)   ,sigmaimunu2i(2,j,nu,gama)) + chiorb(sigmaimunu2i(p,i,mu,mu)   ,sigmaimunu2i(3,j,nu,gama)) )*lvec(nu,gama,sigmap)
                         end do
                         do xi=1, s%nOrb
-                          schiLL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiLL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + lvec(mu,nu,sigma)*( chiorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) + chiorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) + chiorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,j,gamma,xi)) + chiorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,j,gamma,xi)) )*lvec(gamma,xi,sigmap)
+                          schiLL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiLL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + lvec(mu,nu,sigma)*( chiorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,j,gama,xi)) + chiorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,j,gama,xi)) + chiorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,j,gama,xi)) + chiorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,j,gama,xi)) )*lvec(gama,xi,sigmap)
                         end do
                       end do
                     end do

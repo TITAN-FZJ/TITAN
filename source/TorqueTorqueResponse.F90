@@ -122,7 +122,7 @@ contains
     use mod_tools,            only: invers
     implicit none
     integer :: AllocateStatus
-    integer :: i,j, m,n,k, mp,np,kp, mu,nu, gamma,zeta,mud,nud,gammad,zetad, p,q
+    integer :: i,j, m,n,k, mp,np,kp, mu,nu, gama,zeta,mud,nud,gammad,zetad, p,q
     real(dp), intent(in) :: e
     complex(dp), dimension(:,:), allocatable :: TTInverse
     allocate(TTInverse(s%nAtoms*3, s%nAtoms*3), stat=AllocateStatus)
@@ -146,23 +146,23 @@ contains
                         nu = s%dOrbs(nud)
                         if(abs(lvec(nu,mu,n)) < 1.e-15_dp) cycle
                         do gammad=1,s%ndOrb
-                          gamma = s%dOrbs(gammad)
+                          gama = s%dOrbs(gammad)
                           do zetad=1,s%ndOrb
                             zeta = s%dOrbs(zetad)
-                            if(abs(lvec(gamma,zeta,np)) < 1.e-15_dp) cycle
+                            if(abs(lvec(gama,zeta,np)) < 1.e-15_dp) cycle
                             do p = 1, 4
                               do q = 1, 4
                                 if(abs(StoC(k+1,p)) < 1.e-15_dp .or. abs(CtoS(q,kp+1)) < 1.e-15_dp) cycle
                                 TTResponse(mp, m, j, i) = TTResponse(mp, m, j, i) &
                                      - 2.0_dp / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%LambdaD * s%Types(s%Basis(j)%Material)%LambdaD &
                                      * levi_civita(m,n,k) * levi_civita(mp, np, kp) &
-                                     * lvec(mu, nu, n) * lvec(gamma, zeta, np) &
-                                     * StoC(k+1,p) * chiorb(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma,zeta)) * CtoS(q,kp+1)
+                                     * lvec(mu, nu, n) * lvec(gama, zeta, np) &
+                                     * StoC(k+1,p) * chiorb(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gama,zeta)) * CtoS(q,kp+1)
                                 TTResponseHF(mp, m, j, i) = TTResponseHF(mp, m, j, i) &
                                      - 2.0_dp / sqrt(mabs(i)*mabs(j)) * s%Types(s%Basis(i)%Material)%LambdaD * s%Types(s%Basis(j)%Material)%LambdaD &
                                      * levi_civita(m,n,k) * levi_civita(mp, np, kp) &
-                                     * lvec(mu, nu, n) * lvec(gamma, zeta, np) &
-                                     * StoC(k+1,p) * chiorb_hf(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gamma,zeta)) * CtoS(q,kp+1)
+                                     * lvec(mu, nu, n) * lvec(gama, zeta, np) &
+                                     * StoC(k+1,p) * chiorb_hf(sigmaimunu2i(p,i,mu,nu), sigmaimunu2i(q,j,gama,zeta)) * CtoS(q,kp+1)
                               end do
                             end do
                           end do

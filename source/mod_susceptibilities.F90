@@ -109,23 +109,23 @@ contains
     use mod_constants,  only: cZero,cOne
     use mod_system,     only: s => sys
     implicit none
-    integer :: xi,gamma,nu,mu,xid,gammad,nud,mud,i
+    integer :: xi,gama,nu,mu,xid,gammad,nud,mud,i
 
     Umatorb = cZero
     do xid=1,s%ndOrb
       xi = s%dOrbs(xid)
       do gammad=1,s%ndOrb
-        gamma = s%dOrbs(gammad)
+        gama = s%dOrbs(gammad)
         do nud=1,s%ndOrb
           nu = s%dOrbs(nud)
           do mud=1,s%ndOrb
             mu = s%dOrbs(mud)
-            if((mu/=nu).or.(gamma/=xi)) cycle
+            if((mu/=nu).or.(gama/=xi)) cycle
             do i=1,s%nAtoms
-              Umatorb(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(1,i,gamma,xi)) = cmplx(s%Basis(i)%Um,0._dp,dp)
-              Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = cmplx(s%Basis(i)%Un,0._dp,dp)
-              Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = cmplx(s%Basis(i)%Un,0._dp,dp)
-              Umatorb(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,i,gamma,xi)) = cmplx(s%Basis(i)%Um,0._dp,dp)
+              Umatorb(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(1,i,gama,xi)) = cmplx(s%Basis(i)%Um,0._dp,dp)
+              Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gama,xi)) = cmplx(s%Basis(i)%Un,0._dp,dp)
+              Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gama,xi)) = cmplx(s%Basis(i)%Un,0._dp,dp)
+              Umatorb(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,i,gama,xi)) = cmplx(s%Basis(i)%Um,0._dp,dp)
             end do
           end do
         end do
@@ -134,17 +134,17 @@ contains
     do xid=1,s%ndOrb
       xi = s%dOrbs(xid)
       do gammad=1,s%ndOrb
-        gamma = s%dOrbs(gammad)
+        gama = s%dOrbs(gammad)
         do nud=1,s%ndOrb
           nu = s%dOrbs(nud)
           do mud=1,s%ndOrb
             mu = s%dOrbs(mud)
-            if((mu/=xi).or.(nu/=gamma)) cycle
+            if((mu/=xi).or.(nu/=gama)) cycle
             do i=1,s%nAtoms
-              Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi))-cmplx(s%Basis(i)%Un,0._dp,dp)
-              Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gamma,xi))-cmplx(s%Basis(i)%Un,0._dp,dp)
-              Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gamma,xi))-cmplx(s%Basis(i)%Un,0._dp,dp)
-              Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi))-cmplx(s%Basis(i)%Un,0._dp,dp)
+              Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gama,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gama,xi))-cmplx(s%Basis(i)%Un,0._dp,dp)
+              Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gama,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gama,xi))-cmplx(s%Basis(i)%Un,0._dp,dp)
+              Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gama,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gama,xi))-cmplx(s%Basis(i)%Un,0._dp,dp)
+              Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gama,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gama,xi))-cmplx(s%Basis(i)%Un,0._dp,dp)
             end do
           end do
         end do

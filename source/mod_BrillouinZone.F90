@@ -41,9 +41,9 @@ module mod_BrillouinZone
     integer(int64) :: workload = 0
     integer(int64) :: first = 0
     integer(int64) :: last = 0
-    integer(int32) :: size, rank, comm
+    integer(int32) :: isize, rank, comm
     ! MPI_f08:
-    ! integer(int32) :: size, rank
+    ! integer(int32) :: isize, rank
     ! type(MPI_Comm) :: comm
   contains
     procedure :: setup_fraction
@@ -56,18 +56,18 @@ module mod_BrillouinZone
 
 contains
 
-  subroutine setup_fraction(self, sys, rank, size, comm, lkpoints)
+  subroutine setup_fraction(self, sys, rank, isize, comm, lkpoints)
     use mod_kind,     only: int32
     use mod_mpi_pars, only: calcWorkload
     use mod_System,   only: System_type
     implicit none
     class(FractionalBrillouinZone) :: self
     type(System_type),intent(in) :: sys
-    integer(int32),   intent(in) :: rank, size, comm
+    integer(int32),   intent(in) :: rank, isize, comm
     logical,          intent(in), optional :: lkpoints
     ! MPI_f08:
     ! type(System_type),   intent(in) :: sys
-    ! integer(int32),      intent(in) :: rank, size
+    ! integer(int32),      intent(in) :: rank, isize
     ! type(MPI_Comm), intent(in) :: comm
     ! logical,        intent(in), optional :: lkpoints
 
@@ -76,12 +76,12 @@ contains
     if(allocated(self%kp)) deallocate(self%kp)
     if(allocated(self%w )) deallocate(self%w)
 
-    self % rank = rank
-    self % size = size
-    self % comm = comm
+    self % rank  = rank
+    self % isize = isize
+    self % comm  = comm
 
     ! call self%countBZ(sys)
-    call calcWorkload(self%nkpt, self%size, self%rank, self%first, self%last)
+    call calcWorkload(self%nkpt, self%isize, self%rank, self%first, self%last)
     self%workload = self%last - self%first + 1
     select case(sys%isysdim)
     case(3)
@@ -157,7 +157,7 @@ contains
     real(dp) :: smallest_dist, distance(8), ini_smallest_dist
     integer(int64)    :: nkpt, l
     integer(int32)    :: nx, ny, nz
-    integer(int64)    :: kount, added, weight, range
+    integer(int64)    :: kount, added, weight, irange
     integer(int32)    :: j
 
     allocate( self%w(self%workload), self%kp(3,self%workload) )
@@ -187,7 +187,7 @@ contains
     do l = 1, nkpt
       if(kount > last) exit
       weight = 0
-      range = 0
+      irange = 0
       nx = int(mod(floor(dble(l-1) / dble(self%nkpt_y*self%nkpt_z),kind(nx)), self%nkpt_x),kind(nx))
       ny = int(mod(floor(dble(l-1) / dble(self%nkpt_z),kind(ny)), self%nkpt_y),kind(ny))
       nz = int(mod(l-1, self%nkpt_z),kind(nz))
@@ -211,12 +211,12 @@ contains
           weight = weight + 1
           if(kount >= first .and. kount <= last ) then
             added = added + 1
-            range = range + 1
+            irange = irange + 1
             self%kp(:,added) = diff(:,j)
           end if
         end if
       end do
-      self%w(added-range+1:added) = 1._dp / dble(weight)
+      self%w(added-irange+1:added) = 1._dp / dble(weight)
     end do
     self%w = self%w / dble(nkpt)
 
@@ -316,7 +316,7 @@ contains
     real(dp) :: smallest_dist, distance(4), ini_smallest_dist
     integer(int64)    :: nkpt, l
     integer(int32)    :: nx, ny
-    integer(int64)    :: kount, added, weight, range
+    integer(int64)    :: kount, added, weight, irange
     integer(int32)    :: j
 
     zdir = [0._dp,0._dp,1._dp]
@@ -342,7 +342,7 @@ contains
     do l=1, nkpt
       if(kount > last) exit
       weight = 0
-      range = 0
+      irange = 0
       nx = int(mod(floor(dble(l-1) / dble(self%nkpt_y),kind(nx)), self%nkpt_x),kind(nx))
       ny = int(mod(l-1, self%nkpt_y),kind(ny))
       kp = dble(nx)*b1 / dble(self%nkpt_x) + dble(ny)*b2 / dble(self%nkpt_y)
@@ -365,12 +365,12 @@ contains
           weight = weight + 1
           if(kount >= first .and. kount <= last ) then
             added = added + 1
-            range = range + 1
+            irange = irange + 1
             self%kp(:,added) = diff(:,j)
           end if
         end if
       end do
-      self%w(added-range+1:added) = 1.0 / dble(weight)
+      self%w(added-irange+1:added) = 1.0 / dble(weight)
     end do
     self%w = self%w / dble(nkpt)
 
@@ -465,7 +465,7 @@ contains
     real(dp) :: smallest_dist, distance(2), ini_smallest_dist
     integer(int64)    :: nkpt, l
     integer(int32)    :: nx
-    integer(int64)    :: kount, added, weight, range
+    integer(int64)    :: kount, added, weight, irange
     integer(int32)    :: j
 
     zdir = [0._dp,0._dp,1._dp]
@@ -488,7 +488,7 @@ contains
     do l=1, nkpt
       if(kount > last) exit
       weight = 0
-      range = 0
+      irange = 0
       nx = int(mod(l-1, self%nkpt_x),kind(nx))
       kp = dble(nx)*b1 / dble(self%nkpt_x)
 
@@ -510,12 +510,12 @@ contains
           weight = weight + 1
           if(kount >= first .and. kount <= last ) then
             added = added + 1
-            range = range + 1
+            irange = irange + 1
             self%kp(:,added) = diff(:,j)
           end if
         end if
       end do
-      self%w(added-range+1:added) = 1.0 / dble(weight)
+      self%w(added-irange+1:added) = 1.0 / dble(weight)
     end do
     self%w = self%w / dble(nkpt)
 
