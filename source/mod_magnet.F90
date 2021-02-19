@@ -4,7 +4,13 @@ module mod_magnet
   implicit none
 
   logical                 :: lfield
-  !! Turn on/off static magnetic field
+  !! Turn on/off static magnetic field (default: false)
+  logical                 :: lconstraining_field
+  !! Turn on/off constraining field (default: false)
+  integer(int32)          :: constr_type = -1
+  !! Type of constraning field to use (1 - transverse, 2 - longitudinal, 3 - full)
+  real(dp)                :: cmix
+  !! constraining fields mixing parameter (default 0.01)
   integer(int32)          :: iter = 0
   !! self-consistency iteration
   integer(int32)          :: maxiter
@@ -29,7 +35,7 @@ module mod_magnet
   !! Orbital angular momentum in global frame of reference
   real(dp),allocatable    :: lxpm(:),lypm(:),lzpm(:)
   !! Orbital angular momentum in local frame of reference
-  real(dp),allocatable    :: mabs(:),mtheta(:),mphi(:)
+  real(dp),allocatable    :: mabs(:),mtheta(:),mphi(:),mabsd(:),m_fix(:,:),m_fix_abs(:)
   !! Site-dependent spherical components of magnetization
   real(dp), dimension(:,:),allocatable   :: mvec_spherical,mvec_cartesian
   !! Magnetization vectors in cartesian and spherical components
@@ -41,6 +47,8 @@ module mod_magnet
   !! Site-dependent spherical components of orbital magnetization in local frame
   real(dp), dimension(:,:), allocatable :: hhw
   !! Half of Static magnetic fields in each direction
+  real(dp),allocatable    :: bc(:,:)
+  !! Constraining fields
   complex(dp), dimension(:,:,:), allocatable :: lb, sb
   !! Zeeman matrices
   complex(dp), dimension(:,:,:), allocatable :: lxp, lyp, lzp
@@ -213,6 +221,7 @@ contains
   end subroutine initMagneticField
 
   subroutine lb_matrix(nAtoms,nOrbs)
+  !! Orbital Zeeman term
     use mod_kind,       only: dp
     use mod_constants,  only: cZero
     use mod_parameters, only: lnolb
@@ -241,11 +250,12 @@ contains
   end subroutine lb_matrix
 
 
-  ! Spin Zeeman hamiltonian
   subroutine sb_matrix(nAtoms,nOrbs)
+  !! Spin Zeeman hamiltonian
     use mod_constants, only: cZero, cI
     implicit none
     integer(int32), intent(in) :: nAtoms,nOrbs
+    real(dp), dimension(3,nAtoms) :: b
     integer :: i,mu,nu
 
     ! There is an extra  minus sign in the definition of hhw
@@ -253,14 +263,16 @@ contains
     ! external fields to get the peak at positive energies
     sb = cZero
 
-    if(lfield) then
+    if(lfield.or.lconstraining_field) then
+      ! write(output%unit_loop,"('[sb_matrix] hhw,bc = ', 10000es16.8)") hhw, bc
+      b = hhw - 0.5_dp*bc
       do i=1, nAtoms
         do mu=1,nOrbs
           nu=mu+nOrbs
-          sb(mu,mu,i) = hhw(3,i)
-          sb(nu,nu,i) =-hhw(3,i)
-          sb(nu,mu,i) = hhw(1,i)-cI*hhw(2,i)
-          sb(mu,nu,i) = hhw(1,i)+cI*hhw(2,i)
+          sb(mu,mu,i) = b(3,i)
+          sb(nu,nu,i) =-b(3,i)
+          sb(nu,mu,i) = b(1,i)+cI*b(2,i)
+          sb(mu,nu,i) = b(1,i)-cI*b(2,i)
         end do
       end do
     end if
@@ -369,12 +381,17 @@ contains
     if (AllocateStatus/=0) call abortProgram("[allocate_magnet_variables] Not enough memory for: mxd,myd,mzd,mpd,rhos,rhop,rhod")
 
     allocate( mabs(nAtoms), mtheta(nAtoms), mphi(nAtoms), &
+              mabsd(nAtoms), m_fix(3,nAtoms), m_fix_abs(nAtoms), &
               labs(nAtoms), ltheta(nAtoms), lphi(nAtoms), &
               lpabs(nAtoms), lptheta(nAtoms), lpphi(nAtoms), STAT = AllocateStatus )
-    if (AllocateStatus/=0) call abortProgram("[allocate_magnet_variables] Not enough memory for: mabs,mtheta,mphi,labs,ltheta,lphi,lpabs,lptheta,lpphi")
+    if (AllocateStatus/=0) call abortProgram("[allocate_magnet_variables] Not enough memory for: mabs,mabsd,m_fix,m_fix_abs,mtheta,mphi,labs,ltheta,lphi,lpabs,lptheta,lpphi")
 
     allocate( hhw(3,nAtoms), STAT = AllocateStatus )
     if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: hhw")
+
+    allocate( bc(3,nAtoms), STAT = AllocateStatus )
+    if (AllocateStatus/=0) call abortProgram("[allocate_magnet_variables] Not enough memory for: bc")
+    bc(:,:) = 0.e0_dp
 
     allocate(lx(nOrbs, nOrbs), ly(nOrbs,nOrbs), lz(nOrbs,nOrbs), lvec(nOrbs,nOrbs,3), stat = AllocateStatus)
     if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lx, ly, lz, lvec")
@@ -408,6 +425,9 @@ contains
     if(allocated(rhop)) deallocate(rhop)
     if(allocated(rhod)) deallocate(rhod)
     if(allocated(mabs)) deallocate(mabs)
+    if(allocated(mabsd)) deallocate(mabsd)
+    if(allocated(m_fix)) deallocate(m_fix)
+    if(allocated(m_fix_abs)) deallocate(m_fix_abs)
     if(allocated(mtheta)) deallocate(mtheta)
     if(allocated(mphi)) deallocate(mphi)
     if(allocated(labs)) deallocate(labs)
@@ -417,6 +437,7 @@ contains
     if(allocated(lptheta)) deallocate(lptheta)
     if(allocated(lpphi)) deallocate(lpphi)
     if(allocated(hhw)) deallocate(hhw)
+    if(allocated(bc)) deallocate(bc)
     if(allocated(lx)) deallocate(lx)
     if(allocated(ly)) deallocate(ly)
     if(allocated(lz)) deallocate(lz)

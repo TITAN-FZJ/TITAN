@@ -17,7 +17,7 @@ program TITAN
   use mod_SOC,                 only: llinearsoc,SOC,allocateLS,updateLS
   use mod_magnet,              only: total_hw_npt1,skip_steps_hw,hw_count,lfield,rho,mz,mp,setMagneticLoopPoints,&
                                      allocate_magnet_variables,initMagneticField,set_fieldpart,l_matrix,lb_matrix,&
-                                     sb_matrix
+                                     sb_matrix,lconstraining_field
   use ElectricField,           only: initElectricField
   use adaptiveMesh,            only: generateAdaptiveMeshes,freeLocalEKMesh
   use mod_TCM,                 only: calculate_TCM
@@ -135,6 +135,11 @@ program TITAN
   !---------------- Reading Tight Binding parameters -------------------
   call initTightBinding(s)
 
+
+  !----------------- Tests for coupling calculation ------------------
+  if((lconstraining_field).and.(sum(abs(s%Types(:)%Um))<1.e-8).and.(tbmode==1).and.(myrank == 0)) &
+    call abortProgram("[main] Constraining fields need Um to induce a magnetic moment!")
+
   !-- Calculating initial values in the SK tight-binding hamiltonian ---
   if((tbmode==1).and.(.not.lsortfiles)) call calc_init_expec_SK(s)
 
@@ -175,7 +180,7 @@ program TITAN
 
   !------------------------ MAGNETIC FIELD LOOP ------------------------
   if(myrank == 0 .and. skip_steps_hw > 0) &
-  write(output%unit,"('[main] Skipping first ',i0,' field step(s)...')") skip_steps_hw
+    write(output%unit,"('[main] Skipping first ',i0,' field step(s)...')") skip_steps_hw
 
   do hw_count = int(startField,4), int(endField,4)
     !---------- Opening files (general and one for each field) ---------
@@ -201,7 +206,7 @@ program TITAN
     !----------------- Tests for coupling calculation ------------------
     if(itype == 6 .and. myrank == 0) then
       if(lfield) &
-      call abortProgram("[main] Coupling calculation is valid for no external field!")
+        call abortProgram("[main] Coupling calculation is valid for no external field!")
     end if
 
     !----- Writing parameters and data to be calculated on screen ------

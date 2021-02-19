@@ -108,4 +108,72 @@ contains
     rz(3,3) = 1._dp
 
   end subroutine rotation_matrix_rz
+
+  subroutine rot_rodrigues(u0,u1,rotmat)
+  !! Rotation matrix rotating vector u0 to vector u1
+  !! Rodrigues rotation formula
+    use mod_kind, only: dp
+    implicit none
+    real(dp), intent(in)  :: u0(3)
+    real(dp), intent(in)  :: u1(3)
+    real(dp), intent(out) :: rotmat(3,3)
+  ! ---------------------------------------
+    real(dp), parameter :: tol = 1.e-6_dp, rtol = 1.e-8_dp
+    real(dp)  :: axis(3), u0len, u1len, u01len, cosa, sina, cross(3,3), ui(3), fac
+    integer   :: i
+  
+  ! Lengths of the vectors (if not unit vectors)
+    u0len = sqrt(dot_product(u0,u0))
+    u1len = sqrt(dot_product(u1,u1))
+    !if (u0len < tol .or. u1len < tol) stop 'rotvec: check u0 and u1'
+    cosa = dot_product(u0,u1)/(u0len*u1len)
+  ! Rotation axis: axis = u0 x u1 / | u0 x u1 |
+    axis(1) = u0(2)*u1(3) - u0(3)*u1(2)
+    axis(2) = u0(3)*u1(1) - u0(1)*u1(3)
+    axis(3) = u0(1)*u1(2) - u0(2)*u1(1)
+  ! chop small numbers
+    where (abs(axis) < tol) axis = 0.e0_dp
+    u01len = sqrt(dot_product(axis,axis))
+  ! ----------------------------------------------------------------------
+    if (u01len > rtol) then
+  !   noncollinear: no problem
+      sina = u01len/(u0len*u1len)
+      axis = axis/u01len
+      fac = 1.e0_dp - cosa
+    else
+  !   collinear: handle zeros
+      if (cosa > 0.e0_dp) then
+  !     cosa = +1 => no rotation
+        cosa = +1.e0_dp; sina = 0.e0_dp
+        axis(:) = 0.e0_dp
+        fac = 0.e0_dp
+      else
+  !     cosa = -1 => inversion
+        cosa = -1.e0_dp; sina = 0.e0_dp
+        fac = 2.e0_dp
+  !     choose a rotation axis
+        i = minloc(abs(u0),dim=1)
+        ui(:) = 0.e0_dp
+        ui(i) = 1.e0_dp
+        axis(1) = u0(2)*ui(3) - u0(3)*ui(2)
+        axis(2) = u0(3)*ui(1) - u0(1)*ui(3)
+        axis(3) = u0(1)*ui(2) - u0(2)*ui(1)
+        u01len = sqrt(dot_product(axis,axis))
+        axis(:) = axis(:)/u01len
+      end if
+    end if
+  ! ----------------------------------------------------------------------
+  ! cross product matrix
+    cross(:,:) = 0.e0_dp
+    cross(2,1) =  axis(3); cross(1,2) = -axis(3)
+    cross(3,1) = -axis(2); cross(1,3) =  axis(2)
+    cross(3,2) =  axis(1); cross(2,3) = -axis(1)
+  ! rotation matrix
+    rotmat(:,:) = sina*cross(:,:) + fac*matmul(cross,cross)
+    do i=1,3
+      rotmat(i,i) = rotmat(i,i) + 1.e0_dp
+    end do
+  ! All done!
+  end subroutine rot_rodrigues
+
 end module mod_rotation_matrices

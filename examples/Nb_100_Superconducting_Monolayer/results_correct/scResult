@@ -1,13 +1,14 @@
 |----------=============== Self-consistent ground state: ===============-----
-              Ef= 0.5777942    Eband=    -11.3170593
+        Ef=   0.57779416    Eband=  -11.3170593    Etotal=  -11.4228438
+        Double counting:    Edc_m=    0.0000000     Edc_n=   -0.1057845
             *************** Charge density: ****************
 Nb:  Ns= 0.1929457    Np= 0.0423058    Nd= 1.7547485
             ******** Superconducting gap parameter: ********
             *** (Averages of the norms per orbital type) ***
 Nb:  Ds= 0.1557329    Dp= 0.0187655    Dd= 0.2685794
-            *********** Magnetization components: **********
+            *********** Magnetization components: ***********
 Nb:  Mx= 0.0000000    My= 0.0000000    Mz=-0.0000000
-            ****** Orbital components in global frame: *****
-Nb:  Lx=-0.0000000    Ly=-0.0000000    Lz= 0.0000000
+            ****** Orbital components in global frame: ******
+Nb:  Lx= 0.0000000    Ly=-0.0000000    Lz= 0.0000000
             ******************** Total: ********************
 Nb:   N= 1.9900000   |M|= 0.0000000   |L|= 0.0000000

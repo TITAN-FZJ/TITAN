@@ -107,18 +107,18 @@ build:intel:normal:
 # after build job(s) are completed, tests can be run; artifacts from all previous stages are transferred automatically
 
 # ** Anchors **
-# Going to TEST_FOLDER, setting calculation type and running calculation
+# Going to TEST_DIR, setting calculation type and running calculation
 .run_test: &run_test
   # Printing Python version
   - python --version
   # Going to current test folder
-  - cd ${TEST_FOLDER}
+  - cd ${TEST_DIR}
   # Setting up 
   - sed -i "s/-> itype = .*/-> itype = ${ITYPE}/g" input
   # Setting up 4 omp threads
   - export OMP_NUM_THREADS=8
   # Running the code with 2 MPI ranks
-  - mpirun -np 1 ../../bin/titan_iff.exe
+  - mpirun -np 1 ${TITAN_DIR}/bin/titan_iff.exe
   # Printing any error file, if existing
   - if [ -f error* ] ; then grep -H '' error* ; fi
   # Printing runtime
@@ -137,8 +137,8 @@ build:intel:normal:
   fi
   for file in `find results/ -type f`
   do
-    [[ -z ${TOL} ]] && echo "Comparing file $(basename ${file}) with default tolerance `grep -m 1 "tol =" ../../scripts/compare_output.py | awk -F= '{print $2}'`" || echo "Comparing file $(basename ${file}) with tolerance ${TOL}"
-    python ../../scripts/compare_output.py ${file} ${file/results/results_correct} ${TOL}
+    [[ -z ${TOL} ]] && echo "Comparing file $(basename ${file}) with default tolerance `grep -m 1 "tol =" ${TITAN_DIR}/scripts/compare_output.py | awk -F= '{print $2}'`" || echo "Comparing file $(basename ${file}) with tolerance ${TOL}"
+    python ${TITAN_DIR}/scripts/compare_output.py ${file} ${file/results/results_correct} ${TOL}
   done
 
 # ** Jobs **
@@ -150,7 +150,8 @@ Nb_100_Monolayer:
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TEST_FOLDER="examples/Nb_100_Monolayer"
+    - export TITAN_DIR="${PWD}"
+    - export TEST_DIR="examples/Nb_100_Monolayer"
     - export ITYPE=1
     - *run_test
     - *create_scResults_file
@@ -163,7 +164,8 @@ Ni_bulk:
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TEST_FOLDER="examples/Ni_bulk_timeprop"
+    - export TITAN_DIR="${PWD}"
+    - export TEST_DIR="examples/Ni_bulk_timeprop"
     - export ITYPE=1
     - *run_test
     - *create_scResults_file
@@ -176,7 +178,36 @@ Fe_bulk:
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TEST_FOLDER="examples/Fe_bulk_susc"
+    - export TITAN_DIR="${PWD}"
+    - export TEST_DIR="examples/Fe_bulk_susc"
+    - export ITYPE=1
+    - *run_test
+    - *create_scResults_file
+    - *compare_files
+
+Fe_transv_constr:
+  image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
+  stage: selfcon:normal
+  needs: ["build:intel:normal"]
+  script:
+    # Setting up Intel Fortran Compiler
+    - *setup_ifort
+    - export TITAN_DIR="${PWD}"
+    - export TEST_DIR="examples/Fe_dimer_bconstr/transv"
+    - export ITYPE=1
+    - *run_test
+    - *create_scResults_file
+    - *compare_files
+
+Fe_full_constr:
+  image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
+  stage: selfcon:normal
+  needs: ["build:intel:normal"]
+  script:
+    # Setting up Intel Fortran Compiler
+    - *setup_ifort
+    - export TITAN_DIR="${PWD}"
+    - export TEST_DIR="examples/Fe_dimer_bconstr/full"
     - export ITYPE=1
     - *run_test
     - *create_scResults_file
@@ -189,7 +220,8 @@ graphene_pz:
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TEST_FOLDER="examples/graphene"
+    - export TITAN_DIR="${PWD}"
+    - export TEST_DIR="examples/graphene"
     - export ITYPE=1
     - *run_test
     - *create_scResults_file
@@ -202,7 +234,8 @@ Co_monolayer_paoflow:
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TEST_FOLDER="examples/Co_monolayer_paoflow"
+    - export TITAN_DIR="${PWD}"
+    - export TEST_DIR="examples/Co_monolayer_paoflow"
     - export ITYPE=1
     - *run_test
     - *create_scResults_file
@@ -216,7 +249,8 @@ Nb_100_Superconducting_Monolayer:
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TEST_FOLDER="examples/Nb_100_Superconducting_Monolayer"
+    - export TITAN_DIR="${PWD}"
+    - export TEST_DIR="examples/Nb_100_Superconducting_Monolayer"
     - export ITYPE=1
     - *run_test
     - *create_scResults_file
@@ -230,7 +264,8 @@ Nb_100_Monolayer:ldos:
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TEST_FOLDER="examples/Nb_100_Monolayer"
+    - export TITAN_DIR="${PWD}"
+    - export TEST_DIR="examples/Nb_100_Monolayer"
     - export ITYPE=2
     - *run_test
     - *compare_files
@@ -246,7 +281,8 @@ Nb_100_Monolayer:bands:
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TEST_FOLDER="examples/Nb_100_Monolayer"
+    - export TITAN_DIR="${PWD}"
+    - export TEST_DIR="examples/Nb_100_Monolayer"
     - export ITYPE=4
     - *run_test
     - export EXCLUDE="weights"
@@ -259,7 +295,8 @@ graphene_pz:ldos:
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TEST_FOLDER="examples/graphene"
+    - export TITAN_DIR="${PWD}"
+    - export TEST_DIR="examples/graphene"
     - export ITYPE=2
     - *run_test
     - *compare_files
@@ -271,7 +308,8 @@ graphene_pz:bands:
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TEST_FOLDER="examples/graphene"
+    - export TITAN_DIR="${PWD}"
+    - export TEST_DIR="examples/graphene"
     - export ITYPE=4
     - *run_test
     - export EXCLUDE="weights"
@@ -284,7 +322,8 @@ graphene_pz:isoenergy:
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TEST_FOLDER="examples/graphene"
+    - export TITAN_DIR="${PWD}"
+    - export TEST_DIR="examples/graphene"
     - export ITYPE=5
     - *run_test
     - *compare_files
@@ -296,7 +335,8 @@ Fe_bulk:susc:
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TEST_FOLDER="examples/Fe_bulk_susc"
+    - export TITAN_DIR="${PWD}"
+    - export TEST_DIR="examples/Fe_bulk_susc"
     - export ITYPE=7
     - *run_test
     - export EXCLUDE="Slope"
@@ -310,7 +350,8 @@ Ni_bulk:timeprop:
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TEST_FOLDER="examples/Ni_bulk_timeprop"
+    - export TITAN_DIR="${PWD}"
+    - export TEST_DIR="examples/Ni_bulk_timeprop"
     - export ITYPE=11
     - *run_test
     - export EXCLUDE="checkpoint"
@@ -321,14 +362,15 @@ Co_monolayer_paoflow:bands_with_ldos:
   stage: results
   needs: ["build:intel:normal","Co_monolayer_paoflow"]
   script:
-    - export TEST_FOLDER="examples/Co_monolayer_paoflow"
+    - export TITAN_DIR="${PWD}"
+    - export TEST_DIR="examples/Co_monolayer_paoflow"
     # Setting up Intel Fortran Compiler
     - *setup_ifort
     # Calculating LDOS
     - export ITYPE=2
     - *run_test
     # Returning to initial folder
-    - cd ../../
+    - cd ${TITAN_DIR}
     # Calculating Band structure
     - export ITYPE=4
     - *run_test
@@ -348,15 +390,16 @@ Nb_100_Monolayer:ldos:plot:
   script:
     # Checking python version
     - python --version
-    # Setting examples folder
-    - export TEST_FOLDER="examples/Nb_100_Monolayer"
+    # Setting up executables folder
+    - export TITAN_DIR="${PWD}"
+    # Setting up example folder
+    - export TEST_DIR="examples/Nb_100_Monolayer"
     # Going to current test folder
-    - cd ${TEST_FOLDER}
+    - cd ${TEST_DIR}
     # Creating new plot
-    - python ../../scripts/plot_ldos.py results/TSOC/1Sites/LDOS/ldosu_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosd_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat --xlim="[-0.5,1.5]" --output="./results/ldos.png"
+    - python ${TITAN_DIR}/scripts/plot_ldos.py results/TSOC/1Sites/LDOS/ldosu_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosd_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat --xlim="[-0.5,1.5]" --output="./results/ldos.png"
     # Comparing with existing (correct) plot
-    - python ../../scripts/compare_images.py ./results/ldos.png ./results_correct/ldos.png
-
+    - python ${TITAN_DIR}/scripts/compare_images.py ./results/ldos.png ./results_correct/ldos.png
 
 Co_monolayer_paoflow:bands_with_ldos:plot:
   image: iffregistry.fz-juelich.de/docker-images/titan-images
@@ -365,14 +408,16 @@ Co_monolayer_paoflow:bands_with_ldos:plot:
   script:
     # Checking python version
     - python --version
-    # Setting examples folder
-    - export TEST_FOLDER="examples/Co_monolayer_paoflow"
+    # Setting up executables folder
+    - export TITAN_DIR="${PWD}"
+    # Setting up example folder
+    - export TEST_DIR="examples/Co_monolayer_paoflow"
     # Going to current test folder
-    - cd ${TEST_FOLDER}
+    - cd ${TEST_DIR}
     # Creating new plot
-    - python ../../scripts/plot_bands_with_ldos.py results/TSOC/1Sites/BS/bandstructure_kdir=GXMG_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosu_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosd_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat --evlabel --output="./results/bands_with_ldos.png"
+    - python ${TITAN_DIR}/scripts/plot_bands_with_ldos.py results/TSOC/1Sites/BS/bandstructure_kdir=GXMG_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosu_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosd_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat --evlabel --output="./results/bands_with_ldos.png"
     # Comparing with existing (correct) plot
-    - python ../../scripts/compare_images.py ./results/bands_with_ldos.png ./results_correct/bands_with_ldos.png
+    - python ${TITAN_DIR}/scripts/compare_images.py ./results/bands_with_ldos.png ./results_correct/bands_with_ldos.png
 
 # # `pages` is a special job that builds the gitlab page for this project; all artifacts must be saved in a `public`
 # # directory to be published as a static site (that can be accessed from the whole www)

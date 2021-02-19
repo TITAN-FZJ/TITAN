@@ -1,10 +1,11 @@
 |----------=============== Self-consistent ground state: ===============-----
-              Ef= 0.7401217    Eband=      5.5140826
+        Ef=   0.74012170    Eband=    5.5140826    Etotal=    5.1737244
+        Double counting:    Edc_m=    0.0136654     Edc_n=   -0.3540236
             *************** Charge density: ****************
 Ni:  Ns= 0.5909016    Np= 0.5687146    Nd= 8.8403838
-            *********** Magnetization components: **********
-Ni:  Mx=-0.0000000    My= 0.0000000    Mz= 0.7358701
-            ****** Orbital components in global frame: *****
-Ni:  Lx=-0.0000000    Ly= 0.0000000    Lz= 0.0835450
+            *********** Magnetization components: ***********
+Ni:  Mx= 0.0000000    My= 0.0000000    Mz= 0.7358701
+            ****** Orbital components in global frame: ******
+Ni:  Lx= 0.0000000    Ly= 0.0000000    Lz= 0.0835450
             ******************** Total: ********************
 Ni:   N=10.0000000   |M|= 0.7358701   |L|= 0.0835450

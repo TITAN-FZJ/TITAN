@@ -71,7 +71,7 @@ contains
     use mod_SOC,               only: SOC,socscale,llinearsoc,llineargfsoc
     use mod_magnet,            only: lfield,tesla,hwa_i,hwa_f,hwa_npts,hwa_npt1,hwt_i,hwt_f,&
                                      hwt_npts,hwt_npt1,hwp_i,hwp_f,hwp_npts,hwp_npt1,hwx,hwy,&
-                                     hwz,hwscale,hwtrotate,hwprotate,skip_steps_hw,maxiter
+                                     hwz,hwscale,hwtrotate,hwprotate,skip_steps_hw,maxiter,cmix,lconstraining_field,constr_type
     use ElectricField,         only: ElectricFieldMode,ElectricFieldVector,EFp,EFt
     use EnergyIntegration,     only: parts,parts3,pn1,pn2,pnt,n1gl,n3gl
     use mod_tools,             only: itos,rtos,stoi,vec_norm,is_numeric
@@ -324,7 +324,7 @@ contains
     end select
     !------------------------------------- Static Magnetic Field -----------------------------------
     if(.not. get_parameter("FIELD", lfield, .false.)) &
-      call log_warning("get_parameters","'lfield' missing. Using default value: .false.")
+      call log_warning("get_parameters","'FIELD' missing. Using default value: .false.")
     if(lfield) then
       if(.not. get_parameter("hwa", vector, cnt)) &
         call log_error("get_parameters","'hwa' missing.")
@@ -382,6 +382,30 @@ contains
        if(cnt >= dmax) hwprotate(1:dmax) = vector(1:dmax)
     end if
     if(allocated(vector)) deallocate(vector)
+    !--------------------------------------- Constraining Field ------------------------------------
+    if(.not. get_parameter("constraining_field", lconstraining_field, .false.)) &
+      call log_warning("get_parameters","'lconstraining_field' missing. Using default value: .false.")
+    if(lconstraining_field) then
+      if(magbasis=="") &
+        call log_error("get_parameters","'magbasis' is required when constraining_field = T. ")
+      if(.not. get_parameter("constr_type", constr_type)) &
+        call log_error("get_parameters","'constr_type' is required when constraining_field = T.  Use one of the following: " // NEW_line('A') // &
+               "1 - Transverse constraining field" // NEW_line('A') // &
+               "2 - Full constranining field")
+      select case(constr_type)
+      case(1)
+        call log_message("get_parameters","Transverse constraining field chosen (constr_type=1): a field is applied to keep the direction of m fixed (not its length).")
+        if(.not. get_parameter("cmix", cmix, 1.e-2_dp)) &
+          call log_warning("get_parameters","'cmix' missing. Using default value: 0.01")
+        ! call read_initial_bconstr("initial_bconstr","c",s%nAtoms,initial_bconstr)
+      case(2)
+        call log_message("get_parameters","Full constraining field chosen (constr_type=2): the magnetic moment is completely fixed by the application of a constraining field.")
+      case default
+        call log_error("get_parameters","'constr_type' not recognized.  Use one of the following: " // NEW_line('A') // &
+               "1 - Transverse constraining field (to fix direction of M)" // NEW_line('A') // &
+               "2 - Full constraining field (to keep M fixed)")
+      end select
+    end if
     !------------------------------ Superconductivity Variables ------------------------------------
     if(.not. get_parameter("superCond", lsuperCond, .false.)) &
       call log_warning("get_parameters","'superCond' missing. Not using superconductivity.")
@@ -991,7 +1015,7 @@ contains
     use mod_mpi_pars,          only: numprocs
     use mod_parameters,        only: output,runoptions,bands,band_cnt,renorm,renormnb,eta,itype, &
                                      emin,emax,nener1,nqvec1
-    use mod_magnet,            only: lfield,hwx,hwy,hwz,hw_list,hw_count,dcfield,dcfield_dependence,total_hw_npt1
+    use mod_magnet,            only: lfield,lconstraining_field,constr_type,hwx,hwy,hwz,hw_list,hw_count,dcfield,dcfield_dependence,total_hw_npt1
     use mod_System,            only: System_type,n0sc1,n0sc2
     use mod_BrillouinZone,     only: BZ => realBZ
     use mod_fermi_surface,     only: lfs_loop, fs_energy_i, fs_energy_f, fs_energy_npts
@@ -1033,6 +1057,18 @@ contains
       write(output%unit_loop,"(5x,'socscale =',es9.2)") socscale
     else
       write(output%unit_loop,"(1x,'Spin Orbit Coupling: DEACTIVATED')")
+    end if
+
+    if(lconstraining_field) then
+      write(output%unit_loop,"(1x,'Constranining field: ACTIVATED')")
+      select case(constr_type)
+      case(1)
+        write(output%unit_loop,"(1x,'1 - Transverse constraining field (to fix direction of M)')")
+      case(2)
+        write(output%unit_loop,"(1x,'2 - Full constraining field (to keep M fixed)')")
+      end select
+    else
+      write(output%unit_loop,"(1x,'Constranining field: DEACTIVATED')")
     end if
 
     write(output%unit_loop,"(1x,'Electric field direction: ')", advance='no')

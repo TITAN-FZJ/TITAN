@@ -342,7 +342,7 @@ contains
            X(*), XTOL, ZERO
       EXTERNAL FCN, JAC
       SAVE FACTOR, ONE, ZERO
-      DATA FACTOR,ONE,ZERO /1.0D2,1.0_dp,0.0_dp/
+      DATA FACTOR,ONE,ZERO /1.e2_dp,1.0_dp,0.0_dp/
 !     BEGIN BLOCK PERMITTING ...EXITS TO 20
 !***FIRST EXECUTABLE STATEMENT  DNSQE
          INFO = 0

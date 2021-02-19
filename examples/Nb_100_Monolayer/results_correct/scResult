@@ -1,10 +1,11 @@
 |----------=============== Self-consistent ground state: ===============-----
-              Ef= 0.7196734    Eband=      1.1931513
+        Ef=   0.71967342    Eband=    1.1931513    Etotal=    1.0564982
+        Double counting:    Edc_m=    0.0000000     Edc_n=   -0.1366531
             *************** Charge density: ****************
 Nb:  Ns= 0.3594453    Np= 0.1084757    Nd= 1.5220790
-            *********** Magnetization components: **********
-Nb:  Mx= 0.0000000    My=-0.0000000    Mz=-0.0000000
-            ****** Orbital components in global frame: *****
-Nb:  Lx=-0.0000000    Ly= 0.0000000    Lz= 0.0000000
+            *********** Magnetization components: ***********
+Nb:  Mx=-0.0000000    My=-0.0000000    Mz=-0.0000000
+            ****** Orbital components in global frame: ******
+Nb:  Lx= 0.0000000    Ly=-0.0000000    Lz= 0.0000000
             ******************** Total: ********************
 Nb:   N= 1.9900000   |M|= 0.0000000   |L|= 0.0000000
