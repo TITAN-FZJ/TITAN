@@ -9,11 +9,13 @@ module mod_self_consistency
   !! Filename of results to read
   real(dp)              :: mag_tol = 1.e-12_dp
   !! Magnetic tolerance
-  character(len=200) :: scfile = ""
+  character(len=500)    :: mixing = ""
+  !! Type of mixing used in self-consistency
+  character(len=200)    :: scfile = ""
   !! Give a file to start self-consistency
-  logical            :: skipsc
+  logical               :: skipsc
   !! Skip self-consistency
-  character(len=50)  :: magbasis = ""
+  character(len=50)     :: magbasis = ""
   !! Basis to give initial magnetization in 'initialmag' file
   real(dp), allocatable :: initialmag(:,:)
   !! Initial guess for magnetization
@@ -26,16 +28,16 @@ module mod_self_consistency
 contains
 
   subroutine doSelfConsistency()
-    use mod_magnet,        only: lp_matrix, mtheta, mphi, lb_matrix, sb_matrix
+    use mod_magnet,        only: constr_type,lp_matrix,mtheta,mphi,rho,mx,my,mz,bc
     use adaptiveMesh,      only: genLocalEKMesh,freeLocalEKMesh
     use mod_BrillouinZone, only: realBZ
     use mod_mpi_pars,      only: rFreq, sFreq, FreqComm, rField, sField, FieldComm
     use mod_parameters,    only: leigenstates,lkpoints,lEf_overwrite,Ef_overwrite
     use mod_System,        only: s => sys
 #ifdef _GPU
-    use mod_expectation,   only: groundstate_L_and_E,expectation_values,expectation_eigenstates_fullhk_gpu,calc_GS_L_and_E,calc_GS_L_and_E_fullhk_gpu
+    use mod_expectation,   only: groundstate_L_and_E,expectation_values,expectation_eigenstates_fullhk_gpu,calc_GS_L_and_E,calc_GS_L_and_E_fullhk_gpu,calc_E_dc
 #else
-    use mod_expectation,   only: groundstate_L_and_E,expectation_values,expectation_eigenstates_fullhk,calc_GS_L_and_E,calc_GS_L_and_E_fullhk
+    use mod_expectation,   only: groundstate_L_and_E,expectation_values,expectation_eigenstates_fullhk,calc_GS_L_and_E,calc_GS_L_and_E_fullhk,calc_E_dc
 #endif
     use mod_hamiltonian,   only: fullhamiltk,lfullhk
     implicit none
@@ -73,16 +75,32 @@ contains
     if(lEf_overwrite) s%Ef = Ef_overwrite
 
     ! Performing self-consistency
-    if(lselfcon) call calcSelfConsistency()
-
-    ! Writing new n and mz to file after self-consistency is done
-    if(.not. lontheflysc) call write_sc_results()
+    if(lselfcon) then
+      select case(constr_type)
+        case(1)
+          !Transversal constraining field in two loops
+          call calcSelfConsistency_trans_constr()
+        ! case for linear mixing.. not implemented yet
+        !case("linear")
+        !  call calcSelfConsistency_linear()
+          if(.not.lontheflysc) call write_sc_results(rho,mx,my,mz,bc)
+        case(2)
+          call calcSelfConsistency()
+          if(.not.lontheflysc) call write_sc_results(rho,mx,my,mz,bc)
+        case default
+          call calcSelfConsistency()
+          if(.not.lontheflysc) call write_sc_results(rho,mx,my,mz)
+      end select
+    end if
 
     ! L matrix in local frame for given quantization direction
     call lp_matrix(mtheta, mphi)
 
     ! Calculating ground state Orbital Angular Momentum and Band Energy
     call groundstate_L_and_E()
+
+    ! Calculate double counting contributions to the energy
+    call calc_E_dc()
 
     ! Writing self-consistency results on screen
     if(rField == 0)  call print_sc_results()
@@ -91,8 +109,8 @@ contains
 
   end subroutine doSelfConsistency
 
-  ! Tries to read n and m if available
   subroutine read_previous_results(lsuccess)
+  !> Tries to read n and m if available
     use mod_kind,              only: dp
     use mod_constants,         only: deg2rad
     use mod_parameters,        only: output
@@ -104,7 +122,7 @@ contains
     use mod_superconductivity, only: delta_sc,lsuperCond
 #endif
     use mod_Umatrix,           only: init_Umatrix
-    use mod_magnet,            only: mx,my,mz,mxd,myd,mzd,mzd0,mpd,mpd0,hw_count,hw_list, &
+    use mod_magnet,            only: lconstraining_field,mx,my,mz,mabsd,m_fix,m_fix_abs,mxd,myd,mzd,mzd0,mpd,mpd0,hw_count,hw_list, &
                                      lfield,rho,rhod,rhod0,rho0
     implicit none
     integer             :: i,err,mu,mud
@@ -136,7 +154,7 @@ contains
       ! Starting magnetization
       allocate(initialmag(s%nAtoms,3))
       if(trim(magbasis)/="") then
-        call read_initialmag("initialmag",trim(magbasis),s%nAtoms)
+        call read_initial_values("initialmag",trim(magbasis),s%nAtoms,initialmag)
       else
         do i=1,s%nAtoms
           initialmag(i,:) = [0._dp, 0._dp, sign(2.0_dp, hw_list(hw_count,1))]
@@ -160,6 +178,7 @@ contains
         mxd(i) = initialmag(i,1)
         myd(i) = initialmag(i,2)
         mzd(i) = initialmag(i,3)
+        mabsd(i) = sqrt(mxd(i)**2+myd(i)**2+mzd(i)**2)
         rhod(i)= rhod0(i)
 
         do mud=1,s%ndOrb
@@ -176,6 +195,15 @@ contains
       end do atom
       mpd = cmplx(mxd,myd,dp)
 
+      if(lconstraining_field) then
+        do i=1,s%nAtoms
+          m_fix(1,i) = mxd(i)/mabsd(i)
+          m_fix(2,i) = myd(i)/mabsd(i)
+          m_fix(3,i) = mzd(i)/mabsd(i)
+          m_fix_abs(i) = mabsd(i)
+        end do
+      end if
+
     end if
 #ifdef _GPU
     delta_sc_d = delta_sc
@@ -184,69 +212,76 @@ contains
     call init_Umatrix(mzd,mzd0,mpd,mpd0,rhod,rhod0,rho,rho0,s)
   end subroutine read_previous_results
 
-  ! Reads the initial magnetization for nAtoms in 'filename'
-  subroutine read_initialmag(filename,basis,nAtoms)
+  subroutine read_initial_values(filename,basis,nAtoms,initial_values)
+  !> Reads the initial magnetization for nAtoms in 'filename'
     use mod_kind,       only: dp
     use mod_parameters, only: output
     use mod_constants,  only: deg2rad
     use mod_tools,      only: read_data
     use mod_system,     only: s => sys
     use mod_mpi_pars,   only: rField,abortProgram
+    use mod_magnet,     only: lconstraining_field
     implicit none
-    character(len=*), intent(in) :: filename,basis
-    integer         , intent(in) :: nAtoms
+    character(len=*), intent(in)  :: filename,basis
+    integer,          intent(in)  :: nAtoms
+    real(dp),         intent(out) :: initial_values(nAtoms,3)
     integer  :: i,err
     real(dp) :: temp(nAtoms,3)
 
     if(rField == 0) &
-    write(output%unit_loop,"('[read_initialmag] Reading initial magnetization from file ',a)") "'" // filename // "'"
+      write(output%unit_loop,"('[read_initial_values] Reading initial values from file ',a)") "'" // filename // "'"
 
     open(unit=321,file=trim(filename),status="old",iostat=err)
-    if((rField == 0).and.(err/=0)) call abortProgram("[read_initialmag] File '" // trim(filename) // "'' does not exist!")
+    ! If file can't be read or if basis is not given
+    if((rField == 0).and.(err/=0)) then
+      if(lconstraining_field) write(output%unit_loop,"('[read_initial_values] File ',a,' is required for constraning field!')") "'" // filename // "'"
+      call abortProgram("[read_initial_values] File '" // trim(filename) // "'' does not exist!")
+    end if
 
     select case(basis)
     case("cartesian","c")
-      call read_data(321,nAtoms,3,initialmag)
+      call read_data(321,nAtoms,3,initial_values)
     case("spherical","s")
       call read_data(321,nAtoms,3,temp)
       do i=1,nAtoms
-        initialmag(i,1) = temp(i,1)*sin(temp(i,2)*deg2rad)*cos(temp(i,3)*deg2rad)
-        initialmag(i,2) = temp(i,1)*sin(temp(i,2)*deg2rad)*sin(temp(i,3)*deg2rad)
-        initialmag(i,3) = temp(i,1)*cos(temp(i,2)*deg2rad)
+        initial_values(i,1) = temp(i,1)*sin(temp(i,2)*deg2rad)*cos(temp(i,3)*deg2rad)
+        initial_values(i,2) = temp(i,1)*sin(temp(i,2)*deg2rad)*sin(temp(i,3)*deg2rad)
+        initial_values(i,3) = temp(i,1)*cos(temp(i,2)*deg2rad)
       end do
     case("bravais","b")
       call read_data(321,nAtoms,3,temp)
       do i=1,nAtoms
-        initialmag(i,:) = temp(i,1)*s%a1 + temp(i,2)*s%a2 + temp(i,3)*s%a3
+        initial_values(i,:) = temp(i,1)*s%a1 + temp(i,2)*s%a2 + temp(i,3)*s%a3
       end do
     case("neighbor","n")
       call read_data(321,nAtoms,1,temp)
-      call abortProgram("[read_initialmag] initialmag not implemented for basis = neighbor")
+      call abortProgram("[read_initial_values] initial_values not implemented for basis = neighbor")
       ! do i=1,nAtoms
       !   initialmag(i,:) = temp(i,1)
       ! end do
     case default
-      call abortProgram("[read_initialmag] basis wrongly defined: " // trim(basis))
+      call abortProgram("[read_initial_values] basis wrongly defined: " // trim(basis) // ".")
     end select
 
     close(unit=321)
 
-  end subroutine read_initialmag
+  end subroutine read_initial_values
 
-  ! This subroutine reads previous band-shifting and magnetization results
   subroutine read_sc_results(err,lsuccess)
+  !> This subroutine reads previous band-shifting and magnetization results
     use mod_kind,              only: dp
-    use mod_parameters,        only: output, dfttype
+    use mod_parameters,        only: output,dfttype
     use EnergyIntegration,     only: parts
     use mod_system,            only: s => sys
+    use mod_tools,             only: replaceStr,vec_norm
     use mod_superconductivity, only: delta_sc
-    use mod_magnet,            only: rho, mp, mx, my, mz, rhod, mpd, mxd, myd, mzd, hw_count
+    use mod_magnet,            only: rho,mp,mx,my,mz,rhod,mpd,mxd,myd,mzd,hw_count,mabsd,m_fix,m_fix_abs,lconstraining_field,bc
     use mod_mpi_pars,          only: rField,FieldComm,ierr,MPI_DOUBLE_PRECISION
     implicit none
-    character(len=300)  :: file = ""
+    character(len=300)  :: file="", bcfile=""
     integer,intent(out) :: err
     logical,intent(out) :: lsuccess
-    integer             :: i,j,mu,mud
+    integer             :: i,mu,mud
     real(dp)            :: previous_results(5*s%nOrb,s%nAtoms), previous_Ef
 
     external :: MPI_Bcast
@@ -257,6 +292,7 @@ contains
         if(rField == 0) write(output%unit_loop,"('*** WARNING: Self-consistency file given on input file does not exist! Using default... ***')")
         scfile = " "
       end if
+      file = trim(scfile)
       close(99)
     end if
 
@@ -273,10 +309,11 @@ contains
       end if
     else ! If filename in inputcard exists or 2nd+ angular iteration
       if(((hw_count)==1)) then ! Filename in inputcard (1st iteration on loop)
-        open(unit = 99,file = scfile, status = "old", iostat = err)
+        open(unit = 99,file=scfile, status = "old", iostat = err)
         if(err==0 .and. rField==0) then
           write(output%unit_loop,"('[read_sc_results] Using filename given in input file for self-consistency:')")
           write(output%unit_loop,"(a)") trim(scfile)
+          file = trim(scfile)
         end if
       else ! 2nd+ iteration, cheking if default file exists
         write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),dfttype,parts,trim(output%BField),trim(output%info),trim(output%SOC),trim(output%suffix)
@@ -291,15 +328,16 @@ contains
           if((err==0).and.(rField==0)) then
             write(output%unit_loop,"('[read_sc_results] Using results from previous iteration as input for self-consistency:')")
             write(output%unit_loop,"(a)") trim(scfile)
+            file = trim(scfile)
           end if
-          lsuccess   = .true. ! something was read
+          lsuccess   = .true. ! something was read (different parameters)
         end if
       end if
     end if
     if(err==0) then
       if(rField==0) then
         do i=1,s%nAtoms
-          read(99,fmt=*) (previous_results(j,i), j=1,5*s%nOrb)
+          read(99,fmt=*) (previous_results(mu,i), mu=1,5*s%nOrb)
         end do
         read(99,fmt=*) previous_Ef
       end if
@@ -327,12 +365,46 @@ contains
           myd (i) = myd (i) + my (mu,i)
           mzd (i) = mzd (i) + mz (mu,i)
         end do
-        mpd(i) = cmplx(mxd(i),myd(i),dp)
+        mabsd(i) = sqrt(mxd(i)**2+myd(i)**2+mzd(i)**2)
+        mpd(i)   = cmplx(mxd(i),myd(i),dp)
       end do
 
       call calcMagAngle()
 
       s%Ef = previous_Ef
+
+      ! Setting fixed magnetization from initialmag and reading constranining fields
+      if(lconstraining_field) then
+        ! Starting magnetization
+        allocate(initialmag(s%nAtoms,3))
+        call read_initial_values("initialmag",trim(magbasis),s%nAtoms,initialmag)
+
+        do i=1,s%nAtoms
+          m_fix_abs(i) = vec_norm(initialmag(i,:),3)
+          m_fix(:,i) = initialmag(i,:)/m_fix_abs(i)
+       end do
+
+        if(rField==0) then
+          bcfile=replaceStr( string=file, search="selfconsistency_", substitute="constraniningfield_" )
+          open(unit=999,file=bcfile,status="old",iostat=err)
+          if(err==0) then
+            write(output%unit_loop,"('[read_sc_results] Reading constranining fields from file:')")
+            write(output%unit_loop,"(a)") trim(bcfile)
+            do i=1,s%nAtoms
+              read(999,fmt=*) (bc(mu,i), mu=1,3)
+            end do
+          else
+            write(output%unit_loop,"('[read_sc_results] Cannot read constranining fields from file:')")
+            write(output%unit_loop,"(a)") trim(bcfile)
+            write(output%unit_loop,"('[read_sc_results] Restarting from bc = 0.0')")
+            bc = 0._dp
+            lsuccess = .true. ! Marking that parameters are different
+          end if
+          close(999)
+        end if
+        call MPI_Bcast(bc,3*s%nAtoms,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
+      end if
+
       if(lsuccess) then
         err = 1   ! Read different parameters
       else
@@ -342,23 +414,21 @@ contains
     close(99)
   end subroutine read_sc_results
 
+
   subroutine calcMagAngle()
+  !> Calculate magnetization angles and set spherical variables
     use mod_constants,        only: rad2deg
     use mod_system,           only: s => sys
-    use mod_magnet,           only: mx, my, mz, mabs, &
-                                    mtheta, mphi, mvec_cartesian, &
-                                    mvec_spherical,mtotal_cartesian,mtotal_spherical, lrot
+    use mod_magnet,           only: mx,my,mz,mabs, &
+                                    mtheta,mphi,mvec_cartesian, &
+                                    mvec_spherical,mtotal_cartesian,mtotal_spherical,lrot
     implicit none
     integer :: i
 
     ! Calculating new angles of GS magnetization in units of pi and magnetization vector
     do i = 1,s%nAtoms
       mabs(i)   = sqrt((sum(mx(:,i))**2)+(sum(my(:,i))**2)+(sum(mz(:,i))**2))
-      if(mabs(i)>1.e-8_dp) then
-        mtheta(i) = acos(sum(mz(:,i))/mabs(i))*rad2deg
-      else
-        mtheta(i) = 0._dp
-      end if
+      mtheta(i) = merge(acos(sum(mz(:,i))/mabs(i))*rad2deg,0._dp,mabs(i)>1.e-8_dp)
       if(abs(mtheta(i))>1.e-8_dp) then
         if(abs(abs(mtheta(i))-180._dp)>1.e-8_dp) then
           mphi(i)   = atan2(sum(my(:,i)),sum(mx(:,i)))*rad2deg
@@ -395,11 +465,12 @@ contains
 
   end  subroutine calcMagAngle
 
+
   subroutine calcSelfConsistency()
-  !! This subroutine performs the self-consistency
+  !> This subroutine performs the self-consistency
     use mod_kind,              only: dp
     use mod_parameters,        only: output,lfixEf
-    use mod_magnet,            only: rho,rhod,mxd,myd,mpd,mzd
+    use mod_magnet,            only: bc,rho,rhod,mxd,myd,mpd,mzd,mabsd,constr_type,sb_matrix
     use mod_mpi_pars,          only: rField
     use mod_system,            only: s => sys
     use mod_dnsqe,             only: dnsqe
@@ -410,23 +481,38 @@ contains
     implicit none
     real(dp), allocatable :: fvec(:),jac(:,:),wa(:),sc_solu(:)
     real(dp), allocatable :: diag(:),qtf(:)
+    real(dp), dimension(s%nAtoms) :: in_varx,in_vary,in_varz
     integer               :: i,lwa,ifail=0
 
     ! Setting up number of equations (total and accumulated per atom)
-    allocate( neq_per_atom(s%nAtoms) )
+    allocate( neq_per_atom(s%nAtoms+1) )
     neq_per_atom(1) = 0
-    do i = 1,s%nAtoms-1
-      neq_per_atom(i+1) = neq_per_atom(i) + merge(s%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + merge(3,0,abs(s%Basis(i)%Um)>1.e-8_dp) + merge(s%nOrb,0,lsupercond)
+    do i = 1,s%nAtoms
+      neq_per_atom(i+1) = neq_per_atom(i) + merge(s%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + merge(merge(1,3,constr_type==1),0,abs(s%Basis(i)%Um)>1.e-8_dp) + merge(s%nOrb,0,lsupercond)
     end do
-    neq = neq_per_atom(s%nAtoms) + merge(s%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + merge(3,0,abs(s%Basis(i)%Um)>1.e-8_dp) + merge(s%nOrb,0,lsupercond)
+    neq = neq_per_atom(s%nAtoms+1)
     if(.not.lfixEf) neq = neq+1
 
     if(neq.ne.0) then
       ! Allocating variables dependent on the number of equations
       allocate( sc_solu(neq),diag(neq),qtf(neq),fvec(neq),jac(neq,neq) )
+      select case(constr_type)
+      case(1)
+        in_varx(:) = mabsd(:)
+      case(2)
+        in_varx(:) = bc(1,:)
+        in_vary(:) = bc(2,:)
+        in_varz(:) = bc(3,:)
+        ! Updating field with new constrainig values
+        call sb_matrix(s%nAtoms,s%nOrb)
+      case default
+        in_varx(:) = mxd(:)
+        in_vary(:) = myd(:)
+        in_varz(:) = mzd(:)
+      end select
 
       ! Putting read n and m existing solutions into sc_solu (first guess of the subroutine)
-      call set_hamiltonian_variables(.false.,s,neq,sc_solu,rho,rhod,mxd,myd,mzd,mpd,delta_sc)
+      call set_hamiltonian_variables(.false.,s,neq,sc_solu,rho,rhod,in_varx,in_vary,in_varz,delta_sc)
 
       call print_sc_step(rhod,mpd,mzd,delta_sc,s)
 
@@ -454,7 +540,7 @@ contains
 #endif
 
       ! Deallocating variables dependent on the number of equations
-      deallocate(sc_solu,diag,qtf,fvec,jac,wa)
+      deallocate(neq_per_atom,sc_solu,diag,qtf,fvec,jac,wa)
     else
       if(rField == 0) &
         write(output%unit_loop,"('[self_consistency] Self-consistency not required (neq=0).')")
@@ -466,7 +552,88 @@ contains
   end subroutine calcSelfConsistency
 
 
+  subroutine calcSelfConsistency_trans_constr()
+  !> This subroutine performs the self-consistency to constrain transversely the magnetic moments
+  !> It is done by fixing the transverse contraining fields and converging the length of the magnetization
+  !> for that particular field. 
+    use mod_kind,       only: dp
+    use mod_parameters, only: output
+    use mod_magnet,     only: bc,sb_matrix,m_fix,mx,my,mz,iter,cmix
+    use mod_system,     only: s => sys
+    use mod_tools,      only: transvComponent
+    use mod_mpi_pars,   only: rField
+    implicit none
+    real(dp), dimension(3,s%nAtoms) :: bc_old,m_out_unit,delta_m
+    real(dp), dimension(s%nAtoms)   :: m_out_abs
+    real(dp) :: rconv 
+    integer  :: i,iter_b
+
+    if(rField == 0) &
+      write(output%unit_loop,"('[calcSelfConsistency_trans_constr] Starting constraining the transverse components of the magnetic moments...')")
+
+    ! Updating field with new constrainig values
+    call sb_matrix(s%nAtoms,s%nOrb)
+
+    rconv = 999.e0_dp
+    iter_b = 1
+    do while(rconv>mag_tol)
+
+      ! Self-consistency for a given transverse constraning field
+      iter = 0
+      call calcSelfConsistency()
+
+      do i = 1,s%nAtoms
+        m_out_abs(i) = sqrt(sum(mx(:,i))**2+sum(my(:,i))**2+sum(mz(:,i))**2)
+        m_out_unit(1,i) = sum(mx(:,i))/m_out_abs(i) 
+        m_out_unit(2,i) = sum(my(:,i))/m_out_abs(i)
+        m_out_unit(3,i) = sum(mz(:,i))/m_out_abs(i)
+      end do
+      delta_m = m_fix-m_out_unit
+
+      ! Calculating convergency parameter
+      rconv = 0.0_dp
+      do i = 1,s%nAtoms
+        call transvComponent(delta_m(:,i),m_fix(:,i))
+        rconv = rconv + dot_product(delta_m(:,i),delta_m(:,i))
+      end do
+
+      ! Storing the old value of constraning and setting up new value
+      bc_old(:,:) = bc(:,:)
+      bc(:,:)     = bc_old(:,:) + cmix*delta_m(:,:)
+      if(rField == 0) then
+        write(output%unit_loop,"('|################ Iteration ',i4,' of constraining field cycle #################|')") iter_b
+        do i = 1,s%nAtoms
+          write(output%unit_loop,"(' bc         (',i4,') = ',3es16.8)") i, bc(:,i)
+          write(output%unit_loop,"(' delta_m    (',i4,') = ',3es16.8)") i, delta_m(:,i)
+          write(output%unit_loop,"(' m_out_unit (',i4,') = ',3es16.8,' |m_out| = ',es16.8)") i, m_out_unit(:,i),m_out_abs(i)
+          write(output%unit_loop,"(' m_fix      (',i4,') = ',3es16.8)") i, m_fix(:,i)
+        end do
+        write(output%unit_loop,"(' Convergence parameter: ',es16.8)") rconv
+      end if
+      ! Updating the constraninig field in the hamiltonian
+      call sb_matrix(s%nAtoms,s%nOrb)
+
+      iter_b = iter_b+1
+    end do
+
+  end subroutine calcSelfConsistency_trans_constr
+  
+
+  subroutine calcSelfConsistency_linear()
+  !> Routine not implemented yet! To be done for Filipe :)
+  !> This subroutine performs the self-consistency using linear mixing
+    use mod_parameters,        only: output
+    implicit none
+
+    write(output%unit_loop,"('[calcSelfConsistency_linear] Linear mixing not implemented yet. To be done.')")
+
+  end subroutine calcSelfConsistency_linear
+
+
   subroutine check_jacobian(neq,x)
+  !> This subroutine can be used to check the jacobian implementation
+  !> It compares the jacobian subroutine with the one obtained numerically 
+  !> by calculating the function is different points
     use mod_parameters, only: output,lcheckjac
     use mod_mpi_pars,   only: rField,abortProgram
     use mod_chkder,     only: chkder
@@ -503,6 +670,7 @@ contains
 
   end subroutine check_jacobian
 
+
   subroutine lsqfun(iflag,M,N,x,fvec,selfconjac,ljc,iw,liw,w,lw)
     use mod_kind,              only: dp
     use mod_system,            only: s => sys
@@ -527,7 +695,10 @@ contains
 
     ! Values used in the hamiltonian
     rho_in = rho ! To store the non-d orbitals into rho_in
-    call set_hamiltonian_variables(.true.,s,N,x,rho_in,rhod_in,mxd_in,myd_in,mzd_in,mpd_in,delta_sc_in)
+    call set_hamiltonian_variables(.true.,s,N,x,rho_in,rhod_in,mxd_in,myd_in,mzd_in,delta_sc_in)
+    do i = 1,s%nAtoms
+      mpd_in(i) = cmplx(mxd_in(i),myd_in(i),dp)
+    end do
 
     ! Update Hubbard term in Hamiltonian
     call update_Umatrix(mzd_in,mzd0,mpd_in,mpd0,rhod_in,rhod0,rho_in,rho0,s)
@@ -564,7 +735,7 @@ contains
   end subroutine lsqfun
 
   subroutine calcJacobian_greenfunction(jacobian,N)
-    !! Calculated the Jacobian of the spin magnetization
+    !> Calculated the Jacobian of the spin magnetization
     use mod_kind,          only: dp,int64
     use mod_constants,     only: pi,ident_norb2,cZero,pauli_dorb,ident_dorb,cOne
     use mod_parameters,    only: eta,output,lfixEf
@@ -989,8 +1160,9 @@ contains
     end do
   end subroutine calcJacobian_greenfunction
 
+
   subroutine rotate_magnetization_to_field()
-  !! Rotate the magnetization to the direction of the field (useful for SOC=F)
+  !> Rotate the magnetization to the direction of the field (useful for SOC=F)
     use mod_kind,       only: dp
     use mod_constants,  only: deg2rad
     use mod_magnet,     only: lfield,hw_count,hw_list,hhw,mp,mx,my,mz,mpd,mxd,myd,mzd
@@ -1039,25 +1211,28 @@ contains
     ! if(rField == 0) call print_sc_results()
   end subroutine rotate_magnetization_to_field
 
-  ! Writes the self-consistency results on the screen
   subroutine print_sc_results()
+  !> Writes the self-consistency results on the screen
+    use mod_constants,         only: rad2deg
     use mod_parameters,        only: output,leigenstates
     use mod_system,            only: s => sys
-    use mod_hamiltonian,       only: energy
+    use mod_hamiltonian,       only: energy,energy_dc,energy_dc_n
     use mod_magnet,            only: rho,rhos,rhop,rhod,mvec_cartesian,mp,mvec_spherical, &
-                                     lxm,lym,lzm,ltheta,lphi,labs,iter
+                                     lxm,lym,lzm,ltheta,lphi,labs,iter,lconstraining_field,bc
     use mod_superconductivity, only: lsuperCond,delta_sc
+    use mod_tools,             only: vec_norm
     implicit none
-    real(dp), dimension(s%nAtoms) :: deltas,deltap,deltad
+    real(dp), dimension(s%nAtoms)   :: deltas,deltap,deltad
+    real(dp), dimension(3,s%nAtoms) :: bc_spherical
     integer  :: i,mu
 
     write(output%unit_loop,"('|----------=============== Self-consistent ground state: ===============----------|')")
     if(leigenstates) then
-      write(output%unit_loop,"(14x,'Ef=',f10.7,4x,'Eband=',f15.7)") s%Ef,energy
+      write(output%unit_loop,"(8x,'Ef=',f13.8,4x,'Eband=',f13.7,4x,'Etotal=',f13.7)") s%Ef,energy,energy+energy_dc+energy_dc_n
+      write(output%unit_loop,"(8x,'Double counting:',4x,'Edc_m=',f13.7,5x,'Edc_n=',f13.7)") energy_dc,energy_dc_n
     else
       write(output%unit_loop,"(28x,'Ef=',f10.7)") s%Ef
     end if
-
     write(output%unit_loop,"(11x,' *************** Charge density: ****************')")
     rhos = 0._dp
     rhop = 0._dp
@@ -1099,7 +1274,7 @@ contains
       end do
     end if
 
-    write(output%unit_loop,"(11x,' *********** Magnetization components: **********')")
+    write(output%unit_loop,"(11x,' *********** Magnetization components: ***********')")
     if(abs(sum(mp(:,:)))>1.e-7_dp) then
       do i=1,s%nAtoms
         write(output%unit_loop,"(a,':',2x,'Mx=',f10.7,4x,'My=',f10.7,4x,'Mz=',f10.7,4x,'theta = ',f10.5,4x,'phi = ',f10.5)") trim(s%Types(s%Basis(i)%Material)%Name),mvec_cartesian(1,i),mvec_cartesian(2,i),mvec_cartesian(3,i),mvec_spherical(2,i),mvec_spherical(3,i)
@@ -1109,8 +1284,33 @@ contains
         write(output%unit_loop,"(a,':',2x,'Mx=',f10.7,4x,'My=',f10.7,4x,'Mz=',f10.7)") trim(s%Types(s%Basis(i)%Material)%Name),mvec_cartesian(1,i),mvec_cartesian(2,i),mvec_cartesian(3,i)
       end do
     end if
-
-    write(output%unit_loop,"(11x,' ****** Orbital components in global frame: *****')")
+    if(lconstraining_field) then
+      write(output%unit_loop,"(11x,' ************** Constraning fields: **************')")
+      ! Calculating spherical components of constraning fields
+      do i = 1,s%nAtoms
+        bc_spherical(1,i) = vec_norm(bc(:,i),3)
+        bc_spherical(2,i) = merge(acos(bc(3,i)/bc_spherical(1,i))*rad2deg,0._dp,bc_spherical(1,i)>1.e-8_dp)
+        if(abs(bc_spherical(2,i))>1.e-8_dp) then
+          if(abs(abs(bc_spherical(2,i))-180._dp)>1.e-8_dp) then
+            bc_spherical(3,i) = atan2(bc(2,i),bc(1,i))*rad2deg
+          else
+            bc_spherical(3,i) = 0._dp
+          end if
+        else
+          bc_spherical(3,i) = 0._dp
+        end if
+      end do
+      if(abs(vec_norm(bc_spherical(2,:),s%nAtoms))>1.e-6_dp) then
+        do i=1,s%nAtoms
+          write(output%unit_loop,"(a,':',2x,'Bx=',f10.7,4x,'By=',f10.7,4x,'Bz=',f10.7,4x,'theta = ',f10.5,4x,'phi = ',f10.5)") trim(s%Types(s%Basis(i)%Material)%Name),bc(1,i),bc(2,i),bc(3,i),bc_spherical(2,i),bc_spherical(3,i)
+        end do
+      else
+        do i=1,s%nAtoms
+          write(output%unit_loop,"(a,':',2x,'Bx=',f10.7,4x,'By=',f10.7,4x,'Bz=',f10.7)") trim(s%Types(s%Basis(i)%Material)%Name),bc(1,i),bc(2,i),bc(3,i)
+        end do
+      end if
+    end if
+    write(output%unit_loop,"(11x,' ****** Orbital components in global frame: ******')")
     if(sum(lxm(:)**2+lym(:)**2)>1.e-7_dp) then
       do i=1,s%nAtoms
         write(output%unit_loop,"(a,':',2x,'Lx=',f10.7,4x,'Ly=',f10.7,4x,'Lz=',f10.7,4x,'theta = ',f10.5,4x,'phi = ',f10.5)") trim(s%Types(s%Basis(i)%Material)%Name),lxm(i),lym(i),lzm(i),ltheta(i),lphi(i)
@@ -1134,17 +1334,22 @@ contains
   end subroutine print_sc_results
 
 
-  subroutine write_sc_results()
-    !! Writes the self-consistency results into files and broadcasts the scfile for the next iteration.
+  subroutine write_sc_results(rho,mx,my,mz,bc)
+  !> Writes the self-consistency results into files and broadcasts the scfile for the next iteration.
     use mod_parameters,        only: output,dfttype
     use EnergyIntegration,     only: parts
-    use mod_magnet,            only: rho, mx, my, mz
     use mod_superconductivity, only: delta_sc
     use mod_system,            only: s => sys
+    use mod_tools,             only: replaceStr
     use mod_mpi_pars,          only: rField,MPI_CHARACTER,FieldComm,ierr
     implicit none
-    character(len=30) :: formatvar
-    integer           :: i,mu
+    real(dp),dimension(s%nOrb,s%nAtoms), intent(in) :: rho,mx,my,mz
+    !> orbital- and site-dependent charge and magnetic moments
+    real(dp),dimension(3,s%nAtoms),      intent(in), optional :: bc
+    !> constraining magnetic fields
+    character(len=30)  :: formatvar
+    character(len=200) :: bcfile
+    integer            :: i,mu
 
     external :: MPI_Bcast
     if(rField == 0) then
@@ -1163,18 +1368,33 @@ contains
       write(99,"('! Ef ')")
 
       close(99)
+
+      if(present(bc)) then
+        ! Writing new results for the constranining fields to file
+        write(output%unit_loop,"('[write_sc_results] Writing new bc_x, bc_y, bc_z to file...')")
+        bcfile=replaceStr( string=scfile, search="selfconsistency_", substitute="constraniningfield_" )
+        open (unit=999,status='replace',file=bcfile)
+
+        do i=1,s%nAtoms
+          write(999,fmt="(3(es21.11,2x))") (bc(mu,i), mu=1,3)
+        end do
+
+        close(999)
+      end if
+
     end if
 
     call MPI_Bcast(scfile, len(scfile), MPI_CHARACTER, 0, FieldComm,ierr)
   end subroutine write_sc_results
 
 
-  ! Writes the initial values for the self-consistency
   subroutine print_sc_step(n,mp,mz,delta_sc,s,fvec)
+  !> Writes the intermediate steps or the initial values 
+  !> of the self-consistency on screen
     use mod_kind,              only: dp
     use mod_parameters,        only: output,lfixEf
     use mod_System,            only: System_type
-    use mod_magnet,            only: iter
+    use mod_magnet,            only: iter,lconstraining_field,constr_type,bc
     use mod_superconductivity, only: lsuperCond
     use mod_mpi_pars,          only: rField
     use mod_tools,             only: RtoS
@@ -1207,10 +1427,19 @@ contains
         end if
         kount = neq_per_atom(i) + merge(s%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp)
         if(abs(s%Basis(i)%Um)>1.e-8_dp) then
-          if(abs(mp(i))>1.e-8_dp) then
-            formatvar = formatvar // '  fvec(Mx)= ' // trim(RtoS(fvec(kount+1),"(es16.9)")) // '  fvec(My)= ' // trim(RtoS(fvec(kount+2),"(es16.9)")) // '  fvec(Mz)= ' // trim(RtoS(fvec(kount+3),"(es16.9)"))
+          if(.not.lconstraining_field) then
+            if(abs(mp(i))>1.e-8_dp) then
+              formatvar = formatvar // '  fvec(Mx)= ' // trim(RtoS(fvec(kount+1),"(es16.9)")) // '  fvec(My)= ' // trim(RtoS(fvec(kount+2),"(es16.9)")) // '  fvec(Mz)= ' // trim(RtoS(fvec(kount+3),"(es16.9)"))
+            else
+              formatvar = formatvar // '  fvec(Mz)= ' // trim(RtoS(fvec(kount+3),"(es16.9)"))
+            end if
           else
-            formatvar = formatvar // '  fvec(Mz)= ' // trim(RtoS(fvec(kount+3),"(es16.9)"))
+            select case(constr_type)
+            case(1)
+              formatvar = formatvar // '  fvec(|M|)= ' // trim(RtoS(fvec(kount+1),"(es16.9)"))
+            case(2)
+              formatvar = formatvar // '  fvec(Bx)= ' // trim(RtoS(fvec(kount+1),"(es16.9)")) // '  fvec(By)= ' // trim(RtoS(fvec(kount+2),"(es16.9)")) // '  fvec(Bz)= ' // trim(RtoS(fvec(kount+3),"(es16.9)"))
+            end select
           end if
         end if
         if(len_trim(formatvar)/=0) write(output%unit_loop,"(3x,a)") formatvar
@@ -1222,8 +1451,10 @@ contains
       do i=1,s%nAtoms
         if(abs(mp(i))>1.e-8_dp) then
           write(output%unit_loop,"('Site ',i4,': N=',es16.9,4x,'Mx=',es16.9,4x,'My=',es16.9,4x,'Mz=',es16.9)") i,n(i),mp(i)%re,mp(i)%im,mz(i)
+          if(lconstraining_field) write(output%unit_loop,"(8x,'=>',23x,'Bx=',es16.9,4x,'By=',es16.9,4x,'Bz=',es16.9)") bc(1,i),bc(2,i),bc(3,i)
         else
           write(output%unit_loop,"('Site ',i4,': N=',es16.9,4x,'Mz=',es16.9)") i,n(i),mz(i)
+          if(lconstraining_field) write(output%unit_loop,"(8x,'=>',23x,'Bz=',es16.9,4x,'By=',es16.9,4x,'Bz=',es16.9)") bc(1,i),bc(2,i),bc(3,i)
         end if
         if(lsuperCond) then
           write(output%unit_loop,"('Site ',i4,': D_sc =',9(es14.7,2x))") i,(delta_sc(mu,i),mu=1,s%nOrb)
@@ -1236,24 +1467,27 @@ contains
 
 
   subroutine sc_eqs(N,x,fvec,iflag)
-  !! This subroutine calculates the self-consistency equations
-  !!     n  - rho_in    = 0
-  !!     mx - mx_in   = 0
-  !!     my - my_in   = 0
-  !!     mz - mz_in   = 0
-  !!  sum n - n_total = 0
+  !> This subroutine calculates the self-consistency equations
+  !>     n  - rho_in  = 0    ! When Un /= 0
+  !>     mx - mx_in   = 0
+  !>     my - my_in   = 0    ! When Um /= 0
+  !>     mz - mz_in   = 0
+  !>  sum n - n_total = 0    ! when lfixEf == .false.
+  !>
+  !> The magnetization equations are substituted by the constraning field
+  !> if this option is used.
     use mod_kind,              only: dp
     use mod_parameters,        only: output
     use mod_system,            only: s => sys
-    use mod_magnet,            only: iter,maxiter,rho,rhot,rhod,mp,mx,my,mz,mpd,mpd0,mxd,myd,mzd,mzd0,rhod0,rho0
+    use mod_magnet,            only: iter,maxiter,rho,rhot,rhod,mp,mx,my,mz,mpd,mpd0,mxd,myd,mzd,mzd0,rhod0,rho0,m_fix,m_fix_abs,bc,sb_matrix,mabsd,constr_type
     use mod_Umatrix,           only: update_Umatrix
     use mod_expectation,       only: expectation_values
-    use mod_superconductivity, only: lsuperCond, update_delta_sc
+    use mod_superconductivity, only: lsuperCond,update_delta_sc
     implicit none
     integer  :: N,i,mu,mud,iflag
     real(dp),    dimension(N)               :: x,fvec
     real(dp),    dimension(s%nOrb,s%nAtoms) :: rho_in
-    real(dp),    dimension(s%nAtoms)        :: mxd_in,myd_in,mzd_in,rhod_in
+    real(dp),    dimension(s%nAtoms)        :: mxd_in,myd_in,mzd_in,mabsd_in,rhod_in
     real(dp),    dimension(s%nOrb,s%nAtoms) :: delta_sc_in
     real(dp),    dimension(s%nOrb,s%nAtoms) :: deltas
     complex(dp), dimension(s%nAtoms)        :: mpd_in
@@ -1264,10 +1498,38 @@ contains
 
     ! Values used in the hamiltonian
     rho_in = rho ! To store the non-d orbitals into rho_in
-    call set_hamiltonian_variables(.true.,s,N,x,rho_in,rhod_in,mxd_in,myd_in,mzd_in,mpd_in,delta_sc_in)
+    select case(constr_type)
+    case(1)
+      ! myd_in,mzd_in are dummies that are not used
+      call set_hamiltonian_variables(.true.,s,N,x,rho_in,rhod_in,mabsd_in,myd_in,mzd_in,delta_sc_in)
+      do i = 1,s%nAtoms
+        mxd_in(i) = m_fix(1,i)*mabsd_in(i)
+        myd_in(i) = m_fix(2,i)*mabsd_in(i)
+        mzd_in(i) = m_fix(3,i)*mabsd_in(i)
+        mpd_in(i) = cmplx(mxd_in(i),myd_in(i),dp)
+      end do
+      ! Update Hubbard term in Hamiltonian
+      call update_Umatrix(mzd_in,mzd0,mpd_in,mpd0,rhod_in,rhod0,rho_in,rho0,s)
+    case(2)
+      call set_hamiltonian_variables(.true.,s,N,x,rho_in,rhod_in,bc(1,:),bc(2,:),bc(3,:),delta_sc_in)
+      do i = 1,s%nAtoms
+        mxd_in(i) = m_fix(1,i)*m_fix_abs(i) 
+        myd_in(i) = m_fix(2,i)*m_fix_abs(i) 
+        mzd_in(i) = m_fix(3,i)*m_fix_abs(i) 
+        mpd_in(i) = cmplx(mxd_in(i),myd_in(i),dp)
+      end do
 
-    ! Update Hubbard term in Hamiltonian
-    call update_Umatrix(mzd_in,mzd0,mpd_in,mpd0,rhod_in,rhod0,rho_in,rho0,s)
+      ! Updating field with new constrainig values
+      call sb_matrix(s%nAtoms,s%nOrb)
+    case default
+      call set_hamiltonian_variables(.true.,s,N,x,rho_in,rhod_in,mxd_in,myd_in,mzd_in,delta_sc_in)
+      do i = 1,s%nAtoms
+        mpd_in(i) = cmplx(mxd_in(i),myd_in(i),dp)
+      end do
+      ! Update Hubbard term in Hamiltonian
+      call update_Umatrix(mzd_in,mzd0,mpd_in,mpd0,rhod_in,rhod0,rho_in,rho0,s)
+    end select
+
     ! Update electron-hole coupling in Hamiltonian
     if(lsuperCond) call update_delta_sc(s,delta_sc_in)
 
@@ -1287,18 +1549,29 @@ contains
         mxd (i) = mxd (i) + mx (mu,i)
         myd (i) = myd (i) + my (mu,i)
         mzd (i) = mzd (i) + mz (mu,i)
+        mabsd(i)= sqrt(mxd(i)**2+myd(i)**2+mzd(i)**2)
       end do
       mpd(i) = cmplx(mxd(i),myd(i),dp)
     end do
     rhot = sum(rho(:,:))
 
     ! Setting up linear system of equations:
-    call set_system_of_equations(s,N,rhot,rho,mxd,myd,mzd,deltas,&
-                                 rho_in,mxd_in,myd_in,mzd_in,delta_sc_in,fvec)
+    select case(constr_type)
+    case(1)
+      call set_system_of_equations(s,N,rhot,rho,mabsd,myd,mzd,deltas,&
+                                   rho_in,mabsd_in,myd_in,mzd_in,delta_sc_in,fvec)
+      if(lontheflysc) call write_sc_results(rho,mx,my,mz,bc)
+    case(2)
+      call set_system_of_equations(s,N,rhot,rho,sum(mx(:,:),dim=1),sum(my(:,:),dim=1),sum(mz(:,:),dim=1),deltas,&
+                                   rho_in,mxd_in,myd_in,mzd_in,delta_sc_in,fvec)
+      if(lontheflysc) call write_sc_results(rho,mx,my,mz,bc)
+    case default
+      call set_system_of_equations(s,N,rhot,rho,mxd,myd,mzd,deltas,&
+                                   rho_in,mxd_in,myd_in,mzd_in,delta_sc_in,fvec)
+      if(lontheflysc) call write_sc_results(rho,mx,my,mz)
+    end select
 
     call print_sc_step(rhod,mpd,mzd,deltas,s,fvec)
-
-    if(lontheflysc) call write_sc_results()
 
     if(iter>=maxiter) then
       write(output%unit_loop,"('[sc_eqs] Maximum number of iterations reached!')")
@@ -1308,21 +1581,21 @@ contains
 
 
   subroutine sc_jac(N,x,fvec,selfconjac,ldfjac,iflag)
-  !! This subroutine calculates the jacobian of the system of equations
-  !!     n  - rho_in    = 0
-  !!     mx - mx_in   = 0
-  !!     my - my_in   = 0
-  !!     mz - mz_in   = 0
-  !!  sum n - n_total = 0
+  !> This subroutine calculates the jacobian of the system of equations
+  !>     n  - rho_in    = 0
+  !>     mx - mx_in   = 0
+  !>     my - my_in   = 0
+  !>     mz - mz_in   = 0
+  !>  sum n - n_total = 0
     use mod_kind,              only: dp
     use mod_system,            only: s => sys
-    use mod_magnet,            only: iter,mzd0,mpd0,rhod0,rho0,rho
+    use mod_magnet,            only: iter,mzd0,mpd0,rhod0,rho0,rho,m_fix,m_fix_abs,bc,sb_matrix,constr_type
     use mod_Umatrix,           only: update_Umatrix
     use mod_superconductivity, only: lsuperCond, update_delta_sc
     implicit none
-    integer      :: N,ldfjac,iflag
+    integer      :: i,N,ldfjac,iflag
     real(dp)     :: x(N),fvec(N),selfconjac(ldfjac,N)
-    real(dp),    dimension(s%nAtoms)        :: mxd_in,myd_in,mzd_in,rhod_in
+    real(dp),    dimension(s%nAtoms)        :: mxd_in,myd_in,mzd_in,mabsd_in,rhod_in
     real(dp),    dimension(s%nOrb,s%nAtoms) :: rho_in
     real(dp),    dimension(s%nOrb,s%nAtoms) :: delta_sc_in
     complex(dp), dimension(s%nAtoms)        :: mpd_in
@@ -1332,10 +1605,36 @@ contains
 
     ! Values used in the hamiltonian
     rho_in = rho ! To store the non-d orbitals into rho_in
-    call set_hamiltonian_variables(.true.,s,N,x,rho_in,rhod_in,mxd_in,myd_in,mzd_in,mpd_in,delta_sc_in)
+    select case(constr_type)
+    case(1)
+      ! myd_in,mzd_in are dummies that are not used
+      call set_hamiltonian_variables(.true.,s,N,x,rho_in,rhod_in,mabsd_in,myd_in,mzd_in,delta_sc_in)
+      do i = 1,s%nAtoms
+        mpd_in(i) = cmplx(m_fix(1,i)*mabsd_in(i),m_fix(2,i)*mabsd_in(i),dp)
+        mzd_in(i) = m_fix(3,i)*mabsd_in(i)
+      end do
+      ! Update Hubbard term in Hamiltonian
+      call update_Umatrix(mzd_in,mzd0,mpd_in,mpd0,rhod_in,rhod0,rho_in,rho0,s)
+    case(2)
+      call set_hamiltonian_variables(.true.,s,N,x,rho_in,rhod_in,bc(1,:),bc(2,:),bc(3,:),delta_sc_in)
+      do i = 1,s%nAtoms
+        mxd_in(i) = m_fix(1,i)*m_fix_abs(i) 
+        myd_in(i) = m_fix(2,i)*m_fix_abs(i) 
+        mzd_in(i) = m_fix(3,i)*m_fix_abs(i) 
+        mpd_in(i) = cmplx(mxd_in(i),myd_in(i),dp)
+      end do
 
-    ! Update Hubbard term in Hamiltonian
-    call update_Umatrix(mzd_in,mzd0,mpd_in,mpd0,rhod_in,rhod0,rho_in,rho0,s)
+      ! Updating field with new constrainig values
+      call sb_matrix(s%nAtoms,s%nOrb)
+    case default
+      call set_hamiltonian_variables(.true.,s,N,x,rho_in,rhod_in,mxd_in,myd_in,mzd_in,delta_sc_in)
+      do i = 1,s%nAtoms
+        mpd_in(i) = cmplx(mxd_in(i),myd_in(i),dp)
+      end do
+      ! Update Hubbard term in Hamiltonian
+      call update_Umatrix(mzd_in,mzd0,mpd_in,mpd0,rhod_in,rhod0,rho_in,rho0,s)
+    end select
+
     ! Update electron-hole coupling in Hamiltonian
     if(lsuperCond) call update_delta_sc(s,delta_sc_in)
 
@@ -1347,31 +1646,29 @@ contains
 
   end subroutine sc_jac
 
-  subroutine set_hamiltonian_variables(set,s,N,x,rho,rhod,mxd,myd,mzd,mpd,delta_sc)
-  !! This subroutine transfers the variables from the single array
-  !! to the expectation values used in the hamiltonian
-  !! Whe set = .false. it does the inverse, to set the initial guess
-    use mod_constants,         only: cZero
+  subroutine set_hamiltonian_variables(set,s,N,x,rho,rhod,mxd,myd,mzd,delta_sc)
+  !> This subroutine transfers the variables from the single array
+  !> to the expectation values used in the hamiltonian
+  !> Whe set = .false. it does the inverse, to set the initial guess
     use mod_System,            only: System_type
     use mod_superconductivity, only: lsupercond
     use mod_parameters,        only: lfixEf
+    use mod_magnet,            only: constr_type
     implicit none
     logical,                                 intent(in)    :: set
-    !! Variable to select which way variables are set
+    !> Variable to select which way variables are set
     type(System_type),                       intent(inout) :: s
-    !! System quantities
+    !> System quantities
     integer,                                 intent(in)    :: N
-    !! Number of equations
+    !> Number of equations
     real(dp),    dimension(N),               intent(inout) :: x
-    !! Unknowns in single array format
+    !> Unknowns in single array format
     real(dp),    dimension(s%nOrb,s%nAtoms), intent(inout) :: rho
-    !! Variables used in the hamiltonian: orbital-dependent density
+    !> Variables used in the hamiltonian: orbital-dependent density
     real(dp),    dimension(s%nAtoms),        intent(inout) :: mxd,myd,mzd,rhod
-    !! Variables used in the hamiltonian: magnetizatin and density
+    !> Variables used in the hamiltonian: magnetizatin and density
     real(dp),    dimension(s%nOrb,s%nAtoms), intent(inout) :: delta_sc
-    !! Variables used in the hamiltonian: superconducting delta
-    complex(dp), dimension(s%nAtoms),        intent(inout) :: mpd
-    !! Variables used in the hamiltonian: circular component of magnetic moment
+    !> Variables used in the hamiltonian: superconducting delta
 
     ! Local variables:
     integer :: i,mu,kount
@@ -1379,7 +1676,6 @@ contains
     if(set) then
       rhod = 0._dp
       mzd  = 0._dp
-      mpd  = cZero
       do i = 1,s%nAtoms
         kount = neq_per_atom(i)
         if(abs(s%Basis(i)%Un)>1.e-8_dp) then
@@ -1391,10 +1687,11 @@ contains
         end if
         if(abs(s%Basis(i)%Um)>1.e-8_dp) then
           mxd(i) = x(kount+1)
-          myd(i) = x(kount+2)
-          mzd(i) = x(kount+3)
-          mpd(i) = cmplx(mxd(i),myd(i),dp)
-          kount = neq_per_atom(i) + merge(s%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + 3
+          if(constr_type/=1) then
+            myd(i) = x(kount+2)
+            mzd(i) = x(kount+3)
+          end if
+          kount = neq_per_atom(i) + merge(s%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + merge(1,3,constr_type==1)
         end if
         if(lsupercond) then
           do mu = 1,s%nOrb
@@ -1414,9 +1711,11 @@ contains
         end if
         if(abs(s%Basis(i)%Um)>1.e-8_dp) then
           x(kount+1) = mxd(i)
-          x(kount+2) = myd(i)
-          x(kount+3) = mzd(i)
-          kount = neq_per_atom(i) + merge(s%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + 3
+          if(constr_type/=1) then
+            x(kount+2) = myd(i)
+            x(kount+3) = mzd(i)
+          end if
+          kount = neq_per_atom(i) + merge(s%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + merge(1,3,constr_type==1)
         end if
         if(lsuperCond) then
           do mu = 1, s%nOrb
@@ -1432,26 +1731,27 @@ contains
 
   subroutine set_system_of_equations(s,N,rhot,rho,mxd,myd,mzd,delta_sc,&
                                      rho_in,mxd_in,myd_in,mzd_in,delta_sc_in,fvec)
-  !! This subroutine sets the system of equations to be solved
-  !! by the non-linear root finder
+  !> This subroutine sets the system of equations to be solved
+  !> by the non-linear root finder
     use mod_System,            only: System_type
     use mod_superconductivity, only: lsupercond
     use mod_parameters,        only: lfixEf
+    use mod_magnet,            only: constr_type
     implicit none
     type(System_type),                       intent(in)  :: s
-    !! System quantities
+    !> System quantities
     integer,                                 intent(in)  :: N
-    !! Number of equations
+    !> Number of equations
     real(dp),                                intent(in)  :: rhot
-    !! Total density
+    !> Total density
     real(dp),    dimension(s%nOrb,s%nAtoms), intent(in)  :: rho,rho_in
-    !! Orbital-dependent densities (output and input)
+    !> Orbital-dependent densities (output and input)
     real(dp),    dimension(s%nAtoms),        intent(in)  :: mxd,myd,mzd,mxd_in,myd_in,mzd_in
-    !! Variables used in the hamiltonian: magnetizatin and density
+    !> Variables used in the hamiltonian: magnetizatin and density
     real(dp),    dimension(s%nOrb,s%nAtoms), intent(in)  :: delta_sc,delta_sc_in
-    !! Variables used in the hamiltonian: superconducting delta
+    !> Variables used in the hamiltonian: superconducting delta
     real(dp),    dimension(N),               intent(out) :: fvec
-    !! Vector holding the equations to find the zeroes
+    !> Vector holding the equations to find the zeroes
 
     ! Local variables:
     integer :: i,mu,mud,kount
@@ -1467,9 +1767,11 @@ contains
       end if
       if(abs(s%Basis(i)%Um)>1.e-8_dp) then
         fvec(kount+1) = mxd(i) - mxd_in(i)
-        fvec(kount+2) = myd(i) - myd_in(i)
-        fvec(kount+3) = mzd(i) - mzd_in(i)
-        kount = neq_per_atom(i) + merge(s%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + 3
+        if(constr_type/=1) then
+          fvec(kount+2) = myd(i) - myd_in(i)
+          fvec(kount+3) = mzd(i) - mzd_in(i)
+        end if
+        kount = neq_per_atom(i) + merge(s%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + merge(merge(1,3,constr_type==1),0,abs(s%Basis(i)%Um)>1.e-8_dp)
       end if
       if(lsuperCond) then
         do mu = 1, s%nOrb

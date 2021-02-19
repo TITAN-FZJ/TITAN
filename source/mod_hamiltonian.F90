@@ -14,8 +14,8 @@ module mod_hamiltonian
   complex(dp), dimension(:,:,:), device, allocatable :: fullhk_d
   !! Full non-local hamiltonian hk (for every k) on the GPUs
 #endif
-  real(dp) :: energy
-  !! Band energy
+  real(dp) :: energy,energy_dc,energy_dc_n,energy_constr
+  !! Band energy and double counting part and constraining energy
 
 contains
 
@@ -415,7 +415,7 @@ contains
         nu=mu+s%nOrb
         hext(mu,mu) = hext(mu,mu) + b_field(3)
         hext(nu,nu) = hext(nu,nu) - b_field(3)
-        hext(nu,mu) = hext(nu,mu) + b_field(1)-cI*b_field(2)
+        hext(nu,mu) = hext(nu,mu) + b_field(1)+cI*b_field(2)
         hext(mu,nu) = conjg(hext(nu,mu))
       end do
 

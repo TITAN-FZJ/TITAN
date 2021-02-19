@@ -1,0 +1,50 @@
+Fe bcc bulk
+ 5.30
+ 0.5     0.5     -0.5
+ 0.5     -0.5    0.5
+ -0.5    0.5     0.5
+ Fe
+ 1
+ L
+ 0.0    0.0     0.0
+ 3
+ 0.7415
+0.58  0.37  7.05
+ 0.000  0.07353
+ 0.000  0.004
+ 0.0 0.0 0.0
+3
+s on-site	 1.2017709017      1                             Fe
+p on-site	 1.8725119829      2                             Fe
+t2g on-site	 0.6881678104      3                             Fe
+eg on-site	 0.6643740535      4                             Fe
+sss 1st nn	-0.1394413859      5                             Fe
+pps 1st nn	 0.2681021988      6                             Fe
+ppp 1st nn	 0.0297146384      7                             Fe
+dds 1st nn	-0.0508569255      8                             Fe
+ddp 1st nn	 0.0309574008      9                             Fe
+ddd 1st nn	-0.0030320531     10                             Fe
+sps 1st nn	 0.1777951121     11                             Fe
+sds 1st nn	-0.0678095073     12                             Fe
+pds 1st nn	-0.0930757448     13                             Fe
+pdp 1st nn	 0.0208929181     14                             Fe
+sss 2nd nn	-0.0314096436     15                             Fe
+pps 2nd nn	 0.1884829849     16                             Fe
+ppp 2nd nn	 0.0390681326     17                             Fe
+dds 2nd nn	-0.0312470067     18                             Fe
+ddp 2nd nn	 0.0061819027     19                             Fe
+ddd 2nd nn	 0.0007075703     20                             Fe
+sps 2nd nn	 0.0735426247     21                             Fe
+sds 2nd nn	-0.0388437621     22                             Fe
+pds 2nd nn	-0.0602805056     23                             Fe
+pdp 2nd nn	-0.0038276755     24                             Fe
+sss 3rd nn	 0.0181787629     25                             Fe
+pps 3rd nn	-0.0444739647     26                             Fe
+ppp 3rd nn	 0.0164096598     27                             Fe
+dds 3rd nn	 0.0016750902     28                             Fe
+ddp 3rd nn	 0.0003651654     29                             Fe
+ddd 3rd nn	-0.0005600667     30                             Fe
+sps 3rd nn	-0.0256738886     31                             Fe
+sds 3rd nn	-0.0003887220     32                             Fe
+pds 3rd nn	 0.0006854520     33                             Fe
+pdp 3rd nn	-0.0028157220     34                             Fe

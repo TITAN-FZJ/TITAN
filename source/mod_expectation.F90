@@ -44,11 +44,11 @@ contains
     real(dp),    dimension(s%nOrb,s%nAtoms), intent(out) :: deltas
     complex(dp), dimension(s%nOrb,s%nAtoms), intent(out) :: mp
 
-    integer  :: i,j,AllocateStatus
-    real(dp),    dimension(3)                    :: kp
-    complex(dp), dimension(:,:),     allocatable :: gdiagud,gdiagdu
-    real(dp),    dimension(:,:),     allocatable :: imguu,imgdd
-    complex(dp), dimension(:,:,:,:), allocatable :: gf
+    integer  :: i,j
+    real(dp),    dimension(3)                                 :: kp
+    complex(dp), dimension(s%nAtoms,s%nOrb)                   :: gdiagud,gdiagdu
+    real(dp),    dimension(s%nOrb,s%nAtoms)                   :: imguu,imgdd
+    complex(dp), dimension(s%nOrb2,s%nOrb2,s%nAtoms,s%nAtoms) :: gf
     !--------------------- begin MPI vars --------------------
     integer(int64) :: ix
     integer  :: ncount
@@ -59,21 +59,8 @@ contains
 
     ncount = s%nAtoms * s%nOrb
 
-    allocate(imguu(s%nOrb,s%nAtoms),imgdd(s%nOrb,s%nAtoms), stat = AllocateStatus)
-    if(AllocateStatus/=0) &
-      call abortProgram("[expectation_values_greenfunction] Not enough memory for: imguu,imgdd")
-
-    allocate(gdiagud(s%nAtoms,s%nOrb), gdiagdu(s%nAtoms,s%nOrb), stat = AllocateStatus)
-    if(AllocateStatus /= 0) &
-      call abortProgram("[expectation_values_greenfunction] Not enough memory for: gdiagdu, gdiagud")
-
     if(lsuperCond) &
       call abortProgram("[expectation_values_greenfunction] Calculation of superconducting parameter Delta is not yet implemented with Green Functions.")
-
-    allocate(gf(s%nOrb2,s%nOrb2,s%nAtoms,s%nAtoms), stat=AllocateStatus)
-    if(AllocateStatus /= 0) &
-      call AbortProgram("[expectation_values_greenfunction] Not enough memory for: gf")
-    gf = cZero
 
     !If lsupercond is true then fermi is 0.0 otherwise is s%Ef
     fermi = merge(0._dp,s%Ef,lsuperCond)
@@ -87,12 +74,14 @@ contains
     ! Build local hamiltonian
     if((.not.llineargfsoc) .and. (.not.llinearsoc)) call hamilt_local(s)
 
-    !$omp parallel do schedule(dynamic) &
+    !$omp parallel  &
     !$omp& default(none) &
     !$omp& firstprivate(gf) &
-    !$omp& private(ix,ep,kp,weight,i,mu,mup,AllocateStatus) &
-    !$omp& shared(calc_green,local_points,fermi,eta,wght,s,bzs,E_k_imag_mesh,y) &
-    !$omp& reduction(+:imguu,imgdd,gdiagud,gdiagdu)
+    !$omp& private(ix,ep,kp,weight,i,mu,mup) &
+    !$omp& shared(calc_green,local_points,fermi,eta,wght,s,bzs,E_k_imag_mesh,y,imguu,imgdd,gdiagud,gdiagdu)
+    gf = cZero
+
+    !$omp do schedule(dynamic) reduction(+:imguu,imgdd,gdiagud,gdiagdu)
     do ix = 1, local_points
        ep = y(E_k_imag_mesh(1,ix))
        kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
@@ -109,7 +98,8 @@ contains
          end do
        end do
     end do
-    !$omp end parallel do
+    !$omp end do
+    !$omp end parallel
     imguu = imguu / pi
     imgdd = imgdd / pi
 
@@ -134,9 +124,6 @@ contains
       end do
     end do
 
-    deallocate(gf)
-    deallocate(imguu,imgdd)
-    deallocate(gdiagdu, gdiagud)
   end subroutine expectation_values_greenfunction
 
 
@@ -161,14 +148,12 @@ contains
     real(dp),    dimension(s%nOrb,s%nAtoms)    :: expec_0,expec_z
     complex(dp), dimension(s%nOrb,s%nAtoms)    :: expec_p
     real(dp),    dimension(s%nOrb,s%nAtoms)    :: expec_d
-    real(dp),    dimension(:),   allocatable   :: eval
-    complex(dp), dimension(:,:), allocatable   :: hk(:,:)
+    real(dp),    dimension(dimHsc)             :: eval
+    complex(dp), dimension(dimHsc,dimHsc)      :: hk
 
     external :: MPI_Allreduce,ilaenv
 
     ncount = s%nOrb*s%nAtoms
-
-    allocate( hk(dimHsc,dimHsc),eval(dimHsc) )
 
     ! Getting lwork for diagonalization
     lwork = (ilaenv( 1, 'zhetrd', 'VU', dimHsc, -1, -1, -1 )+1)*dimHsc
@@ -213,8 +198,6 @@ contains
     mx = real(mp)
     my = aimag(mp)
 
-    deallocate(hk,eval)
-
   end subroutine expectation_values_eigenstates
 
 
@@ -241,14 +224,12 @@ contains
     real(dp),    dimension(s%nOrb,s%nAtoms)  :: expec_0,expec_z
     complex(dp), dimension(s%nOrb,s%nAtoms)  :: expec_p
     real(dp),    dimension(s%nOrb,s%nAtoms)  :: expec_d
-    real(dp),    dimension(:),   allocatable :: eval
-    complex(dp), dimension(:,:) ,allocatable :: hk
+    real(dp),    dimension(dimHsc)           :: eval
+    complex(dp), dimension(dimHsc,dimHsc)    :: hk
 
     external :: MPI_Allreduce,ilaenv
 
     ncount = s%nOrb*s%nAtoms
-
-    allocate( hk(dimHsc,dimHsc),eval(dimHsc) )
 
     ! Getting lwork for diagonalization
     lwork = (ilaenv( 1, 'zhetrd', 'VU', dimHsc, -1, -1, -1 )+1)*dimHsc
@@ -292,8 +273,6 @@ contains
 
     mx = real(mp)
     my = aimag(mp)
-
-    deallocate(hk,eval)
 
   end subroutine expectation_eigenstates_fullhk
 
@@ -821,21 +800,16 @@ contains
     use mod_mpi_pars,      only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_COMPLEX,MPI_SUM,ierr,myrank
     implicit none
     integer(int64)    :: ix
-    integer      :: AllocateStatus
     integer      :: i,mu,nu,mup,nup
     real(dp) :: kp(3)
     real(dp) :: weight, ep
-    complex(dp), dimension(:,:,:,:), allocatable :: gf
-    complex(dp), dimension(:,:,:),   allocatable :: gupgd
+    complex(dp), dimension(s%nOrb2,s%nOrb2,s%nAtoms,s%nAtoms) :: gf
+    complex(dp), dimension(s%nOrb,s%nOrb,s%nAtoms)            :: gupgd
     integer :: ncount
 
     external :: MPI_Allreduce
 
     ncount=s%nAtoms*s%nOrb*s%nOrb
-
-    allocate(gupgd(s%nOrb,s%nOrb,s%nAtoms), stat = AllocateStatus)
-    if(AllocateStatus/=0) &
-      call abortProgram("[calc_GS_L_and_E_greenfunction] Not enough memory for: gupgd")
 
     ! Build local hamiltonian
     call hamilt_local(s)
@@ -844,14 +818,11 @@ contains
       write(output%unit, "('[Warning] [calc_GS_L_and_E_greenfunction] Band energy not implemented with greenfunctions.')")
     energy = 0._dp
 
-    ! Calculating the jacobian using a complex integral
     gupgd  = cZero
+    ! Calculating the jacobian using a complex integral
     !$omp parallel default(none) &
-    !$omp& private(AllocateStatus,ix,i,mu,nu,mup,nup,kp,ep,weight,gf) &
+    !$omp& private(ix,i,mu,nu,mup,nup,kp,ep,weight,gf) &
     !$omp& shared(local_points,s,E_k_imag_mesh,bzs,eta,y,wght,gupgd)
-    allocate(gf(s%nOrb2,s%nOrb2,s%nAtoms,s%nAtoms), stat = AllocateStatus)
-    if (AllocateStatus/=0) &
-      call abortProgram("[calc_GS_L_and_E_greenfunction] Not enough memory for: gf")
 
     gf = cZero
     !$omp do schedule(dynamic) reduction(+:gupgd)
@@ -873,8 +844,6 @@ contains
       end do site_i
     end do
     !$omp end do
-
-    deallocate(gf)
     !$omp end parallel
 
     gupgd = gupgd / pi
@@ -900,7 +869,6 @@ contains
       end do
     end do
 
-    deallocate(gupgd)
   end subroutine calc_GS_L_and_E_greenfunction
 
 
@@ -1023,19 +991,17 @@ contains
     use mod_hamiltonian,       only: calchk,h0,hamilt_local,energy
     use mod_mpi_pars,          only: MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
     implicit none
-    integer(int64)                             :: iz
-    integer                                    :: n,i,mu,nu,sigma,ilaenv
-    real(dp)                                   :: fermi,beta
-    real(dp),    dimension(:),     allocatable :: eval,f_n
-    complex(dp),                   allocatable :: hk(:,:),prod(:,:,:)
+    integer(int64)                 :: iz
+    integer                        :: n,i,mu,nu,sigma,ilaenv
+    real(dp)                       :: fermi,beta
+    real(dp),    dimension(dimHsc) :: eval,f_n
+    complex(dp)                    :: hk(dimHsc,dimHsc),prod(s%nOrb,s%nOrb,s%nAtoms)
 
     external :: MPI_Allreduce,ilaenv
 
     !If lsupercond is true then fermi is 0.0 otherwise is s%Ef
     fermi = merge(0._dp,s%Ef,lsuperCond)
     beta = 1._dp/(pi*eta)
-
-    allocate( hk(dimHsc,dimHsc),eval(dimHsc),f_n(dimHsc),prod(s%nOrb,s%nOrb,s%nAtoms) )
 
     ! Getting lwork for diagonalization
     lwork = (ilaenv( 1, 'zhetrd', 'VU', dimHsc, -1, -1, -1 )+1)*dimHsc
@@ -1059,7 +1025,7 @@ contains
       do n = 1,dimHsc
         ! Fermi-Dirac distrubution
         f_n(n) = fd_dist(fermi, beta, eval(n))
-        energy =  energy + f_n(n) * eval(n)
+        energy = energy + f_n(n)*eval(n)*realBZ%w(iz)
       end do
 
       do i = 1,s%nAtoms
@@ -1100,8 +1066,6 @@ contains
       end do
     end do
 
-    deallocate(hk,eval)
-
   end subroutine calc_GS_L_and_E_eigenstates
 
 #ifdef _GPU
@@ -1123,19 +1087,17 @@ contains
     integer(int64)                             :: iz
     integer                                    :: n,i,j,mu,nu,sigma
     real(dp)                                   :: fermi,beta
-    real(dp),    dimension(:),     allocatable, device :: eval_d,f_n_d
-    complex(dp),                   allocatable, device :: hk_d(:,:),prod_d(:,:,:)
-    complex(dp),                   allocatable :: prod(:,:,:)
+    real(dp),    dimension(dimHsc), device :: eval_d,f_n_d
+    complex(dp),                  , device :: hk_d(dimHsc,dimHsc),prod_d(s%nOrb,s%nOrb,s%nAtoms)
+    complex(dp)                            :: prod(s%nOrb,s%nOrb,s%nAtoms)
     complex(dp) :: sum_c
-    real(dp) :: weight_d
+    real(dp)    :: weight_d
 
     external :: MPI_Allreduce
 
     !If lsupercond is true then fermi is 0.0 otherwise is s%Ef
     fermi = merge(0._dp,s%Ef,lsuperCond)
     beta = 1._dp/(pi*eta)
-
-    allocate( hk_d(dimHsc,dimHsc),eval_d(dimHsc),f_n_d(dimHsc),prod_d(s%nOrb,s%nOrb,s%nAtoms),prod(s%nOrb,s%nOrb,s%nAtoms) )
 
     call hamilt_local_gpu(s)
 
@@ -1202,8 +1164,6 @@ contains
       end do
     end do
 
-    deallocate(hk_d,eval_d,f_n_d,prod_d,prod)
-
   end subroutine calc_GS_L_and_E_fullhk_gpu
 #else
   subroutine calc_GS_L_and_E_fullhk()
@@ -1221,11 +1181,11 @@ contains
     use mod_hamiltonian,       only: hamilt_local,h0,fullhk,energy
     use mod_mpi_pars,          only: MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
     implicit none
-    integer(int64)                             :: iz
-    integer                                    :: n,i,mu,nu,sigma,ilaenv
-    real(dp)                                   :: fermi,beta
-    real(dp),    dimension(:),     allocatable :: eval,f_n
-    complex(dp),                   allocatable :: hk(:,:),prod(:,:,:)
+    integer(int64)                 :: iz
+    integer                        :: n,i,mu,nu,sigma,ilaenv
+    real(dp)                       :: fermi,beta
+    real(dp),    dimension(dimHsc) :: eval,f_n
+    complex(dp)                    :: hk(dimHsc,dimHsc),prod(s%nOrb,s%nOrb,s%nAtoms)
 
     external :: MPI_Allreduce,ilaenv
 
@@ -1233,8 +1193,6 @@ contains
     !If lsupercond is true then fermi is 0.0 otherwise is s%Ef
     fermi = merge(0._dp,s%Ef,lsuperCond)
     beta = 1._dp/(pi*eta)
-
-    allocate( hk(dimHsc,dimHsc),eval(dimHsc),f_n(dimHsc),prod(s%nOrb,s%nOrb,s%nAtoms) )
 
     ! Getting lwork for diagonalization
     lwork = (ilaenv( 1, 'zhetrd', 'VU', dimHsc, -1, -1, -1 )+1)*dimHsc
@@ -1298,9 +1256,47 @@ contains
       end do
     end do
 
-    deallocate(hk,eval,f_n,prod)
-
   end subroutine calc_GS_L_and_E_fullhk
+
 #endif
+
+  subroutine calc_E_dc()
+    use mod_kind,        only: dp
+    use mod_parameters,  only: output
+    use mod_hamiltonian, only: energy_dc,energy_dc_n,energy_constr
+    use mod_system,      only: s => sys
+    use mod_magnet,      only: lconstraining_field,mzd0,mpd0,bc,mabsd,m_fix,mx,my,mz,rhod,rhod0,rho,rho0
+    use mod_mpi_pars,    only: rField
+    implicit none
+    real(dp), dimension(3,s%nAtoms) :: m_tot
+    integer                         :: i,mu,mud
+    
+    if(rField==0) &
+      write(output%unit_loop,"('[calc_E_dc] Calculating double-counting energies... ')")
+
+    energy_dc     = 0.0_dp
+    energy_dc_n   = 0.0_dp
+    energy_constr = 0.0_dp
+    do i=1,s%nAtoms
+      energy_dc   = energy_dc   + 0.25_dp*s%Basis(i)%Um*(mabsd(i)**2-mzd0(i)**2-abs(mpd0(i))**2)
+      energy_dc_n = energy_dc_n + 0.25_dp*s%Basis(i)%Un*(rhod(i)**2-rhod0(i)**2)
+      do mud=1,s%ndOrb
+        mu = s%dOrbs(mud)
+        energy_dc_n = energy_dc_n - 0.5_dp*s%Basis(i)%Un*(rho(mu,i)**2-rho0(mu,i)**2)
+      end do
+    end do
+    if(lconstraining_field) then
+      do i=1,s%nAtoms
+        m_tot(1,i)= sum(mx(:,i))
+        m_tot(2,i)= sum(my(:,i))
+        m_tot(3,i)= sum(mz(:,i))
+        energy_constr = energy_constr - dot_product(m_tot(:,i),bc(:,i)) + dot_product(m_tot(:,i),m_fix(:,i))*dot_product(m_fix(:,i),bc(:,i))
+      end do
+      if((energy_constr > 1.e-7_dp).and.(rField==0)) &
+        write(output%unit_loop,"('[calc_E_dc] Constraninig energy not 0! energy_constr = ',es16.9)") energy_constr
+
+    end if
+
+  end subroutine calc_E_dc
 
 end module mod_expectation
