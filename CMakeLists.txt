@@ -288,6 +288,7 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
   if(NOT DEBUG)
     target_compile_options(${TITAN_EXE} PRIVATE -cpp
                                                 -DVERSION="${GIT_VERSION}"
+                                                -D_GNU
                                                 -I$ENV{MKLROOT}/include
                                                 -fopenmp
                                                 -ffree-form
@@ -320,6 +321,7 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
                                                 -fopenmp
                                                 -cpp
                                                 -DVERSION="${GIT_VERSION}"
+                                                -D_GNU
                                                 -I$ENV{MKLROOT}/include
                                                 -g
                                                 -O0
