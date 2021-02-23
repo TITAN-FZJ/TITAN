@@ -308,10 +308,8 @@ contains
           
       end do find_step
 
-      if(rFreq(1) == 0) then
+      if(rFreq(1) == 0) &
         write(output%unit_loop,"(' (',i0,' rejected iterations)')") iter_rej
-        flush(output%unit_loop)
-      end if
 
       ! if(rFreq(1) == 0) write(*,*)  "Accepted", t, step, ERR 
 

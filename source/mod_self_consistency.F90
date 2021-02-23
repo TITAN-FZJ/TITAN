@@ -1331,9 +1331,6 @@ contains
       write(output%unit_loop,"(a,':',2x,' N=',f10.7,2x,' |M|=',f10.7,2x,' |L|=',f10.7)") trim(s%Types(s%Basis(i)%Material)%Name),sum(rho(:,i)),mvec_spherical(1,i),labs(i)
     end do
     write(output%unit_loop,"('|----------===================== (',i4.0,' iterations ) =====================----------|')") iter
-
-    ! Flush the file to write out from buffer
-    flush(output%unit_loop)
   end subroutine print_sc_results
 
 
