@@ -1,9 +1,5 @@
 module mod_time_propagator
-  use mod_kind, only: dp
   implicit none
-
-  logical :: lsignal = .false.
-
 contains
 
   subroutine time_propagator(s)
@@ -35,23 +31,22 @@ contains
     real(dp)                                    :: t,tm,t1,t2
     real(dp)                                    :: pinv,h_new,h_old,ERR_old,ERR_kn
     complex(dp), dimension(dimHsc)              :: Yn,Yn_hat,Yn_new,Yn_e,Yn_hat_e,Yn_new_e
+    complex(dp), dimension(:,:,:), allocatable  :: evec_kn,evec_kn_temp
+    real(dp),    dimension(:,:),   allocatable  :: eval_kn
     real(dp),    dimension(3)                   :: b_field,A_t,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2
+    complex(dp), dimension(:,:),   allocatable  :: hamilt_nof
 
     logical  :: use_checkpoint
     real(dp) :: t_cp,step_cp
 
     integer(int64)                          :: ik
     integer(int32)                          :: ncount,ios,ilaenv
-    real(dp)                                :: weight,kp(3)
-    real(dp),    dimension(s%nOrb,s%nAtoms) :: expec_0,expec_z
+    real(dp)                                :: weight, kp(3)
+    real(dp),    dimension(s%nOrb,s%nAtoms) :: expec_0, expec_z
     complex(dp), dimension(s%nOrb,s%nAtoms) :: expec_p
     real(dp),    dimension(s%nOrb,s%nAtoms) :: expec_d
-
-    complex(dp), dimension(dimHsc,dimHsc,realBZ%workload) :: evec_kn_temp
-    complex(dp), dimension(dimHsc,dimHsc,realBZ%workload) :: evec_kn
-    real(dp),    dimension(dimHsc,realBZ%workload)        :: eval_kn
-    complex(dp), dimension(dimHsc,dimHsc)   :: hamilt_nof,hk,hkev
-    real(dp),    dimension(dimHsc)          :: eval
+    real(dp),    dimension(:),  allocatable :: eval(:)
+    complex(dp),                allocatable :: hk(:,:),hkev(:,:)
 
     real(dp),    dimension(s%nOrb,s%nAtoms) :: rho_t,mx_t,my_t,mz_t
     complex(dp), dimension(s%nOrb,s%nAtoms) :: mp_t
@@ -62,13 +57,8 @@ contains
     real(dp),    dimension(2,s%nAtoms)      :: lxm_t,lym_t,lzm_t
     real(dp)                                :: E_t, E_0
     complex(dp)                             :: exp_eval
-
-#ifdef _GNU
-    intrinsic :: signal
-#else
-    external :: signal
-#endif
-    external  :: MPI_Allreduce,MPI_Barrier,ilaenv,endTITAN
+   
+    external :: MPI_Allreduce,MPI_Barrier,ilaenv
 
     if(rFreq(1) == 0) &
       write(output%unit_loop,"('CALCULATING TIME-PROPAGATION')")
@@ -80,6 +70,7 @@ contains
     dimH2  = 2*dimHsc
 
     allocate( id(dimHsc,dimHsc),id2(dimH2,dimH2),M1(dimH2,dimH2) )
+    allocate( hamilt_nof(dimHsc,dimHsc),hk(dimHsc,dimHsc),hkev(dimHsc,dimHsc),eval(dimHsc),eval_kn(dimHsc,realBZ%workload),evec_kn(dimHsc,dimHsc,realBZ%workload),evec_kn_temp(dimHsc,dimHsc,realBZ%workload) )
 
     ! Building identities
     call build_identity(dimHsc,id)
@@ -114,9 +105,6 @@ contains
 
     it = 0       ! Counter of accepted iterations
     iter_tot = 0 ! Counter of total number of iterations (rejected + accepted)
-
-    ! Preparing to catch end-of-job signal (SIGINT=2)
-    call signal(2, signal_catcher)
 
     ! Time propagation over t, kpoints, eigenvectors(Yn) for each k
     t_loop: do while (t <= integration_time)
@@ -322,10 +310,8 @@ contains
           
       end do find_step
 
-      if(rFreq(1) == 0) then
+      if(rFreq(1) == 0) &
         write(output%unit_loop,"(' (',i0,' rejected iterations)')") iter_rej
-        flush(output%unit_loop)
-      end if
 
       ! if(rFreq(1) == 0) write(*,*)  "Accepted", t, step, ERR 
 
@@ -368,18 +354,14 @@ contains
         if(rFreq(1) == 0) &
           call execute_command_line('rm save')
       end if
-
-      if(lsignal) then
-        call save_state(rFreq(1),dimHsc,realBZ%workload,t,step,eval_kn,evec_kn)
-        call MPI_Barrier(FieldComm, ierr)
-        call endTITAN()
-      end if
     end do t_loop
 
     ! Creating checkpoint in the last state
     call save_state(rFreq(1),dimHsc,realBZ%workload,t,step,eval_kn,evec_kn)
 
     deallocate( id,id2,M1 )
+    deallocate( hamilt_nof,hk,hkev,eval,eval_kn,evec_kn,evec_kn_temp )
+
 
     if(rFreq(1) == 0) &
       write(output%unit_loop,"('[time_propagator] Integration time reached. ',i0,' total iterations, with ',i0,' accepted.')") iter_tot,it
@@ -395,19 +377,5 @@ contains
     end if
 
   end subroutine time_propagator
-
-
-  subroutine signal_catcher()
-    use mod_mpi_pars,         only: myrank
-    use mod_parameters,       only: output
-    implicit none
-
-    external :: MPI_Finalize
-
-    if(myrank == 0) &
-      write(output%unit_loop,"('[signal_catcher] End of job signal caught. Program will stop at the end of iteration...')")
-
-    lsignal = .true.
-  end subroutine signal_catcher
-
 end module mod_time_propagator
+

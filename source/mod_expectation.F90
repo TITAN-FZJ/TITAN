@@ -1084,11 +1084,11 @@ contains
     use mod_hamiltonian,       only: hamilt_local_gpu,h0_d,fullhk_d,energy
     use mod_mpi_pars,          only: MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
     implicit none
-    integer(int64)                         :: iz
-    integer                                :: n,i,j,mu,nu,sigma
-    real(dp)                               :: fermi,beta
+    integer(int64)                             :: iz
+    integer                                    :: n,i,j,mu,nu,sigma
+    real(dp)                                   :: fermi,beta
     real(dp),    dimension(dimHsc), device :: eval_d,f_n_d
-    complex(dp),                    device :: hk_d(dimHsc,dimHsc),prod_d(s%nOrb,s%nOrb,s%nAtoms)
+    complex(dp),                  , device :: hk_d(dimHsc,dimHsc),prod_d(s%nOrb,s%nOrb,s%nAtoms)
     complex(dp)                            :: prod(s%nOrb,s%nOrb,s%nAtoms)
     complex(dp) :: sum_c
     real(dp)    :: weight_d
