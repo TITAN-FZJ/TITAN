@@ -31,10 +31,7 @@ contains
     real(dp)                                    :: t,tm,t1,t2
     real(dp)                                    :: pinv,h_new,h_old,ERR_old,ERR_kn
     complex(dp), dimension(dimHsc)              :: Yn,Yn_hat,Yn_new,Yn_e,Yn_hat_e,Yn_new_e
-    complex(dp), dimension(:,:,:), allocatable  :: evec_kn,evec_kn_temp
-    real(dp),    dimension(:,:),   allocatable  :: eval_kn
     real(dp),    dimension(3)                   :: b_field,A_t,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2
-    complex(dp), dimension(:,:),   allocatable  :: hamilt_nof
 
     logical  :: use_checkpoint
     real(dp) :: t_cp,step_cp
@@ -45,8 +42,10 @@ contains
     real(dp),    dimension(s%nOrb,s%nAtoms) :: expec_0, expec_z
     complex(dp), dimension(s%nOrb,s%nAtoms) :: expec_p
     real(dp),    dimension(s%nOrb,s%nAtoms) :: expec_d
-    real(dp),    dimension(:),  allocatable :: eval(:)
-    complex(dp),                allocatable :: hk(:,:),hkev(:,:)
+    real(dp),    dimension(dimHsc)          :: eval
+    complex(dp), dimension(dimHsc,dimHsc)   :: hk,hkev,hamilt_nof
+    complex(dp), dimension(dimHsc,dimHsc,realBZ%workload)  :: evec_kn,evec_kn_temp
+    real(dp),    dimension(dimHsc,realBZ%workload)         :: eval_kn
 
     real(dp),    dimension(s%nOrb,s%nAtoms) :: rho_t,mx_t,my_t,mz_t
     complex(dp), dimension(s%nOrb,s%nAtoms) :: mp_t
@@ -58,7 +57,7 @@ contains
     real(dp)                                :: E_t, E_0
     complex(dp)                             :: exp_eval
    
-    external :: MPI_Allreduce,MPI_Barrier,ilaenv
+    external :: MPI_Allreduce,MPI_Barrier,ilaenv,endTITAN
 
     if(rFreq(1) == 0) &
       write(output%unit_loop,"('CALCULATING TIME-PROPAGATION')")
@@ -70,7 +69,6 @@ contains
     dimH2  = 2*dimHsc
 
     allocate( id(dimHsc,dimHsc),id2(dimH2,dimH2),M1(dimH2,dimH2) )
-    allocate( hamilt_nof(dimHsc,dimHsc),hk(dimHsc,dimHsc),hkev(dimHsc,dimHsc),eval(dimHsc),eval_kn(dimHsc,realBZ%workload),evec_kn(dimHsc,dimHsc,realBZ%workload),evec_kn_temp(dimHsc,dimHsc,realBZ%workload) )
 
     ! Building identities
     call build_identity(dimHsc,id)
@@ -310,8 +308,10 @@ contains
           
       end do find_step
 
-      if(rFreq(1) == 0) &
+      if(rFreq(1) == 0) then
         write(output%unit_loop,"(' (',i0,' rejected iterations)')") iter_rej
+        flush(output%unit_loop)
+      end if
 
       ! if(rFreq(1) == 0) write(*,*)  "Accepted", t, step, ERR 
 
@@ -353,6 +353,7 @@ contains
         call MPI_Barrier(FieldComm, ierr)
         if(rFreq(1) == 0) &
           call execute_command_line('rm save')
+        call endTITAN()
       end if
     end do t_loop
 
@@ -360,8 +361,6 @@ contains
     call save_state(rFreq(1),dimHsc,realBZ%workload,t,step,eval_kn,evec_kn)
 
     deallocate( id,id2,M1 )
-    deallocate( hamilt_nof,hk,hkev,eval,eval_kn,evec_kn,evec_kn_temp )
-
 
     if(rFreq(1) == 0) &
       write(output%unit_loop,"('[time_propagator] Integration time reached. ',i0,' total iterations, with ',i0,' accepted.')") iter_tot,it
