@@ -305,13 +305,15 @@ contains
     real(dp),    dimension(s%nOrb,s%nAtoms), device :: expec_d_d,deltas_d
     real(dp),    dimension(s%nOrb,s%nAtoms), device :: mx_d,my_d
 
-    complex(dp), dimension(dimHsc,dimHsc),   device :: hk_d
-    real(dp),    dimension(dimHsc),          device :: eval_d
+    complex(dp), dimension(:,:), allocatable,   device :: hk_d
+    real(dp),    dimension(:),   allocatable,   device :: eval_d
     real(dp) :: weight_d
 
     external :: MPI_Allreduce
 
     ncount = s%nOrb*s%nAtoms
+
+    allocate(hk_d(dimHsc,dimHsc),eval_d(dimHsc))
 
     call hamilt_local_gpu(s)
 
@@ -385,6 +387,8 @@ contains
     mx = real(mp)
     my = aimag(mp)
 
+    deallocate(hk_d,eval_d)
+
     ! End of DevicetoHost copy marker
     call nvtxEndRange
 
@@ -414,7 +418,7 @@ contains
     complex(dp) :: evec_isigmamu, evec_isigmamu_cong !dimens = 2*nOrb*nAtoms
     real(dp), device :: f_n_d(dimens),f_n_negative_d(dimens),tanh_n_d(dimens)
 
-    real(dp),    dimension(s%nOrb,s%nAtoms), device :: lambda_d
+    real(dp), dimension(s%nOrb,s%nAtoms), device :: lambda_d
     complex(dp)  :: sum_c1
     real(dp)     :: sum_r1,sum_r2
 
@@ -1084,12 +1088,14 @@ contains
     use mod_hamiltonian,       only: hamilt_local_gpu,h0_d,fullhk_d,energy
     use mod_mpi_pars,          only: MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
     implicit none
-    integer(int64)                             :: iz
-    integer                                    :: n,i,j,mu,nu,sigma
-    real(dp)                                   :: fermi,beta
-    real(dp),    dimension(dimHsc), device :: eval_d,f_n_d
-    complex(dp),                  , device :: hk_d(dimHsc,dimHsc),prod_d(s%nOrb,s%nOrb,s%nAtoms)
-    complex(dp)                            :: prod(s%nOrb,s%nOrb,s%nAtoms)
+    integer(int64)                                     :: iz
+    integer                                            :: n,i,j,mu,nu,sigma
+    real(dp)                                           :: fermi,beta
+    complex(dp), dimension(:,:,:), allocatable         :: prod
+    complex(dp), dimension(:,:,:), allocatable, device :: prod_d
+    real(dp),    dimension(dimHsc),             device :: f_n_d
+    complex(dp), dimension(:,:),   allocatable, device :: hk_d
+    real(dp),    dimension(:),     allocatable, device :: eval_d
     complex(dp) :: sum_c
     real(dp)    :: weight_d
 
@@ -1098,6 +1104,10 @@ contains
     !If lsupercond is true then fermi is 0.0 otherwise is s%Ef
     fermi = merge(0._dp,s%Ef,lsuperCond)
     beta = 1._dp/(pi*eta)
+
+    allocate(hk_d(dimHsc,dimHsc),eval_d(dimHsc))
+    allocate(prod(s%nOrb,s%nOrb,s%nAtoms))
+    allocate(prod_d(s%nOrb,s%nOrb,s%nAtoms))
 
     call hamilt_local_gpu(s)
 
@@ -1163,6 +1173,10 @@ contains
         end do
       end do
     end do
+
+  deallocate(prod_d)
+  deallocate(prod)
+  deallocate(hk_d,eval_d)
 
   end subroutine calc_GS_L_and_E_fullhk_gpu
 #else

@@ -21,7 +21,7 @@ module mod_superconductivity
   integer(int32) :: superCond
   real(dp), dimension(:,:), allocatable  :: delta_sc
 #ifdef _GPU
-  real(dp), dimension(:,:), allocatable,device  :: delta_sc_d
+  real(dp), dimension(:,:), allocatable, device  :: delta_sc_d
 #endif
   integer(int32) :: flag = 0
 

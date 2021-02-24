@@ -12,16 +12,16 @@ module mod_cuda
   type(cusolverDnHandle) :: h
   !! Cuda handle
 
-  ! diagonalize_gpu
+  !> Interface for the C++ diagonalization subroutine
   interface diagonalize_gpu
     subroutine diagonalize_gpu(n,A_d,eval_d,handle) bind(C,name='diagonalize_gpu')
     use mod_kind,   only: dp
     use cusolverDn, only: cusolverDnHandle
     implicit none
-    integer, value :: n
-    complex(dp), device, dimension(*) :: A_d
-    real(dp),    device, dimension(*) :: eval_d
-    type(cusolverDnHandle)            :: handle
+    integer, value, intent(in) :: n
+    complex(dp), device, dimension(*) :: A_d         !, intent(inout)
+    real(dp),    device, dimension(*) :: eval_d      !, intent(out)  
+    type(cusolverDnHandle), value      :: handle      !  intent(in)   
     end subroutine diagonalize_gpu
   end interface diagonalize_gpu
   
@@ -46,41 +46,25 @@ contains
   !    This subruotine is an interface for the cusolverDnZheevd subroutine
   ! to diagonalize an hermitian matrix on the GPUs.
   ! --------------------------------------------------------------------
-  ! subroutine diagonalize_gpu(n,A_d,eval_d) 
-  !   use mod_kind,     only: dp,int64
+  ! subroutine diagonalize_gpu(n,A_d,eval_d,handle) 
+  !   use mod_kind,     only: dp
   !   use cudafor,      only: cudadevicesynchronize
-  !   use cusolverDn,   only: CUDA_C_64F,CUSOLVER_EIG_MODE_VECTOR,CUBLAS_FILL_MODE_LOWER,cusolverDnZheevd_bufferSize,cusolverDnZheevd
+  !   use cusolverDn,   only: CUSOLVER_EIG_MODE_VECTOR,CUBLAS_FILL_MODE_LOWER,cusolverDnZheevd_bufferSize,cusolverDnZheevd
   !   implicit none
-  !   integer(int64),      intent(in)    :: n
-  !   complex(dp), device, intent(inout) :: A_d(n,n)
-  !   real(dp),    device, intent(out)   :: eval_d(n)
+  !   integer,                intent(in)    :: n
+  !   complex(dp), device   , intent(inout) :: A_d(n,n)
+  !   real(dp),    device   , intent(out)   :: eval_d(n)
+  !   type(cusolverDnHandle), intent(in)    :: handle
   !   ! Workspace variables
   !   integer,     device :: info
   !   integer             :: lwork
   !   complex(dp), device, allocatable :: work(:) ! dimension of lwork below
 
-  !   CUDA_CALL( cusolverDnZheevd_bufferSize(h,                        &  ! cusolverDnHandle_t handle,
-  !                                          CUSOLVER_EIG_MODE_VECTOR, &  ! cusolverEigMode_t jobz,
-  !                                          CUBLAS_FILL_MODE_LOWER,   &  ! cublasFillMode_t uplo,
-  !                                          n,                        &  ! int n,
-  !                                          A_d,                      &  ! const cuDoubleComplex *A,
-  !                                          n,                        &  ! int lda,
-  !                                          eval_d,                   &  ! const double *W,
-  !                                          lwork) )                     ! int *lwork);
+  !   CUDA_CALL( cusolverDnZheevd_bufferSize(handle,CUSOLVER_EIG_MODE_VECTOR,CUBLAS_FILL_MODE_LOWER,n,A_d,n,eval_d,lwork) )
 
   !   allocate(work(lwork))
 
-  !   CUDA_CALL( cusolverDnZheevd(h,                        &  ! cusolverDnHandle_t handle,
-  !                               CUSOLVER_EIG_MODE_VECTOR, &  ! cusolverEigMode_t jobz,
-  !                               CUBLAS_FILL_MODE_LOWER,   &  ! cublasFillMode_t uplo,
-  !                               n,                        &  ! int n,
-  !                               A_d,                      &  ! cuDoubleComplex *A,
-  !                               n,                        &  ! int lda,
-  !                               eval_d,                   &  ! double *W,
-  !                               work,                     &  ! cuDoubleComplex *work,
-  !                               lwork,                    &  ! int lwork,
-  !                               info                      &  ! int *devInfo);
-  !                               ) )
+  !   CUDA_CALL( cusolverDnZheevd(handle,CUSOLVER_EIG_MODE_VECTOR,CUBLAS_FILL_MODE_LOWER,n,A_d,n,eval_d,work,lwork,info) )
 
   !   CUDA_CALL( cudaDeviceSynchronize() )
 
@@ -104,19 +88,3 @@ contains
 
 #endif
 end module mod_cuda
-
-! module mod_diag_cpp
-!   implicit none
-!   ! diagonalize_gpu
-!   interface diagonalize_gpu
-!     subroutine diagonalize_gpu(n,A_d,eval_d,handle) bind(C,name='diagonalize_gpu')
-!     use mod_kind,   only: dp
-!     use cusolverDn, only: cusolverDnHandle
-!     implicit none
-!     integer, value :: n
-!     complex(dp), device, dimension(*) :: A_d
-!     real(dp),    device, dimension(*) :: eval_d
-!     type(cusolverDnHandle)            :: handle
-!     end subroutine diagonalize_gpu
-!   end interface diagonalize_gpu
-! end module mod_diag_cpp
