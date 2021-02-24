@@ -39,7 +39,7 @@ program TITAN
   use mod_System,              only: s=>sys,init_Hamiltk_variables,initConversionMatrices
 #ifdef _GPU
   use nvtx,                    only: nvtxStartRange,nvtxEndRange
-  use mod_cuda,                only: num_gpus,result,create_handle,destroy_handle,cudaGetDeviceCount,cudaSetDevice,cudaGetErrorString 
+  use mod_cuda,                only: num_gpus,result,create_handle,cudaGetDeviceCount,cudaSetDevice,cudaGetErrorString 
 #endif
   !use mod_define_system TODO: Re-include
   !use mod_prefactors TODO: Re-include

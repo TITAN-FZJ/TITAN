@@ -346,7 +346,7 @@ elseif(COMPILER MATCHES nv) # NVIDIA:
                                 "-g "
                                 )
     set_source_files_properties(${SOURCE_TITAN}     PROPERTIES COMPILE_FLAGS ${FORTRAN_FLAGS} )
-    string(CONCAT CXX_FLAGS "--gpu-architecture=sm_70,sm_80 "
+    string(CONCAT CXX_FLAGS "--gpu-architecture=sm_80 "
                             "-lineinfo "
                             "-g "
                             )

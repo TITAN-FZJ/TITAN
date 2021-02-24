@@ -9,7 +9,7 @@ module mod_hamiltonian
   complex(dp), dimension(:,:,:), allocatable :: fullhk
   !! Full non-local hamiltonian hk (for every k)
 #ifdef _GPU
-  complex(dp), dimension(:,:), device, allocatable :: h0_d
+  complex(dp), dimension(:,:),   device, allocatable :: h0_d
   !! Local hamiltonian on GPUs
   complex(dp), dimension(:,:,:), device, allocatable :: fullhk_d
   !! Full non-local hamiltonian hk (for every k) on the GPUs
