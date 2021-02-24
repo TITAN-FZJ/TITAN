@@ -10,7 +10,7 @@ program TITAN
   use mod_constants,           only: cZero,allocate_constants,define_constants
   use mod_parameters,          only: output,lpositions,lcreatefolders,parField,parFreq,nEner1,skip_steps,ldebug, &
                                      kp_in,kptotal_in,eta,leigenstates,itype,theta,phi, &
-                                     laddresults,lsortfiles,lcreatefiles,arg,tbmode
+                                     laddresults,lsortfiles,lcreatefiles,arg,tbmode,lfixEf
   use mod_io,                  only: get_parameters,iowrite,log_error
   use Lattice,                 only: initLattice,writeLattice
   use mod_BrillouinZone,       only: realBZ,countBZ
@@ -135,7 +135,6 @@ program TITAN
   !---------------- Reading Tight Binding parameters -------------------
   call initTightBinding(s)
 
-
   !----------------- Tests for coupling calculation ------------------
   if((lconstraining_field).and.(sum(abs(s%Types(:)%Um))<1.e-8).and.(tbmode==1).and.(myrank == 0)) &
     call abortProgram("[main] Constraining fields need Um to induce a magnetic moment!")
@@ -171,6 +170,7 @@ program TITAN
   !-------------------------- Filename strings -------------------------
   write(output%info,"('_norb=',i0,'_nkpt=',i0,'_eta=',a)") s%nOrb,kptotal_in,trim(rtos(eta,"(es8.1)"))
   if(leigenstates) output%info = trim(output%info) // "_ev"
+  if(lfixEf) output%info = trim(output%info) // "_fixEf"
 
   !-- Calculating initial values in the DFT tight-binding hamiltonian --
   if((tbmode==2).and.(.not.lsortfiles)) call calc_init_expec_dft(s)

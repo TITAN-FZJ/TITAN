@@ -470,11 +470,12 @@ contains
   !> This subroutine performs the self-consistency
     use mod_kind,              only: dp
     use mod_parameters,        only: output,lfixEf
-    use mod_magnet,            only: bc,rho,rhod,mxd,myd,mpd,mzd,mabsd,constr_type,sb_matrix
+    use mod_magnet,            only: bc,rho,rhod,rhot,mxd,myd,mpd,mzd,mabsd,mp,mx,my,mz,constr_type,sb_matrix
     use mod_mpi_pars,          only: rField
     use mod_system,            only: s => sys
     use mod_dnsqe,             only: dnsqe
     use mod_superconductivity, only: lsuperCond,delta_sc
+    use mod_expectation,       only: expectation_values
 #ifdef _GPU
     use nvtx,                  only: nvtxStartRange,nvtxEndRange
 #endif
@@ -482,7 +483,7 @@ contains
     real(dp), allocatable :: fvec(:),jac(:,:),wa(:),sc_solu(:)
     real(dp), allocatable :: diag(:),qtf(:)
     real(dp), dimension(s%nAtoms) :: in_varx,in_vary,in_varz
-    integer               :: i,lwa,ifail=0
+    integer               :: i,mu,mud,lwa,ifail=0
 
     ! Setting up number of equations (total and accumulated per atom)
     allocate( neq_per_atom(s%nAtoms+1) )
@@ -543,7 +544,26 @@ contains
       deallocate(neq_per_atom,sc_solu,diag,qtf,fvec,jac,wa)
     else
       if(rField == 0) &
-        write(output%unit_loop,"('[self_consistency] Self-consistency not required (neq=0).')")
+        write(output%unit_loop,"('[self_consistency] Self-consistency not required (neq=0). Calculating expectations...')")
+      call expectation_values(s,rho,mp,mx,my,mz,delta_sc)
+      rhod = 0._dp
+      rhot = 0._dp
+      mpd  = 0._dp
+      mxd  = 0._dp
+      myd  = 0._dp
+      mzd  = 0._dp
+      do i = 1,s%nAtoms
+        do mud = 1,s%ndOrb
+          mu = s%dOrbs(mud)
+          rhod(i) = rhod(i) + rho(mu,i)
+          mxd (i) = mxd (i) + mx (mu,i)
+          myd (i) = myd (i) + my (mu,i)
+          mzd (i) = mzd (i) + mz (mu,i)
+        end do
+        rhot = rhot + sum(rho(:,i))
+        mpd(i) = cmplx(mxd(i),myd(i),dp)
+      end do
+
     end if
 
     ! Calculating the magnetization in cartesian and spherical coordinates

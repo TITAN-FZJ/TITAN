@@ -14,7 +14,7 @@ contains
     case(1)
       call get_SK_parameter(s,fermi_layer,tbmode)
     case(2)
-      call get_DFT_parameters(s,tbmode)
+      call get_DFT_parameters(s,fermi_layer,tbmode)
     case default
       call abortProgram("[initTightBinding] Only tbmode = 1 (SK parameters) or = 2 (parameters from DFT)")
     end select
@@ -22,12 +22,13 @@ contains
   end subroutine initTightBinding
 
 
-  subroutine get_DFT_parameters(s,tbmode)
+  subroutine get_DFT_parameters(s,fermi_layer,tbmode)
   !! Gets hamiltonian from DFT input and parameters from elemental file
     use mod_system, only: System_type
     use mod_dft,    only: readHamiltonian
     implicit none
     type(System_type),   intent(inout) :: s
+    integer,             intent(in)    :: fermi_layer
     integer,             intent(in)    :: tbmode
     integer                            :: i
 
@@ -47,6 +48,8 @@ contains
     ! Read hamiltonian and dft parameters
     call readHamiltonian(s,s%Name)
 
+    ! Setting Fermi energy
+    s%Ef = s%Types(fermi_layer)%FermiLevel
   end subroutine get_DFT_parameters
 
 

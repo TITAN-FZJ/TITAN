@@ -44,7 +44,7 @@ contains
     !! Temporary variable to store complex hoppings
     integer, allocatable :: weight(:)
     !! Weight of each cell
-    complex(dp), dimension(:,:), allocatable :: hoppings
+    complex(dp), dimension(:,:,:,:),  allocatable :: hoppings
     !! Hopping parameters read from the file
     type(NeighborAtom), dimension(:), allocatable :: list
     !! Temporary list to store neighbor information
@@ -97,7 +97,7 @@ contains
     weight(i1+1:i1+mod(nCells,wgt_per_line)) = StoI(next_line("readHamiltonian",f_unit,"weights"),mod(nCells,wgt_per_line)-1)    
 
     ! Allocating temporary hopping matrix
-    allocate(hoppings(nOrb,nOrb))
+    allocate(hoppings(s%nAtoms,s%nAtoms,nOrb,nOrb))
 
 
     ! "nNeighbors" is added up until all atoms in all unit cells, nCells*s%nAtoms
@@ -110,23 +110,23 @@ contains
             ! "nNeighbors" is the current atom
             nNeighbors = nNeighbors + 1
 
-            do j = 1,s%nAtoms
+            do mu = 1,nOrb
               ! Reading hamiltonian for a given unit cell
-              do mu = 1,nOrb
+              do j = 1,s%nAtoms
                 do nu = 1,nOrb
                   ! Reading information from file
                   read(f_unit, fmt=*, iostat=ios) pos(1), pos(2), pos(3), orb(1), orb(2), hop(1), hop(2)
-                  hoppings(mu,nu) = cmplx(hop(1),hop(2),dp)
-                end do !nu
-              end do !mu
-              if((pos(1)==0).and.(pos(2)==0).and.(pos(3)==0).and.(i==j)) then
-                s%Types(s%Basis(i)%Material)%onSite(1:nOrb,1:nOrb) = hoppings(1:nOrb,1:nOrb)
-                cycle
-              end if
+                  ! hoppings(i,j,mu,nu) = cmplx(hop(1),hop(2),dp)
+                  if((pos(1)==0).and.(pos(2)==0).and.(pos(3)==0).and.(i==j)) then
+                    s%Types(s%Basis(i)%Material)%onSite(mu,nu) = cmplx(hop(1),hop(2),dp)
+                    cycle
+                  end if
 
-              list(nNeighbors)%isHopping(j) = .true.
-              list(nNeighbors)%t0i(1:nOrb,1:nOrb,j) = hoppings(1:nOrb,1:nOrb)
-            end do ! j
+                  list(nNeighbors)%isHopping(j) = .true.
+                  list(nNeighbors)%t0i(mu,nu,j) = cmplx(hop(1),0.e0_dp,dp)
+                end do !nu
+              end do !j
+            end do ! mu
 
             ! list(nNeighbors)%isHopping(i) = .true.
 
