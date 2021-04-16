@@ -37,7 +37,7 @@ module mod_magnet
   !! Orbital angular momentum in local frame of reference
   real(dp),allocatable    :: mabs(:),mtheta(:),mphi(:),mabsd(:),m_fix(:,:),m_fix_abs(:)
   !! Site-dependent spherical components of magnetization
-  real(dp), dimension(:,:),allocatable   :: mvec_spherical,mvec_cartesian
+  real(dp), dimension(:,:),allocatable   :: mvec_spherical,mvec_cartesian,mdvec_cartesian
   !! Magnetization vectors in cartesian and spherical components
   real(dp)                :: mtotal_cartesian(3),mtotal_spherical(3)
   !! Total magnetization in cartesian and spherical components
@@ -372,9 +372,9 @@ contains
     if(AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: rho")
 
     allocate( mx(nOrbs,nAtoms), my(nOrbs,nAtoms), mz(nOrbs,nAtoms), mp(nOrbs,nAtoms), &
-              mvec_cartesian(3,nAtoms), &
+              mvec_cartesian(3,nAtoms),mdvec_cartesian(3,nAtoms), &
               mvec_spherical(3,nAtoms), STAT = AllocateStatus )
-    if (AllocateStatus/=0) call abortProgram("[allocate_magnet_variables] Not enough memory for: mx,my,mz,mp,mvec_cartesian,mvec_spherical")
+    if (AllocateStatus/=0) call abortProgram("[allocate_magnet_variables] Not enough memory for: mx,my,mz,mp,mvec_cartesian,mdvec_cartesian,mvec_spherical")
 
     allocate( mxd(nAtoms), myd(nAtoms), mzd(nAtoms), mpd(nAtoms), &
               rhos(nAtoms), rhop(nAtoms), rhod(nAtoms), STAT = AllocateStatus )
@@ -416,6 +416,7 @@ contains
     if(allocated(mz)) deallocate(mz)
     if(allocated(mp)) deallocate(mp)
     if(allocated(mvec_cartesian)) deallocate(mvec_cartesian)
+    if(allocated(mdvec_cartesian)) deallocate(mdvec_cartesian)
     if(allocated(mvec_spherical)) deallocate(mvec_spherical)
     if(allocated(mxd)) deallocate(mxd)
     if(allocated(myd)) deallocate(myd)

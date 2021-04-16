@@ -5,7 +5,7 @@ module mod_checkpoint
 contains
 
   !! This subroutine is to Save current state
-  subroutine save_state(rank,dimH,nkpt,rtime,step,eval_kn,evec_kn)
+  subroutine save_state(rank,nOrb,nAtoms,dimH,nkpt,rtime,step,eval_kn,evec_kn,mx_t,my_t,mz_t)
     use mod_kind,               only: dp, int32, int64
     use mod_parameters,         only: output
     use mod_tools,              only: itos
@@ -15,6 +15,8 @@ contains
 
     integer(int32), intent(in) :: rank
     !! Rank ID of process
+    integer(int32), intent(in) :: nOrb,nAtoms
+    !! Number of orbitals and number of atoms
     integer(int32), intent(in) :: dimH
     !! Dimension of the hamiltonian and eigenvalues/eigenvectors
     integer(int64), intent(in) :: nkpt
@@ -27,6 +29,8 @@ contains
     !! Eigenvalues for all k-points
     complex(dp), dimension(dimH,dimH,nkpt), intent(in) :: evec_kn
     !! Eigenvectors (in columns) for all k-points
+    real(dp),    dimension(nOrb,nAtoms),    intent(in) :: mx_t,my_t,mz_t
+    !! Orbital- and site-dependent magnetization components
 
     !! Local variables:
     integer(int32) :: file_unit = 6101
@@ -35,7 +39,7 @@ contains
     !! Filename
     character(len=100) :: formatvar
     !! Format variable
-    integer(int32) :: i,j
+    integer(int32) :: i,j,mu
     integer(int64) :: k
 
     write(output_file,"('./results/',a1,'SOC/',a,'/time_propagation/checkpoint',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),rank,trim(output%time_field),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
@@ -55,6 +59,10 @@ contains
       end do
     end do
 
+    ! Writing current orbital-dependent magnetization vector to use for total torque calculation (dM/dt) when recovering
+    write(formatvar,fmt="(a,i0,a)") '(',3*nOrb*nAtoms,'(es16.8e3,2x))'
+    write(unit=file_unit,fmt=formatvar) ((mx_t(mu,i),my_t(mu,i),mz_t(mu,i), mu=1,nOrb), i=1,nAtoms)
+
     close(file_unit) 
 
     call log_warning("save_state", "Checkpoint saved successfully.")
@@ -63,7 +71,7 @@ contains
 
 
   !! This subroutine is to recover current state
-  function recover_state(rank,dimH,nkpt,rtime,step,eval_kn,evec_kn) result(success)
+  function recover_state(rank,nOrb,nAtoms,dimH,nkpt,rtime,step,eval_kn,evec_kn,mx_t,my_t,mz_t) result(success)
     use mod_kind,               only: dp,int32,int64
     use mod_io,                 only: log_warning
     use mod_parameters,         only: output
@@ -71,6 +79,8 @@ contains
     implicit none
     integer(int32), intent(in) :: rank
     !! Rank ID of process
+    integer(int32), intent(in) :: nOrb,nAtoms
+    !! Number of orbitals and number of atoms
     integer(int32), intent(in) :: dimH
     !! Dimension of the hamiltonian and eigenvalues/eigenvectors
     integer(int64), intent(in) :: nkpt
@@ -83,6 +93,8 @@ contains
     !! Eigenvalues for all k-points
     complex(dp), dimension(dimH,dimH,nkpt), intent(out) :: evec_kn
     !! Eigenvectors (in columns) for all k-points
+    real(dp),    dimension(nOrb,nAtoms),    intent(out) :: mx_t,my_t,mz_t
+    !! Orbital- and site-dependent magnetization components
     logical :: success
     !! Indication of when a state was recovered or not
 
@@ -95,7 +107,7 @@ contains
     !! Format variable
     logical :: success_header
     !! Indication of when a state was recovered or not
-    integer(int32) :: i,j,stat_check, stat_temp
+    integer(int32) :: i,j,mu,stat_check,stat_temp
     integer(int64) :: k
 
     success = .false.
@@ -135,6 +147,11 @@ contains
         stat_check = stat_check + stat_temp
       end do
     end do
+
+    ! Writing current orbital-dependent magnetization vector to use for total torque calculation (dM/dt) when recovering
+    write(formatvar,fmt="(a,i0,a)") '(',3*nOrb*nAtoms,'(es16.8e3,2x))'
+    read(unit=file_unit,fmt=formatvar, iostat=stat_temp) ((mx_t(mu,i),my_t(mu,i),mz_t(mu,i), mu=1,nOrb), i=1,nAtoms)
+    stat_check = stat_check + stat_temp
 
     if (stat_check /= 0) then
       call log_warning("recover_state", "Checkpoint file with correct header found, but there was a problem reading eigenvalues and eigenvectors. Cannot continue from previous point.")

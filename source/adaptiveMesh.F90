@@ -5,7 +5,7 @@ module adaptiveMesh
   implicit none
   integer(int64),                dimension(:,:), allocatable :: E_k_imag_mesh
   type(FractionalBrillouinZone), dimension(:),   allocatable :: bzs
-  integer(int64),                dimension(:),   allocatable :: all_nkpt,all_nkpt_rep
+  integer(int64),                dimension(:),   allocatable :: all_nkpt,all_nkpt_norep
   integer(int64) :: total_points, local_points
   integer(int32) :: activeComm, activeRank, activeSize
   ! MPI_f08:
@@ -20,9 +20,9 @@ module adaptiveMesh
 
 contains
 
-  !! Get the number of points in the Brillouin Zone
-  !! for all the energies in the imaginary axis
   subroutine generateAdaptiveMeshes(sys,pn1)
+  !> Get the number of points in the Brillouin Zone
+  !> for all the energies in the imaginary axis
     use mod_kind,          only: dp, int64
     use mod_parameters,    only: total_nkpt => kptotal_in
     use EnergyIntegration, only: y
@@ -34,7 +34,7 @@ contains
     integer           :: nx, ny, nz
     integer(int64)    :: nall
 
-    if(.not.allocated(all_nkpt)) allocate(all_nkpt(pn1),all_nkpt_rep(pn1))
+    if(.not.allocated(all_nkpt)) allocate(all_nkpt(pn1),all_nkpt_norep(pn1))
     total_points = 0
     do i = 1, pn1
       nall = get_nkpt(y(i), y(1), total_nkpt, sys%isysdim)
@@ -44,36 +44,36 @@ contains
         ny = ceiling( (dble(nall))**(0.333333333333333_dp), kind(ny) )
         nz = ceiling( (dble(nall))**(0.333333333333333_dp), kind(nz) )
         nall = int( nx*ny*nz, kind(nall) )
-        call count_3D_BZ(nall,sys%a1,sys%a2,sys%a3,all_nkpt(i),all_nkpt_rep(i))
+        call count_3D_BZ(nall,sys%a1,sys%a2,sys%a3,all_nkpt(i),all_nkpt_norep(i))
       case(2)
         nx = ceiling( (dble(nall))**(0.5_dp), kind(nx) )
         ny = ceiling( (dble(nall))**(0.5_dp), kind(ny) )
         nz = 0
         nall = int( nx*ny, kind(nall) )
-        call count_2D_BZ(nall,sys%a1,sys%a2,all_nkpt(i),all_nkpt_rep(i))
+        call count_2D_BZ(nall,sys%a1,sys%a2,all_nkpt(i),all_nkpt_norep(i))
       case default
         nx = ceiling( (dble(nall)), kind(nx) )
         ny = 0
         nz = 0
         nall = int( nx, kind(nall) )
-        call count_1D_BZ(nall,sys%a1,all_nkpt(i),all_nkpt_rep(i))
+        call count_1D_BZ(nall,sys%a1,all_nkpt(i),all_nkpt_norep(i))
       end select
       total_points = total_points + all_nkpt(i)
     end do
   end subroutine generateAdaptiveMeshes
 
 
-  !! Deallocate energy meshes
   subroutine deallocateAdaptiveMeshes()
+  !> Deallocate energy meshes
     implicit none
 
     if(allocated(all_nkpt))     deallocate( all_nkpt )
-    if(allocated(all_nkpt_rep)) deallocate( all_nkpt_rep )
+    if(allocated(all_nkpt_norep)) deallocate( all_nkpt_norep )
   end subroutine deallocateAdaptiveMeshes
 
-  !! Generate the distributed combined points {e,kx,ky,kz}
-  !! (locally for a given MPI process)
   subroutine genLocalEKMesh(sys,rank,isize,comm)
+  !> Generate the distributed combined points {e,kx,ky,kz}
+  !> (locally for a given MPI process)
     use mod_kind,          only: dp, int32, int64
     use mod_parameters,    only: total_nkpt => kptotal_in
     use EnergyIntegration, only: pn1, y
@@ -173,10 +173,10 @@ contains
 
   end subroutine freeLocalEKMesh
 
-  !! Calculate the number of k-points for a given energy
-  !! by using a power decay of the ratio of the imaginary parts
-  !! to the dimension of the system (4-bit integer version)
   integer function get_nkpt_int4(e, e0, nkpt_total, sysdim)
+  !> Calculate the number of k-points for a given energy
+  !> by using a power decay of the ratio of the imaginary parts
+  !> to the dimension of the system (4-bit integer version)
     use mod_kind, only: dp
     implicit none
     real(dp), intent(in) :: e, e0
@@ -195,16 +195,15 @@ contains
     if(get_nkpt_int4 < minimumBZmesh ) get_nkpt_int4 = minimumBZmesh
   end function get_nkpt_int4
 
-  !! Calculate the number of k-points for a given energy
-  !! by using a power decay of the ratio of the imaginary parts
-  !! to the dimension of the system (8-bit integer version)
   integer(int64) function get_nkpt_int8(e, e0, nkpt_total, sysdim)
+  !> Calculate the number of k-points for a given energy
+  !> by using a power decay of the ratio of the imaginary parts
+  !> to the dimension of the system (8-bit integer version)
     use mod_kind, only: dp, int64
     implicit none
     real(dp),       intent(in) :: e, e0
     integer,        intent(in) :: sysdim
     integer(int64), intent(in) :: nkpt_total
-
     select case(sysdim)
     case(3)
       get_nkpt_int8 = ceiling( nkpt_total/((e/e0)**sqrt(3._dp)) ) !**log(3._dp)

@@ -1,6 +1,6 @@
+module mod_TCM
 !> This subroutine includes the calculation of the Gilbert damping
 !> and the related subroutines.
-module mod_TCM
   use mod_kind, only: dp
   implicit none
   character(len=5),               private :: folder = "A/TCM"
@@ -8,8 +8,8 @@ module mod_TCM
 
 contains
 
-  !> Open files for the results obtained with the torque-correlation method
   subroutine openTCMFiles()
+  !> Open files for the results obtained with the torque-correlation method
     use mod_parameters, only: output
     use mod_System,     only: s => sys
     implicit none
@@ -28,8 +28,8 @@ contains
   end subroutine openTCMFiles
 
 
-  !> Write the results for the damping calculated with the TCM
   subroutine writeTCM(unit,alpha,ndiffk,diff_k,ialpha,iwght)
+  !> Write the results for the damping calculated with the TCM
     use mod_System,     only: s => sys
     implicit none
     integer, intent(in) :: unit
@@ -61,8 +61,8 @@ contains
     end if
   end subroutine writeTCM
 
-  !> Close files for the results obtained with the torque-correlation method
   subroutine closeTCMFiles()
+  !> Close files for the results obtained with the torque-correlation method
     use mod_System,     only: s => sys
     implicit none
     integer :: i, iw
@@ -75,13 +75,14 @@ contains
     end do
   end subroutine closeTCMFiles
 
-  !> Driver routine to call the different torque-correlation methods and their I/O
   subroutine calculate_TCM()
-    use mod_kind, only: dp
+  !> Driver routine to call the different torque-correlation methods and their I/O
+    use mod_kind,       only: dp
     use mod_parameters, only: output
     use mod_System,     only: s => sys
     use mod_mpi_pars,   only: rField
     use mod_progress,   only: write_time
+    use mod_torques,    only: SO_torque_operator,xc_torque_operator
     implicit none
     integer :: ndiffk
     real(dp),    dimension(:),     allocatable    :: diff_k, iwght
@@ -98,7 +99,7 @@ contains
       write(output%unit_loop, "('[calculate_gilbert_damping] SO-TCM...')")
 
     ! SO-TCM
-    call TCM(local_SO_torque, alphaSO, ndiffk, diff_k, ialphaSO, iwght)
+    call TCM(SO_torque_operator, alphaSO, ndiffk, diff_k, ialphaSO, iwght)
 
     if(rField == 0) then
       write(output%unit_loop, "('[calculate_gilbert_damping] Writing results of SO-TCM to file...')")
@@ -108,7 +109,7 @@ contains
     end if
 
     ! XC-TCM
-    call TCM(local_xc_torque, alphaXC, ndiffk, diff_k, ialphaXC, iwght)
+    call TCM(xc_torque_operator, alphaXC, ndiffk, diff_k, ialphaXC, iwght)
 
     if(rField == 0) then
       write(output%unit_loop, "('[calculate_gilbert_damping] Writing results of XC-TCM to file...')")
@@ -120,8 +121,8 @@ contains
   end subroutine calculate_TCM
 
 
+  subroutine TCM(torque_operator,alpha,ndiffk,diff_k,ialpha,iwght)
   !> This subroutine calculates the Gilbert damping using the torque-correlation method
-  subroutine TCM(torque_fct,alpha,ndiffk,diff_k,ialpha,iwght)
     use mod_kind,          only: dp,int64
     use mod_constants,     only: cZero,pi,cOne,cI
     use mod_System,        only: s => sys
@@ -134,12 +135,12 @@ contains
     use mod_mpi_pars,      only: rField,sField,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FieldComm,ierr
     implicit none
     interface
-      subroutine torque_fct(torque)
+      subroutine torque_operator(torque)
         use mod_kind,       only: dp
         use mod_System,     only: sys
         implicit none
         complex(dp), dimension(sys%nOrb2,sys%nOrb2,3,sys%nAtoms), intent(out) :: torque
-      end subroutine torque_fct
+      end subroutine torque_operator
     end interface
 
     complex(dp), dimension(s%nAtoms,s%nAtoms,3,3), intent(out) :: alpha
@@ -226,7 +227,7 @@ contains
       ialpha = 0._dp
     end if
 
-    call torque_fct(torque)
+    call torque_operator(torque)
 
     !! XC-TCM:
     !! $\alpha= \frac{1}{\gamma M \pi N} \sum_{\mathbf{k}} \operatorname{Tr}\{\operatorname{Im} G(\mathbf{k},\epsilon_\text{F})\hat{T}^-_\text{xc} \operatorname{Im} G(\mathbf{k},\epsilon_F) \hat{T}^+_\text{xc}\}$
@@ -320,96 +321,5 @@ contains
     end if
 
   end subroutine TCM
-
-
-  !> This subroutine defines the exchange-correlation torque operator/matrix
-  subroutine local_xc_torque(torque)
-    use mod_kind,       only: dp
-    use mod_constants,  only: cZero, cOne, levi_civita, sigma => pauli_mat
-    use mod_System,     only: s => sys
-    use mod_magnet,     only: mvec_cartesian
-    complex(dp), dimension(s%nOrb2,s%nOrb2,3,s%nAtoms), intent(out) :: torque
-    complex(dp), dimension(s%nOrb,s%nOrb) :: ident
-    integer :: i,m,n,k
-
-    ident = cZero
-    do i=1,s%ndOrb
-      ident(s%dOrbs(i),s%dOrbs(i)) = cOne
-    end do
-
-    torque = cZero
-    do i = 1, s%nAtoms
-      do m = 1, 3
-        do n = 1, 3
-          do k = 1, 3
-            torque(       1: s%nOrb,       1: s%nOrb,m,i) = torque(       1: s%nOrb,       1: s%nOrb,m,i) + mvec_cartesian(n,i) * ident(:,:) * sigma(1,1,k) * levi_civita(m,n,k)
-            torque(s%nOrb+1:s%nOrb2,       1: s%nOrb,m,i) = torque(s%nOrb+1:s%nOrb2,       1: s%nOrb,m,i) + mvec_cartesian(n,i) * ident(:,:) * sigma(2,1,k) * levi_civita(m,n,k)
-            torque(       1: s%nOrb,s%nOrb+1:s%nOrb2,m,i) = torque(       1: s%nOrb,s%nOrb+1:s%nOrb2,m,i) + mvec_cartesian(n,i) * ident(:,:) * sigma(1,2,k) * levi_civita(m,n,k)
-            torque(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,m,i) = torque(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,m,i) + mvec_cartesian(n,i) * ident(:,:) * sigma(2,2,k) * levi_civita(m,n,k)
-          end do
-        end do
-      end do
-      torque(:,:,:,i) = - 0.5_dp * s%Basis(i)%Um * torque(:,:,:,i)
-    end do
-  end subroutine local_xc_torque
-
-
-  !> This subroutine defines the spin-orbit torque operator/matrix
-  subroutine local_SO_torque(torque)
-    use mod_kind,       only: dp
-    use mod_constants,  only: cZero, levi_civita, sigma => pauli_mat
-    use mod_System,     only: s => sys
-    use mod_magnet,     only: lvec
-    ! use mod_mpi_pars,   only:
-    implicit none
-    integer :: i,m,n,k,mu,nu,mup,nup,mupp,nupp
-    complex(dp), dimension(s%nOrb2,s%nOrb2,3, s%nAtoms), intent(out) :: torque
-
-    torque = cZero
-
-    !! [sigma, H_SO]
-    !! t_i^m = Lambda_i * sum_nk eps_mnk L_imunu^n * S_imunu^k
-    !! t_m = lambda_i * sum_alpha_beta * sum_nk_gamma,zeta eps_mnk L^n_gamma,zeta * sigma^k_alpha_beta
-    do i = 1, s%nAtoms
-      do m = 1, 3
-        do n = 1, 3
-          do k = 1, 3
-            torque(       1:s%nOrb ,       1:s%nOrb ,m,i) = torque(       1:s%nOrb ,       1:s%nOrb ,m,i) + lvec(1:s%nOrb,1:s%nOrb,n) * sigma(1,1,k) * levi_civita(m,n,k)
-            torque(s%nOrb+1:s%nOrb2,       1:s%nOrb ,m,i) = torque(s%nOrb+1:s%nOrb2,       1:s%nOrb ,m,i) + lvec(1:s%nOrb,1:s%nOrb,n) * sigma(2,1,k) * levi_civita(m,n,k)
-            torque(       1:s%nOrb ,s%nOrb+1:s%nOrb2,m,i) = torque(       1:s%nOrb ,s%nOrb+1:s%nOrb2,m,i) + lvec(1:s%nOrb,1:s%nOrb,n) * sigma(1,2,k) * levi_civita(m,n,k)
-            torque(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,m,i) = torque(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,m,i) + lvec(1:s%nOrb,1:s%nOrb,n) * sigma(2,2,k) * levi_civita(m,n,k)
-          end do
-        end do
-      end do
-
-      ! p block
-      do nupp=1,s%npOrb
-        nu = s%pOrbs(nupp)
-        nup = nu + s%nOrb 
-        do mupp=1,s%npOrb
-          mu = s%pOrbs(mupp)
-          mup = mu + s%nOrb 
-          torque(mu ,nu ,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque(mu ,nu ,:,i)
-          torque(mu ,nup,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque(mu ,nup,:,i)
-          torque(mup,nu ,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque(mup,nu ,:,i)
-          torque(mup,nup,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque(mup,nup,:,i)
-        end do
-      end do
-
-      ! d block
-      do nupp=1,s%ndOrb
-        nu = s%dOrbs(nupp)
-        nup = nu + s%nOrb 
-        do mupp=1,s%ndOrb
-          mu = s%dOrbs(mupp)
-          mup = mu + s%nOrb 
-          torque(mu ,nu ,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque(mu ,nu ,:,i)
-          torque(mu ,nup,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque(mu ,nup,:,i)
-          torque(mup,nu ,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque(mup,nu ,:,i)
-          torque(mup,nup,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque(mup,nup,:,i)
-        end do
-      end do
-    end do
-  end subroutine local_SO_torque
 
 end module mod_TCM

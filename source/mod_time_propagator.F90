@@ -14,9 +14,9 @@ contains
     use mod_BrillouinZone,      only: realBZ
     use mod_parameters,         only: dimHsc,output,lprintfieldonly
     use mod_system,             only: System_type
-    use mod_expectation,        only: expec_val_n, expec_H_n, expec_L_n
+    use mod_expectation,        only: expec_val_n,expec_H_n,expec_L_n,expec_torque_n
     use mod_Umatrix,            only: update_Umatrix
-    use mod_magnet,             only: mzd0,mpd0,rhod0,rho0
+    use mod_magnet,             only: mzd0,mpd0,rhod0,rho0,mdvec_cartesian,mx,my,mz
     use mod_tools,              only: KronProd,diagonalize,lwork
     use mod_superconductivity,  only: allocate_supercond_variables
     use mod_hamiltonian,        only: calchk,hamilt_local,lfullhk,h0,fullhk
@@ -24,6 +24,7 @@ contains
     use mod_io,                 only: log_warning
     use mod_time_propagator_io, only: create_time_prop_files,write_header_time_prop,write_field,write_time_prop_files
     use mod_mpi_pars,           only: rFreq,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,FieldComm,ierr
+    use mod_torques,            only: SO_torque_operator,xc_torque_operator
     implicit none
     type(System_type), intent(in)   :: s
 
@@ -48,12 +49,19 @@ contains
     complex(dp), dimension(:,:),allocatable :: hk,hkev,hamilt_nof
 
     real(dp),    dimension(s%nOrb,s%nAtoms) :: rho_t,mx_t,my_t,mz_t
+    real(dp),    dimension(s%nOrb,s%nAtoms) :: mx_t_prev,my_t_prev,mz_t_prev
     complex(dp), dimension(s%nOrb,s%nAtoms) :: mp_t
     real(dp),    dimension(s%nAtoms)        :: rhod_t,mxd_t,myd_t,mzd_t
     complex(dp), dimension(s%nAtoms)        :: mpd_t
     real(dp),    dimension(s%nOrb,s%nAtoms) :: delta_sc_t
     real(dp),    dimension(2,s%nAtoms)      :: lxm,lym,lzm
     real(dp),    dimension(2,s%nAtoms)      :: lxm_t,lym_t,lzm_t
+
+    complex(dp), dimension(s%nOrb2,s%nOrb2,3,s%nAtoms) :: tso_op,txc_op
+    real(dp),    dimension(3,2,s%nAtoms)               :: tso,tso_t
+    real(dp),    dimension(3,s%nOrb,s%nAtoms)          :: txc,txc_t
+    real(dp),    dimension(3,s%nOrb,s%nAtoms)          :: dmdt
+
     real(dp)                                :: E_t, E_0
     complex(dp)                             :: exp_eval
    
@@ -79,12 +87,19 @@ contains
     M1 = KronProd(size(A,1),size(A,1),dimHsc,dimHsc,A,id)
 
     ! Checking for checkpoints
-    use_checkpoint = recover_state(rFreq(1),dimHsc,realBZ%workload,t_cp,step_cp,eval_kn,evec_kn)
+    use_checkpoint = recover_state(rFreq(1),s%nOrb,s%nAtoms,dimHsc,realBZ%workload,t_cp,step_cp,eval_kn,evec_kn,mx_t,my_t,mz_t)
     if(use_checkpoint) then
       t = t_cp
       step = step_cp
+      mx_t_prev = mx_t
+      my_t_prev = my_t
+      mz_t_prev = mz_t
     else
       t = 0._dp
+      ! Storing initial magnetization to use as previous step at t=0
+      mx_t_prev = mx
+      my_t_prev = my
+      mz_t_prev = mz
     end if
 
     ! Creating files and writing headers
@@ -101,6 +116,11 @@ contains
 
     if(rFreq(1) == 0) &
       write(output%unit_loop,"('[time_propagator] Starting propagation from t = ',es9.2)") t
+
+    ! Getting torque operators
+    call SO_torque_operator(tso_op)
+    call xc_torque_operator(txc_op)
+
 
     it = 0       ! Counter of accepted iterations
     iter_tot = 0 ! Counter of total number of iterations (rejected + accepted)
@@ -155,14 +175,17 @@ contains
         Lym_t  = 0._dp
         Lzm_t  = 0._dp
 
+        tso_t = 0._dp
+        txc_t = 0._dp
+
         ERR    = 0._dp
 
         delta_sc_t = 0._dp
 
         !$omp parallel do default(none) schedule(dynamic,1) &
-        !$omp& private(Yn_e,Yn_new_e,Yn_hat_e,ik,n,i,kp,weight,hk,hkev,hamilt_nof,exp_eval,ERR_kn,Yn,Yn_new,Yn_hat,eval,expec_0,expec_p,expec_z,expec_d,E_0,lxm,lym,lzm) &
-        !$omp& shared(counter,step,s,t,it,id,dimHsc,realBZ,lfullhk,h0,fullhk,evec_kn_temp,evec_kn,eval_kn,use_checkpoint,b_field,A_t,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2) &
-        !$omp& reduction(+:rho_t,mp_t,mz_t,E_t,Lxm_t,Lym_t,Lzm_t,delta_sc_t,ERR)
+        !$omp& private(Yn_e,Yn_new_e,Yn_hat_e,ik,n,i,kp,weight,hk,hkev,hamilt_nof,exp_eval,ERR_kn,Yn,Yn_new,Yn_hat,eval,expec_0,expec_p,expec_z,expec_d,E_0,lxm,lym,lzm,tso,txc) &
+        !$omp& shared(counter,step,s,t,it,id,tso_op,txc_op,dimHsc,realBZ,lfullhk,h0,fullhk,evec_kn_temp,evec_kn,eval_kn,use_checkpoint,b_field,A_t,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2) &
+        !$omp& reduction(+:rho_t,mp_t,mz_t,E_t,Lxm_t,Lym_t,Lzm_t,delta_sc_t,tso_t,txc_t,ERR)
         kpoints_loop: do ik = 1, realBZ%workload
           kp = realBZ%kp(:,ik)
           weight = realBZ%w(ik)   
@@ -225,14 +248,15 @@ contains
             ! calculating expectation value of the T.D Hamiltonian in eigenvector (n)
             call expec_H_n(s,b_field,A_t,hk,kp,Yn_new_e,eval_kn(n,ik),E_0)
 
-
             ! calculating expectation value of angular momentum in eigenvector (n)
-            call expec_L_n(s, dimHsc, Yn_new_e, eval_kn(n,ik), lxm, lym, lzm)
+            call expec_L_n(s,dimHsc,Yn_new_e,eval_kn(n,ik),lxm,lym,lzm)
 
+            ! calculating expectation value of so- and xc-torques in eigenvector (n)
+            call expec_torque_n(s,dimHsc,Yn_new_e,eval_kn(n,ik),tso_op,txc_op,tso,txc)
 
-            rho_t = rho_t + expec_0  * weight 
-            mp_t  = mp_t  + expec_p  * cmplx(weight,0._dp,dp)
-            mz_t  = mz_t  + expec_z  * weight 
+            rho_t = rho_t + expec_0 * weight 
+            mp_t  = mp_t  + expec_p * cmplx(weight,0._dp,dp)
+            mz_t  = mz_t  + expec_z * weight 
 
             ! Superconducting order parameter
             delta_sc_t = delta_sc_t + expec_d*weight
@@ -241,9 +265,13 @@ contains
             E_t = E_t + E_0 * weight
 
             ! Orbital angular momentum
-            Lxm_t  = Lxm_t   + lxm  * weight
-            Lym_t  = Lym_t   + lym  * weight
-            Lzm_t  = Lzm_t   + lzm  * weight
+            Lxm_t  = Lxm_t + lxm * weight
+            Lym_t  = Lym_t + lym * weight
+            Lzm_t  = Lzm_t + lzm * weight
+
+            ! Spin-orbit and xc Torque
+            tso_t = tso_t + tso * weight
+            txc_t = txc_t + txc * weight
 
             ! Calculation of the error and the new step size.
             ! Note: use Yn_e, Yn_new_e, Yn_hat_e.
@@ -259,15 +287,17 @@ contains
         end do kpoints_loop
         !$omp end parallel do
 
-        call MPI_Allreduce(MPI_IN_PLACE, rho_t, ncount    , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
-        call MPI_Allreduce(MPI_IN_PLACE, mz_t , ncount    , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
-        call MPI_Allreduce(MPI_IN_PLACE, mp_t , ncount    , MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
-        call MPI_Allreduce(MPI_IN_PLACE, Lxm_t, 2*s%nAtoms, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
-        call MPI_Allreduce(MPI_IN_PLACE, Lym_t, 2*s%nAtoms, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
-        call MPI_Allreduce(MPI_IN_PLACE, Lzm_t, 2*s%nAtoms, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
-        call MPI_Allreduce(MPI_IN_PLACE, delta_sc_t, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
-        call MPI_Allreduce(MPI_IN_PLACE, E_t  , 1         , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
-        call MPI_Allreduce(MPI_IN_PLACE, ERR  , 1         , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, rho_t     , ncount           , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, mz_t      , ncount           , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, mp_t      , ncount           , MPI_DOUBLE_COMPLEX  , MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, Lxm_t     , 2*s%nAtoms       , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, Lym_t     , 2*s%nAtoms       , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, Lzm_t     , 2*s%nAtoms       , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, tso_t     , 3*2*s%nAtoms     , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, txc_t     , 3*s%nOrb*s%nAtoms, MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, delta_sc_t, ncount           , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, E_t       , 1                , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
+        call MPI_Allreduce(MPI_IN_PLACE, ERR       , 1                , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
 
         ERR = sqrt(ERR)
         ! Find the new step size h_new
@@ -332,14 +362,29 @@ contains
           myd_t (i) = myd_t (i) + my_t (mu,i)
           mzd_t (i) = mzd_t (i) + mz_t (mu,i)
         end do
+        mdvec_cartesian(1,i) = mxd_t(i)
+        mdvec_cartesian(2,i) = myd_t(i)
+        mdvec_cartesian(3,i) = mzd_t(i)
       end do
  
       ! Update U-term of the local hamiltonian
       call update_Umatrix(mzd_t,mzd0,mpd_t,mpd0,rhod_t,rhod0,rho_t,rho0,s)
 
+      ! Updating xc-torque operator
+      call xc_torque_operator(txc_op)
+
+      ! Calculating total torque via dM/dt
+      dmdt(1,:,:) = (mx_t(:,:)-mx_t_prev(:,:))/step
+      dmdt(2,:,:) = (my_t(:,:)-my_t_prev(:,:))/step
+      dmdt(3,:,:) = (mz_t(:,:)-mz_t_prev(:,:))/step
+      ! Updating previous step with current one
+      mx_t_prev = mx_t
+      my_t_prev = my_t
+      mz_t_prev = mz_t
+
       ! Writing results to file
       if(rFreq(1) == 0) &
-        call write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,b_field,A_t,E_t,lxm_t,lym_t,lzm_t) 
+        call write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,b_field,A_t,E_t,lxm_t,lym_t,lzm_t,tso_t,txc_t,dmdt)
 
       counter = counter + 1
       it = it + 1 ! Counter of accepted iterations
@@ -348,7 +393,7 @@ contains
       open(unit=911, file="save", status='old', iostat=ios)
       if(ios==0) then
         close(911)
-        call save_state(rFreq(1),dimHsc,realBZ%workload,t,step,eval_kn,evec_kn)
+        call save_state(rFreq(1),s%nOrb,s%nAtoms,dimHsc,realBZ%workload,t,step,eval_kn,evec_kn,mx_t,my_t,mz_t)
         call MPI_Barrier(FieldComm, ierr)
         if(rFreq(1) == 0) &
           call execute_command_line('rm save')
@@ -357,11 +402,10 @@ contains
     end do t_loop
 
     ! Creating checkpoint in the last state
-    call save_state(rFreq(1),dimHsc,realBZ%workload,t,step,eval_kn,evec_kn)
+    call save_state(rFreq(1),s%nOrb,s%nAtoms,dimHsc,realBZ%workload,t,step,eval_kn,evec_kn,mx_t,my_t,mz_t)
 
     deallocate( id,id2,M1 )
     deallocate( hamilt_nof,hk,hkev,eval,eval_kn,evec_kn,evec_kn_temp )
-
 
     if(rFreq(1) == 0) &
       write(output%unit_loop,"('[time_propagator] Integration time reached. ',i0,' total iterations, with ',i0,' accepted.')") iter_tot,it

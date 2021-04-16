@@ -85,16 +85,21 @@ contains
     end do
 
     ! All four Pauli matrices in spin space
-    pauli_mat(:,1,0) = [cOne, cZero]
-    pauli_mat(:,2,0) = [cZero, cOne]
-    pauli_mat(:,1,1) = [cZero,cOne]
-    pauli_mat(:,2,1) = [cOne, cZero]
-    pauli_mat(:,1,2) = [cZero,cI]
-    pauli_mat(:,2,2) = [-cI,cZero]
-    pauli_mat(:,1,3) = [cOne,cZero]
-    pauli_mat(:,2,3) = [cZero,-cOne]
-
+    ! identity
+    pauli_mat(1,:,0) = [cOne, cZero]
+    pauli_mat(2,:,0) = [cZero, cOne]
+    ! sigma_x
+    pauli_mat(1,:,1) = [cZero,cOne]
+    pauli_mat(2,:,1) = [cOne, cZero]
+    ! sigma_y
+    pauli_mat(1,:,2) = [cZero,-cI]
+    pauli_mat(2,:,2) = [cI,cZero]
+    ! sigma_z
+    pauli_mat(1,:,3) = [cOne,cZero]
+    pauli_mat(2,:,3) = [cZero,-cOne]
+    ! sigma_+
     pauli_mat(:,:,4) = pauli_mat(:,:,1) + cI*pauli_mat(:,:,2)
+    ! sigma_-
     pauli_mat(:,:,5) = pauli_mat(:,:,1) - cI*pauli_mat(:,:,2)
 
 #ifdef _GPU

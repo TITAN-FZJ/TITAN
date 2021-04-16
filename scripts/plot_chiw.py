@@ -22,7 +22,7 @@ def read_data(filename):
 # Main program
 ################################################################################
 if __name__ == "__main__":
-
+  
   if(args.mev):
     labelx = r'$E-E_F$ [meV]'
     labely = r'$-\operatorname{Im}\chi^{+-}$ [states/meV]'
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     labelx = r'$E-E_F$ [Ry]'
     labely = r'$-\operatorname{Im}\chi^{+-}$ [states/Ry]'
 
-  numplots = len(sys.argv)-1
+  numplots = len(args.files)
   fig, ax = plt.subplots(1, 1, figsize=(6, 5))
 
   # ...and their legends
@@ -46,7 +46,7 @@ if __name__ == "__main__":
   # Getting data from input file(s)
   data = []
   for i in range(numplots):
-    data.append(read_data(sys.argv[i+1]))
+    data.append(read_data(args.files[i]))
 
   # Defining the colors for the curves (see http://colorbrewer2.org/)
   colors = colors = ['#e41a1c','#377eb8','#4daf4a','#984ea3','#a65628', '#b98600', '#000000']
@@ -65,6 +65,12 @@ if __name__ == "__main__":
   plt.xlabel(labelx)
   plt.ylabel(labely)
   plt.title('Susceptibility')
+
+  # Changing limits
+  if args.xlim != "":
+    xlim = eval(args.xlim)
+    plt.xlim(xlim)
+
   # Add legend
   if args.legends != "[]":
     plt.legend()
