@@ -1,8 +1,8 @@
 module mod_torques
   use mod_kind, only: dp
   implicit none
-  ! Torques (sot,xc-torque,external torque ; x,y,z ; layers)
   integer       :: ntypetorque=2 ! Number of types of torques implemented
+  ! Torques (sot,xc-torque,external torque ; x,y,z ; layers)
   complex(dp),allocatable   :: torques(:,:,:),total_torques(:,:), rtorques(:,:,:)
 
   character(len=6), parameter, private :: folder = "SOT"
@@ -11,8 +11,8 @@ module mod_torques
 
 contains
 
-  ! This subroutine allocates variables related to the torques calculation
   subroutine allocate_torques()
+  !> This subroutine allocates variables related to the torques calculation
     use mod_parameters, only: renorm
     use mod_System,     only: s => sys
     use mod_magnet,     only: lfield, total_hw_npt1
@@ -38,8 +38,9 @@ contains
 
   end subroutine allocate_torques
 
+
   subroutine deallocate_torques()
-  !! This subroutine deallocates variables related to the torques calculation
+  !> This subroutine deallocates variables related to the torques calculation
     implicit none
 
     if(allocated(torques)) deallocate(torques)
@@ -48,8 +49,9 @@ contains
 
   end subroutine deallocate_torques
 
+
   subroutine create_torque_files()
-    !! This subroutine creates all the files needed for the disturbances
+  !> This subroutine creates all the files needed for the disturbances
     use mod_parameters, only: output, renorm
     use mod_system,     only: s => sys
     implicit none
@@ -83,8 +85,9 @@ contains
     end do
   end subroutine create_torque_files
 
+
   subroutine open_torque_files()
-    !! This subroutine opens all the files needed for the disturbances
+  !> This subroutine opens all the files needed for the disturbances
     use mod_parameters, only: output, renorm, missing_files
     use mod_system,     only: s => sys
     use mod_mpi_pars,   only: abortProgram
@@ -121,8 +124,9 @@ contains
     if(errt/=0) call abortProgram("[openclose_torque_files] Some file(s) do(es) not exist! Stopping before starting calculations..." // NEW_LINE('A') // trim(missing_files))
   end subroutine open_torque_files
 
+
   subroutine close_torque_files()
-  !! This subroutine closes all the files needed for the disturbances
+  !> This subroutine closes all the files needed for the disturbances
     use mod_parameters, only: renorm
     use mod_System, only: s => sys
     implicit none
@@ -150,9 +154,9 @@ contains
 
 
   subroutine write_torques(e)
-  !! This subroutine write all the torques into files
-  !! (already opened with openclose_torque_files(1))
-  !! Some information may also be written on the screen
+  !> This subroutine write all the torques into files
+  !> (already opened with openclose_torque_files(1))
+  !> Some information may also be written on the screen
     use mod_kind, only: dp
     use mod_parameters, only: renorm
     use mod_magnet,     only: mvec_spherical,mtotal_spherical
@@ -222,7 +226,7 @@ contains
 
 
   subroutine create_dc_torque_files()
-  !! This subroutine creates all the files needed for the disturbances
+  !> This subroutine creates all the files needed for the disturbances
     use mod_parameters, only: output, kount, renorm
     use mod_magnet, only: dcprefix, dcfield_dependence, dcfield, dc_header
     use mod_system, only: s => sys
@@ -258,8 +262,9 @@ contains
 
   end subroutine create_dc_torque_files
 
+
   subroutine open_dc_torque_files()
-  !! This subroutine opens all the files needed for the disturbances
+  !> This subroutine opens all the files needed for the disturbances
     use mod_parameters, only: output, kount, missing_files, renorm
     use mod_magnet,     only: dcprefix, dcfield_dependence, dcfield
     use mod_system,     only: s => sys
@@ -298,8 +303,9 @@ contains
 
   end subroutine open_dc_torque_files
 
+
   subroutine close_dc_torque_files()
-  !! This subroutine closes all the files needed for the disturbances
+  !> This subroutine closes all the files needed for the disturbances
     use mod_parameters, only: renorm
     use mod_system, only: s => sys
     implicit none
@@ -325,10 +331,11 @@ contains
 
   end subroutine close_dc_torque_files
 
+
   subroutine write_dc_torques()
-  !! This subroutine write all the torques into files
-  !! (already opened with openclose_torque_files(1))
-  !! Some information may also be written on the screen
+  !> This subroutine write all the torques into files
+  !> (already opened with openclose_torque_files(1))
+  !> Some information may also be written on the screen
     use mod_kind, only: dp
     use mod_parameters, only: renorm
     use mod_magnet,     only: mvec_spherical,mtotal_spherical,dc_fields,hw_count
@@ -393,8 +400,9 @@ contains
 
   end subroutine write_dc_torques
 
-  ! This subroutine sorts torque files
+
   subroutine sort_torques()
+  !> This subroutine sorts torque files
     use mod_parameters, only: renorm,itype
     use mod_tools,      only: sort_file
     use mod_System,     only: s => sys
@@ -437,5 +445,95 @@ contains
     end if
 
   end subroutine sort_torques
+
+  subroutine xc_torque_operator(torque)
+  !> This subroutine defines the exchange-correlation torque operator/matrix
+    use mod_kind,       only: dp
+    use mod_constants,  only: cZero, cOne, levi_civita, sigma => pauli_mat
+    use mod_System,     only: s => sys
+    use mod_magnet,     only: mdvec_cartesian
+    implicit none
+    complex(dp), dimension(s%nOrb2,s%nOrb2,3,s%nAtoms), intent(out) :: torque
+    complex(dp), dimension(s%nOrb,s%nOrb) :: ident
+    integer :: i,m,n,k
+
+    ident = cZero
+    do i=1,s%ndOrb
+      ident(s%dOrbs(i),s%dOrbs(i)) = cOne
+    end do
+
+    torque = cZero
+    do i = 1, s%nAtoms
+      do m = 1, 3
+        do n = 1, 3
+          do k = 1, 3
+            torque(       1: s%nOrb,       1: s%nOrb,m,i) = torque(       1: s%nOrb,       1: s%nOrb,m,i) + mdvec_cartesian(n,i) * ident(:,:) * sigma(1,1,k) * levi_civita(m,n,k)
+            torque(s%nOrb+1:s%nOrb2,       1: s%nOrb,m,i) = torque(s%nOrb+1:s%nOrb2,       1: s%nOrb,m,i) + mdvec_cartesian(n,i) * ident(:,:) * sigma(2,1,k) * levi_civita(m,n,k)
+            torque(       1: s%nOrb,s%nOrb+1:s%nOrb2,m,i) = torque(       1: s%nOrb,s%nOrb+1:s%nOrb2,m,i) + mdvec_cartesian(n,i) * ident(:,:) * sigma(1,2,k) * levi_civita(m,n,k)
+            torque(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,m,i) = torque(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,m,i) + mdvec_cartesian(n,i) * ident(:,:) * sigma(2,2,k) * levi_civita(m,n,k)
+          end do
+        end do
+      end do
+      torque(:,:,:,i) = - 0.5_dp * s%Basis(i)%Um * torque(:,:,:,i)
+    end do
+  end subroutine xc_torque_operator
+
+
+  subroutine SO_torque_operator(torque)
+  !> This subroutine defines the spin-orbit torque operator/matrix
+    use mod_kind,       only: dp
+    use mod_constants,  only: cZero, levi_civita, sigma => pauli_mat
+    use mod_System,     only: s => sys
+    use mod_magnet,     only: lvec
+    implicit none
+    integer :: i,m,n,k,mu,nu,mup,nup,mupp,nupp
+    complex(dp), dimension(s%nOrb2,s%nOrb2,3,s%nAtoms), intent(out) :: torque
+
+    torque = cZero
+
+    !! [sigma, H_SO]
+    !! t_i^m = Lambda_i * sum_nk eps_mnk L_imunu^n * S_imunu^k
+    !! t_m = lambda_i * sum_alpha_beta * sum_nk_gamma,zeta eps_mnk L^n_gamma,zeta * sigma^k_alpha_beta
+    do i = 1, s%nAtoms
+      do m = 1, 3
+        do n = 1, 3
+          do k = 1, 3
+            torque(       1:s%nOrb ,       1:s%nOrb ,m,i) = torque(       1:s%nOrb ,       1:s%nOrb ,m,i) + lvec(1:s%nOrb,1:s%nOrb,n) * sigma(1,1,k) * levi_civita(m,n,k)
+            torque(s%nOrb+1:s%nOrb2,       1:s%nOrb ,m,i) = torque(s%nOrb+1:s%nOrb2,       1:s%nOrb ,m,i) + lvec(1:s%nOrb,1:s%nOrb,n) * sigma(2,1,k) * levi_civita(m,n,k)
+            torque(       1:s%nOrb ,s%nOrb+1:s%nOrb2,m,i) = torque(       1:s%nOrb ,s%nOrb+1:s%nOrb2,m,i) + lvec(1:s%nOrb,1:s%nOrb,n) * sigma(1,2,k) * levi_civita(m,n,k)
+            torque(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,m,i) = torque(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,m,i) + lvec(1:s%nOrb,1:s%nOrb,n) * sigma(2,2,k) * levi_civita(m,n,k)
+          end do
+        end do
+      end do
+
+      ! p block
+      do nupp=1,s%npOrb
+        nu = s%pOrbs(nupp)
+        nup = nu + s%nOrb 
+        do mupp=1,s%npOrb
+          mu = s%pOrbs(mupp)
+          mup = mu + s%nOrb 
+          torque(mu ,nu ,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque(mu ,nu ,:,i)
+          torque(mu ,nup,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque(mu ,nup,:,i)
+          torque(mup,nu ,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque(mup,nu ,:,i)
+          torque(mup,nup,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque(mup,nup,:,i)
+        end do
+      end do
+
+      ! d block
+      do nupp=1,s%ndOrb
+        nu = s%dOrbs(nupp)
+        nup = nu + s%nOrb 
+        do mupp=1,s%ndOrb
+          mu = s%dOrbs(mupp)
+          mup = mu + s%nOrb 
+          torque(mu ,nu ,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque(mu ,nu ,:,i)
+          torque(mu ,nup,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque(mu ,nup,:,i)
+          torque(mup,nu ,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque(mup,nu ,:,i)
+          torque(mup,nup,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque(mup,nup,:,i)
+        end do
+      end do
+    end do
+  end subroutine SO_torque_operator
 
 end module mod_torques

@@ -20,8 +20,8 @@ module mod_BrillouinZone
   implicit none
 
   type :: BrillouinZone
-    integer(int64) :: nkpt_rep = 0 ! K-points with repetitions on the edges
-    integer(int64) :: nkpt     = 0 ! K-points without repetitions on the edges (weights take care of that)
+    integer(int64) :: nkpt_norep = 0 ! K-points without repetitions on the edges
+    integer(int64) :: nkpt     = 0 ! K-points with repetitions on the edges (widh added weights to take care of that)
     integer(int32) :: nkpt_x   = 0
     integer(int32) :: nkpt_y   = 0
     integer(int32) :: nkpt_z   = 0
@@ -112,13 +112,13 @@ contains
     select case(sys%isysdim)
     case(3)
       total = self%nkpt_x * self%nkpt_y * self%nkpt_z
-      call count_3D_BZ(total,sys%a1,sys%a2,sys%a3,self%nkpt,self%nkpt_rep)
+      call count_3D_BZ(total,sys%a1,sys%a2,sys%a3,self%nkpt,self%nkpt_norep)
     case(2)
       total = self%nkpt_x * self%nkpt_y
-      call count_2D_BZ(total,sys%a1,sys%a2,self%nkpt,self%nkpt_rep)
+      call count_2D_BZ(total,sys%a1,sys%a2,self%nkpt,self%nkpt_norep)
     case default
       total = self%nkpt_x 
-      call count_1D_BZ(total,sys%a1,self%nkpt,self%nkpt_rep)
+      call count_1D_BZ(total,sys%a1,self%nkpt,self%nkpt_norep)
     end select
 
   end subroutine countBZ
@@ -235,8 +235,13 @@ contains
     use mod_tools,     only: cross, vec_norm
     implicit none
     integer(int64),         intent(in)  :: nkpt_in
+    !! Given number of k-points
     real(dp), dimension(3), intent(in)  :: a1, a2, a3
-    integer(int64),         intent(out) :: numextrakbz, nkpt
+    !! Bravais vectors (real-space)
+    integer(int64),         intent(out) :: numextrakbz
+    !! Number of k-points with duplicated points at edges
+    integer(int64),         intent(out) :: nkpt
+    !! Number of k-points obtained as (nkpt per dim)^dim
     real(dp), dimension(3)   :: kp, b1, b2, b3, largest
     real(dp), dimension(3,8) :: bz_vec
     real(dp), dimension(3,8) :: diff
@@ -389,8 +394,13 @@ contains
     use mod_tools,     only: cross, vec_norm
     implicit none
     integer(int64),         intent(in)  :: nkpt_in
-    real(dp), dimension(3), intent(in)  :: a1,a2
-    integer(int64),         intent(out) :: numextrakbz, nkpt
+    !! Given number of k-points
+    real(dp), dimension(3), intent(in)  :: a1, a2
+    !! Bravais vectors (real-space)
+    integer(int64),         intent(out) :: numextrakbz
+    !! Number of k-points with duplicated points at edges
+    integer(int64),         intent(out) :: nkpt
+    !! Number of k-points obtained as (nkpt per dim)^dim
     real(dp), dimension(3)   :: kp, b1, b2, largest
     real(dp), dimension(3)   :: zdir
     real(dp), dimension(3,4) :: bz_vec
@@ -533,9 +543,14 @@ contains
     use mod_constants, only: tpi
     use mod_tools,     only: cross, vec_norm
     implicit none
-    integer(int64),                  intent(in)  :: nkpt_in
+    integer(int64),         intent(in)  :: nkpt_in
+    !! Given number of k-points
     real(dp), dimension(3), intent(in)  :: a1
-    integer(int64),                  intent(out) :: numextrakbz, nkpt
+    !! Bravais vectors (real-space)
+    integer(int64),         intent(out) :: numextrakbz
+    !! Number of k-points with duplicated points at edges
+    integer(int64),         intent(out) :: nkpt
+    !! Number of k-points obtained as (nkpt per dim)^dim
     real(dp), dimension(3)   :: kp, b1
     real(dp), dimension(3)   :: zdir, ydir
     real(dp), dimension(3,2) :: bz_vec
@@ -603,10 +618,10 @@ contains
   end subroutine output_kpoints
 
 
-! This subroutine generates all the k-points
-! and store the different values of the
-! component "component" (1,2,3)
   subroutine store_diff(nkpt_in, b1, b2, b3, component, ndiffk, diff_k_unsrt)
+  !> This subroutine generates all the k-points
+  !> and store the different values of the
+  !> component "component" (1,2,3)
     use mod_kind,       only: dp, int32, int64
     use mod_tools,      only: itos
     use mod_mpi_pars,   only: abortProgram, myrank

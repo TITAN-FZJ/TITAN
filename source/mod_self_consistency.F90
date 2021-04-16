@@ -419,8 +419,8 @@ contains
   !> Calculate magnetization angles and set spherical variables
     use mod_constants,        only: rad2deg
     use mod_system,           only: s => sys
-    use mod_magnet,           only: mx,my,mz,mabs, &
-                                    mtheta,mphi,mvec_cartesian, &
+    use mod_magnet,           only: mx,my,mz,mabs,mxd,myd,mzd,mabsd, &
+                                    mtheta,mphi,mvec_cartesian,mdvec_cartesian, &
                                     mvec_spherical,mtotal_cartesian,mtotal_spherical,lrot
     implicit none
     integer :: i
@@ -442,6 +442,10 @@ contains
       mvec_cartesian(1,i) = sum(mx(:,i))
       mvec_cartesian(2,i) = sum(my(:,i))
       mvec_cartesian(3,i) = sum(mz(:,i))
+      mdvec_cartesian(1,i) = mxd(i)
+      mdvec_cartesian(2,i) = myd(i)
+      mdvec_cartesian(3,i) = mzd(i)
+      mabsd(i) = sqrt((mxd(i)**2)+(myd(i)**2)+(mzd(i)**2))
       mvec_spherical(1,i) = mabs(i)
       mvec_spherical(2,i) = mtheta(i)
       mvec_spherical(3,i) = mphi(i)
@@ -1248,8 +1252,8 @@ contains
 
     write(output%unit_loop,"('|----------=============== Self-consistent ground state: ===============----------|')")
     if(leigenstates) then
-      write(output%unit_loop,"(8x,'Ef=',f13.8,4x,'Eband=',f13.7,4x,'Etotal=',f13.7)") s%Ef,energy,energy+energy_dc+energy_dc_n
-      write(output%unit_loop,"(8x,'Double counting:',4x,'Edc_m=',f13.7,5x,'Edc_n=',f13.7)") energy_dc,energy_dc_n
+      write(output%unit_loop,"(3x,'Ef=',f13.8,4x,'Eband=',f18.10,4x,'Etotal=',f18.10)") s%Ef,energy,energy+energy_dc+energy_dc_n
+      write(output%unit_loop,"(3x,'Double counting:',4x,'Edc_m=',f18.10,5x,'Edc_n=',f18.10)") energy_dc,energy_dc_n
     else
       write(output%unit_loop,"(28x,'Ef=',f10.7)") s%Ef
     end if

@@ -720,6 +720,105 @@ contains
   end subroutine expec_val_n
 
 
+  subroutine expec_torque_n(s,dimens,evec,eval,tso_op,txc_op,expec_tso,expec_txc)
+  !> Calculate the expectation value of the operators
+  !> 1 (occupation), Sp, Sz, and superconducting delta
+  !> for a given state [n] ([evec]) with eigen-energy [eval]
+    use mod_kind,              only: dp
+    use mod_constants,         only: pi
+    use mod_parameters,        only: eta,isigmamu2n
+    use mod_distributions,     only: fd_dist
+    use mod_system,            only: System_type
+    use mod_superconductivity, only: lsuperCond
+    implicit none
+
+    type(System_type),                                  intent(in)  :: s
+    integer,                                            intent(in)  :: dimens
+    complex(dp), dimension(dimens),                     intent(in)  :: evec
+    real(dp),                                           intent(in)  :: eval
+    complex(dp), dimension(s%nOrb2,s%nOrb2,3,s%nAtoms), intent(in)  :: tso_op,txc_op
+    real(dp),    dimension(3,2,s%nAtoms),               intent(out) :: expec_tso
+    real(dp),    dimension(3,s%nOrb,s%nAtoms),          intent(out) :: expec_txc
+
+    integer     :: i,sigma,sigmap,mu,nu,mup,nup,mud,nud,mus,nus,xyz
+    real(dp)    :: f_n
+    real(dp)    :: fermi,beta
+    complex(dp) :: evec_isigmamu,evec_isigmapnu_cong
+
+    beta = 1._dp/(pi*eta)
+    expec_tso = 0._dp
+    expec_txc = 0._dp
+
+    !If lsupercond is true then fermi is 0.0 otherwise is s%Ef
+    fermi = merge(0._dp,s%Ef,lsuperCond)
+    ! Fermi-Dirac:
+    f_n = fd_dist(fermi, beta, eval)
+
+    sites_loop: do i = 1,s%nAtoms
+      ! <Tso> for s orbitals is zero L(l=0)=0
+
+      ! <Tso> for p orbitals:
+      do mup = 1,s%npOrb
+        mu = s%pOrbs(mup)
+
+        do sigma = 1,2
+          mus = (sigma-1)*s%nOrb+mu
+          evec_isigmamu = conjg( evec(isigmamu2n(i,sigma,mu)) )
+
+          do nup = 1,s%npOrb
+            nu = s%pOrbs(nup)
+            do sigmap = 1,2
+              nus = (sigmap-1)*s%nOrb+nu
+              evec_isigmapnu_cong = evec_isigmamu*evec(isigmamu2n(i,sigmap,nu)) 
+              do xyz = 1,3
+                expec_tso(xyz,1,i) = expec_tso(xyz,1,i) + f_n*real( tso_op(mus,nus,xyz,i)*evec_isigmapnu_cong )
+              end do
+            end do
+          end do
+        end do
+      end do
+
+      ! <Tso> for d orbitals:
+      do mud = 1,s%ndOrb
+        mu = s%dOrbs(mud)
+
+        do sigma = 1,2
+          mus = (sigma-1)*s%nOrb+mu
+          evec_isigmamu = conjg( evec(isigmamu2n(i,sigma,mu)) )
+
+          do nud = 1,s%ndOrb
+            nu = s%dOrbs(nud)
+            do sigmap = 1,2
+              nus = (sigmap-1)*s%nOrb+nu
+              evec_isigmapnu_cong = evec_isigmamu*evec(isigmamu2n(i,sigmap,nu)) 
+              do xyz = 1,3
+                expec_tso(xyz,2,i) = expec_tso(xyz,2,i) + f_n*real( tso_op(mus,nus,xyz,i)*evec_isigmapnu_cong )
+              end do
+            end do
+          end do
+        end do
+      end do
+
+      ! <Txc> for each orbital:
+      do mu = 1,s%nOrb
+        do sigma = 1,2
+          mus = (sigma-1)*s%nOrb+mu
+          evec_isigmamu = conjg( evec(isigmamu2n(i,sigma,mu))) 
+          do sigmap = 1, 2
+            nus = (sigmap-1)*s%nOrb+mu
+            evec_isigmapnu_cong = evec_isigmamu*evec(isigmamu2n(i,sigmap,mu))
+
+            do xyz = 1,3
+              ! T_xc
+              expec_txc(xyz,mu,i) = expec_txc(xyz,mu,i) + f_n*real( txc_op(mus,nus,xyz,i)*evec_isigmapnu_cong )
+            end do
+          end do
+        end do
+      end do
+    end do sites_loop
+  end subroutine expec_torque_n
+
+
   subroutine groundstate_L_and_E()
   !> Wrapper for the calculation of the expectation value 
   !> of the orbital angular momentum and the band energy in the ground state
