@@ -1,7 +1,7 @@
 ! ---------- Parallel spin current: Energy integration ---------
 subroutine eintshe(q,e)
   use mod_f90_kind,      only: double
-  use mod_constants,     only: cZero, cOne, cI, tpi
+  use mod_constants,     only: cZero, cI, tpi
   use mod_parameters,    only: nOrb, nOrb2, dim, sigmaimunu2i, eta, etap, sigmai2i, offset
   use mod_SOC,           only: llineargfsoc
   use EnergyIntegration, only: y, wght, x2, p2, generate_real_epoints, pn2
@@ -43,7 +43,6 @@ subroutine eintshe(q,e)
 
   ! Generating energy points in the real axis for third integration
   call generate_real_epoints(e)
-
 
   real_points = 0
   if(abs(e) >= 1.d-10) real_points = int(pn2,8) * int(realBZ%workload,8)
@@ -88,7 +87,7 @@ subroutine eintshe(q,e)
   do ix = 1, local_points
       ep = y( E_k_imag_mesh(1,ix) )
       kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix))
-      wkbzc = cmplx(wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix)),0.d0)
+      wkbzc = cmplx(wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix)),0.d0,double)
 
       df1iikl = cZero
 
@@ -206,7 +205,7 @@ subroutine eintshe(q,e)
       nkp = mod(ix2-1, int(realBZ % workload,8))+1
       ep = x2(nep)
       kp = realBZ % kp(:,nkp)
-      wkbzc = cmplx(p2(nep) * realBZ % w(nkp), 0.d0)
+      wkbzc = cmplx(p2(nep) * realBZ % w(nkp), 0.d0,double)
 
       df1iikl = cZero
 
@@ -445,7 +444,7 @@ subroutine eintshelinearsoc(q,e)
   do ix = 1, local_points
       ep = y( E_k_imag_mesh(1,ix) )
       kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix))
-      wkbzc = cmplx(wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix)),0.d0)
+      wkbzc = cmplx(wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix)),0.d0,double)
 
       df1iikl = cZero
       df1lsoc = cZero
@@ -589,7 +588,7 @@ subroutine eintshelinearsoc(q,e)
       nkp = mod(ix2-1, int(realBZ % workload,8))+1
       ep = x2(nep)
       kp = realBZ % kp(:,nkp)
-      wkbzc = cmplx(p2(nep) * realBZ % w(nkp),0.d0)
+      wkbzc = cmplx(p2(nep) * realBZ % w(nkp),0.d0,double)
 
       df1iikl = cZero
       df1lsoc = cZero

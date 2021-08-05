@@ -10,7 +10,8 @@ subroutine fermi_surface(e)
   implicit none
   character(len=400) :: varm
   character(len=50)  :: epart
-  integer            :: i,mu,nu,iz,sigma
+  integer            :: i,mu,nu,sigma
+  integer*8          :: iz
   real(double)       :: fs_layer(s%nAtoms,realBZ%workload,4),fs_orb(3,realBZ%workload,4),fs_total(realBZ%workload,4)
   real(double)       :: kp(3)
   real(double),intent(in)    :: e

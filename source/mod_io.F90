@@ -64,7 +64,7 @@ contains
                                     skip_steps, nEner, nEner1, nQvec, nQvec1, qbasis, renorm, renormnb, bands, band_cnt, &
                                     offset, dfttype, parField, parFreq, kptotal_in, kp_in, &
                                     nOrb, nOrb2, tbmode, fermi_layer
-    use mod_self_consistency, only: lslatec, lontheflysc, lnojac, lGSL, lforceoccup, lrotatemag, skipsc, scfile, magbasis, mag_tol
+    use mod_self_consistency, only: lontheflysc, lnojac, lGSL, lforceoccup, lrotatemag, skipsc, scfile, magbasis, mag_tol
     use mod_system,           only: System, n0sc1, n0sc2
     use mod_SOC,              only: SOC, socscale, llinearsoc, llineargfsoc
     use mod_magnet,           only: lfield, tesla, hwa_i, hwa_f, hwa_npts, hwa_npt1, hwt_i, hwt_f, &
@@ -174,8 +174,6 @@ contains
         lcreatefiles = .true.
       case("createfolders")
         lcreatefolders = .true.
-      case ("slatec")
-        lslatec = .true.
       case ("GSL")
         lGSL = .true.
       case ("kpoints")

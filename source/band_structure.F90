@@ -8,7 +8,7 @@ subroutine band_structure(s)
   use mod_io,         only: write_header
   implicit none
   type(System), intent(in) :: s
-  integer :: i, j, info, count, f_unit=666
+  integer :: j, info, count, f_unit=666
   integer :: lwork,dimbs
   real(double), dimension(:), allocatable :: rwork,eval
   complex(double), allocatable :: work(:),hk(:,:)
