@@ -12,20 +12,20 @@
   <!-- Configuration of the environment -->
   <parameterset name="modules">
     <parameter name="load_modules" mode="python">
-      {"jurecadc":{"impi":"module purge; ml Intel/2020.2.254-GCC-9.3.0 IntelMPI/2019.8.254 imkl/2020.2.254 CMake; ml UCX/1.9.0; ml mpi-settings/large-job-hybrid",
-                   "pmpi":"module purge; ml Intel/2020.2.254-GCC-9.3.0 ParaStationMPI/5.4.7-1 imkl/2020.2.254 CMake; ml UCX/1.9.0; ml mpi-settings/large-job-hybrid",
-                     "nv":"module purge; ml NVHPC/20.9-GCC-9.3.0 ParaStationMPI/5.4.7-1 CUDA/11.0 imkl CMake; ml UCX/1.9.0",
-                    "gnu":"module purge; ml GCC/9.3.0 OpenMPI/4.1.0rc1 imkl/2020.2.254 CMake; ml UCX/1.9.0; ml mpi-settings/large-job-hybrid"}["${compiler}"],
-        "booster":{"impi":"module purge ; module load Architecture/KNL ; ml Intel/2019.5.281-GCC-8.3.0 IntelMPI/2019.6.154 imkl CMake ; export NAG_KUSARI_FILE=$$HOME/BoosterNAG/license.lic",
-                   "pmpi":"module purge ; module load Architecture/KNL ; ml Intel/2019.5.281-GCC-8.3.0 ParaStationMPI/5.2.2-1 imkl CMake ; export NAG_KUSARI_FILE=$$HOME/BoosterNAG/license.lic",
-                    "gnu":"module purge ; module load Architecture/KNL ; ml GCC/8.3.0 OpenMPI/4.0.2 imkl CMake ; export NAG_KUSARI_FILE=$$HOME/BoosterNAG/license.lic"}["${compiler}"],
-         "juwels":{"impi":"module purge; ml Intel/2020.2.254-GCC-9.3.0 IntelMPI/2019.8.254 imkl/2020.2.254 CMake",
-                   "pmpi":"module purge; ml Intel/2020.2.254-GCC-9.3.0 ParaStationMPI/5.4.7-1 imkl/2020.2.254 CMake",
-                     "nv":"module purge; ml NVHPC/20.9-GCC-9.3.0 ParaStationMPI/5.4.7-1 CUDA/11.0 imkl CMake",
-                    "gnu":"module purge; ml GCC/9.3.0 OpenMPI/4.1.0rc1 imkl/2020.2.254 CMake"}["${compiler}"],
-          "jusuf":{"impi":"module purge; ml Intel/2020.2.254-GCC-9.3.0 IntelMPI/2019.8.254 imkl/2020.2.254 CMake",
-                   "pmpi":"module purge; ml Intel/2020.2.254-GCC-9.3.0 ParaStationMPI/5.4.7-1 imkl/2020.2.254 CMake",
-                    "gnu":"module purge; ml GCC/9.3.0 OpenMPI/4.1.0rc1 imkl/2020.2.254 CMake"}["${compiler}"]
+      {"jurecadc":{"impi":"module purge; ml Intel/2021.2.0-GCC-10.3.0 IntelMPI/2021.2.0 imkl/2021.2.0 CMake",
+                   "pmpi":"module purge; ml Intel/2021.2.0-GCC-10.3.0 ParaStationMPI/5.4.10-1 imkl/2021.2.0 CMake",
+                     "nv":"module purge; ml NVHPC/21.5-GCC-10.3.0 ParaStationMPI/5.4.10-1 CUDA/11.3 imkl/2021.2.0 CMake",
+                    "gnu":"module purge; ml GCC/10.3.0 OpenMPI/4.1.1 imkl/2021.2.0 CMake"}["${compiler}"],
+        "booster":{"impi":"module purge ; module load Architecture/KNL ; ml Intel/2021.2.0-GCC-10.3.0 IntelMPI/2021.2.0 imkl/2021.2.0 CMake",
+                   "pmpi":"module purge ; module load Architecture/KNL ; ml Intel/2021.2.0-GCC-10.3.0 ParaStationMPI/5.4.10-1 imkl/2021.2.0 CMake",
+                    "gnu":"module purge ; module load Architecture/KNL ; ml GCC/10.3.0 OpenMPI/4.1.1 imkl/2021.2.0 CMake"}["${compiler}"],
+         "juwels":{"impi":"module purge; ml Intel/2021.2.0-GCC-10.3.0 IntelMPI/2021.2.0 imkl/2021.2.0 CMake",
+                   "pmpi":"module purge; ml Intel/2021.2.0-GCC-10.3.0 ParaStationMPI/5.4.10-1 imkl/2021.2.0 CMake",
+                     "nv":"module purge; ml NVHPC/21.5-GCC-10.3.0 ParaStationMPI/5.4.10-1 CUDA/11.3 imkl CMake",
+                    "gnu":"module purge; ml GCC/10.3.0 OpenMPI/4.1.1 imkl/2021.2.0 CMake"}["${compiler}"],
+          "jusuf":{"impi":"module purge; ml Intel/2021.2.0-GCC-10.3.0 IntelMPI/2021.2.0 imkl/2021.2.0 CMake",
+                   "pmpi":"module purge; ml Intel/2021.2.0-GCC-10.3.0 ParaStationMPI/5.4.7-1 imkl/2021.2.0 CMake",
+                    "gnu":"module purge; ml GCC/10.3.0 OpenMPI/4.1.1 imkl/2021.2.0 CMake"}["${compiler}"]
          }["${machine}"]
     </parameter>
   </parameterset>
