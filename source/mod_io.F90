@@ -55,7 +55,7 @@ contains
 
   subroutine get_parameters(filename,s)
     use mod_kind,              only: dp,int64
-    use AtomTypes,             only: default_orbitals
+    use AtomTypes,             only: default_orbitals,selected_orbitals,selected_sorbitals,selected_porbitals,selected_dorbitals
     use mod_input,             only: get_parameter,read_file,enable_input_logging,disable_input_logging
     use mod_parameters,        only: output,laddresults,lverbose,ldebug,lkpoints,&
                                      lpositions,lcreatefiles,lnolb,lhfresponses,&
@@ -93,7 +93,6 @@ contains
     integer :: i,cnt,iloc
     integer,  dimension(:),allocatable :: itmps_arr,itmpp_arr,itmpd_arr
     character(len=20)  :: tmp_string
-    character(len=100) :: selected_orbitals,selected_sorbitals,selected_porbitals,selected_dorbitals
 
     intrinsic :: findloc
     external  :: MPI_Finalize
