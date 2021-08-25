@@ -236,7 +236,7 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES nv)
                                                 -g
                                                 -mkl
                                                 -align array64byte
-                                                -xHost
+                                                -march=core-avx2
                                                 )
   elseif(PLATFORM MATCHES hlrs)
     target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
