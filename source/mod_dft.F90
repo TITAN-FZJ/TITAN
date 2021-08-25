@@ -56,9 +56,8 @@ contains
 
     ! Read title
     read(f_unit, fmt='(A)', iostat=ios) title
-    title = trim(adjustl(title))
 
-    ! Read number of orbitals * atoms in the unit cell
+    ! Read total number of orbitals
     nOrb = StoI(next_line("readHamiltonian",f_unit,"number of orbitals"))
     nOrb = int(nOrb/s%nAtoms)
     if(nOrb /= s%nOrb) call log_error("readHamiltonian", "Number of orbitals selected in input (" // trim(itos(s%nOrb)) // ") is different than in hamiltonian file (" // trim(itos(nOrb)) // ")")

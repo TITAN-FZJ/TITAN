@@ -1,8 +1,11 @@
 module AtomTypes
-  use mod_kind, only: dp
+  use mod_kind, only: dp,int32
 
   character(len=3), dimension(9) :: default_orbitals = ["s  ","px ","py ","pz ","dxy","dyz","dzx","dx2","dz2"]
   !! Orbitals that are implemented and recognized on TITAN
+  character(len=100) :: selected_orbitals,selected_sorbitals,selected_porbitals,selected_dorbitals
+  !! Variables to print selected orbitals
+
 
   type NeighborIndex
     integer :: index
@@ -64,6 +67,13 @@ module AtomTypes
     !! SOC Coupling constants
     real(dp) :: FermiLevel
     !! Fermi level
+    
+    integer(int32), dimension(:), allocatable :: Orbs
+    !! Types of selected orbitals 
+    integer(int32), dimension(:), allocatable :: sOrbs,pOrbs,dOrbs
+    !! Indices of selected s,p,d orbitals
+    integer(int32) :: nOrb,nsOrb,npOrb,ndOrb,nOrb2
+    !! Number of orbitals, number of s,p,d orbitals, and 2*(number of orbitals) (for spin)
     real(dp) :: Occupation, OccupationS, OccupationP, OccupationD
     !! Total, s, p and d occupations
     real(dp) :: LatticeConstant
