@@ -105,13 +105,6 @@ contains
     ia(2,1) = ia(1,1) + s%Types(s%Basis(1)%Material)%nOrb - 1
     ia(3,1) = ia(2,1) + 1
     ia(4,1) = ia(3,1) + s%Types(s%Basis(1)%Material)%nOrb - 1
-
-    ! Superconductivity strides
-    ia_sc(1,1) = 1
-    ia_sc(2,1) = ia_sc(1,1) + 2*s%Types(s%Basis(1)%Material)%nOrb - 1
-    ia_sc(3,1) = ia_sc(1,1) + dimH
-    ia_sc(4,1) = ia_sc(3,1) + 2*s%Types(s%Basis(1)%Material)%nOrb - 1
-
     do i = 2, s%nAtoms
       dimH = dimH + s%Types(s%Basis(i)%Material)%nOrb
       dimens = dimens + s%Types(s%Basis(i)%Material)%nOrb * s%Types(s%Basis(i)%Material)%nOrb
@@ -120,12 +113,6 @@ contains
       ia(2,i) = ia(1,i) + s%nOrb - 1     ! End up
       ia(3,i) = ia(2,i) + 1              ! Begin down
       ia(4,i) = ia(3,i) + s%nOrb - 1     ! End down
-
-      ! Superconductivity block has doubled dimensions in each spin
-      ia_sc(1,i) = ia_sc(2,i-1) + 1                                         ! Begin first block (electrons) 1 to 2*nOrb
-      ia_sc(2,i) = ia_sc(1,i) + 2*s%Types(s%Basis(i)%Material)%nOrb - 1    ! End first block (electrons)
-      ia_sc(3,i) = ia_sc(1,i) + dimH                                        ! Begin second block (holes) 1 to 2*nOrb + dimH
-      ia_sc(4,i) = ia_sc(3,i) + 2*s%Types(s%Basis(i)%Material)%nOrb - 1    ! End second block (holes)
     end do
     dimH = dimH*2
     dimens = dimens*4
@@ -133,6 +120,27 @@ contains
     dimspinAtoms = 4 * s%nAtoms
 
     offsetParameter = s%nAtoms*s%nOrb*2
+
+    ! Superconductivity strides (need dimH)
+    ia_sc(1,1) = 1
+    ia_sc(2,1) = ia_sc(1,1) + 2*s%Types(s%Basis(1)%Material)%nOrb - 1
+    ia_sc(3,1) = ia_sc(1,1) + dimH
+    ia_sc(4,1) = ia_sc(3,1) + 2*s%Types(s%Basis(1)%Material)%nOrb - 1
+    write(*,*) "11111111 i = ",1, " ia    = ",ia(:,1)
+    write(*,*) "11111111 i = ",1, " ia_sc = ",ia_sc(:,1)
+    do i = 2, s%nAtoms
+      ! Superconductivity block has doubled dimensions in each spin
+      ia_sc(1,i) = ia_sc(2,i-1) + 1                                         ! Begin first block (electrons) 1 to 2*nOrb
+      ia_sc(2,i) = ia_sc(1,i) + 2*s%Types(s%Basis(i)%Material)%nOrb - 1    ! End first block (electrons)
+      ia_sc(3,i) = ia_sc(1,i) + dimH                                        ! Begin second block (holes) 1 to 2*nOrb + dimH
+      ia_sc(4,i) = ia_sc(3,i) + 2*s%Types(s%Basis(i)%Material)%nOrb - 1    ! End second block (holes)
+      write(*,*) "11111111 i = ",i, " ia    = ",ia(:,i)
+      write(*,*) "11111111 i = ",i, " ia_sc = ",ia_sc(:,i)
+    end do
+
+
+
+
 
 #ifdef _GPU
     if(allocated(ia_d)) deallocate(ia_d)

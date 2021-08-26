@@ -307,7 +307,6 @@ contains
       end do
     end if
 
-
     ! Getting number of orbitals and Fermi energy
     line = next_line("readElementFile",f_unit,"orbitals or Fermi energy")
 
