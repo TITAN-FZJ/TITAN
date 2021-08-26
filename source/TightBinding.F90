@@ -315,7 +315,7 @@ contains
       ! If not, pass general selection of orbitals to each type
       s%Types(n)%nOrb  = s%nOrb
       allocate(s%Types(n)%Orbs(s%Types(n)%nOrb))
-      s%Types(n)%Orbs(1:s%nOrb) = s%Orbs(i)
+      s%Types(n)%Orbs(1:s%nOrb) = s%Orbs(1:s%nOrb)
       
       s%Types(n)%nsOrb = s%nsOrb
       allocate(s%Types(n)%sOrbs(s%nsOrb))
