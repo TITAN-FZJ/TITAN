@@ -429,7 +429,11 @@ contains
     ! Calculating new angles of GS magnetization in units of pi and magnetization vector
     do i = 1,s%nAtoms
       mabs(i)   = sqrt((sum(mx(:,i))**2)+(sum(my(:,i))**2)+(sum(mz(:,i))**2))
-      mtheta(i) = merge(acos(sum(mz(:,i))/mabs(i))*rad2deg,0._dp,mabs(i)>1.e-8_dp)
+      if(mabs(i)>1.e-8_dp) then
+        mtheta(i) = merge(acos(sum(mz(:,i))/mabs(i))*rad2deg,0._dp,mabs(i)>1.e-8_dp)
+      else
+        mtheta(i) = 0._dp
+      end if
       if(abs(mtheta(i))>1.e-8_dp) then
         if(abs(abs(mtheta(i))-180._dp)>1.e-8_dp) then
           mphi(i)   = atan2(sum(my(:,i)),sum(mx(:,i)))*rad2deg

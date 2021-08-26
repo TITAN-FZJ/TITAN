@@ -547,6 +547,8 @@ contains
       s%dOrbs(1:s%ndOrb) = itmpd_arr(1:s%ndOrb)
       call log_message("get_parameters", trim(itos(s%ndOrb)) // " d orbitals:" // trim(selected_dorbitals) )
     end if
+    if(.not. get_parameter("fermi_layer", fermi_layer, 1)) &
+      call log_warning("get_parameters", "'fermi_layer' not given. Using default value: fermi_layer = 1")
     !---------------------------------------- Slater-Koster ----------------------------------------
     if(tbmode == 1) then
       dfttype = "S"
@@ -569,8 +571,6 @@ contains
       !   Npl_f = Npl
       ! end if
 
-      if(.not. get_parameter("fermi_layer", fermi_layer, 1)) &
-        call log_warning("get_parameters", "'fermi_layer' not given. Using default value: fermi_layer = 1")
     !--------------------------------------------- DFT ---------------------------------------------
     else if(tbmode == 2) then
       dfttype = "D"
