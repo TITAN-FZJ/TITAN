@@ -62,13 +62,6 @@ contains
     ! Read number of Cells
     nCells = StoI(next_line("readHamiltonian",f_unit,"number of cells"))
 
-    ! ! Number of Cells per dimension
-    ! nCells_per_dim = ceiling(nCells**(1.d0/s%isysdim))
-    ! do i = 1,s%isysdim
-    !   dim_ini(i) = 1
-    !   dim_end(i) = nCells_per_dim
-    ! end do
-
     ! Allocate array for all atoms in all unit cells
     allocate(list(nCells*s%nAtoms))
     do i = 1,nCells*s%nAtoms
@@ -95,7 +88,6 @@ contains
     nNeighbors = 0
     do cell = 1,nCells
       do i = 1,s%nAtoms
-
         
         ! "nNeighbors" is the current atom
         nNeighbors = nNeighbors + 1
@@ -140,8 +132,8 @@ contains
     close(f_unit)
   
     ! Defining number of neighbors (total number of atoms)
-    ! TODO: If cell is to be cut, a temporary array must be created here, 
-    ! and the exact number of neighbors can be counted in the loop below
+    ! TODO: If number of neighbors is to be cut, a temporary array must be created here, 
+    ! and the exact number of neighbors can be counted in a loop below
     s%nNeighbors = nCells*s%nAtoms
     if(allocated(s%Neighbors)) deallocate(s%Neighbors)
     allocate(s%Neighbors(s%nNeighbors))
