@@ -96,7 +96,7 @@ build:intel:normal:
   script:
     - *setup_ifort
     - cd build
-    - cmake ../ -DPLATFORM=iff
+    - cmake ../ -DPLATFORM=iff -DDEBUG=ON
     - make
   artifacts:
     paths:

@@ -16,6 +16,11 @@ contains
       call readElementFile(s,i,tbmode)
     end do
 
+    s%total_nOrb = s%Types(s%Basis(1)%Material)%nOrb
+    do i = 2, s%nAtoms
+      s%total_nOrb = dimH + s%Types(s%Basis(i)%Material)%nOrb
+    end do
+
     select case(tbmode)
     case(1)
       call get_SK_parameter(s,fermi_layer)
@@ -175,7 +180,7 @@ contains
   subroutine readElementFile(s,n,tbmode)
   !! Reading element file, including all the parameters
     use mod_kind,              only: dp
-    use AtomTypes,             only: NeighborAtom,default_orbitals,selected_orbitals,selected_sorbitals,selected_porbitals,selected_dorbitals
+    use AtomTypes,             only: NeighborAtom,default_orbitals,selected_orbitals !,selected_sorbitals,selected_porbitals,selected_dorbitals
     use mod_system,            only: System_type
     use mod_mpi_pars,          only: abortProgram
     use mod_tools,             only: ItoS,StoI,StoR,StoArray,next_line,vec_norm,vecDist,is_numeric
