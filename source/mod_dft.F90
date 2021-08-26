@@ -59,8 +59,8 @@ contains
 
     ! Read total number of orbitals
     nOrb = StoI(next_line("readHamiltonian",f_unit,"number of orbitals"))
+    if(nOrb /= s%total_nOrb) call log_error("readHamiltonian", "Total number of orbitals from input (" // trim(itos(s%total_nOrb)) // ") is different than in hamiltonian file (" // trim(itos(nOrb)) // ")")
     nOrb = int(nOrb/s%nAtoms)
-    if(nOrb /= s%nOrb) call log_error("readHamiltonian", "Number of orbitals selected in input (" // trim(itos(s%nOrb)) // ") is different than in hamiltonian file (" // trim(itos(nOrb)) // ")")
 
     ! Read number of Cells
     nCells = StoI(next_line("readHamiltonian",f_unit,"number of cells"))

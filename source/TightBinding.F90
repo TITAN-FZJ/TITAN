@@ -130,7 +130,8 @@ contains
               mix(l,1) = s%Types(s%Basis(i)%Material)%Hopping(l,k) * scale_factor(1) ** expon(l)
               mix(l,2) = s%Types(s%Basis(j)%Material)%Hopping(l,k) * scale_factor(2) ** expon(l)
             end do
-            allocate(s%Neighbors(current%index)%t0i(s%Types(s%Basis(j)%Material)%nOrb,s%Types(s%Basis(i)%Material)%nOrb,s%nAtoms))
+            if(.not.allocated(s%Neighbors(current%index)%t0i)) &
+              allocate(s%Neighbors(current%index)%t0i(s%Types(s%Basis(j)%Material)%nOrb,s%Types(s%Basis(i)%Material)%nOrb,s%nAtoms))
 
             call set_hopping_matrix(s%Neighbors(current%index)%dirCos(:,i), &
                                     mix(:,1),mix(:,2),s%Types(s%Basis(i)%Material)%nOrb,s%Types(s%Basis(j)%Material)%nOrb, &
@@ -317,17 +318,23 @@ contains
       allocate(s%Types(n)%Orbs(s%Types(n)%nOrb))
       s%Types(n)%Orbs(1:s%nOrb) = s%Orbs(1:s%nOrb)
       
-      s%Types(n)%nsOrb = s%nsOrb
-      allocate(s%Types(n)%sOrbs(s%nsOrb))
-      s%Types(n)%sOrbs(1:s%nsOrb) = s%sOrbs(1:s%nsOrb)
+      if(s%nsOrb>0) then
+        s%Types(n)%nsOrb = s%nsOrb
+        allocate(s%Types(n)%sOrbs(s%nsOrb))
+        s%Types(n)%sOrbs(1:s%nsOrb) = s%sOrbs(1:s%nsOrb)
+      end if
 
-      s%Types(n)%npOrb = s%npOrb
-      allocate(s%Types(n)%pOrbs(s%npOrb))
-      s%Types(n)%pOrbs(1:s%npOrb) = s%pOrbs(1:s%npOrb)
+      if(s%npOrb>0) then
+        s%Types(n)%npOrb = s%npOrb
+        allocate(s%Types(n)%pOrbs(s%npOrb))
+        s%Types(n)%pOrbs(1:s%npOrb) = s%pOrbs(1:s%npOrb)
+      end if
 
-      s%Types(n)%ndOrb = s%ndOrb
-      allocate(s%Types(n)%dOrbs(s%ndOrb))
-      s%Types(n)%dOrbs(1:s%ndOrb) = s%dOrbs(1:s%ndOrb)
+      if(s%ndOrb>0) then
+        s%Types(n)%ndOrb = s%ndOrb
+        allocate(s%Types(n)%dOrbs(s%ndOrb))
+        s%Types(n)%dOrbs(1:s%ndOrb) = s%dOrbs(1:s%ndOrb)
+      end if
 
       call log_message("readElementFile",trim(itos(s%nOrb)) // " orbitals selected for " // trim(s%Types(n)%Name) //":" // trim(selected_orbitals))
 
