@@ -72,14 +72,13 @@ contains
     ! Shifting all energies to a common Fermi level
     s%Ef = s%Types(fermi_layer)%FermiLevel
     do i = 1, s%nTypes
-      do j = 1, s%nOrb
+      do j = 1, s%Types(i)%nOrb
         s%Types(i)%onSite(j,j) = s%Types(i)%onSite(j,j) - s%Types(i)%FermiLevel + s%Ef
       end do
     end do
 
     ! Allocate & initialize Hopping variables
     do i = 1, s%nNeighbors
-      allocate(s%Neighbors(i)%t0i(s%nOrb,s%nOrb,s%nAtoms))
       allocate(s%Neighbors(i)%isHopping(s%nAtoms))
       s%Neighbors(i)%t0i = cZero
       s%Neighbors(i)%isHopping = .false.
@@ -96,13 +95,15 @@ contains
     !     s%Neighbors(current%index)%t0i(mu,nu,i) = s%Neighbors(current%index)%t0i(mu,nu,i) * scale_factor ** (mu + nu + 1)
     !   end do
     ! end do
+
+    ! Looping over atoms in the unit cell
     do i = 1, s%nAtoms
       ! Getting total number of electrons on the system
       s%totalOccupation = s%totalOccupation + s%Types(s%Basis(i)%Material)%Occupation
       ! Storing Hubbard e-e interaction per basis atom
       s%Basis(i)%Un = s%Types(s%Basis(i)%Material)%Un
       s%Basis(i)%Um = s%Types(s%Basis(i)%Material)%Um
-      ! Setting hopping parameters
+      ! Looping over neighbor stages and atoms in their unit cell and setting hopping parameters
       do j = 1, s%nAtoms
         do k = 1, s%nStages
           current => s%Basis(i)%NeighborList(k,j)%head
@@ -124,8 +125,11 @@ contains
               mix(l,1) = s%Types(s%Basis(i)%Material)%Hopping(l,k) * scale_factor(1) ** expon(l)
               mix(l,2) = s%Types(s%Basis(j)%Material)%Hopping(l,k) * scale_factor(2) ** expon(l)
             end do
+            allocate(s%Neighbors(current%index)%t0i(s%Types(s%Basis(j)%Material)%nOrb,s%Types(s%Basis(i)%Material)%nOrb,s%nAtoms))
+
             call set_hopping_matrix(s%Neighbors(current%index)%dirCos(:,i), &
-                                    mix(:,1),mix(:,2),s%nOrb,s%Orbs, &
+                                    mix(:,1),mix(:,2),s%Types(s%Basis(i)%Material)%nOrb,s%Types(s%Basis(j)%Material)%nOrb, &
+                                    s%Types(s%Basis(i)%Material)%Orbs,s%Types(s%Basis(j)%Material)%Orbs, &
                                     s%Neighbors(current%index)%t0i(:,:,i))
             s%Neighbors(current%index)%isHopping(i) = .true.
             current => current%next
@@ -135,16 +139,17 @@ contains
     end do
   end subroutine get_SK_parameter
 
-  subroutine set_hopping_matrix(dirCos,t1,t2,nOrb,Orbs,t0i)
+  subroutine set_hopping_matrix(dirCos,t1,t2,nOrb_i,nOrb_j,Orbs_i,Orbs_j,t0i)
     use mod_kind,       only: dp
     use mod_parameters, only: lsimplemix
     use AtomTypes,      only: default_orbitals
     implicit none
-    real(dp),    dimension(3),         intent(in)    :: dirCos
-    real(dp),    dimension(10),        intent(in)    :: t1, t2
-    integer,                           intent(in)    :: nOrb
-    integer,     dimension(nOrb),      intent(in)    :: Orbs
-    complex(dp), dimension(nOrb,nOrb), intent(inout) :: t0i
+    real(dp),    dimension(3),             intent(in)    :: dirCos
+    real(dp),    dimension(10),            intent(in)    :: t1, t2
+    integer,                               intent(in)    :: nOrb_j,nOrb_i
+    integer,     dimension(nOrb_j),        intent(in)    :: Orbs_j
+    integer,     dimension(nOrb_i),        intent(in)    :: Orbs_i
+    complex(dp), dimension(nOrb_j,nOrb_i), intent(inout) :: t0i
     integer                 :: i,j
     real(dp), dimension(10) :: mix
     real(dp), dimension(size(default_orbitals),size(default_orbitals)) :: bp
@@ -159,9 +164,9 @@ contains
     call intd(mix(1),mix(2),mix(3),mix(4),mix(5),mix(6),mix(7),mix(8),mix(9),mix(10),dirCos,bp)
 
     ! Selecting orbitals
-    do j=1,nOrb
-      do i=1,nOrb
-        t0i(i,j) = cmplx(bp(Orbs(i),Orbs(j)),0.d0,dp)
+    do j=1,nOrb_j
+      do i=1,nOrb_i
+        t0i(i,j) = cmplx(bp(Orbs_i(i),Orbs_j(j)),0.d0,dp)
       end do
     end do
 
@@ -495,33 +500,33 @@ contains
       read(unit=str_arr(i), fmt=*,iostat=ios ) tmp_arr(cnt)
     end do
 
-    allocate(s%Types(n)%lambda(s%nOrb))
+    allocate(s%Types(n)%lambda(s%Types(n)%nOrb))
     ! Sigle value for all orbitals
     if (cnt==1) then
-      s%Types(n)%lambda(1:s%nOrb) = tmp_arr(1)
+      s%Types(n)%lambda(1:s%Types(n)%nOrb) = tmp_arr(1)
     ! One value per orbital
-    else if (cnt==s%nOrb) then
-      s%Types(n)%lambda(1:s%nOrb) = tmp_arr(1)
+    else if (cnt==s%Types(n)%nOrb) then
+      s%Types(n)%lambda(1:s%Types(n)%nOrb) = tmp_arr(1)
     ! One value per general orbital type (s,p,d)
     else if (cnt==3) then
-      do mu=1,s%nOrb
+      do mu=1,s%Types(n)%nOrb
         ! s-type orbital
-        if(s%Orbs(mu)==1) then
+        if(s%Types(n)%Orbs(mu)==1) then
           s%Types(n)%lambda(mu) = tmp_arr(1)
         end if
         ! p-type orbital
-        if((s%Orbs(mu)>=2).and.(s%Orbs(mu)<=4)) then
+        if((s%Types(n)%Orbs(mu)>=2).and.(s%Types(n)%Orbs(mu)<=4)) then
           s%Types(n)%lambda(mu) = tmp_arr(2)
         end if
         ! d-type orbital
-        if((s%Orbs(mu)>=5).and.(s%Orbs(mu)<=9)) then
+        if((s%Types(n)%Orbs(mu)>=5).and.(s%Types(n)%Orbs(mu)<=9)) then
           s%Types(n)%lambda(mu) = tmp_arr(3)
         end if
       end do
     ! One value per specific orbital type (s,px,py,pz,dxy,dyz,dzx,dx2,dz2)
     else if (cnt==9) then
-      do mu=1,s%nOrb
-        s%Types(n)%lambda(mu) = tmp_arr(s%Orbs(mu))
+      do mu=1,s%Types(n)%nOrb
+        s%Types(n)%lambda(mu) = tmp_arr(s%Types(n)%Orbs(mu))
       end do
     else
       if(lsupercond) &
@@ -596,10 +601,10 @@ contains
     end if
 
     ! Setting up on-site terms
-    allocate(s%Types(n)%onSite(s%nOrb,s%nOrb))
+    allocate(s%Types(n)%onSite(s%Types(n)%nOrb,s%Types(n)%nOrb))
     s%Types(n)%onSite = 0._dp
-    do j=1,s%nOrb
-      s%Types(n)%onSite(j,j) = on_site(s%Orbs(j))
+    do j=1,s%Types(n)%nOrb
+      s%Types(n)%onSite(j,j) = on_site(s%Types(n)%Orbs(j))
     end do
 
     ! Reading two-center integrals

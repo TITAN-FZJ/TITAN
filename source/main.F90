@@ -161,7 +161,7 @@ program TITAN
   call init_Hamiltk_variables(s,supercond)
 
   !---------- Conversion arrays for dynamical quantities ---------------
-  call initConversionMatrices(s%nAtoms,s%nOrb)
+  call initConversionMatrices(s)
 
   !--------------------- Lattice specific variables --------------------
   call initElectricField(s%a1, s%a2, s%a3)

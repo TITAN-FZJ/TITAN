@@ -149,7 +149,7 @@ contains
         call init_Hamiltk_variables(sys0(i),supercond)
 
         !------------------------ Conversion arrays -------------------------
-        call initConversionMatrices(sys0(i)%nAtoms,sys0(i)%nOrb)
+        call initConversionMatrices(sys0(i))
 
         ! Distribute Energy Integration across all points available
         call realBZ % setup_fraction(sys0(i),rFreq(1), sFreq(1), FreqComm(1),lkpoints)
