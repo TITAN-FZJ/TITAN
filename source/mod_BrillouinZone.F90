@@ -117,7 +117,7 @@ contains
       total = self%nkpt_x * self%nkpt_y
       call count_2D_BZ(total,sys%a1,sys%a2,self%nkpt,self%nkpt_norep)
     case default
-      total = self%nkpt_x 
+      total = self%nkpt_x
       call count_1D_BZ(total,sys%a1,self%nkpt,self%nkpt_norep)
     end select
 
@@ -379,6 +379,8 @@ contains
     end do
     self%w = self%w / dble(nkpt)
 
+    ! write(*,*) "added = ", added, " , workload = ", self%workload, " first = ", first, " last = ", last
+
     if(added == self%workload) return
 
     if(added > self%workload) then
@@ -561,7 +563,7 @@ contains
 
     zdir = [0._dp,0._dp,1._dp]
     ydir = [0._dp,1._dp,0._dp]
-    nkpt_perdim = ceiling(dble(nkpt_in)) 
+    nkpt_perdim = ceiling(dble(nkpt_in))
     nkpt_x = nkpt_perdim
 
     nkpt = nkpt_x
@@ -601,7 +603,7 @@ contains
     end do
     !$omp end parallel do
   end subroutine count_1D_BZ
-  
+
 
   subroutine output_kpoints(self,unit)
     use mod_kind, only: int32, int64

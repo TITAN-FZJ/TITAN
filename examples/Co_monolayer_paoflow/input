@@ -7,9 +7,6 @@
 !                                OUTPUT FILE                                    !
 -> output = output/selfCons 
 !===============================================================================!
-!                              IMPURITY FILE                                    !
--> impurity = impurity          
-!===============================================================================!
 !                         OPTIONAL RUNNING VARIABLES                            !
 -> Options = createfolders positions ontheflysc eigenstates 
 !===============================================================================!
@@ -83,7 +80,7 @@
 !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -!
 ! Wave vector path and number of points:                                        !
 -> band =  G X M G                       
--> nQvec = 200                
+-> nQvec = 200
 -> qbasis = bravais             
 !===============================================================================!
 !                              SELF-CONSISTENCY                                 !

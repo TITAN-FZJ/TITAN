@@ -25,15 +25,17 @@ module mod_parameters
   integer(int64) :: kptotal_in
   !! Total number of k-points
 
-  integer(int32) :: tbmode 
+  integer(int32) :: tbmode
   !! Tight-binding mode: (1) Slater-Koster, (2) DFT (not implemented yet)
-  integer(int32) :: fermi_layer   
+  integer(int32) :: fermi_layer
   !! Which site will be used for fermi level (Maybe remove it and read from outside?)
   real(dp) :: Ef_overwrite
   logical  :: lEf_overwrite = .false.
   !! Overwrite Fermi energy variables (that is set immediately before self-consistency)
   character(len=20), dimension(:), allocatable :: layers
   !! Number of layers (Obsolete?)
+  !! Number of cells around the origin for the cluster generation of the real space Jij
+  integer(int32) :: cluster_layers = 2
 
   !========================================================================================!
   logical       :: lhfresponses = .false.

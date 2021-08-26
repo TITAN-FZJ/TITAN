@@ -19,7 +19,7 @@ subroutine setLoops(s)
   if(deltae<=1.e-15_dp) nEner1 = 1
 
   ! Wave vector loop
-  if((itype == 4).or.((itype >= 7).and.(itype <= 9))) then
+  if((itype == 4).or.((itype >= 6).and.(itype <= 9))) then
     if(nQvec1==1) then
       deltak = 0._dp
       allocate(kpoints(3,1))

@@ -37,10 +37,10 @@ module mod_system
     integer(int32) :: nAtoms = 0
     !! Number of atoms in the system
     integer(int32), dimension(:), allocatable :: Orbs
-    !! Types of selected orbitals 
+    !! Types of selected orbitals
     integer(int32), dimension(:), allocatable :: sOrbs,pOrbs,dOrbs
     !! Indices of selected s,p,d orbitals
-    integer(int32) :: nOrb,nsOrb,npOrb,ndOrb,nOrb2
+    integer(int32) :: nOrb,nsOrb,npOrb,ndOrb,nOrb2,nOrb2sc
     !! Number of orbitals, number of s,p,d orbitals, and 2*(number of orbitals) (for spin)
     type(BasisAtom), dimension(:), allocatable :: Basis
     !! Information of the basis
@@ -109,7 +109,7 @@ contains
       ia_sc(2,i) = ia_sc(1,i) + s%nOrb*2 - 1        ! End first block (electrons)
       ia_sc(3,i) = ia_sc(1,i) + dimH              ! Begin second block (holes) 1 to 2*s%nOrb + dimH
       ia_sc(4,i) = ia_sc(3,i) + s%nOrb*2 - 1        ! End second block (holes)
-    end do      
+    end do
 
 #ifdef _GPU
     if(allocated(ia_d)) deallocate(ia_d)
