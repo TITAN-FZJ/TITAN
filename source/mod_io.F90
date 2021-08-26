@@ -64,7 +64,7 @@ contains
                                      itype,ry2ev,ltesla,eta,etap,dmax,emin,emax,&
                                      skip_steps,nEner,nEner1,nQvec,nQvec1,qbasis,renorm,renormnb,bands,band_cnt,&
                                      dfttype,parField,parFreq,kptotal_in,kp_in,&
-                                     tbmode,fermi_layer,lfixEf,lEf_overwrite,Ef_overwrite
+                                     tbmode,fermi_layer,lfixEf,lEf_overwrite,Ef_overwrite, cluster_layers
     use mod_superconductivity, only: lsuperCond,superCond
     use mod_self_consistency,  only: lontheflysc,lnojac,lforceoccup,lrotatemag,skipsc,scfile,magbasis,mag_tol
     use mod_system,            only: System_type,n0sc1,n0sc2
@@ -410,6 +410,12 @@ contains
     if(.not. get_parameter("superCond", lsuperCond, .false.)) &
       call log_warning("get_parameters","'superCond' missing. Not using superconductivity.")
     superCond = merge(2,1,lsuperCond)
+
+    if(itype==12) then
+      if(.not. get_parameter("cluster_layers", cluster_layers)) then
+        call log_warning("get_parameters","'cluster_layers' missing. Using default value 2.")
+      end if
+    end if
     !------------------------------------ Integration Variables ------------------------------------
     if(.not. get_parameter("parts", parts)) &
       call log_error("get_parameters","'parts' missing.")
@@ -443,7 +449,7 @@ contains
         call log_error("get_parameters","'renormnb' missing.")
     end if
     !----------------- Wave vector loop (band structure and susceptibility)  ----------------
-    if((itype >= 7).and.(itype <= 9)) then
+    if((itype >= 6).and.(itype <= 9)) then
       ! Path or point to calculate the susceptibility
       if(.not. get_parameter("band", bands, band_cnt)) then
         call log_warning("get_parameters", "'band' missing. Using Gamma point only.")
@@ -484,6 +490,7 @@ contains
     end if
     s%nOrb = cnt
     s%nOrb2 = 2*s%nOrb
+    s%nOrb2sc = superCond*s%nOrb2
     allocate(s%Orbs(s%nOrb),itmps_arr(s%nOrb),itmpp_arr(s%nOrb),itmpd_arr(s%nOrb))
     selected_orbitals = ""
     selected_sorbitals = ""

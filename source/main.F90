@@ -49,7 +49,7 @@ program TITAN
   implicit none
 
   external :: create_folder,create_files,check_files,sort_all_files
-  external :: coupling,calculate_chi,calculate_all,calculate_dc_limit
+  external :: coupling,calculate_chi,calculate_all,calculate_dc_limit, real_coupling
   external :: setLoops,endTITAN,MPI_Barrier
 
   !------------------------ MPI initialization -------------------------
@@ -75,7 +75,7 @@ program TITAN
   if(num_gpus == 0) &
     call log_error("main", "Something wrong in the setup: number of GPUS is zero!")
   ! Setting up the device for this process
-  CUDA_CALL( cudaSetDevice(mod(myrank,num_gpus)) ) 
+  CUDA_CALL( cudaSetDevice(mod(myrank,num_gpus)) )
   ! Creating handle for cusolver
   call create_handle()
   !$acc init device_type(acc_device_nvidia)
@@ -291,7 +291,7 @@ program TITAN
     ! End of self-consistency marker
     call nvtxEndRange
 #endif
-    
+
 
     !--------- Temporary execution to test this function ---------------
 
@@ -349,6 +349,8 @@ program TITAN
       call calculate_TCM()
     case(11) ! Propagation of ( H(k) + S.B(t) )
       call time_propagator(s)
+    case(12) ! Coupling tensor in real space
+      call real_coupling()
     end select
     !===================================================================
 
@@ -402,7 +404,7 @@ subroutine endTITAN()
   call deallocateLS()
   call deallocate_supercond_variables()
   call deallocate_constants()
-  
+
   !---------------------- Deallocating variables -----------------------
   !deallocate(r_nn, c_nn, l_nn)
   !deallocate(kbz,wkbz) !,kbz2d)

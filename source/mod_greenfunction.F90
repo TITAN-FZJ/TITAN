@@ -6,11 +6,10 @@ module mod_greenfunction
     subroutine calc_green_sub(er,ei,s,kp,gf)
       use mod_kind,              only: dp
       use mod_System,            only: System_type
-      use mod_superconductivity, only: superCond
       implicit none
       real(dp),          intent(in) :: er,ei,kp(3)
       type(System_type), intent(in) :: s
-      complex(dp), dimension(s%nOrb2*superCond,s%nOrb2*superCond,s%nAtoms,s%nAtoms), intent(out)  :: gf
+      complex(dp), dimension(s%nOrb2sc,s%nOrb2sc,s%nAtoms,s%nAtoms), intent(out)  :: gf
     end subroutine calc_green_sub
   end interface
 

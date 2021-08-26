@@ -48,7 +48,8 @@ contains
     real(dp),    dimension(3)                                 :: kp
     complex(dp), dimension(s%nAtoms,s%nOrb)                   :: gdiagud,gdiagdu
     real(dp),    dimension(s%nOrb,s%nAtoms)                   :: imguu,imgdd
-    complex(dp), dimension(s%nOrb2,s%nOrb2,s%nAtoms,s%nAtoms) :: gf
+    complex(dp), dimension(s%nOrb2sc,s%nOrb2sc,s%nAtoms,s%nAtoms) :: gf
+
     !--------------------- begin MPI vars --------------------
     integer(int64) :: ix
     integer  :: ncount
@@ -59,8 +60,19 @@ contains
 
     ncount = s%nAtoms * s%nOrb
 
-    if(lsuperCond) &
-      call abortProgram("[expectation_values_greenfunction] Calculation of superconducting parameter Delta is not yet implemented with Green Functions.")
+    ! allocate(imguu(s%nOrb,s%nAtoms),imgdd(s%nOrb,s%nAtoms), stat = AllocateStatus)
+    ! if(AllocateStatus/=0) &
+    !   call abortProgram("[expectation_values_greenfunction] Not enough memory for: imguu,imgdd")
+    !
+    ! allocate(gdiagud(s%nAtoms,s%nOrb), gdiagdu(s%nAtoms,s%nOrb), stat = AllocateStatus)
+    ! if(AllocateStatus /= 0) &
+      ! call abortProgram("[expectation_values_greenfunction] Not enough memory for: gdiagdu, gdiagud")
+    !
+    ! allocate(gf(s%nOrb2sc,s%nOrb2sc,s%nAtoms,s%nAtoms), stat=AllocateStatus)
+    ! if(AllocateStatus /= 0) &
+    !   call AbortProgram("[expectation_values_greenfunction] Not enough memory for: gf")
+
+    gf = cZero
 
     !If lsupercond is true then fermi is 0.0 otherwise is s%Ef
     fermi = merge(0._dp,s%Ef,lsuperCond)
@@ -78,10 +90,10 @@ contains
     !$omp& default(none) &
     !$omp& firstprivate(gf) &
     !$omp& private(ix,ep,kp,weight,i,mu,mup) &
-    !$omp& shared(calc_green,local_points,fermi,eta,wght,s,bzs,E_k_imag_mesh,y,imguu,imgdd,gdiagud,gdiagdu)
+    !$omp& shared(calc_green,deltas,lsupercond,local_points,fermi,eta,wght,s,bzs,E_k_imag_mesh,y,imguu,imgdd,gdiagud,gdiagdu)
     gf = cZero
 
-    !$omp do schedule(dynamic) reduction(+:imguu,imgdd,gdiagud,gdiagdu)
+    !$omp do schedule(dynamic) reduction(+:imguu,imgdd,gdiagud,gdiagdu,deltas)
     do ix = 1, local_points
        ep = y(E_k_imag_mesh(1,ix))
        kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
@@ -95,6 +107,11 @@ contains
 
            imguu(mu,i) = imguu(mu,i) + real(gf(mu ,mu ,i,i)) * weight
            imgdd(mu,i) = imgdd(mu,i) + real(gf(mup,mup,i,i)) * weight
+
+           if ( lsuperCond ) then
+             mup = mu + s%nOrb2 + s%norb
+             deltas(mu,i) = deltas(mu,i) + real(gf(mu,mup,i,i)) * weight
+           end if
          end do
        end do
     end do
@@ -102,6 +119,7 @@ contains
     !$omp end parallel
     imguu = imguu / pi
     imgdd = imgdd / pi
+    deltas = deltas / pi
 
     do j=1,s%nAtoms
       mp(:,j)= gdiagdu(j,:) + conjg(gdiagud(j,:))
@@ -110,6 +128,8 @@ contains
     call MPI_Allreduce(MPI_IN_PLACE, imguu, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
     call MPI_Allreduce(MPI_IN_PLACE, imgdd, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
     call MPI_Allreduce(MPI_IN_PLACE, mp   , ncount, MPI_DOUBLE_COMPLEX  , MPI_SUM, activeComm, ierr)
+    if ( lsuperCond ) &
+      call MPI_Allreduce(MPI_IN_PLACE, deltas, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
 
     mp      = mp/pi
     mx      = real(mp)
@@ -121,6 +141,8 @@ contains
         imgdd(mu,i) = 0.5_dp + imgdd(mu,i)
         rho(mu,i) = imguu(mu,i) + imgdd(mu,i)
         mz (mu,i) = imguu(mu,i) - imgdd(mu,i)
+        if ( lsuperCond ) &
+          deltas(mu,i) = s%Types(s%Basis(i)%Material)%lambda(mu)*deltas(mu,i)
       end do
     end do
 
@@ -203,7 +225,7 @@ contains
 
 
   subroutine expectation_eigenstates_fullhk(s,rho,mp,mx,my,mz,deltas)
-  !> Calculates ground state quantities from eigenstates using 
+  !> Calculates ground state quantities from eigenstates using
   !> full hamiltonian matrix
     use mod_kind,              only: dp,int64
     use mod_BrillouinZone,     only: realBZ
@@ -245,6 +267,8 @@ contains
     !$omp& private(iz,hk,eval,expec_0,expec_p,expec_z,expec_d) &
     !$omp& shared(s,dimHsc,h0,fullhk,output,realBZ) &
     !$omp& reduction(+:rho,mp,mz,deltas)
+    !!$acc kernels
+    !$acc parallel loop private(iz,hk,eval,work,rwork,info,expec_0, expec_p, expec_z,expec_singlet) ! firstprivate(lwork) shared(s,dimHsc,output,realBZ,rho,mp,mz,lsuperCond,deltas) reduction(+:rho,mp,mz,deltas)
     do iz = 1,realBZ%workload
       ! hamiltonian for a given k-point
       hk = h0 + fullhk(:,:,iz)
@@ -396,7 +420,7 @@ contains
 
 
   subroutine expec_val_gpu(s,dimens,hk_d,eval_d,expec_0_d,expec_p_d,expec_z_d,expec_d_d)
-  !> Subroutine to calculate - on the GPUS - the expectation value of the operators 
+  !> Subroutine to calculate - on the GPUS - the expectation value of the operators
   !> 1 (occupation), Sp, Sz, and superconducting delta
     use mod_kind,              only: dp
     use mod_constants,         only: cZero,pi,pauli_mat_d
@@ -470,7 +494,7 @@ contains
       do i = 1,s%nAtoms
         do mu = 1,s%nOrb
           lambda_d(mu,i) = s%Types(s%Basis(i)%Material)%lambda(mu)
-        end do    
+        end do
       end do
 
       hdimens=dimens/2
@@ -528,7 +552,7 @@ contains
 
 
   subroutine expec_val(s,dimens,hk,eval,expec_0,expec_p,expec_z,expec_d)
-  !> Subroutine to calculate the expectation value of the operators 
+  !> Subroutine to calculate the expectation value of the operators
   !> 1 (occupation), Sp, Sz, and superconducting delta
     use mod_kind,              only: dp
     use mod_constants,         only: cZero,pi,pauli_mat
@@ -769,7 +793,7 @@ contains
             nu = s%pOrbs(nup)
             do sigmap = 1,2
               nus = (sigmap-1)*s%nOrb+nu
-              evec_isigmapnu_cong = evec_isigmamu*evec(isigmamu2n(i,sigmap,nu)) 
+              evec_isigmapnu_cong = evec_isigmamu*evec(isigmamu2n(i,sigmap,nu))
               do xyz = 1,3
                 expec_tso(xyz,1,i) = expec_tso(xyz,1,i) + f_n*real( tso_op(mus,nus,xyz,i)*evec_isigmapnu_cong )
               end do
@@ -790,7 +814,7 @@ contains
             nu = s%dOrbs(nud)
             do sigmap = 1,2
               nus = (sigmap-1)*s%nOrb+nu
-              evec_isigmapnu_cong = evec_isigmamu*evec(isigmamu2n(i,sigmap,nu)) 
+              evec_isigmapnu_cong = evec_isigmamu*evec(isigmamu2n(i,sigmap,nu))
               do xyz = 1,3
                 expec_tso(xyz,2,i) = expec_tso(xyz,2,i) + f_n*real( tso_op(mus,nus,xyz,i)*evec_isigmapnu_cong )
               end do
@@ -803,7 +827,7 @@ contains
       do mu = 1,s%nOrb
         do sigma = 1,2
           mus = (sigma-1)*s%nOrb+mu
-          evec_isigmamu = conjg( evec(isigmamu2n(i,sigma,mu))) 
+          evec_isigmamu = conjg( evec(isigmamu2n(i,sigma,mu)))
           do sigmap = 1, 2
             nus = (sigmap-1)*s%nOrb+mu
             evec_isigmapnu_cong = evec_isigmamu*evec(isigmamu2n(i,sigmap,mu))
@@ -820,7 +844,7 @@ contains
 
 
   subroutine groundstate_L_and_E()
-  !> Wrapper for the calculation of the expectation value 
+  !> Wrapper for the calculation of the expectation value
   !> of the orbital angular momentum and the band energy in the ground state
     use mod_kind,          only: dp
     use mod_parameters,    only: output
@@ -889,7 +913,7 @@ contains
 
 
   subroutine calc_GS_L_and_E_greenfunction()
-  !> Calculates the expectation value of the orbital angular momentum 
+  !> Calculates the expectation value of the orbital angular momentum
   !> in the ground state using green functions
     use mod_kind,          only: dp,int64
     use mod_constants,     only: cZero,pi
@@ -900,14 +924,18 @@ contains
     use mod_hamiltonian,   only: hamilt_local,energy
     use mod_greenfunction, only: green
     use adaptiveMesh,      only: local_points,activeComm,E_k_imag_mesh,bzs
+    use mod_superconductivity, only: lsuperCond
+    use mod_SOC,               only: llinearsoc,llineargfsoc
     use mod_mpi_pars,      only: abortProgram,MPI_IN_PLACE,MPI_DOUBLE_COMPLEX,MPI_SUM,ierr,myrank
     implicit none
     integer(int64)    :: ix
+
     integer      :: i,mu,nu,mup,nup
     real(dp) :: kp(3)
-    real(dp) :: weight, ep
-    complex(dp), dimension(s%nOrb2,s%nOrb2,s%nAtoms,s%nAtoms) :: gf
+    real(dp) :: weight, ep, fermi
+    complex(dp), dimension(s%nOrb2sc,s%nOrb2sc,s%nAtoms,s%nAtoms) :: gf
     complex(dp), dimension(s%nOrb,s%nOrb,s%nAtoms)            :: gupgd
+
     integer :: ncount
 
     external :: MPI_Allreduce
@@ -915,7 +943,10 @@ contains
     ncount=s%nAtoms*s%nOrb*s%nOrb
 
     ! Build local hamiltonian
-    call hamilt_local(s)
+    if((.not.llineargfsoc) .and. (.not.llinearsoc)) call hamilt_local(s)
+
+    !If lsupercond is true then fermi is 0.0 otherwise is s%Ef
+    fermi = merge(0._dp,s%Ef,lsuperCond)
 
     if(myrank == 0) &
       write(output%unit, "('[Warning] [calc_GS_L_and_E_greenfunction] Band energy not implemented with greenfunctions.')")
@@ -925,7 +956,8 @@ contains
     ! Calculating the jacobian using a complex integral
     !$omp parallel default(none) &
     !$omp& private(ix,i,mu,nu,mup,nup,kp,ep,weight,gf) &
-    !$omp& shared(local_points,s,E_k_imag_mesh,bzs,eta,y,wght,gupgd)
+    !$omp& shared(local_points,fermi,s,lsupercond,E_k_imag_mesh,bzs,eta,y,wght,gupgd)
+
 
     gf = cZero
     !$omp do schedule(dynamic) reduction(+:gupgd)
@@ -934,7 +966,7 @@ contains
       ep = y(E_k_imag_mesh(1,ix))
       weight = bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix)) * wght(E_k_imag_mesh(1,ix))
       !Green function on energy Ef + iy, and wave vector kp
-      call green(s%Ef,ep+eta,s,kp,gf)
+      call green(fermi,ep+eta,s,kp,gf)
 
       site_i: do i=1,s%nAtoms
         orb_mu: do mu=1,s%nOrb
@@ -1004,7 +1036,7 @@ contains
     beta = 1._dp/(pi*eta)
 
     ! Fermi-Dirac:
-    f_n = fd_dist(fermi, beta, eval) 
+    f_n = fd_dist(fermi, beta, eval)
 
     sites_loop: do i = 1,s%nAtoms
       ! <L> for s orbitals is zero (l=0)
@@ -1080,7 +1112,7 @@ contains
 
 
   subroutine calc_GS_L_and_E_eigenstates()
-  !> Calculates the expectation value of the orbital angular momentum 
+  !> Calculates the expectation value of the orbital angular momentum
   !> and the band energy in the ground state
     use mod_kind,              only: dp,int64
     use mod_BrillouinZone,     only: realBZ
@@ -1173,7 +1205,7 @@ contains
 
 #ifdef _GPU
   subroutine calc_GS_L_and_E_fullhk_gpu()
-  !> Calculates the expectation value of the orbital angular momentum 
+  !> Calculates the expectation value of the orbital angular momentum
   !> and the band energy in the ground state using the full hamiltonian matrix
     use mod_kind,              only: dp,int64
     use mod_BrillouinZone,     only: realBZ
@@ -1280,7 +1312,7 @@ contains
   end subroutine calc_GS_L_and_E_fullhk_gpu
 #else
   subroutine calc_GS_L_and_E_fullhk()
-  !> Calculates the expectation value of the orbital angular momentum 
+  !> Calculates the expectation value of the orbital angular momentum
   !> and the band energy in the ground state using the full hamiltonian matrix
     use mod_kind,              only: dp,int64
     use mod_BrillouinZone,     only: realBZ
@@ -1383,7 +1415,7 @@ contains
     implicit none
     real(dp), dimension(3,s%nAtoms) :: m_tot
     integer                         :: i,mu,mud
-    
+
     if(rField==0) &
       write(output%unit_loop,"('[calc_E_dc] Calculating double-counting energies... ')")
 

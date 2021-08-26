@@ -225,7 +225,7 @@ contains
             ! Writing into files
             call writeLDOS(e)
             ! Exchange interactions
-            call writeCoupling(e)
+            call writeCoupling(e,0._dp)
           end do
         else
           call MPI_Recv(e    ,   1     ,MPI_DOUBLE_PRECISION,0,1000,FreqComm(2),stat,ierr)

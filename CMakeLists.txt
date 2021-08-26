@@ -83,7 +83,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
 
 if(NOT PLATFORM)
   execute_process(COMMAND bash "-c" "cat /etc/FZJ/systemname 2>/dev/null | tr -d '\n'"
-                  OUTPUT_VARIABLE PLATFORM 
+                  OUTPUT_VARIABLE PLATFORM
                   )
   if(PLATFORM)
     execute_process(COMMAND echo "Setting PLATFORM=${PLATFORM}")
@@ -142,7 +142,7 @@ if(COMPILER MATCHES pgi OR COMPILER MATCHES nv OR COMPILER MATCHES nvidia)
   set(COMPILER nv)
   set(SUFFIX ${SUFFIX}_nv)
   execute_process(COMMAND echo "Using NVIDIA Compiler")
-  
+
   set(CMAKE_CXX_COMPILER nvcc)
   set(SOURCE_TITAN_CPP ${SOURCE_TITAN_CPP}  source/diagonalize_gpu.cpp
                                   )
@@ -236,7 +236,7 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES nv)
                                                 -g
                                                 -mkl
                                                 -align array64byte
-                                                -xHost
+                                                -march=core-avx2
                                                 )
   elseif(PLATFORM MATCHES hlrs)
     target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
@@ -358,19 +358,19 @@ elseif(COMPILER MATCHES nv) # NVIDIA:
 
     string(CONCAT FORTRAN_FLAGS "-cpp "
                                 "-DVERSION=\\\"${GIT_VERSION}\\\" "
-                                "-lineinfo "                
-                                "-g "                
+                                "-lineinfo "
+                                "-g "
                                 "-Mcuda "
                                 "-Mdclchk "                          # instructs the compiler to require that all program variables be declared
                                 "-Minform=inform "                   # instructs the compiler to display all error messages (inform, warn, severe and fatal).
                                 "-Mchkptr "                          # instructs the compiler to check for pointers that are dereferenced while initialized to NULL (Fortran only).
                                 "-Mchkstk "                          # instructs the compiler to check the stack for available space in the prologue of a function and before the start of a parallel region.
-                                "-traceback "                
+                                "-traceback "
                                 "-Ktrap=fp,unf "                     # fp, unf is equivalent to inv,divz,ovf, unf  correspond to the processor’s exception mask bits: invalid operation, divide-by-zero, overflow, and underflow, respectively.
-                                "-gpu=cc70,cc80 "                       
-                                "-Minfo=accel "                    
-                                "-acc "                  
-                                "-O0 "                
+                                "-gpu=cc70,cc80 "
+                                "-Minfo=accel "
+                                "-acc "
+                                "-O0 "
                                 )
     set_source_files_properties(${SOURCE_TITAN}     PROPERTIES COMPILE_FLAGS ${FORTRAN_FLAGS})
 

@@ -12,7 +12,7 @@ contains
     use TightBinding,          only: initTightBinding
     use mod_magnet,            only: l_matrix,lb,sb,allocate_magnet_variables,deallocate_magnet_variables,mzd0,mpd0,rho0,rhod0
     use mod_SOC,               only: ls,allocateLS
-    use adaptiveMesh,          only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh
+    use adaptiveMesh,          only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh,bzs
     use mod_parameters,        only: kp_in,kptotal_in,output,eta,leigenstates,lkpoints,dimH,dimHsc
     use mod_polyBasis,         only: read_basis
     use mod_mpi_pars,          only: myrank,FieldComm,rField,sField,rFreq,sFreq,FreqComm,abortProgram
@@ -67,6 +67,7 @@ contains
       sys0(i)%nStages = s%nStages
       sys0(i)%relTol  = s%relTol
       sys0(i)%nOrb    = s%nOrb
+      sys0(i)%nOrb2sc   = s%nOrb2
       sys0(i)%nOrb2   = s%nOrb2
       allocate(sys0(i)%Orbs(s%nOrb))
       sys0(i)%Orbs(:) = s%Orbs(:)
@@ -156,7 +157,7 @@ contains
           !-- Generating k meshes points for imaginary axis integration ----
           call generateAdaptiveMeshes(sys0(i),pn1)
           !--- Distribute Energy Integration across all points available ---
-          call genLocalEKMesh(sys0(i),rField,sField, FieldComm)
+          call genLocalEKMesh(sys0(i),rField,sField, FieldComm,bzs)
         end if
 
         !---------------- Calculating expectation values -------------------
@@ -232,7 +233,7 @@ contains
     use mod_System,            only: System_type
     use mod_magnet,            only: l_matrix,lb,sb,mzd0,mpd0,rho0,rhod0
     use mod_SOC,               only: ls
-    use adaptiveMesh,          only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh
+    use adaptiveMesh,          only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh,bzs
     use mod_parameters,        only: output,leigenstates,lkpoints
     ! use mod_parameters,        only: kp_in,kptotal_in,output,eta,leigenstates,lkpoints,dimH,dimHsc
     use mod_mpi_pars,          only: myrank,FieldComm,rField,sField,rFreq,sFreq,FreqComm,abortProgram
@@ -262,7 +263,7 @@ contains
     ! Checking if calculation is needed
     lneed = .false.
     types_of_atoms: do i = 1, s%nTypes
-      if((abs(s%Types(i)%Un)<1.e-8).and.(abs(s%Types(i)%Um)<1.e-8)) then 
+      if((abs(s%Types(i)%Un)<1.e-8).and.(abs(s%Types(i)%Um)<1.e-8)) then
         ! Only not needed when both Un and Um are zero
         allocate( s%Types(i)%rho0(s%nOrb) )
         s%Types(i)%rho0(:) = 0._dp
@@ -270,7 +271,7 @@ contains
         s%Types(i)%mzd0    = 0._dp
         s%Types(i)%mpd0    = cZero
         cycle
-      else 
+      else
         lneed = .true. ! If Un or Um is non zero for a single element, the calculation must be done
         exit           ! Since it's a single calculation, get all the other numbers too
       end if
@@ -295,7 +296,7 @@ contains
     !---------------- Reading from previous calculations -----------------
     !------- and calculating if file doesn't exist (or different U) ------
     if(.not.read_init_expecs(s%nOrb,s%Types(i),err)) then
-      if(myrank == 0) write(output%unit,"('[calc_init_expec_dft] Calculating initial densities for all elements...')") 
+      if(myrank == 0) write(output%unit,"('[calc_init_expec_dft] Calculating initial densities for all elements...')")
 
       !---- L matrix in global frame for given quantization direction ----
       call l_matrix(s%nOrb,s%Orbs)
@@ -321,7 +322,7 @@ contains
         !-- Generating k meshes points for imaginary axis integration ----
         call generateAdaptiveMeshes(s,pn1)
         !--- Distribute Energy Integration across all points available ---
-        call genLocalEKMesh(s,rField,sField, FieldComm)
+        call genLocalEKMesh(s,rField,sField, FieldComm,bzs)
       end if
 
       !---------------- Calculating expectation values -------------------
@@ -442,7 +443,7 @@ contains
     write(unit=funit,fmt="(4(es21.11,2x))") material%rhod0,material%mpd0%re,material%mpd0%im,material%mzd0
 
     ! Writing U to file (to be compared in other calculations)
-    write(unit=funit,fmt="(2(es21.11,2x))") material%Un, material%Um 
+    write(unit=funit,fmt="(2(es21.11,2x))") material%Un, material%Um
 
     close(unit=funit)
   end subroutine write_init_expecs

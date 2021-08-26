@@ -23,6 +23,7 @@ subroutine calculate_chi()
   use mod_sumrule,           only: sumrule
   use mod_mpi_pars,          only: rFreq,sFreq,FreqComm,FieldComm,rField,startFreq,endFreq,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,stat,ierr,MPI_SOURCE,MPI_DOUBLE_COMPLEX
   use mod_check_stop,        only: check_stop
+  use adaptiveMesh,          only: bzs
   implicit none
   integer  :: mcount,qcount
   integer  :: i,j,sigma,sigmap,mu,nu,gama,xi,p
@@ -34,7 +35,7 @@ subroutine calculate_chi()
   call allocate_susceptibilities()
   call allocTTResponse(s%nAtoms)
   call allocTSResponse(s%nAtoms)
-  call genLocalEKMesh(s,rFreq(1), sFreq(1), FreqComm(1))
+  call genLocalEKMesh(s,rFreq(1), sFreq(1), FreqComm(1),bzs)
   call realBZ % setup_fraction(s,rFreq(1), sFreq(1), FreqComm(1))
 
   if(rFreq(1) == 0) allocate(temp(dimens,dimens))

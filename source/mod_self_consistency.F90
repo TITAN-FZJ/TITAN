@@ -40,13 +40,14 @@ contains
     use mod_expectation,   only: groundstate_L_and_E,expectation_values,expectation_eigenstates_fullhk,calc_GS_L_and_E,calc_GS_L_and_E_fullhk,calc_E_dc
 #endif
     use mod_hamiltonian,   only: fullhamiltk,lfullhk
+    use adaptiveMesh,      only: bzs
     implicit none
     logical :: lsuccess = .false.
 
     ! Distribute Energy Integration across all points available
     call realBZ % setup_fraction(s,rFreq(1), sFreq(1), FreqComm(1),lkpoints)
     if(.not.leigenstates) then
-      call genLocalEKMesh(s,rField,sField, FieldComm)
+      call genLocalEKMesh(s,rField,sField, FieldComm,bzs)
     end if
 
     !---- Checking if full tight-binding hamiltonian can be calculated ----
@@ -770,13 +771,14 @@ contains
     use mod_BrillouinZone, only: realBZ
     use mod_hamiltonian,   only: hamilt_local
     use mod_greenfunction, only: greenlinearsoc,green
+    use mod_superconductivity, only: lsuperCond
     use mod_mpi_pars,      only: rField,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_SUM,ierr,abortProgram
     implicit none
     integer,                       intent(in)    :: N
     real(dp),    dimension(N,N),   intent(inout) :: jacobian
     complex(dp), dimension(:,:),     allocatable :: gij,gji,temp,paulitemp
     complex(dp), dimension(:,:,:),   allocatable :: temp1,temp2
-    complex(dp), dimension(:,:,:,:), allocatable :: gf,gvg
+    complex(dp), dimension(:,:,:,:), allocatable :: gf,gvg,gfsc
     integer(int64) :: ix
     integer     :: AllocateStatus
     integer     :: i,j,kounti,kountj,mu,nu,mud,nud,sigma,sigmap
@@ -814,8 +816,11 @@ contains
     jacobian = 0._dp
 
     !$omp parallel default(none) &
-    !$omp& private(AllocateStatus,ix,i,j,kounti,kountj,mu,mud,nud,nu,sigma,sigmap,ep,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp) &
-    !$omp& shared(llineargfsoc,llinearsoc,lfixEf,neq,local_points,s,neq_per_atom,realBZ,bzs,E_k_imag_mesh,y,eta,wght,halfUn,halfUm,pauli_a,pauli_b,jacobian)
+    !$omp& private(AllocateStatus,ix,i,j,kounti,kountj,mu,mud,nud,nu,sigma,sigmap,ep,kp,weight,gf,gfsc,gvg,gij,gji,temp,temp1,temp2,paulitemp) &
+    !$omp& shared(llineargfsoc,llinearsoc,lsupercond,lfixEf,neq,local_points,s,neq_per_atom,realBZ,bzs,E_k_imag_mesh,y,eta,wght,halfUn,halfUm,pauli_a,pauli_b,jacobian)
+    if (lsuperCond) then
+      allocate(gfsc(s%nOrb2sc, s%nOrb2sc, s%nAtoms, s%nAtoms), stat = AllocateStatus)
+    end if
     allocate( temp1(s%nOrb2,s%nOrb2,4), &
               temp2(s%nOrb2,s%nOrb2,4), &
               gij(s%nOrb2,s%nOrb2), gji(s%nOrb2,s%nOrb2), &
@@ -843,7 +848,17 @@ contains
         call greenlinearsoc(s%Ef,ep+eta,s,kp,gf,gvg)
         gf = gf + gvg
       else
-        call green(s%Ef,ep+eta,s,kp,gf)
+        ! If superconductivity is on then take the ee block of the green function
+        if ( lsuperCond ) then
+          call green(s%Ef,ep+eta,s,kp,gfsc)
+          do j = 1,s%nAtoms
+            do i = 1,s%nAtoms
+              gf( 1:s%nOrb2,1:s%nOrb2,i,j) = gfsc( 1:s%nOrb2,1:s%nOrb2,i,j)
+            end do
+          end do
+        else
+          call green(s%Ef,ep+eta,s,kp,gf)
+        end if
       end if
 
       do j=1,s%nAtoms
@@ -1117,7 +1132,17 @@ contains
           call greenlinearsoc(s%Ef,eta,s,kp,gf,gvg)
           gf = gf + gvg
         else
-          call green(s%Ef,eta,s,kp,gf)
+          ! If superconductivity is on then take the ee block of the green function
+          if ( lsuperCond ) then
+            call green(s%Ef,eta,s,kp,gfsc)
+            do j = 1,s%nAtoms
+              do i = 1,s%nAtoms
+                gf( 1:s%nOrb2,1:s%nOrb2,i,j) = gfsc( 1:s%nOrb2,1:s%nOrb2,i,j)
+              end do
+            end do
+          else
+            call green(s%Ef,eta,s,kp,gf)
+          end if ! If from lsuperCond
         end if
 
         do i=1,s%nAtoms
@@ -1174,12 +1199,13 @@ contains
     deallocate(temp1, temp2, temp)
     deallocate(gf, gij, gji)
     if(allocated(gvg)) deallocate(gvg)
+    if(allocated(gfsc)) deallocate(gfsc)
     !$omp end parallel
 
     call MPI_Allreduce(MPI_IN_PLACE, jacobian, ncount2, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
 
     jacobian = jacobian/pi
-    do i = 1, neq-1 
+    do i = 1, neq-1
       jacobian(i,i) = jacobian(i,i) - 1._dp
     end do
   end subroutine calcJacobian_greenfunction

@@ -31,6 +31,7 @@ subroutine calculate_all()
   use mod_mpi_pars,          only: rFreq,sFreq,FreqComm,FieldComm,rField,startFreq,endFreq,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,stat,ierr,MPI_SOURCE,MPI_DOUBLE_COMPLEX
   use mod_check_stop,        only: check_stop
   use mod_tools,             only: invers,itos
+  use adaptiveMesh,          only: bzs
   !use mod_system, only: n0sc1, n0sc2, n0sc
   !use mod_currents !TODO: Re-Include
   !use mod_sha !TODO: Re-Include
@@ -67,7 +68,7 @@ subroutine calculate_all()
   ! Mounting U and identity matrix
   call build_identity_and_U_matrix()
 
-  call genLocalEKMesh(s,rFreq(1),sFreq(1),FreqComm(1))
+  call genLocalEKMesh(s,rFreq(1),sFreq(1),FreqComm(1),bzs)
   call realBZ % setup_fraction(s,rFreq(1), sFreq(1), FreqComm(1))
 
   ! Calculates matrices hopping x angular momentum matrix for orbital angular momentum current calculation

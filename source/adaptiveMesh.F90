@@ -71,9 +71,9 @@ contains
     if(allocated(all_nkpt_norep)) deallocate( all_nkpt_norep )
   end subroutine deallocateAdaptiveMeshes
 
-  subroutine genLocalEKMesh(sys,rank,isize,comm)
-  !> Generate the distributed combined points {e,kx,ky,kz}
-  !> (locally for a given MPI process)
+  !! Generate the distributed combined points {e,kx,ky,kz}
+  !! (locally for a given MPI process)
+  subroutine genLocalEKMesh(sys,rank,isize,comm,bzs)
     use mod_kind,          only: dp, int32, int64
     use mod_parameters,    only: total_nkpt => kptotal_in
     use EnergyIntegration, only: pn1, y
@@ -85,6 +85,7 @@ contains
     integer(int32),    intent(in) :: rank
     integer(int32),    intent(in) :: isize
     integer(int32),    intent(in) :: comm
+    type(FractionalBrillouinZone), dimension(:),   allocatable, intent(out) :: bzs
     ! MPI_f08:
     ! type(System_type),   intent(in) :: sys
     ! integer(int32),      intent(in) :: rank

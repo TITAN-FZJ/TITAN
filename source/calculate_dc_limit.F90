@@ -30,20 +30,21 @@ subroutine calculate_dc_limit()
   use mod_check_stop,        only: check_stop
   use mod_tools,             only: invers,itos
   use mod_mpi_pars,          only: rFreq,sFreq,FreqComm,FieldComm,rField,startFreq,endFreq,MPI_INTEGER,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,stat,ierr,MPI_SOURCE,MPI_DOUBLE_COMPLEX
+  use adaptiveMesh,          only: bzs
   !use mod_system,          only: n0sc1, n0sc2, n0sc
   !use mod_currents !TODO: Re-Include
   !use mod_sha !TODO: Re-Include
   implicit none
   integer(int32) :: mcount,qcount
   integer(int64) :: count_temp
-  integer(int32) :: i,j,sigma,sigmap,mu,nu,mud,nud,hw_count_temp!,neighbor 
+  integer(int32) :: i,j,sigma,sigmap,mu,nu,mud,nud,hw_count_temp!,neighbor
   real(dp)       :: e,q(3),mvec_spherical_temp(3,s%nAtoms)!,Icabs
 
   external :: eintshechi,eintshelinearsoc,eintshechilinearsoc,eintshe,zgemm,MPI_Recv,MPI_Send,MPI_Barrier,sort_all_files,MPI_Bcast
 
   dc_count = dc_count + 1
 
-  call genLocalEKMesh(s,rFreq(1),sFreq(1),FreqComm(1))
+  call genLocalEKMesh(s,rFreq(1),sFreq(1),FreqComm(1),bzs)
   call realBZ % setup_fraction(s,rFreq(1), sFreq(1), FreqComm(1))
 
   call allocate_prefactors()
