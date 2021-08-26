@@ -18,7 +18,7 @@ contains
 
     s%total_nOrb = s%Types(s%Basis(1)%Material)%nOrb
     do i = 2, s%nAtoms
-      s%total_nOrb = dimH + s%Types(s%Basis(i)%Material)%nOrb
+      s%total_nOrb = s%total_nOrb + s%Types(s%Basis(i)%Material)%nOrb
     end do
 
     select case(tbmode)

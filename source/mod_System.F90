@@ -40,10 +40,12 @@ module mod_system
     !! Types of selected orbitals
     integer(int32), dimension(:), allocatable :: sOrbs,pOrbs,dOrbs
     !! Indices of selected s,p,d orbitals
-    integer(int32) :: nOrb,total_nOrb
-    !! Number of orbitals per atom (when all types use the same, otherwise, max number), and total number of orbitals
-    integer(int32) :: nOrb,nsOrb,npOrb,ndOrb,nOrb2,nOrb2sc
-    !! Number of s,p,d orbitals, and 2*(number of orbitals) (for spin)
+    integer(int32) :: nOrb,nOrb2,nOrb2sc
+    !! Number of orbitals per atom (when all types use the same, otherwise, max number) and and 2*(number of orbitals) (for spin)
+    integer(int32) :: total_nOrb
+    !! Total number of orbitals
+    integer(int32) :: nsOrb,npOrb,ndOrb
+    !! Number of s,p,d orbitals
     type(BasisAtom), dimension(:), allocatable :: Basis
     !! Information of the basis
     integer(int32) :: nNeighbors
