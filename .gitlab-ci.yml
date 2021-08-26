@@ -118,7 +118,7 @@ build:intel:normal:
   # Setting up 4 omp threads
   - export OMP_NUM_THREADS=8
   # Running the code with 2 MPI ranks
-  - mpirun -np 1 ${TITAN_DIR}/bin/titan_iff.exe
+  - mpirun -np 1 ${TITAN_DIR}/bin/titan_iff_debug.exe
   # Printing any error file, if existing
   - if [ -f error* ] ; then grep -H '' error* ; fi
   # Printing runtime
