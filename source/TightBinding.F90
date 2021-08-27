@@ -4,7 +4,7 @@ module TightBinding
 contains
 
   subroutine initTightBinding(s)
-    use mod_system,     only: System_type
+    use mod_System,     only: System_type
     use mod_mpi_pars,   only: abortProgram
     use mod_parameters, only: tbmode,fermi_layer
     implicit none
@@ -181,11 +181,11 @@ contains
   subroutine readElementFile(s,n,tbmode)
   !! Reading element file, including all the parameters
     use mod_kind,              only: dp
-    use AtomTypes,             only: NeighborAtom,default_orbitals,selected_orbitals !,selected_sorbitals,selected_porbitals,selected_dorbitals
+    use AtomTypes,             only: NeighborAtom,default_orbitals
     use mod_system,            only: System_type
     use mod_mpi_pars,          only: abortProgram
     use mod_tools,             only: ItoS,StoI,StoR,StoArray,next_line,vec_norm,vecDist,is_numeric
-    use mod_io,                only: log_warning,log_error,log_message
+    use mod_io,                only: log_warning,log_error,log_message,get_orbitals
     use mod_input,             only: get_parameter
     use mod_superconductivity, only: lsuperCond
     use mod_SOC,               only: socscale
@@ -199,7 +199,7 @@ contains
     integer,  dimension(:), allocatable :: type_count
     real(dp), dimension(3) :: dens
     integer            :: i,j,k,l,mu,nat,nCells,ios,line_count = 0
-    integer, parameter :: word_length = 50, max_elements = 50
+    integer, parameter :: word_length = 20, max_elements = 50
     character(len=word_length), dimension(max_elements) :: str_arr
     real(dp),                   dimension(max_elements) :: tmp_arr
     character(200) :: line
@@ -335,13 +335,106 @@ contains
         s%Types(n)%dOrbs(1:s%ndOrb) = s%dOrbs(1:s%ndOrb)
       end if
 
-      call log_message("readElementFile",trim(itos(s%nOrb)) // " orbitals selected for " // trim(s%Types(n)%Name) //":" // trim(selected_orbitals))
+      ! call log_message("readElementFile",trim(itos(s%nOrb)) // " orbitals selected for " // trim(s%Types(n)%Name) //":" // trim(selected_orbitals))
 
       ! Read Fermi level
       s%Types(n)%FermiLevel = StoR(line)
     else orbital_selection
       ! Selecting orbitals for this type
-      call log_error("readElementFile", "Selection of orbitals not implemented yet")
+      str_arr = ""
+      str_arr(1:max_elements) = StoArray(line,max_elements)
+      call get_orbitals(str_arr(2:),s%Types(n)%nOrb,s%Types(n)%nsOrb,s%Types(n)%npOrb,s%Types(n)%ndOrb,s%Types(n)%Orbs,s%Types(n)%sOrbs,s%Types(n)%pOrbs,s%Types(n)%dOrbs)
+      ! selected_orbitals = ""
+      ! selected_sorbitals = ""
+      ! selected_porbitals = ""
+      ! selected_dorbitals = ""
+      ! s%nsOrb = 0
+      ! s%npOrb = 0
+      ! s%ndOrb = 0
+
+      ! s%Types(n)%nOrb = 0
+      ! str_arr = ""
+      ! str_arr(1:max_elements) = StoArray(line,max_elements)
+      ! do i = 2,max_elements
+      !   if(str_arr(i)(1:1) == "!") exit
+      !   if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
+
+      !   s%Types(n)%nOrb = s%Types(n)%nOrb + 1
+      !   if(.not.is_numeric( trim(str_arr(i)) )) then
+      !     iloc = findloc( default_orbitals,str_arr(i)(1:3),dim=1 )
+      !     if(iloc == 0) &
+      !       call log_error("readElementFile","Orbital not recognized: " // str_arr(i)(1:3) //". Use one of the following: " // NEW_line('A') // &
+      !           "(1|s), (2|px), (3|py), (4|pz), (5|dxy), (6|dyz), (7|dzx), (8|dx2), (9|dz2)")
+      !     str_arr(i) = itos( iloc )
+      !   end if
+      ! end do
+      ! allocate(s%Types(n)%Orbs(s%Types(n)%nOrb),itmps_arr(s%Types(n)%nOrb),itmpp_arr(s%Types(n)%nOrb),itmpd_arr(s%Types(n)%nOrb))
+
+
+      ! ! Looping over selected orbitals
+      ! ! Transforms names to numbers
+      ! ! and count d orbitals
+      ! do i = 1,s%nOrb
+      !   ! If the name of the orbital is given instead of a number, convert:
+      !   if(.not.is_numeric( trim(s_vector(i)) )) then
+      !     iloc = findloc( default_orbitals,s_vector(i)(1:3),dim=1 )
+      !     if(iloc == 0) &
+      !       call log_error("get_parameters","Orbital not recognized: " // s_vector(i)(1:3) //". Use one of the following: " // NEW_line('A') // &
+      !           "(1|s), (2|px), (3|py), (4|pz), (5|dxy), (6|dyz), (7|dzx), (8|dx2), (9|dz2)")
+      !     s_vector(i) = itos( iloc )
+      !   end if
+      !   s%Orbs(i) = stoi( trim(s_vector(i)) )
+      !   selected_orbitals = trim(selected_orbitals)  // " " // trim(default_orbitals(s%Orbs(i)))
+      !   ! Checking orbital type, and storing information
+      !   if(s%Orbs(i)==1) then
+      !     s%nsOrb = s%nsOrb + 1
+      !     itmps_arr(s%nsOrb) = i
+      !     selected_sorbitals = trim(selected_sorbitals)  // " " // trim(default_orbitals(s%Orbs(i)))
+      !   end if
+      !   if((s%Orbs(i)>=2).and.(s%Orbs(i)<=4)) then
+      !     s%npOrb = s%npOrb + 1
+      !     itmpp_arr(s%npOrb) = i
+      !     selected_porbitals = trim(selected_porbitals)  // " " // trim(default_orbitals(s%Orbs(i)))
+      !   end if
+      !   if((s%Orbs(i)>=5).and.(s%Orbs(i)<=9)) then
+      !     s%ndOrb = s%ndOrb + 1
+      !     itmpd_arr(s%ndOrb) = i
+      !     selected_dorbitals = trim(selected_dorbitals)  // " " // trim(default_orbitals(s%Orbs(i)))
+      !   end if
+      ! end do
+      ! call log_message("get_parameters",trim(itos(s%nOrb)) // " orbitals selected:" // trim(selected_orbitals) // ", of which:")
+      ! deallocate(s_vector)
+      ! ! s-orbitals
+      ! if(s%nsOrb > 0) then
+      !   allocate(s%sOrbs(s%nsOrb))
+      !   s%sOrbs(1:s%nsOrb) = itmps_arr(1:s%nsOrb)
+      !   call log_message("get_parameters", trim(itos(s%nsOrb)) // " s orbitals:" // trim(selected_sorbitals) )
+      ! end if
+      ! ! p-orbitals
+      ! if(s%npOrb > 0) then
+      !   allocate(s%pOrbs(s%npOrb))
+      !   s%pOrbs(1:s%npOrb) = itmpp_arr(1:s%npOrb)
+      !   call log_message("get_parameters", trim(itos(s%npOrb)) // " p orbitals:" // trim(selected_porbitals) )
+      ! end if
+      ! ! d-orbitals
+      ! if(s%ndOrb > 0) then
+      !   allocate(s%dOrbs(s%ndOrb))
+      !   s%dOrbs(1:s%ndOrb) = itmpd_arr(1:s%ndOrb)
+      !   call log_message("get_parameters", trim(itos(s%ndOrb)) // " d orbitals:" // trim(selected_dorbitals) )
+      ! end if
+
+
+
+
+
+
+
+
+
+
+
+
+
       ! s%Types(n)%nOrb = 0
       ! str_arr = ""
       ! str_arr(1:max_elements) = StoArray(line,max_elements)
@@ -381,8 +474,6 @@ contains
       !   call log_message("readElementFile","of which " // trim(itos(s%Types(n)%nOrb)) // "d orbitals:" // trim(selected_dorbitals) )
       ! end if
 
-      ! lorbital_selection = .true.
-
       ! Read Fermi level
       s%Types(n)%FermiLevel = StoR(next_line("readElementFile",f_unit,"Fermi energy"))
     end if orbital_selection
@@ -393,76 +484,8 @@ contains
 
 
 
-    ! if(.not.get_parameter("orbitals", s_vector, cnt)) then
-    !   call log_warning("get_parameters","'orbitals' missing. Using the default 9 orbitals.")
-    !   cnt = size(default_orbitals)
-    !   allocate(s_vector(cnt))
-    !   s_vector(:) = default_orbitals(:)
-    ! end if
-    ! s%nOrb = cnt
-    ! s%nOrb2 = 2*s%nOrb
-    ! allocate(s%Orbs(s%nOrb),itmps_arr(s%nOrb),itmpp_arr(s%nOrb),itmpd_arr(s%nOrb))
-    ! selected_orbitals = ""
-    ! selected_sorbitals = ""
-    ! selected_porbitals = ""
-    ! selected_dorbitals = ""
-    ! s%ndOrb = 0
-    ! ! Looping over selected orbitals
-    ! ! Transforms names to numbers
-    ! ! and count d orbitals
-    ! do i = 1,s%nOrb
-    !   ! If the name of the orbital is given instead of a number, convert:
-    !   if(.not.is_numeric( trim(s_vector(i)) )) then
-    !     iloc = findloc( default_orbitals,s_vector(i)(1:3),dim=1 )
-    !     if(iloc == 0) &
-    !       call log_error("get_parameters","Orbital not recognized: " // s_vector(i)(1:3) //". Use one of the following: " // NEW_line('A') // &
-    !            "(1|s), (2|px), (3|py), (4|pz), (5|dxy), (6|dyz), (7|dzx), (8|dx2), (9|dz2)")
-    !     s_vector(i) = itos( iloc )
-    !   end if
-    !   s%Orbs(i) = stoi( trim(s_vector(i)) )
-    !   selected_orbitals = trim(selected_orbitals)  // " " // trim(default_orbitals(s%Orbs(i)))
-    !   ! Checking orbital type, and storing information
-    !   if(s%Orbs(i)==1) then
-    !     s%nsOrb = s%nsOrb + 1
-    !     itmps_arr(s%nsOrb) = i
-    !     selected_sorbitals = trim(selected_sorbitals)  // " " // trim(default_orbitals(s%Orbs(i)))
-    !   end if
-    !   if((s%Orbs(i)>=2).and.(s%Orbs(i)<=4)) then
-    !     s%npOrb = s%npOrb + 1
-    !     itmpp_arr(s%npOrb) = i
-    !     selected_porbitals = trim(selected_porbitals)  // " " // trim(default_orbitals(s%Orbs(i)))
-    !   end if
-    !   if((s%Orbs(i)>=5).and.(s%Orbs(i)<=9)) then
-    !     s%ndOrb = s%ndOrb + 1
-    !     itmpd_arr(s%ndOrb) = i
-    !     selected_dorbitals = trim(selected_dorbitals)  // " " // trim(default_orbitals(s%Orbs(i)))
-    !   end if
-    ! end do
-    ! call log_message("get_parameters",trim(itos(s%nOrb)) // " orbitals selected:" // trim(selected_orbitals) // ", of which:")
-    ! deallocate(s_vector)
-    ! ! s-orbitals
-    ! if(s%nsOrb > 0) then
-    !   allocate(s%sOrbs(s%nsOrb))
-    !   s%sOrbs(1:s%nsOrb) = itmps_arr(1:s%nsOrb)
-    !   call log_message("get_parameters", trim(itos(s%nsOrb)) // " s orbitals:" // trim(selected_sorbitals) )
-    ! end if
-    ! ! p-orbitals
-    ! if(s%npOrb > 0) then
-    !   allocate(s%pOrbs(s%npOrb))
-    !   s%pOrbs(1:s%npOrb) = itmpp_arr(1:s%npOrb)
-    !   call log_message("get_parameters", trim(itos(s%npOrb)) // " p orbitals:" // trim(selected_porbitals) )
-    ! end if
-    ! ! d-orbitals
-    ! if(s%ndOrb > 0) then
-    !   allocate(s%dOrbs(s%ndOrb))
-    !   s%dOrbs(1:s%ndOrb) = itmpd_arr(1:s%ndOrb)
-    !   call log_message("get_parameters", trim(itos(s%ndOrb)) // " d orbitals:" // trim(selected_dorbitals) )
-    ! end if
 
-    ! ! Read Fermi level
-    ! s%Types(n)%FermiLevel = StoR(next_line("readElementFile",f_unit,"Fermi level"))
-
-
+    
 
 
 

@@ -55,7 +55,7 @@ contains
 
   subroutine get_parameters(filename,s)
     use mod_kind,              only: dp,int64
-    use AtomTypes,             only: default_orbitals,selected_orbitals,selected_sorbitals,selected_porbitals,selected_dorbitals
+    use AtomTypes,             only: default_orbitals
     use mod_input,             only: get_parameter,read_file,enable_input_logging,disable_input_logging
     use mod_parameters,        only: output,laddresults,lverbose,ldebug,lkpoints,&
                                      lpositions,lcreatefiles,lnolb,lhfresponses,&
@@ -90,8 +90,7 @@ contains
     character(len=20), allocatable   :: s_vector(:)
     real(dp),          allocatable   :: vector(:)
     integer(int64),    allocatable   :: i_vector(:)
-    integer :: i,cnt,iloc
-    integer,  dimension(:),allocatable :: itmps_arr,itmpp_arr,itmpd_arr
+    integer :: i,cnt
     character(len=20)  :: tmp_string
 
     intrinsic :: findloc
@@ -487,66 +486,12 @@ contains
       allocate(s_vector(cnt))
       s_vector(:) = default_orbitals(:)
     end if
-    s%nOrb = cnt
+
+    call get_orbitals(s_vector,s%nOrb,s%nsOrb,s%npOrb,s%ndOrb,s%Orbs,s%sOrbs,s%pOrbs,s%dOrbs)
     s%nOrb2 = 2*s%nOrb
     s%nOrb2sc = superCond*s%nOrb2
-    allocate(s%Orbs(s%nOrb),itmps_arr(s%nOrb),itmpp_arr(s%nOrb),itmpd_arr(s%nOrb))
-    selected_orbitals = ""
-    selected_sorbitals = ""
-    selected_porbitals = ""
-    selected_dorbitals = ""
-    s%ndOrb = 0
-    ! Looping over selected orbitals
-    ! Transforms names to numbers
-    ! and count d orbitals
-    do i = 1,s%nOrb
-      ! If the name of the orbital is given instead of a number, convert:
-      if(.not.is_numeric( trim(s_vector(i)) )) then
-        iloc = findloc( default_orbitals,s_vector(i)(1:3),dim=1 )
-        if(iloc == 0) &
-          call log_error("get_parameters","Orbital not recognized: " // s_vector(i)(1:3) //". Use one of the following: " // NEW_line('A') // &
-               "(1|s), (2|px), (3|py), (4|pz), (5|dxy), (6|dyz), (7|dzx), (8|dx2), (9|dz2)")
-        s_vector(i) = itos( iloc )
-      end if
-      s%Orbs(i) = stoi( trim(s_vector(i)) )
-      selected_orbitals = trim(selected_orbitals)  // " " // trim(default_orbitals(s%Orbs(i)))
-      ! Checking orbital type, and storing information
-      if(s%Orbs(i)==1) then
-        s%nsOrb = s%nsOrb + 1
-        itmps_arr(s%nsOrb) = i
-        selected_sorbitals = trim(selected_sorbitals)  // " " // trim(default_orbitals(s%Orbs(i)))
-      end if
-      if((s%Orbs(i)>=2).and.(s%Orbs(i)<=4)) then
-        s%npOrb = s%npOrb + 1
-        itmpp_arr(s%npOrb) = i
-        selected_porbitals = trim(selected_porbitals)  // " " // trim(default_orbitals(s%Orbs(i)))
-      end if
-      if((s%Orbs(i)>=5).and.(s%Orbs(i)<=9)) then
-        s%ndOrb = s%ndOrb + 1
-        itmpd_arr(s%ndOrb) = i
-        selected_dorbitals = trim(selected_dorbitals)  // " " // trim(default_orbitals(s%Orbs(i)))
-      end if
-    end do
-    call log_message("get_parameters",trim(itos(s%nOrb)) // " orbitals selected:" // trim(selected_orbitals) // ", of which:")
     deallocate(s_vector)
-    ! s-orbitals
-    if(s%nsOrb > 0) then
-      allocate(s%sOrbs(s%nsOrb))
-      s%sOrbs(1:s%nsOrb) = itmps_arr(1:s%nsOrb)
-      call log_message("get_parameters", trim(itos(s%nsOrb)) // " s orbitals:" // trim(selected_sorbitals) )
-    end if
-    ! p-orbitals
-    if(s%npOrb > 0) then
-      allocate(s%pOrbs(s%npOrb))
-      s%pOrbs(1:s%npOrb) = itmpp_arr(1:s%npOrb)
-      call log_message("get_parameters", trim(itos(s%npOrb)) // " p orbitals:" // trim(selected_porbitals) )
-    end if
-    ! d-orbitals
-    if(s%ndOrb > 0) then
-      allocate(s%dOrbs(s%ndOrb))
-      s%dOrbs(1:s%ndOrb) = itmpd_arr(1:s%ndOrb)
-      call log_message("get_parameters", trim(itos(s%ndOrb)) // " d orbitals:" // trim(selected_dorbitals) )
-    end if
+
     if(.not. get_parameter("fermi_layer", fermi_layer, 1)) &
       call log_warning("get_parameters", "'fermi_layer' not given. Using default value: fermi_layer = 1")
     !---------------------------------------- Slater-Koster ----------------------------------------
@@ -1017,7 +962,98 @@ contains
     pnt=pn1+pn2
   end subroutine get_parameters
 
+
+  subroutine get_orbitals(input_orbitals,nOrb,nsOrb,npOrb,ndOrb,Orbs,sOrbs,pOrbs,dOrbs)
+  !! Subroutine to read and parse the selected orbitals
+    use mod_kind,   only: int32
+    use mod_System, only: System_type
+    use mod_tools,  only: is_numeric,itos,stoi
+    use AtomTypes,  only: default_orbitals
+    character(len=20), dimension(:), intent(inout)  :: input_orbitals
+    integer(int32), intent(out) :: nOrb,nsOrb,npOrb,ndOrb
+    integer(int32), dimension(:), allocatable, intent(out) :: Orbs,sOrbs,pOrbs,dOrbs
+
+    integer :: i,iloc
+    integer,  dimension(:), allocatable :: itmps_arr,itmpp_arr,itmpd_arr
+    !! Variables to temporarily store the orbitals
+    character(len=100) :: selected_orbitals,selected_sorbitals,selected_porbitals,selected_dorbitals
+    !! Variables to print selected orbitals
+
+    selected_orbitals = ""
+    selected_sorbitals = ""
+    selected_porbitals = ""
+    selected_dorbitals = ""
+    nOrb  = 0
+    nsOrb = 0
+    npOrb = 0
+    ndOrb = 0
+
+    do i = 1,size(input_orbitals)
+      if(input_orbitals(i)(1:1) == "!") exit
+      if(len_trim(input_orbitals(i)) == 0 .or. len_trim(input_orbitals(i)) == 4) cycle
+
+      nOrb = nOrb + 1
+
+      ! If the name of the orbital is given instead of a number, convert:
+      if(.not.is_numeric( trim(input_orbitals(i)) )) then
+        iloc = findloc( default_orbitals,input_orbitals(i)(1:3),dim=1 )
+        if(iloc == 0) &
+          call log_error("get_orbitals","Orbital not recognized: " // input_orbitals(i)(1:3) //". Use one of the following: " // NEW_line('A') // &
+              "(1|s), (2|px), (3|py), (4|pz), (5|dxy), (6|dyz), (7|dzx), (8|dx2), (9|dz2)")
+        input_orbitals(i) = itos( iloc )
+      end if
+    end do
+    allocate(Orbs(nOrb),itmps_arr(nOrb),itmpp_arr(nOrb),itmpd_arr(nOrb))
+
+    ! Looping over selected orbitals
+    ! Transforms names to numbers
+    ! and count s,p and d orbitals
+    do i = 1,nOrb
+      Orbs(i) = stoi( trim(input_orbitals(i)) )
+      selected_orbitals = trim(selected_orbitals)  // " " // trim(default_orbitals(Orbs(i)))
+      ! Checking orbital type, and storing information
+      if(Orbs(i)==1) then
+        nsOrb = nsOrb + 1
+        itmps_arr(nsOrb) = i
+        selected_sorbitals = trim(selected_sorbitals)  // " " // trim(default_orbitals(Orbs(i)))
+      end if
+      if((Orbs(i)>=2).and.(Orbs(i)<=4)) then
+        npOrb = npOrb + 1
+        itmpp_arr(npOrb) = i
+        selected_porbitals = trim(selected_porbitals)  // " " // trim(default_orbitals(Orbs(i)))
+      end if
+      if((Orbs(i)>=5).and.(Orbs(i)<=9)) then
+        ndOrb = ndOrb + 1
+        itmpd_arr(ndOrb) = i
+        selected_dorbitals = trim(selected_dorbitals)  // " " // trim(default_orbitals(Orbs(i)))
+      end if
+    end do
+
+    call log_message("get_orbitals",trim(itos(nOrb)) // " orbitals selected:" // trim(selected_orbitals) // ", of which:")
+    ! s-orbitals
+    if(nsOrb > 0) then
+      allocate(sOrbs(nsOrb))
+      sOrbs(1:nsOrb) = itmps_arr(1:nsOrb)
+      call log_message("get_orbitals", trim(itos(nsOrb)) // " s orbitals:" // trim(selected_sorbitals) )
+    end if
+    ! p-orbitals
+    if(npOrb > 0) then
+      allocate(pOrbs(npOrb))
+      pOrbs(1:npOrb) = itmpp_arr(1:npOrb)
+      call log_message("get_orbitals", trim(itos(npOrb)) // " p orbitals:" // trim(selected_porbitals) )
+    end if
+    ! d-orbitals
+    if(ndOrb > 0) then
+      allocate(dOrbs(ndOrb))
+      dOrbs(1:ndOrb) = itmpd_arr(1:ndOrb)
+      call log_message("get_orbitals", trim(itos(ndOrb)) // " d orbitals:" // trim(selected_dorbitals) )
+    end if
+
+  end subroutine get_orbitals
+
+
   subroutine iowrite(s)
+  !! Write read parameters on main output file
     use mod_mpi_pars,          only: numprocs
     use mod_parameters,        only: output,runoptions,bands,band_cnt,renorm,renormnb,eta,itype, &
                                      emin,emax,nener1,nqvec1
