@@ -328,6 +328,8 @@ contains
     orbital_selection: if(is_numeric( line(1:1) )) then
       ! If not, pass general selection of orbitals to each type
       s%Types(n)%nOrb  = s%nOrb
+      s%Types(n)%nOrb2  = s%nOrb2
+      s%Types(n)%nOrb2sc  = s%nOrb2sc
       allocate(s%Types(n)%Orbs(s%Types(n)%nOrb))
       s%Types(n)%Orbs(1:s%nOrb) = s%Orbs(1:s%nOrb)
       

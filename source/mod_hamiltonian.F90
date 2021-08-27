@@ -51,6 +51,7 @@ contains
     ! Mouting slab hamiltonian
     ! On-site terms
     do i=1,s%nAtoms
+      write(*,*) "i = ",i," s%nOrb2 = ",s%nOrb2, " s%Type%nOrb2 = ",s%Types(s%Basis(i)%Material)%nOrb2
       ! spin-up on-site tight-binding term
       h0(ia(1,i):ia(2,i), ia(1,i):ia(2,i)) = s%Types(s%Basis(i)%Material)%onSite(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
       ! spin-down on-site tight-binding term
