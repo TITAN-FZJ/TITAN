@@ -212,12 +212,12 @@ contains
             ! holes
             tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb) = s%Neighbors(k)%t0i(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb, i) * mkpExp
             ! Spin-up
-            ia_temp_j = ia_sc(3,j) + s%nOrb - 1
-            ia_temp_i = ia_sc(3,i) + s%nOrb - 1 
+            ia_temp_j = ia_sc(3,j) + s%Types(s%Basis(j)%Material)%nOrb - 1
+            ia_temp_i = ia_sc(3,i) + s%Types(s%Basis(i)%Material)%nOrb - 1 
             calchk(ia_sc(3,i):ia_temp_i, ia_sc(3,j):ia_temp_j) = calchk(ia_sc(3,i):ia_temp_i, ia_sc(3,j):ia_temp_j) - conjg(tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb))
             ! Spin-down
-            ia_temp_j = ia_sc(4,j) - s%nOrb + 1
-            ia_temp_i = ia_sc(4,i) - s%nOrb + 1
+            ia_temp_j = ia_sc(4,j) - s%Types(s%Basis(j)%Material)%nOrb + 1
+            ia_temp_i = ia_sc(4,i) - s%Types(s%Basis(i)%Material)%nOrb + 1
             calchk(ia_temp_i:ia_sc(4,i), ia_temp_j:ia_sc(4,j)) = calchk(ia_temp_i:ia_sc(4,i), ia_temp_j:ia_sc(4,j)) - conjg(tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb))
           end if
         end if
@@ -375,12 +375,12 @@ contains
             ! holes
             tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb) = s%Neighbors(k)%t0i(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb, i) * mkpExp
             ! Spin-up
-            ia_temp_j = ia_sc(3,j) + s%nOrb - 1
-            ia_temp_i = ia_sc(3,i) + s%nOrb - 1 
+            ia_temp_j = ia_sc(3,j) + s%Types(s%Basis(j)%Material)%nOrb - 1
+            ia_temp_i = ia_sc(3,i) + s%Types(s%Basis(i)%Material)%nOrb - 1 
             hk(ia_sc(3,i):ia_temp_i, ia_sc(3,j):ia_temp_j) = hk(ia_sc(3,i):ia_temp_i, ia_sc(3,j):ia_temp_j) - conjg(tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb))
             ! Spin-down
-            ia_temp_j = ia_sc(4,j) - s%nOrb + 1
-            ia_temp_i = ia_sc(4,i) - s%nOrb + 1
+            ia_temp_j = ia_sc(4,j) - s%Types(s%Basis(j)%Material)%nOrb + 1
+            ia_temp_i = ia_sc(4,i) - s%Types(s%Basis(i)%Material)%nOrb + 1
             hk(ia_temp_i:ia_sc(4,i), ia_temp_j:ia_sc(4,j)) = hk(ia_temp_i:ia_sc(4,i), ia_temp_j:ia_sc(4,j)) - conjg(tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb))
           end if
         end if
@@ -393,19 +393,21 @@ contains
   !> For a magnetic perturbation: H_ext(t)= S.B(t),  S= Pauli matricies
   !> For an electric perturbation: H_ext(t)= ((P-e*A)^2)/2*m, here only the linear term is implemented.
   subroutine build_hext(kp,b_field,A_t,hext_t)
-    use mod_kind,             only: dp
-    use mod_constants,        only: cI,cZero
-    use mod_imRK4_parameters, only: lelectric, lmagnetic
-    use mod_System,           only: ia, s => sys
-    use mod_parameters,       only: dimHsc
+    use mod_kind,              only: dp
+    use mod_constants,         only: cI,cZero
+    use mod_imRK4_parameters,  only: lelectric,lmagnetic
+    use mod_System,            only: ia,ia_sc,s => sys
+    use mod_parameters,        only: dimHsc
+    use mod_superconductivity, only: lsuperCond
     implicit none
     real(dp),    intent(in)  :: kp(3)
     real(dp),    intent(in)  :: b_field(3), A_t(3)
     complex(dp), intent(out) :: hext_t(dimHsc,dimHsc)
 
     complex(dp)  :: hext(s%nOrb2,s%nOrb2), temp(s%nOrb,s%nOrb)
-    integer      :: i, j, k, mu, nu
-    complex(dp)  :: kpExp, kpA_t
+    integer      :: i, j, k, mu, nu, ia_temp_i, ia_temp_j
+    complex(dp)  :: kpExp,mkpExp,expA,kpA_t,mkpA_t
+
 
     hext_t = cZero
 
@@ -435,9 +437,12 @@ contains
         ! exp(ik.(R_i-R_j))
         kpExp = exp( cI * dot_product(kp,s%Neighbors(k)%CellVector))
 
+        if(lsuperCond) mkpExp = conjg(kpExp)
+
         do i = 1,s%nAtoms
           if(s%Neighbors(k)%isHopping(i)) then
-            kpA_t =  kpExp * ( exp(-cI * dot_product(A_t, s%Basis(i)%Position(:)-(s%Basis(j)%Position(:)+s%Neighbors(k)%CellVector))) - 1._dp) ! The -1._dp term is to discount the usual t(k) term that is already included in H_0
+            expA = ( exp(-cI * dot_product(A_t, s%Basis(i)%Position(:)-(s%Basis(j)%Position(:)+s%Neighbors(k)%CellVector))) - 1._dp) ! The -1._dp term is to discount the usual t(k) term that is already included in H_0
+            kpA_t =  kpExp * expA 
 
             !DIR$ VECTOR ALIGNED
             temp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb) = s%Neighbors(k)%t0i(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb,i) * kpA_t 
@@ -445,7 +450,22 @@ contains
             hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) = hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) + temp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb)
             ! Spin-down
             hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) = hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) + temp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb)
+
+            if(lsuperCond) then
+              mkpA_t =  mkpExp * expA 
+              ! holes
+              temp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb) = s%Neighbors(k)%t0i(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb, i) * mkpA_t
+              ! Spin-up
+              ia_temp_j = ia_sc(3,j) + s%Types(s%Basis(j)%Material)%nOrb - 1
+              ia_temp_i = ia_sc(3,i) + s%Types(s%Basis(i)%Material)%nOrb - 1 
+              hext_t(ia_sc(3,i):ia_temp_i, ia_sc(3,j):ia_temp_j) = hext_t(ia_sc(3,i):ia_temp_i, ia_sc(3,j):ia_temp_j) - conjg(temp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb))
+              ! Spin-down
+              ia_temp_j = ia_sc(4,j) - s%Types(s%Basis(j)%Material)%nOrb + 1
+              ia_temp_i = ia_sc(4,i) - s%Types(s%Basis(i)%Material)%nOrb + 1
+              hext_t(ia_temp_i:ia_sc(4,i), ia_temp_j:ia_sc(4,j)) = hext_t(ia_temp_i:ia_sc(4,i), ia_temp_j:ia_sc(4,j)) - conjg(temp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb))
+            end if
           end if
+
         end do
       end do
     end if
