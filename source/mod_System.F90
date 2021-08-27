@@ -41,7 +41,8 @@ module mod_system
     integer(int32), dimension(:), allocatable :: sOrbs,pOrbs,dOrbs
     !! Indices of selected s,p,d orbitals
     integer(int32) :: nOrb,nOrb2,nOrb2sc
-    !! Number of orbitals per atom (when all types use the same, otherwise, max number) and and 2*(number of orbitals) (for spin)
+    !! Number of orbitals per atom (when all types use the same, otherwise, max number) 
+    !! 2*(number of orbitals) (for spin) and supercond*2*nOrb
     integer(int32) :: total_nOrb
     !! Total number of orbitals
     integer(int32) :: nsOrb,npOrb,ndOrb
@@ -107,18 +108,17 @@ contains
     do i = 2, s%nAtoms
       dimH = dimH + s%Types(s%Basis(i)%Material)%nOrb
       dimens = dimens + s%Types(s%Basis(i)%Material)%nOrb * s%Types(s%Basis(i)%Material)%nOrb
-      
-      ia(1,i) = (i-1) * 2 * s%nOrb + 1   ! Begin up
-      ia(2,i) = ia(1,i) + s%nOrb - 1     ! End up
-      ia(3,i) = ia(2,i) + 1              ! Begin down
-      ia(4,i) = ia(3,i) + s%nOrb - 1     ! End down
+
+      ia(1,i) = ia(4,i-1) + 1                                    ! Begin up 
+      ia(2,i) = ia(1,i) + s%Types(s%Basis(i)%Material)%nOrb - 1  ! End up
+      ia(3,i) = ia(2,i) + 1                                      ! Begin down 
+      ia(4,i) = ia(3,i) + s%Types(s%Basis(i)%Material)%nOrb - 1  ! End down
     end do
+    offsetParameter = dimH
     dimH = dimH*2
     dimens = dimens*4
     dimHsc  = dimH*superCond
     dimspinAtoms = 4 * s%nAtoms
-
-    offsetParameter = s%nAtoms*s%nOrb*2
 
     ! Superconductivity strides (need dimH)
     ia_sc(1,1) = 1
@@ -127,9 +127,9 @@ contains
     ia_sc(4,1) = ia_sc(3,1) + 2*s%Types(s%Basis(1)%Material)%nOrb - 1
     do i = 2, s%nAtoms
       ! Superconductivity block has doubled dimensions in each spin
-      ia_sc(1,i) = ia_sc(2,i-1) + 1                                         ! Begin first block (electrons) 1 to 2*nOrb
+      ia_sc(1,i) = ia_sc(2,i-1) + 1                                        ! Begin first block (electrons) 1 to 2*nOrb
       ia_sc(2,i) = ia_sc(1,i) + 2*s%Types(s%Basis(i)%Material)%nOrb - 1    ! End first block (electrons)
-      ia_sc(3,i) = ia_sc(1,i) + dimH                                        ! Begin second block (holes) 1 to 2*nOrb + dimH
+      ia_sc(3,i) = ia_sc(1,i) + dimH                                       ! Begin second block (holes) 1 to 2*nOrb + dimH
       ia_sc(4,i) = ia_sc(3,i) + 2*s%Types(s%Basis(i)%Material)%nOrb - 1    ! End second block (holes)
     end do
 

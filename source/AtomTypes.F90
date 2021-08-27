@@ -70,8 +70,9 @@ module AtomTypes
     !! Types of selected orbitals 
     integer(int32), dimension(:), allocatable :: sOrbs,pOrbs,dOrbs
     !! Indices of selected s,p,d orbitals
-    integer(int32) :: nOrb,nsOrb,npOrb,ndOrb
+    integer(int32) :: nOrb,nsOrb,npOrb,ndOrb,nOrb2,nOrb2sc
     !! Number of orbitals, number of s,p,d orbitals
+    !! 2*(number of orbitals) (for spin) and supercond*2*nOrb
     real(dp) :: Occupation, OccupationS, OccupationP, OccupationD
     !! Total, s, p and d occupations
     real(dp) :: LatticeConstant

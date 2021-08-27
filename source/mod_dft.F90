@@ -23,6 +23,7 @@ contains
     use mod_kind,      only: dp
     use mod_system,    only: System_type
     use AtomTypes,     only: NeighborAtom
+    use mod_constants, only: cZero
     use mod_io,        only: log_error
     use mod_tools,     only: ItoS,StoI,StoR,StoArray,next_line
     implicit none
@@ -66,7 +67,6 @@ contains
     allocate(list(nCells*s%nAtoms))
     do i = 1,nCells*s%nAtoms
       allocate(list(i)%isHopping(s%nAtoms))
-      list(i)%t0i = 0._dp
       list(i)%isHopping = .false.
     end do
     do i = 1, s%nTypes
@@ -82,22 +82,27 @@ contains
       weight(i0:i1) = StoI(next_line("readHamiltonian",f_unit,"weights"),wgt_per_line)
     end do
     i1 = wgt_per_line*j
-    weight(i1+1:i1+mod(nCells,wgt_per_line)) = StoI(next_line("readHamiltonian",f_unit,"weights"),mod(nCells,wgt_per_line)-1)    
+    weight(i1+1:i1+mod(nCells,wgt_per_line)) = StoI(next_line("readHamiltonian",f_unit,"weights"),mod(nCells,wgt_per_line))    
 
     ! "nNeighbors" is added up until all atoms in all unit cells, nCells*s%nAtoms
     nNeighbors = 0
     do cell = 1,nCells
-      do i = 1,s%nAtoms
+      do j = 1,s%nAtoms
         
-        ! "nNeighbors" is the current atom
+        ! "nNeighbors" is the current atom (composed by {cell,i})
         nNeighbors = nNeighbors + 1
         
-        do mu = 1,s%Types(i)%nOrb
+        do nu = 1,s%Types(s%Basis(j)%Material)%nOrb
           ! Reading hamiltonian for a given unit cell
-          do j = 1,s%nAtoms
-            if(.not.allocated(list(nNeighbors)%t0i)) allocate(list(nNeighbors)%t0i(s%Types(i)%nOrb,s%Types(j)%nOrb,s%nAtoms)) ! FIX
+          do i = 1,s%nAtoms
+            if(.not.allocated(list(nNeighbors)%t0i)) then
+              ! Allocating with the maximum number of orbitals, to be able to store
+              ! the largest matrix
+              allocate(list(nNeighbors)%t0i(s%nOrb,s%nOrb,s%nAtoms))
+              list(nNeighbors)%t0i = cZero
+            end if
 
-            do nu = 1,s%Types(j)%nOrb
+            do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
               ! Reading information from file
               read(f_unit, fmt=*, iostat=ios) pos(1), pos(2), pos(3), orb(1), orb(2), hop(1), hop(2)
 
@@ -106,11 +111,11 @@ contains
                 cycle
               end if
 
-              list(nNeighbors)%isHopping(j) = .true.
-              list(nNeighbors)%t0i(mu,nu,j) = cmplx(hop(1),hop(2),dp)
-            end do !nu
-          end do !j
-        end do ! mu
+              list(nNeighbors)%isHopping(i) = .true.
+              list(nNeighbors)%t0i(mu,nu,i) = cmplx(hop(1),hop(2),dp)
+            end do !mu
+          end do !i
+        end do ! nu
 
         ! list(nNeighbors)%isHopping(i) = .true.
 
@@ -123,10 +128,10 @@ contains
                                     + list(nNeighbors)%Cell(2) * s%a2 &
                                     + list(nNeighbors)%Cell(3) * s%a3
         ! Atom position is r = R_i + r_j
-        list(nNeighbors)%Position = s%Basis(i)%Position + list(nNeighbors)%CellVector
-        list(nNeighbors)%BasisIndex = i
-        list(nNeighbors)%Material = s%Basis(i)%Material
-      end do ! i
+        list(nNeighbors)%Position = s%Basis(j)%Position + list(nNeighbors)%CellVector
+        list(nNeighbors)%BasisIndex = j
+        list(nNeighbors)%Material = s%Basis(j)%Material
+      end do ! j
     end do ! cell
 
     close(f_unit)

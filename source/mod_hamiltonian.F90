@@ -52,15 +52,15 @@ contains
     ! On-site terms
     do i=1,s%nAtoms
       ! spin-up on-site tight-binding term
-      h0(ia(1,i):ia(2,i), ia(1,i):ia(2,i)) = s%Types(s%Basis(i)%Material)%onSite(1:s%nOrb,1:s%nOrb)
+      h0(ia(1,i):ia(2,i), ia(1,i):ia(2,i)) = s%Types(s%Basis(i)%Material)%onSite(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
       ! spin-down on-site tight-binding term
-      h0(ia(3,i):ia(4,i), ia(3,i):ia(4,i)) = s%Types(s%Basis(i)%Material)%onSite(1:s%nOrb,1:s%nOrb)
+      h0(ia(3,i):ia(4,i), ia(3,i):ia(4,i)) = s%Types(s%Basis(i)%Material)%onSite(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
       ! External magnetic field (orbital + spin) + Electron-electron interaction (Hubbard) + Spin-orbit coupling
       h0(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = h0 (ia(1,i):ia(4,i), ia(1,i):ia(4,i)) &
-                                           + lb (1:s%nOrb2,1:s%nOrb2,i) &
-                                           + sb (1:s%nOrb2,1:s%nOrb2,i) &
-                                           + hee(1:s%nOrb2,1:s%nOrb2,i) &
-                                           + ls (1:s%nOrb2,1:s%nOrb2,i)
+                                           + lb (1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2,i) &
+                                           + sb (1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2,i) &
+                                           + hee(1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2,i) &
+                                           + ls (1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2,i)
     end do
 
     ! The form of the superconducting hamiltonian depends on a series of decisions,
@@ -75,7 +75,7 @@ contains
     ! get a better idea of how to construct this operator
 
     if(lsuperCond) then
-      h0(dimH+1:2*dimH,dimH+1:2*dimH) = -conjg(h0(1:dimH,1:dimH))
+      h0(dimH+1:dimHsc,dimH+1:dimHsc) = -conjg(h0(1:dimH,1:dimH))
       do i = 1,dimH
         h0(     i,     i) = h0(     i,     i) - s%Ef
         h0(dimH+i,dimH+i) = h0(dimH+i,dimH+i) + s%Ef
@@ -109,7 +109,7 @@ contains
     h0_d = cZero
 
     do i=1,s%nAtoms
-      onSite_d(:,:,i) = s%Types(s%Basis(i)%Material)%onSite(1:s%nOrb,1:s%nOrb)
+      onSite_d(:,:,i) = s%Types(s%Basis(i)%Material)%onSite(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
     end do
     lb_d = lb
     sb_d = sb
@@ -126,10 +126,10 @@ contains
       h0_d(ia_d(3,i):ia_d(4,i),ia_d(3,i):ia_d(4,i)) = onSite_d(:,:,i)
       ! External magnetic field (orbital + spin) + Electron-electron interaction (Hubbard) + Spin-orbit coupling
       h0_d(ia_d(1,i):ia_d(4,i),ia_d(1,i):ia_d(4,i)) = h0_d (ia_d(1,i):ia_d(4,i), ia_d(1,i):ia_d(4,i)) &
-                                                    + lb_d (1:s%nOrb2,1:s%nOrb2,i) &
-                                                    + sb_d (1:s%nOrb2,1:s%nOrb2,i) &
-                                                    + hee_d(1:s%nOrb2,1:s%nOrb2,i) &
-                                                    + ls_d (1:s%nOrb2,1:s%nOrb2,i)
+                                                    + lb_d (1:s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2,i) &
+                                                    + sb_d (1:s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2,i) &
+                                                    + hee_d(1:s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2,i) &
+                                                    + ls_d (1:s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2,i)
     end do
 
     ! The form of the superconducting hamiltonian depends on a series of decisions,
@@ -158,9 +158,9 @@ contains
       end do
 
       ! Populating the non-diagonal blocks of the hamiltonian. There are several ways to do it.
-      !$cuf kernel do(2) <<< (1,*), (9,*) >>>
+      !$cuf kernel do(2) <<< (*,*), (*,*) >>>
       do i = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
           h0_d(isigmamu2n_d(i,1,mu)     ,isigmamu2n_d(i,2,mu)+dimH) = - cmplx(delta_sc_d(mu,i),0._dp,dp)
           h0_d(isigmamu2n_d(i,2,mu)     ,isigmamu2n_d(i,1,mu)+dimH) =   cmplx(delta_sc_d(mu,i),0._dp,dp)
           h0_d(isigmamu2n_d(i,2,mu)+dimH,isigmamu2n_d(i,1,mu)     ) = - cmplx(delta_sc_d(mu,i),0._dp,dp)
@@ -202,23 +202,23 @@ contains
       do i = 1,s%nAtoms
         if(s%Neighbors(k)%isHopping(i)) then
           ! electrons
-          tmp(1:s%nOrb,1:s%nOrb) = s%Neighbors(k)%t0i(1:s%nOrb,1:s%nOrb,i) * kpExp
+          tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb) = s%Neighbors(k)%t0i(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb,i) * kpExp
           ! Spin-up
-          calchk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = calchk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + tmp(1:s%nOrb,1:s%nOrb)
+          calchk(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) = calchk(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) + tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb)
           ! Spin-down
-          calchk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = calchk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + tmp(1:s%nOrb,1:s%nOrb)
+          calchk(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) = calchk(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) + tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb)
 
           if(lsuperCond) then
             ! holes
-            tmp(1:s%nOrb,1:s%nOrb) = s%Neighbors(k)%t0i(1:s%nOrb, 1:s%nOrb, i) * mkpExp
+            tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb) = s%Neighbors(k)%t0i(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb, i) * mkpExp
             ! Spin-up
             ia_temp_j = ia_sc(3,j) + s%nOrb - 1
             ia_temp_i = ia_sc(3,i) + s%nOrb - 1 
-            calchk(ia_sc(3,j):ia_temp_j, ia_sc(3,i):ia_temp_i) = calchk(ia_sc(3,j):ia_temp_j, ia_sc(3,i):ia_temp_i) - conjg(tmp(1:s%nOrb,1:s%nOrb))
+            calchk(ia_sc(3,i):ia_temp_i, ia_sc(3,j):ia_temp_j) = calchk(ia_sc(3,i):ia_temp_i, ia_sc(3,j):ia_temp_j) - conjg(tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb))
             ! Spin-down
             ia_temp_j = ia_sc(4,j) - s%nOrb + 1
             ia_temp_i = ia_sc(4,i) - s%nOrb + 1
-            calchk(ia_temp_j:ia_sc(4,j), ia_temp_i:ia_sc(4,i)) = calchk(ia_temp_j:ia_sc(4,j), ia_temp_i:ia_sc(4,i)) - conjg(tmp(1:s%nOrb,1:s%nOrb))
+            calchk(ia_temp_i:ia_sc(4,i), ia_temp_j:ia_sc(4,j)) = calchk(ia_temp_i:ia_sc(4,i), ia_temp_j:ia_sc(4,j)) - conjg(tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb))
           end if
         end if
       end do
@@ -312,7 +312,7 @@ contains
     integer     :: i,j,k,ia_temp_i,ia_temp_j
     complex(dp) :: tmp(s%nOrb,s%nOrb)
     complex(dp) :: kpExp,mkpExp
-    complex(dp), dimension(dimHsc,dimHsc),intent(out)  :: hk,vsoc
+    complex(dp), dimension(dimHsc,dimHsc), intent(out) :: hk,vsoc
 
     hk = cZero
     vsoc = cZero
@@ -321,15 +321,15 @@ contains
     ! On-site terms
     do i=1,s%nAtoms
       ! spin-up on-site tight-binding term
-      hk(ia(1,i):ia(2,i), ia(1,i):ia(2,i)) = s%Types(s%Basis(i)%Material)%onSite(1:s%nOrb,1:s%nOrb)
+      hk(ia(1,i):ia(2,i), ia(1,i):ia(2,i)) = s%Types(s%Basis(i)%Material)%onSite(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
       ! spin-down on-site tight-binding term
-      hk(ia(3,i):ia(4,i), ia(3,i):ia(4,i)) = s%Types(s%Basis(i)%Material)%onSite(1:s%nOrb,1:s%nOrb)
+      hk(ia(3,i):ia(4,i), ia(3,i):ia(4,i)) = s%Types(s%Basis(i)%Material)%onSite(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
       ! External magnetic field (orbital + spin) + Electron-electron interaction (Hubbard) + Spin-orbit coupling
       hk(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) =  hk (ia(1,i):ia(4,i), ia(1,i):ia(4,i)) &
-                                            + lb (1:s%nOrb2,1:s%nOrb2,i) &
-                                            + sb (1:s%nOrb2,1:s%nOrb2,i) &
-                                            + hee(1:s%nOrb2,1:s%nOrb2,i)
-      vsoc(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = ls(1:s%nOrb2,1:s%nOrb2,i)
+                                            + lb (1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2,i) &
+                                            + sb (1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2,i) &
+                                            + hee(1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2,i)
+      vsoc(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = ls(1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2,i)
     end do
 
     ! The form of the superconducting hamiltonian depends on a series of decisions,
@@ -344,8 +344,8 @@ contains
     ! get a better idea of how to construct this operator
 
     if(lsuperCond) then
-      hk(dimH+1:2*dimH,dimH+1:2*dimH) = -conjg(hk(1:dimH,1:dimH))
-      vsoc(dimH+1:2*dimH,dimH+1:2*dimH) = -conjg(vsoc(1:dimH,1:dimH))
+      hk(dimH+1:dimHsc,dimH+1:dimHsc) = -conjg(hk(1:dimH,1:dimH))
+      vsoc(dimH+1:dimHsc,dimH+1:dimHsc) = -conjg(vsoc(1:dimH,1:dimH))
       do i = 1,dimH
         hk(     i,     i) = hk(     i,     i) - s%Ef
         hk(dimH+i,dimH+i) = hk(dimH+i,dimH+i) + s%Ef
@@ -365,23 +365,23 @@ contains
       do i = 1,s%nAtoms
         if(s%Neighbors(k)%isHopping(i)) then
           ! electrons
-          tmp(1:s%nOrb,1:s%nOrb) = s%Neighbors(k)%t0i(1:s%nOrb,1:s%nOrb, i) * kpExp
+          tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb) = s%Neighbors(k)%t0i(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb,i) * kpExp
           ! Spin-up
-          hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + tmp(1:s%nOrb,1:s%nOrb)
+          hk(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) = hk(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) + tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb)
           ! Spin-down
-          hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + tmp(1:s%nOrb,1:s%nOrb)
+          hk(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) = hk(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) + tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb)
 
           if(lsuperCond) then
             ! holes
-            tmp(1:s%nOrb,1:s%nOrb) = s%Neighbors(k)%t0i(1:s%nOrb,1:s%nOrb,i) * mkpExp
+            tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb) = s%Neighbors(k)%t0i(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb, i) * mkpExp
             ! Spin-up
             ia_temp_j = ia_sc(3,j) + s%nOrb - 1
             ia_temp_i = ia_sc(3,i) + s%nOrb - 1 
-            hk(ia_sc(3,j):ia_temp_j, ia_sc(3,i):ia_temp_i) = hk(ia_sc(3,j):ia_temp_j, ia_sc(3,i):ia_temp_i) - conjg(tmp(1:s%nOrb,1:s%nOrb))
+            hk(ia_sc(3,i):ia_temp_i, ia_sc(3,j):ia_temp_j) = hk(ia_sc(3,i):ia_temp_i, ia_sc(3,j):ia_temp_j) - conjg(tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb))
             ! Spin-down
             ia_temp_j = ia_sc(4,j) - s%nOrb + 1
             ia_temp_i = ia_sc(4,i) - s%nOrb + 1
-            hk(ia_temp_j:ia_sc(4,j), ia_temp_i:ia_sc(4,i)) = hk(ia_temp_j:ia_sc(4,j), ia_temp_i:ia_sc(4,i)) - conjg(tmp(1:s%nOrb,1:s%nOrb))
+            hk(ia_temp_i:ia_sc(4,i), ia_temp_j:ia_sc(4,j)) = hk(ia_temp_i:ia_sc(4,i), ia_temp_j:ia_sc(4,j)) - conjg(tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb))
           end if
         end if
       end do
@@ -409,18 +409,18 @@ contains
 
     hext_t = cZero
 
-    hext = cZero
     if(lmagnetic) then
-      do mu=1,s%nOrb
-        nu=mu+s%nOrb
-        hext(mu,mu) = hext(mu,mu) + b_field(3)
-        hext(nu,nu) = hext(nu,nu) - b_field(3)
-        hext(nu,mu) = hext(nu,mu) + b_field(1)+cI*b_field(2)
-        hext(mu,nu) = conjg(hext(nu,mu))
-      end do
-
       do i=1, s%nAtoms
-        hext_t(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = hext
+        hext = cZero
+        do mu=1,s%Types(s%Basis(i)%Material)%nOrb
+          nu=mu+s%Types(s%Basis(i)%Material)%nOrb
+          hext(mu,mu) = hext(mu,mu) + b_field(3)
+          hext(nu,nu) = hext(nu,nu) - b_field(3)
+          hext(nu,mu) = hext(nu,mu) + b_field(1)+cI*b_field(2)
+          hext(mu,nu) = conjg(hext(nu,mu))
+        end do
+
+        hext_t(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = hext(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
       end do
     end if
 
@@ -440,11 +440,11 @@ contains
             kpA_t =  kpExp * ( exp(-cI * dot_product(A_t, s%Basis(i)%Position(:)-(s%Basis(j)%Position(:)+s%Neighbors(k)%CellVector))) - 1._dp) ! The -1._dp term is to discount the usual t(k) term that is already included in H_0
 
             !DIR$ VECTOR ALIGNED
-            temp = s%Neighbors(k)%t0i(:,:,i) * kpA_t 
+            temp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb) = s%Neighbors(k)%t0i(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb,i) * kpA_t 
             ! Spin-up
-            hext_t(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hext_t(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + temp
+            hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) = hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) + temp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb)
             ! Spin-down
-            hext_t(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hext_t(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + temp
+            hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) = hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) + temp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb)
           end if
         end do
       end do

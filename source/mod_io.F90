@@ -487,9 +487,7 @@ contains
       s_vector(:) = default_orbitals(:)
     end if
 
-    call get_orbitals(s_vector,s%nOrb,s%nsOrb,s%npOrb,s%ndOrb,s%Orbs,s%sOrbs,s%pOrbs,s%dOrbs)
-    s%nOrb2 = 2*s%nOrb
-    s%nOrb2sc = superCond*s%nOrb2
+    call get_orbitals("the whole system",s_vector,s%nOrb,s%nOrb2,s%nOrb2sc,s%nsOrb,s%npOrb,s%ndOrb,s%Orbs,s%sOrbs,s%pOrbs,s%dOrbs)
     deallocate(s_vector)
 
     if(.not. get_parameter("fermi_layer", fermi_layer, 1)) &
@@ -963,21 +961,25 @@ contains
   end subroutine get_parameters
 
 
-  subroutine get_orbitals(input_orbitals,nOrb,nsOrb,npOrb,ndOrb,Orbs,sOrbs,pOrbs,dOrbs)
+  subroutine get_orbitals(string,input_orbitals,nOrb,nOrb2,nOrb2sc,nsOrb,npOrb,ndOrb,Orbs,sOrbs,pOrbs,dOrbs)
   !! Subroutine to read and parse the selected orbitals
     use mod_kind,   only: int32
     use mod_System, only: System_type
     use mod_tools,  only: is_numeric,itos,stoi
     use AtomTypes,  only: default_orbitals
-    character(len=20), dimension(:), intent(inout)  :: input_orbitals
-    integer(int32), intent(out) :: nOrb,nsOrb,npOrb,ndOrb
-    integer(int32), dimension(:), allocatable, intent(out) :: Orbs,sOrbs,pOrbs,dOrbs
+    use mod_superconductivity, only: superCond
+    character(len=*)               , intent(in)    :: string
+    character(len=20), dimension(:), intent(inout) :: input_orbitals
+    integer(int32),                  intent(out)   :: nOrb,nOrb2,nOrb2sc,nsOrb,npOrb,ndOrb
+    integer(int32),    dimension(:), allocatable, intent(out) :: Orbs,sOrbs,pOrbs,dOrbs
 
     integer :: i,iloc
     integer,  dimension(:), allocatable :: itmps_arr,itmpp_arr,itmpd_arr
     !! Variables to temporarily store the orbitals
     character(len=100) :: selected_orbitals,selected_sorbitals,selected_porbitals,selected_dorbitals
     !! Variables to print selected orbitals
+
+    call log_message("get_orbitals","Selection of orbitals for " // trim(string) // ":")
 
     selected_orbitals = ""
     selected_sorbitals = ""
@@ -1003,6 +1005,8 @@ contains
         input_orbitals(i) = itos( iloc )
       end if
     end do
+    nOrb2 = nOrb*2
+    nOrb2sc = superCond*nOrb2
     allocate(Orbs(nOrb),itmps_arr(nOrb),itmpp_arr(nOrb),itmpd_arr(nOrb))
 
     ! Looping over selected orbitals
