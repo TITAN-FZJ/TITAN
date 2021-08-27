@@ -597,7 +597,7 @@ contains
     character(len=*), intent(in) :: string
     integer,          intent(in) :: dim_v
     integer           :: ios,i
-    character(len=50) :: StoArray(dim_v)
+    character(len=20) :: StoArray(dim_v)
 
     StoArray = ""
     read(unit=string, fmt=*, iostat=ios) (StoArray(i), i=1,dim_v)
