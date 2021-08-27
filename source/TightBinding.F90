@@ -140,7 +140,7 @@ contains
               ! Allocating with the maximum number of orbitals, to be able to store
               ! the largest matrix
               allocate(s%Neighbors(current%index)%t0i(s%nOrb,s%nOrb,s%nAtoms))
-              s%Neighbors(i)%t0i = cZero
+              s%Neighbors(current%index)%t0i = cZero
             end if
 
             !! Sets the hopping matrix between sites j (in neighbor list) and i (inside cell 0)
