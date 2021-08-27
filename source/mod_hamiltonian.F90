@@ -51,7 +51,6 @@ contains
     ! Mouting slab hamiltonian
     ! On-site terms
     do i=1,s%nAtoms
-      write(*,*) "i = ",i," s%nOrb2 = ",s%nOrb2, " s%Type%nOrb2 = ",s%Types(s%Basis(i)%Material)%nOrb2
       ! spin-up on-site tight-binding term
       h0(ia(1,i):ia(2,i), ia(1,i):ia(2,i)) = s%Types(s%Basis(i)%Material)%onSite(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
       ! spin-down on-site tight-binding term
@@ -203,23 +202,23 @@ contains
       do i = 1,s%nAtoms
         if(s%Neighbors(k)%isHopping(i)) then
           ! electrons
-          tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb) = s%Neighbors(k)%t0i(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb,i) * kpExp
+          tmp(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb) = s%Neighbors(k)%t0i(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb,i) * kpExp
           ! Spin-up
-          calchk(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) = calchk(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) + tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb)
+          calchk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = calchk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + tmp(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
           ! Spin-down
-          calchk(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) = calchk(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) + tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb)
+          calchk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = calchk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + tmp(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
 
           if(lsuperCond) then
             ! holes
-            tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb) = s%Neighbors(k)%t0i(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb, i) * mkpExp
+            tmp(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb) = s%Neighbors(k)%t0i(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb, i) * mkpExp
             ! Spin-up
             ia_temp_j = ia_sc(3,j) + s%Types(s%Basis(j)%Material)%nOrb - 1
             ia_temp_i = ia_sc(3,i) + s%Types(s%Basis(i)%Material)%nOrb - 1 
-            calchk(ia_sc(3,i):ia_temp_i, ia_sc(3,j):ia_temp_j) = calchk(ia_sc(3,i):ia_temp_i, ia_sc(3,j):ia_temp_j) - conjg(tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb))
+            calchk(ia_sc(3,j):ia_temp_j, ia_sc(3,i):ia_temp_i) = calchk(ia_sc(3,j):ia_temp_j, ia_sc(3,i):ia_temp_i) - conjg(tmp(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb))
             ! Spin-down
             ia_temp_j = ia_sc(4,j) - s%Types(s%Basis(j)%Material)%nOrb + 1
             ia_temp_i = ia_sc(4,i) - s%Types(s%Basis(i)%Material)%nOrb + 1
-            calchk(ia_temp_i:ia_sc(4,i), ia_temp_j:ia_sc(4,j)) = calchk(ia_temp_i:ia_sc(4,i), ia_temp_j:ia_sc(4,j)) - conjg(tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb))
+            calchk(ia_temp_j:ia_sc(4,j), ia_temp_i:ia_sc(4,i)) = calchk(ia_temp_j:ia_sc(4,j), ia_temp_i:ia_sc(4,i)) - conjg(tmp(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb))
           end if
         end if
       end do
@@ -366,23 +365,23 @@ contains
       do i = 1,s%nAtoms
         if(s%Neighbors(k)%isHopping(i)) then
           ! electrons
-          tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb) = s%Neighbors(k)%t0i(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb,i) * kpExp
+          tmp(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb) = s%Neighbors(k)%t0i(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb,i) * kpExp
           ! Spin-up
-          hk(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) = hk(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) + tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb)
+          hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hk(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + tmp(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
           ! Spin-down
-          hk(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) = hk(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) + tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb)
+          hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hk(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + tmp(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
 
           if(lsuperCond) then
             ! holes
-            tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb) = s%Neighbors(k)%t0i(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb, i) * mkpExp
+            tmp(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb) = s%Neighbors(k)%t0i(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb, i) * mkpExp
             ! Spin-up
             ia_temp_j = ia_sc(3,j) + s%Types(s%Basis(j)%Material)%nOrb - 1
             ia_temp_i = ia_sc(3,i) + s%Types(s%Basis(i)%Material)%nOrb - 1 
-            hk(ia_sc(3,i):ia_temp_i, ia_sc(3,j):ia_temp_j) = hk(ia_sc(3,i):ia_temp_i, ia_sc(3,j):ia_temp_j) - conjg(tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb))
+            hk(ia_sc(3,j):ia_temp_j, ia_sc(3,i):ia_temp_i) = hk(ia_sc(3,j):ia_temp_j, ia_sc(3,i):ia_temp_i) - conjg(tmp(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb))
             ! Spin-down
             ia_temp_j = ia_sc(4,j) - s%Types(s%Basis(j)%Material)%nOrb + 1
             ia_temp_i = ia_sc(4,i) - s%Types(s%Basis(i)%Material)%nOrb + 1
-            hk(ia_temp_i:ia_sc(4,i), ia_temp_j:ia_sc(4,j)) = hk(ia_temp_i:ia_sc(4,i), ia_temp_j:ia_sc(4,j)) - conjg(tmp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb))
+            hk(ia_temp_j:ia_sc(4,j), ia_temp_i:ia_sc(4,i)) = hk(ia_temp_j:ia_sc(4,j), ia_temp_i:ia_sc(4,i)) - conjg(tmp(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb))
           end if
         end if
       end do
@@ -446,24 +445,24 @@ contains
             kpA_t =  kpExp * expA 
 
             !DIR$ VECTOR ALIGNED
-            temp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb) = s%Neighbors(k)%t0i(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb,i) * kpA_t 
+            temp(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb) = s%Neighbors(k)%t0i(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb,i) * kpA_t 
             ! Spin-up
-            hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) = hext_t(ia(1,i):ia(2,i), ia(1,j):ia(2,j)) + temp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb)
+            hext_t(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) = hext_t(ia(1,j):ia(2,j), ia(1,i):ia(2,i)) + temp(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
             ! Spin-down
-            hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) = hext_t(ia(3,i):ia(4,i), ia(3,j):ia(4,j)) + temp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb)
+            hext_t(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) = hext_t(ia(3,j):ia(4,j), ia(3,i):ia(4,i)) + temp(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
 
             if(lsuperCond) then
               mkpA_t =  mkpExp * expA 
               ! holes
-              temp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb) = s%Neighbors(k)%t0i(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb, i) * mkpA_t
+              temp(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb) = s%Neighbors(k)%t0i(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb, i) * mkpA_t
               ! Spin-up
               ia_temp_j = ia_sc(3,j) + s%Types(s%Basis(j)%Material)%nOrb - 1
               ia_temp_i = ia_sc(3,i) + s%Types(s%Basis(i)%Material)%nOrb - 1 
-              hext_t(ia_sc(3,i):ia_temp_i, ia_sc(3,j):ia_temp_j) = hext_t(ia_sc(3,i):ia_temp_i, ia_sc(3,j):ia_temp_j) - conjg(temp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb))
+              hext_t(ia_sc(3,j):ia_temp_j, ia_sc(3,i):ia_temp_i) = hext_t(ia_sc(3,j):ia_temp_j, ia_sc(3,i):ia_temp_i) - conjg(temp(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb))
               ! Spin-down
               ia_temp_j = ia_sc(4,j) - s%Types(s%Basis(j)%Material)%nOrb + 1
               ia_temp_i = ia_sc(4,i) - s%Types(s%Basis(i)%Material)%nOrb + 1
-              hext_t(ia_temp_i:ia_sc(4,i), ia_temp_j:ia_sc(4,j)) = hext_t(ia_temp_i:ia_sc(4,i), ia_temp_j:ia_sc(4,j)) - conjg(temp(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(j)%Material)%nOrb))
+              hext_t(ia_temp_j:ia_sc(4,j), ia_temp_i:ia_sc(4,i)) = hext_t(ia_temp_j:ia_sc(4,j), ia_temp_i:ia_sc(4,i)) - conjg(temp(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb))
             end if
           end if
 

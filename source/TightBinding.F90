@@ -136,14 +136,14 @@ contains
               mix(l,2) = s%Types(s%Basis(j)%Material)%Hopping(l,k) * scale_factor(2) ** expon(l)
             end do
             if(.not.allocated(s%Neighbors(current%index)%t0i)) then
-              ! First orbital index is for sites inside the cell 0, and second is for neighboring atom
+              ! First orbital index is for neighboring atoms, and second is for sites inside the cell 0
               ! Allocating with the maximum number of orbitals, to be able to store
               ! the largest matrix
               allocate(s%Neighbors(current%index)%t0i(s%nOrb,s%nOrb,s%nAtoms))
               s%Neighbors(i)%t0i = cZero
             end if
 
-            !! Sets the hopping matrix between sites i (inside cell 0) and j (in neighbor list)
+            !! Sets the hopping matrix between sites j (in neighbor list) and i (inside cell 0)
             call set_hopping_matrix(s%Neighbors(current%index)%dirCos(:,i), &
                                     mix(:,1),mix(:,2),s%Types(s%Basis(i)%Material)%nOrb,s%Types(s%Basis(j)%Material)%nOrb, &
                                     s%Types(s%Basis(i)%Material)%Orbs,s%Types(s%Basis(j)%Material)%Orbs, &
@@ -157,7 +157,7 @@ contains
   end subroutine get_SK_parameter
 
   subroutine set_hopping_matrix(dirCos,t1,t2,nOrb_i,nOrb_j,Orbs_i,Orbs_j,t0i)
-  !! Sets the hopping matrix between sites i (inside cell 0) and j (in neighbor list)
+  !! Sets the hopping matrix between sites j (in neighbor list) and i (inside cell 0)
   !! The hopping parameters are obtained as a geometric average (or linear average when 'lsimplemix')
   !! between the values of the parameters of i and j
     use mod_kind,       only: dp
@@ -184,9 +184,9 @@ contains
     call intd(mix(1),mix(2),mix(3),mix(4),mix(5),mix(6),mix(7),mix(8),mix(9),mix(10),dirCos,bp)
 
     ! Selecting orbitals
-    do j=1,nOrb_j
-      do i=1,nOrb_i
-        t0i(i,j) = cmplx(bp(Orbs_i(i),Orbs_j(j)),0.d0,dp)
+    do i=1,nOrb_i
+      do j=1,nOrb_j
+        t0i(j,i) = cmplx(bp(Orbs_j(j),Orbs_i(i)),0.d0,dp)
       end do
     end do
 

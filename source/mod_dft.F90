@@ -112,7 +112,7 @@ contains
               end if
 
               list(nNeighbors)%isHopping(i) = .true.
-              list(nNeighbors)%t0i(mu,nu,i) = cmplx(hop(1),hop(2),dp)
+              list(nNeighbors)%t0i(nu,mu,i) = cmplx(hop(1),hop(2),dp)
             end do !mu
           end do !i
         end do ! nu
