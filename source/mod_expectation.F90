@@ -95,25 +95,25 @@ contains
 
     !$omp do schedule(dynamic) reduction(+:imguu,imgdd,gdiagud,gdiagdu,deltas)
     do ix = 1, local_points
-       ep = y(E_k_imag_mesh(1,ix))
-       kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
+      ep = y(E_k_imag_mesh(1,ix))
+      kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
        weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
-       call calc_green(fermi,ep+eta,s,kp,gf)
-       do i=1,s%nAtoms
-         do mu=1,s%nOrb
-           mup = mu+s%nOrb
+      call calc_green(fermi,ep+eta,s,kp,gf)
+      do i=1,s%nAtoms
+        do mu=1,s%Types(s%Basis(i)%Material)%nOrb
+          mup = mu+s%Types(s%Basis(i)%Material)%nOrb
            gdiagud(i,mu) = gdiagud(i,mu) + gf(mu,mup,i,i) * weight
            gdiagdu(i,mu) = gdiagdu(i,mu) + gf(mup,mu,i,i) * weight
 
            imguu(mu,i) = imguu(mu,i) + real(gf(mu ,mu ,i,i)) * weight
            imgdd(mu,i) = imgdd(mu,i) + real(gf(mup,mup,i,i)) * weight
 
-           if ( lsuperCond ) then
-             mup = mu + s%nOrb2 + s%norb
-             deltas(mu,i) = deltas(mu,i) + real(gf(mu,mup,i,i)) * weight
-           end if
-         end do
-       end do
+          if ( lsuperCond ) then
+            mup = mu + s%Types(s%Basis(i)%Material)%nOrb2 + s%Types(s%Basis(i)%Material)%nOrb
+            deltas(mu,i) = deltas(mu,i) + real(gf(mu,mup,i,i)) * weight
+          end if
+        end do
+      end do
     end do
     !$omp end do
     !$omp end parallel
@@ -136,7 +136,7 @@ contains
     my      = aimag(mp)
 
     do i=1,s%nAtoms
-      do mu=1,s%nOrb
+      do mu=1,s%Types(s%Basis(i)%Material)%nOrb
         imguu(mu,i) = 0.5_dp + imguu(mu,i)
         imgdd(mu,i) = 0.5_dp + imgdd(mu,i)
         rho(mu,i) = imguu(mu,i) + imgdd(mu,i)
@@ -376,7 +376,7 @@ contains
 
       !$cuf kernel do(2) <<< (1,*), (9,*) >>>
       do j = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
           ! Occupation
           rho_d(mu,j) = rho_d(mu,j) + expec_0_d(mu,j)*weight_d
           ! Spin moments
@@ -460,7 +460,7 @@ contains
     if(.not.lsupercond) then
       !$cuf kernel do(2) <<< (1,*), (9,*) >>>
       do i = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
           sum_r1 = 0._dp
           sum_r2 = 0._dp
           sum_c1 = cZero
@@ -492,7 +492,7 @@ contains
       end do
     else
       do i = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
           lambda_d(mu,i) = s%Types(s%Basis(i)%Material)%lambda(mu)
         end do
       end do
@@ -508,7 +508,7 @@ contains
 
       !$cuf kernel do(2) <<< (1,*), (9,*) >>>
       do i = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
           sum_r1 = 0._dp
           sum_r2 = 0._dp
           do n = 1,dimens
@@ -525,7 +525,7 @@ contains
 
       !$cuf kernel do(2) <<< (1,*), (9,*) >>>
       do i = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
           sum_c1 = cZero
           sum_r1 = 0._dp
           do n = 1,dimens
@@ -589,7 +589,7 @@ contains
 
     if(.not.lsupercond) then
       do i = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
           do n = 1,dimens
             do sigma = 1,2
               evec_isigmamu = hk(isigmamu2n(i,sigma,mu),n)
@@ -619,7 +619,7 @@ contains
       end do
 
       do i = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
           do n = 1,dimens
             ! up spin (using u's) + down spin (using v's)
             expec_0(mu,i) = expec_0(mu,i) + f_n(n)*real( conjg(hk(isigmamu2n(i,1,mu),n))*hk(isigmamu2n(i,1,mu),n) ) + f_n_negative(n)*real( conjg(hk(isigmamu2n(i,2,mu)+hdimens,n))*hk(isigmamu2n(i,2,mu)+hdimens,n) )
@@ -630,7 +630,7 @@ contains
       end do
 
       do i = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
           do n = 1,dimens
             do sigma = 1,2
               do sigmap = 1,2
@@ -689,7 +689,7 @@ contains
 
     if(.not.lsupercond) then
       do i = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
           do sigma = 1,2
 
             evec_isigmamu = evec(isigmamu2n(i,sigma,mu))
@@ -716,7 +716,7 @@ contains
       tanh_n = tanh(eval*beta*0.5_dp)
 
       do i = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
           ! up spin (using u's) + down spin (using v's)
           expec_0(mu,i) = expec_0(mu,i) + f_n*real( conjg(evec(isigmamu2n(i,1,mu)))*evec(isigmamu2n(i,1,mu)) ) + f_n_negative*real( conjg(evec(isigmamu2n(i,2,mu)+hdimens))*evec(isigmamu2n(i,2,mu)+hdimens) )
 
@@ -725,7 +725,7 @@ contains
       end do
 
       do i = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
           do sigma = 1,2
             do sigmap = 1,2
               evec_isigmamu_cong = conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigmap,mu))
@@ -782,17 +782,17 @@ contains
       ! <Tso> for s orbitals is zero L(l=0)=0
 
       ! <Tso> for p orbitals:
-      do mup = 1,s%npOrb
-        mu = s%pOrbs(mup)
+      do mup = 1,s%Types(s%Basis(i)%Material)%npOrb
+        mu = s%Types(s%Basis(i)%Material)%pOrbs(mup)
 
         do sigma = 1,2
-          mus = (sigma-1)*s%nOrb+mu
+          mus = (sigma-1)*s%Types(s%Basis(i)%Material)%nOrb+mu
           evec_isigmamu = conjg( evec(isigmamu2n(i,sigma,mu)) )
 
-          do nup = 1,s%npOrb
-            nu = s%pOrbs(nup)
+          do nup = 1,s%Types(s%Basis(i)%Material)%npOrb
+            nu = s%Types(s%Basis(i)%Material)%pOrbs(nup)
             do sigmap = 1,2
-              nus = (sigmap-1)*s%nOrb+nu
+              nus = (sigmap-1)*s%Types(s%Basis(i)%Material)%nOrb+nu
               evec_isigmapnu_cong = evec_isigmamu*evec(isigmamu2n(i,sigmap,nu))
               do xyz = 1,3
                 expec_tso(xyz,1,i) = expec_tso(xyz,1,i) + f_n*real( tso_op(mus,nus,xyz,i)*evec_isigmapnu_cong )
@@ -803,17 +803,17 @@ contains
       end do
 
       ! <Tso> for d orbitals:
-      do mud = 1,s%ndOrb
-        mu = s%dOrbs(mud)
+      do mud = 1,s%Types(s%Basis(i)%Material)%ndOrb
+        mu = s%Types(s%Basis(i)%Material)%dOrbs(mud)
 
         do sigma = 1,2
-          mus = (sigma-1)*s%nOrb+mu
+          mus = (sigma-1)*s%Types(s%Basis(i)%Material)%nOrb+mu
           evec_isigmamu = conjg( evec(isigmamu2n(i,sigma,mu)) )
 
-          do nud = 1,s%ndOrb
-            nu = s%dOrbs(nud)
+          do nud = 1,s%Types(s%Basis(i)%Material)%ndOrb
+            nu = s%Types(s%Basis(i)%Material)%dOrbs(nud)
             do sigmap = 1,2
-              nus = (sigmap-1)*s%nOrb+nu
+              nus = (sigmap-1)*s%Types(s%Basis(i)%Material)%nOrb+nu
               evec_isigmapnu_cong = evec_isigmamu*evec(isigmamu2n(i,sigmap,nu))
               do xyz = 1,3
                 expec_tso(xyz,2,i) = expec_tso(xyz,2,i) + f_n*real( tso_op(mus,nus,xyz,i)*evec_isigmapnu_cong )
@@ -824,12 +824,12 @@ contains
       end do
 
       ! <Txc> for each orbital:
-      do mu = 1,s%nOrb
+      do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
         do sigma = 1,2
-          mus = (sigma-1)*s%nOrb+mu
+          mus = (sigma-1)*s%Types(s%Basis(i)%Material)%nOrb+mu
           evec_isigmamu = conjg( evec(isigmamu2n(i,sigma,mu)))
           do sigmap = 1, 2
-            nus = (sigmap-1)*s%nOrb+mu
+            nus = (sigmap-1)*s%Types(s%Basis(i)%Material)%nOrb+mu
             evec_isigmapnu_cong = evec_isigmamu*evec(isigmamu2n(i,sigmap,mu))
 
             do xyz = 1,3
@@ -969,10 +969,10 @@ contains
       call green(fermi,ep+eta,s,kp,gf)
 
       site_i: do i=1,s%nAtoms
-        orb_mu: do mu=1,s%nOrb
-          mup = mu+s%nOrb
-          orb_nu: do nu=1,s%nOrb
-            nup = nu+s%nOrb
+        orb_mu: do mu=1,s%Types(s%Basis(i)%Material)%nOrb
+          mup = mu+s%Types(s%Basis(i)%Material)%nOrb
+          orb_nu: do nu=1,s%Types(s%Basis(i)%Material)%nOrb
+            nup = nu+s%Types(s%Basis(i)%Material)%nOrb
             gupgd(mu,nu,i) = gupgd(mu,nu,i) + (gf(mu,nu,i,i) + gf(mup,nup,i,i)) * weight
           end do orb_nu
         end do orb_mu
@@ -991,9 +991,9 @@ contains
     lym  = 0._dp
     lzm  = 0._dp
 
-    do nu=1,s%nOrb
-      do mu=1,s%nOrb
-        do i=1,s%nAtoms
+    do i=1,s%nAtoms
+      do nu=1,s%Types(s%Basis(i)%Material)%nOrb
+        do mu=1,s%Types(s%Basis(i)%Material)%nOrb
           lxpm(i) = lxpm(i) + real( lxp(mu,nu,i)*gupgd(nu,mu,i) )
           lypm(i) = lypm(i) + real( lyp(mu,nu,i)*gupgd(nu,mu,i) )
           lzpm(i) = lzpm(i) + real( lzp(mu,nu,i)*gupgd(nu,mu,i) )
@@ -1042,10 +1042,10 @@ contains
       ! <L> for s orbitals is zero (l=0)
 
       ! <L> for p orbitals:
-      do nup = 1,s%npOrb
-        nu = s%pOrbs(nup)
-        do mup = 1,s%npOrb
-          mu = s%pOrbs(mup)
+      do nup = 1,s%Types(s%Basis(i)%Material)%npOrb
+        nu = s%Types(s%Basis(i)%Material)%pOrbs(nup)
+        do mup = 1,s%Types(s%Basis(i)%Material)%npOrb
+          mu = s%Types(s%Basis(i)%Material)%pOrbs(mup)
           do sigma = 1,2
             prod = f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,nu))
             lxm (1,i) = lxm (1,i) + real( prod*lx (mu,nu) ) !> angular momentum at atomic site (i)
@@ -1056,10 +1056,10 @@ contains
       end do
 
       ! <L> for d orbitals:
-      do nud = 1,s%ndOrb
-        nu = s%dOrbs(nud)
-        do mud = 1,s%ndOrb
-          mu = s%dOrbs(mud)
+      do nud = 1,s%Types(s%Basis(i)%Material)%ndOrb
+        nu = s%Types(s%Basis(i)%Material)%dOrbs(nud)
+        do mud = 1,s%Types(s%Basis(i)%Material)%ndOrb
+          mu = s%Types(s%Basis(i)%Material)%dOrbs(mud)
           do sigma = 1,2
             prod = f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,nu))
             lxm (2,i) = lxm (2,i) + real( prod*lx (mu,nu) ) !> angular momentum at atomic site (i)
@@ -1164,8 +1164,8 @@ contains
       end do
 
       do i = 1,s%nAtoms
-        do nu = 1,s%nOrb
-          do mu = 1,s%nOrb
+        do nu = 1,s%Types(s%Basis(i)%Material)%nOrb
+          do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
             do sigma=1,2
               do n = 1,dimHsc
                 prod(mu,nu,i) = prod(mu,nu,i) + f_n(n)*conjg( hk(isigmamu2n(i,sigma,mu),n) )*hk(isigmamu2n(i,sigma,nu),n)*realBZ%w(iz)
@@ -1189,8 +1189,8 @@ contains
     lypm = 0._dp
     lzpm = 0._dp
     do i = 1,s%nAtoms
-      do nu = 1,s%nOrb
-        do mu = 1,s%nOrb
+      do nu = 1,s%Types(s%Basis(i)%Material)%nOrb
+        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
           lxm (i) = lxm (i) + real( prod(mu,nu,i)*lx (mu,nu  ) )
           lym (i) = lym (i) + real( prod(mu,nu,i)*ly (mu,nu  ) )
           lzm (i) = lzm (i) + real( prod(mu,nu,i)*lz (mu,nu  ) )
@@ -1266,8 +1266,8 @@ contains
 
       !$cuf kernel do(3) <<< (1,1,*), (9,9,*) >>>
       do i = 1,s%nAtoms
-        do nu = 1,s%nOrb
-          do mu = 1,s%nOrb
+        do nu = 1,s%Types(s%Basis(i)%Material)%nOrb
+          do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
             sum_c = cZero
             do sigma=1,2
               do n = 1,dimHsc
@@ -1293,8 +1293,8 @@ contains
     lypm = 0._dp
     lzpm = 0._dp
     do i = 1,s%nAtoms
-      do nu = 1,s%nOrb
-        do mu = 1,s%nOrb
+      do nu = 1,s%Types(s%Basis(i)%Material)%nOrb
+        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
           lxm (i) = lxm (i) + real( prod(mu,nu,i)*lx (mu,nu  ) )
           lym (i) = lym (i) + real( prod(mu,nu,i)*ly (mu,nu  ) )
           lzm (i) = lzm (i) + real( prod(mu,nu,i)*lz (mu,nu  ) )
@@ -1364,8 +1364,8 @@ contains
       end do
 
       do i = 1,s%nAtoms
-        do nu = 1,s%nOrb
-          do mu = 1,s%nOrb
+        do nu = 1,s%Types(s%Basis(i)%Material)%nOrb
+          do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
             do sigma=1,2
               do n = 1,dimHsc
                 prod(mu,nu,i) = prod(mu,nu,i) + f_n(n)*conjg( hk(isigmamu2n(i,sigma,mu),n) )*hk(isigmamu2n(i,sigma,nu),n)*realBZ%w(iz)
@@ -1389,8 +1389,8 @@ contains
     lypm = 0._dp
     lzpm = 0._dp
     do i = 1, s%nAtoms
-      do nu = 1,s%nOrb
-        do mu = 1,s%nOrb
+      do nu = 1,s%Types(s%Basis(i)%Material)%nOrb
+        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
           lxm (i) = lxm (i) + real( prod(mu,nu,i)*lx (mu,nu  ) )
           lym (i) = lym (i) + real( prod(mu,nu,i)*ly (mu,nu  ) )
           lzm (i) = lzm (i) + real( prod(mu,nu,i)*lz (mu,nu  ) )
@@ -1425,8 +1425,8 @@ contains
     do i=1,s%nAtoms
       energy_dc   = energy_dc   + 0.25_dp*s%Basis(i)%Um*(mabsd(i)**2-mzd0(i)**2-abs(mpd0(i))**2)
       energy_dc_n = energy_dc_n + 0.25_dp*s%Basis(i)%Un*(rhod(i)**2-rhod0(i)**2)
-      do mud=1,s%ndOrb
-        mu = s%dOrbs(mud)
+      do mud=1,s%Types(s%Basis(i)%Material)%ndOrb
+        mu = s%Types(s%Basis(i)%Material)%dOrbs(mud)
         energy_dc_n = energy_dc_n - 0.5_dp*s%Basis(i)%Un*(rho(mu,i)**2-rho0(mu,i)**2)
       end do
     end do
