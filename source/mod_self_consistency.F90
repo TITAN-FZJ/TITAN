@@ -1755,7 +1755,7 @@ contains
         kount = neq_per_atom(i)
         if(abs(s%Basis(i)%Un)>1.e-8_dp) then
           do mud = 1,s%Types(s%Basis(i)%Material)%ndOrb
-            mu = s%Types(s%Basis(i)%Material)%dOrbs(mu)
+            mu = s%Types(s%Basis(i)%Material)%dOrbs(mud)
             rho(mu,i) = x(kount+mud)
             rhod(i)= rhod(i) + rho(mu,i)
           end do
