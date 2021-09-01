@@ -250,12 +250,13 @@ contains
   end subroutine lb_matrix
 
 
-  subroutine sb_matrix(nAtoms,nOrbs)
+  subroutine sb_matrix(s)
   !! Spin Zeeman hamiltonian
     use mod_constants, only: cZero, cI
+    use mod_System,    only: System_type
     implicit none
-    integer(int32), intent(in) :: nAtoms,nOrbs
-    real(dp), dimension(3,nAtoms) :: b
+    type(System_type), intent(in)   :: s
+    real(dp), dimension(3,s%nAtoms) :: b
     integer :: i,mu,nu
 
     ! There is an extra  minus sign in the definition of hhw
@@ -266,9 +267,9 @@ contains
     if(lfield.or.lconstraining_field) then
       ! write(output%unit_loop,"('[sb_matrix] hhw,bc = ', 10000es16.8)") hhw, bc
       b = hhw - 0.5_dp*bc
-      do i=1, nAtoms
-        do mu=1,nOrbs
-          nu=mu+nOrbs
+      do i=1, s%nAtoms
+        do mu=1,s%Types(s%Basis(i)%Material)%nOrb
+          nu=mu+s%Types(s%Basis(i)%Material)%nOrb
           sb(mu,mu,i) = b(3,i)
           sb(nu,nu,i) =-b(3,i)
           sb(nu,mu,i) = b(1,i)+cI*b(2,i)

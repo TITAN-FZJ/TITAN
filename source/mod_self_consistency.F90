@@ -182,14 +182,14 @@ contains
         mabsd(i) = sqrt(mxd(i)**2+myd(i)**2+mzd(i)**2)
         rhod(i)= rhod0(i)
 
-        do mud=1,s%ndOrb
-          mu = s%dOrbs(mud)
-          mx(mu,i) = mxd(i)/s%ndOrb
-          my(mu,i) = myd(i)/s%ndOrb
-          mz(mu,i) = mzd(i)/s%ndOrb
+        do mud=1,s%Types(s%Basis(i)%Material)%ndOrb
+          mu = s%Types(s%Basis(i)%Material)%dOrbs(mud)
+          mx(mu,i) = mxd(i)/s%Types(s%Basis(i)%Material)%ndOrb
+          my(mu,i) = myd(i)/s%Types(s%Basis(i)%Material)%ndOrb
+          mz(mu,i) = mzd(i)/s%Types(s%Basis(i)%Material)%ndOrb
         end do
         if(lsuperCond) then
-          do mu = 1,s%nOrb
+          do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
             delta_sc(mu,i) = s%Types(s%Basis(i)%Material)%lambda(mu)
           end do
         end if
@@ -271,7 +271,8 @@ contains
   subroutine read_sc_results(err,lsuccess)
   !> This subroutine reads previous band-shifting and magnetization results
     use mod_kind,              only: dp
-    use mod_parameters,        only: output,dfttype
+    use mod_constants,         only: cZero
+    use mod_parameters,        only: output,dfttype,dimH
     use EnergyIntegration,     only: parts
     use mod_system,            only: s => sys
     use mod_tools,             only: replaceStr,vec_norm
@@ -282,8 +283,9 @@ contains
     character(len=300)  :: file="", bcfile=""
     integer,intent(out) :: err
     logical,intent(out) :: lsuccess
-    integer             :: i,mu,mud
-    real(dp)            :: previous_results(5*s%nOrb,s%nAtoms), previous_Ef
+    integer             :: i,j,nOrbs,mu,mud,i0,i1
+    real(dp)            :: previous_results(5*dimH/2) ! Divide by 2 because of the spins in dimH
+    real(dp)            :: previous_Ef
 
     external :: MPI_Bcast
 
@@ -337,30 +339,46 @@ contains
     end if
     if(err==0) then
       if(rField==0) then
+        i0 = 1
+        i1 = 5*s%Types(s%Basis(1)%Material)%nOrb
         do i=1,s%nAtoms
-          read(99,fmt=*) (previous_results(mu,i), mu=1,5*s%nOrb)
+          read(99,fmt=*) (previous_results(j), j=i0,i1)
+          i0 = i1 + 1
+          i1 = i0 + 5*s%Types(s%Basis(i)%Material)%nOrb-1
         end do
         read(99,fmt=*) previous_Ef
       end if
 
-      call MPI_Bcast(previous_results,5*s%nOrb*s%nAtoms,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
+      call MPI_Bcast(previous_results,size(previous_results),MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
       call MPI_Bcast(previous_Ef,1,MPI_DOUBLE_PRECISION,0,FieldComm,ierr)
 
-      rho(:,:) = previous_results(         1:  s%nOrb,:)
-      mx (:,:) = previous_results(  s%nOrb+1:2*s%nOrb,:)
-      my (:,:) = previous_results(2*s%nOrb+1:3*s%nOrb,:)
-      mz (:,:) = previous_results(3*s%nOrb+1:4*s%nOrb,:)
-      mp       = cmplx(mx,my,dp)
-      delta_sc(:,:) = previous_results(4*s%nOrb+1:5*s%nOrb,:)
-
-      rhod= 0._dp
-      mxd = 0._dp
-      myd = 0._dp
-      mzd = 0._dp
+      rho = 0._dp
+      mx  = 0._dp
+      my  = 0._dp
+      mz  = 0._dp
+      mp  = cZero
+      delta_sc = 0._dp
+      rhod = 0._dp
+      mxd  = 0._dp
+      myd  = 0._dp
+      mzd  = 0._dp
+      
+      i0 = 1
+      i1 = 5*s%Types(s%Basis(1)%Material)%nOrb
       do i=1,s%nAtoms
-        do mud=1,s%ndOrb
+        nOrbs = s%Types(s%Basis(i)%Material)%nOrb
+
+        my (1:nOrbs,i) = previous_results(        i0:  nOrbs+i0-1)
+        my (1:nOrbs,i) = previous_results(  nOrbs+i0:2*nOrbs+i0-1)
+        my (1:nOrbs,i) = previous_results(2*nOrbs+i0:3*nOrbs+i0-1)
+        mz (1:nOrbs,i) = previous_results(3*nOrbs+i0:4*nOrbs+i0-1)
+        mp (1:nOrbs,i) = cmplx(mx(1:nOrbs,i),my(1:nOrbs,i),dp)
+        delta_sc(1:nOrbs,i) = previous_results(4*nOrbs+i0:i1)
+
+        do mud=1, s%Types(s%Basis(i)%Material)%ndOrb
           ! Corresponding orbital of this atom
-          mu = s%dOrbs(mud)
+          mu = s%Types(s%Basis(i)%Material)%dOrbs(mud)
+
           rhod(i) = rhod(i) + rho(mu,i)
           mxd (i) = mxd (i) + mx (mu,i)
           myd (i) = myd (i) + my (mu,i)
@@ -368,6 +386,9 @@ contains
         end do
         mabsd(i) = sqrt(mxd(i)**2+myd(i)**2+mzd(i)**2)
         mpd(i)   = cmplx(mxd(i),myd(i),dp)
+
+        i0 = i1 + 1
+        i1 = i0 + 5*s%Types(s%Basis(i)%Material)%nOrb-1
       end do
 
       call calcMagAngle()
@@ -383,7 +404,7 @@ contains
         do i=1,s%nAtoms
           m_fix_abs(i) = vec_norm(initialmag(i,:),3)
           m_fix(:,i) = initialmag(i,:)/m_fix_abs(i)
-       end do
+        end do
 
         if(rField==0) then
           bcfile=replaceStr( string=file, search="selfconsistency_", substitute="constraniningfield_" )
@@ -498,7 +519,7 @@ contains
     allocate( neq_per_atom(s%nAtoms+1) )
     neq_per_atom(1) = 0
     do i = 1,s%nAtoms
-      neq_per_atom(i+1) = neq_per_atom(i) + merge(s%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + merge(merge(1,3,constr_type==1),0,abs(s%Basis(i)%Um)>1.e-8_dp) + merge(s%nOrb,0,lsupercond)
+      neq_per_atom(i+1) = neq_per_atom(i) + merge(s%Types(s%Basis(i)%Material)%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + merge(merge(1,3,constr_type==1),0,abs(s%Basis(i)%Um)>1.e-8_dp) + merge(s%Types(s%Basis(i)%Material)%nOrb,0,lsupercond)
     end do
     neq = neq_per_atom(s%nAtoms+1)
     if(.not.lfixEf) neq = neq+1
@@ -514,7 +535,7 @@ contains
         in_vary(:) = bc(2,:)
         in_varz(:) = bc(3,:)
         ! Updating field with new constrainig values
-        call sb_matrix(s%nAtoms,s%nOrb)
+        call sb_matrix(s)
       case default
         in_varx(:) = mxd(:)
         in_vary(:) = myd(:)
@@ -562,8 +583,8 @@ contains
       myd  = 0._dp
       mzd  = 0._dp
       do i = 1,s%nAtoms
-        do mud = 1,s%ndOrb
-          mu = s%dOrbs(mud)
+        do mud = 1,s%Types(s%Basis(i)%Material)%ndOrb
+          mu = s%Types(s%Basis(i)%Material)%dOrbs(mud)
           rhod(i) = rhod(i) + rho(mu,i)
           mxd (i) = mxd (i) + mx (mu,i)
           myd (i) = myd (i) + my (mu,i)
@@ -601,7 +622,7 @@ contains
       write(output%unit_loop,"('[calcSelfConsistency_trans_constr] Starting constraining the transverse components of the magnetic moments...')")
 
     ! Updating field with new constrainig values
-    call sb_matrix(s%nAtoms,s%nOrb)
+    call sb_matrix(s)
 
     rconv = 999.e0_dp
     iter_b = 1
@@ -640,7 +661,7 @@ contains
         write(output%unit_loop,"(' Convergence parameter: ',es16.8)") rconv
       end if
       ! Updating the constraninig field in the hamiltonian
-      call sb_matrix(s%nAtoms,s%nOrb)
+      call sb_matrix(s)
 
       iter_b = iter_b+1
     end do
@@ -743,8 +764,8 @@ contains
     myd  = 0._dp
     mzd  = 0._dp
     do i = 1,s%nAtoms
-      do mud = 1,s%ndOrb
-        mu = s%dOrbs(mud)
+      do mud = 1,s%Types(s%Basis(i)%Material)%ndOrb
+        mu = s%Types(s%Basis(i)%Material)%dOrbs(mud)
         rhod(i) = rhod(i) + rho(mu,i)
         mxd (i) = mxd (i) + mx (mu,i)
         myd (i) = myd (i) + my (mu,i)
@@ -842,8 +863,8 @@ contains
       gvg = cZero
     end if
 
-   !$omp do schedule(static) reduction(+:jacobian)
-   do ix = 1, local_points
+    !$omp do schedule(static) reduction(+:jacobian)
+    do ix = 1, local_points
       ep = y(E_k_imag_mesh(1,ix))
       kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
       weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
@@ -911,7 +932,7 @@ contains
               ! Last line (Total charge neutrality)
               if(.not.lfixEf) then
                 do mu = 1,s%nOrb
-                   jacobian(neq,kountj+nu) = jacobian(neq,kountj+nu) + real(temp(mu,mu) + temp(mu+s%nOrb,mu+s%nOrb))
+                  jacobian(neq,kountj+nu) = jacobian(neq,kountj+nu) + real(temp(mu,mu) + temp(mu+s%nOrb,mu+s%nOrb))
                 end do
               end if
 
@@ -1224,7 +1245,7 @@ contains
     use mod_System,     only: s => sys
     use mod_mpi_pars,   only: rField
     implicit none
-    integer      :: i,mu,mud,signal
+    integer  :: i,mu,mud,signal
     real(dp) :: mdotb,mabs(s%nOrb,s%nAtoms)
 
     if(rField == 0) &
@@ -1237,7 +1258,7 @@ contains
     end if
 
     do i = 1, s%nAtoms
-      do mu=1,s%nOrb
+      do mu=1,s%Types(s%Basis(i)%Material)%nOrb
         mdotb   = hhw(1,i)*mx(mu,i)+hhw(2,i)*my(mu,i)+hhw(3,i)*mz(mu,i)
         signal  = int(mdotb/abs(mdotb))
         mabs(mu,i) = sqrt((mx(mu,i)**2)+(my(mu,i)**2)+(mz(mu,i)**2))
@@ -1246,9 +1267,9 @@ contains
         mz  (mu,i) = signal*mabs(mu,i)*cos(hw_list(hw_count,2)*deg2rad)
         mp  (mu,i) = cmplx(mx(mu,i),my(mu,i),dp)
       end do
-      do mud=1, s%ndOrb
+      do mud=1, s%Types(s%Basis(i)%Material)%ndOrb
         ! Corresponding orbital of this atom
-        mu = s%dOrbs(mud)
+        mu = s%Types(s%Basis(i)%Material)%dOrbs(mud)
         mxd(i)  = mxd(i)  + mx(mu,i)
         myd(i)  = myd(i)  + my(mu,i)
         mzd(i)  = mzd(i)  + mz(mu,i)
@@ -1292,12 +1313,12 @@ contains
     rhop = 0._dp
     do i=1,s%nAtoms
       ! Total s-orbital occupation
-      do mu=1,s%nsOrb
-        rhos(i) = rhos(i) + rho(s%sOrbs(mu),i)
+      do mu=1,s%Types(s%Basis(i)%Material)%nsOrb
+        rhos(i) = rhos(i) + rho(s%Types(s%Basis(i)%Material)%sOrbs(mu),i)
       end do
       ! Total p-orbital occupation
-      do mu=1,s%npOrb
-        rhop(i) = rhop(i) + rho(s%pOrbs(mu),i)
+      do mu=1,s%Types(s%Basis(i)%Material)%npOrb
+        rhop(i) = rhop(i) + rho(s%Types(s%Basis(i)%Material)%pOrbs(mu),i)
       end do
       write(output%unit_loop,fmt="(a,':',2x,'Ns=',f10.7,4x,'Np=',f10.7,4x,'Nd=',f10.7)") trim(s%Types(s%Basis(i)%Material)%Name),rhos(i),rhop(i),rhod(i)
     end do
@@ -1310,20 +1331,20 @@ contains
       deltad = 0._dp
       do i=1,s%nAtoms
         ! Average s-orbital superconducting delta
-        do mu=1,s%nsOrb
-          deltas(i) = deltas(i) + delta_sc(s%sOrbs(mu),i)
+        do mu=1,s%Types(s%Basis(i)%Material)%nsOrb
+          deltas(i) = deltas(i) + delta_sc(s%Types(s%Basis(i)%Material)%sOrbs(mu),i)
         end do
-        deltas(i) = deltas(i)/s%nsOrb
+        deltas(i) = deltas(i)/s%Types(s%Basis(i)%Material)%nsOrb
         ! Average p-orbital superconducting delta
-        do mu=1,s%npOrb
-          deltap(i) = deltap(i) + delta_sc(s%pOrbs(mu),i)
+        do mu=1,s%Types(s%Basis(i)%Material)%npOrb
+          deltap(i) = deltap(i) + delta_sc(s%Types(s%Basis(i)%Material)%pOrbs(mu),i)
         end do
-        deltap(i) = deltap(i)/s%npOrb
+        deltap(i) = deltap(i)/s%Types(s%Basis(i)%Material)%npOrb
         ! Average d-orbital superconducting delta
-        do mu=1,s%ndOrb
-          deltad(i) = deltad(i) + delta_sc(s%dOrbs(mu),i)
+        do mu=1,s%Types(s%Basis(i)%Material)%ndOrb
+          deltad(i) = deltad(i) + delta_sc(s%Types(s%Basis(i)%Material)%dOrbs(mu),i)
         end do
-        deltad(i) = deltad(i)/s%ndOrb
+        deltad(i) = deltad(i)/s%Types(s%Basis(i)%Material)%ndOrb
         write(output%unit_loop,fmt="(a,':',2x,'Ds=',f10.7,4x,'Dp=',f10.7,4x,'Dd=',f10.7)") trim(s%Types(s%Basis(i)%Material)%Name),deltas(i),deltap(i),deltad(i)
       end do
     end if
@@ -1412,10 +1433,10 @@ contains
       write(scfile,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,a,a,a,a,'.dat')") output%SOCchar, trim(output%Sites),dfttype,parts,trim(output%BField),trim(output%info),trim(output%SOC),trim(output%suffix)
       open (unit=99,status='replace',file=scfile)
 
-      write(formatvar,fmt="(a,i0,a)") '(',5*s%nOrb,'(es21.11,2x))'
-
+      
       do i=1,s%nAtoms
-        write(99,fmt=formatvar) (rho(mu,i), mu=1,s%nOrb),(mx(mu,i), mu=1,s%nOrb),(my(mu,i), mu=1,s%nOrb),(mz(mu,i), mu=1,s%nOrb),(delta_sc(mu,i), mu=1,s%nOrb)
+        write(formatvar,fmt="(a,i0,a)") '(',5*s%Types(s%Basis(i)%Material)%nOrb,'(es21.11,2x))'
+        write(99,fmt=formatvar) (rho(mu,i), mu=1,s%Types(s%Basis(i)%Material)%nOrb),(mx(mu,i), mu=1,s%Types(s%Basis(i)%Material)%nOrb),(my(mu,i), mu=1,s%Types(s%Basis(i)%Material)%nOrb),(mz(mu,i), mu=1,s%Types(s%Basis(i)%Material)%nOrb),(delta_sc(mu,i), mu=1,s%Types(s%Basis(i)%Material)%nOrb)
       end do
       write(99,"(es21.11,2x,'! Ef  ')") s%Ef
       write(99,"('! n(1:nOrb), mx(1:nOrb), my(1:nOrb), mz(1:nOrb), delta_sc(1:nOrb) per site ')")
@@ -1474,12 +1495,12 @@ contains
         end if
         fvecsum = 0._dp
         if(abs(s%Basis(i)%Un)>1.e-8_dp) then
-          do mu = 1,s%ndOrb
+          do mu = 1,s%Types(s%Basis(i)%Material)%ndOrb
             fvecsum = fvecsum + fvec(neq_per_atom(i)+mu)
           end do
           formatvar = formatvar // '  fvec(N)= ' // trim(RtoS(fvecsum,"(es16.9)"))
         end if
-        kount = neq_per_atom(i) + merge(s%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp)
+        kount = neq_per_atom(i) + merge(s%Types(s%Basis(i)%Material)%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp)
         if(abs(s%Basis(i)%Um)>1.e-8_dp) then
           if(.not.lconstraining_field) then
             if(abs(mp(i))>1.e-8_dp) then
@@ -1511,7 +1532,7 @@ contains
           if(lconstraining_field) write(output%unit_loop,"(8x,'=>',23x,'Bz=',es16.9,4x,'By=',es16.9,4x,'Bz=',es16.9)") bc(1,i),bc(2,i),bc(3,i)
         end if
         if(lsuperCond) then
-          write(output%unit_loop,"('Site ',i4,': D_sc =',9(es14.7,2x))") i,(delta_sc(mu,i),mu=1,s%nOrb)
+          write(output%unit_loop,"('Site ',i4,': D_sc =',9(es14.7,2x))") i,(delta_sc(mu,i),mu=1,s%Types(s%Basis(i)%Material)%nOrb)
         end if
       end do
       write(output%unit_loop,"(13x,'Ef=',es16.9)") s%Ef
@@ -1574,7 +1595,7 @@ contains
       end do
 
       ! Updating field with new constrainig values
-      call sb_matrix(s%nAtoms,s%nOrb)
+      call sb_matrix(s)
     case default
       call set_hamiltonian_variables(.true.,s,N,x,rho_in,rhod_in,mxd_in,myd_in,mzd_in,delta_sc_in)
       do i = 1,s%nAtoms
@@ -1597,8 +1618,8 @@ contains
     myd  = 0._dp
     mzd  = 0._dp
     do i = 1,s%nAtoms
-      do mud = 1,s%ndOrb
-        mu = s%dOrbs(mud)
+      do mud = 1,s%Types(s%Basis(i)%Material)%ndOrb
+        mu = s%Types(s%Basis(i)%Material)%dOrbs(mud)
         rhod(i) = rhod(i) + rho(mu,i)
         mxd (i) = mxd (i) + mx (mu,i)
         myd (i) = myd (i) + my (mu,i)
@@ -1679,7 +1700,7 @@ contains
       end do
 
       ! Updating field with new constrainig values
-      call sb_matrix(s%nAtoms,s%nOrb)
+      call sb_matrix(s)
     case default
       call set_hamiltonian_variables(.true.,s,N,x,rho_in,rhod_in,mxd_in,myd_in,mzd_in,delta_sc_in)
       do i = 1,s%nAtoms
@@ -1725,7 +1746,7 @@ contains
     !> Variables used in the hamiltonian: superconducting delta
 
     ! Local variables:
-    integer :: i,mu,kount
+    integer :: i,mu,mud,kount
 
     if(set) then
       rhod = 0._dp
@@ -1733,11 +1754,12 @@ contains
       do i = 1,s%nAtoms
         kount = neq_per_atom(i)
         if(abs(s%Basis(i)%Un)>1.e-8_dp) then
-          do mu = 1,s%ndOrb
-            rho(s%dOrbs(mu),i) = x(kount+mu)
-            rhod(i)= rhod(i) + rho(s%dOrbs(mu),i)
+          do mud = 1,s%Types(s%Basis(i)%Material)%ndOrb
+            mu = s%Types(s%Basis(i)%Material)%dOrbs(mu)
+            rho(mu,i) = x(kount+mud)
+            rhod(i)= rhod(i) + rho(mu,i)
           end do
-          kount = neq_per_atom(i) + s%ndOrb
+          kount = neq_per_atom(i) + s%Types(s%Basis(i)%Material)%ndOrb
         end if
         if(abs(s%Basis(i)%Um)>1.e-8_dp) then
           mxd(i) = x(kount+1)
@@ -1745,10 +1767,10 @@ contains
             myd(i) = x(kount+2)
             mzd(i) = x(kount+3)
           end if
-          kount = neq_per_atom(i) + merge(s%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + merge(1,3,constr_type==1)
+          kount = neq_per_atom(i) + merge(s%Types(s%Basis(i)%Material)%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + merge(1,3,constr_type==1)
         end if
         if(lsupercond) then
-          do mu = 1,s%nOrb
+          do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
             delta_sc(mu,i) = x(kount+mu)
           end do
         end if
@@ -1758,10 +1780,10 @@ contains
       do i = 1, s%nAtoms
         kount = neq_per_atom(i)
         if(abs(s%Basis(i)%Un)>1.e-8_dp) then
-          do mu = 1,s%ndOrb
-            x(kount+mu) = rho(s%dOrbs(mu),i)
+          do mu = 1,s%Types(s%Basis(i)%Material)%ndOrb
+            x(kount+mu) = rho(s%Types(s%Basis(i)%Material)%dOrbs(mu),i)
           end do
-          kount = neq_per_atom(i) + s%ndOrb
+          kount = neq_per_atom(i) + s%Types(s%Basis(i)%Material)%ndOrb
         end if
         if(abs(s%Basis(i)%Um)>1.e-8_dp) then
           x(kount+1) = mxd(i)
@@ -1769,10 +1791,10 @@ contains
             x(kount+2) = myd(i)
             x(kount+3) = mzd(i)
           end if
-          kount = neq_per_atom(i) + merge(s%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + merge(1,3,constr_type==1)
+          kount = neq_per_atom(i) + merge(s%Types(s%Basis(i)%Material)%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + merge(1,3,constr_type==1)
         end if
         if(lsuperCond) then
-          do mu = 1, s%nOrb
+          do mu = 1, s%Types(s%Basis(i)%Material)%nOrb
             x(kount+mu) = delta_sc(mu,i)
           end do
         end if
@@ -1813,11 +1835,11 @@ contains
     do i = 1,s%nAtoms
       kount = neq_per_atom(i)
       if(abs(s%Basis(i)%Un)>1.e-8_dp) then
-        do mud = 1,s%ndOrb
-          mu = s%dOrbs(mud)
+        do mud = 1,s%Types(s%Basis(i)%Material)%ndOrb
+          mu = s%Types(s%Basis(i)%Material)%dOrbs(mud)
           fvec(kount+mud) = rho(mu,i) - rho_in(mu,i)
         end do
-        kount = neq_per_atom(i) + s%ndOrb
+        kount = neq_per_atom(i) + s%Types(s%Basis(i)%Material)%ndOrb
       end if
       if(abs(s%Basis(i)%Um)>1.e-8_dp) then
         fvec(kount+1) = mxd(i) - mxd_in(i)
@@ -1825,10 +1847,10 @@ contains
           fvec(kount+2) = myd(i) - myd_in(i)
           fvec(kount+3) = mzd(i) - mzd_in(i)
         end if
-        kount = neq_per_atom(i) + merge(s%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + merge(merge(1,3,constr_type==1),0,abs(s%Basis(i)%Um)>1.e-8_dp)
+        kount = neq_per_atom(i) + merge(s%Types(s%Basis(i)%Material)%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + merge(merge(1,3,constr_type==1),0,abs(s%Basis(i)%Um)>1.e-8_dp)
       end if
       if(lsuperCond) then
-        do mu = 1, s%nOrb
+        do mu = 1, s%Types(s%Basis(i)%Material)%nOrb
           fvec(kount+mu) = delta_sc(mu,i) - delta_sc_in(mu,i)
         end do
       end if

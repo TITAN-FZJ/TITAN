@@ -13,7 +13,7 @@ contains
     use mod_magnet,            only: l_matrix,lb,sb,allocate_magnet_variables,deallocate_magnet_variables,mzd0,mpd0,rho0,rhod0
     use mod_SOC,               only: ls,allocateLS
     use adaptiveMesh,          only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh,bzs
-    use mod_parameters,        only: kp_in,kptotal_in,output,eta,leigenstates,lkpoints,dimH,dimHsc
+    use mod_parameters,        only: kp_in,kptotal_in,output,eta,leigenstates,lkpoints
     use mod_polyBasis,         only: read_basis
     use mod_mpi_pars,          only: myrank,FieldComm,rField,sField,rFreq,sFreq,FreqComm,abortProgram
     use Lattice,               only: initLattice
@@ -59,15 +59,11 @@ contains
       !------------------ Define the lattice structure -------------------
       call read_basis(trim(s%Types(i)%Name), sys0(i), .true.)
 
-      !---------------------------- Dimensions -----------------------------
-      dimH    = sys0(i)%nAtoms*sys0(i)%nOrb*2
-      dimHsc  = dimH
-
       !------- Setting the subsystem properties from the general one -------
       sys0(i)%nStages = s%nStages
       sys0(i)%relTol  = s%relTol
       sys0(i)%nOrb    = s%nOrb
-      sys0(i)%nOrb2sc   = s%nOrb2
+      sys0(i)%nOrb2sc = s%nOrb2
       sys0(i)%nOrb2   = s%nOrb2
       allocate(sys0(i)%Orbs(s%nOrb))
       sys0(i)%Orbs(:) = s%Orbs(:)

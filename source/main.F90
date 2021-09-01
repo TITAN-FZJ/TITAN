@@ -222,7 +222,7 @@ program TITAN
     call lb_matrix(s%nAtoms,s%nOrb)
 
     !---------------------- Calculate S.B matrix  ----------------------
-    call sb_matrix(s%nAtoms,s%nOrb)
+    call sb_matrix(s)
 
     !-------------------------- Debugging part -------------------------
     if(ldebug) then
