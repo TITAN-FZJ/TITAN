@@ -188,18 +188,21 @@ if __name__ == "__main__":
 
     fig, axs = plt.subplots(1, numplots, sharey=True, squeeze=False, figsize=(6*numplots, 5))
 
-    if(ry2ev == 13.6057*1000):
+    if(ry2ev == 13.6057*1000) or (args.mevlabel):
       labely = r'$E$ [meV]'
-    elif(ry2ev == 13.6057):
+    elif(ry2ev == 13.6057) or (args.evlabel):
       labely = r'$E$ [eV]'
     else:
       labely = r'$E$ [Ry]'
 
-    axs[0,0].set_ylabel(labely)
-
     for i in range(numplots):
       npoints, name, point, fermi, dimbs = read_header(args.files[0])
       table = read_data(args.files[0])
+      if fermi and args.centeref:
+        table[:,1:dimbs] = table[:,1:dimbs] - fermi
+        fermi = 0.0
+        labely = labely.replace("E","E-E_F")
+
       axs[0,i].set_title(titles[i])
       axs[0,i].set_xlim([point[0],point[npoints-1]])
       if args.ylim != "":
@@ -231,6 +234,7 @@ if __name__ == "__main__":
         axs[0,i].plot(table[:,1],-1.0/table[:,2])
       else: # band structure
         axs[0,i].plot(table[:,0],table[:,1:dimbs]*ry2ev, color='k', linewidth=1.0, linestyle='-')
+    axs[0,0].set_ylabel(labely)
 
     plt.tight_layout()
     if args.output == "":

@@ -57,10 +57,10 @@ contains
       h0(ia(3,i):ia(4,i), ia(3,i):ia(4,i)) = s%Types(s%Basis(i)%Material)%onSite(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
       ! External magnetic field (orbital + spin) + Electron-electron interaction (Hubbard) + Spin-orbit coupling
       h0(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = h0 (ia(1,i):ia(4,i), ia(1,i):ia(4,i)) &
-                                           + lb (1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2,i) &
-                                           + sb (1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2,i) &
-                                           + hee(1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2,i) &
-                                           + ls (1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2,i)
+                                            + lb (1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2,i) &
+                                            + sb (1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2,i) &
+                                            + hee(1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2,i) &
+                                            + ls (1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2,i)
     end do
 
     ! The form of the superconducting hamiltonian depends on a series of decisions,
@@ -224,11 +224,11 @@ contains
       end do
     end do
 
-    ! ! Test if hamiltonian is Hermitian (to be commented out, uncomment to use it)
+    ! Test if hamiltonian is Hermitian (to be commented out, uncomment to use it)
     ! do i = ia(1,1), ia(4,s%nAtoms)
     !   do j = i, ia(4,s%nAtoms)
-    !     if(abs(calchk(j,i)-conjg(calchk(i,j))) > 1.e-15_dp) then
-    !       write(*,"('Hamiltonian not hermitian',i0,2x,i0,2x,es11.4)") i,j,abs(hk(j,i)-conjg(hk(i,j)))
+    !     if(abs(calchk(j,i)-conjg(calchk(i,j))) > 1.e-14_dp) then
+    !       write(*,"('Hamiltonian not hermitian',i0,2x,i0,2x,es11.4)") i,j,abs(calchk(j,i)-conjg(calchk(i,j)))
     !     end if
     !   end do
     ! end do

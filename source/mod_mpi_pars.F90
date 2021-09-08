@@ -81,20 +81,20 @@ contains
     !! MPI Communicator to split up
 
     integer(int32) :: genFieldComm
-    integer(int32) :: rank, procs, ierr
+    integer(int32) :: rank, procs, ierror
     integer(int32) :: group
 
     ! MPI_f08:
     ! type(MPI_Comm) :: genFieldComm
-    ! integer(int32)      :: rank, procs, ierr
+    ! integer(int32)      :: rank, procs, ierror
     ! integer(int32)      :: group
 
-    call MPI_Comm_rank(comm, rank, ierr)
-    call MPI_Comm_size(comm, procs, ierr)
+    call MPI_Comm_rank(comm, rank, ierror)
+    call MPI_Comm_size(comm, procs, ierror)
     if(mod(procs,nFields) /= 0) call abortProgram("[genFieldComm] Number of MPI processes have to be divisible by nFields")
     group = procs / nFields
     FieldID = rank / group
-    call MPI_Comm_split(comm, FieldID, rank, genFieldComm, ierr)
+    call MPI_Comm_split(comm, FieldID, rank, genFieldComm, ierror)
   end function genFieldComm
 
   function genFreqComm(nFreq, FreqID, comm)
@@ -112,18 +112,18 @@ contains
     ! MPI_f08:
     ! type(MPI_Comm), dimension(2) :: genFreqComm
 
-    integer(int32) :: rank, rank_row, procs, ierr
+    integer(int32) :: rank, rank_row, procs, ierror
     integer(int32) :: group
 
-    call MPI_Comm_rank(comm, rank, ierr)
-    call MPI_Comm_size(comm, procs,ierr)
+    call MPI_Comm_rank(comm, rank, ierror)
+    call MPI_Comm_size(comm, procs,ierror)
     if(mod(procs,nFreq) /= 0) call abortProgram("[genFreqComm] Number of MPI processes have to be divisble by nFreq")
     group = procs / nFreq
     FreqID = rank / group
-    call MPI_Comm_split(comm, FreqID, rank, genFreqComm(1), ierr)
+    call MPI_Comm_split(comm, FreqID, rank, genFreqComm(1), ierror)
 
-    call MPI_Comm_rank(genFreqComm(1), rank_row, ierr)
-    call MPI_Comm_split(comm, rank_row, rank, genFreqComm(2), ierr)
+    call MPI_Comm_rank(genFreqComm(1), rank_row, ierror)
+    call MPI_Comm_split(comm, rank_row, rank, genFreqComm(2), ierror)
   end function genFreqComm
 
   subroutine genMPIGrid(nFields, nFieldPoints, nFreq, nFreqPoints)
@@ -134,16 +134,16 @@ contains
     integer(int32), intent(in) :: nFreqPoints
     integer(int32) :: FreqID, FieldID
 
-    integer(int32) :: i, ierr
+    integer(int32) :: i, ierror
 
     FieldComm = genFieldComm(int(nFields,4), FieldID, MPI_COMM_WORLD)
     FreqComm = genFreqComm(int(nFreq,4), FreqID, FieldComm)
-    call MPI_Comm_rank(FieldComm, rField, ierr)
-    call MPI_Comm_size(FieldComm, sField, ierr)
+    call MPI_Comm_rank(FieldComm, rField, ierror)
+    call MPI_Comm_size(FieldComm, sField, ierror)
 
     do i = 1,2
-       call MPI_Comm_rank(FreqComm(i), rFreq(i), ierr)
-       call MPI_Comm_size(FreqComm(i), sFreq(i), ierr)
+      call MPI_Comm_rank(FreqComm(i), rFreq(i), ierror)
+      call MPI_Comm_size(FreqComm(i), sFreq(i), ierror)
     end do
 
     ! Calculate Field workload for each Field Communicator
@@ -168,13 +168,13 @@ contains
 
     remainder = mod( points, int(procs,kind(points)) )
     if( int( rank,kind(remainder) ) < remainder ) then
-       work = ceiling( dble(points)/dble(procs) , kind(work) )
-       firstPoint = int(rank,kind(firstPoint)) * work + 1
-       lastPoint = (int(rank,kind(lastPoint)) + 1) * work
+      work = ceiling( dble(points)/dble(procs) , kind(work) )
+      firstPoint = int(rank,kind(firstPoint)) * work + 1
+      lastPoint = (int(rank,kind(lastPoint)) + 1) * work
     else
-       work = floor( dble(points)/dble(procs) , kind(work) )
-       firstPoint = int(rank,kind(firstPoint)) * work + 1 + remainder
-       lastPoint = (int(rank,kind(lastPoint)) + 1) * work + remainder
+      work = floor( dble(points)/dble(procs) , kind(work) )
+      firstPoint = int(rank,kind(firstPoint)) * work + 1 + remainder
+      lastPoint = (int(rank,kind(lastPoint)) + 1) * work + remainder
     end if
   end subroutine calcWorkload
 

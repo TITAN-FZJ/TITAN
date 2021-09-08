@@ -33,7 +33,7 @@ contains
 
     ! Count non commented lines
     call number_of_lines(file_unit,i,line_count)
-
+    
     ! Reading point name and position from file kbands
     allocate(kband(line_count))
     i = 0
@@ -90,7 +90,7 @@ contains
     complex(dp), allocatable :: hk(:,:)
     character(len=30) :: formatvar1,formatvar2
 
-    external :: zheev,ilaenv
+    external :: zheev
     
     if(rField == 0) write(output%unit_loop,"('CALCULATING THE BAND STRUCTURE')")
 
@@ -119,6 +119,7 @@ contains
 
       ! Calculating the hamiltonian for a given k-point
       hk = h0 + calchk(s,kpoints(:,kount))
+
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
       call diagonalize(dimHsc,hk,eval)
 

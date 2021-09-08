@@ -45,7 +45,7 @@ def read_data(filename):
 # Main program
 ################################################################################
 if __name__ == "__main__":
-  numplots = len(sys.argv)-1
+  numplots = len(args.files)
   titles = [r"no SOC", r"with SOC"]
   # titles = [r"$\#_{k}=100$M, $\eta=5\times10^{-4}$, 2nn", r"$\#_{k}=100$M, $\eta=5\times10^{-4}$, 3nn"]
   # titles = [r"$\#_{k}=10$M", r"$\#_{k}=100$k"])
@@ -55,7 +55,7 @@ if __name__ == "__main__":
   axs[0,0].set_ylabel("Energy [Ry]")
 
   for i in range(numplots):
-    npoints, name, point, fermi = read_header(sys.argv[i+1])
+    npoints, name, point, fermi = read_header(args.files[i])
     table = read_data(sys.argv[i+1])
     axs[0,i].set_title(titles[i])
     axs[0,i].set_xlim([point[0],point[npoints-1]])
@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
     for j in enumerate(table[:,1]):
       if j[1] == point[4]:
-        print 'Value at ',name[4],': ',-1.0/table[j[0],2]
+        print('Value at ',name[4],': ',-1.0/table[j[0],2])
 
     # Plotting the results
     axs[0,i].plot(table[:,1],-1.0/table[:,2])

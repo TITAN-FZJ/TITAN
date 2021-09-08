@@ -775,7 +775,6 @@ contains
     use mod_parameters, only: output
     implicit none
     integer :: nn,info
-    integer :: lwork
     integer,     dimension(nn)    :: ipiv
     complex(dp), dimension(nn,nn) :: matriz
     complex(dp), dimension(nn*4)  :: work

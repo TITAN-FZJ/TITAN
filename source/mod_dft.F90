@@ -25,7 +25,7 @@ contains
     use AtomTypes,     only: NeighborAtom
     use mod_constants, only: cZero
     use mod_io,        only: log_error
-    use mod_tools,     only: ItoS,StoI,StoR,StoArray,next_line
+    use mod_tools,     only: ItoS,RtoS,StoI,StoR,StoArray,next_line
     implicit none
     type(System_type),   intent(inout) :: s
     character(len=*),    intent(in)    :: filename
@@ -56,14 +56,14 @@ contains
     ! Read title
     read(f_unit, fmt='(A)', iostat=ios) title
 
-    ! Read total number of orbitals
+    ! Read total number of orbitals / number of wannier functions per unit cell
     nOrb = StoI(next_line("readHamiltonian",f_unit,"number of orbitals"))
     if(nOrb /= s%total_nOrb) call log_error("readHamiltonian", "Total number of orbitals from input (" // trim(itos(s%total_nOrb)) // ") is different than in hamiltonian file (" // trim(itos(nOrb)) // ")")
 
-    ! Read number of Cells
+    ! Read number of Cells / number of Wigner-Seitz points
     nCells = StoI(next_line("readHamiltonian",f_unit,"number of cells"))
 
-    ! Allocate array for all atoms in all unit cells
+    ! Allocate array for all atoms in all unit cells to store degeneracies of Wigner-Seitz points
     allocate(list(nCells*s%nAtoms))
     do i = 1,nCells*s%nAtoms
       allocate(list(i)%isHopping(s%nAtoms))
@@ -73,7 +73,7 @@ contains
       allocate(s%Types(i)%onSite(s%Types(i)%nOrb,s%Types(i)%nOrb))
     end do
 
-    ! Read weight of each cell
+    ! Read weight of each cell / degeneracies of Wigner-Seitz points
     allocate(weight(nCells))
     j = floor(dble(nCells/wgt_per_line))
     do i = 1,j
@@ -107,12 +107,14 @@ contains
               read(f_unit, fmt=*, iostat=ios) pos(1), pos(2), pos(3), orb(1), orb(2), hop(1), hop(2)
 
               if((pos(1)==0).and.(pos(2)==0).and.(pos(3)==0).and.(i==j)) then
-                s%Types(s%Basis(i)%Material)%onSite(mu,nu) = cmplx(hop(1),hop(2),dp)
+                if((mu==nu).and.(hop(2)>1.0e-9_dp)) &
+                  call log_error("readHamiltonian", "On-site, on-orbital term for i = j = " // trim(itos(i)) // ", mu = nu = " // trim(itos(mu)) // " is not real: Im(H) = " // trim(rtos(hop(2),"(f7.2)")))
+                s%Types(s%Basis(i)%Material)%onSite(mu,nu) = cmplx(hop(1),hop(2),dp)/weight(cell)
                 cycle
               end if
 
               list(nNeighbors)%isHopping(i) = .true.
-              list(nNeighbors)%t0i(nu,mu,i) = cmplx(hop(1),hop(2),dp)
+              list(nNeighbors)%t0i(nu,mu,i) = cmplx(hop(1),hop(2),dp)/weight(cell)
             end do !mu
           end do !i
         end do ! nu
@@ -129,6 +131,7 @@ contains
                                     + list(nNeighbors)%Cell(3) * s%a3
         ! Atom position is r = R_i + r_j
         list(nNeighbors)%Position = s%Basis(j)%Position + list(nNeighbors)%CellVector
+
         list(nNeighbors)%BasisIndex = j
         list(nNeighbors)%Material = s%Basis(j)%Material
       end do ! j

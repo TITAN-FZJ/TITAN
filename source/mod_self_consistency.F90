@@ -680,7 +680,7 @@ contains
   end subroutine calcSelfConsistency_linear
 
 
-  subroutine check_jacobian(neq,x)
+  subroutine check_jacobian(n,x)
   !> This subroutine can be used to check the jacobian implementation
   !> It compares the jacobian subroutine with the one obtained numerically 
   !> by calculating the function is different points
@@ -691,15 +691,15 @@ contains
     integer :: liw,lw,ifail
     integer , allocatable :: iw(:)
     real(dp), allocatable :: w(:)
-    integer , intent(in)  :: neq
-    real(dp), intent(in)  :: x(neq)
-    real(dp) :: jac(neq,neq)
-    real(dp) :: fvec(neq)
+    integer , intent(in)  :: n
+    real(dp), intent(in)  :: x(n)
+    real(dp) :: jac(n,n)
+    real(dp) :: fvec(n)
     ! integer :: i
-    real(dp) :: fvecp(neq),xp(neq),err(neq)
+    real(dp) :: fvecp(n),xp(n),err(n)
 
     liw = 1
-    lw  = (4+neq)*neq
+    lw  = (4+n)*n
     allocate(iw(liw),w(lw))
 
     lcheckjac = .false.
@@ -707,7 +707,7 @@ contains
     if(rField == 0) &
     write(output%unit_loop,"('[check_jacobian] Checking Jacobian if Jacobian is correct...')", advance='no')
 
-    call chkder(neq,neq,x,fvec,jac,neq,xp,fvecp,1,err)
+    call chkder(n,n,x,fvec,jac,n,xp,fvecp,1,err)
     call abortProgram("[check_jacobian] Not implemented for slatec).")
 
     if(ifail == 0) then
@@ -1345,7 +1345,7 @@ contains
           deltad(i) = deltad(i) + delta_sc(s%Types(s%Basis(i)%Material)%dOrbs(mu),i)
         end do
         deltad(i) = deltad(i)/s%Types(s%Basis(i)%Material)%ndOrb
-        write(output%unit_loop,fmt="(a,':',2x,'Ds=',f10.7,4x,'Dp=',f10.7,4x,'Dd=',f10.7)") trim(s%Types(s%Basis(i)%Material)%Name),deltas(i),deltap(i),deltad(i)
+        write(output%unit_loop,fmt="(a2,':',2x,'Ds=',f10.7,4x,'Dp=',f10.7,4x,'Dd=',f10.7)") trim(s%Types(s%Basis(i)%Material)%Name),deltas(i),deltap(i),deltad(i)
       end do
     end if
 
