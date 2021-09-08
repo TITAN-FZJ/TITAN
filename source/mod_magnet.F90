@@ -49,7 +49,7 @@ module mod_magnet
   !! Half of Static magnetic fields in each direction
   real(dp),allocatable    :: bc(:,:)
   !! Constraining fields
-  complex(dp), dimension(:,:,:), allocatable :: lb, sb
+  complex(dp), dimension(:,:,:), allocatable :: lb
   !! Zeeman matrices
   complex(dp), dimension(:,:,:), allocatable :: lxp, lyp, lzp
   !! Site dependent Angular momentum matrices in local frame
@@ -176,16 +176,17 @@ contains
 
   end subroutine setMagneticLoopPoints
 
-  subroutine initMagneticField(nAtoms)
+  subroutine initMagneticField(s)
     use mod_constants, only: cZero, deg2rad
     use mod_mpi_pars,  only: abortProgram
+    use mod_System, only: System_type
     implicit none
+    type(System_type), intent(inout) :: s
 
-    integer(int32), intent(in) :: nAtoms
     integer :: i, AllocateStatus
 
     if(allocated(hhw)) deallocate(hhw)
-    allocate( hhw(3,nAtoms), STAT = AllocateStatus )
+    allocate( hhw(3,s%nAtoms), STAT = AllocateStatus )
     if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: hhw")
 
     !---------------------- Turning off field for hwa=0 --------------------
@@ -194,7 +195,10 @@ contains
     else
       lfield = .true.
     end if
-    sb   = cZero
+
+    do i = 1, s%nAtoms
+      s%Basis(i)%sb(:,:) = cZero
+    end do
     lb   = cZero
     hhw  = 0._dp
 
@@ -204,7 +208,7 @@ contains
       ! There is an extra  minus sign in the definition of hhw
       ! to take into account the fact that we are considering negative
       ! external fields to get the peak at positive energies
-      do i = 1, nAtoms
+      do i = 1, s%nAtoms
         hhw(1,i) = -0.5_dp*hwscale(i)*hw_list(hw_count,1)*sin((hw_list(hw_count,2) + hwtrotate(i))*deg2rad)*cos((hw_list(hw_count,3) + hwprotate(i))*deg2rad)*tesla
         hhw(2,i) = -0.5_dp*hwscale(i)*hw_list(hw_count,1)*sin((hw_list(hw_count,2) + hwtrotate(i))*deg2rad)*sin((hw_list(hw_count,3) + hwprotate(i))*deg2rad)*tesla
         hhw(3,i) = -0.5_dp*hwscale(i)*hw_list(hw_count,1)*cos((hw_list(hw_count,2) + hwtrotate(i))*deg2rad)*tesla
@@ -214,9 +218,9 @@ contains
         if(abs(hhw(3,i))<1.e-8_dp) hhw(3,i) = 0._dp
       end do
       ! Testing if hwscale is used
-      lhwscale = any(abs(hwscale(1:nAtoms)-1._dp) > 1.e-8_dp)
+      lhwscale = any(abs(hwscale(1:s%nAtoms)-1._dp) > 1.e-8_dp)
       ! Testing if hwrotate is used
-      lhwrotate = (any(abs(hwtrotate(1:nAtoms)) > 1.e-8_dp).or.any(abs(hwprotate(1:nAtoms))>1.e-8_dp))
+      lhwrotate = (any(abs(hwtrotate(1:s%nAtoms)) > 1.e-8_dp).or.any(abs(hwprotate(1:s%nAtoms))>1.e-8_dp))
     end if
   end subroutine initMagneticField
 
@@ -255,25 +259,25 @@ contains
     use mod_constants, only: cZero, cI
     use mod_System,    only: System_type
     implicit none
-    type(System_type), intent(in)   :: s
+    type(System_type), intent(inout)   :: s
     real(dp), dimension(3,s%nAtoms) :: b
     integer :: i,mu,nu
 
     ! There is an extra  minus sign in the definition of hhw
     ! to take into account the fact that we are considering negative
     ! external fields to get the peak at positive energies
-    sb = cZero
 
     if(lfield.or.lconstraining_field) then
       ! write(output%unit_loop,"('[sb_matrix] hhw,bc = ', 10000es16.8)") hhw, bc
       b = hhw - 0.5_dp*bc
       do i=1, s%nAtoms
+        s%Basis(i)%sb(:,:) = cZero
         do mu=1,s%Types(s%Basis(i)%Material)%nOrb
           nu=mu+s%Types(s%Basis(i)%Material)%nOrb
-          sb(mu,mu,i) = b(3,i)
-          sb(nu,nu,i) =-b(3,i)
-          sb(nu,mu,i) = b(1,i)+cI*b(2,i)
-          sb(mu,nu,i) = b(1,i)-cI*b(2,i)
+          s%Basis(i)%sb(mu,mu) = b(3,i)
+          s%Basis(i)%sb(nu,nu) =-b(3,i)
+          s%Basis(i)%sb(nu,mu) = b(1,i)+cI*b(2,i)
+          s%Basis(i)%sb(mu,nu) = b(1,i)-cI*b(2,i)
         end do
       end do
     end if
@@ -397,9 +401,6 @@ contains
     allocate(lx(nOrbs, nOrbs), ly(nOrbs,nOrbs), lz(nOrbs,nOrbs), lvec(nOrbs,nOrbs,3), stat = AllocateStatus)
     if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lx, ly, lz, lvec")
 
-    allocate(sb(2*nOrbs,2*nOrbs,nAtoms), stat = AllocateStatus)
-    if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: sb")
-
     allocate(lb(2*nOrbs,2*nOrbs,nAtoms), stat = AllocateStatus)
     if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lb")
 
@@ -444,7 +445,6 @@ contains
     if(allocated(ly)) deallocate(ly)
     if(allocated(lz)) deallocate(lz)
     if(allocated(lvec )) deallocate(lvec )
-    if(allocated(sb)) deallocate(sb)
     if(allocated(lb)) deallocate(lb)
     if(allocated(lxp)) deallocate(lxp)
     if(allocated(lyp)) deallocate(lyp)

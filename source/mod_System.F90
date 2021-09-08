@@ -209,6 +209,24 @@ contains
 
   end subroutine initConversionMatrices
 
+  subroutine allocate_basis_variables(s)
+  !! Allocates variables inside Basis derived datatype
+    implicit none
+    type(System_type), intent(inout) :: s
+    integer :: i
+
+    do i = 1,s%nAtoms
+
+      if(.not.allocated(s%Basis(i)%sb)) allocate( s%Basis(i)%sb(s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2))
+      s%Basis(i)%sb = cmplx(0._dp,0._dp,dp)
+#ifdef _GPU
+      if(.not.allocated(s%Basis(i)%sb_d)) allocate( s%Basis(i)%sb_d(s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2))
+#endif
+
+    end do
+
+  end subroutine allocate_basis_variables
+
 
   subroutine deallocate_System_variables()
   !! This subroutine deallocates the system variables

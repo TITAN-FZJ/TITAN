@@ -26,6 +26,11 @@ module AtomTypes
     !! List of Neighboring atoms
     real(dp) :: Un=0._dp, Um=0._dp
     !! Effective Coulomb interaction strength - Hubbard U (charge and magnetic)
+    complex(dp), dimension(:,:), allocatable :: lb, sb
+#ifdef _GPU
+    complex(dp), dimension(:,:), allocatable, device :: sb_d
+#endif
+    !! Zeeman OAM and spin interactions
   end type BasisAtom
 
   type, extends(Atom) :: NeighborAtom

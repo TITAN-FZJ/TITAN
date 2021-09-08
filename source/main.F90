@@ -26,7 +26,8 @@ program TITAN
   use mod_self_consistency,    only: doSelfConsistency
   use EnergyIntegration,       only: pn1,allocate_energy_points,generate_imag_epoints
   use mod_progress,            only: start_program,write_time
-  use mod_mpi_pars,            only: MPI_Wtime,MPI_COMM_WORLD,ierr,myrank,startField,endField,rField,Initialize_MPI,genMPIGrid,abortProgram
+  use mod_mpi_pars,            only: MPI_Wtime,MPI_COMM_WORLD,ierr,myrank,startField,endField,rField,Initialize_MPI,&
+                                     genMPIGrid,abortProgram
   use mod_polyBasis,           only: read_basis
   use TightBinding,            only: initTightBinding
   use mod_fermi_surface,       only: fermi_surface
@@ -36,7 +37,7 @@ program TITAN
   use mod_init_expec,          only: calc_init_expec_SK,calc_init_expec_dft
   use mod_time_propagator,     only: time_propagator
   use mod_superconductivity,   only: lsuperCond,supercond,allocate_supercond_variables
-  use mod_System,              only: s=>sys,init_Hamiltk_variables,initConversionMatrices
+  use mod_System,              only: s=>sys,init_Hamiltk_variables,initConversionMatrices,allocate_basis_variables
 #ifdef _GPU
   use nvtx,                    only: nvtxStartRange,nvtxEndRange
   use mod_cuda,                only: num_gpus,result,create_handle,cudaGetDeviceCount,cudaSetDevice,cudaGetErrorString 
@@ -152,6 +153,7 @@ program TITAN
   call generateAdaptiveMeshes(s,pn1)
 
   !------------ Allocating variables that depend on nAtoms -------------
+  call allocate_basis_variables(s)
   call allocate_magnet_variables(s%nAtoms, s%nOrb)
   call allocate_supercond_variables(s%nAtoms, s%nOrb)
   call allocateLS(s%nAtoms,s%nOrb)
@@ -196,7 +198,7 @@ program TITAN
     end if
 
     !------------------- Initialize Magnetic Field ---------------------
-    call initMagneticField(s%nAtoms)
+    call initMagneticField(s)
     if((llinearsoc) .or. (.not.SOC) .and. (.not.lfield) .and. (rField == 0)) &
       write(output%file_loop,"('[main] WARNING: No external magnetic field is applied and SOC is off/linear order: Goldstone mode is present!')")
 

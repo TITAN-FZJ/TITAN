@@ -8,9 +8,9 @@ contains
   !! where each element parameter comes from diferent calculations
     use mod_kind,              only: dp
     use mod_constants,         only: cZero
-    use mod_System,            only: System_type,init_Hamiltk_variables,initConversionMatrices
+    use mod_System,            only: System_type,init_Hamiltk_variables,initConversionMatrices,allocate_basis_variables
     use TightBinding,          only: initTightBinding
-    use mod_magnet,            only: l_matrix,lb,sb,allocate_magnet_variables,deallocate_magnet_variables,mzd0,mpd0,rho0,rhod0
+    use mod_magnet,            only: l_matrix,lb,allocate_magnet_variables,deallocate_magnet_variables,mzd0,mpd0,rho0,rhod0
     use mod_SOC,               only: ls,allocateLS
     use adaptiveMesh,          only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh,bzs
     use mod_parameters,        only: kp_in,kptotal_in,output,eta,leigenstates,lkpoints
@@ -100,6 +100,7 @@ contains
         if(myrank == 0) write(output%unit,"('[calc_init_expec_SK] Calculating initial density for ""',a,'""...')") trim(s%Types(i)%Name)
 
         !----------- Allocating variables that depend on nAtoms ------------
+        call allocate_basis_variables(sys0(i))
         call allocate_magnet_variables(sys0(i)%nAtoms,sys0(i)%nOrb)
         call allocateLS(sys0(i)%nAtoms,sys0(i)%nOrb)
         call allocate_supercond_variables(sys0(i)%nAtoms,sys0(i)%nOrb)
@@ -128,7 +129,6 @@ contains
 
         !----- Removing L.B, S.B and L.S matrices from the hamiltonian -----
         lb = cZero
-        sb = cZero
         ls = cZero
         delta_sc = 0._dp
 #ifdef _GPU
@@ -213,9 +213,10 @@ contains
       mzd0(i)   = s%Types(s%Basis(i)%Material)%mzd0
       mpd0(i)   = s%Types(s%Basis(i)%Material)%mpd0
     end do
-
     if(myrank == 0) &
       call write_time('[calc_init_expec_SK] Finished calculating initial density: ',output%unit)
+    
+    deallocate(sys0)
 
   end subroutine calc_init_expec_SK
 
@@ -226,8 +227,8 @@ contains
   !! for all elements (without any extra term added)
     use mod_kind,              only: dp
     use mod_constants,         only: cZero
-    use mod_System,            only: System_type
-    use mod_magnet,            only: l_matrix,lb,sb,mzd0,mpd0,rho0,rhod0
+    use mod_System,            only: System_type,allocate_basis_variables
+    use mod_magnet,            only: l_matrix,lb,mzd0,mpd0,rho0,rhod0
     use mod_SOC,               only: ls
     use adaptiveMesh,          only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh,bzs
     use mod_parameters,        only: output,leigenstates,lkpoints
@@ -289,6 +290,7 @@ contains
       return
     end if
 
+    call allocate_basis_variables(s)
     !---------------- Reading from previous calculations -----------------
     !------- and calculating if file doesn't exist (or different U) ------
     if(.not.read_init_expecs(s%nOrb,s%Types(i),err)) then
@@ -299,7 +301,6 @@ contains
 
       !----- Removing L.B, S.B and L.S matrices from the hamiltonian -----
       lb = cZero
-      sb = cZero
       ls = cZero
       delta_sc = 0._dp
 #ifdef _GPU
