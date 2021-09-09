@@ -65,21 +65,21 @@ contains
         iw = 2000 + (j-1) * s%nAtoms * 2 + (i-1) * 2
         if(i==j) then
           iw = iw + 1
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_kdir=',a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(1)),i,trim(adjustl(kdirection)),trim(output%info),trim(output%BField),trim(output%SOC)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_kdir=',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(1)),i,trim(adjustl(kdirection)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
           open (unit=iw, file=varm,status='replace')
-          call write_header(iw,"#   energy      ,   q-vector    ,  Jii_xx           ,   Jii_yy  ",s%Ef)
+          call write_header(iw,"#   energy      ,   q-vector    ,  Jii_xx           ,   Jii_yy  ")
           ! Anisotropy energy is given by K^a = 2*J_ii^aa
           ! omega_res ~ gamma*m_i*J_ii (*2?) ,
           ! where J_ii is the one calculated here
         else
           iw = iw + 1
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_',i0,'_kdir=',a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(2)),i,j,trim(adjustl(kdirection)),trim(output%info),trim(output%BField),trim(output%SOC)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_',i0,'_kdir=',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(2)),i,j,trim(adjustl(kdirection)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
           open (unit=iw, file=varm,status='replace')
-          call write_header(iw,"#   energy      ,   q-vector    ,   isotropic Jij    ,   anisotropic Jij_xx    ,   anisotropic Jij_yy     ",s%Ef)
+          call write_header(iw,"#   energy      ,   q-vector    ,   isotropic Jij    ,   anisotropic Jij_xx    ,   anisotropic Jij_yy     ")
           iw = iw + 1
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_',i0,'_kdir=',a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(3)),i,j,trim(adjustl(kdirection)),trim(output%info),trim(output%BField),trim(output%SOC)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_',i0,'_kdir=',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(3)),i,j,trim(adjustl(kdirection)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
           open (unit=iw, file=varm,status='replace')
-          call write_header(iw,"#   energy      ,   q-vector    , Dz = (Jxy - Jyx)/2       ",s%Ef)
+          call write_header(iw,"#   energy      ,   q-vector    , Dz = (Jxy - Jyx)/2       ")
         end if
       end do
     end do
@@ -111,25 +111,25 @@ contains
         iw = 2000 + (j-1) * s%nAtoms * 2 + (i-1) * 2
         if(i==j) then
           iw = iw + 1
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_kdir=',a,a,a,'_real.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(1)),i,trim(output%info),trim(output%BField),trim(output%SOC)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_kdir=',a,a,a,a,'_real.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(1)),i,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
           open (unit=iw, file=varm,status='replace')
           call write_header(iw,"#     Rji_x     ,      Rji_y      ,      Rji_z      ,      |Rji|      ,  Jii_xx         ,&
           &  Jii_xy         ,  Jii_xz         ,  Jii_yz         ,  Jii_yy         ,  Jii_yz         ,&
-          &    Jii_zx         ,  Jii_zy          ,  Jii_zz         ",s%Ef)
+          &    Jii_zx         ,  Jii_zy          ,  Jii_zz         ")
           ! Anisotropy energy is given by K^a = 2*J_ii^aa
           ! omega_res ~ gamma*m_i*J_ii (*2?) ,
           ! where J_ii is the one calculated here
         else
           iw = iw + 1
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_',i0,'_kdir=',a,a,a,'_real.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(2)),i,j,trim(output%info),trim(output%BField),trim(output%SOC)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_',i0,'_kdir=',a,a,a,a,'_real.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(2)),i,j,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
           open (unit=iw, file=varm,status='replace')
           call write_header(iw,"#     Rji_x     ,      Rji_y      ,      Rji_z      ,      |Rji|      ,  Jii_xx         ,&
           &  Jii_xy         ,  Jii_xz         ,  Jii_yz         ,  Jii_yy         ,  Jii_yz         ,&
-          &    Jii_zx         ,  Jii_zy          ,  Jii_zz         ",s%Ef)
+          &    Jii_zx         ,  Jii_zy          ,  Jii_zz         ")
           iw = iw + 1
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_',i0,'_kdir=',a,a,a,'_.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(3)),i,j,trim(output%info),trim(output%BField),trim(output%SOC)
+          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_',i0,'_kdir=',a,a,a,a,'_.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(3)),i,j,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
           ! open (unit=iw, file=varm,status='replace')
-          ! call write_header(iw,"#   energy      ,   distance    , Dz = (Jxy - Jyx)/2       ",s%Ef)
+          ! call write_header(iw,"#   energy      ,   distance    , Dz = (Jxy - Jyx)/2       ")
         end if
       end do
     end do
