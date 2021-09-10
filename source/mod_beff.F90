@@ -131,8 +131,11 @@ contains
 
         if(abs(Beff_cart(sigma,i))>=1.e-15_dp) then
           phase  = atan2(aimag(Beff_cart(sigma,i)),real(Beff_cart(sigma,i)))
+          if (phase <=1.e-15_dp) phase = 0._dp
           sine   = real(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
+          if (sine <=1.e-15_dp) sine = 0._dp
           cosine = aimag(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
+          if (cosine <=1.e-15_dp) cosine = 0._dp
         else
           phase  = 0._dp
           sine   = 0._dp
@@ -145,8 +148,11 @@ contains
       iw = 8500+sigma
       if(abs(total_Beff(sigma))>=1.e-15_dp) then
         phase  = atan2(aimag(total_Beff(sigma)),real(total_Beff(sigma)))
+        if (phase <=1.e-15_dp) phase = 0._dp
         sine   = real(total_Beff(sigma))/abs(total_Beff(sigma))
+        if (sine <=1.e-15_dp) sine = 0._dp
         cosine = aimag(total_Beff(sigma))/abs(total_Beff(sigma))
+        if (cosine <=1.e-15_dp) cosine = 0._dp
       else
         phase  = 0._dp
         sine   = 0._dp
