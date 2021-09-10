@@ -182,6 +182,8 @@ program TITAN
   if(myrank == 0 .and. skip_steps_hw > 0) &
     write(output%unit,"('[main] Skipping first ',i0,' field step(s)...')") skip_steps_hw
 
+  call flush(output%unit)
+
   do hw_count = int(startField,4), int(endField,4)
     !---------- Opening files (general and one for each field) ---------
     if(rField == 0) then
@@ -292,6 +294,11 @@ program TITAN
     call nvtxEndRange
 #endif
 
+    if(rField==0) &
+      call write_time('[main] Time after self-consistency: ',output%unit_loop)
+
+    call flush(output%unit)
+
 
     !--------- Temporary execution to test this function ---------------
 
@@ -313,9 +320,6 @@ program TITAN
     end if
 
     !-------------------------------------------------------------------
-
-    if(rField==0) &
-      call write_time('[main] Time after self-consistency: ',output%unit_loop)
 
     !-- Only calculate long. and transv. currents from existing files --
     ! if(llgtv) then TODO: Re-include

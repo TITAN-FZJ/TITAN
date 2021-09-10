@@ -401,6 +401,20 @@ Co_monolayer_paoflow:mei:
       - examples/Co_monolayer_paoflow/results/
     expire_in: 1 day
 
+nanoribbon:responses:
+  image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
+  stage: results
+  needs: ["build:intel:normal"]
+  script:
+    # Setting up Intel Fortran Compiler
+    - *setup_ifort
+    - export TITAN_DIR="${PWD}"
+    - export TEST_DIR="examples/nanoribbon"
+    - export ITYPE=8
+    - *run_test
+    - export TOL=1e-7
+    - *compare_files
+
 #============ Plots ============#
 Nb_100_Monolayer:ldos:plot:
   image: iffregistry.fz-juelich.de/docker-images/titan-images
