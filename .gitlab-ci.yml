@@ -121,6 +121,7 @@ build:intel:normal:
   - mpirun -np 1 ${TITAN_DIR}/bin/titan_iff_debug.exe
   # Printing any error file, if existing
   - if [ -f error* ] ; then grep -H '' error* ; fi
+  - cat output/*
   # Printing runtime
   - grep "Finished on" output/*
 
