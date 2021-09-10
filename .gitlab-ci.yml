@@ -414,6 +414,11 @@ nanoribbon:responses:
     - *run_test
     - export TOL=1e-7
     - *compare_files
+  artifacts:
+    paths:
+      - examples/Co_monolayer_paoflow/results/
+    when: always
+    expire_in: 1 day
 
 #============ Plots ============#
 Nb_100_Monolayer:ldos:plot:
