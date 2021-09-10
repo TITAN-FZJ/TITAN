@@ -96,7 +96,7 @@ build:intel:normal:
   script:
     - *setup_ifort
     - cd build
-    - cmake ../ -DPLATFORM=iff -DDEBUG=ON
+    - cmake ../ -DPLATFORM=iff
     - make
   artifacts:
     paths:
@@ -118,10 +118,9 @@ build:intel:normal:
   # Setting up 4 omp threads
   - export OMP_NUM_THREADS=8
   # Running the code with 2 MPI ranks (TODO: mpi needs to be tested to return to original values)
-  - mpirun -np 1 ${TITAN_DIR}/bin/titan_iff_debug.exe
+  - mpirun -np 1 ${TITAN_DIR}/bin/titan_iff.exe
   # Printing any error file, if existing
   - if [ -f error* ] ; then grep -H '' error* ; fi
-  - cat output/*
   # Printing runtime
   - grep "Finished on" output/*
 
