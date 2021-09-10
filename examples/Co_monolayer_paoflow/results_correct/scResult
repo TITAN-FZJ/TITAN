@@ -1,6 +1,6 @@
 |----------=============== Self-consistent ground state: ===============-----
-        Ef=   0.56601933    Eband=  -13.5777268    Etotal=  -11.1938418
-        Double counting:    Edc_m=    2.3838850     Edc_n=    0.0000000
+   Ef=   0.56601934    Eband=    -13.5777268177    Etotal=    -11.1938418486
+   Double counting:    Edc_m=      2.3838849691     Edc_n=      0.0000000000
             *************** Charge density: ****************
 Co:  Ns= 0.5479472    Np= 0.7886200    Nd= 6.7136328
             *********** Magnetization components: ***********

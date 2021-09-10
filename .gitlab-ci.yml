@@ -116,9 +116,9 @@ build:intel:normal:
   # Setting up
   - sed -i "s/-> itype = .*/-> itype = ${ITYPE}/g" input
   # Setting up 4 omp threads
-  - export OMP_NUM_THREADS=4
+  - export OMP_NUM_THREADS=8
   # Running the code with 2 MPI ranks (TODO: mpi needs to be tested to return to original values)
-  - mpirun -np 2 ${TITAN_DIR}/bin/titan_iff.exe
+  - mpirun -np 1 ${TITAN_DIR}/bin/titan_iff_debug.exe
   # Printing any error file, if existing
   - if [ -f error* ] ; then grep -H '' error* ; fi
   # Printing runtime
@@ -406,7 +406,7 @@ Ni_bulk:timeprop:
   # Keep results on failure (to be able to check)
   <<: *keep_results
 
-Co_monolayer_paoflow:ldos:
+Co_monolayer_paoflow:bands_with_ldos:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: results
   needs: ["build:intel:normal","Co_monolayer_paoflow"]
@@ -494,7 +494,7 @@ Nb_100_Monolayer:ldos:plot:
 Co_monolayer_paoflow:bands_with_ldos:plot:
   image: iffregistry.fz-juelich.de/docker-images/titan-images
   stage: plots
-  needs: ["Co_monolayer_paoflow:ldos"]
+  needs: ["Co_monolayer_paoflow:bands_with_ldos"]
   tags:
     - intel
   variables:
