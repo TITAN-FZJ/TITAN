@@ -3,7 +3,7 @@
 -> itype = 8
 !===============================================================================!
 !                                OUTPUT FILE                                    !
--> output = output/resp_30_Ef=-0.25_SOC=0.10_Vab=0.15_pxpy
+-> output = output/resp_10_Ef=-0.25_SOC=0.10_Vab=0.15_pxpy
 -> suffix = _Ef=-0.25_SOC=0.10_Vab=0.15_pxpy
 -> Ef = -0.25e0
 !===============================================================================!
@@ -16,7 +16,7 @@
 -> nn_stages = 1
 -> orbitals = px py
 ! Small imaginary part of the Green function:
--> eta = 5e-3
+-> eta = 1e-3
 !===============================================================================!
 !                          STATIC MAGNETIC ZEEMAN FIELD                         !
 !                         (in the spin reference system)                        !
@@ -59,7 +59,7 @@
 !===============================================================================!
 !                           INTEGRATION VARIABLES                               !
 ! Approximate number of k-points: (nkpt > 0)                                    !
--> nkpt = 100
+-> nkpt = 1000
 ! Number of parts to divide energy integral in complex plane:                   !
 -> parts = 2
 -> n1gl = 64
