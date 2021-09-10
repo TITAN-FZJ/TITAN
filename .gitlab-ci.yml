@@ -155,7 +155,7 @@ Nb_100_Monolayer:
   stage: selfcon:normal
   needs: ["build:intel:normal"]
   variables:
-    TITAN_DIR: "~"
+    TITAN_DIR: ../../
     TEST_DIR: examples/Nb_100_Monolayer
     ITYPE: 1
   script:
@@ -172,7 +172,7 @@ Ni_bulk:
   stage: selfcon:normal
   needs: ["build:intel:normal"]
   variables:
-    TITAN_DIR: "~"
+    TITAN_DIR: ../../
     TEST_DIR: examples/Ni_bulk_timeprop
     ITYPE: 1
   script:
@@ -189,7 +189,7 @@ Fe_bulk:
   stage: selfcon:normal
   needs: ["build:intel:normal"]
   variables:
-    TITAN_DIR: "~"
+    TITAN_DIR: ../../
     TEST_DIR: examples/Fe_bulk_susc
     ITYPE: 1
   script:
@@ -206,7 +206,7 @@ Fe_transv_constr:
   stage: selfcon:normal
   needs: ["build:intel:normal"]
   variables:
-    TITAN_DIR: "~"
+    TITAN_DIR: ../../../
     TEST_DIR: examples/Fe_dimer_bconstr/transv
     ITYPE: 1
   script:
@@ -223,7 +223,7 @@ Fe_full_constr:
   stage: selfcon:normal
   needs: ["build:intel:normal"]
   variables:
-    TITAN_DIR: "~"
+    TITAN_DIR: ../../../
     TEST_DIR: examples/Fe_dimer_bconstr/full
     ITYPE: 1
   script:
@@ -240,7 +240,7 @@ graphene_pz:
   stage: selfcon:normal
   needs: ["build:intel:normal"]
   variables:
-    TITAN_DIR: "~"
+    TITAN_DIR: ../../
     TEST_DIR: examples/graphene
     ITYPE: 1
   script:
@@ -257,7 +257,7 @@ Co_monolayer_paoflow:
   stage: selfcon:normal
   needs: ["build:intel:normal"]
   variables:
-    TITAN_DIR: "~"
+    TITAN_DIR: ../../
     TEST_DIR: examples/Co_monolayer_paoflow
     ITYPE: 1
   script:
@@ -275,7 +275,7 @@ Nb_100_Superconducting_Monolayer:
   stage: selfcon:supercond
   needs: ["build:intel:normal","Nb_100_Monolayer"]
   variables:
-    TITAN_DIR: "~"
+    TITAN_DIR: ../../
     TEST_DIR: examples/Nb_100_Superconducting_Monolayer
     ITYPE: 1
   script:
@@ -293,7 +293,7 @@ Nb_100_Monolayer:ldos:
   stage: results
   needs: ["build:intel:normal","Nb_100_Monolayer"]
   variables:
-    TITAN_DIR: "~"
+    TITAN_DIR: ../../
     TEST_DIR: examples/Nb_100_Monolayer
     ITYPE: 2
   script:
@@ -309,7 +309,7 @@ Nb_100_Monolayer:bands:
   stage: results
   needs: ["build:intel:normal","Nb_100_Monolayer"]
   variables:
-    TITAN_DIR: "~"
+    TITAN_DIR: ../../
     TEST_DIR: examples/Nb_100_Monolayer
     ITYPE: 4
     EXCLUDE: weights
@@ -326,7 +326,7 @@ graphene_pz:ldos:
   stage: results
   needs: ["build:intel:normal","graphene_pz"]
   variables:
-    TITAN_DIR: "~"
+    TITAN_DIR: ../../
     TEST_DIR: examples/graphene
     ITYPE: 2
   script:
@@ -342,7 +342,7 @@ graphene_pz:bands:
   stage: results
   needs: ["build:intel:normal","graphene_pz"]
   variables:
-    TITAN_DIR: "~"
+    TITAN_DIR: ../../
     TEST_DIR: examples/graphene
     ITYPE: 4
     EXCLUDE: weights
@@ -359,7 +359,7 @@ graphene_pz:isoenergy:
   stage: results
   needs: ["build:intel:normal","graphene_pz"]
   variables:
-    TITAN_DIR: "~"
+    TITAN_DIR: ../../
     TEST_DIR: examples/graphene
     ITYPE: 5
   script:
@@ -375,7 +375,7 @@ Fe_bulk:susc:
   stage: results
   needs: ["build:intel:normal","Fe_bulk"]
   variables:
-    TITAN_DIR: "~"
+    TITAN_DIR: ../../
     TEST_DIR: examples/Fe_bulk_susc
     ITYPE: 7
     EXCLUDE: Slope
@@ -393,7 +393,7 @@ Ni_bulk:timeprop:
   stage: results
   needs: ["build:intel:normal","Ni_bulk"]
   variables:
-    TITAN_DIR: "~"
+    TITAN_DIR: ../../
     TEST_DIR: examples/Ni_bulk_timeprop
     ITYPE: 11
     EXCLUDE: checkpoint
@@ -411,7 +411,7 @@ Co_monolayer_paoflow:ldos:
   stage: results
   needs: ["build:intel:normal","Co_monolayer_paoflow"]
   variables:
-    TITAN_DIR: "~"
+    TITAN_DIR: ../../
     TEST_DIR: examples/Co_monolayer_paoflow
     EXCLUDE: weights
   script:
@@ -434,7 +434,7 @@ Co_monolayer_paoflow:mei:
   stage: results
   needs: ["build:intel:normal","Co_monolayer_paoflow"]
   variables:
-    TITAN_DIR: "~"
+    TITAN_DIR: ../../
     TEST_DIR: examples/Co_monolayer_paoflow
     # Calculating Magnetic Exchange Interaction tensor
     ITYPE: 6
@@ -453,7 +453,7 @@ nanoribbon:responses:
   stage: results
   needs: ["build:intel:normal"]
   variables:
-    TITAN_DIR: "~"
+    TITAN_DIR: ../../
     TEST_DIR: examples/nanoribbon
     ITYPE: 8
     EXCLUDE: checkpoint
@@ -475,7 +475,7 @@ Nb_100_Monolayer:ldos:plot:
     - intel
   variables:
     # Setting up executables folder
-    TITAN_DIR: "~"
+    TITAN_DIR: ../../
     # Setting up example folder
     TEST_DIR: examples/Nb_100_Monolayer
   script:
@@ -499,7 +499,7 @@ Co_monolayer_paoflow:bands_with_ldos:plot:
     - intel
   variables:
     # Setting up executables folder
-    TITAN_DIR: "~"
+    TITAN_DIR: ../../
     # Setting up example folder
     TEST_DIR: examples/Co_monolayer_paoflow
   script:
