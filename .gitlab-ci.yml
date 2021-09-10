@@ -141,7 +141,7 @@ build:intel:normal:
     python ${TITAN_DIR}/scripts/compare_output.py ${file} ${file/results/results_correct} ${TOL}
   done
 
-.keep_results: &keep_results |
+.keep_results: &keep_results
   artifacts:
     paths:
       - ${TEST_DIR}/results/
