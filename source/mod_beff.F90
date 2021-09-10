@@ -1,13 +1,13 @@
 module mod_beff
-   use mod_kind, only: dp
-   implicit none
-   ! Effective field
-   complex(dp),dimension(:,:), allocatable :: chiinv, Beff_cart
-   complex(dp),dimension(:), allocatable :: Beff, total_Beff
+  use mod_kind, only: dp
+  implicit none
+  ! Effective field
+  complex(dp),dimension(:,:), allocatable :: chiinv, Beff_cart
+  complex(dp),dimension(:), allocatable :: Beff, total_Beff
 
-   character(len=7), parameter, private :: folder = "Beff"
-   character(len=4), parameter, private :: filename = "Beff"
-   character(len=1), dimension(4), parameter, private :: direction = ["0", "x", "y", "z"]
+  character(len=7), parameter, private :: folder = "Beff"
+  character(len=4), parameter, private :: filename = "Beff"
+  character(len=1), dimension(4), parameter, private :: direction = ["0", "x", "y", "z"]
 
 contains
 
@@ -116,7 +116,7 @@ contains
     !! (already opened with openclose_beff_files(1))
     !! Some information may also be written on the screen
     use mod_kind, only: dp
-    use mod_magnet, only: mvec_spherical
+    use mod_magnet, only: mvec_spherical, mtotal_spherical
     use mod_system, only: s => sys
     implicit none
     integer      :: i,iw,sigma
@@ -159,7 +159,7 @@ contains
         cosine = 0._dp
       end if
 
-      write(unit=iw,fmt="(9(es16.9,2x))") e , abs(total_Beff(sigma)) , real(total_Beff(sigma)) , aimag(total_Beff(sigma)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
+      write(unit=iw,fmt="(9(es16.9,2x))") e , abs(total_Beff(sigma)) , real(total_Beff(sigma)) , aimag(total_Beff(sigma)) , phase , sine , cosine , mtotal_spherical(2) , mtotal_spherical(3)
     end do
 
     call close_beff_files()
@@ -179,16 +179,16 @@ contains
 
     do sigma=1,4
       do i=1,s%nAtoms
-         iw = 80000+(sigma-1)*s%nAtoms+i
-         write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") &
+        iw = 80000+(sigma-1)*s%nAtoms+i
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,a,'_',a,'_pos=',i0,a,a,a,a,a,a,'.dat')") &
           output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(dcprefix(kount)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
-         open (unit=iw, file=varm, status='replace', form='formatted')
-         write(unit=iw, fmt="('#',a,' imaginary part of ',a,a,' , real part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma)
-         close(unit=iw)
+        open (unit=iw, file=varm, status='replace', form='formatted')
+        write(unit=iw, fmt="('#',a,' imaginary part of ',a,a,' , real part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma)
+        close(unit=iw)
       end do
       iw = 85000+sigma
       write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") &
-       output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(dcprefix(kount)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
+        output%SOCchar,trim(output%Sites),trim(folder),trim(output%hfr),trim(dcprefix(kount)),trim(filename),direction(sigma),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
       open (unit=iw, file=varm, status='replace', form='formatted')
       write(unit=iw, fmt="('#',a,' imaginary part of ',a,a,' , real part of ',a,a,' , phase of ',a,a,' , cosine of ',a,a,'  ,  sine of ',a,a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma),trim(filename),direction(sigma)
       close(unit=iw)
@@ -231,8 +231,8 @@ contains
     integer :: i,sigma,iw
     do sigma=1,4
       do i=1,s%nAtoms
-         iw = 80000+(sigma-1)*s%nAtoms+i
-         close(unit=iw)
+        iw = 80000+(sigma-1)*s%nAtoms+i
+        close(unit=iw)
       end do
       iw = 85000+sigma
       close(unit=iw)
@@ -244,7 +244,7 @@ contains
     !! (already opened with openclose_dc_beff_files(1))
     !! Some information may also be written on the screen
     use mod_kind, only: dp
-    use mod_magnet,   only: mvec_spherical, dc_fields, hw_count
+    use mod_magnet,   only: mtotal_spherical, mvec_spherical, dc_fields, hw_count
     use mod_system,   only: s => sys
     implicit none
     integer      :: i,iw,sigma
@@ -254,32 +254,38 @@ contains
 
     do sigma=1,4
       do i=1,s%nAtoms
-         iw = 80000+(sigma-1)*s%nAtoms+i
+        iw = 80000+(sigma-1)*s%nAtoms+i
 
-         if(abs(Beff_cart(sigma,i))>=1.e-15_dp) then
-           phase  = atan2(aimag(Beff_cart(sigma,i)),real(Beff_cart(sigma,i)))
-           sine   = real(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
-           cosine = aimag(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
-         else
-           phase  = 0._dp
-           sine   = 0._dp
-           cosine = 0._dp
-         end if
+        if(abs(Beff_cart(sigma,i))>=1.e-15_dp) then
+          phase  = atan2(aimag(Beff_cart(sigma,i)),real(Beff_cart(sigma,i)))
+          if (phase <=1.e-15_dp) phase = 0._dp
+          sine   = real(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
+          if (sine <=1.e-15_dp) sine = 0._dp
+          cosine = aimag(Beff_cart(sigma,i))/abs(Beff_cart(sigma,i))
+          if (cosine <=1.e-15_dp) cosine = 0._dp
+        else
+          phase  = 0._dp
+          sine   = 0._dp
+          cosine = 0._dp
+        end if
 
-         write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(Beff_cart(sigma,i)) , real(Beff_cart(sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
+        write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(Beff_cart(sigma,i)) , real(Beff_cart(sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
       end do
       iw = 85000+sigma
       if(abs(total_Beff(sigma))>=1.e-15_dp) then
         phase  = atan2(aimag(total_Beff(sigma)),real(total_Beff(sigma)))
+        if (phase <=1.e-15_dp) phase = 0._dp
         sine   = real(total_Beff(sigma))/abs(total_Beff(sigma))
+        if (sine <=1.e-15_dp) sine = 0._dp
         cosine = aimag(total_Beff(sigma))/abs(total_Beff(sigma))
+        if (cosine <=1.e-15_dp) cosine = 0._dp
       else
         phase  = 0._dp
         sine   = 0._dp
         cosine = 0._dp
       end if
-      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_Beff(sigma)) , real(total_Beff(sigma)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
-   end do
+      write(unit=iw,fmt="(a,2x,7(es16.9,2x))") trim(dc_fields(hw_count)) , aimag(total_Beff(sigma)) , real(total_Beff(sigma)) , phase , sine , cosine , mtotal_spherical(2) , mtotal_spherical(3)
+    end do
 
     call close_dc_beff_files()
   end subroutine write_dc_beff

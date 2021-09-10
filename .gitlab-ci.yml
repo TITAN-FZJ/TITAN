@@ -141,6 +141,13 @@ build:intel:normal:
     python ${TITAN_DIR}/scripts/compare_output.py ${file} ${file/results/results_correct} ${TOL}
   done
 
+.keep_results: &keep_results |
+  artifacts:
+    paths:
+      - ${TEST_DIR}/results/
+    when: on_failure
+    expire_in: 1 day
+
 # ** Jobs **
 #============ Normal Self-consistency ============#
 Nb_100_Monolayer:
@@ -156,6 +163,8 @@ Nb_100_Monolayer:
     - *run_test
     - *create_scResults_file
     - *compare_files
+  # Keep results on failure (to be able to check)
+  << *keep_results
 
 Ni_bulk:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -170,6 +179,8 @@ Ni_bulk:
     - *run_test
     - *create_scResults_file
     - *compare_files
+  # Keep results on failure (to be able to check)
+  << *keep_results
 
 Fe_bulk:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -184,6 +195,8 @@ Fe_bulk:
     - *run_test
     - *create_scResults_file
     - *compare_files
+  # Keep results on failure (to be able to check)
+  << *keep_results
 
 Fe_transv_constr:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -198,6 +211,8 @@ Fe_transv_constr:
     - *run_test
     - *create_scResults_file
     - *compare_files
+  # Keep results on failure (to be able to check)
+  << *keep_results
 
 Fe_full_constr:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -212,6 +227,8 @@ Fe_full_constr:
     - *run_test
     - *create_scResults_file
     - *compare_files
+  # Keep results on failure (to be able to check)
+  << *keep_results
 
 graphene_pz:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -226,6 +243,8 @@ graphene_pz:
     - *run_test
     - *create_scResults_file
     - *compare_files
+  # Keep results on failure (to be able to check)
+  << *keep_results
 
 Co_monolayer_paoflow:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -240,6 +259,8 @@ Co_monolayer_paoflow:
     - *run_test
     - *create_scResults_file
     - *compare_files
+  # Keep results on failure (to be able to check)
+  << *keep_results
 
 #============ Superconductor Self-consistency ============#
 Nb_100_Superconducting_Monolayer:
@@ -255,6 +276,8 @@ Nb_100_Superconducting_Monolayer:
     - *run_test
     - *create_scResults_file
     - *compare_files
+  # Keep results on failure (to be able to check)
+  << *keep_results
 
 #============ Other results ============#
 Nb_100_Monolayer:ldos:
@@ -271,7 +294,8 @@ Nb_100_Monolayer:ldos:
     - *compare_files
   artifacts:
     paths:
-      - examples/Nb_100_Monolayer/results/
+      - ${TEST_DIR}/results/
+    when: always
     expire_in: 1 day
 
 Nb_100_Monolayer:bands:
@@ -287,6 +311,8 @@ Nb_100_Monolayer:bands:
     - *run_test
     - export EXCLUDE="weights"
     - *compare_files
+  # Keep results on failure (to be able to check)
+  << *keep_results
 
 graphene_pz:ldos:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -300,6 +326,8 @@ graphene_pz:ldos:
     - export ITYPE=2
     - *run_test
     - *compare_files
+  # Keep results on failure (to be able to check)
+  << *keep_results
 
 graphene_pz:bands:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -314,6 +342,8 @@ graphene_pz:bands:
     - *run_test
     - export EXCLUDE="weights"
     - *compare_files
+  # Keep results on failure (to be able to check)
+  << *keep_results
 
 graphene_pz:isoenergy:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -327,6 +357,8 @@ graphene_pz:isoenergy:
     - export ITYPE=5
     - *run_test
     - *compare_files
+  # Keep results on failure (to be able to check)
+  << *keep_results
 
 Fe_bulk:susc:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -342,6 +374,8 @@ Fe_bulk:susc:
     - export EXCLUDE="Slope"
     - export TOL=1e-5
     - *compare_files
+  # Keep results on failure (to be able to check)
+  << *keep_results
 
 Ni_bulk:timeprop:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -356,6 +390,8 @@ Ni_bulk:timeprop:
     - *run_test
     - export EXCLUDE="checkpoint"
     - *compare_files
+  # Keep results on failure (to be able to check)
+  << *keep_results
 
 Co_monolayer_paoflow:ldos:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -378,7 +414,8 @@ Co_monolayer_paoflow:ldos:
     - *compare_files
   artifacts:
     paths:
-      - examples/Co_monolayer_paoflow/results/
+      - ${TEST_DIR}/results/
+    when: always
     expire_in: 1 day
 
 Co_monolayer_paoflow:mei:
@@ -398,7 +435,8 @@ Co_monolayer_paoflow:mei:
     - *compare_files
   artifacts:
     paths:
-      - examples/Co_monolayer_paoflow/results/
+      - ${TEST_DIR}/results/
+    when: always
     expire_in: 1 day
 
 nanoribbon:responses:
@@ -414,11 +452,8 @@ nanoribbon:responses:
     - *run_test
     - export TOL=1e-7
     - *compare_files
-  artifacts:
-    paths:
-      - examples/nanoribbon/results/
-    when: always
-    expire_in: 1 day
+  # Keep results on failure (to be able to check)
+  << *keep_results
 
 #============ Plots ============#
 Nb_100_Monolayer:ldos:plot:
@@ -440,6 +475,9 @@ Nb_100_Monolayer:ldos:plot:
     - python ${TITAN_DIR}/scripts/plot_ldos.py results/TSOC/1Sites/LDOS/ldosu_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosd_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat --xlim="[-0.5,1.5]" --output="./results/ldos.png"
     # Comparing with existing (correct) plot
     - python ${TITAN_DIR}/scripts/compare_images.py ./results/ldos.png ./results_correct/ldos.png
+  # Keep results on failure (to be able to check)
+  << *keep_results
+
 
 Co_monolayer_paoflow:bands_with_ldos:plot:
   image: iffregistry.fz-juelich.de/docker-images/titan-images
@@ -460,6 +498,9 @@ Co_monolayer_paoflow:bands_with_ldos:plot:
     - python ${TITAN_DIR}/scripts/plot_bands_with_ldos.py results/TSOC/1Sites/BS/bandstructure_kdir=GXMG_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosu_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosd_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat --evlabel --output="./results/bands_with_ldos.png"
     # Comparing with existing (correct) plot
     - python ${TITAN_DIR}/scripts/compare_images.py ./results/bands_with_ldos.png ./results_correct/bands_with_ldos.png
+  # Keep results on failure (to be able to check)
+  << *keep_results
+
 
 # # `pages` is a special job that builds the gitlab page for this project; all artifacts must be saved in a `public`
 # # directory to be published as a static site (that can be accessed from the whole www)
