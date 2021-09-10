@@ -414,10 +414,6 @@ nanoribbon:responses:
     - *run_test
     - export TOL=1e-7
     - *compare_files
-  artifacts:
-    paths:
-      - examples/nanoribbon/results/
-    expire_in: 1 day
 
 #============ Plots ============#
 Nb_100_Monolayer:ldos:plot:
