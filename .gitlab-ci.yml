@@ -206,7 +206,7 @@ Fe_transv_constr:
   stage: selfcon:normal
   needs: ["build:intel:normal"]
   variables:
-    TITAN_DIR: ../..../
+    TITAN_DIR: ../../..
     TEST_DIR: examples/Fe_dimer_bconstr/transv
     ITYPE: 1
   script:
@@ -223,7 +223,7 @@ Fe_full_constr:
   stage: selfcon:normal
   needs: ["build:intel:normal"]
   variables:
-    TITAN_DIR: ../..../
+    TITAN_DIR: ../../..
     TEST_DIR: examples/Fe_dimer_bconstr/full
     ITYPE: 1
   script:
