@@ -95,7 +95,6 @@ contains
     use mod_SOC,           only: llinearsoc,llineargfsoc
     use mod_system,        only: s => sys
     use mod_BrillouinZone, only: realBZ
-    use mod_magnet,        only: lx,ly,lz
     use mod_hamiltonian,   only: hamilt_local
     use mod_greenfunction, only: calc_green
     use mod_mpi_pars,      only: rField,rFreq,sFreq,FreqComm,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_SUM,ierr
@@ -125,13 +124,14 @@ contains
     !$omp parallel do &
     !$omp& default(none) &
     !$omp& private(iz,kp,gf,i,mu,nu,mup,nup,sigma,temp,temp1,temp2,templ,pauli_gf) &
-    !$omp& shared(s,calc_green,realBZ,e,eta,pauli_orb,lx,ly,lz,fs_atom,fs_orb,fs_total)
+    !$omp& shared(s,calc_green,realBZ,e,eta,pauli_orb,fs_atom,fs_orb,fs_total)
     do iz = 1,realBZ%workload
       kp = realBZ%kp(1:3,iz)
       ! Green function on energy Ef + ieta, and wave vector kp
       call calc_green(e,eta,s,kp,gf)
 
       site_i: do i=1,s%nAtoms
+        ! Spin and charge densities
         do sigma=1,4
           if(sigma==1) then
             pauli_gf = gf(:,:,i,i)
@@ -140,36 +140,34 @@ contains
             temp2 = gf(:,:,i,i)
             call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,cOne,temp1,s%nOrb2,temp2,s%nOrb2,cZero,pauli_gf,s%nOrb2)
           end if
-          do mu=1,s%nOrb
-            nu = mu + s%nOrb
+          do mu=1,s%Types(s%Basis(i)%Material)%nOrb
+            nu = mu + s%Types(s%Basis(i)%Material)%nOrb
             temp = - aimag(pauli_gf(mu,mu)+pauli_gf(nu,nu))/pi
             fs_orb(mu,realBZ%first+iz-1,sigma) = fs_orb(mu,realBZ%first+iz-1,sigma) + temp
             fs_atom(i,realBZ%first+iz-1,sigma) = fs_atom(i,realBZ%first+iz-1,sigma) + temp
           end do
         end do
 
-        orb_mu: do mu=1,s%nOrb
-          mup = mu+s%nOrb
-          orb_nu: do nu=1,s%nOrb
-            nup = nu+s%nOrb
+        ! OAM densities
+        orb_mu: do mu=1,s%Types(s%Basis(i)%Material)%nOrb
+          mup = mu+s%Types(s%Basis(i)%Material)%nOrb
+          orb_nu: do nu=1,s%Types(s%Basis(i)%Material)%nOrb
+            nup = nu+s%Types(s%Basis(i)%Material)%nOrb
             templ = (gf(nu,mu,i,i) + gf(nup,mup,i,i))/pi
-            temp  = real( lx(mu,nu)*templ )
+            temp  = real( s%Types(s%Basis(i)%Material)%lvec(mu,nu,1)*templ )
             fs_orb(mu,realBZ%first+iz-1,5) = fs_orb(mu,realBZ%first+iz-1,5) + temp
             fs_atom(i,realBZ%first+iz-1,5) = fs_atom(i,realBZ%first+iz-1,5) + temp
-            temp  = real( ly(mu,nu)*templ )
+            temp  = real( s%Types(s%Basis(i)%Material)%lvec(mu,nu,2)*templ )
             fs_orb(mu,realBZ%first+iz-1,6) = fs_orb(mu,realBZ%first+iz-1,6) + temp
             fs_atom(i,realBZ%first+iz-1,6) = fs_atom(i,realBZ%first+iz-1,6) + temp
-            temp  = real( lz(mu,nu)*templ )
+            temp  = real( s%Types(s%Basis(i)%Material)%lvec(mu,nu,3)*templ )
             fs_orb(mu,realBZ%first+iz-1,7) = fs_orb(mu,realBZ%first+iz-1,7) + temp
             fs_atom(i,realBZ%first+iz-1,7) = fs_atom(i,realBZ%first+iz-1,7) + temp
           end do orb_nu
         end do orb_mu
 
+        fs_total(realBZ%first+iz-1,:) = fs_total(realBZ%first+iz-1,:) + fs_atom(i,realBZ%first+iz-1,:)
       end do site_i
-
-      do mu=1,s%nOrb      
-        fs_total(realBZ%first+iz-1,:) = fs_total(realBZ%first+iz-1,:) + fs_orb(mu,realBZ%first+iz-1,:)
-      end do
 
     end do
     !$omp end parallel do
@@ -198,20 +196,20 @@ contains
 
     do i=1,s%nAtoms
       write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'atom',i0,a,a,a,a,'.dat')") &
-       output%SOCchar,trim(output%Sites),trim(epart),i,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        output%SOCchar,trim(output%Sites),trim(epart),i,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       open (unit=17+i, file=varm,status='replace', form='formatted')
       write(unit=17+i, fmt="('#      kx       ,        ky       ,        kz       ,      charge     ,      spin x     ,      spin y     ,      spin z     ,      morb x     ,      morb y     ,      morb z     ')")
       close(unit=17+i)
     end do
     ! Orbital-depedent
     write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,a,a,a,a,a,'.dat')") &
-     output%SOCchar,trim(output%Sites),trim(epart),trim(filename(1)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+      output%SOCchar,trim(output%Sites),trim(epart),trim(filename(1)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
     open (unit=96, file=varm,status='replace', form='formatted')
     write(unit=96, fmt="('#      kx       ,        ky       ,        kz       ,  charge(*nOrb)  ,  spin x(*nOrb)  ,  spin y(*nOrb)  ,  spin z(*nOrb)  ,  morb x(*nOrb)  ,  morb y(*nOrb)  ,  morb z(*nOrb)  ')")
     close(unit=96)
     ! Total
     write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,a,a,a,a,a,'.dat')") &
-     output%SOCchar,trim(output%Sites),trim(epart),trim(filename(2)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+      output%SOCchar,trim(output%Sites),trim(epart),trim(filename(2)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
     open (unit=97, file=varm,status='replace', form='formatted')
     write(unit=97, fmt="('#      kx       ,        ky       ,        kz       ,      charge     ,      spin x     ,      spin y     ,      spin z     ,      morb x     ,      morb y     ,      morb z     ')")
     close(unit=97)
@@ -230,14 +228,14 @@ contains
     ! Opening files for writing
     do i=1,s%nAtoms
       write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'atom',i0,a,a,a,a,'.dat')") &
-       output%SOCchar,trim(output%Sites),trim(epart),i,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        output%SOCchar,trim(output%Sites),trim(epart),i,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       open (unit=17+i, file=varm, status='old', position='append', form='formatted', iostat=err)
       errt = errt + err
       if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
     end do
     do j = 1, size(filename)
       write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,a,a,a,a,a,'.dat')") &
-       output%SOCchar,trim(output%Sites),trim(epart),trim(filename(j)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        output%SOCchar,trim(output%Sites),trim(epart),trim(filename(j)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       open (unit=95+j, file=varm, status='old', position='append', form='formatted', iostat=err)
       errt = errt + err
       if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -260,12 +258,12 @@ contains
     varm = ""
     do i=1,s%nAtoms
       write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'atom',i0,a,a,a,a,'.dat')") &
-       output%SOCchar,trim(output%Sites),trim(epart),i,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        output%SOCchar,trim(output%Sites),trim(epart),i,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       call sort_command(varm,3,[1,2,3])
     end do
     do j = 1, size(filename)
       write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,a,a,a,a,a,'.dat')") &
-       output%SOCchar,trim(output%Sites),trim(epart),trim(filename(j)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        output%SOCchar,trim(output%Sites),trim(epart),trim(filename(j)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       call sort_command(varm,3,[1,2,3])
     end do
   end subroutine sortFermiSurface

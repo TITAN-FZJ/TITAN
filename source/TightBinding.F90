@@ -363,6 +363,9 @@ contains
       s%Types(n)%FermiLevel = StoR(next_line("readElementFile",f_unit,"Fermi energy"))
     end if orbital_selection
 
+    ! Allocating L matrix for each type
+    if(.not.allocated(s%Types(n)%lvec))  allocate( s%Types(n)%lvec(s%Types(n)%nOrb,s%Types(n)%nOrb,3) )
+
     ! Read charge densitites for s p d
     ! line = next_line("readElementFile",f_unit)
     dens(1:3) = StoR(next_line("readElementFile",f_unit,"occupations"),3)

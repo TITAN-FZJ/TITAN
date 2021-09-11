@@ -1034,6 +1034,7 @@ contains
     end do
 
     call log_message("get_orbitals",trim(itos(nOrb)) // " orbitals selected:" // trim(selected_orbitals) // ", of which:")
+    ! Storing position of each type of orbital
     ! s-orbitals
     if(nsOrb > 0) then
       allocate(sOrbs(nsOrb))

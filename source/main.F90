@@ -14,7 +14,7 @@ program TITAN
   use mod_io,                  only: get_parameters,iowrite,log_error
   use Lattice,                 only: initLattice,writeLattice
   use mod_BrillouinZone,       only: realBZ,countBZ
-  use mod_SOC,                 only: llinearsoc,SOC,allocateLS,updateLS
+  use mod_SOC,                 only: llinearsoc,SOC,updateLS
   use mod_magnet,              only: total_hw_npt1,skip_steps_hw,hw_count,lfield,rho,mz,mp,setMagneticLoopPoints,&
                                      allocate_magnet_variables,initMagneticField,set_fieldpart,l_matrix,lb_matrix,&
                                      sb_matrix,lconstraining_field
@@ -156,7 +156,6 @@ program TITAN
   call allocate_basis_variables(s)
   call allocate_magnet_variables(s%nAtoms, s%nOrb)
   call allocate_supercond_variables(s%nAtoms, s%nOrb)
-  call allocateLS(s%nAtoms,s%nOrb)
   call allocate_Atom_variables(s%nAtoms,s%nOrb)
 
   !------- Initialize Stride Matrices for hamiltk and dtdksub ----------
@@ -215,13 +214,13 @@ program TITAN
     if(rField == 0) call iowrite(s)
 
     !---- L matrix in global frame for given quantization direction ----
-    call l_matrix(s%nOrb,s%Orbs)
+    call l_matrix(s)
 
     !---- Calculate L.S matrix for the given quantization direction ----
     if(SOC) call updateLS(s,theta, phi)
 
     !---- Calculate L.B matrix for the given quantization direction ----
-    call lb_matrix(s%nAtoms,s%nOrb)
+    call lb_matrix(s)
 
     !---------------------- Calculate S.B matrix  ----------------------
     call sb_matrix(s)
@@ -376,7 +375,6 @@ subroutine endTITAN()
   use mod_progress,            only: write_time
   use mod_BrillouinZone,       only: realBZ
   use mod_constants,           only: deallocate_constants
-  use mod_SOC,                 only: deallocateLS
   use mod_magnet,              only: deallocate_magnet_variables
   use adaptiveMesh,            only: deallocateAdaptiveMeshes
   use EnergyIntegration,       only: deallocate_energy_points
@@ -403,7 +401,6 @@ subroutine endTITAN()
   call deallocate_hamiltonian()
   if(leigenstates) call realBZ%free()
   call deallocateAdaptiveMeshes()
-  call deallocateLS()
   call deallocate_supercond_variables()
   call deallocate_constants()
 

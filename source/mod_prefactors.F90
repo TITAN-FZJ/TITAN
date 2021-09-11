@@ -7,8 +7,8 @@ module mod_prefactors
 contains
 
   ! Calculates matrices hopping x angular momentum matrix for orbital angular momentum current calculation
-  ! subroutine OAM_curr_hopping_times_L() !TODO: Re-Include
-  !   use mod_magnet,        only: lxp, lyp, lzp
+  ! subroutine OAM_curr_hopping_times_L(s) !TODO: Re-Include
+  !   
   !   use mod_parameters,    only: Npl, offset
   !   use mod_system,        only: n0sc1, n0sc2
   !   use mod_constants,     only: cZero
@@ -24,14 +24,14 @@ contains
   !   do nu=1,s%nOrb
   !     do mu=1,s%nOrb
   !       do neighbor=n0sc1,n0sc2
-  !         do i=1,Npl
+  !         do i=1,s%nAtoms
   !           do alpha=1,s%nOrb
-  !             lxpt(i,neighbor,mu,nu) = lxpt(i,neighbor,mu,nu) + lxp(mu,alpha,i)*t0i(nu,alpha,neighbor,i+offset)
-  !             lypt(i,neighbor,mu,nu) = lypt(i,neighbor,mu,nu) + lyp(mu,alpha,i)*t0i(nu,alpha,neighbor,i+offset)
-  !             lzpt(i,neighbor,mu,nu) = lzpt(i,neighbor,mu,nu) + lzp(mu,alpha,i)*t0i(nu,alpha,neighbor,i+offset)
-  !             tlxp(i,neighbor,mu,nu) = tlxp(i,neighbor,mu,nu) + t0i(mu,alpha,neighbor,i+offset)*lxp(alpha,nu,i)
-  !             tlyp(i,neighbor,mu,nu) = tlyp(i,neighbor,mu,nu) + t0i(mu,alpha,neighbor,i+offset)*lyp(alpha,nu,i)
-  !             tlzp(i,neighbor,mu,nu) = tlzp(i,neighbor,mu,nu) + t0i(mu,alpha,neighbor,i+offset)*lzp(alpha,nu,i)
+  !             lxpt(i,neighbor,mu,nu) = lxpt(i,neighbor,mu,nu) + s%Basis(i)%lpvec(mu,alpha,1)*t0i(nu,alpha,neighbor,i+offset)
+  !             lypt(i,neighbor,mu,nu) = lypt(i,neighbor,mu,nu) + s%Basis(i)%lpvec(mu,alpha,2)*t0i(nu,alpha,neighbor,i+offset)
+  !             lzpt(i,neighbor,mu,nu) = lzpt(i,neighbor,mu,nu) + s%Basis(i)%lpvec(mu,alpha,3)*t0i(nu,alpha,neighbor,i+offset)
+  !             tlxp(i,neighbor,mu,nu) = tlxp(i,neighbor,mu,nu) + t0i(mu,alpha,neighbor,i+offset)*s%Basis(i)%lpvec(alpha,nu,1)
+  !             tlyp(i,neighbor,mu,nu) = tlyp(i,neighbor,mu,nu) + t0i(mu,alpha,neighbor,i+offset)*s%Basis(i)%lpvec(alpha,nu,2)
+  !             tlzp(i,neighbor,mu,nu) = tlzp(i,neighbor,mu,nu) + t0i(mu,alpha,neighbor,i+offset)*s%Basis(i)%lpvec(alpha,nu,3)
   !           end do
   !         end do
   !       end do

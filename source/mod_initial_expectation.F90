@@ -10,8 +10,7 @@ contains
     use mod_constants,         only: cZero
     use mod_System,            only: System_type,init_Hamiltk_variables,initConversionMatrices,allocate_basis_variables
     use TightBinding,          only: initTightBinding
-    use mod_magnet,            only: l_matrix,lb,allocate_magnet_variables,deallocate_magnet_variables,mzd0,mpd0,rho0,rhod0
-    use mod_SOC,               only: ls,allocateLS
+    use mod_magnet,            only: l_matrix,allocate_magnet_variables,deallocate_magnet_variables,mzd0,mpd0,rho0,rhod0
     use adaptiveMesh,          only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh,bzs
     use mod_parameters,        only: kp_in,kptotal_in,output,eta,leigenstates,lkpoints
     use mod_polyBasis,         only: read_basis
@@ -102,7 +101,6 @@ contains
         !----------- Allocating variables that depend on nAtoms ------------
         call allocate_basis_variables(sys0(i))
         call allocate_magnet_variables(sys0(i)%nAtoms,sys0(i)%nOrb)
-        call allocateLS(sys0(i)%nAtoms,sys0(i)%nOrb)
         call allocate_supercond_variables(sys0(i)%nAtoms,sys0(i)%nOrb)
         call allocate_Atom_variables(sys0(i)%nAtoms,sys0(i)%nOrb)
         allocate(rho0_out(sys0(i)%nOrb,sys0(i)%nAtoms),rhod0_out(sys0(i)%nAtoms),mpd0_out(sys0(i)%nAtoms),mzd0_out(sys0(i)%nAtoms))
@@ -125,11 +123,9 @@ contains
         call realBZ % countBZ(sys0(i))
 
         !---- L matrix in global frame for given quantization direction ----
-        call l_matrix(sys0(i)%nOrb,sys0(i)%Orbs)
+        call l_matrix(sys0(i))
 
         !----- Removing L.B, S.B and L.S matrices from the hamiltonian -----
-        lb = cZero
-        ls = cZero
         delta_sc = 0._dp
 #ifdef _GPU
         delta_sc_d = delta_sc
@@ -228,8 +224,7 @@ contains
     use mod_kind,              only: dp
     use mod_constants,         only: cZero
     use mod_System,            only: System_type,allocate_basis_variables
-    use mod_magnet,            only: l_matrix,lb,mzd0,mpd0,rho0,rhod0
-    use mod_SOC,               only: ls
+    use mod_magnet,            only: l_matrix,mzd0,mpd0,rho0,rhod0
     use adaptiveMesh,          only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh,bzs
     use mod_parameters,        only: output,leigenstates,lkpoints
     ! use mod_parameters,        only: kp_in,kptotal_in,output,eta,leigenstates,lkpoints,dimH,dimHsc
@@ -297,11 +292,9 @@ contains
       if(myrank == 0) write(output%unit,"('[calc_init_expec_dft] Calculating initial densities for all elements...')")
 
       !---- L matrix in global frame for given quantization direction ----
-      call l_matrix(s%nOrb,s%Orbs)
+      call l_matrix(s)
 
       !----- Removing L.B, S.B and L.S matrices from the hamiltonian -----
-      lb = cZero
-      ls = cZero
       delta_sc = 0._dp
 #ifdef _GPU
       delta_sc_d = delta_sc

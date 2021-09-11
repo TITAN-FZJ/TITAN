@@ -36,8 +36,6 @@ contains
     use mod_constants,         only: cZero
     use mod_System,            only: ia,System_type
     use mod_parameters,        only: dimH,dimHsc
-    use mod_magnet,            only: lb
-    use mod_SOC,               only: ls
     use mod_Umatrix,           only: hee
     use mod_superconductivity, only: lsuperCond,bcs_pairing,delta_sc
     implicit none
@@ -57,10 +55,10 @@ contains
       h0(ia(3,i):ia(4,i), ia(3,i):ia(4,i)) = s%Types(s%Basis(i)%Material)%onSite(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
       ! External magnetic field (orbital + spin) + Electron-electron interaction (Hubbard) + Spin-orbit coupling
       h0(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = h0 (ia(1,i):ia(4,i), ia(1,i):ia(4,i)) &
-                                            + lb (1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2,i) &
+                                            + s%Basis(i)%lb (1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2) &
                                             + s%Basis(i)%sb (1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2) &
                                             + hee(1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2,i) &
-                                            + ls (1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2,i)
+                                            + s%Basis(i)%ls (1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2)
     end do
 
     ! The form of the superconducting hamiltonian depends on a series of decisions,
@@ -94,14 +92,12 @@ contains
     use mod_constants,         only: cZero
     use mod_System,            only: ia_d,System_type
     use mod_parameters,        only: dimH,dimHsc,isigmamu2n_d
-    use mod_magnet,            only: lb
-    use mod_SOC,               only: ls
     use mod_Umatrix,           only: hee
     use mod_superconductivity, only: lsuperCond,delta_sc_d
     implicit none
     type(System_type), intent(in) :: s
     complex(dp), dimension(s%nOrb ,s%nOrb ,s%nAtoms), device :: onSite_d
-    complex(dp), dimension(s%nOrb2,s%nOrb2,s%nAtoms), device :: lb_d,hee_d,ls_d
+    complex(dp), dimension(s%nOrb2,s%nOrb2,s%nAtoms), device :: hee_d,ls_d
     integer :: i,j,mu
 
     if(.not.allocated(h0_d)) allocate( h0_d(dimHsc, dimHsc) )
@@ -111,10 +107,10 @@ contains
     do i=1,s%nAtoms
       onSite_d(:,:,i) = s%Types(s%Basis(i)%Material)%onSite(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
       s%Basis(i)%sb_d(1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2) = s%Basis(i)%sb(1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2)
+      s%Basis(i)%lb_d(1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2) = s%Basis(i)%lb(1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2)
+      s%Basis(i)%ls_d(1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2) = s%Basis(i)%ls(1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2)
     end do
-    lb_d = lb
     hee_d = hee
-    ls_d = ls
 
     ! Mouting slab hamiltonian
     ! On-site terms
@@ -126,10 +122,10 @@ contains
       h0_d(ia_d(3,i):ia_d(4,i),ia_d(3,i):ia_d(4,i)) = onSite_d(:,:,i)
       ! External magnetic field (orbital + spin) + Electron-electron interaction (Hubbard) + Spin-orbit coupling
       h0_d(ia_d(1,i):ia_d(4,i),ia_d(1,i):ia_d(4,i)) = h0_d (ia_d(1,i):ia_d(4,i), ia_d(1,i):ia_d(4,i)) &
-                                                    + lb_d (1:s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2,i) &
+                                                    + s%Basis(i)%lb_d (1:s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2) &
                                                     + s%Basis(i)%sb_d (1:s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2) &
                                                     + hee_d(1:s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2,i) &
-                                                    + ls_d (1:s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2,i)
+                                                    + s%Basis(i)%ls_d (1:s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2)
     end do
 
     ! The form of the superconducting hamiltonian depends on a series of decisions,
@@ -301,8 +297,6 @@ contains
     use mod_constants,         only: cZero,cI
     use mod_system,            only: ia,ia_sc,System_type
     use mod_parameters,        only: dimH,dimHsc
-    use mod_magnet,            only: lb
-    use mod_SOC,               only: ls
     use mod_Umatrix,           only: hee
     use mod_superconductivity, only: lsuperCond,bcs_pairing,delta_sc
     implicit none
@@ -326,10 +320,10 @@ contains
       hk(ia(3,i):ia(4,i), ia(3,i):ia(4,i)) = s%Types(s%Basis(i)%Material)%onSite(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
       ! External magnetic field (orbital + spin) + Electron-electron interaction (Hubbard) + Spin-orbit coupling
       hk(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) =  hk (ia(1,i):ia(4,i), ia(1,i):ia(4,i)) &
-                                            + lb (1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2,i) &
+                                            + s%Basis(i)%lb (1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2) &
                                             + s%Basis(i)%sb (1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2) &
                                             + hee(1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2,i)
-      vsoc(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = ls(1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2,i)
+      vsoc(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = s%Basis(i)%ls(1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2)
     end do
 
     ! The form of the superconducting hamiltonian depends on a series of decisions,

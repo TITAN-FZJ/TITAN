@@ -28,9 +28,16 @@ module AtomTypes
     !! Effective Coulomb interaction strength - Hubbard U (charge and magnetic)
     complex(dp), dimension(:,:), allocatable :: lb, sb
 #ifdef _GPU
-    complex(dp), dimension(:,:), allocatable, device :: sb_d
+    complex(dp), dimension(:,:), allocatable, device :: lb_d, sb_d
 #endif
-    !! Zeeman OAM and spin interactions
+    !! Zeeman OAM and spin interaction matrices (on the CPU and on the GPU)
+    complex(dp), dimension(:,:), allocatable :: ls
+#ifdef _GPU
+    complex(dp), dimension(:,:), allocatable, device :: ls_d
+#endif
+    !! Spin-orbit coupling interaction matrix (on the CPU and on the GPU)
+    complex(dp), dimension(:,:,:), allocatable :: lpvec
+    !! Angular momentum vector matrices in local frame
   end type BasisAtom
 
   type, extends(Atom) :: NeighborAtom
@@ -98,6 +105,8 @@ module AtomTypes
     !! Initial occupation and z-component of magnetization of d orbitals obtained from hopping parameters only
     complex(dp) :: mpd0
     !! Initial +-component of magnetization of d orbitals obtained from hopping parameters only
+    complex(dp), dimension(:,:,:), allocatable :: lvec
+    !! Angular momentum vector matrices in global frame
   end type AtomType
 
 end module AtomTypes

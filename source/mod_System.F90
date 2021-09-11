@@ -219,9 +219,16 @@ contains
 
       if(.not.allocated(s%Basis(i)%sb)) allocate( s%Basis(i)%sb(s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2))
       s%Basis(i)%sb = cmplx(0._dp,0._dp,dp)
+      if(.not.allocated(s%Basis(i)%lb)) allocate( s%Basis(i)%lb(s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2))
+      s%Basis(i)%lb = cmplx(0._dp,0._dp,dp)
+      if(.not.allocated(s%Basis(i)%ls)) allocate( s%Basis(i)%ls(s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2))
+      s%Basis(i)%ls = cmplx(0._dp,0._dp,dp)
 #ifdef _GPU
       if(.not.allocated(s%Basis(i)%sb_d)) allocate( s%Basis(i)%sb_d(s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2))
+      if(.not.allocated(s%Basis(i)%lb_d)) allocate( s%Basis(i)%lb_d(s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2))
+      if(.not.allocated(s%Basis(i)%ls_d)) allocate( s%Basis(i)%ls_d(s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2))
 #endif
+      if(.not.allocated(s%Basis(i)%lpvec)) allocate( s%Basis(i)%lpvec(s%Types(s%Basis(i)%Material)%nOrb,s%Types(s%Basis(i)%Material)%nOrb,3) )
 
     end do
 

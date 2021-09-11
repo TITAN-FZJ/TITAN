@@ -49,16 +49,6 @@ module mod_magnet
   !! Half of Static magnetic fields in each direction
   real(dp),allocatable    :: bc(:,:)
   !! Constraining fields
-  complex(dp), dimension(:,:,:), allocatable :: lb
-  !! Zeeman matrices
-  complex(dp), dimension(:,:,:), allocatable :: lxp, lyp, lzp
-  !! Site dependent Angular momentum matrices in local frame
-  complex(dp), dimension(:,:), allocatable   :: lx, ly, lz
-  !! Angular momentum matrices in global frame
-  complex(dp), dimension(:,:,:), allocatable :: lvec
-  !! Angular momentum vector matrices in global frame
-  complex(dp), dimension(:,:,:,:), allocatable :: lpvec
-  !! Angular momentum vector matrices in local frame
   logical :: lrot = .false.
   !! Logical variable that indicates the need to rotate susceptibility matrix
 
@@ -179,7 +169,7 @@ contains
   subroutine initMagneticField(s)
     use mod_constants, only: cZero, deg2rad
     use mod_mpi_pars,  only: abortProgram
-    use mod_System, only: System_type
+    use mod_System,    only: System_type
     implicit none
     type(System_type), intent(inout) :: s
 
@@ -198,8 +188,8 @@ contains
 
     do i = 1, s%nAtoms
       s%Basis(i)%sb(:,:) = cZero
+      s%Basis(i)%lb(:,:) = cZero
     end do
-    lb   = cZero
     hhw  = 0._dp
 
     !--------------------- Defining the magnetic fields -------------------- TODO
@@ -224,32 +214,33 @@ contains
     end if
   end subroutine initMagneticField
 
-  subroutine lb_matrix(nAtoms,nOrbs)
+  subroutine lb_matrix(s)
   !! Orbital Zeeman term
-    use mod_kind,       only: dp
-    use mod_constants,  only: cZero
     use mod_parameters, only: lnolb
+    use mod_System,     only: System_type
     implicit none
-    integer(int32), intent(in) :: nOrbs, nAtoms
-    integer :: i,sigma
-    complex(dp), dimension(:,:), allocatable :: lbsigma
+    type(System_type), intent(inout)   :: s
+    integer :: i,mu,nu,mup,nup,sigma
 
     ! There is an extra  minus sign in the definition of hhw
     ! to take into account the fact that we are considering negative
     ! external fields to get the peak at positive energies
-    lb = cZero
     if((lfield).and.(.not.lnolb)) then
-      allocate(lbsigma(nOrbs, nOrbs))
-      do i=1, nAtoms
-        lbsigma = cZero
-        ! L.B
-        do sigma=1,3
-          lbsigma(1:nOrbs, 1:nOrbs) = lbsigma(1:nOrbs, 1:nOrbs) + lvec(:,:,sigma)*hhw(sigma,i)
+      do i=1, s%nAtoms
+
+        do nu=1,s%Types(s%Basis(i)%Material)%nOrb
+          nup = nu+s%Types(s%Basis(i)%Material)%nOrb
+          do mu=1,s%Types(s%Basis(i)%Material)%nOrb
+            mup = mu+s%Types(s%Basis(i)%Material)%nOrb
+
+            ! L.B
+            do sigma=1,3
+              s%Basis(i)%lb(mu ,nu ) = s%Basis(i)%lb(mu ,nu ) + s%Types(s%Basis(i)%Material)%lvec(mu,nu,sigma)*hhw(sigma,i)
+            end do
+            s%Basis(i)%lb(mup,nup) = s%Basis(i)%lb(mu,nu)
+          end do
         end do
-        lb(      1:  nOrbs,       1:  nOrbs, i) = lbsigma(:,:)
-        lb(nOrbs+1:2*nOrbs, nOrbs+1:2*nOrbs, i) = lbsigma(:,:)
       end do
-      deallocate(lbsigma)
     end if
   end subroutine lb_matrix
 
@@ -283,27 +274,30 @@ contains
     end if
   end subroutine sb_matrix
 
-  ! This subroutine calculate the orbital angular momentum matrix in the cubic system of coordinates
-  subroutine l_matrix(nOrbs,Orbs)
-    use mod_kind,       only: dp
-    use mod_constants,  only: cI, cZero, cOne, sq3
-    use AtomTypes,      only: default_orbitals
+  ! This subroutine calculate the orbital angular momentum matrix 
+  ! for all orbitals, in the cubic system of coordinates
+  subroutine l_matrix(s)
+    use mod_kind,      only: dp
+    use mod_constants, only: cI, cZero, cOne, sq3
+    use AtomTypes,     only: default_orbitals
+    use mod_System,    only: System_type
     implicit none
-    integer(int32), intent(in) :: nOrbs
-    integer(int32), intent(in) :: Orbs(nOrbs)
-    complex(dp), dimension(size(default_orbitals),size(default_orbitals)) :: Lp,Lm,Lzt
+    type(System_type), intent(inout)   :: s
+    complex(dp), dimension(size(default_orbitals),size(default_orbitals),3) :: lvec
+    !! Angular momentum vector matrices in global frame
+    complex(dp), dimension(size(default_orbitals),size(default_orbitals)) :: Lp,Lm
+    !! L+ and L- matrices in global frame
+    integer :: i, mu, nu
 
-    integer :: mu,nu
+    lvec(:,:,3) = cZero
 
-    Lzt = cZero
+    lvec(2,3,3) = -cI
+    lvec(3,2,3) = cI
 
-    Lzt(2,3) = -cI
-    Lzt(3,2) = cI
-
-    Lzt(5,8) = 2._dp*cI
-    Lzt(8,5) = -2._dp*cI
-    Lzt(6,7) = cI
-    Lzt(7,6) = -cI
+    lvec(5,8,3) = 2._dp*cI
+    lvec(8,5,3) = -2._dp*cI
+    lvec(6,7,3) = cI
+    lvec(7,6,3) = -cI
 
     Lp = cZero
     Lm = cZero
@@ -332,18 +326,16 @@ contains
 
     Lm = transpose(conjg(Lp))
 
-    ! Selecting orbitals
-    do nu=1,nOrbs
-      do mu=1,nOrbs
-        lz(mu,nu) = Lzt(Orbs(mu),Orbs(nu))
-        lx(mu,nu) = 0.5_dp*   (Lp(Orbs(mu),Orbs(nu))+Lm(Orbs(mu),Orbs(nu)))
-        ly(mu,nu) =-0.5_dp*cI*(Lp(Orbs(mu),Orbs(nu))-Lm(Orbs(mu),Orbs(nu)))
+    lvec(:,:,1) = 0.5_dp*   (Lp(:,:)+Lm(:,:))
+    lvec(:,:,2) =-0.5_dp*cI*(Lp(:,:)-Lm(:,:))
+
+    do i = 1, s%nTypes
+      do mu = 1, s%Types(i)%nOrb
+        do nu = 1, s%Types(i)%nOrb
+          s%Types(i)%lvec(mu,nu,:) = lvec(s%Types(i)%Orbs(mu),s%Types(i)%Orbs(nu),:)
+        end do
       end do
     end do
-
-    lvec(:,:,1) = lx
-    lvec(:,:,2) = ly
-    lvec(:,:,3) = lz
 
   end subroutine l_matrix
 
@@ -355,14 +347,16 @@ contains
     implicit none
     real(dp), dimension(s%nAtoms), intent(in) :: theta, phi
     integer :: i
-    do i = 1, s%nAtoms
-      lxp(:,:,i) = ( lvec(:,:,1)*cos(theta(i)*deg2rad)*cos(phi(i)*deg2rad)) + (lvec(:,:,2)*cos(theta(i)*deg2rad)*sin(phi(i)*deg2rad)) - (lvec(:,:,3)*sin(theta(i)*deg2rad))
-      lyp(:,:,i) = (-lvec(:,:,1)                      *sin(phi(i)*deg2rad)) + (lvec(:,:,2)                      *cos(phi(i)*deg2rad))
-      lzp(:,:,i) = ( lvec(:,:,1)*sin(theta(i)*deg2rad)*cos(phi(i)*deg2rad)) + (lvec(:,:,2)*sin(theta(i)*deg2rad)*sin(phi(i)*deg2rad)) + (lvec(:,:,3)*cos(theta(i)*deg2rad))
 
-      lpvec(:,:,1,i) = lxp(:,:,i)
-      lpvec(:,:,2,i) = lyp(:,:,i)
-      lpvec(:,:,3,i) = lzp(:,:,i)
+    do i = 1, s%nAtoms
+      s%Basis(i)%lpvec(:,:,1) = ( s%Types(s%Basis(i)%Material)%lvec(:,:,1)*cos(theta(i)*deg2rad)*cos(phi(i)*deg2rad)) &
+                              + ( s%Types(s%Basis(i)%Material)%lvec(:,:,2)*cos(theta(i)*deg2rad)*sin(phi(i)*deg2rad)) &
+                              - ( s%Types(s%Basis(i)%Material)%lvec(:,:,3)*sin(theta(i)*deg2rad))
+      s%Basis(i)%lpvec(:,:,2) = (-s%Types(s%Basis(i)%Material)%lvec(:,:,1)                      *sin(phi(i)*deg2rad)) &
+                              + ( s%Types(s%Basis(i)%Material)%lvec(:,:,2)                      *cos(phi(i)*deg2rad))
+      s%Basis(i)%lpvec(:,:,3) = ( s%Types(s%Basis(i)%Material)%lvec(:,:,1)*sin(theta(i)*deg2rad)*cos(phi(i)*deg2rad)) &
+                              + ( s%Types(s%Basis(i)%Material)%lvec(:,:,2)*sin(theta(i)*deg2rad)*sin(phi(i)*deg2rad)) &
+                              + ( s%Types(s%Basis(i)%Material)%lvec(:,:,3)*cos(theta(i)*deg2rad))
     end do
   end subroutine lp_matrix
 
@@ -398,15 +392,6 @@ contains
     if (AllocateStatus/=0) call abortProgram("[allocate_magnet_variables] Not enough memory for: bc")
     bc(:,:) = 0.e0_dp
 
-    allocate(lx(nOrbs, nOrbs), ly(nOrbs,nOrbs), lz(nOrbs,nOrbs), lvec(nOrbs,nOrbs,3), stat = AllocateStatus)
-    if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lx, ly, lz, lvec")
-
-    allocate(lb(2*nOrbs,2*nOrbs,nAtoms), stat = AllocateStatus)
-    if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lb")
-
-    allocate(lxp(nOrbs,nOrbs,nAtoms), lyp(nOrbs,nOrbs,nAtoms), lzp(nOrbs,nOrbs,nAtoms), lpvec(nOrbs,nOrbs,3,nAtoms), stat = AllocateStatus)
-    if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lxp, lyp, lzp, lpvec")
-
   end subroutine allocate_magnet_variables
 
   subroutine deallocate_magnet_variables()
@@ -441,15 +426,6 @@ contains
     if(allocated(lpphi)) deallocate(lpphi)
     if(allocated(hhw)) deallocate(hhw)
     if(allocated(bc)) deallocate(bc)
-    if(allocated(lx)) deallocate(lx)
-    if(allocated(ly)) deallocate(ly)
-    if(allocated(lz)) deallocate(lz)
-    if(allocated(lvec )) deallocate(lvec )
-    if(allocated(lb)) deallocate(lb)
-    if(allocated(lxp)) deallocate(lxp)
-    if(allocated(lyp)) deallocate(lyp)
-    if(allocated(lzp)) deallocate(lzp)
-    if(allocated(lpvec)) deallocate(lpvec)
 
     if(allocated(lxm)) deallocate(lxm)
     if(allocated(lym)) deallocate(lym)
