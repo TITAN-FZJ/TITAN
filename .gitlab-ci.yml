@@ -164,8 +164,7 @@ Nb_100_Monolayer:
     - *run_test
     - *create_scResults_file
     - *compare_files
-  # Keep results on failure (to be able to check)
-  <<: *keep_results
+
 
 Ni_bulk:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -181,8 +180,7 @@ Ni_bulk:
     - *run_test
     - *create_scResults_file
     - *compare_files
-  # Keep results on failure (to be able to check)
-  <<: *keep_results
+
 
 Fe_bulk:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -198,8 +196,7 @@ Fe_bulk:
     - *run_test
     - *create_scResults_file
     - *compare_files
-  # Keep results on failure (to be able to check)
-  <<: *keep_results
+
 
 Fe_transv_constr:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -215,8 +212,7 @@ Fe_transv_constr:
     - *run_test
     - *create_scResults_file
     - *compare_files
-  # Keep results on failure (to be able to check)
-  <<: *keep_results
+
 
 Fe_full_constr:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -232,8 +228,7 @@ Fe_full_constr:
     - *run_test
     - *create_scResults_file
     - *compare_files
-  # Keep results on failure (to be able to check)
-  <<: *keep_results
+
 
 graphene_pz:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -249,8 +244,7 @@ graphene_pz:
     - *run_test
     - *create_scResults_file
     - *compare_files
-  # Keep results on failure (to be able to check)
-  <<: *keep_results
+
 
 Co_monolayer_paoflow:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -266,8 +260,7 @@ Co_monolayer_paoflow:
     - *run_test
     - *create_scResults_file
     - *compare_files
-  # Keep results on failure (to be able to check)
-  <<: *keep_results
+
 
 #============ Superconductor Self-consistency ============#
 Nb_100_Superconducting_Monolayer:
@@ -284,8 +277,7 @@ Nb_100_Superconducting_Monolayer:
     - *run_test
     - *create_scResults_file
     - *compare_files
-  # Keep results on failure (to be able to check)
-  <<: *keep_results
+
 
 #============ Other results ============#
 Nb_100_Monolayer:ldos:
@@ -304,6 +296,7 @@ Nb_100_Monolayer:ldos:
   # Keep results on failure (to be able to check)
   <<: *keep_results
 
+
 Nb_100_Monolayer:bands:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: results
@@ -318,8 +311,7 @@ Nb_100_Monolayer:bands:
     - *setup_ifort
     - *run_test
     - *compare_files
-  # Keep results on failure (to be able to check)
-  <<: *keep_results
+
 
 graphene_pz:ldos:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -334,8 +326,7 @@ graphene_pz:ldos:
     - *setup_ifort
     - *run_test
     - *compare_files
-  # Keep results on failure (to be able to check)
-  <<: *keep_results
+
 
 graphene_pz:bands:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -351,8 +342,7 @@ graphene_pz:bands:
     - *setup_ifort
     - *run_test
     - *compare_files
-  # Keep results on failure (to be able to check)
-  <<: *keep_results
+
 
 graphene_pz:isoenergy:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -367,8 +357,7 @@ graphene_pz:isoenergy:
     - *setup_ifort
     - *run_test
     - *compare_files
-  # Keep results on failure (to be able to check)
-  <<: *keep_results
+
 
 Fe_bulk:susc:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -385,8 +374,7 @@ Fe_bulk:susc:
     - *setup_ifort
     - *run_test
     - *compare_files
-  # Keep results on failure (to be able to check)
-  <<: *keep_results
+
 
 Ni_bulk:timeprop:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -403,8 +391,7 @@ Ni_bulk:timeprop:
     - *setup_ifort
     - *run_test
     - *compare_files
-  # Keep results on failure (to be able to check)
-  <<: *keep_results
+
 
 Co_monolayer_paoflow:bands_with_ldos:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
@@ -463,8 +450,7 @@ nanoribbon:responses:
     - *setup_ifort
     - *run_test
     - *compare_files
-  # Keep results on failure (to be able to check)
-  <<: *keep_results
+
 
 #============ Plots ============#
 Nb_100_Monolayer:ldos:plot:
@@ -487,8 +473,7 @@ Nb_100_Monolayer:ldos:plot:
     - python ${TITAN_DIR}/scripts/plot_ldos.py results/TSOC/1Sites/LDOS/ldosu_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosd_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat --xlim="[-0.5,1.5]" --output="./results/ldos.png"
     # Comparing with existing (correct) plot
     - python ${TITAN_DIR}/scripts/compare_images.py ./results/ldos.png ./results_correct/ldos.png
-  # Keep results on failure (to be able to check)
-  <<: *keep_results
+
 
 
 Co_monolayer_paoflow:bands_with_ldos:plot:
@@ -511,8 +496,7 @@ Co_monolayer_paoflow:bands_with_ldos:plot:
     - python ${TITAN_DIR}/scripts/plot_bands_with_ldos.py results/TSOC/1Sites/BS/bandstructure_kdir=GXMG_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosu_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosd_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat --evlabel --output="./results/bands_with_ldos.png"
     # Comparing with existing (correct) plot
     - python ${TITAN_DIR}/scripts/compare_images.py ./results/bands_with_ldos.png ./results_correct/bands_with_ldos.png
-  # Keep results on failure (to be able to check)
-  <<: *keep_results
+
 
 
 # # `pages` is a special job that builds the gitlab page for this project; all artifacts must be saved in a `public`
