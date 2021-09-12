@@ -60,8 +60,10 @@ if __name__ == "__main__":
     ncols2=len(line2)
 
     if ( ncols1 != ncols2 ):
-      print("Number of columns in line {} of file 1: {}".format(line,ncols1))
-      print("Number of columns in line {} of file 2: {}".format(line,ncols2))
+      print("Number of columns in line {} of file 1 is {}:".format(line,ncols1))
+      print(line1)
+      print("Number of columns in line {} of file 2 is {}:".format(line,ncols2))
+      print(line2)
       print("Files have different number of columns")
       exit(1)
 
