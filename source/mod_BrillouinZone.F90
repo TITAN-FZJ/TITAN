@@ -92,11 +92,13 @@ contains
       call self%gen1DFraction(sys,self%first,self%last)
     end select
 
-    if(present(lkpoints).and.lkpoints) then
-      filename = "kpoints_" // trim(sys%Name)
-      open (unit=3333, file=filename,status='replace')
-      call self%print(3333)
-      close(3333)
+    if(present(lkpoints)) then
+      if(lkpoints) then
+        filename = "kpoints_" // trim(sys%Name)
+        open (unit=3333, file=filename,status='replace')
+        call self%print(3333)
+        close(3333)
+      end if
     end if
 
   end subroutine setup_fraction
@@ -131,13 +133,13 @@ contains
   end subroutine deallocate_BrillouinZone
 
   logical function isAlloc_BrillouinZone(self)
-     implicit none
-     class(BrillouinZone) :: self
-     if(allocated(self%kp)) then
-        isAlloc_BrillouinZone = .true.
-     else
-        isAlloc_BrillouinZone = .false.
-     end if
+    implicit none
+    class(BrillouinZone) :: self
+    if(allocated(self%kp)) then
+      isAlloc_BrillouinZone = .true.
+    else
+      isAlloc_BrillouinZone = .false.
+    end if
   end function isAlloc_BrillouinZone
 
   subroutine gen3DFraction(self,sys,first,last)
