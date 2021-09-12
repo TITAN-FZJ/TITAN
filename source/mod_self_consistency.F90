@@ -368,8 +368,8 @@ contains
       do i=1,s%nAtoms
         nOrbs = s%Types(s%Basis(i)%Material)%nOrb
 
-        my (1:nOrbs,i) = previous_results(        i0:  nOrbs+i0-1)
-        my (1:nOrbs,i) = previous_results(  nOrbs+i0:2*nOrbs+i0-1)
+        rho(1:nOrbs,i) = previous_results(        i0:  nOrbs+i0-1)
+        mx (1:nOrbs,i) = previous_results(  nOrbs+i0:2*nOrbs+i0-1)
         my (1:nOrbs,i) = previous_results(2*nOrbs+i0:3*nOrbs+i0-1)
         mz (1:nOrbs,i) = previous_results(3*nOrbs+i0:4*nOrbs+i0-1)
         mp (1:nOrbs,i) = cmplx(mx(1:nOrbs,i),my(1:nOrbs,i),dp)
