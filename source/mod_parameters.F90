@@ -20,9 +20,9 @@ module mod_parameters
   integer(int32) :: dimens
   !! Dimension: 4 spins x number of atoms in the unit cell x number of orbitals^2
 
-  integer(int32), dimension(3) :: kp_in
+  integer(int32), dimension(3) :: kp_in, qp_in 
   !! Number of k-points in each direction
-  integer(int64) :: kptotal_in
+  integer(int64) :: kptotal_in, qptotal_in
   !! Total number of k-points
 
   integer(int32) :: tbmode
@@ -34,9 +34,12 @@ module mod_parameters
   !! Overwrite Fermi energy variables (that is set immediately before self-consistency)
   character(len=20), dimension(:), allocatable :: layers
   !! Number of layers (Obsolete?)
-  !! Number of cells around the origin for the cluster generation of the real space Jij
+  !========================================================================================!
   integer(int32) :: cluster_layers = 2
-
+  !! Number of cells around the origin for the cluster generation of the real space Jij
+  integer(int32) :: nqpt = 1000
+  !! Number of q points used for the fourier transformation of the Jij(q). At each q point Jij(k)
+  !! is calculated with the number of points given by nkpt
   !========================================================================================!
   logical       :: lhfresponses = .false.
   !! Use HF susceptibilities to calculate currents, disturbances and accumulations (don't renormalize)

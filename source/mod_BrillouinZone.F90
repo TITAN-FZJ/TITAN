@@ -52,7 +52,7 @@ module mod_BrillouinZone
     procedure :: gen3DFraction
   end type FractionalBrillouinZone
 
-  type(FractionalBrillouinZone) :: realBZ
+  type(FractionalBrillouinZone) :: realBZ, q_realBZ
 
 contains
 
@@ -83,6 +83,7 @@ contains
     ! call self%countBZ(sys)
     call calcWorkload(self%nkpt, self%isize, self%rank, self%first, self%last)
     self%workload = self%last - self%first + 1
+
     select case(sys%isysdim)
     case(3)
       call self%gen3DFraction(sys,self%first,self%last)

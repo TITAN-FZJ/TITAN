@@ -88,10 +88,10 @@ subroutine jij_energy(q,Jij)
 
   !$omp do schedule(static)
   do ix = 1, local_points
-     ep = y( E_k_imag_mesh(1,ix) )
-     kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix))
-     weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix))
-     ! Green function on energy Ef + iy, and wave vector kp
+      ep = y( E_k_imag_mesh(1,ix) )
+      kp = bzs( E_k_imag_mesh(1,ix) ) % kp(1:3,E_k_imag_mesh(2,ix))
+      weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix))%w(E_k_imag_mesh(2,ix))
+      ! Green function on energy Ef + iy, and wave vector kp
       call green(fermi,ep+eta,s,kp,gf)
 
       ! Green function on energy Ef + iy, and wave vector kp-q
@@ -158,20 +158,20 @@ subroutine jij_energy(q,Jij)
 
           ! Anisotropy (on-site) term
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-          ! if(i==j) then
-          !   gij = gf(1:s%nOrb2,1:s%nOrb2,i,i)
-          !   do nu = 1,3
-          !     do mu = 1,3
-          !       paulia = d2Bxc_dm2(i,mu,nu,:,:)
-          !       call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,cOne,gij,s%nOrb2,paulia,s%nOrb2,cZero,temp1,s%nOrb2)
-          !       ! Trace over orbitals and spins
-          !       do alpha = 1,s%nOrb2
-          !         Jijkan(i,mu,nu) = Jijkan(i,mu,nu) + real(temp1(alpha,alpha))
-          !       end do
-          !       Jijk(i,i,mu,nu) = Jijk(i,i,mu,nu) + Jijkan(i,mu,nu)
-          !     end do
-          !   end do
-          ! end if
+          if(i==j) then
+            gij = gf(1:s%nOrb2,1:s%nOrb2,i,i)
+            do nu = 1,3
+              do mu = 1,3
+                paulia = d2Bxc_dm2(i,mu,nu,:,:)
+                call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,cOne,gij,s%nOrb2,paulia,s%nOrb2,cZero,temp1,s%nOrb2)
+                ! Trace over orbitals and spins
+                do alpha = 1,s%nOrb2
+                  Jijkan(i,mu,nu) = Jijkan(i,mu,nu) + real(temp1(alpha,alpha))
+                end do
+                Jijk(i,i,mu,nu) = Jijk(i,i,mu,nu) + Jijkan(i,mu,nu)
+              end do
+            end do
+          end if
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         end do
       end do
@@ -187,9 +187,9 @@ subroutine jij_energy(q,Jij)
   !$omp end parallel
 
   if(activeRank == 0) then
-     call MPI_Reduce(MPI_IN_PLACE, Jij, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, 0, activeComm, ierr)
+    call MPI_Reduce(MPI_IN_PLACE, Jij, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, 0, activeComm, ierr)
   else
-     call MPI_Reduce(Jij, Jij, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, 0, activeComm, ierr)
+    call MPI_Reduce(Jij, Jij, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, 0, activeComm, ierr)
   end if
   !call MPI_Allreduce(MPI_IN_PLACE, Jij, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
 

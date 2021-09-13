@@ -64,7 +64,7 @@ contains
                                      itype,ry2ev,ltesla,eta,etap,dmax,emin,emax,&
                                      skip_steps,nEner,nEner1,nQvec,nQvec1,qbasis,renorm,renormnb,bands,band_cnt,&
                                      dfttype,parField,parFreq,kptotal_in,kp_in,&
-                                     tbmode,fermi_layer,lfixEf,lEf_overwrite,Ef_overwrite, cluster_layers
+                                     tbmode,fermi_layer,lfixEf,lEf_overwrite,Ef_overwrite, cluster_layers, nqpt, qptotal_in,qp_in
     use mod_superconductivity, only: lsuperCond,superCond
     use mod_self_consistency,  only: lontheflysc,lnojac,lforceoccup,lrotatemag,skipsc,scfile,magbasis,mag_tol
     use mod_system,            only: System_type,n0sc1,n0sc2
@@ -415,6 +415,24 @@ contains
       if(.not. get_parameter("cluster_layers", cluster_layers)) then
         call log_warning("get_parameters","'cluster_layers' missing. Using default value 2.")
       end if
+
+      if(.not. get_parameter("nqpt", nqpt)) then
+        call log_warning("get_parameters","'nqpt' missing.  Using default value 1000")
+      end if
+      qptotal_in = int( nqpt, kind(qptotal_in) )
+      select case(s%isysdim)
+      case(3)
+        qp_in(:)   = ceiling((dble(qptotal_in))**(0.333333333333333_dp), kind(qp_in(1)) )
+        qptotal_in = int( qp_in(1) * qp_in(2) * qp_in(3), kind(qptotal_in) )
+      case(2)
+        qp_in(1:2) = ceiling((dble(qptotal_in))**(0.5_dp), kind(qp_in(1)) )
+        qp_in(3)   = 1
+        qptotal_in = int( qp_in(1) * qp_in(2), kind(qptotal_in) )
+      case default
+        qp_in(1)   = ceiling((dble(qptotal_in)), kind(qp_in(1)) )
+        qp_in(2:3) = 1
+        qptotal_in = int( qp_in(1), kind(qptotal_in) )
+      end select
     end if
     !------------------------------------ Integration Variables ------------------------------------
     if(.not. get_parameter("parts", parts)) &
