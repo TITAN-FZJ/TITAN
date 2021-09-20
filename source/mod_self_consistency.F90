@@ -854,7 +854,7 @@ contains
           ! First product: temp1 =  pauli*g_ij
           gij(1:nOrb2_i,1:nOrb2_j) = gf(1:nOrb2_i,1:nOrb2_j,i,j)
           do sigma = 1,4
-            paulitemp(1:nOrb2_j,1:nOrb2_i) = merge(s%Types(i)%pauli_orb(sigma-1,1:nOrb2_i,1:nOrb2_i),s%Types(i)%pauli_dorb(sigma-1,1:nOrb2_i,1:nOrb2_i),sigma==1) ! sigma_0 includes sp orbitals for the last line - total charge neutrality
+            paulitemp(1:nOrb2_i,1:nOrb2_i) = merge(s%Types(s%Basis(i)%Material)%pauli_orb(sigma-1,1:nOrb2_i,1:nOrb2_i),s%Types(s%Basis(i)%Material)%pauli_dorb(sigma-1,1:nOrb2_i,1:nOrb2_i),sigma==1) ! sigma_0 includes sp orbitals for the last line - total charge neutrality
             call zgemm('n','n',nOrb2_i,nOrb2_j,nOrb2_i,cOne,paulitemp,s%nOrb2,gij,s%nOrb2,cZero,temp,s%nOrb2)
             temp1(1:nOrb2_i,1:nOrb2_j,sigma) = temp(1:nOrb2_i,1:nOrb2_j)
           end do
@@ -868,7 +868,7 @@ contains
               mud = nud+s%Types(s%Basis(j)%Material)%nOrb
               ! Second product: temp2 = (U_j\delta_{mu,nu} -U_j/2) * pauli * g_ji
               gji(1:nOrb2_j,1:nOrb2_i) = gf(1:nOrb2_j,1:nOrb2_i,j,i)
-              paulitemp(1:nOrb2_j,1:nOrb2_j) = s%Types(j)%pauli_dorb(0,1:nOrb2_j,1:nOrb2_j) ! identity excluding d orbitals from charge part
+              paulitemp(1:nOrb2_j,1:nOrb2_j) = s%Types(s%Basis(j)%Material)%pauli_dorb(0,1:nOrb2_j,1:nOrb2_j) ! identity excluding d orbitals from charge part
               paulitemp(nud,nud) = paulitemp(nud,nud) - 2._dp
               paulitemp(mud,mud) = paulitemp(mud,mud) - 2._dp
               call zgemm('n','n',nOrb2_j,nOrb2_i,nOrb2_j,halfUn(j),paulitemp,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
@@ -926,7 +926,7 @@ contains
 
             do sigmap = 2,4
               ! Second product: temp2 = (-U/2) * pauli * g_ji
-              paulitemp(1:nOrb2_j,1:nOrb2_j) = s%Types(j)%pauli_dorb(sigmap-1,1:nOrb2_j,1:nOrb2_j)
+              paulitemp(1:nOrb2_j,1:nOrb2_j) = s%Types(s%Basis(j)%Material)%pauli_dorb(sigmap-1,1:nOrb2_j,1:nOrb2_j)
               call zgemm('n','n',nOrb2_j,nOrb2_i,nOrb2_j,halfUm(j),paulitemp,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
               temp2(1:nOrb2_j,1:nOrb2_i,sigmap) = temp(1:nOrb2_j,1:nOrb2_i)
             end do
@@ -987,7 +987,7 @@ contains
 
             do sigma = 1,4
               ! First product: temp1 =  pauli*g_ij
-              paulitemp(1:nOrb2_i,1:nOrb2_i) = merge(s%Types(i)%pauli_orb(sigma-1,1:nOrb2_i,1:nOrb2_i),s%Types(i)%pauli_dorb(sigma-1,1:nOrb2_i,1:nOrb2_i),sigma==1) ! sigma_0 includes sp orbitals for the last line - total charge neutrality
+              paulitemp(1:nOrb2_i,1:nOrb2_i) = merge(s%Types(s%Basis(i)%Material)%pauli_orb(sigma-1,1:nOrb2_i,1:nOrb2_i),s%Types(s%Basis(i)%Material)%pauli_dorb(sigma-1,1:nOrb2_i,1:nOrb2_i),sigma==1) ! sigma_0 includes sp orbitals for the last line - total charge neutrality
               call zgemm('n','n',nOrb2_i,nOrb2_j,nOrb2_i,cOne,paulitemp,s%nOrb2,gij,s%nOrb2,cZero,temp,s%nOrb2)
               temp1(1:nOrb2_i,1:nOrb2_j,sigma) = temp(1:nOrb2_i,1:nOrb2_j)
             end do
@@ -1002,7 +1002,7 @@ contains
 
                 gji(1:nOrb2_j,1:nOrb2_i) = gvg(1:nOrb2_j,1:nOrb2_i,j,i)
                 ! Second product: temp2 = (-U/2) * pauli * g_ji
-                paulitemp(1:nOrb2_j,1:nOrb2_j) = s%Types(j)%pauli_dorb(0,1:nOrb2_j,1:nOrb2_j)
+                paulitemp(1:nOrb2_j,1:nOrb2_j) = s%Types(s%Basis(j)%Material)%pauli_dorb(0,1:nOrb2_j,1:nOrb2_j)
                 paulitemp(nud,nud) = paulitemp(nud,nud) - 2._dp
                 paulitemp(mud,mud) = paulitemp(mud,mud) - 2._dp
                 call zgemm('n','n',nOrb2_j,nOrb2_i,nOrb2_j,halfUn(j),paulitemp,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
@@ -1058,7 +1058,7 @@ contains
 
               do sigmap = 2,4
                 ! Second product: temp2 = (-U/2) * pauli * g_ji
-                paulitemp(1:nOrb2_j,1:nOrb2_j) = s%Types(j)%pauli_dorb(sigmap-1,1:nOrb2_j,1:nOrb2_j) 
+                paulitemp(1:nOrb2_j,1:nOrb2_j) = s%Types(s%Basis(j)%Material)%pauli_dorb(sigmap-1,1:nOrb2_j,1:nOrb2_j) 
                 call zgemm('n','n',nOrb2_j,nOrb2_i,nOrb2_j,halfUm(j),paulitemp,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
                 temp2(1:nOrb2_j,1:nOrb2_i,sigmap) = temp(1:nOrb2_j,1:nOrb2_i)
               end do
@@ -1141,7 +1141,7 @@ contains
 
           ! Charge density per orbital lines
           ! temp1 =  pauli*g_ii
-          paulitemp(1:nOrb2_i,1:nOrb2_i) = s%Types(i)%pauli_orb(0,1:nOrb2_i,1:nOrb2_i) ! sigma_0 includes sp orbitals for the last line - total charge neutrality
+          paulitemp(1:nOrb2_i,1:nOrb2_i) = s%Types(s%Basis(i)%Material)%pauli_orb(0,1:nOrb2_i,1:nOrb2_i) ! sigma_0 includes sp orbitals for the last line - total charge neutrality
           call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_i,weight,paulitemp,s%nOrb2,gij,s%nOrb2,cZero,temp,s%nOrb2)
 
           if(abs(s%Basis(i)%Un)>1.e-8_dp) then
@@ -1165,7 +1165,7 @@ contains
           if(abs(s%Basis(i)%Um)>1.e-8_dp) then
             do sigma = 2,4
               ! temp1 =  pauli*g_ii
-              paulitemp(1:nOrb2_i,1:nOrb2_i) = s%Types(i)%pauli_dorb(sigma-1,1:nOrb2_i,1:nOrb2_i)
+              paulitemp(1:nOrb2_i,1:nOrb2_i) = s%Types(s%Basis(i)%Material)%pauli_dorb(sigma-1,1:nOrb2_i,1:nOrb2_i)
               call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_i,weight,paulitemp,s%nOrb2,gij,s%nOrb2,cZero,temp,s%nOrb2)
 
               do mu=1,s%Types(s%Basis(i)%Material)%ndOrb

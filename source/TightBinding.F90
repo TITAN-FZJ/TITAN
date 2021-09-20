@@ -333,24 +333,28 @@ contains
       s%Types(n)%nOrb  = s%nOrb
       s%Types(n)%nOrb2  = s%nOrb2
       s%Types(n)%nOrb2sc  = s%nOrb2sc
-      allocate(s%Types(n)%Orbs(s%Types(n)%nOrb))
+      if(.not.allocated(s%Types(n)%Orbs)) &
+        allocate(s%Types(n)%Orbs(s%Types(n)%nOrb))
       s%Types(n)%Orbs(1:s%nOrb) = s%Orbs(1:s%nOrb)
       
+      s%Types(n)%nsOrb = s%nsOrb
       if(s%nsOrb>0) then
-        s%Types(n)%nsOrb = s%nsOrb
-        allocate(s%Types(n)%sOrbs(s%nsOrb))
+        if(.not.allocated(s%Types(n)%sOrbs)) &
+          allocate(s%Types(n)%sOrbs(s%nsOrb))
         s%Types(n)%sOrbs(1:s%nsOrb) = s%sOrbs(1:s%nsOrb)
       end if
 
+      s%Types(n)%npOrb = s%npOrb
       if(s%npOrb>0) then
-        s%Types(n)%npOrb = s%npOrb
-        allocate(s%Types(n)%pOrbs(s%npOrb))
+        if(.not.allocated(s%Types(n)%pOrbs)) &
+          allocate(s%Types(n)%pOrbs(s%npOrb))
         s%Types(n)%pOrbs(1:s%npOrb) = s%pOrbs(1:s%npOrb)
       end if
 
+      s%Types(n)%ndOrb = s%ndOrb
       if(s%ndOrb>0) then
-        s%Types(n)%ndOrb = s%ndOrb
-        allocate(s%Types(n)%dOrbs(s%ndOrb))
+        if(.not.allocated(s%Types(n)%dOrbs)) &
+          allocate(s%Types(n)%dOrbs(s%ndOrb))
         s%Types(n)%dOrbs(1:s%ndOrb) = s%dOrbs(1:s%ndOrb)
       end if
 

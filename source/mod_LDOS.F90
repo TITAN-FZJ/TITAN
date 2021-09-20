@@ -301,14 +301,14 @@ contains
       evec(1:3,i) = mdvec_cartesian(1:3,i)/mabsd(i)
 
       ! Inner product of pauli matrix in spin and orbital space and unit vector evec
-      paulievec(i,1:nOrb2_i,1:nOrb2_i) = s%Types(i)%pauli_dorb(1,1:nOrb2_i,1:nOrb2_i) * evec(1,i) + s%Types(i)%pauli_dorb(2,1:nOrb2_i,1:nOrb2_i) * evec(2,i) + s%Types(i)%pauli_dorb(3,1:nOrb2_i,1:nOrb2_i) * evec(3,i)
+      paulievec(i,1:nOrb2_i,1:nOrb2_i) = s%Types(s%Basis(i)%Material)%pauli_dorb(1,1:nOrb2_i,1:nOrb2_i) * evec(1,i) + s%Types(s%Basis(i)%Material)%pauli_dorb(2,1:nOrb2_i,1:nOrb2_i) * evec(2,i) + s%Types(s%Basis(i)%Material)%pauli_dorb(3,1:nOrb2_i,1:nOrb2_i) * evec(3,i)
 
       do mu = 1, 3
         ! Derivative of Bxc*sigma*evec w.r.t. m_i (Bxc = -U.m/2)
-        dBxc_dm(i,mu,1:nOrb2_i,1:nOrb2_i) = -0.5_dp*s%Basis(i)%Um*(s%Types(i)%pauli_dorb(mu,1:nOrb2_i,1:nOrb2_i) - (paulievec(i,1:nOrb2_i,1:nOrb2_i)) * evec(mu,i))
+        dBxc_dm(i,mu,1:nOrb2_i,1:nOrb2_i) = -0.5_dp*s%Basis(i)%Um*(s%Types(s%Basis(i)%Material)%pauli_dorb(mu,1:nOrb2_i,1:nOrb2_i) - (paulievec(i,1:nOrb2_i,1:nOrb2_i)) * evec(mu,i))
         ! Second derivative of Bxc w.r.t. m_i (Bxc = -U.m/2)
         do nu=1,3
-          d2Bxc_dm2(i,mu,nu,1:nOrb2_i,1:nOrb2_i) = evec(mu,i)*s%Types(i)%pauli_dorb(nu,1:nOrb2_i,1:nOrb2_i) + s%Types(i)%pauli_dorb(mu,1:nOrb2_i,1:nOrb2_i)*evec(nu,i) - 3*paulievec(i,1:nOrb2_i,1:nOrb2_i)*evec(mu,i)*evec(nu,i)
+          d2Bxc_dm2(i,mu,nu,1:nOrb2_i,1:nOrb2_i) = evec(mu,i)*s%Types(s%Basis(i)%Material)%pauli_dorb(nu,1:nOrb2_i,1:nOrb2_i) + s%Types(s%Basis(i)%Material)%pauli_dorb(mu,1:nOrb2_i,1:nOrb2_i)*evec(nu,i) - 3*paulievec(i,1:nOrb2_i,1:nOrb2_i)*evec(mu,i)*evec(nu,i)
           if(mu==nu) d2Bxc_dm2(i,mu,nu,1:nOrb2_i,1:nOrb2_i) = d2Bxc_dm2(i,mu,nu,1:nOrb2_i,1:nOrb2_i) + paulievec(i,1:nOrb2_i,1:nOrb2_i)
           d2Bxc_dm2(i,mu,nu,1:nOrb2_i,1:nOrb2_i) = 0.5_dp*s%Basis(i)%Um*d2Bxc_dm2(i,mu,nu,1:nOrb2_i,1:nOrb2_i)/mabsd(i)
         end do
