@@ -109,16 +109,17 @@ end subroutine coupling
 
 subroutine real_coupling()
   use mod_kind,          only: dp, int64, int32
-  use mod_parameters,    only: output, cluster_layers
+  use mod_parameters,    only: output, cluster_layers, nqpt, total_nkpt => kptotal_in, total_nqpt => qptotal_in, kp_in, qp_in
+
   ! use mod_parameters, only: kdirection,bsfile,wsfile
   use mod_magnet,        only: mabs
   use mod_system,        only: s => sys, System_type
   use mod_tools,         only: vec_norm
-  use mod_mpi_pars,      only: abortProgram,rField,sField,FieldComm,FreqComm
+  use mod_mpi_pars,      only: abortProgram,rField,sField,FieldComm,FreqComm,ierr
   use adaptiveMesh,      only: genLocalEKMesh,freeLocalEKMesh
   use mod_Coupling,      only: Jij,Jij_q,allocateCoupling,deallocateCoupling,openRealCouplingFiles,closeCouplingFiles,writeCoupling
   use adaptiveMesh,      only: bzs
-  use mod_BrillouinZone, only: realBZ
+  use mod_BrillouinZone, only: realBZ, q_realBZ
   use mod_constants,     only: cI
   use Lattice,           only: initLattice
   use mod_progress,      only: write_time
@@ -137,7 +138,6 @@ subroutine real_coupling()
 
   external :: jij_energy
 
-
   if(rField == 0) write(output%unit_loop,"('CALCULATING REAL SPACE FULL TENSOR OF EXHANGE INTERACTIONS AND ANISOTROPIES')")
 
   if(sum(mabs(:))<1.e-8_dp) &
@@ -145,35 +145,113 @@ subroutine real_coupling()
 
   if(rField == 0) call openRealCouplingFiles()
 
-  ! call genLocalEKMesh(s,rField,1, FieldComm,bzs)
+  ! In this part of the code we use two meshes. One is used to run over the points in which we will
+  ! calculate Jij(q), this mesh will be at q_realBZ. The second mesh will be used to calculate each 
+  ! Jij(q), inside this calculation there is a sum over k-points which typically needs a finer mesh
+  ! this one will be stored with the standard names.
+  ! To generate the q_realBZ we need to establish the number of kpoints it will consist of, this is done
+  ! below
+  select case(s%isysdim)
+  case(3)
+    q_realBZ % nkpt_x = ceiling((dble(total_nqpt))**(0.333333333333333_dp),kind(qp_in(1)) )
+    q_realBZ % nkpt_y = q_realBZ % nkpt_x
+    q_realBZ % nkpt_z = q_realBZ % nkpt_x
+  case(2)
+    q_realBZ % nkpt_x = ceiling((dble(total_nqpt))**(0.5_dp),kind(qp_in(1)) )
+    q_realBZ % nkpt_y = q_realBZ % nkpt_x
+    q_realBZ % nkpt_z = 1
+  case default
+    q_realBZ % nkpt_x = ceiling((dble(total_nqpt)), kind(qp_in(1)) )
+    q_realBZ % nkpt_y = 1
+    q_realBZ % nkpt_z = 1
+  end select
+  call q_realBZ % countBZ(s)  
+
+  ! Generate the q mesh. All processors will have a copy of ALL the points in the BZ
+  call q_realBZ % setup_fraction(s,0, 1, FreqComm(1))
+
+  ! [To delete]
+  ! call realBZ % setup_fraction(s,0, 1, FreqComm(1))
+  ! write(*,*) q_realBZ % nkpt_x, q_realBZ % nkpt_y, q_realBZ % nkpt_z
+  ! call MPI_Barrier(FieldComm, ierr)
+  ! call q_realBZ % setup_fraction(s,0, 1, FreqComm(1))
+
+  if(rField == 0) then
+    write(*,*) "Qgrid"
+    write(*,*) q_realBZ % nkpt_x, q_realBZ % nkpt_y, q_realBZ % nkpt_z
+  end if
+  call MPI_Barrier(FieldComm, ierr)
+  ! [To delete]
+
+  ! [To delete]
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! select case(s%isysdim)
+  ! case(3)
+  !   realBZ % nkpt_x = ceiling((dble(total_nkpt))**(0.333333333333333_dp),kind(kp_in(1)) )
+  !   realBZ % nkpt_y = realBZ % nkpt_x
+  !   realBZ % nkpt_z = realBZ % nkpt_x
+  ! case(2)
+  !   realBZ % nkpt_x = ceiling((dble(total_nkpt))**(0.5_dp),kind(kp_in(1)) )
+  !   realBZ % nkpt_y = realBZ % nkpt_x
+  !   realBZ % nkpt_z = 1
+  ! case default
+  !   realBZ % nkpt_x = ceiling((dble(total_nkpt)), kind(kp_in(1)) )
+  !   realBZ % nkpt_y = 1
+  !   realBZ % nkpt_z = 1
+  ! end select
+  ! call realBZ % countBZ(s)  
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  if(rField == 0) then
+    write(*,*) "Kgrid"
+    ! write(*,*) realBZ % nkpt_x, realBZ % nkpt_y, realBZ % nkpt_z
+  end if
+  call MPI_Barrier(FieldComm, ierr)
+  ! [To delete]
+
+  ! Generating the mesh of local points on the BZ zone
   call genLocalEKMesh(s,rField,sField, FieldComm,bzs)
-  !call genLocalEKMesh(s,0,1, FieldComm,bzs)
-  call realBZ % setup_fraction(s,0, 1, FreqComm(1))
-  ! call realBZ % setup_fraction(s,rFreq(1), 1, FreqComm(1))
+  ! All processors will have a copy of all the points in the BZ after we call the function below
+  ! call realBZ % setup_fraction(s,0, 1, FreqComm(1))
 
   call allocateCoupling()
 
-  write(*,*) "realBZ%workload", realBZ%workload
+  ! [To delete] temporary prints to terminal
+  if(rField == 0) then
+    write(*,*) "realBZ%workload", q_realBZ%workload
+    write(*,*) "nqpt = ", nqpt, " total_nqpt = ", total_nqpt, total_nkpt
+    write(*,*) "Meshes generated"
+  end if
+  ! [To delete]
 
-
+! [To delete]
+  ! stop
+! [To delete]
+  
   if(rField == 0) then
       call write_time('[real_coupling] Started Jij(q) calculation: ',output%unit_loop)
-      open(unit=13131, file='jij_q.dat', status = 'new')
-      allocate(Jij_q(realBZ%workload,s%nAtoms,s%nAtoms,3,3))
+      open(unit=13131, file='jij_q.dat', status = 'replace')
+      allocate(Jij_q(q_realBZ%workload,s%nAtoms,s%nAtoms,3,3))
   end if
 
-  do iz=1,realBZ%workload
-    ! write(*,*) iz, " out of ", realBZ%workload
-    q = realBZ%kp(1:3,iz)
+  do iz=1,q_realBZ%workload
+    ! if(rField == 0) write(*,*) iz, " out of ", realBZ%workload
+    if(rField == 0) write(output%unit,* ) iz, " out of ", q_realBZ%workload
+    if(rField == 0) call write_time('[real_coupling] Step: ',output%unit_loop)
+    q = q_realBZ%kp(1:3,iz)
     ! w = realBZ%w(iz)
+    ! Here we call the subroutine to calculate jij at point q. Inside the function
+    ! it takes the local points k and calculates their share for the total Jij(k)
     call jij_energy(q,Jij)
-    if(rField == 0) Jij_q(iz,:,:,:,:) = Jij
-    if(rField == 0) write(13131,*) realBZ%w(iz), q, Jij(6,6,:,:)
+    if(rField == 0) then
+      Jij_q(iz,:,:,:,:) = Jij
+      write(13131,*) q_realBZ%w(iz), q, Jij(6,6,:,:)
+    end if
   end do
 
   if(rField == 0) then
-     close(13131)
-     call write_time('[real_coupling] Finished Jij(q) calculation: ',output%unit_loop)
+    close(13131)
+    call write_time('[real_coupling] Finished Jij(q) calculation: ',output%unit_loop)
   end if
 
   stages = cluster_layers
@@ -234,10 +312,12 @@ subroutine real_coupling()
             counter = counter + 1
         end if
 
+        ! [To delete]
         ! write(*,*) "cell_vector", cell_vector
         ! write(*,*) "cluster(size,:)", cluster(size,:)
         ! write(*,*) cluster(size,:), "norm = ", vec_norm(atom_vector, 3)
         ! write(*,*) " "
+        ! [To delete]
 
         end do
     end do
@@ -272,8 +352,8 @@ subroutine real_coupling()
             cell_index(3) = 0
         end select
 
-         cell_vector = cell_index(1) * s%a1 + cell_index(2) * s%a2 + cell_index(3) * s%a3
-         ! Atom position is r = R_i + r_j
+        cell_vector = cell_index(1) * s%a1 + cell_index(2) * s%a2 + cell_index(3) * s%a3
+        ! Atom position is r = R_i + r_j
         atom_vector = s%Basis(j)%Position + cell_vector
 
         ! write(*,*) cluster(size,:), "norm = ", vec_norm(atom_vector, 3), "Rad = ", sphere_radius, "Bool = ", vec_norm(atom_vector, 3) <= sphere_radius
@@ -298,19 +378,23 @@ subroutine real_coupling()
 
     Jij_real = 0._dp
 
+    ! [To delete]
     ! write(*,*) "Positions"
+    ! [To delete]
     ! pragma omp for
     do k = 1, counter
-        do iz=1,realBZ%workload
-            kpExp = exp(-1._dp * cI * dot_product(realBZ%kp(1:3,iz), cluster(k,:)))
-            w = realBZ%w(iz)
+        do iz=1,q_realBZ%workload
+            kpExp = exp(-1._dp * cI * dot_product(q_realBZ%kp(1:3,iz), cluster(k,:)))
+            w = q_realBZ%w(iz)
             Jij_real(k,:,:,:,:) = Jij_real(k,:,:,:,:) + real(kpExp*w*Jij_q(iz,:,:,:,:))
         end do
 
+        ! [To delete]
         ! write(*,*) "s%Neighbors(k)%CellVector", cluster(k,:)
         ! write(*,*) " "
         ! write(*,*) "Jij_real(r,:,:,:,:)", Jij_real(k,:,:,:,:)
         ! write(*,*) " "
+        ! [To delete]
     end do
 
     ! Writing files
