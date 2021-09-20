@@ -63,7 +63,7 @@ contains
       sys0(i)%relTol  = s%relTol
       sys0(i)%nOrb    = s%Types(i)%nOrb
       sys0(i)%nOrb2sc = s%Types(i)%nOrb2
-      sys0(i)%nOrb2   = s%Types(i)%nOrb
+      sys0(i)%nOrb2   = s%Types(i)%nOrb2
       allocate(sys0(i)%Orbs(s%Types(i)%nOrb))
       sys0(i)%Orbs(:) = s%Types(i)%Orbs(:)
       sys0(i)%nsOrb   = s%Types(i)%nsOrb
