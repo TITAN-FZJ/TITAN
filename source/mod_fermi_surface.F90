@@ -128,11 +128,13 @@ contains
     !$omp& shared(s,calc_green,realBZ,e,eta,fs_atom,fs_orb,fs_total)
     do iz = 1,realBZ%workload
       kp = realBZ%kp(1:3,iz)
-      nOrb2 = s%Types(s%Basis(i)%Material)%nOrb2
+
       ! Green function on energy Ef + ieta, and wave vector kp
       call calc_green(e,eta,s,kp,gf)
 
       site_i: do i=1,s%nAtoms
+        nOrb2 = s%Types(s%Basis(i)%Material)%nOrb2
+
         ! Spin and charge densities
         do sigma=1,4
           if(sigma==1) then

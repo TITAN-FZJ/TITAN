@@ -68,15 +68,15 @@ subroutine eintshechi(q,e)
       nOrb2_i = 2*nOrb_i
       nOrb2_j = 2*nOrb_j
 
-      gfuu(       1:nOrb_i ,       1:nOrb_j ,i,j,1) = gfq(       1:nOrb_i ,       1:nOrb_j ,i,j)
-      gfud(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j,1) = gfq(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
-      gfdu(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j,1) = gfq(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
-      gfdd(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j,1) = gfq(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
+      gfuu(1:nOrb_i,1:nOrb_j,i,j,1) = gfq(       1:nOrb_i ,       1:nOrb_j ,i,j)
+      gfud(1:nOrb_i,1:nOrb_j,i,j,1) = gfq(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
+      gfdu(1:nOrb_i,1:nOrb_j,i,j,1) = gfq(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
+      gfdd(1:nOrb_i,1:nOrb_j,i,j,1) = gfq(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
 
-      gfuu(       1:nOrb_i ,       1:nOrb_j ,i,j,2) = gf(       1:nOrb_i ,       1:nOrb_j ,i,j)
-      gfud(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j,2) = gf(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
-      gfdu(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j,2) = gf(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
-      gfdd(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j,2) = gf(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
+      gfuu(1:nOrb_i,1:nOrb_j,i,j,2) = gf(       1:nOrb_i ,       1:nOrb_j ,i,j)
+      gfud(1:nOrb_i,1:nOrb_j,i,j,2) = gf(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
+      gfdu(1:nOrb_i,1:nOrb_j,i,j,2) = gf(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
+      gfdd(1:nOrb_i,1:nOrb_j,i,j,2) = gf(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
     end do; end do
 
 
@@ -129,15 +129,15 @@ subroutine eintshechi(q,e)
       nOrb2_i = 2*nOrb_i
       nOrb2_j = 2*nOrb_j
 
-      gfuu(       1:nOrb_i ,       1:nOrb_j ,i,j,1) = gfq(       1:nOrb_i ,       1:nOrb_j ,i,j)
-      gfud(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j,1) = gfq(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
-      gfdu(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j,1) = gfq(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
-      gfdd(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j,1) = gfq(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
+      gfuu(1:nOrb_i,1:nOrb_j,i,j,1) = gfq(       1:nOrb_i ,       1:nOrb_j ,i,j)
+      gfud(1:nOrb_i,1:nOrb_j,i,j,1) = gfq(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
+      gfdu(1:nOrb_i,1:nOrb_j,i,j,1) = gfq(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
+      gfdd(1:nOrb_i,1:nOrb_j,i,j,1) = gfq(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
 
-      gfuu(       1:nOrb_i ,       1:nOrb_j ,i,j,2) = gf(       1:nOrb_i ,       1:nOrb_j ,i,j)
-      gfud(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j,2) = gf(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
-      gfdu(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j,2) = gf(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
-      gfdd(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j,2) = gf(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
+      gfuu(1:nOrb_i,1:nOrb_j,i,j,2) = gf(       1:nOrb_i ,       1:nOrb_j ,i,j)
+      gfud(1:nOrb_i,1:nOrb_j,i,j,2) = gf(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
+      gfdu(1:nOrb_i,1:nOrb_j,i,j,2) = gf(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
+      gfdd(1:nOrb_i,1:nOrb_j,i,j,2) = gf(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
     end do; end do
 
     do j=1,s%nAtoms; do i=1,s%nAtoms; do gamma=1,s%Types(s%Basis(j)%Material)%nOrb; do mu=1,s%Types(s%Basis(i)%Material)%nOrb; do xi=1,s%Types(s%Basis(j)%Material)%nOrb; do nu=1,s%Types(s%Basis(i)%Material)%nOrb
@@ -247,23 +247,23 @@ subroutine eintshechilinearsoc(q,e)
       nOrb2_i = 2*nOrb_i
       nOrb2_j = 2*nOrb_j
 
-      gfuu(       1:nOrb_i ,       1:nOrb_j ,i,j,1) = gfq(       1:nOrb_i ,       1:nOrb_j ,i,j)
-      gfud(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j,1) = gfq(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
-      gfdu(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j,1) = gfq(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
-      gfdd(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j,1) = gfq(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
-      gvguu(       1:nOrb_i ,       1:nOrb_j ,i,j,1) = gvgq(       1:nOrb_i ,       1:nOrb_j ,i,j)
-      gvgud(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j,1) = gvgq(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
-      gvgdu(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j,1) = gvgq(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
-      gvgdd(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j,1) = gvgq(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
+      gfuu (1:nOrb_i,1:nOrb_j,i,j,1) = gfq(       1:nOrb_i ,       1:nOrb_j ,i,j)
+      gfud (1:nOrb_i,1:nOrb_j,i,j,1) = gfq(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
+      gfdu (1:nOrb_i,1:nOrb_j,i,j,1) = gfq(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
+      gfdd (1:nOrb_i,1:nOrb_j,i,j,1) = gfq(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
+      gvguu(1:nOrb_i,1:nOrb_j,i,j,1) = gvgq(       1:nOrb_i ,       1:nOrb_j ,i,j)
+      gvgud(1:nOrb_i,1:nOrb_j,i,j,1) = gvgq(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
+      gvgdu(1:nOrb_i,1:nOrb_j,i,j,1) = gvgq(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
+      gvgdd(1:nOrb_i,1:nOrb_j,i,j,1) = gvgq(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
 
-      gfuu(       1:nOrb_i ,       1:nOrb_j ,i,j,2) = gf(       1:nOrb_i ,       1:nOrb_j ,i,j)
-      gfud(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j,2) = gf(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
-      gfdu(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j,2) = gf(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
-      gfdd(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j,2) = gf(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
-      gvguu(       1:nOrb_i ,       1:nOrb_j ,i,j,2) = gvg(       1:nOrb_i ,       1:nOrb_j ,i,j)
-      gvgud(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j,2) = gvg(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
-      gvgdu(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j,2) = gvg(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
-      gvgdd(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j,2) = gvg(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
+      gfuu (1:nOrb_i,1:nOrb_j,i,j,2) = gf(       1:nOrb_i ,       1:nOrb_j ,i,j)
+      gfud (1:nOrb_i,1:nOrb_j,i,j,2) = gf(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
+      gfdu (1:nOrb_i,1:nOrb_j,i,j,2) = gf(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
+      gfdd (1:nOrb_i,1:nOrb_j,i,j,2) = gf(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
+      gvguu(1:nOrb_i,1:nOrb_j,i,j,2) = gvg(       1:nOrb_i ,       1:nOrb_j ,i,j)
+      gvgud(1:nOrb_i,1:nOrb_j,i,j,2) = gvg(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
+      gvgdu(1:nOrb_i,1:nOrb_j,i,j,2) = gvg(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
+      gvgdd(1:nOrb_i,1:nOrb_j,i,j,2) = gvg(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
     end do; end do
 
     do j=1,s%nAtoms; do i=1,s%nAtoms; do gamma=1,s%Types(s%Basis(j)%Material)%nOrb; do mu=1,s%Types(s%Basis(i)%Material)%nOrb; do xi=1,s%Types(s%Basis(j)%Material)%nOrb; do nu=1,s%Types(s%Basis(i)%Material)%nOrb
@@ -338,23 +338,23 @@ subroutine eintshechilinearsoc(q,e)
       nOrb2_i = 2*nOrb_i
       nOrb2_j = 2*nOrb_j
 
-      gfuu(       1:nOrb_i ,       1:nOrb_j ,i,j,1) = gfq(       1:nOrb_i ,       1:nOrb_j ,i,j)
-      gfud(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j,1) = gfq(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
-      gfdu(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j,1) = gfq(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
-      gfdd(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j,1) = gfq(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
-      gvguu(       1:nOrb_i ,       1:nOrb_j ,i,j,1) = gvgq(       1:nOrb_i ,       1:nOrb_j ,i,j)
-      gvgud(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j,1) = gvgq(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
-      gvgdu(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j,1) = gvgq(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
-      gvgdd(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j,1) = gvgq(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
+      gfuu (1:nOrb_i,1:nOrb_j,i,j,1) = gfq(       1:nOrb_i ,       1:nOrb_j ,i,j)
+      gfud (1:nOrb_i,1:nOrb_j,i,j,1) = gfq(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
+      gfdu (1:nOrb_i,1:nOrb_j,i,j,1) = gfq(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
+      gfdd (1:nOrb_i,1:nOrb_j,i,j,1) = gfq(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
+      gvguu(1:nOrb_i,1:nOrb_j,i,j,1) = gvgq(       1:nOrb_i ,       1:nOrb_j ,i,j)
+      gvgud(1:nOrb_i,1:nOrb_j,i,j,1) = gvgq(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
+      gvgdu(1:nOrb_i,1:nOrb_j,i,j,1) = gvgq(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
+      gvgdd(1:nOrb_i,1:nOrb_j,i,j,1) = gvgq(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
 
-      gfuu(       1:nOrb_i ,       1:nOrb_j ,i,j,2) = gf(       1:nOrb_i ,       1:nOrb_j ,i,j)
-      gfud(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j,2) = gf(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
-      gfdu(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j,2) = gf(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
-      gfdd(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j,2) = gf(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
-      gvguu(       1:nOrb_i ,       1:nOrb_j ,i,j,2) = gvg(       1:nOrb_i ,       1:nOrb_j ,i,j)
-      gvgud(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j,2) = gvg(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
-      gvgdu(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j,2) = gvg(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
-      gvgdd(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j,2) = gvg(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
+      gfuu (1:nOrb_i,1:nOrb_j,i,j,2) = gf(       1:nOrb_i ,       1:nOrb_j ,i,j)
+      gfud (1:nOrb_i,1:nOrb_j,i,j,2) = gf(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
+      gfdu (1:nOrb_i,1:nOrb_j,i,j,2) = gf(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
+      gfdd (1:nOrb_i,1:nOrb_j,i,j,2) = gf(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
+      gvguu(1:nOrb_i,1:nOrb_j,i,j,2) = gvg(       1:nOrb_i ,       1:nOrb_j ,i,j)
+      gvgud(1:nOrb_i,1:nOrb_j,i,j,2) = gvg(       1:nOrb_i ,nOrb_j+1:nOrb2_j,i,j)
+      gvgdu(1:nOrb_i,1:nOrb_j,i,j,2) = gvg(nOrb_i+1:nOrb2_i,       1:nOrb_j ,i,j)
+      gvgdd(1:nOrb_i,1:nOrb_j,i,j,2) = gvg(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
     end do; end do
 
     do j=1,s%nAtoms; do i=1,s%nAtoms; do gamma=1,s%Types(s%Basis(j)%Material)%nOrb; do mu=1,s%Types(s%Basis(i)%Material)%nOrb; do xi=1,s%Types(s%Basis(j)%Material)%nOrb; do nu=1,s%Types(s%Basis(i)%Material)%nOrb
