@@ -279,13 +279,13 @@ contains
   subroutine l_matrix(s)
     use mod_kind,      only: dp
     use mod_constants, only: cI, cZero, cOne, sq3
-    use AtomTypes,     only: default_orbitals
+    use AtomTypes,     only: default_nOrb
     use mod_System,    only: System_type
     implicit none
     type(System_type), intent(inout)   :: s
-    complex(dp), dimension(size(default_orbitals),size(default_orbitals),3) :: lvec
+    complex(dp), dimension(default_nOrb,default_nOrb,3) :: lvec
     !! Angular momentum vector matrices in global frame
-    complex(dp), dimension(size(default_orbitals),size(default_orbitals)) :: Lp,Lm
+    complex(dp), dimension(default_nOrb,default_nOrb) :: Lp,Lm
     !! L+ and L- matrices in global frame
     integer :: i, mu, nu
 

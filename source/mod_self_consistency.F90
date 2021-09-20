@@ -339,12 +339,11 @@ contains
     end if
     if(err==0) then
       if(rField==0) then
-        i0 = 1
-        i1 = 5*s%Types(s%Basis(1)%Material)%nOrb
+        i1 = 0
         do i=1,s%nAtoms
-          read(99,fmt=*) (previous_results(j), j=i0,i1)
           i0 = i1 + 1
           i1 = i0 + 5*s%Types(s%Basis(i)%Material)%nOrb-1
+          read(99,fmt=*) (previous_results(j), j=i0,i1)
         end do
         read(99,fmt=*) previous_Ef
       end if
@@ -363,9 +362,11 @@ contains
       myd  = 0._dp
       mzd  = 0._dp
       
-      i0 = 1
-      i1 = 5*s%Types(s%Basis(1)%Material)%nOrb
+      i1 = 0
       do i=1,s%nAtoms
+        i0 = i1 + 1
+        i1 = i0 + 5*s%Types(s%Basis(i)%Material)%nOrb-1
+
         nOrbs = s%Types(s%Basis(i)%Material)%nOrb
 
         rho(1:nOrbs,i) = previous_results(        i0:  nOrbs+i0-1)
@@ -386,9 +387,6 @@ contains
         end do
         mabsd(i) = sqrt(mxd(i)**2+myd(i)**2+mzd(i)**2)
         mpd(i)   = cmplx(mxd(i),myd(i),dp)
-
-        i0 = i1 + 1
-        i1 = i0 + 5*s%Types(s%Basis(i)%Material)%nOrb-1
       end do
 
       call calcMagAngle()
@@ -777,7 +775,7 @@ contains
 
     ! Setting up linear system of equations:
     call set_system_of_equations(s,N,rhot,rho,mxd,myd,mzd,deltas,&
-                                 rho_in,mxd_in,myd_in,mzd_in,delta_sc_in,fvec)
+                                  rho_in,mxd_in,myd_in,mzd_in,delta_sc_in,fvec)
 
 
     call calcJacobian_greenfunction(selfconjac, N)
@@ -787,7 +785,7 @@ contains
   subroutine calcJacobian_greenfunction(jacobian,N)
     !> Calculated the Jacobian of the spin magnetization
     use mod_kind,          only: dp,int64
-    use mod_constants,     only: pi,ident_norb2,cZero,pauli_dorb,ident_dorb,cOne
+    use mod_constants,     only: pi,cZero,cOne
     use mod_parameters,    only: eta,output,lfixEf
     use mod_SOC,           only: llinearsoc,llineargfsoc
     use EnergyIntegration, only: y,wght
@@ -801,16 +799,14 @@ contains
     implicit none
     integer,                       intent(in)    :: N
     real(dp),    dimension(N,N),   intent(inout) :: jacobian
-    complex(dp), dimension(:,:),     allocatable :: gij,gji,temp,paulitemp
-    complex(dp), dimension(:,:,:),   allocatable :: temp1,temp2
-    complex(dp), dimension(:,:,:,:), allocatable :: gf,gvg,gfsc
+    complex(dp), dimension(s%nOrb2,s%nOrb2)      :: gij,gji,temp,paulitemp
+    complex(dp), dimension(s%nOrb2,s%nOrb2,4)    :: temp1,temp2
+    complex(dp), dimension(s%nOrb2sc,s%nOrb2sc,s%nAtoms,s%nAtoms) :: gf,gvg
     integer(int64) :: ix
-    integer     :: AllocateStatus
-    integer     :: i,j,kounti,kountj,mu,nu,mud,nud,sigma,sigmap
+    integer     :: i,j,kounti,kountj,mu,nu,mud,nud,sigma,sigmap,nOrb2_i,nOrb2_j
     real(dp)    :: kp(3), ep
     complex(dp) :: weight
     complex(dp) :: halfUn(s%nAtoms),halfUm(s%nAtoms)
-    complex(dp), dimension(s%nOrb2,s%nOrb2,4) :: pauli_a,pauli_b
     integer :: ncount2
 
     external :: zgemm,MPI_Allreduce
@@ -819,15 +815,6 @@ contains
       write(output%unit_loop,"('[calcJacobian_greenfunction] Calculating the Jacobian...')")
 
     ncount2=N*N
-
-!   Identity and Pauli matrices (excluding d orbitals)
-    pauli_a(:,:,1) = ident_norb2(:,:)   ! sigma_0 (includes sp for the last line - total charge neutrality)
-    pauli_a(:,:,2) = pauli_dorb(1,:,:)  ! sigma_x
-    pauli_a(:,:,3) = pauli_dorb(2,:,:)  ! sigma_y
-    pauli_a(:,:,4) = pauli_dorb(3,:,:)  ! sigma_z
-
-    pauli_b(:,:,  1) = ident_dorb  ! excluding d orbitals from charge part
-    pauli_b(:,:,2:4) = pauli_a(:,:,2:4)
 
     ! Prefactor -U/2 in dH/dn and dH/dm
     do i=1,s%nAtoms
@@ -841,28 +828,8 @@ contains
     jacobian = 0._dp
 
     !$omp parallel default(none) &
-    !$omp& private(AllocateStatus,ix,i,j,kounti,kountj,mu,mud,nud,nu,sigma,sigmap,ep,kp,weight,gf,gfsc,gvg,gij,gji,temp,temp1,temp2,paulitemp) &
-    !$omp& shared(llineargfsoc,llinearsoc,lsupercond,lfixEf,neq,local_points,s,neq_per_atom,realBZ,bzs,E_k_imag_mesh,y,eta,wght,halfUn,halfUm,pauli_a,pauli_b,jacobian)
-    if (lsuperCond) then
-      allocate(gfsc(s%nOrb2sc, s%nOrb2sc, s%nAtoms, s%nAtoms), stat = AllocateStatus)
-    end if
-    allocate( temp1(s%nOrb2,s%nOrb2,4), &
-              temp2(s%nOrb2,s%nOrb2,4), &
-              gij(s%nOrb2,s%nOrb2), gji(s%nOrb2,s%nOrb2), &
-              gf (s%nOrb2,s%nOrb2, s%nAtoms, s%nAtoms), &
-              temp(s%nOrb2,s%nOrb2), paulitemp(s%nOrb2,s%nOrb2), stat = AllocateStatus)
-    if (AllocateStatus/=0) &
-      call abortProgram("[calcJacobian_greenfunction] Not enough memory for: temp1, temp2, gij, gji, gf, temp")
-    gf        = cZero
-    temp      = cZero
-
-    if(llineargfsoc .or. llinearsoc) then
-      allocate(gvg(s%nOrb2,s%nOrb2,s%nAtoms,s%nAtoms), STAT = AllocateStatus  )
-      if (AllocateStatus/=0) &
-        call abortProgram("[calcJacobian_greenfunction] Not enough memory for: gvg")
-      gvg = cZero
-    end if
-
+    !$omp& private(ix,i,j,kounti,kountj,nOrb2_i,nOrb2_j,mu,mud,nud,nu,sigma,sigmap,ep,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp) &
+    !$omp& shared(llineargfsoc,llinearsoc,lsupercond,lfixEf,neq,local_points,s,neq_per_atom,realBZ,bzs,E_k_imag_mesh,y,eta,wght,halfUn,halfUm,jacobian)
     !$omp do schedule(static) reduction(+:jacobian)
     do ix = 1, local_points
       ep = y(E_k_imag_mesh(1,ix))
@@ -873,98 +840,95 @@ contains
         call greenlinearsoc(s%Ef,ep+eta,s,kp,gf,gvg)
         gf = gf + gvg
       else
-        ! If superconductivity is on then take the ee block of the green function
-        if ( lsuperCond ) then
-          call green(s%Ef,ep+eta,s,kp,gfsc)
-          do j = 1,s%nAtoms
-            do i = 1,s%nAtoms
-              gf( 1:s%nOrb2,1:s%nOrb2,i,j) = gfsc( 1:s%nOrb2,1:s%nOrb2,i,j)
-            end do
-          end do
-        else
-          call green(s%Ef,ep+eta,s,kp,gf)
-        end if
+        call green(s%Ef,ep+eta,s,kp,gf)
       end if
 
       do j=1,s%nAtoms
         do i=1,s%nAtoms
+          nOrb2_i = 2*s%Types(s%Basis(i)%Material)%nOrb
+          nOrb2_j = 2*s%Types(s%Basis(j)%Material)%nOrb
+
           ! (Re)starting the column counter in each line
           kountj = neq_per_atom(j)
 
           ! First product: temp1 =  pauli*g_ij
-          gij = gf(:,:,i,j)
+          gij(1:nOrb2_i,1:nOrb2_j) = gf(1:nOrb2_i,1:nOrb2_j,i,j)
           do sigma = 1,4
-            paulitemp = pauli_a(:,:, sigma)
-            call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,cOne,paulitemp,s%nOrb2,gij,s%nOrb2,cZero,temp,s%nOrb2)
-            temp1(:,:,sigma) = temp
+            paulitemp(1:nOrb2_j,1:nOrb2_i) = merge(s%Types(i)%pauli_orb(sigma-1,1:nOrb2_i,1:nOrb2_i),s%Types(i)%pauli_dorb(sigma-1,1:nOrb2_i,1:nOrb2_i),sigma==1) ! sigma_0 includes sp orbitals for the last line - total charge neutrality
+            call zgemm('n','n',nOrb2_i,nOrb2_j,nOrb2_i,cOne,paulitemp,s%nOrb2,gij,s%nOrb2,cZero,temp,s%nOrb2)
+            temp1(1:nOrb2_i,1:nOrb2_j,sigma) = temp(1:nOrb2_i,1:nOrb2_j)
           end do
 
           if(abs(s%Basis(j)%Un)>1.e-8_dp) then
-            do nu=1,s%ndOrb
+            do nu=1,s%Types(s%Basis(j)%Material)%ndOrb
               ! Restarting line counter
               kounti = neq_per_atom(i)
 
-              nud = s%dOrbs(nu)
-              mud = nud+s%nOrb
-              ! Second product: temp2 = (U_j\delta_{mu,nu} -U_j/2) * sigma * g_ji
-              gji = gf(:,:,j,i)
-              paulitemp = pauli_b(:,:, 1)
+              nud = s%Types(s%Basis(j)%Material)%dOrbs(nu)
+              mud = nud+s%Types(s%Basis(j)%Material)%nOrb
+              ! Second product: temp2 = (U_j\delta_{mu,nu} -U_j/2) * pauli * g_ji
+              gji(1:nOrb2_j,1:nOrb2_i) = gf(1:nOrb2_j,1:nOrb2_i,j,i)
+              paulitemp(1:nOrb2_j,1:nOrb2_j) = s%Types(j)%pauli_dorb(0,1:nOrb2_j,1:nOrb2_j) ! identity excluding d orbitals from charge part
               paulitemp(nud,nud) = paulitemp(nud,nud) - 2._dp
               paulitemp(mud,mud) = paulitemp(mud,mud) - 2._dp
-              call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,halfUn(j),paulitemp,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
-              temp2(:,:,1) = temp
+              call zgemm('n','n',nOrb2_j,nOrb2_i,nOrb2_j,halfUn(j),paulitemp,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
+              temp2(1:nOrb2_j,1:nOrb2_i,1) = temp(1:nOrb2_j,1:nOrb2_i)
 
-              ! Full product:  sigma.g.dHdx.g = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*sigma* g_ji
+              ! Full product:  sigma.g.dHdx.g = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*pauli* g_ji
 
               ! Charge density-charge density part
-              gij = temp1(:,:,1)
-              gji = temp2(:,:,1)
-              call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,weight,gij,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
+              gij(1:nOrb2_i,1:nOrb2_j) = temp1(1:nOrb2_i,1:nOrb2_j,1)
+              gji(1:nOrb2_j,1:nOrb2_i) = temp2(1:nOrb2_j,1:nOrb2_i,1)
+              call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_j,weight,gij,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
 
               if(abs(s%Basis(i)%Un)>1.e-8_dp) then
-                do mu=1,s%ndOrb
-                  mud = s%dOrbs(mu)
-                  jacobian(kounti+mu,kountj+nu) = jacobian(kounti+mu,kountj+nu) + real(temp(mud,mud) + temp(mud+s%nOrb,mud+s%nOrb))
+                do mu=1,s%Types(s%Basis(i)%Material)%ndOrb
+                  mud = s%Types(s%Basis(i)%Material)%dOrbs(mu)
+                  nud = mud+s%Types(s%Basis(i)%Material)%nOrb
+
+                  jacobian(kounti+mu,kountj+nu) = jacobian(kounti+mu,kountj+nu) + real(temp(mud,mud) + temp(nud,nud))
                 end do
                 kounti = neq_per_atom(i) + s%ndOrb
               end if
 
               ! Last line (Total charge neutrality)
               if(.not.lfixEf) then
-                do mu = 1,s%nOrb
-                  jacobian(neq,kountj+nu) = jacobian(neq,kountj+nu) + real(temp(mu,mu) + temp(mu+s%nOrb,mu+s%nOrb))
+                do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
+                  nud = mu+s%Types(s%Basis(i)%Material)%nOrb
+                  jacobian(neq,kountj+nu) = jacobian(neq,kountj+nu) + real(temp(mu,mu) + temp(nud,nud))
                 end do
               end if
 
               ! Magnetic density-charge density part
               if(abs(s%Basis(i)%Um)>1.e-8_dp) then
                 do sigma = 2,4
-                  gij = temp1(:,:,sigma)
-                  gji = temp2(:,:,1)
-                  call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,weight,gij,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
+                  gij(1:nOrb2_i,1:nOrb2_j) = temp1(1:nOrb2_i,1:nOrb2_j,sigma)
+                  gji(1:nOrb2_j,1:nOrb2_i) = temp2(1:nOrb2_j,1:nOrb2_i,1)
+                  call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_j,weight,gij,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
 
-                  do mu=1,s%ndOrb
-                    mud = s%dOrbs(mu)
-                    jacobian(kounti+sigma-1,kountj+nu) = jacobian(kounti+sigma-1,kountj+nu) + real(temp(mud,mud) + temp(mud+s%nOrb,mud+s%nOrb))
+                  do mu=1,s%Types(s%Basis(i)%Material)%ndOrb
+                    mud = s%Types(s%Basis(i)%Material)%dOrbs(mu)
+                    nud = mud+s%Types(s%Basis(i)%Material)%nOrb
+                    jacobian(kounti+sigma-1,kountj+nu) = jacobian(kounti+sigma-1,kountj+nu) + real(temp(mud,mud) + temp(nud,nud))
                   end do
                 end do
-                kounti = neq_per_atom(i) + merge(s%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + 3
+                kounti = neq_per_atom(i) + merge(s%Types(s%Basis(i)%Material)%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + 3
               end if
 
             end do
 
-            kountj = neq_per_atom(j) + s%ndOrb
+            kountj = neq_per_atom(j) + s%Types(s%Basis(j)%Material)%ndOrb
           end if ! |Un(j)| > 0
 
           if(abs(s%Basis(j)%Um)>1.e-8_dp) then
 
-            gji = gf(:,:,j,i)
+            gji(1:nOrb2_j,1:nOrb2_i) = gf(1:nOrb2_j,1:nOrb2_i,j,i)
 
             do sigmap = 2,4
-              ! Second product: temp2 = (-U/2) * sigma* g_ji
-              paulitemp = pauli_b(:,:,sigmap)
-              call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,halfUm(j),paulitemp,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
-              temp2(:,:,sigmap) = temp
+              ! Second product: temp2 = (-U/2) * pauli * g_ji
+              paulitemp(1:nOrb2_j,1:nOrb2_j) = s%Types(j)%pauli_dorb(sigmap-1,1:nOrb2_j,1:nOrb2_j)
+              call zgemm('n','n',nOrb2_j,nOrb2_i,nOrb2_j,halfUm(j),paulitemp,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
+              temp2(1:nOrb2_j,1:nOrb2_i,sigmap) = temp(1:nOrb2_j,1:nOrb2_i)
             end do
 
             ! Full product:  sigma.g.dHdx.g = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*sigma* g_ji
@@ -974,41 +938,44 @@ contains
               ! Restarting line counter
               kounti = neq_per_atom(i)
 
-              gij = temp1(:,:,1)
-              gji = temp2(:,:,sigmap)
-              call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,weight,gij,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
+              gij(1:nOrb2_i,1:nOrb2_j) = temp1(1:nOrb2_i,1:nOrb2_j,1)
+              gji(1:nOrb2_j,1:nOrb2_i) = temp2(1:nOrb2_j,1:nOrb2_i,sigmap)
+              call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_j,weight,gij,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
 
               if(abs(s%Basis(i)%Un)>1.e-8_dp) then
-                do mu = 1,s%ndOrb
-                  mud = s%dOrbs(mu)
-                  jacobian(kounti+mu,kountj+sigmap-1) = jacobian(kounti+mu,kountj+sigmap-1) + real(temp(mud,mud) + temp(mud+s%nOrb,mud+s%nOrb))
+                do mu = 1,s%Types(s%Basis(i)%Material)%ndOrb
+                  mud = s%Types(s%Basis(i)%Material)%dOrbs(mu)
+                  nud = mud+s%Types(s%Basis(i)%Material)%nOrb
+                  jacobian(kounti+mu,kountj+sigmap-1) = jacobian(kounti+mu,kountj+sigmap-1) + real(temp(mud,mud) + temp(nud,nud))
                 end do
-                kounti = neq_per_atom(i) + s%ndOrb
+                kounti = neq_per_atom(i) + s%Types(s%Basis(i)%Material)%ndOrb
               end if
 
               ! Last line (Total charge neutrality)
               if(.not.lfixEf) then
-                do mu = 1,s%nOrb
-                  jacobian(neq,kountj+sigmap-1) = jacobian(neq,kountj+sigmap-1) + real(temp(mu,mu) + temp(mu+s%nOrb,mu+s%nOrb))
+                do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
+                  nud = mu+s%Types(s%Basis(i)%Material)%nOrb
+                  jacobian(neq,kountj+sigmap-1) = jacobian(neq,kountj+sigmap-1) + real(temp(mu,mu) + temp(nud,nud))
                 end do
               end if
 
               ! Magnetic density-magnetic density part
               if(abs(s%Basis(i)%Um)>1.e-8_dp) then
                 do sigma = 2,4
-                  gij = temp1(:,:,sigma)
-                  gji = temp2(:,:,sigmap)
-                  call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,weight,gij,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
+                  gij(1:nOrb2_i,1:nOrb2_j) = temp1(1:nOrb2_i,1:nOrb2_j,sigma)
+                  gji(1:nOrb2_j,1:nOrb2_i) = temp2(1:nOrb2_j,1:nOrb2_i,sigmap)
+                  call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_j,weight,gij,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
 
-                  do mu=1,s%ndOrb
-                    mud = s%dOrbs(mu)
-                    jacobian(kounti+sigma-1,kountj+sigmap-1) = jacobian(kounti+sigma-1,kountj+sigmap-1) + real(temp(mud,mud) + temp(mud+s%nOrb,mud+s%nOrb))
+                  do mu=1,s%Types(s%Basis(i)%Material)%ndOrb
+                    mud = s%Types(s%Basis(i)%Material)%dOrbs(mu)
+                    nud = mud+s%Types(s%Basis(i)%Material)%nOrb
+                    jacobian(kounti+sigma-1,kountj+sigmap-1) = jacobian(kounti+sigma-1,kountj+sigmap-1) + real(temp(mud,mud) + temp(nud,nud))
                   end do
                 end do
-                kounti = neq_per_atom(i) + merge(s%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + 3
+                kounti = neq_per_atom(i) + merge(s%Types(s%Basis(i)%Material)%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + 3
               end if
             end do
-            kountj = neq_per_atom(j) + merge(s%ndOrb,0,abs(s%Basis(j)%Un)>1.e-8_dp) + 3
+            kountj = neq_per_atom(j) + merge(s%Types(s%Basis(j)%Material)%ndOrb,0,abs(s%Basis(j)%Un)>1.e-8_dp) + 3
           end if ! |Um(j)| > 0
 
           ! **** Removing non-linear (quadratic) terms: ****
@@ -1016,125 +983,131 @@ contains
             ! Restarting column counter
             kountj = neq_per_atom(j)
 
-            gij = gvg(:,:,i,j)
+            gij(1:nOrb2_i,1:nOrb2_j) = gvg(1:nOrb2_i,1:nOrb2_j,i,j)
 
             do sigma = 1,4
               ! First product: temp1 =  pauli*g_ij
-              paulitemp = pauli_a(:,:, sigma)
-              call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,cOne,paulitemp,s%nOrb2,gij,s%nOrb2,cZero,temp,s%nOrb2)
-              temp1(:,:, sigma) = temp
+              paulitemp(1:nOrb2_i,1:nOrb2_i) = merge(s%Types(i)%pauli_orb(sigma-1,1:nOrb2_i,1:nOrb2_i),s%Types(i)%pauli_dorb(sigma-1,1:nOrb2_i,1:nOrb2_i),sigma==1) ! sigma_0 includes sp orbitals for the last line - total charge neutrality
+              call zgemm('n','n',nOrb2_i,nOrb2_j,nOrb2_i,cOne,paulitemp,s%nOrb2,gij,s%nOrb2,cZero,temp,s%nOrb2)
+              temp1(1:nOrb2_i,1:nOrb2_j,sigma) = temp(1:nOrb2_i,1:nOrb2_j)
             end do
 
             if(abs(s%Basis(j)%Un)>1.e-8_dp) then
-              do nu=1,s%ndOrb
+              do nu=1,s%Types(s%Basis(j)%Material)%ndOrb
                 ! Restarting line counter
                 kounti = neq_per_atom(i)
 
-                nud = s%dOrbs(nu)
-                mud = nud+s%nOrb
+                nud = s%Types(s%Basis(j)%Material)%dOrbs(nu)
+                mud = nud+s%Types(s%Basis(j)%Material)%nOrb
 
-                gji = gvg(:,:,j,i)
-                ! Second product: temp2 = (-U/2) * sigma* g_ji
-                paulitemp = pauli_b(:,:, 1)
+                gji(1:nOrb2_j,1:nOrb2_i) = gvg(1:nOrb2_j,1:nOrb2_i,j,i)
+                ! Second product: temp2 = (-U/2) * pauli * g_ji
+                paulitemp(1:nOrb2_j,1:nOrb2_j) = s%Types(j)%pauli_dorb(0,1:nOrb2_j,1:nOrb2_j)
                 paulitemp(nud,nud) = paulitemp(nud,nud) - 2._dp
                 paulitemp(mud,mud) = paulitemp(mud,mud) - 2._dp
-                call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,halfUn(j),paulitemp,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
-                temp2(:,:, 1) = temp
+                call zgemm('n','n',nOrb2_j,nOrb2_i,nOrb2_j,halfUn(j),paulitemp,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
+                temp2(1:nOrb2_j,1:nOrb2_i, 1) = temp(1:nOrb2_j,1:nOrb2_i)
 
                 ! Full product:  sigma.g.dHdx.g = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*sigma* g_ji
 
                 ! Charge density-charge density part
-                gij = temp1(:,:, 1)
-                gji = temp2(:,:, 1)
-                call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,weight,gij,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
+                gij(1:nOrb2_i,1:nOrb2_j) = temp1(1:nOrb2_i,1:nOrb2_j, 1)
+                gji(1:nOrb2_j,1:nOrb2_i) = temp2(1:nOrb2_j,1:nOrb2_i, 1)
+                call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_j,weight,gij,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
 
                 if(abs(s%Basis(i)%Un)>1.e-8_dp) then
-                  do mu=1,s%ndOrb
-                    mud = s%dOrbs(mu)
-                    jacobian(kounti+mu,kountj+nu) = jacobian(kounti+mu,kountj+nu) - real(temp(mud,mud) + temp(mud+s%nOrb,mud+s%nOrb))
+                  do mu=1,s%Types(s%Basis(j)%Material)%ndOrb
+                    mud = s%Types(s%Basis(j)%Material)%dOrbs(mu)
+                    nud = mud+s%Types(s%Basis(i)%Material)%nOrb
+                    jacobian(kounti+mu,kountj+nu) = jacobian(kounti+mu,kountj+nu) - real(temp(mud,mud) + temp(nud,nud))
                   end do
-                  kounti = neq_per_atom(i) + s%ndOrb
+                  kounti = neq_per_atom(i) + s%Types(s%Basis(i)%Material)%ndOrb
                 end if
 
                 ! Last line (Total charge neutrality)
                 if(.not.lfixEf) then
-                  do mu = 1,s%nOrb
-                    jacobian(neq,kountj+nu) = jacobian(neq,kountj+nu) - real(temp(mu,mu) + temp(mu+s%nOrb,mu+s%nOrb))
+                  do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
+                    nud = mu+s%Types(s%Basis(i)%Material)%nOrb
+                    jacobian(neq,kountj+nu) = jacobian(neq,kountj+nu) - real(temp(mu,mu) + temp(nud,nud))
                   end do
                 end if
 
                 ! Magnetic density-charge density part
                 if(abs(s%Basis(i)%Um)>1.e-8_dp) then
                   do sigma = 2,4
-                    gij = temp1(:,:, sigma)
-                    gji = temp2(:,:, 1)
-                    call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,weight,gij,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
+                    gij(1:nOrb2_i,1:nOrb2_j) = temp1(1:nOrb2_i,1:nOrb2_j, sigma)
+                    gji(1:nOrb2_j,1:nOrb2_i) = temp2(1:nOrb2_j,1:nOrb2_i, 1)
+                    call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_j,weight,gij,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
 
-                    do mu=1,s%ndOrb
-                      mud = s%dOrbs(mu)
-                      jacobian(kounti+sigma-1,kountj+nu) = jacobian(kounti+sigma-1,kountj+nu) - real(temp(mud,mud) + temp(mud+s%nOrb,mud+s%nOrb))
+                    do mu=1,s%Types(s%Basis(i)%Material)%ndOrb
+                      mud = s%Types(s%Basis(i)%Material)%dOrbs(mu)
+                      nud = mud+s%Types(s%Basis(i)%Material)%nOrb
+                      jacobian(kounti+sigma-1,kountj+nu) = jacobian(kounti+sigma-1,kountj+nu) - real(temp(mud,mud) + temp(nud,nud))
                     end do
                   end do
-                  kounti = neq_per_atom(i) + merge(s%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + 3
+                  kounti = neq_per_atom(i) + merge(s%Types(s%Basis(i)%Material)%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + 3
                 end if
 
               end do
-              kountj = neq_per_atom(j) + s%ndOrb
+              kountj = neq_per_atom(j) + s%Types(s%Basis(j)%Material)%ndOrb
             end if ! |Un(j)| > 0
 
             if(abs(s%Basis(j)%Um)>1.e-8_dp) then
 
-              gji = gvg(:,:,j,i)
+              gji(1:nOrb2_j,1:nOrb2_i) = gvg(1:nOrb2_j,1:nOrb2_i,j,i)
 
               do sigmap = 2,4
-                ! Second product: temp2 = (-U/2) * sigma* g_ji
-                paulitemp = pauli_b(:,:, sigmap)
-                call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,halfUm(j),paulitemp,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
-                temp2(:,:, sigmap) = temp
+                ! Second product: temp2 = (-U/2) * pauli * g_ji
+                paulitemp(1:nOrb2_j,1:nOrb2_j) = s%Types(j)%pauli_dorb(sigmap-1,1:nOrb2_j,1:nOrb2_j) 
+                call zgemm('n','n',nOrb2_j,nOrb2_i,nOrb2_j,halfUm(j),paulitemp,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
+                temp2(1:nOrb2_j,1:nOrb2_i,sigmap) = temp(1:nOrb2_j,1:nOrb2_i)
               end do
 
-              ! Full product:  sigma.g.dHdx.g = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*sigma* g_ji
+              ! Full product:  sigma.g.dHdx.g = temp1*temp2 = wkbz* pauli*g_ij*(-U/2)*pauli* g_ji
 
               ! Charge density-magnetic density part
               do sigmap = 2,4
                 ! Restarting line counter
                 kounti = neq_per_atom(i)
 
-                gij = temp1(:,:, 1)
-                gji = temp2(:,:, sigmap)
-                call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,weight,gij,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
+                gij(1:nOrb2_i,1:nOrb2_j) = temp1(1:nOrb2_i,1:nOrb2_j,1)
+                gji(1:nOrb2_j,1:nOrb2_i) = temp2(1:nOrb2_j,1:nOrb2_i,sigmap)
+                call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_j,weight,gij,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
 
                 if(abs(s%Basis(i)%Un)>1.e-8_dp) then
-                  do mu = 1,s%ndOrb
-                    mud = s%dOrbs(mu)
-                    jacobian(kounti+mu,kountj+sigmap-1) = jacobian(kounti+mu,kountj+sigmap-1) - real(temp(mud,mud) + temp(mud+s%nOrb,mud+s%nOrb))
+                  do mu = 1,s%Types(s%Basis(i)%Material)%ndOrb
+                    mud = s%Types(s%Basis(i)%Material)%dOrbs(mu)
+                    nud = mud+s%Types(s%Basis(i)%Material)%nOrb
+                    jacobian(kounti+mu,kountj+sigmap-1) = jacobian(kounti+mu,kountj+sigmap-1) - real(temp(mud,mud) + temp(nud,nud))
                   end do
-                  kounti = neq_per_atom(i) + s%ndOrb
+                  kounti = neq_per_atom(i) + s%Types(s%Basis(i)%Material)%ndOrb
                 end if
 
                 ! Last line (Total charge neutrality)
                 if(.not.lfixEf) then
-                  do mu = 1,s%nOrb
-                    jacobian(neq,kountj+sigmap-1) = jacobian(neq,kountj+sigmap-1) - real(temp(mu,mu) + temp(mu+s%nOrb,mu+s%nOrb))
+                  do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
+                    nud = mu+s%Types(s%Basis(i)%Material)%nOrb
+                    jacobian(neq,kountj+sigmap-1) = jacobian(neq,kountj+sigmap-1) - real(temp(mu,mu) + temp(nud,nud))
                   end do
                 end if
 
                 ! Magnetic density-magnetic density part
                 if(abs(s%Basis(i)%Um)>1.e-8_dp) then
                   do sigma = 2,4
-                    gij = temp1(:,:, sigma)
-                    gji = temp2(:,:, sigmap)
-                    call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,weight,gij,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
+                    gij(1:nOrb2_i,1:nOrb2_j) = temp1(1:nOrb2_i,1:nOrb2_j,sigma)
+                    gji(1:nOrb2_j,1:nOrb2_i) = temp2(1:nOrb2_j,1:nOrb2_i,sigmap)
+                    call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_j,weight,gij,s%nOrb2,gji,s%nOrb2,cZero,temp,s%nOrb2)
 
-                    do mu=1,s%ndOrb
-                      mud = s%dOrbs(mu)
-                      jacobian(kounti+sigma-1,kountj+sigmap-1) = jacobian(kounti+sigma-1,kountj+sigmap-1) - real(temp(mud,mud) + temp(mud+s%nOrb,mud+s%nOrb))
+                    do mu=1,s%Types(s%Basis(i)%Material)%ndOrb
+                      mud = s%Types(s%Basis(i)%Material)%dOrbs(mu)
+                      nud = mud+s%Types(s%Basis(i)%Material)%nOrb
+                      jacobian(kounti+sigma-1,kountj+sigmap-1) = jacobian(kounti+sigma-1,kountj+sigmap-1) - real(temp(mud,mud) + temp(nud,nud))
                     end do
                   end do
-                  kounti = neq_per_atom(i) + merge(s%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + 3
+                  kounti = neq_per_atom(i) + merge(s%Types(s%Basis(i)%Material)%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + 3
                 end if
               end do
-              kountj = neq_per_atom(j) + merge(s%ndOrb,0,abs(s%Basis(j)%Un)>1.e-8_dp) + 3
+              kountj = neq_per_atom(j) + merge(s%Types(s%Basis(j)%Material)%ndOrb,0,abs(s%Basis(j)%Un)>1.e-8_dp) + 3
             end if ! |Um(j)| > 0
 
           end if ! End linear part
@@ -1157,60 +1130,51 @@ contains
           call greenlinearsoc(s%Ef,eta,s,kp,gf,gvg)
           gf = gf + gvg
         else
-          ! If superconductivity is on then take the ee block of the green function
-          if ( lsuperCond ) then
-            call green(s%Ef,eta,s,kp,gfsc)
-            do j = 1,s%nAtoms
-              do i = 1,s%nAtoms
-                gf( 1:s%nOrb2,1:s%nOrb2,i,j) = gfsc( 1:s%nOrb2,1:s%nOrb2,i,j)
-              end do
-            end do
-          else
-            call green(s%Ef,eta,s,kp,gf)
-          end if ! If from lsuperCond
+          call green(s%Ef,eta,s,kp,gf)
         end if
 
         do i=1,s%nAtoms
           ! Restarting line counter
           kounti = neq_per_atom(i)
 
-          gij = gf(:,:,i,i)
+          gij(1:nOrb2_i,1:nOrb2_i) = gf(1:nOrb2_i,1:nOrb2_i,i,i)
 
           ! Charge density per orbital lines
           ! temp1 =  pauli*g_ii
-          paulitemp = pauli_a(:,:, 1)
-          call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,weight,paulitemp,s%nOrb2,gij,s%nOrb2,cZero,temp,s%nOrb2)
-
+          paulitemp(1:nOrb2_i,1:nOrb2_i) = s%Types(i)%pauli_orb(0,1:nOrb2_i,1:nOrb2_i) ! sigma_0 includes sp orbitals for the last line - total charge neutrality
+          call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_i,weight,paulitemp,s%nOrb2,gij,s%nOrb2,cZero,temp,s%nOrb2)
 
           if(abs(s%Basis(i)%Un)>1.e-8_dp) then
-            do mu = 1,s%ndOrb
-              mud = s%dOrbs(mu)
-              jacobian(kounti+mu,neq) = jacobian(kounti+mu,neq) - aimag(temp(mud,mud) + temp(mud+s%nOrb,mud+s%nOrb))
+            do mu = 1,s%Types(s%Basis(i)%Material)%ndOrb
+              mud = s%Types(s%Basis(i)%Material)%dOrbs(mu)
+              nud = mud+s%Types(s%Basis(i)%Material)%nOrb
+              jacobian(kounti+mu,neq) = jacobian(kounti+mu,neq) - aimag(temp(mud,mud) + temp(nud,nud))
             end do
-            kounti = neq_per_atom(i) + s%ndOrb
+            kounti = neq_per_atom(i) + s%Types(s%Basis(i)%Material)%ndOrb
           end if
 
           ! Last line (Total charge neutrality)
           if(.not.lfixEf) then
-            do mu = 1,s%nOrb
-              jacobian(neq,neq) = jacobian(neq,neq)  - aimag(temp(mu,mu) + temp(mu+s%nOrb,mu+s%nOrb))
+            do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
+              nud = mu+s%Types(s%Basis(i)%Material)%nOrb
+              jacobian(neq,neq) = jacobian(neq,neq)  - aimag(temp(mu,mu) + temp(nud,nud))
             end do
           end if
-
 
           ! Magnetic density-last column part
           if(abs(s%Basis(i)%Um)>1.e-8_dp) then
             do sigma = 2,4
               ! temp1 =  pauli*g_ii
-              paulitemp = pauli_a(:,:, sigma)
-              call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,weight,paulitemp,s%nOrb2,gij,s%nOrb2,cZero,temp,s%nOrb2)
+              paulitemp(1:nOrb2_i,1:nOrb2_i) = s%Types(i)%pauli_dorb(sigma-1,1:nOrb2_i,1:nOrb2_i)
+              call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_i,weight,paulitemp,s%nOrb2,gij,s%nOrb2,cZero,temp,s%nOrb2)
 
-              do mu=1,s%ndOrb
-                mud = s%dOrbs(mu)
-                jacobian(kounti+sigma-1,neq) = jacobian(kounti+sigma-1,neq) - dimag(temp(mud,mud) + temp(mud+s%nOrb,mud+s%nOrb))
+              do mu=1,s%Types(s%Basis(i)%Material)%ndOrb
+                mud = s%Types(s%Basis(i)%Material)%dOrbs(mu)
+                nud = mud+s%Types(s%Basis(i)%Material)%nOrb
+                jacobian(kounti+sigma-1,neq) = jacobian(kounti+sigma-1,neq) - dimag(temp(mud,mud) + temp(nud,nud))
               end do
             end do
-            kounti = neq_per_atom(i) + merge(s%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + 3
+            kounti = neq_per_atom(i) + merge(s%Types(s%Basis(i)%Material)%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + 3
           end if
 
           ! No linear correction is needed since it's a single Green function
@@ -1219,12 +1183,6 @@ contains
       end do ! End nkpt loop
       !$omp end do nowait
     end if
-
-    deallocate(paulitemp)
-    deallocate(temp1, temp2, temp)
-    deallocate(gf, gij, gji)
-    if(allocated(gvg)) deallocate(gvg)
-    if(allocated(gfsc)) deallocate(gfsc)
     !$omp end parallel
 
     call MPI_Allreduce(MPI_IN_PLACE, jacobian, ncount2, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
@@ -1320,7 +1278,7 @@ contains
       do mu=1,s%Types(s%Basis(i)%Material)%npOrb
         rhop(i) = rhop(i) + rho(s%Types(s%Basis(i)%Material)%pOrbs(mu),i)
       end do
-      write(output%unit_loop,fmt="(a,':',2x,'Ns=',f10.7,4x,'Np=',f10.7,4x,'Nd=',f10.7)") trim(s%Types(s%Basis(i)%Material)%Name),rhos(i),rhop(i),rhod(i)
+      write(output%unit_loop,fmt="(a2,':',2x,'Ns=',f10.7,4x,'Np=',f10.7,4x,'Nd=',f10.7)") trim(s%Types(s%Basis(i)%Material)%Name),rhos(i),rhop(i),rhod(i)
     end do
 
     if(lsupercond) then
@@ -1352,11 +1310,11 @@ contains
     write(output%unit_loop,"(11x,' *********** Magnetization components: ***********')")
     if(abs(sum(mp(:,:)))>1.e-7_dp) then
       do i=1,s%nAtoms
-        write(output%unit_loop,"(a,':',2x,'Mx=',f10.7,4x,'My=',f10.7,4x,'Mz=',f10.7,4x,'theta = ',f10.5,4x,'phi = ',f10.5)") trim(s%Types(s%Basis(i)%Material)%Name),mvec_cartesian(1,i),mvec_cartesian(2,i),mvec_cartesian(3,i),mvec_spherical(2,i),mvec_spherical(3,i)
+        write(output%unit_loop,"(a2,':',2x,'Mx=',f10.7,4x,'My=',f10.7,4x,'Mz=',f10.7,4x,'theta = ',f10.5,4x,'phi = ',f10.5)") trim(s%Types(s%Basis(i)%Material)%Name),mvec_cartesian(1,i),mvec_cartesian(2,i),mvec_cartesian(3,i),mvec_spherical(2,i),mvec_spherical(3,i)
       end do
     else
       do i=1,s%nAtoms
-        write(output%unit_loop,"(a,':',2x,'Mx=',f10.7,4x,'My=',f10.7,4x,'Mz=',f10.7)") trim(s%Types(s%Basis(i)%Material)%Name),mvec_cartesian(1,i),mvec_cartesian(2,i),mvec_cartesian(3,i)
+        write(output%unit_loop,"(a2,':',2x,'Mx=',f10.7,4x,'My=',f10.7,4x,'Mz=',f10.7)") trim(s%Types(s%Basis(i)%Material)%Name),mvec_cartesian(1,i),mvec_cartesian(2,i),mvec_cartesian(3,i)
       end do
     end if
     if(lconstraining_field) then
@@ -1377,22 +1335,22 @@ contains
       end do
       if(abs(vec_norm(bc_spherical(2,:),s%nAtoms))>1.e-6_dp) then
         do i=1,s%nAtoms
-          write(output%unit_loop,"(a,':',2x,'Bx=',f10.7,4x,'By=',f10.7,4x,'Bz=',f10.7,4x,'theta = ',f10.5,4x,'phi = ',f10.5)") trim(s%Types(s%Basis(i)%Material)%Name),bc(1,i),bc(2,i),bc(3,i),bc_spherical(2,i),bc_spherical(3,i)
+          write(output%unit_loop,"(a2,':',2x,'Bx=',f10.7,4x,'By=',f10.7,4x,'Bz=',f10.7,4x,'theta = ',f10.5,4x,'phi = ',f10.5)") trim(s%Types(s%Basis(i)%Material)%Name),bc(1,i),bc(2,i),bc(3,i),bc_spherical(2,i),bc_spherical(3,i)
         end do
       else
         do i=1,s%nAtoms
-          write(output%unit_loop,"(a,':',2x,'Bx=',f10.7,4x,'By=',f10.7,4x,'Bz=',f10.7)") trim(s%Types(s%Basis(i)%Material)%Name),bc(1,i),bc(2,i),bc(3,i)
+          write(output%unit_loop,"(a2,':',2x,'Bx=',f10.7,4x,'By=',f10.7,4x,'Bz=',f10.7)") trim(s%Types(s%Basis(i)%Material)%Name),bc(1,i),bc(2,i),bc(3,i)
         end do
       end if
     end if
     write(output%unit_loop,"(11x,' ****** Orbital components in global frame: ******')")
     if(sum(lxm(:)**2+lym(:)**2)>1.e-7_dp) then
       do i=1,s%nAtoms
-        write(output%unit_loop,"(a,':',2x,'Lx=',f10.7,4x,'Ly=',f10.7,4x,'Lz=',f10.7,4x,'theta = ',f10.5,4x,'phi = ',f10.5)") trim(s%Types(s%Basis(i)%Material)%Name),lxm(i),lym(i),lzm(i),ltheta(i),lphi(i)
+        write(output%unit_loop,"(a2,':',2x,'Lx=',f10.7,4x,'Ly=',f10.7,4x,'Lz=',f10.7,4x,'theta = ',f10.5,4x,'phi = ',f10.5)") trim(s%Types(s%Basis(i)%Material)%Name),lxm(i),lym(i),lzm(i),ltheta(i),lphi(i)
       end do
     else
       do i=1,s%nAtoms
-        write(output%unit_loop,"(a,':',2x,'Lx=',f10.7,4x,'Ly=',f10.7,4x,'Lz=',f10.7)") trim(s%Types(s%Basis(i)%Material)%Name),lxm(i),lym(i),lzm(i)
+        write(output%unit_loop,"(a2,':',2x,'Lx=',f10.7,4x,'Ly=',f10.7,4x,'Lz=',f10.7)") trim(s%Types(s%Basis(i)%Material)%Name),lxm(i),lym(i),lzm(i)
       end do
     end if
     ! write(output%unit_loop,"(11x,' *** Orbital components in local frame:  ***')")
@@ -1403,7 +1361,7 @@ contains
     ! end do
     write(output%unit_loop,"(11x,' ******************** Total: ********************')")
     do i=1,s%nAtoms
-      write(output%unit_loop,"(a,':',2x,' N=',f10.7,2x,' |M|=',f10.7,2x,' |L|=',f10.7)") trim(s%Types(s%Basis(i)%Material)%Name),sum(rho(:,i)),mvec_spherical(1,i),labs(i)
+      write(output%unit_loop,"(a2,':',2x,' N=',f10.7,2x,' |M|=',f10.7,2x,' |L|=',f10.7)") trim(s%Types(s%Basis(i)%Material)%Name),sum(rho(:,i)),mvec_spherical(1,i),labs(i)
     end do
     write(output%unit_loop,"('|----------===================== (',i4.0,' iterations ) =====================----------|')") iter
   end subroutine print_sc_results

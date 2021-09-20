@@ -7,7 +7,7 @@ program TITAN
   !! magnetic self-consistency and calculate either ground state
   !! quantities or response functions
   use mod_kind,                only: dp
-  use mod_constants,           only: cZero,allocate_constants,define_constants
+  use mod_constants,           only: cZero,define_constants
   use mod_parameters,          only: output,lpositions,lcreatefolders,parField,parFreq,nEner1,skip_steps,ldebug, &
                                      kp_in,kptotal_in,eta,leigenstates,itype,theta,phi, &
                                      laddresults,lsortfiles,lcreatefiles,arg,tbmode,lfixEf
@@ -90,10 +90,6 @@ program TITAN
   !---------------- Writing time after initializations -----------------
   if(myrank == 0) call write_time('[main]' // trim(arg) // ' Started on: ',output%unit)
 
-  !------------------- Useful constants and matrices -------------------
-  call allocate_constants(s%nOrb)
-  call define_constants(s) ! TODO: Review
-
   !------------------- Define the lattice structure --------------------
   call read_basis("basis", s)
   call initLattice(s)
@@ -136,9 +132,14 @@ program TITAN
   !---------------- Reading Tight Binding parameters -------------------
   call initTightBinding(s)
 
+  !------------------- Useful constants and matrices -------------------
+  call define_constants(s) ! TODO: Review
+
   !----------------- Tests for coupling calculation ------------------
   if((lconstraining_field).and.(sum(abs(s%Types(:)%Um))<1.e-8).and.(tbmode==1).and.(myrank == 0)) &
     call abortProgram("[main] Constraining fields need Um to induce a magnetic moment!")
+
+  call flush(output%unit)
 
   !-- Calculating initial values in the SK tight-binding hamiltonian ---
   if((tbmode==1).and.(.not.lsortfiles)) call calc_init_expec_SK(s)
@@ -378,7 +379,6 @@ subroutine endTITAN()
   use mod_parameters,          only: arg,output,leigenstates
   use mod_progress,            only: write_time
   use mod_BrillouinZone,       only: realBZ
-  use mod_constants,           only: deallocate_constants
   use mod_magnet,              only: deallocate_magnet_variables
   use adaptiveMesh,            only: deallocateAdaptiveMeshes
   use EnergyIntegration,       only: deallocate_energy_points
@@ -406,7 +406,6 @@ subroutine endTITAN()
   if(leigenstates) call realBZ%free()
   call deallocateAdaptiveMeshes()
   call deallocate_supercond_variables()
-  call deallocate_constants()
 
   !---------------------- Deallocating variables -----------------------
   !deallocate(r_nn, c_nn, l_nn)

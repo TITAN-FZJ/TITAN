@@ -90,31 +90,36 @@ contains
     complex(dp), dimension(s%nAtoms,s%nAtoms,3,3) :: alphaSO, alphaXC
 
     if(rField == 0) &
-      write(output%unit_loop, "('[calculate_gilbert_damping] Starting to calculate Gilbert damping within the TCM:')")
+      write(output%unit_loop, "('[calculate_TCM] Starting to calculate Gilbert damping within the TCM:')")
 
     if(rField == 0) &
       call openTCMFiles()
 
+    !! What is calculated in TCM() is:
+    !! $\alpha= \frac{1}{M \pi N} \sum_{\mathbf{k}} \operatorname{Tr}\{\operatorname{Im} G(\mathbf{k},\epsilon_\text{F})\hat{T}^-_\text{xc} \operatorname{Im} G(\mathbf{k},\epsilon_F) \hat{T}^+_\text{xc}\}$
     if(rField == 0) &
-      write(output%unit_loop, "('[calculate_gilbert_damping] SO-TCM...')")
+      write(output%unit_loop, "('[calculate_TCM] SO-TCM...')")
 
-    ! SO-TCM
+    !! SO-TCM: The missing pre-factor is 2*\gamma, which, for g = 2 results in 4.0
+
     call TCM(SO_torque_operator, alphaSO, ndiffk, diff_k, ialphaSO, iwght)
 
     if(rField == 0) then
-      write(output%unit_loop, "('[calculate_gilbert_damping] Writing results of SO-TCM to file...')")
+      alphaSO = 4._dp * alphaSO
+      ialphaSO = 4._dp * ialphaSO
+      write(output%unit_loop, "('[calculate_TCM] Writing results of SO-TCM to file...')")
       call writeTCM(634894, alphaSO, ndiffk, diff_k, ialphaSO, iwght)
-      call write_time('[main] Time after SO-TCM: ',output%unit_loop)
-      write(output%unit_loop, "('[calculate_gilbert_damping] XC-TCM...')")
+      call write_time('[calculate_TCM] Time after SO-TCM: ',output%unit_loop)
+      write(output%unit_loop, "('[calculate_TCM] XC-TCM...')")
     end if
 
-    ! XC-TCM
+    !! XC-TCM: The missing pre-factor is \gamma/2, which, for g = 2 results in 1.0
     call TCM(xc_torque_operator, alphaXC, ndiffk, diff_k, ialphaXC, iwght)
 
     if(rField == 0) then
-      write(output%unit_loop, "('[calculate_gilbert_damping] Writing results of XC-TCM to file...')")
+      write(output%unit_loop, "('[calculate_TCM] Writing results of XC-TCM to file...')")
       call writeTCM(634896, alphaXC, ndiffk, diff_k, ialphaXC, iwght)
-      call write_time('[main] Time after XC-TCM: ',output%unit_loop)
+      call write_time('[calculate_TCM] Time after XC-TCM: ',output%unit_loop)
       call closeTCMFiles()
     end if
 
@@ -137,16 +142,16 @@ contains
     interface
       subroutine torque_operator(torque)
         use mod_kind,       only: dp
-        use mod_System,     only: sys
+        use mod_System,     only: s => sys
         implicit none
-        complex(dp), dimension(sys%nOrb2,sys%nOrb2,3,sys%nAtoms), intent(out) :: torque
+        complex(dp), dimension(s%nOrb2,s%nOrb2,3,s%nAtoms), intent(out) :: torque
       end subroutine torque_operator
     end interface
 
     complex(dp), dimension(s%nAtoms,s%nAtoms,3,3), intent(out) :: alpha
     !! Contains the Gilbert Damping as matrix in sites and cartesian coordinates (nAtoms,nAtoms,3,3)
     integer(int64) :: iz
-    integer   :: i, j, m, n, k, mu, ios
+    integer   :: i, j, m, n, k, mu, ios, nOrb2_i, nOrb2_j
 
     integer   :: ndiffk
     !! Number of different abs(k_z) in the k points list
@@ -169,12 +174,12 @@ contains
     !! Integrated alpha (as a function of the maximum kz summed) $ \alpha = \sum_{k_z}^{k_z^\text{max}} \alpha(k_z)$
     complex(dp), dimension(s%nOrb2,s%nOrb2,3,s%nAtoms) :: torque
     !! Torque operator (SO or XC)
-    complex(dp),dimension(:,:,:,:),allocatable :: gf
+    complex(dp),dimension(s%nOrb2sc,s%nOrb2sc,s%nAtoms,s%nAtoms) :: gf
     !! Green function
-    complex(dp),dimension(:,:),allocatable :: temp1, temp2, temp3
+    complex(dp),dimension(s%nOrb2,s%nOrb2) :: temp1, temp2, temp3, temp4
     complex(dp) :: alphatemp
     !! Temporary k-dependent alpha
-    complex(dp), dimension(:,:,:,:), allocatable :: alpha_loc
+    complex(dp), dimension(s%nAtoms,s%nAtoms,3,3) :: alpha_loc
     !! Local (in-processor) alpha
 
     external :: zgemm,MPI_Allreduce
@@ -230,9 +235,9 @@ contains
     call torque_operator(torque)
 
     !! XC-TCM:
-    !! $\alpha= \frac{1}{\gamma M \pi N} \sum_{\mathbf{k}} \operatorname{Tr}\{\operatorname{Im} G(\mathbf{k},\epsilon_\text{F})\hat{T}^-_\text{xc} \operatorname{Im} G(\mathbf{k},\epsilon_F) \hat{T}^+_\text{xc}\}$
+    !! $\alpha= \frac{\gamma}{2 M \pi N} \sum_{\mathbf{k}} \operatorname{Tr}\{\operatorname{Im} G(\mathbf{k},\epsilon_\text{F})\hat{T}^-_\text{xc} \operatorname{Im} G(\mathbf{k},\epsilon_F) \hat{T}^+_\text{xc}\}$
     !! SO-TCM:
-    !! $\alpha - \alpha_{\text{noSOI}} = \frac{1}{\gamma M \pi N} \sum_{\mathbf{k}}\operatorname{Tr}\{\operatorname{Im} G(\mathbf{k},\epsilon_F)\hat{T}^-_{\text{SOI}} \operatorname{Im} G(\mathbf{k},\epsilon_F) \hat{T}^+_{\text{SOI}}\} $
+    !! $\alpha - \alpha_{\text{noSOI}} = 2 \frac{\gamma}{M \pi N} \sum_{\mathbf{k}}\operatorname{Tr}\{\operatorname{Im} G(\mathbf{k},\epsilon_F)\hat{T}^-_{\text{SOI}} \operatorname{Im} G(\mathbf{k},\epsilon_F) \hat{T}^+_{\text{SOI}}\} $
     !! g = 2
     !! M = magnetic moment
     alpha(:,:,:,:) = cZero
@@ -244,12 +249,8 @@ contains
       write(output%unit_loop, "('[TCM] Calculating alpha...')")
 
     !$omp parallel default(none) reduction(+:ialpha,iwght) &
-    !$omp& private(m,n,i,j,k,mu,iz,kp,wght,gf,temp1,temp2,temp3, alpha_loc,alphatemp) &
+    !$omp& private(m,n,i,j,k,mu,nOrb2_i,nOrb2_j,iz,kp,wght,gf,temp1,temp2,temp3,temp4,alpha_loc,alphatemp) &
     !$omp& shared(s,realBZ,eta,torque,alpha,rField,order,ndiffk,diff_k)
-    allocate(gf(s%nOrb2,s%nOrb2,s%nAtoms,s%nAtoms), &
-             temp1(s%nOrb2,s%nOrb2), temp2(s%nOrb2,s%nOrb2), temp3(s%nOrb2,s%nOrb2), &
-             alpha_loc(s%nAtoms,s%nAtoms,3,3))
-    gf = cZero
     alpha_loc  = cZero
 
     !$omp do schedule(static)
@@ -258,24 +259,26 @@ contains
       wght = realBZ%w(iz)
       gf   = cZero
       call green(s%Ef,eta,s,kp,gf)
-      dir_m: do m = 1, 3
-        dir_n: do n = 1, 3
-          site_i: do i = 1, s%nAtoms
-            site_j: do j = 1, s%nAtoms
-              alphatemp = cZero
-              temp1 = cZero
-              temp2 = cZero
-              temp3 = cZero
-              ! alpha^{mn}_{ij} = Tr ( Torque^m_i Im(G_ij(Ef)) * Torque^n_j * Im(G_ji(Ef)) )
-              temp2 = cI * (gf(:,:,j,i) - transpose(conjg(gf(:,:,i,j))))
-              temp3 = torque(:,:,n,j)
-              call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,cOne,temp3,s%nOrb2,temp2,s%nOrb2,cZero,temp1,s%nOrb2) ! Torque^n_j * Im(G_ji(Ef))
-              temp2 = cI * (gf(:,:,i,j) - transpose(conjg(gf(:,:,i,j))))
-              call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,cOne,temp2,s%nOrb2,temp1,s%nOrb2,cZero,temp3,s%nOrb2) ! Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))
-              temp2 = torque(:,:,m,i)
-              call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,cOne,temp2,s%nOrb2,temp3,s%nOrb2,cZero,temp1,s%nOrb2) ! Torque^m_i * Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))
+      site_i: do i = 1, s%nAtoms
+        site_j: do j = 1, s%nAtoms
+          nOrb2_i = 2*s%Types(s%Basis(i)%Material)%nOrb
+          nOrb2_j = 2*s%Types(s%Basis(j)%Material)%nOrb
+          temp2 = 0.5_dp * cI * ( transpose(conjg(gf(1:nOrb2_i,1:nOrb2_j,i,j))) - gf(1:nOrb2_j,1:nOrb2_i,j,i) ) ! Im(G_ji(Ef)) )
+          temp4 = 0.5_dp * cI * ( transpose(conjg(gf(1:nOrb2_j,1:nOrb2_i,j,i))) - gf(1:nOrb2_i,1:nOrb2_j,i,j) ) ! Im(G_ij(Ef))
 
-              do mu = 1, s%nOrb2
+          dir_m: do m = 1, 3
+            dir_n: do n = 1, 3
+
+              alphatemp = cZero
+              ! alpha^{mn}_{ij} = Tr ( Torque^m_i * Im(G_ij(Ef)) * Torque^n_j * Im(G_ji(Ef)) )
+              !                      temp2(below) *     temp4    *    temp3   * temp2(above)
+              temp3 = torque(1:nOrb2_j,1:nOrb2_j,n,j)
+              call zgemm('n','n',nOrb2_j,nOrb2_i,nOrb2_j,cOne,temp3,s%nOrb2,temp2,s%nOrb2,cZero,temp1,s%nOrb2) ! Torque^n_j * Im(G_ji(Ef))
+              call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_j,cOne,temp4,s%nOrb2,temp1,s%nOrb2,cZero,temp3,s%nOrb2) ! Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))
+              temp2 = torque(1:nOrb2_i,1:nOrb2_i,m,i)
+              call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_i,cOne,temp2,s%nOrb2,temp3,s%nOrb2,cZero,temp1,s%nOrb2) ! Torque^m_i * Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))
+
+              do mu = 1, nOrb2_i
                 alphatemp = alphatemp + temp1(mu,mu) * wght
               end do
               alpha_loc(j,i,n,m) = alpha_loc(j,i,n,m) + alphatemp
@@ -291,26 +294,30 @@ contains
                 end do diffk
               end if
 
-            end do site_j
-          end do site_i
-        end do dir_n
-      end do dir_m
+            end do dir_n
+          end do dir_m
+        end do site_j
+      end do site_i
     end do kpoints
     !$omp end do nowait
 
-      !$omp critical
-      alpha = alpha + alpha_loc
-      !$omp end critical
+    !$omp critical
+    alpha = alpha + alpha_loc
+    !$omp end critical
 
-    deallocate(gf,temp1,temp2,temp3)
-    deallocate(alpha_loc)
     !$omp end parallel
 
+    !! XC-TCM:
+    !! $\alpha= \frac{\gamma}{2 M \pi N} \sum_{\mathbf{k}} \operatorname{Tr}\{\operatorname{Im} G(\mathbf{k},\epsilon_\text{F})\hat{T}^-_\text{xc} \operatorname{Im} G(\mathbf{k},\epsilon_F) \hat{T}^+_\text{xc}\}$
+    !! SO-TCM:
+    !! $\alpha - \alpha_{\text{noSOI}} = 2 \frac{\gamma}{M \pi N} \sum_{\mathbf{k}}\operatorname{Tr}\{\operatorname{Im} G(\mathbf{k},\epsilon_F)\hat{T}^-_{\text{SOI}} \operatorname{Im} G(\mathbf{k},\epsilon_F) \hat{T}^+_{\text{SOI}}\} $
+    !! g = 2
+    !! M = magnetic moment
     do i = 1, s%nAtoms
       do j = 1, s%nAtoms
-        alpha(j,i,:,:) = 2._dp * alpha(j,i,:,:) / (sqrt(mabs(i)*mabs(j))*pi)
+        alpha(j,i,:,:) = alpha(j,i,:,:) / (sqrt(mabs(i)*mabs(j))*pi) ! The sqrt shows up because the i=j term multiplies twice
       end do
-      if(s%isysdim==3) ialpha(i,:,:) = 2._dp * ialpha(i,:,:) / (mabs(i)*pi)
+      if(s%isysdim==3) ialpha(i,:,:) = ialpha(i,:,:) / (mabs(i)*pi)
     end do
 
     call MPI_Allreduce(MPI_IN_PLACE, alpha , s%nAtoms*s%nAtoms*3*3, MPI_DOUBLE_COMPLEX  , MPI_SUM, FieldComm, ierr)

@@ -90,7 +90,8 @@ contains
   !   Calculates iso-energy surface (e=Ef for Fermi surface)
   subroutine calculate_fermi_surface(e)
     use mod_kind,          only: dp,int32,int64
-    use mod_constants,     only: pi,pauli_orb,cZero,cOne
+    use AtomTypes,         only: default_nOrb
+    use mod_constants,     only: pi,cZero,cOne
     use mod_parameters,    only: eta
     use mod_SOC,           only: llinearsoc,llineargfsoc
     use mod_system,        only: s => sys
@@ -101,12 +102,12 @@ contains
     implicit none
     real(dp),intent(in) :: e
     integer(int64)      :: iz
-    integer(int32)      :: i,mu,nu,mup,nup,sigma
-    real(dp)            :: fs_atom(s%nAtoms,realBZ%nkpt,7),fs_orb(s%nOrb,realBZ%nkpt,7),fs_total(realBZ%nkpt,7)
+    integer(int32)      :: i,mu,nu,mup,nup,orb,sigma,nOrb2
+    real(dp)            :: fs_atom(s%nAtoms,realBZ%nkpt,7),fs_orb(default_nOrb,realBZ%nkpt,7),fs_total(realBZ%nkpt,7)
     real(dp)            :: kp(3)
     real(dp)            :: temp
     complex(dp)         :: templ
-    complex(dp),dimension(s%nOrb2,s%nOrb2,s%nAtoms,s%nAtoms)    :: gf
+    complex(dp),dimension(s%nOrb2sc,s%nOrb2sc,s%nAtoms,s%nAtoms)    :: gf
     complex(dp),dimension(s%nOrb2,s%nOrb2)    :: temp1,temp2,pauli_gf
 
     external :: zgemm,MPI_Reduce
@@ -123,10 +124,11 @@ contains
 
     !$omp parallel do &
     !$omp& default(none) &
-    !$omp& private(iz,kp,gf,i,mu,nu,mup,nup,sigma,temp,temp1,temp2,templ,pauli_gf) &
-    !$omp& shared(s,calc_green,realBZ,e,eta,pauli_orb,fs_atom,fs_orb,fs_total)
+    !$omp& private(iz,kp,gf,i,mu,nu,mup,nup,orb,nOrb2,sigma,temp,temp1,temp2,templ,pauli_gf) &
+    !$omp& shared(s,calc_green,realBZ,e,eta,fs_atom,fs_orb,fs_total)
     do iz = 1,realBZ%workload
       kp = realBZ%kp(1:3,iz)
+      nOrb2 = s%Types(s%Basis(i)%Material)%nOrb2
       ! Green function on energy Ef + ieta, and wave vector kp
       call calc_green(e,eta,s,kp,gf)
 
@@ -134,16 +136,20 @@ contains
         ! Spin and charge densities
         do sigma=1,4
           if(sigma==1) then
-            pauli_gf = gf(:,:,i,i)
+            pauli_gf(1:nOrb2,1:nOrb2) = gf(1:nOrb2,1:nOrb2,i,i)
           else
-            temp1 = pauli_orb(sigma-1,:,:)
-            temp2 = gf(:,:,i,i)
-            call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,cOne,temp1,s%nOrb2,temp2,s%nOrb2,cZero,pauli_gf,s%nOrb2)
+            temp1(1:nOrb2,1:nOrb2) = s%Types(s%Basis(i)%Material)%pauli_orb(sigma-1,1:nOrb2,1:nOrb2)
+            temp2(1:nOrb2,1:nOrb2) = gf(1:nOrb2,1:nOrb2,i,i)
+
+            call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp1,s%nOrb2,temp2,s%nOrb2,cZero,pauli_gf,s%nOrb2)
           end if
           do mu=1,s%Types(s%Basis(i)%Material)%nOrb
             nu = mu + s%Types(s%Basis(i)%Material)%nOrb
             temp = - aimag(pauli_gf(mu,mu)+pauli_gf(nu,nu))/pi
-            fs_orb(mu,realBZ%first+iz-1,sigma) = fs_orb(mu,realBZ%first+iz-1,sigma) + temp
+            ! Storing orbital accumulation for this particular orbital type
+            orb = s%Types(s%Basis(i)%Material)%Orbs(mu)
+            fs_orb(orb,realBZ%first+iz-1,sigma) = fs_orb(orb,realBZ%first+iz-1,sigma) + temp
+            ! Storing site accumulation
             fs_atom(i,realBZ%first+iz-1,sigma) = fs_atom(i,realBZ%first+iz-1,sigma) + temp
           end do
         end do
@@ -151,17 +157,20 @@ contains
         ! OAM densities
         orb_mu: do mu=1,s%Types(s%Basis(i)%Material)%nOrb
           mup = mu+s%Types(s%Basis(i)%Material)%nOrb
+          ! orbital type:
+          orb = s%Types(s%Basis(i)%Material)%Orbs(mu)
+
           orb_nu: do nu=1,s%Types(s%Basis(i)%Material)%nOrb
             nup = nu+s%Types(s%Basis(i)%Material)%nOrb
             templ = (gf(nu,mu,i,i) + gf(nup,mup,i,i))/pi
             temp  = real( s%Types(s%Basis(i)%Material)%lvec(mu,nu,1)*templ )
-            fs_orb(mu,realBZ%first+iz-1,5) = fs_orb(mu,realBZ%first+iz-1,5) + temp
+            fs_orb(orb,realBZ%first+iz-1,5) = fs_orb(orb,realBZ%first+iz-1,5) + temp
             fs_atom(i,realBZ%first+iz-1,5) = fs_atom(i,realBZ%first+iz-1,5) + temp
             temp  = real( s%Types(s%Basis(i)%Material)%lvec(mu,nu,2)*templ )
-            fs_orb(mu,realBZ%first+iz-1,6) = fs_orb(mu,realBZ%first+iz-1,6) + temp
+            fs_orb(orb,realBZ%first+iz-1,6) = fs_orb(orb,realBZ%first+iz-1,6) + temp
             fs_atom(i,realBZ%first+iz-1,6) = fs_atom(i,realBZ%first+iz-1,6) + temp
             temp  = real( s%Types(s%Basis(i)%Material)%lvec(mu,nu,3)*templ )
-            fs_orb(mu,realBZ%first+iz-1,7) = fs_orb(mu,realBZ%first+iz-1,7) + temp
+            fs_orb(orb,realBZ%first+iz-1,7) = fs_orb(orb,realBZ%first+iz-1,7) + temp
             fs_atom(i,realBZ%first+iz-1,7) = fs_atom(i,realBZ%first+iz-1,7) + temp
           end do orb_nu
         end do orb_mu
@@ -173,13 +182,13 @@ contains
     !$omp end parallel do
 
     if(rField == 0) then
-      call MPI_Reduce(MPI_IN_PLACE, fs_orb   , s%nOrb*realBZ%nkpt*7  , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
-      call MPI_Reduce(MPI_IN_PLACE, fs_atom  , s%nAtoms*realBZ%nkpt*7, MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
-      call MPI_Reduce(MPI_IN_PLACE, fs_total , realBZ%nkpt*7         , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+      call MPI_Reduce(MPI_IN_PLACE, fs_orb   , default_nOrb*realBZ%nkpt*7  , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+      call MPI_Reduce(MPI_IN_PLACE, fs_atom  , s%nAtoms*realBZ%nkpt*7      , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+      call MPI_Reduce(MPI_IN_PLACE, fs_total , realBZ%nkpt*7               , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
     else
-      call MPI_Reduce(fs_orb      , fs_orb   , s%nOrb*realBZ%nkpt*7  , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
-      call MPI_Reduce(fs_atom     , fs_atom  , s%nAtoms*realBZ%nkpt*7, MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
-      call MPI_Reduce(fs_total    , fs_total , realBZ%nkpt*7         , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+      call MPI_Reduce(fs_orb      , fs_orb   , default_nOrb*realBZ%nkpt*7  , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+      call MPI_Reduce(fs_atom     , fs_atom  , s%nAtoms*realBZ%nkpt*7      , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+      call MPI_Reduce(fs_total    , fs_total , realBZ%nkpt*7               , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
     end if
 
     if(rField == 0) call writeFS(fs_atom,fs_orb,fs_total)
@@ -285,11 +294,12 @@ contains
   ! This subtoutine writes the iso-surfaces to the files
   subroutine writeFS(fs_atom,fs_orb,fs_total)
     use mod_kind,          only: int32, int64
+    use AtomTypes,         only: default_nOrb
     use mod_System,        only: s => sys
     use mod_BrillouinZone, only: realBZ
     use mod_mpi_pars,      only: FreqComm
     implicit none
-    real(dp), intent(in) :: fs_atom(s%nAtoms,realBZ%nkpt,7),fs_orb(s%nOrb,realBZ%nkpt,7),fs_total(realBZ%nkpt,7)
+    real(dp), intent(in) :: fs_atom(s%nAtoms,realBZ%nkpt,7),fs_orb(default_nOrb,realBZ%nkpt,7),fs_total(realBZ%nkpt,7)
     character(len=30)    :: formatvar
     real(dp)             :: kp(3)
     integer(int64)       :: iz
@@ -306,7 +316,7 @@ contains
         write(unit=17+i,fmt="(10(es16.9,2x))") kp(1), kp(2), kp(3), (fs_atom(i,iz,sigma),sigma=1,7)
       end do
 
-      write(unit=96,fmt=formatvar) kp(1), kp(2), kp(3),( (fs_orb(mu,iz,sigma),mu=1,s%nOrb),sigma=1,7)
+      write(unit=96,fmt=formatvar) kp(1), kp(2), kp(3),( (fs_orb(mu,iz,sigma),mu=1,default_nOrb),sigma=1,7)
       write(unit=97,fmt="(10(es16.9,2x))") kp(1), kp(2), kp(3),(fs_total(iz,sigma),sigma=1,7)
     end do
   end subroutine writeFS

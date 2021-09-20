@@ -4,9 +4,10 @@ module TightBinding
 contains
 
   subroutine initTightBinding(s)
-    use mod_System,     only: System_type
-    use mod_mpi_pars,   only: abortProgram
-    use mod_parameters, only: tbmode,fermi_layer
+    use mod_System,            only: System_type
+    use mod_mpi_pars,          only: abortProgram
+    use mod_parameters,        only: tbmode,fermi_layer
+    use mod_superconductivity, only: superCond
     implicit none
     type(System_type), intent(inout) :: s
     integer :: i,max_orb
@@ -20,7 +21,9 @@ contains
       if(s%Types(i)%nOrb>max_orb) &
         max_orb = s%Types(i)%nOrb
     end do
-    s%nOrb  = max_orb
+    s%nOrb    = max_orb
+    s%nOrb2   = 2*s%nOrb
+    s%nOrb2sc = s%nOrb2*superCond
 
     s%total_nOrb = s%Types(s%Basis(1)%Material)%nOrb
     do i = 2, s%nAtoms
@@ -162,7 +165,7 @@ contains
   !! between the values of the parameters of i and j
     use mod_kind,       only: dp
     use mod_parameters, only: lsimplemix
-    use AtomTypes,      only: default_orbitals
+    use AtomTypes,      only: default_nOrb
     implicit none
     real(dp),    dimension(3),             intent(in)    :: dirCos
     real(dp),    dimension(10),            intent(in)    :: t1, t2
@@ -172,7 +175,7 @@ contains
     complex(dp), dimension(nOrb_j,nOrb_i), intent(inout) :: t0i
     integer                 :: i,j
     real(dp), dimension(10) :: mix
-    real(dp), dimension(size(default_orbitals),size(default_orbitals)) :: bp
+    real(dp), dimension(default_nOrb,default_nOrb) :: bp
 
     do i = 1, 10
       if(lsimplemix) then
@@ -195,7 +198,7 @@ contains
   subroutine readElementFile(s,n,tbmode)
   !! Reading element file, including all the parameters
     use mod_kind,              only: dp
-    use AtomTypes,             only: NeighborAtom,default_orbitals
+    use AtomTypes,             only: NeighborAtom,default_nOrb
     use mod_system,            only: System_type
     use mod_mpi_pars,          only: abortProgram
     use mod_tools,             only: ItoS,StoI,StoR,StoArray,next_line,vec_norm,vecDist,is_numeric
@@ -219,7 +222,7 @@ contains
     character(200) :: line
     character(50)  :: words(10)
     real(dp), dimension(3,3)  :: Bravais
-    real(dp), dimension(size(default_orbitals)) :: on_site
+    real(dp), dimension(default_nOrb) :: on_site
     real(dp), dimension(:,:), allocatable :: position
     real(dp), dimension(:,:), allocatable :: localDistances
     type(NeighborAtom), dimension(:), allocatable :: list

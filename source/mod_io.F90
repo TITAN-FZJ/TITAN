@@ -14,11 +14,11 @@ contains
     character(len=*), intent(in) :: message
 
     if(myrank == 0) then
-       if(log_unit) then
-          write(output%unit, "('[',a,'] ',a,'')") procedure, trim(message)
-       else
-          write(*, "('[',a,'] ',a,'')") procedure, trim(message)
-       end if
+      if(log_unit) then
+        write(output%unit, "('[',a,'] ',a,'')") procedure, trim(message)
+      else
+        write(*, "('[',a,'] ',a,'')") procedure, trim(message)
+      end if
     end if
   end subroutine log_message
 
@@ -45,17 +45,17 @@ contains
     character(len=*), intent(in) :: message
 
     if(myrank == 0) then
-       if(log_unit) then
-          write(output%unit, "('[Warning] [',a,'] ',a)") procedure, trim(message)
-       else
-          write(*, "('[Warning] [',a,'] ',a)") procedure, trim(message)
-       end if
+      if(log_unit) then
+        write(output%unit, "('[Warning] [',a,'] ',a)") procedure, trim(message)
+      else
+        write(*, "('[Warning] [',a,'] ',a)") procedure, trim(message)
+      end if
     end if
   end subroutine log_warning
 
   subroutine get_parameters(filename,s)
     use mod_kind,              only: dp,int64
-    use AtomTypes,             only: default_orbitals
+    use AtomTypes,             only: default_Orbs,default_nOrb
     use mod_input,             only: get_parameter,read_file,enable_input_logging,disable_input_logging
     use mod_parameters,        only: output,laddresults,lverbose,ldebug,lkpoints,&
                                      lpositions,lcreatefiles,lnolb,lhfresponses,&
@@ -364,20 +364,20 @@ contains
       call log_warning("get_parameters","'skip_steps_hw' missing. Using default value: 0")
 
     if(get_parameter("hwscale", vector, cnt)) then
-       if(cnt < dmax)  hwscale(1:cnt)  = vector(1:cnt)
-       if(cnt >= dmax) hwscale(1:dmax) = vector(1:dmax)
+      if(cnt < dmax)  hwscale(1:cnt)  = vector(1:cnt)
+      if(cnt >= dmax) hwscale(1:dmax) = vector(1:dmax)
     end if
     if(allocated(vector)) deallocate(vector)
 
     if(get_parameter("hwtrotate", vector, cnt)) then
-       if(cnt < dmax)  hwtrotate(1:cnt)  = vector(1:cnt)
-       if(cnt >= dmax) hwtrotate(1:dmax) = vector(1:dmax)
+      if(cnt < dmax)  hwtrotate(1:cnt)  = vector(1:cnt)
+      if(cnt >= dmax) hwtrotate(1:dmax) = vector(1:dmax)
     end if
     if(allocated(vector)) deallocate(vector)
 
     if(get_parameter("hwprotate", vector, cnt)) then
-       if(cnt < dmax)  hwprotate(1:cnt)  = vector(1:cnt)
-       if(cnt >= dmax) hwprotate(1:dmax) = vector(1:dmax)
+      if(cnt < dmax)  hwprotate(1:cnt)  = vector(1:cnt)
+      if(cnt >= dmax) hwprotate(1:dmax) = vector(1:dmax)
     end if
     if(allocated(vector)) deallocate(vector)
     !--------------------------------------- Constraining Field ------------------------------------
@@ -388,8 +388,8 @@ contains
         call log_error("get_parameters","'magbasis' is required when constraining_field = T. ")
       if(.not. get_parameter("constr_type", constr_type)) &
         call log_error("get_parameters","'constr_type' is required when constraining_field = T.  Use one of the following: " // NEW_line('A') // &
-               "1 - Transverse constraining field" // NEW_line('A') // &
-               "2 - Full constranining field")
+                "1 - Transverse constraining field" // NEW_line('A') // &
+                "2 - Full constranining field")
       select case(constr_type)
       case(1)
         call log_message("get_parameters","Transverse constraining field chosen (constr_type=1): a field is applied to keep the direction of m fixed (not its length).")
@@ -400,8 +400,8 @@ contains
         call log_message("get_parameters","Full constraining field chosen (constr_type=2): the magnetic moment is completely fixed by the application of a constraining field.")
       case default
         call log_error("get_parameters","'constr_type' not recognized.  Use one of the following: " // NEW_line('A') // &
-               "1 - Transverse constraining field (to fix direction of M)" // NEW_line('A') // &
-               "2 - Full constraining field (to keep M fixed)")
+                "1 - Transverse constraining field (to fix direction of M)" // NEW_line('A') // &
+                "2 - Full constraining field (to keep M fixed)")
       end select
     end if
     !------------------------------ Superconductivity Variables ------------------------------------
@@ -482,9 +482,9 @@ contains
 
     if(.not.get_parameter("orbitals", s_vector, cnt)) then
       call log_warning("get_parameters","'orbitals' missing. Using the default 9 orbitals.")
-      cnt = size(default_orbitals)
+      cnt = default_nOrb
       allocate(s_vector(cnt))
-      s_vector(:) = default_orbitals(:)
+      s_vector(:) = default_Orbs(:)
     end if
 
     call get_orbitals("the whole system",s_vector,s%nOrb,s%nOrb2,s%nOrb2sc,s%nsOrb,s%npOrb,s%ndOrb,s%Orbs,s%sOrbs,s%pOrbs,s%dOrbs)
@@ -518,23 +518,23 @@ contains
     else if(tbmode == 2) then
       dfttype = "D"
       !  if(nstages /= 2) call log_error("get_parameters", "'tbmode' DFT Mode only supports nstages = 2")
-       !
+      !
       !  if(.not. get_parameter("dfttype", dfttype)) call log_error("get_parameters","'dfttype' missing.")
-       !
+      !
       !  if(.not. get_parameter("Npl", i_vector, cnt)) call log_error("get_parameters","'Npl' missing.")
       !  if(cnt < 1) call log_error("get_parameters","'Npl' doesn't contain any parameters.")
       !  Npl_i = i_vector(1)
       !  Npl_f = i_vector(1)
       !  if(cnt >= 2) Npl_f = i_vector(2)
       !  deallocate(i_vector)
-       !
+      !
       !  ! Check number of planes
       !  if(Npl_f < Npl_i) Npl_f = Npl_i
-       !
+      !
       !  if(.not. get_parameter("set1", set1)) call log_error("get_parameters","'set1' missing.")
-       !
+      !
       !  if(.not. get_parameter("set2", set2)) call log_error("get_parameters","'set2' missing.")
-       !
+      !
       !  if(get_parameter("addlayers", i_vector, cnt)) then
       !     if(cnt < 10) then
       !        addlayers(1:cnt) = i_vector(1:cnt)
@@ -545,7 +545,7 @@ contains
       !     end if
       !  end if
       !  if(allocated(i_vector)) deallocate(i_vector)
-       !
+      !
       !  ! Add 'naddlayers' to Npl
       !  if((naddlayers==1).and.(myrank==0)) write(outputunit,"('[get_parameters] WARNING: Added layers must include empty spheres! Only including one layer: naddlayers = ',i0)") naddlayers
       !  if((set1==9).or.(set2==9)) then
@@ -556,7 +556,7 @@ contains
       !     Npl_f = Npl_f+naddlayers-1
       !  end if
     else
-       call log_error("get_parameters", "'tbmode' Unknown mode selected. (Choose either 1 or 2)")
+      call log_error("get_parameters", "'tbmode' Unknown mode selected. (Choose either 1 or 2)")
     end if
     if(get_parameter("Ef", Ef_overwrite)) then
       call log_warning("get_parameters", "Ef = " // trim(rtos(Ef_overwrite,"(es8.1)")) //" given. Overwriting (initial) Fermi energy. (use fixEf runoption to fix)")
@@ -929,14 +929,14 @@ contains
         call log_error("get_parameters", "Invalid neighbor for renormalization: " // trim(itos(renormnb)) // ". Choose a value between " // trim(itos(n0sc1)) // " and " // trim(itos(n0sc2)) // ".")
     end if
     if(skip_steps<0) then
-       if(myrank==0) write(output%unit,"('[get_parameters] Invalid number of energy steps to skip: ',i0)") skip_steps
-       call MPI_Finalize(ierr)
-       stop
+      if(myrank==0) write(output%unit,"('[get_parameters] Invalid number of energy steps to skip: ',i0)") skip_steps
+      call MPI_Finalize(ierr)
+      stop
     end if
     if(skip_steps_hw<0) then
-       if(myrank==0) write(output%unit,"('[get_parameters] Invalid number of field steps to skip: ',i0)") skip_steps_hw
-       call MPI_Finalize(ierr)
-       stop
+      if(myrank==0) write(output%unit,"('[get_parameters] Invalid number of field steps to skip: ',i0)") skip_steps_hw
+      call MPI_Finalize(ierr)
+      stop
     end if
     if((lhfresponses).and.(itype==7).and.(myrank==0)) write(output%unit,"('[get_parameters] Susceptibility calculations already include HF responses. Ignoring ""hfresponses"" runoption')")
     ! Adjusting zeeman energy to Ry or eV
@@ -966,7 +966,7 @@ contains
     use mod_kind,   only: int32
     use mod_System, only: System_type
     use mod_tools,  only: is_numeric,itos,stoi
-    use AtomTypes,  only: default_orbitals
+    use AtomTypes,  only: default_Orbs
     use mod_superconductivity, only: superCond
     character(len=*)               , intent(in)    :: string
     character(len=20), dimension(:), intent(inout) :: input_orbitals
@@ -998,7 +998,7 @@ contains
 
       ! If the name of the orbital is given instead of a number, convert:
       if(.not.is_numeric( trim(input_orbitals(i)) )) then
-        iloc = findloc( default_orbitals,input_orbitals(i)(1:3),dim=1 )
+        iloc = findloc( default_Orbs,input_orbitals(i)(1:3),dim=1 )
         if(iloc == 0) &
           call log_error("get_orbitals","Orbital not recognized: " // input_orbitals(i)(1:3) //". Use one of the following: " // NEW_line('A') // &
               "(1|s), (2|px), (3|py), (4|pz), (5|dxy), (6|dyz), (7|dzx), (8|dx2), (9|dz2)")
@@ -1014,22 +1014,22 @@ contains
     ! and count s,p and d orbitals
     do i = 1,nOrb
       Orbs(i) = stoi( trim(input_orbitals(i)) )
-      selected_orbitals = trim(selected_orbitals)  // " " // trim(default_orbitals(Orbs(i)))
+      selected_orbitals = trim(selected_orbitals)  // " " // trim(default_Orbs(Orbs(i)))
       ! Checking orbital type, and storing information
       if(Orbs(i)==1) then
         nsOrb = nsOrb + 1
         itmps_arr(nsOrb) = i
-        selected_sorbitals = trim(selected_sorbitals)  // " " // trim(default_orbitals(Orbs(i)))
+        selected_sorbitals = trim(selected_sorbitals)  // " " // trim(default_Orbs(Orbs(i)))
       end if
       if((Orbs(i)>=2).and.(Orbs(i)<=4)) then
         npOrb = npOrb + 1
         itmpp_arr(npOrb) = i
-        selected_porbitals = trim(selected_porbitals)  // " " // trim(default_orbitals(Orbs(i)))
+        selected_porbitals = trim(selected_porbitals)  // " " // trim(default_Orbs(Orbs(i)))
       end if
       if((Orbs(i)>=5).and.(Orbs(i)<=9)) then
         ndOrb = ndOrb + 1
         itmpd_arr(ndOrb) = i
-        selected_dorbitals = trim(selected_dorbitals)  // " " // trim(default_orbitals(Orbs(i)))
+        selected_dorbitals = trim(selected_dorbitals)  // " " // trim(default_Orbs(Orbs(i)))
       end if
     end do
 

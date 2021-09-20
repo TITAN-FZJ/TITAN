@@ -447,7 +447,9 @@ contains
   end subroutine sort_torques
 
   subroutine xc_torque_operator(torque)
-  !> This subroutine defines the exchange-correlation torque operator/matrix
+  !> This subroutine defines the exchange-correlation torque operator/matrix at site i as
+  !> $\vec{T}^xc_m = U \vec{M}\times\vec{S} $ , 
+  !> with M being the magnetic moment and S = \sigma/2 being the spin operator.
     use mod_kind,       only: dp
     use mod_constants,  only: cZero, cOne, levi_civita, sigma => pauli_mat
     use mod_System,     only: s => sys
@@ -481,7 +483,9 @@ contains
 
 
   subroutine SO_torque_operator(torque)
-  !> This subroutine defines the spin-orbit torque operator/matrix
+  !> This subroutine defines the spin-orbit torque operator/matrix at site i as
+  !> $\vec{T}^so_i = lambda_i \vec{L}_i\times\vec{S} $ , 
+  !> with L being the orbital operator and S = \sigma/2 being the spin operator.
     use mod_kind,       only: dp
     use mod_constants,  only: cZero, levi_civita, sigma => pauli_mat
     use mod_System,     only: s => sys

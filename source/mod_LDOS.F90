@@ -47,13 +47,18 @@ contains
     ! Opening files
     if(rField == 0) then
       write(output%unit_loop,"('CALCULATING LDOS')")
+      call flush(output%unit)
       if(.not.laddresults) call createLDOSFiles()
       call openLDOSFiles()
     end if
 
     do i = startFreq, endFreq
       e = emin + (i-1)*deltae
-      if(rFreq(1) == 0) write(output%unit_loop,"('[ldos] ',i0,' of ',i0,' points',', e = ',es10.3)") i,nEner1,e
+      if(rFreq(1) == 0) then
+        write(output%unit_loop,"('[ldos] ',i0,' of ',i0,' points',', e = ',es10.3)") i,nEner1,e
+        call flush(output%unit)
+      end if
+
       call ldos_energy(e,ldosu,ldosd)
 
       ! These IFs may be wrong!
@@ -102,7 +107,7 @@ contains
     real(dp),    dimension(s%nAtoms,s%nOrb*superCond),  intent(out) :: ldosu, ldosd
     real(dp),    dimension(s%nAtoms,s%nOrb*superCond) :: gfdiagu,gfdiagd
     real(dp),    dimension(3) :: kp
-    complex(dp), dimension(s%nOrb2*superCond,s%nOrb2*superCond,s%nAtoms,s%nAtoms) :: gf
+    complex(dp), dimension(s%nOrb2sc,s%nOrb2sc,s%nAtoms,s%nAtoms) :: gf
     real(dp)       :: weight
     integer(int32) :: i,mu,nu
     integer(int64) :: iz
@@ -126,17 +131,17 @@ contains
       call green(e,eta,s,kp,gf)
 
       ! Density of states
-      do mu=1,s%nOrb
-        do i=1,s%nAtoms
-          nu = mu + s%nOrb
+      do i=1,s%nAtoms
+        do mu=1,s%Types(s%Basis(i)%Material)%nOrb
+          nu = mu + s%Types(s%Basis(i)%Material)%nOrb
           gfdiagu(i,mu) = - aimag(gf(mu,mu,i,i)) * weight
           gfdiagd(i,mu) = - aimag(gf(nu,nu,i,i)) * weight
           if(lsupercond) then
-            gfdiagu(i,mu+s%nOrb) = - aimag(gf(mu+s%nOrb2,mu+s%nOrb2,i,i)) * weight
-            gfdiagd(i,mu+s%nOrb) = - aimag(gf(nu+s%nOrb2,nu+s%nOrb2,i,i)) * weight
+            gfdiagu(i,nu) = - aimag(gf(mu+s%Types(s%Basis(i)%Material)%nOrb2,mu+s%Types(s%Basis(i)%Material)%nOrb2,i,i)) * weight
+            gfdiagd(i,nu) = - aimag(gf(nu+s%Types(s%Basis(i)%Material)%nOrb2,nu+s%Types(s%Basis(i)%Material)%nOrb2,i,i)) * weight
           end if
         end do
-     end do
+      end do
 
       ldosu = ldosu + gfdiagu
       ldosd = ldosd + gfdiagd
@@ -381,7 +386,7 @@ contains
           nu=mu+s%nOrb
           gfdiagu(i,mu) = - aimag(gf(mu,mu,i,i))*weight
           gfdiagd(i,mu) = - aimag(gf(nu,nu,i,i))*weight
-         end do
+        end do
       end do
 
       ldosu = ldosu + gfdiagu
@@ -487,19 +492,19 @@ contains
       do sc=1,superCond
         iw = (sc-1)*3+2
         ! s
-        do mu=1,s%nsOrb
-          ldos_array(1,iw  ,i) = ldos_array(1,iw  ,i) + ldosu(i,s%sOrbs(mu)) ! up
-          ldos_array(2,iw  ,i) = ldos_array(2,iw  ,i) + ldosd(i,s%sOrbs(mu)) ! down
+        do mu=1,s%Types(s%Basis(i)%Material)%nsOrb
+          ldos_array(1,iw  ,i) = ldos_array(1,iw  ,i) + ldosu(i,s%Types(s%Basis(i)%Material)%sOrbs(mu)) ! up
+          ldos_array(2,iw  ,i) = ldos_array(2,iw  ,i) + ldosd(i,s%Types(s%Basis(i)%Material)%sOrbs(mu)) ! down
         end do
         ! p
-        do mu=1,s%npOrb
-          ldos_array(1,iw+1,i) = ldos_array(1,iw+1,i) + ldosu(i,s%pOrbs(mu)) ! up
-          ldos_array(2,iw+1,i) = ldos_array(2,iw+1,i) + ldosd(i,s%pOrbs(mu)) ! down
+        do mu=1,s%Types(s%Basis(i)%Material)%npOrb
+          ldos_array(1,iw+1,i) = ldos_array(1,iw+1,i) + ldosu(i,s%Types(s%Basis(i)%Material)%pOrbs(mu)) ! up
+          ldos_array(2,iw+1,i) = ldos_array(2,iw+1,i) + ldosd(i,s%Types(s%Basis(i)%Material)%pOrbs(mu)) ! down
         end do
         ! d
-        do mu=1,s%ndOrb
-          ldos_array(1,iw+2,i) = ldos_array(1,iw+2,i) + ldosu(i,s%dOrbs(mu)) ! up
-          ldos_array(2,iw+2,i) = ldos_array(2,iw+2,i) + ldosd(i,s%dOrbs(mu)) ! down
+        do mu=1,s%Types(s%Basis(i)%Material)%ndOrb
+          ldos_array(1,iw+2,i) = ldos_array(1,iw+2,i) + ldosu(i,s%Types(s%Basis(i)%Material)%dOrbs(mu)) ! up
+          ldos_array(2,iw+2,i) = ldos_array(2,iw+2,i) + ldosd(i,s%Types(s%Basis(i)%Material)%dOrbs(mu)) ! down
         end do
       end do
     end do
@@ -510,9 +515,9 @@ contains
       iw = iw + 1
       write(unit=iw,fmt="( 8(es16.9,2x))") e, (ldos_array(2,j,i), j=1,1+3*superCond) ! down
       iw = iw + 1
-      write(unit=iw,fmt="(19(es16.9,2x))") e, (ldosu(i,j), j = 1,s%nOrb*supercond)
+      write(unit=iw,fmt="(19(es16.9,2x))") e, (ldosu(i,j), j = 1,s%Types(s%Basis(i)%Material)%nOrb*supercond)
       iw = iw + 1
-      write(unit=iw,fmt="(19(es16.9,2x))") e, (ldosd(i,j), j = 1,s%nOrb*supercond)
+      write(unit=iw,fmt="(19(es16.9,2x))") e, (ldosd(i,j), j = 1,s%Types(s%Basis(i)%Material)%nOrb*supercond)
     end do
 
   end subroutine writeLDOS

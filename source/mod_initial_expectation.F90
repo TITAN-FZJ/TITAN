@@ -48,7 +48,7 @@ contains
         if(myrank == 0) &
           write(output%unit,"('[calc_init_expec_SK] Initial density for ""',a,'"" not needed (Un=0.0). Skipping...')") trim(s%Types(i)%Name)
 
-        allocate( s%Types(i)%rho0(s%nOrb) )
+        allocate( s%Types(i)%rho0(s%Types(i)%nOrb) )
         s%Types(i)%rho0(:) = 0._dp
         s%Types(i)%rhod0   = 0._dp
         s%Types(i)%mzd0    = 0._dp
@@ -61,26 +61,40 @@ contains
       !------- Setting the subsystem properties from the general one -------
       sys0(i)%nStages = s%nStages
       sys0(i)%relTol  = s%relTol
-      sys0(i)%nOrb    = s%nOrb
-      sys0(i)%nOrb2sc = s%nOrb2
-      sys0(i)%nOrb2   = s%nOrb2
-      allocate(sys0(i)%Orbs(s%nOrb))
-      sys0(i)%Orbs(:) = s%Orbs(:)
-      sys0(i)%nsOrb   = s%nsOrb
+      sys0(i)%nOrb    = s%Types(i)%nOrb
+      sys0(i)%nOrb2sc = s%Types(i)%nOrb2
+      sys0(i)%nOrb2   = s%Types(i)%nOrb
+      allocate(sys0(i)%Orbs(s%Types(i)%nOrb))
+      sys0(i)%Orbs(:) = s%Types(i)%Orbs(:)
+      sys0(i)%nsOrb   = s%Types(i)%nsOrb
       if(sys0(i)%nsOrb>0) then
         allocate(sys0(i)%sOrbs(sys0(i)%nsOrb))
-        sys0(i)%sOrbs(:) = s%sOrbs(:)
+        sys0(i)%sOrbs(:) = s%Types(i)%sOrbs(:)
       end if
-      sys0(i)%npOrb   = s%npOrb
+      sys0(i)%npOrb   = s%Types(i)%npOrb
       if(sys0(i)%npOrb>0) then
         allocate(sys0(i)%pOrbs(sys0(i)%npOrb))
-        sys0(i)%pOrbs(:) = s%pOrbs(:)
+        sys0(i)%pOrbs(:) = s%Types(i)%pOrbs(:)
       end if
-      sys0(i)%ndOrb   = s%ndOrb
+      sys0(i)%ndOrb   = s%Types(i)%ndOrb
       if(sys0(i)%ndOrb>0) then
         allocate(sys0(i)%dOrbs(sys0(i)%ndOrb))
-        sys0(i)%dOrbs(:) = s%dOrbs(:)
+        sys0(i)%dOrbs(:) = s%Types(i)%dOrbs(:)
       end if
+
+      ! Using the same number of orbitals as i for all atoms of this subsystem (Can this be generalized?)
+      do j = 1,sys0(i)%nAtoms
+        sys0(i)%Types(j)%nOrb =  s%Types(i)%nOrb
+        sys0(i)%Types(j)%nOrb2 =  s%Types(i)%nOrb2
+        sys0(i)%Types(j)%nOrb2sc =  s%Types(i)%nOrb2sc
+        sys0(i)%Types(j)%nsOrb =  s%Types(i)%nsOrb
+        sys0(i)%Types(j)%npOrb =  s%Types(i)%npOrb
+        sys0(i)%Types(j)%ndOrb =  s%Types(i)%ndOrb
+        sys0(i)%Types(j)%Orbs =  s%Types(i)%Orbs
+        sys0(i)%Types(j)%sOrbs =  s%Types(i)%sOrbs
+        sys0(i)%Types(j)%pOrbs =  s%Types(i)%pOrbs
+        sys0(i)%Types(j)%dOrbs =  s%Types(i)%dOrbs
+      end do
 
       call initLattice(sys0(i))
 
@@ -95,7 +109,7 @@ contains
 
       !---------------- Reading from previous calculations -----------------
       !------- and calculating if file doesn't exist (or different U) ------
-      if(.not.read_init_expecs(s%nOrb,s%Types(i),err)) then
+      if(.not.read_init_expecs(sys0(i)%nOrb,s%Types(i),err)) then
         if(myrank == 0) write(output%unit,"('[calc_init_expec_SK] Calculating initial density for ""',a,'""...')") trim(s%Types(i)%Name)
 
         !----------- Allocating variables that depend on nAtoms ------------
@@ -159,7 +173,7 @@ contains
         lfound = .false.
         do j = 1,sys0(i)%nAtoms
           if(trim(sys0(i)%Types(s%Basis(j)%Material)%Name) == trim(s%Types(i)%Name)) then
-            allocate( s%Types(i)%rho0(s%nOrb) )
+            allocate( s%Types(i)%rho0(sys0(i)%nOrb) )
             s%Types(i)%rho0(:) = rho0_out(:,j)
             s%Types(i)%rhod0   = rhod0_out(j)
             s%Types(i)%mzd0    = mzd0_out(j)
@@ -171,7 +185,7 @@ contains
         if(.not.lfound) call abortProgram("[calc_init_expec_SK] Element " // trim(s%Types(i)%Name) // " not found in its elemental file!")
 
         !-------------- Writing initial densities to files -----------------
-        if(myrank == 0) call write_init_expecs(s%nOrb,s%Types(i))
+        if(myrank == 0) call write_init_expecs(sys0(i)%nOrb,s%Types(i))
 
         !------------------------ Freeing memory ---------------------------
         if(.not.leigenstates) call freeLocalEKMesh()
@@ -192,8 +206,8 @@ contains
       !------------------------- Test printing ---------------------------
       if(myrank == 0) then
         write(output%unit,"('[calc_init_expec_SK] Initial densities from: ',a)") s%Types(i)%Name
-        write(formatvar,fmt="(a,i0,a)") '(a,',s%nOrb,'(es14.7,2x))'
-        write(unit=output%unit,fmt=formatvar) trim(s%Types(i)%Name), (s%Types(i)%rho0(mu),mu=1,s%nOrb)
+        write(formatvar,fmt="(a,i0,a)") '(a,',sys0(i)%nOrb,'(es14.7,2x))'
+        write(unit=output%unit,fmt=formatvar) trim(s%Types(i)%Name), (s%Types(i)%rho0(mu),mu=1,sys0(i)%nOrb)
         write(unit=output%unit,fmt="(a,4(2x,es14.7))") trim(s%Types(i)%Name), s%Types(i)%rhod0, s%Types(i)%mpd0%re, s%Types(i)%mpd0%im, s%Types(i)%mzd0
       end if
     end do types_of_atoms
@@ -204,7 +218,7 @@ contains
     if(.not.allocated(mzd0)) allocate(mzd0(s%nAtoms))
     if(.not.allocated(mpd0)) allocate(mpd0(s%nAtoms))
     do i=1,s%nAtoms
-      rho0(:,i) = s%Types(s%Basis(i)%Material)%rho0(s%nOrb)
+      rho0(1:s%Types(s%Basis(i)%Material)%nOrb,i) = s%Types(s%Basis(i)%Material)%rho0(1:s%Types(s%Basis(i)%Material)%nOrb)
       rhod0(i)  = s%Types(s%Basis(i)%Material)%rhod0
       mzd0(i)   = s%Types(s%Basis(i)%Material)%mzd0
       mpd0(i)   = s%Types(s%Basis(i)%Material)%mpd0
@@ -254,10 +268,10 @@ contains
 
     ! Checking if calculation is needed
     lneed = .false.
-    types_of_atoms: do i = 1, s%nTypes
+    types_of_atoms_check: do i = 1, s%nTypes
       if((abs(s%Types(i)%Un)<1.e-8).and.(abs(s%Types(i)%Um)<1.e-8)) then
         ! Only not needed when both Un and Um are zero
-        allocate( s%Types(i)%rho0(s%nOrb) )
+        allocate( s%Types(i)%rho0( s%Types(i)%nOrb ) )
         s%Types(i)%rho0(:) = 0._dp
         s%Types(i)%rhod0   = 0._dp
         s%Types(i)%mzd0    = 0._dp
@@ -267,7 +281,7 @@ contains
         lneed = .true. ! If Un or Um is non zero for a single element, the calculation must be done
         exit           ! Since it's a single calculation, get all the other numbers too
       end if
-    end do types_of_atoms
+    end do types_of_atoms_check
 
     ! If all values of Un and Um are zero, return
     if(.not.lneed) then
@@ -286,9 +300,21 @@ contains
     end if
 
     call allocate_basis_variables(s)
-    !---------------- Reading from previous calculations -----------------
-    !------- and calculating if file doesn't exist (or different U) ------
-    if(.not.read_init_expecs(s%nOrb,s%Types(i),err)) then
+    
+    !------------- Trying to read from previous calculations -------------
+    lneed = .false.
+    types_of_atoms_read_check: do i = 1, s%nTypes
+      if(.not.read_init_expecs(s%Types(i)%nOrb,s%Types(i),err)) then
+        lneed = .true.
+        ! Since all the initial densities are calculated from the hamiltonian,
+        ! if one does not exist and must be calculated, it is enough to calculate all
+        exit
+      end if
+    end do types_of_atoms_read_check
+
+    ! If not all the files were read, lneed=.true. and all the densities will be (re)calculated
+    if(lneed) then
+      !--------- Calculating if file doesn't exist (or different U) --------
       if(myrank == 0) write(output%unit,"('[calc_init_expec_dft] Calculating initial densities for all elements...')")
 
       !---- L matrix in global frame for given quantization direction ----
@@ -320,17 +346,17 @@ contains
 
       ! Storing initial densities
       do i = 1,s%nAtoms
-        if(.not.allocated(s%Types(i)%rho0)) allocate( s%Types(i)%rho0(s%nOrb) )
-        s%Types(s%Basis(i)%Material)%rho0(:) = rho0_out(:,i)
-        s%Types(s%Basis(i)%Material)%rhod0   = rhod0_out(i)
-        s%Types(s%Basis(i)%Material)%mzd0    = mzd0_out(i)
-        s%Types(s%Basis(i)%Material)%mpd0    = mpd0_out(i)
+        if(.not.allocated(s%Types(s%Basis(i)%Material)%rho0)) allocate( s%Types(s%Basis(i)%Material)%rho0(s%Types(s%Basis(i)%Material)%nOrb) )
+        s%Types(s%Basis(i)%Material)%rho0(1:s%Types(s%Basis(i)%Material)%nOrb) = rho0_out(1:s%Types(s%Basis(i)%Material)%nOrb,i)
+        s%Types(s%Basis(i)%Material)%rhod0 = rhod0_out(i)
+        s%Types(s%Basis(i)%Material)%mzd0  = mzd0_out(i)
+        s%Types(s%Basis(i)%Material)%mpd0  = mpd0_out(i)
       end do
 
       !-------------- Writing initial densities to files -----------------
       if(myrank == 0) then
         do i = 1,s%nTypes
-          call write_init_expecs(s%nOrb,s%Types(i))
+          call write_init_expecs(s%Types(i)%nOrb,s%Types(i))
         end do
       end if
       !------------------------ Freeing memory ---------------------------
@@ -339,14 +365,14 @@ contains
       ! Recovering superconductivity
       lsuperCond = lsuperCond_temp
       supercond  = supercond_temp
-    end if ! read_init_expecs
+    end if ! lneed
 
     !------------------------- Test printing ---------------------------
     if(myrank == 0) then
       do i = 1,s%nTypes
         write(output%unit,"('[calc_init_expec_dft] Initial densities from: ',a)") s%Types(i)%Name
-        write(formatvar,fmt="(a,i0,a)") '(a,',s%nOrb,'(es14.7,2x))'
-        write(unit=output%unit,fmt=formatvar) trim(s%Types(i)%Name), (s%Types(i)%rho0(mu),mu=1,s%nOrb)
+        write(formatvar,fmt="(a,i0,a)") '(a,',s%Types(i)%nOrb,'(es14.7,2x))'
+        write(unit=output%unit,fmt=formatvar) trim(s%Types(i)%Name), (s%Types(i)%rho0(mu),mu=1,s%Types(i)%nOrb)
         write(unit=output%unit,fmt="(a,4(2x,es14.7))") trim(s%Types(i)%Name), s%Types(i)%rhod0, s%Types(i)%mpd0%re, s%Types(i)%mpd0%im, s%Types(i)%mzd0
       end do
     end if
@@ -357,7 +383,7 @@ contains
     if(.not.allocated(mzd0)) allocate(mzd0(s%nAtoms))
     if(.not.allocated(mpd0)) allocate(mpd0(s%nAtoms))
     do i=1,s%nAtoms
-      rho0(:,i) = s%Types(s%Basis(i)%Material)%rho0(s%nOrb) ! Unit cell can have more than one atom (of one type)
+      rho0(1:s%Types(s%Basis(i)%Material)%nOrb,i) = s%Types(s%Basis(i)%Material)%rho0(1:s%Types(s%Basis(i)%Material)%nOrb) ! Unit cell can have more than one atom (of one type)
       rhod0(i)  = s%Types(s%Basis(i)%Material)%rhod0
       mzd0(i)   = s%Types(s%Basis(i)%Material)%mzd0     ! but here only the occupation of first atom is used
       mpd0(i)   = s%Types(s%Basis(i)%Material)%mpd0     ! but here only the occupation of first atom is used
@@ -398,8 +424,8 @@ contains
     mzd0  = 0._dp
     mpd0  = cZero
     do i=1,s%nAtoms
-      do mud=1,s%ndOrb
-        mu = s%dOrbs(mud)
+      do mud=1,s%Types(s%Basis(i)%Material)%ndOrb
+        mu = s%Types(s%Basis(i)%Material)%dOrbs(mud)
         rhod0(i) = rhod0(i) + rho0(mu,i)
         mzd0 (i) = mzd0 (i) + mz  (mu,i)
         mpd0 (i) = mpd0 (i) + cmplx(mx(mu,i),my(mu,i),dp)
