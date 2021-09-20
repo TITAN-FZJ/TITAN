@@ -142,9 +142,9 @@ contains
     interface
       subroutine torque_operator(torque)
         use mod_kind,       only: dp
-        use mod_System,     only: s => sys
+        use mod_System,     only: sys
         implicit none
-        complex(dp), dimension(s%nOrb2,s%nOrb2,3,s%nAtoms), intent(out) :: torque
+        complex(dp), dimension(sys%nOrb2,sys%nOrb2,3,sys%nAtoms), intent(out) :: torque
       end subroutine torque_operator
     end interface
 
