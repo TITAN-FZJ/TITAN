@@ -201,28 +201,43 @@ contains
   subroutine createFSfiles()
     use mod_parameters,    only: output
     use mod_System,        only: s => sys
+    use AtomTypes,         only: default_Orbs,default_nOrb
     implicit none
     character(len=400) :: varm
-    integer            :: i
+    character(len=1200):: formatvar
+    character(len=16)  :: temp
+    character(len=6)   :: quantities(7)
+    integer            :: i,j
 
+    quantities(1) = 'charge'
+    quantities(2:7) = ['ms_x','ms_y','ms_z','mo_x','mo_y','mo_z']
     do i=1,s%nAtoms
       write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'atom',i0,a,a,a,a,'.dat')") &
         output%SOCchar,trim(output%Sites),trim(epart),i,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       open (unit=17+i, file=varm,status='replace', form='formatted')
-      write(unit=17+i, fmt="('#      kx       ,        ky       ,        kz       ,      charge     ,      spin x     ,      spin y     ,      spin z     ,      morb x     ,      morb y     ,      morb z     ')")
+      write(unit=17+i, fmt="('#      kx       ,        ky       ,        kz       ,      charge     ,        ms_x     ,        ms_y     ,        ms_z     ,        mo_x     ,        mo_y     ,        mo_z     ')")
       close(unit=17+i)
     end do
     ! Orbital-depedent
     write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,a,a,a,a,a,'.dat')") &
       output%SOCchar,trim(output%Sites),trim(epart),trim(filename(1)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
     open (unit=96, file=varm,status='replace', form='formatted')
-    write(unit=96, fmt="('#      kx       ,        ky       ,        kz       ,  charge(*nOrb)  ,  spin x(*nOrb)  ,  spin y(*nOrb)  ,  spin z(*nOrb)  ,  morb x(*nOrb)  ,  morb y(*nOrb)  ,  morb z(*nOrb)  ')")
+
+    formatvar = "('#      kx       ,        ky       ,        kz       ,"
+    do i = 1,size(quantities)
+      do j = 1,default_nOrb
+        temp = trim(quantities(i)) // "(" // trim(default_Orbs(j)) // "),"
+        write(formatvar,fmt="(a,a18)") trim(formatvar), trim(temp)
+      end do
+    end do
+    write(formatvar,fmt="(a,a)") trim( formatvar( :len(trim(formatvar))-1 ) ), "')"
+    write(unit=96, fmt=formatvar)
     close(unit=96)
     ! Total
     write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,a,a,a,a,a,'.dat')") &
       output%SOCchar,trim(output%Sites),trim(epart),trim(filename(2)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
     open (unit=97, file=varm,status='replace', form='formatted')
-    write(unit=97, fmt="('#      kx       ,        ky       ,        kz       ,      charge     ,      spin x     ,      spin y     ,      spin z     ,      morb x     ,      morb y     ,      morb z     ')")
+    write(unit=97, fmt="('#      kx       ,        ky       ,        kz       ,      charge     ,        ms_x     ,        ms_y     ,        ms_z     ,        mo_x     ,        mo_y     ,        mo_z     ')")
     close(unit=97)
 
   end subroutine createFSfiles
