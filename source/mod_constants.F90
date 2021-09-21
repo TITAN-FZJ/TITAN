@@ -119,6 +119,7 @@ contains
       ! identity and Pauli matrices for d-orbitals only:
       do mud=1,s%Types(i)%ndOrb
         mu = s%Types(i)%dOrbs(mud)
+        nu = mu+s%Types(i)%nOrb
 
         ! Identity
         s%Types(i)%ident_dorb(mu,mu)   = cOne
@@ -133,7 +134,7 @@ contains
         s%Types(i)%pauli_dorb(3,mu,mu) = cOne
         s%Types(i)%pauli_dorb(3,nu,nu) = -cOne
       end do
-      ! Idendity as Pauli matrix 0
+      ! Identity as Pauli matrix 0
       s%Types(i)%pauli_orb (0,:,:) = s%Types(i)%ident_norb2(:,:)
       s%Types(i)%pauli_dorb(0,:,:) = s%Types(i)%ident_dorb (:,:)
       ! Pauli + and - matrices

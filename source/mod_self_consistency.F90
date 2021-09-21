@@ -845,8 +845,8 @@ contains
 
       do j=1,s%nAtoms
         do i=1,s%nAtoms
-          nOrb2_i = 2*s%Types(s%Basis(i)%Material)%nOrb
-          nOrb2_j = 2*s%Types(s%Basis(j)%Material)%nOrb
+          nOrb2_i = s%Types(s%Basis(i)%Material)%nOrb2
+          nOrb2_j = s%Types(s%Basis(j)%Material)%nOrb2
 
           ! (Re)starting the column counter in each line
           kountj = neq_per_atom(j)
@@ -1134,6 +1134,8 @@ contains
         end if
 
         do i=1,s%nAtoms
+          nOrb2_i = s%Types(s%Basis(i)%Material)%nOrb2
+          
           ! Restarting line counter
           kounti = neq_per_atom(i)
 

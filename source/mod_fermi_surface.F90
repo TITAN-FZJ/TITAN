@@ -310,7 +310,7 @@ contains
     ! Generating all points at rank=0
     call realBZ % setup_fraction(s,0, 1, FreqComm(1))
 
-    write(formatvar,fmt="(a,i0,a)") '(',s%nOrb*7+3,'(es16.9,2x))'
+    write(formatvar,fmt="(a,i0,a)") '(',default_nOrb*7+3,'(es16.9,2x))'
 
     do iz = 1, realBZ%nkpt
       kp = realBZ%kp(1:3,iz)
