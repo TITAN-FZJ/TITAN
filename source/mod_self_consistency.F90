@@ -1710,6 +1710,8 @@ contains
 
     if(set) then
       rhod = 0._dp
+      mxd  = 0._dp
+      myd  = 0._dp
       mzd  = 0._dp
       do i = 1,s%nAtoms
         kount = neq_per_atom(i)
