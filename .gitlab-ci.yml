@@ -96,7 +96,7 @@ build:intel:normal:
   script:
     - *setup_ifort
     - cd build
-    - cmake ../ -DPLATFORM=iff -DDEBUG=ON
+    - cmake ../ -DPLATFORM=iff
     - make
   artifacts:
     paths:
@@ -118,7 +118,7 @@ build:intel:normal:
   # Setting up 4 omp threads
   - export OMP_NUM_THREADS=8
   # Running the code with 2 MPI ranks (TODO: mpi needs to be tested to return to original values)
-  - mpirun -np 1 ${TITAN_DIR}/bin/titan_iff_debug.exe
+  - mpirun -np 1 ${TITAN_DIR}/bin/titan_iff.exe
   # Printing any error file, if existing
   - if [ -f error* ] ; then grep -H '' error* ; fi
   # Printing runtime
@@ -137,6 +137,7 @@ build:intel:normal:
   fi
   for file in `find results/ -type f`
   do
+    echo "Found file ${file} in results/"
     [[ -z ${TOL} ]] && echo "Comparing file $(basename ${file}) with default tolerance `grep -m 1 "tol =" ${TITAN_DIR}/scripts/compare_output.py | awk -F= '{print $2}'`" || echo "Comparing file $(basename ${file}) with tolerance ${TOL}"
     python ${TITAN_DIR}/scripts/compare_output.py ${file} ${file/results/results_correct} ${TOL}
   done
