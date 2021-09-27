@@ -485,7 +485,7 @@ Nb_100_Monolayer:ldos:plot:
     # Going to current test folder
     - cd ${TEST_DIR}
     # Creating new plot
-    - python ${TITAN_DIR}/scripts/plot_ldos.py results/TSOC/1Sites/LDOS/ldosu_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosd_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat --xlim="[-0.5,1.5]" --output="./results/ldos.png"
+    - python ${TITAN_DIR}/scripts/plot_ldos.py results/TSOC/1Sites/LDOS/ldosu_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosd_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat --xlim="[-0.5,1.5]" --centeref --output="./results/ldos.png"
     # Comparing with existing (correct) plot
     - python ${TITAN_DIR}/scripts/compare_images.py ./results/ldos.png ./results_correct/ldos.png
   # Keep results on failure (to be able to check)
