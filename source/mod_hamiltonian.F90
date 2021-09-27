@@ -97,35 +97,44 @@ contains
     implicit none
     type(System_type), intent(in) :: s
     complex(dp), dimension(s%nOrb ,s%nOrb ,s%nAtoms), device :: onSite_d
-    complex(dp), dimension(s%nOrb2,s%nOrb2,s%nAtoms), device :: hee_d,ls_d
-    integer :: i,j,mu
+    complex(dp), dimension(s%nOrb2,s%nOrb2,s%nAtoms), device :: lb_d,sb_d,hee_d,ls_d
+    integer :: i,j,mu,nOrb_i,nOrb2_i
+    integer, device :: nOrb_d(s%nAtoms)
 
     if(.not.allocated(h0_d)) allocate( h0_d(dimHsc, dimHsc) )
 
     h0_d = cZero
 
     do i=1,s%nAtoms
-      onSite_d(:,:,i) = s%Types(s%Basis(i)%Material)%onSite(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
-      s%Basis(i)%sb_d(1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2) = s%Basis(i)%sb(1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2)
-      s%Basis(i)%lb_d(1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2) = s%Basis(i)%lb(1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2)
-      s%Basis(i)%ls_d(1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2) = s%Basis(i)%ls(1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2)
+      nOrb_d(i) = nOrb_i
+      nOrb_i  = s%Types(s%Basis(i)%Material)%nOrb
+      nOrb2_i = s%Types(s%Basis(i)%Material)%nOrb2
+      onSite_d(:,:,i) = s%Types(s%Basis(i)%Material)%onSite(1:nOrb_i,1:nOrb_i)
+      ! s%Basis(i)%sb_d(1:nOrb2_i,1:nOrb2_i) = s%Basis(i)%sb(1:nOrb2_i,1:nOrb2_i)
+      ! s%Basis(i)%lb_d(1:nOrb2_i,1:nOrb2_i) = s%Basis(i)%lb(1:nOrb2_i,1:nOrb2_i)
+      ! s%Basis(i)%ls_d(1:nOrb2_i,1:nOrb2_i) = s%Basis(i)%ls(1:nOrb2_i,1:nOrb2_i)
+      sb_d(1:nOrb2_i,1:nOrb2_i,i) = s%Basis(i)%sb(1:nOrb2_i,1:nOrb2_i)
+      lb_d(1:nOrb2_i,1:nOrb2_i,i) = s%Basis(i)%lb(1:nOrb2_i,1:nOrb2_i)
+      ls_d(1:nOrb2_i,1:nOrb2_i,i) = s%Basis(i)%ls(1:nOrb2_i,1:nOrb2_i)
     end do
     hee_d = hee
+
 
     ! Mouting slab hamiltonian
     ! On-site terms
     !$cuf kernel do <<< *, * >>>
     do i=1,s%nAtoms
+      nOrb2_i = s%Types(s%Basis(i)%Material)%nOrb2
       ! spin-up on-site tight-binding term
       h0_d(ia_d(1,i):ia_d(2,i),ia_d(1,i):ia_d(2,i)) = onSite_d(:,:,i)
       ! spin-down on-site tight-binding term
       h0_d(ia_d(3,i):ia_d(4,i),ia_d(3,i):ia_d(4,i)) = onSite_d(:,:,i)
       ! External magnetic field (orbital + spin) + Electron-electron interaction (Hubbard) + Spin-orbit coupling
       h0_d(ia_d(1,i):ia_d(4,i),ia_d(1,i):ia_d(4,i)) = h0_d (ia_d(1,i):ia_d(4,i), ia_d(1,i):ia_d(4,i)) &
-                                                    + s%Basis(i)%lb_d (1:s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2) &
-                                                    + s%Basis(i)%sb_d (1:s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2) &
-                                                    + hee_d(1:s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2,i) &
-                                                    + s%Basis(i)%ls_d (1:s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2)
+                                                    + lb_d (1:nOrb2_i,1:nOrb2_i,i) &
+                                                    + sb_d (1:nOrb2_i,1:nOrb2_i,i) &
+                                                    + hee_d(1:nOrb2_i,1:nOrb2_i,i) &
+                                                    + ls_d (1:nOrb2_i,1:nOrb2_i,i)
     end do
 
     ! The form of the superconducting hamiltonian depends on a series of decisions,
@@ -154,9 +163,9 @@ contains
       end do
 
       ! Populating the non-diagonal blocks of the hamiltonian. There are several ways to do it.
-      !$cuf kernel do(2) <<< (*,*), (*,*) >>>
+      !$cuf kernel do <<< (*,*), (*,*) >>>
       do i = 1,s%nAtoms
-        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
+        do mu = 1,nOrb_d(i)
           h0_d(isigmamu2n_d(i,1,mu)     ,isigmamu2n_d(i,2,mu)+dimH) = - cmplx(delta_sc_d(mu,i),0._dp,dp)
           h0_d(isigmamu2n_d(i,2,mu)     ,isigmamu2n_d(i,1,mu)+dimH) =   cmplx(delta_sc_d(mu,i),0._dp,dp)
           h0_d(isigmamu2n_d(i,2,mu)+dimH,isigmamu2n_d(i,1,mu)     ) = - cmplx(delta_sc_d(mu,i),0._dp,dp)

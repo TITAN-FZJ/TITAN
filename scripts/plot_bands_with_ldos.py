@@ -9,10 +9,10 @@
 ################################################################################
 from head import *
 
-if(ry2ev == 13.6057*1000) or (args.mevlabel is True):
+if(ry2ev == 13.6057*1000) or (args.mevlabel):
   labelx = r'$\rho(E)$ [meV$^{-1}$]'
   labely = r'$E-E_F$ [meV]'
-elif(ry2ev == 13.6057) or (args.evlabel is True):
+elif(ry2ev == 13.6057) or (args.evlabel):
   labelx = r'$\rho(E)$ [eV$^{-1}$]'
   labely = r'$E-E_F$ [eV]'
 else:
@@ -36,10 +36,15 @@ def read_header(file):
     count = [s for s in f.readline().split()]
     npoints = int(count[1])
     # print npoints
-    name = np.empty(npoints, dtype=str)
+    name = []
+    name_in = np.empty(npoints, dtype=str)
     point = np.empty(npoints, dtype=float)
     for i in range(npoints):
-      name[i], point[i] = f.readline().split()[1:]
+      name_in[i], point[i] = f.readline().split()[1:]
+      if name_in[i] == "G":
+        name.append(r"$\Gamma$")
+      else:
+        name.append(name_in[i])
       # print name[i], point[i]
 
     Ef_line = f.readline().split()
@@ -62,13 +67,13 @@ def read_data(filename):
   return ndata
 
 def read_header_ldos(file):
-   with open(file, "r") as f:
-     Ef_line = f.readline().split()
-     fermi = None
-     if "Ef" in Ef_line[1]:
-       fermi = float(Ef_line[2])
-       # print fermi
-   return fermi
+  with open(file, "r") as f:
+    Ef_line = f.readline().split()
+    fermi = None
+    if "Ef" in Ef_line[1]:
+      fermi = float(Ef_line[2])
+      # print fermi
+  return fermi
 
 def read_data_ldos(filename):
   # open a file using with statement
@@ -84,23 +89,43 @@ def read_data_ldos(filename):
 
 
 if __name__ == "__main__":
+  input_error = False
+  if (len(args.files)==1):
+    if (args.ldosu != ""):
+      ldosu = list(args.ldosu)
+      if (args.ldosu != ""):
+        ldosd = list(args.ldosd)
+        mag = True
+        nplots = 3
+      else:
+        mag = False
+        nplots = 2
+    else:
+      input_error = True
 
-  if len(args.files)<=1 or len(args.files) >=4:
+  elif (len(args.files)<=1 or len(args.files) >=4):
+    input_error = True
+  else:
+    ldosu = [args.files[1]] #args.fileu
+
+    if len(args.files)==3 :
+      ldosd = [args.files[2]] #args.filed
+      mag = True
+    else:
+      mag = False
+    nplots = len(args.files)
+
+
+  if input_error:
     print(f"Incorrect number of arguments: {len(args.files)}.")
     print(f"At least one band structure and one LDOS file and at maximum")
     print(f"one band structure and two LDOS files shoud be given.")
+    print(f"(more than one LDOS files can be given using arguments --ldosu --ldosd)")
     exit(1)
+
+  
   bsstruct = args.files[0]#args.fileband
 
-  ldosu = args.files[1] #args.fileu
-
-  if len(args.files)==3 :
-    ldosd = args.files[2] #args.filed
-    mag = True
-  else:
-    mag = False
-
-  nplots = len(args.files)
   filename = args.output
   fig, ax = plt.subplots(1,nplots, sharey=True, gridspec_kw = {'width_ratios':([1,4,1] if mag else [1,4])})
   fig.subplots_adjust(left=0.1,wspace=0.15,top=0.95, bottom=0.15, right=0.9)
@@ -112,17 +137,30 @@ if __name__ == "__main__":
   ax[0].set_ylabel(labely, fontsize=14)
   ax[0].set_xlabel(labelx, fontsize=14)
 
-  npoints, name, point, fermi = read_header(args.files[0])
-  table = read_data(args.files[0])
-  fermi_ldos = read_header_ldos(args.files[1])
+  npoints, name, point, fermi = read_header(bsstruct)
+  table = read_data(bsstruct)
+  fermi_ldos = read_header_ldos(ldosu[0])
 
-  ndatau=read_data_ldos(args.files[1])
-  ndatau = ndatau[ndatau[:,0].argsort()]
+  # ndatau=read_data_ldos(ldosu[0])
+  data = []
+  data.append(read_data_ldos(ldosu[0]))
+  for j in range(1,len(ldosu)):
+    data_temp = read_data_ldos(ldosu[j])
+    for i, line in enumerate(data[0]):
+      data[0][i] = np.array([data_temp[i,0]] + [data[0][i,k] + data_temp[i,k] for k in range(1,len(data_temp[i,:]))])
+  ndatau = data[0][data[0][:,0].argsort()]
 
   if mag:
     ax[2].tick_params(axis='y', direction='in', left=True, right=True)
-    ndatad=read_data_ldos(args.files[2])
-    ndatad = ndatad[ndatad[:,0].argsort()]
+    data = []
+    data.append(read_data_ldos(ldosd[0]))
+    for j in range(1,len(ldosd)):
+      data_temp = read_data_ldos(ldosd[j])
+      for i, line in enumerate(data[0]):
+        data[0][i] = np.array([data_temp[i,0]] + [data[0][i,k] + data_temp[i,k] for k in range(1,len(data_temp[i,:]))])
+    ndatad = data[0][data[0][:,0].argsort()]
+    # ndatad=read_data_ldos(args.files[2])
+    # ndatad = ndatad[ndatad[:,0].argsort()]
     ax[2].set_xlabel(labelx, fontsize=14)
 
   ax[1].set_xticks(point)
@@ -190,7 +228,6 @@ if __name__ == "__main__":
   if mag:
     ax[2].set_xlim([0.0,xlim])
 
-  #
   # ax[2].axhline(y=1000.0, xmin=point[0], xmax=point[npoints-1], color='b', linestyle='--', linewidth=0.75)
   # ax[2].axhline(y=-1000.0, xmin=point[0], xmax=point[npoints-1], color='b', linestyle='--', linewidth=0.75)
   #
@@ -202,7 +239,7 @@ if __name__ == "__main__":
   ax[0].axhline(y=0.0, xmin=point[0], xmax=point[npoints-1], color='k', linestyle='--', linewidth=0.75)
   # Getting position of the middle of the band structure frame to put legend from LDOS
   posx = ax[1].get_position().x0 + 0.5*ax[1].get_position().width
-  posy = ax[1].get_position().y0 + 0.9*ax[1].get_position().height
+  posy = ax[1].get_position().y0 + 0.05*ax[1].get_position().height
   leg = ax[0].legend(loc="center", bbox_to_anchor=(posx,posy), bbox_transform=ax[1].transAxes)
   leg.set_zorder(2)
   ax[0].tick_params(axis='both', which='major', labelsize=14)

@@ -43,6 +43,8 @@ colors = [(0.07, 0.19, 0.60),(0.57, 0.05, 0.07),(0.10, 0.46, 0.13)]
 
 parser = argparse.ArgumentParser(description="Parse bool")
 parser.add_argument("files", nargs="+", help="File(s) to plot")
+parser.add_argument('--ldosu', nargs="+", help='Files with majority DOS (more than one will be added up)', default="")
+parser.add_argument('--ldosd', nargs="+", help='Files with minority DOS (more than one will be added up)', default="")
 parser.add_argument('--output', help='Output file', default="")
 parser.add_argument('--title' , help='Title of the graph', default="")
 parser.add_argument('--xlim' , help='Limits of x-axis', default="")

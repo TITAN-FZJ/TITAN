@@ -457,10 +457,12 @@ contains
     implicit none
     complex(dp), dimension(s%nOrb2,s%nOrb2,3,s%nAtoms), intent(out) :: torque
     complex(dp), dimension(s%nOrb,s%nOrb) :: ident
-    integer :: i,m,n,k
+    integer :: i,m,n,k,nOrb,nOrb2
 
     torque = cZero
     do i = 1, s%nAtoms
+      nOrb =s%Types(s%Basis(i)%Material)%nOrb
+      nOrb2=s%Types(s%Basis(i)%Material)%nOrb2
 
       ident = cZero
       do m=1,s%Types(s%Basis(i)%Material)%ndOrb
@@ -470,10 +472,10 @@ contains
       do m = 1, 3
         do n = 1, 3
           do k = 1, 3
-            torque(                                  1:s%Types(s%Basis(i)%Material)%nOrb ,                                  1:s%Types(s%Basis(i)%Material)%nOrb ,m,i) = torque(                                  1:s%Types(s%Basis(i)%Material)%nOrb ,                                  1:s%Types(s%Basis(i)%Material)%nOrb ,m,i) + mdvec_cartesian(n,i) * ident(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb) * sigma(1,1,k) * levi_civita(m,n,k)
-            torque(s%Types(s%Basis(i)%Material)%nOrb+1:s%Types(s%Basis(i)%Material)%nOrb2,                                  1:s%Types(s%Basis(i)%Material)%nOrb ,m,i) = torque(s%Types(s%Basis(i)%Material)%nOrb+1:s%Types(s%Basis(i)%Material)%nOrb2,                                  1:s%Types(s%Basis(i)%Material)%nOrb ,m,i) + mdvec_cartesian(n,i) * ident(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb) * sigma(2,1,k) * levi_civita(m,n,k)
-            torque(                                  1:s%Types(s%Basis(i)%Material)%nOrb ,s%Types(s%Basis(i)%Material)%nOrb+1:s%Types(s%Basis(i)%Material)%nOrb2,m,i) = torque(                                  1:s%Types(s%Basis(i)%Material)%nOrb ,s%Types(s%Basis(i)%Material)%nOrb+1:s%Types(s%Basis(i)%Material)%nOrb2,m,i) + mdvec_cartesian(n,i) * ident(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb) * sigma(1,2,k) * levi_civita(m,n,k)
-            torque(s%Types(s%Basis(i)%Material)%nOrb+1:s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb+1:s%Types(s%Basis(i)%Material)%nOrb2,m,i) = torque(s%Types(s%Basis(i)%Material)%nOrb+1:s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb+1:s%Types(s%Basis(i)%Material)%nOrb2,m,i) + mdvec_cartesian(n,i) * ident(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb) * sigma(2,2,k) * levi_civita(m,n,k)
+            torque(     1:nOrb ,     1:nOrb ,m,i) = torque(     1:nOrb ,     1:nOrb ,m,i) + mdvec_cartesian(n,i) * ident(1:nOrb,1:nOrb) * sigma(1,1,k) * levi_civita(m,n,k)
+            torque(nOrb+1:nOrb2,     1:nOrb ,m,i) = torque(nOrb+1:nOrb2,     1:nOrb ,m,i) + mdvec_cartesian(n,i) * ident(1:nOrb,1:nOrb) * sigma(2,1,k) * levi_civita(m,n,k)
+            torque(     1:nOrb ,nOrb+1:nOrb2,m,i) = torque(     1:nOrb ,nOrb+1:nOrb2,m,i) + mdvec_cartesian(n,i) * ident(1:nOrb,1:nOrb) * sigma(1,2,k) * levi_civita(m,n,k)
+            torque(nOrb+1:nOrb2,nOrb+1:nOrb2,m,i) = torque(nOrb+1:nOrb2,nOrb+1:nOrb2,m,i) + mdvec_cartesian(n,i) * ident(1:nOrb,1:nOrb) * sigma(2,2,k) * levi_civita(m,n,k)
           end do
         end do
       end do
@@ -490,22 +492,24 @@ contains
     use mod_constants,  only: cZero, levi_civita, sigma => pauli_mat
     use mod_System,     only: s => sys
     implicit none
-    integer :: i,m,n,k,mu,nu,mup,nup,mupp,nupp
+    integer :: i,m,n,k,mu,nu,mup,nup,mupp,nupp,nOrb,nOrb2
     complex(dp), dimension(s%nOrb2,s%nOrb2,3,s%nAtoms), intent(out) :: torque
 
     torque = cZero
 
     !! [sigma, H_SO]
     !! t_i^m = Lambda_i * sum_nk eps_mnk L_imunu^n * S_imunu^k
-    !! t_m = lambda_i * sum_alpha_beta * sum_nk_gamma,zeta eps_mnk L^n_gamma,zeta * sigma^k_alpha_beta
+    !! t_m = lambda_i * sum_alpha_beta * sum_nk_gamma,zeta eps_mnk L^n_gamma,zeta * (sigma^k_alpha_beta/2)
     do i = 1, s%nAtoms
+      nOrb =s%Types(s%Basis(i)%Material)%nOrb
+      nOrb2=s%Types(s%Basis(i)%Material)%nOrb2
       do m = 1, 3
         do n = 1, 3
           do k = 1, 3
-            torque(                                  1:s%Types(s%Basis(i)%Material)%nOrb ,                                  1:s%Types(s%Basis(i)%Material)%nOrb ,m,i) = torque(                                  1:s%Types(s%Basis(i)%Material)%nOrb ,                                  1:s%Types(s%Basis(i)%Material)%nOrb ,m,i) + s%Types(s%Basis(i)%Material)%lvec(:,:,n) * sigma(1,1,k) * levi_civita(m,n,k)
-            torque(s%Types(s%Basis(i)%Material)%nOrb+1:s%Types(s%Basis(i)%Material)%nOrb2,                                  1:s%Types(s%Basis(i)%Material)%nOrb ,m,i) = torque(s%Types(s%Basis(i)%Material)%nOrb+1:s%Types(s%Basis(i)%Material)%nOrb2,                                  1:s%Types(s%Basis(i)%Material)%nOrb ,m,i) + s%Types(s%Basis(i)%Material)%lvec(:,:,n) * sigma(2,1,k) * levi_civita(m,n,k)
-            torque(                                  1:s%Types(s%Basis(i)%Material)%nOrb ,s%Types(s%Basis(i)%Material)%nOrb+1:s%Types(s%Basis(i)%Material)%nOrb2,m,i) = torque(                                  1:s%Types(s%Basis(i)%Material)%nOrb ,s%Types(s%Basis(i)%Material)%nOrb+1:s%Types(s%Basis(i)%Material)%nOrb2,m,i) + s%Types(s%Basis(i)%Material)%lvec(:,:,n) * sigma(1,2,k) * levi_civita(m,n,k)
-            torque(s%Types(s%Basis(i)%Material)%nOrb+1:s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb+1:s%Types(s%Basis(i)%Material)%nOrb2,m,i) = torque(s%Types(s%Basis(i)%Material)%nOrb+1:s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb+1:s%Types(s%Basis(i)%Material)%nOrb2,m,i) + s%Types(s%Basis(i)%Material)%lvec(:,:,n) * sigma(2,2,k) * levi_civita(m,n,k)
+            torque(     1:nOrb ,     1:nOrb ,m,i) = torque(     1:nOrb ,     1:nOrb ,m,i) + s%Types(s%Basis(i)%Material)%lvec(:,:,n) * sigma(1,1,k) * levi_civita(m,n,k)
+            torque(nOrb+1:nOrb2,     1:nOrb ,m,i) = torque(nOrb+1:nOrb2,     1:nOrb ,m,i) + s%Types(s%Basis(i)%Material)%lvec(:,:,n) * sigma(2,1,k) * levi_civita(m,n,k)
+            torque(     1:nOrb ,nOrb+1:nOrb2,m,i) = torque(     1:nOrb ,nOrb+1:nOrb2,m,i) + s%Types(s%Basis(i)%Material)%lvec(:,:,n) * sigma(1,2,k) * levi_civita(m,n,k)
+            torque(nOrb+1:nOrb2,nOrb+1:nOrb2,m,i) = torque(nOrb+1:nOrb2,nOrb+1:nOrb2,m,i) + s%Types(s%Basis(i)%Material)%lvec(:,:,n) * sigma(2,2,k) * levi_civita(m,n,k)
           end do
         end do
       end do
@@ -513,10 +517,10 @@ contains
       ! p block
       do nupp=1,s%Types(s%Basis(i)%Material)%npOrb
         nu = s%Types(s%Basis(i)%Material)%pOrbs(nupp)
-        nup = nu + s%Types(s%Basis(i)%Material)%nOrb 
+        nup = nu + nOrb 
         do mupp=1,s%Types(s%Basis(i)%Material)%npOrb
           mu = s%Types(s%Basis(i)%Material)%pOrbs(mupp)
-          mup = mu + s%Types(s%Basis(i)%Material)%nOrb 
+          mup = mu + nOrb 
           torque(mu ,nu ,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque(mu ,nu ,:,i)
           torque(mu ,nup,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque(mu ,nup,:,i)
           torque(mup,nu ,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque(mup,nu ,:,i)
@@ -527,10 +531,10 @@ contains
       ! d block
       do nupp=1,s%Types(s%Basis(i)%Material)%ndOrb
         nu = s%Types(s%Basis(i)%Material)%dOrbs(nupp)
-        nup = nu + s%Types(s%Basis(i)%Material)%nOrb 
+        nup = nu + nOrb 
         do mupp=1,s%Types(s%Basis(i)%Material)%ndOrb
           mu = s%Types(s%Basis(i)%Material)%dOrbs(mupp)
-          mup = mu + s%Types(s%Basis(i)%Material)%nOrb 
+          mup = mu + nOrb 
           torque(mu ,nu ,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque(mu ,nu ,:,i)
           torque(mu ,nup,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque(mu ,nup,:,i)
           torque(mup,nu ,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque(mup,nu ,:,i)

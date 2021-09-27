@@ -4,10 +4,15 @@ module TightBinding
 contains
 
   subroutine initTightBinding(s)
+#ifdef _GPU
+    use mod_System,            only: System_type,nOrb_d
+#else
     use mod_System,            only: System_type
+#endif
     use mod_mpi_pars,          only: abortProgram
     use mod_parameters,        only: tbmode,fermi_layer
     use mod_superconductivity, only: superCond
+
     implicit none
     type(System_type), intent(inout) :: s
     integer :: i,max_orb
@@ -24,6 +29,13 @@ contains
     s%nOrb    = max_orb
     s%nOrb2   = 2*s%nOrb
     s%nOrb2sc = s%nOrb2*superCond
+
+#ifdef _GPU
+    allocate(nOrb_d(s%nAtoms))
+    do i=1,s%nAtoms
+      nOrb_d(i) = s%Types(s%Basis(i)%Material)%nOrb
+    end do
+#endif
 
     s%total_nOrb = s%Types(s%Basis(1)%Material)%nOrb
     do i = 2, s%nAtoms
@@ -198,6 +210,7 @@ contains
   subroutine readElementFile(s,n,tbmode)
   !! Reading element file, including all the parameters
     use mod_kind,              only: dp
+    use mod_constants,         only: cZero
     use AtomTypes,             only: NeighborAtom,default_nOrb
     use mod_system,            only: System_type
     use mod_mpi_pars,          only: abortProgram
@@ -205,7 +218,7 @@ contains
     use mod_io,                only: log_warning,log_error,log_message,get_orbitals
     use mod_input,             only: get_parameter
     use mod_superconductivity, only: lsuperCond
-    use mod_SOC,               only: socscale
+    use mod_SOC,               only: socscale,SOC
     implicit none
     type(System_type), intent(inout) :: s
     integer,           intent(in)    :: n
@@ -372,6 +385,7 @@ contains
 
     ! Allocating L matrix for each type
     if(.not.allocated(s%Types(n)%lvec))  allocate( s%Types(n)%lvec(s%Types(n)%nOrb,s%Types(n)%nOrb,3) )
+    s%Types(n)%lvec(:,:,:) = cZero
 
     ! Read charge densitites for s p d
     ! line = next_line("readElementFile",f_unit)
@@ -403,6 +417,7 @@ contains
 
     ! Read Spin-Orbit interaction strength for p and d
     tmp_arr(1:2) = StoR(next_line("readElementFile",f_unit,"SOI strength"),2)
+    if(.not.SOC) socscale = 0._dp
     s%Types(n)%LambdaP = socscale*tmp_arr(1)
     s%Types(n)%LambdaD = socscale*tmp_arr(2)
 

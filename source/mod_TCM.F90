@@ -22,7 +22,7 @@ contains
       if((s%isysdim/=3).and.(scan(filename(i),"i")>0)) cycle
       write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(i)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       open (unit=iw, file=varm, status='replace', form='formatted')
-      write(unit=iw, fmt="('# (k), i , m , Re(A_mx), Im(A_mx), Re(A_my), Im(A_my), Re(A_mz), Im(A_mz) ')")
+      write(unit=iw, fmt="('#   i  ,   m  ,      A_mx     ,       A_my      ,       A_mz      ')")
     end do
 
   end subroutine openTCMFiles
@@ -43,13 +43,13 @@ contains
     real(dp), dimension(s%nAtoms,3,ndiffk), intent(in) :: ialpha
     !! Contributions of each kz to alpha
     integer :: i,j,k
-    complex(dp), dimension(s%nAtoms,s%nAtoms,3,3),intent(in) :: alpha
+    real(dp), dimension(s%nAtoms,s%nAtoms,3,3),intent(in) :: alpha
     !! Total Gilbert damping matrix alpha
 
     !! Writing Gilbert damping
     do i = 1, s%nAtoms
       do j = 1, 3
-        write(unit=unit  ,fmt=*) i, j, (real(alpha(i,i,j,k)), aimag(alpha(i,i,j,k)), k = 1, 3)
+        write(unit=unit  ,fmt="(i5,2x,i5,3(2x,es16.9))") i, j, (alpha(i,i,j,k), k = 1, 3)
       end do
     end do
 
@@ -85,9 +85,9 @@ contains
     use mod_torques,    only: SO_torque_operator,xc_torque_operator
     implicit none
     integer :: ndiffk
-    real(dp),    dimension(:),     allocatable    :: diff_k, iwght
-    real(dp),    dimension(:,:,:), allocatable    :: ialphaSO, ialphaXC
-    complex(dp), dimension(s%nAtoms,s%nAtoms,3,3) :: alphaSO, alphaXC
+    real(dp), dimension(:),     allocatable    :: diff_k, iwght
+    real(dp), dimension(:,:,:), allocatable    :: ialphaSO, ialphaXC
+    real(dp), dimension(s%nAtoms,s%nAtoms,3,3) :: alphaSO, alphaXC
 
     if(rField == 0) &
       write(output%unit_loop, "('[calculate_TCM] Starting to calculate Gilbert damping within the TCM:')")
@@ -137,7 +137,7 @@ contains
     use mod_tools,         only: sort,itos,rtos
     use mod_hamiltonian,   only: hamilt_local
     use mod_greenfunction, only: green
-    use mod_mpi_pars,      only: rField,sField,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FieldComm,ierr
+    use mod_mpi_pars,      only: rField,sField,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_SUM,FieldComm,ierr
     implicit none
     interface
       subroutine torque_operator(torque)
@@ -148,7 +148,7 @@ contains
       end subroutine torque_operator
     end interface
 
-    complex(dp), dimension(s%nAtoms,s%nAtoms,3,3), intent(out) :: alpha
+    real(dp), dimension(s%nAtoms,s%nAtoms,3,3), intent(out) :: alpha
     !! Contains the Gilbert Damping as matrix in sites and cartesian coordinates (nAtoms,nAtoms,3,3)
     integer(int64) :: iz
     integer   :: i, j, m, n, k, mu, ios, nOrb2_i, nOrb2_j
@@ -176,11 +176,10 @@ contains
     !! Torque operator (SO or XC)
     complex(dp),dimension(s%nOrb2sc,s%nOrb2sc,s%nAtoms,s%nAtoms) :: gf
     !! Green function
-    complex(dp),dimension(s%nOrb2,s%nOrb2) :: temp1, temp2, temp3, temp4
-    complex(dp) :: alphatemp
+    complex(dp),dimension(s%nOrb2,s%nOrb2) :: temp, temp1, temp2, temp3, temp4
+    !! Temporary arrays
+    real(dp) :: alphatemp
     !! Temporary k-dependent alpha
-    complex(dp), dimension(s%nAtoms,s%nAtoms,3,3) :: alpha_loc
-    !! Local (in-processor) alpha
 
     external :: zgemm,MPI_Allreduce
 
@@ -240,7 +239,7 @@ contains
     !! $\alpha - \alpha_{\text{noSOI}} = 2 \frac{\gamma}{M \pi N} \sum_{\mathbf{k}}\operatorname{Tr}\{\operatorname{Im} G(\mathbf{k},\epsilon_F)\hat{T}^-_{\text{SOI}} \operatorname{Im} G(\mathbf{k},\epsilon_F) \hat{T}^+_{\text{SOI}}\} $
     !! g = 2
     !! M = magnetic moment
-    alpha(:,:,:,:) = cZero
+    alpha(:,:,:,:) = 0._dp
 
     ! Build local hamiltonian
     call hamilt_local(s)
@@ -248,12 +247,10 @@ contains
     if(rField == 0) &
       write(output%unit_loop, "('[TCM] Calculating alpha...')")
 
-    !$omp parallel default(none) reduction(+:ialpha,iwght) &
-    !$omp& private(m,n,i,j,k,mu,nOrb2_i,nOrb2_j,iz,kp,wght,gf,temp1,temp2,temp3,temp4,alpha_loc,alphatemp) &
-    !$omp& shared(s,realBZ,eta,torque,alpha,rField,order,ndiffk,diff_k)
-    alpha_loc  = cZero
-
-    !$omp do schedule(static)
+    !$omp parallel do default(none) schedule(dynamic) &
+    !$omp& private(m,n,i,j,k,mu,nOrb2_i,nOrb2_j,iz,kp,wght,gf,temp,temp1,temp2,temp3,temp4,alphatemp) &
+    !$omp& shared(s,realBZ,eta,torque,rField,order,ndiffk,diff_k) &
+    !$omp& reduction(+:ialpha,iwght,alpha)
     kpoints: do iz = 1, realBZ%workload
       kp   = realBZ%kp(1:3,iz)
       wght = realBZ%w(iz)
@@ -261,27 +258,28 @@ contains
       call green(s%Ef,eta,s,kp,gf)
       site_i: do i = 1, s%nAtoms
         site_j: do j = 1, s%nAtoms
-          nOrb2_i = 2*s%Types(s%Basis(i)%Material)%nOrb
-          nOrb2_j = 2*s%Types(s%Basis(j)%Material)%nOrb
-          temp2 = 0.5_dp * cI * ( transpose(conjg(gf(1:nOrb2_i,1:nOrb2_j,i,j))) - gf(1:nOrb2_j,1:nOrb2_i,j,i) ) ! Im(G_ji(Ef)) )
-          temp4 = 0.5_dp * cI * ( transpose(conjg(gf(1:nOrb2_j,1:nOrb2_i,j,i))) - gf(1:nOrb2_i,1:nOrb2_j,i,j) ) ! Im(G_ij(Ef))
+          nOrb2_i = s%Types(s%Basis(i)%Material)%nOrb2
+          nOrb2_j = s%Types(s%Basis(j)%Material)%nOrb2
+          temp2(1:nOrb2_j,1:nOrb2_i) = 0.5_dp * cI * ( conjg(transpose(gf(1:nOrb2_i,1:nOrb2_j,i,j))) - gf(1:nOrb2_j,1:nOrb2_i,j,i) ) ! Im(G_ji(Ef))
+          temp4(1:nOrb2_i,1:nOrb2_j) = 0.5_dp * cI * ( conjg(transpose(gf(1:nOrb2_j,1:nOrb2_i,j,i))) - gf(1:nOrb2_i,1:nOrb2_j,i,j) ) ! Im(G_ij(Ef))
 
           dir_m: do m = 1, 3
             dir_n: do n = 1, 3
 
-              alphatemp = cZero
               ! alpha^{mn}_{ij} = Tr ( Torque^m_i * Im(G_ij(Ef)) * Torque^n_j * Im(G_ji(Ef)) )
-              !                      temp2(below) *     temp4    *    temp3   * temp2(above)
-              temp3 = torque(1:nOrb2_j,1:nOrb2_j,n,j)
-              call zgemm('n','n',nOrb2_j,nOrb2_i,nOrb2_j,cOne,temp3,s%nOrb2,temp2,s%nOrb2,cZero,temp1,s%nOrb2) ! Torque^n_j * Im(G_ji(Ef))
+              !                           temp    *     temp4    *    temp    * temp2(above)
+              temp(1:nOrb2_j,1:nOrb2_j) = torque(1:nOrb2_j,1:nOrb2_j,n,j)
+              call zgemm('n','n',nOrb2_j,nOrb2_i,nOrb2_j,cOne,temp ,s%nOrb2,temp2,s%nOrb2,cZero,temp1,s%nOrb2) ! Torque^n_j * Im(G_ji(Ef))
               call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_j,cOne,temp4,s%nOrb2,temp1,s%nOrb2,cZero,temp3,s%nOrb2) ! Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))
-              temp2 = torque(1:nOrb2_i,1:nOrb2_i,m,i)
-              call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_i,cOne,temp2,s%nOrb2,temp3,s%nOrb2,cZero,temp1,s%nOrb2) ! Torque^m_i * Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))
+              temp(1:nOrb2_i,1:nOrb2_i) = torque(1:nOrb2_i,1:nOrb2_i,m,i)
+              call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_i,cOne,temp ,s%nOrb2,temp3,s%nOrb2,cZero,temp1,s%nOrb2) ! Torque^m_i * Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))
 
+
+              alphatemp = 0._dp
               do mu = 1, nOrb2_i
-                alphatemp = alphatemp + temp1(mu,mu) * wght
+                alphatemp = alphatemp + real(temp1(mu,mu)) * wght
               end do
-              alpha_loc(j,i,n,m) = alpha_loc(j,i,n,m) + alphatemp
+              alpha(j,i,n,m) = alpha(j,i,n,m) + alphatemp
 
               if((s%isysdim==3).and.(i == j).and.(m == n)) then
                 ! Testing if kz is not on the list of different kz calculated before
@@ -299,13 +297,7 @@ contains
         end do site_j
       end do site_i
     end do kpoints
-    !$omp end do nowait
-
-    !$omp critical
-    alpha = alpha + alpha_loc
-    !$omp end critical
-
-    !$omp end parallel
+    !$omp end parallel do
 
     !! XC-TCM:
     !! $\alpha= \frac{\gamma}{2 M \pi N} \sum_{\mathbf{k}} \operatorname{Tr}\{\operatorname{Im} G(\mathbf{k},\epsilon_\text{F})\hat{T}^-_\text{xc} \operatorname{Im} G(\mathbf{k},\epsilon_F) \hat{T}^+_\text{xc}\}$
@@ -320,7 +312,7 @@ contains
       if(s%isysdim==3) ialpha(i,:,:) = ialpha(i,:,:) / (mabs(i)*pi)
     end do
 
-    call MPI_Allreduce(MPI_IN_PLACE, alpha , s%nAtoms*s%nAtoms*3*3, MPI_DOUBLE_COMPLEX  , MPI_SUM, FieldComm, ierr)
+    call MPI_Allreduce(MPI_IN_PLACE, alpha , s%nAtoms*s%nAtoms*3*3, MPI_DOUBLE_PRECISION  , MPI_SUM, FieldComm, ierr)
     if(s%isysdim==3) then
       call MPI_Allreduce(MPI_IN_PLACE, ialpha, s%nAtoms*3*ndiffk    , MPI_DOUBLE_PRECISION, MPI_SUM, FieldComm, ierr)
       call MPI_Allreduce(MPI_IN_PLACE, iwght , ndiffk               , MPI_DOUBLE_PRECISION, MPI_SUM, FieldComm, ierr)

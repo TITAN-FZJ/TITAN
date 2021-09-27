@@ -433,12 +433,19 @@ contains
     use mod_System,            only: s => sys
     use mod_io,                only: write_header
     use mod_superconductivity, only: lsuperCond
+    use AtomTypes,             only: default_nOrb,default_Orbs
     implicit none
     character(len=400) :: varm,title(size(filename))
     integer            :: i, iw, j
 
     title(1:2) = "#    energy      ,  LDOS SUM       ,  LDOS S         ,  LDOS P         ,  LDOS D         "
-    title(3:4) = "#    energy      ,  LDOS S         ,  LDOS PX        ,  LDOS PY        ,  LDOS PZ        ,  LDOS DXY       ,  LDOS DYZ       ,  LDOS DZX       ,  LDOS DX2       ,  LDOS DZ2       "
+
+    title(3) =   "#    energy     ,"
+    do j = 1,default_nOrb
+      write(title(3),fmt="(a,a9,8x',')") trim(title(3)), trim(default_Orbs(j))
+    end do
+    write(title(3),fmt="(a,a)") trim( title(3)( :len(trim(title(3)))-1 ) )
+    title(4) = title(3)
 
     do i = 1, s%nAtoms
       do j = 1, size(filename)
@@ -491,14 +498,14 @@ contains
     use mod_kind,              only: dp
     use mod_System,            only: s => sys
     use mod_superconductivity, only: superCond
+    use AtomTypes,             only: default_nOrb
     implicit none
     real(dp), intent(in) :: e
-    real(dp), dimension(:,:,:), allocatable :: ldos_array
-    integer  :: i,iw,j,mu,sc
+    real(dp), dimension(2,1+3*superCond,s%nAtoms)          :: ldos_array
+    real(dp), dimension(2,default_nOrb*superCond,s%nAtoms) :: ldos_orb
+    integer  :: i,iw,j,mu,nu,sc
 
-
-    allocate(ldos_array(2,1+3*superCond,s%nAtoms))
-
+    ldos_orb = 0._dp
     ldos_array = 0._dp
     do i = 1, s%nAtoms
       ! total
@@ -508,18 +515,31 @@ contains
         iw = (sc-1)*3+2
         ! s
         do mu=1,s%Types(s%Basis(i)%Material)%nsOrb
-          ldos_array(1,iw  ,i) = ldos_array(1,iw  ,i) + ldosu(i,s%Types(s%Basis(i)%Material)%sOrbs(mu)) ! up
-          ldos_array(2,iw  ,i) = ldos_array(2,iw  ,i) + ldosd(i,s%Types(s%Basis(i)%Material)%sOrbs(mu)) ! down
+          nu = s%Types(s%Basis(i)%Material)%sOrbs(mu)+(sc-1)*s%Types(s%Basis(i)%Material)%nOrb
+          ldos_array(1,iw  ,i) = ldos_array(1,iw  ,i) + ldosu(i,nu) ! up
+          ldos_array(2,iw  ,i) = ldos_array(2,iw  ,i) + ldosd(i,nu) ! down
         end do
         ! p
         do mu=1,s%Types(s%Basis(i)%Material)%npOrb
-          ldos_array(1,iw+1,i) = ldos_array(1,iw+1,i) + ldosu(i,s%Types(s%Basis(i)%Material)%pOrbs(mu)) ! up
-          ldos_array(2,iw+1,i) = ldos_array(2,iw+1,i) + ldosd(i,s%Types(s%Basis(i)%Material)%pOrbs(mu)) ! down
+          nu = s%Types(s%Basis(i)%Material)%pOrbs(mu)+(sc-1)*s%Types(s%Basis(i)%Material)%nOrb
+          ldos_array(1,iw+1,i) = ldos_array(1,iw+1,i) + ldosu(i,nu) ! up
+          ldos_array(2,iw+1,i) = ldos_array(2,iw+1,i) + ldosd(i,nu) ! down
         end do
         ! d
         do mu=1,s%Types(s%Basis(i)%Material)%ndOrb
-          ldos_array(1,iw+2,i) = ldos_array(1,iw+2,i) + ldosu(i,s%Types(s%Basis(i)%Material)%dOrbs(mu)) ! up
-          ldos_array(2,iw+2,i) = ldos_array(2,iw+2,i) + ldosd(i,s%Types(s%Basis(i)%Material)%dOrbs(mu)) ! down
+          nu = s%Types(s%Basis(i)%Material)%dOrbs(mu)+(sc-1)*s%Types(s%Basis(i)%Material)%nOrb
+          ldos_array(1,iw+2,i) = ldos_array(1,iw+2,i) + ldosu(i,nu) ! up
+          ldos_array(2,iw+2,i) = ldos_array(2,iw+2,i) + ldosd(i,nu) ! down
+        end do
+      end do
+
+      do sc=1,superCond
+        iw = (sc-1)*s%Types(s%Basis(i)%Material)%nOrb
+
+        do mu = 1, s%Types(s%Basis(i)%Material)%nOrb
+          nu = s%Types(s%Basis(i)%Material)%Orbs(mu)+iw
+          ldos_orb(1,nu,i) = ldos_orb(1,nu,i) + ldosu(i,mu+iw)
+          ldos_orb(2,nu,i) = ldos_orb(2,nu,i) + ldosd(i,mu+iw)
         end do
       end do
     end do
@@ -530,9 +550,9 @@ contains
       iw = iw + 1
       write(unit=iw,fmt="( 8(es16.9,2x))") e, (ldos_array(2,j,i), j=1,1+3*superCond) ! down
       iw = iw + 1
-      write(unit=iw,fmt="(19(es16.9,2x))") e, (ldosu(i,j), j = 1,s%Types(s%Basis(i)%Material)%nOrb*supercond)
+      write(unit=iw,fmt="(19(es16.9,2x))") e, (ldos_orb(1,j,i), j = 1,default_nOrb*supercond)
       iw = iw + 1
-      write(unit=iw,fmt="(19(es16.9,2x))") e, (ldosd(i,j), j = 1,s%Types(s%Basis(i)%Material)%nOrb*supercond)
+      write(unit=iw,fmt="(19(es16.9,2x))") e, (ldos_orb(2,j,i), j = 1,default_nOrb*supercond)
     end do
 
   end subroutine writeLDOS

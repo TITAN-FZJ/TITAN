@@ -11,10 +11,15 @@ def read_header(file):
     count = [s for s in f.readline().split()]
     npoints = int(count[1])
     # print npoints
-    name = np.empty(npoints, dtype=str)
+    name = []
+    name_in = np.empty(npoints, dtype=str)
     point = np.empty(npoints, dtype=float)
     for i in range(npoints):
-      name[i], point[i] = f.readline().split()[1:]
+      name_in[i], point[i] = f.readline().split()[1:]
+      if name_in[i] == "G":
+        name.append(r"$\Gamma$")
+      else:
+        name.append(name_in[i])
       # print name[i], point[i]
 
     Ef_line = f.readline().split()

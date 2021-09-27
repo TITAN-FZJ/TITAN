@@ -268,7 +268,7 @@ contains
     !$omp& shared(s,dimHsc,h0,fullhk,output,realBZ) &
     !$omp& reduction(+:rho,mp,mz,deltas)
     !!$acc kernels
-    !$acc parallel loop private(iz,hk,eval,work,rwork,info,expec_0, expec_p, expec_z,expec_singlet) ! firstprivate(lwork) shared(s,dimHsc,output,realBZ,rho,mp,mz,lsuperCond,deltas) reduction(+:rho,mp,mz,deltas)
+    !!$acc parallel loop private(iz,hk,eval,expec_0,expec_p,expec_z,expec_d) ! firstprivate(lwork) shared(s,dimHsc,output,realBZ,rho,mp,mz,lsuperCond,deltas) reduction(+:rho,mp,mz,deltas)
     do iz = 1,realBZ%workload
       ! hamiltonian for a given k-point
       hk = h0 + fullhk(:,:,iz)
@@ -308,7 +308,7 @@ contains
     use mod_kind,          only: dp,int64
     use mod_BrillouinZone, only: realBZ
     use mod_parameters,    only: dimHsc,output
-    use mod_system,        only: System_type
+    use mod_system,        only: System_type,nOrb_d
     use mod_cuda,          only: h,diagonalize_gpu
     use nvtx,              only: nvtxStartRange,nvtxEndRange
     use mod_constants,     only: cZero
@@ -329,15 +329,13 @@ contains
     real(dp),    dimension(s%nOrb,s%nAtoms), device :: expec_d_d,deltas_d
     real(dp),    dimension(s%nOrb,s%nAtoms), device :: mx_d,my_d
 
-    complex(dp), dimension(:,:), allocatable,   device :: hk_d
-    real(dp),    dimension(:),   allocatable,   device :: eval_d
+    complex(dp), dimension(dimHsc,dimHsc),   device :: hk_d
+    real(dp),    dimension(dimHsc),          device :: eval_d
     real(dp) :: weight_d
 
     external :: MPI_Allreduce
 
     ncount = s%nOrb*s%nAtoms
-
-    allocate(hk_d(dimHsc,dimHsc),eval_d(dimHsc))
 
     call hamilt_local_gpu(s)
 
@@ -346,10 +344,12 @@ contains
     mp_d  = cZero
     deltas_d = 0._dp
 
-    do iz = 1,realBZ%workload
+    kloop: do iz = 1,realBZ%workload
+      weight_d = realBZ%w(iz)
       weight_d = realBZ%w(iz)
 
-      !$cuf kernel do(2) <<< *, * >>>
+      !!$cuf kernel do(2) <<< (*,*), (*,*) >>>
+      !$cuf kernel do <<< *,* >>>
       do j = 1, dimHsc
         do i = 1, dimHsc
           hk_d(i,j) = h0_d(i,j) + fullhk_d(i,j,iz)
@@ -374,9 +374,9 @@ contains
       ! End of expectation value marker
       call nvtxEndRange
 
-      !$cuf kernel do(2) <<< (1,*), (9,*) >>>
+      !$cuf kernel do <<< *,* >>>
       do j = 1,s%nAtoms
-        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
+        do mu = 1,nOrb_d(i)
           ! Occupation
           rho_d(mu,j) = rho_d(mu,j) + expec_0_d(mu,j)*weight_d
           ! Spin moments
@@ -386,8 +386,7 @@ contains
           deltas_d(mu,j) = deltas_d(mu,j) + expec_d_d(mu,j)*weight_d
         end do
       end do
-
-    end do
+    end do kloop
 
     ! Starting marker of MPI reduction for profiler
     call nvtxStartRange("MPIReduction",4)
@@ -411,8 +410,6 @@ contains
     mx = real(mp)
     my = aimag(mp)
 
-    deallocate(hk_d,eval_d)
-
     ! End of DevicetoHost copy marker
     call nvtxEndRange
 
@@ -425,7 +422,7 @@ contains
     use mod_kind,              only: dp
     use mod_constants,         only: cZero,pi,pauli_mat_d
     use mod_parameters,        only: eta,isigmamu2n_d
-    use mod_system,            only: System_type
+    use mod_System,            only: System_type,nOrb_d
     use mod_superconductivity, only: lsuperCond
     use mod_distributions,     only: fd_dist_gpu
     implicit none
@@ -458,9 +455,9 @@ contains
     !$acc end parallel loop
 
     if(.not.lsupercond) then
-      !$cuf kernel do(2) <<< (1,*), (9,*) >>>
+      !$cuf kernel do <<< *,* >>>
       do i = 1,s%nAtoms
-        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
+        do mu = 1,nOrb_d(i)
           sum_r1 = 0._dp
           sum_r2 = 0._dp
           sum_c1 = cZero
@@ -492,7 +489,7 @@ contains
       end do
     else
       do i = 1,s%nAtoms
-        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
+        do mu = 1,nOrb_d(i)
           lambda_d(mu,i) = s%Types(s%Basis(i)%Material)%lambda(mu)
         end do
       end do
@@ -506,9 +503,9 @@ contains
       end do
       !$acc end parallel loop
 
-      !$cuf kernel do(2) <<< (1,*), (9,*) >>>
+      !$cuf kernel do <<< *,* >>>
       do i = 1,s%nAtoms
-        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
+        do mu = 1,nOrb_d(i)
           sum_r1 = 0._dp
           sum_r2 = 0._dp
           do n = 1,dimens
@@ -523,9 +520,9 @@ contains
       end do
 
 
-      !$cuf kernel do(2) <<< (1,*), (9,*) >>>
+      !$cuf kernel do <<< *,* >>>
       do i = 1,s%nAtoms
-        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
+        do mu = 1,nOrb_d(i)
           sum_c1 = cZero
           sum_r1 = 0._dp
           do n = 1,dimens
@@ -1205,7 +1202,7 @@ contains
     use mod_BrillouinZone,     only: realBZ
     use mod_constants,         only: pi,cZero
     use mod_parameters,        only: dimHsc,eta,isigmamu2n_d
-    use mod_System,            only: s => sys
+    use mod_System,            only: s => sys, nOrb_d
     use mod_distributions,     only: fd_dist_gpu
     use mod_cuda,              only: h,diagonalize_gpu
     use mod_superconductivity, only: lsuperCond
@@ -1216,10 +1213,10 @@ contains
     integer                                            :: n,i,j,mu,nu,mup,nup,sigma
     real(dp)                                           :: fermi,beta
     complex(dp), dimension(s%nOrb,s%nOrb,s%nAtoms)     :: prod
-    complex(dp), dimension(:,:,:), allocatable, device :: prod_d
-    real(dp),    dimension(dimHsc),             device :: f_n_d
-    complex(dp), dimension(:,:),   allocatable, device :: hk_d
-    real(dp),    dimension(:),     allocatable, device :: eval_d
+    complex(dp), dimension(s%nOrb,s%nOrb,s%nAtoms), device :: prod_d
+    real(dp),    dimension(dimHsc),        device :: f_n_d
+    complex(dp), dimension(dimHsc,dimHsc), device :: hk_d
+    real(dp),    dimension(dimHsc),        device :: eval_d
     complex(dp) :: sum_c
     real(dp)    :: weight_d
 
@@ -1229,9 +1226,6 @@ contains
     fermi = merge(0._dp,s%Ef,lsuperCond)
     beta = 1._dp/(pi*eta)
 
-    allocate(hk_d(dimHsc,dimHsc),eval_d(dimHsc))
-    allocate(prod_d(s%nOrb,s%nOrb,s%nAtoms))
-
     call hamilt_local_gpu(s)
 
     prod_d = cZero
@@ -1240,12 +1234,13 @@ contains
     kloop: do iz = 1,realBZ%workload
       weight_d = realBZ%w(iz)
 
-      !$cuf kernel do(2) <<< *, * >>>
+      !$cuf kernel do(2) <<< (*,*), (*,*) >>>
       do j = 1, dimHsc
         do i = 1, dimHsc
           hk_d(i,j) = h0_d(i,j) + fullhk_d(i,j,iz)
         end do
       end do
+      
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
       call diagonalize_gpu(dimHsc,hk_d,eval_d,h)
 
@@ -1256,10 +1251,10 @@ contains
       end do
       !$acc end parallel loop
 
-      !$cuf kernel do(3) <<< (1,1,*), (9,9,*) >>>
+      !$cuf kernel do <<< *,* >>>
       do i = 1,s%nAtoms
-        do nu = 1,s%Types(s%Basis(i)%Material)%nOrb
-          do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
+        do nu = 1,nOrb_d(i)
+          do mu = 1,nOrb_d(i)
             sum_c = cZero
             do sigma=1,2
               do n = 1,dimHsc
@@ -1279,9 +1274,6 @@ contains
 
     ! Building different components of the orbital angular momentum
     call calculate_L(s,prod)
-
-    deallocate(prod_d)
-    deallocate(hk_d,eval_d)
 
   end subroutine calc_GS_L_and_E_fullhk_gpu
 #else

@@ -382,8 +382,10 @@ contains
     if(.not.allocated(rhod0)) allocate(rhod0(s%nAtoms))
     if(.not.allocated(mzd0)) allocate(mzd0(s%nAtoms))
     if(.not.allocated(mpd0)) allocate(mpd0(s%nAtoms))
+    s%totalOccupation = 0._dp
     do i=1,s%nAtoms
       rho0(1:s%Types(s%Basis(i)%Material)%nOrb,i) = s%Types(s%Basis(i)%Material)%rho0(1:s%Types(s%Basis(i)%Material)%nOrb) ! Unit cell can have more than one atom (of one type)
+      s%totalOccupation = s%totalOccupation + sum(rho0(1:s%Types(s%Basis(i)%Material)%nOrb,i))
       rhod0(i)  = s%Types(s%Basis(i)%Material)%rhod0
       mzd0(i)   = s%Types(s%Basis(i)%Material)%mzd0     ! but here only the occupation of first atom is used
       mpd0(i)   = s%Types(s%Basis(i)%Material)%mpd0     ! but here only the occupation of first atom is used

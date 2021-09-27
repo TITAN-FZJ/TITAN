@@ -53,7 +53,7 @@ module mod_system
     !! Number of neighbors to be considered
     real(dp)  :: Ef
     !! Fermi energy
-    real(dp)  :: totalOccupation = 0
+    real(dp)  :: totalOccupation = 0._dp
     !! Total occupation of the system
     type(NeighborAtom), dimension(:), allocatable :: Neighbors
     !! Information of the neighbors
@@ -80,6 +80,7 @@ module mod_system
   integer(int32), dimension(:,:), allocatable :: ia
 #ifdef _GPU
   integer(int32), dimension(:,:), allocatable, device :: ia_d
+  integer, allocatable, device :: nOrb_d(:)
 #endif
   integer(int32), dimension(:,:), allocatable :: ia_sc
 
