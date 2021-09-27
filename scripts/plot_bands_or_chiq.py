@@ -67,19 +67,27 @@ def read_data(filename):
 
 if __name__ == "__main__":
 
+  if args.centeref:
+    labely = r'$E-E_F$'
+  else:
+    labely = r'$E$'
+
+  if(args.mev) or (args.mevlabel):
+    labelx = r'$\rho(E)$ [meV$^{-1}$]'
+    labely = labely + r' [meV]'
+  elif(args.ev) or (args.evlabel):
+    labelx = r'$\rho(E)$ [eV$^{-1}$]'
+    labely = labely + r' [eV]'
+  else:
+    labelx = r'$\rho(E)$ [Ry$^{-1}$]'
+    labely = labely + r' [Ry]'
+
   if args.superconductivity:
     if args.together:
       numplots = 1
       titles = [r"Band Structure"]
 
       fig, axs = plt.subplots(1, numplots, sharey=True, squeeze=False, figsize=(6*numplots, 5))
-
-      if(ry2ev == 13.6057*1000):
-        labely = r'$E$ [meV]'
-      elif(ry2ev == 13.6057):
-        labely = r'$E$ [eV]'
-      else:
-        labely = r'$E$ [Ry]'
 
       axs[0,0].set_ylabel(labely)
 
@@ -130,13 +138,6 @@ if __name__ == "__main__":
       # titles = [r"$\eta=5\times10^{-3}$", r"$\eta=5\times10^{-4}$"])
 
       fig, axs = plt.subplots(1, numplots, sharey=True, squeeze=False, figsize=(6*numplots, 5))
-
-      if(ry2ev == 13.6057*1000):
-        labely = r'$E$ [meV]'
-      elif(ry2ev == 13.6057):
-        labely = r'$E$ [eV]'
-      else:
-        labely = r'$E$ [Ry]'
 
       axs[0,0].set_ylabel(labely)
 
@@ -193,20 +194,12 @@ if __name__ == "__main__":
 
     fig, axs = plt.subplots(1, numplots, sharey=True, squeeze=False, figsize=(6*numplots, 5))
 
-    if(ry2ev == 13.6057*1000) or (args.mevlabel):
-      labely = r'$E$ [meV]'
-    elif(ry2ev == 13.6057) or (args.evlabel):
-      labely = r'$E$ [eV]'
-    else:
-      labely = r'$E$ [Ry]'
-
     for i in range(numplots):
       npoints, name, point, fermi, dimbs = read_header(args.files[0])
       table = read_data(args.files[0])
       if fermi and args.centeref:
         table[:,1:dimbs] = table[:,1:dimbs] - fermi
         fermi = 0.0
-        labely = labely.replace("E","E-E_F")
 
       axs[0,i].set_title(titles[i])
       axs[0,i].set_xlim([point[0],point[npoints-1]])

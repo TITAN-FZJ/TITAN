@@ -9,16 +9,6 @@
 ################################################################################
 from head import *
 
-if(ry2ev == 13.6057*1000) or (args.mevlabel):
-  labelx = r'$\rho(E)$ [meV$^{-1}$]'
-  labely = r'$E-E_F$ [meV]'
-elif(ry2ev == 13.6057) or (args.evlabel):
-  labelx = r'$\rho(E)$ [eV$^{-1}$]'
-  labely = r'$E-E_F$ [eV]'
-else:
-  labelx = r'$\rho(E)$ [Ry$^{-1}$]'
-  labely = r'$E-E_F$ [Ry]'
-
 if args.superconductivity:
     # colors = brewer2mpl.get_map('Set1', 'qualitative', 5).mpl_colors
     colors = ['#e41a1c','#377eb8','#4daf4a','#984ea3','#a65628', '#b98600', '#000000']
@@ -123,7 +113,21 @@ if __name__ == "__main__":
     print(f"(more than one LDOS files can be given using arguments --ldosu --ldosd)")
     exit(1)
 
-  
+  if args.centeref:
+    labely = r'$E-E_F$'
+  else:
+    labely = r'$E$'
+
+  if(args.mev) or (args.mevlabel):
+    labelx = r'$\rho(E)$ [meV$^{-1}$]'
+    labely = labely + r' [meV]'
+  elif(args.ev) or (args.evlabel):
+    labelx = r'$\rho(E)$ [eV$^{-1}$]'
+    labely = labely + r' [eV]'
+  else:
+    labelx = r'$\rho(E)$ [Ry$^{-1}$]'
+    labely = labely + r' [Ry]'
+
   bsstruct = args.files[0]#args.fileband
 
   filename = args.output

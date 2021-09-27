@@ -31,6 +31,7 @@ contains
     s%nOrb2sc = s%nOrb2*superCond
 
 #ifdef _GPU
+    if(allocated(nOrb_d)) deallocate(nOrb_d)
     allocate(nOrb_d(s%nAtoms))
     do i=1,s%nAtoms
       nOrb_d(i) = s%Types(s%Basis(i)%Material)%nOrb
