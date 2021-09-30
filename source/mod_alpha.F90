@@ -13,10 +13,10 @@ contains
     use mod_mpi_pars, only: abortProgram
     implicit none
     integer :: AllocateStatus
-    allocate(m_chi       (4*s%nAtoms,4*s%nAtoms), &
-             m_chi_hf    (4*s%nAtoms,4*s%nAtoms), &
-             m_chi_inv   (4*s%nAtoms,4*s%nAtoms), &
-             m_chi_hf_inv(4*s%nAtoms,4*s%nAtoms), stat = AllocateStatus)
+    allocate( m_chi       (4*s%nAtoms,4*s%nAtoms), &
+              m_chi_hf    (4*s%nAtoms,4*s%nAtoms), &
+              m_chi_inv   (4*s%nAtoms,4*s%nAtoms), &
+              m_chi_hf_inv(4*s%nAtoms,4*s%nAtoms), stat = AllocateStatus)
     if(AllocateStatus /= 0) call abortProgram("[allocate_alpha] Not enough memory for: m_chi, m_chi_hf, m_chi_inv, m_chi_hf_inv")
 
   end subroutine allocate_alpha
@@ -113,7 +113,7 @@ contains
 
     do i=1, s%nAtoms
       do j = 1, size(filename)-6
-         close(unit=55+(j-1)*s%nAtoms+i)
+        close(unit=55+(j-1)*s%nAtoms+i)
       end do
       if(SOC) then
         do j = size(filename)-5,size(filename)

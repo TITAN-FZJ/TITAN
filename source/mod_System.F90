@@ -36,6 +36,8 @@ module mod_system
 
     integer(int32) :: nAtoms = 0
     !! Number of atoms in the system
+    integer :: ndAtoms = 0
+    !! Number of atoms with d-orbitals in the system
     integer(int32), dimension(:), allocatable :: Orbs
     !! Types of selected orbitals
     integer(int32), dimension(:), allocatable :: sOrbs,pOrbs,dOrbs

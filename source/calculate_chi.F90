@@ -33,8 +33,8 @@ subroutine calculate_chi()
   external :: eintshechi,zgemm,MPI_Recv,MPI_Send,MPI_Barrier,sort_all_files
 
   call allocate_susceptibilities()
-  call allocTTResponse(s%nAtoms)
-  call allocTSResponse(s%nAtoms)
+  call allocTTResponse(s%ndAtoms)
+  call allocTSResponse(s%ndAtoms)
   call genLocalEKMesh(s,rFreq(1), sFreq(1), FreqComm(1),bzs)
   call realBZ % setup_fraction(s,rFreq(1), sFreq(1), FreqComm(1))
 
@@ -65,6 +65,7 @@ subroutine calculate_chi()
     ! Chi Energy (frequency) Loop
     do kount = startFreq+skip_steps, endFreq
       e = emin + deltae * (kount-1)
+
       if(rField==0) &
         write(output%unit_loop,"('[calculate_chi] Starting MPI step ',i0,' of ',i0,':',10x,'E =  ',es10.3)") kount - startFreq - skip_steps + 1, endFreq - startFreq + 1, e
 
@@ -196,15 +197,16 @@ subroutine calculate_chi()
             ! DIAGONALIZING SUSCEPTIBILITY
             if((.not.lhfresponses).and.(.not.lnodiag)) call diagonalize_susceptibilities()
 
-            if(.not.lfield) then
-              call calcTTResponse(e)
-              call calcTSResponse(e)
-            end if
+            ! if(.not.lfield) then
+            !   call calcTTResponse(e)
+            !   call calcTSResponse(e)
+            ! end if
+
             ! WRITING GILBERT DAMPING
             if(abs(e)>1.e-8_dp) then
               call write_alpha(e)
-            else
-              if(sum(abs(q)) < 1.e-8_dp) call get_J_K_from_chi()
+            else if(sum(abs(q)) < 1.e-8_dp) then
+              call get_J_K_from_chi()
             end if
 
             ! WRITING RPA AND HF SUSCEPTIBILITIES

@@ -38,9 +38,11 @@ contains
     end do
 #endif
 
-    s%total_nOrb = s%Types(s%Basis(1)%Material)%nOrb
-    do i = 2, s%nAtoms
+    s%total_nOrb = 0
+    do i = 1, s%nAtoms
       s%total_nOrb = s%total_nOrb + s%Types(s%Basis(i)%Material)%nOrb
+      if (s%Types(s%Basis(i)%Material)%ndOrb > 0) &
+        s%ndAtoms = s%ndAtoms + 1
     end do
 
     select case(tbmode)

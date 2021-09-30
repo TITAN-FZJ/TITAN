@@ -33,12 +33,12 @@ contains
     integer :: i,j,k
 
     do k = 1, size(filename)
-      do i=1, s%nAtoms
-        do j = 1, s%nAtoms
+      do i=1, s%ndAtoms
+        do j = 1, s%ndAtoms
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(k)),trim(filename(k)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-          open (unit=unitBase(k)+s%nAtoms*(i-1)+j, file=varm, status='replace', form='formatted')
-          write(unit=unitBase(k)+s%nAtoms*(i-1)+j, fmt="(a)") FileHeader(k)
-          close(unit=unitBase(k)+s%nAtoms*(i-1)+j)
+          open (unit=unitBase(k)+s%ndAtoms*(i-1)+j, file=varm, status='replace', form='formatted')
+          write(unit=unitBase(k)+s%ndAtoms*(i-1)+j, fmt="(a)") FileHeader(k)
+          close(unit=unitBase(k)+s%ndAtoms*(i-1)+j)
         end do
       end do
     end do
@@ -55,11 +55,11 @@ contains
     integer :: i, j, k, err, errt
     errt = 0
 
-    do i=1, s%nAtoms
-      do j = 1, s%nAtoms
+    do i=1, s%ndAtoms
+      do j = 1, s%ndAtoms
         do k = 1, size(filename)
           write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_asite=',i0,'_bsite=',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(k)),trim(filename(k)),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-          open (unit=unitBase(k)+s%nAtoms*(i-1)+j, file=varm, status='old', position='append', form='formatted', iostat=err)
+          open (unit=unitBase(k)+s%ndAtoms*(i-1)+j, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
           if(err /= 0) missing_files = trim(missing_files) // " " // trim(varm)
         end do
@@ -74,10 +74,10 @@ contains
     implicit none
     integer :: i,j,k
 
-    do i = 1, s%nAtoms
-      do j = 1, s%nAtoms
+    do i = 1, s%ndAtoms
+      do j = 1, s%ndAtoms
         do k = 1, size(filename)
-          close(unit=unitBase(k)+s%nAtoms**(i-1)+j)
+          close(unit=unitBase(k)+s%ndAtoms**(i-1)+j)
         end do
       end do
     end do
@@ -85,7 +85,7 @@ contains
 
 
   subroutine calcTSResponse(e)
-    use mod_constants,        only: delta, levi_civita, StoC, CtoS, cI
+    use mod_constants,        only: cZero,cI,delta,levi_civita,StoC,CtoS
     use mod_System,           only: s => sys
     use mod_parameters,       only: sigmaimunu2i
     use mod_susceptibilities, only: chiorb, chiorb_hf
@@ -98,10 +98,10 @@ contains
     integer :: i,j,m,n,k,mp,mu,nu,gamma,mud,nud,gammad,p,q
     complex(dp), dimension(2,2) :: chits
 
-    TSResponse   = cmplx(0._dp,0._dp,dp)
-    TSResponseHF = cmplx(0._dp,0._dp,dp)
-    do i = 1, s%nAtoms
-      do j = 1, s%nAtoms
+    TSResponse   = cZero
+    TSResponseHF = cZero
+    do i = 1, s%ndAtoms
+      do j = 1, s%ndAtoms
         do m = 1, 3
           do n = 1, 3
             do k = 1, 3
@@ -136,8 +136,8 @@ contains
     end do
 
     call open_TSR_files()
-    do i = 1, s%nAtoms
-      do j = 1, s%nAtoms
+    do i = 1, s%ndAtoms
+      do j = 1, s%ndAtoms
           chits(1,1) = TSResponse(1,1,i,j)
           chits(1,2) = TSResponse(1,2,i,j) + 0.5_dp*mabs(i)*delta(i,j)
           chits(2,1) = TSResponse(2,1,i,j) - 0.5_dp*mabs(i)*delta(i,j)
@@ -147,9 +147,9 @@ contains
 
           chits = chits*cI*sqrt(mabs(i)*mabs(j))  * 0.5_dp ! last part is 1/gamma
 
-          write(unitBase(1)+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TSResponse(q,p,j,i)), aimag(TSResponse(q,p,j,i)), q = 1, 3), p = 1, 3)
-          write(unitBase(2)+s%nAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TSResponseHF(q,p,j,i)), aimag(TSResponseHF(q,p,j,i)), q = 1, 3), p = 1, 3)
-          write(unitBase(3)+s%nAtoms*(i-1)+j, "( 9(es16.9,2x))") e, ((real(chits(q,p)), aimag(chits(q,p)), q= 1,2),p=1,2)
+          write(unitBase(1)+s%ndAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TSResponse(q,p,j,i)), aimag(TSResponse(q,p,j,i)), q = 1, 3), p = 1, 3)
+          write(unitBase(2)+s%ndAtoms*(i-1)+j, "(19(es16.9,2x))") e, ((real(TSResponseHF(q,p,j,i)), aimag(TSResponseHF(q,p,j,i)), q = 1, 3), p = 1, 3)
+          write(unitBase(3)+s%ndAtoms*(i-1)+j, "( 9(es16.9,2x))") e, ((real(chits(q,p)), aimag(chits(q,p)), q= 1,2),p=1,2)
       end do
     end do
     call close_TSR_files()

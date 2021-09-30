@@ -509,8 +509,8 @@ contains
     ldos_array = 0._dp
     do i = 1, s%nAtoms
       ! total
-      ldos_array(1,1,i) = sum(ldosu(i,:)) ! up
-      ldos_array(2,1,i) = sum(ldosd(i,:)) ! down
+      ldos_array(1,1,i) = sum(ldosu(i,1:s%Types(s%Basis(i)%Material)%nOrb)) ! up
+      ldos_array(2,1,i) = sum(ldosd(i,1:s%Types(s%Basis(i)%Material)%nOrb)) ! down
       do sc=1,superCond
         iw = (sc-1)*3+2
         ! s

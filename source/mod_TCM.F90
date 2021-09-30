@@ -254,8 +254,9 @@ contains
     kpoints: do iz = 1, realBZ%workload
       kp   = realBZ%kp(1:3,iz)
       wght = realBZ%w(iz)
-      gf   = cZero
+
       call green(s%Ef,eta,s,kp,gf)
+
       site_i: do i = 1, s%nAtoms
         site_j: do j = 1, s%nAtoms
           nOrb2_i = s%Types(s%Basis(i)%Material)%nOrb2
@@ -273,7 +274,6 @@ contains
               call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_j,cOne,temp4,s%nOrb2,temp1,s%nOrb2,cZero,temp3,s%nOrb2) ! Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))
               temp(1:nOrb2_i,1:nOrb2_i) = torque(1:nOrb2_i,1:nOrb2_i,m,i)
               call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_i,cOne,temp ,s%nOrb2,temp3,s%nOrb2,cZero,temp1,s%nOrb2) ! Torque^m_i * Im(G_ij(Ef) * Torque^n_j * Im(G_ji(Ef))
-
 
               alphatemp = 0._dp
               do mu = 1, nOrb2_i

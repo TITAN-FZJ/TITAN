@@ -23,10 +23,10 @@ def read_data(filename):
 ################################################################################
 if __name__ == "__main__":
   
-  if(args.mev):
+  if(args.mev) or (args.mevlabel):
     labelx = r'$E-E_F$ [meV]'
     labely = r'$-\operatorname{Im}\chi^{+-}$ [states/meV]'
-  elif(args.ev):
+  elif(args.ev) or (args.evlabel):
     labelx = r'$E-E_F$ [eV]'
     labely = r'$-\operatorname{Im}\chi^{+-}$ [states/eV]'
   else:
@@ -75,6 +75,7 @@ if __name__ == "__main__":
   if args.legends != "[]":
     plt.legend()
 
+  plt.tight_layout()
   if args.output == "":
     plt.show()
   else:
