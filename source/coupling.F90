@@ -130,7 +130,7 @@ subroutine real_coupling()
   integer  :: cell_index(3)
   real(dp) :: q(3)
   real(dp), dimension(3) :: cell_vector, atom_vector ,norms_vec
-  real(dp) :: w, rx, ry, rz, r_norm, sphere_radius
+  real(dp) :: w, rx, ry, rz, rx_0, ry_0, rz_0, r_norm, sphere_radius
   complex(dp) :: kpExp
   real(dp), dimension(:,:,:,:,:), allocatable :: Jij_real
   integer :: cells
@@ -284,7 +284,7 @@ subroutine real_coupling()
     counter = 0
     do i = 1, cells
         ! ...and atoms in the unit cell
-        do j = 1, s%nAtoms
+        ! do j = 1, s%nAtoms
         ! "size" is the current atom
         size = size + 1
 
@@ -305,11 +305,12 @@ subroutine real_coupling()
 
         cell_vector = cell_index(1) * s%a1 + cell_index(2) * s%a2 + cell_index(3) * s%a3
         ! Atom position is r = R_i + r_j
-        atom_vector = s%Basis(j)%Position + cell_vector
+        ! atom_vector = s%Basis(j)%Position + cell_vector
 
         ! write(*,*) cluster(size,:), "norm = ", vec_norm(atom_vector, 3), "Rad = ", sphere_radius, "Bool = ", vec_norm(atom_vector, 3) <= sphere_radius
         if(vec_norm(cell_vector, 3) <= sphere_radius) then
             counter = counter + 1
+            write(*,*) cell_vector
         end if
 
         ! [To delete]
@@ -319,10 +320,11 @@ subroutine real_coupling()
         ! write(*,*) " "
         ! [To delete]
 
-        end do
+        ! end do
     end do
 
-    write(*,*) "cluster", counter
+    !TO DELETE
+    !write(*,*) "cluster", counter
     !
     if(allocated(cluster)) deallocate(cluster)
     allocate(cluster(counter,3))
@@ -333,7 +335,7 @@ subroutine real_coupling()
 
     do i = 1, cells
         ! ...and atoms in the unit cell
-        do j = 1, s%nAtoms
+        ! do j = 1, s%nAtoms
         ! "size" is the current atom
         size = size + 1
 
@@ -354,7 +356,7 @@ subroutine real_coupling()
 
         cell_vector = cell_index(1) * s%a1 + cell_index(2) * s%a2 + cell_index(3) * s%a3
         ! Atom position is r = R_i + r_j
-        atom_vector = s%Basis(j)%Position + cell_vector
+        ! atom_vector = s%Basis(j)%Position + cell_vector
 
         ! write(*,*) cluster(size,:), "norm = ", vec_norm(atom_vector, 3), "Rad = ", sphere_radius, "Bool = ", vec_norm(atom_vector, 3) <= sphere_radius
         if(vec_norm(cell_vector, 3) <= sphere_radius) then
@@ -365,7 +367,7 @@ subroutine real_coupling()
 
         ! write(*,*) " "
 
-        end do
+        ! end do
     end do
 
     call write_time('[real_coupling] Finished cluster generation: ',output%unit_loop)
@@ -397,23 +399,35 @@ subroutine real_coupling()
         ! [To delete]
     end do
 
+    !!!!!! TO DELETE
+    !write(*,*) "r0 = ", s%Basis(12)%Position(1), s%Basis(12)%Position(2) , s%Basis(12)%Position(3)
+    !!!!!!!!!!!!!!!!
     ! Writing files
     do k = 1, counter
         do j=1,s%nAtoms
+            rx_0 = s%Basis(j)%Position(1)
+            ry_0 = s%Basis(j)%Position(2)
+            rz_0 = s%Basis(j)%Position(3)
             do i=1,s%nAtoms
                 iw = 2000 + (j-1) * s%nAtoms * 2 + (i-1) * 2
                 if(i==j) then
                     iw = iw + 1
-                    rx = cluster(k,1) !- s%Basis(j)%Position(1)
-                    ry = cluster(k,2) !- s%Basis(j)%Position(2)
-                    rz = cluster(k,3) !- s%Basis(j)%Position(3)
-                    r_norm = SQRT(rx*rx + ry*ry + rz*rz)
+                    !!!!!! TO DELETE
+                    ! write(*,*) "i, j, iw ", i , j, iw
+                    !!!!!! 
+                    rx = cluster(k,1) + s%Basis(i)%Position(1)
+                    ry = cluster(k,2) + s%Basis(i)%Position(2)
+                    rz = cluster(k,3) + s%Basis(i)%Position(3)
+                    r_norm = SQRT((rx-rx_0)*(rx-rx_0) + (ry-ry_0)*(ry-ry_0) + (rz-rz_0)*(rz-rz_0))
                     write(unit=iw,fmt="(13(es16.9,2x))") rx, ry, rz ,r_norm,&
                     Jij_real(k,i,j,1,1),Jij_real(k,i,j,1,2), Jij_real(k,i,j,1,3), &
                     Jij_real(k,i,j,2,1), Jij_real(k,i,j,2,2), Jij_real(k,i,j,2,3), &
                     Jij_real(k,i,j,3,1), Jij_real(k,i,j,3,1), Jij_real(k,i,j,3,1)
                 else
                     iw = iw + 1
+                    !!!!!! TO DELETE
+                    ! write(*,*) "i, j, iw ", i , j, iw
+                    !!!!!!
                     write(unit=iw,fmt="(13(es16.9,2x))") rx, ry, rz ,r_norm,&
                     Jij_real(k,i,j,1,1),Jij_real(k,i,j,1,2), Jij_real(k,i,j,1,3), &
                     Jij_real(k,i,j,2,1), Jij_real(k,i,j,2,2), Jij_real(k,i,j,2,3), &
