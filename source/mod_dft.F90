@@ -81,8 +81,10 @@ contains
       i1 = i0+wgt_per_line-1
       weight(i0:i1) = StoI(next_line("readHamiltonian",f_unit,"weights"),wgt_per_line)
     end do
-    i1 = wgt_per_line*j
-    weight(i1+1:i1+mod(nCells,wgt_per_line)) = StoI(next_line("readHamiltonian",f_unit,"weights"),mod(nCells,wgt_per_line))    
+    if (mod(nCells,wgt_per_line)/=0) then
+      i1 = wgt_per_line*j
+      weight(i1+1:i1+mod(nCells,wgt_per_line)) = StoI(next_line("readHamiltonian",f_unit,"weights"),mod(nCells,wgt_per_line))    
+    end if
 
     ! "nNeighbors" is added up until all atoms in all unit cells, nCells*s%nAtoms
     nNeighbors = 0
@@ -107,8 +109,9 @@ contains
               read(f_unit, fmt=*, iostat=ios) pos(1), pos(2), pos(3), orb(1), orb(2), hop(1), hop(2)
 
               if((pos(1)==0).and.(pos(2)==0).and.(pos(3)==0).and.(i==j)) then
-                if((mu==nu).and.(hop(2)>1.0e-9_dp)) &
+                if((mu==nu).and.(hop(2)>1.0e-12_dp)) &
                   call log_error("readHamiltonian", "On-site, on-orbital term for i = j = " // trim(itos(i)) // ", mu = nu = " // trim(itos(mu)) // " is not real: Im(H) = " // trim(rtos(hop(2),"(f7.2)")))
+
                 s%Types(s%Basis(i)%Material)%onSite(mu,nu) = cmplx(hop(1),hop(2),dp)/weight(cell)
                 cycle
               end if

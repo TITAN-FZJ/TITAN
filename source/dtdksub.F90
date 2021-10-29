@@ -19,8 +19,9 @@ subroutine dtdksub(ue,kp,dtdk)
     ! kpExp = cI * dot_product(ElectricFieldVector, s%Neighbors(k)%CellVector) * exp(cI * dot_product(kp,s%Neighbors(k)%CellVector))
     kpExp = cI * dot_product(ue, s%Neighbors(k)%CellVector) * exp(cI * dot_product(kp,s%Neighbors(k)%CellVector))
     do i = 1, s%nAtoms
-      if(.not. s%Neighbors(k)%isHopping(i)) cycle
-      dtdk(1:s%nOrb,1:s%nOrb,j,i) = dtdk(1:s%nOrb,1:s%nOrb,j,i) + s%Neighbors(k)%t0i(1:s%nOrb, 1:s%nOrb, i) * kpExp
+      if(s%Neighbors(k)%isHopping(i)) then
+        dtdk(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb,j,i) = dtdk(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb,j,i) + s%Neighbors(k)%t0i(1:s%Types(s%Basis(j)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb,i) * kpExp
+      end if
     end do
   end do
 

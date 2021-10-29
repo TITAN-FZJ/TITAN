@@ -774,8 +774,8 @@ contains
   !> function invers(matriz,nn):
   !>    This subroutine calculates the inverse of nn x nn matrix 'matriz'
   !> --------------------------------------------------------------------
-    use, intrinsic :: iso_fortran_env
-    use mod_mpi_pars
+    use mod_kind,       only: dp
+    use mod_mpi_pars,   only: MPI_Abort,MPI_COMM_WORLD,errorcode,ierr,myrank
     use mod_parameters, only: output
     implicit none
     integer :: nn,info

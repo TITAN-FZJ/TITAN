@@ -213,9 +213,10 @@ if __name__ == "__main__":
     for i in range(1,len(ndatau[0,:])):
       # ax[0].plot(-ndatau[:,i]/ry2ev,(x-shift)*ry2ev,linestyle='-', color=colors[i-1], label=legends[i-1],marker=1,markersize=1)
       ax[0].plot(-ndatau[:,i]/ry2ev,(x-shift)*ry2ev,linestyle='-', color=colors[i-1], label=legends[i-1],marker=1,markersize=1)
-    for i,line in enumerate(x):
-      if abs((line-shift) - fermi) == min(abs((x-shift)-fermi)):
-        print(f"n_up(Ef) = {ndatau[i,1]/ry2ev}")
+    # To print density at closest value to Ef
+    # for i,line in enumerate(x):
+    #   if abs((line-shift) - fermi) == min(abs((x-shift)-fermi)):
+    #     print(f"n_up(Ef) = {ndatau[i,1]/ry2ev}")
 
   # Minority spin LDOS
   if mag:
@@ -229,10 +230,10 @@ if __name__ == "__main__":
       for i in range(1,len(ndatad[0,:])):
         # ax[2].plot(ndatad[:,i]/ry2ev,(x-shift)*ry2ev,linestyle='-', color=colors[i-1],marker=1,markersize=1)
         ax[2].plot(ndatad[:,i]/ry2ev,(x-shift)*ry2ev,linestyle='-', color=colors[i-1], label=legends[i-1],marker=1,markersize=1)
-
-      for i,line in enumerate(x):
-        if abs((line-shift) - fermi) == min(abs((x-shift)-fermi)):
-          print(f"n_dn(Ef) = {ndatad[i,1]/ry2ev}")
+      # To print density at closest value to Ef
+      # for i,line in enumerate(x):
+      #   if abs((line-shift) - fermi) == min(abs((x-shift)-fermi)):
+      #     print(f"n_dn(Ef) = {ndatad[i,1]/ry2ev}")
     a2 = max(ndatad[:,1]/ry2ev)
 
 
