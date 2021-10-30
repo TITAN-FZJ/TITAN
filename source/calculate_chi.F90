@@ -3,7 +3,7 @@ subroutine calculate_chi()
   use mod_kind,              only: dp
   use mod_constants,         only: cZero,cOne,StoC,CtoS
   use mod_parameters,        only: kount,emin,deltae,nQvec1,kpoints,dimens,sigmaimunu2i,output,lhfresponses,lnodiag,laddresults,skip_steps,sigmai2i
-  use mod_magnet,            only: lfield,mvec_spherical,lrot
+  use mod_magnet,            only: mvec_spherical,lrot!,lfield
   use mod_alpha,             only: create_alpha_files,write_alpha
   use mod_system,            only: s => sys
   use mod_BrillouinZone,     only: realBZ
@@ -28,7 +28,7 @@ subroutine calculate_chi()
   integer  :: mcount,qcount
   integer  :: i,j,sigma,sigmap,mu,nu,gamma,xi,p
   real(dp) :: e,q(3)
-  complex(dp), dimension(:,:),   allocatable :: temp
+  complex(dp), dimension(:,:), allocatable :: temp
 
   external :: eintshechi,zgemm,MPI_Recv,MPI_Send,MPI_Barrier,sort_all_files
 
@@ -197,6 +197,7 @@ subroutine calculate_chi()
             ! DIAGONALIZING SUSCEPTIBILITY
             if((.not.lhfresponses).and.(.not.lnodiag)) call diagonalize_susceptibilities()
 
+            ! TODO: Fix 
             ! if(.not.lfield) then
             !   call calcTTResponse(e)
             !   call calcTSResponse(e)

@@ -3,7 +3,8 @@
 subroutine calculate_all()
   use mod_kind,              only: dp
   use mod_constants,         only: cZero,cOne,cI !, levi_civita
-  use mod_parameters,        only: lnodiag,output,laddresults,skip_steps,kount,lhfresponses,sigmaimunu2i,emin,deltae,nQvec1,kpoints,dimens,sigmai2i,dimspinAtoms
+  use mod_parameters,        only: lnodiag,output,laddresults,skip_steps,kount,lhfresponses,&
+                                  sigmaimunu2i,emin,deltae,nQvec1,kpoints,dimens,sigmai2i,dimspinAtoms
   use mod_magnet,            only: lfield,hhw,mvec_cartesian,mvec_spherical,lrot
   use mod_SOC,               only: llinearsoc
   use mod_System,            only: s => sys

@@ -38,7 +38,7 @@ contains
     character(len=30)  :: formatvar
 
     if(myrank == 0) &
-      call write_time('[calc_init_expec_SK] Obtaining initial densities: ',output%unit)
+      call write_time('[calc_init_expec_SK] Obtaining initial occupations: ',output%unit)
 
     allocate(sys0(s%nTypes))
 
@@ -46,7 +46,7 @@ contains
       ! Checking if calculation is needed
       if(abs(s%Types(i)%Un)<1.e-8) then ! Since we only use paramagnetic SK parameters, only Un is checked here
         if(myrank == 0) &
-          write(output%unit,"('[calc_init_expec_SK] Initial density for ""',a,'"" not needed (Un=0.0). Skipping...')") trim(s%Types(i)%Name)
+          write(output%unit,"('[calc_init_expec_SK] Initial occupation for ""',a,'"" not needed (Un=0.0). Skipping...')") trim(s%Types(i)%Name)
 
         allocate( s%Types(i)%rho0(s%Types(i)%nOrb) )
         s%Types(i)%rho0(:) = 0._dp
@@ -110,7 +110,7 @@ contains
       !---------------- Reading from previous calculations -----------------
       !------- and calculating if file doesn't exist (or different U) ------
       if(.not.read_init_expecs(sys0(i)%nOrb,s%Types(i),err)) then
-        if(myrank == 0) write(output%unit,"('[calc_init_expec_SK] Calculating initial density for ""',a,'""...')") trim(s%Types(i)%Name)
+        if(myrank == 0) write(output%unit,"('[calc_init_expec_SK] Calculating initial occupation for ""',a,'""...')") trim(s%Types(i)%Name)
 
         !----------- Allocating variables that depend on nAtoms ------------
         call allocate_basis_variables(sys0(i))
@@ -169,7 +169,7 @@ contains
         !---------------- Calculating expectation values -------------------
         call calc_init_expec_values(sys0(i),rho0_out,rhod0_out,mpd0_out,mzd0_out)
 
-        ! Storing initial densities
+        ! Storing initial occupations
         lfound = .false.
         do j = 1,sys0(i)%nAtoms
           if(trim(sys0(i)%Types(s%Basis(j)%Material)%Name) == trim(s%Types(i)%Name)) then
@@ -184,7 +184,7 @@ contains
         end do
         if(.not.lfound) call abortProgram("[calc_init_expec_SK] Element " // trim(s%Types(i)%Name) // " not found in its elemental file!")
 
-        !-------------- Writing initial densities to files -----------------
+        !-------------- Writing initial occupations to files -----------------
         if(myrank == 0) call write_init_expecs(sys0(i)%nOrb,s%Types(i))
 
         !------------------------ Freeing memory ---------------------------
@@ -205,7 +205,7 @@ contains
 
       !------------------------- Test printing ---------------------------
       if(myrank == 0) then
-        write(output%unit,"('[calc_init_expec_SK] Initial densities from: ',a)") s%Types(i)%Name
+        write(output%unit,"('[calc_init_expec_SK] Initial occupations from: ',a)") trim(s%Types(i)%Name)
         write(formatvar,fmt="(a,i0,a)") '(a,',sys0(i)%nOrb,'(es14.7,2x))'
         write(unit=output%unit,fmt=formatvar) trim(s%Types(i)%Name), (s%Types(i)%rho0(mu),mu=1,sys0(i)%nOrb)
         write(unit=output%unit,fmt="(a,4(2x,es14.7))") trim(s%Types(i)%Name), s%Types(i)%rhod0, s%Types(i)%mpd0%re, s%Types(i)%mpd0%im, s%Types(i)%mzd0
@@ -224,7 +224,7 @@ contains
       mpd0(i)   = s%Types(s%Basis(i)%Material)%mpd0
     end do
     if(myrank == 0) &
-      call write_time('[calc_init_expec_SK] Finished calculating initial density: ',output%unit)
+      call write_time('[calc_init_expec_SK] Finished calculating initial occupations: ',output%unit)
     
     deallocate(sys0)
 
@@ -240,7 +240,7 @@ contains
     use mod_System,            only: System_type,allocate_basis_variables
     use mod_magnet,            only: l_matrix,mzd0,mpd0,rho0,rhod0
     use adaptiveMesh,          only: generateAdaptiveMeshes,genLocalEKMesh,freeLocalEKMesh,bzs
-    use mod_parameters,        only: output,leigenstates,lkpoints
+    use mod_parameters,        only: output,leigenstates,lkpoints,lfixEf
     ! use mod_parameters,        only: kp_in,kptotal_in,output,eta,leigenstates,lkpoints,dimH,dimHsc
     use mod_mpi_pars,          only: myrank,FieldComm,rField,sField,rFreq,sFreq,FreqComm,abortProgram
     use mod_progress,          only: write_time
@@ -264,39 +264,43 @@ contains
 
 
     if(myrank == 0) &
-      call write_time('[calc_init_expec_dft] Obtaining initial densities: ',output%unit)
+      call write_time('[calc_init_expec_dft] Obtaining initial occupations: ',output%unit)
 
     ! Checking if calculation is needed
-    lneed = .false.
-    types_of_atoms_check: do i = 1, s%nTypes
-      if((abs(s%Types(i)%Un)<1.e-8).and.(abs(s%Types(i)%Um)<1.e-8)) then
-        ! Only not needed when both Un and Um are zero
-        allocate( s%Types(i)%rho0( s%Types(i)%nOrb ) )
-        s%Types(i)%rho0(:) = 0._dp
-        s%Types(i)%rhod0   = 0._dp
-        s%Types(i)%mzd0    = 0._dp
-        s%Types(i)%mpd0    = cZero
-        cycle
-      else
-        lneed = .true. ! If Un or Um is non zero for a single element, the calculation must be done
-        exit           ! Since it's a single calculation, get all the other numbers too
-      end if
-    end do types_of_atoms_check
+    if(lfixEf) then
+      ! If Fermi level is fixed (no setting of the Fermi level using total occupation)
+      ! then check if all values of Un and Um are zero
+      lneed = .false.
+      types_of_atoms_check: do i = 1, s%nTypes
+        if((abs(s%Types(i)%Un)<1.e-8).and.(abs(s%Types(i)%Um)<1.e-8)) then
+          ! Only not needed when both Un and Um are zero
+          allocate( s%Types(i)%rho0( s%Types(i)%nOrb ) )
+          s%Types(i)%rho0(:) = 0._dp
+          s%Types(i)%rhod0   = 0._dp
+          s%Types(i)%mzd0    = 0._dp
+          s%Types(i)%mpd0    = cZero
+          cycle
+        else
+          lneed = .true. ! If Un or Um is non zero for a single element, the calculation must be done
+          exit           ! Since it's a single calculation, get all the other numbers too
+        end if
+      end do types_of_atoms_check
 
-    ! If all values of Un and Um are zero, return
-    if(.not.lneed) then
-      if(myrank == 0) &
-        write(output%unit,"('[calc_init_expec_dft] Initial densities for not needed (Un=Um=0.0). Skipping...')")
-      ! Transfering from occupations stored on Type to variables used in the hamiltonian
-      if(.not.allocated(rho0 )) allocate(rho0(s%nOrb,s%nAtoms))
-      if(.not.allocated(rhod0)) allocate(rhod0(s%nAtoms))
-      if(.not.allocated(mzd0)) allocate(mzd0(s%nAtoms))
-      if(.not.allocated(mpd0)) allocate(mpd0(s%nAtoms))
-      rho0  = 0._dp
-      rhod0 = 0._dp
-      mzd0  = 0._dp
-      mpd0  = cZero
-      return
+      ! If all values of Un and Um are zero, return
+      if(.not.lneed) then
+        if(myrank == 0) &
+          write(output%unit,"('[calc_init_expec_dft] Initial occupations for not needed (Un=Um=0.0). Skipping...')")
+        ! Transfering from occupations stored on Type to variables used in the hamiltonian
+        if(.not.allocated(rho0 )) allocate(rho0(s%nOrb,s%nAtoms))
+        if(.not.allocated(rhod0)) allocate(rhod0(s%nAtoms))
+        if(.not.allocated(mzd0)) allocate(mzd0(s%nAtoms))
+        if(.not.allocated(mpd0)) allocate(mpd0(s%nAtoms))
+        rho0  = 0._dp
+        rhod0 = 0._dp
+        mzd0  = 0._dp
+        mpd0  = cZero
+        return
+      end if
     end if
 
     call allocate_basis_variables(s)
@@ -306,7 +310,7 @@ contains
     types_of_atoms_read_check: do i = 1, s%nTypes
       if(.not.read_init_expecs(s%Types(i)%nOrb,s%Types(i),err)) then
         lneed = .true.
-        ! Since all the initial densities are calculated from the hamiltonian,
+        ! Since all the initial occupations are calculated from the hamiltonian,
         ! if one does not exist and must be calculated, it is enough to calculate all
         exit
       end if
@@ -315,7 +319,7 @@ contains
     ! If not all the files were read, lneed=.true. and all the densities will be (re)calculated
     if(lneed) then
       !--------- Calculating if file doesn't exist (or different U) --------
-      if(myrank == 0) write(output%unit,"('[calc_init_expec_dft] Calculating initial densities for all elements...')")
+      if(myrank == 0) write(output%unit,"('[calc_init_expec_dft] Calculating initial occupations for all elements...')")
 
       !---- L matrix in global frame for given quantization direction ----
       call l_matrix(s)
@@ -344,7 +348,7 @@ contains
       !---------------- Calculating expectation values -------------------
       call calc_init_expec_values(s,rho0_out,rhod0_out,mpd0_out,mzd0_out)
 
-      ! Storing initial densities
+      ! Storing initial occupations
       do i = 1,s%nAtoms
         if(.not.allocated(s%Types(s%Basis(i)%Material)%rho0)) allocate( s%Types(s%Basis(i)%Material)%rho0(s%Types(s%Basis(i)%Material)%nOrb) )
         s%Types(s%Basis(i)%Material)%rho0(1:s%Types(s%Basis(i)%Material)%nOrb) = rho0_out(1:s%Types(s%Basis(i)%Material)%nOrb,i)
@@ -353,7 +357,7 @@ contains
         s%Types(s%Basis(i)%Material)%mpd0  = mpd0_out(i)
       end do
 
-      !-------------- Writing initial densities to files -----------------
+      !-------------- Writing initial occupations to files -----------------
       if(myrank == 0) then
         do i = 1,s%nTypes
           call write_init_expecs(s%Types(i)%nOrb,s%Types(i))
@@ -370,7 +374,7 @@ contains
     !------------------------- Test printing ---------------------------
     if(myrank == 0) then
       do i = 1,s%nTypes
-        write(output%unit,"('[calc_init_expec_dft] Initial densities from: ',a)") s%Types(i)%Name
+        write(output%unit,"('[calc_init_expec_dft] Initial occupations from: ',a)") trim(s%Types(i)%Name)
         write(formatvar,fmt="(a,i0,a)") '(a,',s%Types(i)%nOrb,'(es14.7,2x))'
         write(unit=output%unit,fmt=formatvar) trim(s%Types(i)%Name), (s%Types(i)%rho0(mu),mu=1,s%Types(i)%nOrb)
         write(unit=output%unit,fmt="(a,4(2x,es14.7))") trim(s%Types(i)%Name), s%Types(i)%rhod0, s%Types(i)%mpd0%re, s%Types(i)%mpd0%im, s%Types(i)%mzd0
@@ -394,7 +398,7 @@ contains
     call deallocate_hamiltonian()
 
     if(myrank == 0) &
-      call write_time('[calc_init_expec_dft] Finished calculating initial density: ',output%unit)
+      call write_time('[calc_init_expec_dft] Finished calculating initial occupations: ',output%unit)
 
   end subroutine calc_init_expec_dft
 
@@ -450,7 +454,7 @@ contains
     integer           :: mu,funit=98
 
     ! Defining and opening file:
-    write(output%unit,"('[write_init_expecs] Writing initial densities of ""',a,'"" to file:')") trim(material%Name)
+    write(output%unit,"('[write_init_expecs] Writing initial occupations of ""',a,'"" to file:')") trim(material%Name)
     write(filename,"('./results/FSOC/selfconsistency/initialrho_',a,'_dfttype=',a,'_parts=',i0,a,a,'.dat')") trim(material%Name),dfttype,parts,trim(output%info),trim(output%suffix)
     write(output%unit,"('[write_init_expecs] ',a)") trim(filename)
     open (unit=funit,status='replace',file=filename)
@@ -491,14 +495,14 @@ contains
     open(unit=funit,file=filename,status="old",iostat=err)
     if(err/=0) then
       if(rField==0) then
-        write(output%unit,"('[read_init_expecs] Initial density file for ""',a,'"" does not exist:')") trim(material%Name)
+        write(output%unit,"('[read_init_expecs] Initial occupation file for ""',a,'"" does not exist:')") trim(material%Name)
         write(output%unit,"('[read_init_expecs] ',a)") trim(filename)
       end if
       return
     end if
 
     if(rField==0) then
-      write(output%unit,"('[read_init_expecs] Initial density file for ""',a,'"" already exists. Reading it from file:')") trim(material%Name)
+      write(output%unit,"('[read_init_expecs] Initial occupation file for ""',a,'"" already exists. Reading it from file:')") trim(material%Name)
       write(output%unit,"(a)") trim(filename)
     end if
 
