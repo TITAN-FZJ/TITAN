@@ -1217,6 +1217,9 @@ contains
       return
     end if
 
+    mxd = 0._dp
+    myd = 0._dp
+    mzd = 0._dp
     do i = 1, s%nAtoms
       do mu=1,s%Types(s%Basis(i)%Material)%nOrb
         mdotb   = hhw(1,i)*mx(mu,i)+hhw(2,i)*my(mu,i)+hhw(3,i)*mz(mu,i)

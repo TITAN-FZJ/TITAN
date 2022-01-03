@@ -109,7 +109,7 @@ end subroutine coupling
 
 subroutine real_coupling()
   use mod_kind,          only: dp, int64, int32
-  use mod_parameters,    only: output, cluster_layers, nqpt, total_nkpt => kptotal_in, total_nqpt => qptotal_in, qp_in
+  use mod_parameters,    only: output, cluster_layers, total_nkpt => kptotal_in, total_nqpt => qptotal_in, qp_in
 
   ! use mod_parameters, only: kdirection,bsfile,wsfile
   use mod_magnet,        only: mabs
@@ -153,15 +153,15 @@ subroutine real_coupling()
   ! below
   select case(s%isysdim)
   case(3)
-    q_realBZ % nkpt_x = ceiling((dble(total_nqpt))**(0.333333333333333_dp),kind(qp_in(1)) )
-    q_realBZ % nkpt_y = q_realBZ % nkpt_x
-    q_realBZ % nkpt_z = q_realBZ % nkpt_x
+    q_realBZ % nkpt_x = qp_in(1)
+    q_realBZ % nkpt_y = qp_in(2)
+    q_realBZ % nkpt_z = qp_in(3)
   case(2)
-    q_realBZ % nkpt_x = ceiling((dble(total_nqpt))**(0.5_dp),kind(qp_in(1)) )
-    q_realBZ % nkpt_y = q_realBZ % nkpt_x
+    q_realBZ % nkpt_x = qp_in(1)
+    q_realBZ % nkpt_y = qp_in(2)
     q_realBZ % nkpt_z = 1
   case default
-    q_realBZ % nkpt_x = ceiling((dble(total_nqpt)), kind(qp_in(1)) )
+    q_realBZ % nkpt_x = qp_in(1)
     q_realBZ % nkpt_y = 1
     q_realBZ % nkpt_z = 1
   end select
@@ -181,26 +181,6 @@ subroutine real_coupling()
     write(*,*) q_realBZ % nkpt_x, q_realBZ % nkpt_y, q_realBZ % nkpt_z
   end if
   call MPI_Barrier(FieldComm, ierr)
-  ! [To delete]
-
-  ! [To delete]
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! select case(s%isysdim)
-  ! case(3)
-  !   realBZ % nkpt_x = ceiling((dble(total_nkpt))**(0.333333333333333_dp),kind(kp_in(1)) )
-  !   realBZ % nkpt_y = realBZ % nkpt_x
-  !   realBZ % nkpt_z = realBZ % nkpt_x
-  ! case(2)
-  !   realBZ % nkpt_x = ceiling((dble(total_nkpt))**(0.5_dp),kind(kp_in(1)) )
-  !   realBZ % nkpt_y = realBZ % nkpt_x
-  !   realBZ % nkpt_z = 1
-  ! case default
-  !   realBZ % nkpt_x = ceiling((dble(total_nkpt)), kind(kp_in(1)) )
-  !   realBZ % nkpt_y = 1
-  !   realBZ % nkpt_z = 1
-  ! end select
-  ! call realBZ % countBZ(s)  
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   if(rField == 0) then
     write(*,*) "Kgrid"
@@ -219,7 +199,7 @@ subroutine real_coupling()
   ! [To delete] temporary prints to terminal
   if(rField == 0) then
     write(*,*) "realBZ%workload", q_realBZ%workload
-    write(*,*) "nqpt = ", nqpt, " total_nqpt = ", total_nqpt, total_nkpt
+    write(*,*) " total_nqpt = ", total_nqpt, total_nkpt
     write(*,*) "Meshes generated"
   end if
   ! [To delete]

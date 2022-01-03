@@ -64,7 +64,7 @@ contains
                                      itype,ry2ev,ltesla,eta,etap,dmax,emin,emax,&
                                      skip_steps,nEner,nEner1,nQvec,nQvec1,qbasis,renorm,renormnb,bands,band_cnt,&
                                      dfttype,parField,parFreq,kptotal_in,kp_in,&
-                                     tbmode,fermi_layer,lfixEf,lEf_overwrite,Ef_overwrite, cluster_layers, nqpt, qptotal_in,qp_in
+                                     tbmode,fermi_layer,lfixEf,lEf_overwrite,Ef_overwrite,cluster_layers,qptotal_in,qp_in
     use mod_superconductivity, only: lsuperCond,superCond
     use mod_self_consistency,  only: lontheflysc,lnojac,lforceoccup,lrotatemag,skipsc,scfile,magbasis,mag_tol
     use mod_system,            only: System_type,n0sc1,n0sc2
@@ -135,7 +135,10 @@ contains
       call log_warning("get_parameters", "'sysdim' missing. Using default value: 3")
     if(.not. get_parameter("nkpt", i_vector,cnt)) &
       call log_error("get_parameters","'nkpt' missing.")
-    if(cnt == 1) then
+    if(cnt == s%isysdim) then
+      kp_in(1:s%isysdim) = int(i_vector(1:s%isysdim),kind(kp_in(1)))
+      kptotal_in = product(kp_in(1:s%isysdim))
+    else if(cnt == 1) then
       kptotal_in = int( i_vector(1), kind(kptotal_in) )
       select case(s%isysdim)
       case(3)
@@ -150,14 +153,8 @@ contains
         kp_in(2:3) = 1
         kptotal_in = int( kp_in(1), kind(kptotal_in) )
       end select
-
-    else if(cnt == 3) then
-      kp_in(1) = int( i_vector(1), kind(kp_in(1)) )
-      kp_in(2) = int( i_vector(2), kind(kp_in(2)) )
-      kp_in(3) = int( i_vector(3), kind(kp_in(3)) )
-      kptotal_in = int( kp_in(1) * kp_in(2) * kp_in(3), kind(kptotal_in) )
     else
-      call log_error("get_parameter", "'nkpt' has wrong size (expected 1 or 3).")
+      call log_error("get_parameter", "'nkpt' has wrong size (expected 1 or isysdim).")
     end if
     if(.not. get_parameter("minimumBZmesh", minimumBZmesh, 1000)) &
       call log_warning("get_parameters", "'minimumBZmesh' missing. Using default value: 1000")
@@ -413,24 +410,33 @@ contains
       if(.not. get_parameter("cluster_layers", cluster_layers)) then
         call log_warning("get_parameters","'cluster_layers' missing. Using default value 2.")
       end if
-
-      if(.not. get_parameter("nqpt", nqpt)) then
-        call log_warning("get_parameters","'nqpt' missing.  Using default value 1000")
+      if(.not. get_parameter("nqpt", i_vector,cnt)) then
+        call log_warning("get_parameters","'nqpt' missing.  Using default value equal 'nkpt'.")
+        qp_in(:) = kp_in(:)
+        qptotal_in = kptotal_in
+      else
+        if(cnt == s%isysdim) then
+          qp_in(1:s%isysdim) = int(i_vector(1:s%isysdim),kind(qp_in(1)))
+          qptotal_in = product(qp_in(1:s%isysdim))
+        else if(cnt == 1) then
+          qptotal_in = int( i_vector(1), kind(qptotal_in) )
+          select case(s%isysdim)
+          case(3)
+            qp_in(:)   = ceiling((dble(qptotal_in))**(0.333333333333333_dp), kind(qp_in(1)) )
+            qptotal_in = int( qp_in(1) * qp_in(2) * qp_in(3), kind(qptotal_in) )
+          case(2)
+            qp_in(1:2) = ceiling((dble(qptotal_in))**(0.5_dp), kind(qp_in(1)) )
+            qp_in(3)   = 1
+            qptotal_in = int( qp_in(1) * qp_in(2), kind(qptotal_in) )
+          case default
+            qp_in(1)   = ceiling((dble(qptotal_in)), kind(qp_in(1)) )
+            qp_in(2:3) = 1
+            qptotal_in = int( qp_in(1), kind(qptotal_in) )
+          end select
+        else
+          call log_error("get_parameter", "'nqpt' has wrong size (expected 1 or isysdim).")
+        end if
       end if
-      qptotal_in = int( nqpt, kind(qptotal_in) )
-      select case(s%isysdim)
-      case(3)
-        qp_in(:)   = ceiling((dble(qptotal_in))**(0.333333333333333_dp), kind(qp_in(1)) )
-        qptotal_in = int( qp_in(1) * qp_in(2) * qp_in(3), kind(qptotal_in) )
-      case(2)
-        qp_in(1:2) = ceiling((dble(qptotal_in))**(0.5_dp), kind(qp_in(1)) )
-        qp_in(3)   = 1
-        qptotal_in = int( qp_in(1) * qp_in(2), kind(qptotal_in) )
-      case default
-        qp_in(1)   = ceiling((dble(qptotal_in)), kind(qp_in(1)) )
-        qp_in(2:3) = 1
-        qptotal_in = int( qp_in(1), kind(qptotal_in) )
-      end select
     end if
     !------------------------------------ Integration Variables ------------------------------------
     if(.not. get_parameter("parts", parts)) &
@@ -932,16 +938,6 @@ contains
       write(output%unit,"('[get_parameters] Finished reading from ""',a,'"" file')") trim(filename)
 
 
-    !-------------------------------------------------------------------------------
-    !*********** User manual additions / modifications in the input file **********!
-    !     Npl_i  = 4
-    !     Npl_f = 4
-    !     nkpt = 6
-    !     SOC = .true.
-    !     magaxis = "5"
-    !     runoptions = trim(runoptions)
-    !     scfile = "results/selfconsistency/selfconsistency_Npl=4_dfttype=T_parts=2_U= 0.7E-01_hwa= 0.00E+00_hwt= 0.00E+00_hwp= 0.00E+00_nkpt=6_eta= 0.5E-03.dat"
-    !-------------------------------------------------------------------------------
     ! Some consistency checks
     if((renorm).and.((renormnb<n0sc1).or.(renormnb>n0sc2))) then
         call log_error("get_parameters", "Invalid neighbor for renormalization: " // trim(itos(renormnb)) // ". Choose a value between " // trim(itos(n0sc1)) // " and " // trim(itos(n0sc2)) // ".")

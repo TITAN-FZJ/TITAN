@@ -126,6 +126,8 @@ else()
   set(SUFFIX)
 endif()
 
+string(TOLOWER ${COMPILER} COMPILER)
+
 if(COMPILER MATCHES gfortran OR COMPILER MATCHES gcc OR COMPILER MATCHES gfort OR COMPILER MATCHES gnu)
   set(COMPILER gnu)
   set(CMAKE_Fortran_COMPILER mpif90)

@@ -322,9 +322,6 @@ subroutine eintshelinearsoc(q,e)
   use adaptiveMesh,      only: bzs,E_k_imag_mesh,local_points
   use mod_mpi_pars,      only: rFreq,MPI_IN_PLACE,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr,abortProgram
 
-  !use mod_system, only: r_nn, npln, nkpt, kbz, wkbz, n0sc1, n0sc2
-  !use mod_currents,         only: ttchiorbiikl,Lxttchiorbiikl,Lyttchiorbiikl,Lzttchiorbiikl !TODO: Re-Include
-  !use mod_system,           only: n0sc1, n0sc2, n0sc
   implicit none
   real(dp),intent(in) :: e,q(3)
 
