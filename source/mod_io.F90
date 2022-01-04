@@ -3,55 +3,98 @@ module mod_io
   implicit none
   logical :: log_unit = .false.
   character(len=12), parameter :: logfile = "parameter.in"
+  character(len=:), allocatable :: log_store
 
 contains
 
-  subroutine log_message(procedure, message)
+  subroutine log_message(proced, message, var)
     use mod_mpi_pars,   only: myrank
     use mod_parameters, only: output
     implicit none
-    character(len=*), intent(in) :: procedure
+    character(len=*), intent(in) :: proced
     character(len=*), intent(in) :: message
+    character(len=:), allocatable, intent(inout), optional :: var
 
+
+    ! To store initial messages before output file is open
+    if (present(var)) then
+      var = trim(var) // "[Warning] [" // proced // "] "// trim(message) // NEW_LINE('a')
+      return
+    end if
+    
     if(myrank == 0) then
       if(log_unit) then
-        write(output%unit, "('[',a,'] ',a,'')") procedure, trim(message)
+        ! To write the stored messages without the square brackeds and skipping a line
+        if (proced == "") then
+          write(output%unit, "(a)", advance="no") trim(message)
+        else
+          write(output%unit, "('[',a,'] ',a)") proced, trim(message)
+        end if
       else
-        write(*, "('[',a,'] ',a,'')") procedure, trim(message)
+        write(*, "('[',a,'] ',a)") proced, trim(message)
       end if
     end if
   end subroutine log_message
 
-  subroutine log_error(procedure, message)
+
+  subroutine log_warning(proced, message, var)
+    use mod_mpi_pars,   only: myrank
+    use mod_parameters, only: output
+    implicit none
+    character(len=*), intent(in) :: proced
+    character(len=*), intent(in) :: message
+    character(len=:), allocatable, intent(inout), optional :: var
+
+    ! To store initial messages before output file is open
+    if (present(var)) then
+      var = trim(var) // "[Warning] [" // proced // "] "// trim(message) // NEW_LINE('a')
+      return
+    end if
+
+    if(myrank == 0) then
+      if(log_unit) then
+        write(output%unit, "('[Warning] [',a,'] ',a)") proced, trim(message)
+      else
+        write(*, "('[Warning] [',a,'] ',a)") proced, trim(message)
+      end if
+    end if
+  end subroutine log_warning
+
+
+  subroutine log_error(proced, message)
     use mod_mpi_pars,   only: myrank,MPI_Abort,MPI_COMM_WORLD,errorcode,ierr
     use mod_parameters, only: output
     implicit none
-    character(len=*), intent(in) :: procedure
+    character(len=*), intent(in) :: proced
     character(len=*), intent(in) :: message
 
     if(myrank == 0) then
-      if(log_unit) write(output%unit, "('[Error] [',a,'] ',a)") procedure, trim(message)
+      if(log_unit) write(output%unit, "('[Error] [',a,'] ',a)") proced, trim(message)
     end if
-    write(*, "('[Error] [',a,'] ',a)") procedure, trim(message)
+    write(*, "('[Error] [',a,'] ',a)") proced, trim(message)
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
     stop
   end subroutine log_error
 
-  subroutine log_warning(procedure, message)
-    use mod_mpi_pars,   only: myrank
-    use mod_parameters, only: output
-    implicit none
-    character(len=*), intent(in) :: procedure
-    character(len=*), intent(in) :: message
 
-    if(myrank == 0) then
-      if(log_unit) then
-        write(output%unit, "('[Warning] [',a,'] ',a)") procedure, trim(message)
-      else
-        write(*, "('[Warning] [',a,'] ',a)") procedure, trim(message)
-      end if
-    end if
-  end subroutine log_warning
+  function check_placeholders(initialFilename) result(modifiedFilename)
+  !> This function will substitute pre-defined placeholders in the 'initialFilename'
+  !> This is useful to output into different files when testing various values of parameters
+    use mod_tools,      only: replaceStr
+    use mod_parameters, only: kptotal_in,eta
+    implicit none
+    character(len=*)   :: initialFilename
+    character(len=:), allocatable :: modifiedFilename
+    character(len=100) :: temp
+
+    modifiedFilename = initialFilename
+    write (temp, "(i0)") kptotal_in
+    modifiedFilename = replaceStr(modifiedFilename,"#kpoints",trim(temp))
+    write (temp, "(es9.2)") eta
+    modifiedFilename = replaceStr(modifiedFilename,"#eta",trim(adjustl(temp)))
+
+  end function check_placeholders
+
 
   subroutine get_parameters(filename,s)
     use mod_kind,              only: dp,int64
@@ -99,41 +142,24 @@ contains
     if(.not. read_file(filename)) &
       call log_error("get_parameters", "File " // trim(filename) // " not found!")
 
+    ! Logging of input variables in 'parameters.in' file
     if(myrank == 0) then
       if(.not. enable_input_logging(logfile)) &
         call log_warning("get_parameters", "couldn't enable logging.")
     end if
-    if(.not. get_parameter("output", output%file)) &
-      call log_error("get_parameters", "Output filename not given!")
-
-    if(myrank==0) then
-      !! Create folder for output file, if necessary
-      call execute_command_line('mkdir -p $(dirname "'// trim(output%file) // '")')
-      !! Open output file
-      open(unit=output%unit, file=trim(output%file), status='replace')
-    end if
-
-    log_unit = .true.
-
-! Print the Git version (VERSION is defined via CMake macro and defined with compiler flag -DVERSION='')
-#if defined(VERSION)
-    if(myrank==0) write(output%unit,"('Git commit: ',a)") VERSION
-#else
-    if(myrank==0) write(output%unit,"('Git commit: unknown')")
-#endif
-
-    if(myrank==0) &
-      write(output%unit,"('[get_parameters] Reading parameters from ""',a,'"" file...')") trim(filename)
     !===============================================================================================
     !============= System configuration (Lattice + Reciprocal lattice) =============================
     !===============================================================================================
+    ! Done before opening the output file to be able to use these variables in the output filename
+    ! For this, the variable 'log_store' is used to temprarily store the output
+    log_store = ""
     if(.not. get_parameter("nn_stages", s%nStages,2)) &
-      call log_warning("get_parameters","'nn_stages' missing. Using default value: 2")
+      call log_warning("get_parameters","'nn_stages' missing. Using default value: 2",log_store)
     if(.not. get_parameter("relTol", s%relTol,0.05_dp)) &
-      call log_warning("get_parameters","'relTol' missing. Using default value: 0.05")
+      call log_warning("get_parameters","'relTol' missing. Using default value: 0.05",log_store)
     if(.not. get_parameter("sysdim", s%isysdim, 3)) &
-      call log_warning("get_parameters", "'sysdim' missing. Using default value: 3")
-    if(.not. get_parameter("nkpt", i_vector,cnt)) &
+      call log_warning("get_parameters", "'sysdim' missing. Using default value: 3",log_store)
+      if(.not. get_parameter("nkpt", i_vector,cnt)) &
       call log_error("get_parameters","'nkpt' missing.")
     if(cnt == s%isysdim) then
       kp_in(1:s%isysdim) = int(i_vector(1:s%isysdim),kind(kp_in(1)))
@@ -157,12 +183,41 @@ contains
       call log_error("get_parameter", "'nkpt' has wrong size (expected 1 or isysdim).")
     end if
     if(.not. get_parameter("minimumBZmesh", minimumBZmesh, 1000)) &
-      call log_warning("get_parameters", "'minimumBZmesh' missing. Using default value: 1000")
+      call log_warning("get_parameters", "'minimumBZmesh' missing. Using default value: 1000",log_store)
     if(.not. get_parameter("eta", eta)) &
       call log_error("get_parameters","'eta' missing.")
     if(.not. get_parameter("etap", etap, eta)) &
-      call log_warning("get_parameters", "'etap' not found. Using default value: eta = " // trim(rtos(eta,"(es8.1)")) )
-    !===============================================================================================
+      call log_warning("get_parameters", "'etap' not found. Using default value: eta = " // trim(rtos(eta,"(es8.1)")),log_store )
+
+
+    if(.not. get_parameter("output", output%file)) &
+      call log_error("get_parameters", "Output filename not given!")
+
+    ! Changing placeholders to variable values, if they exist
+    output%file = trim(check_placeholders(output%file))
+
+    if(myrank==0) then
+      !! Create folder for output file, if necessary
+      call execute_command_line('mkdir -p $(dirname "'// trim(output%file) // '")')
+      !! Open output file
+      open(unit=output%unit, file=trim(output%file), status='replace')
+    end if
+
+    log_unit = .true.
+
+! Print the Git version (VERSION is defined via CMake macro and defined with compiler flag -DVERSION='')
+#if defined(VERSION)
+    if(myrank==0) write(output%unit,"('Git commit: ',a)") VERSION
+#else
+    if(myrank==0) write(output%unit,"('Git commit: unknown')")
+#endif
+
+    if(myrank==0) &
+      write(output%unit,"('[get_parameters] Reading parameters from ""',a,'"" file...')") trim(filename)
+
+    ! Logging stored messages on 'log_store'
+    call log_message("", log_store)
+
     !===============================================================================================
     !------------------------------------- Type of Calculation -------------------------------------
     if(.not. get_parameter("itype", itype)) &
