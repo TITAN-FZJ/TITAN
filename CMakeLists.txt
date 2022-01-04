@@ -312,6 +312,7 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
                                                 -Wsurprising
                                                 -Waliasing
                                                 -Wunused-parameter
+                                                -Wno-maybe-uninitialized
                                                 -fwhole-file
                                                 -fimplicit-none
                                                 -fbacktrace
