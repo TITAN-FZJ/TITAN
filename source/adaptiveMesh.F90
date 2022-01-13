@@ -11,7 +11,7 @@ module adaptiveMesh
   ! MPI_f08:
   ! integer(int32) :: activeRank, activeSize
   ! type(MPI_Comm) :: activeComm
-  integer   :: minimumBZmesh
+  integer(int64) :: minimumBZmesh
 
   interface get_nkpt
     module procedure get_nkpt_int4, &
@@ -73,7 +73,7 @@ contains
 
   !! Generate the distributed combined points {e,kx,ky,kz}
   !! (locally for a given MPI process)
-  subroutine genLocalEKMesh(sys,rank,isize,comm,bzs)
+  subroutine genLocalEKMesh(sys,rank,isize,comm,bzmesh)
     use mod_kind,          only: dp, int32, int64
     use mod_parameters,    only: total_nkpt => kptotal_in
     use EnergyIntegration, only: pn1, y
@@ -85,7 +85,7 @@ contains
     integer(int32),    intent(in) :: rank
     integer(int32),    intent(in) :: isize
     integer(int32),    intent(in) :: comm
-    type(FractionalBrillouinZone), dimension(:),   allocatable, intent(out) :: bzs
+    type(FractionalBrillouinZone), dimension(:),   allocatable, intent(out) :: bzmesh
     ! MPI_f08:
     ! type(System_type),   intent(in) :: sys
     ! integer(int32),      intent(in) :: rank
@@ -101,7 +101,7 @@ contains
     call calcWorkload(total_points,activeSize,activeRank,firstPoint,lastPoint)
     local_points = lastPoint - firstPoint + 1
     allocate(E_k_imag_mesh(2,local_points))
-    allocate(bzs(pn1))
+    allocate(bzmesh(pn1))
 
     m = 0
     n = 0
@@ -124,33 +124,33 @@ contains
         q = all_nkpt(i)
       end if
 
-      bzs(i) % rank = rank
-      bzs(i) % isize = isize
-      bzs(i) % comm = comm
+      bzmesh(i) % rank = rank
+      bzmesh(i) % isize = isize
+      bzmesh(i) % comm = comm
 
-      bzs(i) % workload = q - p + 1
-      bzs(i) % nkpt = all_nkpt(i)
+      bzmesh(i) % workload = q - p + 1
+      bzmesh(i) % nkpt = all_nkpt(i)
       nall = get_nkpt(y(i), y(1), total_nkpt, sys%isysdim)
 
       select case(sys%isysdim)
       case(3)
-        bzs(i) % nkpt_x = ceiling( (dble(nall))**(0.333333333333333_dp), kind(bzs(i) % nkpt_x) )
-        bzs(i) % nkpt_y = ceiling( (dble(nall))**(0.333333333333333_dp), kind(bzs(i) % nkpt_y) )
-        bzs(i) % nkpt_z = ceiling( (dble(nall))**(0.333333333333333_dp), kind(bzs(i) % nkpt_z) )
-        call bzs(i) % gen3DFraction(sys,p,q)
+        bzmesh(i) % nkpt_x = ceiling( (dble(nall))**(0.333333333333333_dp), kind(bzmesh(i) % nkpt_x) )
+        bzmesh(i) % nkpt_y = ceiling( (dble(nall))**(0.333333333333333_dp), kind(bzmesh(i) % nkpt_y) )
+        bzmesh(i) % nkpt_z = ceiling( (dble(nall))**(0.333333333333333_dp), kind(bzmesh(i) % nkpt_z) )
+        call bzmesh(i) % gen3DFraction(sys,p,q)
       case(2)
-        bzs(i) % nkpt_x = ceiling( (dble(nall))**(0.5_dp), kind(bzs(i) % nkpt_x) )
-        bzs(i) % nkpt_y = ceiling( (dble(nall))**(0.5_dp), kind(bzs(i) % nkpt_y) )
-        bzs(i) % nkpt_z = 1
-        call bzs(i) % gen2DFraction(sys,p,q)
+        bzmesh(i) % nkpt_x = ceiling( (dble(nall))**(0.5_dp), kind(bzmesh(i) % nkpt_x) )
+        bzmesh(i) % nkpt_y = ceiling( (dble(nall))**(0.5_dp), kind(bzmesh(i) % nkpt_y) )
+        bzmesh(i) % nkpt_z = 1
+        call bzmesh(i) % gen2DFraction(sys,p,q)
       case default
-        bzs(i) % nkpt_x = ceiling( (dble(nall)), kind(bzs(i) % nkpt_x) )
-        bzs(i) % nkpt_y = 1
-        bzs(i) % nkpt_z = 1
-        call bzs(i) % gen1DFraction(sys,p,q)
+        bzmesh(i) % nkpt_x = ceiling( (dble(nall)), kind(bzmesh(i) % nkpt_x) )
+        bzmesh(i) % nkpt_y = 1
+        bzmesh(i) % nkpt_z = 1
+        call bzmesh(i) % gen1DFraction(sys,p,q)
       end select
 
-      do j = 1, bzs(i)%workload
+      do j = 1, bzmesh(i)%workload
         n = n + 1
         E_k_imag_mesh(1,n) = int(i,8)
         E_k_imag_mesh(2,n) = j
@@ -178,7 +178,7 @@ contains
   !> Calculate the number of k-points for a given energy
   !> by using a power decay of the ratio of the imaginary parts
   !> to the dimension of the system (4-bit integer version)
-    use mod_kind, only: dp
+    use mod_kind, only: dp,int32
     implicit none
     real(dp), intent(in) :: e, e0
     integer,  intent(in) :: sysdim
@@ -193,7 +193,7 @@ contains
       get_nkpt_int4 = ceiling( nkpt_total/((e/e0)**sqrt(1._dp)) ) !**log(1._dp)
     end select
 
-    if(get_nkpt_int4 < minimumBZmesh ) get_nkpt_int4 = minimumBZmesh
+    if(get_nkpt_int4 < int(minimumBZmesh,int32) ) get_nkpt_int4 = int(minimumBZmesh,int32)
   end function get_nkpt_int4
 
   integer(int64) function get_nkpt_int8(e, e0, nkpt_total, sysdim)
@@ -214,7 +214,7 @@ contains
       get_nkpt_int8 = ceiling( nkpt_total/((e/e0)**sqrt(1._dp)) ) !**log(1._dp)
     end select
 
-    if(get_nkpt_int8 < int(minimumBZmesh,8) ) get_nkpt_int8 = int(minimumBZmesh,8)
+    if(get_nkpt_int8 < minimumBZmesh ) get_nkpt_int8 = minimumBZmesh
   end function get_nkpt_int8
 
 end module adaptiveMesh

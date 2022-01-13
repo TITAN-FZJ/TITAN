@@ -42,10 +42,10 @@ contains
       do j = 1, s%nAtoms
         do r = 1, 4
           do t = 1, 4
-            do mu = 1,s%nOrb
-              do nu = 1,s%nOrb
-                do gama = 1,s%nOrb
-                  do xi = 1,s%nOrb
+            do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
+              do nu = 1,s%Types(s%Basis(i)%Material)%nOrb
+                do gama = 1,s%Types(s%Basis(j)%Material)%nOrb
+                  do xi = 1,s%Types(s%Basis(j)%Material)%nOrb
                     do p = 1, 4
                       do q = 1, 4
                         if(abs(StoC(p,r)) < 1.e-15_dp .or. abs(CtoS(t,q))  < 1.e-15_dp) cycle
@@ -67,8 +67,8 @@ contains
     lhs = cZero
     rhs = cZero
     do i = 1,s%nAtoms
-      do mu = 1,s%nOrb
-        do nu = 1,s%nOrb
+      do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
+        do nu = 1,s%Types(s%Basis(i)%Material)%nOrb
           do m = 1,3
             do n = 1,3
               do k = 1,3
@@ -77,8 +77,8 @@ contains
               end do
 
               do j = 1,s%nAtoms
-                do gama = 1,s%nOrb
-                  do xi = 1,s%nOrb
+                do gama = 1,s%Types(s%Basis(j)%Material)%nOrb
+                  do xi = 1,s%Types(s%Basis(j)%Material)%nOrb
                     do q = 1,3
                       do p = 1,3
                         if(abs(levi_civita(n,q,p)) > 1.e-15_dp) &
@@ -113,7 +113,7 @@ contains
     use mod_constants,  only: cZero
     use mod_parameters, only: dimens,sigmaimunu2i
     use mod_SOC,        only: SOC
-    use mod_magnet,     only: lvec, lfield, hhw
+    use mod_magnet,     only: lfield, hhw
     use mod_System,     only: System_type
     implicit none
     type(System_type),                  intent(in)  :: s
@@ -125,32 +125,32 @@ contains
     do i=1,s%nAtoms
       do sigma=1,3
         ! Exchange term
-        do mud=1,s%ndOrb
-          mu = s%dOrbs(mud)
+        do mud=1,s%Types(s%Basis(i)%Material)%ndOrb
+          mu = s%Types(s%Basis(i)%Material)%dOrbs(mud)
           Beff(sigmaimunu2i(sigma+1,i,mu,mu)) = Beff(sigmaimunu2i(sigma+1,i,mu,mu)) - 0.5_dp*s%Basis(i)%Um * mvec(sigma,i)
         end do
         ! External field term
         if(lfield) then
-          do mu=1,s%nOrb
+          do mu=1,s%Types(s%Basis(i)%Material)%nOrb
             Beff(sigmaimunu2i(sigma+1,i,mu,mu)) = Beff(sigmaimunu2i(sigma+1,i,mu,mu)) + hhw(sigma,i)
           end do
         end if
         ! SOC term
         if(SOC) then
           ! p block
-          do nup=1,s%npOrb
-            nu = s%pOrbs(nup)
-            do mup=1,s%npOrb
-              mu = s%pOrbs(mup)
-              Beff(sigmaimunu2i(sigma+1,i,mu,nu))  = Beff(sigmaimunu2i(sigma+1,i,mu,nu)) + 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * lvec(mu,nu,sigma)
+          do nup=1,s%Types(s%Basis(i)%Material)%npOrb
+            nu = s%Types(s%Basis(i)%Material)%pOrbs(nup)
+            do mup=1,s%Types(s%Basis(i)%Material)%npOrb
+              mu = s%Types(s%Basis(i)%Material)%pOrbs(mup)
+              Beff(sigmaimunu2i(sigma+1,i,mu,nu))  = Beff(sigmaimunu2i(sigma+1,i,mu,nu)) + 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * s%Types(s%Basis(i)%Material)%lvec(mu,nu,sigma)
             end do
           end do
           ! d block
-          do nud=1,s%ndOrb
-            nu = s%dOrbs(nud)
-            do mud=1,s%ndOrb
-              mu = s%dOrbs(mud)
-              Beff(sigmaimunu2i(sigma+1,i,mu,nu))  = Beff(sigmaimunu2i(sigma+1,i,mu,nu)) + 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * lvec(mu,nu,sigma)
+          do nud=1,s%Types(s%Basis(i)%Material)%ndOrb
+            nu = s%Types(s%Basis(i)%Material)%dOrbs(nud)
+            do mud=1,s%Types(s%Basis(i)%Material)%ndOrb
+              mu = s%Types(s%Basis(i)%Material)%dOrbs(mud)
+              Beff(sigmaimunu2i(sigma+1,i,mu,nu))  = Beff(sigmaimunu2i(sigma+1,i,mu,nu)) + 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * s%Types(s%Basis(i)%Material)%lvec(mu,nu,sigma)
             end do
           end do
         end if
@@ -176,16 +176,14 @@ contains
     integer         :: i,mu,nu,mup,nup
     real(dp) :: kp(3)
     real(dp) :: weight, ep
-    complex(dp), dimension(:,:,:,:), allocatable :: gf
-    complex(dp), dimension(:,:,:),   allocatable :: imguu,imgdd,imgud,imgdu
+    complex(dp), dimension(s%nOrb2,s%nOrb2,s%nAtoms,s%nAtoms) :: gf
+    complex(dp), dimension(s%nOrb, s%nOrb,s%nAtoms) :: imguu,imgdd,imgud,imgdu
     integer :: ncount
 
     external :: MPI_Allreduce
     
     ncount=s%nAtoms*s%nOrb*s%nOrb
 
-    allocate(imguu(s%nOrb, s%nOrb,s%nAtoms),imgdd(s%nOrb, s%nOrb,s%nAtoms),imgud(s%nOrb, s%nOrb,s%nAtoms),imgdu(s%nOrb, s%nOrb,s%nAtoms), stat = AllocateStatus)
-    if(AllocateStatus/=0) call abortProgram("[calcSmunu] Not enough memory for: imguu,imgdd,imgud,imgdu")
     allocate(Smunuiivec(s%nOrb,s%nOrb,3,s%nAtoms), stat = AllocateStatus)
     if(AllocateStatus/=0) call abortProgram("[calcSmunu] Not enough memory for: Smunuiivec")
 
@@ -196,9 +194,6 @@ contains
 
     ! Build local hamiltonian
     call hamilt_local(s)
-
-    allocate(gf(s%nOrb2,s%nOrb2,s%nAtoms,s%nAtoms), stat = AllocateStatus)
-    gf = cZero
 
     !$omp parallel do schedule(static) &
     !$omp& default(none) &
@@ -212,10 +207,10 @@ contains
       !Green function on energy Ef + iy, and wave vector kp
       call calc_green(s%Ef,ep+eta,s,kp,gf)
       do i=1,s%nAtoms
-        do mu=1,s%nOrb
-          mup = mu+s%nOrb
-          do nu=1,s%nOrb
-            nup = nu+s%nOrb
+        do mu=1,s%Types(s%Basis(i)%Material)%nOrb
+          mup = mu+s%Types(s%Basis(i)%Material)%nOrb
+          do nu=1,s%Types(s%Basis(i)%Material)%nOrb
+            nup = nu+s%Types(s%Basis(i)%Material)%nOrb
 
             imguu(mu,nu,i) = imguu(mu,nu,i) + ( gf(nu ,mu ,i,i) + conjg(gf(mu ,nu ,i,i)) ) * weight
             imgdd(mu,nu,i) = imgdd(mu,nu,i) + ( gf(nup,mup,i,i) + conjg(gf(mup,nup,i,i)) ) * weight
@@ -236,17 +231,16 @@ contains
     call MPI_Allreduce(MPI_IN_PLACE, imgud, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
     call MPI_Allreduce(MPI_IN_PLACE, imgdu, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
 
-    do mu=1,s%nOrb
-      imguu(mu,mu,:) = 0.5_dp + imguu(mu,mu,:)
-      imgdd(mu,mu,:) = 0.5_dp + imgdd(mu,mu,:)
+    do i=1,s%nAtoms
+      do mu=1,s%Types(s%Basis(i)%Material)%nOrb
+        imguu(mu,mu,i) = 0.5_dp + imguu(mu,mu,i)
+        imgdd(mu,mu,i) = 0.5_dp + imgdd(mu,mu,i)
+      end do
     end do
 
     Smunuiivec(:,:,1,:) =  imgud(:,:,:) + imgdu(:,:,:)
     Smunuiivec(:,:,2,:) = (imgud(:,:,:) - imgdu(:,:,:))*cI
     Smunuiivec(:,:,3,:) =  imguu(:,:,:) - imgdd(:,:,:)
-
-    deallocate(gf)
-    deallocate(imguu,imgdd,imgud,imgdu)
 
   end subroutine calcSmunu
 

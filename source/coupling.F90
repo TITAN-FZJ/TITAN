@@ -34,20 +34,21 @@ subroutine coupling()
     call jij_energy(q,Jij)
 
     if(rField == 0) then
-
-      do i=1,s%nAtoms
-        do j=1,s%nAtoms
-          trJij(i,j)    = 0.5_dp*(Jij(i,j,1,1)+Jij(i,j,2,2))
-          Jija(i,j,:,:) = 0.5_dp*(Jij(i,j,:,:) - transpose(Jij(i,j,:,:)))
-          Jijs(i,j,:,:) = 0.5_dp*(Jij(i,j,:,:) + transpose(Jij(i,j,:,:)))
-          do mu = 1, 3
-            Jijs(i,j,mu,mu) = Jijs(i,j,mu,mu) - trJij(i,j)
-          end do
-        end do
-      end do
-
       ! Print only Gamma point (and only once)
       if((vec_norm(q,3)<1.e-12_dp).and.(lprint)) then
+
+        do i=1,s%nAtoms
+          do j=1,s%nAtoms
+            trJij(i,j)    = 0.5_dp*(real(Jij(i,j,1,1))+real(Jij(i,j,2,2)))
+            Jija(i,j,:,:) = 0.5_dp*(real(Jij(i,j,:,:)) - real(transpose(Jij(i,j,:,:))))
+            Jijs(i,j,:,:) = 0.5_dp*(real(Jij(i,j,:,:)) + real(transpose(Jij(i,j,:,:))))
+            do mu = 1, 3
+              Jijs(i,j,mu,mu) = Jijs(i,j,mu,mu) - trJij(i,j)
+            end do
+          end do
+        end do
+
+
         ! Writing exchange couplings and anisotropies
         write(output%unit_loop,"('  ************************* Full tensor Jij:  *************************')")
         do i=1,s%nAtoms
@@ -67,9 +68,9 @@ subroutine coupling()
               write(output%unit_loop,"(' |----------- i = ',i0,'   j = ',i0,': exchange couplings -------------|')") i,j
             end if
             write(output%unit_loop,"('             x                  y                  z')")
-            write(output%unit_loop,"('  x  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,1,1),Jij(i,j,1,2),Jij(i,j,1,3)
-            write(output%unit_loop,"('  y  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,2,1),Jij(i,j,2,2),Jij(i,j,2,3)
-            write(output%unit_loop,"('  z  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,3,1),Jij(i,j,3,2),Jij(i,j,3,3)
+            write(output%unit_loop,"('  x  (',es16.9,') (',es16.9,') (',es16.9,')')") real(Jij(i,j,1,1)),real(Jij(i,j,1,2)),real(Jij(i,j,1,3))
+            write(output%unit_loop,"('  y  (',es16.9,') (',es16.9,') (',es16.9,')')") real(Jij(i,j,2,1)),real(Jij(i,j,2,2)),real(Jij(i,j,2,3))
+            write(output%unit_loop,"('  z  (',es16.9,') (',es16.9,') (',es16.9,')')") real(Jij(i,j,3,1)),real(Jij(i,j,3,2)),real(Jij(i,j,3,3))
           end do
         end do
         if(s%nAtoms>1) write(output%unit_loop,"('  *** Symmetric and antisymmetric exchange interactions:  ***')")
@@ -109,17 +110,17 @@ end subroutine coupling
 
 subroutine real_coupling()
   use mod_kind,          only: dp, int64, int32
-  use mod_parameters,    only: output, cluster_layers, nqpt, total_nkpt => kptotal_in, total_nqpt => qptotal_in, kp_in, qp_in
+  use mod_parameters,    only: output, cluster_layers, total_nkpt => kptotal_in, total_nqpt => qptotal_in, qp_in
 
   ! use mod_parameters, only: kdirection,bsfile,wsfile
   use mod_magnet,        only: mabs
   use mod_system,        only: s => sys, System_type
   use mod_tools,         only: vec_norm
-  use mod_mpi_pars,      only: abortProgram,rField,sField,FieldComm,FreqComm,ierr
+  use mod_mpi_pars,      only: abortProgram,rField,sField,FieldComm,FreqComm,ierr,MPI_Barrier
   use adaptiveMesh,      only: genLocalEKMesh,freeLocalEKMesh
   use mod_Coupling,      only: Jij,Jij_q,allocateCoupling,deallocateCoupling,openRealCouplingFiles,closeCouplingFiles,writeCoupling
   use adaptiveMesh,      only: bzs
-  use mod_BrillouinZone, only: realBZ, q_realBZ
+  use mod_BrillouinZone, only: q_realBZ
   use mod_constants,     only: cI
   use Lattice,           only: initLattice
   use mod_progress,      only: write_time
@@ -153,15 +154,15 @@ subroutine real_coupling()
   ! below
   select case(s%isysdim)
   case(3)
-    q_realBZ % nkpt_x = ceiling((dble(total_nqpt))**(0.333333333333333_dp),kind(qp_in(1)) )
-    q_realBZ % nkpt_y = q_realBZ % nkpt_x
-    q_realBZ % nkpt_z = q_realBZ % nkpt_x
+    q_realBZ % nkpt_x = qp_in(1)
+    q_realBZ % nkpt_y = qp_in(2)
+    q_realBZ % nkpt_z = qp_in(3)
   case(2)
-    q_realBZ % nkpt_x = ceiling((dble(total_nqpt))**(0.5_dp),kind(qp_in(1)) )
-    q_realBZ % nkpt_y = q_realBZ % nkpt_x
+    q_realBZ % nkpt_x = qp_in(1)
+    q_realBZ % nkpt_y = qp_in(2)
     q_realBZ % nkpt_z = 1
   case default
-    q_realBZ % nkpt_x = ceiling((dble(total_nqpt)), kind(qp_in(1)) )
+    q_realBZ % nkpt_x = qp_in(1)
     q_realBZ % nkpt_y = 1
     q_realBZ % nkpt_z = 1
   end select
@@ -181,26 +182,6 @@ subroutine real_coupling()
     write(*,*) q_realBZ % nkpt_x, q_realBZ % nkpt_y, q_realBZ % nkpt_z
   end if
   call MPI_Barrier(FieldComm, ierr)
-  ! [To delete]
-
-  ! [To delete]
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! select case(s%isysdim)
-  ! case(3)
-  !   realBZ % nkpt_x = ceiling((dble(total_nkpt))**(0.333333333333333_dp),kind(kp_in(1)) )
-  !   realBZ % nkpt_y = realBZ % nkpt_x
-  !   realBZ % nkpt_z = realBZ % nkpt_x
-  ! case(2)
-  !   realBZ % nkpt_x = ceiling((dble(total_nkpt))**(0.5_dp),kind(kp_in(1)) )
-  !   realBZ % nkpt_y = realBZ % nkpt_x
-  !   realBZ % nkpt_z = 1
-  ! case default
-  !   realBZ % nkpt_x = ceiling((dble(total_nkpt)), kind(kp_in(1)) )
-  !   realBZ % nkpt_y = 1
-  !   realBZ % nkpt_z = 1
-  ! end select
-  ! call realBZ % countBZ(s)  
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   if(rField == 0) then
     write(*,*) "Kgrid"
@@ -219,7 +200,7 @@ subroutine real_coupling()
   ! [To delete] temporary prints to terminal
   if(rField == 0) then
     write(*,*) "realBZ%workload", q_realBZ%workload
-    write(*,*) "nqpt = ", nqpt, " total_nqpt = ", total_nqpt, total_nkpt
+    write(*,*) " total_nqpt = ", total_nqpt, total_nkpt
     write(*,*) "Meshes generated"
   end if
   ! [To delete]
@@ -229,9 +210,9 @@ subroutine real_coupling()
 ! [To delete]
   
   if(rField == 0) then
-      call write_time('[real_coupling] Started Jij(q) calculation: ',output%unit_loop)
-      open(unit=13131, file='jij_q.dat', status = 'replace')
-      allocate(Jij_q(q_realBZ%workload,s%nAtoms,s%nAtoms,3,3))
+    call write_time('[real_coupling] Started Jij(q) calculation: ',output%unit_loop)
+    open(unit=13131, file='jij_q.dat', status = 'replace')
+    allocate(Jij_q(q_realBZ%workload,s%nAtoms,s%nAtoms,3,3))
   end if
 
   do iz=1,q_realBZ%workload
@@ -263,21 +244,21 @@ subroutine real_coupling()
     ! Getting the radius of the cluster's sphere
     select case(s%isysdim)
     case(3)
-        norms_vec(1) = vec_norm(s%a1*cluster_layers, 3)
-        norms_vec(2) = vec_norm(s%a2*cluster_layers, 3)
-        norms_vec(3) = vec_norm(s%a3*cluster_layers, 3)
-        ! The small value is to account for small numerical differences
-        sphere_radius = 0.0000000001_dp + MINVAL(norms_vec)
-        write(*,*) "Radius = ", MINVAL(norms_vec), s%a1*cluster_layers
+      norms_vec(1) = vec_norm(s%a1*cluster_layers, 3)
+      norms_vec(2) = vec_norm(s%a2*cluster_layers, 3)
+      norms_vec(3) = vec_norm(s%a3*cluster_layers, 3)
+      ! The small value is to account for small numerical differences
+      sphere_radius = 0.0000000001_dp + MINVAL(norms_vec)
+      write(*,*) "Radius = ", MINVAL(norms_vec), s%a1*cluster_layers
     case(2)
-        norms_vec(1) = vec_norm(s%a1*cluster_layers, 3)
-        norms_vec(2) = vec_norm(s%a2*cluster_layers, 3)
-        ! The small value is to account for small numerical differences
-        sphere_radius = 0.0000000001_dp + MINVAL(norms_vec(1:2))
-        write(*,*) "Radius = ", sphere_radius, s%a1*cluster_layers, s%a2*cluster_layers
+      norms_vec(1) = vec_norm(s%a1*cluster_layers, 3)
+      norms_vec(2) = vec_norm(s%a2*cluster_layers, 3)
+      ! The small value is to account for small numerical differences
+      sphere_radius = 0.0000000001_dp + MINVAL(norms_vec(1:2))
+      write(*,*) "Radius = ", sphere_radius, s%a1*cluster_layers, s%a2*cluster_layers
     case default
-        ! The small value is to account for small numerical differences
-        sphere_radius = 0.0000000001_dp + vec_norm(s%a1*cluster_layers, 3)
+      ! The small value is to account for small numerical differences
+      sphere_radius = 0.0000000001_dp + vec_norm(s%a1*cluster_layers, 3)
     end select
 
     ! Checking which atoms are inside the sphere
@@ -386,31 +367,18 @@ subroutine real_coupling()
     ! [To delete]
     ! pragma omp for
     do k = 1, counter
-        do iz=1,q_realBZ%workload
-            kpExp = exp(-1._dp * cI * dot_product(q_realBZ%kp(1:3,iz), cluster(k,:)))
-            w = q_realBZ%w(iz)
-            Jij_real(k,:,:,:,:) = Jij_real(k,:,:,:,:) + real(kpExp*w*Jij_q(iz,:,:,:,:))
-        end do
+      do iz=1,q_realBZ%workload
+        kpExp = exp(-1._dp * cI * dot_product(q_realBZ%kp(1:3,iz), cluster(k,:)))
+        w = q_realBZ%w(iz)
+        Jij_real(k,:,:,:,:) = Jij_real(k,:,:,:,:) + real(kpExp*w*Jij_q(iz,:,:,:,:))
+      end do
 
-        ! [To delete]
-        ! This was a trial when we wanted to see if the problem was on the fourier transform
-        ! do i=1,s%nAtoms
-        !   do j=1,s%nAtoms
-        !     do iz=1,q_realBZ%workload
-        !       kpExp = exp(-1._dp * cI * dot_product(q_realBZ%kp(1:3,iz), cluster(k,:)+s%Basis(j)%Position -  s%Basis(i)%Position))
-        !       w = q_realBZ%w(iz)
-        !       Jij_real(k,i,j,:,:) = Jij_real(k,i,j,:,:) + real(kpExp*w*Jij_q(iz,i,j,:,:))
-        !     end do
-        !   end do
-        ! end do
-        ! [To delete]
-
-        ! [To delete]
-        ! write(*,*) "s%Neighbors(k)%CellVector", cluster(k,:)
-        ! write(*,*) " "
-        ! write(*,*) "Jij_real(r,:,:,:,:)", Jij_real(k,:,:,:,:)
-        ! write(*,*) " "
-        ! [To delete]
+      ! [To delete]
+      ! write(*,*) "s%Neighbors(k)%CellVector", cluster(k,:)
+      ! write(*,*) " "
+      ! write(*,*) "Jij_real(r,:,:,:,:)", Jij_real(k,:,:,:,:)
+      ! write(*,*) " "
+      ! [To delete]
     end do
 
     !!!!!! TO DELETE
@@ -457,6 +425,7 @@ subroutine real_coupling()
                 end if
             end do
         end do
+      end do
     end do
 
     call write_time('[real_coupling] Finished Fourier transform: ',output%unit_loop)

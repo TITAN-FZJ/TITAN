@@ -126,6 +126,10 @@ else()
   set(SUFFIX)
 endif()
 
+if(COMPILER)
+  string(TOLOWER ${COMPILER} COMPILER)
+endif()
+
 if(COMPILER MATCHES gfortran OR COMPILER MATCHES gcc OR COMPILER MATCHES gfort OR COMPILER MATCHES gnu)
   set(COMPILER gnu)
   set(CMAKE_Fortran_COMPILER mpif90)
@@ -308,6 +312,7 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
                                                 -Wsurprising
                                                 -Waliasing
                                                 -Wunused-parameter
+                                                -Wno-maybe-uninitialized
                                                 -fwhole-file
                                                 -fimplicit-none
                                                 -fbacktrace

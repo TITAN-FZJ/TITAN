@@ -20,7 +20,7 @@ contains
     if(myrank_row==0) then
       allocate( sha_re(4,Npl),sha_complex(4,Npl), STAT = AllocateStatus )
       if (AllocateStatus/=0) then
-         write(outputunit,"('[allocate_sha] Not enough memory for: sha_re,sha_complex')")
+        write(outputunit,"('[allocate_sha] Not enough memory for: sha_re,sha_complex')")
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
     end if

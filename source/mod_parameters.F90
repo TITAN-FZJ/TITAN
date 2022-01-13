@@ -37,9 +37,6 @@ module mod_parameters
   !========================================================================================!
   integer(int32) :: cluster_layers = 2
   !! Number of cells around the origin for the cluster generation of the real space Jij
-  integer(int32) :: nqpt = 1000
-  !! Number of q points used for the fourier transformation of the Jij(q). At each q point Jij(k)
-  !! is calculated with the number of points given by nkpt
   !========================================================================================!
   logical       :: lhfresponses = .false.
   !! Use HF susceptibilities to calculate currents, disturbances and accumulations (don't renormalize)

@@ -93,11 +93,13 @@ contains
       call self%gen1DFraction(sys,self%first,self%last)
     end select
 
-    if(present(lkpoints).and.lkpoints) then
-      filename = "kpoints_" // trim(sys%Name)
-      open (unit=3333, file=filename,status='replace')
-      call self%print(3333)
-      close(3333)
+    if(present(lkpoints)) then
+      if(lkpoints) then
+        filename = "kpoints_" // trim(sys%Name)
+        open (unit=3333, file=filename,status='replace')
+        call self%print(3333)
+        close(3333)
+      end if
     end if
 
   end subroutine setup_fraction
@@ -132,13 +134,13 @@ contains
   end subroutine deallocate_BrillouinZone
 
   logical function isAlloc_BrillouinZone(self)
-     implicit none
-     class(BrillouinZone) :: self
-     if(allocated(self%kp)) then
-        isAlloc_BrillouinZone = .true.
-     else
-        isAlloc_BrillouinZone = .false.
-     end if
+    implicit none
+    class(BrillouinZone) :: self
+    if(allocated(self%kp)) then
+      isAlloc_BrillouinZone = .true.
+    else
+      isAlloc_BrillouinZone = .false.
+    end if
   end function isAlloc_BrillouinZone
 
   subroutine gen3DFraction(self,sys,first,last)
@@ -666,10 +668,11 @@ contains
 
     nthreads = 1
     !$ nthreads = omp_get_max_threads()
-    ndiffk_max = 2*nkpt_perdim
+    ndiffk_max = int(nkpt_in,kind(ndiffk_max))
+
     allocate( ndiffk_loc(0:nthreads) )
     ndiffk_loc(:) = 0
-    ndiffk_loc(0) = 1
+    ndiffk_loc(0) = 0
 
     ! Counter of total number of points
     kount = 0
@@ -684,12 +687,12 @@ contains
     bz_vec(1:3,8) = b1 + b2 + b3
 
     !Translate the k-points to the 1st BZ.
-    !10*|b1+b2|, bigger than the distance of any genarated kpoint
+    !10*|b1+b2+b3|, bigger than the distance of any genarated kpoint
     ini_smallest_dist = 10._dp * sqrt(dot_product(b1 + b2 + b3, b1 + b2 + b3))
     !Run over all the kpoints generated initially.
     !$omp parallel default(none) &
     !$omp& private(l, j, nx, ny, nz, kp, smallest_dist, diff, distance, diff_k_loc, start, end, mythread) &
-    !$omp& shared(kount, ndiffk_max, nkpt, ini_smallest_dist, bz_vec, b1, b2, b3, nkpt_x, nkpt_y, nkpt_z, component, ndiffk_loc, diff_k_temp, maxdiffk)
+    !$omp& shared(kount, myrank,ndiffk_max, nkpt, ini_smallest_dist, bz_vec, b1, b2, b3, nkpt_x, nkpt_y, nkpt_z, component, ndiffk_loc, diff_k_temp, maxdiffk)
 
     mythread = 1
     !$ mythread = omp_get_thread_num()+1
@@ -735,8 +738,8 @@ contains
       maxdiffk = sum(ndiffk_loc(:))
       allocate( diff_k_temp(maxdiffk) )
     end if
-    start = sum(ndiffk_loc(0:mythread-1))
-    end   = start + ndiffk_loc(mythread)
+    start = sum(ndiffk_loc(0:mythread-1))+1
+    end   = start + ndiffk_loc(mythread) - 1
     !$omp barrier
     diff_k_temp(start:end) = diff_k_loc(1:ndiffk_loc(mythread))
 

@@ -4,7 +4,7 @@ subroutine calculate_dc_limit()
   use mod_kind,              only: dp,int32,int64
   use mod_constants,         only: cZero,cOne,cI
   use mod_parameters,        only: sigmaimunu2i,sigmai2i,dimspinAtoms,lnodiag,output,kount,emin,deltae,nQvec1,kpoints,laddresults,lhfresponses,dimens,skip_steps
-  use mod_magnet,            only: lfield,dcfield_dependence,dc_count,dcfield,hw_count,lxp,lyp,lzp,lx,ly,lz,mvec_cartesian,mvec_spherical,hhw,lrot
+  use mod_magnet,            only: lfield,dcfield_dependence,dc_count,dcfield,hw_count,mvec_cartesian,mvec_spherical,hhw,lrot
   use mod_SOC,               only: llinearsoc
   use mod_System,            only: s => sys
   use mod_BrillouinZone,     only: realBZ
@@ -153,9 +153,9 @@ subroutine calculate_dc_limit()
           schihf = cZero
           ! Calculating RPA and HF susceptibilities
           do j = 1, s%nAtoms
-            do nu = 1, s%nOrb
+            do nu = 1, s%Types(s%Basis(j)%Material)%nOrb
               do i = 1, s%nAtoms
-                do mu = 1, s%nOrb
+                do mu = 1, s%Types(s%Basis(i)%Material)%nOrb
                   do sigmap = 1, 4
                     do sigma = 1, 4
                       schi  (sigmai2i(sigma,i), sigmai2i(sigmap,j)) = schi(sigmai2i(sigma,i), sigmai2i(sigmap,j))   + chiorb(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
@@ -218,9 +218,9 @@ subroutine calculate_dc_limit()
           schihf = cZero
           ! Calculating RPA and HF susceptibilities
           do j = 1, s%nAtoms
-            do nu = 1, s%nOrb
+            do nu = 1, s%Types(s%Basis(j)%Material)%nOrb
               do i = 1, s%nAtoms
-                do mu = 1, s%nOrb
+                do mu = 1, s%Types(s%Basis(i)%Material)%nOrb
                   do sigmap = 1, 4
                     do sigma = 1, 4
                       schihf(sigmai2i(sigma,i), sigmai2i(sigmap,j)) = schihf(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + chiorb_hf(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))
@@ -261,11 +261,11 @@ subroutine calculate_dc_limit()
 
         ! Calculating inverse susceptibility to use on Beff calculation
         chiinv = cZero
-        do nu = 1, s%nOrb
-          do j = 1, s%nAtoms
+        do j = 1, s%nAtoms
+          do nu = 1, s%Types(s%Basis(j)%Material)%nOrb
             do sigmap = 1, 4
-              do mu = 1, s%nOrb
-                do i = 1, s%nAtoms
+              do i = 1, s%nAtoms
+                do mu = 1, s%Types(s%Basis(i)%Material)%nOrb
                   do sigma = 1, 4
                     chiinv(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = chiinv(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + chiorb(sigmaimunu2i(sigma,i,mu,mu),sigmaimunu2i(sigmap,j,nu,nu))    ! +- , up- , down- , --
                   end do
@@ -280,7 +280,7 @@ subroutine calculate_dc_limit()
         torques      = cZero
         do i = 1, s%nAtoms
           ! Spin and charge disturbances
-          do mu=1,s%nOrb
+          do mu=1,s%Types(s%Basis(i)%Material)%nOrb
             disturbances(1,i) = disturbances(1,i) + (tchiorbiikl(sigmaimunu2i(2,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,mu),3)+tchiorbiikl(sigmaimunu2i(3,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(3,i,mu,mu),3))
             disturbances(2,i) = disturbances(2,i) + (tchiorbiikl(sigmaimunu2i(1,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,mu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,mu),3))
             disturbances(3,i) = disturbances(3,i) + (tchiorbiikl(sigmaimunu2i(1,i,mu,mu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,mu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,mu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,mu),3))/cI
@@ -294,32 +294,49 @@ subroutine calculate_dc_limit()
           sdmat(sigmai2i(4,i)) = disturbances(2,i) - cI*disturbances(3,i) ! -    = x - iy
 
           ! Orbital angular momentum disturbance in the global frame
-          do nu = 1, s%nOrb
-            do mu = 1, s%nOrb
+          do nu = 1, s%Types(s%Basis(i)%Material)%nOrb
+            do mu = 1, s%Types(s%Basis(i)%Material)%nOrb
               ldmat(i,mu,nu) = tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3)
-              disturbances(5,i) = disturbances(5,i) + lx(mu,nu)*ldmat(i,mu,nu)
-              disturbances(6,i) = disturbances(6,i) + ly(mu,nu)*ldmat(i,mu,nu)
-              disturbances(7,i) = disturbances(7,i) + lz(mu,nu)*ldmat(i,mu,nu)
+              disturbances(5,i) = disturbances(5,i) + s%Types(s%Basis(i)%Material)%lvec(mu,nu,1)*ldmat(i,mu,nu)
+              disturbances(6,i) = disturbances(6,i) + s%Types(s%Basis(i)%Material)%lvec(mu,nu,2)*ldmat(i,mu,nu)
+              disturbances(7,i) = disturbances(7,i) + s%Types(s%Basis(i)%Material)%lvec(mu,nu,3)*ldmat(i,mu,nu)
+            end do
+          end do
+
+          ! Spin-orbit torques (calculated in the spin frame of reference), only for the P orbitals
+          do nud = 1,s%Types(s%Basis(i)%Material)%npOrb
+            nu = s%Types(s%Basis(i)%Material)%pOrbs(nud)
+            do mud = 1,s%Types(s%Basis(i)%Material)%npOrb
+              mu = s%Types(s%Basis(i)%Material)%pOrbs(mud)
+              ! x component: (Ly*Sz - Lz*Sy)/2
+              torques(1,1,i) = torques(1,1,i) + s%Types(s%Basis(i)%Material)%LambdaP*(   s%Basis(i)%lpvec(mu,nu,2)*(tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3))) &
+                                              + s%Types(s%Basis(i)%Material)%LambdaP*(cI*s%Basis(i)%lpvec(mu,nu,3)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
+              ! y component: (Lz*Sx - Lx*Sz)/2
+              torques(1,2,i) = torques(1,2,i) + s%Types(s%Basis(i)%Material)%LambdaP*(   s%Basis(i)%lpvec(mu,nu,3)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3))) &
+                                              - s%Types(s%Basis(i)%Material)%LambdaP*(   s%Basis(i)%lpvec(mu,nu,1)*(tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3)))
+              ! z component: (Lx*Sy - Ly*Sx)/2
+              torques(1,3,i) = torques(1,3,i) - s%Types(s%Basis(i)%Material)%LambdaP*(cI*s%Basis(i)%lpvec(mu,nu,1)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3))) &
+                                              - s%Types(s%Basis(i)%Material)%LambdaP*(   s%Basis(i)%lpvec(mu,nu,2)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
             end do
           end do
 
           ! Spin-orbit torques (calculated in the spin frame of reference), only for the D orbitals
-          do nud = 1,s%ndOrb
-            nu = s%dOrbs(nud)
-            do mud = 1,s%ndOrb
-              mu = s%dOrbs(mud)
+          do nud = 1,s%Types(s%Basis(i)%Material)%ndOrb
+            nu = s%Types(s%Basis(i)%Material)%dOrbs(nud)
+            do mud = 1,s%Types(s%Basis(i)%Material)%ndOrb
+              mu = s%Types(s%Basis(i)%Material)%dOrbs(mud)
               ! x component: (Ly*Sz - Lz*Sy)/2
-              torques(1,1,i) = torques(1,1,i) + (   lyp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3))) &
-                                          + (cI*lzp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
+              torques(1,1,i) = torques(1,1,i) + s%Types(s%Basis(i)%Material)%LambdaD*(   s%Basis(i)%lpvec(mu,nu,2)*(tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3))) &
+                                              + s%Types(s%Basis(i)%Material)%LambdaD*(cI*s%Basis(i)%lpvec(mu,nu,3)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
               ! y component: (Lz*Sx - Lx*Sz)/2
-              torques(1,2,i) = torques(1,2,i) + (   lzp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3))) &
-                                          - (   lxp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3)))
+              torques(1,2,i) = torques(1,2,i) + s%Types(s%Basis(i)%Material)%LambdaD*(   s%Basis(i)%lpvec(mu,nu,3)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3))) &
+                                              - s%Types(s%Basis(i)%Material)%LambdaD*(   s%Basis(i)%lpvec(mu,nu,1)*(tchiorbiikl(sigmaimunu2i(2,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(2,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(3,i,mu,nu),3)))
               ! z component: (Lx*Sy - Ly*Sx)/2
-              torques(1,3,i) = torques(1,3,i) - (cI*lxp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3))) &
-                                          - (   lyp(mu,nu,i)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
+              torques(1,3,i) = torques(1,3,i) - s%Types(s%Basis(i)%Material)%LambdaD*(cI*s%Basis(i)%lpvec(mu,nu,1)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)-tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3))) &
+                                              - s%Types(s%Basis(i)%Material)%LambdaD*(   s%Basis(i)%lpvec(mu,nu,2)*(tchiorbiikl(sigmaimunu2i(1,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(1,i,mu,nu),3)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),2)+tchiorbiikl(sigmaimunu2i(4,i,mu,nu),3)))
             end do
           end do
-          torques(1,:,i) = 0.5_dp*s%Types(s%Basis(i)%Material)%LambdaD*torques(1,:,i)
+          torques(1,:,i) = 0.5_dp*torques(1,:,i)
 
           ! Exchange-correlation torques (calculated in the spin frame of reference)
           torques(2,1,i) = s%Basis(i)%Um*(mvec_cartesian(3,i)*disturbances(3,i)-mvec_cartesian(2,i)*disturbances(4,i))

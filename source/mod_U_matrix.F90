@@ -41,13 +41,13 @@ contains
 
     hee = cZero
     do i=1,s%nAtoms
-      do mu=1,s%ndOrb
-        mud = s%dOrbs(mu)
-        nud=mud+s%nOrb
+      do mu=1,s%Types(s%Basis(i)%Material)%ndOrb
+        mud = s%Types(s%Basis(i)%Material)%dOrbs(mu)
+        nud=mud+s%Types(s%Basis(i)%Material)%nOrb
         hee(mud,mud,i) = s%Basis(i)%Un*(rho(mud,i) - rho0(mud,i)) + 0.5_dp*s%Basis(i)%Un*( - rhod(i) + rhod0(i)) &
-                       + 0.5_dp*s%Basis(i)%Um*(-mzd(i)+mzd0(i))
+                        +0.5_dp*s%Basis(i)%Um*(-mzd(i)+mzd0(i))
         hee(nud,nud,i) = s%Basis(i)%Un*(rho(mud,i) - rho0(mud,i)) + 0.5_dp*s%Basis(i)%Un*( - rhod(i) + rhod0(i)) &
-                       + 0.5_dp*s%Basis(i)%Um*( mzd(i)-mzd0(i))
+                        +0.5_dp*s%Basis(i)%Um*( mzd(i)-mzd0(i))
         hee(mud,nud,i) =-0.5_dp*s%Basis(i)%Um*conjg(mpd(i)-mpd0(i))
         hee(nud,mud,i) =-0.5_dp*s%Basis(i)%Um*     (mpd(i)-mpd0(i))
       end do

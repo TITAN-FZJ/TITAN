@@ -366,7 +366,7 @@ contains
         mdvec_cartesian(2,i) = myd_t(i)
         mdvec_cartesian(3,i) = mzd_t(i)
       end do
- 
+
       ! Update U-term of the local hamiltonian
       call update_Umatrix(mzd_t,mzd0,mpd_t,mpd0,rhod_t,rhod0,rho_t,rho0,s)
 

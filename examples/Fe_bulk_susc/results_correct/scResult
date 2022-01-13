@@ -2,9 +2,9 @@
                             Ef= 0.7265689
             *************** Charge density: ****************
 Fe:  Ns= 0.7082748    Np= 0.5262281    Nd= 6.7654971
-            *********** Magnetization components: **********
-Fe:  Mx= 0.0000000    My=-0.0000000    Mz= 2.1892352
-            ****** Orbital components in global frame: *****
-Fe:  Lx= 0.0000000    Ly=-0.0000000    Lz= 0.0665257
+            *********** Magnetization components: ***********
+Fe:  Mx= 0.0000000    My= 0.0000000    Mz= 2.1892352
+            ****** Orbital components in global frame: ******
+Fe:  Lx=-0.0000000    Ly= 0.0000000    Lz= 0.0665257
             ******************** Total: ********************
 Fe:   N= 8.0000000   |M|= 2.1892352   |L|= 0.0665257

@@ -3,59 +3,102 @@ module mod_io
   implicit none
   logical :: log_unit = .false.
   character(len=12), parameter :: logfile = "parameter.in"
+  character(len=:), allocatable :: log_store
 
 contains
 
-  subroutine log_message(procedure, message)
+  subroutine log_message(proced, message, var)
     use mod_mpi_pars,   only: myrank
     use mod_parameters, only: output
     implicit none
-    character(len=*), intent(in) :: procedure
+    character(len=*), intent(in) :: proced
     character(len=*), intent(in) :: message
+    character(len=:), allocatable, intent(inout), optional :: var
 
+
+    ! To store initial messages before output file is open
+    if (present(var)) then
+      var = trim(var) // "[Warning] [" // proced // "] "// trim(message) // NEW_LINE('a')
+      return
+    end if
+    
     if(myrank == 0) then
-       if(log_unit) then
-          write(output%unit, "('[',a,'] ',a,'')") procedure, trim(message)
-       else
-          write(*, "('[',a,'] ',a,'')") procedure, trim(message)
-       end if
+      if(log_unit) then
+        ! To write the stored messages without the square brackeds and skipping a line
+        if (proced == "") then
+          write(output%unit, "(a)", advance="no") trim(message)
+        else
+          write(output%unit, "('[',a,'] ',a)") proced, trim(message)
+        end if
+      else
+        write(*, "('[',a,'] ',a)") proced, trim(message)
+      end if
     end if
   end subroutine log_message
 
-  subroutine log_error(procedure, message)
+
+  subroutine log_warning(proced, message, var)
+    use mod_mpi_pars,   only: myrank
+    use mod_parameters, only: output
+    implicit none
+    character(len=*), intent(in) :: proced
+    character(len=*), intent(in) :: message
+    character(len=:), allocatable, intent(inout), optional :: var
+
+    ! To store initial messages before output file is open
+    if (present(var)) then
+      var = trim(var) // "[Warning] [" // proced // "] "// trim(message) // NEW_LINE('a')
+      return
+    end if
+
+    if(myrank == 0) then
+      if(log_unit) then
+        write(output%unit, "('[Warning] [',a,'] ',a)") proced, trim(message)
+      else
+        write(*, "('[Warning] [',a,'] ',a)") proced, trim(message)
+      end if
+    end if
+  end subroutine log_warning
+
+
+  subroutine log_error(proced, message)
     use mod_mpi_pars,   only: myrank,MPI_Abort,MPI_COMM_WORLD,errorcode,ierr
     use mod_parameters, only: output
     implicit none
-    character(len=*), intent(in) :: procedure
+    character(len=*), intent(in) :: proced
     character(len=*), intent(in) :: message
 
     if(myrank == 0) then
-      if(log_unit) write(output%unit, "('[Error] [',a,'] ',a)") procedure, trim(message)
+      if(log_unit) write(output%unit, "('[Error] [',a,'] ',a)") proced, trim(message)
     end if
-    write(*, "('[Error] [',a,'] ',a)") procedure, trim(message)
+    write(*, "('[Error] [',a,'] ',a)") proced, trim(message)
     call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
     stop
   end subroutine log_error
 
-  subroutine log_warning(procedure, message)
-    use mod_mpi_pars,   only: myrank
-    use mod_parameters, only: output
-    implicit none
-    character(len=*), intent(in) :: procedure
-    character(len=*), intent(in) :: message
 
-    if(myrank == 0) then
-       if(log_unit) then
-          write(output%unit, "('[Warning] [',a,'] ',a)") procedure, trim(message)
-       else
-          write(*, "('[Warning] [',a,'] ',a)") procedure, trim(message)
-       end if
-    end if
-  end subroutine log_warning
+  function check_placeholders(initialFilename) result(modifiedFilename)
+  !> This function will substitute pre-defined placeholders in the 'initialFilename'
+  !> This is useful to output into different files when testing various values of parameters
+    use mod_tools,      only: replaceStr
+    use mod_parameters, only: kptotal_in,eta
+    implicit none
+    character(len=*)   :: initialFilename
+    character(len=:), allocatable :: modifiedFilename
+    character(len=100) :: temp
+
+    modifiedFilename = initialFilename
+    write (temp, "(i0)") kptotal_in
+    modifiedFilename = replaceStr(modifiedFilename,"#nkpt",trim(temp))
+    write (temp, "(es9.2)") eta
+    modifiedFilename = replaceStr(modifiedFilename,"#eta",trim(adjustl(temp)))
+
+  end function check_placeholders
+
 
   subroutine get_parameters(filename,s)
     use mod_kind,              only: dp,int64
-    use AtomTypes,             only: default_orbitals
+    use AtomTypes,             only: default_Orbs,default_nOrb
     use mod_input,             only: get_parameter,read_file,enable_input_logging,disable_input_logging
     use mod_parameters,        only: output,laddresults,lverbose,ldebug,lkpoints,&
                                      lpositions,lcreatefiles,lnolb,lhfresponses,&
@@ -64,7 +107,7 @@ contains
                                      itype,ry2ev,ltesla,eta,etap,dmax,emin,emax,&
                                      skip_steps,nEner,nEner1,nQvec,nQvec1,qbasis,renorm,renormnb,bands,band_cnt,&
                                      dfttype,parField,parFreq,kptotal_in,kp_in,&
-                                     tbmode,fermi_layer,lfixEf,lEf_overwrite,Ef_overwrite, cluster_layers, nqpt, qptotal_in,qp_in
+                                     tbmode,fermi_layer,lfixEf,lEf_overwrite,Ef_overwrite,cluster_layers,qptotal_in,qp_in
     use mod_superconductivity, only: lsuperCond,superCond
     use mod_self_consistency,  only: lontheflysc,lnojac,lforceoccup,lrotatemag,skipsc,scfile,magbasis,mag_tol
     use mod_system,            only: System_type,n0sc1,n0sc2
@@ -90,10 +133,8 @@ contains
     character(len=20), allocatable   :: s_vector(:)
     real(dp),          allocatable   :: vector(:)
     integer(int64),    allocatable   :: i_vector(:)
-    integer :: i,cnt,iloc
-    integer,  dimension(:),allocatable :: itmps_arr,itmpp_arr,itmpd_arr
+    integer :: i,cnt
     character(len=20)  :: tmp_string
-    character(len=100) :: selected_orbitals,selected_sorbitals,selected_porbitals,selected_dorbitals
 
     intrinsic :: findloc
     external  :: MPI_Finalize
@@ -101,12 +142,72 @@ contains
     if(.not. read_file(filename)) &
       call log_error("get_parameters", "File " // trim(filename) // " not found!")
 
+    ! Logging of input variables in 'parameters.in' file
     if(myrank == 0) then
       if(.not. enable_input_logging(logfile)) &
         call log_warning("get_parameters", "couldn't enable logging.")
     end if
+    !===============================================================================================
+    !============= System configuration (Lattice + Reciprocal lattice) =============================
+    !===============================================================================================
+    ! Done before opening the output file to be able to use these variables in the output filename
+    ! For this, the variable 'log_store' is used to temprarily store the output
+    log_store = ""
+    if(.not. get_parameter("nn_stages", s%nStages,2)) &
+      call log_warning("get_parameters","'nn_stages' missing. Using default value: 2",log_store)
+    if(.not. get_parameter("relTol", s%relTol,0.05_dp)) &
+      call log_warning("get_parameters","'relTol' missing. Using default value: 0.05",log_store)
+    if(.not. get_parameter("sysdim", s%isysdim, 3)) &
+      call log_warning("get_parameters", "'sysdim' missing. Using default value: 3",log_store)
+    if(.not. get_parameter("nkpt", i_vector,cnt)) &
+      call log_error("get_parameters","'nkpt' missing.")
+    if(cnt == s%isysdim) then
+      kp_in(1:s%isysdim) = int(i_vector(1:s%isysdim),kind(kp_in(1)))
+      kptotal_in = product(kp_in(1:s%isysdim))
+    else if(cnt == 1) then
+      kptotal_in = int( i_vector(1), kind(kptotal_in) )
+      select case(s%isysdim)
+      case(3)
+        kp_in(:)   = ceiling((dble(kptotal_in))**(0.333333333333333_dp), kind(kp_in(1)) )
+        kptotal_in = int( kp_in(1) * kp_in(2) * kp_in(3), kind(kptotal_in) )
+      case(2)
+        kp_in(1:2) = ceiling((dble(kptotal_in))**(0.5_dp), kind(kp_in(1)) )
+        kp_in(3)   = 1
+        kptotal_in = int( kp_in(1) * kp_in(2), kind(kptotal_in) )
+      case default
+        kp_in(1)   = ceiling((dble(kptotal_in)), kind(kp_in(1)) )
+        kp_in(2:3) = 1
+        kptotal_in = int( kp_in(1), kind(kptotal_in) )
+      end select
+    else
+      call log_error("get_parameter", "'nkpt' has wrong size (expected 1 or isysdim).")
+    end if
+
+    if(.not. get_parameter("minimumBZmesh", i_vector,cnt)) then
+      call log_warning("get_parameters", "'minimumBZmesh' missing. Using default value: 1000",log_store)
+      minimumBZmesh = 1000
+    else
+      if(cnt == 1) then
+        minimumBZmesh = int(i_vector(1),kind(minimumBZmesh))
+      else
+        call log_error("get_parameter", "'minimumBZmesh' has wrong size (expected 1).")
+      end if
+    end if
+    if(minimumBZmesh>kptotal_in) then
+      call log_warning("get_parameters", "'minimumBZmesh' is larger than the largest mesh. Using " // itos(kptotal_in))
+      minimumBZmesh = kptotal_in
+    end if
+    if(.not. get_parameter("eta", eta)) &
+      call log_error("get_parameters","'eta' missing.")
+    if(.not. get_parameter("etap", etap, eta)) &
+      call log_warning("get_parameters", "'etap' not found. Using default value: eta = " // trim(rtos(eta,"(es8.1)")),log_store )
+
+
     if(.not. get_parameter("output", output%file)) &
       call log_error("get_parameters", "Output filename not given!")
+
+    ! Changing placeholders to variable values, if they exist
+    output%file = trim(check_placeholders(output%file))
 
     if(myrank==0) then
       !! Create folder for output file, if necessary
@@ -126,48 +227,10 @@ contains
 
     if(myrank==0) &
       write(output%unit,"('[get_parameters] Reading parameters from ""',a,'"" file...')") trim(filename)
-    !===============================================================================================
-    !============= System configuration (Lattice + Reciprocal lattice) =============================
-    !===============================================================================================
-    if(.not. get_parameter("nn_stages", s%nStages,2)) &
-      call log_warning("get_parameters","'nn_stages' missing. Using default value: 2")
-    if(.not. get_parameter("relTol", s%relTol,0.05_dp)) &
-      call log_warning("get_parameters","'relTol' missing. Using default value: 0.05")
-    if(.not. get_parameter("sysdim", s%isysdim, 3)) &
-      call log_warning("get_parameters", "'sysdim' missing. Using default value: 3")
-    if(.not. get_parameter("nkpt", i_vector,cnt)) &
-      call log_error("get_parameters","'nkpt' missing.")
-    if(cnt == 1) then
-      kptotal_in = int( i_vector(1), kind(kptotal_in) )
-      select case(s%isysdim)
-      case(3)
-        kp_in(:)   = ceiling((dble(kptotal_in))**(0.333333333333333_dp), kind(kp_in(1)) )
-        kptotal_in = int( kp_in(1) * kp_in(2) * kp_in(3), kind(kptotal_in) )
-      case(2)
-        kp_in(1:2) = ceiling((dble(kptotal_in))**(0.5_dp), kind(kp_in(1)) )
-        kp_in(3)   = 1
-        kptotal_in = int( kp_in(1) * kp_in(2), kind(kptotal_in) )
-      case default
-        kp_in(1)   = ceiling((dble(kptotal_in)), kind(kp_in(1)) )
-        kp_in(2:3) = 1
-        kptotal_in = int( kp_in(1), kind(kptotal_in) )
-      end select
 
-    else if(cnt == 3) then
-      kp_in(1) = int( i_vector(1), kind(kp_in(1)) )
-      kp_in(2) = int( i_vector(2), kind(kp_in(2)) )
-      kp_in(3) = int( i_vector(3), kind(kp_in(3)) )
-      kptotal_in = int( kp_in(1) * kp_in(2) * kp_in(3), kind(kptotal_in) )
-    else
-      call log_error("get_parameter", "'nkpt' has wrong size (expected 1 or 3).")
-    end if
-    if(.not. get_parameter("minimumBZmesh", minimumBZmesh, 1000)) &
-      call log_warning("get_parameters", "'minimumBZmesh' missing. Using default value: 1000")
-    if(.not. get_parameter("eta", eta)) &
-      call log_error("get_parameters","'eta' missing.")
-    if(.not. get_parameter("etap", etap, eta)) &
-      call log_warning("get_parameters", "'etap' not found. Using default value: eta = " // trim(rtos(eta,"(es8.1)")) )
-    !===============================================================================================
+    ! Logging stored messages on 'log_store'
+    call log_message("", log_store)
+
     !===============================================================================================
     !------------------------------------- Type of Calculation -------------------------------------
     if(.not. get_parameter("itype", itype)) &
@@ -366,20 +429,20 @@ contains
       call log_warning("get_parameters","'skip_steps_hw' missing. Using default value: 0")
 
     if(get_parameter("hwscale", vector, cnt)) then
-       if(cnt < dmax)  hwscale(1:cnt)  = vector(1:cnt)
-       if(cnt >= dmax) hwscale(1:dmax) = vector(1:dmax)
+      if(cnt < dmax)  hwscale(1:cnt)  = vector(1:cnt)
+      if(cnt >= dmax) hwscale(1:dmax) = vector(1:dmax)
     end if
     if(allocated(vector)) deallocate(vector)
 
     if(get_parameter("hwtrotate", vector, cnt)) then
-       if(cnt < dmax)  hwtrotate(1:cnt)  = vector(1:cnt)
-       if(cnt >= dmax) hwtrotate(1:dmax) = vector(1:dmax)
+      if(cnt < dmax)  hwtrotate(1:cnt)  = vector(1:cnt)
+      if(cnt >= dmax) hwtrotate(1:dmax) = vector(1:dmax)
     end if
     if(allocated(vector)) deallocate(vector)
 
     if(get_parameter("hwprotate", vector, cnt)) then
-       if(cnt < dmax)  hwprotate(1:cnt)  = vector(1:cnt)
-       if(cnt >= dmax) hwprotate(1:dmax) = vector(1:dmax)
+      if(cnt < dmax)  hwprotate(1:cnt)  = vector(1:cnt)
+      if(cnt >= dmax) hwprotate(1:dmax) = vector(1:dmax)
     end if
     if(allocated(vector)) deallocate(vector)
     !--------------------------------------- Constraining Field ------------------------------------
@@ -390,8 +453,8 @@ contains
         call log_error("get_parameters","'magbasis' is required when constraining_field = T. ")
       if(.not. get_parameter("constr_type", constr_type)) &
         call log_error("get_parameters","'constr_type' is required when constraining_field = T.  Use one of the following: " // NEW_line('A') // &
-               "1 - Transverse constraining field" // NEW_line('A') // &
-               "2 - Full constranining field")
+                "1 - Transverse constraining field" // NEW_line('A') // &
+                "2 - Full constranining field")
       select case(constr_type)
       case(1)
         call log_message("get_parameters","Transverse constraining field chosen (constr_type=1): a field is applied to keep the direction of m fixed (not its length).")
@@ -402,8 +465,8 @@ contains
         call log_message("get_parameters","Full constraining field chosen (constr_type=2): the magnetic moment is completely fixed by the application of a constraining field.")
       case default
         call log_error("get_parameters","'constr_type' not recognized.  Use one of the following: " // NEW_line('A') // &
-               "1 - Transverse constraining field (to fix direction of M)" // NEW_line('A') // &
-               "2 - Full constraining field (to keep M fixed)")
+                "1 - Transverse constraining field (to fix direction of M)" // NEW_line('A') // &
+                "2 - Full constraining field (to keep M fixed)")
       end select
     end if
     !------------------------------ Superconductivity Variables ------------------------------------
@@ -415,24 +478,33 @@ contains
       if(.not. get_parameter("cluster_layers", cluster_layers)) then
         call log_warning("get_parameters","'cluster_layers' missing. Using default value 2.")
       end if
-
-      if(.not. get_parameter("nqpt", nqpt)) then
-        call log_warning("get_parameters","'nqpt' missing.  Using default value 1000")
+      if(.not. get_parameter("nqpt", i_vector,cnt)) then
+        call log_warning("get_parameters","'nqpt' missing.  Using default value equal 'nkpt'.")
+        qp_in(:) = kp_in(:)
+        qptotal_in = kptotal_in
+      else
+        if(cnt == s%isysdim) then
+          qp_in(1:s%isysdim) = int(i_vector(1:s%isysdim),kind(qp_in(1)))
+          qptotal_in = product(qp_in(1:s%isysdim))
+        else if(cnt == 1) then
+          qptotal_in = int( i_vector(1), kind(qptotal_in) )
+          select case(s%isysdim)
+          case(3)
+            qp_in(:)   = ceiling((dble(qptotal_in))**(0.333333333333333_dp), kind(qp_in(1)) )
+            qptotal_in = int( qp_in(1) * qp_in(2) * qp_in(3), kind(qptotal_in) )
+          case(2)
+            qp_in(1:2) = ceiling((dble(qptotal_in))**(0.5_dp), kind(qp_in(1)) )
+            qp_in(3)   = 1
+            qptotal_in = int( qp_in(1) * qp_in(2), kind(qptotal_in) )
+          case default
+            qp_in(1)   = ceiling((dble(qptotal_in)), kind(qp_in(1)) )
+            qp_in(2:3) = 1
+            qptotal_in = int( qp_in(1), kind(qptotal_in) )
+          end select
+        else
+          call log_error("get_parameter", "'nqpt' has wrong size (expected 1 or isysdim).")
+        end if
       end if
-      qptotal_in = int( nqpt, kind(qptotal_in) )
-      select case(s%isysdim)
-      case(3)
-        qp_in(:)   = ceiling((dble(qptotal_in))**(0.333333333333333_dp), kind(qp_in(1)) )
-        qptotal_in = int( qp_in(1) * qp_in(2) * qp_in(3), kind(qptotal_in) )
-      case(2)
-        qp_in(1:2) = ceiling((dble(qptotal_in))**(0.5_dp), kind(qp_in(1)) )
-        qp_in(3)   = 1
-        qptotal_in = int( qp_in(1) * qp_in(2), kind(qptotal_in) )
-      case default
-        qp_in(1)   = ceiling((dble(qptotal_in)), kind(qp_in(1)) )
-        qp_in(2:3) = 1
-        qptotal_in = int( qp_in(1), kind(qptotal_in) )
-      end select
     end if
     !------------------------------------ Integration Variables ------------------------------------
     if(.not. get_parameter("parts", parts)) &
@@ -502,70 +574,16 @@ contains
 
     if(.not.get_parameter("orbitals", s_vector, cnt)) then
       call log_warning("get_parameters","'orbitals' missing. Using the default 9 orbitals.")
-      cnt = size(default_orbitals)
+      cnt = default_nOrb
       allocate(s_vector(cnt))
-      s_vector(:) = default_orbitals(:)
+      s_vector(:) = default_Orbs(:)
     end if
-    s%nOrb = cnt
-    s%nOrb2 = 2*s%nOrb
-    s%nOrb2sc = superCond*s%nOrb2
-    allocate(s%Orbs(s%nOrb),itmps_arr(s%nOrb),itmpp_arr(s%nOrb),itmpd_arr(s%nOrb))
-    selected_orbitals = ""
-    selected_sorbitals = ""
-    selected_porbitals = ""
-    selected_dorbitals = ""
-    s%ndOrb = 0
-    ! Looping over selected orbitals
-    ! Transforms names to numbers
-    ! and count d orbitals
-    do i = 1,s%nOrb
-      ! If the name of the orbital is given instead of a number, convert:
-      if(.not.is_numeric( trim(s_vector(i)) )) then
-        iloc = findloc( default_orbitals,s_vector(i)(1:3),dim=1 )
-        if(iloc == 0) &
-          call log_error("get_parameters","Orbital not recognized: " // s_vector(i)(1:3) //". Use one of the following: " // NEW_line('A') // &
-               "(1|s), (2|px), (3|py), (4|pz), (5|dxy), (6|dyz), (7|dzx), (8|dx2), (9|dz2)")
-        s_vector(i) = itos( iloc )
-      end if
-      s%Orbs(i) = stoi( trim(s_vector(i)) )
-      selected_orbitals = trim(selected_orbitals)  // " " // trim(default_orbitals(s%Orbs(i)))
-      ! Checking orbital type, and storing information
-      if(s%Orbs(i)==1) then
-        s%nsOrb = s%nsOrb + 1
-        itmps_arr(s%nsOrb) = i
-        selected_sorbitals = trim(selected_sorbitals)  // " " // trim(default_orbitals(s%Orbs(i)))
-      end if
-      if((s%Orbs(i)>=2).and.(s%Orbs(i)<=4)) then
-        s%npOrb = s%npOrb + 1
-        itmpp_arr(s%npOrb) = i
-        selected_porbitals = trim(selected_porbitals)  // " " // trim(default_orbitals(s%Orbs(i)))
-      end if
-      if((s%Orbs(i)>=5).and.(s%Orbs(i)<=9)) then
-        s%ndOrb = s%ndOrb + 1
-        itmpd_arr(s%ndOrb) = i
-        selected_dorbitals = trim(selected_dorbitals)  // " " // trim(default_orbitals(s%Orbs(i)))
-      end if
-    end do
-    call log_message("get_parameters",trim(itos(s%nOrb)) // " orbitals selected:" // trim(selected_orbitals) // ", of which:")
+
+    call get_orbitals("the whole system",s_vector,s%nOrb,s%nOrb2,s%nOrb2sc,s%nsOrb,s%npOrb,s%ndOrb,s%Orbs,s%sOrbs,s%pOrbs,s%dOrbs)
     deallocate(s_vector)
-    ! s-orbitals
-    if(s%nsOrb > 0) then
-      allocate(s%sOrbs(s%nsOrb))
-      s%sOrbs(1:s%nsOrb) = itmps_arr(1:s%nsOrb)
-      call log_message("get_parameters", trim(itos(s%nsOrb)) // " s orbitals:" // trim(selected_sorbitals) )
-    end if
-    ! p-orbitals
-    if(s%npOrb > 0) then
-      allocate(s%pOrbs(s%npOrb))
-      s%pOrbs(1:s%npOrb) = itmpp_arr(1:s%npOrb)
-      call log_message("get_parameters", trim(itos(s%npOrb)) // " p orbitals:" // trim(selected_porbitals) )
-    end if
-    ! d-orbitals
-    if(s%ndOrb > 0) then
-      allocate(s%dOrbs(s%ndOrb))
-      s%dOrbs(1:s%ndOrb) = itmpd_arr(1:s%ndOrb)
-      call log_message("get_parameters", trim(itos(s%ndOrb)) // " d orbitals:" // trim(selected_dorbitals) )
-    end if
+
+    if(.not. get_parameter("fermi_layer", fermi_layer, 1)) &
+      call log_warning("get_parameters", "'fermi_layer' not given. Using default value: fermi_layer = 1")
     !---------------------------------------- Slater-Koster ----------------------------------------
     if(tbmode == 1) then
       dfttype = "S"
@@ -588,29 +606,27 @@ contains
       !   Npl_f = Npl
       ! end if
 
-      if(.not. get_parameter("fermi_layer", fermi_layer, 1)) &
-        call log_warning("get_parameters", "'fermi_layer' not given. Using default value: fermi_layer = 1")
     !--------------------------------------------- DFT ---------------------------------------------
     else if(tbmode == 2) then
       dfttype = "D"
       !  if(nstages /= 2) call log_error("get_parameters", "'tbmode' DFT Mode only supports nstages = 2")
-       !
+      !
       !  if(.not. get_parameter("dfttype", dfttype)) call log_error("get_parameters","'dfttype' missing.")
-       !
+      !
       !  if(.not. get_parameter("Npl", i_vector, cnt)) call log_error("get_parameters","'Npl' missing.")
       !  if(cnt < 1) call log_error("get_parameters","'Npl' doesn't contain any parameters.")
       !  Npl_i = i_vector(1)
       !  Npl_f = i_vector(1)
       !  if(cnt >= 2) Npl_f = i_vector(2)
       !  deallocate(i_vector)
-       !
+      !
       !  ! Check number of planes
       !  if(Npl_f < Npl_i) Npl_f = Npl_i
-       !
+      !
       !  if(.not. get_parameter("set1", set1)) call log_error("get_parameters","'set1' missing.")
-       !
+      !
       !  if(.not. get_parameter("set2", set2)) call log_error("get_parameters","'set2' missing.")
-       !
+      !
       !  if(get_parameter("addlayers", i_vector, cnt)) then
       !     if(cnt < 10) then
       !        addlayers(1:cnt) = i_vector(1:cnt)
@@ -621,7 +637,7 @@ contains
       !     end if
       !  end if
       !  if(allocated(i_vector)) deallocate(i_vector)
-       !
+      !
       !  ! Add 'naddlayers' to Npl
       !  if((naddlayers==1).and.(myrank==0)) write(outputunit,"('[get_parameters] WARNING: Added layers must include empty spheres! Only including one layer: naddlayers = ',i0)") naddlayers
       !  if((set1==9).or.(set2==9)) then
@@ -632,7 +648,7 @@ contains
       !     Npl_f = Npl_f+naddlayers-1
       !  end if
     else
-       call log_error("get_parameters", "'tbmode' Unknown mode selected. (Choose either 1 or 2)")
+      call log_error("get_parameters", "'tbmode' Unknown mode selected. (Choose either 1 or 2)")
     end if
     if(get_parameter("Ef", Ef_overwrite)) then
       call log_warning("get_parameters", "Ef = " // trim(rtos(Ef_overwrite,"(es8.1)")) //" given. Overwriting (initial) Fermi energy. (use fixEf runoption to fix)")
@@ -990,29 +1006,19 @@ contains
       write(output%unit,"('[get_parameters] Finished reading from ""',a,'"" file')") trim(filename)
 
 
-    !-------------------------------------------------------------------------------
-    !*********** User manual additions / modifications in the input file **********!
-    !     Npl_i  = 4
-    !     Npl_f = 4
-    !     nkpt = 6
-    !     SOC = .true.
-    !     magaxis = "5"
-    !     runoptions = trim(runoptions)
-    !     scfile = "results/selfconsistency/selfconsistency_Npl=4_dfttype=T_parts=2_U= 0.7E-01_hwa= 0.00E+00_hwt= 0.00E+00_hwp= 0.00E+00_nkpt=6_eta= 0.5E-03.dat"
-    !-------------------------------------------------------------------------------
     ! Some consistency checks
     if((renorm).and.((renormnb<n0sc1).or.(renormnb>n0sc2))) then
         call log_error("get_parameters", "Invalid neighbor for renormalization: " // trim(itos(renormnb)) // ". Choose a value between " // trim(itos(n0sc1)) // " and " // trim(itos(n0sc2)) // ".")
     end if
     if(skip_steps<0) then
-       if(myrank==0) write(output%unit,"('[get_parameters] Invalid number of energy steps to skip: ',i0)") skip_steps
-       call MPI_Finalize(ierr)
-       stop
+      if(myrank==0) write(output%unit,"('[get_parameters] Invalid number of energy steps to skip: ',i0)") skip_steps
+      call MPI_Finalize(ierr)
+      stop
     end if
     if(skip_steps_hw<0) then
-       if(myrank==0) write(output%unit,"('[get_parameters] Invalid number of field steps to skip: ',i0)") skip_steps_hw
-       call MPI_Finalize(ierr)
-       stop
+      if(myrank==0) write(output%unit,"('[get_parameters] Invalid number of field steps to skip: ',i0)") skip_steps_hw
+      call MPI_Finalize(ierr)
+      stop
     end if
     if((lhfresponses).and.(itype==7).and.(myrank==0)) write(output%unit,"('[get_parameters] Susceptibility calculations already include HF responses. Ignoring ""hfresponses"" runoption')")
     ! Adjusting zeeman energy to Ry or eV
@@ -1036,7 +1042,105 @@ contains
     pnt=pn1+pn2
   end subroutine get_parameters
 
+
+  subroutine get_orbitals(string,input_orbitals,nOrb,nOrb2,nOrb2sc,nsOrb,npOrb,ndOrb,Orbs,sOrbs,pOrbs,dOrbs)
+  !! Subroutine to read and parse the selected orbitals
+    use mod_kind,   only: int32
+    use mod_System, only: System_type
+    use mod_tools,  only: is_numeric,itos,stoi
+    use AtomTypes,  only: default_Orbs
+    use mod_superconductivity, only: superCond
+    character(len=*)               , intent(in)    :: string
+    character(len=20), dimension(:), intent(inout) :: input_orbitals
+    integer(int32),                  intent(out)   :: nOrb,nOrb2,nOrb2sc,nsOrb,npOrb,ndOrb
+    integer(int32),    dimension(:), allocatable, intent(out) :: Orbs,sOrbs,pOrbs,dOrbs
+
+    integer :: i,iloc
+    integer,  dimension(:), allocatable :: itmps_arr,itmpp_arr,itmpd_arr
+    !! Variables to temporarily store the orbitals
+    character(len=100) :: selected_orbitals,selected_sorbitals,selected_porbitals,selected_dorbitals
+    !! Variables to print selected orbitals
+
+    call log_message("get_orbitals","Selection of orbitals for " // trim(string) // ":")
+
+    selected_orbitals = ""
+    selected_sorbitals = ""
+    selected_porbitals = ""
+    selected_dorbitals = ""
+    nOrb  = 0
+    nsOrb = 0
+    npOrb = 0
+    ndOrb = 0
+
+    do i = 1,size(input_orbitals)
+      if(input_orbitals(i)(1:1) == "!") exit
+      if(len_trim(input_orbitals(i)) == 0 .or. len_trim(input_orbitals(i)) == 4) cycle
+
+      nOrb = nOrb + 1
+
+      ! If the name of the orbital is given instead of a number, convert:
+      if(.not.is_numeric( trim(input_orbitals(i)) )) then
+        iloc = findloc( default_Orbs,input_orbitals(i)(1:3),dim=1 )
+        if(iloc == 0) &
+          call log_error("get_orbitals","Orbital not recognized: " // input_orbitals(i)(1:3) //". Use one of the following: " // NEW_line('A') // &
+              "(1|s), (2|px), (3|py), (4|pz), (5|dxy), (6|dyz), (7|dzx), (8|dx2), (9|dz2)")
+        input_orbitals(i) = itos( iloc )
+      end if
+    end do
+    nOrb2 = nOrb*2
+    nOrb2sc = superCond*nOrb2
+    allocate(Orbs(nOrb),itmps_arr(nOrb),itmpp_arr(nOrb),itmpd_arr(nOrb))
+
+    ! Looping over selected orbitals
+    ! Transforms names to numbers
+    ! and count s,p and d orbitals
+    do i = 1,nOrb
+      Orbs(i) = stoi( trim(input_orbitals(i)) )
+      selected_orbitals = trim(selected_orbitals)  // " " // trim(default_Orbs(Orbs(i)))
+      ! Checking orbital type, and storing information
+      if(Orbs(i)==1) then
+        nsOrb = nsOrb + 1
+        itmps_arr(nsOrb) = i
+        selected_sorbitals = trim(selected_sorbitals)  // " " // trim(default_Orbs(Orbs(i)))
+      end if
+      if((Orbs(i)>=2).and.(Orbs(i)<=4)) then
+        npOrb = npOrb + 1
+        itmpp_arr(npOrb) = i
+        selected_porbitals = trim(selected_porbitals)  // " " // trim(default_Orbs(Orbs(i)))
+      end if
+      if((Orbs(i)>=5).and.(Orbs(i)<=9)) then
+        ndOrb = ndOrb + 1
+        itmpd_arr(ndOrb) = i
+        selected_dorbitals = trim(selected_dorbitals)  // " " // trim(default_Orbs(Orbs(i)))
+      end if
+    end do
+
+    call log_message("get_orbitals",trim(itos(nOrb)) // " orbitals selected:" // trim(selected_orbitals) // ", of which:")
+    ! Storing position of each type of orbital
+    ! s-orbitals
+    if(nsOrb > 0) then
+      allocate(sOrbs(nsOrb))
+      sOrbs(1:nsOrb) = itmps_arr(1:nsOrb)
+      call log_message("get_orbitals", trim(itos(nsOrb)) // " s orbitals:" // trim(selected_sorbitals) )
+    end if
+    ! p-orbitals
+    if(npOrb > 0) then
+      allocate(pOrbs(npOrb))
+      pOrbs(1:npOrb) = itmpp_arr(1:npOrb)
+      call log_message("get_orbitals", trim(itos(npOrb)) // " p orbitals:" // trim(selected_porbitals) )
+    end if
+    ! d-orbitals
+    if(ndOrb > 0) then
+      allocate(dOrbs(ndOrb))
+      dOrbs(1:ndOrb) = itmpd_arr(1:ndOrb)
+      call log_message("get_orbitals", trim(itos(ndOrb)) // " d orbitals:" // trim(selected_dorbitals) )
+    end if
+
+  end subroutine get_orbitals
+
+
   subroutine iowrite(s)
+  !! Write read parameters on main output file
     use mod_mpi_pars,          only: numprocs
     use mod_parameters,        only: output,runoptions,bands,band_cnt,renorm,renormnb,eta,itype, &
                                      emin,emax,nener1,nqvec1

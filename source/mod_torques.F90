@@ -51,7 +51,7 @@ contains
 
 
   subroutine create_torque_files()
-  !> This subroutine creates all the files needed for the disturbances
+  !> This subroutine creates all the files needed for the torques
     use mod_parameters, only: output, renorm
     use mod_system,     only: s => sys
     implicit none
@@ -87,7 +87,7 @@ contains
 
 
   subroutine open_torque_files()
-  !> This subroutine opens all the files needed for the disturbances
+  !> This subroutine opens all the files needed for the torques
     use mod_parameters, only: output, renorm, missing_files
     use mod_system,     only: s => sys
     use mod_mpi_pars,   only: abortProgram
@@ -126,7 +126,7 @@ contains
 
 
   subroutine close_torque_files()
-  !> This subroutine closes all the files needed for the disturbances
+  !> This subroutine closes all the files needed for the torques
     use mod_parameters, only: renorm
     use mod_System, only: s => sys
     implicit none
@@ -202,20 +202,20 @@ contains
             write(unit=iw,fmt="(9(es16.9,2x))") e , abs(rtorques(typetorque,sigma,i)) , real(rtorques(typetorque,sigma,i)) , aimag(rtorques(typetorque,sigma,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
           end if
         end do
-         ! Writing total torques
-         iw = 9500+(typetorque-1)*3+sigma
+        ! Writing total torques
+        iw = 9500+(typetorque-1)*3+sigma
 
-         if(abs(total_torques(typetorque,sigma))>=1.e-15_dp) then
-            phase  = atan2(aimag(total_torques(typetorque,sigma)),real(total_torques(typetorque,sigma)))
-            sine   = real(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
-            cosine = aimag(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
-         else
-            phase  = 0._dp
-            sine   = 0._dp
-            cosine = 0._dp
-         end if
+        if(abs(total_torques(typetorque,sigma))>=1.e-15_dp) then
+          phase  = atan2(aimag(total_torques(typetorque,sigma)),real(total_torques(typetorque,sigma)))
+          sine   = real(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
+          cosine = aimag(total_torques(typetorque,sigma))/abs(total_torques(typetorque,sigma))
+        else
+          phase  = 0._dp
+          sine   = 0._dp
+          cosine = 0._dp
+        end if
 
-         write(unit=iw,fmt="(9(es16.9,2x))") e , abs(total_torques(typetorque,sigma)) , real(total_torques(typetorque,sigma)) , aimag(total_torques(typetorque,sigma)) , phase , sine , cosine , mtotal_spherical(2) , mtotal_spherical(3)
+        write(unit=iw,fmt="(9(es16.9,2x))") e , abs(total_torques(typetorque,sigma)) , real(total_torques(typetorque,sigma)) , aimag(total_torques(typetorque,sigma)) , phase , sine , cosine , mtotal_spherical(2) , mtotal_spherical(3)
 
       end do
     end do
@@ -226,7 +226,7 @@ contains
 
 
   subroutine create_dc_torque_files()
-  !> This subroutine creates all the files needed for the disturbances
+  !> This subroutine creates all the files needed for the torques
     use mod_parameters, only: output, kount, renorm
     use mod_magnet, only: dcprefix, dcfield_dependence, dcfield, dc_header
     use mod_system, only: s => sys
@@ -264,7 +264,7 @@ contains
 
 
   subroutine open_dc_torque_files()
-  !> This subroutine opens all the files needed for the disturbances
+  !> This subroutine opens all the files needed for the torques
     use mod_parameters, only: output, kount, missing_files, renorm
     use mod_magnet,     only: dcprefix, dcfield_dependence, dcfield
     use mod_system,     only: s => sys
@@ -305,7 +305,7 @@ contains
 
 
   subroutine close_dc_torque_files()
-  !> This subroutine closes all the files needed for the disturbances
+  !> This subroutine closes all the files needed for the torques
     use mod_parameters, only: renorm
     use mod_system, only: s => sys
     implicit none
@@ -419,7 +419,7 @@ contains
 
     do typetorque=1,ntypetorque
       do sigma=1,3
-         do i=1,s%nAtoms
+        do i=1,s%nAtoms
             iw = 9000*idc+(typetorque-1)*s%nAtoms*3+(sigma-1)*s%nAtoms+i
 
             ! Sorting torque files
@@ -432,9 +432,9 @@ contains
             end if
           end do
           iw = 9500*idc+(typetorque-1)*3+sigma
-         ! Sorting total torque files
-         call sort_file(iw)
-       end do
+        ! Sorting total torque files
+        call sort_file(iw)
+      end do
     end do
 
     ! Closing torque files
@@ -447,7 +447,9 @@ contains
   end subroutine sort_torques
 
   subroutine xc_torque_operator(torque)
-  !> This subroutine defines the exchange-correlation torque operator/matrix
+  !> This subroutine defines the exchange-correlation torque operator/matrix at site i as
+  !> $\vec{T}^xc_m = U \vec{M}\times\vec{S} $ , 
+  !> with M being the magnetic moment and S = \sigma/2 being the spin operator.
     use mod_kind,       only: dp
     use mod_constants,  only: cZero, cOne, levi_civita, sigma => pauli_mat
     use mod_System,     only: s => sys
@@ -455,22 +457,25 @@ contains
     implicit none
     complex(dp), dimension(s%nOrb2,s%nOrb2,3,s%nAtoms), intent(out) :: torque
     complex(dp), dimension(s%nOrb,s%nOrb) :: ident
-    integer :: i,m,n,k
-
-    ident = cZero
-    do i=1,s%ndOrb
-      ident(s%dOrbs(i),s%dOrbs(i)) = cOne
-    end do
+    integer :: i,m,n,k,nOrb,nOrb2
 
     torque = cZero
     do i = 1, s%nAtoms
+      nOrb =s%Types(s%Basis(i)%Material)%nOrb
+      nOrb2=s%Types(s%Basis(i)%Material)%nOrb2
+
+      ident = cZero
+      do m=1,s%Types(s%Basis(i)%Material)%ndOrb
+        ident(s%Types(s%Basis(i)%Material)%dOrbs(m),s%Types(s%Basis(i)%Material)%dOrbs(m)) = cOne
+      end do
+
       do m = 1, 3
         do n = 1, 3
           do k = 1, 3
-            torque(       1: s%nOrb,       1: s%nOrb,m,i) = torque(       1: s%nOrb,       1: s%nOrb,m,i) + mdvec_cartesian(n,i) * ident(:,:) * sigma(1,1,k) * levi_civita(m,n,k)
-            torque(s%nOrb+1:s%nOrb2,       1: s%nOrb,m,i) = torque(s%nOrb+1:s%nOrb2,       1: s%nOrb,m,i) + mdvec_cartesian(n,i) * ident(:,:) * sigma(2,1,k) * levi_civita(m,n,k)
-            torque(       1: s%nOrb,s%nOrb+1:s%nOrb2,m,i) = torque(       1: s%nOrb,s%nOrb+1:s%nOrb2,m,i) + mdvec_cartesian(n,i) * ident(:,:) * sigma(1,2,k) * levi_civita(m,n,k)
-            torque(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,m,i) = torque(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,m,i) + mdvec_cartesian(n,i) * ident(:,:) * sigma(2,2,k) * levi_civita(m,n,k)
+            torque(     1:nOrb ,     1:nOrb ,m,i) = torque(     1:nOrb ,     1:nOrb ,m,i) + mdvec_cartesian(n,i) * ident(1:nOrb,1:nOrb) * sigma(1,1,k) * levi_civita(m,n,k)
+            torque(nOrb+1:nOrb2,     1:nOrb ,m,i) = torque(nOrb+1:nOrb2,     1:nOrb ,m,i) + mdvec_cartesian(n,i) * ident(1:nOrb,1:nOrb) * sigma(2,1,k) * levi_civita(m,n,k)
+            torque(     1:nOrb ,nOrb+1:nOrb2,m,i) = torque(     1:nOrb ,nOrb+1:nOrb2,m,i) + mdvec_cartesian(n,i) * ident(1:nOrb,1:nOrb) * sigma(1,2,k) * levi_civita(m,n,k)
+            torque(nOrb+1:nOrb2,nOrb+1:nOrb2,m,i) = torque(nOrb+1:nOrb2,nOrb+1:nOrb2,m,i) + mdvec_cartesian(n,i) * ident(1:nOrb,1:nOrb) * sigma(2,2,k) * levi_civita(m,n,k)
           end do
         end do
       end do
@@ -480,39 +485,42 @@ contains
 
 
   subroutine SO_torque_operator(torque)
-  !> This subroutine defines the spin-orbit torque operator/matrix
+  !> This subroutine defines the spin-orbit torque operator/matrix at site i as
+  !> $\vec{T}^so_i = lambda_i \vec{L}_i\times\vec{S} $ , 
+  !> with L being the orbital operator and S = \sigma/2 being the spin operator.
     use mod_kind,       only: dp
     use mod_constants,  only: cZero, levi_civita, sigma => pauli_mat
     use mod_System,     only: s => sys
-    use mod_magnet,     only: lvec
     implicit none
-    integer :: i,m,n,k,mu,nu,mup,nup,mupp,nupp
+    integer :: i,m,n,k,mu,nu,mup,nup,mupp,nupp,nOrb,nOrb2
     complex(dp), dimension(s%nOrb2,s%nOrb2,3,s%nAtoms), intent(out) :: torque
 
     torque = cZero
 
     !! [sigma, H_SO]
     !! t_i^m = Lambda_i * sum_nk eps_mnk L_imunu^n * S_imunu^k
-    !! t_m = lambda_i * sum_alpha_beta * sum_nk_gamma,zeta eps_mnk L^n_gamma,zeta * sigma^k_alpha_beta
+    !! t_m = lambda_i * sum_alpha_beta * sum_nk_gamma,zeta eps_mnk L^n_gamma,zeta * (sigma^k_alpha_beta/2)
     do i = 1, s%nAtoms
+      nOrb =s%Types(s%Basis(i)%Material)%nOrb
+      nOrb2=s%Types(s%Basis(i)%Material)%nOrb2
       do m = 1, 3
         do n = 1, 3
           do k = 1, 3
-            torque(       1:s%nOrb ,       1:s%nOrb ,m,i) = torque(       1:s%nOrb ,       1:s%nOrb ,m,i) + lvec(1:s%nOrb,1:s%nOrb,n) * sigma(1,1,k) * levi_civita(m,n,k)
-            torque(s%nOrb+1:s%nOrb2,       1:s%nOrb ,m,i) = torque(s%nOrb+1:s%nOrb2,       1:s%nOrb ,m,i) + lvec(1:s%nOrb,1:s%nOrb,n) * sigma(2,1,k) * levi_civita(m,n,k)
-            torque(       1:s%nOrb ,s%nOrb+1:s%nOrb2,m,i) = torque(       1:s%nOrb ,s%nOrb+1:s%nOrb2,m,i) + lvec(1:s%nOrb,1:s%nOrb,n) * sigma(1,2,k) * levi_civita(m,n,k)
-            torque(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,m,i) = torque(s%nOrb+1:s%nOrb2,s%nOrb+1:s%nOrb2,m,i) + lvec(1:s%nOrb,1:s%nOrb,n) * sigma(2,2,k) * levi_civita(m,n,k)
+            torque(     1:nOrb ,     1:nOrb ,m,i) = torque(     1:nOrb ,     1:nOrb ,m,i) + s%Types(s%Basis(i)%Material)%lvec(:,:,n) * sigma(1,1,k) * levi_civita(m,n,k)
+            torque(nOrb+1:nOrb2,     1:nOrb ,m,i) = torque(nOrb+1:nOrb2,     1:nOrb ,m,i) + s%Types(s%Basis(i)%Material)%lvec(:,:,n) * sigma(2,1,k) * levi_civita(m,n,k)
+            torque(     1:nOrb ,nOrb+1:nOrb2,m,i) = torque(     1:nOrb ,nOrb+1:nOrb2,m,i) + s%Types(s%Basis(i)%Material)%lvec(:,:,n) * sigma(1,2,k) * levi_civita(m,n,k)
+            torque(nOrb+1:nOrb2,nOrb+1:nOrb2,m,i) = torque(nOrb+1:nOrb2,nOrb+1:nOrb2,m,i) + s%Types(s%Basis(i)%Material)%lvec(:,:,n) * sigma(2,2,k) * levi_civita(m,n,k)
           end do
         end do
       end do
 
       ! p block
-      do nupp=1,s%npOrb
-        nu = s%pOrbs(nupp)
-        nup = nu + s%nOrb 
-        do mupp=1,s%npOrb
-          mu = s%pOrbs(mupp)
-          mup = mu + s%nOrb 
+      do nupp=1,s%Types(s%Basis(i)%Material)%npOrb
+        nu = s%Types(s%Basis(i)%Material)%pOrbs(nupp)
+        nup = nu + nOrb 
+        do mupp=1,s%Types(s%Basis(i)%Material)%npOrb
+          mu = s%Types(s%Basis(i)%Material)%pOrbs(mupp)
+          mup = mu + nOrb 
           torque(mu ,nu ,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque(mu ,nu ,:,i)
           torque(mu ,nup,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque(mu ,nup,:,i)
           torque(mup,nu ,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaP * torque(mup,nu ,:,i)
@@ -521,12 +529,12 @@ contains
       end do
 
       ! d block
-      do nupp=1,s%ndOrb
-        nu = s%dOrbs(nupp)
-        nup = nu + s%nOrb 
-        do mupp=1,s%ndOrb
-          mu = s%dOrbs(mupp)
-          mup = mu + s%nOrb 
+      do nupp=1,s%Types(s%Basis(i)%Material)%ndOrb
+        nu = s%Types(s%Basis(i)%Material)%dOrbs(nupp)
+        nup = nu + nOrb 
+        do mupp=1,s%Types(s%Basis(i)%Material)%ndOrb
+          mu = s%Types(s%Basis(i)%Material)%dOrbs(mupp)
+          mup = mu + nOrb 
           torque(mu ,nu ,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque(mu ,nu ,:,i)
           torque(mu ,nup,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque(mu ,nup,:,i)
           torque(mup,nu ,:,i) = 0.5_dp * s%Types(s%Basis(i)%Material)%LambdaD * torque(mup,nu ,:,i)

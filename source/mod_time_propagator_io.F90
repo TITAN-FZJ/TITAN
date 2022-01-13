@@ -290,7 +290,7 @@ contains
     implicit none
     character(len=500) :: output_file
     integer :: i,unit
-     
+
     call define_time_prop_observables()
 
     ! Time-dependent fields

@@ -23,10 +23,10 @@ def read_data(filename):
 ################################################################################
 if __name__ == "__main__":
   
-  if(args.mev):
+  if(args.mev) or (args.mevlabel):
     labelx = r'$E-E_F$ [meV]'
     labely = r'$-\operatorname{Im}\chi^{+-}$ [states/meV]'
-  elif(args.ev):
+  elif(args.ev) or (args.evlabel):
     labelx = r'$E-E_F$ [eV]'
     labely = r'$-\operatorname{Im}\chi^{+-}$ [states/eV]'
   else:
@@ -57,24 +57,43 @@ if __name__ == "__main__":
   # legends = ['curve 1', 'curve 2', 'curve 3', 'curve 4', 'curve 5', 'curve 6', 'curve 7', 'curve 8', 'curve 9']
 
   # Loop over columns i from 1 to ncol
+  xmin = 0.0
+  xmax = 0.0
+  ymin = 0.0
+  ymax = 0.0
   for i in range(numplots):
     # Plot column i against column 0 (first column)
-    plt.plot(data[i][:,0],-data[i][:,3], color=colors[i], label=(legends[i] if args.legends != "[]" else None) )
+    x = data[i][:,0]
+    y = -data[i][:,3]
+    ax.plot(x,y, color=colors[i], label=(legends[i] if args.legends != "[]" else None) )
+    xmin = min(xmin + x)
+    xmax = max(xmax + x)
+    ymin = min(ymin + y)
+    ymax = max(ymax + y)
+
 
   # Labels and title
-  plt.xlabel(labelx)
-  plt.ylabel(labely)
-  plt.title('Susceptibility')
+  ax.set_xlabel(labelx)
+  ax.set_ylabel(labely)
+  ax.set_title('Susceptibility')
 
-  # Changing limits
+  # Setting limits
   if args.xlim != "":
     xlim = eval(args.xlim)
-    plt.xlim(xlim)
+    ax.set_xlim(xlim)
+  else:
+    ax.set_xlim([xmin,xmax])
+  yrange = ymax - ymin
+  ax.set_ylim([ymin-0.05*yrange,ymax+0.05*yrange])
+  # Adding lines at x=0 and y=0
+  ax.axvline(x=0.0, color='k', linewidth=0.75)
+  ax.axhline(y=0.0, color='k', linewidth=0.75)
 
   # Add legend
   if args.legends != "[]":
     plt.legend()
 
+  plt.tight_layout()
   if args.output == "":
     plt.show()
   else:

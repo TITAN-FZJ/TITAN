@@ -203,6 +203,7 @@ contains
     total_lines    = 0
     do
       read (unit=unit,fmt=*,iostat=ios) stringtemp
+      stringtemp = adjustl(stringtemp)
       if (ios/=0) exit
       if (stringtemp=="") cycle ! If the line is blank, ignore
       ! Total number of non-empty lines
@@ -236,6 +237,7 @@ contains
     rows  = 0
     do
       read (unit=unit,fmt='(A)',iostat=ios) stringtemp
+      stringtemp = adjustl(stringtemp)
       if (ios/=0) exit
       ! Getting the number of rows
       if ((stringtemp(1:1)=="#").or.(stringtemp(1:1)=="!").or.(stringtemp=="")) then
@@ -256,26 +258,27 @@ contains
   !> (given by "unit", already opened) and returns it on "data".
   !> Blank lines are ignored.
   !> --------------------------------------------------------------------
-    use mod_kind, only: dp
+    use mod_kind,     only: dp
     use mod_mpi_pars, only: abortProgram
     implicit none
-    integer     , intent(in)  :: unit,rows,cols
-    real(dp), intent(out)     :: data(rows,cols)
-    character(len=900)        :: stringtemp
+    integer , intent(in)  :: unit,rows,cols
+    real(dp), intent(out) :: data(rows,cols)
+    character(len=900)    :: stringtemp
     integer :: ios,i,j
 
     rewind unit
     i = 0
     do
       read(unit=unit,fmt='(A)',iostat=ios) stringtemp
+      stringtemp = adjustl(stringtemp)
       if (ios/=0) exit
       if ((stringtemp(1:1)=="#").or.(stringtemp(1:1)=="!").or.(stringtemp=="")) cycle
       i=i+1
       read(unit=stringtemp,fmt=*,iostat=ios) (data(i,j),j=1,cols)
-      if (ios/=0)  call abortProgram("[read_data] Incorrect number of cols: " // trim(itos(j)) // " when expecting " // trim(itos(cols)))
+      if (ios/=0)  call abortProgram("[read_data] Unit " // trim(itos(unit)) // ": Incorrect number of cols: " // trim(itos(j)) // " when expecting " // trim(itos(cols)))
     end do
 
-    if(i/=rows) call abortProgram("[read_data] Incorrect number of rows: " // trim(itos(i)) // " when expecting " // trim(itos(rows)))
+    if(i/=rows) call abortProgram("[read_data] Unit " // trim(itos(unit)) // ": Incorrect number of rows: " // trim(itos(i)) // " when expecting " // trim(itos(rows)))
     ! Writing data
     ! do i=1,rows
     !   write(*,"(10(es16.9,2x))") (data(i,j),j=1,cols)
@@ -311,6 +314,7 @@ contains
     do
       l = l+1
       read(unit=unit,fmt='(A)',iostat=ios) stringtemp
+      stringtemp = adjustl(stringtemp)
       if (ios/=0) exit
       if ((stringtemp(1:1)=="#").or.(stringtemp(1:1)=="!").or.(stringtemp=="")) then
         k = k + 1
@@ -320,12 +324,12 @@ contains
       end if
       i=i+1
       read(unit=stringtemp,fmt=*,iostat=ios) (data(i,j),j=1,cols)
-      if (ios/=0)  call abortProgram("[read_data] Incorrect number of cols: " // trim(itos(j)) // " when expecting " // trim(itos(cols)))
+      if (ios/=0)  call abortProgram("[read_data] Unit " // trim(itos(unit)) // ": Incorrect number of cols: " // trim(itos(j)) // " when expecting " // trim(itos(cols)))
       mask(l) = .true.
     end do
 
-    if(i/=rows) call abortProgram("[read_data] Incorrect number of data rows: " // trim(itos(i)) // " when expecting " // trim(itos(rows)))
-    if(k/=commented_rows) call abortProgram("[read_data] Incorrect number of commented rows: " // trim(itos(k)) // " when expecting " // trim(itos(commented_rows)))
+    if(i/=rows) call abortProgram("[read_data] Unit " // trim(itos(unit)) // ": Incorrect number of data rows: " // trim(itos(i)) // " when expecting " // trim(itos(rows)))
+    if(k/=commented_rows) call abortProgram("[read_data] Unit " // trim(itos(unit)) // ": Incorrect number of commented rows: " // trim(itos(k)) // " when expecting " // trim(itos(commented_rows)))
     ! Writing data
     ! do i=1,rows
     !   write(*,"(10(es16.9,2x))") (data(i,j),j=1,cols)
@@ -597,7 +601,7 @@ contains
     character(len=*), intent(in) :: string
     integer,          intent(in) :: dim_v
     integer           :: ios,i
-    character(len=50) :: StoArray(dim_v)
+    character(len=20) :: StoArray(dim_v)
 
     StoArray = ""
     read(unit=string, fmt=*, iostat=ios) (StoArray(i), i=1,dim_v)
@@ -770,12 +774,11 @@ contains
   !> function invers(matriz,nn):
   !>    This subroutine calculates the inverse of nn x nn matrix 'matriz'
   !> --------------------------------------------------------------------
-    use, intrinsic :: iso_fortran_env
-    use mod_mpi_pars
+    use mod_kind,       only: dp
+    use mod_mpi_pars,   only: MPI_Abort,MPI_COMM_WORLD,errorcode,ierr,myrank
     use mod_parameters, only: output
     implicit none
     integer :: nn,info
-    integer :: lwork
     integer,     dimension(nn)    :: ipiv
     complex(dp), dimension(nn,nn) :: matriz
     complex(dp), dimension(nn*4)  :: work

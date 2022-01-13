@@ -117,7 +117,7 @@ build:intel:normal:
   - sed -i "s/-> itype = .*/-> itype = ${ITYPE}/g" input
   # Setting up 4 omp threads
   - export OMP_NUM_THREADS=8
-  # Running the code with 2 MPI ranks
+  # Running the code with 2 MPI ranks (TODO: mpi needs to be tested to return to original values)
   - mpirun -np 1 ${TITAN_DIR}/bin/titan_iff.exe
   # Printing any error file, if existing
   - if [ -f error* ] ; then grep -H '' error* ; fi
@@ -137,9 +137,17 @@ build:intel:normal:
   fi
   for file in `find results/ -type f`
   do
+    echo "Found file ${file} in results/"
     [[ -z ${TOL} ]] && echo "Comparing file $(basename ${file}) with default tolerance `grep -m 1 "tol =" ${TITAN_DIR}/scripts/compare_output.py | awk -F= '{print $2}'`" || echo "Comparing file $(basename ${file}) with tolerance ${TOL}"
     python ${TITAN_DIR}/scripts/compare_output.py ${file} ${file/results/results_correct} ${TOL}
   done
+
+.keep_results: &keep_results
+  artifacts:
+    paths:
+      - ${TEST_DIR}/results/
+    when: always
+    expire_in: 1 day
 
 # ** Jobs **
 #============ Normal Self-consistency ============#
@@ -147,223 +155,267 @@ Nb_100_Monolayer:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: selfcon:normal
   needs: ["build:intel:normal"]
+  variables:
+    TITAN_DIR: ../..
+    TEST_DIR: examples/Nb_100_Monolayer
+    ITYPE: 1
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TITAN_DIR="${PWD}"
-    - export TEST_DIR="examples/Nb_100_Monolayer"
-    - export ITYPE=1
     - *run_test
     - *create_scResults_file
     - *compare_files
+  # Keep results on failure (to be able to check)
+  <<: *keep_results
 
 Ni_bulk:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: selfcon:normal
   needs: ["build:intel:normal"]
+  variables:
+    TITAN_DIR: ../..
+    TEST_DIR: examples/Ni_bulk_timeprop
+    ITYPE: 1
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TITAN_DIR="${PWD}"
-    - export TEST_DIR="examples/Ni_bulk_timeprop"
-    - export ITYPE=1
     - *run_test
     - *create_scResults_file
     - *compare_files
+  # Keep results on failure (to be able to check)
+  <<: *keep_results
 
 Fe_bulk:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: selfcon:normal
   needs: ["build:intel:normal"]
+  variables:
+    TITAN_DIR: ../..
+    TEST_DIR: examples/Fe_bulk_susc
+    ITYPE: 1
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TITAN_DIR="${PWD}"
-    - export TEST_DIR="examples/Fe_bulk_susc"
-    - export ITYPE=1
     - *run_test
     - *create_scResults_file
     - *compare_files
+  # Keep results on failure (to be able to check)
+  <<: *keep_results
 
 Fe_transv_constr:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: selfcon:normal
   needs: ["build:intel:normal"]
+  variables:
+    TITAN_DIR: ../../..
+    TEST_DIR: examples/Fe_dimer_bconstr/transv
+    ITYPE: 1
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TITAN_DIR="${PWD}"
-    - export TEST_DIR="examples/Fe_dimer_bconstr/transv"
-    - export ITYPE=1
     - *run_test
     - *create_scResults_file
     - *compare_files
+  # Keep results on failure (to be able to check)
+  <<: *keep_results
 
 Fe_full_constr:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: selfcon:normal
   needs: ["build:intel:normal"]
+  variables:
+    TITAN_DIR: ../../..
+    TEST_DIR: examples/Fe_dimer_bconstr/full
+    ITYPE: 1
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TITAN_DIR="${PWD}"
-    - export TEST_DIR="examples/Fe_dimer_bconstr/full"
-    - export ITYPE=1
     - *run_test
     - *create_scResults_file
     - *compare_files
+  # Keep results on failure (to be able to check)
+  <<: *keep_results
 
 graphene_pz:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: selfcon:normal
   needs: ["build:intel:normal"]
+  variables:
+    TITAN_DIR: ../..
+    TEST_DIR: examples/graphene
+    ITYPE: 1
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TITAN_DIR="${PWD}"
-    - export TEST_DIR="examples/graphene"
-    - export ITYPE=1
     - *run_test
     - *create_scResults_file
     - *compare_files
+  # Keep results on failure (to be able to check)
+  <<: *keep_results
 
 Co_monolayer_paoflow:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: selfcon:normal
   needs: ["build:intel:normal"]
+  variables:
+    TITAN_DIR: ../..
+    TEST_DIR: examples/Co_monolayer_paoflow
+    ITYPE: 1
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TITAN_DIR="${PWD}"
-    - export TEST_DIR="examples/Co_monolayer_paoflow"
-    - export ITYPE=1
     - *run_test
     - *create_scResults_file
     - *compare_files
+  # Keep results on failure (to be able to check)
+  <<: *keep_results
 
 #============ Superconductor Self-consistency ============#
 Nb_100_Superconducting_Monolayer:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: selfcon:supercond
   needs: ["build:intel:normal","Nb_100_Monolayer"]
+  variables:
+    TITAN_DIR: ../..
+    TEST_DIR: examples/Nb_100_Superconducting_Monolayer
+    ITYPE: 1
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TITAN_DIR="${PWD}"
-    - export TEST_DIR="examples/Nb_100_Superconducting_Monolayer"
-    - export ITYPE=1
     - *run_test
     - *create_scResults_file
     - *compare_files
+  # Keep results on failure (to be able to check)
+  <<: *keep_results
 
 #============ Other results ============#
 Nb_100_Monolayer:ldos:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: results
   needs: ["build:intel:normal","Nb_100_Monolayer"]
+  variables:
+    TITAN_DIR: ../..
+    TEST_DIR: examples/Nb_100_Monolayer
+    ITYPE: 2
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TITAN_DIR="${PWD}"
-    - export TEST_DIR="examples/Nb_100_Monolayer"
-    - export ITYPE=2
     - *run_test
     - *compare_files
-  artifacts:
-    paths:
-      - examples/Nb_100_Monolayer/results/
-    expire_in: 1 day
+  # Keep results on failure (to be able to check)
+  <<: *keep_results
 
 Nb_100_Monolayer:bands:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: results
   needs: ["build:intel:normal","Nb_100_Monolayer"]
+  variables:
+    TITAN_DIR: ../..
+    TEST_DIR: examples/Nb_100_Monolayer
+    ITYPE: 4
+    EXCLUDE: weights
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TITAN_DIR="${PWD}"
-    - export TEST_DIR="examples/Nb_100_Monolayer"
-    - export ITYPE=4
     - *run_test
-    - export EXCLUDE="weights"
     - *compare_files
+  # Keep results on failure (to be able to check)
+  <<: *keep_results
 
 graphene_pz:ldos:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: results
   needs: ["build:intel:normal","graphene_pz"]
+  variables:
+    TITAN_DIR: ../..
+    TEST_DIR: examples/graphene
+    ITYPE: 2
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TITAN_DIR="${PWD}"
-    - export TEST_DIR="examples/graphene"
-    - export ITYPE=2
     - *run_test
     - *compare_files
+  # Keep results on failure (to be able to check)
+  <<: *keep_results
 
 graphene_pz:bands:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: results
   needs: ["build:intel:normal","graphene_pz"]
+  variables:
+    TITAN_DIR: ../..
+    TEST_DIR: examples/graphene
+    ITYPE: 4
+    EXCLUDE: weights
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TITAN_DIR="${PWD}"
-    - export TEST_DIR="examples/graphene"
-    - export ITYPE=4
     - *run_test
-    - export EXCLUDE="weights"
     - *compare_files
+  # Keep results on failure (to be able to check)
+  <<: *keep_results
 
 graphene_pz:isoenergy:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: results
   needs: ["build:intel:normal","graphene_pz"]
+  variables:
+    TITAN_DIR: ../..
+    TEST_DIR: examples/graphene
+    ITYPE: 5
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TITAN_DIR="${PWD}"
-    - export TEST_DIR="examples/graphene"
-    - export ITYPE=5
     - *run_test
     - *compare_files
+  # Keep results on failure (to be able to check)
+  <<: *keep_results
 
 Fe_bulk:susc:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: results
   needs: ["build:intel:normal","Fe_bulk"]
+  variables:
+    TITAN_DIR: ../..
+    TEST_DIR: examples/Fe_bulk_susc
+    ITYPE: 7
+    EXCLUDE: Slope
+    TOL: 1e-5
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TITAN_DIR="${PWD}"
-    - export TEST_DIR="examples/Fe_bulk_susc"
-    - export ITYPE=7
     - *run_test
-    - export EXCLUDE="Slope"
-    - export TOL=1e-5
     - *compare_files
+  # Keep results on failure (to be able to check)
+  <<: *keep_results
 
 Ni_bulk:timeprop:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: results
   needs: ["build:intel:normal","Ni_bulk"]
+  variables:
+    TITAN_DIR: ../..
+    TEST_DIR: examples/Ni_bulk_timeprop
+    ITYPE: 11
+    EXCLUDE: checkpoint
+    TOL: 1e-6
   script:
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    - export TITAN_DIR="${PWD}"
-    - export TEST_DIR="examples/Ni_bulk_timeprop"
-    - export ITYPE=11
     - *run_test
-    - export EXCLUDE="checkpoint"
     - *compare_files
+  # Keep results on failure (to be able to check)
+  <<: *keep_results
 
-Co_monolayer_paoflow:ldos:
+Co_monolayer_paoflow:bands_with_ldos:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: results
   needs: ["build:intel:normal","Co_monolayer_paoflow"]
+  variables:
+    TITAN_DIR: ../..
+    TEST_DIR: examples/Co_monolayer_paoflow
+    EXCLUDE: weights
   script:
-    - export TITAN_DIR="${PWD}"
-    - export TEST_DIR="examples/Co_monolayer_paoflow"
     # Setting up Intel Fortran Compiler
     - *setup_ifort
     # Calculating LDOS
@@ -374,32 +426,46 @@ Co_monolayer_paoflow:ldos:
     # Calculating Band structure
     - export ITYPE=4
     - *run_test
-    - export EXCLUDE="weights"
     - *compare_files
-  artifacts:
-    paths:
-      - examples/Co_monolayer_paoflow/results/
-    expire_in: 1 day
+  # Keep results always
+  <<: *keep_results
 
 Co_monolayer_paoflow:mei:
   image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
   stage: results
   needs: ["build:intel:normal","Co_monolayer_paoflow"]
+  variables:
+    TITAN_DIR: ../..
+    TEST_DIR: examples/Co_monolayer_paoflow
+    # Calculating Magnetic Exchange Interaction tensor
+    ITYPE: 6
   script:
-    - export TITAN_DIR="${PWD}"
-    - export TEST_DIR="examples/Co_monolayer_paoflow"
     # Setting up Intel Fortran Compiler
     - *setup_ifort
-    # Calculating Magnetic Exchange Interaction tensor
-    - export ITYPE=6
     # Decreasing number of points
     - sed -i "s/-> nQvec.*/-> nQvec = 5/g" ${TEST_DIR}/input
     - *run_test
     - *compare_files
-  artifacts:
-    paths:
-      - examples/Co_monolayer_paoflow/results/
-    expire_in: 1 day
+  # Keep results always
+  <<: *keep_results
+
+nanoribbon:responses:
+  image: iffregistry.fz-juelich.de/docker-images/centos7-intel-compilers/slurm-daemon:latest
+  stage: results
+  needs: ["build:intel:normal"]
+  variables:
+    TITAN_DIR: ../..
+    TEST_DIR: examples/nanoribbon
+    ITYPE: 8
+    EXCLUDE: checkpoint
+    TOL: 1e-7
+  script:
+    # Setting up Intel Fortran Compiler
+    - *setup_ifort
+    - *run_test
+    - *compare_files
+  # Keep results on failure (to be able to check)
+  <<: *keep_results
 
 #============ Plots ============#
 Nb_100_Monolayer:ldos:plot:
@@ -408,39 +474,47 @@ Nb_100_Monolayer:ldos:plot:
   needs: ["Nb_100_Monolayer:ldos"]
   tags:
     - intel
+  variables:
+    # Setting up executables folder
+    TITAN_DIR: ../..
+    # Setting up example folder
+    TEST_DIR: examples/Nb_100_Monolayer
   script:
     # Checking python version
     - python --version
-    # Setting up executables folder
-    - export TITAN_DIR="${PWD}"
-    # Setting up example folder
-    - export TEST_DIR="examples/Nb_100_Monolayer"
     # Going to current test folder
     - cd ${TEST_DIR}
     # Creating new plot
-    - python ${TITAN_DIR}/scripts/plot_ldos.py results/TSOC/1Sites/LDOS/ldosu_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosd_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat --xlim="[-0.5,1.5]" --output="./results/ldos.png"
+    - python ${TITAN_DIR}/scripts/plot_ldos.py results/TSOC/1Sites/LDOS/ldosu_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosd_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat --xlim="[-0.5,1.5]" --centeref --output="./results/ldos.png"
     # Comparing with existing (correct) plot
     - python ${TITAN_DIR}/scripts/compare_images.py ./results/ldos.png ./results_correct/ldos.png
+  # Keep results on failure (to be able to check)
+  <<: *keep_results
+
 
 Co_monolayer_paoflow:bands_with_ldos:plot:
   image: iffregistry.fz-juelich.de/docker-images/titan-images
   stage: plots
-  needs: ["Co_monolayer_paoflow:ldos"]
+  needs: ["Co_monolayer_paoflow:bands_with_ldos"]
   tags:
     - intel
+  variables:
+    # Setting up executables folder
+    TITAN_DIR: ../..
+    # Setting up example folder
+    TEST_DIR: examples/Co_monolayer_paoflow
   script:
     # Checking python version
     - python --version
-    # Setting up executables folder
-    - export TITAN_DIR="${PWD}"
-    # Setting up example folder
-    - export TEST_DIR="examples/Co_monolayer_paoflow"
     # Going to current test folder
     - cd ${TEST_DIR}
     # Creating new plot
     - python ${TITAN_DIR}/scripts/plot_bands_with_ldos.py results/TSOC/1Sites/BS/bandstructure_kdir=GXMG_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosu_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat results/TSOC/1Sites/LDOS/ldosd_site=1_norb=9_nkpt=1024_eta=1.0E-03_ev.dat --evlabel --output="./results/bands_with_ldos.png"
     # Comparing with existing (correct) plot
     - python ${TITAN_DIR}/scripts/compare_images.py ./results/bands_with_ldos.png ./results_correct/bands_with_ldos.png
+  # Keep results on failure (to be able to check)
+  <<: *keep_results
+
 
 # # `pages` is a special job that builds the gitlab page for this project; all artifacts must be saved in a `public`
 # # directory to be published as a static site (that can be accessed from the whole www)

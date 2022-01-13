@@ -95,25 +95,25 @@ contains
 
     !$omp do schedule(dynamic) reduction(+:imguu,imgdd,gdiagud,gdiagdu,deltas)
     do ix = 1, local_points
-       ep = y(E_k_imag_mesh(1,ix))
-       kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
+      ep = y(E_k_imag_mesh(1,ix))
+      kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
        weight = wght(E_k_imag_mesh(1,ix)) * bzs(E_k_imag_mesh(1,ix)) % w(E_k_imag_mesh(2,ix))
-       call calc_green(fermi,ep+eta,s,kp,gf)
-       do i=1,s%nAtoms
-         do mu=1,s%nOrb
-           mup = mu+s%nOrb
+      call calc_green(fermi,ep+eta,s,kp,gf)
+      do i=1,s%nAtoms
+        do mu=1,s%Types(s%Basis(i)%Material)%nOrb
+          mup = mu+s%Types(s%Basis(i)%Material)%nOrb
            gdiagud(i,mu) = gdiagud(i,mu) + gf(mu,mup,i,i) * weight
            gdiagdu(i,mu) = gdiagdu(i,mu) + gf(mup,mu,i,i) * weight
 
            imguu(mu,i) = imguu(mu,i) + real(gf(mu ,mu ,i,i)) * weight
            imgdd(mu,i) = imgdd(mu,i) + real(gf(mup,mup,i,i)) * weight
 
-           if ( lsuperCond ) then
-             mup = mu + s%nOrb2 + s%norb
-             deltas(mu,i) = deltas(mu,i) + real(gf(mu,mup,i,i)) * weight
-           end if
-         end do
-       end do
+          if ( lsuperCond ) then
+            mup = mu + s%Types(s%Basis(i)%Material)%nOrb2 + s%Types(s%Basis(i)%Material)%nOrb
+            deltas(mu,i) = deltas(mu,i) + real(gf(mu,mup,i,i)) * weight
+          end if
+        end do
+      end do
     end do
     !$omp end do
     !$omp end parallel
@@ -136,7 +136,7 @@ contains
     my      = aimag(mp)
 
     do i=1,s%nAtoms
-      do mu=1,s%nOrb
+      do mu=1,s%Types(s%Basis(i)%Material)%nOrb
         imguu(mu,i) = 0.5_dp + imguu(mu,i)
         imgdd(mu,i) = 0.5_dp + imgdd(mu,i)
         rho(mu,i) = imguu(mu,i) + imgdd(mu,i)
@@ -268,7 +268,7 @@ contains
     !$omp& shared(s,dimHsc,h0,fullhk,output,realBZ) &
     !$omp& reduction(+:rho,mp,mz,deltas)
     !!$acc kernels
-    !$acc parallel loop private(iz,hk,eval,work,rwork,info,expec_0, expec_p, expec_z,expec_singlet) ! firstprivate(lwork) shared(s,dimHsc,output,realBZ,rho,mp,mz,lsuperCond,deltas) reduction(+:rho,mp,mz,deltas)
+    !!$acc parallel loop private(iz,hk,eval,expec_0,expec_p,expec_z,expec_d) ! firstprivate(lwork) shared(s,dimHsc,output,realBZ,rho,mp,mz,lsuperCond,deltas) reduction(+:rho,mp,mz,deltas)
     do iz = 1,realBZ%workload
       ! hamiltonian for a given k-point
       hk = h0 + fullhk(:,:,iz)
@@ -308,7 +308,7 @@ contains
     use mod_kind,          only: dp,int64
     use mod_BrillouinZone, only: realBZ
     use mod_parameters,    only: dimHsc,output
-    use mod_system,        only: System_type
+    use mod_system,        only: System_type,nOrb_d
     use mod_cuda,          only: h,diagonalize_gpu
     use nvtx,              only: nvtxStartRange,nvtxEndRange
     use mod_constants,     only: cZero
@@ -329,15 +329,13 @@ contains
     real(dp),    dimension(s%nOrb,s%nAtoms), device :: expec_d_d,deltas_d
     real(dp),    dimension(s%nOrb,s%nAtoms), device :: mx_d,my_d
 
-    complex(dp), dimension(:,:), allocatable,   device :: hk_d
-    real(dp),    dimension(:),   allocatable,   device :: eval_d
+    complex(dp), dimension(dimHsc,dimHsc),   device :: hk_d
+    real(dp),    dimension(dimHsc),          device :: eval_d
     real(dp) :: weight_d
 
     external :: MPI_Allreduce
 
     ncount = s%nOrb*s%nAtoms
-
-    allocate(hk_d(dimHsc,dimHsc),eval_d(dimHsc))
 
     call hamilt_local_gpu(s)
 
@@ -346,10 +344,12 @@ contains
     mp_d  = cZero
     deltas_d = 0._dp
 
-    do iz = 1,realBZ%workload
+    kloop: do iz = 1,realBZ%workload
+      weight_d = realBZ%w(iz)
       weight_d = realBZ%w(iz)
 
-      !$cuf kernel do(2) <<< *, * >>>
+      !!$cuf kernel do(2) <<< (*,*), (*,*) >>>
+      !$cuf kernel do <<< *,* >>>
       do j = 1, dimHsc
         do i = 1, dimHsc
           hk_d(i,j) = h0_d(i,j) + fullhk_d(i,j,iz)
@@ -374,9 +374,9 @@ contains
       ! End of expectation value marker
       call nvtxEndRange
 
-      !$cuf kernel do(2) <<< (1,*), (9,*) >>>
+      !$cuf kernel do <<< *,* >>>
       do j = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,nOrb_d(i)
           ! Occupation
           rho_d(mu,j) = rho_d(mu,j) + expec_0_d(mu,j)*weight_d
           ! Spin moments
@@ -386,8 +386,7 @@ contains
           deltas_d(mu,j) = deltas_d(mu,j) + expec_d_d(mu,j)*weight_d
         end do
       end do
-
-    end do
+    end do kloop
 
     ! Starting marker of MPI reduction for profiler
     call nvtxStartRange("MPIReduction",4)
@@ -411,8 +410,6 @@ contains
     mx = real(mp)
     my = aimag(mp)
 
-    deallocate(hk_d,eval_d)
-
     ! End of DevicetoHost copy marker
     call nvtxEndRange
 
@@ -425,7 +422,7 @@ contains
     use mod_kind,              only: dp
     use mod_constants,         only: cZero,pi,pauli_mat_d
     use mod_parameters,        only: eta,isigmamu2n_d
-    use mod_system,            only: System_type
+    use mod_System,            only: System_type,nOrb_d
     use mod_superconductivity, only: lsuperCond
     use mod_distributions,     only: fd_dist_gpu
     implicit none
@@ -458,9 +455,9 @@ contains
     !$acc end parallel loop
 
     if(.not.lsupercond) then
-      !$cuf kernel do(2) <<< (1,*), (9,*) >>>
+      !$cuf kernel do <<< *,* >>>
       do i = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,nOrb_d(i)
           sum_r1 = 0._dp
           sum_r2 = 0._dp
           sum_c1 = cZero
@@ -492,7 +489,7 @@ contains
       end do
     else
       do i = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,nOrb_d(i)
           lambda_d(mu,i) = s%Types(s%Basis(i)%Material)%lambda(mu)
         end do
       end do
@@ -506,9 +503,9 @@ contains
       end do
       !$acc end parallel loop
 
-      !$cuf kernel do(2) <<< (1,*), (9,*) >>>
+      !$cuf kernel do <<< *,* >>>
       do i = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,nOrb_d(i)
           sum_r1 = 0._dp
           sum_r2 = 0._dp
           do n = 1,dimens
@@ -523,9 +520,9 @@ contains
       end do
 
 
-      !$cuf kernel do(2) <<< (1,*), (9,*) >>>
+      !$cuf kernel do <<< *,* >>>
       do i = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,nOrb_d(i)
           sum_c1 = cZero
           sum_r1 = 0._dp
           do n = 1,dimens
@@ -589,7 +586,7 @@ contains
 
     if(.not.lsupercond) then
       do i = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
           do n = 1,dimens
             do sigma = 1,2
               evec_isigmamu = hk(isigmamu2n(i,sigma,mu),n)
@@ -619,7 +616,7 @@ contains
       end do
 
       do i = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
           do n = 1,dimens
             ! up spin (using u's) + down spin (using v's)
             expec_0(mu,i) = expec_0(mu,i) + f_n(n)*real( conjg(hk(isigmamu2n(i,1,mu),n))*hk(isigmamu2n(i,1,mu),n) ) + f_n_negative(n)*real( conjg(hk(isigmamu2n(i,2,mu)+hdimens,n))*hk(isigmamu2n(i,2,mu)+hdimens,n) )
@@ -630,7 +627,7 @@ contains
       end do
 
       do i = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
           do n = 1,dimens
             do sigma = 1,2
               do sigmap = 1,2
@@ -689,7 +686,7 @@ contains
 
     if(.not.lsupercond) then
       do i = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
           do sigma = 1,2
 
             evec_isigmamu = evec(isigmamu2n(i,sigma,mu))
@@ -716,7 +713,7 @@ contains
       tanh_n = tanh(eval*beta*0.5_dp)
 
       do i = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
           ! up spin (using u's) + down spin (using v's)
           expec_0(mu,i) = expec_0(mu,i) + f_n*real( conjg(evec(isigmamu2n(i,1,mu)))*evec(isigmamu2n(i,1,mu)) ) + f_n_negative*real( conjg(evec(isigmamu2n(i,2,mu)+hdimens))*evec(isigmamu2n(i,2,mu)+hdimens) )
 
@@ -725,7 +722,7 @@ contains
       end do
 
       do i = 1,s%nAtoms
-        do mu = 1,s%nOrb
+        do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
           do sigma = 1,2
             do sigmap = 1,2
               evec_isigmamu_cong = conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigmap,mu))
@@ -782,17 +779,17 @@ contains
       ! <Tso> for s orbitals is zero L(l=0)=0
 
       ! <Tso> for p orbitals:
-      do mup = 1,s%npOrb
-        mu = s%pOrbs(mup)
+      do mup = 1,s%Types(s%Basis(i)%Material)%npOrb
+        mu = s%Types(s%Basis(i)%Material)%pOrbs(mup)
 
         do sigma = 1,2
-          mus = (sigma-1)*s%nOrb+mu
+          mus = (sigma-1)*s%Types(s%Basis(i)%Material)%nOrb+mu
           evec_isigmamu = conjg( evec(isigmamu2n(i,sigma,mu)) )
 
-          do nup = 1,s%npOrb
-            nu = s%pOrbs(nup)
+          do nup = 1,s%Types(s%Basis(i)%Material)%npOrb
+            nu = s%Types(s%Basis(i)%Material)%pOrbs(nup)
             do sigmap = 1,2
-              nus = (sigmap-1)*s%nOrb+nu
+              nus = (sigmap-1)*s%Types(s%Basis(i)%Material)%nOrb+nu
               evec_isigmapnu_cong = evec_isigmamu*evec(isigmamu2n(i,sigmap,nu))
               do xyz = 1,3
                 expec_tso(xyz,1,i) = expec_tso(xyz,1,i) + f_n*real( tso_op(mus,nus,xyz,i)*evec_isigmapnu_cong )
@@ -803,17 +800,17 @@ contains
       end do
 
       ! <Tso> for d orbitals:
-      do mud = 1,s%ndOrb
-        mu = s%dOrbs(mud)
+      do mud = 1,s%Types(s%Basis(i)%Material)%ndOrb
+        mu = s%Types(s%Basis(i)%Material)%dOrbs(mud)
 
         do sigma = 1,2
-          mus = (sigma-1)*s%nOrb+mu
+          mus = (sigma-1)*s%Types(s%Basis(i)%Material)%nOrb+mu
           evec_isigmamu = conjg( evec(isigmamu2n(i,sigma,mu)) )
 
-          do nud = 1,s%ndOrb
-            nu = s%dOrbs(nud)
+          do nud = 1,s%Types(s%Basis(i)%Material)%ndOrb
+            nu = s%Types(s%Basis(i)%Material)%dOrbs(nud)
             do sigmap = 1,2
-              nus = (sigmap-1)*s%nOrb+nu
+              nus = (sigmap-1)*s%Types(s%Basis(i)%Material)%nOrb+nu
               evec_isigmapnu_cong = evec_isigmamu*evec(isigmamu2n(i,sigmap,nu))
               do xyz = 1,3
                 expec_tso(xyz,2,i) = expec_tso(xyz,2,i) + f_n*real( tso_op(mus,nus,xyz,i)*evec_isigmapnu_cong )
@@ -824,12 +821,12 @@ contains
       end do
 
       ! <Txc> for each orbital:
-      do mu = 1,s%nOrb
+      do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
         do sigma = 1,2
-          mus = (sigma-1)*s%nOrb+mu
+          mus = (sigma-1)*s%Types(s%Basis(i)%Material)%nOrb+mu
           evec_isigmamu = conjg( evec(isigmamu2n(i,sigma,mu)))
           do sigmap = 1, 2
-            nus = (sigmap-1)*s%nOrb+mu
+            nus = (sigmap-1)*s%Types(s%Basis(i)%Material)%nOrb+mu
             evec_isigmapnu_cong = evec_isigmamu*evec(isigmamu2n(i,sigmap,mu))
 
             do xyz = 1,3
@@ -920,7 +917,6 @@ contains
     use mod_System,        only: s => sys
     use mod_parameters,    only: eta,output
     use EnergyIntegration, only: y, wght
-    use mod_magnet,        only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
     use mod_hamiltonian,   only: hamilt_local,energy
     use mod_greenfunction, only: green
     use adaptiveMesh,      only: local_points,activeComm,E_k_imag_mesh,bzs
@@ -930,11 +926,11 @@ contains
     implicit none
     integer(int64)    :: ix
 
-    integer      :: i,mu,nu,mup,nup
+    integer  :: i,mu,nu,mup,nup
     real(dp) :: kp(3)
     real(dp) :: weight, ep, fermi
     complex(dp), dimension(s%nOrb2sc,s%nOrb2sc,s%nAtoms,s%nAtoms) :: gf
-    complex(dp), dimension(s%nOrb,s%nOrb,s%nAtoms)            :: gupgd
+    complex(dp), dimension(s%nOrb,s%nOrb,s%nAtoms)                :: gupgd
 
     integer :: ncount
 
@@ -957,9 +953,6 @@ contains
     !$omp parallel default(none) &
     !$omp& private(ix,i,mu,nu,mup,nup,kp,ep,weight,gf) &
     !$omp& shared(local_points,fermi,s,lsupercond,E_k_imag_mesh,bzs,eta,y,wght,gupgd)
-
-
-    gf = cZero
     !$omp do schedule(dynamic) reduction(+:gupgd)
     do ix = 1, local_points
       kp = bzs(E_k_imag_mesh(1,ix)) % kp(:,E_k_imag_mesh(2,ix))
@@ -969,11 +962,11 @@ contains
       call green(fermi,ep+eta,s,kp,gf)
 
       site_i: do i=1,s%nAtoms
-        orb_mu: do mu=1,s%nOrb
-          mup = mu+s%nOrb
-          orb_nu: do nu=1,s%nOrb
-            nup = nu+s%nOrb
-            gupgd(mu,nu,i) = gupgd(mu,nu,i) + (gf(mu,nu,i,i) + gf(mup,nup,i,i)) * weight
+        orb_mu: do mu=1,s%Types(s%Basis(i)%Material)%nOrb
+          mup = mu+s%Types(s%Basis(i)%Material)%nOrb
+          orb_nu: do nu=1,s%Types(s%Basis(i)%Material)%nOrb
+            nup = nu+s%Types(s%Basis(i)%Material)%nOrb
+            gupgd(nu,mu,i) = gupgd(nu,mu,i) + (gf(mu,nu,i,i) + gf(mup,nup,i,i)) * weight
           end do orb_nu
         end do orb_mu
       end do site_i
@@ -984,6 +977,20 @@ contains
     gupgd = gupgd / pi
     call MPI_Allreduce(MPI_IN_PLACE, gupgd, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
 
+    call calculate_L(s,gupgd)
+
+  end subroutine calc_GS_L_and_E_greenfunction
+
+  subroutine calculate_L(s,prod)
+    use mod_kind,   only: dp
+    use mod_magnet, only: lxm,lym,lzm,lxpm,lypm,lzpm
+    use mod_System, only: System_type
+    implicit none
+    type(System_type),                              intent(in)  :: s
+    complex(dp), dimension(s%nOrb,s%nOrb,s%nAtoms), intent(in) :: prod
+
+    integer :: i,mu,nu
+    
     lxpm = 0._dp
     lypm = 0._dp
     lzpm = 0._dp
@@ -991,20 +998,19 @@ contains
     lym  = 0._dp
     lzm  = 0._dp
 
-    do nu=1,s%nOrb
-      do mu=1,s%nOrb
-        do i=1,s%nAtoms
-          lxpm(i) = lxpm(i) + real( lxp(mu,nu,i)*gupgd(nu,mu,i) )
-          lypm(i) = lypm(i) + real( lyp(mu,nu,i)*gupgd(nu,mu,i) )
-          lzpm(i) = lzpm(i) + real( lzp(mu,nu,i)*gupgd(nu,mu,i) )
-          lxm (i) = lxm (i) + real( lx (mu,nu  )*gupgd(nu,mu,i) )
-          lym (i) = lym (i) + real( ly (mu,nu  )*gupgd(nu,mu,i) )
-          lzm (i) = lzm (i) + real( lz (mu,nu  )*gupgd(nu,mu,i) )
+    do i=1,s%nAtoms
+      do nu=1,s%Types(s%Basis(i)%Material)%nOrb
+        do mu=1,s%Types(s%Basis(i)%Material)%nOrb
+          lxpm(i) = lxpm(i) + real( s%Basis(i)%lpvec(mu,nu,1)*prod(mu,nu,i) )
+          lypm(i) = lypm(i) + real( s%Basis(i)%lpvec(mu,nu,2)*prod(mu,nu,i) )
+          lzpm(i) = lzpm(i) + real( s%Basis(i)%lpvec(mu,nu,3)*prod(mu,nu,i) )
+          lxm (i) = lxm (i) + real( s%Types(s%Basis(i)%Material)%lvec(mu,nu,1)*prod(mu,nu,i) )
+          lym (i) = lym (i) + real( s%Types(s%Basis(i)%Material)%lvec(mu,nu,2)*prod(mu,nu,i) )
+          lzm (i) = lzm (i) + real( s%Types(s%Basis(i)%Material)%lvec(mu,nu,3)*prod(mu,nu,i) )
         end do
       end do
     end do
-
-  end subroutine calc_GS_L_and_E_greenfunction
+  end subroutine calculate_L
 
 
   subroutine expec_L_n(s,dimens,evec,eval,lxm,lym,lzm)
@@ -1014,7 +1020,6 @@ contains
     use mod_constants,         only: pi
     use mod_parameters,        only: eta,isigmamu2n
     use mod_System,            only: System_type
-    use mod_magnet,            only: lx,ly,lz
     use mod_distributions,     only: fd_dist
     use mod_superconductivity, only: lsuperCond
     implicit none
@@ -1042,29 +1047,33 @@ contains
       ! <L> for s orbitals is zero (l=0)
 
       ! <L> for p orbitals:
-      do nup = 1,s%npOrb
-        nu = s%pOrbs(nup)
-        do mup = 1,s%npOrb
-          mu = s%pOrbs(mup)
+      do nup = 1,s%Types(s%Basis(i)%Material)%npOrb
+        nu = s%Types(s%Basis(i)%Material)%pOrbs(nup)
+        nud = s%Types(s%Basis(i)%Material)%Orbs(nu)
+        do mup = 1,s%Types(s%Basis(i)%Material)%npOrb
+          mu = s%Types(s%Basis(i)%Material)%pOrbs(mup)
+          mud = s%Types(s%Basis(i)%Material)%Orbs(mu)
           do sigma = 1,2
             prod = f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,nu))
-            lxm (1,i) = lxm (1,i) + real( prod*lx (mu,nu) ) !> angular momentum at atomic site (i)
-            lym (1,i) = lym (1,i) + real( prod*ly (mu,nu) )
-            lzm (1,i) = lzm (1,i) + real( prod*lz (mu,nu) )
+            lxm (1,i) = lxm (1,i) + real( prod*s%Types(s%Basis(i)%Material)%lvec(mud,nud,1) ) !> angular momentum at atomic site (i)
+            lym (1,i) = lym (1,i) + real( prod*s%Types(s%Basis(i)%Material)%lvec(mud,nud,2) )
+            lzm (1,i) = lzm (1,i) + real( prod*s%Types(s%Basis(i)%Material)%lvec(mud,nud,3) )
           end do
         end do
       end do
 
       ! <L> for d orbitals:
-      do nud = 1,s%ndOrb
-        nu = s%dOrbs(nud)
-        do mud = 1,s%ndOrb
-          mu = s%dOrbs(mud)
+      do nud = 1,s%Types(s%Basis(i)%Material)%ndOrb
+        nu = s%Types(s%Basis(i)%Material)%dOrbs(nud)
+        nup = s%Types(s%Basis(i)%Material)%Orbs(nu)
+        do mud = 1,s%Types(s%Basis(i)%Material)%ndOrb
+          mu = s%Types(s%Basis(i)%Material)%dOrbs(mud)
+          mup = s%Types(s%Basis(i)%Material)%Orbs(mu)
           do sigma = 1,2
             prod = f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,nu))
-            lxm (2,i) = lxm (2,i) + real( prod*lx (mu,nu) ) !> angular momentum at atomic site (i)
-            lym (2,i) = lym (2,i) + real( prod*ly (mu,nu) )
-            lzm (2,i) = lzm (2,i) + real( prod*lz (mu,nu) )
+            lxm (2,i) = lxm (2,i) + real( prod*s%Types(s%Basis(i)%Material)%lvec(mup,nup,1) ) !> angular momentum at atomic site (i)
+            lym (2,i) = lym (2,i) + real( prod*s%Types(s%Basis(i)%Material)%lvec(mup,nup,2) )
+            lzm (2,i) = lzm (2,i) + real( prod*s%Types(s%Basis(i)%Material)%lvec(mup,nup,3) )
           end do
         end do
       end do
@@ -1119,7 +1128,6 @@ contains
     use mod_constants,         only: pi,cZero
     use mod_parameters,        only: dimHsc,eta,isigmamu2n
     use mod_System,            only: s => sys
-    use mod_magnet,            only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
     use mod_distributions,     only: fd_dist
     use mod_tools,             only: diagonalize,lwork
     use mod_superconductivity, only: lsuperCond
@@ -1164,8 +1172,8 @@ contains
       end do
 
       do i = 1,s%nAtoms
-        do nu = 1,s%nOrb
-          do mu = 1,s%nOrb
+        do nu = 1,s%Types(s%Basis(i)%Material)%nOrb
+          do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
             do sigma=1,2
               do n = 1,dimHsc
                 prod(mu,nu,i) = prod(mu,nu,i) + f_n(n)*conjg( hk(isigmamu2n(i,sigma,mu),n) )*hk(isigmamu2n(i,sigma,nu),n)*realBZ%w(iz)
@@ -1182,24 +1190,7 @@ contains
     call MPI_Allreduce(MPI_IN_PLACE, energy , 1                     , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
 
     ! Building different components of the orbital angular momentum
-    lxm  = 0._dp
-    lym  = 0._dp
-    lzm  = 0._dp
-    lxpm = 0._dp
-    lypm = 0._dp
-    lzpm = 0._dp
-    do i = 1,s%nAtoms
-      do nu = 1,s%nOrb
-        do mu = 1,s%nOrb
-          lxm (i) = lxm (i) + real( prod(mu,nu,i)*lx (mu,nu  ) )
-          lym (i) = lym (i) + real( prod(mu,nu,i)*ly (mu,nu  ) )
-          lzm (i) = lzm (i) + real( prod(mu,nu,i)*lz (mu,nu  ) )
-          lxpm(i) = lxpm(i) + real( prod(mu,nu,i)*lxp(mu,nu,i) )
-          lypm(i) = lypm(i) + real( prod(mu,nu,i)*lyp(mu,nu,i) )
-          lzpm(i) = lzpm(i) + real( prod(mu,nu,i)*lzp(mu,nu,i) )
-        end do
-      end do
-    end do
+    call calculate_L(s,prod)
 
   end subroutine calc_GS_L_and_E_eigenstates
 
@@ -1211,8 +1202,7 @@ contains
     use mod_BrillouinZone,     only: realBZ
     use mod_constants,         only: pi,cZero
     use mod_parameters,        only: dimHsc,eta,isigmamu2n_d
-    use mod_System,            only: s => sys
-    use mod_magnet,            only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
+    use mod_System,            only: s => sys, nOrb_d
     use mod_distributions,     only: fd_dist_gpu
     use mod_cuda,              only: h,diagonalize_gpu
     use mod_superconductivity, only: lsuperCond
@@ -1220,13 +1210,13 @@ contains
     use mod_mpi_pars,          only: MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
     implicit none
     integer(int64)                                     :: iz
-    integer                                            :: n,i,j,mu,nu,sigma
+    integer                                            :: n,i,j,mu,nu,mup,nup,sigma
     real(dp)                                           :: fermi,beta
-    complex(dp), dimension(:,:,:), allocatable         :: prod
-    complex(dp), dimension(:,:,:), allocatable, device :: prod_d
-    real(dp),    dimension(dimHsc),             device :: f_n_d
-    complex(dp), dimension(:,:),   allocatable, device :: hk_d
-    real(dp),    dimension(:),     allocatable, device :: eval_d
+    complex(dp), dimension(s%nOrb,s%nOrb,s%nAtoms)     :: prod
+    complex(dp), dimension(s%nOrb,s%nOrb,s%nAtoms), device :: prod_d
+    real(dp),    dimension(dimHsc),        device :: f_n_d
+    complex(dp), dimension(dimHsc,dimHsc), device :: hk_d
+    real(dp),    dimension(dimHsc),        device :: eval_d
     complex(dp) :: sum_c
     real(dp)    :: weight_d
 
@@ -1236,10 +1226,6 @@ contains
     fermi = merge(0._dp,s%Ef,lsuperCond)
     beta = 1._dp/(pi*eta)
 
-    allocate(hk_d(dimHsc,dimHsc),eval_d(dimHsc))
-    allocate(prod(s%nOrb,s%nOrb,s%nAtoms))
-    allocate(prod_d(s%nOrb,s%nOrb,s%nAtoms))
-
     call hamilt_local_gpu(s)
 
     prod_d = cZero
@@ -1248,12 +1234,13 @@ contains
     kloop: do iz = 1,realBZ%workload
       weight_d = realBZ%w(iz)
 
-      !$cuf kernel do(2) <<< *, * >>>
+      !$cuf kernel do(2) <<< (*,*), (*,*) >>>
       do j = 1, dimHsc
         do i = 1, dimHsc
           hk_d(i,j) = h0_d(i,j) + fullhk_d(i,j,iz)
         end do
       end do
+      
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
       call diagonalize_gpu(dimHsc,hk_d,eval_d,h)
 
@@ -1264,10 +1251,10 @@ contains
       end do
       !$acc end parallel loop
 
-      !$cuf kernel do(3) <<< (1,1,*), (9,9,*) >>>
+      !$cuf kernel do <<< *,* >>>
       do i = 1,s%nAtoms
-        do nu = 1,s%nOrb
-          do mu = 1,s%nOrb
+        do nu = 1,nOrb_d(i)
+          do mu = 1,nOrb_d(i)
             sum_c = cZero
             do sigma=1,2
               do n = 1,dimHsc
@@ -1286,28 +1273,7 @@ contains
     prod = prod_d
 
     ! Building different components of the orbital angular momentum
-    lxm  = 0._dp
-    lym  = 0._dp
-    lzm  = 0._dp
-    lxpm = 0._dp
-    lypm = 0._dp
-    lzpm = 0._dp
-    do i = 1,s%nAtoms
-      do nu = 1,s%nOrb
-        do mu = 1,s%nOrb
-          lxm (i) = lxm (i) + real( prod(mu,nu,i)*lx (mu,nu  ) )
-          lym (i) = lym (i) + real( prod(mu,nu,i)*ly (mu,nu  ) )
-          lzm (i) = lzm (i) + real( prod(mu,nu,i)*lz (mu,nu  ) )
-          lxpm(i) = lxpm(i) + real( prod(mu,nu,i)*lxp(mu,nu,i) )
-          lypm(i) = lypm(i) + real( prod(mu,nu,i)*lyp(mu,nu,i) )
-          lzpm(i) = lzpm(i) + real( prod(mu,nu,i)*lzp(mu,nu,i) )
-        end do
-      end do
-    end do
-
-  deallocate(prod_d)
-  deallocate(prod)
-  deallocate(hk_d,eval_d)
+    call calculate_L(s,prod)
 
   end subroutine calc_GS_L_and_E_fullhk_gpu
 #else
@@ -1319,7 +1285,6 @@ contains
     use mod_constants,         only: pi,cZero
     use mod_parameters,        only: dimHsc,eta,isigmamu2n
     use mod_System,            only: s => sys
-    use mod_magnet,            only: lxm,lym,lzm,lxpm,lypm,lzpm,lxp,lyp,lzp,lx,ly,lz
     use mod_distributions,     only: fd_dist
     use mod_tools,             only: diagonalize,lwork
     use mod_superconductivity, only: lsuperCond
@@ -1364,8 +1329,8 @@ contains
       end do
 
       do i = 1,s%nAtoms
-        do nu = 1,s%nOrb
-          do mu = 1,s%nOrb
+        do nu = 1,s%Types(s%Basis(i)%Material)%nOrb
+          do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
             do sigma=1,2
               do n = 1,dimHsc
                 prod(mu,nu,i) = prod(mu,nu,i) + f_n(n)*conjg( hk(isigmamu2n(i,sigma,mu),n) )*hk(isigmamu2n(i,sigma,nu),n)*realBZ%w(iz)
@@ -1382,24 +1347,7 @@ contains
     call MPI_Allreduce(MPI_IN_PLACE, energy , 1                     , MPI_DOUBLE_PRECISION, MPI_SUM, FreqComm(1) , ierr)
 
     ! Building different components of the orbital angular momentum
-    lxm  = 0._dp
-    lym  = 0._dp
-    lzm  = 0._dp
-    lxpm = 0._dp
-    lypm = 0._dp
-    lzpm = 0._dp
-    do i = 1, s%nAtoms
-      do nu = 1,s%nOrb
-        do mu = 1,s%nOrb
-          lxm (i) = lxm (i) + real( prod(mu,nu,i)*lx (mu,nu  ) )
-          lym (i) = lym (i) + real( prod(mu,nu,i)*ly (mu,nu  ) )
-          lzm (i) = lzm (i) + real( prod(mu,nu,i)*lz (mu,nu  ) )
-          lxpm(i) = lxpm(i) + real( prod(mu,nu,i)*lxp(mu,nu,i) )
-          lypm(i) = lypm(i) + real( prod(mu,nu,i)*lyp(mu,nu,i) )
-          lzpm(i) = lzpm(i) + real( prod(mu,nu,i)*lzp(mu,nu,i) )
-        end do
-      end do
-    end do
+    call calculate_L(s,prod)
 
   end subroutine calc_GS_L_and_E_fullhk
 
@@ -1425,8 +1373,8 @@ contains
     do i=1,s%nAtoms
       energy_dc   = energy_dc   + 0.25_dp*s%Basis(i)%Um*(mabsd(i)**2-mzd0(i)**2-abs(mpd0(i))**2)
       energy_dc_n = energy_dc_n + 0.25_dp*s%Basis(i)%Un*(rhod(i)**2-rhod0(i)**2)
-      do mud=1,s%ndOrb
-        mu = s%dOrbs(mud)
+      do mud=1,s%Types(s%Basis(i)%Material)%ndOrb
+        mu = s%Types(s%Basis(i)%Material)%dOrbs(mud)
         energy_dc_n = energy_dc_n - 0.5_dp*s%Basis(i)%Un*(rho(mu,i)**2-rho0(mu,i)**2)
       end do
     end do

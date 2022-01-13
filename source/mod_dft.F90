@@ -23,8 +23,9 @@ contains
     use mod_kind,      only: dp
     use mod_system,    only: System_type
     use AtomTypes,     only: NeighborAtom
+    use mod_constants, only: cZero
     use mod_io,        only: log_error
-    use mod_tools,     only: ItoS,StoI,StoR,StoArray,next_line
+    use mod_tools,     only: ItoS,RtoS,StoI,StoR,StoArray,next_line
     implicit none
     type(System_type),   intent(inout) :: s
     character(len=*),    intent(in)    :: filename
@@ -36,19 +37,17 @@ contains
     !! Number of orbitals read from file
     integer  :: nNeighbors
     !! Number of neighbors
-    integer  :: nCells,nCells_per_dim
-    !! Total number of cells and per dimension
-    integer  :: dim_ini(3)=1, dim_end(3)=1, pos(3), orb(2)
-    !! Dimensions and temporary index variables
+    integer  :: nCells
+    !! Total number of cells
+    integer  :: pos(3), orb(2)
+    !! Temporary index variables
     real(dp) :: hop(2)
     !! Temporary variable to store complex hoppings
     integer, allocatable :: weight(:)
     !! Weight of each cell
-    complex(dp), dimension(:,:,:,:),  allocatable :: hoppings
-    !! Hopping parameters read from the file
     type(NeighborAtom), dimension(:), allocatable :: list
     !! Temporary list to store neighbor information
-    integer  :: x,y,z,i,j,i0,i1,mu,nu,ios,wgt_per_line = 15
+    integer  :: cell,i,j,i0,i1,mu,nu,ios,wgt_per_line = 15
 
     ! Opening file
     open(f_unit, file=trim(filename), status='old', iostat=ios)
@@ -56,36 +55,25 @@ contains
 
     ! Read title
     read(f_unit, fmt='(A)', iostat=ios) title
-    title = trim(adjustl(title))
 
-    ! Read number of orbitals * atoms in the unit cell
+    ! Read total number of orbitals / number of wannier functions per unit cell
     nOrb = StoI(next_line("readHamiltonian",f_unit,"number of orbitals"))
-    nOrb = int(nOrb/s%nAtoms)
-    if(nOrb /= s%nOrb) call log_error("readHamiltonian", "Number of orbitals selected in input (" // trim(itos(s%nOrb)) // ") is different than in hamiltonian file (" // trim(itos(nOrb)) // ")")
+    if(nOrb /= s%total_nOrb) call log_error("readHamiltonian", "Total number of orbitals from input (" // trim(itos(s%total_nOrb)) // ") is different than in hamiltonian file (" // trim(itos(nOrb)) // ")")
 
-    ! Read number of Cells
+    ! Read number of Cells / number of Wigner-Seitz points
     nCells = StoI(next_line("readHamiltonian",f_unit,"number of cells"))
 
-    ! Number of Cells per dimension
-    nCells_per_dim = ceiling(nCells**(1.d0/s%isysdim))
-    do i = 1,s%isysdim
-      dim_ini(i) = 1
-      dim_end(i) = nCells_per_dim
-    end do
-
-    ! Allocate array for all atoms in all unit cells
+    ! Allocate array for all atoms in all unit cells to store degeneracies of Wigner-Seitz points
     allocate(list(nCells*s%nAtoms))
     do i = 1,nCells*s%nAtoms
-      allocate(list(i)%t0i(nOrb,nOrb,s%nAtoms))
       allocate(list(i)%isHopping(s%nAtoms))
-      list(i)%t0i = 0._dp
       list(i)%isHopping = .false.
     end do
     do i = 1, s%nTypes
-      allocate(s%Types(i)%onSite(nOrb,nOrb))
+      allocate(s%Types(i)%onSite(s%Types(i)%nOrb,s%Types(i)%nOrb))
     end do
 
-    ! Read weight of each cell
+    ! Read weight of each cell / degeneracies of Wigner-Seitz points
     allocate(weight(nCells))
     j = floor(dble(nCells/wgt_per_line))
     do i = 1,j
@@ -93,65 +81,70 @@ contains
       i1 = i0+wgt_per_line-1
       weight(i0:i1) = StoI(next_line("readHamiltonian",f_unit,"weights"),wgt_per_line)
     end do
-    i1 = wgt_per_line*j
-    weight(i1+1:i1+mod(nCells,wgt_per_line)) = StoI(next_line("readHamiltonian",f_unit,"weights"),mod(nCells,wgt_per_line)-1)    
-
-    ! Allocating temporary hopping matrix
-    allocate(hoppings(s%nAtoms,s%nAtoms,nOrb,nOrb))
-
+    if (mod(nCells,wgt_per_line)/=0) then
+      i1 = wgt_per_line*j
+      weight(i1+1:i1+mod(nCells,wgt_per_line)) = StoI(next_line("readHamiltonian",f_unit,"weights"),mod(nCells,wgt_per_line))    
+    end if
 
     ! "nNeighbors" is added up until all atoms in all unit cells, nCells*s%nAtoms
     nNeighbors = 0
-    do x = dim_ini(1),dim_end(1)
-      do y = dim_ini(2),dim_end(2)
-        do z = dim_ini(3),dim_end(3)
+    do cell = 1,nCells
+      do j = 1,s%nAtoms
+        
+        ! "nNeighbors" is the current atom (composed by {cell,i})
+        nNeighbors = nNeighbors + 1
+        
+        do nu = 1,s%Types(s%Basis(j)%Material)%nOrb
+          ! Reading hamiltonian for a given unit cell
           do i = 1,s%nAtoms
+            if(.not.allocated(list(nNeighbors)%t0i)) then
+              ! Allocating with the maximum number of orbitals, to be able to store
+              ! the largest matrix
+              allocate(list(nNeighbors)%t0i(s%nOrb,s%nOrb,s%nAtoms))
+              list(nNeighbors)%t0i = cZero
+            end if
 
-            ! "nNeighbors" is the current atom
-            nNeighbors = nNeighbors + 1
+            do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
+              ! Reading information from file
+              read(f_unit, fmt=*, iostat=ios) pos(1), pos(2), pos(3), orb(1), orb(2), hop(1), hop(2)
 
-            do mu = 1,nOrb
-              ! Reading hamiltonian for a given unit cell
-              do j = 1,s%nAtoms
-                do nu = 1,nOrb
-                  ! Reading information from file
-                  read(f_unit, fmt=*, iostat=ios) pos(1), pos(2), pos(3), orb(1), orb(2), hop(1), hop(2)
-                  ! hoppings(i,j,mu,nu) = cmplx(hop(1),hop(2),dp)
-                  if((pos(1)==0).and.(pos(2)==0).and.(pos(3)==0).and.(i==j)) then
-                    s%Types(s%Basis(i)%Material)%onSite(mu,nu) = cmplx(hop(1),hop(2),dp)
-                    cycle
-                  end if
+              if((pos(1)==0).and.(pos(2)==0).and.(pos(3)==0).and.(i==j)) then
+                if((mu==nu).and.(hop(2)>1.0e-12_dp)) &
+                  call log_error("readHamiltonian", "On-site, on-orbital term for i = j = " // trim(itos(i)) // ", mu = nu = " // trim(itos(mu)) // " is not real: Im(H) = " // trim(rtos(hop(2),"(f7.2)")))
 
-                  list(nNeighbors)%isHopping(j) = .true.
-                  list(nNeighbors)%t0i(mu,nu,j) = cmplx(hop(1),0.e0_dp,dp)
-                end do !nu
-              end do !j
-            end do ! mu
+                s%Types(s%Basis(i)%Material)%onSite(mu,nu) = cmplx(hop(1),hop(2),dp)/weight(cell)
+                cycle
+              end if
 
-            ! list(nNeighbors)%isHopping(i) = .true.
+              list(nNeighbors)%isHopping(i) = .true.
+              list(nNeighbors)%t0i(nu,mu,i) = cmplx(hop(1),hop(2),dp)/weight(cell)
+            end do !mu
+          end do !i
+        end do ! nu
 
-            ! Determine the indices of the unit-cell containing atom "size"
-            list(nNeighbors)%Cell(1) = pos(1)
-            list(nNeighbors)%Cell(2) = pos(2)
-            list(nNeighbors)%Cell(3) = pos(3)
-            ! Cell position is R_i = i*a1 + j*a2 + k*a3
-            list(nNeighbors)%CellVector = list(nNeighbors)%Cell(1) * s%a1 &
-                                        + list(nNeighbors)%Cell(2) * s%a2 &
-                                        + list(nNeighbors)%Cell(3) * s%a3
-            ! Atom position is r = R_i + r_j
-            list(nNeighbors)%Position = s%Basis(i)%Position + list(nNeighbors)%CellVector
-            list(nNeighbors)%BasisIndex = i
-            list(nNeighbors)%Material = s%Basis(i)%Material
-          end do ! i
-        end do ! z
-      end do ! y
-    end do ! x
+        ! list(nNeighbors)%isHopping(i) = .true.
+
+        ! Determine the indices of the unit-cell containing atom "size"
+        list(nNeighbors)%Cell(1) = pos(1)
+        list(nNeighbors)%Cell(2) = pos(2)
+        list(nNeighbors)%Cell(3) = pos(3)
+        ! Cell position is R_i = i*a1 + j*a2 + k*a3
+        list(nNeighbors)%CellVector = list(nNeighbors)%Cell(1) * s%a1 &
+                                    + list(nNeighbors)%Cell(2) * s%a2 &
+                                    + list(nNeighbors)%Cell(3) * s%a3
+        ! Atom position is r = R_i + r_j
+        list(nNeighbors)%Position = s%Basis(j)%Position + list(nNeighbors)%CellVector
+
+        list(nNeighbors)%BasisIndex = j
+        list(nNeighbors)%Material = s%Basis(j)%Material
+      end do ! j
+    end do ! cell
 
     close(f_unit)
   
     ! Defining number of neighbors (total number of atoms)
-    ! TODO: If cell is to be cut, a temporary array must be created here, 
-    ! and the exact number of neighbors can be counted in the loop below
+    ! TODO: If number of neighbors is to be cut, a temporary array must be created here, 
+    ! and the exact number of neighbors can be counted in a loop below
     s%nNeighbors = nCells*s%nAtoms
     if(allocated(s%Neighbors)) deallocate(s%Neighbors)
     allocate(s%Neighbors(s%nNeighbors))
