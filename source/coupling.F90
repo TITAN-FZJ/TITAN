@@ -425,7 +425,7 @@ subroutine real_coupling()
                 end if
             end do
         end do
-      end do
+      !end do
     end do
 
     call write_time('[real_coupling] Finished Fourier transform: ',output%unit_loop)
