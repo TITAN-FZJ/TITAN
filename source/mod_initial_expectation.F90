@@ -212,7 +212,7 @@ contains
     if(.not.allocated(mzd0)) allocate(mzd0(s%nAtoms))
     if(.not.allocated(mpd0)) allocate(mpd0(s%nAtoms))
     do i=1,s%nAtoms
-      rho0(:,i) = s%Types(s%Basis(i)%Material)%rho0(s%nOrb)
+      rho0(:,i) = s%Types(s%Basis(i)%Material)%rho0(1:s%nOrb)
       rhod0(i)  = s%Types(s%Basis(i)%Material)%rhod0
       mzd0(i)   = s%Types(s%Basis(i)%Material)%mzd0
       mpd0(i)   = s%Types(s%Basis(i)%Material)%mpd0

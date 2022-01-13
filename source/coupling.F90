@@ -245,7 +245,7 @@ subroutine real_coupling()
     call jij_energy(q,Jij)
     if(rField == 0) then
       Jij_q(iz,:,:,:,:) = Jij
-      write(13131,*) q_realBZ%w(iz), q, Jij(6,6,:,:)
+      write(13131,*) q_realBZ%w(iz), q, Jij(:,:,:,:) ! This line is targeting the 6th atom
     end if
   end do
 
@@ -362,6 +362,7 @@ subroutine real_coupling()
         if(vec_norm(cell_vector, 3) <= sphere_radius) then
             counter = counter + 1
             cluster(counter,:) = cell_vector
+            ! cluster(counter,:) = atom_vector
             ! write(*,*) cluster(counter,:)
         end if
 
@@ -390,6 +391,19 @@ subroutine real_coupling()
             w = q_realBZ%w(iz)
             Jij_real(k,:,:,:,:) = Jij_real(k,:,:,:,:) + real(kpExp*w*Jij_q(iz,:,:,:,:))
         end do
+
+        ! [To delete]
+        ! This was a trial when we wanted to see if the problem was on the fourier transform
+        ! do i=1,s%nAtoms
+        !   do j=1,s%nAtoms
+        !     do iz=1,q_realBZ%workload
+        !       kpExp = exp(-1._dp * cI * dot_product(q_realBZ%kp(1:3,iz), cluster(k,:)+s%Basis(j)%Position -  s%Basis(i)%Position))
+        !       w = q_realBZ%w(iz)
+        !       Jij_real(k,i,j,:,:) = Jij_real(k,i,j,:,:) + real(kpExp*w*Jij_q(iz,i,j,:,:))
+        !     end do
+        !   end do
+        ! end do
+        ! [To delete]
 
         ! [To delete]
         ! write(*,*) "s%Neighbors(k)%CellVector", cluster(k,:)
@@ -428,6 +442,12 @@ subroutine real_coupling()
                     !!!!!! TO DELETE
                     ! write(*,*) "i, j, iw ", i , j, iw
                     !!!!!!
+                    !!!!!!!!!! Testing this block
+                    rx = cluster(k,1) + s%Basis(i)%Position(1)
+                    ry = cluster(k,2) + s%Basis(i)%Position(2)
+                    rz = cluster(k,3) + s%Basis(i)%Position(3)
+                    r_norm = SQRT((rx-rx_0)*(rx-rx_0) + (ry-ry_0)*(ry-ry_0) + (rz-rz_0)*(rz-rz_0))
+                    !!!!!!!!!!!
                     write(unit=iw,fmt="(13(es16.9,2x))") rx, ry, rz ,r_norm,&
                     Jij_real(k,i,j,1,1),Jij_real(k,i,j,1,2), Jij_real(k,i,j,1,3), &
                     Jij_real(k,i,j,2,1), Jij_real(k,i,j,2,2), Jij_real(k,i,j,2,3), &

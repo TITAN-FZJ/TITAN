@@ -108,6 +108,7 @@ contains
 
 ! Pauli matrices in spin and orbital space
     pauli_dorb = cZero
+    pauli_orb = cZero
     ident_dorb = cZero
     do mu = 1,s%nOrb
       nu = mu+s%nOrb
