@@ -5,10 +5,10 @@ module mod_Coupling
   character(len=3), dimension(1), private :: filename = ["Jij"]
 
   ! Exchange interaction
-  real(dp), dimension(:,:), allocatable :: trJij
   complex(dp), dimension(:,:,:,:), allocatable :: Jij
+  complex(dp), dimension(:,:,:,:,:), allocatable :: Jij_q
+  real(dp), dimension(:,:), allocatable :: trJij
   real(dp), dimension(:,:,:,:), allocatable :: Jijs,Jija
-  real(dp), dimension(:,:,:,:,:), allocatable :: Jij_q
 
 contains
 

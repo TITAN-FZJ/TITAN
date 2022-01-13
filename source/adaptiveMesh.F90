@@ -11,7 +11,7 @@ module adaptiveMesh
   ! MPI_f08:
   ! integer(int32) :: activeRank, activeSize
   ! type(MPI_Comm) :: activeComm
-  integer   :: minimumBZmesh
+  integer(int64) :: minimumBZmesh
 
   interface get_nkpt
     module procedure get_nkpt_int4, &
@@ -178,7 +178,7 @@ contains
   !> Calculate the number of k-points for a given energy
   !> by using a power decay of the ratio of the imaginary parts
   !> to the dimension of the system (4-bit integer version)
-    use mod_kind, only: dp
+    use mod_kind, only: dp,int32
     implicit none
     real(dp), intent(in) :: e, e0
     integer,  intent(in) :: sysdim
@@ -193,7 +193,7 @@ contains
       get_nkpt_int4 = ceiling( nkpt_total/((e/e0)**sqrt(1._dp)) ) !**log(1._dp)
     end select
 
-    if(get_nkpt_int4 < minimumBZmesh ) get_nkpt_int4 = minimumBZmesh
+    if(get_nkpt_int4 < int(minimumBZmesh,int32) ) get_nkpt_int4 = int(minimumBZmesh,int32)
   end function get_nkpt_int4
 
   integer(int64) function get_nkpt_int8(e, e0, nkpt_total, sysdim)
@@ -214,7 +214,7 @@ contains
       get_nkpt_int8 = ceiling( nkpt_total/((e/e0)**sqrt(1._dp)) ) !**log(1._dp)
     end select
 
-    if(get_nkpt_int8 < int(minimumBZmesh,8) ) get_nkpt_int8 = int(minimumBZmesh,8)
+    if(get_nkpt_int8 < minimumBZmesh ) get_nkpt_int8 = minimumBZmesh
   end function get_nkpt_int8
 
 end module adaptiveMesh
