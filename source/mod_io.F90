@@ -159,7 +159,7 @@ contains
       call log_warning("get_parameters","'relTol' missing. Using default value: 0.05",log_store)
     if(.not. get_parameter("sysdim", s%isysdim, 3)) &
       call log_warning("get_parameters", "'sysdim' missing. Using default value: 3",log_store)
-      if(.not. get_parameter("nkpt", i_vector,cnt)) &
+    if(.not. get_parameter("nkpt", i_vector,cnt)) &
       call log_error("get_parameters","'nkpt' missing.")
     if(cnt == s%isysdim) then
       kp_in(1:s%isysdim) = int(i_vector(1:s%isysdim),kind(kp_in(1)))
@@ -182,8 +182,17 @@ contains
     else
       call log_error("get_parameter", "'nkpt' has wrong size (expected 1 or isysdim).")
     end if
-    if(.not. get_parameter("minimumBZmesh", minimumBZmesh, 1000)) &
+
+    if(.not. get_parameter("minimumBZmesh", i_vector,cnt)) then
       call log_warning("get_parameters", "'minimumBZmesh' missing. Using default value: 1000",log_store)
+      minimumBZmesh = 1000
+    else
+      if(cnt == 1) then
+        minimumBZmesh = int(i_vector(1),kind(minimumBZmesh))
+      else
+        call log_error("get_parameter", "'minimumBZmesh' has wrong size (expected 1).")
+      end if
+    end if
     if(minimumBZmesh>kptotal_in) then
       call log_warning("get_parameters", "'minimumBZmesh' is larger than the largest mesh. Using " // itos(kptotal_in))
       minimumBZmesh = kptotal_in
