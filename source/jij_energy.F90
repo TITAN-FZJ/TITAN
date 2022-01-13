@@ -5,7 +5,7 @@
 ! and the sum covers all sites.
 subroutine jij_energy(q,Jij)
   use mod_kind,              only: dp,int32,int64
-  use mod_constants,         only: pi,cOne,cZero
+  use mod_constants,         only: tpi,cOne,cZero
   use mod_parameters,        only: eta
   use EnergyIntegration,     only: y,wght
   use mod_magnet,            only: mdvec_cartesian,mabsd
@@ -13,27 +13,27 @@ subroutine jij_energy(q,Jij)
   use mod_hamiltonian,       only: hamilt_local
   use mod_greenfunction,     only: green
   use mod_SOC,               only: llinearsoc,llineargfsoc
-  use mod_mpi_pars,          only: MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_SUM,ierr
+  use mod_mpi_pars,          only: MPI_IN_PLACE,MPI_DOUBLE_COMPLEX,MPI_SUM,ierr
   use adaptiveMesh,          only: activeComm,activeRank,local_points,bzs,E_k_imag_mesh
   use mod_superconductivity, only: lsupercond
   implicit none
-  real(dp), dimension(3),                     intent(in)  :: q
-  real(dp), dimension(s%nAtoms,s%nAtoms,3,3), intent(out) :: Jij
-  real(dp), dimension(s%nAtoms,s%nAtoms,3,3)              :: Jijint
+  real(dp),    dimension(3),                     intent(in)  :: q
+  complex(dp), dimension(s%nAtoms,s%nAtoms,3,3), intent(out) :: Jij
+  complex(dp), dimension(s%nAtoms,s%nAtoms,3,3)              :: Jijint
   integer(int64) :: ix
   integer(int32) :: i,j,mu,nu,alpha,nOrb2_i,nOrb2_j
-  real(dp) :: kp(3),kminusq(3),ep
+  real(dp) :: kp(3),kmq(3),kpq(3),ep
   real(dp) :: evec(3,s%nAtoms)
-  real(dp) :: Jijk(s%nAtoms,s%nAtoms,3,3)
-  real(dp) :: Jijkan(s%nAtoms,3,3)
   real(dp) :: weight, fermi
   integer(int32) :: po,mo
   complex(dp), dimension(s%nAtoms,3,s%nOrb2,s%nOrb2)        :: dBxc_dm
   complex(dp), dimension(s%nAtoms,3,3,s%nOrb2,s%nOrb2)      :: d2Bxc_dm2
   complex(dp), dimension(s%nAtoms,s%nOrb2,s%nOrb2)          :: paulievec
-  complex(dp), dimension(s%nOrb2,s%nOrb2)                   :: gij,gji,temp1,temp2,paulia,paulib,pauli_star
-  complex(dp), dimension(s%nOrb2sc,s%nOrb2sc,s%nAtoms,s%nAtoms) :: gf,gfq
-  complex(dp), dimension(s%nOrb2,s%nOrb2)                       :: geh, ghe
+  complex(dp), dimension(s%nOrb2,s%nOrb2)                   :: gij,gjim,gjip,temp1,temp1m,temp1p,temp2,paulia,paulib,pauli_star
+  complex(dp), dimension(s%nOrb2sc,s%nOrb2sc,s%nAtoms,s%nAtoms) :: gf,gfmq,gfpq
+  complex(dp), dimension(s%nOrb2,s%nOrb2)                       :: geh, ghem, ghep
+  complex(dp) :: Jijk(s%nAtoms,s%nAtoms,3,3)
+  complex(dp) :: Jijkan(s%nAtoms,3,3)
   integer :: ncount
 
   external :: zgemm,MPI_Reduce
@@ -68,13 +68,13 @@ subroutine jij_energy(q,Jij)
   if((.not.llineargfsoc) .and. (.not.llinearsoc)) call hamilt_local(s)
 
   ! Calculating Jij using a complex integral
-  Jij = 0._dp
+  Jij = cZero
 
   !$omp parallel default(none) &
-  !$omp& private(ix,i,j,po,mo,mu,nu,nOrb2_i,nOrb2_j,alpha,kp,ep,weight,kminusq,gf,gfq,gij,gji,paulia,paulib,pauli_star,temp1,temp2,Jijkan,Jijk,Jijint,geh,ghe) &
+  !$omp& private(ix,i,j,po,mo,mu,nu,nOrb2_i,nOrb2_j,alpha,kp,ep,weight,kmq,kpq,gf,gfmq,gfpq,gij,gjim,gjip,paulia,paulib,pauli_star,temp1,temp1m,temp1p,temp2,Jijkan,Jijk,Jijint,geh,ghem,ghep) &
   !$omp& shared(s,fermi,lsuperCond,eta,y,wght,q,local_points,dBxc_dm,d2Bxc_dm2,Jij,bzs,E_k_imag_mesh,paulievec)
 
-  Jijint = 0._dp
+  Jijint = cZero
 
   !$omp do schedule(dynamic)
   do ix = 1, local_points
@@ -85,8 +85,10 @@ subroutine jij_energy(q,Jij)
       call green(fermi,ep+eta,s,kp,gf)
 
       ! Green function on energy Ef + iy, and wave vector kp-q
-      kminusq = kp-q
-      call green(fermi,ep+eta,s,kminusq,gfq)
+      kmq = kp-q
+      call green(fermi,ep+eta,s,kmq,gfmq)
+      kpq = kp+q
+      call green(fermi,ep+eta,s,kpq,gfpq)
 
       Jijk   = 0._dp
       Jijkan = 0._dp
@@ -95,10 +97,11 @@ subroutine jij_energy(q,Jij)
           nOrb2_j = s%Types(s%Basis(j)%Material)%nOrb2
           nOrb2_i = s%Types(s%Basis(i)%Material)%nOrb2
           gij = gf (1:nOrb2_i,1:nOrb2_j,i,j)
-          gji = gfq(1:nOrb2_j,1:nOrb2_i,j,i)
+          gjim = gfmq(1:nOrb2_j,1:nOrb2_i,j,i)
+          gjip = gfpq(1:nOrb2_j,1:nOrb2_i,j,i)
           if (lsuperCond) then
             geh(1:nOrb2_i,1:nOrb2_j) = gf (1:nOrb2_i,nOrb2_j+1:2*nOrb2_j,i,j)
-            ghe(1:nOrb2_j,1:nOrb2_i) = gfq(nOrb2_j+1:2*nOrb2_j,1:nOrb2_i,j,i)
+            ghem(1:nOrb2_j,1:nOrb2_i) = gfmq(nOrb2_j+1:2*nOrb2_j,1:nOrb2_i,j,i)
           end if
 
           do nu = 1,3
@@ -109,12 +112,14 @@ subroutine jij_energy(q,Jij)
               call zgemm('n','n',nOrb2_i,nOrb2_j,nOrb2_i,cOne,paulia,s%nOrb2,gij,   s%nOrb2,cZero,temp1,s%nOrb2)
               ! temp2 = temp1 * paulib = paulia * gij * paulib = dBxc_dm_i * gij * dBxc_dm_j
               call zgemm('n','n',nOrb2_i,nOrb2_j,nOrb2_j,cOne,temp1, s%nOrb2,paulib,s%nOrb2,cZero,temp2,s%nOrb2)
-              ! temp1 = temp2 * gji = paulia * gij * paulib * gji = dBxc_dm_i * gij * dBxc_dm_j * gji
-              call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_j,cOne,temp2, s%nOrb2,gji,   s%nOrb2,cZero,temp1,s%nOrb2)
+              ! temp1m = temp2 * gji = paulia * gij * paulib * gji = dBxc_dm_i * gij(k-q) * dBxc_dm_j * gji
+              call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_j,cOne,temp2, s%nOrb2,gjim,   s%nOrb2,cZero,temp1m,s%nOrb2)
+              ! temp1p = temp2 * gji = paulia * gij * paulib * gji = dBxc_dm_i * gij(k+q) * dBxc_dm_j * gji
+              call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_j,cOne,temp2, s%nOrb2,gjip,   s%nOrb2,cZero,temp1p,s%nOrb2)
 
               ! Trace over orbitals and spins
               do alpha = 1,nOrb2_i
-                Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + real(temp1(alpha,alpha))
+                Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + temp1m(alpha,alpha) + conjg(temp1p(alpha,alpha))
               end do
               if ( lsuperCond ) then
                 pauli_star(1:nOrb2_j,1:nOrb2_j) = conjg(paulib(1:nOrb2_j,1:nOrb2_j))
@@ -122,10 +127,12 @@ subroutine jij_energy(q,Jij)
                 call zgemm('n','n',nOrb2_i,nOrb2_j,nOrb2_i,cOne,paulia,s%nOrb2,geh       ,s%nOrb2,cZero,temp1,s%nOrb2)
                 ! temp2 = temp1 * pauli_star = dBxc_dm_i * geh(ij) * (dBxc_dm_j)^*
                 call zgemm('n','n',nOrb2_i,nOrb2_j,nOrb2_j,cOne,temp1 ,s%nOrb2,pauli_star,s%nOrb2,cZero,temp2,s%nOrb2)
-                ! temp1 = temp2 * ghe(ji) = dBxc_dm_i * geh(ij) * (dBxc_dm_j)^* * ghe(ji)
-                call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_j,cOne,temp2 ,s%nOrb2,ghe       ,s%nOrb2,cZero,temp1,s%nOrb2)
+                ! temp1m = temp2 * ghe(ji) = dBxc_dm_i * geh(ij) * (dBxc_dm_j)^* * ghe(ji)(k-q)
+                call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_j,cOne,temp2 ,s%nOrb2,ghem      ,s%nOrb2,cZero,temp1m,s%nOrb2)
+                ! temp1p = temp2 * ghe(ji) = dBxc_dm_i * geh(ij) * (dBxc_dm_j)^* * ghe(ji)(k+q)
+                call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_j,cOne,temp2 ,s%nOrb2,ghep      ,s%nOrb2,cZero,temp1p,s%nOrb2)
                 do alpha = 1,nOrb2_i
-                  Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + real(temp1(alpha,alpha))
+                  Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + temp1m(alpha,alpha) + conjg(temp1p(alpha,alpha))
                 end do
               end if
             end do
@@ -144,7 +151,7 @@ subroutine jij_energy(q,Jij)
                 do alpha = 1,nOrb2_i
                   Jijkan(i,mu,nu) = Jijkan(i,mu,nu) + real(temp1(alpha,alpha))
                 end do
-                Jijk(i,i,mu,nu) = Jijk(i,i,mu,nu) + Jijkan(i,mu,nu)
+                Jijk(i,i,mu,nu) = Jijk(i,i,mu,nu) + 2._dp*Jijkan(i,mu,nu)
               end do
             end do
           end if
@@ -156,17 +163,17 @@ subroutine jij_energy(q,Jij)
   end do
   !$omp end do nowait
 
-  Jijint = -Jijint/pi
+  Jijint = -Jijint/tpi
   !$omp critical
     Jij = Jij + Jijint
   !$omp end critical
   !$omp end parallel
 
   if(activeRank == 0) then
-    call MPI_Reduce(MPI_IN_PLACE, Jij, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, 0, activeComm, ierr)
+    call MPI_Reduce(MPI_IN_PLACE, Jij, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, activeComm, ierr)
   else
-    call MPI_Reduce(Jij, Jij, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, 0, activeComm, ierr)
+    call MPI_Reduce(Jij, Jij, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, activeComm, ierr)
   end if
-  !call MPI_Allreduce(MPI_IN_PLACE, Jij, ncount, MPI_DOUBLE_PRECISION, MPI_SUM, activeComm, ierr)
+  !call MPI_Allreduce(MPI_IN_PLACE, Jij, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, activeComm, ierr)
 
 end subroutine jij_energy

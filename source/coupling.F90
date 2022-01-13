@@ -34,20 +34,21 @@ subroutine coupling()
     call jij_energy(q,Jij)
 
     if(rField == 0) then
-
-      do i=1,s%nAtoms
-        do j=1,s%nAtoms
-          trJij(i,j)    = 0.5_dp*(Jij(i,j,1,1)+Jij(i,j,2,2))
-          Jija(i,j,:,:) = 0.5_dp*(Jij(i,j,:,:) - transpose(Jij(i,j,:,:)))
-          Jijs(i,j,:,:) = 0.5_dp*(Jij(i,j,:,:) + transpose(Jij(i,j,:,:)))
-          do mu = 1, 3
-            Jijs(i,j,mu,mu) = Jijs(i,j,mu,mu) - trJij(i,j)
-          end do
-        end do
-      end do
-
       ! Print only Gamma point (and only once)
       if((vec_norm(q,3)<1.e-12_dp).and.(lprint)) then
+
+        do i=1,s%nAtoms
+          do j=1,s%nAtoms
+            trJij(i,j)    = 0.5_dp*(real(Jij(i,j,1,1))+real(Jij(i,j,2,2)))
+            Jija(i,j,:,:) = 0.5_dp*(real(Jij(i,j,:,:)) - real(transpose(Jij(i,j,:,:))))
+            Jijs(i,j,:,:) = 0.5_dp*(real(Jij(i,j,:,:)) + real(transpose(Jij(i,j,:,:))))
+            do mu = 1, 3
+              Jijs(i,j,mu,mu) = Jijs(i,j,mu,mu) - trJij(i,j)
+            end do
+          end do
+        end do
+
+
         ! Writing exchange couplings and anisotropies
         write(output%unit_loop,"('  ************************* Full tensor Jij:  *************************')")
         do i=1,s%nAtoms
@@ -67,9 +68,9 @@ subroutine coupling()
               write(output%unit_loop,"(' |----------- i = ',i0,'   j = ',i0,': exchange couplings -------------|')") i,j
             end if
             write(output%unit_loop,"('             x                  y                  z')")
-            write(output%unit_loop,"('  x  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,1,1),Jij(i,j,1,2),Jij(i,j,1,3)
-            write(output%unit_loop,"('  y  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,2,1),Jij(i,j,2,2),Jij(i,j,2,3)
-            write(output%unit_loop,"('  z  (',es16.9,') (',es16.9,') (',es16.9,')')") Jij(i,j,3,1),Jij(i,j,3,2),Jij(i,j,3,3)
+            write(output%unit_loop,"('  x  (',es16.9,') (',es16.9,') (',es16.9,')')") real(Jij(i,j,1,1)),real(Jij(i,j,1,2)),real(Jij(i,j,1,3))
+            write(output%unit_loop,"('  y  (',es16.9,') (',es16.9,') (',es16.9,')')") real(Jij(i,j,2,1)),real(Jij(i,j,2,2)),real(Jij(i,j,2,3))
+            write(output%unit_loop,"('  z  (',es16.9,') (',es16.9,') (',es16.9,')')") real(Jij(i,j,3,1)),real(Jij(i,j,3,2)),real(Jij(i,j,3,3))
           end do
         end do
         if(s%nAtoms>1) write(output%unit_loop,"('  *** Symmetric and antisymmetric exchange interactions:  ***')")

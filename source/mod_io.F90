@@ -89,7 +89,7 @@ contains
 
     modifiedFilename = initialFilename
     write (temp, "(i0)") kptotal_in
-    modifiedFilename = replaceStr(modifiedFilename,"#kpoints",trim(temp))
+    modifiedFilename = replaceStr(modifiedFilename,"#nkpt",trim(temp))
     write (temp, "(es9.2)") eta
     modifiedFilename = replaceStr(modifiedFilename,"#eta",trim(adjustl(temp)))
 
@@ -184,6 +184,10 @@ contains
     end if
     if(.not. get_parameter("minimumBZmesh", minimumBZmesh, 1000)) &
       call log_warning("get_parameters", "'minimumBZmesh' missing. Using default value: 1000",log_store)
+    if(minimumBZmesh>kptotal_in) then
+      call log_warning("get_parameters", "'minimumBZmesh' is larger than the largest mesh. Using " // itos(kptotal_in))
+      minimumBZmesh = kptotal_in
+    end if
     if(.not. get_parameter("eta", eta)) &
       call log_error("get_parameters","'eta' missing.")
     if(.not. get_parameter("etap", etap, eta)) &

@@ -172,9 +172,10 @@ contains
     use mod_Coupling,      only: Jij,trJij,Jija,Jijs,allocateCoupling,deallocateCoupling,openCouplingFiles,closeCouplingFiles,writeCoupling
     use mod_mpi_pars,      only: rField,rFreq,sFreq,startFreq,endFreq,MPI_DOUBLE_PRECISION,MPI_ANY_SOURCE,MPI_SOURCE,FreqComm,FieldComm,stat,ierr
     implicit none
-    integer(int32)    :: i, j, mu, ncount,ncount2,ncount3
-    integer(int64)    :: kount
-    real(dp)          :: e
+    integer(int32) :: i, j, mu, ncount,ncount2,ncount3
+    integer(int64) :: kount
+    real(dp)       :: e
+    real(dp)       :: Jijr(s%nAtoms,s%nAtoms,3,3) ! For q=0, Jij(q) is real
 
     external :: MPI_Recv,MPI_Send,MPI_Barrier
 
@@ -201,14 +202,14 @@ contains
       e = emin + (kount-1) * deltae
       if(rFreq(1) == 0) write(output%unit_loop,"('[ldos_and_coupling] ',i0,' of ',i0,' points',', e = ',es10.3)") kount,nEner1,e
 
-      call ldos_jij_energy(e,ldosu,ldosd,Jij)
+      call ldos_jij_energy(e,ldosu,ldosd,Jijr)
 
       if(rFreq(1) == 0) then
         do i = 1, s%nAtoms
           do j = 1, s%nAtoms
-            trJij(i,j)    = 0.5_dp*(Jij(i,j,1,1) + Jij(i,j,2,2))
-            Jija(i,j,:,:) = 0.5_dp*(Jij(i,j,:,:) - transpose(Jij(i,j,:,:)))
-            Jijs(i,j,:,:) = 0.5_dp*(Jij(i,j,:,:) + transpose(Jij(i,j,:,:)))
+            trJij(i,j)    = 0.5_dp*(Jijr(i,j,1,1) + Jijr(i,j,2,2))
+            Jija(i,j,:,:) = 0.5_dp*(Jijr(i,j,:,:) - transpose(Jijr(i,j,:,:)))
+            Jijs(i,j,:,:) = 0.5_dp*(Jijr(i,j,:,:) + transpose(Jijr(i,j,:,:)))
             do mu = 1, 3
               Jijs(i,j,mu,mu) = Jijs(i,j,mu,mu) - trJij(i,j)
             end do
@@ -222,7 +223,7 @@ contains
               call MPI_Recv(ldosd, ncount  ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1100,FreqComm(2),stat,ierr)
               call MPI_Recv(ldosu, ncount  ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1200,FreqComm(2),stat,ierr)
               call MPI_Recv(trJij, ncount2 ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1300,FreqComm(2),stat,ierr)
-              call MPI_Recv(Jij  , ncount3 ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1400,FreqComm(2),stat,ierr)
+              call MPI_Recv(Jijr , ncount3 ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1400,FreqComm(2),stat,ierr)
               call MPI_Recv(Jijs , ncount3 ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1500,FreqComm(2),stat,ierr)
               call MPI_Recv(Jija , ncount3 ,MPI_DOUBLE_PRECISION,stat(MPI_SOURCE),1600,FreqComm(2),stat,ierr)
             end if
@@ -230,6 +231,7 @@ contains
             ! Writing into files
             call writeLDOS(e)
             ! Exchange interactions
+            Jij = cmplx(Jijr,0._dp,dp) ! To write out
             call writeCoupling(e,0._dp)
           end do
         else
@@ -237,7 +239,7 @@ contains
           call MPI_Recv(ldosd, ncount  ,MPI_DOUBLE_PRECISION,0,1100,FreqComm(2),stat,ierr)
           call MPI_Recv(ldosu, ncount  ,MPI_DOUBLE_PRECISION,0,1200,FreqComm(2),stat,ierr)
           call MPI_Recv(trJij, ncount2 ,MPI_DOUBLE_PRECISION,0,1300,FreqComm(2),stat,ierr)
-          call MPI_Recv(Jij  , ncount3 ,MPI_DOUBLE_PRECISION,0,1400,FreqComm(2),stat,ierr)
+          call MPI_Recv(Jijr , ncount3 ,MPI_DOUBLE_PRECISION,0,1400,FreqComm(2),stat,ierr)
           call MPI_Recv(Jijs , ncount3 ,MPI_DOUBLE_PRECISION,0,1500,FreqComm(2),stat,ierr)
           call MPI_Recv(Jija , ncount3 ,MPI_DOUBLE_PRECISION,0,1600,FreqComm(2),stat,ierr)
         end if
@@ -272,9 +274,9 @@ contains
     use mod_mpi_pars,          only: rFreq,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_SUM,FreqComm,ierr
     use mod_superconductivity, only: lsupercond
     implicit none
-    real(dp),intent(in)     :: e
-    real(dp),intent(out)    :: ldosu(s%nAtoms,s%nOrb),ldosd(s%nAtoms,s%nOrb)
-    real(dp),intent(out)    :: Jijint(s%nAtoms,s%nAtoms,3,3)
+    real(dp), intent(in)  :: e
+    real(dp), intent(out) :: ldosu(s%nAtoms,s%nOrb),ldosd(s%nAtoms,s%nOrb)
+    real(dp), intent(out) :: Jijint(s%nAtoms,s%nAtoms,3,3) ! For q=0, Jij(q) is real
     complex(dp), dimension(s%nOrb2,s%nOrb2,s%nAtoms,s%nAtoms) :: gf
     complex(dp), dimension(s%nOrb2,s%nOrb2) :: gij,gji,geh,ghe,temp1,temp2,paulia,paulib,pauli_star
     real(dp),    dimension(s%nAtoms,s%nOrb) :: gfdiagu,gfdiagd
