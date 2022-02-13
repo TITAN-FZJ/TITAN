@@ -1,5 +1,5 @@
 # Minimum required Version
-cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
+cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Projects name
@@ -294,6 +294,7 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
                                                 -DVERSION="${GIT_VERSION}"
                                                 -I$ENV{MKLROOT}/include
                                                 -fopenmp
+                                                -fallow-argument-mismatch
                                                 -ffree-form
                                                 -ffree-line-length-0
                                                 -g
@@ -315,6 +316,7 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
                                                 -Wno-maybe-uninitialized
                                                 -fwhole-file
                                                 -fimplicit-none
+                                                -fallow-argument-mismatch
                                                 -fbacktrace
                                                 -ffree-form
                                                 -ffree-line-length-0
