@@ -24,7 +24,7 @@ image: iffregistry.fz-juelich.de/docker-images/centos8-intel-compilers:latest-nv
   # Setting up MPI variables
   - set +e && source compilervars.sh intel64
   # Setting up GNU variables
-  - source /opt/rh/gcc-toolset-9/enable
+  - source /opt/rh/gcc-toolset-11/enable
   # Checking location of gfortran
   - which gfortran
   # Checking gfortran version
