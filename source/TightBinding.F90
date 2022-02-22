@@ -392,11 +392,13 @@ contains
 
     ! Read charge densitites for s p d
     ! line = next_line("readElementFile",f_unit)
-    dens(1:3) = StoR(next_line("readElementFile",f_unit,"occupations"),3)
-    s%Types(n)%OccupationS = dens(1)
-    s%Types(n)%OccupationP = dens(2)
-    s%Types(n)%OccupationD = dens(3)
-    s%Types(n)%Occupation  = s%Types(n)%OccupationS+s%Types(n)%OccupationP+s%Types(n)%OccupationD
+    if(tbmode==1) then
+      dens(1:3) = StoR(next_line("readElementFile",f_unit,"occupations"),3)
+      s%Types(n)%OccupationS = dens(1)
+      s%Types(n)%OccupationP = dens(2)
+      s%Types(n)%OccupationD = dens(3)
+      s%Types(n)%Occupation  = s%Types(n)%OccupationS+s%Types(n)%OccupationP+s%Types(n)%OccupationD
+    end if
 
     ! Read Hubbard effective Coulomb interaction strength
     str_arr(1:2) = StoArray(next_line("readElementFile",f_unit,"Hubbard U"),2)
