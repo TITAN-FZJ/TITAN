@@ -104,7 +104,7 @@ contains
                                      lpositions,lcreatefiles,lnolb,lhfresponses,&
                                      lnodiag,lsha,lcreatefolders,lwriteonscreen,runoptions,lsimplemix,&
                                      lcheckjac,llgtv,lsortfiles,leigenstates,lprintfieldonly,&
-                                     itype,ry2ev,ltesla,eta,etap,dmax,emin,emax,&
+                                     itype,ry2ev,ltesla,eta,etap,addelectrons,dmax,emin,emax,&
                                      skip_steps,nEner,nEner1,nQvec,nQvec1,qbasis,renorm,renormnb,bands,band_cnt,&
                                      dfttype,parField,parFreq,kptotal_in,kp_in,&
                                      tbmode,fermi_layer,lfixEf,lEf_overwrite,Ef_overwrite,cluster_layers,qptotal_in,qp_in
@@ -157,6 +157,8 @@ contains
       call log_warning("get_parameters","'nn_stages' missing. Using default value: 2",log_store)
     if(.not. get_parameter("relTol", s%relTol,0.05_dp)) &
       call log_warning("get_parameters","'relTol' missing. Using default value: 0.05",log_store)
+    if(.not. get_parameter("addelectrons", addelectrons, 0._dp)) &
+      call log_warning("get_parameters","'addelectrons' missing. Using default value: 0.0",log_store)
     if(.not. get_parameter("sysdim", s%isysdim, 3)) &
       call log_warning("get_parameters", "'sysdim' missing. Using default value: 3",log_store)
     if(.not. get_parameter("nkpt", i_vector,cnt)) &

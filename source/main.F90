@@ -10,8 +10,8 @@ program TITAN
   use mod_constants,           only: cZero,define_constants
   use mod_parameters,          only: output,lpositions,lcreatefolders,parField,parFreq,nEner1,skip_steps,ldebug, &
                                      kp_in,kptotal_in,eta,leigenstates,itype,theta,phi, &
-                                     laddresults,lsortfiles,lcreatefiles,arg,tbmode,lfixEf
-  use mod_io,                  only: get_parameters,iowrite,log_error
+                                     laddresults,lsortfiles,lcreatefiles,arg,tbmode,lfixEf,addelectrons
+  use mod_io,                  only: get_parameters,iowrite,log_error,log_warning
   use Lattice,                 only: initLattice,writeLattice
   use mod_BrillouinZone,       only: realBZ,countBZ
   use mod_SOC,                 only: llinearsoc,SOC,updateLS
@@ -33,7 +33,7 @@ program TITAN
   use mod_fermi_surface,       only: fermi_surface
   use mod_check_stop,          only: check_stop
   use mod_Atom_variables,      only: allocate_Atom_variables
-  use mod_tools,               only: rtos
+  use mod_tools,               only: rtos,itos
   use mod_init_expec,          only: calc_init_expec_SK,calc_init_expec_dft
   use mod_time_propagator,     only: time_propagator
   use mod_superconductivity,   only: lsuperCond,supercond,allocate_supercond_variables
@@ -94,6 +94,7 @@ program TITAN
   call read_basis("basis", s)
   call initLattice(s)
   write(output%Sites,fmt="(i0,'Sites')") s%nAtoms
+
   ! Writing Positions into file
   if( lpositions .and. (myrank==0) ) call writeLattice(s)
 
@@ -140,6 +141,20 @@ program TITAN
     call abortProgram("[main] Constraining fields need Um to induce a magnetic moment!")
 
   call flush(output%unit)
+
+  ! Testing if add electrons is used with lfixEf or Un/=0
+  if(lfixEf) then
+    if(abs(addelectrons)>1.e-6) & 
+      call log_warning("main", "addelectrons does not affect the calculation when lfixEf is used!" )
+  else
+    if((sum(abs(s%Types(:)%Un))>1.e-8).and.(abs(addelectrons)>1.e-8_dp)) &
+      call log_error("main", "addelectrons is incompatible with Un! Either use Un=0 for all elements or addelectrons=0." )
+  end if
+  if(abs(addelectrons)>1.e-6_dp) then
+    write(output%unit,"('[main] Electrons to add (or remove): ',es14.7)") addelectrons
+    s%totalOccupation = s%totalOccupation + addelectrons
+    output%suffix = "_add" // trim(rtos(addelectrons,"(es8.1)"))
+  end if
 
   !-- Calculating initial values in the SK tight-binding hamiltonian ---
   if((tbmode==1).and.(.not.lsortfiles)) call calc_init_expec_SK(s)

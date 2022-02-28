@@ -101,9 +101,9 @@ contains
 
   function find_val(key_val, ind) result(success)
     implicit none
-    character(len=*), intent(in) :: key_val
-    integer, intent(out) :: ind
-    logical success
+    character(len=*), intent(in)  :: key_val
+    integer,          intent(out) :: ind
+    logical :: success
     integer :: i
     success = .false.
 

@@ -59,6 +59,7 @@ contains
 
   subroutine get_DFT_parameters(s,fermi_layer)
   !! Gets hamiltonian from DFT input and parameters from elemental file
+    use mod_kind,   only: dp
     use mod_system, only: System_type
     use mod_dft,    only: readHamiltonian
     implicit none
@@ -67,12 +68,14 @@ contains
     integer                            :: i
 
     do i = 1, s%nAtoms
-      ! Getting total number of electrons on the system
-      s%totalOccupation = s%totalOccupation + s%Types(s%Basis(i)%Material)%Occupation
       ! Storing Hubbard e-e interaction per basis atom
       s%Basis(i)%Un = s%Types(s%Basis(i)%Material)%Un
       s%Basis(i)%Um = s%Types(s%Basis(i)%Material)%Um
     end do
+
+    ! Initializing totalOccupation 
+    ! (will be calculated in mod_initial_expectation, with added electrons in main)
+    s%totalOccupation = 0._dp
 
     ! Read hamiltonian and dft parameters
     call readHamiltonian(s,s%Name)
