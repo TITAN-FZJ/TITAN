@@ -44,6 +44,7 @@ stages:
   - selfcon:supercond
   - results
   - plots
+  - deploy
   # - test_runtime
   # - deploy:doc
 #
@@ -518,21 +519,30 @@ Co_monolayer_paoflow:bands_with_ldos:plot:
   <<: *keep_results
 
 
-# # `pages` is a special job that builds the gitlab page for this project; all artifacts must be saved in a `public`
-# # directory to be published as a static site (that can be accessed from the whole www)
-# pages:
-#   stage: deploy:doc
-#   script:
-#     - apt install -y ffmpeg python-pip
-#     # ubuntu ships with an old pip version -> upgrade before python packages are installed via pip
-#     - pip install -U pip
-#     # install sphinx (documentation generator) from PyPI to get the latest stable version
-#     - pip install sphinx sphinx_rtd_theme
-#     - make doc
-#     - mv doc/_build/html/ public/
-#   artifacts:
-#     paths:
-#       - public
-#   # only publish a new site if commits are pushed to the master branch -> stable release
-#   only:
-#     - master
+build_page:
+  image: iffregistry.fz-juelich.de/docker-images/titan-images
+  stage: build
+  tags:
+    - intel
+  script:
+    - pip install sphinx
+    - pip install sphinx-rtd-theme
+    - pip install sphinx-tabs
+    - cd doc/
+    - make html
+  artifacts:
+    paths:
+      - doc/_build/html
+
+pages:
+  image: iffregistry.fz-juelich.de/docker-images/titan-images
+  stage: deploy
+  tags:
+    - intel
+  script:
+    - mv doc/_build/html/ public/
+  artifacts:
+    paths:
+      - public
+  # only:
+  #   - master

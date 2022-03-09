@@ -8,15 +8,12 @@ old_files*
 *.err
 *.out
 *.txt
-*.pdf
 *.agr
 error*
 output/*
 *optrpt
 *genmod*
 *.pbs
-*.png
-*.jpg
 *.nb
 results/*
 source/legacy*
