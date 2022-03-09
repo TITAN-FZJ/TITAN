@@ -519,7 +519,7 @@ Co_monolayer_paoflow:bands_with_ldos:plot:
   <<: *keep_results
 
 
-build_page:
+build:page:
   image: iffregistry.fz-juelich.de/docker-images/titan-images
   stage: build
   tags:
@@ -537,6 +537,8 @@ build_page:
 pages:
   image: iffregistry.fz-juelich.de/docker-images/titan-images
   stage: deploy
+  needs:
+    - build:page
   tags:
     - intel
   script:
