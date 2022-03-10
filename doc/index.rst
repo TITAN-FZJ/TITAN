@@ -10,6 +10,11 @@ Welcome to TITAN's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   introduction
+   self_consistency
+   files
+   examples
+
 
 
 Indices and tables
