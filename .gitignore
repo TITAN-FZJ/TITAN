@@ -15,6 +15,9 @@ output/*
 *genmod*
 *.pbs
 *.nb
+*.pyc
+__pycache__
+_build
 results/*
 source/legacy*
 bin/*

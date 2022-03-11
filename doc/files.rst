@@ -1,17 +1,17 @@
-.. index:: files
+.. index:: Files
 
 Files
 =====
 
 The basic files needed by TITAN are the following:
 
-* `input`
-* `basis`
+* :guilabel:`input`
+* :guilabel:`basis`
 
 Other files that may be necessary depending on the calculation:
 
-* `kbands`
-* `initialmag`
+* :guilabel:`kbands`
+* :guilabel:`initialmag`
 
 
 

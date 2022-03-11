@@ -56,7 +56,7 @@ html_theme = 'sphinx_rtd_theme'
 html_theme_options = {
   'collapse_navigation': False,
   'logo_only': False,
-#   'style_nav_header_background': "#023D6B",
+  'style_nav_header_background': "#888888",
   'style_external_links': True,
   'navigation_depth': -1
   }

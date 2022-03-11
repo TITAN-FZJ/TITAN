@@ -1,4 +1,4 @@
-.. index:: self_consistency
+.. index:: Self consistency
 
 Self consistency
 ================
