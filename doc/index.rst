@@ -8,15 +8,25 @@ Welcome to TITAN's documentation!
 *********************************
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: -1
+   :caption: Download and Install
+
+   download
+   installation
+
+.. toctree::
+   :maxdepth: -1
+   :caption: Usage
 
    introduction
    types
    input_files
    output_files
-   examples
    scripts
+   examples
+   publications
+   references
+   contact
 
 
 
