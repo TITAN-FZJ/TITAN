@@ -11,3 +11,6 @@ For ``-> itype = 8``, TITAN calculates frequency-dependent response to electric 
     Currents are non-local responses in the form of :math:`\delta\langle O_{ij} \rangle`, and this is
     currently not working with the generalized cell.
     The main problem is the relation between Hartree-Fock and RPA responses.
+
+
+Publications: spin-orbit torques [HE]_, [Res]_, [SOT]_, [OME]_

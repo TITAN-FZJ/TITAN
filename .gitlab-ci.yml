@@ -527,7 +527,7 @@ build:page:
   script:
     - pip install sphinx
     - pip install sphinx-rtd-theme
-    - pip install sphinx-tabs
+    - pip install sphinx-tabs==3.2.0
     - pip install sphinx-panels
     - cd doc/
     - make html
