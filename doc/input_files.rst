@@ -11,6 +11,7 @@ Main files
 The basic files needed by TITAN are the following:
 
 .. index:: input
+.. _input:
 
 :guilabel:`input`
 -----------------

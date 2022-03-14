@@ -1,7 +1,7 @@
 .. index:: Response functions (Magnetic Field)
 
 ***********************************
-Response functions x magnetic field
+Response functions x Magnetic field
 ***********************************
 
 For ``-> itype = 9``, the magnetic-field-dependent response functions to electric fields are calculated
