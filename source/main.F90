@@ -96,7 +96,7 @@ program TITAN
   write(output%Sites,fmt="(i0,'Sites')") s%nAtoms
 
   ! Writing Positions into file
-  if( lpositions .and. (myrank==0) ) call writeLattice(s)
+  if( lpositions .and. (myrank==0) .and. (tbmode==1) ) call writeLattice(s)
 
   !------------- Creating folders for current calculation ------------
   if(lcreatefolders) then
