@@ -21,7 +21,7 @@ However, we shall greatly appreciate if scientific work done using TITAN will co
 ..         :title: font-weight-bold
 
 
-.. admonition:: `Commun Phys 5, 16 (2022) <https://doi.org/10.1038/s42005-021-00798-8>`_
+.. admonition:: `Commun. Phys. 5, 16 (2022) <https://doi.org/10.1038/s42005-021-00798-8>`_
     :class: publications
 
     | **Title**:    Polarisation-dependent single-pulse ultrafast optical switching of an elementary ferromagnet
@@ -77,7 +77,7 @@ However, we shall greatly appreciate if scientific work done using TITAN will co
         | }
 
 
-.. admonition:: `Commun Phys 3, 19 (2020) <https://doi.org/10.1038/s42005-020-0282-x>`_
+.. admonition:: `Commun. Phys. 3, 19 (2020) <https://doi.org/10.1038/s42005-020-0282-x>`_
     :class: publications
 
     | **Title**:    Spin-orbit torques and their associated effective fields from gigahertz to terahertz

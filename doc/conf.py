@@ -27,7 +27,11 @@ author = 'TITAN Developer Team'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = [ 'sphinx.ext.autosectionlabel', 'sphinx_tabs.tabs', 'sphinx_panels' ]
+extensions = [ 
+  'sphinx.ext.autosectionlabel', 
+  'sphinx_tabs.tabs', 
+  'sphinx_panels',
+  ]
 autosectionlabel_prefix_document = True
 sphinx_tabs_disable_tab_closing = True
 
@@ -38,7 +42,6 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -73,6 +76,9 @@ html_css_files = [
 # html_js_files = [
 #     'custom.js'
 # ]
+
+# favicon
+html_favicon = 'favicon.ico'
 
 # If given, this must be the name of an image file (path relative to the 
 # configuration directory) that is the logo of the docs, or URL that points 
