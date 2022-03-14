@@ -27,7 +27,7 @@ author = 'TITAN Developer Team'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = [ 'sphinx.ext.autosectionlabel', 'sphinx_tabs.tabs' ]
+extensions = [ 'sphinx.ext.autosectionlabel', 'sphinx_tabs.tabs', 'sphinx_panels' ]
 autosectionlabel_prefix_document = True
 sphinx_tabs_disable_tab_closing = True
 

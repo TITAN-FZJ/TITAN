@@ -74,31 +74,31 @@ Apart from these files, TITAN will generate output files that are put on the ``$
 An example of its structure is given below, for a system with 4 atoms in the unit cell (``4Sites``):
 
 .. code-block:: text
-    
+
     results/
-    ├── FSOC
+    ├── FSOC                      | Spin-orbit coupling = False
     │   └── selfconsistency
-    └── TSOC
-        ├── 4Sites
-        │   ├── A
-        │   │   ├── Slope
-        │   │   └── TCM
-        │   ├── Beff
-        │   ├── BS
-        │   ├── CC
-        │   ├── CD
-        │   ├── FS
-        │   ├── HF
-        │   ├── Jij
-        │   ├── LC
-        │   ├── LD
-        │   ├── LDOS
-        │   ├── RPA
-        │   ├── SC
-        │   ├── SD
-        │   ├── SHA
-        │   ├── SOT
-        │   └── time_propagation
+    └── TSOC                      | Spin-orbit coupling = True
+        ├── 4Sites                | 4 sites in the unit cell
+        │   ├── A                 | Gilbert damping alpha...
+        │   │   ├── Slope         | ...from the slope of the susceptibility
+        │   │   └── TCM           | ...from the torque correlation methods
+        │   ├── Beff              | Effective magnetic fields (when electric field is applied)
+        │   ├── BS                | Band Structure
+        │   ├── CC                | Charge current (currently not working)
+        │   ├── CD                | Charge disturbance
+        │   ├── FS                | Fermi Surface / Iso-Energy
+        │   ├── HF                | Hartree-Fock susceptibilities
+        │   ├── Jij               | Coupling tensor
+        │   ├── LC                | Orbital angular momentum current (currently not working)
+        │   ├── LD                | Orbital angular momentum disturbance
+        │   ├── LDOS              | Local Density of States
+        │   ├── RPA               | RPA susceptibilities
+        │   ├── SC                | Spin current (currently not working)
+        │   ├── SD                | Spin disturbance
+        │   ├── SHA               | Spin Hall Angle (currently not working)
+        │   ├── SOT               | Spin Orbit Torques
+        │   └── time_propagation  | Real-time propagation observables
         └── selfconsistency
 
 It contains first a separation into calculations with (``T``) and without (``F``) SOC.

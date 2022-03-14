@@ -26,6 +26,7 @@ Welcome to TITAN's documentation!
    examples
    publications
    references
+   known_issues
    contact
 
 
