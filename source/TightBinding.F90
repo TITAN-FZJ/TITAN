@@ -221,7 +221,8 @@ contains
     use mod_system,            only: System_type
     use mod_mpi_pars,          only: abortProgram
     use mod_tools,             only: ItoS,StoI,StoR,StoArray,next_line,vec_norm,vecDist,is_numeric
-    use mod_io,                only: log_warning,log_error,log_message,get_orbitals
+    use mod_io,                only: get_orbitals
+    use mod_logging,           only: log_warning,log_error
     use mod_input,             only: get_parameter
     use mod_superconductivity, only: lsuperCond
     use mod_SOC,               only: socscale,SOC

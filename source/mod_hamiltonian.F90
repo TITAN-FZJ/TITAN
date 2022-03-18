@@ -396,18 +396,18 @@ contains
 
   end subroutine hamiltklinearsoc
 
-  subroutine build_hext(kp,b_field,A_t,hext_t)
+  subroutine build_hext(kp,lmagnetic,b_field,lelectric,A_t,hext_t)
     !! Build time dependent external perturbation Hamiltonian
     !! For a magnetic perturbation: H_ext(t)= S.B(t),  S= Pauli matricies
     !! For an electric perturbation: H_ext(t)= ((P-e*A)^2)/2*m, here only the linear term is implemented.
     use mod_kind,              only: dp
     use mod_constants,         only: cI,cZero
-    use mod_time_propagator,   only: lelectric,lmagnetic
     use mod_System,            only: ia,ia_sc,s => sys
     use mod_parameters,        only: dimHsc
     use mod_superconductivity, only: lsuperCond
     implicit none
     real(dp),    intent(in)  :: kp(3)
+    logical,     intent(in)  :: lmagnetic,lelectric
     real(dp),    intent(in)  :: b_field(3), A_t(3)
     complex(dp), intent(out) :: hext_t(dimHsc,dimHsc)
 

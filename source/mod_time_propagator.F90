@@ -79,7 +79,7 @@ contains
     use mod_tools,              only: KronProd,diagonalize,lwork,build_identity
     use mod_superconductivity,  only: allocate_supercond_variables
     use mod_hamiltonian,        only: calchk,hamilt_local,lfullhk,h0,fullhk
-    use mod_io,                 only: log_warning
+    use mod_logging,            only: log_warning
     use mod_mpi_pars,           only: rFreq,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,FieldComm,ierr
     use mod_torques,            only: SO_torque_operator,xc_torque_operator
     implicit none
@@ -649,7 +649,7 @@ contains
     complex(dp), dimension(dimHsc,dimHsc) :: hamilt_t,hext_t,dHdc
 
     ! Building time dependent hamiltonian
-    call build_hext(kp,b_field,A_t,hext_t)
+    call build_hext(kp,lmagnetic,b_field,lelectric,A_t,hext_t)
     hamilt_t = hamilt_nof - hext_t
 
     call build_term_Jacobian(s, eval, Yn, dHdc)
@@ -846,7 +846,7 @@ contains
     use mod_kind,               only: dp, int32, int64
     use mod_parameters,         only: output
     use mod_tools,              only: itos
-    use mod_io,                 only: log_warning
+    use mod_logging,            only: log_warning
     use mod_system,             only: System_type
     implicit none
     integer(int32), intent(in) :: rank
@@ -910,7 +910,7 @@ contains
     !! This subroutine is to recover current time-propagation state
     !! Note that the recover has to use the same MPI setup as used when saving the state, since different files per rank are written
     use mod_kind,               only: dp,int32,int64
-    use mod_io,                 only: log_warning
+    use mod_logging,            only: log_warning
     use mod_parameters,         only: output
     use mod_system,             only: System_type
     implicit none
@@ -1060,7 +1060,7 @@ contains
     use mod_kind,            only: dp,int32,int64
     use mod_parameters,      only: dimH
     use mod_BrillouinZone,   only: realBZ
-    use mod_io,              only: log_warning
+    use mod_logging,         only: log_warning
     use mod_tools,           only: itos, rtos
     implicit none
     integer(int32),   intent(in) :: unit

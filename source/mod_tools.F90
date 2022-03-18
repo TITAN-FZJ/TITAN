@@ -885,7 +885,7 @@ contains
 #else
     use mod_mpi_pars,   only: rField
 #endif
-    ! use mod_io, only: log_warning
+    ! use mod_logging, only: log_warning
     implicit none
     character(len=1), intent(in)  :: units
     !> In which units the result will be returned: g = GB, m = MB, k = KB

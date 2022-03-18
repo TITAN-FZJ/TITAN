@@ -27,7 +27,7 @@ contains
     use mod_mpi_pars,  only: myrank,abortProgram
     use mod_constants, only: tpi
     use mod_tools,     only: cross,vec_norm
-    use mod_io,        only: log_warning
+    use mod_logging,   only: log_warning
     implicit none
 
     character(len=*),  intent(in)    :: filename

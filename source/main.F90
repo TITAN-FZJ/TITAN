@@ -11,7 +11,8 @@ program TITAN
   use mod_parameters,          only: output,lpositions,lcreatefolders,parField,parFreq,nEner1,skip_steps,ldebug, &
                                      kp_in,kptotal_in,eta,leigenstates,itype,theta,phi, &
                                      laddresults,lsortfiles,lcreatefiles,arg,tbmode,lfixEf,addelectrons
-  use mod_io,                  only: get_parameters,iowrite,log_error,log_warning
+  use mod_io,                  only: get_parameters,iowrite
+  use mod_logging,             only: log_error,log_warning
   use Lattice,                 only: initLattice,writeLattice
   use mod_BrillouinZone,       only: realBZ,countBZ
   use mod_SOC,                 only: llinearsoc,SOC,updateLS

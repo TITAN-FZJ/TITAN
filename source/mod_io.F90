@@ -1,80 +1,9 @@
 module mod_io
-  ! Subroutines to read input file and variables containing these parameters
+  !! Subroutines to read input file and variables containing these parameters
   implicit none
-  logical :: log_unit = .false.
-  character(len=12), parameter :: logfile = "parameter.in"
-  character(len=:), allocatable :: log_store
 
 contains
 
-  subroutine log_message(proced, message, var)
-    use mod_mpi_pars,   only: myrank
-    use mod_parameters, only: output
-    implicit none
-    character(len=*), intent(in) :: proced
-    character(len=*), intent(in) :: message
-    character(len=:), allocatable, intent(inout), optional :: var
-
-
-    ! To store initial messages before output file is open
-    if (present(var)) then
-      var = trim(var) // "[Warning] [" // proced // "] "// trim(message) // NEW_LINE('a')
-      return
-    end if
-    
-    if(myrank == 0) then
-      if(log_unit) then
-        ! To write the stored messages without the square brackeds and skipping a line
-        if (proced == "") then
-          write(output%unit, "(a)", advance="no") trim(message)
-        else
-          write(output%unit, "('[',a,'] ',a)") proced, trim(message)
-        end if
-      else
-        write(*, "('[',a,'] ',a)") proced, trim(message)
-      end if
-    end if
-  end subroutine log_message
-
-
-  subroutine log_warning(proced, message, var)
-    use mod_mpi_pars,   only: myrank
-    use mod_parameters, only: output
-    implicit none
-    character(len=*), intent(in) :: proced
-    character(len=*), intent(in) :: message
-    character(len=:), allocatable, intent(inout), optional :: var
-
-    ! To store initial messages before output file is open
-    if (present(var)) then
-      var = trim(var) // "[Warning] [" // proced // "] "// trim(message) // NEW_LINE('a')
-      return
-    end if
-
-    if(myrank == 0) then
-      if(log_unit) then
-        write(output%unit, "('[Warning] [',a,'] ',a)") proced, trim(message)
-      else
-        write(*, "('[Warning] [',a,'] ',a)") proced, trim(message)
-      end if
-    end if
-  end subroutine log_warning
-
-
-  subroutine log_error(proced, message)
-    use mod_mpi_pars,   only: myrank,MPI_Abort,MPI_COMM_WORLD,errorcode,ierr
-    use mod_parameters, only: output
-    implicit none
-    character(len=*), intent(in) :: proced
-    character(len=*), intent(in) :: message
-
-    if(myrank == 0) then
-      if(log_unit) write(output%unit, "('[Error] [',a,'] ',a)") proced, trim(message)
-    end if
-    write(*, "('[Error] [',a,'] ',a)") proced, trim(message)
-    call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-    stop
-  end subroutine log_error
 
 
   function check_placeholders(initialFilename) result(modifiedFilename)
@@ -98,6 +27,7 @@ contains
 
   subroutine get_parameters(filename,s)
     use mod_kind,              only: dp,int64
+    use mod_logging,           only: log_unit,logfile,log_store,log_message,log_warning,log_error
     use AtomTypes,             only: default_Orbs,default_nOrb
     use mod_input,             only: get_parameter,read_file,enable_input_logging,disable_input_logging
     use mod_parameters,        only: output,laddresults,lverbose,ldebug,lkpoints,&
@@ -1155,7 +1085,7 @@ contains
     use ElectricField,         only: ElectricFieldMode, ElectricFieldVector, EFt, EFp
     use AdaptiveMesh,          only: minimumBZmesh
     use mod_superconductivity, only: lsupercond
-    use mod_time_propagator,  only: integration_time, sc_tol, hE_0, hw1_m, hw_e, hw_m, tau_e, &
+    use mod_time_propagator,   only: integration_time, sc_tol, hE_0, hw1_m, hw_e, hw_m, tau_e, &
                                      tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, npulse_e, lpulse_m, npulse_m, &
                                      polarization_vec_e, polarization_vec_m, abs_tol, rel_tol, safe_factor
 #ifdef _GPU

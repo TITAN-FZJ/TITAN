@@ -24,7 +24,7 @@ contains
     use mod_system,    only: System_type
     use AtomTypes,     only: NeighborAtom
     use mod_constants, only: cZero
-    use mod_io,        only: log_error
+    use mod_logging,   only: log_error
     use mod_tools,     only: ItoS,RtoS,StoI,StoR,StoArray,next_line,get_string_size
     implicit none
     type(System_type),   intent(inout) :: s
