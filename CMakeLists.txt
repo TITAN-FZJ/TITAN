@@ -69,10 +69,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/TorqueTorqueResponse.F90
                                   source/TorqueSpinResponse.F90
                                   source/mod_superconductivity.F90
-                                  source/mod_RK_matrices.F90
-                                  source/mod_imRK4.F90
                                   source/mod_time_propagator.F90
-                                  source/mod_checkpoint.F90
                                   source/mod_time_propagator_io.F90
                                   source/mod_cuda.F90
                                   source/mod_nvtx.F90
