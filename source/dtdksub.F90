@@ -12,7 +12,7 @@ subroutine dtdksub(ue,kp,dtdk)
   complex(dp) :: kpExp
 
   dtdk = cZero
-  ! Mouting derivative of slab's hamiltonian
+  ! Mouting derivative of slabs hamiltonian
   ! d/dk t_ij * exp(i*R*k) = i*R t_ij exp(i*R*k)
   do k = 1, s%nNeighbors
     j = s%Neighbors(k)%BasisIndex

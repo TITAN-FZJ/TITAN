@@ -119,7 +119,7 @@ contains
     ! A mix (defaul: geometric; optional: simple average) between different elements is used
     !
     ! Scaling law by Andersen et al. O.K. Andersen, O. Jepsen, Physica 91B, 317 (1977); O.K. Andersen, W. Close. H. Nohl, Phys. Rev. B17, 1209 (1978)
-    ! Distance dependence of tight binding matrix elements is given by V = C * d^(-[l+l'+1])
+    ! Distance dependence of tight binding matrix elements is given by V = C * d^(-[l1+l2+1])
     ! e.g for ss hopping distance dependence is d^-1, for sp hopping d^-2
     ! do mu = 1, s%nOrb
     !   do nu = 1, s%nOrb

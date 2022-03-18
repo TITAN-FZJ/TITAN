@@ -121,7 +121,7 @@ contains
     use adaptiveMesh,          only: minimumBZmesh
     use mod_fermi_surface,     only: lfs_loop,fs_energy_npts,fs_energy_npt1,fs_energy_i,fs_energy_f
     use mod_mpi_pars,          only: myrank,ierr
-    use mod_imRK4_parameters,  only: integration_time,sc_tol,step,hE_0,hw1_m,hw_e,hw_m,tau_e,&
+    use mod_time_propagator,  only: integration_time,sc_tol,step,hE_0,hw1_m,hw_e,hw_m,tau_e,&
                                      polarization_e,polarization_m,polarization_vec_e,polarization_vec_m,&
                                      npulse_e,npulse_m,tau_m,delay_e,delay_m,lelectric,safe_factor,&
                                      lmagnetic,lpulse_e,lpulse_m,abs_tol,rel_tol
@@ -220,7 +220,7 @@ contains
 
     log_unit = .true.
 
-! Print the Git version (VERSION is defined via CMake macro and defined with compiler flag -DVERSION='')
+! Print the Git version (VERSION is defined via CMake macro and defined with compiler flag -DVERSION)
 #if defined(VERSION)
     if(myrank==0) write(output%unit,"('Git commit: ',a)") VERSION
 #else
@@ -556,7 +556,7 @@ contains
       end if
     endif
     if(itype == 4) then
-      ! Path to calculate band structure (can't be single point in this case)
+      ! Path to calculate band structure (cannot be single point in this case)
       if(.not. get_parameter("band", bands, band_cnt)) &
         call log_error("get_parameters", "'band' missing.")
       if((band_cnt < 2).or.(nQvec < 2)) call log_error("get_parameters", "Need at least two points for Band Structure")
@@ -1155,7 +1155,7 @@ contains
     use ElectricField,         only: ElectricFieldMode, ElectricFieldVector, EFt, EFp
     use AdaptiveMesh,          only: minimumBZmesh
     use mod_superconductivity, only: lsupercond
-    use mod_imRK4_parameters,  only: integration_time, sc_tol, hE_0, hw1_m, hw_e, hw_m, tau_e, &
+    use mod_time_propagator,  only: integration_time, sc_tol, hE_0, hw1_m, hw_e, hw_m, tau_e, &
                                      tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, npulse_e, lpulse_m, npulse_m, &
                                      polarization_vec_e, polarization_vec_m, abs_tol, rel_tol, safe_factor
 #ifdef _GPU

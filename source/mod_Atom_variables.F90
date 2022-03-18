@@ -2,8 +2,8 @@ module mod_Atom_variables
   implicit none
 contains
 
-  ! This subroutine allocates variables that depend on nAtom
   subroutine allocate_Atom_variables(nAtoms,nOrbs)
+    !! This subroutine allocates variables that depend on nAtom
     use mod_mpi_pars,   only: abortProgram
     use mod_System,     only: System_type
 #ifdef _GPU
@@ -26,8 +26,8 @@ contains
 
   end subroutine allocate_Atom_variables
 
-  ! This subroutine deallocates variables that depend on nAtom
   subroutine deallocate_Atom_variables()
+    !! This subroutine deallocates variables that depend on nAtom
 #ifdef _GPU
     use mod_parameters, only: sigmai2i,sigmaimunu2i,sigmaijmunu2i,isigmamu2n,isigmamu2n_d,n2isigmamu
 #else

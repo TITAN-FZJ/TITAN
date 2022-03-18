@@ -585,7 +585,7 @@ contains
 !             XERPRN is asked to wrap around at 72 characters in
 !             addition to looking for '$$'.
 !
-!    NERR     An INTEGER      :: value that is chosen by the library routine's
+!    NERR     An INTEGER      :: value that is chosen by the library routines
 !             author.  It must be in the range -99 to 999 (three
 !             printable digits).  Each distinct error should have its
 !             own error number.  These error numbers should be described
@@ -598,12 +598,12 @@ contains
 !             level (severity) of the error.  Their meanings are
 !
 !            -1  A warning message.  This is used if it is not clear
-!                that there really is an error, but the user's attention
+!                that there really is an error, but the users attention
 !                may be needed.  An attempt is made to only print this
 !                message once.
 !
 !             0  A warning message.  This is used if it is not clear
-!                that there really is an error, but the user's attention
+!                that there really is an error, but the users attention
 !                may be needed.
 !
 !             1  A recoverable error.  This is used even if the error is
@@ -611,7 +611,7 @@ contains
 !                answer.  If the user has told the error package to
 !                return after recoverable errors, then XERMSG will
 !                return to the Library routine which can then return to
-!                the user's routine.  The user may also permit the error
+!                the users routine.  The user may also permit the error
 !                package to terminate the program upon encountering a
 !                recoverable error.
 !
@@ -1054,7 +1054,7 @@ contains
       ELSEIF (LPIECE == 1) THEN
 !
 !       WE HAVE A NEW LINE SENTINEL AT MESSG(NEXTC:NEXTC+1).
-!       DON'T PRINT A BLANK LINE.
+!       DO NOT PRINT A BLANK LINE.
 !
          NEXTC = NEXTC + 2
          GO TO 50

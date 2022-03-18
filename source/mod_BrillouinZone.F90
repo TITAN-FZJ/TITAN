@@ -197,8 +197,8 @@ contains
       kp = dble(nx)*b1 / dble(self%nkpt_x) + dble(ny)*b2 / dble(self%nkpt_y) + dble(nz)*b3 / dble(self%nkpt_z)
 
       smallest_dist = ini_smallest_dist
-      ! Checks to which of the 4 BZ's the kpoint belongs by checking
-      ! to which BZ it's closer and stores the smallest_dist
+      ! Checks to which of the 4 BZs the kpoint belongs by checking
+      ! to which BZ it is closer and stores the smallest_dist
       do j = 1, 8
         diff(:,j) = kp - bz_vec(:,j)
         distance(j) = vec_norm(diff(:,j), 3)
@@ -206,7 +206,7 @@ contains
       end do
 
       ! Checks if the kpoint is in the border between two or more
-      ! BZ's. If yes, create a clone of it to translate later into
+      ! BZs. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 8
         if( abs(distance(j)-smallest_dist) < 1.e-12_dp ) then
@@ -289,8 +289,8 @@ contains
       kp = dble(nx)*b1 / dble(nkpt_x) + dble(ny)*b2 / dble(nkpt_y) + dble(nz)*b3 / dble(nkpt_z)
 
       smallest_dist=ini_smallest_dist
-      ! Checks to which of the 4 BZ's the kpoint belongs by checking
-      ! to which BZ it's closer and stores the smallest_dist
+      ! Checks to which of the 4 BZs the kpoint belongs by checking
+      ! to which BZ it is closer and stores the smallest_dist
       do j = 1, 8
         diff(:,j) = kp - bz_vec(:,j)
         distance(j) = vec_norm(diff(:,j), 3)
@@ -298,7 +298,7 @@ contains
       end do
 
       ! Checks if the kpoint is in the border between two or more
-      ! BZ's. If yes, create a clone of it to translate later into
+      ! BZs. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 8
         if( abs(distance(j)-smallest_dist) < 1.e-12_dp ) numextrakbz=numextrakbz+1
@@ -356,8 +356,8 @@ contains
       kp = dble(nx)*b1 / dble(self%nkpt_x) + dble(ny)*b2 / dble(self%nkpt_y)
 
       smallest_dist = ini_smallest_dist
-      ! Checks to which of the 4 BZ's the kpoint belongs by checking
-      ! to which BZ it's closer and stores the smallest_dist
+      ! Checks to which of the 4 BZs the kpoint belongs by checking
+      ! to which BZ it is closer and stores the smallest_dist
       do j = 1, 4
         diff(:,j) = kp - bz_vec(:,j)
         distance(j) = vec_norm(diff(:,j), 3)
@@ -365,7 +365,7 @@ contains
       end do
 
       ! Checks if the kpoint is in the border between two or more
-      ! BZ's. If yes, create a clone of it to translate later into
+      ! BZs. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 4
         if( abs(distance(j)-smallest_dist) < 1.e-12_dp ) then
@@ -445,8 +445,8 @@ contains
       kp = dble(nx)*b1 / dble(nkpt_x) + dble(ny)*b2 / dble(nkpt_y)
 
       smallest_dist = ini_smallest_dist
-      ! Checks to which of the 4 BZ's the kpoint belongs by checking
-      ! to which BZ it's closer and stores the smallest_dist
+      ! Checks to which of the 4 BZs the kpoint belongs by checking
+      ! to which BZ it is closer and stores the smallest_dist
       do j = 1, 4
         diff(:,j) = kp - bz_vec(:,j)
         distance(j) = vec_norm(diff(:,j), 3)
@@ -454,7 +454,7 @@ contains
       end do
 
       !Checks if the kpoint is in the border between two or more
-      ! BZ's. If yes, create a clone of it to translate later into
+      ! BZs. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j = 1, 4
         if( abs(distance(j)-smallest_dist) < 1.e-12_dp ) numextrakbz = numextrakbz + 1
@@ -508,8 +508,8 @@ contains
       kp = dble(nx)*b1 / dble(self%nkpt_x)
 
       smallest_dist = ini_smallest_dist
-      ! Checks to which of the 2 BZ's the kpoint belongs by checking
-      ! to which BZ it's closer and stores the smallest_dist
+      ! Checks to which of the 2 BZs the kpoint belongs by checking
+      ! to which BZ it is closer and stores the smallest_dist
       do j = 1, 2
         diff(:,j) = kp - bz_vec(:,j)
         distance(j) = vec_norm(diff(:,j), 3)
@@ -517,7 +517,7 @@ contains
       end do
 
       ! Checks if the kpoint is in the border between two or more
-      ! BZ's. If yes, create a clone of it to translate later into
+      ! BZs. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 2
         if( abs(distance(j)-smallest_dist) < 1.e-12_dp ) then
@@ -590,15 +590,15 @@ contains
       kp = dble(nx)*b1 / dble(nkpt_x)
 
       smallest_dist = ini_smallest_dist
-      ! Checks to which of the 4 BZ's the kpoint belongs by checking
-      ! to which BZ it's closer and stores the smallest_dist
+      ! Checks to which of the 4 BZs the kpoint belongs by checking
+      ! to which BZ it is closer and stores the smallest_dist
       do j = 1, 2
         diff(:,j) = kp - bz_vec(:,j)
         distance(j) = vec_norm(diff(:,j), 3)
         if(distance(j) < smallest_dist) smallest_dist = distance(j)
       end do
       !Checks if the kpoint is in the border between two or more
-      ! BZ's. If yes, create a clone of it to translate later into
+      ! BZs. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j = 1, 2
         if( abs(distance(j)-smallest_dist) < 1.e-12_dp ) numextrakbz = numextrakbz + 1
@@ -709,15 +709,15 @@ contains
       kp = dble(nx)*b1 / dble(nkpt_x) + dble(ny)*b2 / dble(nkpt_y) + dble(nz)*b3 / dble(nkpt_z)
 
       smallest_dist=ini_smallest_dist
-      ! Checks to which of the 4 BZ's the kpoint belongs by checking
-      ! to which BZ it's closer.
+      ! Checks to which of the 4 BZs the kpoint belongs by checking
+      ! to which BZ it is closer.
       do j=1, 8
         diff = kp - bz_vec(:,j)
         distance = sqrt(dot_product(diff, diff))
         if(distance < smallest_dist) smallest_dist = distance
       end do
       !Checks if the kpoint is in the border between two or more
-      ! BZ's. If yes, create a clone of it to translate later into
+      ! BZs. If yes, create a clone of it to translate later into
       ! the 1st BZ.
       do j=1, 8
         diff=kp - bz_vec(:,j)

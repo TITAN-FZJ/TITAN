@@ -20,8 +20,9 @@ module mod_system
   implicit none
 
   type :: System_type
-    !! Variables for the system to be calculated
-    character(len=200) :: Name = ""
+  !! Variables for the system to be calculated
+
+  character(len=200) :: Name = ""
     !! Name of the system
     real(dp) :: a0
     !! Lattice parameter
@@ -74,17 +75,26 @@ module mod_system
   type(System_type) :: sys
   !! System variables
 
-  integer(int32) :: n0sc1 !< first neighbor to calculate the in-plane spin and charge current
-  integer(int32) :: n0sc2 !< last neighbor to calculate the in-plane spin and charge current
-  integer(int32) :: n0sc  !< Number of neighbors to calculate currents
+  integer(int32) :: n0sc1 
+  !! first neighbor to calculate the in-plane spin and charge current (deprecated?)
+  integer(int32) :: n0sc2 
+  !! last neighbor to calculate the in-plane spin and charge current (deprecated?)
+  integer(int32) :: n0sc  
+  !! Number of neighbors to calculate currents (deprecated?)
   real(dp), dimension(3) :: pln_normal
+  !! Vector normal to the plane (deprecated?)
 
   integer(int32), dimension(:,:), allocatable :: ia
+  !! Array (1:4,nAtoms) containing initial and final indices of orbitals for different hamiltonian sections:
+  !! 1 - Begin up, 2 - End up, 3 - Begin down, 4 - End down, for each atom i
 #ifdef _GPU
   integer(int32), dimension(:,:), allocatable, device :: ia_d
+  !! GPU array containing initial and final indices of orbitals for different hamiltonian sections
   integer, allocatable, device :: nOrb_d(:)
+  !! GPU array containing the number of orbitals
 #endif
   integer(int32), dimension(:,:), allocatable :: ia_sc
+  !! Array containing initial and final indices of orbitals for different superconductor hamiltonian sections
 
 contains
 

@@ -1,14 +1,60 @@
 module mod_time_propagator
+  !! module for time-propagation parameters
+  use mod_kind, only: dp
   implicit none
+  logical      :: lelectric, lmagnetic, lpulse_e, lpulse_m
+  !! Logical variables for choosing which field is applied
+
+  integer      :: npulse_e
+  !! Number of electric pulses
+  real(dp),     dimension(:) , allocatable :: hE_0
+  !! Intensity of electric fields
+  real(dp),     dimension(:) , allocatable :: hw_e
+  !! Frequency (hwt) of electric fields
+  real(dp),     dimension(:) , allocatable :: tau_e
+  !! Pulse length of electric fields
+  real(dp),     dimension(:) , allocatable :: delay_e
+  !! Time delay in electric fields pulses
+  character(len=1), dimension(:) , allocatable ::  polarization_e 
+  !! Polarization of electric field
+  real(dp), dimension(:,:,:) , allocatable ::  polarization_vec_e
+  !! Polarization vector, inphase (cos) and out-of-phase (sin) of electric field
+
+  integer      :: npulse_m
+  !! Number of magnetic pulses
+  real(dp),     dimension(:) , allocatable :: hw1_m
+  !! Intensity of magnetic fields
+  real(dp),     dimension(:) , allocatable :: hw_m
+  !! Frequency (w.t) of magnetic fields
+  real(dp),     dimension(:) , allocatable :: tau_m
+  !! Pulse length of magnetic fields
+  real(dp),     dimension(:) , allocatable :: delay_m
+  !! Time delay in magnetic fields pulses
+  character(len=1), dimension(:) , allocatable ::  polarization_m
+  !! Polarization of magnetic field
+  real(dp), dimension(:,:,:) , allocatable ::  polarization_vec_m
+  !! Polarization vector, inphase (cos) and out-of-phase (sin) of magnetic field
+
+  real(dp) :: integration_time
+  !! Real integration time 
+  real(dp) :: step
+  !! Step size
+  real(dp) :: sc_tol
+  !! Time propagation self consistency tolerence 
+  real(dp) :: abs_tol, rel_tol, safe_factor
+  !! Step size control error(ERR) tolerance
+  integer  :: dimH2
+  !! Dimension: 2*dimension of the Hamiltonian (2*dimHsc)
+  real(dp) :: ERR
+  !! Error for the calculation of the step size in time propagation
+  real(dp) :: time_conv = 4.84e-5_dp
+  !! Conversion of time units to picosecond
+
 contains
 
   subroutine time_propagator(s)
     use mod_kind,               only: dp,int32,int64
     use mod_constants,          only: cZero,cI
-    use mod_imRK4_parameters,   only: dimH2,step,integration_time,ERR,safe_factor,lelectric, &
-                                      hE_0,hw_e,lpulse_e,tau_e,delay_e,lmagnetic,hw1_m,hw_m, &
-                                      lpulse_m,tau_m,delay_m,polarization_e,polarization_vec_e, &
-                                      polarization_m,polarization_vec_m
     use mod_RK_matrices,        only: A,id,id2,M1,c1,c2,build_identity
     use mod_imRK4,              only: iterate_Zki,calculate_step_error,magnetic_field,vector_potential
     use mod_BrillouinZone,      only: realBZ
@@ -87,7 +133,7 @@ contains
     M1 = KronProd(size(A,1),size(A,1),dimHsc,dimHsc,A,id)
 
     ! Checking for checkpoints
-    use_checkpoint = recover_state(rFreq(1),s%nOrb,s%nAtoms,dimHsc,realBZ%workload,t_cp,step_cp,eval_kn,evec_kn,mx_t,my_t,mz_t)
+    use_checkpoint = recover_state(rFreq(1),s,dimHsc,realBZ%workload,t_cp,step_cp,eval_kn,evec_kn,mx_t,my_t,mz_t)
     if(use_checkpoint) then
       t = t_cp
       step = step_cp
@@ -234,7 +280,7 @@ contains
             call iterate_Zki(s,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2,hamilt_nof,kp,eval_kn(n,ik),step,Yn_new,Yn,Yn_hat)
             ! Note: all iteration outputs correspond to Yn^~ 
 
-            ! Getting Yn's again; Yn = Yn^~ * exp( (-i*En*t/hbar) ), hbar=1, rename Yn to Yn_e
+            ! Getting Yn again; Yn = Yn^~ * exp( (-i*En*t/hbar) ), hbar=1, rename Yn to Yn_e
             Yn_e(:)     = Yn     * exp_eval
             Yn_new_e(:) = Yn_new * exp_eval
             Yn_hat_e(:) = Yn_hat * exp_eval
@@ -279,7 +325,7 @@ contains
 
             ERR = ERR + ERR_kn * weight
 
-            ! Storing temporary propagated vector before checking if it's Accepted.
+            ! Storing temporary propagated vector before checking if it is accepted.
             ! Note: save the Yn^~ outputs to be propagated.
             evec_kn_temp(:,n,ik) = Yn_new(:)
 
@@ -354,8 +400,8 @@ contains
       myd_t  = 0._dp
       mzd_t  = 0._dp
       do i = 1, s%nAtoms
-        do mud = 1,s%ndOrb
-          mu = s%dOrbs(mud)
+        do mud = 1,s%Types(s%Basis(i)%Material)%ndOrb
+          mu = s%Types(s%Basis(i)%Material)%dOrbs(mud)
           rhod_t(i) = rhod_t(i) + rho_t(mu,i)
           mpd_t (i) = mpd_t (i) + mp_t (mu,i)
           mxd_t (i) = mxd_t (i) + mx_t (mu,i)
@@ -393,7 +439,7 @@ contains
       open(unit=911, file="save", status='old', iostat=ios)
       if(ios==0) then
         close(911)
-        call save_state(rFreq(1),s%nOrb,s%nAtoms,dimHsc,realBZ%workload,t,step,eval_kn,evec_kn,mx_t,my_t,mz_t)
+        call save_state(rFreq(1),s,dimHsc,realBZ%workload,t,step,eval_kn,evec_kn,mx_t,my_t,mz_t)
         call MPI_Barrier(FieldComm, ierr)
         if(rFreq(1) == 0) &
           call execute_command_line('rm save')
@@ -402,7 +448,7 @@ contains
     end do t_loop
 
     ! Creating checkpoint in the last state
-    call save_state(rFreq(1),s%nOrb,s%nAtoms,dimHsc,realBZ%workload,t,step,eval_kn,evec_kn,mx_t,my_t,mz_t)
+    call save_state(rFreq(1),s,dimHsc,realBZ%workload,t,step,eval_kn,evec_kn,mx_t,my_t,mz_t)
 
     deallocate( id,id2,M1 )
     deallocate( hamilt_nof,hk,hkev,eval,eval_kn,evec_kn,evec_kn_temp )

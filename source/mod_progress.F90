@@ -1,4 +1,5 @@
 module mod_progress
+  !! Module with variables and procedures to write out progress and timings of the code
   use mod_kind, only: dp
   implicit none
   real(dp) :: start_program,start_time,elapsed_time
@@ -17,15 +18,15 @@ contains
     character(len=*), intent(in) :: message
     integer         , intent(in), optional :: unit
     character(len=2)   :: spiner(4) = ['| ','/ ','- ','\ ']
-    integer            :: porcent
+    integer            :: percent
 
-    porcent = floor(current_point*100._dp/total_points)
+    percent = floor(current_point*100._dp/total_points)
     elapsed_time = MPI_Wtime() - start_program
-    !write(unit,"(a1,2x,i3,'% (',i0,'/',i0,') of ',a,' done. Total time: ',i2,'h:',i2,'m:',i2,'s',a1,$)") spiner(mod(current_point,4)+1),porcent,current_point,total_points,trim(message),int(elapsed_time/3600._dp),int(mod(elapsed_time,3600._dp)/60._dp),int(mod(mod(elapsed_time,3600._dp),60._dp)),char(13)
+    !write(unit,"(a1,2x,i3,'% (',i0,'/',i0,') of ',a,' done. Total time: ',i2,'h:',i2,'m:',i2,'s',a1,$)") spiner(mod(current_point,4)+1),percent,current_point,total_points,trim(message),int(elapsed_time/3600._dp),int(mod(elapsed_time,3600._dp)/60._dp),int(mod(mod(elapsed_time,3600._dp),60._dp)),char(13)
     if(present(unit)) then
-      write(unit,"(a1,2x,i3,'% (',i0,'/',i0,') of ',a,' done. Total time: ',i2,'h:',i2,'m:',i2,'s',a1)", advance='no') spiner(mod(current_point,4)+1),porcent,current_point,total_points,trim(message),int(elapsed_time/3600._dp),int(mod(elapsed_time,3600._dp)/60._dp),int(mod(mod(elapsed_time,3600._dp),60._dp)),char(13)
+      write(unit,"(a1,2x,i3,'% (',i0,'/',i0,') of ',a,' done. Total time: ',i2,'h:',i2,'m:',i2,'s',a1)", advance='no') spiner(mod(current_point,4)+1),percent,current_point,total_points,trim(message),int(elapsed_time/3600._dp),int(mod(elapsed_time,3600._dp)/60._dp),int(mod(mod(elapsed_time,3600._dp),60._dp)),char(13)
     else
-      write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of ',a,' done. Total time: ',i2,'h:',i2,'m:',i2,'s',a1)", advance='no') spiner(mod(current_point,4)+1),porcent,current_point,total_points,trim(message),int(elapsed_time/3600._dp),int(mod(elapsed_time,3600._dp)/60._dp),int(mod(mod(elapsed_time,3600._dp),60._dp)),char(13)
+      write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of ',a,' done. Total time: ',i2,'h:',i2,'m:',i2,'s',a1)", advance='no') spiner(mod(current_point,4)+1),percent,current_point,total_points,trim(message),int(elapsed_time/3600._dp),int(mod(elapsed_time,3600._dp)/60._dp),int(mod(mod(elapsed_time,3600._dp),60._dp)),char(13)
     end if
 
   end subroutine progress_bar_int
@@ -39,15 +40,15 @@ contains
     character(len=*), intent(in) :: message
     integer         , intent(in), optional :: unit
     character(len=2)   :: spiner(4) = ['| ','/ ','- ','\ ']
-    integer            :: porcent
+    integer            :: percent
 
-    porcent = floor(current_point*100._dp/total_points)
+    percent = floor(current_point*100._dp/total_points)
     elapsed_time = MPI_Wtime() - start_program
-    !write(unit,"(a1,2x,i3,'% (',i0,'/',i0,') of ',a,' done. Total time: ',i2,'h:',i2,'m:',i2,'s',a1,$)") spiner(mod(current_point,4)+1),porcent,current_point,total_points,trim(message),int(elapsed_time/3600._dp),int(mod(elapsed_time,3600._dp)/60._dp),int(mod(mod(elapsed_time,3600._dp),60._dp)),char(13)
+    !write(unit,"(a1,2x,i3,'% (',i0,'/',i0,') of ',a,' done. Total time: ',i2,'h:',i2,'m:',i2,'s',a1,$)") spiner(mod(current_point,4)+1),percent,current_point,total_points,trim(message),int(elapsed_time/3600._dp),int(mod(elapsed_time,3600._dp)/60._dp),int(mod(mod(elapsed_time,3600._dp),60._dp)),char(13)
     if(present(unit)) then
-      write(unit,"(a1,2x,i3,'% (',i0,'/',i0,') of ',a,' done. Total time: ',i2,'h:',i2,'m:',i2,'s',a1)", advance='no') spiner(mod(current_point,4)+1),porcent,current_point,total_points,trim(message),int(elapsed_time/3600._dp),int(mod(elapsed_time,3600._dp)/60._dp),int(mod(mod(elapsed_time,3600._dp),60._dp)),char(13)
+      write(unit,"(a1,2x,i3,'% (',i0,'/',i0,') of ',a,' done. Total time: ',i2,'h:',i2,'m:',i2,'s',a1)", advance='no') spiner(mod(current_point,4)+1),percent,current_point,total_points,trim(message),int(elapsed_time/3600._dp),int(mod(elapsed_time,3600._dp)/60._dp),int(mod(mod(elapsed_time,3600._dp),60._dp)),char(13)
     else
-      write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of ',a,' done. Total time: ',i2,'h:',i2,'m:',i2,'s',a1)", advance='no') spiner(mod(current_point,4)+1),porcent,current_point,total_points,trim(message),int(elapsed_time/3600._dp),int(mod(elapsed_time,3600._dp)/60._dp),int(mod(mod(elapsed_time,3600._dp),60._dp)),char(13)
+      write(*,"(a1,2x,i3,'% (',i0,'/',i0,') of ',a,' done. Total time: ',i2,'h:',i2,'m:',i2,'s',a1)", advance='no') spiner(mod(current_point,4)+1),percent,current_point,total_points,trim(message),int(elapsed_time/3600._dp),int(mod(elapsed_time,3600._dp)/60._dp),int(mod(mod(elapsed_time,3600._dp),60._dp)),char(13)
     end if
 
   end subroutine progress_bar_double_int

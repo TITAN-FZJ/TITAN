@@ -1,5 +1,5 @@
-! This subroutine sets up external magnetic fields and related loop
 subroutine prepare_dclimit()
+  !! This subroutine sets up external magnetic fields variables for itype=9
   use mod_kind, only: dp
   ! use mod_parameters
   use mod_mpi_pars, only: myrank,ierr

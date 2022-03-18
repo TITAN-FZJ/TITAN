@@ -1,17 +1,18 @@
 module mod_check_stop
+  !! Module to check signal files to stop run
   implicit none
   character(len=30) :: stopfilename=""    !! Filename for the new stop file
 
 contains
 
-! This subroutine check for stop file 'filename'
-! and create a unique subfile when more than one iteration is required.
-! This file counts down the remaining number of iterations to be made. 
-! Since the unique file is read at every iteration,
-! it can be editted while the program is running.
-! This is useful to run different jobs with the same loop
-! (in conjunction with variable skip_steps_hw)
   subroutine check_stop(filename,hw_count,e)
+    !! This subroutine check for stop file 'filename'
+    !! and create a unique subfile when more than one iteration is required.
+    !! This file counts down the remaining number of iterations to be made. 
+    !! Since the unique file is read at every iteration,
+    !! it can be editted while the program is running.
+    !! This is useful to run different jobs with the same loop
+    !! (in conjunction with variable skip_steps_hw)
     use mod_kind,       only: dp
     use mod_parameters, only: output
     use mod_magnet,     only: hw_list
@@ -28,10 +29,10 @@ contains
   
     external :: MPI_Bcast
 
-    ! Check if stop file exists (if hasn't been read before)
+    ! Check if stop file exists (if has not been read before)
     if(trim(stopfilename)=="") then
       open(unit=911, file=trim(filename), status='old', iostat=ios)
-      if(ios/=0) return ! If it doesn't exist, return
+      if(ios/=0) return ! If it does not exist, return
 
       ! If exists, generate a unique filename at myrank=0 and broadcast to all
       ! (to be able to run more than one version of the program at the same time)

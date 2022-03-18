@@ -3,9 +3,9 @@ module mod_time_propagator_io
 contains
 
   subroutine write_header_time_prop(unit,title_line)
-  !> Writing header for previously opened file of unit "unit"
-    use mod_kind,             only: int32
-    use mod_imRK4_parameters, only: lelectric, hE_0, hw_e, lpulse_e, npulse_e, polarization_vec_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, npulse_m, polarization_vec_m, tau_m, delay_m
+  !! Writing header for previously opened file of unit "unit"
+    use mod_kind,            only: int32
+    use mod_time_propagator, only: lelectric, hE_0, hw_e, lpulse_e, npulse_e, polarization_vec_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, npulse_m, polarization_vec_m, tau_m, delay_m
     implicit none
     integer(int32),   intent(in) :: unit
     character(len=*), intent(in) :: title_line
@@ -54,13 +54,13 @@ contains
 
 
   subroutine check_header_time_prop(unit,success)
-  !> Writing header for previously opened file of unit "unit"
-    use mod_kind,             only: dp,int32,int64
-    use mod_parameters,       only: dimH
-    use mod_BrillouinZone,    only: realBZ
-    use mod_io,               only: log_warning
-    use mod_tools,            only: itos, rtos
-    use mod_imRK4_parameters, only: lelectric, hE_0, hw_e, lpulse_e, npulse_e, polarization_vec_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, npulse_m, polarization_vec_m, tau_m, delay_m
+  !! Writing header for previously opened file of unit "unit"
+    use mod_kind,            only: dp,int32,int64
+    use mod_parameters,      only: dimH
+    use mod_BrillouinZone,   only: realBZ
+    use mod_io,              only: log_warning
+    use mod_tools,           only: itos, rtos
+    use mod_time_propagator, only: lelectric, hE_0, hw_e, lpulse_e, npulse_e, polarization_vec_e, tau_e, delay_e, lmagnetic, hw1_m, hw_m, lpulse_m, npulse_m, polarization_vec_m, tau_m, delay_m
     implicit none
     integer(int32),   intent(in) :: unit
     logical,          intent(out) :: success
@@ -262,8 +262,8 @@ contains
 
 
   subroutine define_time_prop_observables()
-  !> This subroutine is used to define the time-propagated observables 
-  !> that are written into files
+  !! This subroutine is used to define the time-propagated observables 
+  !! that are written into files
     use mod_parameters, only: output
     implicit none
 
@@ -282,10 +282,10 @@ contains
 
 
   subroutine create_time_prop_files()
-  !> subroutine to create files with names and units
-  !> parameters: tau_m, tau_e, hw1, hw_m, hw1_m, hw_e, hE_0, integration_time, 
-  !> logical parameters: lmagnetic, lpulse_m, lelectric, lpulse_e 
-  !> observables: <1>, <sigma>, <L>, <tau>, currents
+  !! subroutine to create files with names and units
+  !! parameters: tau_m, tau_e, hw1, hw_m, hw1_m, hw_e, hE_0, integration_time, 
+  !! logical parameters: lmagnetic, lpulse_m, lelectric, lpulse_e 
+  !! observables: <1>, <sigma>, <L>, <tau>, currents
     use mod_parameters, only: output,lprintfieldonly
     implicit none
     character(len=500) :: output_file
@@ -323,8 +323,8 @@ contains
   end subroutine create_time_prop_files
 
       
-  ! subroutine to open time propagation output files
   subroutine open_time_prop_files()
+    !! subroutine to open time propagation output files
     use mod_parameters, only: output,missing_files
     use mod_mpi_pars,   only: abortProgram
     implicit none
@@ -363,7 +363,7 @@ contains
   end subroutine open_time_prop_files
 
   subroutine close_time_prop_files()
-  !> subroutine to close time propagation output files
+    !! subroutine to close time propagation output files
     use mod_parameters, only: output
     implicit none
     integer :: i
@@ -384,11 +384,11 @@ contains
 
 
   subroutine write_field()
-  !> subroutine to write field output files
+    !! subroutine to write field output files
     use mod_kind,             only: dp
     use mod_parameters,       only: output,missing_files
     use mod_mpi_pars,         only: abortProgram
-    use mod_imRK4_parameters, only: step, time_conv, integration_time, lelectric, lmagnetic
+    use mod_time_propagator, only: step, time_conv, integration_time, lelectric, lmagnetic
     use mod_imRK4,            only: magnetic_field, vector_potential
     implicit none
     character(len=500)     :: output_file
@@ -430,10 +430,10 @@ contains
 
 
   subroutine write_time_prop_files(s,t,rho_t,mx_t,my_t,mz_t,field_m,field_e,E_t, Lxm_t,Lym_t,Lzm_t,tso_t,txc_t,dmdt)
-  !> subroutine to write in time propagation output files
+    !! subroutine to write in time propagation output files
     use mod_kind,             only: dp
     use mod_system,           only: System_type
-    use mod_imRK4_parameters, only: time_conv
+    use mod_time_propagator, only: time_conv
     implicit none
     type(System_type),                      intent(in) :: s
     real(dp),                               intent(in) :: t,E_t
@@ -455,23 +455,23 @@ contains
     iw = 5090
     ! Site-dependent occupation
     iw = iw+1
-    write(unit=iw,fmt="(100(es16.9,2x))") rtime, (sum(rho_t(:,i)),i=1,s%nAtoms)
+    write(unit=iw,fmt="(100(es16.9,2x))") rtime, (sum(rho_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i )),i=1,s%nAtoms)
     ! Site-dependent magnetization
     iw = iw+1
-    write(unit=iw,fmt="(100(es16.9,2x))") rtime, (sum(mx_t(:,i)),sum(my_t(:,i)),sum(mz_t(:,i)), sqrt(sum(mx_t(:,i))**2 + sum(my_t(:,i))**2 + sum(mz_t(:,i))**2) ,i=1,s%nAtoms)
+    write(unit=iw,fmt="(100(es16.9,2x))") rtime, (sum(mx_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i )),sum(my_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i )),sum(mz_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i )), sqrt(sum(mx_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i ))**2 + sum(my_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i ))**2 + sum(mz_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i ))**2) ,i=1,s%nAtoms)
     ! Site-dependent OAM
     iw = iw+1
-    write(unit=iw,fmt="(100(es16.9,2x))") rtime, (sum(Lxm_t(:,i)), sum(Lym_t(:,i)), sum(Lzm_t(:,i)), sqrt(sum(Lxm_t(:,i))**2 + sum(Lym_t(:,i))**2 + sum(Lzm_t(:,i))**2),i=1,s%nAtoms)
+    write(unit=iw,fmt="(100(es16.9,2x))") rtime, (sum(Lxm_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i )), sum(Lym_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i )), sum(Lzm_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i )), sqrt(sum(Lxm_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i ))**2 + sum(Lym_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i ))**2 + sum(Lzm_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i ))**2),i=1,s%nAtoms)
 
     ! dM/dt
     iw = iw+1
-    write(unit=iw,fmt="(100(es16.9,2x))") rtime, ( (sum(dmdt(xyz,:,i)), xyz=1,3), i=1,s%nAtoms)
+    write(unit=iw,fmt="(100(es16.9,2x))") rtime, ( (sum(dmdt( xyz,1:s%Types(s%Basis(i)%Material)%nOrb,i )), xyz=1,3), i=1,s%nAtoms)
     ! SO-torque
     iw = iw+1
-    write(unit=iw,fmt="(100(es16.9,2x))") rtime, ( (sum(tso_t(xyz,:,i)), xyz=1,3), i=1,s%nAtoms)
+    write(unit=iw,fmt="(100(es16.9,2x))") rtime, ( (sum(tso_t( xyz,1:s%Types(s%Basis(i)%Material)%nOrb,i )), xyz=1,3), i=1,s%nAtoms)
     ! XC-torque
     iw = iw+1
-    write(unit=iw,fmt="(100(es16.9,2x))") rtime, ( (sum(txc_t(xyz,:,i)), xyz=1,3), i=1,s%nAtoms)
+    write(unit=iw,fmt="(100(es16.9,2x))") rtime, ( (sum(txc_t( xyz,1:s%Types(s%Basis(i)%Material)%nOrb,i )), xyz=1,3), i=1,s%nAtoms)
 
     ! Energy
     iw = iw+1
@@ -481,23 +481,23 @@ contains
     iw = 5190
     ! Orbital dependent occupation:
     iw = iw+1
-    write(unit=iw,fmt="(100(es16.9,2x))") rtime, ((rho_t(mu,i), mu=1,s%nOrb), i=1,s%nAtoms)
+    write(unit=iw,fmt="(100(es16.9,2x))") rtime, ((rho_t(mu,i), mu=1,s%Types(s%Basis(i)%Material)%nOrb), i=1,s%nAtoms)
     ! Orbital dependent magnetization:
     iw = iw+1
-    write(unit=iw,fmt="(100(es16.9,2x))") rtime, ( (mx_t(mu,i),my_t(mu,i),mz_t(mu,i), mu=1,s%nOrb), i=1,s%nAtoms)
+    write(unit=iw,fmt="(100(es16.9,2x))") rtime, ( (mx_t(mu,i),my_t(mu,i),mz_t(mu,i), mu=1,s%Types(s%Basis(i)%Material)%nOrb), i=1,s%nAtoms)
     ! Orbital dependent OAM, for p (1) and d (2) orbitals
     iw = iw+1
     write(unit=iw,fmt="(100(es16.9,2x))") rtime, ( (Lxm_t(mu,i), Lym_t(mu,i), Lzm_t(mu,i), mu=1,2), i=1,s%nAtoms)
 
     ! dM/dt
     iw = iw+1
-    write(unit=iw,fmt="(100(es16.9,2x))") rtime, ( ((dmdt(xyz,mu,i), xyz=1,3), mu=1,s%nOrb), i=1,s%nAtoms)
+    write(unit=iw,fmt="(100(es16.9,2x))") rtime, ( ((dmdt(xyz,mu,i), xyz=1,3), mu=1,s%Types(s%Basis(i)%Material)%nOrb), i=1,s%nAtoms)
     ! SO-torque
     iw = iw+1
     write(unit=iw,fmt="(100(es16.9,2x))") rtime, ( ((tso_t(xyz,mu,i), xyz=1,3), mu=1,2), i=1,s%nAtoms)
     ! XC-torque
     iw = iw+1
-    write(unit=iw,fmt="(100(es16.9,2x))") rtime, ( ((txc_t(xyz,mu,i), xyz=1,3), mu=1,s%nOrb), i=1,s%nAtoms)
+    write(unit=iw,fmt="(100(es16.9,2x))") rtime, ( ((txc_t(xyz,mu,i), xyz=1,3), mu=1,s%Types(s%Basis(i)%Material)%nOrb), i=1,s%nAtoms)
 
     !----------------========================= Applied Fields =========================----------------
     ! Time-dependent field

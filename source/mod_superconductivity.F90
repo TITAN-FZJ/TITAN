@@ -1,20 +1,20 @@
-! This module implements BCS like superconductivity using the Bogoliuvob-de Gennes
-! method (check Bogoliubov-de Gennes Method and Its Applications - Jian-Xin Zhu
-! Springer Verlag, it is not implemented exactly like there, but the theory holds)
-!
-! The superconducting gap is given by \Delta = \lambda*delta_sc
-! lambda is supposed to hold the constant value that multiplies the
-! expected value of the the cooper channels (delta_sc)
-! delta_sc holds the expected value of c\up c\down for each orbital
-! delta_sc is expected to be real within BCS
-! check Uriel's thesis
-!
-! lambda is not supposed to change during the execution
-! singlet coupling is expected to change at every step until it converges,
-! therefore it is defined outside the subroutines so it can be called and
-! modified from other modules
-
 module mod_superconductivity
+  !! This module implements BCS like superconductivity using the Bogoliuvob-de Gennes
+  !! method (check Bogoliubov-de Gennes Method and Its Applications - Jian-Xin Zhu
+  !! Springer Verlag, it is not implemented exactly like there, but the theory holds)
+  !!
+  !! The superconducting gap is given by \Delta = \lambda*delta_sc
+  !! lambda is supposed to hold the constant value that multiplies the
+  !! expected value of the the cooper channels (delta_sc)
+  !! delta_sc holds the expected value of c_up c_down for each orbital
+  !! delta_sc is expected to be real within BCS
+  !! check Uriel Aceves thesis
+  !! https://drive.google.com/file/d/1CgY0qtlO5xePUBoiQ9wG_9FH48wYZIUd/view?usp=sharing
+  !!
+  !! lambda is not supposed to change during the execution
+  !! singlet coupling is expected to change at every step until it converges,
+  !! therefore it is defined outside the subroutines so it can be called and
+  !! modified from other modules
   use mod_kind, only: dp,int32
   implicit none
   logical        :: lsuperCond = .false.
@@ -66,6 +66,20 @@ contains
   end subroutine update_delta_sc
 
   subroutine bcs_pairing(s,delta,hk_sc)
+    !! Populate the entries for the singlet pairing of the s-orbitals
+    !! Assuming that the order to populate the hamiltonian hk was
+    !! First all up spins, then all down, from s to d
+    !! This is, s^ px^ py^ ... d^ s* px* ... d*, where ^ (*) means spin up (down)
+
+    !! The row and column of the s^ electron is 1
+    !! The row and column of the s* electron is s%nAtoms*nOrb2/2
+    !! The row and column of the h^ hole is s%nAtoms*nOrb2 + 1
+    !! The row and column of the h* hole is s%nAtoms*nOrb2 + s%nAtoms*nOrb2/2
+
+    !! s^ and h* couple with -delta_s
+    !! s* and h^ couple with delta_s
+    !! h^ and s* couple with delta_s*
+    !! h* and s^ couple with -delta_s*
     use mod_kind,       only: dp
     use mod_system,     only: System_type
     use mod_parameters, only: isigmamu2n,dimH
@@ -76,41 +90,14 @@ contains
     complex(dp), dimension(2*dimH,2*dimH),   intent(inout) :: hk_sc
     integer :: i, mu
 
-    ! Populate the entries for the singlet pairing of the s-orbitals
-    ! Assuming that the order to populate the hamiltonian hk was
-    ! First all up spins, then all down, from s to d
-    ! This is, s^ px^ py^ ... d^ s* px* ... d*, where ^ (*) means spin up (down)
-
-    ! The row and column of the s^ electron is 1
-    ! The row and column of the s* electron is s%nAtoms*nOrb2/2
-    ! The row and column of the h^ hole is s%nAtoms*nOrb2 + 1
-    ! The row and column of the h* hole is s%nAtoms*nOrb2 + s%nAtoms*nOrb2/2
-
-    ! s^ and h* couple with -delta_s
-    ! s* and h^ couple with delta_s
-    ! h^ and s* couple with delta_s*
-    ! h* and s^ couple with -delta_s*
-
     do i = 1,s%nAtoms
-      do mu = 1,s%nOrb
+      do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
         hk_sc(isigmamu2n(i,1,mu)     ,isigmamu2n(i,2,mu)+dimH) = - cmplx(delta(mu,i),0._dp,dp)
         hk_sc(isigmamu2n(i,2,mu)     ,isigmamu2n(i,1,mu)+dimH) =   cmplx(delta(mu,i),0._dp,dp)
         hk_sc(isigmamu2n(i,2,mu)+dimH,isigmamu2n(i,1,mu)     ) = - cmplx(delta(mu,i),0._dp,dp)
         hk_sc(isigmamu2n(i,1,mu)+dimH,isigmamu2n(i,2,mu)     ) =   cmplx(delta(mu,i),0._dp,dp)
       end do
     end do
-
-
-    ! do i = 1,s%nAtoms
-    !   do mu = 1,s%nOrb
-    !     hk_sc(isigmamu2n(i,1,mu)     ,isigmamu2n(i,2,mu)+dimH) = - delta(mu,i)
-    !     hk_sc(isigmamu2n(i,2,mu)     ,isigmamu2n(i,1,mu)+dimH) =   delta(mu,i)
-    !     hk_sc(isigmamu2n(i,2,mu)+dimH,isigmamu2n(i,1,mu)     ) = - conjg(delta(mu,i))
-    !     hk_sc(isigmamu2n(i,1,mu)+dimH,isigmamu2n(i,2,mu)     ) =   conjg(delta(mu,i))
-    !     ! write(*,*) i, " ", mu, " ", delta(mu,i)
-    !   end do
-    ! end do
-
   end subroutine bcs_pairing
 
 

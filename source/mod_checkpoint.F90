@@ -1,22 +1,22 @@
-! This module holds the functions and subroutines to save and recover the time propagation states
 module mod_checkpoint
+!! This module holds the functions and subroutines to save and recover the time propagation states
   implicit none
 
 contains
 
-  !! This subroutine is to Save current state
-  subroutine save_state(rank,nOrb,nAtoms,dimH,nkpt,rtime,step,eval_kn,evec_kn,mx_t,my_t,mz_t)
+subroutine save_state(rank,s,dimH,nkpt,rtime,step,eval_kn,evec_kn,mx_t,my_t,mz_t)
+  !! This subroutine is to Save current time-propagation state
     use mod_kind,               only: dp, int32, int64
     use mod_parameters,         only: output
     use mod_tools,              only: itos
     use mod_io,                 only: log_warning
     use mod_time_propagator_io, only: write_header_time_prop
+    use mod_system,             only: System_type
     implicit none
-
     integer(int32), intent(in) :: rank
     !! Rank ID of process
-    integer(int32), intent(in) :: nOrb,nAtoms
-    !! Number of orbitals and number of atoms
+    type(System_type), intent(in)   :: s
+    !! System derived type containing number of orbitals and number of atoms
     integer(int32), intent(in) :: dimH
     !! Dimension of the hamiltonian and eigenvalues/eigenvectors
     integer(int64), intent(in) :: nkpt
@@ -29,10 +29,10 @@ contains
     !! Eigenvalues for all k-points
     complex(dp), dimension(dimH,dimH,nkpt), intent(in) :: evec_kn
     !! Eigenvectors (in columns) for all k-points
-    real(dp),    dimension(nOrb,nAtoms),    intent(in) :: mx_t,my_t,mz_t
+    real(dp),    dimension(s%nOrb,s%nAtoms),    intent(in) :: mx_t,my_t,mz_t
     !! Orbital- and site-dependent magnetization components
 
-    !! Local variables:
+    ! Local variables:
     integer(int32) :: file_unit = 6101
     !! File unit
     character(len=500) :: output_file
@@ -60,8 +60,8 @@ contains
     end do
 
     ! Writing current orbital-dependent magnetization vector to use for total torque calculation (dM/dt) when recovering
-    write(formatvar,fmt="(a,i0,a)") '(',3*nOrb*nAtoms,'(es16.8e3,2x))'
-    write(unit=file_unit,fmt=formatvar) ((mx_t(mu,i),my_t(mu,i),mz_t(mu,i), mu=1,nOrb), i=1,nAtoms)
+    write(formatvar,fmt="(a,i0,a)") '(',3*s%nOrb*nAtoms,'(es16.8e3,2x))'
+    write(unit=file_unit,fmt=formatvar) ((mx_t(mu,i),my_t(mu,i),mz_t(mu,i), mu=1,s%Types(s%Basis(i)%Material)%nOrb), i=1,s%nAtoms)
 
     close(file_unit) 
 
@@ -70,17 +70,19 @@ contains
   end subroutine save_state
 
 
-  !! This subroutine is to recover current state
-  function recover_state(rank,nOrb,nAtoms,dimH,nkpt,rtime,step,eval_kn,evec_kn,mx_t,my_t,mz_t) result(success)
+  function recover_state(rank,s,dimH,nkpt,rtime,step,eval_kn,evec_kn,mx_t,my_t,mz_t) result(success)
+    !! This subroutine is to recover current time-propagation state
+    !! Note that the recover has to use the same MPI setup as used when saving the state, since different files per rank are written
     use mod_kind,               only: dp,int32,int64
     use mod_io,                 only: log_warning
     use mod_parameters,         only: output
     use mod_time_propagator_io, only: check_header_time_prop
+    use mod_system,             only: System_type
     implicit none
     integer(int32), intent(in) :: rank
     !! Rank ID of process
-    integer(int32), intent(in) :: nOrb,nAtoms
-    !! Number of orbitals and number of atoms
+    type(System_type), intent(in)   :: s
+    !! System derived type containing number of orbitals and number of atoms
     integer(int32), intent(in) :: dimH
     !! Dimension of the hamiltonian and eigenvalues/eigenvectors
     integer(int64), intent(in) :: nkpt
@@ -93,12 +95,12 @@ contains
     !! Eigenvalues for all k-points
     complex(dp), dimension(dimH,dimH,nkpt), intent(out) :: evec_kn
     !! Eigenvectors (in columns) for all k-points
-    real(dp),    dimension(nOrb,nAtoms),    intent(out) :: mx_t,my_t,mz_t
+    real(dp),    dimension(s%nOrb,s%nAtoms),    intent(out) :: mx_t,my_t,mz_t
     !! Orbital- and site-dependent magnetization components
     logical :: success
     !! Indication of when a state was recovered or not
 
-    !! Local variables:
+    ! Local variables:
     integer(int32) :: file_unit = 6102
     !! File unit
     character(len=500) :: output_file
@@ -120,7 +122,7 @@ contains
       return
     end if
 
-    ! Read header and check if it's the same
+    ! Read header and check if it is the same
     call check_header_time_prop(file_unit,success_header)
     if (.not.success_header) then
       call log_warning("recover_state", "Checkpoint file found, but header differs. Cannot continue from previous point.")
@@ -136,7 +138,7 @@ contains
       return
     end if
 
-    ! Writing eigenvalues and eigenvectors
+    ! Reading eigenvalues and eigenvectors
     write(formatvar,fmt="(a,i0,a)") '(',dimH,'(es16.8e3,2x))'
     stat_check = 0
     do k=1,nkpt
@@ -148,9 +150,9 @@ contains
       end do
     end do
 
-    ! Writing current orbital-dependent magnetization vector to use for total torque calculation (dM/dt) when recovering
+    ! Reading current orbital-dependent magnetization vector to use for total torque calculation (dM/dt) when recovering
     write(formatvar,fmt="(a,i0,a)") '(',3*nOrb*nAtoms,'(es16.8e3,2x))'
-    read(unit=file_unit,fmt=formatvar, iostat=stat_temp) ((mx_t(mu,i),my_t(mu,i),mz_t(mu,i), mu=1,nOrb), i=1,nAtoms)
+    read(unit=file_unit,fmt=formatvar, iostat=stat_temp) ((mx_t(mu,i),my_t(mu,i),mz_t(mu,i), mu=1,s%Types(s%Basis(i)%Material)%nOrb), i=1,s%nAtoms)
     stat_check = stat_check + stat_temp
 
     if (stat_check /= 0) then
@@ -159,7 +161,7 @@ contains
       return
     end if
 
-    ! Read header and check if it's the same
+    ! Read header and check if it is the same
     success = .true.
     call log_warning("recover_state", "Checkpoint recovered.")
 

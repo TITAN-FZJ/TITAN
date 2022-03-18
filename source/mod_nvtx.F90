@@ -1,11 +1,11 @@
 module nvtx
-#ifdef _GPU
   !! This module provides Fortran interfaces for the
   !! NVIDIA Tools Extension (NVTX) library, which lets developers 
   !! annotate custom events and ranges within the profiling timelines 
   !! generated using tools such as the NVIDIA Visual Profiler (NVVP) and NSight. 
   !! It was developed by Massimiliano Fatica and described in:
   !! https://developer.nvidia.com/blog/customize-cuda-fortran-profiling-nvtx/
+#ifdef _GPU
   use iso_c_binding
   implicit none
 

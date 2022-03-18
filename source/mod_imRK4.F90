@@ -1,14 +1,14 @@
-!> module for imRK4 routines
 module mod_imRK4
+  !! module for the implicit 4th-order Runge-Kutta method (imRK4) routines
   implicit none
 
 contains
-  ! subroutine to find the vectors Z_ki
   subroutine iterate_Zki(s,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2,hamilt_nof,kp,eval,step,Yn_new,Yn,Yn_hat)
+    !! Calculates the vectors Z_ki
     use mod_kind,             only: dp
     use mod_parameters,       only: dimHsc
     use mod_system,           only: System_type
-    use mod_imRK4_parameters, only: dimH2, sc_tol
+    use mod_time_propagator,  only: dimH2, sc_tol
     use mod_tools,            only: vec_norm, LS_solver
     use mod_constants,        only: cZero
     use mod_RK_matrices,      only: d1,d2,d1_hat,d2_hat
@@ -78,16 +78,16 @@ contains
     Yn_hat = Yn + d1_hat*Z_k(1:dimHsc) + d2_hat*Z_k(dimHsc+1:dimH2)
     ! Find Yn
     Yn_new = Yn + d1*Z_k(1:dimHsc) + d2*Z_k(dimHsc+1:dimH2)
-     
+
   end subroutine iterate_Zki
 
-! Subroutine to build the matrix M_2n
-! b_fieldm = b_field(t-step) , A_tm = A_t(t-step)
   subroutine M_2n(s,b_fieldm,A_tm,hamilt_nof,kp,eval,Yn,step,M2n)
+    !! Subroutine to build the matrix M_2n
+    !! b_fieldm = b_field(t-step) , A_tm = A_t(t-step)
     use mod_kind,             only: dp
     use mod_parameters,       only: dimHsc
     use mod_system,           only: System_type
-    use mod_imRK4_parameters, only: dimH2
+    use mod_time_propagator,  only: dimH2
     use mod_RK_matrices,      only: A, id2
     use mod_tools,            only: KronProd
     implicit none
@@ -111,12 +111,12 @@ contains
     M2n = id2 - step * Kprod
   end subroutine M_2n
 
-  !> subroutine f(Z_k) that builds the right side of the linear system.
   subroutine Fsystem(b_field1,A_t1,b_field2,A_t2,hamilt_nof,kp,Yn,step,Z_k,Fun) 
+    !! subroutine f(Z_k) that builds the right side of the linear system.
     use mod_kind,             only: dp
     use mod_constants,        only: cI,cZero
     use mod_parameters,       only: dimHsc
-    use mod_imRK4_parameters, only: dimH2
+    use mod_time_propagator,  only: dimH2
     use mod_RK_matrices,      only: M1
     use mod_hamiltonian,      only: build_hext
     implicit none
@@ -159,8 +159,8 @@ contains
   end subroutine Fsystem
 
 
-  !> build time dependent jacobian for each kp 
   subroutine build_td_Jacobian(s,b_field,A_t,hamilt_nof,kp,eval,Yn,Jacobian_t)
+    !! build time dependent jacobian for each kp 
     use mod_kind,        only: dp
     use mod_constants,   only: cI
     use mod_parameters,  only: dimHsc
@@ -188,9 +188,9 @@ contains
   end subroutine build_td_Jacobian
 
 
-  !> Calculate the last term of the Jacobian
-  !> Given by \sum_j <i| dH/dc^n_k |j> * c_j^n(t)
   subroutine build_term_Jacobian(s,eval,Yn,dHdc)
+    !! Calculate the last term of the Jacobian
+    !! Given by \sum_j <i| dH/dc^n_k |j> * c_j^n(t)
     use mod_kind,              only: dp
     use mod_parameters,        only: dimHsc,isigmamu2n,eta
     use mod_system,            only: System_type
@@ -211,13 +211,13 @@ contains
 
     dHdc = cZero
     do i=1,s%nAtoms
-      do mud=1,s%ndOrb
-        mu=s%dOrbs(mud)
+      do mud=1,s%Types(s%Basis(i)%Material)%ndOrb
+        mu=s%Types(s%Basis(i)%Material)%dOrbs(mud)
         do s1=1,2
           do s2=1,2
             dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,mu)) = dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,mu)) + s%Basis(i)%Un*Yn(isigmamu2n(i,s1,mu))*conjg(Yn(isigmamu2n(i,s2,mu)))
-            do nud=1,s%ndOrb
-              nu=s%dOrbs(nud)
+            do nud=1,s%Types(s%Basis(i)%Material)%ndOrb
+              nu=s%Types(s%Basis(i)%Material)%dOrbs(nud)
               dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,nu)) = dHdc(isigmamu2n(i,s1,mu),isigmamu2n(i,s2,nu)) - 0.5_dp*s%Basis(i)%Un*Yn(isigmamu2n(i,s1,mu))*conjg(Yn(isigmamu2n(i,s2,nu)))
               do s3=1,2
                 do s4=1,2
@@ -236,11 +236,11 @@ contains
   end subroutine build_term_Jacobian
 
 
-  !> subroutine to calculate the error in the step size control
   subroutine calculate_step_error(Yn,Yn_new,Yn_hat,ERR_kn)
+    !! subroutine to calculate the error in the step size control
     use mod_kind,             only: dp
     use mod_parameters,       only: dimHsc
-    use mod_imRK4_parameters, only: abs_tol,rel_tol
+    use mod_time_propagator,  only: abs_tol,rel_tol
     implicit none
     complex(dp), dimension(dimHsc), intent(in)  :: Yn, Yn_new, Yn_hat
     real(dp),                     intent(out) :: ERR_kn
@@ -261,11 +261,11 @@ contains
     
   end subroutine calculate_step_error
 
-  !> Subroutine builds magnetic field B(t)
-  !> Using the tame pulse form as the vector potential below
   subroutine magnetic_field(t,b_field)
+    !! Subroutine builds magnetic field B(t)
+    !! Using the tame pulse form as the vector potential below
     use mod_kind,             only: dp
-    use mod_imRK4_parameters, only: hw1_m, hw_m, npulse_m, lpulse_m, tau_m, delay_m, polarization_vec_m
+    use mod_time_propagator,  only: hw1_m, hw_m, npulse_m, lpulse_m, tau_m, delay_m, polarization_vec_m
     use mod_constants,        only: pi
     implicit none
     real(dp) , intent(in)  :: t
@@ -297,15 +297,15 @@ contains
   end subroutine magnetic_field
 
 
-  !> Subroutine builds vector potential A(t) = - integral(E(t)dt)
-  ! Pulse:
-  !> From paper(DOI: 0.1038/s41567-019-0602-9) the vector potential for a cos^2 pulse is given by: 
-  !> A(t) = (-E_pump/w_pump) * ( cos(pi*t/tau_pump) )^2        * sin(w_pump*t), add delay_e to get:
-  !> A_t  = (-hE_0/hw_e)     * (A cos(pi*(t-delay_e)/tau_e) )^2 * sin(hw_e*t)
-  ! center the vector potential at delay_e
   subroutine vector_potential(t, A_t)
+    !!  Subroutine builds vector potential A(t) = - integral(E(t)dt)
+    !! Pulse:
+    !!  From paper(DOI: 0.1038/s41567-019-0602-9) the vector potential for a cos^2 pulse is given by: 
+    !!  A(t) = (-E_pump/w_pump) * ( cos(pi*t/tau_pump) )^2        * sin(w_pump*t), add delay_e to get:
+    !!  A_t  = (-hE_0/hw_e)     * (A cos(pi*(t-delay_e)/tau_e) )^2 * sin(hw_e*t)
+    !! center the vector potential at delay_e
     use mod_kind,             only: dp
-    use mod_imRK4_parameters, only: hE_0, hw_e, lpulse_e, npulse_e, tau_e, delay_e, polarization_vec_e
+    use mod_time_propagator,  only: hE_0, hw_e, lpulse_e, npulse_e, tau_e, delay_e, polarization_vec_e
     use mod_constants,        only: pi
     implicit none 
     real(dp) , intent(in)  :: t
@@ -334,15 +334,15 @@ contains
     end if
   end subroutine vector_potential
 
-  !> Subroutine builds Electric field potential E(t) = - dA(t)/dt
-  ! Pulse:
-  !> From paper(DOI: 0.1038/s41567-019-0602-9) the vector potential for a cos^2 pulse is given by: 
-  !> A(t) = (-E_pump/w_pump) * ( cos(pi*t/tau_pump) )^2        * sin(w_pump*t), add delay_e to get:
-  !> A_t  = (-hE_0/hw_e)     * (A cos(pi*(t-delay_e)/tau_e) )^2 * sin(hw_e*t)
-  ! center the vector potential at delay_e
   subroutine electric_field(t, E_t)
+    !!  Subroutine builds Electric field potential E(t) = - dA(t)/dt
+    !! Pulse:
+    !!  From paper(DOI: 0.1038/s41567-019-0602-9) the vector potential for a cos^2 pulse is given by: 
+    !!  A(t) = (-E_pump/w_pump) * ( cos(pi*t/tau_pump) )^2        * sin(w_pump*t), add delay_e to get:
+    !!  A_t  = (-hE_0/hw_e)     * (A cos(pi*(t-delay_e)/tau_e) )^2 * sin(hw_e*t)
+    !! center the vector potential at delay_e
     use mod_kind,             only: dp
-    use mod_imRK4_parameters, only: hE_0, hw_e, lpulse_e, npulse_e, tau_e, delay_e, polarization_vec_e
+    use mod_time_propagator,  only: hE_0, hw_e, lpulse_e, npulse_e, tau_e, delay_e, polarization_vec_e
     use mod_constants,        only: pi
     implicit none 
     real(dp) , intent(in)  :: t

@@ -108,7 +108,7 @@ contains
       call initTightBinding(sys0(i))
 
       !---------------- Reading from previous calculations -----------------
-      !------- and calculating if file doesn't exist (or different U) ------
+      !------- and calculating if file does not exist (or different U) ------
       if(.not.read_init_expecs(sys0(i)%nOrb,s%Types(i),err)) then
         if(myrank == 0) write(output%unit,"('[calc_init_expec_SK] Calculating initial occupation for ""',a,'""...')") trim(s%Types(i)%Name)
 
@@ -281,7 +281,7 @@ contains
           cycle
         else
           lneed = .true. ! If Un or Um is non zero for a single element, the calculation must be done
-          exit           ! Since it's a single calculation, get all the other numbers too
+          exit           ! Since it is a single calculation, get all the other numbers too
         end if
       end do types_of_atoms_check
 
@@ -317,7 +317,7 @@ contains
 
     ! If not all the files were read, lneed=.true. and all the densities will be (re)calculated
     if(lneed) then
-      !--------- Calculating if file doesn't exist (or different U) --------
+      !--------- Calculating if file does not exist (or different U) --------
       if(myrank == 0) write(output%unit,"('[calc_init_expec_dft] Calculating initial occupations for all elements...')")
 
       !---- L matrix in global frame for given quantization direction ----

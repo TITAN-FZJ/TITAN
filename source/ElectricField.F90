@@ -4,9 +4,12 @@ module ElectricField
 use mod_kind, only: dp
 implicit none
 
-integer :: ElectricFieldMode                          !< Direction of in-plane applied electric field
-real(dp), dimension(3) :: ElectricFieldVector(3)  !< Direction vector of the electric field
-real(dp) :: EFp = 0._dp, EFt = 0._dp                !< Phi and Theta angles of the electric field in spherical coordinates
+!! Direction of in-plane applied electric field
+integer :: ElectricFieldMode
+!! Direction vector of the electric field
+real(dp), dimension(3) :: ElectricFieldVector(3)
+!! Phi and Theta angles of the electric field in spherical coordinates
+real(dp) :: EFp = 0._dp, EFt = 0._dp
 
 contains
 

@@ -1,28 +1,28 @@
-!------------------------------------------------------------------------------------!
-! TITAN - Time-dependent Transport and Angular momentum properties of Nanostructures !
-!------------------------------------------------------------------------------------!
-!
-! MODULE: mod_polyBasis
-!
-!> @author
-!> Jens Renè Suckert, PGI-1/IAS-1, Peter-Grünberg-Institut,FZ Jülich
-!
-! DESCRIPTION:
-!> Read file 'basis' and set up polyatomic basis
-!
-! REVISION HISTORY:
-! 05 July 2017 - Initial Version
-!------------------------------------------------------------------------------------!
-
 module mod_polyBasis
+  !------------------------------------------------------------------------------------!
+  ! TITAN - Time-dependent Transport and Angular momentum properties of Nanostructures !
+  !------------------------------------------------------------------------------------!
+  !
+  ! MODULE: mod_polyBasis
+  !
+  ! @author
+  ! Jens Renè Suckert, PGI-1/IAS-1, Peter-Grünberg-Institut,FZ Jülich
+  !
+  ! DESCRIPTION:
+  !! Read file 'basis' and set up polyatomic basis
+  !
+  ! REVISION HISTORY:
+  ! 05 July 2017 - Initial Version
+  !------------------------------------------------------------------------------------!
+
   use mod_kind, only: dp
   implicit none
 
 contains
 
-  !! Reading basis file 'filename' 
-  !! (also used to read original lattice for mod_init_expec)
   subroutine read_basis(filename, s, lread_sysdim)
+    !! Reading basis file 'filename' 
+    !! (also used to read original lattice for mod_initial_expectation)
     use mod_system,    only: System_type
     use mod_mpi_pars,  only: myrank,abortProgram
     use mod_constants, only: tpi

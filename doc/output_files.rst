@@ -21,7 +21,7 @@ These are the basic files that TITAN outputs during any type of calculation.
 
     .. tab:: :guilabel:`parameter.in`
 
-        In this file, all the parameters read from the :ref:`input file <input>` are dumped.
+        In this file, all the parameters read from the :guilabel:`input` :ref:`file <input>` are dumped.
         It can be used to check if all the parameters were correctly read, as well as a simpler and smaller way to
         store information on a run (since the :guilabel:`input` file may have more text, commented variables, etc.)
 

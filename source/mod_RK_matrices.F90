@@ -1,6 +1,6 @@
-!> module for Runge-Kutta method parameters and Butcher tableu, Pauli matricies,
-!> A_inverse matrix, M1 matrix, identity matricies, coefficients b's, d's, c's and c_avg.
 module mod_RK_matrices 
+  !! module for Runge-Kutta method parameters and Butcher tableu, Pauli matricies,
+  !! A_inverse matrix, M1 matrix, identity matricies, coefficients b, d, c and c_avg.
   use mod_kind, only: dp
   implicit none
   complex(dp), dimension(:,:), allocatable :: id(:,:),id2(:,:)

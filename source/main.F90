@@ -42,7 +42,6 @@ program TITAN
   use nvtx,                    only: nvtxStartRange,nvtxEndRange
   use mod_cuda,                only: num_gpus,result,create_handle,cudaGetDeviceCount,cudaSetDevice,cudaGetErrorString 
 #endif
-  !use mod_define_system TODO: Re-include
   !use mod_prefactors TODO: Re-include
   !use mod_lgtv_currents TODO: Re-include
   !use mod_sha TODO: Re-include

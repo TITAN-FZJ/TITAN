@@ -233,7 +233,7 @@ contains
 
 
   subroutine writeLattice(s)
-  !! Writes out lattice information to file "Atoms, 
+  !! Writes out lattice information to file "Atoms", 
   !! including Bravais vectors, position of basis atoms 
   !! and their respective neighbors
     use AtomTypes,  only: NeighborIndex

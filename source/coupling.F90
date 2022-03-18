@@ -241,7 +241,7 @@ subroutine real_coupling()
   if(rField ==0) then
     cells = (2*stages+1)**(s%isysdim)
 
-    ! Getting the radius of the cluster's sphere
+    ! Getting the radius of the cluster sphere
     select case(s%isysdim)
     case(3)
       norms_vec(1) = vec_norm(s%a1*cluster_layers, 3)

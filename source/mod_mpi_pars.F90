@@ -1,4 +1,6 @@
 module mod_mpi_pars
+  !! Module for MPI-related variables and procedures
+  !! Note: it is currently not using the MPI_f08 interfaces due to the lack of support on Score-P/Scalasca
   use mod_kind, only: dp, int32, int64
   use MPI
   ! use MPI_f08

@@ -1,4 +1,5 @@
 module mod_fermi_surface
+  !! Iso-energy / Fermi-surface variables and procedures
   use mod_kind, only: dp
   implicit none
   logical  :: lfs_loop = .false.
@@ -6,13 +7,13 @@ module mod_fermi_surface
   real(dp) :: fs_energy_i, fs_energy_f, fs_energy_s
   real(dp), allocatable :: fs_energies(:)
 
-  character(len=4), dimension(2), private :: filename = ["orb","tot"]
+  character(len=3), dimension(2), private :: filename = ["orb","tot"]
   character(len=50)  :: epart
 
 contains
 
-  ! This subroutine sets up the loop over iso-energies surfaces
   subroutine setFSloop()
+  !! This subroutine sets up the loop over iso-energies surfaces
     use mod_system,        only: s => sys
     implicit none
     integer :: i
@@ -43,8 +44,8 @@ contains
 
   end subroutine setFSloop
 
-  !   Calculates iso-energy surface (e=Ef for Fermi surface)
   subroutine fermi_surface()
+    !!   Calculates iso-energy surface (e=Ef for Fermi surface)
     use mod_parameters,    only: output, laddresults
     use mod_System,        only: s => sys
     use mod_tools,         only: rtos
@@ -87,8 +88,8 @@ contains
   end subroutine fermi_surface
 
 
-  !   Calculates iso-energy surface (e=Ef for Fermi surface)
   subroutine calculate_fermi_surface(e)
+    !!   Calculates iso-energy surface (e=Ef for Fermi surface)
     use mod_kind,          only: dp,int32,int64
     use AtomTypes,         only: default_nOrb
     use mod_constants,     only: pi,cZero,cOne
@@ -199,6 +200,7 @@ contains
 
 
   subroutine createFSfiles()
+    !! Create Fermi-Surface/Iso-energy files
     use mod_parameters,    only: output
     use mod_System,        only: s => sys
     use AtomTypes,         only: default_Orbs,default_nOrb
@@ -244,6 +246,7 @@ contains
 
 
   subroutine openFSfiles()
+    !! Open Fermi-Surface/Iso-energy files
     use mod_parameters, only: output,missing_files
     use mod_System,     only: s => sys
     use mod_mpi_pars,   only: abortProgram
@@ -274,6 +277,7 @@ contains
 
 
   subroutine sortFermiSurface()
+    !! Sort Fermi-Surface/Iso-energy files
     use mod_parameters, only: output
     use mod_tools,      only: sort_command
     use mod_System,     only: s => sys
@@ -296,6 +300,7 @@ contains
 
 
   subroutine closeFSfiles()
+    !! Close Fermi-Surface/Iso-energy files
     use mod_System, only: s => sys
     implicit none
     integer i,j
@@ -308,8 +313,8 @@ contains
   end subroutine closeFSfiles
 
 
-  ! This subtoutine writes the iso-surfaces to the files
   subroutine writeFS(fs_atom,fs_orb,fs_total)
+    !! This subtoutine writes the iso-surfaces to the files
     use mod_kind,          only: int32, int64
     use AtomTypes,         only: default_nOrb
     use mod_System,        only: s => sys
@@ -337,7 +342,6 @@ contains
       write(unit=97,fmt="(10(es16.9,2x))") kp(1), kp(2), kp(3),(fs_total(iz,sigma),sigma=1,7)
     end do
   end subroutine writeFS
-
 
 
 end module mod_fermi_surface

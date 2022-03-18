@@ -7,7 +7,7 @@ module mod_parameters
   real(dp)  :: eta
   !! Small imaginary part included in the energy of GF or susceptibility z = w + i.eta
   real(dp)  :: etap
-  !! Small imaginary part included in the energy of GF  z = E + i.eta'
+  !! Small imaginary part included in the energy of GF  z = E + i.etap
   real(dp) :: addelectrons
   !! Electrons to add (or remove, when negative) for the whole system (default = 0 set in mod_io)
   !! Only for the case of Un==0 (otherwise, Un requires site- and orbital-dependent quantity)
@@ -42,7 +42,7 @@ module mod_parameters
   !! Number of cells around the origin for the cluster generation of the real space Jij
   !========================================================================================!
   logical        :: lhfresponses = .false.
-  !! Use HF susceptibilities to calculate currents, disturbances and accumulations (don't renormalize)
+  !! Use HF susceptibilities to calculate currents, disturbances and accumulations (do not renormalize)
   !========================================================================================!
   real(dp)       :: theta=0._dp,phi=0._dp
   !! Euler Angles for the magnetization frame of reference

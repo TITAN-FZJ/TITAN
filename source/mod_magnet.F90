@@ -1,4 +1,6 @@
 module mod_magnet
+  !! This module stores variables and procedures related to the spin and orbital magnetic moment
+  !! (including magnetic fields), and also the charge variables
   use mod_kind,       only: dp, int32
   use mod_parameters, only: dmax
   implicit none
@@ -21,8 +23,10 @@ module mod_magnet
   !! orbital-dependent and d-orbital charge density per site
   real(dp),allocatable    :: mx(:,:),my(:,:),mz(:,:)
   !! orbital-dependent magnetization per site in cartesian coordinates
-  real(dp),allocatable    :: rhos(:),rhop(:)
-  !! s and p -orbital charge density
+  real(dp),allocatable    :: rhos(:)
+  !! s-orbital charge density
+  real(dp),allocatable    :: rhop(:)
+  !! p-orbital charge density
   real(dp),allocatable    :: rhod(:),mxd(:),myd(:),mzd(:),mzd0(:)
   !! d-orbital charge density and magnetization per site and initial values
   complex(dp),allocatable :: mp(:,:),mpd(:),mpd0(:)
@@ -56,9 +60,16 @@ module mod_magnet
   ! Values of magnetic field in cartesian or spherical coordinates
   !integer, parameter :: dmax = 20
   character(len=9), dimension(7) :: dcfield = ["hwa      ","hwt      ","hwp      ","hwahwt   ","hwahwp   ","hwthwp   ","hwahwthwp"]
+  !! string variables for the different types of loops when using dc field calculation (itype=9)
   character(len=60) :: dc_header
-  character(len=60), allocatable :: dc_fields(:),dcprefix(:)
+  !! string to add on the header, representing which parameter(s) is(are) being looped
+  character(len=60), allocatable :: dc_fields(:)
+  !! string array to store the values of the parameter being looped
+  character(len=60), allocatable :: dcprefix(:)
+  !! string array with the name and variable of the dc magnetic field to be used in the prefix of the filename
+
   real(dp), allocatable :: hw_list(:,:)
+  !! List of values for the magnetic fields to be looped, in spherical components (total npts, [ hwa , hwt , hwp ] )
   integer(int32) :: dcfield_dependence = 0, dc_count = 0
 
   real(dp) :: hwx = 0._dp, hwy = 0._dp, hwz = 0._dp, tesla = 1._dp
@@ -70,11 +81,17 @@ module mod_magnet
   real(dp) :: hwt, hwt_i = 0._dp, hwt_f = 0._dp, hwt_s = 0._dp
   real(dp) :: hwp, hwp_i = 0._dp, hwp_f = 0._dp, hwp_s = 0._dp
 
-  ! Layer-resolved scale of magnetic field (including empty spheres)
+  ! Layer-resolved (re)scale of magnetic field
   logical :: lhwscale        = .false.
+  !! Logical variable to say if magnetic fields are to be rescaled in one or more layers (default = .false.)
   real(dp) :: hwscale(dmax)   = 1._dp
+  !! Values of the factors to rescale the magnetic field per layer (default = 1._dp, no scaling)
   logical :: lhwrotate       = .false.
-  real(dp) :: hwtrotate(dmax) = 0._dp, hwprotate(dmax) = 0._dp
+  !! Logical variable to say if magnetic fields are to be rotated in one or more layers (default = .false.)
+  real(dp) :: hwtrotate(dmax) = 0._dp
+  !! Values of the angles to rotate the theta angle of the magnetic field per layer (default = 0._dp, no rotation)
+  real(dp) :: hwprotate(dmax) = 0._dp
+  !! Values of the angles to rotate the phi angle of the magnetic field per layer (default = 0._dp, no rotation)
 
   integer(int32) :: skip_steps_hw = 0
   !! How many iterations are to be skipped from the beginning
@@ -85,8 +102,8 @@ module mod_magnet
 
 contains
 
-  ! This subroutine sets up external magnetic fields and related loop
-  subroutine setMagneticLoopPoints()
+subroutine setMagneticLoopPoints()
+  !! This subroutine sets up external magnetic fields and related loop
     use mod_constants, only: rad2deg
     implicit none
     !! Amount of points to skip
@@ -167,6 +184,7 @@ contains
   end subroutine setMagneticLoopPoints
 
   subroutine initMagneticField(s)
+    !! Initialize magnetic field variables
     use mod_constants, only: cZero, deg2rad
     use mod_mpi_pars,  only: abortProgram
     use mod_System,    only: System_type
@@ -215,7 +233,7 @@ contains
   end subroutine initMagneticField
 
   subroutine lb_matrix(s)
-  !! Orbital Zeeman term
+  !! Construct the Orbital Zeeman term of the hamiltonian
     use mod_parameters, only: lnolb
     use mod_System,     only: System_type
     implicit none
@@ -246,7 +264,7 @@ contains
 
 
   subroutine sb_matrix(s)
-  !! Spin Zeeman hamiltonian
+  !! Construct the Spin Zeeman term of the hamiltonian
     use mod_constants, only: cZero, cI
     use mod_System,    only: System_type
     implicit none
@@ -274,9 +292,9 @@ contains
     end if
   end subroutine sb_matrix
 
-  ! This subroutine calculate the orbital angular momentum matrix 
-  ! for all orbitals, in the cubic system of coordinates
   subroutine l_matrix(s)
+    !! This subroutine calculate the orbital angular momentum matrix 
+    !! for all orbitals, in the cubic system of coordinates
     use mod_kind,      only: dp
     use mod_constants, only: cI, cZero, cOne, sq3
     use AtomTypes,     only: default_nOrb
@@ -339,8 +357,8 @@ contains
 
   end subroutine l_matrix
 
-  ! This subroutine calculate the orbital angular momentum matrix in the local system of coordinates
   subroutine lp_matrix(theta, phi)
+    !! This subroutine calculate the orbital angular momentum matrix in the local system of coordinates
     use mod_kind,      only: dp
     use mod_constants, only: deg2rad
     use mod_System,    only: s => sys
@@ -361,6 +379,7 @@ contains
   end subroutine lp_matrix
 
   subroutine allocate_magnet_variables(nAtoms,nOrbs)
+    !! Allocate variables related to the magnetization or charge
     use mod_mpi_pars, only: abortProgram
     implicit none
     integer, intent(in) :: nAtoms
@@ -395,6 +414,7 @@ contains
   end subroutine allocate_magnet_variables
 
   subroutine deallocate_magnet_variables()
+    !! Deallocate variables related to the magnetization or charge
     implicit none
 
     if(allocated(rho)) deallocate(rho)
@@ -436,6 +456,7 @@ contains
   end subroutine
 
   subroutine set_fieldpart(kount)
+    !! This subroutine sets the string variables to be used in the output filenames
     use mod_parameters, only: ltesla, lnolb, output
     use mod_tools,      only: rtos
     implicit none
