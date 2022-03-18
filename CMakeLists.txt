@@ -22,7 +22,6 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_U_matrix.F90
                                   source/mod_initial_expectation.F90
                                   source/mod_expectation.F90
-                                  source/initConversionMatrices.F90
                                   source/mod_System.F90
                                   source/mod_polyBasis.F90
                                   source/mod_BrillouinZone.F90
@@ -74,7 +73,6 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_imRK4.F90
                                   source/mod_time_propagator.F90
                                   source/mod_checkpoint.F90
-                                  source/mod_imRK4_parameters.F90
                                   source/mod_time_propagator_io.F90
                                   source/mod_cuda.F90
                                   source/mod_nvtx.F90
