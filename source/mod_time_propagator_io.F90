@@ -1,4 +1,5 @@
 module mod_time_propagator_io
+  !! Module for Input and Output of time-propagation calculations
   implicit none
 contains
 
@@ -388,8 +389,7 @@ contains
     use mod_kind,             only: dp
     use mod_parameters,       only: output,missing_files
     use mod_mpi_pars,         only: abortProgram
-    use mod_time_propagator, only: step, time_conv, integration_time, lelectric, lmagnetic
-    use mod_imRK4,            only: magnetic_field, vector_potential
+    use mod_time_propagator,  only: step, time_conv, integration_time, lelectric, lmagnetic, magnetic_field, vector_potential
     implicit none
     character(len=500)     :: output_file
     real(dp), dimension(3) :: field_m, field_e
@@ -433,7 +433,7 @@ contains
     !! subroutine to write in time propagation output files
     use mod_kind,             only: dp
     use mod_system,           only: System_type
-    use mod_time_propagator, only: time_conv
+    use mod_time_propagator,  only: time_conv
     implicit none
     type(System_type),                      intent(in) :: s
     real(dp),                               intent(in) :: t,E_t

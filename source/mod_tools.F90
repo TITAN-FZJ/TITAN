@@ -952,6 +952,22 @@ contains
     close(file_unit)
   end function get_memory
 
+
+  subroutine build_identity(dim_I,ident)
+    !! Builds identity matrices of dimension dim_I
+    use mod_kind, only: dp
+    implicit none
+    integer,                             intent(in)  :: dim_I
+    complex(dp), dimension(dim_I,dim_I), intent(out) :: ident
+    integer :: n
+
+    ident = 0._dp
+    do n= 1, dim_I
+      ident(n,n)= 1._dp
+    end do    
+
+  end subroutine build_identity
+
 end module mod_tools
 
 
