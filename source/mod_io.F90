@@ -977,10 +977,11 @@ contains
 
   subroutine get_orbitals(string,input_orbitals,nOrb,nOrb2,nOrb2sc,nsOrb,npOrb,ndOrb,Orbs,sOrbs,pOrbs,dOrbs)
   !! Subroutine to read and parse the selected orbitals
-    use mod_kind,   only: int32
-    use mod_System, only: System_type
-    use mod_tools,  only: is_numeric,itos,stoi
-    use AtomTypes,  only: default_Orbs
+    use mod_kind,    only: int32
+    use mod_logging, only: log_message,log_error
+    use mod_System,  only: System_type
+    use mod_tools,   only: is_numeric,itos,stoi
+    use AtomTypes,   only: default_Orbs
     use mod_superconductivity, only: superCond
     character(len=*)               , intent(in)    :: string
     character(len=20), dimension(:), intent(inout) :: input_orbitals

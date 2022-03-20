@@ -241,7 +241,7 @@ contains
 
         !$omp parallel do default(none) schedule(dynamic,1) &
         !$omp& private(Yn_e,Yn_new_e,Yn_hat_e,ik,n,i,kp,weight,hk,hkev,hamilt_nof,exp_eval,ERR_kn,Yn,Yn_new,Yn_hat,eval,expec_0,expec_p,expec_z,expec_d,E_0,lxm,lym,lzm,tso,txc) &
-        !$omp& shared(counter,step,s,t,it,id,tso_op,txc_op,dimHsc,realBZ,lfullhk,h0,fullhk,evec_kn_temp,evec_kn,eval_kn,use_checkpoint,b_field,A_t,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2) &
+        !$omp& shared(counter,step,s,t,it,id,tso_op,txc_op,dimHsc,realBZ,lfullhk,h0,fullhk,evec_kn_temp,evec_kn,eval_kn,use_checkpoint,lmagnetic,b_field,lelectric,A_t,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2) &
         !$omp& reduction(+:rho_t,mp_t,mz_t,E_t,Lxm_t,Lym_t,Lzm_t,delta_sc_t,tso_t,txc_t,ERR)
         kpoints_loop: do ik = 1, realBZ%workload
           kp = realBZ%kp(:,ik)
@@ -896,7 +896,7 @@ contains
     end do
 
     ! Writing current orbital-dependent magnetization vector to use for total torque calculation (dM/dt) when recovering
-    write(formatvar,fmt="(a,i0,a)") '(',3*s%nOrb*nAtoms,'(es16.8e3,2x))'
+    write(formatvar,fmt="(a,i0,a)") '(',3*s%nOrb*s%nAtoms,'(es16.8e3,2x))'
     write(unit=file_unit,fmt=formatvar) ((mx_t(mu,i),my_t(mu,i),mz_t(mu,i), mu=1,s%Types(s%Basis(i)%Material)%nOrb), i=1,s%nAtoms)
 
     close(file_unit) 
@@ -986,7 +986,7 @@ contains
     end do
 
     ! Reading current orbital-dependent magnetization vector to use for total torque calculation (dM/dt) when recovering
-    write(formatvar,fmt="(a,i0,a)") '(',3*nOrb*nAtoms,'(es16.8e3,2x))'
+    write(formatvar,fmt="(a,i0,a)") '(',3*s%nOrb*s%nAtoms,'(es16.8e3,2x))'
     read(unit=file_unit,fmt=formatvar, iostat=stat_temp) ((mx_t(mu,i),my_t(mu,i),mz_t(mu,i), mu=1,s%Types(s%Basis(i)%Material)%nOrb), i=1,s%nAtoms)
     stat_check = stat_check + stat_temp
 
