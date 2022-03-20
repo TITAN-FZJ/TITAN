@@ -1459,14 +1459,14 @@ contains
     write(unit=iw,fmt="(100(es16.9,2x))") rtime, (sum(mx_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i )),sum(my_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i )),sum(mz_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i )), sqrt(sum(mx_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i ))**2 + sum(my_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i ))**2 + sum(mz_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i ))**2) ,i=1,s%nAtoms)
     ! Site-dependent OAM
     iw = iw+1
-    write(unit=iw,fmt="(100(es16.9,2x))") rtime, (sum(Lxm_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i )), sum(Lym_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i )), sum(Lzm_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i )), sqrt(sum(Lxm_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i ))**2 + sum(Lym_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i ))**2 + sum(Lzm_t( 1:s%Types(s%Basis(i)%Material)%nOrb,i ))**2),i=1,s%nAtoms)
+    write(unit=iw,fmt="(100(es16.9,2x))") rtime, (sum(Lxm_t( 1:2,i )), sum(Lym_t(1:2,i )), sum(Lzm_t( 1:2,i )), sqrt(sum(Lxm_t( 1:2,i ))**2 + sum(Lym_t( 1:2,i ))**2 + sum(Lzm_t( 1:2,i ))**2),i=1,s%nAtoms)
 
     ! dM/dt
     iw = iw+1
     write(unit=iw,fmt="(100(es16.9,2x))") rtime, ( (sum(dmdt( xyz,1:s%Types(s%Basis(i)%Material)%nOrb,i )), xyz=1,3), i=1,s%nAtoms)
     ! SO-torque
     iw = iw+1
-    write(unit=iw,fmt="(100(es16.9,2x))") rtime, ( (sum(tso_t( xyz,1:s%Types(s%Basis(i)%Material)%nOrb,i )), xyz=1,3), i=1,s%nAtoms)
+    write(unit=iw,fmt="(100(es16.9,2x))") rtime, ( (sum(tso_t( xyz,1:2,i )), xyz=1,3), i=1,s%nAtoms)
     ! XC-torque
     iw = iw+1
     write(unit=iw,fmt="(100(es16.9,2x))") rtime, ( (sum(txc_t( xyz,1:s%Types(s%Basis(i)%Material)%nOrb,i )), xyz=1,3), i=1,s%nAtoms)
