@@ -432,8 +432,8 @@ contains
     character(len=*), optional, intent(in) :: procedure
     integer,                    intent(in) :: f_unit
     character(len=*), optional, intent(in) :: item
-    integer             :: ios
-    character(len=200)  :: next_line
+    integer                       :: ios
+    character(len=:), allocatable :: next_line
 
     do
       read(f_unit, fmt='(A)', iostat = ios) next_line

@@ -303,7 +303,7 @@ contains
             call expec_val_n(s,dimHsc,Yn_new_e,eval_kn(n,ik),expec_0,expec_p,expec_z,expec_d)
 
             ! calculating expectation value of the T.D Hamiltonian in eigenvector (n)
-            call expec_H_n(s,b_field,A_t,hk,kp,Yn_new_e,eval_kn(n,ik),E_0)
+            call expec_H_n(s,lmagnetic,b_field,lelectric,A_t,hk,kp,Yn_new_e,eval_kn(n,ik),E_0)
 
             ! calculating expectation value of angular momentum in eigenvector (n)
             call expec_L_n(s,dimHsc,Yn_new_e,eval_kn(n,ik),lxm,lym,lzm)
@@ -605,7 +605,7 @@ contains
     external :: zgemv
 
     ! Building time dependent hamiltonian
-    call build_hext(kp,b_field1,A_t1,hext_t)
+    call build_hext(kp,lmagnetic,b_field1,lelectric,A_t1,hext_t)
     hamilt_t = hamilt_nof - hext_t
 
     !F1 = -cI * matmul(hamilt_t,Z_k(1:dimHsc) + Yn)
@@ -613,7 +613,7 @@ contains
     call zgemv('n',dimHsc,dimHsc,-cI,hamilt_t,dimHsc,tempv,1,cZero,F1,1)
 
     ! Building time dependent hamiltonian
-    call build_hext(kp,b_field2,A_t2,hext_t)
+    call build_hext(kp,lmagnetic,b_field2,lelectric,A_t2,hext_t)
     hamilt_t = hamilt_nof - hext_t
 
     ! F2 = -cI * matmul(hamilt_t,Z_k(dimHsc+1:dimH2) + Yn)

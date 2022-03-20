@@ -20,7 +20,7 @@ contains
 
   subroutine readHamiltonian(s,filename)
   !! Reading element file, including all the parameters
-    use mod_kind,      only: dp,sp,int32,int64
+    use mod_kind,      only: dp
     use mod_system,    only: System_type
     use AtomTypes,     only: NeighborAtom
     use mod_constants, only: cZero

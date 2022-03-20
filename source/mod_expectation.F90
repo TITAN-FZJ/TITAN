@@ -1082,7 +1082,7 @@ contains
   end subroutine expec_L_n
 
 
-  subroutine expec_H_n(s,b_field,A_t,hk,kp,evec,eval,E_0)
+  subroutine expec_H_n(s,lmagnetic,b_field,lelectric,A_t,hk,kp,evec,eval,E_0)
   !! Calculate the expectation value of the time-dependent Hamiltonian
   !! in the propagated states
     use mod_kind,          only: dp
@@ -1093,6 +1093,7 @@ contains
     use mod_hamiltonian,   only: build_hext
     implicit none
     type(System_type),                 intent(in) :: s
+    logical,                           intent(in) :: lmagnetic,lelectric
     complex(dp), dimension(dimH),      intent(in) :: evec
     complex(dp), dimension(dimH,dimH), intent(in) :: hk
     real(dp),                          intent(in) :: eval
@@ -1105,7 +1106,7 @@ contains
     f_n = fd_dist(s%Ef, 1._dp/(pi*eta), eval)
 
     ! Building time dependent hamiltonian
-    call build_hext(kp,b_field,A_t,hext_t)
+    call build_hext(kp,lmagnetic,b_field,lelectric,A_t,hext_t)
     hamilt_0 = hk + hext_t
 
     E_0 = 0._dp
