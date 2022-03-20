@@ -30,7 +30,7 @@ contains
     type(System_type),   intent(inout) :: s
     character(len=*),    intent(in)    :: filename
 
-    character(len=100) :: title,temp
+    character(len=:), allocatable :: title,temp
     !! Title of the hamiltonian file, and temporary variable
     logical :: tb
     !! Flag to indicate which kind of hamiltonian file to read 
