@@ -1,6 +1,5 @@
 Co
- 0.7140             ! Initial Fermi level
-0.385 0.155 7.5102  ! s, p and d occupations
+ 0.0                ! Initial Fermi level
  0.000 1.0          ! Un and Um in the same units of hopping parameters (in this case, eV)
  0.000 0.085        ! lambda_SOI for p and d orbitals
  0.0 0.0 0.0        ! superconducting lambda 

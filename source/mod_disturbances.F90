@@ -155,10 +155,10 @@ contains
   ! (already opened with openclose_disturbance_files(1))
   ! Some information may also be written on the screen
   subroutine write_disturbances(e)
-    use, intrinsic :: iso_fortran_env
-    use mod_parameters, only: renorm,output,lwriteonscreen
-    use mod_magnet, only: mvec_spherical,mtotal_spherical
-    use mod_System, only: s => sys
+    use mod_kind,       only: dp
+    use mod_parameters, only: output,lwriteonscreen
+    use mod_magnet,     only: mvec_spherical,mtotal_spherical
+    use mod_System,     only: s => sys
     implicit none
     integer  :: i,j,iw
     real(dp),intent(in) :: e
@@ -221,22 +221,23 @@ contains
         write(unit=iw+j,fmt="(9(es16.9,2x))") e, abs(disturbances(j,i)) , real(disturbances(j,i)) , aimag(disturbances(j,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
 
         ! Writing renormalized disturbances
-        if(renorm) then
-          if(abs(rdisturbances(j,i))>=1.e-15_dp) then
-            phase  = atan2(aimag(rdisturbances(j,i)),real(rdisturbances(j,i)))
-            if (phase <=1.e-15_dp) phase = 0._dp
-            sine   = real(rdisturbances(j,i))/abs(rdisturbances(j,i))
-            if (sine <=1.e-15_dp) sine = 0._dp
-            cosine = aimag(rdisturbances(j,i))/abs(rdisturbances(j,i))
-            if (cosine <=1.e-15_dp) cosine = 0._dp
-          else
-            phase  = 0._dp
-            sine   = 0._dp
-            cosine = 0._dp
-          end if
+        ! if(renorm) then
+        !   if(abs(rdisturbances(j,i))>=1.e-15_dp) then
+        !     phase  = atan2(aimag(rdisturbances(j,i)),real(rdisturbances(j,i)))
+        !     if (phase <=1.e-15_dp) phase = 0._dp
+        !     sine   = real(rdisturbances(j,i))/abs(rdisturbances(j,i))
+        !     if (sine <=1.e-15_dp) sine = 0._dp
+        !     cosine = aimag(rdisturbances(j,i))/abs(rdisturbances(j,i))
+        !     if (cosine <=1.e-15_dp) cosine = 0._dp
+        !   else
+        !     phase  = 0._dp
+        !     sine   = 0._dp
+        !     cosine = 0._dp
+        !   end if
 
-          write(unit=iw+1000+j,fmt="(9(es16.9,2x))") e, abs(rdisturbances(j,i)) , real(rdisturbances(j,i)) , aimag(rdisturbances(j,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
-        end if
+        !   write(unit=iw+1000+j,fmt="(9(es16.9,2x))") e, abs(rdisturbances(j,i)) , real(rdisturbances(j,i)) , aimag(rdisturbances(j,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
+        ! end if
+
       end do
     end do
 

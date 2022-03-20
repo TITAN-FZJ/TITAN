@@ -3,13 +3,16 @@ module mod_parameters
   implicit none
   !========================================================================================!
   integer(int32),parameter :: dmax=20
-  !! Maximum dimension for Npl-dependent quantities that must be read from input (obsolete?)
+  !! Maximum dimension for quantities that must be read from input
   real(dp)  :: eta
   !! Small imaginary part included in the energy of GF or susceptibility z = w + i.eta
   real(dp)  :: etap
-  !! Small imaginary part included in the energy of GF  z = E + i.eta'
+  !! Small imaginary part included in the energy of GF  z = E + i.etap
+  real(dp) :: addelectrons
+  !! Electrons to add (or remove, when negative) for the whole system (default = 0 set in mod_io)
+  !! Only for the case of Un==0 (otherwise, Un requires site- and orbital-dependent quantity)
   real(dp)  :: q(3)
-  !! q-vector for the dependence of response functions (not used yet)
+  !! q-vector for the dependence of response functions
   ! Dimension variables:
   integer(int32) :: dimH
   !! Dimension of the Hamiltonian: 2 spins x number of atoms in the unit cell
@@ -20,13 +23,13 @@ module mod_parameters
   integer(int32) :: dimens
   !! Dimension: 4 spins x number of atoms in the unit cell x number of orbitals^2
 
-  integer(int32), dimension(3) :: kp_in
+  integer(int32), dimension(3) :: kp_in, qp_in 
   !! Number of k-points in each direction
-  integer(int64) :: kptotal_in
+  integer(int64) :: kptotal_in, qptotal_in
   !! Total number of k-points
 
   integer(int32) :: tbmode
-  !! Tight-binding mode: (1) Slater-Koster, (2) DFT (not implemented yet)
+  !! Tight-binding mode: (1) Slater-Koster, (2) DFT
   integer(int32) :: fermi_layer
   !! Which site will be used for fermi level (Maybe remove it and read from outside?)
   real(dp) :: Ef_overwrite
@@ -34,12 +37,12 @@ module mod_parameters
   !! Overwrite Fermi energy variables (that is set immediately before self-consistency)
   character(len=20), dimension(:), allocatable :: layers
   !! Number of layers (Obsolete?)
-  !! Number of cells around the origin for the cluster generation of the real space Jij
-  integer(int32) :: cluster_layers = 2
-
   !========================================================================================!
-  logical       :: lhfresponses = .false.
-  !! Use HF susceptibilities to calculate currents, disturbances and accumulations (don't renormalize)
+  integer(int32) :: cluster_layers = 2
+  !! Number of cells around the origin for the cluster generation of the real space Jij
+  !========================================================================================!
+  logical        :: lhfresponses = .false.
+  !! Use HF susceptibilities to calculate currents, disturbances and accumulations (do not renormalize)
   !========================================================================================!
   real(dp)       :: theta=0._dp,phi=0._dp
   !! Euler Angles for the magnetization frame of reference
@@ -49,7 +52,7 @@ module mod_parameters
   !========================================================================================!
   character(len=10), dimension(:), allocatable :: bands
   !! Band structure points
-  integer(int32)         :: band_cnt
+  integer(int32)    :: band_cnt
   !! Number of points along the loop path
   character(len=20) :: kdirection
   !! Path of symmetry points followed in the Brillouin Zone

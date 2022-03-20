@@ -1,4 +1,5 @@
 module mod_sha
+  !! Spin Hall Angle variables and procedures
   use, intrinsic :: iso_fortran_env
   implicit none
   ! Spin Hall Angle
@@ -9,8 +10,8 @@ module mod_sha
 
 contains
 
-  ! This subroutine allocates variables related to the sha calculation
-  subroutine allocate_sha()
+subroutine allocate_sha()
+  !! This subroutine allocates variables related to the sha calculation
     use, intrinsic :: iso_fortran_env
     use mod_mpi_pars
     use mod_parameters, only: Npl,outputunit
@@ -20,15 +21,15 @@ contains
     if(myrank_row==0) then
       allocate( sha_re(4,Npl),sha_complex(4,Npl), STAT = AllocateStatus )
       if (AllocateStatus/=0) then
-         write(outputunit,"('[allocate_sha] Not enough memory for: sha_re,sha_complex')")
+        write(outputunit,"('[allocate_sha] Not enough memory for: sha_re,sha_complex')")
         call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
       end if
     end if
 
   end subroutine allocate_sha
 
-  ! This subroutine allocates variables related to the sha calculation
   subroutine deallocate_sha()
+    !! This subroutine allocates variables related to the sha calculation
     use, intrinsic :: iso_fortran_env
     use mod_mpi_pars
     implicit none
@@ -37,8 +38,8 @@ contains
 
   end subroutine deallocate_sha
 
-  ! This subroutine opens and closes all the files needed for the sha
   subroutine openclose_sha_files(iflag)
+    !! This subroutine opens and closes all the files needed for the sha
     use mod_parameters, only: fieldpart,output
     use mod_SOC, only: SOCc, socpart
     use mod_mpi_pars
@@ -123,9 +124,9 @@ contains
 
   end subroutine openclose_sha_files
 
-  ! This subroutine write all the SHA into files
-  ! (already opened with openclose_sha_files(1))
   subroutine write_sha(e)
+  !! This subroutine write all the SHA into files
+  !! (already opened with openclose_sha_files(1))
     use, intrinsic :: iso_fortran_env
     use mod_parameters, only: Npl
     use mod_magnet, only: mvec_spherical,mtotal_spherical
@@ -144,8 +145,8 @@ contains
 
   end subroutine write_sha
 
-  ! This subroutine opens and closes all the files needed for the sha
   subroutine openclose_dc_sha_files(iflag)
+    !! This subroutine opens and closes all the files needed for the sha
     use mod_parameters, only: dcfieldpart,output
     use mod_SOC, only: SOCc, socpart
     use mod_mpi_pars, only: errorcode, ierr, MPI_COMM_WORLD
@@ -235,9 +236,9 @@ contains
 
   end subroutine openclose_dc_sha_files
 
-  ! This subroutine write all the sha in the dc limit into files
-  ! (already opened with openclose_dc_sha_files(1))
   subroutine write_dc_sha()
+  !! This subroutine write all the sha in the dc limit into files
+  !! (already opened with openclose_dc_sha_files(1))
     use, intrinsic :: iso_fortran_env
     use mod_parameters
     use mod_magnet, only: mvec_spherical,mtotal_spherical
@@ -255,8 +256,8 @@ contains
 
   end subroutine write_dc_sha
 
-  ! This subroutine sorts SHA files
   subroutine sort_sha()
+    !! This subroutine sorts SHA files
     use, intrinsic :: iso_fortran_env
     use mod_parameters, only: Npl,itype
     use mod_tools, only: sort_file
@@ -290,9 +291,9 @@ contains
 
   end subroutine sort_sha
 
-  ! This subroutine reads currents from existing files
-  ! and calculates the spin hall angle
   subroutine read_currents_and_calculate_sha()
+    !! This subroutine reads currents from existing files
+    !! and calculates the spin hall angle
     use mod_parameters
     use mod_constants
     use mod_magnet
@@ -331,10 +332,10 @@ contains
           ! Obtaining number of rows and cols in the file
           call number_of_rows_cols(iw,rows,cols)
           ! Allocating variables to read and store data
-          allocate(data (rows,cols), &
-                   e (rows), &
-                   currents_from_file       (7,n0sc1:n0sc2,Npl,rows), &
-                   total_currents_from_file (7,n0sc1:n0sc2,rows))
+          allocate( data (rows,cols), &
+                    e (rows), &
+                    currents_from_file       (7,n0sc1:n0sc2,Npl,rows), &
+                    total_currents_from_file (7,n0sc1:n0sc2,rows))
 
           ! Reading data and storing to variable 'data'
           call read_data(iw,rows,cols,data)
@@ -437,11 +438,11 @@ contains
               end if
 
               ! Allocating variables to read and sort data
-              allocate(data (rows,cols), &
-                       x (rows,idc), &
-                       currents_from_file       (7,n0sc1:n0sc2,Npl,rows), &
-                       total_currents_from_file (7,n0sc1:n0sc2,rows), &
-                       mangles (rows,Npl,2))
+              allocate( data (rows,cols), &
+                        x (rows,idc), &
+                        currents_from_file       (7,n0sc1:n0sc2,Npl,rows), &
+                        total_currents_from_file (7,n0sc1:n0sc2,rows), &
+                        mangles (rows,Npl,2))
               ! Reading data and storing to variable 'data'
               call read_data(iw,rows,cols,data)
               ! Getting fields list
@@ -539,11 +540,10 @@ contains
   end subroutine read_currents_and_calculate_sha
 
 
-  ! This subroutine calculates the spin hall angle
-  ! given by
-  ! SHA = (2._dp*e/\hbar) I_S/I_C
-  ! NOTE: THIS IS DEFINED AS A CURRENT RATIO, NOT CURRENT DENSITY!
   subroutine calculate_sha()
+    !! This subroutine calculates the spin hall angle given by
+    !! SHA = (2._dp*e/\hbar) I_S/I_C
+    !! NOTE: THIS IS DEFINED AS A CURRENT RATIO, NOT CURRENT DENSITY!
     use mod_parameters
     use mod_constants, only: cZero
     use mod_currents

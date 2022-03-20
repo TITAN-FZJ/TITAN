@@ -2,12 +2,13 @@ module mod_Coupling
   use mod_kind, only: dp
   implicit none
   character(len=3), private :: folder = "Jij"
-  character(len=3), dimension(3), private :: filename = ["J  ", "Jij", "Dz "]
+  character(len=3), dimension(1), private :: filename = ["Jij"]
 
   ! Exchange interaction
+  complex(dp), dimension(:,:,:,:), allocatable :: Jij
+  complex(dp), dimension(:,:,:,:,:), allocatable :: Jij_q
   real(dp), dimension(:,:), allocatable :: trJij
-  real(dp), dimension(:,:,:,:), allocatable :: Jij,Jijs,Jija
-  real(dp), dimension(:,:,:,:,:), allocatable :: Jij_q
+  real(dp), dimension(:,:,:,:), allocatable :: Jijs,Jija
 
 contains
 
@@ -62,25 +63,13 @@ contains
 
     do j=1,s%nAtoms
       do i=1,s%nAtoms
-        iw = 2000 + (j-1) * s%nAtoms * 2 + (i-1) * 2
-        if(i==j) then
-          iw = iw + 1
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_kdir=',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(1)),i,trim(adjustl(kdirection)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-          open (unit=iw, file=varm,status='replace')
-          call write_header(iw,"#   energy      ,   q-vector    ,  Jii_xx           ,   Jii_yy  ")
-          ! Anisotropy energy is given by K^a = 2*J_ii^aa
-          ! omega_res ~ gamma*m_i*J_ii (*2?) ,
-          ! where J_ii is the one calculated here
-        else
-          iw = iw + 1
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_',i0,'_kdir=',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(2)),i,j,trim(adjustl(kdirection)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-          open (unit=iw, file=varm,status='replace')
-          call write_header(iw,"#   energy      ,   q-vector    ,   isotropic Jij    ,   anisotropic Jij_xx    ,   anisotropic Jij_yy     ")
-          iw = iw + 1
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_',i0,'_kdir=',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(3)),i,j,trim(adjustl(kdirection)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-          open (unit=iw, file=varm,status='replace')
-          call write_header(iw,"#   energy      ,   q-vector    , Dz = (Jxy - Jyx)/2       ")
-        end if
+        iw = 2000 + (j-1) * s%nAtoms * 2 + (i-1) * 2 + 1
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_',i0,'_kdir=',a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(1)),i,j,trim(adjustl(kdirection)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        open (unit=iw, file=varm,status='replace')
+        call write_header(iw,"#   energy      ,   q-vector    ,  ((real(Jij(i,j,m,n)),aimag(Jij(i,j,m,n)), m=1,3), n=1,3) ")
+        ! Anisotropy energy is given by K^a = 2*J_ii^aa
+        ! omega_res ~ gamma*m_i*J_ii (*2?) ,
+        ! where J_ii is the one calculated here
       end do
     end do
   end subroutine openCouplingFiles
@@ -108,29 +97,15 @@ contains
 
     do j=1,s%nAtoms
       do i=1,s%nAtoms
-        iw = 2000 + (j-1) * s%nAtoms * 2 + (i-1) * 2
-        if(i==j) then
-          iw = iw + 1
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_kdir=',a,a,a,a,'_real.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(1)),i,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-          open (unit=iw, file=varm,status='replace')
-          call write_header(iw,"#     Rji_x     ,      Rji_y      ,      Rji_z      ,      |Rji|      ,  Jii_xx         ,&
-          &  Jii_xy         ,  Jii_xz         ,  Jii_yz         ,  Jii_yy         ,  Jii_yz         ,&
-          &    Jii_zx         ,  Jii_zy          ,  Jii_zz         ")
-          ! Anisotropy energy is given by K^a = 2*J_ii^aa
-          ! omega_res ~ gamma*m_i*J_ii (*2?) ,
-          ! where J_ii is the one calculated here
-        else
-          iw = iw + 1
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_',i0,'_kdir=',a,a,a,a,'_real.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(2)),i,j,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-          open (unit=iw, file=varm,status='replace')
-          call write_header(iw,"#     Rji_x     ,      Rji_y      ,      Rji_z      ,      |Rji|      ,  Jii_xx         ,&
-          &  Jii_xy         ,  Jii_xz         ,  Jii_yz         ,  Jii_yy         ,  Jii_yz         ,&
-          &    Jii_zx         ,  Jii_zy          ,  Jii_zz         ")
-          iw = iw + 1
-          write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_',i0,'_kdir=',a,a,a,a,'_.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(3)),i,j,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
-          ! open (unit=iw, file=varm,status='replace')
-          ! call write_header(iw,"#   energy      ,   distance    , Dz = (Jxy - Jyx)/2       ")
-        end if
+        iw = 2000 + (j-1) * s%nAtoms * 2 + (i-1) * 2 + 1
+        write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_',i0,'_kdir=',a,a,a,a,'_real.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(1)),i,j,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        open (unit=iw, file=varm,status='replace')
+        call write_header(iw,"#     Rji_x     ,      Rji_y      ,      Rji_z      ,      |Rji|      ,  Jii_xx         ," // &
+        &"  Jii_xy         ,  Jii_xz         ,  Jii_yz         ,  Jii_yy         ,  Jii_yz         ," // &
+        &"  Jii_zx         ,  Jii_zy         ,  Jii_zz         ")
+        ! Anisotropy energy is given by K^a = 2*J_ii^aa
+        ! omega_res ~ gamma*m_i*J_ii (*2?) ,
+        ! where J_ii is the one calculated here
       end do
     end do
   end subroutine openRealCouplingFiles
@@ -140,20 +115,12 @@ contains
     use mod_System,     only: s => sys
     implicit none
     real(dp), intent(in) :: e,q
-    integer :: i, j, iw
+    integer :: i, j, m, n, iw
 
     do j=1,s%nAtoms
       do i=1,s%nAtoms
-        iw = 2000 + (j-1) * s%nAtoms * 2 + (i-1) * 2
-        if(i==j) then
-          iw = iw + 1
-          write(unit=iw,fmt="(4(es16.9,2x))") e,q,Jij(i,j,1,1),Jij(i,j,2,2)
-        else
-          iw = iw + 1
-          write(unit=iw,fmt="(5(es16.9,2x))") e,q,trJij(i,j),Jijs(i,j,1,1),Jijs(i,j,2,2)
-          iw = iw + 1
-          write(unit=iw,fmt="(3(es16.9,2x))") e,q,Jija(i,j,1,2)
-        end if
+        iw = 2000 + (j-1) * s%nAtoms * 2 + (i-1) * 2 + 1
+        write(unit=iw,fmt="(20(es16.9,2x))") e,q, ((real(Jij(i,j,m,n)),aimag(Jij(i,j,m,n)), m=1,3), n=1,3)
       end do
     end do
   end subroutine writeCoupling
@@ -170,7 +137,7 @@ contains
     use mod_tools,            only: invers
     implicit none
     integer :: AllocateStatus
-    integer,         dimension(:),     allocatable :: fmalign
+    integer,     dimension(:),     allocatable :: fmalign
     real(dp),    dimension(:),     allocatable :: Kx_minus_Ky, Kx_plus_Ky, Kx, Ky, Jtotal
     real(dp),    dimension(:,:),   allocatable :: Jij_chi
     complex(dp), dimension(:,:),   allocatable :: chi_inv

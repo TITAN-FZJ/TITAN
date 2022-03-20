@@ -20,8 +20,9 @@ module mod_system
   implicit none
 
   type :: System_type
-    !! Variables for the system to be calculated
-    character(len=200) :: Name = ""
+  !! Variables for the system to be calculated
+
+  character(len=200) :: Name = ""
     !! Name of the system
     real(dp) :: a0
     !! Lattice parameter
@@ -36,19 +37,26 @@ module mod_system
 
     integer(int32) :: nAtoms = 0
     !! Number of atoms in the system
+    integer :: ndAtoms = 0
+    !! Number of atoms with d-orbitals in the system
     integer(int32), dimension(:), allocatable :: Orbs
     !! Types of selected orbitals
     integer(int32), dimension(:), allocatable :: sOrbs,pOrbs,dOrbs
     !! Indices of selected s,p,d orbitals
-    integer(int32) :: nOrb,nsOrb,npOrb,ndOrb,nOrb2,nOrb2sc
-    !! Number of orbitals, number of s,p,d orbitals, and 2*(number of orbitals) (for spin)
+    integer(int32) :: nOrb,nOrb2,nOrb2sc
+    !! Number of orbitals per atom (when all types use the same, otherwise, max number) 
+    !! 2*(number of orbitals) (for spin) and supercond*2*nOrb
+    integer(int32) :: total_nOrb
+    !! Total number of orbitals
+    integer(int32) :: nsOrb,npOrb,ndOrb
+    !! Number of s,p,d orbitals
     type(BasisAtom), dimension(:), allocatable :: Basis
     !! Information of the basis
     integer(int32) :: nNeighbors
     !! Number of neighbors to be considered
     real(dp)  :: Ef
     !! Fermi energy
-    real(dp)  :: totalOccupation = 0
+    real(dp)  :: totalOccupation = 0._dp
     !! Total occupation of the system
     type(NeighborAtom), dimension(:), allocatable :: Neighbors
     !! Information of the neighbors
@@ -67,16 +75,26 @@ module mod_system
   type(System_type) :: sys
   !! System variables
 
-  integer(int32) :: n0sc1 !< first neighbor to calculate the in-plane spin and charge current
-  integer(int32) :: n0sc2 !< last neighbor to calculate the in-plane spin and charge current
-  integer(int32) :: n0sc  !< Number of neighbors to calculate currents
+  integer(int32) :: n0sc1 
+  !! first neighbor to calculate the in-plane spin and charge current (deprecated?)
+  integer(int32) :: n0sc2 
+  !! last neighbor to calculate the in-plane spin and charge current (deprecated?)
+  integer(int32) :: n0sc  
+  !! Number of neighbors to calculate currents (deprecated?)
   real(dp), dimension(3) :: pln_normal
+  !! Vector normal to the plane (deprecated?)
 
   integer(int32), dimension(:,:), allocatable :: ia
+  !! Array (1:4,nAtoms) containing initial and final indices of orbitals for different hamiltonian sections:
+  !! 1 - Begin up, 2 - End up, 3 - Begin down, 4 - End down, for each atom i
 #ifdef _GPU
   integer(int32), dimension(:,:), allocatable, device :: ia_d
+  !! GPU array containing initial and final indices of orbitals for different hamiltonian sections
+  integer, allocatable, device :: nOrb_d(:)
+  !! GPU array containing the number of orbitals
 #endif
   integer(int32), dimension(:,:), allocatable :: ia_sc
+  !! Array containing initial and final indices of orbitals for different superconductor hamiltonian sections
 
 contains
 
@@ -88,27 +106,44 @@ contains
     integer(int32),    intent(in) :: superCond
     integer(int32) :: i,offsetParameter
 
-    dimH = s%nAtoms*s%nOrb*2
-    dimHsc  = dimH*superCond
-    dimspinAtoms = 4 * s%nAtoms
-    dimens = 4 * s%nAtoms * s%nOrb * s%nOrb
-
-    offsetParameter = s%nAtoms*s%nOrb*2
-
     if(allocated(ia)) deallocate(ia)
     if(allocated(ia_sc)) deallocate(ia_sc)
     allocate(ia(4,s%nAtoms))
     allocate(ia_sc(4,s%nAtoms))
-    do i = 1, s%nAtoms
-      ia(1,i) = (i-1) * 2 * s%nOrb + 1   ! Begin up
-      ia(2,i) = ia(1,i) + s%nOrb - 1     ! End up
-      ia(3,i) = ia(2,i) + 1              ! Begin down
-      ia(4,i) = ia(3,i) + s%nOrb - 1     ! End down
+
+    dimH = s%Types(s%Basis(1)%Material)%nOrb
+    dimens = s%Types(s%Basis(1)%Material)%nOrb * s%Types(s%Basis(1)%Material)%nOrb
+  
+    ia(1,1) = 1
+    ia(2,1) = ia(1,1) + s%Types(s%Basis(1)%Material)%nOrb - 1
+    ia(3,1) = ia(2,1) + 1
+    ia(4,1) = ia(3,1) + s%Types(s%Basis(1)%Material)%nOrb - 1
+    do i = 2, s%nAtoms
+      dimH = dimH + s%Types(s%Basis(i)%Material)%nOrb
+      dimens = dimens + s%Types(s%Basis(i)%Material)%nOrb * s%Types(s%Basis(i)%Material)%nOrb
+
+      ia(1,i) = ia(4,i-1) + 1                                    ! Begin up 
+      ia(2,i) = ia(1,i) + s%Types(s%Basis(i)%Material)%nOrb - 1  ! End up
+      ia(3,i) = ia(2,i) + 1                                      ! Begin down 
+      ia(4,i) = ia(3,i) + s%Types(s%Basis(i)%Material)%nOrb - 1  ! End down
+    end do
+    offsetParameter = dimH
+    dimH = dimH*2
+    dimens = dimens*4
+    dimHsc  = dimH*superCond
+    dimspinAtoms = 4 * s%nAtoms
+
+    ! Superconductivity strides (need dimH)
+    ia_sc(1,1) = 1
+    ia_sc(2,1) = ia_sc(1,1) + 2*s%Types(s%Basis(1)%Material)%nOrb - 1
+    ia_sc(3,1) = ia_sc(1,1) + dimH
+    ia_sc(4,1) = ia_sc(3,1) + 2*s%Types(s%Basis(1)%Material)%nOrb - 1
+    do i = 2, s%nAtoms
       ! Superconductivity block has doubled dimensions in each spin
-      ia_sc(1,i) = (i-1) * 2 * s%nOrb + 1           ! Begin first block (electrons) 1 to 2*s%nOrb
-      ia_sc(2,i) = ia_sc(1,i) + s%nOrb*2 - 1        ! End first block (electrons)
-      ia_sc(3,i) = ia_sc(1,i) + dimH              ! Begin second block (holes) 1 to 2*s%nOrb + dimH
-      ia_sc(4,i) = ia_sc(3,i) + s%nOrb*2 - 1        ! End second block (holes)
+      ia_sc(1,i) = ia_sc(2,i-1) + 1                                        ! Begin first block (electrons) 1 to 2*nOrb
+      ia_sc(2,i) = ia_sc(1,i) + 2*s%Types(s%Basis(i)%Material)%nOrb - 1    ! End first block (electrons)
+      ia_sc(3,i) = ia_sc(1,i) + dimH                                       ! Begin second block (holes) 1 to 2*nOrb + dimH
+      ia_sc(4,i) = ia_sc(3,i) + 2*s%Types(s%Basis(i)%Material)%nOrb - 1    ! End second block (holes)
     end do
 
 #ifdef _GPU
@@ -120,7 +155,7 @@ contains
   end subroutine init_Hamiltk_variables
 
 
-  subroutine initConversionMatrices(nAtoms, nOrbs)
+  subroutine initConversionMatrices(s)
   !> This subroutine mounts the conversion matrices from 4 to 2 ranks
 #ifdef _GPU
     use mod_parameters, only: sigmai2i,sigmaimunu2i,sigmaijmunu2i,isigmamu2n,isigmamu2n_d,n2isigmamu
@@ -128,34 +163,51 @@ contains
     use mod_parameters, only: sigmai2i,sigmaimunu2i,sigmaijmunu2i,isigmamu2n,n2isigmamu
 #endif
     implicit none
-    integer, intent(in) :: nAtoms, nOrbs
+    type(System_type), intent(in) :: s
     integer :: nu, mu, i, sigma, j, kount
 
+    do i = 1, s%nAtoms
+      do sigma = 1, 4
+        sigmai2i(sigma,i) = (sigma-1)*s%nAtoms + i
+      end do
+    end do
+
     !------------------------- Conversion arrays  --------------------------
-    do nu = 1, nOrbs
-      do mu = 1, nOrbs
-        do i = 1, nAtoms
+    kount = 0
+    do i = 1, s%nAtoms
+      do mu = 1, s%Types(s%Basis(i)%Material)%nOrb
+        do nu = 1, s%Types(s%Basis(i)%Material)%nOrb
           do sigma = 1, 4
-            sigmaimunu2i(sigma,i,mu,nu) = (sigma-1)*nAtoms*nOrbs*nOrbs + (i-1)*nOrbs*nOrbs + (mu-1)*nOrbs + nu
-            do j = 1, nAtoms
-              sigmaijmunu2i(sigma,i,j,mu,nu) = (sigma-1)*nAtoms*nAtoms*nOrbs*nOrbs + (i-1)*nAtoms*nOrbs*nOrbs + (j-1)*nOrbs*nOrbs + (mu-1)*nOrbs + nu
+            ! kount = (sigma-1)*nAtoms*nOrb*nOrb + (i-1)*nOrb*nOrb + (mu-1)*nOrb + nu
+            kount = kount + 1
+            sigmaimunu2i(sigma,i,mu,nu) = kount
+          end do
+        end do
+      end do
+    end do
+
+    kount = 0
+    do i = 1, s%nAtoms
+      do mu = 1, s%Types(s%Basis(i)%Material)%nOrb 
+        do j = 1, s%nAtoms
+          do nu = 1, s%Types(s%Basis(j)%Material)%nOrb
+            do sigma = 1, 4
+              ! kount = (sigma-1)*nAtoms*nAtoms*nOrb*nOrb + (i-1)*nAtoms*nOrb*nOrb + (j-1)*nOrb*nOrb + (mu-1)*nOrb + nu
+              kount = kount + 1
+              sigmaijmunu2i(sigma,i,j,mu,nu) = kount
             end do
           end do
         end do
       end do
     end do
 
-    do i = 1, nAtoms
-      do sigma = 1, 4
-        sigmai2i(sigma,i) = (sigma-1)*nAtoms + i
-      end do
-    end do
-
     ! Conversion array from local atomic orbitals to (i,sigma,mu) to eigenvectors n
-    do i = 1, nAtoms
+    kount = 0
+    do i = 1, s%nAtoms
       do sigma = 1, 2
-        do mu = 1, nOrbs
-          kount = (i-1)*2*nOrbs + (sigma-1)*nOrbs + mu
+        do mu = 1, s%Types(s%Basis(i)%Material)%nOrb
+          ! kount = (i-1)*2*nOrb + (sigma-1)*nOrb + mu
+          kount = kount + 1
           isigmamu2n(i,sigma,mu) = kount
           n2isigmamu(kount,1) = i
           n2isigmamu(kount,2) = sigma
@@ -169,6 +221,31 @@ contains
 #endif
 
   end subroutine initConversionMatrices
+
+  subroutine allocate_basis_variables(s)
+  !! Allocates variables inside Basis derived datatype
+    implicit none
+    type(System_type), intent(inout) :: s
+    integer :: i
+
+    do i = 1,s%nAtoms
+
+      if(.not.allocated(s%Basis(i)%sb)) allocate( s%Basis(i)%sb(s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2))
+      s%Basis(i)%sb = cmplx(0._dp,0._dp,dp)
+      if(.not.allocated(s%Basis(i)%lb)) allocate( s%Basis(i)%lb(s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2))
+      s%Basis(i)%lb = cmplx(0._dp,0._dp,dp)
+      if(.not.allocated(s%Basis(i)%ls)) allocate( s%Basis(i)%ls(s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2))
+      s%Basis(i)%ls = cmplx(0._dp,0._dp,dp)
+#ifdef _GPU
+      if(.not.allocated(s%Basis(i)%sb_d)) allocate( s%Basis(i)%sb_d(s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2))
+      if(.not.allocated(s%Basis(i)%lb_d)) allocate( s%Basis(i)%lb_d(s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2))
+      if(.not.allocated(s%Basis(i)%ls_d)) allocate( s%Basis(i)%ls_d(s%Types(s%Basis(i)%Material)%nOrb2,s%Types(s%Basis(i)%Material)%nOrb2))
+#endif
+      if(.not.allocated(s%Basis(i)%lpvec)) allocate( s%Basis(i)%lpvec(s%Types(s%Basis(i)%Material)%nOrb,s%Types(s%Basis(i)%Material)%nOrb,3) )
+
+    end do
+
+  end subroutine allocate_basis_variables
 
 
   subroutine deallocate_System_variables()

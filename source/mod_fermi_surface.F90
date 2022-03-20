@@ -1,4 +1,5 @@
 module mod_fermi_surface
+  !! Iso-energy / Fermi-surface variables and procedures
   use mod_kind, only: dp
   implicit none
   logical  :: lfs_loop = .false.
@@ -6,13 +7,13 @@ module mod_fermi_surface
   real(dp) :: fs_energy_i, fs_energy_f, fs_energy_s
   real(dp), allocatable :: fs_energies(:)
 
-  character(len=4), dimension(2), private :: filename = ["orb","tot"]
+  character(len=3), dimension(2), private :: filename = ["orb","tot"]
   character(len=50)  :: epart
 
 contains
 
-  ! This subroutine sets up the loop over iso-energies surfaces
   subroutine setFSloop()
+  !! This subroutine sets up the loop over iso-energies surfaces
     use mod_system,        only: s => sys
     implicit none
     integer :: i
@@ -43,8 +44,8 @@ contains
 
   end subroutine setFSloop
 
-  !   Calculates iso-energy surface (e=Ef for Fermi surface)
   subroutine fermi_surface()
+    !!   Calculates iso-energy surface (e=Ef for Fermi surface)
     use mod_parameters,    only: output, laddresults
     use mod_System,        only: s => sys
     use mod_tools,         only: rtos
@@ -87,27 +88,27 @@ contains
   end subroutine fermi_surface
 
 
-  !   Calculates iso-energy surface (e=Ef for Fermi surface)
   subroutine calculate_fermi_surface(e)
+    !!   Calculates iso-energy surface (e=Ef for Fermi surface)
     use mod_kind,          only: dp,int32,int64
-    use mod_constants,     only: pi,pauli_orb,cZero,cOne
+    use AtomTypes,         only: default_nOrb
+    use mod_constants,     only: pi,cZero,cOne
     use mod_parameters,    only: eta
     use mod_SOC,           only: llinearsoc,llineargfsoc
     use mod_system,        only: s => sys
     use mod_BrillouinZone, only: realBZ
-    use mod_magnet,        only: lx,ly,lz
     use mod_hamiltonian,   only: hamilt_local
     use mod_greenfunction, only: calc_green
     use mod_mpi_pars,      only: rField,rFreq,sFreq,FreqComm,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_SUM,ierr
     implicit none
     real(dp),intent(in) :: e
     integer(int64)      :: iz
-    integer(int32)      :: i,mu,nu,mup,nup,sigma
-    real(dp)            :: fs_atom(s%nAtoms,realBZ%nkpt,7),fs_orb(s%nOrb,realBZ%nkpt,7),fs_total(realBZ%nkpt,7)
+    integer(int32)      :: i,mu,nu,mup,nup,orb,sigma,nOrb2
+    real(dp)            :: fs_atom(s%nAtoms,realBZ%nkpt,7),fs_orb(default_nOrb,realBZ%nkpt,7),fs_total(realBZ%nkpt,7)
     real(dp)            :: kp(3)
     real(dp)            :: temp
     complex(dp)         :: templ
-    complex(dp),dimension(s%nOrb2,s%nOrb2,s%nAtoms,s%nAtoms)    :: gf
+    complex(dp),dimension(s%nOrb2sc,s%nOrb2sc,s%nAtoms,s%nAtoms)    :: gf
     complex(dp),dimension(s%nOrb2,s%nOrb2)    :: temp1,temp2,pauli_gf
 
     external :: zgemm,MPI_Reduce
@@ -124,64 +125,73 @@ contains
 
     !$omp parallel do &
     !$omp& default(none) &
-    !$omp& private(iz,kp,gf,i,mu,nu,mup,nup,sigma,temp,temp1,temp2,templ,pauli_gf) &
-    !$omp& shared(s,calc_green,realBZ,e,eta,pauli_orb,lx,ly,lz,fs_atom,fs_orb,fs_total)
+    !$omp& private(iz,kp,gf,i,mu,nu,mup,nup,orb,nOrb2,sigma,temp,temp1,temp2,templ,pauli_gf) &
+    !$omp& shared(s,calc_green,realBZ,e,eta,fs_atom,fs_orb,fs_total)
     do iz = 1,realBZ%workload
       kp = realBZ%kp(1:3,iz)
+
       ! Green function on energy Ef + ieta, and wave vector kp
       call calc_green(e,eta,s,kp,gf)
 
       site_i: do i=1,s%nAtoms
+        nOrb2 = s%Types(s%Basis(i)%Material)%nOrb2
+
+        ! Spin and charge densities
         do sigma=1,4
           if(sigma==1) then
-            pauli_gf = gf(:,:,i,i)
+            pauli_gf(1:nOrb2,1:nOrb2) = gf(1:nOrb2,1:nOrb2,i,i)
           else
-            temp1 = pauli_orb(sigma-1,:,:)
-            temp2 = gf(:,:,i,i)
-            call zgemm('n','n',s%nOrb2,s%nOrb2,s%nOrb2,cOne,temp1,s%nOrb2,temp2,s%nOrb2,cZero,pauli_gf,s%nOrb2)
+            temp1(1:nOrb2,1:nOrb2) = s%Types(s%Basis(i)%Material)%pauli_orb(sigma-1,1:nOrb2,1:nOrb2)
+            temp2(1:nOrb2,1:nOrb2) = gf(1:nOrb2,1:nOrb2,i,i)
+
+            call zgemm('n','n',nOrb2,nOrb2,nOrb2,cOne,temp1,s%nOrb2,temp2,s%nOrb2,cZero,pauli_gf,s%nOrb2)
           end if
-          do mu=1,s%nOrb
-            nu = mu + s%nOrb
+          do mu=1,s%Types(s%Basis(i)%Material)%nOrb
+            nu = mu + s%Types(s%Basis(i)%Material)%nOrb
             temp = - aimag(pauli_gf(mu,mu)+pauli_gf(nu,nu))/pi
-            fs_orb(mu,realBZ%first+iz-1,sigma) = fs_orb(mu,realBZ%first+iz-1,sigma) + temp
+            ! Storing orbital accumulation for this particular orbital type
+            orb = s%Types(s%Basis(i)%Material)%Orbs(mu)
+            fs_orb(orb,realBZ%first+iz-1,sigma) = fs_orb(orb,realBZ%first+iz-1,sigma) + temp
+            ! Storing site accumulation
             fs_atom(i,realBZ%first+iz-1,sigma) = fs_atom(i,realBZ%first+iz-1,sigma) + temp
           end do
         end do
 
-        orb_mu: do mu=1,s%nOrb
-          mup = mu+s%nOrb
-          orb_nu: do nu=1,s%nOrb
-            nup = nu+s%nOrb
+        ! OAM densities
+        orb_mu: do mu=1,s%Types(s%Basis(i)%Material)%nOrb
+          mup = mu+s%Types(s%Basis(i)%Material)%nOrb
+          ! orbital type:
+          orb = s%Types(s%Basis(i)%Material)%Orbs(mu)
+
+          orb_nu: do nu=1,s%Types(s%Basis(i)%Material)%nOrb
+            nup = nu+s%Types(s%Basis(i)%Material)%nOrb
             templ = (gf(nu,mu,i,i) + gf(nup,mup,i,i))/pi
-            temp  = real( lx(mu,nu)*templ )
-            fs_orb(mu,realBZ%first+iz-1,5) = fs_orb(mu,realBZ%first+iz-1,5) + temp
+            temp  = real( s%Types(s%Basis(i)%Material)%lvec(mu,nu,1)*templ )
+            fs_orb(orb,realBZ%first+iz-1,5) = fs_orb(orb,realBZ%first+iz-1,5) + temp
             fs_atom(i,realBZ%first+iz-1,5) = fs_atom(i,realBZ%first+iz-1,5) + temp
-            temp  = real( ly(mu,nu)*templ )
-            fs_orb(mu,realBZ%first+iz-1,6) = fs_orb(mu,realBZ%first+iz-1,6) + temp
+            temp  = real( s%Types(s%Basis(i)%Material)%lvec(mu,nu,2)*templ )
+            fs_orb(orb,realBZ%first+iz-1,6) = fs_orb(orb,realBZ%first+iz-1,6) + temp
             fs_atom(i,realBZ%first+iz-1,6) = fs_atom(i,realBZ%first+iz-1,6) + temp
-            temp  = real( lz(mu,nu)*templ )
-            fs_orb(mu,realBZ%first+iz-1,7) = fs_orb(mu,realBZ%first+iz-1,7) + temp
+            temp  = real( s%Types(s%Basis(i)%Material)%lvec(mu,nu,3)*templ )
+            fs_orb(orb,realBZ%first+iz-1,7) = fs_orb(orb,realBZ%first+iz-1,7) + temp
             fs_atom(i,realBZ%first+iz-1,7) = fs_atom(i,realBZ%first+iz-1,7) + temp
           end do orb_nu
         end do orb_mu
 
+        fs_total(realBZ%first+iz-1,:) = fs_total(realBZ%first+iz-1,:) + fs_atom(i,realBZ%first+iz-1,:)
       end do site_i
-
-      do mu=1,s%nOrb      
-        fs_total(realBZ%first+iz-1,:) = fs_total(realBZ%first+iz-1,:) + fs_orb(mu,realBZ%first+iz-1,:)
-      end do
 
     end do
     !$omp end parallel do
 
     if(rField == 0) then
-      call MPI_Reduce(MPI_IN_PLACE, fs_orb   , s%nOrb*realBZ%nkpt*7  , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
-      call MPI_Reduce(MPI_IN_PLACE, fs_atom  , s%nAtoms*realBZ%nkpt*7, MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
-      call MPI_Reduce(MPI_IN_PLACE, fs_total , realBZ%nkpt*7         , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+      call MPI_Reduce(MPI_IN_PLACE, fs_orb   , default_nOrb*realBZ%nkpt*7  , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+      call MPI_Reduce(MPI_IN_PLACE, fs_atom  , s%nAtoms*realBZ%nkpt*7      , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+      call MPI_Reduce(MPI_IN_PLACE, fs_total , realBZ%nkpt*7               , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
     else
-      call MPI_Reduce(fs_orb      , fs_orb   , s%nOrb*realBZ%nkpt*7  , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
-      call MPI_Reduce(fs_atom     , fs_atom  , s%nAtoms*realBZ%nkpt*7, MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
-      call MPI_Reduce(fs_total    , fs_total , realBZ%nkpt*7         , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+      call MPI_Reduce(fs_orb      , fs_orb   , default_nOrb*realBZ%nkpt*7  , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+      call MPI_Reduce(fs_atom     , fs_atom  , s%nAtoms*realBZ%nkpt*7      , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
+      call MPI_Reduce(fs_total    , fs_total , realBZ%nkpt*7               , MPI_DOUBLE_PRECISION, MPI_SUM, 0, FreqComm(1), ierr)
     end if
 
     if(rField == 0) call writeFS(fs_atom,fs_orb,fs_total)
@@ -190,36 +200,53 @@ contains
 
 
   subroutine createFSfiles()
+    !! Create Fermi-Surface/Iso-energy files
     use mod_parameters,    only: output
     use mod_System,        only: s => sys
+    use AtomTypes,         only: default_Orbs,default_nOrb
     implicit none
     character(len=400) :: varm
-    integer            :: i
+    character(len=1200):: formatvar
+    character(len=16)  :: temp
+    character(len=6)   :: quantities(7)
+    integer            :: i,j
 
+    quantities(1) = 'charge'
+    quantities(2:7) = ['ms_x','ms_y','ms_z','mo_x','mo_y','mo_z']
     do i=1,s%nAtoms
       write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'atom',i0,a,a,a,a,'.dat')") &
-       output%SOCchar,trim(output%Sites),trim(epart),i,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        output%SOCchar,trim(output%Sites),trim(epart),i,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       open (unit=17+i, file=varm,status='replace', form='formatted')
-      write(unit=17+i, fmt="('#      kx       ,        ky       ,        kz       ,      charge     ,      spin x     ,      spin y     ,      spin z     ,      morb x     ,      morb y     ,      morb z     ')")
+      write(unit=17+i, fmt="('#      kx       ,        ky       ,        kz       ,      charge     ,        ms_x     ,        ms_y     ,        ms_z     ,        mo_x     ,        mo_y     ,        mo_z     ')")
       close(unit=17+i)
     end do
     ! Orbital-depedent
     write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,a,a,a,a,a,'.dat')") &
-     output%SOCchar,trim(output%Sites),trim(epart),trim(filename(1)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+      output%SOCchar,trim(output%Sites),trim(epart),trim(filename(1)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
     open (unit=96, file=varm,status='replace', form='formatted')
-    write(unit=96, fmt="('#      kx       ,        ky       ,        kz       ,  charge(*nOrb)  ,  spin x(*nOrb)  ,  spin y(*nOrb)  ,  spin z(*nOrb)  ,  morb x(*nOrb)  ,  morb y(*nOrb)  ,  morb z(*nOrb)  ')")
+
+    formatvar = "('#      kx       ,        ky       ,        kz       ,"
+    do i = 1,size(quantities)
+      do j = 1,default_nOrb
+        temp = trim(quantities(i)) // "(" // trim(default_Orbs(j)) // "),"
+        write(formatvar,fmt="(a,a18)") trim(formatvar), trim(temp)
+      end do
+    end do
+    write(formatvar,fmt="(a,a)") trim( formatvar( :len(trim(formatvar))-1 ) ), "')"
+    write(unit=96, fmt=formatvar)
     close(unit=96)
     ! Total
     write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,a,a,a,a,a,'.dat')") &
-     output%SOCchar,trim(output%Sites),trim(epart),trim(filename(2)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+      output%SOCchar,trim(output%Sites),trim(epart),trim(filename(2)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
     open (unit=97, file=varm,status='replace', form='formatted')
-    write(unit=97, fmt="('#      kx       ,        ky       ,        kz       ,      charge     ,      spin x     ,      spin y     ,      spin z     ,      morb x     ,      morb y     ,      morb z     ')")
+    write(unit=97, fmt="('#      kx       ,        ky       ,        kz       ,      charge     ,        ms_x     ,        ms_y     ,        ms_z     ,        mo_x     ,        mo_y     ,        mo_z     ')")
     close(unit=97)
 
   end subroutine createFSfiles
 
 
   subroutine openFSfiles()
+    !! Open Fermi-Surface/Iso-energy files
     use mod_parameters, only: output,missing_files
     use mod_System,     only: s => sys
     use mod_mpi_pars,   only: abortProgram
@@ -230,14 +257,14 @@ contains
     ! Opening files for writing
     do i=1,s%nAtoms
       write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'atom',i0,a,a,a,a,'.dat')") &
-       output%SOCchar,trim(output%Sites),trim(epart),i,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        output%SOCchar,trim(output%Sites),trim(epart),i,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       open (unit=17+i, file=varm, status='old', position='append', form='formatted', iostat=err)
       errt = errt + err
       if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
     end do
     do j = 1, size(filename)
       write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,a,a,a,a,a,'.dat')") &
-       output%SOCchar,trim(output%Sites),trim(epart),trim(filename(j)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        output%SOCchar,trim(output%Sites),trim(epart),trim(filename(j)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       open (unit=95+j, file=varm, status='old', position='append', form='formatted', iostat=err)
       errt = errt + err
       if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
@@ -250,6 +277,7 @@ contains
 
 
   subroutine sortFermiSurface()
+    !! Sort Fermi-Surface/Iso-energy files
     use mod_parameters, only: output
     use mod_tools,      only: sort_command
     use mod_System,     only: s => sys
@@ -260,18 +288,19 @@ contains
     varm = ""
     do i=1,s%nAtoms
       write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,'atom',i0,a,a,a,a,'.dat')") &
-       output%SOCchar,trim(output%Sites),trim(epart),i,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        output%SOCchar,trim(output%Sites),trim(epart),i,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       call sort_command(varm,3,[1,2,3])
     end do
     do j = 1, size(filename)
       write(varm,"('./results/',a1,'SOC/',a,'/FS/',a,a,a,a,a,a,'.dat')") &
-       output%SOCchar,trim(output%Sites),trim(epart),trim(filename(j)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
+        output%SOCchar,trim(output%Sites),trim(epart),trim(filename(j)),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
       call sort_command(varm,3,[1,2,3])
     end do
   end subroutine sortFermiSurface
 
 
   subroutine closeFSfiles()
+    !! Close Fermi-Surface/Iso-energy files
     use mod_System, only: s => sys
     implicit none
     integer i,j
@@ -284,14 +313,15 @@ contains
   end subroutine closeFSfiles
 
 
-  ! This subtoutine writes the iso-surfaces to the files
   subroutine writeFS(fs_atom,fs_orb,fs_total)
+    !! This subtoutine writes the iso-surfaces to the files
     use mod_kind,          only: int32, int64
+    use AtomTypes,         only: default_nOrb
     use mod_System,        only: s => sys
     use mod_BrillouinZone, only: realBZ
     use mod_mpi_pars,      only: FreqComm
     implicit none
-    real(dp), intent(in) :: fs_atom(s%nAtoms,realBZ%nkpt,7),fs_orb(s%nOrb,realBZ%nkpt,7),fs_total(realBZ%nkpt,7)
+    real(dp), intent(in) :: fs_atom(s%nAtoms,realBZ%nkpt,7),fs_orb(default_nOrb,realBZ%nkpt,7),fs_total(realBZ%nkpt,7)
     character(len=30)    :: formatvar
     real(dp)             :: kp(3)
     integer(int64)       :: iz
@@ -300,7 +330,7 @@ contains
     ! Generating all points at rank=0
     call realBZ % setup_fraction(s,0, 1, FreqComm(1))
 
-    write(formatvar,fmt="(a,i0,a)") '(',s%nOrb*7+3,'(es16.9,2x))'
+    write(formatvar,fmt="(a,i0,a)") '(',default_nOrb*7+3,'(es16.9,2x))'
 
     do iz = 1, realBZ%nkpt
       kp = realBZ%kp(1:3,iz)
@@ -308,11 +338,10 @@ contains
         write(unit=17+i,fmt="(10(es16.9,2x))") kp(1), kp(2), kp(3), (fs_atom(i,iz,sigma),sigma=1,7)
       end do
 
-      write(unit=96,fmt=formatvar) kp(1), kp(2), kp(3),( (fs_orb(mu,iz,sigma),mu=1,s%nOrb),sigma=1,7)
+      write(unit=96,fmt=formatvar) kp(1), kp(2), kp(3),( (fs_orb(mu,iz,sigma),mu=1,default_nOrb),sigma=1,7)
       write(unit=97,fmt="(10(es16.9,2x))") kp(1), kp(2), kp(3),(fs_total(iz,sigma),sigma=1,7)
     end do
   end subroutine writeFS
-
 
 
 end module mod_fermi_surface

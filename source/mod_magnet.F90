@@ -1,4 +1,6 @@
 module mod_magnet
+  !! This module stores variables and procedures related to the spin and orbital magnetic moment
+  !! (including magnetic fields), and also the charge variables
   use mod_kind,       only: dp, int32
   use mod_parameters, only: dmax
   implicit none
@@ -21,8 +23,10 @@ module mod_magnet
   !! orbital-dependent and d-orbital charge density per site
   real(dp),allocatable    :: mx(:,:),my(:,:),mz(:,:)
   !! orbital-dependent magnetization per site in cartesian coordinates
-  real(dp),allocatable    :: rhos(:),rhop(:)
-  !! s and p -orbital charge density
+  real(dp),allocatable    :: rhos(:)
+  !! s-orbital charge density
+  real(dp),allocatable    :: rhop(:)
+  !! p-orbital charge density
   real(dp),allocatable    :: rhod(:),mxd(:),myd(:),mzd(:),mzd0(:)
   !! d-orbital charge density and magnetization per site and initial values
   complex(dp),allocatable :: mp(:,:),mpd(:),mpd0(:)
@@ -49,16 +53,6 @@ module mod_magnet
   !! Half of Static magnetic fields in each direction
   real(dp),allocatable    :: bc(:,:)
   !! Constraining fields
-  complex(dp), dimension(:,:,:), allocatable :: lb, sb
-  !! Zeeman matrices
-  complex(dp), dimension(:,:,:), allocatable :: lxp, lyp, lzp
-  !! Site dependent Angular momentum matrices in local frame
-  complex(dp), dimension(:,:), allocatable   :: lx, ly, lz
-  !! Angular momentum matrices in global frame
-  complex(dp), dimension(:,:,:), allocatable :: lvec
-  !! Angular momentum vector matrices in global frame
-  complex(dp), dimension(:,:,:,:), allocatable :: lpvec
-  !! Angular momentum vector matrices in local frame
   logical :: lrot = .false.
   !! Logical variable that indicates the need to rotate susceptibility matrix
 
@@ -66,9 +60,16 @@ module mod_magnet
   ! Values of magnetic field in cartesian or spherical coordinates
   !integer, parameter :: dmax = 20
   character(len=9), dimension(7) :: dcfield = ["hwa      ","hwt      ","hwp      ","hwahwt   ","hwahwp   ","hwthwp   ","hwahwthwp"]
+  !! string variables for the different types of loops when using dc field calculation (itype=9)
   character(len=60) :: dc_header
-  character(len=60), allocatable :: dc_fields(:),dcprefix(:)
+  !! string to add on the header, representing which parameter(s) is(are) being looped
+  character(len=60), allocatable :: dc_fields(:)
+  !! string array to store the values of the parameter being looped
+  character(len=60), allocatable :: dcprefix(:)
+  !! string array with the name and variable of the dc magnetic field to be used in the prefix of the filename
+
   real(dp), allocatable :: hw_list(:,:)
+  !! List of values for the magnetic fields to be looped, in spherical components (total npts, [ hwa , hwt , hwp ] )
   integer(int32) :: dcfield_dependence = 0, dc_count = 0
 
   real(dp) :: hwx = 0._dp, hwy = 0._dp, hwz = 0._dp, tesla = 1._dp
@@ -80,11 +81,17 @@ module mod_magnet
   real(dp) :: hwt, hwt_i = 0._dp, hwt_f = 0._dp, hwt_s = 0._dp
   real(dp) :: hwp, hwp_i = 0._dp, hwp_f = 0._dp, hwp_s = 0._dp
 
-  ! Layer-resolved scale of magnetic field (including empty spheres)
+  ! Layer-resolved (re)scale of magnetic field
   logical :: lhwscale        = .false.
+  !! Logical variable to say if magnetic fields are to be rescaled in one or more layers (default = .false.)
   real(dp) :: hwscale(dmax)   = 1._dp
+  !! Values of the factors to rescale the magnetic field per layer (default = 1._dp, no scaling)
   logical :: lhwrotate       = .false.
-  real(dp) :: hwtrotate(dmax) = 0._dp, hwprotate(dmax) = 0._dp
+  !! Logical variable to say if magnetic fields are to be rotated in one or more layers (default = .false.)
+  real(dp) :: hwtrotate(dmax) = 0._dp
+  !! Values of the angles to rotate the theta angle of the magnetic field per layer (default = 0._dp, no rotation)
+  real(dp) :: hwprotate(dmax) = 0._dp
+  !! Values of the angles to rotate the phi angle of the magnetic field per layer (default = 0._dp, no rotation)
 
   integer(int32) :: skip_steps_hw = 0
   !! How many iterations are to be skipped from the beginning
@@ -95,8 +102,8 @@ module mod_magnet
 
 contains
 
-  ! This subroutine sets up external magnetic fields and related loop
-  subroutine setMagneticLoopPoints()
+subroutine setMagneticLoopPoints()
+  !! This subroutine sets up external magnetic fields and related loop
     use mod_constants, only: rad2deg
     implicit none
     !! Amount of points to skip
@@ -176,16 +183,18 @@ contains
 
   end subroutine setMagneticLoopPoints
 
-  subroutine initMagneticField(nAtoms)
+  subroutine initMagneticField(s)
+    !! Initialize magnetic field variables
     use mod_constants, only: cZero, deg2rad
     use mod_mpi_pars,  only: abortProgram
+    use mod_System,    only: System_type
     implicit none
+    type(System_type), intent(inout) :: s
 
-    integer(int32), intent(in) :: nAtoms
     integer :: i, AllocateStatus
 
     if(allocated(hhw)) deallocate(hhw)
-    allocate( hhw(3,nAtoms), STAT = AllocateStatus )
+    allocate( hhw(3,s%nAtoms), STAT = AllocateStatus )
     if (AllocateStatus /= 0) call abortProgram("[main] Not enough memory for: hhw")
 
     !---------------------- Turning off field for hwa=0 --------------------
@@ -194,8 +203,11 @@ contains
     else
       lfield = .true.
     end if
-    sb   = cZero
-    lb   = cZero
+
+    do i = 1, s%nAtoms
+      s%Basis(i)%sb(:,:) = cZero
+      s%Basis(i)%lb(:,:) = cZero
+    end do
     hhw  = 0._dp
 
     !--------------------- Defining the magnetic fields -------------------- TODO
@@ -204,7 +216,7 @@ contains
       ! There is an extra  minus sign in the definition of hhw
       ! to take into account the fact that we are considering negative
       ! external fields to get the peak at positive energies
-      do i = 1, nAtoms
+      do i = 1, s%nAtoms
         hhw(1,i) = -0.5_dp*hwscale(i)*hw_list(hw_count,1)*sin((hw_list(hw_count,2) + hwtrotate(i))*deg2rad)*cos((hw_list(hw_count,3) + hwprotate(i))*deg2rad)*tesla
         hhw(2,i) = -0.5_dp*hwscale(i)*hw_list(hw_count,1)*sin((hw_list(hw_count,2) + hwtrotate(i))*deg2rad)*sin((hw_list(hw_count,3) + hwprotate(i))*deg2rad)*tesla
         hhw(3,i) = -0.5_dp*hwscale(i)*hw_list(hw_count,1)*cos((hw_list(hw_count,2) + hwtrotate(i))*deg2rad)*tesla
@@ -214,91 +226,96 @@ contains
         if(abs(hhw(3,i))<1.e-8_dp) hhw(3,i) = 0._dp
       end do
       ! Testing if hwscale is used
-      lhwscale = any(abs(hwscale(1:nAtoms)-1._dp) > 1.e-8_dp)
+      lhwscale = any(abs(hwscale(1:s%nAtoms)-1._dp) > 1.e-8_dp)
       ! Testing if hwrotate is used
-      lhwrotate = (any(abs(hwtrotate(1:nAtoms)) > 1.e-8_dp).or.any(abs(hwprotate(1:nAtoms))>1.e-8_dp))
+      lhwrotate = (any(abs(hwtrotate(1:s%nAtoms)) > 1.e-8_dp).or.any(abs(hwprotate(1:s%nAtoms))>1.e-8_dp))
     end if
   end subroutine initMagneticField
 
-  subroutine lb_matrix(nAtoms,nOrbs)
-  !! Orbital Zeeman term
-    use mod_kind,       only: dp
-    use mod_constants,  only: cZero
+  subroutine lb_matrix(s)
+  !! Construct the Orbital Zeeman term of the hamiltonian
     use mod_parameters, only: lnolb
+    use mod_System,     only: System_type
     implicit none
-    integer(int32), intent(in) :: nOrbs, nAtoms
-    integer :: i,sigma
-    complex(dp), dimension(:,:), allocatable :: lbsigma
+    type(System_type), intent(inout)   :: s
+    integer :: i,mu,nu,mup,nup,sigma
 
     ! There is an extra  minus sign in the definition of hhw
     ! to take into account the fact that we are considering negative
     ! external fields to get the peak at positive energies
-    lb = cZero
     if((lfield).and.(.not.lnolb)) then
-      allocate(lbsigma(nOrbs, nOrbs))
-      do i=1, nAtoms
-        lbsigma = cZero
-        ! L.B
-        do sigma=1,3
-          lbsigma(1:nOrbs, 1:nOrbs) = lbsigma(1:nOrbs, 1:nOrbs) + lvec(:,:,sigma)*hhw(sigma,i)
+      do i=1, s%nAtoms
+
+        do nu=1,s%Types(s%Basis(i)%Material)%nOrb
+          nup = nu+s%Types(s%Basis(i)%Material)%nOrb
+          do mu=1,s%Types(s%Basis(i)%Material)%nOrb
+            mup = mu+s%Types(s%Basis(i)%Material)%nOrb
+
+            ! L.B
+            do sigma=1,3
+              s%Basis(i)%lb(mu ,nu ) = s%Basis(i)%lb(mu ,nu ) + s%Types(s%Basis(i)%Material)%lvec(mu,nu,sigma)*hhw(sigma,i)
+            end do
+            s%Basis(i)%lb(mup,nup) = s%Basis(i)%lb(mu,nu)
+          end do
         end do
-        lb(      1:  nOrbs,       1:  nOrbs, i) = lbsigma(:,:)
-        lb(nOrbs+1:2*nOrbs, nOrbs+1:2*nOrbs, i) = lbsigma(:,:)
       end do
-      deallocate(lbsigma)
     end if
   end subroutine lb_matrix
 
 
-  subroutine sb_matrix(nAtoms,nOrbs)
-  !! Spin Zeeman hamiltonian
+  subroutine sb_matrix(s)
+  !! Construct the Spin Zeeman term of the hamiltonian
     use mod_constants, only: cZero, cI
+    use mod_System,    only: System_type
     implicit none
-    integer(int32), intent(in) :: nAtoms,nOrbs
-    real(dp), dimension(3,nAtoms) :: b
+    type(System_type), intent(inout)   :: s
+    real(dp), dimension(3,s%nAtoms) :: b
     integer :: i,mu,nu
 
     ! There is an extra  minus sign in the definition of hhw
     ! to take into account the fact that we are considering negative
     ! external fields to get the peak at positive energies
-    sb = cZero
 
     if(lfield.or.lconstraining_field) then
       ! write(output%unit_loop,"('[sb_matrix] hhw,bc = ', 10000es16.8)") hhw, bc
       b = hhw - 0.5_dp*bc
-      do i=1, nAtoms
-        do mu=1,nOrbs
-          nu=mu+nOrbs
-          sb(mu,mu,i) = b(3,i)
-          sb(nu,nu,i) =-b(3,i)
-          sb(nu,mu,i) = b(1,i)+cI*b(2,i)
-          sb(mu,nu,i) = b(1,i)-cI*b(2,i)
+      do i=1, s%nAtoms
+        s%Basis(i)%sb(:,:) = cZero
+        do mu=1,s%Types(s%Basis(i)%Material)%nOrb
+          nu=mu+s%Types(s%Basis(i)%Material)%nOrb
+          s%Basis(i)%sb(mu,mu) = b(3,i)
+          s%Basis(i)%sb(nu,nu) =-b(3,i)
+          s%Basis(i)%sb(nu,mu) = b(1,i)+cI*b(2,i)
+          s%Basis(i)%sb(mu,nu) = b(1,i)-cI*b(2,i)
         end do
       end do
     end if
   end subroutine sb_matrix
 
-  ! This subroutine calculate the orbital angular momentum matrix in the cubic system of coordinates
-  subroutine l_matrix(nOrbs,Orbs)
-    use mod_kind,       only: dp
-    use mod_constants,  only: cI, cZero, cOne, sq3
-    use AtomTypes,      only: default_orbitals
+  subroutine l_matrix(s)
+    !! This subroutine calculate the orbital angular momentum matrix 
+    !! for all orbitals, in the cubic system of coordinates
+    use mod_kind,      only: dp
+    use mod_constants, only: cI, cZero, cOne, sq3
+    use AtomTypes,     only: default_nOrb
+    use mod_System,    only: System_type
     implicit none
-    integer(int32), intent(in) :: nOrbs
-    integer(int32), intent(in) :: Orbs(nOrbs)
-    complex(dp), dimension(size(default_orbitals),size(default_orbitals)) :: Lp,Lm,Lzt
+    type(System_type), intent(inout)   :: s
+    complex(dp), dimension(default_nOrb,default_nOrb,3) :: lvec
+    !! Angular momentum vector matrices in global frame
+    complex(dp), dimension(default_nOrb,default_nOrb) :: Lp,Lm
+    !! L+ and L- matrices in global frame
+    integer :: i, mu, nu
 
-    integer :: mu,nu
+    lvec(:,:,3) = cZero
 
-    Lzt = cZero
+    lvec(2,3,3) = -cI
+    lvec(3,2,3) = cI
 
-    Lzt(2,3) = -cI
-    Lzt(3,2) = cI
-
-    Lzt(5,8) = 2._dp*cI
-    Lzt(8,5) = -2._dp*cI
-    Lzt(6,7) = cI
-    Lzt(7,6) = -cI
+    lvec(5,8,3) = 2._dp*cI
+    lvec(8,5,3) = -2._dp*cI
+    lvec(6,7,3) = cI
+    lvec(7,6,3) = -cI
 
     Lp = cZero
     Lm = cZero
@@ -327,41 +344,42 @@ contains
 
     Lm = transpose(conjg(Lp))
 
-    ! Selecting orbitals
-    do nu=1,nOrbs
-      do mu=1,nOrbs
-        lz(mu,nu) = Lzt(Orbs(mu),Orbs(nu))
-        lx(mu,nu) = 0.5_dp*   (Lp(Orbs(mu),Orbs(nu))+Lm(Orbs(mu),Orbs(nu)))
-        ly(mu,nu) =-0.5_dp*cI*(Lp(Orbs(mu),Orbs(nu))-Lm(Orbs(mu),Orbs(nu)))
+    lvec(:,:,1) = 0.5_dp*   (Lp(:,:)+Lm(:,:))
+    lvec(:,:,2) =-0.5_dp*cI*(Lp(:,:)-Lm(:,:))
+
+    do i = 1, s%nTypes
+      do mu = 1, s%Types(i)%nOrb
+        do nu = 1, s%Types(i)%nOrb
+          s%Types(i)%lvec(mu,nu,:) = lvec(s%Types(i)%Orbs(mu),s%Types(i)%Orbs(nu),:)
+        end do
       end do
     end do
 
-    lvec(:,:,1) = lx
-    lvec(:,:,2) = ly
-    lvec(:,:,3) = lz
-
   end subroutine l_matrix
 
-  ! This subroutine calculate the orbital angular momentum matrix in the local system of coordinates
   subroutine lp_matrix(theta, phi)
+    !! This subroutine calculate the orbital angular momentum matrix in the local system of coordinates
     use mod_kind,      only: dp
     use mod_constants, only: deg2rad
     use mod_System,    only: s => sys
     implicit none
     real(dp), dimension(s%nAtoms), intent(in) :: theta, phi
     integer :: i
-    do i = 1, s%nAtoms
-      lxp(:,:,i) = ( lvec(:,:,1)*cos(theta(i)*deg2rad)*cos(phi(i)*deg2rad)) + (lvec(:,:,2)*cos(theta(i)*deg2rad)*sin(phi(i)*deg2rad)) - (lvec(:,:,3)*sin(theta(i)*deg2rad))
-      lyp(:,:,i) = (-lvec(:,:,1)                      *sin(phi(i)*deg2rad)) + (lvec(:,:,2)                      *cos(phi(i)*deg2rad))
-      lzp(:,:,i) = ( lvec(:,:,1)*sin(theta(i)*deg2rad)*cos(phi(i)*deg2rad)) + (lvec(:,:,2)*sin(theta(i)*deg2rad)*sin(phi(i)*deg2rad)) + (lvec(:,:,3)*cos(theta(i)*deg2rad))
 
-      lpvec(:,:,1,i) = lxp(:,:,i)
-      lpvec(:,:,2,i) = lyp(:,:,i)
-      lpvec(:,:,3,i) = lzp(:,:,i)
+    do i = 1, s%nAtoms
+      s%Basis(i)%lpvec(:,:,1) = ( s%Types(s%Basis(i)%Material)%lvec(:,:,1)*cos(theta(i)*deg2rad)*cos(phi(i)*deg2rad)) &
+                              + ( s%Types(s%Basis(i)%Material)%lvec(:,:,2)*cos(theta(i)*deg2rad)*sin(phi(i)*deg2rad)) &
+                              - ( s%Types(s%Basis(i)%Material)%lvec(:,:,3)*sin(theta(i)*deg2rad))
+      s%Basis(i)%lpvec(:,:,2) = (-s%Types(s%Basis(i)%Material)%lvec(:,:,1)                      *sin(phi(i)*deg2rad)) &
+                              + ( s%Types(s%Basis(i)%Material)%lvec(:,:,2)                      *cos(phi(i)*deg2rad))
+      s%Basis(i)%lpvec(:,:,3) = ( s%Types(s%Basis(i)%Material)%lvec(:,:,1)*sin(theta(i)*deg2rad)*cos(phi(i)*deg2rad)) &
+                              + ( s%Types(s%Basis(i)%Material)%lvec(:,:,2)*sin(theta(i)*deg2rad)*sin(phi(i)*deg2rad)) &
+                              + ( s%Types(s%Basis(i)%Material)%lvec(:,:,3)*cos(theta(i)*deg2rad))
     end do
   end subroutine lp_matrix
 
   subroutine allocate_magnet_variables(nAtoms,nOrbs)
+    !! Allocate variables related to the magnetization or charge
     use mod_mpi_pars, only: abortProgram
     implicit none
     integer, intent(in) :: nAtoms
@@ -393,21 +411,10 @@ contains
     if (AllocateStatus/=0) call abortProgram("[allocate_magnet_variables] Not enough memory for: bc")
     bc(:,:) = 0.e0_dp
 
-    allocate(lx(nOrbs, nOrbs), ly(nOrbs,nOrbs), lz(nOrbs,nOrbs), lvec(nOrbs,nOrbs,3), stat = AllocateStatus)
-    if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lx, ly, lz, lvec")
-
-    allocate(sb(2*nOrbs,2*nOrbs,nAtoms), stat = AllocateStatus)
-    if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: sb")
-
-    allocate(lb(2*nOrbs,2*nOrbs,nAtoms), stat = AllocateStatus)
-    if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lb")
-
-    allocate(lxp(nOrbs,nOrbs,nAtoms), lyp(nOrbs,nOrbs,nAtoms), lzp(nOrbs,nOrbs,nAtoms), lpvec(nOrbs,nOrbs,3,nAtoms), stat = AllocateStatus)
-    if (AllocateStatus /= 0) call abortProgram("[allocate_magnet_variables] Not enough memory for: lxp, lyp, lzp, lpvec")
-
   end subroutine allocate_magnet_variables
 
   subroutine deallocate_magnet_variables()
+    !! Deallocate variables related to the magnetization or charge
     implicit none
 
     if(allocated(rho)) deallocate(rho)
@@ -439,16 +446,6 @@ contains
     if(allocated(lpphi)) deallocate(lpphi)
     if(allocated(hhw)) deallocate(hhw)
     if(allocated(bc)) deallocate(bc)
-    if(allocated(lx)) deallocate(lx)
-    if(allocated(ly)) deallocate(ly)
-    if(allocated(lz)) deallocate(lz)
-    if(allocated(lvec )) deallocate(lvec )
-    if(allocated(sb)) deallocate(sb)
-    if(allocated(lb)) deallocate(lb)
-    if(allocated(lxp)) deallocate(lxp)
-    if(allocated(lyp)) deallocate(lyp)
-    if(allocated(lzp)) deallocate(lzp)
-    if(allocated(lpvec)) deallocate(lpvec)
 
     if(allocated(lxm)) deallocate(lxm)
     if(allocated(lym)) deallocate(lym)
@@ -459,6 +456,7 @@ contains
   end subroutine
 
   subroutine set_fieldpart(kount)
+    !! This subroutine sets the string variables to be used in the output filenames
     use mod_parameters, only: ltesla, lnolb, output
     use mod_tools,      only: rtos
     implicit none

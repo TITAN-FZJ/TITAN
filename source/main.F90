@@ -7,14 +7,15 @@ program TITAN
   !! magnetic self-consistency and calculate either ground state
   !! quantities or response functions
   use mod_kind,                only: dp
-  use mod_constants,           only: cZero,allocate_constants,define_constants
+  use mod_constants,           only: cZero,define_constants
   use mod_parameters,          only: output,lpositions,lcreatefolders,parField,parFreq,nEner1,skip_steps,ldebug, &
                                      kp_in,kptotal_in,eta,leigenstates,itype,theta,phi, &
-                                     laddresults,lsortfiles,lcreatefiles,arg,tbmode,lfixEf
-  use mod_io,                  only: get_parameters,iowrite,log_error
+                                     laddresults,lsortfiles,lcreatefiles,arg,tbmode,lfixEf,addelectrons
+  use mod_io,                  only: get_parameters,iowrite
+  use mod_logging,             only: log_error,log_warning
   use Lattice,                 only: initLattice,writeLattice
   use mod_BrillouinZone,       only: realBZ,countBZ
-  use mod_SOC,                 only: llinearsoc,SOC,allocateLS,updateLS
+  use mod_SOC,                 only: llinearsoc,SOC,updateLS
   use mod_magnet,              only: total_hw_npt1,skip_steps_hw,hw_count,lfield,rho,mz,mp,setMagneticLoopPoints,&
                                      allocate_magnet_variables,initMagneticField,set_fieldpart,l_matrix,lb_matrix,&
                                      sb_matrix,lconstraining_field
@@ -26,22 +27,22 @@ program TITAN
   use mod_self_consistency,    only: doSelfConsistency
   use EnergyIntegration,       only: pn1,allocate_energy_points,generate_imag_epoints
   use mod_progress,            only: start_program,write_time
-  use mod_mpi_pars,            only: MPI_Wtime,MPI_COMM_WORLD,ierr,myrank,startField,endField,rField,Initialize_MPI,genMPIGrid,abortProgram
+  use mod_mpi_pars,            only: MPI_Wtime,MPI_COMM_WORLD,ierr,myrank,startField,endField,rField,Initialize_MPI,&
+                                     genMPIGrid,abortProgram
   use mod_polyBasis,           only: read_basis
   use TightBinding,            only: initTightBinding
   use mod_fermi_surface,       only: fermi_surface
   use mod_check_stop,          only: check_stop
   use mod_Atom_variables,      only: allocate_Atom_variables
-  use mod_tools,               only: rtos
+  use mod_tools,               only: rtos,itos
   use mod_init_expec,          only: calc_init_expec_SK,calc_init_expec_dft
   use mod_time_propagator,     only: time_propagator
   use mod_superconductivity,   only: lsuperCond,supercond,allocate_supercond_variables
-  use mod_System,              only: s=>sys,init_Hamiltk_variables,initConversionMatrices
+  use mod_System,              only: s=>sys,init_Hamiltk_variables,initConversionMatrices,allocate_basis_variables
 #ifdef _GPU
   use nvtx,                    only: nvtxStartRange,nvtxEndRange
   use mod_cuda,                only: num_gpus,result,create_handle,cudaGetDeviceCount,cudaSetDevice,cudaGetErrorString 
 #endif
-  !use mod_define_system TODO: Re-include
   !use mod_prefactors TODO: Re-include
   !use mod_lgtv_currents TODO: Re-include
   !use mod_sha TODO: Re-include
@@ -89,16 +90,13 @@ program TITAN
   !---------------- Writing time after initializations -----------------
   if(myrank == 0) call write_time('[main]' // trim(arg) // ' Started on: ',output%unit)
 
-  !------------------- Useful constants and matrices -------------------
-  call allocate_constants(s%nOrb)
-  call define_constants(s) ! TODO: Review
-
   !------------------- Define the lattice structure --------------------
   call read_basis("basis", s)
   call initLattice(s)
   write(output%Sites,fmt="(i0,'Sites')") s%nAtoms
+
   ! Writing Positions into file
-  if( lpositions .and. (myrank==0) ) call writeLattice(s)
+  if( lpositions .and. (myrank==0) .and. (tbmode==1) ) call writeLattice(s)
 
   !------------- Creating folders for current calculation ------------
   if(lcreatefolders) then
@@ -135,9 +133,28 @@ program TITAN
   !---------------- Reading Tight Binding parameters -------------------
   call initTightBinding(s)
 
+  !------------------- Useful constants and matrices -------------------
+  call define_constants(s) ! TODO: Review
+
   !----------------- Tests for coupling calculation ------------------
   if((lconstraining_field).and.(sum(abs(s%Types(:)%Um))<1.e-8).and.(tbmode==1).and.(myrank == 0)) &
     call abortProgram("[main] Constraining fields need Um to induce a magnetic moment!")
+
+  call flush(output%unit)
+
+  ! Testing if add electrons is used with lfixEf or Un/=0
+  if(lfixEf) then
+    if(abs(addelectrons)>1.e-6) & 
+      call log_warning("main", "addelectrons does not affect the calculation when lfixEf is used!" )
+  else
+    if((sum(abs(s%Types(:)%Un))>1.e-8).and.(abs(addelectrons)>1.e-8_dp)) &
+      call log_error("main", "addelectrons is incompatible with Un! Either use Un=0 for all elements or addelectrons=0." )
+  end if
+  if(abs(addelectrons)>1.e-6_dp) then
+    write(output%unit,"('[main] Electrons to add (or remove): ',es14.7)") addelectrons
+    s%totalOccupation = s%totalOccupation + addelectrons
+    output%suffix = "_add" // trim(rtos(addelectrons,"(es8.1)"))
+  end if
 
   !-- Calculating initial values in the SK tight-binding hamiltonian ---
   if((tbmode==1).and.(.not.lsortfiles)) call calc_init_expec_SK(s)
@@ -152,16 +169,16 @@ program TITAN
   call generateAdaptiveMeshes(s,pn1)
 
   !------------ Allocating variables that depend on nAtoms -------------
+  call allocate_basis_variables(s)
   call allocate_magnet_variables(s%nAtoms, s%nOrb)
   call allocate_supercond_variables(s%nAtoms, s%nOrb)
-  call allocateLS(s%nAtoms,s%nOrb)
   call allocate_Atom_variables(s%nAtoms,s%nOrb)
 
   !------- Initialize Stride Matrices for hamiltk and dtdksub ----------
   call init_Hamiltk_variables(s,supercond)
 
   !---------- Conversion arrays for dynamical quantities ---------------
-  call initConversionMatrices(s%nAtoms,s%nOrb)
+  call initConversionMatrices(s)
 
   !--------------------- Lattice specific variables --------------------
   call initElectricField(s%a1, s%a2, s%a3)
@@ -198,7 +215,7 @@ program TITAN
     end if
 
     !------------------- Initialize Magnetic Field ---------------------
-    call initMagneticField(s%nAtoms)
+    call initMagneticField(s)
     if((llinearsoc) .or. (.not.SOC) .and. (.not.lfield) .and. (rField == 0)) &
       write(output%file_loop,"('[main] WARNING: No external magnetic field is applied and SOC is off/linear order: Goldstone mode is present!')")
 
@@ -215,16 +232,16 @@ program TITAN
     if(rField == 0) call iowrite(s)
 
     !---- L matrix in global frame for given quantization direction ----
-    call l_matrix(s%nOrb,s%Orbs)
+    call l_matrix(s)
 
     !---- Calculate L.S matrix for the given quantization direction ----
     if(SOC) call updateLS(s,theta, phi)
 
     !---- Calculate L.B matrix for the given quantization direction ----
-    call lb_matrix(s%nAtoms,s%nOrb)
+    call lb_matrix(s)
 
     !---------------------- Calculate S.B matrix  ----------------------
-    call sb_matrix(s%nAtoms,s%nOrb)
+    call sb_matrix(s)
 
     !-------------------------- Debugging part -------------------------
     if(ldebug) then
@@ -377,8 +394,6 @@ subroutine endTITAN()
   use mod_parameters,          only: arg,output,leigenstates
   use mod_progress,            only: write_time
   use mod_BrillouinZone,       only: realBZ
-  use mod_constants,           only: deallocate_constants
-  use mod_SOC,                 only: deallocateLS
   use mod_magnet,              only: deallocate_magnet_variables
   use adaptiveMesh,            only: deallocateAdaptiveMeshes
   use EnergyIntegration,       only: deallocate_energy_points
@@ -405,9 +420,7 @@ subroutine endTITAN()
   call deallocate_hamiltonian()
   if(leigenstates) call realBZ%free()
   call deallocateAdaptiveMeshes()
-  call deallocateLS()
   call deallocate_supercond_variables()
-  call deallocate_constants()
 
   !---------------------- Deallocating variables -----------------------
   !deallocate(r_nn, c_nn, l_nn)

@@ -1,13 +1,15 @@
 module mod_lgtv_currents
+  !! This module stores longidutinal and transverse current variables and procedures
+  !! ATTENTION: Since the currents are currently not working, this module is not being used and it was not adapted to the new format(s)
   use, intrinsic :: iso_fortran_env
   implicit none
-  ! Longitudinal and transverse currents
   complex(dp),allocatable   :: long_currents(:,:),total_long_currents(:),transv_currents(:,:),total_transv_currents(:)
+  !! Longitudinal and transverse currents
 
 contains
 
-  ! This subroutine allocates variables related to the longitudinal and transverse currents calculation
   subroutine allocate_lgtv_currents()
+  !! This subroutine allocates variables related to the longitudinal and transverse currents calculation
     use, intrinsic :: iso_fortran_env
     use mod_mpi_pars
     use mod_parameters, only: Npl,outputunit
@@ -24,8 +26,8 @@ contains
 
   end subroutine allocate_lgtv_currents
 
-  ! This subroutine allocates variables related to the longitudinal and transverse currents calculation
   subroutine deallocate_lgtv_currents()
+    !! This subroutine allocates variables related to the longitudinal and transverse currents calculation
     use, intrinsic :: iso_fortran_env
     use mod_mpi_pars
     implicit none
@@ -34,8 +36,8 @@ contains
 
   end subroutine deallocate_lgtv_currents
 
-  ! This subroutine opens and closes all the files needed for the longitudinal and transverse currents
   subroutine openclose_lgtv_files(iflag)
+    !! This subroutine opens and closes all the files needed for the longitudinal and transverse currents
     use mod_parameters, only: fieldpart,output
     use mod_mpi_pars
     use mod_SOC, only: SOCc, socpart
@@ -122,8 +124,8 @@ contains
 
   end subroutine openclose_lgtv_files
 
-  ! This subroutine opens and closes all the files needed for the field dependent longitudinal and transverse currents
   subroutine openclose_dc_lgtv_files(iflag)
+    !! This subroutine opens and closes all the files needed for the field dependent longitudinal and transverse currents
     use mod_parameters, only: dcfieldpart,output
     use mod_mpi_pars
     use mod_SOC, only: SOCc, socpart
@@ -213,9 +215,9 @@ contains
   end subroutine openclose_dc_lgtv_files
 
 
-  ! This subroutine write all the longitudinal and transverse currents into files
-  ! (already opened with openclose_lgtv_files(1))
   subroutine write_lgtv_currents(e)
+    !! This subroutine write all the longitudinal and transverse currents into files
+    !! (already opened with openclose_lgtv_files(1))
     use, intrinsic :: iso_fortran_env
     use mod_parameters, only: Npl
     use mod_magnet, only: mvec_spherical,mtotal_spherical
@@ -239,9 +241,9 @@ contains
   end subroutine write_lgtv_currents
 
 
-  ! This subroutine write all the longitudinal and transverse currents for fixed frequency into files
-  ! (already opened with openclose_dc_lgtv_files(1))
   subroutine write_dc_lgtv_currents()
+    !! This subroutine write all the longitudinal and transverse currents for fixed frequency into files
+    !! (already opened with openclose_dc_lgtv_files(1))
     use, intrinsic :: iso_fortran_env
     use mod_parameters
     use mod_magnet, only: mvec_spherical,mtotal_spherical
@@ -263,8 +265,8 @@ contains
 
   end subroutine write_dc_lgtv_currents
 
-  ! This subroutine sorts longitudinal and transverse currents files
   subroutine sort_lgtv_currents()
+    !! This subroutine sorts longitudinal and transverse currents files
     use, intrinsic :: iso_fortran_env
     use mod_parameters, only: Npl,itype
     use mod_tools, only: sort_file
@@ -559,6 +561,7 @@ contains
   end subroutine read_calculate_lgtv_currents
 
   subroutine calculate_lgtv_currents()
+    !! Calculates total longitudinal and transverse currents
     use mod_parameters
     use mod_constants, only: cZero
     use mod_currents

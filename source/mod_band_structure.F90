@@ -1,11 +1,12 @@
 module mod_band_structure
+  !! Band structure calculation variables and procedures
   implicit none
 
 contains
 
-  ! Read reciprocal points from file kbands
-  ! IN UNITS OF 2pi/a0
   subroutine read_band_points(kbands, a0, b1, b2, b3)
+    !! Reads reciprocal points from file kbands
+    !! (in units defined on `-> qbasis` the input file)
     use mod_kind,       only: dp
     use mod_parameters, only: bands,band_cnt,qbasis
     use mod_mpi_pars,   only: abortProgram
@@ -33,7 +34,7 @@ contains
 
     ! Count non commented lines
     call number_of_lines(file_unit,i,line_count)
-
+    
     ! Reading point name and position from file kbands
     allocate(kband(line_count))
     i = 0
@@ -56,7 +57,7 @@ contains
         if(trim(kband(j)%name) == trim(bands(i))) then
           found = .true.
           if(qbasis(1:1) == "b") then
-            kbands(1:3,i) = (kband(j)%kp(1) * b1 + kband(j)%kp(2) * b2 + kband(j)%kp(3) * b3)!*tpi/a0
+            kbands(1:3,i) = (kband(j)%kp(1) * b1 + kband(j)%kp(2) * b2 + kband(j)%kp(3) * b3) ! *tpi/a0
           else if (qbasis(1:1) == "c") then
             kbands(1:3,i) = kband(j)%kp(:)*tpi/a0
           else
@@ -73,8 +74,8 @@ contains
   end subroutine read_band_points
 
 
-  !   Calculates band structure
   subroutine band_structure(s)
+    !! Loops over the k-points along the defined directions and calculates band structure
     use mod_kind,              only: dp
     use mod_parameters,        only: output,dimHsc,kdirection,nQvec,nQvec1,kpoints,bsfile,wsfile,deltak
     use mod_system,            only: System_type
@@ -90,7 +91,7 @@ contains
     complex(dp), allocatable :: hk(:,:)
     character(len=30) :: formatvar1,formatvar2
 
-    external :: zheev,ilaenv
+    external :: zheev
     
     if(rField == 0) write(output%unit_loop,"('CALCULATING THE BAND STRUCTURE')")
 
@@ -119,6 +120,7 @@ contains
 
       ! Calculating the hamiltonian for a given k-point
       hk = h0 + calchk(s,kpoints(:,kount))
+
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
       call diagonalize(dimHsc,hk,eval)
 

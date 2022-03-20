@@ -38,14 +38,19 @@ def read_data(filename,orbitals=[]):
 
 if __name__ == "__main__":
 
-  if(args.mev):
-    labelx = r'$E-E_F$ [meV]'
+  if args.centeref:
+    labelx = r'$E-E_F$'
+  else:
+    labelx = r'$E$'
+
+  if(args.mev) or (args.mevlabel):
+    labelx = labelx + r' [meV]'
     labely = r'LDOS [states/meV]'
-  elif(args.ev):
-    labelx = r'$E-E_F$ [eV]'
+  elif(args.ev) or (args.evlabel):
+    labelx = labelx + r' [eV]'
     labely = r'LDOS [states/eV]'
   else:
-    labelx = r'$E-E_F$ [Ry]'
+    labelx = labelx + r' [Ry]'
     labely = r'LDOS [states/Ry]'
 
   if args.total is False:
@@ -57,6 +62,11 @@ if __name__ == "__main__":
 
   # Getting fermi energy from ldos up file
   fermi = read_header(args.files[0])
+  if args.centeref:
+    shift = fermi
+    fermi = 0.0
+  else:
+    shift = 0.0
 
   if args.superconductivity:
     # colors = brewer2mpl.get_map('Set1', 'qualitative', 5).mpl_colors
@@ -110,7 +120,7 @@ if __name__ == "__main__":
   for j in range(numplots):
     # data = read_data(args.files[j],orbitals=orbitals)
     # datau = np.loadtxt(filenameu)
-    x = [(data[j][k,0]-fermi)*ry2ev for k in range(len(data[j][:,0]))]
+    x = [(data[j][k,0]-shift)*ry2ev for k in range(len(data[j][:,0]))]
     signal = (-1)**j
     for i in range(1,len(data[j][0,:])):
       y = [signal*data[j][k,i]/ry2ev for k in range(len(data[j][:,i]))]
@@ -135,7 +145,7 @@ if __name__ == "__main__":
     plt.xlim(eval(args.domain))
 
   if args.ylim != "":
-    ylim = [(-eval(args.ylim) if numplots > 1 else 0.0),eval(args.ylim)]
+    ylim = [(-max(eval(args.ylim)) if numplots > 1 else 0.0),max(eval(args.ylim))]
   else:
     ylim = [(-1.1*abs(max_ldos) if numplots > 1 else 0.0),1.1*abs(max_ldos)]
 
@@ -152,7 +162,7 @@ if __name__ == "__main__":
   plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
   if args.noef:
-    plt.axvline(0.0, color='k', linestyle='--', linewidth=0.75)
+    plt.axvline(fermi, color='k', linestyle='--', linewidth=0.75)
   
 
   # fig = plt.gcf()

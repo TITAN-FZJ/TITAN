@@ -22,68 +22,34 @@ module mod_constants
   !! degrees to radians
   real(dp), parameter :: rad2deg = 180._dp/pi
   !! radians to degrees
-  real(dp)    :: levi_civita(3,3,3)
-  !! Levi Civita Tensor
-  complex(dp), dimension(:,:), allocatable :: ident_norb
-  !! Identity in orbital space
-  complex(dp), dimension(:,:), allocatable :: ident_norb2
-  !! Identity in spin and orbital space
-  complex(dp), dimension(:,:), allocatable :: ident_dorb
-  !! Identity in spin and orbital space (only non-zero on d-orbitals)
   complex(dp) :: pauli_mat(2,2,0:5)
   !! Identity and pauli matrices  (0,x,y,z,+,-)
 #ifdef _GPU
   complex(dp), device :: pauli_mat_d(2,2,0:5)
   !! Identity and pauli matrices  (0,x,y,z,+,-) on the GPUs
 #endif
-  complex(dp), dimension(:,:,:), allocatable :: pauli_orb
-  !! Pauli matrices in spin and orbital space (x,y,z,+,-)
-  complex(dp), dimension(:,:,:), allocatable :: pauli_dorb
-  !! Pauli matrices in spin and orbital space (x,y,z,+,-) (only non-zero on d-orbitals)
+  real(dp)    :: levi_civita(3,3,3)
+  !! Levi Civita Tensor
 
-  complex(dp), dimension(4,4) :: StoC = reshape([cmplx(0.0_dp,0._dp,dp), cmplx(0.5_dp,0._dp,dp),  cmplx(0.0_dp,-0.5_dp,dp),  cmplx( 0.0_dp,0._dp,dp), &
-                                                 cmplx(1.0_dp,0._dp,dp), cmplx(0.0_dp,0._dp,dp),  cmplx(0.0_dp, 0.0_dp,dp),  cmplx( 0.5_dp,0._dp,dp), &
-                                                 cmplx(1.0_dp,0._dp,dp), cmplx(0.0_dp,0._dp,dp),  cmplx(0.0_dp, 0.0_dp,dp),  cmplx(-0.5_dp,0._dp,dp), &
-                                                 cmplx(0.0_dp,0._dp,dp), cmplx(0.5_dp,0._dp,dp),  cmplx(0.0_dp, 0.5_dp,dp),  cmplx( 0.0_dp,0._dp,dp)], [4,4])
+  complex(dp), dimension(4,4) :: StoC = reshape([ cmplx(0.0_dp,0._dp,dp), cmplx(0.5_dp,0._dp,dp),  cmplx(0.0_dp,-0.5_dp,dp),  cmplx( 0.0_dp,0._dp,dp), &
+                                                  cmplx(1.0_dp,0._dp,dp), cmplx(0.0_dp,0._dp,dp),  cmplx(0.0_dp, 0.0_dp,dp),  cmplx( 0.5_dp,0._dp,dp), &
+                                                  cmplx(1.0_dp,0._dp,dp), cmplx(0.0_dp,0._dp,dp),  cmplx(0.0_dp, 0.0_dp,dp),  cmplx(-0.5_dp,0._dp,dp), &
+                                                  cmplx(0.0_dp,0._dp,dp), cmplx(0.5_dp,0._dp,dp),  cmplx(0.0_dp, 0.5_dp,dp),  cmplx( 0.0_dp,0._dp,dp)], [4,4])
   !! Transformation matrix spin (+,up,down,-) to cartesian (0,x,y,z)
 
-  complex(dp), dimension(4,4) :: CtoS = reshape([cmplx(0.0_dp,0._dp,dp), cmplx(0.5_dp,0._dp,dp),  cmplx( 0.5_dp, 0._dp,dp),  cmplx( 0.0_dp, 0._dp,dp), &
-                                                 cmplx(1.0_dp,0._dp,dp), cmplx(0.0_dp,0._dp,dp),  cmplx( 0.0_dp, 0._dp,dp),  cmplx( 1.0_dp, 0._dp,dp), &
-                                                 cmplx(0.0_dp,1._dp,dp), cmplx(0.0_dp,0._dp,dp),  cmplx( 0.0_dp, 0._dp,dp),  cmplx( 0.0_dp,-1._dp,dp), &
-                                                 cmplx(0.0_dp,0._dp,dp), cmplx(1.0_dp,0._dp,dp),  cmplx(-1.0_dp, 0._dp,dp),  cmplx( 0.0_dp, 0._dp,dp)], [4,4])
+  complex(dp), dimension(4,4) :: CtoS = reshape([ cmplx(0.0_dp,0._dp,dp), cmplx(0.5_dp,0._dp,dp),  cmplx( 0.5_dp, 0._dp,dp),  cmplx( 0.0_dp, 0._dp,dp), &
+                                                  cmplx(1.0_dp,0._dp,dp), cmplx(0.0_dp,0._dp,dp),  cmplx( 0.0_dp, 0._dp,dp),  cmplx( 1.0_dp, 0._dp,dp), &
+                                                  cmplx(0.0_dp,1._dp,dp), cmplx(0.0_dp,0._dp,dp),  cmplx( 0.0_dp, 0._dp,dp),  cmplx( 0.0_dp,-1._dp,dp), &
+                                                  cmplx(0.0_dp,0._dp,dp), cmplx(1.0_dp,0._dp,dp),  cmplx(-1.0_dp, 0._dp,dp),  cmplx( 0.0_dp, 0._dp,dp)], [4,4])
   !! Transformation matrix cartesian (0,x,y,z) to spin (+,up,down,-)
 contains
-  subroutine allocate_constants(nOrb)
-    implicit none
-    integer, intent(in) :: nOrb
-
-    allocate(ident_norb(nOrb,nOrb),ident_norb2(2*nOrb,2*nOrb),ident_dorb(2*nOrb,2*nOrb),pauli_orb(5,2*nOrb,2*nOrb),pauli_dorb(5,2*nOrb,2*nOrb))
-
-  end subroutine allocate_constants
-
-
-  subroutine deallocate_constants()
-    implicit none
-
-    deallocate(ident_norb,ident_norb2,ident_dorb,pauli_orb,pauli_dorb)
-
-  end subroutine deallocate_constants
 
   subroutine define_constants(s)
     use mod_System, only: System_type
     implicit none
-    type(System_type), intent(in) :: s
-    integer :: i,mu,nu,mud,nud
-
-    ident_norb  = cZero
-    ident_norb2 = cZero
-    do i=1,s%nOrb
-      ident_norb(i,i) = cOne
-    end do
-    do i=1,s%nOrb2
-      ident_norb2(i,i) = cOne
-    end do
-
+    type(System_type), intent(inout) :: s
+    integer :: i,mu,nu,mud,nOrb,nOrb2
+    
     ! All four Pauli matrices in spin space
     ! identity
     pauli_mat(1,:,0) = [cOne, cZero]
@@ -106,45 +72,6 @@ contains
     pauli_mat_d = pauli_mat
 #endif
 
-! Pauli matrices in spin and orbital space
-    pauli_dorb = cZero
-    ident_dorb = cZero
-    do mu = 1,s%nOrb
-      nu = mu+s%nOrb
-
-      ! pauli matrix x
-      pauli_orb(1,mu,nu) = cOne
-      pauli_orb(1,nu,mu) = cOne
-      ! pauli matrix y
-      pauli_orb(2,mu,nu) = -cI
-      pauli_orb(2,nu,mu) = cI
-      ! pauli matrix z
-      pauli_orb(3,mu,mu) = cOne
-      pauli_orb(3,nu,nu) = -cOne
-    end do
-
-    do mu = 1,s%ndOrb
-      mud = s%dOrbs(mu)
-      nud = mud+s%nOrb
-
-      ! Identity
-      ident_dorb(mud,mud)   = cOne
-      ident_dorb(nud,nud)   = cOne
-      ! pauli matrix x
-      pauli_dorb(1,mud,nud) = cOne
-      pauli_dorb(1,nud,mud) = cOne
-      ! pauli matrix y
-      pauli_dorb(2,mud,nud) = -cI
-      pauli_dorb(2,nud,mud) = cI
-      ! pauli matrix z
-      pauli_dorb(3,mud,mud) = cOne
-      pauli_dorb(3,nud,nud) = -cOne
-    end do
-    pauli_orb(4,:,:) = pauli_orb(1,:,:) + cI*pauli_orb(2,:,:)
-    pauli_orb(5,:,:) = pauli_orb(1,:,:) - cI*pauli_orb(2,:,:)
-    pauli_dorb(4,:,:) = pauli_dorb(1,:,:) + cI*pauli_dorb(2,:,:)
-    pauli_dorb(5,:,:) = pauli_dorb(1,:,:) - cI*pauli_dorb(2,:,:)
-
     levi_civita(1,1,:) = [ 0._dp , 0._dp , 0._dp ]
     levi_civita(1,2,:) = [ 0._dp , 0._dp , 1._dp ]
     levi_civita(1,3,:) = [ 0._dp ,-1._dp , 0._dp ]
@@ -154,6 +81,68 @@ contains
     levi_civita(3,1,:) = [ 0._dp , 1._dp , 0._dp ]
     levi_civita(3,2,:) = [-1._dp , 0._dp , 0._dp ]
     levi_civita(3,3,:) = [ 0._dp , 0._dp , 0._dp ]
+
+    ! Element-dependent matrices
+    do i = 1, s%nTypes
+      nOrb = s%Types(i)%nOrb
+      nOrb2 = 2*nOrb
+      allocate( s%Types(i)%ident_norb (nOrb,nOrb),&
+                s%Types(i)%ident_norb2(nOrb2,nOrb2),&
+                s%Types(i)%ident_dorb (nOrb2,nOrb2),&
+                s%Types(i)%pauli_orb  (0:5,nOrb2,nOrb2),&
+                s%Types(i)%pauli_dorb (0:5,nOrb2,nOrb2)&
+                )
+
+      s%Types(i)%ident_norb  = cZero
+      s%Types(i)%ident_norb2 = cZero
+      s%Types(i)%ident_dorb  = cZero
+      s%Types(i)%pauli_orb   = cZero
+      s%Types(i)%pauli_dorb  = cZero
+
+      ! identity and Pauli matrices for given element (nOrb x nOrb matrix)
+      do mu = 1,nOrb
+        s%Types(i)%ident_norb (mu,mu) = cOne
+        s%Types(i)%ident_norb2(mu,mu) = cOne
+        nu = mu + s%Types(i)%nOrb
+        s%Types(i)%ident_norb2(nu,nu) = cOne
+
+        ! pauli matrix x
+        s%Types(i)%pauli_orb(1,mu,nu) = cOne
+        s%Types(i)%pauli_orb(1,nu,mu) = cOne
+        ! pauli matrix y
+        s%Types(i)%pauli_orb(2,mu,nu) = -cI
+        s%Types(i)%pauli_orb(2,nu,mu) = cI
+        ! pauli matrix z
+        s%Types(i)%pauli_orb(3,mu,mu) = cOne
+        s%Types(i)%pauli_orb(3,nu,nu) = -cOne
+      end do
+      ! identity and Pauli matrices for d-orbitals only:
+      do mud=1,s%Types(i)%ndOrb
+        mu = s%Types(i)%dOrbs(mud)
+        nu = mu+s%Types(i)%nOrb
+
+        ! Identity
+        s%Types(i)%ident_dorb(mu,mu)   = cOne
+        s%Types(i)%ident_dorb(nu,nu)   = cOne
+        ! pauli matrix x
+        s%Types(i)%pauli_dorb(1,mu,nu) = cOne
+        s%Types(i)%pauli_dorb(1,nu,mu) = cOne
+        ! pauli matrix y
+        s%Types(i)%pauli_dorb(2,mu,nu) = -cI
+        s%Types(i)%pauli_dorb(2,nu,mu) = cI
+        ! pauli matrix z
+        s%Types(i)%pauli_dorb(3,mu,mu) = cOne
+        s%Types(i)%pauli_dorb(3,nu,nu) = -cOne
+      end do
+      ! Identity as Pauli matrix 0
+      s%Types(i)%pauli_orb (0,:,:) = s%Types(i)%ident_norb2(:,:)
+      s%Types(i)%pauli_dorb(0,:,:) = s%Types(i)%ident_dorb (:,:)
+      ! Pauli + and - matrices
+      s%Types(i)%pauli_orb (4,:,:) = s%Types(i)%pauli_orb (1,:,:) + cI * s%Types(i)%pauli_orb (2,:,:)
+      s%Types(i)%pauli_orb (5,:,:) = s%Types(i)%pauli_orb (1,:,:) - cI * s%Types(i)%pauli_orb (2,:,:)
+      s%Types(i)%pauli_dorb(4,:,:) = s%Types(i)%pauli_dorb(1,:,:) + cI * s%Types(i)%pauli_dorb(2,:,:)
+      s%Types(i)%pauli_dorb(5,:,:) = s%Types(i)%pauli_dorb(1,:,:) - cI * s%Types(i)%pauli_dorb(2,:,:)
+    end do
 
   end subroutine define_constants
 
