@@ -9,7 +9,7 @@ A paper containing a detailed description of the method used in the code is in p
 F. S. M. Guimarães et al., Sci. Rep. 7, 3686 (2017)<br>
 https://www.nature.com/articles/s41598-017-03924-1
 
-Further documentation can be found at [https://titan.iffgit.fz-juelich.de/TITAN/](https://titan.iffgit.fz-juelich.de/TITAN/)
+Further documentation can be found at [https://titan.iffgit.fz-juelich.de/TITAN/](https://titan.iffgit.fz-juelich.de/TITAN/). The documentation is still in construction.
 
 This program calculates the electric and spin excitations for bulk
 and thin films. It can describe Ferromagnetic Resonance (FMR) experiments
