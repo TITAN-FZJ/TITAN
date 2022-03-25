@@ -22,8 +22,8 @@ These are the basic files that TITAN outputs during any type of calculation.
     .. tab:: :guilabel:`parameter.in`
 
         In this file, all the parameters read from the :guilabel:`input` :ref:`file <input>` are dumped.
-        It can be used to check if all the parameters were correctly read, as well as a simpler and smaller way to
-        store information on a run (since the :guilabel:`input` file may have more text, commented variables, etc.)
+        It can be used to check if all the parameters were correctly read. 
+        It is also a simpler and smaller way to store information of a given run (since the :guilabel:`input` file may have more text, commented variables, etc.)
 
 
     .. tab:: :guilabel:`Atoms`
@@ -111,6 +111,6 @@ There, the self-consistency files (one for each atom in the unit cell, and also 
 TITAN always tries to read the files for the same parameters from these folders to use as an `initial guess`.
 
 .. note::
-    When the effective electronic interaction ``Um`` or ``Un`` is non-zero,
+    When the effective electronic interaction :math:`U_m` or :math:`U_n` is non-zero,
     the self-consistency needs an initial density (that is, for the pure tight-binding hamiltonian).
     In this case, the values are calculated for each atom in the unit cell, and files ``initialrho`` are put into ``results/FSOC/selfconsistency``.

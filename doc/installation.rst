@@ -6,11 +6,10 @@ Installation
 ************
 
 TITAN is written in FORTRAN, and parallelized using MPI and openMP.
-An initial version using accelerators is also implemented using CUDA Fortran.
-Its compilation uses CMake.
+An initial version using accelerators is also implemented using CUDA Fortran and the `cuSolver library to solve the eigenvalue problem <https://docs.nvidia.com/cuda/cusolver/index.html#cuSolverDN-lt-t-gt-syevd>`_.
+TITAN's compilation uses CMake.
 
-
-It was mainly configured and optimized to be used on the supercomputers of the Jülich Supercomputing Centre, so the compilations steps will be exemplified.
+It was mainly configured and optimized to be used on the supercomputers of the Jülich Supercomputing Centre, so the compilations steps will be exemplified there.
 To compile TITAN, first :doc:`download<download>` the source code to your local computer or supercomputer of choice.
 
 To use the intel compiler:
@@ -25,14 +24,35 @@ or to use GFortran:
 
     module load GCC ParaStationMPI CMake
 
-Then, compile the code using
+(Could also be done using ``OpenMPI`` instead of ``ParaStationMPI``.)
+
+The compilation should be done via the ``${TITAN}/build`` folder.
+To avoid incompatibility with previous compilations, it is recommended to clean this folder before starting a new (different) compilation.
+So, to compile the code, the following should be done:
 
 .. code-block:: bash
 
-    cmake ../ -DPLATFORM=system [-DCOMPILER=compiler -DDEBUG=ON]
-    make -j 24
+    cd build
+    rm -r *
+    cmake ../ -DPLATFORM=<system> [-DCOMPILER=<compiler> -DDEBUG=ON -DSUFFIX=<suffix> -DPREP=ON]
+    make -j 32
 
+The following options are possible:
 
-The ``system`` is defined for the Intel compiler, and can be ``jurecadc``, ``juwels``, ``jusuf``, or ``iff``.
-TITAN was tested for the compilers: ``ifort`` (default), ``gfortran`` (gnu) and ``nvfortran``.
-The generated binary can be found in ``${TITAN}/bin/``, and its filename contains the system, compiler (if not ifort) and ``debug`` if the respective flag was used.
+* ``-DPLATFORM=<system>``: The ``<system>`` is defined for the Intel compiler, since the flags were different depending on the system. The following options are possible:
+
+    * ``jurecadc``, ``juwelsbooster`` or ``jusuf``
+    * ``juwels``
+    * ``jurecabooster``
+    * ``jusuf``
+    * ``rwth`` for the Claix supercomputers
+    * ``iff`` for the PGI-1 local clusters
+    * ``osx`` for MacOS
+
+    Not all of them have different flags, but they can be adapted separately in the ``CMakeLists.txt`` file.
+* ``-DCOMPILER=<compiler>``: The default compiler is the Intel Fortran, but it can also use ``gfortran`` (gnu) or ``nvfortran``. For the last two, the executable filename is appended with ``_gnu`` or ``_nv``, respectively.
+* ``-DDEBUG=ON``: The debug flags are not used by default. Use this option to activate them. When this is used, the executable is appended with ``_debug``.
+* ``-DSUFFIX=<suffix>``: The CMake process also includes an option to add an own suffix.
+* ``-DPREP=ON``: Use this option to compile with `SCORE-P` instrumentation. This needs the module ``Score-P``, and the results can be analised with `Scalasca <https://www.scalasca.org/>`_ (via the module `Scalasca`).
+
+The generated binary can be found in ``${TITAN}/bin/``.
