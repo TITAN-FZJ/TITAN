@@ -19,6 +19,7 @@ Welcome to TITAN's documentation!
    :caption: Usage
 
    introduction
+   methods
    types
    input_files
    output_files

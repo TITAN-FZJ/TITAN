@@ -5,7 +5,7 @@
 Installation
 ************
 
-TITAN is written in FORTRAN, and parallelized using MPI and openMP.
+TITAN is written in `Modern Fortran <https://fortran-lang.org/>`_, and parallelized using MPI and openMP.
 An initial version using accelerators is also implemented using CUDA Fortran and the `cuSolver library to solve the eigenvalue problem <https://docs.nvidia.com/cuda/cusolver/index.html#cuSolverDN-lt-t-gt-syevd>`_.
 TITAN's compilation uses CMake.
 

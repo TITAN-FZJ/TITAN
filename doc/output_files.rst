@@ -11,13 +11,12 @@ These are the basic files that TITAN outputs during any type of calculation.
     .. tab:: ``-> output``
 
         This file is defined in the :guilabel:`input` file via the parameter ``-> output``.
-        It contains the main output of TITAN, with the basic information and timings.
+        It contains the main output of TITAN, including the git version/commit as well as basic information and timings.
         This file can be used to follow the calculation, using for example:
 
         .. code-block:: bash
 
             tail -f output_file
-
 
     .. tab:: :guilabel:`parameter.in`
 
@@ -28,6 +27,7 @@ These are the basic files that TITAN outputs during any type of calculation.
 
     .. tab:: :guilabel:`Atoms`
 
+        An optional file that is created when the ``positions`` option is used on the :guilabel:`input` :ref:`file <input>`.
         This file contains the generated lattice of the system.
         It is used when ``-> tbmode = 1`` (SK parameters), as for the other case the positions of the atoms are read from the input.
         This file is
@@ -69,6 +69,13 @@ These are the basic files that TITAN outputs during any type of calculation.
 
         The number of stages is chosen via the parameter ``-> nn_stages`` in :guilabel:`input`.
 
+    .. tab:: :guilabel:`kpoints`
+
+        An optional file that is created when the ``kpoints`` option is used on the :guilabel:`input` :ref:`file <input>`.
+        It is useful to check the BZ mesh and distribution.
+
+
+.. _results-structure:
 
 Apart from these files, TITAN will generate output files that are put on the ``${TITAN}/results`` folder.
 An example of its structure is given below, for a system with 4 atoms in the unit cell (``4Sites``):

@@ -9,18 +9,19 @@ The type of calculation is chosen via the parameter ``-> itype`` in the :guilabe
 Values vary from 1 to 12, with the following meaning:
 
 .. toctree::
-    :numbered:
-    :name: itype
+  :numbered:
+  :name: itype
     
-    self_consistency
-    ldos
-    ldos_coupling
-    band_structure
-    iso_energy
-    coupling
-    susceptibility
-    response
-    response_magnetic
-    gilbert
-    time_propagation
-    coupling_real_space
+  self_consistency
+  ldos
+  ldos_coupling
+  band_structure
+  iso_energy
+  coupling
+  susceptibility
+  response
+  response_magnetic
+  gilbert
+  time_propagation
+  coupling_real_space
+
