@@ -15,6 +15,7 @@ Susceptibility: Iron bulk
 
 
 .. index:: Graphene
+.. _graphene:
 
 Graphene bulk (2D)
 ==================
@@ -33,6 +34,7 @@ Time propagation: Nickel bulk
 
 
 .. index:: Co monolayer
+.. _co_monolayer:
 
 Cobalt monolayer
 ================

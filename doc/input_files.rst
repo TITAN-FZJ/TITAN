@@ -178,7 +178,7 @@ Energy loop:
 
 Wave-vector loop:
 
-* ``-> band`` (**required** for ``-> itype=4``, default: ``G``(:math:`\Gamma`) for ``-> itype=6-9`` ): Wave-vector points defined in the :guilabel:`kbands` :ref:`file <kbands>` to make a path in the reciprocal space.
+* ``-> band`` (**required** for ``-> itype=4``, default: ``G``(:math:`\Gamma`) for ``-> itype=6-7`` ): Wave-vector points defined in the :guilabel:`kbands` :ref:`file <kbands>` to make a path in the reciprocal space.
 * ``-> nQvec`` (``-> itype=2-3,7-9``, default: :math:`0`): Number of Q vectors in the path defined above. The real number of calculated points is :math:`\text{nQvec}+1` to include the edges. When only one letter (point) is given in ``-> band``, only one point is used in the loop.
 * ``-> qbasis`` (default: ``bravais``): Which basis to interpret the coordinates in the :guilabel:`kbands` file. Can be ``cartesian``, ``spherical`` or ``bravais`` (which is actually in units of the reciprocal vectors).
 
@@ -301,7 +301,7 @@ This file contains the information about the lattice: the lattive parameter, bra
 This file is written in the `POSCAR` format.
 
 .. note::
-    This file is processed in the subroutine ``read_basis`` of :guilabel:`mod_polyBasis.F90`.
+  This file is processed in the subroutine ``read_basis`` of :guilabel:`mod_polyBasis.F90`.
 
 
 The basis file for Fe bulk, for example, is:
@@ -346,7 +346,7 @@ parameter file
 --------------
 
 Each element listed in line 6 of the :ref:`basis file<basis>` require a parameter file with the same name as the element is given.
-This file contains basis information such as SOC strength, superconductivity :math:`\lambda`, effective electron-electron interaction :math:`U_n` and :math:`U_m`.
+This file contains basis information such as SOC strength :math:`\lambda_\text{SOC}`, superconductivity :math:`\lambda_\text{SC}`, effective electron-electron interaction :math:`U_n` and :math:`U_m`.
 For Slater-Koster parameters (i.e., ``-> tbmode = 1``), it also contains the basis information of the original system as well as the SK two-center integrals.
 
 .. note::
@@ -370,6 +370,7 @@ Below is an example of a parameter file :guilabel:`Fe` for the Fe bulk system.
     L
     0.0    0.0     0.0
     3                  ! Dimension of the system
+    o: s px py pz dxy dyz dzx dx2 dz2  ! (Optional) Orbitals for this element
     0.7415             ! Original Fermi energy
     0.58  0.37  7.05   ! Original occupations s, p, d
     0.000  0.07353     ! Effective electron-electron interaction Un, Um
@@ -416,11 +417,12 @@ In the case above, it is contained between lines 1 and 9, and is the same as the
 The parameter file then lists the following quantities:
 
 * Dimension of the system: The value can be different from the ``-> isysdim`` on the :guilabel:`input` file. For example, the parameters can be obtained from Fe bulk (3D) and used in a layered system, where ``-> isysdim = 2``.
+* (Optional) Orbitals: Selected orbital types for this element. This line should start with a letter. When not present, the orbitals used are ``s px py pz dxy dyz dzx dx2 dz2``.
 * Fermi energy: The value of the Fermi energy from the system where the parameters were obtained.
 * `s`, `p` and `d` occupations: The number of electrons on the original system (NOTE: This may be deprecated. It was used as :math:`n_0` in the :math:`U_n (n-n_0)` term of the Hamiltonian).
 * Effective electron-electron interaction :math:`U_n`, :math:`U_m`: charge and magnetic parts of the intra-atomic electron-electron interaction, *in the same units as the hopping parameters*
 * SOC strength for p and d orbitals: :math:`\lambda_{\text{SOC}}` for `p` and `d` orbitals (the spherical `s` orbital does not contribute to the SOC term)
-* Superconductivity :math:`\lambda`: This can be given in different ways, in the following order or priority:
+* Superconductivity :math:`\lambda_\text{SC}`: This can be given in different ways, in the following order or priority:
 
   * A **single** value for all the orbitals;
   * **One value per orbital** of the given atom type;
@@ -450,6 +452,7 @@ Below is an example of a parameter file :guilabel:`Co` for the Co monolayer syst
     :linenos:
 
     Co             ! Name
+    o: s px py pz dxy dyz dzx dx2 dz2  ! (Optional) Orbitals for this element
     0.0            ! Original Fermi energy
     0.000 1.0      ! Effective electron-electron interaction Un, Um
     0.000 0.085    ! SOC strength for p and d orbitals
@@ -458,10 +461,11 @@ Below is an example of a parameter file :guilabel:`Co` for the Co monolayer syst
 The parameter file is simplified in this case, and only contains:
 
 * Name of the system
+* (Optional) Orbitals: Selected orbital types for this element. This line should start with a letter. When not present, the orbitals used are ``s px py pz dxy dyz dzx dx2 dz2``.
 * Fermi energy: The value of the Fermi energy from the system where the parameters were obtained.
 * Effective electron-electron interaction :math:`U_n`, :math:`U_m`: charge and magnetic parts of the intra-atomic electron-electron interaction, *in the same units as the hopping parameters*
 * SOC strength for p and d orbitals: :math:`\lambda_{\text{SOC}}` for `p` and `d` orbitals (the spherical `s` orbital does not contribute to the SOC term)
-* Superconductivity :math:`\lambda`: This can be given in different ways, in the following order or priority:
+* Superconductivity :math:`\lambda_\text{SC}`: This can be given in different ways, in the following order or priority:
 
   * A **single** value for all the orbitals;
   * **One value per orbital** of the given atom type;
@@ -482,7 +486,114 @@ Other files that may be necessary depending on the calculation:
 Hamiltonian file
 ----------------
 
-The Hamiltonian obtained from DFT when ``-> tbmode = 2``
+The Hamiltonian obtained from DFT when ``-> tbmode = 2``. 
+The filename of the hamiltonian is given by the ``Name`` field in the :guilabel:`basis` :ref:`file <basis>`.
+
+.. note::
+  This file is read in the subroutine ``readHamiltonian`` of :guilabel:`mod_dft.F90`.
+
+TITAN currently recognizes two different formats of the hamiltonian:
+
+* The usual output from PAOFLOW and Wannier90;
+* The output of WannierTB (described in Pages 92-93 of the `documentation <https://github.com/wannier-developers/wannier90/raw/v3.1.0/doc/compiled_docs/user_guide.pdf>`_).
+
+One example of the first one, used in the :ref:`Co monolayer example <co_monolayer>`, is:
+
+.. code-block:: text
+    :linenos:
+
+    PAOFLOW Generated   ! General name or string
+        9        ! Total number of orbitals in the unit cell
+      169        ! Number of neighbors (13x13 in this case)
+    1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  !  Number
+    1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  !  of 
+    1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  !  degenerat.
+    1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  !  (1 per 
+    1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  !  neighbor,
+    1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  !  max. 15 
+    1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  !  per line)
+    1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+    1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+    1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+    1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+    1    1    1    1                                                         !
+      0   0   0     1     1       2.618225       0.000000 ! Neighbor position (3 integers), 
+      0   0   0     2     1       0.000000      -0.000000 ! Hamiltonian index (2 integers), 
+      0   0   0     3     1       0.000000       0.000000 ! complex value (2 reals)
+      0   0   0     4     1       0.000000      -0.000000 ! ...
+      0   0   0     5     1       0.045919      -0.000000
+      0   0   0     6     1       0.000000      -0.000000
+      0   0   0     7     1      -0.000000       0.000000
+      0   0   0     8     1      -0.000000      -0.000000
+      0   0   0     9     1      -0.000000      -0.000000
+      0   0   0     1     2       0.000000       0.000000
+      0   0   0     2     2       4.040969       0.000000
+      0   0   0     3     2      -0.000000       0.000000
+      0   0   0     4     2      -0.000000       0.000000
+      0   0   0     5     2      -0.000000      -0.000000
+      0   0   0     6     2       0.000000       0.000000
+      0   0   0     7     2      -0.000000      -0.000000
+      0   0   0     8     2      -0.000000      -0.000000
+      0   0   0     9     2       0.000000       0.000000
+                            ...
+
+One example of the Wannier TB hamiltonian file, for the Fe8N system,
+
+.. code-block:: text
+    :linenos:
+
+    written on 18Feb2022 at 14:41:30  ! General name or string
+    5.0828740910370112        0.0000000000000000        0.0000000000000000   ! Bravais
+    -1.2742257058820683        4.9205779213101994        0.0000000000000000  ! vectors
+    -1.9042987782070162       -2.4602635462846445        4.0194860024511581  ! in a.u.
+            43         ! Total number of orbitals in the unit cell
+          519          ! Number of neighbors 
+      1    1    1    1    1    1    1    1    1    1    2    1    1    1    2  ! Number
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! of 
+      1    1    1    1    2    1    1    1    2    1    1    1    1    1    1  ! degenerat. 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! (1 per 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! neighbor,
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! max. 15 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! per line)
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+      1    2    1    1    1    2    1    1    1    1    1    1    1    1    1  ! 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+      2    1    1    1    1    1    1    1    2    1    1    1    1    1    1  ! 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+      1    1    1    2    1    1    1    2    1    1    1    1    1    1    1  ! 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+      1    1    1    1    1    1    1    1    1    1    1    1    1    1    1  ! 
+      2    1    1    1    2    1    1    1    1    1    1    1    1    1    1  ! 
+      1    1    1    1    1    1    1    1    1    2    1    1    1    2    1  ! 
+      1    1    1    1    1    1    1    1    1                                ! 
+
+      -5   -4   -2                              ! Neighbor position
+      1    1    0.10103018E-04 -0.33872947E-04  ! Hamiltonian index (2 integers), 
+      2    1    0.12460942E-04 -0.10127609E-04  ! complex value (2 reals)
+      3    1    0.42252352E-04 -0.74424984E-04  ! ...
+      4    1    0.99505800E-04 -0.12092305E-04
+      5    1    0.85143064E-04 -0.21284568E-04
+      6    1   -0.25935418E-04 -0.16564874E-04
+      7    1   -0.72510551E-04  0.90694930E-04
+                    ...
+
 
 
 .. index:: kbands
@@ -491,10 +602,24 @@ The Hamiltonian obtained from DFT when ``-> tbmode = 2``
 :guilabel:`kbands`
 ------------------
 
-The file :guilabel:`kbands` includes the definition of k-points to be used in the band structure (``itype=4``) and q-dependent susceptibility calculation (``itype=7``).
-The units is defined on the :guilabel:`input` file via the parameter ``-> qbasis``.
+The file :guilabel:`kbands` includes the definition of k-points to be used in the band structure (``itype=4``), magnetic exchange interaction tensor (``itype=6``), and q-dependent susceptibility calculation (``itype=7``).
+The units is defined on the :guilabel:`input` :ref:`file <input>` via the parameter ``-> qbasis``.
+Its format is given by a letter followed by the 3 components (of the basis chosen in ``-> qbasis``).
 
+.. note::
+  This file is read in the subroutine ``read_band_points`` of :guilabel:`mod_band_structure.F90`.
 
+An example of a kbands file for :ref:`graphene <graphene>` using ``-> qbasis = bravais`` is
+
+.. code-block:: text
+    :linenos:
+
+    G  0.000000000  0.00000000  0.0
+    K  0.333333333 -0.33333333  0.0
+    M  0.500000000  0.00000000  0.0
+    N  0.000000000  0.50000000  0.0
+
+These points can then be used in the :guilabel:`input` :ref:`file <input>`, as, for example, ``-> bands = M G K`` to define a path between those points.
 
 .. index:: initialmag
 .. _initialmag:
@@ -502,12 +627,14 @@ The units is defined on the :guilabel:`input` file via the parameter ``-> qbasis
 :guilabel:`initialmag`
 ----------------------
 
-TITAN initial magnetic moments for the atoms in the unit cell is `2.0` along the `z-`direction.
+TITAN initial magnetic moments for the atoms in the unit cell is :math:`2.0` along the `z` direction.
 This can be changed by adding ``-> magbasis`` in the :guilabel:`input` file (possible values are ``cartesian`` or ``spherical``), and adding the values in a file called :guilabel:`initialmag`.
 It must contain 3 values per line, with the number of lines given by the number of atoms in the unit cell (following the same order as the positions).
 
-* ``cartesian``: `\mathbf{m}_i^x`, `\mathbf{m}_i^y` and `\mathbf{m}_i^z` coordinates;
-* ``spherical``: :math:`|\mathbf{m}_i|`, :math:`\mathbf{m}_i^\theta` and :math:`\mathbf{m}_i^\phi` coordinates;
+* ``cartesian``: :math:`\mathbf{m}_i^x`, :math:`\mathbf{m}_i^y` and :math:`\mathbf{m}_i^z` coordinates;
+* ``spherical``: :math:`|\mathbf{m}_i|`, :math:`\mathbf{m}_i^\theta` and :math:`\mathbf{m}_i^\phi` coordinates (last ones in degrees);
 
+.. note::
+  This file is read in the subroutine ``read_initial_values`` of :guilabel:`mod_self_consistency.F90`.
 
 

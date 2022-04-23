@@ -31,6 +31,7 @@ extensions = [
   'sphinx.ext.autosectionlabel', 
   'sphinx_tabs.tabs', 
   'sphinx_panels',
+  'sphinx_last_updated_by_git'
   ]
 autosectionlabel_prefix_document = True
 sphinx_tabs_disable_tab_closing = True
