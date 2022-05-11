@@ -432,8 +432,8 @@ contains
     character(len=*), optional, intent(in) :: procedure
     integer,                    intent(in) :: f_unit
     character(len=*), optional, intent(in) :: item
-    integer             :: ios
-    character(len=200)  :: next_line
+    integer                         :: ios
+    character(len=200) :: next_line
 
     do
       read(f_unit, fmt='(A)', iostat = ios) next_line
@@ -578,7 +578,7 @@ contains
   !> function StoR_array():
   !>    This function transforms a character variable into a real array StoR
   !> --------------------------------------------------------------------
-    use mod_kind, only: dp
+    use mod_kind,     only: dp
     use mod_mpi_pars, only: abortProgram
     implicit none
     character(len=*), intent(in) :: string
@@ -606,6 +606,32 @@ contains
     StoArray = ""
     read(unit=string, fmt=*, iostat=ios) (StoArray(i), i=1,dim_v)
   end function StoArray
+
+  function get_string_size(string) result(cnt)
+  !> --------------------------------------------------------------------
+  !> function get_string_size():
+  !>    This function receives a string and returns the number of 
+  !> different elements in the string
+  !> --------------------------------------------------------------------
+    use mod_input, only: max_elements,word_length
+    implicit none
+    character(len=*) :: string
+    integer :: cnt
+    integer :: ios, i
+    character(len=word_length) :: str_arr(max_elements)
+
+    ! Initializing array to empty elements
+    do i=1,max_elements
+      str_arr(i) = ""
+    end do
+    read(unit=string, fmt=*, iostat=ios) (str_arr(i), i=1,max_elements)
+    cnt = 0
+    do i = 1, max_elements
+      if(len_trim(str_arr(i)) == 0 .or. len_trim(str_arr(i)) == word_length) cycle
+      cnt = cnt + 1
+    end do
+
+  end function get_string_size
 
 
   function KronProd(nax,nay,nbx,nby,A,B) result(AB)
@@ -859,7 +885,7 @@ contains
 #else
     use mod_mpi_pars,   only: rField
 #endif
-    ! use mod_io, only: log_warning
+    ! use mod_logging, only: log_warning
     implicit none
     character(len=1), intent(in)  :: units
     !> In which units the result will be returned: g = GB, m = MB, k = KB
@@ -925,6 +951,22 @@ contains
     success = .false.
     close(file_unit)
   end function get_memory
+
+
+  subroutine build_identity(dim_I,ident)
+    !! Builds identity matrices of dimension dim_I
+    use mod_kind, only: dp
+    implicit none
+    integer,                             intent(in)  :: dim_I
+    complex(dp), dimension(dim_I,dim_I), intent(out) :: ident
+    integer :: n
+
+    ident = 0._dp
+    do n= 1, dim_I
+      ident(n,n)= 1._dp
+    end do    
+
+  end subroutine build_identity
 
 end module mod_tools
 

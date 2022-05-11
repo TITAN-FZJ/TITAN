@@ -24,16 +24,20 @@ contains
     use mod_system,    only: System_type
     use AtomTypes,     only: NeighborAtom
     use mod_constants, only: cZero
-    use mod_io,        only: log_error
-    use mod_tools,     only: ItoS,RtoS,StoI,StoR,StoArray,next_line
+    use mod_logging,   only: log_error
+    use mod_tools,     only: ItoS,RtoS,StoI,StoR,StoArray,next_line,get_string_size
     implicit none
     type(System_type),   intent(inout) :: s
     character(len=*),    intent(in)    :: filename
 
-    character(len=100) :: title
-
+    character(len=:), allocatable :: title,temp
+    !! Title of the hamiltonian file, and temporary variable
+    logical :: tb
+    !! Flag to indicate which kind of hamiltonian file to read 
+    !! (.true. -> wannier tb or .false. -> wannier/paoflow)
     integer  :: f_unit = 9954
-    integer  :: nOrb
+    !! File unit to use
+    integer  :: nOrb,cnt
     !! Number of orbitals read from file
     integer  :: nNeighbors
     !! Number of neighbors
@@ -57,7 +61,21 @@ contains
     read(f_unit, fmt='(A)', iostat=ios) title
 
     ! Read total number of orbitals / number of wannier functions per unit cell
-    nOrb = StoI(next_line("readHamiltonian",f_unit,"number of orbitals"))
+    temp = next_line("readHamiltonian",f_unit,"number of orbitals or first Bravais vector")
+    cnt = get_string_size(temp)
+    if(cnt==1) then
+      tb = .false.
+    else if(cnt==3) then
+      tb = .true.
+      ! Bravais vectors are not used from here
+      temp = next_line("readHamiltonian",f_unit,"second Bravais vector")
+      temp = next_line("readHamiltonian",f_unit,"third Bravais vector")
+      ! Reading number of orbitals
+      temp = next_line("readHamiltonian",f_unit,"number of orbitals")
+    else
+      call log_error("readHamiltonian", "Invalid hamiltonian file. First line contains" // itos(cnt) // "elements (should be 1 or 3).")
+    end if
+    nOrb = StoI(temp)
     if(nOrb /= s%total_nOrb) call log_error("readHamiltonian", "Total number of orbitals from input (" // trim(itos(s%total_nOrb)) // ") is different than in hamiltonian file (" // trim(itos(nOrb)) // ")")
 
     ! Read number of Cells / number of Wigner-Seitz points
@@ -89,6 +107,8 @@ contains
     ! "nNeighbors" is added up until all atoms in all unit cells, nCells*s%nAtoms
     nNeighbors = 0
     do cell = 1,nCells
+      if(tb) &
+        read(f_unit, fmt=*, iostat=ios) pos(1), pos(2), pos(3)
       do j = 1,s%nAtoms
         
         ! "nNeighbors" is the current atom (composed by {cell,i})
@@ -106,8 +126,11 @@ contains
 
             do mu = 1,s%Types(s%Basis(i)%Material)%nOrb
               ! Reading information from file
-              read(f_unit, fmt=*, iostat=ios) pos(1), pos(2), pos(3), orb(1), orb(2), hop(1), hop(2)
-
+              if(tb) then
+                read(f_unit, fmt=*, iostat=ios) orb(1), orb(2), hop(1), hop(2)
+              else
+                read(f_unit, fmt=*, iostat=ios) pos(1), pos(2), pos(3), orb(1), orb(2), hop(1), hop(2)
+              end if
               if((pos(1)==0).and.(pos(2)==0).and.(pos(3)==0).and.(i==j)) then
                 if((mu==nu).and.(hop(2)>1.0e-12_dp)) &
                   call log_error("readHamiltonian", "On-site, on-orbital term for i = j = " // trim(itos(i)) // ", mu = nu = " // trim(itos(mu)) // " is not real: Im(H) = " // trim(rtos(hop(2),"(f7.2)")))

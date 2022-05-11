@@ -108,7 +108,7 @@ contains
       call initTightBinding(sys0(i))
 
       !---------------- Reading from previous calculations -----------------
-      !------- and calculating if file doesn't exist (or different U) ------
+      !------- and calculating if file does not exist (or different U) ------
       if(.not.read_init_expecs(sys0(i)%nOrb,s%Types(i),err)) then
         if(myrank == 0) write(output%unit,"('[calc_init_expec_SK] Calculating initial occupation for ""',a,'""...')") trim(s%Types(i)%Name)
 
@@ -225,7 +225,6 @@ contains
     end do
     if(myrank == 0) &
       call write_time('[calc_init_expec_SK] Finished calculating initial occupations: ',output%unit)
-    
     deallocate(sys0)
 
   end subroutine calc_init_expec_SK
@@ -282,7 +281,7 @@ contains
           cycle
         else
           lneed = .true. ! If Un or Um is non zero for a single element, the calculation must be done
-          exit           ! Since it's a single calculation, get all the other numbers too
+          exit           ! Since it is a single calculation, get all the other numbers too
         end if
       end do types_of_atoms_check
 
@@ -318,7 +317,7 @@ contains
 
     ! If not all the files were read, lneed=.true. and all the densities will be (re)calculated
     if(lneed) then
-      !--------- Calculating if file doesn't exist (or different U) --------
+      !--------- Calculating if file does not exist (or different U) --------
       if(myrank == 0) write(output%unit,"('[calc_init_expec_dft] Calculating initial occupations for all elements...')")
 
       !---- L matrix in global frame for given quantization direction ----
@@ -386,9 +385,9 @@ contains
     if(.not.allocated(rhod0)) allocate(rhod0(s%nAtoms))
     if(.not.allocated(mzd0)) allocate(mzd0(s%nAtoms))
     if(.not.allocated(mpd0)) allocate(mpd0(s%nAtoms))
-    s%totalOccupation = 0._dp
     do i=1,s%nAtoms
       rho0(1:s%Types(s%Basis(i)%Material)%nOrb,i) = s%Types(s%Basis(i)%Material)%rho0(1:s%Types(s%Basis(i)%Material)%nOrb) ! Unit cell can have more than one atom (of one type)
+      ! totalOccupation is defined in TightBinding.F90 (and may have been modified in main by addelectrons)
       s%totalOccupation = s%totalOccupation + sum(rho0(1:s%Types(s%Basis(i)%Material)%nOrb,i))
       rhod0(i)  = s%Types(s%Basis(i)%Material)%rhod0
       mzd0(i)   = s%Types(s%Basis(i)%Material)%mzd0     ! but here only the occupation of first atom is used

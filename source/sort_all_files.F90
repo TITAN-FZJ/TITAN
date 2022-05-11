@@ -1,5 +1,5 @@
-! Sort all files
 subroutine sort_all_files()
+  !! This subroutine is a wrapper for the sorting calls depending on the itype
   use mod_parameters,       only: itype,kount,nEner1,output
   use mod_magnet,           only: hw_count
   use mod_susceptibilities, only: sort_susceptibilities

@@ -1,33 +1,33 @@
-!------------------------------------------------------------------------------------!
-! TITAN - Time-dependent Transport and Angular momentum properties of Nanostructures !
-!------------------------------------------------------------------------------------!
-!
-! MODULE: mod_polyBasis
-!
-!> @author
-!> Jens Renè Suckert, PGI-1/IAS-1, Peter-Grünberg-Institut,FZ Jülich
-!
-! DESCRIPTION:
-!> Read file 'basis' and set up polyatomic basis
-!
-! REVISION HISTORY:
-! 05 July 2017 - Initial Version
-!------------------------------------------------------------------------------------!
-
 module mod_polyBasis
+  !------------------------------------------------------------------------------------!
+  ! TITAN - Time-dependent Transport and Angular momentum properties of Nanostructures !
+  !------------------------------------------------------------------------------------!
+  !
+  ! MODULE: mod_polyBasis
+  !
+  ! @author
+  ! Jens Renè Suckert, PGI-1/IAS-1, Peter-Grünberg-Institut,FZ Jülich
+  !
+  ! DESCRIPTION:
+  !! Read file 'basis' and set up polyatomic basis
+  !
+  ! REVISION HISTORY:
+  ! 05 July 2017 - Initial Version
+  !------------------------------------------------------------------------------------!
+
   use mod_kind, only: dp
   implicit none
 
 contains
 
-  !! Reading basis file 'filename' 
-  !! (also used to read original lattice for mod_init_expec)
   subroutine read_basis(filename, s, lread_sysdim)
+    !! Reading basis file 'filename' 
+    !! (also used to read original lattice for mod_initial_expectation)
     use mod_system,    only: System_type
     use mod_mpi_pars,  only: myrank,abortProgram
     use mod_constants, only: tpi
     use mod_tools,     only: cross,vec_norm
-    use mod_io,        only: log_warning
+    use mod_logging,   only: log_warning
     implicit none
 
     character(len=*),  intent(in)    :: filename
@@ -41,7 +41,7 @@ contains
     character(len=line_length) :: line
     character(len=1)           :: coord_type
     integer, dimension(50)     :: type_count
-    real(dp), dimension(3) :: zdir, ydir
+    real(dp), dimension(3) :: zdir, ydir, a1xa2
 
     open(unit = f_unit, file=trim(filename), status='old', iostat = ios)
     if((ios /= 0).and.(myrank==0)) call abortProgram("[read_basis] Error reading " // trim(filename))
@@ -141,6 +141,7 @@ contains
 
     ! Calculating volume of BZ and reciprocal lattice vectors
     if((s%isysdim==1).or.((vec_norm(s%a2,3) <= 1.e-9_dp).and.(vec_norm(s%a3,3) <= 1.e-9_dp))) then
+      ! TO FIX: NEEDS TO BE GENERALIZED:
       zdir  = [0._dp,0._dp,1._dp]
       ydir  = [0._dp,1._dp,0._dp]
       s%vol = tpi / dot_product(zdir, cross(s%a1,ydir))
@@ -148,8 +149,10 @@ contains
       s%b2  = 0._dp
       s%b3  = 0._dp
     else if((s%isysdim==2).or.(vec_norm(s%a3,3) <= 1.e-9_dp)) then
-      zdir  = [0._dp,0._dp,1._dp]
-      s%vol = tpi / dot_product(zdir, cross(s%a1,s%a2))
+      a1xa2 = cross(s%a1,s%a2)
+      zdir  = a1xa2/vec_norm(a1xa2,3)
+write(*,*) 'read_basis',zdir
+      s%vol = tpi / dot_product(zdir, a1xa2)
       s%b1  = s%vol * cross(s%a1,zdir)
       s%b2  = s%vol * cross(zdir,s%a2)
       s%b3  = 0._dp

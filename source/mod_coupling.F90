@@ -100,9 +100,9 @@ contains
         iw = 2000 + (j-1) * s%nAtoms * 2 + (i-1) * 2 + 1
         write(varm,"('./results/',a1,'SOC/',a,'/',a,'/',a,'_',i0,'_',i0,'_kdir=',a,a,a,a,'_real.dat')") output%SOCchar,trim(output%Sites),trim(folder),trim(filename(1)),i,j,trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
         open (unit=iw, file=varm,status='replace')
-        call write_header(iw,"#     Rji_x     ,      Rji_y      ,      Rji_z      ,      |Rji|      ,  Jii_xx         ,&
-        &  Jii_xy         ,  Jii_xz         ,  Jii_yz         ,  Jii_yy         ,  Jii_yz         ,&
-        &    Jii_zx         ,  Jii_zy          ,  Jii_zz         ")
+        call write_header(iw,"#     Rji_x     ,      Rji_y      ,      Rji_z      ,      |Rji|      ,  Jii_xx         ," // &
+        &"  Jii_xy         ,  Jii_xz         ,  Jii_yz         ,  Jii_yy         ,  Jii_yz         ," // &
+        &"  Jii_zx         ,  Jii_zy         ,  Jii_zz         ")
         ! Anisotropy energy is given by K^a = 2*J_ii^aa
         ! omega_res ~ gamma*m_i*J_ii (*2?) ,
         ! where J_ii is the one calculated here

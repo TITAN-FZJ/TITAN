@@ -210,11 +210,11 @@ subroutine eintshe(q,e)
     !   end do
     ! end do
 
-    ! Green function at (k+q,E'+E+i.eta)
+    ! Green function at (k+q,Ep+E+i.eta)
     kpq = kp+q
     call calc_green(ep+e,eta,s,kpq,gfq)
 
-    ! Green function at (k,E'+i.eta)
+    ! Green function at (k,Ep+i.eta)
     call calc_green(ep,etap,s,kp,gf)
 
     do j=1,s%nAtoms; do i=1,s%nAtoms
@@ -543,11 +543,11 @@ subroutine eintshelinearsoc(q,e)
     !   end do
     ! end do
 
-    ! Green function at (k+q,E'+E+i.eta)
+    ! Green function at (k+q,Ep+E+i.eta)
     kpq = kp+q
     call greenlinearsoc(ep+e,eta,s,kpq,gfq,gvgq)
 
-    ! Green function at (k,E'+i.eta)
+    ! Green function at (k,Ep+i.eta)
     call greenlinearsoc(ep,etap,s,kp,gf,gvg)
 
     do j=1,s%nAtoms; do i=1,s%nAtoms

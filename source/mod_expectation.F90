@@ -1,6 +1,6 @@
 module mod_expectation
-!> This module contains the calculation of the ground state expectation values using the GF
-!> and using the eigenstates of the hamiltonian
+!! This module contains the calculation of the ground state expectation values using the GF
+!! and using the eigenstates of the hamiltonian
   implicit none
 
   procedure(expectation_values_sub), pointer :: expectation_values => expectation_values_greenfunction
@@ -26,7 +26,7 @@ module mod_expectation
 
 contains
   subroutine expectation_values_greenfunction(s,rho,mp,mx,my,mz,deltas)
-  !> Calculates ground state (occupation and magnetization) quantities using the Green functions
+  !! Calculates ground state (occupation and magnetization) quantities using the Green functions
     use mod_kind,              only: dp,int64
     use mod_constants,         only: pi,cZero
     use mod_SOC,               only: llinearsoc,llineargfsoc
@@ -150,7 +150,7 @@ contains
 
 
   subroutine expectation_values_eigenstates(s,rho,mp,mx,my,mz,deltas)
-  !>  Calculates ground state quantities from eigenstates
+  !!  Calculates ground state quantities from eigenstates
     use mod_kind,          only: dp,int64
     use mod_BrillouinZone, only: realBZ
     use mod_parameters,    only: output,dimHsc
@@ -225,8 +225,8 @@ contains
 
 
   subroutine expectation_eigenstates_fullhk(s,rho,mp,mx,my,mz,deltas)
-  !> Calculates ground state quantities from eigenstates using
-  !> full hamiltonian matrix
+  !! Calculates ground state quantities from eigenstates using
+  !! full hamiltonian matrix
     use mod_kind,              only: dp,int64
     use mod_BrillouinZone,     only: realBZ
     use mod_parameters,        only: dimHsc,output
@@ -303,8 +303,8 @@ contains
 
 #ifdef _GPU
   subroutine expectation_eigenstates_fullhk_gpu(s,rho,mp,mx,my,mz,deltas)
-  !>  Calculates ground state quantities - on the GPUs - from eigenstates
-  !>  using full hamiltonian matrix
+  !!  Calculates ground state quantities - on the GPUs - from eigenstates
+  !!  using full hamiltonian matrix
     use mod_kind,          only: dp,int64
     use mod_BrillouinZone, only: realBZ
     use mod_parameters,    only: dimHsc,output
@@ -417,8 +417,8 @@ contains
 
 
   subroutine expec_val_gpu(s,dimens,hk_d,eval_d,expec_0_d,expec_p_d,expec_z_d,expec_d_d)
-  !> Subroutine to calculate - on the GPUS - the expectation value of the operators
-  !> 1 (occupation), Sp, Sz, and superconducting delta
+  !! Subroutine to calculate - on the GPUS - the expectation value of the operators
+  !! 1 (occupation), Sp, Sz, and superconducting delta
     use mod_kind,              only: dp
     use mod_constants,         only: cZero,pi,pauli_mat_d
     use mod_parameters,        only: eta,isigmamu2n_d
@@ -549,8 +549,8 @@ contains
 
 
   subroutine expec_val(s,dimens,hk,eval,expec_0,expec_p,expec_z,expec_d)
-  !> Subroutine to calculate the expectation value of the operators
-  !> 1 (occupation), Sp, Sz, and superconducting delta
+  !! Subroutine to calculate the expectation value of the operators
+  !! 1 (occupation), Sp, Sz, and superconducting delta
     use mod_kind,              only: dp
     use mod_constants,         only: cZero,pi,pauli_mat
     use mod_parameters,        only: eta,isigmamu2n
@@ -649,9 +649,9 @@ contains
 
 
   subroutine expec_val_n(s, dimens, evec, eval, expec_0, expec_p, expec_z, expec_d)
-  !> Calculate the expectation value of the operators
-  !> 1 (occupation), Sp, Sz, and superconducting delta
-  !> for a given state [n] ([evec]) with eigen-energy [eval]
+  !! Calculate the expectation value of the operators
+  !! 1 (occupation), Sp, Sz, and superconducting delta
+  !! for a given state [n] ([evec]) with eigen-energy [eval]
     use mod_kind,              only: dp
     use mod_constants,         only: cZero,pi,pauli_mat
     use mod_parameters,        only: eta,isigmamu2n
@@ -742,9 +742,9 @@ contains
 
 
   subroutine expec_torque_n(s,dimens,evec,eval,tso_op,txc_op,expec_tso,expec_txc)
-  !> Calculate the expectation value of the operators
-  !> 1 (occupation), Sp, Sz, and superconducting delta
-  !> for a given state [n] ([evec]) with eigen-energy [eval]
+  !! Calculate the expectation value of the operators
+  !! 1 (occupation), Sp, Sz, and superconducting delta
+  !! for a given state [n] ([evec]) with eigen-energy [eval]
     use mod_kind,              only: dp
     use mod_constants,         only: pi
     use mod_parameters,        only: eta,isigmamu2n
@@ -841,8 +841,8 @@ contains
 
 
   subroutine groundstate_L_and_E()
-  !> Wrapper for the calculation of the expectation value
-  !> of the orbital angular momentum and the band energy in the ground state
+  !! Wrapper for the calculation of the expectation value
+  !! of the orbital angular momentum and the band energy in the ground state
     use mod_kind,          only: dp
     use mod_parameters,    only: output
     use mod_constants,     only: rad2deg
@@ -910,8 +910,8 @@ contains
 
 
   subroutine calc_GS_L_and_E_greenfunction()
-  !> Calculates the expectation value of the orbital angular momentum
-  !> in the ground state using green functions
+  !! Calculates the expectation value of the orbital angular momentum
+  !! in the ground state using green functions
     use mod_kind,          only: dp,int64
     use mod_constants,     only: cZero,pi
     use mod_System,        only: s => sys
@@ -1014,8 +1014,8 @@ contains
 
 
   subroutine expec_L_n(s,dimens,evec,eval,lxm,lym,lzm)
-  !> Calculate the expectation value of the orbital momentum
-  !> for a given state [n] ([evec]) with eigen-energy [eval]
+  !! Calculate the expectation value of the orbital momentum
+  !! for a given state [n] ([evec]) with eigen-energy [eval]
     use mod_kind,              only: dp
     use mod_constants,         only: pi
     use mod_parameters,        only: eta,isigmamu2n
@@ -1055,7 +1055,7 @@ contains
           mud = s%Types(s%Basis(i)%Material)%Orbs(mu)
           do sigma = 1,2
             prod = f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,nu))
-            lxm (1,i) = lxm (1,i) + real( prod*s%Types(s%Basis(i)%Material)%lvec(mud,nud,1) ) !> angular momentum at atomic site (i)
+            lxm (1,i) = lxm (1,i) + real( prod*s%Types(s%Basis(i)%Material)%lvec(mud,nud,1) ) ! angular momentum at atomic site (i)
             lym (1,i) = lym (1,i) + real( prod*s%Types(s%Basis(i)%Material)%lvec(mud,nud,2) )
             lzm (1,i) = lzm (1,i) + real( prod*s%Types(s%Basis(i)%Material)%lvec(mud,nud,3) )
           end do
@@ -1071,7 +1071,7 @@ contains
           mup = s%Types(s%Basis(i)%Material)%Orbs(mu)
           do sigma = 1,2
             prod = f_n*conjg( evec(isigmamu2n(i,sigma,mu)) )*evec(isigmamu2n(i,sigma,nu))
-            lxm (2,i) = lxm (2,i) + real( prod*s%Types(s%Basis(i)%Material)%lvec(mup,nup,1) ) !> angular momentum at atomic site (i)
+            lxm (2,i) = lxm (2,i) + real( prod*s%Types(s%Basis(i)%Material)%lvec(mup,nup,1) ) ! angular momentum at atomic site (i)
             lym (2,i) = lym (2,i) + real( prod*s%Types(s%Basis(i)%Material)%lvec(mup,nup,2) )
             lzm (2,i) = lzm (2,i) + real( prod*s%Types(s%Basis(i)%Material)%lvec(mup,nup,3) )
           end do
@@ -1082,9 +1082,9 @@ contains
   end subroutine expec_L_n
 
 
-  subroutine expec_H_n(s,b_field,A_t,hk,kp,evec,eval,E_0)
-  !> Calculate the expectation value of the time-dependent Hamiltonian
-  !> in the propagated states
+  subroutine expec_H_n(s,lmagnetic,b_field,lelectric,A_t,hk,kp,evec,eval,E_0)
+  !! Calculate the expectation value of the time-dependent Hamiltonian
+  !! in the propagated states
     use mod_kind,          only: dp
     use mod_constants,     only: pi
     use mod_parameters,    only: eta,dimH
@@ -1093,6 +1093,7 @@ contains
     use mod_hamiltonian,   only: build_hext
     implicit none
     type(System_type),                 intent(in) :: s
+    logical,                           intent(in) :: lmagnetic,lelectric
     complex(dp), dimension(dimH),      intent(in) :: evec
     complex(dp), dimension(dimH,dimH), intent(in) :: hk
     real(dp),                          intent(in) :: eval
@@ -1105,7 +1106,7 @@ contains
     f_n = fd_dist(s%Ef, 1._dp/(pi*eta), eval)
 
     ! Building time dependent hamiltonian
-    call build_hext(kp,b_field,A_t,hext_t)
+    call build_hext(kp,lmagnetic,b_field,lelectric,A_t,hext_t)
     hamilt_0 = hk + hext_t
 
     E_0 = 0._dp
@@ -1121,8 +1122,8 @@ contains
 
 
   subroutine calc_GS_L_and_E_eigenstates()
-  !> Calculates the expectation value of the orbital angular momentum
-  !> and the band energy in the ground state
+  !! Calculates the expectation value of the orbital angular momentum
+  !! and the band energy in the ground state
     use mod_kind,              only: dp,int64
     use mod_BrillouinZone,     only: realBZ
     use mod_constants,         only: pi,cZero
@@ -1196,8 +1197,8 @@ contains
 
 #ifdef _GPU
   subroutine calc_GS_L_and_E_fullhk_gpu()
-  !> Calculates the expectation value of the orbital angular momentum
-  !> and the band energy in the ground state using the full hamiltonian matrix
+  !! Calculates the expectation value of the orbital angular momentum
+  !! and the band energy in the ground state using the full hamiltonian matrix
     use mod_kind,              only: dp,int64
     use mod_BrillouinZone,     only: realBZ
     use mod_constants,         only: pi,cZero
@@ -1278,8 +1279,8 @@ contains
   end subroutine calc_GS_L_and_E_fullhk_gpu
 #else
   subroutine calc_GS_L_and_E_fullhk()
-  !> Calculates the expectation value of the orbital angular momentum
-  !> and the band energy in the ground state using the full hamiltonian matrix
+  !! Calculates the expectation value of the orbital angular momentum
+  !! and the band energy in the ground state using the full hamiltonian matrix
     use mod_kind,              only: dp,int64
     use mod_BrillouinZone,     only: realBZ
     use mod_constants,         only: pi,cZero

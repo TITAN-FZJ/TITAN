@@ -1,5 +1,5 @@
-! Set energy (frequency) and wave vector loops
 subroutine setLoops(s)
+  !! Set energy (frequency) and wave vector loops
   use mod_kind,           only: dp
   use mod_parameters,     only: itype,nEner,nEner1,emin,emax,deltae,nQvec,nQvec1,deltak,kdirection,band_points,band_cnt,bands,kpoints,partial_length
   use mod_system,         only: System_type
@@ -72,8 +72,8 @@ end subroutine setLoops
 
 
 
-! Deallocate loop variables
 subroutine deallocateLoops()
+  !! Deallocate magnetic field, energy and k-points loop variables
   use mod_parameters, only: itype, kpoints, partial_length
   use mod_magnet,     only: hw_list
   implicit none

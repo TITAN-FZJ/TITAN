@@ -1,80 +1,9 @@
 module mod_io
-  ! Subroutines to read input file and variables containing these parameters
+  !! Subroutines to read input file and variables containing these parameters
   implicit none
-  logical :: log_unit = .false.
-  character(len=12), parameter :: logfile = "parameter.in"
-  character(len=:), allocatable :: log_store
 
 contains
 
-  subroutine log_message(proced, message, var)
-    use mod_mpi_pars,   only: myrank
-    use mod_parameters, only: output
-    implicit none
-    character(len=*), intent(in) :: proced
-    character(len=*), intent(in) :: message
-    character(len=:), allocatable, intent(inout), optional :: var
-
-
-    ! To store initial messages before output file is open
-    if (present(var)) then
-      var = trim(var) // "[Warning] [" // proced // "] "// trim(message) // NEW_LINE('a')
-      return
-    end if
-    
-    if(myrank == 0) then
-      if(log_unit) then
-        ! To write the stored messages without the square brackeds and skipping a line
-        if (proced == "") then
-          write(output%unit, "(a)", advance="no") trim(message)
-        else
-          write(output%unit, "('[',a,'] ',a)") proced, trim(message)
-        end if
-      else
-        write(*, "('[',a,'] ',a)") proced, trim(message)
-      end if
-    end if
-  end subroutine log_message
-
-
-  subroutine log_warning(proced, message, var)
-    use mod_mpi_pars,   only: myrank
-    use mod_parameters, only: output
-    implicit none
-    character(len=*), intent(in) :: proced
-    character(len=*), intent(in) :: message
-    character(len=:), allocatable, intent(inout), optional :: var
-
-    ! To store initial messages before output file is open
-    if (present(var)) then
-      var = trim(var) // "[Warning] [" // proced // "] "// trim(message) // NEW_LINE('a')
-      return
-    end if
-
-    if(myrank == 0) then
-      if(log_unit) then
-        write(output%unit, "('[Warning] [',a,'] ',a)") proced, trim(message)
-      else
-        write(*, "('[Warning] [',a,'] ',a)") proced, trim(message)
-      end if
-    end if
-  end subroutine log_warning
-
-
-  subroutine log_error(proced, message)
-    use mod_mpi_pars,   only: myrank,MPI_Abort,MPI_COMM_WORLD,errorcode,ierr
-    use mod_parameters, only: output
-    implicit none
-    character(len=*), intent(in) :: proced
-    character(len=*), intent(in) :: message
-
-    if(myrank == 0) then
-      if(log_unit) write(output%unit, "('[Error] [',a,'] ',a)") proced, trim(message)
-    end if
-    write(*, "('[Error] [',a,'] ',a)") proced, trim(message)
-    call MPI_Abort(MPI_COMM_WORLD,errorcode,ierr)
-    stop
-  end subroutine log_error
 
 
   function check_placeholders(initialFilename) result(modifiedFilename)
@@ -98,13 +27,14 @@ contains
 
   subroutine get_parameters(filename,s)
     use mod_kind,              only: dp,int64
+    use mod_logging,           only: log_unit,logfile,log_store,log_message,log_warning,log_error
     use AtomTypes,             only: default_Orbs,default_nOrb
     use mod_input,             only: get_parameter,read_file,enable_input_logging,disable_input_logging
     use mod_parameters,        only: output,laddresults,lverbose,ldebug,lkpoints,&
                                      lpositions,lcreatefiles,lnolb,lhfresponses,&
                                      lnodiag,lsha,lcreatefolders,lwriteonscreen,runoptions,lsimplemix,&
                                      lcheckjac,llgtv,lsortfiles,leigenstates,lprintfieldonly,&
-                                     itype,ry2ev,ltesla,eta,etap,dmax,emin,emax,&
+                                     itype,ry2ev,ltesla,eta,etap,addelectrons,dmax,emin,emax,&
                                      skip_steps,nEner,nEner1,nQvec,nQvec1,qbasis,renorm,renormnb,bands,band_cnt,&
                                      dfttype,parField,parFreq,kptotal_in,kp_in,&
                                      tbmode,fermi_layer,lfixEf,lEf_overwrite,Ef_overwrite,cluster_layers,qptotal_in,qp_in
@@ -121,7 +51,10 @@ contains
     use adaptiveMesh,          only: minimumBZmesh
     use mod_fermi_surface,     only: lfs_loop,fs_energy_npts,fs_energy_npt1,fs_energy_i,fs_energy_f
     use mod_mpi_pars,          only: myrank,ierr
-    use mod_imRK4_parameters,  only: integration_time,sc_tol,step,hE_0,hw1_m,hw_e,hw_m,tau_e,&
+!#ifndef _OLDMPI
+!    use mod_mpi_pars,          only: MPI_Finalize
+!#endif
+    use mod_time_propagator,   only: integration_time,sc_tol,step,hE_0,hw1_m,hw_e,hw_m,tau_e,&
                                      polarization_e,polarization_m,polarization_vec_e,polarization_vec_m,&
                                      npulse_e,npulse_m,tau_m,delay_e,delay_m,lelectric,safe_factor,&
                                      lmagnetic,lpulse_e,lpulse_m,abs_tol,rel_tol
@@ -135,9 +68,11 @@ contains
     integer(int64),    allocatable   :: i_vector(:)
     integer :: i,cnt
     character(len=20)  :: tmp_string
+!#ifdef _OLDMPI
+    external :: MPI_Finalize
+!#endif
 
     intrinsic :: findloc
-    external  :: MPI_Finalize
 
     if(.not. read_file(filename)) &
       call log_error("get_parameters", "File " // trim(filename) // " not found!")
@@ -151,12 +86,14 @@ contains
     !============= System configuration (Lattice + Reciprocal lattice) =============================
     !===============================================================================================
     ! Done before opening the output file to be able to use these variables in the output filename
-    ! For this, the variable 'log_store' is used to temprarily store the output
+    ! For this, the variable 'log_store' is used to temporarily store the output
     log_store = ""
     if(.not. get_parameter("nn_stages", s%nStages,2)) &
       call log_warning("get_parameters","'nn_stages' missing. Using default value: 2",log_store)
     if(.not. get_parameter("relTol", s%relTol,0.05_dp)) &
       call log_warning("get_parameters","'relTol' missing. Using default value: 0.05",log_store)
+    if(.not. get_parameter("addelectrons", addelectrons, 0._dp)) &
+      call log_warning("get_parameters","'addelectrons' missing. Using default value: 0.0",log_store)
     if(.not. get_parameter("sysdim", s%isysdim, 3)) &
       call log_warning("get_parameters", "'sysdim' missing. Using default value: 3",log_store)
     if(.not. get_parameter("nkpt", i_vector,cnt)) &
@@ -218,7 +155,7 @@ contains
 
     log_unit = .true.
 
-! Print the Git version (VERSION is defined via CMake macro and defined with compiler flag -DVERSION='')
+! Print the Git version (VERSION is defined via CMake macro and defined with compiler flag -DVERSION)
 #if defined(VERSION)
     if(myrank==0) write(output%unit,"('Git commit: ',a)") VERSION
 #else
@@ -388,41 +325,56 @@ contains
     !------------------------------------- Static Magnetic Field -----------------------------------
     if(.not. get_parameter("FIELD", lfield, .false.)) &
       call log_warning("get_parameters","'FIELD' missing. Using default value: .false.")
+
     if(lfield) then
-      if(.not. get_parameter("hwa", vector, cnt)) &
-        call log_error("get_parameters","'hwa' missing.")
-      if(cnt < 1) call log_error("get_parameters","'hwa' doesn't contain any parameter.")
-      hwa_i = vector(1)
-      if(cnt >= 2) hwa_f = vector(2)
-      if(cnt >= 3) hwa_npts = int(vector(3))
-      deallocate(vector)
-      hwa_npt1 = hwa_npts + 1
-
-      if(.not. get_parameter("hwt", vector, cnt)) &
-        call log_error("get_parameters","'hwt' missing.")
-      if(cnt < 1) call log_error("get_parameters","'hwt' doesn't contain any parameter.")
-      hwt_i = vector(1)
-      if(cnt >= 2) hwt_f = vector(2)
-      if(cnt >= 3) hwt_npts = int(vector(3))
-      deallocate(vector)
-      hwt_npt1 = hwt_npts + 1
-
-      if(.not. get_parameter("hwp", vector, cnt)) &
-        call log_error("get_parameters","'hwp' missing.")
-      if(cnt < 1) call log_error("get_parameters","'hwp' doesn't contain any parameter.")
-      hwp_i = vector(1)
-      if(cnt >= 2) hwp_f = vector(2)
-      if(cnt >= 3) hwp_npts = int(vector(3))
-      deallocate(vector)
-      hwp_npt1 = hwp_npts + 1
-
-      if(abs(hwa_i) < 1.e-9_dp) then
+      if(.not. get_parameter("hwa", vector, cnt)) then
+        call log_warning("get_parameters","Field is active but 'hwa' missing. Reading cartesian components...")
         if(.not. get_parameter("hwx", hwx)) &
           call log_error("get_parameters","'hwx' missing.")
         if(.not. get_parameter("hwy", hwy)) &
           call log_error("get_parameters","'hwy' missing.")
         if(.not. get_parameter("hwz", hwz)) &
           call log_error("get_parameters","'hwz' missing.")
+      else
+        select case (cnt)
+        case(1)
+          hwa_i = vector(1)
+        case(3)
+          hwa_f = vector(2)
+          hwa_npts = int(vector(3))
+        case default
+          call log_error("get_parameters","'hwa' contain invalid number of parameters: " // itos(cnt) // ".")
+        end select
+        deallocate(vector)
+        hwa_npt1 = hwa_npts + 1
+
+        if(.not. get_parameter("hwt", vector, cnt)) &
+          call log_error("get_parameters","'hwt' missing.")
+        select case (cnt)
+        case(1)
+          hwt_i = vector(1)
+        case(3)
+          hwt_f = vector(2)
+          hwt_npts = int(vector(3))
+        case default
+          call log_error("get_parameters","'hwt' contain invalid number of parameters: " // itos(cnt) // ".")
+        end select
+        deallocate(vector)
+        hwt_npt1 = hwt_npts + 1
+
+        if(.not. get_parameter("hwp", vector, cnt)) &
+          call log_error("get_parameters","'hwp' missing.")
+        select case (cnt)
+        case(1)
+          hwp_i = vector(1)
+        case(3)
+          hwp_f = vector(2)
+          hwp_npts = int(vector(3))
+        case default
+          call log_error("get_parameters","'hwp' contain invalid number of parameters: " // itos(cnt) // ".")
+        end select
+        deallocate(vector)
+        hwp_npt1 = hwp_npts + 1
       end if
     end if
     if(.not. get_parameter("skip_steps_hw", skip_steps_hw, 0)) &
@@ -554,7 +506,7 @@ contains
       end if
     endif
     if(itype == 4) then
-      ! Path to calculate band structure (can't be single point in this case)
+      ! Path to calculate band structure (cannot be single point in this case)
       if(.not. get_parameter("band", bands, band_cnt)) &
         call log_error("get_parameters", "'band' missing.")
       if((band_cnt < 2).or.(nQvec < 2)) call log_error("get_parameters", "Need at least two points for Band Structure")
@@ -1045,10 +997,11 @@ contains
 
   subroutine get_orbitals(string,input_orbitals,nOrb,nOrb2,nOrb2sc,nsOrb,npOrb,ndOrb,Orbs,sOrbs,pOrbs,dOrbs)
   !! Subroutine to read and parse the selected orbitals
-    use mod_kind,   only: int32
-    use mod_System, only: System_type
-    use mod_tools,  only: is_numeric,itos,stoi
-    use AtomTypes,  only: default_Orbs
+    use mod_kind,    only: int32
+    use mod_logging, only: log_message,log_error
+    use mod_System,  only: System_type
+    use mod_tools,   only: is_numeric,itos,stoi
+    use AtomTypes,   only: default_Orbs
     use mod_superconductivity, only: superCond
     character(len=*)               , intent(in)    :: string
     character(len=20), dimension(:), intent(inout) :: input_orbitals
@@ -1153,7 +1106,7 @@ contains
     use ElectricField,         only: ElectricFieldMode, ElectricFieldVector, EFt, EFp
     use AdaptiveMesh,          only: minimumBZmesh
     use mod_superconductivity, only: lsupercond
-    use mod_imRK4_parameters,  only: integration_time, sc_tol, hE_0, hw1_m, hw_e, hw_m, tau_e, &
+    use mod_time_propagator,   only: integration_time, sc_tol, hE_0, hw1_m, hw_e, hw_m, tau_e, &
                                      tau_m, delay_e, delay_m, lelectric, lmagnetic, lpulse_e, npulse_e, lpulse_m, npulse_m, &
                                      polarization_vec_e, polarization_vec_m, abs_tol, rel_tol, safe_factor
 #ifdef _GPU

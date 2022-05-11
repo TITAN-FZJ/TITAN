@@ -1,7 +1,7 @@
 module mod_beff
+  !! Effective field variables and procedures
   use mod_kind, only: dp
   implicit none
-  ! Effective field
   complex(dp),dimension(:,:), allocatable :: chiinv, Beff_cart
   complex(dp),dimension(:), allocatable :: Beff, total_Beff
 

@@ -1,4 +1,6 @@
 module mod_prefactors
+  !! This module stores the variables and procedures to calculate prefactors of current calculations
+  !! ATTENTION: Since the currents are currently not working, this module is not used nor adapted to the new formats
   use mod_kind, only: dp
   implicit none
   complex(dp), dimension(:,:), allocatable  :: prefactor,prefactorlsoc

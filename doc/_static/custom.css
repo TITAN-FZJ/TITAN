@@ -1,0 +1,12 @@
+pre {
+    white-space: pre-wrap !important;
+}
+
+.rst-content .publications .admonition-title:before {
+    content: "📖";
+}
+
+#itype > ul > li {
+    list-style: none !important;
+}
+

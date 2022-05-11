@@ -1,4 +1,5 @@
 module mod_hamiltonian
+  !! Module for Tight-binding and Full Hamiltonian variables and procedures
   use mod_kind, only: dp
   implicit none
 
@@ -19,8 +20,8 @@ module mod_hamiltonian
 
 contains
 
-  ! Deallocate hamiltonian variables
   subroutine deallocate_hamiltonian()
+  !! Deallocate hamiltonian variables
     implicit none
 
     if(allocated(h0))     deallocate(h0)
@@ -31,8 +32,8 @@ contains
 #endif
   end subroutine deallocate_hamiltonian
 
-  ! Calculate local part of the hamiltonian of the unit cell
   subroutine hamilt_local(s)
+    !! Calculate local part of the hamiltonian of the unit cell
     use mod_constants,         only: cZero
     use mod_System,            only: ia,System_type
     use mod_parameters,        only: dimH,dimHsc
@@ -69,8 +70,9 @@ contains
     ! The final form of the hamiltonian is something like
     ! | H(k) - E_f        Delta     |
     ! |   Delta^*   -(H(-k) - E_f)* |
-    ! roughly. Look at this paper 10.1103/RevModPhys.87.1037 , and to Uriel's thesis to
-    ! get a better idea of how to construct this operator
+    ! roughly. Look at this paper 10.1103/RevModPhys.87.1037, and to Uriel Aceves thesis to
+    ! get a better idea of how to construct this operator:
+    ! https://drive.google.com/file/d/1CgY0qtlO5xePUBoiQ9wG_9FH48wYZIUd/view?usp=sharing
 
     if(lsuperCond) then
       h0(dimH+1:dimHsc,dimH+1:dimHsc) = -conjg(h0(1:dimH,1:dimH))
@@ -86,8 +88,8 @@ contains
 
 
 #ifdef _GPU
-  ! Calculate local part of the hamiltonian of the unit cell
   subroutine hamilt_local_gpu(s)
+    !! Calculate local part of the hamiltonian of the unit cell
     use mod_kind,              only: dp
     use mod_constants,         only: cZero
     use mod_System,            only: ia_d,System_type
@@ -145,8 +147,9 @@ contains
     ! The final form of the hamiltonian is something like
     ! | H(k) - E_f        Delta     |
     ! |   Delta^*   -(H(-k) - E_f)* |
-    ! roughly. Look at this paper 10.1103/RevModPhys.87.1037 , and to Uriel's thesis to
-    ! get a better idea of how to construct this operator
+    ! roughly. Look at this paper 10.1103/RevModPhys.87.1037, and to Uriel Aceves thesis to
+    ! get a better idea of how to construct this operator:
+    ! https://drive.google.com/file/d/1CgY0qtlO5xePUBoiQ9wG_9FH48wYZIUd/view?usp=sharing
 
     if(lsuperCond) then
       !$cuf kernel do(2) <<< *, * >>>
@@ -178,8 +181,8 @@ contains
 #endif
 
 
-  ! Calculate the k-dependent tight-binding hamiltonian of the unit cell
   function calchk(s,kp)
+    !! Calculate the k-dependent tight-binding hamiltonian of the unit cell
     use mod_kind,              only: dp
     use mod_constants,         only: cZero,cI
     use mod_System,            only: ia,ia_sc,System_type
@@ -241,8 +244,8 @@ contains
   end function calchk
 
 
-  ! Calculate the k-dependent tight-binding hamiltonian of the unit cell for all k-points
   function fullhamiltk(s) result(success)
+    !! Calculate the k-dependent tight-binding hamiltonian of the unit cell for all k-points
     use mod_kind,              only: int64
     use mod_BrillouinZone,     only: realBZ
     use mod_System,            only: System_type
@@ -299,9 +302,9 @@ contains
   end function fullhamiltk
 
 
-  ! Calculate hamiltonian of the unit cell
-  ! and the spin-orbit coupling contribution separately
   subroutine hamiltklinearsoc(s,kp,hk,vsoc)
+    !! Calculate hamiltonian of the unit cell
+    !! and the spin-orbit coupling contribution separately (for linear SOC calculations)
     use mod_kind,              only: dp
     use mod_constants,         only: cZero,cI
     use mod_system,            only: ia,ia_sc,System_type
@@ -343,8 +346,9 @@ contains
     ! The final form of the hamiltonian is something like
     ! | H(k) - E_f        Delta     |
     ! |   Delta^*   -(H(-k) - E_f)* |
-    ! roughly. Look at this paper 10.1103/RevModPhys.87.1037 , and to Uriel's thesis to
-    ! get a better idea of how to construct this operator
+    ! roughly. Look at this paper 10.1103/RevModPhys.87.1037, and to Uriel Aceves thesis to
+    ! get a better idea of how to construct this operator:
+    ! https://drive.google.com/file/d/1CgY0qtlO5xePUBoiQ9wG_9FH48wYZIUd/view?usp=sharing
 
     if(lsuperCond) then
       hk(dimH+1:dimHsc,dimH+1:dimHsc) = -conjg(hk(1:dimH,1:dimH))
@@ -392,18 +396,18 @@ contains
 
   end subroutine hamiltklinearsoc
 
-  !> build time dependent external perturbation Hamiltonian
-  !> For a magnetic perturbation: H_ext(t)= S.B(t),  S= Pauli matricies
-  !> For an electric perturbation: H_ext(t)= ((P-e*A)^2)/2*m, here only the linear term is implemented.
-  subroutine build_hext(kp,b_field,A_t,hext_t)
+  subroutine build_hext(kp,lmagnetic,b_field,lelectric,A_t,hext_t)
+    !! Build time dependent external perturbation Hamiltonian
+    !! For a magnetic perturbation: H_ext(t)= S.B(t),  S= Pauli matricies
+    !! For an electric perturbation: H_ext(t)= ((P-e*A)^2)/2*m, here only the linear term is implemented.
     use mod_kind,              only: dp
     use mod_constants,         only: cI,cZero
-    use mod_imRK4_parameters,  only: lelectric,lmagnetic
     use mod_System,            only: ia,ia_sc,s => sys
     use mod_parameters,        only: dimHsc
     use mod_superconductivity, only: lsuperCond
     implicit none
     real(dp),    intent(in)  :: kp(3)
+    logical,     intent(in)  :: lmagnetic,lelectric
     real(dp),    intent(in)  :: b_field(3), A_t(3)
     complex(dp), intent(out) :: hext_t(dimHsc,dimHsc)
 

@@ -59,6 +59,7 @@ contains
 
   subroutine get_DFT_parameters(s,fermi_layer)
   !! Gets hamiltonian from DFT input and parameters from elemental file
+    use mod_kind,   only: dp
     use mod_system, only: System_type
     use mod_dft,    only: readHamiltonian
     implicit none
@@ -67,12 +68,14 @@ contains
     integer                            :: i
 
     do i = 1, s%nAtoms
-      ! Getting total number of electrons on the system
-      s%totalOccupation = s%totalOccupation + s%Types(s%Basis(i)%Material)%Occupation
       ! Storing Hubbard e-e interaction per basis atom
       s%Basis(i)%Un = s%Types(s%Basis(i)%Material)%Un
       s%Basis(i)%Um = s%Types(s%Basis(i)%Material)%Um
     end do
+
+    ! Initializing totalOccupation 
+    ! (will be calculated in mod_initial_expectation, with added electrons in main)
+    s%totalOccupation = 0._dp
 
     ! Read hamiltonian and dft parameters
     call readHamiltonian(s,s%Name)
@@ -116,7 +119,7 @@ contains
     ! A mix (defaul: geometric; optional: simple average) between different elements is used
     !
     ! Scaling law by Andersen et al. O.K. Andersen, O. Jepsen, Physica 91B, 317 (1977); O.K. Andersen, W. Close. H. Nohl, Phys. Rev. B17, 1209 (1978)
-    ! Distance dependence of tight binding matrix elements is given by V = C * d^(-[l+l'+1])
+    ! Distance dependence of tight binding matrix elements is given by V = C * d^(-[l1+l2+1])
     ! e.g for ss hopping distance dependence is d^-1, for sp hopping d^-2
     ! do mu = 1, s%nOrb
     !   do nu = 1, s%nOrb
@@ -218,7 +221,8 @@ contains
     use mod_system,            only: System_type
     use mod_mpi_pars,          only: abortProgram
     use mod_tools,             only: ItoS,StoI,StoR,StoArray,next_line,vec_norm,vecDist,is_numeric
-    use mod_io,                only: log_warning,log_error,log_message,get_orbitals
+    use mod_io,                only: get_orbitals
+    use mod_logging,           only: log_warning,log_error
     use mod_input,             only: get_parameter
     use mod_superconductivity, only: lsuperCond
     use mod_SOC,               only: socscale,SOC
@@ -392,11 +396,13 @@ contains
 
     ! Read charge densitites for s p d
     ! line = next_line("readElementFile",f_unit)
-    dens(1:3) = StoR(next_line("readElementFile",f_unit,"occupations"),3)
-    s%Types(n)%OccupationS = dens(1)
-    s%Types(n)%OccupationP = dens(2)
-    s%Types(n)%OccupationD = dens(3)
-    s%Types(n)%Occupation  = s%Types(n)%OccupationS+s%Types(n)%OccupationP+s%Types(n)%OccupationD
+    if(tbmode==1) then
+      dens(1:3) = StoR(next_line("readElementFile",f_unit,"occupations"),3)
+      s%Types(n)%OccupationS = dens(1)
+      s%Types(n)%OccupationP = dens(2)
+      s%Types(n)%OccupationD = dens(3)
+      s%Types(n)%Occupation  = s%Types(n)%OccupationS+s%Types(n)%OccupationP+s%Types(n)%OccupationD
+    end if
 
     ! Read Hubbard effective Coulomb interaction strength
     str_arr(1:2) = StoArray(next_line("readElementFile",f_unit,"Hubbard U"),2)

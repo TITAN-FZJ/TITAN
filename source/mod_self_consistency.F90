@@ -145,7 +145,7 @@ contains
         if(rField == 0) write(output%unit_loop,"('[read_previous_results] Existing results for other parameters were read. Updating values...')")
         lselfcon = .true.
       end if
-    else !  If file doesn't exist
+    else !  If file does not exist
       if(rField == 0) then
         write(output%unit_loop,"('[read_previous_results] Self-consistency file does not exist:')")
         write(output%unit_loop,"('[read_previous_results] ',a)") trim(default_file)
@@ -233,7 +233,7 @@ contains
       write(output%unit_loop,"('[read_initial_values] Reading initial values from file ',a)") "'" // filename // "'"
 
     open(unit=321,file=trim(filename),status="old",iostat=err)
-    ! If file can't be read or if basis is not given
+    ! If file cannot be read or if basis is not given
     if((rField == 0).and.(err/=0)) then
       if(lconstraining_field) write(output%unit_loop,"('[read_initial_values] File ',a,' is required for constraning field!')") "'" // filename // "'"
       call abortProgram("[read_initial_values] File '" // trim(filename) // "'' does not exist!")
@@ -301,7 +301,7 @@ contains
 
     lsuccess = .false.
     !   Reading previous results (mx, my, mz and n) from files (if available)
-    if(trim(scfile)=="") then ! If a filename is not given in inputcard (or don't exist), use the default one
+    if(trim(scfile)=="") then ! If a filename is not given in inputcard (or does not exist), use the default one
       write(file,"('./results/',a1,'SOC/selfconsistency/selfconsistency_',a,'_dfttype=',a,'_parts=',i0,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),dfttype,parts,trim(output%BField),trim(output%info),trim(output%SOC),trim(output%suffix)
       open(unit=99,file=file,status="old",iostat=err)
       if((err==0).and.(rField==0)) then
@@ -1179,7 +1179,7 @@ contains
             kounti = neq_per_atom(i) + merge(s%Types(s%Basis(i)%Material)%ndOrb,0,abs(s%Basis(i)%Un)>1.e-8_dp) + 3
           end if
 
-          ! No linear correction is needed since it's a single Green function
+          ! No linear correction is needed since it is a single Green function
 
         end do ! End nAtoms i loop
       end do ! End nkpt loop

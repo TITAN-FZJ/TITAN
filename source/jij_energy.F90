@@ -1,7 +1,7 @@
 ! Calculates the full 3x3 J tensor (including coupling, DMI and anisotropic pair interactions)
 ! It uses the convention:
-! E = - \sum_ij e_i J_ij e_j /2
-! where e_i and e_j are unit vectors along the magnetization direction
+! E = - \sum_ij m_i J_ij m_j /2
+! where m_i and m_j are vectors along the magnetization direction
 ! and the sum covers all sites.
 subroutine jij_energy(q,Jij)
   use mod_kind,              only: dp,int32,int64

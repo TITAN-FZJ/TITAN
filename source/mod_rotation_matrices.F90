@@ -1,16 +1,16 @@
-! Rotation matrices
 module mod_rotation_matrices
-  
+!! Module containing rotation matrices
+
 contains
 
   subroutine rotation_matrices_chi(theta_in,phi_in,rotmat,iflag)
-    ! Build rotation matrices for the spin-spin susceptibility in the
-    ! +,up,down,- basis: chi' = A.chi.B
-    ! Due to the form of the susceptibility, the left
-    ! rotation matrix (A) is different than the right one (B).
-    ! iflag = 1 calculates A
-    ! iflag = 2 calculates B
-    ! Angles should be given in degrees
+    !! Build rotation matrices for the spin-spin susceptibility in the
+    !! +,up,down,- basis: chi_r = A.chi.B
+    !! Due to the form of the susceptibility, the left
+    !! rotation matrix (A) is different than the right one (B).
+    !! iflag = 1 calculates A
+    !! iflag = 2 calculates B
+    !! Angles should be given in degrees
     use mod_kind, only: dp
     use mod_constants, only: cI,deg2rad
     implicit none
@@ -75,8 +75,8 @@ contains
 
   end subroutine rotation_matrices_chi
 
-  ! Rotation matrix of an angle theta (in degrees) around y axis
   subroutine rotation_matrix_ry(theta,ry)
+    !! Rotation matrix of an angle theta (in degrees) around y axis
     use mod_kind, only: dp
     use mod_constants, only: deg2rad
     implicit none
@@ -92,8 +92,8 @@ contains
 
   end subroutine rotation_matrix_ry
 
-  ! Rotation matrix of an angle phi (in degrees)  around z axis
   subroutine rotation_matrix_rz(phi,rz)
+    !! Rotation matrix of an angle phi (in degrees)  around z axis
     use mod_kind, only: dp
     use mod_constants, only: deg2rad
     implicit none
@@ -110,8 +110,8 @@ contains
   end subroutine rotation_matrix_rz
 
   subroutine rot_rodrigues(u0,u1,rotmat)
-  !! Rotation matrix rotating vector u0 to vector u1
-  !! Rodrigues rotation formula
+    !! Rotation matrix rotating vector u0 to vector u1
+    !! Rodrigues rotation formula
     use mod_kind, only: dp
     implicit none
     real(dp), intent(in)  :: u0(3)

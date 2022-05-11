@@ -1,5 +1,5 @@
 # Minimum required Version
-cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
+cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Projects name
@@ -22,7 +22,6 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_U_matrix.F90
                                   source/mod_initial_expectation.F90
                                   source/mod_expectation.F90
-                                  source/initConversionMatrices.F90
                                   source/mod_System.F90
                                   source/mod_polyBasis.F90
                                   source/mod_BrillouinZone.F90
@@ -32,6 +31,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_coupling.F90
                                   source/ElectricField.F90
                                   source/mod_io.F90
+                                  source/mod_logging.F90
                                   source/coupling.F90
                                   source/jij_energy.F90
                                   source/mod_TCM.F90
@@ -70,12 +70,7 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/TorqueTorqueResponse.F90
                                   source/TorqueSpinResponse.F90
                                   source/mod_superconductivity.F90
-                                  source/mod_RK_matrices.F90
-                                  source/mod_imRK4.F90
                                   source/mod_time_propagator.F90
-                                  source/mod_checkpoint.F90
-                                  source/mod_imRK4_parameters.F90
-                                  source/mod_time_propagator_io.F90
                                   source/mod_cuda.F90
                                   source/mod_nvtx.F90
                                   source/mod_dft.F90
@@ -294,6 +289,7 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
                                                 -DVERSION="${GIT_VERSION}"
                                                 -I$ENV{MKLROOT}/include
                                                 -fopenmp
+                                                -fallow-argument-mismatch
                                                 -ffree-form
                                                 -ffree-line-length-0
                                                 -g
@@ -315,6 +311,7 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
                                                 -Wno-maybe-uninitialized
                                                 -fwhole-file
                                                 -fimplicit-none
+                                                -fallow-argument-mismatch
                                                 -fbacktrace
                                                 -ffree-form
                                                 -ffree-line-length-0

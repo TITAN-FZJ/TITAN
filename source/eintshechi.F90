@@ -116,11 +116,11 @@ subroutine eintshechi(q,e)
     kp = realBZ % kp(:,nkp)
     weight = p2(nep) * realBZ % w(nkp)
 
-    ! Green function at (k+q,E'+E+i.eta)
+    ! Green function at (k+q,Ep+E+i.eta)
     kpq = kp+q
     call calc_green(ep+e,eta,s,kpq,gfq)
 
-    ! Green function at (k,E'+i.eta)
+    ! Green function at (k,Ep+i.eta)
     call calc_green(ep,etap,s,kp,gf)
 
     do j=1,s%nAtoms; do i=1,s%nAtoms

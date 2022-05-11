@@ -186,11 +186,11 @@ contains
 
     select case(sysdim)
     case(3)
-      get_nkpt_int4 = ceiling( nkpt_total/((e/e0)**sqrt(3._dp)) ) !**log(3._dp)
+      get_nkpt_int4 = ceiling( nkpt_total/((e/e0)**sqrt(3._dp)) ) ! **log(3._dp)
     case(2)
-      get_nkpt_int4 = ceiling( nkpt_total/((e/e0)**sqrt(2._dp)) ) !**log(2._dp)
+      get_nkpt_int4 = ceiling( nkpt_total/((e/e0)**sqrt(2._dp)) ) ! **log(2._dp)
     case default
-      get_nkpt_int4 = ceiling( nkpt_total/((e/e0)**sqrt(1._dp)) ) !**log(1._dp)
+      get_nkpt_int4 = ceiling( nkpt_total/((e/e0)**sqrt(1._dp)) ) ! **log(1._dp)
     end select
 
     if(get_nkpt_int4 < int(minimumBZmesh,int32) ) get_nkpt_int4 = int(minimumBZmesh,int32)
@@ -207,11 +207,11 @@ contains
     integer(int64), intent(in) :: nkpt_total
     select case(sysdim)
     case(3)
-      get_nkpt_int8 = ceiling( nkpt_total/((e/e0)**sqrt(3._dp)) ) !**log(3._dp)
+      get_nkpt_int8 = ceiling( nkpt_total/((e/e0)**sqrt(3._dp)) ) ! **log(3._dp)
     case(2)
-      get_nkpt_int8 = ceiling( nkpt_total/((e/e0)**sqrt(2._dp)) ) !**log(2._dp)
+      get_nkpt_int8 = ceiling( nkpt_total/((e/e0)**sqrt(2._dp)) ) ! **log(2._dp)
     case default
-      get_nkpt_int8 = ceiling( nkpt_total/((e/e0)**sqrt(1._dp)) ) !**log(1._dp)
+      get_nkpt_int8 = ceiling( nkpt_total/((e/e0)**sqrt(1._dp)) ) ! **log(1._dp)
     end select
 
     if(get_nkpt_int8 < minimumBZmesh ) get_nkpt_int8 = minimumBZmesh
