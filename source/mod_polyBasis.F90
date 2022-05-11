@@ -41,7 +41,7 @@ contains
     character(len=line_length) :: line
     character(len=1)           :: coord_type
     integer, dimension(50)     :: type_count
-    real(dp), dimension(3) :: zdir, ydir
+    real(dp), dimension(3) :: zdir, ydir, a1xa2
 
     open(unit = f_unit, file=trim(filename), status='old', iostat = ios)
     if((ios /= 0).and.(myrank==0)) call abortProgram("[read_basis] Error reading " // trim(filename))
@@ -141,6 +141,7 @@ contains
 
     ! Calculating volume of BZ and reciprocal lattice vectors
     if((s%isysdim==1).or.((vec_norm(s%a2,3) <= 1.e-9_dp).and.(vec_norm(s%a3,3) <= 1.e-9_dp))) then
+      ! TO FIX: NEEDS TO BE GENERALIZED:
       zdir  = [0._dp,0._dp,1._dp]
       ydir  = [0._dp,1._dp,0._dp]
       s%vol = tpi / dot_product(zdir, cross(s%a1,ydir))
@@ -148,8 +149,10 @@ contains
       s%b2  = 0._dp
       s%b3  = 0._dp
     else if((s%isysdim==2).or.(vec_norm(s%a3,3) <= 1.e-9_dp)) then
-      zdir  = [0._dp,0._dp,1._dp]
-      s%vol = tpi / dot_product(zdir, cross(s%a1,s%a2))
+      a1xa2 = cross(s%a1,s%a2)
+      zdir  = a1xa2/vec_norm(a1xa2,3)
+write(*,*) 'read_basis',zdir
+      s%vol = tpi / dot_product(zdir, a1xa2)
       s%b1  = s%vol * cross(s%a1,zdir)
       s%b2  = s%vol * cross(zdir,s%a2)
       s%b3  = 0._dp

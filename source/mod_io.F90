@@ -51,7 +51,10 @@ contains
     use adaptiveMesh,          only: minimumBZmesh
     use mod_fermi_surface,     only: lfs_loop,fs_energy_npts,fs_energy_npt1,fs_energy_i,fs_energy_f
     use mod_mpi_pars,          only: myrank,ierr
-    use mod_time_propagator,  only: integration_time,sc_tol,step,hE_0,hw1_m,hw_e,hw_m,tau_e,&
+#ifndef _OLDMPI
+    use mod_mpi_pars,          only: MPI_Finalize
+#endif
+    use mod_time_propagator,   only: integration_time,sc_tol,step,hE_0,hw1_m,hw_e,hw_m,tau_e,&
                                      polarization_e,polarization_m,polarization_vec_e,polarization_vec_m,&
                                      npulse_e,npulse_m,tau_m,delay_e,delay_m,lelectric,safe_factor,&
                                      lmagnetic,lpulse_e,lpulse_m,abs_tol,rel_tol
@@ -65,9 +68,11 @@ contains
     integer(int64),    allocatable   :: i_vector(:)
     integer :: i,cnt
     character(len=20)  :: tmp_string
+#ifdef _OLDMPI
+    external :: MPI_Finalize
+#endif
 
     intrinsic :: findloc
-    external  :: MPI_Finalize
 
     if(.not. read_file(filename)) &
       call log_error("get_parameters", "File " // trim(filename) // " not found!")
@@ -81,7 +86,7 @@ contains
     !============= System configuration (Lattice + Reciprocal lattice) =============================
     !===============================================================================================
     ! Done before opening the output file to be able to use these variables in the output filename
-    ! For this, the variable 'log_store' is used to temprarily store the output
+    ! For this, the variable 'log_store' is used to temporarily store the output
     log_store = ""
     if(.not. get_parameter("nn_stages", s%nStages,2)) &
       call log_warning("get_parameters","'nn_stages' missing. Using default value: 2",log_store)
@@ -320,41 +325,56 @@ contains
     !------------------------------------- Static Magnetic Field -----------------------------------
     if(.not. get_parameter("FIELD", lfield, .false.)) &
       call log_warning("get_parameters","'FIELD' missing. Using default value: .false.")
+
     if(lfield) then
-      if(.not. get_parameter("hwa", vector, cnt)) &
-        call log_error("get_parameters","'hwa' missing.")
-      if(cnt < 1) call log_error("get_parameters","'hwa' doesn't contain any parameter.")
-      hwa_i = vector(1)
-      if(cnt >= 2) hwa_f = vector(2)
-      if(cnt >= 3) hwa_npts = int(vector(3))
-      deallocate(vector)
-      hwa_npt1 = hwa_npts + 1
-
-      if(.not. get_parameter("hwt", vector, cnt)) &
-        call log_error("get_parameters","'hwt' missing.")
-      if(cnt < 1) call log_error("get_parameters","'hwt' doesn't contain any parameter.")
-      hwt_i = vector(1)
-      if(cnt >= 2) hwt_f = vector(2)
-      if(cnt >= 3) hwt_npts = int(vector(3))
-      deallocate(vector)
-      hwt_npt1 = hwt_npts + 1
-
-      if(.not. get_parameter("hwp", vector, cnt)) &
-        call log_error("get_parameters","'hwp' missing.")
-      if(cnt < 1) call log_error("get_parameters","'hwp' doesn't contain any parameter.")
-      hwp_i = vector(1)
-      if(cnt >= 2) hwp_f = vector(2)
-      if(cnt >= 3) hwp_npts = int(vector(3))
-      deallocate(vector)
-      hwp_npt1 = hwp_npts + 1
-
-      if(abs(hwa_i) < 1.e-9_dp) then
+      if(.not. get_parameter("hwa", vector, cnt)) then
+        call log_warning("get_parameters","Field is active but 'hwa' missing. Reading cartesian components...")
         if(.not. get_parameter("hwx", hwx)) &
           call log_error("get_parameters","'hwx' missing.")
         if(.not. get_parameter("hwy", hwy)) &
           call log_error("get_parameters","'hwy' missing.")
         if(.not. get_parameter("hwz", hwz)) &
           call log_error("get_parameters","'hwz' missing.")
+      else
+        select case (cnt)
+        case(1)
+          hwa_i = vector(1)
+        case(3)
+          hwa_f = vector(2)
+          hwa_npts = int(vector(3))
+        case default
+          call log_error("get_parameters","'hwa' contain invalid number of parameters: " // itos(cnt) // ".")
+        end select
+        deallocate(vector)
+        hwa_npt1 = hwa_npts + 1
+
+        if(.not. get_parameter("hwt", vector, cnt)) &
+          call log_error("get_parameters","'hwt' missing.")
+        select case (cnt)
+        case(1)
+          hwt_i = vector(1)
+        case(3)
+          hwt_f = vector(2)
+          hwt_npts = int(vector(3))
+        case default
+          call log_error("get_parameters","'hwt' contain invalid number of parameters: " // itos(cnt) // ".")
+        end select
+        deallocate(vector)
+        hwt_npt1 = hwt_npts + 1
+
+        if(.not. get_parameter("hwp", vector, cnt)) &
+          call log_error("get_parameters","'hwp' missing.")
+        select case (cnt)
+        case(1)
+          hwp_i = vector(1)
+        case(3)
+          hwp_f = vector(2)
+          hwp_npts = int(vector(3))
+        case default
+          call log_error("get_parameters","'hwp' contain invalid number of parameters: " // itos(cnt) // ".")
+        end select
+        deallocate(vector)
+        hwp_npt1 = hwp_npts + 1
       end if
     end if
     if(.not. get_parameter("skip_steps_hw", skip_steps_hw, 0)) &
