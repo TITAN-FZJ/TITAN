@@ -51,9 +51,9 @@ contains
     use adaptiveMesh,          only: minimumBZmesh
     use mod_fermi_surface,     only: lfs_loop,fs_energy_npts,fs_energy_npt1,fs_energy_i,fs_energy_f
     use mod_mpi_pars,          only: myrank,ierr
-#ifndef _OLDMPI
-    use mod_mpi_pars,          only: MPI_Finalize
-#endif
+!#ifndef _OLDMPI
+!    use mod_mpi_pars,          only: MPI_Finalize
+!#endif
     use mod_time_propagator,   only: integration_time,sc_tol,step,hE_0,hw1_m,hw_e,hw_m,tau_e,&
                                      polarization_e,polarization_m,polarization_vec_e,polarization_vec_m,&
                                      npulse_e,npulse_m,tau_m,delay_e,delay_m,lelectric,safe_factor,&
@@ -68,9 +68,9 @@ contains
     integer(int64),    allocatable   :: i_vector(:)
     integer :: i,cnt
     character(len=20)  :: tmp_string
-#ifdef _OLDMPI
+!#ifdef _OLDMPI
     external :: MPI_Finalize
-#endif
+!#endif
 
     intrinsic :: findloc
 

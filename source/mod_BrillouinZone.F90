@@ -16,9 +16,9 @@
 !-------------------------------------------------------------------------------------!
 module mod_BrillouinZone
   use mod_kind, only: dp, int32, int64
-#ifndef _OLDMPI
-  use MPI_f08,      only: MPI_Comm
-#endif
+!#ifndef _OLDMPI
+!  use MPI_f08,      only: MPI_Comm
+!#endif
   implicit none
 
   type :: BrillouinZone
@@ -44,12 +44,12 @@ module mod_BrillouinZone
     integer(int64) :: first = 0
     integer(int64) :: last = 0
     integer(int32) :: isize, rank
-#ifdef _OLDMPI
+!#ifdef _OLDMPI
     integer(int32) :: comm
-#else
-    ! MPI_f08:
-    type(MPI_Comm) :: comm
-#endif
+!#else
+!    ! MPI_f08:
+!    type(MPI_Comm) :: comm
+!#endif
   contains
     procedure :: setup_fraction
     procedure :: gen1DFraction
@@ -70,12 +70,12 @@ contains
     type(System_type),intent(in) :: sys
     integer(int32),   intent(in) :: rank, isize
     logical,          intent(in), optional :: lkpoints
-#ifdef _OLDMPI
+!#ifdef _OLDMPI
     integer(int32),   intent(in) :: comm
-#else
-    ! MPI_f08:
-    type(MPI_Comm), intent(in) :: comm
-#endif
+!#else
+!    ! MPI_f08:
+!    type(MPI_Comm), intent(in) :: comm
+!#endif
     character(len=50) :: filename
 
     if(allocated(self%kp)) deallocate(self%kp)
