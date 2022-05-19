@@ -51,9 +51,9 @@ contains
     ! On-site terms
     do i=1,s%nAtoms
       ! spin-up on-site tight-binding term
-      h0(ia(1,i):ia(2,i), ia(1,i):ia(2,i)) = s%Types(s%Basis(i)%Material)%onSite(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
+      h0(ia(1,i):ia(2,i), ia(1,i):ia(2,i)) = s%Basis(i)%onSite(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
       ! spin-down on-site tight-binding term
-      h0(ia(3,i):ia(4,i), ia(3,i):ia(4,i)) = s%Types(s%Basis(i)%Material)%onSite(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
+      h0(ia(3,i):ia(4,i), ia(3,i):ia(4,i)) = s%Basis(i)%onSite(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
       ! External magnetic field (orbital + spin) + Electron-electron interaction (Hubbard) + Spin-orbit coupling
       h0(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) = h0 (ia(1,i):ia(4,i), ia(1,i):ia(4,i)) &
                                             + s%Basis(i)%lb (1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2) &
@@ -111,7 +111,7 @@ contains
       nOrb_d(i) = nOrb_i
       nOrb_i  = s%Types(s%Basis(i)%Material)%nOrb
       nOrb2_i = s%Types(s%Basis(i)%Material)%nOrb2
-      onSite_d(:,:,i) = s%Types(s%Basis(i)%Material)%onSite(1:nOrb_i,1:nOrb_i)
+      onSite_d(:,:,i) = s%Basis(i)%onSite(1:nOrb_i,1:nOrb_i)
       ! s%Basis(i)%sb_d(1:nOrb2_i,1:nOrb2_i) = s%Basis(i)%sb(1:nOrb2_i,1:nOrb2_i)
       ! s%Basis(i)%lb_d(1:nOrb2_i,1:nOrb2_i) = s%Basis(i)%lb(1:nOrb2_i,1:nOrb2_i)
       ! s%Basis(i)%ls_d(1:nOrb2_i,1:nOrb2_i) = s%Basis(i)%ls(1:nOrb2_i,1:nOrb2_i)
@@ -327,9 +327,9 @@ contains
     ! On-site terms
     do i=1,s%nAtoms
       ! spin-up on-site tight-binding term
-      hk(ia(1,i):ia(2,i), ia(1,i):ia(2,i)) = s%Types(s%Basis(i)%Material)%onSite(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
+      hk(ia(1,i):ia(2,i), ia(1,i):ia(2,i)) = s%Basis(i)%onSite(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
       ! spin-down on-site tight-binding term
-      hk(ia(3,i):ia(4,i), ia(3,i):ia(4,i)) = s%Types(s%Basis(i)%Material)%onSite(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
+      hk(ia(3,i):ia(4,i), ia(3,i):ia(4,i)) = s%Basis(i)%onSite(1:s%Types(s%Basis(i)%Material)%nOrb,1:s%Types(s%Basis(i)%Material)%nOrb)
       ! External magnetic field (orbital + spin) + Electron-electron interaction (Hubbard) + Spin-orbit coupling
       hk(ia(1,i):ia(4,i), ia(1,i):ia(4,i)) =  hk (ia(1,i):ia(4,i), ia(1,i):ia(4,i)) &
                                             + s%Basis(i)%lb (1:s%Types(s%Basis(i)%Material)%nOrb2,1:s%Types(s%Basis(i)%Material)%nOrb2) &
