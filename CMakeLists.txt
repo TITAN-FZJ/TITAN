@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Since GNU Compiler is always available,
-find_program(CMAKE_Fortran_COMPILER NAMES $ENV{FC} mpif90 PATHS ENV PATH NO_DEFAULT_PATH)
+find_program(CMAKE_Fortran_COMPILER NAMES $ENV{FC} mpiifort mpif90 PATHS ENV PATH NO_DEFAULT_PATH)
 find_program(CMAKE_CXX_COMPILER NAMES $ENV{FC} mpicxx PATHS ENV PATH NO_DEFAULT_PATH)
 
 # Projects name

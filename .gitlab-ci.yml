@@ -15,11 +15,9 @@ image: iffregistry.fz-juelich.de/docker-images/centos8-intel-compilers:latest-nv
   # Checking ifort version
   - ifort --version
   # Checking location of mpif90
-  - echo "$(awk '{if ($1 ~ /^gfort_ver=/) print "if [[ \"$FC\" =~ .*gfortran ]]; then ", $0, "; fi"; else print $0}' `which mpif90`)" > `which mpif90`
-  - sed -i s/^"    gver=".*/"    gver=\"\""/ `which mpif90`
-  - which mpif90
+  - which mpiifort
   # Checking mpiifort version
-  - mpif90 -v
+  - mpiifort -v
 
 .setup_gfortran: &setup_gfortran
   - echo "Setting up GNU Fortran compiler"
