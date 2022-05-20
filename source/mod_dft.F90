@@ -87,8 +87,8 @@ contains
       allocate(list(i)%isHopping(s%nAtoms))
       list(i)%isHopping = .false.
     end do
-    do i = 1, s%nTypes
-      allocate(s%Types(i)%onSite(s%Types(i)%nOrb,s%Types(i)%nOrb))
+    do i = 1, s%nAtoms
+      allocate(s%Basis(i)%onSite(s%Types(s%Basis(i)%Material)%nOrb,s%Types(s%Basis(i)%Material)%nOrb))
     end do
 
     ! Read weight of each cell / degeneracies of Wigner-Seitz points
@@ -135,7 +135,7 @@ contains
                 if((mu==nu).and.(hop(2)>1.0e-12_dp)) &
                   call log_error("readHamiltonian", "On-site, on-orbital term for i = j = " // trim(itos(i)) // ", mu = nu = " // trim(itos(mu)) // " is not real: Im(H) = " // trim(rtos(hop(2),"(f7.2)")))
 
-                s%Types(s%Basis(i)%Material)%onSite(mu,nu) = cmplx(hop(1),hop(2),dp)/weight(cell)
+                s%Basis(i)%onSite(mu,nu) = cmplx(hop(1),hop(2),dp)/weight(cell)
                 cycle
               end if
 
