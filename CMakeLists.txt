@@ -97,29 +97,12 @@ if(NOT COMPILER)
 endif()
 
 
-# Executable names
-if(PLATFORM MATCHES jurecadc OR PLATFORM MATCHES juwelsbooster OR PLATFORM MATCHES jusuf)
-  set(CMAKE_Fortran_COMPILER mpif90)
-elseif(PLATFORM MATCHES osx)
-  set(CMAKE_Fortran_COMPILER mpif90)
-elseif(PLATFORM MATCHES rwth)
-  set(CMAKE_Fortran_COMPILER mpiifort)
-elseif(PLATFORM MATCHES jurecabooster)
-  set(CMAKE_Fortran_COMPILER mpif90)
-elseif(PLATFORM MATCHES juwels)
-  set(CMAKE_Fortran_COMPILER mpif90)
-elseif(PLATFORM MATCHES iff)
-  set(CMAKE_Fortran_COMPILER mpiifort)
-elseif(PLATFORM MATCHES hlrs)
-  set(CMAKE_Fortran_COMPILER mpif90)
-else()
-  message( FATAL_ERROR "PLATFORM is not set. Use -DPLATFORM=<machine>" )
-endif()
-
+# Checking preparation/instrumentalization flag
 if(NOT PREP)
   set(PREP OFF)
 endif()
 
+# Adding debugging suffix when present
 if(DEBUG)
   set(DEBUGSUFFIX _debug)
   message("DEBUG on")
@@ -127,12 +110,14 @@ else()
   set(DEBUGSUFFIX)
 endif()
 
+# Adding other suffixes when present
 if(SUFFIX)
   set(SUFFIX _${SUFFIX})
 else()
   set(SUFFIX)
 endif()
 
+# Changing $COMPILER variable to lowercase for comparison later
 if(COMPILER)
   string(TOLOWER ${COMPILER} COMPILER)
 endif()

@@ -14,10 +14,11 @@ image: iffregistry.fz-juelich.de/docker-images/centos8-intel-compilers:latest-nv
   - which ifort
   # Checking ifort version
   - ifort --version
-  # Checking location of mpiifort
-  - which mpiifort
+  # Checking location of mpiifort/mpif90
+  - alias mpif90='mpiifort'
+  - which mpif90
   # Checking mpiifort version
-  - mpiifort -v
+  - mpif90 -v
 
 .setup_gfortran: &setup_gfortran
   - echo "Setting up GNU Fortran compiler"
