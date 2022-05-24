@@ -50,9 +50,9 @@ The following options are possible:
     * ``osx`` for MacOS
 
     Not all of them have different flags, but they can be adapted separately in the ``CMakeLists.txt`` file.
-* ``-DCOMPILER=<compiler>``: The default compiler is the Intel Fortran, but it can also use ``gfortran`` (gnu) or ``nvfortran``. For the last two, the executable filename is appended with ``_gnu`` or ``_nv``, respectively.
+* ``-DCOMPILER=<compiler>``: CMake looks for `mpiifort` and `mpif90` (in this order) as compiler. The `COMPILER` flag can be used in case something is wrongly recognized. Possible values are: ``intel``, ``gfortran`` (or ``gnu``), or ``nvfortran``. For the last two, the executable filename is appended with ``_gnu`` or ``_nv``, respectively.
 * ``-DDEBUG=ON``: The debug flags are not used by default. Use this option to activate them. When this is used, the executable is appended with ``_debug``.
-* ``-DSUFFIX=<suffix>``: The CMake process also includes an option to add an own suffix.
+* ``-DSUFFIX=<suffix>``: This variable can be used to add an extra suffix to the executable.
 * ``-DPREP=ON``: Use this option to compile with `SCORE-P` instrumentation. This needs the module ``Score-P``, and the results can be analised with `Scalasca <https://www.scalasca.org/>`_ (via the module `Scalasca`).
 
 The generated binary can be found in ``${TITAN}/bin/``.

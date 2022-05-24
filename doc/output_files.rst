@@ -92,21 +92,23 @@ An example of its structure is given below, for a system with 4 atoms in the uni
         │   │   └── TCM           | ...from the torque correlation methods
         │   ├── Beff              | Effective magnetic fields (when electric field is applied)
         │   ├── BS                | Band Structure
-        │   ├── CC                | Charge current (currently not working)
+        │   ├── CC                | Charge current (currently not working*)
         │   ├── CD                | Charge disturbance
         │   ├── FS                | Fermi Surface / Iso-Energy
         │   ├── HF                | Hartree-Fock susceptibilities
         │   ├── Jij               | Coupling tensor
-        │   ├── LC                | Orbital angular momentum current (currently not working)
+        │   ├── LC                | Orbital angular momentum current (currently not working*)
         │   ├── LD                | Orbital angular momentum disturbance
         │   ├── LDOS              | Local Density of States
         │   ├── RPA               | RPA susceptibilities
-        │   ├── SC                | Spin current (currently not working)
+        │   ├── SC                | Spin current (currently not working*)
         │   ├── SD                | Spin disturbance
-        │   ├── SHA               | Spin Hall Angle (currently not working)
+        │   ├── SHA               | Spin Hall Angle (currently not working*)
         │   ├── SOT               | Spin Orbit Torques
         │   └── time_propagation  | Real-time propagation observables
         └── selfconsistency
+
+(* - See :doc:`Known Issues<known_issues>`)
 
 It contains first a separation into calculations with (``T``) and without (``F``) SOC.
 Then, a folder with the number of sites in the unit cell is used to store all the different types of results.
