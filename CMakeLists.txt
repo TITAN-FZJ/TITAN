@@ -90,6 +90,16 @@ if(NOT PLATFORM)
   endif(PLATFORM)
 endif()
 
+# Setting instrumentation of the code when -DPREP=on
+set(INSTRUMENT)
+if(PREP)
+  set(CMAKE_Fortran_COMPILER scorep-mpif90)
+  set(CMAKE_CXX_COMPILER scorep-nvcc)
+  set(INSTRUMENT _inst)
+  message("Instrumentation on")
+  message("Don't forget to export the line: export SCOREP_WRAPPER_INSTRUMENTER_FLAGS='--thread=omp'")
+endif()
+
 # Getting the COMPILER when not given
 if(NOT COMPILER)
   set(COMPILER ${CMAKE_Fortran_COMPILER_ID})
@@ -139,15 +149,6 @@ if(COMPILER MATCHES pgi OR COMPILER MATCHES nv OR COMPILER MATCHES nvidia)
                                   )
 endif()
 
-
-set(INSTRUMENT)
-if(PREP)
-  set(CMAKE_Fortran_COMPILER scorep-mpif90)
-  set(CMAKE_CXX_COMPILER scorep-nvcc)
-  set(INSTRUMENT _inst)
-  message("Instrumentation on")
-  message("Don't forget to export the line: export SCOREP_WRAPPER_INSTRUMENTER_FLAGS='--thread=omp'")
-endif()
 
 set(COVSUFFIX)
 if(COV AND COMPILER MATCHES gnu)
@@ -345,8 +346,7 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
 elseif(COMPILER MATCHES nv) # NVIDIA:
   # target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -I${CUDA_ROOT}/include -Mcuda -L${CUDA_ROOT}/lib64 -lcusolver -lcudart -lnvToolsExt -acc -gpu=cc70,cc80)
 
-  # set_target_properties(${TITAN_EXE} PROPERTIES LINK_FLAGS "-L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -I${CUDA_ROOT}/include -Mcuda -L${CUDA_ROOT}/lib64 -lcusolver -lcudart -lnvToolsExt -acc -gpu=cc70,cc80")
-  set_target_properties(${TITAN_EXE} PROPERTIES LINK_FLAGS "-I${CUDA_ROOT}/include -Mcuda -L${CUDA_ROOT}/lib64 -lcusolver -lcudart -lnvToolsExt -acc -gpu=cc70,cc80")
+  set_target_properties(${TITAN_EXE} PROPERTIES LINK_FLAGS "-L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -I${CUDA_ROOT}/include -Mcuda -L${CUDA_ROOT}/lib64 -lcusolver -lcudart -lnvToolsExt -acc -gpu=cc70,cc80")
   if(NOT DEBUG)
     target_compile_definitions(${TITAN_EXE} PRIVATE _GPU)
 
