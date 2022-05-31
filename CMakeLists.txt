@@ -1,18 +1,20 @@
 # Minimum required Version
 cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
+# Generates a 'compile_commands.json' file containing the exact compiler calls for all translation units of the project in machine-readable form.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Since GNU Compiler is always available,
+# Since GNU Compiler is always available, look first for mpiifort which is usually linked with intel
 find_program(CMAKE_Fortran_COMPILER NAMES $ENV{FC} mpiifort mpif90 PATHS ENV PATH NO_DEFAULT_PATH)
 find_program(CMAKE_CXX_COMPILER NAMES $ENV{FC} mpicxx PATHS ENV PATH NO_DEFAULT_PATH)
 
 # Projects name
 project(TITAN Fortran CXX)
 
+# Defining options
 option(DEBUG "Enable debugging" OFF)
 option(PREP "Enable Instrumentation" OFF)
-option(BIGINT "Use 8byte integer" OFF)
 
+# Source files
 set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/AtomTypes.F90
                                   source/Lattice.F90
@@ -80,16 +82,6 @@ set(SOURCE_TITAN ${SOURCE_TITAN}  source/main.F90
                                   source/mod_dft.F90
                                   )
 
-# Getting the PLATFORM when not given (Which system was used)
-if(NOT PLATFORM)
-  execute_process(COMMAND bash "-c" "cat /etc/FZJ/systemname 2>/dev/null | tr -d '\n'"
-                  OUTPUT_VARIABLE PLATFORM
-                  )
-  if(PLATFORM)
-    message("Setting PLATFORM=${PLATFORM}")
-  endif(PLATFORM)
-endif()
-
 # Setting instrumentation of the code when -DPREP=on
 set(INSTRUMENT)
 if(PREP)
@@ -105,6 +97,8 @@ if(NOT COMPILER)
   set(COMPILER ${CMAKE_Fortran_COMPILER_ID})
   message("Setting COMPILER=${COMPILER}")
 endif()
+# Changing $COMPILER variable to lowercase for comparison later
+string(TOLOWER ${COMPILER} COMPILER)
 
 
 # Checking preparation/instrumentalization flag
@@ -120,6 +114,36 @@ else()
   set(DEBUGSUFFIX)
 endif()
 
+# Adding compiler suffix:
+# INTEL
+if(COMPILER MATCHES intel)
+  set(CMAKE_Fortran_COMPILER mpiifort)
+  set(COMPILERSUFFIX _intel)
+  message("Using Intel Compiler")
+endif()
+# GNU
+if(COMPILER MATCHES gfortran OR COMPILER MATCHES gcc OR COMPILER MATCHES gfort OR COMPILER MATCHES gnu)
+  set(COMPILER gnu)
+  set(CMAKE_Fortran_COMPILER mpif90)
+  set(COMPILERSUFFIX _gnu)
+  message("Using GNU Compiler")
+endif()
+# NVIDIA
+if(COMPILER MATCHES pgi OR COMPILER MATCHES nv OR COMPILER MATCHES nvidia)
+  set(COMPILER nv)
+  set(COMPILERSUFFIX _nv)
+  message("Using NVIDIA Compiler")
+  set(CMAKE_CXX_COMPILER nvcc)
+  set(SOURCE_TITAN_CPP ${SOURCE_TITAN_CPP}  source/diagonalize_gpu.cpp
+                                  )
+endif()
+
+# Setting coverage suffix
+set(COVSUFFIX)
+if(COV AND COMPILER MATCHES gnu)
+  set(COVSUFFIX _cov)
+endif(COV AND COMPILER MATCHES gnu)
+
 # Adding other suffixes when present
 if(SUFFIX)
   set(SUFFIX _${SUFFIX})
@@ -127,43 +151,24 @@ else()
   set(SUFFIX)
 endif()
 
-# Changing $COMPILER variable to lowercase for comparison later
-if(COMPILER)
-  string(TOLOWER ${COMPILER} COMPILER)
-endif()
+# Defining executable name
+set(TITAN_EXE titan${DEBUGSUFFIX}${COMPILERSUFFIX}${INSTRUMENT}${COVSUFFIX}${SUFFIX}.exe)
 
-if(COMPILER MATCHES gfortran OR COMPILER MATCHES gcc OR COMPILER MATCHES gfort OR COMPILER MATCHES gnu)
-  set(COMPILER gnu)
-  set(CMAKE_Fortran_COMPILER mpif90)
-  set(SUFFIX ${SUFFIX}_gnu)
-  message("Using GCC Compiler")
-endif()
-
-if(COMPILER MATCHES pgi OR COMPILER MATCHES nv OR COMPILER MATCHES nvidia)
-  set(COMPILER nv)
-  set(SUFFIX ${SUFFIX}_nv)
-  message("Using NVIDIA Compiler")
-
-  set(CMAKE_CXX_COMPILER nvcc)
-  set(SOURCE_TITAN_CPP ${SOURCE_TITAN_CPP}  source/diagonalize_gpu.cpp
-                                  )
-endif()
-
-
-set(COVSUFFIX)
-if(COV AND COMPILER MATCHES gnu)
-  set(COVSUFFIX _cov)
-endif(COV AND COMPILER MATCHES gnu)
-
-set(TITAN_EXE titan_${PLATFORM}${DEBUGSUFFIX}${INSTRUMENT}${COVSUFFIX}${SUFFIX}.exe)
-
+# Add an executable to the project using the specified source files
 add_executable(${TITAN_EXE} ${SOURCE_TITAN} ${SOURCE_TITAN_CPP})
+# Set (main) language
 set_property(TARGET ${TITAN_EXE} PROPERTY LINKER_LANGUAGE Fortran)
-
+# Set location for binary
 set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
+# Add libraries
+find_package(LAPACK REQUIRED)
+find_package(OpenMP)
+target_link_libraries(${TITAN_EXE} ${LAPACK_LIBRARIES} OpenMP::OpenMP_Fortran)
+
+# Getting GIT version
 execute_process(COMMAND git describe --abbrev=8 --dirty --always OUTPUT_VARIABLE GIT_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 if(PREP)
@@ -172,6 +177,7 @@ if(PREP)
 endif(PREP)
 #target_compile_options(${TITAN_EXE} PRIVATE -D_OLDMPI ) 
 
+# Setting coverage flags (only for GNU compiler)
 if(COV)
   if(COMPILER MATCHES gnu)
     message("Coverage on")
@@ -182,103 +188,23 @@ if(COV)
   endif(COMPILER MATCHES gnu)
 endif(COV)
 
+# Setting DEBUG definition
+if(DEBUG)
+  target_compile_definitions(${TITAN_EXE} PRIVATE DEBUG)
+endif(DEBUG)
 
-if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES nv)
-  if(PLATFORM MATCHES jurecadc OR PLATFORM MATCHES juwelsbooster OR PLATFORM MATCHES jusuf)
-    target_link_libraries(${TITAN_EXE} -qmkl -qopenmp)
+if(COMPILER MATCHES intel) # INTEL:
+  if(NOT DEBUG)
     target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
                                                 -fpp
                                                 -DVERSION="${GIT_VERSION}"
-                                                -qopenmp
                                                 -g
-                                                -qmkl
-                                                -align array64byte
-                                                -march=core-avx2
-                                                )
-  elseif(PLATFORM MATCHES juwels)
-    target_link_libraries(${TITAN_EXE} -qmkl -qopenmp)
-    target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                                -fpp
-                                                -xCORE-AVX2
-                                                -fma
                                                 -qopt-zmm-usage=high
-                                                -DVERSION="${GIT_VERSION}"
-                                                -qopenmp
-                                                -g
-                                                -align array64byte
-                                                -qmkl
-                                                )
-  elseif(PLATFORM MATCHES osx)
-    target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
-    target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                                -fpp
-                                                -DVERSION="${GIT_VERSION}"
-                                                -qopenmp
-                                                -g
-                                                -mkl
-                                                -align array64byte
-                                                -xHost
-                                                )
-  elseif(PLATFORM MATCHES jurecabooster)
-    target_link_libraries(${TITAN_EXE} -mkl -qopenmp )
-    target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                                -fpp
-                                                -DVERSION="${GIT_VERSION}"
-                                                -mkl
-                                                -g
-                                                -xMIC-AVX512
-                                                -align array64byte
-                                                -qopenmp
-                                                )
-  elseif(PLATFORM MATCHES rwth)
-    target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
-    target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                                -fpp
-                                                -DVERSION="${GIT_VERSION}"
-                                                -qopenmp
-                                                -g
-                                                -mkl
-                                                -align array64byte
-                                                -xHost
-                                                )
-  elseif(PLATFORM MATCHES iff)
-    target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
-    target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                                -DVERSION="${GIT_VERSION}"
-                                                -fpp
-                                                -qopenmp
-                                                -g
-                                                -mkl
                                                 -align array64byte
                                                 -march=core-avx2
+                                                -O3
                                                 )
-  elseif(PLATFORM MATCHES hlrs)
-    target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
-    target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                                -fpp
-                                                -DVERSION="${GIT_VERSION}"
-                                                -qopenmp
-                                                -g
-                                                -align array64byte
-                                                -mkl
-                                                )
-  else()
-    target_link_libraries(${TITAN_EXE} -mkl -qopenmp)
-    target_compile_options(${TITAN_EXE} PRIVATE -no-wrap-margin
-                                                -fpp
-                                                -DVERSION="${GIT_VERSION}"
-                                                -qopenmp
-                                                -mkl
-                                                #-ipo
-                                                #-qopt-report=5
-                                                -g
-                                                -align array64byte
-                                                -xHost
-                                                )
-  endif(PLATFORM MATCHES jurecadc OR PLATFORM MATCHES juwelsbooster OR PLATFORM MATCHES jusuf)
-
-  if(DEBUG)
-    target_compile_definitions(${TITAN_EXE} PRIVATE DEBUG)
+  else(NOT DEBUG)
     target_compile_options(${TITAN_EXE} PRIVATE -C
                                                 -CB
                                                 -check uninit
@@ -287,23 +213,16 @@ if(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES nv)
                                                 -e18
                                                 -ftrapuv
                                                 -traceback
-                                                -qopenmp
                                                 -fpp
                                                 -DVERSION="${GIT_VERSION}"
                                                 -g
                                                 -O0
                                                 )
-  else()
-    target_compile_options(${TITAN_EXE} PRIVATE -O3)
-  endif(DEBUG)
-
+  endif(NOT DEBUG)
 elseif(COMPILER MATCHES gnu) # GFORTRAN:
-  target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib -Wl,-rpath,$ENV{MKLROOT}/lib -static-libgfortran -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lgomp -lm -ldl -fopenmp)
   if(NOT DEBUG)
     target_compile_options(${TITAN_EXE} PRIVATE -cpp
                                                 -DVERSION="${GIT_VERSION}"
-                                                -I$ENV{MKLROOT}/include
-                                                -fopenmp
                                                 -fallow-argument-mismatch
                                                 -ffree-form
                                                 -ffree-line-length-0
@@ -313,7 +232,6 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
                                                 )
 
   else(NOT DEBUG)
-    target_compile_definitions(${TITAN_EXE} PRIVATE DEBUG)
     target_compile_options(${TITAN_EXE} PRIVATE -C
                                                 -Wall
                                                 -Wextra
@@ -334,22 +252,19 @@ elseif(COMPILER MATCHES gnu) # GFORTRAN:
                                                 -ffpe-trap=zero,overflow,underflow
                                                 -finit-real=nan
                                                 -ftrapv
-                                                -fopenmp
                                                 -cpp
                                                 -DVERSION="${GIT_VERSION}"
-                                                -I$ENV{MKLROOT}/include
                                                 -g
                                                 -O0
                                                 )
   endif(NOT DEBUG)
 
 elseif(COMPILER MATCHES nv) # NVIDIA:
+  target_compile_definitions(${TITAN_EXE} PRIVATE _GPU )
   # target_link_libraries(${TITAN_EXE} -L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -I${CUDA_ROOT}/include -Mcuda -L${CUDA_ROOT}/lib64 -lcusolver -lcudart -lnvToolsExt -acc -gpu=cc70,cc80)
 
-  set_target_properties(${TITAN_EXE} PROPERTIES LINK_FLAGS "-L$ENV{MKLROOT}/lib/intel64 -Wl,-rpath,$ENV{MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -I${CUDA_ROOT}/include -Mcuda -L${CUDA_ROOT}/lib64 -lcusolver -lcudart -lnvToolsExt -acc -gpu=cc70,cc80")
+  set_target_properties(${TITAN_EXE} PROPERTIES LINK_FLAGS "-I${CUDA_ROOT}/include -Mcuda -L${CUDA_ROOT}/lib64 -lcusolver -lcudart -lnvToolsExt -acc -gpu=cc70,cc80")
   if(NOT DEBUG)
-    target_compile_definitions(${TITAN_EXE} PRIVATE _GPU)
-
     string(CONCAT FORTRAN_FLAGS "-cpp "
                                 "-DVERSION=\\\"${GIT_VERSION}\\\"  "
                                 "-lineinfo "
@@ -362,17 +277,14 @@ elseif(COMPILER MATCHES nv) # NVIDIA:
                                 "-Mcuda "
                                 "-g "
                                 )
-    set_source_files_properties(${SOURCE_TITAN}     PROPERTIES COMPILE_FLAGS ${FORTRAN_FLAGS} )
+    set_source_files_properties(${SOURCE_TITAN} PROPERTIES COMPILE_FLAGS ${FORTRAN_FLAGS} )
     string(CONCAT CXX_FLAGS "--gpu-architecture=sm_80 "
                             "-lineinfo "
                             "-g "
                             )
-
     set_source_files_properties(${SOURCE_TITAN_CPP} PROPERTIES COMPILE_FLAGS ${CXX_FLAGS} )
 
   else(NOT DEBUG)
-    target_compile_definitions(${TITAN_EXE} PRIVATE _GPU DEBUG )
-
     string(CONCAT FORTRAN_FLAGS "-cpp "
                                 "-DVERSION=\\\"${GIT_VERSION}\\\" "
                                 "-lineinfo "
@@ -389,30 +301,14 @@ elseif(COMPILER MATCHES nv) # NVIDIA:
                                 "-acc "
                                 "-O0 "
                                 )
-    set_source_files_properties(${SOURCE_TITAN}     PROPERTIES COMPILE_FLAGS ${FORTRAN_FLAGS})
-
+    set_source_files_properties(${SOURCE_TITAN} PROPERTIES COMPILE_FLAGS ${FORTRAN_FLAGS})
     string(CONCAT CXX_FLAGS "--gpu-architecture=sm_80 "
                             "-g "
                             "-G "
                             )
-
     set_source_files_properties(${SOURCE_TITAN_CPP} PROPERTIES COMPILE_FLAGS ${CXX_FLAGS} )
-
   endif(NOT DEBUG)
-
-endif(NOT COMPILER MATCHES gnu AND NOT COMPILER MATCHES nv)
-
-#target_compile_options(${EXEC_NAME} PRIVATE -no-wrap-margin
-#                                        -fpp
-#                                        -D _LINUX
-#                                        -O3
-##                                        -I${NAG}/c_headers#
-#         -qopenmp
-#         -mkl
-#         -xHost
-#)
-
-#target_link_libraries(${EXEC_NAME} ${NAG}/lib/libnag_nag.a -qopenmp)
+endif(COMPILER MATCHES intel)
 
 # unset(DEBUG CACHE)
 # unset(DEBUGSUFFIX CACHE)
