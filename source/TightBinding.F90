@@ -424,7 +424,7 @@ contains
       call log_error("readElementFile","Something wrong in the definition of 'U'.")
     end select
 
-    write(*,*) s%Types(n)%Un, s%Types(n)%Um
+    write(*,*) "Un, Um", s%Types(n)%Un, s%Types(n)%Um
 
     ! Read Spin-Orbit interaction strength for p and d
     tmp_arr(1:2) = StoR(next_line("readElementFile",f_unit,"SOI strength"),2)

@@ -540,6 +540,16 @@ contains
         in_varz(:) = mzd(:)
       end select
 
+      !!! To be deleted
+      write(*,*) "Rho = ", rho
+      write(*,*) "rhod", rhod
+      write(*,*) "mpd", mpd
+      write(*,*) "mzd", mzd
+      write(*,*) "in_varx", in_varx
+      write(*,*) "in_vary", in_vary
+      write(*,*) "in_varz", in_varz
+      !!!
+
       ! Putting read n and m existing solutions into sc_solu (first guess of the subroutine)
       call set_hamiltonian_variables(.false.,s,neq,sc_solu,rho,rhod,in_varx,in_vary,in_varz,delta_sc)
 

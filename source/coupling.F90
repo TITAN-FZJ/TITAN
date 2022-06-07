@@ -177,17 +177,17 @@ subroutine real_coupling()
   ! call MPI_Barrier(FieldComm, ierr)
   ! call q_realBZ % setup_fraction(s,0, 1, FreqComm(1))
 
-  if(rField == 0) then
-    write(*,*) "Qgrid"
-    write(*,*) q_realBZ % nkpt_x, q_realBZ % nkpt_y, q_realBZ % nkpt_z
-  end if
-  call MPI_Barrier(FieldComm, ierr)
+  ! if(rField == 0) then
+  !   write(*,*) "Qgrid"
+  !   write(*,*) q_realBZ % nkpt_x, q_realBZ % nkpt_y, q_realBZ % nkpt_z
+  ! end if
+  ! call MPI_Barrier(FieldComm, ierr)
 
-  if(rField == 0) then
-    write(*,*) "Kgrid"
-    ! write(*,*) realBZ % nkpt_x, realBZ % nkpt_y, realBZ % nkpt_z
-  end if
-  call MPI_Barrier(FieldComm, ierr)
+  ! if(rField == 0) then
+  !   write(*,*) "Kgrid"
+  !   ! write(*,*) realBZ % nkpt_x, realBZ % nkpt_y, realBZ % nkpt_z
+  ! end if
+  ! call MPI_Barrier(FieldComm, ierr)
   ! [To delete]
 
   ! Generating the mesh of local points on the BZ zone
@@ -198,11 +198,11 @@ subroutine real_coupling()
   call allocateCoupling()
 
   ! [To delete] temporary prints to terminal
-  if(rField == 0) then
-    write(*,*) "realBZ%workload", q_realBZ%workload
-    write(*,*) " total_nqpt = ", total_nqpt, total_nkpt
-    write(*,*) "Meshes generated"
-  end if
+  ! if(rField == 0) then
+  !   write(*,*) "realBZ%workload", q_realBZ%workload
+  !   write(*,*) " total_nqpt = ", total_nqpt, total_nkpt
+  !   write(*,*) "Meshes generated"
+  ! end if
   ! [To delete]
 
 ! [To delete]

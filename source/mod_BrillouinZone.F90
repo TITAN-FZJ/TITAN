@@ -423,7 +423,7 @@ write(*,*) 'gen2DFraction',zdir
 
     a1xa2 = cross(a1,a2)
     zdir  = a1xa2/vec_norm(a1xa2,3)
-write(*,*) 'count_2D_BZ',zdir
+! write(*,*) 'count_2D_BZ',zdir
     nkpt_perdim = ceiling(sqrt(dble(nkpt_in)))
     nkpt_x = nkpt_perdim
     nkpt_y = nkpt_perdim

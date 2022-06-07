@@ -151,7 +151,7 @@ contains
     else if((s%isysdim==2).or.(vec_norm(s%a3,3) <= 1.e-9_dp)) then
       a1xa2 = cross(s%a1,s%a2)
       zdir  = a1xa2/vec_norm(a1xa2,3)
-write(*,*) 'read_basis',zdir
+! write(*,*) 'read_basis',zdir
       s%vol = tpi / dot_product(zdir, a1xa2)
       s%b1  = s%vol * cross(s%a1,zdir)
       s%b2  = s%vol * cross(zdir,s%a2)
