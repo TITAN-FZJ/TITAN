@@ -249,13 +249,13 @@ subroutine real_coupling()
       norms_vec(3) = vec_norm(s%a3*cluster_layers, 3)
       ! The small value is to account for small numerical differences
       sphere_radius = 0.0000000001_dp + MINVAL(norms_vec)
-      write(*,*) "Radius = ", MINVAL(norms_vec), s%a1*cluster_layers
+      ! write(*,*) "Radius = ", MINVAL(norms_vec), s%a1*cluster_layers
     case(2)
       norms_vec(1) = vec_norm(s%a1*cluster_layers, 3)
       norms_vec(2) = vec_norm(s%a2*cluster_layers, 3)
       ! The small value is to account for small numerical differences
       sphere_radius = 0.0000000001_dp + MINVAL(norms_vec(1:2))
-      write(*,*) "Radius = ", sphere_radius, s%a1*cluster_layers, s%a2*cluster_layers
+      ! write(*,*) "Radius = ", sphere_radius, s%a1*cluster_layers, s%a2*cluster_layers
     case default
       ! The small value is to account for small numerical differences
       sphere_radius = 0.0000000001_dp + vec_norm(s%a1*cluster_layers, 3)
@@ -291,7 +291,7 @@ subroutine real_coupling()
         ! write(*,*) cluster(size,:), "norm = ", vec_norm(atom_vector, 3), "Rad = ", sphere_radius, "Bool = ", vec_norm(atom_vector, 3) <= sphere_radius
         if(vec_norm(cell_vector, 3) <= sphere_radius) then
             counter = counter + 1
-            write(*,*) cell_vector
+            ! write(*,*) cell_vector
         end if
 
         ! [To delete]

@@ -132,7 +132,8 @@ subroutine jij_energy(q,Jij)
                 ! temp1p = temp2 * ghe(ji) = dBxc_dm_i * geh(ij) * (dBxc_dm_j)^* * ghe(ji)(k+q)
                 call zgemm('n','n',nOrb2_i,nOrb2_i,nOrb2_j,cOne,temp2 ,s%nOrb2,ghep      ,s%nOrb2,cZero,temp1p,s%nOrb2)
                 do alpha = 1,nOrb2_i
-                  Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) + temp1m(alpha,alpha) + conjg(temp1p(alpha,alpha))
+                  Jijk(i,j,mu,nu) = Jijk(i,j,mu,nu) - temp1m(alpha,alpha) - conjg(temp1p(alpha,alpha))
+                  !Jijk(i,j,mu,nu) = temp1m(alpha,alpha) + conjg(temp1p(alpha,alpha))
                 end do
               end if
             end do
