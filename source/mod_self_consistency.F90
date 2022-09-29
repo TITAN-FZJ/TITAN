@@ -497,7 +497,7 @@ contains
   subroutine calcSelfConsistency()
   !> This subroutine performs the self-consistency
     use mod_kind,              only: dp
-    use mod_parameters,        only: output,lfixEf
+    use mod_parameters,        only: output,lfixEf,dimHsc
     use mod_magnet,            only: bc,rho,rhod,rhot,mxd,myd,mpd,mzd,mabsd,mp,mx,my,mz,constr_type,sb_matrix
     use mod_mpi_pars,          only: rField
     use mod_system,            only: s => sys
@@ -549,8 +549,8 @@ contains
         write(output%unit_loop,"('[self_consistency] Starting self-consistency:')")
 
 #ifdef _GPU
-    ! Starting marker of dnsqe for profiler
-    call nvtxStartRange("dnsqe",1)
+      ! Starting marker of dnsqe for profiler
+      call nvtxStartRange("dnsqe",1)
 #endif
 
       ! Performing selfconsistency finding root of non-linear system of equations (SLATEC)
@@ -564,8 +564,8 @@ contains
       ifail = ifail-1
 
 #ifdef _GPU
-    ! End of dnsqe marker
-    call nvtxEndRange
+      ! End of dnsqe marker
+      call nvtxEndRange
 #endif
 
       ! Deallocating variables dependent on the number of equations
@@ -794,7 +794,6 @@ contains
     use mod_BrillouinZone, only: realBZ
     use mod_hamiltonian,   only: hamilt_local
     use mod_greenfunction, only: greenlinearsoc,green
-    use mod_superconductivity, only: lsuperCond
     use mod_mpi_pars,      only: rField,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_SUM,ierr,abortProgram
     implicit none
     integer,                       intent(in)    :: N
@@ -829,7 +828,7 @@ contains
 
     !$omp parallel default(none) &
     !$omp& private(ix,i,j,kounti,kountj,nOrb2_i,nOrb2_j,mu,mud,nud,nu,sigma,sigmap,ep,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp) &
-    !$omp& shared(llineargfsoc,llinearsoc,lsupercond,lfixEf,neq,local_points,s,neq_per_atom,realBZ,bzs,E_k_imag_mesh,y,eta,wght,halfUn,halfUm,jacobian)
+    !$omp& shared(llineargfsoc,llinearsoc,lfixEf,neq,local_points,s,neq_per_atom,realBZ,bzs,E_k_imag_mesh,y,eta,wght,halfUn,halfUm,jacobian)
     !$omp do schedule(static) reduction(+:jacobian)
     do ix = 1, local_points
       ep = y(E_k_imag_mesh(1,ix))

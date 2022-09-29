@@ -79,14 +79,14 @@ contains
     use mod_kind,              only: dp
     use mod_parameters,        only: output,dimHsc,kdirection,nQvec,nQvec1,kpoints,bsfile,wsfile,deltak
     use mod_system,            only: System_type
-    use mod_tools,             only: cross,diagonalize,lwork
+    use mod_tools,             only: cross,diagonalize
     use mod_mpi_pars,          only: rField
     use mod_io,                only: write_header
     use mod_hamiltonian,       only: hamilt_local,h0,calchk
     implicit none
     type(System_type), intent(in) :: s
     integer :: i,kount,f_unit=666,w_unit=667,n
-    integer :: ilaenv
+    integer :: ilaenv,lwork
     real(dp), dimension(:), allocatable :: eval
     complex(dp), allocatable :: hk(:,:)
     character(len=30) :: formatvar1,formatvar2
@@ -122,7 +122,7 @@ contains
       hk = h0 + calchk(s,kpoints(:,kount))
 
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-      call diagonalize(dimHsc,hk,eval)
+      call diagonalize(dimHsc,lwork,hk,eval)
 
       write(unit=f_unit,fmt=formatvar1) dble((kount-1._dp)*deltak), (eval(i),i=1,dimHsc)
       write(unit=w_unit,fmt=formatvar2) ((abs(hk(i,n))**2,i=1,dimHsc),n=1,dimHsc)

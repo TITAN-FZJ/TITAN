@@ -99,6 +99,7 @@ contains
     if(.not. get_parameter("nkpt", i_vector,cnt)) &
       call log_error("get_parameters","'nkpt' missing.")
     if(cnt == s%isysdim) then
+      kp_in(1:3) = 1
       kp_in(1:s%isysdim) = int(i_vector(1:s%isysdim),kind(kp_in(1)))
       kptotal_in = product(kp_in(1:s%isysdim))
     else if(cnt == 1) then

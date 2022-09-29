@@ -153,9 +153,9 @@ contains
   !!  Calculates ground state quantities from eigenstates
     use mod_kind,          only: dp,int64
     use mod_BrillouinZone, only: realBZ
-    use mod_parameters,    only: output,dimHsc
+    use mod_parameters,    only: dimHsc
     use mod_system,        only: System_type
-    use mod_tools,         only: diagonalize,lwork
+    use mod_tools,         only: diagonalize
     use mod_constants,     only: cZero
     use mod_hamiltonian,   only: hamilt_local,h0,calchk
     use mod_mpi_pars,      only: MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
@@ -166,7 +166,7 @@ contains
     complex(dp), dimension(s%nOrb,s%nAtoms), intent(out) :: mp
 
     integer(int64)                             :: iz
-    integer                                    :: ncount,ilaenv
+    integer                                    :: ncount,ilaenv,lwork
     real(dp),    dimension(s%nOrb,s%nAtoms)    :: expec_0,expec_z
     complex(dp), dimension(s%nOrb,s%nAtoms)    :: expec_p
     real(dp),    dimension(s%nOrb,s%nAtoms)    :: expec_d
@@ -189,14 +189,14 @@ contains
 
     !$omp parallel do default(none) schedule(dynamic) &
     !$omp& private(iz,hk,eval,expec_0,expec_p,expec_z,expec_d) &
-    !$omp& shared(s,h0,dimHsc,output,realBZ) &
+    !$omp& shared(s,h0,dimHsc,lwork,realBZ) &
     !$omp& reduction(+:rho,mp,mz,deltas)
     do iz = 1,realBZ%workload
       ! Calculating the hamiltonian for a given k-point
       hk = h0 + calchk(s,realBZ%kp(1:3,iz))
 
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-      call diagonalize(dimHsc,hk,eval)
+      call diagonalize(dimHsc,lwork,hk,eval)
 
       ! Calculating expectation values for a given k-point
       call expec_val(s,dimHsc,hk,eval,expec_0,expec_p,expec_z,expec_d)
@@ -229,9 +229,9 @@ contains
   !! full hamiltonian matrix
     use mod_kind,              only: dp,int64
     use mod_BrillouinZone,     only: realBZ
-    use mod_parameters,        only: dimHsc,output
+    use mod_parameters,        only: dimHsc
     use mod_system,            only: System_type
-    use mod_tools,             only: diagonalize,lwork
+    use mod_tools,             only: diagonalize
     use mod_constants,         only: cZero
     use mod_hamiltonian,       only: hamilt_local,h0,fullhk
     use mod_mpi_pars,          only: MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
@@ -242,7 +242,7 @@ contains
     complex(dp), dimension(s%nOrb,s%nAtoms), intent(out) :: mp
 
     integer(int64)                           :: iz
-    integer                                  :: ncount,ilaenv
+    integer                                  :: ncount,ilaenv,lwork
     real(dp),    dimension(s%nOrb,s%nAtoms)  :: expec_0,expec_z
     complex(dp), dimension(s%nOrb,s%nAtoms)  :: expec_p
     real(dp),    dimension(s%nOrb,s%nAtoms)  :: expec_d
@@ -265,16 +265,16 @@ contains
 
     !$omp parallel do default(none) schedule(dynamic) &
     !$omp& private(iz,hk,eval,expec_0,expec_p,expec_z,expec_d) &
-    !$omp& shared(s,dimHsc,h0,fullhk,output,realBZ) &
+    !$omp& shared(s,dimHsc,lwork,h0,fullhk,realBZ) &
     !$omp& reduction(+:rho,mp,mz,deltas)
     !!$acc kernels
-    !!$acc parallel loop private(iz,hk,eval,expec_0,expec_p,expec_z,expec_d) ! firstprivate(lwork) shared(s,dimHsc,output,realBZ,rho,mp,mz,lsuperCond,deltas) reduction(+:rho,mp,mz,deltas)
+    !!$acc parallel loop private(iz,hk,eval,expec_0,expec_p,expec_z,expec_d) ! firstprivate(lwork) shared(s,dimHsc,realBZ,rho,mp,mz,lsuperCond,deltas) reduction(+:rho,mp,mz,deltas)
     do iz = 1,realBZ%workload
       ! hamiltonian for a given k-point
       hk = h0 + fullhk(:,:,iz)
 
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-      call diagonalize(dimHsc,hk,eval)
+      call diagonalize(dimHsc,lwork,hk,eval)
 
       ! Calculating expectation values for a given k-point
       call expec_val(s,dimHsc,hk,eval,expec_0,expec_p,expec_z,expec_d)
@@ -307,7 +307,7 @@ contains
   !!  using full hamiltonian matrix
     use mod_kind,          only: dp,int64
     use mod_BrillouinZone, only: realBZ
-    use mod_parameters,    only: dimHsc,output
+    use mod_parameters,    only: dimHsc
     use mod_system,        only: System_type,nOrb_d
     use mod_cuda,          only: h,diagonalize_gpu
     use nvtx,              only: nvtxStartRange,nvtxEndRange
@@ -1130,13 +1130,13 @@ contains
     use mod_parameters,        only: dimHsc,eta,isigmamu2n
     use mod_System,            only: s => sys
     use mod_distributions,     only: fd_dist
-    use mod_tools,             only: diagonalize,lwork
+    use mod_tools,             only: diagonalize
     use mod_superconductivity, only: lsuperCond
     use mod_hamiltonian,       only: calchk,h0,hamilt_local,energy
     use mod_mpi_pars,          only: MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
     implicit none
     integer(int64)                 :: iz
-    integer                        :: n,i,mu,nu,sigma,ilaenv
+    integer                        :: n,i,mu,nu,sigma,ilaenv,lwork
     real(dp)                       :: fermi,beta
     real(dp),    dimension(dimHsc) :: eval,f_n
     complex(dp)                    :: hk(dimHsc,dimHsc),prod(s%nOrb,s%nOrb,s%nAtoms)
@@ -1157,14 +1157,14 @@ contains
 
     !$omp parallel do default(none) schedule(dynamic) &
     !$omp& private(iz,n,f_n,i,sigma,mu,nu,hk,eval) &
-    !$omp& shared(s,dimHsc,realBZ,h0,fermi,beta,isigmamu2n) &
+    !$omp& shared(s,dimHsc,lwork,realBZ,h0,fermi,beta,isigmamu2n) &
     !$omp& reduction(+:prod,energy)
     kloop: do iz = 1,realBZ%workload
       ! Calculating the hamiltonian for a given k-point
       hk = h0 + calchk(s,realBZ%kp(1:3,iz))
 
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-      call diagonalize(dimHsc,hk,eval)
+      call diagonalize(dimHsc,lwork,hk,eval)
 
       do n = 1,dimHsc
         ! Fermi-Dirac distrubution
@@ -1287,13 +1287,13 @@ contains
     use mod_parameters,        only: dimHsc,eta,isigmamu2n
     use mod_System,            only: s => sys
     use mod_distributions,     only: fd_dist
-    use mod_tools,             only: diagonalize,lwork
+    use mod_tools,             only: diagonalize
     use mod_superconductivity, only: lsuperCond
     use mod_hamiltonian,       only: hamilt_local,h0,fullhk,energy
     use mod_mpi_pars,          only: MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_DOUBLE_COMPLEX,MPI_SUM,FreqComm,ierr
     implicit none
     integer(int64)                 :: iz
-    integer                        :: n,i,mu,nu,sigma,ilaenv
+    integer                        :: n,i,mu,nu,sigma,ilaenv,lwork
     real(dp)                       :: fermi,beta
     real(dp),    dimension(dimHsc) :: eval,f_n
     complex(dp)                    :: hk(dimHsc,dimHsc),prod(s%nOrb,s%nOrb,s%nAtoms)
@@ -1315,14 +1315,14 @@ contains
 
     !$omp parallel do default(none) schedule(dynamic) &
     !$omp& private(iz,n,f_n,i,sigma,mu,nu,hk,eval) &
-    !$omp& shared(s,dimHsc,h0,fullhk,realBZ,fermi,beta,isigmamu2n) &
+    !$omp& shared(s,dimHsc,lwork,h0,fullhk,realBZ,fermi,beta,isigmamu2n) &
     !$omp& reduction(+:prod,energy)
     kloop: do iz = 1,realBZ%workload
       ! hamiltonian for a given k-point
       hk = h0 + fullhk(:,:,iz)
 
       ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-      call diagonalize(dimHsc,hk,eval)
+      call diagonalize(dimHsc,lwork,hk,eval)
 
       do n = 1,dimHsc
         f_n(n) = fd_dist(fermi, beta, eval(n))

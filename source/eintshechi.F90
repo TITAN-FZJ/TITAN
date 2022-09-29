@@ -18,7 +18,7 @@ subroutine eintshechi(q,e)
   complex(dp), dimension(dimens,dimens) :: Fint
 
   integer(int32), dimension(4) :: index1, index2
-  integer(int32) :: i,j,mu,nu,gamma,xi,nOrb_i,nOrb_j,nOrb2_i,nOrb2_j
+  integer(int32) :: i,j,mu,nu,gama,xi,nOrb_i,nOrb_j,nOrb2_i,nOrb2_j
   real(dp)       :: kp(3),kpq(3)
   real(dp)       :: weight, ep
   integer(int64) :: ix
@@ -46,7 +46,7 @@ subroutine eintshechi(q,e)
   chiorb_hf = cZero
 
   !$omp parallel default(none) &
-  !$omp& private(ix,ix2,i,j,mu,nu,gamma,xi,nOrb_i,nOrb_j,nOrb2_i,nOrb2_j,nep,nkp,ep,kp,kpq,weight,gf,gfq,gfuu,gfud,gfdu,gfdd,index1,index2) &
+  !$omp& private(ix,ix2,i,j,mu,nu,gama,xi,nOrb_i,nOrb_j,nOrb2_i,nOrb2_j,nep,nkp,ep,kp,kpq,weight,gf,gfq,gfuu,gfud,gfdu,gfdd,index1,index2) &
   !$omp& shared(bzs,s,calc_green,realBZ,local_points,q,e,y,wght,x2,p2,pn2,real_points,E_k_imag_mesh,eta,etap,dimens,sigmaimunu2i,Fint,chiorb_hf)
 
   !$omp do schedule(dynamic) reduction(+:chiorb_hf)
@@ -80,28 +80,28 @@ subroutine eintshechi(q,e)
     end do; end do
 
 
-    do j=1,s%nAtoms; do i=1,s%nAtoms; do gamma=1,s%Types(s%Basis(j)%Material)%nOrb; do mu=1,s%Types(s%Basis(i)%Material)%nOrb; do xi=1,s%Types(s%Basis(j)%Material)%nOrb; do nu=1,s%Types(s%Basis(i)%Material)%nOrb
+    do j=1,s%nAtoms; do i=1,s%nAtoms; do gama=1,s%Types(s%Basis(j)%Material)%nOrb; do mu=1,s%Types(s%Basis(i)%Material)%nOrb; do xi=1,s%Types(s%Basis(j)%Material)%nOrb; do nu=1,s%Types(s%Basis(i)%Material)%nOrb
       index1(1:4) = sigmaimunu2i(1:4,i,mu,nu)
-      index2(1:4) = sigmaimunu2i(1:4,j,gamma,xi)
-      chiorb_hf(index1(1),index2(1)) = chiorb_hf(index1(1),index2(1)) + weight*(gfdd(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
-      chiorb_hf(index1(1),index2(2)) = chiorb_hf(index1(1),index2(2)) + weight*(gfdu(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
-      chiorb_hf(index1(1),index2(3)) = chiorb_hf(index1(1),index2(3)) + weight*(gfdd(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
-      chiorb_hf(index1(1),index2(4)) = chiorb_hf(index1(1),index2(4)) + weight*(gfdu(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
+      index2(1:4) = sigmaimunu2i(1:4,j,gama,xi)
+      chiorb_hf(index1(1),index2(1)) = chiorb_hf(index1(1),index2(1)) + weight*(gfdd(nu,gama,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfdd(gama,nu,j,i,1)))
+      chiorb_hf(index1(1),index2(2)) = chiorb_hf(index1(1),index2(2)) + weight*(gfdu(nu,gama,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfud(gama,nu,j,i,1)))
+      chiorb_hf(index1(1),index2(3)) = chiorb_hf(index1(1),index2(3)) + weight*(gfdd(nu,gama,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfdd(gama,nu,j,i,1)))
+      chiorb_hf(index1(1),index2(4)) = chiorb_hf(index1(1),index2(4)) + weight*(gfdu(nu,gama,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfud(gama,nu,j,i,1)))
 
-      chiorb_hf(index1(2),index2(1)) = chiorb_hf(index1(2),index2(1)) + weight*(gfud(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
-      chiorb_hf(index1(2),index2(2)) = chiorb_hf(index1(2),index2(2)) + weight*(gfuu(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
-      chiorb_hf(index1(2),index2(3)) = chiorb_hf(index1(2),index2(3)) + weight*(gfud(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
-      chiorb_hf(index1(2),index2(4)) = chiorb_hf(index1(2),index2(4)) + weight*(gfuu(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
+      chiorb_hf(index1(2),index2(1)) = chiorb_hf(index1(2),index2(1)) + weight*(gfud(nu,gama,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfdu(gama,nu,j,i,1)))
+      chiorb_hf(index1(2),index2(2)) = chiorb_hf(index1(2),index2(2)) + weight*(gfuu(nu,gama,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfuu(gama,nu,j,i,1)))
+      chiorb_hf(index1(2),index2(3)) = chiorb_hf(index1(2),index2(3)) + weight*(gfud(nu,gama,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfdu(gama,nu,j,i,1)))
+      chiorb_hf(index1(2),index2(4)) = chiorb_hf(index1(2),index2(4)) + weight*(gfuu(nu,gama,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfuu(gama,nu,j,i,1)))
 
-      chiorb_hf(index1(3),index2(1)) = chiorb_hf(index1(3),index2(1)) + weight*(gfdd(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
-      chiorb_hf(index1(3),index2(2)) = chiorb_hf(index1(3),index2(2)) + weight*(gfdu(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
-      chiorb_hf(index1(3),index2(3)) = chiorb_hf(index1(3),index2(3)) + weight*(gfdd(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
-      chiorb_hf(index1(3),index2(4)) = chiorb_hf(index1(3),index2(4)) + weight*(gfdu(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
+      chiorb_hf(index1(3),index2(1)) = chiorb_hf(index1(3),index2(1)) + weight*(gfdd(nu,gama,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfdd(gama,nu,j,i,1)))
+      chiorb_hf(index1(3),index2(2)) = chiorb_hf(index1(3),index2(2)) + weight*(gfdu(nu,gama,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfud(gama,nu,j,i,1)))
+      chiorb_hf(index1(3),index2(3)) = chiorb_hf(index1(3),index2(3)) + weight*(gfdd(nu,gama,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfdd(gama,nu,j,i,1)))
+      chiorb_hf(index1(3),index2(4)) = chiorb_hf(index1(3),index2(4)) + weight*(gfdu(nu,gama,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfud(gama,nu,j,i,1)))
 
-      chiorb_hf(index1(4),index2(1)) = chiorb_hf(index1(4),index2(1)) + weight*(gfud(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
-      chiorb_hf(index1(4),index2(2)) = chiorb_hf(index1(4),index2(2)) + weight*(gfuu(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
-      chiorb_hf(index1(4),index2(3)) = chiorb_hf(index1(4),index2(3)) + weight*(gfud(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
-      chiorb_hf(index1(4),index2(4)) = chiorb_hf(index1(4),index2(4)) + weight*(gfuu(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
+      chiorb_hf(index1(4),index2(1)) = chiorb_hf(index1(4),index2(1)) + weight*(gfud(nu,gama,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfdu(gama,nu,j,i,1)))
+      chiorb_hf(index1(4),index2(2)) = chiorb_hf(index1(4),index2(2)) + weight*(gfuu(nu,gama,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfuu(gama,nu,j,i,1)))
+      chiorb_hf(index1(4),index2(3)) = chiorb_hf(index1(4),index2(3)) + weight*(gfud(nu,gama,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfdu(gama,nu,j,i,1)))
+      chiorb_hf(index1(4),index2(4)) = chiorb_hf(index1(4),index2(4)) + weight*(gfuu(nu,gama,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfuu(gama,nu,j,i,1)))
     end do; end do; end do; end do; end do; end do
     !call zaxpy(dimens*dimens,weight,df1,1,Fint,1)
     !Fint = Fint + df1*weight
@@ -140,28 +140,28 @@ subroutine eintshechi(q,e)
       gfdd(1:nOrb_i,1:nOrb_j,i,j,2) = gf(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
     end do; end do
 
-    do j=1,s%nAtoms; do i=1,s%nAtoms; do gamma=1,s%Types(s%Basis(j)%Material)%nOrb; do mu=1,s%Types(s%Basis(i)%Material)%nOrb; do xi=1,s%Types(s%Basis(j)%Material)%nOrb; do nu=1,s%Types(s%Basis(i)%Material)%nOrb
+    do j=1,s%nAtoms; do i=1,s%nAtoms; do gama=1,s%Types(s%Basis(j)%Material)%nOrb; do mu=1,s%Types(s%Basis(i)%Material)%nOrb; do xi=1,s%Types(s%Basis(j)%Material)%nOrb; do nu=1,s%Types(s%Basis(i)%Material)%nOrb
       index1(1:4) = sigmaimunu2i(1:4,i,mu,nu)
-      index2(1:4) = sigmaimunu2i(1:4,j,gamma,xi)
-      Fint(index1(1),index2(1)) = Fint(index1(1),index2(1)) - weight * cI*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-      Fint(index1(1),index2(2)) = Fint(index1(1),index2(2)) - weight * cI*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-      Fint(index1(1),index2(3)) = Fint(index1(1),index2(3)) - weight * cI*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
-      Fint(index1(1),index2(4)) = Fint(index1(1),index2(4)) - weight * cI*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+      index2(1:4) = sigmaimunu2i(1:4,j,gama,xi)
+      Fint(index1(1),index2(1)) = Fint(index1(1),index2(1)) - weight * cI*(gfdd(nu,gama,i,j,1) - conjg(gfdd(gama,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+      Fint(index1(1),index2(2)) = Fint(index1(1),index2(2)) - weight * cI*(gfdu(nu,gama,i,j,1) - conjg(gfud(gama,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+      Fint(index1(1),index2(3)) = Fint(index1(1),index2(3)) - weight * cI*(gfdd(nu,gama,i,j,1) - conjg(gfdd(gama,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+      Fint(index1(1),index2(4)) = Fint(index1(1),index2(4)) - weight * cI*(gfdu(nu,gama,i,j,1) - conjg(gfud(gama,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
 
-      Fint(index1(2),index2(1)) = Fint(index1(2),index2(1)) - weight * cI*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-      Fint(index1(2),index2(2)) = Fint(index1(2),index2(2)) - weight * cI*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-      Fint(index1(2),index2(3)) = Fint(index1(2),index2(3)) - weight * cI*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
-      Fint(index1(2),index2(4)) = Fint(index1(2),index2(4)) - weight * cI*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+      Fint(index1(2),index2(1)) = Fint(index1(2),index2(1)) - weight * cI*(gfud(nu,gama,i,j,1) - conjg(gfdu(gama,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+      Fint(index1(2),index2(2)) = Fint(index1(2),index2(2)) - weight * cI*(gfuu(nu,gama,i,j,1) - conjg(gfuu(gama,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+      Fint(index1(2),index2(3)) = Fint(index1(2),index2(3)) - weight * cI*(gfud(nu,gama,i,j,1) - conjg(gfdu(gama,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+      Fint(index1(2),index2(4)) = Fint(index1(2),index2(4)) - weight * cI*(gfuu(nu,gama,i,j,1) - conjg(gfuu(gama,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
 
-      Fint(index1(3),index2(1)) = Fint(index1(3),index2(1)) - weight * cI*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-      Fint(index1(3),index2(2)) = Fint(index1(3),index2(2)) - weight * cI*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-      Fint(index1(3),index2(3)) = Fint(index1(3),index2(3)) - weight * cI*(gfdd(nu,gamma,i,j,1) - conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
-      Fint(index1(3),index2(4)) = Fint(index1(3),index2(4)) - weight * cI*(gfdu(nu,gamma,i,j,1) - conjg(gfud(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+      Fint(index1(3),index2(1)) = Fint(index1(3),index2(1)) - weight * cI*(gfdd(nu,gama,i,j,1) - conjg(gfdd(gama,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+      Fint(index1(3),index2(2)) = Fint(index1(3),index2(2)) - weight * cI*(gfdu(nu,gama,i,j,1) - conjg(gfud(gama,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+      Fint(index1(3),index2(3)) = Fint(index1(3),index2(3)) - weight * cI*(gfdd(nu,gama,i,j,1) - conjg(gfdd(gama,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+      Fint(index1(3),index2(4)) = Fint(index1(3),index2(4)) - weight * cI*(gfdu(nu,gama,i,j,1) - conjg(gfud(gama,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
 
-      Fint(index1(4),index2(1)) = Fint(index1(4),index2(1)) - weight * cI*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-      Fint(index1(4),index2(2)) = Fint(index1(4),index2(2)) - weight * cI*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-      Fint(index1(4),index2(3)) = Fint(index1(4),index2(3)) - weight * cI*(gfud(nu,gamma,i,j,1) - conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
-      Fint(index1(4),index2(4)) = Fint(index1(4),index2(4)) - weight * cI*(gfuu(nu,gamma,i,j,1) - conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+      Fint(index1(4),index2(1)) = Fint(index1(4),index2(1)) - weight * cI*(gfud(nu,gama,i,j,1) - conjg(gfdu(gama,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+      Fint(index1(4),index2(2)) = Fint(index1(4),index2(2)) - weight * cI*(gfuu(nu,gama,i,j,1) - conjg(gfuu(gama,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+      Fint(index1(4),index2(3)) = Fint(index1(4),index2(3)) - weight * cI*(gfud(nu,gama,i,j,1) - conjg(gfdu(gama,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+      Fint(index1(4),index2(4)) = Fint(index1(4),index2(4)) - weight * cI*(gfuu(nu,gama,i,j,1) - conjg(gfuu(gama,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
     end do; end do; end do; end do; end do; end do
 
     ! Locally add up df1
@@ -194,7 +194,7 @@ subroutine eintshechilinearsoc(q,e)
   real(dp), intent(in) :: e,q(3)
 
   integer(int32), dimension(4) :: index1, index2
-  integer(int32) :: i,j,mu,nu,gamma,xi,nOrb_i,nOrb_j,nOrb2_i,nOrb2_j
+  integer(int32) :: i,j,mu,nu,gama,xi,nOrb_i,nOrb_j,nOrb2_i,nOrb2_j
   integer(int64) :: ix,ix2, nep, nkp
   real(dp) :: kp(3), kpq(3), ep
   real(dp) :: weight
@@ -224,7 +224,7 @@ subroutine eintshechilinearsoc(q,e)
   chiorb_hflsoc = cZero
 
   !$omp parallel default(none) &
-  !$omp& private(ix,ix2,i,j,mu,nu,nOrb_i,nOrb_j,nOrb2_i,nOrb2_j,nep,nkp,gamma,xi,kp,kpq,ep,weight,gf,gfq,gfuu,gfud,gfdu,gfdd,gvg,gvgq,gvguu,gvgud,gvgdu,gvgdd,index1,index2) &
+  !$omp& private(ix,ix2,i,j,mu,nu,nOrb_i,nOrb_j,nOrb2_i,nOrb2_j,nep,nkp,gama,xi,kp,kpq,ep,weight,gf,gfq,gfuu,gfud,gfdu,gfdd,gvg,gvgq,gvguu,gvgud,gvgdu,gvgdd,index1,index2) &
   !$omp& shared(local_points,s,bzs,realBZ,real_points,E_k_imag_mesh,q,e,y,wght,x2,p2,eta,etap,dimens,sigmaimunu2i,Fint,Fintlsoc,chiorb_hf,chiorb_hflsoc)
 
   ! Starting to calculate energy integral
@@ -266,49 +266,49 @@ subroutine eintshechilinearsoc(q,e)
       gvgdd(1:nOrb_i,1:nOrb_j,i,j,2) = gvg(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
     end do; end do
 
-    do j=1,s%nAtoms; do i=1,s%nAtoms; do gamma=1,s%Types(s%Basis(j)%Material)%nOrb; do mu=1,s%Types(s%Basis(i)%Material)%nOrb; do xi=1,s%Types(s%Basis(j)%Material)%nOrb; do nu=1,s%Types(s%Basis(i)%Material)%nOrb
+    do j=1,s%nAtoms; do i=1,s%nAtoms; do gama=1,s%Types(s%Basis(j)%Material)%nOrb; do mu=1,s%Types(s%Basis(i)%Material)%nOrb; do xi=1,s%Types(s%Basis(j)%Material)%nOrb; do nu=1,s%Types(s%Basis(i)%Material)%nOrb
       index1(1:4) = sigmaimunu2i(1:4,i,mu,nu)
-      index2(1:4) = sigmaimunu2i(1:4,j,gamma,xi)
-      chiorb_hf(index1(1),index2(1)) = chiorb_hf(index1(1),index2(1)) + weight*(gfdd(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
-      chiorb_hf(index1(1),index2(2)) = chiorb_hf(index1(1),index2(2)) + weight*(gfdu(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
-      chiorb_hf(index1(1),index2(3)) = chiorb_hf(index1(1),index2(3)) + weight*(gfdd(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
-      chiorb_hf(index1(1),index2(4)) = chiorb_hf(index1(1),index2(4)) + weight*(gfdu(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
+      index2(1:4) = sigmaimunu2i(1:4,j,gama,xi)
+      chiorb_hf(index1(1),index2(1)) = chiorb_hf(index1(1),index2(1)) + weight*(gfdd(nu,gama,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfdd(gama,nu,j,i,1)))
+      chiorb_hf(index1(1),index2(2)) = chiorb_hf(index1(1),index2(2)) + weight*(gfdu(nu,gama,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfud(gama,nu,j,i,1)))
+      chiorb_hf(index1(1),index2(3)) = chiorb_hf(index1(1),index2(3)) + weight*(gfdd(nu,gama,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfdd(gama,nu,j,i,1)))
+      chiorb_hf(index1(1),index2(4)) = chiorb_hf(index1(1),index2(4)) + weight*(gfdu(nu,gama,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfud(gama,nu,j,i,1)))
 
-      chiorb_hf(index1(2),index2(1)) = chiorb_hf(index1(2),index2(1)) + weight*(gfud(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
-      chiorb_hf(index1(2),index2(2)) = chiorb_hf(index1(2),index2(2)) + weight*(gfuu(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
-      chiorb_hf(index1(2),index2(3)) = chiorb_hf(index1(2),index2(3)) + weight*(gfud(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
-      chiorb_hf(index1(2),index2(4)) = chiorb_hf(index1(2),index2(4)) + weight*(gfuu(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
+      chiorb_hf(index1(2),index2(1)) = chiorb_hf(index1(2),index2(1)) + weight*(gfud(nu,gama,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfdu(gama,nu,j,i,1)))
+      chiorb_hf(index1(2),index2(2)) = chiorb_hf(index1(2),index2(2)) + weight*(gfuu(nu,gama,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gfuu(gama,nu,j,i,1)))
+      chiorb_hf(index1(2),index2(3)) = chiorb_hf(index1(2),index2(3)) + weight*(gfud(nu,gama,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfdu(gama,nu,j,i,1)))
+      chiorb_hf(index1(2),index2(4)) = chiorb_hf(index1(2),index2(4)) + weight*(gfuu(nu,gama,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gfuu(gama,nu,j,i,1)))
 
-      chiorb_hf(index1(3),index2(1)) = chiorb_hf(index1(3),index2(1)) + weight*(gfdd(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
-      chiorb_hf(index1(3),index2(2)) = chiorb_hf(index1(3),index2(2)) + weight*(gfdu(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
-      chiorb_hf(index1(3),index2(3)) = chiorb_hf(index1(3),index2(3)) + weight*(gfdd(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1)))
-      chiorb_hf(index1(3),index2(4)) = chiorb_hf(index1(3),index2(4)) + weight*(gfdu(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1)))
+      chiorb_hf(index1(3),index2(1)) = chiorb_hf(index1(3),index2(1)) + weight*(gfdd(nu,gama,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfdd(gama,nu,j,i,1)))
+      chiorb_hf(index1(3),index2(2)) = chiorb_hf(index1(3),index2(2)) + weight*(gfdu(nu,gama,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfud(gama,nu,j,i,1)))
+      chiorb_hf(index1(3),index2(3)) = chiorb_hf(index1(3),index2(3)) + weight*(gfdd(nu,gama,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfdd(gama,nu,j,i,1)))
+      chiorb_hf(index1(3),index2(4)) = chiorb_hf(index1(3),index2(4)) + weight*(gfdu(nu,gama,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfud(gama,nu,j,i,1)))
 
-      chiorb_hf(index1(4),index2(1)) = chiorb_hf(index1(4),index2(1)) + weight*(gfud(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
-      chiorb_hf(index1(4),index2(2)) = chiorb_hf(index1(4),index2(2)) + weight*(gfuu(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
-      chiorb_hf(index1(4),index2(3)) = chiorb_hf(index1(4),index2(3)) + weight*(gfud(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1)))
-      chiorb_hf(index1(4),index2(4)) = chiorb_hf(index1(4),index2(4)) + weight*(gfuu(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1)))
+      chiorb_hf(index1(4),index2(1)) = chiorb_hf(index1(4),index2(1)) + weight*(gfud(nu,gama,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfdu(gama,nu,j,i,1)))
+      chiorb_hf(index1(4),index2(2)) = chiorb_hf(index1(4),index2(2)) + weight*(gfuu(nu,gama,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gfuu(gama,nu,j,i,1)))
+      chiorb_hf(index1(4),index2(3)) = chiorb_hf(index1(4),index2(3)) + weight*(gfud(nu,gama,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfdu(gama,nu,j,i,1)))
+      chiorb_hf(index1(4),index2(4)) = chiorb_hf(index1(4),index2(4)) + weight*(gfuu(nu,gama,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gfuu(gama,nu,j,i,1)))
 
 
-      chiorb_hflsoc(index1(1),index2(1)) = chiorb_hflsoc(index1(1),index2(1)) + weight*(gvgdd(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gvguu(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1))  +  gfdd(nu,gamma,i,j,1)*gvguu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gvgdd(gamma,nu,j,i,1)))
-      chiorb_hflsoc(index1(1),index2(2)) = chiorb_hflsoc(index1(1),index2(2)) + weight*(gvgdu(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gvguu(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1))  +  gfdu(nu,gamma,i,j,1)*gvguu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gvgud(gamma,nu,j,i,1)))
-      chiorb_hflsoc(index1(1),index2(3)) = chiorb_hflsoc(index1(1),index2(3)) + weight*(gvgdd(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gvgud(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1))  +  gfdd(nu,gamma,i,j,1)*gvgdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gvgdd(gamma,nu,j,i,1)))
-      chiorb_hflsoc(index1(1),index2(4)) = chiorb_hflsoc(index1(1),index2(4)) + weight*(gvgdu(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gvgud(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1))  +  gfdu(nu,gamma,i,j,1)*gvgdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gvgud(gamma,nu,j,i,1)))
+      chiorb_hflsoc(index1(1),index2(1)) = chiorb_hflsoc(index1(1),index2(1)) + weight*(gvgdd(nu,gama,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gvguu(mu,xi,i,j,2)*gfdd(gama,nu,j,i,1))  +  gfdd(nu,gama,i,j,1)*gvguu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gvgdd(gama,nu,j,i,1)))
+      chiorb_hflsoc(index1(1),index2(2)) = chiorb_hflsoc(index1(1),index2(2)) + weight*(gvgdu(nu,gama,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gvguu(mu,xi,i,j,2)*gfud(gama,nu,j,i,1))  +  gfdu(nu,gama,i,j,1)*gvguu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gvgud(gama,nu,j,i,1)))
+      chiorb_hflsoc(index1(1),index2(3)) = chiorb_hflsoc(index1(1),index2(3)) + weight*(gvgdd(nu,gama,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gvgud(mu,xi,i,j,2)*gfdd(gama,nu,j,i,1))  +  gfdd(nu,gama,i,j,1)*gvgdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gvgdd(gama,nu,j,i,1)))
+      chiorb_hflsoc(index1(1),index2(4)) = chiorb_hflsoc(index1(1),index2(4)) + weight*(gvgdu(nu,gama,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gvgud(mu,xi,i,j,2)*gfud(gama,nu,j,i,1))  +  gfdu(nu,gama,i,j,1)*gvgdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gvgud(gama,nu,j,i,1)))
 
-      chiorb_hflsoc(index1(2),index2(1)) = chiorb_hflsoc(index1(2),index2(1)) + weight*(gvgud(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gvguu(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1))  +  gfud(nu,gamma,i,j,1)*gvguu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gvgdu(gamma,nu,j,i,1)))
-      chiorb_hflsoc(index1(2),index2(2)) = chiorb_hflsoc(index1(2),index2(2)) + weight*(gvguu(nu,gamma,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gvguu(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1))  +  gfuu(nu,gamma,i,j,1)*gvguu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gvguu(gamma,nu,j,i,1)))
-      chiorb_hflsoc(index1(2),index2(3)) = chiorb_hflsoc(index1(2),index2(3)) + weight*(gvgud(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gvgud(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1))  +  gfud(nu,gamma,i,j,1)*gvgdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gvgdu(gamma,nu,j,i,1)))
-      chiorb_hflsoc(index1(2),index2(4)) = chiorb_hflsoc(index1(2),index2(4)) + weight*(gvguu(nu,gamma,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gvgud(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1))  +  gfuu(nu,gamma,i,j,1)*gvgdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gvguu(gamma,nu,j,i,1)))
+      chiorb_hflsoc(index1(2),index2(1)) = chiorb_hflsoc(index1(2),index2(1)) + weight*(gvgud(nu,gama,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gvguu(mu,xi,i,j,2)*gfdu(gama,nu,j,i,1))  +  gfud(nu,gama,i,j,1)*gvguu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gvgdu(gama,nu,j,i,1)))
+      chiorb_hflsoc(index1(2),index2(2)) = chiorb_hflsoc(index1(2),index2(2)) + weight*(gvguu(nu,gama,i,j,1)*gfuu(xi,mu,j,i,2) + conjg(gvguu(mu,xi,i,j,2)*gfuu(gama,nu,j,i,1))  +  gfuu(nu,gama,i,j,1)*gvguu(xi,mu,j,i,2) + conjg(gfuu(mu,xi,i,j,2)*gvguu(gama,nu,j,i,1)))
+      chiorb_hflsoc(index1(2),index2(3)) = chiorb_hflsoc(index1(2),index2(3)) + weight*(gvgud(nu,gama,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gvgud(mu,xi,i,j,2)*gfdu(gama,nu,j,i,1))  +  gfud(nu,gama,i,j,1)*gvgdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gvgdu(gama,nu,j,i,1)))
+      chiorb_hflsoc(index1(2),index2(4)) = chiorb_hflsoc(index1(2),index2(4)) + weight*(gvguu(nu,gama,i,j,1)*gfdu(xi,mu,j,i,2) + conjg(gvgud(mu,xi,i,j,2)*gfuu(gama,nu,j,i,1))  +  gfuu(nu,gama,i,j,1)*gvgdu(xi,mu,j,i,2) + conjg(gfud(mu,xi,i,j,2)*gvguu(gama,nu,j,i,1)))
 
-      chiorb_hflsoc(index1(3),index2(1)) = chiorb_hflsoc(index1(3),index2(1)) + weight*(gvgdd(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gvgdu(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1))  +  gfdd(nu,gamma,i,j,1)*gvgud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gvgdd(gamma,nu,j,i,1)))
-      chiorb_hflsoc(index1(3),index2(2)) = chiorb_hflsoc(index1(3),index2(2)) + weight*(gvgdu(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gvgdu(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1))  +  gfdu(nu,gamma,i,j,1)*gvgud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gvgud(gamma,nu,j,i,1)))
-      chiorb_hflsoc(index1(3),index2(3)) = chiorb_hflsoc(index1(3),index2(3)) + weight*(gvgdd(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gvgdd(mu,xi,i,j,2)*gfdd(gamma,nu,j,i,1))  +  gfdd(nu,gamma,i,j,1)*gvgdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gvgdd(gamma,nu,j,i,1)))
-      chiorb_hflsoc(index1(3),index2(4)) = chiorb_hflsoc(index1(3),index2(4)) + weight*(gvgdu(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gvgdd(mu,xi,i,j,2)*gfud(gamma,nu,j,i,1))  +  gfdu(nu,gamma,i,j,1)*gvgdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gvgud(gamma,nu,j,i,1)))
+      chiorb_hflsoc(index1(3),index2(1)) = chiorb_hflsoc(index1(3),index2(1)) + weight*(gvgdd(nu,gama,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gvgdu(mu,xi,i,j,2)*gfdd(gama,nu,j,i,1))  +  gfdd(nu,gama,i,j,1)*gvgud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gvgdd(gama,nu,j,i,1)))
+      chiorb_hflsoc(index1(3),index2(2)) = chiorb_hflsoc(index1(3),index2(2)) + weight*(gvgdu(nu,gama,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gvgdu(mu,xi,i,j,2)*gfud(gama,nu,j,i,1))  +  gfdu(nu,gama,i,j,1)*gvgud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gvgud(gama,nu,j,i,1)))
+      chiorb_hflsoc(index1(3),index2(3)) = chiorb_hflsoc(index1(3),index2(3)) + weight*(gvgdd(nu,gama,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gvgdd(mu,xi,i,j,2)*gfdd(gama,nu,j,i,1))  +  gfdd(nu,gama,i,j,1)*gvgdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gvgdd(gama,nu,j,i,1)))
+      chiorb_hflsoc(index1(3),index2(4)) = chiorb_hflsoc(index1(3),index2(4)) + weight*(gvgdu(nu,gama,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gvgdd(mu,xi,i,j,2)*gfud(gama,nu,j,i,1))  +  gfdu(nu,gama,i,j,1)*gvgdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gvgud(gama,nu,j,i,1)))
 
-      chiorb_hflsoc(index1(4),index2(1)) = chiorb_hflsoc(index1(4),index2(1)) + weight*(gvgud(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gvgdu(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1))  +  gfud(nu,gamma,i,j,1)*gvgud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gvgdu(gamma,nu,j,i,1)))
-      chiorb_hflsoc(index1(4),index2(2)) = chiorb_hflsoc(index1(4),index2(2)) + weight*(gvguu(nu,gamma,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gvgdu(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1))  +  gfuu(nu,gamma,i,j,1)*gvgud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gvguu(gamma,nu,j,i,1)))
-      chiorb_hflsoc(index1(4),index2(3)) = chiorb_hflsoc(index1(4),index2(3)) + weight*(gvgud(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gvgdd(mu,xi,i,j,2)*gfdu(gamma,nu,j,i,1))  +  gfud(nu,gamma,i,j,1)*gvgdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gvgdu(gamma,nu,j,i,1)))
-      chiorb_hflsoc(index1(4),index2(4)) = chiorb_hflsoc(index1(4),index2(4)) + weight*(gvguu(nu,gamma,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gvgdd(mu,xi,i,j,2)*gfuu(gamma,nu,j,i,1))  +  gfuu(nu,gamma,i,j,1)*gvgdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gvguu(gamma,nu,j,i,1)))
+      chiorb_hflsoc(index1(4),index2(1)) = chiorb_hflsoc(index1(4),index2(1)) + weight*(gvgud(nu,gama,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gvgdu(mu,xi,i,j,2)*gfdu(gama,nu,j,i,1))  +  gfud(nu,gama,i,j,1)*gvgud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gvgdu(gama,nu,j,i,1)))
+      chiorb_hflsoc(index1(4),index2(2)) = chiorb_hflsoc(index1(4),index2(2)) + weight*(gvguu(nu,gama,i,j,1)*gfud(xi,mu,j,i,2) + conjg(gvgdu(mu,xi,i,j,2)*gfuu(gama,nu,j,i,1))  +  gfuu(nu,gama,i,j,1)*gvgud(xi,mu,j,i,2) + conjg(gfdu(mu,xi,i,j,2)*gvguu(gama,nu,j,i,1)))
+      chiorb_hflsoc(index1(4),index2(3)) = chiorb_hflsoc(index1(4),index2(3)) + weight*(gvgud(nu,gama,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gvgdd(mu,xi,i,j,2)*gfdu(gama,nu,j,i,1))  +  gfud(nu,gama,i,j,1)*gvgdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gvgdu(gama,nu,j,i,1)))
+      chiorb_hflsoc(index1(4),index2(4)) = chiorb_hflsoc(index1(4),index2(4)) + weight*(gvguu(nu,gama,i,j,1)*gfdd(xi,mu,j,i,2) + conjg(gvgdd(mu,xi,i,j,2)*gfuu(gama,nu,j,i,1))  +  gfuu(nu,gama,i,j,1)*gvgdd(xi,mu,j,i,2) + conjg(gfdd(mu,xi,i,j,2)*gvguu(gama,nu,j,i,1)))
     end do; end do; end do; end do; end do; end do
 
     ! Fint = Fint + df1 * weight
@@ -357,49 +357,49 @@ subroutine eintshechilinearsoc(q,e)
       gvgdd(1:nOrb_i,1:nOrb_j,i,j,2) = gvg(nOrb_i+1:nOrb2_i,nOrb_j+1:nOrb2_j,i,j)
     end do; end do
 
-    do j=1,s%nAtoms; do i=1,s%nAtoms; do gamma=1,s%Types(s%Basis(j)%Material)%nOrb; do mu=1,s%Types(s%Basis(i)%Material)%nOrb; do xi=1,s%Types(s%Basis(j)%Material)%nOrb; do nu=1,s%Types(s%Basis(i)%Material)%nOrb
+    do j=1,s%nAtoms; do i=1,s%nAtoms; do gama=1,s%Types(s%Basis(j)%Material)%nOrb; do mu=1,s%Types(s%Basis(i)%Material)%nOrb; do xi=1,s%Types(s%Basis(j)%Material)%nOrb; do nu=1,s%Types(s%Basis(i)%Material)%nOrb
       index1(1:4) = sigmaimunu2i(1:4,i,mu,nu)
-      index2(1:4) = sigmaimunu2i(1:4,j,gamma,xi)
-      Fint(index1(1),index2(1)) = Fint(index1(1),index2(1)) - weight * cI*(gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-      Fint(index1(1),index2(2)) = Fint(index1(1),index2(2)) - weight * cI*(gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-      Fint(index1(1),index2(3)) = Fint(index1(1),index2(3)) - weight * cI*(gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
-      Fint(index1(1),index2(4)) = Fint(index1(1),index2(4)) - weight * cI*(gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+      index2(1:4) = sigmaimunu2i(1:4,j,gama,xi)
+      Fint(index1(1),index2(1)) = Fint(index1(1),index2(1)) - weight * cI*(gfdd(nu,gama,i,j,1)-conjg(gfdd(gama,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+      Fint(index1(1),index2(2)) = Fint(index1(1),index2(2)) - weight * cI*(gfdu(nu,gama,i,j,1)-conjg(gfud(gama,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+      Fint(index1(1),index2(3)) = Fint(index1(1),index2(3)) - weight * cI*(gfdd(nu,gama,i,j,1)-conjg(gfdd(gama,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+      Fint(index1(1),index2(4)) = Fint(index1(1),index2(4)) - weight * cI*(gfdu(nu,gama,i,j,1)-conjg(gfud(gama,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
 
-      Fint(index1(2),index2(1)) = Fint(index1(2),index2(1)) - weight * cI*(gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-      Fint(index1(2),index2(2)) = Fint(index1(2),index2(2)) - weight * cI*(gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
-      Fint(index1(2),index2(3)) = Fint(index1(2),index2(3)) - weight * cI*(gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
-      Fint(index1(2),index2(4)) = Fint(index1(2),index2(4)) - weight * cI*(gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+      Fint(index1(2),index2(1)) = Fint(index1(2),index2(1)) - weight * cI*(gfud(nu,gama,i,j,1)-conjg(gfdu(gama,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+      Fint(index1(2),index2(2)) = Fint(index1(2),index2(2)) - weight * cI*(gfuu(nu,gama,i,j,1)-conjg(gfuu(gama,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))
+      Fint(index1(2),index2(3)) = Fint(index1(2),index2(3)) - weight * cI*(gfud(nu,gama,i,j,1)-conjg(gfdu(gama,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
+      Fint(index1(2),index2(4)) = Fint(index1(2),index2(4)) - weight * cI*(gfuu(nu,gama,i,j,1)-conjg(gfuu(gama,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))
 
-      Fint(index1(3),index2(1)) = Fint(index1(3),index2(1)) - weight * cI*(gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-      Fint(index1(3),index2(2)) = Fint(index1(3),index2(2)) - weight * cI*(gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-      Fint(index1(3),index2(3)) = Fint(index1(3),index2(3)) - weight * cI*(gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
-      Fint(index1(3),index2(4)) = Fint(index1(3),index2(4)) - weight * cI*(gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+      Fint(index1(3),index2(1)) = Fint(index1(3),index2(1)) - weight * cI*(gfdd(nu,gama,i,j,1)-conjg(gfdd(gama,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+      Fint(index1(3),index2(2)) = Fint(index1(3),index2(2)) - weight * cI*(gfdu(nu,gama,i,j,1)-conjg(gfud(gama,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+      Fint(index1(3),index2(3)) = Fint(index1(3),index2(3)) - weight * cI*(gfdd(nu,gama,i,j,1)-conjg(gfdd(gama,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+      Fint(index1(3),index2(4)) = Fint(index1(3),index2(4)) - weight * cI*(gfdu(nu,gama,i,j,1)-conjg(gfud(gama,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
 
-      Fint(index1(4),index2(1)) = Fint(index1(4),index2(1)) - weight * cI*(gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-      Fint(index1(4),index2(2)) = Fint(index1(4),index2(2)) - weight * cI*(gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
-      Fint(index1(4),index2(3)) = Fint(index1(4),index2(3)) - weight * cI*(gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
-      Fint(index1(4),index2(4)) = Fint(index1(4),index2(4)) - weight * cI*(gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+      Fint(index1(4),index2(1)) = Fint(index1(4),index2(1)) - weight * cI*(gfud(nu,gama,i,j,1)-conjg(gfdu(gama,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+      Fint(index1(4),index2(2)) = Fint(index1(4),index2(2)) - weight * cI*(gfuu(nu,gama,i,j,1)-conjg(gfuu(gama,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))
+      Fint(index1(4),index2(3)) = Fint(index1(4),index2(3)) - weight * cI*(gfud(nu,gama,i,j,1)-conjg(gfdu(gama,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
+      Fint(index1(4),index2(4)) = Fint(index1(4),index2(4)) - weight * cI*(gfuu(nu,gama,i,j,1)-conjg(gfuu(gama,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))
 
 
-      Fintlsoc(index1(1),index2(1)) = Fintlsoc(index1(1),index2(1)) - weight * cI*((gvgdd(nu,gamma,i,j,1)-conjg(gvgdd(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))  +  (gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gvguu(mu,xi,i,j,2)))
-      Fintlsoc(index1(1),index2(2)) = Fintlsoc(index1(1),index2(2)) - weight * cI*((gvgdu(nu,gamma,i,j,1)-conjg(gvgud(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))  +  (gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gvguu(mu,xi,i,j,2)))
-      Fintlsoc(index1(1),index2(3)) = Fintlsoc(index1(1),index2(3)) - weight * cI*((gvgdd(nu,gamma,i,j,1)-conjg(gvgdd(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))  +  (gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gvgud(mu,xi,i,j,2)))
-      Fintlsoc(index1(1),index2(4)) = Fintlsoc(index1(1),index2(4)) - weight * cI*((gvgdu(nu,gamma,i,j,1)-conjg(gvgud(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))  +  (gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gvgud(mu,xi,i,j,2)))
+      Fintlsoc(index1(1),index2(1)) = Fintlsoc(index1(1),index2(1)) - weight * cI*((gvgdd(nu,gama,i,j,1)-conjg(gvgdd(gama,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))  +  (gfdd(nu,gama,i,j,1)-conjg(gfdd(gama,nu,j,i,1)))*conjg(gvguu(mu,xi,i,j,2)))
+      Fintlsoc(index1(1),index2(2)) = Fintlsoc(index1(1),index2(2)) - weight * cI*((gvgdu(nu,gama,i,j,1)-conjg(gvgud(gama,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))  +  (gfdu(nu,gama,i,j,1)-conjg(gfud(gama,nu,j,i,1)))*conjg(gvguu(mu,xi,i,j,2)))
+      Fintlsoc(index1(1),index2(3)) = Fintlsoc(index1(1),index2(3)) - weight * cI*((gvgdd(nu,gama,i,j,1)-conjg(gvgdd(gama,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))  +  (gfdd(nu,gama,i,j,1)-conjg(gfdd(gama,nu,j,i,1)))*conjg(gvgud(mu,xi,i,j,2)))
+      Fintlsoc(index1(1),index2(4)) = Fintlsoc(index1(1),index2(4)) - weight * cI*((gvgdu(nu,gama,i,j,1)-conjg(gvgud(gama,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))  +  (gfdu(nu,gama,i,j,1)-conjg(gfud(gama,nu,j,i,1)))*conjg(gvgud(mu,xi,i,j,2)))
 
-      Fintlsoc(index1(2),index2(1)) = Fintlsoc(index1(2),index2(1)) - weight * cI*((gvgud(nu,gamma,i,j,1)-conjg(gvgdu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))  +  (gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gvguu(mu,xi,i,j,2)))
-      Fintlsoc(index1(2),index2(2)) = Fintlsoc(index1(2),index2(2)) - weight * cI*((gvguu(nu,gamma,i,j,1)-conjg(gvguu(gamma,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))  +  (gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gvguu(mu,xi,i,j,2)))
-      Fintlsoc(index1(2),index2(3)) = Fintlsoc(index1(2),index2(3)) - weight * cI*((gvgud(nu,gamma,i,j,1)-conjg(gvgdu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))  +  (gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gvgud(mu,xi,i,j,2)))
-      Fintlsoc(index1(2),index2(4)) = Fintlsoc(index1(2),index2(4)) - weight * cI*((gvguu(nu,gamma,i,j,1)-conjg(gvguu(gamma,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))  +  (gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gvgud(mu,xi,i,j,2)))
+      Fintlsoc(index1(2),index2(1)) = Fintlsoc(index1(2),index2(1)) - weight * cI*((gvgud(nu,gama,i,j,1)-conjg(gvgdu(gama,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))  +  (gfud(nu,gama,i,j,1)-conjg(gfdu(gama,nu,j,i,1)))*conjg(gvguu(mu,xi,i,j,2)))
+      Fintlsoc(index1(2),index2(2)) = Fintlsoc(index1(2),index2(2)) - weight * cI*((gvguu(nu,gama,i,j,1)-conjg(gvguu(gama,nu,j,i,1)))*conjg(gfuu(mu,xi,i,j,2))  +  (gfuu(nu,gama,i,j,1)-conjg(gfuu(gama,nu,j,i,1)))*conjg(gvguu(mu,xi,i,j,2)))
+      Fintlsoc(index1(2),index2(3)) = Fintlsoc(index1(2),index2(3)) - weight * cI*((gvgud(nu,gama,i,j,1)-conjg(gvgdu(gama,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))  +  (gfud(nu,gama,i,j,1)-conjg(gfdu(gama,nu,j,i,1)))*conjg(gvgud(mu,xi,i,j,2)))
+      Fintlsoc(index1(2),index2(4)) = Fintlsoc(index1(2),index2(4)) - weight * cI*((gvguu(nu,gama,i,j,1)-conjg(gvguu(gama,nu,j,i,1)))*conjg(gfud(mu,xi,i,j,2))  +  (gfuu(nu,gama,i,j,1)-conjg(gfuu(gama,nu,j,i,1)))*conjg(gvgud(mu,xi,i,j,2)))
 
-      Fintlsoc(index1(3),index2(1)) = Fintlsoc(index1(3),index2(1)) - weight * cI*((gvgdd(nu,gamma,i,j,1)-conjg(gvgdd(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))  +  (gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gvgdu(mu,xi,i,j,2)))
-      Fintlsoc(index1(3),index2(2)) = Fintlsoc(index1(3),index2(2)) - weight * cI*((gvgdu(nu,gamma,i,j,1)-conjg(gvgud(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))  +  (gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gvgdu(mu,xi,i,j,2)))
-      Fintlsoc(index1(3),index2(3)) = Fintlsoc(index1(3),index2(3)) - weight * cI*((gvgdd(nu,gamma,i,j,1)-conjg(gvgdd(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))  +  (gfdd(nu,gamma,i,j,1)-conjg(gfdd(gamma,nu,j,i,1)))*conjg(gvgdd(mu,xi,i,j,2)))
-      Fintlsoc(index1(3),index2(4)) = Fintlsoc(index1(3),index2(4)) - weight * cI*((gvgdu(nu,gamma,i,j,1)-conjg(gvgud(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))  +  (gfdu(nu,gamma,i,j,1)-conjg(gfud(gamma,nu,j,i,1)))*conjg(gvgdd(mu,xi,i,j,2)))
+      Fintlsoc(index1(3),index2(1)) = Fintlsoc(index1(3),index2(1)) - weight * cI*((gvgdd(nu,gama,i,j,1)-conjg(gvgdd(gama,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))  +  (gfdd(nu,gama,i,j,1)-conjg(gfdd(gama,nu,j,i,1)))*conjg(gvgdu(mu,xi,i,j,2)))
+      Fintlsoc(index1(3),index2(2)) = Fintlsoc(index1(3),index2(2)) - weight * cI*((gvgdu(nu,gama,i,j,1)-conjg(gvgud(gama,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))  +  (gfdu(nu,gama,i,j,1)-conjg(gfud(gama,nu,j,i,1)))*conjg(gvgdu(mu,xi,i,j,2)))
+      Fintlsoc(index1(3),index2(3)) = Fintlsoc(index1(3),index2(3)) - weight * cI*((gvgdd(nu,gama,i,j,1)-conjg(gvgdd(gama,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))  +  (gfdd(nu,gama,i,j,1)-conjg(gfdd(gama,nu,j,i,1)))*conjg(gvgdd(mu,xi,i,j,2)))
+      Fintlsoc(index1(3),index2(4)) = Fintlsoc(index1(3),index2(4)) - weight * cI*((gvgdu(nu,gama,i,j,1)-conjg(gvgud(gama,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))  +  (gfdu(nu,gama,i,j,1)-conjg(gfud(gama,nu,j,i,1)))*conjg(gvgdd(mu,xi,i,j,2)))
 
-      Fintlsoc(index1(4),index2(1)) = Fintlsoc(index1(4),index2(1)) - weight * cI*((gvgud(nu,gamma,i,j,1)-conjg(gvgdu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))  +  (gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gvgdu(mu,xi,i,j,2)))
-      Fintlsoc(index1(4),index2(2)) = Fintlsoc(index1(4),index2(2)) - weight * cI*((gvguu(nu,gamma,i,j,1)-conjg(gvguu(gamma,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))  +  (gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gvgdu(mu,xi,i,j,2)))
-      Fintlsoc(index1(4),index2(3)) = Fintlsoc(index1(4),index2(3)) - weight * cI*((gvgud(nu,gamma,i,j,1)-conjg(gvgdu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))  +  (gfud(nu,gamma,i,j,1)-conjg(gfdu(gamma,nu,j,i,1)))*conjg(gvgdd(mu,xi,i,j,2)))
-      Fintlsoc(index1(4),index2(4)) = Fintlsoc(index1(4),index2(4)) - weight * cI*((gvguu(nu,gamma,i,j,1)-conjg(gvguu(gamma,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))  +  (gfuu(nu,gamma,i,j,1)-conjg(gfuu(gamma,nu,j,i,1)))*conjg(gvgdd(mu,xi,i,j,2)))
+      Fintlsoc(index1(4),index2(1)) = Fintlsoc(index1(4),index2(1)) - weight * cI*((gvgud(nu,gama,i,j,1)-conjg(gvgdu(gama,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))  +  (gfud(nu,gama,i,j,1)-conjg(gfdu(gama,nu,j,i,1)))*conjg(gvgdu(mu,xi,i,j,2)))
+      Fintlsoc(index1(4),index2(2)) = Fintlsoc(index1(4),index2(2)) - weight * cI*((gvguu(nu,gama,i,j,1)-conjg(gvguu(gama,nu,j,i,1)))*conjg(gfdu(mu,xi,i,j,2))  +  (gfuu(nu,gama,i,j,1)-conjg(gfuu(gama,nu,j,i,1)))*conjg(gvgdu(mu,xi,i,j,2)))
+      Fintlsoc(index1(4),index2(3)) = Fintlsoc(index1(4),index2(3)) - weight * cI*((gvgud(nu,gama,i,j,1)-conjg(gvgdu(gama,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))  +  (gfud(nu,gama,i,j,1)-conjg(gfdu(gama,nu,j,i,1)))*conjg(gvgdd(mu,xi,i,j,2)))
+      Fintlsoc(index1(4),index2(4)) = Fintlsoc(index1(4),index2(4)) - weight * cI*((gvguu(nu,gama,i,j,1)-conjg(gvguu(gama,nu,j,i,1)))*conjg(gfdd(mu,xi,i,j,2))  +  (gfuu(nu,gama,i,j,1)-conjg(gfuu(gama,nu,j,i,1)))*conjg(gvgdd(mu,xi,i,j,2)))
     end do; end do; end do; end do; end do; end do
   end do
   !$omp end do nowait

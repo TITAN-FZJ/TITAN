@@ -101,16 +101,16 @@ contains
     complex(dp), dimension(s%nOrb ,s%nOrb ,s%nAtoms), device :: onSite_d
     complex(dp), dimension(s%nOrb2,s%nOrb2,s%nAtoms), device :: lb_d,sb_d,hee_d,ls_d
     integer :: i,j,mu,nOrb_i,nOrb2_i
-    integer, device :: nOrb_d(s%nAtoms)
+    integer, device :: nOrb_d(s%nAtoms),nOrb2_d(s%nAtoms)
 
     if(.not.allocated(h0_d)) allocate( h0_d(dimHsc, dimHsc) )
 
     h0_d = cZero
 
+    ! Copying variables to device
     do i=1,s%nAtoms
-      nOrb_d(i) = nOrb_i
-      nOrb_i  = s%Types(s%Basis(i)%Material)%nOrb
-      nOrb2_i = s%Types(s%Basis(i)%Material)%nOrb2
+      nOrb_d(i) = s%Types(s%Basis(i)%Material)%nOrb
+      nOrb2_d(i) = s%Types(s%Basis(i)%Material)%nOrb2
       onSite_d(:,:,i) = s%Basis(i)%onSite(1:nOrb_i,1:nOrb_i)
       ! s%Basis(i)%sb_d(1:nOrb2_i,1:nOrb2_i) = s%Basis(i)%sb(1:nOrb2_i,1:nOrb2_i)
       ! s%Basis(i)%lb_d(1:nOrb2_i,1:nOrb2_i) = s%Basis(i)%lb(1:nOrb2_i,1:nOrb2_i)
@@ -126,17 +126,16 @@ contains
     ! On-site terms
     !$cuf kernel do <<< *, * >>>
     do i=1,s%nAtoms
-      nOrb2_i = s%Types(s%Basis(i)%Material)%nOrb2
       ! spin-up on-site tight-binding term
       h0_d(ia_d(1,i):ia_d(2,i),ia_d(1,i):ia_d(2,i)) = onSite_d(:,:,i)
       ! spin-down on-site tight-binding term
       h0_d(ia_d(3,i):ia_d(4,i),ia_d(3,i):ia_d(4,i)) = onSite_d(:,:,i)
       ! External magnetic field (orbital + spin) + Electron-electron interaction (Hubbard) + Spin-orbit coupling
       h0_d(ia_d(1,i):ia_d(4,i),ia_d(1,i):ia_d(4,i)) = h0_d (ia_d(1,i):ia_d(4,i), ia_d(1,i):ia_d(4,i)) &
-                                                    + lb_d (1:nOrb2_i,1:nOrb2_i,i) &
-                                                    + sb_d (1:nOrb2_i,1:nOrb2_i,i) &
-                                                    + hee_d(1:nOrb2_i,1:nOrb2_i,i) &
-                                                    + ls_d (1:nOrb2_i,1:nOrb2_i,i)
+                                                    + lb_d (1:nOrb2_d(i),1:nOrb2_d(i),i) &
+                                                    + sb_d (1:nOrb2_d(i),1:nOrb2_d(i),i) &
+                                                    + hee_d(1:nOrb2_d(i),1:nOrb2_d(i),i) &
+                                                    + ls_d (1:nOrb2_d(i),1:nOrb2_d(i),i)
     end do
 
     ! The form of the superconducting hamiltonian depends on a series of decisions,

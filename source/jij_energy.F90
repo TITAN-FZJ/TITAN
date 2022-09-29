@@ -25,7 +25,6 @@ subroutine jij_energy(q,Jij)
   real(dp) :: kp(3),kmq(3),kpq(3),ep
   real(dp) :: evec(3,s%nAtoms)
   real(dp) :: weight, fermi
-  integer(int32) :: po,mo
   complex(dp), dimension(s%nAtoms,3,s%nOrb2,s%nOrb2)        :: dBxc_dm
   complex(dp), dimension(s%nAtoms,3,3,s%nOrb2,s%nOrb2)      :: d2Bxc_dm2
   complex(dp), dimension(s%nAtoms,s%nOrb2,s%nOrb2)          :: paulievec
@@ -71,7 +70,7 @@ subroutine jij_energy(q,Jij)
   Jij = cZero
 
   !$omp parallel default(none) &
-  !$omp& private(ix,i,j,po,mo,mu,nu,nOrb2_i,nOrb2_j,alpha,kp,ep,weight,kmq,kpq,gf,gfmq,gfpq,gij,gjim,gjip,paulia,paulib,pauli_star,temp1,temp1m,temp1p,temp2,Jijkan,Jijk,Jijint,geh,ghem,ghep) &
+  !$omp& private(ix,i,j,mu,nu,nOrb2_i,nOrb2_j,alpha,kp,ep,weight,kmq,kpq,gf,gfmq,gfpq,gij,gjim,gjip,paulia,paulib,pauli_star,temp1,temp1m,temp1p,temp2,Jijkan,Jijk,Jijint,geh,ghem,ghep) &
   !$omp& shared(s,fermi,lsuperCond,eta,y,wght,q,local_points,dBxc_dm,d2Bxc_dm2,Jij,bzs,E_k_imag_mesh,paulievec)
 
   Jijint = cZero

@@ -34,7 +34,7 @@ subroutine coupling()
     call jij_energy(q,Jij)
 
     if(rField == 0) then
-      ! Print only Gamma point (and only once)
+      ! Print only gama point (and only once)
       if((vec_norm(q,3)<1.e-12_dp).and.(lprint)) then
 
         do i=1,s%nAtoms
@@ -57,7 +57,7 @@ subroutine coupling()
           ! Writing original full tensor Jij (in units of Ry)
           ! Only the transverse components are supposed to be non-zero (e.g., for m //z, only Jxx,Jxy,Jyx,Jyy)
           ! Relation between J_ii calculated and the position of the peak in the susceptibility:
-          ! w_res = 2*gamma*sqrt( (K_z-K_x)*(K_z-K_y) )/mz  - for m // z (local frame of reference)
+          ! w_res = 2*gama*sqrt( (K_z-K_x)*(K_z-K_y) )/mz  - for m // z (local frame of reference)
           ! where K_x = J_ii^xx/2 ; K_y = J_ii^yy/2 ; K_z = J_ii^zz/2
           ! K > 0 - easy axis ; K < 0 - hard axis
             if(i==j) then
@@ -90,7 +90,7 @@ subroutine coupling()
           end do
         end do
         lprint = .false.
-      end if ! Print only Gamma point (and only once)
+      end if ! Print only gama point (and only once)
 
       ! Writing into files
       ! Exchange interactions
@@ -125,7 +125,7 @@ subroutine real_coupling()
   use Lattice,           only: initLattice
   use mod_progress,      only: write_time
   implicit none
-  integer  :: i,j,k, size, iw, counter
+  integer  :: i,j,k, sz, iw, counter
   integer(int64) :: iz
   integer(int32) :: stages
   integer  :: cell_index(3)
@@ -236,7 +236,7 @@ subroutine real_coupling()
   end if
 
   stages = cluster_layers
-  size = 0
+  sz = 0
 
   if(rField ==0) then
     cells = (2*stages+1)**(s%isysdim)
@@ -266,8 +266,8 @@ subroutine real_coupling()
     do i = 1, cells
       ! ...and atoms in the unit cell
       do j = 1, s%nAtoms
-      ! "size" is the current atom
-      size = size + 1
+      ! "sz" is the current atom
+      sz = sz + 1
 
       select case(s%isysdim)
       case(3)
@@ -288,15 +288,15 @@ subroutine real_coupling()
       ! Atom position is r = R_i + r_j
       atom_vector = s%Basis(j)%Position + cell_vector
 
-      ! write(*,*) cluster(size,:), "norm = ", vec_norm(atom_vector, 3), "Rad = ", sphere_radius, "Bool = ", vec_norm(atom_vector, 3) <= sphere_radius
+      ! write(*,*) cluster(sz,:), "norm = ", vec_norm(atom_vector, 3), "Rad = ", sphere_radius, "Bool = ", vec_norm(atom_vector, 3) <= sphere_radius
       if(vec_norm(cell_vector, 3) <= sphere_radius) then
         counter = counter + 1
       end if
 
       ! [To delete]
       ! write(*,*) "cell_vector", cell_vector
-      ! write(*,*) "cluster(size,:)", cluster(size,:)
-      ! write(*,*) cluster(size,:), "norm = ", vec_norm(atom_vector, 3)
+      ! write(*,*) "cluster(sz,:)", cluster(sz,:)
+      ! write(*,*) cluster(sz,:), "norm = ", vec_norm(atom_vector, 3)
       ! write(*,*) " "
       ! [To delete]
 
@@ -315,8 +315,8 @@ subroutine real_coupling()
     do i = 1, cells
       ! ...and atoms in the unit cell
       do j = 1, s%nAtoms
-      ! "size" is the current atom
-      size = size + 1
+      ! "sz" is the current atom
+      sz = sz + 1
 
       select case(s%isysdim)
       case(3)
@@ -337,7 +337,7 @@ subroutine real_coupling()
       ! Atom position is r = R_i + r_j
       atom_vector = s%Basis(j)%Position + cell_vector
 
-      ! write(*,*) cluster(size,:), "norm = ", vec_norm(atom_vector, 3), "Rad = ", sphere_radius, "Bool = ", vec_norm(atom_vector, 3) <= sphere_radius
+      ! write(*,*) cluster(sz,:), "norm = ", vec_norm(atom_vector, 3), "Rad = ", sphere_radius, "Bool = ", vec_norm(atom_vector, 3) <= sphere_radius
       if(vec_norm(cell_vector, 3) <= sphere_radius) then
         counter = counter + 1
         cluster(counter,:) = cell_vector
