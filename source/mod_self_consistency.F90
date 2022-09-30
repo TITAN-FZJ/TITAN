@@ -497,7 +497,7 @@ contains
   subroutine calcSelfConsistency()
   !> This subroutine performs the self-consistency
     use mod_kind,              only: dp
-    use mod_parameters,        only: output,lfixEf,dimHsc
+    use mod_parameters,        only: output,lfixEf
     use mod_magnet,            only: bc,rho,rhod,rhot,mxd,myd,mpd,mzd,mabsd,mp,mx,my,mz,constr_type,sb_matrix
     use mod_mpi_pars,          only: rField
     use mod_system,            only: s => sys
