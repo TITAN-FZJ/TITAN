@@ -21,7 +21,7 @@ module mod_cuda
     integer, value, intent(in) :: n
     complex(dp), device, dimension(*) :: A_d         !, intent(inout)
     real(dp),    device, dimension(*) :: eval_d      !, intent(out)  
-    type(cusolverDnHandle), value      :: handle      !  intent(in)   
+    type(cusolverDnHandle), value     :: handle      !  intent(in)   
     end subroutine diagonalize_gpu
   end interface diagonalize_gpu
   

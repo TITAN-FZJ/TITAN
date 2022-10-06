@@ -119,7 +119,7 @@ contains
     use mod_tools,            only: invers
     implicit none
     integer :: AllocateStatus
-    integer :: i,j, m,n,k, mp,np,kp, mu,nu, gama,zeta,mud,nud,gammad,zetad, p,q
+    integer :: i,j, m,n,k, mp,np,kp, mu,nu, gama,zeta,mud,nud,gamad,zetad, p,q
     real(dp), intent(in) :: e
     complex(dp), dimension(:,:), allocatable :: TTInverse
     allocate(TTInverse(s%ndAtoms*3, s%ndAtoms*3), stat=AllocateStatus)
@@ -142,8 +142,8 @@ contains
                       do nud=1,s%Types(s%Basis(i)%Material)%ndOrb
                         nu = s%Types(s%Basis(i)%Material)%dOrbs(nud)
                         if(abs(s%Types(s%Basis(i)%Material)%lvec(mu,nu,n)) < 1.e-15_dp) cycle
-                        do gammad=1,s%Types(s%Basis(j)%Material)%ndOrb
-                          gama = s%Types(s%Basis(j)%Material)%dOrbs(gammad)
+                        do gamad=1,s%Types(s%Basis(j)%Material)%ndOrb
+                          gama = s%Types(s%Basis(j)%Material)%dOrbs(gamad)
                           do zetad=1,s%Types(s%Basis(j)%Material)%ndOrb
                             zeta = s%Types(s%Basis(j)%Material)%dOrbs(zetad)
                             if(abs(s%Types(s%Basis(j)%Material)%lvec(gama,zeta,np)) < 1.e-15_dp) cycle

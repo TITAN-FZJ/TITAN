@@ -48,6 +48,11 @@ contains
     select case(tbmode)
     case(1)
       call get_SK_parameter(s,fermi_layer)
+      ! Transfering on-site from each AtomType to each Basis atom (used in the hamiltonian)
+      do i = 1, s%nAtoms
+        allocate(s%Basis(i)%onSite(s%Types(s%Basis(i)%Material)%nOrb,s%Types(s%Basis(i)%Material)%nOrb))
+        s%Basis(i)%onSite(:,:) = s%Types(s%Basis(i)%Material)%onSite(:,:)
+      end do
     case(2)
       call get_DFT_parameters(s,fermi_layer)
     case default

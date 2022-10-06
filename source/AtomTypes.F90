@@ -46,6 +46,8 @@ module AtomTypes
     !! Spin-orbit coupling interaction matrix (on the CPU and on the GPU)
     complex(dp), dimension(:,:,:), allocatable :: lpvec
     !! Angular momentum vector matrices in local frame
+    complex(dp), dimension(:,:), allocatable :: onSite
+    !! on site matrix for each site in the unit cell; size (nOrb, nOrb)
   end type BasisAtom
 
   type, extends(Atom) :: NeighborAtom
@@ -78,7 +80,7 @@ module AtomTypes
     logical, dimension(:), allocatable :: lelement
     !! Logical variable storing where are the elements of a given element in elemental file
     complex(dp), dimension(:,:), allocatable :: onSite
-    !! on site matrix; size (nOrb, nOrb)
+    !! on site matrix for each Atom type; size (nOrb, nOrb)
     real(dp), dimension(:,:), allocatable :: Hopping
     !! hopping matrix; size (10, nStages)
     real(dp) :: LambdaP=0._dp, LambdaD=0._dp

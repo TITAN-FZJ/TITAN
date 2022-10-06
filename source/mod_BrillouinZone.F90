@@ -16,9 +16,9 @@
 !-------------------------------------------------------------------------------------!
 module mod_BrillouinZone
   use mod_kind, only: dp, int32, int64
-!#ifndef _OLDMPI
-!  use MPI_f08,      only: MPI_Comm
-!#endif
+! #ifndef _OLDMPI
+!   use MPI_f08,      only: MPI_Comm
+! #endif
   implicit none
 
   type :: BrillouinZone
@@ -44,12 +44,12 @@ module mod_BrillouinZone
     integer(int64) :: first = 0
     integer(int64) :: last = 0
     integer(int32) :: isize, rank
-!#ifdef _OLDMPI
+! #ifdef _OLDMPI
     integer(int32) :: comm
-!#else
-!    ! MPI_f08:
-!    type(MPI_Comm) :: comm
-!#endif
+! #else
+!     ! MPI_f08:
+!     type(MPI_Comm) :: comm
+! #endif
   contains
     procedure :: setup_fraction
     procedure :: gen1DFraction
@@ -70,12 +70,12 @@ contains
     type(System_type),intent(in) :: sys
     integer(int32),   intent(in) :: rank, isize
     logical,          intent(in), optional :: lkpoints
-!#ifdef _OLDMPI
+! #ifdef _OLDMPI
     integer(int32),   intent(in) :: comm
-!#else
-!    ! MPI_f08:
-!    type(MPI_Comm), intent(in) :: comm
-!#endif
+! #else
+!     ! MPI_f08:
+!     type(MPI_Comm), intent(in) :: comm
+! #endif
     character(len=50) :: filename
 
     if(allocated(self%kp)) deallocate(self%kp)
@@ -334,7 +334,6 @@ contains
 
     a1xa2 = cross(sys%a1,sys%a2)
     zdir  = a1xa2/vec_norm(a1xa2,3)
-write(*,*) 'gen2DFraction',zdir
     allocate( self%w(self%workload), self%kp(3,self%workload) )
     self%w = 1._dp
     nkpt = self%nkpt_x * self%nkpt_y
@@ -423,7 +422,7 @@ write(*,*) 'gen2DFraction',zdir
 
     a1xa2 = cross(a1,a2)
     zdir  = a1xa2/vec_norm(a1xa2,3)
-! write(*,*) 'count_2D_BZ',zdir
+
     nkpt_perdim = ceiling(sqrt(dble(nkpt_in)))
     nkpt_x = nkpt_perdim
     nkpt_y = nkpt_perdim
@@ -491,7 +490,7 @@ write(*,*) 'gen2DFraction',zdir
     integer(int32)    :: nx
     integer(int64)    :: kount, added, weight, irange
     integer(int32)    :: j
-
+    ! TO FIX: NEEDS TO BE GENERALIZED:
     zdir = [0._dp,0._dp,1._dp]
     ydir = [0._dp,1._dp,0._dp]
     allocate( self%w(self%workload), self%kp(3,self%workload) )
@@ -572,7 +571,7 @@ write(*,*) 'gen2DFraction',zdir
     real(dp) :: smallest_dist, distance(2), ini_smallest_dist, vol
     integer(int32)    :: j, nkpt_x, nkpt_perdim, nx
     integer(int64)    :: l
-
+    ! TO FIX: NEEDS TO BE GENERALIZED:
     zdir = [0._dp,0._dp,1._dp]
     ydir = [0._dp,1._dp,0._dp]
     nkpt_perdim = ceiling(dble(nkpt_in))

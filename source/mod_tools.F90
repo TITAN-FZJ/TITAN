@@ -1,8 +1,5 @@
 module mod_tools
   implicit none
-
-  integer :: lwork
-  
   interface itos
     module procedure i4tos, &
                       i8tos
@@ -773,7 +770,7 @@ contains
   end subroutine LS_solver
 
 
-  subroutine diagonalize(n,a,eval)
+  subroutine diagonalize(n,lwork,a,eval)
   !> --------------------------------------------------------------------
   !> subroutine diagonalize():
   !>    This subruotine is a simple interface for the LAPACK zheev subroutine
@@ -781,17 +778,18 @@ contains
     use mod_kind, only: dp
     implicit none
     integer,     intent(in)    :: n
+    integer,     intent(in)    :: lwork
     complex(dp), intent(inout) :: a(n,n)
     real(dp),    intent(out)   :: eval(n)
     ! Workspace variables
     real(dp)    :: rwork(3*n-2)
     integer     :: info
-    complex(dp) :: work(2*n-1) ! dimension of lwork below
+    complex(dp) :: work(lwork) ! dimension of lwork below
 
     external :: zheev    
 
     call zheev('V','U',n,a,n,eval,work,lwork,rwork,info)
-        
+
   end subroutine diagonalize
 
 
@@ -804,7 +802,7 @@ contains
     use mod_mpi_pars,   only: MPI_Abort,MPI_COMM_WORLD,errorcode,ierr,myrank
     use mod_parameters, only: output
     implicit none
-    integer :: nn,info
+    integer :: nn,info,lwork
     integer,     dimension(nn)    :: ipiv
     complex(dp), dimension(nn,nn) :: matriz
     complex(dp), dimension(nn*4)  :: work
