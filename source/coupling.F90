@@ -212,6 +212,7 @@ subroutine real_coupling()
   if(rField == 0) then
     call write_time('[real_coupling] Started Jij(q) calculation: ',output%unit_loop)
     open(unit=13131, file='jij_q.dat', status = 'replace')
+    open(unit=42069, file='jij_6.dat', status = 'replace')
     allocate(Jij_q(q_realBZ%workload,s%nAtoms,s%nAtoms,3,3))
   end if
 
@@ -223,15 +224,19 @@ subroutine real_coupling()
     ! w = realBZ%w(iz)
     ! Here we call the subroutine to calculate jij at point q. Inside the function
     ! it takes the local points k and calculates their share for the total Jij(k)
+    ! To delete
+    ! write(*,*) iz, q 
     call jij_energy(q,Jij)
     if(rField == 0) then
       Jij_q(iz,:,:,:,:) = Jij
       write(13131,*) q_realBZ%w(iz), q, Jij(:,:,:,:) ! This line is targeting the 6th atom
+      write(42069,*) q_realBZ%w(iz), q, Jij(6,6,:,:) ! This line is targeting the 6th atom
     end if
   end do
 
   if(rField == 0) then
     close(13131)
+    close(42069)
     call write_time('[real_coupling] Finished Jij(q) calculation: ',output%unit_loop)
   end if
 
@@ -404,7 +409,7 @@ subroutine real_coupling()
                     write(unit=iw,fmt="(13(es16.9,2x))") rx, ry, rz ,r_norm,&
                     Jij_real(k,i,j,1,1),Jij_real(k,i,j,1,2), Jij_real(k,i,j,1,3), &
                     Jij_real(k,i,j,2,1), Jij_real(k,i,j,2,2), Jij_real(k,i,j,2,3), &
-                    Jij_real(k,i,j,3,1), Jij_real(k,i,j,3,1), Jij_real(k,i,j,3,1)
+                    Jij_real(k,i,j,3,1), Jij_real(k,i,j,3,2), Jij_real(k,i,j,3,3)
                 else
                     iw = iw + 1
                     !!!!!! TO DELETE
@@ -419,7 +424,7 @@ subroutine real_coupling()
                     write(unit=iw,fmt="(13(es16.9,2x))") rx, ry, rz ,r_norm,&
                     Jij_real(k,i,j,1,1),Jij_real(k,i,j,1,2), Jij_real(k,i,j,1,3), &
                     Jij_real(k,i,j,2,1), Jij_real(k,i,j,2,2), Jij_real(k,i,j,2,3), &
-                    Jij_real(k,i,j,3,1), Jij_real(k,i,j,3,1), Jij_real(k,i,j,3,1)
+                    Jij_real(k,i,j,3,1), Jij_real(k,i,j,3,2), Jij_real(k,i,j,3,3)
                     ! iw = iw + 1
                     ! write(unit=iw,fmt="(2(es16.9,2x))") q,Jija(i,j,1,2)
                 end if
