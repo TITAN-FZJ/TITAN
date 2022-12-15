@@ -158,7 +158,7 @@ subroutine jij_energy(q,Jij)
           nOrb2_i = s%Types(s%Basis(i)%Material)%nOrb2
           gij = gf (1:nOrb2_i,1:nOrb2_j,i,j)
           gji = gf (1:nOrb2_i,1:nOrb2_j,j,i)
-          ! gijm = gfm(1:nOrb2_i,1:nOrb2_j,j,i)
+          gijm = gfmq(1:nOrb2_i,1:nOrb2_j,i,j)
           gjim = gfmq(1:nOrb2_j,1:nOrb2_i,j,i)
           gjip = gfpq(1:nOrb2_j,1:nOrb2_i,i,j)
           if (lsuperCond) then
@@ -208,7 +208,7 @@ subroutine jij_energy(q,Jij)
               ! paulia(1:nOrb2_i,1:nOrb2_i)= dBxc_dm(i,nu,1:nOrb2_i,1:nOrb2_i)
               ! paulib(1:nOrb2_j,1:nOrb2_j)= dBxc_dm(j,mu,1:nOrb2_j,1:nOrb2_j)
               ! temp1 = paulia * gij = dBxc_dm_i * gij
-              call zgemm('n','n',nOrb2_i,nOrb2_j,nOrb2_i,cOne,paulia,s%nOrb2,gjip,   s%nOrb2,cZero,temp1,s%nOrb2)
+              call zgemm('n','n',nOrb2_i,nOrb2_j,nOrb2_i,cOne,paulia,s%nOrb2,gijm,   s%nOrb2,cZero,temp1,s%nOrb2)
               ! temp2 = temp1 * paulib = paulia * gij * paulib = dBxc_dm_i * gij * dBxc_dm_j
               call zgemm('n','n',nOrb2_i,nOrb2_j,nOrb2_j,cOne,temp1, s%nOrb2,paulib,s%nOrb2,cZero,temp2,s%nOrb2)
               ! temp1p = temp2 * gji = paulia * gij * paulib * gji = dBxc_dm_i * gij(k+q) * dBxc_dm_j * gji
