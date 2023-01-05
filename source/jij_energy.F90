@@ -240,8 +240,10 @@ subroutine jij_energy(q,Jij)
   end if
 
   !To be deleted
-  open(unit=35012, file='Jijs.dat', status = 'unknown')
-  write(35012,*) weight, q, Jijs
-  close(35012)
+  ! open(unit=35012, file='Jijs.dat', status = 'unknown')
+  if(activeRank == 0) then
+    write(35012,*) weight, q, Jijs
+  end if
+  ! close(35012)
   
 end subroutine jij_energy

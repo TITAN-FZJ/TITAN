@@ -213,6 +213,7 @@ subroutine real_coupling()
     call write_time('[real_coupling] Started Jij(q) calculation: ',output%unit_loop)
     open(unit=13131, file='jij_q.dat', status = 'replace')
     open(unit=42069, file='jij_6.dat', status = 'replace')
+    open(unit=35012, file='Jijs.dat', status = 'replace')
     allocate(Jij_q(q_realBZ%workload,s%nAtoms,s%nAtoms,3,3))
   end if
 
@@ -237,6 +238,7 @@ subroutine real_coupling()
   if(rField == 0) then
     close(13131)
     close(42069)
+    close(35012)
     call write_time('[real_coupling] Finished Jij(q) calculation: ',output%unit_loop)
   end if
 
