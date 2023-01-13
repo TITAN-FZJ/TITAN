@@ -60,7 +60,6 @@ subroutine jij_energy(q,Jij)
       ! Derivative of Bxc*sigma*evec w.r.t. m_i (Bxc = -U.m/2)
       dBxc_dm(i,mu,1:nOrb2_i,1:nOrb2_i) = -0.5_dp*s%Basis(i)%Um*(s%Types(s%Basis(i)%Material)%pauli_dorb(mu,1:nOrb2_i,1:nOrb2_i) - (paulievec(i,1:nOrb2_i,1:nOrb2_i)) * evec(mu,i))
       ! Something I'm trying
-      ! dBxc_dm(i,mu,1:nOrb2_i,1:nOrb2_i) = -0.5_dp*s%Basis(i)%Um*(s%Types(s%Basis(i)%Material)%pauli_dorb(mu,1:nOrb2_i,1:nOrb2_i) + 0.5_dp*s%Basis(i)%Um*(paulievec(i,1:nOrb2_i,1:nOrb2_i)) * evec(mu,i))
       ! Second derivative of Bxc w.r.t. m_i (Bxc = -U.m/2)
       do nu=1,3
         d2Bxc_dm2(i,mu,nu,1:nOrb2_i,1:nOrb2_i) = evec(mu,i)*s%Types(s%Basis(i)%Material)%pauli_dorb(nu,1:nOrb2_i,1:nOrb2_i) + s%Types(s%Basis(i)%Material)%pauli_dorb(mu,1:nOrb2_i,1:nOrb2_i)*evec(nu,i) - 3*paulievec(i,1:nOrb2_i,1:nOrb2_i)*evec(mu,i)*evec(nu,i)
@@ -100,8 +99,6 @@ subroutine jij_energy(q,Jij)
       ! Green function on energy Ef + iy, and wave vector kp-q
       kmq = kp-q
       call green(fermi,ep+eta,s,kmq,gfmq)
-      ! kpq = kp+q
-      ! call green(fermi,ep+eta,s,kpq,gfpq)
 
       Jijk   = 0._dp
       Jijks  = 0._dp
@@ -118,7 +115,6 @@ subroutine jij_energy(q,Jij)
           gijm = gfmq(1:nOrb2_i,1:nOrb2_j,i,j)
           ! G_{ji}(k-q)
           gjim = gfmq(1:nOrb2_j,1:nOrb2_i,j,i)
-          ! gjip = gfpq(1:nOrb2_j,1:nOrb2_i,i,j)
 
           if (lsuperCond) then
 
@@ -239,11 +235,8 @@ subroutine jij_energy(q,Jij)
     call MPI_Reduce(Jijs, Jijs, ncount, MPI_DOUBLE_COMPLEX, MPI_SUM, 0, activeComm, ierr)
   end if
 
-  !To be deleted
-  ! open(unit=35012, file='Jijs.dat', status = 'unknown')
   if(activeRank == 0) then
     write(35012,*) weight, q, Jijs
   end if
-  ! close(35012)
   
 end subroutine jij_energy

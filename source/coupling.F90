@@ -111,8 +111,6 @@ end subroutine coupling
 subroutine real_coupling()
   use mod_kind,          only: dp, int64, int32
   use mod_parameters,    only: output, cluster_layers, total_nkpt => kptotal_in, total_nqpt => qptotal_in, qp_in
-
-  ! use mod_parameters, only: kdirection,bsfile,wsfile
   use mod_magnet,        only: mabs
   use mod_system,        only: s => sys, System_type
   use mod_tools,         only: vec_norm
@@ -171,73 +169,34 @@ subroutine real_coupling()
   ! Generate the q mesh. All processors will have a copy of ALL the points in the BZ
   call q_realBZ % setup_fraction(s,0, 1, FreqComm(1))
 
-  ! [To delete]
-  ! call realBZ % setup_fraction(s,0, 1, FreqComm(1))
-  ! write(*,*) q_realBZ % nkpt_x, q_realBZ % nkpt_y, q_realBZ % nkpt_z
-  ! call MPI_Barrier(FieldComm, ierr)
-  ! call q_realBZ % setup_fraction(s,0, 1, FreqComm(1))
-
-  ! if(rField == 0) then
-  !   write(*,*) "Qgrid"
-  !   write(*,*) q_realBZ % nkpt_x, q_realBZ % nkpt_y, q_realBZ % nkpt_z
-  ! end if
-  ! call MPI_Barrier(FieldComm, ierr)
-
-  ! if(rField == 0) then
-  !   write(*,*) "Kgrid"
-  !   ! write(*,*) realBZ % nkpt_x, realBZ % nkpt_y, realBZ % nkpt_z
-  ! end if
-  ! call MPI_Barrier(FieldComm, ierr)
-  ! [To delete]
-
   ! Generating the mesh of local points on the BZ zone
   call genLocalEKMesh(s,rField,sField, FieldComm,bzs)
   ! All processors will have a copy of all the points in the BZ after we call the function below
-  ! call realBZ % setup_fraction(s,0, 1, FreqComm(1))
 
   call allocateCoupling()
-
-  ! [To delete] temporary prints to terminal
-  ! if(rField == 0) then
-  !   write(*,*) "realBZ%workload", q_realBZ%workload
-  !   write(*,*) " total_nqpt = ", total_nqpt, total_nkpt
-  !   write(*,*) "Meshes generated"
-  ! end if
-  ! [To delete]
-
-! [To delete]
-  ! stop
-! [To delete]
   
   if(rField == 0) then
     call write_time('[real_coupling] Started Jij(q) calculation: ',output%unit_loop)
     open(unit=13131, file='jij_q.dat', status = 'replace')
-    open(unit=42069, file='jij_6.dat', status = 'replace')
     open(unit=35012, file='Jijs.dat', status = 'replace')
     allocate(Jij_q(q_realBZ%workload,s%nAtoms,s%nAtoms,3,3))
   end if
 
   do iz=1,q_realBZ%workload
-    ! if(rField == 0) write(*,*) iz, " out of ", realBZ%workload
     if(rField == 0) write(output%unit,* ) iz, " out of ", q_realBZ%workload
     if(rField == 0) call write_time('[real_coupling] Step: ',output%unit_loop)
     q = q_realBZ%kp(1:3,iz)
-    ! w = realBZ%w(iz)
     ! Here we call the subroutine to calculate jij at point q. Inside the function
     ! it takes the local points k and calculates their share for the total Jij(k)
-    ! To delete
-    ! write(*,*) iz, q 
     call jij_energy(q,Jij)
     if(rField == 0) then
       Jij_q(iz,:,:,:,:) = Jij
       write(13131,*) q_realBZ%w(iz), q, Jij(:,:,:,:) ! This line is targeting the 6th atom
-      write(42069,*) q_realBZ%w(iz), q, Jij(6,6,:,:) ! This line is targeting the 6th atom
     end if
   end do
 
   if(rField == 0) then
     close(13131)
-    close(42069)
     close(35012)
     call write_time('[real_coupling] Finished Jij(q) calculation: ',output%unit_loop)
   end if
@@ -301,19 +260,8 @@ subroutine real_coupling()
             ! write(*,*) cell_vector
         end if
 
-        ! [To delete]
-        ! write(*,*) "cell_vector", cell_vector
-        ! write(*,*) "cluster(sz,:)", cluster(sz,:)
-        ! write(*,*) cluster(sz,:), "norm = ", vec_norm(atom_vector, 3)
-        ! write(*,*) " "
-        ! [To delete]
-
-        ! end do
     end do
 
-    !TO DELETE
-    !write(*,*) "cluster", counter
-    !
     if(allocated(cluster)) deallocate(cluster)
     allocate(cluster(counter,3))
     cluster = 0._dp
@@ -354,9 +302,6 @@ subroutine real_coupling()
             ! write(*,*) cluster(counter,:)
         end if
 
-        ! write(*,*) " "
-
-        ! end do
     end do
 
     call write_time('[real_coupling] Finished cluster generation: ',output%unit_loop)
@@ -369,9 +314,6 @@ subroutine real_coupling()
 
     Jij_real = 0._dp
 
-    ! [To delete]
-    ! write(*,*) "Positions"
-    ! [To delete]
     ! pragma omp for
     do k = 1, counter
       do iz=1,q_realBZ%workload
@@ -380,17 +322,8 @@ subroutine real_coupling()
         Jij_real(k,:,:,:,:) = Jij_real(k,:,:,:,:) + real(kpExp*w*Jij_q(iz,:,:,:,:))
       end do
 
-      ! [To delete]
-      ! write(*,*) "s%Neighbors(k)%CellVector", cluster(k,:)
-      ! write(*,*) " "
-      ! write(*,*) "Jij_real(r,:,:,:,:)", Jij_real(k,:,:,:,:)
-      ! write(*,*) " "
-      ! [To delete]
     end do
 
-    !!!!!! TO DELETE
-    !write(*,*) "r0 = ", s%Basis(12)%Position(1), s%Basis(12)%Position(2) , s%Basis(12)%Position(3)
-    !!!!!!!!!!!!!!!!
     ! Writing files
     do k = 1, counter
         do j=1,s%nAtoms
@@ -401,9 +334,6 @@ subroutine real_coupling()
                 iw = 2000 + (j-1) * s%nAtoms * 2 + (i-1) * 2
                 if(i==j) then
                     iw = iw + 1
-                    !!!!!! TO DELETE
-                    ! write(*,*) "i, j, iw ", i , j, iw
-                    !!!!!! 
                     rx = cluster(k,1) + s%Basis(i)%Position(1)
                     ry = cluster(k,2) + s%Basis(i)%Position(2)
                     rz = cluster(k,3) + s%Basis(i)%Position(3)
@@ -414,21 +344,14 @@ subroutine real_coupling()
                     Jij_real(k,i,j,3,1), Jij_real(k,i,j,3,2), Jij_real(k,i,j,3,3)
                 else
                     iw = iw + 1
-                    !!!!!! TO DELETE
-                    ! write(*,*) "i, j, iw ", i , j, iw
-                    !!!!!!
-                    !!!!!!!!!! Testing this block
                     rx = cluster(k,1) + s%Basis(i)%Position(1)
                     ry = cluster(k,2) + s%Basis(i)%Position(2)
                     rz = cluster(k,3) + s%Basis(i)%Position(3)
                     r_norm = SQRT((rx-rx_0)*(rx-rx_0) + (ry-ry_0)*(ry-ry_0) + (rz-rz_0)*(rz-rz_0))
-                    !!!!!!!!!!!
                     write(unit=iw,fmt="(13(es16.9,2x))") rx, ry, rz ,r_norm,&
                     Jij_real(k,i,j,1,1),Jij_real(k,i,j,1,2), Jij_real(k,i,j,1,3), &
                     Jij_real(k,i,j,2,1), Jij_real(k,i,j,2,2), Jij_real(k,i,j,2,3), &
                     Jij_real(k,i,j,3,1), Jij_real(k,i,j,3,2), Jij_real(k,i,j,3,3)
-                    ! iw = iw + 1
-                    ! write(unit=iw,fmt="(2(es16.9,2x))") q,Jija(i,j,1,2)
                 end if
             end do
         end do
