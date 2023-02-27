@@ -30,14 +30,14 @@ subroutine jij_energy(q,Jij)
   complex(dp), dimension(s%nAtoms,3,3,s%nOrb2,s%nOrb2)      :: d2Bxc_dm2
   complex(dp), dimension(s%nAtoms,s%nOrb2,s%nOrb2)          :: paulievec
   complex(dp), dimension(s%nOrb2,s%nOrb2)                   :: gij,gji,gijm,gjim,temp1,temp1m,temp1p,temp2,paulia,paulib,pauli_star_a,pauli_star_b
-  complex(dp), dimension(s%nOrb2sc,s%nOrb2sc,s%nAtoms,s%nAtoms) :: gf,gfmq,gfm, gfmqm,gfpqm
+  complex(dp), dimension(s%nOrb2sc,s%nOrb2sc,s%nAtoms,s%nAtoms) :: gf,gfmq,gfm
   complex(dp), dimension(s%nOrb2,s%nOrb2)                       :: gehij,gehji, ghemij,ghemji, ghep
   ! To Do: Put the three arrays below in the same format as the ones above
   complex(dp) :: Jijk(s%nAtoms,s%nAtoms,3,3)
   complex(dp) :: Jijks(s%nAtoms,s%nAtoms,3,3)
   complex(dp) :: Jijkan(s%nAtoms,3,3)
-  integer :: kap, kip, count ! To be deleted
-  integer :: ncount, ki
+  integer :: count ! To be deleted
+  integer :: ncount
 
   ! THIS FILE NEEDS TO BE PROPERLY COMMENTED 
 

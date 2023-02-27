@@ -110,11 +110,11 @@ end subroutine coupling
 
 subroutine real_coupling()
   use mod_kind,          only: dp, int64, int32
-  use mod_parameters,    only: output, cluster_layers, total_nkpt => kptotal_in, total_nqpt => qptotal_in, qp_in
+  use mod_parameters,    only: output, cluster_layers, qp_in
   use mod_magnet,        only: mabs
   use mod_system,        only: s => sys, System_type
   use mod_tools,         only: vec_norm
-  use mod_mpi_pars,      only: abortProgram,rField,sField,FieldComm,FreqComm,ierr,MPI_Barrier
+  use mod_mpi_pars,      only: abortProgram,rField,sField,FieldComm,FreqComm,MPI_Barrier
   use adaptiveMesh,      only: genLocalEKMesh,freeLocalEKMesh
   use mod_Coupling,      only: Jij,Jij_q,allocateCoupling,deallocateCoupling,openRealCouplingFiles,closeCouplingFiles,writeCoupling
   use adaptiveMesh,      only: bzs
@@ -128,7 +128,7 @@ subroutine real_coupling()
   integer(int32) :: stages
   integer  :: cell_index(3)
   real(dp) :: q(3)
-  real(dp), dimension(3) :: cell_vector, atom_vector ,norms_vec
+  real(dp), dimension(3) :: cell_vector, norms_vec
   real(dp) :: w, rx, ry, rz, rx_0, ry_0, rz_0, r_norm, sphere_radius
   complex(dp) :: kpExp
   real(dp), dimension(:,:,:,:,:), allocatable :: Jij_real
