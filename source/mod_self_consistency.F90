@@ -540,6 +540,16 @@ contains
         in_varz(:) = mzd(:)
       end select
 
+      !!! To be deleted
+      ! write(*,*) "Rho = ", rho
+      ! write(*,*) "rhod", rhod
+      ! write(*,*) "mpd", mpd
+      ! write(*,*) "mzd", mzd
+      ! write(*,*) "in_varx", in_varx
+      ! write(*,*) "in_vary", in_vary
+      ! write(*,*) "in_varz", in_varz
+      !!!
+
       ! Putting read n and m existing solutions into sc_solu (first guess of the subroutine)
       call set_hamiltonian_variables(.false.,s,neq,sc_solu,rho,rhod,in_varx,in_vary,in_varz,delta_sc)
 
@@ -549,8 +559,8 @@ contains
         write(output%unit_loop,"('[self_consistency] Starting self-consistency:')")
 
 #ifdef _GPU
-    ! Starting marker of dnsqe for profiler
-    call nvtxStartRange("dnsqe",1)
+      ! Starting marker of dnsqe for profiler
+      call nvtxStartRange("dnsqe",1)
 #endif
 
       ! Performing selfconsistency finding root of non-linear system of equations (SLATEC)
@@ -564,8 +574,8 @@ contains
       ifail = ifail-1
 
 #ifdef _GPU
-    ! End of dnsqe marker
-    call nvtxEndRange
+      ! End of dnsqe marker
+      call nvtxEndRange
 #endif
 
       ! Deallocating variables dependent on the number of equations
@@ -794,7 +804,6 @@ contains
     use mod_BrillouinZone, only: realBZ
     use mod_hamiltonian,   only: hamilt_local
     use mod_greenfunction, only: greenlinearsoc,green
-    use mod_superconductivity, only: lsuperCond
     use mod_mpi_pars,      only: rField,MPI_IN_PLACE,MPI_DOUBLE_PRECISION,MPI_SUM,ierr,abortProgram
     implicit none
     integer,                       intent(in)    :: N
@@ -829,7 +838,7 @@ contains
 
     !$omp parallel default(none) &
     !$omp& private(ix,i,j,kounti,kountj,nOrb2_i,nOrb2_j,mu,mud,nud,nu,sigma,sigmap,ep,kp,weight,gf,gvg,gij,gji,temp,temp1,temp2,paulitemp) &
-    !$omp& shared(llineargfsoc,llinearsoc,lsupercond,lfixEf,neq,local_points,s,neq_per_atom,realBZ,bzs,E_k_imag_mesh,y,eta,wght,halfUn,halfUm,jacobian)
+    !$omp& shared(llineargfsoc,llinearsoc,lfixEf,neq,local_points,s,neq_per_atom,realBZ,bzs,E_k_imag_mesh,y,eta,wght,halfUn,halfUm,jacobian)
     !$omp do schedule(static) reduction(+:jacobian)
     do ix = 1, local_points
       ep = y(E_k_imag_mesh(1,ix))

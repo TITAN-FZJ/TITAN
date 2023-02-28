@@ -26,7 +26,7 @@ subroutine calculate_chi()
   use adaptiveMesh,          only: bzs
   implicit none
   integer  :: mcount,qcount
-  integer  :: i,j,sigma,sigmap,mu,nu,gamma,xi,p
+  integer  :: i,j,sigma,sigmap,mu,nu,gama,xi,p
   real(dp) :: e,q(3)
   complex(dp), dimension(:,:), allocatable :: temp
 
@@ -117,20 +117,20 @@ subroutine calculate_chi()
                 do sigma=1, 3
                   do nu=1, s%Types(s%Basis(j)%Material)%nOrb
                     do mu=1, s%Types(s%Basis(i)%Material)%nOrb
-                      do gamma=1, s%Types(s%Basis(i)%Material)%nOrb
+                      do gama=1, s%Types(s%Basis(i)%Material)%nOrb
                         do p=1, 4
-                          schiLS(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiLS(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + s%Types(s%Basis(i)%Material)%lvec(mu,gamma,sigma)*( chiorb(sigmaimunu2i(2,i,mu,gamma),sigmaimunu2i(p,j,nu,nu)   ) + chiorb(sigmaimunu2i(3,i,mu,gamma),sigmaimunu2i(p,j,nu,nu)   ) )*CtoS(p,sigmap+1)
+                          schiLS(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiLS(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + s%Types(s%Basis(i)%Material)%lvec(mu,gama,sigma)*( chiorb(sigmaimunu2i(2,i,mu,gama),sigmaimunu2i(p,j,nu,nu)   ) + chiorb(sigmaimunu2i(3,i,mu,gama),sigmaimunu2i(p,j,nu,nu)   ) )*CtoS(p,sigmap+1)
                         end do ! p
                         do xi=1, s%Types(s%Basis(j)%Material)%nOrb
-                          schiLL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiLL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + s%Types(s%Basis(i)%Material)%lvec(mu,gamma,sigma)*( chiorb(sigmaimunu2i(2,i,mu,gamma),sigmaimunu2i(2,j,nu,xi)) + chiorb(sigmaimunu2i(2,i,mu,gamma),sigmaimunu2i(3,j,nu,xi)) + chiorb(sigmaimunu2i(3,i,mu,gamma),sigmaimunu2i(2,j,nu,xi)) + chiorb(sigmaimunu2i(3,i,mu,gamma),sigmaimunu2i(3,j,nu,xi)) )*s%Types(s%Basis(i)%Material)%lvec(nu,xi,sigmap)
+                          schiLL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiLL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) + s%Types(s%Basis(i)%Material)%lvec(mu,gama,sigma)*( chiorb(sigmaimunu2i(2,i,mu,gama),sigmaimunu2i(2,j,nu,xi)) + chiorb(sigmaimunu2i(2,i,mu,gama),sigmaimunu2i(3,j,nu,xi)) + chiorb(sigmaimunu2i(3,i,mu,gama),sigmaimunu2i(2,j,nu,xi)) + chiorb(sigmaimunu2i(3,i,mu,gama),sigmaimunu2i(3,j,nu,xi)) )*s%Types(s%Basis(i)%Material)%lvec(nu,xi,sigmap)
                         end do ! xi
-                      end do ! gamma
+                      end do ! gama
 
                       do xi=1, s%Types(s%Basis(j)%Material)%nOrb
                         do p=1, 4
                           schiSL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) = schiSL(sigmai2i(sigma,i),sigmai2i(sigmap,j)) +      StoC(sigma+1,p)*( chiorb(sigmaimunu2i(p,i,mu,mu)   ,sigmaimunu2i(2,j,nu,xi)) + chiorb(sigmaimunu2i(p,i,mu,mu)   ,sigmaimunu2i(3,j,nu,xi)) )*s%Types(s%Basis(i)%Material)%lvec(nu,xi,sigmap)
                         end do ! p
-                      end do ! gamma
+                      end do ! gama
                     end do !mu
                   end do !nu
                 end do !sigma

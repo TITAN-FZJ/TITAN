@@ -109,23 +109,23 @@ contains
     use mod_constants,  only: cZero,cOne
     use mod_system,     only: s => sys
     implicit none
-    integer :: xi,gamma,nu,mu,xid,gammad,nud,mud,i
+    integer :: xi,gama,nu,mu,xid,gamad,nud,mud,i
 
     Umatorb = cZero
     do i=1,s%nAtoms
       do xid=1,s%Types(s%Basis(i)%Material)%ndOrb
         xi = s%Types(s%Basis(i)%Material)%dOrbs(xid)
-        do gammad=1,s%Types(s%Basis(i)%Material)%ndOrb
-          gamma = s%Types(s%Basis(i)%Material)%dOrbs(gammad)
+        do gamad=1,s%Types(s%Basis(i)%Material)%ndOrb
+          gama = s%Types(s%Basis(i)%Material)%dOrbs(gamad)
           do nud=1,s%Types(s%Basis(i)%Material)%ndOrb
             nu = s%Types(s%Basis(i)%Material)%dOrbs(nud)
             do mud=1,s%Types(s%Basis(i)%Material)%ndOrb
               mu = s%Types(s%Basis(i)%Material)%dOrbs(mud)
-              if((mu/=nu).or.(gamma/=xi)) cycle
-              Umatorb(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(1,i,gamma,xi)) = cmplx(s%Basis(i)%Um,0._dp,dp)
-              Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = cmplx(s%Basis(i)%Un,0._dp,dp)
-              Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = cmplx(s%Basis(i)%Un,0._dp,dp)
-              Umatorb(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,i,gamma,xi)) = cmplx(s%Basis(i)%Um,0._dp,dp)
+              if((mu/=nu).or.(gama/=xi)) cycle
+              Umatorb(sigmaimunu2i(1,i,mu,nu),sigmaimunu2i(1,i,gama,xi)) = cmplx(s%Basis(i)%Um,0._dp,dp)
+              Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gama,xi)) = cmplx(s%Basis(i)%Un,0._dp,dp)
+              Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gama,xi)) = cmplx(s%Basis(i)%Un,0._dp,dp)
+              Umatorb(sigmaimunu2i(4,i,mu,nu),sigmaimunu2i(4,i,gama,xi)) = cmplx(s%Basis(i)%Um,0._dp,dp)
             end do
           end do
         end do
@@ -134,17 +134,17 @@ contains
     do i=1,s%nAtoms
       do xid=1,s%Types(s%Basis(i)%Material)%ndOrb
         xi = s%Types(s%Basis(i)%Material)%dOrbs(xid)
-        do gammad=1,s%Types(s%Basis(i)%Material)%ndOrb
-          gamma = s%Types(s%Basis(i)%Material)%dOrbs(gammad)
+        do gamad=1,s%Types(s%Basis(i)%Material)%ndOrb
+          gama = s%Types(s%Basis(i)%Material)%dOrbs(gamad)
           do nud=1,s%Types(s%Basis(i)%Material)%ndOrb
             nu = s%Types(s%Basis(i)%Material)%dOrbs(nud)
             do mud=1,s%Types(s%Basis(i)%Material)%ndOrb
               mu = s%Types(s%Basis(i)%Material)%dOrbs(mud)
-              if((mu/=xi).or.(nu/=gamma)) cycle
-              Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gamma,xi))-cmplx(s%Basis(i)%Un,0._dp,dp)
-              Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gamma,xi))-cmplx(s%Basis(i)%Un,0._dp,dp)
-              Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gamma,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gamma,xi))-cmplx(s%Basis(i)%Un,0._dp,dp)
-              Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gamma,xi))-cmplx(s%Basis(i)%Un,0._dp,dp)
+              if((mu/=xi).or.(nu/=gama)) cycle
+              Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gama,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(2,i,gama,xi))-cmplx(s%Basis(i)%Un,0._dp,dp)
+              Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gama,xi)) = Umatorb(sigmaimunu2i(2,i,mu,nu),sigmaimunu2i(3,i,gama,xi))-cmplx(s%Basis(i)%Un,0._dp,dp)
+              Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gama,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(2,i,gama,xi))-cmplx(s%Basis(i)%Un,0._dp,dp)
+              Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gama,xi)) = Umatorb(sigmaimunu2i(3,i,mu,nu),sigmaimunu2i(3,i,gama,xi))-cmplx(s%Basis(i)%Un,0._dp,dp)
             end do
           end do
         end do
@@ -209,7 +209,7 @@ contains
           call write_header(iw,"#     energy    ,       q        ,  ((real[chi(j,i)], imag[chi(j,i)], j=1,4),i=1,4)")
           close(unit=iw)
         end if
-        iw = iw+1000
+        iw = iw+s%nAtoms*s%nAtoms + 1
         ! HF SUSCEPTIBILITIES
         write(varm,"('./results/',a1,'SOC/',a,'/HF/chihf_',i0,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
@@ -254,7 +254,7 @@ contains
           errt = errt + err
           if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
         end if
-        iw = iw+1000
+        iw = iw+s%nAtoms*s%nAtoms+1
         ! HF SUSCEPTIBILITIES
         write(varm,"('./results/',a1,'SOC/',a,'/HF/chihf_',i0,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),i,j,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
@@ -293,7 +293,7 @@ contains
         iw = 1050 + (j-1)*s%nAtoms + i
         ! RPA SUSCEPTIBILITIES
         if(.not.lhfresponses) close(unit=iw)
-        iw = iw+1000
+        iw = iw+s%nAtoms*s%nAtoms+1
         ! HF SUSCEPTIBILITIES
         close(unit=iw)
       end do
@@ -332,7 +332,7 @@ contains
           if(i == j .and. lwriteonscreen) write(output%unit_loop,"('E = ',es11.4,', Plane: ',i0,' Chi+- = (',es16.9,') + i(',es16.9,')')") e,i,real(schi(sigmai2i(1,i),sigmai2i(1,j))),aimag(schi(sigmai2i(1,i),sigmai2i(1,j)))
         end if
 
-        iw = iw+1000
+        iw = iw+s%nAtoms*s%nAtoms+1
         write(unit=iw,fmt="(34(es16.9,2x))") e, dble((qcount-1._dp)*deltak), ((real(schihf(sigmai2i(n,i),sigmai2i(m,j))), aimag(schihf(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
       end do
     end do
@@ -369,7 +369,7 @@ contains
           write(unit=iw, fmt="('#',a,'       q        ,  real part of chi ',a,'  ,  imaginary part of chi ',a,'  ,  amplitude of chi ',a,' ')") trim(dc_header)
           close(unit=iw)
         end if
-        iw = iw+1000
+        iw = iw+s%nAtoms*s%nAtoms+1
         ! HF SUSCEPTIBILITIES
         write(varm,"('./results/',a1,'SOC/',a,'/HF/',a,'chihf_',a,'_',i0,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(kount)),trim(dcfield(dcfield_dependence)),i,j,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
@@ -413,7 +413,7 @@ contains
           errt = errt + err
           if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
         end if
-        iw = iw+1000
+        iw = iw+s%nAtoms*s%nAtoms+1
         ! HF SUSCEPTIBILITIES
         write(varm,"('./results/',a1,'SOC/',a,'/HF/',a,'chihf_',a,'_',i0,'_',i0,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(dcprefix(kount)),trim(dcfield(dcfield_dependence)),i,j,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%suffix)
         open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
@@ -454,7 +454,7 @@ contains
         iw = 10500 + (j-1) * s%nAtoms+i
         if(.not.lhfresponses) close(unit=iw)
         ! HF SUSCEPTIBILITIES
-        iw = iw+1000
+        iw = iw+s%nAtoms*s%nAtoms+1
         close(unit=iw)
       end do
     end do
@@ -492,7 +492,7 @@ contains
           if( i == j .and. lwriteonscreen ) write(output%unit_loop,"(a,' = ',a,', Plane: ',i0,' Chi+- = (',es16.9,') + i(',es16.9,')')") trim(dcfield(dcfield_dependence)),trim(dc_fields(hw_count)),i,real(schi(sigmai2i(1,i),sigmai2i(1,j))),aimag(schi(sigmai2i(1,i),sigmai2i(1,j)))
         end if
 
-        iw = iw+1000
+        iw = iw+s%nAtoms*s%nAtoms+1
         write(unit=iw,fmt="(a,2x,33(es16.9,2x))") trim(dc_fields(hw_count)) , dble((qcount-1._dp)*deltak), ((real(schi(sigmai2i(n,i),sigmai2i(m,j))), aimag(schi(sigmai2i(n,i),sigmai2i(m,j))), n = 1, 4), m = 1, 4)
       end do
     end do
@@ -531,7 +531,7 @@ contains
           call sort_file(iw)
         end if
 
-        iw = iw+1000
+        iw = iw+s%nAtoms*s%nAtoms+1
         call sort_file(iw)
       end do
     end do

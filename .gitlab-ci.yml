@@ -14,7 +14,7 @@ image: iffregistry.fz-juelich.de/docker-images/centos8-intel-compilers:latest-nv
   - which ifort
   # Checking ifort version
   - ifort --version
-  # Checking location of mpiifort
+  # Checking location of mpif90
   - which mpiifort
   # Checking mpiifort version
   - mpiifort -v
@@ -55,7 +55,7 @@ build:gnu:normal:
   script:
     - *setup_gfortran
     - cd build
-    - cmake ../ -DPLATFORM=iff -DCOMPILER=gnu
+    - FC=mpif90 cmake ../
     - make
   artifacts:
     paths:
@@ -67,7 +67,7 @@ build:gnu:debug:
   script:
     - *setup_gfortran
     - cd build
-    - cmake ../ -DPLATFORM=iff -DCOMPILER=gnu -DDEBUG=ON
+    - FC=mpif90 cmake ../ -DDEBUG=ON
     - make 2> >(tee make.warnings)
     - if [ -s make.warnings ] ; then echo "Compiled with warnings"; cat make.warnings ; exit 42 ; fi
   artifacts:
@@ -83,7 +83,7 @@ build:intel:debug:
   script:
     - *setup_ifort
     - cd build
-    - cmake ../ -DPLATFORM=iff -DDEBUG=ON
+    - cmake ../ -DDEBUG=ON
     - make 2> >(tee make.warnings)
     - if [ -s make.warnings ] ; then echo "Compiled with warnings"; cat make.warnings ; exit 42 ; fi
   artifacts:
@@ -99,7 +99,7 @@ build:intel:normal:
   script:
     - *setup_ifort
     - cd build
-    - cmake ../ -DPLATFORM=iff
+    - cmake ../
     - make
   artifacts:
     paths:
@@ -121,7 +121,7 @@ build:intel:normal:
   # Setting up 4 omp threads
   - export OMP_NUM_THREADS=8
   # Running the code with 2 MPI ranks (TODO: mpi needs to be tested to return to original values)
-  - mpirun -np 1 ${TITAN_DIR}/bin/titan_iff.exe
+  - mpirun -np 1 ${TITAN_DIR}/bin/titan_intel.exe
   # Printing any error file, if existing
   - if [ -f error* ] ; then grep -H '' error* ; fi
   # Printing runtime

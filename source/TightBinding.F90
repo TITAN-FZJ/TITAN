@@ -48,6 +48,11 @@ contains
     select case(tbmode)
     case(1)
       call get_SK_parameter(s,fermi_layer)
+      ! Transfering on-site from each AtomType to each Basis atom (used in the hamiltonian)
+      do i = 1, s%nAtoms
+        allocate(s%Basis(i)%onSite(s%Types(s%Basis(i)%Material)%nOrb,s%Types(s%Basis(i)%Material)%nOrb))
+        s%Basis(i)%onSite(:,:) = s%Types(s%Basis(i)%Material)%onSite(:,:)
+      end do
     case(2)
       call get_DFT_parameters(s,fermi_layer)
     case default
@@ -423,6 +428,9 @@ contains
     case default
       call log_error("readElementFile","Something wrong in the definition of 'U'.")
     end select
+
+    ! Not sure I need this print anymore
+    !write(*,*) "Un, Um", s%Types(n)%Un, s%Types(n)%Um
 
     ! Read Spin-Orbit interaction strength for p and d
     tmp_arr(1:2) = StoR(next_line("readElementFile",f_unit,"SOI strength"),2)
