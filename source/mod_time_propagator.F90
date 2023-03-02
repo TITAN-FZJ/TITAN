@@ -76,7 +76,7 @@ contains
     use mod_expectation,        only: expec_val_n,expec_H_n,expec_L_n,expec_torque_n
     use mod_Umatrix,            only: update_Umatrix
     use mod_magnet,             only: mzd0,mpd0,rhod0,rho0,mdvec_cartesian,mx,my,mz
-    use mod_tools,              only: KronProd,diagonalize,lwork,build_identity
+    use mod_tools,              only: KronProd,diagonalize,build_identity
     use mod_superconductivity,  only: allocate_supercond_variables
     use mod_hamiltonian,        only: calchk,hamilt_local,lfullhk,h0,fullhk
     use mod_logging,            only: log_warning
@@ -97,7 +97,7 @@ contains
     real(dp) :: t_cp,step_cp
 
     integer(int64)                          :: ik
-    integer(int32)                          :: ncount,ios,ilaenv
+    integer(int32)                          :: ncount,ios,ilaenv,lwork
     real(dp)                                :: weight, kp(3)
     real(dp),    dimension(s%nOrb,s%nAtoms) :: expec_0, expec_z
     complex(dp), dimension(s%nOrb,s%nAtoms) :: expec_p
@@ -121,12 +121,12 @@ contains
 
     real(dp)                                :: E_t, E_0
     complex(dp)                             :: exp_eval
-   
+
     external :: MPI_Allreduce,MPI_Barrier,ilaenv,endTITAN
 
     if(rFreq(1) == 0) &
       write(output%unit_loop,"('CALCULATING TIME-PROPAGATION')")
- 
+
     ! number of elements in the MPI communication
     ncount = s%nOrb*s%nAtoms
 
@@ -241,7 +241,7 @@ contains
 
         !$omp parallel do default(none) schedule(dynamic,1) &
         !$omp& private(Yn_e,Yn_new_e,Yn_hat_e,ik,n,i,kp,weight,hk,hkev,hamilt_nof,exp_eval,ERR_kn,Yn,Yn_new,Yn_hat,eval,expec_0,expec_p,expec_z,expec_d,E_0,lxm,lym,lzm,tso,txc) &
-        !$omp& shared(counter,step,s,t,it,id,tso_op,txc_op,dimHsc,realBZ,lfullhk,h0,fullhk,evec_kn_temp,evec_kn,eval_kn,use_checkpoint,lmagnetic,b_field,lelectric,A_t,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2) &
+        !$omp& shared(counter,step,s,t,it,id,tso_op,txc_op,dimHsc,lwork,realBZ,lfullhk,h0,fullhk,evec_kn_temp,evec_kn,eval_kn,use_checkpoint,lmagnetic,b_field,lelectric,A_t,b_fieldm,A_tm,b_field1,A_t1,b_field2,A_t2) &
         !$omp& reduction(+:rho_t,mp_t,mz_t,E_t,Lxm_t,Lym_t,Lzm_t,delta_sc_t,tso_t,txc_t,ERR)
         kpoints_loop: do ik = 1, realBZ%workload
           kp = realBZ%kp(:,ik)
@@ -257,7 +257,7 @@ contains
           if ((it==0).and.(.not.use_checkpoint)) then
             hkev = hk
             ! Diagonalizing the hamiltonian to obtain eigenvectors and eigenvalues
-            call diagonalize(dimHsc,hkev,eval)
+            call diagonalize(dimHsc,lwork,hkev,eval)
             eval_kn(:,ik) = eval(:)
             !>>>>> find eigenvalues again
             ! Improve step control by diagonalizing the Hamiltonian after some number of steps:

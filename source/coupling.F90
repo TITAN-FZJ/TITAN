@@ -34,7 +34,7 @@ subroutine coupling()
     call jij_energy(q,Jij)
 
     if(rField == 0) then
-      ! Print only Gamma point (and only once)
+      ! Print only gama point (and only once)
       if((vec_norm(q,3)<1.e-12_dp).and.(lprint)) then
 
         do i=1,s%nAtoms
@@ -57,7 +57,7 @@ subroutine coupling()
           ! Writing original full tensor Jij (in units of Ry)
           ! Only the transverse components are supposed to be non-zero (e.g., for m //z, only Jxx,Jxy,Jyx,Jyy)
           ! Relation between J_ii calculated and the position of the peak in the susceptibility:
-          ! w_res = 2*gamma*sqrt( (K_z-K_x)*(K_z-K_y) )/mz  - for m // z (local frame of reference)
+          ! w_res = 2*gama*sqrt( (K_z-K_x)*(K_z-K_y) )/mz  - for m // z (local frame of reference)
           ! where K_x = J_ii^xx/2 ; K_y = J_ii^yy/2 ; K_z = J_ii^zz/2
           ! K > 0 - easy axis ; K < 0 - hard axis
             if(i==j) then
@@ -90,7 +90,7 @@ subroutine coupling()
           end do
         end do
         lprint = .false.
-      end if ! Print only Gamma point (and only once)
+      end if ! Print only gama point (and only once)
 
       ! Writing into files
       ! Exchange interactions
@@ -110,13 +110,11 @@ end subroutine coupling
 
 subroutine real_coupling()
   use mod_kind,          only: dp, int64, int32
-  use mod_parameters,    only: output, cluster_layers, total_nkpt => kptotal_in, total_nqpt => qptotal_in, qp_in
-
-  ! use mod_parameters, only: kdirection,bsfile,wsfile
+  use mod_parameters,    only: output, cluster_layers, qp_in
   use mod_magnet,        only: mabs
   use mod_system,        only: s => sys, System_type
   use mod_tools,         only: vec_norm
-  use mod_mpi_pars,      only: abortProgram,rField,sField,FieldComm,FreqComm,ierr,MPI_Barrier
+  use mod_mpi_pars,      only: abortProgram,rField,sField,FieldComm,FreqComm,MPI_Barrier
   use adaptiveMesh,      only: genLocalEKMesh,freeLocalEKMesh
   use mod_Coupling,      only: Jij,Jij_q,allocateCoupling,deallocateCoupling,openRealCouplingFiles,closeCouplingFiles,writeCoupling
   use adaptiveMesh,      only: bzs
@@ -125,13 +123,13 @@ subroutine real_coupling()
   use Lattice,           only: initLattice
   use mod_progress,      only: write_time
   implicit none
-  integer  :: i,j,k, size, iw, counter
+  integer  :: i,j,k, sz, iw, counter
   integer(int64) :: iz
   integer(int32) :: stages
   integer  :: cell_index(3)
   real(dp) :: q(3)
-  real(dp), dimension(3) :: cell_vector, atom_vector ,norms_vec
-  real(dp) :: w, rx, ry, rz, r_norm, sphere_radius
+  real(dp), dimension(3) :: cell_vector, norms_vec
+  real(dp) :: w, rx, ry, rz, rx_0, ry_0, rz_0, r_norm, sphere_radius
   complex(dp) :: kpExp
   real(dp), dimension(:,:,:,:,:), allocatable :: Jij_real
   integer :: cells
@@ -171,72 +169,40 @@ subroutine real_coupling()
   ! Generate the q mesh. All processors will have a copy of ALL the points in the BZ
   call q_realBZ % setup_fraction(s,0, 1, FreqComm(1))
 
-  ! [To delete]
-  ! call realBZ % setup_fraction(s,0, 1, FreqComm(1))
-  ! write(*,*) q_realBZ % nkpt_x, q_realBZ % nkpt_y, q_realBZ % nkpt_z
-  ! call MPI_Barrier(FieldComm, ierr)
-  ! call q_realBZ % setup_fraction(s,0, 1, FreqComm(1))
-
-  if(rField == 0) then
-    write(*,*) "Qgrid"
-    write(*,*) q_realBZ % nkpt_x, q_realBZ % nkpt_y, q_realBZ % nkpt_z
-  end if
-  call MPI_Barrier(FieldComm, ierr)
-
-  if(rField == 0) then
-    write(*,*) "Kgrid"
-    ! write(*,*) realBZ % nkpt_x, realBZ % nkpt_y, realBZ % nkpt_z
-  end if
-  call MPI_Barrier(FieldComm, ierr)
-  ! [To delete]
-
   ! Generating the mesh of local points on the BZ zone
   call genLocalEKMesh(s,rField,sField, FieldComm,bzs)
   ! All processors will have a copy of all the points in the BZ after we call the function below
-  ! call realBZ % setup_fraction(s,0, 1, FreqComm(1))
 
   call allocateCoupling()
-
-  ! [To delete] temporary prints to terminal
-  if(rField == 0) then
-    write(*,*) "realBZ%workload", q_realBZ%workload
-    write(*,*) " total_nqpt = ", total_nqpt, total_nkpt
-    write(*,*) "Meshes generated"
-  end if
-  ! [To delete]
-
-! [To delete]
-  ! stop
-! [To delete]
   
   if(rField == 0) then
     call write_time('[real_coupling] Started Jij(q) calculation: ',output%unit_loop)
     open(unit=13131, file='jij_q.dat', status = 'replace')
+    open(unit=35012, file='Jijs.dat', status = 'replace')
     allocate(Jij_q(q_realBZ%workload,s%nAtoms,s%nAtoms,3,3))
   end if
 
   do iz=1,q_realBZ%workload
-    ! if(rField == 0) write(*,*) iz, " out of ", realBZ%workload
     if(rField == 0) write(output%unit,* ) iz, " out of ", q_realBZ%workload
     if(rField == 0) call write_time('[real_coupling] Step: ',output%unit_loop)
     q = q_realBZ%kp(1:3,iz)
-    ! w = realBZ%w(iz)
     ! Here we call the subroutine to calculate jij at point q. Inside the function
     ! it takes the local points k and calculates their share for the total Jij(k)
     call jij_energy(q,Jij)
     if(rField == 0) then
       Jij_q(iz,:,:,:,:) = Jij
-      write(13131,*) q_realBZ%w(iz), q, Jij(6,6,:,:)
+      write(13131,*) q_realBZ%w(iz), q, Jij(:,:,:,:) ! This line is targeting the 6th atom
     end if
   end do
 
   if(rField == 0) then
     close(13131)
+    close(35012)
     call write_time('[real_coupling] Finished Jij(q) calculation: ',output%unit_loop)
   end if
 
   stages = cluster_layers
-  size = 0
+  sz = 0
 
   if(rField ==0) then
     cells = (2*stages+1)**(s%isysdim)
@@ -249,13 +215,13 @@ subroutine real_coupling()
       norms_vec(3) = vec_norm(s%a3*cluster_layers, 3)
       ! The small value is to account for small numerical differences
       sphere_radius = 0.0000000001_dp + MINVAL(norms_vec)
-      write(*,*) "Radius = ", MINVAL(norms_vec), s%a1*cluster_layers
+      ! write(*,*) "Radius = ", MINVAL(norms_vec), s%a1*cluster_layers
     case(2)
       norms_vec(1) = vec_norm(s%a1*cluster_layers, 3)
       norms_vec(2) = vec_norm(s%a2*cluster_layers, 3)
       ! The small value is to account for small numerical differences
       sphere_radius = 0.0000000001_dp + MINVAL(norms_vec(1:2))
-      write(*,*) "Radius = ", sphere_radius, s%a1*cluster_layers, s%a2*cluster_layers
+      ! write(*,*) "Radius = ", sphere_radius, s%a1*cluster_layers, s%a2*cluster_layers
     case default
       ! The small value is to account for small numerical differences
       sphere_radius = 0.0000000001_dp + vec_norm(s%a1*cluster_layers, 3)
@@ -264,47 +230,38 @@ subroutine real_coupling()
     ! Checking which atoms are inside the sphere
     counter = 0
     do i = 1, cells
-      ! ...and atoms in the unit cell
-      do j = 1, s%nAtoms
-      ! "size" is the current atom
-      size = size + 1
+        ! ...and atoms in the unit cell
+        ! do j = 1, s%nAtoms
+        ! "sz" is the current atom
+        sz = sz + 1
 
-      select case(s%isysdim)
-      case(3)
-        cell_index(1) = mod( (i-1),(2*stages+1) ) - stages
-        cell_index(2) = mod( (i-1)/(2*stages+1),(2*stages+1) ) - stages
-        cell_index(3) = mod( (i-1)/((2*stages+1)*(2*stages+1)),(2*stages+1) ) - stages
-      case(2)
-        cell_index(1) = mod( (i-1),(2*stages+1) ) - stages
-        cell_index(2) = mod( (i-1)/(2*stages+1),(2*stages+1) ) - stages
-        cell_index(3) = 0
-      case default
-        cell_index(1) = mod( (i-1),(2*stages+1) ) - stages
-        cell_index(2) = 0
-        cell_index(3) = 0
-      end select
+        select case(s%isysdim)
+        case(3)
+            cell_index(1) = mod( (i-1),(2*stages+1) ) - stages
+            cell_index(2) = mod( (i-1)/(2*stages+1),(2*stages+1) ) - stages
+            cell_index(3) = mod( (i-1)/((2*stages+1)*(2*stages+1)),(2*stages+1) ) - stages
+        case(2)
+            cell_index(1) = mod( (i-1),(2*stages+1) ) - stages
+            cell_index(2) = mod( (i-1)/(2*stages+1),(2*stages+1) ) - stages
+            cell_index(3) = 0
+        case default
+            cell_index(1) = mod( (i-1),(2*stages+1) ) - stages
+            cell_index(2) = 0
+            cell_index(3) = 0
+        end select
 
-      cell_vector = cell_index(1) * s%a1 + cell_index(2) * s%a2 + cell_index(3) * s%a3
-      ! Atom position is r = R_i + r_j
-      atom_vector = s%Basis(j)%Position + cell_vector
+        cell_vector = cell_index(1) * s%a1 + cell_index(2) * s%a2 + cell_index(3) * s%a3
+        ! Atom position is r = R_i + r_j
+        ! atom_vector = s%Basis(j)%Position + cell_vector
 
-      ! write(*,*) cluster(size,:), "norm = ", vec_norm(atom_vector, 3), "Rad = ", sphere_radius, "Bool = ", vec_norm(atom_vector, 3) <= sphere_radius
-      if(vec_norm(cell_vector, 3) <= sphere_radius) then
-        counter = counter + 1
-      end if
+        ! write(*,*) cluster(sz,:), "norm = ", vec_norm(atom_vector, 3), "Rad = ", sphere_radius, "Bool = ", vec_norm(atom_vector, 3) <= sphere_radius
+        if(vec_norm(cell_vector, 3) <= sphere_radius) then
+            counter = counter + 1
+            ! write(*,*) cell_vector
+        end if
 
-      ! [To delete]
-      ! write(*,*) "cell_vector", cell_vector
-      ! write(*,*) "cluster(size,:)", cluster(size,:)
-      ! write(*,*) cluster(size,:), "norm = ", vec_norm(atom_vector, 3)
-      ! write(*,*) " "
-      ! [To delete]
-
-      end do
     end do
 
-    write(*,*) "cluster", counter
-    !
     if(allocated(cluster)) deallocate(cluster)
     allocate(cluster(counter,3))
     cluster = 0._dp
@@ -313,40 +270,38 @@ subroutine real_coupling()
     counter = 0
 
     do i = 1, cells
-      ! ...and atoms in the unit cell
-      do j = 1, s%nAtoms
-      ! "size" is the current atom
-      size = size + 1
+        ! ...and atoms in the unit cell
+        ! do j = 1, s%nAtoms
+        ! "sz" is the current atom
+        sz = sz + 1
 
-      select case(s%isysdim)
-      case(3)
-        cell_index(1) = mod( (i-1),(2*stages+1) ) - stages
-        cell_index(2) = mod( (i-1)/(2*stages+1),(2*stages+1) ) - stages
-        cell_index(3) = mod( (i-1)/((2*stages+1)*(2*stages+1)),(2*stages+1) ) - stages
-      case(2)
-        cell_index(1) = mod( (i-1),(2*stages+1) ) - stages
-        cell_index(2) = mod( (i-1)/(2*stages+1),(2*stages+1) ) - stages
-        cell_index(3) = 0
-      case default
-        cell_index(1) = mod( (i-1),(2*stages+1) ) - stages
-        cell_index(2) = 0
-        cell_index(3) = 0
-      end select
+        select case(s%isysdim)
+        case(3)
+            cell_index(1) = mod( (i-1),(2*stages+1) ) - stages
+            cell_index(2) = mod( (i-1)/(2*stages+1),(2*stages+1) ) - stages
+            cell_index(3) = mod( (i-1)/((2*stages+1)*(2*stages+1)),(2*stages+1) ) - stages
+        case(2)
+            cell_index(1) = mod( (i-1),(2*stages+1) ) - stages
+            cell_index(2) = mod( (i-1)/(2*stages+1),(2*stages+1) ) - stages
+            cell_index(3) = 0
+        case default
+            cell_index(1) = mod( (i-1),(2*stages+1) ) - stages
+            cell_index(2) = 0
+            cell_index(3) = 0
+        end select
 
-      cell_vector = cell_index(1) * s%a1 + cell_index(2) * s%a2 + cell_index(3) * s%a3
-      ! Atom position is r = R_i + r_j
-      atom_vector = s%Basis(j)%Position + cell_vector
+        cell_vector = cell_index(1) * s%a1 + cell_index(2) * s%a2 + cell_index(3) * s%a3
+        ! Atom position is r = R_i + r_j
+        ! atom_vector = s%Basis(j)%Position + cell_vector
 
-      ! write(*,*) cluster(size,:), "norm = ", vec_norm(atom_vector, 3), "Rad = ", sphere_radius, "Bool = ", vec_norm(atom_vector, 3) <= sphere_radius
-      if(vec_norm(cell_vector, 3) <= sphere_radius) then
-        counter = counter + 1
-        cluster(counter,:) = cell_vector
-        ! write(*,*) cluster(counter,:)
-      end if
+        ! write(*,*) cluster(sz,:), "norm = ", vec_norm(atom_vector, 3), "Rad = ", sphere_radius, "Bool = ", vec_norm(atom_vector, 3) <= sphere_radius
+        if(vec_norm(cell_vector, 3) <= sphere_radius) then
+            counter = counter + 1
+            cluster(counter,:) = cell_vector
+            ! cluster(counter,:) = atom_vector
+            ! write(*,*) cluster(counter,:)
+        end if
 
-      ! write(*,*) " "
-
-      end do
     end do
 
     call write_time('[real_coupling] Finished cluster generation: ',output%unit_loop)
@@ -359,9 +314,6 @@ subroutine real_coupling()
 
     Jij_real = 0._dp
 
-    ! [To delete]
-    ! write(*,*) "Positions"
-    ! [To delete]
     ! pragma omp for
     do k = 1, counter
       do iz=1,q_realBZ%workload
@@ -370,40 +322,40 @@ subroutine real_coupling()
         Jij_real(k,:,:,:,:) = Jij_real(k,:,:,:,:) + real(kpExp*w*Jij_q(iz,:,:,:,:))
       end do
 
-      ! [To delete]
-      ! write(*,*) "s%Neighbors(k)%CellVector", cluster(k,:)
-      ! write(*,*) " "
-      ! write(*,*) "Jij_real(r,:,:,:,:)", Jij_real(k,:,:,:,:)
-      ! write(*,*) " "
-      ! [To delete]
     end do
 
     ! Writing files
     do k = 1, counter
-      do j=1,s%nAtoms
-        do i=1,s%nAtoms
-          iw = 2000 + (j-1) * s%nAtoms * 2 + (i-1) * 2
-          if(i==j) then
-            iw = iw + 1
-            rx = cluster(k,1) !- s%Basis(j)%Position(1)
-            ry = cluster(k,2) !- s%Basis(j)%Position(2)
-            rz = cluster(k,3) !- s%Basis(j)%Position(3)
-            r_norm = SQRT(rx*rx + ry*ry + rz*rz)
-            write(unit=iw,fmt="(13(es16.9,2x))") rx, ry, rz ,r_norm,&
-            Jij_real(k,i,j,1,1),Jij_real(k,i,j,1,2), Jij_real(k,i,j,1,3), &
-            Jij_real(k,i,j,2,1), Jij_real(k,i,j,2,2), Jij_real(k,i,j,2,3), &
-            Jij_real(k,i,j,3,1), Jij_real(k,i,j,3,1), Jij_real(k,i,j,3,1)
-          else
-            iw = iw + 1
-            write(unit=iw,fmt="(13(es16.9,2x))") rx, ry, rz ,r_norm,&
-            Jij_real(k,i,j,1,1),Jij_real(k,i,j,1,2), Jij_real(k,i,j,1,3), &
-            Jij_real(k,i,j,2,1), Jij_real(k,i,j,2,2), Jij_real(k,i,j,2,3), &
-            Jij_real(k,i,j,3,1), Jij_real(k,i,j,3,1), Jij_real(k,i,j,3,1)
-            ! iw = iw + 1
-            ! write(unit=iw,fmt="(2(es16.9,2x))") q,Jija(i,j,1,2)
-          end if
+        do j=1,s%nAtoms
+            rx_0 = s%Basis(j)%Position(1)
+            ry_0 = s%Basis(j)%Position(2)
+            rz_0 = s%Basis(j)%Position(3)
+            do i=1,s%nAtoms
+                iw = 2000 + (j-1) * s%nAtoms * 2 + (i-1) * 2
+                if(i==j) then
+                    iw = iw + 1
+                    rx = cluster(k,1) + s%Basis(i)%Position(1)
+                    ry = cluster(k,2) + s%Basis(i)%Position(2)
+                    rz = cluster(k,3) + s%Basis(i)%Position(3)
+                    r_norm = SQRT((rx-rx_0)*(rx-rx_0) + (ry-ry_0)*(ry-ry_0) + (rz-rz_0)*(rz-rz_0))
+                    write(unit=iw,fmt="(13(es16.9,2x))") rx, ry, rz ,r_norm,&
+                    Jij_real(k,i,j,1,1),Jij_real(k,i,j,1,2), Jij_real(k,i,j,1,3), &
+                    Jij_real(k,i,j,2,1), Jij_real(k,i,j,2,2), Jij_real(k,i,j,2,3), &
+                    Jij_real(k,i,j,3,1), Jij_real(k,i,j,3,2), Jij_real(k,i,j,3,3)
+                else
+                    iw = iw + 1
+                    rx = cluster(k,1) + s%Basis(i)%Position(1)
+                    ry = cluster(k,2) + s%Basis(i)%Position(2)
+                    rz = cluster(k,3) + s%Basis(i)%Position(3)
+                    r_norm = SQRT((rx-rx_0)*(rx-rx_0) + (ry-ry_0)*(ry-ry_0) + (rz-rz_0)*(rz-rz_0))
+                    write(unit=iw,fmt="(13(es16.9,2x))") rx, ry, rz ,r_norm,&
+                    Jij_real(k,i,j,1,1),Jij_real(k,i,j,1,2), Jij_real(k,i,j,1,3), &
+                    Jij_real(k,i,j,2,1), Jij_real(k,i,j,2,2), Jij_real(k,i,j,2,3), &
+                    Jij_real(k,i,j,3,1), Jij_real(k,i,j,3,2), Jij_real(k,i,j,3,3)
+                end if
+            end do
         end do
-      end do
+      !end do
     end do
 
     call write_time('[real_coupling] Finished Fourier transform: ',output%unit_loop)

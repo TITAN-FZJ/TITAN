@@ -72,7 +72,7 @@ contains
         write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
         if(renorm) then
-        iw = iw+1000
+        iw = iw+s%nAtoms*7+1
         write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/r',a,'_pos=',i0,a,a,a,a,a,'_renormnb=',i0,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),filename(j),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),renormnb,trim(output%suffix)
         open (unit=iw, file=varm, status='replace', form='formatted')
         write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
@@ -80,7 +80,7 @@ contains
         end if
       end do
       ! Total disturbances files
-      iw = 3500+j
+      iw = j+2*s%nAtoms*7+1
       write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),filename(j),trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
       open (unit=iw, file=varm, status='replace', form='formatted')
       write(unit=iw, fmt="('#     energy    , amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  ')") filename(j),filename(j),filename(j),filename(j),filename(j),filename(j)
@@ -107,7 +107,7 @@ contains
         errt = errt + err
         if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
         if(renorm) then
-          iw = iw+1000
+          iw = iw+s%nAtoms*7+1
           write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/r',a,'_pos=',i0,a,a,a,a,a,'_renormnb=',i0,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),filename(j),i,trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),renormnb,trim(output%suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
@@ -115,7 +115,7 @@ contains
         end if
       end do
       ! Total disturbances files
-      iw = 3500+j
+      iw = j+2*s%nAtoms*7+1
       write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),filename(j),trim(output%Energy),trim(output%info),trim(output%BField),trim(output%SOC),trim(output%EField),trim(output%suffix)
       open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
       errt = errt + err
@@ -140,12 +140,12 @@ contains
         close(unit=iw)
 
         if(renorm) then
-          iw = iw+1000
+          iw = iw+s%nAtoms*7+1
           close(unit=iw)
         end if
       end do
       ! Total disturbances files
-      iw = 3500+j
+      iw = j+2*s%nAtoms*7+1
       close(unit=iw)
 
     end do
@@ -242,7 +242,7 @@ contains
     end do
 
     ! Writing total charge disturbance
-    iw = 3500
+    iw = 2*s%nAtoms*7+1
     do j=1,size(filename)
       if(abs(total_disturbances(j))>=1.e-15_dp) then
         phase  = atan2(aimag(total_disturbances(j)),real(total_disturbances(j)))
@@ -280,7 +280,7 @@ contains
         write(unit=iw, fmt="('#',a,', amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
         close(unit=iw)
         if(renorm) then
-          iw = iw+1000
+          iw = iw+s%nAtoms*7+1
           write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'r',a,'_',a,'_pos=',i0,a,a,a,a,a,'_renormnb=',i0,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(kount)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),renormnb,trim(output%suffix)
           open (unit=iw, file=varm, status='replace', form='formatted')
           write(unit=iw, fmt="('#',a,', amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
@@ -288,7 +288,7 @@ contains
         end if
       end do
       ! Total disturbances files
-      iw = 35000+j
+      iw = j+10*2*s%nAtoms*7+1
       write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(kount)),filename(j),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
       open (unit=iw, file=varm, status='replace', form='formatted')
       write(unit=iw, fmt="('#',a,', amplitude of ',a,' , real part of ',a,' , imag part of ',a,' ,  phase of ',a,'  ,  cosine of ',a,'  ,  sine of ',a,'  , mag angle theta , mag angle phi  ')") trim(dc_header),filename(j),filename(j),filename(j),filename(j),filename(j)
@@ -315,7 +315,7 @@ contains
         errt = errt + err
         if(err/=0) missing_files = trim(missing_files) // " " // trim(varm)
         if(renorm) then
-          iw = iw+1000
+          iw = iw+s%nAtoms*7+1
           write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,'r',a,'_',a,'_pos=',i0,a,a,a,a,a,'_renormnb=',i0,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(kount)),filename(j),trim(dcfield(dcfield_dependence)),i,trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),renormnb,trim(output%suffix)
           open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
           errt = errt + err
@@ -323,7 +323,7 @@ contains
         end if
       end do
       ! Total disturbances files
-      iw = 35000+j
+      iw = j+10*2*s%nAtoms*7+1
       write(varm,"('./results/',a1,'SOC/',a,'/',a,a,'/',a,a,'_',a,'_total',a,a,a,a,a,a,'.dat')") output%SOCchar,trim(output%Sites),trim(folder(j)),trim(output%hfr),trim(dcprefix(kount)),filename(j),trim(dcfield(dcfield_dependence)),trim(output%Energy),trim(output%info),trim(output%dcBField),trim(output%SOC),trim(output%EField),trim(output%suffix)
       open (unit=iw, file=varm, status='old', position='append', form='formatted', iostat=err)
       errt = errt + err
@@ -347,12 +347,12 @@ contains
         close(unit=iw)
 
         if(renorm) then
-          iw = iw+1000
+          iw = iw+s%nAtoms*7+1
           close(unit=iw)
         end if
       end do
       ! Total disturbances files
-      iw = 35000+j
+      iw = j+10*2*s%nAtoms*7+1
       close(unit=iw)
     end do
   end subroutine close_dc_disturbance_files
@@ -361,7 +361,7 @@ contains
     !! This subroutine write all the dc-limit disturbances into files
     !! (already opened with openclose_dc_disturbance_files(1))
     !! Some information may also be written on the screen
-    use mod_parameters, only: renorm,output,lwriteonscreen
+    use mod_parameters, only: output,lwriteonscreen
     use mod_magnet,     only: mvec_spherical, mtotal_spherical, dcfield, dcfield_dependence, dc_fields, hw_count
     use mod_System,     only: s => sys
     implicit none
@@ -424,27 +424,27 @@ contains
         write(unit=iw+j,fmt="(a,2x,8(es16.9,2x))") trim(dc_fields(hw_count)) , abs(disturbances(j,i)) , real(disturbances(j,i)) , aimag(disturbances(j,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
 
         ! Writing renormalized disturbances
-        if(renorm) then
-          if(abs(rdisturbances(j,i))>=1.e-15_dp) then
-            phase  = atan2(aimag(rdisturbances(j,i)),real(rdisturbances(j,i)))
-            if (phase <=1.e-15_dp) phase = 0._dp
-            sine   = real(rdisturbances(j,i))/abs(rdisturbances(j,i))
-            if (sine <=1.e-15_dp) sine = 0._dp
-            cosine = aimag(rdisturbances(j,i))/abs(rdisturbances(j,i))
-            if (cosine <=1.e-15_dp) cosine = 0._dp
-          else
-            phase  = 0._dp
-            sine   = 0._dp
-            cosine = 0._dp
-          end if
+        ! if(renorm) then
+        !   if(abs(rdisturbances(j,i))>=1.e-15_dp) then
+        !     phase  = atan2(aimag(rdisturbances(j,i)),real(rdisturbances(j,i)))
+        !     if (phase <=1.e-15_dp) phase = 0._dp
+        !     sine   = real(rdisturbances(j,i))/abs(rdisturbances(j,i))
+        !     if (sine <=1.e-15_dp) sine = 0._dp
+        !     cosine = aimag(rdisturbances(j,i))/abs(rdisturbances(j,i))
+        !     if (cosine <=1.e-15_dp) cosine = 0._dp
+        !   else
+        !     phase  = 0._dp
+        !     sine   = 0._dp
+        !     cosine = 0._dp
+        !   end if
 
-          write(unit=iw+1000+j,fmt="(a,2x,8(es16.9,2x))") trim(dc_fields(hw_count)) , abs(rdisturbances(j,i)) , real(rdisturbances(j,i)) , aimag(rdisturbances(j,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
-        end if
+        !   write(unit=iw+1000+j,fmt="(a,2x,8(es16.9,2x))") trim(dc_fields(hw_count)) , abs(rdisturbances(j,i)) , real(rdisturbances(j,i)) , aimag(rdisturbances(j,i)) , phase , sine , cosine , mvec_spherical(2,i) , mvec_spherical(3,i)
+        ! end if
       end do
     end do
 
     ! Writing total charge disturbance
-    iw = 35000
+    iw = 10*2*s%nAtoms*7+1
     do j=1,size(filename)
       if(abs(total_disturbances(j))>=1.e-15_dp) then
         phase  = atan2(aimag(total_disturbances(j)),real(total_disturbances(j)))
@@ -483,7 +483,7 @@ contains
     end if
 
     ! Sorting total disturbance
-    iw = 3500*idc
+    iw = idc*2*s%nAtoms*7+1
     do j=1,7
       call sort_file(iw+j)
     end do
@@ -498,8 +498,8 @@ contains
 
       ! Sorting renormalized disturbances
       if(renorm) then
-        do j=1001,1007
-        call sort_file(iw+j)
+        do j=1+2*s%nAtoms*7+1,7+2*s%nAtoms*7+1
+          call sort_file(iw+j)
         end do
       end if
     end do
