@@ -1,0 +1,24 @@
+ &control
+    calculation='scf'
+    restart_mode='from_scratch',
+    verbosity='high',
+    prefix='nb',
+    pseudo_dir = './'
+    outdir='./'
+ /
+ &system
+    ibrav=  3, celldm(1) =6.23610, nat= 1, ntyp= 1,
+    ecutwfc =25.0, ecutrho=250.0,
+    occupations='smearing', smearing='marzari-vanderbilt', degauss=0.05
+    nspin=2, starting_magnetization(1)=0.01
+ /
+ &electrons
+    conv_thr =  1.0d-8
+    mixing_beta = 0.7
+ /
+ATOMIC_SPECIES
+ Nb 92.9064 Nb.pbe-spn-kjpaw_psl.1.0.0.UPF
+ATOMIC_POSITIONS
+ Nb 0.00 0.00 0.00
+K_POINTS {automatic}
+ 48 48 48  0 0 0
