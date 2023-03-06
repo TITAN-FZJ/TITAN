@@ -1,0 +1,7 @@
+Nb
+o: s s px py pz px py pz dz2 dzx dyz dx2 dxy
+ 0.0         !Fermi level
+ 0.0 0.0     !Un and Um in eV
+ 0.0 0.0     !lambda_SOI for p and d orbitals
+ 0.0 0.0 0.0 !superconducting lambda
+
