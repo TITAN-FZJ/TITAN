@@ -1,7 +1,7 @@
  &projwfc
     prefix='nb'
     outdir='./'
-    filpdos='./pt'
+    filpdos='./nb'
     lwrite_overlaps = .false.
     lbinary_data  = .false.
  /
