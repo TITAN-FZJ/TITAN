@@ -529,6 +529,7 @@ build:page:
     - pip install sphinx-rtd-theme
     - pip install sphinx-tabs==3.2.0
     - pip install sphinx-panels
+    - pip install sphinx-last-updated-by-git
     - cd doc/
     - make html
   artifacts:
