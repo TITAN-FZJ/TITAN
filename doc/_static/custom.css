@@ -10,3 +10,10 @@ pre {
     list-style: none !important;
 }
 
+.bibtex-header {
+  background-color: rgba(0,0,0,0.03)
+}
+
+.bibtex-container {
+  background-color: #fff
+}

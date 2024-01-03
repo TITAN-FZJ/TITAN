@@ -528,7 +528,7 @@ build:page:
     - pip install sphinx
     - pip install sphinx-rtd-theme
     - pip install sphinx-tabs
-    - pip install sphinx-panels
+    - pip install sphinx-design
     - pip install sphinx-last-updated-by-git
     - cd doc/
     - make html

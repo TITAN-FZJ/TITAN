@@ -30,7 +30,7 @@ author = 'TITAN Developer Team'
 extensions = [ 
   'sphinx.ext.autosectionlabel', 
   'sphinx_tabs.tabs', 
-  'sphinx_panels',
+  'sphinx_design',
   'sphinx_last_updated_by_git'
   ]
 autosectionlabel_prefix_document = True
