@@ -1,12 +1,47 @@
-cff-version: 1.1.0
-message: "If you use this software, please cite it as below."
+cff-version: 1.2.0
+title: TITAN
+message: >-
+  If you use this software, please cite it using the
+  metadata from the CITATION.cff file.
+type: software
 authors:
-  - family-names: Souza Mendes Guimaraes
+  - family-names: Souza Mendes Guimarães
     given-names: Filipe
     orcid: https://orcid.org/0000-0002-5618-6727
+  - family-names: Suckert
+    given-names: Jens Renè
+    orcid: https://orcid.org/0000-0003-2961-8333
   - family-names: Aceves Rodriguez
     given-names: Uriel Allan
     orcid: https://orcid.org/0000-0001-9530-0441
-title: TITAN-FZJ/TITAN: Initial public version of TITAN
-version: v1.0.0
-date-released: 2023-06-30
+  - family-names: Hamamera
+    given-names: Hanan
+    orcid: https://orcid.org/0000-0003-3699-2200
+  - family-names: Brinker
+    given-names: Sascha
+    orcid: https://orcid.org/0000-0002-7077-1244
+  - family-names: Bouaziz
+    given-names: Juba
+    orcid: https://orcid.org/0000-0003-3605-0563
+  - family-names: dos Santos Dias
+    given-names: Manuel
+    orcid: https://orcid.org/0000-0002-8835-5580
+  - family-names: Lounis
+    given-names: Samir
+    orcid: https://orcid.org/0000-0003-2573-2841
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.8099072
+    description: The concept DOI of this software
+repository-code: 'https://github.com/TITAN-FZJ/TITAN'
+url: 'https://titan.iffgit.fz-juelich.de/TITAN/'
+keywords:
+  - band-structure
+  - tight-binding
+  - magnetism
+  - coupling
+  - excitation
+  - electronic-structure
+  - susceptibility
+  - exchange-interaction
+license: GPL-3.0-or-later

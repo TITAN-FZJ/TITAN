@@ -5,7 +5,9 @@
 **A**ngular momentum of
 **N**anostructures
 
-[![DOI](https://zenodo.org/badge/660536162.svg)](https://zenodo.org/badge/latestdoi/660536162)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8099072.svg)](https://doi.org/10.5281/zenodo.8099072)
+
+
 
 TITAN has been further developed under a closed repo, but we plan to release it in the near future. Temporary documentation can be found [here](https://titan.iffgit.fz-juelich.de/TITAN/)
 
