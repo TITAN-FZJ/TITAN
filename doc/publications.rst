@@ -13,13 +13,46 @@ However, we shall greatly appreciate if scientific work done using TITAN will co
 .. .. admonition:: `Ref. <link>`_
 ..     :class: publications
 
-..     | **Title**: 
-..     | **Authors**:
-..     | **Abstract**: 
+..     | **Title**:    <Title>
+..     | **Authors**:  <Author list>
+..     | **Abstract**: <Abstract>
 
-..     .. dropdown:: :fa:`copy` Bibtex entry
-..         :title: font-weight-bold
+..     .. dropdown:: Bibtex entry
+..         :class-container: bibtex-container
+..         :class-title: bibtex-header
+..         :icon: copy
 
+..         | @article{<...>,
+..         | ...
+..         | }
+
+
+.. admonition:: `Phys. Rev. B 107, 115402 (2023) <https://link.aps.org/doi/10.1103/PhysRevB.107.115402>`_
+    :class: publications
+
+    | **Title**:    Orbital magnetoelectric effect in nanoribbons of transition metal dichalcogenides
+    | **Authors**:  Tarik P. Cysne, Filipe S. M. Guimarães, Luis M. Canonico, Marcio Costa, Tatiana G. Rappoport, R. B. Muniz
+    | **Abstract**: The orbital magnetoelectric effect (OME) generically refers to the appearance of an orbital magnetization induced by an applied electric field. Here, we show that nanoribbons of transition metal dichalcogenides (TMDs) with zigzag edges may exhibit a sizable OME activated by an electric field applied along the ribbons' axis. We examine nanoribbons extracted from a monolayer (1L) and a bilayer (2L) of MoS2 in the trigonal structural phase. Transverse profiles of the induced orbital angular momentum accumulations are calculated to first order in the longitudinally applied electric field. Our results show that close to the nanoribbon's edge-state crossings energy, the orbital angular momentum accumulations take place mainly around the ribbons' edges. They have two contributions: one arising from the orbital Hall effect (OHE) and the other consisting in the OME. The former is transversely antisymmetric with respect to the principal axis of the nanoribbon, whereas the latter is symmetric and hence responsible for the resultant orbital magnetization induced in the system. We found that the orbital accumulation originating from the OHE for the 1L nanoribbon is approximately half that of a 2L nanoribbon. Furthermore, while the OME can reach fairly high values in 1L-TMD nanoribbons, it vanishes in the 2L ones that preserve spatial inversion symmetry. The microscopic features that justify our findings are also discussed.
+
+    .. dropdown:: Bibtex entry
+        :class-container: bibtex-container
+        :class-title: bibtex-header
+        :icon: copy
+
+        | @article{PhysRevB.107.115402,
+        | title = {Orbital magnetoelectric effect in nanoribbons of transition metal dichalcogenides},
+        | author = {Cysne, Tarik P. and Guimar\~aes, Filipe S. M. and Canonico, Luis M. and Costa, Marcio and Rappoport, Tatiana G. and Muniz, R. B.},
+        | journal = {Phys. Rev. B},
+        | volume = {107},
+        | issue = {11},
+        | pages = {115402},
+        | numpages = {15},
+        | year = {2023},
+        | month = {Mar},
+        | publisher = {American Physical Society},
+        | doi = {10.1103/PhysRevB.107.115402},
+        | url = {https://link.aps.org/doi/10.1103/PhysRevB.107.115402}
+        | }
 
 .. admonition:: `Commun. Phys. 5, 16 (2022) <https://doi.org/10.1038/s42005-021-00798-8>`_
     :class: publications
