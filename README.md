@@ -1,19 +1,17 @@
-![TIme-dependent Transport and Angular momentum of Nanostructures](doc/TITAN_logo_white_background.png)
+<img src="doc/TITAN_logo_white_background.png" alt="TIme-dependent Transport and Angular momentum of Nanostructures" width="300"/>
 
 **TI**me-dependent
 **T**ransport and
 **A**ngular momentum of
 **N**anostructures
 
+TITAN is publicly available under the GPLv3 license on [GitHub](https://github.com/TITAN-FZJ/TITAN/).
+
+A paper containing a detailed description of the method used in the code is in preparation. In the meantime, we shall greatly appreciate if scientific work done using **TITAN** will contain an explicit acknowledgement to the following reference:
+
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8099072.svg)](https://doi.org/10.5281/zenodo.8099072)
 
-
-
-TITAN has been further developed under a closed repo, but we plan to release it in the near future. Temporary documentation can be found [here](https://titan.iffgit.fz-juelich.de/TITAN/)
-
-A paper containing a detailed description of the method used in the code is in preparation. In the meantime, we shall greatly appreciate if scientific work done using **TITAN** will contain an explicit acknowledgement and the following reference:<br>
-F. S. M. Guimarães et al., Sci. Rep. 7, 3686 (2017)<br>
-https://www.nature.com/articles/s41598-017-03924-1
+Please also consider [other publications](https://titan.iffgit.fz-juelich.de/TITAN/publications.html) done using the code.
 
 Further documentation can be found at [https://titan.iffgit.fz-juelich.de/TITAN/](https://titan.iffgit.fz-juelich.de/TITAN/). The documentation is still in construction.
 
