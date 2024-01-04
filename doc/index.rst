@@ -7,6 +7,10 @@
 Welcome to TITAN's documentation!
 *********************************
 
+.. image:: https://zenodo.org/badge/660536162.svg
+  :target: https://zenodo.org/doi/10.5281/zenodo.8099072
+
+
 .. toctree::
    :maxdepth: -1
    :caption: Download and Install

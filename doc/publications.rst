@@ -6,8 +6,14 @@ Publications
 ************
 
 Here we list all the publications that were made using TITAN. 
-Currently, there is no specific publication about the code itself.
-However, we shall greatly appreciate if scientific work done using TITAN will contain an explicit acknowledgement of one or more of the following references.
+Currently, there is no specific publication about the code itself, but it may
+be cited using the DOI from Zenodo:
+
+.. image:: https://zenodo.org/badge/660536162.svg
+  :target: https://zenodo.org/doi/10.5281/zenodo.8099072
+
+Please also consider acknowledging the following references of other scientific works done using TITAN.
+If you want to have your work added here, :doc:`contact us <contact>`.
 
 .. Template: (uncomment the lines below only, and add the information)
 .. .. admonition:: `Ref. <link>`_

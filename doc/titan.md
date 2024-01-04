@@ -2,10 +2,10 @@ project: TITAN
 summary: Time-dependent Transport and Angular momentum of Nanostructures
 src_dir: ../source/
 output_dir: ./ford
-project_github: https://github.com/filipesmg/titan
+project_github: https://github.com/TITAN-FZJ/TITAN
 project_website: https://titan.iffgit.fz-juelich.de/TITAN/
 author: TITAN Developer Team
-github: https://github.com/filipesmg
+github: https://github.com/TITAN-FZJ
 email: f.guimaraes@fz-juelich.de
 extensions: F90
 preprocess: true

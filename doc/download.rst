@@ -5,9 +5,12 @@
 Download
 ********
 
-TITAN is planned to be open source. An initial version is available "as is" in `GitHub <http://github.com/filipesmg/TITAN>`_.
-However, the most updated version of TITAN is currently under close development.
-Hopefully, we wil be able to release in the near future. 
-Please :doc:`contact us<contact>` if you have interest in using it.
+The latest version of TITAN is available open source under the GPLv3 license on `GitHub <https://github.com/TITAN-FZJ/TITAN>`_.
 
+It can be cloned via:
 
+.. code-block:: text
+
+    git clone https://github.com/TITAN-FZJ/TITAN.git
+
+See the :doc:`installation instructions <installation>`.

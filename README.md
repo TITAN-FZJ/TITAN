@@ -1,4 +1,4 @@
-<h1> TITAN </h1>
+![TIme-dependent Transport and Angular momentum of Nanostructures](doc/TITAN_logo_white_background.png)
 
 **TI**me-dependent
 **T**ransport and
