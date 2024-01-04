@@ -33,7 +33,6 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.8099072
     description: The concept DOI of this software
-repository-code: 'https://github.com/TITAN-FZJ/TITAN'
 url: 'https://titan.iffgit.fz-juelich.de/TITAN/'
 keywords:
   - band-structure
