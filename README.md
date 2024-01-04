@@ -1,4 +1,4 @@
-![TIme-dependent Transport and Angular momentum of Nanostructures](doc/TITAN_logo_white_background.png)
+<img src="doc/TITAN_logo_white_background.png" alt="TIme-dependent Transport and Angular momentum of Nanostructures" width="300"/>
 
 **TI**me-dependent
 **T**ransport and
